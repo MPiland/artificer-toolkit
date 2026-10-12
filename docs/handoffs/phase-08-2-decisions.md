@@ -664,6 +664,15 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
     - A player receives senses only on tokens they control. The GM receives every token's senses.
   - **The renderer draws geometry, not a per-cell grid.** It draws light polygons clipped by walls, plus the zone polygons, composed in the precedence order above. Tests check the drawn result against `resolveSceneIlluminationAt` at sample points, so the picture cannot drift from the rules.
 
+* **D109** (2026-10-12) Profile visibility (ACCOUNTS-8.4; answers open question Q4). Product rule decided by the product owner 2026-10-12; the contract is Claude's under the AGENTS.md escalation rules.
+  - **Setting:** each account chooses Private (the default) or Public in profile settings. It saves on its own, apart from the username and bio form.
+  - **Private:** only the owner sees the profile.
+  - **Public:** any signed-in account can open the owner's profile page (`/profiles/<username>`) and see exactly these fields: the displayed username, the avatar (a short-lived signed URL, issued only under the same visibility rule) and the bio. Email, account ids, preferences, entitlements and every other account detail stay owner-only. Anonymous callers never see a profile.
+  - **Switching back to Private** denies the next read at once, and open pages update through their subscription.
+  - **Indistinguishable denial:** a Private profile, an unknown username and a banned or deleted account return the same empty result. A timed ban hides the profile only until `banExpires`; once it passes, the profile shows again under its visibility setting (the same rule as sign-in).
+  - **Stored:** `userProfiles.profileVisibility`; an absent value means Private, so existing and new accounts need no write. One helper reads it for every read path.
+  - **Unchanged:** the minimal identity on Social listings, applications, blocks and reports (`profilePublicId` and username) is not affected by this setting.
+
 ## Approved implementation decisions
 
 - **D70 (2026-09-29): packed history with indexed receipt headers. Decision maker: Codex.**

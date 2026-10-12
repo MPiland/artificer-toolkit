@@ -1,6 +1,7 @@
 import { act, screen, waitFor } from '@testing-library/react'
 import { getFunctionName } from 'convex/server'
 import { describe, expect, it, vi } from 'vitest'
+import { api } from '@artificer-toolkit/apis/convex/api'
 import type { CampaignContentUsageDto } from '@artificer-toolkit/schema/api/campaignCore'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { CampaignContentUsage } from './CampaignContentUsage'
@@ -14,7 +15,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@convex-dev/react-query', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@convex-dev/react-query')>()),
   convexQuery: (reference: Parameters<typeof getFunctionName>[0], args: { id: string }) => {
-    if (getFunctionName(reference) !== 'campaigns/queries:contentUsage')
+    if (getFunctionName(reference) !== getFunctionName(api.campaigns.queries.contentUsage))
       throw new Error(`Unexpected query ${getFunctionName(reference)}`)
     return {
       queryKey: ['contentUsage', args.id],

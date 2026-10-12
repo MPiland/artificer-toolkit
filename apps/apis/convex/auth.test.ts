@@ -320,21 +320,24 @@ describe('Convex identity foundation', () => {
     ).rejects.toThrow('Unauthenticated')
     await expect(callerA.query(api.account.profile, {})).resolves.toEqual({
       username: null,
-      bio: null
+      bio: null,
+      visibility: 'PRIVATE'
     })
     await expect(
       callerA.mutation(api.account.updateProfile, {
         username: ' MapReader ',
         bio: '  Hello!  '
       })
-    ).resolves.toEqual({ username: 'MapReader', bio: 'Hello!' })
+    ).resolves.toEqual({ username: 'MapReader', bio: 'Hello!', visibility: 'PRIVATE' })
     await expect(callerA.query(api.account.profile, {})).resolves.toEqual({
       username: 'MapReader',
-      bio: 'Hello!'
+      bio: 'Hello!',
+      visibility: 'PRIVATE'
     })
     await expect(callerB.query(api.account.profile, {})).resolves.toEqual({
       username: null,
-      bio: null
+      bio: null,
+      visibility: 'PRIVATE'
     })
     const storedUser = await t.run((ctx) =>
       ctx.runQuery(components.betterAuth.adapter.findOne, {
@@ -348,7 +351,8 @@ describe('Convex identity foundation', () => {
     })
     await expect(callerA.mutation(api.account.updateProfile, { bio: '  ' })).resolves.toEqual({
       username: 'MapReader',
-      bio: null
+      bio: null,
+      visibility: 'PRIVATE'
     })
     expect((await callerA.query(api.account.session, {})).user?.username).toBe('MapReader')
   })
@@ -388,7 +392,8 @@ describe('Convex identity foundation', () => {
     }
     await expect(caller.query(api.account.profile, {})).resolves.toEqual({
       username: null,
-      bio: null
+      bio: null,
+      visibility: 'PRIVATE'
     })
     await t.run((ctx) =>
       ctx.runMutation(components.betterAuth.adapter.deleteOne, {
@@ -436,18 +441,20 @@ describe('Convex identity foundation', () => {
     ).rejects.toThrow()
     await expect(callerA.query(api.account.profile, {})).resolves.toEqual({
       username: 'RiverScout',
-      bio: 'First'
+      bio: 'First',
+      visibility: 'PRIVATE'
     })
     await expect(callerB.query(api.account.profile, {})).resolves.toEqual({
       username: 'ForestScout',
-      bio: 'Second'
+      bio: 'Second',
+      visibility: 'PRIVATE'
     })
     await expect(
       callerA.mutation(api.account.updateProfile, {
         username: 'RIVERSCOUT',
         bio: 'Same owner'
       })
-    ).resolves.toEqual({ username: 'RIVERSCOUT', bio: 'Same owner' })
+    ).resolves.toEqual({ username: 'RIVERSCOUT', bio: 'Same owner', visibility: 'PRIVATE' })
     await t.run((ctx) =>
       ctx.runMutation(components.betterAuth.adapter.updateOne, {
         input: {
@@ -490,7 +497,8 @@ describe('Convex identity foundation', () => {
 
     await expect(caller.query(api.account.profile, {})).resolves.toEqual({
       username: 'DeltaReader',
-      bio: 'Before'
+      bio: 'Before',
+      visibility: 'PRIVATE'
     })
     const storedUser = await t.run((ctx) =>
       ctx.runQuery(components.betterAuth.adapter.findOne, {

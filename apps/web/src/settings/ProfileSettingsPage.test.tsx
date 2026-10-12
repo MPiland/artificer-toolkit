@@ -1,13 +1,18 @@
 import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import { notifications } from '@mantine/notifications'
 import { getFunctionName } from 'convex/server'
-import type { AccountProfileDto } from '@artificer-toolkit/schema/api/account'
+import { api } from '@artificer-toolkit/apis/convex/api'
+import {
+  accountProfileDtoSchema,
+  type AccountProfileDto
+} from '@artificer-toolkit/schema/api/account'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 
 const mocks = vi.hoisted(() => ({
   profile: vi.fn(),
   updateProfile: vi.fn(),
+  setVisibility: vi.fn(),
   usernameStatus: vi.fn(),
   useQueries: vi.fn(),
   useMutation: vi.fn(),
@@ -32,16 +37,26 @@ vi.mock('#app/auth/betterAuthClient', () => ({
 
 import { ProfileSettingsPage } from './ProfileSettingsPage'
 
+function profileFixture(overrides: Partial<AccountProfileDto> = {}) {
+  return accountProfileDtoSchema.parse({
+    username: 'morgan',
+    bio: 'Forge keeper.',
+    visibility: 'PRIVATE',
+    ...overrides
+  })
+}
+
 describe('ProfileSettingsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mocks.profile.mockReturnValue({
-      username: 'morgan',
-      bio: 'Forge keeper.'
-    })
+    mocks.profile.mockReturnValue(profileFixture())
     mocks.usernameStatus.mockResolvedValue({ data: { available: true }, error: null })
     mocks.useQueries.mockImplementation(() => ({ profile: mocks.profile() }))
-    mocks.useMutation.mockReturnValue(mocks.updateProfile)
+    mocks.useMutation.mockImplementation((reference) =>
+      getFunctionName(reference) === getFunctionName(api.account.setProfileVisibility)
+        ? mocks.setVisibility
+        : mocks.updateProfile
+    )
     mocks.useConvexAuth.mockReturnValue({ isLoading: false, isAuthenticated: true })
     vi.spyOn(notifications, 'show').mockReturnValue('profile-notification')
   })
@@ -70,10 +85,7 @@ describe('ProfileSettingsPage', () => {
       )
       expect(screen.getByRole('textbox', { name: /^bio/i })).toHaveValue('Forge keeper.')
       act(() => {
-        mocks.profile.mockReturnValue({
-          username: 'morgan',
-          bio: 'Received a subscription update.'
-        })
+        mocks.profile.mockReturnValue(profileFixture({ bio: 'Received a subscription update.' }))
         for (const listener of listeners) listener()
       })
       expect(screen.getByRole('textbox', { name: /^bio/i })).toHaveValue(
@@ -94,10 +106,7 @@ describe('ProfileSettingsPage', () => {
   })
 
   it('omits an unchanged username when saving the bio', async () => {
-    mocks.updateProfile.mockResolvedValue({
-      username: 'morgan',
-      bio: 'Builds worlds.'
-    })
+    mocks.updateProfile.mockResolvedValue(profileFixture({ bio: 'Builds worlds.' }))
     renderWithAppProviders(<ProfileSettingsPage userId='user-1' />)
 
     expect(await screen.findByRole('textbox', { name: /^username/i })).not.toHaveAttribute(
@@ -117,13 +126,15 @@ describe('ProfileSettingsPage', () => {
     expect(mocks.usernameStatus).not.toHaveBeenCalled()
     const [queries] = mocks.useQueries.mock.lastCall ?? []
     expect(queries.profile.args).toEqual({})
-    expect(getFunctionName(queries.profile.query)).toBe('account:profile')
-    expect(getFunctionName(mocks.useMutation.mock.lastCall?.[0])).toBe('account:updateProfile')
+    expect(getFunctionName(queries.profile.query)).toBe(getFunctionName(api.account.profile))
+    expect(mocks.useMutation.mock.calls.map(([reference]) => getFunctionName(reference))).toContain(
+      getFunctionName(api.account.updateProfile)
+    )
   })
 
   it('submits a case-only username rename without an availability lookup', async () => {
-    mocks.profile.mockReturnValue({ username: 'morgan', bio: null })
-    mocks.updateProfile.mockResolvedValueOnce({ username: 'Morgan', bio: null })
+    mocks.profile.mockReturnValue(profileFixture({ bio: null }))
+    mocks.updateProfile.mockResolvedValueOnce(profileFixture({ username: 'Morgan', bio: null }))
     renderWithAppProviders(<ProfileSettingsPage userId='user-1' />)
 
     const username = await screen.findByRole('textbox', { name: /^username/i })
@@ -137,7 +148,7 @@ describe('ProfileSettingsPage', () => {
   })
 
   it('checks availability before an ordinary username rename', async () => {
-    mocks.updateProfile.mockResolvedValueOnce({ username: 'new_morgan', bio: 'Forge keeper.' })
+    mocks.updateProfile.mockResolvedValueOnce(profileFixture({ username: 'new_morgan' }))
     renderWithAppProviders(<ProfileSettingsPage userId='user-1' />)
 
     fireEvent.change(await screen.findByRole('textbox', { name: /^username/i }), {
@@ -173,7 +184,7 @@ describe('ProfileSettingsPage', () => {
 
   it.each([
     new Error('private backend details'),
-    { username: 'morgan', bio: null, email: 'private@example.com' }
+    { username: 'morgan', bio: null, visibility: 'PRIVATE', email: 'private@example.com' }
   ])('shows a safe error instead of rendering a failed or malformed profile', (result) => {
     mocks.profile.mockReturnValue(result)
     renderWithAppProviders(<ProfileSettingsPage userId='user-1' />)
@@ -183,19 +194,21 @@ describe('ProfileSettingsPage', () => {
 
   it('reflects reactive updates in clean fields without overwriting an edited field', () => {
     const view = renderWithAppProviders(<ProfileSettingsPage userId='user-1' />)
-    mocks.profile.mockReturnValue({ username: 'morgan', bio: 'Updated on another device.' })
+    mocks.profile.mockReturnValue(profileFixture({ bio: 'Updated on another device.' }))
     view.rerender(<ProfileSettingsPage userId='user-1' />)
     expect(screen.getByRole('textbox', { name: /^bio/i })).toHaveValue('Updated on another device.')
 
     fireEvent.change(screen.getByRole('textbox', { name: /^bio/i }), {
       target: { value: 'My unsaved edit.' }
     })
-    mocks.profile.mockReturnValue({ username: 'Morgan', bio: 'Another server update.' })
+    mocks.profile.mockReturnValue(
+      profileFixture({ username: 'Morgan', bio: 'Another server update.' })
+    )
     view.rerender(<ProfileSettingsPage userId='user-1' />)
     expect(screen.getByRole('textbox', { name: /^username/i })).toHaveValue('Morgan')
     expect(screen.getByRole('textbox', { name: /^bio/i })).toHaveValue('My unsaved edit.')
 
-    mocks.profile.mockReturnValue({ username: 'another_user', bio: null })
+    mocks.profile.mockReturnValue(profileFixture({ username: 'another_user', bio: null }))
     view.rerender(<ProfileSettingsPage userId='user-2' />)
     expect(screen.getByRole('textbox', { name: /^username/i })).toHaveValue('another_user')
     expect(screen.getByRole('textbox', { name: /^bio/i })).toHaveValue('')
@@ -231,7 +244,7 @@ describe('ProfileSettingsPage', () => {
     fireEvent.change(bio, { target: { value: 'Second edit.' } })
 
     await act(async () => {
-      const committed = { username: 'morgan', bio: 'First edit.' }
+      const committed = profileFixture({ bio: 'First edit.' })
       mocks.profile.mockReturnValue(committed)
       if (!completeSave) throw new Error('Save resolver was not initialized')
       completeSave(committed)
@@ -258,5 +271,67 @@ describe('ProfileSettingsPage', () => {
     expect(await screen.findByText(message)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Save profile' })).toBeDisabled()
     expect(mocks.updateProfile).not.toHaveBeenCalled()
+  })
+
+  describe('profile visibility', () => {
+    it('shows the current visibility and no public link while Private', async () => {
+      renderWithAppProviders(<ProfileSettingsPage userId='user-1' />)
+
+      expect(await screen.findByRole('radio', { name: 'Private' })).toBeChecked()
+      expect(screen.getByRole('radio', { name: 'Public' })).not.toBeChecked()
+      expect(screen.queryByRole('link', { name: 'View public profile' })).not.toBeInTheDocument()
+    })
+
+    it('saves the chosen visibility immediately, independent of the bio form', async () => {
+      mocks.setVisibility.mockResolvedValue(null)
+      renderWithAppProviders(<ProfileSettingsPage userId='user-1' />)
+
+      fireEvent.click(await screen.findByRole('radio', { name: 'Public' }))
+
+      await waitFor(() => expect(mocks.setVisibility).toHaveBeenCalledTimes(1))
+      expect(mocks.setVisibility.mock.lastCall?.[0]).toEqual({ visibility: 'PUBLIC' })
+      expect(mocks.updateProfile).not.toHaveBeenCalled()
+    })
+
+    it('links to the public profile only while Public and follows the subscription', async () => {
+      mocks.profile.mockReturnValue(profileFixture({ visibility: 'PUBLIC' }))
+      const view = renderWithAppProviders(<ProfileSettingsPage userId='user-1' />)
+
+      expect(await screen.findByRole('radio', { name: 'Public' })).toBeChecked()
+      expect(screen.getByRole('link', { name: 'View public profile' })).toHaveAttribute(
+        'href',
+        '/profiles/morgan'
+      )
+
+      mocks.profile.mockReturnValue(profileFixture({ visibility: 'PRIVATE' }))
+      view.rerender(<ProfileSettingsPage userId='user-1' />)
+      expect(screen.getByRole('radio', { name: 'Private' })).toBeChecked()
+      expect(screen.queryByRole('link', { name: 'View public profile' })).not.toBeInTheDocument()
+    })
+
+    it('disables the control while saving and reports a failed save', async () => {
+      let rejectSave: ((error: Error) => void) | undefined
+      mocks.setVisibility.mockReturnValueOnce(
+        new Promise((_, reject) => {
+          rejectSave = reject
+        })
+      )
+      renderWithAppProviders(<ProfileSettingsPage userId='user-1' />)
+
+      fireEvent.click(await screen.findByRole('radio', { name: 'Public' }))
+      await waitFor(() => expect(screen.getByRole('radio', { name: 'Public' })).toBeDisabled())
+      await act(async () => {
+        rejectSave?.(new Error('private backend details'))
+      })
+
+      await waitFor(() =>
+        expect(notifications.show).toHaveBeenCalledWith({
+          color: 'red',
+          message: 'Could not change your profile visibility. Try again.'
+        })
+      )
+      expect(screen.getByRole('radio', { name: 'Private' })).toBeChecked()
+      expect(screen.getByRole('radio', { name: 'Public' })).toBeEnabled()
+    })
   })
 })

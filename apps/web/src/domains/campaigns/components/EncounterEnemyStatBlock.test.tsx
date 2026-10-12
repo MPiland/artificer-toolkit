@@ -1,6 +1,9 @@
 import { screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import type { EncounterGmActorDto } from '@artificer-toolkit/schema/api/encounters'
+import {
+  encounterGmActorDtoSchema,
+  type EncounterGmActorDto
+} from '@artificer-toolkit/schema/api/encounters'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { tabletopGmEncounter } from '../vtt/CampaignTabletop.stories.fixtures'
 
@@ -32,7 +35,7 @@ import { EncounterEnemyStatBlock } from './EncounterEnemyStatBlock'
 const enemy = tabletopGmEncounter.actors.find((actor) => actor.kind === 'CREATURE')!
 
 function actorWith(statBlock: Partial<NonNullable<EncounterGmActorDto['statBlock']>>) {
-  return {
+  return encounterGmActorDtoSchema.parse({
     ...enemy,
     systemId: '00000000-0000-4000-8000-000000000001',
     statBlock: {
@@ -47,7 +50,7 @@ function actorWith(statBlock: Partial<NonNullable<EncounterGmActorDto['statBlock
       conditionImmunities: [],
       ...statBlock
     }
-  } satisfies EncounterGmActorDto
+  })
 }
 
 describe('EncounterEnemyStatBlock defenses', () => {

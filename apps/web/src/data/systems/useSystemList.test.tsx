@@ -1,7 +1,9 @@
 import type { SystemListPageDto } from '@artificer-toolkit/schema/api/systems'
 import { systemListPageInputDtoSchema } from '@artificer-toolkit/schema/api/systems'
+import { api } from '@artificer-toolkit/apis/convex/api'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { act, renderHook, waitFor } from '@testing-library/react'
+import { getFunctionName } from 'convex/server'
 import type { ReactNode } from 'react'
 import { afterEach, expect, it, vi } from 'vitest'
 import { authoredRouteStorySystems } from '#domains/authoredRouteStory.fixtures'
@@ -30,7 +32,7 @@ function setup(
   enabled = true
 ) {
   const queryFn = vi.fn(({ queryKey }: { queryKey: readonly unknown[] }) => {
-    expect(queryKey[1]).toBe('content/systems:list')
+    expect(queryKey[1]).toBe(getFunctionName(api.content.systems.list))
     const input = systemListPageInputDtoSchema.parse(queryKey[2])
     expect(input.limit).toBe(10)
     return read(input.cursor)

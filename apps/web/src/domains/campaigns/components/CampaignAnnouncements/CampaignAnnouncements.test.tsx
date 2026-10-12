@@ -2,6 +2,7 @@ import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { getFunctionName } from 'convex/server'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { api } from '@artificer-toolkit/apis/convex/api'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { createCampaignDetail } from '../../campaignDetail.fixtures'
 import { CampaignAnnouncements } from './CampaignAnnouncements'
@@ -57,7 +58,8 @@ vi.mock('@tanstack/react-query', async (importOriginal) => ({
 vi.mock('convex/react', async (importOriginal) => ({
   ...(await importOriginal<typeof import('convex/react')>()),
   useMutation: (reference: Parameters<typeof getFunctionName>[0]) => {
-    if (getFunctionName(reference) === 'campaigns/announcements:create') return mocks.create
+    if (getFunctionName(reference) === getFunctionName(api.campaigns.announcements.create))
+      return mocks.create
     throw new Error(`Unexpected mutation: ${getFunctionName(reference)}`)
   },
   usePaginatedQuery: (...args: unknown[]) => {

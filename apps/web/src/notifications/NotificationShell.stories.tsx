@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useConvexAuth, useMutation as useConvexMutation } from 'convex/react'
 import { getFunctionName } from 'convex/server'
 import { expect, mocked, userEvent, waitFor, within } from 'storybook/test'
+import { api } from '@artificer-toolkit/apis/convex/api'
 import { notificationFeedQuery } from '#app/data/notifications'
 import { Shell } from '#app/shell/Shell'
 import { storybookNavigation } from '#app/shell/navigation'
@@ -29,7 +30,10 @@ const meta = {
       const mutate: ReturnType<typeof useConvexMutation> = Object.assign(
         async () => {
           const name = getFunctionName(reference)
-          if (name !== 'notifications:markAllSeen' && name !== 'notifications:markRead') {
+          if (
+            name !== getFunctionName(api.notifications.markAllSeen) &&
+            name !== getFunctionName(api.notifications.markRead)
+          ) {
             throw new Error(`Unexpected native mutation ${name}`)
           }
           return { ok: true }

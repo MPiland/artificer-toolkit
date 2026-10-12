@@ -10,13 +10,13 @@ import { z } from 'zod'
 import {
   createSocialListingInputSchema,
   updateSocialListingInputSchema,
-  socialListingVersionInputSchema,
-  type SocialListingDto
+  socialListingDtoSchema,
+  socialListingVersionInputSchema
 } from '@artificer-toolkit/schema/api/socialHub'
 import { expect, fn, mocked, userEvent, waitFor, within } from 'storybook/test'
 import { SocialListingFormPage } from './SocialListingFormPage'
 
-const listing: SocialListingDto = {
+const listing = socialListingDtoSchema.parse({
   listingPublicId: 'aaaaaaaa-1111-4111-8111-111111111111',
   host: { profilePublicId: 'bbbbbbbb-2222-4222-8222-222222222222', username: 'HarborHost' },
   title: 'The Glass Harbor',
@@ -52,6 +52,13 @@ const listing: SocialListingDto = {
   isFree: true,
   publishedAt: null,
   version: 2
+})
+const names = {
+  create: getFunctionName(api.social.listingDrafts.create),
+  remove: getFunctionName(api.social.listingDrafts.remove),
+  update: getFunctionName(api.social.listings.update),
+  open: getFunctionName(api.social.listings.open),
+  close: getFunctionName(api.social.listings.close)
 }
 const writes = fn()
 const more = fn()
@@ -63,7 +70,7 @@ function Fixture({ creating = false }: { creating?: boolean }) {
     listingPublicId: listing.listingPublicId
   }).queryKey
   queryClient.setQueryDefaults(listingKey, { queryFn: async () => server.current })
-  queryClient.setQueryDefaults(['convexQuery', 'content/systems:list'], {
+  queryClient.setQueryDefaults(['convexQuery', getFunctionName(api.content.systems.list)], {
     queryFn: async () => ({
       page: [
         {
@@ -78,7 +85,7 @@ function Fixture({ creating = false }: { creating?: boolean }) {
     })
   })
   mocked(usePaginatedQuery).mockImplementation((reference, args) => {
-    if (getFunctionName(reference) !== 'campaigns/queries:list')
+    if (getFunctionName(reference) !== getFunctionName(api.campaigns.queries.list))
       throw new Error('Unexpected native list')
     return {
       results:
@@ -108,15 +115,15 @@ function Fixture({ creating = false }: { creating?: boolean }) {
       async (args?: unknown) => {
         const name = getFunctionName(reference)
         writes(name, args)
-        if (name === 'social/listingDrafts:create') {
+        if (name === names.create) {
           z.object({ input: createSocialListingInputSchema }).parse(args)
           throw new Error('Creation unavailable.')
         }
-        if (name === 'social/listingDrafts:remove') {
+        if (name === names.remove) {
           socialListingVersionInputSchema.parse(args)
           throw new Error('Deletion unavailable.')
         }
-        if (name === 'social/listings:update') {
+        if (name === names.update) {
           const { input } = z.object({ input: updateSocialListingInputSchema }).parse(args)
           if (input.expectedVersion !== server.current.version)
             throw new Error('Listing changed. Reload before saving.')
@@ -128,13 +135,13 @@ function Fixture({ creating = false }: { creating?: boolean }) {
           }
           return server.current
         }
-        if (name !== 'social/listings:open' && name !== 'social/listings:close')
+        if (name !== names.open && name !== names.close)
           throw new Error('Unexpected native mutation')
         const input = socialListingVersionInputSchema.parse(args)
         if (input.expectedVersion !== server.current.version) throw new Error('Listing changed.')
         server.current = {
           ...server.current,
-          status: name === 'social/listings:open' ? 'OPEN' : 'CLOSED',
+          status: name === names.open ? 'OPEN' : 'CLOSED',
           version: server.current.version + 1
         }
         return server.current
@@ -185,7 +192,7 @@ export const SaveOpenCloseAndReturnToDraft: Story = {
     await userEvent.click(canvas.getByRole('button', { name: 'Save listing' }))
     await waitFor(() => expect(canvas.getByRole('button', { name: 'Open listing' })).toBeEnabled())
     await expect(writes).toHaveBeenCalledWith(
-      'social/listings:update',
+      names.update,
       expect.objectContaining({
         input: expect.objectContaining({
           listingPublicId: listing.listingPublicId,
@@ -198,16 +205,16 @@ export const SaveOpenCloseAndReturnToDraft: Story = {
     await userEvent.click(await canvas.findByRole('button', { name: 'Close listing' }))
     await userEvent.click(await canvas.findByRole('button', { name: 'Return to draft' }))
     await waitFor(() => expect(canvas.getByRole('button', { name: 'Open listing' })).toBeEnabled())
-    await expect(writes).toHaveBeenCalledWith('social/listings:open', {
+    await expect(writes).toHaveBeenCalledWith(names.open, {
       listingPublicId: listing.listingPublicId,
       expectedVersion: 3
     })
-    await expect(writes).toHaveBeenCalledWith('social/listings:close', {
+    await expect(writes).toHaveBeenCalledWith(names.close, {
       listingPublicId: listing.listingPublicId,
       expectedVersion: 4
     })
     await expect(writes).toHaveBeenLastCalledWith(
-      'social/listings:update',
+      names.update,
       expect.objectContaining({ input: expect.objectContaining({ expectedVersion: 5 }) })
     )
   }
@@ -222,7 +229,7 @@ export const LiveConflictAndDeleteFailureKeepDraft: Story = {
     await userEvent.click(canvas.getByRole('button', { name: 'Save listing' }))
     await expect(await canvas.findByText('Listing changed. Reload before saving.')).toBeVisible()
     await expect(writes).toHaveBeenLastCalledWith(
-      'social/listings:update',
+      names.update,
       expect.objectContaining({ input: expect.objectContaining({ expectedVersion: 2 }) })
     )
     const originalConfirm = window.confirm
@@ -231,7 +238,7 @@ export const LiveConflictAndDeleteFailureKeepDraft: Story = {
       await userEvent.click(canvas.getByRole('button', { name: 'Delete draft' }))
       await expect(await canvas.findByText('Deletion unavailable.')).toBeVisible()
       await expect(summary).toHaveValue(`${listing.summary} Unsaved work.`)
-      await expect(writes).toHaveBeenLastCalledWith('social/listingDrafts:remove', {
+      await expect(writes).toHaveBeenLastCalledWith(names.remove, {
         listingPublicId: listing.listingPublicId,
         expectedVersion: 2
       })
@@ -267,7 +274,7 @@ export const CreateFromLaterCampaignPage: Story = {
     }
     await userEvent.click(canvas.getByRole('button', { name: 'Save listing' }))
     await expect(await canvas.findByText('Creation unavailable.')).toBeVisible()
-    await expect(writes).toHaveBeenLastCalledWith('social/listingDrafts:create', {
+    await expect(writes).toHaveBeenLastCalledWith(names.create, {
       input: expect.objectContaining({
         campaignId: 'dddddddd-4444-4444-8444-444444444444',
         systemId: listing.system.systemId,

@@ -6,19 +6,19 @@ import { getFunctionName } from 'convex/server'
 import { api } from '@artificer-toolkit/apis/convex/api'
 import {
   updateSocialContentPreferenceInputSchema,
-  type SocialEligibilityDto
+  socialEligibilityDtoSchema
 } from '@artificer-toolkit/schema/api/socialHub'
 import { z } from 'zod'
 import { expect, fn, mocked, userEvent, waitFor, within } from 'storybook/test'
 import { MatureContentPreference } from './MatureContentPreference'
 
-const initial: SocialEligibilityDto = {
+const initial = socialEligibilityDtoSchema.parse({
   eligible: true,
   profilePublicId: 'aaaaaaaa-1111-4111-8111-111111111111',
   adultAttestedAt: null,
   contentPreference: 'STANDARD',
   status: 'ACTIVE'
-}
+})
 const update = fn()
 const meta = {
   title: 'Settings/Native Social preference',
@@ -34,7 +34,9 @@ const meta = {
       mocked(useConvexMutation).mockImplementation((reference) => {
         const mutate: ReturnType<typeof useConvexMutation> = Object.assign(
           async (args?: unknown) => {
-            if (getFunctionName(reference) !== 'social/profiles:updatePreference')
+            if (
+              getFunctionName(reference) !== getFunctionName(api.social.profiles.updatePreference)
+            )
               throw new Error('Unexpected native mutation')
             const { input } = z
               .object({ input: updateSocialContentPreferenceInputSchema })

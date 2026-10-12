@@ -19,14 +19,39 @@ const nullableTrimmedText = (maxLength: number) =>
     z.transform((value) => value || null)
   )
 
+/** PRIVATE (the default) shows the profile to its owner only; PUBLIC shows it to any signed-in account. */
+export const profileVisibilitySchema = lazySchema(() => z.enum(['PRIVATE', 'PUBLIC']))
+
+export type ProfileVisibilityDto = z.infer<typeof profileVisibilitySchema>
+
 export const accountProfileDtoSchema = lazySchema(() =>
   z.strictObject({
     username: z.nullable(usernameInputSchema),
-    bio: z.nullable(z.string().check(z.maxLength(500)))
+    bio: z.nullable(z.string().check(z.maxLength(500))),
+    visibility: profileVisibilitySchema
   })
 )
 
 export type AccountProfileDto = z.infer<typeof accountProfileDtoSchema>
+
+export const accountProfileVisibilityInputSchema = lazySchema(() =>
+  z.strictObject({ visibility: profileVisibilitySchema })
+)
+
+export const publicProfileInputSchema = lazySchema(() =>
+  z.strictObject({ username: usernameInputSchema })
+)
+
+/** What a signed-in stranger may see of a PUBLIC profile: never email, ids or preferences. */
+export const publicProfileDtoSchema = lazySchema(() =>
+  z.strictObject({
+    username: usernameInputSchema,
+    bio: z.nullable(z.string().check(z.maxLength(500))),
+    avatarRevision: z.nullable(z.number())
+  })
+)
+
+export type PublicProfileDto = z.infer<typeof publicProfileDtoSchema>
 
 export const accountProfileUpdateInputSchema = lazySchema(() =>
   z.strictObject({

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { AuthSessionUserDto } from '@artificer-toolkit/schema/api/auth'
+import { authSessionUserDtoSchema } from '@artificer-toolkit/schema/api/auth'
 import { getRouter } from '#app/router'
 
 const constructorOptions = vi.hoisted(() => vi.fn())
@@ -29,14 +29,14 @@ describe('router context security', () => {
   })
 
   it('does not serialize auth tokens into the route payload context', () => {
-    const user = {
+    const user = authSessionUserDtoSchema.parse({
       authoringExperience: 'guided',
       email: 'player@example.com',
       registrationCompleted: true,
       role: 'user',
       userId: '018f4a3e-712b-7c0d-8f88-6a0e5ef00d11',
       username: 'player_one'
-    } satisfies AuthSessionUserDto
+    })
     const payload = JSON.stringify(getRouter(user).options.context)
 
     expect(payload).not.toContain('accessToken')

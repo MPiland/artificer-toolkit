@@ -8,7 +8,8 @@ import {
   saveReusableDefinitionDraftInputDtoSchema,
   publishReusableDefinitionDraftInputDtoSchema
 } from '@artificer-toolkit/schema/api/reusableDefinitions'
-import type { GameSystemRuleCapabilityDto } from '@artificer-toolkit/schema/api/rulesRuntime'
+import { gameSystemRuleCapabilityDtoSchema } from '@artificer-toolkit/schema/api/rulesRuntime'
+import { api } from '@artificer-toolkit/apis/convex/api'
 import {
   getSystem,
   getSystemRuleCapability,
@@ -41,14 +42,14 @@ const systemSummary = {
   ]
 }
 
-const capability = {
+const capability = gameSystemRuleCapabilityDtoSchema.parse({
   gameSystemId: systemId,
   contractVersion: 1,
   authoredRootKinds: ['effect'],
   definitionFamilyKeys: ['sense', 'rules-runtime-graph'],
   factContracts: [{ key: 'actor.level', valueKind: 'NUMBER' }],
   operationContracts: [{ key: 'number.add', contractVersion: 1 }]
-} satisfies GameSystemRuleCapabilityDto
+})
 
 let workspace = createDefinitionWorkspace()
 
@@ -78,24 +79,24 @@ const meta = {
       queryClient.setQueryDefaults(getSystemDefinitions(systemId).queryKey, {
         queryFn: async () => page()
       })
-      queryClient.setQueryDefaults(['convexQuery', 'content/definitions:get'], {
+      queryClient.setQueryDefaults(['convexQuery', getFunctionName(api.content.definitions.get)], {
         queryFn: async () => workspace
       })
       mocked(useConvexMutation).mockImplementation((reference) => {
         const mutate: ReturnType<typeof useConvexMutation> = Object.assign(
           async (input?: unknown) => {
             switch (getFunctionName(reference)) {
-              case 'content/definitions:create': {
+              case getFunctionName(api.content.definitions.create): {
                 const values = createReusableDefinitionInputDtoSchema.parse(input)
                 workspace = createDefinitionWorkspace({ ...values, id: crypto.randomUUID() })
                 break
               }
-              case 'content/definitions:saveDraft': {
+              case getFunctionName(api.content.definitions.saveDraft): {
                 const values = saveReusableDefinitionDraftInputDtoSchema.parse(input)
                 workspace = withDefinitionDraft(workspace, values.document)
                 break
               }
-              case 'content/definitions:publish':
+              case getFunctionName(api.content.definitions.publish):
                 publishReusableDefinitionDraftInputDtoSchema.parse(input)
                 workspace = withDefinitionPublication(workspace)
                 break

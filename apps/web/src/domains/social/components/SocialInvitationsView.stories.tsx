@@ -2,7 +2,9 @@ import type { Meta, StoryObj } from '@storybook/tanstack-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useMutation as useConvexMutation, usePaginatedQuery } from 'convex/react'
 import { getFunctionName } from 'convex/server'
+import { api } from '@artificer-toolkit/apis/convex/api'
 import {
+  campaignInviteDtoSchema,
   campaignInviteVersionInputSchema,
   type CampaignInviteDto
 } from '@artificer-toolkit/schema/api/campaignCore'
@@ -11,20 +13,25 @@ import { useState } from 'react'
 import { SocialInvitationsView } from './SocialInvitationsView'
 
 const invitePublicId = 'aaaaaaaa-0000-4000-8000-000000000004'
-const invitation: CampaignInviteDto = {
+const invitation = campaignInviteDtoSchema.parse({
   invitePublicId,
   listingPublicId: '00000000-0000-4000-8000-000000000002',
   listingTitle: 'The Glass Harbor',
   hostProfilePublicId: '00000000-0000-4000-8000-000000000005',
   hostUsername: 'harbormaster',
   recipientUsername: 'pathfinder',
-  status: 'PENDING' as const,
+  status: 'PENDING',
   expiresAt: '2024-04-08T18:30:00.000Z',
   respondedAt: null,
   createdAt: '2024-04-01T11:30:00.000Z',
   version: 1
-}
+})
 
+const names = {
+  getReceived: getFunctionName(api.social.invitationReads.getReceived),
+  accept: getFunctionName(api.social.invitations.accept),
+  decline: getFunctionName(api.social.invitations.decline)
+}
 const action = fn<(name: string, input: unknown) => void>()
 function Fixture({
   missing = false,
@@ -38,7 +45,7 @@ function Fixture({
   const [status, setStatus] = useState<CampaignInviteDto['status']>(expired ? 'EXPIRED' : 'PENDING')
   const current = { ...invitation, status }
   const queryClient = useQueryClient()
-  queryClient.setQueryDefaults(['convexQuery', 'social/invitationReads:getReceived'], {
+  queryClient.setQueryDefaults(['convexQuery', names.getReceived], {
     retry: false,
     queryFn: async () => {
       if (missing) throw new Error('Unavailable')
@@ -57,10 +64,10 @@ function Fixture({
         const name = getFunctionName(reference)
         action(name, campaignInviteVersionInputSchema.parse(input))
         if (fail) throw new Error('Invitation action failed.')
-        const next = name === 'social/invitations:accept' ? 'ACCEPTED' : 'DECLINED'
+        const next = name === names.accept ? 'ACCEPTED' : 'DECLINED'
         setStatus(next)
         queryClient.setQueriesData(
-          { queryKey: ['convexQuery', 'social/invitationReads:getReceived'] },
+          { queryKey: ['convexQuery', names.getReceived] },
           { ...invitation, status: next }
         )
         return null
@@ -105,7 +112,7 @@ export const MissingDeepLink: Story = {
 export const AcceptInvitation: Story = {
   play: async ({ canvas }) => {
     await userEvent.click(await canvas.findByRole('button', { name: 'Accept' }))
-    await expect(action).toHaveBeenCalledWith('social/invitations:accept', {
+    await expect(action).toHaveBeenCalledWith(names.accept, {
       invitePublicId,
       expectedVersion: 1
     })
@@ -117,7 +124,7 @@ export const DeclineFailure: Story = {
   play: async ({ canvas }) => {
     await userEvent.click(await canvas.findByRole('button', { name: 'Decline' }))
     await expect(await canvas.findByText('Invitation action failed.')).toBeVisible()
-    await expect(action).toHaveBeenCalledWith('social/invitations:decline', {
+    await expect(action).toHaveBeenCalledWith(names.decline, {
       invitePublicId,
       expectedVersion: 1
     })

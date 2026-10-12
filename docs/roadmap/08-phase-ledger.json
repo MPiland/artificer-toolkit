@@ -139,37 +139,60 @@
         {
           "id": "PLATFORM-4",
           "title": "Upload, view and delete images and files",
-          "status": "IN_PROGRESS",
-          "journeyTests": ["apps/apis/convex/media/library.test.ts"],
-          "journeyStatus": "partial",
-          "journeyGap": "No upload claim, finalize, signed read and cleanup run for profile and art images; vttMap.test.ts covers that sequence for maps only.",
+          "status": "DONE",
+          "journeyTests": [
+            "apps/apis/convex/media/avatar.test.ts",
+            "apps/apis/convex/media/authoredAssets.test.ts",
+            "apps/apis/convex/media/library.test.ts"
+          ],
+          "journeyStatus": "verified",
           "origin": ["F14", "PLT-1"],
           "acs": [
             {
               "text": "Upload claims bind caller, target, profile, type, size and expiry for avatars, Character portraits, authored images in all eight domains.",
               "status": "DONE",
-              "proof": [".codex/validation/phase82-f14-final/acceptance.md"],
+              "proof": [
+                "apps/apis/convex/media/authoredAssets.test.ts › binds a $subjectKind artwork upload to the owning caller and draft",
+                "apps/apis/convex/media/avatar.test.ts › enforces quota atomically and rejects client identity or storage-key injection",
+                "apps/apis/convex/media/library.test.ts › attaches only the caller’s own ready content art, under each slot’s own write rules",
+                ".codex/validation/phase82-f14-final/acceptance.md"
+              ],
               "origin": ["F14.1"],
               "id": "PLATFORM-4.1"
             },
             {
               "text": "Finalization reauthorizes, validates bytes, applies shared processing and quotas, and attaches only current fenced results.",
               "status": "DONE",
-              "proof": [".codex/validation/phase82-f14-final/acceptance.md"],
+              "proof": [
+                "apps/apis/convex/media/avatar.test.ts › rejects forged processing outputs, competing avatar updates, and revoked-session settlement",
+                "apps/apis/convex/media/avatar.test.ts › leaves the current avatar intact on invalid bytes and releases failed-upload storage",
+                "apps/apis/convex/media/authoredAssets.test.ts › rejects stale settlement after draft discard and keeps the prior draft artwork on failed processing",
+                ".codex/validation/phase82-f14-final/acceptance.md"
+              ],
               "origin": ["F14.2"],
               "id": "PLATFORM-4.2"
             },
             {
               "text": "Signed reads enforce current ownership or membership.",
               "status": "DONE",
-              "proof": [".codex/validation/phase82-f14-final/acceptance.md"],
+              "proof": [
+                "apps/apis/convex/media/authoredAssets.test.ts › binds a $subjectKind artwork upload to the owning caller and draft",
+                "apps/apis/convex/media/characterPortrait.test.ts › lets only active members read the portrait of a Character assigned in their Campaign",
+                "apps/apis/convex/media/library.test.ts › lists only the caller’s ready images of one class, newest first, and previews them owner-only",
+                ".codex/validation/phase82-f14-final/acceptance.md"
+              ],
               "origin": ["F14.3"],
               "id": "PLATFORM-4.3"
             },
             {
               "text": "Reference-aware cleanup retries provider failures and keeps keys until the provider acknowledges deletion.",
               "status": "DONE",
-              "proof": [".codex/validation/phase82-f14-final/acceptance.md"],
+              "proof": [
+                "apps/apis/convex/media/avatar.test.ts › retains deletion obligations beyond four failed attempts and recovers after R2 returns",
+                "apps/apis/convex/media/authoredAssets.test.ts › deletes published artwork bytes and quota only after its last draft and active reference is gone",
+                "apps/apis/convex/media/library.test.ts › keeps a shared asset while any reference remains, then retires it once after grace",
+                ".codex/validation/phase82-f14-final/acceptance.md"
+              ],
               "origin": ["F14.4"],
               "id": "PLATFORM-4.4"
             }
@@ -419,7 +442,13 @@
             {
               "text": "Web tests run real contracts: fixtures and story data parse through the shared DTO schemas, mocks use the real generated api references, and the Sheet harness takes its rest preview from the real projection",
               "status": "IN_PROGRESS",
-              "proof": [],
+              "proof": [
+                "apps/web/src/domains/fixtureContracts.test.ts",
+                "apps/web/src/domains/characters/sheet/rest/CharacterSheetRestMulticlass.test.tsx › offers mixed hit dice and the Max HP adjustment in the short rest",
+                "apps/web/src/domains/characters/sheet/rest/CharacterSheetRestControl.test.tsx",
+                "apps/web/src/domains/characters/builder/evaluation/builderEvaluator.test.ts"
+              ],
+              "note": "Lane 2 (2026-10-12) completed every web folder except campaigns/vtt: mocks use generated api refs, fixtures and story data parse through DTO schemas, and Sheet rest previews come from the real rules-runtime projection (playedCharacters.fixture.ts). Open: (1) the campaigns/vtt violations listed in docs/handoffs/lane-2-platform-closeout.md; (2) post-merge Storybook runs of the Rest, MarketingProductCapture and Builder Native Draft stories, which cannot start in a worktree.",
               "origin": ["REL-10"],
               "id": "PLATFORM-12.1"
             }
@@ -673,10 +702,9 @@
         {
           "id": "ACCOUNTS-2",
           "title": "Signup stays closed unless the server opens it",
-          "status": "IN_PROGRESS",
-          "journeyTests": ["apps/apis/convex/auth.test.ts"],
-          "journeyStatus": "partial",
-          "journeyGap": "The closed default flag is tested; a rejected real signup attempt is not.",
+          "status": "DONE",
+          "journeyTests": ["apps/apis/convex/accountJourneys.test.ts", "apps/apis/convex/auth.test.ts"],
+          "journeyStatus": "verified",
           "origin": ["F04"],
           "acs": [
             {
@@ -689,7 +717,10 @@
             {
               "text": "Real Better Auth email/password signup is rejected with EMAIL_PASSWORD_SIGN_UP_DISABLED, with no test bypass.",
               "status": "DONE",
-              "proof": [".codex/validation/phase82-foundation/local-http-smoke-2.log"],
+              "proof": [
+                "apps/apis/convex/accountJourneys.test.ts › rejects a real signup while the signup flag is unset and creates no account or email",
+                ".codex/validation/phase82-foundation/local-http-smoke-2.log"
+              ],
               "origin": ["F04.2"],
               "id": "ACCOUNTS-2.2"
             }
@@ -698,29 +729,36 @@
         {
           "id": "ACCOUNTS-3",
           "title": "Create an account with a verified email",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "journeyTests": [
+            "apps/apis/convex/accountJourneys.test.ts",
             "apps/apis/convex/auth.test.ts",
             "apps/web/tests/e2e/app/authConfirmation.spec.ts"
           ],
-          "journeyStatus": "partial",
-          "journeyGap": "Verification links and the confirmation page are tested separately; there is no single signup-to-verified-session run.",
+          "journeyStatus": "verified",
           "origin": ["F05"],
           "acs": [
             {
               "text": "Signup, email link capture and verification complete over real local HTTP, followed by email and username login.",
               "status": "DONE",
               "proof": [
+                "apps/apis/convex/accountJourneys.test.ts › signs up, verifies the emailed link, logs in by email and username, reads with a native bearer JWT and signs out",
                 ".codex/validation/phase82-f05-final/acceptance.md",
                 ".codex/validation/phase82-signup/progress.md"
               ],
+              "note": "The repo proof drives the real Better Auth HTTP handler in-process (convex-test), not over a local socket; the real-local-HTTP run is the historical .codex evidence.",
               "origin": ["F05.1"],
               "id": "ACCOUNTS-3.1"
             },
             {
               "text": "A verified account makes protected native bearer/JWT reads; recovery and revocation work and signup bypass is denied.",
               "status": "DONE",
-              "proof": [".codex/validation/phase82-f05-final/acceptance.md"],
+              "proof": [
+                "apps/apis/convex/accountJourneys.test.ts › signs up, verifies the emailed link, logs in by email and username, reads with a native bearer JWT and signs out",
+                "apps/apis/convex/accountJourneys.test.ts › recovers a verified account by emailed code: the new password signs in, the old one and old sessions fail",
+                "apps/apis/convex/accountJourneys.test.ts › rejects a real signup while the signup flag is unset and creates no account or email",
+                ".codex/validation/phase82-f05-final/acceptance.md"
+              ],
               "origin": ["F05.2"],
               "id": "ACCOUNTS-3.2"
             },

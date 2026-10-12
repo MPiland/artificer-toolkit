@@ -2,10 +2,11 @@ import type { Meta, StoryObj } from '@storybook/tanstack-react'
 import { expect, userEvent, waitFor, within } from 'storybook/test'
 import type { CharacterSheetResponseDto } from '@artificer-toolkit/schema/api/characters'
 import { characterSheetMulticlassFixture } from '#domains/characters/sheet/fixtures/characterRest.fixtures'
+import { createMulticlassSheet } from '#domains/characters/sheet/fixtures/playedCharacters.fixture'
 import { characterSheetFixture } from '#domains/characters/sheet/fixtures/characterSheet.fixtures'
 import type { CharacterSheetTabId } from '#domains/characters/sheet/core/CharacterSheet.types'
 import { CharacterSheetFixtureView as CharacterSheetView } from '#domains/characters/sheet/fixtures/CharacterSheetFixtureView'
-import { mockHitDieRoll } from '#domains/characters/sheet/fixtures/characterSheetStory.fixture'
+import { mockMulticlassHitDieRoll } from '#domains/characters/sheet/fixtures/characterSheetStory.fixture'
 import { mockSheetRestPreview } from '#domains/characters/sheet/fixtures/characterSheetNativeStory.fixture'
 import { Shell, platformNavigation } from '#app/shell'
 
@@ -76,12 +77,10 @@ export const CharacterSheetShortRest: Story = {
     await waitFor(() => expect(addD8).toBeEnabled())
     await userEvent.click(addD8)
     await expect(
-      await within(dialog).findByRole('button', { name: 'Roll 1d10 + 1d8 + 4' })
+      await within(dialog).findByRole('button', { name: 'Roll 1d10 + 1d8 + 2' })
     ).toBeVisible()
   },
-  render: () => (
-    <CharacterSheetCapture initialTab='actions' sheet={characterSheetMulticlassFixture} />
-  )
+  render: () => <CharacterSheetCapture initialTab='actions' sheet={createMulticlassSheet()} />
 }
 
 export const CharacterSheetShortRestMobile: Story = {
@@ -95,15 +94,16 @@ export const CharacterSheetShortRestMobile: Story = {
 
 export const CharacterSheetShortRestRolled: Story = {
   ...CharacterSheetShortRest,
-  beforeEach: mockHitDieRoll,
+  beforeEach: mockMulticlassHitDieRoll,
   play: async (context) => {
     await CharacterSheetShortRest.play?.(context)
     const dialog = await within(context.canvasElement.ownerDocument.body).findByRole('dialog', {
       name: 'Short Rest'
     })
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Roll 1d10 + 1d8 + 4' }))
-    const rolledLabels = await within(dialog).findAllByText('15 rolled', {}, { timeout: 20_000 })
-    await expect(rolledLabels[0]).toBeVisible()
-    await expect(within(dialog).getByText('6 HP selected')).toBeVisible()
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Roll 1d10 + 1d8 + 2' }))
+    await expect(
+      await within(dialog).findByText('13 rolled', {}, { timeout: 20_000 })
+    ).toBeVisible()
+    await expect(within(dialog).getByText('12 HP selected')).toBeVisible()
   }
 }

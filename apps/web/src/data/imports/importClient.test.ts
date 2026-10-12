@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ConvexReactClient } from 'convex/react'
 import { getFunctionName } from 'convex/server'
+import { api } from '@artificer-toolkit/apis/convex/api'
 import {
   commitImport,
   exportAuthoredContent,
@@ -59,7 +60,9 @@ describe('native import transport', () => {
       client
     )
 
-    expect(getFunctionName(action.mock.calls[0]![0])).toBe('imports/preview:create')
+    expect(getFunctionName(action.mock.calls[0]![0])).toBe(
+      getFunctionName(api.imports.preview.create)
+    )
     expect(fetch).not.toHaveBeenCalled()
   })
 
@@ -92,15 +95,21 @@ describe('native import transport', () => {
       client
     )
 
-    expect(getFunctionName(mutation.mock.calls[0]![0])).toBe('imports/uploads:create')
+    expect(getFunctionName(mutation.mock.calls[0]![0])).toBe(
+      getFunctionName(api.imports.uploads.create)
+    )
     expect(mutation.mock.calls[0]![1]).toMatchObject({ declaredBytes: 15, entryId: 'file-1' })
     expect(fetch).toHaveBeenCalledWith(
       'https://upload.example.invalid',
       expect.objectContaining({ body: '{"kind":"FEAT"}', method: 'POST' })
     )
-    expect(getFunctionName(mutation.mock.calls[1]![0])).toBe('imports/uploads:finalize')
+    expect(getFunctionName(mutation.mock.calls[1]![0])).toBe(
+      getFunctionName(api.imports.uploads.finalize)
+    )
     expect(mutation.mock.calls[1]![1]).toEqual({ claimId, storageId: 'storage-id' })
-    expect(getFunctionName(action.mock.calls[0]![0])).toBe('imports/preview:create')
+    expect(getFunctionName(action.mock.calls[0]![0])).toBe(
+      getFunctionName(api.imports.preview.create)
+    )
     expect(action.mock.calls[0]![1]).toMatchObject({
       input: { entries: [{ claimId, entryId: 'file-1', name: 'content.json' }] }
     })
@@ -129,9 +138,13 @@ describe('native import transport', () => {
       )
     ).resolves.toEqual(result)
 
-    expect(getFunctionName(mutation.mock.calls[0]![0])).toBe('imports/jobs:begin')
+    expect(getFunctionName(mutation.mock.calls[0]![0])).toBe(
+      getFunctionName(api.imports.jobs.begin)
+    )
     expect(mutation.mock.calls[0]![1]).toMatchObject({ previewId, selectedEntryIds: ['file-1'] })
-    expect(getFunctionName(query.mock.calls[0]![0])).toBe('imports/jobs:progress')
+    expect(getFunctionName(query.mock.calls[0]![0])).toBe(
+      getFunctionName(api.imports.jobs.progress)
+    )
   })
 
   it('rejects a terminal import failure', async () => {
@@ -194,7 +207,7 @@ describe('authored export transport', () => {
     vi.stubGlobal('fetch', fetch)
     const request = { subjectKind, id: 'public-id', view: 'draft' as const }
     expect(await exportAuthoredContent(request, client)).toEqual(content)
-    expect(getFunctionName(query.mock.calls[0]![0])).toBe('content/exports:get')
+    expect(getFunctionName(query.mock.calls[0]![0])).toBe(getFunctionName(api.content.exports.get))
     expect(query.mock.calls[0]![1]).toEqual(request)
     expect(fetch).not.toHaveBeenCalled()
   })

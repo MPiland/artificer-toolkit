@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { convexQuery } from '@convex-dev/react-query'
 import { api } from '@artificer-toolkit/apis/convex/api'
 import {
+  socialApplicationDtoSchema,
   socialApplicationVersionInputSchema,
   type SocialApplicationDto,
   type SocialApplicationVersionInput
@@ -12,7 +13,7 @@ import { getFunctionName } from 'convex/server'
 import { expect, fn, mocked, userEvent, within } from 'storybook/test'
 import { SocialApplicationsView } from './SocialApplicationsView'
 
-const application = {
+const application = socialApplicationDtoSchema.parse({
   applicationPublicId: 'aaaaaaaa-2222-4222-8222-222222222222',
   listingPublicId: '33333333-3333-4333-8333-333333333333',
   listingTitle: 'Ashen Road',
@@ -32,14 +33,14 @@ const application = {
   submittedAt: '2026-09-01T00:00:00.000Z',
   respondedAt: null,
   version: 2
-} satisfies SocialApplicationDto
+})
 
-const terminal = {
+const terminal = socialApplicationDtoSchema.parse({
   ...application,
   applicationPublicId: '55555555-5555-4555-8555-555555555555',
   listingTitle: 'Older table',
   status: 'WITHDRAWN'
-} satisfies SocialApplicationDto
+})
 const withdrawal = fn<(input: SocialApplicationVersionInput) => Promise<SocialApplicationDto>>()
 
 function Fixture({
@@ -71,7 +72,7 @@ function Fixture({
   mocked(usePaginatedQuery).mockImplementation((reference, args) => {
     if (
       args !== 'skip' &&
-      getFunctionName(reference) === 'social/admissionLists:listOwnApplications'
+      getFunctionName(reference) === getFunctionName(api.social.admissionLists.listOwnApplications)
     )
       return 'group' in args && args.group === 'PENDING' ? pending : history
     return { results: [], status: 'Exhausted', loadMore: fn(), isLoading: false }
@@ -79,7 +80,7 @@ function Fixture({
   mocked(useConvexMutation).mockImplementation((reference) => {
     const mutation: ReturnType<typeof useConvexMutation> = Object.assign(
       async (input?: unknown) => {
-        if (getFunctionName(reference) === 'social/applications:withdraw') {
+        if (getFunctionName(reference) === getFunctionName(api.social.applications.withdraw)) {
           withdrawal(socialApplicationVersionInputSchema.parse(input))
           if (failWithdraw) throw new Error('Withdraw failed.')
           return application

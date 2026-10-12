@@ -45,6 +45,7 @@ import {
 } from '@artificer-toolkit/schema/api/systems'
 import { backgroundAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/background'
 import { classAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/class'
+import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import { creatureAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/creature'
 import { equipmentAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/equipment'
 import { featAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/feat'
@@ -116,6 +117,10 @@ import {
   raceListResponseFixture,
   raceRuntimeFixture
 } from './races/race.fixtures'
+import {
+  activeRaceDetailLoaderData,
+  draftRaceDetailLoaderData
+} from './races/stories/raceRouteStoryData'
 import { spellFixture } from './spells/spellAuthoring.fixtures'
 import {
   createDefinitionWorkspace,
@@ -132,6 +137,7 @@ import * as inspectorFixtures from './characters/sheet/inspector/inspector.fixtu
 import {
   characterBuilderDraftPayloadFixture,
   characterBuilderPayloadFixture,
+  characterFixture,
   characterPreviewFixture
 } from './characters/builder/fixtures/characterBuilder.fixtures'
 import { characterListFixture } from './characters/pages/list/characterList.fixtures'
@@ -176,6 +182,7 @@ describe('web fixture contracts', () => {
   })
 
   it('parses the Builder fixtures', () => {
+    characterAuthoredDtoSchema.parse(characterFixture)
     characterBuilderPayloadDtoSchema.parse(characterBuilderPayloadFixture)
     characterBuilderPayloadDtoSchema.parse(characterBuilderDraftPayloadFixture)
     characterBuilderPreviewPayloadDtoSchema.parse(characterPreviewFixture)
@@ -268,6 +275,13 @@ describe('web fixture contracts', () => {
       authoredDraftDtoSchema.parse(authoredRouteStoryDrafts[domain])
     }
     equipmentResponseDtoSchema.parse(authoredRouteStoryEquipmentParentResponse)
+  })
+
+  it('parses the Race route Story data', () => {
+    for (const loaderData of [activeRaceDetailLoaderData, draftRaceDetailLoaderData]) {
+      raceResponseDtoSchema.parse(loaderData.response)
+      authoredDraftDtoSchema.parse(loaderData.draft)
+    }
   })
 
   it('parses the Sheet inspector panel fixtures', () => {

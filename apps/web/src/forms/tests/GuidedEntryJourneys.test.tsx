@@ -11,6 +11,7 @@ import {
 } from '@artificer-toolkit/schema/api/nodeRuntime'
 import { compactNodeRuntimeResponse } from '@artificer-toolkit/schema/api/nodeRuntimeTransport'
 import { getFunctionName } from 'convex/server'
+import { api } from '@artificer-toolkit/apis/convex/api'
 import { RaceCataloguePage } from '#domains/races/pages/RaceCataloguePage'
 import {
   authoredCreateRouteLoaderData,
@@ -69,10 +70,10 @@ vi.mock('#app/query/createAppQueryClient', async (importOriginal) => {
           throw new Error('Unexpected active Convex query in GuidedEntryJourneys.')
         }
       })
-      client.setQueryDefaults(['convexQuery', 'media/assets:avatar'], {
+      client.setQueryDefaults(['convexQuery', getFunctionName(api.media.assets.avatar)], {
         queryFn: async () => null
       })
-      client.setQueryDefaults(['convexQuery', 'authoring/nodeRuntime:resolve'], {
+      client.setQueryDefaults(['convexQuery', getFunctionName(api.authoring.nodeRuntime.resolve)], {
         queryFn: ({ queryKey }) => {
           const input = nodeRuntimeResolveRequestDtoSchema.parse(queryKey[2])
           const model = createStaticResolvedFormModel(input.mapId, {
@@ -143,7 +144,7 @@ function resolveStaticNormalization(
   reference: Parameters<typeof getFunctionName>[0],
   input: unknown
 ) {
-  if (getFunctionName(reference) !== 'authoring/nodeRuntime:normalizeValues') {
+  if (getFunctionName(reference) !== getFunctionName(api.authoring.nodeRuntime.normalizeValues)) {
     throw new Error('Expected native node-runtime normalization.')
   }
   const request = nodeRuntimeNormalizeValuesRequestDtoSchema.parse(input)

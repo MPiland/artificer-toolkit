@@ -2,7 +2,9 @@ import { MantineProvider } from '@mantine/core'
 import { QueryClient, QueryClientProvider, type QueryFunctionContext } from '@tanstack/react-query'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { getFunctionName } from 'convex/server'
 import { describe, expect, it, vi } from 'vitest'
+import { api } from '@artificer-toolkit/apis/convex/api'
 import { characterSheetExtraCatalogReadInputSchema } from '@artificer-toolkit/schema/api/characterSheetData'
 import { characterSheetFixture } from '../fixtures/characterSheet.fixtures'
 import { CharacterSheetExtras } from './CharacterSheetExtras'
@@ -11,7 +13,7 @@ describe('CharacterSheetExtras native catalogue', () => {
   it('skips closed or unselected drawers and queries the selected native catalogue and search', async () => {
     const user = userEvent.setup()
     const query = vi.fn(async ({ queryKey }: QueryFunctionContext) => {
-      expect(queryKey[1]).toBe('characters/extraOptions:list')
+      expect(queryKey[1]).toBe(getFunctionName(api.characters.extraOptions.list))
       const input = characterSheetExtraCatalogReadInputSchema.parse(queryKey[2])
       expect(input.id).toBe(characterSheetFixture.meta.characterId)
       return {

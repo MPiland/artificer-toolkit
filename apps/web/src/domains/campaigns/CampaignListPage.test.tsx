@@ -2,6 +2,7 @@ import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { getFunctionName } from 'convex/server'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { api } from '@artificer-toolkit/apis/convex/api'
 import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
 import { campaignDeletionStatusSchema } from '@artificer-toolkit/schema/api/campaignDeletion'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
@@ -34,7 +35,7 @@ vi.mock('./components/CampaignCopy', () => ({ CampaignCopy: () => null }))
 vi.mock('@convex-dev/react-query', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@convex-dev/react-query')>()),
   convexQuery: (reference: Parameters<typeof getFunctionName>[0], args: { campaignId: string }) => {
-    if (getFunctionName(reference) !== 'campaigns/deletion:status')
+    if (getFunctionName(reference) !== getFunctionName(api.campaigns.deletion.status))
       throw new Error(`Unexpected query ${getFunctionName(reference)}`)
     return { queryKey: ['campaignDeletion', args.campaignId], queryFn: () => mocks.status(args) }
   }
@@ -43,7 +44,7 @@ vi.mock('@convex-dev/react-query', async (importOriginal) => ({
 vi.mock('convex/react', async (importOriginal) => ({
   ...(await importOriginal<typeof import('convex/react')>()),
   useMutation: (reference: Parameters<typeof getFunctionName>[0]) => {
-    if (getFunctionName(reference) !== 'campaigns/deletion:remove')
+    if (getFunctionName(reference) !== getFunctionName(api.campaigns.deletion.remove))
       throw new Error(`Unexpected mutation ${getFunctionName(reference)}`)
     return mocks.remove
   }

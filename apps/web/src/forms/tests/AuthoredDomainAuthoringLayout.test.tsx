@@ -8,6 +8,7 @@ import {
 } from '@artificer-toolkit/schema/api/nodeRuntime'
 import { compactNodeRuntimeResponse } from '@artificer-toolkit/schema/api/nodeRuntimeTransport'
 import { getFunctionName } from 'convex/server'
+import { api } from '@artificer-toolkit/apis/convex/api'
 import type { AuthSessionUserDto } from '@artificer-toolkit/schema/api/auth'
 import {
   authoredCreateRouteLoaderData,
@@ -54,7 +55,7 @@ vi.mock('#app/query/createAppQueryClient', async (importOriginal) => {
           throw new Error('Unexpected native query in authored layout fixture.')
         }
       })
-      client.setQueryDefaults(['convexQuery', 'authoring/nodeRuntime:resolve'], {
+      client.setQueryDefaults(['convexQuery', getFunctionName(api.authoring.nodeRuntime.resolve)], {
         queryFn: ({ queryKey }) => convexMocks.nodeRuntimeResolve(queryKey)
       })
       return client
@@ -642,7 +643,7 @@ function resolveStaticNormalization(
   reference: Parameters<typeof getFunctionName>[0],
   input: unknown
 ) {
-  if (getFunctionName(reference) !== 'authoring/nodeRuntime:normalizeValues') {
+  if (getFunctionName(reference) !== getFunctionName(api.authoring.nodeRuntime.normalizeValues)) {
     throw new Error('Expected native node-runtime normalization.')
   }
   const request = nodeRuntimeNormalizeValuesRequestDtoSchema.parse(input)

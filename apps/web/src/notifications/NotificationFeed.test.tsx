@@ -16,11 +16,12 @@ vi.mock('#app/data/notifications', () => ({
 
 vi.mock('convex/react', async (importOriginal) => {
   const { getFunctionName } = await import('convex/server')
+  const { api } = await import('@artificer-toolkit/apis/convex/api')
   return {
     ...(await importOriginal<typeof import('convex/react')>()),
     useConvexAuth: () => ({ isAuthenticated: true, isLoading: false }),
     useMutation: (reference: Parameters<typeof getFunctionName>[0]) =>
-      getFunctionName(reference) === 'notifications:markAllSeen'
+      getFunctionName(reference) === getFunctionName(api.notifications.markAllSeen)
         ? mocks.markAllSeen
         : mocks.markRead
   }

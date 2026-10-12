@@ -2,7 +2,9 @@ import { MantineProvider } from '@mantine/core'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen } from '@testing-library/react'
 import { Suspense } from 'react'
+import { getFunctionName } from 'convex/server'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { api } from '@artificer-toolkit/apis/convex/api'
 import type { SystemListItemDto } from '@artificer-toolkit/schema/api/systems'
 import type { GameSystemRuleCapabilityDto } from '@artificer-toolkit/schema/api/rulesRuntime'
 import { getSystem, getSystemRuleCapability, getSystemSummary } from '#app/data/systems/queries'
@@ -33,7 +35,7 @@ function renderSystemDetail(
   const capabilityQuery = vi.fn(async () => capability)
   expect(getSystemRuleCapability(authoredRouteStorySystem.id).queryKey).toEqual([
     'convexQuery',
-    'content/systems:capability',
+    getFunctionName(api.content.systems.capability),
     { id: authoredRouteStorySystem.id }
   ])
   expect(getSystemRuleCapability(authoredRouteStorySystem.id).queryFn).toBeUndefined()

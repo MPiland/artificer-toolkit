@@ -17,6 +17,7 @@ import {
 } from '@artificer-toolkit/schema/api/account'
 import { MediaImageControl } from '#app/components/MediaImage'
 import { getUsernameStatus } from '#app/auth/usernameStatus'
+import { ProfileVisibilitySetting } from './ProfileVisibilitySetting'
 import * as styles from './settings.css'
 
 export function ProfileSettingsPage({ userId }: { userId: string }) {
@@ -160,6 +161,10 @@ function ProfileForm({ initialProfile }: { initialProfile: AccountProfileDto }) 
           Manage the avatar and biography shown with your account.
         </p>
       </header>
+      <ProfileVisibilitySetting
+        username={initialProfile.username}
+        visibility={initialProfile.visibility}
+      />
       <form className={styles.form} method='post' onSubmit={handleSubmit}>
         <div className={styles.avatarSetting}>
           <div>

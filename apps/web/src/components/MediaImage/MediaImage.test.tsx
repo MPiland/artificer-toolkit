@@ -2,6 +2,7 @@ import { fireEvent, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { getFunctionName } from 'convex/server'
+import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { MediaImageControl } from './MediaImageControl'
 import { MediaImageDialog } from './MediaImageDialog'
@@ -57,6 +58,7 @@ vi.mock('convex/react', async (importOriginal) => {
   const original = await importOriginal<typeof import('convex/react')>()
   const { signedImageDeliveryDtoSchema } = await import('@artificer-toolkit/schema/api/media')
   const { mediaSinglePutUploadSchema } = await import('@artificer-toolkit/schema/api/mediaAssets')
+  const { api } = await import('@artificer-toolkit/apis/convex/api')
   // Every response a test supplies passes through the real DTO schema, so a contract change fails
   // here instead of leaving the fixtures on a stale shape.
   const delivering = (read: (args: unknown) => unknown) => async (args: unknown) =>
@@ -77,17 +79,19 @@ vi.mock('convex/react', async (importOriginal) => {
       return { results: mocks.library, status: 'Exhausted', loadMore: vi.fn() }
     },
     useAction: (reference: Parameters<typeof getFunctionName>[0]) =>
-      getFunctionName(reference) === 'media/libraryActions:getImage'
+      getFunctionName(reference) === getFunctionName(api.media.libraryActions.getImage)
         ? getLibraryImage
-        : getFunctionName(reference) === 'media/avatarActions:getAvatarImage'
+        : getFunctionName(reference) === getFunctionName(api.media.avatarActions.getAvatarImage)
           ? getAvatarImage
-          : getFunctionName(reference) === 'media/characterPortraitActions:getImage'
+          : getFunctionName(reference) ===
+              getFunctionName(api.media.characterPortraitActions.getImage)
             ? getPortraitImage
-            : getFunctionName(reference) === 'media/authoredActions:getImage'
+            : getFunctionName(reference) === getFunctionName(api.media.authoredActions.getImage)
               ? getArtworkImage
-              : getFunctionName(reference) === 'media/characterPortraitActions:save'
+              : getFunctionName(reference) ===
+                  getFunctionName(api.media.characterPortraitActions.save)
                 ? mocks.savePortrait
-                : getFunctionName(reference) === 'media/authoredActions:save'
+                : getFunctionName(reference) === getFunctionName(api.media.authoredActions.save)
                   ? mocks.saveArtwork
                   : mocks.saveAvatar,
     useConvexAuth: () => ({
@@ -95,24 +99,27 @@ vi.mock('convex/react', async (importOriginal) => {
       isLoading: !mocks.authenticated
     }),
     useMutation: (reference: Parameters<typeof getFunctionName>[0]) =>
-      getFunctionName(reference) === 'media/library:attachImage'
+      getFunctionName(reference) === getFunctionName(api.media.library.attachImage)
         ? mocks.attachImage
-        : getFunctionName(reference) === 'media/assets:createAvatarUpload'
+        : getFunctionName(reference) === getFunctionName(api.media.assets.createAvatarUpload)
           ? createAvatarUpload
-          : getFunctionName(reference) === 'media/characterPortraitAssets:createUpload'
+          : getFunctionName(reference) ===
+              getFunctionName(api.media.characterPortraitAssets.createUpload)
             ? createPortraitUpload
-            : getFunctionName(reference) === 'media/authoredAssets:createUpload'
+            : getFunctionName(reference) === getFunctionName(api.media.authoredAssets.createUpload)
               ? createArtworkUpload
-              : getFunctionName(reference) === 'media/authoredAssets:remove'
+              : getFunctionName(reference) === getFunctionName(api.media.authoredAssets.remove)
                 ? mocks.removeArtwork
-                : getFunctionName(reference) === 'media/characterPortraitAssets:remove'
+                : getFunctionName(reference) ===
+                    getFunctionName(api.media.characterPortraitAssets.remove)
                   ? mocks.removePortrait
                   : mocks.removeAvatar,
     useQuery: (reference: Parameters<typeof getFunctionName>[0], ...args: unknown[]) => {
       mocks.convexQuery(reference, ...args)
-      return getFunctionName(reference) === 'media/authoredAssets:binding'
+      return getFunctionName(reference) === getFunctionName(api.media.authoredAssets.binding)
         ? mocks.artworkBinding
-        : getFunctionName(reference) === 'media/characterPortraitAssets:bindingForCharacter'
+        : getFunctionName(reference) ===
+            getFunctionName(api.media.characterPortraitAssets.bindingForCharacter)
           ? mocks.portraitBinding
           : mocks.avatarBinding
     }
@@ -643,11 +650,12 @@ describe('MediaImage', () => {
         onClose={onClose}
       />
     )
-    expect(mocks.libraryArgs).not.toHaveBeenCalledWith('media/library:list', {
-      profileClass: 'CONTENT_ART'
-    })
+    expect(mocks.libraryArgs).not.toHaveBeenCalledWith(
+      getFunctionName(convexApi.media.library.list),
+      { profileClass: 'CONTENT_ART' }
+    )
     await user.click(screen.getByRole('button', { name: 'Choose from my images' }))
-    expect(mocks.libraryArgs).toHaveBeenCalledWith('media/library:list', {
+    expect(mocks.libraryArgs).toHaveBeenCalledWith(getFunctionName(convexApi.media.library.list), {
       profileClass: 'CONTENT_ART'
     })
     const tile = await screen.findByRole('button', { name: 'dragon.png' })

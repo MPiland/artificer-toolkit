@@ -41,15 +41,20 @@ vi.mock('#app/settings/dicePreferences', () => ({
   ]
 }))
 
-vi.mock('convex/react', () => ({
-  useMutation: (reference: Parameters<typeof getFunctionName>[0]) =>
-    ({
-      'campaigns/characterSheet:executeRoll': rollMutationMocks.executeCampaignPrivate,
-      'campaigns/rolls:executePrivate': rollMutationMocks.executeGmPrivate,
-      'account:setGmRollVisibility': rollMutationMocks.setGmRollVisibility
-    })[getFunctionName(reference)] ?? rollMutationMocks.executeTable,
-  useConvex: () => ({ action: vi.fn(), query: vi.fn() })
-}))
+vi.mock('convex/react', async () => {
+  const { api } = await import('@artificer-toolkit/apis/convex/api')
+  const mutations = {
+    [getFunctionName(api.campaigns.characterSheet.executeRoll)]:
+      rollMutationMocks.executeCampaignPrivate,
+    [getFunctionName(api.campaigns.rolls.executePrivate)]: rollMutationMocks.executeGmPrivate,
+    [getFunctionName(api.account.setGmRollVisibility)]: rollMutationMocks.setGmRollVisibility
+  }
+  return {
+    useMutation: (reference: Parameters<typeof getFunctionName>[0]) =>
+      mutations[getFunctionName(reference)] ?? rollMutationMocks.executeTable,
+    useConvex: () => ({ action: vi.fn(), query: vi.fn() })
+  }
+})
 
 const characterId = '00000000-0000-4000-8000-000000000125'
 const systemId = '00000000-0000-4000-8000-000000000126'

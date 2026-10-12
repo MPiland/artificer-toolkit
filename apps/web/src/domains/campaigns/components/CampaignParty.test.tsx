@@ -9,6 +9,11 @@ import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { createCampaignDetail } from '../campaignDetail.fixtures'
 import { CampaignParty } from './CampaignParty'
 
+const names = {
+  basics: getFunctionName(convexApi.campaigns.characterSheet.basics),
+  sheetSlice: getFunctionName(convexApi.characters.sheetSlices.get)
+}
+
 const mocks = vi.hoisted(() => ({
   page: {
     results: [] as { id: string; assignedCharacter: { id: string } | null }[],
@@ -44,13 +49,13 @@ vi.mock('convex/react', async (importOriginal) => ({
   },
   useMutation: (reference: Parameters<typeof getFunctionName>[0]) => {
     switch (getFunctionName(reference)) {
-      case 'campaigns/assignments:assign':
+      case getFunctionName(convexApi.campaigns.assignments.assign):
         return mocks.assign
-      case 'campaigns/assignments:unassign':
+      case getFunctionName(convexApi.campaigns.assignments.unassign):
         return mocks.unassign
-      case 'campaigns/membershipDeparture:leave':
+      case getFunctionName(convexApi.campaigns.membershipDeparture.leave):
         return mocks.leave
-      case 'campaigns/membershipDeparture:removeMember':
+      case getFunctionName(convexApi.campaigns.membershipDeparture.removeMember):
         return mocks.remove
       default:
         throw new Error('Unexpected mutation')
@@ -74,7 +79,7 @@ vi.mock('#app/data/characters/queries', () => ({
   getCharacterSheetSlice: (id: string, slice: string, campaignId: string) => {
     const args = { id, slice, campaignId }
     mocks.campaignSheet(convexApi.characters.sheetSlices.get, args)
-    return { queryKey: ['characters/sheetSlices:get', args] }
+    return { queryKey: [names.sheetSlice, args] }
   }
 }))
 vi.mock('#app/data/media', () => ({
@@ -308,10 +313,7 @@ describe('CampaignParty native transport', () => {
       slice: 'COMMON',
       campaignId: campaign.id
     })
-    expect(convexQueryNames()).toEqual([
-      'campaigns/characterSheet:basics',
-      'characters/sheetSlices:get'
-    ])
+    expect(convexQueryNames()).toEqual([names.basics, names.sheetSlice])
   })
 
   it.each([true, false])(
@@ -330,8 +332,7 @@ describe('CampaignParty native transport', () => {
         systemId: campaign.gameSystemId
       }
       mocks.queryData.mockImplementation(([name, args]) =>
-        name === 'campaigns/characterSheet:basics' &&
-        (args as { characterId: string }).characterId === other.id
+        name === names.basics && (args as { characterId: string }).characterId === other.id
           ? {
               characterId: other.id,
               label: 'Borin',
@@ -360,10 +361,10 @@ describe('CampaignParty native transport', () => {
       )
       // Roster basics for everyone; another player's full Sheet query waits for View Sheet.
       expect(convexQueryNames()).toEqual([
-        'campaigns/characterSheet:basics',
-        'campaigns/characterSheet:basics',
-        'characters/sheetSlices:get',
-        'characters/sheetSlices:get'
+        names.basics,
+        names.basics,
+        names.sheetSlice,
+        names.sheetSlice
       ])
       // Portraits use the Campaign-scoped read, which only covers Characters assigned here.
       for (const character of [own, other])
@@ -394,7 +395,7 @@ describe('CampaignParty native transport', () => {
     }
     mocks.queryData.mockImplementation(([name, args]) => {
       const { characterId } = args as { characterId?: string }
-      if (name === 'campaigns/characterSheet:basics')
+      if (name === names.basics)
         return {
           characterId,
           label: 'x',
@@ -402,7 +403,7 @@ describe('CampaignParty native transport', () => {
           totalLevel: 3,
           sheetVisible: true
         }
-      if (name === 'characters/sheetSlices:get')
+      if (name === names.sheetSlice)
         return { overview: { currentHitPoints: 14, maxHitPoints: 20, armorClass: 15 } }
       return undefined
     })

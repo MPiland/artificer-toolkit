@@ -2,6 +2,7 @@ import { act, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { ConvexReactClient } from 'convex/react'
 import { getFunctionName } from 'convex/server'
+import { api } from '@artificer-toolkit/apis/convex/api'
 import { afterEach, beforeEach, vi } from 'vitest'
 import type { RollRecordDto } from '@artificer-toolkit/schema/api/rolls'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
@@ -35,7 +36,7 @@ describe('Character Sheet rests', () => {
   beforeEach(() => {
     vi.spyOn(ConvexReactClient.prototype, 'query').mockImplementation(
       async (...[reference, args]) => {
-        expect(getFunctionName(reference)).toBe('characters/rest:preview')
+        expect(getFunctionName(reference)).toBe(getFunctionName(api.characters.rest.preview))
         return createRestPreview(characterRestPreviewInputSchema.parse(args).input)
       }
     )

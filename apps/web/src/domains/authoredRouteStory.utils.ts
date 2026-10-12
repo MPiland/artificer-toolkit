@@ -1,3 +1,5 @@
+import { api } from '@artificer-toolkit/apis/convex/api'
+import { getFunctionName } from 'convex/server'
 import {
   nodeRuntimeResolveRequestDtoSchema,
   type NodeRuntimeResolveRequestDto
@@ -26,10 +28,13 @@ function resolveStoryNodes(input: NodeRuntimeResolveRequestDto) {
 }
 
 export function configureAuthoredRouteStoryQueries(queryClient: QueryClient) {
-  queryClient.setQueryDefaults(['convexQuery', 'authoring/nodeRuntime:resolve'], {
-    queryFn: async ({ queryKey }) =>
-      resolveStoryNodes(nodeRuntimeResolveRequestDtoSchema.parse(queryKey[2]))
-  })
+  queryClient.setQueryDefaults(
+    ['convexQuery', getFunctionName(api.authoring.nodeRuntime.resolve)],
+    {
+      queryFn: async ({ queryKey }) =>
+        resolveStoryNodes(nodeRuntimeResolveRequestDtoSchema.parse(queryKey[2]))
+    }
+  )
 }
 
 export function createAuthoredCreateRouteOverrides(routeId: string, publicPath: string) {

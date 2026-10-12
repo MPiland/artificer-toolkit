@@ -10,8 +10,8 @@ import type { CharacterSheetPanelDto } from '@artificer-toolkit/schema/api/chara
 import { characterSheetPanelInputSchema } from '@artificer-toolkit/schema/api/characterSheetPanel'
 import { characterSheetExecuteInputSchema } from '@artificer-toolkit/schema/api/characterSheetCommands'
 import { characterSheetExtraCatalogReadInputSchema } from '@artificer-toolkit/schema/api/characterSheetData'
-import type { RollRecordDto } from '@artificer-toolkit/schema/api/rolls'
-import type { CharacterPreparationOptionsResponseDto } from '@artificer-toolkit/schema/api/characterPreparationOptions'
+import { rollRecordDtoSchema } from '@artificer-toolkit/schema/api/rolls'
+import { characterPreparationOptionsResponseDtoSchema } from '@artificer-toolkit/schema/api/characterPreparationOptions'
 import { mockSheetRestPreview } from './characterSheetNativeStory.fixture'
 import { characterSheetFixture } from './characterSheet.fixtures'
 import { CharacterSheetFixtureView as CharacterSheetView } from './CharacterSheetFixtureView'
@@ -30,7 +30,7 @@ export function withSheetPanel(panel: CharacterSheetPanelDto): Decorator {
       ['convexQuery', getFunctionName(convexApi.characters.preparationOptions.get)],
       {
         queryFn: async () =>
-          ({
+          characterPreparationOptionsResponseDtoSchema.parse({
             characterId: panel.characterId,
             streamVersion: characterSheetFixture.meta.streamVersion,
             classes:
@@ -74,7 +74,7 @@ export function withSheetPanel(panel: CharacterSheetPanelDto): Decorator {
                     )
                   : []
             }
-          }) satisfies CharacterPreparationOptionsResponseDto
+          })
       }
     )
     return <Story />
@@ -110,46 +110,73 @@ export const withExtrasPanels: Decorator = (Story) => {
   return <Story />
 }
 
-const hitDieRollFixture = {
+const hitDieRollBase = {
   id: '00000000-0000-4000-8000-000000000701',
   characterId: characterSheetFixture.meta.characterId,
   characterLabel: characterSheetFixture.identity.label,
   source: { kind: 'HIT_DIE', label: 'Short rest hit dice' },
   ruleset: { systemId: 'system-1', code: 'DND5E_2014', version: '1' },
-  normalizedExpression: '1d10 + 1d8 + 4',
+  createdAt: '2026-08-20T12:00:00.000Z'
+} as const
+
+/** The dice the table rolled for the played Fighter's one d10: 5 + 1. */
+const fighterHitDieRoll = rollRecordDtoSchema.parse({
+  ...hitDieRollBase,
+  normalizedExpression: '1d10 + 1',
+  evidence: {
+    terms: [{ count: 1, die: 10, rolls: [5], subtotal: 5 }],
+    modifier: 1,
+    mode: 'NORMAL',
+    subtotal: 6,
+    transform: { kind: 'NONE' },
+    total: 6
+  }
+})
+
+/** The dice the table rolled for the played multiclass's d10 and d8: 6 + 5 + 2. */
+const multiclassHitDieRoll = rollRecordDtoSchema.parse({
+  ...hitDieRollBase,
+  normalizedExpression: '1d10 + 1d8 + 2',
   evidence: {
     terms: [
       { count: 1, die: 10, rolls: [6], subtotal: 6 },
       { count: 1, die: 8, rolls: [5], subtotal: 5 }
     ],
-    modifier: 4,
+    modifier: 2,
     mode: 'NORMAL',
     subtotal: 11,
     transform: { kind: 'NONE' },
-    total: 15
-  },
-  createdAt: '2026-08-20T12:00:00.000Z'
-} satisfies RollRecordDto
+    total: 13
+  }
+})
 
-export function mockHitDieRoll() {
-  mocked(useConvexMutation).mockImplementation((reference) => {
-    const mutate: ReturnType<typeof useConvexMutation> = Object.assign(
-      async () => {
-        if (getFunctionName(reference) === 'rolls:execute') return hitDieRollFixture
-        if (getFunctionName(reference) === 'rolls:discard') return { ok: true }
-        throw new Error(`Unconfigured native mutation: ${getFunctionName(reference)}`)
-      },
-      { withOptimisticUpdate: () => mutate }
-    )
-    return mutate
-  })
+function createHitDieRollMock(roll: typeof fighterHitDieRoll) {
+  return () => {
+    mocked(useConvexMutation).mockImplementation((reference) => {
+      const mutate: ReturnType<typeof useConvexMutation> = Object.assign(
+        async () => {
+          if (getFunctionName(reference) === getFunctionName(convexApi.rolls.execute)) return roll
+          if (getFunctionName(reference) === getFunctionName(convexApi.rolls.discard))
+            return { ok: true }
+          throw new Error(`Unconfigured native mutation: ${getFunctionName(reference)}`)
+        },
+        { withOptimisticUpdate: () => mutate }
+      )
+      return mutate
+    })
+  }
 }
+
+export const mockHitDieRoll = createHitDieRollMock(fighterHitDieRoll)
+export const mockMulticlassHitDieRoll = createHitDieRollMock(multiclassHitDieRoll)
 
 export function mockExtraCommands(fail = false) {
   mocked(useConvexMutation).mockImplementation((reference) => {
     const mutate: ReturnType<typeof useConvexMutation> = Object.assign(
       async (args?: unknown) => {
-        if (getFunctionName(reference) !== 'characters/sheetCommands:execute') {
+        if (
+          getFunctionName(reference) !== getFunctionName(convexApi.characters.sheetCommands.execute)
+        ) {
           throw new Error(`Unconfigured native mutation: ${getFunctionName(reference)}`)
         }
         characterSheetExecuteInputSchema.parse(args)
