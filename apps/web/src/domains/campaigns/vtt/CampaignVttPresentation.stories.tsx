@@ -470,6 +470,22 @@ export const OuterRingsStayWithinNeighbouringFootprints: Story = {
       await expect(innerRing.x + innerRing.width).toBeLessThan(outerRing.x + outerRing.width)
       await expect(innerRing.y).toBeGreaterThan(outerRing.y)
       await expect(innerRing.y + innerRing.height).toBeLessThan(outerRing.y + outerRing.height)
+      // A visible gap separates the two rings on every side: the status ring's inner edge (its
+      // bounds less its 5 unit stroke) stays at least 2 units outside the disposition ring.
+      const outerRingStroke = 5
+      const minRingClearance = 2
+      await expect(innerRing.x - (outerRing.x + outerRingStroke)).toBeGreaterThanOrEqual(
+        minRingClearance
+      )
+      await expect(
+        outerRing.x + outerRing.width - outerRingStroke - (innerRing.x + innerRing.width)
+      ).toBeGreaterThanOrEqual(minRingClearance)
+      await expect(innerRing.y - (outerRing.y + outerRingStroke)).toBeGreaterThanOrEqual(
+        minRingClearance
+      )
+      await expect(
+        outerRing.y + outerRing.height - outerRingStroke - (innerRing.y + innerRing.height)
+      ).toBeGreaterThanOrEqual(minRingClearance)
     }
   }
 }

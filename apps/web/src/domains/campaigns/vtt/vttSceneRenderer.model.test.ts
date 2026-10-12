@@ -406,6 +406,10 @@ describe('VTT lighting model', () => {
         statusCategoryColours.OTHER
       ]).size
     ).toBe(3)
+    // Pinned hues: amber conditions, teal-green Concentration, neutral grey other.
+    expect(statusCategoryColours.CONDITION).toBe(0xffd43b)
+    expect(statusCategoryColours.CONCENTRATION).toBe(0x20c997)
+    expect(statusCategoryColours.OTHER).toBe(0xced4da)
     // Lane 1 ruling: an EFFECT stays neutral until its polarity is derived.
     expect(statusCategoryColours.EFFECT).toBe(statusCategoryColours.OTHER)
   })

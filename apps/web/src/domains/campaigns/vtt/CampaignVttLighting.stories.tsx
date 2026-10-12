@@ -516,6 +516,22 @@ export const DarknessZoneKinds: Story = {
   }
 }
 
+// Two visual-only zones at different opacities: each draws at its own, not at a fixed alpha.
+const visualZones = [
+  { ...zoneAt('77777777-7777-4777-8777-777777777815', 300, null, null), opacity: 0.3 },
+  { ...zoneAt('77777777-7777-4777-8777-777777777816', 700, null, null), opacity: 0.62 }
+]
+
+export const VisualZonesDrawAtTheirOwnOpacity: Story = {
+  args: { scene: { ...emptyScene, darknessZones: visualZones } },
+  play: async ({ canvasElement }) => {
+    const { lighting } = await readLighting(canvasElement)
+    expect(lighting.visualZoneAlphas).toHaveLength(2)
+    expect(lighting.visualZoneAlphas[0]).toBeCloseTo(0.3, 5)
+    expect(lighting.visualZoneAlphas[1]).toBeCloseTo(0.62, 5)
+  }
+}
+
 const obscuredZones = [
   zoneAt('77777777-7777-4777-8777-777777777821', 300, null, 'LIGHT'),
   zoneAt('77777777-7777-4777-8777-777777777822', 700, 'MAGICAL_DARKNESS', 'HEAVY')
