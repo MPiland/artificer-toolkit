@@ -76,7 +76,7 @@ export function buildEncounterActionStoredExecution(input: {
             occurrenceId,
             ...parentOccurrenceId,
             sourceActorId: actor.id,
-            sourceCharacterId: source.kind === 'CHARACTER_ACTION' ? source.characterId : null,
+            sourceCharacterId: actor.kind === 'CHARACTER' ? actor.sourceId : null,
             targetActorId: target.id,
             sourceCharacterStreamVersion,
             targetCharacterStreamVersion: mechanics.characterStreamVersion,
@@ -116,7 +116,7 @@ export function buildEncounterActionStoredExecution(input: {
             settled.sourceItemUseStateTransition ||
             settled.itemConsumptionReceipt
               ? {
-                  sourceCharacterId: source.kind === 'CHARACTER_ACTION' ? source.characterId : null
+                  sourceCharacterId: actor.kind === 'CHARACTER' ? actor.sourceId : null
                 }
               : {}),
             sourceCharacterStreamVersion,

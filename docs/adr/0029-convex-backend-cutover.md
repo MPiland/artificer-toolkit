@@ -259,7 +259,7 @@ necessary because 13 existing SRD records exceed Convex's 16-level nesting cap (
 It preserves the cohesive authored model without arbitrary child tables or dropping mechanics.
 Domain validation precedes encoding, and read-back decodes and checks full payload/metadata hashes.
 Indexed fields remain native Convex values; the public authoring contract remains a typed object.
-Systems (depth 4) and reusable definitions (maximum 10) remain structured. This is not a generic
+Systems (depth 4) remain structured. Reusable definitions were structured until authored basic actions (ATTACK-18, Dodge is 19 deep) outgrew the cap; their document is now canonical `documentJson` text too, decoded and checksum-verified on every read. This is not a generic
 unvalidated JSON store or a change to rules execution semantics.
 
 The internal seed inserts missing records and rejects conflicting existing content. Exact replay

@@ -1,6 +1,7 @@
 import { defineTable } from 'convex/server'
 import { authoredStoredCompilationSchema } from '@artificer-toolkit/schema/api/authoredPublication'
 import { v } from 'convex/values'
+import * as zMini from 'zod/mini'
 import { zodToConvex, zodToConvexFields } from 'convex-helpers/server/zod4'
 import { authoredEquipmentOptionFactsSchema } from '@artificer-toolkit/schema/api/authoredOptions'
 import { authoredNodeRuntimeSourceFactsSchema } from '@artificer-toolkit/schema/api/nodeRuntimeSources'
@@ -305,9 +306,9 @@ export function buildContentTables() {
       bytes: v.bytes()
     }).index('by_versionId_chunkIndex', ['versionId', 'chunkIndex']),
     reusableDefinitions: defineTable({
-      ...zodToConvexFields(sourceImportDefinitionDtoSchema.shape),
+      ...zodToConvexFields(zMini.omit(sourceImportDefinitionDtoSchema, { document: true }).shape),
       description: v.union(v.string(), v.null()),
-      document: v.optional(v.any()),
+      documentJson: v.optional(v.string()),
       checksum: v.optional(v.string()),
       contentSourceId: v.string(),
       gameSystemId: v.string(),
@@ -332,7 +333,7 @@ export function buildContentTables() {
       definitionId: v.string(),
       gameSystemId: v.string(),
       authorUserId: v.string(),
-      document: v.any(),
+      documentJson: v.string(),
       checksum: v.string(),
       baseDefinitionVersion: v.number(),
       version: v.number(),

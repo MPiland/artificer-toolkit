@@ -512,6 +512,7 @@ export async function persistEncounterAreaCommit(
     factsChecksum: root.caughtChecksum,
     result,
     commandFields: {
+      label: input.label,
       ruleOverrides: input.ruleOverrides,
       allyAdvantageUses: [],
       consumedGrants: [],

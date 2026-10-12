@@ -44,6 +44,12 @@ const dodge = {
   influence: 'DISADVANTAGE' as const
 }
 
+const dodgeAgainst = {
+  attackDomain: 'RANGED' as const,
+  requiresHolderSeesAttacker: true,
+  contributor: dodge
+}
+
 /** A +5 ranged Quill Volley from a senseless Wolf-based Creature at another one. */
 function volleyAt(input: {
   attackerConditionIds?: readonly string[]
@@ -66,7 +72,7 @@ function volleyAt(input: {
     featureId: QUILL_VOLLEY_ID,
     overridable: true,
     attackPerception: true,
-    ...(input.targetDodges ? { targetAttackContributors: [dodge] } : {})
+    ...(input.targetDodges ? { targetAttacksAgainst: [dodgeAgainst] } : {})
   })
 }
 
@@ -117,7 +123,7 @@ describe('encounter attack perception: contributors', () => {
     const merged = (value: Partial<EncounterAttackPerception>) =>
       encounterAttackSightContributors({
         perception: sight(value),
-        dodgeContributors: [dodge]
+        attacksAgainst: [{ requiresHolderSeesAttacker: true, contributor: dodge }]
       }).map((contributor) => contributor.sourceId)
     expect(merged({})).toEqual([DODGE_SOURCE_ID])
     expect(merged({ targetSeesAttacker: 'UNKNOWN' })).toEqual([DODGE_SOURCE_ID])
@@ -213,7 +219,7 @@ describe('encounter attack perception: attack rolls (SRD unseen attacker and tar
       featureId: QUILL_VOLLEY_ID,
       overridable: true,
       attackPerception: true,
-      targetAttackContributors: [dodge]
+      targetAttacksAgainst: [dodgeAgainst]
     })
     expect(sourceIds(prepared)).toContain(DODGE_SOURCE_ID)
     expect(sourceIds(prepared)).not.toContain(ENCOUNTER_UNSEEN_ATTACKER_CONTRIBUTOR_SOURCE_ID)

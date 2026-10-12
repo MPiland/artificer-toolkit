@@ -10,6 +10,7 @@ import type { ReusableDefinitionStore } from '@artificer-toolkit/authoring/reusa
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { MutationCtx, QueryCtx } from '../_generated/server'
 import type { Doc, Id } from '../_generated/dataModel'
+import { decodeDefinitionDocument, encodeDefinitionDocument } from './definitionDocumentJson'
 import { readSystem } from './systemDocuments'
 
 type Context = MutationCtx | QueryCtx
@@ -96,7 +97,7 @@ export function readStoredDefinitionRoot(
     (record.draftVersion !== undefined &&
       (!Number.isInteger(record.draftVersion) || record.draftVersion < 0)) ||
     (record.version === 0 &&
-      (record.document !== undefined || record.checksum !== undefined || !metadataAbsent))
+      (record.documentJson !== undefined || record.checksum !== undefined || !metadataAbsent))
   )
     throw new Error('Reusable definition integrity mismatch.')
   if (
@@ -117,7 +118,7 @@ export function readStoredDefinitionRoot(
           definitionFamilyKey: record.definitionFamilyKey,
           label: record.label,
           description: record.description,
-          document: record.document,
+          document: decodeDefinitionDocument(record.documentJson),
           checksum: record.checksum,
           contractVersion: legacy ? 1 : record.contractVersion,
           version: record.version,
@@ -165,8 +166,11 @@ export async function readDefinitionDraft(ctx: Context, root: ReusableDefinition
     if (root.draftVersion !== null) throw new Error('Reusable definition draft integrity mismatch.')
     return null
   }
-  const { _id, _creationTime, ...storedDraft } = stored
-  const draft = reusableDefinitionDraftDtoSchema.parse(storedDraft)
+  const { _id, _creationTime, documentJson, ...storedDraft } = stored
+  const draft = reusableDefinitionDraftDtoSchema.parse({
+    ...storedDraft,
+    document: decodeDefinitionDocument(documentJson)
+  })
   if (
     root.sourceKind === 'PLATFORM' ||
     root.draftVersion !== draft.version ||
@@ -219,7 +223,11 @@ export function createConvexReusableDefinitionStore(
           version: existing.version + 1,
           updatedAt: now
         }
-        await ctx.db.replace(stored._id, next)
+        const { document: nextDocument, ...nextFields } = next
+        await ctx.db.replace(stored._id, {
+          ...nextFields,
+          documentJson: encodeDefinitionDocument(nextDocument)
+        })
         await ctx.db.patch(root._id, { draftVersion: next.version })
         return reusableDefinitionDraftDtoSchema.parse(next)
       }
@@ -236,7 +244,11 @@ export function createConvexReusableDefinitionStore(
         createdAt: now,
         updatedAt: now
       }
-      await ctx.db.insert('reusableDefinitionDrafts', next)
+      const { document: nextDocument, ...nextFields } = next
+      await ctx.db.insert('reusableDefinitionDrafts', {
+        ...nextFields,
+        documentJson: encodeDefinitionDocument(nextDocument)
+      })
       await ctx.db.patch(root._id, { draftVersion: 0 })
       return reusableDefinitionDraftDtoSchema.parse(next)
     },
@@ -264,7 +276,7 @@ export function createConvexReusableDefinitionStore(
       await ctx.db.patch(root._id, {
         version,
         draftVersion: undefined,
-        document: draft.document,
+        documentJson: encodeDefinitionDocument(draft.document),
         checksum: draft.checksum,
         contractVersion: 1,
         publishedAt,

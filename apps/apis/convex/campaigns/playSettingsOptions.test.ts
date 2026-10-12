@@ -14,6 +14,7 @@ import { SRD_OPTIONAL_COMBAT_DEFINITIONS } from '@artificer-toolkit/source-data/
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { fixture } from '../../tests/fixtures/characters'
 import { internal } from '../_generated/api'
+import { encodeDefinitionDocument } from '../content/definitionDocumentJson'
 
 const create = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
@@ -119,10 +120,11 @@ describe('native Campaign settings options', () => {
         const id = crypto.randomUUID()
         const document = { ...disarm.document, id }
         await ctx.db.insert('reusableDefinitions', {
-          ...disarm,
+          definitionFamilyKey: disarm.definitionFamilyKey,
+          description: disarm.description,
           id,
           label,
-          document,
+          documentJson: encodeDefinitionDocument(document),
           checksum: checksumRuleDocument(document),
           contentSourceId: sourceId,
           gameSystemId: srdSystemRecord.id,
@@ -198,9 +200,11 @@ describe('native Campaign settings options', () => {
         const id = crypto.randomUUID()
         const document = { ...facing.document, id }
         await ctx.db.insert('reusableDefinitions', {
-          ...facing,
+          label: facing.label,
+          definitionFamilyKey: facing.definitionFamilyKey,
+          description: facing.description,
           id,
-          document,
+          documentJson: encodeDefinitionDocument(document),
           checksum: checksumRuleDocument(document),
           contentSourceId: SRD_CONTENT_SOURCE.id,
           gameSystemId: srdSystemRecord.id,
@@ -215,9 +219,11 @@ describe('native Campaign settings options', () => {
       const id = crypto.randomUUID()
       const document = { ...facing.document, id }
       return ctx.db.insert('reusableDefinitions', {
-        ...facing,
+        label: facing.label,
+        definitionFamilyKey: facing.definitionFamilyKey,
+        description: facing.description,
         id,
-        document,
+        documentJson: encodeDefinitionDocument(document),
         checksum: checksumRuleDocument(document),
         contentSourceId: SRD_CONTENT_SOURCE.id,
         gameSystemId: srdSystemRecord.id,

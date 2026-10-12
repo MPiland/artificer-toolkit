@@ -136,6 +136,8 @@ export const predicateCodeSchema = lazySchema(() =>
     'CHARGE_LIMIT_KIND',
     'CHARGE_RESET_KIND',
     'CAN_CAST_SPELL',
+    'CAN_ACT',
+    'SPEED_ABOVE_ZERO',
     'CHARACTER_LEVEL',
     'CLASS_LEVEL',
     'SPELL_OBTAINED',
@@ -343,6 +345,7 @@ export const valueDomainCodeSchema = lazySchema(() =>
   z.enum([
     'SPEED',
     'ATTACK_ROLL',
+    'ATTACKS_AGAINST',
     'ARMOR_CLASS',
     'SAVE_DC',
     'SAVING_THROW_MODIFIER',

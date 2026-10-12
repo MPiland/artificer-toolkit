@@ -114,7 +114,7 @@ describe('encounter attack d20 belief', () => {
     expect(actual.targetSenseLabels).toContain(blindsightLabel)
     const trueSight = encounterAttackSightContributors({
       perception: actual,
-      dodgeContributors: []
+      attacksAgainst: []
     })
     const policy = truePolicy(trueSight)
     expect(policy.rollMode).toBe('NORMAL')
@@ -123,7 +123,7 @@ describe('encounter attack d20 belief', () => {
       trueSight,
       believedSight: encounterAttackSightContributors({
         perception: believed,
-        dodgeContributors: []
+        attacksAgainst: []
       })
     })
     expect(belief).toMatchObject({ rollMode: 'ADVANTAGE' })
@@ -138,7 +138,7 @@ describe('encounter attack d20 belief', () => {
     })
     const trueSight = encounterAttackSightContributors({
       perception: actual,
-      dodgeContributors: [dodge]
+      attacksAgainst: [{ requiresHolderSeesAttacker: true, contributor: dodge }]
     })
     const policy = truePolicy(trueSight)
     expect(policy.rollMode).toBe('DISADVANTAGE')
@@ -147,7 +147,7 @@ describe('encounter attack d20 belief', () => {
       trueSight,
       believedSight: encounterAttackSightContributors({
         perception: believed,
-        dodgeContributors: [dodge]
+        attacksAgainst: [{ requiresHolderSeesAttacker: true, contributor: dodge }]
       })
     })
     expect(belief?.rollMode).toBe('ADVANTAGE')
@@ -164,14 +164,14 @@ describe('encounter attack d20 belief', () => {
     const longRange = { ...dodge, sourceId: 'rule:long-range', domainKey: 'rule:long-range' }
     const trueSight = encounterAttackSightContributors({
       perception: actual,
-      dodgeContributors: []
+      attacksAgainst: []
     })
     const belief = encounterAttackD20Belief({
       policy: truePolicy(trueSight, [longRange]),
       trueSight,
       believedSight: encounterAttackSightContributors({
         perception: believed,
-        dodgeContributors: []
+        attacksAgainst: []
       })
     })
     expect(belief?.contributors.map((contributor) => contributor.sourceId)).toContain(
@@ -184,7 +184,7 @@ describe('encounter attack d20 belief', () => {
     const { actual, believed } = await perceptions({})
     const trueSight = encounterAttackSightContributors({
       perception: actual,
-      dodgeContributors: [dodge]
+      attacksAgainst: [{ requiresHolderSeesAttacker: true, contributor: dodge }]
     })
     const policy = truePolicy(trueSight)
     const belief = encounterAttackD20Belief({
@@ -192,7 +192,7 @@ describe('encounter attack d20 belief', () => {
       trueSight,
       believedSight: encounterAttackSightContributors({
         perception: believed,
-        dodgeContributors: [dodge]
+        attacksAgainst: [{ requiresHolderSeesAttacker: true, contributor: dodge }]
       })
     })
     expect(belief).toBeNull()
@@ -203,7 +203,7 @@ describe('encounter attack d20 belief', () => {
     const { actual, believed } = await perceptions({ attackerConditionIds: [BLINDED] })
     const trueSight = encounterAttackSightContributors({
       perception: actual,
-      dodgeContributors: []
+      attacksAgainst: []
     })
     const policy = truePolicy(trueSight)
     expect(policy.rollMode).toBe('DISADVANTAGE')
@@ -212,7 +212,7 @@ describe('encounter attack d20 belief', () => {
       trueSight,
       believedSight: encounterAttackSightContributors({
         perception: believed,
-        dodgeContributors: []
+        attacksAgainst: []
       })
     })
     expect(belief).toBeNull()

@@ -32,6 +32,7 @@ import { fixture } from '../../tests/fixtures/characters'
 import { internal } from '../_generated/api'
 import { snapshotEncounterPolicies } from '../encounters/policySnapshots'
 import { requireCampaignAuthority } from './documents'
+import { encodeDefinitionDocument } from '../content/definitionDocumentJson'
 
 const create = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
@@ -725,7 +726,10 @@ describe('native Campaign play settings', () => {
         ...score,
         outputs: { ...score.outputs, automatic: { kind: 'LITERAL' as const, value: false } }
       }
-      await ctx.db.patch(record._id, { document, checksum: checksumRuleDocument(document) })
+      await ctx.db.patch(record._id, {
+        documentJson: encodeDefinitionDocument(document),
+        checksum: checksumRuleDocument(document)
+      })
     })
     await expect(owner.caller.mutation(save, command)).rejects.toThrow('exact published version')
     expect(await stored(t)).toEqual(before)

@@ -17,9 +17,9 @@ const dodge = {
   gameSystemId: '00000000-0000-0000-0000-000000000001',
   rulesText: 'Attacks against you have disadvantage until your next turn.',
   actionCost: 'ACTION',
-  mechanics: ['DISADVANTAGE_ON_ATTACKS_AGAINST'],
-  saveAbilityIds: [],
-  suspendedWhileUnableToActOrMove: true,
+  mechanics: [],
+  restrictions: null,
+  effects: [],
   check: null
 }
 const dexterityId = '00000000-0000-4000-8000-00000000a002'
@@ -38,14 +38,9 @@ describe('basic-action catalogue contracts (Q11)', () => {
     expect(parse(['SPEED_MOVEMENT_BONUS', 'ALLY_ADVANTAGE'])).toBe(false)
     expect(parse(['ALLY_ADVANTAGE', 'ALLY_ADVANTAGE'])).toBe(false)
     expect(parse(['DASH'])).toBe(false)
+    // Dodge is authored now: its retired mechanic codes no longer parse.
     expect(parse(['SAVE_ADVANTAGE'])).toBe(false)
-    expect(
-      basicActionReusableDefinitionDocumentDtoSchema.safeParse({
-        ...dodge,
-        mechanics: ['DISADVANTAGE_ON_ATTACKS_AGAINST', 'SAVE_ADVANTAGE'],
-        saveAbilityIds: [dexterityId]
-      }).success
-    ).toBe(true)
+    expect(parse(['DISADVANTAGE_ON_ATTACKS_AGAINST'])).toBe(false)
     expect(
       basicActionReusableDefinitionDocumentDtoSchema.safeParse({ ...dodge, actionCost: 'REACTION' })
         .success
@@ -69,21 +64,17 @@ describe('basic-action catalogue contracts (Q11)', () => {
         definitionId: dodge.id,
         mechanic: 'STABILIZE_TARGET',
         turnSequence: 1,
-        allyActorId: null,
-        saveAbilityIds: [],
-        suspendedWhileUnableToActOrMove: false
+        allyActorId: null
       }).success
     ).toBe(false)
   })
 
-  it('names an ally only on an ally-advantage effect and abilities only on a save one', () => {
+  it('names an ally only on an ally-advantage effect', () => {
     const effect = {
       definitionId: dodge.id,
       mechanic: 'ALLY_ADVANTAGE',
       turnSequence: 4,
-      allyActorId: '33333333-3333-4333-8333-333333333332',
-      saveAbilityIds: [],
-      suspendedWhileUnableToActOrMove: false
+      allyActorId: '33333333-3333-4333-8333-333333333332'
     }
     expect(encounterBasicActionEffectDtoSchema.safeParse(effect).success).toBe(true)
     expect(
@@ -95,12 +86,14 @@ describe('basic-action catalogue contracts (Q11)', () => {
         mechanic: 'DISADVANTAGE_ON_ATTACKS_AGAINST'
       }).success
     ).toBe(false)
-    const save = { ...effect, mechanic: 'SAVE_ADVANTAGE', allyActorId: null }
-    expect(
-      encounterBasicActionEffectDtoSchema.safeParse({ ...save, saveAbilityIds: [dexterityId] })
-        .success
-    ).toBe(true)
-    expect(encounterBasicActionEffectDtoSchema.safeParse(save).success).toBe(false)
+  })
+
+  it('rejects the retired Dodge mechanics as stored effects', () => {
+    const effect = { definitionId: dodge.id, turnSequence: 4, allyActorId: null }
+    for (const mechanic of ['SAVE_ADVANTAGE', 'DISADVANTAGE_ON_ATTACKS_AGAINST'])
+      expect(encounterBasicActionEffectDtoSchema.safeParse({ ...effect, mechanic }).success).toBe(
+        false
+      )
   })
 
   it('defaults the acknowledged warnings of a basic-action command', () => {

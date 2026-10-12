@@ -322,6 +322,7 @@ export async function persistEncounterDisarmCommit(
       ruleOccurrenceId: execution.occurrenceId,
       ruleResultChecksum,
       optionalCombatSnapshotChecksum: state.optionalCombatSnapshotChecksum,
+      label: 'Disarm',
       // Disarm has no "Do it anyway"; its checks stay hard.
       ruleOverrides: [],
       allyAdvantageUses: input.allyAdvantageUses,

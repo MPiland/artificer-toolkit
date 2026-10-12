@@ -103,6 +103,10 @@ function normalizeCondition(
       }
     case 'CAN_CAST_SPELL':
       return baseCondition(condition, 'CAN_CAST_SPELL')
+    case 'CAN_ACT':
+      return baseCondition(condition, 'CAN_ACT')
+    case 'SPEED_ABOVE_ZERO':
+      return baseCondition(condition, 'SPEED_ABOVE_ZERO')
     case 'EQUIPMENT_PROFICIENCY':
       return {
         ...baseCondition(condition, 'PROFICIENCY'),

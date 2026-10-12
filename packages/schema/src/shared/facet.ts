@@ -347,6 +347,12 @@ const predicatePayloadSchemas = lazySchemaParts(
       CAN_CAST_SPELL: z.object({
         predicateCode: z.literal(predicateCodeSchema._zod.def.entries.CAN_CAST_SPELL)
       }),
+      CAN_ACT: z.object({
+        predicateCode: z.literal(predicateCodeSchema._zod.def.entries.CAN_ACT)
+      }),
+      SPEED_ABOVE_ZERO: z.object({
+        predicateCode: z.literal(predicateCodeSchema._zod.def.entries.SPEED_ABOVE_ZERO)
+      }),
       CHARACTER_LEVEL: z.object({
         predicateCode: z.literal(predicateCodeSchema._zod.def.entries.CHARACTER_LEVEL),
         min: z.number(),

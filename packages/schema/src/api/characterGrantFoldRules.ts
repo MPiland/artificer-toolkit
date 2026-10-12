@@ -65,6 +65,9 @@ const restrictionConditionSchema = lazySchema(() =>
       'OPTION_OBTAINED',
       'SPELL_OBTAINED',
       'CAN_CAST_SPELL',
+      /** Holder-state conditions are decided live in an Encounter, never by the fold. */
+      'CAN_ACT',
+      'SPEED_ABOVE_ZERO',
       'PROFICIENCY',
       'EQUIPMENT_EQUIPPED',
       'SOURCE_STATE',

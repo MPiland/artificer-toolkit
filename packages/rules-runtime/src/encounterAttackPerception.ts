@@ -7,6 +7,7 @@ import type {
 } from '@artificer-toolkit/shared/vtt'
 
 import { snapshotStatBlock } from './encounterProjection.js'
+import type { EncounterAttackAgainstContributor } from './encounterActiveGrants.js'
 import type { MovementTarget } from './encounterMovementTargets.js'
 import {
   ENCOUNTER_UNSEEN_ATTACKER_CONTRIBUTOR_SOURCE_ID,
@@ -254,16 +255,24 @@ export function encounterAttackPerceptionContributors(
 }
 
 /**
- * Every attack-roll contributor that sight decides: the target's Dodge, which holds only while the
- * target can see the attacker, and the unseen attacker/target contributors. True and believed
- * perception build theirs with this one rule.
+ * Every attack-roll contributor that sight decides: the target's `ATTACKS_AGAINST` contributors
+ * (Dodge), those that require the target to see the attacker holding only while it can, and the
+ * unseen attacker/target contributors. True and believed perception build theirs with this one rule.
  */
 export function encounterAttackSightContributors(input: {
   perception: EncounterAttackPerception
-  dodgeContributors: readonly EncounterRelationshipD20Contributor[]
+  attacksAgainst: readonly Pick<
+    EncounterAttackAgainstContributor,
+    'requiresHolderSeesAttacker' | 'contributor'
+  >[]
 }): readonly EncounterRelationshipD20Contributor[] {
   return mergeCanonicalD20Contributors(
-    input.perception.targetSeesAttacker === 'UNSEEN' ? [] : input.dodgeContributors,
+    input.attacksAgainst
+      .filter(
+        ({ requiresHolderSeesAttacker }) =>
+          !requiresHolderSeesAttacker || input.perception.targetSeesAttacker !== 'UNSEEN'
+      )
+      .map(({ contributor }) => contributor),
     encounterAttackPerceptionContributors(input.perception)
   )
 }

@@ -5062,7 +5062,7 @@
         {
           "id": "ATTACK-18",
           "title": "Basic actions are authored actions",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "journeyTests": [],
           "journeyStatus": "none",
           "origin": [],
@@ -5095,26 +5095,40 @@
             {
               "id": "ATTACK-18.T1",
               "text": "Map each BASIC_ACTION_MECHANIC_CODE (SPEED_MOVEMENT_BONUS, NO_OPPORTUNITY_ATTACKS, DISADVANTAGE_ON_ATTACKS_AGAINST, ALLY_ADVANTAGE, SAVE_ADVANTAGE, STABILIZE_TARGET) to an existing effect kind; add any missing kind as a reusable one, never basic-action-only.",
-              "status": "TODO",
-              "closes": ["ATTACK-18.1"]
+              "status": "DONE",
+              "closes": ["ATTACK-18.1"],
+              "note": "Mapping recorded in the D106 ATTACK-18 addendum (2026-10-11): ATTACKS_AGAINST, OPPORTUNITY_ATTACK_IMMUNITY, ADD_SPEED_TO_MOVEMENT, consumeOnFirstEvents with ON_ABILITY_CHECK, the CHECK test, and the CAN_ACT and SPEED_ABOVE_ZERO predicates."
             },
             {
               "id": "ATTACK-18.T2",
-              "text": "Re-author the SRD basic-action seeds as authored actions; delete the closed code, its schema and its rules branches; migrate development data in the same change.",
+              "text": "Slice A: the BASIC_ACTION document carries restrictions and authored effects, compiled by the effect compiler and run through RESOLVE_ACTION as the BASIC_ACTION source for Characters and Creatures; Dodge (ATTACKS_AGAINST, save advantage, CAN_ACT and SPEED_ABOVE_ZERO) and the logged Hide, Ready, Search and Use an Object are migrated and their old paths deleted.",
+              "status": "DONE",
+              "closes": ["ATTACK-18.1", "ATTACK-18.2"],
+              "note": "Done 2026-10-12. Hide, Ready, Search and Use an Object run a stored-state-free MANUAL_ADJUDICATION proposal; Every stored RESOLVE_ACTION command carries the resolved action's display label (Character, Creature feature and BASIC_ACTION alike), so the GM log names Hide, Bite and the rest. Reusable-definition documents are now stored as canonical documentJson text (ADR 0029): Dodge nests 19 levels, over the Convex cap of 16. Logs: local-validation/attack18a."
+            },
+            {
+              "id": "ATTACK-18.T3",
+              "text": "Slice B: Dash (ADD_SPEED_TO_MOVEMENT) and Disengage (OPPORTUNITY_ATTACK_IMMUNITY) are migrated and their old paths deleted.",
               "status": "TODO",
               "closes": ["ATTACK-18.1", "ATTACK-18.2"]
             },
             {
-              "id": "ATTACK-18.T3",
-              "text": "Offer basic actions through their facet restrictions in the rules and the action drawer; add the FREE_HAND facet predicate on the hand-occupancy function.",
+              "id": "ATTACK-18.T4",
+              "text": "Slice C: Help is an ally grant consumed by the first attack roll or ability check (consumeOnFirstEvents, ON_ABILITY_CHECK) and ending at the helper's next turn; allyAdvantageUses is deleted.",
               "status": "TODO",
-              "closes": ["ATTACK-18.3"]
+              "closes": ["ATTACK-18.1", "ATTACK-18.2"]
             },
             {
-              "id": "ATTACK-18.T4",
-              "text": "Run the existing D45, D46, D96 and D98 proofs unchanged, plus a journey test that uses an authored basic action end to end.",
+              "id": "ATTACK-18.T5",
+              "text": "Slice D: First Aid runs on the CHECK action test with a STABILIZE outcome; Escape keeps its command on the shared check evaluator.",
               "status": "TODO",
-              "closes": ["ATTACK-18.2"]
+              "closes": ["ATTACK-18.1", "ATTACK-18.2"]
+            },
+            {
+              "id": "ATTACK-18.T6",
+              "text": "Slice E: delete the closed codes, USE_BASIC_ACTION and every old path; offer basic actions through their facet restrictions with the FREE_HAND predicate in the rules and the drawer; a journey uses an authored basic action end to end; migrate development data and update the architecture docs.",
+              "status": "TODO",
+              "closes": ["ATTACK-18.1", "ATTACK-18.3"]
             }
           ]
         },

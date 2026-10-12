@@ -1,9 +1,10 @@
 import { prepareEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomy'
 import { evaluateEncounterAttackAction } from '@artificer-toolkit/rules-runtime/encounterAttackAction'
 import { prepareEncounterActionMechanics } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
+import { readEncounterBasicActionEntries } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
 import {
   resolveEncounterActionSource,
-  type EncounterActionSourceInput,
+  type EncounterActionSourceRequest,
   type NativeEncounterActionSource
 } from '@artificer-toolkit/rules-runtime/encounterActionSources'
 import {
@@ -58,6 +59,17 @@ export async function readActionSceneContext(
   }
 }
 
+/** The current published definitions as the Campaign's owner reads them. */
+function campaignDefinitions(tx: EncounterTurnReadTransaction, campaign: Campaign) {
+  return {
+    requireCurrent: async (definitionId: string) => {
+      const current = await tx.ports.readCurrentDefinition(definitionId, campaign.ownerUserId)
+      if (!current) throw new Error('The rule definition is unavailable.')
+      return current
+    }
+  }
+}
+
 function economyInput<TFacts extends CharacterTurnFacts>(
   tx: EncounterTurnReadTransaction<TFacts>,
   input: ActionEconomyInput<TFacts>
@@ -75,16 +87,7 @@ function economyInput<TFacts extends CharacterTurnFacts>(
           targetActorIds: [input.actor.id]
         })
       ).get(input.actor.id),
-    definitions: {
-      requireCurrent: async (definitionId: string) => {
-        const current = await tx.ports.readCurrentDefinition(
-          definitionId,
-          input.campaign.ownerUserId
-        )
-        if (!current) throw new Error('Action-economy capability is unavailable.')
-        return current
-      }
-    }
+    definitions: campaignDefinitions(tx, input.campaign)
   }
 }
 
@@ -113,13 +116,22 @@ export async function evaluateActionAttackAction<TFacts extends CharacterTurnFac
 /** Resolves an action from current authoritative sources, never caller mechanics. */
 async function loadActionSource(
   tx: EncounterTurnReadTransaction,
-  input: Omit<EncounterActionSourceInput, 'system'>
+  campaign: Campaign,
+  input: EncounterActionSourceRequest
 ): Promise<NativeEncounterActionSource> {
   if (input.actor.systemId !== input.gameSystemId)
     throw new Error('Encounter action source does not match the Encounter Game System.')
+  const basicActions = await readEncounterBasicActionEntries({
+    actorId: input.actor.id,
+    actionId: input.actionId,
+    gameSystemId: input.gameSystemId,
+    definitions: campaignDefinitions(tx, campaign)
+  })
   const system =
-    input.actor.kind === 'CREATURE' ? await tx.ports.requireSystem(input.gameSystemId) : undefined
-  return resolveEncounterActionSource({ ...input, system })
+    input.actor.kind === 'CREATURE' || basicActions.length > 0
+      ? await tx.ports.requireSystem(input.gameSystemId)
+      : undefined
+  return resolveEncounterActionSource({ ...input, system, basicActions })
 }
 
 /** Loads every current Run actor's effects before preparing relationship-bound action facts. */
@@ -211,7 +223,7 @@ export async function prepareActionMechanics<TFacts extends CharacterTurnFacts>(
     wieldConflictAcceptance: input.wieldConflictAcceptance,
     overridable: input.overridable,
     movementTargets,
-    loadSource: (sourceInput) => loadActionSource(tx, sourceInput),
+    loadSource: (sourceInput) => loadActionSource(tx, input.campaign, sourceInput),
     loadRelationshipFacts: (factsInput) => loadActionRelationshipFacts(tx, factsInput)
   }).catch(refuseStaleCharacterAction)
 }

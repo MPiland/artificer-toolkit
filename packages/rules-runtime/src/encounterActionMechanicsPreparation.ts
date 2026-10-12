@@ -27,10 +27,8 @@ import {
   encounterConditionSaveAutoFailAbilityIds
 } from './encounterConditionMechanics.js'
 import { featureChargeUsed } from './encounterActorState.js'
-import {
-  featureActionMechanic,
-  type EncounterFeatureActionCapabilityDescriptor
-} from './encounterFeatureActionCapabilityDiscovery.js'
+import type { EffectActionCapabilityDescriptor } from './characterActionCapabilityDiscovery.js'
+import { featureActionMechanic } from './encounterFeatureActionCapabilityDiscovery.js'
 import type {
   CharacterRuleActionExecutionPlan,
   CharacterRuleActionSystemAdapter
@@ -56,7 +54,7 @@ import { attackDomainCodeSchema } from '@artificer-toolkit/schema/shared/enums'
 import { evaluateInstalledEncounterActors } from './platformRulesRuntime.js'
 import type { CharacterMovementFacts, MovementTarget } from './encounterMovementTargets.js'
 import type {
-  EncounterActionSourceInput,
+  EncounterActionSourceRequest,
   NativeEncounterActionSource
 } from './encounterActionSources.js'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
@@ -104,10 +102,13 @@ export function encounterActionCurrentnessChecksum(input: {
   })
 }
 
-/** The execution plan a Creature's feature action runs; Legendary discovery pins the same plan. */
+/**
+ * The execution plan an authored Effect action runs (a Creature's feature action or an authored
+ * basic action); Legendary discovery pins the same plan.
+ */
 export function compileEncounterFeatureActionPlan(
   adapter: CharacterRuleActionSystemAdapter,
-  capability: EncounterFeatureActionCapabilityDescriptor
+  capability: EffectActionCapabilityDescriptor
 ): CharacterRuleActionExecutionPlan {
   return (
     adapter.compileExecutionPlan?.({
@@ -129,9 +130,7 @@ export async function prepareEncounterActionSource<
   actor: EncounterRunActorState
   actionId: string
   sourceFacts: MovementTarget<TCharacterFacts>
-  loadSource: (
-    input: Omit<EncounterActionSourceInput, 'system'>
-  ) => Promise<NativeEncounterActionSource>
+  loadSource: (input: EncounterActionSourceRequest) => Promise<NativeEncounterActionSource>
 }) {
   const { state, actor, actionId, sourceFacts } = input
   const characterAction = sourceFacts.characterReactionSource
@@ -207,9 +206,7 @@ export async function prepareEncounterActionMechanics<
     sourceFacts: MovementTarget<TCharacterFacts>
     targetFacts: MovementTarget<TCharacterFacts>
   }) => Promise<{ actual: EncounterAttackPerception; believed: EncounterAttackPerception }>
-  loadSource: (
-    input: Omit<EncounterActionSourceInput, 'system'>
-  ) => Promise<NativeEncounterActionSource>
+  loadSource: (input: EncounterActionSourceRequest) => Promise<NativeEncounterActionSource>
   loadRelationshipFacts: (input: {
     state: EncounterRunState
     actors: readonly EncounterRunActorState[]
@@ -340,11 +337,16 @@ export async function prepareEncounterActionMechanics<
             itemMechanics: source.effectivePolicyOutput.itemMechanics
           })
         : { magical: isDnd5eSpellAttackKind(attackKind), silvered: false, adamantine: false }
-  // A Dodging target (basic action, Q11, applied to its facts) gives attacks against it
-  // disadvantage, but only when it can see the attacker, and so does a target beyond a ranged
-  // attack's normal range (D62). The attacker's and the target's condition mechanics add their own
-  // contributors (D94), and so does sight: an unseen attacker has advantage, an unseen target
-  // disadvantage. Sight that cannot be decided (UNKNOWN) adds nothing and keeps Dodge.
+  // A target's active ATTACKS_AGAINST grants (Dodge, applied to its facts) give attacks against it
+  // their advantage or disadvantage, those that require the holder to see the attacker only when it
+  // can, and so does a target beyond a ranged attack's normal range (D62). The attacker's and the
+  // target's condition mechanics add their own contributors (D94), and so does sight: an unseen
+  // attacker has advantage, an unseen target disadvantage. Sight that cannot be decided (UNKNOWN)
+  // adds nothing and keeps those grants.
+  const attackDomain = isDnd5eSpellAttackKind(attackKind) ? 'SPELL' : attackKind
+  const attacksAgainst = targetFacts.attackAgainstContributors.filter(
+    (entry) => entry.attackDomain === attackDomain
+  )
   const longRange = encounterActionLongRangeContributor({
     targetPolicy,
     sceneContext: input.sceneContext ?? null
@@ -357,11 +359,11 @@ export async function prepareEncounterActionMechanics<
     ...perception,
     trueSight: encounterAttackSightContributors({
       perception: perception.actual,
-      dodgeContributors: targetFacts.basicActionAttackContributors
+      attacksAgainst
     }),
     believedSight: encounterAttackSightContributors({
       perception: perception.believed,
-      dodgeContributors: targetFacts.basicActionAttackContributors
+      attacksAgainst
     }),
     attackerLabel: actor.label,
     targetLabel: target.label
@@ -382,7 +384,7 @@ export async function prepareEncounterActionMechanics<
       actionEffectId:
         source.kind === 'CHARACTER_ACTION' ? source.candidate.effectId : source.capability.effectId
     }),
-    attackSight ? attackSight.trueSight : targetFacts.basicActionAttackContributors,
+    attackSight ? attackSight.trueSight : attacksAgainst.map(({ contributor }) => contributor),
     longRange ? [longRange] : [],
     attackKind === null
       ? []

@@ -101,6 +101,8 @@ export type LiveSessionEncounterActionCommitInput = Omit<
     | null
   /** The single-use item this Assisted action used up, with the Character version it was planned at. */
   itemConsumption: z.infer<typeof liveSessionCharacterItemConsumptionSchema> | null
+  /** The resolved action's display name; the stored command and the timeline carry it. */
+  label: string | null
   /** Warnings the command acknowledged and the planner found; recorded as overrides. */
   ruleOverrides: EncounterRuleWarningDto[]
   createdEffects: z.infer<typeof activeRuleEffectRecordSchema>[]
@@ -149,6 +151,7 @@ export const liveSessionEncounterActionCommitInputSchema: z.ZodMiniType<LiveSess
       rules: encounterActorRuleOutputSchema,
       resourceConsumption: z.nullable(liveSessionCharacterResourceConsumptionSchema),
       itemConsumption: z.nullable(liveSessionCharacterItemConsumptionSchema),
+      label: z.nullable(z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160))),
       ruleOverrides: encounterRuleWarningsDtoSchema,
       createdEffects: z.array(activeRuleEffectRecordSchema).check(z.maxLength(2)),
       maintainedState: z.nullable(encounterMaintainedEffectStateRecordSchema),
@@ -210,6 +213,7 @@ export const liveSessionEncounterAreaCommitInputSchema: z.ZodMiniType<LiveSessio
         rules: encounterActorRuleOutputSchema,
         resourceConsumption: z.nullable(liveSessionCharacterResourceConsumptionSchema),
         itemConsumption: z.nullable(liveSessionCharacterItemConsumptionSchema),
+        label: z.nullable(z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160))),
         ruleOverrides: encounterRuleWarningsDtoSchema,
         ...liveSessionEncounterConcentrationFields()
       }

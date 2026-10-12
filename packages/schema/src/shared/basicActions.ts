@@ -2,8 +2,11 @@ import {
   BASIC_ACTION_MECHANIC_CODE,
   type BasicActionMechanicCode
 } from '@artificer-toolkit/shared/core'
+import { featureEffectDtoSchema } from '../effects/effect.js'
 import { z, lazySchema } from '../zod.js'
 
+import { authoredNestedCollectionSchema } from './authoredLimits.js'
+import { facetDtoSchema } from './facet.js'
 import { postgresUuidSchema } from './postgresUuid.js'
 
 const basicActionMechanicDtoSchema = lazySchema(() =>
@@ -18,17 +21,6 @@ const basicActionMechanicDtoSchema = lazySchema(() =>
 /** The allowance a basic action spends; a free one spends none. */
 export const basicActionCostDtoSchema = lazySchema(() => z.enum(['ACTION', 'BONUS_ACTION', 'FREE']))
 
-const sortedUniqueIds = (message: string) =>
-  z
-    .array(postgresUuidSchema)
-    .check(z.maxLength(16))
-    .check(
-      z.superRefine((ids: string[], context) => {
-        if (ids.some((id, index) => index > 0 && ids[index - 1]! >= id))
-          context.addIssue({ code: 'custom', message })
-      })
-    )
-
 /** The ability check a basic action makes, e.g. First Aid's DC 10 Wisdom (Medicine) check. */
 const basicActionCheckDtoSchema = lazySchema(() =>
   z.strictObject({
@@ -38,12 +30,12 @@ const basicActionCheckDtoSchema = lazySchema(() =>
 )
 
 /**
- * One System-authored basic combat action (Q11): the System names it and writes its rules text;
- * `mechanics` are the closed rule kinds the room executes. An entry without mechanics is logged.
- * `check` is the check a `STABILIZE_TARGET` action makes.
- * `saveAbilityIds` names the abilities whose saving throws `SAVE_ADVANTAGE` improves, and
- * `suspendedWhileUnableToActOrMove` keeps the actor's own defensive effects (disadvantage on attacks
- * against it, save advantage) from applying while it can't act or its speed is 0.
+ * One System-authored basic combat action (Q11): the System names it and writes its rules text.
+ * An entry carries either `effects` (an authored action, compiled and resolved through
+ * RESOLVE_ACTION like a Feature's; its activation is its cost) or the transitional closed
+ * `mechanics` the room executes (Dash, Disengage, Help, First Aid); never both.
+ * `restrictions` limit which actors the entry applies to (null = every actor) and are carried
+ * until the offering rules read them. `check` is the check a `STABILIZE_TARGET` action makes.
  */
 export const basicActionReusableDefinitionDocumentDtoSchema = lazySchema(() =>
   z
@@ -66,17 +58,17 @@ export const basicActionReusableDefinitionDocumentDtoSchema = lazySchema(() =>
               })
           })
         ),
-      saveAbilityIds: sortedUniqueIds('Save ability IDs must be unique and sorted.'),
-      suspendedWhileUnableToActOrMove: z.boolean(),
+      restrictions: z.nullable(facetDtoSchema),
+      effects: authoredNestedCollectionSchema(featureEffectDtoSchema),
       check: z.nullable(basicActionCheckDtoSchema)
     })
     .check(
       z.superRefine((document, context) => {
-        if (document.mechanics.includes('SAVE_ADVANTAGE') !== document.saveAbilityIds.length > 0)
+        if (document.mechanics.length > 0 && document.effects.length > 0)
           context.addIssue({
             code: 'custom',
-            path: ['saveAbilityIds'],
-            message: 'Only a save-advantage action names the abilities it improves.'
+            path: ['effects'],
+            message: 'A basic action carries either authored effects or mechanics, never both.'
           })
         if (document.mechanics.includes('STABILIZE_TARGET') !== (document.check !== null))
           context.addIssue({
@@ -95,23 +87,14 @@ export type BasicActionReusableDefinitionDocumentDto = z.infer<
  * A lasting basic-action effect, kept in the acting actor's Run resources until the start of that
  * actor's next turn. `NO_OPPORTUNITY_ATTACKS` also ends when the turn it was taken in
  * (`turnSequence`) ends, and `ALLY_ADVANTAGE` when the ally's next attack roll or check uses it.
- * `DISADVANTAGE_ON_ATTACKS_AGAINST` applies only against attackers the holder can see; RESOLVE_ACTION
- * checks that sight and drops it against an attacker the holder definitely cannot see.
  */
 export const encounterBasicActionEffectDtoSchema = lazySchema(() =>
   z
     .strictObject({
       definitionId: postgresUuidSchema,
-      mechanic: z.enum([
-        'ALLY_ADVANTAGE',
-        'DISADVANTAGE_ON_ATTACKS_AGAINST',
-        'NO_OPPORTUNITY_ATTACKS',
-        'SAVE_ADVANTAGE'
-      ]),
+      mechanic: z.enum(['ALLY_ADVANTAGE', 'NO_OPPORTUNITY_ATTACKS']),
       turnSequence: z.number().check(z.int()).check(z.nonnegative()),
-      allyActorId: z.nullable(postgresUuidSchema),
-      saveAbilityIds: sortedUniqueIds('Save ability IDs must be unique and sorted.'),
-      suspendedWhileUnableToActOrMove: z.boolean()
+      allyActorId: z.nullable(postgresUuidSchema)
     })
     .check(
       z.superRefine((effect, context) => {
@@ -120,12 +103,6 @@ export const encounterBasicActionEffectDtoSchema = lazySchema(() =>
             code: 'custom',
             path: ['allyActorId'],
             message: 'Only an ally-advantage effect names an ally.'
-          })
-        if ((effect.mechanic === 'SAVE_ADVANTAGE') !== effect.saveAbilityIds.length > 0)
-          context.addIssue({
-            code: 'custom',
-            path: ['saveAbilityIds'],
-            message: 'Only a save-advantage effect names abilities.'
           })
       })
     )

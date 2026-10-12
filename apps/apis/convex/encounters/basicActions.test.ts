@@ -6,6 +6,7 @@ import type {
   GetEncounterActionChoicesInputDto
 } from '@artificer-toolkit/schema/api/encounterActionChoices'
 import type { EncounterSessionStateDto } from '@artificer-toolkit/schema/api/encounterData'
+import type { ResolveEncounterActionInputDto } from '@artificer-toolkit/schema/api/encounters'
 import type {
   ResolveRuleOccurrenceInputDto,
   UseEncounterBasicActionInputDto
@@ -58,7 +59,7 @@ const pendingRuleOccurrence = makeFunctionReference<
   PendingEncounterRuleOccurrenceSummaryDto | null
 >('encounters/pendingReads:pendingRuleOccurrence')
 
-const [dash, disengage, dodge, help, hide] = SRD_BASIC_ACTION_DEFINITIONS
+const [dash, disengage, , help] = SRD_BASIC_ACTION_DEFINITIONS
 
 /** The player-control Run with the System's rule states (conditions, capabilities) and catalogue. */
 async function basicActionFixture(options: Parameters<typeof playerControlFixture>[0] = {}) {
@@ -89,6 +90,118 @@ async function useBasicAction(
     acknowledgedWarnings: [],
     ...input
   }
+}
+
+/**
+ * RESOLVE_ACTION for one of the actor's authored basic actions, found in the choices the actor is
+ * offered (a self-targeted action).
+ */
+async function resolveBasicAction(
+  base: PlayerControlFixture,
+  actorId: string,
+  label: string,
+  overrides: Partial<ResolveEncounterActionInputDto> = {}
+): Promise<ResolveEncounterActionInputDto> {
+  const expectedVersion = await base.version()
+  const choices = await base.owner.caller.query(actionChoices, {
+    encounterId: base.run.id,
+    expectedVersion,
+    actorId
+  })
+  const choice = choices?.basicActionChoices.find((entry) => entry.label === label)
+  if (!choice) throw new Error(`The actor is not offered the ${label} basic action.`)
+  return {
+    type: 'RESOLVE_ACTION',
+    acceptedWieldConflict: null,
+    acknowledgedWarnings: [],
+    encounterId: base.run.id,
+    commandId: crypto.randomUUID(),
+    expectedVersion,
+    actorId,
+    target: { kind: 'ACTOR', actorId },
+    actionId: choice.id,
+    optionalCombatIntent: null,
+    sceneContext: null,
+    ...overrides
+  }
+}
+
+/** The Active Effects the Encounter actor holds (Dodge's grant while it lasts). */
+async function activeEffects(base: PlayerControlFixture, actorId: string) {
+  await checkpointLiveRoom(base.campaign.id)
+  return base.t.run((ctx) =>
+    ctx.db
+      .query('encounterActiveRuleEffects')
+      .withIndex('by_encounterId_targetActorId_createdOrdinal_id', (q) =>
+        q.eq('encounterId', base.run.id).eq('targetActorId', actorId)
+      )
+      .collect()
+  )
+}
+
+async function activeEffectCount(base: PlayerControlFixture, actorId: string) {
+  return (await activeEffects(base, actorId)).length
+}
+
+/** What each stored Active Effect on the actor grants: its authored effect, label and modifiers. */
+async function storedGrants(base: PlayerControlFixture, actorId: string) {
+  return (await activeEffects(base, actorId)).map((effect) => {
+    const definition = JSON.parse(effect.definitionJson) as {
+      authoredEffectId: string
+      stateContributions: {
+        sourceLabel: string
+        modifiers: {
+          valueDomainCode: string
+          modifierKind: string
+          domain: unknown
+          restrictions: { conditions: { kind: string }[] }[]
+        }[]
+      }[]
+    }
+    return {
+      authoredEffectId: definition.authoredEffectId,
+      grants: definition.stateContributions.map((contribution) => ({
+        sourceLabel: contribution.sourceLabel,
+        modifiers: contribution.modifiers.map((modifier) => ({
+          valueDomainCode: modifier.valueDomainCode,
+          modifierKind: modifier.modifierKind,
+          domain: modifier.domain,
+          conditions: modifier.restrictions.flatMap((group) =>
+            group.conditions.map((condition) => condition.kind)
+          )
+        }))
+      }))
+    }
+  })
+}
+
+const dodgeDefinition = SRD_BASIC_ACTION_DEFINITIONS.find(
+  ({ id }) => id === SRD_BASIC_ACTION_IDS.DODGE
+)
+if (dodgeDefinition?.document.kind !== 'BASIC_ACTION') throw new Error('Missing Dodge fixture.')
+
+/** The one Active Effect Dodge leaves: its authored effect, with disadvantage against attacks and Dexterity save advantage. */
+const dodgeGrant = {
+  authoredEffectId: dodgeDefinition.document.effects[0]!.id,
+  grants: [
+    {
+      sourceLabel: 'Dodge',
+      modifiers: [
+        ...['MELEE', 'RANGED', 'SPELL', 'UNARMED'].map((attackDomain) => ({
+          valueDomainCode: 'ATTACKS_AGAINST',
+          modifierKind: 'DISADVANTAGE',
+          domain: { attackDomain, requiresHolderSeesAttacker: true },
+          conditions: ['CAN_ACT', 'SPEED_ABOVE_ZERO']
+        })),
+        {
+          valueDomainCode: 'SAVING_THROW_MODIFIER',
+          modifierKind: 'ADVANTAGE',
+          domain: { ability: 'DEXTERITY' },
+          conditions: ['CAN_ACT', 'SPEED_ABOVE_ZERO']
+        }
+      ]
+    }
+  ]
 }
 
 /** The actor as the room last published it: the room holds the Run until it checkpoints (D85). */
@@ -195,30 +308,34 @@ describe('basic combat actions in the room (Q11)', () => {
       actorId: base.companion.id
     })
     expect(choices?.actions.map((action) => action.id)).toContain(base.actionId)
+    // Mechanic entries keep the closed USE_BASIC_ACTION path; authored ones are ordinary actions.
     expect(
       choices?.basicActions.map(({ label, actionCost, target }) => [label, actionCost, target])
     ).toEqual([
       ['Dash', 'ACTION', null],
       ['Disengage', 'ACTION', null],
-      ['Dodge', 'ACTION', null],
       ['First Aid', 'ACTION', 'DYING_CHARACTER'],
-      ['Help', 'ACTION', 'ALLY'],
-      ['Hide', 'ACTION', null],
-      ['Ready', 'ACTION', null],
-      ['Search', 'ACTION', null],
-      ['Use an Object', 'ACTION', null]
+      ['Help', 'ACTION', 'ALLY']
+    ])
+    expect(choices?.basicActionChoices.map(({ label }) => label)).toEqual([
+      'Dodge',
+      'Hide',
+      'Ready',
+      'Search',
+      'Use an Object'
     ])
 
     const before = await base.version()
-    const result = await base.gm(
-      await useBasicAction(base, { actorId: base.companion.id, definitionId: hide!.id })
-    )
+    const budgetBefore = await turnBudget(base, base.companion.id)
+    const result = await base.gm(await resolveBasicAction(base, base.companion.id, 'Hide'))
     expect(result.projection.version).toBe(before + 1)
     const companion = await actorState(base, base.companion.id)
     expect(encounterBasicActionEffects(companion)).toEqual([])
+    expect(await activeEffectCount(base, base.companion.id)).toBe(0)
+    expect(await turnBudget(base, base.companion.id)).toBe(budgetBefore)
     expect(encounterRuleUsageUsed(companion, SRD_ACTION_ALLOWANCE_DEFINITION_ID)).toBe(1)
     const entries = await readRoomTimeline(base.owner.caller, base.campaign.id)
-    expect(entries[0]).toMatchObject({ commandType: 'USE_BASIC_ACTION', label: 'Hide' })
+    expect(entries[0]).toMatchObject({ commandType: 'RESOLVE_ACTION', label: 'Hide' })
   })
 
   it('Dash spends the action and adds the speed to this turn’s budget; a second one warns first', async () => {
@@ -272,12 +389,8 @@ describe('basic combat actions in the room (Q11)', () => {
   it('Dodge gives attacks against the actor disadvantage, reads "Dodge", and ends at its next turn', async () => {
     const base = await basicActionFixture({ bite: 'ATTACK', promptRolls: true })
     await setCurrentActor(base, base.enemy.id)
-    await base.gm(await useBasicAction(base, { actorId: base.enemy.id, definitionId: dodge!.id }))
-    expect(
-      encounterBasicActionEffects(await actorState(base, base.enemy.id)).map(
-        (effect) => effect.mechanic
-      )
-    ).toEqual(['DISADVANTAGE_ON_ATTACKS_AGAINST', 'SAVE_ADVANTAGE'])
+    await base.gm(await resolveBasicAction(base, base.enemy.id, 'Dodge'))
+    expect(await storedGrants(base, base.enemy.id)).toEqual([dodgeGrant])
 
     await setCurrentActor(base, base.companion.id)
     await base.gm(await base.bite(base.companion.id, base.enemy.id))
@@ -290,9 +403,17 @@ describe('basic combat actions in the room (Q11)', () => {
 
     // The enemy's next turn starts: its Dodge ends.
     await advanceTurn(base)
-    expect(encounterBasicActionEffects(await actorState(base, base.enemy.id))).toHaveLength(2)
+    expect(await storedGrants(base, base.enemy.id)).toEqual([dodgeGrant])
     await advanceTurn(base)
-    expect(encounterBasicActionEffects(await actorState(base, base.enemy.id))).toEqual([])
+    expect(await activeEffectCount(base, base.enemy.id)).toBe(0)
+  })
+
+  it('an attack entry in the timeline reads the label of the attack', async () => {
+    const base = await basicActionFixture({ bite: 'ATTACK' })
+    await setCurrentActor(base, base.companion.id)
+    await base.gm(await base.bite(base.companion.id, base.enemy.id))
+    const entries = await readRoomTimeline(base.owner.caller, base.campaign.id)
+    expect(entries[0]).toMatchObject({ commandType: 'RESOLVE_ACTION', label: 'Bite' })
   })
 
   it('an Invisible attacker its Character target cannot see rolls with advantage, named "Unseen attacker"', async () => {
@@ -312,9 +433,7 @@ describe('basic combat actions in the room (Q11)', () => {
     const invisible = srdSystemRecord.conditionTypes.find((value) => value.code === 'INVISIBLE')
     if (!invisible) throw new Error('Missing Invisible condition fixture.')
     await setCurrentActor(base, base.character.id)
-    await base.gm(
-      await useBasicAction(base, { actorId: base.character.id, definitionId: dodge!.id })
-    )
+    await base.gm(await resolveBasicAction(base, base.character.id, 'Dodge'))
     await setConditions(base, base.companion.id, [invisible.id])
     await setCurrentActor(base, base.companion.id)
     await base.gm(await base.bite(base.companion.id, base.character.id))
@@ -327,7 +446,7 @@ describe('basic combat actions in the room (Q11)', () => {
   it("a player's prompt keeps a hidden dodger's disadvantage but not its name", async () => {
     const base = await basicActionFixture({ bite: 'ATTACK', promptRolls: true })
     await setCurrentActor(base, base.enemy.id)
-    await base.gm(await useBasicAction(base, { actorId: base.enemy.id, definitionId: dodge!.id }))
+    await base.gm(await resolveBasicAction(base, base.enemy.id, 'Dodge'))
     await base.gm({
       type: 'UPDATE_ACTOR',
       encounterId: base.run.id,
@@ -355,7 +474,7 @@ describe('basic combat actions in the room (Q11)', () => {
   it("Dodge gives the dodger's Dexterity saves advantage", async () => {
     const base = await basicActionFixture({ bite: 'SAVE', promptRolls: true })
     await setCurrentActor(base, base.enemy.id)
-    await base.gm(await useBasicAction(base, { actorId: base.enemy.id, definitionId: dodge!.id }))
+    await base.gm(await resolveBasicAction(base, base.enemy.id, 'Dodge'))
     await setCurrentActor(base, base.companion.id)
     await base.gm(await base.bite(base.companion.id, base.enemy.id))
     expect((await d20Pending(base)).request).toMatchObject({
@@ -371,7 +490,7 @@ describe('basic combat actions in the room (Q11)', () => {
     )
     if (!incapacitated) throw new Error('Missing Incapacitated condition.')
     await setCurrentActor(base, base.enemy.id)
-    await base.gm(await useBasicAction(base, { actorId: base.enemy.id, definitionId: dodge!.id }))
+    await base.gm(await resolveBasicAction(base, base.enemy.id, 'Dodge'))
     await setConditions(base, base.enemy.id, [incapacitated.id])
     await setCurrentActor(base, base.companion.id)
 
@@ -431,13 +550,11 @@ describe('basic combat actions in the room (Q11)', () => {
       )
     ).toBe(0)
 
-    await base.gm(
-      await useBasicAction(base, { actorId: base.companion.id, definitionId: dodge!.id })
-    )
-    expect(encounterBasicActionEffects(await actorState(base, base.companion.id))).toHaveLength(2)
+    await base.gm(await resolveBasicAction(base, base.companion.id, 'Dodge'))
+    expect(await storedGrants(base, base.companion.id)).toEqual([dodgeGrant])
     await revertLastAction(base)
     const companion = await actorState(base, base.companion.id)
-    expect(encounterBasicActionEffects(companion)).toEqual([])
+    expect(await activeEffectCount(base, base.companion.id)).toBe(0)
     expect(encounterRuleUsageUsed(companion, SRD_ACTION_ALLOWANCE_DEFINITION_ID)).toBe(0)
     const entries = await readRoomTimeline(base.owner.caller, base.campaign.id)
     expect(entries[0]).toMatchObject({ commandType: 'REVERT_LAST_ACTION' })
@@ -449,14 +566,12 @@ describe('basic combat actions in the room (Q11)', () => {
 
   it('refuses to undo a basic action once a later command changed the Encounter', async () => {
     const base = await basicActionFixture()
-    await base.gm(
-      await useBasicAction(base, { actorId: base.companion.id, definitionId: dodge!.id })
-    )
+    await base.gm(await resolveBasicAction(base, base.companion.id, 'Dodge'))
     await setCurrentActor(base, base.enemy.id)
     await expect(domainRejection(revertLastAction(base))).resolves.toMatchObject({
       reason: 'REVERT_UNAVAILABLE'
     })
-    expect(encounterBasicActionEffects(await actorState(base, base.companion.id))).toHaveLength(2)
+    expect(await storedGrants(base, base.companion.id)).toEqual([dodgeGrant])
   })
 
   it('undoing an attack that used a Help gives the Help back to its helper', async () => {
@@ -559,17 +674,10 @@ describe('basic combat actions in the room (Q11)', () => {
 
   it('the room commits a Dodge once, checkpointing its effects and exactly one version', async () => {
     const base = await basicActionFixture()
-    const command = await useBasicAction(base, {
-      actorId: base.companion.id,
-      definitionId: dodge!.id
-    })
+    const command = await resolveBasicAction(base, base.companion.id, 'Dodge')
     const committed = await executeInRoom(base.owner.caller, { command })
     expect(committed.projection.version).toBe(command.expectedVersion + 1)
     expect(await base.version()).toBe(command.expectedVersion + 1)
-    expect(
-      encounterBasicActionEffects(await actorState(base, base.companion.id)).map(
-        (effect) => effect.mechanic
-      )
-    ).toEqual(['DISADVANTAGE_ON_ATTACKS_AGAINST', 'SAVE_ADVANTAGE'])
+    expect(await storedGrants(base, base.companion.id)).toEqual([dodgeGrant])
   })
 })

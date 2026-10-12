@@ -143,16 +143,9 @@ function featureAttackMechanic(
   }
 }
 
-/** Immutable source facts only; mutable Encounter actor state is intentionally unavailable here. */
-export interface EncounterFeatureEffectCompilerInput {
-  encounterActorId: string
-  creatureSourceId: string
+/** What a System adapter binds to its pinned vocabulary for one compiled Effect. */
+export interface EncounterEffectCompilerInput {
   gameSystemId: string
-  sourceRevision: number
-  sourceVersionId: string
-  sourceChecksum: string
-  ownerFeature: FeatureDto
-  featureOption: FeatureOption | null
   compiledEffect: CompiledEffectGroup
   conditionDefinitionIds: readonly string[]
   abilityDefinitions: readonly { id: string; code: string }[]
@@ -160,7 +153,7 @@ export interface EncounterFeatureEffectCompilerInput {
 
 export interface EncounterFeatureActionCapabilityAdapter {
   gameSystemId: string
-  compile(input: EncounterFeatureEffectCompilerInput): {
+  compile(input: EncounterEffectCompilerInput): {
     conditionDefinitionIds?: readonly string[]
     savingThrowAbilityDefinitionId?: string | null
   } | null
@@ -505,6 +498,21 @@ function assertExactSystemBindings(input: {
   }
 }
 
+/** The adapter's bindings for one compiled Effect, checked against the pinned System vocabulary. */
+function bindEffect(
+  adapter: EncounterFeatureActionCapabilityAdapter,
+  input: EncounterEffectCompilerInput
+) {
+  const normalized = adapter.compile(input)
+  if (normalized !== null)
+    assertExactSystemBindings({
+      conditionDefinitionIds: input.conditionDefinitionIds,
+      abilityDefinitions: input.abilityDefinitions,
+      normalized
+    })
+  return normalized
+}
+
 export function createEncounterFeatureActionCapabilityDiscoveryRegistry(
   adapters: readonly EncounterFeatureActionCapabilityAdapter[]
 ) {
@@ -520,6 +528,11 @@ export function createEncounterFeatureActionCapabilityDiscoveryRegistry(
     adaptersBySystemId.set(adapter.gameSystemId, adapter)
   }
   return {
+    /** The System bindings of one compiled Effect; null when its System has no adapter. */
+    bind(input: EncounterEffectCompilerInput) {
+      const adapter = adaptersBySystemId.get(input.gameSystemId)
+      return adapter ? bindEffect(adapter, input) : null
+    },
     discover(input: {
       actor: EncounterProjectionActorInput
       conditionDefinitionIds?: readonly string[]
@@ -563,25 +576,13 @@ export function createEncounterFeatureActionCapabilityDiscoveryRegistry(
           try {
             const compiledEffect = compileEffect(effect)
             const equipmentBinding = entryEquipmentBinding(input.actor, entry, compiledEffect)
-            const normalized = adapter.compile({
-              encounterActorId: input.actor.id,
-              creatureSourceId: provenance.creatureSourceId,
+            const normalized = bindEffect(adapter, {
               gameSystemId,
-              sourceRevision: provenance.sourceRevision,
-              sourceVersionId: provenance.sourceVersionId,
-              sourceChecksum: provenance.sourceChecksum,
-              ownerFeature: entry.ownerFeature,
-              featureOption: entry.featureOption,
               compiledEffect,
               conditionDefinitionIds: input.conditionDefinitionIds ?? [],
               abilityDefinitions: input.abilityDefinitions ?? []
             })
             if (normalized === null) continue
-            assertExactSystemBindings({
-              conditionDefinitionIds: input.conditionDefinitionIds ?? [],
-              abilityDefinitions: input.abilityDefinitions ?? [],
-              normalized
-            })
             available.push({
               kind: 'ENCOUNTER_FEATURE',
               gameSystemId,
@@ -625,8 +626,10 @@ export function createEncounterFeatureActionCapabilityDiscoveryRegistry(
   }
 }
 
+/** The action mechanic of an authored Effect action: a Creature Feature's or an authored basic action's. */
 export function featureActionMechanic(
-  capability: EncounterFeatureActionCapabilityDescriptor
+  capability: EffectActionCapabilityDescriptor &
+    Partial<Pick<EncounterFeatureActionCapabilityDescriptor, 'attackMechanic'>>
 ): Readonly<Record<string, unknown>> {
   const invocation = capability.mechanicFacts.invocation
   const savingThrow = invocation.savingThrow

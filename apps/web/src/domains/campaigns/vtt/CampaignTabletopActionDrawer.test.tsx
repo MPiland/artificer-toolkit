@@ -65,6 +65,7 @@ function drawerElement(
     choices = actions,
     unavailableActions = [],
     basicActions = [],
+    authoredBasicActions = [],
     escapes = [],
     openAttackAction = null,
     encounter = tabletopGmEncounter,
@@ -82,6 +83,7 @@ function drawerElement(
     choices?: EncounterActionChoiceDto[]
     unavailableActions?: EncounterActionChoicesDto['unavailableActions']
     basicActions?: EncounterBasicActionChoiceDto[]
+    authoredBasicActions?: EncounterActionChoiceDto[]
     escapes?: EncounterEscapeChoiceDto[]
     openAttackAction?: EncounterActionChoicesDto['openAttackAction']
     encounter?: EncounterGmProjectionDto
@@ -103,6 +105,7 @@ function drawerElement(
       actionChoicesError={null}
       actions={choices}
       basicActions={basicActions}
+      basicActionChoices={authoredBasicActions}
       escapes={escapes}
       openAttackAction={openAttackAction}
       actionsLoading={false}
@@ -364,6 +367,25 @@ describe('CampaignTabletopActionDrawer basic actions', () => {
       })
     )
     expect(await screen.findByText('Dash used.')).toBeVisible()
+  })
+
+  it('resolves an authored basic action on the current actor', async () => {
+    const user = userEvent.setup()
+    const onResolve = vi.fn().mockResolvedValue(resolved)
+    const dodge = { ...actions[0]!, id: 'dodge-action', label: 'Dodge', rulesText: 'You dodge.' }
+    renderDrawer(onResolve, { choices: [], authoredBasicActions: [dodge] })
+
+    await user.click(await screen.findByRole('button', { name: 'Use Dodge' }))
+    expect(onResolve).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'RESOLVE_ACTION',
+        actorId: tabletopGmEncounter.currentActorId,
+        actionId: 'dodge-action',
+        target: { kind: 'ACTOR', actorId: tabletopGmEncounter.currentActorId },
+        acknowledgedWarnings: []
+      })
+    )
+    expect(await screen.findByText('Dodge used.')).toBeVisible()
   })
 
   it('asks for the ally a helping action aids before it can be used', async () => {

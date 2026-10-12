@@ -39,6 +39,7 @@ import { createSystemSourceReader } from '../authoring/systemSources'
 import { components, internal } from '../_generated/api'
 import authSchema from '../betterAuth/schema'
 import schema from '../schema'
+import { encodeDefinitionDocument } from './definitionDocumentJson'
 
 process.env.SITE_URL = 'http://localhost:3000'
 process.env.BETTER_AUTH_SECRET = 'test-secret-that-is-long-enough'
@@ -490,7 +491,9 @@ describe('native reusable definitions', () => {
         .unique()
     )
     if (!root) throw new Error('Missing native root')
-    await t.run((ctx) => ctx.db.patch(root._id, { document: sense(crypto.randomUUID()) }))
+    await t.run((ctx) =>
+      ctx.db.patch(root._id, { documentJson: encodeDefinitionDocument(sense(crypto.randomUUID())) })
+    )
     await expect(a.query(get, { definitionId: created.id })).rejects.toThrow()
   })
 
@@ -710,7 +713,10 @@ describe('native reusable definitions', () => {
         const document = ruleGraphDefinitionDtoSchema.parse(graph.current.document)
         document.outputs.revision = { kind: 'LITERAL', value: 2 }
         await t.run((ctx) =>
-          ctx.db.patch(root._id, { document, checksum: checksumRuleDocument(document) })
+          ctx.db.patch(root._id, {
+            documentJson: encodeDefinitionDocument(document),
+            checksum: checksumRuleDocument(document)
+          })
         )
       }
       await expect(
@@ -865,7 +871,10 @@ describe('native reusable definitions', () => {
     if (!root) throw new Error('Missing unpublished root')
     const document = sense(created.id)
     await t.run((ctx) =>
-      ctx.db.patch(root._id, { document, checksum: checksumRuleDocument(document) })
+      ctx.db.patch(root._id, {
+        documentJson: encodeDefinitionDocument(document),
+        checksum: checksumRuleDocument(document)
+      })
     )
     const before = JSON.stringify(await definitionRows(t, created.id))
     await expect(a.query(get, { definitionId: created.id })).rejects.toThrow('integrity')

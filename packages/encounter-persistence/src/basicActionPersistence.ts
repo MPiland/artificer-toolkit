@@ -82,6 +82,7 @@ export async function persistEncounterBasicAction(
   const ruleActors = actors.filter((entry) => entry.kind !== 'CHARACTER')
   if (
     !actor ||
+    document.effects.length > 0 ||
     definition.version !== input.definition.version ||
     definition.checksum !== input.definition.checksum ||
     input.speedMovementBonus !== document.mechanics.includes('SPEED_MOVEMENT_BONUS') ||
@@ -90,11 +91,7 @@ export async function persistEncounterBasicAction(
         effect.definitionId !== definition.id ||
         effect.turnSequence !== state.turnSequence ||
         !document.mechanics.includes(effect.mechanic) ||
-        effect.allyActorId !==
-          (effect.mechanic === 'ALLY_ADVANTAGE' ? command.targetActorId : null) ||
-        effect.suspendedWhileUnableToActOrMove !== document.suspendedWhileUnableToActOrMove ||
-        checksumCanonicalJson(effect.saveAbilityIds) !==
-          checksumCanonicalJson(effect.mechanic === 'SAVE_ADVANTAGE' ? document.saveAbilityIds : [])
+        effect.allyActorId !== (effect.mechanic === 'ALLY_ADVANTAGE' ? command.targetActorId : null)
     ) ||
     input.rules.actors.length !== ruleActors.length ||
     input.rules.actors.some((entry) => !ruleActors.some((rule) => rule.id === entry.actorId))

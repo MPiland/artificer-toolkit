@@ -55,6 +55,7 @@ function attackSlotLabel({ number, total }: NonNullable<EncounterActionChoiceDto
 export function CampaignTabletopActionDrawer({
   actions,
   basicActions,
+  basicActionChoices,
   escapes,
   openAttackAction,
   actionsLoading,
@@ -82,6 +83,8 @@ export function CampaignTabletopActionDrawer({
 }: {
   actions: EncounterActionChoiceDto[]
   basicActions: EncounterBasicActionChoiceDto[]
+  /** The System's authored basic actions, which resolve like any action. */
+  basicActionChoices: EncounterActionChoiceDto[]
   escapes: EncounterEscapeChoiceDto[]
   /** The Attack action opened this turn; its last weapon and target are preselected for the next attack. */
   openAttackAction: EncounterActionChoicesDto['openAttackAction']
@@ -725,9 +728,13 @@ export function CampaignTabletopActionDrawer({
           ) : !actionsLoading && !actionChoicesError ? (
             <Text c='dimmed'>No structured actions are available for the active combatant.</Text>
           ) : null}
-          {currentActor && !actionsLoading && !actionChoicesError && basicActions.length ? (
+          {currentActor &&
+          !actionsLoading &&
+          !actionChoicesError &&
+          (basicActions.length || basicActionChoices.length) ? (
             <CampaignTabletopBasicActions
               actorId={currentActor.id}
+              authoredActions={basicActionChoices}
               allies={encounter.actors
                 .filter((actor) => actor.id !== currentActor.id && !actor.defeated)
                 .map((actor) => ({ id: actor.id, label: actor.label }))}
@@ -735,6 +742,7 @@ export function CampaignTabletopActionDrawer({
               disabled={selectionControlsDisabled}
               encounterId={encounter.id}
               encounterVersion={encounter.version}
+              onResolve={onResolve}
               onUse={onUseBasicAction}
             />
           ) : null}

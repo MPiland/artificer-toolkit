@@ -104,6 +104,8 @@ export type PredicatePayloadByCode = {
   CHARGE_LIMIT_KIND: Selectable<{ chargeLimitKind: ChargeLimitKind[] }>
   CHARGE_RESET_KIND: Selectable<{ chargeResetKind: ChargeResetKind[] }>
   CAN_CAST_SPELL: EmptyObject
+  CAN_ACT: EmptyObject
+  SPEED_ABOVE_ZERO: EmptyObject
   CHARACTER_LEVEL: {
     min: number
     max?: number
@@ -366,6 +368,23 @@ export const PREDICATE_REGISTRY = {
     description: 'Does not imply knowing any specific spell.',
     subjects: ['CHARACTER'],
     owners: ['SPELL_GRANT']
+  },
+
+  CAN_ACT: {
+    code: 'CAN_ACT',
+    label: 'Can Act',
+    tooltip: 'Requires the holder to be able to take actions.',
+    description:
+      'Fails while the holder is incapacitated, paralyzed, petrified, stunned, unconscious or otherwise unable to act. Evaluated live in an Encounter.',
+    subjects: ['CHARACTER', 'CREATURE']
+  },
+
+  SPEED_ABOVE_ZERO: {
+    code: 'SPEED_ABOVE_ZERO',
+    label: 'Speed Above Zero',
+    tooltip: 'Requires the holder to have a speed above 0.',
+    description: 'Fails while the holder cannot move. Evaluated live in an Encounter.',
+    subjects: ['CHARACTER', 'CREATURE']
   },
 
   CHARACTER_LEVEL: {

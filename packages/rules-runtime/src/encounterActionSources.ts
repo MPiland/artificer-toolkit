@@ -7,6 +7,12 @@ import { StaleCharacterActionError } from './encounterErrors.js'
 import { discoverEncounterFeatureActions } from './encounterFeatureActionCapabilityDiscoveryRegistry.js'
 import { snapshotFeatureDefinitions } from './encounterActorState.js'
 import type { EncounterFeatureActionCapabilityDescriptor } from './encounterFeatureActionCapabilityDiscovery.js'
+import {
+  discoverEncounterBasicActions,
+  isEncounterBasicActionId,
+  type EncounterBasicActionCapabilityDescriptor,
+  type EncounterBasicActionEntry
+} from './encounterBasicActionCapabilityDiscovery.js'
 
 type CompiledCharacterAction = Extract<
   CompiledActionEntryPoint,
@@ -25,13 +31,26 @@ export type EncounterActionSourceInput = {
     effectivePolicyOutput: CharacterRulePolicyOutput
   }
   system?: SystemAuthoredDto
+  /** The System's current authored basic actions, read for a basic action's identity. */
+  basicActions?: readonly EncounterBasicActionEntry[]
 }
+
+/** What a caller names; the loader adds the System and the basic action the id names. */
+export type EncounterActionSourceRequest = Omit<
+  EncounterActionSourceInput,
+  'system' | 'basicActions'
+>
 
 export type NativeEncounterActionSource =
   | {
       kind: 'CREATURE'
       actor: EncounterRunActorState
       capability: EncounterFeatureActionCapabilityDescriptor
+    }
+  | {
+      kind: 'BASIC_ACTION'
+      actor: EncounterRunActorState
+      capability: EncounterBasicActionCapabilityDescriptor
     }
   | {
       kind: 'CHARACTER_ACTION'
@@ -43,6 +62,12 @@ export type NativeEncounterActionSource =
       effectivePolicyOutput: CharacterRulePolicyOutput
     }
 
+function systemAbilityDefinitions(system: SystemAuthoredDto) {
+  return 'abilities' in system && Array.isArray(system.abilities)
+    ? system.abilities.map((ability) => ({ id: ability.id, code: ability.code }))
+    : []
+}
+
 /** Resolves an action from current authoritative sources, never caller mechanics. */
 export function resolveEncounterActionSource(
   input: EncounterActionSourceInput
@@ -50,6 +75,20 @@ export function resolveEncounterActionSource(
   const { actor } = input
   if (actor.systemId !== input.gameSystemId)
     throw new Error('Encounter action source does not match the Encounter Game System.')
+  if (isEncounterBasicActionId(actor.id, input.actionId)) {
+    const { system } = input
+    if (!system || system.id !== input.gameSystemId)
+      throw new Error('The selected basic action source is stale.')
+    const capability = discoverEncounterBasicActions({
+      actorId: actor.id,
+      gameSystemId: input.gameSystemId,
+      entries: input.basicActions ?? [],
+      conditionDefinitionIds: system.conditionTypes.map((condition) => condition.id),
+      abilityDefinitions: systemAbilityDefinitions(system)
+    }).available.find((value) => value.actionId === input.actionId)
+    if (!capability) throw new Error('The selected basic action source is stale.')
+    return { kind: 'BASIC_ACTION', actor, capability }
+  }
   if (actor.kind === 'CHARACTER') {
     const character = input.characterSource
     if (
@@ -75,14 +114,10 @@ export function resolveEncounterActionSource(
   const system = input.system
   if (!system || system.id !== input.gameSystemId)
     throw new Error('The selected Creature action source is stale.')
-  const abilities =
-    'abilities' in system && Array.isArray(system.abilities)
-      ? system.abilities.map((ability) => ({ id: ability.id, code: ability.code }))
-      : []
   const actions = discoverEncounterFeatureActions({
     actor,
     conditionDefinitionIds: system.conditionTypes.map((condition) => condition.id),
-    abilityDefinitions: abilities
+    abilityDefinitions: systemAbilityDefinitions(system)
   })
   const capability = actions.available.find((value) => value.actionId === input.actionId)
   if (!capability) {
@@ -112,5 +147,7 @@ export function encounterLegendaryActionFeatureIds(
 
 /** The action's display name for logs and prompts; a Character action may have none. */
 export function encounterActionSourceLabel(source: NativeEncounterActionSource): string | null {
-  return source.kind === 'CREATURE' ? source.capability.label : (source.candidate.label ?? null)
+  return source.kind === 'CHARACTER_ACTION'
+    ? (source.candidate.label ?? null)
+    : source.capability.label
 }

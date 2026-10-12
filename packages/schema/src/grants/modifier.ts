@@ -29,6 +29,13 @@ const attackDomainParamDtoSchema = lazySchema(() =>
   })
 )
 
+const attacksAgainstParamDtoSchema = lazySchema(() =>
+  z.object({
+    attackDomain: attackDomainCodeSchema,
+    requiresHolderSeesAttacker: z.boolean()
+  })
+)
+
 const abilityParamDtoSchema = lazySchema(() =>
   z.object({
     ability: abilityCodeSchema
@@ -367,6 +374,8 @@ const buildModifierGrantVariants = () => {
     ),
     buildModifierGrantVariant('ATTACK_ROLL', 'ADVANTAGE', attackDomainParamDtoSchema),
     buildModifierGrantVariant('ATTACK_ROLL', 'DISADVANTAGE', attackDomainParamDtoSchema),
+    buildModifierGrantVariant('ATTACKS_AGAINST', 'ADVANTAGE', attacksAgainstParamDtoSchema),
+    buildModifierGrantVariant('ATTACKS_AGAINST', 'DISADVANTAGE', attacksAgainstParamDtoSchema),
     buildModifierGrantVariant(
       'SKILL_MODIFIER',
       'BONUS',

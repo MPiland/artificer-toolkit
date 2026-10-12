@@ -21,7 +21,6 @@ import {
 } from '@artificer-toolkit/rules-runtime/systems/dnd5e/attackKind'
 import {
   encounterActionSourceLabel,
-  encounterLegendaryActionFeatureIds,
   resolveEncounterActionSource
 } from '@artificer-toolkit/rules-runtime/encounterActionSources'
 import {
@@ -31,11 +30,8 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import { refuseStaleCharacterAction } from '@artificer-toolkit/encounter-persistence/staleCharacterAction'
 import { DOMAIN_REJECTION_MESSAGES } from '@artificer-toolkit/schema/api/domainRejections'
-import {
-  lockedRelationshipActionFacts,
-  mergeCanonicalD20Contributors
-} from '@artificer-toolkit/rules-runtime/encounterRelationshipActionFacts'
 import { encounterBasicActionAllyAdvantage } from '@artificer-toolkit/rules-runtime/encounterBasicActions'
+import { readEncounterBasicActionEntries } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
 import { attackRollConsumableGrants } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
 import { encounterSceneGridPolicyRegistry } from '@artificer-toolkit/rules-runtime/sceneGridPolicyRegistry'
 import {
@@ -384,7 +380,24 @@ export async function planNativeLiveEncounterAction(
         sceneContext,
         capture
       }),
-    loadSource: async (input) => resolveEncounterActionSource({ ...input, system }),
+    loadSource: async (input) =>
+      resolveEncounterActionSource({
+        ...input,
+        system,
+        basicActions: await readEncounterBasicActionEntries({
+          actorId: input.actor.id,
+          actionId: input.actionId,
+          gameSystemId: input.gameSystemId,
+          definitions: {
+            requireCurrent: async (definitionId) => {
+              const response = await capture({ kind: 'DEFINITION', definitionId })
+              if (response.kind !== 'DEFINITION' || !response.definition)
+                throw new Error('The rule definition is unavailable.')
+              return response.definition
+            }
+          }
+        })
+      }),
     loadRelationshipFacts: nativeLiveRelationshipFacts({
       activeEffectsByActorId,
       allyAdvantage
@@ -693,9 +706,9 @@ export async function planNativeLiveEncounterAction(
             publishedDefinitionChecksum: execution.published.checksum,
             attackKind: isDnd5eMeleeAttackKind(
               dnd5eAttackKind(
-                prepared.source.kind === 'CREATURE'
-                  ? prepared.source.capability.mechanicFacts.invocation.triggerCode
-                  : prepared.source.candidate.mechanicFacts.invocation.triggerCode
+                prepared.source.kind === 'CHARACTER_ACTION'
+                  ? prepared.source.candidate.mechanicFacts.invocation.triggerCode
+                  : prepared.source.capability.mechanicFacts.invocation.triggerCode
               )
             )
               ? 'MELEE'
@@ -787,6 +800,7 @@ export function buildNativeLiveEncounterActionCommitInput(
     rules: plan.nextRules,
     resourceConsumption: plan.prepared.characterActionState?.resourceConsumption ?? null,
     itemConsumption: plan.prepared.characterActionState?.itemConsumption ?? null,
+    label: encounterActionSourceLabel(plan.prepared.source),
     ruleOverrides: plan.ruleOverrides,
     createdEffects: plan.settlement.createdEffects,
     maintainedState: plan.settlement.maintainedState,

@@ -30,7 +30,7 @@ const modifierGrantDomain = buildNodeMap<ModifierDomain>()
 const MODIFIER_GRANT_DOMAIN_NODE_MAP = modifierGrantDomain.define(
   'modifierGrantDomain',
   ({ map, nodes, cond, data, logic }) => {
-    const { selectSingle, number } = nodes
+    const { selectSingle, number, toggle } = nodes
     const parent = cond.parent<ModifierGrantUnion>()
     const { and, or } = logic
     const { table } = data
@@ -104,10 +104,17 @@ const MODIFIER_GRANT_DOMAIN_NODE_MAP = modifierGrantDomain.define(
           {
             showIf: or([
               parent.field(['valueDomainCode']).eq('ATTACK_ROLL'),
+              parent.field(['valueDomainCode']).eq('ATTACKS_AGAINST'),
               parent.field(['valueDomainCode']).eq('DAMAGE')
             ])
           }
         )
+      )
+      .set(
+        'requiresHolderSeesAttacker',
+        toggle(['requiresHolderSeesAttacker'], 'Only Attackers The Holder Can See', {
+          showIf: parent.field(['valueDomainCode']).eq('ATTACKS_AGAINST')
+        })
       )
       .set(
         'senseDefinitionId',
@@ -595,6 +602,7 @@ export const MODIFIER_GRANT_NODE_MAP = modifierGrant.define(
           order: 10,
           showIf: or([
             local.field(['valueDomainCode']).eq('ATTACK_ROLL'),
+            local.field(['valueDomainCode']).eq('ATTACKS_AGAINST'),
             local.field(['valueDomainCode']).eq('ABILITY_CHECK'),
             local.field(['valueDomainCode']).eq('SAVING_THROW_MODIFIER'),
             local.field(['valueDomainCode']).eq('SKILL_MODIFIER'),

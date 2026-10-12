@@ -667,7 +667,7 @@ version payload is canonical `documentJson` text: 13 unchanged SRD documents exc
 import validates the full typed document before encoding; read-back parses it and recomputes both
 document and complete-record hashes. No source fields are flattened or discarded. Future public
 authoring readers must return validated domain DTOs, never raw storage rows or unvalidated JSON.
-Systems and reusable definitions remain structured documents within their measured limits.
+Systems remain structured documents within their measured limits; a reusable definition's document (and draft) is stored as canonical `documentJson` text because authored actions nest deeper than the cap (ATTACK-18), and its readers decode and checksum it.
 
 This accepts source preservation/import only. Publication, compilation, master-copy-to-homebrew,
 sharing, and runtime rule execution remain separate Gate 2 cases.

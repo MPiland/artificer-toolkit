@@ -7,7 +7,7 @@ import type { CharacterActionRuleEntryPoint } from '@artificer-toolkit/schema/ap
  * extend this boundary without creating a second Effect compiler.
  */
 export interface EffectActionCapabilityDescriptor {
-  kind: 'CHARACTER_ACTION' | 'CHARACTER_SPELL_CAST' | 'ENCOUNTER_FEATURE'
+  kind: 'CHARACTER_ACTION' | 'CHARACTER_SPELL_CAST' | 'ENCOUNTER_FEATURE' | 'BASIC_ACTION'
   gameSystemId: string
   authoredRootKind: 'effect'
   entryPointDefinitionId: string

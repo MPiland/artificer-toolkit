@@ -35,6 +35,7 @@ import type { QueryCtx } from '../_generated/server'
 import { internalQuery } from '../lib/queries'
 import { internalMutation } from '../lib/mutations'
 import { ensureAuthoredRouteId } from './routeIds'
+import { decodeDefinitionDocument, encodeDefinitionDocument } from './definitionDocumentJson'
 import { equipmentOptionFacts } from '@artificer-toolkit/rules-runtime/character/equipmentOptionFacts'
 import { authoredSourceFacts } from '@artificer-toolkit/authoring/nodeRuntime/authoredSourceFacts'
 import { compilePublicationDocument } from './publicationDocument'
@@ -439,8 +440,10 @@ export const importDefinitions: RegisteredMutation<
       )
         throw new Error('Canonical definition identity mismatch.')
       validateDocument(definition.document, parsed, definition.checksum)
+      const { document, ...fields } = definition
       const record = {
-        ...definition,
+        ...fields,
+        documentJson: encodeDefinitionDocument(document),
         contentSourceId,
         gameSystemId: source.gameSystemId,
         version: 1
@@ -774,7 +777,7 @@ export const readDefinitions = internalQuery({
           label: row.label,
           description: row.description,
           checksum: row.checksum,
-          document: row.document
+          document: decodeDefinitionDocument(row.documentJson)
         })
       )
     })

@@ -7,6 +7,7 @@ import { buildCompiledActionTargetPolicy } from '@artificer-toolkit/rules-runtim
 import { encounterAttackActionState } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import { encounterLegendaryActionFeatureIds } from '@artificer-toolkit/rules-runtime/encounterActionSources'
 import { readEncounterActorDefeated } from './characterStates.js'
+import { discoverEncounterBasicActions } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
 import { requireEncounterBasicActionDefinition } from '@artificer-toolkit/rules-runtime/encounterBasicActions'
 import {
   encounterEscapeCheckLabel,
@@ -247,11 +248,47 @@ export async function readEncounterActionChoices(
     )
   }
   // The System's basic-action catalogue (Q11): its published platform entries, by label.
+  const catalogue = (
+    await tx.ports.listBasicActionDefinitions(state.gameSystemId, campaign.ownerUserId)
+  ).map((current) =>
+    requireEncounterBasicActionDefinition({ gameSystemId: state.gameSystemId }, current)
+  )
+  // Authored entries resolve through RESOLVE_ACTION; the rest keep the closed USE_BASIC_ACTION path.
+  const authoredEntries = catalogue.filter(({ document }) => document.effects.length > 0)
+  let basicActionChoices: EncounterActionChoiceDto[] = []
+  if (authoredEntries.length > 0 && actor.kind !== 'CUSTOM') {
+    const system = await tx.ports.requireSystem(state.gameSystemId)
+    const discovered = discoverEncounterBasicActions({
+      actorId: actor.id,
+      gameSystemId: state.gameSystemId,
+      entries: authoredEntries,
+      conditionDefinitionIds: system.conditionTypes.map((condition) => condition.id),
+      abilityDefinitions:
+        'abilities' in system ? system.abilities.map(({ id, code }) => ({ id, code })) : []
+    })
+    basicActionChoices = await Promise.all(
+      discovered.available.map(async (action) => {
+        const economy = await readEconomy(
+          action.mechanicFacts.invocation.activation,
+          action.mechanicFacts.invocation.triggerCode
+        )
+        return {
+          id: action.actionId,
+          label: action.label,
+          rulesText: authoredEntries.find(({ definition }) => definition.id === action.definitionId)
+            ?.document.rulesText,
+          grip: null,
+          wieldConflict: null,
+          attackSlot: economy.attackSlot,
+          target: encounterActionChoiceTarget(buildCompiledActionTargetPolicy(action)),
+          warnings: economy.warnings
+        }
+      })
+    )
+  }
   const basicActions = await Promise.all(
-    (await tx.ports.listBasicActionDefinitions(state.gameSystemId, campaign.ownerUserId))
-      .map((current) =>
-        requireEncounterBasicActionDefinition({ gameSystemId: state.gameSystemId }, current)
-      )
+    catalogue
+      .filter(({ document }) => document.effects.length === 0)
       .map(async ({ definition, document }) => ({
         definitionId: definition.id,
         label: definition.label,
@@ -324,6 +361,7 @@ export async function readEncounterActionChoices(
     actions,
     unavailableActions,
     basicActions,
+    basicActionChoices,
     escapes,
     optionalRules: activeOptionalCombatDefinitions({
       automationMode: state.automationMode,

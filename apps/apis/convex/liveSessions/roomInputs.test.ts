@@ -49,6 +49,7 @@ import {
 import { insertConversationEntry } from '../campaigns/conversationDocuments'
 import { sceneStoredDefinitionEntitySchema } from '@artificer-toolkit/schema/projections/sceneDefinitionPersistence'
 import { requireDefaultUserContentSource } from '../content/sources'
+import { encodeDefinitionDocument } from '../content/definitionDocumentJson'
 
 useLocalRoomWorker()
 
@@ -1576,7 +1577,7 @@ describe('live room inputs (ADR 0035 S2)', () => {
         label: 'Room platform sense',
         description: null,
         version: 1,
-        document: platformDocument,
+        documentJson: encodeDefinitionDocument(platformDocument),
         checksum: checksumRuleDocument(platformDocument)
       })
       await ctx.db.insert('reusableDefinitions', {
@@ -1588,7 +1589,7 @@ describe('live room inputs (ADR 0035 S2)', () => {
         label: 'Room private sense',
         description: null,
         version: 1,
-        document: ownedDocument,
+        documentJson: encodeDefinitionDocument(ownedDocument),
         checksum: checksumRuleDocument(ownedDocument),
         contractVersion: 1,
         publishedAt: new Date().toISOString(),
@@ -1766,7 +1767,7 @@ describe('live room inputs (ADR 0035 S2)', () => {
         contractVersion: 1,
         publishedAt: new Date().toISOString(),
         publishedBy: base.owner.userId,
-        document,
+        documentJson: encodeDefinitionDocument(document),
         checksum: checksumRuleDocument(document)
       })
       await ctx.db.patch(source._id, { gameSystemId: crypto.randomUUID() })

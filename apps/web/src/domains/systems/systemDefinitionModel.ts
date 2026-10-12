@@ -31,8 +31,9 @@ function createStarterDocument(workspace: ReusableDefinitionWorkspaceDto): unkno
       rulesText: 'Describe what this action does.',
       actionCost: 'ACTION',
       mechanics: [],
-      saveAbilityIds: [],
-      suspendedWhileUnableToActOrMove: false
+      restrictions: null,
+      effects: [],
+      check: null
     }
   }
   return {

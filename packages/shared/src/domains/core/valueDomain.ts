@@ -12,6 +12,7 @@ import { type EmptyObject, valuesOf } from '#utils'
 export const VALUE_DOMAIN_CODE = {
   SPEED: 'SPEED',
   ATTACK_ROLL: 'ATTACK_ROLL',
+  ATTACKS_AGAINST: 'ATTACKS_AGAINST',
   ARMOR_CLASS: 'ARMOR_CLASS',
   SAVE_DC: 'SAVE_DC',
   SAVING_THROW_MODIFIER: 'SAVING_THROW_MODIFIER',
@@ -94,6 +95,14 @@ export const VALUE_DOMAIN_REGISTRY: Record<ValueDomainCode, ValueDomainOption> =
     tooltip: 'Bonuses or penalties applied to attack rolls.',
     description:
       'Modifies the total bonus added to an attack roll, such as melee, ranged, spell, or unarmed attacks.'
+  },
+
+  [VALUE_DOMAIN_CODE.ATTACKS_AGAINST]: {
+    code: VALUE_DOMAIN_CODE.ATTACKS_AGAINST,
+    label: 'Attacks Against',
+    tooltip: 'Advantage or disadvantage on attack rolls made against the holder.',
+    description:
+      'Changes how attack rolls made against the holder are rolled, for the chosen kinds of attack, optionally only against attackers the holder can see.'
   },
 
   [VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER]: {
@@ -369,6 +378,10 @@ export type ValueDomainParamByCode = {
 
   // Attack bonus is usually different for melee/ranged/spell/unarmed
   ATTACK_ROLL: { attackDomain: AttackDomainCode }
+
+  // Attack rolls made against the holder; `requiresHolderSeesAttacker` limits it to attackers the
+  // holder can see (D100).
+  ATTACKS_AGAINST: { attackDomain: AttackDomainCode; requiresHolderSeesAttacker: boolean }
 
   // Ability checks may apply globally or to one ability.
   ABILITY_CHECK: { ability?: AbilityCode }

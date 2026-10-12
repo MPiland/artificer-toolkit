@@ -1139,6 +1139,7 @@ export function CampaignVttStage({
             <CampaignTabletopActionDrawer
               actions={currentActionChoices?.actions ?? []}
               basicActions={currentActionChoices?.basicActions ?? []}
+              basicActionChoices={currentActionChoices?.basicActionChoices ?? []}
               escapes={currentActionChoices?.escapes ?? []}
               openAttackAction={currentActionChoices?.openAttackAction ?? null}
               actionsLoading={actionChoicesLoading}

@@ -256,6 +256,8 @@ export const encounterStoredRunCommandSchema = lazySchema(() =>
     }),
     z.extend(encounterStoredRunCommandResultSchema, {
       commandType: z.literal('RESOLVE_ACTION'),
+      /** The resolved action's display name, from the prepared action; the timeline shows it. */
+      label: z.nullable(z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160))),
       ruleOccurrenceId: postgresUuidSchema,
       ruleResultChecksum: projectionChecksumSchema,
       optionalCombatSnapshotChecksum: projectionChecksumSchema,

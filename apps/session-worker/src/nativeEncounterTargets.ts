@@ -12,10 +12,7 @@ import type {
 import { MAX_ACTIVE_RULE_EFFECTS_PER_OWNER } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import type { DeadCharacterIds } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import { buildMovementTarget } from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
-import {
-  encounterBasicActionEffects,
-  withEncounterBasicActionDefense
-} from '@artificer-toolkit/rules-runtime/encounterBasicActions'
+import { withEncounterHolderDefense } from '@artificer-toolkit/rules-runtime/encounterHolderDefense'
 import { withEncounterConditionMechanics } from '@artificer-toolkit/rules-runtime/encounterConditionMechanics'
 import { liveSessionEncounterRulesInputSchema } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import type { LiveCaptureReads } from './nativeEncounterReads.js'
@@ -144,16 +141,13 @@ export async function prepareNativeLiveMovementTarget(input: {
     gameSystemId: state.gameSystemId,
     definitions
   })
-  // Only an actor with a defensive basic-action effect (Dodge) reads its capability definitions.
-  const defended = encounterBasicActionEffects(actor).some(
-    (effect) =>
-      effect.mechanic === 'DISADVANTAGE_ON_ATTACKS_AGAINST' || effect.mechanic === 'SAVE_ADVANTAGE'
-  )
-    ? await withEncounterBasicActionDefense({
-        target,
-        gameSystemId: state.gameSystemId,
-        definitions
-      })
-    : target
-  return { target: defended, revisions }
+  // Only an actor with a defensive grant (Dodge) reads its capability definitions.
+  return {
+    target: await withEncounterHolderDefense({
+      target,
+      gameSystemId: state.gameSystemId,
+      definitions
+    }),
+    revisions
+  }
 }

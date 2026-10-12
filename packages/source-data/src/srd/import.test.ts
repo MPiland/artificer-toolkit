@@ -6,9 +6,11 @@ import {
   SRD_DND5E_CONCENTRATION_CHECK_DEFINITION_ID,
   SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID
 } from './concentration.js'
+import { ABILITY_CODE, ATTACK_DOMAIN_CODE } from '@artificer-toolkit/shared'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
-import { SRD_BASIC_ACTION_IDS } from './basicActions.js'
-import { SRD_ABILITY_DEFINITION_IDS, SRD_MEDICINE_SKILL_ID } from './vocabulary.js'
+import { basicActionReusableDefinitionDocumentDtoSchema } from '@artificer-toolkit/schema/shared/basicActions'
+import { SRD_BASIC_ACTION_DEFINITIONS, SRD_BASIC_ACTION_IDS } from './basicActions.js'
+import { SRD_MEDICINE_SKILL_ID } from './vocabulary.js'
 import type { BaselineContentBundle } from '../content.js'
 
 function emptySubjectBundle(): BaselineContentBundle {
@@ -37,29 +39,80 @@ describe('canonical Convex import preparation', () => {
         catalogue.map((definition) => [
           definition.label,
           definition.document.kind === 'BASIC_ACTION'
-            ? [definition.document.actionCost, definition.document.mechanics]
+            ? [
+                definition.document.actionCost,
+                definition.document.mechanics,
+                definition.document.effects.flatMap((effect) =>
+                  effect.paths.flatMap((path) =>
+                    path.resultBlock.outcomes.map((outcome) => outcome.effectKind)
+                  )
+                )
+              ]
             : null
         ])
       )
     ).toEqual({
-      Dash: ['ACTION', ['SPEED_MOVEMENT_BONUS']],
-      Disengage: ['ACTION', ['NO_OPPORTUNITY_ATTACKS']],
-      Dodge: ['ACTION', ['DISADVANTAGE_ON_ATTACKS_AGAINST', 'SAVE_ADVANTAGE']],
-      Help: ['ACTION', ['ALLY_ADVANTAGE']],
-      Hide: ['ACTION', []],
-      Ready: ['ACTION', []],
-      Search: ['ACTION', []],
-      'Use an Object': ['ACTION', []],
-      'First Aid': ['ACTION', ['STABILIZE_TARGET']]
+      Dash: ['ACTION', ['SPEED_MOVEMENT_BONUS'], []],
+      Disengage: ['ACTION', ['NO_OPPORTUNITY_ATTACKS'], []],
+      Dodge: ['ACTION', [], ['APPLY_GRANT']],
+      Help: ['ACTION', ['ALLY_ADVANTAGE'], []],
+      Hide: ['ACTION', [], ['MANUAL_ADJUDICATION']],
+      Ready: ['ACTION', [], ['MANUAL_ADJUDICATION']],
+      Search: ['ACTION', [], ['MANUAL_ADJUDICATION']],
+      'Use an Object': ['ACTION', [], ['MANUAL_ADJUDICATION']],
+      'First Aid': ['ACTION', ['STABILIZE_TARGET'], []]
     })
     expect(catalogue.map((definition) => definition.id).sort()).toEqual(
       Object.values(SRD_BASIC_ACTION_IDS).sort()
     )
-    // Dodge improves Dexterity saves and lapses while its actor can't act or move.
-    expect(catalogue.find((definition) => definition.label === 'Dodge')?.document).toMatchObject({
-      saveAbilityIds: [SRD_ABILITY_DEFINITION_IDS.DEXTERITY],
-      suspendedWhileUnableToActOrMove: true
-    })
+    // Dodge is authored: attacks against its holder have disadvantage and its Dexterity saves
+    // advantage, both only while the holder can act and has speed above 0.
+    const dodgeModifiers =
+      catalogue.find((definition) => definition.label === 'Dodge')?.document.kind === 'BASIC_ACTION'
+        ? catalogue
+            .find((definition) => definition.label === 'Dodge')!
+            .document.effects.flatMap((effect) =>
+              effect.paths.flatMap((path) =>
+                path.resultBlock.outcomes.flatMap((outcome) =>
+                  outcome.effectKind === 'APPLY_GRANT' ? (outcome.grants.modifiers ?? []) : []
+                )
+              )
+            )
+        : []
+    expect(dodgeModifiers.map((modifier) => modifier.valueDomainCode)).toEqual([
+      ...Array(4).fill('ATTACKS_AGAINST'),
+      'SAVING_THROW_MODIFIER'
+    ])
+    const attacksAgainst = dodgeModifiers.filter(
+      (modifier) => modifier.valueDomainCode === 'ATTACKS_AGAINST'
+    )
+    // Every attack kind has disadvantage, and only when the holder can see the attacker.
+    expect(attacksAgainst.map((modifier) => modifier.modifierKind)).toEqual(
+      Array(4).fill('DISADVANTAGE')
+    )
+    expect(attacksAgainst.map((modifier) => modifier.domain)).toEqual(
+      Object.values(ATTACK_DOMAIN_CODE).map((attackDomain) => ({
+        attackDomain,
+        requiresHolderSeesAttacker: true
+      }))
+    )
+    // The one save modifier is advantage on Dexterity saves only.
+    const saves = dodgeModifiers.filter(
+      (modifier) => modifier.valueDomainCode === 'SAVING_THROW_MODIFIER'
+    )
+    expect(saves.map((modifier) => [modifier.modifierKind, modifier.domain])).toEqual([
+      ['ADVANTAGE', { ability: ABILITY_CODE.DEXTERITY }]
+    ])
+    for (const modifier of dodgeModifiers)
+      expect(
+        modifier.restrictions?.groups.flatMap((group) =>
+          group.contexts.flatMap((context) =>
+            context.conditions.map((condition) =>
+              condition.kind === 'PREDICATE' ? condition.predicateCode : condition.kind
+            )
+          )
+        )
+      ).toEqual(['CAN_ACT', 'SPEED_ABOVE_ZERO'])
     // First Aid is a DC 10 Wisdom (Medicine) check.
     expect(
       catalogue.find((definition) => definition.label === 'First Aid')?.document
@@ -68,6 +121,16 @@ describe('canonical Convex import preparation', () => {
       expect(definition.document.gameSystemId).toBe(srdBaselineContent.vocabulary.systems[0]!.id)
       expect(definition.checksum).toBe(checksumRuleDocument(definition.document))
     }
+  })
+
+  it('an authored basic action cannot also carry mechanics', () => {
+    const hide = SRD_BASIC_ACTION_DEFINITIONS.find(({ id }) => id === SRD_BASIC_ACTION_IDS.HIDE)!
+    expect(
+      basicActionReusableDefinitionDocumentDtoSchema.safeParse({
+        ...hide.document,
+        mechanics: ['SPEED_MOVEMENT_BONUS']
+      }).success
+    ).toBe(false)
   })
 
   it('preserves every authored root and separate policy definition deterministically', () => {

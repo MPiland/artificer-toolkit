@@ -5,8 +5,10 @@ import type {
 } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
 import type { CharacterRulePolicyInput } from '@artificer-toolkit/schema/api/characterRules'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
+import { attackDomainCodeSchema } from '@artificer-toolkit/schema/shared/enums'
 import { speedDtoSchema, type SpeedDto } from '@artificer-toolkit/schema/shared/speed'
 import { createCharacterMechanicSourceKey } from '@artificer-toolkit/shared/character'
+import type { AttackDomainCode } from '@artificer-toolkit/shared/core'
 import { resolveD20Contributors } from '@artificer-toolkit/shared/rolls'
 import { compareCanonicalD20Contributors } from '@artificer-toolkit/shared/rules'
 
@@ -165,22 +167,15 @@ export function withCreatureActiveGrantSaves(
       })
       const row = record(base)
       if (!row || typeof row.modifier !== 'number' || !Array.isArray(row.contributors)) return []
-      const merged = [
-        ...(row.contributors as EncounterRelationshipD20Contributor[]),
-        ...contributors
-      ]
-        .sort(compareCanonicalD20Contributors)
-        .filter(
-          (contributor, index, sorted) =>
-            index === 0 || compareCanonicalD20Contributors(sorted[index - 1]!, contributor) !== 0
-        )
       return [
         {
           abilityDefinitionId,
           conditionTypeId,
           modifier: row.modifier,
-          rollMode: resolveD20Contributors(merged).rollMode,
-          contributors: merged
+          ...mergedRollContributors(
+            row.contributors as EncounterRelationshipD20Contributor[],
+            contributors
+          )
         }
       ]
     })
@@ -193,6 +188,171 @@ const CREATURE_DEFENSE_KIND_BY_DOMAIN: Readonly<
   DAMAGE_RESISTANCE: 'RESISTANCE',
   DAMAGE_IMMUNITY: 'IMMUNITY',
   DAMAGE_VULNERABILITY: 'VULNERABILITY'
+}
+
+/** What a holder can do now, read by the holder-state restrictions `CAN_ACT` and `SPEED_ABOVE_ZERO`. */
+export type EncounterHolderState = { canAct: boolean; speedAboveZero: boolean }
+
+type ModifierRestrictions = CharacterGrantFoldModifier['restrictions']
+
+function isHolderStateKind(kind: string): boolean {
+  return kind === 'CAN_ACT' || kind === 'SPEED_ABOVE_ZERO'
+}
+
+/**
+ * Whether a modifier's holder-state restrictions hold: some group has only holder-state conditions
+ * and every one is met. Any other condition cannot be decided here and fails closed, so the group
+ * does not hold.
+ */
+function holderStateRestrictionsHold(
+  restrictions: ModifierRestrictions,
+  holderState: EncounterHolderState
+): boolean {
+  return (
+    restrictions.length === 0 ||
+    restrictions.some((group) =>
+      group.conditions.every(
+        (condition) =>
+          isHolderStateKind(condition.kind) &&
+          (condition.kind === 'CAN_ACT' ? holderState.canAct : holderState.speedAboveZero) ===
+            (condition.constraint === 'INCLUDE')
+      )
+    )
+  )
+}
+
+function hasHolderStateRestriction(restrictions: ModifierRestrictions): boolean {
+  return restrictions.some((group) =>
+    group.conditions.some((condition) => isHolderStateKind(condition.kind))
+  )
+}
+
+/** Whether the holder carries an `ATTACKS_AGAINST` grant or a holder-state-restricted one. */
+export function hasEncounterDefensiveGrants(
+  effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[]
+): boolean {
+  return listEncounterActiveGrants(effects).some(({ modifiers }) =>
+    modifiers.some(
+      (modifier) =>
+        modifier.valueDomainCode === 'ATTACKS_AGAINST' ||
+        hasHolderStateRestriction(modifier.restrictions)
+    )
+  )
+}
+
+/** An attack-roll contributor the target's active grants give attacks of one attack domain against it. */
+export type EncounterAttackAgainstContributor = {
+  attackDomain: AttackDomainCode
+  /** Holds only while the holder can see the attacker (D100). */
+  requiresHolderSeesAttacker: boolean
+  contributor: EncounterRelationshipD20Contributor
+}
+
+/**
+ * The advantage and disadvantage a holder's active `ATTACKS_AGAINST` grants give attack rolls made
+ * against it, for the grants whose holder-state restrictions hold now.
+ */
+export function encounterAttackAgainstContributors(
+  holderActorId: string,
+  effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[],
+  holderState: EncounterHolderState
+): EncounterAttackAgainstContributor[] {
+  return listEncounterActiveGrants(effects).flatMap(({ effectId, modifiers }) =>
+    modifiers.flatMap((modifier) => {
+      const domain = attackDomainCodeSchema.safeParse(record(modifier.domain)?.attackDomain)
+      return (modifier.modifierKind === 'ADVANTAGE' || modifier.modifierKind === 'DISADVANTAGE') &&
+        modifier.valueDomainCode === 'ATTACKS_AGAINST' &&
+        domain.success &&
+        record(modifier.grant)?.scope === 'GLOBAL' &&
+        holderStateRestrictionsHold(modifier.restrictions, holderState)
+        ? [
+            {
+              attackDomain: domain.data,
+              requiresHolderSeesAttacker:
+                record(modifier.domain)?.requiresHolderSeesAttacker === true,
+              contributor: {
+                sourceId: createCharacterMechanicSourceKey({
+                  kind: 'ACTIVE_EFFECT',
+                  activeEffectId: effectId
+                }),
+                grantId: modifier.grantId,
+                domainKey: `active-grant:${holderActorId}`,
+                influence: modifier.modifierKind
+              }
+            }
+          ]
+        : []
+    })
+  )
+}
+
+/**
+ * Adds a holder's active saving-throw advantage and disadvantage grants that carry holder-state
+ * restrictions (Dodge's Dexterity advantage) to the saving-throw rows of their ability, while the
+ * restrictions hold. The Character fold fails those grants closed, so this is their only path; a
+ * Creature and a Character read the same rows.
+ */
+export function withHolderStateGrantSaves(
+  savingThrowDefinitions: readonly unknown[],
+  holderActorId: string,
+  effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[],
+  holderState: EncounterHolderState
+): unknown[] {
+  const byAbility = new Map<string, EncounterRelationshipD20Contributor[]>()
+  for (const { effectId, modifiers } of listEncounterActiveGrants(effects)) {
+    for (const modifier of modifiers) {
+      const abilityDefinitionId =
+        DND5E_ABILITY_DEFINITION_ID_BY_CODE[String(record(modifier.domain)?.ability)]
+      if (
+        (modifier.modifierKind !== 'ADVANTAGE' && modifier.modifierKind !== 'DISADVANTAGE') ||
+        modifier.valueDomainCode !== 'SAVING_THROW_MODIFIER' ||
+        abilityDefinitionId === undefined ||
+        record(modifier.grant)?.scope !== 'GLOBAL' ||
+        !hasHolderStateRestriction(modifier.restrictions) ||
+        !holderStateRestrictionsHold(modifier.restrictions, holderState)
+      )
+        continue
+      byAbility.set(abilityDefinitionId, [
+        ...(byAbility.get(abilityDefinitionId) ?? []),
+        {
+          sourceId: createCharacterMechanicSourceKey({
+            kind: 'ACTIVE_EFFECT',
+            activeEffectId: effectId
+          }),
+          grantId: modifier.grantId,
+          domainKey: `active-grant:${holderActorId}`,
+          influence: modifier.modifierKind
+        }
+      ])
+    }
+  }
+  return savingThrowDefinitions.map((definition) => {
+    const row = record(definition)
+    const added = byAbility.get(String(row?.abilityDefinitionId))
+    return row && added && Array.isArray(row.contributors)
+      ? {
+          ...row,
+          ...mergedRollContributors(
+            row.contributors as EncounterRelationshipD20Contributor[],
+            added
+          )
+        }
+      : definition
+  })
+}
+
+/** The canonical contributors of a d20 with `added` merged in, and the roll mode they resolve to. */
+function mergedRollContributors(
+  existing: readonly EncounterRelationshipD20Contributor[],
+  added: readonly EncounterRelationshipD20Contributor[]
+) {
+  const contributors = [...existing, ...added]
+    .sort(compareCanonicalD20Contributors)
+    .filter(
+      (contributor, index, sorted) =>
+        index === 0 || compareCanonicalD20Contributors(sorted[index - 1]!, contributor) !== 0
+    )
+  return { contributors, rollMode: resolveD20Contributors(contributors).rollMode }
 }
 
 /**

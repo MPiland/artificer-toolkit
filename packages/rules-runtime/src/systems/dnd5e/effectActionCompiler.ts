@@ -86,6 +86,7 @@ const DND5E_HEAL_PROPOSAL_OPERATION_KEY = 'dnd5e.heal-proposal'
 const DND5E_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY = 'dnd5e.temporary-hit-points-proposal'
 const DND5E_STABILIZE_PROPOSAL_OPERATION_KEY = 'dnd5e.stabilize-proposal'
 const DND5E_MODIFIER_GRANT_PROPOSAL_OPERATION_KEY = 'dnd5e.modifier-grant-proposal'
+const DND5E_MANUAL_ADJUDICATION_PROPOSAL_OPERATION_KEY = 'dnd5e.manual-adjudication-proposal'
 export const DND5E_DAMAGE_PROPOSAL_OPERATION_KEY = 'dnd5e.damage-proposal'
 const DND5E_HIT_POINT_MAXIMUM_REDUCTION_PROPOSAL_OPERATION_KEY =
   'dnd5e.hit-point-maximum-reduction-proposal'
@@ -196,6 +197,7 @@ type Outcome =
   | { kind: 'CONDITION_APPLY'; conditionId: string }
   | { kind: 'STABILIZE' }
   | { kind: 'MODIFIER_GRANT' }
+  | { kind: 'MANUAL_ADJUDICATION' }
   | {
       kind: 'SCALAR_REDUCTION'
       amount: number
@@ -2104,6 +2106,8 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
   }
   if (outcome.effectKind === 'STABILIZE') return { kind: 'STABILIZE' }
   if (outcome.effectKind === 'APPLY_GRANT' && grantPlan) return { kind: 'MODIFIER_GRANT' }
+  // The Action is spent and the GM rules the result: nothing is stored on the target.
+  if (outcome.effectKind === 'MANUAL_ADJUDICATION') return { kind: 'MANUAL_ADJUDICATION' }
   if (outcome.effectKind !== 'HEAL' && outcome.effectKind !== 'DAMAGE')
     unsupported('D&D Effect action outcome is not a supported hit-point or condition outcome.')
   if (outcome.effectKind === 'HEAL' && outcome.valueKind === 'DICE') {
@@ -2227,6 +2231,11 @@ export const dnd5eStabilizeProposalOperation = targetOnlyProposalOperation(
 export const dnd5eModifierGrantProposalOperation = targetOnlyProposalOperation(
   DND5E_MODIFIER_GRANT_PROPOSAL_OPERATION_KEY,
   'modifier grant',
+  false
+)
+export const dnd5eManualAdjudicationProposalOperation = targetOnlyProposalOperation(
+  DND5E_MANUAL_ADJUDICATION_PROPOSAL_OPERATION_KEY,
+  'manual adjudication',
   false
 )
 export const dnd5eTemporaryHitPointsProposalOperation = simpleOperation(
@@ -2951,6 +2960,7 @@ export const dnd5eEffectActionCapability: GameSystemRuleCapabilityContract = {
     DND5E_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY,
     DND5E_STABILIZE_PROPOSAL_OPERATION_KEY,
     DND5E_MODIFIER_GRANT_PROPOSAL_OPERATION_KEY,
+    DND5E_MANUAL_ADJUDICATION_PROPOSAL_OPERATION_KEY,
     DND5E_DAMAGE_PROPOSAL_OPERATION_KEY,
     DND5E_HIT_POINT_MAXIMUM_REDUCTION_PROPOSAL_OPERATION_KEY,
     DND5E_SCALAR_REDUCTION_PROPOSAL_OPERATION_KEY,
@@ -3001,6 +3011,8 @@ function proposalNode(pathCode: string, outcome: Outcome) {
     unsupported('D&D stabilize outcomes cannot follow an attack or saving throw.')
   if (outcome.kind === 'MODIFIER_GRANT')
     unsupported('D&D modifier grants cannot follow an attack or saving throw.')
+  if (outcome.kind === 'MANUAL_ADJUDICATION')
+    unsupported('D&D manual adjudications cannot follow an attack or saving throw.')
   const id = `proposal-${pathCode.toLowerCase()}`
   return {
     id,
@@ -4044,7 +4056,9 @@ function fixedOutcomeGraphDefinition(input: {
             ? DND5E_STABILIZE_PROPOSAL_OPERATION_KEY
             : input.outcome.kind === 'MODIFIER_GRANT'
               ? DND5E_MODIFIER_GRANT_PROPOSAL_OPERATION_KEY
-              : DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY
+              : input.outcome.kind === 'MANUAL_ADJUDICATION'
+                ? DND5E_MANUAL_ADJUDICATION_PROPOSAL_OPERATION_KEY
+                : DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY
   const inputs = {
     targetActorId: {
       kind: 'FACT' as const,
@@ -4054,7 +4068,9 @@ function fixedOutcomeGraphDefinition(input: {
       kind: 'FACT' as const,
       factKey: DND5E_TARGET_STATE_CHECKSUM_FACT_KEY
     },
-    ...(input.outcome.kind === 'STABILIZE' || input.outcome.kind === 'MODIFIER_GRANT'
+    ...(input.outcome.kind === 'STABILIZE' ||
+    input.outcome.kind === 'MODIFIER_GRANT' ||
+    input.outcome.kind === 'MANUAL_ADJUDICATION'
       ? {}
       : input.outcome.kind === 'CONDITION_APPLY'
         ? {
@@ -4087,7 +4103,9 @@ function fixedOutcomeGraphDefinition(input: {
       nodeId: proposalId,
       port: 'targetActorId'
     },
-    ...(input.outcome.kind === 'STABILIZE' || input.outcome.kind === 'MODIFIER_GRANT'
+    ...(input.outcome.kind === 'STABILIZE' ||
+    input.outcome.kind === 'MODIFIER_GRANT' ||
+    input.outcome.kind === 'MANUAL_ADJUDICATION'
       ? {}
       : input.outcome.kind === 'CONDITION_APPLY'
         ? {
@@ -4548,7 +4566,9 @@ function compileDnd5eEffectAction({
             ? DND5E_STABILIZE_PROPOSAL_OPERATION_KEY
             : outcome.kind === 'MODIFIER_GRANT'
               ? DND5E_MODIFIER_GRANT_PROPOSAL_OPERATION_KEY
-              : DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY
+              : outcome.kind === 'MANUAL_ADJUDICATION'
+                ? DND5E_MANUAL_ADJUDICATION_PROPOSAL_OPERATION_KEY
+                : DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY
   const nodeId = recurringPlan ? recurringPlan.frozenGraphNodeId : outcome.kind.toLowerCase()
   const definition: RuleGraphDefinition = {
     schemaVersion: 1,
@@ -4565,7 +4585,9 @@ function compileDnd5eEffectAction({
             kind: 'FACT',
             factKey: DND5E_TARGET_STATE_CHECKSUM_FACT_KEY
           },
-          ...(outcome.kind === 'STABILIZE' || outcome.kind === 'MODIFIER_GRANT'
+          ...(outcome.kind === 'STABILIZE' ||
+          outcome.kind === 'MODIFIER_GRANT' ||
+          outcome.kind === 'MANUAL_ADJUDICATION'
             ? {}
             : outcome.kind === 'CONDITION_APPLY'
               ? {
@@ -4591,7 +4613,9 @@ function compileDnd5eEffectAction({
     ],
     outputs: {
       targetActorId: { kind: 'NODE_OUTPUT', nodeId, port: 'targetActorId' },
-      ...(outcome.kind === 'STABILIZE' || outcome.kind === 'MODIFIER_GRANT'
+      ...(outcome.kind === 'STABILIZE' ||
+      outcome.kind === 'MODIFIER_GRANT' ||
+      outcome.kind === 'MANUAL_ADJUDICATION'
         ? {}
         : outcome.kind === 'CONDITION_APPLY'
           ? { conditionId: { kind: 'NODE_OUTPUT', nodeId, port: 'conditionId' } }
@@ -5171,7 +5195,11 @@ function interpretDirectProposal(
   )
     throw new Dnd5eEffectActionCompilerError('The committed D&D rule action proposal is invalid.')
   // A grant changes no stored target state; its active effect owns the modifiers.
-  if (trace.operation.key === DND5E_MODIFIER_GRANT_PROPOSAL_OPERATION_KEY) return []
+  if (
+    trace.operation.key === DND5E_MODIFIER_GRANT_PROPOSAL_OPERATION_KEY ||
+    trace.operation.key === DND5E_MANUAL_ADJUDICATION_PROPOSAL_OPERATION_KEY
+  )
+    return []
   if (trace.operation.key === DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY) {
     const conditionIdBinding = publishedNode.inputs.conditionId
     const authoredPathBinding = publishedNode.inputs.authoredPath
@@ -5414,6 +5442,7 @@ function interpretDirect(
     DND5E_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY,
     DND5E_STABILIZE_PROPOSAL_OPERATION_KEY,
     DND5E_MODIFIER_GRANT_PROPOSAL_OPERATION_KEY,
+    DND5E_MANUAL_ADJUDICATION_PROPOSAL_OPERATION_KEY,
     DND5E_DAMAGE_PROPOSAL_OPERATION_KEY,
     DND5E_SCALAR_REDUCTION_PROPOSAL_OPERATION_KEY,
     DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY,

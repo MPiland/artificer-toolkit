@@ -116,9 +116,9 @@ function helpedHelper() {
     rulesText: 'Help.',
     actionCost: 'ACTION',
     mechanics: ['ALLY_ADVANTAGE'],
-    check: null,
-    saveAbilityIds: [],
-    suspendedWhileUnableToActOrMove: false
+    restrictions: null,
+    effects: [],
+    check: null
   }
   return planEncounterBasicAction({
     state,

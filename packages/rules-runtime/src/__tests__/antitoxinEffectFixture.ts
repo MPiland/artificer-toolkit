@@ -1,5 +1,9 @@
 import { compileEffect } from '@artificer-toolkit/shared/compilers'
 import type { EffectAuthored, PathLifecycleAuthored } from '@artificer-toolkit/shared/authored'
+import {
+  SRD_BASIC_ACTION_DEFINITIONS,
+  SRD_BASIC_ACTION_IDS
+} from '@artificer-toolkit/source-data/srd/basicActions.js'
 import { antitoxinVial } from '@artificer-toolkit/source-data/srd/equipment/antitoxin-vial.js'
 import { unicorn } from '@artificer-toolkit/source-data/srd/creatures/unicorn.js'
 import { darkvision } from '@artificer-toolkit/source-data/srd/spells/darkvision.js'
@@ -81,6 +85,16 @@ export function antitoxinEffect(input: { id: string; holderActorId: string }) {
     ...input,
     effect: antitoxinVial.effects?.[0],
     sourceLabel: antitoxinVial.label
+  })
+}
+
+/** The active effect the real compiler plans for the SRD Dodge action, held by the dodging actor. */
+export function dodgeEffect(input: { id: string; holderActorId: string }) {
+  const dodge = SRD_BASIC_ACTION_DEFINITIONS.find(({ id }) => id === SRD_BASIC_ACTION_IDS.DODGE)
+  return plannedGrantEffect({
+    ...input,
+    effect: dodge?.document.effects[0],
+    sourceLabel: dodge?.label ?? 'Dodge'
   })
 }
 

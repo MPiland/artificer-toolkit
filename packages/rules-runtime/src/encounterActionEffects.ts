@@ -2,6 +2,7 @@ import { prepareEncounterActionEffectPlans } from './encounterActionEffectPlans.
 import { toCharacterInitiativeActorFacts } from './character/characterInitiativeFacts.js'
 import { prepareEncounterActionMechanics } from './encounterActionMechanicsPreparation.js'
 import { advanceNativeActionGraphs } from './encounterActionExecution.js'
+import { encounterActionSourceLabel } from './encounterActionSources.js'
 import type { CharacterMovementFacts, MovementTarget } from './encounterMovementTargets.js'
 import type { CharacterSheetState } from '@artificer-toolkit/schema/projections/characterSheetState'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
@@ -77,10 +78,7 @@ export function prepareNativeActionEffectsPlan<
     occurrenceId: input.occurrenceId,
     commandId: input.commandId,
     sourceActorId: prepared.actor.id,
-    sourceLabel:
-      prepared.source.kind === 'CREATURE'
-        ? prepared.source.capability.label
-        : (prepared.source.candidate.label ?? null),
+    sourceLabel: encounterActionSourceLabel(prepared.source),
     sourceHidden: !prepared.actor.public,
     currentActorId: prepared.state.currentActorId,
     target: {

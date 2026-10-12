@@ -357,6 +357,7 @@ export async function persistEncounterActionCommit(
     factsChecksum: execution.initialFactsChecksum,
     result,
     commandFields: {
+      label: input.label,
       ruleOverrides: input.ruleOverrides,
       allyAdvantageUses: input.allyAdvantageUses,
       consumedGrants: input.consumedGrants,

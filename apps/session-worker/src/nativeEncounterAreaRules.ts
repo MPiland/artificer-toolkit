@@ -1194,6 +1194,7 @@ export async function planNativeLiveEncounterAreaCommit(
     rules,
     resourceConsumption: resourceState?.resourceConsumption ?? null,
     itemConsumption: resourceState?.itemConsumption ?? null,
+    label: sourceLabel,
     ruleOverrides,
     concentration
   }
@@ -1220,6 +1221,7 @@ export function buildNativeLiveEncounterAreaCommitInput(
     rules: plan.rules,
     resourceConsumption: plan.resourceConsumption,
     itemConsumption: plan.itemConsumption,
+    label: plan.label,
     ruleOverrides: plan.ruleOverrides,
     concentration: plan.concentration.completed,
     pendingConcentration: plan.concentration.pending,

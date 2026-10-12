@@ -29,6 +29,8 @@ export const encounterActionChoiceDtoSchema = lazySchema(() =>
     id: characterSheetActionDtoSchema.shape.id,
     label: characterSheetActionDtoSchema.shape.label,
     sourceLabel: characterSheetActionDtoSchema.shape.sourceLabel,
+    /** What the action does, for a System-authored basic action's tooltip. */
+    rulesText: z.optional(basicActionReusableDefinitionDocumentDtoSchema.shape.rulesText),
     rangeLabel: z.optional(labelSchema),
     attackBonus: z.optional(z.number().check(z.int())),
     damageLabel: z.optional(labelSchema),
@@ -138,8 +140,13 @@ export const encounterActionChoicesDtoSchema = lazySchema(() =>
         reason: z.string().check(z.minLength(1)).check(z.maxLength(500))
       })
     ),
+    /** The System's basic actions that still run through the closed `USE_BASIC_ACTION` path. */
     basicActions: z
       .array(encounterBasicActionChoiceDtoSchema)
+      .check(z.maxLength(MAX_BASIC_ACTION_CHOICES)),
+    /** The System's authored basic actions, resolved like any action through `RESOLVE_ACTION`. */
+    basicActionChoices: z
+      .array(encounterActionChoiceDtoSchema)
       .check(z.maxLength(MAX_BASIC_ACTION_CHOICES)),
     /** One entry per escapable relationship the actor holds. */
     escapes: z

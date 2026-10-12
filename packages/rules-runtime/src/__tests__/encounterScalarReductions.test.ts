@@ -257,7 +257,7 @@ describe('Creature movement target', () => {
       baseRulePolicyOutput: null,
       effectiveRulePolicyOutput: null,
       characterCurrentness: null,
-      basicActionAttackContributors: [],
+      attackAgainstContributors: [],
       conditionDefinitions: [],
       conditionMechanics: [],
       targetDerivedFacts: {

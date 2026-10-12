@@ -42,7 +42,7 @@ import {
   resolveEncounterAttackPerception,
   resolveEncounterBelievedAttackPerception
 } from '../encounterAttackPerception.js'
-import type { EncounterRelationshipD20Contributor } from '../encounterRelationshipActionFacts.js'
+import type { EncounterAttackAgainstContributor } from '../encounterActiveGrants.js'
 import { discoverEncounterFeatureActionCapabilities } from '../encounterFeatureActionCapabilityDiscoveryRegistry.js'
 import { buildMovementTarget, type CharacterMovementFacts } from '../encounterMovementTargets.js'
 import { DND5E_DAMAGE_PROPOSAL_OPERATION_KEY } from '../systems/dnd5e/effectActionCompiler.js'
@@ -374,7 +374,7 @@ export async function prepareCreatureAction(input: {
   /** Gives the target unlimited Blindsight, so it senses an unseen attacker. */
   targetBlindsight?: boolean
   /** What a Dodge on the target would give attacks against it, as the room's defense sets it. */
-  targetAttackContributors?: readonly EncounterRelationshipD20Contributor[]
+  targetAttacksAgainst?: readonly EncounterAttackAgainstContributor[]
 }) {
   const actors = input.actor.id === input.target.id ? [input.actor] : [input.actor, input.target]
   const encounter = creatureEncounter(
@@ -395,8 +395,8 @@ export async function prepareCreatureAction(input: {
                 gameSystemId: SRD_SYSTEM_ID,
                 definitions: srdConditionDefinitionSource()
               })),
-              ...(id === input.target.id && input.targetAttackContributors
-                ? { basicActionAttackContributors: input.targetAttackContributors }
+              ...(id === input.target.id && input.targetAttacksAgainst
+                ? { attackAgainstContributors: input.targetAttacksAgainst }
                 : {})
             }
           ] as const

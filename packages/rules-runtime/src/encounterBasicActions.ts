@@ -16,18 +16,13 @@ import {
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { compareCanonicalD20Contributors } from '@artificer-toolkit/shared/rules'
 import { actionEconomyCapabilityRegistry } from './actionEconomyCapabilityRegistry.default.js'
-import { lengthInFeet } from './character/characterSceneVision.js'
 import { activeEffectCapabilitySuppressions } from './encounterActionEconomy.js'
 import { encounterActorRelationship } from './encounterActionTargetPolicy.js'
-import { encounterConditionSpeed } from './encounterConditionMechanics.js'
 import type { MovementTarget } from './encounterMovementTargets.js'
-import { snapshotStatBlock } from './encounterProjection.js'
-import { withActiveGrantSpeeds } from './encounterActiveGrants.js'
 import {
   resolveRuleCapabilityState,
   type CurrentReusableDefinitionSource
 } from './ruleCapabilityStateService.js'
-import { speedDtoSchema } from '@artificer-toolkit/schema/shared/speed'
 import type { EncounterRelationshipD20Contributor } from './encounterRelationshipActionFacts.js'
 import type { EncounterD20RollMode } from './encounterEvidenceAnswer.js'
 
@@ -103,42 +98,6 @@ function basicActionContributor(
   }
 }
 
-/**
- * Whether an actor can't act (its System's actor-action capability is suppressed) or every speed it
- * has is 0 after its condition mechanics.
- */
-async function unableToActOrMove(input: {
-  target: MovementTarget
-  gameSystemId: string
-  definitions: CurrentReusableDefinitionSource
-}) {
-  const { target } = input
-  const speeds =
-    target.actor.kind === 'CHARACTER'
-      ? (target.effectiveRulePolicyOutput?.movement.speeds ?? [])
-      : target.actor.kind === 'CREATURE'
-        ? withActiveGrantSpeeds(snapshotStatBlock(target.actor)?.speeds ?? [], target.activeEffects)
-        : []
-  const feet = speeds.flatMap((entry: unknown) => {
-    const speed = speedDtoSchema.safeParse(entry)
-    return speed.success
-      ? [
-          encounterConditionSpeed({
-            mechanics: target.conditionMechanics,
-            speed: lengthInFeet(speed.data) ?? 0
-          })
-        ]
-      : []
-  })
-  if (feet.length && feet.every((value) => value === 0)) return true
-  return encounterActorCannotAct({
-    conditionIds: target.state.conditions,
-    activeEffects: target.activeEffects,
-    gameSystemId: input.gameSystemId,
-    definitions: input.definitions
-  })
-}
-
 /** Whether the System's actor-action capability is suppressed for the target (Speed is ignored). */
 export async function encounterActorCannotAct(input: {
   conditionIds: readonly string[]
@@ -172,68 +131,6 @@ export function withEncounterD20Contributor(
   }
 }
 
-/**
- * Applies the actor's own defensive basic-action effects (Dodge) to its target facts: attack rolls
- * against it gain a disadvantage contributor, and its saving throws of the effect's abilities an
- * advantage contributor, both labelled by the entry. A suspended effect applies nothing while the
- * actor can't act or its speed is 0. Whether the actor sees its attacker is not checked here:
- * `prepareEncounterActionMechanics` drops the attack contributors against an attacker the actor
- * cannot see (`loadAttackPerception`); flows that do not load perception keep them.
- */
-export async function withEncounterBasicActionDefense<T extends MovementTarget>(input: {
-  target: T
-  gameSystemId: string
-  definitions: CurrentReusableDefinitionSource
-}): Promise<T> {
-  const { target } = input
-  const effects = encounterBasicActionEffects(target.actor).filter(
-    (effect) =>
-      effect.mechanic === 'DISADVANTAGE_ON_ATTACKS_AGAINST' || effect.mechanic === 'SAVE_ADVANTAGE'
-  )
-  if (!effects.length) return target
-  const suspended =
-    effects.some((effect) => effect.suspendedWhileUnableToActOrMove) &&
-    (await unableToActOrMove(input))
-  const applying = effects.filter((effect) => !suspended || !effect.suspendedWhileUnableToActOrMove)
-  const attackDefinitionIds = [
-    ...new Set(
-      applying.flatMap((effect) =>
-        effect.mechanic === 'DISADVANTAGE_ON_ATTACKS_AGAINST' ? [effect.definitionId] : []
-      )
-    )
-  ].sort()
-  const saves = applying.filter((effect) => effect.mechanic === 'SAVE_ADVANTAGE')
-  const savingThrowDefinitions = target.targetDerivedFacts.savingThrowDefinitions
-  return {
-    ...target,
-    basicActionAttackContributors: attackDefinitionIds.map((definitionId) =>
-      basicActionContributor(definitionId, target.actor.id, 'DISADVANTAGE')
-    ),
-    targetDerivedFacts: {
-      ...target.targetDerivedFacts,
-      ...(Array.isArray(savingThrowDefinitions) && saves.length
-        ? {
-            savingThrowDefinitions: savingThrowDefinitions.map((definition: unknown) => {
-              if (!isRecord(definition) || !Array.isArray(definition.contributors))
-                return definition
-              const effect = saves.find((candidate) =>
-                candidate.saveAbilityIds.includes(String(definition.abilityDefinitionId))
-              )
-              return effect
-                ? {
-                    ...definition,
-                    ...withEncounterD20Contributor(
-                      definition.contributors as EncounterRelationshipD20Contributor[],
-                      basicActionContributor(effect.definitionId, target.actor.id, 'ADVANTAGE')
-                    )
-                  }
-                : definition
-            })
-          }
-        : {})
-    }
-  }
-}
 /**
  * Help: the ally advantage the attacker's next attack roll uses, from the helper with the lowest id
  * when several helped. The attack's commit removes it from that helper (`withoutAllyAdvantage`).
@@ -329,6 +226,8 @@ export function planEncounterBasicAction(input: {
   document: BasicActionReusableDefinitionDocumentDto
 }) {
   const { state, actor, target, document } = input
+  if (document.effects.length > 0)
+    throw new Error('This basic action is authored and resolves as an action.')
   const helps = document.mechanics.includes('ALLY_ADVANTAGE')
   const stabilizes = document.mechanics.includes('STABILIZE_TARGET')
   if ((helps || stabilizes) !== (target !== null) || target?.id === actor.id)
@@ -347,9 +246,7 @@ export function planEncounterBasicAction(input: {
             definitionId: document.id,
             mechanic,
             turnSequence: state.turnSequence,
-            allyActorId: mechanic === 'ALLY_ADVANTAGE' ? target!.id : null,
-            saveAbilityIds: mechanic === 'SAVE_ADVANTAGE' ? document.saveAbilityIds : [],
-            suspendedWhileUnableToActOrMove: document.suspendedWhileUnableToActOrMove
+            allyActorId: mechanic === 'ALLY_ADVANTAGE' ? target!.id : null
           }
         ]
   )

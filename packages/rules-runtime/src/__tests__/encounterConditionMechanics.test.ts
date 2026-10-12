@@ -125,7 +125,7 @@ function target(conditions: readonly string[], initialConditionRows: unknown[] |
     qualifiedDefenses: [],
     conditionImmunityIds: [],
     characterCurrentness: null,
-    basicActionAttackContributors: [],
+    attackAgainstContributors: [],
     conditionDefinitions: [],
     conditionMechanics: []
   }

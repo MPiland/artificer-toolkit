@@ -1,11 +1,11 @@
 import type { CharacterDeathSaves } from '@artificer-toolkit/schema/shared/characterDeathSaves'
-import type { EncounterRelationshipD20Contributor } from './encounterRelationshipActionFacts.js'
 import type { EncounterMovementReactionCharacterSource } from './encounterMovementReactionSources.js'
 import { discoverCharacterActionCapabilities } from './characterActionCapabilityDiscoveryRegistry.js'
 import { compileCharacterActionEntryPoints } from './encounterActionEntryPointCompiler.js'
 import type { CharacterRulePolicyOutput } from '@artificer-toolkit/schema/api/characterRules'
 import {
   effectiveHitPointMaximum,
+  type EncounterAttackAgainstContributor,
   withActiveGrantSpeeds,
   withCharacterActiveGrants,
   withCreatureActiveGrantArmorClass,
@@ -92,11 +92,12 @@ export type MovementTarget<
   conditionImmunityIds: readonly string[]
   characterCurrentness: { projectionChecksum: string; mechanicalContextChecksum: string } | null
   /**
-   * Contributors attack rolls against the actor gain from its basic-action defense (Dodge), set by
-   * `withEncounterBasicActionDefense`; empty until a flow applies it. They hold only while the actor
-   * sees the attacker, which `prepareEncounterActionMechanics` decides per attack.
+   * Contributors attack rolls against the actor gain from its active `ATTACKS_AGAINST` grants
+   * (Dodge), set by `withEncounterHolderDefense`; empty until a flow applies it. Those that require
+   * the holder to see the attacker hold only then, which `prepareEncounterActionMechanics` decides
+   * per attack.
    */
-  basicActionAttackContributors: readonly EncounterRelationshipD20Contributor[]
+  attackAgainstContributors: readonly EncounterAttackAgainstContributor[]
   /**
    * The actor's pinned condition definitions (D94), loaded by `withEncounterConditionMechanics`
    * and carried across rebuilds so `applyEncounterConditionMechanics` can re-derive its mechanics;
@@ -290,7 +291,7 @@ export function buildMovementTarget<
       defenses: effectiveRulePolicyOutput.defenses,
       qualifiedDefenses: [],
       conditionImmunityIds: effectiveRulePolicyOutput.conditionImmunityIds,
-      basicActionAttackContributors: [],
+      attackAgainstContributors: [],
       conditionDefinitions: [],
       conditionMechanics: []
     }
@@ -370,7 +371,7 @@ export function buildMovementTarget<
     defenses: targetProtection.defenses,
     qualifiedDefenses: targetProtection.qualifiedDefenses,
     conditionImmunityIds: targetProtection.conditionImmunityIds,
-    basicActionAttackContributors: [],
+    attackAgainstContributors: [],
     conditionDefinitions: [],
     conditionMechanics: []
   }

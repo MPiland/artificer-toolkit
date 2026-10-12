@@ -216,6 +216,7 @@ const meta = {
     opened: false,
     waitingOn: null,
     basicActions: [],
+    basicActionChoices: [],
     escapes: [],
     openAttackAction: null,
     areaOrigin: null,

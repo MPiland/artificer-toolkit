@@ -372,7 +372,7 @@ within and ranged beyond without one) and the `conditionOutcomeRules` binding: t
 operations. Single-graph verification recomputes the result path from it, and a two-phase save seals it
 in its TEST-phase bound-facts checksum (`requireNativeTestBoundary`). The d20 is still rolled on an
 automatic failure. Contests (Grapple, Shove escape) and Disarm add the ability-check contributors, Dodge is
-suspended at condition speed 0, and the tabletop movement allowances (`readTurnMovementView`, one per speed type) apply the
+suspended at condition speed 0 (the `SPEED_ABOVE_ZERO` predicate), and the tabletop movement allowances (`readTurnMovementView`, one per speed type) apply the
 speed mechanics before Dash. A condition contributor's derived-mode reason names the condition, and is
 generic for players when the holder is hidden.
 
@@ -380,6 +380,33 @@ Not modeled (registered in the phase ledger): the source of fear (Frightened app
 Hide-action hidden state (Stealth check, ends on attack), Unconscious falling Prone, Petrified damage
 resistance, Exhaustion 4 and 6, concentration saves under conditions, and conditions on Convex-side
 action preparation reads (the room owns resolution).
+
+### Authored basic actions (ATTACK-18 slice A, current; D106)
+
+A `BASIC_ACTION` System definition carries `rulesText`, `restrictions` (a nullable Facet, carried but not yet evaluated) and either
+`mechanics` (the closed codes still in use: Dash, Disengage, Help and First Aid) or `effects` (the same authored effect list a
+Feature carries), never both. Entries with `effects` are authored: Dodge, Hide, Ready, Search and Use an Object. They are compiled by
+the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action source, `BASIC_ACTION`
+(`encounterBasicActionCapabilityDiscovery.ts`, `encounterActionSources.ts`), for Characters and Creatures. Their action id is
+`${actor.id}:BASIC_ACTION:${definitionId}:EFFECT:${effectId}`, and the action choices read lists them in the separate
+`basicActionChoices` group as ordinary `encounterActionChoiceDtoSchema` entries; unmigrated entries keep the `basicActions` shape and
+`USE_BASIC_ACTION`.
+
+- **Manual adjudication.** The `MANUAL_ADJUDICATION` outcome compiles to the stored-state-free proposal
+  `dnd5e.manual-adjudication-proposal`: the Action is spent and nothing is applied, so the GM rules the result. Every stored `RESOLVE_ACTION`
+  command carries the resolved action's display label (`encounterActionSourceLabel` of the prepared source, for Character, Creature
+  feature and `BASIC_ACTION` sources), and the timeline entry returns it.
+- **Dodge** is an `APPLY_GRANT` until the start of the holder's next turn with an `ATTACKS_AGAINST` disadvantage modifier
+  (`requiresHolderSeesAttacker`) and a Dexterity `SAVING_THROW_MODIFIER` advantage, both under the facet predicates `CAN_ACT` and
+  `SPEED_ABOVE_ZERO` (unknown contexts fail closed). `withEncounterHolderDefense` (`encounterHolderDefense.ts`) applies the grants
+  to the target facts for attack and save resolution; the D100 sight rule drops the attack contributor only when the holder
+  definitively can't see the attacker (`UNSEEN`). GM undo removes the grant and refunds the Action like any authored action.
+- **Gone with this slice:** `withEncounterBasicActionDefense`, the `dodgeContributors` plumbing, the Dodge Run-resource effect kinds,
+  the mechanic codes `DISADVANTAGE_ON_ATTACKS_AGAINST` and `SAVE_ADVANTAGE`, `saveAbilityIds` and
+  `suspendedWhileUnableToActOrMove`.
+- **Storage.** A reusable definition's document is stored as canonical JSON text (`documentJson`, `definitionDocumentJson.ts`): an
+  authored action's effects nest deeper than Convex's 16-level value limit (Dodge is 19 deep), as ADR 0029 already does for authored
+  versions. Readers and checksums still see the typed document.
 
 ## Initiative
 
