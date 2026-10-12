@@ -34,7 +34,7 @@ flowchart TD
 ## Callers
 
 - **Session Durable Object** (`apps/session-worker`): the `native*` modules (`nativeEncounterRules`,
-  `nativeEncounterTurn`, `nativeEncounterMovement`, `nativeCharacterRules`, `nativeBasicAction`,
+  `nativeEncounterTurn`, `nativeEncounterMovement`, `nativeCharacterRules`, `nativeCheckAction`,
   `nativeDisarm`, and the Concentration, Cleaving and maintenance modules) plan and execute Encounter,
   movement and Sheet-play rules from the room's SQLite inputs, and the `room*` modules commit the results
   there. Held Sheet play runs through `roomCharacterSheetCommands` and `roomCharacterWrites`. See
@@ -199,7 +199,7 @@ attack roll (`makesAttackRoll`, a required policy input) or the authored targeti
 ("another creature"). SRD Bardic Inspiration, Healing Touch, Modify Memory and Protection author
 `excludesSelf: true`.
 
-`USE_BASIC_ACTION` follows the same rule with `encounterActionEconomyWarnings` and `TARGET_DISPOSITION`.
+An authored basic action follows the same rule through `RESOLVE_ACTION`, with `encounterActionEconomyWarnings` and `TARGET_DISPOSITION`.
 Action choices carry the warnings that already apply before a target is chosen.
 
 ### Attack action, Multiattack and Extra Attack (current, D93)
@@ -330,10 +330,13 @@ the saves and removes the 0-HP condition through the heal rules); three successe
 failures kill. `deathSavesAfterRoll` (schema) owns the rule. The stage runs after Recharge and before
 incoming `START_OF_TURN` effects and is not undoable; a MANUAL Run prompts nothing.
 
-First Aid (D98, current) is a System basic action whose mechanic is the closed `STABILIZE_TARGET`; a
-basic-action entry carries a required nullable `check` (`{checkDefinitionId, dc}`) and the SRD authors
-First Aid as an Action with Wisdom (Medicine), DC 10. The command's `targetActorId` names the target
-(never the helper; a custom actor is refused and a MANUAL Run refuses it as `ASSISTED_ONLY`). A target
+First Aid (D98, D106 slice D, current) is an authored basic action on the reusable `CHECK` action test: the
+actor makes one authored check (`invocation.check`: `checks` plus a `FIXED` dc; a `CONTEST` dc is in the schema
+and refused by the compiler until ATTACK-7 slice C) and the `ON_CHECK_SUCCESS` path runs only on success. The
+dnd5e compiler supports exactly one check and a `STABILIZE` outcome; the planner admits `CHECK` only on the
+`BASIC_ACTION` source. The SRD authors First Aid as an Action with Wisdom (Medicine), DC 10, a touch-range single
+target. It resolves through `RESOLVE_ACTION`, and the stored root carries the check occurrence receipt
+(`checkReceipt`). The target comes from the command (a custom actor is refused and a MANUAL Run refuses it as `ASSISTED_ONLY`). A target
 that is not dying gives the overridable `TARGET_NOT_DYING` warning and, once overridden, spends the
 Action with no roll. Touch range reuses the Healer's Kit warnings. The root command always commits and
 spends the Action and the helper's one-roll `ON_ABILITY_CHECK` grants (a Help) are consumed with it. A prompted roll writes a PENDING occurrence
@@ -381,16 +384,14 @@ Hide-action hidden state (Stealth check, ends on attack), Unconscious falling Pr
 resistance, Exhaustion 4 and 6, concentration saves under conditions, and conditions on Convex-side
 action preparation reads (the room owns resolution).
 
-### Authored basic actions (ATTACK-18 slices A to C, current; D106)
+### Authored basic actions (ATTACK-18 slices A to D, current; D106)
 
-A `BASIC_ACTION` System definition carries `rulesText`, `restrictions` (a nullable Facet, carried but not yet evaluated) and either
-`mechanics` (the closed code still in use: First Aid) or `effects` (the same authored effect list a
-Feature carries), never both. Entries with `effects` are authored: Dash, Disengage, Dodge, Help, Hide, Ready, Search and Use an Object. They are compiled by
+A `BASIC_ACTION` System definition carries `rulesText`, `restrictions` (a nullable Facet, carried but not yet evaluated), `actionCost` and `effects` (the same authored effect list a
+Feature carries). Every entry is authored: Dash, Disengage, Dodge, First Aid, Help, Hide, Ready, Search and Use an Object. They are compiled by
 the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action source, `BASIC_ACTION`
 (`encounterBasicActionCapabilityDiscovery.ts`, `encounterActionSources.ts`), for Characters and Creatures. Their action id is
 `${actor.id}:BASIC_ACTION:${definitionId}:EFFECT:${effectId}`, and the action choices read lists them in the separate
-`basicActionChoices` group as ordinary `encounterActionChoiceDtoSchema` entries; unmigrated entries keep the `basicActions` shape and
-`USE_BASIC_ACTION`.
+`basicActionChoices` group as ordinary `encounterActionChoiceDtoSchema` entries.
 
 - **Manual adjudication.** The `MANUAL_ADJUDICATION` outcome compiles to the stored-state-free proposal
   `dnd5e.manual-adjudication-proposal`: the Action is spent and nothing is applied, so the GM rules the result. Every stored `RESOLVE_ACTION`
@@ -410,6 +411,9 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   grant it ends only at a real turn end (START or ADVANCE_TURN); GM cursor corrections do not tick grants (product-owner ruling, ATTACK-18.2).
 - **Gone with slice B:** the mechanic codes `SPEED_MOVEMENT_BONUS` and `NO_OPPORTUNITY_ATTACKS`, `suppressesEncounterOpportunityAttacks`,
   the `speedMovementBonus` DTO field and `speedBonusTurn` on `USE_BASIC_ACTION`.
+- **Gone with slice D:** `USE_BASIC_ACTION`, `UseEncounterBasicActionInputDto`, the catalogue `check` and `mechanics`
+  fields, `STABILIZE_TARGET` and `BASIC_ACTION_MECHANIC_CODE`, and `nativeBasicAction.ts` (slice E's deletions, pulled forward).
+  Undo restores the actor row exactly: a returned allowance of zero removes its `ruleUsage` entry rather than writing `0`.
 - **Gone with slice A:** `withEncounterBasicActionDefense`, the `dodgeContributors` plumbing, the Dodge Run-resource effect kinds,
   the mechanic codes `DISADVANTAGE_ON_ATTACKS_AGAINST` and `SAVE_ADVANTAGE`, `saveAbilityIds` and
   `suspendedWhileUnableToActOrMove`.

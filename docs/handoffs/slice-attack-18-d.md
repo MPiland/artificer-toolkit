@@ -55,7 +55,12 @@ Store red logs under `local-validation/attack18d/`.
 ## Status log
 
 - 2026-10-12: workbook written; session started.
+- 2026-10-12: built on branch `claude/attack18-d-first-aid-27c98a` (commits `b26e108cb`, `f13ff091e`, `1c2285103` and the docs commit). Logs under `local-validation/attack18d/`.
+- Checklist: (1) First Aid through RESOLVE_ACTION, `nativeRoomFirstAidAction` and `basicActions` tests; (2) compile half `checkActionCompile.test.ts`, worker half `nativeRoomFirstAidAction` "homebrew basic action" (DC 15, outcome only on success); (3) miss spends the Action and writes nothing; (4) `turnDeathSave` "second dying Character"; (5) TARGET_NOT_DYING override changes nothing; (6) `turnDeathSave` "GM undo restores every actor row" — RED first (`RED-undo-exact-rows.log`: undo left `ruleUsage: {id: 0}`), fixed in `withEncounterRuleUsageUsed`; (7) Escape proofs unchanged and green. Also a worker regression that a Creature feature authored with CHECK is refused.
+- Slice E was partly pulled forward: `USE_BASIC_ACTION`, `UseEncounterBasicActionInputDto`, catalogue `check`/`mechanics`, `STABILIZE_TARGET`, `BASIC_ACTION_MECHANIC_CODE`, `nativeBasicAction.ts`.
+- Deviations: CHECK only on the BASIC_ACTION source, one skill check, FIXED dc, STABILIZE outcome; self-aimed First Aid is a soft `TARGET_DISPOSITION` warning; the drawer's required Ally target became an optional picker (the DTO `target` hint was removed); the Hide "resolves as an action" test went with the deleted function; `schema/__tests__/basic-actions.test.ts` rewritten (removed API); `encounterBasicActionStabilizeWarnings` stays production-unused because `encounterBasicActionCheck.test.ts` imports it; stale `effectiveHitPointMaximum` imports from base commit 964f43918 fixed; the authored `ActionEffectInvocationAuthored` type now excludes a reaction binding on CHECK.
+- Open risks: red logs for the migrated First Aid proofs were not captured separately (the old paths no longer exist); undo restores an absent `ruleUsage` entry for a prior explicit `0`, which reads identically.
 
 ## Proposed ledger edits (filled by the slice session)
 
-- ATTACK-18.T5 → DONE, with a note and the log path.
+- ATTACK-18.T5 → DONE. Note: First Aid authored on the reusable CHECK test, resolves through RESOLVE_ACTION; slice E deletions (USE_BASIC_ACTION, catalogue check/mechanics, STABILIZE_TARGET) pulled forward; undo exact-row regression fixed. Logs: `local-validation/attack18d/`.
