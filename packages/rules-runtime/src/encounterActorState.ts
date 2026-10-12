@@ -205,9 +205,10 @@ export function withEncounterRuleUsageUsed(
   ) {
     throw new Error('Encounter rule usage state is invalid.')
   }
-  const ruleUsage = isRecord(existing) ? existing : {}
-  return {
-    ...resources,
-    ruleUsage: { ...ruleUsage, [normalizedDefinitionId]: used }
-  }
+  // Nothing used is the absence of a record, so returning a spent allowance restores the row it left.
+  const ruleUsage = { ...(isRecord(existing) ? existing : {}), [normalizedDefinitionId]: used }
+  if (used === 0) delete ruleUsage[normalizedDefinitionId]
+  return Object.keys(ruleUsage).length === 0
+    ? Object.fromEntries(Object.entries(resources).filter(([key]) => key !== 'ruleUsage'))
+    : { ...resources, ruleUsage }
 }

@@ -28,6 +28,7 @@ import { createConvexEncounterStore } from '../lib/convexEncounterStore'
 import {
   checkpointLiveRoom,
   executeInRoom,
+  executeSheetInRoom,
   invalidateRoomInputs,
   queueRoomRolls,
   readRoomRollCards,
@@ -619,6 +620,28 @@ describe('First Aid, a System basic action with a check (D98)', () => {
     expect(await firstAidCards(fixture)).toHaveLength(1)
   }, 120000)
 
+  it('GM undo restores every actor row and held effect exactly, the spent Action included', async () => {
+    const { fixture, atAlly, dying } = await dyingHeroAtAllyTurn()
+    await allyRollsAutomatically(fixture, true)
+    await queueRoomRolls(fixture.campaign.id, { rolls: [draw(20)] })
+    const actorsOf = (result: CommandResult) =>
+      encounterGmProjectionDtoSchema.parse(result.projection).actors
+    const effectsBefore = await heldEffects(fixture, allyOf(fixture).sourceId!)
+
+    const stabilized = await useFirstAid(fixture, atAlly)
+    expect(stabilized.occurrence?.status).toBe('COMPLETE')
+    expect(actorsOf(stabilized)).not.toEqual(actorsOf(atAlly))
+
+    const reverted = await execute(fixture, (base) => ({
+      ...base,
+      type: 'REVERT_LAST_ACTION',
+      expectedVersion: stabilized.projection.version
+    }))
+    expect(actorsOf(reverted)).toEqual(actorsOf(atAlly))
+    expect(await saves(fixture)).toEqual(dying)
+    expect(await heldEffects(fixture, allyOf(fixture).sourceId!)).toEqual(effectsBefore)
+  }, 180000)
+
   it('warns only about the unchecked touch range for a valid dying target', async () => {
     const { fixture, atAlly } = await dyingHeroAtAllyTurn()
     await allyRollsAutomatically(fixture, true)
@@ -669,6 +692,40 @@ describe('First Aid, a System basic action with a check (D98)', () => {
       expectedVersion: settled.projection.version
     }))
     expect(await heldEffects(fixture, ally.sourceId!)).toEqual(helpBefore)
+  }, 180000)
+
+  it('leaves a second dying Character’s death saves and hit points as they were', async () => {
+    const { fixture, atAlly } = await dyingHeroAtAllyTurn()
+    await allyRollsAutomatically(fixture, true)
+    const ally = allyOf(fixture)
+    // The ally is itself dying, with a death save of its own on the record.
+    await checkpointLiveRoom(fixture.campaign.id)
+    const sheet = await fixture.owner.caller.query(api.characters.sheet.get, {
+      id: ally.sourceId!
+    })
+    if (!sheet) throw new Error('Missing ally Sheet.')
+    const { current } = (await storedCharacter(fixture, ally.sourceId!)).state.hitpoints
+    await executeSheetInRoom(fixture.owner.caller, {
+      scope: 'CHARACTER_SHEET',
+      characterId: ally.sourceId!,
+      encounterId: fixture.run.id,
+      command: {
+        type: 'ADJUST_HIT_POINTS',
+        mode: 'DAMAGE',
+        amount: current,
+        commandId: crypto.randomUUID(),
+        expectedVersion: sheet.meta.streamVersion
+      }
+    })
+    const allyBefore = (await storedCharacter(fixture, ally.sourceId!)).state.hitpoints
+    expect(allyBefore.current).toBe(0)
+
+    await queueRoomRolls(fixture.campaign.id, { rolls: [draw(20)] })
+    // A dying helper can't normally act, which the GM acknowledges.
+    const stabilized = await useFirstAid(fixture, atAlly, ['ACTION_ECONOMY_UNAVAILABLE'])
+    expect(stabilized.occurrence?.status).toBe('COMPLETE')
+    expect(await saves(fixture)).toEqual({ successes: 0, failures: 0, stable: true })
+    expect((await storedCharacter(fixture, ally.sourceId!)).state.hitpoints).toEqual(allyBefore)
   }, 180000)
 
   it('warns, overridably, for a hero that is not dying, and then rolls nothing', async () => {

@@ -1,6 +1,7 @@
 import {
   characterActor,
   creatureFeature,
+  currentSrdDefinition,
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import { encounterBasicActionId } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
@@ -8,6 +9,8 @@ import {
   SRD_BASIC_ACTION_DEFINITIONS,
   SRD_BASIC_ACTION_IDS
 } from '@artificer-toolkit/source-data/srd/basicActions.js'
+import { creatureAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/creature'
+import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { SRD_MEDICINE_SKILL_ID } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
@@ -95,6 +98,114 @@ async function settledCheck(room: Awaited<ReturnType<typeof firstAidRoom>>) {
   })
   return { outputs, occurrences: history.occurrences }
 }
+
+const STEADY_ID = testUuid(0xf10)
+const STEADY_EFFECT_ID = testUuid(0xf11)
+
+/** A homebrew basic action on the same CHECK test as First Aid, against a harder DC of 15. */
+const steadyDocument = {
+  ...firstAidDefinition.document,
+  id: STEADY_ID,
+  effects: [
+    {
+      ...firstAidDefinition.document.effects[0]!,
+      id: STEADY_EFFECT_ID,
+      invocation: {
+        ...firstAidDefinition.document.effects[0]!.invocation,
+        check: {
+          checks: { skillIds: [SRD_MEDICINE_SKILL_ID], abilityDefinitionIds: [] },
+          dc: { kind: 'FIXED' as const, value: 15 }
+        }
+      }
+    }
+  ]
+}
+const steadyDefinition = currentSrdDefinition({
+  ...firstAidDefinition,
+  id: STEADY_ID,
+  document: steadyDocument,
+  checksum: checksumRuleDocument(steadyDocument)
+})
+
+describe('a homebrew basic action authored with the CHECK test, in the room', () => {
+  async function useSteady(face: number) {
+    const room = await actionRoom({
+      autoRoll: 'BOTH',
+      rolls: [draw(face)],
+      characterPlay: { currentHitPoints: 0 },
+      definitions: [steadyDefinition],
+      actors: [medicWolf(), characterActor({ id: FIGHTER_ACTOR_ID, characterId: FIGHTER_ID })],
+      ownerFeatureId: creatureFeature(biteWolf('ATTACK', { damage: 1, reachFeet: 5 }), 'Bite').id
+    })
+    const { answer } = await room.startAction(
+      FIGHTER_ACTOR_ID,
+      TOUCH_WITHOUT_SCENE,
+      null,
+      null,
+      encounterBasicActionId(WOLF_ID, STEADY_ID, STEADY_EFFECT_ID),
+      WOLF_ID
+    )
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    return settledCheck(room)
+  }
+
+  it('runs its outcome when the total reaches its own DC', async () => {
+    expect((await useSteady(14)).outputs).toMatchObject([
+      { check: { dc: 15 }, outcome: 'STABILIZED' }
+    ])
+  })
+
+  it('runs no outcome and writes no effect when the total falls short, though First Aid’s DC 10 would pass', async () => {
+    const { outputs } = await useSteady(10)
+    expect(outputs).toMatchObject([
+      { check: { dc: 15 }, d20: { selectedNatural: 10 }, outcome: 'FAILED', targetTransition: null }
+    ])
+  })
+})
+
+describe('a Creature feature authored with the CHECK test', () => {
+  it('is refused, since only a basic action makes a check, and nothing is spent or written', async () => {
+    const attack = biteWolf('ATTACK', { damage: 1, reachFeet: 5 })
+    const checkWolf = creatureAuthoredDtoSchema.parse({
+      ...attack,
+      features: attack.features?.map((feature) =>
+        feature.label !== 'Bite'
+          ? feature
+          : {
+              ...feature,
+              effects: feature.effects?.map((effect) => ({
+                ...effect,
+                invocation: {
+                  ...effect.invocation,
+                  triggerCode: 'CHECK' as const,
+                  check: {
+                    checks: { skillIds: [SRD_MEDICINE_SKILL_ID], abilityDefinitionIds: [] },
+                    dc: { kind: 'FIXED' as const, value: 10 }
+                  }
+                },
+                paths: effect.paths.map((path) => ({ ...path, pathCode: 'ON_CHECK_SUCCESS' }))
+              }))
+            }
+      )
+    })
+    const room = await actionRoom({
+      autoRoll: 'BOTH',
+      rolls: [draw(20)],
+      characterPlay: { currentHitPoints: 0 },
+      actors: [
+        srdCreatureActor({ id: WOLF_ID, creature: checkWolf }),
+        characterActor({ id: FIGHTER_ACTOR_ID, characterId: FIGHTER_ID })
+      ],
+      ownerFeatureId: creatureFeature(checkWolf, 'Bite').id
+    })
+    const before = await room.version()
+    const { answer } = await room.startAction(FIGHTER_ACTOR_ID, TOUCH_WITHOUT_SCENE)
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_REJECTED')
+    expect(JSON.stringify(answer)).not.toContain('RULE_WARNINGS')
+    expect(await room.version()).toBe(before)
+    expect((await settledCheck(room)).outputs).toEqual([])
+  })
+})
 
 describe('First Aid, a System basic action with a check, in the room', () => {
   it('rolls for the helper who rolls automatically, and a roll that reaches the DC makes the dying target stable', async () => {
