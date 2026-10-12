@@ -175,8 +175,8 @@ function strongerObscurement(
 /**
  * Illumination and obscurement at one Scene point (D108). Illumination precedence: ambient light;
  * then DIM / ORDINARY_DARKNESS zones darken it (darker wins); then lights that reach the point
- * (cone, radii, barriers) brighten it (brighter wins); MAGICAL_DARKNESS zones apply last and force
- * MAGICAL_DARKNESS. Obscurement is the strongest zone obscurement at the point.
+ * (cone, radii, barriers) brighten it (brighter wins); MAGICAL_DARKNESS (ambient or zone) applies last and
+ * forces MAGICAL_DARKNESS. Obscurement is the strongest zone obscurement at the point.
  */
 export function resolveSceneIlluminationAt(
   scene: PerceptionSceneState,
@@ -197,7 +197,10 @@ export function resolveSceneIlluminationAt(
     const candidate = illuminationFromLight(light, point)
     if (candidate) illumination = brighterIllumination(illumination, candidate)
   }
-  if (zones.some((zone) => zone.mechanicalIllumination === 'MAGICAL_DARKNESS'))
+  if (
+    scene.ambientIllumination === 'MAGICAL_DARKNESS' ||
+    zones.some((zone) => zone.mechanicalIllumination === 'MAGICAL_DARKNESS')
+  )
     illumination = 'MAGICAL_DARKNESS'
   return { illumination, obscurement }
 }

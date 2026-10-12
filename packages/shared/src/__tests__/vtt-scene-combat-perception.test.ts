@@ -258,6 +258,13 @@ describe('Scene combat-perception environment', () => {
       expect(illuminationAt(100, environment)).toBe('MAGICAL_DARKNESS')
     })
 
+    it('keeps a magically dark Scene dark under a torch, even within its bright radius', () => {
+      const environment = scene({ ambientIllumination: 'MAGICAL_DARKNESS', lights: [torch] })
+
+      expect(illuminationAt(100, environment)).toBe('MAGICAL_DARKNESS')
+      expect(illuminationAt(250, environment)).toBe('MAGICAL_DARKNESS')
+    })
+
     it('darkens bright ambient light to dim inside a dim zone with no light', () => {
       expect(illuminationAt(100, scene({ darknessZones: [zoneOf('DIM')] }))).toBe('DIM')
     })
