@@ -20,34 +20,40 @@ import type {
   Container,
   FederatedPointerEvent,
   Graphics,
+  RenderTexture,
   Text as PixiText,
   Texture
 } from 'pixi.js'
 import {
-  ambientDarknessOpacity,
   buildVttFogMask,
   canControlSceneToken,
   canPreserveSceneTokenDrag,
   clampPolygonToRadius,
-  countDarknessZones,
   darknessZoneStyle,
   dashedPolygonSegments,
+  dimOverlayAlpha,
+  ellipseArcPoints,
   describeSceneLighting,
+  gmDarknessCapAlpha,
+  illuminationOverlayAlpha,
   formatSceneMeasurement,
   hasCommittedSceneTokenPositionChanged,
   interpolateScenePoint,
-  lightGlowAlphas,
   lightRadii,
+  lightTintAlpha,
+  maxStatusSegments,
   pointAreaOverlay,
   positionVttMapTiles,
   resolveVttMapLoadDecision,
   resolveSceneTokenMove,
   resolveVttZoomScale,
+  selectionOutlineColor,
   sceneTokenAppearanceKey,
   stableVttMapPartIds,
+  statusCategoryColours,
+  statusOverflowColour,
   shouldReloadVttMap,
   visibleGridLinePositions,
-  type VttDarknessZoneCounts,
   type VttScenePresentationOverlay,
   type VttTokenPresentation
 } from './vttSceneRenderer.model'
@@ -93,6 +99,8 @@ interface VttSceneRendererCallbacks {
   /** Sends a ping; returns whether it was sent, so the renderer draws it for this member too. */
   onPing: (position: ScenePoint) => boolean
   onTokenCommit: (tokenId: string, path: ScenePoint[]) => void
+  /** The pointer entered a token, or left it (null). */
+  onTokenHover?: (tokenId: string | null) => void
   onTokenPreview: (tokenId: string, position: ScenePoint) => void
 }
 
@@ -106,8 +114,12 @@ export interface VttSceneRendererUpdate {
   mapDelivery: SignedVttMapDeliveryDto | null
   mode: CampaignVttMode
   overlays?: readonly VttScenePresentationOverlay[]
+  /** The GM's token-view preview: draws what a Player controlling this Token sees. */
+  previewTokenId?: string | null
   role: 'OWNER' | 'PLAYER'
   scene: CampaignSceneStateDto
+  /** The token drawn with the selection outline. */
+  selectedTokenId?: string | null
   tokenPresentations?: Readonly<Record<string, VttTokenPresentation>>
   tool: CampaignVttTool
 }
@@ -118,17 +130,32 @@ export interface VttSceneRenderer {
   fit: () => void
   focusPoint: (point: ScenePoint) => void
   getDiagnostics: () => {
-    /** The in-progress token drag: its path length and where the dragged token is drawn. */
-    activeDrag: { pointCount: number; position: ScenePoint } | null
+    /** The in-progress token drag: its path length, where the token is drawn and the route line drawn. */
+    activeDrag: { pointCount: number; position: ScenePoint; route: ScenePoint[] } | null
     doorVisualCreateCount: number
+    /** How many route lines are drawn: one during a token drag, none otherwise. */
+    dragRouteLineCount: number
     facingIndicatorCount: number
     fogRenderCount: number
     lighting: {
       ambientIllumination: CampaignSceneStateDto['ambientIllumination'] | null
       brightLightCount: number
-      darknessZones: VttDarknessZoneCounts
+      /** The zone graphics drawn, by kind: darkening and magical zones in the overlay, cues above it. */
+      darknessZones: {
+        dim: number
+        heavyObscured: number
+        lightObscured: number
+        magical: number
+        ordinary: number
+        unspecified: number
+      }
       dimLightCount: number
+      /** The tint polygons drawn, in order: each one's fill colour, alpha and polygon count. */
+      lightTints: { alpha: number; color: number; polygonCount: number; radius: 'bright' | 'dim' }[]
+      /** The sight polygons cut out of the vision mask. */
       visionCount: number
+      /** The fill alpha of each visual-only darkness zone graphic. */
+      visualZoneAlphas: number[]
     }
     loadedMapAssetCount: number
     mapLoadComplete: boolean
@@ -140,17 +167,38 @@ export interface VttSceneRenderer {
     tokenVisualCount: number
     /** What is drawn per Token: its body footprint, position and rotations (the body stays upright). */
     tokens: {
+      /** The colour of the drawn body fill. */
+      bodyFillColor: number | null
       facingRotationDegrees: number | null
       footprint: { height: number; width: number }
+      /** The drawn turn or reaction halo. */
+      halo: { color: number; label: string } | null
       id: string
+      /** The bounds of the drawn inner disposition ring, in the token's own space. */
+      innerRing: { height: number; width: number; x: number; y: number }
+      /** The bounds of the drawn outer status ring, in the token's own space. */
+      outerRing: { height: number; width: number; x: number; y: number }
       position: ScenePoint
+      /** The colour of the drawn inner ring. */
+      ringColor: number | null
       rotationDegrees: number
+      /** The drawn selection outline: its colour and how many dashes it is made of. */
+      selection: { color: number; dashSegmentCount: number } | null
+      /** The drawn outer-ring segments in order; the overflow segment is the hollow one. */
+      statusSegments: { color: number; overflow: boolean }[]
     }[]
     transientVisualCount: number
     zoomScale: number
   }
   previewDoorState: (barrierId: string, state: 'CLOSED' | 'LOCKED' | 'OPEN' | null) => void
   retryMap: (delivery: SignedVttMapDeliveryDto) => void
+  /**
+   * Reads the drawn darkness overlay at scene points: its alpha as the viewer sees it, and whether
+   * the vision mask hides the point.
+   */
+  sampleDarkness: (
+    points: readonly ScenePoint[]
+  ) => { alpha: number; masked: boolean; point: ScenePoint }[]
   update: (next: VttSceneRendererUpdate) => void
   zoomIn: () => void
   zoomOut: () => void
@@ -166,16 +214,43 @@ const colors = {
   mapFallback: 0x20252a,
   measurement: 0x6bd8cb,
   ping: 0x6bd8cb,
+  plate: 0x101315,
   token: 0xec8c06,
   tokenOutline: 0xffffff,
   vision: 0x6bd8cb
 } as const
 
 const transientVisualLifetimeMs = 1_200
-const visibleTokenStatusLimit = 4
+/** The art and inner ring sit this far inside the footprint, leaving the outer ring its own band. */
+const tokenRingInset = 11
+const outerRingWidth = 5
+/** The gap between the footprint edge and the outer ring's stroke. */
+const outerRingMargin = 2
+/** Radians between neighbouring outer-ring segments. */
+const outerRingGap = 0.07
+const selectionOutlineOffset = 16
 const tokenBodyLabel = 'token-body'
 const tokenFacingLabel = 'token-facing'
+const tokenFillLabel = 'token-fill'
+const tokenHaloLabelPrefix = 'token-halo:'
+const tokenOuterRingLabel = 'token-outer-ring'
+const tokenOverflowSegmentLabel = 'token-status-overflow'
+const tokenRingLabel = 'token-ring'
+const tokenSegmentLabel = 'token-status-segment'
+const tokenSelectionLabel = 'token-selection'
 const zoomFactor = 1.1
+/** A larger map renders its darkness and sight textures at a lower resolution than this. */
+const maxLightingTextureSize = 2048
+const darknessZoneLabelPrefix = 'darkness-zone:'
+const obscurementLabelPrefix = 'obscurement:'
+const lightTintDimLabel = 'light-tint-dim'
+const lightTintBrightLabel = 'light-tint-bright'
+
+type SceneLight = CampaignSceneStateDto['lights'][number]
+
+function lightingTextureScale(map: CampaignSceneStateDto['map']): number {
+  return Math.min(1, maxLightingTextureSize / Math.max(map.width, map.height))
+}
 
 function isBarrierTool(
   tool: CampaignVttTool
@@ -189,6 +264,10 @@ function isBarrierTool(
   )
 }
 
+function drawnCount(container: Container | null, label: string): number {
+  return container?.children.filter((child) => child.label === label).length ?? 0
+}
+
 function destroyChildren(container: Container): void {
   for (const child of container.removeChildren()) child.destroy({ children: true })
 }
@@ -199,18 +278,6 @@ function positionKey(point: ScenePoint): string {
 
 function pointsEqual(left: ScenePoint, right: ScenePoint): boolean {
   return left.x === right.x && left.y === right.y
-}
-
-function distanceToSegment(point: ScenePoint, a: ScenePoint, b: ScenePoint): number {
-  const deltaX = b.x - a.x
-  const deltaY = b.y - a.y
-  const lengthSquared = deltaX * deltaX + deltaY * deltaY
-  if (lengthSquared === 0) return Math.hypot(point.x - a.x, point.y - a.y)
-  const progress = Math.max(
-    0,
-    Math.min(1, ((point.x - a.x) * deltaX + (point.y - a.y) * deltaY) / lengthSquared)
-  )
-  return Math.hypot(point.x - (a.x + progress * deltaX), point.y - (a.y + progress * deltaY))
 }
 
 export async function createVttSceneRenderer(
@@ -242,15 +309,16 @@ export async function createVttSceneRenderer(
   const mapLayer = new pixi.Container()
   const gridLayer = new pixi.Container()
   const fogLayer = new pixi.Container()
-  const ambientLayer = new pixi.Container()
-  // Lights shine into ordinary darkness zones below them; magical darkness sits above them.
-  const shadowLayer = new pixi.Container()
-  const lightLayer = new pixi.Container()
-  const darknessLayer = new pixi.Container()
-  const visionConeLayer = new pixi.Container()
+  const lightTintLayer = new pixi.Container()
+  // The darkness overlay is one black sprite whose alpha encodes the illumination class.
+  const darknessSprite = new pixi.Sprite()
+  const obscurementLayer = new pixi.Container()
+  // The player's map is black outside the union of their sight polygons.
+  const sightMaskSprite = new pixi.Sprite()
   const presentationLayer = new pixi.Container()
   const tokenLayer = new pixi.Container()
   const measurementLayer = new pixi.Container()
+  const dragRouteLayer = new pixi.Container()
   const wallLayer = new pixi.Container()
   const doorLayer = new pixi.Container()
   const visionRevealLayer = new pixi.Container()
@@ -259,14 +327,16 @@ export async function createVttSceneRenderer(
     mapLayer,
     gridLayer,
     fogLayer,
-    ambientLayer,
-    shadowLayer,
-    lightLayer,
-    darknessLayer,
-    visionConeLayer,
+    lightTintLayer,
+    darknessSprite,
+    obscurementLayer,
+    // Slot reserved for the darkvision greyscale layer (VTT_UI-3.4): it sits above the
+    // magical-darkness-aware overlay and obscurement, and below the vision mask.
+    sightMaskSprite,
     presentationLayer,
     tokenLayer,
     measurementLayer,
+    dragRouteLayer,
     wallLayer,
     doorLayer,
     visionRevealLayer,
@@ -295,13 +365,28 @@ export async function createVttSceneRenderer(
   let renderedLightingBarriers: CampaignSceneStateDto['barriers'] | null = null
   let renderedLights: CampaignSceneStateDto['lights'] | null = null
   let renderedAmbient: CampaignSceneStateDto['ambientIllumination'] | null = null
-  let renderedMapSize: CampaignSceneStateDto['map'] | null = null
+  let renderedLightingMap: CampaignSceneStateDto['map'] | null = null
+  let darknessClassMap: Container | null = null
+  let darknessTexture: RenderTexture | null = null
+  let sightMaskTexture: RenderTexture | null = null
+  let sightPolygonCount = 0
+  let renderedVision: {
+    barriers: CampaignSceneStateDto['barriers']
+    boundTokenControl: VttSceneRendererUpdate['boundTokenControl']
+    currentUserId: string
+    doorStates: CampaignSceneStateDto['doorStates']
+    map: CampaignSceneStateDto['map']
+    previewTokenId: string | null
+    role: VttSceneRendererUpdate['role']
+    tokens: CampaignSceneStateDto['tokens']
+  } | null = null
   let tokenSummary = 'No visible tokens'
   let visionLabels: string[] = []
   let renderedLightingDoorStates: CampaignSceneStateDto['doorStates'] | null = null
   let renderedMeasurements: CampaignSceneStateDto['measurements'] | null = null
   let renderedTokens: CampaignSceneStateDto['tokens'] | null = null
   let renderedTokenPresentations: VttSceneRendererUpdate['tokenPresentations'] | null = null
+  let renderedSelectedTokenId: string | null = null
   let renderedOverlays: VttSceneRendererUpdate['overlays'] | null = null
   let lightingBarrierIndex: SceneBarrierIndex | null = null
   let movementBarrierIndex: SceneBarrierIndex | null = null
@@ -338,7 +423,6 @@ export async function createVttSceneRenderer(
     }
   >()
   const doorPreviews = new Map<string, 'CLOSED' | 'LOCKED' | 'OPEN'>()
-  const lightVisuals = new Map<string, { bright: boolean; dim: boolean; visual: Container }>()
   const loadedTokenArtUrls = new Set<string>()
   const transientVisuals = new Map<
     string,
@@ -392,7 +476,11 @@ export async function createVttSceneRenderer(
    * Renders the next frame. Every change to the display tree must request one; the ticker then runs
    * only while previews or pings animate, so an unchanged Scene costs no frames.
    */
-  const requestRender = () => app.ticker.start()
+  let framePending = false
+  const requestRender = () => {
+    framePending = true
+    app.ticker.start()
+  }
   const onTickerUpdate = () => {
     const elapsedMs = app.ticker.deltaMS
     let animating = false
@@ -424,6 +512,7 @@ export async function createVttSceneRenderer(
   const previewRenderObserver = {
     postrender(options: { container: Container }) {
       if (options.container !== app.stage) return
+      framePending = false
       for (const preview of remoteTokenDragPreviews.values()) {
         if (preview.renderedSequence === preview.sequence) continue
         preview.renderedSequence = preview.sequence
@@ -746,135 +835,174 @@ export async function createVttSceneRenderer(
     }
   }
 
-  function drawLighting(scene: CampaignSceneStateDto): void {
-    if (renderedAmbient !== scene.ambientIllumination || renderedMapSize !== scene.map) {
-      destroyChildren(ambientLayer)
-      const opacity = ambientDarknessOpacity(scene.ambientIllumination)
-      if (opacity > 0) {
-        ambientLayer.addChild(
-          new pixi.Graphics()
-            .rect(0, 0, scene.map.width, scene.map.height)
-            .fill({ alpha: opacity, color: colors.darkness })
-        )
-      }
-      renderedMapSize = scene.map
-    }
-    const lightingStructureChanged =
-      renderedLightingBarriers !== scene.barriers ||
-      renderedLights !== scene.lights ||
-      renderedAmbient !== scene.ambientIllumination
-    renderedAmbient = scene.ambientIllumination
-    if (lightingStructureChanged) {
-      destroyChildren(lightLayer)
-      lightVisuals.clear()
-      lightingBarrierIndex = new SceneBarrierIndex(scene.barriers)
-    }
-    const changedDoorIds = changedDoorStateIds(renderedLightingDoorStates, scene.doorStates)
-    if (lightingStructureChanged || changedDoorIds.length > 0) {
-      const barrierIndex = lightingBarrierIndex ?? new SceneBarrierIndex(scene.barriers)
-      for (const light of scene.lights) {
-        if (
-          lightingStructureChanged ||
-          changedDoorIds.some((doorId) => doorCanAffectLight(scene, doorId, light))
-        ) {
-          drawLight(scene, light, barrierIndex)
-        }
-      }
-    }
-    if (renderedDarknessZones !== scene.darknessZones) {
-      destroyChildren(shadowLayer)
-      destroyChildren(darknessLayer)
-      for (const zone of scene.darknessZones) drawDarknessZone(zone)
-      renderedDarknessZones = scene.darknessZones
-    }
-    renderedLightingBarriers = scene.barriers
-    renderedLights = scene.lights
-    renderedLightingDoorStates = scene.doorStates
+  function textureForMap(previous: RenderTexture | null, map: CampaignSceneStateDto['map']) {
+    const scale = lightingTextureScale(map)
+    const width = Math.ceil(map.width * scale)
+    const height = Math.ceil(map.height * scale)
+    if (previous?.width === width && previous.height === height) return previous
+    previous?.destroy(true)
+    return pixi.RenderTexture.create({ height, width })
   }
 
-  function drawLight(
-    scene: CampaignSceneStateDto,
-    light: CampaignSceneStateDto['lights'][number],
-    barrierIndex: SceneBarrierIndex
+  /** Renders a throwaway composition of black shapes into a lighting texture at its scale. */
+  function renderLightingTexture(
+    composition: Container,
+    texture: RenderTexture,
+    map: CampaignSceneStateDto['map']
   ): void {
-    const prior = lightVisuals.get(light.id)
-    prior?.visual.removeFromParent()
-    prior?.visual.destroy({ children: true })
-    const polygon = visibilityPolygonForLight(light, scene.barriers, scene.doorStates, barrierIndex)
-    if (polygon.points.length < 3) {
-      lightVisuals.delete(light.id)
+    composition.scale.set(texture.width / map.width)
+    app.renderer.render({ clear: true, container: composition, target: texture })
+  }
+
+  function overlayShape(
+    points: readonly ScenePoint[],
+    alpha: number,
+    blendMode: 'erase' | 'max' | 'min',
+    label: string
+  ): Graphics {
+    const shape = new pixi.Graphics({ blendMode, label })
+      .poly(points.flatMap((point) => [point.x, point.y]))
+      .fill({ alpha, color: 0x000000 })
+    return shape
+  }
+
+  function tintShape(
+    points: readonly ScenePoint[],
+    light: SceneLight,
+    label: typeof lightTintDimLabel | typeof lightTintBrightLabel
+  ): Graphics {
+    const shape = new pixi.Graphics()
+      .poly(points.flatMap((point) => [point.x, point.y]))
+      .fill({ alpha: lightTintAlpha(light), color: light.color })
+    shape.label = label
+    return shape
+  }
+
+  /**
+   * Composes the darkness overlay in D108 order: ambient, then dim and ordinary zones darken
+   * (darker wins), then lights cut the darkness back inside their radii (brighter wins), then
+   * magical darkness forces black. The result is one black texture whose alpha is the class.
+   */
+  function drawLighting(scene: CampaignSceneStateDto): void {
+    if (
+      renderedAmbient === scene.ambientIllumination &&
+      renderedLightingMap === scene.map &&
+      renderedLightingBarriers === scene.barriers &&
+      renderedLightingDoorStates === scene.doorStates &&
+      renderedLights === scene.lights &&
+      renderedDarknessZones === scene.darknessZones
+    ) {
       return
     }
-    const radii = lightRadii(light)
-    const alphas = lightGlowAlphas(light, scene.ambientIllumination)
-    const visual = new pixi.Container()
-    // Dim reach first, bright core on top: the ring between the radii stays the weaker glow.
-    const hasDim = radii.dim > radii.bright
-    if (hasDim) {
-      visual.addChild(
-        glowGraphic(
-          clampPolygonToRadius(polygon.points, light.position, radii.dim),
-          light.color,
-          alphas.dim
-        )
+    renderedAmbient = scene.ambientIllumination
+    renderedLightingMap = scene.map
+    renderedLightingBarriers = scene.barriers
+    renderedLightingDoorStates = scene.doorStates
+    renderedLights = scene.lights
+    renderedDarknessZones = scene.darknessZones
+    const barrierIndex = new SceneBarrierIndex(scene.barriers)
+    lightingBarrierIndex = barrierIndex
+    destroyChildren(lightTintLayer)
+    destroyChildren(obscurementLayer)
+    darknessClassMap?.destroy({ children: true })
+    const classMap = new pixi.Container()
+    darknessClassMap = classMap
+    const { map } = scene
+    const ambientAlpha = illuminationOverlayAlpha(scene.ambientIllumination)
+    if (ambientAlpha > 0) {
+      classMap.addChild(
+        new pixi.Graphics()
+          .rect(0, 0, map.width, map.height)
+          .fill({ alpha: ambientAlpha, color: 0 })
       )
     }
-    const hasBright = radii.bright > 0
-    if (hasBright) {
-      visual.addChild(
-        glowGraphic(
-          clampPolygonToRadius(polygon.points, light.position, radii.bright),
-          light.color,
-          alphas.bright
+    for (const zone of scene.darknessZones) {
+      if (
+        zone.mechanicalIllumination === 'DIM' ||
+        zone.mechanicalIllumination === 'ORDINARY_DARKNESS'
+      ) {
+        classMap.addChild(
+          overlayShape(
+            zone.polygon.points,
+            illuminationOverlayAlpha(zone.mechanicalIllumination),
+            'max',
+            `${darknessZoneLabelPrefix}${zone.mechanicalIllumination}`
+          )
         )
+      }
+    }
+    for (const light of scene.lights) {
+      const polygon = visibilityPolygonForLight(
+        light,
+        scene.barriers,
+        scene.doorStates,
+        barrierIndex
+      )
+      if (polygon.points.length < 3) continue
+      const radii = lightRadii(light)
+      if (radii.dim > radii.bright) {
+        const reach = clampPolygonToRadius(polygon.points, light.position, radii.dim)
+        classMap.addChild(overlayShape(reach, dimOverlayAlpha, 'min', 'light-dim'))
+        lightTintLayer.addChild(tintShape(reach, light, lightTintDimLabel))
+      }
+      if (radii.bright > 0) {
+        const core = clampPolygonToRadius(polygon.points, light.position, radii.bright)
+        classMap.addChild(overlayShape(core, 0, 'min', 'light-bright'))
+        lightTintLayer.addChild(tintShape(core, light, lightTintBrightLabel))
+      }
+    }
+    for (const zone of scene.darknessZones) {
+      if (zone.mechanicalIllumination === 'MAGICAL_DARKNESS') {
+        classMap.addChild(
+          overlayShape(zone.polygon.points, 1, 'max', `${darknessZoneLabelPrefix}MAGICAL_DARKNESS`)
+        )
+      }
+      drawZoneCues(zone)
+    }
+    if (scene.ambientIllumination === 'MAGICAL_DARKNESS') {
+      classMap.addChild(
+        new pixi.Graphics().rect(0, 0, map.width, map.height).fill({ alpha: 1, color: 0 })
       )
     }
-    lightLayer.addChild(visual)
-    lightVisuals.set(light.id, { bright: hasBright, dim: hasDim, visual })
+    darknessTexture = textureForMap(darknessTexture, map)
+    renderLightingTexture(classMap, darknessTexture, map)
+    darknessSprite.texture = darknessTexture
+    darknessSprite.scale.set(map.width / darknessTexture.width)
   }
 
-  function glowGraphic(points: readonly ScenePoint[], color: string, alpha: number): Graphics {
-    const glow = new pixi.Graphics()
-      .poly(points.flatMap((point) => [point.x, point.y]))
-      .fill({ alpha, color })
-    glow.blendMode = 'screen'
-    return glow
-  }
-
-  function drawDarknessZone(zone: CampaignSceneStateDto['darknessZones'][number]): void {
+  /** What a zone shows beyond its class: a visual-only fill, and non-colour outlines. */
+  function drawZoneCues(zone: CampaignSceneStateDto['darknessZones'][number]): void {
     const style = darknessZoneStyle(zone)
     const points = zone.polygon.points
-    const visual = new pixi.Container()
-    visual.addChild(
-      new pixi.Graphics()
+    if (zone.mechanicalIllumination === null) {
+      const fill = new pixi.Graphics()
         .poly(points.flatMap((point) => [point.x, point.y]))
-        .fill({ alpha: style.fillAlpha, color: colors.darkness })
-    )
+        .fill({ alpha: zone.opacity, color: colors.darkness })
+      fill.label = `${darknessZoneLabelPrefix}VISUAL`
+      obscurementLayer.addChild(fill)
+    }
     const { obscurementOutline } = style
-    if (obscurementOutline?.dash === null) {
-      visual.addChild(
-        new pixi.Graphics()
-          .poly(points.flatMap((point) => [point.x, point.y]))
-          .stroke({ color: colors.barrier, width: obscurementOutline.width })
-      )
-    } else if (obscurementOutline) {
-      visual.addChild(
-        dashedOutline(points, obscurementOutline.dash, obscurementOutline.gap, {
-          color: colors.barrier,
-          width: obscurementOutline.width
-        })
-      )
+    if (obscurementOutline) {
+      const outline =
+        obscurementOutline.dash === null
+          ? new pixi.Graphics()
+              .poly(points.flatMap((point) => [point.x, point.y]))
+              .stroke({ color: colors.barrier, width: obscurementOutline.width })
+          : dashedOutline(points, obscurementOutline.dash, obscurementOutline.gap, {
+              color: colors.barrier,
+              width: obscurementOutline.width
+            })
+      outline.label = `${obscurementLabelPrefix}${zone.mechanicalObscurement}`
+      obscurementLayer.addChild(outline)
     }
     if (style.illuminationOutline) {
-      visual.addChild(
+      obscurementLayer.addChild(
         dashedOutline(points, style.illuminationOutline.dash, style.illuminationOutline.gap, {
           color: colors.arcane,
           width: style.illuminationOutline.width
         })
       )
     }
-    const layer = style.blocksLight ? darknessLayer : shadowLayer
-    layer.addChild(visual)
   }
 
   function dashedOutline(
@@ -891,52 +1019,87 @@ export async function createVttSceneRenderer(
   }
 
   /**
-   * Draws the sight of each Token the viewer controls. The GM's full view draws none; previewing a
-   * Player reaches the renderer as that Player, so their Tokens' sight is what appears.
+   * Draws what the viewer sees. A Player map is black outside the union of their controlled
+   * Token sight polygons. The GM sees the whole map with darkness capped; previewing a Token
+   * draws full darkness and that Token sight, as a Player controlling it would see.
    */
   function drawVision(next: VttSceneRendererUpdate): void {
-    destroyChildren(visionConeLayer)
+    const previewTokenId = next.role === 'OWNER' ? (next.previewTokenId ?? null) : null
+    const { barriers, doorStates, map, tokens } = next.scene
+    const inputs = {
+      barriers,
+      boundTokenControl: next.boundTokenControl,
+      currentUserId: next.currentUserId,
+      doorStates,
+      map,
+      previewTokenId,
+      role: next.role,
+      tokens
+    }
+    if (
+      renderedVision &&
+      (Object.keys(inputs) as (keyof typeof inputs)[]).every(
+        (key) => renderedVision?.[key] === inputs[key]
+      )
+    ) {
+      return
+    }
+    renderedVision = inputs
+    darknessSprite.alpha = next.role === 'OWNER' && !previewTokenId ? gmDarknessCapAlpha : 1
     visionLabels = []
-    if (next.role !== 'PLAYER') return
-    const barrierIndex = lightingBarrierIndex ?? new SceneBarrierIndex(next.scene.barriers)
-    for (const token of next.scene.tokens) {
+    sightPolygonCount = 0
+    // A Player, or the GM previewing a Token, sees only what their Tokens' sight reaches: with no
+    // seeing Token the whole map stays black.
+    const sightGoverned = next.role === 'PLAYER' || previewTokenId !== null
+    sightMaskSprite.visible = sightGoverned
+    if (!sightGoverned) return
+    const seers = tokens.filter(
+      (token) =>
+        token.vision?.enabled &&
+        (next.role === 'PLAYER' ? canControlSceneToken(token, next) : token.id === previewTokenId)
+    )
+    const barrierIndex = lightingBarrierIndex ?? new SceneBarrierIndex(barriers)
+    const mask = new pixi.Container()
+    mask.addChild(
+      new pixi.Graphics().rect(0, 0, map.width, map.height).fill({ alpha: 1, color: 0 })
+    )
+    for (const token of seers) {
       const { vision } = token
-      if (!vision?.enabled || !canControlSceneToken(token, next)) continue
+      if (!vision) continue
       const sight = visibilityPolygonForToken(
         token.position,
         vision,
-        next.scene.barriers,
-        next.scene.doorStates,
+        barriers,
+        doorStates,
         barrierIndex
       )
       if (!sight || sight.points.length < 3) continue
-      const dimRange = Math.max(vision.brightRange, vision.dimRange)
-      const cone = new pixi.Container()
-      cone.addChild(
-        new pixi.Graphics()
-          .poly(
-            clampPolygonToRadius(sight.points, token.position, dimRange).flatMap((point) => [
-              point.x,
-              point.y
-            ])
-          )
-          .fill({ alpha: 0.1, color: colors.vision })
-          .stroke({ alpha: 0.5, color: colors.vision, width: 2 })
+      const reach = clampPolygonToRadius(
+        sight.points,
+        token.position,
+        Math.max(vision.brightRange, vision.dimRange)
       )
-      if (vision.brightRange > 0) {
-        cone.addChild(
-          new pixi.Graphics()
-            .poly(
-              clampPolygonToRadius(sight.points, token.position, vision.brightRange).flatMap(
-                (point) => [point.x, point.y]
-              )
-            )
-            .fill({ alpha: 0.2, color: colors.vision })
-        )
-      }
-      visionConeLayer.addChild(cone)
+      mask.addChild(overlayShape(reach, 1, 'erase', `sight:${token.id}`))
       visionLabels.push(token.label)
+      sightPolygonCount += 1
     }
+    sightMaskTexture = textureForMap(sightMaskTexture, map)
+    renderLightingTexture(mask, sightMaskTexture, map)
+    mask.destroy({ children: true })
+    sightMaskSprite.texture = sightMaskTexture
+    sightMaskSprite.scale.set(map.width / sightMaskTexture.width)
+  }
+
+  /** Reads the alpha of a lighting texture at scene points; the texture is extracted once. */
+  function textureAlphasAt(texture: RenderTexture | null, points: readonly ScenePoint[]): number[] {
+    if (!texture || !current) return points.map(() => 0)
+    const ratio = texture.width / current.scene.map.width
+    const { height, pixels, width } = app.renderer.extract.pixels({ target: texture })
+    return points.map((point) => {
+      const x = Math.min(width - 1, Math.max(0, Math.floor(point.x * ratio)))
+      const y = Math.min(height - 1, Math.max(0, Math.floor(point.y * ratio)))
+      return (pixels[(y * width + x) * 4 + 3] ?? 0) / 255
+    })
   }
 
   function updateCanvasDescription(scene: CampaignSceneStateDto): void {
@@ -945,29 +1108,6 @@ export async function createVttSceneRenderer(
       'aria-description',
       lighting ? `${tokenSummary}. ${lighting}` : tokenSummary
     )
-  }
-
-  function changedDoorStateIds(
-    previous: CampaignSceneStateDto['doorStates'] | null,
-    next: CampaignSceneStateDto['doorStates']
-  ): string[] {
-    if (!previous) return Object.keys(next)
-    const ids = new Set([...Object.keys(previous), ...Object.keys(next)])
-    return [...ids].filter((id) => previous[id] !== next[id])
-  }
-
-  function doorCanAffectLight(
-    scene: CampaignSceneStateDto,
-    doorId: string,
-    light: CampaignSceneStateDto['lights'][number]
-  ): boolean {
-    const door = scene.barriers.find(
-      (barrier): barrier is Extract<(typeof scene.barriers)[number], { kind: 'DOOR' }> =>
-        barrier.id === doorId && barrier.kind === 'DOOR'
-    )
-    if (!door) return false
-    const maximum = Math.max(light.brightRadius, light.dimRadius)
-    return distanceToSegment(light.position, door.a, door.b) <= maximum
   }
 
   function drawBarriers(scene: CampaignSceneStateDto): void {
@@ -1110,6 +1250,24 @@ export async function createVttSceneRenderer(
     }
   }
 
+  /** The dragged token's route so far, in the measurement line style; gone once the drag ends. */
+  function drawDragRoute(): void {
+    destroyChildren(dragRouteLayer)
+    if (!drag) return
+    const position = { x: drag.visual.x, y: drag.visual.y }
+    const end = drag.path.at(-1)
+    const route = end && pointsEqual(end, position) ? drag.path : [...drag.path, position]
+    if (route.length < 2) return
+    dragRouteLayer.addChild(
+      new pixi.Graphics()
+        .poly(
+          route.flatMap((point) => [point.x, point.y]),
+          false
+        )
+        .stroke({ color: colors.measurement, width: 3 })
+    )
+  }
+
   function tokenCanMove(token: CampaignSceneStateDto['tokens'][number]): boolean {
     return Boolean(current && !token.locked && canControlSceneToken(token, current))
   }
@@ -1124,9 +1282,15 @@ export async function createVttSceneRenderer(
 
   function drawTokens(
     scene: CampaignSceneStateDto,
-    presentations: VttSceneRendererUpdate['tokenPresentations']
+    presentations: VttSceneRendererUpdate['tokenPresentations'],
+    selectedTokenId: string | null
   ): void {
-    if (renderedTokens === scene.tokens && renderedTokenPresentations === presentations) return
+    if (
+      renderedTokens === scene.tokens &&
+      renderedTokenPresentations === presentations &&
+      renderedSelectedTokenId === selectedTokenId
+    )
+      return
     const remainingTokenIds = new Set(tokenVisuals.keys())
     for (const token of scene.tokens) {
       remainingTokenIds.delete(token.id)
@@ -1145,6 +1309,9 @@ export async function createVttSceneRenderer(
       } else if (tokenChanged) {
         entry.token = token
       }
+      const outline = entry.visual.getChildByLabel(tokenSelectionLabel)
+      if (token.id === selectedTokenId && !outline) addSelectionOutline(entry.visual, token)
+      else if (token.id !== selectedTokenId) outline?.destroy()
       if (tokenChanged && (drag?.tokenId !== token.id || drag.visual !== entry.visual)) {
         entry.visual.position.set(token.position.x, token.position.y)
       }
@@ -1157,6 +1324,7 @@ export async function createVttSceneRenderer(
     }
     renderedTokens = scene.tokens
     renderedTokenPresentations = presentations ?? null
+    renderedSelectedTokenId = selectedTokenId
     const descriptions = scene.tokens.flatMap((token) => {
       const description = presentations?.[token.id]?.accessibleDescription
       return description ? [description] : [token.label]
@@ -1171,25 +1339,35 @@ export async function createVttSceneRenderer(
     presentation: VttTokenPresentation | undefined
   ): Container {
     const visual = new pixi.Container()
-    visual.eventMode = tokenCanMove(token) ? 'static' : 'none'
+    visual.eventMode = 'static'
     visual.cursor = tokenCanMove(token) ? 'grab' : 'default'
+    visual.on('pointerover', () => callbacks.onTokenHover?.(token.id))
+    visual.on('pointerout', () => callbacks.onTokenHover?.(null))
     if (presentation?.halo) {
-      visual.addChild(
-        new pixi.Graphics()
-          .ellipse(0, 0, token.width / 2 + 8, token.height / 2 + 8)
-          .stroke({ alpha: 0.9, color: presentation.halo.color, width: 5 })
-      )
+      const halo = new pixi.Graphics()
+        .ellipse(0, 0, token.width / 2 + 8, token.height / 2 + 8)
+        .stroke({ alpha: 0.9, color: presentation.halo.color, width: 5 })
+      halo.label = `${tokenHaloLabelPrefix}${presentation.halo.label}`
+      visual.addChild(halo)
     }
+    // The plate spans the footprint; the fill, art and inner ring sit inside it, under the outer ring.
     const body = new pixi.Graphics()
       .ellipse(0, 0, token.width / 2, token.height / 2)
-      .fill({ color: presentation?.fillColor ?? colors.token })
+      .fill({ alpha: 0.6, color: 0x101315 })
     body.label = tokenBodyLabel
     visual.addChild(body)
-    visual.addChild(
-      new pixi.Graphics()
-        .ellipse(0, 0, token.width / 2, token.height / 2)
-        .stroke({ color: presentation?.outlineColor ?? colors.tokenOutline, width: 3 })
-    )
+    const insetRadiusX = token.width / 2 - tokenRingInset
+    const insetRadiusY = token.height / 2 - tokenRingInset
+    const fill = new pixi.Graphics()
+      .ellipse(0, 0, insetRadiusX, insetRadiusY)
+      .fill({ color: presentation?.fillColor ?? colors.token })
+    fill.label = tokenFillLabel
+    visual.addChild(fill)
+    const ring = new pixi.Graphics()
+      .ellipse(0, 0, insetRadiusX, insetRadiusY)
+      .stroke({ color: presentation?.outlineColor ?? colors.tokenOutline, width: 3 })
+    ring.label = tokenRingLabel
+    visual.addChild(ring)
     const label: PixiText = new pixi.Text({
       style: {
         align: 'center',
@@ -1210,9 +1388,9 @@ export async function createVttSceneRenderer(
           if (visual.destroyed) return
           const art = new pixi.Sprite(texture)
           art.anchor.set(0.5)
-          art.height = Math.max(1, token.height - 8)
-          art.width = Math.max(1, token.width - 8)
-          visual.addChildAt(art, 1)
+          art.height = Math.max(1, 2 * insetRadiusY - 4)
+          art.width = Math.max(1, 2 * insetRadiusX - 4)
+          visual.addChildAt(art, visual.getChildIndex(fill) + 1)
           label.visible = false
           requestRender()
         })
@@ -1250,7 +1428,7 @@ export async function createVttSceneRenderer(
           .stroke({ alpha: 0.9, color: 0x22b8cf, width: 2 })
       )
     }
-    addTokenStatuses(visual, token, presentation)
+    addStatusRing(visual, token, presentation?.statuses ?? [])
     visual.on('pointerdown', (event) => {
       if (!tokenCanMove(token) || current?.tool !== 'SELECT' || current.areaAim) return
       event.stopPropagation()
@@ -1269,51 +1447,99 @@ export async function createVttSceneRenderer(
     return visual
   }
 
-  function addTokenStatuses(
+  /** What a Graphics actually holds: each fill or stroke instruction's colour and polygon paths. */
+  function drawnStyles(
+    graphic: Container | null,
+    action: 'fill' | 'stroke'
+  ): { alpha: number; color: number; paths: ScenePoint[][] }[] {
+    if (!(graphic instanceof pixi.Graphics)) return []
+    return graphic.context.instructions.flatMap((instruction) => {
+      if (instruction.action !== 'fill' && instruction.action !== 'stroke') return []
+      if (instruction.action !== action) return []
+      return [
+        {
+          alpha: instruction.data.style.alpha,
+          color: instruction.data.style.color,
+          paths: instruction.data.path.shapePath.shapePrimitives.flatMap(({ shape }) =>
+            shape instanceof pixi.Polygon
+              ? [
+                  Array.from({ length: shape.points.length / 2 }, (_, index) => ({
+                    x: shape.points[index * 2]!,
+                    y: shape.points[index * 2 + 1]!
+                  }))
+                ]
+              : []
+          )
+        }
+      ]
+    })
+  }
+
+  function strokedPath(points: readonly ScenePoint[], color: number, width: number): Graphics {
+    return new pixi.Graphics()
+      .poly(
+        points.flatMap((point) => [point.x, point.y]),
+        false
+      )
+      .stroke({ color, width })
+  }
+
+  /** One segment per status around the footprint edge; past the cap the last segment marks overflow. */
+  function addStatusRing(
     visual: Container,
     token: CampaignSceneStateDto['tokens'][number],
-    presentation: VttTokenPresentation | undefined
+    statuses: VttTokenPresentation['statuses']
   ): void {
-    if (!presentation?.statuses.length) return
-    const shown = presentation.statuses.slice(0, visibleTokenStatusLimit)
-    const overflow = presentation.statuses.length - shown.length
-    const items =
-      overflow > 0
-        ? [
-            ...shown.slice(0, visibleTokenStatusLimit - 1),
-            {
-              id: 'overflow',
-              kind: 'EFFECT' as const,
-              label: `${overflow + 1} more`,
-              shortLabel: `+${overflow + 1}`
-            }
-          ]
-        : shown
-    const diameter = Math.max(16, Math.min(24, Math.min(token.width, token.height) / 3))
-    const startX = -((items.length - 1) * (diameter + 3)) / 2
-    items.forEach((status, index) => {
-      const badge = new pixi.Container()
-      badge.position.set(startX + index * (diameter + 3), token.height / 2 + diameter / 2 + 5)
-      badge.addChild(
-        new pixi.Graphics()
-          .circle(0, 0, diameter / 2)
-          .fill(statusColour(status.kind))
-          .stroke({ color: 0xffffff, width: 2 })
+    if (!statuses.length) return
+    const overflowing = statuses.length > maxStatusSegments
+    const count = Math.min(statuses.length, maxStatusSegments)
+    const radiusX = token.width / 2 - outerRingMargin - outerRingWidth / 2
+    const radiusY = token.height / 2 - outerRingMargin - outerRingWidth / 2
+    const span = (2 * Math.PI) / count
+    const gap = count > 1 ? outerRingGap / 2 : 0
+    const ring = new pixi.Container()
+    ring.label = tokenOuterRingLabel
+    for (let index = 0; index < count; index += 1) {
+      const path = ellipseArcPoints(
+        radiusX,
+        radiusY,
+        -Math.PI / 2 + index * span + gap,
+        -Math.PI / 2 + (index + 1) * span - gap
       )
-      const text = new pixi.Text({
-        style: {
-          align: 'center',
-          fill: '#ffffff',
-          fontFamily: 'system-ui, sans-serif',
-          fontSize: Math.max(9, diameter * 0.45),
-          fontWeight: '800'
-        },
-        text: status.shortLabel
-      })
-      text.anchor.set(0.5)
-      badge.addChild(text)
-      visual.addChild(badge)
-    })
+      const segment = new pixi.Container()
+      if (overflowing && index === count - 1) {
+        // Hollow, so the overflow reads apart from every category segment without colour.
+        segment.label = tokenOverflowSegmentLabel
+        segment.addChild(strokedPath(path, statusOverflowColour, outerRingWidth))
+        segment.addChild(strokedPath(path, colors.plate, outerRingWidth - 3))
+      } else {
+        segment.label = tokenSegmentLabel
+        segment.addChild(
+          strokedPath(path, statusCategoryColours[statuses[index]!.category], outerRingWidth)
+        )
+      }
+      ring.addChild(segment)
+    }
+    visual.addChild(ring)
+  }
+
+  function addSelectionOutline(
+    visual: Container,
+    token: CampaignSceneStateDto['tokens'][number]
+  ): void {
+    const outline = dashedOutline(
+      ellipseArcPoints(
+        token.width / 2 + selectionOutlineOffset,
+        token.height / 2 + selectionOutlineOffset,
+        0,
+        2 * Math.PI
+      ),
+      10,
+      7,
+      { color: selectionOutlineColor, width: 3 }
+    )
+    outline.label = tokenSelectionLabel
+    visual.addChild(outline)
   }
 
   function overlayGraphic(overlay: VttScenePresentationOverlay): Graphics {
@@ -1342,15 +1568,6 @@ export async function createVttSceneRenderer(
     destroyChildren(presentationLayer)
     for (const overlay of overlays ?? []) presentationLayer.addChild(overlayGraphic(overlay))
     renderedOverlays = overlays ?? null
-  }
-
-  function statusColour(kind: VttTokenPresentation['statuses'][number]['kind']): number {
-    if (kind === 'REACTION') return 0xc2255c
-    if (kind === 'INJURY') return 0xa61e4d
-    if (kind === 'MORALE') return 0x5f3dc4
-    if (kind === 'HEALTH') return 0xc92a2a
-    if (kind === 'EFFECT') return 0x1971c2
-    return 0x2f9e44
   }
 
   function draw(next: VttSceneRendererUpdate): void {
@@ -1455,7 +1672,7 @@ export async function createVttSceneRenderer(
     drawLighting(next.scene)
     drawVision(next)
     drawPresentationOverlays(next.overlays)
-    drawTokens(next.scene, next.tokenPresentations)
+    drawTokens(next.scene, next.tokenPresentations, next.selectedTokenId ?? null)
     updateCanvasDescription(next.scene)
     if (renderedMeasurements !== next.scene.measurements) {
       drawMeasurements(next.scene)
@@ -1492,6 +1709,8 @@ export async function createVttSceneRenderer(
       previous.scene.measurements === next.scene.measurements &&
       previous.scene.tokens === next.scene.tokens &&
       previous.overlays === next.overlays &&
+      previous.previewTokenId === next.previewTokenId &&
+      previous.selectedTokenId === next.selectedTokenId &&
       previous.tokenPresentations === next.tokenPresentations
     )
   }
@@ -1635,6 +1854,7 @@ export async function createVttSceneRenderer(
         drag.last = position
         callbacks.onTokenPreview(drag.tokenId, position)
       }
+      drawDragRoute()
       return
     }
     if (gestureStart) updateGesturePreview(point)
@@ -1647,6 +1867,7 @@ export async function createVttSceneRenderer(
     if (drag) {
       const completed = drag
       drag = null
+      drawDragRoute()
       completed.visual.cursor = 'grab'
       if (!pointsEqual(completed.last, completed.origin)) {
         callbacks.onTokenCommit(completed.tokenId, completed.path)
@@ -1758,14 +1979,17 @@ export async function createVttSceneRenderer(
     if (touchPointers.size < 2) pinchDistance = null
   }
 
-  // Pixi hit-tests against transforms it computes when it renders, so a press first renders a pending
-  // frame, or it could miss a token rebuilt since the last one. The host's capture listener runs before
-  // Pixi's own on the canvas.
-  const onPointerDownCapture = () => {
-    if (app.ticker.started) app.render()
+  // Pixi hit-tests against transforms it computes when it renders, so a press or hover first renders a
+  // pending frame, or it could miss a token rebuilt since the last one. Pixi listens for moves on the
+  // document in the capture phase, so only a window capture listener runs before it.
+  const renderPendingFrame = (event: PointerEvent) => {
+    if (framePending && event.target instanceof Node && host.contains(event.target)) {
+      app.render()
+    }
   }
 
-  host.addEventListener('pointerdown', onPointerDownCapture, { capture: true })
+  globalThis.addEventListener('pointerdown', renderPendingFrame, { capture: true })
+  globalThis.addEventListener('pointermove', renderPendingFrame, { capture: true })
   app.canvas.addEventListener('pointerdown', onTouchPointerDown)
   app.canvas.addEventListener('pointermove', onTouchPointerMove, { passive: false })
   app.canvas.addEventListener('pointerup', onTouchPointerEnd)
@@ -1820,6 +2044,7 @@ export async function createVttSceneRenderer(
               drag.path = message.tokenDragResolution.path
               drag.last = accepted
               drag.visual.position.set(accepted.x, accepted.y)
+              drawDragRoute()
             }
           }
           transientTimeouts.set(
@@ -1904,10 +2129,14 @@ export async function createVttSceneRenderer(
       app.renderer.runners.postrender.remove(previewRenderObserver)
       fogTexture?.destroy(true)
       fogTexture = null
+      darknessClassMap?.destroy({ children: true })
+      darknessTexture?.destroy(true)
+      sightMaskTexture?.destroy(true)
       app.canvas.removeEventListener('wheel', onWheel)
       app.canvas.removeEventListener('keydown', onKeyDown)
       app.canvas.removeEventListener('contextmenu', onContextMenu)
-      host.removeEventListener('pointerdown', onPointerDownCapture, { capture: true })
+      globalThis.removeEventListener('pointerdown', renderPendingFrame, { capture: true })
+      globalThis.removeEventListener('pointermove', renderPendingFrame, { capture: true })
       app.canvas.removeEventListener('pointerdown', onTouchPointerDown)
       app.canvas.removeEventListener('pointermove', onTouchPointerMove)
       app.canvas.removeEventListener('pointerup', onTouchPointerEnd)
@@ -1920,19 +2149,48 @@ export async function createVttSceneRenderer(
     getDiagnostics() {
       return {
         activeDrag: drag
-          ? { pointCount: drag.path.length, position: { x: drag.visual.x, y: drag.visual.y } }
+          ? {
+              pointCount: drag.path.length,
+              position: { x: drag.visual.x, y: drag.visual.y },
+              route: drawnStyles(dragRouteLayer.children[0] ?? null, 'stroke')[0]?.paths[0] ?? []
+            }
           : null,
         doorVisualCreateCount,
-        facingIndicatorCount: [...tokenVisuals.values()].filter(
-          (entry) => entry.presentation?.facing
+        dragRouteLineCount: dragRouteLayer.children.length,
+        facingIndicatorCount: [...tokenVisuals.values()].filter(({ visual }) =>
+          visual.getChildByLabel(tokenFacingLabel)
         ).length,
         fogRenderCount,
         lighting: {
           ambientIllumination: renderedAmbient,
-          brightLightCount: [...lightVisuals.values()].filter((entry) => entry.bright).length,
-          darknessZones: countDarknessZones(renderedDarknessZones ?? []),
-          dimLightCount: [...lightVisuals.values()].filter((entry) => entry.dim).length,
-          visionCount: visionConeLayer.children.length
+          brightLightCount: drawnCount(lightTintLayer, lightTintBrightLabel),
+          darknessZones: {
+            dim: drawnCount(darknessClassMap, `${darknessZoneLabelPrefix}DIM`),
+            heavyObscured: drawnCount(obscurementLayer, `${obscurementLabelPrefix}HEAVY`),
+            lightObscured: drawnCount(obscurementLayer, `${obscurementLabelPrefix}LIGHT`),
+            magical: drawnCount(darknessClassMap, `${darknessZoneLabelPrefix}MAGICAL_DARKNESS`),
+            ordinary: drawnCount(darknessClassMap, `${darknessZoneLabelPrefix}ORDINARY_DARKNESS`),
+            unspecified: drawnCount(obscurementLayer, `${darknessZoneLabelPrefix}VISUAL`)
+          },
+          dimLightCount: drawnCount(lightTintLayer, lightTintDimLabel),
+          lightTints: lightTintLayer.children.flatMap((child) => {
+            const fill = drawnStyles(child, 'fill')[0]
+            return fill
+              ? [
+                  {
+                    alpha: fill.alpha,
+                    color: fill.color,
+                    polygonCount: fill.paths.length,
+                    radius:
+                      child.label === lightTintBrightLabel ? ('bright' as const) : ('dim' as const)
+                  }
+                ]
+              : []
+          }),
+          visionCount: sightPolygonCount,
+          visualZoneAlphas: obscurementLayer.children
+            .filter((child) => child.label === `${darknessZoneLabelPrefix}VISUAL`)
+            .flatMap((child) => drawnStyles(child, 'fill').map((fill) => fill.alpha))
         },
         loadedMapAssetCount: loadedMapUrls.size,
         mapLoadComplete,
@@ -1940,8 +2198,8 @@ export async function createVttSceneRenderer(
         sceneVersion: current?.scene.version ?? null,
         tokenArtCount: [...tokenVisuals.values()].filter((entry) => entry.presentation?.artUrl)
           .length,
-        tokenOverflowCount: [...tokenVisuals.values()].filter(
-          (entry) => (entry.presentation?.statuses.length ?? 0) > visibleTokenStatusLimit
+        tokenOverflowCount: [...tokenVisuals.values()].filter(({ visual }) =>
+          visual.getChildByLabel(tokenOuterRingLabel)?.getChildByLabel(tokenOverflowSegmentLabel)
         ).length,
         tokenStatusCount: [...tokenVisuals.values()].reduce(
           (total, entry) => total + (entry.presentation?.statuses.length ?? 0),
@@ -1951,17 +2209,64 @@ export async function createVttSceneRenderer(
         tokens: [...tokenVisuals].map(([id, { visual }]) => {
           const body = visual.getChildByLabel(tokenBodyLabel)?.getLocalBounds()
           const facing = visual.getChildByLabel(tokenFacingLabel)
+          const outerRing = visual.getChildByLabel(tokenOuterRingLabel)
+          const outerBounds = outerRing?.getLocalBounds()
+          const innerBounds = visual.getChildByLabel(tokenRingLabel)?.getLocalBounds()
+          const halo = visual.children.find((child) =>
+            child.label?.startsWith(tokenHaloLabelPrefix)
+          )
+          const selection = visual.getChildByLabel(tokenSelectionLabel)
+          const selectionStroke = drawnStyles(selection, 'stroke')[0]
+          const haloColor = drawnStyles(halo ?? null, 'stroke')[0]?.color
           return {
+            bodyFillColor:
+              drawnStyles(visual.getChildByLabel(tokenFillLabel), 'fill')[0]?.color ?? null,
             facingRotationDegrees: facing ? (facing.rotation * 180) / Math.PI : null,
             footprint: { height: body?.height ?? 0, width: body?.width ?? 0 },
+            halo:
+              halo && haloColor !== undefined
+                ? { color: haloColor, label: halo.label.slice(tokenHaloLabelPrefix.length) }
+                : null,
             id,
+            innerRing: {
+              height: innerBounds?.height ?? 0,
+              width: innerBounds?.width ?? 0,
+              x: innerBounds?.x ?? 0,
+              y: innerBounds?.y ?? 0
+            },
+            outerRing: {
+              height: outerBounds?.height ?? 0,
+              width: outerBounds?.width ?? 0,
+              x: outerBounds?.x ?? 0,
+              y: outerBounds?.y ?? 0
+            },
             position: { x: visual.x, y: visual.y },
-            rotationDegrees: visual.angle
+            ringColor:
+              drawnStyles(visual.getChildByLabel(tokenRingLabel), 'stroke')[0]?.color ?? null,
+            rotationDegrees: visual.angle,
+            selection: selectionStroke
+              ? { color: selectionStroke.color, dashSegmentCount: selectionStroke.paths.length }
+              : null,
+            statusSegments: (outerRing?.children ?? []).flatMap((segment) => {
+              const color = drawnStyles(segment.children[0] ?? null, 'stroke')[0]?.color
+              return color === undefined
+                ? []
+                : [{ color, overflow: segment.label === tokenOverflowSegmentLabel }]
+            })
           }
         }),
         transientVisualCount: transientVisuals.size + pings.size,
         zoomScale: world.scale.x
       }
+    },
+    sampleDarkness(points) {
+      const darkness = textureAlphasAt(darknessTexture, points)
+      const hidden = textureAlphasAt(sightMaskSprite.visible ? sightMaskTexture : null, points)
+      return points.map((point, index) => ({
+        alpha: (darkness[index] ?? 0) * darknessSprite.alpha,
+        masked: (hidden[index] ?? 0) > 0.5,
+        point
+      }))
     },
     previewDoorState(barrierId, state) {
       const entry = doorVisuals.get(barrierId)
@@ -2020,6 +2325,7 @@ export async function createVttSceneRenderer(
       if (token) activeDrag.visual.position.set(token.position.x, token.position.y)
       activeDrag.visual.cursor = 'grab'
       drag = null
+      drawDragRoute()
     }
     if (current) drawMeasurements(current.scene)
   }

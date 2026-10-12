@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest'
 import type { CampaignSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
 import { SceneBarrierIndex, type SceneGrid } from '@artificer-toolkit/shared/vtt'
 import {
-  ambientDarknessOpacity,
   buildVttFogMask,
   canPreserveSceneTokenDrag,
   clampPolygonToRadius,
@@ -14,7 +13,10 @@ import {
   formatSceneMeasurement,
   hasCommittedSceneTokenPositionChanged,
   interpolateScenePoint,
-  lightGlowAlphas,
+  lightTintAlpha,
+  dimOverlayAlpha,
+  gmDarknessCapAlpha,
+  illuminationOverlayAlpha,
   lightRadii,
   pointAreaOverlay,
   positionVttMapTiles,
@@ -24,6 +26,7 @@ import {
   sceneTokenAppearanceKey,
   shouldReloadVttMap,
   stableVttMapPartIds,
+  statusCategoryColours,
   visibleGridLinePositions
 } from './vttSceneRenderer.model'
 
@@ -379,24 +382,36 @@ describe('VTT lighting model', () => {
     opacity = 0.5
   ) => ({ mechanicalIllumination, mechanicalObscurement, opacity })
 
-  it('darkens the map more as the ambient illumination falls, and not at all when bright', () => {
-    expect(ambientDarknessOpacity('BRIGHT')).toBe(0)
-    expect(ambientDarknessOpacity('DIM')).toBeGreaterThan(0)
-    expect(ambientDarknessOpacity('ORDINARY_DARKNESS')).toBeGreaterThan(
-      ambientDarknessOpacity('DIM')
-    )
-    expect(ambientDarknessOpacity('MAGICAL_DARKNESS')).toBeGreaterThan(
-      ambientDarknessOpacity('ORDINARY_DARKNESS')
-    )
+  it('encodes each illumination class as a distinct overlay alpha, bright clearest', () => {
+    expect(illuminationOverlayAlpha('BRIGHT')).toBe(0)
+    expect(illuminationOverlayAlpha('DIM')).toBe(dimOverlayAlpha)
+    expect(dimOverlayAlpha).toBeGreaterThan(0)
+    expect(illuminationOverlayAlpha('ORDINARY_DARKNESS')).toBe(1)
+    expect(illuminationOverlayAlpha('MAGICAL_DARKNESS')).toBe(1)
+    expect(gmDarknessCapAlpha).toBeGreaterThan(dimOverlayAlpha)
+    expect(gmDarknessCapAlpha).toBeLessThan(1)
   })
 
-  it('draws the bright core stronger than the dim reach, and both stronger against a dark map', () => {
-    const light = { intensity: 0.8 }
-    const bright = lightGlowAlphas(light, 'BRIGHT')
-    const dark = lightGlowAlphas(light, 'ORDINARY_DARKNESS')
-    expect(bright.bright).toBeGreaterThan(bright.dim)
-    expect(dark.bright).toBeGreaterThan(bright.bright)
-    expect(dark.dim).toBeGreaterThan(bright.dim)
+  it('tints a light faintly, stronger for a more intense light', () => {
+    expect(lightTintAlpha({ intensity: 0.9 })).toBeGreaterThan(lightTintAlpha({ intensity: 0.3 }))
+    expect(lightTintAlpha({ intensity: 5 })).toBeLessThanOrEqual(0.2)
+    expect(lightTintAlpha({ intensity: 0 })).toBeGreaterThan(0)
+  })
+
+  it('colours condition, concentration and other statuses distinctly and draws an effect as other', () => {
+    expect(
+      new Set([
+        statusCategoryColours.CONDITION,
+        statusCategoryColours.CONCENTRATION,
+        statusCategoryColours.OTHER
+      ]).size
+    ).toBe(3)
+    // Pinned hues: amber conditions, teal-green Concentration, neutral grey other.
+    expect(statusCategoryColours.CONDITION).toBe(0xffd43b)
+    expect(statusCategoryColours.CONCENTRATION).toBe(0x20c997)
+    expect(statusCategoryColours.OTHER).toBe(0xced4da)
+    // Lane 1 ruling: an EFFECT stays neutral until its polarity is derived.
+    expect(statusCategoryColours.EFFECT).toBe(statusCategoryColours.OTHER)
   })
 
   it('never lets the bright radius exceed the dim reach', () => {
@@ -417,17 +432,11 @@ describe('VTT lighting model', () => {
     expect(clamped[3]).toEqual({ x: 0, y: 100 })
   })
 
-  it('styles a zone by illumination and gives each obscurement a non-colour outline', () => {
+  it('gives magical darkness a dotted arcane outline and each obscurement a non-colour outline', () => {
     const magical = darknessZoneStyle(zone('MAGICAL_DARKNESS', null))
     const ordinary = darknessZoneStyle(zone('ORDINARY_DARKNESS', null))
-    const dim = darknessZoneStyle(zone('DIM', null))
-    expect(magical.fillAlpha).toBeGreaterThan(ordinary.fillAlpha)
-    expect(ordinary.fillAlpha).toBeGreaterThan(dim.fillAlpha)
     expect(magical.illuminationOutline).not.toBeNull()
     expect(ordinary.illuminationOutline).toBeNull()
-    // Only magical darkness shuts out light.
-    expect([magical, ordinary, dim].map((style) => style.blocksLight)).toEqual([true, false, false])
-    expect(darknessZoneStyle(zone(null, null, 0.62)).fillAlpha).toBe(0.62)
 
     const lightObscured = darknessZoneStyle(zone(null, 'LIGHT')).obscurementOutline
     const heavyObscured = darknessZoneStyle(zone(null, 'HEAVY')).obscurementOutline

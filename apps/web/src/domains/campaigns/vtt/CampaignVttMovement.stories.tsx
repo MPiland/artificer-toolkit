@@ -86,6 +86,7 @@ function MovementFixture({
   )
   const [preview, setPreview] = useState<ScenePoint | null>(null)
   const [committedPath, setCommittedPath] = useState<ScenePoint[] | null>(null)
+  const [hoveredTokenId, setHoveredTokenId] = useState<string | null>(null)
 
   useEffect(() => {
     if (!host.current) return
@@ -100,6 +101,7 @@ function MovementFixture({
       onMeasurementPreview: () => undefined,
       onPing: () => false,
       onTokenCommit: (_tokenId, path) => setCommittedPath(path),
+      onTokenHover: setHoveredTokenId,
       onTokenPreview: (_tokenId, position) => setPreview(position)
     }).then((nextRenderer) => {
       if (disposed) {
@@ -152,6 +154,9 @@ function MovementFixture({
       </output>
       <output aria-live='polite' data-testid='movement-commit'>
         {committedPath ? JSON.stringify(committedPath) : 'No committed movement.'}
+      </output>
+      <output aria-live='polite' data-testid='movement-hover'>
+        {hoveredTokenId ?? 'No hovered token.'}
       </output>
       <output aria-live='polite' data-reads={diagnosticsReads} data-testid='movement-diagnostics'>
         {diagnostics ? JSON.stringify(diagnostics) : 'No diagnostics read.'}
@@ -309,9 +314,11 @@ export const PathPreviewDuringDrag: Story = {
     const rendererCanvas = canvas.getByRole('img', { name: 'Interactive campaign scene' })
     const token = movementScene.tokens[0]!
     const pointerId = await pressToken(rendererCanvas, token.position)
+    // A single point draws no route line yet.
     await expect((await readDiagnostics(canvas)).activeDrag).toEqual({
       pointCount: 1,
-      position: token.position
+      position: token.position,
+      route: []
     })
 
     // The wall forces a bend: the straight line from the origin to the last point is blocked.
@@ -326,6 +333,12 @@ export const PathPreviewDuringDrag: Story = {
     expect(midDrag?.pointCount).toBe(3)
     expect(midDrag?.position.x).toBeCloseTo(650)
     expect(midDrag?.position.y).toBeCloseTo(230)
+    // The drawn route line is the dragged path from the origin to the token's current position.
+    expect(midDrag?.route).toHaveLength(midDrag?.pointCount ?? -1)
+    expect(midDrag?.route[0]).toEqual(token.position)
+    expect(midDrag?.route.at(-1)?.x).toBeCloseTo(650)
+    expect(midDrag?.route.at(-1)?.y).toBeCloseTo(230)
+    expect((await readDiagnostics(canvas)).dragRouteLineCount).toBe(1)
     expect(canvas.getByTestId('movement-preview')).toHaveTextContent('"x":650')
     expect(canvas.getByTestId('movement-commit')).toHaveTextContent('No committed movement.')
 
@@ -333,7 +346,9 @@ export const PathPreviewDuringDrag: Story = {
     await waitFor(() =>
       expect(canvas.getByTestId('movement-commit')).not.toHaveTextContent('No committed')
     )
-    expect((await readDiagnostics(canvas)).activeDrag).toBeNull()
+    const released = await readDiagnostics(canvas)
+    expect(released.activeDrag).toBeNull()
+    expect(released.dragRouteLineCount).toBe(0)
     const path = committedPath(canvas.getByTestId('movement-commit').textContent)
     expect(path).toHaveLength(midDrag?.pointCount ?? -1)
     expect(path[0]).toEqual(token.position)
@@ -431,7 +446,8 @@ export const LargeTokenDragStopsAtBarrier: Story = {
     // The token never crosses: it stays where it last had a clear move and no movement is previewed.
     await expect((await readDiagnostics(canvas)).activeDrag).toEqual({
       pointCount: 1,
-      position: origin
+      position: origin,
+      route: []
     })
     expect(canvas.getByTestId('movement-preview')).toHaveTextContent('No movement preview.')
 
@@ -442,12 +458,46 @@ export const LargeTokenDragStopsAtBarrier: Story = {
   }
 }
 
+export const HoveringATokenReportsIt: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(await canvas.findByText('Movement scene ready.')).toBeVisible()
+    const rendererCanvas = canvas.getByRole('img', { name: 'Interactive campaign scene' })
+    const token = movementScene.tokens[0]!
+    const pointerId = nextPointerId++
+    await movePointer(rendererCanvas, pointerId, token.position)
+    await waitFor(() => expect(canvas.getByTestId('movement-hover')).toHaveTextContent(token.id))
+    await movePointer(rendererCanvas, pointerId, { x: 900, y: 700 })
+    await waitFor(() =>
+      expect(canvas.getByTestId('movement-hover')).toHaveTextContent('No hovered token.')
+    )
+  }
+}
+
+export const HoveringATokenRebuiltBeforeTheNextFrameReportsIt: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(await canvas.findByText('Movement scene ready.')).toBeVisible()
+    const rendererCanvas = canvas.getByRole('img', { name: 'Interactive campaign scene' })
+    const token = movementScene.tokens[0]!
+    await nextFrame()
+    // The appearance change rebuilds the token visual and leaves a frame pending. The pointer move
+    // follows in the same synchronous block, so no frame can run first: only the Stage's own
+    // render of the pending frame lets Pixi hit-test the rebuilt token.
+    fireEvent.click(canvas.getByRole('button', { name: 'Change token appearance' }))
+    await movePointer(rendererCanvas, nextPointerId++, token.position)
+    await waitFor(() => expect(canvas.getByTestId('movement-hover')).toHaveTextContent(token.id))
+  }
+}
+
 export const RotationTurnsOnlyTheFacingIndicator: Story = {
   args: { facing: true, scene: rotatedLargeTokenScene },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
     await expect(await canvas.findByText('Movement scene ready.')).toBeVisible()
-    const [drawn] = (await readDiagnostics(canvas)).tokens
+    const diagnostics = await readDiagnostics(canvas)
+    expect(diagnostics.facingIndicatorCount).toBeGreaterThan(0)
+    const [drawn] = diagnostics.tokens
     expect(drawn?.facingRotationDegrees).toBeCloseTo(
       rotatedLargeTokenScene.tokens[0].rotationDegrees
     )
