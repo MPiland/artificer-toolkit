@@ -426,12 +426,16 @@ export function CampaignVttStage({
   const renderedScene = useMemo(
     () =>
       scene && campaign.role === 'OWNER' && gmPreviewUserId
-        ? projectSceneForViewer(scene, {
-            role: 'PLAYER',
-            userId: gmPreviewUserId
-          })
+        ? projectSceneForViewer(
+            scene,
+            {
+              role: 'PLAYER',
+              userId: gmPreviewUserId
+            },
+            boundTokenControl
+          )
         : scene,
-    [scene, campaign.role, gmPreviewUserId]
+    [scene, campaign.role, gmPreviewUserId, boundTokenControl]
   )
   const tokenImageLookups = useMemo(() => {
     const actorsById = new Map(

@@ -43,6 +43,7 @@ function scene(
         locked: input.locked ?? false,
         position: { x: 5, y: 10 },
         rotationDegrees: 0,
+        senses: [],
         vision: null,
         width: 1
       }

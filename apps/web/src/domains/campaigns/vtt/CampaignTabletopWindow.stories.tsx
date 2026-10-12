@@ -1025,10 +1025,14 @@ function projectScene(
 ): CampaignSceneStateDto {
   return role === 'OWNER'
     ? liveScene
-    : projectSceneForViewer(liveScene, {
-        role: 'PLAYER',
-        userId: tabletopCurrentUserId
-      })
+    : projectSceneForViewer(
+        liveScene,
+        {
+          role: 'PLAYER',
+          userId: tabletopCurrentUserId
+        },
+        new Map()
+      )
 }
 
 function recipientHeader(scene: ReturnType<typeof projectScene>) {

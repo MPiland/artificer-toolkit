@@ -12,7 +12,7 @@ const uuidSchema = lazySchema(() =>
   )
 )
 
-const combatPerceptionChannelDtoSchema = lazySchema(() =>
+export const combatPerceptionChannelDtoSchema = lazySchema(() =>
   z.enum(['VISUAL', 'AUDITORY', 'VIBRATION', 'NONVISUAL'])
 )
 export const combatPerceptionAccessGradeDtoSchema = lazySchema(() =>

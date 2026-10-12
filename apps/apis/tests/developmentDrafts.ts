@@ -1733,6 +1733,7 @@ try {
               locked: false,
               position: { x: 8, y: 8 },
               rotationDegrees: 0,
+              senses: [],
               vision: null,
               width: 8
             },
@@ -1746,6 +1747,7 @@ try {
               locked: false,
               position: { x: 32, y: 8 },
               rotationDegrees: 0,
+              senses: [],
               vision: null,
               width: 8
             },
@@ -1759,6 +1761,7 @@ try {
               locked: false,
               position: { x: 56, y: 8 },
               rotationDegrees: 0,
+              senses: [],
               vision: null,
               width: 8
             }
@@ -2631,6 +2634,7 @@ try {
             locked: false,
             position: tokenPosition,
             rotationDegrees: 0,
+            senses: [],
             vision: null,
             width: 100
           },
@@ -2644,6 +2648,7 @@ try {
             locked: false,
             position: { x: 324, y: 1024 },
             rotationDegrees: 0,
+            senses: [],
             vision: null,
             width: 100
           }

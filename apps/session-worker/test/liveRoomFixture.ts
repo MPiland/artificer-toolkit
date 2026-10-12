@@ -166,6 +166,7 @@ export function movementScene(campaignId: string): {
           locked: false,
           position: { x: 10, y: 10 },
           rotationDegrees: 0,
+          senses: [],
           vision: {
             angleDegrees: 360,
             brightRange: 0,

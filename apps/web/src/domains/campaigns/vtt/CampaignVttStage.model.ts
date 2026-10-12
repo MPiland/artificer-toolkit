@@ -212,6 +212,7 @@ export function createSceneToken(
     locked: false,
     position,
     rotationDegrees: 0,
+    senses: [],
     vision: null,
     width: size
   }

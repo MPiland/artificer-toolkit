@@ -1,6 +1,8 @@
 import type { MeasurementUnitCode } from '../core/measurement.js'
 import type {
+  CombatPerceptionChannel,
   CombatPerceptionIllumination,
+  CombatPerceptionIlluminationAccess,
   CombatPerceptionObscurement
 } from '../rules/combatPerception.js'
 
@@ -70,10 +72,22 @@ export interface SceneTokenVision {
   enabled: boolean
 }
 
-/** Pinned Character-derived vision input retained separately from scene-authored overrides. */
+/** A sense a token presents to its controllers; its range is in Scene units from the token footprint edge. */
+export interface SceneTokenSense {
+  channel: CombatPerceptionChannel
+  illuminationAccess: CombatPerceptionIlluminationAccess
+  label: string
+  range: number
+  /** The pinned sense definition id. */
+  senseId: string
+}
+
+/** Pinned Character-derived senses, ranged as typed lengths until a Scene grid converts them. */
 export interface SceneCharacterVision {
   characterId: string
-  dimRange: { amount: number; unit: MeasurementUnitCode } | null
+  senses: (Omit<SceneTokenSense, 'range'> & {
+    range: { amount: number; unit: MeasurementUnitCode }
+  })[]
 }
 
 export interface SceneToken {
@@ -86,6 +100,8 @@ export interface SceneToken {
   locked: boolean
   position: ScenePoint
   rotationDegrees: number
+  /** Composed from the bound Character at runtime; only the token's controllers receive it. */
+  senses: SceneTokenSense[]
   vision: SceneTokenVision | null
   width: number
 }

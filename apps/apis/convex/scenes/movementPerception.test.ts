@@ -63,6 +63,7 @@ async function setup(withVision = false, returnsToOrigin = false) {
     locked: false,
     position: { x, y: 50 },
     rotationDegrees: 0,
+    senses: [],
     vision:
       withVision && index === 1
         ? {

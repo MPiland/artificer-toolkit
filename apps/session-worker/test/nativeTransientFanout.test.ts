@@ -138,6 +138,7 @@ const token = {
   locked: false,
   position: { x: 10, y: 10 },
   rotationDegrees: 0,
+  senses: [],
   vision: {
     angleDegrees: 360,
     brightRange: 0,
@@ -275,7 +276,29 @@ function installFetch(
       const result = (await mutate?.(++captures, capture, body)) ?? capture
       return result instanceof Response ? result : Response.json(result)
     }
+    // A bound Scene's first composition stages the Run's initial inputs, which the room then saves.
+    if (pathname === '/live-sessions/checkpoint') return committedCheckpoint(request)
     throw new Error(`Unexpected backend request: ${pathname}`)
+  })
+}
+
+async function committedCheckpoint(request: Request) {
+  const body = liveSessionCheckpointRequestSchema.parse(await request.json())
+  const now = new Date().toISOString()
+  return Response.json({
+    status: 'COMMITTED',
+    authority: {
+      activationFingerprint,
+      campaignId,
+      createdAt: now,
+      epoch: body.epoch,
+      persistedSequence: body.sequence,
+      persistedStateChecksum: body.checksum,
+      phase: 'DO_ACTIVE',
+      updatedAt: now
+    },
+    adopted: { characters: [] },
+    io: NO_CHECKPOINT_IO
   })
 }
 
@@ -389,6 +412,16 @@ async function synchronize(client: Awaited<ReturnType<typeof connect>>) {
       )
     ).toBe(true)
   )
+}
+
+/** The Senses `client` is shown on the bound token in a fresh `STATE_SYNC`. */
+async function syncedTokenSenses(client: Awaited<ReturnType<typeof connect>>) {
+  await synchronize(client)
+  const sync = client.messages.find(
+    (message): message is Extract<LiveSessionWebSocketServerMessageDto, { type: 'STATE_SYNC' }> =>
+      message.type === 'STATE_SYNC'
+  )
+  return sync?.state.scene?.tokens.find(({ id }) => id === tokenId)?.senses
 }
 
 it('fans out token previews from room memory with no backend call or SQLite access per sample', async () => {
@@ -1243,25 +1276,7 @@ async function characterVisionRoom() {
           sceneEncounterId: room.sceneEncounterId
         })
       }
-      if (pathname === '/live-sessions/checkpoint') {
-        const body = liveSessionCheckpointRequestSchema.parse(await request.json())
-        const now = new Date().toISOString()
-        return Response.json({
-          status: 'COMMITTED',
-          authority: {
-            activationFingerprint,
-            campaignId,
-            createdAt: now,
-            epoch: body.epoch,
-            persistedSequence: body.sequence,
-            persistedStateChecksum: body.checksum,
-            phase: 'DO_ACTIVE',
-            updatedAt: now
-          },
-          adopted: { characters: [] },
-          io: NO_CHECKPOINT_IO
-        })
-      }
+      if (pathname === '/live-sessions/checkpoint') return committedCheckpoint(request)
       throw new Error(`Unexpected backend request: ${pathname}`)
     })
   })
@@ -1269,16 +1284,26 @@ async function characterVisionRoom() {
     connect(stub, ownerId, 'OWNER'),
     connect(stub, playerId, 'PLAYER')
   ])
-  await synchronize(owner)
+  const admittedSenses = await syncedTokenSenses(owner)
   expect(room.characterReads).toEqual([room.revisionA])
   owner.messages.length = 0
   player.messages.length = 0
-  return { room, owner, player, stub }
+  return { admittedSenses, room, owner, player, stub }
 }
+
+/** Revision A's 60 ft Darkvision, as the bound token's Senses carry it. */
+const darkvisionSenses = [
+  expect.objectContaining({
+    channel: 'VISUAL',
+    illuminationAccess: 'ORDINARY_DARKNESS',
+    label: 'Darkvision',
+    range: 60
+  })
+]
 
 it('rehydrates Character vision after a CHARACTER notice, with no read per sample (D33)', async () => {
   const advance = controlClock()
-  const { room, owner, player, stub } = await characterVisionRoom()
+  const { admittedSenses, room, owner, player, stub } = await characterVisionRoom()
   const capturesAfterSync = room.captures.length
   const readsAfterSync = room.authorizationReads
 
@@ -1290,18 +1315,12 @@ it('rehydrates Character vision after a CHARACTER notice, with no read per sampl
     expect(transient(owner.messages)).toHaveLength(2)
     expect(transient(player.messages)).toHaveLength(2)
   })
-  expect(transient(player.messages)).toContainEqual(
-    expect.objectContaining({
-      message: expect.objectContaining({
-        userId: playerId,
-        visionLayers: [expect.anything()]
-      })
-    })
-  )
+  // Vision is authored only; the bound Character's Darkvision reaches the token as Senses.
+  expect(admittedSenses).toEqual(darkvisionSenses)
   expect(room.authorizationReads).toBe(readsAfterSync)
   expect(room.captures).toHaveLength(capturesAfterSync)
 
-  // The Character changes and Convex notifies the room: the cache reloads, then the Scene's vision.
+  // The Character changes and Convex notifies the room: the cache reloads, then the Scene's Senses.
   room.revision = room.revisionB
   await invalidate(stub, ['CHARACTER'])
   player.messages.length = 0
@@ -1309,12 +1328,11 @@ it('rehydrates Character vision after a CHARACTER notice, with no read per sampl
   await vi.waitFor(() => {
     sequence += 1
     sendPreview(player, tokenPreview(sequence, { x: 20 + sequence, y: 10 }))
-    expect(transient(player.messages).at(-1)).toMatchObject({
-      message: { visionLayers: [] }
-    })
+    expect(room.characterReads).toEqual([room.revisionA, room.revisionB])
   })
   expect(room.characterReads).toEqual([room.revisionA, room.revisionB])
   expect(room.staleCaptures).toBe(1)
+  expect(await syncedTokenSenses(owner)).toEqual([])
   const readsAfterRebuild = room.authorizationReads
   sendPreview(player, tokenPreview(sequence + 1, { x: 40, y: 10 }))
   await vi.waitFor(() =>
@@ -1324,13 +1342,10 @@ it('rehydrates Character vision after a CHARACTER notice, with no read per sampl
 })
 
 it('composes Scene vision without a Run that COMPLETEd, so the next Scene command still commits', async () => {
-  const { room, owner, player } = await characterVisionRoom()
+  const { admittedSenses, room, owner, player } = await characterVisionRoom()
   sendPreview(player, tokenPreview(1))
-  await vi.waitFor(() =>
-    expect(transient(player.messages).at(-1)).toMatchObject({
-      message: { visionLayers: [expect.anything()] }
-    })
-  )
+  await vi.waitFor(() => expect(transient(player.messages)).toHaveLength(1))
+  expect(admittedSenses).toEqual(darkvisionSenses)
 
   const encounterCommand = async (
     expectedSessionSequence: number,
@@ -1392,17 +1407,14 @@ it('composes Scene vision without a Run that COMPLETEd, so the next Scene comman
       expect.objectContaining({ type: 'COMMAND_COMMITTED', commandId: moveId })
     )
   )
-  // The finished Run no longer lends the token Character vision.
+  // The finished Run no longer lends the token Character Senses.
   player.messages.length = 0
   sendPreview(player, {
     ...tokenPreview(2, { x: 25, y: 10 }),
     baselineVersion: 2
   })
-  await vi.waitFor(() =>
-    expect(transient(player.messages).at(-1)).toMatchObject({
-      message: { visionLayers: [] }
-    })
-  )
+  await vi.waitFor(() => expect(transient(player.messages)).toHaveLength(1))
+  expect(await syncedTokenSenses(owner)).toEqual([])
 })
 
 it('refuses previews and pings while the authorization cache cannot be renewed', async () => {

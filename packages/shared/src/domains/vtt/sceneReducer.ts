@@ -1,3 +1,4 @@
+import type { MeasurementUnitCode } from '../core/measurement.js'
 import type {
   CampaignSceneState,
   SceneAtomicDelta,
@@ -35,7 +36,7 @@ function fogLayerKey(layer: SceneFogLayer): string {
 
 /** Convert a typed length into authoritative Scene units; unsupported dimensions fail closed. */
 export function lengthMeasurementInSceneUnits(
-  range: SceneCharacterVision['dimRange'],
+  range: { amount: number; unit: MeasurementUnitCode } | null,
   grid: CampaignSceneState['grid']
 ): number | null {
   if (!range) return null
@@ -69,18 +70,18 @@ export function sceneLengthInFeet(amount: number, grid: CampaignSceneState['grid
   return null
 }
 
-function dimRangeInSceneUnits(
-  vision: SceneCharacterVision,
+function senseRangeInSceneUnits(
+  range: SceneCharacterVision['senses'][number]['range'],
   grid: CampaignSceneState['grid']
 ): number | null {
   try {
-    return lengthMeasurementInSceneUnits(vision.dimRange, grid)
+    return lengthMeasurementInSceneUnits(range, grid)
   } catch {
     return null
   }
 }
 
-/** Apply pinned Character vision only where the scene token has no explicit vision override. */
+/** Presents the bound Character's senses on its token; a sense with no usable range is dropped. */
 export function resolveSceneCharacterVision<T extends Pick<CampaignSceneState, 'tokens' | 'grid'>>(
   state: T,
   bindings: readonly { actorId: string; characterId: string; tokenId: string }[],
@@ -95,22 +96,16 @@ export function resolveSceneCharacterVision<T extends Pick<CampaignSceneState, '
   return {
     ...state,
     tokens: state.tokens.map((token) => {
-      if (token.vision) return token
       const characterId = characterIdByTokenId.get(token.id)
       const characterVision = characterId ? visionByCharacterId.get(characterId) : undefined
-      const dimRange = characterVision ? dimRangeInSceneUnits(characterVision, state.grid) : null
-      return dimRange === null || dimRange <= 0
-        ? token
-        : {
-            ...token,
-            vision: {
-              angleDegrees: 360,
-              brightRange: 0,
-              dimRange,
-              directionDegrees: 0,
-              enabled: true
-            }
-          }
+      if (!characterVision) return token
+      return {
+        ...token,
+        senses: characterVision.senses.flatMap(({ range, ...sense }) => {
+          const sceneRange = senseRangeInSceneUnits(range, state.grid)
+          return sceneRange === null || sceneRange <= 0 ? [] : [{ ...sense, range: sceneRange }]
+        })
+      }
     })
   }
 }
@@ -200,6 +195,7 @@ export function materializeCampaignScene(
       ...token,
       controlledByUserIds: [...token.controlledByUserIds],
       position: { ...token.position },
+      senses: token.senses.map((sense) => ({ ...sense })),
       vision: token.vision ? { ...token.vision } : null
     })),
     version: 0,
@@ -445,9 +441,14 @@ export function isSceneEntityVisibleToViewer(
   }
 }
 
+/**
+ * `boundTokenControl` says whether a player controls each Encounter-bound token (ADR 0034); a token
+ * absent from it is unbound and follows the Scene's `controlledByUserIds`.
+ */
 export function projectSceneForViewer(
   state: CampaignSceneState,
-  viewer: SceneViewer
+  viewer: SceneViewer,
+  boundTokenControl: ReadonlyMap<string, boolean>
 ): CampaignSceneState {
   if (viewer.role === 'GM') return structuredClone(state)
   const barriers = state.barriers.filter((barrier) =>
@@ -472,10 +473,23 @@ export function projectSceneForViewer(
     lights: state.lights.filter((light) =>
       isSceneEntityVisibleToViewer(state, viewer, { collection: 'lights', entity: light })
     ),
-    tokens: state.tokens.filter((token) =>
-      isSceneEntityVisibleToViewer(state, viewer, { collection: 'tokens', entity: token })
-    )
+    tokens: state.tokens
+      .filter((token) =>
+        isSceneEntityVisibleToViewer(state, viewer, { collection: 'tokens', entity: token })
+      )
+      .map((token) => tokenForPlayer(token, viewer, boundTokenControl))
   }
+}
+
+/** A player's senses are theirs alone; other tokens show only what is seen of them. */
+function tokenForPlayer(
+  token: CampaignSceneState['tokens'][number],
+  viewer: SceneViewer,
+  boundTokenControl: ReadonlyMap<string, boolean>
+): CampaignSceneState['tokens'][number] {
+  return (boundTokenControl.get(token.id) ?? token.controlledByUserIds.includes(viewer.userId))
+    ? token
+    : { ...token, senses: [] }
 }
 
 /** Build a recipient-specific transient reveal without exposing the complete scene. */
@@ -491,8 +505,9 @@ export function projectSceneTokenPreviewForViewer(
   for (const layer of visionLayers) {
     revealedState = applyAtomicDelta(revealedState, { kind: 'FOG_CHUNKS_PATCHED', layer })
   }
-  const before = projectSceneForViewer(state, options.viewer)
-  const after = projectSceneForViewer(revealedState, options.viewer)
+  // Only the newly seen tokens of `after` are read, and the reveal never carries senses.
+  const before = projectSceneForViewer(state, options.viewer, new Map())
+  const after = projectSceneForViewer(revealedState, options.viewer, new Map())
   const barrierIds = new Set(before.barriers.map((barrier) => barrier.id))
   const tokenIds = new Set(before.tokens.map((token) => token.id))
   const barriers = after.barriers.filter((barrier) => !barrierIds.has(barrier.id))
@@ -542,13 +557,18 @@ function projectAtomicSceneDeltaForViewer(
   before: CampaignSceneState,
   after: CampaignSceneState,
   viewer: SceneViewer,
-  rawDelta: SceneAtomicDelta
+  rawDelta: SceneAtomicDelta,
+  boundTokenControl: ReadonlyMap<string, boolean>
 ): SceneAtomicDelta | null {
+  const upserted = (token: CampaignSceneState['tokens'][number]): SceneAtomicDelta => ({
+    kind: 'TOKEN_UPSERTED',
+    token: structuredClone(tokenForPlayer(token, viewer, boundTokenControl))
+  })
   switch (rawDelta.kind) {
     case 'TOKEN_UPSERTED': {
       const prior = visibleToken(before, viewer, rawDelta.token.id)
       const next = visibleToken(after, viewer, rawDelta.token.id)
-      if (next) return { kind: 'TOKEN_UPSERTED', token: structuredClone(next) }
+      if (next) return upserted(next)
       return prior ? { kind: 'TOKEN_REMOVED', tokenId: rawDelta.token.id } : null
     }
     case 'TOKEN_REMOVED':
@@ -569,9 +589,9 @@ function projectAtomicSceneDeltaForViewer(
             undoneCommandId: rawDelta.undoneCommandId
           }
         }
-        return { kind: 'TOKEN_UPSERTED', token: structuredClone(next) }
+        return upserted(next)
       }
-      if (next) return { kind: 'TOKEN_UPSERTED', token: structuredClone(next) }
+      if (next) return upserted(next)
       return prior ? { kind: 'TOKEN_REMOVED', tokenId } : null
     }
     case 'ANNOTATION_UPSERTED': {
@@ -587,17 +607,17 @@ function projectAtomicSceneDeltaForViewer(
       return prior ? { kind: 'ANNOTATION_REMOVED', annotationId: rawDelta.annotationId } : null
     }
     case 'BARRIER_UPSERTED': {
-      const prior = projectSceneForViewer(before, viewer).barriers.find(
+      const prior = projectSceneForViewer(before, viewer, new Map()).barriers.find(
         (barrier) => barrier.id === rawDelta.barrier.id
       )
-      const next = projectSceneForViewer(after, viewer).barriers.find(
+      const next = projectSceneForViewer(after, viewer, new Map()).barriers.find(
         (barrier) => barrier.id === rawDelta.barrier.id
       )
       if (next) return { barrier: structuredClone(next), kind: 'BARRIER_UPSERTED' }
       return prior ? { barrierId: rawDelta.barrier.id, kind: 'BARRIER_REMOVED' } : null
     }
     case 'BARRIER_REMOVED':
-      return projectSceneForViewer(before, viewer).barriers.some(
+      return projectSceneForViewer(before, viewer, new Map()).barriers.some(
         (barrier) => barrier.id === rawDelta.barrierId
       )
         ? structuredClone(rawDelta)
@@ -610,33 +630,33 @@ function projectAtomicSceneDeltaForViewer(
         : null
     }
     case 'LIGHT_UPSERTED': {
-      const prior = projectSceneForViewer(before, viewer).lights.find(
+      const prior = projectSceneForViewer(before, viewer, new Map()).lights.find(
         (light) => light.id === rawDelta.light.id
       )
-      const next = projectSceneForViewer(after, viewer).lights.find(
+      const next = projectSceneForViewer(after, viewer, new Map()).lights.find(
         (light) => light.id === rawDelta.light.id
       )
       if (next) return { kind: 'LIGHT_UPSERTED', light: structuredClone(next) }
       return prior ? { kind: 'LIGHT_REMOVED', lightId: rawDelta.light.id } : null
     }
     case 'LIGHT_REMOVED':
-      return projectSceneForViewer(before, viewer).lights.some(
+      return projectSceneForViewer(before, viewer, new Map()).lights.some(
         (light) => light.id === rawDelta.lightId
       )
         ? structuredClone(rawDelta)
         : null
     case 'DARKNESS_UPSERTED': {
-      const prior = projectSceneForViewer(before, viewer).darknessZones.find(
+      const prior = projectSceneForViewer(before, viewer, new Map()).darknessZones.find(
         (zone) => zone.id === rawDelta.zone.id
       )
-      const next = projectSceneForViewer(after, viewer).darknessZones.find(
+      const next = projectSceneForViewer(after, viewer, new Map()).darknessZones.find(
         (zone) => zone.id === rawDelta.zone.id
       )
       if (next) return { kind: 'DARKNESS_UPSERTED', zone: structuredClone(next) }
       return prior ? { kind: 'DARKNESS_REMOVED', zoneId: rawDelta.zone.id } : null
     }
     case 'DARKNESS_REMOVED':
-      return projectSceneForViewer(before, viewer).darknessZones.some(
+      return projectSceneForViewer(before, viewer, new Map()).darknessZones.some(
         (zone) => zone.id === rawDelta.zoneId
       )
         ? structuredClone(rawDelta)
@@ -658,14 +678,21 @@ export function projectSceneDeltaForViewer(
   before: CampaignSceneState,
   after: CampaignSceneState,
   viewer: SceneViewer,
-  rawDelta: SceneDelta
+  rawDelta: SceneDelta,
+  boundTokenControl: ReadonlyMap<string, boolean>
 ): SceneDelta | null {
   if (viewer.role === 'GM') return structuredClone(rawDelta)
   if (rawDelta.kind !== 'BATCH') {
-    return projectAtomicSceneDeltaForViewer(before, after, viewer, rawDelta)
+    return projectAtomicSceneDeltaForViewer(before, after, viewer, rawDelta, boundTokenControl)
   }
   const deltas = rawDelta.deltas.flatMap((delta) => {
-    const projected = projectAtomicSceneDeltaForViewer(before, after, viewer, delta)
+    const projected = projectAtomicSceneDeltaForViewer(
+      before,
+      after,
+      viewer,
+      delta,
+      boundTokenControl
+    )
     return projected ? [projected] : []
   })
   if (deltas.length === 0) return null

@@ -263,6 +263,7 @@ export async function verifyEncounterDisarm({
             locked: false,
             position: { x: 50, y: 50 },
             rotationDegrees: 0,
+            senses: [],
             vision: null,
             width: 100
           },

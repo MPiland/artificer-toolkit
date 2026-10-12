@@ -67,6 +67,7 @@ function token(id: string, position: ScenePoint): SceneToken {
     locked: false,
     position,
     rotationDegrees: 0,
+    senses: [],
     vision: null,
     width: 10
   }

@@ -85,6 +85,7 @@ export async function setupReactionMovementScene<
     label: index === 1 ? 'Mover' : `Reactor ${index + 1}`,
     position: { x, y: 50 },
     rotationDegrees: 0,
+    senses: [],
     vision: null
   }))
   const settings = {

@@ -100,6 +100,7 @@ async function boundRoom() {
         label: 'Aria',
         rotationDegrees: 0,
         position: { x: 0, y: 0 },
+        senses: [],
         vision: null
       }
     ],

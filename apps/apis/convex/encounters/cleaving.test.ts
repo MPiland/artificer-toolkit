@@ -400,6 +400,7 @@ async function setup(
     locked: false,
     position: { x: index * 100, y: 0 },
     rotationDegrees: 0,
+    senses: [],
     vision: null,
     width: 1
   }))

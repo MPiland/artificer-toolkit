@@ -145,6 +145,7 @@ export const vttLoadFixtureScene = {
     locked: false,
     position: { x: (index % 10) * 720 + 420, y: Math.floor(index / 10) * 720 + 420 },
     rotationDegrees: 0,
+    senses: [],
     vision: null,
     width: 52
   })),

@@ -55,6 +55,7 @@ function scene(): SceneDefinitionDto {
         locked: false,
         position: { x: 5, y: 5 },
         rotationDegrees: 0,
+        senses: [],
         vision: null,
         width: 10
       },
@@ -68,6 +69,7 @@ function scene(): SceneDefinitionDto {
         locked: false,
         position: { x: 30, y: 30 },
         rotationDegrees: 0,
+        senses: [],
         vision: null,
         width: 10
       }

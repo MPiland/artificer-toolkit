@@ -505,9 +505,16 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       presentedSceneId: () => this.#cache?.scene?.id ?? null,
       visibleTokenIds: (socket, sceneId) => {
         const admission = this.#liveAdmission(socket)
+        const epoch = attachment(socket)?.authorityEpoch
         const scene = this.#cache?.scene
-        return admission && scene?.id === sceneId
-          ? new Set(projectSceneForViewer(scene, viewer(admission)).tokens.map(({ id }) => id))
+        return admission && epoch && scene?.id === sceneId
+          ? new Set(
+              projectSceneForViewer(
+                scene,
+                viewer(admission),
+                this.#boundTokenControl(scene, admission, epoch)
+              ).tokens.map(({ id }) => id)
+            )
           : null
       }
     })
@@ -1665,6 +1672,24 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     this.#aggregateNeedsReload = false
   }
 
+  /**
+   * Whether `admission` controls each token bound to the cached Encounter (ADR 0034). Without current
+   * play authorization on a bound Scene every token reads as uncontrolled, so no senses are shared.
+   */
+  #boundTokenControl(
+    scene: CampaignSceneStateDto,
+    admission: Pick<Admission, 'role' | 'userId'>,
+    authorityEpoch: string
+  ): ReadonlyMap<string, boolean> {
+    const encounterId = this.#cache?.encounterId ?? null
+    if (admission.role === 'OWNER' || encounterId === null) return new Map()
+    const play = this.#authorization.currentPlay(authorityEpoch)
+    const control =
+      (play && roomBoundTokenControl(play, admission.userId, { sceneId: scene.id, encounterId })) ??
+      scene.tokens.map(({ id }) => ({ tokenId: id, controlled: false }))
+    return new Map(control.map(({ tokenId, controlled }) => [tokenId, controlled]))
+  }
+
   #sendStateSync(socket: WebSocket, admission: Admission): void {
     const value = attachment(socket)
     const current = this.#journal.readCurrent()
@@ -1681,7 +1706,10 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       state: projectNativeLiveSessionState(
         { scene: this.#cache?.scene ?? null },
         admission,
-        this.#cache?.presentation?.expectedPresentationVersion ?? null
+        this.#cache?.presentation?.expectedPresentationVersion ?? null,
+        this.#cache?.scene
+          ? this.#boundTokenControl(this.#cache.scene, admission, value.authorityEpoch)
+          : new Map()
       ),
       type: 'STATE_SYNC'
     })
@@ -1783,7 +1811,11 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       scene
         ? {
             scope: 'SCENE',
-            state: projectSceneForViewer(scene, viewer(admission))
+            state: projectSceneForViewer(
+              scene,
+              viewer(admission),
+              this.#boundTokenControl(scene, admission, value.authorityEpoch)
+            )
           }
         : undefined
     if (!this.#buckets.admits(this.#bucket('SCENE', value, admission))) {
@@ -2961,7 +2993,11 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
           scene
             ? {
                 scope: 'SCENE',
-                state: projectSceneForViewer(scene, viewer(admission))
+                state: projectSceneForViewer(
+                  scene,
+                  viewer(admission),
+                  this.#boundTokenControl(scene, admission, value.authorityEpoch)
+                )
               }
             : undefined
         )
@@ -3775,10 +3811,17 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
   ): void {
     for (const socket of this.ctx.getWebSockets()) {
       const admission = this.#liveAdmission(socket)
-      if (!admission) continue
+      const epoch = attachment(socket)?.authorityEpoch
+      if (!admission || !epoch) continue
       const occurrence = socket === initiator ? result.occurrence : null
       const delta = result.delta
-        ? projectSceneDeltaForViewer(before, after, viewer(admission), result.delta)
+        ? projectSceneDeltaForViewer(
+            before,
+            after,
+            viewer(admission),
+            result.delta,
+            this.#boundTokenControl(after, admission, epoch)
+          )
         : null
       send(socket, {
         ...committed,

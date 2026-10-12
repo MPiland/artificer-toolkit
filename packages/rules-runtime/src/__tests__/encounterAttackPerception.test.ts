@@ -404,6 +404,7 @@ describe('encounter attack perception: sight of a point', () => {
     label: 'Quill Beast',
     rotationDegrees: 0,
     position: { x: 50, y: 50 },
+    senses: [],
     vision: null
   }
   const POINT = { x: 850, y: 50 }

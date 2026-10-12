@@ -2469,7 +2469,11 @@ it('refuses a player bound-token move from current native actor control with a p
           currentSequence: 1,
           correction: {
             scope: 'SCENE',
-            state: projectSceneForViewer(scene, { role: 'PLAYER', userId: base.playerId })
+            state: projectSceneForViewer(
+              scene,
+              { role: 'PLAYER', userId: base.playerId },
+              new Map()
+            )
           },
           reason: 'NOT_ACTOR_CONTROLLER',
           type: 'COMMAND_REJECTED'
@@ -2496,6 +2500,60 @@ it('refuses a player bound-token move from current native actor control with a p
   expect(await journalEvidence(base)).toEqual({
     authority: { published_sequence: 0, sequence: 1 },
     pendingWriteCount: 1
+  })
+})
+it('withholds a bound token senses from a player whose actor control was revoked, though the Scene lists them (ADR 0034)', async () => {
+  const { base, state, actors, scene, tokenId } = await localEncounterFixture([], {
+    senseListedForPlayer: true
+  })
+  const revokeId = crypto.randomUUID()
+  base.socket.send(
+    JSON.stringify({
+      type: 'COMMAND',
+      expectedSessionSequence: 0,
+      command: {
+        scope: 'ENCOUNTER',
+        command: {
+          type: 'UPDATE_ACTOR',
+          encounterId: state.id,
+          commandId: revokeId,
+          expectedVersion: state.version,
+          actorId: actors[0]!.id,
+          controllerUserIds: []
+        }
+      }
+    })
+  )
+  await vi.waitFor(() =>
+    expect(base.messages).toContainEqual(
+      expect.objectContaining({ type: 'COMMAND_COMMITTED', commandId: revokeId, sequence: 1 })
+    )
+  )
+  const commandId = crypto.randomUUID()
+  const move = tokenMoveCommand(scene, tokenId, commandId, { x: 20, y: 10 }, 1)
+  await runInDurableObject(base.stub, async (instance, context) => {
+    const socket = memberSocket(context, base.playerId)
+    const sent = vi.spyOn(socket, 'send')
+    try {
+      await instance.webSocketMessage(
+        socket,
+        JSON.stringify({
+          ...move,
+          command: {
+            ...move.command,
+            command: { ...move.command.command, expectedEncounterVersion: state.version + 1 }
+          }
+        })
+      )
+      const rejected = sent.mock.calls
+        .map(([data]) => liveSessionWebSocketServerMessageDtoSchema.parse(JSON.parse(String(data))))
+        .find((message) => message.type === 'COMMAND_REJECTED' && message.commandId === commandId)
+      if (rejected?.type !== 'COMMAND_REJECTED' || rejected.correction?.scope !== 'SCENE')
+        throw new Error('Missing the private Scene correction.')
+      expect(rejected.correction.state.tokens.find(({ id }) => id === tokenId)?.senses).toEqual([])
+    } finally {
+      sent.mockRestore()
+    }
   })
 })
 it('refuses a movement decision off the presented Scene without a write (D42)', async () => {
@@ -2593,12 +2651,14 @@ it('projects a private Scene without legacy Character or Encounter fields', () =
   const owner = projectNativeLiveSessionState(
     state,
     { role: 'OWNER', userId: crypto.randomUUID() },
-    3
+    3,
+    new Map()
   )
   const player = projectNativeLiveSessionState(
     state,
     { role: 'PLAYER', userId: crypto.randomUUID() },
-    3
+    3,
+    new Map()
   )
   expect(owner.scene?.tokens.map((token) => token.id)).toContain(value.tokenId)
   expect(player.scene?.tokens.map((token) => token.id)).not.toContain(value.tokenId)
@@ -3784,6 +3844,14 @@ it.each([false, true])(
   }
 )
 
+const boundTokenSense = {
+  channel: 'VISUAL',
+  illuminationAccess: 'ORDINARY_DARKNESS',
+  label: 'Darkvision',
+  range: 60,
+  senseId: crypto.randomUUID()
+} as const
+
 async function localEncounterFixture(
   features: FeatureDto[] = [],
   options: {
@@ -3795,6 +3863,8 @@ async function localEncounterFixture(
     pendingD20Evidence?: boolean
     /** A second actor is bound to a Scene token the GM has hidden from players. */
     hiddenBoundToken?: boolean
+    /** The bound token has a sense and its Scene control list names the player (the actor decides). */
+    senseListedForPlayer?: boolean
   } = {}
 ) {
   const value = movementScene(crypto.randomUUID())
@@ -3813,6 +3883,10 @@ async function localEncounterFixture(
   // Encounter control, not exploration, decides these previews; a fogged Scene hides unexplored tokens.
   value.scene.fogMode = 'OFF'
   const base = await fixture(value.scene)
+  if (options.senseListedForPlayer) {
+    value.scene.tokens[0]!.senses = [boundTokenSense]
+    value.scene.tokens[0]!.controlledByUserIds = [base.playerId]
+  }
   const encounterId = crypto.randomUUID()
   const sideId = crypto.randomUUID()
   const now = '2026-09-30T00:00:00.000Z'

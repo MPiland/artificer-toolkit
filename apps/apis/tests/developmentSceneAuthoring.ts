@@ -206,6 +206,7 @@ export async function verifySceneAuthoring(input: {
       locked: false,
       position: { x: 80, y: 80 },
       rotationDegrees: 0,
+      senses: [],
       vision: null,
       width: 40
     }

@@ -162,6 +162,7 @@ export const tabletopSceneDefinition = {
       locked: false,
       position: { x: 260, y: 230 },
       rotationDegrees: 0,
+      senses: [],
       vision: {
         angleDegrees: 360,
         brightRange: 60,
@@ -181,6 +182,7 @@ export const tabletopSceneDefinition = {
       locked: false,
       position: { x: 1120, y: 650 },
       rotationDegrees: 0,
+      senses: [],
       vision: null,
       width: 70
     }

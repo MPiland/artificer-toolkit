@@ -148,6 +148,7 @@ export async function prepareEncounterMovementFixture({
           locked: false,
           position: { x: passage ? 250 : 50, y: 50 },
           rotationDegrees: 0,
+          senses: [],
           vision: null,
           width: 100
         },
@@ -161,6 +162,7 @@ export async function prepareEncounterMovementFixture({
           locked: false,
           position: { x: passage ? 50 : 150, y: 50 },
           rotationDegrees: 0,
+          senses: [],
           vision: {
             enabled: true,
             brightRange: 10,

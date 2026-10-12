@@ -122,6 +122,7 @@ async function fixture(withSecondScene = false) {
     locked: false,
     position: { x: 100, y: 100 },
     rotationDegrees: 0,
+    senses: [],
     // A short sight line, so the move explores cells and leaves an owner fog layer.
     vision: { angleDegrees: 360, brightRange: 0, dimRange: 5, directionDegrees: 0, enabled: true },
     width: 1
