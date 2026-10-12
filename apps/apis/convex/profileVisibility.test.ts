@@ -164,6 +164,32 @@ describe('profile visibility', () => {
     ).rejects.toThrow('Unauthenticated')
   })
 
+  it('hides a Public profile during a timed ban and shows it again once the ban has expired', async () => {
+    const owner = await account('RiverScout', 'Ranger of the north')
+    const viewer = await account('ForestScout', 'Someone else')
+    await owner.client.mutation(api.account.setProfileVisibility, { visibility: 'PUBLIC' })
+    const ban = (banExpires: number) =>
+      t.run((ctx) =>
+        ctx.runMutation(components.betterAuth.adapter.updateOne, {
+          input: {
+            model: 'user',
+            where: [{ field: '_id', value: owner.user._id }],
+            update: { banned: true, banExpires }
+          }
+        })
+      )
+
+    await ban(Date.now() + 60_000)
+    expect(
+      await viewer.client.query(api.account.publicProfile, { username: 'RiverScout' })
+    ).toBeNull()
+
+    await ban(Date.now() - 60_000)
+    expect(
+      await viewer.client.query(api.account.publicProfile, { username: 'RiverScout' })
+    ).toEqual({ username: 'RiverScout', bio: 'Ranger of the north', avatarRevision: null })
+  })
+
   it('rejects an unknown visibility and extra fields', async () => {
     const owner = await account('RiverScout', 'Ranger of the north')
 
