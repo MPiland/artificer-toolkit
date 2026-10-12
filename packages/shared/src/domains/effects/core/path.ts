@@ -11,6 +11,7 @@ export const PATH_CODE = {
   ON_CRIT: 'ON_CRIT',
   ON_SAVE_FAIL: 'ON_SAVE_FAIL',
   ON_SAVE_SUCCESS: 'ON_SAVE_SUCCESS',
+  ON_CHECK_SUCCESS: 'ON_CHECK_SUCCESS',
   START_OF_TURN: 'START_OF_TURN',
   END_OF_TURN: 'END_OF_TURN',
   ON_MOVE: 'ON_MOVE',
@@ -76,6 +77,12 @@ export const PATH_CODE_REGISTRY: Record<PathCode, PathCodeOption> = {
     label: 'On Save Success',
     description: 'Occurs when a creature succeeds on a saving throw.',
     tooltip: 'When a save succeeds.'
+  },
+  [PATH_CODE.ON_CHECK_SUCCESS]: {
+    code: PATH_CODE.ON_CHECK_SUCCESS,
+    label: 'On Check Success',
+    description: 'Occurs when the actor succeeds on the check.',
+    tooltip: 'When a check succeeds.'
   },
   [PATH_CODE.START_OF_TURN]: {
     code: PATH_CODE.START_OF_TURN,
@@ -270,6 +277,7 @@ export const PATH_CODES_BY_TRIGGER: Record<Trigger, readonly PathCode[]> = {
   ],
   [TRIGGER.INCOMING_SAVING_THROW]: [PATH_CODE.PASSIVE],
   [TRIGGER.SAVING_THROW]: [PATH_CODE.ON_SAVE_FAIL, PATH_CODE.ON_SAVE_SUCCESS],
+  [TRIGGER.CHECK]: [PATH_CODE.ON_CHECK_SUCCESS],
   [TRIGGER.ENTER_AREA]: [PATH_CODE.PASSIVE]
 } as const
 

@@ -253,15 +253,14 @@ export async function readEncounterActionChoices(
   ).map((current) =>
     requireEncounterBasicActionDefinition({ gameSystemId: state.gameSystemId }, current)
   )
-  // Authored entries resolve through RESOLVE_ACTION; the rest keep the closed USE_BASIC_ACTION path.
-  const authoredEntries = catalogue.filter(({ document }) => document.effects.length > 0)
+  // Every entry is an authored action that resolves through RESOLVE_ACTION.
   let basicActionChoices: EncounterActionChoiceDto[] = []
-  if (authoredEntries.length > 0 && actor.kind !== 'CUSTOM') {
+  if (catalogue.length > 0 && actor.kind !== 'CUSTOM') {
     const system = await tx.ports.requireSystem(state.gameSystemId)
     const discovered = discoverEncounterBasicActions({
       actorId: actor.id,
       gameSystemId: state.gameSystemId,
-      entries: authoredEntries,
+      entries: catalogue,
       conditionDefinitionIds: system.conditionTypes.map((condition) => condition.id),
       abilityDefinitions:
         'abilities' in system ? system.abilities.map(({ id, code }) => ({ id, code })) : []
@@ -275,7 +274,7 @@ export async function readEncounterActionChoices(
         return {
           id: action.actionId,
           label: action.label,
-          rulesText: authoredEntries.find(({ definition }) => definition.id === action.definitionId)
+          rulesText: catalogue.find(({ definition }) => definition.id === action.definitionId)
             ?.document.rulesText,
           grip: null,
           wieldConflict: null,
@@ -286,24 +285,6 @@ export async function readEncounterActionChoices(
       })
     )
   }
-  const basicActions = await Promise.all(
-    catalogue
-      .filter(({ document }) => document.effects.length === 0)
-      .map(async ({ definition, document }) => ({
-        definitionId: definition.id,
-        label: definition.label,
-        rulesText: document.rulesText,
-        actionCost: document.actionCost,
-        target: document.mechanics.includes('STABILIZE_TARGET')
-          ? ('DYING_CHARACTER' as const)
-          : null,
-        // A custom actor has no System allowance to spend.
-        warnings:
-          actor.kind === 'CUSTOM'
-            ? []
-            : (await readEconomy({ code: document.actionCost, amount: 1 })).warnings
-      }))
-  )
   // The relationships the actor holds and may try to break free of against a fixed DC (D105).
   const heldEscapes = (
     actor.kind === 'CUSTOM' ? [] : await listActiveRuleEffects(tx, turnEffectOwner(actor, state.id))
@@ -358,7 +339,6 @@ export async function readEncounterActionChoices(
         : null,
     actions,
     unavailableActions,
-    basicActions,
     basicActionChoices,
     escapes,
     optionalRules: activeOptionalCombatDefinitions({

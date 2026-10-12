@@ -7,6 +7,7 @@ import type {
 import { ACTIVATION_OPTIONS, TRIGGER_OPTIONS } from '#core'
 import { buildNodeMap, type NodeMap } from '#utils'
 import { RANGE_NODE_MAP, SAVING_THROW_NODE_MAP, SHAPE_NODE_MAP } from '../../shared/maps/index.js'
+import { CHECK_NODE_MAP } from './check.js'
 import { TARGETING_NODE_MAP } from './targeting.js'
 
 const INVOCATION_KIND_OPTIONS: { code: EffectInvocationKind; label: string }[] = [
@@ -107,6 +108,15 @@ export const INVOCATION_NODE_MAP: InvocationNodeMap = invocation.define(
           presentation: 'inline',
           order: 3,
           showIf: and([local.field(['triggerCode']).eq('SAVING_THROW')])
+        })
+      )
+      .set(
+        'check',
+        groupObject(['check'], 'Check', () => CHECK_NODE_MAP, {
+          presentation: 'inline',
+          order: 3,
+          requiredIf: local.field(['triggerCode']).eq('CHECK'),
+          showIf: local.field(['triggerCode']).eq('CHECK')
         })
       )
       .set(

@@ -8,13 +8,12 @@ import { persistEncounterEscape } from '@artificer-toolkit/encounter-persistence
 import type { EncounterWriteTransaction } from '@artificer-toolkit/encounter-persistence/ports'
 import type {
   EscapeRelationshipInputDto,
-  ResolveRuleOccurrenceInputDto,
-  UseEncounterBasicActionInputDto
+  ResolveRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounterRuleCommands'
+import type { LiveSessionEncounterBasicActionCommitInput } from '@artificer-toolkit/schema/api/liveSessionEncounterBasicAction'
 import type { LiveSessionEncounterRulesInput } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import type { LiveSessionRulesRevisions } from '@artificer-toolkit/schema/api/liveSessionRulesRevisions'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
-import { planNativeLiveBasicAction } from './nativeBasicAction.js'
 import { planNativeLiveBasicActionResponse } from './nativeBasicActionResponse.js'
 import { planNativeLiveEscape } from './nativeEscapeAction.js'
 import { planNativeLiveEscapeResponse } from './nativeEscapeActionResponse.js'
@@ -30,7 +29,7 @@ import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
 import type { RoomEncounterStore, RoomTransaction } from './roomEncounterStore.js'
 import type { RoomInputs } from './roomInputs.js'
 
-type RoomBasicActionInput = {
+export type RoomBasicActionInput = {
   ctx: EncounterWriteTransaction
   store: RoomEncounterStore
   transaction: RoomTransaction
@@ -81,18 +80,16 @@ async function readBasicActionRevisions(input: RoomBasicActionInput) {
   return observed.filter((revision) => revision.scope !== 'CHARACTER' || ids.has(revision.id))
 }
 
-/** Basic actions spend their allowance and retain effects and receipts in the same native commit. */
-export async function executeRoomEncounterBasicAction(
-  input: RoomBasicActionInput & { command: UseEncounterBasicActionInputDto }
+/** A planned CHECK action spends its allowance and pends or settles its check in one native commit. */
+export async function persistRoomEncounterCheckAction(
+  input: RoomBasicActionInput & { planned: LiveSessionEncounterBasicActionCommitInput }
 ) {
-  const { ctx, store, transaction, inputs, scope, observed } = input
-  const plan = await planNativeLiveBasicAction(scope, input.command, basicActionExecution(input))
-  if (plan.kind === 'REPLAY') return plan.result
+  const { ctx, store, transaction, inputs, scope, observed, planned } = input
   const revisions = await readBasicActionRevisions(input)
-  mergeNativeRulesRevisions(revisions, plan.input.revisions)
+  mergeNativeRulesRevisions(revisions, planned.revisions)
   return persistEncounterBasicAction(
     ctx,
-    { ...plan.input, revisions },
+    { ...planned, revisions },
     {
       validateReadFence: (state, actors, fence) =>
         assertRoomEncounterReadFence(ctx, transaction, observed, state, actors, {

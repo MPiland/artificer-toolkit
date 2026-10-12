@@ -18,7 +18,7 @@ import {
   buildCharacterRestPreview,
   validateCharacterRestRollEvidence
 } from '@artificer-toolkit/rules-runtime/character/sheetRest'
-import { effectiveHitPointMaximum } from '@artificer-toolkit/rules-runtime/encounterActiveGrants'
+import { effectiveHitPointMaximum } from '@artificer-toolkit/rules-runtime/character/activeEffectGrantTotals'
 import type { QueryCtx } from '../_generated/server'
 import { query } from '../lib/queries'
 import { requireIdentity } from '../lib/identity'

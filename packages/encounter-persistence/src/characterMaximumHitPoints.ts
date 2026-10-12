@@ -1,4 +1,4 @@
-import { effectiveHitPointMaximum } from '@artificer-toolkit/rules-runtime/encounterActiveGrants'
+import { effectiveHitPointMaximum } from '@artificer-toolkit/rules-runtime/character/activeEffectGrantTotals'
 import { listActiveRuleEffects } from './effectStore.js'
 import type { EncounterDocument, EncounterReadContext } from './store.js'
 

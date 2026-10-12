@@ -2079,9 +2079,12 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
       : (invocation.activation.code === 'ACTION' ||
           invocation.activation.code === 'BONUS_ACTION') &&
         invocation.activation.amount === 1)
+  // A CHECK action rolls its authored check against a fixed DC; a contest waits for ATTACK-7.
+  const checkAction = invocation.triggerCode === 'CHECK'
   if (
     invocation.kind !== 'ACTION' ||
-    invocation.triggerCode !== 'ACTIVATED' ||
+    (invocation.triggerCode !== 'ACTIVATED' &&
+      !(invocation.triggerCode === 'CHECK' && invocation.check.dc.kind === 'FIXED')) ||
     !supportedActivation ||
     (!supportsSelf && !supportsSingleTarget) ||
     invocation.shape
@@ -2093,7 +2096,7 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
     !entry ||
     entry.resolutionKind !== 'DIRECT' ||
     entry.groupKind !== 'SINGLE' ||
-    entry.pathCode !== 'ON_USE' ||
+    entry.pathCode !== (checkAction ? 'ON_CHECK_SUCCESS' : 'ON_USE') ||
     (entry.maintenanceDefinitionId && !supportedRecurringPlan(action) && !grantPlan) ||
     ((entry.duration || entry.lifecycle) && !supportedRecurringPlan(action) && !grantPlan) ||
     entry.rangeOverride ||
@@ -2111,6 +2114,14 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
       'D&D Effect action resource use must use a normalized charge identity and positive safe cost.'
     )
   const outcome = entry.outcome
+  if (checkAction && outcome.effectKind !== 'STABILIZE')
+    unsupported('D&D check action outcome is not supported yet.')
+  // A resolution names no check choice, so the action must list exactly one.
+  if (
+    invocation.triggerCode === 'CHECK' &&
+    invocation.check.checks.skillIds.length + invocation.check.checks.abilityDefinitionIds.length !== 1
+  )
+    unsupported('D&D check action must list exactly one check.')
   if (outcome.effectKind === 'CONDITION') {
     uuid(outcome.conditionId, 'D&D condition definition identity')
     if (!(action.conditionDefinitionIds ?? []).includes(outcome.conditionId))

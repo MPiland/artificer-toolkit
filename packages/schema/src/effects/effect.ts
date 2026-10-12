@@ -14,6 +14,7 @@ import {
   triggerCodeSchema
 } from '../shared/enums.js'
 import { activationDtoSchema } from './activation.js'
+import { checkDtoSchema } from './check.js'
 import { rangeDtoSchema } from '../shared/range.js'
 import { savingThrowDtoSchema } from '../shared/savingThrow.js'
 import { shapeDtoSchema } from '../shared/shape.js'
@@ -105,6 +106,13 @@ export const invocationDtoSchema: z.ZodMiniType<EffectInvocationAuthored> = lazy
       savingThrow: savingThrowDtoSchema,
       activation: reactionActivationDtoSchema,
       reactionMovementTrigger: reactionMovementTriggerBindingDtoSchema
+    }),
+    z.object({
+      ...actionInvocationShape(),
+      triggerCode: z.literal(triggerCodeSchema._zod.def.entries.CHECK),
+      check: checkDtoSchema,
+      activation: activationDtoSchema,
+      reactionMovementTrigger: z.optional(z.never())
     }),
     z.object({
       ...actionInvocationShape(),

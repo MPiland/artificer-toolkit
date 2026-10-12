@@ -41,7 +41,6 @@ describe('canonical Convex import preparation', () => {
           definition.document.kind === 'BASIC_ACTION'
             ? [
                 definition.document.actionCost,
-                definition.document.mechanics,
                 definition.document.effects.flatMap((effect) =>
                   effect.paths.flatMap((path) =>
                     path.resultBlock.outcomes.map((outcome) => outcome.effectKind)
@@ -52,15 +51,15 @@ describe('canonical Convex import preparation', () => {
         ])
       )
     ).toEqual({
-      Dash: ['ACTION', [], ['MOVEMENT_RULE']],
-      Disengage: ['ACTION', [], ['APPLY_GRANT']],
-      Dodge: ['ACTION', [], ['APPLY_GRANT']],
-      Help: ['ACTION', [], ['APPLY_GRANT']],
-      Hide: ['ACTION', [], ['MANUAL_ADJUDICATION']],
-      Ready: ['ACTION', [], ['MANUAL_ADJUDICATION']],
-      Search: ['ACTION', [], ['MANUAL_ADJUDICATION']],
-      'Use an Object': ['ACTION', [], ['MANUAL_ADJUDICATION']],
-      'First Aid': ['ACTION', ['STABILIZE_TARGET'], []]
+      Dash: ['ACTION', ['MOVEMENT_RULE']],
+      Disengage: ['ACTION', ['APPLY_GRANT']],
+      Dodge: ['ACTION', ['APPLY_GRANT']],
+      Help: ['ACTION', ['APPLY_GRANT']],
+      Hide: ['ACTION', ['MANUAL_ADJUDICATION']],
+      Ready: ['ACTION', ['MANUAL_ADJUDICATION']],
+      Search: ['ACTION', ['MANUAL_ADJUDICATION']],
+      'Use an Object': ['ACTION', ['MANUAL_ADJUDICATION']],
+      'First Aid': ['ACTION', ['STABILIZE']]
     })
     expect(catalogue.map((definition) => definition.id).sort()).toEqual(
       Object.values(SRD_BASIC_ACTION_IDS).sort()
@@ -145,10 +144,15 @@ describe('canonical Convex import preparation', () => {
       dispositionKind: 'WILLING',
       excludesSelf: true
     })
-    // First Aid is a DC 10 Wisdom (Medicine) check.
-    expect(
-      catalogue.find((definition) => definition.label === 'First Aid')?.document
-    ).toMatchObject({ check: { checkDefinitionId: SRD_MEDICINE_SKILL_ID, dc: 10 } })
+    // First Aid is a CHECK action: a DC 10 Wisdom (Medicine) check whose success stabilizes the target.
+    const firstAid = catalogue.find((definition) => definition.label === 'First Aid')?.document
+    expect(firstAid?.kind === 'BASIC_ACTION' && firstAid.effects[0]?.invocation).toMatchObject({
+      triggerCode: 'CHECK',
+      check: {
+        checks: { skillIds: [SRD_MEDICINE_SKILL_ID], abilityDefinitionIds: [] },
+        dc: { kind: 'FIXED', value: 10 }
+      }
+    })
     for (const definition of catalogue) {
       expect(definition.document.gameSystemId).toBe(srdBaselineContent.vocabulary.systems[0]!.id)
       expect(definition.checksum).toBe(checksumRuleDocument(definition.document))

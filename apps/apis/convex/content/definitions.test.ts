@@ -528,7 +528,7 @@ describe('native reusable definitions', () => {
     expect(published.current?.document).toMatchObject({
       kind: 'BASIC_ACTION',
       actionCost: 'BONUS_ACTION',
-      mechanics: ['STABILIZE_TARGET']
+      effects: [{ invocation: { triggerCode: 'CHECK' } }]
     })
     const created = await a.mutation(create, {
       gameSystemId: srdSystemRecord.id,

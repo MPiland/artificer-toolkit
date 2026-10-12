@@ -24,6 +24,11 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
 import { consumeEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomyConsumption'
 import { overridesActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionRuleWarnings'
+import { actionTargetActorId } from '@artificer-toolkit/schema/api/encounterRuleCommands'
+import {
+  isEncounterBasicActionId,
+  readEncounterBasicActionEffect
+} from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
 import { requireEncounterBasicActionDefinition } from '@artificer-toolkit/rules-runtime/encounterBasicActions'
 import { deleteConsumedGrants } from './consumedGrantPersistence.js'
 import { readBasicActionAdmission } from './basicActionAdmission.js'
@@ -68,15 +73,19 @@ export async function persistEncounterBasicAction(
   await callbacks.validateReadFence(state, actors, input)
   // The System's catalogue is its platform-published entries (user-authored Systems are deferred).
   const currentDefinition = await callbacks.readDefinition(
-    command.definitionId,
+    input.definition.id,
     input.expectedUserId
   )
-  const { definition, document } = requireEncounterBasicActionDefinition(state, currentDefinition)
-  const actor = actors.find((entry) => entry.id === command.actorId)
-  const ruleActors = actors.filter((entry) => entry.kind !== 'CHARACTER')
+  const entry = requireEncounterBasicActionDefinition(state, currentDefinition)
+  const { definition } = entry
+  const effect = readEncounterBasicActionEffect(entry, command.actionId)
+  const targetActorId = actionTargetActorId(command.target)
+  const actor = actors.find((candidate) => candidate.id === command.actorId)
+  const ruleActors = actors.filter((candidate) => candidate.kind !== 'CHARACTER')
   if (
     !actor ||
-    document.effects.length > 0 ||
+    effect?.invocation.triggerCode !== 'CHECK' ||
+    !isEncounterBasicActionId(actor.id, command.actionId) ||
     definition.version !== input.definition.version ||
     definition.checksum !== input.definition.checksum ||
     input.rules.actors.length !== ruleActors.length ||
@@ -84,12 +93,10 @@ export async function persistEncounterBasicAction(
   )
     throw new Error('Live Session basic action scope mismatch.')
   const { check } = input
-  // An action with a check rolls it unless its target was not dying (an acknowledged warning).
+  // A check action rolls its check unless its target was not dying (an acknowledged warning).
   if (
-    document.check === null
-      ? check !== null
-      : check === null &&
-        !input.ruleOverrides.some((warning) => warning.code === 'TARGET_NOT_DYING')
+    check === null &&
+    !input.ruleOverrides.some((warning) => warning.code === 'TARGET_NOT_DYING')
   )
     throw new Error('Live Session basic action check scope mismatch.')
   if (check === null && input.consumedGrants.length > 0)
@@ -104,7 +111,7 @@ export async function persistEncounterBasicAction(
       pendingContext.definition.version !== definition.version ||
       pendingContext.definition.checksum !== definition.checksum ||
       pendingContext.helperActorId !== actor.id ||
-      pendingContext.targetActorId !== command.targetActorId ||
+      pendingContext.targetActorId !== targetActorId ||
       check.snapshot.optionalCombatSnapshotChecksum !== state.optionalCombatSnapshotChecksum ||
       check.snapshot.graph.source.gameSystemId !== state.gameSystemId)
   )
@@ -173,7 +180,7 @@ export async function persistEncounterBasicAction(
       campaignId: campaign.id,
       state,
       nextVersion: nextState.version,
-      commandType: 'USE_BASIC_ACTION',
+      commandType: 'RESOLVE_ACTION',
       commandId: command.commandId,
       commandFingerprint: fingerprint,
       execution: check.settlement.execution,
@@ -193,13 +200,18 @@ export async function persistEncounterBasicAction(
       campaignId: campaign.id,
       encounterId: run.id,
       commandId: command.commandId,
-      commandType: 'USE_BASIC_ACTION',
+      commandType: 'RESOLVE_ACTION',
       label: definition.label,
+      ruleOccurrenceId: null,
+      ruleResultChecksum: null,
+      optionalCombatSnapshotChecksum: null,
       ruleOverrides: input.ruleOverrides,
-      receipt: {
+      consumedGrants: input.consumedGrants,
+      addedConcentrationCasterId: null,
+      speedBonusTurn: null,
+      checkReceipt: {
         actorId: actor.id,
         actionEconomy: input.actionEconomy,
-        consumedGrants: input.consumedGrants,
         checkOccurrenceId: storedOccurrence?.id ?? null
       },
       commandFingerprint: fingerprint,
@@ -224,7 +236,7 @@ export async function insertSettledCheckReceipt(
     campaignId: string
     state: Pick<EncounterRunState, 'id' | 'version' | 'optionalCombatSnapshotChecksum'>
     nextVersion: number
-    commandType: 'USE_BASIC_ACTION' | 'ESCAPE_RELATIONSHIP'
+    commandType: 'RESOLVE_ACTION' | 'ESCAPE_RELATIONSHIP'
     commandId: string
     commandFingerprint: string
     execution: StoredRuleExecutionResultDto

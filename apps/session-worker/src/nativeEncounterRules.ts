@@ -73,6 +73,7 @@ import {
   liveSessionEncounterActionPendingInputSchema,
   liveSessionEncounterActionCommitInputSchema
 } from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
+import { planNativeLiveCheckAction } from './nativeCheckAction.js'
 import { planNativeLiveEncounterSettlement } from './nativeEncounterSettlement.js'
 import {
   discoverNativeLegendaryResistance,
@@ -412,6 +413,10 @@ export async function planNativeLiveEncounterAction(
       targetIds: [prepared.target.id],
       capture
     })
+  const mechanicFacts =
+    prepared.source.kind === 'CHARACTER_ACTION'
+      ? prepared.source.candidate.mechanicFacts
+      : prepared.source.capability.mechanicFacts
   const ruleWarnings = evaluateEncounterActionRuleWarnings({
     preparedWarnings: suppressed
       ? [...prepared.ruleWarnings, encounterActionSuppressedWarning(activationCode)]
@@ -428,10 +433,9 @@ export async function planNativeLiveEncounterAction(
       prepared.target,
       deadCharacterIdsOfTargets(movementTargets.values())
     ),
-    stabilize: (prepared.source.kind === 'CHARACTER_ACTION'
-      ? prepared.source.candidate.mechanicFacts
-      : prepared.source.capability.mechanicFacts
-    ).outcomes.some((outcome) => outcome.kind === 'EFFECT' && outcome.effectKind === 'STABILIZE')
+    stabilize: mechanicFacts.outcomes.some(
+      (outcome) => outcome.kind === 'EFFECT' && outcome.effectKind === 'STABILIZE'
+    )
       ? {
           targetDying: isEncounterTargetDying(movementTargets.get(prepared.target.id))
         }
@@ -451,6 +455,35 @@ export async function planNativeLiveEncounterAction(
       warnings: ruleWarnings.warnings
     })
   const actionEconomy = economy?.consumption ?? null
+  if (mechanicFacts.invocation.triggerCode === 'CHECK') {
+    // Only an authored basic action runs on the check test; a feature or Character action
+    // authored with it would otherwise run its outcome with no check.
+    const actor = movementTargets.get(prepared.actor.id)
+    const target = movementTargets.get(prepared.target.id)
+    if (prepared.source.kind !== 'BASIC_ACTION' || responseCommand || !actor || !target)
+      throw new Error('Only a basic action can make a check.')
+    return {
+      ...(await planNativeLiveCheckAction({
+        scope,
+        command,
+        fingerprint: admission.fingerprint,
+        capability: prepared.source.capability,
+        state,
+        system,
+        actors,
+        actor,
+        target,
+        overrides: ruleWarnings.overrides,
+        actionEconomy,
+        autoRoll: requireAutoRoll(prepared.actor.id),
+        runtime: executionOptions.runtime,
+        random: executionOptions.random,
+        revisions
+      })),
+      dependencies,
+      revisions
+    }
+  }
   const maintenance = await prepareNativeLiveActionMaintenance({
     prepared,
     activeEffectsByActorId,

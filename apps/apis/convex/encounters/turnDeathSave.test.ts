@@ -17,7 +17,6 @@ import {
   type CommandResult,
   type Fixture
 } from '../../tests/fixtures/liveCharacterRun'
-import { SRD_BASIC_ACTION_IDS } from '@artificer-toolkit/source-data/srd/basicActions.js'
 import { SRD_BASIC_ACTION_DEFINITIONS } from '@artificer-toolkit/source-data/srd/basicActions.js'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { healersKit } from '@artificer-toolkit/source-data/srd/equipment/healers-kit.js'
@@ -392,15 +391,52 @@ function useFirstAid(
   from: CommandResult,
   acknowledgedWarnings: EncounterRuleWarningCodeDto[] = []
 ) {
+  return resolveFirstAid(fixture, from, ['TARGET_RANGE_UNCHECKED', ...acknowledgedWarnings])
+}
+
+/** The authored basic action a creature is offered, once the SRD catalogue is published to the Run. */
+async function basicActionIdOf(
+  fixture: Fixture,
+  from: CommandResult,
+  actorId: string,
+  label: string
+) {
+  await fixture.t.mutation(internal.content.import.importDefinitions, {
+    contentSourceId: SRD_CONTENT_SOURCE.id,
+    definitions: SRD_BASIC_ACTION_DEFINITIONS
+  })
+  await invalidateRoomInputs(fixture.campaign.id, ['PLAY'])
+  await checkpointLiveRoom(fixture.campaign.id)
+  const choice = (
+    await fixture.owner.caller.query(api.encounters.actionChoices.get, {
+      encounterId: fixture.run.id,
+      expectedVersion: from.projection.version,
+      actorId
+    })
+  )?.basicActionChoices.find((entry) => entry.label === label)
+  if (!choice) throw new Error(`The actor is not offered ${label}.`)
+  return choice.id
+}
+
+/** First Aid is an authored basic action, resolved like any action against the dying hero. */
+async function resolveFirstAid(
+  fixture: Fixture,
+  from: CommandResult,
+  acknowledgedWarnings: EncounterRuleWarningCodeDto[]
+) {
   const ally = allyOf(fixture)
+  const actionId = await basicActionIdOf(fixture, from, ally.id, 'First Aid')
   return execute(fixture, (base) => ({
     ...base,
-    type: 'USE_BASIC_ACTION',
+    type: 'RESOLVE_ACTION',
+    acceptedWieldConflict: null,
+    acknowledgedWarnings,
     expectedVersion: from.projection.version,
     actorId: ally.id,
-    definitionId: SRD_BASIC_ACTION_IDS.FIRST_AID,
-    targetActorId: fixture.hero.id,
-    acknowledgedWarnings: ['TARGET_RANGE_UNCHECKED', ...acknowledgedWarnings]
+    actionId,
+    target: { kind: 'ACTOR', actorId: fixture.hero.id },
+    optionalCombatIntent: null,
+    sceneContext: null
   }))
 }
 
@@ -441,20 +477,7 @@ async function heldEffects(fixture: Fixture, characterId: string) {
 
 /** The hostile Creature Helps the ally at its turn, overriding the warnings that raises. */
 async function creatureHelpsAlly(fixture: Fixture, from: CommandResult) {
-  await fixture.t.mutation(internal.content.import.importDefinitions, {
-    contentSourceId: SRD_CONTENT_SOURCE.id,
-    definitions: SRD_BASIC_ACTION_DEFINITIONS
-  })
-  await invalidateRoomInputs(fixture.campaign.id, ['PLAY'])
-  await checkpointLiveRoom(fixture.campaign.id)
-  const help = (
-    await fixture.owner.caller.query(api.encounters.actionChoices.get, {
-      encounterId: fixture.run.id,
-      expectedVersion: from.projection.version,
-      actorId: fixture.enemy.id
-    })
-  )?.basicActionChoices.find(({ label }) => label === 'Help')
-  if (!help) throw new Error('The Creature is not offered Help.')
+  const helpId = await basicActionIdOf(fixture, from, fixture.enemy.id, 'Help')
   return execute(fixture, (base) => ({
     ...base,
     type: 'RESOLVE_ACTION',
@@ -462,7 +485,7 @@ async function creatureHelpsAlly(fixture: Fixture, from: CommandResult) {
     acknowledgedWarnings: ['TARGET_DISPOSITION', 'ACTION_ECONOMY_UNAVAILABLE'],
     expectedVersion: from.projection.version,
     actorId: fixture.enemy.id,
-    actionId: help.id,
+    actionId: helpId,
     target: { kind: 'ACTOR', actorId: allyOf(fixture).id },
     optionalCombatIntent: null,
     sceneContext: null
@@ -600,15 +623,7 @@ describe('First Aid, a System basic action with a check (D98)', () => {
     const { fixture, atAlly } = await dyingHeroAtAllyTurn()
     await allyRollsAutomatically(fixture, true)
     const refused = JSON.stringify(
-      await execute(fixture, (base) => ({
-        ...base,
-        type: 'USE_BASIC_ACTION',
-        expectedVersion: atAlly.projection.version,
-        actorId: allyOf(fixture).id,
-        definitionId: SRD_BASIC_ACTION_IDS.FIRST_AID,
-        targetActorId: fixture.hero.id,
-        acknowledgedWarnings: []
-      })).then(
+      await resolveFirstAid(fixture, atAlly, []).then(
         () => null,
         (caught: unknown) => caught
       )

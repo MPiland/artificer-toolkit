@@ -37,10 +37,12 @@ export async function readNativeDisarmReplay(
     receipt.version > run.version
   )
     throw new Error('Stored Disarm command receipt mismatch.')
+  const { ruleOccurrenceId } = receipt
+  if (ruleOccurrenceId === null) throw new Error('Stored Disarm command receipt mismatch.')
   const replayReceipt = readEncounterReplayReceipt(receipt)
   const occurrence = await ctx.db
     .query('encounterRuleOccurrences')
-    .withIndex('by_publicId', (q) => q.eq('id', receipt.ruleOccurrenceId))
+    .withIndex('by_publicId', (q) => q.eq('id', ruleOccurrenceId))
     .unique()
   const ruleReceipt = await ctx.db
     .query('encounterRuleReceipts')

@@ -7,7 +7,7 @@ import { prepareLiveCharacterSheetFacts } from './nativeCharacterRules.js'
 import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
 import { listActiveRuleEffects } from '@artificer-toolkit/encounter-persistence/effectStore'
 import { resolveCharacterRecordStats } from '@artificer-toolkit/rules-runtime/character/characterRecordStats'
-import { effectiveHitPointMaximum } from '@artificer-toolkit/rules-runtime/encounterActiveGrants'
+import { effectiveHitPointMaximum } from '@artificer-toolkit/rules-runtime/character/activeEffectGrantTotals'
 import {
   readCharacterInventoryBase,
   readCharacterPlay

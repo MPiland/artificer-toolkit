@@ -1,4 +1,5 @@
 import type {
+  CheckAuthored,
   OutcomeAuthored,
   SavingThrowAuthored,
   EffectPathAuthored,
@@ -63,7 +64,17 @@ export type ActionEffectInvocationAuthored<TTrigger extends Trigger = Trigger> =
     }
   | {
       kind?: typeof EFFECT_INVOCATION_KIND.ACTION
-      triggerCode: Exclude<TTrigger, 'SAVING_THROW'>
+      triggerCode: Extract<TTrigger, 'CHECK'>
+      check: CheckAuthored
+      activation: ActivationAuthored
+      resourceUse?: ResourceUseAuthored
+      range: RangeAuthored
+      shape?: ShapeAuthored
+      targeting?: TargetingAuthored
+    }
+  | {
+      kind?: typeof EFFECT_INVOCATION_KIND.ACTION
+      triggerCode: Exclude<TTrigger, 'SAVING_THROW' | 'CHECK'>
       activation: ActivationAuthored
       resourceUse?: ResourceUseAuthored
       range: RangeAuthored
@@ -84,7 +95,7 @@ export type PassiveEffectInvocationAuthored<TTrigger extends Trigger = Trigger> 
     }
   | {
       kind: typeof EFFECT_INVOCATION_KIND.PASSIVE
-      triggerCode: Exclude<TTrigger, 'SAVING_THROW'>
+      triggerCode: Exclude<TTrigger, 'SAVING_THROW' | 'CHECK'>
       range: RangeAuthored
       shape?: ShapeAuthored
       targeting?: TargetingAuthored

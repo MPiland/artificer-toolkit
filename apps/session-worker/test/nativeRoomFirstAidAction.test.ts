@@ -3,7 +3,11 @@ import {
   creatureFeature,
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
-import { SRD_BASIC_ACTION_IDS } from '@artificer-toolkit/source-data/srd/basicActions.js'
+import { encounterBasicActionId } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
+import {
+  SRD_BASIC_ACTION_DEFINITIONS,
+  SRD_BASIC_ACTION_IDS
+} from '@artificer-toolkit/source-data/srd/basicActions.js'
 import { SRD_MEDICINE_SKILL_ID } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
@@ -17,6 +21,12 @@ const FIGHTER_ACTOR_ID = testUuid(0xf01)
 const FIGHTER_ID = testUuid(0xf02)
 /** The hostile Wolf's touch cannot be measured in a room without a Scene, as for the Healer's Kit. */
 const TOUCH_WITHOUT_SCENE = ['TARGET_DISPOSITION', 'TARGET_RANGE_UNCHECKED']
+const firstAidDefinition = SRD_BASIC_ACTION_DEFINITIONS.find(
+  ({ id }) => id === SRD_BASIC_ACTION_IDS.FIRST_AID
+)
+if (firstAidDefinition?.document.kind !== 'BASIC_ACTION')
+  throw new Error('Missing First Aid fixture.')
+const firstAidEffectId = firstAidDefinition.document.effects[0]!.id
 /** The zero-based draw of a d20 that shows `face`. */
 const draw = (face: number) => face - 1
 
@@ -63,17 +73,14 @@ async function useFirstAid(
   room: Awaited<ReturnType<typeof firstAidRoom>>,
   acknowledgedWarnings: string[] = TOUCH_WITHOUT_SCENE
 ) {
-  const command = {
-    type: 'USE_BASIC_ACTION',
-    encounterId: room.room.encounterId,
-    commandId: crypto.randomUUID(),
-    expectedVersion: await room.version(),
-    actorId: WOLF_ID,
-    definitionId: SRD_BASIC_ACTION_IDS.FIRST_AID,
-    targetActorId: FIGHTER_ACTOR_ID,
-    acknowledgedWarnings
-  }
-  return { command, answer: await room.send(command) }
+  return room.startAction(
+    FIGHTER_ACTOR_ID,
+    acknowledgedWarnings,
+    null,
+    null,
+    encounterBasicActionId(WOLF_ID, SRD_BASIC_ACTION_IDS.FIRST_AID, firstAidEffectId),
+    WOLF_ID
+  )
 }
 
 /** The one basic action check a Run settled: its stored rule execution and the occurrence state. */

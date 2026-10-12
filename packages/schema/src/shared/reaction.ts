@@ -36,6 +36,7 @@ export const reactionMovementTriggerBindingDtoSchema = lazySchema(() =>
             'ON_HIT',
             'ON_MISS',
             'ON_CRIT',
+            'ON_CHECK_SUCCESS',
             'ON_SAVE_FAIL',
             'ON_SAVE_SUCCESS',
             'START_OF_TURN',

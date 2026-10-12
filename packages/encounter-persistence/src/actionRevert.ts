@@ -129,22 +129,29 @@ export async function revertLastEncounterAction(
   const rootIndex = recent.findIndex((entry) => entry.commandType !== 'RESOLVE_RULE_OCCURRENCE')
   const root = recent[rootIndex]
   if (root?.commandType === 'REVERT_LAST_ACTION') unavailable('The last action was already undone.')
-  if (root?.commandType === 'USE_BASIC_ACTION' || root?.commandType === 'ESCAPE_RELATIONSHIP') {
+  if (
+    (root?.commandType === 'RESOLVE_ACTION' && root.checkReceipt !== null) ||
+    root?.commandType === 'ESCAPE_RELATIONSHIP'
+  ) {
     // A check the helper's roll settled is the one command after its action.
     const answer = recent[0]
+    const checkOccurrenceId =
+      root.commandType === 'RESOLVE_ACTION'
+        ? root.checkReceipt?.checkOccurrenceId
+        : root.receipt.checkOccurrenceId
     if (
       rootIndex > 1 ||
       (rootIndex === 1 &&
         (answer?.commandType !== 'RESOLVE_RULE_OCCURRENCE' ||
-          answer.ruleOccurrenceId !== root.receipt.checkOccurrenceId))
+          answer.ruleOccurrenceId !== checkOccurrenceId))
     )
       throw new Error('Stored Encounter command scan is invalid.')
     const scope = { run, state, campaign, input, fingerprint, userId }
-    return root.commandType === 'USE_BASIC_ACTION'
-      ? revertBasicAction(ctx, { ...scope, root })
+    return root.commandType === 'RESOLVE_ACTION'
+      ? revertCheckAction(ctx, { ...scope, root })
       : revertEscape(ctx, { ...scope, root })
   }
-  if (!root || root.commandType !== 'RESOLVE_ACTION')
+  if (!root || root.commandType !== 'RESOLVE_ACTION' || root.ruleOccurrenceId === null)
     unavailable(
       root
         ? 'Only an action can be undone, and something else happened after it.'
@@ -515,10 +522,7 @@ type RevertScope = {
   input: RevertLastEncounterActionInputDto
   fingerprint: string
   userId: string
-  root: Extract<
-    StoredCommand,
-    { commandType: 'RESOLVE_ACTION' | 'USE_BASIC_ACTION' | 'ESCAPE_RELATIONSHIP' }
-  >
+  root: Extract<StoredCommand, { commandType: 'RESOLVE_ACTION' | 'ESCAPE_RELATIONSHIP' }>
 }
 
 /** Writes the restored actors, the next Run version and the undo's own timeline entry. */
@@ -580,21 +584,22 @@ async function commitRevert(
 }
 
 /**
- * Undoes the Run's last basic action (Q11) exactly from its receipt: its allowance use and the
- * grants its check used up.
+ * Undoes the Run's last CHECK action exactly from its receipt: its allowance use and the grants its
+ * check used up.
  */
-async function revertBasicAction(
+async function revertCheckAction(
   ctx: EncounterCharacterWriteTransaction,
-  input: RevertScope & { root: Extract<StoredCommand, { commandType: 'USE_BASIC_ACTION' }> }
+  input: RevertScope & { root: Extract<StoredCommand, { commandType: 'RESOLVE_ACTION' }> }
 ): Promise<EncounterCommandResultDto> {
   const { state, root } = input
-  const { receipt } = root
+  const receipt = root.checkReceipt
+  if (!receipt) throw new Error('Stored check action receipt is missing.')
   const actors = await readRunActors(ctx, state)
   const actor = actors.find((entry) => entry.id === receipt.actorId)
   if (!actor) unavailable('The actor left the Encounter; adjust manually.')
   const restored = returnSpentActionEconomy(actor, receipt.actionEconomy)
   // The Help the check used goes back to its holder.
-  await restoreConsumedGrants(ctx, receipt.consumedGrants)
+  await restoreConsumedGrants(ctx, root.consumedGrants)
   const updatedAt = new Date().toISOString()
   const stabilized = receipt.checkOccurrenceId
     ? await readBasicActionCheckStabilize(ctx, {
@@ -702,7 +707,7 @@ async function readBasicActionCheckStabilize(
   ctx: EncounterCharacterWriteTransaction,
   input: {
     state: EncounterRunState
-    root: Extract<StoredCommand, { commandType: 'USE_BASIC_ACTION' }>
+    root: { version: number }
     occurrenceId: string
   }
 ) {

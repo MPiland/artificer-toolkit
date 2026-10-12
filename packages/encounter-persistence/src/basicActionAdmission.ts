@@ -1,7 +1,8 @@
 import type {
   EscapeRelationshipInputDto,
-  UseEncounterBasicActionInputDto
+  ResolveEncounterActionInputDto
 } from '@artificer-toolkit/schema/api/encounters'
+import { actionTargetActorId } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import type { LiveSessionEncounterRulesInput } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { readEncounterActorDefeated } from './characterStates.js'
@@ -13,7 +14,7 @@ import { presentEncounterResultForMember } from './resultPresentation.js'
 import { presentTimelineEntry, requireUnusedEvidenceCommandId } from './timelineEntries.js'
 import type { EncounterReadTransaction } from './ports.js'
 
-type BasicActionRootCommand = UseEncounterBasicActionInputDto | EscapeRelationshipInputDto
+type BasicActionRootCommand = ResolveEncounterActionInputDto | EscapeRelationshipInputDto
 type BasicActionScopeInput = Omit<LiveSessionEncounterRulesInput, 'request'>
 
 /**
@@ -100,24 +101,23 @@ async function admitCurrentActorCommand<TCommand extends BasicActionRootCommand>
 }
 
 /**
- * Admits a basic action (Q11) for the room: the caller controls the current actor and a player's
- * target is visible to them.
+ * Admits a CHECK action (a basic action resolved through RESOLVE_ACTION) for the room: the caller
+ * controls the current actor and a player's target is visible to them.
  */
 export async function readBasicActionAdmission(
   ctx: EncounterReadTransaction,
-  input: BasicActionScopeInput & { command: UseEncounterBasicActionInputDto }
+  input: BasicActionScopeInput & { command: ResolveEncounterActionInputDto }
 ) {
-  const command: UseEncounterBasicActionInputDto = {
+  if (input.command.target.kind !== 'ACTOR') throw new Error('A check action aims at one creature.')
+  const command: ResolveEncounterActionInputDto = {
     ...input.command,
     encounterId: input.command.encounterId.toLowerCase(),
     commandId: input.command.commandId.toLowerCase(),
     actorId: input.command.actorId.toLowerCase(),
-    definitionId: input.command.definitionId.toLowerCase(),
-    targetActorId: input.command.targetActorId?.toLowerCase() ?? null
+    target: { kind: 'ACTOR', actorId: actionTargetActorId(input.command.target).toLowerCase() }
   }
   return admitCurrentActorCommand(ctx, input, command, async ({ state, role }) => {
-    if (!command.targetActorId) return
-    const target = await readRunActor(ctx, state, command.targetActorId)
+    const target = await readRunActor(ctx, state, actionTargetActorId(command.target))
     // Players aim only at actors in their projection; a hidden actor reads as unavailable.
     if (role !== 'OWNER' && !target.public) rejectDomain('TARGET_UNAVAILABLE')
     if (await readEncounterActorDefeated(ctx, target))

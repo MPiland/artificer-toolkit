@@ -135,9 +135,15 @@ async function admitCheckResponse<
     )
     .unique()
   // The fingerprint covers the command's type, so a root of the other check kind cannot match.
+  const rootCheckOccurrenceId =
+    root?.commandType === 'RESOLVE_ACTION'
+      ? root.checkReceipt?.checkOccurrenceId
+      : root?.commandType === 'ESCAPE_RELATIONSHIP'
+        ? root.receipt.checkOccurrenceId
+        : undefined
   if (
-    (root?.commandType !== 'USE_BASIC_ACTION' && root?.commandType !== 'ESCAPE_RELATIONSHIP') ||
-    root.receipt.checkOccurrenceId !== occurrence.id ||
+    !root ||
+    rootCheckOccurrenceId !== occurrence.id ||
     root.commandFingerprint !== context.commandFingerprint
   )
     throw new Error('The check root command is unavailable.')

@@ -11,6 +11,7 @@ import { readEncounterReplayReceipt, replayEncounterCommandResult } from './repl
 import { requireEncounterActorControl } from './actorController.js'
 import { presentTimelineEntry, requireUnusedEvidenceCommandId } from './timelineEntries.js'
 import { rejectDomain } from './domainRejections.js'
+import { presentEncounterResultForMember } from './resultPresentation.js'
 import type { EncounterDocument } from './store.js'
 import type { EncounterReadTransaction } from './ports.js'
 
@@ -77,12 +78,32 @@ export async function readNativeEncounterActionAdmission(
       replay.commandFingerprint !== fingerprint
     )
       rejectDomain('COMMAND_ID_REUSED')
+    // A CHECK action's root records its check occurrence, not a mechanics batch; its stored result replays whole.
+    if (replay.checkReceipt !== null)
+      return {
+        kind: 'REPLAY' as const,
+        input,
+        run,
+        state,
+        campaign,
+        membership,
+        fingerprint,
+        result: await presentEncounterResultForMember(ctx, {
+          campaign,
+          membership,
+          result: await replayEncounterCommandResult(ctx, state, replay)
+        })
+      }
     const replayReceipt = readEncounterReplayReceipt(replay)
-    if (checksumCanonicalJson(JSON.parse(replay.commandJson)) !== fingerprint)
+    const { ruleOccurrenceId } = replay
+    if (
+      ruleOccurrenceId === null ||
+      checksumCanonicalJson(JSON.parse(replay.commandJson)) !== fingerprint
+    )
       throw new Error('Stored Encounter action receipt mismatch.')
     const occurrence = await ctx.db
       .query('encounterRuleOccurrences')
-      .withIndex('by_publicId', (query) => query.eq('id', replay.ruleOccurrenceId))
+      .withIndex('by_publicId', (query) => query.eq('id', ruleOccurrenceId))
       .unique()
     const receipt = await ctx.db
       .query('encounterRuleReceipts')

@@ -1,10 +1,8 @@
 import type { DamageAuthored } from './damage.js'
 import type { ConditionAuthored } from './condition.js'
 import type { ActivationAuthored } from './effect.js'
+import type { CheckChoiceAuthored, CheckDcAuthored } from './check.js'
 import { EFFECT_KIND, type MeasurementUnitCode } from '#core'
-
-/** The checks a creature may choose from: any listed skill check or ability check (D105). */
-export type CheckChoiceAuthored = { skillIds: string[]; abilityDefinitionIds: string[] }
 
 export type ActorRelationshipModuleAuthored =
   | { id: string; order: number; kind: 'TARGET_SIZE_MAXIMUM'; sizeCode: string }
@@ -35,7 +33,7 @@ export type ActorRelationshipModuleAuthored =
       kind: 'ESCAPE_CHECK'
       activation: ActivationAuthored
       checks: CheckChoiceAuthored
-      dc: { kind: 'FIXED'; value: number } | { kind: 'CONTEST'; checks: CheckChoiceAuthored }
+      dc: CheckDcAuthored
       actorKinds: Array<'TARGET' | 'CREATURE_WITHIN_REACH'>
     }
   | {

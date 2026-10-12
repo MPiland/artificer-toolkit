@@ -255,9 +255,22 @@ export const encounterStoredRunCommandSchema = lazySchema(() =>
       commandType: z.literal('RESOLVE_ACTION'),
       /** The resolved action's display name, from the prepared action; the timeline shows it. */
       label: z.nullable(z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160))),
-      ruleOccurrenceId: postgresUuidSchema,
-      ruleResultChecksum: projectionChecksumSchema,
-      optionalCombatSnapshotChecksum: projectionChecksumSchema,
+      /** Null on a CHECK action's root: the check's own occurrence is in `checkReceipt`, and no mechanics batch ran yet. */
+      ruleOccurrenceId: z.nullable(postgresUuidSchema),
+      ruleResultChecksum: z.nullable(projectionChecksumSchema),
+      optionalCombatSnapshotChecksum: z.nullable(projectionChecksumSchema),
+      /** What a CHECK action spent, so the GM's undo can reverse it exactly; null for every other action. */
+      checkReceipt: z._default(
+        z.nullable(
+          z.strictObject({
+            actorId: postgresUuidSchema,
+            actionEconomy: z.nullable(encounterActionEconomyTransitionDtoSchema),
+            /** The action's d20 check occurrence, pending or settled; null when an overridden warning ended it before the roll. */
+            checkOccurrenceId: z.nullable(postgresUuidSchema)
+          })
+        ),
+        null
+      ),
       /** Warnings the submitter overrode ("Do it anyway"); the GM timeline badges each one. */
       ruleOverrides: encounterRuleWarningsDtoSchema,
       /** The grants (Vicious Mockery, Help) this action's rolls used up; its undo gives them back. */
@@ -289,23 +302,6 @@ export const encounterStoredRunCommandSchema = lazySchema(() =>
       )
     }),
     z.extend(encounterStoredRunCommandResultSchema, {
-      commandType: z.literal('USE_BASIC_ACTION'),
-      /** The catalogue entry's name when it was used; the timeline shows it. */
-      label: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)),
-      ruleOverrides: encounterRuleWarningsDtoSchema,
-      /** What the action changed, so the GM's undo can reverse it exactly. */
-      receipt: z.strictObject({
-        actorId: postgresUuidSchema,
-        actionEconomy: z.nullable(encounterActionEconomyTransitionDtoSchema),
-        /** The helper's one-check grants (Help) the check used up; undo gives them back. */
-        consumedGrants: z
-          .array(activeRuleEffectRecordSchema)
-          .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER)),
-        /** The action's d20 check occurrence, pending or settled; null for an action with no check. */
-        checkOccurrenceId: z.nullable(postgresUuidSchema)
-      })
-    }),
-    z.extend(encounterStoredRunCommandResultSchema, {
       commandType: z.literal('ESCAPE_RELATIONSHIP'),
       /** The timeline label: plain "Escape", which never names a grappler a player cannot see (D100). */
       label: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)),
@@ -333,7 +329,7 @@ export const encounterStoredRunCommandSchema = lazySchema(() =>
     }),
     z.extend(encounterStoredRunCommandResultSchema, {
       commandType: z.literal('REVERT_LAST_ACTION'),
-      /** The undone RESOLVE_ACTION or USE_BASIC_ACTION command, and the action's occurrence if any. */
+      /** The undone RESOLVE_ACTION command, and the action's occurrence if any. */
       revertedCommandId: postgresUuidSchema,
       ruleOccurrenceId: z.nullable(postgresUuidSchema)
     }),

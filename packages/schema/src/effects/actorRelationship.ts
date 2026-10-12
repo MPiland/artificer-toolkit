@@ -1,5 +1,6 @@
 import { z, lazySchema, lazySchemaParts } from '../zod.js'
 import { activationDtoSchema } from './activation.js'
+import { checkChoiceDtoSchema, checkDcDtoSchema } from './check.js'
 import { damageDtoSchema } from './damage.js'
 import { conditionDtoSchema } from './condition.js'
 import {
@@ -15,25 +16,6 @@ const moduleBase = lazySchemaParts(() => ({
 }))
 const uuidList = lazySchema(() =>
   authoredNestedCollectionSchema(postgresUuidSchema).check(z.minLength(1))
-)
-const sortedUniqueUuids = lazySchema(() =>
-  authoredNestedCollectionSchema(postgresUuidSchema).check(
-    z.superRefine((ids: string[], ctx) => {
-      if (ids.some((id, index) => index > 0 && ids[index - 1]! >= id))
-        ctx.addIssue({ code: 'custom', message: 'Check identities must be unique and sorted.' })
-    })
-  )
-)
-/** The checks a creature may choose from: any listed skill check or ability check (D105). */
-const checkChoiceDtoSchema = lazySchema(() =>
-  z
-    .object({ skillIds: sortedUniqueUuids, abilityDefinitionIds: sortedUniqueUuids })
-    .check(
-      z.refine(
-        (value) => value.skillIds.length + value.abilityDefinitionIds.length > 0,
-        'Name at least one allowed check.'
-      )
-    )
 )
 
 export const actorRelationshipModuleDtoSchema = lazySchema(() =>
@@ -66,13 +48,7 @@ export const actorRelationshipModuleDtoSchema = lazySchema(() =>
       kind: z.literal('ESCAPE_CHECK'),
       activation: activationDtoSchema,
       checks: checkChoiceDtoSchema,
-      dc: z.discriminatedUnion('kind', [
-        z.object({
-          kind: z.literal('FIXED'),
-          value: z.number().check(z.int()).check(z.positive())
-        }),
-        z.object({ kind: z.literal('CONTEST'), checks: checkChoiceDtoSchema })
-      ]),
+      dc: checkDcDtoSchema,
       actorKinds: authoredNestedCollectionSchema(z.enum(['TARGET', 'CREATURE_WITHIN_REACH'])).check(
         z.minLength(1)
       )

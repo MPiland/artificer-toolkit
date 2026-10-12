@@ -74,6 +74,7 @@ export const triggerCodeSchema = lazySchema(() =>
     'RANGED_SPELL_ATTACK',
     'INCOMING_SAVING_THROW',
     'SAVING_THROW',
+    'CHECK',
     'ENTER_AREA'
   ])
 )
@@ -307,6 +308,7 @@ export const pathCodeSchema = lazySchema(() =>
     'ON_CRIT',
     'ON_SAVE_FAIL',
     'ON_SAVE_SUCCESS',
+    'ON_CHECK_SUCCESS',
     'START_OF_TURN',
     'END_OF_TURN',
     'ON_MOVE',

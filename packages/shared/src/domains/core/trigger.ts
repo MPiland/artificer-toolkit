@@ -10,6 +10,7 @@ export const TRIGGER = {
   RANGED_SPELL_ATTACK: 'RANGED_SPELL_ATTACK',
   INCOMING_SAVING_THROW: 'INCOMING_SAVING_THROW',
   SAVING_THROW: 'SAVING_THROW',
+  CHECK: 'CHECK',
   ENTER_AREA: 'ENTER_AREA'
 } as const
 
@@ -73,6 +74,14 @@ export const TRIGGER_REGISTRY: Record<Trigger, TriggerOption> = {
     label: 'Saving Throw',
     description: 'The target of this effect is required to attempt a saving throw.',
     tooltip: 'Target rolls saving throw.'
+  },
+
+  CHECK: {
+    code: TRIGGER.CHECK,
+    label: 'Check',
+    description:
+      'The actor makes one of the authored ability or skill checks against a fixed DC; the outcomes run only on success.',
+    tooltip: 'Actor rolls a check.'
   },
 
   ENTER_AREA: {
