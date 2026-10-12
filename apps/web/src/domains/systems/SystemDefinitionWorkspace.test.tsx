@@ -4,6 +4,7 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { getFunctionName, type FunctionReference } from 'convex/server'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { api } from '@artificer-toolkit/apis/convex/api'
 import type { ReusableDefinitionWorkspaceDto } from '@artificer-toolkit/schema/api/reusableDefinitions'
 import { getSystemDefinition, getSystemDefinitions } from '#app/data/systems/queries'
 import { SystemDefinitionWorkspace } from './SystemDefinitionWorkspace'
@@ -24,11 +25,11 @@ vi.mock('convex/react', async (importOriginal) => ({
   ...(await importOriginal<typeof import('convex/react')>()),
   useMutation: (reference: FunctionReference<'mutation'>) => {
     switch (getFunctionName(reference)) {
-      case 'content/definitions:create':
+      case getFunctionName(api.content.definitions.create):
         return mocks.create
-      case 'content/definitions:saveDraft':
+      case getFunctionName(api.content.definitions.saveDraft):
         return mocks.saveDraft
-      case 'content/definitions:publish':
+      case getFunctionName(api.content.definitions.publish):
         return mocks.publish
       default:
         throw new Error(`Unexpected mutation: ${getFunctionName(reference)}`)
@@ -55,13 +56,13 @@ function renderWorkspace(
   const list = getSystemDefinitions(workspace.gameSystemId)
   expect(list.queryKey).toEqual([
     'convexQuery',
-    'content/definitions:list',
+    getFunctionName(api.content.definitions.list),
     { gameSystemId: workspace.gameSystemId, cursor: null, limit: 10 }
   ])
   expect(list.queryFn).toBeUndefined()
   expect(getSystemDefinition(workspace.id).queryKey).toEqual([
     'convexQuery',
-    'content/definitions:get',
+    getFunctionName(api.content.definitions.get),
     { definitionId: workspace.id }
   ])
   queryClient.setQueryDefaults(list.queryKey, { queryFn: firstPage })

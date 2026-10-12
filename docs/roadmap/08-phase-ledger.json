@@ -442,7 +442,13 @@
             {
               "text": "Web tests run real contracts: fixtures and story data parse through the shared DTO schemas, mocks use the real generated api references, and the Sheet harness takes its rest preview from the real projection",
               "status": "IN_PROGRESS",
-              "proof": [],
+              "proof": [
+                "apps/web/src/domains/fixtureContracts.test.ts",
+                "apps/web/src/domains/characters/sheet/rest/CharacterSheetRestMulticlass.test.tsx › offers mixed hit dice and the Max HP adjustment in the short rest",
+                "apps/web/src/domains/characters/sheet/rest/CharacterSheetRestControl.test.tsx",
+                "apps/web/src/domains/characters/builder/evaluation/builderEvaluator.test.ts"
+              ],
+              "note": "Lane 2 (2026-10-12) completed every web folder except campaigns/vtt: mocks use generated api refs, fixtures and story data parse through DTO schemas, and Sheet rest previews come from the real rules-runtime projection (playedCharacters.fixture.ts). Open: (1) the campaigns/vtt violations listed in docs/handoffs/lane-2-platform-closeout.md; (2) post-merge Storybook runs of the Rest, MarketingProductCapture and Builder Native Draft stories, which cannot start in a worktree.",
               "origin": ["REL-10"],
               "id": "PLATFORM-12.1"
             }

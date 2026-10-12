@@ -11,13 +11,16 @@ import { GmRollVisibilityToggle } from './GmRollVisibilityToggle'
 
 const setGmRollVisibility = vi.hoisted(() => vi.fn().mockResolvedValue(null))
 
-vi.mock('convex/react', () => ({
-  useMutation: (reference: Parameters<typeof getFunctionName>[0]) => {
-    if (getFunctionName(reference) !== 'account:setGmRollVisibility')
-      throw new Error('Unexpected mutation')
-    return setGmRollVisibility
+vi.mock('convex/react', async () => {
+  const { api } = await import('@artificer-toolkit/apis/convex/api')
+  return {
+    useMutation: (reference: Parameters<typeof getFunctionName>[0]) => {
+      if (getFunctionName(reference) !== getFunctionName(api.account.setGmRollVisibility))
+        throw new Error('Unexpected mutation')
+      return setGmRollVisibility
+    }
   }
-}))
+})
 
 function renderToggle(stored?: RollVisibilityDto) {
   const client = new QueryClient({

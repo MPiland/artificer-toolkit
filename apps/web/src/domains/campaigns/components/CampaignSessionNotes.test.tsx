@@ -1,7 +1,7 @@
 import { screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { deletedCampaignAuthorLabel } from '@artificer-toolkit/schema/api/campaignCommunication'
-import type { CampaignSessionNoteSectionDto } from '@artificer-toolkit/schema/api/campaignSessions'
+import { campaignSessionNoteSectionDtoSchema } from '@artificer-toolkit/schema/api/campaignSessions'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { SessionSectionEditor } from './CampaignSessionNotes'
 
@@ -14,7 +14,7 @@ vi.mock('#app/ui/primitives/RichTextEditor/RichTextEditor', () => ({
   default: () => null
 }))
 
-const section = {
+const section = campaignSessionNoteSectionDtoSchema.parse({
   id: '11111111-1111-4111-8111-111111111111',
   campaignId: '22222222-2222-4222-8222-222222222222',
   sessionId: '33333333-3333-4333-8333-333333333333',
@@ -28,7 +28,7 @@ const section = {
   version: 0,
   createdAt: '2026-09-25T12:00:00.000Z',
   updatedAt: '2026-09-25T12:00:00.000Z'
-} satisfies CampaignSessionNoteSectionDto
+})
 
 describe('SessionSectionEditor', () => {
   it('marks a shared note and names its author to readers', () => {

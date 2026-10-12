@@ -7,9 +7,9 @@ import { getFunctionName } from 'convex/server'
 import { useMutation as useConvexMutation } from 'convex/react'
 import { getSystemListPage } from '#app/data/systems/queries'
 import { expect, mocked, userEvent, waitFor, within } from 'storybook/test'
-import type {
-  CampaignPlaySettingsDto,
-  CampaignPlaySettingsOptionsDto
+import {
+  campaignPlaySettingsDtoSchema,
+  campaignPlaySettingsOptionsDtoSchema
 } from '@artificer-toolkit/schema/api/campaignSettings'
 import { authoredRouteStoryUser } from '#domains/authoredRouteStory.fixtures'
 import { createTabletopCampaign } from '../vtt/CampaignTabletop.stories.fixtures'
@@ -39,7 +39,7 @@ const systems = [
   }
 ]
 
-const playSettings = {
+const playSettings = campaignPlaySettingsDtoSchema.parse({
   campaignId: campaign.id,
   normalCadenceDays: 14,
   expectedDurationMinutes: 240,
@@ -57,9 +57,9 @@ const playSettings = {
   optionalCombatRuleDefinitionIds: [optionalRuleId],
   version: 1,
   updatedAt: '2026-08-30T00:00:00.000Z'
-} satisfies CampaignPlaySettingsDto
+})
 
-const playSettingsOptions = {
+const playSettingsOptions = campaignPlaySettingsOptionsDtoSchema.parse({
   initiativePolicies: [
     {
       definitionId: initiativePolicyId,
@@ -69,7 +69,7 @@ const playSettingsOptions = {
     }
   ],
   optionalCombatRules: [{ definitionId: optionalRuleId, label: 'Flanking', kind: 'FLANKING' }]
-} satisfies CampaignPlaySettingsOptionsDto
+})
 
 let savedTableSettingsInput: unknown
 
@@ -118,7 +118,9 @@ const meta = {
       mocked(useConvexMutation).mockImplementation((reference) => {
         const mutate: ReturnType<typeof useConvexMutation> = Object.assign(
           async (input?: unknown) => {
-            if (getFunctionName(reference) === 'campaigns/playSettings:save') {
+            if (
+              getFunctionName(reference) === getFunctionName(convexApi.campaigns.playSettings.save)
+            ) {
               savedTableSettingsInput = input
               const updated = {
                 ...playSettings,
@@ -133,7 +135,8 @@ const meta = {
               )
               return updated
             }
-            if (getFunctionName(reference) === 'campaigns/update:update') return campaign
+            if (getFunctionName(reference) === getFunctionName(convexApi.campaigns.update.update))
+              return campaign
             throw new Error(`Unconfigured native mutation: ${getFunctionName(reference)}`)
           },
           { withOptimisticUpdate: () => mutate }

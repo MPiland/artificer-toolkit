@@ -2,6 +2,7 @@ import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { ConvexReactClient } from 'convex/react'
 import { getFunctionName } from 'convex/server'
+import { api } from '@artificer-toolkit/apis/convex/api'
 import { afterAll, afterEach, beforeAll, beforeEach, expect, vi } from 'vitest'
 
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
@@ -37,9 +38,9 @@ function mockPanelQueries(
 ) {
   const read = (reference: Parameters<ConvexReactClient['query']>[0]) => {
     switch (getFunctionName(reference)) {
-      case 'characters/panels:get':
+      case getFunctionName(api.characters.panels.get):
         return panel
-      case 'characters/preparationOptions:get':
+      case getFunctionName(api.characters.preparationOptions.get):
         return preparation ?? null
       default:
         throw new Error(`Unconfigured native query: ${getFunctionName(reference)}`)
@@ -153,7 +154,7 @@ describe('Character Sheet inspector', () => {
     expect(screen.queryByRole('button', { name: /save sheet/i })).not.toBeInTheDocument()
     expect(
       watch.mock.calls.every(
-        ([reference]) => getFunctionName(reference) === 'characters/panels:get'
+        ([reference]) => getFunctionName(reference) === getFunctionName(api.characters.panels.get)
       )
     ).toBe(true)
   })
@@ -206,7 +207,8 @@ describe('Character Sheet inspector', () => {
     ).toHaveTextContent('The server rejected this change.')
     expect(
       watch.mock.calls.some(
-        ([reference]) => getFunctionName(reference) === 'characters/sheetSlices:get'
+        ([reference]) =>
+          getFunctionName(reference) === getFunctionName(api.characters.sheetSlices.get)
       )
     ).toBe(false)
   })

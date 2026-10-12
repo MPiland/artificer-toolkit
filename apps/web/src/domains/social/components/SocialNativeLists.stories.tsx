@@ -1,14 +1,15 @@
 import type { Meta, StoryObj } from '@storybook/tanstack-react'
 import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import type { SocialListingDto } from '@artificer-toolkit/schema/api/socialHub'
+import { api } from '@artificer-toolkit/apis/convex/api'
+import { socialListingDtoSchema } from '@artificer-toolkit/schema/api/socialHub'
 import { usePaginatedQuery } from 'convex/react'
 import { getFunctionName } from 'convex/server'
 import { expect, fn, mocked, userEvent, waitFor, within } from 'storybook/test'
 import type { SocialHubSearch } from '../socialSearch'
 import { SocialDiscoveryView } from './SocialDiscoveryView'
 import { SocialHostingView } from './SocialHostingView'
-const listing: SocialListingDto = {
+const listing = socialListingDtoSchema.parse({
   listingPublicId: 'aaaaaaaa-1111-4111-8111-111111111111',
   host: { profilePublicId: 'bbbbbbbb-2222-4222-8222-222222222222', username: 'HarborHost' },
   title: 'The Glass Harbor',
@@ -44,7 +45,7 @@ const listing: SocialListingDto = {
   isFree: true,
   publishedAt: '2024-03-01T12:00:00.000Z',
   version: 2
-}
+})
 const reads = fn()
 const more = fn()
 function Fixture({
@@ -57,7 +58,7 @@ function Fixture({
   const [search, setSearch] = useState<SocialHubSearch>({ view: 'discover' })
   const [loaded, setLoaded] = useState(false)
   const queryClient = useQueryClient()
-  queryClient.setQueryDefaults(['convexQuery', 'content/systems:list'], {
+  queryClient.setQueryDefaults(['convexQuery', getFunctionName(api.content.systems.list)], {
     queryFn: async () => ({ page: [], isDone: true, continueCursor: '' })
   })
   mocked(usePaginatedQuery).mockImplementation((reference, args, options) => {
@@ -104,18 +105,18 @@ export const BrowseThenSearch: Story = {
     await expect(canvas.queryByText('No tables match')).not.toBeInTheDocument()
     await userEvent.click(canvas.getByRole('button', { name: 'Load more tables' }))
     await expect(await canvas.findByRole('link', { name: listing.title })).toBeVisible()
-    await expect(more).toHaveBeenCalledWith('social/discoveryLists:browse', 8)
+    await expect(more).toHaveBeenCalledWith(getFunctionName(api.social.discoveryLists.browse), 8)
     await userEvent.type(
       canvas.getByRole('textbox', { name: 'Search table titles and summaries' }),
       'harbor'
     )
     await expect(reads).toHaveBeenCalledWith(
-      'social/discoveryLists:search',
+      getFunctionName(api.social.discoveryLists.search),
       expect.objectContaining({ query: 'harbor' }),
       { initialNumItems: 8 }
     )
     await userEvent.click(canvas.getByRole('button', { name: 'Load more tables' }))
-    await expect(more).toHaveBeenCalledWith('social/discoveryLists:search', 8)
+    await expect(more).toHaveBeenCalledWith(getFunctionName(api.social.discoveryLists.search), 8)
     await userEvent.click(canvas.getByRole('button', { name: 'Filters' }))
     const body = within(canvasElement.ownerDocument.body)
     await waitFor(() =>
@@ -138,7 +139,7 @@ export const HostedPage: Story = {
     await expect(canvas.queryByText('No hosted listings')).not.toBeInTheDocument()
     await userEvent.click(canvas.getByRole('button', { name: 'Load more hosted listings' }))
     await expect(await canvas.findByRole('link', { name: listing.title })).toBeVisible()
-    await expect(more).toHaveBeenCalledWith('social/listings:listOwned', 8)
+    await expect(more).toHaveBeenCalledWith(getFunctionName(api.social.listings.listOwned), 8)
     await expect(canvas.getByRole('button', { name: 'Edit listing' })).toBeVisible()
     await expect(canvas.getByRole('button', { name: 'Review applications' })).toBeVisible()
     await userEvent.click(canvas.getByRole('button', { name: 'Invite player' }))

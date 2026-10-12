@@ -1,4 +1,6 @@
+import { getFunctionName } from 'convex/server'
 import { describe, expect, it } from 'vitest'
+import { api } from '@artificer-toolkit/apis/convex/api'
 import { getSpell } from './queries'
 
 describe('native Spell detail queries', () => {
@@ -12,7 +14,7 @@ describe('native Spell detail queries', () => {
 
     expect(active.queryKey).toEqual([
       'convexQuery',
-      'content/details:get',
+      getFunctionName(api.content.details.get),
       { id: 'spell-public-alias', subjectKind: 'SPELL' }
     ])
     expect(draft.queryKey).not.toEqual(active.queryKey)

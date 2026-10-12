@@ -1,8 +1,12 @@
 import type { Meta, StoryObj } from '@storybook/tanstack-react'
 import { expect, userEvent, waitFor, within } from 'storybook/test'
-import { characterSheetMulticlassFixture } from '../fixtures/characterRest.fixtures'
+import { createMulticlassSheet, createSheet } from '../fixtures/playedCharacters.fixture'
 import { CharacterSheetFixtureView as CharacterSheetView } from '../fixtures/CharacterSheetFixtureView'
-import { characterSheetStoryMeta, mockHitDieRoll } from '../fixtures/characterSheetStory.fixture'
+import {
+  characterSheetStoryMeta,
+  mockHitDieRoll,
+  mockMulticlassHitDieRoll
+} from '../fixtures/characterSheetStory.fixture'
 import { mockSheetRestPreview } from '../fixtures/characterSheetNativeStory.fixture'
 
 const meta = {
@@ -18,7 +22,7 @@ type Story = StoryObj<typeof meta>
 export const ShortRestPreview: Story = {
   args: {
     initialTab: 'actions',
-    sheet: characterSheetMulticlassFixture
+    sheet: createSheet()
   },
   play: async ({ canvas, canvasElement }) => {
     await userEvent.click(canvas.getByRole('button', { name: 'Short Rest' }))
@@ -28,10 +32,7 @@ export const ShortRestPreview: Story = {
     await userEvent.click(
       await within(dialog).findByRole('button', { name: 'Add one d10 hit die' })
     )
-    const addD8 = within(dialog).getByRole('button', { name: 'Add one d8 hit die' })
-    await waitFor(() => expect(addD8).toBeEnabled())
-    await userEvent.click(addD8)
-    await expect(within(dialog).getByRole('button', { name: 'Roll 1d10 + 1d8 + 4' })).toBeVisible()
+    await expect(await within(dialog).findByRole('button', { name: 'Roll 1d10 + 1' })).toBeVisible()
     await expect(within(dialog).getByRole('button', { name: 'Take Short Rest' })).toBeVisible()
   }
 }
@@ -44,11 +45,51 @@ export const ShortRestRolled: Story = {
     const dialog = await within(context.canvasElement.ownerDocument.body).findByRole('dialog', {
       name: 'Short Rest'
     })
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Roll 1d10 + 1d8 + 4' }))
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Roll 1d10 + 1' }))
+    await expect(await within(dialog).findByText('6 rolled', {}, { timeout: 20_000 })).toBeVisible()
+    await expect(within(dialog).getByText('1 HP selected')).toBeVisible()
+  }
+}
+
+export const ShortRestMulticlassPreview: Story = {
+  args: {
+    initialTab: 'actions',
+    sheet: createMulticlassSheet()
+  },
+  play: async ({ canvas, canvasElement }) => {
+    await userEvent.click(canvas.getByRole('button', { name: 'Short Rest' }))
+    const dialog = await within(canvasElement.ownerDocument.body).findByRole('dialog', {
+      name: 'Short Rest'
+    })
     await expect(
-      await within(dialog).findByText('15 rolled', {}, { timeout: 20_000 })
+      await within(dialog).findByLabelText('Remove the current Max HP adjustment')
+    ).toBeInTheDocument()
+    await userEvent.click(
+      await within(dialog).findByRole('button', { name: 'Add one d10 hit die' })
+    )
+    const addD8 = within(dialog).getByRole('button', { name: 'Add one d8 hit die' })
+    await waitFor(() => expect(addD8).toBeEnabled())
+    await userEvent.click(addD8)
+    await expect(
+      await within(dialog).findByRole('button', { name: 'Roll 1d10 + 1d8 + 2' })
     ).toBeVisible()
-    await expect(within(dialog).getByText('6 HP selected')).toBeVisible()
+    await expect(within(dialog).getByRole('button', { name: 'Take Short Rest' })).toBeVisible()
+  }
+}
+
+export const ShortRestMulticlassRolled: Story = {
+  ...ShortRestMulticlassPreview,
+  beforeEach: mockMulticlassHitDieRoll,
+  play: async (context) => {
+    await ShortRestMulticlassPreview.play?.(context)
+    const dialog = await within(context.canvasElement.ownerDocument.body).findByRole('dialog', {
+      name: 'Short Rest'
+    })
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Roll 1d10 + 1d8 + 2' }))
+    await expect(
+      await within(dialog).findByText('13 rolled', {}, { timeout: 20_000 })
+    ).toBeVisible()
+    await expect(within(dialog).getByText('12 HP selected')).toBeVisible()
   }
 }
 
@@ -65,14 +106,14 @@ export const ShortRestPreviewMobile: Story = {
 export const LongRestPreview: Story = {
   args: {
     initialTab: 'actions',
-    sheet: characterSheetMulticlassFixture
+    sheet: createSheet()
   },
   play: async ({ canvas, canvasElement }) => {
     await userEvent.click(canvas.getByRole('button', { name: 'Long Rest' }))
     const dialog = await within(canvasElement.ownerDocument.body).findByRole('dialog', {
       name: 'Long Rest'
     })
-    const healingSummary = await within(dialog).findByText('Restores to 26 / 26')
+    const healingSummary = await within(dialog).findByText('Restores to 11 / 11')
     await waitFor(() => expect(healingSummary).toBeVisible())
     await expect(
       await within(dialog).findByRole('button', { name: 'Take Long Rest' })

@@ -99,7 +99,7 @@ describe('native character sheet mutations', () => {
           .fn()
           .mockImplementation((reference: Parameters<OptimisticLocalStore['getAllQueries']>[0]) => {
             const name = getFunctionName(reference)
-            if (name === 'characters/sheetSlices:get') {
+            if (name === getFunctionName(convexApi.characters.sheetSlices.get)) {
               return [
                 {
                   args: { campaignId, id: sheet.meta.characterId, slice: 'COMMON' },
@@ -137,7 +137,7 @@ describe('native character sheet mutations', () => {
                 }
               ]
             }
-            if (name === 'campaigns/characterSheet:panel') {
+            if (name === getFunctionName(convexApi.campaigns.characterSheet.panel)) {
               return [
                 {
                   args: { campaignId, characterId: sheet.meta.characterId, target: panel.target },
@@ -238,7 +238,7 @@ describe('native character sheet mutations', () => {
         getAllQueries: vi
           .fn()
           .mockImplementation((reference: Parameters<OptimisticLocalStore['getAllQueries']>[0]) =>
-            getFunctionName(reference) === 'characters/sheetSlices:get'
+            getFunctionName(reference) === getFunctionName(convexApi.characters.sheetSlices.get)
               ? [
                   {
                     args: { id: sheet.meta.characterId, slice: 'COMMON' },

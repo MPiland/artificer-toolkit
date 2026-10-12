@@ -1,8 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/tanstack-react'
 import { useQueryClient } from '@tanstack/react-query'
+import { api } from '@artificer-toolkit/apis/convex/api'
 import {
-  campaignInviteVersionInputSchema,
-  type CampaignInviteDto
+  campaignInviteDtoSchema,
+  campaignInviteVersionInputSchema
 } from '@artificer-toolkit/schema/api/campaignCore'
 import { useMutation as useConvexMutation, usePaginatedQuery } from 'convex/react'
 import { getFunctionName } from 'convex/server'
@@ -11,7 +12,7 @@ import { SocialListingInvitations } from './SocialListingInvitations'
 
 const listingPublicId = '00000000-0000-4000-8000-000000000002'
 const invitePublicId = 'aaaaaaaa-0000-4000-8000-000000000004'
-const invitation = {
+const invitation = campaignInviteDtoSchema.parse({
   invitePublicId,
   listingPublicId,
   listingTitle: 'The Glass Harbor',
@@ -23,20 +24,23 @@ const invitation = {
   respondedAt: null,
   createdAt: '2024-04-01T11:30:00.000Z',
   version: 1
-} satisfies CampaignInviteDto
+})
 const revokeCall = fn()
 
 function NativeFixture({ missing = false, fail = false }: { missing?: boolean; fail?: boolean }) {
   const queryClient = useQueryClient()
-  queryClient.setQueryDefaults(['convexQuery', 'social/invitationReads:getForListing'], {
-    retry: false,
-    queryFn: async () => {
-      if (missing) throw new Error('Unavailable')
-      return invitation
+  queryClient.setQueryDefaults(
+    ['convexQuery', getFunctionName(api.social.invitationReads.getForListing)],
+    {
+      retry: false,
+      queryFn: async () => {
+        if (missing) throw new Error('Unavailable')
+        return invitation
+      }
     }
-  })
+  )
   mocked(usePaginatedQuery).mockImplementation((reference, args) =>
-    getFunctionName(reference) === 'social/admissionLists:listListingInvitations'
+    getFunctionName(reference) === getFunctionName(api.social.admissionLists.listListingInvitations)
       ? {
           results:
             args !== 'skip' && 'group' in args && args.group === 'PENDING' ? [invitation] : [],
@@ -49,7 +53,7 @@ function NativeFixture({ missing = false, fail = false }: { missing?: boolean; f
   mocked(useConvexMutation).mockImplementation((reference) => {
     const mutate: ReturnType<typeof useConvexMutation> = Object.assign(
       async (input?: unknown) => {
-        if (getFunctionName(reference) !== 'social/invitations:revoke')
+        if (getFunctionName(reference) !== getFunctionName(api.social.invitations.revoke))
           throw new Error('Unexpected mutation')
         revokeCall(campaignInviteVersionInputSchema.parse(input))
         if (fail) throw new Error('Revoke failed.')

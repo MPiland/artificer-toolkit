@@ -2,6 +2,7 @@ import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { getFunctionName } from 'convex/server'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { api } from '@artificer-toolkit/apis/convex/api'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { createTabletopCampaign } from '../vtt/CampaignTabletop.stories.fixtures'
 import { CampaignSettings } from './CampaignSettings'
@@ -20,7 +21,7 @@ vi.mock('@tanstack/react-router', async (importOriginal) => ({
 vi.mock('@convex-dev/react-query', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@convex-dev/react-query')>()),
   convexQuery: (reference: Parameters<typeof getFunctionName>[0]) => {
-    if (getFunctionName(reference) !== 'campaigns/queries:settings')
+    if (getFunctionName(reference) !== getFunctionName(api.campaigns.queries.settings))
       throw new Error(`Unexpected query ${getFunctionName(reference)}`)
     return { queryKey: ['settings', campaign.id], queryFn: async () => campaign }
   }
@@ -29,7 +30,8 @@ vi.mock('@convex-dev/react-query', async (importOriginal) => ({
 vi.mock('convex/react', async (importOriginal) => ({
   ...(await importOriginal<typeof import('convex/react')>()),
   useMutation: (reference: Parameters<typeof getFunctionName>[0]) => {
-    if (getFunctionName(reference) === 'campaigns/deletion:remove') return mocks.remove
+    if (getFunctionName(reference) === getFunctionName(api.campaigns.deletion.remove))
+      return mocks.remove
     return vi.fn()
   }
 }))

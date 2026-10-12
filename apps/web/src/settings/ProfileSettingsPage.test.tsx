@@ -1,6 +1,7 @@
 import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import { notifications } from '@mantine/notifications'
 import { getFunctionName } from 'convex/server'
+import { api } from '@artificer-toolkit/apis/convex/api'
 import type { AccountProfileDto } from '@artificer-toolkit/schema/api/account'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
@@ -117,8 +118,10 @@ describe('ProfileSettingsPage', () => {
     expect(mocks.usernameStatus).not.toHaveBeenCalled()
     const [queries] = mocks.useQueries.mock.lastCall ?? []
     expect(queries.profile.args).toEqual({})
-    expect(getFunctionName(queries.profile.query)).toBe('account:profile')
-    expect(getFunctionName(mocks.useMutation.mock.lastCall?.[0])).toBe('account:updateProfile')
+    expect(getFunctionName(queries.profile.query)).toBe(getFunctionName(api.account.profile))
+    expect(getFunctionName(mocks.useMutation.mock.lastCall?.[0])).toBe(
+      getFunctionName(api.account.updateProfile)
+    )
   })
 
   it('submits a case-only username rename without an availability lookup', async () => {

@@ -2,6 +2,7 @@ import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { notifications } from '@mantine/notifications'
 import { getFunctionName } from 'convex/server'
+import { api } from '@artificer-toolkit/apis/convex/api'
 import {
   socialModerationQueueItemDtoSchema,
   type SocialModerationQueueItemDto
@@ -57,17 +58,18 @@ vi.mock('convex/react', async (importOriginal) => ({
     options: unknown
   ) => {
     const name = getFunctionName(reference)
-    if (name !== 'social/moderation:list') throw new Error(`Unexpected query ${name}`)
+    if (name !== getFunctionName(api.social.moderation.list))
+      throw new Error(`Unexpected query ${name}`)
     mocks.calls(name, args, options)
     if (mocks.queueError) throw new Error('Queue unavailable')
     return mocks.queue
   },
   useMutation: (reference: Parameters<typeof getFunctionName>[0]) => {
     const name = getFunctionName(reference)
-    if (name === 'social/moderation:open') return mocks.open
-    if (name === 'social/moderation:review') return mocks.review
-    if (name === 'social/listingModeration:action') return mocks.listing
-    if (name === 'social/profileModeration:action') return mocks.profile
+    if (name === getFunctionName(api.social.moderation.open)) return mocks.open
+    if (name === getFunctionName(api.social.moderation.review)) return mocks.review
+    if (name === getFunctionName(api.social.listingModeration.action)) return mocks.listing
+    if (name === getFunctionName(api.social.profileModeration.action)) return mocks.profile
     throw new Error(`Unexpected mutation ${name}`)
   }
 }))
@@ -90,7 +92,11 @@ describe('native Social moderation page', () => {
     const user = userEvent.setup()
     renderWithAppProviders(<SocialModerationPage />)
 
-    expect(mocks.calls).toHaveBeenCalledWith('social/moderation:list', {}, { initialNumItems: 8 })
+    expect(mocks.calls).toHaveBeenCalledWith(
+      getFunctionName(api.social.moderation.list),
+      {},
+      { initialNumItems: 8 }
+    )
     expect(screen.getByRole('button', { name: 'Load more reports' })).toBeVisible()
     expect(screen.queryByText('No reports in the queue.')).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Load more reports' }))

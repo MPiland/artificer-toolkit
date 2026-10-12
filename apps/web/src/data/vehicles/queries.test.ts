@@ -1,5 +1,9 @@
+import { getFunctionName } from 'convex/server'
 import { describe, expect, it } from 'vitest'
+import { api } from '@artificer-toolkit/apis/convex/api'
 import { getVehicle } from './queries'
+
+const detailsGet = getFunctionName(api.content.details.get)
 
 describe('native Vehicle detail queries', () => {
   it('reads public aliases directly without a legacy query function', () => {
@@ -7,7 +11,7 @@ describe('native Vehicle detail queries', () => {
 
     expect(query.queryKey).toEqual([
       'convexQuery',
-      'content/details:get',
+      detailsGet,
       { id: 'vehicle-public-alias', subjectKind: 'VEHICLE' }
     ])
     expect(query.queryFn).toBeUndefined()
@@ -24,7 +28,7 @@ describe('native Vehicle detail queries', () => {
 
     expect(draft.queryKey).toEqual([
       'convexQuery',
-      'content/details:get',
+      detailsGet,
       { ...input, subjectKind: 'VEHICLE', view: 'draft' }
     ])
     expect(draft.queryKey).not.toEqual(active.queryKey)

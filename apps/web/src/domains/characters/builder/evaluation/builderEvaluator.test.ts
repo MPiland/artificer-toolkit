@@ -1,35 +1,21 @@
 // @vitest-environment node
 import { describe, expect, it, vi } from 'vitest'
-import type {
-  ContentSnapshotHead,
-  ContentSnapshotKind,
-  ContentSnapshotManifestDto,
-  ContentSnapshotObject
-} from '@artificer-toolkit/schema/api/contentSnapshots'
+import type { ContentSnapshotKind } from '@artificer-toolkit/schema/api/contentSnapshots'
 import {
   previewSnapshotCharacterBuilder,
   resolveSnapshotCharacterBuilderPayload
 } from '@artificer-toolkit/rules-runtime/character/snapshotBuilderEvaluation'
 import { createSnapshotReaders } from '@artificer-toolkit/rules-runtime/character/snapshotReaders'
-import {
-  buildContentSnapshotKind,
-  type ContentSnapshotListSource
-} from '@artificer-toolkit/rules-runtime/contentSnapshots'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { acolyte } from '@artificer-toolkit/source-data/srd/backgrounds/acolyte.js'
-import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { fighter } from '@artificer-toolkit/source-data/srd/classes/fighter.js'
 import { wizard } from '@artificer-toolkit/source-data/srd/classes/wizard.js'
-import { prepareSrdImport } from '@artificer-toolkit/source-data/srd/import.js'
 import { elf, highElf } from '@artificer-toolkit/source-data/srd/races/elf.js'
 import { dragonborn } from '@artificer-toolkit/source-data/srd/races/dragonborn.js'
 import { human } from '@artificer-toolkit/source-data/srd/races/human.js'
 import { srdSpells } from '@artificer-toolkit/source-data/srd/spells/index.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
-import {
-  ContentSnapshotLoadError,
-  type ContentSnapshotStore
-} from '#app/data/contentSnapshots/contentSnapshotStore'
+import type { ContentSnapshotStore } from '#app/data/contentSnapshots/contentSnapshotStore'
 import type { ContentSnapshotLocation } from '#app/data/contentSnapshots/manifestObjects'
 import {
   createFallbackCharacterFormValues,
@@ -37,100 +23,30 @@ import {
 } from '../shared/formNormalization'
 import type { BuilderEvaluationRequest } from './builderEvaluation.types'
 import { createBuilderEvaluator } from './builderEvaluator'
+import {
+  createSnapshotStore,
+  readySrdCharacterIntent,
+  readySrdSnapshot,
+  SRD_SNAPSHOT_KINDS,
+  srdSnapshot
+} from './builderSnapshot.fixtures'
 
 // ADR 0036 S6. `builderSnapshotParity.test.ts` (apps/apis) proves the snapshot evaluation equals
 // a pure full-pool evaluation over the S5 corpus; this proves the worker's manifest,
 // store and lazy loading add nothing to it.
 
-const KINDS = ['RACE', 'CLASS', 'BACKGROUND', 'FEAT', 'SPELL'] as const
 const USER_ID = '00000000-0000-4000-8000-000000000901'
-const srd = prepareSrdImport()
-
-const objects: ContentSnapshotObject[] = []
-const kinds: ContentSnapshotHead['kinds'] = {}
-for (const kind of KINDS) {
-  // The import manifest already validated each document against its publication schema.
-  const sources = srd.subjects
-    .filter((subject) => subject.subjectKind === kind)
-    .map(
-      (subject) =>
-        ({
-          subjectKind: kind,
-          document: subject.document,
-          publicId: (subject.document as { id: string }).id,
-          publicationVersion: {
-            identity: {
-              subjectKind: kind,
-              subjectId: subject.id,
-              systemId: subject.systemId,
-              contentSourceId: SRD_CONTENT_SOURCE.id,
-              versionId: subject.id,
-              checksum: subject.checksum
-            },
-            version: 1,
-            storedParentId:
-              subject.document &&
-              typeof subject.document === 'object' &&
-              !Array.isArray(subject.document)
-                ? (subject.document.parentRaceId ?? subject.document.parentClassId ?? null)
-                : null
-          },
-          magicSchoolLabel: 'School'
-        }) as unknown as ContentSnapshotListSource
-    )
-  const built = buildContentSnapshotKind(
-    { format: 2, scope: 'SOURCE', scopeId: SRD_CONTENT_SOURCE.id, kind },
-    sources
-  )
-  const ref = (part: { sha256: string; byteLength: number; rootCount: number }) => ({
-    sha256: part.sha256,
-    byteLength: part.byteLength,
-    rootCount: part.rootCount
-  })
-  kinds[kind] = {
-    index: ref(built.index),
-    list: ref(built.list),
-    documents: ref(built.documents)
-  }
-  objects.push(
-    JSON.parse(built.index.json) as ContentSnapshotObject,
-    JSON.parse(built.list.json) as ContentSnapshotObject,
-    JSON.parse(built.documents.json) as ContentSnapshotObject
-  )
-}
-const manifest: ContentSnapshotManifestDto = {
-  systemId: srdSystemRecord.id,
-  sources: [
-    {
-      contentSourceId: SRD_CONTENT_SOURCE.id,
-      kind: 'PLATFORM',
-      head: {
-        scope: 'SOURCE',
-        scopeId: SRD_CONTENT_SOURCE.id,
-        revision: 1,
-        builtRevision: 1,
-        kinds
-      }
-    }
-  ],
-  campaign: null
-}
+const { objects, manifest } = srdSnapshot
 
 function fakeStore(failingKind?: ContentSnapshotKind) {
   const reads: ContentSnapshotLocation['header'][] = []
+  const source = createSnapshotStore(objects, failingKind)
   const store: ContentSnapshotStore = {
     read: vi.fn(async (location: ContentSnapshotLocation) => {
       reads.push(location.header)
-      if (location.header.kind === failingKind && location.header.part === 'documents')
-        throw new ContentSnapshotLoadError(failingKind, 'Content request failed with status 503.')
-      const object = objects.find(
-        (candidate) =>
-          candidate.kind === location.header.kind && candidate.part === location.header.part
-      )
-      if (!object) throw new Error('Unexpected object.')
-      return object
+      return source.read(location)
     }),
-    retain: vi.fn(async () => undefined)
+    retain: vi.fn(source.retain)
   }
   return { store, reads }
 }
@@ -300,7 +216,9 @@ describe('Builder worker evaluation', () => {
     const evaluate = createBuilderEvaluator({ store, onLoading: () => undefined })
 
     await evaluate(request('resolve', fighterIntent))
-    expect(reads.slice(0, KINDS.length).every((header) => header.part === 'index')).toBe(true)
+    expect(
+      reads.slice(0, SRD_SNAPSHOT_KINDS.length).every((header) => header.part === 'index')
+    ).toBe(true)
     expect(
       reads.filter((header) => header.part === 'documents').map((header) => header.kind)
     ).toEqual(expect.not.arrayContaining(['SPELL']))
@@ -311,6 +229,27 @@ describe('Builder worker evaluation', () => {
     expect(documentReads.map((header) => header.kind)).toContain('SPELL')
     expect(new Set(documentReads.map((header) => header.kind)).size).toBe(documentReads.length)
     expect(store.retain).toHaveBeenCalledTimes(1)
+  })
+
+  it('resolves the ready fixture Character as ready and previews it for finalization', async () => {
+    const evaluate = createBuilderEvaluator({
+      store: createSnapshotStore(readySrdSnapshot.objects),
+      onLoading: () => undefined
+    })
+    const ready = (operation: BuilderEvaluationRequest['operation']) => ({
+      ...request(operation, readySrdCharacterIntent),
+      manifest: readySrdSnapshot.manifest
+    })
+
+    const resolved = await evaluate(ready('resolve'))
+    if (!resolved.ok || resolved.output.operation !== 'resolve')
+      throw new Error('Expected a resolution.')
+    expect(resolved.output.payload.view.review).toEqual({ blockers: [], warnings: [], ready: true })
+
+    const previewed = await evaluate(ready('preview'))
+    if (!previewed.ok || previewed.output.operation !== 'preview')
+      throw new Error('Expected a preview.')
+    expect(previewed.output.preview.character.label).toBe('Snapshot hero')
   })
 
   it('names the kind that failed to load and reports loading kinds', async () => {

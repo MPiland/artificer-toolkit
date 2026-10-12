@@ -1,4 +1,6 @@
+import { getFunctionName } from 'convex/server'
 import { describe, expect, it } from 'vitest'
+import { api } from '@artificer-toolkit/apis/convex/api'
 import { getCreature } from './queries'
 
 describe('native Creature detail queries', () => {
@@ -19,7 +21,7 @@ describe('native Creature detail queries', () => {
 
     expect(active.queryKey).toEqual([
       'convexQuery',
-      'content/details:get',
+      getFunctionName(api.content.details.get),
       { id: 'creature-public-alias', subjectKind: 'CREATURE' }
     ])
     expect(draft.queryKey).not.toEqual(active.queryKey)

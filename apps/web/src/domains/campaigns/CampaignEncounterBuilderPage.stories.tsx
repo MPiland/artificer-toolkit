@@ -5,11 +5,11 @@ import { ConvexReactClient, useConvex, usePaginatedQuery } from 'convex/react'
 import { getFunctionName } from 'convex/server'
 import { expect, fn, mocked, spyOn, userEvent, waitFor, within } from 'storybook/test'
 import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
-import type {
-  ContentSnapshotCatalogueManifestDto,
-  ContentSnapshotListObject
+import {
+  contentSnapshotCatalogueManifestDtoSchema,
+  contentSnapshotListObjectSchema
 } from '@artificer-toolkit/schema/api/contentSnapshots'
-import type { EncounterBlueprintDto } from '@artificer-toolkit/schema/api/encounters'
+import { encounterBlueprintDtoSchema } from '@artificer-toolkit/schema/api/encounters'
 import { CREATURE_CATEGORY_CODE } from '@artificer-toolkit/shared/core'
 import { getCampaignDetail } from '#app/data/campaigns/queries'
 import { getContentCatalogueManifest } from '#app/data/contentSnapshots/queries'
@@ -38,7 +38,7 @@ const creatureListSha = 'b'.repeat(64)
 const objectRef = (sha256: string) => ({ sha256, byteLength: 100, rootCount: 1 })
 
 // The creature list is read from a SOURCE `list` part named by the catalogue manifest.
-const catalogueManifest = {
+const catalogueManifest = contentSnapshotCatalogueManifestDtoSchema.parse({
   userId: authoredRouteStoryUser.id,
   sources: [
     {
@@ -60,9 +60,9 @@ const catalogueManifest = {
       }
     }
   ]
-} satisfies ContentSnapshotCatalogueManifestDto
+})
 
-const creatureListObject = {
+const creatureListObject = contentSnapshotListObjectSchema.parse({
   format: 2,
   scope: 'SOURCE',
   scopeId: creatureScopeId,
@@ -76,9 +76,9 @@ const creatureListObject = {
       category: CREATURE_CATEGORY_CODE.MONSTER
     }
   ]
-} satisfies ContentSnapshotListObject
+})
 
-const blueprint = {
+const blueprint = encounterBlueprintDtoSchema.parse({
   id: blueprintId,
   gameSystemId: campaign.gameSystemId,
   name: 'Vault sentries',
@@ -97,7 +97,7 @@ const blueprint = {
   createdAt: '2026-08-30T00:00:00.000Z',
   updatedAt: '2026-08-30T00:00:00.000Z',
   setupChecksum: 'a'.repeat(64)
-} satisfies EncounterBlueprintDto
+})
 
 const createdEncounter = {
   ...tabletopGmEncounter,
