@@ -5,6 +5,7 @@ import {
   type EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { contestedActionApplicationOutputDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
+import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import {
   activeOptionalCombatDefinitions,
@@ -15,7 +16,10 @@ import type { ServerOptionalCombatContestPendingApplicationContextDto } from '@a
 import { isHandSlot } from '@artificer-toolkit/shared/core'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
-import { toCharacterInitiativeActorFacts } from './character/characterInitiativeFacts.js'
+import {
+  characterCheckSkillId,
+  toCharacterInitiativeActorFacts
+} from './character/characterInitiativeFacts.js'
 import { unequipCharacterItem } from './character/sheetCommandReducer.js'
 import {
   applyEncounterActorOptionalContestSuccess,
@@ -25,13 +29,18 @@ import {
 import type { prepareEncounterActionEconomy } from './encounterActionEconomy.js'
 import type { prepareEncounterActionMechanics } from './encounterActionMechanicsPreparation.js'
 import { evaluateEncounterActionTargetPolicy } from './encounterActionTargetPolicy.js'
-import { withEncounterD20Contributor } from './encounterBasicActions.js'
+import {
+  creatureActiveGrantAttackContributors,
+  creatureActiveGrantCheckContributors,
+  mergedRollContributors
+} from './encounterActiveGrants.js'
 import { withEncounterConditionCheckContributors } from './encounterConditionMechanics.js'
-import type { EncounterRelationshipD20Contributor } from './encounterRelationshipActionFacts.js'
+import { checkAbilityCode } from './encounterMovementPassagePreparation.js'
 import {
   snapshotCreatureEquipmentLoadout,
   snapshotCreatureEquipmentSources
 } from './encounterCreatureEquipmentSources.js'
+import { dnd5eAttackKind } from './systems/dnd5e/attackKind.js'
 import { dnd5eAttackRollContributors } from './systems/dnd5e/characterRollModes.js'
 import { dnd5eCharacterActionTarget } from './systems/dnd5e/modifierApplicability.js'
 import {
@@ -242,7 +251,15 @@ export function readEncounterDisarmSelection(input: {
           source.capability.attackMechanic?.rollMode === 'NORMAL'
             ? { MELEE: [], RANGED: [], SPELL: [], UNARMED: [] }
             : null,
-        relationshipContributors: prepared.relationshipContributors
+        // Its active attack grants (a Help) are read here: a Creature has no policy to fold them.
+        relationshipContributors: mergedRollContributors(
+          prepared.relationshipContributors,
+          creatureActiveGrantAttackContributors(
+            actor.id,
+            dnd5eAttackKind(source.capability.compiledEffect.invocation.triggerCode ?? '') ?? '',
+            sourceFacts.activeEffects
+          )
+        ).contributors
       }
     }
   })()
@@ -303,9 +320,8 @@ export function prepareEncounterDisarmContest(input: {
   prepared: PreparedMechanics
   sceneContext: SceneContext
   selection: ReturnType<typeof readEncounterDisarmSelection>
+  system: SystemAuthoredDto
   actionEconomy: Awaited<ReturnType<typeof prepareEncounterActionEconomy>>
-  /** An ally's Help (basic action, Q11) the defender's check uses. */
-  defenderAllyAdvantage: EncounterRelationshipD20Contributor | null
   priorContest?: ServerOptionalCombatContestPendingApplicationContextDto
 }) {
   const { state, actor, target, command, prepared, sceneContext, actionEconomy } = input
@@ -400,18 +416,35 @@ export function prepareEncounterDisarmContest(input: {
         targetTokenId: sceneContext.targetToken.tokenId
       }
     : null
+  // The defender's own active check grants (a Help) join the size relation; a Character's come
+  // from its policy evidence, a Creature's from its grants directly.
+  const defenderGrantContributors =
+    target.kind === 'CHARACTER'
+      ? (
+          prepared.targetFacts.effectiveRulePolicyOutput?.rollContributorEvidence.skillChecks[
+            characterCheckSkillId(
+              prepared.targetFacts.characterFacts?.ruleEvaluation.registry,
+              checkDefinitionId
+            ) ?? ''
+          ] ?? []
+        ).map(({ domainKey, grantId, influence, sourceId }) => ({
+          domainKey: domainKey ?? null,
+          grantId: grantId ?? null,
+          influence,
+          sourceId
+        }))
+      : creatureActiveGrantCheckContributors(
+          target.id,
+          checkAbilityCode(input.system, 'SKILL', checkDefinitionId),
+          prepared.targetFacts.activeEffects
+        )
   const defenderRoll = withEncounterConditionCheckContributors({
     holderActorId: target.id,
     mechanics: prepared.targetFacts.conditionMechanics,
-    roll: input.defenderAllyAdvantage
-      ? withEncounterD20Contributor(
-          preparation.proposal.contest.targetContributors,
-          input.defenderAllyAdvantage
-        )
-      : {
-          rollMode: preparation.proposal.contest.targetMode,
-          contributors: preparation.proposal.contest.targetContributors
-        }
+    roll: mergedRollContributors(
+      preparation.proposal.contest.targetContributors,
+      defenderGrantContributors
+    )
   })
   const current: Parameters<typeof prepareDnd5eOptionalCombatContestPendingContext>[0] = {
     actionKind: 'DISARM',

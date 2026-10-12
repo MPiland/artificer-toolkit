@@ -328,7 +328,7 @@ export const pathLifecycleTurnBoundarySchema = lazySchema(() =>
   z.enum(['START_OF_TURN', 'END_OF_TURN'])
 )
 export const pathLifecycleConsumeEventSchema = lazySchema(() =>
-  z.enum(['ON_ATTACK_ROLL', 'ON_CAST_SPELL'])
+  z.enum(['ON_ATTACK_ROLL', 'ON_ABILITY_CHECK', 'ON_CAST_SPELL'])
 )
 export const pathLifecycleEndEventSchema = lazySchema(() =>
   z.enum(['ON_ATTACK_ROLL', 'ON_CAST_SPELL', 'ON_HIT_POINTS_REGAINED'])

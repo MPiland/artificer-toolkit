@@ -74,11 +74,12 @@ function defineBasicAction(input: {
   }
 }
 
-/** An Action-cost self effect with a single outcome. */
+/** An Action-cost effect with a single outcome; it targets its user unless `reach` says otherwise. */
 function selfActionEffect(
   actionId: string,
   outcome: Record<string, unknown>,
-  resultBlockExtras: Record<string, unknown> = {}
+  resultBlockExtras: Record<string, unknown> = {},
+  reach?: { rangeKind: typeof RANGE_KIND.UNLIMITED; targeting: Record<string, unknown> }
 ) {
   return {
     id: basicActionChildId(actionId, 0x210, 1),
@@ -87,8 +88,11 @@ function selfActionEffect(
       kind: 'ACTION' as const,
       triggerCode: TRIGGER.ACTIVATED,
       activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
-      range: { id: basicActionChildId(actionId, 0x211, 1), rangeKind: RANGE_KIND.SELF },
-      targeting: { selectionKind: 'SELF' as const }
+      range: {
+        id: basicActionChildId(actionId, 0x211, 1),
+        rangeKind: reach?.rangeKind ?? RANGE_KIND.SELF
+      },
+      targeting: reach?.targeting ?? { selectionKind: 'SELF' as const }
     },
     paths: [
       {
@@ -201,6 +205,64 @@ function dodgeEffect(actionId: string) {
   )
 }
 
+/**
+ * Help's grant: one other creature, at any distance, has advantage on the first attack roll or
+ * ability check it makes before the start of the helper's next turn.
+ */
+function helpEffect(actionId: string) {
+  const attackDomains = Object.values(ATTACK_DOMAIN_CODE)
+  return selfActionEffect(
+    actionId,
+    {
+      id: basicActionChildId(actionId, 0x213, 1),
+      effectKind: EFFECT_KIND.APPLY_GRANT,
+      grants: {
+        modifiers: [
+          ...attackDomains.map((attackDomain, index) => ({
+            id: basicActionChildId(actionId, 0x214, index + 1),
+            grantKind: GRANT_KIND.MODIFIER_GRANT,
+            valueDomainCode: VALUE_DOMAIN_CODE.ATTACK_ROLL,
+            domain: { attackDomain },
+            modifierKind: MODIFIER_KIND.ADVANTAGE,
+            scope: MODIFIER_SCOPE_KIND.GLOBAL,
+            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+            order: index
+          })),
+          {
+            id: basicActionChildId(actionId, 0x214, attackDomains.length + 1),
+            grantKind: GRANT_KIND.MODIFIER_GRANT,
+            valueDomainCode: VALUE_DOMAIN_CODE.ABILITY_CHECK,
+            domain: {},
+            modifierKind: MODIFIER_KIND.ADVANTAGE,
+            scope: MODIFIER_SCOPE_KIND.GLOBAL,
+            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+            order: attackDomains.length
+          }
+        ]
+      }
+    },
+    {
+      duration: {
+        id: basicActionChildId(actionId, 0x215, 1),
+        durationKind: 'ROUND',
+        amount: 1
+      },
+      lifecycle: {
+        turnAnchor: { actor: 'SOURCE', boundary: 'START_OF_TURN' },
+        consumeOnFirstEvents: ['ON_ABILITY_CHECK', 'ON_ATTACK_ROLL']
+      }
+    },
+    {
+      rangeKind: RANGE_KIND.UNLIMITED,
+      targeting: {
+        selectionKind: 'SINGLE_TARGET' as const,
+        dispositionKind: 'WILLING' as const,
+        excludesSelf: true
+      }
+    }
+  )
+}
+
 /** Disengage's grant: the holder's movement provokes no opportunity attacks until its turn ends. */
 function disengageEffect(actionId: string) {
   return selfActionEffect(
@@ -236,7 +298,7 @@ function disengageEffect(actionId: string) {
 
 /**
  * The SRD System's basic combat actions. Names and rules text are authored System data; only the
- * listed mechanics execute. Dash, Disengage and Dodge are authored effects; Hide, Ready, Search and
+ * listed mechanics execute. Dash, Disengage, Dodge and Help are authored effects; Hide, Ready, Search and
  * Use an Object spend the Action and leave the result to the GM.
  */
 export const SRD_BASIC_ACTION_DEFINITIONS = [
@@ -271,7 +333,7 @@ export const SRD_BASIC_ACTION_DEFINITIONS = [
     label: 'Help',
     rulesText:
       'You aid an ally. The ally has advantage on the next ability check it makes for the task you help with, or on its first attack roll against a creature within 5 feet of you, if it acts before the start of your next turn.',
-    mechanics: ['ALLY_ADVANTAGE']
+    effects: [helpEffect(SRD_BASIC_ACTION_IDS.HELP)]
   }),
   defineBasicAction({
     id: SRD_BASIC_ACTION_IDS.HIDE,

@@ -187,7 +187,7 @@ describe('room Disarm contests', () => {
       seed: seedModifierGrant({
         sourceActorId: TARGET_ID,
         holderActorId: SOURCE_ID,
-        lifecycle: { consumeOnFirstEvent: 'ON_ATTACK_ROLL' }
+        lifecycle: { consumeOnFirstEvents: ['ON_ATTACK_ROLL'] }
       })
     })
     expect((await readRoomHistory(disarming.room.room.base.stub)).activeEffects).toHaveLength(1)
@@ -240,5 +240,10 @@ describe('room Disarm contests', () => {
       sourceRoll: { actorId: SOURCE_ID, rawFaces: [20] },
       targetRoll: { actorId: TARGET_ID, rawFaces: [1] }
     })
+    // A Disarm grants no speed bonus, so its action root records none for undo.
+    const { commands } = await readRoomHistory(room.room.base.stub)
+    expect(commands.filter((command) => command.commandType === 'RESOLVE_ACTION')).toEqual([
+      expect.objectContaining({ label: 'Disarm', speedBonusTurn: null })
+    ])
   })
 })

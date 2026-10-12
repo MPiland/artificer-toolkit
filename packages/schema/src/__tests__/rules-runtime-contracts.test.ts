@@ -1037,7 +1037,7 @@ describe('rules runtime contracts', () => {
         perceptionContributions: [],
         recurrence: {
           recurrenceStage: 'START_OF_TURN',
-          consumeOnFirstEvent: null,
+          consumeOnFirstEvents: [],
           endOnEvents: ['ON_ATTACK_ROLL'],
           expiration: {
             kind: 'TICKS',

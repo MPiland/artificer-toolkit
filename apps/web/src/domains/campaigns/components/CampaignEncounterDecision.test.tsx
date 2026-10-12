@@ -1,18 +1,18 @@
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type {
-  EncounterCommandResultDto,
-  ResolveRuleOccurrenceInputDto
+import {
+  encounterCommandResultDtoSchema,
+  type ResolveRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounters'
-import type { PendingEncounterRuleOccurrenceSummaryDto } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
+import { pendingEncounterRuleOccurrenceSummaryDtoSchema } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
 import { getFunctionName, type FunctionReference } from 'convex/server'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { tabletopGmEncounter } from '../vtt/CampaignTabletop.stories.fixtures'
 import type { HeldEncounterSession } from '../vtt/useCampaignLiveSession'
 
 const occurrenceId = '77777777-7777-4777-8777-777777777790'
-const pending = {
+const pending = pendingEncounterRuleOccurrenceSummaryDtoSchema.parse({
   kind: 'INITIATIVE_DECLARATION',
   occurrenceId,
   occurrenceVersion: 2,
@@ -21,7 +21,7 @@ const pending = {
   requestId: 'speed-factor-declaration',
   primaryOptions: [
     {
-      kind: 'CHARACTER_ACTION' as const,
+      kind: 'CHARACTER_ACTION',
       optionId: 'action:longsword',
       label: 'Longsword',
       selectionContract: 'a'.repeat(64)
@@ -30,14 +30,14 @@ const pending = {
   bonusOptions: [],
   adjudicationFields: [],
   allowedResponses: ['INITIATIVE_DECLARATION']
-} satisfies PendingEncounterRuleOccurrenceSummaryDto
+})
 
-const result: EncounterCommandResultDto = {
+const result = encounterCommandResultDtoSchema.parse({
   projection: tabletopGmEncounter,
   roll: null,
   occurrence: null,
   evidenceRoll: null
-}
+})
 
 const heldRoom: HeldEncounterSession = {
   held: true,

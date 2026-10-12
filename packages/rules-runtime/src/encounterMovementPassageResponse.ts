@@ -9,12 +9,9 @@ import { movementRuleResolutionCommandDtoSchema } from '@artificer-toolkit/schem
 import type { ServerRuleExecutionPendingSnapshotDto } from '@artificer-toolkit/schema/shared/rulesExecution'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { SceneToken } from '@artificer-toolkit/shared/vtt/scene'
-import type { EncounterAllyAdvantageUseDto } from '@artificer-toolkit/schema/shared/basicActions'
+import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import { withEncounterRuleUsageUsed } from './encounterActorState.js'
-import {
-  encounterAllyAdvantageUses,
-  withoutEncounterAllyAdvantage
-} from './encounterBasicActions.js'
+import { consumableGrants } from './encounterGrantLifetimes.js'
 import type { EncounterActionEconomyConsumption } from './encounterActionEconomyConsumption.js'
 import { evaluateEncounterMovementPassageContest } from './encounterMovementPassageExecution.js'
 import { stopSceneMovementResult } from './encounterMovementContinuation.js'
@@ -31,8 +28,8 @@ type PassageSettlement = {
   plan: {
     actor: EncounterRunActorState
     consumption: EncounterActionEconomyConsumption
-    /** The Helps (basic action, Q11) the contest's checks used. */
-    allyAdvantageUses: EncounterAllyAdvantageUseDto[]
+    /** The one-check grants (Help) both rollers' contest checks used up. */
+    consumedGrants: ActiveRuleEffectRecord[]
   }
 }
 
@@ -191,13 +188,12 @@ export async function evaluateEncounterMovementPassageResponse<
       ]
     ])
   }
-  // The contest's checks used these Helps (basic action, Q11); the continuation can't reuse them.
-  const allyAdvantageUses =
+  // The contest's checks used these grants; the continuation can't reuse them.
+  const consumedGrants =
     evaluated.kind === 'COMPLETE'
-      ? encounterAllyAdvantageUses({
-          actors: input.actors,
-          participants: [evaluated.pending.initiator, evaluated.pending.defender]
-        })
+      ? [evaluated.pending.initiator, evaluated.pending.defender].flatMap(({ actorId }) =>
+          consumableGrants(targets.get(actorId)?.activeEffects ?? [], 'ON_ABILITY_CHECK')
+        )
       : []
   if (evaluated.kind === 'COMPLETE') {
     const source = targets.get(evaluated.pending.sourceActorId)
@@ -206,7 +202,7 @@ export async function evaluateEncounterMovementPassageResponse<
     const consumption = { ...economy, afterUsed: economy.beforeUsed + 1 }
     settlements.push({
       kind: 'PASSAGE',
-      plan: { actor: source.actor, consumption, allyAdvantageUses }
+      plan: { actor: source.actor, consumption, consumedGrants }
     })
     withTargetActor(
       encounterRunActorStateSchema.parse({
@@ -249,11 +245,6 @@ export async function evaluateEncounterMovementPassageResponse<
     const remainingTargets = await callbacks.loadTargets(remainingActorIds)
     targets = new Map([...targets, ...remainingTargets])
     for (const [id, target] of remainingTargets) currentTargets.set(id, target)
-  }
-  for (const use of allyAdvantageUses) {
-    const helper = targets.get(use.helperActorId)
-    if (!helper) throw new Error('Movement passage helper is unavailable.')
-    withTargetActor(withoutEncounterAllyAdvantage(helper.actor, use.effect))
   }
   const continued = await callbacks.continueMovement({
     state,

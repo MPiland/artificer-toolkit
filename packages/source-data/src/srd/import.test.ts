@@ -55,7 +55,7 @@ describe('canonical Convex import preparation', () => {
       Dash: ['ACTION', [], ['MOVEMENT_RULE']],
       Disengage: ['ACTION', [], ['APPLY_GRANT']],
       Dodge: ['ACTION', [], ['APPLY_GRANT']],
-      Help: ['ACTION', ['ALLY_ADVANTAGE'], []],
+      Help: ['ACTION', [], ['APPLY_GRANT']],
       Hide: ['ACTION', [], ['MANUAL_ADJUDICATION']],
       Ready: ['ACTION', [], ['MANUAL_ADJUDICATION']],
       Search: ['ACTION', [], ['MANUAL_ADJUDICATION']],
@@ -113,6 +113,38 @@ describe('canonical Convex import preparation', () => {
           )
         )
       ).toEqual(['CAN_ACT', 'SPEED_ABOVE_ZERO'])
+    // Help is authored: an attack-roll advantage per attack kind plus one ability-check advantage,
+    // all used up by the first attack roll or ability check, on one other willing creature.
+    const helpEffect = catalogue.find((definition) => definition.label === 'Help')!.document
+    const helpBlocks =
+      helpEffect.kind === 'BASIC_ACTION'
+        ? helpEffect.effects.flatMap((effect) => effect.paths.map((path) => path.resultBlock))
+        : []
+    const helpModifiers = helpBlocks.flatMap((block) =>
+      block.outcomes.flatMap((outcome) =>
+        outcome.effectKind === 'APPLY_GRANT' ? (outcome.grants.modifiers ?? []) : []
+      )
+    )
+    expect(helpModifiers.map((modifier) => [modifier.valueDomainCode, modifier.domain])).toEqual([
+      ...Object.values(ATTACK_DOMAIN_CODE).map((attackDomain) => ['ATTACK_ROLL', { attackDomain }]),
+      ['ABILITY_CHECK', {}]
+    ])
+    expect(helpModifiers.map((modifier) => modifier.modifierKind)).toEqual(
+      Array(helpModifiers.length).fill('ADVANTAGE')
+    )
+    expect(helpBlocks.map((block) => block.lifecycle)).toEqual([
+      {
+        turnAnchor: { actor: 'SOURCE', boundary: 'START_OF_TURN' },
+        consumeOnFirstEvents: ['ON_ABILITY_CHECK', 'ON_ATTACK_ROLL']
+      }
+    ])
+    expect(
+      helpEffect.kind === 'BASIC_ACTION' && helpEffect.effects[0]?.invocation.targeting
+    ).toEqual({
+      selectionKind: 'SINGLE_TARGET',
+      dispositionKind: 'WILLING',
+      excludesSelf: true
+    })
     // First Aid is a DC 10 Wisdom (Medicine) check.
     expect(
       catalogue.find((definition) => definition.label === 'First Aid')?.document
@@ -128,7 +160,8 @@ describe('canonical Convex import preparation', () => {
     expect(
       basicActionReusableDefinitionDocumentDtoSchema.safeParse({
         ...hide.document,
-        mechanics: ['ALLY_ADVANTAGE']
+        mechanics: ['STABILIZE_TARGET'],
+        check: { checkDefinitionId: SRD_MEDICINE_SKILL_ID, dc: 10 }
       }).success
     ).toBe(false)
   })

@@ -1,7 +1,9 @@
 import { render, screen } from '@testing-library/react'
 import { MantineProvider } from '@mantine/core'
 import userEvent from '@testing-library/user-event'
+import { getFunctionName } from 'convex/server'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { api } from '@artificer-toolkit/apis/convex/api'
 import { authoredCatalogueItemSchema } from '@artificer-toolkit/schema/api/authoredCatalogue'
 import { spellResponseDtoSchema } from '@artificer-toolkit/schema/api/content'
 import { authoredRouteStoryResponses } from '#domains/authoredRouteStory.fixtures'
@@ -237,7 +239,11 @@ describe('GuidedStartChoice', () => {
 
     expect(mocks.useQuery).toHaveBeenCalledWith(
       expect.objectContaining({
-        queryKey: ['convexQuery', 'content/details:get', { id: source.id, subjectKind: 'SPELL' }]
+        queryKey: [
+          'convexQuery',
+          getFunctionName(api.content.details.get),
+          { id: source.id, subjectKind: 'SPELL' }
+        ]
       })
     )
     expect(screen.getByText('Level 3 · 1 minute')).toBeInTheDocument()

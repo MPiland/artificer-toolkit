@@ -67,7 +67,8 @@ function escapeContext(check: { checkDefinitionId?: string; dc?: number } = {}) 
       contributors: [],
       contributorChecksum: checksumRuleDocument([]),
       modifier: 4
-    }
+    },
+    consumedGrants: []
   })
 }
 

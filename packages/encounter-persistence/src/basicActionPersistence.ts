@@ -24,12 +24,8 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
 import { consumeEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomyConsumption'
 import { overridesActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionRuleWarnings'
-import {
-  encounterBasicActionEffects,
-  requireEncounterBasicActionDefinition,
-  withEncounterBasicActionEffects
-} from '@artificer-toolkit/rules-runtime/encounterBasicActions'
-import { consumeEncounterAllyAdvantages } from './allyAdvantage.js'
+import { requireEncounterBasicActionDefinition } from '@artificer-toolkit/rules-runtime/encounterBasicActions'
+import { deleteConsumedGrants } from './consumedGrantPersistence.js'
 import { readBasicActionAdmission } from './basicActionAdmission.js'
 import { projectNativeBasicActionCheckPending } from './basicActionCheckPending.js'
 import { settleEncounterBasicActionCheck } from './basicActionCheckSettlement.js'
@@ -43,10 +39,9 @@ import { encounterReplayReceipt } from './replayReceipts.js'
 import type { EncounterCharacterWriteTransaction, EncounterWriteTransaction } from './ports.js'
 
 /**
- * Records the room's planned basic action (Q11): the allowance it spent, the effects its actor
- * gains and a movement bonus for the turn, checked against the current Run. A stabilizing action
- * also records its check, waiting on the helper's d20 or settled by an auto-roll. It evaluates no
- * rules.
+ * Records the room's planned basic action (Q11): the allowance it spent, checked against the current
+ * Run. A stabilizing action also records its check, waiting on the helper's d20 or settled by an
+ * auto-roll, and deletes the one-roll grants that check used up. It evaluates no rules.
  */
 export async function persistEncounterBasicAction(
   ctx: EncounterWriteTransaction,
@@ -84,13 +79,6 @@ export async function persistEncounterBasicAction(
     document.effects.length > 0 ||
     definition.version !== input.definition.version ||
     definition.checksum !== input.definition.checksum ||
-    input.effects.some(
-      (effect) =>
-        effect.definitionId !== definition.id ||
-        effect.turnSequence !== state.turnSequence ||
-        !document.mechanics.includes(effect.mechanic) ||
-        effect.allyActorId !== command.targetActorId
-    ) ||
     input.rules.actors.length !== ruleActors.length ||
     input.rules.actors.some((entry) => !ruleActors.some((rule) => rule.id === entry.actorId))
   )
@@ -104,7 +92,7 @@ export async function persistEncounterBasicAction(
         !input.ruleOverrides.some((warning) => warning.code === 'TARGET_NOT_DYING')
   )
     throw new Error('Live Session basic action check scope mismatch.')
-  if (check === null && input.allyAdvantageUses.length > 0)
+  if (check === null && input.consumedGrants.length > 0)
     throw new Error('Live Session basic action check scope mismatch.')
   const pendingContext = check?.kind === 'PENDING' ? check.snapshot.applicationContext : null
   if (
@@ -128,17 +116,10 @@ export async function persistEncounterBasicAction(
         overridden: overridesActionEconomy(input.ruleOverrides)
       })
     : actor
-  const settled = withEncounterBasicActionEffects(spent, [
-    ...encounterBasicActionEffects(spent),
-    ...input.effects
-  ])
-  await replaceRunActor(ctx, actor, settled)
+  await replaceRunActor(ctx, actor, spent)
   // A Help the check used is consumed with the action, so a pending check keeps its advantage.
-  let nextActors = await consumeEncounterAllyAdvantages(ctx, {
-    actors: actors.map((entry) => (entry.id === settled.id ? settled : entry)),
-    uses: input.allyAdvantageUses,
-    rollerActorIds: [actor.id]
-  })
+  await deleteConsumedGrants(ctx, input.consumedGrants)
+  let nextActors = actors.map((entry) => (entry.id === spent.id ? spent : entry))
   const nextState = encounterRunStateSchema.parse({
     ...state,
     version: state.version + 1,
@@ -218,8 +199,7 @@ export async function persistEncounterBasicAction(
       receipt: {
         actorId: actor.id,
         actionEconomy: input.actionEconomy,
-        effects: input.effects,
-        allyAdvantageUses: input.allyAdvantageUses,
+        consumedGrants: input.consumedGrants,
         checkOccurrenceId: storedOccurrence?.id ?? null
       },
       commandFingerprint: fingerprint,

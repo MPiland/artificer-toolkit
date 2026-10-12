@@ -277,7 +277,7 @@ describe('Character Sheet shell', () => {
         throw new Error('Unexpected mutation')
       })
     vi.spyOn(convexClient, 'query').mockImplementation(async (...[reference, args]) => {
-      if (getFunctionName(reference) === 'characters/rest:preview') {
+      if (getFunctionName(reference) === getFunctionName(convexApi.characters.rest.preview)) {
         return createRestPreview(characterRestPreviewInputSchema.parse(args).input)
       }
       return readSlice(reference, args)

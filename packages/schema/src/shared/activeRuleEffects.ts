@@ -71,26 +71,36 @@ const activeEffectOriginDtoSchema = lazySchema(() =>
   ])
 )
 
-const activeEffectEndEventsSchema = lazySchema(() =>
+const sortedUniqueEventsSchema = <TEvent extends z.ZodMiniType<string>>(
+  event: TEvent,
+  noun: string
+) =>
   z
-    .array(pathLifecycleEndEventSchema)
+    .array(event)
     .check(z.maxLength(16))
     .check(
       z.superRefine((events, context) => {
         if (new Set(events).size !== events.length) {
-          context.addIssue({
-            code: 'custom',
-            message: 'Active-effect end events must be unique.'
-          })
+          context.addIssue({ code: 'custom', message: `Active-effect ${noun} must be unique.` })
         }
         if (events.some((event, index) => index > 0 && events[index - 1]! > event)) {
-          context.addIssue({
-            code: 'custom',
-            message: 'Active-effect end events must be sorted.'
-          })
+          context.addIssue({ code: 'custom', message: `Active-effect ${noun} must be sorted.` })
         }
       })
     )
+
+const activeEffectEndEventsSchema = lazySchema(() =>
+  sortedUniqueEventsSchema(pathLifecycleEndEventSchema, 'end events')
+)
+
+/** The events whose first occurrence uses a grant up: sorted and unique. */
+export const activeEffectConsumeEventsSchema = lazySchema(() =>
+  sortedUniqueEventsSchema(pathLifecycleConsumeEventSchema, 'consume events')
+)
+
+/** The consume events a timed grant can carry (a cast does not use a grant up): sorted and unique. */
+export const activeGrantConsumeEventsSchema = lazySchema(() =>
+  sortedUniqueEventsSchema(z.enum(['ON_ATTACK_ROLL', 'ON_ABILITY_CHECK']), 'grant consume events')
 )
 
 /** Immutable provenance, compiled plan, and recurrence configuration for one active effect. */
@@ -105,7 +115,7 @@ const activeRuleEffectDefinitionBaseDtoSchema = lazySchema(() =>
     perceptionContributions: combatPerceptionContributionsDtoSchema,
     recurrence: z.strictObject({
       recurrenceStage: z.enum(['NONE', 'START_OF_TURN', 'END_OF_TURN']),
-      consumeOnFirstEvent: z.nullable(pathLifecycleConsumeEventSchema),
+      consumeOnFirstEvents: activeEffectConsumeEventsSchema,
       endOnEvents: activeEffectEndEventsSchema,
       lifetimeScope: z.enum(['OWNER', 'ENCOUNTER']),
       expiration: z.discriminatedUnion('kind', [

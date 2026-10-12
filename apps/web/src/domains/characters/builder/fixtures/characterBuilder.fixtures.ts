@@ -8,10 +8,10 @@ import type {
   CharacterBuilderPayloadDto,
   CharacterBuilderPreviewPayloadDto
 } from '@artificer-toolkit/schema/api/characters'
-import type { CharacterAuthoredDto } from '@artificer-toolkit/schema/subjects/character'
+import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import { NO_DEATH_SAVES } from '@artificer-toolkit/schema/subjects/characterState'
 
-export const characterFixture = {
+export const characterFixture = characterAuthoredDtoSchema.parse({
   id: '00000000-0000-4000-8000-000000000101',
   label: 'Astra Vale',
   description: '<p>A careful explorer with a dangerous curiosity.</p>',
@@ -100,7 +100,7 @@ export const characterFixture = {
   primaryRulesCatalogueId: '00000000-0000-4000-8000-000000000301',
   systemId: '00000000-0000-4000-8000-000000000501',
   userId: 'user-1'
-} satisfies CharacterAuthoredDto
+})
 
 export const characterBuilderPayloadFixture = {
   publicId: 'character-owned',

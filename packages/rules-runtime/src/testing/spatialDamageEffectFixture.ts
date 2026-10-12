@@ -203,7 +203,7 @@ export async function buildSpatialDamageEffect(input: {
     perceptionContributions: [],
     recurrence: {
       recurrenceStage: 'NONE',
-      consumeOnFirstEvent: null,
+      consumeOnFirstEvents: [],
       endOnEvents: [],
       lifetimeScope: 'ENCOUNTER',
       expiration:

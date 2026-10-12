@@ -2,6 +2,8 @@ import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useQueryClient, type QueryClient } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
+import { getFunctionName } from 'convex/server'
+import { api } from '@artificer-toolkit/apis/convex/api'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { CharacterSheetFixtureView } from '../fixtures/CharacterSheetFixtureView'
@@ -19,6 +21,7 @@ vi.mock('#app/data/characters/mutations', () => ({
   useCharacterRestPreviewMutation: () => ({ isPending: false })
 }))
 
+const sheetSliceQueryName = getFunctionName(api.characters.sheetSlices.get)
 let queryClient: QueryClient
 const createdSlices: unknown[] = []
 function Sheet() {
@@ -28,7 +31,7 @@ function Sheet() {
       const args = event.query.queryKey[2]
       if (
         event.type === 'added' &&
-        event.query.queryKey[1] === 'characters/sheetSlices:get' &&
+        event.query.queryKey[1] === sheetSliceQueryName &&
         args &&
         typeof args === 'object' &&
         'slice' in args
@@ -49,9 +52,7 @@ function mountedSlices() {
   return queryClient
     .getQueryCache()
     .findAll()
-    .filter(
-      (query) => query.queryKey[1] === 'characters/sheetSlices:get' && query.getObserversCount() > 0
-    )
+    .filter((query) => query.queryKey[1] === sheetSliceQueryName && query.getObserversCount() > 0)
     .map((query) => {
       const args = query.queryKey[2]
       return args && typeof args === 'object' && 'slice' in args ? args.slice : null

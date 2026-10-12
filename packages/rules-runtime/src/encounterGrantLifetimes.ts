@@ -1,5 +1,6 @@
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
+import type { GrantConsumeEvent } from './characterRuleActionSystemAdapter.js'
 import {
   isEffectLiveInEncounter,
   turnEffectOwner,
@@ -23,12 +24,14 @@ function isModifierGrant(effect: ActiveRuleEffectRecord) {
   )
 }
 
-/** Grants the next attack roll of their holder uses up. */
-export function attackRollConsumableGrants(effects: readonly ActiveRuleEffectRecord[]) {
+/** Grants the first occurrence of the event, by their holder, uses up. */
+export function consumableGrants(
+  effects: readonly ActiveRuleEffectRecord[],
+  event: GrantConsumeEvent
+) {
   return effects.filter(
     (effect) =>
-      isModifierGrant(effect) &&
-      effect.definition.recurrence.consumeOnFirstEvent === 'ON_ATTACK_ROLL'
+      isModifierGrant(effect) && effect.definition.recurrence.consumeOnFirstEvents.includes(event)
   )
 }
 

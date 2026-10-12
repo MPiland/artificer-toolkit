@@ -1,5 +1,5 @@
 import { v } from 'convex/values'
-import { zodToConvex } from 'convex-helpers/server/zod4'
+import { zodToConvex, zodToConvexFields } from 'convex-helpers/server/zod4'
 import { rollVisibilityDtoSchema } from '@artificer-toolkit/schema/api/rolls'
 import {
   authSessionSnapshotDtoSchema,
@@ -8,22 +8,33 @@ import {
 } from '@artificer-toolkit/schema/api/auth'
 import {
   accountProfileDtoSchema,
+  accountProfileVisibilityInputSchema,
   accountRollPreferencesDtoSchema,
+  profileVisibilitySchema,
+  publicProfileDtoSchema,
+  publicProfileInputSchema,
   setAutoRollDiceInputSchema,
   setGmRollVisibilityInputSchema,
   type AccountProfileDto,
-  type AccountRollPreferencesDto
+  type AccountRollPreferencesDto,
+  type PublicProfileDto
 } from '@artificer-toolkit/schema/api/account'
 import { query } from './lib/queries'
 import { components, internal } from './_generated/api'
 import { mutation } from './lib/mutations'
-import { getAuthenticatedProfile, requireIdentity } from './lib/identity'
+import {
+  getAuthenticatedProfile,
+  readProfileVisibility,
+  readViewableProfileByUsername,
+  requireIdentity
+} from './lib/identity'
 import { readApplicationFeatureFlags } from './application'
 import { readAuthUser } from './lib/authUserReads'
 
 const profileResult = v.object({
   username: v.union(v.null(), v.string()),
-  bio: v.union(v.null(), v.string())
+  bio: v.union(v.null(), v.string()),
+  visibility: zodToConvex(profileVisibilitySchema)
 })
 
 export const profile = query({
@@ -34,7 +45,35 @@ export const profile = query({
     if (!authenticated) throw new Error('Unauthenticated')
     return accountProfileDtoSchema.parse({
       username: authenticated.username,
-      bio: authenticated.profile.bio
+      bio: authenticated.profile.bio,
+      visibility: readProfileVisibility(authenticated.profile)
+    })
+  }
+})
+
+export const setProfileVisibility = mutation({
+  args: zodToConvexFields(accountProfileVisibilityInputSchema.shape),
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const input = accountProfileVisibilityInputSchema.parse(args)
+    const authenticated = await getAuthenticatedProfile(ctx)
+    if (!authenticated) throw new Error('Unauthenticated')
+    await ctx.db.patch(authenticated.profile._id, { profileVisibility: input.visibility })
+    return null
+  }
+})
+
+export const publicProfile = query({
+  args: zodToConvexFields(publicProfileInputSchema.shape),
+  returns: v.union(v.null(), zodToConvex(publicProfileDtoSchema)),
+  handler: async (ctx, args): Promise<PublicProfileDto | null> => {
+    const input = publicProfileInputSchema.parse(args)
+    const viewable = await readViewableProfileByUsername(ctx, input.username)
+    if (!viewable) return null
+    return publicProfileDtoSchema.parse({
+      username: viewable.username,
+      bio: viewable.profile.bio,
+      avatarRevision: viewable.profile.avatarAssetId ? (viewable.profile.avatarRevision ?? 0) : null
     })
   }
 })

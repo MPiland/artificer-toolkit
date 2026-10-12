@@ -10,7 +10,10 @@ import {
   createRouter,
   RouterProvider
 } from '@tanstack/react-router'
-import type { AuthSessionSnapshotDto } from '@artificer-toolkit/schema/api/auth'
+import {
+  authSessionSnapshotDtoSchema,
+  type AuthSessionSnapshotDto
+} from '@artificer-toolkit/schema/api/auth'
 import type { AppRouterContext } from '#app/routerContext'
 import { Route } from './__root'
 
@@ -42,12 +45,12 @@ afterEach(() => {
 })
 
 it('keeps authenticated navigation renderable when live session convergence overlaps a pending child', async () => {
-  const guest: AuthSessionSnapshotDto = {
+  const guest = authSessionSnapshotDtoSchema.parse({
     user: null,
     featureFlags: { publicSignUpEnabled: false, libraryImportEnabled: false },
     isSuperAdmin: false
-  }
-  const owner: AuthSessionSnapshotDto = {
+  })
+  const owner = authSessionSnapshotDtoSchema.parse({
     ...guest,
     user: {
       userId: '018f4a3e-712b-7c0d-8f88-6a0e5ef00d11',
@@ -57,7 +60,7 @@ it('keeps authenticated navigation renderable when live session convergence over
       registrationCompleted: true,
       authoringExperience: 'guided'
     }
-  }
+  })
   native.snapshot = guest
   const navigationSession = createControlledPromise<void>()
   const convergenceSession = createControlledPromise<void>()

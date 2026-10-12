@@ -2,14 +2,14 @@ import { MantineProvider } from '@mantine/core'
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import {
-  ruleCheckAuthorLabel,
-  type CampaignChatEntryDto
+  campaignChatEntryDtoSchema,
+  ruleCheckAuthorLabel
 } from '@artificer-toolkit/schema/api/campaignCommunication'
 
 import { cancelledAdvantageRoll } from '#app/components/dice/adjustedRoll.fixtures'
 import { CampaignChatHistory } from './CampaignChatHistory'
 
-const entry: CampaignChatEntryDto = {
+const entry = campaignChatEntryDtoSchema.parse({
   id: '1df2d096-9408-4792-9b26-5c5d8b5f83f1',
   campaignId: 'af7062db-56d4-44f7-8e4c-45cbd917d3f1',
   conversationId: 'ff3b7ca3-f551-4e00-9bf8-afd37b8050d1',
@@ -26,7 +26,7 @@ const entry: CampaignChatEntryDto = {
   editedAt: null,
   unsentAt: null,
   createdAt: '2026-09-18T12:00:00.000Z'
-}
+})
 
 describe('CampaignChatHistory', () => {
   it('shows a deleted author even when retained roleplay identity is available', () => {
@@ -59,7 +59,7 @@ describe('CampaignChatHistory', () => {
   })
 
   it('shows a rules-settled Concentration check with its trigger, dice and outcome', () => {
-    const roll: CampaignChatEntryDto = {
+    const roll = campaignChatEntryDtoSchema.parse({
       ...entry,
       kind: 'ROLL',
       mode: null,
@@ -96,7 +96,7 @@ describe('CampaignChatHistory', () => {
           outcome: 'LOST'
         }
       }
-    }
+    })
     render(
       <MantineProvider>
         <CampaignChatHistory
@@ -129,13 +129,13 @@ describe('CampaignChatHistory', () => {
   })
 
   it('shows every die of a mode-adjusted d20 with the cancelled die and the caption', () => {
-    const roll: CampaignChatEntryDto = {
+    const roll = campaignChatEntryDtoSchema.parse({
       ...entry,
       kind: 'ROLL',
       mode: null,
       body: null,
       roll: cancelledAdvantageRoll()
-    }
+    })
     render(
       <MantineProvider>
         <CampaignChatHistory
@@ -165,7 +165,7 @@ describe('CampaignChatHistory', () => {
   })
 
   it('shows a ROLL_NOTICE as a notice with no result, naming the creature when present', () => {
-    const notice: CampaignChatEntryDto = {
+    const notice = campaignChatEntryDtoSchema.parse({
       ...entry,
       kind: 'ROLL_NOTICE',
       mode: null,
@@ -173,7 +173,7 @@ describe('CampaignChatHistory', () => {
       authorUsername: 'gm',
       characterId: null,
       characterLabel: null
-    }
+    })
     render(
       <MantineProvider>
         <CampaignChatHistory

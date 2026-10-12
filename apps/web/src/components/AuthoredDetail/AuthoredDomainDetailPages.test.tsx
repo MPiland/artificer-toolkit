@@ -33,19 +33,22 @@ const nativeQueries = vi.hoisted(() => ({ parent: vi.fn() }))
 
 beforeEach(() => nativeQueries.parent.mockReset())
 
-vi.mock('convex/react', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('convex/react')>()),
-  useAction: () => vi.fn(),
-  useConvex: () => undefined,
-  useConvexAuth: () => ({ isAuthenticated: true, isLoading: false }),
-  useMutation: () => vi.fn(),
-  useQuery: (reference: Parameters<typeof getFunctionName>[0], args: unknown) =>
-    getFunctionName(reference) === 'content/details:get'
-      ? args === 'skip'
-        ? undefined
-        : nativeQueries.parent(args)
-      : { assetId: null, revision: 0 }
-}))
+vi.mock('convex/react', async (importOriginal) => {
+  const { api } = await import('@artificer-toolkit/apis/convex/api')
+  return {
+    ...(await importOriginal<typeof import('convex/react')>()),
+    useAction: () => vi.fn(),
+    useConvex: () => undefined,
+    useConvexAuth: () => ({ isAuthenticated: true, isLoading: false }),
+    useMutation: () => vi.fn(),
+    useQuery: (reference: Parameters<typeof getFunctionName>[0], args: unknown) =>
+      getFunctionName(reference) === getFunctionName(api.content.details.get)
+        ? args === 'skip'
+          ? undefined
+          : nativeQueries.parent(args)
+        : { assetId: null, revision: 0 }
+  }
+})
 
 const spellResponse: NonNullable<SpellResponseDto> = {
   publicId: '1',

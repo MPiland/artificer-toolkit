@@ -13,6 +13,11 @@ import { SocialProfilePage } from './SocialProfilePage'
 
 const targetId = 'aaaaaaaa-1111-4111-8111-111111111111'
 const mutation = fn<(name: string, input: unknown) => void>()
+const mutationNames = {
+  blockCreate: getFunctionName(api.social.blocks.create),
+  blockRemove: getFunctionName(api.social.blocks.remove),
+  reportCreate: getFunctionName(api.social.reports.create)
+}
 const statusQuery = convexQuery(api.social.blocks.getStatus, { profilePublicId: targetId })
 
 const meta = {
@@ -48,19 +53,19 @@ const meta = {
           async (input?: unknown) => {
             const name = getFunctionName(reference)
             mutation(name, input)
-            if (name === 'social/reports:create') {
+            if (name === mutationNames.reportCreate) {
               if (!input || typeof input !== 'object' || !('input' in input))
                 throw new Error('Missing report input')
               createSocialReportInputSchema.parse(input.input)
               return { status: 'SUBMITTED' }
             }
             socialBlockInputSchema.parse(input)
-            if (name !== 'social/blocks:create' && name !== 'social/blocks:remove')
+            if (name !== mutationNames.blockCreate && name !== mutationNames.blockRemove)
               throw new Error(`Unexpected mutation ${name}`)
-            if (context.parameters.failRemove && name === 'social/blocks:remove')
+            if (context.parameters.failRemove && name === mutationNames.blockRemove)
               throw new Error('Unblock failed')
             queryClient.setQueryData(statusQuery.queryKey, {
-              blocked: name === 'social/blocks:create'
+              blocked: name === mutationNames.blockCreate
             })
             return null
           },
@@ -82,7 +87,7 @@ export const BlockUnblockAndReport: Story = {
     await userEvent.click(canvas.getByRole('button', { name: 'Block' }))
     await canvas.findByRole('heading', { name: 'Blocked profile' })
     await expect(canvas.queryByText('@TargetPlayer')).not.toBeInTheDocument()
-    await expect(mutation).toHaveBeenCalledWith('social/blocks:create', {
+    await expect(mutation).toHaveBeenCalledWith(mutationNames.blockCreate, {
       profilePublicId: targetId
     })
     await userEvent.click(canvas.getByRole('button', { name: 'Report' }))
@@ -94,7 +99,7 @@ export const BlockUnblockAndReport: Story = {
     )
     await userEvent.click(dialog.getByRole('button', { name: 'Submit report' }))
     await waitFor(() =>
-      expect(mutation).toHaveBeenCalledWith('social/reports:create', {
+      expect(mutation).toHaveBeenCalledWith(mutationNames.reportCreate, {
         input: {
           targetKind: 'PROFILE',
           targetPublicId: targetId,
@@ -106,7 +111,7 @@ export const BlockUnblockAndReport: Story = {
     await waitFor(() => expect(body.queryByRole('dialog')).not.toBeInTheDocument())
     await userEvent.click(canvas.getByRole('button', { name: 'Unblock' }))
     await canvas.findByRole('heading', { name: '@TargetPlayer' })
-    await expect(mutation).toHaveBeenCalledWith('social/blocks:remove', {
+    await expect(mutation).toHaveBeenCalledWith(mutationNames.blockRemove, {
       profilePublicId: targetId
     })
   }

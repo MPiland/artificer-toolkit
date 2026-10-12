@@ -122,7 +122,7 @@ it('pages both native dependent owner kinds through exhaustion and rejects curso
     perceptionContributions: [],
     recurrence: {
       recurrenceStage: 'NONE',
-      consumeOnFirstEvent: null,
+      consumeOnFirstEvents: [],
       endOnEvents: [],
       lifetimeScope: 'ENCOUNTER',
       expiration: {

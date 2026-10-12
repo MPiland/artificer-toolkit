@@ -46,6 +46,7 @@ import type {
   CharacterRuleActionActiveEffectPlan,
   CharacterRuleActionConditionOutcomeRules,
   CharacterRuleActionPositionalFacts,
+  GrantConsumeEvent,
   CharacterRuleActionSpatialDirective
 } from '../../characterRuleActionSystemAdapter.js'
 import { CharacterRuleActionUnsupportedCompilationError } from '../../characterRuleActionSystemAdapter.js'
@@ -543,7 +544,7 @@ function supportedRecurringPlan(
     !recurringScaling &&
     lifecycle &&
     recurringStage !== null &&
-    !lifecycle.consumeOnFirstEvent &&
+    (lifecycle.consumeOnFirstEvents?.length ?? 0) === 0 &&
     (lifecycle.endOnEvents?.length ?? 0) === 0
   const maintenance = maintenancePlan(entry)
   if (
@@ -1222,6 +1223,10 @@ function timedImmediateConditionPlan(
   }
 }
 
+function isGrantConsumeEvent(event: string): event is GrantConsumeEvent {
+  return event === 'ON_ATTACK_ROLL' || event === 'ON_ABILITY_CHECK'
+}
+
 /**
  * A timed APPLY_GRANT of modifiers (an Antitoxin's advantage for 1 hour): the target holds an
  * Encounter active effect that carries the modifiers into its rules while it lasts and counts the
@@ -1254,7 +1259,9 @@ function modifierGrantPlan(
   if (!entry || !('outcome' in entry) || entry.outcome.effectKind !== 'APPLY_GRANT') return null
   const { grants } = entry.outcome
   const initialRemaining = entry.duration ? conditionDurationTurns(entry.duration) : null
-  const { turnAnchor, consumeOnFirstEvent, ...otherLifecycle } = entry.lifecycle ?? {}
+  const { turnAnchor, consumeOnFirstEvents = [], ...otherLifecycle } = entry.lifecycle ?? {}
+  const consumeEvents = [...new Set(consumeOnFirstEvents)].sort()
+  const grantConsumeEvents = consumeEvents.filter(isGrantConsumeEvent)
   const senses = grants.senses ?? []
   const grantedSenses = senses.flatMap((sense) =>
     sense.selectionKind === 'GRANTED' && sense.scalingKind === 'NONE' && 'senseIds' in sense
@@ -1281,7 +1288,7 @@ function modifierGrantPlan(
     // A grant created on its anchor's own turn is stored one turn longer (see the Encounter planner).
     initialRemaining >= MAX_ACTIVE_EFFECT_TURNS ||
     Object.values(otherLifecycle).some((value) => value !== undefined) ||
-    (consumeOnFirstEvent !== undefined && consumeOnFirstEvent !== 'ON_ATTACK_ROLL') ||
+    grantConsumeEvents.length !== consumeEvents.length ||
     !UUID.test(entry.entryId)
   )
     return null
@@ -1300,7 +1307,7 @@ function modifierGrantPlan(
       senses: grantedSenses,
       tickAnchor: turnAnchor?.actor === 'SOURCE' ? 'SOURCE' : 'HOLDER',
       includesCurrentTurn: entry.duration?.durationKind === 'TURN',
-      consumeOnFirstEvent: consumeOnFirstEvent ?? null
+      consumeOnFirstEvents: grantConsumeEvents
     },
     adapterFacts: attack ? { 'dnd5e.grant-authored-path': entry.pathCode } : {},
     perceptionContributions: [],
@@ -2059,7 +2066,9 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
         invocation.range.amount > 0 &&
         invocation.range.longAmount === undefined)) &&
     invocation.targeting?.selectionKind === 'SINGLE_TARGET' &&
-    invocation.targeting.dispositionKind === 'ANY' &&
+    // A grant may ask for a willing target (Help): an unwilling one only warns, and the table can override it.
+    (invocation.targeting.dispositionKind === 'ANY' ||
+      (invocation.targeting.dispositionKind === 'WILLING' && grantPlan !== null)) &&
     // A grant's excluded creature types stay on the invocation for the room to enforce.
     (grantPlan !== null || !invocation.targeting.excludedCreatureTypeIds?.length)
   // A Legendary Action option is free; the Feature charge it spends is its cost.

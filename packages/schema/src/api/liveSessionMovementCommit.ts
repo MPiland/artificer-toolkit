@@ -30,7 +30,6 @@ import {
 } from '../projections/activeRuleEffectPersistence.js'
 import { MAX_SPATIAL_CANDIDATES } from '../shared/spatialFacts.js'
 import { MAX_ENCOUNTER_ACTORS } from '../shared/authoredLimits.js'
-import { encounterAllyAdvantageUsesDtoSchema } from '../shared/basicActions.js'
 
 /** Ordered domain outcomes only; Character documents and arbitrary patches never cross this seam. */
 export const liveSessionMovementSettlementSchema = lazySchema(() =>
@@ -52,8 +51,6 @@ export const liveSessionMovementSettlementSchema = lazySchema(() =>
       resourceConsumption: z.nullable(liveSessionCharacterResourceConsumptionSchema),
       createdEffects: z.array(activeRuleEffectRecordSchema).check(z.maxLength(2)),
       maintainedState: z.nullable(encounterMaintainedEffectStateRecordSchema),
-      /** The Help (basic action, Q11) the reactor's attack roll used. */
-      allyAdvantageUses: encounterAllyAdvantageUsesDtoSchema,
       /** The reactor's one-roll grants the attack roll used up; the commit deletes them. */
       consumedGrants: z
         .array(activeRuleEffectRecordSchema)
@@ -72,8 +69,10 @@ export const liveSessionMovementSettlementSchema = lazySchema(() =>
       kind: z.literal('PASSAGE'),
       actorId: postgresUuidSchema,
       consumption: movementPassageContestReceiptDtoSchema.shape.actionEconomy,
-      /** The Helps (basic action, Q11) the contest's checks used. */
-      allyAdvantageUses: encounterAllyAdvantageUsesDtoSchema
+      /** The one-check grants (Help) both rollers' contest checks used up; the commit deletes them. */
+      consumedGrants: z
+        .array(activeRuleEffectRecordSchema)
+        .check(z.maxLength(2 * MAX_ACTIVE_RULE_EFFECTS_PER_OWNER))
     })
   ])
 )

@@ -146,7 +146,7 @@ export async function seedTurnSaveEffect(input: {
       perceptionContributions: [],
       recurrence: {
         recurrenceStage: input.stage,
-        consumeOnFirstEvent: null,
+        consumeOnFirstEvents: [],
         endOnEvents: [],
         lifetimeScope: 'ENCOUNTER',
         expiration: {

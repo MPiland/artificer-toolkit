@@ -64,7 +64,10 @@ describe('authored basic action compilation', () => {
   })
 
   it('offers nothing for an entry that carries mechanics instead of effects', async () => {
-    expect(await discover([SRD_BASIC_ACTION_IDS.DASH])).toEqual({ available: [], unavailable: [] })
+    expect(await discover([SRD_BASIC_ACTION_IDS.FIRST_AID])).toEqual({
+      available: [],
+      unavailable: []
+    })
   })
 
   it("reads only the entry an action id names, and nothing for another actor's id", async () => {

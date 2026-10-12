@@ -491,7 +491,7 @@ describe('a Legendary Action uses up the owner’s one-roll grants (SPELLS-5.4)'
       seed: seedModifierGrant({
         sourceActorId: WOLF_ID,
         holderActorId: FIRST_DRAGON_ID,
-        lifecycle: { consumeOnFirstEvent: 'ON_ATTACK_ROLL' }
+        lifecycle: { consumeOnFirstEvents: ['ON_ATTACK_ROLL'] }
       })
     })
     expect((await readRoomHistory(room.base.stub)).activeEffects).toHaveLength(1)

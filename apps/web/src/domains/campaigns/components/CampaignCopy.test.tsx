@@ -1,6 +1,7 @@
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { getFunctionName } from 'convex/server'
+import { api } from '@artificer-toolkit/apis/convex/api'
 import {
   campaignCopyProgressSchema,
   type CampaignCopyProgress
@@ -68,7 +69,7 @@ vi.mock('convex/react', async (importOriginal) => ({
     args: unknown,
     options: unknown
   ) => {
-    if (getFunctionName(reference) !== 'campaigns/copyJobs:list')
+    if (getFunctionName(reference) !== getFunctionName(api.campaigns.copyJobs.list))
       throw new Error(`Unexpected copy-job query ${getFunctionName(reference)}`)
     expect(args).toEqual({})
     expect(options).toEqual({ initialNumItems: 8 })
@@ -76,16 +77,16 @@ vi.mock('convex/react', async (importOriginal) => ({
   },
   useConvex: () => ({
     query: (reference: Parameters<typeof getFunctionName>[0], args: { copyId: string }) => {
-      if (getFunctionName(reference) !== 'campaigns/copyJobs:progress')
+      if (getFunctionName(reference) !== getFunctionName(api.campaigns.copyJobs.progress))
         throw new Error(`Unexpected copy-job query ${getFunctionName(reference)}`)
       return mocks.progress(args)
     }
   }),
   useMutation: (reference: Parameters<typeof getFunctionName>[0]) => {
     switch (getFunctionName(reference)) {
-      case 'campaigns/copyJobs:begin':
+      case getFunctionName(api.campaigns.copyJobs.begin):
         return mocks.begin
-      case 'campaigns/copyJobs:cancel':
+      case getFunctionName(api.campaigns.copyJobs.cancel):
         return mocks.cancel
       default:
         throw new Error(`Unexpected copy-job mutation ${getFunctionName(reference)}`)

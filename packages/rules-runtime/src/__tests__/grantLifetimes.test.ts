@@ -24,7 +24,7 @@ import { SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from '@artificer-to
 import { prepareActiveRuleEffectRecord } from '../activeRuleEffectRecords.js'
 import { prepareEncounterActionEffectPlans } from '../encounterActionEffectPlans.js'
 import {
-  attackRollConsumableGrants,
+  consumableGrants,
   expiredCarriedOverGrants,
   planCarriedOverGrants,
   planConcentrationCarriedGrantEnds,
@@ -183,20 +183,30 @@ describe('grant plans', () => {
   it('counts the holder at the end of its turn when nothing says otherwise', () => {
     expect(srdPlan(antitoxin(), {})).toMatchObject({
       recurrenceStage: 'END_OF_TURN',
-      modifierGrantContribution: { tickAnchor: 'HOLDER', consumeOnFirstEvent: null }
+      modifierGrantContribution: { tickAnchor: 'HOLDER', consumeOnFirstEvents: [] }
     })
   })
 
   it('carries a consume-on-attack-roll lifecycle into the plan', () => {
-    expect(srdPlan(antitoxin(), { consumeOnFirstEvent: 'ON_ATTACK_ROLL' })).toMatchObject({
-      modifierGrantContribution: { consumeOnFirstEvent: 'ON_ATTACK_ROLL' }
+    expect(srdPlan(antitoxin(), { consumeOnFirstEvents: ['ON_ATTACK_ROLL'] })).toMatchObject({
+      modifierGrantContribution: { consumeOnFirstEvents: ['ON_ATTACK_ROLL'] }
+    })
+  })
+
+  it('carries a sorted, unique list of consume events into the plan', () => {
+    expect(
+      srdPlan(antitoxin(), {
+        consumeOnFirstEvents: ['ON_ATTACK_ROLL', 'ON_ABILITY_CHECK', 'ON_ATTACK_ROLL']
+      })
+    ).toMatchObject({
+      modifierGrantContribution: { consumeOnFirstEvents: ['ON_ABILITY_CHECK', 'ON_ATTACK_ROLL'] }
     })
   })
 
   it.each<[string, PathLifecycleAuthored]>([
     ['an end event', { endOnEvents: ['ON_CAST_SPELL'] }],
     ['a recurring kind', { recurringKind: 'NONE' }],
-    ['a spell-cast consume event', { consumeOnFirstEvent: 'ON_CAST_SPELL' }]
+    ['a spell-cast consume event', { consumeOnFirstEvents: ['ON_CAST_SPELL'] }]
   ])('stays manual with %s', (_label, lifecycle) => {
     expect(plansFor(antitoxin(), lifecycle)).toEqual([])
   })
@@ -233,8 +243,8 @@ describe('grant plans', () => {
     expect(
       srdPlan(onlyEffect(viciousMockery.effects), {
         turnAnchor: { actor: 'TARGET', boundary: 'END_OF_TURN' }
-      }).modifierGrantContribution?.consumeOnFirstEvent
-    ).toBe('ON_ATTACK_ROLL')
+      }).modifierGrantContribution?.consumeOnFirstEvents
+    ).toEqual(['ON_ATTACK_ROLL'])
   })
 
   it.each([
@@ -341,10 +351,10 @@ describe('stored grants', () => {
 
   it('store the consume-on-attack-roll event', () => {
     const { definition } = storedGrant({
-      lifecycle: { consumeOnFirstEvent: 'ON_ATTACK_ROLL' },
+      lifecycle: { consumeOnFirstEvents: ['ON_ATTACK_ROLL'] },
       currentActorId: null
     })
-    expect(definition.recurrence.consumeOnFirstEvent).toBe('ON_ATTACK_ROLL')
+    expect(definition.recurrence.consumeOnFirstEvents).toEqual(['ON_ATTACK_ROLL'])
   })
 
   describe('created on the anchor actor’s own turn', () => {
@@ -499,19 +509,76 @@ describe('planEncounterGrantTicks', () => {
   })
 })
 
-describe('attackRollConsumableGrants', () => {
-  it('lists only the grants an attack roll uses up', () => {
-    const consumable = grantRecord(
-      storedGrant({ lifecycle: { consumeOnFirstEvent: 'ON_ATTACK_ROLL' }, currentActorId: null }),
-      { id: 0xc340, holderId: TARGET_ID }
-    )
-    const plain = grantRecord(storedGrant({ lifecycle: {}, currentActorId: null }), {
-      id: 0xc341,
-      holderId: TARGET_ID
+describe('a Help made on the helper’s own turn', () => {
+  const helpEffect = onlyEffect(
+    SRD_BASIC_ACTION_DEFINITIONS.find((entry) => entry.id === SRD_BASIC_ACTION_IDS.HELP)?.document
+      .effects
+  )
+  // The ally holds the grant; the helper (the source) made it on its own turn.
+  const stored = storedGrant({
+    effect: helpEffect,
+    lifecycle: {},
+    currentActorId: SOURCE_ID,
+    holderId: TARGET_ID
+  })
+  const record = grantRecord(stored, { id: 0xc360, holderId: TARGET_ID })
+  const plan = (stage: 'START_OF_TURN' | 'END_OF_TURN', turnActorId: string) =>
+    planEncounterGrantTicks({
+      encounterId: ENCOUNTER_ID,
+      stage,
+      turnActorId,
+      holders: [
+        { actor: holder(TARGET_ID).actor, effects: [record] },
+        { actor: holder(SOURCE_ID).actor, effects: [] }
+      ]
     })
-    expect(attackRollConsumableGrants([plain, consumable]).map(({ id }) => id)).toEqual([
+
+  it('counts one boundary: the start of the helper’s next turn', () => {
+    expect(record.lifecycle.remainingTicks).toBe(1)
+  })
+
+  it('survives the ally’s own turn coming first, and the helper’s end of turn', () => {
+    expect(plan('START_OF_TURN', TARGET_ID)).toEqual([])
+    expect(plan('END_OF_TURN', TARGET_ID)).toEqual([])
+    expect(plan('START_OF_TURN', OTHER_ID)).toEqual([])
+    expect(plan('END_OF_TURN', SOURCE_ID)).toEqual([])
+  })
+
+  it('ends at the start of the helper’s next turn, unused or not', () => {
+    expect(plan('START_OF_TURN', SOURCE_ID)).toMatchObject([
+      { kind: 'EXPIRE', effect: { id: record.id }, owner: { targetActorId: TARGET_ID } }
+    ])
+  })
+})
+
+describe('consumableGrants', () => {
+  const held = (id: number, events: ('ON_ATTACK_ROLL' | 'ON_ABILITY_CHECK')[]) =>
+    grantRecord(
+      storedGrant({ lifecycle: { consumeOnFirstEvents: events }, currentActorId: null }),
+      {
+        id,
+        holderId: TARGET_ID
+      }
+    )
+  const plain = grantRecord(storedGrant({ lifecycle: {}, currentActorId: null }), {
+    id: 0xc341,
+    holderId: TARGET_ID
+  })
+
+  it('lists only the grants an attack roll uses up', () => {
+    const consumable = held(0xc340, ['ON_ATTACK_ROLL'])
+    expect(consumableGrants([plain, consumable], 'ON_ATTACK_ROLL').map(({ id }) => id)).toEqual([
       consumable.id
     ])
+  })
+
+  it('lists only the grants an ability check uses up', () => {
+    const check = held(0xc342, ['ON_ABILITY_CHECK'])
+    const both = held(0xc343, ['ON_ABILITY_CHECK', 'ON_ATTACK_ROLL'])
+    const attackOnly = held(0xc344, ['ON_ATTACK_ROLL'])
+    expect(
+      consumableGrants([plain, check, both, attackOnly], 'ON_ABILITY_CHECK').map(({ id }) => id)
+    ).toEqual([check.id, both.id])
   })
 })
 

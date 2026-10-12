@@ -1,11 +1,11 @@
 import { act, renderHook } from '@testing-library/react'
 import { useState } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { CampaignInviteDto } from '@artificer-toolkit/schema/api/campaignCore'
+import { campaignInviteDtoSchema } from '@artificer-toolkit/schema/api/campaignCore'
 import { useInvitationExpiry } from './useInvitationExpiry'
 
 const start = Date.parse('2026-09-10T12:00:00.000Z')
-const invitation: CampaignInviteDto = {
+const invitation = campaignInviteDtoSchema.parse({
   invitePublicId: 'aaaaaaaa-1111-4111-8111-111111111111',
   listingPublicId: 'bbbbbbbb-2222-4222-8222-222222222222',
   listingTitle: 'A table',
@@ -17,7 +17,7 @@ const invitation: CampaignInviteDto = {
   respondedAt: null,
   createdAt: new Date(start).toISOString(),
   version: 0
-}
+})
 
 describe('invitation pagination horizon', () => {
   beforeEach(() => {

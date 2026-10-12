@@ -15,7 +15,6 @@ import {
   encounterRuleUsageSnapshot,
   withEncounterRuleUsageUsed
 } from '@artificer-toolkit/rules-runtime/encounterActorState'
-import { encounterBasicActionEffects } from '@artificer-toolkit/rules-runtime/encounterBasicActions'
 import { SRD_BASIC_ACTION_DEFINITIONS } from '@artificer-toolkit/source-data/srd/basicActions.js'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { SRD_OPTIONAL_COMBAT_DEFINITIONS } from '@artificer-toolkit/source-data/srd/optionalCombat.js'
@@ -25,6 +24,7 @@ import {
   SRD_RULE_STATE_DEFINITIONS
 } from '@artificer-toolkit/source-data/srd/ruleState.js'
 import { writeRunActor } from '@artificer-toolkit/encounter-persistence/documents'
+import { api } from '../_generated/api'
 import { sourceImportBatches } from '../content/importBatches'
 import {
   readCheckpointedTokenPosition,
@@ -65,8 +65,6 @@ const pendingRuleOccurrence = makeFunctionReference<
 >('encounters/pendingReads:pendingRuleOccurrence')
 
 useLocalRoomWorker()
-
-const help = SRD_BASIC_ACTION_DEFINITIONS.find((definition) => definition.label === 'Help')
 
 function optional(kind: 'OVERRUN' | 'TUMBLE') {
   const definition = SRD_OPTIONAL_COMBAT_DEFINITIONS.find(
@@ -171,15 +169,28 @@ async function setupPassageScene(
   }
   await setCurrentActor(helper?.id ?? base.mover.id)
   if (helper) {
+    await checkpointLiveRoom(base.campaign.id)
+    const helpChoice = (
+      await base.owner.caller.query(api.encounters.actionChoices.get, {
+        encounterId: base.run.id,
+        expectedVersion: await runVersion(),
+        actorId: helper.id
+      })
+    )?.basicActionChoices.find((choice) => choice.label === 'Help')
+    if (!helpChoice) throw new Error('The passage helper is not offered Help.')
     const result = await executeInRoom(base.owner.caller, {
       command: {
-        type: 'USE_BASIC_ACTION',
+        type: 'RESOLVE_ACTION',
+        acceptedWieldConflict: null,
+        acknowledgedWarnings: [],
         encounterId: base.run.id,
         commandId: crypto.randomUUID(),
-        expectedVersion: version,
+        expectedVersion: await runVersion(),
         actorId: helper.id,
-        definitionId: help!.id,
-        targetActorId: base.reactor.id
+        actionId: helpChoice.id,
+        target: { kind: 'ACTOR', actorId: base.reactor.id },
+        optionalCombatIntent: null,
+        sceneContext: null
       }
     })
     version = result.projection.version
@@ -539,19 +550,16 @@ describe('native Scene movement passage', () => {
       perceptionRequirement: 'SEE',
       blockerHelp: true
     })
-    const helper = value.base.additionalReactorActor!
-    const helperEffects = async () => {
+    const blockerGrants = async () => {
       await checkpointLiveRoom(value.base.campaign.id)
-      const row = await value.base.t.run((ctx) =>
+      return value.base.t.run((ctx) =>
         ctx.db
-          .query('encounterRunActors')
-          .withIndex('by_encounterId_id', (q) =>
-            q.eq('encounterId', value.base.run.id).eq('id', helper.id)
+          .query('encounterActiveRuleEffects')
+          .withIndex('by_encounterId_targetActorId_createdOrdinal_id', (q) =>
+            q.eq('encounterId', value.base.run.id).eq('targetActorId', value.base.reactor.id)
           )
-          .unique()
+          .collect()
       )
-      if (!row) throw new Error('Passage helper is unavailable.')
-      return encounterBasicActionEffects(readStoredRunActor(row))
     }
     const { choice } = await issuePassage(value)
     const option = choice.options.find((entry) => entry.ruleKind === 'OVERRUN')
@@ -576,14 +584,14 @@ describe('native Scene movement passage', () => {
     await expect(checkpointedPending(value, value.owner.caller)).resolves.toMatchObject({
       request: { rollMode: 'ADVANTAGE', derivedRollModeReasons: ['Help'] }
     })
-    expect(await helperEffects()).toHaveLength(1)
+    expect(await blockerGrants()).toHaveLength(1)
     const completed = await respond(value, pending, {
       kind: 'ENTER_DICE',
       requestId: pending.request.requestId,
       rawFaces: [1, 1],
       rollMode: 'ADVANTAGE'
     })
-    expect(await helperEffects()).toEqual([])
+    expect(await blockerGrants()).toEqual([])
     // The blocker's retained opportunity attack can't use the Help again.
     const reactionChoice = completed.result.occurrence?.pending
     if (reactionChoice?.kind !== 'MOVEMENT_REACTION' || !reactionChoice.choice.options[0])

@@ -6,7 +6,6 @@ import {
 import { requireServerKernelRuleExecutionPendingSnapshot } from '@artificer-toolkit/schema/shared/rulesExecution'
 import { withEncounterRuleUsageUsed } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import type { EncounterActionEconomyConsumption } from '@artificer-toolkit/rules-runtime/encounterActionEconomyConsumption'
-import type { EncounterAllyAdvantageUseDto } from '@artificer-toolkit/schema/shared/basicActions'
 import {
   liveSessionMovementSettlementSchema,
   type LiveSessionMovementSettlement
@@ -51,15 +50,9 @@ import { evaluateEncounterMovementPassageContest } from '@artificer-toolkit/rule
 import { prepareEncounterMovementPassageContest } from '@artificer-toolkit/rules-runtime/encounterMovementPassagePreparation'
 import { prepareEncounterActionMechanics } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
 import { resolveEncounterActionSource } from '@artificer-toolkit/rules-runtime/encounterActionSources'
-import {
-  lockedRelationshipActionFacts,
-  mergeCanonicalD20Contributors
-} from '@artificer-toolkit/rules-runtime/encounterRelationshipActionFacts'
-import {
-  encounterAllyAdvantageUses,
-  encounterBasicActionAllyAdvantage
-} from '@artificer-toolkit/rules-runtime/encounterBasicActions'
-import { attackRollConsumableGrants } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
+import { lockedRelationshipActionFacts } from '@artificer-toolkit/rules-runtime/encounterRelationshipActionFacts'
+import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
+import { consumableGrants } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
 import { prepareEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomy'
 import {
   discoverEncounterMovementPassage,
@@ -97,7 +90,7 @@ type NativeLiveMovementSettlement =
       plan: {
         actor: EncounterRunActorState
         consumption: EncounterActionEconomyConsumption
-        allyAdvantageUses: EncounterAllyAdvantageUseDto[]
+        consumedGrants: ActiveRuleEffectRecord[]
       }
     }
 
@@ -196,24 +189,16 @@ export async function prepareNativeLiveMovement(
           overridable: false,
           loadSource: async (source) => resolveEncounterActionSource({ ...source, system }),
           loadRelationshipFacts: async (relationship) => {
-            // The reaction's actors carry the Helps (basic action, Q11) this movement left unused.
-            const allyAdvantage = encounterBasicActionAllyAdvantage({
-              actors: relationship.actors,
-              attackerId: relationship.sourceActorId
+            return lockedRelationshipActionFacts({
+              actionEffectId: relationship.actionEffectId,
+              sourceActorId: relationship.sourceActorId,
+              targetActorId: relationship.targetActorId,
+              targets: {
+                activeEffectsByActorId: new Map(
+                  [...reaction.targets].map(([id, target]) => [id, target.activeEffects])
+                )
+              }
             })
-            return mergeCanonicalD20Contributors(
-              lockedRelationshipActionFacts({
-                actionEffectId: relationship.actionEffectId,
-                sourceActorId: relationship.sourceActorId,
-                targetActorId: relationship.targetActorId,
-                targets: {
-                  activeEffectsByActorId: new Map(
-                    [...reaction.targets].map(([id, target]) => [id, target.activeEffects])
-                  )
-                }
-              }),
-              allyAdvantage ? [allyAdvantage.contributor] : []
-            )
           }
         }),
       prepareMaintenance: (prepared, _actorUserId, maintenanceProjection) =>
@@ -250,21 +235,12 @@ export async function prepareNativeLiveMovement(
     const { prepared } = plan.prepared
     reactionSettlements.set(plan, {
       kind: 'REACTION',
-      // Only an attack roll uses the reactor's Help (basic action, Q11).
-      allyAdvantageUses:
-        typeof prepared.binding.actionMechanic.attackBonus === 'number'
-          ? encounterAllyAdvantageUses({
-              actors: prepared.actors,
-              participants: [
-                { actorId: prepared.actor.id, contributors: prepared.relationshipContributors }
-              ]
-            })
-          : [],
       // The same attack roll uses up the reactor's one-roll grants (Vicious Mockery's disadvantage).
       consumedGrants:
         typeof prepared.binding.actionMechanic.attackBonus === 'number'
-          ? attackRollConsumableGrants(
-              prepared.movementTargets.get(prepared.actor.id)?.activeEffects ?? []
+          ? consumableGrants(
+              prepared.movementTargets.get(prepared.actor.id)?.activeEffects ?? [],
+              'ON_ATTACK_ROLL'
             )
           : [],
       execution: result.reactionExecution,
@@ -572,13 +548,7 @@ export async function prepareNativeLiveMovement(
                       ...economy,
                       loadTarget: async () => economy.target,
                       definitions
-                    }),
-                  // The contest is its call's first roll, so every Help it reads is unused.
-                  allyAdvantage: (actorId) =>
-                    encounterBasicActionAllyAdvantage({
-                      actors: captured.actors,
-                      attackerId: actorId
-                    })?.contributor ?? null
+                    })
                 },
                 choice
               ),
@@ -674,7 +644,7 @@ export async function prepareNativeLiveMovement(
         kind: 'PASSAGE',
         actorId: settlement.plan.actor.id,
         consumption: settlement.plan.consumption,
-        allyAdvantageUses: settlement.plan.allyAdvantageUses
+        consumedGrants: settlement.plan.consumedGrants
       })
     return liveSessionMovementSettlementSchema.parse({
       kind: 'SPATIAL',

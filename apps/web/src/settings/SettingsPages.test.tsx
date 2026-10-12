@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { api } from '@artificer-toolkit/apis/convex/api'
-import type { AuthSessionUserDto } from '@artificer-toolkit/schema/api/auth'
+import { authSessionUserDtoSchema } from '@artificer-toolkit/schema/api/auth'
 import { socialEligibilityDtoSchema } from '@artificer-toolkit/schema/api/socialHub'
 import { ConvexReactClient } from 'convex/react'
 import { getFunctionName } from 'convex/server'
@@ -31,12 +31,13 @@ vi.mock('@convex-dev/react-query', async (importOriginal) => {
     ...actual,
     convexQuery: (reference: Parameters<typeof actual.convexQuery>[0], args: unknown) => {
       const options = actual.convexQuery(reference, args)
-      if (getFunctionName(reference) === 'account:rollPreferences')
+      if (getFunctionName(reference) === getFunctionName(api.account.rollPreferences))
         return {
           ...options,
           queryFn: async () => ({ autoRollDice: true, gmRollVisibility: 'PUBLIC' as const })
         }
-      if (getFunctionName(reference) !== 'social/profiles:getEligibility') return options
+      if (getFunctionName(reference) !== getFunctionName(api.social.profiles.getEligibility))
+        return options
       return {
         ...options,
         queryFn: async () => ({
@@ -56,8 +57,9 @@ vi.mock('convex/react', async (importOriginal) => {
     ...actual,
     useMutation: (reference: Parameters<typeof actual.useMutation>[0]) => {
       const name = getFunctionName(reference)
-      if (name === 'social/profiles:updatePreference') return mocks.updateSocialContentPreference
-      if (name === 'account:setAutoRollDice') return mocks.setAutoRollDice
+      if (name === getFunctionName(api.social.profiles.updatePreference))
+        return mocks.updateSocialContentPreference
+      if (name === getFunctionName(api.account.setAutoRollDice)) return mocks.setAutoRollDice
       return actual.useMutation(reference)
     }
   }
@@ -66,14 +68,14 @@ vi.mock('convex/react', async (importOriginal) => {
 import { AccountSettingsPage } from './AccountSettingsPage'
 import { PreferencesSettingsPage } from './PreferencesSettingsPage'
 
-const authoringUser: AuthSessionUserDto = {
+const authoringUser = authSessionUserDtoSchema.parse({
   userId: '13c13d4a-1a19-4cdc-8dc8-a9cac3492b1e',
   role: 'user',
   email: 'author@example.invalid',
   username: 'advanced_author',
   registrationCompleted: true,
   authoringExperience: 'guided'
-}
+})
 
 describe('settings pages', () => {
   beforeEach(() => {

@@ -3,6 +3,7 @@ import { PutObjectCommand } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { zodToConvex, zodToConvexFields } from 'convex-helpers/server/zod4'
 import { ENTITLEMENT_LIMITS } from '@artificer-toolkit/shared/account/entitlements'
+import { publicProfileInputSchema } from '@artificer-toolkit/schema/api/account'
 import {
   avatarBindingSchema,
   avatarSaveInputSchema,
@@ -26,7 +27,7 @@ import { query, internalQuery } from '../lib/queries'
 import { mutation, internalMutation } from '../lib/mutations'
 import { internal } from '../_generated/api'
 import type { Doc } from '../_generated/dataModel'
-import { getAuthenticatedProfile } from '../lib/identity'
+import { getAuthenticatedProfile, readViewableProfileByUsername } from '../lib/identity'
 import { createMediaStorage } from './storage'
 import { mapIsReferenced } from './vttMapDocuments'
 import { pruneCropThumbnails } from './cropThumbnails'
@@ -411,6 +412,20 @@ export const readAvatar = internalQuery({
     if (asset.status !== 'READY' || asset.profileClass !== 'CONTENT_ART')
       throw new Error('Image is unavailable.')
     return { asset: storedImage(asset), crop: profile.avatarCrop ?? null }
+  }
+})
+
+/** Another account's avatar, readable only when that account's profile is viewable by the caller. */
+export const readProfileAvatar = internalQuery({
+  args: zodToConvexFields(publicProfileInputSchema.shape),
+  returns: v.union(v.null(), zodToConvex(mediaReferencedImageSchema)),
+  handler: async (ctx, args) => {
+    const input = publicProfileInputSchema.parse(args)
+    const viewable = await readViewableProfileByUsername(ctx, input.username)
+    if (!viewable?.profile.avatarAssetId) return null
+    const asset = await findAsset(ctx, viewable.profile.avatarAssetId)
+    if (!asset || asset.status !== 'READY' || asset.profileClass !== 'CONTENT_ART') return null
+    return { asset: storedImage(asset), crop: viewable.profile.avatarCrop ?? null }
   }
 })
 

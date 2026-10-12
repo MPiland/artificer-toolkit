@@ -1,6 +1,8 @@
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules/checksum'
 import { RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules/contracts'
 import { z, lazySchema } from '../zod.js'
+import { activeRuleEffectRecordSchema } from '../projections/activeRuleEffectPersistence.js'
+import { MAX_ACTIVE_RULE_EFFECTS_PER_OWNER } from './activeRuleEffects.js'
 import {
   MAX_CONCENTRATION_DAMAGE_APPLICATIONS,
   compareConcentrationDamageApplications,
@@ -527,7 +529,11 @@ export const encounterBasicActionCheckPendingContextDtoSchema = lazySchema(() =>
       contributors: canonicalConcentrationContributorsDtoSchema,
       contributorChecksum: checksumSchema,
       modifier: integerSchema
-    })
+    }),
+    /** The one-roll grants this check used up (a Help); their rows are gone, so the pending read names them from these. */
+    consumedGrants: z
+      .array(activeRuleEffectRecordSchema)
+      .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER))
   })
 )
 
@@ -556,7 +562,11 @@ export const encounterEscapeCheckPendingContextDtoSchema = lazySchema(() =>
       contributors: canonicalConcentrationContributorsDtoSchema,
       contributorChecksum: checksumSchema,
       modifier: integerSchema
-    })
+    }),
+    /** The one-roll grants this check used up (a Help); their rows are gone, so the pending read names them from these. */
+    consumedGrants: z
+      .array(activeRuleEffectRecordSchema)
+      .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER))
   })
 )
 

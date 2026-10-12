@@ -2,7 +2,7 @@ import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { api } from '@artificer-toolkit/apis/convex/api'
-import type { CurrencySystemDto } from '@artificer-toolkit/schema/api/campaignInventory'
+import { currencySystemDtoSchema } from '@artificer-toolkit/schema/api/campaignInventory'
 import { getFunctionName, type FunctionReference } from 'convex/server'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 
@@ -18,7 +18,7 @@ vi.mock('convex/react', async (importOriginal) => ({
 
 import { CurrencySystemEditor } from './CurrencySystemEditor'
 
-const system = {
+const system = currencySystemDtoSchema.parse({
   id: '11111111-1111-4111-8111-111111111111',
   label: 'Silver Standard',
   isReference: true,
@@ -37,7 +37,7 @@ const system = {
       scaleInReference: 10
     }
   ]
-} satisfies CurrencySystemDto
+})
 
 beforeEach(() => {
   vi.clearAllMocks()

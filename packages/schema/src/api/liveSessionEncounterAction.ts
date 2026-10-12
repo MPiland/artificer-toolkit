@@ -34,10 +34,6 @@ import {
   type EncounterRuleWarningDto
 } from '../shared/encounterRuleWarnings.js'
 import { MAX_ENCOUNTER_ACTORS } from '../shared/authoredLimits.js'
-import {
-  encounterAllyAdvantageUsesDtoSchema,
-  type EncounterAllyAdvantageUseDto
-} from '../shared/basicActions.js'
 
 /** Private DO output; the mutation accepts a sealed action occurrence, never arbitrary writes. */
 export const liveSessionEncounterActionPendingInputSchema = lazySchema(() =>
@@ -118,8 +114,6 @@ export type LiveSessionEncounterActionCommitInput = Omit<
   /** Concentration slots this commit ended because their holders can't act or are defeated (D95). */
   concentrationEnds: z.infer<typeof concentrationEndDtoSchema>[]
   cleaving: z.infer<typeof serverRuleExecutionPendingSnapshotDtoSchema> | null
-  /** The helpers' ally advantages (Help, Q11) this attack used; its commit removes them. */
-  allyAdvantageUses: EncounterAllyAdvantageUseDto[]
   /** The attacker's grants this attack roll used up; its commit deletes them, its undo restores them. */
   consumedGrants: z.infer<typeof activeRuleEffectRecordSchema>[]
 }
@@ -157,7 +151,6 @@ export const liveSessionEncounterActionCommitInputSchema: z.ZodMiniType<LiveSess
       maintainedState: z.nullable(encounterMaintainedEffectStateRecordSchema),
       ...liveSessionEncounterConcentrationFields(),
       cleaving: z.nullable(serverRuleExecutionPendingSnapshotDtoSchema),
-      allyAdvantageUses: encounterAllyAdvantageUsesDtoSchema,
       consumedGrants: z
         .array(activeRuleEffectRecordSchema)
         .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER))
@@ -176,7 +169,6 @@ export type LiveSessionEncounterAreaCommitInput = Omit<
   | 'createdEffects'
   | 'maintainedState'
   | 'cleaving'
-  | 'allyAdvantageUses'
   | 'consumedGrants'
 > & {
   execution: z.infer<typeof storedRuleExecutionResultDtoSchema>

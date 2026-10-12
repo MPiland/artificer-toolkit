@@ -1,7 +1,7 @@
 # Phase 8.2 Convex cutover handoff
 
 **Status:** active; current state below, older records follow under explicit "Historical" headings.
-**Updated:** 2026-10-12. Start at "Done 2026-10-12 (ATTACK-18 slice B" below; ATTACK-18 slices A and B are DONE, slice C is next. SPELLS-18 is DONE (`d70136fd3`). ATTACK-7 slices A (`9a2799a96`) and B (`0581507db`) are DONE. AUTHORING-17 is DONE (slices A `ce728c7dc`, B `31df3e710`, C); SHEET-8 is next. ATTACK-7 is active: D105 records the design and slices A–G; ATTACK-7.1 is split into 7.1 and 7.3–7.8. D106 (basic actions are authored) and D107 (hands, computed Creature AC) add AUTHORING-17, SHEET-8, ATTACK-18 and ATTACK-19; PBIs now carry `tasks` (`{id, text, status, closes}`), and SCENE-4 (loot tables) is registered.
+**Updated:** 2026-10-12. Start at "Next: ATTACK-18 slice D" below, which states the orchestrator/workbook working model and the open state; ATTACK-18 slices A, B and C are DONE. SPELLS-18 is DONE (`d70136fd3`). ATTACK-7 slices A (`9a2799a96`) and B (`0581507db`) are DONE. AUTHORING-17 is DONE (slices A `ce728c7dc`, B `31df3e710`, C); SHEET-8 is next. ATTACK-7 is active: D105 records the design and slices A–G; ATTACK-7.1 is split into 7.1 and 7.3–7.8. D106 (basic actions are authored) and D107 (hands, computed Creature AC) add AUTHORING-17, SHEET-8, ATTACK-18 and ATTACK-19; PBIs now carry `tasks` (`{id, text, status, closes}`), and SCENE-4 (loot tables) is registered.
 **Workspace:** regular `D:/dev/artificer-toolkit` checkout on `codex/phase-08-2-convex-cutover`. The detached `.codex/worktrees/phase-08-2-convex-cutover` remains a read-only backup.
 
 ## Current state (2026-10-07)
@@ -222,7 +222,7 @@ Area path file map:
 
 **Done 2026-10-12 (ATTACK-18 slice A, task T2):**
 
-- Authored basic actions: `BASIC_ACTION` documents carry `restrictions` (carried, not yet evaluated) and `effects`; an entry has `mechanics` or `effects`, never both. They compile through the dnd5e effect compiler and resolve through RESOLVE_ACTION as the third source `BASIC_ACTION` (Characters and Creatures; id `${actor.id}:BASIC_ACTION:${definitionId}:EFFECT:${effectId}`), offered as `basicActionChoices`. Dodge (ATTACKS_AGAINST with the D100 sight rule in `encounterHolderDefense.ts`, Dex save advantage, CAN_ACT and SPEED_ABOVE_ZERO predicates) and the logged Hide, Ready, Search and Use an Object (`dnd5e.manual-adjudication-proposal`) are migrated; the old Dodge path is deleted. Dash, Disengage, Help and First Aid still use `USE_BASIC_ACTION`.
+- Authored basic actions: `BASIC_ACTION` documents carry `restrictions` (carried, not yet evaluated) and `effects`; an entry has `mechanics` or `effects`, never both. They compile through the dnd5e effect compiler and resolve through RESOLVE_ACTION as the third source `BASIC_ACTION` (Characters and Creatures; id `${actor.id}:BASIC_ACTION:${definitionId}:EFFECT:${effectId}`), offered as `basicActionChoices`. Help (an `APPLY_GRANT` on one other creature; `consumeOnFirstEvents` with `ON_ABILITY_CHECK`; `allyAdvantageUses`, `basicActionEffects` and the `ALLY_ADVANTAGE` code deleted), Dodge (ATTACKS_AGAINST with the D100 sight rule in `encounterHolderDefense.ts`, Dex save advantage, CAN_ACT and SPEED_ABOVE_ZERO predicates) and the logged Hide, Ready, Search and Use an Object (`dnd5e.manual-adjudication-proposal`) are migrated; the old Dodge path is deleted. First Aid still uses `USE_BASIC_ACTION`.
 - Every stored RESOLVE_ACTION command carries the action's `label`, so the GM log names attacks and basic actions (the agent first weakened the Hide label assertion; rejected and fixed in-slice).
 - Reusable-definition documents and drafts are stored as `documentJson` text (Dodge nests 19 levels; Convex allows 16); ADR 0029 updated. The receipt's `sourceCharacterId` now comes from the Character actor for every source.
 - Red logs and the audit mutations are in `local-validation/attack18a/`. Tests for the main slice were written after the code; an independent assertion audit found four weakened Dodge/Hide/schema checks, all strengthened and mutation-proved.
@@ -235,12 +235,30 @@ Area path file map:
 - Dev data was reset and reseeded (backup `local-validation/convex-reset/attack18b.before.zip`); SRD audit passed. Logs in `local-validation/attack18b/`.
 - The drawer's `USE_BASIC_ACTION` tests and stories still use Dash and Hide as untargeted legacy fixtures; they go with `USE_BASIC_ACTION` in slice E (noted on T6).
 
-**Next: ATTACK-18 slices C and D in one session** (T4: Help as an ally grant consumed by the first attack roll or ability check, `allyAdvantageUses` deleted; T5: First Aid on the CHECK action test with a STABILIZE outcome). Briefs require red-first tests and cover, up front, the audit checklist: no stray effects, other actors unaffected, behavior after a warning override.
+**Done 2026-10-12 (ATTACK-18 slice C, task T4):**
 
-**Parallel lanes (approved by the product owner 2026-10-12).** This session is lane 1 and the integration owner. First steps after /clear, before slices C and D:
+- Help is an authored `APPLY_GRANT` on one chosen other creature; the old path is deleted (D107 note in `phase-08-2-decisions.md`, "Slice C built"). `consumeOnFirstEvents` and `consumableGrants` replace the attack-only reader; First Aid, Escape, both passage rollers and the Disarm attacker and defender consume `ON_ABILITY_CHECK` grants. Consumed grants are frozen on the pending check context (`consumedGrants`) so the "Help" reason survives early consumption; a Creature skill check uses the System skill's governing ability (`checkAbilityCode`).
+- Bugs found and fixed with red-first tests: Disarm ignored a Creature initiator's attack grants (red log `red-disarm-creature-initiator.log`); Character skill-check grants were never read in the passage, Escape, First Aid and Disarm-defender paths (`characterCheckSkillId`; `convex3.log`); the Disarm command record lacked `speedBonusTurn` (slice B); undo restored a fresh grant record, now the exact record via `store.create({ restoredFrom })` (`h-convex1.log`, `r-red.log`).
+- An independent assertion audit found five minor weakenings and four coverage gaps; all fixed (full-row undo comparisons, First Aid leaves no effect, check-undo restores Help for Escape and First Aid, unused Help expires at the helper's next turn). Help warns, overridably, on an enemy or self target (ATTACK-18.2 note).
+- Dev data was deployed, reset and reseeded (backup `local-validation/convex-reset/attack18c-deploy.before.zip`); SRD audit passed. Open: the `ALLY` choice target and drawer go with `USE_BASIC_ACTION` in slice E. Logs in `local-validation/attack18c/`.
 
-1. Confirm file overlap for lanes 2 and 3 against the rules core (basic actions, encounter commit/persistence, SRD source-data and manifest, `packages/schema/src/shared`), and check whether VTT_UI needs design decisions from the product owner (DESIGN.md, Figma). Put any questions in the open-questions doc.
-2. Start lanes 2 and 3 as worktree sessions (`start_session`, `user_asked`, `use_worktree: true`), each with its own handoff file under `docs/handoffs/`.
+**Next: ATTACK-18 slice D** (T5: First Aid on the CHECK action test with a STABILIZE outcome; Escape keeps its command on the shared check evaluator). Briefs require red-first tests and cover, up front, the audit checklist: no stray effects, other actors unaffected, behavior after a warning override, undo restores exact records.
+
+**Working model from this session on (product owner, 2026-10-12): the main session orchestrates and reviews only.**
+
+1. For each slice, write a workbook at `docs/handoffs/slice-<id>.md`: brief, ACs and tasks it closes, constraints (Edit/Write only; no watcher, sleep or poll commands; never override apis `maxWorkers`; lock rules), the red-first checklist, a status log and proposed ledger edits.
+2. Start one session per slice (`start_session`, `user_asked`, `use_worktree: true`, Sonnet). It implements, may use its own subagents, uses in-memory convex-test, and runs codegen only under the validation lock. It never deploys, resets or reseeds. Rules-chain slices stay serial.
+3. When it reports: review the diff, run a read-only assertion audit subagent against its base, send back fixes, then merge, regenerate `api.d.ts` (build schema and rules-runtime first), run the affected typecheck and touched tests, update the ledger and dashboard. Only the main session deploys, resets and reseeds local Convex and runs live proofs on merged source.
+
+**State at the 2026-10-12 slice C boundary (`f335be8d6`; lanes merged `fbc96aa2c`, `c8633ca2c`; api types `cd430e6ab`):**
+
+- Post-merge runs still owed if not reported green in `local-validation/merge-lanes-c/`: `scripts/runWebUnitRuns.ps1 -Runs 3` (PLATFORM-14.1) and `test:storybook` for CharacterSheetRest, MarketingProductCapture and CharacterBuilderAuthoringRuntime; then the two route suites and lane 2's live batch (needs the user's approval in lane 2's session; includes `profile-browser` for ACCOUNTS-8.4).
+- Lane 3 (`claude/lane3-vtt-ui-3d94bf`): `7fe4a224c` (two-ring tokens, 3.2 lighting rework, 3.1 route line, hover fix) is NOT merged; it was sent back with nine review items (tint and Stage-preview proofs, stale `previewTokenId` bug, literal colour oracles, zone-alpha assertion, no-seer player sees black, ring insets, door-blocked light, drawVision memo and render dirty flag, exact hover paths in the 1.2 note). After that: sync with base, restore the senses patch and the `boundTokenControl` projection (VTT_UI-3.4), derive status polarity in rules-runtime (VTT_UI-1.2 ruling: from grant modifiers, never authored; EFFECT draws neutral until then), 3.1 range and target, Stage selection (1.1), then PLATFORM-12.1 for `campaigns/vtt`.
+- Lane 2 (`claude/lane2-platform-closeout-4c0e7f`): merged through `591d6b138`. Its remaining scope per the table below; its live batch is pending.
+- Then sequence VTT_UI-5 (Creature stat-block senses), SCENE-5 (shared table screen) and SPELLS-20 by WSJF.
+- Delete `local-validation/convex-reset/attack18c-deploy.before.zip` once the tree is trusted.
+
+**Parallel lanes (approved by the product owner 2026-10-12).** This session is lane 1 and the integration owner.
 
 | Lane | Scope | Notes |
 |---|---|---|

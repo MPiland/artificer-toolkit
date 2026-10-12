@@ -624,10 +624,12 @@ describe("passage contests under the contestants' conditions (D94)", () => {
       (candidate) => candidate.ruleKind === ruleKind && candidate.economy === 'ACTION'
     )
     if (!choice || !option) throw new Error('Expected a passage option.')
-    return prepareEncounterMovementPassageContest(
-      { ...reads(), allyAdvantage: () => null },
-      { state: input.state, choice, optionId: option.optionId, targets }
-    )
+    return prepareEncounterMovementPassageContest(reads(), {
+      state: input.state,
+      choice,
+      optionId: option.optionId,
+      targets
+    })
   }
 
   const poisonedBy = (holderActorId: string) => ({

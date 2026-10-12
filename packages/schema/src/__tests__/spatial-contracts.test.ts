@@ -78,7 +78,7 @@ function effectDefinition() {
     adapterFacts: {},
     recurrence: {
       recurrenceStage: 'NONE' as const,
-      consumeOnFirstEvent: null,
+      consumeOnFirstEvents: [],
       endOnEvents: [],
       lifetimeScope: 'ENCOUNTER' as const,
       expiration: { kind: 'INDEFINITE' as const }

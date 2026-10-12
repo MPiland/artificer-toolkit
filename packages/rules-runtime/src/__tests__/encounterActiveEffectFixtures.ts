@@ -16,6 +16,7 @@ import {
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { prepareActiveRuleEffectRecord } from '../activeRuleEffectRecords.js'
+import type { GrantConsumeEvent } from '../characterRuleActionSystemAdapter.js'
 import type { RulesRuntimeService } from '../rulesRuntimeService.js'
 import {
   DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY,
@@ -191,7 +192,7 @@ export async function turnSaveDamageEffect(
     perceptionContributions: [],
     recurrence: {
       recurrenceStage: stage,
-      consumeOnFirstEvent: null,
+      consumeOnFirstEvents: [],
       endOnEvents: [],
       lifetimeScope: input.lifetimeScope ?? 'ENCOUNTER',
       expiration:
@@ -233,6 +234,7 @@ export function activeEffect(input: {
   owner: ActiveRuleEffectOwner
   createdOrdinal: number
   version?: number
+  consumeOnFirstEvents?: readonly GrantConsumeEvent[]
   stateContributions: [StateContribution, ...StateContribution[]]
 }): ActiveRuleEffectRecord {
   const authoredEffectId = '00000000-0000-4000-8000-00000000b004'
@@ -267,7 +269,7 @@ export function activeEffect(input: {
     perceptionContributions: [],
     recurrence: {
       recurrenceStage: 'NONE',
-      consumeOnFirstEvent: null,
+      consumeOnFirstEvents: [...(input.consumeOnFirstEvents ?? [])],
       endOnEvents: [],
       lifetimeScope: 'OWNER',
       expiration: { kind: 'INDEFINITE' }

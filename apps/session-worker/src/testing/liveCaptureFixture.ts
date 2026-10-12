@@ -132,7 +132,7 @@ export function activeEffect(input: {
     perceptionContributions: [],
     recurrence: {
       recurrenceStage: 'NONE',
-      consumeOnFirstEvent: null,
+      consumeOnFirstEvents: [],
       endOnEvents: [],
       lifetimeScope: input.lifetimeScope ?? 'OWNER',
       expiration: { kind: 'INDEFINITE' }

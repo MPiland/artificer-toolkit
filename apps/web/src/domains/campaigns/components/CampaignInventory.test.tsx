@@ -2,6 +2,7 @@ import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { getFunctionName } from 'convex/server'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { api } from '@artificer-toolkit/apis/convex/api'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { createCampaignDetail } from '../campaignDetail.fixtures'
 import { CampaignInventory } from './CampaignInventory'
@@ -64,18 +65,20 @@ vi.mock('convex/react', async (importOriginal) => ({
   useConvex: () => ({ query: mocks.query }),
   useMutation: (reference: Parameters<typeof getFunctionName>[0]) => {
     switch (getFunctionName(reference)) {
-      case 'campaigns/inventoryCleanup:retry':
+      case getFunctionName(api.campaigns.inventoryCleanup.retry):
         return mocks.retry
-      case 'campaigns/partyInventoryCommands:mutate':
+      case getFunctionName(api.campaigns.partyInventoryCommands.mutate):
         return mocks.edit
-      case 'campaigns/inventoryTransfers:transfer':
+      case getFunctionName(api.campaigns.inventoryTransfers.transfer):
         return mocks.transfer
       default:
         throw new Error('Unexpected inventory mutation')
     }
   },
   useQuery: (reference: Parameters<typeof getFunctionName>[0]) =>
-    getFunctionName(reference) === 'campaigns/inventoryOwners:version' ? { version: 7 } : null
+    getFunctionName(reference) === getFunctionName(api.campaigns.inventoryOwners.version)
+      ? { version: 7 }
+      : null
 }))
 vi.mock('convex-helpers/react', () => ({
   usePaginatedQuery: (
@@ -84,23 +87,23 @@ vi.mock('convex-helpers/react', () => ({
     options: unknown
   ) => {
     const name = getFunctionName(reference)
-    if (name === 'campaigns/inventoryCleanup:pending') {
+    if (name === getFunctionName(api.campaigns.inventoryCleanup.pending)) {
       mocks.pendingCalls(args, options)
       return args === 'skip' ? mocks.empty : mocks.pending
     }
     if (args === 'skip') return mocks.empty
     switch (name) {
-      case 'campaigns/vehicles:list':
+      case getFunctionName(api.campaigns.vehicles.list):
         return mocks.vehicles
-      case 'campaigns/partyInventory:items':
-      case 'campaigns/vehicleInventory:items':
+      case getFunctionName(api.campaigns.partyInventory.items):
+      case getFunctionName(api.campaigns.vehicleInventory.items):
         return mocks.items
-      case 'campaigns/partyInventory:currencies':
-      case 'campaigns/vehicleInventory:currencies':
+      case getFunctionName(api.campaigns.partyInventory.currencies):
+      case getFunctionName(api.campaigns.vehicleInventory.currencies):
         return mocks.currencies
-      case 'campaigns/currencySystems:list':
-      case 'campaigns/partyInventory:equipmentOptions':
-      case 'campaigns/contentShares:list':
+      case getFunctionName(api.campaigns.currencySystems.list):
+      case getFunctionName(api.campaigns.partyInventory.equipmentOptions):
+      case getFunctionName(api.campaigns.contentShares.list):
         return mocks.empty
       default:
         throw new Error('Unexpected inventory page')

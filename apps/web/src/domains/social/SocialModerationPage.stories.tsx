@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/tanstack-react'
 import { useState } from 'react'
 import { useMutation as useConvexMutation, usePaginatedQuery } from 'convex/react'
 import { getFunctionName } from 'convex/server'
+import { api } from '@artificer-toolkit/apis/convex/api'
 import {
   socialModerationEvidenceDtoSchema,
   socialModerationQueuePageSchema,
@@ -46,12 +47,19 @@ const queuePage = socialModerationQueuePageSchema.parse({
 })
 const calls = fn()
 const more = fn()
+const names = {
+  list: getFunctionName(api.social.moderation.list),
+  open: getFunctionName(api.social.moderation.open),
+  review: getFunctionName(api.social.moderation.review),
+  listingAction: getFunctionName(api.social.listingModeration.action),
+  profileAction: getFunctionName(api.social.profileModeration.action)
+}
 
 function Fixture({ failAction = false }: { failAction?: boolean }) {
   const [loaded, setLoaded] = useState(false)
   mocked(usePaginatedQuery).mockImplementation((reference, args, options) => {
     const name = getFunctionName(reference)
-    if (name !== 'social/moderation:list') throw new Error(`Unexpected query: ${name}`)
+    if (name !== names.list) throw new Error(`Unexpected query: ${name}`)
     calls(name, args, options)
     return {
       results: loaded ? queuePage.page : [],
@@ -67,16 +75,16 @@ function Fixture({ failAction = false }: { failAction?: boolean }) {
     const mutate: ReturnType<typeof useConvexMutation> = Object.assign(
       async (input?: unknown) => {
         const name = getFunctionName(reference)
-        if (name === 'social/moderation:open') {
+        if (name === names.open) {
           calls(name, socialReportPublicIdInputSchema.parse(input))
           return report
         }
         const schema =
-          name === 'social/moderation:review'
+          name === names.review
             ? socialReportReviewInputSchema
-            : name === 'social/listingModeration:action'
+            : name === names.listingAction
               ? socialListingModerationInputSchema
-              : name === 'social/profileModeration:action'
+              : name === names.profileAction
                 ? socialProfileModerationInputSchema
                 : undefined
         if (!schema) throw new Error(`Unexpected mutation: ${name}`)
@@ -111,12 +119,12 @@ type Story = StoryObj<typeof meta>
 export const ReviewAndSuspend: Story = {
   play: async ({ canvas, canvasElement }) => {
     await expect(canvas.queryByText('No reports in the queue.')).not.toBeInTheDocument()
-    await expect(calls).toHaveBeenCalledWith('social/moderation:list', {}, { initialNumItems: 8 })
+    await expect(calls).toHaveBeenCalledWith(names.list, {}, { initialNumItems: 8 })
     await userEvent.click(canvas.getByRole('button', { name: 'Load more reports' }))
     await expect(more).toHaveBeenCalledWith(8)
     await expect(canvas.queryByText(report.details)).not.toBeInTheDocument()
     await userEvent.click(await canvas.findByRole('button', { name: 'Open report' }))
-    await expect(calls).toHaveBeenCalledWith('social/moderation:open', {
+    await expect(calls).toHaveBeenCalledWith(names.open, {
       reportPublicId: report.reportPublicId
     })
     await expect(await canvas.findByText(report.details)).toBeVisible()
@@ -126,7 +134,7 @@ export const ReviewAndSuspend: Story = {
       'Review captured evidence.'
     )
     await userEvent.click(canvas.getByRole('button', { name: 'Record action' }))
-    await expect(calls).toHaveBeenCalledWith('social/moderation:review', {
+    await expect(calls).toHaveBeenCalledWith(names.review, {
       reportPublicId: report.reportPublicId,
       expectedVersion: 1,
       action: 'START_REVIEW',
@@ -142,7 +150,7 @@ export const ReviewAndSuspend: Story = {
       'Confirmed conduct violation.'
     )
     await userEvent.click(canvas.getByRole('button', { name: 'Record action' }))
-    await expect(calls).toHaveBeenCalledWith('social/profileModeration:action', {
+    await expect(calls).toHaveBeenCalledWith(names.profileAction, {
       reportPublicId: report.reportPublicId,
       expectedVersion: 2,
       action: 'SUSPEND_PROFILE',

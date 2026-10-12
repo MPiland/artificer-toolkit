@@ -130,7 +130,7 @@ export const viciousMockery: SpellAuthored = {
             },
             lifecycle: {
               turnAnchor: { actor: 'TARGET', boundary: 'END_OF_TURN' },
-              consumeOnFirstEvent: 'ON_ATTACK_ROLL'
+              consumeOnFirstEvents: ['ON_ATTACK_ROLL']
             },
             outcomes: [
               {

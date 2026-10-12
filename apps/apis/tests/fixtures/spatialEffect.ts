@@ -97,7 +97,7 @@ export async function seedSpatialEffect(
       perceptionContributions: [],
       recurrence: {
         recurrenceStage: 'NONE',
-        consumeOnFirstEvent: null,
+        consumeOnFirstEvents: [],
         endOnEvents: [],
         lifetimeScope: 'ENCOUNTER',
         expiration: {

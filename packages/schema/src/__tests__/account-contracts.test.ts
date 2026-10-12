@@ -3,7 +3,10 @@ import {
   accountDeleteInputSchema,
   accountEmailConfirmationSearchSchema,
   accountProfileDtoSchema,
-  accountProfileUpdateInputSchema
+  accountProfileUpdateInputSchema,
+  accountProfileVisibilityInputSchema,
+  publicProfileDtoSchema,
+  publicProfileInputSchema
 } from '../api/account.js'
 import {
   PASSWORD_MAX_LENGTH,
@@ -57,13 +60,33 @@ describe('account contracts', () => {
       username: 'legacy_player',
       bio: null
     })
-    expect(accountProfileDtoSchema.parse({ username: 'player_one', bio: null })).toEqual({
+    expect(
+      accountProfileDtoSchema.parse({ username: 'player_one', bio: null, visibility: 'PRIVATE' })
+    ).toEqual({
       username: 'player_one',
-      bio: null
+      bio: null,
+      visibility: 'PRIVATE'
     })
-    expect(accountProfileDtoSchema.parse({ username: null, bio: null })).toEqual({
+    expect(
+      accountProfileDtoSchema.parse({ username: null, bio: null, visibility: 'PUBLIC' })
+    ).toEqual({
       username: null,
-      bio: null
+      bio: null,
+      visibility: 'PUBLIC'
+    })
+  })
+
+  it('exposes only username, bio and avatar revision on a public profile', () => {
+    const profile = { username: 'player_one', bio: null, avatarRevision: 2 }
+    expect(publicProfileDtoSchema.parse(profile)).toEqual(profile)
+    expect(publicProfileDtoSchema.safeParse({ ...profile, email: 'a@example.test' }).success).toBe(
+      false
+    )
+    expect(accountProfileVisibilityInputSchema.safeParse({ visibility: 'FRIENDS' }).success).toBe(
+      false
+    )
+    expect(publicProfileInputSchema.parse({ username: 'player_one' })).toEqual({
+      username: 'player_one'
     })
   })
 

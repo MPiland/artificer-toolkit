@@ -21,11 +21,7 @@ import type { CharacterStabilizeOutcomeApplication } from './characterRuleAction
 import { TARGET_NOT_DYING_WARNING } from './encounterActionRuleWarnings.js'
 import { evaluateEncounterActionTargetPolicy } from './encounterActionTargetPolicy.js'
 import { isEncounterTargetDying } from './encounterActorDefeat.js'
-import {
-  encounterAllyAdvantageUses,
-  encounterBasicActionAllyAdvantage,
-  withEncounterD20Contributor
-} from './encounterBasicActions.js'
+import { consumableGrants } from './encounterGrantLifetimes.js'
 import { EncounterValidationError } from './encounterErrors.js'
 import {
   resolveEncounterD20Answer,
@@ -124,8 +120,8 @@ export function encounterBasicActionCheckTrigger(
 
 /**
  * Freezes a stabilizing basic action's check from the helper's own facts: the System check
- * definition's modifier and contributors (conditions included), merged with a Help aimed at the
- * helper. Returns null when the target is not dying, so no check is made. A custom helper has no
+ * definition's modifier and contributors (conditions included, and any Help it holds). The check
+ * uses up the helper's one-check grants. Returns null when the target is not dying, so no check is made. A custom helper has no
  * check facts and is refused.
  */
 export function prepareEncounterBasicActionCheck<
@@ -135,15 +131,12 @@ export function prepareEncounterBasicActionCheck<
   commandId: string
   commandFingerprint: string
   definition: { id: string; version: number; checksum: string; label: string }
+  system: SystemAuthoredDto
   check: { checkDefinitionId: string; dc: number }
   checkLabel: string
   helper: MovementTarget<TCharacterFacts>
   target: MovementTarget<TCharacterFacts>
-  actors: readonly EncounterRunActorState[]
-}): {
-  context: EncounterBasicActionCheckPendingContextDto
-  allyAdvantageUses: ReturnType<typeof encounterAllyAdvantageUses>
-} | null {
+}): { context: EncounterBasicActionCheckPendingContextDto } | null {
   const { helper, target } = input
   if (helper.actor.kind === 'CUSTOM')
     throw new EncounterValidationError('A custom actor has no check to make.')
@@ -154,17 +147,11 @@ export function prepareEncounterBasicActionCheck<
     checkKind: 'SKILL',
     checkDefinitionId: input.check.checkDefinitionId,
     gameSystemId: input.gameSystemId,
+    system: input.system,
     targets: new Map([[helper.actor.id, helper]])
   })
   if (facts.modifier === null)
     throw new EncounterValidationError('This actor has no total for the check.')
-  const help = encounterBasicActionAllyAdvantage({
-    actors: input.actors,
-    attackerId: helper.actor.id
-  })
-  const merged = help
-    ? withEncounterD20Contributor(facts.contributors, help.contributor)
-    : { contributors: [...facts.contributors], rollMode: facts.rollMode }
   return {
     context: encounterBasicActionCheckPendingContextDtoSchema.parse({
       kind: 'ENCOUNTER_BASIC_ACTION_CHECK',
@@ -182,15 +169,12 @@ export function prepareEncounterBasicActionCheck<
       targetCharacterId: target.actor.sourceId,
       check: { ...input.check, label: input.checkLabel },
       d20: {
-        rollMode: merged.rollMode,
-        contributors: merged.contributors,
-        contributorChecksum: checksumRuleDocument(merged.contributors),
+        rollMode: facts.rollMode,
+        contributors: facts.contributors,
+        contributorChecksum: checksumRuleDocument(facts.contributors),
         modifier: facts.modifier
-      }
-    }),
-    allyAdvantageUses: encounterAllyAdvantageUses({
-      actors: input.actors,
-      participants: [{ actorId: helper.actor.id, contributors: merged.contributors }]
+      },
+      consumedGrants: consumableGrants(helper.activeEffects, 'ON_ABILITY_CHECK')
     })
   }
 }

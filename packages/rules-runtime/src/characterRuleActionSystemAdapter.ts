@@ -23,6 +23,9 @@ import type { HitPointMaximumReductionRecoveryTag } from '@artificer-toolkit/sch
 import type { CompiledActionCompilerSource } from '@artificer-toolkit/schema/projections/characterMechanics'
 import type { ActorRelationshipModuleAuthored } from '@artificer-toolkit/shared/authored'
 
+/** The events whose first occurrence can use an Encounter grant up. */
+export type GrantConsumeEvent = 'ON_ATTACK_ROLL' | 'ON_ABILITY_CHECK'
+
 /**
  * A System-owned, bounded recurrence declaration. The Encounter coordinator
  * supplies aggregate provenance, target ownership, and the compiled graph
@@ -61,8 +64,8 @@ export interface CharacterRuleActionActiveEffectPlan {
     tickAnchor: 'HOLDER' | 'SOURCE'
     /** Whether the duration already counts the turn the grant is made in ("for the turn"). */
     includesCurrentTurn: boolean
-    /** The first event that uses the grant up. */
-    consumeOnFirstEvent: 'ON_ATTACK_ROLL' | null
+    /** The events whose first occurrence uses the grant up, sorted and unique. */
+    consumeOnFirstEvents: readonly GrantConsumeEvent[]
   }
   /** Target-owned relationship state selected by the System from the exact action outcome. */
   actorRelationshipContribution?: null | {

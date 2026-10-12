@@ -2,8 +2,10 @@ import {
   listCampaignChatEntriesInputSchema,
   type CampaignChatPageDto
 } from '@artificer-toolkit/schema/api/campaignCommunication'
+import { api } from '@artificer-toolkit/apis/convex/api'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { act, renderHook, waitFor } from '@testing-library/react'
+import { getFunctionName } from 'convex/server'
 import type { ReactNode } from 'react'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { getCampaignChat } from './queries'
@@ -65,7 +67,7 @@ function setup(
 ) {
   // The subscription serves only the newest page; older pages are one-shot reads.
   const queryFn = vi.fn(({ queryKey }: { queryKey: readonly unknown[] }) => {
-    expect(queryKey[1]).toBe('campaigns/chat:list')
+    expect(queryKey[1]).toBe(getFunctionName(api.campaigns.chat.list))
     const input = listCampaignChatEntriesInputSchema.parse(queryKey[2])
     expect(input.limit).toBe(50)
     expect(input.cursor).toBeUndefined()

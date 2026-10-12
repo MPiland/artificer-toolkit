@@ -5,13 +5,13 @@ import { useMutation as useConvexMutation } from 'convex/react'
 import { getFunctionName } from 'convex/server'
 import { api } from '@artificer-toolkit/apis/convex/api'
 import {
-  submitSocialApplicationInputSchema,
-  type SocialListingDto
+  socialListingDtoSchema,
+  submitSocialApplicationInputSchema
 } from '@artificer-toolkit/schema/api/socialHub'
 import { expect, fn, mocked, userEvent, waitFor, within } from 'storybook/test'
 import { SocialListingDetailPage } from './SocialListingDetailPage'
 
-const listing: SocialListingDto = {
+const listing = socialListingDtoSchema.parse({
   listingPublicId: 'aaaaaaaa-1111-4111-8111-111111111111',
   host: { profilePublicId: 'bbbbbbbb-2222-4222-8222-222222222222', username: 'HarborHost' },
   title: 'The Glass Harbor',
@@ -47,7 +47,7 @@ const listing: SocialListingDto = {
   isFree: true,
   publishedAt: '2024-03-01T12:00:00.000Z',
   version: 2
-}
+})
 const submit = fn<(input: unknown) => Promise<null>>()
 const meta = {
   title: 'Social/Listing/Native detail',
@@ -78,7 +78,7 @@ const meta = {
       mocked(useConvexMutation).mockImplementation((reference) => {
         const mutate: ReturnType<typeof useConvexMutation> = Object.assign(
           async (input?: unknown) => {
-            if (getFunctionName(reference) !== 'social/applications:submit')
+            if (getFunctionName(reference) !== getFunctionName(api.social.applications.submit))
               throw new Error('Unexpected native mutation')
             return submit(submitSocialApplicationInputSchema.parse(input))
           },

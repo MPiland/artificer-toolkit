@@ -2,7 +2,9 @@ import { useState } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { getFunctionName } from 'convex/server'
 import { describe, expect, it, vi } from 'vitest'
+import { api } from '@artificer-toolkit/apis/convex/api'
 import {
   nodeRuntimeResolveRequestDtoSchema,
   type NodeRuntimePathDto,
@@ -26,7 +28,10 @@ describe('useResolvedNodeModel', () => {
         queries: {
           retry: false,
           queryFn: async ({ queryKey }) => {
-            expect(queryKey.slice(0, 2)).toEqual(['convexQuery', 'authoring/nodeRuntime:resolve'])
+            expect(queryKey.slice(0, 2)).toEqual([
+              'convexQuery',
+              getFunctionName(api.authoring.nodeRuntime.resolve)
+            ])
             nodeRuntimeResolveRequestDtoSchema.parse(queryKey[2])
             requestCount += 1
             if (requestCount === 1) return compactNodeRuntimeResponse(initialModel)

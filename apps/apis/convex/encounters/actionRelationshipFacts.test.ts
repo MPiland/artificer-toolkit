@@ -57,7 +57,7 @@ function relationshipEffect(input: {
     perceptionContributions: [],
     recurrence: {
       recurrenceStage: 'NONE',
-      consumeOnFirstEvent: null,
+      consumeOnFirstEvents: [],
       endOnEvents: [],
       lifetimeScope: 'ENCOUNTER',
       expiration: { kind: 'INDEFINITE' }

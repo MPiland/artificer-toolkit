@@ -295,7 +295,7 @@ attacks (`encounterMovementReactionSources`), no Legendary Actions and is no Leg
 (`encounterTurnLegendaryDiscovery`). It is never a Cleaving continuation target
 (`buildEncounterCleavingCandidate`), has no action choices and cannot act (`ACTOR_DEFEATED`) nor, for a
 player, move its token. Naming one as a `RESOLVE_ACTION` target is the overridable `TARGET_DEFEATED`
-warning; Help and Disarm refuse it.
+warning; Disarm refuses it.
 
 A Character at 0 hit points is never defeated; it is dying (D96). Dropping to 0 adds the System's 0 hit
 point condition (`characterZeroHitPointsConditionId`; D&D: Unconscious), and regaining hit points removes
@@ -336,11 +336,11 @@ First Aid as an Action with Wisdom (Medicine), DC 10. The command's `targetActor
 (never the helper; a custom actor is refused and a MANUAL Run refuses it as `ASSISTED_ONLY`). A target
 that is not dying gives the overridable `TARGET_NOT_DYING` warning and, once overridden, spends the
 Action with no roll. Touch range reuses the Healer's Kit warnings. The root command always commits and
-spends the Action and Help is consumed with it. A prompted roll writes a PENDING occurrence
+spends the Action and the helper's one-roll `ON_ABILITY_CHECK` grants (a Help) are consumed with it. A prompted roll writes a PENDING occurrence
 (`ENCOUNTER_BASIC_ACTION_CHECK`) answered by a separate `RESOLVE_RULE_OCCURRENCE`; an auto-roll
 settles at once. The roll card is credited to the helper, never hidden from the GM, and de-duplicated
 by the app-roll attempt identity. GM undo restores the Action, the used Help and the target's death
-saves and keeps the roll on the record; it is refused while the check is pending
+saves, restores the consumed grants and keeps the roll on the record; it is refused while the check is pending
 (`packages/encounter-persistence/src/basicActionCheck*.ts`, `packages/rules-runtime/src/encounterBasicActionCheck.ts`).
 Spare the Dying and Sheet tracking of death saves are not built (target).
 
@@ -381,11 +381,11 @@ Hide-action hidden state (Stealth check, ends on attack), Unconscious falling Pr
 resistance, Exhaustion 4 and 6, concentration saves under conditions, and conditions on Convex-side
 action preparation reads (the room owns resolution).
 
-### Authored basic actions (ATTACK-18 slices A and B, current; D106)
+### Authored basic actions (ATTACK-18 slices A to C, current; D106)
 
 A `BASIC_ACTION` System definition carries `rulesText`, `restrictions` (a nullable Facet, carried but not yet evaluated) and either
-`mechanics` (the closed codes still in use: Help and First Aid) or `effects` (the same authored effect list a
-Feature carries), never both. Entries with `effects` are authored: Dash, Disengage, Dodge, Hide, Ready, Search and Use an Object. They are compiled by
+`mechanics` (the closed code still in use: First Aid) or `effects` (the same authored effect list a
+Feature carries), never both. Entries with `effects` are authored: Dash, Disengage, Dodge, Help, Hide, Ready, Search and Use an Object. They are compiled by
 the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action source, `BASIC_ACTION`
 (`encounterBasicActionCapabilityDiscovery.ts`, `encounterActionSources.ts`), for Characters and Creatures. Their action id is
 `${actor.id}:BASIC_ACTION:${definitionId}:EFFECT:${effectId}`, and the action choices read lists them in the separate
@@ -594,9 +594,10 @@ anchor actor's own turn with an `END_OF_TURN` boundary counts one more turn, so 
 turn" outlasts the current one. Grants are stored with `recurrenceStage: 'NONE'`, so the turn-effect kernel
 never selects them; `planEncounterGrantTicks` (`encounterGrantLifetimes`) counts down or expires every grant
 anchored to the boundary actor, whoever holds it, and `persistEncounterGrantTicks` writes it in the turn
-commit's transaction. A `consumeOnFirstEvent: 'ON_ATTACK_ROLL'` grant is deleted by its holder's next
-attack-roll action (not a save action) and stored on the command as `consumedGrants`, which GM undo
-restores, mirroring Help's ally advantage (`consumedGrantPersistence` in encounter-persistence). Every
+commit's transaction. A grant's `consumeOnFirstEvents` (`ON_ATTACK_ROLL`, `ON_ABILITY_CHECK`) lists the events that use it up: it is deleted by its holder's next
+attack-roll action (not a save action) or ability check and stored on the command as `consumedGrants`, which GM undo
+restores (`consumableGrants` in `encounterGrantLifetimes`, `consumedGrantPersistence` in encounter-persistence). Help is the
+grant that carries both events. First Aid and Escape consume at the first commit, so their pending check context freezes the used grants as `consumedGrants` and the pending read names them from it. A Creature's check grants resolve the check's governing ability from the System skill (`checkAbilityCode`). Every
 attack path consumes: ordinary actions, movement reaction attacks and Disarm record `consumedGrants` on
 their command, and a Legendary Action window deletes its owner's grants at the turn commit when the option
 rolled an attack (`attackRoll` on the EXECUTED evidence); only ordinary actions have GM undo. A
@@ -668,8 +669,8 @@ effect (`endEncounterRelationshipEffect` reconciles the maintenance owners on th
 commit re-derives the escape from the holder's stored effect (`escapeEffectVerification.ts`) and refuses a
 plan whose DC, check, module or spent allowance the effect does not carry. A failure only spends the
 activation.
-`CONTEST` DCs, rescuers and release sweeps belong to later ATTACK-7 slices; Ally Help advantage is not
-applied to the escape roll.
+`CONTEST` DCs, rescuers and release sweeps belong to later ATTACK-7 slices. A Help on the escaper applies to the
+escape check and is used up with it.
 
 **Speed, hit point and sense grants (D99).** A `MODIFIER_GRANT` contribution carries modifier
 operations and granted senses (`senses`, required; the SRD Darkvision spell is a 60-foot sense with no

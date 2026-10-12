@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/tanstack-react'
 import { useMutation as useConvexMutation } from 'convex/react'
 import { getFunctionName } from 'convex/server'
+import { api } from '@artificer-toolkit/apis/convex/api'
 import { createCampaignInviteInputSchema } from '@artificer-toolkit/schema/api/campaignCore'
 import { expect, fn, mocked, userEvent, waitFor, within } from 'storybook/test'
 import { SocialInviteDialog } from './SocialInviteDialog'
@@ -22,7 +23,7 @@ const meta = {
     mocked(useConvexMutation).mockImplementation((reference) => {
       const mutate: ReturnType<typeof useConvexMutation> = Object.assign(
         async (input?: unknown) => {
-          if (getFunctionName(reference) !== 'social/invitations:create')
+          if (getFunctionName(reference) !== getFunctionName(api.social.invitations.create))
             throw new Error('Unexpected native mutation')
           return create(createCampaignInviteInputSchema.parse(input))
         },

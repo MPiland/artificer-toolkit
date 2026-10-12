@@ -1,8 +1,6 @@
 import { z, lazySchema } from '../zod.js'
-import {
-  encounterAllyAdvantageUsesDtoSchema,
-  encounterBasicActionEffectsDtoSchema
-} from '../shared/basicActions.js'
+import { MAX_ACTIVE_RULE_EFFECTS_PER_OWNER } from '../shared/activeRuleEffects.js'
+import { activeRuleEffectRecordSchema } from '../projections/activeRuleEffectPersistence.js'
 import { encounterRuleWarningsDtoSchema } from '../shared/encounterRuleWarnings.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import {
@@ -61,10 +59,10 @@ export const liveSessionEncounterBasicActionCommitInputSchema = lazySchema(() =>
     actionEconomy: z.nullable(encounterActionEconomyTransitionDtoSchema),
     /** Warnings the command acknowledged and the room overrode. */
     ruleOverrides: encounterRuleWarningsDtoSchema,
-    /** Effects appended to the actor's Run resources. */
-    effects: encounterBasicActionEffectsDtoSchema,
-    /** The Helps the check's roll used; the commit removes them. */
-    allyAdvantageUses: encounterAllyAdvantageUsesDtoSchema,
+    /** The helper's one-check grants (Help) the check used up; the commit deletes them. */
+    consumedGrants: z
+      .array(activeRuleEffectRecordSchema)
+      .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER)),
     check: z.nullable(
       z.discriminatedUnion('kind', [
         z.strictObject({
@@ -111,6 +109,10 @@ export const liveSessionEncounterEscapeCommitInputSchema = lazySchema(() =>
     actionEconomy: z.nullable(encounterActionEconomyTransitionDtoSchema),
     /** Warnings the command acknowledged and the room overrode. */
     ruleOverrides: encounterRuleWarningsDtoSchema,
+    /** The holder's one-check grants (Help) the check used up; the commit deletes them. */
+    consumedGrants: z
+      .array(activeRuleEffectRecordSchema)
+      .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER)),
     check: z.discriminatedUnion('kind', [
       z.strictObject({
         kind: z.literal('PENDING'),

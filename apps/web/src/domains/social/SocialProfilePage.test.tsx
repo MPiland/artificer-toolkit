@@ -2,6 +2,7 @@ import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { getFunctionName } from 'convex/server'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { api } from '@artificer-toolkit/apis/convex/api'
 import { socialBlockStatusSchema } from '@artificer-toolkit/schema/api/socialBlockLists'
 import {
   socialEligibilityDtoSchema,
@@ -37,7 +38,7 @@ vi.mock('@tanstack/react-query', async (original) => ({
   ...(await original<typeof import('@tanstack/react-query')>()),
   useQuery: ({ queryKey }: { queryKey: readonly unknown[] }) => {
     const name = queryKey[1]
-    if (name === 'social/profiles:getEligibility')
+    if (name === getFunctionName(api.social.profiles.getEligibility))
       return {
         data: socialEligibilityDtoSchema.parse({
           profilePublicId: mocks.self ? targetId : actorId,
@@ -49,13 +50,13 @@ vi.mock('@tanstack/react-query', async (original) => ({
         isPending: false,
         isError: false
       }
-    if (name === 'social/blocks:getStatus')
+    if (name === getFunctionName(api.social.blocks.getStatus))
       return {
         data: mocks.pending ? undefined : socialBlockStatusSchema.parse({ blocked: mocks.blocked }),
         isPending: mocks.pending,
         isError: mocks.statusError
       }
-    if (name === 'social/discovery:getProfile')
+    if (name === getFunctionName(api.social.discovery.getProfile))
       return {
         data: socialProfileDtoSchema.parse({ profilePublicId: targetId, username: 'TargetPlayer' }),
         isPending: queryKey[2] === 'skip',
@@ -68,9 +69,9 @@ vi.mock('convex/react', async (original) => ({
   ...(await original<typeof import('convex/react')>()),
   useMutation: (reference: Parameters<typeof getFunctionName>[0]) => {
     const name = getFunctionName(reference)
-    if (name === 'social/blocks:create') return mocks.create
-    if (name === 'social/blocks:remove') return mocks.remove
-    if (name === 'social/reports:create') return mocks.report
+    if (name === getFunctionName(api.social.blocks.create)) return mocks.create
+    if (name === getFunctionName(api.social.blocks.remove)) return mocks.remove
+    if (name === getFunctionName(api.social.reports.create)) return mocks.report
     throw new Error(`Unexpected mutation ${name}`)
   }
 }))
@@ -102,13 +103,16 @@ describe('native Social profile actions', () => {
     const user = userEvent.setup()
     renderWithAppProviders(<SocialProfilePage profilePublicId={targetId.toUpperCase()} />)
     expect(screen.getByRole('heading', { name: '@TargetPlayer' })).toBeInTheDocument()
-    expect(mocks.queries).toHaveBeenCalledWith('social/blocks:getStatus', {
+    expect(mocks.queries).toHaveBeenCalledWith(getFunctionName(api.social.blocks.getStatus), {
       profilePublicId: targetId
     })
     await user.click(screen.getByRole('button', { name: 'Block' }))
     await screen.findByRole('heading', { name: 'Blocked profile' })
     expect(mocks.create).toHaveBeenCalledWith({ profilePublicId: targetId })
-    expect(mocks.queries).toHaveBeenCalledWith('social/discovery:getProfile', 'skip')
+    expect(mocks.queries).toHaveBeenCalledWith(
+      getFunctionName(api.social.discovery.getProfile),
+      'skip'
+    )
     expect(screen.queryByText('@TargetPlayer')).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Unblock' }))
     await screen.findByRole('heading', { name: '@TargetPlayer' })

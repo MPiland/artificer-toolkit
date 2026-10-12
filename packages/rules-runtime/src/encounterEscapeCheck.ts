@@ -14,6 +14,7 @@ import {
   endedMaintenanceConditions,
   planEncounterMaintenanceOwner
 } from './encounterActionMaintenance.js'
+import { consumableGrants } from './encounterGrantLifetimes.js'
 import { turnEffectOwner } from './encounterTurnEffectState.js'
 import { EncounterValidationError } from './encounterErrors.js'
 import { actorContestFacts } from './encounterMovementPassagePreparation.js'
@@ -143,6 +144,7 @@ export function prepareEncounterEscapeCheck<TCharacterFacts extends CharacterMov
     checkKind,
     checkDefinitionId: input.checkDefinitionId,
     gameSystemId: input.gameSystemId,
+    system: input.system,
     targets: new Map([[holder.actor.id, holder]])
   })
   if (facts.modifier === null)
@@ -167,7 +169,8 @@ export function prepareEncounterEscapeCheck<TCharacterFacts extends CharacterMov
       contributors: facts.contributors,
       contributorChecksum: checksumRuleDocument(facts.contributors),
       modifier: facts.modifier
-    }
+    },
+    consumedGrants: consumableGrants(holder.activeEffects, 'ON_ABILITY_CHECK')
   })
 }
 

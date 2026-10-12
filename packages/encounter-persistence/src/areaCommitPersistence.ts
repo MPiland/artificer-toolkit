@@ -514,7 +514,6 @@ export async function persistEncounterAreaCommit(
     commandFields: {
       label: input.label,
       ruleOverrides: input.ruleOverrides,
-      allyAdvantageUses: [],
       consumedGrants: [],
       addedConcentrationCasterId: null,
       speedBonusTurn: null,

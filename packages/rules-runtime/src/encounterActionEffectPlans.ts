@@ -286,7 +286,7 @@ function prepareRecurringActiveEffect(
     recurrence: {
       // The grant tick planner counts a grant, so the turn-effect kernel never selects it.
       recurrenceStage: grantContribution ? 'NONE' : plan.recurrenceStage,
-      consumeOnFirstEvent: grantContribution?.consumeOnFirstEvent ?? null,
+      consumeOnFirstEvents: grantContribution?.consumeOnFirstEvents ?? [],
       endOnEvents: [],
       // A grant outlasts the Encounter when the target's lifetime scope says so. A Concentration
       // grant keeps its maintenance link while the Run lasts and is detached from it at COMPLETE.
@@ -431,7 +431,7 @@ function prepareTargetStateEffect(
     perceptionContributions: [],
     recurrence: {
       recurrenceStage: 'NONE',
-      consumeOnFirstEvent: null,
+      consumeOnFirstEvents: [],
       endOnEvents: [],
       lifetimeScope: input.target.lifetimeScope,
       expiration: { kind: 'INDEFINITE' }

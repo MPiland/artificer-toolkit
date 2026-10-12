@@ -115,7 +115,9 @@ export const pathLifecycleDtoSchema = lazySchema(() =>
         boundary: pathLifecycleTurnBoundarySchema
       })
     ),
-    consumeOnFirstEvent: z.optional(pathLifecycleConsumeEventSchema),
+    consumeOnFirstEvents: z.optional(
+      authoredReferenceCollectionSchema(pathLifecycleConsumeEventSchema)
+    ),
     endOnEvents: z.optional(authoredReferenceCollectionSchema(pathLifecycleEndEventSchema))
   })
 )

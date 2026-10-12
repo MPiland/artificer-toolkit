@@ -2,6 +2,7 @@ import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { getFunctionName } from 'convex/server'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { api } from '@artificer-toolkit/apis/convex/api'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { createCampaignDetail } from '../campaignDetail.fixtures'
 import { CampaignContent } from './CampaignContent'
@@ -47,7 +48,9 @@ const mocks = vi.hoisted(() => ({
 vi.mock('convex/react', async (importOriginal) => ({
   ...(await importOriginal<typeof import('convex/react')>()),
   useMutation: (reference: Parameters<typeof getFunctionName>[0]) =>
-    getFunctionName(reference) === 'campaigns/contentShares:share' ? mocks.share : mocks.unshare,
+    getFunctionName(reference) === getFunctionName(api.campaigns.contentShares.share)
+      ? mocks.share
+      : mocks.unshare,
   usePaginatedQuery: (...args: unknown[]) => {
     mocks.contentCalls(...args)
     return mocks.content

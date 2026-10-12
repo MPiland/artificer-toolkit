@@ -3,11 +3,12 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
 import { getFunctionName } from 'convex/server'
-import type {
-  EncounterPlayerProjectionDto,
-  EncounterSummaryDto
+import {
+  encounterPlayerProjectionDtoSchema,
+  type EncounterPlayerProjectionDto,
+  type EncounterSummaryDto
 } from '@artificer-toolkit/schema/api/encounters'
-import type { PendingEncounterRuleOccurrenceSummaryDto } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
+import { pendingEncounterRuleOccurrenceSummaryDtoSchema } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
 import type { HeldEncounterSession } from '../../vtt/useCampaignLiveSession'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import {
@@ -15,7 +16,7 @@ import {
   tabletopPlayerEncounter
 } from '../../vtt/CampaignTabletop.stories.fixtures'
 
-const pending = {
+const pending = pendingEncounterRuleOccurrenceSummaryDtoSchema.parse({
   kind: 'INITIATIVE_DECLARATION',
   occurrenceId: '77777777-7777-4777-8777-777777777790',
   occurrenceVersion: 2,
@@ -24,7 +25,7 @@ const pending = {
   requestId: 'speed-factor-declaration',
   primaryOptions: [
     {
-      kind: 'CHARACTER_ACTION' as const,
+      kind: 'CHARACTER_ACTION',
       optionId: 'action:longsword',
       label: 'Longsword',
       selectionContract: 'a'.repeat(64)
@@ -33,12 +34,12 @@ const pending = {
   bonusOptions: [],
   adjudicationFields: [],
   allowedResponses: ['INITIATIVE_DECLARATION']
-} satisfies PendingEncounterRuleOccurrenceSummaryDto
+})
 
-const prepared = {
+const prepared = encounterPlayerProjectionDtoSchema.parse({
   ...tabletopPlayerEncounter,
-  status: 'PREPARED' as const
-} satisfies EncounterPlayerProjectionDto
+  status: 'PREPARED'
+})
 
 const mocks = vi.hoisted(() => ({
   convexQuery: vi.fn(),

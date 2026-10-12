@@ -139,37 +139,60 @@
         {
           "id": "PLATFORM-4",
           "title": "Upload, view and delete images and files",
-          "status": "IN_PROGRESS",
-          "journeyTests": ["apps/apis/convex/media/library.test.ts"],
-          "journeyStatus": "partial",
-          "journeyGap": "No upload claim, finalize, signed read and cleanup run for profile and art images; vttMap.test.ts covers that sequence for maps only.",
+          "status": "DONE",
+          "journeyTests": [
+            "apps/apis/convex/media/avatar.test.ts",
+            "apps/apis/convex/media/authoredAssets.test.ts",
+            "apps/apis/convex/media/library.test.ts"
+          ],
+          "journeyStatus": "verified",
           "origin": ["F14", "PLT-1"],
           "acs": [
             {
               "text": "Upload claims bind caller, target, profile, type, size and expiry for avatars, Character portraits, authored images in all eight domains.",
               "status": "DONE",
-              "proof": [".codex/validation/phase82-f14-final/acceptance.md"],
+              "proof": [
+                "apps/apis/convex/media/authoredAssets.test.ts › binds a $subjectKind artwork upload to the owning caller and draft",
+                "apps/apis/convex/media/avatar.test.ts › enforces quota atomically and rejects client identity or storage-key injection",
+                "apps/apis/convex/media/library.test.ts › attaches only the caller’s own ready content art, under each slot’s own write rules",
+                ".codex/validation/phase82-f14-final/acceptance.md"
+              ],
               "origin": ["F14.1"],
               "id": "PLATFORM-4.1"
             },
             {
               "text": "Finalization reauthorizes, validates bytes, applies shared processing and quotas, and attaches only current fenced results.",
               "status": "DONE",
-              "proof": [".codex/validation/phase82-f14-final/acceptance.md"],
+              "proof": [
+                "apps/apis/convex/media/avatar.test.ts › rejects forged processing outputs, competing avatar updates, and revoked-session settlement",
+                "apps/apis/convex/media/avatar.test.ts › leaves the current avatar intact on invalid bytes and releases failed-upload storage",
+                "apps/apis/convex/media/authoredAssets.test.ts › rejects stale settlement after draft discard and keeps the prior draft artwork on failed processing",
+                ".codex/validation/phase82-f14-final/acceptance.md"
+              ],
               "origin": ["F14.2"],
               "id": "PLATFORM-4.2"
             },
             {
               "text": "Signed reads enforce current ownership or membership.",
               "status": "DONE",
-              "proof": [".codex/validation/phase82-f14-final/acceptance.md"],
+              "proof": [
+                "apps/apis/convex/media/authoredAssets.test.ts › binds a $subjectKind artwork upload to the owning caller and draft",
+                "apps/apis/convex/media/characterPortrait.test.ts › lets only active members read the portrait of a Character assigned in their Campaign",
+                "apps/apis/convex/media/library.test.ts › lists only the caller’s ready images of one class, newest first, and previews them owner-only",
+                ".codex/validation/phase82-f14-final/acceptance.md"
+              ],
               "origin": ["F14.3"],
               "id": "PLATFORM-4.3"
             },
             {
               "text": "Reference-aware cleanup retries provider failures and keeps keys until the provider acknowledges deletion.",
               "status": "DONE",
-              "proof": [".codex/validation/phase82-f14-final/acceptance.md"],
+              "proof": [
+                "apps/apis/convex/media/avatar.test.ts › retains deletion obligations beyond four failed attempts and recovers after R2 returns",
+                "apps/apis/convex/media/authoredAssets.test.ts › deletes published artwork bytes and quota only after its last draft and active reference is gone",
+                "apps/apis/convex/media/library.test.ts › keeps a shared asset while any reference remains, then retires it once after grace",
+                ".codex/validation/phase82-f14-final/acceptance.md"
+              ],
               "origin": ["F14.4"],
               "id": "PLATFORM-4.4"
             }
@@ -419,7 +442,13 @@
             {
               "text": "Web tests run real contracts: fixtures and story data parse through the shared DTO schemas, mocks use the real generated api references, and the Sheet harness takes its rest preview from the real projection",
               "status": "IN_PROGRESS",
-              "proof": [],
+              "proof": [
+                "apps/web/src/domains/fixtureContracts.test.ts",
+                "apps/web/src/domains/characters/sheet/rest/CharacterSheetRestMulticlass.test.tsx › offers mixed hit dice and the Max HP adjustment in the short rest",
+                "apps/web/src/domains/characters/sheet/rest/CharacterSheetRestControl.test.tsx",
+                "apps/web/src/domains/characters/builder/evaluation/builderEvaluator.test.ts"
+              ],
+              "note": "Lane 2 (2026-10-12) completed every web folder except campaigns/vtt: mocks use generated api refs, fixtures and story data parse through DTO schemas, and Sheet rest previews come from the real rules-runtime projection (playedCharacters.fixture.ts). Open: (1) the campaigns/vtt violations listed in docs/handoffs/lane-2-platform-closeout.md; (2) post-merge Storybook runs of the Rest, MarketingProductCapture and Builder Native Draft stories, which cannot start in a worktree.",
               "origin": ["REL-10"],
               "id": "PLATFORM-12.1"
             }
@@ -673,10 +702,9 @@
         {
           "id": "ACCOUNTS-2",
           "title": "Signup stays closed unless the server opens it",
-          "status": "IN_PROGRESS",
-          "journeyTests": ["apps/apis/convex/auth.test.ts"],
-          "journeyStatus": "partial",
-          "journeyGap": "The closed default flag is tested; a rejected real signup attempt is not.",
+          "status": "DONE",
+          "journeyTests": ["apps/apis/convex/accountJourneys.test.ts", "apps/apis/convex/auth.test.ts"],
+          "journeyStatus": "verified",
           "origin": ["F04"],
           "acs": [
             {
@@ -689,7 +717,10 @@
             {
               "text": "Real Better Auth email/password signup is rejected with EMAIL_PASSWORD_SIGN_UP_DISABLED, with no test bypass.",
               "status": "DONE",
-              "proof": [".codex/validation/phase82-foundation/local-http-smoke-2.log"],
+              "proof": [
+                "apps/apis/convex/accountJourneys.test.ts › rejects a real signup while the signup flag is unset and creates no account or email",
+                ".codex/validation/phase82-foundation/local-http-smoke-2.log"
+              ],
               "origin": ["F04.2"],
               "id": "ACCOUNTS-2.2"
             }
@@ -698,29 +729,36 @@
         {
           "id": "ACCOUNTS-3",
           "title": "Create an account with a verified email",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "journeyTests": [
+            "apps/apis/convex/accountJourneys.test.ts",
             "apps/apis/convex/auth.test.ts",
             "apps/web/tests/e2e/app/authConfirmation.spec.ts"
           ],
-          "journeyStatus": "partial",
-          "journeyGap": "Verification links and the confirmation page are tested separately; there is no single signup-to-verified-session run.",
+          "journeyStatus": "verified",
           "origin": ["F05"],
           "acs": [
             {
               "text": "Signup, email link capture and verification complete over real local HTTP, followed by email and username login.",
               "status": "DONE",
               "proof": [
+                "apps/apis/convex/accountJourneys.test.ts › signs up, verifies the emailed link, logs in by email and username, reads with a native bearer JWT and signs out",
                 ".codex/validation/phase82-f05-final/acceptance.md",
                 ".codex/validation/phase82-signup/progress.md"
               ],
+              "note": "The repo proof drives the real Better Auth HTTP handler in-process (convex-test), not over a local socket; the real-local-HTTP run is the historical .codex evidence.",
               "origin": ["F05.1"],
               "id": "ACCOUNTS-3.1"
             },
             {
               "text": "A verified account makes protected native bearer/JWT reads; recovery and revocation work and signup bypass is denied.",
               "status": "DONE",
-              "proof": [".codex/validation/phase82-f05-final/acceptance.md"],
+              "proof": [
+                "apps/apis/convex/accountJourneys.test.ts › signs up, verifies the emailed link, logs in by email and username, reads with a native bearer JWT and signs out",
+                "apps/apis/convex/accountJourneys.test.ts › recovers a verified account by emailed code: the new password signs in, the old one and old sessions fail",
+                "apps/apis/convex/accountJourneys.test.ts › rejects a real signup while the signup flag is unset and creates no account or email",
+                ".codex/validation/phase82-f05-final/acceptance.md"
+              ],
               "origin": ["F05.2"],
               "id": "ACCOUNTS-3.2"
             },
@@ -906,6 +944,18 @@
               "proof": [".codex/validation/phase82-foundation/profile-web-review.md"],
               "origin": ["F10.3"],
               "id": "ACCOUNTS-8.3"
+            },
+            {
+              "text": "The owner sets their profile to Private (the default) or Public. Private: only the owner can read it. Public: any signed-in account can open the owner's profile page and see its public fields (username, avatar and bio; account details such as email stay owner-only). Switching back to Private removes access at once, and a two-account journey proves what the other account sees under each setting. The minimal identity shown on Social listings and applications is unchanged.",
+              "status": "DONE",
+              "proof": [
+                "apps/apis/convex/profileVisibility.test.ts",
+                "apps/web/src/settings/ProfileSettingsPage.test.tsx",
+                "apps/web/src/profiles/PublicProfilePage.test.tsx"
+              ],
+              "origin": [],
+              "note": "Registered 2026-10-12 from Q4: owner-only by default, plus a public/private setting like most social apps. Which fields are public is decided at implementation from the profile DTO and recorded in the decisions doc. Done 2026-10-12 by lane 2 (127e99cd4, 591d6b138; D109): username, bio and avatar are public; unknown, banned and private targets return the same null; a timed ban hides the profile only until banExpires. The two-account proof runs the real Convex queries; the live browser journey (profile-browser in tests/live-backend/authenticatedSession.ts) runs with lane 2's live batch.",
+              "id": "ACCOUNTS-8.4"
             }
           ]
         },
@@ -3528,6 +3578,38 @@
               "id": "SCENE-4.2"
             }
           ]
+        },
+        {
+          "id": "SCENE-5",
+          "title": "One shared table screen for players in the same room",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": [],
+          "note": "Registered 2026-10-12 by the product owner: players at one physical table share a TV running the VTT, and one person moves every party token. Foundry has no dedicated mode (a shared player account owns all party tokens and sees their combined vision). Q5 and Q6 resolved 2026-10-12 (phase-08-2-decisions.md#resolved): table mode chosen at Session launch, shared screen acts for covered Characters, main-Character vision with single-token selection override. Depends on VTT_UI-3.4 for per-Character senses.",
+          "acs": [
+            {
+              "text": "When the GM launches a Session they choose how the table plays: each player on their own device, or one shared table screen covering chosen player Characters with one of them as the main Character. The shared screen sees the Scene through the main Character's senses; selecting a single covered token switches the view to that token's senses, and clearing or multi-selecting returns to the main Character. It never sees what the Character it is viewing through cannot see.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "id": "SCENE-5.1"
+            },
+            {
+              "text": "The shared table screen acts for every covered Character: it moves their tokens (outside an Encounter any of them, in an Encounter the one whose turn it is), chooses their actions and answers their roll prompts; every other client converges as for any player command.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "id": "SCENE-5.2"
+            },
+            {
+              "text": "Private information for one covered Character (its own hidden rolls, whispers, GM notes to that player) is not shown on the table screen; the owning player still sees it on their own device.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "id": "SCENE-5.3"
+            }
+          ]
         }
       ]
     },
@@ -5080,7 +5162,7 @@
               "status": "TODO",
               "proof": [],
               "origin": [],
-              "note": "Product-owner ruling 2026-10-12: Disengage ends only at the holder's real end of turn (Next Turn), like Dodge. A GM cursor correction (set current actor, previous turn, set round) no longer ends it; the old Q11 proof was rewritten to cover both cases. Also changed (integration-owner call, same warn-instead-of-block rule as every self-range authored action): Disengage or Dodge aimed at another creature is the overridable TARGET_OUT_OF_RANGE warning instead of a hard refusal, and \"Do it anyway\" applies it to the chosen creature.",
+              "note": "Product-owner ruling 2026-10-12: Disengage ends only at the holder's real end of turn (Next Turn), like Dodge. A GM cursor correction (set current actor, previous turn, set round) no longer ends it; the old Q11 proof was rewritten to cover both cases. Also changed (integration-owner call, same warn-instead-of-block rule as every self-range authored action): Disengage or Dodge aimed at another creature is the overridable TARGET_OUT_OF_RANGE warning instead of a hard refusal, and \"Do it anyway\" applies it to the chosen creature. Help follows the same rule (slice C): aimed at an enemy it warns \"This action needs a willing target.\" and aimed at the helper itself it warns \"This action targets another creature.\", both overridable TARGET_DISPOSITION warnings.",
               "id": "ATTACK-18.2"
             },
             {
@@ -5117,7 +5199,8 @@
             {
               "id": "ATTACK-18.T4",
               "text": "Slice C: Help is an ally grant consumed by the first attack roll or ability check (consumeOnFirstEvents, ON_ABILITY_CHECK) and ending at the helper's next turn; allyAdvantageUses is deleted.",
-              "status": "TODO",
+              "status": "DONE",
+              "note": "Done 2026-10-12. Help is an authored APPLY_GRANT (WILLING single target, excludesSelf) with ATTACK_ROLL and ability-less ABILITY_CHECK advantage, ending at the helper's next START_OF_TURN and used up by the first attack roll or check. Every check path (Escape, First Aid, passage, Disarm attacker and defender) reads and consumes ON_ABILITY_CHECK grants for Characters and Creatures; a Creature skill check uses the System skill's governing ability. Consumed grants are frozen on the pending check context so the reason survives, and GM undo restores the exact record (ordinal, version, timestamps). Bugs fixed with regressions: Disarm ignored a Creature initiator's grants, Character skill-check grants were never read, the Disarm record lacked speedBonusTurn, undo restored a fresh record. ALLY_ADVANTAGE, basicActionEffects and allyAdvantage are deleted; the ALLY choice target and its web drawer go in slice E. Logs: local-validation/attack18c.",
               "closes": ["ATTACK-18.1", "ATTACK-18.2"]
             },
             {
@@ -6047,7 +6130,7 @@
               "status": "TODO",
               "proof": [],
               "origin": [],
-              "note": "Was SPELLS-7.2 (registered from the SPELLS-5 refinement, D99: an area APPLY_GRANT), widened on 2026-10-10 to the whole item. It needs a production spatial-effect creator (only test fixtures create them today) and an ON_HIT_POINTS_REGAINED end reader. First check that the MANIFEST ZONE outcome compiles. How the table declares moving at half speed to avoid it is an open question.",
+              "note": "Was SPELLS-7.2 (registered from the SPELLS-5 refinement, D99: an area APPLY_GRANT), widened on 2026-10-10 to the whole item. It needs a production spatial-effect creator (only test fixtures create them today) and an ON_HIT_POINTS_REGAINED end reader. First check that the MANIFEST ZONE outcome compiles. Moving at half speed to avoid the save is offered in the drag path preview when the path enters the field: Move carefully (double cost, no save) or Move normally (save on entry) (Q2, resolved 2026-10-12).",
               "id": "SPELLS-17.1"
             }
           ]
@@ -6089,6 +6172,24 @@
               "origin": [],
               "note": "Registered 2026-10-10 from SPELLS-7 slice 5d, which refuses these at open and commit (refuseAreaEffectOutcomes in apps/session-worker/src/nativeEncounterAreaRules.ts: stateEffect, recurringEffect, relationshipConditionApplications, maintenance). One maintained effect must span every caught creature under one Concentration. Depends on SPELLS-7.",
               "id": "SPELLS-19.1"
+            }
+          ]
+        },
+        {
+          "id": "SPELLS-20",
+          "title": "Auras that move with their source",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": [],
+          "acs": [
+            {
+              "text": "An aura (Spirit Guardians, a paladin's Aura of Protection, a creature's damaging aura) is an authored spatial effect centered on its source that moves with it and applies its authored outcome to the creatures inside it; the encounter projection carries each aura's radius and label to the viewers allowed to see its source, so the map can draw it.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Registered 2026-10-12 from lane 3 (VTT_UI-3.1): auras exist only as closed rule kinds, with no geometry any client receives, so the aura preview is blocked on this PBI. Builds on the production spatial-effect creator from SPELLS-17.",
+              "id": "SPELLS-20.1"
             }
           ]
         }
@@ -6636,7 +6737,7 @@
           "origin": [],
           "acs": [
             {
-              "text": "Token art, identity and colour precedence are presented correctly.",
+              "text": "Token art, identity and colour precedence are presented correctly: the ring shows disposition (red Hostile, blue Friendly, purple Neutral), selection has its own outline distinct from the ring and the turn and reaction halos, and \"yours\" is carried by the description and selection rather than ring colour (Q3).",
               "status": "IN_PROGRESS",
               "proof": [],
               "origin": ["G4-TOKEN-IDENTITY"],
@@ -6644,11 +6745,11 @@
               "id": "VTT_UI-1.1"
             },
             {
-              "text": "Conditions, halos, ordering and overflow are presented on tokens.",
+              "text": "Conditions, Concentration and effects are presented as a segmented outer ring around the token's disposition border: one segment per active status, coloured by category (harmful condition, Concentration, beneficial effect, other), in model order, at most eight with the last marking overflow; hover, focus or selection lists every status by icon and name; the token is inset within its footprint so the outer ring never overlaps a neighbour; turn and reaction halos stay distinct from both rings (Q3).",
               "status": "IN_PROGRESS",
               "proof": [],
               "origin": ["G4-STATUS-PRESENTATION"],
-              "note": "Two rings (decision Q3): an outer segmented status ring (model order, at most 8 segments, the last marks overflow at 9+), inset inside the footprint, and a DOM status list on hover or focus. Proved against drawn output (segment count and category colours, overflow, inner and outer ring bounds of neighbouring 1x1 and large tokens) in the presentation and window stories; category hues pinned literally in the model tests. Status list paths proved: canvas hover lists a token's statuses and leaving hides them (window HoveringATokenOnTheCanvasListsItsStatuses), and keyboard focus on a token's Focus item in Scene controls (FocusingATokenListsEveryStatus). Not proved yet: mouse hover on that menu item, and the list for the selected token (selection is the next slice). Not accepted: polarity is derived next (lane 1 ruling: a pure rules-runtime function over each grant's modifiers, carried on activeGrantListing; conditions HARMFUL), after ATTACK-18 slice C; until then EFFECT draws in the neutral colour.",
+              "note": "Implemented in vttTokenPresentation.model.ts and CampaignVttPresentation stories; not accepted. Integration-owner ruling 2026-10-12: harmful and beneficial come from a polarity derived in rules-runtime from each grant's modifiers relative to its holder (an all-beneficial grant is beneficial; an all-harmful grant is harmful; a mixed or neutral grant is other), never an authored flag. Conditions are harmful. The derived polarity is carried on the active grant listing. Until it lands, an effect draws in the neutral colour, so nothing is mislabelled; this AC stays open until then. Presentation stories build from the real presentation model over Encounter data: ordering, overflow, reaction halo over current turn, defeated. Window journeys GmSeesTokenStatuses and PlayerSeesTokenStatusesWithoutGmHealth. Journey stays partial: 1.1 waits on token selection, 1.3 is held. Lane 3: Two rings (decision Q3): an outer segmented status ring (model order, at most 8 segments, the last marks overflow at 9+), inset inside the footprint, and a DOM status list on hover or focus. Proved against drawn output (segment count and category colours, overflow, inner and outer ring bounds of neighbouring 1x1 and large tokens) in the presentation and window stories; category hues pinned literally in the model tests. Status list paths proved: canvas hover lists a token's statuses and leaving hides them (window HoveringATokenOnTheCanvasListsItsStatuses), and keyboard focus on a token's Focus item in Scene controls (FocusingATokenListsEveryStatus). Not proved yet: mouse hover on that menu item, and the list for the selected token (selection is the next slice). Not accepted: polarity is derived next (lane 1 ruling: a pure rules-runtime function over each grant's modifiers, carried on activeGrantListing; conditions HARMFUL), after ATTACK-18 slice C; until then EFFECT draws in the neutral colour.",
               "id": "VTT_UI-1.2"
             },
             {
@@ -6696,7 +6797,7 @@
               "id": "VTT_UI-3.1"
             },
             {
-              "text": "Light and map colour are rendered from the Scene. The ambient illumination sets the base: BRIGHT as authored, DIM visibly darkened, DARK black beyond light and senses. Each light shows a full-brightness bright radius and a darkened dim radius, both tinted by its colour without washing out the map art. Magical darkness stays black inside light except to senses that pierce it. Obscurement draws as its own layer. The GM sees everything and can preview a chosen token's view.",
+              "text": "Light and map colour are rendered from the Scene: the ambient illumination sets the base (BRIGHT as authored, DIM visibly darkened, DARK black beyond light and senses); each light shows a full-brightness bright radius and a darkened dim radius, both tinted by its colour without washing out the map art; magical darkness stays black inside light except to senses that pierce it; obscurement draws as its own layer; the GM sees everything and can preview a chosen token's view.",
               "status": "IN_PROGRESS",
               "proof": [
                 "apps/web/src/domains/campaigns/vtt/CampaignVttLighting.stories.tsx",
@@ -6704,8 +6805,16 @@
                 "apps/web/src/domains/campaigns/vtt/vttSceneRenderer.model.test.ts"
               ],
               "origin": ["G4-PERCEPTION"],
-              "note": "D108 precedence drawn as one darkness overlay whose alpha encodes the class (BRIGHT 0, DIM 0.5, ORDINARY and MAGICAL 1): ambient, then darkening zones, then lights erase within their radii clipped by walls, then magical darkness (zone or ambient) last. Light colour is a faint tint; obscurement its own layer; no vision wash, a player's map is black outside their tokens' sight. GM sees all at darkness alpha 0.6 (approved) and can preview one token's view. Lighting stories sample drawn overlay alpha at points and compare with resolveSceneIlluminationAt, including a torch in an ordinary darkness zone, magical darkness over a torch, a magically dark Scene, a wall blocking a light, and a closed versus an open door. The light tint is read from the drawn tint layer (light colour, alpha lightTintAlpha at most 0.2, one polygon per radius); a visual-only zone draws at its opacity. A Player with no seeing token sees a black map. Through the Stage, the GM preview draws one sight polygon and stops on toggle-off or when the token leaves the Scene (window stories). Awaiting lane 1 acceptance of the review fixes. The GM's Creature-token preview shows authored token sight until VTT_UI-5 brings stat-block senses.",
+              "note": "Original PARTIAL: V03.5 covers visibility facts, not rendering. Refined 2026-10-12 by the product owner (map colour and darkvision); senses split into VTT_UI-3.4. Rules stay in rules-runtime and the Session Worker; apps/web only draws. Refined by the PO; D108 precedence. Rework of 6568f57eb: lights erase ambient darkness, DARK renders black, no vision wash, GM see-all and token-view preview, pixel-sampled proof against resolveSceneIlluminationAt. Lane 3: D108 precedence drawn as one darkness overlay whose alpha encodes the class (BRIGHT 0, DIM 0.5, ORDINARY and MAGICAL 1): ambient, then darkening zones, then lights erase within their radii clipped by walls, then magical darkness (zone or ambient) last. Light colour is a faint tint; obscurement its own layer; no vision wash, a player's map is black outside their tokens' sight. GM sees all at darkness alpha 0.6 (approved) and can preview one token's view. Lighting stories sample drawn overlay alpha at points and compare with resolveSceneIlluminationAt, including a torch in an ordinary darkness zone, magical darkness over a torch, a magically dark Scene, a wall blocking a light, and a closed versus an open door. The light tint is read from the drawn tint layer (light colour, alpha lightTintAlpha at most 0.2, one polygon per radius); a visual-only zone draws at its opacity. A Player with no seeing token sees a black map. Through the Stage, the GM preview draws one sight polygon and stops on toggle-off or when the token leaves the Scene (window stories). Awaiting lane 1 acceptance of the review fixes. The GM's Creature-token preview shows authored token sight until VTT_UI-5 brings stat-block senses.",
               "id": "VTT_UI-3.2"
+            },
+            {
+              "text": "A token's senses are rendered for the players who see through it: within darkvision range darkness shows as dim light in shades of grey and dim light shows as bright in full colour; beyond the range normal light rules apply; blindsight and tremorsense reveal within range regardless of light and truesight sees through magical darkness; the view draws the senses of one token at a time: the single selected token, otherwise the viewer's main Character (Q6, SCENE-5).",
+              "status": "TODO",
+              "proof": [],
+              "origin": ["G4-PERCEPTION"],
+              "note": "Split from VTT_UI-3.2 on 2026-10-12 (product owner: a dwarf with darkvision in a cave sees grey within 60 ft and black beyond). roomSceneVision already folds sense grants in; the per-area sense and illumination contract to the client may be missing (lane 3 reports the gap). Covers Character senses and authored token sight; Creature senses are VTT_UI-5. Senses ride on the scene token (schema, rules-runtime, worker projection by actor control per ADR 0034, web) and commit together with the projection after slice C.",
+              "id": "VTT_UI-3.4"
             },
             {
               "text": "Footprints, large tokens, dragging and rotation behave correctly.",
@@ -6716,14 +6825,6 @@
               "origin": ["G4-FOOTPRINTS"],
               "note": "Real renderer in Chromium, read through getDiagnostics(): a presented token's drag survives renderer updates (c6feedc48); a 140x140 token draws a 140x140 footprint, keeps the off-centre grab offset, clamps by half its footprint at both map edges and stops at a wall; rotation turns only the facing indicator. Barrier checks use the token centre (current rule).",
               "id": "VTT_UI-3.3"
-            },
-            {
-              "text": "A token's senses are rendered for the players who see through it. Within darkvision range, darkness shows as dim light in shades of grey, and dim light shows as bright in full colour. Beyond the range, normal light rules apply. Blindsight and tremorsense reveal within range regardless of light, and truesight sees through magical darkness. The view draws the senses of one token at a time: the single selected token, otherwise the viewer's main Character.",
-              "status": "TODO",
-              "proof": [],
-              "origin": ["G4-PERCEPTION"],
-              "note": "Split from 3.2 (D108). Covers Character senses and authored token sight; Creature senses are VTT_UI-5. Senses on the scene token (schema, rules-runtime, worker projection by actor control per ADR 0034, web); Q6 main-Character view. The projection change waits for ATTACK-18 slice C; senses commit together with it.",
-              "id": "VTT_UI-3.4"
             }
           ]
         },
@@ -6750,6 +6851,31 @@
               "origin": ["G3-EVIDENCE-A11Y"],
               "note": "Original PARTIAL: keyboard, screen-reader and selector coverage has no 8.2 criterion.",
               "id": "VTT_UI-4.2"
+            }
+          ]
+        },
+        {
+          "id": "VTT_UI-5",
+          "title": "Creatures see with their stat-block senses",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": [],
+          "note": "Split from VTT_UI-3.4 on 2026-10-12 (D108). Creature senses are free-text display strings today (subjects/creature.ts, snapshotStatBlock), and roomSceneVision binds Character actors only. Until this lands, the GM's preview of a Creature's view shows only its authored token sight.",
+          "acs": [
+            {
+              "text": "Creature senses are authored as structured entries (sense definition and range) on the Creature and its stat block, and every SRD Creature's senses are migrated to them; a source-data test proves the structured senses match the printed ones.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "id": "VTT_UI-5.1"
+            },
+            {
+              "text": "A Creature token on a Scene carries its senses like a Character token, derived by the same function, so the GM's preview of its view and combat perception both use them.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "id": "VTT_UI-5.2"
             }
           ]
         }

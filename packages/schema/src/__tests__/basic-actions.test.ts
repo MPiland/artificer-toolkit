@@ -1,9 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import {
-  basicActionReusableDefinitionDocumentDtoSchema,
-  encounterBasicActionEffectDtoSchema
-} from '../shared/basicActions.js'
+import { basicActionReusableDefinitionDocumentDtoSchema } from '../shared/basicActions.js'
 import {
   reusableDefinitionDocumentDtoSchema,
   reusableDefinitionDocumentFamilyKey
@@ -39,9 +36,10 @@ describe('basic-action catalogue contracts (Q11)', () => {
         check: withCheck ? check : null
       }).success
     expect(parse([])).toBe(true)
-    expect(parse(['ALLY_ADVANTAGE', 'STABILIZE_TARGET'], true)).toBe(true)
-    expect(parse(['STABILIZE_TARGET', 'ALLY_ADVANTAGE'], true)).toBe(false)
-    expect(parse(['ALLY_ADVANTAGE', 'ALLY_ADVANTAGE'])).toBe(false)
+    expect(parse(['STABILIZE_TARGET'], true)).toBe(true)
+    expect(parse(['STABILIZE_TARGET', 'STABILIZE_TARGET'], true)).toBe(false)
+    // Help is authored now: its retired mechanic code no longer parses.
+    expect(parse(['ALLY_ADVANTAGE'])).toBe(false)
     expect(parse(['DASH'])).toBe(false)
     // Dash, Disengage and Dodge are authored now: their retired mechanic codes no longer parse.
     expect(parse(['SPEED_MOVEMENT_BONUS'])).toBe(false)
@@ -66,45 +64,6 @@ describe('basic-action catalogue contracts (Q11)', () => {
     expect(parse({ mechanics: ['STABILIZE_TARGET'], check: null })).toBe(false)
     expect(parse({ check })).toBe(false)
     expect(parse({ mechanics: ['STABILIZE_TARGET'], check: { ...check, dc: 0 } })).toBe(false)
-    expect(
-      encounterBasicActionEffectDtoSchema.safeParse({
-        definitionId: dodge.id,
-        mechanic: 'STABILIZE_TARGET',
-        turnSequence: 1,
-        allyActorId: null
-      }).success
-    ).toBe(false)
-  })
-
-  it('names an ally only on an ally-advantage effect', () => {
-    const effect = {
-      definitionId: dodge.id,
-      mechanic: 'ALLY_ADVANTAGE',
-      turnSequence: 4,
-      allyActorId: '33333333-3333-4333-8333-333333333332'
-    }
-    expect(encounterBasicActionEffectDtoSchema.safeParse(effect).success).toBe(true)
-    expect(
-      encounterBasicActionEffectDtoSchema.safeParse({ ...effect, allyActorId: null }).success
-    ).toBe(false)
-    expect(
-      encounterBasicActionEffectDtoSchema.safeParse({
-        ...effect,
-        mechanic: 'DISADVANTAGE_ON_ATTACKS_AGAINST'
-      }).success
-    ).toBe(false)
-  })
-
-  it('rejects the retired Dodge mechanics as stored effects', () => {
-    const effect = { definitionId: dodge.id, turnSequence: 4, allyActorId: null }
-    for (const mechanic of [
-      'SAVE_ADVANTAGE',
-      'DISADVANTAGE_ON_ATTACKS_AGAINST',
-      'NO_OPPORTUNITY_ATTACKS'
-    ])
-      expect(encounterBasicActionEffectDtoSchema.safeParse({ ...effect, mechanic }).success).toBe(
-        false
-      )
   })
 
   it('defaults the acknowledged warnings of a basic-action command', () => {

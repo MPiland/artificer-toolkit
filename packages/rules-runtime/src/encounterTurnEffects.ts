@@ -347,7 +347,7 @@ async function evaluateEncounterTurnEffects(input: {
       throw new Error('Turn effect Game System is stale.')
     const recurrence = effect.definition.recurrence
     if (
-      recurrence.consumeOnFirstEvent !== null ||
+      recurrence.consumeOnFirstEvents.length !== 0 ||
       recurrence.endOnEvents.length !== 0 ||
       (recurrence.expiration.kind === 'TICKS' &&
         (recurrence.expiration.decrementStage !== input.boundary.stage ||

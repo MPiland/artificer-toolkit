@@ -46,6 +46,8 @@ export default defineSchema({
     avatarAssetId: v.optional(v.string()),
     avatarRevision: v.optional(v.number()),
     avatarCrop: v.optional(zodToConvex(normalizedImageCropSchema)),
+    /** Absent means PRIVATE, the default; see `readProfileVisibility`. */
+    profileVisibility: v.optional(v.union(v.literal('PRIVATE'), v.literal('PUBLIC'))),
     mediaBytes: v.optional(v.number()),
     entitlementUsage: zodToConvex(accountUsageSchema),
     entitlementUsageReady: v.boolean(),

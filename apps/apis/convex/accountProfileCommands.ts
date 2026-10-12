@@ -11,7 +11,7 @@ import {
 import { internalMutation } from './lib/mutations'
 import { createAuth } from './authFactory.helper'
 import { authComponent } from './lib/authClient.helper'
-import { getAuthenticatedProfile } from './lib/identity'
+import { getAuthenticatedProfile, readProfileVisibility } from './lib/identity'
 
 export const update = internalMutation({
   args: zodToConvexFields(accountProfileUpdateInputSchema.shape),
@@ -37,6 +37,10 @@ export const update = internalMutation({
       })
     }
     await ctx.db.patch(authenticated.profile._id, { bio: input.bio })
-    return accountProfileDtoSchema.parse({ username, bio: input.bio })
+    return accountProfileDtoSchema.parse({
+      username,
+      bio: input.bio,
+      visibility: readProfileVisibility(authenticated.profile)
+    })
   }
 })
