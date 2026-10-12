@@ -14,7 +14,8 @@ import {
   describeDarknessZone,
   gmDarknessCapAlpha,
   illuminationOverlayAlpha,
-  lightTintAlpha
+  lightTintAlpha,
+  resolveViewTokenId
 } from './vttSceneRenderer.model'
 
 type Diagnostics = ReturnType<VttSceneRenderer['getDiagnostics']>
@@ -76,7 +77,8 @@ function LightingFixture({
   previewTokenId,
   role = 'PLAYER',
   samplePoints = [],
-  scene
+  scene,
+  view
 }: {
   /** A Token whose Encounter actor control arrives in a later update, as when the Encounter loads. */
   boundTokenId?: string
@@ -86,10 +88,13 @@ function LightingFixture({
   /** Scene points whose drawn darkness the fixture reads back from the overlay. */
   samplePoints?: ScenePoint[]
   scene: CampaignSceneStateDto
+  /** The viewer's selection and assigned Token, resolved to a view Token by the real model. */
+  view?: { assignedTokenId: string | null; selectedTokenId: string | null }
 }) {
   const host = useRef<HTMLDivElement | null>(null)
   const [diagnostics, setDiagnostics] = useState<Diagnostics | null>(null)
   const [samples, setSamples] = useState<Sample[]>([])
+  const [viewTokenId, setViewTokenId] = useState<string | null>(null)
 
   useEffect(() => {
     if (!host.current) return
@@ -112,15 +117,29 @@ function LightingFixture({
         return
       }
       renderer = nextRenderer
+      const boundTokenControl = new Map<string, boolean>()
+      const resolvedViewTokenId = view
+        ? resolveViewTokenId({
+            assignedTokenId: view.assignedTokenId,
+            boundTokenControl,
+            currentUserId: tabletopCurrentUserId,
+            previewTokenId: previewTokenId ?? null,
+            role,
+            selectedTokenId: view.selectedTokenId,
+            tokens: scene.tokens
+          })
+        : null
+      setViewTokenId(resolvedViewTokenId)
       const update = {
-        boundTokenControl: new Map<string, boolean>(),
+        boundTokenControl,
         currentUserId: tabletopCurrentUserId,
         mapDelivery: null,
         mode: 'PLAY',
         previewTokenId,
         role,
         scene,
-        tool: 'SELECT'
+        tool: 'SELECT',
+        viewTokenId: resolvedViewTokenId
       } as const
       nextRenderer.update(update)
       if (boundTokenId) {
@@ -133,7 +152,7 @@ function LightingFixture({
       disposed = true
       renderer?.destroy()
     }
-  }, [boundTokenId, previewTokenId, role, samplePoints, scene])
+  }, [boundTokenId, previewTokenId, role, samplePoints, scene, view])
 
   return (
     <section aria-label='Lighting fixture' style={{ display: 'grid', gap: 12, padding: 16 }}>
@@ -142,6 +161,7 @@ function LightingFixture({
         {diagnostics ? JSON.stringify(diagnostics) : 'Loading lighting scene…'}
       </output>
       <output data-testid='lighting-samples'>{JSON.stringify(samples)}</output>
+      <output data-testid='lighting-view-token'>{viewTokenId ?? 'none'}</output>
     </section>
   )
 }
@@ -164,7 +184,9 @@ async function readLighting(canvasElement: HTMLElement) {
       .getByRole('img', { name: 'Interactive campaign scene' })
       .getAttribute('aria-description'),
     lighting: (JSON.parse(output.textContent ?? '{}') as Diagnostics).lighting,
-    samples: JSON.parse(canvas.getByTestId('lighting-samples').textContent ?? '[]') as Sample[]
+    samples: JSON.parse(canvas.getByTestId('lighting-samples').textContent ?? '[]') as Sample[],
+    tokens: (JSON.parse(output.textContent ?? '{}') as Diagnostics).tokens,
+    viewTokenId: canvas.getByTestId('lighting-view-token').textContent
   }
 }
 
@@ -674,5 +696,243 @@ export const PlayerMapIsBlackOutsideTheirSight: Story = {
     const { samples } = await readLighting(canvasElement)
     // Ember sees all round to 120; the Warden's sight is not theirs to see.
     expect(samples.map((sample) => sample.masked)).toEqual([false, true])
+  }
+}
+
+type Sense = CampaignSceneStateDto['tokens'][number]['senses'][number]
+
+function senseOf(
+  channel: Sense['channel'],
+  illuminationAccess: Sense['illuminationAccess'],
+  range: number,
+  label: string
+): Sense {
+  return { channel, illuminationAccess, label, range, senseId: `sense:${label}` }
+}
+
+const darkvision = senseOf('VISUAL', 'ORDINARY_DARKNESS', 20, 'Darkvision 20 ft.')
+const truesight = senseOf('VISUAL', 'MAGICAL_DARKNESS', 20, 'Truesight 20 ft.')
+const blindsight = senseOf('NONVISUAL', 'IGNORE', 10, 'Blindsight 10 ft.')
+const tremorsense = senseOf('VIBRATION', 'IGNORE', 20, 'Tremorsense 20 ft.')
+
+/** A Token its Player controls, seeing all round: only its senses differ between the scenes. */
+function seerWith(senses: Sense[]) {
+  return {
+    ...ember,
+    position: { x: 200, y: 450 },
+    senses,
+    vision: {
+      angleDegrees: 360,
+      brightRange: 60,
+      dimRange: 120,
+      directionDegrees: 0,
+      enabled: true
+    }
+  }
+}
+
+const viewEmber = { assignedTokenId: null, selectedTokenId: ember.id }
+
+// A cave: ordinary darkness everywhere, a magical-darkness zone beside the seer, a torch further on
+// and a wall below the seer.
+const caveWallId = '77777777-7777-4777-8777-777777777893'
+function caveSceneFor(seer: ReturnType<typeof seerWith>) {
+  return {
+    ...darkRoom,
+    barriers: [
+      {
+        a: { x: 100, y: 550 },
+        b: { x: 300, y: 550 },
+        blocksLight: true,
+        blocksMovement: true,
+        id: caveWallId,
+        kind: 'WALL'
+      }
+    ],
+    darknessZones: [zoneAt('77777777-7777-4777-8777-777777777832', 300, 'MAGICAL_DARKNESS', null)],
+    lights: [lightAt('77777777-7777-4777-8777-777777777803', 600, 40, 120)],
+    tokens: [seer]
+  } satisfies CampaignSceneStateDto
+}
+// Dark ground beside and above the seer, magical darkness, the torch's dim ring just past the zone, ground behind the
+// wall, and dark ground beyond the 20 ft sense (315 px from the Token centre).
+const cavePoints = [
+  { x: 250, y: 450 },
+  { x: 200, y: 350 },
+  { x: 400, y: 450 },
+  { x: 505, y: 450 },
+  { x: 200, y: 650 },
+  { x: 900, y: 450 }
+]
+
+const dwarfCave = caveSceneFor(seerWith([darkvision]))
+
+export const DwarfWithDarkvisionSeesTheCave: Story = {
+  args: { samplePoints: cavePoints, scene: dwarfCave, view: viewEmber },
+  play: async ({ canvasElement }) => {
+    const { samples, viewTokenId } = await readLighting(canvasElement)
+    expect(viewTokenId).toBe(ember.id)
+    // Ordinary darkness in range is dim and drawn in greyscale; the torch's dim ring becomes
+    // bright and keeps its colour; magical darkness, the far side of the wall and ground out of
+    // range keep their normal class.
+    expect(samples.map((sample) => sample.alpha)).toEqual([
+      expect.closeTo(illuminationOverlayAlpha('DIM'), 1),
+      expect.closeTo(illuminationOverlayAlpha('DIM'), 1),
+      expect.closeTo(1, 1),
+      expect.closeTo(0, 1),
+      expect.closeTo(1, 1),
+      expect.closeTo(1, 1)
+    ])
+    expect(samples.map((sample) => sample.greyscale)).toEqual([
+      true,
+      true,
+      false,
+      false,
+      false,
+      false
+    ])
+  }
+}
+
+const truesightCave = caveSceneFor(seerWith([truesight]))
+
+export const TruesightSeesThroughMagicalDarkness: Story = {
+  args: { samplePoints: cavePoints, scene: truesightCave, view: viewEmber },
+  play: async ({ canvasElement }) => {
+    const { samples } = await readLighting(canvasElement)
+    // Ordinary and magical darkness in range are clear with no greyscale; the torch's dim ring
+    // stays dim; beyond the range or the wall the darkness stands.
+    expect(samples.map((sample) => sample.alpha)).toEqual([
+      expect.closeTo(0, 1),
+      expect.closeTo(0, 1),
+      expect.closeTo(0, 1),
+      expect.closeTo(illuminationOverlayAlpha('DIM'), 1),
+      expect.closeTo(1, 1),
+      expect.closeTo(1, 1)
+    ])
+    expect(samples.every((sample) => !sample.greyscale)).toBe(true)
+  }
+}
+
+const blindsightCave = caveSceneFor(seerWith([blindsight]))
+const blindsightPoints = [
+  { x: 250, y: 450 },
+  { x: 400, y: 450 }
+]
+
+export const BlindsightClearsDarknessInRange: Story = {
+  args: { samplePoints: blindsightPoints, scene: blindsightCave, view: viewEmber },
+  play: async ({ canvasElement }) => {
+    const { samples } = await readLighting(canvasElement)
+    // 10 ft reaches 175 px from the Token centre: the near ground is clear, the rest stays dark.
+    expect(samples.map((sample) => sample.alpha)).toEqual([
+      expect.closeTo(0, 1),
+      expect.closeTo(1, 1)
+    ])
+    expect(samples.every((sample) => !sample.greyscale)).toBe(true)
+  }
+}
+
+const nearToken = {
+  ...warden,
+  controlledByUserIds: [],
+  hidden: false,
+  id: '77777777-7777-4777-8777-777777777851',
+  position: { x: 400, y: 450 },
+  senses: [],
+  vision: null
+}
+const farToken = {
+  ...nearToken,
+  id: '77777777-7777-4777-8777-777777777852',
+  position: { x: 700, y: 450 }
+}
+const litToken = {
+  ...nearToken,
+  id: '77777777-7777-4777-8777-777777777853',
+  position: { x: 1100, y: 450 }
+}
+const tremorScene = {
+  ...darkRoom,
+  barriers: [
+    {
+      a: { x: 300, y: 300 },
+      b: { x: 300, y: 600 },
+      blocksLight: true,
+      blocksMovement: true,
+      id: caveWallId,
+      kind: 'WALL'
+    }
+  ],
+  lights: [lightAt('77777777-7777-4777-8777-777777777804', 1100, 100, 150)],
+  tokens: [seerWith([tremorsense]), nearToken, farToken, litToken]
+} satisfies CampaignSceneStateDto
+
+export const TremorsenseRevealsTokensWithoutChangingTheMap: Story = {
+  args: { samplePoints: blindsightPoints, scene: tremorScene, view: viewEmber },
+  play: async ({ canvasElement }) => {
+    const { samples, tokens } = await readLighting(canvasElement)
+    const visible = (id: string) => tokens.find((token) => token.id === id)?.visible
+    // Felt through the wall within 20 ft of the Token's edge; out of range in the dark stays
+    // hidden; a lit Token is seen as ever, and the viewer's own Token is always shown.
+    expect(visible(nearToken.id)).toBe(true)
+    expect(visible(farToken.id)).toBe(false)
+    expect(visible(litToken.id)).toBe(true)
+    expect(visible(ember.id)).toBe(true)
+    // The map keeps its normal class: tremorsense is not sight.
+    expect(samples.map((sample) => sample.alpha)).toEqual([
+      expect.closeTo(1, 1),
+      expect.closeTo(1, 1)
+    ])
+    expect(samples.every((sample) => !sample.greyscale)).toBe(true)
+  }
+}
+
+// The GM's preview Token has darkvision, but a Player's view is their own Token's: the preview
+// Token's sight is never theirs.
+const previewLeakScene = {
+  ...darkRoom,
+  tokens: [
+    seerWith([]),
+    {
+      ...warden,
+      controlledByUserIds: [],
+      hidden: false,
+      position: { x: 900, y: 450 },
+      senses: [darkvision],
+      vision: {
+        angleDegrees: 360,
+        brightRange: 60,
+        dimRange: 120,
+        directionDegrees: 0,
+        enabled: true
+      }
+    }
+  ]
+} satisfies CampaignSceneStateDto
+const previewLeakPoints = [
+  { x: 950, y: 450 },
+  { x: 250, y: 450 }
+]
+
+export const PlayerNeverGetsTheGmPreviewTokensSight: Story = {
+  args: {
+    previewTokenId: warden.id,
+    role: 'PLAYER',
+    samplePoints: previewLeakPoints,
+    scene: previewLeakScene,
+    view: { assignedTokenId: null, selectedTokenId: null }
+  },
+  play: async ({ canvasElement }) => {
+    const { lighting, samples, viewTokenId } = await readLighting(canvasElement)
+    expect(viewTokenId).toBe('none')
+    // Only the Player's own Token sees; the Warden's darkvision neither lights nor reveals ground.
+    expect(lighting.visionCount).toBe(1)
+    expect(samples.map((sample) => sample.masked)).toEqual([true, false])
+    expect(samples.map((sample) => sample.alpha)).toEqual([
+      expect.closeTo(1, 1),
+      expect.closeTo(1, 1)
+    ])
+    expect(samples.every((sample) => !sample.greyscale)).toBe(true)
   }
 }
