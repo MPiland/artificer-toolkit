@@ -242,7 +242,7 @@ Area path file map:
 - An independent assertion audit found five minor weakenings and four coverage gaps; all fixed (full-row undo comparisons, First Aid leaves no effect, check-undo restores Help for Escape and First Aid, unused Help expires at the helper's next turn). Help warns, overridably, on an enemy or self target (ATTACK-18.2 note).
 - Dev data was deployed, reset and reseeded (backup `local-validation/convex-reset/attack18c-deploy.before.zip`); SRD audit passed. Open: the `ALLY` choice target and drawer go with `USE_BASIC_ACTION` in slice E. Logs in `local-validation/attack18c/`.
 
-**Next: ATTACK-18 slice D** (T5: First Aid on the CHECK action test with a STABILIZE outcome; Escape keeps its command on the shared check evaluator). Briefs require red-first tests and cover, up front, the audit checklist: no stray effects, other actors unaffected, behavior after a warning override, undo restores exact records.
+**Next: ATTACK-18 slice D** (T5: First Aid on the CHECK action test with a STABILIZE outcome; Escape keeps its command on the shared check evaluator). Briefs require red-first tests and cover, up front, the audit checklist: no stray effects, other actors unaffected, behavior after a warning override, undo restores exact records. Started 2026-10-12: workbook [slice-attack-18-d.md](slice-attack-18-d.md) (`37334b7a8`), session `attack18-d` (`local_b5e140da-4ca8-476b-9d06-075cefdec8c5`, branch prefix `attack18-d-first-aid`).
 
 **Working model from this session on (product owner, 2026-10-12): the main session orchestrates and reviews only.**
 
