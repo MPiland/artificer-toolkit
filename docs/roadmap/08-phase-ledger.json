@@ -947,10 +947,14 @@
             },
             {
               "text": "The owner sets their profile to Private (the default) or Public. Private: only the owner can read it. Public: any signed-in account can open the owner's profile page and see its public fields (username, avatar and bio; account details such as email stay owner-only). Switching back to Private removes access at once, and a two-account journey proves what the other account sees under each setting. The minimal identity shown on Social listings and applications is unchanged.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/apis/convex/profileVisibility.test.ts",
+                "apps/web/src/settings/ProfileSettingsPage.test.tsx",
+                "apps/web/src/profiles/PublicProfilePage.test.tsx"
+              ],
               "origin": [],
-              "note": "Registered 2026-10-12 from Q4: owner-only by default, plus a public/private setting like most social apps. Which fields are public is decided at implementation from the profile DTO and recorded in the decisions doc.",
+              "note": "Registered 2026-10-12 from Q4: owner-only by default, plus a public/private setting like most social apps. Which fields are public is decided at implementation from the profile DTO and recorded in the decisions doc. Done 2026-10-12 by lane 2 (127e99cd4, 591d6b138; D109): username, bio and avatar are public; unknown, banned and private targets return the same null; a timed ban hides the profile only until banExpires. The two-account proof runs the real Convex queries; the live browser journey (profile-browser in tests/live-backend/authenticatedSession.ts) runs with lane 2's live batch.",
               "id": "ACCOUNTS-8.4"
             }
           ]
