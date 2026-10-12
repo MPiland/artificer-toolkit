@@ -235,7 +235,26 @@ Area path file map:
 - Dev data was reset and reseeded (backup `local-validation/convex-reset/attack18b.before.zip`); SRD audit passed. Logs in `local-validation/attack18b/`.
 - The drawer's `USE_BASIC_ACTION` tests and stories still use Dash and Hide as untargeted legacy fixtures; they go with `USE_BASIC_ACTION` in slice E (noted on T6).
 
-**Next: ATTACK-18 slice C** (task T4: Help as an ally grant consumed by the first attack roll or ability check; delete `allyAdvantageUses`).
+**Next: ATTACK-18 slices C and D in one session** (T4: Help as an ally grant consumed by the first attack roll or ability check, `allyAdvantageUses` deleted; T5: First Aid on the CHECK action test with a STABILIZE outcome). Briefs require red-first tests and cover, up front, the audit checklist: no stray effects, other actors unaffected, behavior after a warning override.
+
+**Parallel lanes (approved by the product owner 2026-10-12).** This session is lane 1 and the integration owner. First steps after /clear, before slices C and D:
+
+1. Confirm file overlap for lanes 2 and 3 against the rules core (basic actions, encounter commit/persistence, SRD source-data and manifest, `packages/schema/src/shared`), and check whether VTT_UI needs design decisions from the product owner (DESIGN.md, Figma). Put any questions in the open-questions doc.
+2. Start lanes 2 and 3 as worktree sessions (`start_session`, `user_asked`, `use_worktree: true`), each with its own handoff file under `docs/handoffs/`.
+
+| Lane | Scope | Notes |
+|---|---|---|
+| 1. Rules core (this session) | ATTACK-18 → ATTACK-7 C–G → ATTACK-19, then ATTACK-10, ATTACK-17, SPELLS-5, ENCOUNTER-8 | Dependency chain; stays serial. Owns the local Docker Convex backend. |
+| 2. Platform and accounts closeout | PLATFORM-1, 4 and ACCOUNTS-1, 2, 3, 5, 8 (0 open ACs: likely missing journey proofs); PLATFORM-6–10, 12, 14 (1 open AC each) | Small jobs, high WSJF; disjoint from the rules files. |
+| 3. VTT UI | VTT_UI-1 to 4 | Mostly `apps/web`; may need design direction. |
+
+Hold SPELLS-13 to 17 and 19 (area actions) until ATTACK-18 lands; they share commit code with lane 1.
+
+Lane rules:
+- Each lane edits only its own PBIs in the ledger and its own handoff, and rebases before committing.
+- Lanes 2 and 3 test with in-memory convex-test. Codegen, deploy and any reset or reseed of the local backend need lane 1 to be idle; ask lane 1 first.
+- Every compile, test, codegen and Wrangler run takes `local-validation/.validation.lock` (AGENTS.md).
+- Lane 1 reviews each lane's slice diff and runs the independent assertion audit before it is called done. Lanes report through `SendMessage`.
 
 **Apis suite timing:** the full apis suite is 374 files run serially (`maxWorkers: 1`) and takes about 72 minutes. Never override `maxWorkers`; for focused runs pass explicit file paths, not folder filters.
 
