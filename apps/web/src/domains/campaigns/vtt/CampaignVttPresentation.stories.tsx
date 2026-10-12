@@ -2,15 +2,17 @@ import type { Meta, StoryObj } from '@storybook/react-vite'
 import { useEffect, useRef, useState } from 'react'
 import { expect, waitFor, within } from 'storybook/test'
 import type { CampaignSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
-import { tabletopCurrentUserId, tabletopLiveScene } from './CampaignTabletop.stories.fixtures'
+import {
+  tabletopCurrentUserId,
+  tabletopGmEncounter,
+  tabletopLiveScene
+} from './CampaignTabletop.stories.fixtures'
 import { createVttSceneRenderer, type VttSceneRenderer } from './vttSceneRenderer'
-import type { VttScenePresentationOverlay, VttTokenPresentation } from './vttSceneRenderer.model'
+import type { VttScenePresentationOverlay } from './vttSceneRenderer.model'
+import { buildVttTokenPresentations } from './vttTokenPresentation.model'
 
 const artUrl =
-  'data:image/svg+xml,' +
-  encodeURIComponent(
-    '<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160"><rect width="160" height="160" fill="#1c7ed6"/><circle cx="80" cy="70" r="42" fill="#74c0fc"/><path d="M34 150c8-38 84-38 92 0" fill="#0b7285"/></svg>'
-  )
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='
 
 const presentationScene = {
   ...tabletopLiveScene,
@@ -39,46 +41,60 @@ const presentationScene = {
   ]
 } satisfies CampaignSceneStateDto
 
-const tokenPresentations = {
-  [presentationScene.tokens[0]!.id]: {
-    accessibleDescription:
-      'Ember. Character. Current turn. Reaction available, Lingering wound, Shaken, Restrained, Blessed, Bloodied.',
-    artUrl,
-    facing: true,
-    fillColor: 0x1971c2,
-    halo: { color: 0xf06595, label: 'Reaction available' },
-    marked: true,
-    outlineColor: 0x22b8cf,
-    statuses: [
-      { id: 'reaction', kind: 'REACTION', label: 'Reaction available', shortLabel: 'R' },
-      { id: 'injury', kind: 'INJURY', label: 'Lingering wound', shortLabel: 'I' },
-      { id: 'morale', kind: 'MORALE', label: 'Shaken', shortLabel: 'M' },
-      { id: 'restrained', kind: 'CONDITION', label: 'Restrained', shortLabel: 'R' },
-      { id: 'blessed', kind: 'EFFECT', label: 'Blessed', shortLabel: 'B' },
-      { id: 'bloodied', kind: 'HEALTH', label: 'Bloodied', shortLabel: '!' }
-    ]
+const [emberToken, wardenToken, scoutToken] = presentationScene.tokens
+// Only the DATA varies here; colours, ordering and halo precedence come from the real model.
+const emberActor = {
+  ...tabletopGmEncounter.actors[0]!,
+  activeGrants: [
+    {
+      effectId: '55555555-5555-4555-8555-555555555501',
+      label: 'Blessed',
+      sourceHidden: false,
+      remainingTicks: 4,
+      expiresAtCampaignMinute: null
+    }
+  ],
+  conditions: [
+    { id: 'morale', kind: 'MORALE', label: 'Shaken' },
+    { id: 'injury', kind: 'INJURY', label: 'Lingering wound' },
+    { id: 'condition', kind: 'CONDITION', label: 'Restrained' }
+  ],
+  healthBand: 'CRITICAL' as const
+}
+const wardenActor = { ...tabletopGmEncounter.actors[1]!, defeated: true }
+const presentationEncounter = {
+  ...tabletopGmEncounter,
+  actors: [emberActor, wardenActor]
+}
+const tokenPresentations = buildVttTokenPresentations({
+  actorIdByTokenId: new Map([
+    [emberToken!.id, emberActor.id],
+    [wardenToken!.id, wardenActor.id]
+  ]),
+  artUrls: { [scoutToken!.id]: artUrl },
+  boundTokenControl: new Map(),
+  currentUserId: tabletopCurrentUserId,
+  encounter: presentationEncounter,
+  pending: {
+    allowedResponses: ['DECLINE', 'OPTION'],
+    choice: {
+      options: [
+        { actionId: 'reaction', actionSourceKind: 'CHARACTER_ACTION', optionId: 'a'.repeat(64) }
+      ],
+      pathDistance: 5,
+      reactorActorId: emberActor.id,
+      reactorTokenId: emberToken!.id
+    },
+    encounterVersion: presentationEncounter.version,
+    kind: 'MOVEMENT_REACTION',
+    occurrenceId: '77777777-7777-4777-8777-777777777790',
+    occurrenceVersion: 1
   },
-  [presentationScene.tokens[1]!.id]: {
-    accessibleDescription: 'Vault Warden. Creature. Critical. Marked.',
-    artUrl: null,
-    facing: true,
-    fillColor: 0xc92a2a,
-    halo: { color: 0xc92a2a, label: 'Critical' },
-    marked: true,
-    outlineColor: 0xffffff,
-    statuses: [{ id: 'critical', kind: 'HEALTH', label: 'Critical', shortLabel: '!' }]
-  },
-  [presentationScene.tokens[2]!.id]: {
-    accessibleDescription: 'Scout. Creature. Healthy.',
-    artUrl: null,
-    facing: true,
-    fillColor: 0x2f9e44,
-    halo: null,
-    marked: false,
-    outlineColor: 0xffffff,
-    statuses: []
-  }
-} satisfies Record<string, VttTokenPresentation>
+  scene: presentationScene
+})
+const emberPresentation = tokenPresentations[emberToken!.id]!
+const wardenPresentation = tokenPresentations[wardenToken!.id]!
+const presentationList = Object.values(tokenPresentations)
 
 const overlays = [
   {
@@ -205,32 +221,66 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof meta>
 
-export const FullPresentation: Story = {
+async function renderedScene(canvasElement: HTMLElement) {
+  const canvas = within(canvasElement)
+  const output = await canvas.findByTestId('presentation-diagnostics')
+  await waitFor(() => expect(output).not.toHaveTextContent('Loading'))
+  return {
+    description:
+      canvas
+        .getByRole('img', { name: 'Interactive campaign scene' })
+        .getAttribute('aria-description') ?? '',
+    diagnostics: JSON.parse(output.textContent ?? '{}') as Record<string, number>
+  }
+}
+
+// VTT_UI-1.2: presentations come from buildVttTokenPresentations over Encounter data.
+export const StatusOrderingAndOverflow: Story = {
   play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement)
-    const output = await canvas.findByTestId('presentation-diagnostics')
-    await waitFor(() => expect(output).not.toHaveTextContent('Loading'))
-    const diagnostics = JSON.parse(output.textContent ?? '{}') as Record<string, number>
-    expect(diagnostics).toMatchObject({
-      facingIndicatorCount: 3,
-      overlayCount: 5,
-      tokenArtCount: 1,
-      tokenOverflowCount: 1,
-      tokenStatusCount: 7,
-      tokenVisualCount: 3
-    })
-    const rendererCanvas = canvas.getByRole('img', { name: 'Interactive campaign scene' })
-    await expect(rendererCanvas).toHaveAttribute(
-      'aria-description',
-      expect.stringContaining('Lingering wound')
+    const { description, diagnostics } = await renderedScene(canvasElement)
+    // Ember carries more statuses than a token can badge, so the renderer overflows it.
+    await expect(emberPresentation.statuses.length).toBeGreaterThan(4)
+    await expect(diagnostics.tokenOverflowCount).toBe(
+      presentationList.filter((presentation) => presentation.statuses.length > 4).length
     )
-    await expect(rendererCanvas).toHaveAttribute(
-      'aria-description',
-      expect.stringContaining('Shaken')
+    await expect(diagnostics.tokenStatusCount).toBe(
+      presentationList.reduce((total, presentation) => total + presentation.statuses.length, 0)
     )
-    await expect(rendererCanvas).toHaveAttribute(
-      'aria-description',
-      expect.stringContaining('Reaction available')
+    await expect(diagnostics).toMatchObject({ overlayCount: 5, tokenVisualCount: 3 })
+    // The accessible description lists statuses in the model's order.
+    await expect(description).toContain(emberPresentation.accessibleDescription)
+    const positions = emberPresentation.statuses.map((status) => description.indexOf(status.label))
+    await expect(positions.every((position) => position >= 0)).toBe(true)
+    await expect(positions).toEqual([...positions].sort((a, b) => a - b))
+  }
+}
+
+export const ReactionHaloBeatsCurrentTurn: Story = {
+  play: async ({ canvasElement }) => {
+    const { description } = await renderedScene(canvasElement)
+    await expect(emberPresentation.halo?.label).toBe('Reaction available')
+    await expect(emberPresentation.statuses[0]).toMatchObject({ kind: 'REACTION' })
+    await expect(emberPresentation.marked).toBe(true)
+    await expect(description).toContain('Ember. Character. Current turn. Reaction available')
+  }
+}
+
+export const DefeatedToken: Story = {
+  play: async ({ canvasElement }) => {
+    const { description } = await renderedScene(canvasElement)
+    await expect(wardenPresentation.statuses.map((status) => status.label)).toContain('Defeated')
+    await expect(description).toContain(wardenPresentation.accessibleDescription)
+    await expect(description).toContain('Defeated')
+  }
+}
+
+export const TokenArtIsPresented: Story = {
+  play: async ({ canvasElement }) => {
+    const { diagnostics } = await renderedScene(canvasElement)
+    await expect(presentationList.filter((presentation) => presentation.artUrl)).toHaveLength(1)
+    await expect(diagnostics.tokenArtCount).toBe(1)
+    await expect(diagnostics.facingIndicatorCount).toBe(
+      presentationList.filter((presentation) => presentation.facing).length
     )
   }
 }

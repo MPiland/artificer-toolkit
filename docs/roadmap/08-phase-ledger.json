@@ -6630,9 +6630,9 @@
         {
           "id": "VTT_UI-1",
           "title": "Tokens show identity, status and facing",
-          "status": "TODO",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "IN_PROGRESS",
+          "journeyTests": ["apps/web/src/domains/campaigns/vtt/CampaignTabletopWindow.stories.tsx"],
+          "journeyStatus": "partial",
           "origin": [],
           "acs": [
             {
@@ -6640,15 +6640,19 @@
               "status": "TODO",
               "proof": [],
               "origin": ["G4-TOKEN-IDENTITY"],
-              "note": "Implemented in vttTokenPresentation.model.ts; not accepted against any case.",
+              "note": "Waits on open question Q3 (token ring: disposition per the mockup vs control). Art presentation proved by CampaignVttPresentation TokenArtIsPresented.",
               "id": "VTT_UI-1.1"
             },
             {
               "text": "Conditions, halos, ordering and overflow are presented on tokens.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/web/src/domains/campaigns/vtt/vttTokenPresentation.model.test.ts",
+                "apps/web/src/domains/campaigns/vtt/CampaignVttPresentation.stories.tsx",
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopWindow.stories.tsx"
+              ],
               "origin": ["G4-STATUS-PRESENTATION"],
-              "note": "Implemented in vttTokenPresentation.model.ts and CampaignVttPresentation stories; not accepted.",
+              "note": "Presentation stories build from the real presentation model over Encounter data: ordering, overflow, reaction halo over current turn, defeated. Window journeys GmSeesTokenStatuses and PlayerSeesTokenStatusesWithoutGmHealth. Journey stays partial: 1.1 waits on open question Q3, 1.3 is held.",
               "id": "VTT_UI-1.2"
             },
             {
@@ -6682,7 +6686,7 @@
         {
           "id": "VTT_UI-3",
           "title": "Previews, perception and footprints",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "journeyTests": [],
           "journeyStatus": "none",
           "origin": [],
@@ -6692,15 +6696,18 @@
               "status": "TODO",
               "proof": [],
               "origin": ["G4-PREVIEWS"],
-              "note": "Original PARTIAL: V06 covers transient previews only.",
+              "note": "BLOCKED for aura and trap: no aura producer (SPELLS-17) and no trap model. Range and target wait on ATTACK-18 slice C (numeric range on the action choice, lane 1 option A). Path preview proof pending.",
               "id": "VTT_UI-3.1"
             },
             {
               "text": "Light, darkness, obscurement and senses are rendered.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/web/src/domains/campaigns/vtt/vttSceneRenderer.model.test.ts",
+                "apps/web/src/domains/campaigns/vtt/CampaignVttLighting.stories.tsx"
+              ],
               "origin": ["G4-PERCEPTION"],
-              "note": "Original PARTIAL: V03.5 covers visibility facts, not rendering.",
+              "note": "Bright and dim light, ambient darkness, dim/ordinary/magical darkness zones (only magical darkness shuts out light), light and heavy obscurement outlines, and the controlled Token's vision cones, each also described for screen readers.",
               "id": "VTT_UI-3.2"
             },
             {

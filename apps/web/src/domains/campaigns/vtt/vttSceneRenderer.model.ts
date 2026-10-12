@@ -396,6 +396,194 @@ export function canControlSceneToken(
   )
 }
 
+type SceneIllumination = CampaignSceneStateDto['ambientIllumination']
+type SceneDarknessZone = CampaignSceneStateDto['darknessZones'][number]
+type SceneLight = CampaignSceneStateDto['lights'][number]
+
+/** How strongly the ambient illumination darkens the whole map; BRIGHT leaves it untouched. */
+export function ambientDarknessOpacity(illumination: SceneIllumination): number {
+  if (illumination === 'MAGICAL_DARKNESS') return 0.8
+  if (illumination === 'ORDINARY_DARKNESS') return 0.55
+  if (illumination === 'DIM') return 0.3
+  return 0
+}
+
+/**
+ * The fill of the bright core and of the whole dim reach of a light. Against a darkened map the
+ * glow is doubled so lights visibly push the darkness back.
+ */
+export function lightGlowAlphas(
+  light: Pick<SceneLight, 'intensity'>,
+  ambient: SceneIllumination
+): { bright: number; dim: number } {
+  const boost = ambient === 'BRIGHT' ? 1 : 2
+  return {
+    bright: Math.min(0.6, Math.max(0.08, light.intensity * 0.22) * boost),
+    dim: Math.min(0.4, Math.max(0.04, light.intensity * 0.12) * boost)
+  }
+}
+
+/** The bright core never exceeds the dim reach; the visibility polygon is built to the larger. */
+export function lightRadii(light: Pick<SceneLight, 'brightRadius' | 'dimRadius'>): {
+  bright: number
+  dim: number
+} {
+  return { bright: light.brightRadius, dim: Math.max(light.brightRadius, light.dimRadius) }
+}
+
+/**
+ * Pulls every polygon point farther than `radius` from `origin` back onto that circle. A
+ * star-shaped visibility polygon stays star-shaped, so the result is the lit area within `radius`.
+ */
+export function clampPolygonToRadius(
+  points: readonly ScenePoint[],
+  origin: ScenePoint,
+  radius: number
+): ScenePoint[] {
+  return points.map((point) => {
+    const distance = Math.hypot(point.x - origin.x, point.y - origin.y)
+    if (distance <= radius) return point
+    const ratio = radius / distance
+    return {
+      x: origin.x + (point.x - origin.x) * ratio,
+      y: origin.y + (point.y - origin.y) * ratio
+    }
+  })
+}
+
+export interface VttDarknessZoneStyle {
+  /** Only magical darkness shuts out light; lights shine into every other zone. */
+  blocksLight: boolean
+  fillAlpha: number
+  /** Dotted arcane outline of magical darkness. */
+  illuminationOutline: { dash: number; gap: number; width: number } | null
+  /** Non-colour obscurement cue: dashed for light, solid and heavier for heavy. */
+  obscurementOutline: { dash: number | null; gap: number; width: number } | null
+}
+
+/** How a darkness zone is drawn: its illumination sets the fill, its obscurement the outline. */
+export function darknessZoneStyle(
+  zone: Pick<SceneDarknessZone, 'mechanicalIllumination' | 'mechanicalObscurement' | 'opacity'>
+): VttDarknessZoneStyle {
+  const fillAlpha =
+    zone.mechanicalIllumination === 'MAGICAL_DARKNESS'
+      ? 0.92
+      : zone.mechanicalIllumination === 'ORDINARY_DARKNESS'
+        ? 0.75
+        : zone.mechanicalIllumination === 'DIM'
+          ? 0.4
+          : zone.opacity
+  return {
+    blocksLight: zone.mechanicalIllumination === 'MAGICAL_DARKNESS',
+    fillAlpha,
+    illuminationOutline:
+      zone.mechanicalIllumination === 'MAGICAL_DARKNESS' ? { dash: 3, gap: 9, width: 3 } : null,
+    obscurementOutline:
+      zone.mechanicalObscurement === 'HEAVY'
+        ? { dash: null, gap: 0, width: 6 }
+        : zone.mechanicalObscurement === 'LIGHT'
+          ? { dash: 22, gap: 14, width: 3 }
+          : null
+  }
+}
+
+/** The segments of a dashed closed outline, walked around the polygon with a continuous pattern. */
+export function dashedPolygonSegments(
+  points: readonly ScenePoint[],
+  dash: number,
+  gap: number
+): Array<[ScenePoint, ScenePoint]> {
+  const segments: Array<[ScenePoint, ScenePoint]> = []
+  // Distance into the repeating dash+gap pattern at the start of the current edge.
+  let phase = 0
+  for (const [index, from] of points.entries()) {
+    const to = points[(index + 1) % points.length]!
+    const length = Math.hypot(to.x - from.x, to.y - from.y)
+    let walked = 0
+    while (walked < length) {
+      const inDash = phase < dash
+      const step = Math.min(length - walked, inDash ? dash - phase : dash + gap - phase)
+      if (inDash) {
+        const start = walked / length
+        const end = (walked + step) / length
+        segments.push([
+          { x: from.x + (to.x - from.x) * start, y: from.y + (to.y - from.y) * start },
+          { x: from.x + (to.x - from.x) * end, y: from.y + (to.y - from.y) * end }
+        ])
+      }
+      walked += step
+      phase = (phase + step) % (dash + gap)
+    }
+  }
+  return segments
+}
+
+const illuminationLabels = {
+  BRIGHT: 'Bright light',
+  DIM: 'Dim light',
+  MAGICAL_DARKNESS: 'Magical darkness',
+  ORDINARY_DARKNESS: 'Ordinary darkness'
+} as const satisfies Record<SceneIllumination, string>
+
+/** The words for one darkness zone, e.g. "Magical darkness, heavily obscured". */
+export function describeDarknessZone(
+  zone: Pick<SceneDarknessZone, 'mechanicalIllumination' | 'mechanicalObscurement'>
+): string {
+  const parts = [
+    zone.mechanicalIllumination ? illuminationLabels[zone.mechanicalIllumination] : null,
+    zone.mechanicalObscurement === 'HEAVY'
+      ? 'heavily obscured'
+      : zone.mechanicalObscurement === 'LIGHT'
+        ? 'lightly obscured'
+        : null
+  ].filter((part): part is string => part !== null)
+  if (parts.length === 0) return 'Visual darkness'
+  const text = parts.join(', ')
+  return text.charAt(0).toUpperCase() + text.slice(1)
+}
+
+/** The lighting sentence for the canvas description; null when nothing departs from bright light. */
+export function describeSceneLighting(
+  scene: Pick<CampaignSceneStateDto, 'ambientIllumination' | 'darknessZones'>,
+  visionLabels: readonly string[]
+): string | null {
+  const parts = [
+    scene.ambientIllumination === 'BRIGHT'
+      ? null
+      : `Ambient: ${illuminationLabels[scene.ambientIllumination]}`,
+    scene.darknessZones.length > 0
+      ? `Darkness zones: ${scene.darknessZones.map(describeDarknessZone).join('; ')}`
+      : null,
+    visionLabels.length > 0 ? `Vision: ${visionLabels.join(', ')}` : null
+  ].filter((part): part is string => part !== null)
+  return parts.length > 0 ? `Lighting. ${parts.join('. ')}.` : null
+}
+
+export interface VttDarknessZoneCounts {
+  dim: number
+  heavyObscured: number
+  lightObscured: number
+  magical: number
+  ordinary: number
+  unspecified: number
+}
+
+/** Counts zones by illumination and obscurement; a zone without illumination is "unspecified". */
+export function countDarknessZones(
+  zones: readonly Pick<SceneDarknessZone, 'mechanicalIllumination' | 'mechanicalObscurement'>[]
+): VttDarknessZoneCounts {
+  const count = (predicate: (zone: (typeof zones)[number]) => boolean) =>
+    zones.filter(predicate).length
+  return {
+    dim: count((zone) => zone.mechanicalIllumination === 'DIM'),
+    heavyObscured: count((zone) => zone.mechanicalObscurement === 'HEAVY'),
+    lightObscured: count((zone) => zone.mechanicalObscurement === 'LIGHT'),
+    magical: count((zone) => zone.mechanicalIllumination === 'MAGICAL_DARKNESS'),
+    ordinary: count((zone) => zone.mechanicalIllumination === 'ORDINARY_DARKNESS'),
+    unspecified: count((zone) => zone.mechanicalIllumination === null)
+  }
+}
+
 function pointsEqual(left: ScenePoint, right: ScenePoint): boolean {
   return left.x === right.x && left.y === right.y
 }
