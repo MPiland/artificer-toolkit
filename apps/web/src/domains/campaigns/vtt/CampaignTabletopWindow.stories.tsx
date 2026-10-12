@@ -391,9 +391,9 @@ export const PlayerSeesShownScene: Story = {
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body)
     const viewer = await page.findByRole('dialog', { name: shownScene.sceneName })
-    await expect(
-      await within(viewer).findByRole('img', { name: `Map of ${shownScene.sceneName}` })
-    ).toBeVisible()
+    const map = await within(viewer).findByRole('img', { name: `Map of ${shownScene.sceneName}` })
+    // The Modal fades in; the map is visible once that enter transition has finished.
+    await waitFor(() => expect(map).toBeVisible())
     await expect(page.queryByRole('button', { name: 'Show to players' })).not.toBeInTheDocument()
     await userEvent.keyboard('{Escape}')
     await waitFor(() =>
