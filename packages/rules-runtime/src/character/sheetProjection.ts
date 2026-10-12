@@ -38,7 +38,7 @@ import type { CharacterBuilderResolution } from './builderTypes.js'
 import type { ConcentrationListingDto } from '@artificer-toolkit/schema/shared/activeGrantListing'
 import { listActiveGrantListings } from '../activeGrantListings.js'
 import { listHitPointMaximumReductions } from './hitPointMaximumReductions.js'
-import { effectiveHitPointMaximum } from '../encounterActiveGrants.js'
+import { effectiveHitPointMaximum } from './activeEffectGrantTotals.js'
 import {
   CHARACTER_ABILITY_ALIASES,
   DND5E_2014_EXHAUSTION_PRESENTATION,

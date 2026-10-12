@@ -3,8 +3,8 @@ import type { EncounterMovementReactionCharacterSource } from './encounterMoveme
 import { discoverCharacterActionCapabilities } from './characterActionCapabilityDiscoveryRegistry.js'
 import { compileCharacterActionEntryPoints } from './encounterActionEntryPointCompiler.js'
 import type { CharacterRulePolicyOutput } from '@artificer-toolkit/schema/api/characterRules'
+import { effectiveHitPointMaximum } from './character/activeEffectGrantTotals.js'
 import {
-  effectiveHitPointMaximum,
   type EncounterAttackAgainstContributor,
   withActiveGrantSpeeds,
   withCharacterActiveGrants,
