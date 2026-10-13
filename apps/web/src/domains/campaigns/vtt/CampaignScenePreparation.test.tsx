@@ -110,65 +110,30 @@ describe('CampaignScenePreparation unsaved navigation', () => {
     expect(screen.getByRole('button', { name: 'Change scene' })).toBeInTheDocument()
   })
 
+  it('measures a Squares grid as one square per cell and restores the Feet default', async () => {
+    const { client, user } = await chooseMapFile({ failFirstFinalization: false })
+    await user.click(screen.getByRole('button', { name: 'Upload map' }))
+    await screen.findByRole('img', { name: 'Uploaded map calibration preview' })
+    const distancePerCell = screen.getByRole('textbox', { name: 'Distance per cell' })
+    expect(distancePerCell).toHaveValue('5')
+
+    await user.click(screen.getByRole('combobox', { name: 'Distance unit' }))
+    await user.click(await screen.findByRole('option', { name: 'Squares' }))
+    expect(distancePerCell).toHaveValue('1')
+    expect(distancePerCell).toBeDisabled()
+
+    await user.click(screen.getByRole('combobox', { name: 'Distance unit' }))
+    await user.click(await screen.findByRole('option', { name: 'Feet' }))
+    expect(distancePerCell).toHaveValue('5')
+    expect(distancePerCell).toBeEnabled()
+    await client.close()
+  })
+
   it('retries finalization of the uploaded asset without creating or sending another upload', async () => {
-    vi.mocked(usePaginatedQuery).mockReturnValue({
-      results: [],
-      status: 'Exhausted',
-      isLoading: false,
-      loadMore: vi.fn()
-    })
     vi.mocked(saveSceneDefinition).mockResolvedValue(tabletopSceneDefinition)
-    const client = new ConvexReactClient('https://unit-test.convex.cloud', { logger: false })
-    const createUpload = vi.spyOn(client, 'mutation').mockResolvedValue(
-      validated(mediaSinglePutUploadSchema)({
-        assetId: tabletopMapDelivery.assetId,
-        method: 'PUT',
-        url: 'https://storage.example/map',
-        expiresAt: '2026-09-11T02:00:00.000Z'
-      })
-    )
-    let finalizations = 0
-    const action = vi.spyOn(client, 'action').mockImplementation(async (...[reference]) => {
-      if (getFunctionName(reference) === getFunctionName(convexApi.media.vttMapActions.finalize)) {
-        if (++finalizations === 1) throw new Error('Try finalization again.')
-        return validated(finalizeVttMapUploadOutputSchema)({
-          assetId: tabletopMapDelivery.assetId,
-          status: 'READY'
-        })
-      }
-      if (getFunctionName(reference) === getFunctionName(convexApi.media.vttMapActions.getDelivery))
-        return tabletopMapDelivery
-      throw new Error('Unexpected action')
+    const { client, user, createUpload, action, send } = await chooseMapFile({
+      failFirstFinalization: true
     })
-    const send = vi.fn()
-    vi.stubGlobal(
-      'XMLHttpRequest',
-      class {
-        status = 200
-        upload = { onprogress: null }
-        onload: (() => void) | null = null
-        open = vi.fn()
-        setRequestHeader = vi.fn()
-        send(file: File) {
-          send(file)
-          queueMicrotask(() => this.onload?.())
-        }
-      }
-    )
-    const { container } = render(
-      <TestRouterProvider convexClient={client}>
-        <CampaignScenePreparation
-          campaignId={sceneHeader.campaignId}
-          currentUserId='22222222-2222-4222-8222-222222222222'
-          memberships={[]}
-        />
-      </TestRouterProvider>
-    )
-    const user = userEvent.setup()
-    await user.upload(
-      container.querySelector<HTMLInputElement>('input[type="file"]')!,
-      new File(['map'], 'courtyard.png', { type: 'image/png' })
-    )
     await user.click(screen.getByRole('button', { name: 'Upload map' }))
     expect(await screen.findByText('Try finalization again.')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Upload map' }))
@@ -192,6 +157,67 @@ describe('CampaignScenePreparation unsaved navigation', () => {
     await client.close()
   })
 })
+
+async function chooseMapFile({ failFirstFinalization }: { failFirstFinalization: boolean }) {
+  vi.mocked(usePaginatedQuery).mockReturnValue({
+    results: [],
+    status: 'Exhausted',
+    isLoading: false,
+    loadMore: vi.fn()
+  })
+  const client = new ConvexReactClient('https://unit-test.convex.cloud', { logger: false })
+  const createUpload = vi.spyOn(client, 'mutation').mockResolvedValue(
+    validated(mediaSinglePutUploadSchema)({
+      assetId: tabletopMapDelivery.assetId,
+      method: 'PUT',
+      url: 'https://storage.example/map',
+      expiresAt: '2026-09-11T02:00:00.000Z'
+    })
+  )
+  let finalizations = 0
+  const action = vi.spyOn(client, 'action').mockImplementation(async (...[reference]) => {
+    if (getFunctionName(reference) === getFunctionName(convexApi.media.vttMapActions.finalize)) {
+      if (failFirstFinalization && ++finalizations === 1) throw new Error('Try finalization again.')
+      return validated(finalizeVttMapUploadOutputSchema)({
+        assetId: tabletopMapDelivery.assetId,
+        status: 'READY'
+      })
+    }
+    if (getFunctionName(reference) === getFunctionName(convexApi.media.vttMapActions.getDelivery))
+      return tabletopMapDelivery
+    throw new Error('Unexpected action')
+  })
+  const send = vi.fn()
+  vi.stubGlobal(
+    'XMLHttpRequest',
+    class {
+      status = 200
+      upload = { onprogress: null }
+      onload: (() => void) | null = null
+      open = vi.fn()
+      setRequestHeader = vi.fn()
+      send(file: File) {
+        send(file)
+        queueMicrotask(() => this.onload?.())
+      }
+    }
+  )
+  const { container } = render(
+    <TestRouterProvider convexClient={client}>
+      <CampaignScenePreparation
+        campaignId={sceneHeader.campaignId}
+        currentUserId='22222222-2222-4222-8222-222222222222'
+        memberships={[]}
+      />
+    </TestRouterProvider>
+  )
+  const user = userEvent.setup()
+  await user.upload(
+    container.querySelector<HTMLInputElement>('input[type="file"]')!,
+    new File(['map'], 'courtyard.png', { type: 'image/png' })
+  )
+  return { client, user, createUpload, action, send }
+}
 
 async function renderDirtySceneEditor(status: 'Exhausted' | 'CanLoadMore' = 'Exhausted') {
   vi.mocked(loadSceneDefinition).mockResolvedValue(tabletopSceneDefinition)

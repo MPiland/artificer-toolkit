@@ -334,7 +334,7 @@ describe('Cleaving target facts', () => {
   })
 
   it('measures a 5-foot reach as one square on a SQUARES Scene', () => {
-    const squaresGrid = { ...grid, distancePerCell: 1, unit: 'SQUARES' as const }
+    const squaresGrid = { ...grid, distancePerCell: 1 as const, unit: 'SQUARES' as const }
     const inReach = (cellX: number) => {
       const targetToken = tokenAt(SECOND_ID, cellX)
       return buildEncounterCleavingCandidate({

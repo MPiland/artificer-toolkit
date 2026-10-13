@@ -10,6 +10,7 @@ import {
   sceneDeltaDtoSchema,
   sceneFogLayerDtoSchema,
   sceneGeometryCommandInputDtoSchema,
+  sceneGridDtoSchema,
   sceneStoredTokenDtoSchema,
   sceneTokenDtoSchema,
   sceneTransientEnvelopeDtoSchema
@@ -64,6 +65,15 @@ describe('VTT scene contracts', () => {
         renderer: 'PIXI'
       }).success
     ).toBe(false)
+  })
+
+  it('measures one cell of a Squares grid as one square', () => {
+    const squares = { ...sceneDefinition().grid, unit: 'SQUARES' as const }
+    expect(sceneGridDtoSchema.safeParse({ ...squares, distancePerCell: 1 }).success).toBe(true)
+    expect(sceneGridDtoSchema.safeParse({ ...squares, distancePerCell: 5 }).success).toBe(false)
+    expect(
+      sceneGridDtoSchema.safeParse({ ...squares, unit: 'METERS', distancePerCell: 1.5 }).success
+    ).toBe(true)
   })
 
   it('requires an explicit fog mode, including OFF, and accepts fog mode commands', () => {

@@ -111,23 +111,33 @@ const sceneDistanceUnitDtoSchema = lazySchema(() => z.enum(['FEET', 'METERS', 'S
 export const sceneDiagonalPolicyDtoSchema = lazySchema(() =>
   z.enum(['EQUAL', 'ALTERNATING', 'EUCLIDEAN'])
 )
-export const sceneGridDtoSchema: z.ZodMiniType<SceneGrid> = lazySchema(() =>
-  z.discriminatedUnion('kind', [
-    z.strictObject({
-      kind: z.literal('SQUARE'),
-      cellSize: positiveDistanceSchema.check(z.gte(1)),
-      diagonalPolicy: sceneDiagonalPolicyDtoSchema,
-      distancePerCell: positiveDistanceSchema,
-      origin: scenePointDtoSchema,
-      unit: sceneDistanceUnitDtoSchema
-    }),
+export const sceneGridDtoSchema: z.ZodMiniType<SceneGrid> = lazySchema(() => {
+  const squareGridFields = {
+    kind: z.literal('SQUARE'),
+    cellSize: positiveDistanceSchema.check(z.gte(1)),
+    diagonalPolicy: sceneDiagonalPolicyDtoSchema,
+    origin: scenePointDtoSchema
+  }
+  return z.discriminatedUnion('kind', [
+    z.discriminatedUnion('unit', [
+      z.strictObject({
+        ...squareGridFields,
+        distancePerCell: positiveDistanceSchema,
+        unit: z.enum(['FEET', 'METERS'])
+      }),
+      z.strictObject({
+        ...squareGridFields,
+        distancePerCell: z.literal(1),
+        unit: z.literal('SQUARES')
+      })
+    ]),
     z.strictObject({
       kind: z.literal('GRIDLESS'),
       pixelsPerUnit: positiveDistanceSchema,
       unit: sceneDistanceUnitDtoSchema
     })
   ])
-)
+})
 
 export const sceneTokenVisionDtoSchema: z.ZodMiniType<SceneTokenVision> = lazySchema(() =>
   z.strictObject({

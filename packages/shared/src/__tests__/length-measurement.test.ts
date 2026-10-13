@@ -37,14 +37,14 @@ describe('length measurement', () => {
   })
 
   it('measures a square as the System base square, 5 feet, on a SQUARES Scene', () => {
-    const squaresGrid = { ...FEET_GRID, unit: 'SQUARES' } as const
+    const squaresGrid = { ...FEET_GRID, distancePerCell: 1, unit: 'SQUARES' } as const
     expect(lengthMeasurementInSceneUnits({ amount: 5, unit: 'FEET' }, squaresGrid)).toBe(1)
     expect(lengthMeasurementInSceneUnits({ amount: 60, unit: 'FEET' }, squaresGrid)).toBe(12)
     expect(sceneLengthInFeet(3, squaresGrid)).toBe(15)
   })
 
   it('keeps an unlimited sense unlimited and measures a ranged sense in Scene units', () => {
-    const squaresGrid = { ...FEET_GRID, unit: 'SQUARES' } as const
+    const squaresGrid = { ...FEET_GRID, distancePerCell: 1, unit: 'SQUARES' } as const
     expect(senseRangeInSceneUnits(null, FEET_GRID)).toBeNull()
     expect(senseRangeInSceneUnits(null, squaresGrid)).toBeNull()
     expect(senseRangeInSceneUnits({ amount: 60, unit: 'FEET' }, FEET_GRID)).toBe(60)

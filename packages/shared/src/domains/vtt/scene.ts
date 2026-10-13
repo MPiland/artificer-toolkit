@@ -49,15 +49,17 @@ export interface SceneMap {
 export type SceneDistanceUnit = 'FEET' | 'METERS' | 'SQUARES'
 export type SceneDiagonalPolicy = 'EQUAL' | 'ALTERNATING' | 'EUCLIDEAN'
 
+interface SquareSceneGrid {
+  kind: 'SQUARE'
+  cellSize: number
+  diagonalPolicy: SceneDiagonalPolicy
+  origin: ScenePoint
+}
+
 export type SceneGrid =
-  | {
-      kind: 'SQUARE'
-      cellSize: number
-      diagonalPolicy: SceneDiagonalPolicy
-      distancePerCell: number
-      origin: ScenePoint
-      unit: SceneDistanceUnit
-    }
+  | (SquareSceneGrid & { distancePerCell: number; unit: 'FEET' | 'METERS' })
+  /** One cell of a Squares grid is one System base square. */
+  | (SquareSceneGrid & { distancePerCell: 1; unit: 'SQUARES' })
   | {
       kind: 'GRIDLESS'
       pixelsPerUnit: number
