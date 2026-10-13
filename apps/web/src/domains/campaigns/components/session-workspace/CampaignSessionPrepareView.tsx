@@ -31,6 +31,7 @@ export function CampaignSessionPrepareView({
       />
       <section className={styles.sessionUtilityPanel} aria-label='Schedule and RSVP'>
         <CampaignSessionSchedulePanel
+          key={session.id}
           campaign={campaign}
           currentUserId={currentUserId}
           session={session}

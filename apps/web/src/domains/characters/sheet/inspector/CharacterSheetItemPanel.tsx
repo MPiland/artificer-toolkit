@@ -294,7 +294,7 @@ export function CharacterSheetItemPanelContent({
                       ? panel.textEditors.map((editor) => (
                           <CharacterSheetTextEditor
                             editor={editor}
-                            key={editor.field}
+                            key={`${panel.itemInstanceId}:${editor.field}`}
                             pending={pending}
                             onCommit={async (value) =>
                               await submitCommand({

@@ -170,6 +170,52 @@ describe('ProfileSettingsPage', () => {
     )
   })
 
+  it('shows a taken username, then clears the notice and re-enables Save once it is edited back', async () => {
+    mocks.usernameStatus.mockResolvedValue({ data: { available: false }, error: null })
+    renderWithAppProviders(<ProfileSettingsPage userId='user-1' />)
+
+    const username = await screen.findByRole('textbox', { name: /^username/i })
+    fireEvent.change(username, { target: { value: 'taken_name' } })
+
+    expect(
+      await screen.findByText('That username is already taken.', {}, { timeout: 1000 })
+    ).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Save profile' })).toBeDisabled()
+
+    fireEvent.change(username, { target: { value: 'morgan' } })
+
+    expect(screen.queryByText('That username is already taken.')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Save profile' })).toBeEnabled()
+  })
+
+  it('disables Save for a username that fails the format check, without a lookup', async () => {
+    renderWithAppProviders(<ProfileSettingsPage userId='user-1' />)
+
+    fireEvent.change(await screen.findByRole('textbox', { name: /^username/i }), {
+      target: { value: 'a' }
+    })
+
+    expect(screen.getByRole('button', { name: 'Save profile' })).toBeDisabled()
+    expect(mocks.usernameStatus).not.toHaveBeenCalled()
+  })
+
+  it('explains the format rule instead of a stale taken notice once the username stops matching it', async () => {
+    mocks.usernameStatus.mockResolvedValue({ data: { available: false }, error: null })
+    renderWithAppProviders(<ProfileSettingsPage userId='user-1' />)
+
+    const username = await screen.findByRole('textbox', { name: /^username/i })
+    fireEvent.change(username, { target: { value: 'taken_name' } })
+    await screen.findByText('That username is already taken.', {}, { timeout: 1000 })
+
+    fireEvent.change(username, { target: { value: 'a' } })
+
+    expect(
+      screen.getByText(/Use 3–30 letters, numbers, and single underscores/)
+    ).toBeInTheDocument()
+    expect(screen.queryByText('That username is already taken.')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Save profile' })).toBeDisabled()
+  })
+
   it('unsubscribes and hides the private form when authentication is lost', () => {
     const view = renderWithAppProviders(<ProfileSettingsPage userId='user-1' />)
     expect(screen.getByRole('textbox', { name: /^bio/i })).toHaveValue('Forge keeper.')
