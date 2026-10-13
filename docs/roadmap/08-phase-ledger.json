@@ -448,7 +448,7 @@
                 "apps/web/src/domains/characters/sheet/rest/CharacterSheetRestControl.test.tsx",
                 "apps/web/src/domains/characters/builder/evaluation/builderEvaluator.test.ts"
               ],
-              "note": "Lane 2 (2026-10-12) completed every web folder except campaigns/vtt: mocks use generated api refs, fixtures and story data parse through DTO schemas, and Sheet rest previews come from the real rules-runtime projection (playedCharacters.fixture.ts). Open: (1) the campaigns/vtt violations listed in docs/handoffs/lane-2-platform-closeout.md; (2) post-merge Storybook runs of the Rest, MarketingProductCapture and Builder Native Draft stories, which cannot start in a worktree.",
+              "note": "Lane 2 (2026-10-12) completed every web folder except campaigns/vtt: mocks use generated api refs, fixtures and story data parse through DTO schemas, and Sheet rest previews come from the real rules-runtime projection (playedCharacters.fixture.ts). Open: (1) the campaigns/vtt violations listed in docs/handoffs/lane-2-platform-closeout.md; (2) post-merge Storybook runs of the Rest, MarketingProductCapture and Builder Native Draft stories, which cannot start in a worktree. Lane 3 (2026-10-13, 59eaddbb0): campaigns/vtt done except the CampaignTabletopActionDrawer stories and test, CampaignTabletopBasicActions and CampaignTabletopEscapes, held until ATTACK-18 slice D merges. Fixture data that failed its schema was fixed in the data (the load map is 8000 px square under the 64 MP limit; stale door states; non-UUID ids; an area summary with nothing to show).",
               "origin": ["REL-10"],
               "id": "PLATFORM-12.1"
             }
@@ -6811,10 +6811,15 @@
           "acs": [
             {
               "text": "Range, target, path, aura and trap previews are shown.",
-              "status": "TODO",
-              "proof": [],
+              "status": "IN_PROGRESS",
+              "proof": [
+                "packages/rules-runtime/src/__tests__/encounterActionRange.test.ts",
+                "packages/schema/src/__tests__/encounter-action-choice-range-contracts.test.ts",
+                "apps/apis/convex/encounters/shieldStow.test.ts",
+                "apps/apis/convex/encounters/actionChoices.test.ts"
+              ],
               "origin": ["G4-PREVIEWS"],
-              "note": "BLOCKED for aura and trap: no aura producer (SPELLS-17) and no trap model. Range and target wait on ATTACK-18 slice C (numeric range on the action choice, lane 1 option A). Path: done; the drag draws its route line (drag path plus the current position), removed on release (PathPreviewDuringDrag reads the drawn route).",
+              "note": "BLOCKED for aura and trap: no aura producer (SPELLS-17) and no trap model. Range contract landed in 7cc7c9f73 (lane 1 option A): each encounter action choice carries `range` (SELF, WITHIN, RANGED, UNLIMITED) from its compiled target policy, and `rangeLabel` derives from it (Touch reads 5 ft, a longbow 150/600 ft; sight and special ranges carry none). Drawing the RANGE and TARGET overlays from the drawer waits on ATTACK-18 slice D. Path: done; the drag draws its route line (drag path plus the current position), removed on release (PathPreviewDuringDrag reads the drawn route).",
               "id": "VTT_UI-3.1"
             },
             {
@@ -6881,7 +6886,7 @@
               "status": "TODO",
               "proof": [],
               "origin": ["G3-EVIDENCE-A11Y"],
-              "note": "Original PARTIAL: keyboard, screen-reader and selector coverage has no 8.2 criterion.",
+              "note": "Original PARTIAL: keyboard, screen-reader and selector coverage has no 8.2 criterion. Found 2026-10-13: the Scene controls menu scrolls once its token list outgrows the viewport, and axe reports scrollable-region-focusable (Mantine keeps the dropdown and items at tabindex -1); reproduce with HoveringATokenListsItOverTheSelection left open with three tokens.",
               "id": "VTT_UI-4.2"
             }
           ]
