@@ -8,7 +8,7 @@
 
 ### OQ-1 Authoring form context store (RELIABILITY-9.5)
 
-**Context.** `AuthoringFormContext` (884-line provider, about 70 fields, 26 consumers) holds state that `FormRenderer.tsx:441-459` copies up from the form through effects, and `AuthoringLayoutProvider` stacks a 17-field context on top. AGENTS.md forbids context as a general store and controller objects passed through trees. Fixing it touches every authored domain form.
+**Context.** `AuthoringFormContext` (884-line provider, about 70 fields, 26 consumers) holds state that `FormRenderer.tsx:441-459` copies up from the form through effects, and `AuthoringLayoutProvider` stacks a 17-field context on top. AGENTS.md forbids context as a general store and controller objects passed through trees. Fixing it touches every authored domain form. It already causes a bug: the character builder has two writers that set `isSubmitting`, `canSubmit` and `canFinalize` to different values, and whichever runs last wins.
 
 **Options.**
 1. Split by behaviour: the TanStack form is the only value store; small contexts for navigation/cancel, layout and the page actions, each read where needed; delete the effect mirroring.
