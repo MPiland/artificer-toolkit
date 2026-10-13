@@ -24,7 +24,7 @@ export function createEditorSceneState(
     tokens: structuredClone(scene.tokens)
   }
   return previewUserId
-    ? projectSceneForViewer(materialized, { role: 'PLAYER', userId: previewUserId })
+    ? projectSceneForViewer(materialized, { role: 'PLAYER', userId: previewUserId }, new Map())
     : materialized
 }
 

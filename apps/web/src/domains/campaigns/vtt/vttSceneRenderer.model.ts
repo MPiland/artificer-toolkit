@@ -4,8 +4,11 @@ import {
   canMoveBetween,
   measureScenePathDistance,
   SceneBarrierIndex,
+  sceneDistanceAsCoordinateLength,
+  scenePointInPolygon,
   type SceneGrid,
   type ScenePoint,
+  type SceneTokenSense,
   type SpatialPointAreaShape
 } from '@artificer-toolkit/shared/vtt'
 
@@ -410,6 +413,104 @@ export function canControlSceneToken(
     (viewer.boundTokenControl.get(token.id) ??
       token.controlledByUserIds.includes(viewer.currentUserId))
   )
+}
+
+/**
+ * The one token whose senses the scene is drawn through. A Player sees through the token they
+ * selected when they control it, else their main Character's token. The GM sees through the token
+ * they preview. The GM's preview never reaches a Player.
+ */
+export function resolveViewTokenId(input: {
+  /** The Scene token bound to the viewer's main (assigned) Character. */
+  assignedTokenId: string | null
+  boundTokenControl: ReadonlyMap<string, boolean>
+  currentUserId: string
+  previewTokenId: string | null
+  role: 'OWNER' | 'PLAYER'
+  selectedTokenId: string | null
+  tokens: CampaignSceneStateDto['tokens']
+}): string | null {
+  const { assignedTokenId, previewTokenId, role, selectedTokenId, tokens } = input
+  const has = (tokenId: string | null): tokenId is string =>
+    tokenId !== null && tokens.some((token) => token.id === tokenId)
+  if (role === 'OWNER') return has(previewTokenId) ? previewTokenId : null
+  const selected = tokens.find((token) => token.id === selectedTokenId)
+  if (selected && canControlSceneToken(selected, input)) return selected.id
+  return has(assignedTokenId) ? assignedTokenId : null
+}
+
+/** What a sense does to the picture. A sense is told apart by its channel and illumination access. */
+export type VttSenseEffect = 'BLINDSIGHT' | 'DARKVISION' | 'TREMORSENSE' | 'TRUESIGHT'
+
+export function senseEffect(
+  sense: Pick<SceneTokenSense, 'channel' | 'illuminationAccess'>
+): VttSenseEffect | null {
+  if (sense.channel === 'NONVISUAL') return 'BLINDSIGHT'
+  if (sense.channel === 'VIBRATION') return 'TREMORSENSE'
+  if (sense.channel !== 'VISUAL') return null
+  if (sense.illuminationAccess === 'ORDINARY_DARKNESS') return 'DARKVISION'
+  return sense.illuminationAccess === 'MAGICAL_DARKNESS' ? 'TRUESIGHT' : null
+}
+
+/** A sense range is measured from the footprint edge, so its radius from the centre adds half the footprint. */
+export function senseReachRadius(
+  grid: SceneGrid,
+  token: Pick<CampaignSceneStateDto['tokens'][number], 'height' | 'width'>,
+  sense: Pick<SceneTokenSense, 'range'>
+): number {
+  return (
+    sceneDistanceAsCoordinateLength(grid, sense.range) + Math.max(token.height, token.width) / 2
+  )
+}
+
+/** The area one sense reaches: its radius and the line of sight clamped to it. */
+export interface VttSenseReach {
+  effect: VttSenseEffect
+  origin: ScenePoint
+  polygon: readonly ScenePoint[]
+  radius: number
+}
+
+/**
+ * Whether a token in this illumination is seen. Bright and dim light show it; in darkness only
+ * a sense does. Tremorsense feels the ground, so a token counts as on the ground and is felt at any
+ * distance within range with no sight line.
+ */
+export function isTokenRevealed(input: {
+  halfSize: number
+  illumination: SceneIllumination
+  point: ScenePoint
+  reaches: readonly VttSenseReach[]
+}): boolean {
+  const { halfSize, illumination, point, reaches } = input
+  if (illumination === 'BRIGHT' || illumination === 'DIM') return true
+  return reaches.some((reach) => {
+    if (reach.effect === 'TREMORSENSE') {
+      // Every token is treated as standing on the ground: the Scene has no flying data.
+      return (
+        Math.hypot(point.x - reach.origin.x, point.y - reach.origin.y) - halfSize <= reach.radius
+      )
+    }
+    if (!scenePointInPolygon(point, { points: [...reach.polygon] })) return false
+    if (reach.effect === 'BLINDSIGHT' || reach.effect === 'TRUESIGHT') return true
+    return illumination === 'ORDINARY_DARKNESS'
+  })
+}
+
+/** A display object as far as its place in the scene graph goes. */
+interface SceneGraphNode {
+  parent: SceneGraphNode | null
+}
+
+/** Whether a pointer target is a token visual on the token layer, or any depth inside one. */
+export function isWithinTokenVisual(
+  target: SceneGraphNode | null,
+  tokenLayer: SceneGraphNode
+): boolean {
+  for (let node = target; node; node = node.parent) {
+    if (node.parent === tokenLayer) return true
+  }
+  return false
 }
 
 type SceneIllumination = CampaignSceneStateDto['ambientIllumination']

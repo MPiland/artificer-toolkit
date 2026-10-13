@@ -65,6 +65,7 @@ async function setup(selected = false) {
     label: index === 0 ? 'Reactor' : 'Mover',
     position: { x, y: 50 },
     rotationDegrees: 0,
+    senses: [],
     vision: null
   }))
   const settings = {

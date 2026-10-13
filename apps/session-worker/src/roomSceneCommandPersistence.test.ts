@@ -105,6 +105,7 @@ function fixture(overrides = true) {
     label: 'Token',
     rotationDegrees: 0,
     position: { x: 0, y: 0 },
+    senses: [],
     vision: null
   }
   const barrier = {

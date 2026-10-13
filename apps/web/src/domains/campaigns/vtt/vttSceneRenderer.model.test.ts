@@ -1,3 +1,4 @@
+import { Container } from 'pixi.js'
 import { describe, expect, it } from 'vitest'
 import type { CampaignSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
 import { SceneBarrierIndex, type SceneGrid } from '@artificer-toolkit/shared/vtt'
@@ -13,6 +14,8 @@ import {
   formatSceneMeasurement,
   hasCommittedSceneTokenPositionChanged,
   interpolateScenePoint,
+  isTokenRevealed,
+  isWithinTokenVisual,
   lightTintAlpha,
   dimOverlayAlpha,
   gmDarknessCapAlpha,
@@ -20,14 +23,18 @@ import {
   lightRadii,
   pointAreaOverlay,
   positionVttMapTiles,
+  resolveViewTokenId,
   resolveVttMapLoadDecision,
   resolveSceneTokenMove,
   resolveVttZoomScale,
+  senseEffect,
+  senseReachRadius,
   sceneTokenAppearanceKey,
   shouldReloadVttMap,
   stableVttMapPartIds,
   statusCategoryColours,
-  visibleGridLinePositions
+  visibleGridLinePositions,
+  type VttSenseReach
 } from './vttSceneRenderer.model'
 
 describe('VTT scene renderer model', () => {
@@ -375,6 +382,199 @@ describe('VTT scene renderer model', () => {
   })
 })
 
+describe('VTT token press target', () => {
+  it('finds the token visual from a press at any depth of it, and nothing elsewhere', () => {
+    const stage = new Container()
+    const tokenLayer = stage.addChild(new Container())
+    const visual = tokenLayer.addChild(new Container())
+    const ring = visual.addChild(new Container())
+    ring.eventMode = 'static'
+    const art = ring.addChild(new Container())
+    art.eventMode = 'static'
+    const map = stage.addChild(new Container())
+    expect(isWithinTokenVisual(visual, tokenLayer)).toBe(true)
+    expect(isWithinTokenVisual(ring, tokenLayer)).toBe(true)
+    expect(isWithinTokenVisual(art, tokenLayer)).toBe(true)
+    expect(isWithinTokenVisual(map, tokenLayer)).toBe(false)
+    expect(isWithinTokenVisual(tokenLayer, tokenLayer)).toBe(false)
+    expect(isWithinTokenVisual(null, tokenLayer)).toBe(false)
+  })
+})
+
+describe('VTT view token and senses', () => {
+  type Token = CampaignSceneStateDto['tokens'][number]
+  const token = (id: string, controlledByUserIds: string[]): Token => ({
+    assetId: null,
+    controlledByUserIds,
+    height: 70,
+    hidden: false,
+    id,
+    label: id,
+    locked: false,
+    position: { x: 0, y: 0 },
+    rotationDegrees: 0,
+    senses: [],
+    vision: null,
+    width: 70
+  })
+  const tokens = [token('mine', ['me']), token('also-mine', ['me']), token('theirs', ['them'])]
+  const view = (overrides: Partial<Parameters<typeof resolveViewTokenId>[0]> = {}) =>
+    resolveViewTokenId({
+      assignedTokenId: null,
+      boundTokenControl: new Map(),
+      currentUserId: 'me',
+      previewTokenId: null,
+      role: 'PLAYER',
+      selectedTokenId: null,
+      tokens,
+      ...overrides
+    })
+
+  it('gives a Player the selected token they control, else their main Character token, else none', () => {
+    expect(view({ assignedTokenId: 'mine', selectedTokenId: 'also-mine' })).toBe('also-mine')
+    expect(view({ assignedTokenId: 'mine', selectedTokenId: null })).toBe('mine')
+    expect(view({ assignedTokenId: null, selectedTokenId: 'also-mine' })).toBe('also-mine')
+    expect(view()).toBeNull()
+  })
+
+  it('never views through a selected token the Player does not control', () => {
+    expect(view({ assignedTokenId: 'mine', selectedTokenId: 'theirs' })).toBe('mine')
+    expect(view({ selectedTokenId: 'theirs' })).toBeNull()
+  })
+
+  it('follows actor control for a bound token and ignores a token that left the Scene', () => {
+    expect(
+      view({ boundTokenControl: new Map([['theirs', true]]), selectedTokenId: 'theirs' })
+    ).toBe('theirs')
+    expect(
+      view({ boundTokenControl: new Map([['mine', false]]), selectedTokenId: 'mine' })
+    ).toBeNull()
+    expect(view({ assignedTokenId: 'gone' })).toBeNull()
+  })
+
+  it('gives the GM only the previewed token', () => {
+    expect(view({ previewTokenId: 'theirs', role: 'OWNER', selectedTokenId: 'mine' })).toBe(
+      'theirs'
+    )
+    expect(view({ role: 'OWNER', selectedTokenId: 'mine' })).toBeNull()
+    expect(view({ previewTokenId: 'gone', role: 'OWNER' })).toBeNull()
+  })
+
+  it('never lets the GM preview token reach a Player', () => {
+    expect(view({ previewTokenId: 'theirs' })).toBeNull()
+    expect(view({ assignedTokenId: 'mine', previewTokenId: 'theirs' })).toBe('mine')
+  })
+
+  it('tells senses apart by channel and illumination access, never by label', () => {
+    const sense = (
+      channel: Parameters<typeof senseEffect>[0]['channel'],
+      illuminationAccess: Parameters<typeof senseEffect>[0]['illuminationAccess']
+    ) => senseEffect({ channel, illuminationAccess })
+    expect(sense('VISUAL', 'ORDINARY_DARKNESS')).toBe('DARKVISION')
+    expect(sense('VISUAL', 'MAGICAL_DARKNESS')).toBe('TRUESIGHT')
+    expect(sense('NONVISUAL', 'IGNORE')).toBe('BLINDSIGHT')
+    expect(sense('VIBRATION', 'IGNORE')).toBe('TREMORSENSE')
+    expect(sense('VISUAL', 'BRIGHT_ONLY')).toBeNull()
+    expect(sense('AUDITORY', 'IGNORE')).toBeNull()
+  })
+
+  it('measures a sense reach from the footprint edge in Scene units', () => {
+    const square: SceneGrid = {
+      cellSize: 70,
+      diagonalPolicy: 'EQUAL',
+      distancePerCell: 5,
+      kind: 'SQUARE',
+      origin: { x: 0, y: 0 },
+      unit: 'FEET'
+    }
+    expect(senseReachRadius(square, { height: 70, width: 70 }, { range: 60 })).toBe(875)
+    expect(senseReachRadius(square, { height: 140, width: 140 }, { range: 10 })).toBe(210)
+    expect(
+      senseReachRadius(
+        { kind: 'GRIDLESS', pixelsPerUnit: 10, unit: 'FEET' },
+        { height: 40, width: 40 },
+        { range: 30 }
+      )
+    ).toBe(320)
+  })
+
+  describe('which tokens are seen', () => {
+    const origin = { x: 0, y: 0 }
+    // Open-space line of sight clamped to the 100 px radius, as a sense reach carries it.
+    const polygon = Array.from({ length: 8 }, (_, step) => ({
+      x: 100 * Math.cos((step * Math.PI) / 4),
+      y: 100 * Math.sin((step * Math.PI) / 4)
+    }))
+    const reach = (effect: VttSenseReach['effect']): VttSenseReach => ({
+      effect,
+      origin,
+      polygon,
+      radius: 100
+    })
+    const seen = (
+      illumination: Parameters<typeof isTokenRevealed>[0]['illumination'],
+      effects: VttSenseReach['effect'][],
+      point = { x: 50, y: 0 }
+    ) =>
+      isTokenRevealed({
+        halfSize: 35,
+        illumination,
+        point,
+        reaches: effects.map(reach)
+      })
+
+    it('shows a token in bright or dim light without any sense', () => {
+      expect(seen('BRIGHT', [])).toBe(true)
+      expect(seen('DIM', [])).toBe(true)
+    })
+
+    it('hides a token in darkness unless a sense reaches it', () => {
+      expect(seen('ORDINARY_DARKNESS', [])).toBe(false)
+      expect(seen('MAGICAL_DARKNESS', [])).toBe(false)
+    })
+
+    it('lets darkvision see ordinary darkness only, truesight and blindsight both', () => {
+      expect(seen('ORDINARY_DARKNESS', ['DARKVISION'])).toBe(true)
+      expect(seen('MAGICAL_DARKNESS', ['DARKVISION'])).toBe(false)
+      expect(seen('MAGICAL_DARKNESS', ['TRUESIGHT'])).toBe(true)
+      expect(seen('ORDINARY_DARKNESS', ['BLINDSIGHT'])).toBe(true)
+      expect(seen('MAGICAL_DARKNESS', ['BLINDSIGHT'])).toBe(true)
+    })
+
+    it('reveals nothing outside the sense reach', () => {
+      const far = { x: 400, y: 0 }
+      expect(seen('ORDINARY_DARKNESS', ['DARKVISION', 'BLINDSIGHT', 'TRUESIGHT'], far)).toBe(false)
+      expect(seen('ORDINARY_DARKNESS', ['TREMORSENSE'], far)).toBe(false)
+    })
+
+    it('lets tremorsense feel a token through walls within range, measured to its edge', () => {
+      const behindWall: VttSenseReach = { effect: 'TREMORSENSE', origin, polygon: [], radius: 100 }
+      const feel = (x: number) =>
+        isTokenRevealed({
+          halfSize: 35,
+          illumination: 'ORDINARY_DARKNESS',
+          point: { x, y: 0 },
+          reaches: [behindWall]
+        })
+      expect(feel(135)).toBe(true)
+      expect(feel(136)).toBe(false)
+    })
+
+    it('measures every other sense to the token centre, not its edge', () => {
+      // Each centre is beyond the 100 px reach (110 and 113 px) while its 35 px edge is inside it.
+      for (const edgeInside of [
+        { x: 110, y: 0 },
+        { x: 80, y: 80 }
+      ]) {
+        for (const effect of ['DARKVISION', 'TRUESIGHT', 'BLINDSIGHT'] as const) {
+          expect(seen('ORDINARY_DARKNESS', [effect], edgeInside)).toBe(false)
+        }
+        expect(seen('ORDINARY_DARKNESS', ['TREMORSENSE'], edgeInside)).toBe(true)
+      }
+    })
+  })
+})
+
 describe('VTT lighting model', () => {
   const zone = (
     mechanicalIllumination: CampaignSceneStateDto['darknessZones'][number]['mechanicalIllumination'],
@@ -552,6 +752,7 @@ function movementScene(): CampaignSceneStateDto {
         locked: false,
         position: { x: 75, y: 75 },
         rotationDegrees: 0,
+        senses: [],
         vision: null,
         width: 50
       }

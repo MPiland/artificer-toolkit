@@ -919,3 +919,54 @@ it('rejects live Scene source identity and materialization receipt corruption', 
     await expect(base.owner.caller.query(liveEntities, pageInput)).rejects.toThrow('inconsistent')
   }
 })
+
+it('rejects a Scene definition token that carries Character-derived senses, and persists and replays the batch without them', async () => {
+  const base = await createSceneDefinitionFixture()
+  const token = {
+    id: crypto.randomUUID(),
+    assetId: null,
+    controlledByUserIds: [],
+    height: 1,
+    hidden: false,
+    label: 'Sensing token',
+    locked: false,
+    position: { x: 100, y: 100 },
+    rotationDegrees: 0,
+    senses: [
+      {
+        channel: 'VISUAL' as const,
+        illuminationAccess: 'ORDINARY_DARKNESS' as const,
+        label: 'Darkvision',
+        range: 60,
+        senseId: crypto.randomUUID()
+      }
+    ],
+    vision: null,
+    width: 1
+  }
+  const save = await base.owner.caller.mutation(begin, {
+    ...base.input,
+    counts: { ...base.input.counts, tokens: 1 }
+  })
+  const batch: AppendSceneDefinitionInput = {
+    saveId: save.saveId,
+    collection: 'tokens',
+    offset: 0,
+    entities: [token]
+  }
+  await expect(base.owner.caller.mutation(append, { input: batch })).rejects.toThrow(
+    'Stored Scene tokens never carry senses.'
+  )
+  const stored = await base.t.run((ctx) => ctx.db.query('sceneDefinitionEntities').collect())
+  expect(stored).toEqual([])
+  const sightless = { ...batch, entities: [{ ...token, senses: [] }] }
+  await base.owner.caller.mutation(append, { input: sightless })
+  await expect(base.owner.caller.mutation(append, { input: sightless })).resolves.toMatchObject({
+    received: { tokens: 1 }
+  })
+  await base.owner.caller.mutation(publish, { saveId: save.saveId })
+  const persisted = await base.t.run((ctx) => ctx.db.query('sceneDefinitionEntities').collect())
+  expect(persisted.map((row) => row.value)).toEqual([
+    { collection: 'tokens', entity: { ...token, senses: [] } }
+  ])
+})

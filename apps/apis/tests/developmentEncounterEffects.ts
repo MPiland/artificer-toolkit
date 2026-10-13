@@ -272,6 +272,7 @@ export async function verifyEncounterEffects({
               locked: false,
               position: { x: 50, y: 50 },
               rotationDegrees: 0,
+              senses: [],
               vision: null,
               width: 100
             },
@@ -285,6 +286,7 @@ export async function verifyEncounterEffects({
               locked: false,
               position: { x: 150, y: 50 },
               rotationDegrees: 0,
+              senses: [],
               vision: null,
               width: 100
             }

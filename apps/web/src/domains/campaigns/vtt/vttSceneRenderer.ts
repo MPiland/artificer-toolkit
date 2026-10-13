@@ -9,10 +9,15 @@ import {
   createSceneFogAreaPatch,
   extendSceneMovementPath,
   isSceneMovementPathValid,
+  resolveSceneIlluminationAt,
   SceneBarrierIndex,
+  visibilityPolygon,
   visibilityPolygonForLight,
   visibilityPolygonForToken,
+  visionRangeInMapPixels,
   type ScenePoint,
+  type SceneToken,
+  type SceneTokenVision,
   type SpatialPointAreaShape
 } from '@artificer-toolkit/shared/vtt'
 import type {
@@ -21,6 +26,7 @@ import type {
   FederatedPointerEvent,
   Graphics,
   RenderTexture,
+  Sprite,
   Text as PixiText,
   Texture
 } from 'pixi.js'
@@ -39,6 +45,8 @@ import {
   formatSceneMeasurement,
   hasCommittedSceneTokenPositionChanged,
   interpolateScenePoint,
+  isTokenRevealed,
+  isWithinTokenVisual,
   lightRadii,
   lightTintAlpha,
   maxStatusSegments,
@@ -47,6 +55,8 @@ import {
   resolveVttMapLoadDecision,
   resolveSceneTokenMove,
   resolveVttZoomScale,
+  senseEffect,
+  senseReachRadius,
   selectionOutlineColor,
   sceneTokenAppearanceKey,
   stableVttMapPartIds,
@@ -55,6 +65,8 @@ import {
   shouldReloadVttMap,
   visibleGridLinePositions,
   type VttScenePresentationOverlay,
+  type VttSenseEffect,
+  type VttSenseReach,
   type VttTokenPresentation
 } from './vttSceneRenderer.model'
 import { createVttPingPress, isVttPingKey, vttPingRingFrame } from './vttPing'
@@ -124,6 +136,11 @@ export interface VttSceneRendererUpdate {
   selectedTokenId?: string | null
   tokenPresentations?: Readonly<Record<string, VttTokenPresentation>>
   tool: CampaignVttTool
+  /**
+   * The token whose view is drawn: its sight is not clamped to an authored range, and its senses
+   * change the darkness it sees. The Stage resolves it (`resolveViewTokenId`); null draws none.
+   */
+  viewTokenId?: string | null
 }
 
 export interface VttSceneRenderer {
@@ -188,6 +205,8 @@ export interface VttSceneRenderer {
       selection: { color: number; dashSegmentCount: number } | null
       /** The drawn outer-ring segments in order; the overflow segment is the hollow one. */
       statusSegments: { color: number; overflow: boolean }[]
+      /** False while darkness conceals the token from the view token's senses. */
+      visible: boolean
     }[]
     transientVisualCount: number
     zoomScale: number
@@ -195,12 +214,12 @@ export interface VttSceneRenderer {
   previewDoorState: (barrierId: string, state: 'CLOSED' | 'LOCKED' | 'OPEN' | null) => void
   retryMap: (delivery: SignedVttMapDeliveryDto) => void
   /**
-   * Reads the drawn darkness overlay at scene points: its alpha as the viewer sees it, and whether
-   * the vision mask hides the point.
+   * Reads the drawn darkness overlay at scene points: its alpha as the viewer sees it, whether the
+   * vision mask hides the point, and whether the map is drawn in greyscale there (darkvision).
    */
   sampleDarkness: (
     points: readonly ScenePoint[]
-  ) => { alpha: number; masked: boolean; point: ScenePoint }[]
+  ) => { alpha: number; greyscale: boolean; masked: boolean; point: ScenePoint }[]
   update: (next: VttSceneRendererUpdate) => void
   zoomIn: () => void
   zoomOut: () => void
@@ -274,6 +293,15 @@ function destroyChildren(container: Container): void {
   for (const child of container.removeChildren()) child.destroy({ children: true })
 }
 
+function wholeMapPolygon(map: CampaignSceneStateDto['map']): ScenePoint[] {
+  return [
+    { x: 0, y: 0 },
+    { x: map.width, y: 0 },
+    { x: map.width, y: map.height },
+    { x: 0, y: map.height }
+  ]
+}
+
 function positionKey(point: ScenePoint): string {
   return `${Math.round(point.x)}:${Math.round(point.y)}`
 }
@@ -309,6 +337,10 @@ export async function createVttSceneRenderer(
 
   const world = new pixi.Container()
   const mapLayer = new pixi.Container()
+  // Darkvision draws the map again in greyscale, masked to the ground it newly lights.
+  const greyscaleLayer = new pixi.Container()
+  const greyMapLayer = new pixi.Container()
+  const greyscaleMask = new pixi.Sprite()
   const gridLayer = new pixi.Container()
   const fogLayer = new pixi.Container()
   const lightTintLayer = new pixi.Container()
@@ -327,13 +359,12 @@ export async function createVttSceneRenderer(
   const transientLayer = new pixi.Container()
   world.addChild(
     mapLayer,
+    greyscaleLayer,
     gridLayer,
     fogLayer,
     lightTintLayer,
     darknessSprite,
     obscurementLayer,
-    // Slot reserved for the darkvision greyscale layer (VTT_UI-3.4): it sits above the
-    // magical-darkness-aware overlay and obscurement, and below the vision mask.
     sightMaskSprite,
     presentationLayer,
     tokenLayer,
@@ -344,6 +375,12 @@ export async function createVttSceneRenderer(
     visionRevealLayer,
     transientLayer
   )
+  const greyscaleFilter = new pixi.ColorMatrixFilter()
+  greyscaleFilter.desaturate()
+  greyMapLayer.filters = [greyscaleFilter]
+  greyscaleLayer.addChild(greyMapLayer, greyscaleMask)
+  greyscaleLayer.mask = greyscaleMask
+  greyscaleLayer.visible = false
   app.stage.addChild(world)
   app.stage.eventMode = 'static'
   app.stage.hitArea = app.screen
@@ -356,6 +393,8 @@ export async function createVttSceneRenderer(
   let mapLoadStatus: VttMapLoadStatus | null = null
   let overviewLayer: Container | null = null
   let tileLayer: Container | null = null
+  let greyOverviewLayer: Container | null = null
+  let greyTileLayer: Container | null = null
   let fogTexture: Texture | null = null
   let renderedFogLayers: CampaignSceneStateDto['fogLayers'] | null = null
   let renderedFogMode: CampaignSceneStateDto['fogMode'] | null = null
@@ -370,6 +409,19 @@ export async function createVttSceneRenderer(
   let renderedLightingMap: CampaignSceneStateDto['map'] | null = null
   let darknessClassMap: Container | null = null
   let darknessTexture: RenderTexture | null = null
+  /** The reach polygon of every light, which clears darkness; the sense textures are rebuilt from them. */
+  let lightCutPolygons: ScenePoint[][] = []
+  let lightingRevision = 0
+  /** The darkness overlay as the view token's senses change it; shown while a sense applies. */
+  let viewOverlayTexture: RenderTexture | null = null
+  let senseOverlayActive = false
+  let greyscaleTexture: RenderTexture | null = null
+  let senseReaches: VttSenseReach[] = []
+  let renderedSenses: {
+    grid: CampaignSceneStateDto['grid']
+    lightingRevision: number
+    viewToken: CampaignSceneStateDto['tokens'][number] | undefined
+  } | null = null
   let sightMaskTexture: RenderTexture | null = null
   let sightPolygonCount = 0
   let renderedVision: {
@@ -377,6 +429,7 @@ export async function createVttSceneRenderer(
     boundTokenControl: VttSceneRendererUpdate['boundTokenControl']
     currentUserId: string
     doorStates: CampaignSceneStateDto['doorStates']
+    grid: CampaignSceneStateDto['grid']
     map: CampaignSceneStateDto['map']
     previewTokenId: string | null
     role: VttSceneRendererUpdate['role']
@@ -612,14 +665,16 @@ export async function createVttSceneRenderer(
 
   function drawMap(scene: CampaignSceneStateDto, delivery: SignedVttMapDeliveryDto | null): void {
     destroyChildren(mapLayer)
+    destroyChildren(greyMapLayer)
     releaseMapAssets()
     mapLoadComplete = false
     mapLoadStatus = null
     const generation = ++mapGeneration
-    const fallback = new pixi.Graphics()
-      .rect(0, 0, scene.map.width, scene.map.height)
-      .fill(colors.mapFallback)
-    mapLayer.addChild(fallback)
+    for (const layer of [mapLayer, greyMapLayer]) {
+      layer.addChild(
+        new pixi.Graphics().rect(0, 0, scene.map.width, scene.map.height).fill(colors.mapFallback)
+      )
+    }
     if (!delivery) return
     if (!isMapDeliveryForScene(scene, delivery)) {
       emitMapLoadStatus('ERROR')
@@ -628,6 +683,9 @@ export async function createVttSceneRenderer(
     overviewLayer = new pixi.Container()
     tileLayer = new pixi.Container()
     mapLayer.addChild(overviewLayer, tileLayer)
+    greyOverviewLayer = new pixi.Container()
+    greyTileLayer = new pixi.Container()
+    greyMapLayer.addChild(greyOverviewLayer, greyTileLayer)
     loadMissingMapParts(scene, delivery, generation)
   }
 
@@ -653,10 +711,12 @@ export async function createVttSceneRenderer(
     if (missingPartIds.includes('overview')) {
       loadMapPart('overview', delivery.overview.url, generation, (texture) => {
         if (!overviewLayer) return
-        const sprite = new pixi.Sprite(texture)
-        sprite.width = scene.map.width
-        sprite.height = scene.map.height
-        overviewLayer.addChild(sprite)
+        for (const layer of [overviewLayer, greyOverviewLayer]) {
+          const sprite = new pixi.Sprite(texture)
+          sprite.width = scene.map.width
+          sprite.height = scene.map.height
+          layer?.addChild(sprite)
+        }
       })
     }
     for (const tile of positionVttMapTiles(delivery)) {
@@ -664,11 +724,13 @@ export async function createVttSceneRenderer(
       if (!missingPartIds.includes(partId)) continue
       loadMapPart(partId, tile.url, generation, (texture) => {
         if (!tileLayer) return
-        const sprite = new pixi.Sprite(texture)
-        sprite.position.set(tile.x * scaleX, tile.y * scaleY)
-        sprite.width = tile.width * scaleX
-        sprite.height = tile.height * scaleY
-        tileLayer.addChild(sprite)
+        for (const layer of [tileLayer, greyTileLayer]) {
+          const sprite = new pixi.Sprite(texture)
+          sprite.position.set(tile.x * scaleX, tile.y * scaleY)
+          sprite.width = tile.width * scaleX
+          sprite.height = tile.height * scaleY
+          layer?.addChild(sprite)
+        }
       })
     }
   }
@@ -860,11 +922,12 @@ export async function createVttSceneRenderer(
     points: readonly ScenePoint[],
     alpha: number,
     blendMode: 'erase' | 'max' | 'min',
-    label: string
+    label: string,
+    color = 0x000000
   ): Graphics {
     const shape = new pixi.Graphics({ blendMode, label })
       .poly(points.flatMap((point) => [point.x, point.y]))
-      .fill({ alpha, color: 0x000000 })
+      .fill({ alpha, color })
     return shape
   }
 
@@ -909,6 +972,8 @@ export async function createVttSceneRenderer(
     darknessClassMap?.destroy({ children: true })
     const classMap = new pixi.Container()
     darknessClassMap = classMap
+    lightCutPolygons = []
+    lightingRevision += 1
     const { map } = scene
     const ambientAlpha = illuminationOverlayAlpha(scene.ambientIllumination)
     if (ambientAlpha > 0) {
@@ -945,11 +1010,13 @@ export async function createVttSceneRenderer(
       if (radii.dim > radii.bright) {
         const reach = clampPolygonToRadius(polygon.points, light.position, radii.dim)
         classMap.addChild(overlayShape(reach, dimOverlayAlpha, 'min', 'light-dim'))
+        lightCutPolygons.push(reach)
         lightTintLayer.addChild(tintShape(reach, light, lightTintDimLabel))
       }
       if (radii.bright > 0) {
         const core = clampPolygonToRadius(polygon.points, light.position, radii.bright)
         classMap.addChild(overlayShape(core, 0, 'min', 'light-bright'))
+        lightCutPolygons.push(core)
         lightTintLayer.addChild(tintShape(core, light, lightTintBrightLabel))
       }
     }
@@ -1027,12 +1094,13 @@ export async function createVttSceneRenderer(
    */
   function drawVision(next: VttSceneRendererUpdate): void {
     const previewTokenId = next.role === 'OWNER' ? (next.previewTokenId ?? null) : null
-    const { barriers, doorStates, map, tokens } = next.scene
+    const { barriers, doorStates, grid, map, tokens } = next.scene
     const inputs = {
       barriers,
       boundTokenControl: next.boundTokenControl,
       currentUserId: next.currentUserId,
       doorStates,
+      grid,
       map,
       previewTokenId,
       role: next.role,
@@ -1056,8 +1124,8 @@ export async function createVttSceneRenderer(
     sightMaskSprite.visible = sightGoverned
     if (!sightGoverned) return
     const seers = tokens.filter(
-      (token) =>
-        token.vision?.enabled &&
+      (token): token is SceneToken & { vision: SceneTokenVision } =>
+        Boolean(token.vision?.enabled) &&
         (next.role === 'PLAYER' ? canControlSceneToken(token, next) : token.id === previewTokenId)
     )
     const barrierIndex = lightingBarrierIndex ?? new SceneBarrierIndex(barriers)
@@ -1066,22 +1134,19 @@ export async function createVttSceneRenderer(
       new pixi.Graphics().rect(0, 0, map.width, map.height).fill({ alpha: 1, color: 0 })
     )
     for (const token of seers) {
-      const { vision } = token
-      if (!vision) continue
+      // Every seeing token sees along its line of sight. The shared visibility polygon already
+      // stops at the authored range, and server fog reads that same polygon, so what is drawn
+      // and what is explored match by construction; within it, the light and the view token's
+      // senses decide what shows.
       const sight = visibilityPolygonForToken(
         token.position,
-        vision,
+        visionRangeInMapPixels(grid, token.vision),
         barriers,
         doorStates,
         barrierIndex
       )
       if (!sight || sight.points.length < 3) continue
-      const reach = clampPolygonToRadius(
-        sight.points,
-        token.position,
-        Math.max(vision.brightRange, vision.dimRange)
-      )
-      mask.addChild(overlayShape(reach, 1, 'erase', `sight:${token.id}`))
+      mask.addChild(overlayShape(sight.points, 1, 'erase', `sight:${token.id}`))
       visionLabels.push(token.label)
       sightPolygonCount += 1
     }
@@ -1090,6 +1155,211 @@ export async function createVttSceneRenderer(
     mask.destroy({ children: true })
     sightMaskSprite.texture = sightMaskTexture
     sightMaskSprite.scale.set(map.width / sightMaskTexture.width)
+  }
+
+  /**
+   * Adds the ground that ordinary darkness covers, as an indicator: ordinary darkness at
+   * `ordinaryAlpha`, cleared by every light, with magical darkness (which no light clears) either
+   * added back in full or erased from it.
+   */
+  function addDarknessIndicator(
+    composition: Container,
+    scene: CampaignSceneStateDto,
+    ordinaryAlpha: number,
+    magical: 'erase' | 'max'
+  ): void {
+    const wholeMap = wholeMapPolygon(scene.map)
+    const indicator = (points: readonly ScenePoint[], alpha: number, blend: 'erase' | 'max') =>
+      overlayShape(points, alpha, blend, 'sense-indicator', 0xffffff)
+    if (scene.ambientIllumination === 'ORDINARY_DARKNESS') {
+      composition.addChild(indicator(wholeMap, ordinaryAlpha, 'max'))
+    }
+    for (const zone of scene.darknessZones) {
+      if (zone.mechanicalIllumination === 'ORDINARY_DARKNESS') {
+        composition.addChild(indicator(zone.polygon.points, ordinaryAlpha, 'max'))
+      }
+    }
+    for (const polygon of lightCutPolygons) composition.addChild(indicator(polygon, 1, 'erase'))
+    if (scene.ambientIllumination === 'MAGICAL_DARKNESS') {
+      composition.addChild(indicator(wholeMap, 1, magical))
+    }
+    for (const zone of scene.darknessZones) {
+      if (zone.mechanicalIllumination === 'MAGICAL_DARKNESS') {
+        composition.addChild(indicator(zone.polygon.points, 1, magical))
+      }
+    }
+  }
+
+  /**
+   * The widest reach of each sense the view token has. Darkvision, truesight and blindsight reach
+   * as far as their range and its line of sight go; tremorsense is felt through walls.
+   */
+  function senseReachesOf(
+    scene: CampaignSceneStateDto,
+    viewToken: CampaignSceneStateDto['tokens'][number]
+  ): VttSenseReach[] {
+    const { barriers, doorStates, grid, map } = scene
+    const lineOfSight = viewToken.senses.length
+      ? visibilityPolygon(
+          viewToken.position,
+          Math.hypot(map.width, map.height),
+          barriers,
+          doorStates,
+          lightingBarrierIndex ?? new SceneBarrierIndex(barriers)
+        ).points
+      : []
+    const widest = new Map<VttSenseEffect, VttSenseReach>()
+    for (const sense of viewToken.senses) {
+      const effect = senseEffect(sense)
+      if (!effect) continue
+      const radius = senseReachRadius(grid, viewToken, sense)
+      if ((widest.get(effect)?.radius ?? -1) >= radius) continue
+      widest.set(effect, {
+        effect,
+        origin: viewToken.position,
+        polygon:
+          effect === 'TREMORSENSE'
+            ? []
+            : clampPolygonToRadius(lineOfSight, viewToken.position, radius),
+        radius
+      })
+    }
+    return [...widest.values()]
+  }
+
+  /**
+   * Draws what the view token's senses change in the darkness. Each sense applies inside its reach
+   * (range from the footprint edge, within line of sight): darkvision turns ordinary darkness dim
+   * and dim light bright, drawing the newly lit ground in greyscale; truesight clears ordinary and
+   * magical darkness; blindsight clears all darkness. The best sense wins at each point. Sense
+   * textures are composed from the Scene again because ordinary and magical darkness look the
+   * same once drawn.
+   */
+  function drawSenses(next: VttSceneRendererUpdate): void {
+    const { scene } = next
+    const viewToken = scene.tokens.find((token) => token.id === next.viewTokenId)
+    const inputs = { grid: scene.grid, lightingRevision, viewToken }
+    if (
+      renderedSenses &&
+      (Object.keys(inputs) as (keyof typeof inputs)[]).every(
+        (key) => renderedSenses?.[key] === inputs[key]
+      )
+    ) {
+      return
+    }
+    renderedSenses = inputs
+    senseReaches = viewToken ? senseReachesOf(scene, viewToken) : []
+    const reachOf = (effect: VttSenseEffect) =>
+      senseReaches.find((reach) => reach.effect === effect)
+    const darkvision = reachOf('DARKVISION')
+    const truesight = reachOf('TRUESIGHT')
+    const blindsight = reachOf('BLINDSIGHT')
+    const baseTexture = darknessTexture
+    senseOverlayActive = Boolean(baseTexture && (darkvision || truesight || blindsight))
+    greyscaleLayer.visible = Boolean(baseTexture && darkvision)
+    if (!baseTexture) return
+    if (!senseOverlayActive) {
+      darknessSprite.texture = baseTexture
+      return
+    }
+    const { map } = scene
+    const wholeMap = wholeMapPolygon(map)
+    const scratch: RenderTexture[] = []
+    const spriteOf = (
+      texture: RenderTexture,
+      blendMode: 'erase' | 'max' | 'min' | 'normal'
+    ): Sprite => {
+      const sprite = new pixi.Sprite({ blendMode, texture })
+      sprite.scale.set(map.width / texture.width)
+      return sprite
+    }
+    const compose = (composition: Container): RenderTexture => {
+      const texture = pixi.RenderTexture.create({
+        height: baseTexture.height,
+        width: baseTexture.width
+      })
+      renderLightingTexture(composition, texture, map)
+      composition.destroy({ children: true })
+      scratch.push(texture)
+      return texture
+    }
+    /** Opaque everywhere a sense does not reach, so a min against it leaves those points alone. */
+    const keepOutside = (reach: VttSenseReach, inside?: RenderTexture): RenderTexture => {
+      const composition = new pixi.Container()
+      composition.addChild(
+        overlayShape(wholeMap, 1, 'max', 'sense-outside', 0xffffff),
+        overlayShape(reach.polygon, 1, 'erase', 'sense-reach', 0xffffff)
+      )
+      if (inside) composition.addChild(spriteOf(inside, 'max'))
+      return compose(composition)
+    }
+    const indicatorTexture = (ordinaryAlpha: number, magical: 'erase' | 'max'): RenderTexture => {
+      const composition = new pixi.Container()
+      addDarknessIndicator(composition, scene, ordinaryAlpha, magical)
+      return compose(composition)
+    }
+    const view = new pixi.Container()
+    view.addChild(spriteOf(baseTexture, 'normal'))
+    if (darkvision) {
+      // Ordinary darkness becomes dim and dim light bright; magical darkness stays dark.
+      view.addChild(
+        spriteOf(keepOutside(darkvision, indicatorTexture(dimOverlayAlpha, 'max')), 'min')
+      )
+    }
+    if (truesight) {
+      // Ordinary and magical darkness clear; dim light stays dim.
+      const clearedDarkness = new pixi.Container()
+      clearedDarkness.addChild(
+        spriteOf(baseTexture, 'normal'),
+        spriteOf(indicatorTexture(1, 'max'), 'erase')
+      )
+      view.addChild(spriteOf(keepOutside(truesight, compose(clearedDarkness)), 'min'))
+    }
+    if (blindsight) view.addChild(spriteOf(keepOutside(blindsight), 'min'))
+    viewOverlayTexture = textureForMap(viewOverlayTexture, map)
+    renderLightingTexture(view, viewOverlayTexture, map)
+    view.destroy({ children: true })
+    darknessSprite.texture = viewOverlayTexture
+    darknessSprite.scale.set(map.width / viewOverlayTexture.width)
+    if (darkvision) {
+      // Greyscale marks ordinary darkness the darkvision reaches and no better sense clears.
+      const newlyLit = new pixi.Container()
+      addDarknessIndicator(newlyLit, scene, 1, 'erase')
+      newlyLit.addChild(spriteOf(keepOutside(darkvision), 'erase'))
+      for (const better of [truesight, blindsight]) {
+        if (better) {
+          newlyLit.addChild(overlayShape(better.polygon, 1, 'erase', 'sense-better', 0xffffff))
+        }
+      }
+      greyscaleTexture = textureForMap(greyscaleTexture, map)
+      renderLightingTexture(newlyLit, greyscaleTexture, map)
+      newlyLit.destroy({ children: true })
+      greyscaleMask.texture = greyscaleTexture
+      greyscaleMask.scale.set(map.width / greyscaleTexture.width)
+    }
+    for (const texture of scratch) texture.destroy(true)
+  }
+
+  /**
+   * Hides the tokens the view token cannot perceive: one in darkness is seen only through a sense
+   * that reaches it. The view token and a Player's own tokens always show.
+   */
+  function concealTokens(next: VttSceneRendererUpdate): void {
+    const { scene, viewTokenId } = next
+    const barrierIndex = lightingBarrierIndex ?? new SceneBarrierIndex(scene.barriers)
+    for (const [id, { token, visual }] of tokenVisuals) {
+      visual.visible =
+        !viewTokenId ||
+        id === viewTokenId ||
+        (next.role === 'PLAYER' && canControlSceneToken(token, next)) ||
+        isTokenRevealed({
+          halfSize: Math.max(token.height, token.width) / 2,
+          illumination: resolveSceneIlluminationAt(scene, token.position, barrierIndex)
+            .illumination,
+          point: token.position,
+          reaches: senseReaches
+        })
+    }
   }
 
   /** Reads the alpha of a lighting texture at scene points; the texture is extracted once. */
@@ -1676,8 +1946,10 @@ export async function createVttSceneRenderer(
     }
     drawLighting(next.scene)
     drawVision(next)
+    drawSenses(next)
     drawPresentationOverlays(next.overlays)
     drawTokens(next.scene, next.tokenPresentations, next.selectedTokenId ?? null)
+    concealTokens(next)
     updateCanvasDescription(next.scene)
     if (renderedMeasurements !== next.scene.measurements) {
       drawMeasurements(next.scene)
@@ -1716,7 +1988,8 @@ export async function createVttSceneRenderer(
       previous.overlays === next.overlays &&
       previous.previewTokenId === next.previewTokenId &&
       previous.selectedTokenId === next.selectedTokenId &&
-      previous.tokenPresentations === next.tokenPresentations
+      previous.tokenPresentations === next.tokenPresentations &&
+      previous.viewTokenId === next.viewTokenId
     )
   }
 
@@ -1816,8 +2089,13 @@ export async function createVttSceneRenderer(
       gesturePath = [point]
       return
     }
-    // A press on the empty map clears the selection; one on a token has already selected it.
-    if (event.button === 0 && current.tool === 'SELECT' && event.target?.parent !== tokenLayer) {
+    // A press on the empty map clears the selection; one on a token, at any depth of its
+    // visual, has already selected it.
+    if (
+      event.button === 0 &&
+      current.tool === 'SELECT' &&
+      !isWithinTokenVisual(event.target, tokenLayer)
+    ) {
       callbacks.onTokenSelect?.(null)
     }
     // A primary press on the map outside another gesture pings once held in place.
@@ -2129,6 +2407,7 @@ export async function createVttSceneRenderer(
     destroy() {
       mapGeneration += 1
       destroyChildren(mapLayer)
+      destroyChildren(greyMapLayer)
       releaseMapAssets()
       for (const url of loadedTokenArtUrls) void pixi.Assets.unload(url)
       loadedTokenArtUrls.clear()
@@ -2140,6 +2419,8 @@ export async function createVttSceneRenderer(
       fogTexture = null
       darknessClassMap?.destroy({ children: true })
       darknessTexture?.destroy(true)
+      viewOverlayTexture?.destroy(true)
+      greyscaleTexture?.destroy(true)
       sightMaskTexture?.destroy(true)
       app.canvas.removeEventListener('wheel', onWheel)
       app.canvas.removeEventListener('keydown', onKeyDown)
@@ -2261,7 +2542,8 @@ export async function createVttSceneRenderer(
               return color === undefined
                 ? []
                 : [{ color, overflow: segment.label === tokenOverflowSegmentLabel }]
-            })
+            }),
+            visible: visual.visible
           }
         }),
         transientVisualCount: transientVisuals.size + pings.size,
@@ -2269,10 +2551,15 @@ export async function createVttSceneRenderer(
       }
     },
     sampleDarkness(points) {
-      const darkness = textureAlphasAt(darknessTexture, points)
+      const darkness = textureAlphasAt(
+        senseOverlayActive ? viewOverlayTexture : darknessTexture,
+        points
+      )
       const hidden = textureAlphasAt(sightMaskSprite.visible ? sightMaskTexture : null, points)
+      const grey = textureAlphasAt(greyscaleLayer.visible ? greyscaleTexture : null, points)
       return points.map((point, index) => ({
         alpha: (darkness[index] ?? 0) * darknessSprite.alpha,
+        greyscale: (grey[index] ?? 0) > 0.5,
         masked: (hidden[index] ?? 0) > 0.5,
         point
       }))
@@ -2421,6 +2708,8 @@ export async function createVttSceneRenderer(
     mapExpectedPartIds.clear()
     overviewLayer = null
     tileLayer = null
+    greyOverviewLayer = null
+    greyTileLayer = null
   }
 
   function measurementLabel(scene: CampaignSceneStateDto, path: ScenePoint[]): PixiText {

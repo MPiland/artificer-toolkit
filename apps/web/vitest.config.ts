@@ -72,8 +72,12 @@ export default defineConfig({
           fileParallelism: false,
           maxWorkers: 1,
           browser: {
+            // Vitest's default browser port (63315) sits in the dynamic range Windows reserves for
+            // Hyper-V, so the story runner pins a port below it.
             api: {
-              host: '127.0.0.1'
+              host: '127.0.0.1',
+              port: 6106,
+              strictPort: true
             },
             enabled: true,
             fileParallelism: false,

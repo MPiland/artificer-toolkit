@@ -1011,6 +1011,7 @@ export async function verifyCampaignLifecycle(input: {
     locked: false,
     position: { x: 8 + index * 24, y: 8 },
     rotationDegrees: 0,
+    senses: [],
     vision: null,
     width: 8
   })

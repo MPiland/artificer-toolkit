@@ -10,9 +10,11 @@ import {
   sceneDeltaDtoSchema,
   sceneFogLayerDtoSchema,
   sceneGeometryCommandInputDtoSchema,
+  sceneStoredTokenDtoSchema,
   sceneTokenDtoSchema,
   sceneTransientEnvelopeDtoSchema
 } from '../api/vttScenes.js'
+import { characterSceneVisionResultSchema } from '../api/characterMechanicsRead.js'
 
 const ids = {
   campaign: '00000000-0000-4000-8000-000000000001',
@@ -210,6 +212,7 @@ describe('VTT scene contracts', () => {
       locked: false,
       position: { x: 1, y: 2 },
       rotationDegrees: 0,
+      senses: [],
       vision: null,
       width: 1
     }
@@ -228,6 +231,82 @@ describe('VTT scene contracts', () => {
     ).toBe(false)
   })
 
+  it('keeps Token senses strict and bounded', () => {
+    const token = {
+      assetId: null,
+      controlledByUserIds: [],
+      height: 1,
+      hidden: false,
+      id: ids.token,
+      label: 'Token',
+      locked: false,
+      position: { x: 1, y: 2 },
+      rotationDegrees: 0,
+      vision: null,
+      width: 1
+    }
+    const sense = {
+      channel: 'VISUAL' as const,
+      illuminationAccess: 'ORDINARY_DARKNESS' as const,
+      label: 'Darkvision',
+      range: 60,
+      senseId: ids.barrier
+    }
+    const seededSenseId = '5e2d0000-0000-0000-0000-000000000001'
+    const parses = (senses: unknown) => sceneTokenDtoSchema.safeParse({ ...token, senses }).success
+
+    expect(parses([sense])).toBe(true)
+    // Seeded System Senses keep deterministic IDs without an RFC version nibble.
+    expect(parses([{ ...sense, senseId: seededSenseId }])).toBe(true)
+    expect(
+      characterSceneVisionResultSchema.safeParse({
+        characterId: ids.token,
+        senses: [{ ...sense, range: { amount: 60, unit: 'FEET' }, senseId: seededSenseId }]
+      }).success
+    ).toBe(true)
+    expect(parses([])).toBe(true)
+    expect(sceneTokenDtoSchema.safeParse(token).success).toBe(false)
+    expect(parses([{ ...sense, extra: true }])).toBe(false)
+    expect(parses([{ ...sense, channel: 'SMELL' }])).toBe(false)
+    expect(parses([{ ...sense, illuminationAccess: 'BRIGHT' }])).toBe(false)
+    expect(parses([{ ...sense, range: 0 }])).toBe(false)
+    expect(parses([{ ...sense, range: -5 }])).toBe(false)
+    expect(parses([{ ...sense, label: ' ' }])).toBe(false)
+    expect(parses([{ ...sense, senseId: 'darkvision' }])).toBe(false)
+    expect(parses([{ channel: sense.channel }])).toBe(false)
+    expect(parses(Array.from({ length: 101 }, () => sense))).toBe(false)
+  })
+
+  it('lets the transport Token carry senses but never the stored Token', () => {
+    const token = {
+      assetId: null,
+      controlledByUserIds: [],
+      height: 1,
+      hidden: false,
+      id: ids.token,
+      label: 'Token',
+      locked: false,
+      position: { x: 1, y: 2 },
+      rotationDegrees: 0,
+      vision: null,
+      width: 1
+    }
+    const sense = {
+      channel: 'VISUAL' as const,
+      illuminationAccess: 'ORDINARY_DARKNESS' as const,
+      label: 'Darkvision',
+      range: 60,
+      senseId: ids.barrier
+    }
+
+    expect(sceneTokenDtoSchema.safeParse({ ...token, senses: [sense] }).success).toBe(true)
+    expect(sceneStoredTokenDtoSchema.safeParse({ ...token, senses: [sense] }).success).toBe(false)
+    expect(sceneStoredTokenDtoSchema.safeParse({ ...token, senses: [sense] }).error?.issues).toEqual([
+      expect.objectContaining({ message: 'Stored Scene tokens never carry senses.', path: ['senses'] })
+    ])
+    expect(sceneStoredTokenDtoSchema.safeParse({ ...token, senses: [] }).success).toBe(true)
+  })
+
   it('accepts only the five geometry commands with full-schema parity', () => {
     const commandBase = {
       commandId: ids.campaign,
@@ -244,6 +323,7 @@ describe('VTT scene contracts', () => {
       locked: false,
       position: { x: 1, y: 2 },
       rotationDegrees: 0,
+      senses: [],
       vision: null,
       width: 1
     }
@@ -329,6 +409,7 @@ describe('VTT scene contracts', () => {
       locked: false,
       position: { x: 0, y: 0 },
       rotationDegrees: 0,
+      senses: [],
       vision: null,
       width: 1
     }

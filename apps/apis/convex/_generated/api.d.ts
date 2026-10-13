@@ -136690,6 +136690,19 @@ export declare const api: {
                     locked: boolean;
                     position: { x: number; y: number };
                     rotationDegrees: number;
+                    senses: Array<{
+                      channel:
+                        "VISUAL" | "AUDITORY" | "VIBRATION" | "NONVISUAL";
+                      illuminationAccess:
+                        | "BRIGHT_ONLY"
+                        | "DIM"
+                        | "ORDINARY_DARKNESS"
+                        | "MAGICAL_DARKNESS"
+                        | "IGNORE";
+                      label: string;
+                      range: number;
+                      senseId: string;
+                    }>;
                     vision: {
                       angleDegrees: number;
                       brightRange: number;
@@ -136953,6 +136966,18 @@ export declare const api: {
                   locked: boolean;
                   position: { x: number; y: number };
                   rotationDegrees: number;
+                  senses: Array<{
+                    channel: "VISUAL" | "AUDITORY" | "VIBRATION" | "NONVISUAL";
+                    illuminationAccess:
+                      | "BRIGHT_ONLY"
+                      | "DIM"
+                      | "ORDINARY_DARKNESS"
+                      | "MAGICAL_DARKNESS"
+                      | "IGNORE";
+                    label: string;
+                    range: number;
+                    senseId: string;
+                  }>;
                   vision: {
                     angleDegrees: number;
                     brightRange: number;
@@ -137268,6 +137293,19 @@ export declare const api: {
                     locked: boolean;
                     position: { x: number; y: number };
                     rotationDegrees: number;
+                    senses: Array<{
+                      channel:
+                        "VISUAL" | "AUDITORY" | "VIBRATION" | "NONVISUAL";
+                      illuminationAccess:
+                        | "BRIGHT_ONLY"
+                        | "DIM"
+                        | "ORDINARY_DARKNESS"
+                        | "MAGICAL_DARKNESS"
+                        | "IGNORE";
+                      label: string;
+                      range: number;
+                      senseId: string;
+                    }>;
                     vision: {
                       angleDegrees: number;
                       brightRange: number;
@@ -137541,6 +137579,19 @@ export declare const api: {
                     locked: boolean;
                     position: { x: number; y: number };
                     rotationDegrees: number;
+                    senses: Array<{
+                      channel:
+                        "VISUAL" | "AUDITORY" | "VIBRATION" | "NONVISUAL";
+                      illuminationAccess:
+                        | "BRIGHT_ONLY"
+                        | "DIM"
+                        | "ORDINARY_DARKNESS"
+                        | "MAGICAL_DARKNESS"
+                        | "IGNORE";
+                      label: string;
+                      range: number;
+                      senseId: string;
+                    }>;
                     vision: {
                       angleDegrees: number;
                       brightRange: number;
@@ -137740,6 +137791,18 @@ export declare const api: {
               locked: boolean;
               position: { x: number; y: number };
               rotationDegrees: number;
+              senses: Array<{
+                channel: "VISUAL" | "AUDITORY" | "VIBRATION" | "NONVISUAL";
+                illuminationAccess:
+                  | "BRIGHT_ONLY"
+                  | "DIM"
+                  | "ORDINARY_DARKNESS"
+                  | "MAGICAL_DARKNESS"
+                  | "IGNORE";
+                label: string;
+                range: number;
+                senseId: string;
+              }>;
               vision: {
                 angleDegrees: number;
                 brightRange: number;
@@ -145846,6 +145909,19 @@ export declare const internal: {
                     locked: boolean;
                     position: { x: number; y: number };
                     rotationDegrees: number;
+                    senses: Array<{
+                      channel:
+                        "VISUAL" | "AUDITORY" | "VIBRATION" | "NONVISUAL";
+                      illuminationAccess:
+                        | "BRIGHT_ONLY"
+                        | "DIM"
+                        | "ORDINARY_DARKNESS"
+                        | "MAGICAL_DARKNESS"
+                        | "IGNORE";
+                      label: string;
+                      range: number;
+                      senseId: string;
+                    }>;
                     vision: {
                       angleDegrees: number;
                       brightRange: number;

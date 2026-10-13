@@ -24,6 +24,7 @@ function corridor(sight: number): SceneExplorationState {
         locked: false,
         position: { x: 0, y: 50 },
         rotationDegrees: 0,
+        senses: [],
         vision: {
           angleDegrees: 360,
           brightRange: 0,

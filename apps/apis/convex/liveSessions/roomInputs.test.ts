@@ -174,6 +174,7 @@ async function setupScene(withGeometry = false) {
     locked: false,
     position: { x: 100, y: 100 },
     rotationDegrees: 0,
+    senses: [],
     vision: { angleDegrees: 360, brightRange: 0, dimRange: 5, directionDegrees: 0, enabled: true },
     width: 1
   }

@@ -65,9 +65,7 @@ export async function composeRoomSceneVision(input: {
     throw new Error('Scene vision Campaign identity does not match.')
   if (header.version !== scene.version) throw new Error('Scene vision Scene version is stale.')
 
-  const selectedTokens = new Set(
-    scene.tokens.filter((token) => !token.vision).map((token) => token.id)
-  )
+  const selectedTokens = new Set(scene.tokens.map((token) => token.id))
   const bindings = new Map<
     string,
     SceneSessionVisionComposition['context']['encounterCharacterBindings'][number]
@@ -199,7 +197,7 @@ export async function composeRoomSceneVision(input: {
         document.gameSystemId !== campaign.gameSystemId
       )
         throw new Error('Character vision Sense identity does not match.')
-      senses.push({ document, range: sense.range })
+      senses.push({ document, label: definition.label, range: sense.range })
     }
     characterVisions.push(deriveCharacterSceneVision(characterId, senses))
     characterRevisions.push({ characterId, revision: revisions[0]!.revision })

@@ -101,6 +101,7 @@ export async function createEncounterSceneFixture(
       locked: false,
       position: { x: ordinal, y: 0 },
       rotationDegrees: 0,
+      senses: [],
       vision: null,
       width: 1
     })

@@ -353,6 +353,7 @@ async function setup(replacement = false, futureReactor = false, assisted = fals
             : 'GM mover',
       position: { x, y: 50 },
       rotationDegrees: 0,
+      senses: [],
       vision: null
     })
   )

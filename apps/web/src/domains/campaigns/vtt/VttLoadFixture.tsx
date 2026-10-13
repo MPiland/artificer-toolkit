@@ -378,10 +378,14 @@ export function VttLoadFixture() {
               { kind: 'FOG_CHUNKS_PATCHED', layer: patch },
               sceneRef.current.version + 1
             )
-            const playerScene = projectSceneForViewer(sceneRef.current, {
-              role: 'PLAYER',
-              userId: vttLoadFixtureUserId
-            })
+            const playerScene = projectSceneForViewer(
+              sceneRef.current,
+              {
+                role: 'PLAYER',
+                userId: vttLoadFixtureUserId
+              },
+              new Map()
+            )
             renderer.update({
               ...ownerUpdate(playerScene, 'SELECT'),
               role: 'PLAYER'

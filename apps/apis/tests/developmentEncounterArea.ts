@@ -232,6 +232,7 @@ export async function verifyEncounterArea({
       locked: false,
       position: { x: entry.x, y: entry.y },
       rotationDegrees: 0,
+      senses: [],
       vision: null,
       width: 50
     }

@@ -16,6 +16,7 @@ import type {
   ScenePoint,
   ScenePolygon,
   SceneToken,
+  SceneTokenSense,
   SceneTokenVision,
   SceneTransientEnvelope
 } from '@artificer-toolkit/shared/vtt/scene'
@@ -25,8 +26,11 @@ import { z, lazySchema, lazySchemaParts } from '../zod.js'
 import { encounterRuleOccurrenceSummaryDtoSchema } from '../shared/encounterRuleOccurrence.js'
 import { serverRuleExecutionCorrelationIdDtoSchema } from '../shared/ruleExecutionProtocol.js'
 import { authoredIdentifierSchema } from '../shared/authoredLimits.js'
+import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { spatialMovementKindDtoSchema } from '../shared/spatialFacts.js'
 import {
+  combatPerceptionChannelDtoSchema,
+  combatPerceptionIlluminationAccessDtoSchema,
   combatPerceptionIlluminationDtoSchema,
   combatPerceptionObscurementDtoSchema
 } from '../shared/combatPerception.js'
@@ -135,6 +139,16 @@ export const sceneTokenVisionDtoSchema: z.ZodMiniType<SceneTokenVision> = lazySc
   })
 )
 
+export const sceneTokenSenseDtoSchema: z.ZodMiniType<SceneTokenSense> = lazySchema(() =>
+  z.strictObject({
+    channel: combatPerceptionChannelDtoSchema,
+    illuminationAccess: combatPerceptionIlluminationAccessDtoSchema,
+    label: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)),
+    range: z.number().check(z.positive()).check(z.lte(1_000_000)),
+    senseId: postgresUuidSchema
+  })
+)
+
 export const sceneTokenDtoSchema: z.ZodMiniType<SceneToken> = lazySchema(() =>
   z
     .strictObject({
@@ -147,6 +161,7 @@ export const sceneTokenDtoSchema: z.ZodMiniType<SceneToken> = lazySchema(() =>
       locked: z.boolean(),
       position: scenePointDtoSchema,
       rotationDegrees: degreesSchema,
+      senses: z.array(sceneTokenSenseDtoSchema).check(z.maxLength(100)),
       vision: z.nullable(sceneTokenVisionDtoSchema),
       width: positiveDistanceSchema
     })
@@ -161,6 +176,16 @@ export const sceneTokenDtoSchema: z.ZodMiniType<SceneToken> = lazySchema(() =>
         }
       })
     )
+)
+
+// Senses are composed at runtime and never stored; every storage write parses through this variant.
+export const sceneStoredTokenDtoSchema: z.ZodMiniType<SceneToken> = lazySchema(() =>
+  sceneTokenDtoSchema.check(
+    z.refine((token) => token.senses.length === 0, {
+      message: 'Stored Scene tokens never carry senses.',
+      path: ['senses']
+    })
+  )
 )
 
 const sceneBarrierBase = {

@@ -6716,6 +6716,24 @@
               "id": "RELIABILITY-2.6"
             }
           ]
+        },
+        {
+          "id": "RELIABILITY-3",
+          "title": "A retried movement decision replays every message its sender was sent",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": [],
+          "acs": [
+            {
+              "text": "A retried movement decision answer or GM void replays both the Scene receipt and the Encounter result its sender was sent live, each projected for the current viewer, not the Encounter result alone.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Registered 2026-10-12 from the VTT_UI-3.4 review. The geometry commit stores only the ENCOUNTER receipt (nativeLiveSessionRoom.ts #commitRoomGeometry), which is the presented per-sender result sent live and is re-presented per member on replay (replayRoomEncounterCommand), so nothing leaks; the replay just omits the SCENE COMMAND_COMMITTED that live sent, and the Scene catches up through state sync.",
+              "id": "RELIABILITY-3.1"
+            }
+          ]
         }
       ]
     },
@@ -6813,10 +6831,21 @@
             },
             {
               "text": "A token's senses are rendered for the players who see through it: within darkvision range darkness shows as dim light in shades of grey and dim light shows as bright in full colour; beyond the range normal light rules apply; blindsight and tremorsense reveal within range regardless of light and truesight sees through magical darkness; the view draws the senses of one token at a time: the single selected token, otherwise the viewer's main Character (Q6, SCENE-5).",
-              "status": "TODO",
-              "proof": [],
+              "status": "IN_PROGRESS",
+              "proof": [
+                "apps/web/src/domains/campaigns/vtt/CampaignVttLighting.stories.tsx",
+                "apps/web/src/domains/campaigns/vtt/vttSceneRenderer.model.test.ts",
+                "apps/web/src/domains/campaigns/vtt/CampaignVttStage.model.test.ts",
+                "apps/apis/convex/scenes/definitions.test.ts",
+                "apps/apis/convex/liveSessions/checkpointScenes.test.ts",
+                "apps/session-worker/src/roomSceneSensesProjection.test.ts",
+                "apps/session-worker/test/nativeLiveSessionRoom.test.ts",
+                "apps/session-worker/test/nativeTransientFanout.test.ts",
+                "packages/shared/src/__tests__/vtt-scene.test.ts",
+                "packages/schema/src/__tests__/vtt-scene-contracts.test.ts"
+              ],
               "origin": ["G4-PERCEPTION"],
-              "note": "Split from VTT_UI-3.2 on 2026-10-12 (product owner: a dwarf with darkvision in a cave sees grey within 60 ft and black beyond). roomSceneVision already folds sense grants in; the per-area sense and illumination contract to the client may be missing (lane 3 reports the gap). Covers Character senses and authored token sight; Creature senses are VTT_UI-5. Senses ride on the scene token (schema, rules-runtime, worker projection by actor control per ADR 0034, web) and commit together with the projection after slice C.",
+              "note": "Split from VTT_UI-3.2 on 2026-10-12 (product owner: a dwarf with darkvision in a cave sees grey within 60 ft and black beyond). Covers Character senses and authored token sight; Creature senses are VTT_UI-5. Implemented 2026-10-12 in e343e21a1 (A: senses on SceneToken, snapshot and delta redaction by ADR 0034 control) and 20b01c2c2 (B: renderer), awaiting integration-owner acceptance. Audit fixes 2026-10-12: 55c7547fd, 1e9d099e1, c201d2513 (exact retries replay the sender's projected receipt), bd5ce33b1, 3f037b60f and 2f0ea3811 (senses are never persisted: the stored Token schema requires empty senses, so definition appends and checkpoints both reject them), 794aca484 and 229749488 (drawn sight is the shared visibility polygon, with authored ranges converted to map pixels as server fog does), 32c2a55ab (every Scene receipt is the message the sender was sent), 9e54f0a7e (Scene definition batch replay proof restored; stored-senses refine reports path senses), 4bc4ee298 (bound senses withheld after a Character reassignment; visible-mover receipt replays as sent), 23f310ea6 (room seeding cancels its redundant scheduled Content Snapshot builds, replacing the real-clock wait of e8a3f415c). The movement decision replay that omits the Scene receipt is RELIABILITY-3. Vision is authored only; every seeing token sees along its line of sight clamped to its authored range, and within that the light and the view token's senses decide what shows. Truesight keeps DIM as DIM. Blindsight clears every darkness class within range and line of sight. Tremorsense treats every token as on the ground (the Scene has no elevation data) and reveals tokens through walls without changing the map. Tokens in darkness that no sense reaches are concealed; the view token and the Player's own tokens always show.",
               "id": "VTT_UI-3.4"
             },
             {

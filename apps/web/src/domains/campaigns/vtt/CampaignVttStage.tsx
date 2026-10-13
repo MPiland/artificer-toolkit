@@ -58,6 +58,7 @@ import type { BindEncounterToPresentedSceneInputDto } from '@artificer-toolkit/s
 import { sceneEncounterBindingSchema } from '@artificer-toolkit/schema/api/sceneRecipient'
 import { CampaignChatDrawer } from '../components/CampaignChatDrawer'
 import {
+  assignedCharacterTokenId,
   canMoveSceneToken,
   createSceneAnnotation,
   createSceneBarrier,
@@ -92,7 +93,11 @@ import {
   type VttSceneRenderer,
   type VttSceneRendererUpdate
 } from './vttSceneRenderer'
-import { formatSceneMeasurement, pointAreaOverlay } from './vttSceneRenderer.model'
+import {
+  formatSceneMeasurement,
+  pointAreaOverlay,
+  resolveViewTokenId
+} from './vttSceneRenderer.model'
 import { buildVttTokenPresentations } from './vttTokenPresentation.model'
 import { CampaignVttTokenStatusList } from './CampaignVttTokenStatusList'
 import { isEncounterActorMine } from './encounterActorControl'
@@ -426,12 +431,16 @@ export function CampaignVttStage({
   const renderedScene = useMemo(
     () =>
       scene && campaign.role === 'OWNER' && gmPreviewUserId
-        ? projectSceneForViewer(scene, {
-            role: 'PLAYER',
-            userId: gmPreviewUserId
-          })
+        ? projectSceneForViewer(
+            scene,
+            {
+              role: 'PLAYER',
+              userId: gmPreviewUserId
+            },
+            boundTokenControl
+          )
         : scene,
-    [scene, campaign.role, gmPreviewUserId]
+    [scene, campaign.role, gmPreviewUserId, boundTokenControl]
   )
   const tokenImageLookups = useMemo(() => {
     const actorsById = new Map(
@@ -520,6 +529,29 @@ export function CampaignVttStage({
   const selectedSceneTokenId = scene?.tokens.some((token) => token.id === selectedTokenId)
     ? selectedTokenId
     : null
+  const effectiveRole = gmPreviewUserId ? 'PLAYER' : campaign.role
+  const effectivePreviewTokenId =
+    campaign.role === 'OWNER' && !gmPreviewUserId ? previewTokenId : null
+  const viewTokenId = renderedScene
+    ? resolveViewTokenId({
+        assignedTokenId: assignedCharacterTokenId({
+          actorIdByTokenId,
+          actors: activeEncounter?.actors ?? [],
+          assignedCharacterId:
+            (gmPreviewUserId
+              ? campaign.memberships.find((membership) => membership.userId === gmPreviewUserId)
+                  ?.assignedCharacter
+              : campaign.assignedCharacter
+            )?.id ?? null
+        }),
+        boundTokenControl,
+        currentUserId: viewerUserId,
+        previewTokenId: effectivePreviewTokenId,
+        role: effectiveRole,
+        selectedTokenId: selectedSceneTokenId,
+        tokens: renderedScene.tokens
+      })
+    : null
   rendererUpdateRef.current = renderedScene
     ? {
         areaAim,
@@ -528,12 +560,13 @@ export function CampaignVttStage({
         mapDelivery: mapDelivery.data ?? null,
         mode: effectiveMode,
         overlays: areaOverlays,
-        previewTokenId: campaign.role === 'OWNER' && !gmPreviewUserId ? previewTokenId : null,
-        role: gmPreviewUserId ? 'PLAYER' : campaign.role,
+        previewTokenId: effectivePreviewTokenId,
+        role: effectiveRole,
         scene: renderedScene,
         selectedTokenId: selectedSceneTokenId,
         tokenPresentations,
-        tool
+        tool,
+        viewTokenId
       }
     : null
 
@@ -767,7 +800,8 @@ export function CampaignVttStage({
     scene,
     selectedSceneTokenId,
     tokenPresentations,
-    tool
+    tool,
+    viewTokenId
   ])
 
   useEffect(() => {

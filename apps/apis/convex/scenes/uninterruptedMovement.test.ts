@@ -55,6 +55,7 @@ async function setup(mode: 'MANUAL' | 'ASSISTED') {
         ...token,
         id: token.id.toLowerCase(),
         controlledByUserIds: [base.owner.userId],
+        senses: [],
         vision: {
           enabled: true,
           brightRange: 1,

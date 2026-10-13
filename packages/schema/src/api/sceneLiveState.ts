@@ -4,7 +4,8 @@ import {
   sceneDefinitionCountsSchema,
   sceneDefinitionEntityPageInputSchema,
   sceneDefinitionCollectionSchema,
-  sceneDefinitionEntitySchema
+  sceneDefinitionEntitySchema,
+  sceneStoredDefinitionEntityValueSchema
 } from './sceneDefinitionSave.js'
 import { sceneDefinitionSettingsDtoSchema, sceneMeasurementDtoSchema } from './vttScenes.js'
 import { VTT_SCENE_LIMITS } from '@artificer-toolkit/shared/vtt/scene'
@@ -21,11 +22,16 @@ export const sceneLiveCountsSchema = lazySchema(() =>
       .check(z.lte(VTT_SCENE_LIMITS.measurements))
   })
 )
-export const sceneLiveEntitySchema = lazySchema(() =>
+const sceneLiveEntityOf = (definitionEntity: typeof sceneDefinitionEntitySchema) =>
   z.union([
-    sceneDefinitionEntitySchema,
+    definitionEntity,
     z.strictObject({ collection: z.literal('measurements'), entity: sceneMeasurementDtoSchema })
   ])
+export const sceneLiveEntitySchema = lazySchema(() =>
+  sceneLiveEntityOf(sceneDefinitionEntitySchema)
+)
+export const sceneStoredLiveEntityValueSchema = lazySchema(() =>
+  sceneLiveEntityOf(sceneStoredDefinitionEntityValueSchema)
 )
 
 // Entity arrays travel in bounded pages; this header identifies their exact live instance/base.

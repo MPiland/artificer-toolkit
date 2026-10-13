@@ -197,6 +197,7 @@ const sceneToken = (version: number, x: number) =>
         locked: false,
         rotationDegrees: 0,
         position: { x, y: 0 },
+        senses: [],
         vision: null
       }
     },
