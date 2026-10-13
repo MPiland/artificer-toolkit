@@ -411,6 +411,31 @@ describe('CampaignTabletopActionDrawer basic actions', () => {
     expect(screen.queryByRole('combobox', { name: 'Target of dash' })).not.toBeInTheDocument()
   })
 
+  it('keeps an action that only warns about aiming at its user selectable, with no target required', async () => {
+    const user = userEvent.setup()
+    const onResolve = vi.fn().mockResolvedValue(resolved)
+    // The wire carries requiresOtherCreature false for a self-WARN action: the table may override it.
+    const warnsAboutSelf = {
+      ...actions[0]!,
+      id: 'warns-action',
+      label: 'Steady',
+      rulesText: 'You steady a creature.',
+      target: { kind: 'ACTOR', requiresOtherCreature: false }
+    } satisfies EncounterActionChoiceDto
+    renderDrawer(onResolve, { choices: [], authoredBasicActions: [warnsAboutSelf] })
+
+    const use = await screen.findByRole('button', { name: 'Use Steady' })
+    expect(use).toBeEnabled()
+    expect(screen.queryByRole('combobox', { name: 'Target of steady' })).not.toBeInTheDocument()
+    await user.click(use)
+    expect(onResolve).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actionId: 'warns-action',
+        target: { kind: 'ACTOR', actorId: tabletopGmEncounter.currentActorId }
+      })
+    )
+  })
+
   it('resends a basic action with its warnings acknowledged on "Do it anyway"', async () => {
     const user = userEvent.setup()
     const onResolve = vi

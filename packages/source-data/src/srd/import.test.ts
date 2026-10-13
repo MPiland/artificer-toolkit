@@ -145,6 +145,11 @@ describe('canonical Convex import preparation', () => {
     })
     // First Aid is a CHECK action: a DC 10 Wisdom (Medicine) check whose success stabilizes the target.
     const firstAid = catalogue.find((definition) => definition.label === 'First Aid')?.document
+    expect(firstAid?.kind === 'BASIC_ACTION' && firstAid.effects[0]?.invocation.targeting).toEqual({
+      selectionKind: 'SINGLE_TARGET',
+      dispositionKind: 'WILLING',
+      self: 'REFUSED'
+    })
     expect(firstAid?.kind === 'BASIC_ACTION' && firstAid.effects[0]?.invocation).toMatchObject({
       triggerCode: 'CHECK',
       check: {

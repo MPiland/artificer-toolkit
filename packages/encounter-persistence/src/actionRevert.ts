@@ -11,7 +11,6 @@ import {
   type EncounterRunActorState,
   type EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
-import { storedCheckOccurrenceId } from './basicActionCheckAdmission.js'
 import { encounterStoredRunCommandSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import type { ServerRuleExecutionApplicationOutputsDto } from '@artificer-toolkit/schema/shared/ruleExecutionApplicationOutputs'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
@@ -130,30 +129,33 @@ export async function revertLastEncounterAction(
   const rootIndex = recent.findIndex((entry) => entry.commandType !== 'RESOLVE_RULE_OCCURRENCE')
   const root = recent[rootIndex]
   if (root?.commandType === 'REVERT_LAST_ACTION') unavailable('The last action was already undone.')
-  if (
-    (root?.commandType === 'RESOLVE_ACTION' && root.checkReceipt !== null) ||
-    root?.commandType === 'ESCAPE_RELATIONSHIP'
-  ) {
-    // A check the helper's roll settled is the one command after its action.
+  const scope = { run, state, campaign, input, fingerprint, userId }
+  // A check the helper's roll settled is the one command after its action.
+  const requireCheckAnswerScan = (checkOccurrenceId: string | null) => {
     const answer = recent[0]
     if (
       rootIndex > 1 ||
       (rootIndex === 1 &&
         (answer?.commandType !== 'RESOLVE_RULE_OCCURRENCE' ||
-          answer.ruleOccurrenceId !== storedCheckOccurrenceId(root)))
+          answer.ruleOccurrenceId !== checkOccurrenceId))
     )
       throw new Error('Stored Encounter command scan is invalid.')
-    const scope = { run, state, campaign, input, fingerprint, userId }
-    return root.commandType === 'RESOLVE_ACTION'
-      ? revertCheckAction(ctx, { ...scope, root })
-      : revertEscape(ctx, { ...scope, root })
   }
-  if (!root || root.commandType !== 'RESOLVE_ACTION' || root.ruleOccurrenceId === null)
+  if (root?.commandType === 'ESCAPE_RELATIONSHIP') {
+    requireCheckAnswerScan(root.receipt.checkOccurrenceId)
+    return revertEscape(ctx, { ...scope, root })
+  }
+  if (root?.commandType !== 'RESOLVE_ACTION')
     unavailable(
       root
         ? 'Only an action can be undone, and something else happened after it.'
         : 'There is no action to undo.'
     )
+  if (root.root.kind === 'CHECK') {
+    requireCheckAnswerScan(root.root.checkReceipt.checkOccurrenceId)
+    return revertCheckAction(ctx, { ...scope, root, checkReceipt: root.root.checkReceipt })
+  }
+  const { ruleOccurrenceId } = root.root
   const laterOccurrenceIds = new Set(
     recent.slice(0, rootIndex).map((entry) => {
       if (entry.commandType !== 'RESOLVE_RULE_OCCURRENCE')
@@ -182,7 +184,7 @@ export async function revertLastEncounterAction(
     if (checksumRuleDocument(result) !== receipt.resultChecksum)
       throw new Error('Stored Encounter rule receipt mismatch.')
     const outputs = 'applicationOutputs' in result ? result.applicationOutputs : null
-    if (receipt.occurrenceId === root.ruleOccurrenceId) {
+    if (receipt.occurrenceId === ruleOccurrenceId) {
       if (receipt.commandId !== root.commandId || receipt.commandType !== 'RESOLVE_ACTION') continue
       if (
         outputs?.kind === 'CHARACTER_MECHANICS_BATCH' ||
@@ -196,7 +198,7 @@ export async function revertLastEncounterAction(
     if (
       (outputs?.kind === 'CHARACTER_MECHANICS_BATCH' ||
         outputs?.kind === 'ENCOUNTER_ACTOR_MECHANICS_BATCH') &&
-      outputs.parentOccurrenceId === root.ruleOccurrenceId
+      outputs.parentOccurrenceId === ruleOccurrenceId
     ) {
       // One caught creature's outcome of an area action.
       childOccurrenceIds.add(receipt.occurrenceId)
@@ -207,7 +209,7 @@ export async function revertLastEncounterAction(
       (outputs?.kind !== 'CONCENTRATION_CHECK' &&
         outputs?.kind !== 'CONCENTRATION_END' &&
         outputs?.kind !== 'CLEAVING_DAMAGE') ||
-      outputs.parentOccurrenceId !== root.ruleOccurrenceId
+      outputs.parentOccurrenceId !== ruleOccurrenceId
     ) {
       unsupported.add('a later rule result')
       continue
@@ -568,7 +570,10 @@ async function commitRevert(
       commandId: input.input.commandId,
       commandType: 'REVERT_LAST_ACTION',
       revertedCommandId: root.commandId,
-      ruleOccurrenceId: root.commandType === 'RESOLVE_ACTION' ? root.ruleOccurrenceId : null,
+      ruleOccurrenceId:
+        root.commandType === 'RESOLVE_ACTION' && root.root.kind === 'RULE_OCCURRENCE'
+          ? root.root.ruleOccurrenceId
+          : null,
       commandFingerprint: input.fingerprint,
       actorUserId: input.userId,
       version: nextState.version,
@@ -586,11 +591,15 @@ async function commitRevert(
  */
 async function revertCheckAction(
   ctx: EncounterCharacterWriteTransaction,
-  input: RevertScope & { root: Extract<StoredCommand, { commandType: 'RESOLVE_ACTION' }> }
+  input: RevertScope & {
+    root: Extract<StoredCommand, { commandType: 'RESOLVE_ACTION' }>
+    checkReceipt: Extract<
+      Extract<StoredCommand, { commandType: 'RESOLVE_ACTION' }>['root'],
+      { kind: 'CHECK' }
+    >['checkReceipt']
+  }
 ): Promise<EncounterCommandResultDto> {
-  const { state, root } = input
-  const receipt = root.checkReceipt
-  if (!receipt) throw new Error('Stored check action receipt is missing.')
+  const { state, root, checkReceipt: receipt } = input
   const actors = await readRunActors(ctx, state)
   const actor = actors.find((entry) => entry.id === receipt.actorId)
   if (!actor) unavailable('The actor left the Encounter; adjust manually.')

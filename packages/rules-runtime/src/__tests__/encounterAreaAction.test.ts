@@ -4,6 +4,7 @@ import type { SceneGrid } from '@artificer-toolkit/shared/vtt'
 
 import {
   compileEncounterPointArea,
+  encounterActionChoiceTarget,
   encounterActionTargetKind,
   evaluateEncounterAreaTargetPolicy
 } from '../encounterAreaAction.js'
@@ -104,6 +105,22 @@ describe('encounter action target kind', () => {
         policy({ targeting: { selectionKind: 'SINGLE_TARGET', dispositionKind: 'ANY' } })
       )
     ).toBeNull()
+  })
+})
+
+describe('encounter action choice target', () => {
+  const single = (self: 'ALLOWED' | 'WARN' | 'REFUSED') =>
+    encounterActionChoiceTarget(
+      policy({
+        shape: null,
+        targeting: { selectionKind: 'SINGLE_TARGET', dispositionKind: 'ANY', self }
+      })
+    )
+
+  it('requires another creature only when aiming at the user is refused, never when it only warns', () => {
+    expect(single('REFUSED')).toEqual({ kind: 'ACTOR', requiresOtherCreature: true })
+    expect(single('WARN')).toEqual({ kind: 'ACTOR', requiresOtherCreature: false })
+    expect(single('ALLOWED')).toEqual({ kind: 'ACTOR', requiresOtherCreature: false })
   })
 })
 

@@ -13,7 +13,7 @@ import { storedRuleExecutionResultDtoSchema } from '../shared/ruleExecutionResul
 import { encounterActorRuleOutputSchema } from './encounterActorRules.js'
 import {
   escapeRelationshipInputDtoSchema,
-  resolveEncounterActionInputDtoSchema,
+  resolveCheckActionInputDtoSchema,
   resolveRuleOccurrenceInputDtoSchema
 } from './encounterRuleCommands.js'
 import { liveSessionEncounterRulesInputSchema } from './liveSessionEncounterRules.js'
@@ -47,7 +47,7 @@ const basicActionCheckSettlementSchema = lazySchema(() =>
  */
 export const liveSessionEncounterBasicActionCommitInputSchema = lazySchema(() =>
   z.extend(basicActionScope, {
-    command: resolveEncounterActionInputDtoSchema,
+    command: resolveCheckActionInputDtoSchema,
     revisions: liveSessionRulesRevisionsSchema,
     occurredAt: z.iso.datetime(),
     /** The exact published catalogue entry the room planned with. */

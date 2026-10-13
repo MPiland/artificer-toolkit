@@ -323,6 +323,24 @@ describe('First Aid, a System basic action with a check, in the room', () => {
     expect(occurrences).toEqual([])
   })
 
+  it('warns, overridably, that a hostile target is not willing, and acknowledging it proceeds', async () => {
+    const room = await firstAidRoom({ currentHitPoints: 0, autoRoll: true, faces: [20] })
+    const before = await room.version()
+    const warned = await useFirstAid(room, [])
+    expect(warned.answer.type, JSON.stringify(warned.answer)).toBe('COMMAND_REJECTED')
+    expect(warned.answer).toMatchObject({
+      reason: 'RULE_WARNINGS',
+      warnings: [
+        { code: 'TARGET_DISPOSITION', message: 'This action needs a willing target.' },
+        { code: 'TARGET_RANGE_UNCHECKED' }
+      ]
+    })
+    expect(await room.version()).toBe(before)
+
+    const applied = await useFirstAid(room)
+    expect(applied.answer.type, JSON.stringify(applied.answer)).toBe('COMMAND_COMMITTED')
+  })
+
   it('refuses a helper who aims it at themself, whatever warnings the command acknowledges', async () => {
     const room = await firstAidRoom({ autoRoll: true, faces: [20] })
     const before = await room.version()

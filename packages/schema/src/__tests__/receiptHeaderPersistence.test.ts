@@ -91,6 +91,16 @@ describe('receipt persistence headers', () => {
   })
 
   it('roots a RESOLVE_ACTION in a rule occurrence or in a check receipt, never both or neither', () => {
+    const occurrenceRoot = {
+      kind: 'RULE_OCCURRENCE' as const,
+      ruleOccurrenceId: id,
+      ruleResultChecksum: checksum,
+      optionalCombatSnapshotChecksum: checksum
+    }
+    const checkRoot = {
+      kind: 'CHECK' as const,
+      checkReceipt: { actorId, actionEconomy: null, checkOccurrenceId: null }
+    }
     const root = {
       ...runMetadata,
       id,
@@ -105,24 +115,14 @@ describe('receipt persistence headers', () => {
       addedConcentrationCasterId: null,
       speedBonusTurn: null
     }
-    const occurrence = {
-      ruleOccurrenceId: id,
-      ruleResultChecksum: checksum,
-      optionalCombatSnapshotChecksum: checksum
-    }
-    const unrooted = {
-      ruleOccurrenceId: null,
-      ruleResultChecksum: null,
-      optionalCombatSnapshotChecksum: null
-    }
-    const checkReceipt = { actorId, actionEconomy: null, checkOccurrenceId: null }
-    const parses = (fields: object) =>
-      encounterStoredRunCommandSchema.safeParse({ ...root, ...fields }).success
-    expect(parses({ ...occurrence, checkReceipt: null })).toBe(true)
-    expect(parses({ ...unrooted, checkReceipt })).toBe(true)
-    expect(parses({ ...occurrence, checkReceipt })).toBe(false)
-    expect(parses({ ...unrooted, checkReceipt: null })).toBe(false)
-    expect(parses({ ...occurrence, ruleOccurrenceId: null, checkReceipt: null })).toBe(false)
+    const parses = (rooted: object) =>
+      encounterStoredRunCommandSchema.safeParse({ ...root, root: rooted }).success
+    expect(parses(occurrenceRoot)).toBe(true)
+    expect(parses(checkRoot)).toBe(true)
+    expect(parses({ ...occurrenceRoot, checkReceipt: checkRoot.checkReceipt })).toBe(false)
+    expect(parses({ ...checkRoot, ruleOccurrenceId: id })).toBe(false)
+    expect(parses({ kind: 'CHECK' })).toBe(false)
+    expect(parses({ kind: 'RULE_OCCURRENCE', ruleOccurrenceId: id })).toBe(false)
   })
 
   it('accepts exactly the logical Run command discriminants without their branch bodies', () => {

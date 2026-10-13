@@ -222,24 +222,56 @@ const encounterStoredRunCommandResultSchema = lazySchema(() =>
   })
 )
 
-export const encounterStoredRunCommandSchema = lazySchema(() => {
-  const resolveActionRootSchema = z
-    .extend(encounterStoredRunCommandResultSchema, {
+export const encounterStoredRunCommandSchema = lazySchema(() =>
+  z.discriminatedUnion('commandType', [
+    z.extend(encounterStoredRunCommandBaseSchema, {
+      commandType: z.literal('CREATE'),
+      id: z.optional(postgresUuidSchema),
+      version: z.optional(z.literal(0))
+    }),
+    z.extend(encounterStoredRunCommandResultSchema, {
+      commandType: z.enum([
+        'UPSERT_REMINDER',
+        'REMOVE_REMINDER',
+        'UPDATE_ACTOR',
+        'SET_INITIATIVE',
+        'ROLL_ACTOR_INITIATIVE',
+        'ROLL_ENEMY_ACTION',
+        'ADJUST_FEATURE_RESOURCE',
+        'REPLACE_OPTIONAL_COMBAT_RULES',
+        'SET_HEALTH_DISPLAY_DEFAULT',
+        'COMPLETE',
+        'SET_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING',
+        'REMOVE_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING'
+      ])
+    }),
+    z.extend(encounterStoredRunCommandResultSchema, {
+      commandType: z.enum(['START', 'ADVANCE_TURN', 'MOVE_SCENE_TOKEN', 'RESOLVE_RULE_OCCURRENCE']),
+      ruleOccurrenceId: postgresUuidSchema,
+      ruleResultChecksum: projectionChecksumSchema,
+      optionalCombatSnapshotChecksum: projectionChecksumSchema
+    }),
+    z.extend(encounterStoredRunCommandResultSchema, {
       commandType: z.literal('RESOLVE_ACTION'),
-      // A CHECK action roots in its own check occurrence (`checkReceipt`) and has no mechanics batch
-      // yet; every other action roots in one rule occurrence and its result.
-      ruleOccurrenceId: z.nullable(postgresUuidSchema),
-      ruleResultChecksum: z.nullable(projectionChecksumSchema),
-      optionalCombatSnapshotChecksum: z.nullable(projectionChecksumSchema),
-      /** What the CHECK action spent, so the GM's undo can reverse it exactly. */
-      checkReceipt: z.nullable(
+      /** What the action is rooted in: one rule occurrence and its result, or (CHECK, no mechanics batch yet) its own check. */
+      root: z.discriminatedUnion('kind', [
         z.strictObject({
-          actorId: postgresUuidSchema,
-          actionEconomy: z.nullable(encounterActionEconomyTransitionDtoSchema),
-          /** The action's d20 check occurrence, pending or settled; null when an overridden warning ended it before the roll. */
-          checkOccurrenceId: z.nullable(postgresUuidSchema)
+          kind: z.literal('RULE_OCCURRENCE'),
+          ruleOccurrenceId: postgresUuidSchema,
+          ruleResultChecksum: projectionChecksumSchema,
+          optionalCombatSnapshotChecksum: projectionChecksumSchema
+        }),
+        z.strictObject({
+          kind: z.literal('CHECK'),
+          /** What the CHECK action spent, so the GM's undo can reverse it exactly. */
+          checkReceipt: z.strictObject({
+            actorId: postgresUuidSchema,
+            actionEconomy: z.nullable(encounterActionEconomyTransitionDtoSchema),
+            /** The action's d20 check occurrence, pending or settled; null when an overridden warning ended it before the roll. */
+            checkOccurrenceId: z.nullable(postgresUuidSchema)
+          })
         })
-      ),
+      ]),
       /** The resolved action's display name, from the prepared action; the timeline shows it. */
       label: z.nullable(z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160))),
       /** Warnings the submitter overrode ("Do it anyway"); the GM timeline badges each one. */
@@ -271,50 +303,7 @@ export const encounterStoredRunCommandSchema = lazySchema(() => {
           .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
         []
       )
-    })
-    .check(
-      z.refine(
-        (root) =>
-          [
-            root.ruleOccurrenceId,
-            root.ruleResultChecksum,
-            root.optionalCombatSnapshotChecksum
-          ].every((rooted) => (rooted === null) === (root.checkReceipt !== null)),
-        {
-          message:
-            'A CHECK action root has a check receipt and no rule occurrence, and no other does.'
-        }
-      )
-    )
-  return z.discriminatedUnion('commandType', [
-    z.extend(encounterStoredRunCommandBaseSchema, {
-      commandType: z.literal('CREATE'),
-      id: z.optional(postgresUuidSchema),
-      version: z.optional(z.literal(0))
     }),
-    z.extend(encounterStoredRunCommandResultSchema, {
-      commandType: z.enum([
-        'UPSERT_REMINDER',
-        'REMOVE_REMINDER',
-        'UPDATE_ACTOR',
-        'SET_INITIATIVE',
-        'ROLL_ACTOR_INITIATIVE',
-        'ROLL_ENEMY_ACTION',
-        'ADJUST_FEATURE_RESOURCE',
-        'REPLACE_OPTIONAL_COMBAT_RULES',
-        'SET_HEALTH_DISPLAY_DEFAULT',
-        'COMPLETE',
-        'SET_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING',
-        'REMOVE_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING'
-      ])
-    }),
-    z.extend(encounterStoredRunCommandResultSchema, {
-      commandType: z.enum(['START', 'ADVANCE_TURN', 'MOVE_SCENE_TOKEN', 'RESOLVE_RULE_OCCURRENCE']),
-      ruleOccurrenceId: postgresUuidSchema,
-      ruleResultChecksum: projectionChecksumSchema,
-      optionalCombatSnapshotChecksum: projectionChecksumSchema
-    }),
-    resolveActionRootSchema,
     z.extend(encounterStoredRunCommandResultSchema, {
       commandType: z.literal('ESCAPE_RELATIONSHIP'),
       /** The timeline label: plain "Escape", which never names a grappler a player cannot see (D100). */
@@ -377,7 +366,7 @@ export const encounterStoredRunCommandSchema = lazySchema(() => {
       initiativeStateChecksum: projectionChecksumSchema
     })
   ])
-})
+)
 
 export const encounterStoredRuleOccurrenceSchema = lazySchema(() =>
   z

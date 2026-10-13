@@ -168,6 +168,14 @@ export const resolveEncounterActionInputDtoSchema = lazySchema(() =>
   })
 )
 
+/** A CHECK action (First Aid, Help, Dash...): it aims at one creature, never a point. */
+export const resolveCheckActionInputDtoSchema = lazySchema(() =>
+  z.extend(resolveEncounterActionInputDtoSchema, {
+    target: z.strictObject({ kind: z.literal('ACTOR'), actorId: uuidSchema })
+  })
+)
+export type ResolveCheckActionInputDto = z.infer<typeof resolveCheckActionInputDtoSchema>
+
 /** The Scene read for a point-area action: the caster's token and every bound creature token. */
 export const actionAreaSceneRequestDtoSchema = lazySchema(() =>
   z.strictObject({

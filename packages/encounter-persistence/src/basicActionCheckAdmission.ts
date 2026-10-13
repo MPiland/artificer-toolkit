@@ -12,15 +12,15 @@ import { rejectDomain } from './domainRejections.js'
 import { readRunActor, readRunState } from './documents.js'
 import { readEncounterSettledAppRoll } from './evidenceRolls.js'
 import { readPendingSnapshot } from './pendingSnapshots.js'
-import { replayEncounterCommandResult } from './replayReceipts.js'
-import { presentEncounterResultForMember } from './resultPresentation.js'
+import { presentStoredCommandReplay } from './resultPresentation.js'
 import { presentTimelineEntry, type StoredCommand } from './timelineEntries.js'
 import type { EncounterReadTransaction } from './ports.js'
 import type { EncounterDocument } from './store.js'
 
 /** The check occurrence a stored root command pended: a CHECK action's or an Escape's. */
 export function storedCheckOccurrenceId(root: StoredCommand | undefined): string | null {
-  if (root?.commandType === 'RESOLVE_ACTION') return root.checkReceipt?.checkOccurrenceId ?? null
+  if (root?.commandType === 'RESOLVE_ACTION')
+    return root.root.kind === 'CHECK' ? root.root.checkReceipt.checkOccurrenceId : null
   if (root?.commandType === 'ESCAPE_RELATIONSHIP') return root.receipt.checkOccurrenceId
   return null
 }
@@ -126,11 +126,10 @@ async function admitCheckResponse<
       occurrence.version !== response.expectedOccurrenceVersion + 1
     )
       rejectDomain('COMMAND_ID_REUSED')
-    const result = await replayEncounterCommandResult(ctx, state, stored)
     return {
       ...scope,
       kind: 'REPLAY' as const,
-      result: await presentEncounterResultForMember(ctx, { campaign, membership, result })
+      result: await presentStoredCommandReplay(ctx, { state, campaign, membership, stored })
     }
   }
   const pending = spec.readPending(occurrence, await readPendingSnapshot(ctx, occurrence))

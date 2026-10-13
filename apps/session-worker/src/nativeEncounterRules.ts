@@ -105,6 +105,7 @@ import { buildEncounterActionStoredExecution } from '@artificer-toolkit/rules-ru
 import { planNativeLiveCleaving } from './nativeEncounterCleaving.js'
 import { rangeDtoSchema } from '@artificer-toolkit/schema/shared/range'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import { nextRollInt } from '@artificer-toolkit/rules-runtime/random'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { serverKernelRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 
@@ -479,9 +480,10 @@ export async function planNativeLiveEncounterAction(
         target,
         overrides: ruleWarnings.overrides,
         actionEconomy,
-        autoRoll: requireAutoRoll(prepared.actor.id),
+        autoRoll: requireAutoRoll(prepared.actor.id)
+          ? (executionOptions.random ?? nextRollInt)
+          : null,
         runtime: executionOptions.runtime,
-        random: executionOptions.random,
         revisions
       })),
       dependencies,

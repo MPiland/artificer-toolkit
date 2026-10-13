@@ -90,8 +90,7 @@ export function encounterActionChoiceTarget(
   return {
     kind: 'ACTOR',
     requiresOtherCreature:
-      targeting?.selectionKind === 'SINGLE_TARGET' &&
-      (targeting.self === 'WARN' || targeting.self === 'REFUSED')
+      targeting?.selectionKind === 'SINGLE_TARGET' && targeting.self === 'REFUSED'
   }
 }
 

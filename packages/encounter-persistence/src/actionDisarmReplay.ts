@@ -29,6 +29,7 @@ export async function readNativeDisarmReplay(
   presentTimelineEntry(receipt)
   if (
     receipt.commandType !== 'RESOLVE_ACTION' ||
+    receipt.root.kind !== 'RULE_OCCURRENCE' ||
     receipt.encounterId !== run.id ||
     receipt.campaignId !== run.campaignId ||
     receipt.commandFingerprint !== checksumCanonicalJson(command) ||
@@ -37,8 +38,7 @@ export async function readNativeDisarmReplay(
     receipt.version > run.version
   )
     throw new Error('Stored Disarm command receipt mismatch.')
-  const { ruleOccurrenceId } = receipt
-  if (ruleOccurrenceId === null) throw new Error('Stored Disarm command receipt mismatch.')
+  const { ruleOccurrenceId, ruleResultChecksum, optionalCombatSnapshotChecksum } = receipt.root
   const replayReceipt = readEncounterReplayReceipt(receipt)
   const occurrence = await ctx.db
     .query('encounterRuleOccurrences')
@@ -83,7 +83,7 @@ export async function readNativeDisarmReplay(
     ruleReceipt.correlationId !== null ||
     ruleReceipt.encounterVersion !== receipt.version ||
     ruleReceipt.resultChecksum !== checksumRuleDocument(payload) ||
-    ruleReceipt.resultChecksum !== receipt.ruleResultChecksum ||
+    ruleReceipt.resultChecksum !== ruleResultChecksum ||
     payload.occurrenceId !== occurrence.id ||
     payload.occurrenceVersion !== occurrence.version ||
     application.occurrenceId !== occurrence.id ||
@@ -102,7 +102,7 @@ export async function readNativeDisarmReplay(
     metadata.definitionId !== graph.published.id ||
     metadata.expectedAggregateVersion !== command.expectedVersion ||
     metadata.factsChecksum !== checksumRuleDocument(payload.evidence.facts) ||
-    metadata.optionalCombatSnapshotChecksum !== receipt.optionalCombatSnapshotChecksum ||
+    metadata.optionalCombatSnapshotChecksum !== optionalCombatSnapshotChecksum ||
     replayReceipt.occurrence?.occurrenceId !== occurrence.id ||
     replayReceipt.occurrence.occurrenceVersion !== occurrence.version ||
     replayReceipt.occurrence.status !== 'COMPLETE' ||

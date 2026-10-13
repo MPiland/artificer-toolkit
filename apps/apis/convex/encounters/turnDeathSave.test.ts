@@ -22,6 +22,7 @@ import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue
 import { healersKit } from '@artificer-toolkit/source-data/srd/equipment/healers-kit.js'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 import { readCharacterRow } from '../characters/stateDocuments'
+import { domainRejection } from '../../tests/fixtures/playerControl'
 import { setAutoRollDice, type FixtureRolls } from '../../tests/fixtures/rollPreferences'
 import { api, internal } from '../_generated/api'
 import { createConvexEncounterStore } from '../lib/convexEncounterStore'
@@ -603,28 +604,26 @@ describe('First Aid, a System basic action with a check (D98)', () => {
     const { fixture, atAlly, dying } = await dyingHeroAtAllyTurn()
     const ally = allyOf(fixture)
     const actionId = await basicActionIdOf(fixture, atAlly, ally.id, 'First Aid')
-    const refused = await execute(fixture, (base) => ({
-      ...base,
-      type: 'RESOLVE_ACTION',
-      acceptedWieldConflict: null,
-      acknowledgedWarnings: [
-        'TARGET_RANGE_UNCHECKED',
-        'TARGET_DISPOSITION',
-        'TARGET_NOT_DYING',
-        'ACTION_ECONOMY_UNAVAILABLE'
-      ],
-      expectedVersion: atAlly.projection.version,
-      actorId: ally.id,
-      actionId,
-      target: { kind: 'ACTOR', actorId: ally.id },
-      optionalCombatIntent: null,
-      sceneContext: null
-    })).then(
-      () => null,
-      (caught: unknown) => caught
+    const refused = await domainRejection(
+      execute(fixture, (base) => ({
+        ...base,
+        type: 'RESOLVE_ACTION',
+        acceptedWieldConflict: null,
+        acknowledgedWarnings: [
+          'TARGET_RANGE_UNCHECKED',
+          'TARGET_DISPOSITION',
+          'TARGET_NOT_DYING',
+          'ACTION_ECONOMY_UNAVAILABLE'
+        ],
+        expectedVersion: atAlly.projection.version,
+        actorId: ally.id,
+        actionId,
+        target: { kind: 'ACTOR', actorId: ally.id },
+        optionalCombatIntent: null,
+        sceneContext: null
+      }))
     )
-    expect(String(refused)).toContain('does not permit this target')
-    expect(JSON.stringify(refused)).not.toContain('RULE_WARNINGS')
+    expect(refused).toMatchObject({ reason: 'TARGET_UNAVAILABLE' })
     expect(await saves(fixture)).toEqual(dying)
     expect(await firstAidCards(fixture)).toEqual([])
   }, 120000)

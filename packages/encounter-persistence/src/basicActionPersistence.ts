@@ -199,18 +199,18 @@ export async function persistEncounterBasicAction(
       commandId: command.commandId,
       commandType: 'RESOLVE_ACTION',
       label: definition.label,
-      ruleOccurrenceId: null,
-      ruleResultChecksum: null,
-      optionalCombatSnapshotChecksum: null,
+      root: {
+        kind: 'CHECK',
+        checkReceipt: {
+          actorId: actor.id,
+          actionEconomy: input.actionEconomy,
+          checkOccurrenceId: storedOccurrence?.id ?? null
+        }
+      },
       ruleOverrides: input.ruleOverrides,
       consumedGrants: input.consumedGrants,
       addedConcentrationCasterId: null,
       speedBonusTurn: null,
-      checkReceipt: {
-        actorId: actor.id,
-        actionEconomy: input.actionEconomy,
-        checkOccurrenceId: storedOccurrence?.id ?? null
-      },
       commandFingerprint: fingerprint,
       actorUserId: input.expectedUserId,
       version: nextState.version,

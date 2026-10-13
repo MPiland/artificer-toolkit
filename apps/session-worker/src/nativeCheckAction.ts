@@ -55,20 +55,20 @@ export async function planNativeLiveCheckAction(input: {
   target: CheckTarget
   overrides: readonly EncounterRuleWarningDto[]
   actionEconomy: LiveSessionEncounterBasicActionCommitInput['actionEconomy']
-  autoRoll: boolean
+  /** The roller's die source when their preference rolls for them; null waits on their d20. */
+  autoRoll: ((maximum: number) => number) | null
   runtime: RulesRuntimeService
-  random?: (maximum: number) => number
   revisions: LiveSessionRulesRevisions
 }) {
   const { capability, command, state, actor, target } = input
   const invocation = capability.compiledEffect.invocation
-  if (invocation.triggerCode !== 'CHECK') throw new Error('The selected action makes no check.')
-  // The compiler admits exactly one check against a fixed DC; the roller takes either kind.
-  const { checks, dc } = invocation.check
-  if (dc.kind !== 'FIXED') throw new Error('A compiled check action has a fixed DC.')
-  const skillId = checks.skillIds[0]
-  const checkDefinitionId = skillId ?? checks.abilityDefinitionIds[0]
-  if (!checkDefinitionId) throw new Error('A compiled check action lists one check.')
+  // The compiler admits exactly one check against a fixed DC; its types cannot say so.
+  if (invocation.triggerCode !== 'CHECK' || invocation.check.dc.kind !== 'FIXED')
+    throw new EncounterValidationError('The selected action makes no fixed-DC check.')
+  const { skillIds, abilityDefinitionIds } = invocation.check.checks
+  const skillId = skillIds[0]
+  const checkDefinitionId = skillId ?? abilityDefinitionIds[0]
+  if (!checkDefinitionId) throw new EncounterValidationError('A check action lists one check.')
   const checkKind = skillId ? 'SKILL' : 'ABILITY'
   const settled = input.actionEconomy
     ? consumeEncounterActionEconomy({
@@ -92,7 +92,7 @@ export async function planNativeLiveCheckAction(input: {
       label: capability.label
     },
     system: input.system,
-    check: { checkKind, checkDefinitionId, dc: dc.value },
+    check: { checkKind, checkDefinitionId, dc: invocation.check.dc.value },
     checkLabel: encounterBasicActionCheckLabel(input.system, checkDefinitionId),
     helper: actor,
     target
@@ -106,7 +106,8 @@ export async function planNativeLiveCheckAction(input: {
       gameSystemId: state.gameSystemId,
       occurrenceId
     })
-    if (!input.autoRoll)
+    const { autoRoll } = input
+    if (!autoRoll)
       check = {
         kind: 'PENDING',
         snapshot: encounterBasicActionCheckPendingSnapshot({
@@ -116,14 +117,12 @@ export async function planNativeLiveCheckAction(input: {
         })
       }
     else {
-      const { random } = input
-      if (!random) throw new Error('The roller preference requires a random source.')
       const evaluated = await evaluateEncounterBasicActionCheck({
         runtime: input.runtime,
         context,
         continuation,
         answer: { kind: 'AUTO_ROLL', requestId: continuation.request.requestId },
-        rollD20: () => random(20) + 1,
+        rollD20: () => autoRoll(20) + 1,
         expectedOccurrenceId: occurrenceId
       })
       const stabilized = evaluated.reachesDc

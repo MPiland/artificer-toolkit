@@ -406,6 +406,22 @@ describe('basic combat actions in the room (Q11)', () => {
     expect(await activeEffectCount(base, base.enemy.id)).toBe(1)
   })
 
+  it('Dash aimed at another creature warns that it can only target its user', async () => {
+    const base = await basicActionFixture()
+    await expect(
+      domainRejection(
+        base.gm(
+          await resolveBasicAction(base, base.companion.id, 'Dash', {
+            target: { kind: 'ACTOR', actorId: base.enemy.id }
+          })
+        )
+      )
+    ).resolves.toMatchObject({
+      reason: 'RULE_WARNINGS',
+      warnings: [{ code: 'TARGET_OUT_OF_RANGE', message: 'This action can only target its user.' }]
+    })
+  })
+
   it('Dodge gives attacks against the actor disadvantage, reads "Dodge", and ends at its next turn', async () => {
     const base = await basicActionFixture({ bite: 'ATTACK', promptRolls: true })
     await setCurrentActor(base, base.enemy.id)
@@ -659,8 +675,8 @@ describe('basic combat actions in the room (Q11)', () => {
   it('Help refuses to be aimed at oneself, and a player may help only an actor they can see', async () => {
     const base = await basicActionFixture()
     await expect(
-      base.gm(await resolveBasicAction(base, base.companion.id, 'Help'))
-    ).rejects.toThrow('does not permit this target')
+      domainRejection(base.gm(await resolveBasicAction(base, base.companion.id, 'Help')))
+    ).resolves.toMatchObject({ reason: 'TARGET_UNAVAILABLE' })
     await expect(
       domainRejection(
         base.gm(
