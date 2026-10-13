@@ -1,8 +1,10 @@
 import type { SignedVttMapDeliveryDto } from '@artificer-toolkit/schema/api/media'
+import type { EncounterActionChoiceDto } from '@artificer-toolkit/schema/api/encounterActionChoices'
 import type { CampaignSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
 import {
   canMoveBetween,
   measureScenePathDistance,
+  pointAreaInSceneCoordinates,
   SceneBarrierIndex,
   sceneDistanceAsCoordinateLength,
   scenePointInPolygon,
@@ -153,6 +155,91 @@ export function pointAreaOverlay(
     ],
     purpose: 'TARGET'
   }
+}
+
+/** The chosen action's range and target as the stage previews them while the drawer is picking. */
+export interface VttActionPreview {
+  range: EncounterActionChoiceDto['range']
+  sourceTokenId: string
+  targetTokenId: string | null
+}
+
+const rangeColor = 0x0891b2
+const targetColor = 0xe03131
+/** Scene pixels the target ring clears the token's footprint by. */
+const targetRingMargin = 6
+
+/**
+ * The RANGE circles around the acting token and the TARGET ring around the chosen target, in Scene
+ * coordinates. A range is approximated from the token's center. SELF, UNLIMITED and scaled ranges
+ * draw no circle.
+ */
+export function actionPreviewOverlays(
+  preview: VttActionPreview | null,
+  scene: Pick<CampaignSceneStateDto, 'grid' | 'tokens'>
+): VttScenePresentationOverlay[] {
+  if (!preview) return []
+  const overlays: VttScenePresentationOverlay[] = []
+  const source = scene.tokens.find((token) => token.id === preview.sourceTokenId)
+  const distances =
+    preview.range?.kind === 'WITHIN'
+      ? [preview.range.distance]
+      : preview.range?.kind === 'RANGED'
+        ? [preview.range.normal, preview.range.long]
+        : []
+  if (source) {
+    for (const [index, distance] of distances.entries()) {
+      const area = pointAreaInSceneCoordinates({ kind: 'RADIUS', radius: distance }, scene.grid)
+      if (area?.kind === 'RADIUS')
+        overlays.push({
+          center: source.position,
+          color: rangeColor,
+          id: `action-range-${index}`,
+          kind: 'CIRCLE',
+          label: index === 0 ? 'Action range' : 'Action long range',
+          purpose: 'RANGE',
+          radius: area.radius
+        })
+    }
+  }
+  const target = scene.tokens.find((token) => token.id === preview.targetTokenId)
+  if (target)
+    overlays.push({
+      center: target.position,
+      color: targetColor,
+      id: 'action-target',
+      kind: 'CIRCLE',
+      label: 'Action target',
+      purpose: 'TARGET',
+      radius: Math.max(target.width, target.height) / 2 + targetRingMargin
+    })
+  return overlays
+}
+
+/**
+ * The overlays the stage hands the renderer: the action preview while the drawer is open (including
+ * while the caster aims an area's center) plus the picked area once it is no longer being aimed.
+ */
+export function stageOverlays({
+  actionPreview,
+  aimingArea,
+  areaOrigin,
+  areaShape,
+  drawerOpened,
+  scene
+}: {
+  actionPreview: VttActionPreview | null
+  aimingArea: boolean
+  areaOrigin: ScenePoint | null
+  areaShape: SpatialPointAreaShape | null
+  drawerOpened: boolean
+  scene: Pick<CampaignSceneStateDto, 'grid' | 'tokens'> | null
+}): VttScenePresentationOverlay[] | undefined {
+  const overlays = [
+    ...(drawerOpened && scene ? actionPreviewOverlays(actionPreview, scene) : []),
+    ...(areaShape && areaOrigin && !aimingArea ? [pointAreaOverlay(areaShape, areaOrigin)] : [])
+  ]
+  return overlays.length > 0 ? overlays : undefined
 }
 
 type VttMapTilePlacement = SignedVttMapDeliveryDto['tiles'][number] & {

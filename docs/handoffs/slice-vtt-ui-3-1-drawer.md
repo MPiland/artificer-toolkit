@@ -32,5 +32,14 @@ Read first: `docs/handoffs/lane-3-vtt-ui.md` (VTT_UI-3.1 option A), `docs/handof
 ## Status log
 
 - 2026-10-13: workbook written; session started.
+- 2026-10-13: red-first. Checklist 1-3 red in `local-validation/vtt-ui-3-1-drawer/red-unit.log` (13 failures: `actionPreviewOverlays`, drawer `onActionPreviewChange`), then `red-stage-overlays.log` (2 failures: `stageOverlays is not a function`, the drawer-open gating and area-aiming composition). Green: `green-unit-1.log` (93 tests, 3 files), `green-unit-2.log` (81 tests, model and drawer files). Typecheck app, tests and stories green in `typecheck-3.log` (`typecheck.log` and `typecheck-2.log` caught a stale `areaOverlays` reference and a tuple cast, both fixed).
+- Checklist 1-3 done. `actionPreviewOverlays` and `stageOverlays` are in `vttSceneRenderer.model.ts`. RANGED draws normal and long RANGE circles, WITHIN one, SELF/UNLIMITED/scaled none, and a TARGET ring goes on the chosen target. The drawer reports one `onActionPreviewChange(preview | null)` callback through an effect that clears on unmount. The stage keeps the preview only while the drawer is open, including while an area center is aimed. Aura and trap previews stay BLOCKED.
+- Checklist 4 done. Every drawer test and story fixture goes through `validated(...)` with its DTO schema and parsed on the first run, so no fixture data changed. `src/test/validatedFixture.test.ts` proves an off-contract literal fails the helper (the helper had no test before).
+- Checklist 5: no change needed. `encounterActions.ts` already calls `api.encounters.actionChoices.get`/`.optional` through the generated ref, so a wrong name is a compile error. I added no thin data-layer test: the optional-choices input and output schemas are large and a hand-built pair would copy product shape into the test. The `CampaignTabletopWindow` story already mocks `convexApi.encounters.actionChoices.get`.
+- Deviation: lock waits were long (two 20-minute waits starved); the runner retries every 10 s instead of 30 s.
+- Storybook runs not done (no Storybook run in this session): `CampaignTabletopActionDrawer` stories including new `PreviewRangeAndTarget`, `CampaignVttPresentation` new `ActionRangeAndTargetPreview` (asserts `overlayCount: 3`), and the `CampaignTabletopWindow` journey.
 
 ## Proposed ledger edits (filled by the slice session)
+
+- VTT_UI-3.1: range and target parts done (proof: `vttSceneRenderer.model.test.ts` `action preview overlays`, `CampaignTabletopActionDrawer.test.tsx` `range and target preview (VTT_UI-3.1)`, stories `PreviewRangeAndTarget` and `ActionRangeAndTargetPreview` written but not run). The AC stays IN_PROGRESS for aura and trap previews.
+- PLATFORM-12.1: last open folder (the drawer fixtures) done. Proof: drawer test and story fixtures parse through `validated(...)`, and `validatedFixture.test.ts` shows an invalid fixture fails.
