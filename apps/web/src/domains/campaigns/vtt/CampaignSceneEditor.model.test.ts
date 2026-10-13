@@ -4,6 +4,7 @@ import {
   type SceneDefinitionDto
 } from '@artificer-toolkit/schema/api/vttScenes'
 import { createEditorSceneState, updateSceneEditorDraft } from './CampaignSceneEditor.model'
+import { validated } from '../../../test/validatedFixture'
 
 const ids = {
   annotation: '00000000-0000-4000-8000-000000000001',
@@ -16,7 +17,7 @@ const ids = {
 } as const
 
 function scene(): SceneDefinitionDto {
-  return sceneDefinitionDtoSchema.parse({
+  return validated(sceneDefinitionDtoSchema)({
     annotations: [
       {
         id: ids.annotation,

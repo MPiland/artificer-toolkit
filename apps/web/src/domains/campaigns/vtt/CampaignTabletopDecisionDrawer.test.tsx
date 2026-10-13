@@ -11,7 +11,7 @@ import {
   type PendingEncounterRuleOccurrenceSummaryDto
 } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
-import { validated } from '../../validatedFixture'
+import { validated } from '../../../test/validatedFixture'
 import { CampaignTabletopDecisionDrawer } from './CampaignTabletopDecisionDrawer'
 import { tabletopGmEncounter } from './CampaignTabletop.stories.fixtures'
 
@@ -176,7 +176,7 @@ const cleavingPending = validated(pendingEncounterRuleOccurrenceSummaryDtoSchema
 })
 
 function resolved(occurrenceVersion = 3): EncounterCommandResultDto {
-  return encounterCommandResultDtoSchema.parse({
+  return validated(encounterCommandResultDtoSchema)({
     projection: tabletopGmEncounter,
     roll: null,
     occurrence: {
@@ -812,7 +812,7 @@ describe('CampaignTabletopDecisionDrawer roll rows', () => {
   it('asks for one more d20 beside the held die and submits only the new face', async () => {
     const user = userEvent.setup()
     const onResolve = rollingResolver([])
-    const heldPending = pendingEncounterRuleOccurrenceSummaryDtoSchema.parse({
+    const heldPending = validated(pendingEncounterRuleOccurrenceSummaryDtoSchema)({
       ...d20Pending,
       request: {
         ...d20Pending.request,

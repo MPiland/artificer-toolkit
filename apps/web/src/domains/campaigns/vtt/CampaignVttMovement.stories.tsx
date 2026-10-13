@@ -8,8 +8,9 @@ import {
 import type { ScenePoint } from '@artificer-toolkit/shared/vtt'
 import { tabletopCurrentUserId, tabletopLiveScene } from './CampaignTabletop.stories.fixtures'
 import { createVttSceneRenderer, type VttSceneRenderer } from './vttSceneRenderer'
+import { validated } from '../../../test/validatedFixture'
 
-const movementScene = campaignSceneStateDtoSchema.parse({
+const movementScene = validated(campaignSceneStateDtoSchema)({
   ...tabletopLiveScene,
   barriers: [
     {
@@ -28,7 +29,7 @@ const movementScene = campaignSceneStateDtoSchema.parse({
 const largeTokenSize = tabletopLiveScene.grid.cellSize * 2
 
 // A 2x2 token on the open map, so only the map edge constrains it.
-const largeTokenScene = campaignSceneStateDtoSchema.parse({
+const largeTokenScene = validated(campaignSceneStateDtoSchema)({
   ...movementScene,
   barriers: [],
   tokens: [
@@ -42,12 +43,12 @@ const largeTokenScene = campaignSceneStateDtoSchema.parse({
 })
 
 // The same 2x2 token beside the wall in movementScene.
-const largeTokenBesideWallScene = campaignSceneStateDtoSchema.parse({
+const largeTokenBesideWallScene = validated(campaignSceneStateDtoSchema)({
   ...movementScene,
   tokens: [{ ...largeTokenScene.tokens[0], position: { x: 300, y: 230 } }]
 })
 
-const rotatedLargeTokenScene = campaignSceneStateDtoSchema.parse({
+const rotatedLargeTokenScene = validated(campaignSceneStateDtoSchema)({
   ...largeTokenScene,
   tokens: [{ ...largeTokenScene.tokens[0], rotationDegrees: 135 }]
 })

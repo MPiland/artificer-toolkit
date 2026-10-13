@@ -20,6 +20,7 @@ import {
   lightTintAlpha,
   resolveViewTokenId
 } from './vttSceneRenderer.model'
+import { validated } from '../../../test/validatedFixture'
 
 type Diagnostics = ReturnType<VttSceneRenderer['getDiagnostics']>
 type Zone = CampaignSceneStateDto['darknessZones'][number]
@@ -28,7 +29,7 @@ type Light = CampaignSceneStateDto['lights'][number]
 const ember = tabletopLiveScene.tokens[0]!
 const warden = tabletopLiveScene.tokens[1]!
 
-const emptyScene = campaignSceneStateDtoSchema.parse({
+const emptyScene = validated(campaignSceneStateDtoSchema)({
   ...tabletopLiveScene,
   ambientIllumination: 'BRIGHT',
   barriers: [],
@@ -221,7 +222,7 @@ function expectSamplesMatchResolver(
 
 const wallId = '77777777-7777-4777-8777-777777777891'
 
-const brightAndDimScene = campaignSceneStateDtoSchema.parse({
+const brightAndDimScene = validated(campaignSceneStateDtoSchema)({
   ...emptyScene,
   lights: [
     lightAt('77777777-7777-4777-8777-777777777801', 400, 100, 250),
@@ -277,7 +278,7 @@ const ambientRoomPoints = [
 ]
 
 function ambientRoom(ambientIllumination: CampaignSceneStateDto['ambientIllumination']) {
-  return campaignSceneStateDtoSchema.parse({ ...emptyScene, ambientIllumination })
+  return validated(campaignSceneStateDtoSchema)({ ...emptyScene, ambientIllumination })
 }
 
 const brightRoom = ambientRoom('BRIGHT')
@@ -313,7 +314,7 @@ export const DarkRoomDrawsFullDarkness: Story = {
   }
 }
 
-const darkRoomWithLights = campaignSceneStateDtoSchema.parse({
+const darkRoomWithLights = validated(campaignSceneStateDtoSchema)({
   ...darkRoom,
   lights: [
     lightAt('77777777-7777-4777-8777-777777777801', 400, 100, 250),
@@ -342,7 +343,7 @@ export const LightsPushBackAmbientDarkness: Story = {
   }
 }
 
-const torchInDarkZone = campaignSceneStateDtoSchema.parse({
+const torchInDarkZone = validated(campaignSceneStateDtoSchema)({
   ...emptyScene,
   darknessZones: [zoneAt('77777777-7777-4777-8777-777777777831', 300, 'ORDINARY_DARKNESS', null)],
   lights: [lightAt('77777777-7777-4777-8777-777777777801', 400, 60, 150)]
@@ -370,7 +371,7 @@ export const TorchLightsAnOrdinaryDarknessZone: Story = {
   }
 }
 
-const torchInMagicalDarkness = campaignSceneStateDtoSchema.parse({
+const torchInMagicalDarkness = validated(campaignSceneStateDtoSchema)({
   ...darkRoom,
   darknessZones: [zoneAt('77777777-7777-4777-8777-777777777832', 300, 'MAGICAL_DARKNESS', null)],
   lights: [lightAt('77777777-7777-4777-8777-777777777801', 400, 100, 250)]
@@ -394,7 +395,7 @@ export const MagicalDarknessStaysBlackOverATorch: Story = {
   }
 }
 
-const litRoomWithWall = campaignSceneStateDtoSchema.parse({
+const litRoomWithWall = validated(campaignSceneStateDtoSchema)({
   ...darkRoom,
   barriers: [
     {
@@ -428,7 +429,7 @@ export const WallBlocksALightInTheDrawnOverlay: Story = {
 
 const doorId = '77777777-7777-4777-8777-777777777892'
 const litRoomBehindADoor = (state: 'CLOSED' | 'OPEN') =>
-  campaignSceneStateDtoSchema.parse({
+  validated(campaignSceneStateDtoSchema)({
     ...darkRoom,
     barriers: [
       {
@@ -576,7 +577,7 @@ export const LightAndHeavyObscurement: Story = {
   }
 }
 
-const sightScene = campaignSceneStateDtoSchema.parse({
+const sightScene = validated(campaignSceneStateDtoSchema)({
   ...emptyScene,
   tokens: [
     {
@@ -635,7 +636,7 @@ export const GmFullViewDrawsNoVision: Story = {
   }
 }
 
-const previewScene = campaignSceneStateDtoSchema.parse({
+const previewScene = validated(campaignSceneStateDtoSchema)({
   ...darkRoom,
   tokens: [
     ...darkRoom.tokens,
@@ -775,7 +776,7 @@ const viewEmber = { assignedTokenId: null, selectedTokenId: ember.id }
 // and a wall below the seer.
 const caveWallId = '77777777-7777-4777-8777-777777777893'
 function caveSceneFor(seer: ReturnType<typeof seerWith>) {
-  return campaignSceneStateDtoSchema.parse({
+  return validated(campaignSceneStateDtoSchema)({
     ...darkRoom,
     barriers: [
       {
@@ -911,7 +912,7 @@ const litToken = {
   id: '77777777-7777-4777-8777-777777777853',
   position: { x: 1100, y: 450 }
 }
-const tremorScene = campaignSceneStateDtoSchema.parse({
+const tremorScene = validated(campaignSceneStateDtoSchema)({
   ...darkRoom,
   barriers: [
     {
@@ -949,7 +950,7 @@ export const TremorsenseRevealsTokensWithoutChangingTheMap: Story = {
 
 // The GM's preview Token has darkvision, but a Player's view is their own Token's: the preview
 // Token's sight is never theirs.
-const previewLeakScene = campaignSceneStateDtoSchema.parse({
+const previewLeakScene = validated(campaignSceneStateDtoSchema)({
   ...darkRoom,
   tokens: [
     seerWith([]),

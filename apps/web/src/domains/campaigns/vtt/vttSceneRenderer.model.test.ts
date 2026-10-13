@@ -39,6 +39,7 @@ import {
   visibleGridLinePositions,
   type VttSenseReach
 } from './vttSceneRenderer.model'
+import { validated } from '../../../test/validatedFixture'
 
 describe('VTT scene renderer model', () => {
   it('draws a radius area as a target circle and a cube as a target square centered on the point', () => {
@@ -722,7 +723,7 @@ const movementTokenId = '00000000-0000-4000-8000-000000000005'
 const movementUserId = '00000000-0000-4000-8000-000000000006'
 
 function movementScene(): CampaignSceneStateDto {
-  return campaignSceneStateDtoSchema.parse({
+  return validated(campaignSceneStateDtoSchema)({
     annotations: [],
     ambientIllumination: 'BRIGHT',
     barriers: [],

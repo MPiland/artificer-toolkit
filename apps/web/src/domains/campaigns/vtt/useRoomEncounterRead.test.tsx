@@ -8,10 +8,17 @@ import { describe, expect, it, vi } from 'vitest'
 import { LiveSessionReadRejectedError } from './liveSessionClient'
 import type { HeldEncounterSession } from './useCampaignLiveSession'
 import { readFromRoomOrFallback, useRoomEncounterRead } from './useRoomEncounterRead'
+import { validated } from '../../../test/validatedFixture'
 
 const encounterId = '00000000-0000-4000-8000-000000000001'
-const read = encounterReadDtoSchema.parse({ input: { encounterId }, kind: 'LATEST_EVIDENCE_ROLLS' })
-const answer = encounterReadResultDtoSchema.parse({ kind: 'LATEST_EVIDENCE_ROLLS', result: [] })
+const read = validated(encounterReadDtoSchema)({
+  input: { encounterId },
+  kind: 'LATEST_EVIDENCE_ROLLS'
+})
+const answer = validated(encounterReadResultDtoSchema)({
+  kind: 'LATEST_EVIDENCE_ROLLS',
+  result: []
+})
 
 function heldAt(version: number): HeldEncounterSession {
   return {

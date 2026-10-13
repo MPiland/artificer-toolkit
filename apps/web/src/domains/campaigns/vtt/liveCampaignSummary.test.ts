@@ -4,13 +4,14 @@ import {
   type LiveCampaignSummaryDto
 } from '@artificer-toolkit/schema/api/liveSessions'
 import { mergeEncounterSummary, resolveHitPoints } from './liveCampaignSummary'
+import { validated } from '../../../test/validatedFixture'
 
 const characterId = '00000000-0000-4000-8000-000000000001'
 const encounterId = '00000000-0000-4000-8000-000000000002'
 const actorId = '00000000-0000-4000-8000-000000000003'
 
 const summary = (overrides: Partial<LiveCampaignSummaryDto> = {}): LiveCampaignSummaryDto =>
-  liveCampaignSummaryDtoSchema.parse({
+  validated(liveCampaignSummaryDtoSchema)({
     characters: [
       {
         characterId,

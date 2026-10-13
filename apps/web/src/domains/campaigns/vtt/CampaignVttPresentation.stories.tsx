@@ -23,11 +23,12 @@ import {
   statusCategoryColours
 } from './vttSceneRenderer.model'
 import { buildVttTokenPresentations, dispositionRingColours } from './vttTokenPresentation.model'
+import { validated } from '../../../test/validatedFixture'
 
 const artUrl =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='
 
-const presentationScene = campaignSceneStateDtoSchema.parse({
+const presentationScene = validated(campaignSceneStateDtoSchema)({
   ...tabletopLiveScene,
   tokens: [
     {
@@ -415,7 +416,7 @@ export const SelectionOutlineMarksOnlyTheSelectedToken: Story = {
 
 // A 1x1 token beside a 2x2 token that touches it: their outer rings stay inside their footprints.
 const cell = tabletopLiveScene.grid.cellSize
-const neighbourScene = campaignSceneStateDtoSchema.parse({
+const neighbourScene = validated(campaignSceneStateDtoSchema)({
   ...presentationScene,
   tokens: [
     { ...emberToken!, height: cell, position: { x: 400, y: 400 }, width: cell },

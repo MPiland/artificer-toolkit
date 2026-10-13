@@ -44,7 +44,7 @@ import {
   setCampaignLiveScenePresentationInputDtoSchema,
   setCampaignLiveScenePresentationResultDtoSchema
 } from '@artificer-toolkit/schema/api/vttScenes'
-import { validated } from '../../validatedFixture'
+import { validated } from '../../../test/validatedFixture'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { projectSceneForViewer } from '@artificer-toolkit/shared/vtt'
 import { getCampaignDetail } from '#app/data/campaigns/queries'
@@ -77,7 +77,7 @@ const fogBegin = fn()
 const fogAppend = fn()
 const storyFogSaveId = '77777777-7777-4777-8777-777777777799'
 const showScene = fn()
-const shownScene = campaignSceneShowingDtoSchema.parse({
+const shownScene = validated(campaignSceneShowingDtoSchema)({
   sceneId: '77777777-7777-4777-8777-777777777798',
   sceneName: 'The Ashen Stair',
   shownAt: '2099-08-15T20:00:00.000Z'
@@ -559,7 +559,7 @@ export const HoveringATokenListsItOverTheSelection: Story = {
     const stage = page.getByRole('img', { name: 'Interactive campaign scene' })
     const renderer = await latestStageRenderer()
     const { wardenToken } = wardenPresentationFor('OWNER', sentryFixtures.gmEncounter)
-    const sentryToken = sentryFixtures.liveScene.tokens[2]!
+    const sentryToken = sentryFixtures.liveScene.tokens.find((token) => token.id === sentryTokenId)!
     const statusList = (label: string) => page.queryByRole('region', { name: `${label} statuses` })
 
     renderer.focusPoint(wardenToken.position)
@@ -816,6 +816,7 @@ const presentedTokensFixtures: TabletopFixtures = {
 // selected Warden's.
 const wardenActor = presentedTokensFixtures.gmEncounter.actors[1]!
 const wardenSceneToken = presentedTokensFixtures.liveScene.tokens[1]!
+const sentryTokenId = '77777777-7777-4777-8777-777777777710'
 const sentryFixtures: TabletopFixtures = {
   ...presentedTokensFixtures,
   gmEncounter: {
@@ -836,7 +837,7 @@ const sentryFixtures: TabletopFixtures = {
       ...presentedTokensFixtures.liveScene.tokens,
       {
         ...wardenSceneToken,
-        id: '77777777-7777-4777-8777-777777777710',
+        id: sentryTokenId,
         label: 'Vault Sentry',
         position: { x: 700, y: 300 }
       }
@@ -918,7 +919,7 @@ function renderWindow(
     roll: null,
     occurrence: null
   })
-  const sceneBinding = sceneEncounterBindingSchema.parse({
+  const sceneBinding = validated(sceneEncounterBindingSchema)({
     encounterId: encounter.id,
     encounterVersion: encounter.version,
     sceneId: scene.id
@@ -1018,7 +1019,7 @@ function renderWindow(
         const start = input.paginationOpts.cursor === null ? 0 : Number(input.paginationOpts.cursor)
         const page = scene.fogLayers.slice(start, start + input.paginationOpts.numItems)
         const next = start + page.length
-        return sceneFogLayersPageSchema.parse({
+        return validated(sceneFogLayersPageSchema)({
           version: scene.version,
           page: page.map((layer, ordinal) => ({
             ownerUserId: layer.ownerUserId,
@@ -1041,7 +1042,7 @@ function renderWindow(
         if (!layer) throw new Error('Story fixture fog layer was not found.')
         const page = layer.chunks.slice(input.offset, input.offset + input.numItems)
         const nextOffset = input.offset + page.length
-        return sceneFogChunksPageSchema.parse({
+        return validated(sceneFogChunksPageSchema)({
           version: scene.version,
           ownerUserId: layer.ownerUserId,
           width: layer.width,
@@ -1073,7 +1074,7 @@ function renderWindow(
         return null
       if (name === getFunctionName(convexApi.scenes.presentations.setLive)) {
         const input = setCampaignLiveScenePresentationInputDtoSchema.parse(args)
-        return setCampaignLiveScenePresentationResultDtoSchema.parse({
+        return validated(setCampaignLiveScenePresentationResultDtoSchema)({
           commandId: input.commandId,
           replayed: false,
           campaignId: input.campaignId,
@@ -1096,7 +1097,7 @@ function renderWindow(
           throw new Error('Story fixture Encounter binding continuation was not found.')
         const pageTokens = scene.tokens.slice(start, start + input.numItems)
         const next = start + pageTokens.length
-        return sceneRecipientEncounterBindingsPageSchema.parse({
+        return validated(sceneRecipientEncounterBindingsPageSchema)({
           ...sceneBinding,
           page: pageTokens.flatMap((token) => {
             const binding = nativeActorTokenBindings.find(
@@ -1152,7 +1153,7 @@ function renderWindow(
   fogBegin.mockReset()
   fogAppend.mockReset()
 
-  const recipientState = liveSessionRecipientStateDtoSchema.parse({
+  const recipientState = validated(liveSessionRecipientStateDtoSchema)({
     presentationVersion,
     recipientRole: campaign.role,
     scene
@@ -1197,7 +1198,7 @@ function recipientHeader(scene: ReturnType<typeof projectScene>) {
     tokens: _tokens,
     ...header
   } = scene
-  return sceneRecipientHeaderSchema.parse({ ...header, recipientRevision })
+  return validated(sceneRecipientHeaderSchema)({ ...header, recipientRevision })
 }
 
 function StoryConvexFixture({

@@ -4,11 +4,11 @@ import { liveSessionCommandDtoSchema } from '@artificer-toolkit/schema/api/liveS
 import { sceneTransientEnvelopeDtoSchema } from '@artificer-toolkit/schema/api/vttScenes'
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { validated } from '../../validatedFixture'
+import { validated } from '../../../test/validatedFixture'
 import type { createLiveSessionConnection } from './liveSessionClient'
 import { useCampaignLiveSession } from './useCampaignLiveSession'
 
-const liveTicket = liveSessionTicketDtoSchema.parse({
+const liveTicket = validated(liveSessionTicketDtoSchema)({
   expiresAt: '2099-08-15T23:59:00.000Z',
   ticket: 'test-live-session-ticket'
 })
@@ -28,7 +28,7 @@ const command = validated(liveSessionCommandDtoSchema)({
   }
 })
 const commit = { commandId, delta: null, sequence: 5, type: 'COMMAND_COMMITTED' as const }
-const envelope = sceneTransientEnvelopeDtoSchema.parse({
+const envelope = validated(sceneTransientEnvelopeDtoSchema)({
   baselineVersion: 1,
   audience: 'TABLE',
   kind: 'PING',

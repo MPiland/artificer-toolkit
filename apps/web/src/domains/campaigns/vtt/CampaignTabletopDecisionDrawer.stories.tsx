@@ -8,7 +8,7 @@ import type {
   VoidRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounters'
 import { pendingEncounterRuleOccurrenceSummaryDtoSchema } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
-import { validated } from '../../validatedFixture'
+import { validated } from '../../../test/validatedFixture'
 import { CampaignTabletopDecisionDrawer } from './CampaignTabletopDecisionDrawer'
 import { tabletopGmEncounter } from './CampaignTabletop.stories.fixtures'
 

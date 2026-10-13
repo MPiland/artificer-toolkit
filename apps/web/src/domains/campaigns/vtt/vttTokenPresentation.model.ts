@@ -70,14 +70,12 @@ export function buildVttTokenPresentations(input: {
     const statuses = actor
       ? [
           ...actorConditionStatuses(actor.conditions),
-          ...actor.activeGrants.map((grant) =>
-            statusFromValues(
-              `grant:${grant.effectId}`,
-              'EFFECT',
-              `${activeGrantLabel(grant)}, ${activeGrantTimeLeft(grant)}`,
-              grantCategories[grant.polarity]
-            )
-          ),
+          ...actor.activeGrants.map((grant) => ({
+            category: grantCategories[grant.polarity],
+            id: `grant:${grant.effectId}`,
+            kind: 'EFFECT' as const,
+            label: `${activeGrantLabel(grant)}, ${activeGrantTimeLeft(grant)}`.trim()
+          })),
           ...(actor.concentration
             ? [
                 statusFromValues(
@@ -181,11 +179,10 @@ function actorConditionStatuses(conditions: unknown): VttTokenPresentation['stat
 
 function statusFromValues(
   id: string,
-  kind: StatusKind,
-  label: string,
-  category: VttStatusCategory = kind === 'EFFECT' ? 'OTHER' : statusCategories[kind]
+  kind: NonGrantStatusKind,
+  label: string
 ): VttTokenPresentation['statuses'][number] {
-  return { category, id, kind, label: label.trim() }
+  return { category: statusCategories[kind], id, kind, label: label.trim() }
 }
 
 function statusKind(value: unknown): NonGrantStatusKind {

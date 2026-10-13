@@ -12,7 +12,7 @@ import { DOMAIN_REJECTION_MESSAGES } from '@artificer-toolkit/schema/api/domainR
 import { ConvexError } from 'convex/values'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { errorMessage } from '#app/lib/errorMessage'
-import { validated } from '../../validatedFixture'
+import { validated } from '../../../test/validatedFixture'
 import { tabletopGmEncounter } from './CampaignTabletop.stories.fixtures'
 import { createLiveSessionConnection, resolveLiveSessionWebSocketUrl } from './liveSessionClient'
 
@@ -32,7 +32,7 @@ const door = {
   kind: 'DOOR',
   openAngleDegrees: 90
 } as const
-const sceneState = campaignSceneStateDtoSchema.parse({
+const sceneState = validated(campaignSceneStateDtoSchema)({
   annotations: [],
   ambientIllumination: 'BRIGHT',
   barriers: [door],
@@ -77,7 +77,7 @@ const command = validated(liveSessionCommandDtoSchema)({
   }
 })
 
-const envelope = sceneTransientEnvelopeDtoSchema.parse({
+const envelope = validated(sceneTransientEnvelopeDtoSchema)({
   baselineVersion: 1,
   audience: 'TABLE',
   kind: 'PING',
@@ -341,7 +341,7 @@ describe('live-session browser connection', () => {
     socket.open()
     await vi.waitFor(() => expect(socket.sent).toHaveLength(1))
     socket.receive({ campaignId, type: 'TRANSIENT_READY' })
-    const drag = sceneTransientEnvelopeDtoSchema.parse({
+    const drag = validated(sceneTransientEnvelopeDtoSchema)({
       ...envelope,
       kind: 'TOKEN_DRAG_PREVIEW',
       tokenId: '00000000-0000-4000-8000-000000000015'
@@ -699,7 +699,7 @@ describe('live-session browser connection', () => {
     const state = { ...recipientState, recipientRole: 'OWNER', scene: sceneState }
     socket.receive({ authorityEpoch, sequence: 4, state, type: 'STATE_SYNC' })
     const characterId = '00000000-0000-4000-8000-000000000015'
-    const sheetCommand = liveSessionCommandDtoSchema.parse({
+    const sheetCommand = validated(liveSessionCommandDtoSchema)({
       scope: 'CHARACTER_SHEET',
       characterId,
       encounterId: tabletopGmEncounter.id,
@@ -711,7 +711,7 @@ describe('live-session browser connection', () => {
       settled = true
     })
     socket.receive(
-      liveSessionWebSocketServerMessageDtoSchema.parse({
+      validated(liveSessionWebSocketServerMessageDtoSchema)({
         commandId,
         delta: null,
         sequence: 5,
@@ -750,7 +750,7 @@ describe('live-session browser connection', () => {
         summary: 'Gained inspiration.'
       }
     }
-    const receipt = liveSessionWebSocketServerMessageDtoSchema.parse({
+    const receipt = validated(liveSessionWebSocketServerMessageDtoSchema)({
       commandId,
       delta: { scope: 'CHARACTER_SHEET', result },
       sequence: 5,

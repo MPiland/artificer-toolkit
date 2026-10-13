@@ -21,11 +21,12 @@ import {
   tabletopGmEncounter,
   tabletopPlayerEncounter
 } from './CampaignTabletop.stories.fixtures'
+import { validated } from '../../../test/validatedFixture'
 
 const currentUserId = '00000000-0000-4000-8000-000000000001'
 
 function scene(): CampaignSceneStateDto {
-  return campaignSceneStateDtoSchema.parse({
+  return validated(campaignSceneStateDtoSchema)({
     annotations: [],
     ambientIllumination: 'BRIGHT',
     barriers: [],
@@ -205,7 +206,7 @@ const walkSpeedId = 'walk-speed'
 
 describe('Campaign VTT active turn movement readout (V07.5)', () => {
   const [character, creature] = tabletopPlayerEncounter.actors
-  const movement = encounterSessionStateDtoSchema.shape.turnMovement.parse([
+  const movement = validated(encounterSessionStateDtoSchema.shape.turnMovement)([
     {
       actorId: character.id,
       used: 15,
@@ -223,7 +224,7 @@ describe('Campaign VTT active turn movement readout (V07.5)', () => {
     encounter: EncounterSessionStateDto['encounter'],
     turnMovement: EncounterSessionStateDto['turnMovement'] = movement
   ): EncounterSessionStateDto {
-    return encounterSessionStateDtoSchema.parse({
+    return validated(encounterSessionStateDtoSchema)({
       encounter,
       pending: null,
       waitingOn: null,

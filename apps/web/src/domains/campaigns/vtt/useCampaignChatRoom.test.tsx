@@ -8,6 +8,7 @@ import { campaignChatEntryDtoSchema } from '@artificer-toolkit/schema/api/campai
 import { rollHistoryEntryDtoSchema } from '@artificer-toolkit/schema/api/rolls'
 import { getCampaignLiveAuthority } from '#app/data/campaigns/queries'
 import { useCampaignChatRoom } from './useCampaignChatRoom'
+import { validated } from '../../../test/validatedFixture'
 
 const campaignId = '00000000-0000-4000-8000-000000000123'
 const nonce = '00000000-0000-4000-8000-000000000789'
@@ -37,7 +38,7 @@ vi.mock('./useCampaignLiveSession', () => ({
   }
 }))
 
-const privateRoll = rollHistoryEntryDtoSchema.parse({
+const privateRoll = validated(rollHistoryEntryDtoSchema)({
   id: rollId,
   characterId: null,
   characterLabel: 'GM',
@@ -56,7 +57,7 @@ const privateRoll = rollHistoryEntryDtoSchema.parse({
   gmCampaignRoll: { campaignId, creature: null, revealedAt: null, noticedAt: null }
 })
 
-const chatEntry = campaignChatEntryDtoSchema.parse({
+const chatEntry = validated(campaignChatEntryDtoSchema)({
   id: '00000000-0000-4000-8000-000000000a01',
   campaignId,
   conversationId: '00000000-0000-4000-8000-000000000a02',
