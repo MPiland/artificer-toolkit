@@ -64,12 +64,10 @@ export function singleTargetMeasure(policy: CompiledActionTargetPolicy):
           { selectionKind: 'SINGLE_TARGET' }
         >['dispositionKind']
       >
-      self: NonNullable<
-        Extract<
-          NonNullable<CompiledActionTargetPolicy['targeting']>,
-          { selectionKind: 'SINGLE_TARGET' }
-        >['self']
-      >
+      self: Extract<
+        NonNullable<CompiledActionTargetPolicy['targeting']>,
+        { selectionKind: 'SINGLE_TARGET' }
+      >['self']
     }
   | null {
   if (policy.shape !== null || policy.pathOverrides.length !== 0) return null
