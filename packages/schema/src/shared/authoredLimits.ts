@@ -16,6 +16,11 @@ export const authoredPlainTextSchema = lazySchema(() =>
   z.string().check(z.maxLength(AUTHORED_LIMITS.plainTextCharacters))
 )
 export const authoredNonnegativeNumberSchema = lazySchema(() => z.number().check(z.nonnegative()))
+/** Largest authored length amount; every length unit converts it to a finite number of feet. */
+export const AUTHORED_LENGTH_AMOUNT_MAX = 1_000_000
+export const authoredLengthAmountSchema = lazySchema(() =>
+  z.number().check(z.nonnegative()).check(z.lte(AUTHORED_LENGTH_AMOUNT_MAX))
+)
 export const authoredRichTextSchema = lazySchema(() =>
   z
     .string()

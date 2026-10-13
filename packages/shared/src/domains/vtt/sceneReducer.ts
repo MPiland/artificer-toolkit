@@ -44,11 +44,11 @@ export function feetInSceneUnit(feet: number, unit: Exclude<SceneGrid['unit'], '
 
 /**
  * A typed length in authoritative Scene units. Null when this Scene cannot measure it: an
- * uncalibrated SQUARES Scene, or a length too large to represent. Never negative.
+ * uncalibrated SQUARES Scene. Never negative.
  */
 export function lengthMeasurementInSceneUnits(length: SceneLength, grid: SceneGrid): number | null {
   const feet = lengthMeasurementInFeet(length)
-  if (!Number.isFinite(feet) || grid.unit === 'SQUARES') return null
+  if (grid.unit === 'SQUARES') return null
   return feetInSceneUnit(Math.max(0, feet), grid.unit)
 }
 

@@ -34,10 +34,7 @@ describe('length measurement', () => {
     expect(feetInSceneUnit(10, 'METERS')).toBeCloseTo(3.048)
   })
 
-  it('measures nothing for an overflowing length or on an uncalibrated SQUARES Scene', () => {
-    expect(
-      lengthMeasurementInSceneUnits({ amount: Number.MAX_VALUE, unit: 'MILES' }, FEET_GRID)
-    ).toBeNull()
+  it('measures nothing on an uncalibrated SQUARES Scene', () => {
     expect(
       lengthMeasurementInSceneUnits(
         { amount: 5, unit: 'FEET' },

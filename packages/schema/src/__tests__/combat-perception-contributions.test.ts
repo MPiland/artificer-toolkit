@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
+import { AUTHORED_LENGTH_AMOUNT_MAX } from '../shared/authoredLimits.js'
 import {
   combatPerceptionContributionDtoSchema,
   combatPerceptionContributionsDtoSchema
@@ -121,5 +122,16 @@ describe('combat perception contribution contracts', () => {
         perceivesInvisible: null
       })
     ).toThrow()
+  })
+
+  it('accepts a sense range of the authored length maximum and rejects one beyond it', () => {
+    const parse = (amount: number) =>
+      combatPerceptionContributionDtoSchema.safeParse({
+        ...senseGrant(),
+        range: { amount, unit: 'MILES' }
+      }).success
+    expect(parse(AUTHORED_LENGTH_AMOUNT_MAX)).toBe(true)
+    expect(parse(AUTHORED_LENGTH_AMOUNT_MAX + 1)).toBe(false)
+    expect(parse(Number.POSITIVE_INFINITY)).toBe(false)
   })
 })

@@ -2,6 +2,7 @@ import { z, lazySchema, lazySchemaParts } from '../zod.js'
 
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules/checksum'
 
+import { authoredLengthAmountSchema } from './authoredLimits.js'
 import { lengthUnitCodeSchema } from './enums.js'
 import { postgresUuidSchema } from './postgresUuid.js'
 
@@ -128,7 +129,7 @@ const contributionIdentitySchema = lazySchema(() =>
 
 const contributionMeasurementSchema = lazySchema(() =>
   z.strictObject({
-    amount: z.number().check(z.gte(0)),
+    amount: authoredLengthAmountSchema,
     unit: lengthUnitCodeSchema
   })
 )
