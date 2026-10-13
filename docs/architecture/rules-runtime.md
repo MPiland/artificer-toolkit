@@ -195,12 +195,12 @@ through `encounterActionRuleWarnings`:
 
 **Targeting yourself (D99).** A user may target itself unless the action says otherwise: the policy raises
 `TARGET_DISPOSITION` for a self target only when the target disposition is hostile, the action makes an
-attack roll (`makesAttackRoll`, a required policy input) or the authored targeting sets `excludesSelf`
-("another creature"). SRD Bardic Inspiration, Healing Touch, Modify Memory and Protection author
-`excludesSelf: true`. An action that cannot be used on its user at all authors `refusesSelf: true` instead
-(First Aid): the policy refuses a self target outright (`UNSUPPORTED_TARGET`, not acknowledgeable). The action
-choice DTO's `ACTOR` target carries `requiresOtherCreature` (true for either flag) so a caller asks for the
-creature before the action can be used.
+attack roll (`makesAttackRoll`, a required policy input) or the authored single-target `self` field is `WARN`
+("another creature"). `self` is one authored field with three values: `ALLOWED` (the default), `WARN` (the
+overridable warning above; SRD Bardic Inspiration, Healing Touch, Modify Memory and Protection) and `REFUSED`
+(Help and First Aid: the policy refuses a self target outright as `UNSUPPORTED_TARGET`, not acknowledgeable). The
+action choice DTO's `ACTOR` target carries `requiresOtherCreature` (true for `WARN` and `REFUSED`) so a caller
+asks for the creature before the action can be used.
 
 **Rule usage storage.** "Nothing used" has one stored form: no key. `withEncounterRuleUsageUsed` drops the
 definition's entry for a usage of 0 and drops an empty `ruleUsage`, so a turn refresh, a spend and an undo

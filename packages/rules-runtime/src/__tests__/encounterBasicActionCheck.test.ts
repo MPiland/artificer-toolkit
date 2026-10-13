@@ -10,7 +10,6 @@ import {
   encounterBasicActionCheckLabel,
   encounterBasicActionCheckPendingSnapshot,
   encounterBasicActionCheckTrigger,
-  encounterBasicActionStabilizeWarnings,
   evaluateEncounterBasicActionCheck,
   prepareEncounterBasicActionCheck,
   startEncounterBasicActionCheck
@@ -34,7 +33,7 @@ const FIRST_AID_ID = '00000000-0000-4000-8000-000000000b09'
 const HELP_EFFECT_ID = '00000000-0000-4000-8000-00000000c0c1'
 const OCCURRENCE_ID = testUuid(900)
 const COMMAND_ID = testUuid(901)
-const CHECK = { checkDefinitionId: SRD_MEDICINE_SKILL_ID, dc: 10 }
+const CHECK = { checkKind: 'SKILL' as const, checkDefinitionId: SRD_MEDICINE_SKILL_ID, dc: 10 }
 const DEFINITION = { id: FIRST_AID_ID, version: 1, checksum: 'a'.repeat(64), label: 'First Aid' }
 const scores = {
   STRENGTH: 10,
@@ -152,7 +151,11 @@ describe('First Aid check', () => {
       helperActorId: helper.id,
       targetActorId: hero.id,
       targetCharacterId: hero.sourceId,
-      check: { ...CHECK, label: 'Wisdom (Medicine)' },
+      check: {
+        checkDefinitionId: CHECK.checkDefinitionId,
+        dc: CHECK.dc,
+        label: 'Wisdom (Medicine)'
+      },
       d20: { rollMode: 'NORMAL', modifier: 3 }
     })
     expect(prepared.context.consumedGrants).toEqual([])
@@ -257,19 +260,5 @@ describe('First Aid check', () => {
       optionalCombatSnapshotChecksum: 'd'.repeat(64),
       applicationContext: { kind: 'ENCOUNTER_BASIC_ACTION_CHECK', helperActorId: helper.id }
     })
-  })
-
-  it('warns when the target is not dying and reports the touch range as unchecked', () => {
-    expect(
-      encounterBasicActionStabilizeWarnings({
-        actor: helper,
-        target: heroTarget({ current: 4, temporary: 0, conditions: [], deathSaves: null })
-      }).map((warning) => warning.code)
-    ).toEqual(['TARGET_NOT_DYING', 'TARGET_RANGE_UNCHECKED'])
-    expect(
-      encounterBasicActionStabilizeWarnings({ actor: helper, target: dyingHero() }).map(
-        (warning) => warning.code
-      )
-    ).toEqual(['TARGET_RANGE_UNCHECKED'])
   })
 })

@@ -40,6 +40,6 @@ export const vitalsOf = (history: RoomHistory) =>
       tempHitPoints: state.tempHitPoints,
       conditions: state.conditions,
       defeated: state.defeated,
-      spent: Object.entries(state.resources.ruleUsage ?? {}).filter(([, used]) => used !== 0)
+      spent: Object.entries(state.resources.ruleUsage ?? {})
     }
   })

@@ -722,10 +722,7 @@ export function CampaignTabletopActionDrawer({
           ) : !actionsLoading && !actionChoicesError ? (
             <Text c='dimmed'>No structured actions are available for the active combatant.</Text>
           ) : null}
-          {currentActor &&
-          !actionsLoading &&
-          !actionChoicesError &&
-          basicActionChoices.length ? (
+          {currentActor && !actionsLoading && !actionChoicesError && basicActionChoices.length ? (
             <CampaignTabletopBasicActions
               actorId={currentActor.id}
               authoredActions={basicActionChoices}

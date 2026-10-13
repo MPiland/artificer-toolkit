@@ -72,15 +72,15 @@ export function evaluateEncounterActionTargetPolicy(input: {
     targeting.excludedCreatureTypeIds?.length
   )
     return null
-  // An action that needs another creature (First Aid) refuses its own user; nothing overrides it.
-  if (targetsSelf && targeting.refusesSelf) return null
+  // An action that needs another creature (Help, First Aid) refuses its own user; nothing overrides it.
+  if (targetsSelf && targeting.self === 'REFUSED') return null
   const warnings: EncounterRuleWarningDto[] = []
   const relationship = encounterActorRelationship(input.actor.disposition, input.target.disposition)
   // SRD "Targeting Yourself": a creature may choose itself unless the effect must be hostile,
   // makes an attack roll or names another creature (D99).
   if (
     targetsSelf &&
-    (targeting.dispositionKind === 'HOSTILE' || input.makesAttackRoll || targeting.excludesSelf)
+    (targeting.dispositionKind === 'HOSTILE' || input.makesAttackRoll || targeting.self === 'WARN')
   )
     warnings.push({ code: 'TARGET_DISPOSITION', message: 'This action targets another creature.' })
   else if (targeting.dispositionKind === 'WILLING' && relationship === 'HOSTILE')

@@ -1,5 +1,3 @@
-import type { z } from 'zod'
-import type { encounterStoredRunCommandSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import type { LiveSessionEncounterRulesInput } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import type { ServerRuleExecutionPendingSnapshotDto } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
@@ -16,20 +14,18 @@ import { readEncounterSettledAppRoll } from './evidenceRolls.js'
 import { readPendingSnapshot } from './pendingSnapshots.js'
 import { replayEncounterCommandResult } from './replayReceipts.js'
 import { presentEncounterResultForMember } from './resultPresentation.js'
-import { presentTimelineEntry } from './timelineEntries.js'
+import { presentTimelineEntry, type StoredCommand } from './timelineEntries.js'
 import type { EncounterReadTransaction } from './ports.js'
 import type { EncounterDocument } from './store.js'
 
 /** The check occurrence a stored root command pended: a CHECK action's or an Escape's. */
-export function storedCheckOccurrenceId(
-  root: z.infer<typeof encounterStoredRunCommandSchema> | undefined
-): string | null {
+export function storedCheckOccurrenceId(root: StoredCommand | undefined): string | null {
   if (root?.commandType === 'RESOLVE_ACTION') return root.checkReceipt?.checkOccurrenceId ?? null
   if (root?.commandType === 'ESCAPE_RELATIONSHIP') return root.receipt.checkOccurrenceId
   return null
 }
 
-type CheckResponseInput =Omit<LiveSessionEncounterRulesInput, 'request'> & {
+type CheckResponseInput = Omit<LiveSessionEncounterRulesInput, 'request'> & {
   response: ResolveRuleOccurrenceInputDto
 }
 

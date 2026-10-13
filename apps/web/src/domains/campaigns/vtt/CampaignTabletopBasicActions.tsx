@@ -73,65 +73,64 @@ export function CampaignTabletopBasicActions({
         Basic actions
       </Title>
       <ul className={styles.list}>
-        {authoredActions.map((choice) => (
-          <li className={styles.row} key={choice.id}>
-            <Stack gap={4}>
-              <Tooltip label={choice.rulesText} multiline w={280} withinPortal={false}>
-                <Text fw={600} size='sm' tabIndex={0}>
-                  {choice.label}
-                  {choice.actionCost ? (
-                    <Text c='dimmed' component='span' fw={400} size='xs'>
-                      {' '}
-                      · {ACTIVATION_REGISTRY[choice.actionCost].label}
-                    </Text>
-                  ) : null}
-                </Text>
-              </Tooltip>
-              {choice.warnings.length ? (
-                <Text c='dimmed' size='xs'>
-                  {choice.warnings.map((warning) => warning.message).join(' ')}
-                </Text>
-              ) : null}
-              {choice.target.kind === 'ACTOR' && choice.target.requiresOtherCreature ? (
-                <Select
-                  aria-label={`Target of ${choice.label.toLowerCase()}`}
-                  comboboxProps={{ withinPortal: false }}
-                  data={allies.map((entry) => ({ label: entry.label, value: entry.id }))}
-                  disabled={disabled}
-                  placeholder='Choose a creature'
-                  searchable
-                  size='xs'
-                  value={targetByAction[choice.id] ?? null}
-                  onChange={(value) =>
-                    setTargetByAction((current) =>
-                      value === null
-                        ? Object.fromEntries(
-                            Object.entries(current).filter(([id]) => id !== choice.id)
-                          )
-                        : { ...current, [choice.id]: value }
-                    )
-                  }
-                />
-              ) : null}
-            </Stack>
-            <Button
-              aria-label={`Use ${choice.label}`}
-              disabled={
-                disabled ||
-                submittingId !== null ||
-                (choice.target.kind === 'ACTOR' &&
-                  choice.target.requiresOtherCreature &&
-                  !targetByAction[choice.id])
-              }
-              loading={submittingId === choice.id}
-              size='xs'
-              variant='default'
-              onClick={() => void resolve(choice, [])}
-            >
-              Use
-            </Button>
-          </li>
-        ))}
+        {authoredActions.map((choice) => {
+          const needsTarget = choice.target.kind === 'ACTOR' && choice.target.requiresOtherCreature
+          return (
+            <li className={styles.row} key={choice.id}>
+              <Stack gap={4}>
+                <Tooltip label={choice.rulesText} multiline w={280} withinPortal={false}>
+                  <Text fw={600} size='sm' tabIndex={0}>
+                    {choice.label}
+                    {choice.actionCost ? (
+                      <Text c='dimmed' component='span' fw={400} size='xs'>
+                        {' '}
+                        · {ACTIVATION_REGISTRY[choice.actionCost].label}
+                      </Text>
+                    ) : null}
+                  </Text>
+                </Tooltip>
+                {choice.warnings.length ? (
+                  <Text c='dimmed' size='xs'>
+                    {choice.warnings.map((warning) => warning.message).join(' ')}
+                  </Text>
+                ) : null}
+                {needsTarget ? (
+                  <Select
+                    aria-label={`Target of ${choice.label.toLowerCase()}`}
+                    comboboxProps={{ withinPortal: false }}
+                    data={allies.map((entry) => ({ label: entry.label, value: entry.id }))}
+                    disabled={disabled}
+                    placeholder='Choose a creature'
+                    searchable
+                    size='xs'
+                    value={targetByAction[choice.id] ?? null}
+                    onChange={(value) =>
+                      setTargetByAction((current) =>
+                        value === null
+                          ? Object.fromEntries(
+                              Object.entries(current).filter(([id]) => id !== choice.id)
+                            )
+                          : { ...current, [choice.id]: value }
+                      )
+                    }
+                  />
+                ) : null}
+              </Stack>
+              <Button
+                aria-label={`Use ${choice.label}`}
+                disabled={
+                  disabled || submittingId !== null || (needsTarget && !targetByAction[choice.id])
+                }
+                loading={submittingId === choice.id}
+                size='xs'
+                variant='default'
+                onClick={() => void resolve(choice, [])}
+              >
+                Use
+              </Button>
+            </li>
+          )
+        })}
       </ul>
       <CampaignTabletopCommandOutcome
         disabled={disabled || submittingId !== null}

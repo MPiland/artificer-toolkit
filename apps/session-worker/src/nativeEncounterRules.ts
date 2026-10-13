@@ -445,7 +445,11 @@ export async function planNativeLiveEncounterAction(
     acknowledged: command.acknowledgedWarnings
   })
   if (ruleWarnings.kind === 'UNSUPPORTED_TARGET')
-    throw new Error('The selected action does not permit this target.')
+    throw new LiveSessionDomainRejectionError(422, {
+      code: 'DOMAIN_REJECTED',
+      reason: 'TARGET_UNAVAILABLE',
+      message: 'The selected action does not permit this target.'
+    })
   // The same user-safe rejection the Convex fallback raises, so the room forwards it unchanged.
   if (ruleWarnings.kind === 'UNACKNOWLEDGED')
     throw new LiveSessionDomainRejectionError(422, {

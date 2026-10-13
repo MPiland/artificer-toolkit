@@ -222,8 +222,71 @@ const encounterStoredRunCommandResultSchema = lazySchema(() =>
   })
 )
 
-export const encounterStoredRunCommandSchema = lazySchema(() =>
-  z.discriminatedUnion('commandType', [
+export const encounterStoredRunCommandSchema = lazySchema(() => {
+  const resolveActionRootSchema = z
+    .extend(encounterStoredRunCommandResultSchema, {
+      commandType: z.literal('RESOLVE_ACTION'),
+      // A CHECK action roots in its own check occurrence (`checkReceipt`) and has no mechanics batch
+      // yet; every other action roots in one rule occurrence and its result.
+      ruleOccurrenceId: z.nullable(postgresUuidSchema),
+      ruleResultChecksum: z.nullable(projectionChecksumSchema),
+      optionalCombatSnapshotChecksum: z.nullable(projectionChecksumSchema),
+      /** What the CHECK action spent, so the GM's undo can reverse it exactly. */
+      checkReceipt: z.nullable(
+        z.strictObject({
+          actorId: postgresUuidSchema,
+          actionEconomy: z.nullable(encounterActionEconomyTransitionDtoSchema),
+          /** The action's d20 check occurrence, pending or settled; null when an overridden warning ended it before the roll. */
+          checkOccurrenceId: z.nullable(postgresUuidSchema)
+        })
+      ),
+      /** The resolved action's display name, from the prepared action; the timeline shows it. */
+      label: z.nullable(z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160))),
+      /** Warnings the submitter overrode ("Do it anyway"); the GM timeline badges each one. */
+      ruleOverrides: encounterRuleWarningsDtoSchema,
+      /** The grants (Vicious Mockery, Help) this action's rolls used up; its undo gives them back. */
+      consumedGrants: z
+        .array(activeRuleEffectRecordSchema)
+        .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER)),
+      /** The Character this action newly added to the Run's `concentrationCasterCharacterIds`; its undo removes it. */
+      addedConcentrationCasterId: z.nullable(postgresUuidSchema),
+      /** The turn movement record a Dash's speed bonus was added to; its undo removes it. */
+      speedBonusTurn: z.nullable(
+        z.strictObject({
+          round: z.number().check(z.int()).check(z.positive()),
+          turnActorId: postgresUuidSchema
+        })
+      ),
+      /** History lines for the user who issued the command, such as an area's outcomes for its caster; the GM sees them too. */
+      issuerLines: z._default(
+        z
+          .array(z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)))
+          .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
+        []
+      ),
+      /** GM-only history lines (the GM removing a creature from an area); the timeline never shows them to a player. */
+      gmLines: z._default(
+        z
+          .array(z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)))
+          .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
+        []
+      )
+    })
+    .check(
+      z.refine(
+        (root) =>
+          [
+            root.ruleOccurrenceId,
+            root.ruleResultChecksum,
+            root.optionalCombatSnapshotChecksum
+          ].every((rooted) => (rooted === null) === (root.checkReceipt !== null)),
+        {
+          message:
+            'A CHECK action root has a check receipt and no rule occurrence, and no other does.'
+        }
+      )
+    )
+  return z.discriminatedUnion('commandType', [
     z.extend(encounterStoredRunCommandBaseSchema, {
       commandType: z.literal('CREATE'),
       id: z.optional(postgresUuidSchema),
@@ -251,56 +314,7 @@ export const encounterStoredRunCommandSchema = lazySchema(() =>
       ruleResultChecksum: projectionChecksumSchema,
       optionalCombatSnapshotChecksum: projectionChecksumSchema
     }),
-    z.extend(encounterStoredRunCommandResultSchema, {
-      commandType: z.literal('RESOLVE_ACTION'),
-      /** The resolved action's display name, from the prepared action; the timeline shows it. */
-      label: z.nullable(z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160))),
-      /** Null on a CHECK action's root: the check's own occurrence is in `checkReceipt`, and no mechanics batch ran yet. */
-      ruleOccurrenceId: z.nullable(postgresUuidSchema),
-      ruleResultChecksum: z.nullable(projectionChecksumSchema),
-      optionalCombatSnapshotChecksum: z.nullable(projectionChecksumSchema),
-      /** What a CHECK action spent, so the GM's undo can reverse it exactly; null for every other action. */
-      checkReceipt: z._default(
-        z.nullable(
-          z.strictObject({
-            actorId: postgresUuidSchema,
-            actionEconomy: z.nullable(encounterActionEconomyTransitionDtoSchema),
-            /** The action's d20 check occurrence, pending or settled; null when an overridden warning ended it before the roll. */
-            checkOccurrenceId: z.nullable(postgresUuidSchema)
-          })
-        ),
-        null
-      ),
-      /** Warnings the submitter overrode ("Do it anyway"); the GM timeline badges each one. */
-      ruleOverrides: encounterRuleWarningsDtoSchema,
-      /** The grants (Vicious Mockery, Help) this action's rolls used up; its undo gives them back. */
-      consumedGrants: z
-        .array(activeRuleEffectRecordSchema)
-        .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER)),
-      /** The Character this action newly added to the Run's `concentrationCasterCharacterIds`; its undo removes it. */
-      addedConcentrationCasterId: z.nullable(postgresUuidSchema),
-      /** The turn movement record a Dash's speed bonus was added to; its undo removes it. */
-      speedBonusTurn: z.nullable(
-        z.strictObject({
-          round: z.number().check(z.int()).check(z.positive()),
-          turnActorId: postgresUuidSchema
-        })
-      ),
-      /** GM-only history lines (the GM removing a creature from an area); the timeline never shows them to a player. */
-      /** History lines for the user who issued the command, such as an area's outcomes for its caster; the GM sees them too. */
-      issuerLines: z._default(
-        z
-          .array(z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)))
-          .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
-        []
-      ),
-      gmLines: z._default(
-        z
-          .array(z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)))
-          .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
-        []
-      )
-    }),
+    resolveActionRootSchema,
     z.extend(encounterStoredRunCommandResultSchema, {
       commandType: z.literal('ESCAPE_RELATIONSHIP'),
       /** The timeline label: plain "Escape", which never names a grappler a player cannot see (D100). */
@@ -363,7 +377,7 @@ export const encounterStoredRunCommandSchema = lazySchema(() =>
       initiativeStateChecksum: projectionChecksumSchema
     })
   ])
-)
+})
 
 export const encounterStoredRuleOccurrenceSchema = lazySchema(() =>
   z

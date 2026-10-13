@@ -99,18 +99,6 @@ export function encounterActorsAfterEscape(input: {
   return input.actors.map((actor) => (actor.id === holder.id && released ? released.after : actor))
 }
 
-/** The check's name as the roller reads it: "Strength" or "Strength (Athletics)". */
-export function encounterEscapeCheckLabel(
-  system: SystemAuthoredDto,
-  checkDefinitionId: string
-): string {
-  if ('schemaVersion' in system && system.schemaVersion === 4) {
-    const ability = system.abilities.find((entry) => entry.id === checkDefinitionId)
-    if (ability) return ability.label
-  }
-  return encounterBasicActionCheckLabel(system, checkDefinitionId)
-}
-
 /**
  * Freezes a held creature's Escape check from its own facts: the fixed DC, the chosen allowed
  * check's modifier and contributors (conditions included). A custom actor has no check facts.
@@ -162,7 +150,7 @@ export function prepareEncounterEscapeCheck<TCharacterFacts extends CharacterMov
     check: {
       checkDefinitionId: input.checkDefinitionId,
       dc: escape.dc,
-      label: encounterEscapeCheckLabel(input.system, input.checkDefinitionId)
+      label: encounterBasicActionCheckLabel(input.system, input.checkDefinitionId)
     },
     d20: {
       rollMode: facts.rollMode,

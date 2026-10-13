@@ -747,7 +747,9 @@ describe('native Encounter turn Legendary Actions', () => {
         },
         ...(row.id === result.projection.currentActorId
           ? {}
-          : { ruleUsage: Object.fromEntries(allowanceIds.map((definitionId) => [definitionId, 1])) })
+          : {
+              ruleUsage: Object.fromEntries(allowanceIds.map((definitionId) => [definitionId, 1]))
+            })
       })
     }
     await expectReplays(base.owner.caller, [advance, ...responses], result)

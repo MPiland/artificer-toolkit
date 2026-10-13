@@ -95,4 +95,15 @@ describe('the CHECK action test compiles through the dnd5e adapter', () => {
       )
     ).toThrow('exactly one check')
   })
+
+  it('refuses an action that lists no check', () => {
+    expect(() =>
+      compile(
+        withCheck({
+          checks: { skillIds: [], abilityDefinitionIds: [] },
+          dc: { kind: 'FIXED', value: 10 }
+        })
+      )
+    ).toThrow('exactly one check')
+  })
 })

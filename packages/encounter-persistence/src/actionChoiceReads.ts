@@ -9,10 +9,8 @@ import { encounterLegendaryActionFeatureIds } from '@artificer-toolkit/rules-run
 import { readEncounterActorDefeated } from './characterStates.js'
 import { discoverEncounterBasicActions } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
 import { requireEncounterBasicActionDefinition } from '@artificer-toolkit/rules-runtime/encounterBasicActions'
-import {
-  encounterEscapeCheckLabel,
-  findEncounterHolderEscape
-} from '@artificer-toolkit/rules-runtime/encounterEscapeCheck'
+import { encounterBasicActionCheckLabel } from '@artificer-toolkit/rules-runtime/encounterBasicActionCheck'
+import { findEncounterHolderEscape } from '@artificer-toolkit/rules-runtime/encounterEscapeCheck'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import { snapshotCreatureEquipmentSources } from '@artificer-toolkit/rules-runtime/encounterCreatureEquipmentSources'
 import { discoverEncounterFeatureActions } from '@artificer-toolkit/rules-runtime/encounterFeatureActionCapabilityDiscoveryRegistry'
@@ -321,7 +319,7 @@ export async function readEncounterActionChoices(
         actionCost: module.activation.code,
         checks: [...module.checks.skillIds, ...module.checks.abilityDefinitionIds].map((id) => ({
           checkDefinitionId: id,
-          label: encounterEscapeCheckLabel(system, id)
+          label: encounterBasicActionCheckLabel(system, id)
         })),
         warnings: economy.warnings
       })

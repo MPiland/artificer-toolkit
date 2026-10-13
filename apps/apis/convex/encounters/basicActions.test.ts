@@ -656,14 +656,11 @@ describe('basic combat actions in the room (Q11)', () => {
     ).toBe(0)
   })
 
-  it('Help warns when aimed at oneself, and a player may help only an actor they can see', async () => {
+  it('Help refuses to be aimed at oneself, and a player may help only an actor they can see', async () => {
     const base = await basicActionFixture()
     await expect(
-      domainRejection(base.gm(await resolveBasicAction(base, base.companion.id, 'Help')))
-    ).resolves.toMatchObject({
-      reason: 'RULE_WARNINGS',
-      warnings: [{ code: 'TARGET_DISPOSITION', message: 'This action targets another creature.' }]
-    })
+      base.gm(await resolveBasicAction(base, base.companion.id, 'Help'))
+    ).rejects.toThrow('does not permit this target')
     await expect(
       domainRejection(
         base.gm(
@@ -740,7 +737,7 @@ describe('basic combat actions in the room (Q11)', () => {
         firstAidDefinition.document.effects[0]!.id
       ),
       target: { kind: 'ACTOR', actorId: base.character.id },
-      acknowledgedWarnings: ['TARGET_NOT_DYING', 'TARGET_RANGE_UNCHECKED']
+      acknowledgedWarnings: ['TARGET_DISPOSITION', 'TARGET_NOT_DYING', 'TARGET_RANGE_UNCHECKED']
     })
     await setCurrentActor(base, base.lurker.id)
     const before = await base.version()

@@ -91,7 +91,7 @@ export function encounterActionChoiceTarget(
     kind: 'ACTOR',
     requiresOtherCreature:
       targeting?.selectionKind === 'SINGLE_TARGET' &&
-      Boolean(targeting.excludesSelf || targeting.refusesSelf)
+      (targeting.self === 'WARN' || targeting.self === 'REFUSED')
   }
 }
 

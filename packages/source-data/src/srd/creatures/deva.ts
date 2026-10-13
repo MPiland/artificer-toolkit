@@ -266,7 +266,7 @@ export const deva: CreatureAuthored = {
             targeting: {
               selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
               dispositionKind: S.TARGET_DISPOSITION_KIND.ANY,
-              excludesSelf: true
+              self: 'WARN'
             }
           },
           paths: [

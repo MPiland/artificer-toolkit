@@ -81,11 +81,11 @@ describe('encounter action target disposition', () => {
 
 /** SRD "Targeting Yourself" (D99): a creature may target itself unless the action says otherwise. */
 describe('encounter action self target', () => {
-  function selfWarnings(input: {
+  function selfPolicy(input: {
     targeting: CompiledActionTargetPolicy['targeting']
     makesAttackRoll?: boolean
   }) {
-    const warnings = evaluateEncounterActionTargetPolicy({
+    return evaluateEncounterActionTargetPolicy({
       actor: { id: 'source', disposition: 'FRIENDLY' },
       target: { id: 'source', disposition: 'FRIENDLY' },
       targetPolicy: {
@@ -97,6 +97,10 @@ describe('encounter action self target', () => {
       sceneContext: null,
       makesAttackRoll: input.makesAttackRoll ?? false
     })
+  }
+
+  function selfWarnings(input: Parameters<typeof selfPolicy>[0]) {
+    const warnings = selfPolicy(input)
     if (warnings === null) throw new Error('Expected a resolvable single-target policy.')
     return warnings.filter((warning) => warning.code === 'TARGET_DISPOSITION')
   }
@@ -116,12 +120,28 @@ describe('encounter action self target', () => {
     ).toHaveLength(1)
   })
 
-  it('warns when the authored targeting excludes its own user', () => {
+  it('warns when the authored targeting warns about its own user', () => {
     expect(
       selfWarnings({
-        targeting: { selectionKind: 'SINGLE_TARGET', dispositionKind: 'ANY', excludesSelf: true }
+        targeting: { selectionKind: 'SINGLE_TARGET', dispositionKind: 'ANY', self: 'WARN' }
       })
     ).toEqual([{ code: 'TARGET_DISPOSITION', message: 'This action targets another creature.' }])
+  })
+
+  it('refuses outright when the authored targeting refuses its own user', () => {
+    expect(
+      selfPolicy({
+        targeting: { selectionKind: 'SINGLE_TARGET', dispositionKind: 'ANY', self: 'REFUSED' }
+      })
+    ).toBeNull()
+  })
+
+  it('allows its own user when the authored targeting says so', () => {
+    expect(
+      selfWarnings({
+        targeting: { selectionKind: 'SINGLE_TARGET', dispositionKind: 'ANY', self: 'ALLOWED' }
+      })
+    ).toEqual([])
   })
 
   it('warns when an any-target action that makes an attack roll targets its own user', () => {
@@ -347,10 +367,10 @@ describe('encounter action target range', () => {
     ])
   })
 
-  it('warns an excludes-self action aimed at its own user, whatever the dispositions', () => {
+  it('warns a self-warning action aimed at its own user, whatever the dispositions', () => {
     expect(
       rangeWarnings({
-        targeting: { selectionKind: 'SINGLE_TARGET', dispositionKind: 'ANY', excludesSelf: true },
+        targeting: { selectionKind: 'SINGLE_TARGET', dispositionKind: 'ANY', self: 'WARN' },
         targetId: 'source',
         dispositions: ['NEUTRAL', 'NEUTRAL'],
         scene: { source: token(0, 0), target: token(0, 0) }

@@ -9,6 +9,7 @@ import {
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import {
+  encounterBasicActionCheckLabel,
   encounterBasicActionCheckPendingSnapshot,
   encounterBasicActionCheckTrigger,
   evaluateEncounterBasicActionCheck,
@@ -17,7 +18,6 @@ import {
 import {
   completeEncounterEscapeCheckResult,
   encounterActorsAfterEscape,
-  encounterEscapeCheckLabel,
   encounterEscapeEndedConditionIds,
   findEncounterHolderEscape,
   prepareEncounterEscapeCheck
@@ -178,9 +178,9 @@ async function settle(context: ReturnType<typeof prepare>, faces: number[]) {
 
 describe('Escape check', () => {
   it('names a skill check by its ability and an ability check by the ability', () => {
-    expect(encounterEscapeCheckLabel(system, ATHLETICS)).toBe('Strength (Athletics)')
-    expect(encounterEscapeCheckLabel(system, STRENGTH)).toBe('Strength')
-    expect(() => encounterEscapeCheckLabel(system, testUuid(77))).toThrow()
+    expect(encounterBasicActionCheckLabel(system, ATHLETICS)).toBe('Strength (Athletics)')
+    expect(encounterBasicActionCheckLabel(system, STRENGTH)).toBe('Strength')
+    expect(() => encounterBasicActionCheckLabel(system, testUuid(77))).toThrow()
   })
 
   it('rolls with advantage while the holder carries a Help, naming the Help as the source', () => {

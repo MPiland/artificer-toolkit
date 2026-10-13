@@ -623,7 +623,7 @@ describe('First Aid, a System basic action with a check (D98)', () => {
       () => null,
       (caught: unknown) => caught
     )
-    expect(refused).not.toBeNull()
+    expect(String(refused)).toContain('does not permit this target')
     expect(JSON.stringify(refused)).not.toContain('RULE_WARNINGS')
     expect(await saves(fixture)).toEqual(dying)
     expect(await firstAidCards(fixture)).toEqual([])

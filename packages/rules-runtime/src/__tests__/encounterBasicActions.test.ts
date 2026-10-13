@@ -301,9 +301,8 @@ describe('basic action mechanics (Q11)', () => {
     expect(warnings(ogre)).toEqual([
       { code: 'TARGET_DISPOSITION', message: 'This action needs a willing target.' }
     ])
-    expect(warnings(fighter)).toEqual([
-      { code: 'TARGET_DISPOSITION', message: 'This action targets another creature.' }
-    ])
+    // Aiming it at its own user is a refusal, not an overridable warning.
+    expect(warnings(fighter)).toBeNull()
   })
 
   it('First Aid needs exactly one other creature', () => {
@@ -332,7 +331,14 @@ describe('basic action mechanics (Q11)', () => {
     ])
     // Aiming it at its own user is a refusal, not an overridable warning.
     expect(warnings(fighter)).toBeNull()
-    expect(warnings(rogue)).not.toContainEqual(expect.objectContaining({ code: 'TARGET_DISPOSITION' }))
+    expect(warnings(rogue)).not.toContainEqual(
+      expect.objectContaining({ code: 'TARGET_DISPOSITION' })
+    )
+    // It needs a willing creature: a hostile one only warns, and the table can override it.
+    expect(warnings(ogre)).toContainEqual({
+      code: 'TARGET_DISPOSITION',
+      message: 'This action needs a willing target.'
+    })
   })
 })
 

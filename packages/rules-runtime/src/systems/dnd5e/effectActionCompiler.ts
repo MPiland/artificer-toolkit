@@ -86,7 +86,7 @@ import { DND5E_ADD_SPEED_TO_MOVEMENT_PROPOSAL_OPERATION_KEY } from './addSpeedTo
 export const DND5E_EFFECT_ACTION_FAMILY_KEY = 'effect-action'
 const DND5E_HEAL_PROPOSAL_OPERATION_KEY = 'dnd5e.heal-proposal'
 const DND5E_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY = 'dnd5e.temporary-hit-points-proposal'
-export const DND5E_STABILIZE_PROPOSAL_OPERATION_KEY ='dnd5e.stabilize-proposal'
+export const DND5E_STABILIZE_PROPOSAL_OPERATION_KEY = 'dnd5e.stabilize-proposal'
 const DND5E_MODIFIER_GRANT_PROPOSAL_OPERATION_KEY = 'dnd5e.modifier-grant-proposal'
 const DND5E_MANUAL_ADJUDICATION_PROPOSAL_OPERATION_KEY = 'dnd5e.manual-adjudication-proposal'
 export const DND5E_DAMAGE_PROPOSAL_OPERATION_KEY = 'dnd5e.damage-proposal'
@@ -2055,6 +2055,8 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
   const effect = action.compiledEffect
   const invocation = effect.invocation
   const grantPlan = modifierGrantPlan(action)
+  // A CHECK action rolls its authored check against a fixed DC; a contest waits for ATTACK-7.
+  const checkAction = invocation.triggerCode === 'CHECK'
   const supportsSelf =
     invocation.range.rangeKind === 'SELF' && invocation.targeting?.selectionKind === 'SELF'
   // A DISTANCE or Touch range only warns when the target is out of range (D11).
@@ -2066,9 +2068,11 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
         invocation.range.amount > 0 &&
         invocation.range.longAmount === undefined)) &&
     invocation.targeting?.selectionKind === 'SINGLE_TARGET' &&
-    // A grant may ask for a willing target (Help): an unwilling one only warns, and the table can override it.
+    // A grant (Help) or a check (First Aid) may ask for a willing target: an unwilling one only warns,
+    // and the table can override it.
     (invocation.targeting.dispositionKind === 'ANY' ||
-      (invocation.targeting.dispositionKind === 'WILLING' && grantPlan !== null)) &&
+      (invocation.targeting.dispositionKind === 'WILLING' &&
+        (grantPlan !== null || checkAction))) &&
     // A grant's excluded creature types stay on the invocation for the room to enforce.
     (grantPlan !== null || !invocation.targeting.excludedCreatureTypeIds?.length)
   // A Legendary Action option is free; the Feature charge it spends is its cost.
@@ -2079,8 +2083,6 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
       : (invocation.activation.code === 'ACTION' ||
           invocation.activation.code === 'BONUS_ACTION') &&
         invocation.activation.amount === 1)
-  // A CHECK action rolls its authored check against a fixed DC; a contest waits for ATTACK-7.
-  const checkAction = invocation.triggerCode === 'CHECK'
   if (
     invocation.kind !== 'ACTION' ||
     (invocation.triggerCode !== 'ACTIVATED' &&
@@ -2119,7 +2121,9 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
   // A resolution names no check choice, so the action must list exactly one.
   if (
     invocation.triggerCode === 'CHECK' &&
-    invocation.check.checks.skillIds.length + invocation.check.checks.abilityDefinitionIds.length !== 1
+    invocation.check.checks.skillIds.length +
+      invocation.check.checks.abilityDefinitionIds.length !==
+      1
   )
     unsupported('D&D check action must list exactly one check.')
   if (outcome.effectKind === 'CONDITION') {

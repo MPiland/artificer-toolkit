@@ -250,7 +250,7 @@ function helpEffect(actionId: string) {
       targeting: {
         selectionKind: 'SINGLE_TARGET' as const,
         dispositionKind: 'WILLING' as const,
-        excludesSelf: true
+        self: 'REFUSED'
       }
     }
   )
@@ -305,8 +305,8 @@ function firstAidEffect(actionId: string) {
       range: { id: basicActionChildId(actionId, 0x211, 1), rangeKind: RANGE_KIND.TOUCH },
       targeting: {
         selectionKind: 'SINGLE_TARGET' as const,
-        dispositionKind: 'ANY' as const,
-        refusesSelf: true
+        dispositionKind: 'WILLING' as const,
+        self: 'REFUSED' as const
       }
     },
     paths: [

@@ -94,10 +94,7 @@ export async function persistEncounterBasicAction(
     throw new Error('Live Session basic action scope mismatch.')
   const { check } = input
   // A check action rolls its check unless its target was not dying (an acknowledged warning).
-  if (
-    check === null &&
-    !input.ruleOverrides.some((warning) => warning.code === 'TARGET_NOT_DYING')
-  )
+  if (check === null && !input.ruleOverrides.some((warning) => warning.code === 'TARGET_NOT_DYING'))
     throw new Error('Live Session basic action check scope mismatch.')
   if (check === null && input.consumedGrants.length > 0)
     throw new Error('Live Session basic action check scope mismatch.')

@@ -19,8 +19,7 @@ export async function readBasicActionScopeAdmission(
   }
 ) {
   const { command } = input
-  if (command.type === 'RESOLVE_ACTION')
-    return readBasicActionAdmission(ctx, { ...input, command })
+  if (command.type === 'RESOLVE_ACTION') return readBasicActionAdmission(ctx, { ...input, command })
   if (command.type === 'ESCAPE_RELATIONSHIP') return readEscapeAdmission(ctx, { ...input, command })
   const occurrence = await ctx.db
     .query('encounterRuleOccurrences')

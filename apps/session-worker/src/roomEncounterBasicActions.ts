@@ -29,7 +29,7 @@ import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
 import type { RoomEncounterStore, RoomTransaction } from './roomEncounterStore.js'
 import type { RoomInputs } from './roomInputs.js'
 
-export type RoomBasicActionInput = {
+type RoomBasicActionInput = {
   ctx: EncounterWriteTransaction
   store: RoomEncounterStore
   transaction: RoomTransaction

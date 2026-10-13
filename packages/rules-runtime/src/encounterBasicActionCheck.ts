@@ -1,5 +1,3 @@
-import type { CompiledActionTargetPolicy } from '@artificer-toolkit/schema/projections/characterMechanics'
-import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { ServerRuleExecutionApplicationOutputsDto } from '@artificer-toolkit/schema/shared/ruleExecutionApplicationOutputs'
 import { basicActionCheckApplicationOutputDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
 import {
@@ -8,7 +6,6 @@ import {
 } from '@artificer-toolkit/schema/shared/ruleExecutionDirectActionPendingContexts'
 import type { characterMechanicsTargetStateDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
 import type { EncounterRuleRollTriggerDto } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
-import type { EncounterRuleWarningDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
 import {
   serverKernelRuleExecutionPendingSnapshotDtoSchema,
   type ServerKernelRuleExecutionPendingSnapshotDto
@@ -18,8 +15,6 @@ import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/sh
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { CharacterStabilizeOutcomeApplication } from './characterRuleActionSystemAdapter.js'
-import { TARGET_NOT_DYING_WARNING } from './encounterActionRuleWarnings.js'
-import { evaluateEncounterActionTargetPolicy } from './encounterActionTargetPolicy.js'
 import { isEncounterTargetDying } from './encounterActorDefeat.js'
 import { consumableGrants } from './encounterGrantLifetimes.js'
 import { EncounterValidationError } from './encounterErrors.js'
@@ -51,34 +46,6 @@ const basicActionCheckDefinitionBySystemId: ReadonlyMap<
   typeof createDnd5eBasicActionCheckDefinition
 > = new Map([[DND5E_SYSTEM_ID, createDnd5eBasicActionCheckDefinition]])
 
-/** First Aid is a touch action on one willing creature, like the Healer's Kit. */
-const touchPolicy: CompiledActionTargetPolicy = {
-  range: { id: 'basic-action-touch', rangeKind: 'TOUCH' },
-  targeting: { selectionKind: 'SINGLE_TARGET', dispositionKind: 'WILLING' },
-  shape: null,
-  pathOverrides: []
-}
-
-/**
- * The overridable warnings of a stabilizing basic action: a target that is not dying, plus the
- * touch targeting warnings the Healer's Kit reports.
- */
-export function encounterBasicActionStabilizeWarnings(input: {
-  actor: EncounterRunActorState
-  target: MovementTarget
-}): EncounterRuleWarningDto[] {
-  return [
-    ...(isEncounterTargetDying(input.target) ? [] : [TARGET_NOT_DYING_WARNING]),
-    ...(evaluateEncounterActionTargetPolicy({
-      actor: input.actor,
-      target: input.target.actor,
-      targetPolicy: touchPolicy,
-      sceneContext: null,
-      makesAttackRoll: false
-    }) ?? [])
-  ]
-}
-
 /** The mechanics application of a check that reached its DC: the target becomes stable. */
 export function encounterBasicActionStabilizeApplication(
   targetActorId: string
@@ -93,7 +60,7 @@ export function encounterBasicActionStabilizeApplication(
   }
 }
 
-/** The check's name as the roller reads it: "Wisdom (Medicine)". */
+/** The check's name as the roller reads it: "Strength" or "Wisdom (Medicine)". */
 export function encounterBasicActionCheckLabel(
   system: SystemAuthoredDto,
   checkDefinitionId: string
@@ -101,6 +68,8 @@ export function encounterBasicActionCheckLabel(
   // Only current Systems define UUID-backed check definitions.
   if (!('schemaVersion' in system) || system.schemaVersion !== 4)
     throw new EncounterValidationError('The System defines no check definitions.')
+  const abilityCheck = system.abilities.find((entry) => entry.id === checkDefinitionId)
+  if (abilityCheck) return abilityCheck.label
   const skill = system.skills.find((entry) => entry.id === checkDefinitionId)
   if (!skill) throw new EncounterValidationError('The basic action check is not in the System.')
   const ability = system.abilities.find((entry) => entry.id === skill.governingAbilityDefinitionId)
@@ -132,7 +101,7 @@ export function prepareEncounterBasicActionCheck<
   commandFingerprint: string
   definition: { id: string; version: number; checksum: string; label: string }
   system: SystemAuthoredDto
-  check: { checkDefinitionId: string; dc: number }
+  check: { checkKind: 'SKILL' | 'ABILITY'; checkDefinitionId: string; dc: number }
   checkLabel: string
   helper: MovementTarget<TCharacterFacts>
   target: MovementTarget<TCharacterFacts>
@@ -144,7 +113,7 @@ export function prepareEncounterBasicActionCheck<
   if (!target.actor.sourceId) throw new EncounterValidationError('Choose a Character to stabilize.')
   const facts = actorContestFacts({
     actorId: helper.actor.id,
-    checkKind: 'SKILL',
+    checkKind: input.check.checkKind,
     checkDefinitionId: input.check.checkDefinitionId,
     gameSystemId: input.gameSystemId,
     system: input.system,
@@ -167,7 +136,11 @@ export function prepareEncounterBasicActionCheck<
       helperActorId: helper.actor.id,
       targetActorId: target.actor.id,
       targetCharacterId: target.actor.sourceId,
-      check: { ...input.check, label: input.checkLabel },
+      check: {
+        checkDefinitionId: input.check.checkDefinitionId,
+        label: input.checkLabel,
+        dc: input.check.dc
+      },
       d20: {
         rollMode: facts.rollMode,
         contributors: facts.contributors,

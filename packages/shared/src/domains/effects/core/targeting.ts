@@ -83,3 +83,38 @@ export const TARGET_DISPOSITION_KIND_REGISTRY: Record<
 export const TARGET_DISPOSITION_KIND_OPTIONS = valuesOf(
   TARGET_DISPOSITION_KIND_REGISTRY
 ) as readonly TargetDispositionKindOption[]
+
+export const TARGET_SELF_POLICY = {
+  ALLOWED: 'ALLOWED',
+  WARN: 'WARN',
+  REFUSED: 'REFUSED'
+} as const
+
+export type TargetSelfPolicy = keyof typeof TARGET_SELF_POLICY
+
+export type TargetSelfPolicyOption = CoreMeta<TargetSelfPolicy>
+
+export const TARGET_SELF_POLICY_REGISTRY: Record<TargetSelfPolicy, TargetSelfPolicyOption> = {
+  [TARGET_SELF_POLICY.ALLOWED]: {
+    code: TARGET_SELF_POLICY.ALLOWED,
+    label: 'Allowed',
+    tooltip: 'The user may name themself.',
+    description: 'The user may name themself as the target.'
+  },
+  [TARGET_SELF_POLICY.WARN]: {
+    code: TARGET_SELF_POLICY.WARN,
+    label: 'Warn',
+    tooltip: 'Naming the user warns, and can be overridden.',
+    description: 'Naming the user as the target warns, and the table can override it.'
+  },
+  [TARGET_SELF_POLICY.REFUSED]: {
+    code: TARGET_SELF_POLICY.REFUSED,
+    label: 'Refused',
+    tooltip: 'The user cannot name themself.',
+    description: 'Naming the user as the target is refused outright.'
+  }
+} as const
+
+export const TARGET_SELF_POLICY_OPTIONS = valuesOf(
+  TARGET_SELF_POLICY_REGISTRY
+) as readonly TargetSelfPolicyOption[]

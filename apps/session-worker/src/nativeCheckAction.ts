@@ -43,7 +43,12 @@ export async function planNativeLiveCheckAction(input: {
   command: ResolveEncounterActionInputDto
   fingerprint: string
   capability: EncounterBasicActionCapabilityDescriptor
-  state: { id: string; version: number; gameSystemId: string; optionalCombatSnapshotChecksum: string | null }
+  state: {
+    id: string
+    version: number
+    gameSystemId: string
+    optionalCombatSnapshotChecksum: string | null
+  }
   system: SystemAuthoredDto
   actors: readonly EncounterRunActorState[]
   actor: CheckTarget
@@ -58,9 +63,13 @@ export async function planNativeLiveCheckAction(input: {
   const { capability, command, state, actor, target } = input
   const invocation = capability.compiledEffect.invocation
   if (invocation.triggerCode !== 'CHECK') throw new Error('The selected action makes no check.')
-  const checkDefinitionId = invocation.check.checks.skillIds[0]
-  if (!checkDefinitionId || invocation.check.dc.kind !== 'FIXED')
-    throw new EncounterValidationError('This check action is not supported yet.')
+  // The compiler admits exactly one check against a fixed DC; the roller takes either kind.
+  const { checks, dc } = invocation.check
+  if (dc.kind !== 'FIXED') throw new Error('A compiled check action has a fixed DC.')
+  const skillId = checks.skillIds[0]
+  const checkDefinitionId = skillId ?? checks.abilityDefinitionIds[0]
+  if (!checkDefinitionId) throw new Error('A compiled check action lists one check.')
+  const checkKind = skillId ? 'SKILL' : 'ABILITY'
   const settled = input.actionEconomy
     ? consumeEncounterActionEconomy({
         actor: actor.actor,
@@ -83,7 +92,7 @@ export async function planNativeLiveCheckAction(input: {
       label: capability.label
     },
     system: input.system,
-    check: { checkDefinitionId, dc: invocation.check.dc.value },
+    check: { checkKind, checkDefinitionId, dc: dc.value },
     checkLabel: encounterBasicActionCheckLabel(input.system, checkDefinitionId),
     helper: actor,
     target
@@ -134,7 +143,8 @@ export async function planNativeLiveCheckAction(input: {
               }),
               occurredAt: new Date().toISOString(),
               applications: [encounterBasicActionStabilizeApplication(context.targetActorId)],
-              expectedCharacterStreamVersion: target.characterFacts?.active.play.streamVersion ?? null,
+              expectedCharacterStreamVersion:
+                target.characterFacts?.active.play.streamVersion ?? null,
               effectiveMaximumHitPoints: target.effectiveMaximumHitPoints,
               effectiveScalarValues: target.effectiveScalarValues,
               forceVersionAdvance: false

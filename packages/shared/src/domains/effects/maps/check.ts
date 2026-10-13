@@ -65,5 +65,8 @@ export const CHECK_NODE_MAP = check.define('check', ({ map, nodes }) => {
       'checks',
       groupObject(['checks'], 'Checks', () => CHECK_CHOICE_NODE_MAP, { presentation: 'inline' })
     )
-    .set('dc', groupObject(['dc'], 'DC', () => CHECK_DC_NODE_MAP, { presentation: 'inline' }))
+    .set(
+      'dc',
+      groupObject(['dc'], 'DC', () => CHECK_DC_NODE_MAP, { presentation: 'inline' })
+    )
 })

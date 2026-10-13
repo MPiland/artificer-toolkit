@@ -35,7 +35,11 @@ export interface EncounterBasicActionDiscovery {
 }
 
 /** The identity of one authored basic action of one actor (the `actionId` of RESOLVE_ACTION). */
-export function encounterBasicActionId(actorId: string, definitionId: string, effectId: string): string {
+export function encounterBasicActionId(
+  actorId: string,
+  definitionId: string,
+  effectId: string
+): string {
   return `${actorId}${ACTION_ID_SEPARATOR}${definitionId}${EFFECT_ID_SEPARATOR}${effectId}`
 }
 
@@ -52,7 +56,9 @@ export function readEncounterBasicActionEffect(
   entry: EncounterBasicActionEntry,
   actionId: string
 ): EncounterBasicActionEntry['document']['effects'][number] | null {
-  const effectId = actionId.slice(actionId.lastIndexOf(EFFECT_ID_SEPARATOR) + EFFECT_ID_SEPARATOR.length)
+  const effectId = actionId.slice(
+    actionId.lastIndexOf(EFFECT_ID_SEPARATOR) + EFFECT_ID_SEPARATOR.length
+  )
   return entry.document.effects.find((effect) => effect.id === effectId) ?? null
 }
 

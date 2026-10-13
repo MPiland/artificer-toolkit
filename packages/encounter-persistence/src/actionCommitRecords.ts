@@ -138,6 +138,7 @@ export async function recordActionRoot(
       ruleOccurrenceId: execution.occurrenceId,
       ruleResultChecksum,
       optionalCombatSnapshotChecksum: state.optionalCombatSnapshotChecksum,
+      checkReceipt: null,
       ...input.commandFields,
       commandFingerprint: input.fingerprint,
       actorUserId: input.initiatorUserId,

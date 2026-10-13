@@ -1,4 +1,9 @@
-import type { TargetDispositionKind, TargetSelectionKind, ScalableValueAuthored } from '#core'
+import type {
+  TargetDispositionKind,
+  TargetSelectionKind,
+  TargetSelfPolicy,
+  ScalableValueAuthored
+} from '#core'
 
 export type TargetingAuthored =
   | {
@@ -7,9 +12,8 @@ export type TargetingAuthored =
   | {
       selectionKind: Extract<TargetSelectionKind, 'SINGLE_TARGET'>
       dispositionKind?: TargetDispositionKind
-      excludesSelf?: boolean
-      /** Naming the user is refused outright, where `excludesSelf` only warns. */
-      refusesSelf?: boolean
+      /** Naming the user: allowed (default), an overridable warning, or refused outright. */
+      self?: TargetSelfPolicy
       excludedCreatureTypeIds?: string[]
     }
   | {

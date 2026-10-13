@@ -90,6 +90,41 @@ describe('receipt persistence headers', () => {
     }
   })
 
+  it('roots a RESOLVE_ACTION in a rule occurrence or in a check receipt, never both or neither', () => {
+    const root = {
+      ...runMetadata,
+      id,
+      version: 1,
+      commandJson: '{}',
+      replayReceiptJson: '{}',
+      replayReceiptChecksum: checksum,
+      commandType: 'RESOLVE_ACTION' as const,
+      label: 'First Aid',
+      ruleOverrides: [],
+      consumedGrants: [],
+      addedConcentrationCasterId: null,
+      speedBonusTurn: null
+    }
+    const occurrence = {
+      ruleOccurrenceId: id,
+      ruleResultChecksum: checksum,
+      optionalCombatSnapshotChecksum: checksum
+    }
+    const unrooted = {
+      ruleOccurrenceId: null,
+      ruleResultChecksum: null,
+      optionalCombatSnapshotChecksum: null
+    }
+    const checkReceipt = { actorId, actionEconomy: null, checkOccurrenceId: null }
+    const parses = (fields: object) =>
+      encounterStoredRunCommandSchema.safeParse({ ...root, ...fields }).success
+    expect(parses({ ...occurrence, checkReceipt: null })).toBe(true)
+    expect(parses({ ...unrooted, checkReceipt })).toBe(true)
+    expect(parses({ ...occurrence, checkReceipt })).toBe(false)
+    expect(parses({ ...unrooted, checkReceipt: null })).toBe(false)
+    expect(parses({ ...occurrence, ruleOccurrenceId: null, checkReceipt: null })).toBe(false)
+  })
+
   it('accepts exactly the logical Run command discriminants without their branch bodies', () => {
     const commandTypes = encounterStoredRunCommandSchema.def.options.flatMap((option) => {
       const discriminator = option.shape.commandType.def
