@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { EncounterActorDispositionDto } from '@artificer-toolkit/schema/api/encounterData'
 import type { CompiledActionTargetPolicy } from '@artificer-toolkit/schema/projections/characterMechanics'
-import type { SceneGrid } from '@artificer-toolkit/shared/vtt'
+import { sceneRangeBand, type SceneGrid } from '@artificer-toolkit/shared/vtt'
 
 import {
   encounterActionLongRangeContributor,
@@ -463,6 +463,41 @@ describe('encounter action target range', () => {
       })
     ).toEqual(['Long range'])
   })
+
+  it.each(['EQUAL', 'ALTERNATING', 'EUCLIDEAN'] as const)(
+    'agrees with the shared range band the table previews on a %s grid, from a Large source',
+    (diagonalPolicy) => {
+      const grid: SceneGrid = { ...FEET_GRID, diagonalPolicy }
+      const range = {
+        id: 'range',
+        rangeKind: 'DISTANCE' as const,
+        amount: 20,
+        longAmount: 40,
+        unit: 'FEET' as const
+      }
+      const source = token(10, 10, 2)
+      for (let column = 0; column <= 22; column += 1)
+        for (let row = 0; row <= 22; row += 1) {
+          const target = token(column, row)
+          const band = sceneRangeBand(grid, source, target, {
+            normal: { amount: 20, unit: 'FEET' },
+            long: { amount: 40, unit: 'FEET' }
+          })
+          const warnings = rangeWarnings({ range, scene: { grid, source, target } })
+          const contributor = encounterActionLongRangeContributor({
+            targetPolicy: {
+              range,
+              targeting: { selectionKind: 'SINGLE_TARGET', dispositionKind: 'ANY' },
+              shape: null,
+              pathOverrides: []
+            },
+            sceneContext: { grid, sourceToken: source, targetToken: target }
+          })
+          expect(warnings.length > 0, `${diagonalPolicy} ${column},${row}`).toBe(band === 'OUT')
+          expect(contributor !== null, `${diagonalPolicy} ${column},${row}`).toBe(band === 'LONG')
+        }
+    }
+  )
 
   it('refuses policies the single-target path cannot resolve', () => {
     const cone = {

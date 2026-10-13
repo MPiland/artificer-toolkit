@@ -4,10 +4,11 @@ import type { CampaignSceneStateDto } from '@artificer-toolkit/schema/api/vttSce
 import {
   canMoveBetween,
   measureScenePathDistance,
-  pointAreaInSceneCoordinates,
   SceneBarrierIndex,
   sceneDistanceAsCoordinateLength,
   scenePointInPolygon,
+  sceneRangeBand,
+  sceneRangeOutline,
   type SceneGrid,
   type ScenePoint,
   type SceneTokenSense,
@@ -119,7 +120,7 @@ export type VttScenePresentationOverlay =
       id: string
       kind: 'POLYGON'
       label: string
-      purpose: 'AURA' | 'TARGET' | 'TRAP'
+      purpose: 'AURA' | 'RANGE' | 'TARGET' | 'TRAP'
       points: ScenePoint[]
     }
 
@@ -165,14 +166,21 @@ export interface VttActionPreview {
 }
 
 const rangeColor = 0x0891b2
-const targetColor = 0xe03131
+const targetColor = 0x1c7ed6
 /** Scene pixels the target ring clears the token's footprint by. */
 const targetRingMargin = 6
+const targetRingBands = {
+  LONG: { color: 0xf08c00, label: 'Target in long range' },
+  NORMAL: { color: 0x2f9e44, label: 'Target in range' },
+  OUT: { color: 0xe03131, label: 'Target out of range' }
+} as const
 
 /**
- * The RANGE circles around the acting token and the TARGET ring around the chosen target, in Scene
- * coordinates. A range is approximated from the token's center. SELF, UNLIMITED and scaled ranges
- * draw no circle.
+ * The RANGE outlines around the acting token and the TARGET ring around the chosen target, in Scene
+ * coordinates. Both come from the shared range functions the rules judge a target with, so the
+ * outline is the region the server accepts and the ring's color and label say whether the target
+ * is in range, in long range or out of range. SELF, UNLIMITED and scaled ranges draw no outline and
+ * leave the ring neutral.
  */
 export function actionPreviewOverlays(
   preview: VttActionPreview | null,
@@ -189,30 +197,36 @@ export function actionPreviewOverlays(
         : []
   if (source) {
     for (const [index, distance] of distances.entries()) {
-      const area = pointAreaInSceneCoordinates({ kind: 'RADIUS', radius: distance }, scene.grid)
-      if (area?.kind === 'RADIUS')
+      const points =
+        distance.scaling === undefined && sceneRangeOutline(scene.grid, source, distance)
+      if (points)
         overlays.push({
-          center: source.position,
           color: rangeColor,
           id: `action-range-${index}`,
-          kind: 'CIRCLE',
+          kind: 'POLYGON',
           label: index === 0 ? 'Action range' : 'Action long range',
-          purpose: 'RANGE',
-          radius: area.radius
+          points,
+          purpose: 'RANGE'
         })
     }
   }
   const target = scene.tokens.find((token) => token.id === preview.targetTokenId)
-  if (target)
+  if (target) {
+    const [normal, long] = distances
+    const measurable = source && normal && distances.every(({ scaling }) => scaling === undefined)
+    const band = measurable
+      ? targetRingBands[sceneRangeBand(scene.grid, source, target, { long, normal })]
+      : { color: targetColor, label: 'Action target' }
     overlays.push({
       center: target.position,
-      color: targetColor,
+      color: band.color,
       id: 'action-target',
       kind: 'CIRCLE',
-      label: 'Action target',
+      label: band.label,
       purpose: 'TARGET',
       radius: Math.max(target.width, target.height) / 2 + targetRingMargin
     })
+  }
   return overlays
 }
 

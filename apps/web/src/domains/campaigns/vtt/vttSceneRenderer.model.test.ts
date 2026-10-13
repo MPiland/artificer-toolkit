@@ -4,7 +4,13 @@ import {
   campaignSceneStateDtoSchema,
   type CampaignSceneStateDto
 } from '@artificer-toolkit/schema/api/vttScenes'
-import { SceneBarrierIndex, type SceneGrid } from '@artificer-toolkit/shared/vtt'
+import {
+  SceneBarrierIndex,
+  scenePointInPolygon,
+  sceneRangeBand,
+  sceneRangeOutline,
+  type SceneGrid
+} from '@artificer-toolkit/shared/vtt'
 import { tabletopLiveScene } from './CampaignTabletop.stories.fixtures'
 import {
   actionPreviewOverlays,
@@ -77,22 +83,56 @@ describe('VTT scene renderer model', () => {
       targetTokenId: string | null = null
     ): VttActionPreview => ({ range, sourceTokenId: source.id, targetTokenId })
 
-    it('draws the normal and long radii of a ranged attack around the acting token', () => {
+    const sceneWith = (...positions: { x: number; y: number }[]) => ({
+      ...tabletopLiveScene,
+      tokens: [source, ...positions.map((position) => ({ ...target, position }))]
+    })
+    const outlineOf = (
+      scene: Pick<CampaignSceneStateDto, 'grid'>,
+      distance: ReturnType<typeof feet>
+    ) => sceneRangeOutline(scene.grid, source, distance)
+
+    it('outlines the region a ranged attack reaches, for its normal and long range', () => {
       expect(
         actionPreviewOverlays(
           preview({ kind: 'RANGED', normal: feet(80), long: feet(320) }),
           tabletopLiveScene
         )
       ).toMatchObject([
-        { kind: 'CIRCLE', purpose: 'RANGE', center: source.position, radius: 1120 },
-        { kind: 'CIRCLE', purpose: 'RANGE', center: source.position, radius: 4480 }
+        {
+          kind: 'POLYGON',
+          label: 'Action range',
+          points: outlineOf(tabletopLiveScene, feet(80)),
+          purpose: 'RANGE'
+        },
+        {
+          kind: 'POLYGON',
+          label: 'Action long range',
+          points: outlineOf(tabletopLiveScene, feet(320)),
+          purpose: 'RANGE'
+        }
       ])
     })
 
-    it('draws a reach or touch action as one radius', () => {
+    it('outlines a reach or touch action once, from the footprint edge', () => {
+      const overlays = actionPreviewOverlays(
+        preview({ kind: 'WITHIN', distance: feet(5) }),
+        tabletopLiveScene
+      )
+      expect(overlays).toMatchObject([
+        { kind: 'POLYGON', points: outlineOf(tabletopLiveScene, feet(5)), purpose: 'RANGE' }
+      ])
+      // A Large source covers cells 3-4 across and down; a circle of one cell from its center
+      // would stop short of the square next to it.
+      const large = { ...source, height: 140, position: { x: 280, y: 280 }, width: 140 }
+      const [outline] = actionPreviewOverlays(
+        { ...preview({ kind: 'WITHIN', distance: feet(5) }), sourceTokenId: large.id },
+        { ...tabletopLiveScene, tokens: [large] }
+      )
+      const adjacent = { x: 385, y: 245 }
       expect(
-        actionPreviewOverlays(preview({ kind: 'WITHIN', distance: feet(5) }), tabletopLiveScene)
-      ).toMatchObject([{ kind: 'CIRCLE', purpose: 'RANGE', center: source.position, radius: 70 }])
+        outline?.kind === 'POLYGON' && scenePointInPolygon(adjacent, { points: outline.points })
+      ).toBe(true)
     })
 
     it('draws no range for a self or unlimited action, or one without a range', () => {
@@ -139,6 +179,35 @@ describe('VTT scene renderer model', () => {
       expect((overlays[1] as { radius: number }).radius).toBeGreaterThan(
         Math.max(target.width, target.height) / 2
       )
+    })
+
+    it('tells the ring whether the target is in range, in long range or out of range', () => {
+      const range = { kind: 'RANGED' as const, normal: feet(30), long: feet(120) }
+      // The Scene counts 5 feet a cell and 30 feet is six cells; the source stands on one row.
+      const cases = [
+        { band: 'NORMAL', label: 'Target in range', cellsAway: 6 },
+        { band: 'LONG', label: 'Target in long range', cellsAway: 7 },
+        { band: 'OUT', label: 'Target out of range', cellsAway: 25 }
+      ] as const
+      const colors = new Set<number>()
+      for (const { band, cellsAway, label } of cases) {
+        const position = { x: source.position.x + cellsAway * 70, y: source.position.y }
+        const scene = sceneWith(position)
+        const moved = scene.tokens[1]
+        if (!moved) throw new Error('The Scene lost its target Token.')
+        expect(sceneRangeBand(scene.grid, source, moved, range)).toBe(band)
+        const ring = actionPreviewOverlays(preview(range, moved.id), scene).at(-1)
+        expect(ring).toMatchObject({ kind: 'CIRCLE', label, purpose: 'TARGET' })
+        colors.add(ring?.color ?? -1)
+      }
+      expect(colors.size).toBe(3)
+    })
+
+    it('rings a target without judging its range when the action has none to measure', () => {
+      for (const range of [{ kind: 'SELF' as const }, { kind: 'UNLIMITED' as const }])
+        expect(
+          actionPreviewOverlays(preview(range, target.id), tabletopLiveScene).at(-1)
+        ).toMatchObject({ label: 'Action target', purpose: 'TARGET' })
     })
 
     it('draws nothing without a preview', () => {
