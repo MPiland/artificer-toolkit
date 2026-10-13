@@ -6744,7 +6744,7 @@
           "origin": [],
           "acs": [
             {
-              "text": "Encounter reads that measure Scene lengths (cleaving facts, movement reaction contacts, combat perception and its contributions) never throw for an uncalibrated SQUARES grid or an overflowing length: the case is unrepresentable by type or handled by one shared measurement policy, proved by a test that fails before the fix.",
+              "text": "Encounter reads that measure Scene lengths (cleaving facts, movement reaction contacts, combat perception and its contributions) never throw: a Squares Scene measures each square as the System's 5 ft base square (D50 item 11), so every rule length measures correctly on it, and an authored length is bounded so it cannot overflow; proved by tests that fail before the fix.",
               "status": "TODO",
               "proof": [],
               "origin": [],

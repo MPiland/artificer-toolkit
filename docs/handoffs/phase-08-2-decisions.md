@@ -369,7 +369,7 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
 
   9. **Heal multipliers** apply the same way damage multipliers do, rounded down. This was found during the D48 fixes.
   10. **Ranged single-target** **`ON_USE`** **actions.** A `DISTANCE` range warns when out of range (D11). It isn't refused.
-  11. **Gridless Scenes** measure the edge-to-edge gap plus the System's base square (5 ft). That matches the grid rule, where adjacent is 5 ft, so reach means the same thing on every Scene.
+  11. **Gridless Scenes** measure the edge-to-edge gap plus the System's base square (5 ft). That matches the grid rule, where adjacent is 5 ft, so reach means the same thing on every Scene. A Scene whose distance unit is Squares measures each square as that same base square, so every rule length is measurable on every Scene; there is no uncalibrated square (user, restated 2026-10-13; hex grids are post-launch).
   12. **Area actions** (breath weapons, lines, cones, spheres) are confirmed as part of the queued area-targeting work (Phase 8.3, before closed beta). D48 proved Acid Breath's half damage on a single-target copy only.
   13. **Tests typecheck.** Add a repo typecheck config for `packages/rules-runtime/src/__tests__`, run through turbo and CI. Fix the two existing errors it finds: `dnd5eCombatMath.test.ts:815` and `encounterMovementReactionDecision.test.ts:47`.
 
