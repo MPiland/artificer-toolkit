@@ -7032,6 +7032,72 @@
               "origin": [],
               "note": "apps/web/src/forms/rendering/authoringNodeDefaults.ts: invocation default at 344-350, 355-360 and 639-644; createTargeting(...) as AuthoringGroupValues.",
               "id": "RELIABILITY-8.5"
+            },
+            {
+              "text": "Guided authoring forms are typed by their domain's form values: no `defaultValues: {} as object`, no per-file value readers or casts, no `session.system!`, and one shared summary/option/string-reader set instead of per-domain copies.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Registered 2026-10-13 from the React audit. `{} as object` in all 8 Guided<Subject>Authoring.tsx files (Background, Class, Creature, Equipment, Feat, Race, Spell, Vehicle); Summary/optionFor/readString duplicated across them.",
+              "id": "RELIABILITY-8.6"
+            },
+            {
+              "text": "Shared web rules are written once: enum labels go through formatEnumLabel, ReferenceOption is one type, and the Campaign owner-and-active permission comes from a server capability flag rather than 12 inline `role === 'OWNER' && status === 'ACTIVE'` checks.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Canonical formatter at apps/web/src/components/AuthoredDetail/detailFormatters.ts:10; about 15 local copies. Owner-and-active check counted at 12 non-test sites. ReferenceOption declared three times.",
+              "id": "RELIABILITY-8.7"
+            }
+          ]
+        },
+        {
+          "id": "RELIABILITY-9",
+          "title": "The web follows React data-flow rules",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": [],
+          "acs": [
+            {
+              "text": "An editor seeded from server data never overwrites the user's in-progress edits when the server record refreshes: it is keyed by the record, and an incoming change to a field being edited is surfaced, not silently applied.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Data loss. EncounterActorCard.tsx:80-86 resets initiative, HP, temp HP, visibility and notes on every `actor` change; CampaignClockEditor.tsx:42-48 resets day, time, dawn and dusk on every `clock` change. About 15 further prop-to-state reset effects follow the same pattern; each gets a `key` instead.",
+              "id": "RELIABILITY-9.1"
+            },
+            {
+              "text": "Lists that need every page get them from one query contract (or one shared hook), not a hand-written drain-all-pages effect per screen.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "18 effects of the form `if (status === 'CanLoadMore') loadMore(...)`; about 30 copies of the load-more button block.",
+              "id": "RELIABILITY-9.2"
+            },
+            {
+              "text": "No component writes a ref during render or corrects its own state in an effect after render; derived values are computed during render and latest-value refs are set in effects or event handlers.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Ref writes in render: Shell.tsx:125-126, AuthoringFormProvider.tsx:102-103, data/media.ts:173, CampaignSceneEditor:60/85, CampaignVttStage:142/151/370/555/619/668/876. Post-render state correction: CampaignSessionWorkspace:45-47, CampaignSceneObjectInspector useSelection, GuidedClass/Spell step, useSystemList cursors, AuthoringLayoutProvider isWideDesktop.",
+              "id": "RELIABILITY-9.3"
+            },
+            {
+              "text": "Production web code holds no test- or story-only modules, fixtures, or exports, no unused exports, and component files export components only.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "data/encounters/summaries.ts is imported only by CampaignEncounterBuilderPage.stories.tsx; also countDarknessZones, canUseGuidedSpellAuthoring, hasAuthoringDefaultKind, notificationHistoryLimit, storybookNavigation, VTT/sheet fixtures in domain folders, about 44 unused exports, and getSessionWorkspaceViews (CampaignSessionWorkspace.tsx:131) and isCampaignTableSettingsEditable (CampaignTableSettings.tsx:301) in component files. Also the CampaignEncounterWorkspace.tsx:147 `as EncounterCommandInputDto` cast and the startCharacterBuilderTiming wrapper.",
+              "id": "RELIABILITY-9.4"
+            },
+            {
+              "text": "Authoring form state has one owner: the top-level TanStack form and narrowly scoped contexts, with no child-to-parent state mirroring through effects.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Waits on the open question in phase-08-2-open-questions.md. AuthoringFormContext/AuthoringFormProvider (884 lines, about 70 fields, 26 useAuthoringForm() consumers) is fed by FormRenderer.tsx:441-459 through updateAuthoringFormState/updateAuthoringFormActions effects; AuthoringLayoutProvider layers a 17-field context on it; CharacterSheetRollContext is a 16-field controller.",
+              "id": "RELIABILITY-9.5"
             }
           ]
         }
