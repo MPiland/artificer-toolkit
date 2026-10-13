@@ -36,6 +36,7 @@ import {
 } from '../../tests/fixtures/sceneDefinitions'
 import { api } from '../_generated/api'
 import type { Doc } from '../_generated/dataModel'
+import { CONTENT_SNAPSHOT_BUILD_DELAY_MS } from '../contentSnapshots/marking'
 import { parseFogLayer, parseFogSave, readFogChunk } from '../scenes/fogDocuments'
 import { parseLiveEntity, readLiveSceneForUser } from '../scenes/liveDocuments'
 
@@ -150,6 +151,10 @@ async function fixture(withSecondScene = false) {
     path: [token.position, { x: 900, y: 100 }]
   })
   await checkpointRoom(base.campaign.id)
+  // Content Snapshot builds scheduled while seeding run on the real clock; settle them before the
+  // fake clock starts, or they finish between two snapshots and change `_scheduled_functions`.
+  await new Promise((resolve) => setTimeout(resolve, CONTENT_SNAPSHOT_BUILD_DELAY_MS))
+  await base.t.finishInProgressScheduledFunctions()
   vi.useFakeTimers()
   const blueprint = await base.owner.caller.mutation(createBlueprint, {
     gameSystemId: base.campaign.gameSystemId,
