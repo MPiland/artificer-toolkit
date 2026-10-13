@@ -191,9 +191,6 @@ describe('player encounter projection', () => {
       grants[0],
       { ...grants[1], label: null }
     ])
-    expect(
-      projectPlayerEncounterProjection(gm, noCharacters).actors[0]?.activeGrants[1]?.polarity
-    ).toBe('NEUTRAL')
   })
 
   it('shows a Concentration to its controllers and the GM only, hiding a hidden source label (SPELLS-5.11)', () => {

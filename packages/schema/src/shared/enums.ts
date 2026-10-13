@@ -1,3 +1,5 @@
+import { MODIFIER_KIND, VALUE_DOMAIN_CODE } from '@artificer-toolkit/shared/core'
+
 import { z, lazySchema } from '../zod.js'
 
 export const abilityCodeSchema = lazySchema(() =>
@@ -341,68 +343,9 @@ export const forcedMovementDistanceModeSchema = lazySchema(() =>
 )
 export const forcedMovementActionEconomySchema = lazySchema(() => z.enum(['NONE', 'REACTION']))
 
-export const valueDomainCodeSchema = lazySchema(() =>
-  z.enum([
-    'SPEED',
-    'ATTACK_ROLL',
-    'ATTACKS_AGAINST',
-    'OPPORTUNITY_ATTACK_IMMUNITY',
-    'ARMOR_CLASS',
-    'SAVE_DC',
-    'SAVING_THROW_MODIFIER',
-    'DAMAGE',
-    'CONDITION',
-    'HIT_POINTS_MAX',
-    'TEMPORARY_HIT_POINTS',
-    'RANGE',
-    'DURATION',
-    'SHAPE',
-    'CHARGE_LIMIT',
-    'CHARGE_RESET',
-    'INITIATIVE',
-    'ABILITY_CHECK',
-    'ABILITY_SCORE',
-    'SKILL_MODIFIER',
-    'PROFICIENCY_BONUS',
-    'MOVEMENT_MODE',
-    'SENSE_RANGE',
-    'SPELL_SLOT_COUNT',
-    'SPELL_SLOT_LEVEL_MAX',
-    'SPELLS_KNOWN',
-    'SPELLS_PREPARED',
-    'ACTION_COUNT',
-    'BONUS_ACTION_COUNT',
-    'REACTION_COUNT',
-    'ATTACKS_PER_ATTACK_ACTION',
-    'DAMAGE_RESISTANCE',
-    'DAMAGE_IMMUNITY',
-    'DAMAGE_VULNERABILITY',
-    'CONDITION_IMMUNITY',
-    'ATTRIBUTE'
-  ])
-)
+export const valueDomainCodeSchema = lazySchema(() => z.enum(VALUE_DOMAIN_CODE))
 
-export const modifierKindSchema = lazySchema(() =>
-  z.enum([
-    'BONUS',
-    'PENALTY',
-    'SET_VALUE',
-    'ABILITY_MODIFIER_BONUS',
-    'ADD_BONUS_DIE',
-    'REPLACE_DAMAGE_TYPE',
-    'ADVANTAGE',
-    'DISADVANTAGE',
-    'ENABLE',
-    'ADD_OPTION',
-    'REMOVE_OPTION',
-    'REPLACE_RANGE_KIND',
-    'REPLACE_DURATION_KIND',
-    'REPLACE_SHAPE_KIND',
-    'REPLACE_CHARGE_RESET_KIND',
-    'MODIFY_CHARGE_LIMIT',
-    'OPTIONAL_ABILITY_MODIFIER_BONUS'
-  ])
-)
+export const modifierKindSchema = lazySchema(() => z.enum(MODIFIER_KIND))
 
 export const modifierScopeKindSchema = lazySchema(() => z.enum(['GLOBAL', 'SOURCE']))
 export const modifierValueKindSchema = lazySchema(() =>

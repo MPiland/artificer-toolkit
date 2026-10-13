@@ -74,7 +74,7 @@ export function buildVttTokenPresentations(input: {
             category: grantCategories[grant.polarity],
             id: `grant:${grant.effectId}`,
             kind: 'EFFECT' as const,
-            label: `${activeGrantLabel(grant)}, ${activeGrantTimeLeft(grant)}`.trim()
+            label: `${activeGrantLabel(grant)}, ${activeGrantTimeLeft(grant)}`
           })),
           ...(actor.concentration
             ? [

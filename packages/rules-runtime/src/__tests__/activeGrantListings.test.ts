@@ -288,10 +288,14 @@ describe('grant polarity (VTT_UI-1.2)', () => {
       'SET_VALUE',
       'REPLACE_DAMAGE_TYPE',
       'REPLACE_RANGE_KIND',
-      'MODIFY_CHARGE_LIMIT',
-      'NOT_A_KIND'
+      'MODIFY_CHARGE_LIMIT'
     ])
       expect(polarityOf([{ domain: 'HIT_POINTS_MAX', kind }])).toBe('NEUTRAL')
+  })
+
+  it('refuses a modifier kind or value domain the fold contract does not know', () => {
+    expect(() => polarityOf([{ domain: 'HIT_POINTS_MAX', kind: 'NOT_A_KIND' }])).toThrow()
+    expect(() => polarityOf([{ domain: 'NOT_A_DOMAIN', kind: 'ENABLE' }])).toThrow()
   })
 
   it('reads a grant as beneficial or harmful only when every piece agrees', () => {
@@ -318,7 +322,7 @@ describe('grant polarity (VTT_UI-1.2)', () => {
     ).toBe('BENEFICIAL')
   })
 
-  it('reads an enable by its domain and an unclassified one as neutral', () => {
+  it('reads enabling a domain with no polarity as neutral', () => {
     expect(polarityOf([{ domain: 'ARMOR_CLASS', kind: 'ENABLE' }])).toBe('NEUTRAL')
   })
 

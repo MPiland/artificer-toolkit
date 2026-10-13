@@ -7,13 +7,11 @@ import type {
   ActiveGrantListingDto,
   ConcentrationListingDto
 } from '@artificer-toolkit/schema/shared/activeGrantListing'
-import { modifierKindSchema, valueDomainCodeSchema } from '@artificer-toolkit/schema/shared/enums'
-import type { z } from 'zod'
+import type { ValueDomainCode } from '@artificer-toolkit/shared/core'
 
 import { record } from './character/activeEffectGrantTotals.js'
 
 type GrantPolarity = ActiveGrantListingDto['polarity']
-type ValueDomainCode = z.infer<typeof valueDomainCodeSchema>
 
 const INVERSE_POLARITY = {
   BENEFICIAL: 'HARMFUL',
@@ -54,9 +52,7 @@ function scalarSign(payload: Record<string, unknown> | null): number {
 }
 
 function modifierPolarity(modifier: CharacterGrantFoldModifier): GrantPolarity {
-  const kind = modifierKindSchema.safeParse(modifier.modifierKind).data
-  const domain = valueDomainCodeSchema.safeParse(modifier.valueDomainCode).data
-  if (!kind || !domain) return 'NEUTRAL'
+  const { modifierKind: kind, valueDomainCode: domain } = modifier
   const payload = record(record(modifier.grant)?.payload)
   switch (kind) {
     case 'ADVANTAGE':
