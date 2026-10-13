@@ -14,6 +14,7 @@ import {
   visibilityPolygon,
   visibilityPolygonForLight,
   visibilityPolygonForToken,
+  visionRangeInMapPixels,
   type ScenePoint,
   type SpatialPointAreaShape
 } from '@artificer-toolkit/shared/vtt'
@@ -426,6 +427,7 @@ export async function createVttSceneRenderer(
     boundTokenControl: VttSceneRendererUpdate['boundTokenControl']
     currentUserId: string
     doorStates: CampaignSceneStateDto['doorStates']
+    grid: CampaignSceneStateDto['grid']
     map: CampaignSceneStateDto['map']
     previewTokenId: string | null
     role: VttSceneRendererUpdate['role']
@@ -1090,12 +1092,13 @@ export async function createVttSceneRenderer(
    */
   function drawVision(next: VttSceneRendererUpdate): void {
     const previewTokenId = next.role === 'OWNER' ? (next.previewTokenId ?? null) : null
-    const { barriers, doorStates, map, tokens } = next.scene
+    const { barriers, doorStates, grid, map, tokens } = next.scene
     const inputs = {
       barriers,
       boundTokenControl: next.boundTokenControl,
       currentUserId: next.currentUserId,
       doorStates,
+      grid,
       map,
       previewTokenId,
       role: next.role,
@@ -1129,11 +1132,10 @@ export async function createVttSceneRenderer(
       new pixi.Graphics().rect(0, 0, map.width, map.height).fill({ alpha: 1, color: 0 })
     )
     for (const token of seers) {
-      const { vision } = token
+      const vision = visionRangeInMapPixels({ grid }, token)?.vision
       if (!vision) continue
       // Every seeing token sees along its line of sight to its authored range; within it, the
       // light and the view token's senses decide what shows.
-      const reachRange = Math.max(vision.brightRange, vision.dimRange)
       const sight = visibilityPolygonForToken(
         token.position,
         vision,
@@ -1142,7 +1144,11 @@ export async function createVttSceneRenderer(
         barrierIndex
       )
       if (!sight || sight.points.length < 3) continue
-      const reach = clampPolygonToRadius(sight.points, token.position, reachRange)
+      const reach = clampPolygonToRadius(
+        sight.points,
+        token.position,
+        Math.max(vision.brightRange, vision.dimRange)
+      )
       mask.addChild(overlayShape(reach, 1, 'erase', `sight:${token.id}`))
       visionLabels.push(token.label)
       sightPolygonCount += 1

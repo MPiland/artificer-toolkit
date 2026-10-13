@@ -576,7 +576,17 @@ export const LightAndHeavyObscurement: Story = {
 const sightScene = {
   ...emptyScene,
   tokens: [
-    { ...ember, position: { x: 400, y: 450 } },
+    {
+      ...ember,
+      position: { x: 400, y: 450 },
+      vision: {
+        angleDegrees: 360,
+        brightRange: 15,
+        dimRange: 30,
+        directionDegrees: 0,
+        enabled: true
+      }
+    },
     {
       ...warden,
       hidden: false,
@@ -694,7 +704,7 @@ export const PlayerMapIsBlackOutsideTheirSight: Story = {
   args: { role: 'PLAYER', samplePoints: playerSightPoints, scene: sightScene },
   play: async ({ canvasElement }) => {
     const { samples } = await readLighting(canvasElement)
-    // Ember sees all round to 120; the Warden's sight is not theirs to see.
+    // Ember sees all round to 30 ft (420 px); the Warden's sight is not theirs to see.
     expect(samples.map((sample) => sample.masked)).toEqual([false, true])
   }
 }
@@ -723,8 +733,8 @@ function seerWith(senses: Sense[]) {
     senses,
     vision: {
       angleDegrees: 360,
-      brightRange: 60,
-      dimRange: 120,
+      brightRange: 15,
+      dimRange: 30,
       directionDegrees: 0,
       enabled: true
     }
@@ -794,12 +804,16 @@ export const DwarfWithDarkvisionSeesTheCave: Story = {
   }
 }
 
-// Senses work within the sight every token has: line of sight to its authored range (120 here).
+// Senses work within the sight every token has: line of sight to its authored range (30 ft, 420 px, here).
 export const SensesStayWithinTheAuthoredSightRange: Story = {
   args: {
     samplePoints: [
       { x: 250, y: 450 },
-      { x: 900, y: 450 }
+      { x: 900, y: 450 },
+      // 400 px and 440 px from the seer: the pair brackets 30 ft = 420 px, the same conversion
+      // server fog uses (visionRangeInMapPixels).
+      { x: 600, y: 450 },
+      { x: 640, y: 450 }
     ],
     scene: dwarfCave,
     view: viewEmber
@@ -807,7 +821,7 @@ export const SensesStayWithinTheAuthoredSightRange: Story = {
   play: async ({ canvasElement }) => {
     const { samples, viewTokenId } = await readLighting(canvasElement)
     expect(viewTokenId).toBe(ember.id)
-    expect(samples.map((sample) => sample.masked)).toEqual([false, true])
+    expect(samples.map((sample) => sample.masked)).toEqual([false, true, false, true])
   }
 }
 

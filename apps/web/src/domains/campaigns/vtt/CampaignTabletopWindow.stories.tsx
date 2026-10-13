@@ -524,8 +524,9 @@ export const GmPreviewEndsWhenThePreviewedTokenLeavesTheScene: Story = {
     await page.findByText('Scene map ready.', undefined, { timeout: mapReadyTimeoutMs })
     const { wardenToken } = wardenPresentationFor('OWNER', previewFixtures.gmEncounter)
     const renderer = await latestStageRenderer()
-    // Ground far from every light and token in the darkened scene.
-    const ground = [{ x: 100, y: 850 }]
+    // Ground far from every light and token in the darkened scene, and behind a wall from the
+    // Warden: its authored sight (120 ft) reaches the whole map, so only the wall hides it.
+    const ground = [{ x: 400, y: 100 }]
     await expect(renderer.sampleDarkness(ground)[0]?.alpha).toBeCloseTo(gmDarknessCapAlpha, 1)
     await userEvent.click(await page.findByRole('button', { name: 'Scene controls' }))
     const controls = within(await page.findByRole('menu', { name: 'Scene controls' }))

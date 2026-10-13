@@ -1,4 +1,8 @@
-import { SceneBarrierIndex, visibilityPolygonForToken } from './geometry.js'
+import {
+  SceneBarrierIndex,
+  sceneDistanceAsCoordinateLength,
+  visibilityPolygonForToken
+} from './geometry.js'
 import { decodeBase64, encodeBase64 } from '../../utils/base64.js'
 import {
   VTT_SCENE_LIMITS,
@@ -151,21 +155,18 @@ export function canonicalizeSceneFogLayer(layer: SceneFogLayer): SceneFogLayer {
   }
 }
 
-function visionRangeInMapPixels(
+/** A Token with its authored vision ranges (Scene distance) converted to map pixels, as fog and sight use them. */
+export function visionRangeInMapPixels(
   state: Pick<SceneExplorationState, 'grid'>,
   token: SceneToken
 ): SceneToken | null {
   if (!token.vision) return null
-  const multiplier =
-    state.grid.kind === 'GRIDLESS'
-      ? state.grid.pixelsPerUnit
-      : state.grid.cellSize / state.grid.distancePerCell
   return {
     ...token,
     vision: {
       ...token.vision,
-      brightRange: token.vision.brightRange * multiplier,
-      dimRange: token.vision.dimRange * multiplier
+      brightRange: sceneDistanceAsCoordinateLength(state.grid, token.vision.brightRange),
+      dimRange: sceneDistanceAsCoordinateLength(state.grid, token.vision.dimRange)
     }
   }
 }
