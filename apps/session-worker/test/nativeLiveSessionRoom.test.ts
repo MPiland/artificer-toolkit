@@ -1309,16 +1309,18 @@ it('commits one of two concurrent same-token moves and refuses the stale Scene v
   expect(current.scene?.tokens[0]?.position).toEqual({ x: 20, y: 10 })
 })
 
-it('replays a player movement receipt without any token payload, senses or hidden token', async () => {
+it('replays a player move of a GM-hidden token as the version bump the sender was sent', async () => {
   const value = movementScene(crypto.randomUUID())
   const [mover] = value.scene.tokens
-  const foreignTokenId = crypto.randomUUID()
-  const hiddenTokenId = crypto.randomUUID()
-  value.scene.fogMode = 'OFF'
+  // Fog derives exploration, so the move stages geometry and commits through the room's geometry path.
+  value.scene.fogMode = 'PER_PLAYER'
   value.scene.tokens = [
-    { ...mover!, senses: [boundTokenSense] },
-    { ...mover!, id: foreignTokenId, label: 'Sentry', senses: [boundTokenSense] },
-    { ...mover!, hidden: true, id: hiddenTokenId, label: 'Ambusher', senses: [boundTokenSense] }
+    {
+      ...mover!,
+      hidden: true,
+      senses: [boundTokenSense],
+      vision: { ...mover!.vision!, dimRange: 30, enabled: true }
+    }
   ]
   const base = await fixture(value.scene)
   if (!base.capture.presentation) throw new Error('Missing Scene presentation.')
@@ -1339,14 +1341,13 @@ it('replays a player movement receipt without any token payload, senses or hidde
   await vi.waitFor(() => expect(committedFor()).toHaveLength(2))
 
   const [live, replay] = committedFor()
-  expect(replay).toEqual(asReplay(live))
-  expect(replay).toMatchObject({
-    delta: { result: { delta: { kind: 'TOKEN_MOVED', tokenId: value.tokenId } } }
-  })
+  // The token is hidden from every player, so the sender is told only that the Scene advanced.
+  expect(live).toMatchObject({ delta: { scope: 'SCENE_VERSION', version: 1 } })
+  expect(replay).toEqual(live)
   const wire = JSON.stringify(replay)
+  expect(wire).not.toContain(value.tokenId)
+  expect(wire).not.toContain('TOKEN_MOVED')
   expect(wire).not.toContain('senses')
-  expect(wire).not.toContain(foreignTokenId)
-  expect(wire).not.toContain(hiddenTokenId)
 })
 
 it('commits and replays writes to two Campaign rooms concurrently', async () => {

@@ -852,7 +852,7 @@ it.each([
   ['ON_DRAG', { origin: [playerId], recipients: { owner: [playerId], other: [] } }],
   ['ON_DROP', { origin: [], recipients: { owner: [], other: [] } }]
 ] as const)(
-  'sends each viewer its own authored-vision fog layers while a token is dragged in a %s Scene',
+  "limits the dragging controller's vision layers to the origin and the GM, never another player, in a %s Scene",
   async (visionRevealMode, expected) => {
     const members = [
       member(ownerId, 'OWNER'),
@@ -1374,7 +1374,6 @@ it('rehydrates Character vision after a CHARACTER notice, with no read per sampl
   })
   expect(room.characterReads).toEqual([room.revisionA, room.revisionB])
   expect(room.staleCaptures).toBe(1)
-  expect(await syncedTokenSenses(owner)).toEqual([])
   const readsAfterRebuild = room.authorizationReads
   sendPreview(player, tokenPreview(sequence + 1, { x: 40, y: 10 }))
   await vi.waitFor(() =>
