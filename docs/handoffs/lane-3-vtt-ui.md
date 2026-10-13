@@ -66,14 +66,14 @@ The reaction-state part of 2.1 is presentable now: a pending movement reaction a
 - D108 follow-up `25c72a6a8`: ambient MAGICAL_DARKNESS is forced last too (red `d108-ambient-red.log`, green `d108-ambient-green.log`).
 - Renderer slice (1.1 rings, 1.2 two rings, 3.2 rework, 3.1 route line): green `hover-12`/`hover-13` (four vtt story files, 47/47 twice), `r32-final2-unit`, `r32-final2-tc-web`, `r32-final-tc-stories2`. Changed assertions are listed in the commit message (rule changes from Q3 and D108 only).
   - Hover bug found and fixed: the Stage renders on demand, so a move before the pending frame hit-tested stale transforms and lost the hover (and the status list). A window capture listener now renders a pending frame before Pixi handles a press or move. Regression story `HoveringATokenRebuiltBeforeTheNextFrameReportsIt` (red `hover-6`).
-  - Status categories are by origin until polarity is derived; EFFECT draws in the neutral colour (lane 1 ruling).
+  - Status categories were by origin until polarity was derived; superseded by D110 (polarity slice below).
 - Lane 1 review fixes for 7fe4a224c: light tint and visual zone alpha read from drawn output; GM preview vision through the Stage; the preview is derived from the Scene, so it ends when its token leaves (bug, red `rv-item3-red`); a Player with no seeing token sees a black map (bug, red `rv-bugs-red`); hues pinned literally; inner ring bounds asserted and the outer ring kept off the footprint edge (red `rv-bugs-red`); closed and open door stories; drawVision memoized; the pending-frame render is gated by a `framePending` flag (red with the render disabled `rv-hover-red`); canvas hover lists statuses. `latestStageRenderer` stays async: the spy records the async factory's Promise. Green `rv-final-1`/`rv-final-2` (52/52 twice), `rv-unit`.
 - Selection slice (1.1): the Select tool selects any token on the canvas or through Scene controls Focus, and an empty-map press clears it. A press on a token the member cannot move still reaches the map (so it can ping) without clearing the selection. Green `sel-green-a`/`sel-green-b` (vtt stories 85/85 twice), `sel-unit` 200/200, `sel-tc`, `sel-tcs`; red `sel-red`, `sel-guard-red`.
 
 ## Queue
 
 1. Senses: restore the parked `boundTokenControl` projection patch, then 3.4 senses rendering (Q6 uses the selected token).
-2. Status polarity, after slice C: a pure rules-runtime function over each grant's modifiers (helpful, harmful or mixed for the holder), carried on `activeGrantListing`; conditions HARMFUL; tests over real SRD grants (Bless, Bane, Help, Dodge, a mixed one) and a projection test; the ring then uses it.
+2. Status polarity (D110): built in `b5a55b5da` (derived in rules-runtime `listActiveGrantListings`, carried as `polarity`, ring HARMFUL amber / BENEFICIAL lime / CONCENTRATION / OTHER) and `99bc56fba` (selection lists statuses). Lane 1 review fixes in progress: ENABLE and SET_VALUE domain tables, real SRD grant tests (Fly, Shocking Grasp, Ray of Frost, a mixed grant), polarity through hiding, hover-over-selection precedence story.
 3. PLATFORM-12.1 for campaigns/vtt: mocks name functions through generated api refs, fixtures parse through their DTO schemas (lane 2's 68feaa446 pattern).
 4. 4.1 and 4.2.
 5. 3.1 range and target (after slice C).
