@@ -106,6 +106,11 @@ export interface SceneToken {
   width: number
 }
 
+/** Senses are composed at runtime and never stored, so every persisted token carries none. */
+export function withoutStoredSenses(token: SceneToken): SceneToken {
+  return token.senses.length === 0 ? token : { ...token, senses: [] }
+}
+
 interface SceneBarrierBase {
   a: ScenePoint
   b: ScenePoint

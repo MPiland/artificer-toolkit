@@ -17,6 +17,7 @@ import {
   sceneStoredInitialStateSchema
 } from '@artificer-toolkit/schema/projections/sceneDefinitionPersistence'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import { withoutStoredSenses } from '@artificer-toolkit/shared/vtt/scene'
 import { internal } from '../_generated/api'
 import { type MutationCtx } from '../_generated/server'
 import { internalMutation, mutation } from '../lib/mutations'
@@ -199,7 +200,12 @@ export const append = mutation({
   returns: zodToConvex(sceneDefinitionSaveProgressSchema),
   handler: async (ctx, args): Promise<SceneDefinitionSaveProgress> => {
     const parsed = appendSceneDefinitionInputSchema.parse(args.input)
-    const input = { ...parsed, saveId: lower(parsed.saveId) }
+    const input = {
+      ...(parsed.collection === 'tokens'
+        ? { ...parsed, entities: parsed.entities.map(withoutStoredSenses) }
+        : parsed),
+      saveId: lower(parsed.saveId)
+    }
     const { row, save } = await ownedSave(ctx, input.saveId, (await requireIdentity(ctx)).userId)
     await writableCampaign(ctx, save.settings.campaignId)
     if (

@@ -489,3 +489,48 @@ it('merges existing head, token and fog rows only when their canonical previous 
     expect(await ctx.db.query('sceneFogSaves').take(100)).toHaveLength(1)
   })
 })
+
+it('persists a checkpointed token without Character-derived senses', async () => {
+  const base = await fixture()
+  const changes = base.publication.changes.map((entry) => {
+    if (entry.table !== 'sceneLiveEntities' || !entry.delta || !('set' in entry.delta)) return entry
+    const { checksum: _checksum, ...fields } = canonicalJsonRecordSchema.parse(entry.delta.set)
+    const next = canonicalJsonRecordSchema.parse({
+      ...fields,
+      value: {
+        collection: 'tokens',
+        entity: {
+          ...base.token,
+          senses: [
+            {
+              channel: 'VISUAL',
+              illuminationAccess: 'ORDINARY_DARKNESS',
+              label: 'Darkvision',
+              range: 60,
+              senseId: crypto.randomUUID()
+            }
+          ]
+        }
+      }
+    })
+    return change('sceneLiveEntities', { ...next, checksum: checksumCanonicalJson(next) })
+  })
+  await expect(
+    base.t.mutation(
+      publish,
+      frame(base.authority, {
+        changes: [],
+        history: [],
+        scenes: [{ ...base.publication, changes }]
+      })
+    )
+  ).resolves.toMatchObject({ status: 'COMMITTED' })
+  await base.t.run(async (ctx) => {
+    const entity = await ctx.db.query('sceneLiveEntities').unique()
+    if (!entity) throw new Error('Missing publication.')
+    expect(parseLiveEntity(entity, 1).value).toEqual({
+      collection: 'tokens',
+      entity: { ...base.token, senses: [] }
+    })
+  })
+})

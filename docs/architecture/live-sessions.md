@@ -655,6 +655,9 @@ carries none. Senses are player-private: `projectSceneForViewer` and both Scene 
 `senses` on every token the PLAYER does not control, using the room's per-viewer bound-token control
 (`#boundTokenControl`, ADR 0034; no current play authorization reads as no control). The GM sees all
 senses. The client renderer applies the view token's senses on top of authored lighting.
+Senses are never persisted: Scene definition batches (scenes/definitions:append) and room checkpoints
+(liveSessions/checkpointScenes) store every token with senses: [] (withoutStoredSenses), so Convex paged
+recipient reads need no senses redaction.
 
 **Compaction.** `compact({ epoch, sequence, checksum })` requires the checkpoint acknowledgement from
 Convex, verifies the epoch, prefix checksum and the journal rows through that sequence, and applies
