@@ -599,6 +599,36 @@ describe('First Aid, a System basic action with a check (D98)', () => {
     expect(JSON.stringify(second)).toContain('RULE_WARNINGS')
   }, 120000)
 
+  it('refuses a helper who aims First Aid at themself, whatever warnings the command acknowledges', async () => {
+    const { fixture, atAlly, dying } = await dyingHeroAtAllyTurn()
+    const ally = allyOf(fixture)
+    const actionId = await basicActionIdOf(fixture, atAlly, ally.id, 'First Aid')
+    const refused = await execute(fixture, (base) => ({
+      ...base,
+      type: 'RESOLVE_ACTION',
+      acceptedWieldConflict: null,
+      acknowledgedWarnings: [
+        'TARGET_RANGE_UNCHECKED',
+        'TARGET_DISPOSITION',
+        'TARGET_NOT_DYING',
+        'ACTION_ECONOMY_UNAVAILABLE'
+      ],
+      expectedVersion: atAlly.projection.version,
+      actorId: ally.id,
+      actionId,
+      target: { kind: 'ACTOR', actorId: ally.id },
+      optionalCombatIntent: null,
+      sceneContext: null
+    })).then(
+      () => null,
+      (caught: unknown) => caught
+    )
+    expect(refused).not.toBeNull()
+    expect(JSON.stringify(refused)).not.toContain('RULE_WARNINGS')
+    expect(await saves(fixture)).toEqual(dying)
+    expect(await firstAidCards(fixture)).toEqual([])
+  }, 120000)
+
   it('auto-rolls a success, and GM undo restores the Action and the death saves but keeps the roll', async () => {
     const { fixture, atAlly, dying } = await dyingHeroAtAllyTurn()
     await allyRollsAutomatically(fixture, true)
@@ -641,6 +671,30 @@ describe('First Aid, a System basic action with a check (D98)', () => {
     expect(await saves(fixture)).toEqual(dying)
     expect(await heldEffects(fixture, allyOf(fixture).sourceId!)).toEqual(effectsBefore)
   }, 180000)
+
+  it('GM undo restores the exact rows when the Action was spent and refreshed a round earlier', async () => {
+    const { fixture, atAlly } = await dyingHeroAtAllyTurn()
+    await allyRollsAutomatically(fixture, true)
+    const ally = allyOf(fixture)
+    const actorsOf = (result: CommandResult) =>
+      encounterGmProjectionDtoSchema.parse(result.projection).actors
+    // A missed First Aid spends the Action; a full round later the turn refreshes it.
+    await queueRoomRolls(fixture.campaign.id, { rolls: [draw(1), draw(12)] })
+    const missed = await useFirstAid(fixture, atAlly)
+    const atHero = await toActorTurn(fixture, missed, fixture.hero.id)
+    const atEnemy = await toEnemyTurn(fixture, atHero)
+    const refreshed = await toActorTurn(fixture, atEnemy, ally.id)
+
+    await queueRoomRolls(fixture.campaign.id, { rolls: [draw(20)] })
+    const stabilized = await useFirstAid(fixture, refreshed)
+    expect(stabilized.occurrence?.status).toBe('COMPLETE')
+    const reverted = await execute(fixture, (base) => ({
+      ...base,
+      type: 'REVERT_LAST_ACTION',
+      expectedVersion: stabilized.projection.version
+    }))
+    expect(actorsOf(reverted)).toEqual(actorsOf(refreshed))
+  }, 240000)
 
   it('warns only about the unchecked touch range for a valid dying target', async () => {
     const { fixture, atAlly } = await dyingHeroAtAllyTurn()

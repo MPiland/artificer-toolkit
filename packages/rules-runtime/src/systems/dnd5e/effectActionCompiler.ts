@@ -86,7 +86,7 @@ import { DND5E_ADD_SPEED_TO_MOVEMENT_PROPOSAL_OPERATION_KEY } from './addSpeedTo
 export const DND5E_EFFECT_ACTION_FAMILY_KEY = 'effect-action'
 const DND5E_HEAL_PROPOSAL_OPERATION_KEY = 'dnd5e.heal-proposal'
 const DND5E_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY = 'dnd5e.temporary-hit-points-proposal'
-const DND5E_STABILIZE_PROPOSAL_OPERATION_KEY = 'dnd5e.stabilize-proposal'
+export const DND5E_STABILIZE_PROPOSAL_OPERATION_KEY ='dnd5e.stabilize-proposal'
 const DND5E_MODIFIER_GRANT_PROPOSAL_OPERATION_KEY = 'dnd5e.modifier-grant-proposal'
 const DND5E_MANUAL_ADJUDICATION_PROPOSAL_OPERATION_KEY = 'dnd5e.manual-adjudication-proposal'
 export const DND5E_DAMAGE_PROPOSAL_OPERATION_KEY = 'dnd5e.damage-proposal'

@@ -734,7 +734,8 @@ describe('native Encounter turn Legendary Actions', () => {
       const actor = readStoredRunActor(row)
       if (actor.kind === 'CHARACTER') throw new Error('Expected a Creature actor.')
       expect(actor.currentHitPoints).toBe(row.id === expectedOwners[1] ? 10 : 11)
-      expect(actor.resources).toMatchObject({
+      // A refreshed allowance is stored as no record at all, so only the still-spent ones remain.
+      expect(actor.resources).toEqual({
         featureCharges: {
           [automaticChargedBiteFeatureId]:
             row.id === result.projection.currentActorId ||
@@ -744,12 +745,9 @@ describe('native Encounter turn Legendary Actions', () => {
                 ? 2
                 : 1
         },
-        ruleUsage: Object.fromEntries(
-          allowanceIds.map((definitionId) => [
-            definitionId,
-            row.id === result.projection.currentActorId ? 0 : 1
-          ])
-        )
+        ...(row.id === result.projection.currentActorId
+          ? {}
+          : { ruleUsage: Object.fromEntries(allowanceIds.map((definitionId) => [definitionId, 1])) })
       })
     }
     await expectReplays(base.owner.caller, [advance, ...responses], result)
@@ -862,9 +860,8 @@ describe('native Encounter turn Legendary Actions', () => {
     const enteringActor = readStoredRunActor(
       terminal.actors.find((row) => row.id === result.projection.currentActorId)!
     )
-    expect(enteringActor.resources).toMatchObject({
-      featureCharges: { [automaticChargedBiteFeatureId]: 0, [rechargeFeatureId]: 0 },
-      ruleUsage: Object.fromEntries(allowanceIds.map((definitionId) => [definitionId, 0]))
+    expect(enteringActor.resources).toEqual({
+      featureCharges: { [automaticChargedBiteFeatureId]: 0, [rechargeFeatureId]: 0 }
     })
     // Every die here was entered, so a replay that rolled again would change the answer. The
     // producer keeps recorded dice on replay: encounterLegendaryAction.test.ts ('replays a settled

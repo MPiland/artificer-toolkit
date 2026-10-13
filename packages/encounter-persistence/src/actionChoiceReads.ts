@@ -271,11 +271,14 @@ export async function readEncounterActionChoices(
           action.mechanicFacts.invocation.activation,
           action.mechanicFacts.invocation.triggerCode
         )
+        const document = catalogue.find(
+          ({ definition }) => definition.id === action.definitionId
+        )?.document
         return {
           id: action.actionId,
           label: action.label,
-          rulesText: catalogue.find(({ definition }) => definition.id === action.definitionId)
-            ?.document.rulesText,
+          rulesText: document?.rulesText,
+          actionCost: document?.actionCost,
           grip: null,
           wieldConflict: null,
           attackSlot: economy.attackSlot,

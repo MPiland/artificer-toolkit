@@ -11,6 +11,7 @@ import {
   type EncounterRunActorState,
   type EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
+import { storedCheckOccurrenceId } from './basicActionCheckAdmission.js'
 import { encounterStoredRunCommandSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import type { ServerRuleExecutionApplicationOutputsDto } from '@artificer-toolkit/schema/shared/ruleExecutionApplicationOutputs'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
@@ -135,15 +136,11 @@ export async function revertLastEncounterAction(
   ) {
     // A check the helper's roll settled is the one command after its action.
     const answer = recent[0]
-    const checkOccurrenceId =
-      root.commandType === 'RESOLVE_ACTION'
-        ? root.checkReceipt?.checkOccurrenceId
-        : root.receipt.checkOccurrenceId
     if (
       rootIndex > 1 ||
       (rootIndex === 1 &&
         (answer?.commandType !== 'RESOLVE_RULE_OCCURRENCE' ||
-          answer.ruleOccurrenceId !== checkOccurrenceId))
+          answer.ruleOccurrenceId !== storedCheckOccurrenceId(root)))
     )
       throw new Error('Stored Encounter command scan is invalid.')
     const scope = { run, state, campaign, input, fingerprint, userId }

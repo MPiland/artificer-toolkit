@@ -287,4 +287,20 @@ describe('First Aid, a System basic action with a check, in the room', () => {
     expect(outputs).toEqual([])
     expect(occurrences).toEqual([])
   })
+
+  it('refuses a helper who aims it at themself, whatever warnings the command acknowledges', async () => {
+    const room = await firstAidRoom({ autoRoll: true, faces: [20] })
+    const before = await room.version()
+    const { answer } = await room.startAction(
+      WOLF_ID,
+      [...TOUCH_WITHOUT_SCENE, 'TARGET_NOT_DYING', 'ACTION_ECONOMY_UNAVAILABLE'],
+      null,
+      null,
+      encounterBasicActionId(WOLF_ID, SRD_BASIC_ACTION_IDS.FIRST_AID, firstAidEffectId),
+      WOLF_ID
+    )
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_REJECTED')
+    expect(JSON.stringify(answer)).not.toContain('RULE_WARNINGS')
+    expect(await room.version()).toBe(before)
+  })
 })

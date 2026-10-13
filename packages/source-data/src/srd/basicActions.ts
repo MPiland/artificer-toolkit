@@ -306,7 +306,7 @@ function firstAidEffect(actionId: string) {
       targeting: {
         selectionKind: 'SINGLE_TARGET' as const,
         dispositionKind: 'ANY' as const,
-        excludesSelf: true
+        refusesSelf: true
       }
     },
     paths: [

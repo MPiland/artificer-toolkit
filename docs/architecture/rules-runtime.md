@@ -197,7 +197,14 @@ through `encounterActionRuleWarnings`:
 `TARGET_DISPOSITION` for a self target only when the target disposition is hostile, the action makes an
 attack roll (`makesAttackRoll`, a required policy input) or the authored targeting sets `excludesSelf`
 ("another creature"). SRD Bardic Inspiration, Healing Touch, Modify Memory and Protection author
-`excludesSelf: true`.
+`excludesSelf: true`. An action that cannot be used on its user at all authors `refusesSelf: true` instead
+(First Aid): the policy refuses a self target outright (`UNSUPPORTED_TARGET`, not acknowledgeable). The action
+choice DTO's `ACTOR` target carries `requiresOtherCreature` (true for either flag) so a caller asks for the
+creature before the action can be used.
+
+**Rule usage storage.** "Nothing used" has one stored form: no key. `withEncounterRuleUsageUsed` drops the
+definition's entry for a usage of 0 and drops an empty `ruleUsage`, so a turn refresh, a spend and an undo
+store the same row.
 
 An authored basic action follows the same rule through `RESOLVE_ACTION`, with `encounterActionEconomyWarnings` and `TARGET_DISPOSITION`.
 Action choices carry the warnings that already apply before a target is chosen.

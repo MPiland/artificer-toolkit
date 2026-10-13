@@ -72,6 +72,8 @@ export function evaluateEncounterActionTargetPolicy(input: {
     targeting.excludedCreatureTypeIds?.length
   )
     return null
+  // An action that needs another creature (First Aid) refuses its own user; nothing overrides it.
+  if (targetsSelf && targeting.refusesSelf) return null
   const warnings: EncounterRuleWarningDto[] = []
   const relationship = encounterActorRelationship(input.actor.disposition, input.target.disposition)
   // SRD "Targeting Yourself": a creature may choose itself unless the effect must be hostile,

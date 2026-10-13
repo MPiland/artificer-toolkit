@@ -330,10 +330,8 @@ describe('basic action mechanics (Q11)', () => {
         message: "Range can't be checked without both tokens on the map."
       }
     ])
-    expect(warnings(fighter)).toContainEqual({
-      code: 'TARGET_DISPOSITION',
-      message: 'This action targets another creature.'
-    })
+    // Aiming it at its own user is a refusal, not an overridable warning.
+    expect(warnings(fighter)).toBeNull()
     expect(warnings(rogue)).not.toContainEqual(expect.objectContaining({ code: 'TARGET_DISPOSITION' }))
   })
 })

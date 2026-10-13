@@ -9,6 +9,7 @@ import type { EncounterSessionStateDto } from '@artificer-toolkit/schema/api/enc
 import type { ResolveEncounterActionInputDto } from '@artificer-toolkit/schema/api/encounters'
 import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import type { PendingEncounterRuleOccurrenceSummaryDto } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
+import { encounterBasicActionId } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
 import { encounterRuleUsageUsed } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import {
   SRD_BASIC_ACTION_DEFINITIONS,
@@ -166,6 +167,12 @@ async function storedGrants(base: PlayerControlFixture, actorId: string) {
   })
 }
 
+const firstAidDefinition = SRD_BASIC_ACTION_DEFINITIONS.find(
+  ({ id }) => id === SRD_BASIC_ACTION_IDS.FIRST_AID
+)
+if (firstAidDefinition?.document.kind !== 'BASIC_ACTION')
+  throw new Error('Missing First Aid fixture.')
+
 const dodgeDefinition = SRD_BASIC_ACTION_DEFINITIONS.find(
   ({ id }) => id === SRD_BASIC_ACTION_IDS.DODGE
 )
@@ -310,6 +317,15 @@ describe('basic combat actions in the room (Q11)', () => {
       'Ready',
       'Search',
       'Use an Object'
+    ])
+    // First Aid costs an Action and needs a creature other than its user; Dash only affects its user.
+    expect(
+      choices?.basicActionChoices
+        .filter(({ label }) => label === 'First Aid' || label === 'Dash')
+        .map(({ label, actionCost, target }) => [label, actionCost, target])
+    ).toEqual([
+      ['Dash', 'ACTION', { kind: 'ACTOR', requiresOtherCreature: false }],
+      ['First Aid', 'ACTION', { kind: 'ACTOR', requiresOtherCreature: true }]
     ])
 
     const before = await base.version()
@@ -716,11 +732,13 @@ describe('basic combat actions in the room (Q11)', () => {
 
   it('refuses First Aid from a custom actor, which has no check facts', async () => {
     const base = await basicActionFixture()
-    const companionFirstAid = await resolveBasicAction(base, base.companion.id, 'First Aid')
     const firstAid = await resolveBasicAction(base, base.companion.id, 'First Aid', {
       actorId: base.lurker.id,
-      // Basic action ids are the actor's id plus the catalogue entry's.
-      actionId: companionFirstAid.actionId.replace(base.companion.id, base.lurker.id),
+      actionId: encounterBasicActionId(
+        base.lurker.id,
+        SRD_BASIC_ACTION_IDS.FIRST_AID,
+        firstAidDefinition.document.effects[0]!.id
+      ),
       target: { kind: 'ACTOR', actorId: base.character.id },
       acknowledgedWarnings: ['TARGET_NOT_DYING', 'TARGET_RANGE_UNCHECKED']
     })

@@ -25435,6 +25435,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 excludesSelf?: boolean;
+                                refusesSelf?: boolean;
                                 selectionKind: "SINGLE_TARGET";
                               }
                             | {
@@ -27126,6 +27127,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 excludesSelf?: boolean;
+                                refusesSelf?: boolean;
                                 selectionKind: "SINGLE_TARGET";
                               }
                             | {
@@ -28880,6 +28882,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 excludesSelf?: boolean;
+                                refusesSelf?: boolean;
                                 selectionKind: "SINGLE_TARGET";
                               }
                             | {
@@ -30646,6 +30649,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 excludesSelf?: boolean;
+                                refusesSelf?: boolean;
                                 selectionKind: "SINGLE_TARGET";
                               }
                             | {
@@ -32357,6 +32361,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 excludesSelf?: boolean;
+                                refusesSelf?: boolean;
                                 selectionKind: "SINGLE_TARGET";
                               }
                             | {
@@ -34053,6 +34058,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 excludesSelf?: boolean;
+                                refusesSelf?: boolean;
                                 selectionKind: "SINGLE_TARGET";
                               }
                             | {
@@ -35777,6 +35783,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 excludesSelf?: boolean;
+                                refusesSelf?: boolean;
                                 selectionKind: "SINGLE_TARGET";
                               }
                             | {
@@ -39197,6 +39204,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 excludesSelf?: boolean;
+                                refusesSelf?: boolean;
                                 selectionKind: "SINGLE_TARGET";
                               }
                             | {
@@ -40888,6 +40896,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 excludesSelf?: boolean;
+                                refusesSelf?: boolean;
                                 selectionKind: "SINGLE_TARGET";
                               }
                             | {
@@ -42642,6 +42651,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 excludesSelf?: boolean;
+                                refusesSelf?: boolean;
                                 selectionKind: "SINGLE_TARGET";
                               }
                             | {
@@ -44408,6 +44418,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 excludesSelf?: boolean;
+                                refusesSelf?: boolean;
                                 selectionKind: "SINGLE_TARGET";
                               }
                             | {
@@ -46119,6 +46130,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 excludesSelf?: boolean;
+                                refusesSelf?: boolean;
                                 selectionKind: "SINGLE_TARGET";
                               }
                             | {
@@ -47815,6 +47827,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 excludesSelf?: boolean;
+                                refusesSelf?: boolean;
                                 selectionKind: "SINGLE_TARGET";
                               }
                             | {
@@ -49539,6 +49552,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 excludesSelf?: boolean;
+                                refusesSelf?: boolean;
                                 selectionKind: "SINGLE_TARGET";
                               }
                             | {
@@ -52968,6 +52982,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 excludesSelf?: boolean;
+                                refusesSelf?: boolean;
                                 selectionKind: "SINGLE_TARGET";
                               }
                             | {
@@ -54659,6 +54674,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 excludesSelf?: boolean;
+                                refusesSelf?: boolean;
                                 selectionKind: "SINGLE_TARGET";
                               }
                             | {
@@ -56413,6 +56429,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 excludesSelf?: boolean;
+                                refusesSelf?: boolean;
                                 selectionKind: "SINGLE_TARGET";
                               }
                             | {
@@ -58179,6 +58196,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 excludesSelf?: boolean;
+                                refusesSelf?: boolean;
                                 selectionKind: "SINGLE_TARGET";
                               }
                             | {
@@ -59890,6 +59908,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 excludesSelf?: boolean;
+                                refusesSelf?: boolean;
                                 selectionKind: "SINGLE_TARGET";
                               }
                             | {
@@ -61586,6 +61605,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 excludesSelf?: boolean;
+                                refusesSelf?: boolean;
                                 selectionKind: "SINGLE_TARGET";
                               }
                             | {
@@ -63310,6 +63330,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 excludesSelf?: boolean;
+                                refusesSelf?: boolean;
                                 selectionKind: "SINGLE_TARGET";
                               }
                             | {
@@ -66730,6 +66751,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 excludesSelf?: boolean;
+                                refusesSelf?: boolean;
                                 selectionKind: "SINGLE_TARGET";
                               }
                             | {
@@ -68421,6 +68443,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 excludesSelf?: boolean;
+                                refusesSelf?: boolean;
                                 selectionKind: "SINGLE_TARGET";
                               }
                             | {
@@ -70175,6 +70198,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 excludesSelf?: boolean;
+                                refusesSelf?: boolean;
                                 selectionKind: "SINGLE_TARGET";
                               }
                             | {
@@ -71941,6 +71965,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 excludesSelf?: boolean;
+                                refusesSelf?: boolean;
                                 selectionKind: "SINGLE_TARGET";
                               }
                             | {
@@ -73652,6 +73677,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 excludesSelf?: boolean;
+                                refusesSelf?: boolean;
                                 selectionKind: "SINGLE_TARGET";
                               }
                             | {
@@ -75348,6 +75374,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 excludesSelf?: boolean;
+                                refusesSelf?: boolean;
                                 selectionKind: "SINGLE_TARGET";
                               }
                             | {
@@ -77072,6 +77099,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 excludesSelf?: boolean;
+                                refusesSelf?: boolean;
                                 selectionKind: "SINGLE_TARGET";
                               }
                             | {
@@ -80527,6 +80555,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 excludesSelf?: boolean;
+                                refusesSelf?: boolean;
                                 selectionKind: "SINGLE_TARGET";
                               }
                             | {
@@ -82218,6 +82247,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 excludesSelf?: boolean;
+                                refusesSelf?: boolean;
                                 selectionKind: "SINGLE_TARGET";
                               }
                             | {
@@ -83972,6 +84002,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 excludesSelf?: boolean;
+                                refusesSelf?: boolean;
                                 selectionKind: "SINGLE_TARGET";
                               }
                             | {
@@ -85738,6 +85769,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 excludesSelf?: boolean;
+                                refusesSelf?: boolean;
                                 selectionKind: "SINGLE_TARGET";
                               }
                             | {
@@ -87449,6 +87481,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 excludesSelf?: boolean;
+                                refusesSelf?: boolean;
                                 selectionKind: "SINGLE_TARGET";
                               }
                             | {
@@ -89145,6 +89178,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 excludesSelf?: boolean;
+                                refusesSelf?: boolean;
                                 selectionKind: "SINGLE_TARGET";
                               }
                             | {
@@ -90869,6 +90903,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 excludesSelf?: boolean;
+                                refusesSelf?: boolean;
                                 selectionKind: "SINGLE_TARGET";
                               }
                             | {
@@ -94289,6 +94324,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 excludesSelf?: boolean;
+                                refusesSelf?: boolean;
                                 selectionKind: "SINGLE_TARGET";
                               }
                             | {
@@ -95980,6 +96016,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 excludesSelf?: boolean;
+                                refusesSelf?: boolean;
                                 selectionKind: "SINGLE_TARGET";
                               }
                             | {
@@ -97734,6 +97771,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 excludesSelf?: boolean;
+                                refusesSelf?: boolean;
                                 selectionKind: "SINGLE_TARGET";
                               }
                             | {
@@ -99500,6 +99538,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 excludesSelf?: boolean;
+                                refusesSelf?: boolean;
                                 selectionKind: "SINGLE_TARGET";
                               }
                             | {
@@ -101211,6 +101250,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 excludesSelf?: boolean;
+                                refusesSelf?: boolean;
                                 selectionKind: "SINGLE_TARGET";
                               }
                             | {
@@ -102907,6 +102947,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 excludesSelf?: boolean;
+                                refusesSelf?: boolean;
                                 selectionKind: "SINGLE_TARGET";
                               }
                             | {
@@ -104631,6 +104672,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 excludesSelf?: boolean;
+                                refusesSelf?: boolean;
                                 selectionKind: "SINGLE_TARGET";
                               }
                             | {
@@ -108033,6 +108075,7 @@ export declare const api: {
                               dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                               excludedCreatureTypeIds?: Array<string>;
                               excludesSelf?: boolean;
+                              refusesSelf?: boolean;
                               selectionKind: "SINGLE_TARGET";
                             }
                           | {
@@ -109724,6 +109767,7 @@ export declare const api: {
                               dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                               excludedCreatureTypeIds?: Array<string>;
                               excludesSelf?: boolean;
+                              refusesSelf?: boolean;
                               selectionKind: "SINGLE_TARGET";
                             }
                           | {
@@ -111472,6 +111516,7 @@ export declare const api: {
                               dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                               excludedCreatureTypeIds?: Array<string>;
                               excludesSelf?: boolean;
+                              refusesSelf?: boolean;
                               selectionKind: "SINGLE_TARGET";
                             }
                           | {
@@ -113232,6 +113277,7 @@ export declare const api: {
                               dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                               excludedCreatureTypeIds?: Array<string>;
                               excludesSelf?: boolean;
+                              refusesSelf?: boolean;
                               selectionKind: "SINGLE_TARGET";
                             }
                           | {
@@ -114943,6 +114989,7 @@ export declare const api: {
                               dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                               excludedCreatureTypeIds?: Array<string>;
                               excludesSelf?: boolean;
+                              refusesSelf?: boolean;
                               selectionKind: "SINGLE_TARGET";
                             }
                           | {
@@ -116639,6 +116686,7 @@ export declare const api: {
                               dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                               excludedCreatureTypeIds?: Array<string>;
                               excludesSelf?: boolean;
+                              refusesSelf?: boolean;
                               selectionKind: "SINGLE_TARGET";
                             }
                           | {
@@ -118363,6 +118411,7 @@ export declare const api: {
                               dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                               excludedCreatureTypeIds?: Array<string>;
                               excludesSelf?: boolean;
+                              refusesSelf?: boolean;
                               selectionKind: "SINGLE_TARGET";
                             }
                           | {
@@ -121778,6 +121827,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 excludesSelf?: boolean;
+                                refusesSelf?: boolean;
                                 selectionKind: "SINGLE_TARGET";
                               }
                             | {
@@ -123469,6 +123519,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 excludesSelf?: boolean;
+                                refusesSelf?: boolean;
                                 selectionKind: "SINGLE_TARGET";
                               }
                             | {
@@ -125223,6 +125274,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 excludesSelf?: boolean;
+                                refusesSelf?: boolean;
                                 selectionKind: "SINGLE_TARGET";
                               }
                             | {
@@ -126989,6 +127041,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 excludesSelf?: boolean;
+                                refusesSelf?: boolean;
                                 selectionKind: "SINGLE_TARGET";
                               }
                             | {
@@ -128700,6 +128753,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 excludesSelf?: boolean;
+                                refusesSelf?: boolean;
                                 selectionKind: "SINGLE_TARGET";
                               }
                             | {
@@ -130396,6 +130450,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 excludesSelf?: boolean;
+                                refusesSelf?: boolean;
                                 selectionKind: "SINGLE_TARGET";
                               }
                             | {
@@ -132120,6 +132175,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 excludesSelf?: boolean;
+                                refusesSelf?: boolean;
                                 selectionKind: "SINGLE_TARGET";
                               }
                             | {
@@ -135540,6 +135596,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 excludesSelf?: boolean;
+                                refusesSelf?: boolean;
                                 selectionKind: "SINGLE_TARGET";
                               }
                             | {
@@ -137231,6 +137288,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 excludesSelf?: boolean;
+                                refusesSelf?: boolean;
                                 selectionKind: "SINGLE_TARGET";
                               }
                             | {
@@ -138985,6 +139043,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 excludesSelf?: boolean;
+                                refusesSelf?: boolean;
                                 selectionKind: "SINGLE_TARGET";
                               }
                             | {
@@ -140751,6 +140810,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 excludesSelf?: boolean;
+                                refusesSelf?: boolean;
                                 selectionKind: "SINGLE_TARGET";
                               }
                             | {
@@ -142462,6 +142522,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 excludesSelf?: boolean;
+                                refusesSelf?: boolean;
                                 selectionKind: "SINGLE_TARGET";
                               }
                             | {
@@ -144158,6 +144219,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 excludesSelf?: boolean;
+                                refusesSelf?: boolean;
                                 selectionKind: "SINGLE_TARGET";
                               }
                             | {
@@ -145882,6 +145944,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 excludesSelf?: boolean;
+                                refusesSelf?: boolean;
                                 selectionKind: "SINGLE_TARGET";
                               }
                             | {
@@ -147522,6 +147585,7 @@ export declare const api: {
         { actorId: string; encounterId: string; expectedVersion: number },
         {
           actions: Array<{
+            actionCost?: "ACTION" | "BONUS_ACTION" | "FREE";
             attackBonus?: number;
             attackSlot: { number: number; total: number } | null;
             damageLabel?: string;
@@ -147535,7 +147599,7 @@ export declare const api: {
             rulesText?: string;
             sourceLabel?: string;
             target:
-              | { kind: "ACTOR" }
+              | { kind: "ACTOR"; requiresOtherCreature: boolean }
               | {
                   area:
                     | {
@@ -147804,6 +147868,7 @@ export declare const api: {
           }>;
           actorId: string;
           basicActionChoices: Array<{
+            actionCost?: "ACTION" | "BONUS_ACTION" | "FREE";
             attackBonus?: number;
             attackSlot: { number: number; total: number } | null;
             damageLabel?: string;
@@ -147817,7 +147882,7 @@ export declare const api: {
             rulesText?: string;
             sourceLabel?: string;
             target:
-              | { kind: "ACTOR" }
+              | { kind: "ACTOR"; requiresOtherCreature: boolean }
               | {
                   area:
                     | {

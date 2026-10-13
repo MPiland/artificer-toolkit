@@ -7,15 +7,36 @@ import {
   SRD_BASIC_ACTION_IDS
 } from '@artificer-toolkit/source-data/srd/basicActions.js'
 
-import { dnd5eCharacterRuleActionSystemAdapter } from '../systems/dnd5e/effectActionCompiler.js'
+import {
+  SRD_ABILITY_DEFINITION_IDS,
+  SRD_ATHLETICS_SKILL_ID
+} from '@artificer-toolkit/source-data/srd/vocabulary.js'
+
+import {
+  DND5E_STABILIZE_PROPOSAL_OPERATION_KEY,
+  dnd5eCharacterRuleActionSystemAdapter
+} from '../systems/dnd5e/effectActionCompiler.js'
 import {
   ACTION_EFFECT_ID,
   characterActionDescriptor
 } from '../testing/characterActionDescriptor.js'
 
-const STABILIZE_OPERATION_KEY = 'dnd5e.stabilize-proposal'
-const ATHLETICS_ID = '00000000-0000-0000-0012-000100000000'
-const STRENGTH_ID = '00000000-0000-0000-0011-000100000000'
+const ATHLETICS_ID = SRD_ATHLETICS_SKILL_ID
+const STRENGTH_ID = SRD_ABILITY_DEFINITION_IDS.STRENGTH
+
+/** Every operation key the compiled output names, wherever it nests. */
+function operationKeys(value: unknown): string[] {
+  if (typeof value !== 'object' || value === null) return []
+  const own =
+    'operation' in value &&
+    typeof value.operation === 'object' &&
+    value.operation !== null &&
+    'key' in value.operation &&
+    typeof value.operation.key === 'string'
+      ? [value.operation.key]
+      : []
+  return [...own, ...Object.values(value).flatMap(operationKeys)]
+}
 
 function firstAidEffect(): EffectAuthored {
   const effect = SRD_BASIC_ACTION_DEFINITIONS.find(
@@ -38,7 +59,9 @@ function compile(effect: EffectAuthored) {
 
 describe('the CHECK action test compiles through the dnd5e adapter', () => {
   it('compiles First Aid, authored as a Medicine check against DC 10, to the stabilize proposal', () => {
-    expect(JSON.stringify(compile(firstAidEffect()))).toContain(STABILIZE_OPERATION_KEY)
+    expect(operationKeys(compile(firstAidEffect()))).toContain(
+      DND5E_STABILIZE_PROPOSAL_OPERATION_KEY
+    )
   })
 
   it('compiles any authored single check, a skill or an ability, against a fixed DC', () => {
@@ -47,8 +70,8 @@ describe('the CHECK action test compiles through the dnd5e adapter', () => {
       { skillIds: [], abilityDefinitionIds: [STRENGTH_ID] }
     ])
       expect(
-        JSON.stringify(compile(withCheck({ checks, dc: { kind: 'FIXED', value: 15 } })))
-      ).toContain(STABILIZE_OPERATION_KEY)
+        operationKeys(compile(withCheck({ checks, dc: { kind: 'FIXED', value: 15 } })))
+      ).toContain(DND5E_STABILIZE_PROPOSAL_OPERATION_KEY)
   })
 
   it('refuses a contest until the opposed check exists (ATTACK-7)', () => {

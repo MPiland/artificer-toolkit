@@ -8,6 +8,8 @@ export type TargetingAuthored =
       selectionKind: Extract<TargetSelectionKind, 'SINGLE_TARGET'>
       dispositionKind?: TargetDispositionKind
       excludesSelf?: boolean
+      /** Naming the user is refused outright, where `excludesSelf` only warns. */
+      refusesSelf?: boolean
       excludedCreatureTypeIds?: string[]
     }
   | {

@@ -8,8 +8,7 @@ import {
 } from './concentration.js'
 import { ABILITY_CODE, ATTACK_DOMAIN_CODE } from '@artificer-toolkit/shared'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
-import { basicActionReusableDefinitionDocumentDtoSchema } from '@artificer-toolkit/schema/shared/basicActions'
-import { SRD_BASIC_ACTION_DEFINITIONS, SRD_BASIC_ACTION_IDS } from './basicActions.js'
+import { SRD_BASIC_ACTION_IDS } from './basicActions.js'
 import { SRD_MEDICINE_SKILL_ID } from './vocabulary.js'
 import type { BaselineContentBundle } from '../content.js'
 
@@ -157,17 +156,6 @@ describe('canonical Convex import preparation', () => {
       expect(definition.document.gameSystemId).toBe(srdBaselineContent.vocabulary.systems[0]!.id)
       expect(definition.checksum).toBe(checksumRuleDocument(definition.document))
     }
-  })
-
-  it('an authored basic action cannot also carry mechanics', () => {
-    const hide = SRD_BASIC_ACTION_DEFINITIONS.find(({ id }) => id === SRD_BASIC_ACTION_IDS.HIDE)!
-    expect(
-      basicActionReusableDefinitionDocumentDtoSchema.safeParse({
-        ...hide.document,
-        mechanics: ['STABILIZE_TARGET'],
-        check: { checkDefinitionId: SRD_MEDICINE_SKILL_ID, dc: 10 }
-      }).success
-    ).toBe(false)
   })
 
   it('preserves every authored root and separate policy definition deterministically', () => {

@@ -1,5 +1,6 @@
 import { Button, Select, Stack, Text, Title, Tooltip } from '@mantine/core'
 import { useEffect, useState } from 'react'
+import { ACTIVATION_REGISTRY } from '@artificer-toolkit/shared/core'
 import type { EncounterActionChoiceDto } from '@artificer-toolkit/schema/api/encounterActionChoices'
 import type {
   EncounterCommandResultDto,
@@ -78,6 +79,12 @@ export function CampaignTabletopBasicActions({
               <Tooltip label={choice.rulesText} multiline w={280} withinPortal={false}>
                 <Text fw={600} size='sm' tabIndex={0}>
                   {choice.label}
+                  {choice.actionCost ? (
+                    <Text c='dimmed' component='span' fw={400} size='xs'>
+                      {' '}
+                      · {ACTIVATION_REGISTRY[choice.actionCost].label}
+                    </Text>
+                  ) : null}
                 </Text>
               </Tooltip>
               {choice.warnings.length ? (
@@ -85,28 +92,37 @@ export function CampaignTabletopBasicActions({
                   {choice.warnings.map((warning) => warning.message).join(' ')}
                 </Text>
               ) : null}
-              <Select
-                aria-label={`Target of ${choice.label.toLowerCase()}`}
-                clearable
-                comboboxProps={{ withinPortal: false }}
-                data={allies.map((entry) => ({ label: entry.label, value: entry.id }))}
-                disabled={disabled}
-                placeholder='Yourself'
-                searchable
-                size='xs'
-                value={targetByAction[choice.id] ?? null}
-                onChange={(value) =>
-                  setTargetByAction((current) =>
-                    value === null
-                      ? Object.fromEntries(Object.entries(current).filter(([id]) => id !== choice.id))
-                      : { ...current, [choice.id]: value }
-                  )
-                }
-              />
+              {choice.target.kind === 'ACTOR' && choice.target.requiresOtherCreature ? (
+                <Select
+                  aria-label={`Target of ${choice.label.toLowerCase()}`}
+                  comboboxProps={{ withinPortal: false }}
+                  data={allies.map((entry) => ({ label: entry.label, value: entry.id }))}
+                  disabled={disabled}
+                  placeholder='Choose a creature'
+                  searchable
+                  size='xs'
+                  value={targetByAction[choice.id] ?? null}
+                  onChange={(value) =>
+                    setTargetByAction((current) =>
+                      value === null
+                        ? Object.fromEntries(
+                            Object.entries(current).filter(([id]) => id !== choice.id)
+                          )
+                        : { ...current, [choice.id]: value }
+                    )
+                  }
+                />
+              ) : null}
             </Stack>
             <Button
               aria-label={`Use ${choice.label}`}
-              disabled={disabled || submittingId !== null}
+              disabled={
+                disabled ||
+                submittingId !== null ||
+                (choice.target.kind === 'ACTOR' &&
+                  choice.target.requiresOtherCreature &&
+                  !targetByAction[choice.id])
+              }
               loading={submittingId === choice.id}
               size='xs'
               variant='default'

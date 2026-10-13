@@ -14,6 +14,7 @@ export const targetingDtoSchema = lazySchema(() =>
       selectionKind: z.literal('SINGLE_TARGET'),
       dispositionKind: z.optional(z.enum(['ANY', 'WILLING', 'HOSTILE'])),
       excludesSelf: z.optional(z.boolean()),
+      refusesSelf: z.optional(z.boolean()),
       excludedCreatureTypeIds: z.optional(
         authoredReferenceCollectionSchema(authoredIdentifierSchema)
       )

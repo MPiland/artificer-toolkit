@@ -35,7 +35,7 @@ const actions = [
     grip: { value: 'ONE_HANDED', attackKey: 'staff-instance:MELEE_WEAPON_ATTACK' },
     wieldConflict: null,
     warnings: [],
-    target: { kind: 'ACTOR' },
+    target: { kind: 'ACTOR', requiresOtherCreature: false },
     attackSlot: null
   }
 ] satisfies EncounterActionChoiceDto[]
@@ -50,7 +50,7 @@ const greatswordActions = [
     grip: { value: 'TWO_HANDED', attackKey: 'greatsword-instance:MELEE_WEAPON_ATTACK' },
     wieldConflict: { kind: 'STOW_SHIELD', shieldItemInstanceId, armorClassDelta: -2 },
     warnings: [],
-    target: { kind: 'ACTOR' },
+    target: { kind: 'ACTOR', requiresOtherCreature: false },
     attackSlot: null
   }
 ] satisfies EncounterActionChoiceDto[]
@@ -66,7 +66,7 @@ const longswordActions = [
     grip: { value: 'ONE_HANDED', attackKey: longswordAttackKey },
     wieldConflict: null,
     warnings: [],
-    target: { kind: 'ACTOR' },
+    target: { kind: 'ACTOR', requiresOtherCreature: false },
     attackSlot: null
   },
   {
@@ -79,7 +79,7 @@ const longswordActions = [
     grip: { value: 'TWO_HANDED', attackKey: longswordAttackKey },
     wieldConflict: { kind: 'STOW_SHIELD', shieldItemInstanceId, armorClassDelta: -2 },
     warnings: [],
-    target: { kind: 'ACTOR' },
+    target: { kind: 'ACTOR', requiresOtherCreature: false },
     attackSlot: null
   }
 ] satisfies EncounterActionChoiceDto[]
@@ -150,7 +150,8 @@ const basicActionChoices = [
     id: 'help-action',
     label: 'Help',
     rulesText: 'You aid an ally. Its next attack roll before your next turn has advantage.',
-    grip: null
+    grip: null,
+    target: { kind: 'ACTOR', requiresOtherCreature: true }
   },
   {
     ...actions[0],
@@ -353,7 +354,7 @@ export const CreatureSource: Story = {
         grip: null,
         wieldConflict: null,
         warnings: [],
-        target: { kind: 'ACTOR' },
+        target: { kind: 'ACTOR', requiresOtherCreature: false },
         attackSlot: null
       }
     ],
@@ -611,8 +612,10 @@ export const UseBasicActions: Story = {
     const { page, drawer } = await openActions(canvasElement)
     const section = within(drawer.getByRole('region', { name: 'Basic actions' }))
 
+    await expect(section.getByRole('button', { name: 'Use Help' })).toBeDisabled()
     await userEvent.click(section.getByRole('combobox', { name: 'Target of help' }))
     await userEvent.click(await page.findByRole('option', { name: 'Vault Warden' }))
+    await expect(section.getByRole('button', { name: 'Use Help' })).toBeEnabled()
     await userEvent.click(section.getByRole('button', { name: 'Use Dash' }))
 
     await waitFor(() => expect(resolveAction).toHaveBeenCalledTimes(1))

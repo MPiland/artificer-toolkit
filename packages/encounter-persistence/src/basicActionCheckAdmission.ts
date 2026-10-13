@@ -1,3 +1,5 @@
+import type { z } from 'zod'
+import type { encounterStoredRunCommandSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import type { LiveSessionEncounterRulesInput } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import type { ServerRuleExecutionPendingSnapshotDto } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
@@ -18,7 +20,16 @@ import { presentTimelineEntry } from './timelineEntries.js'
 import type { EncounterReadTransaction } from './ports.js'
 import type { EncounterDocument } from './store.js'
 
-type CheckResponseInput = Omit<LiveSessionEncounterRulesInput, 'request'> & {
+/** The check occurrence a stored root command pended: a CHECK action's or an Escape's. */
+export function storedCheckOccurrenceId(
+  root: z.infer<typeof encounterStoredRunCommandSchema> | undefined
+): string | null {
+  if (root?.commandType === 'RESOLVE_ACTION') return root.checkReceipt?.checkOccurrenceId ?? null
+  if (root?.commandType === 'ESCAPE_RELATIONSHIP') return root.receipt.checkOccurrenceId
+  return null
+}
+
+type CheckResponseInput =Omit<LiveSessionEncounterRulesInput, 'request'> & {
   response: ResolveRuleOccurrenceInputDto
 }
 
@@ -135,15 +146,9 @@ async function admitCheckResponse<
     )
     .unique()
   // The fingerprint covers the command's type, so a root of the other check kind cannot match.
-  const rootCheckOccurrenceId =
-    root?.commandType === 'RESOLVE_ACTION'
-      ? root.checkReceipt?.checkOccurrenceId
-      : root?.commandType === 'ESCAPE_RELATIONSHIP'
-        ? root.receipt.checkOccurrenceId
-        : undefined
   if (
     !root ||
-    rootCheckOccurrenceId !== occurrence.id ||
+    storedCheckOccurrenceId(root) !== occurrence.id ||
     root.commandFingerprint !== context.commandFingerprint
   )
     throw new Error('The check root command is unavailable.')

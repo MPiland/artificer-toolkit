@@ -42,7 +42,7 @@ const actions = [
     grip: null,
     wieldConflict: null,
     warnings: [],
-    target: { kind: 'ACTOR' },
+    target: { kind: 'ACTOR', requiresOtherCreature: false },
     attackSlot: null
   }
 ] satisfies EncounterActionChoiceDto[]
@@ -307,12 +307,19 @@ const basicActionChoices = [
     label: 'Dash',
     rulesText: 'You gain extra movement for the current turn.'
   },
-  { ...actions[0]!, id: 'help-action', label: 'Help', rulesText: 'You aid an ally.' },
+  {
+    ...actions[0]!,
+    id: 'help-action',
+    label: 'Help',
+    rulesText: 'You aid an ally.',
+    target: { kind: 'ACTOR', requiresOtherCreature: true }
+  },
   {
     ...actions[0]!,
     id: 'first-aid-action',
     label: 'First Aid',
-    rulesText: 'You make a DC 10 Wisdom (Medicine) check to stabilize a dying creature.'
+    rulesText: 'You make a DC 10 Wisdom (Medicine) check to stabilize a dying creature.',
+    target: { kind: 'ACTOR', requiresOtherCreature: true }
   }
 ] satisfies EncounterActionChoiceDto[]
 
@@ -371,15 +378,37 @@ describe('CampaignTabletopActionDrawer basic actions', () => {
     const onResolve = vi.fn().mockResolvedValue(resolved)
     renderDrawer(onResolve, { choices: [], authoredBasicActions: basicActionChoices })
 
-    await user.click(await screen.findByRole('combobox', { name: 'Target of help' }))
+    const use = await screen.findByRole('button', { name: 'Use Help' })
+    expect(use).toBeDisabled()
+    await user.click(screen.getByRole('combobox', { name: 'Target of help' }))
     await user.click(await screen.findByRole('option', { name: 'Vault Warden' }))
-    await user.click(screen.getByRole('button', { name: 'Use Help' }))
+    expect(use).toBeEnabled()
+    await user.click(use)
     expect(onResolve).toHaveBeenCalledWith(
       expect.objectContaining({
         actionId: basicActionChoices[1].id,
         target: { kind: 'ACTOR', actorId: '99999999-9999-4999-8999-999999999902' }
       })
     )
+  })
+
+  it('asks for the creature First Aid stabilizes before it can be used', async () => {
+    const user = userEvent.setup()
+    const onResolve = vi.fn().mockResolvedValue(resolved)
+    renderDrawer(onResolve, { choices: [], authoredBasicActions: basicActionChoices })
+
+    const use = await screen.findByRole('button', { name: 'Use First Aid' })
+    expect(use).toBeDisabled()
+    await user.click(screen.getByRole('combobox', { name: 'Target of first aid' }))
+    await user.click(await screen.findByRole('option', { name: 'Vault Warden' }))
+    expect(use).toBeEnabled()
+  })
+
+  it('offers no target to an action that only affects its user', async () => {
+    renderDrawer(vi.fn(), { choices: [], authoredBasicActions: basicActionChoices })
+
+    expect(await screen.findByRole('button', { name: 'Use Dash' })).toBeEnabled()
+    expect(screen.queryByRole('combobox', { name: 'Target of dash' })).not.toBeInTheDocument()
   })
 
   it('resends a basic action with its warnings acknowledged on "Do it anyway"', async () => {

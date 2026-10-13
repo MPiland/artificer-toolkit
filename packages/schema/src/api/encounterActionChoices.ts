@@ -28,6 +28,8 @@ export const encounterActionChoiceDtoSchema = lazySchema(() =>
     sourceLabel: characterSheetActionDtoSchema.shape.sourceLabel,
     /** What the action does, for a System-authored basic action's tooltip. */
     rulesText: z.optional(basicActionReusableDefinitionDocumentDtoSchema.shape.rulesText),
+    /** What a System-authored basic action costs to use, shown beside its name. */
+    actionCost: z.optional(basicActionReusableDefinitionDocumentDtoSchema.shape.actionCost),
     rangeLabel: z.optional(labelSchema),
     attackBonus: z.optional(z.number().check(z.int())),
     damageLabel: z.optional(labelSchema),
@@ -53,7 +55,11 @@ export const encounterActionChoiceDtoSchema = lazySchema(() =>
      * area is as authored; the client converts it to the Scene's coordinates to preview it.
      */
     target: z.discriminatedUnion('kind', [
-      z.strictObject({ kind: z.literal('ACTOR') }),
+      z.strictObject({
+        kind: z.literal('ACTOR'),
+        /** The action needs a creature other than its user (Help, First Aid): the client asks for one first. */
+        requiresOtherCreature: z.boolean()
+      }),
       z.strictObject({
         kind: z.literal('POINT'),
         area: z.discriminatedUnion('kind', [
