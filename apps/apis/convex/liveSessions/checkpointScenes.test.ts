@@ -490,7 +490,7 @@ it('merges existing head, token and fog rows only when their canonical previous 
   })
 })
 
-it('persists a checkpointed token without Character-derived senses', async () => {
+it('rejects a checkpointed token that stores senses', async () => {
   const base = await fixture()
   const changes = base.publication.changes.map((entry) => {
     if (entry.table !== 'sceneLiveEntities' || !entry.delta || !('set' in entry.delta)) return entry
@@ -524,13 +524,8 @@ it('persists a checkpointed token without Character-derived senses', async () =>
         scenes: [{ ...base.publication, changes }]
       })
     )
-  ).resolves.toMatchObject({ status: 'COMMITTED' })
+  ).rejects.toThrow('Checkpoint Scene saves never store token senses.')
   await base.t.run(async (ctx) => {
-    const entity = await ctx.db.query('sceneLiveEntities').unique()
-    if (!entity) throw new Error('Missing publication.')
-    expect(parseLiveEntity(entity, 1).value).toEqual({
-      collection: 'tokens',
-      entity: { ...base.token, senses: [] }
-    })
+    expect(await ctx.db.query('sceneLiveEntities').take(1)).toEqual([])
   })
 })

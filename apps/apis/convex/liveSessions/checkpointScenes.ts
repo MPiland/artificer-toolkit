@@ -6,12 +6,10 @@ import {
   type LiveSessionCheckpointScene,
   type LiveSessionCheckpointSceneTable
 } from '@artificer-toolkit/schema/api/liveSessionCheckpointScenes'
-import { sceneStoredLiveEntitySchema } from '@artificer-toolkit/schema/projections/sceneLivePersistence'
 import { canonicalJsonRecordSchema } from '@artificer-toolkit/schema/shared/jsonDelta'
 import { applyJsonDelta } from '@artificer-toolkit/encounter-persistence/jsonDelta'
 import { changedFields } from '@artificer-toolkit/encounter-persistence/documents'
 import { canonicalizeJson, checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import { withoutStoredSenses } from '@artificer-toolkit/shared/vtt/scene'
 import type { DataModel, Doc } from '../_generated/dataModel'
 import type { MutationCtx } from '../_generated/server'
 import { livePublicationCampaignScope } from '../campaigns/authority'
@@ -55,18 +53,6 @@ async function readRow<Table extends LiveSessionCheckpointSceneTable>(
       }
     )
     .unique()
-}
-
-type StoredLiveEntity = WithoutSystemFields<Doc<'sceneLiveEntities'>>
-
-/** Re-seals a token entity without its runtime senses; the entity checksum covers its content. */
-function withoutTokenSenses(row: StoredLiveEntity): StoredLiveEntity {
-  if (row.value?.collection !== 'tokens') return row
-  const { checksum: _checksum, ...fields } = {
-    ...row,
-    value: { ...row.value, entity: withoutStoredSenses(row.value.entity) }
-  }
-  return { ...fields, checksum: checksumCanonicalJson(fields) }
 }
 
 /** Complete normalized Scene writes share the rules, private play and acknowledgement transaction. */
@@ -149,10 +135,14 @@ export async function applyCheckpointScenes(
         before
       )
         throw new Error('Checkpoint Scene saves are append-only.')
-      const next =
-        change.table === 'sceneLiveEntities'
-          ? withoutTokenSenses(sceneStoredLiveEntitySchema.parse(value))
-          : liveSessionCheckpointSceneSchemas[change.table].parse(value)
+      const next = liveSessionCheckpointSceneSchemas[change.table].parse(value)
+      if (
+        change.table === 'sceneLiveEntities' &&
+        'value' in next &&
+        next.value?.collection === 'tokens' &&
+        next.value.entity.senses.length
+      )
+        throw new Error('Checkpoint Scene saves never store token senses.')
       rows.push({ table: change.table, key: change.key, before, next })
     }
     const head = rows.find((row) => row.table === 'sceneLiveStates')?.next as
