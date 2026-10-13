@@ -1,10 +1,10 @@
-import type { MeasurementUnitCode } from '#core'
-import { MEASUREMENT_UNIT_OPTIONS } from '#core'
+import type { LengthUnitCode } from '#core'
+import { LENGTH_UNIT_OPTIONS } from '#core'
 import { buildNodeMap } from '#utils'
 
 export type MeasurementAuthored = {
   amount: number
-  unit: MeasurementUnitCode
+  unit: LengthUnitCode
 }
 
 const measurement = buildNodeMap<MeasurementAuthored>()
@@ -27,7 +27,7 @@ export const MEASUREMENT_NODE_MAP = measurement.define('measurement', ({ map, no
         'Unit',
         {
           kind: 'INLINE_OPTIONS',
-          options: MEASUREMENT_UNIT_OPTIONS
+          options: LENGTH_UNIT_OPTIONS
         },
         {
           order: 2,

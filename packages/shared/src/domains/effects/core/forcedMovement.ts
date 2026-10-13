@@ -1,4 +1,4 @@
-import type { CoreMeta, MeasurementUnitCode } from '#core'
+import type { CoreMeta, LengthUnitCode } from '#core'
 import { valuesOf } from '#utils'
 
 export const FORCED_MOVEMENT_DIRECTION = {
@@ -108,5 +108,5 @@ export type ForcedMovementDistance =
   | {
       distanceMode: typeof FORCED_MOVEMENT_DISTANCE_MODE.FIXED_DISTANCE
       amount: number
-      unit: MeasurementUnitCode
+      unit: LengthUnitCode
     }

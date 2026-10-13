@@ -3,7 +3,7 @@ import type {
   CharacterRulePolicyInput,
   CharacterRulePolicyOutput
 } from '@artificer-toolkit/schema/api/characterRules'
-import { lengthUnitCodeSchema } from '@artificer-toolkit/schema/shared/range'
+import { lengthUnitCodeSchema } from '@artificer-toolkit/schema/shared/enums'
 
 import type { CharacterResolvedModifierGroup } from './characterModifiers.js'
 import { characterPolicyNumber, characterPolicyRecord } from './characterPolicyValues.js'

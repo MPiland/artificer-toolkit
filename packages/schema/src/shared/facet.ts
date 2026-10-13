@@ -17,7 +17,7 @@ import {
   durationKindSchema,
   equipmentCategoryCodeSchema,
   equipmentPropertyCodeSchema,
-  measurementUnitCodeSchema,
+  lengthUnitCodeSchema,
   predicateCodeSchema,
   proficiencyKindSchema,
   rangeKindSchema,
@@ -95,7 +95,7 @@ const rangePredicatePayloadSchema = lazySchema(() =>
       {
         min: z.number(),
         max: z.optional(z.number()),
-        unit: measurementUnitCodeSchema
+        unit: lengthUnitCodeSchema
       }
     )
   ])

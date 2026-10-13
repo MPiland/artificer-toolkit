@@ -1,16 +1,12 @@
-import { LENGTH_UNIT_CODES } from '@artificer-toolkit/shared/core'
 import { z, lazySchema } from '../zod.js'
-import { measurementUnitCodeSchema, rangeKindSchema } from './enums.js'
+import { lengthUnitCodeSchema, rangeKindSchema } from './enums.js'
 import { createBreakpointScalingDtoSchema } from './scaling.js'
 import { authoredIdentifierSchema } from './authoredLimits.js'
-
-/** The units a distance is authored in; a Scene converts exactly these. */
-export const lengthUnitCodeSchema = lazySchema(() => z.enum(LENGTH_UNIT_CODES))
 
 const rangeMeasurementDtoSchema = lazySchema(() =>
   z.object({
     amount: z.number(),
-    unit: measurementUnitCodeSchema
+    unit: lengthUnitCodeSchema
   })
 )
 

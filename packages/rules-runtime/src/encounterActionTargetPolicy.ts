@@ -1,6 +1,7 @@
 import type { EncounterActorDispositionDto } from '@artificer-toolkit/schema/api/encounterData'
 import type { CompiledActionTargetPolicy } from '@artificer-toolkit/schema/projections/characterMechanics'
 import type { EncounterRuleWarningDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
+import type { LengthUnitCode } from '@artificer-toolkit/shared/core'
 import {
   lengthMeasurementInSceneUnits,
   measureSceneTokenFootprintDistance,
@@ -187,20 +188,13 @@ export function encounterActionLongRangeContributor(input: {
 /** A range in Scene units and the token footprints' measured distance; null when unmeasurable. */
 export function measuredDistance(
   scene: EncounterActionSceneContext,
-  range: Parameters<typeof lengthMeasurementInSceneUnits>[0]
+  range: { amount: number; unit: LengthUnitCode }
 ) {
   try {
-    const maximum = lengthMeasurementInSceneUnits(range, scene.grid)
-    return maximum === null
-      ? null
-      : {
-          maximum,
-          measured: measureSceneTokenFootprintDistance(
-            scene.grid,
-            scene.sourceToken,
-            scene.targetToken
-          )
-        }
+    return {
+      maximum: lengthMeasurementInSceneUnits(range, scene.grid),
+      measured: measureSceneTokenFootprintDistance(scene.grid, scene.sourceToken, scene.targetToken)
+    }
   } catch {
     return null
   }

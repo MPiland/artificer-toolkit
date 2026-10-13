@@ -1,4 +1,4 @@
-import type { MeasurementUnitCode } from '../core/measurement.js'
+import { lengthMeasurementInFeet, type LengthUnitCode } from '../core/measurement.js'
 import type {
   CampaignSceneState,
   SceneAtomicDelta,
@@ -8,6 +8,7 @@ import type {
   SceneEvent,
   SceneEntity,
   SceneFogLayer,
+  SceneGrid,
   ScenePoint,
   SceneTransientReveal,
   SceneViewer
@@ -34,24 +35,20 @@ function fogLayerKey(layer: SceneFogLayer): string {
   return layer.ownerUserId ?? 'SHARED_PARTY'
 }
 
-/** Convert a typed length into authoritative Scene units; unsupported dimensions fail closed. */
+type SceneLength = { amount: number; unit: LengthUnitCode }
+
+/** Convert a typed length into authoritative Scene units; a missing length has none. */
+export function lengthMeasurementInSceneUnits(range: SceneLength, grid: SceneGrid): number
 export function lengthMeasurementInSceneUnits(
-  range: { amount: number; unit: MeasurementUnitCode } | null,
-  grid: CampaignSceneState['grid']
+  range: SceneLength | null,
+  grid: SceneGrid
+): number | null
+export function lengthMeasurementInSceneUnits(
+  range: SceneLength | null,
+  grid: SceneGrid
 ): number | null {
   if (!range) return null
-  const feet =
-    range.unit === 'INCHES'
-      ? range.amount / 12
-      : range.unit === 'FEET'
-        ? range.amount
-        : range.unit === 'YARDS'
-          ? range.amount * 3
-          : range.unit === 'MILES'
-            ? range.amount * 5_280
-            : null
-  if (feet === null)
-    throw new Error(`Measurement unit ${range.unit} is not a supported Scene length unit.`)
+  const feet = lengthMeasurementInFeet(range)
   if (!Number.isFinite(feet)) throw new Error('Scene length conversion overflowed.')
   if (feet <= 0) return 0
   if (grid.unit === 'FEET') return feet

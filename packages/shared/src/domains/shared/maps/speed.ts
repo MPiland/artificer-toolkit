@@ -1,5 +1,5 @@
 import type { SpeedAuthored } from '#authored'
-import { MEASUREMENT_UNIT_OPTIONS } from '#core'
+import { LENGTH_UNIT_OPTIONS } from '#core'
 import { buildNodeMap } from '#utils'
 
 const speed = buildNodeMap<SpeedAuthored>()
@@ -41,7 +41,7 @@ export const SPEED_NODE_MAP = speed.define(
           'Unit',
           {
             kind: 'INLINE_OPTIONS',
-            options: MEASUREMENT_UNIT_OPTIONS
+            options: LENGTH_UNIT_OPTIONS
           },
           {
             order: 3,

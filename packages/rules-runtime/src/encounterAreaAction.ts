@@ -1,6 +1,7 @@
 import type { CompiledActionTargetPolicy } from '@artificer-toolkit/schema/projections/characterMechanics'
 import type { EncounterRuleWarningDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
 import type { EncounterActionChoiceDto } from '@artificer-toolkit/schema/api/encounterActionChoices'
+import type { LengthUnitCode } from '@artificer-toolkit/shared/core'
 import {
   lengthMeasurementInSceneUnits,
   measureSceneDistance,
@@ -47,7 +48,7 @@ export function encounterActionTargetKind(
 
 /** A length in the Scene's distance unit; null when the Scene cannot hold the authored unit. */
 function measuredLength(
-  measurement: Parameters<typeof lengthMeasurementInSceneUnits>[0],
+  measurement: { amount: number; unit: LengthUnitCode },
   grid: SceneGrid
 ): number | null {
   try {

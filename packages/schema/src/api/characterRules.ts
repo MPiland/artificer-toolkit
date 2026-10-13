@@ -26,12 +26,12 @@ import {
 import {
   abilityCodeSchema,
   equipmentCategoryCodeSchema,
+  lengthUnitCodeSchema,
   measurementUnitCodeSchema,
   sizeCodeSchema
 } from '../shared/enums.js'
 import { compareCanonicalD20Contributors } from '@artificer-toolkit/shared/rules'
 import { postgresUuidSchema as serverUuidIdentityDtoSchema } from '../shared/postgresUuid.js'
-import { lengthUnitCodeSchema } from '../shared/range.js'
 import { characterResourcePoolIdentitySchema } from '../shared/characterResourceIdentity.js'
 
 const finiteNumberSchema = lazySchema(() => z.number())
@@ -162,7 +162,7 @@ const characterMovementFactsSchema = lazySchema(() =>
           speedId: boundedIdentitySchema,
           code: z.nullable(boundedIdentitySchema),
           baseAmount: finiteNumberSchema,
-          unit: measurementUnitCodeSchema,
+          unit: lengthUnitCodeSchema,
           override: z.nullable(
             z.strictObject({ sourceId: boundedIdentitySchema, value: finiteNumberSchema })
           )
@@ -1243,7 +1243,7 @@ export const characterRulePolicyOutputSchema = lazySchema(() =>
             z.strictObject({
               speedId: boundedIdentitySchema,
               amount: finiteNumberSchema,
-              unit: measurementUnitCodeSchema,
+              unit: lengthUnitCodeSchema,
               calculation: characterDerivedNumericCalculationSchema
             })
           )

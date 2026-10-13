@@ -1,4 +1,4 @@
-import { MODIFIER_KIND, VALUE_DOMAIN_CODE } from '@artificer-toolkit/shared/core'
+import { LENGTH_UNIT_CODES, MODIFIER_KIND, VALUE_DOMAIN_CODE } from '@artificer-toolkit/shared/core'
 
 import { z, lazySchema } from '../zod.js'
 
@@ -208,6 +208,9 @@ export const measurementUnitCodeSchema = lazySchema(() =>
     'QUARTS'
   ])
 )
+
+/** The units a distance is authored in; a Scene converts exactly these. */
+export const lengthUnitCodeSchema = lazySchema(() => z.enum(LENGTH_UNIT_CODES))
 
 export const scalingKindSchema = lazySchema(() => z.enum(['NONE', 'PER_LEVEL']))
 export const scalingSourceSchema = lazySchema(() =>

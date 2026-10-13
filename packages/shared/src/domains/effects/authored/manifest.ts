@@ -9,7 +9,7 @@ import {
   MANIFEST_KIND,
   type AbilityCode,
   type ManifestKind,
-  type MeasurementUnitCode,
+  type LengthUnitCode,
   type NumericExpr,
   type ShapeMeasurementValueAuthored,
   type SizeCode,
@@ -158,14 +158,14 @@ export type ManifestComponentAuthored = {
 }
 
 export type ManifestLightAuthored = {
-  bright: { amount: number; unit: MeasurementUnitCode }
-  dimAdditional: { amount: number; unit: MeasurementUnitCode }
+  bright: { amount: number; unit: LengthUnitCode }
+  dimAdditional: { amount: number; unit: LengthUnitCode }
 }
 
 export type ManifestProximityRuleAuthored = {
   id: string
   events: Array<'MOVE_WITHIN' | 'START_TURN'>
-  distance: { amount: number; unit: MeasurementUnitCode }
+  distance: { amount: number; unit: LengthUnitCode }
   requiresSight: boolean
   behavior: ManifestBehaviorAuthored
 }

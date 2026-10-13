@@ -1,7 +1,7 @@
 import type { SceneCharacterVision } from '@artificer-toolkit/shared/vtt'
 import { z, lazySchema } from '../zod.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
-import { measurementUnitCodeSchema } from '../shared/enums.js'
+import { lengthUnitCodeSchema } from '../shared/enums.js'
 import {
   combatPerceptionChannelDtoSchema,
   combatPerceptionIlluminationAccessDtoSchema
@@ -29,7 +29,7 @@ export const characterSceneVisionResultSchema: z.ZodMiniType<SceneCharacterVisio
             label: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)),
             range: z.strictObject({
               amount: z.number().check(z.positive()),
-              unit: measurementUnitCodeSchema
+              unit: lengthUnitCodeSchema
             }),
             senseId: postgresUuidSchema
           })

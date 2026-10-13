@@ -14,7 +14,7 @@ import {
   modifierScopeKindSchema
 } from '../shared/enums.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
-import { lengthUnitCodeSchema } from '../shared/range.js'
+import { lengthUnitCodeSchema } from '../shared/enums.js'
 import { reactionMovementTriggerBindingDtoSchema } from '../shared/reaction.js'
 
 const stringSchema = lazySchema(() => z.string())

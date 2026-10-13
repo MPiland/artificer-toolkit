@@ -1,6 +1,6 @@
 import { z, lazySchema } from '../zod.js'
 
-import { effectKindSchema, measurementUnitCodeSchema } from '../shared/enums.js'
+import { effectKindSchema, lengthUnitCodeSchema } from '../shared/enums.js'
 import { authoredIdentifierSchema } from '../shared/authoredLimits.js'
 
 export const moveManifestDtoSchema = lazySchema(() =>
@@ -9,7 +9,7 @@ export const moveManifestDtoSchema = lazySchema(() =>
     effectKind: z.literal(effectKindSchema._zod.def.entries.MOVE_MANIFEST),
     manifestId: authoredIdentifierSchema,
     amount: z.number(),
-    unit: measurementUnitCodeSchema,
+    unit: lengthUnitCodeSchema,
     upTo: z.optional(z.boolean())
   })
 )

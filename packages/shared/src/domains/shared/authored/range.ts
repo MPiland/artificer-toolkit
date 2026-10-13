@@ -1,13 +1,8 @@
-import {
-  type LengthUnitCode,
-  type MeasurementUnitCode,
-  type RangeKind,
-  type ScalableValueAuthored
-} from '#core'
+import { type LengthUnitCode, type RangeKind, type ScalableValueAuthored } from '#core'
 
 export type RangeMeasurementAuthored = {
   amount: number
-  unit: MeasurementUnitCode
+  unit: LengthUnitCode
 }
 
 export type RangeAuthored =

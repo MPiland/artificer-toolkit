@@ -4,7 +4,7 @@ import {
   forcedMovementActionEconomySchema,
   forcedMovementDirectionSchema,
   forcedMovementDistanceModeSchema,
-  measurementUnitCodeSchema
+  lengthUnitCodeSchema
 } from '../shared/enums.js'
 import { authoredIdentifierSchema } from '../shared/authoredLimits.js'
 
@@ -23,7 +23,7 @@ export const forcedMovementDtoSchema = lazySchema(() =>
       z.object({
         distanceMode: z.literal(forcedMovementDistanceModeSchema._zod.def.entries.FIXED_DISTANCE),
         amount: z.number(),
-        unit: measurementUnitCodeSchema
+        unit: lengthUnitCodeSchema
       })
     ])
   )
