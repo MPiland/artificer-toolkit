@@ -63,7 +63,11 @@ import {
   expectDrawnPresentation,
   latestStageRenderer
 } from './vttSceneRenderer.assertions'
-import { gmDarknessCapAlpha, selectionOutlineColor } from './vttSceneRenderer.model'
+import {
+  gmDarknessCapAlpha,
+  minimumFocusedTokenScreenSize,
+  selectionOutlineColor
+} from './vttSceneRenderer.model'
 import { buildVttTokenPresentations } from './vttTokenPresentation.model'
 
 const liveSessionTokenHandler = http.get('*/api/auth/convex/token', () =>
@@ -545,6 +549,42 @@ export const HoveringAFocusItemListsEveryStatus: Story = {
   }
 }
 
+// VTT_UI-4.1: the panel names a token's disposition even when it has no statuses, and focusing a
+// token from the Scene controls zooms a far-out view in until the token is readable.
+export const FocusingATokenNamesItsDispositionAndZoomsIn: Story = {
+  args: {
+    campaignId: tabletopCampaignId,
+    currentUserId: tabletopCurrentUserId
+  },
+  render: (args) => renderWindow(args, createTabletopCampaign('OWNER'), null, bareWardenFixtures),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body)
+    await page.findByText('Scene map ready.', undefined, { timeout: mapReadyTimeoutMs })
+    const { presentation, wardenToken } = wardenPresentationFor(
+      'OWNER',
+      bareWardenFixtures.gmEncounter
+    )
+    await expect(presentation.statuses).toHaveLength(0)
+    await expect(presentation.dispositionLabel).toBe('Hostile')
+    const renderer = await latestStageRenderer()
+    for (let step = 0; step < 40; step += 1) renderer.zoomOut()
+    const zoomedOut = renderer.getDiagnostics().zoomScale
+    await userEvent.click(await page.findByRole('button', { name: 'Scene controls' }))
+    const sceneControls = await page.findByRole('menu', { name: 'Scene controls' })
+    const focusItem = await within(sceneControls).findByRole('menuitem', {
+      name: `Focus ${wardenToken.label}`
+    })
+    await userEvent.hover(focusItem)
+    const panel = await page.findByRole('region', { name: `${wardenToken.label} statuses` })
+    await expect(within(panel).getByText(presentation.dispositionLabel!)).toBeVisible()
+    await userEvent.click(focusItem)
+    await waitFor(() => expect(renderer.getDiagnostics().zoomScale).toBeGreaterThan(zoomedOut))
+    await expect(
+      renderer.getDiagnostics().zoomScale * Math.max(wardenToken.width, wardenToken.height)
+    ).toBeGreaterThanOrEqual(minimumFocusedTokenScreenSize - 1e-9)
+  }
+}
+
 // VTT_UI-1.2: pointing at another token lists its statuses over the selected token's; leaving it
 // lists the selected token's again.
 export const HoveringATokenListsItOverTheSelection: Story = {
@@ -809,6 +849,17 @@ const presentedTokensFixtures: TabletopFixtures = {
       actor.id === wardenId ? { ...actor, conditions: wardenConditions } : actor
     ),
     currentActorId: wardenId
+  }
+}
+
+// The Warden bound to a token but carrying no status, so only its disposition is listed.
+const bareWardenFixtures: TabletopFixtures = {
+  ...presentedTokensFixtures,
+  gmEncounter: {
+    ...presentedTokensFixtures.gmEncounter,
+    actors: presentedTokensFixtures.gmEncounter.actors.map((actor) =>
+      actor.id === wardenId ? { ...actor, conditions: [], healthBand: 'HEALTHY' as const } : actor
+    )
   }
 }
 

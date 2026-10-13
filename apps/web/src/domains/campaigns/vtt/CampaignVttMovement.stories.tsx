@@ -78,6 +78,7 @@ function MovementFixture({
             [scene.tokens[0]!.id]: {
               accessibleDescription: 'Moved token.',
               artUrl: null,
+              dispositionLabel: null,
               facing,
               fillColor: 0x1971c2,
               halo: null,

@@ -54,6 +54,7 @@ import {
   positionVttMapTiles,
   resolveVttMapLoadDecision,
   resolveSceneTokenMove,
+  resolveVttTokenFocusScale,
   resolveVttZoomScale,
   senseEffect,
   senseReachRadius,
@@ -148,6 +149,8 @@ export interface VttSceneRenderer {
   destroy: () => void
   fit: () => void
   focusPoint: (point: ScenePoint) => void
+  /** Centres the token and zooms in until its footprint is readable; never zooms out. */
+  focusToken: (token: { height: number; position: ScenePoint; width: number }) => void
   getDiagnostics: () => {
     /** The in-progress token drag: its path length, where the token is drawn and the route line drawn. */
     activeDrag: { pointCount: number; position: ScenePoint; route: ScenePoint[] } | null
@@ -188,6 +191,8 @@ export interface VttSceneRenderer {
     tokens: {
       /** The colour of the drawn body fill. */
       bodyFillColor: number | null
+      /** Whether the current-turn crosshair is drawn, the shape cue that tells it from a reaction halo. */
+      crosshairDrawn: boolean
       facingRotationDegrees: number | null
       footprint: { height: number; width: number }
       /** The drawn turn or reaction halo. */
@@ -251,6 +256,7 @@ const outerRingMargin = 2
 const outerRingGap = 0.07
 const selectionOutlineOffset = 16
 const tokenBodyLabel = 'token-body'
+const tokenCrosshairLabel = 'token-crosshair'
 const tokenFacingLabel = 'token-facing'
 const tokenFillLabel = 'token-fill'
 const tokenHaloLabelPrefix = 'token-halo:'
@@ -647,6 +653,11 @@ export async function createVttSceneRenderer(
       app.screen.height / 2 - point.y * world.scale.y
     )
     requestRender()
+  }
+
+  function focusToken(token: { height: number; position: ScenePoint; width: number }): void {
+    world.scale.set(resolveVttTokenFocusScale(world.scale.x, token))
+    focusPoint(token.position)
   }
 
   function zoomAt(factor: number, point: ScenePoint): void {
@@ -1691,14 +1702,14 @@ export async function createVttSceneRenderer(
       visual.addChild(facing)
     }
     if (presentation?.marked) {
-      visual.addChild(
-        new pixi.Graphics()
-          .moveTo(-token.width / 2 - 5, 0)
-          .lineTo(token.width / 2 + 5, 0)
-          .moveTo(0, -token.height / 2 - 5)
-          .lineTo(0, token.height / 2 + 5)
-          .stroke({ alpha: 0.9, color: 0x22b8cf, width: 2 })
-      )
+      const crosshair = new pixi.Graphics()
+        .moveTo(-token.width / 2 - 5, 0)
+        .lineTo(token.width / 2 + 5, 0)
+        .moveTo(0, -token.height / 2 - 5)
+        .lineTo(0, token.height / 2 + 5)
+        .stroke({ alpha: 0.9, color: 0x22b8cf, width: 2 })
+      crosshair.label = tokenCrosshairLabel
+      visual.addChild(crosshair)
     }
     addStatusRing(visual, token, presentation?.statuses ?? [])
     visual.on('pointerdown', (event) => {
@@ -2436,6 +2447,7 @@ export async function createVttSceneRenderer(
     },
     fit,
     focusPoint,
+    focusToken,
     getDiagnostics() {
       return {
         activeDrag: drag
@@ -2511,6 +2523,7 @@ export async function createVttSceneRenderer(
           return {
             bodyFillColor:
               drawnStyles(visual.getChildByLabel(tokenFillLabel), 'fill')[0]?.color ?? null,
+            crosshairDrawn: visual.getChildByLabel(tokenCrosshairLabel) !== null,
             facingRotationDegrees: facing ? (facing.rotation * 180) / Math.PI : null,
             footprint: { height: body?.height ?? 0, width: body?.width ?? 0 },
             halo:

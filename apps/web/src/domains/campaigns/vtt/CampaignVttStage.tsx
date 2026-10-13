@@ -527,7 +527,7 @@ export function CampaignVttStage({
     : null
   // Hover or focus lists a token's statuses; otherwise the selected token's are listed.
   const listedTokenId = inspectedTokenId ?? selectedSceneTokenId
-  const listedStatuses = listedTokenId ? tokenPresentations?.[listedTokenId]?.statuses : undefined
+  const listedPresentation = listedTokenId ? tokenPresentations?.[listedTokenId] : undefined
   const listedLabel = scene?.tokens.find((token) => token.id === listedTokenId)?.label ?? ''
   const effectiveRole = gmPreviewUserId ? 'PLAYER' : campaign.role
   const effectivePreviewTokenId =
@@ -1382,8 +1382,12 @@ export function CampaignVttStage({
               {scene.grid.kind === 'SQUARE' ? 'Square grid' : 'Gridless'}
             </span>
           </div>
-          {listedStatuses?.length ? (
-            <CampaignVttTokenStatusList label={listedLabel} statuses={listedStatuses} />
+          {listedPresentation?.dispositionLabel || listedPresentation?.statuses.length ? (
+            <CampaignVttTokenStatusList
+              dispositionLabel={listedPresentation.dispositionLabel}
+              label={listedLabel}
+              statuses={listedPresentation.statuses}
+            />
           ) : null}
           {effectiveMode === 'EDIT' && tool === 'WALL' ? (
             <Text className={styles.canvasInstruction} role='status' size='xs'>
@@ -1525,7 +1529,7 @@ function SceneObjectMenu({
                   }
                   onClick={() => {
                     onSelectToken(token.id)
-                    renderer.current?.focusPoint(token.position)
+                    renderer.current?.focusToken(token)
                   }}
                   onFocus={() => onInspectToken(token.id)}
                   onMouseEnter={() => onInspectToken(token.id)}

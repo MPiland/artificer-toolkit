@@ -123,17 +123,20 @@ export function buildVttTokenPresentations(input: {
       input.boundTokenControl.get(token.id) ??
       token.controlledByUserIds.includes(input.currentUserId)
     const statusDescription = statuses.map((status) => status.label).join(', ')
+    const dispositionLabel = actor ? titleCase(actor.disposition) : null
     presentations[token.id] = {
       accessibleDescription: [
         token.label,
         actor ? titleCase(actor.kind) : 'Scene token',
         isCurrent ? 'Current turn' : null,
         statusDescription || null,
+        dispositionLabel,
         controlled ? 'Yours' : null
       ]
         .filter(Boolean)
         .join('. '),
       artUrl: input.artUrls?.[token.id] ?? null,
+      dispositionLabel,
       facing: Boolean(actor),
       fillColor: healthColour ?? deterministicTokenColour(actor?.id ?? token.id),
       halo:

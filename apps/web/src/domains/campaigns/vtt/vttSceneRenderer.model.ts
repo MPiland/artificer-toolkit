@@ -79,6 +79,8 @@ export const selectionOutlineColor = 0x0891b2
 export interface VttTokenPresentation {
   accessibleDescription: string
   artUrl: string | null
+  /** The disposition ring's name, so the ring's colour is never the only cue. */
+  dispositionLabel: string | null
   facing: boolean
   fillColor: number
   halo: { color: number; label: string } | null
@@ -299,6 +301,18 @@ export function resolveVttZoomScale(currentScale: number, factor: number): numbe
     : minimumVttZoomScale
   if (!Number.isFinite(factor) || factor <= 0) return clampedCurrent
   return Math.min(maximumVttZoomScale, Math.max(minimumVttZoomScale, clampedCurrent * factor))
+}
+
+/** The least on-screen size, in pixels, that focusing a token zooms its larger footprint side to. */
+export const minimumFocusedTokenScreenSize = 64
+
+/** The zoom for focusing a token: the current one, or the least that makes the token readable. Never zooms out. */
+export function resolveVttTokenFocusScale(
+  currentScale: number,
+  footprint: { height: number; width: number }
+): number {
+  const readableScale = minimumFocusedTokenScreenSize / Math.max(footprint.width, footprint.height)
+  return resolveVttZoomScale(currentScale, Math.max(1, readableScale / currentScale))
 }
 
 export function positionVttMapTiles(

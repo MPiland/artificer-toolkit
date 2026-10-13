@@ -29,6 +29,8 @@ import {
   resolveViewTokenId,
   resolveVttMapLoadDecision,
   resolveSceneTokenMove,
+  minimumFocusedTokenScreenSize,
+  resolveVttTokenFocusScale,
   resolveVttZoomScale,
   senseEffect,
   senseReachRadius,
@@ -70,6 +72,16 @@ describe('VTT scene renderer model', () => {
     expect(resolveVttZoomScale(1, 0)).toBe(1)
     expect(resolveVttZoomScale(1, Number.NaN)).toBe(1)
     expect(resolveVttZoomScale(Number.NaN, 2)).toBe(0.04)
+  })
+
+  it('focuses a token at a readable zoom, never zooming out and staying within the zoom bounds', () => {
+    const footprint = { height: 70, width: 140 }
+    const readable = minimumFocusedTokenScreenSize / 140
+
+    expect(resolveVttTokenFocusScale(0.02, footprint)).toBeCloseTo(readable, 12)
+    expect(resolveVttTokenFocusScale(1, footprint)).toBe(1)
+    expect(resolveVttTokenFocusScale(readable, footprint)).toBeCloseTo(readable, 12)
+    expect(resolveVttTokenFocusScale(0.02, { height: 1, width: 1 })).toBe(8)
   })
 
   it('interpolates remote token previews smoothly without overshooting', () => {
