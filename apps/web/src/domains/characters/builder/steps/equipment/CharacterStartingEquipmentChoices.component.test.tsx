@@ -38,21 +38,43 @@ function StartingGoldHarness() {
   )
 }
 
+const roll = {
+  id: 'starting-gold-roll',
+  normalizedExpression: '2d4',
+  evidence: {
+    terms: [{ count: 2, die: 4, rolls: [3, 4], subtotal: 7 }],
+    modifier: 0,
+    mode: 'NORMAL',
+    subtotal: 7,
+    transform: { kind: 'NONE' },
+    total: 7
+  }
+} satisfies RollResultDto
+
 describe('CharacterStartingEquipmentChoices', () => {
+  it('keeps an emptied starting gold total empty until a roll sets a new one', async () => {
+    const user = userEvent.setup()
+    const convexClient = new ConvexReactClient('https://builder-test.convex.cloud')
+    const executeConfiguration = vi.spyOn(convexClient, 'mutation').mockResolvedValueOnce(roll)
+    const getContext = vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null)
+
+    try {
+      renderWithAppProviders(<StartingGoldHarness />, { convexClient })
+
+      await user.clear(screen.getByLabelText(/starting gold total/i))
+      expect(screen.getByLabelText(/starting gold total/i)).toHaveValue('')
+
+      await user.click(screen.getByRole('button', { name: 'Roll 2d4' }))
+      await waitFor(() => expect(screen.getByLabelText(/starting gold total/i)).toHaveValue('70'))
+    } finally {
+      executeConfiguration.mockRestore()
+      getContext.mockRestore()
+      await convexClient.close()
+    }
+  })
+
   it('rolls starting gold and keeps the total editable', async () => {
     const user = userEvent.setup()
-    const roll = {
-      id: 'starting-gold-roll',
-      normalizedExpression: '2d4',
-      evidence: {
-        terms: [{ count: 2, die: 4, rolls: [3, 4], subtotal: 7 }],
-        modifier: 0,
-        mode: 'NORMAL',
-        subtotal: 7,
-        transform: { kind: 'NONE' },
-        total: 7
-      }
-    } satisfies RollResultDto
     const convexClient = new ConvexReactClient('https://builder-test.convex.cloud')
     const executeConfiguration = vi.spyOn(convexClient, 'mutation').mockResolvedValueOnce(roll)
     const getContext = vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null)

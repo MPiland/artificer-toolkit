@@ -29,13 +29,13 @@ export function CharacterBuilderAuthoringRuntime({
   const { mutateAsync: createDraft } = useCreateCharacterDraftMutation()
   const [newCharacterId] = useState(() => crypto.randomUUID())
   const [openAttempt, setOpenAttempt] = useState(0)
-  const [draftOpenFailed, setDraftOpenFailed] = useState(false)
+  const [failedAttempt, setFailedAttempt] = useState<number>()
+  const draftOpenFailed = failedAttempt === openAttempt
   const { cancelHref, updateAuthoringFormActions, updateAuthoringFormState } = useAuthoringForm()
 
   useEffect(() => {
     if (session.draft || session.notFound || !session.systemId) return
     let current = true
-    setDraftOpenFailed(false)
     // Opening is a mounted-client operation, never an SSR or preload mutation.
     void createDraft({ id: session.characterId ?? newCharacterId, systemId: session.systemId })
       .then(async (draft) => {
@@ -51,7 +51,7 @@ export function CharacterBuilderAuthoringRuntime({
         }
       })
       .catch(() => {
-        if (current) setDraftOpenFailed(true)
+        if (current) setFailedAttempt(openAttempt)
       })
     return () => {
       current = false

@@ -36,5 +36,34 @@ Tests render the real components with the real query layer; fake only the networ
 ## Status log
 
 - 2026-10-13: workbook written; session started.
+- 2026-10-13: shared pattern added at `apps/web/src/components/ServerDraft/` (`useServerDraft`, `ServerDraftConflicts`). An editor keeps per-field `{value, seen}` edits over the server snapshot; an edit is pruned when it equals the server value; an edited field whose server value moved away from `seen` is a conflict, shown as a yellow alert with "Use latest" (drop the edit) and "Keep mine" (re-baseline `seen`). Nothing is applied or dropped silently. No effects.
+- 2026-10-13: **Reset-effect audit** (every prop/server-to-state reset effect found):
+
+  | Site | Disposition |
+  | --- | --- |
+  | `EncounterActorCard.tsx` (reset on `actor`) | Fixed: `useServerDraft`; outer component keys the editor by `actor.id`. |
+  | `CampaignClockEditor.tsx` (reset on `clock`) | Fixed: `useServerDraft`; `CampaignClockControl` keys the editor by `campaign.id`. |
+  | `CampaignSessionSchedulePanel.tsx` (reset on `session`) | Fixed: `useServerDraft`; `CampaignSessionPrepareView` keys the panel by `session.id`. |
+  | `CharacterSheetTextEditor.tsx` (reset on `editor.value`) | Fixed: `useServerDraft`; editors were keyed only by `editor.field`, so `CharacterSheetInspectorContent` is now keyed by the selected target (an unsaved edit can no longer leak to another item or spell). |
+  | `SocialListingFormPage.tsx` (seed effect) | Fixed: render-phase seed; outer component already keyed by `listingPublicId ?? 'new'`. |
+  | `CharacterSelectionModal.tsx` (query reset on `opened`) | Fixed: query state lives in a content component that Mantine mounts only while open. |
+  | `CharacterStartingEquipmentChoices.tsx` gold field (`setGoldInput` effect) | Fixed: render-phase re-seed when `totalGold` changes (an emptied input stays empty until a roll sets it, as before). |
+  | `ProfileSettingsPage.tsx` (availability/error effect) | Fixed: `available`, `not_allowed`, `checking` and check errors are derived during render; only the 300 ms debounced `getUsernameStatus` call remains an effect, writing the async result. |
+  | `CharacterBuilderAuthoringRuntime.tsx` (`setDraftOpenFailed(false)` in effect) | Fixed: failure is keyed to the attempt number (`failedAttempt === openAttempt`). |
+  | `SignOutPage.tsx` (9.6) | Fixed: failure state with retry; cache cleared only after success while mounted. |
+  | `CampaignNotebook`, `CampaignSessionNotes`, `CampaignSceneEditor` | Reviewed, left alone: edits are dirty-guarded (a refresh never overwrites a dirty draft). |
+  | `CharacterSheetView.tsx` `initialTab` effect | Reviewed, left alone: resets a view tab, no user data. |
+  | `CampaignInventory.tsx` owner-to-asset reset | Reviewed, left alone: intentional dependent-selection logic, no data. |
+  | `CharacterSheetOverviewVitals` overlay epoch | Deferred: not located under this scope; not reviewed. Re-check in RELIABILITY-9.T2. |
+  | VTT drawer/stage, forms layout reset effects | Deferred: out of scope (9.3 / parallel drawer session). |
+
+## Deviations and notes
+
+- Red-first: items 1 and 3 (survive-unrelated-change/surfaced-conflict), 6 and 7 (sign-out) and the text-editor conflict case have red logs (`local-validation/reliability-9-t1/red-all.log`, `red-run1-signout.log`). Item 4 (actor remount), the SelectionModal reset, the gold field, the Profile availability states, the BuilderAuthoringRuntime retry and the SocialListing seed are characterization tests of behavior that was already correct (the old effects reproduced it); they pass before and after, so no red exists for them. The structural change (effect removal) is the fix; the tests pin the behavior.
+- The worktree needed `yarn install --immutable` and built package dists (schema, shared, rules-runtime, encounter-persistence, design-system) before tests could load (`build-packages.log`, `install.log`).
+- Storybook cannot start in a worktree. Not run: any story for `EncounterActorCard`, the Campaign clock editor, `CharacterSheetTextEditor`/Inspector, `CharacterSelectionModal`, `CharacterStartingEquipmentChoices`, `SocialListingFormPage`, `ProfileSettingsPage`. Run them in the final-source pass.
 
 ## Proposed ledger edits (filled by the slice session)
+
+- RELIABILITY-9.T1: mark done. Closes RELIABILITY-9.1 (in-progress edits survive refresh; conflicts surfaced via `ServerDraftConflicts`) and RELIABILITY-9.6 (sign-out failure and retry).
+- Add a follow-up under RELIABILITY-9: verify the `CharacterSheetOverviewVitals` overlay-epoch effect and run the Storybook stories listed above.

@@ -12,10 +12,12 @@ import {
 } from '@mantine/core'
 import { useMutation } from '@tanstack/react-query'
 import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
 import type { CampaignSessionDto } from '@artificer-toolkit/schema/api/campaignSessions'
 import { useConvex, usePaginatedQuery } from 'convex/react'
+import { ServerDraftConflicts } from '#components/ServerDraft/ServerDraftConflicts'
+import { useServerDraft } from '#components/ServerDraft/useServerDraft'
 import {
   browserTimeZone,
   fromSessionLocalDateTime,
@@ -24,6 +26,12 @@ import {
 } from '../campaignSessionSchedule'
 import * as sharedStyles from '../campaigns.css'
 import * as sessionsStyles from '../campaignSessions.css'
+
+const scheduleFieldLabels = {
+  scheduledStartAt: 'Starts',
+  scheduledEndAt: 'Ends',
+  timeZone: 'Time zone'
+}
 
 export function CampaignSessionSchedulePanel({
   campaign,
@@ -42,13 +50,12 @@ export function CampaignSessionSchedulePanel({
     campaign.role === 'OWNER' ? { campaignId: campaign.id, sessionId: session.id } : 'skip',
     { initialNumItems: 32 }
   )
-  const [scheduledStartAt, setScheduledStartAt] = useState(() =>
-    toSessionLocalDateTime(session.scheduledStartAt, session.timeZone)
-  )
-  const [scheduledEndAt, setScheduledEndAt] = useState(() =>
-    toSessionLocalDateTime(session.scheduledEndAt, session.timeZone)
-  )
-  const [timeZone, setTimeZone] = useState(session.timeZone ?? browserTimeZone())
+  const draft = useServerDraft({
+    scheduledStartAt: toSessionLocalDateTime(session.scheduledStartAt, session.timeZone),
+    scheduledEndAt: toSessionLocalDateTime(session.scheduledEndAt, session.timeZone),
+    timeZone: session.timeZone ?? browserTimeZone()
+  })
+  const { scheduledStartAt, scheduledEndAt, timeZone } = draft.values
   const [submittedRsvp, setSubmittedRsvp] = useState<'YES' | 'NO' | 'MAYBE' | null>(null)
   const updateSchedule = useMutation({
     mutationFn: () => {
@@ -78,19 +85,11 @@ export function CampaignSessionSchedulePanel({
     onSuccess: (rsvp) => setSubmittedRsvp(rsvp.response)
   })
 
-  useEffect(() => {
-    setScheduledStartAt(toSessionLocalDateTime(session.scheduledStartAt, session.timeZone))
-    setScheduledEndAt(toSessionLocalDateTime(session.scheduledEndAt, session.timeZone))
-    setTimeZone(session.timeZone ?? browserTimeZone())
-  }, [session.scheduledEndAt, session.scheduledStartAt, session.timeZone])
-
   function commitSchedule() {
-    const currentStart = toSessionLocalDateTime(session.scheduledStartAt, session.timeZone)
-    const currentEnd = toSessionLocalDateTime(session.scheduledEndAt, session.timeZone)
     if (
-      scheduledStartAt === currentStart &&
-      scheduledEndAt === currentEnd &&
-      timeZone === (session.timeZone ?? browserTimeZone())
+      scheduledStartAt === draft.server.scheduledStartAt &&
+      scheduledEndAt === draft.server.scheduledEndAt &&
+      timeZone === draft.server.timeZone
     ) {
       return
     }
@@ -136,7 +135,7 @@ export function CampaignSessionSchedulePanel({
           type='datetime-local'
           value={scheduledStartAt}
           onBlur={commitSchedule}
-          onChange={(event) => setScheduledStartAt(event.currentTarget.value)}
+          onChange={(event) => draft.setValue('scheduledStartAt', event.currentTarget.value)}
         />
         <TextInput
           classNames={{ input: sharedStyles.input }}
@@ -146,7 +145,7 @@ export function CampaignSessionSchedulePanel({
           type='datetime-local'
           value={scheduledEndAt}
           onBlur={commitSchedule}
-          onChange={(event) => setScheduledEndAt(event.currentTarget.value)}
+          onChange={(event) => draft.setValue('scheduledEndAt', event.currentTarget.value)}
         />
         <Select
           classNames={{ input: sharedStyles.input }}
@@ -160,9 +159,10 @@ export function CampaignSessionSchedulePanel({
           searchable
           value={timeZone}
           onBlur={commitSchedule}
-          onChange={(value) => value && setTimeZone(value)}
+          onChange={(value) => value && draft.setValue('timeZone', value)}
         />
       </SimpleGrid>
+      <ServerDraftConflicts draft={draft} labels={scheduleFieldLabels} />
       {incomplete ? (
         <Alert color='orange'>Add both a start and end, or leave both blank.</Alert>
       ) : updateSchedule.error ? (

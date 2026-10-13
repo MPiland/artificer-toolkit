@@ -55,48 +55,46 @@ function ProfileForm({ initialProfile }: { initialProfile: AccountProfileDto }) 
   const saveProfile = useConvexMutation(api.account.updateProfile)
   const [usernameDraft, setUsername] = useState<string>()
   const [usernameError, setUsernameError] = useState<string | null>(null)
-  const [usernameAvailability, setUsernameAvailability] = useState<
-    'available' | 'checking' | 'taken' | 'not_allowed' | 'unavailable'
-  >('available')
+  const [checkedUsername, setCheckedUsername] = useState<{
+    name: string
+    status: Awaited<ReturnType<typeof getUsernameStatus>>['status'] | 'unavailable'
+  }>()
   const [bioDraft, setBio] = useState<string>()
   const username = usernameDraft ?? initialProfile.username ?? ''
   const bio = bioDraft ?? initialProfile.bio ?? ''
   const usernameChanged = initialProfile.username !== username.trim()
   const usernameNeedsAvailabilityCheck =
     initialProfile.username?.toLowerCase() !== username.trim().toLowerCase()
+  const parsedUsernameInput = usernameInputSchema.safeParse(username)
+  const usernameToCheck =
+    usernameNeedsAvailabilityCheck && parsedUsernameInput.success ? parsedUsernameInput.data : null
+  const usernameAvailability = !usernameNeedsAvailabilityCheck
+    ? 'available'
+    : !parsedUsernameInput.success
+      ? 'not_allowed'
+      : checkedUsername?.name === usernameToCheck
+        ? checkedUsername.status
+        : 'checking'
+  const availabilityError =
+    usernameAvailability === 'taken'
+      ? 'That username is already taken.'
+      : usernameAvailability === 'unavailable'
+        ? 'Could not check that username. Try again.'
+        : usernameAvailability === 'not_allowed' && usernameToCheck
+          ? "That username isn't allowed."
+          : null
 
   useEffect(() => {
-    if (!usernameNeedsAvailabilityCheck) {
-      setUsernameAvailability('available')
-      setUsernameError(null)
-      return
-    }
+    if (!usernameToCheck) return
 
-    const parsedUsername = usernameInputSchema.safeParse(username)
-    if (!parsedUsername.success) {
-      setUsernameAvailability('not_allowed')
-      return
-    }
-
-    setUsernameAvailability('checking')
     let active = true
     const timeout = window.setTimeout(() => {
-      void getUsernameStatus(parsedUsername.data)
+      void getUsernameStatus(usernameToCheck)
         .then(({ status }) => {
-          if (!active) return
-          setUsernameAvailability(status)
-          setUsernameError(
-            status === 'taken'
-              ? 'That username is already taken.'
-              : status === 'not_allowed'
-                ? "That username isn't allowed."
-                : null
-          )
+          if (active) setCheckedUsername({ name: usernameToCheck, status })
         })
         .catch(() => {
-          if (!active) return
-          setUsernameAvailability('unavailable')
-          setUsernameError('Could not check that username. Try again.')
+          if (active) setCheckedUsername({ name: usernameToCheck, status: 'unavailable' })
         })
     }, 300)
 
@@ -104,7 +102,7 @@ function ProfileForm({ initialProfile }: { initialProfile: AccountProfileDto }) 
       active = false
       window.clearTimeout(timeout)
     }
-  }, [username, usernameNeedsAvailabilityCheck])
+  }, [usernameToCheck])
 
   const updateProfile = useMutation({
     mutationFn: saveProfile,
@@ -186,7 +184,7 @@ function ProfileForm({ initialProfile }: { initialProfile: AccountProfileDto }) 
               ? 'Checking availability…'
               : 'Your username is used for sign-in and account attribution.'
           }
-          error={usernameError}
+          error={usernameError ?? availabilityError}
           label='Username'
           maxLength={30}
           minLength={3}

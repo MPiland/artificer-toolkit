@@ -1,7 +1,9 @@
 import { Textarea, TextInput } from '@mantine/core'
-import { useEffect, useRef, useState, type ChangeEvent } from 'react'
+import { useState, type ChangeEvent } from 'react'
 
 import type { CharacterSheetPanelDto } from '@artificer-toolkit/schema/api/characterSheetPanel'
+import { ServerDraftConflicts } from '#components/ServerDraft/ServerDraftConflicts'
+import { useServerDraft } from '#components/ServerDraft/useServerDraft'
 import * as inputStyles from '#ui/primitives/Select/Select.css'
 import * as inspectorEditorStyles from './inspectorEditor.css'
 
@@ -26,25 +28,17 @@ export function CharacterSheetTextEditor({
   pending: boolean
   onCommit: (value: string | null) => Promise<boolean>
 }) {
-  const [value, setValue] = useState(editor.value ?? '')
+  const draft = useServerDraft({ value: editor.value ?? '' })
+  const { value } = draft.values
   const [error, setError] = useState<string>()
-  const lastSubmitted = useRef<string | null | undefined>(undefined)
-
-  useEffect(() => {
-    setValue(editor.value ?? '')
-    setError(undefined)
-    lastSubmitted.current = undefined
-  }, [editor.value])
 
   async function commit() {
     const nextValue = value.trim() || null
-    if (nextValue === lastSubmitted.current) return
-    lastSubmitted.current = nextValue
+    if (nextValue === (editor.value || null)) return
     setError(undefined)
     if (await onCommit(nextValue)) return
 
-    lastSubmitted.current = undefined
-    setValue(editor.value ?? '')
+    draft.acceptLatest('value')
     setError('The change could not be saved. The server value was restored.')
   }
 
@@ -57,7 +51,7 @@ export function CharacterSheetTextEditor({
     value,
     onBlur: () => void commit(),
     onChange: (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-      setValue(event.currentTarget.value)
+      draft.setValue('value', event.currentTarget.value)
   }
 
   return (
@@ -72,6 +66,7 @@ export function CharacterSheetTextEditor({
           }}
         />
       )}
+      <ServerDraftConflicts draft={draft} labels={{ value: editor.label }} />
     </div>
   )
 }

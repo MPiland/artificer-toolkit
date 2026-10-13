@@ -10,13 +10,17 @@ import {
   TextInput
 } from '@mantine/core'
 import { useMutation } from '@tanstack/react-query'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import type { CampaignClockDto } from '@artificer-toolkit/schema/api/campaignSessions'
 import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
 import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
 import { useMutation as useConvexMutation } from 'convex/react'
+import { ServerDraftConflicts } from '#components/ServerDraft/ServerDraftConflicts'
+import { useServerDraft } from '#components/ServerDraft/useServerDraft'
 import { formatTime, hasCorrectionReason, parseTime } from './campaignClockTime'
 import * as styles from './CampaignClock.css'
+
+const draftFieldLabels = { day: 'Day', time: 'Time', dawn: 'Dawn', dusk: 'Dusk' }
 
 export function CampaignClockEditor({
   campaign,
@@ -31,21 +35,17 @@ export function CampaignClockEditor({
   const rewind = useConvexMutation(convexApi.campaigns.clock.rewind)
   const reset = useConvexMutation(convexApi.campaigns.clock.reset)
   const [opened, setOpened] = useState(false)
-  const [day, setDay] = useState(1)
-  const [time, setTime] = useState('08:00')
-  const [dawn, setDawn] = useState('06:00')
-  const [dusk, setDusk] = useState('18:00')
+  const draft = useServerDraft({
+    day: clock?.day ?? 1,
+    time: clock ? formatTime(clock.minuteOfDay) : '08:00',
+    dawn: clock ? formatTime(clock.dawnMinute) : '06:00',
+    dusk: clock ? formatTime(clock.duskMinute) : '18:00'
+  })
+  const { day, time, dawn, dusk } = draft.values
   const [advanceMinutes, setAdvanceMinutes] = useState(60)
   const [rewindMinutes, setRewindMinutes] = useState(10)
   const [rewindReason, setRewindReason] = useState('')
   const [resetReason, setResetReason] = useState('')
-  useEffect(() => {
-    if (!clock) return
-    setDay(clock.day)
-    setTime(formatTime(clock.minuteOfDay))
-    setDawn(formatTime(clock.dawnMinute))
-    setDusk(formatTime(clock.duskMinute))
-  }, [clock])
 
   const mutation = useMutation({
     mutationFn: async (kind: 'SAVE' | 'ADVANCE' | 'REWIND' | 'RESET') => {
@@ -108,28 +108,29 @@ export function CampaignClockEditor({
               label='Day'
               min={1}
               value={day}
-              onChange={(value) => setDay(Number(value) || 1)}
+              onChange={(value) => draft.setValue('day', Number(value) || 1)}
             />
             <TextInput
               disabled={Boolean(clock)}
               label='Time'
               type='time'
               value={time}
-              onChange={(event) => setTime(event.currentTarget.value)}
+              onChange={(event) => draft.setValue('time', event.currentTarget.value)}
             />
             <TextInput
               label='Dawn'
               type='time'
               value={dawn}
-              onChange={(event) => setDawn(event.currentTarget.value)}
+              onChange={(event) => draft.setValue('dawn', event.currentTarget.value)}
             />
             <TextInput
               label='Dusk'
               type='time'
               value={dusk}
-              onChange={(event) => setDusk(event.currentTarget.value)}
+              onChange={(event) => draft.setValue('dusk', event.currentTarget.value)}
             />
           </div>
+          <ServerDraftConflicts draft={draft} labels={draftFieldLabels} />
           <Button loading={mutation.isPending} onClick={() => mutation.mutate('SAVE')}>
             {clock ? 'Save dawn and dusk' : 'Set Campaign time'}
           </Button>
@@ -170,13 +171,13 @@ export function CampaignClockEditor({
                   label='Reset day'
                   min={1}
                   value={day}
-                  onChange={(value) => setDay(Number(value) || 1)}
+                  onChange={(value) => draft.setValue('day', Number(value) || 1)}
                 />
                 <TextInput
                   label='Reset time'
                   type='time'
                   value={time}
-                  onChange={(event) => setTime(event.currentTarget.value)}
+                  onChange={(event) => draft.setValue('time', event.currentTarget.value)}
                 />
               </div>
               <TextInput
