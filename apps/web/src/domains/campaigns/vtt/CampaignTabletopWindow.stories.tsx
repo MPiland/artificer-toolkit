@@ -545,6 +545,52 @@ export const HoveringAFocusItemListsEveryStatus: Story = {
   }
 }
 
+// VTT_UI-1.2: pointing at another token lists its statuses over the selected token's; leaving it
+// lists the selected token's again.
+export const HoveringATokenListsItOverTheSelection: Story = {
+  args: {
+    campaignId: tabletopCampaignId,
+    currentUserId: tabletopCurrentUserId
+  },
+  render: (args) => renderWindow(args, createTabletopCampaign('OWNER'), null, sentryFixtures),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body)
+    await page.findByText('Scene map ready.', undefined, { timeout: mapReadyTimeoutMs })
+    const stage = page.getByRole('img', { name: 'Interactive campaign scene' })
+    const renderer = await latestStageRenderer()
+    const { wardenToken } = wardenPresentationFor('OWNER', sentryFixtures.gmEncounter)
+    const sentryToken = sentryFixtures.liveScene.tokens[2]!
+    const statusList = (label: string) => page.queryByRole('region', { name: `${label} statuses` })
+
+    renderer.focusPoint(wardenToken.position)
+    await pressStage(stage, 'centre')
+    await expect(
+      within(await page.findByRole('region', { name: `${wardenToken.label} statuses` })).getByText(
+        'Poisoned'
+      )
+    ).toBeVisible()
+
+    await userEvent.click(await page.findByRole('button', { name: 'Scene controls' }))
+    const sceneControls = await page.findByRole('menu', { name: 'Scene controls' })
+    const sentryFocus = await within(sceneControls).findByRole('menuitem', {
+      name: `Focus ${sentryToken.label}`
+    })
+    await userEvent.hover(sentryFocus)
+    const sentryList = await page.findByRole('region', { name: `${sentryToken.label} statuses` })
+    await expect(within(sentryList).getByText('Prone')).toBeVisible()
+    await expect(statusList(wardenToken.label)).toBeNull()
+
+    await userEvent.unhover(sentryFocus)
+    await waitFor(() => expect(statusList(sentryToken.label)).toBeNull())
+    const wardenList = await page.findByRole('region', { name: `${wardenToken.label} statuses` })
+    await expect(within(wardenList).getByText('Poisoned')).toBeVisible()
+    // Close the menu: with three tokens it scrolls in the test viewport, and that scroll is not yet
+    // keyboard-reachable (VTT_UI-4.2 tracks it).
+    await userEvent.keyboard('{Escape}')
+    await waitFor(() => expect(page.queryByRole('menu', { name: 'Scene controls' })).toBeNull())
+  }
+}
+
 export const GmPreviewsATokenView: Story = {
   args: {
     campaignId: tabletopCampaignId,
@@ -763,6 +809,38 @@ const presentedTokensFixtures: TabletopFixtures = {
       actor.id === wardenId ? { ...actor, conditions: wardenConditions } : actor
     ),
     currentActorId: wardenId
+  }
+}
+
+// A second bound creature, the prone Sentry, so pointing at it lists statuses distinct from the
+// selected Warden's.
+const wardenActor = presentedTokensFixtures.gmEncounter.actors[1]!
+const wardenSceneToken = presentedTokensFixtures.liveScene.tokens[1]!
+const sentryFixtures: TabletopFixtures = {
+  ...presentedTokensFixtures,
+  gmEncounter: {
+    ...presentedTokensFixtures.gmEncounter,
+    actors: [
+      ...presentedTokensFixtures.gmEncounter.actors,
+      {
+        ...wardenActor,
+        conditions: [{ id: 'prone', kind: 'CONDITION', label: 'Prone' }],
+        id: '99999999-9999-4999-8999-999999999903',
+        label: 'Vault Sentry'
+      }
+    ]
+  },
+  liveScene: {
+    ...presentedTokensFixtures.liveScene,
+    tokens: [
+      ...presentedTokensFixtures.liveScene.tokens,
+      {
+        ...wardenSceneToken,
+        id: '77777777-7777-4777-8777-777777777710',
+        label: 'Vault Sentry',
+        position: { x: 700, y: 300 }
+      }
+    ]
   }
 }
 
