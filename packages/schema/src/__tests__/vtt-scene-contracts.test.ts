@@ -12,9 +12,15 @@ import {
   sceneGeometryCommandInputDtoSchema,
   sceneGridDtoSchema,
   sceneStoredTokenDtoSchema,
+  sceneTokenSenseDtoSchema,
+  sceneTokenVisionDtoSchema,
   sceneTokenDtoSchema,
   sceneTransientEnvelopeDtoSchema
 } from '../api/vttScenes.js'
+import {
+  lengthMeasurementInSceneUnits,
+  SCENE_LENGTH_AMOUNT_MAX
+} from '@artificer-toolkit/shared/vtt'
 import { characterSceneVisionResultSchema } from '../api/characterMechanicsRead.js'
 
 const ids = {
@@ -672,5 +678,38 @@ describe('VTT scene contracts', () => {
         version: 3
       }).success
     ).toBe(false)
+  })
+})
+
+describe('Scene length bound', () => {
+  const sense = (amount: number) => ({
+    channel: 'VISUAL',
+    illuminationAccess: 'ORDINARY_DARKNESS',
+    label: 'Telescopic sight',
+    range: { rangeKind: 'DISTANCE', amount },
+    senseId: ids.token
+  })
+  const vision = (brightRange: number) => ({
+    angleDegrees: 360,
+    brightRange,
+    dimRange: 0,
+    directionDegrees: 0,
+    enabled: true
+  })
+
+  it('accepts a 200-mile sense measured in feet', () => {
+    const feet = lengthMeasurementInSceneUnits(
+      { amount: 200, unit: 'MILES' },
+      { kind: 'GRIDLESS', pixelsPerUnit: 1, unit: 'FEET' }
+    )
+    expect(sceneTokenSenseDtoSchema.safeParse(sense(feet)).success).toBe(true)
+  })
+
+  it.each([
+    ['sense range', (amount: number) => sceneTokenSenseDtoSchema.safeParse(sense(amount))],
+    ['vision range', (amount: number) => sceneTokenVisionDtoSchema.safeParse(vision(amount))]
+  ])('bounds a %s at exactly the largest authored length', (_name, parse) => {
+    expect(parse(SCENE_LENGTH_AMOUNT_MAX).success).toBe(true)
+    expect(parse(SCENE_LENGTH_AMOUNT_MAX + 1).success).toBe(false)
   })
 })

@@ -1,4 +1,9 @@
-import type { LengthUnitCode } from '../core/measurement.js'
+import { AUTHORED_LENGTH_AMOUNT_MAX } from '../../utils/authoringLimits.js'
+import {
+  LENGTH_UNIT_CODES,
+  lengthMeasurementInFeet,
+  type LengthUnitCode
+} from '../core/measurement.js'
 import type {
   CombatPerceptionChannel,
   CombatPerceptionIllumination,
@@ -24,6 +29,26 @@ export const VTT_SCENE_LIMITS = {
   tokens: 1_000,
   transientPathPoints: 256
 } as const
+
+/** The System's base square (SRD 5.1: 5 feet): one square on a SQUARES Scene, adjacent on every Scene. */
+export const SYSTEM_BASE_SQUARE_FEET = 5
+
+export const FEET_PER_SCENE_UNIT: Record<SceneGrid['unit'], number> = {
+  FEET: 1,
+  METERS: 1 / 0.3048,
+  SQUARES: SYSTEM_BASE_SQUARE_FEET
+}
+
+/**
+ * The largest Scene distance an authored length can reach: the longest authored length at its
+ * largest amount, counted in the Scene unit with the fewest feet per unit (a FEET Scene).
+ */
+export const SCENE_LENGTH_AMOUNT_MAX =
+  Math.max(
+    ...LENGTH_UNIT_CODES.map((unit) =>
+      lengthMeasurementInFeet({ amount: AUTHORED_LENGTH_AMOUNT_MAX, unit })
+    )
+  ) / Math.min(...Object.values(FEET_PER_SCENE_UNIT))
 
 /** Bounds for pure spatial calculations; persisted coordinates use VTT_SCENE_LIMITS. */
 export const VTT_SPATIAL_LIMITS = {

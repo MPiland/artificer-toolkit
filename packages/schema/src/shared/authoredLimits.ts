@@ -1,8 +1,11 @@
-import { AUTHORED_LIMITS } from '@artificer-toolkit/shared/utils/authoringLimits'
+import {
+  AUTHORED_LENGTH_AMOUNT_MAX,
+  AUTHORED_LIMITS
+} from '@artificer-toolkit/shared/utils/authoringLimits'
 import { z, lazySchema } from '../zod.js'
 import { lengthUnitCodeSchema } from './enums.js'
 
-export { AUTHORED_LIMITS }
+export { AUTHORED_LENGTH_AMOUNT_MAX, AUTHORED_LIMITS }
 
 export const MAX_ENCOUNTER_ACTORS = AUTHORED_LIMITS.nestedCollectionItems
 
@@ -17,8 +20,6 @@ export const authoredPlainTextSchema = lazySchema(() =>
   z.string().check(z.maxLength(AUTHORED_LIMITS.plainTextCharacters))
 )
 export const authoredNonnegativeNumberSchema = lazySchema(() => z.number().check(z.nonnegative()))
-/** Largest authored length amount; every length unit converts it to a finite number of feet. */
-export const AUTHORED_LENGTH_AMOUNT_MAX = 1_000_000
 export const authoredLengthAmountSchema = lazySchema(() =>
   z.number().check(z.nonnegative()).check(z.lte(AUTHORED_LENGTH_AMOUNT_MAX))
 )

@@ -25,6 +25,7 @@ import { useCallback, useEffect, useId, useRef, useState, type MouseEvent } from
 import type { SignedVttMapDeliveryDto } from '@artificer-toolkit/schema/api/media'
 import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
 import type { CreateSceneDefinitionInputDto } from '@artificer-toolkit/schema/api/vttScenes'
+import { SYSTEM_BASE_SQUARE_FEET } from '@artificer-toolkit/shared/vtt'
 import { loadSceneDefinition, saveSceneDefinition } from '#app/data/campaigns/scenes'
 import { queryKeys } from '#app/lib/queryKeys'
 import {
@@ -32,7 +33,6 @@ import {
   acceptedMapTypes,
   asNumber,
   asPositiveNumber,
-  DEFAULT_DISTANCE_PER_CELL,
   validateMapFile
 } from './CampaignScenePreparation.model'
 import {
@@ -69,7 +69,7 @@ export function CampaignScenePreparation({
   const [name, setName] = useState('')
   const [gridKind, setGridKind] = useState<'GRIDLESS' | 'SQUARE'>('SQUARE')
   const [cellSize, setCellSize] = useState(70)
-  const [distancePerCell, setDistancePerCell] = useState(DEFAULT_DISTANCE_PER_CELL)
+  const [distancePerCell, setDistancePerCell] = useState(SYSTEM_BASE_SQUARE_FEET)
   const [originX, setOriginX] = useState(0)
   const [originY, setOriginY] = useState(0)
   const [calibrationStep, setCalibrationStep] = useState<'CELL' | 'ORIGIN' | null>(null)
@@ -398,7 +398,7 @@ export function CampaignScenePreparation({
                 onChange={(value) => {
                   if (value !== 'FEET' && value !== 'METERS' && value !== 'SQUARES') return
                   if (value === 'SQUARES') setDistancePerCell(1)
-                  else if (unit === 'SQUARES') setDistancePerCell(DEFAULT_DISTANCE_PER_CELL)
+                  else if (unit === 'SQUARES') setDistancePerCell(SYSTEM_BASE_SQUARE_FEET)
                   setUnit(value)
                 }}
               />
@@ -411,7 +411,7 @@ export function CampaignScenePreparation({
                     min={0.01}
                     value={distancePerCell}
                     onChange={(value) =>
-                      setDistancePerCell(asPositiveNumber(value, DEFAULT_DISTANCE_PER_CELL))
+                      setDistancePerCell(asPositiveNumber(value, SYSTEM_BASE_SQUARE_FEET))
                     }
                   />
                   <NumberInput

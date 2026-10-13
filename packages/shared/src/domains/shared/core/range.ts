@@ -54,3 +54,8 @@ export const RANGE_REGISTRY: Record<RangeKind, RangeOption> = {
 }
 
 export const RANGE_OPTIONS = valuesOf(RANGE_REGISTRY) as RangeOption[]
+
+/** A sense reaches a set distance or is unlimited; no other range kind has a meaning for a sense. */
+export const SENSE_RANGE_KINDS = [RANGE_KIND.DISTANCE, RANGE_KIND.UNLIMITED] as const
+
+export type SenseRangeKind = (typeof SENSE_RANGE_KINDS)[number]

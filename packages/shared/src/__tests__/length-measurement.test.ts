@@ -5,7 +5,9 @@ import {
   feetInLengthUnit,
   lengthMeasurementInFeet
 } from '../domains/core/measurement.js'
+import { AUTHORED_LENGTH_AMOUNT_MAX } from '../utils/authoringLimits.js'
 import {
+  SCENE_LENGTH_AMOUNT_MAX,
   feetInSceneUnit,
   sceneLengthInFeet,
   lengthMeasurementInSceneUnits,
@@ -49,6 +51,18 @@ describe('length measurement', () => {
     expect(feetInSceneUnit(10, 'FEET')).toBe(10)
     expect(feetInSceneUnit(10, 'METERS')).toBeCloseTo(3.048)
     expect(feetInSceneUnit(10, 'SQUARES')).toBe(2)
+  })
+
+  it('keeps the largest authored length finite and within the Scene bound in every Scene unit', () => {
+    const largest = { amount: AUTHORED_LENGTH_AMOUNT_MAX, unit: 'MILES' } as const
+    const squaresGrid = { ...FEET_GRID, distancePerCell: 1, unit: 'SQUARES' } as const
+    const grids = [FEET_GRID, { ...FEET_GRID, unit: 'METERS' }, squaresGrid] as const
+    for (const grid of grids) {
+      const length = lengthMeasurementInSceneUnits(largest, grid)
+      expect(Number.isFinite(length)).toBe(true)
+      expect(length).toBeLessThanOrEqual(SCENE_LENGTH_AMOUNT_MAX)
+    }
+    expect(lengthMeasurementInSceneUnits(largest, FEET_GRID)).toBe(SCENE_LENGTH_AMOUNT_MAX)
   })
 
   it('measures a square as the System base square, 5 feet, on a SQUARES Scene', () => {

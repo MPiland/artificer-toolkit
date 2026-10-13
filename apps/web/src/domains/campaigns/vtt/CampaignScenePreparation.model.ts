@@ -1,6 +1,3 @@
-/** A new Feet or Meters grid starts at 5 units per cell; a Squares cell is always 1. */
-export const DEFAULT_DISTANCE_PER_CELL = 5
-
 export const acceptedMapTypes = ['image/jpeg', 'image/png', 'image/webp'] as const
 type AcceptedMapType = (typeof acceptedMapTypes)[number]
 

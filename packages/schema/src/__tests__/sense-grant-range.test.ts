@@ -30,3 +30,24 @@ describe('SENSE_GRANT range', () => {
     }
   )
 })
+
+describe('SENSE_GRANT DISTANCE range', () => {
+  const distance = { id: 'range', rangeKind: 'DISTANCE', amount: 60, unit: 'FEET' }
+
+  it('rejects a long range, which only a ranged attack has', () => {
+    expect(
+      senseGrantDtoSchema.safeParse(senseGrantWithRange({ ...distance, longAmount: 120 })).success
+    ).toBe(false)
+  })
+
+  it('rejects range scaling, which no sense resolves', () => {
+    const scaling = {
+      scalingKind: 'BREAKPOINTS',
+      scalingSource: 'CHARACTER_LEVEL',
+      breakpoints: [{ id: 'bp', level: 5, order: 1, value: { amount: 120, unit: 'FEET' } }]
+    }
+    expect(
+      senseGrantDtoSchema.safeParse(senseGrantWithRange({ ...distance, scaling })).success
+    ).toBe(false)
+  })
+})

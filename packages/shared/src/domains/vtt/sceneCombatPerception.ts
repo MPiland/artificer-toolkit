@@ -12,7 +12,8 @@ import {
   scenePointInPolygon
 } from './geometry.js'
 import type { CampaignSceneState, SceneGrid, SceneLight, ScenePoint, SceneToken } from './scene.js'
-import { feetInSceneUnit, SYSTEM_BASE_SQUARE_FEET } from './sceneReducer.js'
+import { SYSTEM_BASE_SQUARE_FEET } from './scene.js'
+import { feetInSceneUnit } from './sceneReducer.js'
 
 const illuminationRank: Readonly<Record<CombatPerceptionIllumination, number>> = {
   BRIGHT: 0,

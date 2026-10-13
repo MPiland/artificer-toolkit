@@ -63,8 +63,7 @@ function contributionInSceneUnits(
   sceneGrid: SceneGrid
 ): CombatPerceptionContribution {
   if (contribution.kind !== 'SENSE_GRANT') return contribution
-  const sceneRange = senseRangeInSceneUnits(contribution.range, sceneGrid)
-  return { ...contribution, range: sceneRange }
+  return { ...contribution, range: senseRangeInSceneUnits(contribution.range, sceneGrid) }
 }
 
 function sourcesForKinds(
@@ -121,26 +120,20 @@ export function deriveConditionCombatPerceptionContributions(input: {
     .flatMap((definition) =>
       (definition.document.perceptionContributions ?? [])
         .filter((contribution) => kinds.has(contribution.kind))
-        .flatMap((contribution): CombatPerceptionContributionSource[] => {
-          const resolvedContribution = contributionInSceneUnits(contribution, input.sceneGrid)
-          if (resolvedContribution === null) return []
-          return [
-            {
-              instanceId: conditionContributionInstanceId(
-                definition.conditionDefinitionId,
-                definition.definitionChecksum,
-                contribution.id
-              ),
-              source: {
-                kind: 'CONDITION_DEFINITION',
-                conditionDefinitionId: definition.conditionDefinitionId,
-                conditionDefinitionVersion: definition.definitionVersion,
-                conditionDefinitionChecksum: definition.definitionChecksum
-              },
-              sourceOrdinal: 0,
-              contribution: resolvedContribution
-            }
-          ]
-        })
+        .map((contribution): CombatPerceptionContributionSource => ({
+          instanceId: conditionContributionInstanceId(
+            definition.conditionDefinitionId,
+            definition.definitionChecksum,
+            contribution.id
+          ),
+          source: {
+            kind: 'CONDITION_DEFINITION',
+            conditionDefinitionId: definition.conditionDefinitionId,
+            conditionDefinitionVersion: definition.definitionVersion,
+            conditionDefinitionChecksum: definition.definitionChecksum
+          },
+          sourceOrdinal: 0,
+          contribution: contributionInSceneUnits(contribution, input.sceneGrid)
+        }))
     )
 }

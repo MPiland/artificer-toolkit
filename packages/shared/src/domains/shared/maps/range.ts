@@ -1,5 +1,5 @@
 import type { RangeAuthored } from '#authored'
-import { LENGTH_UNIT_OPTIONS, RANGE_OPTIONS } from '#core'
+import { LENGTH_UNIT_OPTIONS, RANGE_OPTIONS, RANGE_REGISTRY, SENSE_RANGE_KINDS } from '#core'
 import { buildNodeMap } from '#utils'
 import { MEASUREMENT_NODE_MAP } from './measurement.js'
 import { createBreakpointScalingNodeMap } from './scaling.js'
@@ -12,7 +12,12 @@ const RANGE_SCALING_NODE_MAP = createBreakpointScalingNodeMap(
   MEASUREMENT_NODE_MAP
 )
 
-function createRangeNodeMap(mapId: string, rangeKindOptions: typeof RANGE_OPTIONS) {
+/** An attack or effect range also carries a long range and level scaling; a sense range does not. */
+function createRangeNodeMap(
+  mapId: string,
+  rangeKindOptions: typeof RANGE_OPTIONS,
+  withLongRangeAndScaling: boolean
+) {
   return range.define(mapId, ({ map, cond, nodes }) => {
     const local = cond.local()
     const { selectSingle, number, groupObject } = nodes
@@ -41,13 +46,6 @@ function createRangeNodeMap(mapId: string, rangeKindOptions: typeof RANGE_OPTION
         })
       )
       .set(
-        'longAmount',
-        number(['longAmount'], 'Long Range', {
-          order: 3,
-          showIf: local.field(['rangeKind']).eq('DISTANCE')
-        })
-      )
-      .set(
         'unit',
         selectSingle(
           ['unit'],
@@ -63,6 +61,15 @@ function createRangeNodeMap(mapId: string, rangeKindOptions: typeof RANGE_OPTION
           }
         )
       )
+    if (!withLongRangeAndScaling) return
+    map
+      .set(
+        'longAmount',
+        number(['longAmount'], 'Long Range', {
+          order: 3,
+          showIf: local.field(['rangeKind']).eq('DISTANCE')
+        })
+      )
       .set(
         'scaling',
         groupObject(['scaling'], 'Scaling', () => RANGE_SCALING_NODE_MAP, {
@@ -74,9 +81,10 @@ function createRangeNodeMap(mapId: string, rangeKindOptions: typeof RANGE_OPTION
   })
 }
 
-export const RANGE_NODE_MAP = createRangeNodeMap('range', RANGE_OPTIONS)
+export const RANGE_NODE_MAP = createRangeNodeMap('range', RANGE_OPTIONS, true)
 
 export const SENSE_RANGE_NODE_MAP = createRangeNodeMap(
   'senseRange',
-  RANGE_OPTIONS.filter((option) => option.code === 'DISTANCE' || option.code === 'UNLIMITED')
+  SENSE_RANGE_KINDS.map((kind) => RANGE_REGISTRY[kind]),
+  false
 )

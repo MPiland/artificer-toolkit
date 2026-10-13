@@ -15,7 +15,7 @@ import type {
   SceneTransientReveal,
   SceneViewer
 } from './scene.js'
-import { VTT_SCENE_LIMITS } from './scene.js'
+import { FEET_PER_SCENE_UNIT, VTT_SCENE_LIMITS } from './scene.js'
 import {
   deriveSceneTokenPreviewFogLayers,
   isScenePointExplored,
@@ -39,13 +39,9 @@ function fogLayerKey(layer: SceneFogLayer): string {
 
 type SceneLength = { amount: number; unit: LengthUnitCode }
 
-/** The System's base square (SRD 5.1: 5 feet): one square on a SQUARES Scene, adjacent on every Scene. */
-export const SYSTEM_BASE_SQUARE_FEET = 5
-
 /** Feet in a Scene's distance unit; a SQUARES Scene counts base squares. */
 export function feetInSceneUnit(feet: number, unit: SceneGrid['unit']): number {
-  if (unit === 'SQUARES') return feet / SYSTEM_BASE_SQUARE_FEET
-  return unit === 'FEET' ? feet : feet * 0.3048
+  return feet / FEET_PER_SCENE_UNIT[unit]
 }
 
 /** A typed length in authoritative Scene units. Never negative. */
@@ -65,9 +61,7 @@ export function senseRangeInSceneUnits(
 
 /** Converts an authoritative Scene length to feet. */
 export function sceneLengthInFeet(amount: number, grid: CampaignSceneState['grid']): number {
-  if (grid.unit === 'FEET') return amount
-  if (grid.unit === 'METERS') return amount / 0.3048
-  return amount * SYSTEM_BASE_SQUARE_FEET
+  return amount * FEET_PER_SCENE_UNIT[grid.unit]
 }
 
 /**

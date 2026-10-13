@@ -1,10 +1,10 @@
-import type { GRANT_KIND, NodeSubjectCode, RangeKind } from '#core'
+import type { GRANT_KIND, NodeSubjectCode, SenseRangeKind } from '#core'
 import type { ChargeAuthored, RangeAuthored, ScalingGrant } from '#authored'
 
-/** A sense reaches a set distance or is unlimited; no other range kind has a meaning for a sense. */
+/** A sense reaches a set distance or is unlimited; it has no long range and does not scale. */
 export type SenseRangeAuthored =
-  | Extract<RangeAuthored, { rangeKind: 'DISTANCE' }>
-  | { id: string; rangeKind: Extract<RangeKind, 'UNLIMITED'> }
+  | Pick<Extract<RangeAuthored, { rangeKind: 'DISTANCE' }>, 'id' | 'rangeKind' | 'amount' | 'unit'>
+  | { id: string; rangeKind: Exclude<SenseRangeKind, 'DISTANCE'> }
 
 export type SenseGrantAuthored<N extends NodeSubjectCode = NodeSubjectCode> = ScalingGrant<
   { senseIds: string[] },

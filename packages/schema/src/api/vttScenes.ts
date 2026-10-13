@@ -20,7 +20,7 @@ import type {
   SceneTokenVision,
   SceneTransientEnvelope
 } from '@artificer-toolkit/shared/vtt/scene'
-import { VTT_SCENE_LIMITS } from '@artificer-toolkit/shared/vtt/scene'
+import { SCENE_LENGTH_AMOUNT_MAX, VTT_SCENE_LIMITS } from '@artificer-toolkit/shared/vtt/scene'
 import { z, lazySchema, lazySchemaParts } from '../zod.js'
 
 import { encounterRuleOccurrenceSummaryDtoSchema } from '../shared/encounterRuleOccurrence.js'
@@ -142,8 +142,8 @@ export const sceneGridDtoSchema: z.ZodMiniType<SceneGrid> = lazySchema(() => {
 export const sceneTokenVisionDtoSchema: z.ZodMiniType<SceneTokenVision> = lazySchema(() =>
   z.strictObject({
     angleDegrees: z.number().check(z.positive()).check(z.lte(360)),
-    brightRange: z.number().check(z.nonnegative()).check(z.lte(1_000_000)),
-    dimRange: z.number().check(z.nonnegative()).check(z.lte(1_000_000)),
+    brightRange: z.number().check(z.nonnegative()).check(z.lte(SCENE_LENGTH_AMOUNT_MAX)),
+    dimRange: z.number().check(z.nonnegative()).check(z.lte(SCENE_LENGTH_AMOUNT_MAX)),
     directionDegrees: degreesSchema,
     enabled: z.boolean()
   })
@@ -158,7 +158,7 @@ export const sceneTokenSenseDtoSchema: z.ZodMiniType<SceneTokenSense> = lazySche
       z.strictObject({ rangeKind: z.literal('UNLIMITED') }),
       z.strictObject({
         rangeKind: z.literal('DISTANCE'),
-        amount: z.number().check(z.positive()).check(z.lte(1_000_000))
+        amount: z.number().check(z.positive()).check(z.lte(SCENE_LENGTH_AMOUNT_MAX))
       })
     ]),
     senseId: postgresUuidSchema
@@ -259,9 +259,9 @@ export const sceneBarrierDtoSchema: z.ZodMiniType<SceneBarrier> = lazySchema(() 
 )
 
 const sceneLightBase = lazySchemaParts(() => ({
-  brightRadius: z.number().check(z.nonnegative()).check(z.lte(1_000_000)),
+  brightRadius: z.number().check(z.nonnegative()).check(z.lte(SCENE_LENGTH_AMOUNT_MAX)),
   color: z.string().check(z.regex(/^#[0-9a-fA-F]{6}$/)),
-  dimRadius: z.number().check(z.nonnegative()).check(z.lte(1_000_000)),
+  dimRadius: z.number().check(z.nonnegative()).check(z.lte(SCENE_LENGTH_AMOUNT_MAX)),
   id: uuidSchema,
   intensity: z.number().check(z.gte(0)).check(z.lte(1)),
   position: scenePointDtoSchema
