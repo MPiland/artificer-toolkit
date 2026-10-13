@@ -67,6 +67,30 @@ Tests render the real components with the real query layer; fake only the networ
 - Typecheck: `yarn turbo:typecheck:web` green (`typecheck.log`, typecheck:app and typecheck:tests). The first run failed with `TS2305 convertSceneDistance` in `CampaignScenePreparation.tsx`: the worktree's built `packages/shared` dist predated the base merge. `yarn workspace @artificer-toolkit/shared build` (`build-shared2.log`) fixed it; no slice code was involved.
 - Storybook cannot start in a worktree. Not run: any story for `EncounterActorCard`, the Campaign clock editor, `CharacterSheetTextEditor`/Inspector, `CharacterSelectionModal`, `CharacterStartingEquipmentChoices`, `SocialListingFormPage`, `ProfileSettingsPage`. Run them in the final-source pass.
 
+## Review round (2026-10-13)
+
+Fixes for the main session's review, red first (`review-red.log`: 5 failed / 7 passed with the fixes reverted):
+
+1. **False conflict on own save.** `useServerDraft` gains `markCommitted(key)`: an edit marked committed is never a conflict and stays on screen until the server's next value replaces it, so a stored value that differs from the edit (`CharacterSheetTextEditor` trims) shows the stored value with no notice and no flash of the pre-edit value. `CharacterSheetTextEditor` marks it before awaiting the save because Convex can deliver the stored value before the mutation promise resolves (test "stored value arrives before the save resolves"). `EncounterActorCard` and the clock editor were checked: they store HP/temp/notes/time as given (no normalization), and their commits are fire-and-forget, so they have no exposure and are unchanged.
+2. Single-use `EncounterActorCard` wrapper deleted; the editor is `EncounterActorCard` again, callers key it by `actor.id`; the "different actor remounts" test goes through the real call path.
+3. `CharacterSheetTextEditor` clears the "server value was restored" error on edit. The double-submit test (one mutation while pending) passed before the change: it is a characterization test, not a fix.
+4. `CharacterSheetInspector` no longer uses `key={JSON.stringify(target)}`. The identity key sits at the three text-editor sites instead (`itemInstanceId`, spell id + source kind + source instance, companion/vehicle instance id, each plus `editor.field`), since the draft state lives in the editor and the panel content otherwise has no draft state to reset.
+5. `useServerDraft` casts removed (`editedKeysOf`/`keepEdits` helpers with a type guard).
+6. `SignOutPage` keeps the `AuthResult` and renders its `message`; fallback copy dropped.
+7. `ServerDraftConflicts`: empty value reads "was cleared", long text is truncated at 60 characters. **Deviation:** no "turned on/off" boolean wording. A boolean field only has two values, so a conflicting server value (different from `seen`) always equals the user's edit and is pruned before a conflict can be shown; the branch would be dead code.
+
+Assertion-audit round (items 8-14):
+
+8. `CampaignSessionSchedulePanel`: the mis-aimed `title` test is replaced by edit Starts + server changes `scheduledEndAt` (Starts kept, Ends updated, no notice). It fails on base by construction (the old effect reset every field); not run against base.
+9. Remount-key tests through the real parents: `CampaignClockControl.test.tsx` (new, switches `campaign`), `CampaignSessionPrepareView.test.tsx` (new, switches `session`; unrelated sibling sections mocked), and Spell-source and Companion switches in `CharacterSheetInspector.test.tsx` (the Item switch already existed in `CharacterSheetItemPanel.test.tsx`). Item 4 moved the identity key to the three text-editor sites, so those are the keyed parents. Red: with the keys removed these four fail (`review2-red.log`).
+10. `CharacterSheetTextEditor.test.tsx`: commit-success (one save with the typed value, no error) and commit-failure (server value restored, error shown) added.
+11. `SocialListingFormPage.test.tsx`: same-id refetch with new listing data while typing keeps the typing (mock query now refetches every 20 ms). Characterization: the seed only runs on id change, so there is no red.
+12. `CampaignClockEditor.component.test.tsx`: "Keep mine" keeps the edit and clears the notice.
+13. `SignOutPage.test.tsx`: the after-unmount test awaits the very promise the page awaited (its continuation has then run) instead of one `Promise.resolve()`.
+14. `ProfileSettingsPage`: base also showed no format message while typing (and left a stale "taken" notice after a taken result), so it is not a regression from this slice, but Save was disabled with no reason. The format message now shows inline (`usernameFormatError`, shared with the submit path); the new test fails without it (`review2-red.log`).
+
+Validation: red `review2-red.log` (5 failed / 45 passed with the fix and keys reverted, restored afterwards); green `review2-green.log` 19 files / 133 tests; `yarn turbo:typecheck:web` green (`typecheck.log`). One lock batch. The base was already merged (no new commits).
+
 ## Proposed ledger edits (filled by the slice session)
 
 - RELIABILITY-9.T1: mark done. Closes RELIABILITY-9.1 (in-progress edits survive refresh; conflicts surfaced via `ServerDraftConflicts`) and RELIABILITY-9.6 (sign-out failure and retry).
