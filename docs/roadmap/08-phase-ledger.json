@@ -4452,6 +4452,31 @@
             "rr": 2,
             "size": 3
           }
+        },
+        {
+          "id": "ENCOUNTER-9",
+          "title": "Declared initiative rolls post a roll card",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "journeyGap": "Extend apps/apis/convex/liveSessions/assistedPartyJourney.test.ts so every member loads one Initiative card per declared actor.",
+          "origin": [],
+          "acs": [
+            {
+              "text": "Each initiative die rolled for a declaration (auto-rolled or entered) posts one Initiative roll card to the table, the same card a GM-rolled initiative posts.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Found 2026-10-13 in ENCOUNTER-5: under DECLARED_ACTION_ROLL the room rolls initiative and posts no card (readRoomRollCards finds no conversation until an attack posts), while ROLL_ACTOR_INITIATIVE posts one through recordRuleRollCard (packages/encounter-persistence/src/commands.ts:376-396). Same gap ENCOUNTER-7.1 closed for turn-stage dice.",
+              "id": "ENCOUNTER-9.1"
+            }
+          ],
+          "wsjf": {
+            "bv": 3,
+            "tc": 2,
+            "rr": 3,
+            "size": 2
+          }
         }
       ]
     },
