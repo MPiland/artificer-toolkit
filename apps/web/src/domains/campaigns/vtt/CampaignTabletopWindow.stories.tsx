@@ -578,6 +578,7 @@ export const FocusingATokenNamesItsDispositionAndZoomsIn: Story = {
     const panel = await page.findByRole('region', { name: `${wardenToken.label} statuses` })
     await expect(within(panel).getByText(presentation.dispositionLabel!)).toBeVisible()
     await userEvent.click(focusItem)
+    await waitFor(() => expect(page.queryByRole('menu', { name: 'Scene controls' })).toBeNull())
     await waitFor(() => expect(renderer.getDiagnostics().zoomScale).toBeGreaterThan(zoomedOut))
     await expect(
       renderer.getDiagnostics().zoomScale * Math.max(wardenToken.width, wardenToken.height)
@@ -597,6 +598,8 @@ export const FocusingATokenNamesItsDispositionAndZoomsIn: Story = {
       await userEvent.click(
         await within(menu).findByRole('menuitem', { name: `Focus ${token.label}` })
       )
+      // The next token reopens the menu, so wait for this one to finish closing first.
+      await waitFor(() => expect(page.queryByRole('menu', { name: 'Scene controls' })).toBeNull())
       await waitFor(() => expect(renderer.getDiagnostics().zoomScale).toBeGreaterThan(floor))
       await expect(
         renderer.getDiagnostics().zoomScale * Math.max(token.width, token.height)
