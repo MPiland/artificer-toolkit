@@ -383,6 +383,10 @@ describe('First Aid, a System basic action with a check, in the room', () => {
       sceneContext: null
     })
     expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_REJECTED')
+    expect(answer).toMatchObject({
+      reason: 'TARGET_UNAVAILABLE',
+      message: 'The selected action does not permit this target.'
+    })
     expect(await room.version()).toBe(before)
   })
 })

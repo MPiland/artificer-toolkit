@@ -67,7 +67,19 @@ async function dyingCharacter(rolls: FixtureRolls, withAlly = false) {
     username: 'DyingHero',
     bio: null
   })
+  // Initiative is rolled for the actors in actor-id order, and the ids differ every run. Pinning each actor's die fixes the turn order to Creature, ally, Character: the Character
+  // makes one death save per round, after the ally. Left to the platform's dice, a Character that
+  // acted before the ally saved up to three times and stabilized before a test's second First Aid.
+  await queueRoomRolls(fixture.campaign.id, {
+    rolls: [...fixture.run.actors]
+      .sort((left, right) => left.id.localeCompare(right.id))
+      .map((actor) =>
+        draw(actor.id === fixture.hero.id ? 1 : actor.id === fixture.ally?.id ? 10 : 19)
+      )
+  })
   const started = await start(fixture)
+  await queueRoomRolls(fixture.campaign.id, { rolls: [] })
+  expect(started.projection.currentActorId).toBe(fixture.enemy.id)
   const { current } = (await storedCharacter(fixture)).state.hitpoints
   await sheetCommand(fixture, (base) => ({
     ...base,

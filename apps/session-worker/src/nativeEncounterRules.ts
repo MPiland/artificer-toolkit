@@ -30,7 +30,11 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import { refuseStaleCharacterAction } from '@artificer-toolkit/encounter-persistence/staleCharacterAction'
 import { DOMAIN_REJECTION_MESSAGES } from '@artificer-toolkit/schema/api/domainRejections'
-import { readEncounterBasicActionEntries } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
+import { resolveCheckActionInputDtoSchema } from '@artificer-toolkit/schema/api/encounterRuleCommands'
+import {
+  isEncounterBasicActionId,
+  readEncounterBasicActionEntries
+} from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
 import { consumableGrants } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
 import { encounterSceneGridPolicyRegistry } from '@artificer-toolkit/rules-runtime/sceneGridPolicyRegistry'
 import {
@@ -108,6 +112,8 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { nextRollInt } from '@artificer-toolkit/rules-runtime/random'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { serverKernelRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
+
+const TARGET_NOT_PERMITTED_MESSAGE = 'The selected action does not permit this target.'
 
 /** Computes the action in the DO; the room commits this plan in its own transaction. */
 export async function planNativeLiveEncounterAction(
@@ -261,6 +267,16 @@ export async function planNativeLiveEncounterAction(
     revisions = mergeNativeRulesRevisions(revisions, preparedTarget.revisions)
     return preparedTarget.target
   }
+  // A basic action is a check on one creature; only an area action aims at a point.
+  if (
+    isEncounterBasicActionId(command.actorId, command.actionId) &&
+    !resolveCheckActionInputDtoSchema.safeParse(command).success
+  )
+    throw new LiveSessionDomainRejectionError(422, {
+      code: 'DOMAIN_REJECTED',
+      reason: 'TARGET_UNAVAILABLE',
+      message: TARGET_NOT_PERMITTED_MESSAGE
+    })
   if (command.target.kind === 'POINT') {
     const areaInput = {
       initial,
@@ -449,7 +465,7 @@ export async function planNativeLiveEncounterAction(
     throw new LiveSessionDomainRejectionError(422, {
       code: 'DOMAIN_REJECTED',
       reason: 'TARGET_UNAVAILABLE',
-      message: 'The selected action does not permit this target.'
+      message: TARGET_NOT_PERMITTED_MESSAGE
     })
   // The same user-safe rejection the Convex fallback raises, so the room forwards it unchanged.
   if (ruleWarnings.kind === 'UNACKNOWLEDGED')
