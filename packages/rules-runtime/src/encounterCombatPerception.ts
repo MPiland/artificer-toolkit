@@ -10,8 +10,8 @@ import {
   type CombatPerceptionContributionResult
 } from '@artificer-toolkit/shared/rules'
 import {
-  lengthMeasurementInSceneUnits,
   resolveSceneCombatPerceptionEnvironment,
+  senseRangeInSceneUnits,
   type CampaignSceneState,
   type SceneGrid,
   type SceneToken
@@ -47,13 +47,14 @@ function combatPerceptionCapabilitiesFromPinnedSenses(input: {
     .sort((left, right) => left.senseDefinitionId.localeCompare(right.senseDefinitionId))
     .flatMap((pin) => {
       const instanceId = pinnedSenseInstanceId(input.observerActorId, pin)
-      const range = lengthMeasurementInSceneUnits(pin.range, input.sceneGrid)
+      const sceneRange = senseRangeInSceneUnits(pin.range, input.sceneGrid)
+      if (sceneRange === null) return []
       return pin.document.capabilities.map((capability, capabilityOrdinal) => ({
         instanceId,
         definitionId: pin.senseDefinitionId,
         checksum: pin.definitionChecksum,
         capabilityOrdinal,
-        range,
+        range: sceneRange.range,
         capability
       }))
     })

@@ -214,6 +214,7 @@ export function buildEncounterCleavingCandidate(input: {
     { amount: range.amount, unit: range.unit },
     geometry.grid
   )
+  if (reach === null) return null
   const { actorId: _actorId, ...footprint } = geometry.targetToken
   return {
     actorId: target.actor.id,

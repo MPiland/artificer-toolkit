@@ -56,6 +56,7 @@ export function collectEncounterMovementReactionContacts<
       { amount: source.range.amount, unit: source.range.unit },
       input.grid
     )
+    if (reach === null) return []
     const contactSourceId = movementReactionContactSourceId({
       actionId: source.source.capability.actionId,
       reactorActorId: source.reactorActorId,

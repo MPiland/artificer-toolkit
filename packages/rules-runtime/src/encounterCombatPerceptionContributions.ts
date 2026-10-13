@@ -1,12 +1,13 @@
 import { v5 as uuidv5 } from 'uuid'
 
 import type { ActiveRuleEffectDefinitionDto } from '@artificer-toolkit/schema/shared/rulesExecution'
+import type { CombatPerceptionContributionDto } from '@artificer-toolkit/schema/shared/combatPerception'
 import type { PinnedConditionRuleStateDefinitionDto } from '@artificer-toolkit/schema/shared/ruleState'
 import type {
   CombatPerceptionContribution,
   CombatPerceptionContributionSource
 } from '@artificer-toolkit/shared/rules'
-import { lengthMeasurementInSceneUnits, type SceneGrid } from '@artificer-toolkit/shared/vtt'
+import { senseRangeInSceneUnits, type SceneGrid } from '@artificer-toolkit/shared/vtt'
 
 const COMBAT_PERCEPTION_CONTRIBUTION_INSTANCE_NAMESPACE = '9bcf57bc-3776-4eaf-a836-6f246bbb6786'
 const CONDITION_PERCEPTION_CONTRIBUTION_INSTANCE_NAMESPACE = '6cb4da7e-2f2a-477f-b5dd-1b8e079e75e0'
@@ -56,6 +57,16 @@ function compareEffects(left: LockedCombatPerceptionEffect, right: LockedCombatP
   return left.createdOrdinal - right.createdOrdinal || left.id.localeCompare(right.id)
 }
 
+/** A contribution with its sense range in Scene units; null for a sense this Scene cannot measure. */
+function contributionInSceneUnits(
+  contribution: CombatPerceptionContributionDto,
+  sceneGrid: SceneGrid
+): CombatPerceptionContribution | null {
+  if (contribution.kind !== 'SENSE_GRANT') return contribution
+  const sceneRange = senseRangeInSceneUnits(contribution.range, sceneGrid)
+  return sceneRange && { ...contribution, range: sceneRange.range }
+}
+
 function sourcesForKinds(
   effects: readonly LockedCombatPerceptionEffect[],
   kinds: ReadonlySet<CombatPerceptionContribution['kind']>,
@@ -64,25 +75,22 @@ function sourcesForKinds(
   return [...effects].sort(compareEffects).flatMap((effect) =>
     (effect.definition.perceptionContributions ?? [])
       .filter((contribution) => kinds.has(contribution.kind))
-      .map((contribution): CombatPerceptionContributionSource => {
-        const resolvedContribution: CombatPerceptionContribution =
-          contribution.kind === 'SENSE_GRANT'
-            ? {
-                ...contribution,
-                range: lengthMeasurementInSceneUnits(contribution.range, sceneGrid)
-              }
-            : contribution
-        return {
-          instanceId: contributionInstanceId(effect.id, contribution.id),
-          source: {
-            kind: 'ACTIVE_EFFECT',
-            activeEffectId: effect.id,
-            activeEffectVersion: effect.version,
-            activeEffectDefinitionChecksum: effect.definitionChecksum
-          },
-          sourceOrdinal: effect.createdOrdinal,
-          contribution: resolvedContribution
-        }
+      .flatMap((contribution): CombatPerceptionContributionSource[] => {
+        const resolvedContribution = contributionInSceneUnits(contribution, sceneGrid)
+        if (resolvedContribution === null) return []
+        return [
+          {
+            instanceId: contributionInstanceId(effect.id, contribution.id),
+            source: {
+              kind: 'ACTIVE_EFFECT',
+              activeEffectId: effect.id,
+              activeEffectVersion: effect.version,
+              activeEffectDefinitionChecksum: effect.definitionChecksum
+            },
+            sourceOrdinal: effect.createdOrdinal,
+            contribution: resolvedContribution
+          }
+        ]
       })
   )
 }
@@ -119,28 +127,26 @@ export function deriveConditionCombatPerceptionContributions(input: {
     .flatMap((definition) =>
       (definition.document.perceptionContributions ?? [])
         .filter((contribution) => kinds.has(contribution.kind))
-        .map((contribution): CombatPerceptionContributionSource => ({
-          instanceId: conditionContributionInstanceId(
-            definition.conditionDefinitionId,
-            definition.definitionChecksum,
-            contribution.id
-          ),
-          source: {
-            kind: 'CONDITION_DEFINITION',
-            conditionDefinitionId: definition.conditionDefinitionId,
-            conditionDefinitionVersion: definition.definitionVersion,
-            conditionDefinitionChecksum: definition.definitionChecksum
-          },
-          sourceOrdinal: 0,
-          contribution:
-            contribution.kind === 'SENSE_GRANT'
-              ? {
-                  ...contribution,
-                  range: contribution.range
-                    ? lengthMeasurementInSceneUnits(contribution.range, input.sceneGrid)
-                    : null
-                }
-              : contribution
-        }))
+        .flatMap((contribution): CombatPerceptionContributionSource[] => {
+          const resolvedContribution = contributionInSceneUnits(contribution, input.sceneGrid)
+          if (resolvedContribution === null) return []
+          return [
+            {
+              instanceId: conditionContributionInstanceId(
+                definition.conditionDefinitionId,
+                definition.definitionChecksum,
+                contribution.id
+              ),
+              source: {
+                kind: 'CONDITION_DEFINITION',
+                conditionDefinitionId: definition.conditionDefinitionId,
+                conditionDefinitionVersion: definition.definitionVersion,
+                conditionDefinitionChecksum: definition.definitionChecksum
+              },
+              sourceOrdinal: 0,
+              contribution: resolvedContribution
+            }
+          ]
+        })
     )
 }

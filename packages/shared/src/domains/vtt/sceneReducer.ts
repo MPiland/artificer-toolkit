@@ -37,27 +37,32 @@ function fogLayerKey(layer: SceneFogLayer): string {
 
 type SceneLength = { amount: number; unit: LengthUnitCode }
 
-/** Convert a typed length into authoritative Scene units; a missing length has none. */
-export function lengthMeasurementInSceneUnits(range: SceneLength, grid: SceneGrid): number
-export function lengthMeasurementInSceneUnits(
+/** Feet in a calibrated Scene's distance unit. */
+export function feetInSceneUnit(feet: number, unit: Exclude<SceneGrid['unit'], 'SQUARES'>): number {
+  return unit === 'FEET' ? feet : feet * 0.3048
+}
+
+/**
+ * A typed length in authoritative Scene units. Null when this Scene cannot measure it: an
+ * uncalibrated SQUARES Scene, or a length too large to represent. Never negative.
+ */
+export function lengthMeasurementInSceneUnits(length: SceneLength, grid: SceneGrid): number | null {
+  const feet = lengthMeasurementInFeet(length)
+  if (!Number.isFinite(feet) || grid.unit === 'SQUARES') return null
+  return feetInSceneUnit(Math.max(0, feet), grid.unit)
+}
+
+/**
+ * A sense's range in Scene units. A null range is unlimited and stays null; a ranged sense this
+ * Scene cannot measure returns null, so callers drop it rather than widen it to unlimited.
+ */
+export function senseRangeInSceneUnits(
   range: SceneLength | null,
   grid: SceneGrid
-): number | null
-export function lengthMeasurementInSceneUnits(
-  range: SceneLength | null,
-  grid: SceneGrid
-): number | null {
-  if (!range) return null
-  const feet = lengthMeasurementInFeet(range)
-  if (!Number.isFinite(feet)) throw new Error('Scene length conversion overflowed.')
-  if (feet <= 0) return 0
-  if (grid.unit === 'FEET') return feet
-  if (grid.unit === 'METERS') {
-    const meters = feet * 0.3048
-    if (!Number.isFinite(meters)) throw new Error('Scene length conversion overflowed.')
-    return meters
-  }
-  throw new Error('A typed length cannot be converted into an uncalibrated SQUARES Scene.')
+): { range: number | null } | null {
+  if (range === null) return { range: null }
+  const sceneRange = lengthMeasurementInSceneUnits(range, grid)
+  return sceneRange === null ? null : { range: sceneRange }
 }
 
 /** Converts an authoritative Scene length to feet; an uncalibrated SQUARES Scene has none. */
@@ -65,17 +70,6 @@ export function sceneLengthInFeet(amount: number, grid: CampaignSceneState['grid
   if (grid.unit === 'FEET') return amount
   if (grid.unit === 'METERS') return amount / 0.3048
   return null
-}
-
-function senseRangeInSceneUnits(
-  range: SceneCharacterVision['senses'][number]['range'],
-  grid: CampaignSceneState['grid']
-): number | null {
-  try {
-    return lengthMeasurementInSceneUnits(range, grid)
-  } catch {
-    return null
-  }
 }
 
 /** Presents the bound Character's senses on its token; a sense with no usable range is dropped. */
@@ -99,7 +93,7 @@ export function resolveSceneCharacterVision<T extends Pick<CampaignSceneState, '
       return {
         ...token,
         senses: characterVision.senses.flatMap(({ range, ...sense }) => {
-          const sceneRange = senseRangeInSceneUnits(range, state.grid)
+          const sceneRange = range && lengthMeasurementInSceneUnits(range, state.grid)
           return sceneRange === null || sceneRange <= 0 ? [] : [{ ...sense, range: sceneRange }]
         })
       }

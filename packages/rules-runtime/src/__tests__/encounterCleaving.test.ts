@@ -332,6 +332,21 @@ describe('Cleaving target facts', () => {
       })
     ).toThrow('Cleaving Scene is stale.')
   })
+
+  it('offers no target on an uncalibrated SQUARES Scene, where reach cannot be measured', () => {
+    const squaresGrid = { ...grid, unit: 'SQUARES' as const }
+    const targetToken = tokenAt(SECOND_ID, 1)
+    expect(
+      buildEncounterCleavingCandidate({
+        target: srdCreatureTarget(goblinActor),
+        targetTokenId: targetToken.tokenId,
+        action: greataxe,
+        scene: { ...scene, effectiveGridChecksum: checksumRuleDocument(squaresGrid) },
+        originalAttack: { total: 15, naturalRoll: 11 },
+        geometry: { grid: squaresGrid, sourceToken, targetToken }
+      })
+    ).toBeNull()
+  })
 })
 
 describe('Cleaving choice', () => {

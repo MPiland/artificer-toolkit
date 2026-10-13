@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
 import { LENGTH_UNIT_CODES, lengthMeasurementInFeet } from '../domains/core/measurement.js'
-import { lengthMeasurementInSceneUnits } from '../domains/vtt/index.js'
+import {
+  feetInSceneUnit,
+  lengthMeasurementInSceneUnits,
+  senseRangeInSceneUnits
+} from '../domains/vtt/index.js'
 
 const FEET_GRID = { kind: 'GRIDLESS', pixelsPerUnit: 1, unit: 'FEET' } as const
 
@@ -23,18 +27,30 @@ describe('length measurement', () => {
       lengthMeasurementInSceneUnits({ amount: 100, unit: 'FEET' }, { ...FEET_GRID, unit: 'METERS' })
     ).toBeCloseTo(30.48)
     expect(lengthMeasurementInSceneUnits({ amount: -5, unit: 'FEET' }, FEET_GRID)).toBe(0)
-    expect(lengthMeasurementInSceneUnits(null, FEET_GRID)).toBeNull()
   })
 
-  it('keeps the grid-overflow and uncalibrated-SQUARES failures', () => {
-    expect(() =>
+  it('converts feet into a calibrated Scene unit', () => {
+    expect(feetInSceneUnit(10, 'FEET')).toBe(10)
+    expect(feetInSceneUnit(10, 'METERS')).toBeCloseTo(3.048)
+  })
+
+  it('measures nothing for an overflowing length or on an uncalibrated SQUARES Scene', () => {
+    expect(
       lengthMeasurementInSceneUnits({ amount: Number.MAX_VALUE, unit: 'MILES' }, FEET_GRID)
-    ).toThrow('overflowed')
-    expect(() =>
+    ).toBeNull()
+    expect(
       lengthMeasurementInSceneUnits(
         { amount: 5, unit: 'FEET' },
         { kind: 'GRIDLESS', pixelsPerUnit: 1, unit: 'SQUARES' }
       )
-    ).toThrow('uncalibrated SQUARES')
+    ).toBeNull()
+  })
+
+  it('keeps an unlimited sense unlimited and drops a ranged sense the Scene cannot measure', () => {
+    const squaresGrid = { ...FEET_GRID, unit: 'SQUARES' } as const
+    expect(senseRangeInSceneUnits(null, FEET_GRID)).toEqual({ range: null })
+    expect(senseRangeInSceneUnits(null, squaresGrid)).toEqual({ range: null })
+    expect(senseRangeInSceneUnits({ amount: 60, unit: 'FEET' }, FEET_GRID)).toEqual({ range: 60 })
+    expect(senseRangeInSceneUnits({ amount: 60, unit: 'FEET' }, squaresGrid)).toBeNull()
   })
 })

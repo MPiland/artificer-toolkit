@@ -190,12 +190,15 @@ export function measuredDistance(
   scene: EncounterActionSceneContext,
   range: { amount: number; unit: LengthUnitCode }
 ) {
-  try {
-    return {
-      maximum: lengthMeasurementInSceneUnits(range, scene.grid),
-      measured: measureSceneTokenFootprintDistance(scene.grid, scene.sourceToken, scene.targetToken)
-    }
-  } catch {
-    return null
-  }
+  const maximum = lengthMeasurementInSceneUnits(range, scene.grid)
+  return maximum === null
+    ? null
+    : {
+        maximum,
+        measured: measureSceneTokenFootprintDistance(
+          scene.grid,
+          scene.sourceToken,
+          scene.targetToken
+        )
+      }
 }

@@ -315,11 +315,8 @@ export type AuthoredPointArea =
 
 function coordinateLength(length: AuthoredPointAreaLength, grid: SceneGrid): number | null {
   if (length.scaling !== undefined || !(length.amount > 0)) return null
-  try {
-    return sceneDistanceAsCoordinateLength(grid, lengthMeasurementInSceneUnits(length, grid))
-  } catch {
-    return null
-  }
+  const sceneLength = lengthMeasurementInSceneUnits(length, grid)
+  return sceneLength === null ? null : sceneDistanceAsCoordinateLength(grid, sceneLength)
 }
 
 /**
