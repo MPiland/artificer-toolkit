@@ -23,7 +23,9 @@ export async function assertCreatureSensesDefined(
     if (!root?.current || root.definitionFamilyKey !== 'sense')
       throw new Error('Every Creature sense must reference a published sense definition.')
     if (root.gameSystemId !== creature.systemId)
-      throw new Error("A Creature sense must reference a sense definition of the Creature's System.")
+      throw new Error(
+        "A Creature sense must reference a sense definition of the Creature's System."
+      )
     if (!vocabulary.has(senseDefinitionId))
       throw new Error("A Creature sense must be one of its System's senses.")
   }

@@ -231,7 +231,9 @@ describe('composeRoomSceneVision', () => {
   it("refuses a Creature Sense the System's vocabulary does not list", async () => {
     const { compose } = await boundRoom({
       ...goblin,
-      senses: [{ senseDefinitionId: uuid(0xc11), range: { rangeKind: 'UNLIMITED' } }]
+      senses: [
+        { senseDefinitionId: uuid(0xc11), range: { id: uuid(0xc12), rangeKind: 'UNLIMITED' } }
+      ]
     })
     await expect(compose()).rejects.toThrow('Actor Sense is not a unique System vocabulary member.')
   })
@@ -241,7 +243,7 @@ describe('composeRoomSceneVision', () => {
       ...goblin,
       senses: Array.from({ length: 101 }, (_, index) => ({
         senseDefinitionId: uuid(0xd00 + index),
-        range: { rangeKind: 'UNLIMITED' as const }
+        range: { id: uuid(0xe00 + index), rangeKind: 'UNLIMITED' as const }
       }))
     })
     await expect(compose()).rejects.toThrow('Actor Sense limit exceeded.')

@@ -45,7 +45,10 @@ function senses(pins: readonly Pin[]) {
 }
 
 describe('createActorSensePinner', () => {
-  const gameSystemId = currentConditionDefinition(definition(SRD_DARKVISION_SENSE_ID)).gameSystemId
+  const gameSystemId = currentConditionDefinition({
+    ...definition(SRD_DARKVISION_SENSE_ID),
+    definitionFamilyKey: 'sense'
+  }).gameSystemId
   const reach = { rangeKind: 'DISTANCE' as const, id: 'range', amount: 60, unit: 'FEET' as const }
 
   function pinner(
@@ -137,9 +140,10 @@ describe('createActorSensePinner', () => {
     await refusal(() => ({ ...current, definitionFamilyKey: 'condition' })).toThrow(
       'Actor Sense definition is unavailable.'
     )
-    await refusal(() => ({ ...current, gameSystemId: '00000000-0000-4000-8000-0000000000ff' })).toThrow(
-      'Actor Sense definition is unavailable.'
-    )
+    await refusal(() => ({
+      ...current,
+      gameSystemId: '00000000-0000-4000-8000-0000000000ff'
+    })).toThrow('Actor Sense definition is unavailable.')
     await refusal(() => ({ ...current, checksum: '0'.repeat(64) })).toThrow(
       'Actor Sense definition does not match its current version.'
     )

@@ -255,8 +255,11 @@ describe('native Creature publication', () => {
         .unique()
       if (!source || !definition) throw new Error('Missing SRD source or Darkvision row.')
       const { _id: _sourceRow, _creationTime: _sourceCreated, ...sourceFields } = source
-      const { _id: _definitionRow, _creationTime: _definitionCreated, ...definitionFields } =
-        definition
+      const {
+        _id: _definitionRow,
+        _creationTime: _definitionCreated,
+        ...definitionFields
+      } = definition
       const foreignSystemId = '00000000-0000-0000-0001-0ff000000000'
       await ctx.db.insert('contentSources', {
         ...sourceFields,

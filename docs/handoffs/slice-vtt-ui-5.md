@@ -54,19 +54,24 @@ Dev data changes: the main session resets and reseeds after merge.
   - Stale `UNKNOWN` leftovers removed (`nativeEncounterAreaRules` now tests `=== 'SEES'`). `printCreatureSenses` prints the registry unit abbreviation ("ft", no dot); the source-data oracle test normalises the book's "ft." when comparing.
   - Known limit (recorded in D111): sense qualifiers are display-only. Mechanics-bearing qualifiers in the SRD: Grimlock ("or 10 ft. while deafened") and Wererat ("rat form only"). Ten more carry only "(blind beyond this radius)": Animated Armor, Flying Sword, Rug of Smothering, Shrieker, Violet Fungus, Black Pudding, Gelatinous Cube, Gray Ooze, Ochre Jelly, Shambling Mound. Conditional senses are a follow-up for the main session to register.
   - Item 10 substitution: the Ogre's believed perception cannot be UNSEEN (believed perception strips the target's senses and uses the neutral environment), so the tests pin believed SEES versus actual UNSEEN for the Ogre at 70 ft and the reverse for a Blindsight Creature against an Invisible attacker.
+- 2026-10-13: review fixes validated in lock acquisitions (logs under `local-validation/vtt-ui-5/`: `batch-summary.log`, `batch2-summary.log`).
+  - Base merge: `codex/phase-08-2-convex-cutover` (10 commits) merged cleanly.
+  - Builds green (schema, shared, rules-runtime, source-data, encounter-persistence, authoring); touched suites 18 files, 161 tests green (`green-touched.log`), plus `actorSenses` and `creatureSnapshotSenses` after test-typing fixes (`green-touched2.log`); worker Workers-pool suites green; `turbo:affected:typecheck` green (`typecheck2.log`); local Convex codegen push green (`codegen.log`).
+  - The first run found three test defects, fixed: UNLIMITED ranges in new tests lacked the `id` the contract requires, and the oracle test compared the derived qualifier ("ft.") with the normalised printed line.
+  - Red-first: the review's new tests were authored against the fixed production code in the same pass; no red logs were captured for them (the review accepted this for items 2 to 6). `creatureSnapshotSenses.test.ts` pins the throw with a bare `toThrow()`.
 
 ## Red / green evidence
 
 Only item 1 has a captured red log (`oracle-red.log`, taken before the migration). Items 2 to 6 were written with the implementation in one pass, so no separate red log exists for them; each test asserts behavior the old code could not produce (a string `senses` field, the `UNKNOWN` sight verdict, Character-only actor binding).
 
-| # | Checklist item | Red | Green |
-|---|---|---|---|
-| 1 | SRD structured == printed | `oracle-red.log` | `green-oracle.log` |
-| 2 | darkvision 60 ft sees 50 ft not 70 ft | not captured | `encounterAttackPerception.test.ts` in `green-touched.log` |
-| 3 | Scene DTO senses: GM and controller, not others | not captured | `vtt-scene.test.ts` in `green-touched.log` |
-| 4 | one function for Character and Creature | not captured | `actorSenses.test.ts` in `green-touched.log`, `green-worker-vision.log` (Creature), `green-worker-pool.log` (Character) |
-| 5 | publication refuses malformed entries | not captured | `creaturePublication.test.ts` in `green-touched.log` |
-| 6 | editor adds an entry and it reaches publication | not captured | `AuthoredDomainAuthoringLayout.test.tsx` in `green-touched.log` |
+| #   | Checklist item                                  | Red              | Green                                                                                                                   |
+| --- | ----------------------------------------------- | ---------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| 1   | SRD structured == printed                       | `oracle-red.log` | `green-oracle.log`                                                                                                      |
+| 2   | darkvision 60 ft sees 50 ft not 70 ft           | not captured     | `encounterAttackPerception.test.ts` in `green-touched.log`                                                              |
+| 3   | Scene DTO senses: GM and controller, not others | not captured     | `vtt-scene.test.ts` in `green-touched.log`                                                                              |
+| 4   | one function for Character and Creature         | not captured     | `actorSenses.test.ts` in `green-touched.log`, `green-worker-vision.log` (Creature), `green-worker-pool.log` (Character) |
+| 5   | publication refuses malformed entries           | not captured     | `creaturePublication.test.ts` in `green-touched.log`                                                                    |
+| 6   | editor adds an entry and it reaches publication | not captured     | `AuthoredDomainAuthoringLayout.test.tsx` in `green-touched.log`                                                         |
 
 ## Proposed ledger edits (filled by the slice session)
 

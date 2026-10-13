@@ -9,9 +9,13 @@ const ogre = srdBaselineContent.subjects.creatures.find(({ label }) => label ===
 if (!ogre) throw new Error('Missing SRD Ogre.')
 const actor = srdCreatureActor({ id: testUuid(1), creature: ogre })
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value)
+
 function withSenses(senses: unknown) {
-  if (!actor.snapshot || !('payload' in actor.snapshot)) throw new Error('Missing snapshot.')
-  return { ...actor, snapshot: { ...actor.snapshot, payload: { ...actor.snapshot.payload, senses } } }
+  const { snapshot } = actor
+  if (!isRecord(snapshot) || !isRecord(snapshot.payload)) throw new Error('Missing snapshot.')
+  return { ...actor, snapshot: { ...snapshot, payload: { ...snapshot.payload, senses } } }
 }
 
 describe('Creature snapshot senses', () => {
@@ -25,7 +29,9 @@ describe('Creature snapshot senses', () => {
   })
 
   it('fails closed on a malformed sense instead of dropping it', () => {
-    expect(() => snapshotStatBlock(withSenses([{ senseDefinitionId: SRD_DARKVISION_SENSE_ID }]))).toThrow()
+    expect(() =>
+      snapshotStatBlock(withSenses([{ senseDefinitionId: SRD_DARKVISION_SENSE_ID }]))
+    ).toThrow()
     expect(() => snapshotStatBlock(withSenses(['darkvision 60 ft.']))).toThrow()
   })
 })

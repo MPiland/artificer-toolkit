@@ -73,7 +73,11 @@ export async function createEncounterMovementReactionPerception(
       throw new Error('Encounter actor perception target is unavailable.')
     effectsByActorId.set(actor.id, target.activeEffects)
     const pins = await pinSenses(target.perceptionSenses)
-    if (pins.length) pinsByActorId.set(actor.id, pins.map(({ pin }) => pin))
+    if (pins.length)
+      pinsByActorId.set(
+        actor.id,
+        pins.map(({ pin }) => pin)
+      )
   }
   if (effectsByActorId.size !== input.actors.length)
     throw new Error('Encounter perception effects are incomplete.')

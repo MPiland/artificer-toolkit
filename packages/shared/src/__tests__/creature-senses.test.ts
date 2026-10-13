@@ -9,13 +9,16 @@ describe('printCreatureSenses', () => {
     expect(
       printCreatureSenses(
         [
-          { senseDefinitionId: 'a', range: { id: 'r', rangeKind: 'DISTANCE', amount: 60, unit: 'FEET' } },
+          {
+            senseDefinitionId: 'a',
+            range: { id: 'r', rangeKind: 'DISTANCE', amount: 60, unit: 'FEET' }
+          },
           {
             senseDefinitionId: 'b',
             range: { id: 'r', rangeKind: 'DISTANCE', amount: 20, unit: 'YARDS' },
             qualifier: '(blind beyond this radius)'
           },
-          { senseDefinitionId: 'c', range: { rangeKind: 'UNLIMITED' } }
+          { senseDefinitionId: 'c', range: { id: 'r', rangeKind: 'UNLIMITED' } }
         ],
         label
       )
