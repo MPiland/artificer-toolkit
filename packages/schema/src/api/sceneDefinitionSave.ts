@@ -7,6 +7,7 @@ import {
   sceneDarknessZoneDtoSchema,
   sceneLightDtoSchema,
   sceneTokenDtoSchema,
+  sceneStoredTokenDtoSchema,
   campaignLiveSceneSummaryDtoSchema
 } from './vttScenes.js'
 import { campaignListPageSchema } from './campaignList.js'
@@ -72,20 +73,25 @@ export const appendSceneDefinitionInputSchema = lazySchema(() =>
       ...batchBase(),
       collection: z.literal('tokens'),
       entities: z
-        .array(sceneTokenDtoSchema)
+        .array(sceneStoredTokenDtoSchema)
         .check(z.minLength(1))
         .check(z.maxLength(SCENE_DEFINITION_BATCH_SIZE))
     })
   ])
 )
-export const sceneDefinitionEntitySchema = lazySchema(() =>
+const sceneDefinitionEntityOf = (token: typeof sceneTokenDtoSchema) =>
   z.discriminatedUnion('collection', [
     z.strictObject({ collection: z.literal('annotations'), entity: sceneAnnotationDtoSchema }),
     z.strictObject({ collection: z.literal('barriers'), entity: sceneBarrierDtoSchema }),
     z.strictObject({ collection: z.literal('darknessZones'), entity: sceneDarknessZoneDtoSchema }),
     z.strictObject({ collection: z.literal('lights'), entity: sceneLightDtoSchema }),
-    z.strictObject({ collection: z.literal('tokens'), entity: sceneTokenDtoSchema })
+    z.strictObject({ collection: z.literal('tokens'), entity: token })
   ])
+export const sceneDefinitionEntitySchema = lazySchema(() =>
+  sceneDefinitionEntityOf(sceneTokenDtoSchema)
+)
+export const sceneStoredDefinitionEntityValueSchema = lazySchema(() =>
+  sceneDefinitionEntityOf(sceneStoredTokenDtoSchema)
 )
 export const beginSceneDefinitionInputSchema = lazySchema(() =>
   z

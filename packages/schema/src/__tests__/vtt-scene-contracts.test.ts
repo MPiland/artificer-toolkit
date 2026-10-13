@@ -10,6 +10,7 @@ import {
   sceneDeltaDtoSchema,
   sceneFogLayerDtoSchema,
   sceneGeometryCommandInputDtoSchema,
+  sceneStoredTokenDtoSchema,
   sceneTokenDtoSchema,
   sceneTransientEnvelopeDtoSchema
 } from '../api/vttScenes.js'
@@ -274,6 +275,33 @@ describe('VTT scene contracts', () => {
     expect(parses([{ ...sense, senseId: 'darkvision' }])).toBe(false)
     expect(parses([{ channel: sense.channel }])).toBe(false)
     expect(parses(Array.from({ length: 101 }, () => sense))).toBe(false)
+  })
+
+  it('lets the transport Token carry senses but never the stored Token', () => {
+    const token = {
+      assetId: null,
+      controlledByUserIds: [],
+      height: 1,
+      hidden: false,
+      id: ids.token,
+      label: 'Token',
+      locked: false,
+      position: { x: 1, y: 2 },
+      rotationDegrees: 0,
+      vision: null,
+      width: 1
+    }
+    const sense = {
+      channel: 'VISUAL' as const,
+      illuminationAccess: 'ORDINARY_DARKNESS' as const,
+      label: 'Darkvision',
+      range: 60,
+      senseId: ids.barrier
+    }
+
+    expect(sceneTokenDtoSchema.safeParse({ ...token, senses: [sense] }).success).toBe(true)
+    expect(sceneStoredTokenDtoSchema.safeParse({ ...token, senses: [sense] }).success).toBe(false)
+    expect(sceneStoredTokenDtoSchema.safeParse({ ...token, senses: [] }).success).toBe(true)
   })
 
   it('accepts only the five geometry commands with full-schema parity', () => {

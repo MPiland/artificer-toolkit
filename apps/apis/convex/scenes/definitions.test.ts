@@ -920,7 +920,7 @@ it('rejects live Scene source identity and materialization receipt corruption', 
   }
 })
 
-it('persists Scene definition tokens without Character-derived senses, and replays the batch', async () => {
+it('rejects a Scene definition token that carries Character-derived senses', async () => {
   const base = await createSceneDefinitionFixture()
   const token = {
     id: crypto.randomUUID(),
@@ -954,13 +954,9 @@ it('persists Scene definition tokens without Character-derived senses, and repla
     offset: 0,
     entities: [token]
   }
-  await base.owner.caller.mutation(append, { input: batch })
-  await expect(base.owner.caller.mutation(append, { input: batch })).resolves.toMatchObject({
-    received: { tokens: 1 }
-  })
-  await base.owner.caller.mutation(publish, { saveId: save.saveId })
+  await expect(base.owner.caller.mutation(append, { input: batch })).rejects.toThrow(
+    'Stored Scene tokens never carry senses.'
+  )
   const stored = await base.t.run((ctx) => ctx.db.query('sceneDefinitionEntities').collect())
-  expect(stored.map((row) => row.value)).toEqual([
-    { collection: 'tokens', entity: { ...token, senses: [] } }
-  ])
+  expect(stored).toEqual([])
 })

@@ -1178,7 +1178,11 @@ it('drops previews without a third capture when the fresh capture also conflicts
  * Darkvision), then B (no Senses), composed from the room's own store.
  */
 async function characterVisionRoom() {
-  const members = [member(ownerId, 'OWNER'), member(playerId, 'PLAYER')]
+  const members = [
+    member(ownerId, 'OWNER'),
+    member(playerId, 'PLAYER'),
+    member(otherPlayerId, 'PLAYER')
+  ]
   const characterId = '00000000-0000-4000-8000-000000000112'
   const bound = {
     campaignId,
@@ -1216,7 +1220,11 @@ async function characterVisionRoom() {
   const sceneFixture: RoomSceneFixture = {
     header: header(),
     presentationVersion: 1,
-    scene: { ...emptyScene(), tokens: [{ ...token, vision: null }] }
+    // The Scene lists both players; only the assigned one controls the bound actor.
+    scene: {
+      ...emptyScene(),
+      tokens: [{ ...token, controlledByUserIds: [playerId, otherPlayerId], vision: null }]
+    }
   }
   const stub = newRoom()
   await runInDurableObject(stub, () => {
@@ -1322,15 +1330,16 @@ async function characterVisionRoom() {
       throw new Error(`Unexpected backend request: ${pathname}`)
     })
   })
-  const [owner, player] = await Promise.all([
+  const [owner, player, other] = await Promise.all([
     connect(stub, ownerId, 'OWNER'),
-    connect(stub, playerId, 'PLAYER')
+    connect(stub, playerId, 'PLAYER'),
+    connect(stub, otherPlayerId, 'PLAYER')
   ])
   const admittedSenses = await syncedTokenSenses(owner)
   expect(room.characterReads).toEqual([room.revisionA])
   owner.messages.length = 0
   player.messages.length = 0
-  return { admittedSenses, room, owner, player, stub }
+  return { admittedSenses, room, owner, player, other, stub }
 }
 
 /** Revision A's 60 ft Darkvision, as the bound token's Senses carry it. */
@@ -1456,6 +1465,46 @@ it('composes Scene vision without a Run that COMPLETEd, so the next Scene comman
   })
   await vi.waitFor(() => expect(transient(player.messages)).toHaveLength(1))
   expect(await syncedTokenSenses(owner)).toEqual([])
+})
+
+it('withholds a bound token senses from a player the Scene lists who does not control the bound actor (ADR 0034)', async () => {
+  const { admittedSenses, room, owner, other } = await characterVisionRoom()
+  // The GM's projection carries the Sense the Character's Darkvision composes onto the token.
+  expect(admittedSenses).toEqual(darkvisionSenses)
+
+  const commandId = crypto.randomUUID()
+  other.socket.send(
+    JSON.stringify({
+      type: 'COMMAND',
+      expectedSessionSequence: 0,
+      command: {
+        scope: 'SCENE',
+        command: {
+          type: 'MOVE_SCENE_TOKEN',
+          commandId,
+          correlationId: null,
+          expectedEncounterVersion: room.encounterVersion,
+          expectedSceneVersion: 1,
+          movementKind: 'VOLUNTARY',
+          path: [token.position, { x: 20, y: 10 }],
+          sceneId,
+          tokenId
+        }
+      }
+    })
+  )
+  await vi.waitFor(() =>
+    expect(other.messages).toContainEqual(
+      expect.objectContaining({ type: 'COMMAND_REJECTED', commandId })
+    )
+  )
+  const rejected = other.messages.find(
+    (message) => message.type === 'COMMAND_REJECTED' && message.commandId === commandId
+  )
+  if (rejected?.type !== 'COMMAND_REJECTED' || rejected.correction?.scope !== 'SCENE')
+    throw new Error('Missing the private Scene correction.')
+  expect(rejected.correction.state.tokens.find(({ id }) => id === tokenId)?.senses).toEqual([])
+  expect(await syncedTokenSenses(owner)).toEqual(darkvisionSenses)
 })
 
 it('refuses previews and pings while the authorization cache cannot be renewed', async () => {

@@ -529,7 +529,7 @@ it('rejects a checkpointed token that stores senses', async () => {
         scenes: [{ ...base.publication, changes }]
       })
     )
-  ).rejects.toThrow('Checkpoint Scene saves never store token senses.')
+  ).rejects.toThrow('Stored Scene tokens never carry senses.')
   await base.t.run(async (ctx) => {
     expect(await ctx.db.query('sceneLiveEntities').take(1)).toEqual([])
   })

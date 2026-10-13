@@ -136,13 +136,6 @@ export async function applyCheckpointScenes(
       )
         throw new Error('Checkpoint Scene saves are append-only.')
       const next = liveSessionCheckpointSceneSchemas[change.table].parse(value)
-      if (
-        change.table === 'sceneLiveEntities' &&
-        'value' in next &&
-        next.value?.collection === 'tokens' &&
-        next.value.entity.senses.length
-      )
-        throw new Error('Checkpoint Scene saves never store token senses.')
       rows.push({ table: change.table, key: change.key, before, next })
     }
     const head = rows.find((row) => row.table === 'sceneLiveStates')?.next as
