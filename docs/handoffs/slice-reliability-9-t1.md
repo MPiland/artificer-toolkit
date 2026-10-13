@@ -61,6 +61,9 @@ Tests render the real components with the real query layer; fake only the networ
 
 - Red-first: items 1 and 3 (survive-unrelated-change/surfaced-conflict), 6 and 7 (sign-out) and the text-editor conflict case have red logs (`local-validation/reliability-9-t1/red-all.log`, `red-run1-signout.log`). Item 4 (actor remount), the SelectionModal reset, the gold field, the Profile availability states, the BuilderAuthoringRuntime retry and the SocialListing seed are characterization tests of behavior that was already correct (the old effects reproduced it); they pass before and after, so no red exists for them. The structural change (effect removal) is the fix; the tests pin the behavior.
 - The worktree needed `yarn install --immutable` and built package dists (schema, shared, rules-runtime, encounter-persistence, design-system) before tests could load (`build-packages.log`, `install.log`).
+- Also built in the worktree: `source-data` (`build-source-data.log`), which `CharacterSheetSpells.test.tsx` imports through its fixtures.
+- Two test-side defects in my new tests surfaced in the first green run and were fixed without touching assertions: the `SignOutPage` router mock returned a new `router` object per render (the real router is stable, and a fresh object re-ran the effect), and `user.clear` on a Mantine `NumberInput` falls back to 1, so the clock test sets the field with `fireEvent.change`.
+- Validation: all 17 touched and dependent test files green, 120 tests (`green-all2.log`; first attempt `green-all.log` showed the three defects above).
 - Storybook cannot start in a worktree. Not run: any story for `EncounterActorCard`, the Campaign clock editor, `CharacterSheetTextEditor`/Inspector, `CharacterSelectionModal`, `CharacterStartingEquipmentChoices`, `SocialListingFormPage`, `ProfileSettingsPage`. Run them in the final-source pass.
 
 ## Proposed ledger edits (filled by the slice session)
