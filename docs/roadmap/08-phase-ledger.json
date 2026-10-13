@@ -7728,10 +7728,26 @@
           "acs": [
             {
               "text": "An editor seeded from server data never overwrites the user's in-progress edits when the server record refreshes: it is keyed by the record, and an incoming change to a field being edited is surfaced, not silently applied.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/web/src/components/ServerDraft/useServerDraft.test.tsx",
+                "apps/web/src/components/ServerDraft/ServerDraftConflicts.test.tsx",
+                "apps/web/src/domains/campaigns/components/EncounterActorCard.test.tsx",
+                "apps/web/src/domains/campaigns/components/CampaignClock/CampaignClockEditor.component.test.tsx",
+                "apps/web/src/domains/campaigns/components/CampaignClock/CampaignClockControl.test.tsx",
+                "apps/web/src/domains/campaigns/components/CampaignSessionSchedulePanel.test.tsx",
+                "apps/web/src/domains/campaigns/components/session-workspace/CampaignSessionPrepareView.test.tsx",
+                "apps/web/src/domains/characters/sheet/inspector/CharacterSheetTextEditor.test.tsx",
+                "apps/web/src/domains/characters/sheet/inspector/CharacterSheetInspector.test.tsx",
+                "apps/web/src/domains/characters/sheet/inspector/CharacterSheetItemPanel.test.tsx",
+                "apps/web/src/domains/social/SocialListingFormPage.test.tsx",
+                "apps/web/src/domains/characters/builder/selection/CharacterSelectionModal.test.tsx",
+                "apps/web/src/domains/characters/builder/steps/equipment/CharacterStartingEquipmentChoices.component.test.tsx",
+                "apps/web/src/domains/characters/builder/core/CharacterBuilderAuthoringRuntime.test.tsx",
+                "apps/web/src/settings/ProfileSettingsPage.test.tsx"
+              ],
               "origin": [],
-              "note": "Data loss. EncounterActorCard.tsx:80-86 resets initiative, HP, temp HP, visibility and notes on every `actor` change; CampaignClockEditor.tsx:42-48 resets day, time, dawn and dusk on every `clock` change. About 15 further prop-to-state reset effects follow the same pattern; each gets a `key` instead. Second pass: SocialListingFormPage.tsx:81-85, CharacterSelectionModal.tsx:28-30, CharacterStartingEquipmentChoices.tsx:227, ProfileSettingsPage.tsx:68-107 (derivable availability states), CharacterBuilderAuthoringRuntime.tsx:35-38.",
+              "note": "Closed by RELIABILITY-9.T1 (merge 036b8f7d6): shared useServerDraft keeps per-field edits with the server value seen, surfaces conflicts with Use latest / Keep mine, and editors are keyed by record. Post-merge run: 16 web test files, 111 tests green; typecheck green. Storybook runs for the touched surfaces are owed (RELIABILITY-9.T2 note). Original finding: Data loss. EncounterActorCard.tsx:80-86 resets initiative, HP, temp HP, visibility and notes on every `actor` change; CampaignClockEditor.tsx:42-48 resets day, time, dawn and dusk on every `clock` change. About 15 further prop-to-state reset effects follow the same pattern; each gets a `key` instead. Second pass: SocialListingFormPage.tsx:81-85, CharacterSelectionModal.tsx:28-30, CharacterStartingEquipmentChoices.tsx:227, ProfileSettingsPage.tsx:68-107 (derivable availability states), CharacterBuilderAuthoringRuntime.tsx:35-38.",
               "id": "RELIABILITY-9.1"
             },
             {
@@ -7760,10 +7776,10 @@
             },
             {
               "text": "When sign-out fails, the page says so and offers a retry instead of showing \"Signing you out...\" forever; cached data is cleared only after sign-out succeeds and the page is still mounted.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": ["apps/web/src/auth/pages/SignOutPage.test.tsx"],
               "origin": [],
-              "note": "Bug, needs a red-first regression test. apps/web/src/auth/pages/SignOutPage.tsx:13-31 returns silently on !result.ok and calls queryClient.clear() before the cancelled check.",
+              "note": "Closed by RELIABILITY-9.T1 (merge 036b8f7d6) with a red-first regression test: failure shows an alert with retry; the cache clears only on success while mounted. Original finding: apps/web/src/auth/pages/SignOutPage.tsx:13-31 returns silently on !result.ok and calls queryClient.clear() before the cancelled check.",
               "id": "RELIABILITY-9.6"
             },
             {
@@ -7793,7 +7809,7 @@
             {
               "id": "RELIABILITY-9.T1",
               "text": "User-visible data-flow bugs: server refreshes never overwrite in-progress edits, and a failed sign-out says so and offers a retry.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RELIABILITY-9.1", "RELIABILITY-9.6"],
               "wsjf": {
                 "bv": 8,
@@ -7804,7 +7820,7 @@
             },
             {
               "id": "RELIABILITY-9.T2",
-              "text": "One all-pages query contract, pure render and SSR-stable values.",
+              "text": "One all-pages query contract, pure render and SSR-stable values. Also re-check CharacterSheetOverviewVitals: its overlay-epoch reset must not discard in-progress edits (carry-over from T1), and run the Storybook stories T1 could not run in its worktree: EncounterActorCard, CampaignClockEditor, CharacterSheetTextEditor, CharacterSheetInspector, CharacterSelectionModal, CharacterStartingEquipmentChoices, SocialListingFormPage, ProfileSettingsPage, CharacterBuilderAuthoringRuntime.",
               "status": "TODO",
               "closes": ["RELIABILITY-9.2", "RELIABILITY-9.3", "RELIABILITY-9.7"],
               "wsjf": {
