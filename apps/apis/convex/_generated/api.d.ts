@@ -111046,7 +111046,8 @@ export declare const api: {
             rulesText?: string;
             sourceLabel?: string;
             target:
-              | { kind: "ACTOR"; requiresOtherCreature: boolean }
+              | { kind: "SELF" }
+              | { kind: "ACTOR"; self: "ALLOWED" | "WARN" | "REFUSED" }
               | {
                   area:
                     | {
@@ -111392,7 +111393,8 @@ export declare const api: {
             rulesText?: string;
             sourceLabel?: string;
             target:
-              | { kind: "ACTOR"; requiresOtherCreature: boolean }
+              | { kind: "SELF" }
+              | { kind: "ACTOR"; self: "ALLOWED" | "WARN" | "REFUSED" }
               | {
                   area:
                     | {
