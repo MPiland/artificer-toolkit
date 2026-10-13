@@ -513,6 +513,7 @@ function workloadToken(
     hidden: false,
     locked: false,
     rotationDegrees: 0,
+    senses: [],
     vision: null,
     width: 100
   }

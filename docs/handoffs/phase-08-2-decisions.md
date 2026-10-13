@@ -673,6 +673,10 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - **Indistinguishable denial:** a Private profile, an unknown username and a banned or deleted account return the same empty result. A timed ban hides the profile only until `banExpires`; once it passes, the profile shows again under its visibility setting (the same rule as sign-in).
   - **Stored:** `userProfiles.profileVisibility`; an absent value means Private, so existing and new accounts need no write. One helper reads it for every read path.
   - **Unchanged:** the minimal identity on Social listings, applications, blocks and reports (`profilePublicId` and username) is not affected by this setting.
+* **D110** (2026-10-13) Active grant polarity (VTT_UI-1.2). Decided by the integration owner; the product owner may review.
+  - **Shape:** every active grant listing carries `polarity` (BENEFICIAL, HARMFUL or NEUTRAL), derived once in rules-runtime `listActiveGrantListings` from the grant's own pieces. A grant is beneficial or harmful only when every piece agrees; otherwise it is neutral. The status ring draws HARMFUL amber, BENEFICIAL lime, CONCENTRATION teal and the rest grey. The token's status list also shows icons, so the ring is not the only cue.
+  - **Hidden sources:** a GM-hidden grant hides only its source label. Players still see its polarity colour, as they already see that a token is affected, and as Foundry shows effect icons to everyone. Say "override D110" to hide the polarity of hidden grants too.
+  - **Value-setting grants:** a grant that sets a value is read from the value in its domain. Speed set above zero (Fly) is beneficial; a speed or reaction count set to zero (Shocking Grasp) is harmful; other set values are neutral.
 
 ## Approved implementation decisions
 

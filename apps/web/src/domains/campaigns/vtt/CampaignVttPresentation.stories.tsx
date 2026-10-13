@@ -1,20 +1,34 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { useEffect, useRef, useState } from 'react'
 import { expect, waitFor, within } from 'storybook/test'
-import type { CampaignSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
+import {
+  campaignSceneStateDtoSchema,
+  type CampaignSceneStateDto
+} from '@artificer-toolkit/schema/api/vttScenes'
 import {
   tabletopCurrentUserId,
   tabletopGmEncounter,
   tabletopLiveScene
 } from './CampaignTabletop.stories.fixtures'
 import { createVttSceneRenderer, type VttSceneRenderer } from './vttSceneRenderer'
+import {
+  drawnToken,
+  expectDrawnPresentation,
+  type VttRendererDiagnostics
+} from './vttSceneRenderer.assertions'
 import type { VttScenePresentationOverlay } from './vttSceneRenderer.model'
-import { buildVttTokenPresentations } from './vttTokenPresentation.model'
+import {
+  maxStatusSegments,
+  selectionOutlineColor,
+  statusCategoryColours
+} from './vttSceneRenderer.model'
+import { buildVttTokenPresentations, dispositionRingColours } from './vttTokenPresentation.model'
+import { validated } from '../../../test/validatedFixture'
 
 const artUrl =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='
 
-const presentationScene = {
+const presentationScene = validated(campaignSceneStateDtoSchema)({
   ...tabletopLiveScene,
   tokens: [
     {
@@ -39,7 +53,7 @@ const presentationScene = {
       rotationDegrees: 315
     }
   ]
-} satisfies CampaignSceneStateDto
+})
 
 const [emberToken, wardenToken, scoutToken] = presentationScene.tokens
 // Only the DATA varies here; colours, ordering and halo precedence come from the real model.
@@ -51,13 +65,18 @@ const emberActor = {
       label: 'Blessed',
       sourceHidden: false,
       remainingTicks: 4,
-      expiresAtCampaignMinute: null
+      expiresAtCampaignMinute: null,
+      polarity: 'BENEFICIAL' as const
     }
   ],
   conditions: [
     { id: 'morale', kind: 'MORALE', label: 'Shaken' },
     { id: 'injury', kind: 'INJURY', label: 'Lingering wound' },
-    { id: 'condition', kind: 'CONDITION', label: 'Restrained' }
+    { id: 'condition', kind: 'CONDITION', label: 'Restrained' },
+    { id: 'condition-2', kind: 'CONDITION', label: 'Blinded' },
+    { id: 'condition-3', kind: 'CONDITION', label: 'Deafened' },
+    { id: 'condition-4', kind: 'CONDITION', label: 'Grappled' },
+    { id: 'condition-5', kind: 'CONDITION', label: 'Prone' }
   ],
   healthBand: 'CRITICAL' as const
 }
@@ -151,7 +170,17 @@ const overlays = [
   }
 ] satisfies VttScenePresentationOverlay[]
 
-function PresentationFixture({ lowZoom = false }: { lowZoom?: boolean }) {
+function PresentationFixture({
+  lowZoom = false,
+  presentations = tokenPresentations,
+  scene = presentationScene,
+  selectedTokenId = null
+}: {
+  lowZoom?: boolean
+  presentations?: typeof tokenPresentations
+  scene?: CampaignSceneStateDto
+  selectedTokenId?: string | null
+}) {
   const host = useRef<HTMLDivElement | null>(null)
   const renderer = useRef<VttSceneRenderer | null>(null)
   const [diagnostics, setDiagnostics] = useState<ReturnType<
@@ -185,8 +214,9 @@ function PresentationFixture({ lowZoom = false }: { lowZoom?: boolean }) {
         mode: 'PLAY',
         overlays,
         role: 'OWNER',
-        scene: presentationScene,
-        tokenPresentations,
+        scene,
+        selectedTokenId,
+        tokenPresentations: presentations,
         tool: 'SELECT'
       })
       if (lowZoom) for (let index = 0; index < 12; index += 1) nextRenderer.zoomOut()
@@ -197,7 +227,7 @@ function PresentationFixture({ lowZoom = false }: { lowZoom?: boolean }) {
       renderer.current?.destroy()
       renderer.current = null
     }
-  }, [lowZoom])
+  }, [lowZoom, presentations, scene, selectedTokenId])
 
   return (
     <section
@@ -230,7 +260,7 @@ async function renderedScene(canvasElement: HTMLElement) {
       canvas
         .getByRole('img', { name: 'Interactive campaign scene' })
         .getAttribute('aria-description') ?? '',
-    diagnostics: JSON.parse(output.textContent ?? '{}') as Record<string, number>
+    diagnostics: JSON.parse(output.textContent ?? '{}') as VttRendererDiagnostics
   }
 }
 
@@ -238,15 +268,29 @@ async function renderedScene(canvasElement: HTMLElement) {
 export const StatusOrderingAndOverflow: Story = {
   play: async ({ canvasElement }) => {
     const { description, diagnostics } = await renderedScene(canvasElement)
-    // Ember carries more statuses than a token can badge, so the renderer overflows it.
-    await expect(emberPresentation.statuses.length).toBeGreaterThan(4)
+    // Ember carries more statuses than the outer ring has segments, so the ring ends in an overflow.
+    await expect(emberPresentation.statuses.length).toBeGreaterThan(maxStatusSegments)
     await expect(diagnostics.tokenOverflowCount).toBe(
-      presentationList.filter((presentation) => presentation.statuses.length > 4).length
+      presentationList.filter((presentation) => presentation.statuses.length > maxStatusSegments)
+        .length
     )
     await expect(diagnostics.tokenStatusCount).toBe(
       presentationList.reduce((total, presentation) => total + presentation.statuses.length, 0)
     )
     await expect(diagnostics).toMatchObject({ overlayCount: 5, tokenVisualCount: 3 })
+    // The drawn ring segments, halos, rings and fills match the real presentations.
+    for (const token of presentationScene.tokens) {
+      await expectDrawnPresentation(
+        drawnToken(diagnostics, token.id),
+        tokenPresentations[token.id]!
+      )
+    }
+    // Ember has more statuses than the ring has segments; the Warden does not.
+    await expect(emberPresentation.statuses.length).toBeGreaterThan(maxStatusSegments)
+    await expect(drawnToken(diagnostics, emberToken!.id).statusSegments.at(-1)?.overflow).toBe(true)
+    await expect(drawnToken(diagnostics, wardenToken!.id).statusSegments.at(-1)?.overflow).toBe(
+      false
+    )
     // The accessible description lists statuses in the model's order.
     await expect(description).toContain(emberPresentation.accessibleDescription)
     const positions = emberPresentation.statuses.map((status) => description.indexOf(status.label))
@@ -257,17 +301,33 @@ export const StatusOrderingAndOverflow: Story = {
 
 export const ReactionHaloBeatsCurrentTurn: Story = {
   play: async ({ canvasElement }) => {
-    const { description } = await renderedScene(canvasElement)
+    const { description, diagnostics } = await renderedScene(canvasElement)
     await expect(emberPresentation.halo?.label).toBe('Reaction available')
+    await expect(drawnToken(diagnostics, emberToken!.id).halo).toEqual({
+      color: emberPresentation.halo!.color,
+      label: 'Reaction available'
+    })
+    await expect(drawnToken(diagnostics, wardenToken!.id).halo).toBeNull()
     await expect(emberPresentation.statuses[0]).toMatchObject({ kind: 'REACTION' })
     await expect(emberPresentation.marked).toBe(true)
     await expect(description).toContain('Ember. Character. Current turn. Reaction available')
+    await expect(description).toContain('Yours')
   }
 }
 
 export const DefeatedToken: Story = {
   play: async ({ canvasElement }) => {
-    const { description } = await renderedScene(canvasElement)
+    const { description, diagnostics } = await renderedScene(canvasElement)
+    const defeated = wardenPresentation.statuses.find((status) => status.label === 'Defeated')
+    const drawnWarden = drawnToken(diagnostics, wardenToken!.id)
+    await expect(defeated).toBeDefined()
+    await expect(drawnWarden.statusSegments.map((segment) => segment.color)).toContain(
+      statusCategoryColours[defeated!.category]
+    )
+    await expect(drawnWarden.bodyFillColor).toBe(wardenPresentation.fillColor)
+    await expect(drawnWarden.bodyFillColor).not.toBe(
+      drawnToken(diagnostics, emberToken!.id).bodyFillColor
+    )
     await expect(wardenPresentation.statuses.map((status) => status.label)).toContain('Defeated')
     await expect(description).toContain(wardenPresentation.accessibleDescription)
     await expect(description).toContain('Defeated')
@@ -279,9 +339,159 @@ export const TokenArtIsPresented: Story = {
     const { diagnostics } = await renderedScene(canvasElement)
     await expect(presentationList.filter((presentation) => presentation.artUrl)).toHaveLength(1)
     await expect(diagnostics.tokenArtCount).toBe(1)
+    await expect(diagnostics.facingIndicatorCount).toBeGreaterThan(0)
     await expect(diagnostics.facingIndicatorCount).toBe(
       presentationList.filter((presentation) => presentation.facing).length
     )
+  }
+}
+
+// VTT_UI-1.1: the ring carries the actor's disposition; control and turn never recolour it.
+const neutralScoutPresentations = buildVttTokenPresentations({
+  actorIdByTokenId: new Map([
+    [emberToken!.id, emberActor.id],
+    [wardenToken!.id, wardenActor.id],
+    [scoutToken!.id, neutralScoutActor().id]
+  ]),
+  boundTokenControl: new Map(),
+  currentUserId: tabletopCurrentUserId,
+  encounter: {
+    ...presentationEncounter,
+    actors: [...presentationEncounter.actors, neutralScoutActor()]
+  },
+  pending: null,
+  scene: presentationScene
+})
+
+function neutralScoutActor() {
+  return {
+    ...tabletopGmEncounter.actors[1]!,
+    defeated: false,
+    disposition: 'NEUTRAL' as const,
+    id: '99999999-9999-4999-8999-999999999977'
+  }
+}
+
+export const DispositionRings: Story = {
+  args: { presentations: neutralScoutPresentations },
+  play: async ({ canvasElement }) => {
+    const { diagnostics } = await renderedScene(canvasElement)
+    // Ember is Friendly and controlled by the viewer; neither control nor the current turn recolours it.
+    await expect(emberActor.disposition).toBe('FRIENDLY')
+    await expect(drawnToken(diagnostics, emberToken!.id).ringColor).toBe(
+      dispositionRingColours.FRIENDLY
+    )
+    await expect(wardenActor.disposition).toBe('HOSTILE')
+    await expect(drawnToken(diagnostics, wardenToken!.id).ringColor).toBe(
+      dispositionRingColours.HOSTILE
+    )
+    await expect(drawnToken(diagnostics, scoutToken!.id).ringColor).toBe(
+      dispositionRingColours.NEUTRAL
+    )
+  }
+}
+
+export const NoActorKeepsAWhiteRing: Story = {
+  play: async ({ canvasElement }) => {
+    const { diagnostics } = await renderedScene(canvasElement)
+    await expect(drawnToken(diagnostics, scoutToken!.id).ringColor).toBe(0xffffff)
+  }
+}
+
+export const SelectionOutlineMarksOnlyTheSelectedToken: Story = {
+  args: { selectedTokenId: emberToken!.id },
+  play: async ({ canvasElement }) => {
+    const { diagnostics } = await renderedScene(canvasElement)
+    const selected = drawnToken(diagnostics, emberToken!.id)
+    await expect(selected.selection?.color).toBe(selectionOutlineColor)
+    // A dashed outline set apart from the ring, so it reads without colour and apart from the halo.
+    await expect(selected.selection?.dashSegmentCount).toBeGreaterThan(1)
+    await expect(selected.halo).not.toBeNull()
+    await expect(selected.selection?.color).not.toBe(selected.halo?.color)
+    await expect(selected.ringColor).toBe(dispositionRingColours.FRIENDLY)
+    await expect(drawnToken(diagnostics, wardenToken!.id).selection).toBeNull()
+    await expect(drawnToken(diagnostics, scoutToken!.id).selection).toBeNull()
+  }
+}
+
+// A 1x1 token beside a 2x2 token that touches it: their outer rings stay inside their footprints.
+const cell = tabletopLiveScene.grid.cellSize
+const neighbourScene = validated(campaignSceneStateDtoSchema)({
+  ...presentationScene,
+  tokens: [
+    { ...emberToken!, height: cell, position: { x: 400, y: 400 }, width: cell },
+    {
+      ...wardenToken!,
+      height: cell * 2,
+      position: { x: 400 + cell / 2 + cell, y: 400 },
+      width: cell * 2
+    }
+  ]
+})
+const neighbourPresentations = buildVttTokenPresentations({
+  actorIdByTokenId: new Map([
+    [emberToken!.id, emberActor.id],
+    [wardenToken!.id, wardenActor.id]
+  ]),
+  boundTokenControl: new Map(),
+  currentUserId: tabletopCurrentUserId,
+  encounter: presentationEncounter,
+  pending: null,
+  scene: neighbourScene
+})
+
+export const OuterRingsStayWithinNeighbouringFootprints: Story = {
+  args: { presentations: neighbourPresentations, scene: neighbourScene },
+  play: async ({ canvasElement }) => {
+    const { diagnostics } = await renderedScene(canvasElement)
+    const [small, large] = neighbourScene.tokens.map((token) => {
+      const drawn = drawnToken(diagnostics, token.id)
+      return {
+        drawn,
+        left: drawn.position.x + drawn.outerRing.x,
+        right: drawn.position.x + drawn.outerRing.x + drawn.outerRing.width,
+        token
+      }
+    })
+    for (const { drawn, token } of [small!, large!]) {
+      await expect(drawn.statusSegments.length).toBeGreaterThan(0)
+      await expect(drawn.outerRing.width).toBeGreaterThan(0)
+      await expect(drawn.outerRing.width).toBeLessThanOrEqual(token.width)
+      await expect(drawn.outerRing.height).toBeLessThanOrEqual(token.height)
+    }
+    await expect(small!.right).toBeLessThanOrEqual(large!.left)
+    // Both rings sit strictly inside the footprint, the status ring clear of its edge, and the
+    // inner disposition ring inside the status ring.
+    for (const { drawn, token } of [small!, large!]) {
+      const halfWidth = token.width / 2
+      const halfHeight = token.height / 2
+      const { innerRing, outerRing } = drawn
+      await expect(outerRing.x).toBeGreaterThan(-halfWidth)
+      await expect(outerRing.x + outerRing.width).toBeLessThan(halfWidth)
+      await expect(outerRing.y).toBeGreaterThan(-halfHeight)
+      await expect(outerRing.y + outerRing.height).toBeLessThan(halfHeight)
+      await expect(innerRing.width).toBeGreaterThan(0)
+      await expect(innerRing.x).toBeGreaterThan(outerRing.x)
+      await expect(innerRing.x + innerRing.width).toBeLessThan(outerRing.x + outerRing.width)
+      await expect(innerRing.y).toBeGreaterThan(outerRing.y)
+      await expect(innerRing.y + innerRing.height).toBeLessThan(outerRing.y + outerRing.height)
+      // A visible gap separates the two rings on every side: the status ring's inner edge (its
+      // bounds less its 5 unit stroke) stays at least 2 units outside the disposition ring.
+      const outerRingStroke = 5
+      const minRingClearance = 2
+      await expect(innerRing.x - (outerRing.x + outerRingStroke)).toBeGreaterThanOrEqual(
+        minRingClearance
+      )
+      await expect(
+        outerRing.x + outerRing.width - outerRingStroke - (innerRing.x + innerRing.width)
+      ).toBeGreaterThanOrEqual(minRingClearance)
+      await expect(innerRing.y - (outerRing.y + outerRingStroke)).toBeGreaterThanOrEqual(
+        minRingClearance
+      )
+      await expect(
+        outerRing.y + outerRing.height - outerRingStroke - (innerRing.y + innerRing.height)
+      ).toBeGreaterThanOrEqual(minRingClearance)
+    }
   }
 }
 

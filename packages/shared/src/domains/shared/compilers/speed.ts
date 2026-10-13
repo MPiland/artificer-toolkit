@@ -1,10 +1,10 @@
 import type { SpeedAuthored } from '#authored'
-import type { MeasurementUnitCode } from '#core'
+import type { LengthUnitCode } from '#core'
 
 export type CompiledSpeed = {
   speedId: string
   amount: number
-  unit: MeasurementUnitCode
+  unit: LengthUnitCode
 }
 
 export function compileSpeed(authored: SpeedAuthored) {

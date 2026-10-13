@@ -73,10 +73,14 @@ describe('VTT scene properties', () => {
           id: `token-${index}`
         }))
 
-        const projection = projectSceneForViewer(state, {
-          role: 'PLAYER',
-          userId: ids.player
-        })
+        const projection = projectSceneForViewer(
+          state,
+          {
+            role: 'PLAYER',
+            userId: ids.player
+          },
+          new Map()
+        )
 
         expect(projection.tokens.length).toBeLessThanOrEqual(state.tokens.length)
         expect(projection.tokens.every((token) => !token.hidden)).toBe(true)
@@ -178,6 +182,7 @@ function definition(): SceneDefinition {
         locked: false,
         position: { x: 0, y: 0 },
         rotationDegrees: 0,
+        senses: [],
         vision: null,
         width: 1
       }

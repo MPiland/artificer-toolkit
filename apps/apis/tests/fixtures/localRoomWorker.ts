@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url'
 import { resolve } from 'node:path'
 import { afterAll, afterEach, beforeAll, expect, vi } from 'vitest'
 import type { TestConvex } from 'convex-test'
-import { makeFunctionReference } from 'convex/server'
+import { getFunctionName, makeFunctionReference } from 'convex/server'
 import { ConvexError, convexToJson, jsonToConvex, type JSONValue, type Value } from 'convex/values'
 import {
   LIVE_SESSION_CHECKPOINT_BARRIER_PATH,
@@ -674,7 +674,8 @@ export async function readLiveAuthorityEpoch(t: TestConvex<typeof schema>, campa
 /**
  * Builds the Campaign's content snapshots with the real producer (the build action, into the
  * loopback R2 bucket the Worker reads). Run it again after content changes, then `closeRoom`: a
- * room reads the snapshots current when it activates.
+ * room reads the snapshots current when it activates. The builds that marking scheduled are redundant
+ * once these complete, so they are cancelled: seeding leaves no scheduled build pending.
  */
 export async function seedRoomContentSnapshots(campaignId: string) {
   const { t } = room()
@@ -696,4 +697,17 @@ export async function seedRoomContentSnapshots(campaignId: string) {
     return refs
   })
   for (const scope of scopes) await t.action(internal.contentSnapshots.actions.build, scope)
+  await t.run(async (ctx) => {
+    const scheduled = await ctx.db.system.query('_scheduled_functions').collect()
+    for (const job of scheduled) {
+      const [args] = job.args as Partial<ContentSnapshotScopeRef>[]
+      if (
+        job.state.kind === 'pending' &&
+        job.name === getFunctionName(internal.contentSnapshots.actions.build) &&
+        scopes.some((ref) => ref.scope === args?.scope && ref.scopeId === args.scopeId)
+      ) {
+        await ctx.scheduler.cancel(job._id)
+      }
+    }
+  })
 }

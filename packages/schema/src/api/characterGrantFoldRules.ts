@@ -1,5 +1,5 @@
 import { z, lazySchema } from '../zod.js'
-import { sizeCodeSchema } from '../shared/enums.js'
+import { modifierKindSchema, sizeCodeSchema, valueDomainCodeSchema } from '../shared/enums.js'
 import { postgresUuidSchema as serverUuidIdentityDtoSchema } from '../shared/postgresUuid.js'
 
 export const CHARACTER_GRANT_FOLD_MODEL_KEY = 'character-grant-fold'
@@ -150,8 +150,8 @@ export const senseOperationSchema = lazySchema(() =>
 export const modifierOperationSchema = lazySchema(() =>
   z.strictObject({
     grantId: identitySchema,
-    valueDomainCode: codeSchema,
-    modifierKind: codeSchema,
+    valueDomainCode: valueDomainCodeSchema,
+    modifierKind: modifierKindSchema,
     domain: boundedJsonSchema,
     grant: boundedJsonSchema,
     restrictions: characterGrantFoldRestrictionSchema,
@@ -326,7 +326,7 @@ const senseResultSchema = lazySchema(() =>
 const modifierResultSchema = lazySchema(() =>
   z.strictObject({
     domainKey: identitySchema,
-    modifierKind: codeSchema,
+    modifierKind: modifierKindSchema,
     grant: boundedJsonSchema,
     /** The granting source; a SOURCE-scoped modifier applies only while it is evaluated. */
     sourceId: identitySchema,
@@ -365,8 +365,8 @@ export const characterGrantFoldOutputSchema = lazySchema(() =>
         .array(
           z.strictObject({
             domainKey: identitySchema,
-            valueDomainCode: codeSchema,
-            modifierKind: codeSchema,
+            valueDomainCode: valueDomainCodeSchema,
+            modifierKind: modifierKindSchema,
             contributions: z
               .array(
                 z.strictObject({

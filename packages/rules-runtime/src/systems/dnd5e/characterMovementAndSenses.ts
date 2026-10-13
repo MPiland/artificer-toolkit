@@ -3,7 +3,7 @@ import type {
   CharacterRulePolicyInput,
   CharacterRulePolicyOutput
 } from '@artificer-toolkit/schema/api/characterRules'
-import { measurementUnitCodeSchema } from '@artificer-toolkit/schema/shared/enums'
+import { lengthUnitCodeSchema } from '@artificer-toolkit/schema/shared/enums'
 
 import type { CharacterResolvedModifierGroup } from './characterModifiers.js'
 import { characterPolicyNumber, characterPolicyRecord } from './characterPolicyValues.js'
@@ -145,7 +145,7 @@ export function evaluateDnd5eCharacterMovementAndSenses(
       range: {
         id,
         amount: resolved.effective,
-        unit: measurementUnitCodeSchema.parse(selected === undefined ? 'FEET' : selected.unit),
+        unit: lengthUnitCodeSchema.parse(selected === undefined ? 'FEET' : selected.unit),
         calculation: resolved
       }
     }

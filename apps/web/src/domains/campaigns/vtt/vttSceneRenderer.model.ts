@@ -4,8 +4,11 @@ import {
   canMoveBetween,
   measureScenePathDistance,
   SceneBarrierIndex,
+  sceneDistanceAsCoordinateLength,
+  scenePointInPolygon,
   type SceneGrid,
   type ScenePoint,
+  type SceneTokenSense,
   type SpatialPointAreaShape
 } from '@artificer-toolkit/shared/vtt'
 
@@ -58,6 +61,21 @@ export interface VttSceneTokenDragUpdate {
   tool: string
 }
 
+/** How a status reads on the ring: a grant's derived polarity, Concentration, or neither. */
+export type VttStatusCategory = 'CONCENTRATION' | 'HARMFUL' | 'BENEFICIAL' | 'OTHER'
+
+/** The most segments the outer ring draws; beyond it the last segment marks the overflow. */
+export const maxStatusSegments = 8
+export const statusCategoryColours: Record<VttStatusCategory, number> = {
+  CONCENTRATION: 0x20c997,
+  HARMFUL: 0xffd43b,
+  BENEFICIAL: 0x94d82d,
+  OTHER: 0xced4da
+}
+export const statusOverflowColour = 0xffffff
+/** Workshop Teal (DESIGN.md): technical selection. */
+export const selectionOutlineColor = 0x0891b2
+
 export interface VttTokenPresentation {
   accessibleDescription: string
   artUrl: string | null
@@ -67,10 +85,10 @@ export interface VttTokenPresentation {
   marked: boolean
   outlineColor: number
   statuses: Array<{
+    category: VttStatusCategory
     id: string
-    kind: 'CONDITION' | 'EFFECT' | 'HEALTH' | 'INJURY' | 'MORALE' | 'REACTION'
+    kind: 'CONCENTRATION' | 'CONDITION' | 'EFFECT' | 'HEALTH' | 'INJURY' | 'MORALE' | 'REACTION'
     label: string
-    shortLabel: string
   }>
 }
 
@@ -396,31 +414,126 @@ export function canControlSceneToken(
   )
 }
 
+/**
+ * The one token whose senses the scene is drawn through. A Player sees through the token they
+ * selected when they control it, else their main Character's token. The GM sees through the token
+ * they preview. The GM's preview never reaches a Player.
+ */
+export function resolveViewTokenId(input: {
+  /** The Scene token bound to the viewer's main (assigned) Character. */
+  assignedTokenId: string | null
+  boundTokenControl: ReadonlyMap<string, boolean>
+  currentUserId: string
+  previewTokenId: string | null
+  role: 'OWNER' | 'PLAYER'
+  selectedTokenId: string | null
+  tokens: CampaignSceneStateDto['tokens']
+}): string | null {
+  const { assignedTokenId, previewTokenId, role, selectedTokenId, tokens } = input
+  const has = (tokenId: string | null): tokenId is string =>
+    tokenId !== null && tokens.some((token) => token.id === tokenId)
+  if (role === 'OWNER') return has(previewTokenId) ? previewTokenId : null
+  const selected = tokens.find((token) => token.id === selectedTokenId)
+  if (selected && canControlSceneToken(selected, input)) return selected.id
+  return has(assignedTokenId) ? assignedTokenId : null
+}
+
+/** What a sense does to the picture. A sense is told apart by its channel and illumination access. */
+export type VttSenseEffect = 'BLINDSIGHT' | 'DARKVISION' | 'TREMORSENSE' | 'TRUESIGHT'
+
+export function senseEffect(
+  sense: Pick<SceneTokenSense, 'channel' | 'illuminationAccess'>
+): VttSenseEffect | null {
+  if (sense.channel === 'NONVISUAL') return 'BLINDSIGHT'
+  if (sense.channel === 'VIBRATION') return 'TREMORSENSE'
+  if (sense.channel !== 'VISUAL') return null
+  if (sense.illuminationAccess === 'ORDINARY_DARKNESS') return 'DARKVISION'
+  return sense.illuminationAccess === 'MAGICAL_DARKNESS' ? 'TRUESIGHT' : null
+}
+
+/** A sense range is measured from the footprint edge, so its radius from the centre adds half the footprint. */
+export function senseReachRadius(
+  grid: SceneGrid,
+  token: Pick<CampaignSceneStateDto['tokens'][number], 'height' | 'width'>,
+  sense: Pick<SceneTokenSense, 'range'>
+): number {
+  return (
+    sceneDistanceAsCoordinateLength(grid, sense.range) + Math.max(token.height, token.width) / 2
+  )
+}
+
+/** The area one sense reaches: its radius and the line of sight clamped to it. */
+export interface VttSenseReach {
+  effect: VttSenseEffect
+  origin: ScenePoint
+  polygon: readonly ScenePoint[]
+  radius: number
+}
+
+/**
+ * Whether a token in this illumination is seen. Bright and dim light show it; in darkness only
+ * a sense does. Tremorsense feels the ground, so a token counts as on the ground and is felt at any
+ * distance within range with no sight line.
+ */
+export function isTokenRevealed(input: {
+  halfSize: number
+  illumination: SceneIllumination
+  point: ScenePoint
+  reaches: readonly VttSenseReach[]
+}): boolean {
+  const { halfSize, illumination, point, reaches } = input
+  if (illumination === 'BRIGHT' || illumination === 'DIM') return true
+  return reaches.some((reach) => {
+    if (reach.effect === 'TREMORSENSE') {
+      // Every token is treated as standing on the ground: the Scene has no flying data.
+      return (
+        Math.hypot(point.x - reach.origin.x, point.y - reach.origin.y) - halfSize <= reach.radius
+      )
+    }
+    if (!scenePointInPolygon(point, { points: [...reach.polygon] })) return false
+    if (reach.effect === 'BLINDSIGHT' || reach.effect === 'TRUESIGHT') return true
+    return illumination === 'ORDINARY_DARKNESS'
+  })
+}
+
+/** A display object as far as its place in the scene graph goes. */
+interface SceneGraphNode {
+  parent: SceneGraphNode | null
+}
+
+/** Whether a pointer target is a token visual on the token layer, or any depth inside one. */
+export function isWithinTokenVisual(
+  target: SceneGraphNode | null,
+  tokenLayer: SceneGraphNode
+): boolean {
+  for (let node = target; node; node = node.parent) {
+    if (node.parent === tokenLayer) return true
+  }
+  return false
+}
+
 type SceneIllumination = CampaignSceneStateDto['ambientIllumination']
 type SceneDarknessZone = CampaignSceneStateDto['darknessZones'][number]
 type SceneLight = CampaignSceneStateDto['lights'][number]
 
-/** How strongly the ambient illumination darkens the whole map; BRIGHT leaves it untouched. */
-export function ambientDarknessOpacity(illumination: SceneIllumination): number {
-  if (illumination === 'MAGICAL_DARKNESS') return 0.8
-  if (illumination === 'ORDINARY_DARKNESS') return 0.55
-  if (illumination === 'DIM') return 0.3
-  return 0
-}
+/** Overlay alpha that stands for DIM light; BRIGHT is 0 and both kinds of darkness are 1. */
+export const dimOverlayAlpha = 0.5
+
+/** The darkest the GM's see-all view draws darkness, so the whole map stays readable. */
+export const gmDarknessCapAlpha = 0.6
 
 /**
- * The fill of the bright core and of the whole dim reach of a light. Against a darkened map the
- * glow is doubled so lights visibly push the darkness back.
+ * The alpha of the black darkness overlay that encodes an illumination class at a point. One
+ * overlay carries the whole of D108's precedence, so the class is read straight off the pixel.
  */
-export function lightGlowAlphas(
-  light: Pick<SceneLight, 'intensity'>,
-  ambient: SceneIllumination
-): { bright: number; dim: number } {
-  const boost = ambient === 'BRIGHT' ? 1 : 2
-  return {
-    bright: Math.min(0.6, Math.max(0.08, light.intensity * 0.22) * boost),
-    dim: Math.min(0.4, Math.max(0.04, light.intensity * 0.12) * boost)
-  }
+export function illuminationOverlayAlpha(illumination: SceneIllumination): number {
+  if (illumination === 'BRIGHT') return 0
+  return illumination === 'DIM' ? dimOverlayAlpha : 1
+}
+
+/** The low-alpha colour tint a light lays over its bright core and its dim reach. */
+export function lightTintAlpha(light: Pick<SceneLight, 'intensity'>): number {
+  return Math.min(0.2, Math.max(0.04, light.intensity * 0.12))
 }
 
 /** The bright core never exceeds the dim reach; the visibility polygon is built to the larger. */
@@ -452,30 +565,17 @@ export function clampPolygonToRadius(
 }
 
 export interface VttDarknessZoneStyle {
-  /** Only magical darkness shuts out light; lights shine into every other zone. */
-  blocksLight: boolean
-  fillAlpha: number
   /** Dotted arcane outline of magical darkness. */
   illuminationOutline: { dash: number; gap: number; width: number } | null
   /** Non-colour obscurement cue: dashed for light, solid and heavier for heavy. */
   obscurementOutline: { dash: number | null; gap: number; width: number } | null
 }
 
-/** How a darkness zone is drawn: its illumination sets the fill, its obscurement the outline. */
+/** The non-colour cues of a darkness zone: its illumination and obscurement each get an outline. */
 export function darknessZoneStyle(
-  zone: Pick<SceneDarknessZone, 'mechanicalIllumination' | 'mechanicalObscurement' | 'opacity'>
+  zone: Pick<SceneDarknessZone, 'mechanicalIllumination' | 'mechanicalObscurement'>
 ): VttDarknessZoneStyle {
-  const fillAlpha =
-    zone.mechanicalIllumination === 'MAGICAL_DARKNESS'
-      ? 0.92
-      : zone.mechanicalIllumination === 'ORDINARY_DARKNESS'
-        ? 0.75
-        : zone.mechanicalIllumination === 'DIM'
-          ? 0.4
-          : zone.opacity
   return {
-    blocksLight: zone.mechanicalIllumination === 'MAGICAL_DARKNESS',
-    fillAlpha,
     illuminationOutline:
       zone.mechanicalIllumination === 'MAGICAL_DARKNESS' ? { dash: 3, gap: 9, width: 3 } : null,
     obscurementOutline:
@@ -485,6 +585,20 @@ export function darknessZoneStyle(
           ? { dash: 22, gap: 14, width: 3 }
           : null
   }
+}
+
+/** Points along an ellipse from one angle to another, clockwise from the top when started at -90 degrees. */
+export function ellipseArcPoints(
+  radiusX: number,
+  radiusY: number,
+  startRadians: number,
+  endRadians: number
+): ScenePoint[] {
+  const steps = Math.max(2, Math.ceil(Math.abs(endRadians - startRadians) / 0.12))
+  return Array.from({ length: steps + 1 }, (_, index) => {
+    const angle = startRadians + ((endRadians - startRadians) * index) / steps
+    return { x: radiusX * Math.cos(angle), y: radiusY * Math.sin(angle) }
+  })
 }
 
 /** The segments of a dashed closed outline, walked around the polygon with a continuous pattern. */

@@ -1,7 +1,11 @@
 import type { SceneCharacterVision } from '@artificer-toolkit/shared/vtt'
 import { z, lazySchema } from '../zod.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
-import { measurementUnitCodeSchema } from '../shared/enums.js'
+import { lengthUnitCodeSchema } from '../shared/enums.js'
+import {
+  combatPerceptionChannelDtoSchema,
+  combatPerceptionIlluminationAccessDtoSchema
+} from '../shared/combatPerception.js'
 
 // The same current Character/System/stream identity fences every internal mechanics read.
 export const characterMechanicsReadInputSchema = lazySchema(() =>
@@ -17,11 +21,19 @@ export const characterSceneVisionResultSchema: z.ZodMiniType<SceneCharacterVisio
   () =>
     z.strictObject({
       characterId: z.string().check(z.uuid()),
-      dimRange: z.nullable(
-        z.strictObject({
-          amount: z.number().check(z.positive()),
-          unit: measurementUnitCodeSchema
-        })
-      )
+      senses: z
+        .array(
+          z.strictObject({
+            channel: combatPerceptionChannelDtoSchema,
+            illuminationAccess: combatPerceptionIlluminationAccessDtoSchema,
+            label: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)),
+            range: z.strictObject({
+              amount: z.number().check(z.positive()),
+              unit: lengthUnitCodeSchema
+            }),
+            senseId: postgresUuidSchema
+          })
+        )
+        .check(z.maxLength(100))
     })
 )

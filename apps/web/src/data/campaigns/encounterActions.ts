@@ -1,12 +1,11 @@
 import { convexQuery } from '@convex-dev/react-query'
-import { makeFunctionReference } from 'convex/server'
 import type { ConvexReactClient } from 'convex/react'
+import { api } from '@artificer-toolkit/apis/convex/api'
 import {
   encounterActionChoicesResponseDtoSchema,
   encounterOptionalActionChoicesDtoSchema,
   getEncounterActionChoicesInputDtoSchema,
   getEncounterOptionalActionChoicesInputDtoSchema,
-  type EncounterActionChoicesResponseDto,
   type EncounterOptionalActionChoicesDto,
   type GetEncounterActionChoicesInputDto,
   type GetEncounterOptionalActionChoicesInputDto
@@ -14,30 +13,13 @@ import {
 import {
   encounterDecisionSettlementDtoSchema,
   getEncounterDecisionSettlementInputDtoSchema,
-  type EncounterDecisionSettlementDto,
   type GetEncounterDecisionSettlementInputDto
 } from '@artificer-toolkit/schema/api/encounterData'
-
-const getEncounterActionChoices = makeFunctionReference<
-  'query',
-  GetEncounterActionChoicesInputDto,
-  EncounterActionChoicesResponseDto
->('encounters/actionChoices:get')
-const getEncounterOptionalActionChoices = makeFunctionReference<
-  'query',
-  GetEncounterOptionalActionChoicesInputDto,
-  EncounterOptionalActionChoicesDto
->('encounters/actionChoices:optional')
-const getDecisionSettlement = makeFunctionReference<
-  'query',
-  GetEncounterDecisionSettlementInputDto,
-  EncounterDecisionSettlementDto
->('encounters/activeReads:decisionSettlement')
 
 export function getCampaignEncounterActionChoices(input: GetEncounterActionChoicesInputDto | null) {
   return {
     ...convexQuery(
-      getEncounterActionChoices,
+      api.encounters.actionChoices.get,
       input ? getEncounterActionChoicesInputDtoSchema.parse(input) : 'skip'
     ),
     select: encounterActionChoicesResponseDtoSchema.parse
@@ -50,7 +32,7 @@ export function getEncounterDecisionSettlement(
 ) {
   return {
     ...convexQuery(
-      getDecisionSettlement,
+      api.encounters.activeReads.decisionSettlement,
       input ? getEncounterDecisionSettlementInputDtoSchema.parse(input) : 'skip'
     ),
     select: encounterDecisionSettlementDtoSchema.parse
@@ -63,7 +45,7 @@ export async function loadCampaignEncounterOptionalActionChoices(
 ): Promise<EncounterOptionalActionChoicesDto> {
   return encounterOptionalActionChoicesDtoSchema.parse(
     await client.query(
-      getEncounterOptionalActionChoices,
+      api.encounters.actionChoices.optional,
       getEncounterOptionalActionChoicesInputDtoSchema.parse(input)
     )
   )

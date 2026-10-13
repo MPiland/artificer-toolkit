@@ -2,6 +2,7 @@ import {
   encounterActionEconomyWarnings,
   encounterActionSuppressedWarning
 } from '@artificer-toolkit/rules-runtime/encounterActionRuleWarnings'
+import { encounterActionChoiceRange } from '@artificer-toolkit/rules-runtime/encounterActionRange'
 import { encounterActionChoiceTarget } from '@artificer-toolkit/rules-runtime/encounterAreaAction'
 import { buildCompiledActionTargetPolicy } from '@artificer-toolkit/rules-runtime/encounterActionEntryPointCompiler'
 import { encounterAttackActionState } from '@artificer-toolkit/rules-runtime/encounterActorState'
@@ -153,6 +154,7 @@ export async function readEncounterActionChoices(
             value.actionId === action.id &&
             value.effectId === candidate?.effectId
         )
+        const targetPolicy = entry?.kind === 'CHARACTER_ACTION' ? entry.targetPolicy : undefined
         const wieldConflict = candidate
           ? evaluateEncounterCharacterActionWieldConflict({
               candidate,
@@ -173,7 +175,7 @@ export async function readEncounterActionChoices(
           id: action.id,
           label: action.label,
           ...(action.sourceLabel ? { sourceLabel: action.sourceLabel } : {}),
-          ...(action.mechanic?.rangeLabel ? { rangeLabel: action.mechanic.rangeLabel } : {}),
+          ...encounterActionChoiceRange(targetPolicy, action.mechanic?.rangeLabel),
           ...(action.mechanic?.attackBonus === undefined
             ? {}
             : { attackBonus: action.mechanic.attackBonus }),
@@ -186,9 +188,7 @@ export async function readEncounterActionChoices(
             : null,
           wieldConflict: wieldConflict?.kind === 'STOW_SHIELD' ? wieldConflict : null,
           attackSlot: economy.attackSlot,
-          target: encounterActionChoiceTarget(
-            entry?.kind === 'CHARACTER_ACTION' ? entry.targetPolicy : undefined
-          ),
+          target: encounterActionChoiceTarget(targetPolicy),
           warnings: [
             ...economy.warnings,
             ...(reasonCode === 'SOURCE_NOT_EQUIPPED'
@@ -227,9 +227,11 @@ export async function readEncounterActionChoices(
             action.mechanicFacts.invocation.activation,
             action.mechanicFacts.invocation.triggerCode
           )
+          const targetPolicy = buildCompiledActionTargetPolicy(action)
           return {
             id: action.actionId,
             label: action.label,
+            ...encounterActionChoiceRange(targetPolicy),
             ...(action.attackMechanic ? { attackBonus: action.attackMechanic.attackBonus } : {}),
             grip: action.grip
               ? {
@@ -239,7 +241,7 @@ export async function readEncounterActionChoices(
               : null,
             wieldConflict: null,
             attackSlot: economy.attackSlot,
-            target: encounterActionChoiceTarget(buildCompiledActionTargetPolicy(action)),
+            target: encounterActionChoiceTarget(targetPolicy),
             warnings: economy.warnings
           }
         })
@@ -272,15 +274,17 @@ export async function readEncounterActionChoices(
         const document = catalogue.find(
           ({ definition }) => definition.id === action.definitionId
         )?.document
+        const targetPolicy = buildCompiledActionTargetPolicy(action)
         return {
           id: action.actionId,
           label: action.label,
+          ...encounterActionChoiceRange(targetPolicy),
           rulesText: document?.rulesText,
           actionCost: document?.actionCost,
           grip: null,
           wieldConflict: null,
           attackSlot: economy.attackSlot,
-          target: encounterActionChoiceTarget(buildCompiledActionTargetPolicy(action)),
+          target: encounterActionChoiceTarget(targetPolicy),
           warnings: economy.warnings
         }
       })

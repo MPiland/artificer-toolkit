@@ -2,7 +2,7 @@ import { z, lazySchema } from '../zod.js'
 import { manifestNestedBehaviorDtoSchema } from './effect.js'
 import { shapeDtoSchema } from '../shared/shape.js'
 import { numericExprSchema } from '../shared/numericExpr.js'
-import { measurementUnitCodeSchema, sizeCodeSchema } from '../shared/enums.js'
+import { lengthUnitCodeSchema, sizeCodeSchema } from '../shared/enums.js'
 import {
   authoredIdentifierSchema,
   authoredNestedCollectionSchema,
@@ -58,11 +58,11 @@ const manifestLightDtoSchema = lazySchema(() =>
   z.object({
     bright: z.object({
       amount: authoredNonnegativeNumberSchema,
-      unit: measurementUnitCodeSchema
+      unit: lengthUnitCodeSchema
     }),
     dimAdditional: z.object({
       amount: authoredNonnegativeNumberSchema,
-      unit: measurementUnitCodeSchema
+      unit: lengthUnitCodeSchema
     })
   })
 )
@@ -75,7 +75,7 @@ const manifestProximityRuleDtoSchema = lazySchema(() =>
     ),
     distance: z.object({
       amount: authoredNonnegativeNumberSchema,
-      unit: measurementUnitCodeSchema
+      unit: lengthUnitCodeSchema
     }),
     requiresSight: z.boolean(),
     behavior: z.lazy(() => manifestNestedBehaviorDtoSchema)
@@ -86,7 +86,7 @@ const speedDtoSchema = lazySchema(() =>
   z.object({
     speedId: authoredIdentifierSchema,
     amount: z.number(),
-    unit: measurementUnitCodeSchema
+    unit: lengthUnitCodeSchema
   })
 )
 
@@ -221,7 +221,7 @@ export const manifestDtoSchema: z.ZodMiniType = lazySchema(() =>
         wallThickness: z.optional(
           z.object({
             amount: z.number().check(z.positive()),
-            unit: measurementUnitCodeSchema
+            unit: lengthUnitCodeSchema
           })
         ),
         spreadsAroundCorners: z.optional(z.boolean()),

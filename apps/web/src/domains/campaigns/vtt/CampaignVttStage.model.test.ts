@@ -1,7 +1,14 @@
-import type { CampaignSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
-import { describe, expect, it } from 'vitest'
-import type { EncounterSessionStateDto } from '@artificer-toolkit/schema/api/encounterData'
 import {
+  campaignSceneStateDtoSchema,
+  type CampaignSceneStateDto
+} from '@artificer-toolkit/schema/api/vttScenes'
+import { describe, expect, it } from 'vitest'
+import {
+  encounterSessionStateDtoSchema,
+  type EncounterSessionStateDto
+} from '@artificer-toolkit/schema/api/encounterData'
+import {
+  assignedCharacterTokenId,
   canMoveSceneToken,
   createSceneBarrier,
   describeVttPing,
@@ -14,11 +21,12 @@ import {
   tabletopGmEncounter,
   tabletopPlayerEncounter
 } from './CampaignTabletop.stories.fixtures'
+import { validated } from '../../../test/validatedFixture'
 
 const currentUserId = '00000000-0000-4000-8000-000000000001'
 
 function scene(): CampaignSceneStateDto {
-  return {
+  return validated(campaignSceneStateDtoSchema)({
     annotations: [],
     ambientIllumination: 'BRIGHT',
     barriers: [],
@@ -59,12 +67,13 @@ function scene(): CampaignSceneStateDto {
         locked: false,
         position: { x: 75, y: 75 },
         rotationDegrees: 0,
+        senses: [],
         vision: null,
         width: 50
       }
     ],
     version: 4
-  }
+  })
 }
 
 describe('Campaign VTT accessible scene controls', () => {
@@ -197,7 +206,7 @@ const walkSpeedId = 'walk-speed'
 
 describe('Campaign VTT active turn movement readout (V07.5)', () => {
   const [character, creature] = tabletopPlayerEncounter.actors
-  const movement = [
+  const movement = validated(encounterSessionStateDtoSchema.shape.turnMovement)([
     {
       actorId: character.id,
       used: 15,
@@ -210,12 +219,17 @@ describe('Campaign VTT active turn movement readout (V07.5)', () => {
       speedId: walkSpeedId,
       allowances: [{ speedId: walkSpeedId, code: 'WALK', label: 'Walking Speed', budget: 40 }]
     }
-  ] satisfies EncounterSessionStateDto['turnMovement']
+  ])
   function state(
     encounter: EncounterSessionStateDto['encounter'],
     turnMovement: EncounterSessionStateDto['turnMovement'] = movement
   ): EncounterSessionStateDto {
-    return { encounter, pending: null, waitingOn: null, turnMovement }
+    return validated(encounterSessionStateDtoSchema)({
+      encounter,
+      pending: null,
+      waitingOn: null,
+      turnMovement
+    })
   }
 
   it("shows a player the readout on their own Character's turn only", () => {
@@ -256,5 +270,37 @@ describe('Campaign VTT active turn movement readout (V07.5)', () => {
     expect(
       readActiveTurn(player, tabletopCurrentUserId, state(tabletopPlayerEncounter, [])).turnMovement
     ).toBeUndefined()
+  })
+})
+
+describe('Campaign VTT assigned Character token (VTT_UI-3.4)', () => {
+  const actors = [
+    { id: 'actor-npc', kind: 'CREATURE', sourceId: 'char-1' },
+    { id: 'actor-hero', kind: 'CHARACTER', sourceId: 'char-1' },
+    { id: 'actor-other', kind: 'CHARACTER', sourceId: 'char-2' }
+  ] as const
+  const actorIdByTokenId = new Map([
+    ['token-npc', 'actor-npc'],
+    ['token-hero', 'actor-hero'],
+    ['token-other', 'actor-other']
+  ])
+
+  it('finds the token bound to the assigned Character actor', () => {
+    expect(
+      assignedCharacterTokenId({ actorIdByTokenId, actors, assignedCharacterId: 'char-1' })
+    ).toBe('token-hero')
+  })
+
+  it('finds nothing without an assigned Character or a bound token', () => {
+    expect(
+      assignedCharacterTokenId({ actorIdByTokenId, actors, assignedCharacterId: null })
+    ).toBeNull()
+    expect(
+      assignedCharacterTokenId({
+        actorIdByTokenId: new Map(),
+        actors,
+        assignedCharacterId: 'char-1'
+      })
+    ).toBeNull()
   })
 })

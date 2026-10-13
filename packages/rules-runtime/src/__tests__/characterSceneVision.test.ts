@@ -10,20 +10,22 @@ import { describe, expect, it } from 'vitest'
 
 import { deriveCharacterSceneVision } from '../character/characterSceneVision.js'
 
-type Pin = Pick<PinnedSenseDefinition, 'document' | 'range'>
+type Pin = Pick<PinnedSenseDefinition, 'document' | 'range'> & { label: string }
 type Range = NonNullable<PinnedSenseDefinition['range']>
 
 const characterId = '00000000-0000-4000-8000-000000000001'
 
-function document(senseId: string): PinnedSenseDefinition['document'] {
-  const definition = SRD_SENSE_DEFINITIONS.find((candidate) => candidate.id === senseId)
-  if (!definition) throw new Error(`Missing SRD sense ${senseId}.`)
-  return definition.document
+function definition(senseId: string) {
+  const found = SRD_SENSE_DEFINITIONS.find((candidate) => candidate.id === senseId)
+  if (!found) throw new Error(`Missing SRD sense ${senseId}.`)
+  return found
 }
 
 function pin(senseId: string, amount: number | null, unit: Range['unit'] = 'FEET'): Pin {
+  const { document, label } = definition(senseId)
   return {
-    document: document(senseId),
+    document,
+    label,
     range:
       amount === null
         ? null
@@ -36,72 +38,120 @@ function pin(senseId: string, amount: number | null, unit: Range['unit'] = 'FEET
   }
 }
 
-function dimRange(pins: readonly Pin[]) {
-  return deriveCharacterSceneVision(characterId, pins).dimRange
+function senses(pins: readonly Pin[]) {
+  return deriveCharacterSceneVision(characterId, pins).senses
 }
 
 describe('deriveCharacterSceneVision', () => {
-  it('turns 60 ft darkvision into a 60 ft dim vision range for the Character', () => {
+  it('presents 60 ft darkvision as a visual sense that sees ordinary darkness', () => {
     expect(deriveCharacterSceneVision(characterId, [pin(SRD_DARKVISION_SENSE_ID, 60)])).toEqual({
       characterId,
-      dimRange: { amount: 60, unit: 'FEET' }
+      senses: [
+        {
+          channel: 'VISUAL',
+          illuminationAccess: 'ORDINARY_DARKNESS',
+          label: 'Darkvision',
+          range: { amount: 60, unit: 'FEET' },
+          senseId: SRD_DARKVISION_SENSE_ID
+        }
+      ]
     })
   })
 
-  it('converts length units to feet and ignores a range that is not a length', () => {
-    expect(dimRange([pin(SRD_DARKVISION_SENSE_ID, 20, 'YARDS')])).toEqual({
+  it('presents every ranged sense, not only the ones that see in darkness', () => {
+    expect(
+      senses([
+        pin(SRD_DARKVISION_SENSE_ID, 60),
+        pin(SRD_BLINDSIGHT_SENSE_ID, 30),
+        pin(SRD_TREMORSENSE_SENSE_ID, 20),
+        pin(SRD_TRUESIGHT_SENSE_ID, 120)
+      ]).map(({ senseId, channel, illuminationAccess, range }) => ({
+        senseId,
+        channel,
+        illuminationAccess,
+        feet: range.amount
+      }))
+    ).toEqual([
+      {
+        senseId: SRD_DARKVISION_SENSE_ID,
+        channel: 'VISUAL',
+        illuminationAccess: 'ORDINARY_DARKNESS',
+        feet: 60
+      },
+      {
+        senseId: SRD_BLINDSIGHT_SENSE_ID,
+        channel: 'NONVISUAL',
+        illuminationAccess: 'IGNORE',
+        feet: 30
+      },
+      {
+        senseId: SRD_TREMORSENSE_SENSE_ID,
+        channel: 'VIBRATION',
+        illuminationAccess: 'IGNORE',
+        feet: 20
+      },
+      {
+        senseId: SRD_TRUESIGHT_SENSE_ID,
+        channel: 'VISUAL',
+        illuminationAccess: 'MAGICAL_DARKNESS',
+        feet: 120
+      }
+    ])
+  })
+
+  it('converts length units to feet', () => {
+    expect(senses([pin(SRD_DARKVISION_SENSE_ID, 20, 'YARDS')])[0]?.range).toEqual({
       amount: 60,
       unit: 'FEET'
     })
-    expect(dimRange([pin(SRD_DARKVISION_SENSE_ID, 720, 'INCHES')])).toEqual({
+    expect(senses([pin(SRD_DARKVISION_SENSE_ID, 720, 'INCHES')])[0]?.range).toEqual({
       amount: 60,
       unit: 'FEET'
     })
-    expect(dimRange([pin(SRD_DARKVISION_SENSE_ID, 1, 'MILES')])).toEqual({
+    expect(senses([pin(SRD_DARKVISION_SENSE_ID, 1, 'MILES')])[0]?.range).toEqual({
       amount: 5_280,
       unit: 'FEET'
     })
-    expect(dimRange([pin(SRD_DARKVISION_SENSE_ID, 60, 'POUNDS')])).toBeNull()
   })
 
-  it('has no Scene vision without senses, without a range or with a zero range', () => {
-    expect(deriveCharacterSceneVision(characterId, [])).toEqual({ characterId, dimRange: null })
-    expect(dimRange([pin(SRD_DARKVISION_SENSE_ID, null)])).toBeNull()
-    expect(dimRange([pin(SRD_DARKVISION_SENSE_ID, 0)])).toBeNull()
+  it('presents no sense without a range or with a zero range', () => {
+    expect(deriveCharacterSceneVision(characterId, [])).toEqual({ characterId, senses: [] })
+    expect(senses([pin(SRD_DARKVISION_SENSE_ID, null)])).toEqual([])
+    expect(senses([pin(SRD_DARKVISION_SENSE_ID, 0)])).toEqual([])
   })
 
-  it('gives non-visual senses no Scene vision range', () => {
-    // Blindsight is NONVISUAL and tremorsense is VIBRATION; neither draws a sight polygon.
-    expect(dimRange([pin(SRD_BLINDSIGHT_SENSE_ID, 30)])).toBeNull()
-    expect(dimRange([pin(SRD_TREMORSENSE_SENSE_ID, 60)])).toBeNull()
-    expect(dimRange([pin(SRD_BLINDSIGHT_SENSE_ID, 120), pin(SRD_DARKVISION_SENSE_ID, 60)])).toEqual(
-      { amount: 60, unit: 'FEET' }
-    )
-  })
-
-  it('ignores visual capabilities that cannot see in darkness', () => {
-    const darkvision = document(SRD_DARKVISION_SENSE_ID)
-    const dimOnly: Pin = {
-      ...pin(SRD_DARKVISION_SENSE_ID, 90),
-      document: {
-        ...darkvision,
-        capabilities: darkvision.capabilities.map((capability) => ({
-          ...capability,
-          illuminationAccess: 'DIM' as const
-        }))
-      }
+  it('presents the strongest capability of a sense with several', () => {
+    const darkvision = definition(SRD_DARKVISION_SENSE_ID)
+    const [visual] = darkvision.document.capabilities
+    if (!visual) throw new Error('Darkvision has no capability.')
+    const multi = (...capabilities: (typeof visual)[]): Pin => ({
+      ...pin(SRD_DARKVISION_SENSE_ID, 60),
+      document: { ...darkvision.document, capabilities }
+    })
+    const keen = { ...visual, channel: 'AUDITORY' as const }
+    const located = {
+      ...visual,
+      accessGrade: 'LOCATED' as const,
+      satisfies: ['DETECT' as const, 'LOCATE' as const],
+      illuminationAccess: 'IGNORE' as const
     }
-    expect(dimRange([dimOnly])).toBeNull()
-  })
+    const dim = { ...visual, illuminationAccess: 'DIM' as const }
+    const widerDarkness = { ...visual, illuminationAccess: 'MAGICAL_DARKNESS' as const }
 
-  it('uses the longest qualifying visual range, including truesight', () => {
-    expect(dimRange([pin(SRD_DARKVISION_SENSE_ID, 60), pin(SRD_TRUESIGHT_SENSE_ID, 120)])).toEqual({
-      amount: 120,
-      unit: 'FEET'
+    // Access grade first: the precise visual capability beats a wider located one.
+    expect(senses([multi(located, visual)])[0]).toMatchObject({
+      channel: 'VISUAL',
+      illuminationAccess: 'ORDINARY_DARKNESS'
     })
-    expect(dimRange([pin(SRD_TRUESIGHT_SENSE_ID, 30), pin(SRD_DARKVISION_SENSE_ID, 60)])).toEqual({
-      amount: 60,
-      unit: 'FEET'
+    // Then the widest illumination access, regardless of listing order.
+    expect(senses([multi(dim, widerDarkness, visual)])[0]).toMatchObject({
+      illuminationAccess: 'MAGICAL_DARKNESS'
     })
+    expect(senses([multi(widerDarkness, dim, visual)])[0]).toMatchObject({
+      illuminationAccess: 'MAGICAL_DARKNESS'
+    })
+    // Then the first listed.
+    expect(senses([multi(keen, visual)])[0]).toMatchObject({ channel: 'AUDITORY' })
+    expect(senses([multi(visual, keen)])[0]).toMatchObject({ channel: 'VISUAL' })
   })
 })

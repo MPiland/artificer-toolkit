@@ -13,6 +13,7 @@ import { useMutation, useQueries, useQuery } from '@tanstack/react-query'
 import { useConvex } from 'convex/react'
 import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
 import {
+  Check,
   Crosshair,
   Eye,
   EyeOff,
@@ -57,6 +58,7 @@ import type { BindEncounterToPresentedSceneInputDto } from '@artificer-toolkit/s
 import { sceneEncounterBindingSchema } from '@artificer-toolkit/schema/api/sceneRecipient'
 import { CampaignChatDrawer } from '../components/CampaignChatDrawer'
 import {
+  assignedCharacterTokenId,
   canMoveSceneToken,
   createSceneAnnotation,
   createSceneBarrier,
@@ -91,8 +93,13 @@ import {
   type VttSceneRenderer,
   type VttSceneRendererUpdate
 } from './vttSceneRenderer'
-import { formatSceneMeasurement, pointAreaOverlay } from './vttSceneRenderer.model'
+import {
+  formatSceneMeasurement,
+  pointAreaOverlay,
+  resolveViewTokenId
+} from './vttSceneRenderer.model'
 import { buildVttTokenPresentations } from './vttTokenPresentation.model'
+import { CampaignVttTokenStatusList } from './CampaignVttTokenStatusList'
 import { isEncounterActorMine } from './encounterActorControl'
 
 export function CampaignVttStage({
@@ -120,6 +127,10 @@ export function CampaignVttStage({
   const [tool, setTool] = useState<CampaignVttTool>('SELECT')
   const [fogOwnerUserId, setFogOwnerUserId] = useState<string | null>(null)
   const [gmPreviewUserId, setGmPreviewUserId] = useState<string | null>(null)
+  // The token whose view the GM previews, and the token whose statuses are listed on screen.
+  const [chosenPreviewTokenId, setChosenPreviewTokenId] = useState<string | null>(null)
+  const [inspectedTokenId, setInspectedTokenId] = useState<string | null>(null)
+  const [selectedTokenId, setSelectedTokenId] = useState<string | null>(null)
   // GM pings, rulers, drag ghosts and fog drafts stay private unless the GM shares them.
   const [sharePreviews, setSharePreviews] = useState(false)
   // The speed type the member chose for an actor's movement; it applies to that actor only.
@@ -280,6 +291,10 @@ export function CampaignVttStage({
   })
   const presented = useCampaignPresentedScene(campaign.id, live.recipientState)
   const scene = live.recipientState?.scene ?? undefined
+  // The chosen preview applies only while that Token is on the presented Scene.
+  const previewTokenId = scene?.tokens.some((token) => token.id === chosenPreviewTokenId)
+    ? chosenPreviewTokenId
+    : null
   const sceneBindingInput =
     activeEncounter && scene ? { encounterId: activeEncounter.id, sceneId: scene.id } : null
   const roomSceneBinding = useRoomEncounterRead({
@@ -416,12 +431,16 @@ export function CampaignVttStage({
   const renderedScene = useMemo(
     () =>
       scene && campaign.role === 'OWNER' && gmPreviewUserId
-        ? projectSceneForViewer(scene, {
-            role: 'PLAYER',
-            userId: gmPreviewUserId
-          })
+        ? projectSceneForViewer(
+            scene,
+            {
+              role: 'PLAYER',
+              userId: gmPreviewUserId
+            },
+            boundTokenControl
+          )
         : scene,
-    [scene, campaign.role, gmPreviewUserId]
+    [scene, campaign.role, gmPreviewUserId, boundTokenControl]
   )
   const tokenImageLookups = useMemo(() => {
     const actorsById = new Map(
@@ -502,6 +521,37 @@ export function CampaignVttStage({
       areaShape && areaOrigin && !areaAim ? [pointAreaOverlay(areaShape, areaOrigin)] : undefined,
     [areaAim, areaOrigin, areaShape]
   )
+  // A selection whose token left the Scene counts as no selection.
+  const selectedSceneTokenId = scene?.tokens.some((token) => token.id === selectedTokenId)
+    ? selectedTokenId
+    : null
+  // Hover or focus lists a token's statuses; otherwise the selected token's are listed.
+  const listedTokenId = inspectedTokenId ?? selectedSceneTokenId
+  const listedStatuses = listedTokenId ? tokenPresentations?.[listedTokenId]?.statuses : undefined
+  const listedLabel = scene?.tokens.find((token) => token.id === listedTokenId)?.label ?? ''
+  const effectiveRole = gmPreviewUserId ? 'PLAYER' : campaign.role
+  const effectivePreviewTokenId =
+    campaign.role === 'OWNER' && !gmPreviewUserId ? previewTokenId : null
+  const viewTokenId = renderedScene
+    ? resolveViewTokenId({
+        assignedTokenId: assignedCharacterTokenId({
+          actorIdByTokenId,
+          actors: activeEncounter?.actors ?? [],
+          assignedCharacterId:
+            (gmPreviewUserId
+              ? campaign.memberships.find((membership) => membership.userId === gmPreviewUserId)
+                  ?.assignedCharacter
+              : campaign.assignedCharacter
+            )?.id ?? null
+        }),
+        boundTokenControl,
+        currentUserId: viewerUserId,
+        previewTokenId: effectivePreviewTokenId,
+        role: effectiveRole,
+        selectedTokenId: selectedSceneTokenId,
+        tokens: renderedScene.tokens
+      })
+    : null
   rendererUpdateRef.current = renderedScene
     ? {
         areaAim,
@@ -510,10 +560,13 @@ export function CampaignVttStage({
         mapDelivery: mapDelivery.data ?? null,
         mode: effectiveMode,
         overlays: areaOverlays,
-        role: gmPreviewUserId ? 'PLAYER' : campaign.role,
+        previewTokenId: effectivePreviewTokenId,
+        role: effectiveRole,
         scene: renderedScene,
+        selectedTokenId: selectedSceneTokenId,
         tokenPresentations,
-        tool
+        tool,
+        viewTokenId
       }
     : null
 
@@ -710,6 +763,8 @@ export function CampaignVttStage({
         return sent
       },
       onTokenCommit: (tokenId, position) => commitTokenMoveRef.current(tokenId, position),
+      onTokenHover: setInspectedTokenId,
+      onTokenSelect: setSelectedTokenId,
       onTokenPreview: (tokenId, position) =>
         transientRef.current({ kind: 'TOKEN_DRAG_PREVIEW', position, tokenId })
     }).then((nextRenderer) => {
@@ -741,9 +796,12 @@ export function CampaignVttStage({
     gmPreviewUserId,
     live.error,
     mapDelivery.data,
+    previewTokenId,
     scene,
+    selectedSceneTokenId,
     tokenPresentations,
-    tool
+    tool,
+    viewTokenId
   ])
 
   useEffect(() => {
@@ -1212,13 +1270,18 @@ export function CampaignVttStage({
             boundTokenControl={boundTokenControl}
             currentUserId={currentUserId}
             memberships={campaign.memberships}
+            previewTokenId={previewTokenId}
             role={campaign.role}
             scene={scene}
+            selectedTokenId={selectedSceneTokenId}
             renderer={renderer}
             onDoorState={setDoorState}
             onFogLayer={setFogLayer}
             onMeasurement={commitMeasurement}
             onMeasurementRemove={removeMeasurement}
+            onInspectToken={setInspectedTokenId}
+            onSelectToken={setSelectedTokenId}
+            onPreviewToken={setChosenPreviewTokenId}
             onTokenMove={(tokenId, position) => {
               const token = scene.tokens.find((candidate) => candidate.id === tokenId)
               if (token) commitTokenMove(tokenId, [token.position, position])
@@ -1317,6 +1380,9 @@ export function CampaignVttStage({
               {scene.grid.kind === 'SQUARE' ? 'Square grid' : 'Gridless'}
             </span>
           </div>
+          {listedStatuses?.length ? (
+            <CampaignVttTokenStatusList label={listedLabel} statuses={listedStatuses} />
+          ) : null}
           {effectiveMode === 'EDIT' && tool === 'WALL' ? (
             <Text className={styles.canvasInstruction} role='status' size='xs'>
               Click to add wall segments. Enter or right-click finishes; Escape cancels.
@@ -1383,11 +1449,16 @@ function SceneObjectMenu({
   onDoorState,
   onFogLayer,
   onMeasurement,
+  onInspectToken,
   onMeasurementRemove,
+  onPreviewToken,
+  onSelectToken,
   onTokenMove,
+  previewTokenId,
   renderer,
   role,
-  scene
+  scene,
+  selectedTokenId
 }: {
   boundTokenControl: ReadonlyMap<string, boolean>
   currentUserId: string
@@ -1395,8 +1466,13 @@ function SceneObjectMenu({
   onDoorState: (barrierId: string, state: 'CLOSED' | 'LOCKED' | 'OPEN') => void
   onFogLayer: (ownerUserId: string | null, explored: boolean) => void
   onMeasurement: (path: ScenePoint[]) => void
+  onInspectToken: (tokenId: string | null) => void
   onMeasurementRemove: (measurementId: string) => void
+  onPreviewToken: (tokenId: string | null) => void
+  onSelectToken: (tokenId: string | null) => void
   onTokenMove: (tokenId: string, position: ScenePoint) => void
+  previewTokenId: string | null
+  selectedTokenId: string | null
   renderer: RefObject<VttSceneRenderer | null>
   role: 'OWNER' | 'PLAYER'
   scene: CampaignSceneStateDto
@@ -1440,9 +1516,32 @@ function SceneObjectMenu({
           {scene.tokens.length ? (
             scene.tokens.map((token) => (
               <Fragment key={token.id}>
-                <Menu.Item onClick={() => renderer.current?.focusPoint(token.position)}>
+                <Menu.Item
+                  onBlur={() => onInspectToken(null)}
+                  rightSection={
+                    selectedTokenId === token.id ? <Check aria-hidden size={14} /> : null
+                  }
+                  onClick={() => {
+                    onSelectToken(token.id)
+                    renderer.current?.focusPoint(token.position)
+                  }}
+                  onFocus={() => onInspectToken(token.id)}
+                  onMouseEnter={() => onInspectToken(token.id)}
+                  onMouseLeave={() => onInspectToken(null)}
+                >
                   Focus {token.label}
                 </Menu.Item>
+                {role === 'OWNER' ? (
+                  <Menu.Item
+                    closeMenuOnClick={false}
+                    rightSection={
+                      previewTokenId === token.id ? <Check aria-hidden size={14} /> : null
+                    }
+                    onClick={() => onPreviewToken(previewTokenId === token.id ? null : token.id)}
+                  >
+                    {previewTokenId === token.id ? 'Stop previewing' : 'Preview view'} {token.label}
+                  </Menu.Item>
+                ) : null}
                 {canMoveSceneToken(token, { boundTokenControl, currentUserId, role })
                   ? (
                       [

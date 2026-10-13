@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import type { SceneDefinitionDto } from '@artificer-toolkit/schema/api/vttScenes'
+import {
+  sceneDefinitionDtoSchema,
+  type SceneDefinitionDto
+} from '@artificer-toolkit/schema/api/vttScenes'
 import { createEditorSceneState, updateSceneEditorDraft } from './CampaignSceneEditor.model'
+import { validated } from '../../../test/validatedFixture'
 
 const ids = {
   annotation: '00000000-0000-4000-8000-000000000001',
@@ -13,7 +17,7 @@ const ids = {
 } as const
 
 function scene(): SceneDefinitionDto {
-  return {
+  return validated(sceneDefinitionDtoSchema)({
     annotations: [
       {
         id: ids.annotation,
@@ -55,6 +59,7 @@ function scene(): SceneDefinitionDto {
         locked: false,
         position: { x: 5, y: 5 },
         rotationDegrees: 0,
+        senses: [],
         vision: null,
         width: 10
       },
@@ -68,12 +73,13 @@ function scene(): SceneDefinitionDto {
         locked: false,
         position: { x: 30, y: 30 },
         rotationDegrees: 0,
+        senses: [],
         vision: null,
         width: 10
       }
     ],
     version: 2
-  }
+  })
 }
 
 describe('Campaign scene editor model', () => {

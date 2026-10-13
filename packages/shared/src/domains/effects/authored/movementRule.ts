@@ -1,4 +1,4 @@
-import { EFFECT_KIND, type MeasurementUnitCode, type MOVEMENT_RULE_KIND } from '#core'
+import { EFFECT_KIND, type LengthUnitCode, type MOVEMENT_RULE_KIND } from '#core'
 
 export type MovementRuleAuthored =
   | {
@@ -24,5 +24,5 @@ export type MovementRuleAuthored =
         keyof typeof MOVEMENT_RULE_KIND,
         'STOP_CURRENT_MOVEMENT' | 'MOVEMENT_COST_MULTIPLIER' | 'ADD_SPEED_TO_MOVEMENT'
       >
-      limitDistance: { amount: number; unit: MeasurementUnitCode }
+      limitDistance: { amount: number; unit: LengthUnitCode }
     }

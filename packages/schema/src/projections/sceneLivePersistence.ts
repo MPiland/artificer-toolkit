@@ -3,6 +3,7 @@ import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { projectionChecksumSchema } from './identity.js'
 import {
   sceneLiveEntityChangeSchema,
+  sceneStoredLiveEntityValueSchema,
   sceneLiveCountsSchema,
   sceneLiveCollectionSchema
 } from '../api/sceneLiveState.js'
@@ -47,6 +48,7 @@ export const sceneStoredLiveStateSchema = lazySchema(() =>
 )
 export const sceneStoredLiveEntitySchema = lazySchema(() =>
   z.extend(sceneLiveEntityChangeSchema, {
+    value: z.nullable(sceneStoredLiveEntityValueSchema),
     sceneId: postgresUuidSchema,
     checksum: projectionChecksumSchema
   })

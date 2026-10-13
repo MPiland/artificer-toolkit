@@ -255,6 +255,7 @@ export async function movementRoom(config: MovementRoomConfig) {
       locked: false,
       label: actor.label,
       rotationDegrees: 0,
+      senses: [],
       position: config.positions[actor.id]!,
       vision: null
     }))

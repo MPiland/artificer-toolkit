@@ -83,7 +83,7 @@ function member(userId: string, role: 'OWNER' | 'PLAYER', epoch = '2026-09-12T00
   return { membershipEpoch: epoch, role, userId }
 }
 
-function header(fogLayerCount = 0) {
+function header(fogLayerCount = 0, visionRevealMode: 'ON_DRAG' | 'ON_DROP' = 'ON_DRAG') {
   return sceneLiveStateHeaderSchema.parse({
     ambientIllumination: 'DIM',
     campaignId,
@@ -124,7 +124,7 @@ function header(fogLayerCount = 0) {
     },
     name: 'Scene',
     version: 1,
-    visionRevealMode: 'ON_DRAG'
+    visionRevealMode
   })
 }
 
@@ -138,6 +138,7 @@ const token = {
   locked: false,
   position: { x: 10, y: 10 },
   rotationDegrees: 0,
+  senses: [],
   vision: {
     angleDegrees: 360,
     brightRange: 0,
@@ -208,13 +209,14 @@ function installFetch(
   ) => LiveSessionRoomSceneCapture | Response | Promise<LiveSessionRoomSceneCapture | Response>,
   entity: typeof token = token,
   fogLayers: readonly SceneFogLayer[] = [],
-  authorization: RoomAuthorizationState = {}
+  authorization: RoomAuthorizationState = {},
+  visionRevealMode: 'ON_DRAG' | 'ON_DROP' = 'ON_DRAG'
 ) {
   let captures = 0
   const sceneFixture: RoomSceneFixture = {
-    header: header(fogLayers.length),
+    header: header(fogLayers.length, visionRevealMode),
     presentationVersion: 1,
-    scene: { ...emptyScene(), fogLayers: [...fogLayers], tokens: [entity] }
+    scene: { ...emptyScene(), fogLayers: [...fogLayers], tokens: [entity], visionRevealMode }
   }
   vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
     const request = new Request(input, init)
@@ -270,12 +272,34 @@ function installFetch(
       sceneCaptureAuthorizations.push(request.headers.get('authorization'))
       const capture = {
         ...roomSceneCapture(body.observedCharacterRevisions),
-        sceneHeader: header(fogLayers.length)
+        sceneHeader: header(fogLayers.length, visionRevealMode)
       }
       const result = (await mutate?.(++captures, capture, body)) ?? capture
       return result instanceof Response ? result : Response.json(result)
     }
+    // A bound Scene's first composition stages the Run's initial inputs, which the room then saves.
+    if (pathname === '/live-sessions/checkpoint') return committedCheckpoint(request)
     throw new Error(`Unexpected backend request: ${pathname}`)
+  })
+}
+
+async function committedCheckpoint(request: Request) {
+  const body = liveSessionCheckpointRequestSchema.parse(await request.json())
+  const now = new Date().toISOString()
+  return Response.json({
+    status: 'COMMITTED',
+    authority: {
+      activationFingerprint,
+      campaignId,
+      createdAt: now,
+      epoch: body.epoch,
+      persistedSequence: body.sequence,
+      persistedStateChecksum: body.checksum,
+      phase: 'DO_ACTIVE',
+      updatedAt: now
+    },
+    adopted: { characters: [] },
+    io: NO_CHECKPOINT_IO
   })
 }
 
@@ -389,6 +413,16 @@ async function synchronize(client: Awaited<ReturnType<typeof connect>>) {
       )
     ).toBe(true)
   )
+}
+
+/** The Senses `client` is shown on the bound token in a fresh `STATE_SYNC`. */
+async function syncedTokenSenses(client: Awaited<ReturnType<typeof connect>>) {
+  await synchronize(client)
+  const sync = client.messages.find(
+    (message): message is Extract<LiveSessionWebSocketServerMessageDto, { type: 'STATE_SYNC' }> =>
+      message.type === 'STATE_SYNC'
+  )
+  return sync?.state.scene?.tokens.find(({ id }) => id === tokenId)?.senses
 }
 
 it('fans out token previews from room memory with no backend call or SQLite access per sample', async () => {
@@ -814,6 +848,47 @@ function otherPlayerFog(): SceneFogLayer {
   return canonicalizeSceneFogLayer(patch)
 }
 
+it.each([
+  ['ON_DRAG', { origin: [playerId], recipients: { owner: [playerId], other: [] } }],
+  ['ON_DROP', { origin: [], recipients: { owner: [], other: [] } }]
+] as const)(
+  "limits the dragging controller's vision layers to the origin and the GM, never another player, in a %s Scene",
+  async (visionRevealMode, expected) => {
+    const members = [
+      member(ownerId, 'OWNER'),
+      member(playerId, 'PLAYER'),
+      member(otherPlayerId, 'PLAYER')
+    ]
+    const stub = newRoom()
+    // `other` has explored the token's destination but does not control the token.
+    await runInDurableObject(stub, () =>
+      installFetch(members, undefined, token, [otherPlayerFog()], {}, visionRevealMode)
+    )
+    const [owner, player, other] = await Promise.all([
+      connect(stub, ownerId, 'OWNER'),
+      connect(stub, playerId, 'PLAYER'),
+      connect(stub, otherPlayerId, 'PLAYER')
+    ])
+    await synchronize(owner)
+    for (const client of [owner, player, other]) client.messages.length = 0
+
+    sendPreview(player, tokenPreview(1))
+    await vi.waitFor(() => {
+      expect(transient(player.messages)).toHaveLength(1)
+      expect(transient(owner.messages)).toHaveLength(1)
+      expect(transient(other.messages)).toHaveLength(1)
+    })
+    const layerOwners = (client: typeof owner) =>
+      transient(client.messages)[0]?.message.visionLayers?.map(({ ownerUserId }) => ownerUserId)
+    expect(transient(player.messages)[0]?.message.tokenDragResolution).toMatchObject({
+      accepted: true
+    })
+    expect(layerOwners(player)).toEqual(expected.origin)
+    expect(layerOwners(owner)).toEqual(expected.recipients.owner)
+    expect(layerOwners(other)).toEqual(expected.recipients.other)
+  }
+)
+
 async function pingRoom(members: readonly ReturnType<typeof member>[]) {
   const stub = newRoom()
   await runInDurableObject(stub, () => installFetch(members, undefined, token, [otherPlayerFog()]))
@@ -1103,7 +1178,11 @@ it('drops previews without a third capture when the fresh capture also conflicts
  * Darkvision), then B (no Senses), composed from the room's own store.
  */
 async function characterVisionRoom() {
-  const members = [member(ownerId, 'OWNER'), member(playerId, 'PLAYER')]
+  const members = [
+    member(ownerId, 'OWNER'),
+    member(playerId, 'PLAYER'),
+    member(otherPlayerId, 'PLAYER')
+  ]
   const characterId = '00000000-0000-4000-8000-000000000112'
   const bound = {
     campaignId,
@@ -1126,6 +1205,8 @@ async function characterVisionRoom() {
     /** The Character's current CHARACTER revision in Convex. */
     revision: revisionA.characterRevision,
     captures: [] as LiveSessionRoomSceneCaptureInput[],
+    /** The player Convex reports as assigned the Character, who therefore controls its token. */
+    assigneeUserId: playerId as string,
     /** The CHARACTER revision of each Character page the room read. */
     characterReads: [] as string[],
     authorizationReads: 0,
@@ -1141,7 +1222,11 @@ async function characterVisionRoom() {
   const sceneFixture: RoomSceneFixture = {
     header: header(),
     presentationVersion: 1,
-    scene: { ...emptyScene(), tokens: [{ ...token, vision: null }] }
+    // The Scene lists both players; only the assigned one controls the bound actor.
+    scene: {
+      ...emptyScene(),
+      tokens: [{ ...token, controlledByUserIds: [playerId, otherPlayerId], vision: null }]
+    }
   }
   const stub = newRoom()
   await runInDurableObject(stub, () => {
@@ -1162,7 +1247,7 @@ async function characterVisionRoom() {
             systemId,
             ownerUserId: ownerId,
             members,
-            assignments: [{ characterId, userId: playerId }],
+            assignments: [{ characterId, userId: room.assigneeUserId }],
             characterInputs: {
               ...revisionA.characterInputs,
               parts: current.characterInputs.parts
@@ -1198,7 +1283,7 @@ async function characterVisionRoom() {
         return Response.json(
           roomAuthorizationResponse({
             members,
-            assignments: [{ characterId, userId: playerId }],
+            assignments: [{ characterId, userId: room.assigneeUserId }],
             characterRevisions: [{ characterId, revision: room.revision }],
             play: {
               encounter: room.runOpen
@@ -1243,42 +1328,35 @@ async function characterVisionRoom() {
           sceneEncounterId: room.sceneEncounterId
         })
       }
-      if (pathname === '/live-sessions/checkpoint') {
-        const body = liveSessionCheckpointRequestSchema.parse(await request.json())
-        const now = new Date().toISOString()
-        return Response.json({
-          status: 'COMMITTED',
-          authority: {
-            activationFingerprint,
-            campaignId,
-            createdAt: now,
-            epoch: body.epoch,
-            persistedSequence: body.sequence,
-            persistedStateChecksum: body.checksum,
-            phase: 'DO_ACTIVE',
-            updatedAt: now
-          },
-          adopted: { characters: [] },
-          io: NO_CHECKPOINT_IO
-        })
-      }
+      if (pathname === '/live-sessions/checkpoint') return committedCheckpoint(request)
       throw new Error(`Unexpected backend request: ${pathname}`)
     })
   })
-  const [owner, player] = await Promise.all([
+  const [owner, player, other] = await Promise.all([
     connect(stub, ownerId, 'OWNER'),
-    connect(stub, playerId, 'PLAYER')
+    connect(stub, playerId, 'PLAYER'),
+    connect(stub, otherPlayerId, 'PLAYER')
   ])
-  await synchronize(owner)
+  const admittedSenses = await syncedTokenSenses(owner)
   expect(room.characterReads).toEqual([room.revisionA])
   owner.messages.length = 0
   player.messages.length = 0
-  return { room, owner, player, stub }
+  return { admittedSenses, room, owner, player, other, stub }
 }
+
+/** Revision A's 60 ft Darkvision, as the bound token's Senses carry it. */
+const darkvisionSenses = [
+  expect.objectContaining({
+    channel: 'VISUAL',
+    illuminationAccess: 'ORDINARY_DARKNESS',
+    label: 'Darkvision',
+    range: 60
+  })
+]
 
 it('rehydrates Character vision after a CHARACTER notice, with no read per sample (D33)', async () => {
   const advance = controlClock()
-  const { room, owner, player, stub } = await characterVisionRoom()
+  const { admittedSenses, room, owner, player, stub } = await characterVisionRoom()
   const capturesAfterSync = room.captures.length
   const readsAfterSync = room.authorizationReads
 
@@ -1290,28 +1368,20 @@ it('rehydrates Character vision after a CHARACTER notice, with no read per sampl
     expect(transient(owner.messages)).toHaveLength(2)
     expect(transient(player.messages)).toHaveLength(2)
   })
-  expect(transient(player.messages)).toContainEqual(
-    expect.objectContaining({
-      message: expect.objectContaining({
-        userId: playerId,
-        visionLayers: [expect.anything()]
-      })
-    })
-  )
+  // Vision is authored only; the bound Character's Darkvision reaches the token as Senses.
+  expect(admittedSenses).toEqual(darkvisionSenses)
   expect(room.authorizationReads).toBe(readsAfterSync)
   expect(room.captures).toHaveLength(capturesAfterSync)
 
-  // The Character changes and Convex notifies the room: the cache reloads, then the Scene's vision.
+  // The Character changes and Convex notifies the room: the cache reloads, then the Scene's Senses.
   room.revision = room.revisionB
   await invalidate(stub, ['CHARACTER'])
   player.messages.length = 0
   let sequence = 1
-  await vi.waitFor(() => {
+  await vi.waitFor(async () => {
     sequence += 1
     sendPreview(player, tokenPreview(sequence, { x: 20 + sequence, y: 10 }))
-    expect(transient(player.messages).at(-1)).toMatchObject({
-      message: { visionLayers: [] }
-    })
+    expect(await syncedTokenSenses(owner)).toEqual([])
   })
   expect(room.characterReads).toEqual([room.revisionA, room.revisionB])
   expect(room.staleCaptures).toBe(1)
@@ -1324,13 +1394,10 @@ it('rehydrates Character vision after a CHARACTER notice, with no read per sampl
 })
 
 it('composes Scene vision without a Run that COMPLETEd, so the next Scene command still commits', async () => {
-  const { room, owner, player } = await characterVisionRoom()
+  const { admittedSenses, room, owner, player } = await characterVisionRoom()
   sendPreview(player, tokenPreview(1))
-  await vi.waitFor(() =>
-    expect(transient(player.messages).at(-1)).toMatchObject({
-      message: { visionLayers: [expect.anything()] }
-    })
-  )
+  await vi.waitFor(() => expect(transient(player.messages)).toHaveLength(1))
+  expect(admittedSenses).toEqual(darkvisionSenses)
 
   const encounterCommand = async (
     expectedSessionSequence: number,
@@ -1392,17 +1459,72 @@ it('composes Scene vision without a Run that COMPLETEd, so the next Scene comman
       expect.objectContaining({ type: 'COMMAND_COMMITTED', commandId: moveId })
     )
   )
-  // The finished Run no longer lends the token Character vision.
+  // The finished Run no longer lends the token Character Senses.
   player.messages.length = 0
   sendPreview(player, {
     ...tokenPreview(2, { x: 25, y: 10 }),
     baselineVersion: 2
   })
-  await vi.waitFor(() =>
-    expect(transient(player.messages).at(-1)).toMatchObject({
-      message: { visionLayers: [] }
+  await vi.waitFor(() => expect(transient(player.messages)).toHaveLength(1))
+  expect(await syncedTokenSenses(owner)).toEqual([])
+})
+
+it('withholds a bound token senses from a player the Scene lists who does not control the bound actor (ADR 0034)', async () => {
+  const { admittedSenses, room, owner, other } = await characterVisionRoom()
+  // The GM's projection carries the Sense the Character's Darkvision composes onto the token.
+  expect(admittedSenses).toEqual(darkvisionSenses)
+
+  const commandId = crypto.randomUUID()
+  other.socket.send(
+    JSON.stringify({
+      type: 'COMMAND',
+      expectedSessionSequence: 0,
+      command: {
+        scope: 'SCENE',
+        command: {
+          type: 'MOVE_SCENE_TOKEN',
+          commandId,
+          correlationId: null,
+          expectedEncounterVersion: room.encounterVersion,
+          expectedSceneVersion: 1,
+          movementKind: 'VOLUNTARY',
+          path: [token.position, { x: 20, y: 10 }],
+          sceneId,
+          tokenId
+        }
+      }
     })
   )
+  await vi.waitFor(() =>
+    expect(other.messages).toContainEqual(
+      expect.objectContaining({ type: 'COMMAND_REJECTED', commandId })
+    )
+  )
+  const rejected = other.messages.find(
+    (message) => message.type === 'COMMAND_REJECTED' && message.commandId === commandId
+  )
+  if (rejected?.type !== 'COMMAND_REJECTED' || rejected.correction?.scope !== 'SCENE')
+    throw new Error('Missing the private Scene correction.')
+  expect(rejected.correction.state.tokens.find(({ id }) => id === tokenId)?.senses).toEqual([])
+  expect(await syncedTokenSenses(owner)).toEqual(darkvisionSenses)
+})
+
+it('withholds a bound token senses from a player once the Character is reassigned away from them (ADR 0034)', async () => {
+  const { admittedSenses, room, owner, player, other, stub } = await characterVisionRoom()
+  expect(admittedSenses).toEqual(darkvisionSenses)
+  // The assigned player controls the bound token, so they see the Sense composed onto it.
+  expect(await syncedTokenSenses(player)).toEqual(darkvisionSenses)
+  expect(await syncedTokenSenses(other)).toEqual([])
+
+  // An assigned Character actor's control follows the assignment, not its controller list, so
+  // reassigning the Character is what ends this player's control.
+  room.assigneeUserId = otherPlayerId
+  expect(await (await invalidate(stub, ['CAMPAIGN'])).json()).toEqual({ invalidated: true })
+  await vi.waitFor(async () => {
+    expect(await syncedTokenSenses(player)).toEqual([])
+  })
+  expect(await syncedTokenSenses(owner)).toEqual(darkvisionSenses)
+  expect(await syncedTokenSenses(other)).toEqual(darkvisionSenses)
 })
 
 it('refuses previews and pings while the authorization cache cannot be renewed', async () => {

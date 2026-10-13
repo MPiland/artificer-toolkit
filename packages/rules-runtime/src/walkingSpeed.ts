@@ -1,6 +1,6 @@
 import { speedDtoSchema } from '@artificer-toolkit/schema/shared/speed'
 
-import { lengthInFeet } from './character/characterSceneVision.js'
+import { lengthMeasurementInFeet } from '@artificer-toolkit/shared/core'
 
 /** The System speed code the rules treat as walking, as in `characterMovementAndSenses`. */
 export const WALK_SPEED_CODE = 'WALK'
@@ -18,7 +18,7 @@ export function resolveSpeedsFeet(
   for (const entry of speeds) {
     const speed = speedDtoSchema.safeParse(entry)
     if (speed.success && known.has(speed.data.speedId) && !resolved.has(speed.data.speedId))
-      resolved.set(speed.data.speedId, Math.max(lengthInFeet(speed.data) ?? 0, 0))
+      resolved.set(speed.data.speedId, Math.max(lengthMeasurementInFeet(speed.data), 0))
   }
   return [...resolved].map(([speedId, feet]) => ({ speedId, feet }))
 }

@@ -196,6 +196,7 @@ it('commits an unbound fog-deriving move under live authority and stages its own
     locked: false,
     position: { x: 100, y: 100 },
     rotationDegrees: 0,
+    senses: [],
     // A short sight line, so the move explores cells its starting view did not.
     vision: { angleDegrees: 360, brightRange: 0, dimRange: 5, directionDegrees: 0, enabled: true },
     width: 1
@@ -371,6 +372,7 @@ async function setupPlayerScene() {
     locked: false,
     position: { x, y: 100 },
     rotationDegrees: 0,
+    senses: [],
     vision: { angleDegrees: 360, brightRange: 0, dimRange: 60, directionDegrees: 0, enabled: true },
     width: 1
   })

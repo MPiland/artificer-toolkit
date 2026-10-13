@@ -1,12 +1,12 @@
 import { z, lazySchema } from '../zod.js'
-import { measurementUnitCodeSchema, rangeKindSchema } from './enums.js'
+import { lengthUnitCodeSchema, rangeKindSchema } from './enums.js'
 import { createBreakpointScalingDtoSchema } from './scaling.js'
 import { authoredIdentifierSchema } from './authoredLimits.js'
 
 const rangeMeasurementDtoSchema = lazySchema(() =>
   z.object({
     amount: z.number(),
-    unit: measurementUnitCodeSchema
+    unit: lengthUnitCodeSchema
   })
 )
 
@@ -29,7 +29,7 @@ export const rangeDtoSchema = lazySchema(() =>
         amount: z.number(),
         /** A ranged weapon attack's long range ("range 80/320 ft."): beyond `amount` it has disadvantage. */
         longAmount: z.optional(z.number()),
-        unit: measurementUnitCodeSchema,
+        unit: lengthUnitCodeSchema,
         scaling: z.optional(createBreakpointScalingDtoSchema(rangeMeasurementDtoSchema))
       })
       .check(

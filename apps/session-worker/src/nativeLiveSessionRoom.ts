@@ -505,9 +505,16 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       presentedSceneId: () => this.#cache?.scene?.id ?? null,
       visibleTokenIds: (socket, sceneId) => {
         const admission = this.#liveAdmission(socket)
+        const epoch = attachment(socket)?.authorityEpoch
         const scene = this.#cache?.scene
-        return admission && scene?.id === sceneId
-          ? new Set(projectSceneForViewer(scene, viewer(admission)).tokens.map(({ id }) => id))
+        return admission && epoch && scene?.id === sceneId
+          ? new Set(
+              projectSceneForViewer(
+                scene,
+                viewer(admission),
+                this.#boundTokenControl(scene, admission, epoch)
+              ).tokens.map(({ id }) => id)
+            )
           : null
       }
     })
@@ -1665,6 +1672,24 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     this.#aggregateNeedsReload = false
   }
 
+  /**
+   * Whether `admission` controls each token bound to the cached Encounter (ADR 0034). Without current
+   * play authorization on a bound Scene every token reads as uncontrolled, so no senses are shared.
+   */
+  #boundTokenControl(
+    scene: CampaignSceneStateDto,
+    admission: Pick<Admission, 'role' | 'userId'>,
+    authorityEpoch: string
+  ): ReadonlyMap<string, boolean> {
+    const encounterId = this.#cache?.encounterId ?? null
+    if (admission.role === 'OWNER' || encounterId === null) return new Map()
+    const play = this.#authorization.currentPlay(authorityEpoch)
+    const control =
+      (play && roomBoundTokenControl(play, admission.userId, { sceneId: scene.id, encounterId })) ??
+      scene.tokens.map(({ id }) => ({ tokenId: id, controlled: false }))
+    return new Map(control.map(({ tokenId, controlled }) => [tokenId, controlled]))
+  }
+
   #sendStateSync(socket: WebSocket, admission: Admission): void {
     const value = attachment(socket)
     const current = this.#journal.readCurrent()
@@ -1681,7 +1706,10 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       state: projectNativeLiveSessionState(
         { scene: this.#cache?.scene ?? null },
         admission,
-        this.#cache?.presentation?.expectedPresentationVersion ?? null
+        this.#cache?.presentation?.expectedPresentationVersion ?? null,
+        this.#cache?.scene
+          ? this.#boundTokenControl(this.#cache.scene, admission, value.authorityEpoch)
+          : new Map()
       ),
       type: 'STATE_SYNC'
     })
@@ -1783,7 +1811,11 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       scene
         ? {
             scope: 'SCENE',
-            state: projectSceneForViewer(scene, viewer(admission))
+            state: projectSceneForViewer(
+              scene,
+              viewer(admission),
+              this.#boundTokenControl(scene, admission, value.authorityEpoch)
+            )
           }
         : undefined
     if (!this.#buckets.admits(this.#bucket('SCENE', value, admission))) {
@@ -1988,14 +2020,17 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       sceneId: scene.id,
       version: nextScene.version
     })
-    const committed = liveSessionWebSocketServerMessageDtoSchema.parse({
-      commandId,
-      delta: { scope: 'SCENE', result: expectedSceneResult },
-      sequence: current.sequence + 1,
-      type: 'COMMAND_COMMITTED'
-    })
-    if (committed.type !== 'COMMAND_COMMITTED' || committed.delta?.scope !== 'SCENE')
-      throw new Error('Live Session Scene command receipt is invalid.')
+    const committed = liveSessionWebSocketServerMessageDtoSchema.parse(
+      this.#sceneCommittedFor({
+        admission,
+        epoch: value.authorityEpoch,
+        committed: { commandId, sequence: current.sequence + 1 },
+        before: scene,
+        after: nextScene,
+        result: expectedSceneResult,
+        occurrence: null
+      })
+    )
     this.#roomStore.assertAuthorityHead({
       epoch: current.authorityEpoch,
       sequence: current.sequence,
@@ -2057,7 +2092,13 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
         fogLayerCount: state.fogLayerCount
       }
     }
-    this.#broadcastSceneCommitted(committed, scene, nextScene, expectedSceneResult, null)
+    this.#broadcastSceneCommitted(
+      { commandId, sequence: current.sequence + 1 },
+      scene,
+      nextScene,
+      expectedSceneResult,
+      { socket, message: committed }
+    )
     await this.#scheduleAlarm()
     return
   }
@@ -2960,7 +3001,11 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
           scene
             ? {
                 scope: 'SCENE',
-                state: projectSceneForViewer(scene, viewer(admission))
+                state: projectSceneForViewer(
+                  scene,
+                  viewer(admission),
+                  this.#boundTokenControl(scene, admission, value.authorityEpoch)
+                )
               }
             : undefined
         )
@@ -3051,13 +3096,18 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
             scene: edited.scene
           })
           nextStateJson = createNativeLiveSessionState(composition.scene).stateJson
-          receipt = liveSessionWebSocketServerMessageDtoSchema.parse({
-            commandId: command.commandId,
-            type: 'COMMAND_COMMITTED',
-            sequence,
-            delta: { scope: 'SCENE', result: edited.result }
-          })
-          return { ...edited, composition }
+          receipt = liveSessionWebSocketServerMessageDtoSchema.parse(
+            this.#sceneCommittedFor({
+              admission,
+              epoch: value.authorityEpoch,
+              committed: { commandId: command.commandId, sequence },
+              before,
+              after: composition.scene,
+              result: edited.result,
+              occurrence: null
+            })
+          )
+          return { ...edited, composition, receipt }
         },
         (entry) => {
           const latest = this.#authorization.current(value.authorityEpoch)
@@ -3104,7 +3154,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       before,
       committed.composition.scene,
       committed.result,
-      null
+      { socket, message: committed.receipt }
     )
     if (committed.fogChanged) this.#broadcastStateSync()
     await this.#scheduleAlarm()
@@ -3172,14 +3222,6 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
             sceneId: result.scene.sceneId,
             version: result.scene.version
           })
-          receipt = liveSessionWebSocketServerMessageDtoSchema.parse({
-            commandId: command.commandId,
-            delta: result.encounter
-              ? { scope: 'ENCOUNTER', result: result.encounter }
-              : { scope: 'SCENE', result: scene },
-            sequence,
-            type: 'COMMAND_COMMITTED'
-          })
           const raw = result.scene.delta
             ? applySceneDelta(cache.uncomposedScene!, result.scene.delta, result.nextScene.version)
             : cache.uncomposedScene!
@@ -3198,9 +3240,29 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
             scene: uncomposedScene
           })
           nextStateJson = createNativeLiveSessionState(composition.scene).stateJson
+          const sent = liveSessionWebSocketServerMessageDtoSchema.parse(
+            this.#sceneCommittedFor({
+              admission,
+              epoch: value.authorityEpoch,
+              committed: { commandId: command.commandId, sequence },
+              before,
+              after: composition.scene,
+              result: scene,
+              occurrence: scene.occurrence
+            })
+          )
+          receipt = result.encounter
+            ? liveSessionWebSocketServerMessageDtoSchema.parse({
+                commandId: command.commandId,
+                delta: { scope: 'ENCOUNTER', result: result.encounter },
+                sequence,
+                type: 'COMMAND_COMMITTED'
+              })
+            : sent
           return {
             ...result,
             scene,
+            sent,
             nextScene: composition.scene,
             uncomposedScene,
             characterRevisions: composition.characterRevisions,
@@ -3258,7 +3320,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       before,
       committed.nextScene,
       committed.scene,
-      socket
+      { socket, message: committed.sent }
     )
     if (committed.fogChanged || !equalCanonicalJson(before.tokens, committed.nextScene.tokens))
       this.#broadcastStateSync()
@@ -3762,38 +3824,84 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
   }
 
   /**
-   * Sends one committed Scene command to every member, projected for each. Only `initiator` sees
-   * its Encounter occurrence; a member who cannot see the change gets the version bump.
+   * Sends one committed Scene command to every member, projected for each. The `sender` is sent
+   * the message already built for its stored receipt, so projection runs once per viewer and a
+   * retry replays exactly what it received; a member who cannot see the change gets the version bump.
    */
   #broadcastSceneCommitted(
     committed: { commandId: string; sequence: number },
     before: CampaignSceneStateDto,
     after: CampaignSceneStateDto,
     result: SceneCommandResultDto,
-    initiator: WebSocket | null
+    sender: { socket: WebSocket; message: LiveSessionWebSocketServerMessageDto }
   ): void {
     for (const socket of this.ctx.getWebSockets()) {
       const admission = this.#liveAdmission(socket)
-      if (!admission) continue
-      const occurrence = socket === initiator ? result.occurrence : null
-      const delta = result.delta
-        ? projectSceneDeltaForViewer(before, after, viewer(admission), result.delta)
-        : null
-      send(socket, {
-        ...committed,
-        delta: delta
-          ? { scope: 'SCENE', result: { ...result, delta, occurrence } }
-          : after.version !== before.version
-            ? {
-                scope: 'SCENE_VERSION',
-                sceneId: result.sceneId,
-                version: result.version
-              }
-            : occurrence
-              ? { scope: 'SCENE', result: { ...result, occurrence } }
-              : null,
-        type: 'COMMAND_COMMITTED'
-      })
+      const epoch = attachment(socket)?.authorityEpoch
+      if (!admission || !epoch) continue
+      send(
+        socket,
+        socket === sender.socket
+          ? sender.message
+          : this.#sceneCommittedFor({
+              admission,
+              epoch,
+              committed,
+              before,
+              after,
+              result,
+              occurrence: null
+            })
+      )
+    }
+  }
+
+  /**
+   * The committed Scene command as `admission` receives it. The sender's stored receipt is this
+   * message, so an exact retry replays what the sender was sent, never the raw delta. The one
+   * exception: `#commitRoomGeometry` stores the ENCOUNTER receipt when a movement decision
+   * settles, so that replay omits this Scene receipt (RELIABILITY-3).
+   */
+  #sceneCommittedFor({
+    admission,
+    epoch,
+    committed,
+    before,
+    after,
+    result,
+    occurrence
+  }: {
+    admission: Pick<Admission, 'role' | 'userId'>
+    epoch: string
+    committed: { commandId: string; sequence: number }
+    before: CampaignSceneStateDto
+    after: CampaignSceneStateDto
+    result: SceneCommandResultDto
+    occurrence: SceneCommandResultDto['occurrence']
+  }): LiveSessionWebSocketServerMessageDto {
+    const delta = result.delta
+      ? projectSceneDeltaForViewer(
+          before,
+          after,
+          viewer(admission),
+          result.delta,
+          this.#boundTokenControl(after, admission, epoch)
+        )
+      : null
+    return {
+      ...committed,
+      delta: delta
+        ? { scope: 'SCENE', result: { ...result, delta, occurrence } }
+        : after.version !== before.version
+          ? {
+              scope: 'SCENE_VERSION',
+              sceneId: result.sceneId,
+              version: result.version
+            }
+          : occurrence
+            ? { scope: 'SCENE', result: { ...result, occurrence } }
+            : null,
+      type: 'COMMAND_COMMITTED'
     }
   }
   #rejectCommand(

@@ -30,6 +30,22 @@ export const encounterActionChoiceDtoSchema = lazySchema(() =>
     rulesText: z.optional(basicActionReusableDefinitionDocumentDtoSchema.shape.rulesText),
     /** What a System-authored basic action costs to use, shown beside its name. */
     actionCost: z.optional(basicActionReusableDefinitionDocumentDtoSchema.shape.actionCost),
+    /** The numeric range geometry the compiled target policy enforces; `rangeLabel` words the authored range instead. */
+    range: z.optional(
+      z.discriminatedUnion('kind', [
+        /** The action reaches only its user. */
+        z.strictObject({ kind: z.literal('SELF') }),
+        /** Touch (5 ft) or a distance without a long range: a reach, a spell's range, the 0 ft swarm space. */
+        z.strictObject({ kind: z.literal('WITHIN'), distance: shapeMeasurementDtoSchema }),
+        /** A ranged weapon attack: normal range, and disadvantage out to the long range. */
+        z.strictObject({
+          kind: z.literal('RANGED'),
+          normal: shapeMeasurementDtoSchema,
+          long: shapeMeasurementDtoSchema
+        }),
+        z.strictObject({ kind: z.literal('UNLIMITED') })
+      ])
+    ),
     rangeLabel: z.optional(labelSchema),
     attackBonus: z.optional(z.number().check(z.int())),
     damageLabel: z.optional(labelSchema),

@@ -4,7 +4,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite'
 import { ConvexReactClient, useAction, useConvex } from 'convex/react'
 import { getFunctionName } from 'convex/server'
 import { useEffect, useState, type ComponentProps, type JSX, type ReactNode } from 'react'
-import { expect, fn, mocked, userEvent, waitFor, within } from 'storybook/test'
+import { expect, fireEvent, fn, mocked, userEvent, waitFor, within } from 'storybook/test'
 import { http, HttpResponse } from 'msw'
 import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
 import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaigns'
@@ -23,11 +23,12 @@ import {
   sceneFogPatchInputSchema,
   type SceneFogPatchInput
 } from '@artificer-toolkit/schema/api/sceneFog'
-import type {
-  LiveSessionRecipientStateDto,
-  LiveSessionWebSocketServerMessageDto
+import {
+  liveSessionWebSocketClientMessageDtoSchema,
+  liveSessionRecipientStateDtoSchema,
+  liveSessionWebSocketServerMessageDtoSchema,
+  type LiveSessionRecipientStateDto
 } from '@artificer-toolkit/schema/api/liveSessions'
-import { liveSessionWebSocketClientMessageDtoSchema } from '@artificer-toolkit/schema/api/liveSessions'
 import {
   sceneEncounterBindingSchema,
   sceneRecipientHeaderSchema,
@@ -37,11 +38,13 @@ import {
   sceneRecipientPageSchema
 } from '@artificer-toolkit/schema/api/sceneRecipient'
 import {
+  campaignSceneShowingDtoSchema,
   type CampaignSceneShowingDto,
   type CampaignSceneStateDto,
   setCampaignLiveScenePresentationInputDtoSchema,
   setCampaignLiveScenePresentationResultDtoSchema
 } from '@artificer-toolkit/schema/api/vttScenes'
+import { validated } from '../../../test/validatedFixture'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { projectSceneForViewer } from '@artificer-toolkit/shared/vtt'
 import { getCampaignDetail } from '#app/data/campaigns/queries'
@@ -55,6 +58,13 @@ import {
   tabletopPlayerEncounter
 } from './CampaignTabletop.stories.fixtures'
 import { CampaignTabletopWindow } from './CampaignTabletopWindow'
+import {
+  drawnToken,
+  expectDrawnPresentation,
+  latestStageRenderer
+} from './vttSceneRenderer.assertions'
+import { gmDarknessCapAlpha, selectionOutlineColor } from './vttSceneRenderer.model'
+import { buildVttTokenPresentations } from './vttTokenPresentation.model'
 
 const liveSessionTokenHandler = http.get('*/api/auth/convex/token', () =>
   HttpResponse.json({ token: 'story-convex-access-token' })
@@ -67,11 +77,11 @@ const fogBegin = fn()
 const fogAppend = fn()
 const storyFogSaveId = '77777777-7777-4777-8777-777777777799'
 const showScene = fn()
-const shownScene = {
+const shownScene = validated(campaignSceneShowingDtoSchema)({
   sceneId: '77777777-7777-4777-8777-777777777798',
   sceneName: 'The Ashen Stair',
   shownAt: '2099-08-15T20:00:00.000Z'
-} satisfies CampaignSceneShowingDto
+})
 const meta = {
   component: CampaignTabletopWindow,
   beforeEach({ msw }) {
@@ -310,6 +320,38 @@ export const PlayerWindow: Story = {
   }
 }
 
+// The real presentation of the Warden for one viewer, built by the product's own function.
+function wardenPresentationFor(
+  role: CampaignDetailDto['role'],
+  encounter: EncounterGmProjectionDto | EncounterPlayerProjectionDto
+) {
+  const scene = projectScene(role, presentedTokensFixtures.liveScene)
+  const wardenToken = scene.tokens[1]!
+  const presentation = buildVttTokenPresentations({
+    actorIdByTokenId: new Map([[wardenToken.id, wardenId]]),
+    boundTokenControl: new Map(),
+    currentUserId: tabletopCurrentUserId,
+    encounter,
+    pending: null,
+    scene
+  })[wardenToken.id]!
+  return { presentation, wardenToken }
+}
+
+// The renderer's live display objects for the Warden match the real presentation for that viewer.
+async function expectDrawnWardenPresentation(
+  role: CampaignDetailDto['role'],
+  encounter: EncounterGmProjectionDto | EncounterPlayerProjectionDto
+): Promise<void> {
+  const { presentation, wardenToken } = wardenPresentationFor(role, encounter)
+  await expect(presentation.statuses.length).toBeGreaterThan(0)
+  const renderer = await latestStageRenderer()
+  await waitFor(() => expect(renderer.getDiagnostics().tokens.length).toBeGreaterThan(0))
+  await waitFor(async () =>
+    expectDrawnPresentation(drawnToken(renderer.getDiagnostics(), wardenToken.id), presentation)
+  )
+}
+
 // VTT_UI-1 journey: the scene canvas describes each token's statuses and the current turn.
 export const GmSeesTokenStatuses: Story = {
   args: {
@@ -333,6 +375,333 @@ export const GmSeesTokenStatuses: Story = {
     await expect(description).toContain('Frightened')
     // The GM also sees how hurt the Warden is.
     await expect(description).toContain('Wounded')
+    await expectDrawnWardenPresentation('OWNER', presentedTokensFixtures.gmEncounter)
+  }
+}
+
+// The outer ring shows at most eight segments; focusing a token in the controls names every status.
+export const FocusingATokenListsEveryStatus: Story = {
+  args: {
+    campaignId: tabletopCampaignId,
+    currentUserId: tabletopCurrentUserId
+  },
+  render: (args) =>
+    renderWindow(args, createTabletopCampaign('OWNER'), null, presentedTokensFixtures),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body)
+    await page.findByText('Scene map ready.', undefined, { timeout: mapReadyTimeoutMs })
+    const { presentation, wardenToken } = wardenPresentationFor(
+      'OWNER',
+      presentedTokensFixtures.gmEncounter
+    )
+    await expect(presentation.statuses.length).toBeGreaterThan(0)
+    await expect(page.queryByRole('region', { name: `${wardenToken.label} statuses` })).toBeNull()
+    await userEvent.click(await page.findByRole('button', { name: 'Scene controls' }))
+    const sceneControls = await page.findByRole('menu', { name: 'Scene controls' })
+    const focusItem = await within(sceneControls).findByRole('menuitem', {
+      name: `Focus ${wardenToken.label}`
+    })
+    focusItem.focus()
+    const list = await page.findByRole('region', { name: `${wardenToken.label} statuses` })
+    for (const status of presentation.statuses) {
+      await expect(within(list).getByText(status.label)).toBeVisible()
+    }
+    focusItem.blur()
+    await waitFor(() =>
+      expect(page.queryByRole('region', { name: `${wardenToken.label} statuses` })).toBeNull()
+    )
+  }
+}
+
+// Presses the canvas centre, where focusing a token puts it, or a corner, which is empty map there.
+async function pressStage(canvas: HTMLElement, where: 'centre' | 'corner'): Promise<void> {
+  await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
+  const bounds = canvas.getBoundingClientRect()
+  const point =
+    where === 'centre'
+      ? { x: bounds.left + bounds.width / 2, y: bounds.top + bounds.height / 2 }
+      : { x: bounds.left + 4, y: bounds.top + 4 }
+  const pointer = { clientX: point.x, clientY: point.y, pointerId: 1, pointerType: 'mouse' }
+  fireEvent.pointerDown(canvas, { ...pointer, button: 0, buttons: 1 })
+  fireEvent.pointerUp(canvas, { ...pointer, button: 0, buttons: 0 })
+}
+
+// VTT_UI-1.1 journey: the SELECT tool selects any token on the canvas or from the Scene controls.
+export const SelectingATokenOutlinesIt: Story = {
+  args: {
+    campaignId: tabletopCampaignId,
+    currentUserId: tabletopCurrentUserId
+  },
+  render: (args) =>
+    renderWindow(args, createTabletopCampaign('PLAYER'), null, presentedTokensFixtures),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body)
+    await page.findByText('Scene map ready.', undefined, { timeout: mapReadyTimeoutMs })
+    const stage = page.getByRole('img', { name: 'Interactive campaign scene' })
+    const renderer = await latestStageRenderer()
+    const scene = projectScene('PLAYER', presentedTokensFixtures.liveScene)
+    // The player moves Ember; the Warden is not theirs, so selecting it must still work.
+    const [ember, warden] = [scene.tokens[0]!, scene.tokens[1]!]
+    await expect(ember.controlledByUserIds).toContain(tabletopCurrentUserId)
+    await expect(warden.controlledByUserIds).not.toContain(tabletopCurrentUserId)
+    const selectedIds = () =>
+      renderer
+        .getDiagnostics()
+        .tokens.filter((token) => token.selection)
+        .map((token) => token.id)
+
+    renderer.focusPoint(ember.position)
+    await pressStage(stage, 'centre')
+    await waitFor(() => expect(selectedIds()).toEqual([ember.id]))
+    await expect(drawnToken(renderer.getDiagnostics(), ember.id).selection?.color).toBe(
+      selectionOutlineColor
+    )
+    await waitFor(() =>
+      expect(stage.getAttribute('aria-description')).toMatch(
+        new RegExp(`${ember.label}[^;]*, selected`)
+      )
+    )
+    await expect(stage.getAttribute('aria-description')?.match(/, selected/g)).toHaveLength(1)
+
+    renderer.focusPoint(warden.position)
+    await pressStage(stage, 'centre')
+    await waitFor(() => expect(selectedIds()).toEqual([warden.id]))
+
+    await pressStage(stage, 'corner')
+    await waitFor(() => expect(selectedIds()).toEqual([]))
+    await expect(stage.getAttribute('aria-description')).not.toContain(', selected')
+
+    await userEvent.click(await page.findByRole('button', { name: 'Scene controls' }))
+    const sceneControls = await page.findByRole('menu', { name: 'Scene controls' })
+    await userEvent.click(
+      await within(sceneControls).findByRole('menuitem', { name: `Focus ${ember.label}` })
+    )
+    await waitFor(() => expect(selectedIds()).toEqual([ember.id]))
+  }
+}
+
+// VTT_UI-1.2: the selected token lists every status until the selection clears.
+export const SelectingATokenListsItsStatuses: Story = {
+  args: {
+    campaignId: tabletopCampaignId,
+    currentUserId: tabletopCurrentUserId
+  },
+  render: (args) =>
+    renderWindow(args, createTabletopCampaign('PLAYER'), null, presentedTokensFixtures),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body)
+    await page.findByText('Scene map ready.', undefined, { timeout: mapReadyTimeoutMs })
+    const stage = page.getByRole('img', { name: 'Interactive campaign scene' })
+    const renderer = await latestStageRenderer()
+    const { presentation, wardenToken } = wardenPresentationFor(
+      'PLAYER',
+      presentedTokensFixtures.playerEncounter
+    )
+    await expect(presentation.statuses.length).toBeGreaterThan(0)
+    const statusList = () => page.queryByRole('region', { name: `${wardenToken.label} statuses` })
+
+    renderer.focusPoint(wardenToken.position)
+    await pressStage(stage, 'centre')
+    const list = await page.findByRole('region', { name: `${wardenToken.label} statuses` })
+    for (const status of presentation.statuses) {
+      await expect(within(list).getByText(status.label)).toBeVisible()
+    }
+
+    await pressStage(stage, 'corner')
+    await waitFor(() => expect(statusList()).toBeNull())
+  }
+}
+
+// VTT_UI-1.2: pointing at a token's Focus item in the Scene controls lists every status.
+export const HoveringAFocusItemListsEveryStatus: Story = {
+  args: {
+    campaignId: tabletopCampaignId,
+    currentUserId: tabletopCurrentUserId
+  },
+  render: (args) =>
+    renderWindow(args, createTabletopCampaign('OWNER'), null, presentedTokensFixtures),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body)
+    await page.findByText('Scene map ready.', undefined, { timeout: mapReadyTimeoutMs })
+    const { presentation, wardenToken } = wardenPresentationFor(
+      'OWNER',
+      presentedTokensFixtures.gmEncounter
+    )
+    await expect(presentation.statuses.length).toBeGreaterThan(0)
+    await userEvent.click(await page.findByRole('button', { name: 'Scene controls' }))
+    const sceneControls = await page.findByRole('menu', { name: 'Scene controls' })
+    const focusItem = await within(sceneControls).findByRole('menuitem', {
+      name: `Focus ${wardenToken.label}`
+    })
+    await userEvent.hover(focusItem)
+    const list = await page.findByRole('region', { name: `${wardenToken.label} statuses` })
+    for (const status of presentation.statuses) {
+      await expect(within(list).getByText(status.label)).toBeVisible()
+    }
+    await userEvent.unhover(focusItem)
+    await waitFor(() =>
+      expect(page.queryByRole('region', { name: `${wardenToken.label} statuses` })).toBeNull()
+    )
+  }
+}
+
+// VTT_UI-1.2: pointing at another token lists its statuses over the selected token's; leaving it
+// lists the selected token's again.
+export const HoveringATokenListsItOverTheSelection: Story = {
+  args: {
+    campaignId: tabletopCampaignId,
+    currentUserId: tabletopCurrentUserId
+  },
+  render: (args) => renderWindow(args, createTabletopCampaign('OWNER'), null, sentryFixtures),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body)
+    await page.findByText('Scene map ready.', undefined, { timeout: mapReadyTimeoutMs })
+    const stage = page.getByRole('img', { name: 'Interactive campaign scene' })
+    const renderer = await latestStageRenderer()
+    const { wardenToken } = wardenPresentationFor('OWNER', sentryFixtures.gmEncounter)
+    const sentryToken = sentryFixtures.liveScene.tokens.find((token) => token.id === sentryTokenId)!
+    const statusList = (label: string) => page.queryByRole('region', { name: `${label} statuses` })
+
+    renderer.focusPoint(wardenToken.position)
+    await pressStage(stage, 'centre')
+    await expect(
+      within(await page.findByRole('region', { name: `${wardenToken.label} statuses` })).getByText(
+        'Poisoned'
+      )
+    ).toBeVisible()
+
+    await userEvent.click(await page.findByRole('button', { name: 'Scene controls' }))
+    const sceneControls = await page.findByRole('menu', { name: 'Scene controls' })
+    const sentryFocus = await within(sceneControls).findByRole('menuitem', {
+      name: `Focus ${sentryToken.label}`
+    })
+    await userEvent.hover(sentryFocus)
+    const sentryList = await page.findByRole('region', { name: `${sentryToken.label} statuses` })
+    await expect(within(sentryList).getByText('Prone')).toBeVisible()
+    await expect(statusList(wardenToken.label)).toBeNull()
+
+    await userEvent.unhover(sentryFocus)
+    await waitFor(() => expect(statusList(sentryToken.label)).toBeNull())
+    const wardenList = await page.findByRole('region', { name: `${wardenToken.label} statuses` })
+    await expect(within(wardenList).getByText('Poisoned')).toBeVisible()
+    // Close the menu: with three tokens it scrolls in the test viewport, and that scroll is not yet
+    // keyboard-reachable (VTT_UI-4.2 tracks it).
+    await userEvent.keyboard('{Escape}')
+    await waitFor(() => expect(page.queryByRole('menu', { name: 'Scene controls' })).toBeNull())
+  }
+}
+
+export const GmPreviewsATokenView: Story = {
+  args: {
+    campaignId: tabletopCampaignId,
+    currentUserId: tabletopCurrentUserId
+  },
+  render: (args) => renderWindow(args, createTabletopCampaign('OWNER'), null, previewFixtures),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body)
+    await page.findByText('Scene map ready.', undefined, { timeout: mapReadyTimeoutMs })
+    const { wardenToken } = wardenPresentationFor('OWNER', previewFixtures.gmEncounter)
+    const renderer = await latestStageRenderer()
+    await expect(renderer.getDiagnostics().lighting.visionCount).toBe(0)
+    await userEvent.click(await page.findByRole('button', { name: 'Scene controls' }))
+    const sceneControls = await page.findByRole('menu', { name: 'Scene controls' })
+    const controls = within(sceneControls)
+    // Mantine fixes menu items to role menuitem, which cannot carry a pressed or checked state,
+    // so the item's own words say whether the preview is on.
+    await userEvent.click(
+      await controls.findByRole('menuitem', { name: `Preview view ${wardenToken.label}` })
+    )
+    const stop = await controls.findByRole('menuitem', {
+      name: `Stop previewing ${wardenToken.label}`
+    })
+    await expect(controls.getAllByRole('menuitem', { name: /^Stop previewing/ })).toHaveLength(1)
+    // The renderer draws the previewed token's sight.
+    await waitFor(() => expect(renderer.getDiagnostics().lighting.visionCount).toBe(1))
+    await userEvent.click(stop)
+    await expect(
+      await controls.findByRole('menuitem', { name: `Preview view ${wardenToken.label}` })
+    ).toBeVisible()
+    await waitFor(() => expect(renderer.getDiagnostics().lighting.visionCount).toBe(0))
+  }
+}
+
+// The GM's preview is derived from the Scene: once the previewed token leaves it, the map is the
+// GM's see-all view again, not black.
+export const GmPreviewEndsWhenThePreviewedTokenLeavesTheScene: Story = {
+  args: {
+    campaignId: tabletopCampaignId,
+    currentUserId: tabletopCurrentUserId
+  },
+  render: (args) => renderWindow(args, createTabletopCampaign('OWNER'), null, previewFixtures),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body)
+    await page.findByText('Scene map ready.', undefined, { timeout: mapReadyTimeoutMs })
+    const { wardenToken } = wardenPresentationFor('OWNER', previewFixtures.gmEncounter)
+    const renderer = await latestStageRenderer()
+    // Ground far from every light and token in the darkened scene, and behind a wall from the
+    // Warden: its authored sight (120 ft) reaches the whole map, so only the wall hides it.
+    const ground = [{ x: 400, y: 100 }]
+    await expect(renderer.sampleDarkness(ground)[0]?.alpha).toBeCloseTo(gmDarknessCapAlpha, 1)
+    await userEvent.click(await page.findByRole('button', { name: 'Scene controls' }))
+    const controls = within(await page.findByRole('menu', { name: 'Scene controls' }))
+    await userEvent.click(
+      await controls.findByRole('menuitem', { name: `Preview view ${wardenToken.label}` })
+    )
+    await waitFor(() => expect(renderer.getDiagnostics().lighting.visionCount).toBe(1))
+    await expect(renderer.sampleDarkness(ground)[0]).toMatchObject({ alpha: 1, masked: true })
+
+    syncStoryScene({
+      ...previewFixtures.liveScene,
+      tokens: previewFixtures.liveScene.tokens.filter((token) => token.id !== wardenToken.id),
+      version: previewFixtures.liveScene.version + 1
+    })
+    await waitFor(() => expect(renderer.getDiagnostics().tokenVisualCount).toBe(1))
+    await expect(renderer.getDiagnostics().lighting.visionCount).toBe(0)
+    await expect(renderer.sampleDarkness(ground)[0]?.alpha).toBeCloseTo(gmDarknessCapAlpha, 1)
+    await expect(renderer.sampleDarkness(ground)[0]?.masked).toBe(false)
+    await expect(page.queryByRole('menuitem', { name: /previewing/ })).toBeNull()
+  }
+}
+
+// Hovering a token on the canvas lists its statuses in the DOM, and leaving hides the list.
+export const HoveringATokenOnTheCanvasListsItsStatuses: Story = {
+  args: {
+    campaignId: tabletopCampaignId,
+    currentUserId: tabletopCurrentUserId
+  },
+  render: (args) =>
+    renderWindow(args, createTabletopCampaign('OWNER'), null, presentedTokensFixtures),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body)
+    await page.findByText('Scene map ready.', undefined, { timeout: mapReadyTimeoutMs })
+    const { presentation, wardenToken } = wardenPresentationFor(
+      'OWNER',
+      presentedTokensFixtures.gmEncounter
+    )
+    await expect(presentation.statuses.length).toBeGreaterThan(0)
+    const region = { name: `${wardenToken.label} statuses` }
+    await expect(page.queryByRole('region', region)).toBeNull()
+    // Centring the view puts the Warden under the middle of the canvas.
+    const stageRenderer = await latestStageRenderer()
+    stageRenderer.focusPoint(wardenToken.position)
+    const canvas = page.getByRole('img', { name: 'Interactive campaign scene' })
+    const bounds = canvas.getBoundingClientRect()
+    const pointer = { pointerId: 41, pointerType: 'mouse' }
+    fireEvent.pointerMove(canvas, {
+      ...pointer,
+      clientX: bounds.left + bounds.width / 2,
+      clientY: bounds.top + bounds.height / 2
+    })
+    const list = await page.findByRole('region', region)
+    for (const status of presentation.statuses) {
+      await expect(within(list).getByText(status.label)).toBeVisible()
+    }
+    fireEvent.pointerMove(canvas, {
+      ...pointer,
+      clientX: bounds.left + 4,
+      clientY: bounds.top + 4
+    })
+    await waitFor(() => expect(page.queryByRole('region', region)).toBeNull())
   }
 }
 
@@ -357,6 +726,7 @@ export const PlayerSeesTokenStatusesWithoutGmHealth: Story = {
     await expect(description).toContain('Poisoned')
     await expect(description).toContain('Frightened')
     await expect(description).not.toContain('Wounded')
+    await expectDrawnWardenPresentation('PLAYER', presentedTokensFixtures.playerEncounter)
   }
 }
 
@@ -442,6 +812,70 @@ const presentedTokensFixtures: TabletopFixtures = {
   }
 }
 
+// A second bound creature, the prone Sentry, so pointing at it lists statuses distinct from the
+// selected Warden's.
+const wardenActor = presentedTokensFixtures.gmEncounter.actors[1]!
+const wardenSceneToken = presentedTokensFixtures.liveScene.tokens[1]!
+const sentryTokenId = '77777777-7777-4777-8777-777777777710'
+const sentryFixtures: TabletopFixtures = {
+  ...presentedTokensFixtures,
+  gmEncounter: {
+    ...presentedTokensFixtures.gmEncounter,
+    actors: [
+      ...presentedTokensFixtures.gmEncounter.actors,
+      {
+        ...wardenActor,
+        conditions: [{ id: 'prone', kind: 'CONDITION', label: 'Prone' }],
+        id: '99999999-9999-4999-8999-999999999903',
+        label: 'Vault Sentry'
+      }
+    ]
+  },
+  liveScene: {
+    ...presentedTokensFixtures.liveScene,
+    tokens: [
+      ...presentedTokensFixtures.liveScene.tokens,
+      {
+        ...wardenSceneToken,
+        id: sentryTokenId,
+        label: 'Vault Sentry',
+        position: { x: 700, y: 300 }
+      }
+    ]
+  }
+}
+
+// The Warden sees in a darkened Scene, so previewing its view is distinguishable from the GM's.
+const previewFixtures: TabletopFixtures = {
+  ...presentedTokensFixtures,
+  liveScene: {
+    ...presentedTokensFixtures.liveScene,
+    ambientIllumination: 'ORDINARY_DARKNESS',
+    tokens: presentedTokensFixtures.liveScene.tokens.map((token) =>
+      token.id === tabletopLiveScene.tokens[1]!.id
+        ? {
+            ...token,
+            vision: {
+              angleDegrees: 360,
+              brightRange: 60,
+              dimRange: 120,
+              directionDegrees: 0,
+              enabled: true
+            }
+          }
+        : token
+    )
+  }
+}
+
+// Replaces the room's presented Scene with a later state, as a Scene edit does mid-session.
+let pushStoryScene: ((scene: CampaignSceneStateDto) => void) | null = null
+
+function syncStoryScene(scene: CampaignSceneStateDto): void {
+  if (!pushStoryScene) throw new Error('The story live session transport is not installed.')
+  pushStoryScene(scene)
+}
+
 function renderWindow(
   args: ComponentProps<typeof CampaignTabletopWindow>,
   campaign: CampaignDetailDto,
@@ -457,9 +891,12 @@ function renderWindow(
     queryFn: async () => campaign
   })
   // This Scene fixture has no Character Sheet action data.
-  queryClient.setQueryDefaults(['convexQuery', 'characters/sheetSlices:get'], {
-    queryFn: async () => null
-  })
+  queryClient.setQueryDefaults(
+    ['convexQuery', getFunctionName(convexApi.characters.sheetSlices.get)],
+    {
+      queryFn: async () => null
+    }
+  )
   queryClient.setQueryData(getCampaignDetail(tabletopCampaignId).queryKey, campaign)
   const encounter = campaign.role === 'OWNER' ? fixtures.gmEncounter : fixtures.playerEncounter
   const scene = projectScene(campaign.role, fixtures.liveScene)
@@ -482,7 +919,7 @@ function renderWindow(
     roll: null,
     occurrence: null
   })
-  const sceneBinding = sceneEncounterBindingSchema.parse({
+  const sceneBinding = validated(sceneEncounterBindingSchema)({
     encounterId: encounter.id,
     encounterVersion: encounter.version,
     sceneId: scene.id
@@ -582,7 +1019,7 @@ function renderWindow(
         const start = input.paginationOpts.cursor === null ? 0 : Number(input.paginationOpts.cursor)
         const page = scene.fogLayers.slice(start, start + input.paginationOpts.numItems)
         const next = start + page.length
-        return sceneFogLayersPageSchema.parse({
+        return validated(sceneFogLayersPageSchema)({
           version: scene.version,
           page: page.map((layer, ordinal) => ({
             ownerUserId: layer.ownerUserId,
@@ -605,7 +1042,7 @@ function renderWindow(
         if (!layer) throw new Error('Story fixture fog layer was not found.')
         const page = layer.chunks.slice(input.offset, input.offset + input.numItems)
         const nextOffset = input.offset + page.length
-        return sceneFogChunksPageSchema.parse({
+        return validated(sceneFogChunksPageSchema)({
           version: scene.version,
           ownerUserId: layer.ownerUserId,
           width: layer.width,
@@ -637,7 +1074,7 @@ function renderWindow(
         return null
       if (name === getFunctionName(convexApi.scenes.presentations.setLive)) {
         const input = setCampaignLiveScenePresentationInputDtoSchema.parse(args)
-        return setCampaignLiveScenePresentationResultDtoSchema.parse({
+        return validated(setCampaignLiveScenePresentationResultDtoSchema)({
           commandId: input.commandId,
           replayed: false,
           campaignId: input.campaignId,
@@ -660,7 +1097,7 @@ function renderWindow(
           throw new Error('Story fixture Encounter binding continuation was not found.')
         const pageTokens = scene.tokens.slice(start, start + input.numItems)
         const next = start + pageTokens.length
-        return sceneRecipientEncounterBindingsPageSchema.parse({
+        return validated(sceneRecipientEncounterBindingsPageSchema)({
           ...sceneBinding,
           page: pageTokens.flatMap((token) => {
             const binding = nativeActorTokenBindings.find(
@@ -716,11 +1153,11 @@ function renderWindow(
   fogBegin.mockReset()
   fogAppend.mockReset()
 
-  const recipientState: LiveSessionRecipientStateDto = {
+  const recipientState = validated(liveSessionRecipientStateDtoSchema)({
     presentationVersion,
     recipientRole: campaign.role,
     scene
-  }
+  })
   liveCommand.mockReset()
   return (
     <StoryLiveSessionTransport encounterResult={encounterResult} state={recipientState}>
@@ -739,10 +1176,14 @@ function projectScene(
 ): CampaignSceneStateDto {
   return role === 'OWNER'
     ? liveScene
-    : projectSceneForViewer(liveScene, {
-        role: 'PLAYER',
-        userId: tabletopCurrentUserId
-      })
+    : projectSceneForViewer(
+        liveScene,
+        {
+          role: 'PLAYER',
+          userId: tabletopCurrentUserId
+        },
+        new Map()
+      )
 }
 
 function recipientHeader(scene: ReturnType<typeof projectScene>) {
@@ -757,7 +1198,7 @@ function recipientHeader(scene: ReturnType<typeof projectScene>) {
     tokens: _tokens,
     ...header
   } = scene
-  return sceneRecipientHeaderSchema.parse({ ...header, recipientRevision })
+  return validated(sceneRecipientHeaderSchema)({ ...header, recipientRevision })
 }
 
 function StoryConvexFixture({
@@ -790,23 +1231,34 @@ function StoryLiveSessionTransport({
 
   useEffect(() => {
     const originalWebSocket = globalThis.WebSocket
-    const readyMessage = {
+    const readyMessage = validated(liveSessionWebSocketServerMessageDtoSchema)({
       campaignId: tabletopCampaignId,
       type: 'TRANSIENT_READY'
-    } satisfies LiveSessionWebSocketServerMessageDto
-    const stateSyncMessage = {
+    })
+    const stateSyncMessage = validated(liveSessionWebSocketServerMessageDtoSchema)({
       authorityEpoch: crypto.randomUUID(),
       sequence: 1,
       state,
       type: 'STATE_SYNC'
-    } satisfies LiveSessionWebSocketServerMessageDto
+    })
     let fogInput: SceneFogPatchInput | null = null
-
     class StoryWebSocket extends EventTarget {
       readyState = 0
 
       constructor() {
         super()
+        pushStoryScene = (scene) =>
+          this.dispatchEvent(
+            new MessageEvent('message', {
+              data: JSON.stringify(
+                validated(liveSessionWebSocketServerMessageDtoSchema)({
+                  ...stateSyncMessage,
+                  sequence: stateSyncMessage.sequence + 1,
+                  state: { ...state, scene }
+                })
+              )
+            })
+          )
         queueMicrotask(() => {
           if (this.readyState !== 0) return
           this.readyState = 1
@@ -833,7 +1285,7 @@ function StoryLiveSessionTransport({
               throw new Error('Unexpected story fog append.')
           }
           if (!fogInput) throw new Error('Story fog append arrived before its begin.')
-          const progress = {
+          const progress = validated(liveSessionWebSocketServerMessageDtoSchema)({
             progress: {
               commandId: fogInput.commandId,
               receivedChunks:
@@ -846,25 +1298,25 @@ function StoryLiveSessionTransport({
               totalChunks: fogInput.chunkManifest.length
             },
             type: 'SCENE_FOG_PROGRESS'
-          } satisfies LiveSessionWebSocketServerMessageDto
+          })
           this.dispatchEvent(new MessageEvent('message', { data: JSON.stringify(progress) }))
         }
         if (message.type === 'COMMAND') {
           liveCommand(message)
           // The room acknowledges an Encounter command to its initiator, which settles the command.
           if (message.command.scope === 'ENCOUNTER') {
-            const committed = {
+            const committed = validated(liveSessionWebSocketServerMessageDtoSchema)({
               commandId: message.command.command.commandId,
               delta: { scope: 'ENCOUNTER', result: encounterResult },
               sequence: message.expectedSessionSequence,
               type: 'COMMAND_COMMITTED'
-            } satisfies LiveSessionWebSocketServerMessageDto
+            })
             this.dispatchEvent(new MessageEvent('message', { data: JSON.stringify(committed) }))
           }
           // The GM binds an Encounter to the presented Scene through the room (D47).
           if (message.command.scope === 'ENCOUNTER_BINDING' && state.scene) {
             const { command } = message.command
-            const committed = {
+            const committed = validated(liveSessionWebSocketServerMessageDtoSchema)({
               commandId: command.commandId,
               delta: {
                 scope: 'ENCOUNTER_BINDING',
@@ -877,7 +1329,7 @@ function StoryLiveSessionTransport({
               },
               sequence: message.expectedSessionSequence + 1,
               type: 'COMMAND_COMMITTED'
-            } satisfies LiveSessionWebSocketServerMessageDto
+            })
             this.dispatchEvent(new MessageEvent('message', { data: JSON.stringify(committed) }))
           }
         }
@@ -901,6 +1353,7 @@ function StoryLiveSessionTransport({
     Reflect.set(globalThis, 'WebSocket', StoryWebSocket)
     setInstalled(true)
     return () => {
+      pushStoryScene = null
       Reflect.set(globalThis, 'WebSocket', originalWebSocket)
     }
   }, [encounterResult, state])

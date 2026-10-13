@@ -83,8 +83,13 @@ function sameRangeFact(
   range: CompiledCharacterTargetPolicy['range']
 ): boolean {
   if (fact.rangeKind !== range.rangeKind) return false
-  if (range.rangeKind !== 'DISTANCE') return fact.amount === null && fact.unit === null
-  return fact.amount === range.amount && fact.unit === range.unit
+  if (range.rangeKind !== 'DISTANCE')
+    return fact.amount === null && fact.longAmount === null && fact.unit === null
+  return (
+    fact.amount === range.amount &&
+    fact.longAmount === (range.longAmount ?? null) &&
+    fact.unit === range.unit
+  )
 }
 
 function reactorTokens(

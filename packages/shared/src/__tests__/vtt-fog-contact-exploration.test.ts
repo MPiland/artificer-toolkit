@@ -27,6 +27,7 @@ function token(input: Pick<SceneToken, 'id' | 'position'> & Partial<SceneToken>)
     label: 'Token',
     locked: false,
     rotationDegrees: 0,
+    senses: [],
     vision: null,
     width: 50,
     ...input

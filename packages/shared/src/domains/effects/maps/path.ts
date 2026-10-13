@@ -54,7 +54,7 @@ import {
   MANIFEST_KIND,
   MANIFEST_KIND_OPTIONS,
   MANUAL_ADJUDICATION_REASON_OPTIONS,
-  MEASUREMENT_UNIT_OPTIONS,
+  LENGTH_UNIT_OPTIONS,
   MOVEMENT_RULE_KIND_OPTIONS,
   NON_MANIFEST_EFFECT_KIND_OPTIONS,
   SCALING_AMOUNT_OPTIONS,
@@ -959,7 +959,7 @@ const ACTOR_RELATIONSHIP_MODULE_NODE_MAP = actorRelationshipModule.define(
         selectSingle(
           ['unit'],
           'Unit',
-          { kind: 'INLINE_OPTIONS', options: MEASUREMENT_UNIT_OPTIONS },
+          { kind: 'INLINE_OPTIONS', options: LENGTH_UNIT_OPTIONS },
           { showIf: local.field(['kind']).eq('SOURCE_RELEASE_MOVEMENT_COST') }
         )
       )
@@ -1587,7 +1587,7 @@ function registerOutcomeFields(
         'Distance Unit',
         {
           kind: 'INLINE_OPTIONS',
-          options: MEASUREMENT_UNIT_OPTIONS
+          options: LENGTH_UNIT_OPTIONS
         },
         {
           requiredIf: true,

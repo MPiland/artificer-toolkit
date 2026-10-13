@@ -302,14 +302,16 @@ describe('CampaignTabletopEncounterDrawer', () => {
       label: 'Antitoxin (vial)',
       sourceHidden: false,
       remainingTicks: 2,
-      expiresAtCampaignMinute: null
+      expiresAtCampaignMinute: null,
+      polarity: 'BENEFICIAL' as const
     }
     const hidden = {
       effectId: '44444444-4444-4444-8444-444444444402',
       label: null,
       sourceHidden: true,
       remainingTicks: 5,
-      expiresAtCampaignMinute: null
+      expiresAtCampaignMinute: null,
+      polarity: 'NEUTRAL' as const
     }
 
     it('lists them for a player without a hidden source, and offers no End', async () => {

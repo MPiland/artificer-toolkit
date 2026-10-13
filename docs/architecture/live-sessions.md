@@ -649,6 +649,20 @@ does not replace the chain.
 separate. Raw rows are what checkpoints carry; vision is recomputed. Native storage-row helpers are in
 `roomSceneRecords.ts`.
 
+**Token senses (current, VTT_UI-3.4).** A token's `vision` is authored only, and fog follows authored
+vision only. Composition (`resolveSceneCharacterVision`) writes a bound token's Character senses
+(Darkvision, Blindsight, Tremorsense, Truesight and similar) to the token's `senses`; an unbound token
+carries none. Senses are player-private: `projectSceneForViewer` and both Scene delta projections empty
+`senses` on every token the PLAYER does not control, using the room's per-viewer bound-token control
+(`#boundTokenControl`, ADR 0034; no current play authorization reads as no control). The GM sees all
+senses. The client renderer applies the view token's senses on top of authored lighting.
+Senses are never persisted. One storage rule enforces it: `sceneStoredTokenDtoSchema`
+(`packages/schema/src/api/vttScenes.ts`) rejects a token with senses. Scene definition batches
+(scenes/definitions:append, via `appendSceneDefinitionInputSchema`) and room checkpoints
+(liveSessions/checkpointScenes, via `sceneStoredLiveEntitySchema`) both parse through it and reject, so
+Convex paged recipient reads need no senses redaction. The transport `sceneTokenDtoSchema` still allows
+senses for composed live Scenes.
+
 **Compaction.** `compact({ epoch, sequence, checksum })` requires the checkpoint acknowledgement from
 Convex, verifies the epoch, prefix checksum and the journal rows through that sequence, and applies
 that prefix's write sets to an in-memory acknowledged base. It then rewrites only the snapshot pages those
@@ -928,8 +942,8 @@ checkpoints. Fog of war is opt-in per Scene (ADR 0034): new Scenes start with fo
 counts as explored and nothing is derived, previewed or painted. `SHARED_PARTY` shares one player's
 exploration with the party; `PER_PLAYER` keeps recipient-owned layers. The GM changes the mode with
 `SET_SCENE_FOG_MODE`; stored layers are kept while fog is `OFF`, and manual fog writes and
-`FOG_AREA_PREVIEW` are refused. The room renders each sample from its cached Scene and Character-vision
-inputs, validates bounded movement geometry and projects private state per admitted recipient. Hidden
+`FOG_AREA_PREVIEW` are refused. The room renders each sample from its cached Scene and authored
+vision, validates bounded movement geometry and projects private state per admitted recipient. Hidden
 tokens, unrevealed barriers, GM annotations, DM-preview fog and other recipient-private state never enter
 a broader broadcast.
 

@@ -212,9 +212,32 @@ export function createSceneToken(
     locked: false,
     position,
     rotationDegrees: 0,
+    senses: [],
     vision: null,
     width: size
   }
+}
+
+/** The Scene token bound to the Character actor of the viewer's main (assigned) Character. */
+export function assignedCharacterTokenId(input: {
+  actorIdByTokenId: ReadonlyMap<string, string>
+  actors: readonly Pick<
+    NonNullable<EncounterSessionStateDto['encounter']>['actors'][number],
+    'id' | 'kind' | 'sourceId'
+  >[]
+  assignedCharacterId: string | null
+}): string | null {
+  const actor = input.actors.find(
+    (candidate) =>
+      candidate.kind === 'CHARACTER' &&
+      candidate.sourceId !== null &&
+      candidate.sourceId === input.assignedCharacterId
+  )
+  if (!actor) return null
+  for (const [tokenId, actorId] of input.actorIdByTokenId) {
+    if (actorId === actor.id) return tokenId
+  }
+  return null
 }
 
 /**

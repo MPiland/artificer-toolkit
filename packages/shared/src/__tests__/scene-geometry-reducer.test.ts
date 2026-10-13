@@ -17,6 +17,7 @@ const token: SceneToken = {
   locked: false,
   position: { x: 1, y: 2 },
   rotationDegrees: 0,
+  senses: [],
   vision: null,
   width: 1
 }

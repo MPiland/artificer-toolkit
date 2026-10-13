@@ -122,6 +122,7 @@ async function fixture(withSecondScene = false) {
     locked: false,
     position: { x: 100, y: 100 },
     rotationDegrees: 0,
+    senses: [],
     // A short sight line, so the move explores cells and leaves an owner fog layer.
     vision: { angleDegrees: 360, brightRange: 0, dimRange: 5, directionDegrees: 0, enabled: true },
     width: 1
@@ -149,6 +150,8 @@ async function fixture(withSecondScene = false) {
     path: [token.position, { x: 900, y: 100 }]
   })
   await checkpointRoom(base.campaign.id)
+  // Seeding leaves no Content Snapshot build scheduled, so none can finish between two
+  // `_scheduled_functions` snapshots once the fake clock starts.
   vi.useFakeTimers()
   const blueprint = await base.owner.caller.mutation(createBlueprint, {
     gameSystemId: base.campaign.gameSystemId,
@@ -486,5 +489,45 @@ it('merges existing head, token and fog rows only when their canonical previous 
       await readFogChunk(ctx, parsedLayer.chunks[0]!, base.scene.sceneId, parsedLayer)
     ).toEqual(base.chunk)
     expect(await ctx.db.query('sceneFogSaves').take(100)).toHaveLength(1)
+  })
+})
+
+it('rejects a checkpointed token that stores senses', async () => {
+  const base = await fixture()
+  const changes = base.publication.changes.map((entry) => {
+    if (entry.table !== 'sceneLiveEntities' || !entry.delta || !('set' in entry.delta)) return entry
+    const { checksum: _checksum, ...fields } = canonicalJsonRecordSchema.parse(entry.delta.set)
+    const next = canonicalJsonRecordSchema.parse({
+      ...fields,
+      value: {
+        collection: 'tokens',
+        entity: {
+          ...base.token,
+          senses: [
+            {
+              channel: 'VISUAL',
+              illuminationAccess: 'ORDINARY_DARKNESS',
+              label: 'Darkvision',
+              range: 60,
+              senseId: crypto.randomUUID()
+            }
+          ]
+        }
+      }
+    })
+    return change('sceneLiveEntities', { ...next, checksum: checksumCanonicalJson(next) })
+  })
+  await expect(
+    base.t.mutation(
+      publish,
+      frame(base.authority, {
+        changes: [],
+        history: [],
+        scenes: [{ ...base.publication, changes }]
+      })
+    )
+  ).rejects.toThrow('Stored Scene tokens never carry senses.')
+  await base.t.run(async (ctx) => {
+    expect(await ctx.db.query('sceneLiveEntities').take(1)).toEqual([])
   })
 })

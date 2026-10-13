@@ -14,6 +14,7 @@ import { createCharacterResourceOwnerKey } from '@artificer-toolkit/shared/chara
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdWolf as wolf } from '../../tests/fixtures/srdCreatures'
 import { greatsword } from '@artificer-toolkit/source-data/srd/equipment/greatsword.js'
+import { longbow } from '@artificer-toolkit/source-data/srd/equipment/longbow.js'
 import { longsword } from '@artificer-toolkit/source-data/srd/equipment/longsword.js'
 import { shieldWood } from '@artificer-toolkit/source-data/srd/equipment/shield-wood.js'
 import {
@@ -78,8 +79,13 @@ function withUnlimitedRange(weapon: typeof greatsword) {
 }
 
 /** A Character carrying a weapon (a two-handed greatsword by default) and a shield, first in initiative. */
-async function setup({ weapon = greatsword, shieldEquipped = true, weaponEquipped = false } = {}) {
-  const base = await setupCharacterRun({}, withUnlimitedRange(weapon))
+async function setup({
+  weapon = greatsword,
+  shieldEquipped = true,
+  weaponEquipped = false,
+  authoredRange = false
+} = {}) {
+  const base = await setupCharacterRun({}, authoredRange ? weapon : withUnlimitedRange(weapon))
   await attachRoomWorker(base.t)
   await base.t.mutation(internal.content.import.importDefinitions, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
@@ -424,6 +430,35 @@ describe('shield stow on two-handed attacks', () => {
 })
 
 describe('versatile grips', () => {
+  it.each([
+    {
+      weapon: longsword,
+      range: { kind: 'WITHIN', distance: { amount: 5, unit: 'FEET' } },
+      rangeLabel: '5 ft'
+    },
+    {
+      weapon: longbow,
+      range: {
+        kind: 'RANGED',
+        normal: { amount: 150, unit: 'FEET' },
+        long: { amount: 600, unit: 'FEET' }
+      },
+      rangeLabel: '150/600 ft'
+    }
+  ])('offers the authored range of a Character $weapon.label attack', async (expected) => {
+    const base = await setup({ weapon: expected.weapon, authoredRange: true })
+    const weaponChoices = (
+      await base.owner.caller.query(getNativeActionChoices, {
+        encounterId: base.run.id,
+        expectedVersion: base.state.version,
+        actorId: base.actor.id
+      })
+    )?.actions.filter((action) => base.actionIds.includes(action.id))
+    expect(weaponChoices?.length).toBeGreaterThan(0)
+    for (const action of weaponChoices ?? [])
+      expect(action).toMatchObject({ range: expected.range, rangeLabel: expected.rangeLabel })
+  })
+
   it('offers one- and two-hand longsword attacks; only the two-hand grip stows the shield', async () => {
     const base = await setup({ weapon: longsword })
     const choices = (

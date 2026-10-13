@@ -1,7 +1,12 @@
-import type { SignedVttMapDeliveryDto } from '@artificer-toolkit/schema/api/media'
-import type { CampaignSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
+import { signedVttMapDeliveryDtoSchema } from '@artificer-toolkit/schema/api/media'
+import {
+  campaignSceneStateDtoSchema,
+  type CampaignSceneStateDto
+} from '@artificer-toolkit/schema/api/vttScenes'
+import { validated } from '../../../test/validatedFixture'
 
-const mapSize = 8_192
+// The VTT_MAP limit is 8192 px a side and 64 MP, so the largest square map is 8000 px.
+const mapSize = 8_000
 const tileSize = 1_024
 const fixtureUserId = fixtureUuid(1)
 const revealedFogChunk = `${'////'.repeat(10_922)}//8=`
@@ -45,16 +50,27 @@ const doors = Array.from({ length: 10 }, (_, index) => ({
   openAngleDegrees: 90
 }))
 
+const wallColumns = 19
+const wallMargin = 120
+const wallLength = 300
+// Spaces the columns so the last wall ends inside the map.
+const wallColumnPitch = Math.floor((mapSize - 2 * wallMargin - wallLength) / (wallColumns - 1))
 const walls = Array.from({ length: 190 }, (_, index) => ({
-  a: { x: (index % 19) * 430 + 120, y: Math.floor(index / 19) * 600 + 260 },
-  b: { x: (index % 19) * 430 + 420, y: Math.floor(index / 19) * 600 + 260 },
+  a: {
+    x: (index % wallColumns) * wallColumnPitch + wallMargin,
+    y: Math.floor(index / wallColumns) * 600 + 260
+  },
+  b: {
+    x: (index % wallColumns) * wallColumnPitch + wallMargin + wallLength,
+    y: Math.floor(index / wallColumns) * 600 + 260
+  },
   blocksLight: true,
   blocksMovement: true,
   id: fixtureUuid(200 + index),
   kind: 'WALL' as const
 }))
 
-export const vttLoadFixtureScene = {
+export const vttLoadFixtureScene = validated(campaignSceneStateDtoSchema)({
   annotations: [],
   ambientIllumination: 'BRIGHT' as const,
   barriers: [...doors, ...walls],
@@ -145,14 +161,15 @@ export const vttLoadFixtureScene = {
     locked: false,
     position: { x: (index % 10) * 720 + 420, y: Math.floor(index / 10) * 720 + 420 },
     rotationDegrees: 0,
+    senses: [],
     vision: null,
     width: 52
   })),
   visionRevealMode: 'ON_DROP',
   version: 1
-} satisfies CampaignSceneStateDto
+})
 
-export const vttLoadFixtureMapDelivery = {
+export const vttLoadFixtureMapDelivery = validated(signedVttMapDeliveryDtoSchema)({
   assetId: loadFixtureMapAssetId,
   expiresAt: '2030-01-01T00:00:00.000Z',
   height: mapSize,
@@ -161,20 +178,21 @@ export const vttLoadFixtureMapDelivery = {
     url: svgDataUrl(2_048, 2_048, '#20252a', 'Overview'),
     width: 2_048
   },
-  tiles: Array.from({ length: 64 }, (_, index) => ({
-    column: index % 8,
-    height: tileSize,
-    row: Math.floor(index / 8),
-    url: svgDataUrl(
-      tileSize,
-      tileSize,
-      index % 2 === 0 ? '#263038' : '#2d2925',
-      `Tile ${index + 1}`
-    ),
-    width: tileSize
-  })),
+  tiles: Array.from({ length: 64 }, (_, index) => {
+    const column = index % 8
+    const row = Math.floor(index / 8)
+    const width = Math.min(tileSize, mapSize - column * tileSize)
+    const height = Math.min(tileSize, mapSize - row * tileSize)
+    return {
+      column,
+      height,
+      row,
+      url: svgDataUrl(width, height, index % 2 === 0 ? '#263038' : '#2d2925', `Tile ${index + 1}`),
+      width
+    }
+  }),
   width: mapSize
-} satisfies SignedVttMapDeliveryDto
+})
 
 export const vttLoadFixtureUserId = fixtureUserId
 

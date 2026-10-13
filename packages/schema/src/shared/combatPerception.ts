@@ -2,7 +2,7 @@ import { z, lazySchema, lazySchemaParts } from '../zod.js'
 
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules/checksum'
 
-import { measurementUnitCodeSchema } from './enums.js'
+import { lengthUnitCodeSchema } from './enums.js'
 import { postgresUuidSchema } from './postgresUuid.js'
 
 const uuidSchema = lazySchema(() =>
@@ -12,7 +12,7 @@ const uuidSchema = lazySchema(() =>
   )
 )
 
-const combatPerceptionChannelDtoSchema = lazySchema(() =>
+export const combatPerceptionChannelDtoSchema = lazySchema(() =>
   z.enum(['VISUAL', 'AUDITORY', 'VIBRATION', 'NONVISUAL'])
 )
 export const combatPerceptionAccessGradeDtoSchema = lazySchema(() =>
@@ -129,7 +129,7 @@ const contributionIdentitySchema = lazySchema(() =>
 const contributionMeasurementSchema = lazySchema(() =>
   z.strictObject({
     amount: z.number().check(z.gte(0)),
-    unit: measurementUnitCodeSchema
+    unit: lengthUnitCodeSchema
   })
 )
 

@@ -1,7 +1,7 @@
-import type { MeasurementUnitCode } from '#core'
+import type { LengthUnitCode } from '#core'
 
 export type SpeedAuthored = {
   speedId: string
   amount: number
-  unit: MeasurementUnitCode
+  unit: LengthUnitCode
 }

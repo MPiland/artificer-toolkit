@@ -28,6 +28,7 @@ function token(position: { x: number; y: number }, size = 100): SceneToken {
     locked: false,
     position,
     rotationDegrees: 0,
+    senses: [],
     vision: null,
     width: size
   }

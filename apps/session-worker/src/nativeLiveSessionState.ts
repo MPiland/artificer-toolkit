@@ -32,16 +32,21 @@ export function hydrateNativeLiveSessionState(stateJson: string): NativeLiveSess
 export function projectNativeLiveSessionState(
   state: NativeLiveSessionState,
   recipient: { role: 'OWNER' | 'PLAYER'; userId: string },
-  presentationVersion: number | null
+  presentationVersion: number | null,
+  boundTokenControl: ReadonlyMap<string, boolean>
 ): LiveSessionRecipientStateDto {
   return liveSessionRecipientStateDtoSchema.parse({
     recipientRole: recipient.role,
     presentationVersion,
     scene: state.scene
-      ? projectSceneForViewer(state.scene, {
-          role: recipient.role === 'OWNER' ? 'GM' : 'PLAYER',
-          userId: recipient.userId
-        })
+      ? projectSceneForViewer(
+          state.scene,
+          {
+            role: recipient.role === 'OWNER' ? 'GM' : 'PLAYER',
+            userId: recipient.userId
+          },
+          boundTokenControl
+        )
       : null
   })
 }

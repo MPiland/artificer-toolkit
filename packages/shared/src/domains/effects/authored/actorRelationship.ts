@@ -2,7 +2,7 @@ import type { DamageAuthored } from './damage.js'
 import type { ConditionAuthored } from './condition.js'
 import type { ActivationAuthored } from './effect.js'
 import type { CheckChoiceAuthored, CheckDcAuthored } from './check.js'
-import { EFFECT_KIND, type MeasurementUnitCode } from '#core'
+import { EFFECT_KIND, type LengthUnitCode } from '#core'
 
 export type ActorRelationshipModuleAuthored =
   | { id: string; order: number; kind: 'TARGET_SIZE_MAXIMUM'; sizeCode: string }
@@ -25,7 +25,7 @@ export type ActorRelationshipModuleAuthored =
       order: number
       kind: 'SOURCE_RELEASE_MOVEMENT_COST'
       amount: number
-      unit: MeasurementUnitCode
+      unit: LengthUnitCode
     }
   | {
       id: string
