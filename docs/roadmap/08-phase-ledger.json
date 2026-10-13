@@ -6752,6 +6752,24 @@
               "id": "RELIABILITY-4.1"
             }
           ]
+        },
+        {
+          "id": "RELIABILITY-5",
+          "title": "Speed and sense modifiers carry their length unit",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": [],
+          "acs": [
+            {
+              "text": "Authored SPEED and SENSE_RANGE modifier values (BONUS, PENALTY, SET_VALUE) are lengths with a unit, converted through the one shared length conversion, so +30 ft on an 18 m sense or speed adds 30 ft; a SET_VALUE speed with no base speed takes its unit from the modifier, with no default unit or zero; SRD content and the authoring node map are migrated; proved by tests that fail before the fix.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Registered 2026-10-13 from lane 3's ruling 3 size report. Modifier values are bare numbers added in the base's unit, so +30 on an 18 m grant gives 48 m, and characterMovementAndSenses defaults a base-less SET_VALUE speed to FEET and 0. The sense override itself becomes a length in the ruling 3 follow-up.",
+              "id": "RELIABILITY-5.1"
+            }
+          ]
         }
       ]
     },
