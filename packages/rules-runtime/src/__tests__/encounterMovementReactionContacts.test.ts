@@ -20,7 +20,7 @@ const square = {
   diagonalPolicy: 'EQUAL'
 } as const
 const feetGrid: SceneGrid = { ...square, unit: 'FEET' }
-const squaresGrid: SceneGrid = { ...square, unit: 'SQUARES' }
+const squaresGrid: SceneGrid = { ...square, distancePerCell: 1, unit: 'SQUARES' }
 
 const tokens = [
   { id: REACTOR_TOKEN_ID, position: { x: 50, y: 50 }, width: 100, height: 100 },
@@ -66,7 +66,8 @@ describe('Movement reaction contacts', () => {
     expect(contactsOn(feetGrid)).toHaveLength(1)
   })
 
-  it('yields no contact for a distance reach on an uncalibrated SQUARES Scene', () => {
-    expect(contactsOn(squaresGrid)).toEqual([])
+  it('finds the same contact for a 5-foot reach, one square, on a SQUARES Scene', () => {
+    expect(contactsOn(squaresGrid)).toHaveLength(1)
+    expect(contactsOn(squaresGrid)).toEqual(contactsOn(feetGrid))
   })
 })

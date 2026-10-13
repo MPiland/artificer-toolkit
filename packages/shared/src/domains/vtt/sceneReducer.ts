@@ -37,44 +37,35 @@ function fogLayerKey(layer: SceneFogLayer): string {
 
 type SceneLength = { amount: number; unit: LengthUnitCode }
 
-/** Feet in a calibrated Scene's distance unit. */
-export function feetInSceneUnit(feet: number, unit: Exclude<SceneGrid['unit'], 'SQUARES'>): number {
+/** The System's base square (SRD 5.1: 5 feet): one square on a SQUARES Scene, adjacent on every Scene. */
+export const SYSTEM_BASE_SQUARE_FEET = 5
+
+/** Feet in a Scene's distance unit; a SQUARES Scene counts base squares. */
+export function feetInSceneUnit(feet: number, unit: SceneGrid['unit']): number {
+  if (unit === 'SQUARES') return feet / SYSTEM_BASE_SQUARE_FEET
   return unit === 'FEET' ? feet : feet * 0.3048
 }
 
-/**
- * A typed length in authoritative Scene units. Null when this Scene cannot measure it: an
- * uncalibrated SQUARES Scene. Never negative.
- */
-export function lengthMeasurementInSceneUnits(length: SceneLength, grid: SceneGrid): number | null {
-  const feet = lengthMeasurementInFeet(length)
-  if (grid.unit === 'SQUARES') return null
-  return feetInSceneUnit(Math.max(0, feet), grid.unit)
+/** A typed length in authoritative Scene units. Never negative. */
+export function lengthMeasurementInSceneUnits(length: SceneLength, grid: SceneGrid): number {
+  return feetInSceneUnit(Math.max(0, lengthMeasurementInFeet(length)), grid.unit)
 }
 
-/**
- * A sense's range in Scene units. A null range is unlimited and stays null; a ranged sense this
- * Scene cannot measure returns null, so callers drop it rather than widen it to unlimited.
- */
-export function senseRangeInSceneUnits(
-  range: SceneLength | null,
-  grid: SceneGrid
-): { range: number | null } | null {
-  if (range === null) return { range: null }
-  const sceneRange = lengthMeasurementInSceneUnits(range, grid)
-  return sceneRange === null ? null : { range: sceneRange }
+/** A sense's range in Scene units. A null range is unlimited and stays null. */
+export function senseRangeInSceneUnits(range: SceneLength | null, grid: SceneGrid): number | null {
+  return range === null ? null : lengthMeasurementInSceneUnits(range, grid)
 }
 
-/** Converts an authoritative Scene length to feet; an uncalibrated SQUARES Scene has none. */
-export function sceneLengthInFeet(amount: number, grid: CampaignSceneState['grid']): number | null {
+/** Converts an authoritative Scene length to feet. */
+export function sceneLengthInFeet(amount: number, grid: CampaignSceneState['grid']): number {
   if (grid.unit === 'FEET') return amount
   if (grid.unit === 'METERS') return amount / 0.3048
-  return null
+  return amount * SYSTEM_BASE_SQUARE_FEET
 }
 
 /**
  * Presents the bound Character's senses on its token. An unlimited sense stays unlimited; a ranged
- * sense this Scene cannot measure, or whose range is empty, is dropped.
+ * sense whose range is empty is dropped.
  */
 export function resolveSceneCharacterVision<T extends Pick<CampaignSceneState, 'tokens' | 'grid'>>(
   state: T,
@@ -96,10 +87,8 @@ export function resolveSceneCharacterVision<T extends Pick<CampaignSceneState, '
       return {
         ...token,
         senses: characterVision.senses.flatMap(({ range, ...sense }) => {
-          const scene = senseRangeInSceneUnits(range, state.grid)
-          return scene === null || (scene.range !== null && scene.range <= 0)
-            ? []
-            : [{ ...sense, range: scene.range }]
+          const sceneRange = senseRangeInSceneUnits(range, state.grid)
+          return sceneRange !== null && sceneRange <= 0 ? [] : [{ ...sense, range: sceneRange }]
         })
       }
     })

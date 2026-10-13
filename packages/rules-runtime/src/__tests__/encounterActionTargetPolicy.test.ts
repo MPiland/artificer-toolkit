@@ -299,12 +299,17 @@ describe('encounter action target range', () => {
     ])
   })
 
-  it('reports an unchecked range without both tokens or on an uncalibrated grid', () => {
+  it('reports an unchecked range without both tokens', () => {
     expect(rangeWarnings({ scene: null })).toEqual([UNCHECKED])
-    const squares: SceneGrid = { ...FEET_GRID, unit: 'SQUARES' }
-    expect(
-      rangeWarnings({ scene: { grid: squares, source: token(0, 0), target: token(1, 0) } })
-    ).toEqual([UNCHECKED])
+  })
+
+  it('measures a feet range as 5-foot squares on a SQUARES grid', () => {
+    const grid: SceneGrid = { ...FEET_GRID, distancePerCell: 1, unit: 'SQUARES' }
+    // 30 feet is 6 squares: 6 squares away is in range, 8 is not.
+    expect(rangeWarnings({ scene: { grid, source: token(0, 0), target: token(6, 0) } })).toEqual([])
+    expect(rangeWarnings({ scene: { grid, source: token(0, 0), target: token(8, 0) } })).toEqual([
+      OUT_OF_RANGE
+    ])
   })
 
   it('never checks an unlimited range', () => {

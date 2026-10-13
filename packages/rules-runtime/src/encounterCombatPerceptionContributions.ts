@@ -57,14 +57,14 @@ function compareEffects(left: LockedCombatPerceptionEffect, right: LockedCombatP
   return left.createdOrdinal - right.createdOrdinal || left.id.localeCompare(right.id)
 }
 
-/** A contribution with its sense range in Scene units; null for a sense this Scene cannot measure. */
+/** A contribution with its sense range in Scene units; an unlimited range stays null. */
 function contributionInSceneUnits(
   contribution: CombatPerceptionContributionDto,
   sceneGrid: SceneGrid
-): CombatPerceptionContribution | null {
+): CombatPerceptionContribution {
   if (contribution.kind !== 'SENSE_GRANT') return contribution
   const sceneRange = senseRangeInSceneUnits(contribution.range, sceneGrid)
-  return sceneRange && { ...contribution, range: sceneRange.range }
+  return { ...contribution, range: sceneRange }
 }
 
 function sourcesForKinds(
@@ -75,23 +75,17 @@ function sourcesForKinds(
   return [...effects].sort(compareEffects).flatMap((effect) =>
     (effect.definition.perceptionContributions ?? [])
       .filter((contribution) => kinds.has(contribution.kind))
-      .flatMap((contribution): CombatPerceptionContributionSource[] => {
-        const resolvedContribution = contributionInSceneUnits(contribution, sceneGrid)
-        if (resolvedContribution === null) return []
-        return [
-          {
-            instanceId: contributionInstanceId(effect.id, contribution.id),
-            source: {
-              kind: 'ACTIVE_EFFECT',
-              activeEffectId: effect.id,
-              activeEffectVersion: effect.version,
-              activeEffectDefinitionChecksum: effect.definitionChecksum
-            },
-            sourceOrdinal: effect.createdOrdinal,
-            contribution: resolvedContribution
-          }
-        ]
-      })
+      .map((contribution): CombatPerceptionContributionSource => ({
+        instanceId: contributionInstanceId(effect.id, contribution.id),
+        source: {
+          kind: 'ACTIVE_EFFECT',
+          activeEffectId: effect.id,
+          activeEffectVersion: effect.version,
+          activeEffectDefinitionChecksum: effect.definitionChecksum
+        },
+        sourceOrdinal: effect.createdOrdinal,
+        contribution: contributionInSceneUnits(contribution, sceneGrid)
+      }))
   )
 }
 

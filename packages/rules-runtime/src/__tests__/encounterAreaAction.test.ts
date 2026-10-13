@@ -141,12 +141,22 @@ describe('compiled point area', () => {
     ).toEqual({ kind: 'RADIUS', radius: 160 })
   })
 
+  it('reads a feet size as 5-foot squares on a SQUARES grid', () => {
+    expect(
+      compileEncounterPointArea(policy({ shape: SHAPES.SPHERE }), {
+        ...FEET_GRID,
+        distancePerCell: 1,
+        unit: 'SQUARES'
+      })
+    ).toEqual({ kind: 'RADIUS', radius: 400 })
+  })
+
   it('refuses a policy that is not a supported point area', () => {
     for (const shape of [SHAPES.CONE, SHAPES.LINE, SHAPES.WALL, SHAPES.DOME, null])
       expect(compileEncounterPointArea(policy({ shape }), FEET_GRID)).toBeNull()
   })
 
-  it('refuses a scaled size, a non-positive size and a grid that cannot hold the unit', () => {
+  it('refuses a scaled size, and a non-positive size', () => {
     expect(
       compileEncounterPointArea(
         policy({
@@ -167,9 +177,6 @@ describe('compiled point area', () => {
     ).toBeNull()
     expect(
       compileEncounterPointArea(policy({ shape: { ...SHAPES.SPHERE, radius: feet(0) } }), FEET_GRID)
-    ).toBeNull()
-    expect(
-      compileEncounterPointArea(policy({ shape: SHAPES.SPHERE }), { ...FEET_GRID, unit: 'SQUARES' })
     ).toBeNull()
   })
 })

@@ -443,7 +443,7 @@ describe('VTT scene replay and projection', () => {
     ).toEqual([])
   })
 
-  it('converts sense ranges to scene units and drops unconvertible ones', () => {
+  it('converts sense ranges to scene units and drops empty ones', () => {
     const state = materializeCampaignScene(definition(), ids.scene)
     state.grid = { kind: 'GRIDLESS', pixelsPerUnit: 5, unit: 'METERS' }
     const bindings = [{ actorId: ids.user, characterId: ids.player, tokenId: ids.token }]
@@ -461,7 +461,8 @@ describe('VTT scene replay and projection', () => {
     expect(resolve({ amount: 0, unit: 'FEET' }, { amount: 30, unit: 'FEET' })).toHaveLength(1)
 
     state.grid = { kind: 'GRIDLESS', pixelsPerUnit: 1, unit: 'SQUARES' }
-    expect(resolve({ amount: 60, unit: 'FEET' })).toEqual([])
+    expect(resolve({ amount: 60, unit: 'FEET' })?.[0]?.range).toBe(12)
+    expect(resolve({ amount: 0, unit: 'FEET' })).toEqual([])
   })
 
   it('presents an unlimited sense on the token whatever the grid can measure', () => {
@@ -1566,7 +1567,7 @@ describe('VTT scene geometry', () => {
       ])
     ).toBe(3 + 4 + 15)
     expect(sceneLengthInFeet(3, { ...grid, unit: 'METERS' })).toBeCloseTo(9.8425, 3)
-    expect(sceneLengthInFeet(3, { ...grid, unit: 'SQUARES' })).toBeNull()
+    expect(sceneLengthInFeet(3, { ...grid, unit: 'SQUARES' })).toBe(15)
   })
 
   it('keeps alternating diagonals across walked segments', () => {

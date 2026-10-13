@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { LENGTH_UNIT_CODES, lengthMeasurementInFeet } from '../domains/core/measurement.js'
 import {
   feetInSceneUnit,
+  sceneLengthInFeet,
   lengthMeasurementInSceneUnits,
   senseRangeInSceneUnits
 } from '../domains/vtt/index.js'
@@ -32,22 +33,21 @@ describe('length measurement', () => {
   it('converts feet into a calibrated Scene unit', () => {
     expect(feetInSceneUnit(10, 'FEET')).toBe(10)
     expect(feetInSceneUnit(10, 'METERS')).toBeCloseTo(3.048)
+    expect(feetInSceneUnit(10, 'SQUARES')).toBe(2)
   })
 
-  it('measures nothing on an uncalibrated SQUARES Scene', () => {
-    expect(
-      lengthMeasurementInSceneUnits(
-        { amount: 5, unit: 'FEET' },
-        { kind: 'GRIDLESS', pixelsPerUnit: 1, unit: 'SQUARES' }
-      )
-    ).toBeNull()
-  })
-
-  it('keeps an unlimited sense unlimited and drops a ranged sense the Scene cannot measure', () => {
+  it('measures a square as the System base square, 5 feet, on a SQUARES Scene', () => {
     const squaresGrid = { ...FEET_GRID, unit: 'SQUARES' } as const
-    expect(senseRangeInSceneUnits(null, FEET_GRID)).toEqual({ range: null })
-    expect(senseRangeInSceneUnits(null, squaresGrid)).toEqual({ range: null })
-    expect(senseRangeInSceneUnits({ amount: 60, unit: 'FEET' }, FEET_GRID)).toEqual({ range: 60 })
-    expect(senseRangeInSceneUnits({ amount: 60, unit: 'FEET' }, squaresGrid)).toBeNull()
+    expect(lengthMeasurementInSceneUnits({ amount: 5, unit: 'FEET' }, squaresGrid)).toBe(1)
+    expect(lengthMeasurementInSceneUnits({ amount: 60, unit: 'FEET' }, squaresGrid)).toBe(12)
+    expect(sceneLengthInFeet(3, squaresGrid)).toBe(15)
+  })
+
+  it('keeps an unlimited sense unlimited and measures a ranged sense in Scene units', () => {
+    const squaresGrid = { ...FEET_GRID, unit: 'SQUARES' } as const
+    expect(senseRangeInSceneUnits(null, FEET_GRID)).toBeNull()
+    expect(senseRangeInSceneUnits(null, squaresGrid)).toBeNull()
+    expect(senseRangeInSceneUnits({ amount: 60, unit: 'FEET' }, FEET_GRID)).toBe(60)
+    expect(senseRangeInSceneUnits({ amount: 60, unit: 'FEET' }, squaresGrid)).toBe(12)
   })
 })

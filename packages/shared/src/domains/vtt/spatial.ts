@@ -315,13 +315,12 @@ export type AuthoredPointArea =
 
 function coordinateLength(length: AuthoredPointAreaLength, grid: SceneGrid): number | null {
   if (length.scaling !== undefined || !(length.amount > 0)) return null
-  const sceneLength = lengthMeasurementInSceneUnits(length, grid)
-  return sceneLength === null ? null : sceneDistanceAsCoordinateLength(grid, sceneLength)
+  return sceneDistanceAsCoordinateLength(grid, lengthMeasurementInSceneUnits(length, grid))
 }
 
 /**
- * The authored area in Scene coordinates. Null for a size that is scaled, empty or unmeasurable on
- * this Scene. A cylinder's height is not modeled (the Scene is flat).
+ * The authored area in Scene coordinates. Null for a size that is scaled or empty. A cylinder's
+ * height is not modeled (the Scene is flat).
  */
 export function pointAreaInSceneCoordinates(
   area: AuthoredPointArea,

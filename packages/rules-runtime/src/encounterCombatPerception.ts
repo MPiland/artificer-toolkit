@@ -48,13 +48,12 @@ function combatPerceptionCapabilitiesFromPinnedSenses(input: {
     .flatMap((pin) => {
       const instanceId = pinnedSenseInstanceId(input.observerActorId, pin)
       const sceneRange = senseRangeInSceneUnits(pin.range, input.sceneGrid)
-      if (sceneRange === null) return []
       return pin.document.capabilities.map((capability, capabilityOrdinal) => ({
         instanceId,
         definitionId: pin.senseDefinitionId,
         checksum: pin.definitionChecksum,
         capabilityOrdinal,
-        range: sceneRange.range,
+        range: sceneRange,
         capability
       }))
     })

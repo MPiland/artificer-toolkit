@@ -78,8 +78,7 @@ export function encounterActionChoiceTarget(
 
 /**
  * The authored area as a point-origin shape in Scene coordinates. A cylinder's height is not
- * modeled (the Scene is flat). Null for an unsupported shape or a size that is scaled, empty or
- * unmeasurable on this Scene.
+ * modeled (the Scene is flat). Null for an unsupported shape or a size that is scaled or empty.
  */
 export function compileEncounterPointArea(
   policy: CompiledActionTargetPolicy,
@@ -144,7 +143,7 @@ function evaluateRangeWarnings(
     { amount: range.amount, unit: range.unit },
     input.grid
   )
-  if (input.sourceToken === null || maximum === null) return [RANGE_UNCHECKED]
+  if (input.sourceToken === null) return [RANGE_UNCHECKED]
   const { position, width, height } = input.sourceToken
   const halfWidth = sceneFootprintMeasureHalfExtent(input.grid, width)
   const halfHeight = sceneFootprintMeasureHalfExtent(input.grid, height)
