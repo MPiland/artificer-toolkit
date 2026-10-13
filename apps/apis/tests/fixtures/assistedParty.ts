@@ -5,6 +5,10 @@ import type {
   EncounterBlueprintDto,
   EncounterGmProjectionDto
 } from '@artificer-toolkit/schema/api/encounters'
+import type {
+  DeletePreparedEncounterInputDto,
+  DeletePreparedEncounterResultDto
+} from '@artificer-toolkit/schema/api/encounterData'
 import { discoverEncounterFeatureActionCapabilities } from '@artificer-toolkit/rules-runtime/encounterFeatureActionCapabilityDiscoveryRegistry'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { longsword } from '@artificer-toolkit/source-data/srd/equipment/longsword.js'
@@ -29,6 +33,11 @@ const createBlueprint = makeFunctionReference<
   CreateEncounterBlueprintInputDto,
   EncounterBlueprintDto
 >('encounters/blueprints:create')
+const deletePrepared = makeFunctionReference<
+  'mutation',
+  DeletePreparedEncounterInputDto,
+  DeletePreparedEncounterResultDto
+>('encounters/runs:deletePrepared')
 const createRun = makeFunctionReference<
   'mutation',
   CreateEncounterInputDto,
@@ -62,7 +71,8 @@ export async function assistedPartyFixture() {
   })
   await equipAllCharacterItems(base)
   await equipAllItems(brynPlayer.caller, brynCharacter.id)
-  // App rolls post to the table chat, which needs a username; every member rolls their own dice.
+  // App rolls post to the table chat, which needs a username: createPartyPlayer names Bryn's player,
+  // and the GM and Aria's player are named here. Every member rolls their own dice.
   for (const [member, username] of [
     [gm, 'GameMaster'],
     [ariaPlayer, 'AriaPlayer']
@@ -99,7 +109,14 @@ export async function assistedPartyFixture() {
     initiativeTieDefinitionId: null
   })
 
-  // The Run is created after both assignments so it seats both Characters.
+  // The Run is created after both assignments so it seats both Characters; the Run the base fixture
+  // prepared (before Bryn joined) goes, so the room holds only this party's Run.
+  await gm.caller.mutation(deletePrepared, {
+    campaignId: campaign.id,
+    encounterId: base.run.id,
+    commandId: crypto.randomUUID(),
+    expectedVersion: base.run.version
+  })
   const blueprint = await gm.caller.mutation(createBlueprint, {
     gameSystemId: campaign.gameSystemId,
     name: 'Assisted party journey',
@@ -159,15 +176,17 @@ export async function assistedPartyFixture() {
     gm,
     aria: {
       player: ariaPlayer,
+      characterId: base.character.id,
       actorId: actorOf(base.character.id),
       attackActionId: attackByCharacter.aria
     },
     bryn: {
       player: brynPlayer,
+      characterId: brynCharacter.id,
       actorId: actorOf(brynCharacter.id),
       attackActionId: attackByCharacter.bryn
     },
-    wolf: { actorId: wolfActor.id, attackActionId: wolfAttackActionId },
+    wolf: { actorId: wolfActor.id, label: wolfActor.label, attackActionId: wolfAttackActionId },
     /** The Run's current version; the room holds the Run (D85), so Convex has it only after a checkpoint. */
     version: async () => {
       await checkpointLiveRoom(campaign.id)

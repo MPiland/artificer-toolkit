@@ -98,6 +98,17 @@ async function declarePartyInitiative(party: AssistedParty, send: ReturnType<typ
       throw new Error('Expected a pending initiative declaration.')
     const controller = controllers.get(pending.actorId)
     if (!controller) throw new Error('A declaring actor is not one of the three seated.')
+    // A player settles only their own actor's declaration (the GM may adjudicate any): the other player
+    // is refused, then the owner is accepted.
+    for (const stranger of [party.aria.player, party.bryn.player])
+      if (stranger !== controller)
+        await expect(
+          domainRejection(
+            executeInRoom(stranger.caller, {
+              command: declarationCommand({ encounterId: party.run.id, pending }).command
+            })
+          )
+        ).resolves.toMatchObject({ reason: 'NOT_ACTOR_CONTROLLER' })
     await send(controller, () =>
       declarationCommand({ encounterId: party.run.id, pending }).command
     )
@@ -143,7 +154,6 @@ describe('Three-user Assisted Encounter with auto-roll (ENCOUNTER-5.1)', () => {
     const views = [party.gm, party.aria.player, party.bryn.player].map((member) => viewOf(party, member))
     for (const view of await Promise.all(views))
       expect(view.actors.map((actor) => actor.id).sort()).toEqual(actorIds(party).sort())
-    expect(party.aria.player.userId).not.toBe(party.bryn.player.userId)
 
     // A player's command for the other player's Character is refused, and for the GM's Creature too.
     const stranger = attack(party, party.bryn.actorId, party.wolf.actorId, party.bryn.attackActionId)
@@ -166,8 +176,27 @@ describe('Three-user Assisted Encounter with auto-roll (ENCOUNTER-5.1)', () => {
     await send(party.gm, start(party))
     const declared = await declarePartyInitiative(party, send)
 
-    // The auto-rolled d20s rose with each declaration (5, 10, 15 plus a small modifier), so the last
-    // declarer is first in the order and the first declarer last; every member reads that same order.
+    // Premise: the auto-rolled d20s (5, 10, 15 plus modifiers) rose with each declaration, so the stored
+    // initiative scores rise in declaration order and the last declarer must lead the turn order.
+    await checkpointLiveRoom(party.campaign.id)
+    const scores = await party.t.run(async (ctx) =>
+      Promise.all(
+        declared.map(async (actorId) => {
+          const row = await ctx.db
+            .query('encounterInitiativeParticipants')
+            .withIndex('by_encounterId_round_actorId', (query) =>
+              query.eq('encounterId', party.run.id).eq('round', 1).eq('actorId', actorId)
+            )
+            .unique()
+          if (!row) throw new Error('Missing a stored initiative participant.')
+          return row.initiativeScore
+        })
+      )
+    )
+    expect(scores[0]!).toBeLessThan(scores[1]!)
+    expect(scores[1]).toBeLessThan(scores[2]!)
+
+    // Every member reads that same order, last declarer first.
     const members = [party.gm, party.aria.player, party.bryn.player]
     for (const actorId of [...declared].reverse()) {
       for (const member of members)
@@ -208,7 +237,7 @@ describe('Three-user Assisted Encounter with auto-roll (ENCOUNTER-5.1)', () => {
         seat.controller,
         attack(party, seat.actorId, seat.targetId, seat.attackActionId)
       )
-      expect(acted.occurrence?.status ?? 'COMPLETE').toBe('COMPLETE')
+      expect(acted.occurrence).toMatchObject({ status: 'COMPLETE' })
       const ended = await send(seat.controller, advance(party))
       currentActorId = ended.projection.currentActorId
     }
@@ -227,8 +256,18 @@ describe('Three-user Assisted Encounter with auto-roll (ENCOUNTER-5.1)', () => {
     const [gmCards] = cardsBy
     if (!gmCards) throw new Error('Missing the GM cards.')
     for (const cards of cardsBy) expect(cards).toEqual(gmCards)
-    expect(gmCards.filter((card) => card.source.kind === 'ATTACK')).toHaveLength(3)
-    expect(gmCards.filter((card) => card.source.kind === 'DAMAGE')).toHaveLength(2)
+    // Each Character and the Wolf attacked once; only the two hits dealt damage (the Wolf missed).
+    const labelOf = (actorId: string) =>
+      party.run.actors.find((actor) => actor.id === actorId)?.label ?? 'missing'
+    const ownersOf = (kind: string) =>
+      gmCards
+        .filter((card) => card.source.kind === kind)
+        .map((card) => card.characterLabel)
+        .sort()
+    expect(ownersOf('ATTACK')).toEqual(
+      [party.aria.actorId, party.bryn.actorId, party.wolf.actorId].map(labelOf).sort()
+    )
+    expect(ownersOf('DAMAGE')).toEqual([party.aria.actorId, party.bryn.actorId].map(labelOf).sort())
     expect(new Set(gmCards.map((card) => card.id)).size).toBe(gmCards.length)
 
     // Players read only the table's timeline entries; the GM reads them all.
@@ -241,12 +280,11 @@ describe('Three-user Assisted Encounter with auto-roll (ENCOUNTER-5.1)', () => {
     // The GM completes it; the Run ends for all three.
     const completed: EncounterCommandResultDto = await send(party.gm, complete(party))
     expect(completed.projection.status).toBe('COMPLETED')
-    for (const member of members) {
-      const frame = await readRoomEncounterSession(member.caller, party.campaign.id, {
-        timeline: false
-      })
-      expect(frame.held ? frame.state.encounter?.status : 'RELEASED').not.toBe('ACTIVE')
-    }
+    // The room releases the finished Run: no held frame for any member.
+    for (const member of members)
+      expect(
+        await readRoomEncounterSession(member.caller, party.campaign.id, { timeline: false })
+      ).toMatchObject({ held: false })
     expect(
       await party.gm.caller.query(api.encounters.projectionReads.get, { encounterId: party.run.id })
     ).toMatchObject({ status: 'COMPLETED' })
