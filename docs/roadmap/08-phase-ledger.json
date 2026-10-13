@@ -6716,6 +6716,24 @@
               "id": "RELIABILITY-2.6"
             }
           ]
+        },
+        {
+          "id": "RELIABILITY-3",
+          "title": "A retried movement decision replays every message its sender was sent",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": [],
+          "acs": [
+            {
+              "text": "A retried movement decision answer or GM void replays both the Scene receipt and the Encounter result its sender was sent live, each projected for the current viewer, not the Encounter result alone.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Registered 2026-10-12 from the VTT_UI-3.4 review. The geometry commit stores only the ENCOUNTER receipt (nativeLiveSessionRoom.ts #commitRoomGeometry), which is the presented per-sender result sent live and is re-presented per member on replay (replayRoomEncounterCommand), so nothing leaks; the replay just omits the SCENE COMMAND_COMMITTED that live sent, and the Scene catches up through state sync.",
+              "id": "RELIABILITY-3.1"
+            }
+          ]
         }
       ]
     },
