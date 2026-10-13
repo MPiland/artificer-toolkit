@@ -7,11 +7,15 @@ import { evaluateDnd5eCharacterMovementAndSenses } from '../systems/dnd5e/charac
 type FoldedSense = CharacterGrantFoldOutput['senses'][number]
 type FoldedRange = FoldedSense['range']
 
-const distance = (amount: number, id = `distance-${amount}`): FoldedRange => ({
+const distance = (
+  amount: number,
+  unit: 'FEET' | 'YARDS' = 'FEET',
+  id = `distance-${amount}-${unit}`
+): FoldedRange => ({
   id,
   rangeKind: 'DISTANCE',
   amount,
-  unit: 'FEET'
+  unit
 })
 const unlimited: FoldedRange = { id: 'unlimited', rangeKind: 'UNLIMITED' }
 
@@ -25,15 +29,14 @@ const granted = (range: FoldedRange, index: number): FoldedSense => ({
 
 function sensesFrom(
   ranges: readonly FoldedRange[],
-  overrides: { sourceId: string; value: number }[] = []
+  overrides: { sourceId: string; value: { amount: number; unit: 'FEET' | 'YARDS' } }[] = []
 ) {
   return evaluateDnd5eCharacterMovementAndSenses(
     {
       senseFacts: {
         overrides: overrides.map((override) => ({
           ...override,
-          senseDefinitionId: SRD_DARKVISION_SENSE_ID,
-          unit: 'FEET'
+          senseDefinitionId: SRD_DARKVISION_SENSE_ID
         }))
       }
     },
@@ -69,7 +72,7 @@ describe('Character sense ranges', () => {
   })
 
   it('lets a Sheet override set the distance outright, and be the range with no grant', () => {
-    const override = { sourceId: 'manual-1', value: 90 }
+    const override = { sourceId: 'manual-1', value: { amount: 90, unit: 'FEET' as const } }
     expect(sensesFrom([distance(60)], [override])[0]?.range).toMatchObject({
       id: 'manual-1',
       rangeKind: 'DISTANCE',
@@ -81,6 +84,34 @@ describe('Character sense ranges', () => {
       rangeKind: 'DISTANCE',
       amount: 90,
       unit: 'FEET'
+    })
+  })
+
+  it('a 20 yd override on a 60 ft grant resolves to 60 ft', () => {
+    const override = { sourceId: 'manual-1', value: { amount: 20, unit: 'YARDS' as const } }
+    expect(sensesFrom([distance(60)], [override])[0]?.range).toMatchObject({
+      id: 'manual-1',
+      rangeKind: 'DISTANCE',
+      amount: 60,
+      unit: 'FEET',
+      calculation: { base: 60, effective: 60, override: { value: 60 } }
+    })
+  })
+
+  it('takes the override unit when there is no granted distance', () => {
+    const override = { sourceId: 'manual-1', value: { amount: 10, unit: 'YARDS' as const } }
+    expect(sensesFrom([], [override])[0]?.range).toMatchObject({
+      amount: 10,
+      unit: 'YARDS',
+      calculation: { base: 10, effective: 10, override: { value: 10 } }
+    })
+  })
+
+  it('a 30 yd grant beats a 60 ft grant', () => {
+    expect(sensesFrom([distance(60, 'FEET'), distance(30, 'YARDS')])[0]?.range).toMatchObject({
+      rangeKind: 'DISTANCE',
+      amount: 30,
+      unit: 'YARDS'
     })
   })
 })

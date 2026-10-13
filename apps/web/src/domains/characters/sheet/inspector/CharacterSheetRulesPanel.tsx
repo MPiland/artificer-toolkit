@@ -8,6 +8,7 @@ import { formatSigned } from '../core/characterSheet.utils'
 import { CharacterSheetAbilityPanels } from './CharacterSheetAbilityPanels'
 import { CharacterSheetAdjustmentEditor } from './CharacterSheetAdjustmentEditor'
 import { CharacterSheetCalculationBreakdown } from './CharacterSheetCalculationBreakdown'
+import { CharacterSheetLengthEditor } from './CharacterSheetLengthEditor'
 import { CharacterSheetProficiencyPanels } from './CharacterSheetProficiencyPanels'
 import { getPanelStateLabel, getSheetAdjustmentMetadata } from './inspector.model'
 import * as inspectorEditorStyles from './inspectorEditor.css'
@@ -219,7 +220,7 @@ export function CharacterSheetRulesPanel({
                     <CharacterSheetCalculationBreakdown calculation={sense.calculation} />
                   ) : null}
                   {canCustomize ? (
-                    <CharacterSheetAdjustmentEditor
+                    <CharacterSheetLengthEditor
                       editor={sense.editor}
                       pending={pending}
                       onClear={() => removeAdjustment(sense.editor.adjustmentId, 'SENSE')}
@@ -232,7 +233,7 @@ export function CharacterSheetRulesPanel({
                             family: 'SENSE',
                             senseId: sense.senseId,
                             field: 'RANGE_OVERRIDE',
-                            value: Number(commit.value)
+                            value: commit.value
                           }
                         })
                       }

@@ -34,6 +34,7 @@ import { compareCanonicalD20Contributors } from '@artificer-toolkit/shared/rules
 import { postgresUuidSchema as serverUuidIdentityDtoSchema } from '../shared/postgresUuid.js'
 import { characterResourcePoolIdentitySchema } from '../shared/characterResourceIdentity.js'
 import { unlimitedRangeDtoSchema } from '../shared/range.js'
+import { authoredLengthSchema } from '../shared/authoredLimits.js'
 
 const finiteNumberSchema = lazySchema(() => z.number())
 const integerSchema = lazySchema(() => z.number().check(z.int()))
@@ -184,8 +185,7 @@ const characterSenseFactsSchema = lazySchema(() =>
         z.strictObject({
           senseDefinitionId: serverUuidIdentityDtoSchema,
           sourceId: boundedIdentitySchema,
-          value: finiteNumberSchema,
-          unit: lengthUnitCodeSchema
+          value: authoredLengthSchema
         })
       )
       .check(z.maxLength(100))

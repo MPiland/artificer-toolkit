@@ -1,6 +1,7 @@
 import { EQUIPPED_SLOT_CODES } from '@artificer-toolkit/shared/core'
 import { z, lazySchema } from '../zod.js'
 
+import { authoredLengthSchema } from '../shared/authoredLimits.js'
 import { abilityCodeSchema } from '../shared/enums.js'
 import {
   characterMechanicSourceRefDtoSchema,
@@ -294,15 +295,19 @@ const sensesPanelDtoSchema = lazySchema(() =>
           senseId: uuidSchema,
           label: stringSchema.check(z.minLength(1)),
           state: characterSheetAdjustmentStateDtoSchema,
-          editor: z.extend(numericAdjustmentEditorBaseDtoSchema, {
-            field: z.literal('RANGE_OVERRIDE')
+          editor: z.extend(adjustmentEditorMetadataDtoSchema, {
+            kind: z.literal('LENGTH'),
+            field: z.literal('RANGE_OVERRIDE'),
+            label: stringSchema.check(z.minLength(1)),
+            value: z.nullable(authoredLengthSchema),
+            commitIntent: z.literal('ON_BLUR_OR_ENTER')
           })
         }),
         z.discriminatedUnion('rangeKind', [
           z.object({ rangeKind: z.literal('UNLIMITED') }),
           z.object({
             rangeKind: z.literal('DISTANCE'),
-            range: integerSchema.check(z.nonnegative()),
+            range: numberSchema.check(z.nonnegative()),
             unitLabel: stringSchema.check(z.minLength(1)),
             calculation: characterSheetPanelNumericCalculationDtoSchema
           })

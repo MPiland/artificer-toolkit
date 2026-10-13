@@ -1,3 +1,4 @@
+import { feetInLengthUnit, lengthMeasurementInFeet } from '@artificer-toolkit/shared/core'
 import type { CharacterGrantFoldOutput } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
 import type {
   CharacterRulePolicyInput,
@@ -126,20 +127,27 @@ export function evaluateDnd5eCharacterMovementAndSenses(
     const distances = grantedRanges.filter((range) => range.rangeKind === 'DISTANCE')
     const widest = distances.reduce<(typeof distances)[number] | undefined>(
       (maximum, range) =>
-        maximum === undefined || range.amount > maximum.amount ? range : maximum,
+        maximum === undefined || lengthMeasurementInFeet(range) > lengthMeasurementInFeet(maximum)
+          ? range
+          : maximum,
       undefined
     )
     const modifiers = matchingGroups('SENSE_RANGE', 'senseDefinitionId', senseDefinitionId)
     if (override !== null) {
-      // A Sheet override sets the distance outright; with no granted distance it is its own base.
-      const resolved = calculation(widest?.amount ?? override.value, modifiers, override)
+      // A Sheet override sets the distance outright, in the widest grant's unit (its own with no grant).
+      const unit = widest?.unit ?? override.value.unit
+      const amount = feetInLengthUnit(lengthMeasurementInFeet(override.value), unit)
+      const resolved = calculation(widest?.amount ?? amount, modifiers, {
+        sourceId: override.sourceId,
+        value: amount
+      })
       return {
         senseDefinitionId,
         range: {
           id: override.sourceId,
           rangeKind: 'DISTANCE',
           amount: resolved.effective,
-          unit: override.unit,
+          unit,
           calculation: resolved
         }
       }

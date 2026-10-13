@@ -380,11 +380,11 @@ export const sensesPanelFixture = {
         effective: 60
       },
       editor: {
-        ...numberEditorDefaults,
+        kind: 'LENGTH',
+        commitIntent: 'ON_BLUR_OR_ENTER',
         field: 'RANGE_OVERRIDE',
         label: 'Override Darkvision range',
-        value: null,
-        validation: { integer: true, minimum: 0 }
+        value: null
       }
     }
   ]

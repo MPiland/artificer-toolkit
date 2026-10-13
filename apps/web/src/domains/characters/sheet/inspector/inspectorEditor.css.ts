@@ -1,6 +1,7 @@
 import { style } from '@vanilla-extract/css'
 import { foundationVars } from '#css/foundations.css'
 import { app } from '#css/layers.css'
+import * as inputStyles from '#ui/primitives/Select/Select.css'
 
 export const editor = style({
   '@layer': {
@@ -278,3 +279,11 @@ export const loading = style({
     }
   }
 })
+
+export const fieldClassNames = {
+  root: inputStyles.root,
+  label: inputStyles.label,
+  description: inputStyles.description,
+  required: inputStyles.required,
+  input: inputStyles.input
+}

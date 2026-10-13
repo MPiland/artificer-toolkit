@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
-import { LENGTH_UNIT_CODES, lengthMeasurementInFeet } from '../domains/core/measurement.js'
+import {
+  LENGTH_UNIT_CODES,
+  feetInLengthUnit,
+  lengthMeasurementInFeet
+} from '../domains/core/measurement.js'
 import {
   feetInSceneUnit,
   sceneLengthInFeet,
@@ -20,6 +24,17 @@ describe('length measurement', () => {
       ['YARDS', 108],
       ['MILES', 190_080]
     ])
+  })
+
+  it('converts feet into every length unit as the inverse of the forward conversion', () => {
+    expect(LENGTH_UNIT_CODES.map((unit) => [unit, feetInLengthUnit(30, unit)])).toEqual([
+      ['INCHES', 360],
+      ['FEET', 30],
+      ['YARDS', 10],
+      ['MILES', 30 / 5_280]
+    ])
+    for (const unit of LENGTH_UNIT_CODES)
+      expect(feetInLengthUnit(lengthMeasurementInFeet({ amount: 7, unit }), unit)).toBeCloseTo(7)
   })
 
   it('measures a length in the Scene unit through the same conversion', () => {

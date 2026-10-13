@@ -52,7 +52,7 @@ describe('character Sheet adjustment contracts', () => {
       family: 'SENSE',
       senseId: targetId,
       field: 'RANGE_OVERRIDE',
-      value: 60
+      value: { amount: 60, unit: 'FEET' }
     },
     {
       ...metadata,
@@ -122,6 +122,17 @@ describe('character Sheet adjustment contracts', () => {
         value: 2
       })
     ).toThrow()
+  })
+
+  it('types a sense range override as a length, never a bare number', () => {
+    const sense = { ...metadata, family: 'SENSE', senseId: targetId, field: 'RANGE_OVERRIDE' }
+    expect(() => characterSheetAdjustmentWriteDtoSchema.parse({ ...sense, value: 30 })).toThrow()
+    expect(
+      characterSheetAdjustmentWriteDtoSchema.parse({
+        ...sense,
+        value: { amount: 30, unit: 'FEET' }
+      })
+    ).toMatchObject({ value: { amount: 30, unit: 'FEET' } })
   })
 
   it('keeps source notes short and single-line', () => {

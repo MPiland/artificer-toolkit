@@ -567,12 +567,11 @@ function buildSensesPanel(
       ...reach,
       state: adjustment ? ('OVERRIDDEN' as const) : ('DEFAULT' as const),
       editor: {
-        kind: 'NUMBER' as const,
+        kind: 'LENGTH' as const,
         field: 'RANGE_OVERRIDE' as const,
         label: `Override ${sense.label} range`,
         value: adjustment?.value ?? null,
         commitIntent: 'ON_BLUR_OR_ENTER' as const,
-        validation: { integer: true, minimum: 0 },
         ...adjustmentEditorMetadata(adjustment)
       }
     }

@@ -14,10 +14,11 @@ export type CharacterSheetNumberEditorDto =
   | SavingThrowPanel['numericEditors'][number]
   | SkillPanel['numericEditors'][number]
   | SensesPanel['passiveChecks'][number]['editor']
-  | SensesPanel['senses'][number]['editor']
   | MovementPanel['speeds'][number]['editor']
   | ItemPanel['numericEditors'][number]
   | CompanionPanel['numericEditors'][number]
+
+export type CharacterSheetLengthEditorDto = SensesPanel['senses'][number]['editor']
 
 export type CharacterSheetSelectEditorDto =
   | SavingThrowPanel['proficiencyEditor']
@@ -30,6 +31,11 @@ export interface CharacterSheetEditorCommit {
   sourceNote?: string
 }
 
+export interface CharacterSheetLengthCommit {
+  value: NonNullable<CharacterSheetLengthEditorDto['value']>
+  sourceNote?: string
+}
+
 export function cleanSheetEditorText(value: string): string | undefined {
   const cleaned = value.trim()
   return cleaned.length ? cleaned : undefined
@@ -37,7 +43,7 @@ export function cleanSheetEditorText(value: string): string | undefined {
 
 export function getSheetAdjustmentMetadata(
   adjustmentId: string | undefined,
-  commit: CharacterSheetEditorCommit
+  commit: Pick<CharacterSheetEditorCommit, 'sourceNote'>
 ) {
   return {
     ...(adjustmentId ? { id: adjustmentId } : {}),

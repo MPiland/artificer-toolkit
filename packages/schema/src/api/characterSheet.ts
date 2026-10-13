@@ -1,5 +1,6 @@
 import { z, lazySchema } from '../zod.js'
 import { validateCharacterHitDiceRollEvidence } from '@artificer-toolkit/shared/character/sheetRest'
+import { authoredLengthSchema } from '../shared/authoredLimits.js'
 import { abilityCodeSchema, sizeCodeSchema } from '../shared/enums.js'
 import { diceExpressionDtoSchema } from '../shared/dice.js'
 
@@ -170,8 +171,7 @@ const senseAdjustmentDtoSchema = lazySchema(() =>
     family: z.literal('SENSE'),
     senseId: uuidSchema,
     field: z.literal('RANGE_OVERRIDE'),
-    /** The overriding range in feet. */
-    value: z.number().check(z.int()).check(z.nonnegative())
+    value: authoredLengthSchema
   })
 )
 

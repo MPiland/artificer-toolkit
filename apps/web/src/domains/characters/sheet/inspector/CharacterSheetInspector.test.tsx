@@ -25,6 +25,7 @@ import {
   companionPanelFixture,
   itemPanelFixture,
   savingThrowPanelFixture,
+  sensesPanelFixture,
   spellPanelAttackDamageFixture,
   spellPanelConfiguredCustomizationsFixture,
   spellsPanelFixture,
@@ -181,6 +182,38 @@ describe('Character Sheet inspector', () => {
         value: 3
       })
     )
+  })
+
+  it('commits a sense range override as a typed length', async () => {
+    const user = userEvent.setup()
+    const submitCommand = vi.fn().mockResolvedValue(true)
+
+    renderWithAppProviders(
+      <CharacterSheetRulesPanel
+        expectedVersion={4}
+        panel={sensesPanelFixture}
+        pending={false}
+        submitCommand={submitCommand}
+        onTargetChange={vi.fn()}
+      />
+    )
+
+    await user.click(screen.getByRole('combobox', { name: 'Unit' }))
+    await user.click(await screen.findByRole('option', { name: 'Yards' }))
+    await user.type(screen.getByRole('textbox', { name: 'Override Darkvision range' }), '20')
+    await user.tab()
+
+    expect(submitCommand).toHaveBeenCalledTimes(1)
+    expect(submitCommand).toHaveBeenCalledWith({
+      type: 'UPSERT_SHEET_ADJUSTMENT',
+      expectedVersion: 4,
+      adjustment: {
+        family: 'SENSE',
+        senseId: sensesPanelFixture.senses[0].senseId,
+        field: 'RANGE_OVERRIDE',
+        value: { amount: 20, unit: 'YARDS' }
+      }
+    })
   })
 
   it('announces command failures inside the overlay', async () => {
