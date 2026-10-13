@@ -8,6 +8,7 @@ import { equipmentGripSchema } from '../shared/enums.js'
 import { encounterRuleWarningsDtoSchema } from '../shared/encounterRuleWarnings.js'
 import { shapeMeasurementDtoSchema } from '../shared/shape.js'
 import { basicActionReusableDefinitionDocumentDtoSchema } from '../shared/basicActions.js'
+import { targetingSelfDtoSchema } from '../effects/targeting.js'
 
 const versionSchema = lazySchema(() => z.number().check(z.int()).check(z.nonnegative()))
 const labelSchema = lazySchema(() => z.string().check(z.trim()).check(z.minLength(1)))
@@ -71,10 +72,12 @@ export const encounterActionChoiceDtoSchema = lazySchema(() =>
      * area is as authored; the client converts it to the Scene's coordinates to preview it.
      */
     target: z.discriminatedUnion('kind', [
+      /** The action resolves on its user (Dash, Dodge): the client asks for nothing. */
+      z.strictObject({ kind: z.literal('SELF') }),
       z.strictObject({
         kind: z.literal('ACTOR'),
-        /** The action needs a creature other than its user (Help, First Aid): the client asks for one first. */
-        requiresOtherCreature: z.boolean()
+        /** As authored: the client lists the user among the creatures unless it is `REFUSED` (Help, First Aid). */
+        self: targetingSelfDtoSchema
       }),
       z.strictObject({
         kind: z.literal('POINT'),

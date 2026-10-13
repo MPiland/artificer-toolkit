@@ -12,12 +12,13 @@ import * as styles from './CampaignTabletopActionList.css'
 
 /**
  * The System's basic actions (Q11), listed apart from the actor's own features. Each row names the
- * action; its rules text is one hover or focus away. An action resolves on the actor unless another
- * creature is chosen first (Help, First Aid).
+ * action; its rules text is one hover or focus away. A `SELF` action resolves on the actor; an
+ * `ACTOR` action asks for a creature first, listing the actor unless its targeting refuses it
+ * (Help, First Aid).
  */
 export function CampaignTabletopBasicActions({
   authoredActions,
-  allies,
+  creatures,
   actorId,
   encounterId,
   encounterVersion,
@@ -26,8 +27,8 @@ export function CampaignTabletopBasicActions({
 }: {
   /** The authored basic actions, each resolved through `RESOLVE_ACTION`. */
   authoredActions: EncounterActionChoiceDto[]
-  /** The actors the current actor may aim an action at: every other actor the viewer can see. */
-  allies: { id: string; label: string }[]
+  /** The actors the viewer can see, the current actor included. */
+  creatures: { id: string; label: string }[]
   actorId: string
   encounterId: string
   encounterVersion: number
@@ -74,7 +75,12 @@ export function CampaignTabletopBasicActions({
       </Title>
       <ul className={styles.list}>
         {authoredActions.map((choice) => {
-          const needsTarget = choice.target.kind === 'ACTOR' && choice.target.requiresOtherCreature
+          const { target } = choice
+          const needsTarget = target.kind === 'ACTOR'
+          const options = creatures.filter(
+            (entry) =>
+              !(target.kind === 'ACTOR' && target.self === 'REFUSED' && entry.id === actorId)
+          )
           return (
             <li className={styles.row} key={choice.id}>
               <Stack gap={4}>
@@ -98,7 +104,7 @@ export function CampaignTabletopBasicActions({
                   <Select
                     aria-label={`Target of ${choice.label.toLowerCase()}`}
                     comboboxProps={{ withinPortal: false }}
-                    data={allies.map((entry) => ({ label: entry.label, value: entry.id }))}
+                    data={options.map((entry) => ({ label: entry.label, value: entry.id }))}
                     disabled={disabled}
                     placeholder='Choose a creature'
                     searchable

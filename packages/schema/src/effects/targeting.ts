@@ -5,6 +5,9 @@ import {
   authoredReferenceCollectionSchema
 } from '../shared/authoredLimits.js'
 
+/** Whether a single-target action may aim at its own user: freely, with a warning, or never. */
+export const targetingSelfDtoSchema = lazySchema(() => z.enum(['ALLOWED', 'WARN', 'REFUSED']))
+
 export const targetingDtoSchema = lazySchema(() =>
   z.discriminatedUnion('selectionKind', [
     z.object({
@@ -13,7 +16,7 @@ export const targetingDtoSchema = lazySchema(() =>
     z.object({
       selectionKind: z.literal('SINGLE_TARGET'),
       dispositionKind: z.optional(z.enum(['ANY', 'WILLING', 'HOSTILE'])),
-      self: z.optional(z.enum(['ALLOWED', 'WARN', 'REFUSED'])),
+      self: z.optional(targetingSelfDtoSchema),
       excludedCreatureTypeIds: z.optional(
         authoredReferenceCollectionSchema(authoredIdentifierSchema)
       )

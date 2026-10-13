@@ -318,14 +318,14 @@ describe('basic combat actions in the room (Q11)', () => {
       'Search',
       'Use an Object'
     ])
-    // First Aid costs an Action and needs a creature other than its user; Dash only affects its user.
+    // First Aid costs an Action and refuses its user as the target; Dash only affects its user.
     expect(
       choices?.basicActionChoices
         .filter(({ label }) => label === 'First Aid' || label === 'Dash')
         .map(({ label, actionCost, target }) => [label, actionCost, target])
     ).toEqual([
-      ['Dash', 'ACTION', { kind: 'ACTOR', requiresOtherCreature: false }],
-      ['First Aid', 'ACTION', { kind: 'ACTOR', requiresOtherCreature: true }]
+      ['Dash', 'ACTION', { kind: 'SELF' }],
+      ['First Aid', 'ACTION', { kind: 'ACTOR', self: 'REFUSED' }]
     ])
 
     const before = await base.version()

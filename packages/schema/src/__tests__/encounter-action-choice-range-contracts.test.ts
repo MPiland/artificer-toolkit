@@ -9,7 +9,7 @@ const choice = {
   grip: null,
   wieldConflict: null,
   warnings: [],
-  target: { kind: 'ACTOR' as const, requiresOtherCreature: false },
+  target: { kind: 'ACTOR' as const, self: 'ALLOWED' as const },
   attackSlot: null
 }
 

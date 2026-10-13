@@ -199,8 +199,11 @@ attack roll (`makesAttackRoll`, a required policy input) or the authored single-
 ("another creature"). `self` is one authored field with three values: `ALLOWED` (the default), `WARN` (the
 overridable warning above; SRD Bardic Inspiration, Healing Touch, Modify Memory and Protection) and `REFUSED`
 (Help and First Aid: the policy refuses a self target outright as `UNSUPPORTED_TARGET`, not acknowledgeable). The
-action choice DTO's `ACTOR` target carries `requiresOtherCreature` (true for `WARN` and `REFUSED`) so a caller
-asks for the creature before the action can be used.
+action choice DTO's `target` is the authored targeting, not a derived flag: `{ kind: 'SELF' }` for a `SELF`
+selection (Dash, Dodge; no picker, resolves on the actor), `{ kind: 'ACTOR', self }` for a creature-choosing
+selection (the schema's `ALLOWED | WARN | REFUSED`, `ALLOWED` where the selection has no `self` field) and
+`{ kind: 'POINT', area }`. A client always asks for the creature of an `ACTOR` target; it lists the user unless
+`self` is `REFUSED`, and the server keeps the `WARN` warning.
 
 **Rule usage storage.** "Nothing used" has one stored form: no key. `withEncounterRuleUsageUsed` drops the
 definition's entry for a usage of 0 and drops an empty `ruleUsage`, so a turn refresh, a spend and an undo

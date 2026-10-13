@@ -42,7 +42,7 @@ const actions = [
     grip: null,
     wieldConflict: null,
     warnings: [],
-    target: { kind: 'ACTOR', requiresOtherCreature: false },
+    target: { kind: 'ACTOR', self: 'ALLOWED' },
     attackSlot: null
   }
 ] satisfies EncounterActionChoiceDto[]
@@ -207,7 +207,7 @@ describe('CampaignTabletopActionDrawer rule warnings', () => {
       grip: { value: grip, attackKey: 'longsword::MELEE_WEAPON_ATTACK' },
       wieldConflict: null,
       warnings: [],
-      target: { kind: 'ACTOR' as const, requiresOtherCreature: false },
+      target: { kind: 'ACTOR' as const, self: 'ALLOWED' as const },
       attackSlot: null
     })
     renderDrawer(onResolve, { choices: [longsword('ONE_HANDED'), longsword('TWO_HANDED')] })
@@ -305,21 +305,22 @@ const basicActionChoices = [
     ...actions[0]!,
     id: 'dash-action',
     label: 'Dash',
-    rulesText: 'You gain extra movement for the current turn.'
+    rulesText: 'You gain extra movement for the current turn.',
+    target: { kind: 'SELF' }
   },
   {
     ...actions[0]!,
     id: 'help-action',
     label: 'Help',
     rulesText: 'You aid an ally.',
-    target: { kind: 'ACTOR', requiresOtherCreature: true }
+    target: { kind: 'ACTOR', self: 'REFUSED' }
   },
   {
     ...actions[0]!,
     id: 'first-aid-action',
     label: 'First Aid',
     rulesText: 'You make a DC 10 Wisdom (Medicine) check to stabilize a dying creature.',
-    target: { kind: 'ACTOR', requiresOtherCreature: true }
+    target: { kind: 'ACTOR', self: 'REFUSED' }
   }
 ] satisfies EncounterActionChoiceDto[]
 
@@ -357,7 +358,13 @@ describe('CampaignTabletopActionDrawer basic actions', () => {
   it('resolves an authored basic action on the current actor', async () => {
     const user = userEvent.setup()
     const onResolve = vi.fn().mockResolvedValue(resolved)
-    const dodge = { ...actions[0]!, id: 'dodge-action', label: 'Dodge', rulesText: 'You dodge.' }
+    const dodge = {
+      ...actions[0]!,
+      id: 'dodge-action',
+      label: 'Dodge',
+      rulesText: 'You dodge.',
+      target: { kind: 'SELF' }
+    } satisfies EncounterActionChoiceDto
     renderDrawer(onResolve, { choices: [], authoredBasicActions: [dodge] })
 
     await user.click(await screen.findByRole('button', { name: 'Use Dodge' }))
@@ -411,22 +418,23 @@ describe('CampaignTabletopActionDrawer basic actions', () => {
     expect(screen.queryByRole('combobox', { name: 'Target of dash' })).not.toBeInTheDocument()
   })
 
-  it('keeps an action that only warns about aiming at its user selectable, with no target required', async () => {
+  it('lists the user among the creatures for an action that only warns about aiming at it', async () => {
     const user = userEvent.setup()
     const onResolve = vi.fn().mockResolvedValue(resolved)
-    // The wire carries requiresOtherCreature false for a self-WARN action: the table may override it.
     const warnsAboutSelf = {
       ...actions[0]!,
       id: 'warns-action',
       label: 'Steady',
       rulesText: 'You steady a creature.',
-      target: { kind: 'ACTOR', requiresOtherCreature: false }
+      target: { kind: 'ACTOR', self: 'WARN' }
     } satisfies EncounterActionChoiceDto
     renderDrawer(onResolve, { choices: [], authoredBasicActions: [warnsAboutSelf] })
 
     const use = await screen.findByRole('button', { name: 'Use Steady' })
+    expect(use).toBeDisabled()
+    await user.click(screen.getByRole('combobox', { name: 'Target of steady' }))
+    await user.click(await screen.findByRole('option', { name: "Ember's Wake" }))
     expect(use).toBeEnabled()
-    expect(screen.queryByRole('combobox', { name: 'Target of steady' })).not.toBeInTheDocument()
     await user.click(use)
     expect(onResolve).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -434,6 +442,15 @@ describe('CampaignTabletopActionDrawer basic actions', () => {
         target: { kind: 'ACTOR', actorId: tabletopGmEncounter.currentActorId }
       })
     )
+  })
+
+  it('leaves the user out of the creatures for an action that refuses aiming at it', async () => {
+    const user = userEvent.setup()
+    renderDrawer(vi.fn(), { choices: [], authoredBasicActions: basicActionChoices })
+
+    await user.click(await screen.findByRole('combobox', { name: 'Target of help' }))
+    expect(await screen.findByRole('option', { name: 'Vault Warden' })).toBeVisible()
+    expect(screen.queryByRole('option', { name: "Ember's Wake" })).not.toBeInTheDocument()
   })
 
   it('resends a basic action with its warnings acknowledged on "Do it anyway"', async () => {
