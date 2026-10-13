@@ -1,9 +1,11 @@
 import type { CharacterRuleEvaluationResult } from './characterRuleEvaluation.js'
 import type { CharacterCalculation } from '@artificer-toolkit/shared/character'
 import type { CompiledChargeUse } from '@artificer-toolkit/shared/compilers'
-import { rangeDtoSchema } from '@artificer-toolkit/schema/shared/range'
 
-import type { CharacterSheetRuleProjection } from './characterSheetRuleProjection.js'
+import type {
+  CharacterRuleSense,
+  CharacterSheetRuleProjection
+} from './characterSheetRuleProjection.js'
 
 type Evaluation = Pick<CharacterRuleEvaluationResult, 'snapshot' | 'registry' | 'facts' | 'output'>
 type NumericCalculation = Evaluation['output']['derivedStats']['proficiencyBonus']
@@ -163,27 +165,13 @@ export function projectCharacterRulePolicyToSheetProjection(
       }
     ]
   })
-  const senses = output.senses.map((sense) => {
-    const folded = output.grantFold.senses.find(
-      (candidate) => candidate.senseDefinitionId === sense.senseDefinitionId
-    )
-    if (!sense.range && folded?.range) {
-      const foldedRange = rangeDtoSchema.parse(folded.range)
-      if (foldedRange.rangeKind !== 'DISTANCE')
-        return { senseDefinitionId: sense.senseDefinitionId, range: foldedRange }
-    }
-    return sense.range
-      ? {
-          senseDefinitionId: sense.senseDefinitionId,
-          range: {
-            id: sense.range.id,
-            rangeKind: 'DISTANCE' as const,
-            amount: sense.range.amount,
-            unit: sense.range.unit
-          }
-        }
-      : { senseDefinitionId: sense.senseDefinitionId }
-  })
+  const senses = output.senses.map(({ senseDefinitionId, range }): CharacterRuleSense => ({
+    senseDefinitionId,
+    range:
+      range.rangeKind === 'DISTANCE'
+        ? { id: range.id, rangeKind: range.rangeKind, amount: range.amount, unit: range.unit }
+        : range
+  }))
   const resources = snapshot.classes.flatMap((classEntry) => {
     const owners = [
       { id: classEntry.classId, record: evaluation.registry.classes[classEntry.classId] },
@@ -324,7 +312,7 @@ export function projectCharacterRulePolicyToSheetProjection(
       ),
       senseRanges: Object.fromEntries(
         output.senses.flatMap((entry) =>
-          entry.range
+          entry.range.rangeKind === 'DISTANCE'
             ? [[entry.senseDefinitionId, calculation(entry.range.calculation)] as const]
             : []
         )

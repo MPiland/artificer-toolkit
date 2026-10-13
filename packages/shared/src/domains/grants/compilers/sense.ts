@@ -11,12 +11,16 @@ import type {
 } from '#compilers'
 import { SCALING } from '#core'
 
+export type CompiledSenseRange =
+  | Extract<CompiledRange, { rangeKind: 'DISTANCE' }>
+  | { id: string; rangeKind: 'UNLIMITED' }
+
 export type CompiledSenseGrant = CompiledScalingGrant<
   typeof GRANT_KIND.SENSE_GRANT,
   CompiledGrantTarget<{ senseIds: string[] }>
 > & {
   charges?: CompiledChargeUse
-  range?: CompiledRange
+  range: CompiledSenseRange
 }
 
 // IMPORTANT: return `authored` for ALL so you don't drop extra fields (like `count`)
@@ -45,7 +49,10 @@ export function compileSenseGrantResult(
   }
 
   const charges = authored.charges ? compileChargeUse(authored.charges) : undefined
-  const range = authored.range ? compileRange(authored.range) : undefined
+  const range: CompiledSenseRange =
+    authored.range.rangeKind === 'DISTANCE'
+      ? compileRange(authored.range)
+      : { id: authored.range.id, rangeKind: authored.range.rangeKind }
 
   switch (authored.scalingKind) {
     case SCALING.NONE: {

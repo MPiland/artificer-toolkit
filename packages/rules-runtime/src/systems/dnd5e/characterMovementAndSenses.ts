@@ -3,10 +3,9 @@ import type {
   CharacterRulePolicyInput,
   CharacterRulePolicyOutput
 } from '@artificer-toolkit/schema/api/characterRules'
-import { lengthUnitCodeSchema } from '@artificer-toolkit/schema/shared/enums'
 
 import type { CharacterResolvedModifierGroup } from './characterModifiers.js'
-import { characterPolicyNumber, characterPolicyRecord } from './characterPolicyValues.js'
+import { characterPolicyRecord } from './characterPolicyValues.js'
 import {
   DND5E_CHARACTER_WIDE_TARGET,
   dnd5eFoldedModifierApplicability,
@@ -14,8 +13,8 @@ import {
 } from './modifierApplicability.js'
 
 export function evaluateDnd5eCharacterMovementAndSenses(
-  input: CharacterRulePolicyInput,
-  grantFold: CharacterGrantFoldOutput,
+  input: Pick<CharacterRulePolicyInput, 'movementFacts' | 'senseFacts'>,
+  grantFold: Pick<CharacterGrantFoldOutput, 'senses' | 'modifiers'>,
   modifierGroups: CharacterResolvedModifierGroup[]
 ): Pick<CharacterRulePolicyOutput, 'movement' | 'senses'> {
   const groupDomain = (group: CharacterResolvedModifierGroup) => {
@@ -117,35 +116,44 @@ export function evaluateDnd5eCharacterMovementAndSenses(
     ])
   ]
   const senses = senseIds.map((senseDefinitionId): CharacterRulePolicyOutput['senses'][number] => {
-    const ranges = grantFold.senses
+    const grantedRanges = grantFold.senses
       .filter((sense) => sense.senseDefinitionId === senseDefinitionId)
-      .flatMap((sense) => {
-        const range = characterPolicyRecord(sense.range)
-        if (range.rangeKind !== 'DISTANCE') return []
-        return [{ id: range.id, amount: characterPolicyNumber(range.amount), unit: range.unit }]
-      })
-    const selected = ranges.reduce<(typeof ranges)[number] | undefined>(
+      .map((sense) => sense.range)
+    const override =
+      input.senseFacts?.overrides.find((entry) => entry.senseDefinitionId === senseDefinitionId) ??
+      null
+    const unlimited = grantedRanges.find((range) => range.rangeKind === 'UNLIMITED')
+    const distances = grantedRanges.filter((range) => range.rangeKind === 'DISTANCE')
+    const widest = distances.reduce<(typeof distances)[number] | undefined>(
       (maximum, range) =>
         maximum === undefined || range.amount > maximum.amount ? range : maximum,
       undefined
     )
-    const override =
-      input.senseFacts?.overrides.find((entry) => entry.senseDefinitionId === senseDefinitionId) ??
-      null
-    if (selected === undefined && override === null) return { senseDefinitionId, range: null }
-    const resolved = calculation(
-      selected?.amount ?? 0,
-      matchingGroups('SENSE_RANGE', 'senseDefinitionId', senseDefinitionId),
-      override
-    )
-    const id = override?.sourceId ?? selected?.id
-    if (typeof id !== 'string') throw new Error('Character sense range identity is missing.')
+    const modifiers = matchingGroups('SENSE_RANGE', 'senseDefinitionId', senseDefinitionId)
+    if (override !== null) {
+      // A Sheet override sets the distance outright; with no granted distance it is its own base.
+      const resolved = calculation(widest?.amount ?? override.value, modifiers, override)
+      return {
+        senseDefinitionId,
+        range: {
+          id: override.sourceId,
+          rangeKind: 'DISTANCE',
+          amount: resolved.effective,
+          unit: override.unit,
+          calculation: resolved
+        }
+      }
+    }
+    if (unlimited !== undefined) return { senseDefinitionId, range: unlimited }
+    if (widest === undefined) throw new Error('A Character sense needs a granted range.')
+    const resolved = calculation(widest.amount, modifiers, null)
     return {
       senseDefinitionId,
       range: {
-        id,
+        id: widest.id,
+        rangeKind: 'DISTANCE',
         amount: resolved.effective,
-        unit: lengthUnitCodeSchema.parse(selected === undefined ? 'FEET' : selected.unit),
+        unit: widest.unit,
         calculation: resolved
       }
     }

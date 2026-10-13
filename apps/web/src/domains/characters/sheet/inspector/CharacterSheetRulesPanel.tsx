@@ -89,15 +89,19 @@ export function CharacterSheetRulesPanel({
           return { label: 'Effective total', value: String(panel.passiveChecks[0].total) }
         }
         if (panel.target.entry?.kind === 'SENSE' && panel.senses[0]) {
+          const [sense] = panel.senses
           return {
             label: 'Effective range',
-            value: `${panel.senses[0].range} ${panel.senses[0].unitLabel}`
+            value:
+              sense.rangeKind === 'UNLIMITED' ? 'Unlimited' : `${sense.range} ${sense.unitLabel}`
           }
         }
         return {
           label: 'Available senses',
           value: String(
-            panel.passiveChecks.length + panel.senses.filter((sense) => sense.range > 0).length
+            panel.passiveChecks.length +
+              panel.senses.filter((sense) => sense.rangeKind === 'UNLIMITED' || sense.range > 0)
+                .length
           )
         }
       case 'MOVEMENT': {
@@ -211,7 +215,9 @@ export function CharacterSheetRulesPanel({
               </h3>
               {panel.senses.map((sense) => (
                 <div key={sense.senseId}>
-                  <CharacterSheetCalculationBreakdown calculation={sense.calculation} />
+                  {sense.rangeKind === 'DISTANCE' ? (
+                    <CharacterSheetCalculationBreakdown calculation={sense.calculation} />
+                  ) : null}
                   {canCustomize ? (
                     <CharacterSheetAdjustmentEditor
                       editor={sense.editor}

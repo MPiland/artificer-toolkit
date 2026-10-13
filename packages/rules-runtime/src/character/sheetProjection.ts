@@ -173,7 +173,7 @@ function formatProficiencyLabel(params: {
 }
 
 function formatSenseRange(sense: CharacterRuleSense): string {
-  if (sense.range?.rangeKind !== 'DISTANCE') return 'Available'
+  if (sense.range.rangeKind === 'UNLIMITED') return 'Unlimited'
   return `${sense.range.amount} ${formatCodeLabel(sense.range.unit).toLowerCase()}`
 }
 
@@ -1547,8 +1547,7 @@ export function projectCharacterSheetBundle(
       senses: ruleProjection.senses.map((sense) => ({
         senseId: sense.senseDefinitionId,
         label: senseLabels.get(sense.senseDefinitionId) ?? 'Unknown sense',
-        value: formatSenseRange(sense),
-        range: sense.range
+        value: formatSenseRange(sense)
       })),
       conditionOptions,
       equipmentOptions: resolution.catalog.equipment.map((equipment) => ({

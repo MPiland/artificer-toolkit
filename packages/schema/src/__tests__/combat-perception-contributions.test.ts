@@ -42,7 +42,7 @@ function senseGrant() {
     definitionContractVersion: 1,
     definitionChecksum: checksumRuleDocument(document),
     document,
-    range: { amount: 60, unit: 'FEET' as const }
+    range: { rangeKind: 'DISTANCE' as const, amount: 60, unit: 'FEET' as const }
   }
 }
 
@@ -128,10 +128,19 @@ describe('combat perception contribution contracts', () => {
     const parse = (amount: number) =>
       combatPerceptionContributionDtoSchema.safeParse({
         ...senseGrant(),
-        range: { amount, unit: 'MILES' }
+        range: { rangeKind: 'DISTANCE', amount, unit: 'MILES' }
       }).success
     expect(parse(AUTHORED_LENGTH_AMOUNT_MAX)).toBe(true)
     expect(parse(AUTHORED_LENGTH_AMOUNT_MAX + 1)).toBe(false)
     expect(parse(Number.POSITIVE_INFINITY)).toBe(false)
+  })
+
+  it('gives a sense grant an explicit unlimited range and rejects an absent one', () => {
+    const parse = (range: unknown) =>
+      combatPerceptionContributionDtoSchema.safeParse({ ...senseGrant(), range }).success
+    expect(parse({ rangeKind: 'UNLIMITED' })).toBe(true)
+    expect(parse(null)).toBe(false)
+    expect(parse(60)).toBe(false)
+    expect(parse({ amount: 60, unit: 'FEET' })).toBe(false)
   })
 })

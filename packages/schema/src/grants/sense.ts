@@ -6,7 +6,7 @@ import {
   authoredReferenceCollectionSchema
 } from '../shared/authoredLimits.js'
 import { authoringModeKindSchema } from '../shared/enums.js'
-import { rangeDtoSchema } from '../shared/range.js'
+import { distanceRangeDtoSchema, unlimitedRangeDtoSchema } from '../shared/range.js'
 import { createScalingGrantDtoSchema, staticGrantBaseDtoSchema } from './grant.js'
 
 const senseGrantTargetDtoSchema = lazySchema(() =>
@@ -21,15 +21,21 @@ const senseGrantTargetDtoSchema = lazySchema(() =>
   ])
 )
 
+/** A sense reaches a set distance or is unlimited; no other range kind has a meaning for a sense. */
+export const senseRangeDtoSchema = lazySchema(() =>
+  z.union([unlimitedRangeDtoSchema, distanceRangeDtoSchema])
+)
+
 export const senseGrantDtoSchema = lazySchema(() =>
   z.intersection(
     z.extend(staticGrantBaseDtoSchema, {
       grantKind: z.literal('SENSE_GRANT'),
       charges: z.optional(chargeUseDtoSchema),
-      range: z.optional(rangeDtoSchema)
+      range: senseRangeDtoSchema
     }),
     createScalingGrantDtoSchema(senseGrantTargetDtoSchema)
   )
 )
 
+export type SenseRangeDto = z.infer<typeof senseRangeDtoSchema>
 export type SenseGrantDto = z.infer<typeof senseGrantDtoSchema>

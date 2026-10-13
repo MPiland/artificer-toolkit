@@ -289,17 +289,25 @@ const sensesPanelDtoSchema = lazySchema(() =>
       })
     ),
     senses: z.array(
-      z.object({
-        senseId: uuidSchema,
-        label: stringSchema.check(z.minLength(1)),
-        range: integerSchema.check(z.nonnegative()),
-        unitLabel: stringSchema.check(z.minLength(1)),
-        state: characterSheetAdjustmentStateDtoSchema,
-        calculation: characterSheetPanelNumericCalculationDtoSchema,
-        editor: z.extend(numericAdjustmentEditorBaseDtoSchema, {
-          field: z.literal('RANGE_OVERRIDE')
-        })
-      })
+      z.intersection(
+        z.object({
+          senseId: uuidSchema,
+          label: stringSchema.check(z.minLength(1)),
+          state: characterSheetAdjustmentStateDtoSchema,
+          editor: z.extend(numericAdjustmentEditorBaseDtoSchema, {
+            field: z.literal('RANGE_OVERRIDE')
+          })
+        }),
+        z.discriminatedUnion('rangeKind', [
+          z.object({ rangeKind: z.literal('UNLIMITED') }),
+          z.object({
+            rangeKind: z.literal('DISTANCE'),
+            range: integerSchema.check(z.nonnegative()),
+            unitLabel: stringSchema.check(z.minLength(1)),
+            calculation: characterSheetPanelNumericCalculationDtoSchema
+          })
+        ])
+      )
     )
   })
 )

@@ -752,7 +752,8 @@ describe('grant and facet schema parsing', () => {
           scalingKind: 'NONE',
           count: 1,
           authoringModeKind: 'SELECTED',
-          senseIds: ['darkvision']
+          senseIds: ['darkvision'],
+          range: { id: 'chosen-sense-range', rangeKind: 'UNLIMITED' }
         },
         granted: {
           grantKind: 'SENSE_GRANT',
@@ -761,7 +762,8 @@ describe('grant and facet schema parsing', () => {
           selectionKind: 'GRANTED',
           scalingKind: 'NONE',
           authoringModeKind: 'SELECTED',
-          senseIds: ['darkvision']
+          senseIds: ['darkvision'],
+          range: { id: 'granted-sense-range', rangeKind: 'UNLIMITED' }
         }
       }
     ] as const

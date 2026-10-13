@@ -474,9 +474,10 @@ export function senseReachRadius(
   token: Pick<CampaignSceneStateDto['tokens'][number], 'height' | 'width'>,
   sense: Pick<SceneTokenSense, 'range'>
 ): number {
-  if (sense.range === null) return Infinity
+  if (sense.range.rangeKind === 'UNLIMITED') return Infinity
   return (
-    sceneDistanceAsCoordinateLength(grid, sense.range) + Math.max(token.height, token.width) / 2
+    sceneDistanceAsCoordinateLength(grid, sense.range.amount) +
+    Math.max(token.height, token.width) / 2
   )
 }
 

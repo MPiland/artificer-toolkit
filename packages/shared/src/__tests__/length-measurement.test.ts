@@ -45,9 +45,17 @@ describe('length measurement', () => {
 
   it('keeps an unlimited sense unlimited and measures a ranged sense in Scene units', () => {
     const squaresGrid = { ...FEET_GRID, distancePerCell: 1, unit: 'SQUARES' } as const
-    expect(senseRangeInSceneUnits(null, FEET_GRID)).toBeNull()
-    expect(senseRangeInSceneUnits(null, squaresGrid)).toBeNull()
-    expect(senseRangeInSceneUnits({ amount: 60, unit: 'FEET' }, FEET_GRID)).toBe(60)
-    expect(senseRangeInSceneUnits({ amount: 60, unit: 'FEET' }, squaresGrid)).toBe(12)
+    expect(senseRangeInSceneUnits({ rangeKind: 'UNLIMITED' }, FEET_GRID)).toEqual({
+      rangeKind: 'UNLIMITED'
+    })
+    expect(senseRangeInSceneUnits({ rangeKind: 'UNLIMITED' }, squaresGrid)).toEqual({
+      rangeKind: 'UNLIMITED'
+    })
+    expect(
+      senseRangeInSceneUnits({ rangeKind: 'DISTANCE', amount: 60, unit: 'FEET' }, FEET_GRID)
+    ).toEqual({ rangeKind: 'DISTANCE', amount: 60 })
+    expect(
+      senseRangeInSceneUnits({ rangeKind: 'DISTANCE', amount: 60, unit: 'FEET' }, squaresGrid)
+    ).toEqual({ rangeKind: 'DISTANCE', amount: 12 })
   })
 })

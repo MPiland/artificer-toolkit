@@ -259,7 +259,7 @@ describe('VTT scene contracts', () => {
       channel: 'VISUAL' as const,
       illuminationAccess: 'ORDINARY_DARKNESS' as const,
       label: 'Darkvision',
-      range: 60,
+      range: { rangeKind: 'DISTANCE' as const, amount: 60 },
       senseId: ids.barrier
     }
     const seededSenseId = '5e2d0000-0000-0000-0000-000000000001'
@@ -271,7 +271,13 @@ describe('VTT scene contracts', () => {
     expect(
       characterSceneVisionResultSchema.safeParse({
         characterId: ids.token,
-        senses: [{ ...sense, range: { amount: 60, unit: 'FEET' }, senseId: seededSenseId }]
+        senses: [
+          {
+            ...sense,
+            range: { rangeKind: 'DISTANCE', amount: 60, unit: 'FEET' },
+            senseId: seededSenseId
+          }
+        ]
       }).success
     ).toBe(true)
     expect(parses([])).toBe(true)
@@ -279,8 +285,11 @@ describe('VTT scene contracts', () => {
     expect(parses([{ ...sense, extra: true }])).toBe(false)
     expect(parses([{ ...sense, channel: 'SMELL' }])).toBe(false)
     expect(parses([{ ...sense, illuminationAccess: 'BRIGHT' }])).toBe(false)
-    expect(parses([{ ...sense, range: 0 }])).toBe(false)
-    expect(parses([{ ...sense, range: -5 }])).toBe(false)
+    expect(parses([{ ...sense, range: { rangeKind: 'UNLIMITED' } }])).toBe(true)
+    expect(parses([{ ...sense, range: { rangeKind: 'DISTANCE', amount: 0 } }])).toBe(false)
+    expect(parses([{ ...sense, range: { rangeKind: 'DISTANCE', amount: -5 } }])).toBe(false)
+    expect(parses([{ ...sense, range: null }])).toBe(false)
+    expect(parses([{ ...sense, range: 60 }])).toBe(false)
     expect(parses([{ ...sense, label: ' ' }])).toBe(false)
     expect(parses([{ ...sense, senseId: 'darkvision' }])).toBe(false)
     expect(parses([{ channel: sense.channel }])).toBe(false)
@@ -305,14 +314,19 @@ describe('VTT scene contracts', () => {
       channel: 'VISUAL' as const,
       illuminationAccess: 'ORDINARY_DARKNESS' as const,
       label: 'Darkvision',
-      range: 60,
+      range: { rangeKind: 'DISTANCE' as const, amount: 60 },
       senseId: ids.barrier
     }
 
     expect(sceneTokenDtoSchema.safeParse({ ...token, senses: [sense] }).success).toBe(true)
     expect(sceneStoredTokenDtoSchema.safeParse({ ...token, senses: [sense] }).success).toBe(false)
-    expect(sceneStoredTokenDtoSchema.safeParse({ ...token, senses: [sense] }).error?.issues).toEqual([
-      expect.objectContaining({ message: 'Stored Scene tokens never carry senses.', path: ['senses'] })
+    expect(
+      sceneStoredTokenDtoSchema.safeParse({ ...token, senses: [sense] }).error?.issues
+    ).toEqual([
+      expect.objectContaining({
+        message: 'Stored Scene tokens never carry senses.',
+        path: ['senses']
+      })
     ])
     expect(sceneStoredTokenDtoSchema.safeParse({ ...token, senses: [] }).success).toBe(true)
   })

@@ -422,7 +422,12 @@ export async function prepareCreatureAction(input: {
                 ? {
                     ...targetFacts,
                     baseRulePolicyOutput: {
-                      senses: [{ senseDefinitionId: SRD_BLINDSIGHT_SENSE_ID, range: null }]
+                      senses: [
+                        {
+                          senseDefinitionId: SRD_BLINDSIGHT_SENSE_ID,
+                          range: { id: 'sense-range', rangeKind: 'UNLIMITED' as const }
+                        }
+                      ]
                     }
                   }
                 : targetFacts,

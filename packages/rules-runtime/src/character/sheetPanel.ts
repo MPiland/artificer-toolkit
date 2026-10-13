@@ -552,17 +552,20 @@ function buildSensesPanel(
       (candidate) => candidate.senseDefinitionId === sense.id
     )
     const calculation = ruleProjection.calculations.senseRanges[sense.id]
-    const range =
-      calculation?.effective ??
-      (ruleSense?.range?.rangeKind === 'DISTANCE' ? ruleSense.range.amount : 0)
-    const unit = ruleSense?.range?.rangeKind === 'DISTANCE' ? ruleSense.range.unit : 'FEET'
+    const reach =
+      ruleSense?.range.rangeKind === 'UNLIMITED'
+        ? ({ rangeKind: 'UNLIMITED' } as const)
+        : ({
+            rangeKind: 'DISTANCE',
+            range: calculation?.effective ?? 0,
+            unitLabel: formatCode(ruleSense?.range.unit ?? 'FEET').toLowerCase(),
+            calculation: toPanelCalculation(calculation, params)
+          } as const)
     return {
       senseId: sense.id,
       label: sense.label,
-      range,
-      unitLabel: formatCode(unit).toLowerCase(),
+      ...reach,
       state: adjustment ? ('OVERRIDDEN' as const) : ('DEFAULT' as const),
-      calculation: toPanelCalculation(calculation, params),
       editor: {
         kind: 'NUMBER' as const,
         field: 'RANGE_OVERRIDE' as const,

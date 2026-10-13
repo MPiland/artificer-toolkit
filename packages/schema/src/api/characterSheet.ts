@@ -170,6 +170,7 @@ const senseAdjustmentDtoSchema = lazySchema(() =>
     family: z.literal('SENSE'),
     senseId: uuidSchema,
     field: z.literal('RANGE_OVERRIDE'),
+    /** The overriding range in feet. */
     value: z.number().check(z.int()).check(z.nonnegative())
   })
 )

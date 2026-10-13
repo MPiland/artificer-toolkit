@@ -370,6 +370,7 @@ export const sensesPanelFixture = {
     {
       senseId,
       label: 'Darkvision',
+      rangeKind: 'DISTANCE',
       range: 60,
       unitLabel: 'feet',
       state: 'DEFAULT',

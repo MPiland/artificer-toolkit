@@ -18,7 +18,6 @@ import {
 import { capacityDtoSchema, costDtoSchema, weightDtoSchema } from '../subjects/shared.js'
 import { castingTimeDtoSchema } from '../subjects/castingTime.js'
 import { characterDeathSavesDtoSchema } from '../subjects/characterState.js'
-import { rangeDtoSchema } from '../shared/range.js'
 import {
   characterResourceOwnerRefDtoSchema,
   characterResourceRecoveryDtoSchema,
@@ -642,8 +641,7 @@ export const characterSheetReferenceDtoSchema = lazySchema(() =>
     ),
     senses: z.array(
       z.extend(characterSheetFactDtoSchema, {
-        senseId: stringSchema,
-        range: z.optional(rangeDtoSchema)
+        senseId: stringSchema
       })
     ),
     conditionOptions: z.array(

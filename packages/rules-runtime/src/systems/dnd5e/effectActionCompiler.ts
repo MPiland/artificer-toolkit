@@ -1271,7 +1271,7 @@ function modifierGrantPlan(
             scalingKind: 'NONE' as const,
             targetIds: [...sense.senseIds],
             levels: [],
-            range: sense.range ? { ...sense.range } : null
+            range: { ...sense.range }
           }
         ]
       : []
@@ -6231,7 +6231,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       definitionId: DND5E_ORDINARY_SIGHT_DEFINITION_ID,
       checksum: DND5E_ORDINARY_SIGHT_CHECKSUM,
       capabilityOrdinal: 0,
-      range: null,
+      range: { rangeKind: 'UNLIMITED' },
       capability: DND5E_ORDINARY_SIGHT_CAPABILITY
     }
   ],

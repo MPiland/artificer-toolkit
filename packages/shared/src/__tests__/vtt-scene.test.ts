@@ -132,7 +132,7 @@ const pinnedDarkvision = {
   channel: 'VISUAL' as const,
   illuminationAccess: 'ORDINARY_DARKNESS' as const,
   label: 'Darkvision',
-  range: { amount: 30, unit: 'FEET' as const },
+  range: { rangeKind: 'DISTANCE' as const, amount: 30, unit: 'FEET' as const },
   senseId: ids.command2
 }
 
@@ -403,7 +403,12 @@ describe('VTT scene replay and projection', () => {
     const characterVisions = [
       {
         characterId: ids.player,
-        senses: [{ ...pinnedDarkvision, range: { amount: 60, unit: 'FEET' as const } }]
+        senses: [
+          {
+            ...pinnedDarkvision,
+            range: { rangeKind: 'DISTANCE' as const, amount: 60, unit: 'FEET' as const }
+          }
+        ]
       }
     ]
 
@@ -413,7 +418,7 @@ describe('VTT scene replay and projection', () => {
         channel: 'VISUAL',
         illuminationAccess: 'ORDINARY_DARKNESS',
         label: 'Darkvision',
-        range: 60,
+        range: { rangeKind: 'DISTANCE', amount: 60 },
         senseId: pinnedDarkvision.senseId
       }
     ])
@@ -447,7 +452,7 @@ describe('VTT scene replay and projection', () => {
     const state = materializeCampaignScene(definition(), ids.scene)
     state.grid = { kind: 'GRIDLESS', pixelsPerUnit: 5, unit: 'METERS' }
     const bindings = [{ actorId: ids.user, characterId: ids.player, tokenId: ids.token }]
-    const sense = (range: { amount: number; unit: 'FEET' }) => ({
+    const sense = (range: { rangeKind: 'DISTANCE'; amount: number; unit: 'FEET' }) => ({
       ...pinnedDarkvision,
       range
     })
@@ -456,19 +461,30 @@ describe('VTT scene replay and projection', () => {
         { characterId: ids.player, senses: ranges.map(sense) }
       ]).tokens[0]?.senses
 
-    expect(resolve({ amount: 60, unit: 'FEET' })?.[0]?.range).toBeCloseTo(18.288)
-    expect(resolve({ amount: 0, unit: 'FEET' })).toEqual([])
-    expect(resolve({ amount: 0, unit: 'FEET' }, { amount: 30, unit: 'FEET' })).toHaveLength(1)
+    expect(resolve({ rangeKind: 'DISTANCE', amount: 60, unit: 'FEET' })?.[0]?.range).toEqual({
+      rangeKind: 'DISTANCE',
+      amount: expect.closeTo(18.288)
+    })
+    expect(resolve({ rangeKind: 'DISTANCE', amount: 0, unit: 'FEET' })).toEqual([])
+    expect(
+      resolve(
+        { rangeKind: 'DISTANCE', amount: 0, unit: 'FEET' },
+        { rangeKind: 'DISTANCE', amount: 30, unit: 'FEET' }
+      )
+    ).toHaveLength(1)
 
     state.grid = { kind: 'GRIDLESS', pixelsPerUnit: 1, unit: 'SQUARES' }
-    expect(resolve({ amount: 60, unit: 'FEET' })?.[0]?.range).toBe(12)
-    expect(resolve({ amount: 0, unit: 'FEET' })).toEqual([])
+    expect(resolve({ rangeKind: 'DISTANCE', amount: 60, unit: 'FEET' })?.[0]?.range).toEqual({
+      rangeKind: 'DISTANCE',
+      amount: 12
+    })
+    expect(resolve({ rangeKind: 'DISTANCE', amount: 0, unit: 'FEET' })).toEqual([])
   })
 
   it('presents an unlimited sense on the token whatever the grid can measure', () => {
     const state = materializeCampaignScene(definition(), ids.scene)
     const bindings = [{ actorId: ids.user, characterId: ids.player, tokenId: ids.token }]
-    const unlimited = { ...pinnedDarkvision, range: null }
+    const unlimited = { ...pinnedDarkvision, range: { rangeKind: 'UNLIMITED' as const } }
     const resolve = () =>
       resolveSceneCharacterVision(state, bindings, [
         { characterId: ids.player, senses: [unlimited] }
@@ -480,7 +496,7 @@ describe('VTT scene replay and projection', () => {
         channel: 'VISUAL',
         illuminationAccess: 'ORDINARY_DARKNESS',
         label: 'Darkvision',
-        range: null,
+        range: { rangeKind: 'UNLIMITED' },
         senseId: pinnedDarkvision.senseId
       }
     ])
@@ -600,7 +616,9 @@ describe('VTT scene replay and projection', () => {
 
   it('shows senses to the GM and to a token’s controllers, never to other players', () => {
     const state = materializeCampaignScene({ ...definition(), fogMode: 'OFF' }, ids.scene)
-    const presented = [{ ...pinnedDarkvision, range: 30 }]
+    const presented = [
+      { ...pinnedDarkvision, range: { rangeKind: 'DISTANCE' as const, amount: 30 } }
+    ]
     state.tokens[0] = { ...state.tokens[0]!, senses: presented }
     state.tokens.push({
       ...state.tokens[0]!,
@@ -623,7 +641,9 @@ describe('VTT scene replay and projection', () => {
 
   it('withholds senses from token deltas exactly as from the snapshot', () => {
     const before = materializeCampaignScene({ ...definition(), fogMode: 'OFF' }, ids.scene)
-    const presented = [{ ...pinnedDarkvision, range: 30 }]
+    const presented = [
+      { ...pinnedDarkvision, range: { rangeKind: 'DISTANCE' as const, amount: 30 } }
+    ]
     const listed = { ...before.tokens[0]!, senses: presented }
     const unlisted = { ...listed, controlledByUserIds: [ids.user], id: ids.command1 }
     const after = { ...before, tokens: [listed, unlisted] }
@@ -658,7 +678,9 @@ describe('VTT scene replay and projection', () => {
 
   it('withholds senses from deltas that newly show a token and from batches', () => {
     const base = materializeCampaignScene({ ...definition(), fogMode: 'OFF' }, ids.scene)
-    const presented = [{ ...pinnedDarkvision, range: 30 }]
+    const presented = [
+      { ...pinnedDarkvision, range: { rangeKind: 'DISTANCE' as const, amount: 30 } }
+    ]
     const listed = { ...base.tokens[0]!, senses: presented }
     const unlisted = { ...listed, controlledByUserIds: [ids.user], id: ids.command1 }
     const before = {
@@ -709,7 +731,9 @@ describe('VTT scene replay and projection', () => {
 
   it('reveals tokens in a drag preview without their senses', () => {
     const state = materializeCampaignScene(definition(), ids.scene)
-    const presented = [{ ...pinnedDarkvision, range: 30 }]
+    const presented = [
+      { ...pinnedDarkvision, range: { rangeKind: 'DISTANCE' as const, amount: 30 } }
+    ]
     state.map = { ...state.map, height: 100, width: 100 }
     state.grid = { kind: 'GRIDLESS', pixelsPerUnit: 1, unit: 'FEET' }
     state.fogMode = 'PER_PLAYER'

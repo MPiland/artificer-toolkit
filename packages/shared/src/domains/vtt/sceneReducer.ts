@@ -1,4 +1,5 @@
 import { lengthMeasurementInFeet, type LengthUnitCode } from '../core/measurement.js'
+import type { CombatPerceptionRange } from '../rules/combatPerception.js'
 import type {
   CampaignSceneState,
   SceneAtomicDelta,
@@ -10,6 +11,7 @@ import type {
   SceneFogLayer,
   SceneGrid,
   ScenePoint,
+  SceneSenseLength,
   SceneTransientReveal,
   SceneViewer
 } from './scene.js'
@@ -51,9 +53,14 @@ export function lengthMeasurementInSceneUnits(length: SceneLength, grid: SceneGr
   return feetInSceneUnit(Math.max(0, lengthMeasurementInFeet(length)), grid.unit)
 }
 
-/** A sense's range in Scene units. A null range is unlimited and stays null. */
-export function senseRangeInSceneUnits(range: SceneLength | null, grid: SceneGrid): number | null {
-  return range === null ? null : lengthMeasurementInSceneUnits(range, grid)
+/** A sense's range in Scene units; an unlimited range stays unlimited. */
+export function senseRangeInSceneUnits(
+  range: SceneSenseLength,
+  grid: SceneGrid
+): CombatPerceptionRange {
+  return range.rangeKind === 'UNLIMITED'
+    ? { rangeKind: 'UNLIMITED' }
+    : { rangeKind: 'DISTANCE', amount: lengthMeasurementInSceneUnits(range, grid) }
 }
 
 /** Converts an authoritative Scene length to feet. */
@@ -88,7 +95,9 @@ export function resolveSceneCharacterVision<T extends Pick<CampaignSceneState, '
         ...token,
         senses: characterVision.senses.flatMap(({ range, ...sense }) => {
           const sceneRange = senseRangeInSceneUnits(range, state.grid)
-          return sceneRange !== null && sceneRange <= 0 ? [] : [{ ...sense, range: sceneRange }]
+          return sceneRange.rangeKind === 'DISTANCE' && sceneRange.amount <= 0
+            ? []
+            : [{ ...sense, range: sceneRange }]
         })
       }
     })

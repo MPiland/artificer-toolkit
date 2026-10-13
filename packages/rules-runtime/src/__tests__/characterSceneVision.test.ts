@@ -11,7 +11,7 @@ import { describe, expect, it } from 'vitest'
 import { deriveCharacterSceneVision } from '../character/characterSceneVision.js'
 
 type Pin = Pick<PinnedSenseDefinition, 'document' | 'range'> & { label: string }
-type Range = NonNullable<PinnedSenseDefinition['range']>
+type Range = Extract<PinnedSenseDefinition['range'], { rangeKind: 'DISTANCE' }>
 
 const characterId = '00000000-0000-4000-8000-000000000001'
 
@@ -28,9 +28,10 @@ function pin(senseId: string, amount: number | null, unit: Range['unit'] = 'FEET
     label,
     range:
       amount === null
-        ? null
+        ? { id: `${senseId}:range`, rangeKind: 'UNLIMITED' }
         : {
             id: `${senseId}:range`,
+            rangeKind: 'DISTANCE',
             amount,
             unit,
             calculation: { base: amount, effective: amount, contributions: [], override: null }
@@ -51,7 +52,7 @@ describe('deriveCharacterSceneVision', () => {
           channel: 'VISUAL',
           illuminationAccess: 'ORDINARY_DARKNESS',
           label: 'Darkvision',
-          range: { amount: 60, unit: 'FEET' },
+          range: { rangeKind: 'DISTANCE', amount: 60, unit: 'FEET' },
           senseId: SRD_DARKVISION_SENSE_ID
         }
       ]
@@ -69,7 +70,7 @@ describe('deriveCharacterSceneVision', () => {
         senseId,
         channel,
         illuminationAccess,
-        feet: range?.amount
+        feet: range.rangeKind === 'DISTANCE' ? range.amount : null
       }))
     ).toEqual([
       {
@@ -101,14 +102,17 @@ describe('deriveCharacterSceneVision', () => {
 
   it('converts length units to feet', () => {
     expect(senses([pin(SRD_DARKVISION_SENSE_ID, 20, 'YARDS')])[0]?.range).toEqual({
+      rangeKind: 'DISTANCE',
       amount: 60,
       unit: 'FEET'
     })
     expect(senses([pin(SRD_DARKVISION_SENSE_ID, 720, 'INCHES')])[0]?.range).toEqual({
+      rangeKind: 'DISTANCE',
       amount: 60,
       unit: 'FEET'
     })
     expect(senses([pin(SRD_DARKVISION_SENSE_ID, 1, 'MILES')])[0]?.range).toEqual({
+      rangeKind: 'DISTANCE',
       amount: 5_280,
       unit: 'FEET'
     })
@@ -119,9 +123,12 @@ describe('deriveCharacterSceneVision', () => {
     expect(senses([pin(SRD_DARKVISION_SENSE_ID, 0)])).toEqual([])
   })
 
-  it('presents a sense with no pinned range as unlimited', () => {
+  it('presents an UNLIMITED pinned range as an unlimited Scene sense', () => {
     expect(senses([pin(SRD_DARKVISION_SENSE_ID, null)])).toEqual([
-      expect.objectContaining({ senseId: SRD_DARKVISION_SENSE_ID, range: null })
+      expect.objectContaining({
+        senseId: SRD_DARKVISION_SENSE_ID,
+        range: { rangeKind: 'UNLIMITED' }
+      })
     ])
   })
 

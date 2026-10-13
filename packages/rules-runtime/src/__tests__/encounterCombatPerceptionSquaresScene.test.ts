@@ -62,13 +62,22 @@ const environment: CombatPerceptionEnvironment = {
 
 const pinnedRange: PinnedSenseDefinition['range'] = {
   id: 'pinned-range',
+  rangeKind: 'DISTANCE',
   amount: 60,
   unit: 'FEET',
   calculation: { base: 60, effective: 60, contributions: [], override: null }
 }
 
-type GrantRange = { amount: number; unit: 'FEET' } | null
-const ranged: GrantRange = { amount: 60, unit: 'FEET' }
+const unlimitedPinnedRange: PinnedSenseDefinition['range'] = {
+  id: 'pinned-range',
+  rangeKind: 'UNLIMITED'
+}
+
+type GrantRange =
+  | { rangeKind: 'DISTANCE'; amount: number; unit: 'FEET' }
+  | { rangeKind: 'UNLIMITED' }
+const ranged: GrantRange = { rangeKind: 'DISTANCE', amount: 60, unit: 'FEET' }
+const unlimitedGrant: GrantRange = { rangeKind: 'UNLIMITED' }
 
 function pinnedCapabilitiesOn(grid: SceneGrid, range: PinnedSenseDefinition['range']) {
   return resolveEncounterCombatPerception({
@@ -156,15 +165,21 @@ const kinds = (sources: readonly { contribution: { kind: string } }[]) =>
 
 describe('Combat perception on a SQUARES Scene', () => {
   it('keeps a ranged pinned sense at its range on a calibrated Scene', () => {
-    expect(pinnedCapabilitiesOn(feetGrid, pinnedRange).map(({ range }) => range)).toEqual([60])
+    expect(pinnedCapabilitiesOn(feetGrid, pinnedRange).map(({ range }) => range)).toEqual([
+      { rangeKind: 'DISTANCE', amount: 60 }
+    ])
   })
 
   it('measures a 60-foot pinned sense as 12 squares, never unlimited', () => {
-    expect(pinnedCapabilitiesOn(squaresGrid, pinnedRange).map(({ range }) => range)).toEqual([12])
+    expect(pinnedCapabilitiesOn(squaresGrid, pinnedRange).map(({ range }) => range)).toEqual([
+      { rangeKind: 'DISTANCE', amount: 12 }
+    ])
   })
 
   it('keeps an unlimited pinned sense unlimited', () => {
-    expect(pinnedCapabilitiesOn(squaresGrid, null).map(({ range }) => range)).toEqual([null])
+    expect(
+      pinnedCapabilitiesOn(squaresGrid, unlimitedPinnedRange).map(({ range }) => range)
+    ).toEqual([{ rangeKind: 'UNLIMITED' }])
   })
 
   it('measures a 60-foot SENSE_GRANT effect contribution as 12 squares', () => {
@@ -174,10 +189,12 @@ describe('Combat perception on a SQUARES Scene', () => {
     ])
     const measured = observerContributionsOn(squaresGrid, ranged)
     expect(kinds(measured)).toEqual(['SENSE_GRANT', 'SENSE_SUPPRESS'])
-    expect(measured[0]?.contribution).toMatchObject({ range: 12 })
-    const unlimited = observerContributionsOn(squaresGrid, null)
+    expect(measured[0]?.contribution).toMatchObject({
+      range: { rangeKind: 'DISTANCE', amount: 12 }
+    })
+    const unlimited = observerContributionsOn(squaresGrid, unlimitedGrant)
     expect(kinds(unlimited)).toEqual(['SENSE_GRANT', 'SENSE_SUPPRESS'])
-    expect(unlimited[0]?.contribution).toMatchObject({ range: null })
+    expect(unlimited[0]?.contribution).toMatchObject({ range: { rangeKind: 'UNLIMITED' } })
   })
 
   it('measures a 60-foot SENSE_GRANT condition contribution as 12 squares', () => {
@@ -187,9 +204,11 @@ describe('Combat perception on a SQUARES Scene', () => {
     ])
     const measured = conditionContributionsOn(squaresGrid, ranged)
     expect(kinds(measured)).toEqual(['SENSE_GRANT', 'SENSE_SUPPRESS'])
-    expect(measured[0]?.contribution).toMatchObject({ range: 12 })
-    const unlimited = conditionContributionsOn(squaresGrid, null)
+    expect(measured[0]?.contribution).toMatchObject({
+      range: { rangeKind: 'DISTANCE', amount: 12 }
+    })
+    const unlimited = conditionContributionsOn(squaresGrid, unlimitedGrant)
     expect(kinds(unlimited)).toEqual(['SENSE_GRANT', 'SENSE_SUPPRESS'])
-    expect(unlimited[0]?.contribution).toMatchObject({ range: null })
+    expect(unlimited[0]?.contribution).toMatchObject({ range: { rangeKind: 'UNLIMITED' } })
   })
 })

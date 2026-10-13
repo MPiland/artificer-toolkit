@@ -57,7 +57,7 @@ function compareEffects(left: LockedCombatPerceptionEffect, right: LockedCombatP
   return left.createdOrdinal - right.createdOrdinal || left.id.localeCompare(right.id)
 }
 
-/** A contribution with its sense range in Scene units; an unlimited range stays null. */
+/** A contribution with its sense range in Scene units; an unlimited range stays unlimited. */
 function contributionInSceneUnits(
   contribution: CombatPerceptionContributionDto,
   sceneGrid: SceneGrid

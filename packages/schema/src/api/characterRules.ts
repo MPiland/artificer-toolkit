@@ -33,6 +33,7 @@ import {
 import { compareCanonicalD20Contributors } from '@artificer-toolkit/shared/rules'
 import { postgresUuidSchema as serverUuidIdentityDtoSchema } from '../shared/postgresUuid.js'
 import { characterResourcePoolIdentitySchema } from '../shared/characterResourceIdentity.js'
+import { unlimitedRangeDtoSchema } from '../shared/range.js'
 
 const finiteNumberSchema = lazySchema(() => z.number())
 const integerSchema = lazySchema(() => z.number().check(z.int()))
@@ -183,7 +184,8 @@ const characterSenseFactsSchema = lazySchema(() =>
         z.strictObject({
           senseDefinitionId: serverUuidIdentityDtoSchema,
           sourceId: boundedIdentitySchema,
-          value: finiteNumberSchema
+          value: finiteNumberSchema,
+          unit: lengthUnitCodeSchema
         })
       )
       .check(z.maxLength(100))
@@ -1053,15 +1055,18 @@ const characterDerivedProficiencyCalculationSchema = lazySchema(() =>
 )
 
 const characterRollModeSchema = lazySchema(() => z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']))
+/** A Character's resolved reach with a Sense; an unlimited Sense has no distance to calculate. */
 export const characterRuleSenseRangeSchema = lazySchema(() =>
-  z.nullable(
+  z.union([
+    unlimitedRangeDtoSchema,
     z.strictObject({
       id: boundedIdentitySchema,
+      rangeKind: z.literal('DISTANCE'),
       amount: finiteNumberSchema,
       unit: lengthUnitCodeSchema,
       calculation: characterDerivedNumericCalculationSchema
     })
-  )
+  ])
 )
 const characterRuleSenseSchema = lazySchema(() =>
   z.strictObject({

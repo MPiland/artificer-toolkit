@@ -217,7 +217,7 @@ export function buildCharacterGrantFoldSourceFacts(params: {
       grantId: grant.id,
       scalingKind: grant.scalingKind,
       ...scalingTargets(grant, 'senseIds', params.snapshot, params.owner),
-      range: grant.range ? jsonFact(grant.range) : null
+      range: grant.range
     })),
     modifiers: buildCharacterGrantFoldModifierFacts(
       params.definition.modifiers,

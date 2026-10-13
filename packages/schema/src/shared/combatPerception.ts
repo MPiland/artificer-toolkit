@@ -147,7 +147,10 @@ const senseGrantContributionDtoSchema = lazySchema(() =>
     .extend(contributionIdentitySchema, {
       kind: z.literal('SENSE_GRANT'),
       ...pinnedSenseContributionFields(),
-      range: z.nullable(contributionMeasurementSchema)
+      range: z.union([
+        z.strictObject({ rangeKind: z.literal('UNLIMITED') }),
+        z.extend(contributionMeasurementSchema, { rangeKind: z.literal('DISTANCE') })
+      ])
     })
     .check(
       z.superRefine((contribution, context) => {

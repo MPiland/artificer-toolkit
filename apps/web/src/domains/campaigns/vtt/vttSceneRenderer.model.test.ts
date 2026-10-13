@@ -503,13 +503,25 @@ describe('VTT view token and senses', () => {
       origin: { x: 0, y: 0 },
       unit: 'FEET'
     }
-    expect(senseReachRadius(square, { height: 70, width: 70 }, { range: 60 })).toBe(875)
-    expect(senseReachRadius(square, { height: 140, width: 140 }, { range: 10 })).toBe(210)
+    expect(
+      senseReachRadius(
+        square,
+        { height: 70, width: 70 },
+        { range: { rangeKind: 'DISTANCE', amount: 60 } }
+      )
+    ).toBe(875)
+    expect(
+      senseReachRadius(
+        square,
+        { height: 140, width: 140 },
+        { range: { rangeKind: 'DISTANCE', amount: 10 } }
+      )
+    ).toBe(210)
     expect(
       senseReachRadius(
         { kind: 'GRIDLESS', pixelsPerUnit: 10, unit: 'FEET' },
         { height: 40, width: 40 },
-        { range: 30 }
+        { range: { rangeKind: 'DISTANCE', amount: 30 } }
       )
     ).toBe(320)
   })
@@ -524,7 +536,7 @@ describe('VTT view token and senses', () => {
     const radius = senseReachRadius(
       { kind: 'GRIDLESS', pixelsPerUnit: 10, unit: 'FEET' },
       { height: 40, width: 40 },
-      { range: null }
+      { range: { rangeKind: 'UNLIMITED' } }
     )
     const polygon = clampPolygonToRadius(lineOfSight, origin, radius)
 

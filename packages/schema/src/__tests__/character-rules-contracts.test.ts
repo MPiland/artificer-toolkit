@@ -786,6 +786,7 @@ describe('Character rule contracts', () => {
           senseDefinitionId: '00000000-0000-4000-8000-000000000010',
           range: {
             id: 'darkvision',
+            rangeKind: 'DISTANCE',
             amount: 60,
             unit: 'FEET',
             calculation: output.derivedStats.initiative
@@ -868,7 +869,7 @@ describe('Character rule contracts', () => {
         senses: [
           {
             ...outputWithClosedCodes.senses[0]!,
-            range: { ...outputWithClosedCodes.senses[0]!.range!, unit: 'METERS' }
+            range: { ...outputWithClosedCodes.senses[0]!.range, unit: 'METERS' }
           }
         ]
       }).success

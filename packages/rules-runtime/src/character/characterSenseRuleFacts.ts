@@ -14,7 +14,9 @@ export function buildCharacterSenseRuleFacts(
       overrides: adjustments.map((adjustment) => ({
         senseDefinitionId: adjustment.senseId,
         sourceId: adjustment.id,
-        value: adjustment.value
+        value: adjustment.value,
+        // The Sheet's RANGE_OVERRIDE contract records its value in feet.
+        unit: 'FEET'
       })) as SenseFacts['overrides']
     }
   }

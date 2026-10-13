@@ -3,7 +3,8 @@ import type {
   CombatPerceptionChannel,
   CombatPerceptionIllumination,
   CombatPerceptionIlluminationAccess,
-  CombatPerceptionObscurement
+  CombatPerceptionObscurement,
+  CombatPerceptionRange
 } from '../rules/combatPerception.js'
 
 export const VTT_SCENE_LIMITS = {
@@ -76,23 +77,26 @@ export interface SceneTokenVision {
 
 /**
  * A sense a token presents to its controllers; its range is in Scene units from the token
- * footprint edge. A null range is unlimited.
+ * footprint edge, or unlimited.
  */
 export interface SceneTokenSense {
   channel: CombatPerceptionChannel
   illuminationAccess: CombatPerceptionIlluminationAccess
   label: string
-  range: number | null
+  range: CombatPerceptionRange
   /** The pinned sense definition id. */
   senseId: string
 }
 
-/** Pinned Character-derived senses, ranged as typed lengths (null is unlimited) until a Scene grid converts them. */
+/** A sense's reach as a typed length (or unlimited) until a Scene grid converts it. */
+export type SceneSenseLength =
+  | { rangeKind: 'UNLIMITED' }
+  | { rangeKind: 'DISTANCE'; amount: number; unit: LengthUnitCode }
+
+/** Pinned Character-derived senses, ranged as typed lengths until a Scene grid converts them. */
 export interface SceneCharacterVision {
   characterId: string
-  senses: (Omit<SceneTokenSense, 'range'> & {
-    range: { amount: number; unit: LengthUnitCode } | null
-  })[]
+  senses: (Omit<SceneTokenSense, 'range'> & { range: SceneSenseLength })[]
 }
 
 export interface SceneToken {

@@ -384,7 +384,7 @@ export function evaluateDnd5e2014CharacterGrantFold(
           senseDefinitionId,
           grantId: operation.grantId,
           source: source.mechanicSource,
-          ...(operation.range != null ? { range: operation.range } : {})
+          range: operation.range
         }
         acc.senses.push(sense)
       }
