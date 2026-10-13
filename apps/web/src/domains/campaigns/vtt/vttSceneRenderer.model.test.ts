@@ -1,3 +1,4 @@
+import { Container } from 'pixi.js'
 import { describe, expect, it } from 'vitest'
 import type { CampaignSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
 import { SceneBarrierIndex, type SceneGrid } from '@artificer-toolkit/shared/vtt'
@@ -14,6 +15,7 @@ import {
   hasCommittedSceneTokenPositionChanged,
   interpolateScenePoint,
   isTokenRevealed,
+  isWithinTokenVisual,
   lightTintAlpha,
   dimOverlayAlpha,
   gmDarknessCapAlpha,
@@ -380,6 +382,25 @@ describe('VTT scene renderer model', () => {
   })
 })
 
+describe('VTT token press target', () => {
+  it('finds the token visual from a press at any depth of it, and nothing elsewhere', () => {
+    const stage = new Container()
+    const tokenLayer = stage.addChild(new Container())
+    const visual = tokenLayer.addChild(new Container())
+    const ring = visual.addChild(new Container())
+    ring.eventMode = 'static'
+    const art = ring.addChild(new Container())
+    art.eventMode = 'static'
+    const map = stage.addChild(new Container())
+    expect(isWithinTokenVisual(visual, tokenLayer)).toBe(true)
+    expect(isWithinTokenVisual(ring, tokenLayer)).toBe(true)
+    expect(isWithinTokenVisual(art, tokenLayer)).toBe(true)
+    expect(isWithinTokenVisual(map, tokenLayer)).toBe(false)
+    expect(isWithinTokenVisual(tokenLayer, tokenLayer)).toBe(false)
+    expect(isWithinTokenVisual(null, tokenLayer)).toBe(false)
+  })
+})
+
 describe('VTT view token and senses', () => {
   type Token = CampaignSceneStateDto['tokens'][number]
   const token = (id: string, controlledByUserIds: string[]): Token => ({
@@ -538,6 +559,15 @@ describe('VTT view token and senses', () => {
         })
       expect(feel(135)).toBe(true)
       expect(feel(136)).toBe(false)
+    })
+
+    it('measures every other sense to the token centre, not its edge', () => {
+      // The centre is outside the reach while the 35 px edge is inside it.
+      const edgeInside = { x: 120, y: 0 }
+      for (const effect of ['DARKVISION', 'TRUESIGHT', 'BLINDSIGHT'] as const) {
+        expect(seen('ORDINARY_DARKNESS', [effect], edgeInside)).toBe(false)
+      }
+      expect(seen('ORDINARY_DARKNESS', ['TREMORSENSE'], edgeInside)).toBe(true)
     })
   })
 })

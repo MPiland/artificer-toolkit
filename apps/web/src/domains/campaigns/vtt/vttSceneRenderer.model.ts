@@ -497,6 +497,22 @@ export function isTokenRevealed(input: {
   })
 }
 
+/** A display object as far as its place in the scene graph goes. */
+interface SceneGraphNode {
+  parent: SceneGraphNode | null
+}
+
+/** Whether a pointer target is a token visual on the token layer, or any depth inside one. */
+export function isWithinTokenVisual(
+  target: SceneGraphNode | null,
+  tokenLayer: SceneGraphNode
+): boolean {
+  for (let node = target; node; node = node.parent) {
+    if (node.parent === tokenLayer) return true
+  }
+  return false
+}
+
 type SceneIllumination = CampaignSceneStateDto['ambientIllumination']
 type SceneDarknessZone = CampaignSceneStateDto['darknessZones'][number]
 type SceneLight = CampaignSceneStateDto['lights'][number]

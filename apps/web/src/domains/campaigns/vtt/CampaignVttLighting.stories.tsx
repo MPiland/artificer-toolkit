@@ -794,6 +794,23 @@ export const DwarfWithDarkvisionSeesTheCave: Story = {
   }
 }
 
+// Senses work within the sight every token has: line of sight to its authored range (120 here).
+export const SensesStayWithinTheAuthoredSightRange: Story = {
+  args: {
+    samplePoints: [
+      { x: 250, y: 450 },
+      { x: 900, y: 450 }
+    ],
+    scene: dwarfCave,
+    view: viewEmber
+  },
+  play: async ({ canvasElement }) => {
+    const { samples, viewTokenId } = await readLighting(canvasElement)
+    expect(viewTokenId).toBe(ember.id)
+    expect(samples.map((sample) => sample.masked)).toEqual([false, true])
+  }
+}
+
 const truesightCave = caveSceneFor(seerWith([truesight]))
 
 export const TruesightSeesThroughMagicalDarkness: Story = {

@@ -43,6 +43,7 @@ import {
   hasCommittedSceneTokenPositionChanged,
   interpolateScenePoint,
   isTokenRevealed,
+  isWithinTokenVisual,
   lightRadii,
   lightTintAlpha,
   maxStatusSegments,
@@ -429,7 +430,6 @@ export async function createVttSceneRenderer(
     previewTokenId: string | null
     role: VttSceneRendererUpdate['role']
     tokens: CampaignSceneStateDto['tokens']
-    viewTokenId: string | null
   } | null = null
   let tokenSummary = 'No visible tokens'
   let visionLabels: string[] = []
@@ -1091,7 +1091,6 @@ export async function createVttSceneRenderer(
   function drawVision(next: VttSceneRendererUpdate): void {
     const previewTokenId = next.role === 'OWNER' ? (next.previewTokenId ?? null) : null
     const { barriers, doorStates, map, tokens } = next.scene
-    const viewTokenId = next.viewTokenId ?? null
     const inputs = {
       barriers,
       boundTokenControl: next.boundTokenControl,
@@ -1100,8 +1099,7 @@ export async function createVttSceneRenderer(
       map,
       previewTokenId,
       role: next.role,
-      tokens,
-      viewTokenId
+      tokens
     }
     if (
       renderedVision &&
@@ -1133,15 +1131,12 @@ export async function createVttSceneRenderer(
     for (const token of seers) {
       const { vision } = token
       if (!vision) continue
-      // A view token with senses is not cut short at its authored range: the light, and its
-      // senses, decide what it sees along its line of sight. Without senses it sees as authored.
-      const isViewToken = token.id === viewTokenId && token.senses.length > 0
-      const reachRange = isViewToken
-        ? Math.hypot(map.width, map.height)
-        : Math.max(vision.brightRange, vision.dimRange)
+      // Every seeing token sees along its line of sight to its authored range; within it, the
+      // light and the view token's senses decide what shows.
+      const reachRange = Math.max(vision.brightRange, vision.dimRange)
       const sight = visibilityPolygonForToken(
         token.position,
-        isViewToken ? { ...vision, brightRange: reachRange, dimRange: reachRange } : vision,
+        vision,
         barriers,
         doorStates,
         barrierIndex
@@ -2093,11 +2088,11 @@ export async function createVttSceneRenderer(
     }
     // A press on the empty map clears the selection; one on a token, at any depth of its
     // visual, has already selected it.
-    let pressedTokenVisual: Container | null = event.target
-    while (pressedTokenVisual && pressedTokenVisual.parent !== tokenLayer) {
-      pressedTokenVisual = pressedTokenVisual.parent
-    }
-    if (event.button === 0 && current.tool === 'SELECT' && !pressedTokenVisual) {
+    if (
+      event.button === 0 &&
+      current.tool === 'SELECT' &&
+      !isWithinTokenVisual(event.target, tokenLayer)
+    ) {
       callbacks.onTokenSelect?.(null)
     }
     // A primary press on the map outside another gesture pings once held in place.
