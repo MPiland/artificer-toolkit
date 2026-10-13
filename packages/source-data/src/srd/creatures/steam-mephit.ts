@@ -29,7 +29,7 @@ export const steamMephit: CreatureAuthored = {
   proficiencies: [S.grantedLanguageProficiency(262, 1, 'AQUAN', 'IGNAN')],
   damageImmunities: ['fire', 'poison'],
   conditionImmunities: ['poisoned'],
-  senses: ['darkvision 60 ft.'],
+  senses: [S.darkvision(60)],
   passivePerception: 10,
   challengeRatingId: S.CR.CR_1_4,
   xp: 50,

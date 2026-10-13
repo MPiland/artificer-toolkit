@@ -42,7 +42,7 @@ export const invisibleStalker: CreatureAuthored = {
     'restrained',
     'unconscious'
   ],
-  senses: ['darkvision 60 ft.'],
+  senses: [S.darkvision(60)],
   passivePerception: 18,
   challengeRatingId: S.CR.CR_6,
   xp: 2300,

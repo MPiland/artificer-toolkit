@@ -26,7 +26,7 @@ export const ogre: CreatureAuthored = {
   },
   speeds: [...S.walk(40)],
   proficiencies: [S.grantedLanguageProficiency(209, 1, 'COMMON', 'GIANT')],
-  senses: ['darkvision 60 ft.'],
+  senses: [S.darkvision(60)],
   passivePerception: 8,
   challengeRatingId: S.CR.CR_2,
   xp: 450,

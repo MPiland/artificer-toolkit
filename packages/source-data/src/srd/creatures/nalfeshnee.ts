@@ -37,7 +37,7 @@ export const nalfeshnee: CreatureAuthored = {
   ],
   damageImmunities: ['poison'],
   conditionImmunities: ['poisoned'],
-  senses: ['truesight 120 ft.'],
+  senses: [S.truesight(120)],
   passivePerception: 11,
   challengeRatingId: S.CR.CR_13,
   xp: 10000,

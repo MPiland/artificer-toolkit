@@ -47,7 +47,8 @@ import {
   insertStoredRun,
   memoryRoomDocuments
 } from '../src/testing/storedRunFixture.js'
-import { characterRoomInputs, srdSystemRoomInputs } from './characterSheetInputsFixture.js'
+import { characterRoomInputs } from './characterSheetInputsFixture.js'
+import { srdSystemRoomInputs } from './srdSenseInputsFixture.js'
 import { doorScene, fixture, routeEncounterRequests, synchronizeScene } from './liveRoomFixture.js'
 import { ROOM_AUTHORIZATION_PATH, roomAuthorizationResponse } from './roomAuthorizationFixture.js'
 import { ROOM_INPUTS_PATH, roomInputsResponse } from './roomInputsFixture.js'

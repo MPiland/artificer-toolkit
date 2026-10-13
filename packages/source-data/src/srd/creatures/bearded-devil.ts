@@ -36,7 +36,7 @@ export const beardedDevil: CreatureAuthored = {
   ],
   damageImmunities: ['fire', 'poison'],
   conditionImmunities: ['poisoned'],
-  senses: ['darkvision 120 ft.'],
+  senses: [S.darkvision(120)],
   passivePerception: 10,
   challengeRatingId: S.CR.CR_3,
   xp: 700,

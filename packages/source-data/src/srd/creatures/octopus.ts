@@ -27,7 +27,7 @@ export const octopus: CreatureAuthored = {
   },
   speeds: [...S.walk(5), ...S.swim(30)],
   proficiencies: [S.grantedSkillProficiency(7953, 1, 'PERCEPTION', 'STEALTH')],
-  senses: ['darkvision 30 ft.'],
+  senses: [S.darkvision(30)],
   passivePerception: 12,
   challengeRatingId: S.CR.CR_0,
   xp: 10,

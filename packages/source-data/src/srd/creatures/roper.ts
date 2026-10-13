@@ -29,7 +29,7 @@ export const roper: CreatureAuthored = {
     S.grantedSkillExpertise(7072, 2, 'STEALTH'),
     S.grantedSkillProficiency(7072, 1, 'PERCEPTION')
   ],
-  senses: ['darkvision 60 ft.'],
+  senses: [S.darkvision(60)],
   passivePerception: 16,
   challengeRatingId: S.CR.CR_5,
   xp: 1800,

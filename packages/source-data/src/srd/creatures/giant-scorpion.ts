@@ -25,7 +25,7 @@ export const giantScorpion: CreatureAuthored = {
     modifier: 14
   },
   speeds: [...S.walk(40)],
-  senses: ['blindsight 60 ft.'],
+  senses: [S.blindsight(60)],
   passivePerception: 9,
   challengeRatingId: S.CR.CR_3,
   xp: 700,

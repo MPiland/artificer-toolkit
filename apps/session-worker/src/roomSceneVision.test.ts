@@ -3,6 +3,11 @@ import { sceneLiveStateHeaderSchema } from '@artificer-toolkit/schema/api/sceneL
 import { liveSessionRoomAuthorizationSchema } from '@artificer-toolkit/schema/api/liveSessionRoomAuthorization'
 import { campaignSceneStateDtoSchema } from '@artificer-toolkit/schema/api/vttScenes'
 import { canonicalizeJson } from '@artificer-toolkit/shared/canonicalJson'
+import { goblin } from '@artificer-toolkit/source-data/srd/creatures/goblin.js'
+import {
+  SRD_DARKVISION_SENSE_ID,
+  srdSystemRecord
+} from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { RoomEncounterStore } from './roomEncounterStore.js'
 import { RoomInputs } from './roomInputs.js'
 import { ROOM_SCENE_DEFINITION_HEADER } from './roomSceneDefinition.js'
@@ -12,6 +17,7 @@ import { createNodeSqliteRoomStorage } from './testing/nodeSqliteRoomStorage.js'
 import { uuid } from './testing/roomAggregateFixture.js'
 import { roomAuthorizationResponse } from '../test/roomAuthorizationFixture.js'
 import { roomInputsResponse } from '../test/roomInputsFixture.js'
+import { darkvisionDefinition, srdSystemRoomInputs } from '../test/srdSenseInputsFixture.js'
 
 const EPOCH = uuid(0xc00)
 const CAMPAIGN = uuid(0xc01)
@@ -29,10 +35,12 @@ afterEach(() => {
 })
 
 /**
- * A room holding an ACTIVE Run bound to a Scene, whose Character actor owns one Scene token and
- * whose Character has no assignment in the Campaign.
+ * A room holding an ACTIVE Run bound to a Scene whose one token belongs to the Run's one actor.
+ * By default that actor is a Character with no assignment in the Campaign. With `creature` it is a
+ * Creature of the SRD System, whose published Sense definitions the room holds.
  */
-async function boundRoom() {
+async function boundRoom(creature?: typeof goblin) {
+  const systemId = creature ? srdSystemRecord.id : SYSTEM
   const assignments: { characterId: string; userId: string }[] = []
   const members = [
     { userId: GM, role: 'OWNER' as const, membershipEpoch: MEMBERSHIP_EPOCH },
@@ -43,19 +51,27 @@ async function boundRoom() {
   )
   const authority = roomInputsResponse(
     { kind: 'AUTHORITY', cursor: null },
-    { campaignId: CAMPAIGN, systemId: SYSTEM, ownerUserId: GM, members, assignments }
+    { campaignId: CAMPAIGN, systemId, ownerUserId: GM, members, assignments }
   )
-  const system = roomInputsResponse(
-    { kind: 'SYSTEM', part: 'SYSTEM' },
-    { campaignId: CAMPAIGN, systemId: SYSTEM }
+  const system = creature
+    ? srdSystemRoomInputs(CAMPAIGN)
+    : roomInputsResponse({ kind: 'SYSTEM', part: 'SYSTEM' }, { campaignId: CAMPAIGN, systemId })
+  const definitions = roomInputsResponse(
+    { kind: 'DEFINITIONS', cursor: null },
+    { campaignId: CAMPAIGN, systemId, definitions: creature ? [darkvisionDefinition] : [] }
   )
-  if (authority.kind !== 'AUTHORITY' || system.kind !== 'SYSTEM')
+  if (
+    authority.kind !== 'AUTHORITY' ||
+    system.kind !== 'SYSTEM' ||
+    definitions.kind !== 'DEFINITIONS'
+  )
     throw new Error('Missing room fixture inputs.')
   const run = await encounterRunFixture({
     campaignId: CAMPAIGN,
-    systemId: SYSTEM,
-    actors: [{ characterId: CHARACTER }],
-    scene: { sceneId: SCENE, tokenId: TOKEN }
+    systemId,
+    actors: creature ? [] : [{ characterId: CHARACTER }],
+    creatures: creature ? [{ label: 'Goblin', tokenId: TOKEN, statBlock: creature }] : [],
+    scene: { sceneId: SCENE, tokenId: creature ? undefined : TOKEN }
   })
   const counts = { annotations: 0, barriers: 0, darknessZones: 0, lights: 0, tokens: 1 }
   const header = sceneLiveStateHeaderSchema.parse({
@@ -97,7 +113,7 @@ async function boundRoom() {
         width: 1,
         hidden: false,
         locked: false,
-        label: 'Aria',
+        label: creature?.label ?? 'Aria',
         rotationDegrees: 0,
         position: { x: 0, y: 0 },
         senses: [],
@@ -127,6 +143,18 @@ async function boundRoom() {
         revision: JSON.stringify(system.revisions),
         json: JSON.stringify(system)
       },
+      {
+        kind: 'ROOM_INPUT',
+        key: 'DEFINITIONS',
+        revision: JSON.stringify(definitions.revisions),
+        json: JSON.stringify({ ...definitions, definitions: [] })
+      },
+      ...definitions.definitions.map((definition) => ({
+        kind: 'ROOM_DEFINITION',
+        key: definition.id,
+        revision: JSON.stringify(definitions.revisions),
+        json: canonicalizeJson(definition)
+      })),
       {
         kind: ROOM_SCENE_DEFINITION_HEADER,
         key: SCENE,
@@ -172,5 +200,25 @@ describe('composeRoomSceneVision', () => {
   it('binds no vision for a Character actor whose assignment was removed while the Run is held (D74)', async () => {
     const { compose, scene } = await boundRoom()
     await expect(compose()).resolves.toEqual({ scene, characterRevisions: [] })
+  })
+
+  it("carries a Creature token's authored Senses, pinned to the System's Sense definitions (VTT_UI-5.2)", async () => {
+    const { compose, scene } = await boundRoom(goblin)
+    const { scene: composed, characterRevisions } = await compose()
+    expect(characterRevisions).toEqual([])
+    expect(composed.tokens).toEqual([
+      {
+        ...scene.tokens[0],
+        senses: [
+          {
+            senseId: SRD_DARKVISION_SENSE_ID,
+            label: 'Darkvision',
+            channel: 'VISUAL',
+            illuminationAccess: 'ORDINARY_DARKNESS',
+            range: { rangeKind: 'DISTANCE', amount: 60 }
+          }
+        ]
+      }
+    ])
   })
 })

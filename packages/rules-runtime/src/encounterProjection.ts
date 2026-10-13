@@ -18,7 +18,10 @@ import type {
   EncounterProjectionCharacterStates,
   EncounterProjectionInput
 } from '@artificer-toolkit/schema/projections/encounterProjectionInput'
-import { creatureQualifiedDamageDefenseDtoSchema } from '@artificer-toolkit/schema/subjects/creature'
+import {
+  creatureQualifiedDamageDefenseDtoSchema,
+  creatureSenseDtoSchema
+} from '@artificer-toolkit/schema/subjects/creature'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 
 import { snapshotCreatureEquipmentItems } from './encounterCreatureEquipmentSources.js'
@@ -126,7 +129,12 @@ export function snapshotStatBlock(actor: EncounterProjectionActorInput) {
         : null,
     abilityScores: abilities,
     speeds: Array.isArray(payload.speeds) ? payload.speeds : [],
-    senses: stringValues(payload.senses),
+    senses: Array.isArray(payload.senses)
+      ? payload.senses.flatMap((entry) => {
+          const parsed = creatureSenseDtoSchema.safeParse(entry)
+          return parsed.success ? [parsed.data] : []
+        })
+      : [],
     damageVulnerabilities: stringValues(payload.damageVulnerabilities),
     damageResistances: stringValues(payload.damageResistances),
     damageImmunities: stringValues(payload.damageImmunities),

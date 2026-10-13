@@ -28,7 +28,7 @@ export const pseudodragon: CreatureAuthored = {
   },
   speeds: [...S.walk(15), ...S.fly(60)],
   proficiencies: [S.grantedSkillProficiency(226, 1, 'PERCEPTION', 'STEALTH')],
-  senses: ['blindsight 10 ft.', 'darkvision 60 ft.'],
+  senses: [S.blindsight(10), S.darkvision(60)],
   passivePerception: 13,
   challengeRatingId: S.CR.CR_1_4,
   xp: 50,

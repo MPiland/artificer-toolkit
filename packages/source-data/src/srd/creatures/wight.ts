@@ -33,7 +33,7 @@ export const wight: CreatureAuthored = {
   ],
   damageImmunities: ['poison'],
   conditionImmunities: ['exhaustion', 'poisoned'],
-  senses: ['darkvision 60 ft.'],
+  senses: [S.darkvision(60)],
   passivePerception: 13,
   challengeRatingId: S.CR.CR_3,
   xp: 700,

@@ -31,7 +31,7 @@ export const efreeti: CreatureAuthored = {
     S.grantedLanguageProficiency(95, 2, 'IGNAN')
   ],
   damageImmunities: ['fire'],
-  senses: ['darkvision 120 ft.'],
+  senses: [S.darkvision(120)],
   passivePerception: 12,
   challengeRatingId: S.CR.CR_11,
   xp: 7200,

@@ -31,7 +31,12 @@ export const ownedMonsterFixture: CreatureAuthoredDto = {
   hitPoints: 68,
   hitDice: { count: 7, die: 10, modifier: 21 },
   speeds: [{ speedId: 'walk', amount: 40, unit: 'FEET' }],
-  senses: ['darkvision 60 ft.'],
+  senses: [
+    {
+      senseDefinitionId: 'darkvision',
+      range: { id: 'darkvision-range', rangeKind: 'DISTANCE', amount: 60, unit: 'FEET' }
+    }
+  ],
   passivePerception: 13,
   challengeRatingId: 'cr-3',
   xp: 700,

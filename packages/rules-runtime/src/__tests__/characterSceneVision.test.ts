@@ -8,12 +8,12 @@ import {
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { describe, expect, it } from 'vitest'
 
-import { deriveCharacterSceneVision } from '../character/characterSceneVision.js'
+import { deriveActorSceneVision } from '../character/characterSceneVision.js'
 
 type Pin = Pick<PinnedSenseDefinition, 'document' | 'range'> & { label: string }
 type Range = Extract<PinnedSenseDefinition['range'], { rangeKind: 'DISTANCE' }>
 
-const characterId = '00000000-0000-4000-8000-000000000001'
+const actorId = '00000000-0000-4000-8000-000000000001'
 
 function definition(senseId: string) {
   const found = SRD_SENSE_DEFINITIONS.find((candidate) => candidate.id === senseId)
@@ -40,13 +40,13 @@ function pin(senseId: string, amount: number | null, unit: Range['unit'] = 'FEET
 }
 
 function senses(pins: readonly Pin[]) {
-  return deriveCharacterSceneVision(characterId, pins).senses
+  return deriveActorSceneVision(actorId, pins).senses
 }
 
-describe('deriveCharacterSceneVision', () => {
+describe('deriveActorSceneVision', () => {
   it('presents 60 ft darkvision as a visual sense that sees ordinary darkness', () => {
-    expect(deriveCharacterSceneVision(characterId, [pin(SRD_DARKVISION_SENSE_ID, 60)])).toEqual({
-      characterId,
+    expect(deriveActorSceneVision(actorId, [pin(SRD_DARKVISION_SENSE_ID, 60)])).toEqual({
+      actorId,
       senses: [
         {
           channel: 'VISUAL',
@@ -119,7 +119,7 @@ describe('deriveCharacterSceneVision', () => {
   })
 
   it('presents no sense for a zero range', () => {
-    expect(deriveCharacterSceneVision(characterId, [])).toEqual({ characterId, senses: [] })
+    expect(deriveActorSceneVision(actorId, [])).toEqual({ actorId, senses: [] })
     expect(senses([pin(SRD_DARKVISION_SENSE_ID, 0)])).toEqual([])
   })
 

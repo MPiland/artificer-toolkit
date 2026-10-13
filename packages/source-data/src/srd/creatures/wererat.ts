@@ -30,7 +30,7 @@ export const wererat: CreatureAuthored = {
   damageImmunities: [
     'bludgeoning, piercing, and slashing from nonmagical attacks not made with silvered weapons'
   ],
-  senses: ['darkvision 60 ft. (rat form only)'],
+  senses: [S.darkvision(60, '(rat form only)')],
   passivePerception: 12,
   challengeRatingId: S.CR.CR_2,
   xp: 450,

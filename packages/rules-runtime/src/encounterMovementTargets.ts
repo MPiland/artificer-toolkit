@@ -85,6 +85,8 @@ export type MovementTarget<
   effectiveScalarValues: Readonly<Record<string, number>>
   baseRulePolicyOutput: CharacterRulePolicyOutput | null
   effectiveRulePolicyOutput: CharacterRulePolicyOutput | null
+  /** The Senses the actor perceives with: a Character's pinned Senses or a Creature's authored ones. */
+  perceptionSenses: readonly CharacterRulePolicyOutput['senses'][number][]
   targetDerivedFacts: Readonly<Record<string, unknown>>
   defenses: TargetBoundActiveRuleEffectExecutionInput['defenses']
   /** Defenses that apply only to attacks without their bypassing traits. */
@@ -231,6 +233,7 @@ export function buildMovementTarget<
       effectiveScalarValues,
       baseRulePolicyOutput,
       effectiveRulePolicyOutput,
+      perceptionSenses: baseRulePolicyOutput.senses,
       ...(input.includeReactionSources
         ? {
             characterReactionSource: {
@@ -351,6 +354,22 @@ export function buildMovementTarget<
     effectiveScalarValues,
     baseRulePolicyOutput: null,
     effectiveRulePolicyOutput: null,
+    // A Creature's authored range has no modifiers, so its calculation is the bare amount.
+    perceptionSenses: (creatureStatBlock?.senses ?? []).map(({ senseDefinitionId, range }) => ({
+      senseDefinitionId,
+      range:
+        range.rangeKind === 'DISTANCE'
+          ? {
+              ...range,
+              calculation: {
+                base: range.amount,
+                effective: range.amount,
+                contributions: [],
+                override: null
+              }
+            }
+          : range
+    })),
     characterCurrentness: null,
     targetDerivedFacts: {
       actorId: actorRule.actorId,

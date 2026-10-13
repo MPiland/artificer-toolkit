@@ -32,7 +32,7 @@ export const drow: CreatureAuthored = {
     S.grantedSkillProficiency(88, 1, 'PERCEPTION', 'STEALTH'),
     S.grantedLanguageProficiency(88, 2, 'ELVISH', 'UNDERCOMMON')
   ],
-  senses: ['darkvision 120 ft.'],
+  senses: [S.darkvision(120)],
   passivePerception: 12,
   challengeRatingId: S.CR.CR_1_4,
   xp: 50,

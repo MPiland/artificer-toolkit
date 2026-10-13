@@ -41,7 +41,7 @@ export const willOWisp: CreatureAuthored = {
     'restrained',
     'unconscious'
   ],
-  senses: ['darkvision 120 ft.'],
+  senses: [S.darkvision(120)],
   passivePerception: 12,
   challengeRatingId: S.CR.CR_2,
   xp: 450,

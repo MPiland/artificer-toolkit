@@ -31,7 +31,7 @@ export const xorn: CreatureAuthored = {
     S.grantedLanguageProficiency(300, 2, 'TERRAN')
   ],
   damageResistances: ["piercing and slashing from nonmagical attacks that aren't adamantine"],
-  senses: ['darkvision 60 ft.', 'tremorsense 60 ft.'],
+  senses: [S.darkvision(60), S.tremorsense(60)],
   passivePerception: 16,
   challengeRatingId: S.CR.CR_5,
   xp: 1800,

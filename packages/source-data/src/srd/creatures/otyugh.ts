@@ -32,7 +32,7 @@ export const otyugh: CreatureAuthored = {
     S.grantedSaveProficiency(213, 1, 'CONSTITUTION'),
     S.grantedLanguageProficiency(213, 2, 'OTYUGH')
   ],
-  senses: ['darkvision 120 ft.'],
+  senses: [S.darkvision(120)],
   passivePerception: 11,
   challengeRatingId: S.CR.CR_5,
   xp: 1800,

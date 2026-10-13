@@ -25,7 +25,7 @@ export const giantBadger: CreatureAuthored = {
     modifier: 4
   },
   speeds: [...S.walk(30), ...S.burrow(10)],
-  senses: ['darkvision 30 ft.'],
+  senses: [S.darkvision(30)],
   passivePerception: 11,
   challengeRatingId: S.CR.CR_1_4,
   xp: 50,

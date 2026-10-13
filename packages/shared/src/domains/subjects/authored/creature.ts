@@ -13,8 +13,19 @@ import type {
   DetailAuthored,
   FeatureAuthored,
   ProficiencyGrantAuthored,
+  SenseRangeAuthored,
   SpeedAuthored
 } from '#authored'
+
+/**
+ * A Sense a Creature has: a System sense definition and its range, as a Character sense grant
+ * resolves to. `qualifier` is the printed note after the range and never changes perception.
+ */
+export interface CreatureSenseAuthored {
+  senseDefinitionId: string
+  range: SenseRangeAuthored
+  qualifier?: string
+}
 
 /**
  * A resistance or immunity that applies only to attacks without any of `bypassedBy`, as in
@@ -91,7 +102,7 @@ export interface CreatureAuthored extends CreatureBaseAuthored {
   hitPoints: number
   hitDice?: DiceExpression
 
-  senses?: string[]
+  senses?: CreatureSenseAuthored[]
   passivePerception?: number
   damageVulnerabilities?: string[]
   damageResistances?: string[]

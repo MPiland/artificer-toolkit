@@ -36,7 +36,7 @@ export const animatedArmor: CreatureAuthored = {
     'petrified',
     'poisoned'
   ],
-  senses: ['blindsight 60 ft. (blind beyond this radius)'],
+  senses: [S.blindsight(60, '(blind beyond this radius)')],
   passivePerception: 6,
   challengeRatingId: S.CR.CR_1,
   xp: 200,

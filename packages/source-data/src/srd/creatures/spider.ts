@@ -26,7 +26,7 @@ export const spider: CreatureAuthored = {
   },
   speeds: [...S.walk(20), ...S.climb(20)],
   proficiencies: [S.grantedSkillProficiency(258, 1, 'STEALTH')],
-  senses: ['darkvision 30 ft.'],
+  senses: [S.darkvision(30)],
   passivePerception: 10,
   challengeRatingId: S.CR.CR_0,
   xp: 10,

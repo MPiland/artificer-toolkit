@@ -3,7 +3,7 @@ import type { CombatPerceptionRange } from '../rules/combatPerception.js'
 import type {
   CampaignSceneState,
   SceneAtomicDelta,
-  SceneCharacterVision,
+  SceneActorVision,
   SceneDefinition,
   SceneDelta,
   SceneEvent,
@@ -65,29 +65,25 @@ export function sceneLengthInFeet(amount: number, grid: CampaignSceneState['grid
 }
 
 /**
- * Presents the bound Character's senses on its token. An unlimited sense stays unlimited; a ranged
- * sense whose range is empty is dropped.
+ * Presents the bound actor's senses (a Character's or a Creature's) on its token. An unlimited
+ * sense stays unlimited; a ranged sense whose range is empty is dropped.
  */
-export function resolveSceneCharacterVision<T extends Pick<CampaignSceneState, 'tokens' | 'grid'>>(
+export function resolveSceneActorVision<T extends Pick<CampaignSceneState, 'tokens' | 'grid'>>(
   state: T,
-  bindings: readonly { actorId: string; characterId: string; tokenId: string }[],
-  characterVisions: readonly SceneCharacterVision[]
+  bindings: readonly { actorId: string; tokenId: string }[],
+  actorVisions: readonly SceneActorVision[]
 ): T {
-  const characterIdByTokenId = new Map(
-    bindings.map((binding) => [binding.tokenId, binding.characterId])
-  )
-  const visionByCharacterId = new Map(
-    characterVisions.map((vision) => [vision.characterId, vision])
-  )
+  const actorIdByTokenId = new Map(bindings.map((binding) => [binding.tokenId, binding.actorId]))
+  const visionByActorId = new Map(actorVisions.map((vision) => [vision.actorId, vision]))
   return {
     ...state,
     tokens: state.tokens.map((token) => {
-      const characterId = characterIdByTokenId.get(token.id)
-      const characterVision = characterId ? visionByCharacterId.get(characterId) : undefined
-      if (!characterVision) return token
+      const actorId = actorIdByTokenId.get(token.id)
+      const actorVision = actorId ? visionByActorId.get(actorId) : undefined
+      if (!actorVision) return token
       return {
         ...token,
-        senses: characterVision.senses.flatMap(({ range, ...sense }) => {
+        senses: actorVision.senses.flatMap(({ range, ...sense }) => {
           const sceneRange = senseRangeInSceneUnits(range, state.grid)
           return sceneRange.rangeKind === 'DISTANCE' && sceneRange.amount <= 0
             ? []

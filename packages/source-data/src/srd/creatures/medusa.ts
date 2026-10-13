@@ -31,7 +31,7 @@ export const medusa: CreatureAuthored = {
     S.grantedSkillProficiency(194, 1, 'DECEPTION', 'INSIGHT', 'PERCEPTION', 'STEALTH'),
     S.grantedLanguageProficiency(194, 2, 'COMMON')
   ],
-  senses: ['darkvision 60 ft.'],
+  senses: [S.darkvision(60)],
   passivePerception: 14,
   challengeRatingId: S.CR.CR_6,
   xp: 2300,

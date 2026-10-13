@@ -79,18 +79,17 @@ describe('ATTACKS_AGAINST on a Creature holder', () => {
   it('keeps the contributor while the holder sees the attacker and drops it when it does not', async () => {
     const { attackAgainstContributors } = await defend(creatureHolder())
     const melee = attackAgainstContributors.filter(({ attackDomain }) => attackDomain === 'MELEE')
-    const sight = (targetSeesAttacker: 'SEES' | 'UNSEEN' | 'UNKNOWN') =>
+    const sight = (targetSeesAttacker: 'SEES' | 'UNSEEN') =>
       encounterAttackSightContributors({
         perception: {
           targetSeesAttacker,
-          attackerSeesTarget: 'UNKNOWN',
+          attackerSeesTarget: 'SEES',
           targetSenseLabels: [],
           attackerSenseLabels: []
         },
         attacksAgainst: melee
       }).map(({ sourceId }) => sourceId)
     expect(sight('SEES')).toEqual([DODGE_SOURCE_ID])
-    expect(sight('UNKNOWN')).toEqual([DODGE_SOURCE_ID])
     expect(sight('UNSEEN')).not.toContain(DODGE_SOURCE_ID)
   })
 
@@ -144,6 +143,7 @@ describe('ATTACKS_AGAINST on a Character holder', () => {
       baseScalarValues: {},
       effectiveScalarValues: {},
       baseRulePolicyOutput: null,
+      perceptionSenses: [],
       effectiveRulePolicyOutput,
       targetDerivedFacts: { ...effectiveRulePolicyOutput },
       defenses: [],

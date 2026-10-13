@@ -107,16 +107,8 @@ describe('encounter attack perception: contributors', () => {
     ])
   })
 
-  it('adds nothing when sight is present or undecided', () => {
+  it('adds nothing when both sides see', () => {
     expect(encounterAttackPerceptionContributors(sight({}))).toEqual([])
-    expect(
-      encounterAttackPerceptionContributors({
-        targetSeesAttacker: 'UNKNOWN',
-        attackerSeesTarget: 'UNKNOWN',
-        targetSenseLabels: [],
-        attackerSenseLabels: []
-      })
-    ).toEqual([])
   })
 
   it('keeps Dodge only while the target can see the attacker, beside the sight contributors', () => {
@@ -126,7 +118,6 @@ describe('encounter attack perception: contributors', () => {
         attacksAgainst: [{ requiresHolderSeesAttacker: true, contributor: dodge }]
       }).map((contributor) => contributor.sourceId)
     expect(merged({})).toEqual([DODGE_SOURCE_ID])
-    expect(merged({ targetSeesAttacker: 'UNKNOWN' })).toEqual([DODGE_SOURCE_ID])
     expect(merged({ targetSeesAttacker: 'UNSEEN' })).toEqual([
       ENCOUNTER_UNSEEN_ATTACKER_CONTRIBUTOR_SOURCE_ID
     ])
@@ -206,21 +197,29 @@ describe('encounter attack perception: attack rolls (SRD unseen attacker and tar
     expect(sourceIds(seen)).toContain(DODGE_SOURCE_ID)
   })
 
-  it('keeps Dodge and adds no advantage when a Creature with authored Senses may still see', async () => {
-    const ogre = srdByLabel(SRD.creatures, 'Ogre')
-    const prepared = await prepareCreatureAction({
+  const dodgingSrdTargetAgainstInvisible = (label: string) =>
+    prepareCreatureAction({
       actor: creatureActor({
         id: ATTACKER_ID,
         label: 'Quill Beast',
         features: [quillVolley({ charges: 1, cost: 1, rangeFeet: 80 })],
         conditionIds: [INVISIBLE]
       }),
-      target: srdCreatureActor({ id: TARGET_ID, creature: ogre }),
+      target: srdCreatureActor({ id: TARGET_ID, creature: srdByLabel(SRD.creatures, label) }),
       featureId: QUILL_VOLLEY_ID,
       overridable: true,
       attackPerception: true,
       targetAttacksAgainst: [dodgeAgainst]
     })
+
+  it("decides a Creature's sight by its authored Senses: Darkvision does not reveal an Invisible attacker", async () => {
+    const prepared = await dodgingSrdTargetAgainstInvisible('Ogre')
+    expect(sourceIds(prepared)).toContain(ENCOUNTER_UNSEEN_ATTACKER_CONTRIBUTOR_SOURCE_ID)
+    expect(sourceIds(prepared)).not.toContain(DODGE_SOURCE_ID)
+  })
+
+  it('lets a Creature with Truesight see an Invisible attacker, so Dodge stays', async () => {
+    const prepared = await dodgingSrdTargetAgainstInvisible('Couatl')
     expect(sourceIds(prepared)).toContain(DODGE_SOURCE_ID)
     expect(sourceIds(prepared)).not.toContain(ENCOUNTER_UNSEEN_ATTACKER_CONTRIBUTOR_SOURCE_ID)
   })
@@ -235,16 +234,14 @@ describe('encounter attack perception: resolver', () => {
       attacker: prepared.sourceFacts,
       target: {
         ...prepared.targetFacts,
-        baseRulePolicyOutput: input.targetSenses
-          ? {
-              senses: [
-                {
-                  senseDefinitionId: SRD_TRUESIGHT_SENSE_ID,
-                  range: { id: 'sense-range', rangeKind: 'UNLIMITED' as const }
-                }
-              ]
-            }
-          : null
+        perceptionSenses: input.targetSenses
+          ? [
+              {
+                senseDefinitionId: SRD_TRUESIGHT_SENSE_ID,
+                range: { id: 'sense-range', rangeKind: 'UNLIMITED' as const }
+              }
+            ]
+          : []
       },
       placement: null,
       loadDefinition: async (id) => {
@@ -285,6 +282,26 @@ describe('encounter attack perception: resolver', () => {
 
 const senseLabel = (id: string) => srdSystemRecord.senses.find((sense) => sense.id === id)!.label
 
+/** Loads the SRD Sense definitions a pinned Sense names. */
+const srdSenseLoaders = (gameSystemId: string) => ({
+  gameSystemId,
+  loadDefinition: async (id: string) => {
+    const sense = SRD_SENSE_DEFINITIONS.find((value) => value.id === id)
+    if (!sense) throw new Error(`Unexpected definition ${id}.`)
+    return {
+      definitionFamilyKey: 'sense',
+      gameSystemId,
+      current: currentConditionDefinition({
+        id: sense.id,
+        definitionFamilyKey: 'sense',
+        label: sense.label,
+        document: sense.document
+      })
+    }
+  },
+  loadSystem: async () => srdSystemRecord
+})
+
 /** Real perception between a senseless attacker and a target that may have Blindsight. */
 async function blindsightPerceptions(input: {
   attackerConditionIds?: readonly string[]
@@ -295,37 +312,17 @@ async function blindsightPerceptions(input: {
     attackerConditionIds: input.attackerConditionIds ?? [INVISIBLE],
     ...(input.targetConditionIds ? { targetConditionIds: input.targetConditionIds } : {})
   })
-  const gameSystemId = prepared.state.gameSystemId
-  const loaders = {
-    gameSystemId,
-    loadDefinition: async (id: string) => {
-      const sense = SRD_SENSE_DEFINITIONS.find((value) => value.id === id)
-      if (!sense) throw new Error(`Unexpected definition ${id}.`)
-      return {
-        definitionFamilyKey: 'sense',
-        gameSystemId,
-        current: currentConditionDefinition({
-          id: sense.id,
-          definitionFamilyKey: 'sense',
-          label: sense.label,
-          document: sense.document
-        })
-      }
-    },
-    loadSystem: async () => srdSystemRecord
-  }
+  const loaders = srdSenseLoaders(prepared.state.gameSystemId)
   const target = {
     ...prepared.targetFacts,
-    baseRulePolicyOutput: input.targetBlindsight
-      ? {
-          senses: [
-            {
-              senseDefinitionId: SRD_BLINDSIGHT_SENSE_ID,
-              range: { id: 'sense-range', rangeKind: 'UNLIMITED' as const }
-            }
-          ]
-        }
-      : null
+    perceptionSenses: input.targetBlindsight
+      ? [
+          {
+            senseDefinitionId: SRD_BLINDSIGHT_SENSE_ID,
+            range: { id: 'sense-range', rangeKind: 'UNLIMITED' as const }
+          }
+        ]
+      : []
   }
   return {
     actual: await resolveEncounterAttackPerception({
@@ -369,32 +366,72 @@ describe('encounter attack perception: believed perception (ATTACK-10.1)', () =>
     })
     expect(blindedAttacker.believed.attackerSeesTarget).toBe('UNSEEN')
   })
+})
 
-  it('is never undecided, even for a Creature whose authored Senses are not modeled', async () => {
-    const ogre = srdByLabel(SRD.creatures, 'Ogre')
+describe('encounter attack perception: Creature Senses on a dark Scene (VTT_UI-5.2)', () => {
+  const GRID = {
+    kind: 'SQUARE',
+    cellSize: 100,
+    diagonalPolicy: 'EQUAL',
+    distancePerCell: 5,
+    origin: { x: 0, y: 0 },
+    unit: 'FEET'
+  } as const
+  const tokenAt = (id: number, label: string, x: number) => ({
+    id: testUuid(id),
+    assetId: null,
+    controlledByUserIds: [],
+    height: 100,
+    width: 100,
+    hidden: false,
+    locked: false,
+    label,
+    rotationDegrees: 0,
+    position: { x, y: 50 },
+    senses: [],
+    vision: null
+  })
+
+  /** Whether the SRD Ogre (Darkvision 60 ft.) sees an attacker standing `feet` away in the dark. */
+  async function ogreSeesAttackerAt(feet: number) {
     const prepared = await prepareCreatureAction({
       actor: creatureActor({
         id: ATTACKER_ID,
         label: 'Quill Beast',
-        features: [quillVolley({ charges: 1, cost: 1, rangeFeet: 80 })],
-        conditionIds: [INVISIBLE]
+        features: [quillVolley({ charges: 1, cost: 1, rangeFeet: 80 })]
       }),
-      target: srdCreatureActor({ id: TARGET_ID, creature: ogre }),
+      target: srdCreatureActor({ id: TARGET_ID, creature: srdByLabel(SRD.creatures, 'Ogre') }),
       featureId: QUILL_VOLLEY_ID,
       overridable: true
     })
-    const loaders = {
-      gameSystemId: prepared.state.gameSystemId,
-      loadDefinition: async () => null,
-      loadSystem: async () => srdSystemRecord
-    }
-    const options = { ...loaders, attacker: prepared.sourceFacts, target: prepared.targetFacts }
-    expect(
-      (await resolveEncounterAttackPerception({ ...options, placement: null })).targetSeesAttacker
-    ).toBe('UNKNOWN')
-    expect((await resolveEncounterBelievedAttackPerception(options)).targetSeesAttacker).toBe(
-      'UNSEEN'
-    )
+    const targetToken = tokenAt(0xc1, 'Ogre', 50)
+    const attackerToken = tokenAt(0xc2, 'Quill Beast', 50 + (feet / 5) * 100)
+    const perception = await resolveEncounterAttackPerception({
+      ...srdSenseLoaders(prepared.state.gameSystemId),
+      attacker: prepared.sourceFacts,
+      target: prepared.targetFacts,
+      placement: {
+        scene: {
+          ambientIllumination: 'ORDINARY_DARKNESS',
+          barriers: [],
+          darknessZones: [],
+          doorStates: {},
+          grid: GRID,
+          lights: [],
+          tokens: [targetToken, attackerToken]
+        },
+        sceneGrid: GRID,
+        attackerToken,
+        targetToken,
+        spatialEffects: []
+      }
+    })
+    return perception.targetSeesAttacker
+  }
+
+  it("sees within a Creature's authored Darkvision range and not beyond it", async () => {
+    expect(await ogreSeesAttackerAt(50)).toBe('SEES')
+    expect(await ogreSeesAttackerAt(70)).toBe('UNSEEN')
   })
 })
 

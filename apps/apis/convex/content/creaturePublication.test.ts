@@ -8,6 +8,9 @@ import { shieldWood } from '@artificer-toolkit/source-data/srd/equipment/shield-
 import { shieldWoodPlus1 } from '@artificer-toolkit/source-data/srd/equipment/shield-wood-plus-1.js'
 import { srdSpells } from '@artificer-toolkit/source-data/srd/spells/index.js'
 import { SRD_ENCOUNTER_LIFECYCLE_DEFINITIONS } from '@artificer-toolkit/source-data/srd/encounterLifecycle.js'
+import { SRD_SENSE_DEFINITIONS } from '@artificer-toolkit/source-data/srd/senses.js'
+import { SRD_DARKVISION_SENSE_ID } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import { AUTHORED_LENGTH_AMOUNT_MAX } from '@artificer-toolkit/schema/shared/authoredLimits'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { sourceImportDefinitionDtoSchema } from '@artificer-toolkit/schema/api/sourceImport'
 import {
@@ -71,6 +74,15 @@ const definitions = SRD_ENCOUNTER_LIFECYCLE_DEFINITIONS.filter((definition) =>
 )
 if (definitions.length !== definitionIds.size)
   throw new Error('Creature fixture references missing canonical lifecycle definitions.')
+
+const senseIds = new Set(
+  collectReferenceIds(selectedCreatures, 'senseDefinitionId', 'senseDefinitionIds')
+)
+const senseDefinitions = SRD_SENSE_DEFINITIONS.filter((sense) => senseIds.has(sense.id)).map(
+  (sense) => ({ ...sense, definitionFamilyKey: 'sense' as const })
+)
+if (senseDefinitions.length !== senseIds.size)
+  throw new Error('Creature fixture references missing canonical sense definitions.')
 
 const spellIds = new Set(
   selectedCreatures.flatMap((creature) => collectReferenceIds(creature, 'spellId', 'spellIds'))
@@ -146,7 +158,9 @@ async function fixture() {
   )
   await setup.t.mutation(internal.content.import.importDefinitions, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
-    definitions: definitions.map((definition) => sourceImportDefinitionDtoSchema.parse(definition))
+    definitions: [...definitions, ...senseDefinitions].map((definition) =>
+      sourceImportDefinitionDtoSchema.parse(definition)
+    )
   })
   return setup
 }
@@ -190,6 +204,53 @@ describe('native Creature publication', () => {
         subjectId: draft.subjectId
       })
     ).toEqual(withoutAttackRoll)
+  })
+
+  it('publishes a Creature sense and refuses an unknown definition or an out-of-bounds range', async () => {
+    const { first } = await fixture()
+    const draft = await copyDraft(first.caller)
+    const copied = creatureAuthoredDtoSchema.parse(draft.payload)
+    const saveWithSenses = (senses: unknown) =>
+      first.caller.mutation(api.content.drafts.save, {
+        subjectKind: 'CREATURE',
+        subjectId: draft.subjectId,
+        systemId: draft.systemId,
+        label: 'Homebrew Warhorse',
+        payload: { ...copied, senses }
+      })
+    const sense = (
+      senseDefinitionId: string,
+      range: unknown = { id: 'range', rangeKind: 'DISTANCE', amount: 60, unit: 'FEET' }
+    ) => ({ senseDefinitionId, range })
+    const saveAndPublish = async (senses: unknown) =>
+      first.caller.mutation(publish, creaturePublicationInput(await saveWithSenses(senses)))
+
+    await expect(saveAndPublish([sense('00000000-0000-0000-000a-0ff000000000')])).rejects.toThrow(
+      'Every Creature sense must reference a published sense definition.'
+    )
+    await expect(saveAndPublish([sense('')])).rejects.toThrow()
+    await expect(
+      saveAndPublish([
+        sense(SRD_DARKVISION_SENSE_ID, {
+          id: 'range',
+          rangeKind: 'DISTANCE',
+          amount: AUTHORED_LENGTH_AMOUNT_MAX + 1,
+          unit: 'FEET'
+        })
+      ])
+    ).rejects.toThrow()
+
+    const published = await saveAndPublish([sense(SRD_DARKVISION_SENSE_ID)])
+    const detail = await first.caller.query(details, {
+      subjectKind: 'CREATURE',
+      id: published.subjectId
+    })
+    expect(creatureResponseDtoSchema.parse(detail)?.item.senses).toEqual([
+      expect.objectContaining({
+        senseDefinitionId: SRD_DARKVISION_SENSE_ID,
+        range: expect.objectContaining({ rangeKind: 'DISTANCE', amount: 60, unit: 'FEET' })
+      })
+    ])
   })
 
   it('returns the computed armor class on Creature detail reads', async () => {

@@ -104,19 +104,12 @@ export function encounterAttackSightCaptions(input: {
   const { believed, actual, attackerLabel, targetLabel } = input
   const sensing = (observer: string, subject: string, labels: readonly string[]) =>
     `${observer} senses ${subject}${labels.length ? ` with ${labels.join(', ')}` : ''}`
-  const unmodeled = (observer: string) =>
-    `${observer}'s stat block lists Senses the app does not model`
   const parts: { player: string; gm: string }[] = []
 
   if (believed.targetSeesAttacker === 'UNSEEN' && actual.targetSeesAttacker === 'SEES')
     parts.push({
       player: 'Advantage cancelled: the target can sense you',
       gm: sensing(targetLabel, attackerLabel, actual.targetSenseLabels)
-    })
-  else if (believed.targetSeesAttacker === 'UNSEEN' && actual.targetSeesAttacker === 'UNKNOWN')
-    parts.push({
-      player: 'Advantage cancelled: the target may be able to sense you',
-      gm: unmodeled(targetLabel)
     })
   else if (believed.targetSeesAttacker === 'SEES' && actual.targetSeesAttacker === 'UNSEEN')
     parts.push({
@@ -133,11 +126,6 @@ export function encounterAttackSightCaptions(input: {
     parts.push({
       player: 'Disadvantage cancelled: you can sense the target',
       gm: sensing(attackerLabel, targetLabel, actual.attackerSenseLabels)
-    })
-  else if (believed.attackerSeesTarget === 'UNSEEN' && actual.attackerSeesTarget === 'UNKNOWN')
-    parts.push({
-      player: 'Disadvantage cancelled: you may be able to sense the target',
-      gm: unmodeled(attackerLabel)
     })
 
   if (parts.length === 0) return null

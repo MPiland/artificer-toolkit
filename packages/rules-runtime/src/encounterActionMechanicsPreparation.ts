@@ -341,8 +341,7 @@ export async function prepareEncounterActionMechanics<
   // their advantage or disadvantage, those that require the holder to see the attacker only when it
   // can, and so does a target beyond a ranged attack's normal range (D62). The attacker's and the
   // target's condition mechanics add their own contributors (D94), and so does sight: an unseen
-  // attacker has advantage, an unseen target disadvantage. Sight that cannot be decided (UNKNOWN)
-  // adds nothing and keeps those grants.
+  // attacker has advantage, an unseen target disadvantage.
   const attackDomain = isDnd5eSpellAttackKind(attackKind) ? 'SPELL' : attackKind
   const attacksAgainst = targetFacts.attackAgainstContributors.filter(
     (entry) => entry.attackDomain === attackDomain

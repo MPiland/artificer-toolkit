@@ -29,7 +29,7 @@ export const lemure: CreatureAuthored = {
   damageResistances: ['cold'],
   damageImmunities: ['fire', 'poison'],
   conditionImmunities: ['charmed', 'frightened', 'poisoned'],
-  senses: ['darkvision 120 ft.'],
+  senses: [S.darkvision(120)],
   passivePerception: 10,
   challengeRatingId: S.CR.CR_0,
   xp: 10,

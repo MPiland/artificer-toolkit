@@ -73,18 +73,16 @@ export async function createEncounterMovementReactionPerception(
     if (!target || target.actor.id !== actor.id)
       throw new Error('Encounter actor perception target is unavailable.')
     effectsByActorId.set(actor.id, target.activeEffects)
-    if (actor.kind !== 'CHARACTER') continue
-    if (!target.baseRulePolicyOutput)
-      throw new Error('Encounter Character perception policy is unavailable.')
-    const senses = target.baseRulePolicyOutput.senses
+    const senses = target.perceptionSenses
+    if (!senses.length) continue
     const system = await input.loadSystem()
     const admitted = new Set(system.senses.map((sense) => sense.id))
-    if (senses.length > 100) throw new Error('Character perception Sense limit exceeded.')
+    if (senses.length > 100) throw new Error('Actor perception Sense limit exceeded.')
     const seen = new Set<string>()
     const pins: PinnedSenseDefinition[] = []
     for (const sense of senses) {
       if (!admitted.has(sense.senseDefinitionId) || seen.has(sense.senseDefinitionId))
-        throw new Error('Character perception Sense is not a unique System vocabulary member.')
+        throw new Error('Actor perception Sense is not a unique System vocabulary member.')
       seen.add(sense.senseDefinitionId)
       const root = await input.loadDefinition(sense.senseDefinitionId)
       if (
@@ -92,7 +90,7 @@ export async function createEncounterMovementReactionPerception(
         root.definitionFamilyKey !== 'sense' ||
         root.gameSystemId !== input.state.gameSystemId
       )
-        throw new Error('Character perception Sense is unavailable.')
+        throw new Error('Actor perception Sense is unavailable.')
       const document = senseReusableDefinitionDocumentDtoSchema.parse(root.current.document)
       if (
         root.current.id !== sense.senseDefinitionId ||
@@ -102,9 +100,7 @@ export async function createEncounterMovementReactionPerception(
         document.gameSystemId !== input.state.gameSystemId ||
         checksumRuleDocument(document) !== root.current.checksum
       )
-        throw new Error(
-          'Character perception Sense identity does not match its current definition.'
-        )
+        throw new Error('Actor perception Sense identity does not match its current definition.')
       pins.push(
         pinnedSenseDefinitionSchema.parse({
           senseDefinitionId: sense.senseDefinitionId,

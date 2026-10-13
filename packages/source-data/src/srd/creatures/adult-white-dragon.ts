@@ -34,7 +34,7 @@ export const adultWhiteDragon: CreatureAuthored = {
     S.grantedLanguageProficiency(12, 3, 'COMMON', 'DRACONIC')
   ],
   damageImmunities: ['cold'],
-  senses: ['blindsight 60 ft.', 'darkvision 120 ft.'],
+  senses: [S.blindsight(60), S.darkvision(120)],
   passivePerception: 21,
   challengeRatingId: S.CR.CR_13,
   xp: 10000,

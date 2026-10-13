@@ -37,5 +37,32 @@ Dev data changes: the main session resets and reseeds after merge.
 ## Status log
 
 - 2026-10-13: workbook written; session started.
+- 2026-10-13: implementation complete in the working tree; validation runs queue behind the shared validation lock.
+  - Premise change (D100 → D111): the `UNKNOWN` sight verdict is retired. Creature senses are structured, so every observer's sight is definitive. D111 in `phase-08-2-decisions.md` records it, with the "override D111" phrase.
+  - Extra scope, same seam: movement-reaction (opportunity attack) perception reads Creature senses too, because it shares `MovementTarget.perceptionSenses` with attack perception.
+  - Scene token vision is now keyed by actor (`SceneActorVision`, `resolveSceneActorVision`), so a Character and a Creature token compose through one function. Worker `composeRoomSceneVision` pins both through one `pinSenses`.
+  - Storybook was not run (`creatureSense` editor row, Creature route story fixture); the web editor test covers the flow in jsdom.
+- 2026-10-13: validated in one lock acquisition (logs under `local-validation/vtt-ui-5/`).
+  - Builds green: schema, shared, rules-runtime, source-data, encounter-persistence, authoring.
+  - Touched suites green (`green-touched.log`, `green-worker-vision.log`, `green-worker-pool.log`); the broad run over `apps/apis/convex/content`, `apps/session-worker/src`, rules-runtime `encounter*`, `packages/shared` and `packages/schema` is 205 files, 1941 tests green (`green-broad.log`).
+  - `yarn turbo:affected:typecheck` green (`typecheck.log`); local Convex codegen push green (`codegen.log`); the regenerated `_generated/api.d.ts` is committed.
+  - Two defects found by the first runs and fixed: Creature perception Senses are now handed to `resolveEncounterActorPairPerception` with the bare-amount `calculation` its pinned-Sense contract requires; `deriveActorSceneVision` accepts a plain `SenseRangeDto`.
+
+## Red / green evidence
+
+Only item 1 has a captured red log (`oracle-red.log`, taken before the migration). Items 2 to 6 were written with the implementation in one pass, so no separate red log exists for them; each test asserts behavior the old code could not produce (a string `senses` field, the `UNKNOWN` sight verdict, Character-only actor binding).
+
+| # | Checklist item | Red | Green |
+|---|---|---|---|
+| 1 | SRD structured == printed | `oracle-red.log` | `green-oracle.log` |
+| 2 | darkvision 60 ft sees 50 ft not 70 ft | not captured | `encounterAttackPerception.test.ts` in `green-touched.log` |
+| 3 | Scene DTO senses: GM and controller, not others | not captured | `vtt-scene.test.ts` in `green-touched.log` |
+| 4 | one function for Character and Creature | not captured | `characterSceneVision.test.ts` in `green-touched.log`, `green-worker-vision.log` (Creature), `green-worker-pool.log` (Character) |
+| 5 | publication refuses malformed entries | not captured | `creaturePublication.test.ts` in `green-touched.log` |
+| 6 | editor adds an entry and it reaches publication | not captured | `AuthoredDomainAuthoringLayout.test.tsx` in `green-touched.log` |
 
 ## Proposed ledger edits (filled by the slice session)
+
+- Close VTT_UI-5.1 and VTT_UI-5.2.
+- Not run: Storybook (the `creatureSense` editor row and the Creature route story fixture have only jsdom coverage).
+- D100's `UNKNOWN` sight verdict is retired (D111); movement-reaction perception reads Creature Senses too.

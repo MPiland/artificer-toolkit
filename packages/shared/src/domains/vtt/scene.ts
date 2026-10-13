@@ -118,9 +118,9 @@ export type SceneSenseLength =
   | { rangeKind: 'UNLIMITED' }
   | { rangeKind: 'DISTANCE'; amount: number; unit: LengthUnitCode }
 
-/** Pinned Character-derived senses, ranged as typed lengths until a Scene grid converts them. */
-export interface SceneCharacterVision {
-  characterId: string
+/** An Encounter actor's pinned senses, ranged as typed lengths until a Scene grid converts them. */
+export interface SceneActorVision {
+  actorId: string
   senses: (Omit<SceneTokenSense, 'range'> & { range: SceneSenseLength })[]
 }
 
@@ -134,7 +134,7 @@ export interface SceneToken {
   locked: boolean
   position: ScenePoint
   rotationDegrees: number
-  /** Composed from the bound Character at runtime; only the token's controllers receive it. */
+  /** Composed from the bound Encounter actor at runtime; only the token's controllers receive it. */
   senses: SceneTokenSense[]
   vision: SceneTokenVision | null
   width: number

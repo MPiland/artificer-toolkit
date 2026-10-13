@@ -71,16 +71,14 @@ async function perceptions(input: {
   const loaders = srdAttackPerceptionLoaders()
   const target = {
     ...prepared.targetFacts,
-    baseRulePolicyOutput: input.targetBlindsight
-      ? {
-          senses: [
-            {
-              senseDefinitionId: SRD_BLINDSIGHT_SENSE_ID,
-              range: { id: 'sense-range', rangeKind: 'UNLIMITED' as const }
-            }
-          ]
-        }
-      : null
+    perceptionSenses: input.targetBlindsight
+      ? [
+          {
+            senseDefinitionId: SRD_BLINDSIGHT_SENSE_ID,
+            range: { id: 'sense-range', rangeKind: 'UNLIMITED' as const }
+          }
+        ]
+      : []
   }
   return {
     actual: await resolveEncounterAttackPerception({
@@ -267,12 +265,6 @@ describe('encounter attack sight captions', () => {
         actual: perception(actual),
         ...names
       })
-    expect(
-      captionsFor({ targetSeesAttacker: 'UNSEEN' }, { targetSeesAttacker: 'UNKNOWN' })
-    ).toEqual({
-      playerCaption: 'Advantage cancelled: the target may be able to sense you',
-      gmReason: "Wolf's stat block lists Senses the app does not model"
-    })
     expect(captionsFor({}, { targetSeesAttacker: 'UNSEEN' })).toEqual({
       playerCaption: "Advantage: the target can't see you",
       gmReason: "Wolf can't see Quill Beast"

@@ -33,7 +33,7 @@ export const goblin: CreatureAuthored = {
     S.grantedSkillExpertise(146, 3, 'STEALTH'),
     S.grantedLanguageProficiency(146, 2, 'COMMON', 'GOBLIN')
   ],
-  senses: ['darkvision 60 ft.'],
+  senses: [S.darkvision(60)],
   passivePerception: 9,
   challengeRatingId: CR.CR_1_4,
   xp: 50,

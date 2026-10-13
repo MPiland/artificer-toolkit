@@ -26,7 +26,7 @@ export const giantPoisonousSnake: CreatureAuthored = {
   },
   speeds: [...S.walk(30), ...S.swim(30)],
   proficiencies: [S.grantedSkillProficiency(130, 1, 'PERCEPTION')],
-  senses: ['blindsight 10 ft.'],
+  senses: [S.blindsight(10)],
   passivePerception: 12,
   challengeRatingId: S.CR.CR_1_4,
   xp: 50,

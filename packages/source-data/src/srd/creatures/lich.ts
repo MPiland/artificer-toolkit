@@ -33,7 +33,7 @@ export const lich: CreatureAuthored = {
   damageResistances: ['cold', 'lightning', 'necrotic'],
   damageImmunities: ['poison', 'bludgeoning, piercing, and slashing from nonmagical attacks'],
   conditionImmunities: ['charmed', 'exhaustion', 'frightened', 'paralyzed', 'poisoned'],
-  senses: ['truesight 120 ft.'],
+  senses: [S.truesight(120)],
   passivePerception: 19,
   challengeRatingId: S.CR.CR_21,
   xp: 33000,

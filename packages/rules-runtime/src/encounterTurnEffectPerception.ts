@@ -50,10 +50,11 @@ export type EncounterActorPairPlacement = {
   spatialEffects: readonly EncounterSpatialRuleEffectRecord[]
 }
 
-/** What perception reads of an actor: its effects, and for an observer its pinned Senses. */
-export type EncounterPerceptionActor = Pick<MovementTarget, 'actor' | 'activeEffects'> & {
-  baseRulePolicyOutput: Pick<NonNullable<MovementTarget['baseRulePolicyOutput']>, 'senses'> | null
-}
+/** What perception reads of an actor: its effects, and for an observer its Senses. */
+export type EncounterPerceptionActor = Pick<
+  MovementTarget,
+  'actor' | 'activeEffects' | 'perceptionSenses'
+>
 
 /** A gridless footing that only converts typed ranges; nothing is measured on it. */
 const NEUTRAL_PERCEPTION_GRID: SceneGrid = { kind: 'GRIDLESS', pixelsPerUnit: 1, unit: 'FEET' }
@@ -79,7 +80,7 @@ export async function resolveEncounterActorPairPerception(input: {
   const observerActorId = input.observer.actor.id
   const { placement } = input
   const sceneGrid = placement?.sceneGrid ?? NEUTRAL_PERCEPTION_GRID
-  const senses = input.observer.baseRulePolicyOutput?.senses ?? []
+  const senses = input.observer.perceptionSenses
   if (senses.length > 100) throw new Error('Encounter perception Sense limit exceeded.')
   const pins = []
   if (senses.length) {

@@ -28,7 +28,7 @@ export const zombie: CreatureAuthored = {
   proficiencies: [S.grantedSaveProficiency(311, 1, 'WISDOM')],
   damageImmunities: ['poison'],
   conditionImmunities: ['poisoned'],
-  senses: ['darkvision 60 ft.'],
+  senses: [S.darkvision(60)],
   passivePerception: 8,
   challengeRatingId: S.CR.CR_1_4,
   xp: 50,

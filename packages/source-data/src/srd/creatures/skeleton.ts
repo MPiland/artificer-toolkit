@@ -28,7 +28,7 @@ export const skeleton: CreatureAuthored = {
   damageVulnerabilities: ['bludgeoning'],
   damageImmunities: ['poison'],
   conditionImmunities: ['exhaustion', 'poisoned'],
-  senses: ['darkvision 60 ft.'],
+  senses: [S.darkvision(60)],
   passivePerception: 9,
   challengeRatingId: S.CR.CR_1_4,
   xp: 50,

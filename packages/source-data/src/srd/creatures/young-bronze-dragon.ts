@@ -33,7 +33,7 @@ export const youngBronzeDragon: CreatureAuthored = {
     S.grantedLanguageProficiency(304, 3, 'COMMON', 'DRACONIC')
   ],
   damageImmunities: ['lightning'],
-  senses: ['blindsight 30 ft.', 'darkvision 120 ft.'],
+  senses: [S.blindsight(30), S.darkvision(120)],
   passivePerception: 17,
   challengeRatingId: S.CR.CR_8,
   xp: 3900,

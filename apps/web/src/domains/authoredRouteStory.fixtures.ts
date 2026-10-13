@@ -164,7 +164,7 @@ export const authoredRouteStorySystem = {
       label: 'Legendary'
     }
   ],
-  senses: [],
+  senses: [{ id: '00000000-0000-0000-000a-000100000000', code: 'DARKVISION', label: 'Darkvision' }],
   skills: [],
   speeds: authoredStorySpeeds,
   terrains: [],

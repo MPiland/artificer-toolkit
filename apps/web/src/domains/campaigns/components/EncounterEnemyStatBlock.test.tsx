@@ -26,7 +26,8 @@ vi.mock('convex/react', async (importOriginal) => ({
       { id: ids.slashing, code: 'SLASHING', label: 'Slashing' },
       { id: ids.psychic, code: 'PSYCHIC', label: 'Psychic' }
     ],
-    conditionTypes: [{ id: ids.charmed, code: 'CHARMED', label: 'Charmed' }]
+    conditionTypes: [{ id: ids.charmed, code: 'CHARMED', label: 'Charmed' }],
+    senses: [{ id: 'darkvision', label: 'Darkvision' }]
   })
 }))
 
@@ -52,6 +53,25 @@ function actorWith(statBlock: Partial<NonNullable<EncounterGmActorDto['statBlock
     }
   })
 }
+
+describe('EncounterEnemyStatBlock senses', () => {
+  it('prints structured Senses with the System label, range and note', () => {
+    renderWithAppProviders(
+      <EncounterEnemyStatBlock
+        actor={actorWith({
+          senses: [
+            {
+              senseDefinitionId: 'darkvision',
+              range: { id: 'darkvision-range', rangeKind: 'DISTANCE', amount: 60, unit: 'FEET' },
+              qualifier: '(blind beyond this radius)'
+            }
+          ]
+        })}
+      />
+    )
+    expect(screen.getByText('darkvision 60 ft. (blind beyond this radius)')).toBeInTheDocument()
+  })
+})
 
 describe('EncounterEnemyStatBlock defenses', () => {
   it('names damage types and shows "from nonmagical attacks" defenses (SRD Couatl)', () => {

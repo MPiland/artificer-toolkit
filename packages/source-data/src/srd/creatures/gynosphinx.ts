@@ -34,7 +34,7 @@ export const gynosphinx: CreatureAuthored = {
   damageResistances: ['bludgeoning, piercing, and slashing from nonmagical attacks'],
   damageImmunities: ['psychic'],
   conditionImmunities: ['charmed', 'frightened'],
-  senses: ['truesight 120 ft.'],
+  senses: [S.truesight(120)],
   passivePerception: 18,
   challengeRatingId: S.CR.CR_11,
   xp: 7200,
