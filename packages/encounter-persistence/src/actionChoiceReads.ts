@@ -156,6 +156,7 @@ export async function readEncounterActionChoices(
             value.actionId === action.id &&
             value.effectId === candidate?.effectId
         )
+        const targetPolicy = entry?.kind === 'CHARACTER_ACTION' ? entry.targetPolicy : undefined
         const wieldConflict = candidate
           ? evaluateEncounterCharacterActionWieldConflict({
               candidate,
@@ -176,10 +177,7 @@ export async function readEncounterActionChoices(
           id: action.id,
           label: action.label,
           ...(action.sourceLabel ? { sourceLabel: action.sourceLabel } : {}),
-          ...encounterActionChoiceRange(
-            entry?.kind === 'CHARACTER_ACTION' ? entry.targetPolicy : undefined,
-            action.mechanic?.rangeLabel
-          ),
+          ...encounterActionChoiceRange(targetPolicy, action.mechanic?.rangeLabel),
           ...(action.mechanic?.attackBonus === undefined
             ? {}
             : { attackBonus: action.mechanic.attackBonus }),
@@ -192,9 +190,7 @@ export async function readEncounterActionChoices(
             : null,
           wieldConflict: wieldConflict?.kind === 'STOW_SHIELD' ? wieldConflict : null,
           attackSlot: economy.attackSlot,
-          target: encounterActionChoiceTarget(
-            entry?.kind === 'CHARACTER_ACTION' ? entry.targetPolicy : undefined
-          ),
+          target: encounterActionChoiceTarget(targetPolicy),
           warnings: [
             ...economy.warnings,
             ...(reasonCode === 'SOURCE_NOT_EQUIPPED'
@@ -233,10 +229,11 @@ export async function readEncounterActionChoices(
             action.mechanicFacts.invocation.activation,
             action.mechanicFacts.invocation.triggerCode
           )
+          const targetPolicy = buildCompiledActionTargetPolicy(action)
           return {
             id: action.actionId,
             label: action.label,
-            ...encounterActionChoiceRange(buildCompiledActionTargetPolicy(action)),
+            ...encounterActionChoiceRange(targetPolicy),
             ...(action.attackMechanic ? { attackBonus: action.attackMechanic.attackBonus } : {}),
             grip: action.grip
               ? {
@@ -246,7 +243,7 @@ export async function readEncounterActionChoices(
               : null,
             wieldConflict: null,
             attackSlot: economy.attackSlot,
-            target: encounterActionChoiceTarget(buildCompiledActionTargetPolicy(action)),
+            target: encounterActionChoiceTarget(targetPolicy),
             warnings: economy.warnings
           }
         })
@@ -277,16 +274,17 @@ export async function readEncounterActionChoices(
           action.mechanicFacts.invocation.activation,
           action.mechanicFacts.invocation.triggerCode
         )
+        const targetPolicy = buildCompiledActionTargetPolicy(action)
         return {
           id: action.actionId,
           label: action.label,
-          ...encounterActionChoiceRange(buildCompiledActionTargetPolicy(action)),
+          ...encounterActionChoiceRange(targetPolicy),
           rulesText: authoredEntries.find(({ definition }) => definition.id === action.definitionId)
             ?.document.rulesText,
           grip: null,
           wieldConflict: null,
           attackSlot: economy.attackSlot,
-          target: encounterActionChoiceTarget(buildCompiledActionTargetPolicy(action)),
+          target: encounterActionChoiceTarget(targetPolicy),
           warnings: economy.warnings
         }
       })

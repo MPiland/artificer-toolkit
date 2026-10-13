@@ -178,6 +178,20 @@ export const MEASUREMENT_UNIT_REGISTRY: Record<MeasurementUnitCode, MeasurementU
   }
 } as const
 
+/** The units a distance is authored in: exactly those a Scene converts. */
+export const LENGTH_UNIT_CODES = [
+  MEASUREMENT_UNIT_CODE.INCHES,
+  MEASUREMENT_UNIT_CODE.FEET,
+  MEASUREMENT_UNIT_CODE.YARDS,
+  MEASUREMENT_UNIT_CODE.MILES
+] as const
+
+export type LengthUnitCode = (typeof LENGTH_UNIT_CODES)[number]
+
+export const LENGTH_UNIT_OPTIONS: readonly MeasurementUnitOption[] = LENGTH_UNIT_CODES.map(
+  (code) => MEASUREMENT_UNIT_REGISTRY[code]
+)
+
 export type MeasurementUnitValue =
   (typeof MEASUREMENT_UNIT_REGISTRY)[keyof typeof MEASUREMENT_UNIT_REGISTRY]
 

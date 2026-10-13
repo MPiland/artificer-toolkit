@@ -31,6 +31,7 @@ import {
 } from '../shared/enums.js'
 import { compareCanonicalD20Contributors } from '@artificer-toolkit/shared/rules'
 import { postgresUuidSchema as serverUuidIdentityDtoSchema } from '../shared/postgresUuid.js'
+import { lengthUnitCodeSchema } from '../shared/range.js'
 import { characterResourcePoolIdentitySchema } from '../shared/characterResourceIdentity.js'
 
 const finiteNumberSchema = lazySchema(() => z.number())
@@ -1057,7 +1058,7 @@ export const characterRuleSenseRangeSchema = lazySchema(() =>
     z.strictObject({
       id: boundedIdentitySchema,
       amount: finiteNumberSchema,
-      unit: measurementUnitCodeSchema,
+      unit: lengthUnitCodeSchema,
       calculation: characterDerivedNumericCalculationSchema
     })
   )

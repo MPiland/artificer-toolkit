@@ -31,7 +31,7 @@ export const encounterActionChoiceDtoSchema = lazySchema(() =>
     sourceLabel: characterSheetActionDtoSchema.shape.sourceLabel,
     /** What the action does, for a System-authored basic action's tooltip. */
     rulesText: z.optional(basicActionReusableDefinitionDocumentDtoSchema.shape.rulesText),
-    /** The action's range as the compiled target policy enforces it; `rangeLabel` is derived from it. */
+    /** The numeric range geometry the compiled target policy enforces; `rangeLabel` words the authored range instead. */
     range: z.optional(
       z.discriminatedUnion('kind', [
         /** The action reaches only its user. */

@@ -3,7 +3,7 @@ import type {
   CharacterActionModelOutput
 } from '@artificer-toolkit/schema/api/characterActionRules'
 
-import { formatAmount, formatRangeLength, titleCase } from '../../encounterActionRange.js'
+import { formatAmount, rangeLabel } from '../../rangeLabel.js'
 import { dnd5eAttackKind, dnd5eAttackModifierDomain, isDnd5eSpellAttackKind } from './attackKind.js'
 import {
   DND5E_CHARACTER_WIDE_TARGET,
@@ -161,12 +161,6 @@ function resolveOutcomeValue(
     )
   }
   return selected.amount
-}
-
-function rangeLabel(range: ActionCandidate['mechanicFacts']['invocation']['range']): string {
-  if (range.rangeKind !== 'DISTANCE' || range.amount === null || range.unit === null)
-    return titleCase(range.rangeKind)
-  return formatRangeLength({ amount: range.amount, unit: range.unit })
 }
 
 export function resolveDnd5eActionMechanic(

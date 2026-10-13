@@ -1,4 +1,9 @@
-import { type MeasurementUnitCode, type RangeKind, type ScalableValueAuthored } from '#core'
+import {
+  type LengthUnitCode,
+  type MeasurementUnitCode,
+  type RangeKind,
+  type ScalableValueAuthored
+} from '#core'
 
 export type RangeMeasurementAuthored = {
   amount: number
@@ -16,6 +21,6 @@ export type RangeAuthored =
       amount: number
       /** A ranged weapon attack's long range; beyond `amount` the attack has disadvantage. */
       longAmount?: number
-      unit: MeasurementUnitCode
+      unit: LengthUnitCode
       scaling?: ScalableValueAuthored<RangeMeasurementAuthored>
     }

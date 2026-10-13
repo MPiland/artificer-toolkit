@@ -11,7 +11,7 @@ const mechanicFacts = {
   invocation: {
     triggerCode: 'ACTIVATED',
     activation: { code: 'ACTION', amount: 1 },
-    range: { rangeKind: 'SELF', amount: null, unit: null },
+    range: { rangeKind: 'SELF', amount: null, longAmount: null, unit: null },
     savingThrow: null,
     reactionMovementTrigger: null
   },

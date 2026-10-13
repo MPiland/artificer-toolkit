@@ -862,7 +862,12 @@ describe('D&D 5e restrictions and spell-scoped damage', () => {
             invocation: {
               triggerCode: 'RANGED_SPELL_ATTACK',
               activation: null,
-              range: { rangeKind: 'DISTANCE', amount: 120, unit: 'FEET' },
+              range: {
+                rangeKind: 'DISTANCE',
+                amount: 120,
+                longAmount: null,
+                unit: 'FEET' as const
+              },
               savingThrow: null,
               reactionMovementTrigger: null
             },
@@ -953,7 +958,7 @@ describe('D&D 5e healing', () => {
                 invocation: {
                   triggerCode: 'ACTIVATED',
                   activation: null,
-                  range: { rangeKind: 'TOUCH', amount: null, unit: null },
+                  range: { rangeKind: 'TOUCH', amount: null, longAmount: null, unit: null },
                   savingThrow: null,
                   reactionMovementTrigger: null
                 },

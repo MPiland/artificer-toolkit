@@ -1,7 +1,11 @@
+import { LENGTH_UNIT_CODES } from '@artificer-toolkit/shared/core'
 import { z, lazySchema } from '../zod.js'
 import { measurementUnitCodeSchema, rangeKindSchema } from './enums.js'
 import { createBreakpointScalingDtoSchema } from './scaling.js'
 import { authoredIdentifierSchema } from './authoredLimits.js'
+
+/** The units a distance is authored in; a Scene converts exactly these. */
+export const lengthUnitCodeSchema = lazySchema(() => z.enum(LENGTH_UNIT_CODES))
 
 const rangeMeasurementDtoSchema = lazySchema(() =>
   z.object({
@@ -29,7 +33,7 @@ export const rangeDtoSchema = lazySchema(() =>
         amount: z.number(),
         /** A ranged weapon attack's long range ("range 80/320 ft."): beyond `amount` it has disadvantage. */
         longAmount: z.optional(z.number()),
-        unit: measurementUnitCodeSchema,
+        unit: lengthUnitCodeSchema,
         scaling: z.optional(createBreakpointScalingDtoSchema(rangeMeasurementDtoSchema))
       })
       .check(

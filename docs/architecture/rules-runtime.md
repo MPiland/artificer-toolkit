@@ -270,9 +270,11 @@ uses, to preview it and list the tokens the viewer sees inside; the room still d
 
 Each choice also carries `range` when its compiled target policy has a measurable one: `SELF`, `WITHIN` (Touch is 5 ft; a
 distance without a long range, including the 0 ft swarm space), `RANGED` (normal and long) or `UNLIMITED`. A sight or
-special range, or no policy, leaves it off. `encounterActionRange` (`encounterActionRange.ts`) is the one mapping,
-and `rangeLabel` is derived from it by `encounterActionRangeLabel`; only a choice without `range` keeps the
-label of its action mechanic.
+special range, a shaped or path-overridden policy (the single-target evaluator refuses it), or no policy leaves it off.
+`encounterActionChoiceRange` (`encounterActionRange.ts`) is the one mapping. `rangeLabel` is not derived from `range`:
+it words the authored range with `rangeLabel` (`rangeLabel.ts`), the formatter the Sheet uses, so Touch reads "Touch"
+(its 5 ft geometry stays in `range`) and a ranged weapon reads "150/600 ft" on both surfaces. Only a choice without a
+policy keeps the label of its action mechanic.
 
 Per-role visibility and the command flow are in
 [live-sessions.md](live-sessions.md#encounter-commands); the decision is

@@ -9,7 +9,6 @@ import {
   type SceneToken
 } from '@artificer-toolkit/shared/vtt'
 import type { EncounterRelationshipD20Contributor } from './encounterRelationshipActionFacts.js'
-import { TOUCH_RANGE } from './encounterActionRange.js'
 import { ENCOUNTER_LONG_RANGE_CONTRIBUTOR_SOURCE_ID } from './encounterRollModeReasons.js'
 
 type DispositionActor = { id: string; disposition: EncounterActorDispositionDto }
@@ -21,6 +20,14 @@ export type EncounterActionSceneContext = {
   grid: SceneGrid
   sourceToken: SceneTokenGeometry
   targetToken: SceneTokenGeometry
+}
+
+/** A single-target Touch action reaches an adjacent creature: a 5-foot range that only warns. */
+export const TOUCH_RANGE = { amount: 5, unit: 'FEET' } as const
+
+/** A shaped or path-overridden policy is an area or movement action, beyond this single-target path. */
+export function isBeyondSingleTargetPath(policy: CompiledActionTargetPolicy): boolean {
+  return policy.shape !== null || policy.pathOverrides.length !== 0
 }
 
 const RANGE_UNCHECKED: EncounterRuleWarningDto = {
@@ -54,7 +61,7 @@ export function evaluateEncounterActionTargetPolicy(input: {
   makesAttackRoll: boolean
 }): EncounterRuleWarningDto[] | null {
   const policy = input.targetPolicy
-  if (policy.shape !== null || policy.pathOverrides.length !== 0) return null
+  if (isBeyondSingleTargetPath(policy)) return null
   const targetsSelf = input.target.id === input.actor.id
   if (policy.range.rangeKind === 'SELF')
     return targetsSelf

@@ -3656,19 +3656,7 @@ export declare const api: {
                           scalingKind: "BREAKPOINTS";
                           scalingSource: "SPELL_CAST_LEVEL";
                         };
-                    unit:
-                      | "POUNDS"
-                      | "GALLONS"
-                      | "INCHES"
-                      | "FEET"
-                      | "YARDS"
-                      | "MILES"
-                      | "OUNCES"
-                      | "CUPS"
-                      | "TABLESPOONS"
-                      | "TEASPOONS"
-                      | "LITERS"
-                      | "QUARTS";
+                    unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                   };
               senseId: string;
               value: string;
@@ -18093,19 +18081,7 @@ export declare const api: {
                           scalingKind: "BREAKPOINTS";
                           scalingSource: "SPELL_CAST_LEVEL";
                         };
-                    unit:
-                      | "POUNDS"
-                      | "GALLONS"
-                      | "INCHES"
-                      | "FEET"
-                      | "YARDS"
-                      | "MILES"
-                      | "OUNCES"
-                      | "CUPS"
-                      | "TABLESPOONS"
-                      | "TEASPOONS"
-                      | "LITERS"
-                      | "QUARTS";
+                    unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                   };
               senseId: string;
               value: string;
@@ -20148,19 +20124,7 @@ export declare const api: {
                               scalingKind: "BREAKPOINTS";
                               scalingSource: "SPELL_CAST_LEVEL";
                             };
-                        unit:
-                          | "POUNDS"
-                          | "GALLONS"
-                          | "INCHES"
-                          | "FEET"
-                          | "YARDS"
-                          | "MILES"
-                          | "OUNCES"
-                          | "CUPS"
-                          | "TABLESPOONS"
-                          | "TEASPOONS"
-                          | "LITERS"
-                          | "QUARTS";
+                        unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                       };
                   senseId: string;
                   value: string;
@@ -21849,19 +21813,7 @@ export declare const api: {
                               scalingKind: "BREAKPOINTS";
                               scalingSource: "SPELL_CAST_LEVEL";
                             };
-                        unit:
-                          | "POUNDS"
-                          | "GALLONS"
-                          | "INCHES"
-                          | "FEET"
-                          | "YARDS"
-                          | "MILES"
-                          | "OUNCES"
-                          | "CUPS"
-                          | "TABLESPOONS"
-                          | "TEASPOONS"
-                          | "LITERS"
-                          | "QUARTS";
+                        unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                       };
                   senseId: string;
                   value: string;
@@ -23918,19 +23870,7 @@ export declare const api: {
                                       scalingKind: "BREAKPOINTS";
                                       scalingSource: "SPELL_CAST_LEVEL";
                                     };
-                                unit:
-                                  | "POUNDS"
-                                  | "GALLONS"
-                                  | "INCHES"
-                                  | "FEET"
-                                  | "YARDS"
-                                  | "MILES"
-                                  | "OUNCES"
-                                  | "CUPS"
-                                  | "TABLESPOONS"
-                                  | "TEASPOONS"
-                                  | "LITERS"
-                                  | "QUARTS";
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
                           reactionMovementTrigger?: never;
                           resourceUse?: never;
@@ -25659,19 +25599,7 @@ export declare const api: {
                                       scalingKind: "BREAKPOINTS";
                                       scalingSource: "SPELL_CAST_LEVEL";
                                     };
-                                unit:
-                                  | "POUNDS"
-                                  | "GALLONS"
-                                  | "INCHES"
-                                  | "FEET"
-                                  | "YARDS"
-                                  | "MILES"
-                                  | "OUNCES"
-                                  | "CUPS"
-                                  | "TABLESPOONS"
-                                  | "TEASPOONS"
-                                  | "LITERS"
-                                  | "QUARTS";
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
                           reactionMovementTrigger?: never;
                           resourceUse?: never;
@@ -27363,19 +27291,7 @@ export declare const api: {
                                       scalingKind: "BREAKPOINTS";
                                       scalingSource: "SPELL_CAST_LEVEL";
                                     };
-                                unit:
-                                  | "POUNDS"
-                                  | "GALLONS"
-                                  | "INCHES"
-                                  | "FEET"
-                                  | "YARDS"
-                                  | "MILES"
-                                  | "OUNCES"
-                                  | "CUPS"
-                                  | "TABLESPOONS"
-                                  | "TEASPOONS"
-                                  | "LITERS"
-                                  | "QUARTS";
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
                           reactionMovementTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
@@ -29105,19 +29021,7 @@ export declare const api: {
                                       scalingKind: "BREAKPOINTS";
                                       scalingSource: "SPELL_CAST_LEVEL";
                                     };
-                                unit:
-                                  | "POUNDS"
-                                  | "GALLONS"
-                                  | "INCHES"
-                                  | "FEET"
-                                  | "YARDS"
-                                  | "MILES"
-                                  | "OUNCES"
-                                  | "CUPS"
-                                  | "TABLESPOONS"
-                                  | "TEASPOONS"
-                                  | "LITERS"
-                                  | "QUARTS";
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
                           reactionMovementTrigger: {
                             eligibilityDefinitionId: string;
@@ -30874,19 +30778,7 @@ export declare const api: {
                                       scalingKind: "BREAKPOINTS";
                                       scalingSource: "SPELL_CAST_LEVEL";
                                     };
-                                unit:
-                                  | "POUNDS"
-                                  | "GALLONS"
-                                  | "INCHES"
-                                  | "FEET"
-                                  | "YARDS"
-                                  | "MILES"
-                                  | "OUNCES"
-                                  | "CUPS"
-                                  | "TABLESPOONS"
-                                  | "TEASPOONS"
-                                  | "LITERS"
-                                  | "QUARTS";
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
                           reactionMovementTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
@@ -32574,19 +32466,7 @@ export declare const api: {
                                       scalingKind: "BREAKPOINTS";
                                       scalingSource: "SPELL_CAST_LEVEL";
                                     };
-                                unit:
-                                  | "POUNDS"
-                                  | "GALLONS"
-                                  | "INCHES"
-                                  | "FEET"
-                                  | "YARDS"
-                                  | "MILES"
-                                  | "OUNCES"
-                                  | "CUPS"
-                                  | "TABLESPOONS"
-                                  | "TEASPOONS"
-                                  | "LITERS"
-                                  | "QUARTS";
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
                           reactionMovementTrigger: {
                             eligibilityDefinitionId: string;
@@ -35969,19 +35849,7 @@ export declare const api: {
                                       scalingKind: "BREAKPOINTS";
                                       scalingSource: "SPELL_CAST_LEVEL";
                                     };
-                                unit:
-                                  | "POUNDS"
-                                  | "GALLONS"
-                                  | "INCHES"
-                                  | "FEET"
-                                  | "YARDS"
-                                  | "MILES"
-                                  | "OUNCES"
-                                  | "CUPS"
-                                  | "TABLESPOONS"
-                                  | "TEASPOONS"
-                                  | "LITERS"
-                                  | "QUARTS";
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
                           reactionMovementTrigger?: never;
                           resourceUse?: never;
@@ -37710,19 +37578,7 @@ export declare const api: {
                                       scalingKind: "BREAKPOINTS";
                                       scalingSource: "SPELL_CAST_LEVEL";
                                     };
-                                unit:
-                                  | "POUNDS"
-                                  | "GALLONS"
-                                  | "INCHES"
-                                  | "FEET"
-                                  | "YARDS"
-                                  | "MILES"
-                                  | "OUNCES"
-                                  | "CUPS"
-                                  | "TABLESPOONS"
-                                  | "TEASPOONS"
-                                  | "LITERS"
-                                  | "QUARTS";
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
                           reactionMovementTrigger?: never;
                           resourceUse?: never;
@@ -39414,19 +39270,7 @@ export declare const api: {
                                       scalingKind: "BREAKPOINTS";
                                       scalingSource: "SPELL_CAST_LEVEL";
                                     };
-                                unit:
-                                  | "POUNDS"
-                                  | "GALLONS"
-                                  | "INCHES"
-                                  | "FEET"
-                                  | "YARDS"
-                                  | "MILES"
-                                  | "OUNCES"
-                                  | "CUPS"
-                                  | "TABLESPOONS"
-                                  | "TEASPOONS"
-                                  | "LITERS"
-                                  | "QUARTS";
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
                           reactionMovementTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
@@ -41156,19 +41000,7 @@ export declare const api: {
                                       scalingKind: "BREAKPOINTS";
                                       scalingSource: "SPELL_CAST_LEVEL";
                                     };
-                                unit:
-                                  | "POUNDS"
-                                  | "GALLONS"
-                                  | "INCHES"
-                                  | "FEET"
-                                  | "YARDS"
-                                  | "MILES"
-                                  | "OUNCES"
-                                  | "CUPS"
-                                  | "TABLESPOONS"
-                                  | "TEASPOONS"
-                                  | "LITERS"
-                                  | "QUARTS";
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
                           reactionMovementTrigger: {
                             eligibilityDefinitionId: string;
@@ -42925,19 +42757,7 @@ export declare const api: {
                                       scalingKind: "BREAKPOINTS";
                                       scalingSource: "SPELL_CAST_LEVEL";
                                     };
-                                unit:
-                                  | "POUNDS"
-                                  | "GALLONS"
-                                  | "INCHES"
-                                  | "FEET"
-                                  | "YARDS"
-                                  | "MILES"
-                                  | "OUNCES"
-                                  | "CUPS"
-                                  | "TABLESPOONS"
-                                  | "TEASPOONS"
-                                  | "LITERS"
-                                  | "QUARTS";
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
                           reactionMovementTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
@@ -44625,19 +44445,7 @@ export declare const api: {
                                       scalingKind: "BREAKPOINTS";
                                       scalingSource: "SPELL_CAST_LEVEL";
                                     };
-                                unit:
-                                  | "POUNDS"
-                                  | "GALLONS"
-                                  | "INCHES"
-                                  | "FEET"
-                                  | "YARDS"
-                                  | "MILES"
-                                  | "OUNCES"
-                                  | "CUPS"
-                                  | "TABLESPOONS"
-                                  | "TEASPOONS"
-                                  | "LITERS"
-                                  | "QUARTS";
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
                           reactionMovementTrigger: {
                             eligibilityDefinitionId: string;
@@ -48029,19 +47837,7 @@ export declare const api: {
                                       scalingKind: "BREAKPOINTS";
                                       scalingSource: "SPELL_CAST_LEVEL";
                                     };
-                                unit:
-                                  | "POUNDS"
-                                  | "GALLONS"
-                                  | "INCHES"
-                                  | "FEET"
-                                  | "YARDS"
-                                  | "MILES"
-                                  | "OUNCES"
-                                  | "CUPS"
-                                  | "TABLESPOONS"
-                                  | "TEASPOONS"
-                                  | "LITERS"
-                                  | "QUARTS";
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
                           reactionMovementTrigger?: never;
                           resourceUse?: never;
@@ -49770,19 +49566,7 @@ export declare const api: {
                                       scalingKind: "BREAKPOINTS";
                                       scalingSource: "SPELL_CAST_LEVEL";
                                     };
-                                unit:
-                                  | "POUNDS"
-                                  | "GALLONS"
-                                  | "INCHES"
-                                  | "FEET"
-                                  | "YARDS"
-                                  | "MILES"
-                                  | "OUNCES"
-                                  | "CUPS"
-                                  | "TABLESPOONS"
-                                  | "TEASPOONS"
-                                  | "LITERS"
-                                  | "QUARTS";
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
                           reactionMovementTrigger?: never;
                           resourceUse?: never;
@@ -51474,19 +51258,7 @@ export declare const api: {
                                       scalingKind: "BREAKPOINTS";
                                       scalingSource: "SPELL_CAST_LEVEL";
                                     };
-                                unit:
-                                  | "POUNDS"
-                                  | "GALLONS"
-                                  | "INCHES"
-                                  | "FEET"
-                                  | "YARDS"
-                                  | "MILES"
-                                  | "OUNCES"
-                                  | "CUPS"
-                                  | "TABLESPOONS"
-                                  | "TEASPOONS"
-                                  | "LITERS"
-                                  | "QUARTS";
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
                           reactionMovementTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
@@ -53216,19 +52988,7 @@ export declare const api: {
                                       scalingKind: "BREAKPOINTS";
                                       scalingSource: "SPELL_CAST_LEVEL";
                                     };
-                                unit:
-                                  | "POUNDS"
-                                  | "GALLONS"
-                                  | "INCHES"
-                                  | "FEET"
-                                  | "YARDS"
-                                  | "MILES"
-                                  | "OUNCES"
-                                  | "CUPS"
-                                  | "TABLESPOONS"
-                                  | "TEASPOONS"
-                                  | "LITERS"
-                                  | "QUARTS";
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
                           reactionMovementTrigger: {
                             eligibilityDefinitionId: string;
@@ -54985,19 +54745,7 @@ export declare const api: {
                                       scalingKind: "BREAKPOINTS";
                                       scalingSource: "SPELL_CAST_LEVEL";
                                     };
-                                unit:
-                                  | "POUNDS"
-                                  | "GALLONS"
-                                  | "INCHES"
-                                  | "FEET"
-                                  | "YARDS"
-                                  | "MILES"
-                                  | "OUNCES"
-                                  | "CUPS"
-                                  | "TABLESPOONS"
-                                  | "TEASPOONS"
-                                  | "LITERS"
-                                  | "QUARTS";
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
                           reactionMovementTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
@@ -56685,19 +56433,7 @@ export declare const api: {
                                       scalingKind: "BREAKPOINTS";
                                       scalingSource: "SPELL_CAST_LEVEL";
                                     };
-                                unit:
-                                  | "POUNDS"
-                                  | "GALLONS"
-                                  | "INCHES"
-                                  | "FEET"
-                                  | "YARDS"
-                                  | "MILES"
-                                  | "OUNCES"
-                                  | "CUPS"
-                                  | "TABLESPOONS"
-                                  | "TEASPOONS"
-                                  | "LITERS"
-                                  | "QUARTS";
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
                           reactionMovementTrigger: {
                             eligibilityDefinitionId: string;
@@ -60080,19 +59816,7 @@ export declare const api: {
                                       scalingKind: "BREAKPOINTS";
                                       scalingSource: "SPELL_CAST_LEVEL";
                                     };
-                                unit:
-                                  | "POUNDS"
-                                  | "GALLONS"
-                                  | "INCHES"
-                                  | "FEET"
-                                  | "YARDS"
-                                  | "MILES"
-                                  | "OUNCES"
-                                  | "CUPS"
-                                  | "TABLESPOONS"
-                                  | "TEASPOONS"
-                                  | "LITERS"
-                                  | "QUARTS";
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
                           reactionMovementTrigger?: never;
                           resourceUse?: never;
@@ -61821,19 +61545,7 @@ export declare const api: {
                                       scalingKind: "BREAKPOINTS";
                                       scalingSource: "SPELL_CAST_LEVEL";
                                     };
-                                unit:
-                                  | "POUNDS"
-                                  | "GALLONS"
-                                  | "INCHES"
-                                  | "FEET"
-                                  | "YARDS"
-                                  | "MILES"
-                                  | "OUNCES"
-                                  | "CUPS"
-                                  | "TABLESPOONS"
-                                  | "TEASPOONS"
-                                  | "LITERS"
-                                  | "QUARTS";
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
                           reactionMovementTrigger?: never;
                           resourceUse?: never;
@@ -63525,19 +63237,7 @@ export declare const api: {
                                       scalingKind: "BREAKPOINTS";
                                       scalingSource: "SPELL_CAST_LEVEL";
                                     };
-                                unit:
-                                  | "POUNDS"
-                                  | "GALLONS"
-                                  | "INCHES"
-                                  | "FEET"
-                                  | "YARDS"
-                                  | "MILES"
-                                  | "OUNCES"
-                                  | "CUPS"
-                                  | "TABLESPOONS"
-                                  | "TEASPOONS"
-                                  | "LITERS"
-                                  | "QUARTS";
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
                           reactionMovementTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
@@ -65267,19 +64967,7 @@ export declare const api: {
                                       scalingKind: "BREAKPOINTS";
                                       scalingSource: "SPELL_CAST_LEVEL";
                                     };
-                                unit:
-                                  | "POUNDS"
-                                  | "GALLONS"
-                                  | "INCHES"
-                                  | "FEET"
-                                  | "YARDS"
-                                  | "MILES"
-                                  | "OUNCES"
-                                  | "CUPS"
-                                  | "TABLESPOONS"
-                                  | "TEASPOONS"
-                                  | "LITERS"
-                                  | "QUARTS";
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
                           reactionMovementTrigger: {
                             eligibilityDefinitionId: string;
@@ -67036,19 +66724,7 @@ export declare const api: {
                                       scalingKind: "BREAKPOINTS";
                                       scalingSource: "SPELL_CAST_LEVEL";
                                     };
-                                unit:
-                                  | "POUNDS"
-                                  | "GALLONS"
-                                  | "INCHES"
-                                  | "FEET"
-                                  | "YARDS"
-                                  | "MILES"
-                                  | "OUNCES"
-                                  | "CUPS"
-                                  | "TABLESPOONS"
-                                  | "TEASPOONS"
-                                  | "LITERS"
-                                  | "QUARTS";
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
                           reactionMovementTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
@@ -68736,19 +68412,7 @@ export declare const api: {
                                       scalingKind: "BREAKPOINTS";
                                       scalingSource: "SPELL_CAST_LEVEL";
                                     };
-                                unit:
-                                  | "POUNDS"
-                                  | "GALLONS"
-                                  | "INCHES"
-                                  | "FEET"
-                                  | "YARDS"
-                                  | "MILES"
-                                  | "OUNCES"
-                                  | "CUPS"
-                                  | "TABLESPOONS"
-                                  | "TEASPOONS"
-                                  | "LITERS"
-                                  | "QUARTS";
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
                           reactionMovementTrigger: {
                             eligibilityDefinitionId: string;
@@ -72166,19 +71830,7 @@ export declare const api: {
                                       scalingKind: "BREAKPOINTS";
                                       scalingSource: "SPELL_CAST_LEVEL";
                                     };
-                                unit:
-                                  | "POUNDS"
-                                  | "GALLONS"
-                                  | "INCHES"
-                                  | "FEET"
-                                  | "YARDS"
-                                  | "MILES"
-                                  | "OUNCES"
-                                  | "CUPS"
-                                  | "TABLESPOONS"
-                                  | "TEASPOONS"
-                                  | "LITERS"
-                                  | "QUARTS";
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
                           reactionMovementTrigger?: never;
                           resourceUse?: never;
@@ -73907,19 +73559,7 @@ export declare const api: {
                                       scalingKind: "BREAKPOINTS";
                                       scalingSource: "SPELL_CAST_LEVEL";
                                     };
-                                unit:
-                                  | "POUNDS"
-                                  | "GALLONS"
-                                  | "INCHES"
-                                  | "FEET"
-                                  | "YARDS"
-                                  | "MILES"
-                                  | "OUNCES"
-                                  | "CUPS"
-                                  | "TABLESPOONS"
-                                  | "TEASPOONS"
-                                  | "LITERS"
-                                  | "QUARTS";
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
                           reactionMovementTrigger?: never;
                           resourceUse?: never;
@@ -75611,19 +75251,7 @@ export declare const api: {
                                       scalingKind: "BREAKPOINTS";
                                       scalingSource: "SPELL_CAST_LEVEL";
                                     };
-                                unit:
-                                  | "POUNDS"
-                                  | "GALLONS"
-                                  | "INCHES"
-                                  | "FEET"
-                                  | "YARDS"
-                                  | "MILES"
-                                  | "OUNCES"
-                                  | "CUPS"
-                                  | "TABLESPOONS"
-                                  | "TEASPOONS"
-                                  | "LITERS"
-                                  | "QUARTS";
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
                           reactionMovementTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
@@ -77353,19 +76981,7 @@ export declare const api: {
                                       scalingKind: "BREAKPOINTS";
                                       scalingSource: "SPELL_CAST_LEVEL";
                                     };
-                                unit:
-                                  | "POUNDS"
-                                  | "GALLONS"
-                                  | "INCHES"
-                                  | "FEET"
-                                  | "YARDS"
-                                  | "MILES"
-                                  | "OUNCES"
-                                  | "CUPS"
-                                  | "TABLESPOONS"
-                                  | "TEASPOONS"
-                                  | "LITERS"
-                                  | "QUARTS";
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
                           reactionMovementTrigger: {
                             eligibilityDefinitionId: string;
@@ -79122,19 +78738,7 @@ export declare const api: {
                                       scalingKind: "BREAKPOINTS";
                                       scalingSource: "SPELL_CAST_LEVEL";
                                     };
-                                unit:
-                                  | "POUNDS"
-                                  | "GALLONS"
-                                  | "INCHES"
-                                  | "FEET"
-                                  | "YARDS"
-                                  | "MILES"
-                                  | "OUNCES"
-                                  | "CUPS"
-                                  | "TABLESPOONS"
-                                  | "TEASPOONS"
-                                  | "LITERS"
-                                  | "QUARTS";
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
                           reactionMovementTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
@@ -80822,19 +80426,7 @@ export declare const api: {
                                       scalingKind: "BREAKPOINTS";
                                       scalingSource: "SPELL_CAST_LEVEL";
                                     };
-                                unit:
-                                  | "POUNDS"
-                                  | "GALLONS"
-                                  | "INCHES"
-                                  | "FEET"
-                                  | "YARDS"
-                                  | "MILES"
-                                  | "OUNCES"
-                                  | "CUPS"
-                                  | "TABLESPOONS"
-                                  | "TEASPOONS"
-                                  | "LITERS"
-                                  | "QUARTS";
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
                           reactionMovementTrigger: {
                             eligibilityDefinitionId: string;
@@ -84217,19 +83809,7 @@ export declare const api: {
                                       scalingKind: "BREAKPOINTS";
                                       scalingSource: "SPELL_CAST_LEVEL";
                                     };
-                                unit:
-                                  | "POUNDS"
-                                  | "GALLONS"
-                                  | "INCHES"
-                                  | "FEET"
-                                  | "YARDS"
-                                  | "MILES"
-                                  | "OUNCES"
-                                  | "CUPS"
-                                  | "TABLESPOONS"
-                                  | "TEASPOONS"
-                                  | "LITERS"
-                                  | "QUARTS";
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
                           reactionMovementTrigger?: never;
                           resourceUse?: never;
@@ -85958,19 +85538,7 @@ export declare const api: {
                                       scalingKind: "BREAKPOINTS";
                                       scalingSource: "SPELL_CAST_LEVEL";
                                     };
-                                unit:
-                                  | "POUNDS"
-                                  | "GALLONS"
-                                  | "INCHES"
-                                  | "FEET"
-                                  | "YARDS"
-                                  | "MILES"
-                                  | "OUNCES"
-                                  | "CUPS"
-                                  | "TABLESPOONS"
-                                  | "TEASPOONS"
-                                  | "LITERS"
-                                  | "QUARTS";
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
                           reactionMovementTrigger?: never;
                           resourceUse?: never;
@@ -87662,19 +87230,7 @@ export declare const api: {
                                       scalingKind: "BREAKPOINTS";
                                       scalingSource: "SPELL_CAST_LEVEL";
                                     };
-                                unit:
-                                  | "POUNDS"
-                                  | "GALLONS"
-                                  | "INCHES"
-                                  | "FEET"
-                                  | "YARDS"
-                                  | "MILES"
-                                  | "OUNCES"
-                                  | "CUPS"
-                                  | "TABLESPOONS"
-                                  | "TEASPOONS"
-                                  | "LITERS"
-                                  | "QUARTS";
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
                           reactionMovementTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
@@ -89404,19 +88960,7 @@ export declare const api: {
                                       scalingKind: "BREAKPOINTS";
                                       scalingSource: "SPELL_CAST_LEVEL";
                                     };
-                                unit:
-                                  | "POUNDS"
-                                  | "GALLONS"
-                                  | "INCHES"
-                                  | "FEET"
-                                  | "YARDS"
-                                  | "MILES"
-                                  | "OUNCES"
-                                  | "CUPS"
-                                  | "TABLESPOONS"
-                                  | "TEASPOONS"
-                                  | "LITERS"
-                                  | "QUARTS";
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
                           reactionMovementTrigger: {
                             eligibilityDefinitionId: string;
@@ -91173,19 +90717,7 @@ export declare const api: {
                                       scalingKind: "BREAKPOINTS";
                                       scalingSource: "SPELL_CAST_LEVEL";
                                     };
-                                unit:
-                                  | "POUNDS"
-                                  | "GALLONS"
-                                  | "INCHES"
-                                  | "FEET"
-                                  | "YARDS"
-                                  | "MILES"
-                                  | "OUNCES"
-                                  | "CUPS"
-                                  | "TABLESPOONS"
-                                  | "TEASPOONS"
-                                  | "LITERS"
-                                  | "QUARTS";
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
                           reactionMovementTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
@@ -92873,19 +92405,7 @@ export declare const api: {
                                       scalingKind: "BREAKPOINTS";
                                       scalingSource: "SPELL_CAST_LEVEL";
                                     };
-                                unit:
-                                  | "POUNDS"
-                                  | "GALLONS"
-                                  | "INCHES"
-                                  | "FEET"
-                                  | "YARDS"
-                                  | "MILES"
-                                  | "OUNCES"
-                                  | "CUPS"
-                                  | "TABLESPOONS"
-                                  | "TEASPOONS"
-                                  | "LITERS"
-                                  | "QUARTS";
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
                           reactionMovementTrigger: {
                             eligibilityDefinitionId: string;
@@ -96256,19 +95776,7 @@ export declare const api: {
                                     scalingKind: "BREAKPOINTS";
                                     scalingSource: "SPELL_CAST_LEVEL";
                                   };
-                              unit:
-                                | "POUNDS"
-                                | "GALLONS"
-                                | "INCHES"
-                                | "FEET"
-                                | "YARDS"
-                                | "MILES"
-                                | "OUNCES"
-                                | "CUPS"
-                                | "TABLESPOONS"
-                                | "TEASPOONS"
-                                | "LITERS"
-                                | "QUARTS";
+                              unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                             };
                         reactionMovementTrigger?: never;
                         resourceUse?: never;
@@ -97991,19 +97499,7 @@ export declare const api: {
                                     scalingKind: "BREAKPOINTS";
                                     scalingSource: "SPELL_CAST_LEVEL";
                                   };
-                              unit:
-                                | "POUNDS"
-                                | "GALLONS"
-                                | "INCHES"
-                                | "FEET"
-                                | "YARDS"
-                                | "MILES"
-                                | "OUNCES"
-                                | "CUPS"
-                                | "TABLESPOONS"
-                                | "TEASPOONS"
-                                | "LITERS"
-                                | "QUARTS";
+                              unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                             };
                         reactionMovementTrigger?: never;
                         resourceUse?: never;
@@ -99695,19 +99191,7 @@ export declare const api: {
                                     scalingKind: "BREAKPOINTS";
                                     scalingSource: "SPELL_CAST_LEVEL";
                                   };
-                              unit:
-                                | "POUNDS"
-                                | "GALLONS"
-                                | "INCHES"
-                                | "FEET"
-                                | "YARDS"
-                                | "MILES"
-                                | "OUNCES"
-                                | "CUPS"
-                                | "TABLESPOONS"
-                                | "TEASPOONS"
-                                | "LITERS"
-                                | "QUARTS";
+                              unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                             };
                         reactionMovementTrigger?: never;
                         resourceUse?: { chargeId: string; cost: number };
@@ -101431,19 +100915,7 @@ export declare const api: {
                                     scalingKind: "BREAKPOINTS";
                                     scalingSource: "SPELL_CAST_LEVEL";
                                   };
-                              unit:
-                                | "POUNDS"
-                                | "GALLONS"
-                                | "INCHES"
-                                | "FEET"
-                                | "YARDS"
-                                | "MILES"
-                                | "OUNCES"
-                                | "CUPS"
-                                | "TABLESPOONS"
-                                | "TEASPOONS"
-                                | "LITERS"
-                                | "QUARTS";
+                              unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                             };
                         reactionMovementTrigger: {
                           eligibilityDefinitionId: string;
@@ -103194,19 +102666,7 @@ export declare const api: {
                                     scalingKind: "BREAKPOINTS";
                                     scalingSource: "SPELL_CAST_LEVEL";
                                   };
-                              unit:
-                                | "POUNDS"
-                                | "GALLONS"
-                                | "INCHES"
-                                | "FEET"
-                                | "YARDS"
-                                | "MILES"
-                                | "OUNCES"
-                                | "CUPS"
-                                | "TABLESPOONS"
-                                | "TEASPOONS"
-                                | "LITERS"
-                                | "QUARTS";
+                              unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                             };
                         reactionMovementTrigger?: never;
                         resourceUse?: { chargeId: string; cost: number };
@@ -104894,19 +104354,7 @@ export declare const api: {
                                     scalingKind: "BREAKPOINTS";
                                     scalingSource: "SPELL_CAST_LEVEL";
                                   };
-                              unit:
-                                | "POUNDS"
-                                | "GALLONS"
-                                | "INCHES"
-                                | "FEET"
-                                | "YARDS"
-                                | "MILES"
-                                | "OUNCES"
-                                | "CUPS"
-                                | "TABLESPOONS"
-                                | "TEASPOONS"
-                                | "LITERS"
-                                | "QUARTS";
+                              unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                             };
                         reactionMovementTrigger: {
                           eligibilityDefinitionId: string;
@@ -108284,19 +107732,7 @@ export declare const api: {
                                       scalingKind: "BREAKPOINTS";
                                       scalingSource: "SPELL_CAST_LEVEL";
                                     };
-                                unit:
-                                  | "POUNDS"
-                                  | "GALLONS"
-                                  | "INCHES"
-                                  | "FEET"
-                                  | "YARDS"
-                                  | "MILES"
-                                  | "OUNCES"
-                                  | "CUPS"
-                                  | "TABLESPOONS"
-                                  | "TEASPOONS"
-                                  | "LITERS"
-                                  | "QUARTS";
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
                           reactionMovementTrigger?: never;
                           resourceUse?: never;
@@ -110025,19 +109461,7 @@ export declare const api: {
                                       scalingKind: "BREAKPOINTS";
                                       scalingSource: "SPELL_CAST_LEVEL";
                                     };
-                                unit:
-                                  | "POUNDS"
-                                  | "GALLONS"
-                                  | "INCHES"
-                                  | "FEET"
-                                  | "YARDS"
-                                  | "MILES"
-                                  | "OUNCES"
-                                  | "CUPS"
-                                  | "TABLESPOONS"
-                                  | "TEASPOONS"
-                                  | "LITERS"
-                                  | "QUARTS";
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
                           reactionMovementTrigger?: never;
                           resourceUse?: never;
@@ -111729,19 +111153,7 @@ export declare const api: {
                                       scalingKind: "BREAKPOINTS";
                                       scalingSource: "SPELL_CAST_LEVEL";
                                     };
-                                unit:
-                                  | "POUNDS"
-                                  | "GALLONS"
-                                  | "INCHES"
-                                  | "FEET"
-                                  | "YARDS"
-                                  | "MILES"
-                                  | "OUNCES"
-                                  | "CUPS"
-                                  | "TABLESPOONS"
-                                  | "TEASPOONS"
-                                  | "LITERS"
-                                  | "QUARTS";
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
                           reactionMovementTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
@@ -113471,19 +112883,7 @@ export declare const api: {
                                       scalingKind: "BREAKPOINTS";
                                       scalingSource: "SPELL_CAST_LEVEL";
                                     };
-                                unit:
-                                  | "POUNDS"
-                                  | "GALLONS"
-                                  | "INCHES"
-                                  | "FEET"
-                                  | "YARDS"
-                                  | "MILES"
-                                  | "OUNCES"
-                                  | "CUPS"
-                                  | "TABLESPOONS"
-                                  | "TEASPOONS"
-                                  | "LITERS"
-                                  | "QUARTS";
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
                           reactionMovementTrigger: {
                             eligibilityDefinitionId: string;
@@ -115240,19 +114640,7 @@ export declare const api: {
                                       scalingKind: "BREAKPOINTS";
                                       scalingSource: "SPELL_CAST_LEVEL";
                                     };
-                                unit:
-                                  | "POUNDS"
-                                  | "GALLONS"
-                                  | "INCHES"
-                                  | "FEET"
-                                  | "YARDS"
-                                  | "MILES"
-                                  | "OUNCES"
-                                  | "CUPS"
-                                  | "TABLESPOONS"
-                                  | "TEASPOONS"
-                                  | "LITERS"
-                                  | "QUARTS";
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
                           reactionMovementTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
@@ -116940,19 +116328,7 @@ export declare const api: {
                                       scalingKind: "BREAKPOINTS";
                                       scalingSource: "SPELL_CAST_LEVEL";
                                     };
-                                unit:
-                                  | "POUNDS"
-                                  | "GALLONS"
-                                  | "INCHES"
-                                  | "FEET"
-                                  | "YARDS"
-                                  | "MILES"
-                                  | "OUNCES"
-                                  | "CUPS"
-                                  | "TABLESPOONS"
-                                  | "TEASPOONS"
-                                  | "LITERS"
-                                  | "QUARTS";
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
                           reactionMovementTrigger: {
                             eligibilityDefinitionId: string;
@@ -120335,19 +119711,7 @@ export declare const api: {
                                       scalingKind: "BREAKPOINTS";
                                       scalingSource: "SPELL_CAST_LEVEL";
                                     };
-                                unit:
-                                  | "POUNDS"
-                                  | "GALLONS"
-                                  | "INCHES"
-                                  | "FEET"
-                                  | "YARDS"
-                                  | "MILES"
-                                  | "OUNCES"
-                                  | "CUPS"
-                                  | "TABLESPOONS"
-                                  | "TEASPOONS"
-                                  | "LITERS"
-                                  | "QUARTS";
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
                           reactionMovementTrigger?: never;
                           resourceUse?: never;
@@ -122076,19 +121440,7 @@ export declare const api: {
                                       scalingKind: "BREAKPOINTS";
                                       scalingSource: "SPELL_CAST_LEVEL";
                                     };
-                                unit:
-                                  | "POUNDS"
-                                  | "GALLONS"
-                                  | "INCHES"
-                                  | "FEET"
-                                  | "YARDS"
-                                  | "MILES"
-                                  | "OUNCES"
-                                  | "CUPS"
-                                  | "TABLESPOONS"
-                                  | "TEASPOONS"
-                                  | "LITERS"
-                                  | "QUARTS";
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
                           reactionMovementTrigger?: never;
                           resourceUse?: never;
@@ -123780,19 +123132,7 @@ export declare const api: {
                                       scalingKind: "BREAKPOINTS";
                                       scalingSource: "SPELL_CAST_LEVEL";
                                     };
-                                unit:
-                                  | "POUNDS"
-                                  | "GALLONS"
-                                  | "INCHES"
-                                  | "FEET"
-                                  | "YARDS"
-                                  | "MILES"
-                                  | "OUNCES"
-                                  | "CUPS"
-                                  | "TABLESPOONS"
-                                  | "TEASPOONS"
-                                  | "LITERS"
-                                  | "QUARTS";
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
                           reactionMovementTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
@@ -125522,19 +124862,7 @@ export declare const api: {
                                       scalingKind: "BREAKPOINTS";
                                       scalingSource: "SPELL_CAST_LEVEL";
                                     };
-                                unit:
-                                  | "POUNDS"
-                                  | "GALLONS"
-                                  | "INCHES"
-                                  | "FEET"
-                                  | "YARDS"
-                                  | "MILES"
-                                  | "OUNCES"
-                                  | "CUPS"
-                                  | "TABLESPOONS"
-                                  | "TEASPOONS"
-                                  | "LITERS"
-                                  | "QUARTS";
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
                           reactionMovementTrigger: {
                             eligibilityDefinitionId: string;
@@ -127291,19 +126619,7 @@ export declare const api: {
                                       scalingKind: "BREAKPOINTS";
                                       scalingSource: "SPELL_CAST_LEVEL";
                                     };
-                                unit:
-                                  | "POUNDS"
-                                  | "GALLONS"
-                                  | "INCHES"
-                                  | "FEET"
-                                  | "YARDS"
-                                  | "MILES"
-                                  | "OUNCES"
-                                  | "CUPS"
-                                  | "TABLESPOONS"
-                                  | "TEASPOONS"
-                                  | "LITERS"
-                                  | "QUARTS";
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
                           reactionMovementTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
@@ -128991,19 +128307,7 @@ export declare const api: {
                                       scalingKind: "BREAKPOINTS";
                                       scalingSource: "SPELL_CAST_LEVEL";
                                     };
-                                unit:
-                                  | "POUNDS"
-                                  | "GALLONS"
-                                  | "INCHES"
-                                  | "FEET"
-                                  | "YARDS"
-                                  | "MILES"
-                                  | "OUNCES"
-                                  | "CUPS"
-                                  | "TABLESPOONS"
-                                  | "TEASPOONS"
-                                  | "LITERS"
-                                  | "QUARTS";
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
                           reactionMovementTrigger: {
                             eligibilityDefinitionId: string;

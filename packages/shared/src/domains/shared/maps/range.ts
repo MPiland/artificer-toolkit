@@ -1,5 +1,5 @@
 import type { RangeAuthored } from '#authored'
-import { MEASUREMENT_UNIT_OPTIONS, RANGE_OPTIONS } from '#core'
+import { LENGTH_UNIT_OPTIONS, RANGE_OPTIONS } from '#core'
 import { buildNodeMap } from '#utils'
 import { MEASUREMENT_NODE_MAP } from './measurement.js'
 import { createBreakpointScalingNodeMap } from './scaling.js'
@@ -53,7 +53,7 @@ export const RANGE_NODE_MAP = range.define('range', ({ map, cond, nodes }) => {
         'Unit',
         {
           kind: 'INLINE_OPTIONS',
-          options: MEASUREMENT_UNIT_OPTIONS
+          options: LENGTH_UNIT_OPTIONS
         },
         {
           order: 4,

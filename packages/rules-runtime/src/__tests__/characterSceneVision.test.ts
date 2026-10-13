@@ -99,7 +99,7 @@ describe('deriveCharacterSceneVision', () => {
     ])
   })
 
-  it('converts length units to feet and drops a range that is not a length', () => {
+  it('converts length units to feet', () => {
     expect(senses([pin(SRD_DARKVISION_SENSE_ID, 20, 'YARDS')])[0]?.range).toEqual({
       amount: 60,
       unit: 'FEET'
@@ -112,7 +112,6 @@ describe('deriveCharacterSceneVision', () => {
       amount: 5_280,
       unit: 'FEET'
     })
-    expect(senses([pin(SRD_DARKVISION_SENSE_ID, 60, 'POUNDS')])).toEqual([])
   })
 
   it('presents no sense without a range or with a zero range', () => {
