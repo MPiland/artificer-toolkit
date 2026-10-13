@@ -39,9 +39,7 @@ describe('CampaignClockEditor in-progress edits', () => {
     const { rerender } = renderWithAppProviders(editor(clock))
     await openEditor(user)
 
-    const resetDay = screen.getByLabelText('Reset day')
-    await user.clear(resetDay)
-    await user.type(resetDay, '5')
+    fireEvent.change(screen.getByLabelText('Reset day'), { target: { value: '5' } })
     fireEvent.change(screen.getByLabelText('Dawn'), { target: { value: '07:30' } })
     rerender(editor({ ...clock, minuteOfDay: 500, version: 5 }))
 

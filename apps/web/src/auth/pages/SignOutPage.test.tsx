@@ -11,10 +11,11 @@ const mocks = vi.hoisted(() => ({
   signOut: vi.fn()
 }))
 
-vi.mock('@tanstack/react-router', () => ({
-  useNavigate: () => mocks.navigate,
-  useRouter: () => ({ invalidate: mocks.invalidate })
-}))
+vi.mock('@tanstack/react-router', () => {
+  // The real router instance is stable across renders; a fresh object per call would re-run effects.
+  const router = { invalidate: mocks.invalidate }
+  return { useNavigate: () => mocks.navigate, useRouter: () => router }
+})
 
 vi.mock('../authClient', () => ({
   browserAuthClient: { signOut: mocks.signOut }
