@@ -407,9 +407,9 @@ Hide-action hidden state (Stealth check, ends on attack), Unconscious falling Pr
 resistance, Exhaustion 4 and 6, concentration saves under conditions, and conditions on Convex-side
 action preparation reads (the room owns resolution).
 
-### Authored basic actions (ATTACK-18 slices A to D, current; D106)
+### Authored basic actions (ATTACK-18 slices A to E, current; D106)
 
-A `BASIC_ACTION` System definition carries `rulesText`, `restrictions` (a nullable Facet, carried but not yet evaluated), `actionCost` and `effects` (the same authored effect list a
+A `BASIC_ACTION` System definition carries `rulesText`, `restrictions` (a nullable Facet, evaluated live: see Restrictions below), `actionCost` and `effects` (the same authored effect list a
 Feature carries). Every entry is authored: Dash, Disengage, Dodge, First Aid, Help, Hide, Ready, Search and Use an Object. They are compiled by
 the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action source, `BASIC_ACTION`
 (`encounterBasicActionCapabilityDiscovery.ts`, `encounterActionSources.ts`), for Characters and Creatures. Their action id is
@@ -437,6 +437,17 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
 - **Gone with slice D:** `USE_BASIC_ACTION`, `UseEncounterBasicActionInputDto`, the catalogue `check` and `mechanics`
   fields, `STABILIZE_TARGET` and `BASIC_ACTION_MECHANIC_CODE`, and `nativeBasicAction.ts` (slice E's deletions, pulled forward).
   Undo restores the actor row exactly: a returned allowance of zero removes its `ruleUsage` entry rather than writing `0`.
+- **Restrictions (slice E).** An actor is offered a basic action, and may take it, only when its facet `restrictions` hold; no
+  restriction means every actor, Characters and Creatures alike. The check is `encounterBasicActionRestrictionsHold`
+  (`encounterBasicActionRestrictions.ts`): it normalizes the facet with the grant-fold restriction normalizer and decides the holder-state
+  predicates (`CAN_ACT`, `SPEED_ABOVE_ZERO`, `FREE_HAND`) against `EncounterHolderState` (`encounterHolderDefense.ts`), the same live
+  decision grant restrictions use; any other predicate fails closed. `FREE_HAND` is true while either hand is empty and reads
+  `resolveHandOccupancy` (D107): a Creature's hands come from its equipment loadout snapshot, a Character's from the `handFacts` rule
+  input (`characterHandRuleFacts.ts`, built from the equipped slots and the TWO_HANDED property). The capability descriptor carries the
+  document's `restrictions`. The choices read (`actionChoiceReads.ts`) drops actions whose restrictions do not hold, and the Session Worker
+  (`refuseUnmetBasicActionRestrictions`, after `prepareEncounterActionMechanics`) refuses an unmet one as `SOURCE_REQUIREMENTS_NOT_MET`
+  before anything is planned. A homebrew copy of the catalogue keeps its `restrictions`, since they are part of the document.
+- **Gone with slice E:** nothing further; the closed basic-action codes were all deleted by slices A to D (verified by search).
 - **Gone with slice A:** `withEncounterBasicActionDefense`, the `dodgeContributors` plumbing, the Dodge Run-resource effect kinds,
   the mechanic codes `DISADVANTAGE_ON_ATTACKS_AGAINST` and `SAVE_ADVANTAGE`, `saveAbilityIds` and
   `suspendedWhileUnableToActOrMove`.

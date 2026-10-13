@@ -1,6 +1,8 @@
 import { DOMAIN_REJECTION_MESSAGES } from '@artificer-toolkit/schema/api/domainRejections'
 import type { prepareEncounterActionMechanics } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
 import { encounterLegendaryActionFeatureIds } from '@artificer-toolkit/rules-runtime/encounterActionSources'
+import { encounterBasicActionRestrictionsHold } from '@artificer-toolkit/rules-runtime/encounterBasicActionRestrictions'
+import { encounterHolderState } from '@artificer-toolkit/rules-runtime/encounterHolderDefense'
 import { lockedRelationshipActionFacts } from '@artificer-toolkit/rules-runtime/encounterRelationshipActionFacts'
 import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
 
@@ -34,6 +36,26 @@ export function refuseLegendaryWindowAction(prepared: Pick<Prepared, 'actor' | '
       code: 'DOMAIN_REJECTED',
       reason: 'LEGENDARY_WINDOW_ONLY',
       message: DOMAIN_REJECTION_MESSAGES.LEGENDARY_WINDOW_ONLY
+    })
+}
+
+/** An authored basic action is taken only by an actor that meets its facet restrictions. */
+export async function refuseUnmetBasicActionRestrictions(
+  prepared: Pick<Prepared, 'source'>,
+  holder: Parameters<typeof encounterHolderState>[0]
+) {
+  if (
+    prepared.source.kind === 'BASIC_ACTION' &&
+    prepared.source.capability.restrictions &&
+    !encounterBasicActionRestrictionsHold(
+      prepared.source.capability.restrictions,
+      await encounterHolderState(holder)
+    )
+  )
+    throw new LiveSessionDomainRejectionError(422, {
+      code: 'DOMAIN_REJECTED',
+      reason: 'SOURCE_REQUIREMENTS_NOT_MET',
+      message: DOMAIN_REJECTION_MESSAGES.SOURCE_REQUIREMENTS_NOT_MET
     })
 }
 

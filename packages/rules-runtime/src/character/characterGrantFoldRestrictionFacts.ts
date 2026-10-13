@@ -107,6 +107,8 @@ function normalizeCondition(
       return baseCondition(condition, 'CAN_ACT')
     case 'SPEED_ABOVE_ZERO':
       return baseCondition(condition, 'SPEED_ABOVE_ZERO')
+    case 'FREE_HAND':
+      return baseCondition(condition, 'FREE_HAND')
     case 'EQUIPMENT_PROFICIENCY':
       return {
         ...baseCondition(condition, 'PROFICIENCY'),
@@ -182,6 +184,20 @@ function normalizeCondition(
   }
 }
 
+/** A Creature context is read live in an Encounter: only the holder-state predicates are decidable. */
+function normalizeCreatureCondition(
+  condition: FacetConditionAuthored<'CREATURE'>
+): RestrictionCondition {
+  switch (condition.predicateCode) {
+    case 'CAN_ACT':
+    case 'SPEED_ABOVE_ZERO':
+    case 'FREE_HAND':
+      return baseCondition(condition, condition.predicateCode)
+    default:
+      return baseCondition(condition, 'UNSUPPORTED')
+  }
+}
+
 /** An Equipment context names the attacking item; its conditions are evaluated against that item. */
 function normalizeItemContext(
   context: Extract<FacetContextAuthored, { subject: 'EQUIPMENT' }>
@@ -236,6 +252,8 @@ export function normalizeCharacterGrantRestrictions(
           )
         case 'EQUIPMENT':
           return normalizeItemContext(context)
+        case 'CREATURE':
+          return (context.conditions ?? []).map(normalizeCreatureCondition)
         case 'SPELL':
         case 'RESOURCE':
           return []
