@@ -184,6 +184,12 @@ const seedDerivedDragonbornRace = {
             scalingKind: 'NONE',
             authoringModeKind: 'SELECTED',
             senseIds: ['sense-darkvision'],
+            range: {
+              id: 'dragonborn-darkvision-range',
+              rangeKind: 'DISTANCE',
+              amount: 60,
+              unit: 'FEET'
+            },
             order: 1
           }
         ]

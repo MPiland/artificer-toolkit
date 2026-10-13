@@ -45,10 +45,10 @@ The local lifecycle supplies `LOCAL_CONTENT_SNAPSHOT_ORIGIN=http://127.0.0.1:802
 ## Commands
 
 ```powershell
-yarn workspace @artificer-toolkit/session-worker typecheck         # wrangler types --check, then tsc for src and test
+yarn workspace @artificer-toolkit/session-worker typecheck         # regenerate the types, then tsc for src and test
 yarn workspace @artificer-toolkit/session-worker test              # Workers-pool tests (test/native*.test.ts), single worker
 yarn workspace @artificer-toolkit/session-worker test:unit         # src/*.test.ts through the root Vitest config
-yarn workspace @artificer-toolkit/session-worker types             # regenerate src/worker-configuration.d.ts
+yarn workspace @artificer-toolkit/session-worker types             # regenerate the ignored src/worker-configuration.d.ts from the committed .dev.vars.example names, so every checkout gets the same Env
 yarn workspace @artificer-toolkit/session-worker build             # wrangler deploy --dry-run
 yarn workspace @artificer-toolkit/session-worker build:staging
 yarn workspace @artificer-toolkit/session-worker preflight:managed # needs MANAGED_VTT_BASE_URL and MANAGED_LIVE_SESSION_ENDPOINT

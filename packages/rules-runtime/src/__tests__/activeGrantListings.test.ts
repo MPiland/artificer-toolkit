@@ -168,7 +168,7 @@ function piecesEffect(pieces: readonly PolarityPiece[], senseCount: number): Lis
                   scalingKind: 'NONE',
                   targetIds: [],
                   levels: [],
-                  range: null
+                  range: { id: `sense-range-${index}`, rangeKind: 'UNLIMITED' }
                 })
               )
             }

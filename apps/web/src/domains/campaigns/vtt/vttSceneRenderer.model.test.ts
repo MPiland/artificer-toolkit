@@ -29,6 +29,8 @@ import {
   resolveViewTokenId,
   resolveVttMapLoadDecision,
   resolveSceneTokenMove,
+  minimumFocusedTokenScreenSize,
+  resolveVttTokenFocusScale,
   resolveVttZoomScale,
   senseEffect,
   senseReachRadius,
@@ -70,6 +72,16 @@ describe('VTT scene renderer model', () => {
     expect(resolveVttZoomScale(1, 0)).toBe(1)
     expect(resolveVttZoomScale(1, Number.NaN)).toBe(1)
     expect(resolveVttZoomScale(Number.NaN, 2)).toBe(0.04)
+  })
+
+  it('focuses a token at a readable zoom, never zooming out and staying within the zoom bounds', () => {
+    const footprint = { height: 70, width: 140 }
+    const readable = minimumFocusedTokenScreenSize / 140
+
+    expect(resolveVttTokenFocusScale(0.02, footprint)).toBeCloseTo(readable, 12)
+    expect(resolveVttTokenFocusScale(1, footprint)).toBe(1)
+    expect(resolveVttTokenFocusScale(readable, footprint)).toBeCloseTo(readable, 12)
+    expect(resolveVttTokenFocusScale(0.02, { height: 1, width: 1 })).toBe(8)
   })
 
   it('interpolates remote token previews smoothly without overshooting', () => {
@@ -491,15 +503,52 @@ describe('VTT view token and senses', () => {
       origin: { x: 0, y: 0 },
       unit: 'FEET'
     }
-    expect(senseReachRadius(square, { height: 70, width: 70 }, { range: 60 })).toBe(875)
-    expect(senseReachRadius(square, { height: 140, width: 140 }, { range: 10 })).toBe(210)
+    expect(
+      senseReachRadius(
+        square,
+        { height: 70, width: 70 },
+        { range: { rangeKind: 'DISTANCE', amount: 60 } }
+      )
+    ).toBe(875)
+    expect(
+      senseReachRadius(
+        square,
+        { height: 140, width: 140 },
+        { range: { rangeKind: 'DISTANCE', amount: 10 } }
+      )
+    ).toBe(210)
     expect(
       senseReachRadius(
         { kind: 'GRIDLESS', pixelsPerUnit: 10, unit: 'FEET' },
         { height: 40, width: 40 },
-        { range: 30 }
+        { range: { rangeKind: 'DISTANCE', amount: 30 } }
       )
     ).toBe(320)
+  })
+
+  it('lets an unlimited sense reach the whole line of sight and any token in it', () => {
+    const origin = { x: 0, y: 0 }
+    const lineOfSight = [
+      { x: 5_000, y: 0 },
+      { x: 0, y: 5_000 },
+      { x: -5_000, y: 0 }
+    ]
+    const radius = senseReachRadius(
+      { kind: 'GRIDLESS', pixelsPerUnit: 10, unit: 'FEET' },
+      { height: 40, width: 40 },
+      { range: { rangeKind: 'UNLIMITED' } }
+    )
+    const polygon = clampPolygonToRadius(lineOfSight, origin, radius)
+
+    expect(polygon).toEqual(lineOfSight)
+    expect(
+      isTokenRevealed({
+        halfSize: 35,
+        illumination: 'ORDINARY_DARKNESS',
+        point: { x: 1_000, y: 1_000 },
+        reaches: [{ effect: 'DARKVISION', origin, polygon, radius }]
+      })
+    ).toBe(true)
   })
 
   describe('which tokens are seen', () => {

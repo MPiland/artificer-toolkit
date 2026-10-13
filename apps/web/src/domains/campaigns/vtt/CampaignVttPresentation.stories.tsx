@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { useEffect, useRef, useState } from 'react'
 import { expect, waitFor, within } from 'storybook/test'
+import type { PendingEncounterRuleOccurrenceSummaryDto } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
 import {
   campaignSceneStateDtoSchema,
   type CampaignSceneStateDto
@@ -14,11 +15,13 @@ import { createVttSceneRenderer, type VttSceneRenderer } from './vttSceneRendere
 import {
   drawnToken,
   expectDrawnPresentation,
+  latestStageRenderer,
   type VttRendererDiagnostics
 } from './vttSceneRenderer.assertions'
 import type { VttScenePresentationOverlay } from './vttSceneRenderer.model'
 import {
   maxStatusSegments,
+  minimumFocusedTokenScreenSize,
   selectionOutlineColor,
   statusCategoryColours
 } from './vttSceneRenderer.model'
@@ -85,6 +88,26 @@ const presentationEncounter = {
   ...tabletopGmEncounter,
   actors: [emberActor, wardenActor]
 }
+function reactionPending(reactor: {
+  actorId: string
+  tokenId: string
+}): PendingEncounterRuleOccurrenceSummaryDto {
+  return {
+    allowedResponses: ['DECLINE', 'OPTION'],
+    choice: {
+      options: [
+        { actionId: 'reaction', actionSourceKind: 'CHARACTER_ACTION', optionId: 'a'.repeat(64) }
+      ],
+      pathDistance: 5,
+      reactorActorId: reactor.actorId,
+      reactorTokenId: reactor.tokenId
+    },
+    encounterVersion: presentationEncounter.version,
+    kind: 'MOVEMENT_REACTION',
+    occurrenceId: '77777777-7777-4777-8777-777777777790',
+    occurrenceVersion: 1
+  }
+}
 const tokenPresentations = buildVttTokenPresentations({
   actorIdByTokenId: new Map([
     [emberToken!.id, emberActor.id],
@@ -94,21 +117,7 @@ const tokenPresentations = buildVttTokenPresentations({
   boundTokenControl: new Map(),
   currentUserId: tabletopCurrentUserId,
   encounter: presentationEncounter,
-  pending: {
-    allowedResponses: ['DECLINE', 'OPTION'],
-    choice: {
-      options: [
-        { actionId: 'reaction', actionSourceKind: 'CHARACTER_ACTION', optionId: 'a'.repeat(64) }
-      ],
-      pathDistance: 5,
-      reactorActorId: emberActor.id,
-      reactorTokenId: emberToken!.id
-    },
-    encounterVersion: presentationEncounter.version,
-    kind: 'MOVEMENT_REACTION',
-    occurrenceId: '77777777-7777-4777-8777-777777777790',
-    occurrenceVersion: 1
-  },
+  pending: reactionPending({ actorId: emberActor.id, tokenId: emberToken!.id }),
   scene: presentationScene
 })
 const emberPresentation = tokenPresentations[emberToken!.id]!
@@ -310,8 +319,37 @@ export const ReactionHaloBeatsCurrentTurn: Story = {
     await expect(drawnToken(diagnostics, wardenToken!.id).halo).toBeNull()
     await expect(emberPresentation.statuses[0]).toMatchObject({ kind: 'REACTION' })
     await expect(emberPresentation.marked).toBe(true)
-    await expect(description).toContain('Ember. Character. Current turn. Reaction available')
+    await expect(description).toContain(
+      'Ember. Character. Friendly. Current turn. Reaction available'
+    )
     await expect(description).toContain('Yours')
+  }
+}
+
+// VTT_UI-4.1: a reaction halo and the current-turn halo differ by shape too, not only by colour.
+const otherTokenReactionPresentations = buildVttTokenPresentations({
+  actorIdByTokenId: new Map([
+    [emberToken!.id, emberActor.id],
+    [wardenToken!.id, wardenActor.id]
+  ]),
+  boundTokenControl: new Map(),
+  currentUserId: tabletopCurrentUserId,
+  encounter: presentationEncounter,
+  pending: reactionPending({ actorId: wardenActor.id, tokenId: wardenToken!.id }),
+  scene: presentationScene
+})
+
+export const CurrentTurnAndReactionHalosDifferByShape: Story = {
+  args: { presentations: otherTokenReactionPresentations },
+  play: async ({ canvasElement }) => {
+    const { diagnostics } = await renderedScene(canvasElement)
+    const currentTurn = drawnToken(diagnostics, emberToken!.id)
+    const reaction = drawnToken(diagnostics, wardenToken!.id)
+    await expect(currentTurn.halo?.label).toBe('Current turn')
+    await expect(currentTurn.crosshairDrawn).toBe(true)
+    await expect(reaction.halo?.label).toBe('Reaction available')
+    await expect(reaction.crosshairDrawn).toBe(false)
+    await expect(drawnToken(diagnostics, scoutToken!.id).crosshairDrawn).toBe(false)
   }
 }
 
@@ -503,6 +541,30 @@ export const LowZoom: Story = {
     await waitFor(() => expect(output).not.toHaveTextContent('Loading'))
     const diagnostics = JSON.parse(output.textContent ?? '{}') as Record<string, number>
     expect(diagnostics.zoomScale).toBeLessThan(0.5)
+    // Focusing a token zooms in until its larger footprint side is readable, and never zooms out.
+    const renderer = await latestStageRenderer()
+    renderer.focusToken(emberToken!)
+    const focused = renderer.getDiagnostics()
+    await expect(focused.zoomScale).toBeGreaterThan(diagnostics.zoomScale)
+    await expect(
+      focused.zoomScale * Math.max(emberToken!.width, emberToken!.height)
+    ).toBeGreaterThanOrEqual(minimumFocusedTokenScreenSize - 1e-9)
+    renderer.focusToken(emberToken!)
+    await expect(renderer.getDiagnostics().zoomScale).toBeCloseTo(focused.zoomScale, 12)
+    // At the minimum zoom every token, whatever its footprint, focuses to a readable size.
+    for (const token of presentationScene.tokens) {
+      let floor = renderer.getDiagnostics().zoomScale
+      let zoomedOutTo = Number.NaN
+      while (zoomedOutTo !== floor) {
+        zoomedOutTo = floor
+        renderer.zoomOut()
+        floor = renderer.getDiagnostics().zoomScale
+      }
+      renderer.focusToken(token)
+      await expect(
+        renderer.getDiagnostics().zoomScale * Math.max(token.width, token.height)
+      ).toBeGreaterThanOrEqual(minimumFocusedTokenScreenSize - 1e-9)
+    }
     await expect(canvas.getByRole('img', { name: 'Interactive campaign scene' })).toHaveAttribute(
       'aria-description',
       expect.stringContaining('Current turn')

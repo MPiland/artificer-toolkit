@@ -180,7 +180,7 @@ export function encounterActionLongRangeContributor(input: {
     return null
   const normal = measuredDistance(input.sceneContext, { amount: range.amount, unit: range.unit })
   const long = measuredDistance(input.sceneContext, { amount: range.longAmount, unit: range.unit })
-  return normal && long && normal.measured > normal.maximum && long.measured <= long.maximum
+  return normal.measured > normal.maximum && long.measured <= long.maximum
     ? {
         sourceId: ENCOUNTER_LONG_RANGE_CONTRIBUTOR_SOURCE_ID,
         grantId: null,
@@ -190,17 +190,13 @@ export function encounterActionLongRangeContributor(input: {
     : null
 }
 
-/** A range in Scene units and the token footprints' measured distance; null when unmeasurable. */
+/** A range in Scene units and the token footprints' measured distance. */
 export function measuredDistance(
   scene: EncounterActionSceneContext,
   range: { amount: number; unit: LengthUnitCode }
 ) {
-  try {
-    return {
-      maximum: lengthMeasurementInSceneUnits(range, scene.grid),
-      measured: measureSceneTokenFootprintDistance(scene.grid, scene.sourceToken, scene.targetToken)
-    }
-  } catch {
-    return null
+  return {
+    maximum: lengthMeasurementInSceneUnits(range, scene.grid),
+    measured: measureSceneTokenFootprintDistance(scene.grid, scene.sourceToken, scene.targetToken)
   }
 }

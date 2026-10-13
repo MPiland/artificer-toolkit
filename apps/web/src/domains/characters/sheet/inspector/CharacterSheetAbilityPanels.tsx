@@ -7,7 +7,11 @@ import type { SubmitSheetCommand } from '../core/CharacterSheet.types'
 import { formatSigned } from '../core/characterSheet.utils'
 import { CharacterSheetAdjustmentEditor } from './CharacterSheetAdjustmentEditor'
 import { CharacterSheetCalculationBreakdown } from './CharacterSheetCalculationBreakdown'
-import { getPanelStateLabel, getSheetAdjustmentMetadata } from './inspector.model'
+import {
+  getPanelStateLabel,
+  getSheetAdjustmentMetadata,
+  getSheetEditorKey
+} from './inspector.model'
 import * as inspectorEditorStyles from './inspectorEditor.css'
 import * as inspectorShellStyles from './inspectorShell.css'
 
@@ -89,7 +93,7 @@ export function CharacterSheetAbilityPanels({
                 {panel.editors.map((editor) => (
                   <CharacterSheetAdjustmentEditor
                     editor={editor}
-                    key={editor.field}
+                    key={getSheetEditorKey(editor)}
                     pending={pending}
                     onClear={() => onRemoveAdjustment(editor.adjustmentId, 'ABILITY')}
                     onCommit={(commit) =>
@@ -125,7 +129,7 @@ export function CharacterSheetAbilityPanels({
                 {panel.numericEditors.map((editor) => (
                   <CharacterSheetAdjustmentEditor
                     editor={editor}
-                    key={editor.field}
+                    key={getSheetEditorKey(editor)}
                     pending={pending}
                     onClear={() => onRemoveAdjustment(editor.adjustmentId, 'SAVING_THROW')}
                     onCommit={(commit) =>
@@ -145,6 +149,7 @@ export function CharacterSheetAbilityPanels({
                 ))}
                 <CharacterSheetAdjustmentEditor
                   editor={panel.proficiencyEditor}
+                  key={getSheetEditorKey(panel.proficiencyEditor)}
                   pending={pending}
                   onClear={() =>
                     onRemoveAdjustment(panel.proficiencyEditor.adjustmentId, 'SAVING_THROW')
@@ -181,7 +186,7 @@ export function CharacterSheetAbilityPanels({
                 {panel.numericEditors.map((editor) => (
                   <CharacterSheetAdjustmentEditor
                     editor={editor}
-                    key={editor.field}
+                    key={getSheetEditorKey(editor)}
                     pending={pending}
                     onClear={() => onRemoveAdjustment(editor.adjustmentId, 'SKILL')}
                     onCommit={(commit) =>
@@ -201,6 +206,7 @@ export function CharacterSheetAbilityPanels({
                 ))}
                 <CharacterSheetAdjustmentEditor
                   editor={panel.proficiencyEditor}
+                  key={getSheetEditorKey(panel.proficiencyEditor)}
                   pending={pending}
                   onClear={() => onRemoveAdjustment(panel.proficiencyEditor.adjustmentId, 'SKILL')}
                   onCommit={(commit) =>
@@ -219,6 +225,7 @@ export function CharacterSheetAbilityPanels({
                 />
                 <CharacterSheetAdjustmentEditor
                   editor={panel.abilityEditor}
+                  key={getSheetEditorKey(panel.abilityEditor)}
                   pending={pending}
                   onClear={() => onRemoveAdjustment(panel.abilityEditor.adjustmentId, 'SKILL')}
                   onCommit={(commit) =>

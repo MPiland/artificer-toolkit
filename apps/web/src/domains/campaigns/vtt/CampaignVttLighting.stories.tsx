@@ -722,7 +722,13 @@ function senseOf(
   label: string,
   senseId: string
 ): Sense {
-  return { channel, illuminationAccess, label, range, senseId }
+  return {
+    channel,
+    illuminationAccess,
+    label,
+    range: { rangeKind: 'DISTANCE', amount: range },
+    senseId
+  }
 }
 
 const darkvision = senseOf(

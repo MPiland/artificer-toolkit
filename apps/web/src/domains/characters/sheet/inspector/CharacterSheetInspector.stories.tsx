@@ -171,7 +171,11 @@ export const ItemInspector: Story = {
   decorators: [withSheetPanel(itemPanelFixture)],
   play: async ({ canvas, canvasElement }) => {
     await userEvent.click(
-      canvas.getByRole('button', { name: 'Open Wand of Magic Missiles details' })
+      await canvas.findByRole(
+        'button',
+        { name: 'Open Wand of Magic Missiles details' },
+        { timeout: 5_000 }
+      )
     )
     await expectInspectorReady(canvasElement, 'Moon-Touched Longsword', 'Owned item')
   }

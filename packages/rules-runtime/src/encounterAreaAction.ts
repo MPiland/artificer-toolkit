@@ -1,7 +1,6 @@
 import type { CompiledActionTargetPolicy } from '@artificer-toolkit/schema/projections/characterMechanics'
 import type { EncounterRuleWarningDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
 import type { EncounterActionChoiceDto } from '@artificer-toolkit/schema/api/encounterActionChoices'
-import type { LengthUnitCode } from '@artificer-toolkit/shared/core'
 import {
   lengthMeasurementInSceneUnits,
   measureSceneDistance,
@@ -46,18 +45,6 @@ export function encounterActionTargetKind(
   return policy.shape === null ? 'ACTOR' : null
 }
 
-/** A length in the Scene's distance unit; null when the Scene cannot hold the authored unit. */
-function measuredLength(
-  measurement: { amount: number; unit: LengthUnitCode },
-  grid: SceneGrid
-): number | null {
-  try {
-    return lengthMeasurementInSceneUnits(measurement, grid)
-  } catch {
-    return null
-  }
-}
-
 /**
  * The authored area of a point-taking policy: a sphere, cylinder or circle is a radius and a cube
  * is its edge. Null for an action that does not take a point.
@@ -96,8 +83,7 @@ export function encounterActionChoiceTarget(
 
 /**
  * The authored area as a point-origin shape in Scene coordinates. A cylinder's height is not
- * modeled (the Scene is flat). Null for an unsupported shape or a size that is scaled, empty or
- * unmeasurable on this Scene.
+ * modeled (the Scene is flat). Null for an unsupported shape or a size that is scaled or empty.
  */
 export function compileEncounterPointArea(
   policy: CompiledActionTargetPolicy,
@@ -158,8 +144,11 @@ function evaluateRangeWarnings(
   const range = pointAreaOriginRange(policyRange)
   if (range === null) return null
   if (range.rangeKind === 'UNLIMITED') return []
-  const maximum = measuredLength({ amount: range.amount, unit: range.unit }, input.grid)
-  if (input.sourceToken === null || maximum === null) return [RANGE_UNCHECKED]
+  const maximum = lengthMeasurementInSceneUnits(
+    { amount: range.amount, unit: range.unit },
+    input.grid
+  )
+  if (input.sourceToken === null) return [RANGE_UNCHECKED]
   const { position, width, height } = input.sourceToken
   const halfWidth = sceneFootprintMeasureHalfExtent(input.grid, width)
   const halfHeight = sceneFootprintMeasureHalfExtent(input.grid, height)

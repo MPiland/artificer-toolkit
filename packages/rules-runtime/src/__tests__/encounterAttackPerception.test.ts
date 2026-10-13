@@ -236,7 +236,14 @@ describe('encounter attack perception: resolver', () => {
       target: {
         ...prepared.targetFacts,
         baseRulePolicyOutput: input.targetSenses
-          ? { senses: [{ senseDefinitionId: SRD_TRUESIGHT_SENSE_ID, range: null }] }
+          ? {
+              senses: [
+                {
+                  senseDefinitionId: SRD_TRUESIGHT_SENSE_ID,
+                  range: { id: 'sense-range', rangeKind: 'UNLIMITED' as const }
+                }
+              ]
+            }
           : null
       },
       placement: null,
@@ -310,7 +317,14 @@ async function blindsightPerceptions(input: {
   const target = {
     ...prepared.targetFacts,
     baseRulePolicyOutput: input.targetBlindsight
-      ? { senses: [{ senseDefinitionId: SRD_BLINDSIGHT_SENSE_ID, range: null }] }
+      ? {
+          senses: [
+            {
+              senseDefinitionId: SRD_BLINDSIGHT_SENSE_ID,
+              range: { id: 'sense-range', rangeKind: 'UNLIMITED' as const }
+            }
+          ]
+        }
       : null
   }
   return {

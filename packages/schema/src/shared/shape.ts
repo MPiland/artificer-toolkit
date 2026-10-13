@@ -1,16 +1,16 @@
 import { z, lazySchema } from '../zod.js'
 import { lengthUnitCodeSchema, shapeKindSchema } from './enums.js'
 import { createBreakpointScalingDtoSchema } from './scaling.js'
-import { authoredIdentifierSchema } from './authoredLimits.js'
+import { authoredIdentifierSchema, authoredLengthAmountSchema } from './authoredLimits.js'
 
 export const shapeMeasurementDtoSchema = lazySchema(() =>
   z.object({
-    amount: z.number(),
+    amount: authoredLengthAmountSchema,
     unit: lengthUnitCodeSchema,
     scaling: z.optional(
       createBreakpointScalingDtoSchema(
         z.object({
-          amount: z.number(),
+          amount: authoredLengthAmountSchema,
           unit: lengthUnitCodeSchema
         })
       )

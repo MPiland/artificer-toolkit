@@ -1,4 +1,5 @@
 import type { AbilityCode } from '../core/ability.js'
+import type { LengthUnitCode } from '../core/measurement.js'
 import type { SizeCode } from '../core/size.js'
 import type { CharacterSpellSourceRef } from './sheetResource.js'
 
@@ -119,7 +120,7 @@ type NumericAdjustmentValue =
       family: 'SENSE'
       senseId: string
       field: 'RANGE_OVERRIDE'
-      value: number
+      value: { amount: number; unit: LengthUnitCode }
     }
   | {
       family: 'MOVEMENT'

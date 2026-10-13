@@ -10,10 +10,17 @@ import {
   sceneDeltaDtoSchema,
   sceneFogLayerDtoSchema,
   sceneGeometryCommandInputDtoSchema,
+  sceneGridDtoSchema,
   sceneStoredTokenDtoSchema,
+  sceneTokenSenseDtoSchema,
+  sceneTokenVisionDtoSchema,
   sceneTokenDtoSchema,
   sceneTransientEnvelopeDtoSchema
 } from '../api/vttScenes.js'
+import {
+  lengthMeasurementInSceneUnits,
+  SCENE_LENGTH_AMOUNT_MAX
+} from '@artificer-toolkit/shared/vtt'
 import { characterSceneVisionResultSchema } from '../api/characterMechanicsRead.js'
 
 const ids = {
@@ -64,6 +71,15 @@ describe('VTT scene contracts', () => {
         renderer: 'PIXI'
       }).success
     ).toBe(false)
+  })
+
+  it('measures one cell of a Squares grid as one square', () => {
+    const squares = { ...sceneDefinition().grid, unit: 'SQUARES' as const }
+    expect(sceneGridDtoSchema.safeParse({ ...squares, distancePerCell: 1 }).success).toBe(true)
+    expect(sceneGridDtoSchema.safeParse({ ...squares, distancePerCell: 5 }).success).toBe(false)
+    expect(
+      sceneGridDtoSchema.safeParse({ ...squares, unit: 'METERS', distancePerCell: 1.5 }).success
+    ).toBe(true)
   })
 
   it('requires an explicit fog mode, including OFF, and accepts fog mode commands', () => {
@@ -249,7 +265,7 @@ describe('VTT scene contracts', () => {
       channel: 'VISUAL' as const,
       illuminationAccess: 'ORDINARY_DARKNESS' as const,
       label: 'Darkvision',
-      range: 60,
+      range: { rangeKind: 'DISTANCE' as const, amount: 60 },
       senseId: ids.barrier
     }
     const seededSenseId = '5e2d0000-0000-0000-0000-000000000001'
@@ -261,7 +277,13 @@ describe('VTT scene contracts', () => {
     expect(
       characterSceneVisionResultSchema.safeParse({
         characterId: ids.token,
-        senses: [{ ...sense, range: { amount: 60, unit: 'FEET' }, senseId: seededSenseId }]
+        senses: [
+          {
+            ...sense,
+            range: { rangeKind: 'DISTANCE', amount: 60, unit: 'FEET' },
+            senseId: seededSenseId
+          }
+        ]
       }).success
     ).toBe(true)
     expect(parses([])).toBe(true)
@@ -269,8 +291,11 @@ describe('VTT scene contracts', () => {
     expect(parses([{ ...sense, extra: true }])).toBe(false)
     expect(parses([{ ...sense, channel: 'SMELL' }])).toBe(false)
     expect(parses([{ ...sense, illuminationAccess: 'BRIGHT' }])).toBe(false)
-    expect(parses([{ ...sense, range: 0 }])).toBe(false)
-    expect(parses([{ ...sense, range: -5 }])).toBe(false)
+    expect(parses([{ ...sense, range: { rangeKind: 'UNLIMITED' } }])).toBe(true)
+    expect(parses([{ ...sense, range: { rangeKind: 'DISTANCE', amount: 0 } }])).toBe(false)
+    expect(parses([{ ...sense, range: { rangeKind: 'DISTANCE', amount: -5 } }])).toBe(false)
+    expect(parses([{ ...sense, range: null }])).toBe(false)
+    expect(parses([{ ...sense, range: 60 }])).toBe(false)
     expect(parses([{ ...sense, label: ' ' }])).toBe(false)
     expect(parses([{ ...sense, senseId: 'darkvision' }])).toBe(false)
     expect(parses([{ channel: sense.channel }])).toBe(false)
@@ -295,7 +320,7 @@ describe('VTT scene contracts', () => {
       channel: 'VISUAL' as const,
       illuminationAccess: 'ORDINARY_DARKNESS' as const,
       label: 'Darkvision',
-      range: 60,
+      range: { rangeKind: 'DISTANCE' as const, amount: 60 },
       senseId: ids.barrier
     }
 
@@ -653,5 +678,38 @@ describe('VTT scene contracts', () => {
         version: 3
       }).success
     ).toBe(false)
+  })
+})
+
+describe('Scene length bound', () => {
+  const sense = (amount: number) => ({
+    channel: 'VISUAL',
+    illuminationAccess: 'ORDINARY_DARKNESS',
+    label: 'Telescopic sight',
+    range: { rangeKind: 'DISTANCE', amount },
+    senseId: ids.token
+  })
+  const vision = (brightRange: number) => ({
+    angleDegrees: 360,
+    brightRange,
+    dimRange: 0,
+    directionDegrees: 0,
+    enabled: true
+  })
+
+  it('accepts a 200-mile sense measured in feet', () => {
+    const feet = lengthMeasurementInSceneUnits(
+      { amount: 200, unit: 'MILES' },
+      { kind: 'GRIDLESS', pixelsPerUnit: 1, unit: 'FEET' }
+    )
+    expect(sceneTokenSenseDtoSchema.safeParse(sense(feet)).success).toBe(true)
+  })
+
+  it.each([
+    ['sense range', (amount: number) => sceneTokenSenseDtoSchema.safeParse(sense(amount))],
+    ['vision range', (amount: number) => sceneTokenVisionDtoSchema.safeParse(vision(amount))]
+  ])('bounds a %s at exactly the largest authored length', (_name, parse) => {
+    expect(parse(SCENE_LENGTH_AMOUNT_MAX).success).toBe(true)
+    expect(parse(SCENE_LENGTH_AMOUNT_MAX + 1).success).toBe(false)
   })
 })

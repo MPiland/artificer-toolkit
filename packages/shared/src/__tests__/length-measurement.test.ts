@@ -1,7 +1,18 @@
 import { describe, expect, it } from 'vitest'
 
-import { LENGTH_UNIT_CODES, lengthMeasurementInFeet } from '../domains/core/measurement.js'
-import { lengthMeasurementInSceneUnits } from '../domains/vtt/index.js'
+import {
+  LENGTH_UNIT_CODES,
+  feetInLengthUnit,
+  lengthMeasurementInFeet
+} from '../domains/core/measurement.js'
+import { AUTHORED_LENGTH_AMOUNT_MAX } from '../utils/authoringLimits.js'
+import {
+  SCENE_LENGTH_AMOUNT_MAX,
+  feetInSceneUnit,
+  sceneLengthInFeet,
+  lengthMeasurementInSceneUnits,
+  senseRangeInSceneUnits
+} from '../domains/vtt/index.js'
 
 const FEET_GRID = { kind: 'GRIDLESS', pixelsPerUnit: 1, unit: 'FEET' } as const
 
@@ -17,24 +28,63 @@ describe('length measurement', () => {
     ])
   })
 
+  it('converts feet into every length unit as the inverse of the forward conversion', () => {
+    expect(LENGTH_UNIT_CODES.map((unit) => [unit, feetInLengthUnit(30, unit)])).toEqual([
+      ['INCHES', 360],
+      ['FEET', 30],
+      ['YARDS', 10],
+      ['MILES', 30 / 5_280]
+    ])
+    for (const unit of LENGTH_UNIT_CODES)
+      expect(feetInLengthUnit(lengthMeasurementInFeet({ amount: 7, unit }), unit)).toBeCloseTo(7)
+  })
+
   it('measures a length in the Scene unit through the same conversion', () => {
     expect(lengthMeasurementInSceneUnits({ amount: 2, unit: 'YARDS' }, FEET_GRID)).toBe(6)
     expect(
       lengthMeasurementInSceneUnits({ amount: 100, unit: 'FEET' }, { ...FEET_GRID, unit: 'METERS' })
     ).toBeCloseTo(30.48)
     expect(lengthMeasurementInSceneUnits({ amount: -5, unit: 'FEET' }, FEET_GRID)).toBe(0)
-    expect(lengthMeasurementInSceneUnits(null, FEET_GRID)).toBeNull()
   })
 
-  it('keeps the grid-overflow and uncalibrated-SQUARES failures', () => {
-    expect(() =>
-      lengthMeasurementInSceneUnits({ amount: Number.MAX_VALUE, unit: 'MILES' }, FEET_GRID)
-    ).toThrow('overflowed')
-    expect(() =>
-      lengthMeasurementInSceneUnits(
-        { amount: 5, unit: 'FEET' },
-        { kind: 'GRIDLESS', pixelsPerUnit: 1, unit: 'SQUARES' }
-      )
-    ).toThrow('uncalibrated SQUARES')
+  it('converts feet into a calibrated Scene unit', () => {
+    expect(feetInSceneUnit(10, 'FEET')).toBe(10)
+    expect(feetInSceneUnit(10, 'METERS')).toBeCloseTo(3.048)
+    expect(feetInSceneUnit(10, 'SQUARES')).toBe(2)
+  })
+
+  it('keeps the largest authored length finite and within the Scene bound in every Scene unit', () => {
+    const largest = { amount: AUTHORED_LENGTH_AMOUNT_MAX, unit: 'MILES' } as const
+    const squaresGrid = { ...FEET_GRID, distancePerCell: 1, unit: 'SQUARES' } as const
+    const grids = [FEET_GRID, { ...FEET_GRID, unit: 'METERS' }, squaresGrid] as const
+    for (const grid of grids) {
+      const length = lengthMeasurementInSceneUnits(largest, grid)
+      expect(Number.isFinite(length)).toBe(true)
+      expect(length).toBeLessThanOrEqual(SCENE_LENGTH_AMOUNT_MAX)
+    }
+    expect(lengthMeasurementInSceneUnits(largest, FEET_GRID)).toBe(SCENE_LENGTH_AMOUNT_MAX)
+  })
+
+  it('measures a square as the System base square, 5 feet, on a SQUARES Scene', () => {
+    const squaresGrid = { ...FEET_GRID, distancePerCell: 1, unit: 'SQUARES' } as const
+    expect(lengthMeasurementInSceneUnits({ amount: 5, unit: 'FEET' }, squaresGrid)).toBe(1)
+    expect(lengthMeasurementInSceneUnits({ amount: 60, unit: 'FEET' }, squaresGrid)).toBe(12)
+    expect(sceneLengthInFeet(3, squaresGrid)).toBe(15)
+  })
+
+  it('keeps an unlimited sense unlimited and measures a ranged sense in Scene units', () => {
+    const squaresGrid = { ...FEET_GRID, distancePerCell: 1, unit: 'SQUARES' } as const
+    expect(senseRangeInSceneUnits({ rangeKind: 'UNLIMITED' }, FEET_GRID)).toEqual({
+      rangeKind: 'UNLIMITED'
+    })
+    expect(senseRangeInSceneUnits({ rangeKind: 'UNLIMITED' }, squaresGrid)).toEqual({
+      rangeKind: 'UNLIMITED'
+    })
+    expect(
+      senseRangeInSceneUnits({ rangeKind: 'DISTANCE', amount: 60, unit: 'FEET' }, FEET_GRID)
+    ).toEqual({ rangeKind: 'DISTANCE', amount: 60 })
+    expect(
+      senseRangeInSceneUnits({ rangeKind: 'DISTANCE', amount: 60, unit: 'FEET' }, squaresGrid)
+    ).toEqual({ rangeKind: 'DISTANCE', amount: 12 })
   })
 })

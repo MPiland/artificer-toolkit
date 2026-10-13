@@ -1,14 +1,11 @@
 import { z, lazySchema } from '../zod.js'
 
 import { lengthUnitCodeSchema } from '../shared/enums.js'
-import {
-  authoredIdentifierSchema,
-  authoredNonnegativeNumberSchema
-} from '../shared/authoredLimits.js'
+import { authoredIdentifierSchema, authoredLengthAmountSchema } from '../shared/authoredLimits.js'
 
 const distanceDtoSchema = lazySchema(() =>
   z.object({
-    amount: authoredNonnegativeNumberSchema,
+    amount: authoredLengthAmountSchema,
     unit: lengthUnitCodeSchema
   })
 )

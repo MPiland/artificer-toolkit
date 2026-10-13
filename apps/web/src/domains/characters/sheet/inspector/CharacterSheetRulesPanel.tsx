@@ -8,8 +8,13 @@ import { formatSigned } from '../core/characterSheet.utils'
 import { CharacterSheetAbilityPanels } from './CharacterSheetAbilityPanels'
 import { CharacterSheetAdjustmentEditor } from './CharacterSheetAdjustmentEditor'
 import { CharacterSheetCalculationBreakdown } from './CharacterSheetCalculationBreakdown'
+import { CharacterSheetLengthEditor } from './CharacterSheetLengthEditor'
 import { CharacterSheetProficiencyPanels } from './CharacterSheetProficiencyPanels'
-import { getPanelStateLabel, getSheetAdjustmentMetadata } from './inspector.model'
+import {
+  getPanelStateLabel,
+  getSheetAdjustmentMetadata,
+  getSheetEditorKey
+} from './inspector.model'
 import * as inspectorEditorStyles from './inspectorEditor.css'
 import * as inspectorShellStyles from './inspectorShell.css'
 
@@ -89,15 +94,21 @@ export function CharacterSheetRulesPanel({
           return { label: 'Effective total', value: String(panel.passiveChecks[0].total) }
         }
         if (panel.target.entry?.kind === 'SENSE' && panel.senses[0]) {
-          return {
-            label: 'Effective range',
-            value: `${panel.senses[0].range} ${panel.senses[0].unitLabel}`
+          const [sense] = panel.senses
+          switch (sense.rangeKind) {
+            case 'NOT_HELD':
+              return { label: 'Effective range', value: 'Not held' }
+            case 'UNLIMITED':
+              return { label: 'Effective range', value: 'Unlimited' }
+            case 'DISTANCE':
+              return { label: 'Effective range', value: `${sense.range} ${sense.unitLabel}` }
           }
         }
         return {
           label: 'Available senses',
           value: String(
-            panel.passiveChecks.length + panel.senses.filter((sense) => sense.range > 0).length
+            panel.passiveChecks.length +
+              panel.senses.filter((sense) => sense.rangeKind !== 'NOT_HELD').length
           )
         }
       case 'MOVEMENT': {
@@ -180,6 +191,7 @@ export function CharacterSheetRulesPanel({
                     {canCustomize ? (
                       <CharacterSheetAdjustmentEditor
                         editor={passive.editor}
+                        key={getSheetEditorKey(passive.editor)}
                         pending={pending}
                         onClear={() => removeAdjustment(passive.editor.adjustmentId, 'PASSIVE')}
                         onCommit={(commit) =>
@@ -211,10 +223,18 @@ export function CharacterSheetRulesPanel({
               </h3>
               {panel.senses.map((sense) => (
                 <div key={sense.senseId}>
-                  <CharacterSheetCalculationBreakdown calculation={sense.calculation} />
+                  {sense.rangeKind === 'DISTANCE' ? (
+                    <CharacterSheetCalculationBreakdown calculation={sense.calculation} />
+                  ) : null}
+                  {sense.rangeKind === 'NOT_HELD' ? (
+                    <Text className={inspectorShellStyles.muted}>
+                      {sense.label}: not held. Set a range to add it.
+                    </Text>
+                  ) : null}
                   {canCustomize ? (
-                    <CharacterSheetAdjustmentEditor
+                    <CharacterSheetLengthEditor
                       editor={sense.editor}
+                      key={getSheetEditorKey(sense.editor)}
                       pending={pending}
                       onClear={() => removeAdjustment(sense.editor.adjustmentId, 'SENSE')}
                       onCommit={(commit) =>
@@ -226,7 +246,7 @@ export function CharacterSheetRulesPanel({
                             family: 'SENSE',
                             senseId: sense.senseId,
                             field: 'RANGE_OVERRIDE',
-                            value: Number(commit.value)
+                            value: commit.value
                           }
                         })
                       }
@@ -251,6 +271,7 @@ export function CharacterSheetRulesPanel({
                 {canCustomize ? (
                   <CharacterSheetAdjustmentEditor
                     editor={speed.editor}
+                    key={getSheetEditorKey(speed.editor)}
                     pending={pending}
                     onClear={() => removeAdjustment(speed.editor.adjustmentId, 'MOVEMENT')}
                     onCommit={(commit) =>

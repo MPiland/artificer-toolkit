@@ -1350,7 +1350,7 @@ const darkvisionSenses = [
     channel: 'VISUAL',
     illuminationAccess: 'ORDINARY_DARKNESS',
     label: 'Darkvision',
-    range: 60
+    range: { rangeKind: 'DISTANCE', amount: 60 }
   })
 ]
 

@@ -79,6 +79,8 @@ export const selectionOutlineColor = 0x0891b2
 export interface VttTokenPresentation {
   accessibleDescription: string
   artUrl: string | null
+  /** The disposition ring's name, so the ring's colour is never the only cue. */
+  dispositionLabel: string | null
   facing: boolean
   fillColor: number
   halo: { color: number; label: string } | null
@@ -301,6 +303,18 @@ export function resolveVttZoomScale(currentScale: number, factor: number): numbe
   return Math.min(maximumVttZoomScale, Math.max(minimumVttZoomScale, clampedCurrent * factor))
 }
 
+/** The least on-screen size, in pixels, that focusing a token zooms its larger footprint side to. */
+export const minimumFocusedTokenScreenSize = 64
+
+/** The zoom for focusing a token: the current one, or the least that makes the token readable. Never zooms out. */
+export function resolveVttTokenFocusScale(
+  currentScale: number,
+  footprint: { height: number; width: number }
+): number {
+  const readableScale = minimumFocusedTokenScreenSize / Math.max(footprint.width, footprint.height)
+  return resolveVttZoomScale(currentScale, Math.max(1, readableScale / currentScale))
+}
+
 export function positionVttMapTiles(
   delivery: Pick<SignedVttMapDeliveryDto, 'tiles'>
 ): VttMapTilePlacement[] {
@@ -451,14 +465,19 @@ export function senseEffect(
   return sense.illuminationAccess === 'MAGICAL_DARKNESS' ? 'TRUESIGHT' : null
 }
 
-/** A sense range is measured from the footprint edge, so its radius from the centre adds half the footprint. */
+/**
+ * A sense range is measured from the footprint edge, so its radius from the centre adds half the
+ * footprint. An unlimited sense has an infinite radius: it reaches all of its line of sight.
+ */
 export function senseReachRadius(
   grid: SceneGrid,
   token: Pick<CampaignSceneStateDto['tokens'][number], 'height' | 'width'>,
   sense: Pick<SceneTokenSense, 'range'>
 ): number {
+  if (sense.range.rangeKind === 'UNLIMITED') return Infinity
   return (
-    sceneDistanceAsCoordinateLength(grid, sense.range) + Math.max(token.height, token.width) / 2
+    sceneDistanceAsCoordinateLength(grid, sense.range.amount) +
+    Math.max(token.height, token.width) / 2
   )
 }
 

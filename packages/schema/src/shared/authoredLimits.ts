@@ -1,7 +1,11 @@
-import { AUTHORED_LIMITS } from '@artificer-toolkit/shared/utils/authoringLimits'
+import {
+  AUTHORED_LENGTH_AMOUNT_MAX,
+  AUTHORED_LIMITS
+} from '@artificer-toolkit/shared/utils/authoringLimits'
 import { z, lazySchema } from '../zod.js'
+import { lengthUnitCodeSchema } from './enums.js'
 
-export { AUTHORED_LIMITS }
+export { AUTHORED_LENGTH_AMOUNT_MAX, AUTHORED_LIMITS }
 
 export const MAX_ENCOUNTER_ACTORS = AUTHORED_LIMITS.nestedCollectionItems
 
@@ -16,6 +20,17 @@ export const authoredPlainTextSchema = lazySchema(() =>
   z.string().check(z.maxLength(AUTHORED_LIMITS.plainTextCharacters))
 )
 export const authoredNonnegativeNumberSchema = lazySchema(() => z.number().check(z.nonnegative()))
+export const authoredLengthAmountSchema = lazySchema(() =>
+  z.number().check(z.nonnegative()).check(z.lte(AUTHORED_LENGTH_AMOUNT_MAX))
+)
+/** A typed length: an amount in one of the length units. */
+export const authoredLengthSchema = lazySchema(() =>
+  z.strictObject({ amount: authoredLengthAmountSchema, unit: lengthUnitCodeSchema })
+)
+/** An authored length that must be more than nothing, such as a movement cost or a wall thickness. */
+export const authoredPositiveLengthAmountSchema = lazySchema(() =>
+  z.number().check(z.positive()).check(z.lte(AUTHORED_LENGTH_AMOUNT_MAX))
+)
 export const authoredRichTextSchema = lazySchema(() =>
   z
     .string()

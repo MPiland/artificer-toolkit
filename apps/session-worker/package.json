@@ -13,8 +13,8 @@
     "preflight:managed": "node scripts/managedPreflight.mjs",
     "test": "vitest run --config vitest.config.ts --maxWorkers=1 --no-isolate",
     "test:unit": "yarn --cwd ../.. vitest run --config vitest.config.ts apps/session-worker/src --maxWorkers=1 --no-file-parallelism",
-    "typecheck": "wrangler types src/worker-configuration.d.ts --check && tsc -p tsconfig.json --noEmit && tsc -p test/tsconfig.json --noEmit",
-    "types": "wrangler types src/worker-configuration.d.ts"
+    "typecheck": "yarn types && tsc -p tsconfig.json --noEmit && tsc -p test/tsconfig.json --noEmit",
+    "types": "wrangler types src/worker-configuration.d.ts --env-file=.dev.vars.example"
   },
   "dependencies": {
     "@artificer-toolkit/encounter-persistence": "workspace:^",

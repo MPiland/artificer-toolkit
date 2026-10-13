@@ -32,8 +32,12 @@ export const ShortRestPreview: Story = {
     await userEvent.click(
       await within(dialog).findByRole('button', { name: 'Add one d10 hit die' })
     )
-    await expect(await within(dialog).findByRole('button', { name: 'Roll 1d10 + 1' })).toBeVisible()
-    await expect(within(dialog).getByRole('button', { name: 'Take Short Rest' })).toBeVisible()
+    await waitFor(() =>
+      expect(within(dialog).getByRole('button', { name: 'Roll 1d10 + 1' })).toBeVisible()
+    )
+    await waitFor(() =>
+      expect(within(dialog).getByRole('button', { name: 'Take Short Rest' })).toBeVisible()
+    )
   }
 }
 
@@ -70,10 +74,12 @@ export const ShortRestMulticlassPreview: Story = {
     const addD8 = within(dialog).getByRole('button', { name: 'Add one d8 hit die' })
     await waitFor(() => expect(addD8).toBeEnabled())
     await userEvent.click(addD8)
-    await expect(
-      await within(dialog).findByRole('button', { name: 'Roll 1d10 + 1d8 + 2' })
-    ).toBeVisible()
-    await expect(within(dialog).getByRole('button', { name: 'Take Short Rest' })).toBeVisible()
+    await waitFor(() =>
+      expect(within(dialog).getByRole('button', { name: 'Roll 1d10 + 1d8 + 2' })).toBeVisible()
+    )
+    await waitFor(() =>
+      expect(within(dialog).getByRole('button', { name: 'Take Short Rest' })).toBeVisible()
+    )
   }
 }
 

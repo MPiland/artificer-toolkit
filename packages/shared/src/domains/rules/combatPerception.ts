@@ -85,12 +85,17 @@ export interface CombatPerceptionCapability {
   physicalConstraints: readonly CombatPerceptionPhysicalConstraint[]
 }
 
+/** How far a sense reaches, in the Scene's units: unlimited, or a finite distance. */
+export type CombatPerceptionRange =
+  | { rangeKind: 'UNLIMITED' }
+  | { rangeKind: 'DISTANCE'; amount: number }
+
 export interface CombatPerceptionCapabilityInstance {
   instanceId: string
   definitionId: string
   checksum: string
   capabilityOrdinal: number
-  range: number | null
+  range: CombatPerceptionRange
   capability: CombatPerceptionCapability
 }
 
@@ -152,8 +157,8 @@ export interface CombatPerceptionSenseGrantContribution extends CombatPerception
   definitionContractVersion: number
   definitionChecksum: string
   document: CombatPerceptionSenseDefinitionDocument
-  /** A server-converted scene/System distance; null means unbounded. */
-  range: number | null
+  /** A server-converted scene/System distance. */
+  range: CombatPerceptionRange
 }
 
 export interface CombatPerceptionSenseSuppressContribution extends CombatPerceptionContributionBase {
@@ -283,9 +288,12 @@ function normalizeIdentity(instance: CombatPerceptionCapabilityInstance): Combat
   if (!Number.isSafeInteger(instance.capabilityOrdinal) || instance.capabilityOrdinal < 0) {
     throw new Error('Combat perception capability ordinal must be a nonnegative safe integer.')
   }
-  if (instance.range !== null && (!Number.isFinite(instance.range) || instance.range < 0)) {
+  if (
+    instance.range.rangeKind === 'DISTANCE' &&
+    (!Number.isFinite(instance.range.amount) || instance.range.amount < 0)
+  ) {
     throw new Error(
-      'Combat perception capability range must be null or a finite nonnegative number.'
+      'Combat perception capability range must be unlimited or a finite nonnegative distance.'
     )
   }
   return { instanceId, definitionId, checksum, capabilityOrdinal: instance.capabilityOrdinal }
@@ -341,6 +349,20 @@ function requireFiniteNonnegative(value: unknown, name: string): number {
     throw new Error(`${name} must be a finite nonnegative number.`)
   }
   return value
+}
+
+function parseRange(value: unknown, name: string): CombatPerceptionRange {
+  const range = requireRecord(value, name)
+  switch (range.rangeKind) {
+    case 'UNLIMITED':
+      requireExactKeys(range, ['rangeKind'], name)
+      return { rangeKind: 'UNLIMITED' }
+    case 'DISTANCE':
+      requireExactKeys(range, ['rangeKind', 'amount'], name)
+      return { rangeKind: 'DISTANCE', amount: requireFiniteNonnegative(range.amount, name) }
+    default:
+      throw new Error(`${name} must be unlimited or a distance.`)
+  }
 }
 
 function requireNonnegativeSafeInteger(value: unknown, name: string): number {
@@ -442,12 +464,7 @@ function parseCapabilityInstance(value: unknown): CombatPerceptionCapabilityInst
     ['instanceId', 'definitionId', 'checksum', 'capabilityOrdinal', 'range', 'capability'],
     'Combat perception capability instance'
   )
-  const range = instance.range
-  if (range !== null && (typeof range !== 'number' || !Number.isFinite(range) || range < 0)) {
-    throw new Error(
-      'Combat perception capability range must be null or a finite nonnegative number.'
-    )
-  }
+  const range = parseRange(instance.range, 'Combat perception capability range')
   const capability = parseCapability(instance.capability)
   return {
     instanceId: requireUuid(instance.instanceId, 'Combat perception capability instance ID'),
@@ -630,7 +647,6 @@ function parseContribution(value: unknown): CombatPerceptionContribution {
       )
       if (definitionContractVersion > 10_000)
         throw new Error('Combat perception granted sense contract version must be at most 10000.')
-      const range = contribution.range
       return {
         ...base,
         kind,
@@ -642,8 +658,7 @@ function parseContribution(value: unknown): CombatPerceptionContribution {
         definitionContractVersion,
         definitionChecksum,
         document,
-        range:
-          range === null ? null : requireFiniteNonnegative(range, 'Combat perception granted range')
+        range: parseRange(contribution.range, 'Combat perception granted range')
       }
     }
     case 'SENSE_SUPPRESS': {
@@ -945,7 +960,8 @@ function resolveParsedCombatPerception(parsed: {
     )
       reasons.push('REQUIREMENT_UNSATISFIED')
     if (suppressedChannels.has(capability.channel)) reasons.push('CHANNEL_SUPPRESSED')
-    if (range !== null && parsed.environment.distance > range) reasons.push('OUT_OF_RANGE')
+    if (range.rangeKind === 'DISTANCE' && parsed.environment.distance > range.amount)
+      reasons.push('OUT_OF_RANGE')
     if (
       capability.physicalConstraints.includes('LINE_OF_EFFECT') &&
       !parsed.environment.lineOfEffect

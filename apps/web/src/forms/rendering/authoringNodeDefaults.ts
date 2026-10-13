@@ -546,7 +546,7 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
         diceConfig: '1d6'
       }
     case 'senseGrant':
-      return createScalingGrant('SENSE_GRANT', order)
+      return { ...createScalingGrant('SENSE_GRANT', order), range: createRange('DISTANCE') }
     case 'senseGrantLevel':
       return createGrantLevel(order)
     case 'senseGrantProgression':

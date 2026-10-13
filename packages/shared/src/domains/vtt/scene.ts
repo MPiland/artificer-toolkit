@@ -1,9 +1,15 @@
-import type { LengthUnitCode } from '../core/measurement.js'
+import { AUTHORED_LENGTH_AMOUNT_MAX } from '../../utils/authoringLimits.js'
+import {
+  LENGTH_UNIT_CODES,
+  lengthMeasurementInFeet,
+  type LengthUnitCode
+} from '../core/measurement.js'
 import type {
   CombatPerceptionChannel,
   CombatPerceptionIllumination,
   CombatPerceptionIlluminationAccess,
-  CombatPerceptionObscurement
+  CombatPerceptionObscurement,
+  CombatPerceptionRange
 } from '../rules/combatPerception.js'
 
 export const VTT_SCENE_LIMITS = {
@@ -23,6 +29,26 @@ export const VTT_SCENE_LIMITS = {
   tokens: 1_000,
   transientPathPoints: 256
 } as const
+
+/** The System's base square (SRD 5.1: 5 feet): one square on a SQUARES Scene, adjacent on every Scene. */
+export const SYSTEM_BASE_SQUARE_FEET = 5
+
+export const FEET_PER_SCENE_UNIT: Record<SceneGrid['unit'], number> = {
+  FEET: 1,
+  METERS: 1 / 0.3048,
+  SQUARES: SYSTEM_BASE_SQUARE_FEET
+}
+
+/**
+ * The largest Scene distance an authored length can reach: the longest authored length at its
+ * largest amount, counted in the Scene unit with the fewest feet per unit (a FEET Scene).
+ */
+export const SCENE_LENGTH_AMOUNT_MAX =
+  Math.max(
+    ...LENGTH_UNIT_CODES.map((unit) =>
+      lengthMeasurementInFeet({ amount: AUTHORED_LENGTH_AMOUNT_MAX, unit })
+    )
+  ) / Math.min(...Object.values(FEET_PER_SCENE_UNIT))
 
 /** Bounds for pure spatial calculations; persisted coordinates use VTT_SCENE_LIMITS. */
 export const VTT_SPATIAL_LIMITS = {
@@ -49,15 +75,17 @@ export interface SceneMap {
 export type SceneDistanceUnit = 'FEET' | 'METERS' | 'SQUARES'
 export type SceneDiagonalPolicy = 'EQUAL' | 'ALTERNATING' | 'EUCLIDEAN'
 
+interface SquareSceneGrid {
+  kind: 'SQUARE'
+  cellSize: number
+  diagonalPolicy: SceneDiagonalPolicy
+  origin: ScenePoint
+}
+
 export type SceneGrid =
-  | {
-      kind: 'SQUARE'
-      cellSize: number
-      diagonalPolicy: SceneDiagonalPolicy
-      distancePerCell: number
-      origin: ScenePoint
-      unit: SceneDistanceUnit
-    }
+  | (SquareSceneGrid & { distancePerCell: number; unit: 'FEET' | 'METERS' })
+  /** One cell of a Squares grid is one System base square. */
+  | (SquareSceneGrid & { distancePerCell: 1; unit: 'SQUARES' })
   | {
       kind: 'GRIDLESS'
       pixelsPerUnit: number
@@ -72,22 +100,28 @@ export interface SceneTokenVision {
   enabled: boolean
 }
 
-/** A sense a token presents to its controllers; its range is in Scene units from the token footprint edge. */
+/**
+ * A sense a token presents to its controllers; its range is in Scene units from the token
+ * footprint edge, or unlimited.
+ */
 export interface SceneTokenSense {
   channel: CombatPerceptionChannel
   illuminationAccess: CombatPerceptionIlluminationAccess
   label: string
-  range: number
+  range: CombatPerceptionRange
   /** The pinned sense definition id. */
   senseId: string
 }
 
+/** A sense's reach as a typed length (or unlimited) until a Scene grid converts it. */
+export type SceneSenseLength =
+  | { rangeKind: 'UNLIMITED' }
+  | { rangeKind: 'DISTANCE'; amount: number; unit: LengthUnitCode }
+
 /** Pinned Character-derived senses, ranged as typed lengths until a Scene grid converts them. */
 export interface SceneCharacterVision {
   characterId: string
-  senses: (Omit<SceneTokenSense, 'range'> & {
-    range: { amount: number; unit: LengthUnitCode }
-  })[]
+  senses: (Omit<SceneTokenSense, 'range'> & { range: SceneSenseLength })[]
 }
 
 export interface SceneToken {

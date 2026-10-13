@@ -320,7 +320,13 @@ export const openSpellInspector: CharacterSheetStory['play'] = async ({
   canvas,
   canvasElement
 }) => {
-  await userEvent.click(canvas.getByRole('button', { name: /^Open details for Magic Missile/ }))
+  await userEvent.click(
+    await canvas.findByRole(
+      'button',
+      { name: /^Open details for Magic Missile/ },
+      { timeout: 5_000 }
+    )
+  )
   await expectInspectorReady(canvasElement, 'Magic Missile', 'Spell source')
 }
 
@@ -328,6 +334,8 @@ export const openSpellsInspector: CharacterSheetStory['play'] = async ({
   canvas,
   canvasElement
 }) => {
-  await userEvent.click(canvas.getByRole('button', { name: 'Manage Spells' }))
+  await userEvent.click(
+    await canvas.findByRole('button', { name: 'Manage Spells' }, { timeout: 5_000 })
+  )
   await expectInspectorReady(canvasElement, 'Manage Spells', 'Spell slots')
 }

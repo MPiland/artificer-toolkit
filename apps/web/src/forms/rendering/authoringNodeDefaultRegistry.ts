@@ -212,7 +212,7 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   proficiencyGrant: ['proficiencyGrant'],
   raceAncestry: ['raceAncestry'],
   raceAncestryOption: ['raceAncestryOption'],
-  range: ['range'],
+  range: ['range', 'senseRange'],
   resourceUse: ['resourceUse'],
   scaling: ['durationScaling', 'rangeScaling', 'shapeMeasurementScaling', 'targetCountScaling'],
   resultBlock: ['nonManifestResultBlock', 'resultBlock'],

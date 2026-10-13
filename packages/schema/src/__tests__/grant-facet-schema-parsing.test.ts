@@ -71,6 +71,30 @@ describe('grant and facet schema parsing', () => {
     ).toBe(false)
   })
 
+  it('has no RANGE SET_VALUE modifier variant: only the range kind can be replaced', () => {
+    const base = {
+      grantKind: 'MODIFIER_GRANT',
+      id: 'grant',
+      order: 1,
+      selectionKind: 'GRANTED',
+      scope: 'GLOBAL',
+      valueDomainCode: 'RANGE',
+      domain: {}
+    }
+    for (const payload of [
+      { amount: 30, unit: 'ft', rangeKind: 'DISTANCE' },
+      { rangeKind: 'TOUCH' }
+    ]) {
+      const parsed = modifierGrantDtoSchema.safeParse({
+        ...base,
+        modifierKind: 'SET_VALUE',
+        payload
+      })
+      expect(parsed.success).toBe(false)
+      expect(parsed.error?.issues.map((issue) => issue.code)).not.toContain('custom')
+    }
+  })
+
   it('rejects modifiers that no System consumer applies yet, with a clear message', () => {
     const base = {
       grantKind: 'MODIFIER_GRANT',
@@ -142,7 +166,6 @@ describe('grant and facet schema parsing', () => {
             {},
             { limitKind: 'FIXED_AMOUNT', scalingKind: 'NONE', amount: 2 }
           ],
-          ['RANGE', 'SET_VALUE', {}, { rangeKind: 'TOUCH' }],
           ['RANGE', 'REPLACE_RANGE_KIND', {}, { rangeKind: 'TOUCH' }],
           ['DURATION', 'SET_VALUE', {}, { durationKind: 'MINUTE', amount: 10 }],
           ['DURATION', 'REPLACE_DURATION_KIND', {}, { durationKind: 'HOUR' }],
@@ -729,7 +752,8 @@ describe('grant and facet schema parsing', () => {
           scalingKind: 'NONE',
           count: 1,
           authoringModeKind: 'SELECTED',
-          senseIds: ['darkvision']
+          senseIds: ['darkvision'],
+          range: { id: 'chosen-sense-range', rangeKind: 'UNLIMITED' }
         },
         granted: {
           grantKind: 'SENSE_GRANT',
@@ -738,7 +762,8 @@ describe('grant and facet schema parsing', () => {
           selectionKind: 'GRANTED',
           scalingKind: 'NONE',
           authoringModeKind: 'SELECTED',
-          senseIds: ['darkvision']
+          senseIds: ['darkvision'],
+          range: { id: 'granted-sense-range', rangeKind: 'UNLIMITED' }
         }
       }
     ] as const

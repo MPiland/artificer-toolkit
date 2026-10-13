@@ -1,13 +1,39 @@
 import { z, lazySchema } from '../zod.js'
 import { lengthUnitCodeSchema, rangeKindSchema } from './enums.js'
 import { createBreakpointScalingDtoSchema } from './scaling.js'
-import { authoredIdentifierSchema } from './authoredLimits.js'
+import { authoredIdentifierSchema, authoredLengthAmountSchema } from './authoredLimits.js'
 
 const rangeMeasurementDtoSchema = lazySchema(() =>
   z.object({
-    amount: z.number(),
+    amount: authoredLengthAmountSchema,
     unit: lengthUnitCodeSchema
   })
+)
+
+export const unlimitedRangeDtoSchema = lazySchema(() =>
+  z.object({
+    id: authoredIdentifierSchema,
+    rangeKind: z.literal(rangeKindSchema._zod.def.entries.UNLIMITED)
+  })
+)
+
+export const distanceRangeDtoSchema = lazySchema(() =>
+  z
+    .object({
+      id: authoredIdentifierSchema,
+      rangeKind: z.literal(rangeKindSchema._zod.def.entries.DISTANCE),
+      amount: authoredLengthAmountSchema,
+      /** A ranged weapon attack's long range ("range 80/320 ft."): beyond `amount` it has disadvantage. */
+      longAmount: z.optional(authoredLengthAmountSchema),
+      unit: lengthUnitCodeSchema,
+      scaling: z.optional(createBreakpointScalingDtoSchema(rangeMeasurementDtoSchema))
+    })
+    .check(
+      z.refine(
+        (range) => range.longAmount === undefined || range.longAmount > range.amount,
+        'Long range must be greater than the normal range.'
+      )
+    )
 )
 
 export const rangeDtoSchema = lazySchema(() =>
@@ -22,22 +48,7 @@ export const rangeDtoSchema = lazySchema(() =>
         rangeKindSchema._zod.def.entries.UNLIMITED
       ])
     }),
-    z
-      .object({
-        id: authoredIdentifierSchema,
-        rangeKind: z.literal(rangeKindSchema._zod.def.entries.DISTANCE),
-        amount: z.number(),
-        /** A ranged weapon attack's long range ("range 80/320 ft."): beyond `amount` it has disadvantage. */
-        longAmount: z.optional(z.number()),
-        unit: lengthUnitCodeSchema,
-        scaling: z.optional(createBreakpointScalingDtoSchema(rangeMeasurementDtoSchema))
-      })
-      .check(
-        z.refine(
-          (range) => range.longAmount === undefined || range.longAmount > range.amount,
-          'Long range must be greater than the normal range.'
-        )
-      )
+    distanceRangeDtoSchema
   ])
 )
 

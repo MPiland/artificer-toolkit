@@ -508,7 +508,7 @@ it('rejects a checkpointed token that stores senses', async () => {
               channel: 'VISUAL',
               illuminationAccess: 'ORDINARY_DARKNESS',
               label: 'Darkvision',
-              range: 60,
+              range: { rangeKind: 'DISTANCE', amount: 60 },
               senseId: crypto.randomUUID()
             }
           ]

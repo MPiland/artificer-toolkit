@@ -1,4 +1,5 @@
 import { lengthMeasurementInFeet, type LengthUnitCode } from '../core/measurement.js'
+import type { CombatPerceptionRange } from '../rules/combatPerception.js'
 import type {
   CampaignSceneState,
   SceneAtomicDelta,
@@ -10,10 +11,11 @@ import type {
   SceneFogLayer,
   SceneGrid,
   ScenePoint,
+  SceneSenseLength,
   SceneTransientReveal,
   SceneViewer
 } from './scene.js'
-import { VTT_SCENE_LIMITS } from './scene.js'
+import { FEET_PER_SCENE_UNIT, VTT_SCENE_LIMITS } from './scene.js'
 import {
   deriveSceneTokenPreviewFogLayers,
   isScenePointExplored,
@@ -37,48 +39,35 @@ function fogLayerKey(layer: SceneFogLayer): string {
 
 type SceneLength = { amount: number; unit: LengthUnitCode }
 
-/** Convert a typed length into authoritative Scene units; a missing length has none. */
-export function lengthMeasurementInSceneUnits(range: SceneLength, grid: SceneGrid): number
-export function lengthMeasurementInSceneUnits(
-  range: SceneLength | null,
+/** Feet in a Scene's distance unit; a SQUARES Scene counts base squares. */
+export function feetInSceneUnit(feet: number, unit: SceneGrid['unit']): number {
+  return feet / FEET_PER_SCENE_UNIT[unit]
+}
+
+/** A typed length in authoritative Scene units. Never negative. */
+export function lengthMeasurementInSceneUnits(length: SceneLength, grid: SceneGrid): number {
+  return feetInSceneUnit(Math.max(0, lengthMeasurementInFeet(length)), grid.unit)
+}
+
+/** A sense's range in Scene units; an unlimited range stays unlimited. */
+export function senseRangeInSceneUnits(
+  range: SceneSenseLength,
   grid: SceneGrid
-): number | null
-export function lengthMeasurementInSceneUnits(
-  range: SceneLength | null,
-  grid: SceneGrid
-): number | null {
-  if (!range) return null
-  const feet = lengthMeasurementInFeet(range)
-  if (!Number.isFinite(feet)) throw new Error('Scene length conversion overflowed.')
-  if (feet <= 0) return 0
-  if (grid.unit === 'FEET') return feet
-  if (grid.unit === 'METERS') {
-    const meters = feet * 0.3048
-    if (!Number.isFinite(meters)) throw new Error('Scene length conversion overflowed.')
-    return meters
-  }
-  throw new Error('A typed length cannot be converted into an uncalibrated SQUARES Scene.')
+): CombatPerceptionRange {
+  return range.rangeKind === 'UNLIMITED'
+    ? { rangeKind: 'UNLIMITED' }
+    : { rangeKind: 'DISTANCE', amount: lengthMeasurementInSceneUnits(range, grid) }
 }
 
-/** Converts an authoritative Scene length to feet; an uncalibrated SQUARES Scene has none. */
-export function sceneLengthInFeet(amount: number, grid: CampaignSceneState['grid']): number | null {
-  if (grid.unit === 'FEET') return amount
-  if (grid.unit === 'METERS') return amount / 0.3048
-  return null
+/** Converts an authoritative Scene length to feet. */
+export function sceneLengthInFeet(amount: number, grid: CampaignSceneState['grid']): number {
+  return amount * FEET_PER_SCENE_UNIT[grid.unit]
 }
 
-function senseRangeInSceneUnits(
-  range: SceneCharacterVision['senses'][number]['range'],
-  grid: CampaignSceneState['grid']
-): number | null {
-  try {
-    return lengthMeasurementInSceneUnits(range, grid)
-  } catch {
-    return null
-  }
-}
-
-/** Presents the bound Character's senses on its token; a sense with no usable range is dropped. */
+/**
+ * Presents the bound Character's senses on its token. An unlimited sense stays unlimited; a ranged
+ * sense whose range is empty is dropped.
+ */
 export function resolveSceneCharacterVision<T extends Pick<CampaignSceneState, 'tokens' | 'grid'>>(
   state: T,
   bindings: readonly { actorId: string; characterId: string; tokenId: string }[],
@@ -100,7 +89,9 @@ export function resolveSceneCharacterVision<T extends Pick<CampaignSceneState, '
         ...token,
         senses: characterVision.senses.flatMap(({ range, ...sense }) => {
           const sceneRange = senseRangeInSceneUnits(range, state.grid)
-          return sceneRange === null || sceneRange <= 0 ? [] : [{ ...sense, range: sceneRange }]
+          return sceneRange.rangeKind === 'DISTANCE' && sceneRange.amount <= 0
+            ? []
+            : [{ ...sense, range: sceneRange }]
         })
       }
     })

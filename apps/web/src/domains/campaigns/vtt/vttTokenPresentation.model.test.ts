@@ -203,6 +203,41 @@ describe('VTT token presentation model', () => {
     expect(ring(null, false)).toBe(0xffffff)
   })
 
+  it('names the disposition in the label and the description, and none without an actor', () => {
+    const scene = sceneForActor()
+    const token = scene.tokens[0]!
+    const actor = tabletopGmEncounter.actors[1]!
+    const presentation = (disposition: 'FRIENDLY' | 'HOSTILE' | 'NEUTRAL' | null) =>
+      buildVttTokenPresentations({
+        actorIdByTokenId: disposition ? new Map([[token.id, actor.id]]) : new Map(),
+        boundTokenControl: new Map(),
+        currentUserId: token.controlledByUserIds[0]!,
+        encounter: {
+          ...tabletopGmEncounter,
+          actors: tabletopGmEncounter.actors.map((candidate) =>
+            candidate.id === actor.id && disposition ? { ...candidate, disposition } : candidate
+          )
+        },
+        pending: null,
+        scene
+      })[token.id]!
+
+    const expectedLabels = { FRIENDLY: 'Friendly', HOSTILE: 'Hostile', NEUTRAL: 'Neutral' } as const
+    for (const disposition of ['FRIENDLY', 'HOSTILE', 'NEUTRAL'] as const) {
+      const result = presentation(disposition)
+      expect(result.dispositionLabel).toBe(expectedLabels[disposition])
+      expect(result.accessibleDescription).toContain(expectedLabels[disposition])
+      // The disposition says what the creature is, so it follows the label and kind.
+      expect(result.accessibleDescription).toMatch(
+        new RegExp(`^[^.]+\\. [^.]+\\. ${expectedLabels[disposition]}(\\.|$)`)
+      )
+    }
+    const actorless = presentation(null)
+    expect(actorless.dispositionLabel).toBeNull()
+    expect(actorless.accessibleDescription).toContain('Scene token')
+    expect(actorless.accessibleDescription).not.toMatch(/Friendly|Hostile|Neutral/)
+  })
+
   it('reads as red for Hostile, blue for Friendly and purple for Neutral', () => {
     const channels = (colour: number) => ({
       blue: colour & 0xff,

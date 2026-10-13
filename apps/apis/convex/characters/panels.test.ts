@@ -118,6 +118,45 @@ describe('native personal Sheet inspector panels', () => {
     expect(await readState()).toEqual(afterCommand)
   })
 
+  it('lists a sense the Character does not hold as not held until a range override adds it', async () => {
+    const { owner, character, committed } = await readySheetFixture()
+    const read = async () => {
+      const result = await owner.caller.query(panel, {
+        id: committed.publicId,
+        target: { kind: 'SENSES' }
+      })
+      if (result.kind !== 'SENSES') throw new Error('Expected the senses panel.')
+      return result.senses
+    }
+    const before = await read()
+    expect(before.filter((sense) => sense.rangeKind === 'DISTANCE' && sense.range === 0)).toEqual(
+      []
+    )
+    const notHeld = before.find((sense) => sense.rangeKind === 'NOT_HELD')!
+    expect(notHeld).toMatchObject({ state: 'DEFAULT', editor: { value: null } })
+
+    await owner.caller.mutation(execute, {
+      id: character.id,
+      command: {
+        type: 'UPSERT_SHEET_ADJUSTMENT',
+        commandId: crypto.randomUUID(),
+        expectedVersion: 1,
+        adjustment: {
+          family: 'SENSE',
+          senseId: notHeld.senseId,
+          field: 'RANGE_OVERRIDE',
+          value: { amount: 30, unit: 'FEET' }
+        }
+      }
+    })
+    expect((await read()).find((sense) => sense.senseId === notHeld.senseId)).toMatchObject({
+      rangeKind: 'DISTANCE',
+      range: 30,
+      unitLabel: 'feet',
+      state: 'OVERRIDDEN'
+    })
+  })
+
   it('resolves exact current spell, resource, companion and vehicle owners', async () => {
     const base = await readyCharacterFixture({
       resources: {

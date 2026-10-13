@@ -10,6 +10,9 @@ export const AUTHORED_LIMITS = {
   mutationPayloadBytes: 1_048_576
 } as const
 
+/** Largest authored length amount; every length unit converts it to a finite number of feet. */
+export const AUTHORED_LENGTH_AMOUNT_MAX = 1_000_000
+
 export type AuthoringInputConstraints = {
   maximum?: number
   maximumLength?: number

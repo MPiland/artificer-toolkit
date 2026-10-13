@@ -6,7 +6,7 @@ import {
   forcedMovementDistanceModeSchema,
   lengthUnitCodeSchema
 } from '../shared/enums.js'
-import { authoredIdentifierSchema } from '../shared/authoredLimits.js'
+import { authoredIdentifierSchema, authoredLengthAmountSchema } from '../shared/authoredLimits.js'
 
 export const forcedMovementDtoSchema = lazySchema(() =>
   z.intersection(
@@ -22,7 +22,7 @@ export const forcedMovementDtoSchema = lazySchema(() =>
       }),
       z.object({
         distanceMode: z.literal(forcedMovementDistanceModeSchema._zod.def.entries.FIXED_DISTANCE),
-        amount: z.number(),
+        amount: authoredLengthAmountSchema,
         unit: lengthUnitCodeSchema
       })
     ])

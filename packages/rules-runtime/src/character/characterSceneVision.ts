@@ -1,6 +1,6 @@
 import type { PinnedSenseDefinition } from '@artificer-toolkit/schema/projections/characterMechanics'
 import { lengthMeasurementInFeet } from '@artificer-toolkit/shared/core'
-import type { SceneCharacterVision } from '@artificer-toolkit/shared/vtt'
+import type { SceneCharacterVision, SceneSenseLength } from '@artificer-toolkit/shared/vtt'
 
 const ACCESS_GRADE_RANK = { DETECTED: 0, LOCATED: 1, PRECISE: 2 } as const
 const ILLUMINATION_ACCESS_RANK = {
@@ -29,7 +29,10 @@ function primaryCapability(capabilities: readonly Capability[]): Capability {
   )
 }
 
-/** One entry per ranged Sense the Character holds; a range that is not a positive length has none. */
+/**
+ * One entry per Sense the Character holds. An unlimited range stays unlimited, as in combat
+ * perception; a distance that is not a positive length has no entry.
+ */
 export function deriveCharacterSceneVision(
   characterId: string,
   pinnedSenses: readonly (Pick<PinnedSenseDefinition, 'document' | 'range'> & { label: string })[]
@@ -37,16 +40,18 @@ export function deriveCharacterSceneVision(
   return {
     characterId,
     senses: pinnedSenses.flatMap(({ document, label, range }) => {
-      if (!range) return []
-      const feet = lengthMeasurementInFeet(range)
-      if (feet <= 0) return []
+      const reach: SceneSenseLength =
+        range.rangeKind === 'UNLIMITED'
+          ? { rangeKind: 'UNLIMITED' }
+          : { rangeKind: 'DISTANCE', amount: lengthMeasurementInFeet(range), unit: 'FEET' }
+      if (reach.rangeKind === 'DISTANCE' && reach.amount <= 0) return []
       const { channel, illuminationAccess } = primaryCapability(document.capabilities)
       return [
         {
           channel,
           illuminationAccess,
           label,
-          range: { amount: feet, unit: 'FEET' },
+          range: reach,
           senseId: document.id
         }
       ]

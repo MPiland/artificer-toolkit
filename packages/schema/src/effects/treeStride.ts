@@ -1,11 +1,14 @@
 import { z, lazySchema } from '../zod.js'
 
 import { lengthUnitCodeSchema } from '../shared/enums.js'
-import { authoredIdentifierSchema } from '../shared/authoredLimits.js'
+import {
+  authoredIdentifierSchema,
+  authoredPositiveLengthAmountSchema
+} from '../shared/authoredLimits.js'
 
 const positiveMeasurementDtoSchema = lazySchema(() =>
   z.object({
-    amount: z.number().check(z.positive()),
+    amount: authoredPositiveLengthAmountSchema,
     unit: lengthUnitCodeSchema
   })
 )

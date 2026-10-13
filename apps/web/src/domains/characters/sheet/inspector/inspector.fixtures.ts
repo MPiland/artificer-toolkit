@@ -370,6 +370,7 @@ export const sensesPanelFixture = {
     {
       senseId,
       label: 'Darkvision',
+      rangeKind: 'DISTANCE',
       range: 60,
       unitLabel: 'feet',
       state: 'DEFAULT',
@@ -379,11 +380,11 @@ export const sensesPanelFixture = {
         effective: 60
       },
       editor: {
-        ...numberEditorDefaults,
+        kind: 'LENGTH',
+        commitIntent: 'ON_BLUR_OR_ENTER',
         field: 'RANGE_OVERRIDE',
         label: 'Override Darkvision range',
-        value: null,
-        validation: { integer: true, minimum: 0 }
+        value: null
       }
     }
   ]

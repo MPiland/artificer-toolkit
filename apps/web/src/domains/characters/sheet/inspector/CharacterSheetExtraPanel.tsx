@@ -3,7 +3,7 @@ import type { CharacterSheetPanelDto } from '@artificer-toolkit/schema/api/chara
 import { SIZE_REGISTRY, type SizeCode } from '@artificer-toolkit/shared/core'
 import type { CharacterSheet, SubmitSheetCommand } from '../core/CharacterSheet.types'
 import { CharacterSheetAdjustmentEditor } from './CharacterSheetAdjustmentEditor'
-import { getSheetAdjustmentMetadata } from './inspector.model'
+import { getSheetAdjustmentMetadata, getSheetEditorKey } from './inspector.model'
 import { CharacterSheetTextEditor } from './CharacterSheetTextEditor'
 import * as inspectorEditorStyles from './inspectorEditor.css'
 import * as inspectorShellStyles from './inspectorShell.css'
@@ -323,7 +323,7 @@ export function CharacterSheetExtraPanel({
           {panel.numericEditors.map((editor) => (
             <CharacterSheetAdjustmentEditor
               editor={editor}
-              key={editor.field}
+              key={getSheetEditorKey(editor)}
               pending={pending}
               onClear={async () =>
                 await submitCommand({
@@ -352,7 +352,7 @@ export function CharacterSheetExtraPanel({
           {panel.selectEditors.map((editor) => (
             <CharacterSheetAdjustmentEditor
               editor={editor}
-              key={editor.field}
+              key={getSheetEditorKey(editor)}
               pending={pending}
               onClear={async () =>
                 await submitCommand({

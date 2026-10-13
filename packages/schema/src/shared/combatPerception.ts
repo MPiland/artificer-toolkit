@@ -2,7 +2,7 @@ import { z, lazySchema, lazySchemaParts } from '../zod.js'
 
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules/checksum'
 
-import { lengthUnitCodeSchema } from './enums.js'
+import { authoredLengthSchema } from './authoredLimits.js'
 import { postgresUuidSchema } from './postgresUuid.js'
 
 const uuidSchema = lazySchema(() =>
@@ -126,13 +126,6 @@ const contributionIdentitySchema = lazySchema(() =>
   })
 )
 
-const contributionMeasurementSchema = lazySchema(() =>
-  z.strictObject({
-    amount: z.number().check(z.gte(0)),
-    unit: lengthUnitCodeSchema
-  })
-)
-
 const pinnedSenseContributionFields = lazySchemaParts(() => ({
   senseDefinitionId: uuidSchema,
   definitionVersion: z.number().check(z.int()).check(z.positive()),
@@ -146,7 +139,10 @@ const senseGrantContributionDtoSchema = lazySchema(() =>
     .extend(contributionIdentitySchema, {
       kind: z.literal('SENSE_GRANT'),
       ...pinnedSenseContributionFields(),
-      range: z.nullable(contributionMeasurementSchema)
+      range: z.union([
+        z.strictObject({ rangeKind: z.literal('UNLIMITED') }),
+        z.extend(authoredLengthSchema, { rangeKind: z.literal('DISTANCE') })
+      ])
     })
     .check(
       z.superRefine((contribution, context) => {

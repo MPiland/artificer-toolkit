@@ -3541,78 +3541,7 @@ export declare const api: {
               label: string;
               value: string;
             }>;
-            senses: Array<{
-              label: string;
-              range?:
-                | {
-                    id: string;
-                    rangeKind:
-                      "SELF" | "TOUCH" | "SIGHT" | "SPECIAL" | "UNLIMITED";
-                  }
-                | {
-                    amount: number;
-                    id: string;
-                    longAmount?: number;
-                    rangeKind: "DISTANCE";
-                    scaling?:
-                      | {
-                          breakpoints: Array<{
-                            id: string;
-                            level: number;
-                            order: number;
-                            value: {
-                              amount: number;
-                              unit: "INCHES" | "FEET" | "YARDS" | "MILES";
-                            };
-                          }>;
-                          scalingKind: "BREAKPOINTS";
-                          scalingSource: "CHARACTER_LEVEL";
-                        }
-                      | {
-                          breakpoints: Array<{
-                            id: string;
-                            level: number;
-                            order: number;
-                            value: {
-                              amount: number;
-                              unit: "INCHES" | "FEET" | "YARDS" | "MILES";
-                            };
-                          }>;
-                          classId: string;
-                          scalingKind: "BREAKPOINTS";
-                          scalingSource: "CLASS_LEVEL";
-                        }
-                      | {
-                          breakpoints: Array<{
-                            id: string;
-                            level: number;
-                            order: number;
-                            value: {
-                              amount: number;
-                              unit: "INCHES" | "FEET" | "YARDS" | "MILES";
-                            };
-                          }>;
-                          scalingKind: "BREAKPOINTS";
-                          scalingSource: "PARENT_CLASS_LEVEL";
-                        }
-                      | {
-                          breakpoints: Array<{
-                            id: string;
-                            level: number;
-                            order: number;
-                            value: {
-                              amount: number;
-                              unit: "INCHES" | "FEET" | "YARDS" | "MILES";
-                            };
-                          }>;
-                          scalingKind: "BREAKPOINTS";
-                          scalingSource: "SPELL_CAST_LEVEL";
-                        };
-                    unit: "INCHES" | "FEET" | "YARDS" | "MILES";
-                  };
-              senseId: string;
-              value: string;
-            }>;
+            senses: Array<{ label: string; senseId: string; value: string }>;
           };
           resources: {
             hitDice: Array<{
@@ -4840,74 +4769,7 @@ export declare const api: {
               state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
               total: number;
             }>;
-            senses: Array<{
-              calculation: {
-                base: number;
-                contributions: Array<{
-                  id: string;
-                  source:
-                    | {
-                        definitionId: string;
-                        kind: "AUTHORED";
-                        sourceInstanceId: string;
-                        sourceKind:
-                          | "ANCESTRY"
-                          | "BACKGROUND"
-                          | "CLASS"
-                          | "FEAT"
-                          | "FEATURE"
-                          | "OPTION"
-                          | "RACE"
-                          | "SPELL"
-                          | "SUBRACE"
-                          | "SUBCLASS";
-                      }
-                    | {
-                        equipmentId: string;
-                        itemInstanceId: string;
-                        kind: "EQUIPMENT_INSTANCE";
-                      }
-                    | {
-                        companionInstanceId: string;
-                        creatureId: string;
-                        kind: "COMPANION_INSTANCE";
-                      }
-                    | { kind: "SYSTEM"; systemId: string }
-                    | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
-                    | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
-                  sourceLabel: string;
-                  sourceNote?: string;
-                  state: "APPLIED" | "SUPPRESSED";
-                  value: number;
-                }>;
-                effective: number;
-                override?: {
-                  adjustmentId: string;
-                  sourceLabel: string;
-                  sourceNote?: string;
-                  value: number;
-                };
-              };
-              editor: {
-                adjustmentId?: string;
-                commitIntent: "ON_BLUR_OR_ENTER";
-                field: "RANGE_OVERRIDE";
-                kind: "NUMBER";
-                label: string;
-                sourceNote?: string;
-                validation: {
-                  integer: boolean;
-                  maximum?: number;
-                  minimum?: number;
-                };
-                value: number | null;
-              };
-              label: string;
-              range: number;
-              senseId: string;
-              state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
-              unitLabel: string;
-            }>;
+            senses: Array<any>;
             state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
             target: {
               entry?:
@@ -15246,74 +15108,7 @@ export declare const api: {
               state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
               total: number;
             }>;
-            senses: Array<{
-              calculation: {
-                base: number;
-                contributions: Array<{
-                  id: string;
-                  source:
-                    | {
-                        definitionId: string;
-                        kind: "AUTHORED";
-                        sourceInstanceId: string;
-                        sourceKind:
-                          | "ANCESTRY"
-                          | "BACKGROUND"
-                          | "CLASS"
-                          | "FEAT"
-                          | "FEATURE"
-                          | "OPTION"
-                          | "RACE"
-                          | "SPELL"
-                          | "SUBRACE"
-                          | "SUBCLASS";
-                      }
-                    | {
-                        equipmentId: string;
-                        itemInstanceId: string;
-                        kind: "EQUIPMENT_INSTANCE";
-                      }
-                    | {
-                        companionInstanceId: string;
-                        creatureId: string;
-                        kind: "COMPANION_INSTANCE";
-                      }
-                    | { kind: "SYSTEM"; systemId: string }
-                    | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
-                    | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
-                  sourceLabel: string;
-                  sourceNote?: string;
-                  state: "APPLIED" | "SUPPRESSED";
-                  value: number;
-                }>;
-                effective: number;
-                override?: {
-                  adjustmentId: string;
-                  sourceLabel: string;
-                  sourceNote?: string;
-                  value: number;
-                };
-              };
-              editor: {
-                adjustmentId?: string;
-                commitIntent: "ON_BLUR_OR_ENTER";
-                field: "RANGE_OVERRIDE";
-                kind: "NUMBER";
-                label: string;
-                sourceNote?: string;
-                validation: {
-                  integer: boolean;
-                  maximum?: number;
-                  minimum?: number;
-                };
-                value: number | null;
-              };
-              label: string;
-              range: number;
-              senseId: string;
-              state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
-              unitLabel: string;
-            }>;
+            senses: Array<any>;
             state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
             target: {
               entry?:
@@ -17918,78 +17713,7 @@ export declare const api: {
               label: string;
               value: string;
             }>;
-            senses: Array<{
-              label: string;
-              range?:
-                | {
-                    id: string;
-                    rangeKind:
-                      "SELF" | "TOUCH" | "SIGHT" | "SPECIAL" | "UNLIMITED";
-                  }
-                | {
-                    amount: number;
-                    id: string;
-                    longAmount?: number;
-                    rangeKind: "DISTANCE";
-                    scaling?:
-                      | {
-                          breakpoints: Array<{
-                            id: string;
-                            level: number;
-                            order: number;
-                            value: {
-                              amount: number;
-                              unit: "INCHES" | "FEET" | "YARDS" | "MILES";
-                            };
-                          }>;
-                          scalingKind: "BREAKPOINTS";
-                          scalingSource: "CHARACTER_LEVEL";
-                        }
-                      | {
-                          breakpoints: Array<{
-                            id: string;
-                            level: number;
-                            order: number;
-                            value: {
-                              amount: number;
-                              unit: "INCHES" | "FEET" | "YARDS" | "MILES";
-                            };
-                          }>;
-                          classId: string;
-                          scalingKind: "BREAKPOINTS";
-                          scalingSource: "CLASS_LEVEL";
-                        }
-                      | {
-                          breakpoints: Array<{
-                            id: string;
-                            level: number;
-                            order: number;
-                            value: {
-                              amount: number;
-                              unit: "INCHES" | "FEET" | "YARDS" | "MILES";
-                            };
-                          }>;
-                          scalingKind: "BREAKPOINTS";
-                          scalingSource: "PARENT_CLASS_LEVEL";
-                        }
-                      | {
-                          breakpoints: Array<{
-                            id: string;
-                            level: number;
-                            order: number;
-                            value: {
-                              amount: number;
-                              unit: "INCHES" | "FEET" | "YARDS" | "MILES";
-                            };
-                          }>;
-                          scalingKind: "BREAKPOINTS";
-                          scalingSource: "SPELL_CAST_LEVEL";
-                        };
-                    unit: "INCHES" | "FEET" | "YARDS" | "MILES";
-                  };
-              senseId: string;
-              value: string;
-            }>;
+            senses: Array<{ label: string; senseId: string; value: string }>;
           };
           resources: {
             hitDice: Array<{
@@ -19915,73 +19639,6 @@ export declare const api: {
                 }>;
                 senses: Array<{
                   label: string;
-                  range?:
-                    | {
-                        id: string;
-                        rangeKind:
-                          "SELF" | "TOUCH" | "SIGHT" | "SPECIAL" | "UNLIMITED";
-                      }
-                    | {
-                        amount: number;
-                        id: string;
-                        longAmount?: number;
-                        rangeKind: "DISTANCE";
-                        scaling?:
-                          | {
-                              breakpoints: Array<{
-                                id: string;
-                                level: number;
-                                order: number;
-                                value: {
-                                  amount: number;
-                                  unit: "INCHES" | "FEET" | "YARDS" | "MILES";
-                                };
-                              }>;
-                              scalingKind: "BREAKPOINTS";
-                              scalingSource: "CHARACTER_LEVEL";
-                            }
-                          | {
-                              breakpoints: Array<{
-                                id: string;
-                                level: number;
-                                order: number;
-                                value: {
-                                  amount: number;
-                                  unit: "INCHES" | "FEET" | "YARDS" | "MILES";
-                                };
-                              }>;
-                              classId: string;
-                              scalingKind: "BREAKPOINTS";
-                              scalingSource: "CLASS_LEVEL";
-                            }
-                          | {
-                              breakpoints: Array<{
-                                id: string;
-                                level: number;
-                                order: number;
-                                value: {
-                                  amount: number;
-                                  unit: "INCHES" | "FEET" | "YARDS" | "MILES";
-                                };
-                              }>;
-                              scalingKind: "BREAKPOINTS";
-                              scalingSource: "PARENT_CLASS_LEVEL";
-                            }
-                          | {
-                              breakpoints: Array<{
-                                id: string;
-                                level: number;
-                                order: number;
-                                value: {
-                                  amount: number;
-                                  unit: "INCHES" | "FEET" | "YARDS" | "MILES";
-                                };
-                              }>;
-                              scalingKind: "BREAKPOINTS";
-                              scalingSource: "SPELL_CAST_LEVEL";
-                            };
-                        unit: "INCHES" | "FEET" | "YARDS" | "MILES";
-                      };
                   senseId: string;
                   value: string;
                 }>;
@@ -21556,73 +21213,6 @@ export declare const api: {
                 }>;
                 senses: Array<{
                   label: string;
-                  range?:
-                    | {
-                        id: string;
-                        rangeKind:
-                          "SELF" | "TOUCH" | "SIGHT" | "SPECIAL" | "UNLIMITED";
-                      }
-                    | {
-                        amount: number;
-                        id: string;
-                        longAmount?: number;
-                        rangeKind: "DISTANCE";
-                        scaling?:
-                          | {
-                              breakpoints: Array<{
-                                id: string;
-                                level: number;
-                                order: number;
-                                value: {
-                                  amount: number;
-                                  unit: "INCHES" | "FEET" | "YARDS" | "MILES";
-                                };
-                              }>;
-                              scalingKind: "BREAKPOINTS";
-                              scalingSource: "CHARACTER_LEVEL";
-                            }
-                          | {
-                              breakpoints: Array<{
-                                id: string;
-                                level: number;
-                                order: number;
-                                value: {
-                                  amount: number;
-                                  unit: "INCHES" | "FEET" | "YARDS" | "MILES";
-                                };
-                              }>;
-                              classId: string;
-                              scalingKind: "BREAKPOINTS";
-                              scalingSource: "CLASS_LEVEL";
-                            }
-                          | {
-                              breakpoints: Array<{
-                                id: string;
-                                level: number;
-                                order: number;
-                                value: {
-                                  amount: number;
-                                  unit: "INCHES" | "FEET" | "YARDS" | "MILES";
-                                };
-                              }>;
-                              scalingKind: "BREAKPOINTS";
-                              scalingSource: "PARENT_CLASS_LEVEL";
-                            }
-                          | {
-                              breakpoints: Array<{
-                                id: string;
-                                level: number;
-                                order: number;
-                                value: {
-                                  amount: number;
-                                  unit: "INCHES" | "FEET" | "YARDS" | "MILES";
-                                };
-                              }>;
-                              scalingKind: "BREAKPOINTS";
-                              scalingSource: "SPELL_CAST_LEVEL";
-                            };
-                        unit: "INCHES" | "FEET" | "YARDS" | "MILES";
-                      };
                   senseId: string;
                   value: string;
                 }>;
@@ -23447,10 +23037,13 @@ export declare const api: {
                         id: string;
                         kind: "SENSE_GRANT";
                         order: number;
-                        range: {
-                          amount: number;
-                          unit: "INCHES" | "FEET" | "YARDS" | "MILES";
-                        } | null;
+                        range:
+                          | { rangeKind: "UNLIMITED" }
+                          | {
+                              amount: number;
+                              rangeKind: "DISTANCE";
+                              unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                            };
                         senseDefinitionId: string;
                       }
                     | {
@@ -33170,10 +32763,13 @@ export declare const api: {
                         id: string;
                         kind: "SENSE_GRANT";
                         order: number;
-                        range: {
-                          amount: number;
-                          unit: "INCHES" | "FEET" | "YARDS" | "MILES";
-                        } | null;
+                        range:
+                          | { rangeKind: "UNLIMITED" }
+                          | {
+                              amount: number;
+                              rangeKind: "DISTANCE";
+                              unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                            };
                         senseDefinitionId: string;
                       }
                     | {
@@ -42902,10 +42498,13 @@ export declare const api: {
                         id: string;
                         kind: "SENSE_GRANT";
                         order: number;
-                        range: {
-                          amount: number;
-                          unit: "INCHES" | "FEET" | "YARDS" | "MILES";
-                        } | null;
+                        range:
+                          | { rangeKind: "UNLIMITED" }
+                          | {
+                              amount: number;
+                              rangeKind: "DISTANCE";
+                              unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                            };
                         senseDefinitionId: string;
                       }
                     | {
@@ -52625,10 +52224,13 @@ export declare const api: {
                         id: string;
                         kind: "SENSE_GRANT";
                         order: number;
-                        range: {
-                          amount: number;
-                          unit: "INCHES" | "FEET" | "YARDS" | "MILES";
-                        } | null;
+                        range:
+                          | { rangeKind: "UNLIMITED" }
+                          | {
+                              amount: number;
+                              rangeKind: "DISTANCE";
+                              unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                            };
                         senseDefinitionId: string;
                       }
                     | {
@@ -62383,10 +61985,13 @@ export declare const api: {
                         id: string;
                         kind: "SENSE_GRANT";
                         order: number;
-                        range: {
-                          amount: number;
-                          unit: "INCHES" | "FEET" | "YARDS" | "MILES";
-                        } | null;
+                        range:
+                          | { rangeKind: "UNLIMITED" }
+                          | {
+                              amount: number;
+                              rangeKind: "DISTANCE";
+                              unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                            };
                         senseDefinitionId: string;
                       }
                     | {
@@ -72106,10 +71711,13 @@ export declare const api: {
                         id: string;
                         kind: "SENSE_GRANT";
                         order: number;
-                        range: {
-                          amount: number;
-                          unit: "INCHES" | "FEET" | "YARDS" | "MILES";
-                        } | null;
+                        range:
+                          | { rangeKind: "UNLIMITED" }
+                          | {
+                              amount: number;
+                              rangeKind: "DISTANCE";
+                              unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                            };
                         senseDefinitionId: string;
                       }
                     | {
@@ -81816,10 +81424,13 @@ export declare const api: {
                       id: string;
                       kind: "SENSE_GRANT";
                       order: number;
-                      range: {
-                        amount: number;
-                        unit: "INCHES" | "FEET" | "YARDS" | "MILES";
-                      } | null;
+                      range:
+                        | { rangeKind: "UNLIMITED" }
+                        | {
+                            amount: number;
+                            rangeKind: "DISTANCE";
+                            unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                          };
                       senseDefinitionId: string;
                     }
                   | {
@@ -91432,10 +91043,13 @@ export declare const api: {
                         id: string;
                         kind: "SENSE_GRANT";
                         order: number;
-                        range: {
-                          amount: number;
-                          unit: "INCHES" | "FEET" | "YARDS" | "MILES";
-                        } | null;
+                        range:
+                          | { rangeKind: "UNLIMITED" }
+                          | {
+                              amount: number;
+                              rangeKind: "DISTANCE";
+                              unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                            };
                         senseDefinitionId: string;
                       }
                     | {
@@ -101155,10 +100769,13 @@ export declare const api: {
                         id: string;
                         kind: "SENSE_GRANT";
                         order: number;
-                        range: {
-                          amount: number;
-                          unit: "INCHES" | "FEET" | "YARDS" | "MILES";
-                        } | null;
+                        range:
+                          | { rangeKind: "UNLIMITED" }
+                          | {
+                              amount: number;
+                              rangeKind: "DISTANCE";
+                              unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                            };
                         senseDefinitionId: string;
                       }
                     | {
@@ -115544,7 +115161,9 @@ export declare const api: {
                         | "MAGICAL_DARKNESS"
                         | "IGNORE";
                       label: string;
-                      range: number;
+                      range:
+                        | { rangeKind: "UNLIMITED" }
+                        | { amount: number; rangeKind: "DISTANCE" };
                       senseId: string;
                     }>;
                     vision: {
@@ -115586,7 +115205,15 @@ export declare const api: {
                 distancePerCell: number;
                 kind: "SQUARE";
                 origin: { x: number; y: number };
-                unit: "FEET" | "METERS" | "SQUARES";
+                unit: "FEET" | "METERS";
+              }
+            | {
+                cellSize: number;
+                diagonalPolicy: "EQUAL" | "ALTERNATING" | "EUCLIDEAN";
+                distancePerCell: 1;
+                kind: "SQUARE";
+                origin: { x: number; y: number };
+                unit: "SQUARES";
               }
             | {
                 kind: "GRIDLESS";
@@ -115642,7 +115269,15 @@ export declare const api: {
                   distancePerCell: number;
                   kind: "SQUARE";
                   origin: { x: number; y: number };
-                  unit: "FEET" | "METERS" | "SQUARES";
+                  unit: "FEET" | "METERS";
+                }
+              | {
+                  cellSize: number;
+                  diagonalPolicy: "EQUAL" | "ALTERNATING" | "EUCLIDEAN";
+                  distancePerCell: 1;
+                  kind: "SQUARE";
+                  origin: { x: number; y: number };
+                  unit: "SQUARES";
                 }
               | {
                   kind: "GRIDLESS";
@@ -115819,7 +115454,9 @@ export declare const api: {
                       | "MAGICAL_DARKNESS"
                       | "IGNORE";
                     label: string;
-                    range: number;
+                    range:
+                      | { rangeKind: "UNLIMITED" }
+                      | { amount: number; rangeKind: "DISTANCE" };
                     senseId: string;
                   }>;
                   vision: {
@@ -115883,7 +115520,15 @@ export declare const api: {
                   distancePerCell: number;
                   kind: "SQUARE";
                   origin: { x: number; y: number };
-                  unit: "FEET" | "METERS" | "SQUARES";
+                  unit: "FEET" | "METERS";
+                }
+              | {
+                  cellSize: number;
+                  diagonalPolicy: "EQUAL" | "ALTERNATING" | "EUCLIDEAN";
+                  distancePerCell: 1;
+                  kind: "SQUARE";
+                  origin: { x: number; y: number };
+                  unit: "SQUARES";
                 }
               | {
                   kind: "GRIDLESS";
@@ -116147,7 +115792,9 @@ export declare const api: {
                         | "MAGICAL_DARKNESS"
                         | "IGNORE";
                       label: string;
-                      range: number;
+                      range:
+                        | { rangeKind: "UNLIMITED" }
+                        | { amount: number; rangeKind: "DISTANCE" };
                       senseId: string;
                     }>;
                     vision: {
@@ -116200,7 +115847,15 @@ export declare const api: {
                 distancePerCell: number;
                 kind: "SQUARE";
                 origin: { x: number; y: number };
-                unit: "FEET" | "METERS" | "SQUARES";
+                unit: "FEET" | "METERS";
+              }
+            | {
+                cellSize: number;
+                diagonalPolicy: "EQUAL" | "ALTERNATING" | "EUCLIDEAN";
+                distancePerCell: 1;
+                kind: "SQUARE";
+                origin: { x: number; y: number };
+                unit: "SQUARES";
               }
             | {
                 kind: "GRIDLESS";
@@ -116433,7 +116088,9 @@ export declare const api: {
                         | "MAGICAL_DARKNESS"
                         | "IGNORE";
                       label: string;
-                      range: number;
+                      range:
+                        | { rangeKind: "UNLIMITED" }
+                        | { amount: number; rangeKind: "DISTANCE" };
                       senseId: string;
                     }>;
                     vision: {
@@ -116480,7 +116137,15 @@ export declare const api: {
                 distancePerCell: number;
                 kind: "SQUARE";
                 origin: { x: number; y: number };
-                unit: "FEET" | "METERS" | "SQUARES";
+                unit: "FEET" | "METERS";
+              }
+            | {
+                cellSize: number;
+                diagonalPolicy: "EQUAL" | "ALTERNATING" | "EUCLIDEAN";
+                distancePerCell: 1;
+                kind: "SQUARE";
+                origin: { x: number; y: number };
+                unit: "SQUARES";
               }
             | {
                 kind: "GRIDLESS";
@@ -116582,7 +116247,15 @@ export declare const api: {
                   distancePerCell: number;
                   kind: "SQUARE";
                   origin: { x: number; y: number };
-                  unit: "FEET" | "METERS" | "SQUARES";
+                  unit: "FEET" | "METERS";
+                }
+              | {
+                  cellSize: number;
+                  diagonalPolicy: "EQUAL" | "ALTERNATING" | "EUCLIDEAN";
+                  distancePerCell: 1;
+                  kind: "SQUARE";
+                  origin: { x: number; y: number };
+                  unit: "SQUARES";
                 }
               | {
                   kind: "GRIDLESS";
@@ -116644,7 +116317,9 @@ export declare const api: {
                   | "MAGICAL_DARKNESS"
                   | "IGNORE";
                 label: string;
-                range: number;
+                range:
+                  | { rangeKind: "UNLIMITED" }
+                  | { amount: number; rangeKind: "DISTANCE" };
                 senseId: string;
               }>;
               vision: {
@@ -122945,7 +122620,15 @@ export declare const internal: {
                   distancePerCell: number;
                   kind: "SQUARE";
                   origin: { x: number; y: number };
-                  unit: "FEET" | "METERS" | "SQUARES";
+                  unit: "FEET" | "METERS";
+                }
+              | {
+                  cellSize: number;
+                  diagonalPolicy: "EQUAL" | "ALTERNATING" | "EUCLIDEAN";
+                  distancePerCell: 1;
+                  kind: "SQUARE";
+                  origin: { x: number; y: number };
+                  unit: "SQUARES";
                 }
               | {
                   kind: "GRIDLESS";
@@ -123019,7 +122702,15 @@ export declare const internal: {
                   distancePerCell: number;
                   kind: "SQUARE";
                   origin: { x: number; y: number };
-                  unit: "FEET" | "METERS" | "SQUARES";
+                  unit: "FEET" | "METERS";
+                }
+              | {
+                  cellSize: number;
+                  diagonalPolicy: "EQUAL" | "ALTERNATING" | "EUCLIDEAN";
+                  distancePerCell: 1;
+                  kind: "SQUARE";
+                  origin: { x: number; y: number };
+                  unit: "SQUARES";
                 }
               | {
                   kind: "GRIDLESS";
@@ -124596,7 +124287,15 @@ export declare const internal: {
                   distancePerCell: number;
                   kind: "SQUARE";
                   origin: { x: number; y: number };
-                  unit: "FEET" | "METERS" | "SQUARES";
+                  unit: "FEET" | "METERS";
+                }
+              | {
+                  cellSize: number;
+                  diagonalPolicy: "EQUAL" | "ALTERNATING" | "EUCLIDEAN";
+                  distancePerCell: 1;
+                  kind: "SQUARE";
+                  origin: { x: number; y: number };
+                  unit: "SQUARES";
                 }
               | {
                   kind: "GRIDLESS";
@@ -124763,7 +124462,9 @@ export declare const internal: {
                         | "MAGICAL_DARKNESS"
                         | "IGNORE";
                       label: string;
-                      range: number;
+                      range:
+                        | { rangeKind: "UNLIMITED" }
+                        | { amount: number; rangeKind: "DISTANCE" };
                       senseId: string;
                     }>;
                     vision: {

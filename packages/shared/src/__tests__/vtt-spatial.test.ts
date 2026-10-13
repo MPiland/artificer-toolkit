@@ -568,19 +568,22 @@ describe('pointAreaInSceneCoordinates', () => {
     expect(area?.kind === 'RADIUS' && area.radius).toBeCloseTo(((20 * 0.3048) / 1.5) * 100)
   })
 
-  it('has no area when the size is scaled, empty or unmeasurable on the Scene', () => {
+  it('has no area when the size is scaled or empty', () => {
     const scaled = {
       ...feet(20),
       scaling: { kind: 'BREAKPOINT', breakpoints: [] }
     }
     expect(pointAreaInSceneCoordinates({ kind: 'RADIUS', radius: scaled }, feetGrid)).toBeNull()
     expect(pointAreaInSceneCoordinates({ kind: 'RADIUS', radius: feet(0) }, feetGrid)).toBeNull()
+  })
+
+  it('reads a feet size as 5-foot squares on a SQUARES Scene', () => {
     expect(
       pointAreaInSceneCoordinates(
         { kind: 'CUBE', edgeLength: feet(15) },
-        { ...feetGrid, unit: 'SQUARES' }
+        { ...feetGrid, distancePerCell: 1, unit: 'SQUARES' }
       )
-    ).toBeNull()
+    ).toEqual({ kind: 'CUBE', edgeLength: 300 })
   })
 })
 

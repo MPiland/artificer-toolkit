@@ -77,7 +77,7 @@ function capability(overrides = {}) {
     definitionId: visualDefinitionId,
     checksum,
     capabilityOrdinal: 0,
-    range: 60,
+    range: { rangeKind: 'DISTANCE' as const, amount: 60 },
     capability: {
       channel: 'VISUAL' as const,
       accessGrade: 'PRECISE' as const,
@@ -163,6 +163,21 @@ describe('combat perception', () => {
     ).toBe(true)
   })
 
+  it('lets an unlimited capability perceive at any distance and bounds a distance capability', () => {
+    const perceives = (
+      range: { rangeKind: 'DISTANCE'; amount: number } | { rangeKind: 'UNLIMITED' },
+      distance: number
+    ) =>
+      resolveCombatPerception({
+        requirement: 'SEE',
+        environment: environment({ distance }),
+        capabilities: [capability({ range })]
+      }).satisfied
+    expect(perceives({ rangeKind: 'UNLIMITED' }, 1_000_000)).toBe(true)
+    expect(perceives({ rangeKind: 'DISTANCE', amount: 60 }, 60)).toBe(true)
+    expect(perceives({ rangeKind: 'DISTANCE', amount: 60 }, 61)).toBe(false)
+  })
+
   it('returns closed negative reasons for range, suppression, physical constraints, invisibility, and environment', () => {
     const result = resolveCombatPerception({
       requirement: 'SEE',
@@ -230,9 +245,18 @@ describe('combat perception', () => {
       resolveCombatPerception({
         requirement: 'SEE',
         environment: environment(),
-        capabilities: [capability({ range: Number.NaN })]
+        capabilities: [capability({ range: { rangeKind: 'DISTANCE', amount: Number.NaN } })]
       })
-    ).toThrow(/range must be null or a finite nonnegative number/)
+    ).toThrow(/range must be a finite nonnegative number/)
+    for (const range of [null, 60, { rangeKind: 'SPECIAL' }]) {
+      expect(() =>
+        resolveCombatPerception({
+          requirement: 'SEE',
+          environment: environment(),
+          capabilities: [capability({ range })]
+        })
+      ).toThrow(/range must be/)
+    }
     expect(
       resolveCombatPerception({
         requirement: 'SEE',
@@ -397,7 +421,7 @@ describe('combat perception', () => {
             definitionContractVersion: 1,
             definitionChecksum: checksumRuleDocument(senseDocument()),
             document: senseDocument(),
-            range: 90
+            range: { rangeKind: 'DISTANCE', amount: 90 }
           },
           {
             source: {
@@ -439,7 +463,7 @@ describe('combat perception', () => {
       expect.objectContaining({
         instanceId: '55555555-5555-4555-8555-555555555552',
         definitionId: otherDefinitionId,
-        range: 90,
+        range: { rangeKind: 'DISTANCE', amount: 90 },
         capability: expect.objectContaining({ accessGrade: 'DETECTED', perceivesInvisible: false })
       })
     ])
@@ -453,7 +477,7 @@ describe('combat perception', () => {
       definitionContractVersion: 1,
       definitionChecksum: checksumRuleDocument(senseDocument()),
       document: senseDocument(),
-      range: 90
+      range: { rangeKind: 'DISTANCE' as const, amount: 90 }
     }
     const repeated = resolveCombatPerceptionWithContributions({
       requirement: 'DETECT',
@@ -642,7 +666,7 @@ describe('combat perception', () => {
             definitionContractVersion: 1,
             definitionChecksum: checksum,
             document: senseDocument(),
-            range: null
+            range: { rangeKind: 'UNLIMITED' }
           })
         ]
       })
@@ -660,7 +684,7 @@ describe('combat perception', () => {
             definitionContractVersion: 10_001,
             definitionChecksum: checksumRuleDocument(senseDocument()),
             document: senseDocument(),
-            range: null
+            range: { rangeKind: 'UNLIMITED' }
           })
         ]
       })

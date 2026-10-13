@@ -1083,7 +1083,7 @@ describe('rules runtime contracts', () => {
               definitionContractVersion: 1,
               definitionChecksum: checksumRuleDocument(foreignSenseDocument),
               document: foreignSenseDocument,
-              range: null
+              range: { rangeKind: 'UNLIMITED' }
             }
           ]
         }

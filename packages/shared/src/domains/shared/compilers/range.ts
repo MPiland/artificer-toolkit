@@ -14,6 +14,10 @@ export type CompiledRange =
       scaling?: ScalableValueAuthored<RangeMeasurementAuthored>
     }
 
+export function compileRange(
+  authored: Extract<RangeAuthored, { rangeKind: 'DISTANCE' }>
+): Extract<CompiledRange, { rangeKind: 'DISTANCE' }>
+export function compileRange(authored: RangeAuthored): CompiledRange
 export function compileRange(authored: RangeAuthored): CompiledRange {
   switch (authored.rangeKind) {
     case 'DISTANCE':

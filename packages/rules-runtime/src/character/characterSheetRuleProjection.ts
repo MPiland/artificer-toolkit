@@ -13,7 +13,8 @@ import type {
   CharacterSpellSourceRef,
   ContentRef
 } from '@artificer-toolkit/shared/character'
-import type { CompiledChargeUse, CompiledRange } from '@artificer-toolkit/shared/compilers'
+import type { CompiledChargeUse } from '@artificer-toolkit/shared/compilers'
+import type { SenseRangeDto } from '@artificer-toolkit/schema/grants/sense'
 import type { CompiledCharacterClassState } from '@artificer-toolkit/shared/subjects/compilers'
 
 /** Sheet-facing presentation data rehydrated from one validated Character rule-policy result. */
@@ -44,7 +45,7 @@ export interface CharacterRuleProficiency {
 
 export interface CharacterRuleSense {
   senseDefinitionId: string
-  range?: CompiledRange
+  range: SenseRangeDto
 }
 
 export interface CharacterRuleDefense {

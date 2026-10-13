@@ -351,13 +351,11 @@ export async function publishSceneGeometry<TGeometry extends SpatialSceneGeometr
       )
         throw new Error('Movement names an unknown speed type.')
       const actorId = geometry.actorIdByTokenId.get(save.input.tokenId)
-      // An uncalibrated SQUARES Scene has no feet to count.
-      const feet = sceneLengthInFeet(input.movementCost, header.grid)
-      if (actorId && feet !== null)
+      if (actorId)
         await recordTurnMovement(ctx, {
           state: geometry.encounter,
           actorId,
-          feet,
+          feet: sceneLengthInFeet(input.movementCost, header.grid),
           speedId
         })
     }

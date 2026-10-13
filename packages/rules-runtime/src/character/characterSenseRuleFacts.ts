@@ -1,8 +1,6 @@
 import type { CharacterRulePolicyInput } from '@artificer-toolkit/schema/api/characterRules'
 import type { CharacterBuildSnapshot } from '@artificer-toolkit/shared/core'
 
-type SenseFacts = NonNullable<CharacterRulePolicyInput['senseFacts']>
-
 export function buildCharacterSenseRuleFacts(
   snapshot: CharacterBuildSnapshot
 ): Pick<CharacterRulePolicyInput, 'senseFacts'> {
@@ -15,7 +13,7 @@ export function buildCharacterSenseRuleFacts(
         senseDefinitionId: adjustment.senseId,
         sourceId: adjustment.id,
         value: adjustment.value
-      })) as SenseFacts['overrides']
+      }))
     }
   }
 }

@@ -1,5 +1,6 @@
 import { z, lazySchema } from '../zod.js'
 import { modifierKindSchema, sizeCodeSchema, valueDomainCodeSchema } from '../shared/enums.js'
+import { senseRangeDtoSchema } from '../grants/sense.js'
 import { postgresUuidSchema as serverUuidIdentityDtoSchema } from '../shared/postgresUuid.js'
 
 export const CHARACTER_GRANT_FOLD_MODEL_KEY = 'character-grant-fold'
@@ -143,7 +144,7 @@ const scalingOperationSchema = lazySchema(() =>
 export const senseOperationSchema = lazySchema(() =>
   z.extend(scalingOperationSchema, {
     grantId: identitySchema,
-    range: z.nullable(boundedJsonSchema)
+    range: senseRangeDtoSchema
   })
 )
 
@@ -316,7 +317,7 @@ const proficiencyResultSchema = lazySchema(() =>
 const senseResultSchema = lazySchema(() =>
   z.strictObject({
     senseDefinitionId: serverUuidIdentityDtoSchema,
-    range: z.optional(boundedJsonSchema),
+    range: senseRangeDtoSchema,
     acceptedSenseIndex: z.number().check(z.int()).check(z.gte(0)).check(z.lte(9_999)),
     grantId: identitySchema,
     source: characterMechanicSourceSchema

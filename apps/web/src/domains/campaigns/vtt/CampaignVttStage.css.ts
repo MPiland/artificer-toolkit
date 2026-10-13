@@ -20,7 +20,12 @@ export const menuLabel = style({
 })
 
 export const menuDropdown = style({
-  boxShadow: foundationVars.shadow.card,
+  boxShadow: foundationVars.shadow.card
+})
+
+// The group scrolls, not the menu: Mantine pins the menu to tabindex -1, which axe rejects on a
+// scroller, and a tabbable scroller is how keyboard users reach an overflowing region.
+export const menuScroller = style({
   maxBlockSize: 'calc(100dvh - 2rem)',
   overscrollBehavior: 'contain',
   overflowY: 'auto'

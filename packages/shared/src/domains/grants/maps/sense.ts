@@ -8,7 +8,7 @@ import {
 } from '#core'
 import { CHARGE_NODE_MAP } from '../../shared/maps/charge.js'
 import { FACET_NODE_MAP } from '../../shared/maps/facet.js'
-import { RANGE_NODE_MAP } from '../../shared/maps/range.js'
+import { SENSE_RANGE_NODE_MAP } from '../../shared/maps/range.js'
 import { AUTHORING_ACTION_PRESENTATIONS, buildNodeMap } from '#utils'
 
 type SenseGrantProgression = Extract<
@@ -213,7 +213,10 @@ export const SENSE_GRANT_NODE_MAP = senseGrant.define(
       )
       .set(
         'range',
-        groupObject(['range'], 'Range', () => RANGE_NODE_MAP, { presentation: 'inline' })
+        groupObject(['range'], 'Range', () => SENSE_RANGE_NODE_MAP, {
+          presentation: 'inline',
+          requiredIf: true
+        })
       )
       .set(
         'restrictions',

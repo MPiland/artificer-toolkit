@@ -552,24 +552,30 @@ function buildSensesPanel(
       (candidate) => candidate.senseDefinitionId === sense.id
     )
     const calculation = ruleProjection.calculations.senseRanges[sense.id]
-    const range =
-      calculation?.effective ??
-      (ruleSense?.range?.rangeKind === 'DISTANCE' ? ruleSense.range.amount : 0)
-    const unit = ruleSense?.range?.rangeKind === 'DISTANCE' ? ruleSense.range.unit : 'FEET'
+    if (ruleSense?.range.rangeKind === 'DISTANCE' && !calculation)
+      throw new Error(`A held sense is missing its range calculation: ${sense.id}`)
+    // A sense the Character does not hold has no range; a range override on it adds the sense.
+    const reach = !ruleSense
+      ? ({ rangeKind: 'NOT_HELD' } as const)
+      : ruleSense.range.rangeKind === 'UNLIMITED'
+        ? ({ rangeKind: 'UNLIMITED' } as const)
+        : ({
+            rangeKind: 'DISTANCE',
+            range: ruleSense.range.amount,
+            unitLabel: formatCode(ruleSense.range.unit).toLowerCase(),
+            calculation: toPanelCalculation(calculation, params)
+          } as const)
     return {
       senseId: sense.id,
       label: sense.label,
-      range,
-      unitLabel: formatCode(unit).toLowerCase(),
+      ...reach,
       state: adjustment ? ('OVERRIDDEN' as const) : ('DEFAULT' as const),
-      calculation: toPanelCalculation(calculation, params),
       editor: {
-        kind: 'NUMBER' as const,
+        kind: 'LENGTH' as const,
         field: 'RANGE_OVERRIDE' as const,
         label: `Override ${sense.label} range`,
         value: adjustment?.value ?? null,
         commitIntent: 'ON_BLUR_OR_ENTER' as const,
-        validation: { integer: true, minimum: 0 },
         ...adjustmentEditorMetadata(adjustment)
       }
     }

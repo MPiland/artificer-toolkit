@@ -1,23 +1,16 @@
 import { Button, NumberInput, TextInput } from '@mantine/core'
-import { useEffect, useRef, useState } from 'react'
 
 import { AppSelect } from '#ui/primitives/Select'
-import * as inputStyles from '#ui/primitives/Select/Select.css'
 import type {
   CharacterSheetEditorCommit,
   CharacterSheetNumberEditorDto,
   CharacterSheetSelectEditorDto
 } from './inspector.model'
-import { cleanSheetEditorText } from './inspector.model'
 import * as inspectorEditorStyles from './inspectorEditor.css'
+import { useSheetAdjustmentDraft } from './useSheetAdjustmentDraft'
 
-const fieldClassNames = {
-  root: inputStyles.root,
-  label: inputStyles.label,
-  description: inputStyles.description,
-  required: inputStyles.required,
-  input: inputStyles.input
-}
+const toDraft = (value: string | number | null) => value ?? ''
+const isEmpty = (draft: string | number) => draft === ''
 
 export function CharacterSheetAdjustmentEditor({
   editor,
@@ -30,60 +23,26 @@ export function CharacterSheetAdjustmentEditor({
   onClear: () => Promise<boolean>
   onCommit: (commit: CharacterSheetEditorCommit) => Promise<boolean>
 }) {
-  const [value, setValue] = useState<string | number>(editor.value ?? '')
-  const [sourceNote, setSourceNote] = useState(editor.sourceNote ?? '')
-  const [error, setError] = useState<string | undefined>(undefined)
-  const lastSubmitted = useRef<string | undefined>(undefined)
-
-  useEffect(() => {
-    setValue(editor.value ?? '')
-    setSourceNote(editor.sourceNote ?? '')
-    setError(undefined)
-    lastSubmitted.current = undefined
-  }, [editor.adjustmentId, editor.sourceNote, editor.value])
-
-  function restoreServerValue() {
-    setValue(editor.value ?? '')
-    setSourceNote(editor.sourceNote ?? '')
-  }
-
-  async function clear() {
-    if (!editor.adjustmentId) {
-      setValue('')
-      return
-    }
-    const succeeded = await onClear()
-    if (!succeeded) {
-      restoreServerValue()
-      setError('The adjustment could not be cleared. The server value was restored.')
-    }
-  }
-
-  async function commit(nextValue: string | number = value) {
-    if (nextValue === '') {
-      await clear()
-      return
-    }
-    const parsedValue = editor.kind === 'NUMBER' ? Number(nextValue) : String(nextValue)
-    if (editor.kind === 'NUMBER' && !Number.isFinite(parsedValue)) {
-      setError('Enter a valid number.')
-      return
-    }
-    const payload: CharacterSheetEditorCommit = {
-      value: parsedValue,
-      ...(cleanSheetEditorText(sourceNote) ? { sourceNote: cleanSheetEditorText(sourceNote) } : {})
-    }
-    const signature = JSON.stringify(payload)
-    if (signature === lastSubmitted.current) return
-    lastSubmitted.current = signature
-    setError(undefined)
-    const succeeded = await onCommit(payload)
-    if (!succeeded) {
-      lastSubmitted.current = undefined
-      restoreServerValue()
-      setError('The adjustment could not be saved. The server value was restored.')
-    }
-  }
+  const {
+    draft: value,
+    setDraft: setValue,
+    sourceNote,
+    setSourceNote,
+    error,
+    commit,
+    clear
+  } = useSheetAdjustmentDraft({
+    editor,
+    toDraft,
+    isEmpty,
+    parse: (draft) => {
+      if (editor.kind !== 'NUMBER') return String(draft)
+      const parsed = Number(draft)
+      return Number.isFinite(parsed) ? parsed : null
+    },
+    onClear,
+    onCommit
+  })
 
   return (
     <div className={inspectorEditorStyles.editor}>
@@ -91,7 +50,7 @@ export function CharacterSheetAdjustmentEditor({
         {editor.kind === 'NUMBER' ? (
           <NumberInput
             allowDecimal={!editor.validation.integer}
-            classNames={fieldClassNames}
+            classNames={inspectorEditorStyles.fieldClassNames}
             disabled={pending}
             error={error}
             hideControls
@@ -133,7 +92,7 @@ export function CharacterSheetAdjustmentEditor({
         ) : null}
       </div>
       <TextInput
-        classNames={fieldClassNames}
+        classNames={inspectorEditorStyles.fieldClassNames}
         disabled={pending}
         label='Source notes'
         maxLength={240}

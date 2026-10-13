@@ -8,7 +8,7 @@ import { CharacterSheetFeatureUseControl } from '../shared/CharacterSheetFeature
 import { CharacterSheetResourceStepper } from '../shared/CharacterSheetResourceStepper'
 import * as featureUseStyles from '../shared/featureUse.css'
 import { CharacterSheetAdjustmentEditor } from './CharacterSheetAdjustmentEditor'
-import { getSheetAdjustmentMetadata } from './inspector.model'
+import { getSheetAdjustmentMetadata, getSheetEditorKey } from './inspector.model'
 import { CharacterSheetTextEditor } from './CharacterSheetTextEditor'
 import * as inspectorEditorStyles from './inspectorEditor.css'
 import * as inspectorShellStyles from './inspectorShell.css'
@@ -313,7 +313,7 @@ export function CharacterSheetItemPanelContent({
                       ? panel.numericEditors.map((editor) => (
                           <CharacterSheetAdjustmentEditor
                             editor={editor}
-                            key={editor.field}
+                            key={getSheetEditorKey(editor)}
                             pending={pending}
                             onClear={async () =>
                               await submitCommand({

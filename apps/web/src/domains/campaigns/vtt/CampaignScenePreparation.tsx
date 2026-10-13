@@ -25,6 +25,7 @@ import { useCallback, useEffect, useId, useRef, useState, type MouseEvent } from
 import type { SignedVttMapDeliveryDto } from '@artificer-toolkit/schema/api/media'
 import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
 import type { CreateSceneDefinitionInputDto } from '@artificer-toolkit/schema/api/vttScenes'
+import { SYSTEM_BASE_SQUARE_FEET } from '@artificer-toolkit/shared/vtt'
 import { loadSceneDefinition, saveSceneDefinition } from '#app/data/campaigns/scenes'
 import { queryKeys } from '#app/lib/queryKeys'
 import {
@@ -68,7 +69,7 @@ export function CampaignScenePreparation({
   const [name, setName] = useState('')
   const [gridKind, setGridKind] = useState<'GRIDLESS' | 'SQUARE'>('SQUARE')
   const [cellSize, setCellSize] = useState(70)
-  const [distancePerCell, setDistancePerCell] = useState(5)
+  const [distancePerCell, setDistancePerCell] = useState(SYSTEM_BASE_SQUARE_FEET)
   const [originX, setOriginX] = useState(0)
   const [originY, setOriginY] = useState(0)
   const [calibrationStep, setCalibrationStep] = useState<'CELL' | 'ORIGIN' | null>(null)
@@ -162,10 +163,9 @@ export function CampaignScenePreparation({
             ? {
                 cellSize,
                 diagonalPolicy: 'ALTERNATING',
-                distancePerCell,
                 kind: 'SQUARE',
                 origin: { x: originX, y: originY },
-                unit
+                ...(unit === 'SQUARES' ? { distancePerCell: 1, unit } : { distancePerCell, unit })
               }
             : { kind: 'GRIDLESS', pixelsPerUnit: cellSize, unit },
         lights: [],
@@ -396,17 +396,23 @@ export function CampaignScenePreparation({
                 label='Distance unit'
                 value={unit}
                 onChange={(value) => {
-                  if (value === 'FEET' || value === 'METERS' || value === 'SQUARES') setUnit(value)
+                  if (value !== 'FEET' && value !== 'METERS' && value !== 'SQUARES') return
+                  if (value === 'SQUARES') setDistancePerCell(1)
+                  else if (unit === 'SQUARES') setDistancePerCell(SYSTEM_BASE_SQUARE_FEET)
+                  setUnit(value)
                 }}
               />
               {gridKind === 'SQUARE' ? (
                 <>
                   <NumberInput
                     decimalScale={2}
+                    disabled={unit === 'SQUARES'}
                     label='Distance per cell'
                     min={0.01}
                     value={distancePerCell}
-                    onChange={(value) => setDistancePerCell(asPositiveNumber(value, 5))}
+                    onChange={(value) =>
+                      setDistancePerCell(asPositiveNumber(value, SYSTEM_BASE_SQUARE_FEET))
+                    }
                   />
                   <NumberInput
                     decimalScale={2}

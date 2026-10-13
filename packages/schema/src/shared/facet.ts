@@ -28,6 +28,7 @@ import {
 import {
   AUTHORED_LIMITS,
   authoredIdentifierSchema,
+  authoredLengthAmountSchema,
   unknownObjectSchema,
   authoredNestedCollectionSchema,
   authoredReferenceCollectionSchema
@@ -93,8 +94,8 @@ const rangePredicatePayloadSchema = lazySchema(() =>
         )
       },
       {
-        min: z.number(),
-        max: z.optional(z.number()),
+        min: authoredLengthAmountSchema,
+        max: z.optional(authoredLengthAmountSchema),
         unit: lengthUnitCodeSchema
       }
     )

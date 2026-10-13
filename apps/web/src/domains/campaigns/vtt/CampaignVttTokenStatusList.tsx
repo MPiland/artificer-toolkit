@@ -19,9 +19,11 @@ const categoryIcons = {
  * segment. The ring shows at most eight segments, so this is where all of them are read.
  */
 export function CampaignVttTokenStatusList({
+  dispositionLabel,
   label,
   statuses
 }: {
+  dispositionLabel: VttTokenPresentation['dispositionLabel']
   label: string
   statuses: VttTokenPresentation['statuses']
 }) {
@@ -30,6 +32,7 @@ export function CampaignVttTokenStatusList({
       <Text fw={650} size='xs'>
         {label}
       </Text>
+      {dispositionLabel ? <Text size='xs'>{dispositionLabel}</Text> : null}
       <List listStyleType='none' size='xs' spacing={2}>
         {statuses.map((status) => {
           const Icon = categoryIcons[status.category]

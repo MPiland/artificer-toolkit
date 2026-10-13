@@ -937,7 +937,7 @@ it('rejects a Scene definition token that carries Character-derived senses, and 
         channel: 'VISUAL' as const,
         illuminationAccess: 'ORDINARY_DARKNESS' as const,
         label: 'Darkvision',
-        range: 60,
+        range: { rangeKind: 'DISTANCE' as const, amount: 60 },
         senseId: crypto.randomUUID()
       }
     ],

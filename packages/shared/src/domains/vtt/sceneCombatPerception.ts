@@ -12,7 +12,8 @@ import {
   scenePointInPolygon
 } from './geometry.js'
 import type { CampaignSceneState, SceneGrid, SceneLight, ScenePoint, SceneToken } from './scene.js'
-import { lengthMeasurementInSceneUnits } from './sceneReducer.js'
+import { SYSTEM_BASE_SQUARE_FEET } from './scene.js'
+import { feetInSceneUnit } from './sceneReducer.js'
 
 const illuminationRank: Readonly<Record<CombatPerceptionIllumination, number>> = {
   BRIGHT: 0,
@@ -47,15 +48,12 @@ function closestIntervalCoordinates(
   return [sharedCoordinate, sharedCoordinate]
 }
 
-/** The System's base square (SRD 5.1: 5 feet), which a gridless Scene adds to the edge gap. */
-const SYSTEM_BASE_SQUARE = { amount: 5, unit: 'FEET' } as const
-
 /**
- * The base square in gridless Scene units: 5 feet, or one square on an uncalibrated Scene. Adding it
+ * The base square in gridless Scene units: 5 feet, or one square on a SQUARES Scene. Adding it
  * to the footprint edge gap makes adjacent 5 feet, so reach means the same on every Scene.
  */
 export function gridlessBaseSquare(grid: Extract<SceneGrid, { kind: 'GRIDLESS' }>): number {
-  return grid.unit === 'SQUARES' ? 1 : lengthMeasurementInSceneUnits(SYSTEM_BASE_SQUARE, grid)
+  return feetInSceneUnit(SYSTEM_BASE_SQUARE_FEET, grid.unit)
 }
 
 /**

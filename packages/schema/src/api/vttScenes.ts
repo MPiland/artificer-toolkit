@@ -20,7 +20,7 @@ import type {
   SceneTokenVision,
   SceneTransientEnvelope
 } from '@artificer-toolkit/shared/vtt/scene'
-import { VTT_SCENE_LIMITS } from '@artificer-toolkit/shared/vtt/scene'
+import { SCENE_LENGTH_AMOUNT_MAX, VTT_SCENE_LIMITS } from '@artificer-toolkit/shared/vtt/scene'
 import { z, lazySchema, lazySchemaParts } from '../zod.js'
 
 import { encounterRuleOccurrenceSummaryDtoSchema } from '../shared/encounterRuleOccurrence.js'
@@ -111,29 +111,39 @@ const sceneDistanceUnitDtoSchema = lazySchema(() => z.enum(['FEET', 'METERS', 'S
 export const sceneDiagonalPolicyDtoSchema = lazySchema(() =>
   z.enum(['EQUAL', 'ALTERNATING', 'EUCLIDEAN'])
 )
-export const sceneGridDtoSchema: z.ZodMiniType<SceneGrid> = lazySchema(() =>
-  z.discriminatedUnion('kind', [
-    z.strictObject({
-      kind: z.literal('SQUARE'),
-      cellSize: positiveDistanceSchema.check(z.gte(1)),
-      diagonalPolicy: sceneDiagonalPolicyDtoSchema,
-      distancePerCell: positiveDistanceSchema,
-      origin: scenePointDtoSchema,
-      unit: sceneDistanceUnitDtoSchema
-    }),
+export const sceneGridDtoSchema: z.ZodMiniType<SceneGrid> = lazySchema(() => {
+  const squareGridFields = {
+    kind: z.literal('SQUARE'),
+    cellSize: positiveDistanceSchema.check(z.gte(1)),
+    diagonalPolicy: sceneDiagonalPolicyDtoSchema,
+    origin: scenePointDtoSchema
+  }
+  return z.discriminatedUnion('kind', [
+    z.discriminatedUnion('unit', [
+      z.strictObject({
+        ...squareGridFields,
+        distancePerCell: positiveDistanceSchema,
+        unit: z.enum(['FEET', 'METERS'])
+      }),
+      z.strictObject({
+        ...squareGridFields,
+        distancePerCell: z.literal(1),
+        unit: z.literal('SQUARES')
+      })
+    ]),
     z.strictObject({
       kind: z.literal('GRIDLESS'),
       pixelsPerUnit: positiveDistanceSchema,
       unit: sceneDistanceUnitDtoSchema
     })
   ])
-)
+})
 
 export const sceneTokenVisionDtoSchema: z.ZodMiniType<SceneTokenVision> = lazySchema(() =>
   z.strictObject({
     angleDegrees: z.number().check(z.positive()).check(z.lte(360)),
-    brightRange: z.number().check(z.nonnegative()).check(z.lte(1_000_000)),
-    dimRange: z.number().check(z.nonnegative()).check(z.lte(1_000_000)),
+    brightRange: z.number().check(z.nonnegative()).check(z.lte(SCENE_LENGTH_AMOUNT_MAX)),
+    dimRange: z.number().check(z.nonnegative()).check(z.lte(SCENE_LENGTH_AMOUNT_MAX)),
     directionDegrees: degreesSchema,
     enabled: z.boolean()
   })
@@ -144,7 +154,13 @@ export const sceneTokenSenseDtoSchema: z.ZodMiniType<SceneTokenSense> = lazySche
     channel: combatPerceptionChannelDtoSchema,
     illuminationAccess: combatPerceptionIlluminationAccessDtoSchema,
     label: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)),
-    range: z.number().check(z.positive()).check(z.lte(1_000_000)),
+    range: z.union([
+      z.strictObject({ rangeKind: z.literal('UNLIMITED') }),
+      z.strictObject({
+        rangeKind: z.literal('DISTANCE'),
+        amount: z.number().check(z.positive()).check(z.lte(SCENE_LENGTH_AMOUNT_MAX))
+      })
+    ]),
     senseId: postgresUuidSchema
   })
 )
@@ -243,9 +259,9 @@ export const sceneBarrierDtoSchema: z.ZodMiniType<SceneBarrier> = lazySchema(() 
 )
 
 const sceneLightBase = lazySchemaParts(() => ({
-  brightRadius: z.number().check(z.nonnegative()).check(z.lte(1_000_000)),
+  brightRadius: z.number().check(z.nonnegative()).check(z.lte(SCENE_LENGTH_AMOUNT_MAX)),
   color: z.string().check(z.regex(/^#[0-9a-fA-F]{6}$/)),
-  dimRadius: z.number().check(z.nonnegative()).check(z.lte(1_000_000)),
+  dimRadius: z.number().check(z.nonnegative()).check(z.lte(SCENE_LENGTH_AMOUNT_MAX)),
   id: uuidSchema,
   intensity: z.number().check(z.gte(0)).check(z.lte(1)),
   position: scenePointDtoSchema

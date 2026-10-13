@@ -162,16 +162,21 @@ export const LENGTH_UNIT_CODES = [
 
 export type LengthUnitCode = (typeof LENGTH_UNIT_CODES)[number]
 
-const LENGTH_TO_FEET: Record<LengthUnitCode, (amount: number) => number> = {
-  [MEASUREMENT_UNIT_CODE.INCHES]: (amount) => amount / 12,
-  [MEASUREMENT_UNIT_CODE.FEET]: (amount) => amount,
-  [MEASUREMENT_UNIT_CODE.YARDS]: (amount) => amount * 3,
-  [MEASUREMENT_UNIT_CODE.MILES]: (amount) => amount * 5_280
+const FEET_PER_LENGTH_UNIT: Record<LengthUnitCode, number> = {
+  [MEASUREMENT_UNIT_CODE.INCHES]: 1 / 12,
+  [MEASUREMENT_UNIT_CODE.FEET]: 1,
+  [MEASUREMENT_UNIT_CODE.YARDS]: 3,
+  [MEASUREMENT_UNIT_CODE.MILES]: 5_280
 }
 
 /** Feet in a typed length; the one conversion every length consumer shares. */
 export function lengthMeasurementInFeet(length: { amount: number; unit: LengthUnitCode }): number {
-  return LENGTH_TO_FEET[length.unit](length.amount)
+  return length.amount * FEET_PER_LENGTH_UNIT[length.unit]
+}
+
+/** The amount of a length unit that makes the given feet; the inverse of `lengthMeasurementInFeet`. */
+export function feetInLengthUnit(feet: number, unit: LengthUnitCode): number {
+  return feet / FEET_PER_LENGTH_UNIT[unit]
 }
 
 export const LENGTH_UNIT_OPTIONS: readonly MeasurementUnitOption[] = LENGTH_UNIT_CODES.map(
