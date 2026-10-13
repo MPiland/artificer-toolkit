@@ -7092,14 +7092,6 @@
               "id": "RELIABILITY-9.4"
             },
             {
-              "text": "Authoring form state has one owner: the top-level TanStack form and narrowly scoped contexts, with no child-to-parent state mirroring through effects.",
-              "status": "TODO",
-              "proof": [],
-              "origin": [],
-              "note": "Waits on the open question in phase-08-2-open-questions.md. AuthoringFormContext/AuthoringFormProvider (884 lines, about 70 fields, 26 useAuthoringForm() consumers) is fed by FormRenderer.tsx:441-459 through updateAuthoringFormState/updateAuthoringFormActions effects; AuthoringLayoutProvider layers a 17-field context on it; CharacterSheetRollContext is a 16-field controller. Second pass: CharacterBuilderStateSync.tsx:25-63 and CharacterBuilderRenderer.tsx:136-148 both patch isSubmitting, canSubmit and canFinalize with different values (last writer wins; the Renderer can clear the mutation-pending flag); forms/layout/AuthoringFormContext.ts:19 imports a builder type, inverting forms -> domains.",
-              "id": "RELIABILITY-9.5"
-            },
-            {
               "text": "When sign-out fails, the page says so and offers a retry instead of showing \"Signing you out...\" forever; cached data is cleared only after sign-out succeeds and the page is still mounted.",
               "status": "TODO",
               "proof": [],
@@ -7122,6 +7114,40 @@
               "origin": [],
               "note": "characterBuilderAuthoringSession.ts:43/64, builderEvaluator.ts:40/41/134, abilityGeneration.ts:43/179/199, dependencyClearing.ts:174, SocialHubNavigation.tsx:27, SocialListingFormPage.tsx:212-213, MarketingLinks.tsx:49-60, DiceSettingsControls.tsx:63, CampaignEncounterWorkspace.tsx:147.",
               "id": "RELIABILITY-9.8"
+            }
+          ]
+        },
+        {
+          "id": "RELIABILITY-10",
+          "title": "Authoring forms have one state owner and re-render only what changed",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": [],
+          "acs": [
+            {
+              "text": "Authoring form values and form flags live only in the top-level TanStack form; contexts hold only stable, non-form coordination (actions, navigation, mode, layout) split by behaviour, and no component copies state into a parent through an effect.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "OQ-1 option 1 (product owner, 2026-10-13). Sequenced after RELIABILITY-8.1. Replaces AuthoringFormContext/AuthoringFormProvider (884 lines, about 70 fields, 26 useAuthoringForm() consumers) fed by FormRenderer.tsx:441-459 updateAuthoringFormState/updateAuthoringFormActions effects, the 17-field AuthoringLayoutProvider, and the 16-field CharacterSheetRollContext controller. forms/layout/AuthoringFormContext.ts:19 imports a builder type (forms -> domains inversion) and goes too.",
+              "id": "RELIABILITY-10.1"
+            },
+            {
+              "text": "Typing into one authoring field re-renders only that field and the components whose displayed flag changed: no component subscribes to all values or all field meta, node resolution reads values through a debounced store subscription outside render, and step status and progress come from narrow selectors.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Proved by a render-count test on a real authored form plus a React Profiler before/after in local-validation. Today FormRenderer.tsx:126 subscribes to state.values and :138 to state.fieldMeta, both new references per keystroke. TanStack react-store 0.11.2 useSelector compares with ===; object or array selectors need { compare: shallow } (tanstack/form#2090).",
+              "id": "RELIABILITY-10.2"
+            },
+            {
+              "text": "The character builder's submit, finalize and saving state each come from one source, so a pending save is never shown as idle.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Bug, needs a red-first regression test. CharacterBuilderStateSync.tsx:25-63 and CharacterBuilderRenderer.tsx:136-148 both patch isSubmitting, canSubmit and canFinalize with different values; the last writer wins, and the Renderer can clear the mutation-pending flag.",
+              "id": "RELIABILITY-10.3"
             }
           ]
         }

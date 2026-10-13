@@ -1057,6 +1057,12 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
 
 ## Resolved
 
+- **OQ-1, authoring form state (RELIABILITY-10, 2026-10-13).** Product owner chose option 1, including narrowed subscriptions.
+  - The top-level TanStack form is the only store for form values and form flags. Contexts hold only stable, non-form coordination (actions, navigation, mode, layout), split by behaviour. No component copies state into a parent through an effect. This replaces `AuthoringFormContext`/`AuthoringFormProvider` (about 70 fields), `AuthoringLayoutProvider` and the `CharacterSheetRollContext` controller.
+  - **Subscriptions:** no component subscribes to all values or all field meta. Node resolution reads values through a debounced store subscription outside render. Step status and progress come from narrow selectors, and each button, header or footer selects only the flags it shows. `useSelector` (react-store 0.11.2) compares with `===`, so object or array selectors pass `{ compare: shallow }` (tanstack/form#2090).
+  - **Why:** TanStack's guidance favours many narrow subscribers. Broad `values`/`fieldMeta` subscriptions and effect mirroring re-render the renderer and every context consumer on each keystroke, a frame late. The mirroring also causes the builder bug where two writers set `isSubmitting`, `canSubmit` and `canFinalize` differently (RELIABILITY-10.3).
+  - **Proof:** a render-count test on a real authored form, plus a React Profiler before/after under `local-validation`. Sequenced after RELIABILITY-8.1's typed form factory.
+
 - **OQ-2, feature-named rule kinds and spell-named effect kinds (2026-10-13).** Product owner chose option 1. Rule kinds named after one feature and effect kinds named after one spell (PLANT_PORTAL, TREE_STRIDE, TELEPATHIC_LINK) are replaced with general mechanics incrementally: each automation PBI replaces the named kinds it touches, per ADR 0023 ("codes are not dispatch keys"). No one-pass redesign of the rule vocabulary. New automation must not add feature- or spell-named kinds.
 
 - **Q3, token rings (VTT_UI-1.1, 2026-10-12).** Disposition rings: red Hostile, blue Friendly, purple Neutral.
