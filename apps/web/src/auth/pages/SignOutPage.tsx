@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useRouter } from '@tanstack/react-router'
 import { authButton, authFormMessage, authFormMessageError, transitionContent } from '../auth.css'
-import { browserAuthClient } from '../authClient'
+import { browserAuthClient, type AuthResult } from '../authClient'
 import { AuthPageShell } from '../components/AuthPageShell'
 
 export function SignOutPage() {
@@ -11,7 +11,7 @@ export function SignOutPage() {
   const queryClient = useQueryClient()
   const router = useRouter()
   const [attempt, setAttempt] = useState(0)
-  const [failure, setFailure] = useState<string>()
+  const [failure, setFailure] = useState<AuthResult>()
 
   useEffect(() => {
     let cancelled = false
@@ -20,7 +20,7 @@ export function SignOutPage() {
       const result = await browserAuthClient.signOut()
       if (cancelled) return
       if (!result.ok) {
-        setFailure(result.message ?? 'Could not sign out. Try again.')
+        setFailure(result)
         return
       }
 
@@ -42,7 +42,7 @@ export function SignOutPage() {
         {failure ? (
           <>
             <p className={`${authFormMessage} ${authFormMessageError}`} role='alert'>
-              {failure}
+              {failure.message}
             </p>
             <Button
               className={authButton}

@@ -65,6 +65,35 @@ describe('useServerDraft', () => {
     expect(result.current.conflicts).toEqual([])
   })
 
+  it('replaces a committed edit with the value the server stored, without a conflict', () => {
+    const { result, rerender } = setup({ hp: 10, notes: 'a' })
+
+    act(() => result.current.setValue('notes', 'b '))
+    act(() => result.current.markCommitted('notes'))
+    expect(result.current.values.notes).toBe('b ')
+    expect(result.current.conflicts).toEqual([])
+
+    rerender({ server: { hp: 10, notes: 'b' } })
+
+    expect(result.current.values.notes).toBe('b')
+    expect(result.current.conflicts).toEqual([])
+
+    rerender({ server: { hp: 10, notes: 'c' } })
+    expect(result.current.values.notes).toBe('c')
+  })
+
+  it('treats a stored value that arrives before the commit is marked as no conflict', () => {
+    const { result, rerender } = setup({ hp: 10, notes: 'a' })
+
+    act(() => result.current.setValue('notes', 'b '))
+    act(() => result.current.markCommitted('notes'))
+    rerender({ server: { hp: 10, notes: 'b' } })
+    act(() => result.current.markCommitted('notes'))
+
+    expect(result.current.values.notes).toBe('b')
+    expect(result.current.conflicts).toEqual([])
+  })
+
   it('drops an edit typed back to the server value', () => {
     const { result, rerender } = setup({ hp: 10, notes: '' })
 

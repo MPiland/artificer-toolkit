@@ -58,12 +58,8 @@ interface EncounterActorCardProps {
   onCommand: (payload: EncounterCommandPayload) => void
 }
 
-/** Keyed by actor so another actor starts from its own values, never the previous draft. */
-export function EncounterActorCard(props: EncounterActorCardProps) {
-  return <EncounterActorEditor key={props.actor.id} {...props} />
-}
-
-function EncounterActorEditor({
+/** Callers key it by `actor.id` so another actor starts from its own values, never the previous draft. */
+export function EncounterActorCard({
   actor,
   campaign,
   currentUserId,

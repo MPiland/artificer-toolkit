@@ -20,8 +20,10 @@ const enemy = encounterGmActorDtoSchema.parse({
 })
 
 function card(actor: EncounterGmActorDto, onCommand = vi.fn()) {
+  // CampaignEncounterWorkspace renders each card inside an Accordion.Item keyed by actor.id.
   return (
     <EncounterActorCard
+      key={actor.id}
       actor={actor}
       campaign={campaign}
       currentUserId='user-1'

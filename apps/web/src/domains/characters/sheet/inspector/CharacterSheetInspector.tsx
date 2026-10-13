@@ -101,7 +101,6 @@ export function CharacterSheetInspector({
         </div>
       ) : panelQuery.data ? (
         <CharacterSheetInspectorContent
-          key={JSON.stringify(target)}
           expectedVersion={expectedVersion}
           equipmentItems={
             equipmentItems ??

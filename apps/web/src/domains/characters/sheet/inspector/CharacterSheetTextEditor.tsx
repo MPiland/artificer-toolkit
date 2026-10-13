@@ -34,8 +34,14 @@ export function CharacterSheetTextEditor({
 
   async function commit() {
     const nextValue = value.trim() || null
-    if (nextValue === (editor.value || null)) return
+    if (nextValue === (editor.value || null)) {
+      draft.acceptLatest('value')
+      return
+    }
     setError(undefined)
+    // Marked before the save settles: the server's stored (trimmed) value can arrive first.
+    draft.markCommitted('value')
+    // Marked before the save settles: the server's stored (trimmed) value can arrive first.
     if (await onCommit(nextValue)) return
 
     draft.acceptLatest('value')
@@ -50,8 +56,10 @@ export function CharacterSheetTextEditor({
     maxLength: editor.maximumLength,
     value,
     onBlur: () => void commit(),
-    onChange: (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+    onChange: (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      setError(undefined)
       draft.setValue('value', event.currentTarget.value)
+    }
   }
 
   return (

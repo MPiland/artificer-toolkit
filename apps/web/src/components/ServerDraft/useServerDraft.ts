@@ -2,7 +2,9 @@ import { useState } from 'react'
 
 export type DraftFields = Record<string, string | number | boolean>
 
-type Edits<T extends DraftFields> = { [K in keyof T]?: { value: T[K]; seen: T[K] } }
+type Edits<T extends DraftFields> = {
+  [K in keyof T]?: { value: T[K]; seen: T[K]; committed?: true }
+}
 
 export interface ServerDraft<T extends DraftFields> {
   /** The edited value for each field being edited, the server value for every other field. */
@@ -16,6 +18,22 @@ export interface ServerDraft<T extends DraftFields> {
   acceptLatest: (key: keyof T & string) => void
   /** Acknowledges the server change and keeps the edit. */
   keepMine: (key: keyof T & string) => void
+  /**
+   * Call after the owner's own save of this field succeeded. The edit stays on screen until the
+   * server's next value replaces it, so a value the server stored differently (trimmed, clamped)
+   * is neither a conflict nor a flash of the pre-edit value.
+   */
+  markCommitted: (key: keyof T & string) => void
+}
+
+function editedKeysOf<T extends DraftFields>(edits: Edits<T>, server: T) {
+  return Object.keys(edits).filter((key): key is keyof T & string => key in server)
+}
+
+function keepEdits<T extends DraftFields>(edits: Edits<T>, keys: (keyof T & string)[]): Edits<T> {
+  const kept: Edits<T> = {}
+  for (const key of keys) kept[key] = edits[key]
+  return kept
 }
 
 /**
@@ -27,10 +45,14 @@ export interface ServerDraft<T extends DraftFields> {
 export function useServerDraft<T extends DraftFields>(server: T): ServerDraft<T> {
   const [edits, setEdits] = useState<Edits<T>>({})
 
-  const editedKeys = Object.keys(edits) as (keyof T & string)[]
-  const liveKeys = editedKeys.filter((key) => !Object.is(edits[key]?.value, server[key]))
+  const editedKeys = editedKeysOf(edits, server)
+  const liveKeys = editedKeys.filter((key) => {
+    const edit = edits[key]
+    if (!edit || Object.is(edit.value, server[key])) return false
+    return !(edit.committed && !Object.is(edit.seen, server[key]))
+  })
   if (liveKeys.length !== editedKeys.length) {
-    setEdits(Object.fromEntries(liveKeys.map((key) => [key, edits[key]])) as Edits<T>)
+    setEdits(keepEdits(edits, liveKeys))
   }
 
   const values = { ...server }
@@ -39,7 +61,7 @@ export function useServerDraft<T extends DraftFields>(server: T): ServerDraft<T>
     const edit = edits[key]
     if (!edit) continue
     values[key] = edit.value
-    if (!Object.is(edit.seen, server[key])) conflicts.push(key)
+    if (!edit.committed && !Object.is(edit.seen, server[key])) conflicts.push(key)
   }
 
   return {
@@ -52,16 +74,21 @@ export function useServerDraft<T extends DraftFields>(server: T): ServerDraft<T>
         [key]: { value, seen: current[key]?.seen ?? server[key] }
       })),
     acceptLatest: (key) =>
-      setEdits(
-        (current) =>
-          Object.fromEntries(
-            Object.entries(current).filter(([edited]) => edited !== key)
-          ) as Edits<T>
+      setEdits((current) =>
+        keepEdits(
+          current,
+          editedKeysOf(current, server).filter((edited) => edited !== key)
+        )
       ),
     keepMine: (key) =>
       setEdits((current) => {
         const edit = current[key]
         return edit ? { ...current, [key]: { ...edit, seen: server[key] } } : current
+      }),
+    markCommitted: (key) =>
+      setEdits((current) => {
+        const edit = current[key]
+        return edit ? { ...current, [key]: { ...edit, committed: true } } : current
       })
   }
 }
