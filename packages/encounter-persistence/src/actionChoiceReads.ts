@@ -2,6 +2,7 @@ import {
   encounterActionEconomyWarnings,
   encounterActionSuppressedWarning
 } from '@artificer-toolkit/rules-runtime/encounterActionRuleWarnings'
+import { encounterActionChoiceRange } from '@artificer-toolkit/rules-runtime/encounterActionRange'
 import { encounterActionChoiceTarget } from '@artificer-toolkit/rules-runtime/encounterAreaAction'
 import { buildCompiledActionTargetPolicy } from '@artificer-toolkit/rules-runtime/encounterActionEntryPointCompiler'
 import { encounterAttackActionState } from '@artificer-toolkit/rules-runtime/encounterActorState'
@@ -175,7 +176,10 @@ export async function readEncounterActionChoices(
           id: action.id,
           label: action.label,
           ...(action.sourceLabel ? { sourceLabel: action.sourceLabel } : {}),
-          ...(action.mechanic?.rangeLabel ? { rangeLabel: action.mechanic.rangeLabel } : {}),
+          ...encounterActionChoiceRange(
+            entry?.kind === 'CHARACTER_ACTION' ? entry.targetPolicy : undefined,
+            action.mechanic?.rangeLabel
+          ),
           ...(action.mechanic?.attackBonus === undefined
             ? {}
             : { attackBonus: action.mechanic.attackBonus }),
@@ -232,6 +236,7 @@ export async function readEncounterActionChoices(
           return {
             id: action.actionId,
             label: action.label,
+            ...encounterActionChoiceRange(buildCompiledActionTargetPolicy(action)),
             ...(action.attackMechanic ? { attackBonus: action.attackMechanic.attackBonus } : {}),
             grip: action.grip
               ? {
@@ -275,6 +280,7 @@ export async function readEncounterActionChoices(
         return {
           id: action.actionId,
           label: action.label,
+          ...encounterActionChoiceRange(buildCompiledActionTargetPolicy(action)),
           rulesText: authoredEntries.find(({ definition }) => definition.id === action.definitionId)
             ?.document.rulesText,
           grip: null,

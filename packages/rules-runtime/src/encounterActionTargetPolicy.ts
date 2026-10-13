@@ -9,6 +9,7 @@ import {
   type SceneToken
 } from '@artificer-toolkit/shared/vtt'
 import type { EncounterRelationshipD20Contributor } from './encounterRelationshipActionFacts.js'
+import { TOUCH_RANGE } from './encounterActionRange.js'
 import { ENCOUNTER_LONG_RANGE_CONTRIBUTOR_SOURCE_ID } from './encounterRollModeReasons.js'
 
 type DispositionActor = { id: string; disposition: EncounterActorDispositionDto }
@@ -21,9 +22,6 @@ export type EncounterActionSceneContext = {
   sourceToken: SceneTokenGeometry
   targetToken: SceneTokenGeometry
 }
-
-/** A single-target Touch action reaches an adjacent creature: a 5-foot range that only warns. */
-const TOUCH_RANGE = { amount: 5, unit: 'FEET' } as const
 
 const RANGE_UNCHECKED: EncounterRuleWarningDto = {
   code: 'TARGET_RANGE_UNCHECKED',

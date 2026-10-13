@@ -267,6 +267,13 @@ authored radius or cube edge (`encounterActionChoiceTarget`). A policy this path
 line, wall or dome) stays an actor choice and is refused when resolved. The web converts the area to Scene
 coordinates with `pointAreaInSceneCoordinates` (`shared/vtt`), the same function `compileEncounterPointArea`
 uses, to preview it and list the tokens the viewer sees inside; the room still decides who is caught.
+
+Each choice also carries `range` when its compiled target policy has a measurable one: `SELF`, `WITHIN` (Touch is 5 ft; a
+distance without a long range, including the 0 ft swarm space), `RANGED` (normal and long) or `UNLIMITED`. A sight or
+special range, or no policy, leaves it off. `encounterActionRange` (`encounterActionRange.ts`) is the one mapping,
+and `rangeLabel` is derived from it by `encounterActionRangeLabel`; only a choice without `range` keeps the
+label of its action mechanic.
+
 Per-role visibility and the command flow are in
 [live-sessions.md](live-sessions.md#encounter-commands); the decision is
 [D103](../handoffs/phase-08-2-decisions.md).

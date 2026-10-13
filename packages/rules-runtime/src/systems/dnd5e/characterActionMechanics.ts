@@ -3,6 +3,7 @@ import type {
   CharacterActionModelOutput
 } from '@artificer-toolkit/schema/api/characterActionRules'
 
+import { formatAmount, formatRangeLength, titleCase } from '../../encounterActionRange.js'
 import { dnd5eAttackKind, dnd5eAttackModifierDomain, isDnd5eSpellAttackKind } from './attackKind.js'
 import {
   DND5E_CHARACTER_WIDE_TARGET,
@@ -60,22 +61,10 @@ function clamp(value: number, minimum: number | null, maximum: number | null): n
   )
 }
 
-function formatNumber(value: number): string {
-  return Number.isInteger(value) ? String(value) : String(Number(value.toFixed(2)))
-}
-
-function titleCase(value: string): string {
-  return value
-    .toLowerCase()
-    .split('_')
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ')
-}
-
 function formatExpression(value: number | string, bonus: number): string {
-  const base = typeof value === 'number' ? formatNumber(value) : value
+  const base = typeof value === 'number' ? formatAmount(value) : value
   if (bonus === 0) return base
-  return bonus > 0 ? `${base} + ${formatNumber(bonus)}` : `${base} - ${formatNumber(-bonus)}`
+  return bonus > 0 ? `${base} + ${formatAmount(bonus)}` : `${base} - ${formatAmount(-bonus)}`
 }
 
 /**
@@ -177,15 +166,7 @@ function resolveOutcomeValue(
 function rangeLabel(range: ActionCandidate['mechanicFacts']['invocation']['range']): string {
   if (range.rangeKind !== 'DISTANCE' || range.amount === null || range.unit === null)
     return titleCase(range.rangeKind)
-  const unit =
-    range.unit === 'FEET' || range.unit === 'FOOT'
-      ? 'ft'
-      : range.unit === 'MILES' || range.unit === 'MILE'
-        ? 'mi'
-        : range.unit === 'METERS' || range.unit === 'METER'
-          ? 'm'
-          : titleCase(range.unit)
-  return `${formatNumber(range.amount)} ${unit}`
+  return formatRangeLength({ amount: range.amount, unit: range.unit })
 }
 
 export function resolveDnd5eActionMechanic(

@@ -132135,6 +132135,369 @@ export declare const api: {
             } | null;
             id: string;
             label: string;
+            range?:
+              | { kind: "SELF" }
+              | {
+                  distance: {
+                    amount: number;
+                    scaling?:
+                      | {
+                          breakpoints: Array<{
+                            id: string;
+                            level: number;
+                            order: number;
+                            value: {
+                              amount: number;
+                              unit:
+                                | "POUNDS"
+                                | "GALLONS"
+                                | "INCHES"
+                                | "FEET"
+                                | "YARDS"
+                                | "MILES"
+                                | "OUNCES"
+                                | "CUPS"
+                                | "TABLESPOONS"
+                                | "TEASPOONS"
+                                | "LITERS"
+                                | "QUARTS";
+                            };
+                          }>;
+                          scalingKind: "BREAKPOINTS";
+                          scalingSource: "CHARACTER_LEVEL";
+                        }
+                      | {
+                          breakpoints: Array<{
+                            id: string;
+                            level: number;
+                            order: number;
+                            value: {
+                              amount: number;
+                              unit:
+                                | "POUNDS"
+                                | "GALLONS"
+                                | "INCHES"
+                                | "FEET"
+                                | "YARDS"
+                                | "MILES"
+                                | "OUNCES"
+                                | "CUPS"
+                                | "TABLESPOONS"
+                                | "TEASPOONS"
+                                | "LITERS"
+                                | "QUARTS";
+                            };
+                          }>;
+                          classId: string;
+                          scalingKind: "BREAKPOINTS";
+                          scalingSource: "CLASS_LEVEL";
+                        }
+                      | {
+                          breakpoints: Array<{
+                            id: string;
+                            level: number;
+                            order: number;
+                            value: {
+                              amount: number;
+                              unit:
+                                | "POUNDS"
+                                | "GALLONS"
+                                | "INCHES"
+                                | "FEET"
+                                | "YARDS"
+                                | "MILES"
+                                | "OUNCES"
+                                | "CUPS"
+                                | "TABLESPOONS"
+                                | "TEASPOONS"
+                                | "LITERS"
+                                | "QUARTS";
+                            };
+                          }>;
+                          scalingKind: "BREAKPOINTS";
+                          scalingSource: "PARENT_CLASS_LEVEL";
+                        }
+                      | {
+                          breakpoints: Array<{
+                            id: string;
+                            level: number;
+                            order: number;
+                            value: {
+                              amount: number;
+                              unit:
+                                | "POUNDS"
+                                | "GALLONS"
+                                | "INCHES"
+                                | "FEET"
+                                | "YARDS"
+                                | "MILES"
+                                | "OUNCES"
+                                | "CUPS"
+                                | "TABLESPOONS"
+                                | "TEASPOONS"
+                                | "LITERS"
+                                | "QUARTS";
+                            };
+                          }>;
+                          scalingKind: "BREAKPOINTS";
+                          scalingSource: "SPELL_CAST_LEVEL";
+                        };
+                    unit:
+                      | "POUNDS"
+                      | "GALLONS"
+                      | "INCHES"
+                      | "FEET"
+                      | "YARDS"
+                      | "MILES"
+                      | "OUNCES"
+                      | "CUPS"
+                      | "TABLESPOONS"
+                      | "TEASPOONS"
+                      | "LITERS"
+                      | "QUARTS";
+                  };
+                  kind: "WITHIN";
+                }
+              | {
+                  kind: "RANGED";
+                  long: {
+                    amount: number;
+                    scaling?:
+                      | {
+                          breakpoints: Array<{
+                            id: string;
+                            level: number;
+                            order: number;
+                            value: {
+                              amount: number;
+                              unit:
+                                | "POUNDS"
+                                | "GALLONS"
+                                | "INCHES"
+                                | "FEET"
+                                | "YARDS"
+                                | "MILES"
+                                | "OUNCES"
+                                | "CUPS"
+                                | "TABLESPOONS"
+                                | "TEASPOONS"
+                                | "LITERS"
+                                | "QUARTS";
+                            };
+                          }>;
+                          scalingKind: "BREAKPOINTS";
+                          scalingSource: "CHARACTER_LEVEL";
+                        }
+                      | {
+                          breakpoints: Array<{
+                            id: string;
+                            level: number;
+                            order: number;
+                            value: {
+                              amount: number;
+                              unit:
+                                | "POUNDS"
+                                | "GALLONS"
+                                | "INCHES"
+                                | "FEET"
+                                | "YARDS"
+                                | "MILES"
+                                | "OUNCES"
+                                | "CUPS"
+                                | "TABLESPOONS"
+                                | "TEASPOONS"
+                                | "LITERS"
+                                | "QUARTS";
+                            };
+                          }>;
+                          classId: string;
+                          scalingKind: "BREAKPOINTS";
+                          scalingSource: "CLASS_LEVEL";
+                        }
+                      | {
+                          breakpoints: Array<{
+                            id: string;
+                            level: number;
+                            order: number;
+                            value: {
+                              amount: number;
+                              unit:
+                                | "POUNDS"
+                                | "GALLONS"
+                                | "INCHES"
+                                | "FEET"
+                                | "YARDS"
+                                | "MILES"
+                                | "OUNCES"
+                                | "CUPS"
+                                | "TABLESPOONS"
+                                | "TEASPOONS"
+                                | "LITERS"
+                                | "QUARTS";
+                            };
+                          }>;
+                          scalingKind: "BREAKPOINTS";
+                          scalingSource: "PARENT_CLASS_LEVEL";
+                        }
+                      | {
+                          breakpoints: Array<{
+                            id: string;
+                            level: number;
+                            order: number;
+                            value: {
+                              amount: number;
+                              unit:
+                                | "POUNDS"
+                                | "GALLONS"
+                                | "INCHES"
+                                | "FEET"
+                                | "YARDS"
+                                | "MILES"
+                                | "OUNCES"
+                                | "CUPS"
+                                | "TABLESPOONS"
+                                | "TEASPOONS"
+                                | "LITERS"
+                                | "QUARTS";
+                            };
+                          }>;
+                          scalingKind: "BREAKPOINTS";
+                          scalingSource: "SPELL_CAST_LEVEL";
+                        };
+                    unit:
+                      | "POUNDS"
+                      | "GALLONS"
+                      | "INCHES"
+                      | "FEET"
+                      | "YARDS"
+                      | "MILES"
+                      | "OUNCES"
+                      | "CUPS"
+                      | "TABLESPOONS"
+                      | "TEASPOONS"
+                      | "LITERS"
+                      | "QUARTS";
+                  };
+                  normal: {
+                    amount: number;
+                    scaling?:
+                      | {
+                          breakpoints: Array<{
+                            id: string;
+                            level: number;
+                            order: number;
+                            value: {
+                              amount: number;
+                              unit:
+                                | "POUNDS"
+                                | "GALLONS"
+                                | "INCHES"
+                                | "FEET"
+                                | "YARDS"
+                                | "MILES"
+                                | "OUNCES"
+                                | "CUPS"
+                                | "TABLESPOONS"
+                                | "TEASPOONS"
+                                | "LITERS"
+                                | "QUARTS";
+                            };
+                          }>;
+                          scalingKind: "BREAKPOINTS";
+                          scalingSource: "CHARACTER_LEVEL";
+                        }
+                      | {
+                          breakpoints: Array<{
+                            id: string;
+                            level: number;
+                            order: number;
+                            value: {
+                              amount: number;
+                              unit:
+                                | "POUNDS"
+                                | "GALLONS"
+                                | "INCHES"
+                                | "FEET"
+                                | "YARDS"
+                                | "MILES"
+                                | "OUNCES"
+                                | "CUPS"
+                                | "TABLESPOONS"
+                                | "TEASPOONS"
+                                | "LITERS"
+                                | "QUARTS";
+                            };
+                          }>;
+                          classId: string;
+                          scalingKind: "BREAKPOINTS";
+                          scalingSource: "CLASS_LEVEL";
+                        }
+                      | {
+                          breakpoints: Array<{
+                            id: string;
+                            level: number;
+                            order: number;
+                            value: {
+                              amount: number;
+                              unit:
+                                | "POUNDS"
+                                | "GALLONS"
+                                | "INCHES"
+                                | "FEET"
+                                | "YARDS"
+                                | "MILES"
+                                | "OUNCES"
+                                | "CUPS"
+                                | "TABLESPOONS"
+                                | "TEASPOONS"
+                                | "LITERS"
+                                | "QUARTS";
+                            };
+                          }>;
+                          scalingKind: "BREAKPOINTS";
+                          scalingSource: "PARENT_CLASS_LEVEL";
+                        }
+                      | {
+                          breakpoints: Array<{
+                            id: string;
+                            level: number;
+                            order: number;
+                            value: {
+                              amount: number;
+                              unit:
+                                | "POUNDS"
+                                | "GALLONS"
+                                | "INCHES"
+                                | "FEET"
+                                | "YARDS"
+                                | "MILES"
+                                | "OUNCES"
+                                | "CUPS"
+                                | "TABLESPOONS"
+                                | "TEASPOONS"
+                                | "LITERS"
+                                | "QUARTS";
+                            };
+                          }>;
+                          scalingKind: "BREAKPOINTS";
+                          scalingSource: "SPELL_CAST_LEVEL";
+                        };
+                    unit:
+                      | "POUNDS"
+                      | "GALLONS"
+                      | "INCHES"
+                      | "FEET"
+                      | "YARDS"
+                      | "MILES"
+                      | "OUNCES"
+                      | "CUPS"
+                      | "TABLESPOONS"
+                      | "TEASPOONS"
+                      | "LITERS"
+                      | "QUARTS";
+                  };
+                }
+              | { kind: "UNLIMITED" };
             rangeLabel?: string;
             rulesText?: string;
             sourceLabel?: string;
@@ -132417,6 +132780,369 @@ export declare const api: {
             } | null;
             id: string;
             label: string;
+            range?:
+              | { kind: "SELF" }
+              | {
+                  distance: {
+                    amount: number;
+                    scaling?:
+                      | {
+                          breakpoints: Array<{
+                            id: string;
+                            level: number;
+                            order: number;
+                            value: {
+                              amount: number;
+                              unit:
+                                | "POUNDS"
+                                | "GALLONS"
+                                | "INCHES"
+                                | "FEET"
+                                | "YARDS"
+                                | "MILES"
+                                | "OUNCES"
+                                | "CUPS"
+                                | "TABLESPOONS"
+                                | "TEASPOONS"
+                                | "LITERS"
+                                | "QUARTS";
+                            };
+                          }>;
+                          scalingKind: "BREAKPOINTS";
+                          scalingSource: "CHARACTER_LEVEL";
+                        }
+                      | {
+                          breakpoints: Array<{
+                            id: string;
+                            level: number;
+                            order: number;
+                            value: {
+                              amount: number;
+                              unit:
+                                | "POUNDS"
+                                | "GALLONS"
+                                | "INCHES"
+                                | "FEET"
+                                | "YARDS"
+                                | "MILES"
+                                | "OUNCES"
+                                | "CUPS"
+                                | "TABLESPOONS"
+                                | "TEASPOONS"
+                                | "LITERS"
+                                | "QUARTS";
+                            };
+                          }>;
+                          classId: string;
+                          scalingKind: "BREAKPOINTS";
+                          scalingSource: "CLASS_LEVEL";
+                        }
+                      | {
+                          breakpoints: Array<{
+                            id: string;
+                            level: number;
+                            order: number;
+                            value: {
+                              amount: number;
+                              unit:
+                                | "POUNDS"
+                                | "GALLONS"
+                                | "INCHES"
+                                | "FEET"
+                                | "YARDS"
+                                | "MILES"
+                                | "OUNCES"
+                                | "CUPS"
+                                | "TABLESPOONS"
+                                | "TEASPOONS"
+                                | "LITERS"
+                                | "QUARTS";
+                            };
+                          }>;
+                          scalingKind: "BREAKPOINTS";
+                          scalingSource: "PARENT_CLASS_LEVEL";
+                        }
+                      | {
+                          breakpoints: Array<{
+                            id: string;
+                            level: number;
+                            order: number;
+                            value: {
+                              amount: number;
+                              unit:
+                                | "POUNDS"
+                                | "GALLONS"
+                                | "INCHES"
+                                | "FEET"
+                                | "YARDS"
+                                | "MILES"
+                                | "OUNCES"
+                                | "CUPS"
+                                | "TABLESPOONS"
+                                | "TEASPOONS"
+                                | "LITERS"
+                                | "QUARTS";
+                            };
+                          }>;
+                          scalingKind: "BREAKPOINTS";
+                          scalingSource: "SPELL_CAST_LEVEL";
+                        };
+                    unit:
+                      | "POUNDS"
+                      | "GALLONS"
+                      | "INCHES"
+                      | "FEET"
+                      | "YARDS"
+                      | "MILES"
+                      | "OUNCES"
+                      | "CUPS"
+                      | "TABLESPOONS"
+                      | "TEASPOONS"
+                      | "LITERS"
+                      | "QUARTS";
+                  };
+                  kind: "WITHIN";
+                }
+              | {
+                  kind: "RANGED";
+                  long: {
+                    amount: number;
+                    scaling?:
+                      | {
+                          breakpoints: Array<{
+                            id: string;
+                            level: number;
+                            order: number;
+                            value: {
+                              amount: number;
+                              unit:
+                                | "POUNDS"
+                                | "GALLONS"
+                                | "INCHES"
+                                | "FEET"
+                                | "YARDS"
+                                | "MILES"
+                                | "OUNCES"
+                                | "CUPS"
+                                | "TABLESPOONS"
+                                | "TEASPOONS"
+                                | "LITERS"
+                                | "QUARTS";
+                            };
+                          }>;
+                          scalingKind: "BREAKPOINTS";
+                          scalingSource: "CHARACTER_LEVEL";
+                        }
+                      | {
+                          breakpoints: Array<{
+                            id: string;
+                            level: number;
+                            order: number;
+                            value: {
+                              amount: number;
+                              unit:
+                                | "POUNDS"
+                                | "GALLONS"
+                                | "INCHES"
+                                | "FEET"
+                                | "YARDS"
+                                | "MILES"
+                                | "OUNCES"
+                                | "CUPS"
+                                | "TABLESPOONS"
+                                | "TEASPOONS"
+                                | "LITERS"
+                                | "QUARTS";
+                            };
+                          }>;
+                          classId: string;
+                          scalingKind: "BREAKPOINTS";
+                          scalingSource: "CLASS_LEVEL";
+                        }
+                      | {
+                          breakpoints: Array<{
+                            id: string;
+                            level: number;
+                            order: number;
+                            value: {
+                              amount: number;
+                              unit:
+                                | "POUNDS"
+                                | "GALLONS"
+                                | "INCHES"
+                                | "FEET"
+                                | "YARDS"
+                                | "MILES"
+                                | "OUNCES"
+                                | "CUPS"
+                                | "TABLESPOONS"
+                                | "TEASPOONS"
+                                | "LITERS"
+                                | "QUARTS";
+                            };
+                          }>;
+                          scalingKind: "BREAKPOINTS";
+                          scalingSource: "PARENT_CLASS_LEVEL";
+                        }
+                      | {
+                          breakpoints: Array<{
+                            id: string;
+                            level: number;
+                            order: number;
+                            value: {
+                              amount: number;
+                              unit:
+                                | "POUNDS"
+                                | "GALLONS"
+                                | "INCHES"
+                                | "FEET"
+                                | "YARDS"
+                                | "MILES"
+                                | "OUNCES"
+                                | "CUPS"
+                                | "TABLESPOONS"
+                                | "TEASPOONS"
+                                | "LITERS"
+                                | "QUARTS";
+                            };
+                          }>;
+                          scalingKind: "BREAKPOINTS";
+                          scalingSource: "SPELL_CAST_LEVEL";
+                        };
+                    unit:
+                      | "POUNDS"
+                      | "GALLONS"
+                      | "INCHES"
+                      | "FEET"
+                      | "YARDS"
+                      | "MILES"
+                      | "OUNCES"
+                      | "CUPS"
+                      | "TABLESPOONS"
+                      | "TEASPOONS"
+                      | "LITERS"
+                      | "QUARTS";
+                  };
+                  normal: {
+                    amount: number;
+                    scaling?:
+                      | {
+                          breakpoints: Array<{
+                            id: string;
+                            level: number;
+                            order: number;
+                            value: {
+                              amount: number;
+                              unit:
+                                | "POUNDS"
+                                | "GALLONS"
+                                | "INCHES"
+                                | "FEET"
+                                | "YARDS"
+                                | "MILES"
+                                | "OUNCES"
+                                | "CUPS"
+                                | "TABLESPOONS"
+                                | "TEASPOONS"
+                                | "LITERS"
+                                | "QUARTS";
+                            };
+                          }>;
+                          scalingKind: "BREAKPOINTS";
+                          scalingSource: "CHARACTER_LEVEL";
+                        }
+                      | {
+                          breakpoints: Array<{
+                            id: string;
+                            level: number;
+                            order: number;
+                            value: {
+                              amount: number;
+                              unit:
+                                | "POUNDS"
+                                | "GALLONS"
+                                | "INCHES"
+                                | "FEET"
+                                | "YARDS"
+                                | "MILES"
+                                | "OUNCES"
+                                | "CUPS"
+                                | "TABLESPOONS"
+                                | "TEASPOONS"
+                                | "LITERS"
+                                | "QUARTS";
+                            };
+                          }>;
+                          classId: string;
+                          scalingKind: "BREAKPOINTS";
+                          scalingSource: "CLASS_LEVEL";
+                        }
+                      | {
+                          breakpoints: Array<{
+                            id: string;
+                            level: number;
+                            order: number;
+                            value: {
+                              amount: number;
+                              unit:
+                                | "POUNDS"
+                                | "GALLONS"
+                                | "INCHES"
+                                | "FEET"
+                                | "YARDS"
+                                | "MILES"
+                                | "OUNCES"
+                                | "CUPS"
+                                | "TABLESPOONS"
+                                | "TEASPOONS"
+                                | "LITERS"
+                                | "QUARTS";
+                            };
+                          }>;
+                          scalingKind: "BREAKPOINTS";
+                          scalingSource: "PARENT_CLASS_LEVEL";
+                        }
+                      | {
+                          breakpoints: Array<{
+                            id: string;
+                            level: number;
+                            order: number;
+                            value: {
+                              amount: number;
+                              unit:
+                                | "POUNDS"
+                                | "GALLONS"
+                                | "INCHES"
+                                | "FEET"
+                                | "YARDS"
+                                | "MILES"
+                                | "OUNCES"
+                                | "CUPS"
+                                | "TABLESPOONS"
+                                | "TEASPOONS"
+                                | "LITERS"
+                                | "QUARTS";
+                            };
+                          }>;
+                          scalingKind: "BREAKPOINTS";
+                          scalingSource: "SPELL_CAST_LEVEL";
+                        };
+                    unit:
+                      | "POUNDS"
+                      | "GALLONS"
+                      | "INCHES"
+                      | "FEET"
+                      | "YARDS"
+                      | "MILES"
+                      | "OUNCES"
+                      | "CUPS"
+                      | "TABLESPOONS"
+                      | "TEASPOONS"
+                      | "LITERS"
+                      | "QUARTS";
+                  };
+                }
+              | { kind: "UNLIMITED" };
             rangeLabel?: string;
             rulesText?: string;
             sourceLabel?: string;
