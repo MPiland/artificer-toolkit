@@ -7,10 +7,10 @@ Every slice session follows these rules. Its workbook (`docs/handoffs/slice-<id>
 - Read AGENTS.md, then the decisions and docs the workbook names, before editing.
 - Write each checklist test before the code and keep its red log under `local-validation/<slice>/`.
 - Edit or Write tools only. No heredocs, sed, Python or other edit scripts.
-- Inspect with the Read, Glob and Grep tools, never shell listing or grep (`ls`, `cat`, `Get-ChildItem`, `rg` chains): the permission classifier denies compound read-only shell commands. The shell runs only one documented build, test, codegen or lock command per call, through PowerShell. Check the lock with Glob on `D:/dev/artificer-toolkit/local-validation/.validation.lock`.
+- Inspect with the Read, Glob and Grep tools, never shell listing or grep (`ls`, `cat`, `Get-ChildItem`, `rg` chains): the permission classifier denies compound read-only shell commands. The shell runs only one documented build, test, codegen or lock command per call, through PowerShell. Check the lock with `Test-Path D:/dev/artificer-toolkit/local-validation/.validation.lock`, or simply try to take it; the Glob tool skips gitignored files and never shows it.
 - No watcher, sleep or poll commands. Run each command once and wait for the completion notice.
 - Never override the apis `maxWorkers`. For focused runs, pass explicit file paths, not folder filters.
-- Every compile, test, codegen or Wrangler run takes `local-validation/.validation.lock` in the main checkout (`D:/dev/artificer-toolkit`), per AGENTS.md. Never delete a lock you did not create; report it instead.
+- Every compile, test, codegen or Wrangler run takes `local-validation/.validation.lock` in the main checkout (`D:/dev/artificer-toolkit`), per AGENTS.md. One planned batch per acquisition, about 20 minutes at most, then delete your lock even on failure; debug and edit between batches without holding it, because every other slice session queues behind you. Never delete a lock you did not create; report it instead.
 - Use in-memory convex-test. Run codegen only under the lock. Never deploy, reset or reseed the local backend; the main session does that after merge.
 - Build `packages/schema`, `packages/rules-runtime` and `packages/encounter-persistence` before tests that import changed modules (tests read `dist`).
 - Source-data changes need `yarn workspace @artificer-toolkit/apis generate:srd:manifest` (the manifest is tracked).

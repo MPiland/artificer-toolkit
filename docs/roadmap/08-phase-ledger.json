@@ -7298,9 +7298,9 @@
         {
           "id": "RELIABILITY-4",
           "title": "Measuring a Scene length never crashes an Encounter read",
-          "status": "IN_PROGRESS",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": ["apps/session-worker/test/nativeRoomSquaresScene.test.ts"],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
@@ -7322,14 +7322,17 @@
             },
             {
               "text": "A new Scene grid's default distance per cell is the System's base square in the chosen unit (5 ft, 1.524 m, 1 square), derived from SYSTEM_BASE_SQUARE_FEET and FEET_PER_SCENE_UNIT, and switching the unit converts it; proved by a Scene preparation test that fails first.",
-              "status": "TODO",
-              "proof": [],
-              "note": "Registered 2026-10-13 at the lane 3 merge review. CampaignScenePreparation seeds distancePerCell with SYSTEM_BASE_SQUARE_FEET for both FEET and METERS, so a Meters grid starts at 5 m per cell; feetInSceneUnit(SYSTEM_BASE_SQUARE_FEET, unit) gives the value for every unit and removes the SQUARES special case.",
+              "status": "DONE",
+              "proof": [
+                "apps/web/src/domains/campaigns/vtt/CampaignScenePreparation.test.tsx",
+                "packages/shared/src/__tests__/length-measurement.test.ts"
+              ],
+              "note": "Registered 2026-10-13 at the lane 3 merge review. CampaignScenePreparation seeds distancePerCell with SYSTEM_BASE_SQUARE_FEET for both FEET and METERS, so a Meters grid starts at 5 m per cell; feetInSceneUnit(SYSTEM_BASE_SQUARE_FEET, unit) gives the value for every unit and removes the SQUARES special case. Done 2026-10-13 (slice-reliability-4.md): a new Meters grid starts at 1.524 m; switching units converts the typed value (convertSceneDistance, exact via METERS_PER_FOOT, which also fixes 1.5240000000000002) and SQUARES forces 1. Red logs web-red-true.log and shared-red.log. Accepted by lane 1 on the merged tree: shared 9/9, web 8/8, worker 12/12, typecheck 19/19.",
               "origin": [],
               "id": "RELIABILITY-4.2"
             }
           ],
-          "journeyGap": "No journey drives an Encounter read on a SQUARES Scene through convex-test or the Session room (no app test uses a SQUARES grid). Next: one convex-test or session-worker journey that reads cleaving, a movement reaction and combat perception on a SQUARES Scene.",
+          "note": "Journey verified 2026-10-13: nativeRoomSquaresScene.test.ts runs cleaving, movement reaction contacts and combat perception through the real native room on a SQUARES Scene and on the same Scene as FEET, with identical results as the oracle (red from a SQUARES throw in feetInSceneUnit, journey-red.log).",
           "wsjf": {
             "bv": 3,
             "tc": 5,
@@ -8096,6 +8099,32 @@
             "tc": 3,
             "rr": 5,
             "size": 5
+          }
+        },
+        {
+          "id": "VTT_UI-6",
+          "title": "Conditional Creature senses apply only when their condition holds",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": [],
+          "note": "Registered 2026-10-13 at the VTT_UI-5 merge review. Structured Creature senses carry a display-only qualifier, so a printed condition is ignored: Grimlock blindsight 30 ft (10 ft while deafened) is always 30 ft, and Wererat darkvision (rat form only) applies in every form. The VTT_UI-5 report lists every SRD Creature with a mechanics-bearing qualifier.",
+          "acs": [
+            {
+              "text": "A Creature sense whose stat block limits it to a condition or form (deafened, a shape) applies only while that condition or form holds, for Scene vision and combat perception alike; every SRD Creature with such a qualifier is modeled, proved by tests that fail first.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "id": "VTT_UI-6.1"
+            }
+          ],
+          "journeyGap": "No journey yet. Next: a session-worker room test where a deafened Grimlock perceives at 10 ft, not 30 ft.",
+          "wsjf": {
+            "bv": 2,
+            "tc": 1,
+            "rr": 1,
+            "size": 5,
+            "after": ["VTT_UI-5"]
           }
         }
       ]
