@@ -63,6 +63,13 @@ This replaces the long Advanced authoring form with a mind-map editor. Selecting
   - mobile behavior;
   - usage analytics before the form is retired.
 
+## Help: definitions and how-to guides (user direction, 2026-10-13)
+
+Scheduling: **during beta, last**. Testers start without help text, so their feedback shows where the app isn't intuitive; that feedback shapes what the help says.
+
+- **Definitions in authoring.** Every authoring field and option (for example a sense's Illumination access: Magical darkness) shows a short plain-language definition on hover, keyboard focus and touch. Definitions are written once in a shared glossary keyed by vocabulary code; a test fails when a node-map field or option has no entry.
+- **Help pages.** A searchable glossary drawn from the same entries, and step-by-step how-to guides for the main journeys: homebrew content (such as a custom sense granted by a feat), build a Character, run a Campaign session, prepare a Scene and run an Encounter.
+
 ## Crowdfunding campaign (user direction, 2026-09-28)
 
 The user wants a Kickstarter campaign with realistic goals to fund finishing the build and early hosting.
