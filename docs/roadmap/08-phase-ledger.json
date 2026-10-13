@@ -5217,8 +5217,9 @@
             {
               "id": "ATTACK-18.T5",
               "text": "Slice D: First Aid runs on the CHECK action test with a STABILIZE outcome; Escape keeps its command on the shared check evaluator.",
-              "status": "TODO",
-              "closes": ["ATTACK-18.1", "ATTACK-18.2"]
+              "status": "DONE",
+              "closes": ["ATTACK-18.1", "ATTACK-18.2"],
+              "note": "Done 2026-10-13 (merged 0476e0855, api.d.ts 743a89b0a). First Aid is authored on the reusable CHECK test and resolves through RESOLVE_ACTION; Escape keeps ESCAPE_RELATIONSHIP on the same evaluator. Pulled forward from slice E: USE_BASIC_ACTION, the catalogue check and mechanics fields, STABILIZE_TARGET and BASIC_ACTION_MECHANIC_CODE are deleted. Authored targeting is one `self: ALLOWED | WARN | REFUSED` (Help and First Aid REFUSED), and the action choice target is {SELF} | {ACTOR, self} | {POINT, area}. Rule usage has one stored form, fixing an undo exact-row regression. Logs: local-validation/attack18d and attack18d-target-merge."
             },
             {
               "id": "ATTACK-18.T6",

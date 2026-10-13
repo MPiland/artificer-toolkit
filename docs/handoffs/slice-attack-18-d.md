@@ -1,6 +1,6 @@
 # Slice workbook: ATTACK-18 slice D (First Aid on the CHECK action test)
 
-**Status:** OPEN (started 2026-10-12)
+**Status:** DONE (merged 2026-10-13, `0476e0855`)
 **Base:** `codex/phase-08-2-convex-cutover` at `7bf75f838` plus this workbook's commit.
 **Owner:** lane 1 integration owner (main session) reviews and merges. The slice session implements.
 
