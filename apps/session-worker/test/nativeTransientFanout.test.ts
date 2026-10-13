@@ -83,7 +83,7 @@ function member(userId: string, role: 'OWNER' | 'PLAYER', epoch = '2026-09-12T00
   return { membershipEpoch: epoch, role, userId }
 }
 
-function header(fogLayerCount = 0) {
+function header(fogLayerCount = 0, visionRevealMode: 'ON_DRAG' | 'ON_DROP' = 'ON_DRAG') {
   return sceneLiveStateHeaderSchema.parse({
     ambientIllumination: 'DIM',
     campaignId,
@@ -124,7 +124,7 @@ function header(fogLayerCount = 0) {
     },
     name: 'Scene',
     version: 1,
-    visionRevealMode: 'ON_DRAG'
+    visionRevealMode
   })
 }
 
@@ -209,13 +209,14 @@ function installFetch(
   ) => LiveSessionRoomSceneCapture | Response | Promise<LiveSessionRoomSceneCapture | Response>,
   entity: typeof token = token,
   fogLayers: readonly SceneFogLayer[] = [],
-  authorization: RoomAuthorizationState = {}
+  authorization: RoomAuthorizationState = {},
+  visionRevealMode: 'ON_DRAG' | 'ON_DROP' = 'ON_DRAG'
 ) {
   let captures = 0
   const sceneFixture: RoomSceneFixture = {
-    header: header(fogLayers.length),
+    header: header(fogLayers.length, visionRevealMode),
     presentationVersion: 1,
-    scene: { ...emptyScene(), fogLayers: [...fogLayers], tokens: [entity] }
+    scene: { ...emptyScene(), fogLayers: [...fogLayers], tokens: [entity], visionRevealMode }
   }
   vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
     const request = new Request(input, init)
@@ -271,7 +272,7 @@ function installFetch(
       sceneCaptureAuthorizations.push(request.headers.get('authorization'))
       const capture = {
         ...roomSceneCapture(body.observedCharacterRevisions),
-        sceneHeader: header(fogLayers.length)
+        sceneHeader: header(fogLayers.length, visionRevealMode)
       }
       const result = (await mutate?.(++captures, capture, body)) ?? capture
       return result instanceof Response ? result : Response.json(result)
@@ -847,6 +848,47 @@ function otherPlayerFog(): SceneFogLayer {
   return canonicalizeSceneFogLayer(patch)
 }
 
+it.each([
+  ['ON_DRAG', { origin: [playerId], recipients: { owner: [playerId], other: [] } }],
+  ['ON_DROP', { origin: [], recipients: { owner: [], other: [] } }]
+] as const)(
+  'sends each viewer its own authored-vision fog layers while a token is dragged in a %s Scene',
+  async (visionRevealMode, expected) => {
+    const members = [
+      member(ownerId, 'OWNER'),
+      member(playerId, 'PLAYER'),
+      member(otherPlayerId, 'PLAYER')
+    ]
+    const stub = newRoom()
+    // `other` has explored the token's destination but does not control the token.
+    await runInDurableObject(stub, () =>
+      installFetch(members, undefined, token, [otherPlayerFog()], {}, visionRevealMode)
+    )
+    const [owner, player, other] = await Promise.all([
+      connect(stub, ownerId, 'OWNER'),
+      connect(stub, playerId, 'PLAYER'),
+      connect(stub, otherPlayerId, 'PLAYER')
+    ])
+    await synchronize(owner)
+    for (const client of [owner, player, other]) client.messages.length = 0
+
+    sendPreview(player, tokenPreview(1))
+    await vi.waitFor(() => {
+      expect(transient(player.messages)).toHaveLength(1)
+      expect(transient(owner.messages)).toHaveLength(1)
+      expect(transient(other.messages)).toHaveLength(1)
+    })
+    const layerOwners = (client: typeof owner) =>
+      transient(client.messages)[0]?.message.visionLayers?.map(({ ownerUserId }) => ownerUserId)
+    expect(transient(player.messages)[0]?.message.tokenDragResolution).toMatchObject({
+      accepted: true
+    })
+    expect(layerOwners(player)).toEqual(expected.origin)
+    expect(layerOwners(owner)).toEqual(expected.recipients.owner)
+    expect(layerOwners(other)).toEqual(expected.recipients.other)
+  }
+)
+
 async function pingRoom(members: readonly ReturnType<typeof member>[]) {
   const stub = newRoom()
   await runInDurableObject(stub, () => installFetch(members, undefined, token, [otherPlayerFog()]))
@@ -1325,10 +1367,10 @@ it('rehydrates Character vision after a CHARACTER notice, with no read per sampl
   await invalidate(stub, ['CHARACTER'])
   player.messages.length = 0
   let sequence = 1
-  await vi.waitFor(() => {
+  await vi.waitFor(async () => {
     sequence += 1
     sendPreview(player, tokenPreview(sequence, { x: 20 + sequence, y: 10 }))
-    expect(room.characterReads).toEqual([room.revisionA, room.revisionB])
+    expect(await syncedTokenSenses(owner)).toEqual([])
   })
   expect(room.characterReads).toEqual([room.revisionA, room.revisionB])
   expect(room.staleCaptures).toBe(1)

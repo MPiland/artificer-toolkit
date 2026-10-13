@@ -633,6 +633,102 @@ describe('VTT scene replay and projection', () => {
     ).toEqual({ kind: 'TOKEN_UPSERTED', token: unlisted })
   })
 
+  it('withholds senses from deltas that newly show a token and from batches', () => {
+    const base = materializeCampaignScene({ ...definition(), fogMode: 'OFF' }, ids.scene)
+    const presented = [{ ...pinnedDarkvision, range: 30 }]
+    const listed = { ...base.tokens[0]!, senses: presented }
+    const unlisted = { ...listed, controlledByUserIds: [ids.user], id: ids.command1 }
+    const before = {
+      ...base,
+      tokens: [listed, unlisted].map((token) => ({ ...token, hidden: true }))
+    }
+    const after = { ...base, tokens: [listed, unlisted] }
+    const player = { role: 'PLAYER' as const, userId: ids.player }
+    const project = (
+      viewer: Parameters<typeof projectSceneForViewer>[1],
+      delta: Parameters<typeof applySceneDelta>[1]
+    ) => projectSceneDeltaForViewer(before, after, viewer, delta, new Map())
+    const revealing = (token: typeof listed) => [
+      { kind: 'TOKEN_MOVED' as const, position: token.position, tokenId: token.id },
+      {
+        kind: 'TOKEN_MOVE_UNDONE' as const,
+        position: token.position,
+        tokenId: token.id,
+        undoneCommandId: ids.command2
+      },
+      { kind: 'TOKEN_REMOVED' as const, tokenId: token.id }
+    ]
+
+    for (const delta of revealing(listed))
+      expect(project(player, delta)).toEqual({ kind: 'TOKEN_UPSERTED', token: listed })
+    for (const delta of revealing(unlisted))
+      expect(project(player, delta)).toEqual({
+        kind: 'TOKEN_UPSERTED',
+        token: { ...unlisted, senses: [] }
+      })
+
+    const batch = {
+      kind: 'BATCH' as const,
+      deltas: [
+        { kind: 'TOKEN_UPSERTED' as const, token: unlisted },
+        { kind: 'TOKEN_MOVED' as const, position: listed.position, tokenId: listed.id }
+      ]
+    }
+    expect(project(player, batch)).toEqual({
+      kind: 'BATCH',
+      deltas: [
+        { kind: 'TOKEN_UPSERTED', token: { ...unlisted, senses: [] } },
+        { kind: 'TOKEN_UPSERTED', token: listed }
+      ]
+    })
+    expect(project({ role: 'GM', userId: ids.user }, batch)).toEqual(batch)
+  })
+
+  it('reveals tokens in a drag preview without their senses', () => {
+    const state = materializeCampaignScene(definition(), ids.scene)
+    const presented = [{ ...pinnedDarkvision, range: 30 }]
+    state.map = { ...state.map, height: 100, width: 100 }
+    state.grid = { kind: 'GRIDLESS', pixelsPerUnit: 1, unit: 'FEET' }
+    state.fogMode = 'PER_PLAYER'
+    state.barriers = []
+    state.tokens[0] = {
+      ...state.tokens[0]!,
+      controlledByUserIds: [ids.player],
+      position: { x: 20, y: 50 },
+      vision: {
+        angleDegrees: 360,
+        brightRange: 0,
+        dimRange: 40,
+        directionDegrees: 0,
+        enabled: true
+      }
+    }
+    const seen = {
+      ...state.tokens[0]!,
+      controlledByUserIds: [ids.user],
+      id: ids.command1,
+      position: { x: 35, y: 50 },
+      senses: presented,
+      vision: null
+    }
+    state.tokens.push(seen)
+    const options = {
+      path: [
+        { x: 20, y: 50 },
+        { x: 40, y: 50 }
+      ],
+      tokenId: ids.token
+    }
+
+    expect(
+      projectSceneTokenPreviewForViewer(state, {
+        ...options,
+        viewer: { role: 'PLAYER', userId: ids.player }
+      }).reveal.tokens
+    ).toEqual([{ ...seen, senses: [] }])
+    expect(state.tokens[1]?.senses).toEqual(presented)
+  })
+
   it('uses the snapshot token predicate for lightweight recipient visibility checks', () => {
     const state = materializeCampaignScene(definition(), ids.scene)
     state.tokens.push({ ...state.tokens[0]!, id: ids.command1, hidden: true })
