@@ -129,7 +129,9 @@ describe('room point-area action', () => {
       ownerFeatureId: plainWolf.features?.find((feature) => feature.label === 'Bite')?.id
     })
     const biteChoices = await bite.actionChoices()
-    expect(biteChoices.actions.map(({ target }) => target)).toEqual([{ kind: 'ACTOR' }])
+    expect(biteChoices.actions.map(({ target }) => target)).toEqual([
+      { kind: 'ACTOR', requiresOtherCreature: false }
+    ])
   })
 
   it('refuses a creature target for an area action', async () => {

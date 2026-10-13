@@ -30,7 +30,11 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import { refuseStaleCharacterAction } from '@artificer-toolkit/encounter-persistence/staleCharacterAction'
 import { DOMAIN_REJECTION_MESSAGES } from '@artificer-toolkit/schema/api/domainRejections'
-import { readEncounterBasicActionEntries } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
+import { resolveCheckActionInputDtoSchema } from '@artificer-toolkit/schema/api/encounterRuleCommands'
+import {
+  isEncounterBasicActionId,
+  readEncounterBasicActionEntries
+} from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
 import { consumableGrants } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
 import { encounterSceneGridPolicyRegistry } from '@artificer-toolkit/rules-runtime/sceneGridPolicyRegistry'
 import {
@@ -73,6 +77,7 @@ import {
   liveSessionEncounterActionPendingInputSchema,
   liveSessionEncounterActionCommitInputSchema
 } from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
+import { planNativeLiveCheckAction } from './nativeCheckAction.js'
 import { planNativeLiveEncounterSettlement } from './nativeEncounterSettlement.js'
 import {
   discoverNativeLegendaryResistance,
@@ -104,8 +109,11 @@ import { buildEncounterActionStoredExecution } from '@artificer-toolkit/rules-ru
 import { planNativeLiveCleaving } from './nativeEncounterCleaving.js'
 import { rangeDtoSchema } from '@artificer-toolkit/schema/shared/range'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import { nextRollInt } from '@artificer-toolkit/rules-runtime/random'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { serverKernelRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
+
+const TARGET_NOT_PERMITTED_MESSAGE = 'The selected action does not permit this target.'
 
 /** Computes the action in the DO; the room commits this plan in its own transaction. */
 export async function planNativeLiveEncounterAction(
@@ -259,6 +267,16 @@ export async function planNativeLiveEncounterAction(
     revisions = mergeNativeRulesRevisions(revisions, preparedTarget.revisions)
     return preparedTarget.target
   }
+  // A basic action is a check on one creature; only an area action aims at a point.
+  if (
+    isEncounterBasicActionId(command.actorId, command.actionId) &&
+    !resolveCheckActionInputDtoSchema.safeParse(command).success
+  )
+    throw new LiveSessionDomainRejectionError(422, {
+      code: 'DOMAIN_REJECTED',
+      reason: 'TARGET_UNAVAILABLE',
+      message: TARGET_NOT_PERMITTED_MESSAGE
+    })
   if (command.target.kind === 'POINT') {
     const areaInput = {
       initial,
@@ -412,6 +430,10 @@ export async function planNativeLiveEncounterAction(
       targetIds: [prepared.target.id],
       capture
     })
+  const mechanicFacts =
+    prepared.source.kind === 'CHARACTER_ACTION'
+      ? prepared.source.candidate.mechanicFacts
+      : prepared.source.capability.mechanicFacts
   const ruleWarnings = evaluateEncounterActionRuleWarnings({
     preparedWarnings: suppressed
       ? [...prepared.ruleWarnings, encounterActionSuppressedWarning(activationCode)]
@@ -428,10 +450,9 @@ export async function planNativeLiveEncounterAction(
       prepared.target,
       deadCharacterIdsOfTargets(movementTargets.values())
     ),
-    stabilize: (prepared.source.kind === 'CHARACTER_ACTION'
-      ? prepared.source.candidate.mechanicFacts
-      : prepared.source.capability.mechanicFacts
-    ).outcomes.some((outcome) => outcome.kind === 'EFFECT' && outcome.effectKind === 'STABILIZE')
+    stabilize: mechanicFacts.outcomes.some(
+      (outcome) => outcome.kind === 'EFFECT' && outcome.effectKind === 'STABILIZE'
+    )
       ? {
           targetDying: isEncounterTargetDying(movementTargets.get(prepared.target.id))
         }
@@ -441,7 +462,11 @@ export async function planNativeLiveEncounterAction(
     acknowledged: command.acknowledgedWarnings
   })
   if (ruleWarnings.kind === 'UNSUPPORTED_TARGET')
-    throw new Error('The selected action does not permit this target.')
+    throw new LiveSessionDomainRejectionError(422, {
+      code: 'DOMAIN_REJECTED',
+      reason: 'TARGET_UNAVAILABLE',
+      message: TARGET_NOT_PERMITTED_MESSAGE
+    })
   // The same user-safe rejection the Convex fallback raises, so the room forwards it unchanged.
   if (ruleWarnings.kind === 'UNACKNOWLEDGED')
     throw new LiveSessionDomainRejectionError(422, {
@@ -451,6 +476,36 @@ export async function planNativeLiveEncounterAction(
       warnings: ruleWarnings.warnings
     })
   const actionEconomy = economy?.consumption ?? null
+  if (mechanicFacts.invocation.triggerCode === 'CHECK') {
+    // Only an authored basic action runs on the check test; a feature or Character action
+    // authored with it would otherwise run its outcome with no check.
+    const actor = movementTargets.get(prepared.actor.id)
+    const target = movementTargets.get(prepared.target.id)
+    if (prepared.source.kind !== 'BASIC_ACTION' || responseCommand || !actor || !target)
+      throw new Error('Only a basic action can make a check.')
+    return {
+      ...(await planNativeLiveCheckAction({
+        scope,
+        command,
+        fingerprint: admission.fingerprint,
+        capability: prepared.source.capability,
+        state,
+        system,
+        actors,
+        actor,
+        target,
+        overrides: ruleWarnings.overrides,
+        actionEconomy,
+        autoRoll: requireAutoRoll(prepared.actor.id)
+          ? (executionOptions.random ?? nextRollInt)
+          : null,
+        runtime: executionOptions.runtime,
+        revisions
+      })),
+      dependencies,
+      revisions
+    }
+  }
   const maintenance = await prepareNativeLiveActionMaintenance({
     prepared,
     activeEffectsByActorId,

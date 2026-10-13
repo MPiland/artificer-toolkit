@@ -15,6 +15,7 @@ import {
   liveSessionPublishResponseSchema
 } from '../api/liveSessionState.js'
 import { domainRejectionErrorDataSchema } from '../api/domainRejections.js'
+import { liveSessionEncounterBasicActionCommandSchema } from '../api/liveSessionCommandScopes.js'
 import {
   resolveEncounterActionInputDtoSchema,
   revertLastEncounterActionInputDtoSchema
@@ -677,6 +678,23 @@ describe('Encounter rule overrides and undo', () => {
       expect(
         resolveEncounterActionInputDtoSchema.safeParse({ ...action, acknowledgedWarnings }).success
       ).toBe(false)
+  })
+
+  it('a basic action (CHECK) command aims at one creature: a point-origin target fails at parse', () => {
+    const point = {
+      kind: 'POINT',
+      sceneId: ids.token,
+      expectedSceneVersion: 1,
+      point: { x: 1, y: 1 }
+    }
+    expect(liveSessionEncounterBasicActionCommandSchema.safeParse(action).success).toBe(true)
+    expect(
+      liveSessionEncounterBasicActionCommandSchema.safeParse({ ...action, target: point }).success
+    ).toBe(false)
+    // The same command still parses where an area action is allowed.
+    expect(
+      resolveEncounterActionInputDtoSchema.safeParse({ ...action, target: point }).success
+    ).toBe(true)
   })
 
   it('accepts a GM undo with only its Run version', () => {

@@ -94,8 +94,7 @@ export function classifyNativeEncounterOccurrence({
     occurrence.rootCommandId === cleavingChildCommandIdentity(occurrence.id)
   )
     return 'CLEAVING'
-  if (context?.kind === 'ENCOUNTER_BASIC_ACTION_CHECK' || rootCommandType === 'USE_BASIC_ACTION')
-    return 'BASIC_ACTION'
+  if (context?.kind === 'ENCOUNTER_BASIC_ACTION_CHECK') return 'BASIC_ACTION'
   if (context?.kind === 'ENCOUNTER_ESCAPE_CHECK' || rootCommandType === 'ESCAPE_RELATIONSHIP')
     return 'ESCAPE'
   if (isNativeActionOccurrence({ context, rootCommandType })) return 'ACTION'

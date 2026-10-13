@@ -168,6 +168,14 @@ export const resolveEncounterActionInputDtoSchema = lazySchema(() =>
   })
 )
 
+/** A CHECK action (First Aid, Help, Dash...): it aims at one creature, never a point. */
+export const resolveCheckActionInputDtoSchema = lazySchema(() =>
+  z.extend(resolveEncounterActionInputDtoSchema, {
+    target: z.strictObject({ kind: z.literal('ACTOR'), actorId: uuidSchema })
+  })
+)
+export type ResolveCheckActionInputDto = z.infer<typeof resolveCheckActionInputDtoSchema>
+
 /** The Scene read for a point-area action: the caster's token and every bound creature token. */
 export const actionAreaSceneRequestDtoSchema = lazySchema(() =>
   z.strictObject({
@@ -185,22 +193,6 @@ export const actionSceneRequestDtoSchema = lazySchema(() =>
   })
 )
 export type ActionSceneRequestDto = z.infer<typeof actionSceneRequestDtoSchema>
-
-/**
- * The current actor takes one of its System's basic actions (Q11). `targetActorId` names the ally an
- * ally-advantage action helps or the creature a stabilizing action treats, and is null for every
- * other action.
- */
-export const useEncounterBasicActionInputDtoSchema = lazySchema(() =>
-  z.extend(commandBaseDtoSchema, {
-    type: z.literal('USE_BASIC_ACTION'),
-    actorId: uuidSchema,
-    definitionId: postgresUuidSchema,
-    targetActorId: z.nullable(uuidSchema),
-    /** Assisted-mode warnings the submitter chose to override ("Do it anyway"). */
-    acknowledgedWarnings: z._default(z.optional(encounterAcknowledgedRuleWarningsDtoSchema), [])
-  })
-)
 
 /**
  * The current actor, held by an Encounter relationship effect, spends its escape activation to
@@ -349,7 +341,6 @@ export const revertLastEncounterActionInputDtoSchema = lazySchema(() =>
   })
 )
 export type ResolveEncounterActionInputDto = z.infer<typeof resolveEncounterActionInputDtoSchema>
-export type UseEncounterBasicActionInputDto = z.infer<typeof useEncounterBasicActionInputDtoSchema>
 export type EscapeRelationshipInputDto = z.infer<typeof escapeRelationshipInputDtoSchema>
 export type ResolveRuleOccurrenceInputDto = z.infer<typeof resolveRuleOccurrenceInputDtoSchema>
 export type VoidRuleOccurrenceInputDto = z.infer<typeof voidRuleOccurrenceInputDtoSchema>

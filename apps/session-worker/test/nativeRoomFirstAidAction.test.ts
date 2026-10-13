@@ -1,10 +1,21 @@
 import {
   characterActor,
   creatureFeature,
+  currentSrdDefinition,
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
-import { SRD_BASIC_ACTION_IDS } from '@artificer-toolkit/source-data/srd/basicActions.js'
-import { SRD_MEDICINE_SKILL_ID } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import { encounterBasicActionId } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
+import {
+  SRD_BASIC_ACTION_DEFINITIONS,
+  SRD_BASIC_ACTION_IDS
+} from '@artificer-toolkit/source-data/srd/basicActions.js'
+import type { EncounterRuleWarningCodeDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
+import { creatureAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/creature'
+import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import {
+  SRD_ABILITY_DEFINITION_IDS,
+  SRD_MEDICINE_SKILL_ID
+} from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
@@ -16,7 +27,16 @@ const WOLF_ID = testUuid(0xf00)
 const FIGHTER_ACTOR_ID = testUuid(0xf01)
 const FIGHTER_ID = testUuid(0xf02)
 /** The hostile Wolf's touch cannot be measured in a room without a Scene, as for the Healer's Kit. */
-const TOUCH_WITHOUT_SCENE = ['TARGET_DISPOSITION', 'TARGET_RANGE_UNCHECKED']
+const TOUCH_WITHOUT_SCENE: EncounterRuleWarningCodeDto[] = [
+  'TARGET_DISPOSITION',
+  'TARGET_RANGE_UNCHECKED'
+]
+const firstAidDefinition = SRD_BASIC_ACTION_DEFINITIONS.find(
+  ({ id }) => id === SRD_BASIC_ACTION_IDS.FIRST_AID
+)
+if (firstAidDefinition?.document.kind !== 'BASIC_ACTION')
+  throw new Error('Missing First Aid fixture.')
+const firstAidEffectId = firstAidDefinition.document.effects[0]!.id
 /** The zero-based draw of a d20 that shows `face`. */
 const draw = (face: number) => face - 1
 
@@ -40,7 +60,10 @@ function medicWolf() {
     ...wolf,
     snapshot: {
       ...wolf.snapshot,
-      ruleFacts: { ...ruleFacts, checkTotals: { [SRD_MEDICINE_SKILL_ID]: 3 } }
+      ruleFacts: {
+        ...ruleFacts,
+        checkTotals: { [SRD_MEDICINE_SKILL_ID]: 3, [SRD_ABILITY_DEFINITION_IDS.STRENGTH]: 3 }
+      }
     }
   }
 }
@@ -61,19 +84,16 @@ function firstAidRoom(options: { currentHitPoints?: number; autoRoll: boolean; f
 
 async function useFirstAid(
   room: Awaited<ReturnType<typeof firstAidRoom>>,
-  acknowledgedWarnings: string[] = TOUCH_WITHOUT_SCENE
+  acknowledgedWarnings: EncounterRuleWarningCodeDto[] = TOUCH_WITHOUT_SCENE
 ) {
-  const command = {
-    type: 'USE_BASIC_ACTION',
-    encounterId: room.room.encounterId,
-    commandId: crypto.randomUUID(),
-    expectedVersion: await room.version(),
-    actorId: WOLF_ID,
-    definitionId: SRD_BASIC_ACTION_IDS.FIRST_AID,
-    targetActorId: FIGHTER_ACTOR_ID,
-    acknowledgedWarnings
-  }
-  return { command, answer: await room.send(command) }
+  return room.startAction(
+    FIGHTER_ACTOR_ID,
+    acknowledgedWarnings,
+    null,
+    null,
+    encounterBasicActionId(WOLF_ID, SRD_BASIC_ACTION_IDS.FIRST_AID, firstAidEffectId),
+    WOLF_ID
+  )
 }
 
 /** The one basic action check a Run settled: its stored rule execution and the occurrence state. */
@@ -88,6 +108,143 @@ async function settledCheck(room: Awaited<ReturnType<typeof firstAidRoom>>) {
   })
   return { outputs, occurrences: history.occurrences }
 }
+
+const STEADY_ID = testUuid(0xf10)
+const STEADY_EFFECT_ID = testUuid(0xf11)
+const STRONG_ID = testUuid(0xf12)
+const STRONG_EFFECT_ID = testUuid(0xf13)
+
+/** A homebrew basic action on the same CHECK test as First Aid, against a harder DC of 15. */
+function homebrewCheckDefinition(
+  ids: { id: string; effectId: string },
+  checks: { skillIds: string[]; abilityDefinitionIds: string[] }
+) {
+  const document = {
+    ...firstAidDefinition!.document,
+    id: ids.id,
+    effects: [
+      {
+        ...firstAidDefinition!.document.effects[0]!,
+        id: ids.effectId,
+        invocation: {
+          ...firstAidDefinition!.document.effects[0]!.invocation,
+          check: { checks, dc: { kind: 'FIXED' as const, value: 15 } }
+        }
+      }
+    ]
+  }
+  return currentSrdDefinition({
+    ...firstAidDefinition!,
+    id: ids.id,
+    document,
+    checksum: checksumRuleDocument(document)
+  })
+}
+const STEADY = { id: STEADY_ID, effectId: STEADY_EFFECT_ID }
+const STRONG = { id: STRONG_ID, effectId: STRONG_EFFECT_ID }
+const steadyDefinition = homebrewCheckDefinition(STEADY, {
+  skillIds: [SRD_MEDICINE_SKILL_ID],
+  abilityDefinitionIds: []
+})
+/** The same action authored as a plain Strength check rather than a skill. */
+const strongDefinition = homebrewCheckDefinition(STRONG, {
+  skillIds: [],
+  abilityDefinitionIds: [SRD_ABILITY_DEFINITION_IDS.STRENGTH]
+})
+
+describe('a homebrew basic action authored with the CHECK test, in the room', () => {
+  async function useHomebrew(
+    definition: typeof steadyDefinition,
+    ids: { id: string; effectId: string },
+    face: number
+  ) {
+    const room = await actionRoom({
+      autoRoll: 'BOTH',
+      rolls: [draw(face)],
+      characterPlay: { currentHitPoints: 0 },
+      definitions: [definition],
+      actors: [medicWolf(), characterActor({ id: FIGHTER_ACTOR_ID, characterId: FIGHTER_ID })],
+      ownerFeatureId: creatureFeature(biteWolf('ATTACK', { damage: 1, reachFeet: 5 }), 'Bite').id
+    })
+    const { answer } = await room.startAction(
+      FIGHTER_ACTOR_ID,
+      TOUCH_WITHOUT_SCENE,
+      null,
+      null,
+      encounterBasicActionId(WOLF_ID, ids.id, ids.effectId),
+      WOLF_ID
+    )
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    return settledCheck(room)
+  }
+  const useSteady = (face: number) => useHomebrew(steadyDefinition, STEADY, face)
+
+  it('runs its outcome when the total reaches its own DC', async () => {
+    expect((await useSteady(14)).outputs).toMatchObject([
+      { check: { dc: 15 }, outcome: 'STABILIZED' }
+    ])
+  })
+
+  it('runs no outcome and writes no effect when the total falls short, though First Aid’s DC 10 would pass', async () => {
+    const { outputs } = await useSteady(10)
+    expect(outputs).toMatchObject([
+      { check: { dc: 15 }, d20: { selectedNatural: 10 }, outcome: 'FAILED', targetTransition: null }
+    ])
+  })
+
+  it('rolls a plain ability check the same way, a Strength check against its own DC', async () => {
+    expect((await useHomebrew(strongDefinition, STRONG, 14)).outputs).toMatchObject([
+      { check: { dc: 15 }, outcome: 'STABILIZED' }
+    ])
+    expect((await useHomebrew(strongDefinition, STRONG, 10)).outputs).toMatchObject([
+      { check: { dc: 15 }, outcome: 'FAILED', targetTransition: null }
+    ])
+  })
+})
+
+describe('a Creature feature authored with the CHECK test', () => {
+  it('is refused, since only a basic action makes a check, and nothing is spent or written', async () => {
+    const attack = biteWolf('ATTACK', { damage: 1, reachFeet: 5 })
+    const checkWolf = creatureAuthoredDtoSchema.parse({
+      ...attack,
+      features: attack.features?.map((feature) =>
+        feature.label !== 'Bite'
+          ? feature
+          : {
+              ...feature,
+              effects: feature.effects?.map((effect) => ({
+                ...effect,
+                invocation: {
+                  ...effect.invocation,
+                  triggerCode: 'CHECK' as const,
+                  check: {
+                    checks: { skillIds: [SRD_MEDICINE_SKILL_ID], abilityDefinitionIds: [] },
+                    dc: { kind: 'FIXED' as const, value: 10 }
+                  }
+                },
+                paths: effect.paths.map((path) => ({ ...path, pathCode: 'ON_CHECK_SUCCESS' }))
+              }))
+            }
+      )
+    })
+    const room = await actionRoom({
+      autoRoll: 'BOTH',
+      rolls: [draw(20)],
+      characterPlay: { currentHitPoints: 0 },
+      actors: [
+        srdCreatureActor({ id: WOLF_ID, creature: checkWolf }),
+        characterActor({ id: FIGHTER_ACTOR_ID, characterId: FIGHTER_ID })
+      ],
+      ownerFeatureId: creatureFeature(checkWolf, 'Bite').id
+    })
+    const before = await room.version()
+    const { answer } = await room.startAction(FIGHTER_ACTOR_ID, TOUCH_WITHOUT_SCENE)
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_REJECTED')
+    expect(JSON.stringify(answer)).not.toContain('RULE_WARNINGS')
+    expect(await room.version()).toBe(before)
+    expect((await settledCheck(room)).outputs).toEqual([])
+  })
+})
 
 describe('First Aid, a System basic action with a check, in the room', () => {
   it('rolls for the helper who rolls automatically, and a roll that reaches the DC makes the dying target stable', async () => {
@@ -164,5 +321,72 @@ describe('First Aid, a System basic action with a check, in the room', () => {
     const { outputs, occurrences } = await settledCheck(room)
     expect(outputs).toEqual([])
     expect(occurrences).toEqual([])
+  })
+
+  it('warns, overridably, that a hostile target is not willing, and acknowledging it proceeds', async () => {
+    const room = await firstAidRoom({ currentHitPoints: 0, autoRoll: true, faces: [20] })
+    const before = await room.version()
+    const warned = await useFirstAid(room, [])
+    expect(warned.answer.type, JSON.stringify(warned.answer)).toBe('COMMAND_REJECTED')
+    expect(warned.answer).toMatchObject({
+      reason: 'RULE_WARNINGS',
+      warnings: [
+        { code: 'TARGET_DISPOSITION', message: 'This action needs a willing target.' },
+        { code: 'TARGET_RANGE_UNCHECKED' }
+      ]
+    })
+    expect(await room.version()).toBe(before)
+
+    const applied = await useFirstAid(room)
+    expect(applied.answer.type, JSON.stringify(applied.answer)).toBe('COMMAND_COMMITTED')
+  })
+
+  it('refuses a helper who aims it at themself, whatever warnings the command acknowledges', async () => {
+    const room = await firstAidRoom({ autoRoll: true, faces: [20] })
+    const before = await room.version()
+    const { answer } = await room.startAction(
+      WOLF_ID,
+      [...TOUCH_WITHOUT_SCENE, 'TARGET_NOT_DYING', 'ACTION_ECONOMY_UNAVAILABLE'],
+      null,
+      null,
+      encounterBasicActionId(WOLF_ID, SRD_BASIC_ACTION_IDS.FIRST_AID, firstAidEffectId),
+      WOLF_ID
+    )
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_REJECTED')
+    expect(answer).toMatchObject({
+      reason: 'TARGET_UNAVAILABLE',
+      message: 'The selected action does not permit this target.'
+    })
+    expect(JSON.stringify(answer)).not.toContain('RULE_WARNINGS')
+    expect(await room.version()).toBe(before)
+  })
+
+  it('refuses a point on the Scene, since a check action aims at one creature', async () => {
+    const room = await firstAidRoom({ autoRoll: true, faces: [20] })
+    const before = await room.version()
+    const answer = await room.send({
+      type: 'RESOLVE_ACTION',
+      acceptedWieldConflict: null,
+      acknowledgedWarnings: TOUCH_WITHOUT_SCENE,
+      encounterId: room.room.encounterId,
+      commandId: crypto.randomUUID(),
+      expectedVersion: before,
+      actorId: WOLF_ID,
+      target: {
+        kind: 'POINT',
+        sceneId: room.room.scene.id,
+        expectedSceneVersion: room.room.scene.version,
+        point: { x: 1, y: 1 }
+      },
+      actionId: encounterBasicActionId(WOLF_ID, SRD_BASIC_ACTION_IDS.FIRST_AID, firstAidEffectId),
+      optionalCombatIntent: null,
+      sceneContext: null
+    })
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_REJECTED')
+    expect(answer).toMatchObject({
+      reason: 'TARGET_UNAVAILABLE',
+      message: 'The selected action does not permit this target.'
+    })
+    expect(await room.version()).toBe(before)
   })
 })

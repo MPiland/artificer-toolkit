@@ -38,6 +38,8 @@ function defaultPathCode(triggerCode: EffectAuthored['invocation']['triggerCode'
       return PATH_CODE.PASSIVE
     case TRIGGER.ACTIVATED:
       return PATH_CODE.ON_USE
+    case TRIGGER.CHECK:
+      return PATH_CODE.ON_CHECK_SUCCESS
   }
 }
 

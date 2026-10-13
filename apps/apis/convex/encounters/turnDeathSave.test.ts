@@ -17,18 +17,19 @@ import {
   type CommandResult,
   type Fixture
 } from '../../tests/fixtures/liveCharacterRun'
-import { SRD_BASIC_ACTION_IDS } from '@artificer-toolkit/source-data/srd/basicActions.js'
 import { SRD_BASIC_ACTION_DEFINITIONS } from '@artificer-toolkit/source-data/srd/basicActions.js'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { healersKit } from '@artificer-toolkit/source-data/srd/equipment/healers-kit.js'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 import { readCharacterRow } from '../characters/stateDocuments'
+import { domainRejection } from '../../tests/fixtures/playerControl'
 import { setAutoRollDice, type FixtureRolls } from '../../tests/fixtures/rollPreferences'
 import { api, internal } from '../_generated/api'
 import { createConvexEncounterStore } from '../lib/convexEncounterStore'
 import {
   checkpointLiveRoom,
   executeInRoom,
+  executeSheetInRoom,
   invalidateRoomInputs,
   queueRoomRolls,
   readRoomRollCards,
@@ -66,7 +67,19 @@ async function dyingCharacter(rolls: FixtureRolls, withAlly = false) {
     username: 'DyingHero',
     bio: null
   })
+  // Initiative is rolled for the actors in actor-id order, and the ids differ every run. Pinning each actor's die fixes the turn order to Creature, ally, Character: the Character
+  // makes one death save per round, after the ally. Left to the platform's dice, a Character that
+  // acted before the ally saved up to three times and stabilized before a test's second First Aid.
+  await queueRoomRolls(fixture.campaign.id, {
+    rolls: [...fixture.run.actors]
+      .sort((left, right) => left.id.localeCompare(right.id))
+      .map((actor) =>
+        draw(actor.id === fixture.hero.id ? 1 : actor.id === fixture.ally?.id ? 10 : 19)
+      )
+  })
   const started = await start(fixture)
+  await queueRoomRolls(fixture.campaign.id, { rolls: [] })
+  expect(started.projection.currentActorId).toBe(fixture.enemy.id)
   const { current } = (await storedCharacter(fixture)).state.hitpoints
   await sheetCommand(fixture, (base) => ({
     ...base,
@@ -392,15 +405,52 @@ function useFirstAid(
   from: CommandResult,
   acknowledgedWarnings: EncounterRuleWarningCodeDto[] = []
 ) {
+  return resolveFirstAid(fixture, from, ['TARGET_RANGE_UNCHECKED', ...acknowledgedWarnings])
+}
+
+/** The authored basic action a creature is offered, once the SRD catalogue is published to the Run. */
+async function basicActionIdOf(
+  fixture: Fixture,
+  from: CommandResult,
+  actorId: string,
+  label: string
+) {
+  await fixture.t.mutation(internal.content.import.importDefinitions, {
+    contentSourceId: SRD_CONTENT_SOURCE.id,
+    definitions: SRD_BASIC_ACTION_DEFINITIONS
+  })
+  await invalidateRoomInputs(fixture.campaign.id, ['PLAY'])
+  await checkpointLiveRoom(fixture.campaign.id)
+  const choice = (
+    await fixture.owner.caller.query(api.encounters.actionChoices.get, {
+      encounterId: fixture.run.id,
+      expectedVersion: from.projection.version,
+      actorId
+    })
+  )?.basicActionChoices.find((entry) => entry.label === label)
+  if (!choice) throw new Error(`The actor is not offered ${label}.`)
+  return choice.id
+}
+
+/** First Aid is an authored basic action, resolved like any action against the dying hero. */
+async function resolveFirstAid(
+  fixture: Fixture,
+  from: CommandResult,
+  acknowledgedWarnings: EncounterRuleWarningCodeDto[]
+) {
   const ally = allyOf(fixture)
+  const actionId = await basicActionIdOf(fixture, from, ally.id, 'First Aid')
   return execute(fixture, (base) => ({
     ...base,
-    type: 'USE_BASIC_ACTION',
+    type: 'RESOLVE_ACTION',
+    acceptedWieldConflict: null,
+    acknowledgedWarnings,
     expectedVersion: from.projection.version,
     actorId: ally.id,
-    definitionId: SRD_BASIC_ACTION_IDS.FIRST_AID,
-    targetActorId: fixture.hero.id,
-    acknowledgedWarnings: ['TARGET_RANGE_UNCHECKED', ...acknowledgedWarnings]
+    actionId,
+    target: { kind: 'ACTOR', actorId: fixture.hero.id },
+    optionalCombatIntent: null,
+    sceneContext: null
   }))
 }
 
@@ -441,20 +491,7 @@ async function heldEffects(fixture: Fixture, characterId: string) {
 
 /** The hostile Creature Helps the ally at its turn, overriding the warnings that raises. */
 async function creatureHelpsAlly(fixture: Fixture, from: CommandResult) {
-  await fixture.t.mutation(internal.content.import.importDefinitions, {
-    contentSourceId: SRD_CONTENT_SOURCE.id,
-    definitions: SRD_BASIC_ACTION_DEFINITIONS
-  })
-  await invalidateRoomInputs(fixture.campaign.id, ['PLAY'])
-  await checkpointLiveRoom(fixture.campaign.id)
-  const help = (
-    await fixture.owner.caller.query(api.encounters.actionChoices.get, {
-      encounterId: fixture.run.id,
-      expectedVersion: from.projection.version,
-      actorId: fixture.enemy.id
-    })
-  )?.basicActionChoices.find(({ label }) => label === 'Help')
-  if (!help) throw new Error('The Creature is not offered Help.')
+  const helpId = await basicActionIdOf(fixture, from, fixture.enemy.id, 'Help')
   return execute(fixture, (base) => ({
     ...base,
     type: 'RESOLVE_ACTION',
@@ -462,7 +499,7 @@ async function creatureHelpsAlly(fixture: Fixture, from: CommandResult) {
     acknowledgedWarnings: ['TARGET_DISPOSITION', 'ACTION_ECONOMY_UNAVAILABLE'],
     expectedVersion: from.projection.version,
     actorId: fixture.enemy.id,
-    actionId: help.id,
+    actionId: helpId,
     target: { kind: 'ACTOR', actorId: allyOf(fixture).id },
     optionalCombatIntent: null,
     sceneContext: null
@@ -575,6 +612,34 @@ describe('First Aid, a System basic action with a check (D98)', () => {
     expect(JSON.stringify(second)).toContain('RULE_WARNINGS')
   }, 120000)
 
+  it('refuses a helper who aims First Aid at themself, whatever warnings the command acknowledges', async () => {
+    const { fixture, atAlly, dying } = await dyingHeroAtAllyTurn()
+    const ally = allyOf(fixture)
+    const actionId = await basicActionIdOf(fixture, atAlly, ally.id, 'First Aid')
+    const refused = await domainRejection(
+      execute(fixture, (base) => ({
+        ...base,
+        type: 'RESOLVE_ACTION',
+        acceptedWieldConflict: null,
+        acknowledgedWarnings: [
+          'TARGET_RANGE_UNCHECKED',
+          'TARGET_DISPOSITION',
+          'TARGET_NOT_DYING',
+          'ACTION_ECONOMY_UNAVAILABLE'
+        ],
+        expectedVersion: atAlly.projection.version,
+        actorId: ally.id,
+        actionId,
+        target: { kind: 'ACTOR', actorId: ally.id },
+        optionalCombatIntent: null,
+        sceneContext: null
+      }))
+    )
+    expect(refused).toMatchObject({ reason: 'TARGET_UNAVAILABLE' })
+    expect(await saves(fixture)).toEqual(dying)
+    expect(await firstAidCards(fixture)).toEqual([])
+  }, 120000)
+
   it('auto-rolls a success, and GM undo restores the Action and the death saves but keeps the roll', async () => {
     const { fixture, atAlly, dying } = await dyingHeroAtAllyTurn()
     await allyRollsAutomatically(fixture, true)
@@ -596,19 +661,57 @@ describe('First Aid, a System basic action with a check (D98)', () => {
     expect(await firstAidCards(fixture)).toHaveLength(1)
   }, 120000)
 
+  it('GM undo restores every actor row and held effect exactly, the spent Action included', async () => {
+    const { fixture, atAlly, dying } = await dyingHeroAtAllyTurn()
+    await allyRollsAutomatically(fixture, true)
+    await queueRoomRolls(fixture.campaign.id, { rolls: [draw(20)] })
+    const actorsOf = (result: CommandResult) =>
+      encounterGmProjectionDtoSchema.parse(result.projection).actors
+    const effectsBefore = await heldEffects(fixture, allyOf(fixture).sourceId!)
+
+    const stabilized = await useFirstAid(fixture, atAlly)
+    expect(stabilized.occurrence?.status).toBe('COMPLETE')
+    expect(actorsOf(stabilized)).not.toEqual(actorsOf(atAlly))
+
+    const reverted = await execute(fixture, (base) => ({
+      ...base,
+      type: 'REVERT_LAST_ACTION',
+      expectedVersion: stabilized.projection.version
+    }))
+    expect(actorsOf(reverted)).toEqual(actorsOf(atAlly))
+    expect(await saves(fixture)).toEqual(dying)
+    expect(await heldEffects(fixture, allyOf(fixture).sourceId!)).toEqual(effectsBefore)
+  }, 180000)
+
+  it('GM undo restores the exact rows when the Action was spent and refreshed a round earlier', async () => {
+    const { fixture, atAlly } = await dyingHeroAtAllyTurn()
+    await allyRollsAutomatically(fixture, true)
+    const ally = allyOf(fixture)
+    const actorsOf = (result: CommandResult) =>
+      encounterGmProjectionDtoSchema.parse(result.projection).actors
+    // A missed First Aid spends the Action; a full round later the turn refreshes it.
+    await queueRoomRolls(fixture.campaign.id, { rolls: [draw(1), draw(12)] })
+    const missed = await useFirstAid(fixture, atAlly)
+    const atHero = await toActorTurn(fixture, missed, fixture.hero.id)
+    const atEnemy = await toEnemyTurn(fixture, atHero)
+    const refreshed = await toActorTurn(fixture, atEnemy, ally.id)
+
+    await queueRoomRolls(fixture.campaign.id, { rolls: [draw(20)] })
+    const stabilized = await useFirstAid(fixture, refreshed)
+    expect(stabilized.occurrence?.status).toBe('COMPLETE')
+    const reverted = await execute(fixture, (base) => ({
+      ...base,
+      type: 'REVERT_LAST_ACTION',
+      expectedVersion: stabilized.projection.version
+    }))
+    expect(actorsOf(reverted)).toEqual(actorsOf(refreshed))
+  }, 240000)
+
   it('warns only about the unchecked touch range for a valid dying target', async () => {
     const { fixture, atAlly } = await dyingHeroAtAllyTurn()
     await allyRollsAutomatically(fixture, true)
     const refused = JSON.stringify(
-      await execute(fixture, (base) => ({
-        ...base,
-        type: 'USE_BASIC_ACTION',
-        expectedVersion: atAlly.projection.version,
-        actorId: allyOf(fixture).id,
-        definitionId: SRD_BASIC_ACTION_IDS.FIRST_AID,
-        targetActorId: fixture.hero.id,
-        acknowledgedWarnings: []
-      })).then(
+      await resolveFirstAid(fixture, atAlly, []).then(
         () => null,
         (caught: unknown) => caught
       )
@@ -654,6 +757,40 @@ describe('First Aid, a System basic action with a check (D98)', () => {
       expectedVersion: settled.projection.version
     }))
     expect(await heldEffects(fixture, ally.sourceId!)).toEqual(helpBefore)
+  }, 180000)
+
+  it('leaves a second dying Character’s death saves and hit points as they were', async () => {
+    const { fixture, atAlly } = await dyingHeroAtAllyTurn()
+    await allyRollsAutomatically(fixture, true)
+    const ally = allyOf(fixture)
+    // The ally is itself dying, with a death save of its own on the record.
+    await checkpointLiveRoom(fixture.campaign.id)
+    const sheet = await fixture.owner.caller.query(api.characters.sheet.get, {
+      id: ally.sourceId!
+    })
+    if (!sheet) throw new Error('Missing ally Sheet.')
+    const { current } = (await storedCharacter(fixture, ally.sourceId!)).state.hitpoints
+    await executeSheetInRoom(fixture.owner.caller, {
+      scope: 'CHARACTER_SHEET',
+      characterId: ally.sourceId!,
+      encounterId: fixture.run.id,
+      command: {
+        type: 'ADJUST_HIT_POINTS',
+        mode: 'DAMAGE',
+        amount: current,
+        commandId: crypto.randomUUID(),
+        expectedVersion: sheet.meta.streamVersion
+      }
+    })
+    const allyBefore = (await storedCharacter(fixture, ally.sourceId!)).state.hitpoints
+    expect(allyBefore.current).toBe(0)
+
+    await queueRoomRolls(fixture.campaign.id, { rolls: [draw(20)] })
+    // A dying helper can't normally act, which the GM acknowledges.
+    const stabilized = await useFirstAid(fixture, atAlly, ['ACTION_ECONOMY_UNAVAILABLE'])
+    expect(stabilized.occurrence?.status).toBe('COMPLETE')
+    expect(await saves(fixture)).toEqual({ successes: 0, failures: 0, stable: true })
+    expect((await storedCharacter(fixture, ally.sourceId!)).state.hitpoints).toEqual(allyBefore)
   }, 180000)
 
   it('warns, overridably, for a hero that is not dying, and then rolls nothing', async () => {

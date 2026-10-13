@@ -12,11 +12,18 @@ import { rejectDomain } from './domainRejections.js'
 import { readRunActor, readRunState } from './documents.js'
 import { readEncounterSettledAppRoll } from './evidenceRolls.js'
 import { readPendingSnapshot } from './pendingSnapshots.js'
-import { replayEncounterCommandResult } from './replayReceipts.js'
-import { presentEncounterResultForMember } from './resultPresentation.js'
-import { presentTimelineEntry } from './timelineEntries.js'
+import { presentStoredCommandReplay } from './resultPresentation.js'
+import { presentTimelineEntry, type StoredCommand } from './timelineEntries.js'
 import type { EncounterReadTransaction } from './ports.js'
 import type { EncounterDocument } from './store.js'
+
+/** The check occurrence a stored root command pended: a CHECK action's or an Escape's. */
+export function storedCheckOccurrenceId(root: StoredCommand | undefined): string | null {
+  if (root?.commandType === 'RESOLVE_ACTION')
+    return root.root.kind === 'CHECK' ? root.root.checkReceipt.checkOccurrenceId : null
+  if (root?.commandType === 'ESCAPE_RELATIONSHIP') return root.receipt.checkOccurrenceId
+  return null
+}
 
 type CheckResponseInput = Omit<LiveSessionEncounterRulesInput, 'request'> & {
   response: ResolveRuleOccurrenceInputDto
@@ -119,11 +126,10 @@ async function admitCheckResponse<
       occurrence.version !== response.expectedOccurrenceVersion + 1
     )
       rejectDomain('COMMAND_ID_REUSED')
-    const result = await replayEncounterCommandResult(ctx, state, stored)
     return {
       ...scope,
       kind: 'REPLAY' as const,
-      result: await presentEncounterResultForMember(ctx, { campaign, membership, result })
+      result: await presentStoredCommandReplay(ctx, { state, campaign, membership, stored })
     }
   }
   const pending = spec.readPending(occurrence, await readPendingSnapshot(ctx, occurrence))
@@ -136,8 +142,8 @@ async function admitCheckResponse<
     .unique()
   // The fingerprint covers the command's type, so a root of the other check kind cannot match.
   if (
-    (root?.commandType !== 'USE_BASIC_ACTION' && root?.commandType !== 'ESCAPE_RELATIONSHIP') ||
-    root.receipt.checkOccurrenceId !== occurrence.id ||
+    !root ||
+    storedCheckOccurrenceId(root) !== occurrence.id ||
     root.commandFingerprint !== context.commandFingerprint
   )
     throw new Error('The check root command is unavailable.')

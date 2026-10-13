@@ -1,5 +1,9 @@
 import type { TargetingAuthored } from '#authored'
-import { TARGET_DISPOSITION_KIND_OPTIONS, TARGET_SELECTION_KIND_OPTIONS } from '#core'
+import {
+  TARGET_DISPOSITION_KIND_OPTIONS,
+  TARGET_SELECTION_KIND_OPTIONS,
+  TARGET_SELF_POLICY_OPTIONS
+} from '#core'
 import { buildNodeMap, type NodeMap } from '#utils'
 import { createBreakpointScalingNodeMap } from '../../shared/maps/scaling.js'
 
@@ -69,11 +73,19 @@ export const TARGETING_NODE_MAP: NodeMap<TargetingAuthored> = targeting.define(
         )
       )
       .set(
-        'excludesSelf',
-        nodes.toggle(['excludesSelf'], 'Excludes Self', {
-          order: 9,
-          showIf: local.field(['selectionKind']).eq('SINGLE_TARGET')
-        })
+        'self',
+        selectSingle(
+          ['self'],
+          'Naming the User',
+          {
+            kind: 'INLINE_OPTIONS',
+            options: TARGET_SELF_POLICY_OPTIONS
+          },
+          {
+            order: 9,
+            showIf: local.field(['selectionKind']).eq('SINGLE_TARGET')
+          }
+        )
       )
       .set(
         'maxTargets',

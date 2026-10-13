@@ -135,9 +135,12 @@ export async function recordActionRoot(
       encounterId: state.id,
       commandId: command.commandId,
       commandType: 'RESOLVE_ACTION',
-      ruleOccurrenceId: execution.occurrenceId,
-      ruleResultChecksum,
-      optionalCombatSnapshotChecksum: state.optionalCombatSnapshotChecksum,
+      root: {
+        kind: 'RULE_OCCURRENCE',
+        ruleOccurrenceId: execution.occurrenceId,
+        ruleResultChecksum,
+        optionalCombatSnapshotChecksum: state.optionalCombatSnapshotChecksum
+      },
       ...input.commandFields,
       commandFingerprint: input.fingerprint,
       actorUserId: input.initiatorUserId,

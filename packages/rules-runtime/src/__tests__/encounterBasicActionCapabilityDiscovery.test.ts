@@ -63,11 +63,11 @@ describe('authored basic action compilation', () => {
     expect(available).toMatchObject([{ label: 'Dodge', definitionId: SRD_BASIC_ACTION_IDS.DODGE }])
   })
 
-  it('offers nothing for an entry that carries mechanics instead of effects', async () => {
-    expect(await discover([SRD_BASIC_ACTION_IDS.FIRST_AID])).toEqual({
-      available: [],
-      unavailable: []
-    })
+  it('offers First Aid as an authored CHECK action now that the mechanics field is gone', async () => {
+    const { available } = await discover([SRD_BASIC_ACTION_IDS.FIRST_AID])
+    expect(available).toMatchObject([
+      { label: 'First Aid', definitionId: SRD_BASIC_ACTION_IDS.FIRST_AID }
+    ])
   })
 
   it("reads only the entry an action id names, and nothing for another actor's id", async () => {

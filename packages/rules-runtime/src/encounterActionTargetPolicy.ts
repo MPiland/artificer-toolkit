@@ -64,7 +64,10 @@ export function singleTargetMeasure(policy: CompiledActionTargetPolicy):
           { selectionKind: 'SINGLE_TARGET' }
         >['dispositionKind']
       >
-      excludesSelf: boolean | undefined
+      self: Extract<
+        NonNullable<CompiledActionTargetPolicy['targeting']>,
+        { selectionKind: 'SINGLE_TARGET' }
+      >['self']
     }
   | null {
   if (policy.shape !== null || policy.pathOverrides.length !== 0) return null
@@ -81,7 +84,7 @@ export function singleTargetMeasure(policy: CompiledActionTargetPolicy):
     kind: 'MEASURED',
     range,
     dispositionKind: targeting.dispositionKind,
-    excludesSelf: targeting.excludesSelf
+    self: targeting.self
   }
 }
 
@@ -122,12 +125,14 @@ export function evaluateEncounterActionTargetPolicy(input: {
     return targetsSelf
       ? []
       : [{ code: 'TARGET_OUT_OF_RANGE', message: 'This action can only target its user.' }]
-  const { range, dispositionKind, excludesSelf } = measure
+  const { range, dispositionKind, self } = measure
+  // An action that needs another creature (Help, First Aid) refuses its own user; nothing overrides it.
+  if (targetsSelf && self === 'REFUSED') return null
   const warnings: EncounterRuleWarningDto[] = []
   const relationship = encounterActorRelationship(input.actor.disposition, input.target.disposition)
   // SRD "Targeting Yourself": a creature may choose itself unless the effect must be hostile,
   // makes an attack roll or names another creature (D99).
-  if (targetsSelf && (dispositionKind === 'HOSTILE' || input.makesAttackRoll || excludesSelf))
+  if (targetsSelf && (dispositionKind === 'HOSTILE' || input.makesAttackRoll || self === 'WARN'))
     warnings.push({ code: 'TARGET_DISPOSITION', message: 'This action targets another creature.' })
   else if (dispositionKind === 'WILLING' && relationship === 'HOSTILE')
     warnings.push({ code: 'TARGET_DISPOSITION', message: 'This action needs a willing target.' })

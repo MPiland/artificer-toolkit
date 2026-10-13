@@ -1,4 +1,5 @@
 import type {
+  CheckAuthored,
   OutcomeAuthored,
   SavingThrowAuthored,
   EffectPathAuthored,
@@ -50,28 +51,40 @@ type ActionReactionMovementTriggerBindingAuthored =
       reactionMovementTrigger: ReactionMovementTriggerBindingAuthored
     }
 
-export type ActionEffectInvocationAuthored<TTrigger extends Trigger = Trigger> = (
+export type ActionEffectInvocationAuthored<TTrigger extends Trigger = Trigger> =
+  | ((
+      | {
+          kind?: typeof EFFECT_INVOCATION_KIND.ACTION
+          triggerCode: Extract<TTrigger, 'SAVING_THROW'>
+          savingThrow: SavingThrowAuthored
+          activation: ActivationAuthored
+          resourceUse?: ResourceUseAuthored
+          range: RangeAuthored
+          shape?: ShapeAuthored
+          targeting?: TargetingAuthored
+        }
+      | {
+          kind?: typeof EFFECT_INVOCATION_KIND.ACTION
+          triggerCode: Exclude<TTrigger, 'SAVING_THROW' | 'CHECK'>
+          activation: ActivationAuthored
+          resourceUse?: ResourceUseAuthored
+          range: RangeAuthored
+          shape?: ShapeAuthored
+          targeting?: TargetingAuthored
+        }
+    ) &
+      ActionReactionMovementTriggerBindingAuthored)
   | {
       kind?: typeof EFFECT_INVOCATION_KIND.ACTION
-      triggerCode: Extract<TTrigger, 'SAVING_THROW'>
-      savingThrow: SavingThrowAuthored
+      triggerCode: Extract<TTrigger, 'CHECK'>
+      check: CheckAuthored
       activation: ActivationAuthored
       resourceUse?: ResourceUseAuthored
       range: RangeAuthored
       shape?: ShapeAuthored
       targeting?: TargetingAuthored
+      reactionMovementTrigger?: never
     }
-  | {
-      kind?: typeof EFFECT_INVOCATION_KIND.ACTION
-      triggerCode: Exclude<TTrigger, 'SAVING_THROW'>
-      activation: ActivationAuthored
-      resourceUse?: ResourceUseAuthored
-      range: RangeAuthored
-      shape?: ShapeAuthored
-      targeting?: TargetingAuthored
-    }
-) &
-  ActionReactionMovementTriggerBindingAuthored
 
 export type PassiveEffectInvocationAuthored<TTrigger extends Trigger = Trigger> =
   | {
@@ -84,7 +97,7 @@ export type PassiveEffectInvocationAuthored<TTrigger extends Trigger = Trigger> 
     }
   | {
       kind: typeof EFFECT_INVOCATION_KIND.PASSIVE
-      triggerCode: Exclude<TTrigger, 'SAVING_THROW'>
+      triggerCode: Exclude<TTrigger, 'SAVING_THROW' | 'CHECK'>
       range: RangeAuthored
       shape?: ShapeAuthored
       targeting?: TargetingAuthored

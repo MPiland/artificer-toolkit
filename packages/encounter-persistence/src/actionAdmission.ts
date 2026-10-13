@@ -11,6 +11,7 @@ import { readEncounterReplayReceipt, replayEncounterCommandResult } from './repl
 import { requireEncounterActorControl } from './actorController.js'
 import { presentTimelineEntry, requireUnusedEvidenceCommandId } from './timelineEntries.js'
 import { rejectDomain } from './domainRejections.js'
+import { presentStoredCommandReplay } from './resultPresentation.js'
 import type { EncounterDocument } from './store.js'
 import type { EncounterReadTransaction } from './ports.js'
 
@@ -77,12 +78,31 @@ export async function readNativeEncounterActionAdmission(
       replay.commandFingerprint !== fingerprint
     )
       rejectDomain('COMMAND_ID_REUSED')
+    // A CHECK action's root records its check occurrence, not a mechanics batch; its stored result replays whole.
+    const { root } = replay
+    if (root.kind === 'CHECK')
+      return {
+        kind: 'REPLAY' as const,
+        input,
+        run,
+        state,
+        campaign,
+        membership,
+        fingerprint,
+        result: await presentStoredCommandReplay(ctx, {
+          state,
+          campaign,
+          membership,
+          stored: replay
+        })
+      }
     const replayReceipt = readEncounterReplayReceipt(replay)
+    const { ruleOccurrenceId } = root
     if (checksumCanonicalJson(JSON.parse(replay.commandJson)) !== fingerprint)
       throw new Error('Stored Encounter action receipt mismatch.')
     const occurrence = await ctx.db
       .query('encounterRuleOccurrences')
-      .withIndex('by_publicId', (query) => query.eq('id', replay.ruleOccurrenceId))
+      .withIndex('by_publicId', (query) => query.eq('id', ruleOccurrenceId))
       .unique()
     const receipt = await ctx.db
       .query('encounterRuleReceipts')
@@ -125,7 +145,7 @@ export async function readNativeEncounterActionAdmission(
       receipt.actorUserId !== initiatorUserId ||
       receipt.correlationId !== null ||
       receipt.resultChecksum !== checksumRuleDocument(payload) ||
-      receipt.resultChecksum !== replay.ruleResultChecksum ||
+      receipt.resultChecksum !== root.ruleResultChecksum ||
       payload.occurrenceId !== occurrence.id ||
       payload.occurrenceVersion !== occurrence.version ||
       (payload.applicationOutputs.kind !== 'ENCOUNTER_ACTOR_MECHANICS_BATCH' &&
@@ -144,7 +164,7 @@ export async function readNativeEncounterActionAdmission(
           (payload.phaseReceipts?.[0]?.boundFactsChecksum ??
             checksumRuleDocument(initialExecution.evidence.facts))) ||
       metadata.expectedAggregateVersion !== input.expectedVersion ||
-      metadata.optionalCombatSnapshotChecksum !== replay.optionalCombatSnapshotChecksum ||
+      metadata.optionalCombatSnapshotChecksum !== root.optionalCombatSnapshotChecksum ||
       replayReceipt.occurrence?.status !== 'COMPLETE' ||
       replayReceipt.occurrence.occurrenceId !== occurrence.id ||
       replayReceipt.occurrence.occurrenceVersion !== occurrence.version ||

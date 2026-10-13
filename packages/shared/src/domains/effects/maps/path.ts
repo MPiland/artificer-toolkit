@@ -2,7 +2,6 @@ import type {
   ApplyGrantAuthored,
   ActorRelationshipAuthored,
   ActorRelationshipModuleAuthored,
-  CheckChoiceAuthored,
   ConditionAuthored,
   DamageAuthored,
   FollowUpSaveAuthored,
@@ -86,6 +85,7 @@ import {
 import { MODIFIER_GRANT_NODE_MAP } from '../../grants/maps/modifier.js'
 import { PROFICIENCY_NODE_MAP } from '../../grants/maps/proficiency.js'
 import { SENSE_GRANT_NODE_MAP } from '../../grants/maps/sense.js'
+import { CHECK_CHOICE_NODE_MAP, CHECK_DC_NODE_MAP } from './check.js'
 import { ACTIVATION_NODE_MAP, INVOCATION_NODE_MAP } from './invocation.js'
 import { OUTCOME_BONUS_NODE_MAP } from './outcomeBonus.js'
 import { TARGETING_NODE_MAP } from './targeting.js'
@@ -105,9 +105,6 @@ type ManifestProximityRuleNode = ManifestProximityRuleAuthored
 type RollTableRepeatNode = NonNullable<AllUnionFields<PathRollTableRowAuthored>['repeat']>
 type ActorRelationshipModuleNode = AllUnionFields<ActorRelationshipModuleAuthored>
 type ActorRelationshipRecurrenceNode = NonNullable<ActorRelationshipAuthored['recurrence']>
-type EscapeCheckDcNode = AllUnionFields<
-  Extract<ActorRelationshipModuleAuthored, { kind: 'ESCAPE_CHECK' }>['dc']
->
 type FollowUpSaveRepeatRollInfluenceWhenNode = FollowUpSaveRepeatRollInfluenceAuthored['when']
 type NodeMapBuildApi<NLocal extends object> = Parameters<
   BuildNodeMap<NLocal>['define']
@@ -235,8 +232,6 @@ const hitPointMaximumReductionAmountSource =
 const scalarReductionAmount = buildNodeMap<ScalarReductionAuthored['amount']>()
 const actorRelationshipModule = buildNodeMap<ActorRelationshipModuleNode>()
 const actionEffectId = buildNodeMap<{ value: string }>()
-const checkChoice = buildNodeMap<CheckChoiceAuthored>()
-const escapeCheckDc = buildNodeMap<EscapeCheckDcNode>()
 const actorRelationshipRecurrence = buildNodeMap<ActorRelationshipRecurrenceNode>()
 const followUpSaveRepeatRollInfluence = buildNodeMap<FollowUpSaveRepeatRollInfluenceAuthored>()
 const followUpSaveRepeatRollInfluenceWhen = buildNodeMap<FollowUpSaveRepeatRollInfluenceWhenNode>()
@@ -892,56 +887,6 @@ const FOLLOW_UP_SAVE_REPEAT_ROLL_INFLUENCE_NODE_MAP = followUpSaveRepeatRollInfl
   }
 )
 
-const CHECK_CHOICE_NODE_MAP = checkChoice.define('checkChoice', ({ map, nodes, data }) => {
-  const { selectMulti } = nodes
-  const { table } = data
-  map
-    .set(
-      'skillIds',
-      selectMulti(['skillIds'], 'Skill Checks', {
-        kind: 'DATA',
-        relationship: table('skills', { selectColumns: ['id', 'label'] })
-      })
-    )
-    .set(
-      'abilityDefinitionIds',
-      selectMulti(['abilityDefinitionIds'], 'Ability Checks', {
-        kind: 'DATA',
-        relationship: table('ability_definitions', { selectColumns: ['id', 'label'] })
-      })
-    )
-})
-
-const ESCAPE_CHECK_DC_NODE_MAP = escapeCheckDc.define('escapeCheckDc', ({ map, nodes, cond }) => {
-  const { number, selectSingle, groupObject } = nodes
-  const local = cond.local()
-  map
-    .set(
-      'kind',
-      selectSingle(['kind'], 'DC', {
-        kind: 'INLINE_OPTIONS',
-        options: [
-          { code: 'FIXED', label: 'Fixed DC' },
-          { code: 'CONTEST', label: 'Contest' }
-        ]
-      })
-    )
-    .set(
-      'value',
-      number(['value'], 'Fixed DC', {
-        constraints: { minimum: 1 },
-        showIf: local.field(['kind']).eq('FIXED')
-      })
-    )
-    .set(
-      'checks',
-      groupObject(['checks'], 'Source Checks', () => CHECK_CHOICE_NODE_MAP, {
-        presentation: 'inline',
-        showIf: local.field(['kind']).eq('CONTEST')
-      })
-    )
-})
-
 const ACTOR_RELATIONSHIP_MODULE_NODE_MAP = actorRelationshipModule.define(
   'actorRelationshipModule',
   ({ map, nodes, cond, logic, data }) => {
@@ -1034,7 +979,7 @@ const ACTOR_RELATIONSHIP_MODULE_NODE_MAP = actorRelationshipModule.define(
       )
       .set(
         'dc',
-        groupObject(['dc'], 'Escape DC', () => ESCAPE_CHECK_DC_NODE_MAP, {
+        groupObject(['dc'], 'Escape DC', () => CHECK_DC_NODE_MAP, {
           presentation: 'inline',
           showIf: local.field(['kind']).eq('ESCAPE_CHECK')
         })

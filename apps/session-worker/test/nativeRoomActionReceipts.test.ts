@@ -276,9 +276,12 @@ describe('room action receipts', () => {
       actorUserId: room.room.base.userId
     })
     // The run command row and the receipt name one occurrence and one stored result.
-    expect(command.ruleOccurrenceId).toBe(receipt.occurrenceId)
     expect(receipt.resultChecksum).toBe(checksumRuleDocument(execution))
-    expect(command.ruleResultChecksum).toBe(receipt.resultChecksum)
+    expect(command.root).toMatchObject({
+      kind: 'RULE_OCCURRENCE',
+      ruleOccurrenceId: receipt.occurrenceId,
+      ruleResultChecksum: receipt.resultChecksum
+    })
     expect(command.ruleOverrides).toEqual([])
     expect(outputs).toMatchObject({
       occurrenceId: receipt.occurrenceId,
@@ -354,9 +357,12 @@ describe('room action receipts', () => {
     expect(history.receipts).toHaveLength(1)
 
     const { receipt, command, execution, outputs } = settledAction(history, action.commandId)
-    expect(command.ruleOccurrenceId).toBe(receipt.occurrenceId)
     expect(receipt.resultChecksum).toBe(checksumRuleDocument(execution))
-    expect(command.ruleResultChecksum).toBe(receipt.resultChecksum)
+    expect(command.root).toMatchObject({
+      kind: 'RULE_OCCURRENCE',
+      ruleOccurrenceId: receipt.occurrenceId,
+      ruleResultChecksum: receipt.resultChecksum
+    })
     expect(execution.phaseReceipts?.map((phase) => phase.phase)).toEqual(['TEST', 'OUTCOME'])
     expect(execution.phaseReceipts?.[0]?.execution.outputs.resultPath).toBe('ON_HIT')
     expect(outputs).toMatchObject({

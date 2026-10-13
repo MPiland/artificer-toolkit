@@ -205,9 +205,15 @@ export function withEncounterRuleUsageUsed(
   ) {
     throw new Error('Encounter rule usage state is invalid.')
   }
-  const ruleUsage = isRecord(existing) ? existing : {}
-  return {
-    ...resources,
-    ruleUsage: { ...ruleUsage, [normalizedDefinitionId]: used }
-  }
+  // Nothing used is the absence of a record, so a refresh, a spend and an undo store the same row.
+  const ruleUsage = Object.entries(isRecord(existing) ? existing : {}).filter(
+    ([id]) => id !== normalizedDefinitionId
+  )
+  if (used > 0) ruleUsage.push([normalizedDefinitionId, used])
+  const otherResources = Object.entries(resources).filter(([key]) => key !== 'ruleUsage')
+  return Object.fromEntries(
+    ruleUsage.length === 0
+      ? otherResources
+      : [...otherResources, ['ruleUsage', Object.fromEntries(ruleUsage)]]
+  )
 }

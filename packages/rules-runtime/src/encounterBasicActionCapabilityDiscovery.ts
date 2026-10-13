@@ -35,15 +35,31 @@ export interface EncounterBasicActionDiscovery {
 }
 
 /** The identity of one authored basic action of one actor (the `actionId` of RESOLVE_ACTION). */
-function encounterBasicActionId(actorId: string, definitionId: string, effectId: string): string {
-  return `${actorId}${ACTION_ID_SEPARATOR}${definitionId}:EFFECT:${effectId}`
+export function encounterBasicActionId(
+  actorId: string,
+  definitionId: string,
+  effectId: string
+): string {
+  return `${actorId}${ACTION_ID_SEPARATOR}${definitionId}${EFFECT_ID_SEPARATOR}${effectId}`
 }
 
 const ACTION_ID_SEPARATOR = ':BASIC_ACTION:'
+const EFFECT_ID_SEPARATOR = ':EFFECT:'
 
 /** Whether an action id names an authored basic action of this actor. */
 export function isEncounterBasicActionId(actorId: string, actionId: string): boolean {
   return actionId.startsWith(`${actorId}${ACTION_ID_SEPARATOR}`)
+}
+
+/** The authored Effect of a catalogue entry that a basic action id names. */
+export function readEncounterBasicActionEffect(
+  entry: EncounterBasicActionEntry,
+  actionId: string
+): EncounterBasicActionEntry['document']['effects'][number] | null {
+  const effectId = actionId.slice(
+    actionId.lastIndexOf(EFFECT_ID_SEPARATOR) + EFFECT_ID_SEPARATOR.length
+  )
+  return entry.document.effects.find((effect) => effect.id === effectId) ?? null
 }
 
 /**

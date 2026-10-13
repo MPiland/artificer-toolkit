@@ -253,11 +253,27 @@ export const encounterStoredRunCommandSchema = lazySchema(() =>
     }),
     z.extend(encounterStoredRunCommandResultSchema, {
       commandType: z.literal('RESOLVE_ACTION'),
+      /** What the action is rooted in: one rule occurrence and its result, or (CHECK, no mechanics batch yet) its own check. */
+      root: z.discriminatedUnion('kind', [
+        z.strictObject({
+          kind: z.literal('RULE_OCCURRENCE'),
+          ruleOccurrenceId: postgresUuidSchema,
+          ruleResultChecksum: projectionChecksumSchema,
+          optionalCombatSnapshotChecksum: projectionChecksumSchema
+        }),
+        z.strictObject({
+          kind: z.literal('CHECK'),
+          /** What the CHECK action spent, so the GM's undo can reverse it exactly. */
+          checkReceipt: z.strictObject({
+            actorId: postgresUuidSchema,
+            actionEconomy: z.nullable(encounterActionEconomyTransitionDtoSchema),
+            /** The action's d20 check occurrence, pending or settled; null when an overridden warning ended it before the roll. */
+            checkOccurrenceId: z.nullable(postgresUuidSchema)
+          })
+        })
+      ]),
       /** The resolved action's display name, from the prepared action; the timeline shows it. */
       label: z.nullable(z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160))),
-      ruleOccurrenceId: postgresUuidSchema,
-      ruleResultChecksum: projectionChecksumSchema,
-      optionalCombatSnapshotChecksum: projectionChecksumSchema,
       /** Warnings the submitter overrode ("Do it anyway"); the GM timeline badges each one. */
       ruleOverrides: encounterRuleWarningsDtoSchema,
       /** The grants (Vicious Mockery, Help) this action's rolls used up; its undo gives them back. */
@@ -273,7 +289,6 @@ export const encounterStoredRunCommandSchema = lazySchema(() =>
           turnActorId: postgresUuidSchema
         })
       ),
-      /** GM-only history lines (the GM removing a creature from an area); the timeline never shows them to a player. */
       /** History lines for the user who issued the command, such as an area's outcomes for its caster; the GM sees them too. */
       issuerLines: z._default(
         z
@@ -281,29 +296,13 @@ export const encounterStoredRunCommandSchema = lazySchema(() =>
           .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
         []
       ),
+      /** GM-only history lines (the GM removing a creature from an area); the timeline never shows them to a player. */
       gmLines: z._default(
         z
           .array(z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)))
           .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
         []
       )
-    }),
-    z.extend(encounterStoredRunCommandResultSchema, {
-      commandType: z.literal('USE_BASIC_ACTION'),
-      /** The catalogue entry's name when it was used; the timeline shows it. */
-      label: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)),
-      ruleOverrides: encounterRuleWarningsDtoSchema,
-      /** What the action changed, so the GM's undo can reverse it exactly. */
-      receipt: z.strictObject({
-        actorId: postgresUuidSchema,
-        actionEconomy: z.nullable(encounterActionEconomyTransitionDtoSchema),
-        /** The helper's one-check grants (Help) the check used up; undo gives them back. */
-        consumedGrants: z
-          .array(activeRuleEffectRecordSchema)
-          .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER)),
-        /** The action's d20 check occurrence, pending or settled; null for an action with no check. */
-        checkOccurrenceId: z.nullable(postgresUuidSchema)
-      })
     }),
     z.extend(encounterStoredRunCommandResultSchema, {
       commandType: z.literal('ESCAPE_RELATIONSHIP'),
@@ -333,7 +332,7 @@ export const encounterStoredRunCommandSchema = lazySchema(() =>
     }),
     z.extend(encounterStoredRunCommandResultSchema, {
       commandType: z.literal('REVERT_LAST_ACTION'),
-      /** The undone RESOLVE_ACTION or USE_BASIC_ACTION command, and the action's occurrence if any. */
+      /** The undone RESOLVE_ACTION command, and the action's occurrence if any. */
       revertedCommandId: postgresUuidSchema,
       ruleOccurrenceId: z.nullable(postgresUuidSchema)
     }),

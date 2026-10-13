@@ -4,10 +4,7 @@ import {
 } from '@artificer-toolkit/schema/shared/basicActions'
 import { BASIC_ACTION_DEFINITION_FAMILY_KEY } from '@artificer-toolkit/schema/shared/reusableDefinitionIdentity'
 import type { ReusableDefinitionCurrentDto } from '@artificer-toolkit/schema/shared/reusableDefinitions'
-import type {
-  EncounterRunActorState,
-  EncounterRunState
-} from '@artificer-toolkit/schema/projections/encounterRunState'
+import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { actionEconomyCapabilityRegistry } from './actionEconomyCapabilityRegistry.default.js'
 import { activeEffectCapabilitySuppressions } from './encounterActionEconomy.js'
 import type { MovementTarget } from './encounterMovementTargets.js'
@@ -53,20 +50,4 @@ export function requireEncounterBasicActionDefinition(
   )
     throw new Error("The basic action is not in this Encounter's System.")
   return { definition, document: document.data }
-}
-
-/** Checks that a mechanic-driven basic action got the target it needs (First Aid's dying Character). */
-export function requireEncounterBasicActionTarget(input: {
-  actor: EncounterRunActorState
-  target: EncounterRunActorState | null
-  document: BasicActionReusableDefinitionDocumentDto
-}) {
-  const { actor, target, document } = input
-  if (document.effects.length > 0)
-    throw new Error('This basic action is authored and resolves as an action.')
-  const stabilizes = document.mechanics.includes('STABILIZE_TARGET')
-  if (stabilizes !== (target !== null) || target?.id === actor.id)
-    throw new Error(
-      stabilizes ? 'Choose a creature to stabilize.' : 'This basic action has no target.'
-    )
 }

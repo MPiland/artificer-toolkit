@@ -112,8 +112,9 @@ export async function verifyNativeCleavingParentChain(
     command.type !== 'RESOLVE_ACTION' ||
     command.actorId !== context.sourceActorId ||
     command.actionId !== context.action.actionId ||
-    root.ruleOccurrenceId !== parent.occurrence.id ||
-    root.ruleResultChecksum !== checksumRuleDocument(parent.payload) ||
+    root.root.kind !== 'RULE_OCCURRENCE' ||
+    root.root.ruleOccurrenceId !== parent.occurrence.id ||
+    root.root.ruleResultChecksum !== checksumRuleDocument(parent.payload) ||
     actionTargetActorId(command.target) !== retained.initialTargetActorId ||
     context.initialTargetActorId !== retained.initialTargetActorId ||
     checksumRuleDocument(context.originalAttack) !==

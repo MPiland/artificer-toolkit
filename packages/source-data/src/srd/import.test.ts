@@ -8,8 +8,7 @@ import {
 } from './concentration.js'
 import { ABILITY_CODE, ATTACK_DOMAIN_CODE } from '@artificer-toolkit/shared'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
-import { basicActionReusableDefinitionDocumentDtoSchema } from '@artificer-toolkit/schema/shared/basicActions'
-import { SRD_BASIC_ACTION_DEFINITIONS, SRD_BASIC_ACTION_IDS } from './basicActions.js'
+import { SRD_BASIC_ACTION_IDS } from './basicActions.js'
 import { SRD_MEDICINE_SKILL_ID } from './vocabulary.js'
 import type { BaselineContentBundle } from '../content.js'
 
@@ -41,7 +40,6 @@ describe('canonical Convex import preparation', () => {
           definition.document.kind === 'BASIC_ACTION'
             ? [
                 definition.document.actionCost,
-                definition.document.mechanics,
                 definition.document.effects.flatMap((effect) =>
                   effect.paths.flatMap((path) =>
                     path.resultBlock.outcomes.map((outcome) => outcome.effectKind)
@@ -52,15 +50,15 @@ describe('canonical Convex import preparation', () => {
         ])
       )
     ).toEqual({
-      Dash: ['ACTION', [], ['MOVEMENT_RULE']],
-      Disengage: ['ACTION', [], ['APPLY_GRANT']],
-      Dodge: ['ACTION', [], ['APPLY_GRANT']],
-      Help: ['ACTION', [], ['APPLY_GRANT']],
-      Hide: ['ACTION', [], ['MANUAL_ADJUDICATION']],
-      Ready: ['ACTION', [], ['MANUAL_ADJUDICATION']],
-      Search: ['ACTION', [], ['MANUAL_ADJUDICATION']],
-      'Use an Object': ['ACTION', [], ['MANUAL_ADJUDICATION']],
-      'First Aid': ['ACTION', ['STABILIZE_TARGET'], []]
+      Dash: ['ACTION', ['MOVEMENT_RULE']],
+      Disengage: ['ACTION', ['APPLY_GRANT']],
+      Dodge: ['ACTION', ['APPLY_GRANT']],
+      Help: ['ACTION', ['APPLY_GRANT']],
+      Hide: ['ACTION', ['MANUAL_ADJUDICATION']],
+      Ready: ['ACTION', ['MANUAL_ADJUDICATION']],
+      Search: ['ACTION', ['MANUAL_ADJUDICATION']],
+      'Use an Object': ['ACTION', ['MANUAL_ADJUDICATION']],
+      'First Aid': ['ACTION', ['STABILIZE']]
     })
     expect(catalogue.map((definition) => definition.id).sort()).toEqual(
       Object.values(SRD_BASIC_ACTION_IDS).sort()
@@ -143,27 +141,26 @@ describe('canonical Convex import preparation', () => {
     ).toEqual({
       selectionKind: 'SINGLE_TARGET',
       dispositionKind: 'WILLING',
-      excludesSelf: true
+      self: 'REFUSED'
     })
-    // First Aid is a DC 10 Wisdom (Medicine) check.
-    expect(
-      catalogue.find((definition) => definition.label === 'First Aid')?.document
-    ).toMatchObject({ check: { checkDefinitionId: SRD_MEDICINE_SKILL_ID, dc: 10 } })
+    // First Aid is a CHECK action: a DC 10 Wisdom (Medicine) check whose success stabilizes the target.
+    const firstAid = catalogue.find((definition) => definition.label === 'First Aid')?.document
+    expect(firstAid?.kind === 'BASIC_ACTION' && firstAid.effects[0]?.invocation.targeting).toEqual({
+      selectionKind: 'SINGLE_TARGET',
+      dispositionKind: 'WILLING',
+      self: 'REFUSED'
+    })
+    expect(firstAid?.kind === 'BASIC_ACTION' && firstAid.effects[0]?.invocation).toMatchObject({
+      triggerCode: 'CHECK',
+      check: {
+        checks: { skillIds: [SRD_MEDICINE_SKILL_ID], abilityDefinitionIds: [] },
+        dc: { kind: 'FIXED', value: 10 }
+      }
+    })
     for (const definition of catalogue) {
       expect(definition.document.gameSystemId).toBe(srdBaselineContent.vocabulary.systems[0]!.id)
       expect(definition.checksum).toBe(checksumRuleDocument(definition.document))
     }
-  })
-
-  it('an authored basic action cannot also carry mechanics', () => {
-    const hide = SRD_BASIC_ACTION_DEFINITIONS.find(({ id }) => id === SRD_BASIC_ACTION_IDS.HIDE)!
-    expect(
-      basicActionReusableDefinitionDocumentDtoSchema.safeParse({
-        ...hide.document,
-        mechanics: ['STABILIZE_TARGET'],
-        check: { checkDefinitionId: SRD_MEDICINE_SKILL_ID, dc: 10 }
-      }).success
-    ).toBe(false)
   })
 
   it('preserves every authored root and separate policy definition deterministically', () => {

@@ -6,7 +6,6 @@ import {
   type ReusableDefinitionDocumentDto
 } from '@artificer-toolkit/schema/shared/reusableDefinitions'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
-import { SRD_MEDICINE_SKILL_ID } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { ATTACK_DOMAIN_CODE } from '@artificer-toolkit/shared/core'
 import { createCharacterMechanicSourceKey } from '@artificer-toolkit/shared/character'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
@@ -18,10 +17,7 @@ import {
 import { compileEffect } from '@artificer-toolkit/shared/compilers'
 import { buildCompiledActionTargetPolicy } from '../encounterActionEntryPointCompiler.js'
 import { evaluateEncounterActionTargetPolicy } from '../encounterActionTargetPolicy.js'
-import {
-  requireEncounterBasicActionDefinition,
-  requireEncounterBasicActionTarget
-} from '../encounterBasicActions.js'
+import { requireEncounterBasicActionDefinition } from '../encounterBasicActions.js'
 import {
   ACTION_EFFECT_ID,
   characterActionDescriptor
@@ -42,10 +38,8 @@ const INCAPACITATED_ID = '00000000-0000-0000-0002-000700000000'
 const RESTRAINED_ID = '00000000-0000-0000-0002-000d00000000'
 const DODGE_EFFECT_ID = '00000000-0000-4000-8000-00000000d0d0'
 const IDS = {
-  dash: '00000000-0000-4000-8000-000000000b01',
   firstAid: '00000000-0000-4000-8000-000000000b09'
 }
-const FIRST_AID_CHECK = { checkDefinitionId: SRD_MEDICINE_SKILL_ID, dc: 10 }
 
 function actor(id: string, disposition: 'FRIENDLY' | 'HOSTILE' = 'FRIENDLY') {
   return encounterRunActorStateSchema.parse({
@@ -167,12 +161,7 @@ function target(
   }
 }
 
-function document(
-  id: string,
-  mechanics: BasicActionReusableDefinitionDocumentDto['mechanics'],
-  gameSystemId = SYSTEM_ID,
-  check: BasicActionReusableDefinitionDocumentDto['check'] = null
-): BasicActionReusableDefinitionDocumentDto {
+function document(id: string, gameSystemId = SYSTEM_ID): BasicActionReusableDefinitionDocumentDto {
   return {
     schemaVersion: 1,
     kind: 'BASIC_ACTION',
@@ -180,10 +169,8 @@ function document(
     gameSystemId,
     rulesText: 'Rules text.',
     actionCost: 'ACTION',
-    mechanics,
     restrictions: null,
-    effects: [],
-    check
+    effects: []
   }
 }
 
@@ -208,13 +195,6 @@ function published(
 }
 
 describe('basic action mechanics (Q11)', () => {
-  it('an authored basic action resolves as an action, never as a planned mechanic', () => {
-    const hide = SRD_BASIC_ACTION_DEFINITIONS.find(({ id }) => id === SRD_BASIC_ACTION_IDS.HIDE)!
-    expect(() =>
-      requireEncounterBasicActionTarget({ actor: fighter, target: null, document: hide.document })
-    ).toThrow('resolves as an action')
-  })
-
   it('Dodge gives attacks against the actor disadvantage and its Dexterity saves advantage', async () => {
     const dodge = dodgeEffect({ id: DODGE_EFFECT_ID, holderActorId: fighter.id })
     const defended = await withEncounterHolderDefense({
@@ -321,38 +301,50 @@ describe('basic action mechanics (Q11)', () => {
     expect(warnings(ogre)).toEqual([
       { code: 'TARGET_DISPOSITION', message: 'This action needs a willing target.' }
     ])
-    expect(warnings(fighter)).toEqual([
-      { code: 'TARGET_DISPOSITION', message: 'This action targets another creature.' }
-    ])
+    // Aiming it at its own user is a refusal, not an overridable warning.
+    expect(warnings(fighter)).toBeNull()
   })
 
   it('First Aid needs exactly one other creature', () => {
-    const firstAid = document(IDS.firstAid, ['STABILIZE_TARGET'], SYSTEM_ID, FIRST_AID_CHECK)
-    expect(() =>
-      requireEncounterBasicActionTarget({ actor: fighter, target: null, document: firstAid })
-    ).toThrow('Choose a creature to stabilize')
-    expect(() =>
-      requireEncounterBasicActionTarget({ actor: fighter, target: fighter, document: firstAid })
-    ).toThrow()
-    expect(() =>
-      requireEncounterBasicActionTarget({
+    const firstAid = SRD_BASIC_ACTION_DEFINITIONS.find(
+      ({ id }) => id === SRD_BASIC_ACTION_IDS.FIRST_AID
+    )!
+    const targetPolicy = buildCompiledActionTargetPolicy(
+      characterActionDescriptor(
+        compileEffect({ ...firstAid.document.effects[0]!, id: ACTION_EFFECT_ID })
+      )
+    )
+    const warnings = (target: typeof rogue) =>
+      evaluateEncounterActionTargetPolicy({
         actor: fighter,
-        target: rogue,
-        document: document(IDS.dash, [])
+        target,
+        targetPolicy,
+        sceneContext: null,
+        makesAttackRoll: false
       })
-    ).toThrow('no target')
-    expect(() =>
-      requireEncounterBasicActionTarget({ actor: fighter, target: rogue, document: firstAid })
-    ).not.toThrow()
+    // Touch range cannot be checked without a Scene (D11); it only warns.
+    expect(warnings(rogue)).toEqual([
+      {
+        code: 'TARGET_RANGE_UNCHECKED',
+        message: "Range can't be checked without both tokens on the map."
+      }
+    ])
+    // Aiming it at its own user is a refusal, not an overridable warning.
+    expect(warnings(fighter)).toBeNull()
+    expect(warnings(rogue)).not.toContainEqual(
+      expect.objectContaining({ code: 'TARGET_DISPOSITION' })
+    )
+    // It needs a willing creature: a hostile one only warns, and the table can override it.
+    expect(warnings(ogre)).toContainEqual({
+      code: 'TARGET_DISPOSITION',
+      message: 'This action needs a willing target.'
+    })
   })
 })
 
 describe('basic action catalogue identity', () => {
   it("accepts only a published basic-action entry of the Run's System", () => {
-    const help = published(
-      'First Aid',
-      document(IDS.firstAid, ['STABILIZE_TARGET'], SYSTEM_ID, FIRST_AID_CHECK)
-    )
+    const help = published('First Aid', document(IDS.firstAid))
     expect(
       requireEncounterBasicActionDefinition({ gameSystemId: SYSTEM_ID }, help).document
     ).toEqual(help.document)
@@ -367,7 +359,7 @@ describe('basic action catalogue identity', () => {
 
   it('a homebrew System overrides an entry with its own name, text and cost', () => {
     const sprint = published('Rally', {
-      ...document(IDS.firstAid, ['STABILIZE_TARGET'], HOMEBREW_SYSTEM_ID, FIRST_AID_CHECK),
+      ...document(IDS.firstAid, HOMEBREW_SYSTEM_ID),
       rulesText: 'Patch up an ally, as a bonus action.',
       actionCost: 'BONUS_ACTION'
     })
@@ -376,10 +368,7 @@ describe('basic action catalogue identity', () => {
       sprint
     )
     expect(resolved.definition.label).toBe('Rally')
-    expect(resolved.document).toMatchObject({
-      actionCost: 'BONUS_ACTION',
-      mechanics: ['STABILIZE_TARGET']
-    })
+    expect(resolved.document).toMatchObject({ actionCost: 'BONUS_ACTION' })
     // An SRD Encounter never uses the homebrew System's entry.
     expect(() =>
       requireEncounterBasicActionDefinition({ gameSystemId: SYSTEM_ID }, sprint)

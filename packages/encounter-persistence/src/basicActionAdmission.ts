@@ -1,19 +1,16 @@
-import type {
-  EscapeRelationshipInputDto,
-  UseEncounterBasicActionInputDto
-} from '@artificer-toolkit/schema/api/encounters'
+import type { EscapeRelationshipInputDto } from '@artificer-toolkit/schema/api/encounters'
+import type { ResolveCheckActionInputDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import type { LiveSessionEncounterRulesInput } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { readEncounterActorDefeated } from './characterStates.js'
 import { rejectDomain } from './domainRejections.js'
 import { requireEncounterActorControl } from './actorController.js'
 import { readRunActor, readRunState } from './documents.js'
-import { replayEncounterCommandResult } from './replayReceipts.js'
-import { presentEncounterResultForMember } from './resultPresentation.js'
+import { presentStoredCommandReplay } from './resultPresentation.js'
 import { presentTimelineEntry, requireUnusedEvidenceCommandId } from './timelineEntries.js'
 import type { EncounterReadTransaction } from './ports.js'
 
-type BasicActionRootCommand = UseEncounterBasicActionInputDto | EscapeRelationshipInputDto
+type BasicActionRootCommand = ResolveCheckActionInputDto | EscapeRelationshipInputDto
 type BasicActionScopeInput = Omit<LiveSessionEncounterRulesInput, 'request'>
 
 /**
@@ -75,11 +72,10 @@ async function admitCurrentActorCommand<TCommand extends BasicActionRootCommand>
       stored.commandFingerprint !== fingerprint
     )
       rejectDomain('COMMAND_ID_REUSED')
-    const result = await replayEncounterCommandResult(ctx, state, stored)
     return {
       ...scope,
       kind: 'REPLAY' as const,
-      result: await presentEncounterResultForMember(ctx, { campaign, membership, result })
+      result: await presentStoredCommandReplay(ctx, { state, campaign, membership, stored })
     }
   }
   const actor = await readRunActor(ctx, state, command.actorId)
@@ -100,24 +96,22 @@ async function admitCurrentActorCommand<TCommand extends BasicActionRootCommand>
 }
 
 /**
- * Admits a basic action (Q11) for the room: the caller controls the current actor and a player's
- * target is visible to them.
+ * Admits a CHECK action (a basic action resolved through RESOLVE_ACTION) for the room: the caller
+ * controls the current actor and a player's target is visible to them.
  */
 export async function readBasicActionAdmission(
   ctx: EncounterReadTransaction,
-  input: BasicActionScopeInput & { command: UseEncounterBasicActionInputDto }
+  input: BasicActionScopeInput & { command: ResolveCheckActionInputDto }
 ) {
-  const command: UseEncounterBasicActionInputDto = {
+  const command: ResolveCheckActionInputDto = {
     ...input.command,
     encounterId: input.command.encounterId.toLowerCase(),
     commandId: input.command.commandId.toLowerCase(),
     actorId: input.command.actorId.toLowerCase(),
-    definitionId: input.command.definitionId.toLowerCase(),
-    targetActorId: input.command.targetActorId?.toLowerCase() ?? null
+    target: { kind: 'ACTOR', actorId: input.command.target.actorId.toLowerCase() }
   }
   return admitCurrentActorCommand(ctx, input, command, async ({ state, role }) => {
-    if (!command.targetActorId) return
-    const target = await readRunActor(ctx, state, command.targetActorId)
+    const target = await readRunActor(ctx, state, command.target.actorId)
     // Players aim only at actors in their projection; a hidden actor reads as unavailable.
     if (role !== 'OWNER' && !target.public) rejectDomain('TARGET_UNAVAILABLE')
     if (await readEncounterActorDefeated(ctx, target))

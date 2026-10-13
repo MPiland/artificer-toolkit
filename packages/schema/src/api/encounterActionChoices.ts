@@ -7,10 +7,7 @@ import { encounterAcceptedWieldConflictDtoSchema } from './encounterRuleCommands
 import { equipmentGripSchema } from '../shared/enums.js'
 import { encounterRuleWarningsDtoSchema } from '../shared/encounterRuleWarnings.js'
 import { shapeMeasurementDtoSchema } from '../shared/shape.js'
-import {
-  basicActionCostDtoSchema,
-  basicActionReusableDefinitionDocumentDtoSchema
-} from '../shared/basicActions.js'
+import { basicActionReusableDefinitionDocumentDtoSchema } from '../shared/basicActions.js'
 
 const versionSchema = lazySchema(() => z.number().check(z.int()).check(z.nonnegative()))
 const labelSchema = lazySchema(() => z.string().check(z.trim()).check(z.minLength(1)))
@@ -31,6 +28,8 @@ export const encounterActionChoiceDtoSchema = lazySchema(() =>
     sourceLabel: characterSheetActionDtoSchema.shape.sourceLabel,
     /** What the action does, for a System-authored basic action's tooltip. */
     rulesText: z.optional(basicActionReusableDefinitionDocumentDtoSchema.shape.rulesText),
+    /** What a System-authored basic action costs to use, shown beside its name. */
+    actionCost: z.optional(basicActionReusableDefinitionDocumentDtoSchema.shape.actionCost),
     /** The numeric range geometry the compiled target policy enforces; `rangeLabel` words the authored range instead. */
     range: z.optional(
       z.discriminatedUnion('kind', [
@@ -72,7 +71,11 @@ export const encounterActionChoiceDtoSchema = lazySchema(() =>
      * area is as authored; the client converts it to the Scene's coordinates to preview it.
      */
     target: z.discriminatedUnion('kind', [
-      z.strictObject({ kind: z.literal('ACTOR') }),
+      z.strictObject({
+        kind: z.literal('ACTOR'),
+        /** The action needs a creature other than its user (Help, First Aid): the client asks for one first. */
+        requiresOtherCreature: z.boolean()
+      }),
       z.strictObject({
         kind: z.literal('POINT'),
         area: z.discriminatedUnion('kind', [
@@ -97,20 +100,6 @@ export const encounterActionChoiceDtoSchema = lazySchema(() =>
 
 export const MAX_BASIC_ACTION_CHOICES = 64
 export const MAX_ESCAPE_CHECK_CHOICES = 64
-
-/** One of the Run System's basic actions (Q11), offered to every actor apart from its features. */
-export const encounterBasicActionChoiceDtoSchema = lazySchema(() =>
-  z.strictObject({
-    definitionId: postgresUuidSchema,
-    label: labelSchema,
-    rulesText: basicActionReusableDefinitionDocumentDtoSchema.shape.rulesText,
-    actionCost: basicActionCostDtoSchema,
-    /** The one target to choose first: an ally to help, or a dying Character to stabilize. */
-    target: z.nullable(z.enum(['ALLY', 'DYING_CHARACTER'])),
-    /** Soft-rule warnings that already apply, as for `actions`. */
-    warnings: encounterRuleWarningsDtoSchema
-  })
-)
 
 /**
  * A relationship effect the actor holds and can try to escape against a fixed DC (D105): the
@@ -156,10 +145,6 @@ export const encounterActionChoicesDtoSchema = lazySchema(() =>
         reason: z.string().check(z.minLength(1)).check(z.maxLength(500))
       })
     ),
-    /** The System's basic actions that still run through the closed `USE_BASIC_ACTION` path. */
-    basicActions: z
-      .array(encounterBasicActionChoiceDtoSchema)
-      .check(z.maxLength(MAX_BASIC_ACTION_CHOICES)),
     /** The System's authored basic actions, resolved like any action through `RESOLVE_ACTION`. */
     basicActionChoices: z
       .array(encounterActionChoiceDtoSchema)
@@ -222,7 +207,6 @@ export type GetEncounterActionChoicesInputDto = z.infer<
   typeof getEncounterActionChoicesInputDtoSchema
 >
 export type EncounterActionChoiceDto = z.infer<typeof encounterActionChoiceDtoSchema>
-export type EncounterBasicActionChoiceDto = z.infer<typeof encounterBasicActionChoiceDtoSchema>
 export type EncounterEscapeChoiceDto = z.infer<typeof encounterEscapeChoiceDtoSchema>
 export type EncounterActionChoicesDto = z.infer<typeof encounterActionChoicesDtoSchema>
 export type EncounterActionChoicesResponseDto = z.infer<

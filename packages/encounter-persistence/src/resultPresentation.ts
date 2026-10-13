@@ -4,7 +4,9 @@ import {
   type EncounterCommandResultDto
 } from '@artificer-toolkit/schema/api/encounterData'
 import { projectPlayerEncounterProjection } from '@artificer-toolkit/rules-runtime/encounterPlayerProjection'
+import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { readPendingRunDecision } from './pendingReads.js'
+import { replayEncounterCommandResult } from './replayReceipts.js'
 import { readEncounterHealthViewer } from './healthViewer.js'
 import type { EncounterDocument } from './store.js'
 import type { EncounterReadTransaction } from './ports.js'
@@ -53,5 +55,23 @@ export async function presentEncounterResultForMember(
             await readEncounterHealthViewer(ctx, projection, membership.userId)
           ),
     occurrence: result.occurrence && { ...result.occurrence, pending }
+  })
+}
+
+/** A stored command's exact replay, presented for the member who retried it. */
+export async function presentStoredCommandReplay(
+  ctx: EncounterReadTransaction,
+  input: {
+    state: EncounterRunState
+    campaign: EncounterDocument<'campaigns'>
+    membership: EncounterDocument<'campaignMemberships'>
+    stored: Parameters<typeof replayEncounterCommandResult>[2]
+  }
+): Promise<EncounterCommandResultDto> {
+  const { state, campaign, membership, stored } = input
+  return presentEncounterResultForMember(ctx, {
+    campaign,
+    membership,
+    result: await replayEncounterCommandResult(ctx, state, stored)
   })
 }

@@ -5,13 +5,11 @@ import type {
   EncounterCommandResultDto,
   EncounterGmProjectionDto,
   EscapeRelationshipInputDto,
-  ResolveEncounterActionInputDto,
-  UseEncounterBasicActionInputDto
+  ResolveEncounterActionInputDto
 } from '@artificer-toolkit/schema/api/encounters'
 import type {
   EncounterActionChoiceDto,
   EncounterActionChoicesDto,
-  EncounterBasicActionChoiceDto,
   EncounterEscapeChoiceDto
 } from '@artificer-toolkit/schema/api/encounterActionChoices'
 import type { SpatialPointAreaShape } from '@artificer-toolkit/shared/vtt'
@@ -44,7 +42,7 @@ const actions = [
     grip: null,
     wieldConflict: null,
     warnings: [],
-    target: { kind: 'ACTOR' },
+    target: { kind: 'ACTOR', requiresOtherCreature: false },
     attackSlot: null
   }
 ] satisfies EncounterActionChoiceDto[]
@@ -64,12 +62,10 @@ function drawerElement(
   {
     choices = actions,
     unavailableActions = [],
-    basicActions = [],
     authoredBasicActions = [],
     escapes = [],
     openAttackAction = null,
     encounter = tabletopGmEncounter,
-    onUseBasicAction = vi.fn(),
     onEscape = vi.fn(),
     escapeResult = resolved,
     isGm = false,
@@ -82,12 +78,10 @@ function drawerElement(
   }: {
     choices?: EncounterActionChoiceDto[]
     unavailableActions?: EncounterActionChoicesDto['unavailableActions']
-    basicActions?: EncounterBasicActionChoiceDto[]
     authoredBasicActions?: EncounterActionChoiceDto[]
     escapes?: EncounterEscapeChoiceDto[]
     openAttackAction?: EncounterActionChoicesDto['openAttackAction']
     encounter?: EncounterGmProjectionDto
-    onUseBasicAction?: (command: UseEncounterBasicActionInputDto) => Promise<unknown>
     onEscape?: (command: EscapeRelationshipInputDto) => Promise<unknown>
     /** What the room answers an escape with. */
     escapeResult?: EncounterCommandResultDto
@@ -104,7 +98,6 @@ function drawerElement(
     <CampaignTabletopActionDrawer
       actionChoicesError={null}
       actions={choices}
-      basicActions={basicActions}
       basicActionChoices={authoredBasicActions}
       escapes={escapes}
       openAttackAction={openAttackAction}
@@ -128,10 +121,6 @@ function drawerElement(
       onOpen={vi.fn()}
       onResolve={async (command) => {
         await onResolve(command)
-        return resolved
-      }}
-      onUseBasicAction={async (command) => {
-        await onUseBasicAction(command)
         return resolved
       }}
       onEscape={async (command) => {
@@ -313,34 +302,30 @@ describe('CampaignTabletopActionDrawer availability', () => {
 
 const basicActionChoices = [
   {
-    definitionId: '00000000-0000-4000-8000-000000000b01',
+    ...actions[0]!,
+    id: 'dash-action',
     label: 'Dash',
-    rulesText: 'You gain extra movement for the current turn.',
-    actionCost: 'ACTION',
-    target: null,
-    warnings: []
+    rulesText: 'You gain extra movement for the current turn.'
   },
   {
-    definitionId: '00000000-0000-4000-8000-000000000b04',
+    ...actions[0]!,
+    id: 'help-action',
     label: 'Help',
     rulesText: 'You aid an ally.',
-    actionCost: 'ACTION',
-    target: 'ALLY',
-    warnings: []
+    target: { kind: 'ACTOR', requiresOtherCreature: true }
   },
   {
-    definitionId: '00000000-0000-4000-8000-000000000b09',
+    ...actions[0]!,
+    id: 'first-aid-action',
     label: 'First Aid',
     rulesText: 'You make a DC 10 Wisdom (Medicine) check to stabilize a dying creature.',
-    actionCost: 'ACTION',
-    target: 'DYING_CHARACTER',
-    warnings: []
+    target: { kind: 'ACTOR', requiresOtherCreature: true }
   }
-] satisfies EncounterBasicActionChoiceDto[]
+] satisfies EncounterActionChoiceDto[]
 
 describe('CampaignTabletopActionDrawer basic actions', () => {
   it('lists the System basic actions in their own section, apart from feature actions', async () => {
-    renderDrawer(vi.fn(), { basicActions: basicActionChoices })
+    renderDrawer(vi.fn(), { authoredBasicActions: basicActionChoices })
 
     const section = await screen.findByRole('region', { name: 'Basic actions' })
     expect(within(section).getByText('Dash')).toBeVisible()
@@ -351,18 +336,18 @@ describe('CampaignTabletopActionDrawer basic actions', () => {
 
   it('uses a basic action for the current actor', async () => {
     const user = userEvent.setup()
-    const onUseBasicAction = vi.fn().mockResolvedValue(resolved)
-    renderDrawer(vi.fn(), { basicActions: basicActionChoices, onUseBasicAction })
+    const onResolve = vi.fn().mockResolvedValue(resolved)
+    renderDrawer(onResolve, { choices: [], authoredBasicActions: basicActionChoices })
 
     await user.click(await screen.findByRole('button', { name: 'Use Dash' }))
-    expect(onUseBasicAction).toHaveBeenCalledWith(
+    expect(onResolve).toHaveBeenCalledWith(
       expect.objectContaining({
-        type: 'USE_BASIC_ACTION',
+        type: 'RESOLVE_ACTION',
         encounterId: tabletopGmEncounter.id,
         expectedVersion: tabletopGmEncounter.version,
         actorId: tabletopGmEncounter.currentActorId,
-        definitionId: basicActionChoices[0].definitionId,
-        targetActorId: null,
+        actionId: basicActionChoices[0].id,
+        target: { kind: 'ACTOR', actorId: tabletopGmEncounter.currentActorId },
         acknowledgedWarnings: []
       })
     )
@@ -388,28 +373,73 @@ describe('CampaignTabletopActionDrawer basic actions', () => {
     expect(await screen.findByText('Dodge used.')).toBeVisible()
   })
 
-  it('asks for the ally a helping action aids before it can be used', async () => {
+  it('aims a basic action at the creature chosen for it', async () => {
     const user = userEvent.setup()
-    const onUseBasicAction = vi.fn().mockResolvedValue(resolved)
-    renderDrawer(vi.fn(), { basicActions: basicActionChoices, onUseBasicAction })
+    const onResolve = vi.fn().mockResolvedValue(resolved)
+    renderDrawer(onResolve, { choices: [], authoredBasicActions: basicActionChoices })
 
     const use = await screen.findByRole('button', { name: 'Use Help' })
     expect(use).toBeDisabled()
-    await user.click(screen.getByRole('combobox', { name: 'Ally to help' }))
+    await user.click(screen.getByRole('combobox', { name: 'Target of help' }))
     await user.click(await screen.findByRole('option', { name: 'Vault Warden' }))
+    expect(use).toBeEnabled()
     await user.click(use)
-    expect(onUseBasicAction).toHaveBeenCalledWith(
+    expect(onResolve).toHaveBeenCalledWith(
       expect.objectContaining({
-        definitionId: basicActionChoices[1].definitionId,
-        targetActorId: '99999999-9999-4999-8999-999999999902'
+        actionId: basicActionChoices[1].id,
+        target: { kind: 'ACTOR', actorId: '99999999-9999-4999-8999-999999999902' }
+      })
+    )
+  })
+
+  it('asks for the creature First Aid stabilizes before it can be used', async () => {
+    const user = userEvent.setup()
+    const onResolve = vi.fn().mockResolvedValue(resolved)
+    renderDrawer(onResolve, { choices: [], authoredBasicActions: basicActionChoices })
+
+    const use = await screen.findByRole('button', { name: 'Use First Aid' })
+    expect(use).toBeDisabled()
+    await user.click(screen.getByRole('combobox', { name: 'Target of first aid' }))
+    await user.click(await screen.findByRole('option', { name: 'Vault Warden' }))
+    expect(use).toBeEnabled()
+  })
+
+  it('offers no target to an action that only affects its user', async () => {
+    renderDrawer(vi.fn(), { choices: [], authoredBasicActions: basicActionChoices })
+
+    expect(await screen.findByRole('button', { name: 'Use Dash' })).toBeEnabled()
+    expect(screen.queryByRole('combobox', { name: 'Target of dash' })).not.toBeInTheDocument()
+  })
+
+  it('keeps an action that only warns about aiming at its user selectable, with no target required', async () => {
+    const user = userEvent.setup()
+    const onResolve = vi.fn().mockResolvedValue(resolved)
+    // The wire carries requiresOtherCreature false for a self-WARN action: the table may override it.
+    const warnsAboutSelf = {
+      ...actions[0]!,
+      id: 'warns-action',
+      label: 'Steady',
+      rulesText: 'You steady a creature.',
+      target: { kind: 'ACTOR', requiresOtherCreature: false }
+    } satisfies EncounterActionChoiceDto
+    renderDrawer(onResolve, { choices: [], authoredBasicActions: [warnsAboutSelf] })
+
+    const use = await screen.findByRole('button', { name: 'Use Steady' })
+    expect(use).toBeEnabled()
+    expect(screen.queryByRole('combobox', { name: 'Target of steady' })).not.toBeInTheDocument()
+    await user.click(use)
+    expect(onResolve).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actionId: 'warns-action',
+        target: { kind: 'ACTOR', actorId: tabletopGmEncounter.currentActorId }
       })
     )
   })
 
   it('resends a basic action with its warnings acknowledged on "Do it anyway"', async () => {
     const user = userEvent.setup()
-    const onUseBasicAction = vi
-      .fn<(command: UseEncounterBasicActionInputDto) => Promise<unknown>>()
+    const onResolve = vi
+      .fn<(command: ResolveEncounterActionInputDto) => Promise<unknown>>()
       .mockImplementationOnce(async (command) => {
         throw new LiveSessionCommandRejectedError({
           code: 'DOMAIN_REJECTED',
@@ -421,11 +451,11 @@ describe('CampaignTabletopActionDrawer basic actions', () => {
         })
       })
       .mockResolvedValue(resolved)
-    renderDrawer(vi.fn(), { basicActions: basicActionChoices, onUseBasicAction })
+    renderDrawer(onResolve, { choices: [], authoredBasicActions: basicActionChoices })
 
     await user.click(await screen.findByRole('button', { name: 'Use Dash' }))
     await user.click(await screen.findByRole('button', { name: 'Do it anyway' }))
-    expect(onUseBasicAction).toHaveBeenLastCalledWith(
+    expect(onResolve).toHaveBeenLastCalledWith(
       expect.objectContaining({ acknowledgedWarnings: ['ACTION_ECONOMY_UNAVAILABLE'] })
     )
   })

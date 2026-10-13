@@ -80,7 +80,9 @@ describe('critical hits double every damage die of the attack (SRD 5.1)', () => 
     // The Wolf's Bite as a movement reaction: 2d4 + 2 piercing; a critical is 4d4 + 2.
     const wolfBite = creatureFeature(srdByLabel(SRD.creatures, 'Wolf'), 'Bite')
     const bite = wolfBite.effects?.[0]
-    if (!bite || bite.invocation.kind !== 'ACTION') throw new Error('The Wolf Bite is missing.')
+    if (!bite || bite.invocation.kind !== 'ACTION' || bite.invocation.triggerCode === 'CHECK') {
+      throw new Error('The Wolf Bite is missing.')
+    }
     const reaction = {
       ...wolfBite,
       effects: [

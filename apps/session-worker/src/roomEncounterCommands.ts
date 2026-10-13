@@ -41,7 +41,6 @@ import { executeRoomEncounterCleavingResponse } from './roomEncounterCleavingRes
 import { executeRoomEncounterAction } from './roomEncounterActions.js'
 import { executeRoomEncounterDisarm } from './roomEncounterDisarm.js'
 import {
-  executeRoomEncounterBasicAction,
   executeRoomEncounterBasicActionResponse,
   executeRoomEncounterEscape,
   executeRoomEncounterEscapeResponse
@@ -54,8 +53,7 @@ import {
 import type {
   EscapeRelationshipInputDto,
   RemoveAreaTargetInputDto,
-  ResolveRuleOccurrenceInputDto,
-  UseEncounterBasicActionInputDto
+  ResolveRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import { executeEncounterActorTokenBinding } from '@artificer-toolkit/encounter-persistence/actorTokenBindingPersistence'
@@ -245,8 +243,8 @@ export async function executeRoomEncounterCommand(input: {
             ? await executeVoid()
             : command.type === 'REMOVE_AREA_TARGET'
               ? await executeAreaRemoval(command)
-              : command.type === 'USE_BASIC_ACTION' || command.type === 'ESCAPE_RELATIONSHIP'
-                ? await executeBasicAction(command)
+              : command.type === 'ESCAPE_RELATIONSHIP'
+                ? await executeEscape(command)
                 : command.type === 'SET_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING' ||
                     command.type === 'REMOVE_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING'
                   ? await executeTokenBinding(command)
@@ -371,12 +369,10 @@ export async function executeRoomEncounterCommand(input: {
     })
   }
 
-  async function executeBasicAction(
-    command: UseEncounterBasicActionInputDto | EscapeRelationshipInputDto
-  ) {
-    if (!input.turnExecution) throw new Error('Room basic action execution is unavailable.')
+  async function executeEscape(command: EscapeRelationshipInputDto) {
+    if (!input.turnExecution) throw new Error('Room Escape execution is unavailable.')
     const { membership } = await context.ports.requireCampaignAuthority(campaignId, userId)
-    const execution = {
+    return executeRoomEncounterEscape({
       ...input.turnExecution,
       ctx: context,
       store,
@@ -391,11 +387,9 @@ export async function executeRoomEncounterCommand(input: {
         expectedRole: membership.role,
         encounterId: command.encounterId.toLowerCase(),
         expectedVersion: command.expectedVersion
-      }
-    }
-    return command.type === 'ESCAPE_RELATIONSHIP'
-      ? executeRoomEncounterEscape({ ...execution, command })
-      : executeRoomEncounterBasicAction({ ...execution, command })
+      },
+      command
+    })
   }
 
   /** A removal that leaves the area nothing to wait on commits it, as the last answer would have. */

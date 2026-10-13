@@ -86,7 +86,7 @@ export function companionCreature(bite: PlayerControlBite) {
                 targeting: {
                   selectionKind: 'SINGLE_TARGET' as const,
                   dispositionKind: 'ANY' as const,
-                  excludesSelf: true
+                  self: 'WARN'
                 }
               },
               paths: effect.paths?.slice(0, 1).map((path) => {

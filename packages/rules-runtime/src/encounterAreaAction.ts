@@ -86,7 +86,13 @@ export function encounterActionChoiceTarget(
   policy: CompiledActionTargetPolicy | undefined
 ): EncounterActionChoiceDto['target'] {
   const area = policy ? authoredPointArea(policy) : null
-  return area ? { kind: 'POINT', area } : { kind: 'ACTOR' }
+  if (area) return { kind: 'POINT', area }
+  const targeting = policy?.targeting
+  return {
+    kind: 'ACTOR',
+    requiresOtherCreature:
+      targeting?.selectionKind === 'SINGLE_TARGET' && targeting.self === 'REFUSED'
+  }
 }
 
 /**

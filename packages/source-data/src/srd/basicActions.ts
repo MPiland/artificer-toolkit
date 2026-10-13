@@ -14,10 +14,7 @@ import {
   TRIGGER,
   VALUE_DOMAIN_CODE
 } from '@artificer-toolkit/shared'
-import {
-  basicActionReusableDefinitionDocumentDtoSchema,
-  type BasicActionReusableDefinitionDocumentDto
-} from '@artificer-toolkit/schema/shared/basicActions'
+import { basicActionReusableDefinitionDocumentDtoSchema } from '@artificer-toolkit/schema/shared/basicActions'
 import { BASIC_ACTION_DEFINITION_FAMILY_KEY } from '@artificer-toolkit/schema/shared/reusableDefinitionIdentity'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
@@ -48,9 +45,7 @@ function defineBasicAction(input: {
   id: string
   label: string
   rulesText: string
-  mechanics?: BasicActionReusableDefinitionDocumentDto['mechanics']
-  effects?: unknown[]
-  check?: BasicActionReusableDefinitionDocumentDto['check']
+  effects: unknown[]
 }) {
   const document = basicActionReusableDefinitionDocumentDtoSchema.parse({
     schemaVersion: 1,
@@ -59,10 +54,8 @@ function defineBasicAction(input: {
     gameSystemId: SRD_SYSTEM_ID,
     rulesText: input.rulesText,
     actionCost: 'ACTION',
-    mechanics: input.mechanics ?? [],
     restrictions: null,
-    effects: input.effects ?? [],
-    check: input.check ?? null
+    effects: input.effects
   })
   return {
     id: input.id,
@@ -257,7 +250,7 @@ function helpEffect(actionId: string) {
       targeting: {
         selectionKind: 'SINGLE_TARGET' as const,
         dispositionKind: 'WILLING' as const,
-        excludesSelf: true
+        self: 'REFUSED'
       }
     }
   )
@@ -296,10 +289,54 @@ function disengageEffect(actionId: string) {
   )
 }
 
+/** First Aid: a touched creature at 0 hit points becomes stable on a DC 10 Wisdom (Medicine) check. */
+function firstAidEffect(actionId: string) {
+  return {
+    id: basicActionChildId(actionId, 0x210, 1),
+    order: 1,
+    invocation: {
+      kind: 'ACTION' as const,
+      triggerCode: TRIGGER.CHECK,
+      check: {
+        checks: { skillIds: [SRD_MEDICINE_SKILL_ID], abilityDefinitionIds: [] },
+        dc: { kind: 'FIXED' as const, value: 10 }
+      },
+      activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
+      range: { id: basicActionChildId(actionId, 0x211, 1), rangeKind: RANGE_KIND.TOUCH },
+      targeting: {
+        selectionKind: 'SINGLE_TARGET' as const,
+        dispositionKind: 'WILLING' as const,
+        self: 'REFUSED' as const
+      }
+    },
+    paths: [
+      {
+        id: basicActionChildId(actionId, 0x212, 1),
+        order: 1,
+        pathCode: PATH_CODE.ON_CHECK_SUCCESS,
+        groupType: PATH_GROUP_TYPE.SINGLE,
+        originKind: 'SOURCE' as const,
+        selectionKind: 'FIXED' as const,
+        resultBlock: {
+          id: basicActionChildId(actionId, 0x212, 2),
+          resultKind: 'SINGLE' as const,
+          outcomes: [
+            {
+              id: basicActionChildId(actionId, 0x213, 1),
+              effectKind: EFFECT_KIND.STABILIZE,
+              requiresZeroHitPoints: true as const
+            }
+          ]
+        }
+      }
+    ]
+  }
+}
+
 /**
- * The SRD System's basic combat actions. Names and rules text are authored System data; only the
- * listed mechanics execute. Dash, Disengage, Dodge and Help are authored effects; Hide, Ready, Search and
- * Use an Object spend the Action and leave the result to the GM.
+ * The SRD System's basic combat actions. Names and rules text are authored System data. Dash,
+ * Disengage, Dodge, Help and First Aid are authored effects; Hide, Ready, Search and Use an Object
+ * spend the Action and leave the result to the GM.
  */
 export const SRD_BASIC_ACTION_DEFINITIONS = [
   defineBasicAction({
@@ -392,7 +429,6 @@ export const SRD_BASIC_ACTION_DEFINITIONS = [
     label: 'First Aid',
     rulesText:
       'You tend a dying creature within reach. Make a DC 10 Wisdom (Medicine) check; on a success the creature becomes stable.',
-    mechanics: ['STABILIZE_TARGET'],
-    check: { checkDefinitionId: SRD_MEDICINE_SKILL_ID, dc: 10 }
+    effects: [firstAidEffect(SRD_BASIC_ACTION_IDS.FIRST_AID)]
   })
 ]

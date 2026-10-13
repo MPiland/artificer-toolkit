@@ -7,11 +7,9 @@ import type {
 } from '@artificer-toolkit/schema/api/encounterActionChoices'
 import type { EncounterSessionStateDto } from '@artificer-toolkit/schema/api/encounterData'
 import type { ResolveEncounterActionInputDto } from '@artificer-toolkit/schema/api/encounters'
-import type {
-  ResolveRuleOccurrenceInputDto,
-  UseEncounterBasicActionInputDto
-} from '@artificer-toolkit/schema/api/encounterRuleCommands'
+import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import type { PendingEncounterRuleOccurrenceSummaryDto } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
+import { encounterBasicActionId } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
 import { encounterRuleUsageUsed } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import {
   SRD_BASIC_ACTION_DEFINITIONS,
@@ -71,22 +69,6 @@ async function basicActionFixture(options: Parameters<typeof playerControlFixtur
     })
   await attachFixtureRoom(base.t, base.campaign.id)
   return base
-}
-
-async function useBasicAction(
-  base: PlayerControlFixture,
-  input: Pick<UseEncounterBasicActionInputDto, 'actorId' | 'definitionId'> &
-    Partial<Pick<UseEncounterBasicActionInputDto, 'targetActorId' | 'acknowledgedWarnings'>>
-): Promise<UseEncounterBasicActionInputDto> {
-  return {
-    type: 'USE_BASIC_ACTION',
-    encounterId: base.run.id,
-    commandId: crypto.randomUUID(),
-    expectedVersion: await base.version(),
-    targetActorId: null,
-    acknowledgedWarnings: [],
-    ...input
-  }
 }
 
 /**
@@ -184,6 +166,12 @@ async function storedGrants(base: PlayerControlFixture, actorId: string) {
     }
   })
 }
+
+const firstAidDefinition = SRD_BASIC_ACTION_DEFINITIONS.find(
+  ({ id }) => id === SRD_BASIC_ACTION_IDS.FIRST_AID
+)
+if (firstAidDefinition?.document.kind !== 'BASIC_ACTION')
+  throw new Error('Missing First Aid fixture.')
 
 const dodgeDefinition = SRD_BASIC_ACTION_DEFINITIONS.find(
   ({ id }) => id === SRD_BASIC_ACTION_IDS.DODGE
@@ -318,19 +306,26 @@ describe('basic combat actions in the room (Q11)', () => {
       actorId: base.companion.id
     })
     expect(choices?.actions.map((action) => action.id)).toContain(base.actionId)
-    // Mechanic entries keep the closed USE_BASIC_ACTION path; authored ones are ordinary actions.
-    expect(
-      choices?.basicActions.map(({ label, actionCost, target }) => [label, actionCost, target])
-    ).toEqual([['First Aid', 'ACTION', 'DYING_CHARACTER']])
+    // First Aid is an authored basic action like the others (a CHECK action), not a closed mechanic entry.
     expect(choices?.basicActionChoices.map(({ label }) => label)).toEqual([
       'Dash',
       'Disengage',
       'Dodge',
+      'First Aid',
       'Help',
       'Hide',
       'Ready',
       'Search',
       'Use an Object'
+    ])
+    // First Aid costs an Action and needs a creature other than its user; Dash only affects its user.
+    expect(
+      choices?.basicActionChoices
+        .filter(({ label }) => label === 'First Aid' || label === 'Dash')
+        .map(({ label, actionCost, target }) => [label, actionCost, target])
+    ).toEqual([
+      ['Dash', 'ACTION', { kind: 'ACTOR', requiresOtherCreature: false }],
+      ['First Aid', 'ACTION', { kind: 'ACTOR', requiresOtherCreature: true }]
     ])
 
     const before = await base.version()
@@ -409,6 +404,22 @@ describe('basic combat actions in the room (Q11)', () => {
     // A self-range target is a bendable rule like any authored action's: the override applies it as chosen.
     expect(await activeEffectCount(base, base.companion.id)).toBe(0)
     expect(await activeEffectCount(base, base.enemy.id)).toBe(1)
+  })
+
+  it('Dash aimed at another creature warns that it can only target its user', async () => {
+    const base = await basicActionFixture()
+    await expect(
+      domainRejection(
+        base.gm(
+          await resolveBasicAction(base, base.companion.id, 'Dash', {
+            target: { kind: 'ACTOR', actorId: base.enemy.id }
+          })
+        )
+      )
+    ).resolves.toMatchObject({
+      reason: 'RULE_WARNINGS',
+      warnings: [{ code: 'TARGET_OUT_OF_RANGE', message: 'This action can only target its user.' }]
+    })
   })
 
   it('Dodge gives attacks against the actor disadvantage, reads "Dodge", and ends at its next turn', async () => {
@@ -661,14 +672,11 @@ describe('basic combat actions in the room (Q11)', () => {
     ).toBe(0)
   })
 
-  it('Help warns when aimed at oneself, and a player may help only an actor they can see', async () => {
+  it('Help refuses to be aimed at oneself, and a player may help only an actor they can see', async () => {
     const base = await basicActionFixture()
     await expect(
       domainRejection(base.gm(await resolveBasicAction(base, base.companion.id, 'Help')))
-    ).resolves.toMatchObject({
-      reason: 'RULE_WARNINGS',
-      warnings: [{ code: 'TARGET_DISPOSITION', message: 'This action targets another creature.' }]
-    })
+    ).resolves.toMatchObject({ reason: 'TARGET_UNAVAILABLE' })
     await expect(
       domainRejection(
         base.gm(
@@ -724,36 +732,32 @@ describe('basic combat actions in the room (Q11)', () => {
 
   it('refuses First Aid, whose action carries a check, in a Manual Run (ENCOUNTER-2)', async () => {
     const base = await basicActionFixture()
+    const command = await resolveBasicAction(base, base.companion.id, 'First Aid', {
+      target: { kind: 'ACTOR', actorId: base.character.id }
+    })
     await storeRunAutomationMode(base.t, base.run.id, 'MANUAL')
     const before = await base.version()
-    await expect(
-      domainRejection(
-        base.gm(
-          await useBasicAction(base, {
-            actorId: base.companion.id,
-            definitionId: SRD_BASIC_ACTION_IDS.FIRST_AID,
-            targetActorId: base.character.id
-          })
-        )
-      )
-    ).resolves.toMatchObject({ reason: 'ASSISTED_ONLY' })
+    await expect(domainRejection(base.gm(command))).resolves.toMatchObject({
+      reason: 'ASSISTED_ONLY'
+    })
     expect(await base.version()).toBe(before)
   })
 
   it('refuses First Aid from a custom actor, which has no check facts', async () => {
     const base = await basicActionFixture()
+    const firstAid = await resolveBasicAction(base, base.companion.id, 'First Aid', {
+      actorId: base.lurker.id,
+      actionId: encounterBasicActionId(
+        base.lurker.id,
+        SRD_BASIC_ACTION_IDS.FIRST_AID,
+        firstAidDefinition.document.effects[0]!.id
+      ),
+      target: { kind: 'ACTOR', actorId: base.character.id },
+      acknowledgedWarnings: ['TARGET_DISPOSITION', 'TARGET_NOT_DYING', 'TARGET_RANGE_UNCHECKED']
+    })
     await setCurrentActor(base, base.lurker.id)
     const before = await base.version()
-    await expect(
-      base.gm(
-        await useBasicAction(base, {
-          actorId: base.lurker.id,
-          definitionId: SRD_BASIC_ACTION_IDS.FIRST_AID,
-          targetActorId: base.character.id,
-          acknowledgedWarnings: ['TARGET_RANGE_UNCHECKED']
-        })
-      )
-    ).rejects.toThrow()
+    await expect(base.gm({ ...firstAid, expectedVersion: before })).rejects.toThrow()
     expect(roomErrorLogs().join('\n')).toContain('A custom actor has no check to make.')
     expect(await base.version()).toBe(before)
   })

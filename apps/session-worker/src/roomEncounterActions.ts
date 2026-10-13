@@ -8,6 +8,7 @@ import {
 import { persistEncounterActionChildren } from '@artificer-toolkit/encounter-persistence/actionChildrenPersistence'
 import { bindEncounterConcentrationApplications } from '@artificer-toolkit/encounter-persistence/concentrationChildrenPersistence'
 import { readCharacterMaximumHitPoints } from '@artificer-toolkit/encounter-persistence/characterMaximumHitPoints'
+import type { EncounterWriteTransaction } from '@artificer-toolkit/encounter-persistence/ports'
 import type {
   RemoveAreaTargetInputDto,
   ResolveEncounterActionInputDto,
@@ -21,6 +22,7 @@ import {
   buildNativeLiveEncounterActionPendingInput,
   buildNativeLiveEncounterActionCommitInput
 } from './nativeEncounterRules.js'
+import { persistRoomEncounterCheckAction } from './roomEncounterBasicActions.js'
 import { readRoomEncounterTurnCapture } from './roomEncounterTurnCapture.js'
 import { assertRoomEncounterRulesRevisions } from './roomEncounterTurns.js'
 import { readRoomMaintenanceCapture } from './roomMaintenanceCapture.js'
@@ -42,8 +44,7 @@ import type { RoomInputs } from './roomInputs.js'
 
 /** The existing action planner, evidence and every dependent write use one native transaction. */
 export async function executeRoomEncounterAction(input: {
-  ctx: Parameters<typeof persistEncounterActionCommit>[0] &
-    Parameters<typeof persistRoomConcentrationChildren>[0]
+  ctx: EncounterWriteTransaction & Parameters<typeof persistRoomConcentrationChildren>[0]
   store: RoomEncounterStore
   transaction: RoomTransaction
   inputs: RoomInputs
@@ -75,6 +76,18 @@ export async function executeRoomEncounterAction(input: {
     }
   })
   if (plan.kind === 'REPLAY') return plan.result
+  if (plan.kind === 'CHECK')
+    return persistRoomEncounterCheckAction({
+      ctx,
+      store,
+      transaction,
+      inputs,
+      scope,
+      observed,
+      runtime: input.runtime,
+      random: input.random,
+      planned: plan.input
+    })
   const captured =
     plan.kind === 'AREA_PENDING'
       ? buildNativeLiveEncounterAreaActionPendingInput(scope, plan)

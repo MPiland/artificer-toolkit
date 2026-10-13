@@ -160,11 +160,12 @@ the GM (`NOT_ACTOR_CONTROLLER` otherwise).
 (`roomEncounterCommands.ts`), drawing dice from the room's secure random source:
 
 - `RESOLVE_ACTION` runs the action planner, or the Disarm planner (`nativeDisarm.ts`) when it carries
-  an optional-combat intent; `USE_BASIC_ACTION` runs `nativeBasicAction.ts`; `ESCAPE_RELATIONSHIP` runs
+  an optional-combat intent, and an action authored with the `CHECK` test (First Aid) takes the check branch
+  (`nativeCheckAction.ts`, persisted through `roomEncounterBasicActions.ts`); `ESCAPE_RELATIONSHIP` runs
   `nativeEscapeAction.ts`; `START` and `ADVANCE_TURN` run the turn planner (`nativeEncounterTurn.ts`).
 - `ESCAPE_RELATIONSHIP` (D105) is the current actor's attempt to break a fixed-DC hold. It shares the
-  `BASIC_ACTION` capture scope with `USE_BASIC_ACTION` (`basicActionScopeAdmission.ts` dispatches by command
-  type and pending context) and the First Aid check path, and there is no Convex mutation for it. The command
+  `BASIC_ACTION` capture scope with the `RESOLVE_ACTION` basic-action check path (`basicActionScopeAdmission.ts`
+  dispatches by command type and pending context), and there is no Convex mutation for it. The command
   spends the effect's authored activation, then either settles in the same commit (the roller rolls
   automatically) or leaves a PENDING `ENCOUNTER_ESCAPE_CHECK` occurrence owned by `ESCAPE` that the roller's
   `RESOLVE_RULE_OCCURRENCE` settles through `nativeEscapeActionResponse.ts`. A total at or above the DC deletes

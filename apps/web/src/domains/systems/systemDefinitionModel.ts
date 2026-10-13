@@ -30,10 +30,8 @@ function createStarterDocument(workspace: ReusableDefinitionWorkspaceDto): unkno
       gameSystemId: workspace.gameSystemId,
       rulesText: 'Describe what this action does.',
       actionCost: 'ACTION',
-      mechanics: [],
       restrictions: null,
-      effects: [],
-      check: null
+      effects: []
     }
   }
   return {

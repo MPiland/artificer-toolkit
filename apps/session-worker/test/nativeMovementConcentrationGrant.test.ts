@@ -41,7 +41,13 @@ const reactionWard: ClassFeature = (() => {
   const bite = creatureFeature(plainWolf, 'Bite')
   const effect = bite.effects?.[0]
   const hit = effect?.paths[0]
-  if (!effect || effect.invocation.kind !== 'ACTION' || !hit || !('resultBlock' in hit))
+  if (
+    !effect ||
+    effect.invocation.kind !== 'ACTION' ||
+    effect.invocation.triggerCode === 'CHECK' ||
+    !hit ||
+    !('resultBlock' in hit)
+  )
     throw new Error('The SRD Wolf Bite is missing.')
   return {
     ...bite,

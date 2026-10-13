@@ -936,15 +936,17 @@ describe('effect schema parsing', () => {
   })
 })
 
-describe('single-target excludesSelf (D99)', () => {
-  it('keeps excludesSelf on a single target and rejects a non-boolean value', () => {
-    const targeting = {
-      selectionKind: 'SINGLE_TARGET',
-      dispositionKind: 'ANY',
-      excludesSelf: true
-    }
+describe('single-target self policy (D99)', () => {
+  it.each(['ALLOWED', 'WARN', 'REFUSED'])('keeps self: %s on a single target', (self) => {
+    const targeting = { selectionKind: 'SINGLE_TARGET', dispositionKind: 'ANY', self }
 
     expect(targetingDtoSchema.parse(targeting)).toEqual(targeting)
-    expect(targetingDtoSchema.safeParse({ ...targeting, excludesSelf: 'yes' }).success).toBe(false)
+  })
+
+  it('rejects a self policy that is not one of the three', () => {
+    const targeting = { selectionKind: 'SINGLE_TARGET', dispositionKind: 'ANY' }
+
+    expect(targetingDtoSchema.safeParse({ ...targeting, self: 'yes' }).success).toBe(false)
+    expect(targetingDtoSchema.safeParse({ ...targeting, self: true }).success).toBe(false)
   })
 })

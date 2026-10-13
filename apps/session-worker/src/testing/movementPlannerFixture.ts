@@ -38,7 +38,11 @@ export const plainWolf: CreatureAuthored = srdWolf
 function opportunityWolf(stopOnHit: boolean): CreatureAuthored {
   const bite = creatureFeature(srdWolf, 'Bite')
   const biteEffect = bite.effects?.[0]
-  if (!biteEffect || biteEffect.invocation.kind !== 'ACTION')
+  if (
+    !biteEffect ||
+    biteEffect.invocation.kind !== 'ACTION' ||
+    biteEffect.invocation.triggerCode === 'CHECK'
+  )
     throw new Error('The SRD Wolf Bite is missing.')
   return {
     ...srdWolf,
