@@ -6520,7 +6520,7 @@
       "title": "Replay, reconnect and contention",
       "kind": "feature",
       "dependsOn": ["ROOM"],
-      "summary": "Receipts, replay, reconnect and same-aggregate contention.",
+      "summary": "Receipts, replay, reconnect and same-aggregate contention, and replacing band-aids that hide bad data or copy shared logic with the domain model.",
       "regressionTests": [],
       "uat": [
         {
@@ -6834,6 +6834,122 @@
               "origin": [],
               "note": "apps/apis/convex/content/definitionStore.ts:65-105 (legacyPublisherUserId). Also check the optional ruleState.ts:163/246 fields read with ?? [] for the same never-written-versus-empty gap.",
               "id": "RELIABILITY-6.6"
+            },
+            {
+              "text": "A maintained-effect descriptor always carries its emptyDependentPolicy: the version 1 descriptor is deleted and every consumer reads the policy directly, with no version-derived predicate.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "activeRuleEffects.ts:318-329; predicates at actorRemovalEffects.ts:142, characterRunEffects.ts:53, turnEffectsPersistence.ts:277, nativeEncounterTurnCompletion.ts:110, encounterConcentration.ts:66, effectActionCompiler.ts:519, characterRuleActionSystemAdapter.ts:93.",
+              "id": "RELIABILITY-6.7"
+            },
+            {
+              "text": "A System document has one current schema: the historical System schema versions and the v4-only gate in optionalCombatCheckDefinitions are deleted and development data is migrated.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "packages/schema/src/vocabulary/system.ts (versions 2-4); packages/authoring/src/reusableDefinitions/optionalCombatCheckDefinitions.ts requireCurrentCheckVocabulary.",
+              "id": "RELIABILITY-6.8"
+            },
+            {
+              "text": "A roll-mode contributor carries a typed source (its kind, id and holder) so a reason label is a lookup by kind; no consumer parses sourceId or domainKey strings, and the three spellings of an active-effect source collapse to one; proved by tests that fail before the fix.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "encounter-persistence rollModeReasons.ts:32-102 splits sourceId on ':' and takes the first UUID with a label; producers combatPerception.ts:1016 (ACTIVE_EFFECT:), effectActionCompiler.ts:6836 (active-effect-perception:), encounterRelationshipActionFacts.ts:55 (active-effect:).",
+              "id": "RELIABILITY-6.9"
+            },
+            {
+              "text": "An authored Creature's defence, speed, detail, feature and proficiency arrays are required in the contract (empty when none), so no consumer re-defaults or casts them.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "creature.ts:339-340 optional arrays; re-defaults in creatureAuthoring.utils.ts:84-123 and blueprintSnapshots.ts:34-46 (with an `as CreatureAuthored` cast).",
+              "id": "RELIABILITY-6.10"
+            },
+            {
+              "text": "Authored-source fact extraction traverses the typed authored DTOs per subject kind, with no `as unknown as AuthoredRecord` casts or untyped record helpers.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "packages/authoring/src/nodeRuntime/authoredSourceFacts.ts:180-238.",
+              "id": "RELIABILITY-6.11"
+            },
+            {
+              "text": "A live-session envelope key is built by one shared function with an explicit owner (a player or the shared party), used by the web client and the Worker alike.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "liveSessionClient.ts:195 and nativeLiveSessionRoom.ts:295 both build `${kind}:${ownerUserId ?? 'SHARED_PARTY'}`.",
+              "id": "RELIABILITY-6.12"
+            },
+            {
+              "text": "Campaign inventory currency ids are typed at the contract: the web's legacy non-UUID currency check and its label fallbacks are deleted (with RELIABILITY-6.5).",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "apps/web/src/domains/campaigns/components/campaignInventory.utils.ts:155-204.",
+              "id": "RELIABILITY-6.13"
+            }
+          ]
+        },
+        {
+          "id": "RELIABILITY-7",
+          "title": "The web uses the shared resolver and rules instead of copies",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": [],
+          "acs": [
+            {
+              "text": "Authoring stories and tests resolve node maps through the real packages/authoring resolver over an in-memory registry; the web's static resolver copy and its embedded fixture options are deleted from the production bundle.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Registered 2026-10-13 from the band-aid audit. apps/web/src/forms/node-map/staticResolvedModel.ts (493 lines) mirrors nodeRuntimeService.ts and is imported by the production hook useAuthoringResolvedModel.ts:39-50; it embeds Sorcerer/Wizard/Shortsword/Evocation options and more roots than the server registry.",
+              "id": "RELIABILITY-7.1"
+            },
+            {
+              "text": "The Builder, class detail and creature stat blocks compute hit points, hit-die averages, ability modifiers and proficiency bonus through the shared rules-runtime functions (ADR 0036), with no local copies; the legacy hit-point override and its \"HP gained (legacy)\" input are deleted and development data is migrated.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "characterAbilities.ts:1-222, CharacterHitpointProgression.tsx:81-127, ClassDetail.model.ts:94/321-331, CreatureDetail.model.ts:306, EncounterEnemyStatBlock.tsx:80; server builderHitPoints.ts:108-146, characterVitals.ts:175.",
+              "id": "RELIABILITY-7.2"
+            }
+          ]
+        },
+        {
+          "id": "RELIABILITY-8",
+          "title": "Authored forms share one typed factory with no silent defaults",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": [],
+          "acs": [
+            {
+              "text": "Each authored domain declares one typed form config (empty values, to-submit, to-form-values) consumed by one generic factory, typed against the real query result; the per-domain pass-through wrappers, untyped toSystemCreateData/toEditData and the no-op isSystemResponse guard are deleted.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Registered 2026-10-13 from the band-aid audit. apps/web/src/forms/factories/authoredFormFactories.ts:574-607, authoredFormSessionFactory.ts:103-125, and the 8 <x>Authoring.utils.ts files restating each domain in a FormFactory and a SessionConfig.",
+              "id": "RELIABILITY-8.1"
+            },
+            {
+              "text": "A new authored item's System comes from the route or the author's selection, and a spell's magic school from the author's choice; neither silently takes the first in the list, and a missing one is an explicit state.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Nine resolveCreate<Subject>SystemId functions are `systems[0]?.id ?? null`; getSpellFormContext takes magicSchools[0].",
+              "id": "RELIABILITY-8.2"
+            },
+            {
+              "text": "An empty label is a validation error at submit, not replaced with \"Untitled <Subject>\"; status and other defaults live once in the empty-form values, not in eight submit normalisers.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "19 `|| 'Untitled ...'` fallbacks and `status ?? 'DRAFT'` across the vehicles, backgrounds, classes, races, spells, feats, creatures and equipment normalisers.",
+              "id": "RELIABILITY-8.3"
             }
           ]
         }
