@@ -37,9 +37,10 @@ afterEach(() => {
 /**
  * A room holding an ACTIVE Run bound to a Scene whose one token belongs to the Run's one actor.
  * By default that actor is a Character with no assignment in the Campaign. With `creature` it is a
- * Creature of the SRD System, whose published Sense definitions the room holds.
+ * Creature of the SRD System, whose published Sense definitions the room holds. `sceneTokenId`
+ * names the Scene's one token, which is not the actor's token when it differs from `TOKEN`.
  */
-async function boundRoom(creature?: typeof goblin) {
+async function boundRoom(creature?: typeof goblin, sceneTokenId = TOKEN) {
   const systemId = creature ? srdSystemRecord.id : SYSTEM
   const assignments: { characterId: string; userId: string }[] = []
   const members = [
@@ -106,7 +107,7 @@ async function boundRoom(creature?: typeof goblin) {
     lights: [],
     tokens: [
       {
-        id: TOKEN,
+        id: sceneTokenId,
         assetId: null,
         controlledByUserIds: [],
         height: 1,
@@ -220,5 +221,29 @@ describe('composeRoomSceneVision', () => {
         ]
       }
     ])
+  })
+
+  it('leaves a Scene token alone when the Creature bound to another token is not in the Scene', async () => {
+    const { compose, scene } = await boundRoom(goblin, uuid(0xc10))
+    await expect(compose()).resolves.toEqual({ scene, characterRevisions: [] })
+  })
+
+  it("refuses a Creature Sense the System's vocabulary does not list", async () => {
+    const { compose } = await boundRoom({
+      ...goblin,
+      senses: [{ senseDefinitionId: uuid(0xc11), range: { rangeKind: 'UNLIMITED' } }]
+    })
+    await expect(compose()).rejects.toThrow('Actor Sense is not a unique System vocabulary member.')
+  })
+
+  it('refuses a Creature with more Senses than the limit', async () => {
+    const { compose } = await boundRoom({
+      ...goblin,
+      senses: Array.from({ length: 101 }, (_, index) => ({
+        senseDefinitionId: uuid(0xd00 + index),
+        range: { rangeKind: 'UNLIMITED' as const }
+      }))
+    })
+    await expect(compose()).rejects.toThrow('Actor Sense limit exceeded.')
   })
 })

@@ -69,7 +69,7 @@ describe('EncounterEnemyStatBlock senses', () => {
         })}
       />
     )
-    expect(screen.getByText('darkvision 60 ft. (blind beyond this radius)')).toBeInTheDocument()
+    expect(screen.getByText('darkvision 60 ft (blind beyond this radius)')).toBeInTheDocument()
   })
 })
 

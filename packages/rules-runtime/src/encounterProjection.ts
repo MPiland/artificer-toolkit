@@ -129,11 +129,9 @@ export function snapshotStatBlock(actor: EncounterProjectionActorInput) {
         : null,
     abilityScores: abilities,
     speeds: Array.isArray(payload.speeds) ? payload.speeds : [],
+    // A malformed sense fails the read rather than leaving the Creature without it.
     senses: Array.isArray(payload.senses)
-      ? payload.senses.flatMap((entry) => {
-          const parsed = creatureSenseDtoSchema.safeParse(entry)
-          return parsed.success ? [parsed.data] : []
-        })
+      ? payload.senses.map((entry) => creatureSenseDtoSchema.parse(entry))
       : [],
     damageVulnerabilities: stringValues(payload.damageVulnerabilities),
     damageResistances: stringValues(payload.damageResistances),

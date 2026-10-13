@@ -2,7 +2,10 @@ import { isDepartedCharacterActor } from '@artificer-toolkit/encounter-persisten
 import { readRunActor, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { listActiveRuleEffects } from '@artificer-toolkit/encounter-persistence/effectStore'
 import { readActiveSceneEncounter } from '@artificer-toolkit/encounter-persistence/sceneBindingReads'
-import { deriveActorSceneVision } from '@artificer-toolkit/rules-runtime/character/characterSceneVision'
+import {
+  createActorSensePinner,
+  deriveActorSceneVision
+} from '@artificer-toolkit/rules-runtime/actorSenses'
 import { withCharacterActiveGrants } from '@artificer-toolkit/rules-runtime/encounterActiveGrants'
 import { snapshotStatBlock } from '@artificer-toolkit/rules-runtime/encounterProjection'
 import { evaluateInstalledCharacterPolicy } from '@artificer-toolkit/rules-runtime/platformCharacterPolicy'
@@ -12,9 +15,7 @@ import {
 } from '@artificer-toolkit/schema/api/sceneSessionVision'
 import type { LiveSessionRoomAuthorization } from '@artificer-toolkit/schema/api/liveSessionRoomAuthorization'
 import type { CampaignSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
-import { senseReusableDefinitionDocumentDtoSchema } from '@artificer-toolkit/schema/shared/combatPerception'
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
-import type { SenseRangeDto } from '@artificer-toolkit/schema/grants/sense'
 import { resolveSceneActorVision } from '@artificer-toolkit/shared/vtt'
 import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
 import { prepareRoomLiveCharacterSheet } from './roomCharacterRules.js'
@@ -136,37 +137,17 @@ export async function composeRoomSceneVision(input: {
   })
   const actorVisions: SceneSessionVisionComposition['context']['actorVisions'] = []
   const characterRevisions: SceneSessionVisionComposition['characterRevisions'] = []
-  // Pins the Senses an actor holds, a Character's granted ones or a Creature's authored ones, to
-  // the System's Sense definitions.
-  const pinSenses = async (
-    held: readonly { senseDefinitionId: string; range: SenseRangeDto }[],
-    admittedSenses: ReadonlySet<string>
-  ) => {
-    const senses: Parameters<typeof deriveActorSceneVision>[1][number][] = []
-    const seen = new Set<string>()
-    if (held.length > 100) throw new Error('Actor vision Sense limit exceeded.')
-    for (const sense of held) {
-      if (!admittedSenses.has(sense.senseDefinitionId) || seen.has(sense.senseDefinitionId))
-        throw new Error('Actor vision Sense is not a unique System vocabulary member.')
-      seen.add(sense.senseDefinitionId)
-      const { definition } = await inputs.definition(sense.senseDefinitionId, observed, transaction)
-      if (
-        !definition ||
-        definition.id !== sense.senseDefinitionId ||
-        definition.definitionFamilyKey !== 'sense' ||
-        definition.gameSystemId !== campaign.gameSystemId
-      )
-        throw new Error('Actor vision Sense is unavailable.')
-      const document = senseReusableDefinitionDocumentDtoSchema.parse(definition.document)
-      if (
-        document.id !== sense.senseDefinitionId ||
-        document.gameSystemId !== campaign.gameSystemId
-      )
-        throw new Error('Actor vision Sense identity does not match.')
-      senses.push({ document, label: definition.label, range: sense.range })
-    }
-    return senses
-  }
+  const pinSenses = createActorSensePinner({
+    gameSystemId: campaign.gameSystemId,
+    loadSystem: () => ctx.ports.requireSystem(campaign.gameSystemId),
+    loadDefinition: async (id) => (await inputs.definition(id, observed, transaction)).definition
+  })
+  const actorSenses = async (held: Parameters<typeof pinSenses>[0]) =>
+    (await pinSenses(held)).map(({ pin, label }) => ({
+      document: pin.document,
+      label,
+      range: pin.range
+    }))
   for (const characterId of new Set(characterIdByActorId.values())) {
     const revisions = observed.filter(
       (revision) => revision.scope === 'CHARACTER' && revision.id === characterId
@@ -221,23 +202,16 @@ export async function composeRoomSceneVision(input: {
       facts.campaignContext.campaignId !== campaignId
     )
       throw new Error('Character vision source identity does not match.')
-    const senses = await pinSenses(characterSenses, new Set(system.senses.map((sense) => sense.id)))
+    const senses = await actorSenses(characterSenses)
     for (const [actorId, boundCharacterId] of characterIdByActorId)
       if (boundCharacterId === characterId)
         actorVisions.push(deriveActorSceneVision(actorId, senses))
     characterRevisions.push({ characterId, revision: revisions[0]!.revision })
   }
-  if (creatureActors.size) {
-    const system = await ctx.ports.requireSystem(campaign.gameSystemId)
-    const admittedSenses = new Set(system.senses.map((sense) => sense.id))
-    for (const actor of creatureActors.values())
-      actorVisions.push(
-        deriveActorSceneVision(
-          actor.id,
-          await pinSenses(snapshotStatBlock(actor)?.senses ?? [], admittedSenses)
-        )
-      )
-  }
+  for (const actor of creatureActors.values())
+    actorVisions.push(
+      deriveActorSceneVision(actor.id, await actorSenses(snapshotStatBlock(actor)?.senses ?? []))
+    )
   const composition = sceneSessionVisionCompositionSchema.parse({
     context: { actorVisions, encounterActorBindings: selectedBindings },
     characterRevisions

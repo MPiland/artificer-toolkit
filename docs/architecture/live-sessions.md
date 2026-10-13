@@ -653,9 +653,11 @@ separate. Raw rows are what checkpoints carry; vision is recomputed. Native stor
 vision only. Composition (`resolveSceneActorVision`, keyed by bound Encounter actor) writes a bound
 token's senses (Darkvision, Blindsight, Tremorsense, Truesight and similar) to the token's `senses`: a
 Character's granted senses or a Creature's structured stat-block senses (D111), both pinned to the
-System's Sense definitions and derived by the one `deriveActorSceneVision`. An unbound token carries
-none (`apps/session-worker/src/roomSceneVision.ts`). Senses are player-private: `projectSceneForViewer` and both Scene delta projections empty
-`senses` on every token the PLAYER does not control, using the room's per-viewer bound-token control
+System's Sense definitions by the one `createActorSensePinner` and derived by the one
+`deriveActorSceneVision` (`packages/rules-runtime/src/actorSenses.ts`). An unbound token carries none
+(`apps/session-worker/src/roomSceneVision.ts`). Senses are player-private: `projectSceneForViewer` and
+both Scene delta projections empty `senses` on every token the PLAYER does not control, using the
+room's per-viewer bound-token control
 (`#boundTokenControl`, ADR 0034; no current play authorization reads as no control). The GM sees all
 senses. The client renderer applies the view token's senses on top of authored lighting.
 Senses are never persisted. One storage rule enforces it: `sceneStoredTokenDtoSchema`

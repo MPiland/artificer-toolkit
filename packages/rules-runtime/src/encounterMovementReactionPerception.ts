@@ -1,19 +1,12 @@
-import {
-  pinnedSenseDefinitionSchema,
-  type PinnedSenseDefinition
-} from '@artificer-toolkit/schema/projections/characterMechanics'
+import type { PinnedSenseDefinition } from '@artificer-toolkit/schema/projections/characterMechanics'
 import type {
   EncounterRunActorState,
   EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { EncounterSpatialRuleEffectRecord } from '@artificer-toolkit/schema/projections/spatialRuleEffectPersistence'
-import { senseReusableDefinitionDocumentDtoSchema } from '@artificer-toolkit/schema/shared/combatPerception'
 import type { ReusableDefinitionRootRecord } from '@artificer-toolkit/schema/shared/reusableDefinitions'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
-import {
-  checksumRuleDocument,
-  type CombatPerceptionEnvironment
-} from '@artificer-toolkit/shared/rules'
+import type { CombatPerceptionEnvironment } from '@artificer-toolkit/shared/rules'
 import {
   effectiveSpatialGeometry,
   spatialGeometryIntersectsTokenFootprint,
@@ -21,6 +14,7 @@ import {
   type SceneGrid
 } from '@artificer-toolkit/shared/vtt'
 
+import { createActorSensePinner } from './actorSenses.js'
 import { characterRuleActionSystemAdapterRegistry } from './characterRuleActionSystemAdapterRegistry.js'
 import { resolveEncounterCombatPerception } from './encounterCombatPerception.js'
 import type { LockedCombatPerceptionEffect } from './encounterCombatPerceptionContributions.js'
@@ -68,51 +62,18 @@ export async function createEncounterMovementReactionPerception(
   const spatialEffects = await input.loadSpatialEffects(input.sceneId)
   const effectsByActorId = new Map<string, readonly LockedCombatPerceptionEffect[]>()
   const pinsByActorId = new Map<string, readonly PinnedSenseDefinition[]>()
+  const pinSenses = createActorSensePinner({
+    gameSystemId: input.state.gameSystemId,
+    loadSystem: input.loadSystem,
+    loadDefinition: async (id) => (await input.loadDefinition(id))?.current ?? null
+  })
   for (const actor of input.actors) {
     const target = input.targets.get(actor.id)
     if (!target || target.actor.id !== actor.id)
       throw new Error('Encounter actor perception target is unavailable.')
     effectsByActorId.set(actor.id, target.activeEffects)
-    const senses = target.perceptionSenses
-    if (!senses.length) continue
-    const system = await input.loadSystem()
-    const admitted = new Set(system.senses.map((sense) => sense.id))
-    if (senses.length > 100) throw new Error('Actor perception Sense limit exceeded.')
-    const seen = new Set<string>()
-    const pins: PinnedSenseDefinition[] = []
-    for (const sense of senses) {
-      if (!admitted.has(sense.senseDefinitionId) || seen.has(sense.senseDefinitionId))
-        throw new Error('Actor perception Sense is not a unique System vocabulary member.')
-      seen.add(sense.senseDefinitionId)
-      const root = await input.loadDefinition(sense.senseDefinitionId)
-      if (
-        !root?.current ||
-        root.definitionFamilyKey !== 'sense' ||
-        root.gameSystemId !== input.state.gameSystemId
-      )
-        throw new Error('Actor perception Sense is unavailable.')
-      const document = senseReusableDefinitionDocumentDtoSchema.parse(root.current.document)
-      if (
-        root.current.id !== sense.senseDefinitionId ||
-        root.current.version < 1 ||
-        root.current.contractVersion < 1 ||
-        document.id !== sense.senseDefinitionId ||
-        document.gameSystemId !== input.state.gameSystemId ||
-        checksumRuleDocument(document) !== root.current.checksum
-      )
-        throw new Error('Actor perception Sense identity does not match its current definition.')
-      pins.push(
-        pinnedSenseDefinitionSchema.parse({
-          senseDefinitionId: sense.senseDefinitionId,
-          definitionVersion: root.current.version,
-          definitionContractVersion: root.current.contractVersion,
-          definitionChecksum: root.current.checksum,
-          document,
-          range: sense.range
-        })
-      )
-    }
-    pinsByActorId.set(actor.id, pins)
+    const pins = await pinSenses(target.perceptionSenses)
+    if (pins.length) pinsByActorId.set(actor.id, pins.map(({ pin }) => pin))
   }
   if (effectsByActorId.size !== input.actors.length)
     throw new Error('Encounter perception effects are incomplete.')

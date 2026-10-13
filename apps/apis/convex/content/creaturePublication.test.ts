@@ -206,8 +206,8 @@ describe('native Creature publication', () => {
     ).toEqual(withoutAttackRoll)
   })
 
-  it('publishes a Creature sense and refuses an unknown definition or an out-of-bounds range', async () => {
-    const { first } = await fixture()
+  it('publishes a Creature sense and refuses a sense the room could not run', async () => {
+    const { first, t } = await fixture()
     const draft = await copyDraft(first.caller)
     const copied = creatureAuthoredDtoSchema.parse(draft.payload)
     const saveWithSenses = (senses: unknown) =>
@@ -225,10 +225,72 @@ describe('native Creature publication', () => {
     const saveAndPublish = async (senses: unknown) =>
       first.caller.mutation(publish, creaturePublicationInput(await saveWithSenses(senses)))
 
+    // A published sense definition the System does not list, and one that belongs to another System.
+    const darkvision = SRD_SENSE_DEFINITIONS.find(({ id }) => id === SRD_DARKVISION_SENSE_ID)
+    if (!darkvision) throw new Error('Missing SRD Darkvision.')
+    const unlistedSenseId = '00000000-0000-0000-000a-0ff000000001'
+    const unlistedDocument = { ...darkvision.document, id: unlistedSenseId }
+    await t.mutation(internal.content.import.importDefinitions, {
+      contentSourceId: SRD_CONTENT_SOURCE.id,
+      definitions: [
+        sourceImportDefinitionDtoSchema.parse({
+          id: unlistedSenseId,
+          label: 'Unlisted Sense',
+          description: darkvision.description,
+          definitionFamilyKey: 'sense',
+          document: unlistedDocument,
+          checksum: checksumRuleDocument(unlistedDocument)
+        })
+      ]
+    })
+    const foreignSenseId = '00000000-0000-0000-000a-0ff000000002'
+    await t.run(async (ctx) => {
+      const source = await ctx.db
+        .query('contentSources')
+        .withIndex('by_publicId', (q) => q.eq('id', SRD_CONTENT_SOURCE.id))
+        .unique()
+      const definition = await ctx.db
+        .query('reusableDefinitions')
+        .withIndex('by_publicId', (q) => q.eq('id', SRD_DARKVISION_SENSE_ID))
+        .unique()
+      if (!source || !definition) throw new Error('Missing SRD source or Darkvision row.')
+      const { _id: _sourceRow, _creationTime: _sourceCreated, ...sourceFields } = source
+      const { _id: _definitionRow, _creationTime: _definitionCreated, ...definitionFields } =
+        definition
+      const foreignSystemId = '00000000-0000-0000-0001-0ff000000000'
+      await ctx.db.insert('contentSources', {
+        ...sourceFields,
+        id: '00000000-0000-0000-0002-0ff000000000',
+        gameSystemId: foreignSystemId
+      })
+      await ctx.db.insert('reusableDefinitions', {
+        ...definitionFields,
+        id: foreignSenseId,
+        contentSourceId: '00000000-0000-0000-0002-0ff000000000',
+        gameSystemId: foreignSystemId
+      })
+    })
+
     await expect(saveAndPublish([sense('00000000-0000-0000-000a-0ff000000000')])).rejects.toThrow(
       'Every Creature sense must reference a published sense definition.'
     )
-    await expect(saveAndPublish([sense('')])).rejects.toThrow()
+    await expect(saveAndPublish([sense('')])).rejects.toThrow(
+      'Every Creature sense must reference a published sense definition.'
+    )
+    await expect(saveAndPublish([sense(foreignSenseId)])).rejects.toThrow(
+      "A Creature sense must reference a sense definition of the Creature's System."
+    )
+    await expect(saveAndPublish([sense(unlistedSenseId)])).rejects.toThrow(
+      "A Creature sense must be one of its System's senses."
+    )
+    await expect(
+      saveAndPublish([sense(SRD_DARKVISION_SENSE_ID), sense(SRD_DARKVISION_SENSE_ID)])
+    ).rejects.toThrow('A Creature can have each sense only once.')
+    await expect(
+      saveAndPublish([
+        sense(SRD_DARKVISION_SENSE_ID, { id: '', rangeKind: 'DISTANCE', amount: 60, unit: 'FEET' })
+      ])
+    ).rejects.toThrow('Too small: expected string to have >=1 characters')
     await expect(
       saveAndPublish([
         sense(SRD_DARKVISION_SENSE_ID, {
@@ -238,7 +300,7 @@ describe('native Creature publication', () => {
           unit: 'FEET'
         })
       ])
-    ).rejects.toThrow()
+    ).rejects.toThrow(`Too big: expected number to be <=${AUTHORED_LENGTH_AMOUNT_MAX}`)
 
     const published = await saveAndPublish([sense(SRD_DARKVISION_SENSE_ID)])
     const detail = await first.caller.query(details, {

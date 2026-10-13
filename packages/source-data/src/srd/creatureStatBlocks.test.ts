@@ -335,7 +335,10 @@ describe('SRD Creature stat blocks', () => {
 
   it('derives every printed Sense line from the structured Senses', () => {
     const differences = srdBaselineContent.subjects.creatures.flatMap((creature) => {
-      const printed = SRD_CREATURE_STAT_BLOCKS.get(creature.id)?.senses ?? []
+      // The book abbreviates feet "ft."; the unit registry's abbreviation is "ft".
+      const printed = (SRD_CREATURE_STAT_BLOCKS.get(creature.id)?.senses ?? []).map((line) =>
+        line.replaceAll(' ft.', ' ft')
+      )
       const derived = printCreatureSenses(creature.senses ?? [], senseLabel)
       return derived.join('; ') === printed.join('; ')
         ? []

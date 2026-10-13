@@ -794,7 +794,7 @@ definitions (Invisible suppresses VISUAL emission unless a perceives-invisible s
 bypasses it; Blinded suppresses VISUAL sensing) and, with a Scene whose id and version match the action's
 lock, tokens, grid, lighting, darkness, barriers and spatial effects; without a Scene the environment is
 neutral (bright, unobscured, line of effect). A Creature observer's senses are its structured stat-block
-senses (D111), carried on the perception actor as `perceptionSenses` like a Character's. Not wired: Convex action preparation, Disarm,
+senses (D111), carried on the perception actor as `perceptionSenses` like a Character's; `createActorSensePinner` (`actorSenses.ts`) pins and validates them once per sense definition for the Worker and both movement perception paths. Not wired: Convex action preparation, Disarm,
 opportunity attacks (movement-owned; movement reaction perception also omits condition contributions).
 
 Believed vs true attack mode (current, D100): `encounterAttackBelief.ts` derives the roller's _believed_

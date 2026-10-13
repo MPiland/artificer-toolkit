@@ -8,7 +8,8 @@ import {
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { describe, expect, it } from 'vitest'
 
-import { deriveActorSceneVision } from '../character/characterSceneVision.js'
+import { createActorSensePinner, deriveActorSceneVision } from '../actorSenses.js'
+import { currentConditionDefinition } from './srdConditionDefinitions.js'
 
 type Pin = Pick<PinnedSenseDefinition, 'document' | 'range'> & { label: string }
 type Range = Extract<PinnedSenseDefinition['range'], { rangeKind: 'DISTANCE' }>
@@ -42,6 +43,108 @@ function pin(senseId: string, amount: number | null, unit: Range['unit'] = 'FEET
 function senses(pins: readonly Pin[]) {
   return deriveActorSceneVision(actorId, pins).senses
 }
+
+describe('createActorSensePinner', () => {
+  const gameSystemId = currentConditionDefinition(definition(SRD_DARKVISION_SENSE_ID)).gameSystemId
+  const reach = { rangeKind: 'DISTANCE' as const, id: 'range', amount: 60, unit: 'FEET' as const }
+
+  function pinner(
+    input: {
+      vocabulary?: readonly string[]
+      load?: (id: string) => ReturnType<typeof currentConditionDefinition> | null
+    } = {}
+  ) {
+    const loads: string[] = []
+    let systemLoads = 0
+    const pin = createActorSensePinner({
+      gameSystemId,
+      loadSystem: async () => {
+        systemLoads++
+        return {
+          senses: (input.vocabulary ?? [SRD_DARKVISION_SENSE_ID, SRD_BLINDSIGHT_SENSE_ID]).map(
+            (id) => ({ id })
+          )
+        }
+      },
+      loadDefinition: async (id) => {
+        loads.push(id)
+        return input.load
+          ? input.load(id)
+          : currentConditionDefinition({ ...definition(id), definitionFamilyKey: 'sense' })
+      }
+    })
+    return { pin, loads, systemLoads: () => systemLoads }
+  }
+
+  it('pins each Sense to its definition with the bare range as its calculation', async () => {
+    const { pin } = pinner()
+    const [pinned] = await pin([{ senseDefinitionId: SRD_DARKVISION_SENSE_ID, range: reach }])
+    expect(pinned?.label).toBe('Darkvision')
+    expect(pinned?.pin).toMatchObject({
+      senseDefinitionId: SRD_DARKVISION_SENSE_ID,
+      definitionVersion: 1,
+      range: {
+        ...reach,
+        calculation: { base: 60, effective: 60, contributions: [], override: null }
+      }
+    })
+  })
+
+  it('loads the System and each definition once however many actors share a Sense', async () => {
+    const { pin, loads, systemLoads } = pinner()
+    const darkvision = { senseDefinitionId: SRD_DARKVISION_SENSE_ID, range: reach }
+    await pin([darkvision])
+    await pin([darkvision, { senseDefinitionId: SRD_BLINDSIGHT_SENSE_ID, range: reach }])
+    await pin([darkvision])
+    expect(loads).toEqual([SRD_DARKVISION_SENSE_ID, SRD_BLINDSIGHT_SENSE_ID])
+    expect(systemLoads()).toBe(1)
+  })
+
+  it('pins nothing, and loads nothing, for an actor without Senses', async () => {
+    const { pin, loads, systemLoads } = pinner()
+    expect(await pin([])).toEqual([])
+    expect(loads).toEqual([])
+    expect(systemLoads()).toBe(0)
+  })
+
+  it('refuses a duplicate Sense, one outside the System vocabulary, and too many', async () => {
+    const darkvision = { senseDefinitionId: SRD_DARKVISION_SENSE_ID, range: reach }
+    await expect(pinner().pin([darkvision, darkvision])).rejects.toThrow(
+      'Actor Sense is not a unique System vocabulary member.'
+    )
+    await expect(
+      pinner({ vocabulary: [SRD_BLINDSIGHT_SENSE_ID] }).pin([darkvision])
+    ).rejects.toThrow('Actor Sense is not a unique System vocabulary member.')
+    await expect(
+      pinner().pin(
+        Array.from({ length: 101 }, (_, index) => ({
+          senseDefinitionId: `sense-${index}`,
+          range: reach
+        }))
+      )
+    ).rejects.toThrow('Actor Sense limit exceeded.')
+  })
+
+  it('refuses a definition that is missing, of another family or System, or stale', async () => {
+    const darkvision = { senseDefinitionId: SRD_DARKVISION_SENSE_ID, range: reach }
+    const current = currentConditionDefinition({
+      ...definition(SRD_DARKVISION_SENSE_ID),
+      definitionFamilyKey: 'sense'
+    })
+    const refusal = (load: () => typeof current | null) =>
+      expect(pinner({ load }).pin([darkvision])).rejects
+    await refusal(() => null).toThrow('Actor Sense definition is unavailable.')
+    await refusal(() => ({ ...current, definitionFamilyKey: 'condition' })).toThrow(
+      'Actor Sense definition is unavailable.'
+    )
+    await refusal(() => ({ ...current, gameSystemId: '00000000-0000-4000-8000-0000000000ff' })).toThrow(
+      'Actor Sense definition is unavailable.'
+    )
+    await refusal(() => ({ ...current, checksum: '0'.repeat(64) })).toThrow(
+      'Actor Sense definition does not match its current version.'
+    )
+  })
+})
 
 describe('deriveActorSceneVision', () => {
   it('presents 60 ft darkvision as a visual sense that sees ordinary darkness', () => {

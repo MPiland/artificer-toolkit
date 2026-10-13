@@ -44,6 +44,24 @@ export const creatureSenseDtoSchema = lazySchema(() =>
 
 export type CreatureSenseDto = z.infer<typeof creatureSenseDtoSchema>
 
+// The room pins a Creature's senses by definition, so a repeated one cannot be admitted.
+const creatureSensesSchema = lazySchema(() =>
+  authoredNestedCollectionSchema(creatureSenseDtoSchema).check(
+    z.superRefine((senses, context) => {
+      const seen = new Set<string>()
+      for (const [index, { senseDefinitionId }] of senses.entries()) {
+        if (seen.has(senseDefinitionId))
+          context.addIssue({
+            code: 'custom',
+            path: [index, 'senseDefinitionId'],
+            message: 'A Creature can have each sense only once.'
+          })
+        seen.add(senseDefinitionId)
+      }
+    })
+  )
+)
+
 export const creatureQualifiedDamageDefenseDtoSchema = lazySchema(() =>
   z.strictObject({
     kind: z.enum(['RESISTANCE', 'IMMUNITY']),
@@ -350,7 +368,7 @@ const creatureAuthoredDtoObject = lazySchema(() =>
     hitPoints: z.number().check(z.int()).check(z.nonnegative()),
     hitDice: z.optional(diceExpressionDtoSchema),
     speeds: authoredNestedCollectionSchema(speedDtoSchema),
-    senses: z.optional(authoredNestedCollectionSchema(creatureSenseDtoSchema)),
+    senses: z.optional(creatureSensesSchema),
     passivePerception: z.optional(z.number()),
     damageVulnerabilities: z.optional(authoredReferenceCollectionSchema(authoredShortTextSchema)),
     damageResistances: z.optional(authoredReferenceCollectionSchema(authoredShortTextSchema)),

@@ -31,7 +31,8 @@ const senseGrantTargetDtoSchema = lazySchema(() =>
 const senseRangeShapes = {
   DISTANCE: lazySchema(() =>
     z.strictObject({
-      id: authoredIdentifierSchema,
+      // A Creature's range pins into the room unchanged, and the pinned contract needs an id.
+      id: authoredIdentifierSchema.check(z.trim()).check(z.minLength(1)),
       rangeKind: z.literal(rangeKindSchema._zod.def.entries.DISTANCE),
       amount: authoredLengthAmountSchema,
       unit: lengthUnitCodeSchema

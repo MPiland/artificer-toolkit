@@ -177,7 +177,6 @@ async function prepareAreaScene(input: AreaPlanInput) {
     point: command.target.point,
     grid,
     sourceToken: scene.sourceToken,
-    // An undecided sight (a Creature's unmodeled free-text Senses) counts as seen, as in D100.
     pointSeen:
       (await readNativeLivePointSight({
         state,
@@ -186,7 +185,7 @@ async function prepareAreaScene(input: AreaPlanInput) {
         point: command.target.point,
         sceneContext: { sceneId: scene.sceneId, sceneVersion: scene.sceneVersion, grid },
         capture
-      })) !== 'UNSEEN'
+      })) === 'SEES'
   })
   if (!area) throw new Error('The selected action area is not supported.')
   return { caster, casterFacts, movementTargets, scene, grid, area }

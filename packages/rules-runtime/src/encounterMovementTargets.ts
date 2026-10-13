@@ -3,6 +3,7 @@ import type { EncounterMovementReactionCharacterSource } from './encounterMoveme
 import { discoverCharacterActionCapabilities } from './characterActionCapabilityDiscoveryRegistry.js'
 import { compileCharacterActionEntryPoints } from './encounterActionEntryPointCompiler.js'
 import type { CharacterRulePolicyOutput } from '@artificer-toolkit/schema/api/characterRules'
+import type { SenseRangeDto } from '@artificer-toolkit/schema/grants/sense'
 import { effectiveHitPointMaximum } from './character/activeEffectGrantTotals.js'
 import {
   type EncounterAttackAgainstContributor,
@@ -86,7 +87,7 @@ export type MovementTarget<
   baseRulePolicyOutput: CharacterRulePolicyOutput | null
   effectiveRulePolicyOutput: CharacterRulePolicyOutput | null
   /** The Senses the actor perceives with: a Character's pinned Senses or a Creature's authored ones. */
-  perceptionSenses: readonly CharacterRulePolicyOutput['senses'][number][]
+  perceptionSenses: readonly { senseDefinitionId: string; range: SenseRangeDto }[]
   targetDerivedFacts: Readonly<Record<string, unknown>>
   defenses: TargetBoundActiveRuleEffectExecutionInput['defenses']
   /** Defenses that apply only to attacks without their bypassing traits. */
@@ -354,22 +355,7 @@ export function buildMovementTarget<
     effectiveScalarValues,
     baseRulePolicyOutput: null,
     effectiveRulePolicyOutput: null,
-    // A Creature's authored range has no modifiers, so its calculation is the bare amount.
-    perceptionSenses: (creatureStatBlock?.senses ?? []).map(({ senseDefinitionId, range }) => ({
-      senseDefinitionId,
-      range:
-        range.rangeKind === 'DISTANCE'
-          ? {
-              ...range,
-              calculation: {
-                base: range.amount,
-                effective: range.amount,
-                contributions: [],
-                override: null
-              }
-            }
-          : range
-    })),
+    perceptionSenses: creatureStatBlock?.senses ?? [],
     characterCurrentness: null,
     targetDerivedFacts: {
       actorId: actorRule.actorId,

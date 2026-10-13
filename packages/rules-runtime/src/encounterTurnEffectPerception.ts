@@ -3,12 +3,8 @@ import type {
   EncounterRunActorState,
   EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
-import { pinnedSenseDefinitionSchema } from '@artificer-toolkit/schema/projections/characterMechanics'
 import type { EncounterSpatialRuleEffectRecord } from '@artificer-toolkit/schema/projections/spatialRuleEffectPersistence'
-import {
-  senseReusableDefinitionDocumentDtoSchema,
-  type CombatPerceptionRequirementDto
-} from '@artificer-toolkit/schema/shared/combatPerception'
+import type { CombatPerceptionRequirementDto } from '@artificer-toolkit/schema/shared/combatPerception'
 import type { ReusableDefinitionRootRecord } from '@artificer-toolkit/schema/shared/reusableDefinitions'
 import type { PinnedConditionRuleStateDefinitionDto } from '@artificer-toolkit/schema/shared/ruleState'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
@@ -21,6 +17,7 @@ import {
   type SceneToken
 } from '@artificer-toolkit/shared/vtt'
 
+import { createActorSensePinner } from './actorSenses.js'
 import { characterRuleActionSystemAdapterRegistry } from './characterRuleActionSystemAdapterRegistry.js'
 import { resolveEncounterCombatPerception } from './encounterCombatPerception.js'
 import { deriveConditionCombatPerceptionContributions } from './encounterCombatPerceptionContributions.js'
@@ -80,45 +77,13 @@ export async function resolveEncounterActorPairPerception(input: {
   const observerActorId = input.observer.actor.id
   const { placement } = input
   const sceneGrid = placement?.sceneGrid ?? NEUTRAL_PERCEPTION_GRID
-  const senses = input.observer.perceptionSenses
-  if (senses.length > 100) throw new Error('Encounter perception Sense limit exceeded.')
-  const pins = []
-  if (senses.length) {
-    const system = await input.loadSystem()
-    const seen = new Set<string>()
-    for (const sense of senses) {
-      if (
-        seen.has(sense.senseDefinitionId) ||
-        !system.senses.some((value) => value.id === sense.senseDefinitionId)
-      )
-        throw new Error('Encounter perception Sense is not a unique System member.')
-      seen.add(sense.senseDefinitionId)
-      const root = await input.loadDefinition(sense.senseDefinitionId)
-      if (
-        !root?.current ||
-        root.definitionFamilyKey !== 'sense' ||
-        root.gameSystemId !== input.gameSystemId
-      )
-        throw new Error('Encounter perception Sense is unavailable.')
-      const document = senseReusableDefinitionDocumentDtoSchema.parse(root.current.document)
-      if (
-        document.id !== sense.senseDefinitionId ||
-        document.gameSystemId !== input.gameSystemId ||
-        checksumRuleDocument(document) !== root.current.checksum
-      )
-        throw new Error('Encounter perception Sense is stale.')
-      pins.push(
-        pinnedSenseDefinitionSchema.parse({
-          senseDefinitionId: sense.senseDefinitionId,
-          definitionVersion: root.current.version,
-          definitionContractVersion: root.current.contractVersion,
-          definitionChecksum: root.current.checksum,
-          document,
-          range: sense.range
-        })
-      )
-    }
-  }
+  const pins = (
+    await createActorSensePinner({
+      gameSystemId: input.gameSystemId,
+      loadSystem: input.loadSystem,
+      loadDefinition: async (id) => (await input.loadDefinition(id))?.current ?? null
+    })(input.observer.perceptionSenses)
+  ).map(({ pin }) => pin)
   const localAreaEffects = placement
     ? placement.spatialEffects.filter((effect) => {
         const geometry = effectiveSpatialGeometry(effect.placement, placement.scene.tokens)

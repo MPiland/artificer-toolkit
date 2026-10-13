@@ -635,7 +635,7 @@ ADR 0024 resolves the source semantics: future derived/passive facts read curren
 only issued occurrences retain frozen execution facts. Do not restore SQL projection repositories or
 long-lived consumer pins based on older Character/V03 wording. `loadCharacterSheetFacts` and
 `characters/encounterInitiative:read` show current native authority/rules/stream fences. The pure
-capability/range logic now lives in `rules-runtime/character/characterSceneVision`; the retiring functions
+capability/range logic now lives in `rules-runtime/actorSenses`; the retiring functions
 module reexports it. The new internal `characters/sceneVision:read` joins current validated definitions
 with effective output senses using a narrow `characterMechanicsRead` contract. It requires exact
 Campaign/Character/System/stream identity and System vocabulary membership. The existing definition

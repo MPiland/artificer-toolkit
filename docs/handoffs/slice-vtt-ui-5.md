@@ -48,6 +48,13 @@ Dev data changes: the main session resets and reseeds after merge.
   - `yarn turbo:affected:typecheck` green (`typecheck.log`); local Convex codegen push green (`codegen.log`); the regenerated `_generated/api.d.ts` is committed.
   - Two defects found by the first runs and fixed: Creature perception Senses are now handed to `resolveEncounterActorPairPerception` with the bare-amount `calculation` its pinned-Sense contract requires; `deriveActorSceneVision` accepts a plain `SenseRangeDto`.
 
+- 2026-10-13: review follow-up fixes (main session list of 12).
+  - Publication refuses duplicate senses, a foreign-System definition, a sense outside the System vocabulary and an empty range id; `snapshotStatBlock` parses each sense and throws on a malformed one.
+  - One `createActorSensePinner` (`rules-runtime/src/actorSenses.ts`, renamed from `character/characterSceneVision.ts`) serves `roomSceneVision`, movement-reaction and turn-effect perception, memoized per sense definition.
+  - Stale `UNKNOWN` leftovers removed (`nativeEncounterAreaRules` now tests `=== 'SEES'`). `printCreatureSenses` prints the registry unit abbreviation ("ft", no dot); the source-data oracle test normalises the book's "ft." when comparing.
+  - Known limit (recorded in D111): sense qualifiers are display-only. Mechanics-bearing qualifiers in the SRD: Grimlock ("or 10 ft. while deafened") and Wererat ("rat form only"). Ten more carry only "(blind beyond this radius)": Animated Armor, Flying Sword, Rug of Smothering, Shrieker, Violet Fungus, Black Pudding, Gelatinous Cube, Gray Ooze, Ochre Jelly, Shambling Mound. Conditional senses are a follow-up for the main session to register.
+  - Item 10 substitution: the Ogre's believed perception cannot be UNSEEN (believed perception strips the target's senses and uses the neutral environment), so the tests pin believed SEES versus actual UNSEEN for the Ogre at 70 ft and the reverse for a Blindsight Creature against an Invisible attacker.
+
 ## Red / green evidence
 
 Only item 1 has a captured red log (`oracle-red.log`, taken before the migration). Items 2 to 6 were written with the implementation in one pass, so no separate red log exists for them; each test asserts behavior the old code could not produce (a string `senses` field, the `UNKNOWN` sight verdict, Character-only actor binding).
@@ -57,7 +64,7 @@ Only item 1 has a captured red log (`oracle-red.log`, taken before the migration
 | 1 | SRD structured == printed | `oracle-red.log` | `green-oracle.log` |
 | 2 | darkvision 60 ft sees 50 ft not 70 ft | not captured | `encounterAttackPerception.test.ts` in `green-touched.log` |
 | 3 | Scene DTO senses: GM and controller, not others | not captured | `vtt-scene.test.ts` in `green-touched.log` |
-| 4 | one function for Character and Creature | not captured | `characterSceneVision.test.ts` in `green-touched.log`, `green-worker-vision.log` (Creature), `green-worker-pool.log` (Character) |
+| 4 | one function for Character and Creature | not captured | `actorSenses.test.ts` in `green-touched.log`, `green-worker-vision.log` (Creature), `green-worker-pool.log` (Character) |
 | 5 | publication refuses malformed entries | not captured | `creaturePublication.test.ts` in `green-touched.log` |
 | 6 | editor adds an entry and it reaches publication | not captured | `AuthoredDomainAuthoringLayout.test.tsx` in `green-touched.log` |
 

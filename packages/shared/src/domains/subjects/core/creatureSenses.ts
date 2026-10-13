@@ -13,7 +13,7 @@ export function printCreatureSenses(
     [
       senseLabel(senseDefinitionId).toLowerCase(),
       range.rangeKind === 'DISTANCE'
-        ? `${range.amount} ${MEASUREMENT_UNIT_REGISTRY[range.unit].short}.`
+        ? `${range.amount} ${MEASUREMENT_UNIT_REGISTRY[range.unit].short}`
         : 'unlimited',
       qualifier
     ]

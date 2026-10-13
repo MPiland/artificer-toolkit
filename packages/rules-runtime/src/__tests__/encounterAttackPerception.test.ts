@@ -29,7 +29,7 @@ import {
   srdConditionId
 } from './encounterCreatureAction.js'
 import { currentConditionDefinition } from './srdConditionDefinitions.js'
-import { srdCreatureActor, testUuid } from '../testing/dnd5eSrdEncounter.js'
+import { creatureFeature, srdCreatureActor, testUuid } from '../testing/dnd5eSrdEncounter.js'
 
 const ATTACKER_ID = testUuid(0xa1)
 const TARGET_ID = testUuid(0xa2)
@@ -392,46 +392,118 @@ describe('encounter attack perception: Creature Senses on a dark Scene (VTT_UI-5
     vision: null
   })
 
-  /** Whether the SRD Ogre (Darkvision 60 ft.) sees an attacker standing `feet` away in the dark. */
-  async function ogreSeesAttackerAt(feet: number) {
+  const ogre = srdByLabel(SRD.creatures, 'Ogre')
+
+  /**
+   * The actual and the believed perception between a senseless Quill Beast attacker and an SRD
+   * Creature target `feet` apart on a dark Scene.
+   */
+  async function darkScenePerception(input: {
+    feet: number
+    target: typeof ogre
+    attackerConditionIds?: readonly string[]
+  }) {
     const prepared = await prepareCreatureAction({
       actor: creatureActor({
         id: ATTACKER_ID,
         label: 'Quill Beast',
-        features: [quillVolley({ charges: 1, cost: 1, rangeFeet: 80 })]
+        features: [quillVolley({ charges: 1, cost: 1, rangeFeet: 80 })],
+        conditionIds: input.attackerConditionIds ?? []
       }),
-      target: srdCreatureActor({ id: TARGET_ID, creature: srdByLabel(SRD.creatures, 'Ogre') }),
+      target: srdCreatureActor({ id: TARGET_ID, creature: input.target }),
       featureId: QUILL_VOLLEY_ID,
       overridable: true
     })
-    const targetToken = tokenAt(0xc1, 'Ogre', 50)
-    const attackerToken = tokenAt(0xc2, 'Quill Beast', 50 + (feet / 5) * 100)
-    const perception = await resolveEncounterAttackPerception({
-      ...srdSenseLoaders(prepared.state.gameSystemId),
-      attacker: prepared.sourceFacts,
-      target: prepared.targetFacts,
-      placement: {
-        scene: {
-          ambientIllumination: 'ORDINARY_DARKNESS',
-          barriers: [],
-          darknessZones: [],
-          doorStates: {},
-          grid: GRID,
-          lights: [],
-          tokens: [targetToken, attackerToken]
-        },
-        sceneGrid: GRID,
-        attackerToken,
-        targetToken,
-        spatialEffects: []
-      }
-    })
-    return perception.targetSeesAttacker
+    return perceptionOnDarkScene(prepared, input.feet)
+  }
+
+  async function perceptionOnDarkScene(
+    prepared: Awaited<ReturnType<typeof prepareCreatureAction>>,
+    feet: number
+  ) {
+    const loaders = srdSenseLoaders(prepared.state.gameSystemId)
+    const targetToken = tokenAt(0xc1, 'Target', 50)
+    const attackerToken = tokenAt(0xc2, 'Attacker', 50 + (feet / 5) * 100)
+    return {
+      actual: await resolveEncounterAttackPerception({
+        ...loaders,
+        attacker: prepared.sourceFacts,
+        target: prepared.targetFacts,
+        placement: {
+          scene: {
+            ambientIllumination: 'ORDINARY_DARKNESS',
+            barriers: [],
+            darknessZones: [],
+            doorStates: {},
+            grid: GRID,
+            lights: [],
+            tokens: [targetToken, attackerToken]
+          },
+          sceneGrid: GRID,
+          attackerToken,
+          targetToken,
+          spatialEffects: []
+        }
+      }),
+      believed: await resolveEncounterBelievedAttackPerception({
+        ...loaders,
+        attacker: prepared.sourceFacts,
+        target: prepared.targetFacts
+      })
+    }
   }
 
   it("sees within a Creature's authored Darkvision range and not beyond it", async () => {
-    expect(await ogreSeesAttackerAt(50)).toBe('SEES')
-    expect(await ogreSeesAttackerAt(70)).toBe('UNSEEN')
+    expect((await darkScenePerception({ feet: 50, target: ogre })).actual.targetSeesAttacker).toBe(
+      'SEES'
+    )
+    expect((await darkScenePerception({ feet: 70, target: ogre })).actual.targetSeesAttacker).toBe(
+      'UNSEEN'
+    )
+  })
+
+  it("sees a target through an attacking Creature's authored Darkvision, and not beyond it", async () => {
+    const attackFromOgre = async (feet: number) =>
+      (
+        await perceptionOnDarkScene(
+          await prepareCreatureAction({
+            actor: srdCreatureActor({ id: ATTACKER_ID, creature: ogre }),
+            target: creatureActor({ id: TARGET_ID, label: 'Quill Beast', features: [] }),
+            featureId: creatureFeature(ogre, 'Greatclub').id,
+            overridable: true
+          }),
+          feet
+        )
+      ).actual.attackerSeesTarget
+    expect(await attackFromOgre(50)).toBe('SEES')
+    expect(await attackFromOgre(70)).toBe('UNSEEN')
+  })
+
+  it('does not believe in a Creature range the roller cannot know of', async () => {
+    // The roller assumes the Ogre sees on the neutral environment; the dark Scene says it does not.
+    const beyondDarkvision = await darkScenePerception({ feet: 70, target: ogre })
+    expect(beyondDarkvision.believed.targetSeesAttacker).toBe('SEES')
+    expect(beyondDarkvision.actual.targetSeesAttacker).toBe('UNSEEN')
+
+    // The roller does not credit the Creature's own Senses, so it believes an Invisible attacker
+    // is unseen by a Creature whose Blindsight actually finds it.
+    const blindsighted = SRD.creatures.find((creature) =>
+      creature.senses?.some(
+        (sense) =>
+          sense.senseDefinitionId === SRD_BLINDSIGHT_SENSE_ID &&
+          sense.range.rangeKind === 'DISTANCE' &&
+          sense.range.amount >= 30 &&
+          !sense.qualifier
+      )
+    )
+    if (!blindsighted) throw new Error('Missing an SRD Creature with plain Blindsight.')
+    const invisibleAttacker = await darkScenePerception({
+      feet: 30,
+      target: blindsighted,
+      attackerConditionIds: [INVISIBLE]
+    })
+    expect(invisibleAttacker.actual.targetSeesAttacker).toBe('SEES')
+    expect(invisibleAttacker.believed.targetSeesAttacker).toBe('UNSEEN')
   })
 })
 
