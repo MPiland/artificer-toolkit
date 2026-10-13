@@ -642,6 +642,32 @@
               "id": "PLATFORM-17.3"
             }
           ]
+        },
+        {
+          "id": "PLATFORM-18",
+          "title": "Help pages: how-to guides and a glossary",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": [],
+          "note": "Registered 2026-10-13 by the product owner. The glossary page reads the AUTHORING-18 glossary, so a definition is written once. Depends on AUTHORING-18; guides are written once their flows are final, so this builds late in the phase.",
+          "acs": [
+            {
+              "text": "A signed-in user can open help from anywhere in the app and read a searchable glossary of every rules and authoring term, drawn from the same glossary as the authoring tooltips.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "id": "PLATFORM-18.1"
+            },
+            {
+              "text": "Step-by-step how-to guides cover the main journeys: homebrew content (for example a custom sense granted by a feat), build a Character, run a Campaign session, prepare a Scene and run an Encounter; each guide links its glossary terms.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "id": "PLATFORM-18.2"
+            }
+          ],
+          "tasks": []
         }
       ]
     },
@@ -1759,6 +1785,25 @@
               "closes": ["AUTHORING-17.1", "AUTHORING-17.2"]
             }
           ]
+        },
+        {
+          "id": "AUTHORING-18",
+          "title": "Every authoring choice explains itself",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": [],
+          "note": "Registered 2026-10-13 by the product owner after reviewing how an author would homebrew Devil's Sight: options such as a sense's illumination access, obscurement access and access grade mean nothing without a definition. Definitions are written once in a shared glossary keyed by the vocabulary code, so tooltips and the PLATFORM-18 help pages cannot drift. Builds after the rules vocabulary settles (ATTACK, SPELLS, VTT_UI senses).",
+          "acs": [
+            {
+              "text": "Every authoring field and every option it offers (for example Illumination access: Magical darkness) shows a short plain-language definition on hover, keyboard focus and touch, from one shared glossary keyed by its vocabulary code; a test fails when any node-map field or option has no glossary entry.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "id": "AUTHORING-18.1"
+            }
+          ],
+          "tasks": []
         }
       ]
     },
