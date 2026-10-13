@@ -178,12 +178,16 @@ export interface MovementRoomConfig {
   sceneOverrides?: Partial<
     Pick<CampaignSceneStateDto, 'ambientIllumination' | 'barriers' | 'darknessZones' | 'lights'>
   >
+  /** The Scene's grid, where it is not the default 100 px square grid of 5 feet per cell. */
+  sceneGrid?: CampaignSceneStateDto['grid']
   /** The mover, a Character, maintains Concentration. */
   concentration?: boolean
   /** The Character who maintains Concentration, when not the mover. */
   concentrationOwnerActorId?: string
   /** Actors that each hold one effect the mover's Concentration maintains; they end with it. */
   concentrationDependentActorIds?: readonly string[]
+  /** The Character has a 60 ft Darkvision Sense. */
+  characterDarkvision?: boolean
   /** Features the mover Character's Class carries (see `concentrationAdvantageFeature`). */
   characterClassFeatures?: readonly ClassFeature[]
   /** Further SRD Equipment the mover Character carries, equipped (see healersKit). */
@@ -237,7 +241,7 @@ export async function movementRoom(config: MovementRoomConfig) {
     ...config.sceneOverrides,
     // Encounter control, not exploration, decides these moves.
     fogMode: 'OFF',
-    grid: {
+    grid: config.sceneGrid ?? {
       kind: 'SQUARE',
       origin: { x: 0, y: 0 },
       cellSize: TOKEN_SIZE,
@@ -277,6 +281,7 @@ export async function movementRoom(config: MovementRoomConfig) {
         campaignId,
         characterId,
         ownerUserId: base.playerId,
+        darkvision: config.characterDarkvision,
         classFeatures: config.characterClassFeatures,
         equipment: config.characterEquipment,
         play: config.characterPlay

@@ -15,7 +15,7 @@ import type {
   SceneTransientReveal,
   SceneViewer
 } from './scene.js'
-import { FEET_PER_SCENE_UNIT, VTT_SCENE_LIMITS } from './scene.js'
+import { FEET_PER_SCENE_UNIT, METERS_PER_FOOT, VTT_SCENE_LIMITS } from './scene.js'
 import {
   deriveSceneTokenPreviewFogLayers,
   isScenePointExplored,
@@ -41,7 +41,17 @@ type SceneLength = { amount: number; unit: LengthUnitCode }
 
 /** Feet in a Scene's distance unit; a SQUARES Scene counts base squares. */
 export function feetInSceneUnit(feet: number, unit: SceneGrid['unit']): number {
-  return feet / FEET_PER_SCENE_UNIT[unit]
+  return unit === 'METERS' ? feet * METERS_PER_FOOT : feet / FEET_PER_SCENE_UNIT[unit]
+}
+
+/** A distance expressed in another Scene unit; a Metres round trip of a whole-foot distance is exact. */
+export function convertSceneDistance(
+  amount: number,
+  from: SceneGrid['unit'],
+  to: SceneGrid['unit']
+): number {
+  const feet = from === 'METERS' ? amount / METERS_PER_FOOT : amount * FEET_PER_SCENE_UNIT[from]
+  return feetInSceneUnit(feet, to)
 }
 
 /** A typed length in authoritative Scene units. Never negative. */
