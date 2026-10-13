@@ -500,6 +500,14 @@
               "note": "needs proof",
               "origin": ["REL-8"],
               "id": "PLATFORM-13.5"
+            },
+            {
+              "text": "No package test fails on the default 5 s timeout under a loaded run: the SRD import preparation and authored-corpus tests do bounded work, proved by a loaded root-package run with no per-test timeout raised.",
+              "status": "TODO",
+              "proof": [],
+              "note": "Registered 2026-10-13 from the lane 3 merge. packages/source-data/src/srd/import.test.ts › publishes the SRD basic-action catalogue as System data (Q11) timed out at 5000 ms in the post-merge root-package run (local-validation/lane3-merge/root-packages.log); lane 3 hit the same class in r5c and r6. 781c9529a fixed only the cloneAuthoredItem corpus test. Fix the work the test does, not the timeout.",
+              "origin": [],
+              "id": "PLATFORM-13.6"
             }
           ]
         },
@@ -703,7 +711,10 @@
           "id": "ACCOUNTS-2",
           "title": "Signup stays closed unless the server opens it",
           "status": "DONE",
-          "journeyTests": ["apps/apis/convex/accountJourneys.test.ts", "apps/apis/convex/auth.test.ts"],
+          "journeyTests": [
+            "apps/apis/convex/accountJourneys.test.ts",
+            "apps/apis/convex/auth.test.ts"
+          ],
           "journeyStatus": "verified",
           "origin": ["F04"],
           "acs": [
@@ -6756,20 +6767,38 @@
         {
           "id": "RELIABILITY-4",
           "title": "Measuring a Scene length never crashes an Encounter read",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "journeyTests": [],
           "journeyStatus": "none",
           "origin": [],
           "acs": [
             {
               "text": "Encounter reads that measure Scene lengths (cleaving facts, movement reaction contacts, combat perception and its contributions) never throw: a Squares Scene measures each square as the System's 5 ft base square (D50 item 11), so every rule length measures correctly on it, and an authored length is bounded so it cannot overflow; proved by tests that fail before the fix.",
+              "status": "DONE",
+              "proof": [
+                "packages/shared/src/__tests__/length-measurement.test.ts",
+                "packages/rules-runtime/src/__tests__/encounterCombatPerceptionSquaresScene.test.ts",
+                "packages/rules-runtime/src/__tests__/encounterCleaving.test.ts",
+                "packages/shared/src/__tests__/combat-perception.test.ts",
+                "packages/shared/src/__tests__/vtt-scene-combat-perception.test.ts",
+                "packages/schema/src/__tests__/authored-length-amount-bounds.test.ts",
+                "packages/schema/src/__tests__/sense-grant-range.test.ts",
+                "packages/schema/src/__tests__/vtt-scene-contracts.test.ts"
+              ],
+              "origin": [],
+              "note": "Registered 2026-10-13 from the VTT_UI-3.1 review. Ranges are length-only since the 3.1 merge, so the non-length throw is gone; lengthMeasurementInSceneUnits still throws for overflow and an uncalibrated SQUARES grid, and encounterCleavingFacts, encounterMovementReactionContacts, encounterCombatPerception and encounterCombatPerceptionContributions call it uncaught. Also covers the session-worker typecheck script failing `wrangler types --check` (worker-configuration.d.ts stale). Done by lane 3: a square is the System's 5 ft base square and a SQUARES grid's distancePerCell is always 1, so every Scene length is measurable; authored lengths are capped at AUTHORED_LENGTH_AMOUNT_MAX and Scene amounts at SCENE_LENGTH_AMOUNT_MAX, so overflow is unrepresentable; a sense range is DISTANCE or UNLIMITED with no long range or scaling; the session-worker types script generates from .dev.vars.example. Accepted 2026-10-13 by lane 1: lane 3 merged in 8dda19f80; post-merge builds, codegen, typechecks, root packages 2189/2190 (srd/import timeout flake only), session-worker 567/567, vtt and Sheet web unit 377/377 on the merged tree.",
+              "id": "RELIABILITY-4.1"
+            },
+            {
+              "text": "A new Scene grid's default distance per cell is the System's base square in the chosen unit (5 ft, 1.524 m, 1 square), derived from SYSTEM_BASE_SQUARE_FEET and FEET_PER_SCENE_UNIT, and switching the unit converts it; proved by a Scene preparation test that fails first.",
               "status": "TODO",
               "proof": [],
+              "note": "Registered 2026-10-13 at the lane 3 merge review. CampaignScenePreparation seeds distancePerCell with SYSTEM_BASE_SQUARE_FEET for both FEET and METERS, so a Meters grid starts at 5 m per cell; feetInSceneUnit(SYSTEM_BASE_SQUARE_FEET, unit) gives the value for every unit and removes the SQUARES special case.",
               "origin": [],
-              "note": "Registered 2026-10-13 from the VTT_UI-3.1 review. Ranges are length-only since the 3.1 merge, so the non-length throw is gone; lengthMeasurementInSceneUnits still throws for overflow and an uncalibrated SQUARES grid, and encounterCleavingFacts, encounterMovementReactionContacts, encounterCombatPerception and encounterCombatPerceptionContributions call it uncaught. Also covers the session-worker typecheck script failing `wrangler types --check` (worker-configuration.d.ts stale).",
-              "id": "RELIABILITY-4.1"
+              "id": "RELIABILITY-4.2"
             }
-          ]
+          ],
+          "journeyGap": "No journey drives an Encounter read on a SQUARES Scene through convex-test or the Session room (no app test uses a SQUARES grid). Next: one convex-test or session-worker journey that reads cleaving, a movement reaction and combat perception on a SQUARES Scene."
         },
         {
           "id": "RELIABILITY-5",
@@ -7184,7 +7213,14 @@
             {
               "text": "Conditions, Concentration and effects are presented as a segmented outer ring around the token's disposition border: one segment per active status, coloured by category (harmful condition, Concentration, beneficial effect, other), in model order, at most eight with the last marking overflow; hover, focus or selection lists every status by icon and name; the token is inset within its footprint so the outer ring never overlaps a neighbour; turn and reaction halos stay distinct from both rings (Q3).",
               "status": "DONE",
-              "proof": ["packages/rules-runtime/src/__tests__/activeGrantListings.test.ts › grant polarity (VTT_UI-1.2)", "apps/web/src/domains/campaigns/vtt/vttTokenPresentation.model.test.ts", "apps/web/src/domains/campaigns/vtt/vttSceneRenderer.model.test.ts", "apps/web/src/domains/campaigns/vtt/CampaignVttPresentation.stories.tsx", "apps/web/src/domains/campaigns/vtt/CampaignTabletopWindow.stories.tsx › SelectingATokenListsItsStatuses", "apps/web/src/domains/campaigns/vtt/CampaignTabletopWindow.stories.tsx › HoveringAFocusItemListsEveryStatus"],
+              "proof": [
+                "packages/rules-runtime/src/__tests__/activeGrantListings.test.ts › grant polarity (VTT_UI-1.2)",
+                "apps/web/src/domains/campaigns/vtt/vttTokenPresentation.model.test.ts",
+                "apps/web/src/domains/campaigns/vtt/vttSceneRenderer.model.test.ts",
+                "apps/web/src/domains/campaigns/vtt/CampaignVttPresentation.stories.tsx",
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopWindow.stories.tsx › SelectingATokenListsItsStatuses",
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopWindow.stories.tsx › HoveringAFocusItemListsEveryStatus"
+              ],
               "origin": ["G4-STATUS-PRESENTATION"],
               "note": "Implemented in vttTokenPresentation.model.ts and CampaignVttPresentation stories; not accepted. Integration-owner ruling 2026-10-12: harmful and beneficial come from a polarity derived in rules-runtime from each grant's modifiers relative to its holder (an all-beneficial grant is beneficial; an all-harmful grant is harmful; a mixed or neutral grant is other), never an authored flag. Conditions are harmful. The derived polarity is carried on the active grant listing. Built (D110): b5a55b5da. Presentation stories build from the real presentation model over Encounter data: ordering, overflow, reaction halo over current turn, defeated. Window journeys GmSeesTokenStatuses and PlayerSeesTokenStatusesWithoutGmHealth. Journey stays partial: 1.1 waits on token selection, 1.3 is held. Lane 3: Two rings (decision Q3): an outer segmented status ring (model order, at most 8 segments, the last marks overflow at 9+), inset inside the footprint, and a DOM status list on hover or focus. Proved against drawn output (segment count and category colours, overflow, inner and outer ring bounds of neighbouring 1x1 and large tokens) in the presentation and window stories; category hues and disposition ring colours pinned to literal hexes in the model tests; at least 2 units of clearance between the two rings on every side (red with the old inset 9: local-validation/lane3/logs/tight-red.log). The pending-frame hover fix is proved in the real storybook runner: with its render disabled, HoveringATokenRebuiltBeforeTheNextFrameReportsIt fails (local-validation/lane3/logs/rv-hover-red.log and tight-red.log). Status list paths proved: canvas hover lists a token's statuses and leaving hides them (window HoveringATokenOnTheCanvasListsItsStatuses), and keyboard focus on a token's Focus item in Scene controls (FocusingATokenListsEveryStatus). Mouse hover on that menu item and the selected token's list are proved since 99bc56fba. Completed 2026-10-13, awaiting integration-owner acceptance: b5a55b5da derives polarity in rules-runtime (listActiveGrantListings carries it on every listing) and the ring draws HARMFUL amber, BENEFICIAL lime 0x94d82d, CONCENTRATION and OTHER (neutral grants); red p12-red-rules and p12-red-web. 99bc56fba lists the selected token's statuses (red sel-status-red) and proves mouse hover on a Focus item. Accepted 2026-10-13 by the integration owner after review (fold contract carries typed modifier kinds and value domains; unknown codes fail at the fold; hidden sources show polarity; precedence story), merged in 3b684b7f8; post-merge worker 560, packages 1844, focused Convex 388, vtt unit 216 and stories 94 green, codegen unchanged.",
               "id": "VTT_UI-1.2"
@@ -7264,10 +7300,12 @@
                 "apps/session-worker/test/nativeTransientFanout.test.ts",
                 "packages/shared/src/__tests__/vtt-scene.test.ts",
                 "packages/schema/src/__tests__/vtt-scene-contracts.test.ts",
-                "packages/rules-runtime/src/__tests__/characterSceneVision.test.ts"
+                "packages/rules-runtime/src/__tests__/characterSceneVision.test.ts",
+                "packages/shared/src/__tests__/length-measurement.test.ts",
+                "packages/rules-runtime/src/__tests__/encounterCombatPerceptionSquaresScene.test.ts"
               ],
               "origin": ["G4-PERCEPTION"],
-              "note": "Regression found 2026-10-13 (RELIABILITY-4 review): a Character sense with a null pinned range (unlimited in combat perception) was dropped from the token. Fixed red first: deriveCharacterSceneVision and resolveSceneCharacterVision keep it with range null, SceneTokenSense.range is nullable, and the renderer gives it an infinite reach, so it sees its whole line of sight (characterSceneVision.test.ts, vtt-scene.test.ts, vttSceneRenderer.model.test.ts; red logs local-validation/lane3/logs/red-root.log and red-web.log). Split from VTT_UI-3.2 on 2026-10-12 (product owner: a dwarf with darkvision in a cave sees grey within 60 ft and black beyond). Covers Character senses and authored token sight; Creature senses are VTT_UI-5. Implemented 2026-10-12 in e343e21a1 (A: senses on SceneToken, snapshot and delta redaction by ADR 0034 control) and 20b01c2c2 (B: renderer), awaiting integration-owner acceptance. Audit fixes 2026-10-12: 55c7547fd, 1e9d099e1, c201d2513 (exact retries replay the sender's projected receipt), bd5ce33b1, 3f037b60f and 2f0ea3811 (senses are never persisted: the stored Token schema requires empty senses, so definition appends and checkpoints both reject them), 794aca484 and 229749488 (drawn sight is the shared visibility polygon, with authored ranges converted to map pixels as server fog does), 32c2a55ab (every Scene receipt is the message the sender was sent), 9e54f0a7e (Scene definition batch replay proof restored; stored-senses refine reports path senses), 4bc4ee298 (bound senses withheld after a Character reassignment; visible-mover receipt replays as sent), 23f310ea6 (room seeding cancels its redundant scheduled Content Snapshot builds, replacing the real-clock wait of e8a3f415c). The movement decision replay that omits the Scene receipt is RELIABILITY-3. Vision is authored only; every seeing token sees along its line of sight clamped to its authored range, and within that the light and the view token's senses decide what shows. Truesight keeps DIM as DIM. Blindsight clears every darkness class within range and line of sight. Tremorsense treats every token as on the ground (the Scene has no elevation data) and reveals tokens through walls without changing the map. Tokens in darkness that no sense reaches are concealed; the view token and the Player's own tokens always show. Accepted by lane 1 on 2026-10-13 (merged `ad7e6b279`): assertion audit and production review clean after fixes; post-merge green (worker 560/560, touched Convex 519/519, vtt unit 216/216, vtt stories 91/91, typechecks, codegen; `local-validation/lane3-34-merge/`).",
+              "note": "Regression proof updated 2026-10-13 after the RELIABILITY-4 rulings: a sense range is never null; an UNLIMITED sense stays unlimited and shows on its token whatever the grid (vtt-scene.test.ts › presents an unlimited sense on the token whatever the grid can measure; length-measurement.test.ts; encounterCombatPerceptionSquaresScene.test.ts › keeps an unlimited pinned sense unlimited). Accepted 2026-10-13 by lane 1: lane 3 merged in 8dda19f80; post-merge builds, codegen, typechecks, root packages 2189/2190 (srd/import timeout flake only), session-worker 567/567, vtt and Sheet web unit 377/377 on the merged tree. Regression found 2026-10-13 (RELIABILITY-4 review): a Character sense with a null pinned range (unlimited in combat perception) was dropped from the token. Fixed red first: deriveCharacterSceneVision and resolveSceneCharacterVision keep it with range null, SceneTokenSense.range is nullable, and the renderer gives it an infinite reach, so it sees its whole line of sight (characterSceneVision.test.ts, vtt-scene.test.ts, vttSceneRenderer.model.test.ts; red logs local-validation/lane3/logs/red-root.log and red-web.log). Split from VTT_UI-3.2 on 2026-10-12 (product owner: a dwarf with darkvision in a cave sees grey within 60 ft and black beyond). Covers Character senses and authored token sight; Creature senses are VTT_UI-5. Implemented 2026-10-12 in e343e21a1 (A: senses on SceneToken, snapshot and delta redaction by ADR 0034 control) and 20b01c2c2 (B: renderer), awaiting integration-owner acceptance. Audit fixes 2026-10-12: 55c7547fd, 1e9d099e1, c201d2513 (exact retries replay the sender's projected receipt), bd5ce33b1, 3f037b60f and 2f0ea3811 (senses are never persisted: the stored Token schema requires empty senses, so definition appends and checkpoints both reject them), 794aca484 and 229749488 (drawn sight is the shared visibility polygon, with authored ranges converted to map pixels as server fog does), 32c2a55ab (every Scene receipt is the message the sender was sent), 9e54f0a7e (Scene definition batch replay proof restored; stored-senses refine reports path senses), 4bc4ee298 (bound senses withheld after a Character reassignment; visible-mover receipt replays as sent), 23f310ea6 (room seeding cancels its redundant scheduled Content Snapshot builds, replacing the real-clock wait of e8a3f415c). The movement decision replay that omits the Scene receipt is RELIABILITY-3. Vision is authored only; every seeing token sees along its line of sight clamped to its authored range, and within that the light and the view token's senses decide what shows. Truesight keeps DIM as DIM. Blindsight clears every darkness class within range and line of sight. Tremorsense treats every token as on the ground (the Scene has no elevation data) and reveals tokens through walls without changing the map. Tokens in darkness that no sense reaches are concealed; the view token and the Player's own tokens always show. Accepted by lane 1 on 2026-10-13 (merged `ad7e6b279`): assertion audit and production review clean after fixes; post-merge green (worker 560/560, touched Convex 519/519, vtt unit 216/216, vtt stories 91/91, typechecks, codegen; `local-validation/lane3-34-merge/`).",
               "id": "VTT_UI-3.4"
             },
             {
@@ -7281,9 +7319,7 @@
             {
               "text": "Footprints, large tokens, dragging and rotation behave correctly.",
               "status": "DONE",
-              "proof": [
-                "apps/web/src/domains/campaigns/vtt/CampaignVttMovement.stories.tsx"
-              ],
+              "proof": ["apps/web/src/domains/campaigns/vtt/CampaignVttMovement.stories.tsx"],
               "origin": ["G4-FOOTPRINTS"],
               "note": "Real renderer in Chromium, read through getDiagnostics(): a presented token's drag survives renderer updates (c6feedc48); a 140x140 token draws a 140x140 footprint, keeps the off-centre grab offset, clamps by half its footprint at both map edges and stops at a wall; rotation turns only the facing indicator. Barrier checks use the token centre (current rule).",
               "id": "VTT_UI-3.3"
@@ -7293,25 +7329,37 @@
         {
           "id": "VTT_UI-4",
           "title": "Accessible VTT",
-          "status": "TODO",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": ["apps/web/src/domains/campaigns/vtt/CampaignTabletopWindow.stories.tsx"],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
               "text": "The VTT works at low zoom and does not rely on colour alone.",
-              "status": "IN_PROGRESS",
-              "proof": ["apps/web/src/domains/campaigns/vtt/vttTokenPresentation.model.test.ts › names the disposition in the label and the description, and none without an actor", "apps/web/src/domains/campaigns/vtt/vttSceneRenderer.model.test.ts › focuses a token at a readable zoom, never zooming out and staying within the zoom bounds", "apps/web/src/domains/campaigns/vtt/CampaignVttPresentation.stories.tsx › CurrentTurnAndReactionHalosDifferByShape", "apps/web/src/domains/campaigns/vtt/CampaignVttPresentation.stories.tsx › LowZoom", "apps/web/src/domains/campaigns/vtt/CampaignTabletopWindow.stories.tsx › FocusingATokenNamesItsDispositionAndZoomsIn"],
+              "status": "DONE",
+              "proof": [
+                "apps/web/src/domains/campaigns/vtt/vttTokenPresentation.model.test.ts › names the disposition in the label and the description, and none without an actor",
+                "apps/web/src/domains/campaigns/vtt/vttSceneRenderer.model.test.ts › focuses a token at a readable zoom, never zooming out and staying within the zoom bounds",
+                "apps/web/src/domains/campaigns/vtt/CampaignVttPresentation.stories.tsx › CurrentTurnAndReactionHalosDifferByShape",
+                "apps/web/src/domains/campaigns/vtt/CampaignVttPresentation.stories.tsx › LowZoom",
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopWindow.stories.tsx › FocusingATokenNamesItsDispositionAndZoomsIn"
+              ],
               "origin": ["G4-ACCESSIBILITY-PERFORMANCE"],
-              "note": "Original PARTIAL: V15 covers performance only. Lane 3, completed 2026-10-13, awaiting integration-owner acceptance. Applies decision Q3 (colour is the at-a-glance cue; the token panel and the canvas description carry the exact one): the disposition ring is named in the presentation (dispositionLabel), in the canvas description and in the hover/focus/selection panel, which now shows for a token with no statuses; health bands, conditions and effects were already named statuses; the current-turn halo also draws a crosshair, so it differs from a reaction halo by shape (read back from drawn output); the selection outline is dashed and the overflow segment hollow. Low zoom: Focus in Scene controls zooms in, never out, until the token's larger footprint side is at least 64 screen px. The disposition follows the kind in the description (\"Goblin. Creature. Hostile. Current turn. …\"). Red proofs for every 4.1 behaviour are under local-validation/lane3/vtt-ui-4.1-red/. Finish: at the minimum zoom, LowZoom and FocusingATokenNamesItsDispositionAndZoomsIn prove every token is listed in Scene controls and Focus brings each to the readable size, so nothing is open for low zoom; DONE on integration-owner acceptance.",
+              "note": "Original PARTIAL: V15 covers performance only. Lane 3, completed 2026-10-13, accepted. Applies decision Q3 (colour is the at-a-glance cue; the token panel and the canvas description carry the exact one): the disposition ring is named in the presentation (dispositionLabel), in the canvas description and in the hover/focus/selection panel, which now shows for a token with no statuses; health bands, conditions and effects were already named statuses; the current-turn halo also draws a crosshair, so it differs from a reaction halo by shape (read back from drawn output); the selection outline is dashed and the overflow segment hollow. Low zoom: Focus in Scene controls zooms in, never out, until the token's larger footprint side is at least 64 screen px. The disposition follows the kind in the description (\"Goblin. Creature. Hostile. Current turn. …\"). Red proofs for every 4.1 behaviour are under local-validation/lane3/vtt-ui-4.1-red/. Finish: at the minimum zoom, LowZoom and FocusingATokenNamesItsDispositionAndZoomsIn prove every token is listed in Scene controls and Focus brings each to the readable size, so nothing is open for low zoom; DONE on integration-owner acceptance. Accepted 2026-10-13 by lane 1: lane 3 merged in 8dda19f80; post-merge builds, codegen, typechecks, root packages 2189/2190 (srd/import timeout flake only), session-worker 567/567, vtt and Sheet web unit 377/377 on the merged tree.",
               "id": "VTT_UI-4.1"
             },
             {
               "text": "Evidence, conflicts, keyboard navigation, screen-reader output and selectors are covered by tests.",
-              "status": "IN_PROGRESS",
-              "proof": ["apps/web/src/domains/campaigns/vtt/CampaignTabletopWindow.stories.tsx › KeyboardOnlyTabletopJourney", "apps/web/src/domains/campaigns/vtt/CampaignTabletopWindow.stories.tsx › KeyboardMoveRejectedAsStaleIsAnnounced", "apps/web/src/domains/campaigns/vtt/CampaignTabletopWindow.stories.tsx › HoveringATokenListsItOverTheSelection", "apps/web/src/domains/campaigns/vtt/CampaignTabletopDecisionDrawer.stories.tsx › KeyboardOnlyEvidenceRoll", "apps/web/src/domains/campaigns/vtt/CampaignTabletopDecisionDrawer.stories.tsx › KeyboardConflict"],
+              "status": "DONE",
+              "proof": [
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopWindow.stories.tsx › KeyboardOnlyTabletopJourney",
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopWindow.stories.tsx › KeyboardMoveRejectedAsStaleIsAnnounced",
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopWindow.stories.tsx › HoveringATokenListsItOverTheSelection",
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopDecisionDrawer.stories.tsx › KeyboardOnlyEvidenceRoll",
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopDecisionDrawer.stories.tsx › KeyboardConflict"
+              ],
               "origin": ["G3-EVIDENCE-A11Y"],
-              "note": "Original PARTIAL: keyboard, screen-reader and selector coverage has no 8.2 criterion. Found 2026-10-13: the Scene controls menu scrolls once its token list outgrows the viewport, and axe reports scrollable-region-focusable (Mantine keeps the dropdown and items at tabindex -1); reproduce with HoveringATokenListsItOverTheSelection left open with three tokens. Lane 3, completed 2026-10-13, awaiting integration-owner acceptance. Fixed red first: the Scene object menu sets Mantine's menuItemTabIndex={0}, so its items are focusable and axe passes with three tokens (red vtt-ui-4.2-menu-red.log); Tab now moves between menu items. Keyboard-only journeys reach every control by pressing keys until it holds focus (reachByKeyboard), selected by role and accessible name: the map's role=img with its Visible tokens description, Scene controls Focus zooming in and returning focus, a keyboard move sending MOVE_SCENE_TOKEN with its measurement announced, a ping announced, a STALE_STATE rejection shown as an alert, and the decision drawer's evidence roll announced politely with its SYSTEM_ROLL resolution; KeyboardConflict covers the conflicting decision. Red for the journey: vtt-ui-4.2-journey-red.log; green vtt-ui-4.2-final.log.",
+              "note": "Original PARTIAL: keyboard, screen-reader and selector coverage has no 8.2 criterion. Found 2026-10-13: the Scene controls menu scrolls once its token list outgrows the viewport, and axe reports scrollable-region-focusable (Mantine keeps the dropdown and items at tabindex -1); reproduce with HoveringATokenListsItOverTheSelection left open with three tokens. Lane 3, completed 2026-10-13, accepted. Fixed red first (review-5-red): the menu keeps Mantine's roving focus (arrow keys inside, Escape returns to the trigger, Tab leaves); its contents scroll in a focusable role=group region named Scene objects, so axe passes with three tokens. Keyboard-only journeys reach every control by pressing keys until it holds focus (reachByKeyboard), selected by role and accessible name: the map's role=img with its Visible tokens description, Scene controls Focus zooming in and returning focus, a keyboard move sending MOVE_SCENE_TOKEN with its measurement announced, a ping announced, a STALE_STATE rejection shown as an alert, and the decision drawer's evidence roll announced politely with its SYSTEM_ROLL resolution; KeyboardConflict covers the conflicting decision. Red for the journey: vtt-ui-4.2-journey-red.log; green vtt-ui-4.2-final.log. Accepted 2026-10-13 by lane 1: lane 3 merged in 8dda19f80; post-merge builds, codegen, typechecks, root packages 2189/2190 (srd/import timeout flake only), session-worker 567/567, vtt and Sheet web unit 377/377 on the merged tree.",
               "id": "VTT_UI-4.2"
             }
           ]
