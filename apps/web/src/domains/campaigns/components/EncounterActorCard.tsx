@@ -20,9 +20,11 @@ import {
   healthDisplayLevelDtoSchema,
   type HealthDisplayLevelDto
 } from '@artificer-toolkit/schema/api/healthDisplay'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import type { EncounterGmActorDto } from '@artificer-toolkit/schema/api/encounters'
 import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
+import { ServerDraftConflicts } from '#components/ServerDraft/ServerDraftConflicts'
+import { useServerDraft } from '#components/ServerDraft/useServerDraft'
 import { GmRollVisibilityToggle } from '#app/components/dice/GmRollVisibilityToggle'
 import { getCharacterSheetSlice } from '#app/data/characters/queries'
 import { useGmRollVisibilityPreference } from '#app/settings/useGmRollVisibilityPreference'
@@ -37,15 +39,15 @@ import { EncounterEnemyStatBlock } from './EncounterEnemyStatBlock'
 import { healthDisplayLevelLabels, healthDisplayLevelOptions } from '../healthDisplay'
 import type { EncounterCommandPayload } from './encounterWorkspace.types'
 
-export function EncounterActorCard({
-  actor,
-  campaign,
-  currentUserId,
-  disabled,
-  encounterId,
-  healthDisplayDefault,
-  onCommand
-}: {
+const draftFieldLabels = {
+  initiative: 'Initiative',
+  currentHitPoints: 'Current HP',
+  tempHitPoints: 'Temp HP',
+  hidden: 'Hidden',
+  notes: 'GM notes'
+}
+
+interface EncounterActorCardProps {
   actor: EncounterGmActorDto
   campaign: CampaignDetailDto
   currentUserId: string
@@ -54,12 +56,26 @@ export function EncounterActorCard({
   /** The Encounter's level for enemies and NPCs without an override. */
   healthDisplayDefault: HealthDisplayLevelDto
   onCommand: (payload: EncounterCommandPayload) => void
-}) {
-  const [initiative, setInitiative] = useState(actor.initiative ?? 0)
-  const [currentHitPoints, setCurrentHitPoints] = useState(actor.currentHitPoints)
-  const [tempHitPoints, setTempHitPoints] = useState(actor.tempHitPoints)
-  const [isPublic, setIsPublic] = useState(actor.public)
-  const [notes, setNotes] = useState(actor.gmNotes ?? '')
+}
+
+/** Callers key it by `actor.id` so another actor starts from its own values, never the previous draft. */
+export function EncounterActorCard({
+  actor,
+  campaign,
+  currentUserId,
+  disabled,
+  encounterId,
+  healthDisplayDefault,
+  onCommand
+}: EncounterActorCardProps) {
+  const draft = useServerDraft({
+    initiative: actor.initiative ?? 0,
+    currentHitPoints: actor.currentHitPoints,
+    tempHitPoints: actor.tempHitPoints,
+    hidden: !actor.public,
+    notes: actor.gmNotes ?? ''
+  })
+  const { initiative, currentHitPoints, tempHitPoints, hidden, notes } = draft.values
   const { gmRollVisibility } = useGmRollVisibilityPreference()
   const [sheetOpened, setSheetOpened] = useState(false)
   const shareHealthMutation = useConvexMutation(convexApi.encounters.healthDisplay.share)
@@ -76,14 +92,6 @@ export function EncounterActorCard({
       campaign.id
     )
   )
-
-  useEffect(() => {
-    setInitiative(actor.initiative ?? 0)
-    setCurrentHitPoints(actor.currentHitPoints)
-    setTempHitPoints(actor.tempHitPoints)
-    setIsPublic(actor.public)
-    setNotes(actor.gmNotes ?? '')
-  }, [actor])
 
   function commitInitiative() {
     if (disabled || initiative === actor.initiative) return
@@ -103,7 +111,7 @@ export function EncounterActorCard({
     const updated = {
       currentHitPoints: next.currentHitPoints ?? currentHitPoints,
       tempHitPoints: next.tempHitPoints ?? tempHitPoints,
-      isPublic: next.isPublic ?? isPublic,
+      isPublic: next.isPublic ?? !hidden,
       notes: next.notes ?? notes
     }
     if (
@@ -142,7 +150,7 @@ export function EncounterActorCard({
           disabled={disabled}
           label='Initiative'
           value={initiative}
-          onChange={(value) => setInitiative(Number(value) || 0)}
+          onChange={(value) => draft.setValue('initiative', Number(value) || 0)}
           onBlur={commitInitiative}
           onKeyDown={(event) => {
             if (event.key === 'Enter') event.currentTarget.blur()
@@ -159,7 +167,7 @@ export function EncounterActorCard({
               label='Current HP'
               min={0}
               value={currentHitPoints}
-              onChange={(value) => setCurrentHitPoints(Number(value) || 0)}
+              onChange={(value) => draft.setValue('currentHitPoints', Number(value) || 0)}
               onBlur={() => commitEnemyState()}
               onKeyDown={(event) => {
                 if (event.key === 'Enter') event.currentTarget.blur()
@@ -172,7 +180,7 @@ export function EncounterActorCard({
               label='Temp HP'
               min={0}
               value={tempHitPoints}
-              onChange={(value) => setTempHitPoints(Number(value) || 0)}
+              onChange={(value) => draft.setValue('tempHitPoints', Number(value) || 0)}
               onBlur={() => commitEnemyState()}
               onKeyDown={(event) => {
                 if (event.key === 'Enter') event.currentTarget.blur()
@@ -180,13 +188,12 @@ export function EncounterActorCard({
             />
             <Switch
               className={encounterStyles.encounterVisibility}
-              checked={!isPublic}
+              checked={hidden}
               disabled={disabled}
               label='Hidden'
               onChange={(event) => {
-                const nextIsPublic = !event.currentTarget.checked
-                setIsPublic(nextIsPublic)
-                commitEnemyState({ isPublic: nextIsPublic })
+                draft.setValue('hidden', event.currentTarget.checked)
+                commitEnemyState({ isPublic: !event.currentTarget.checked })
               }}
             />
           </>
@@ -197,6 +204,7 @@ export function EncounterActorCard({
           </Button>
         ) : null}
       </Group>
+      <ServerDraftConflicts draft={draft} labels={draftFieldLabels} />
       {campaign.role === 'OWNER' && actor.kind !== 'CHARACTER' ? (
         <Group align='end' gap='xs' wrap='wrap'>
           <AppSelect
@@ -344,7 +352,7 @@ export function EncounterActorCard({
             disabled={disabled}
             label='GM notes'
             value={notes}
-            onChange={(event) => setNotes(event.currentTarget.value)}
+            onChange={(event) => draft.setValue('notes', event.currentTarget.value)}
             onBlur={() => commitEnemyState()}
           />
         </>

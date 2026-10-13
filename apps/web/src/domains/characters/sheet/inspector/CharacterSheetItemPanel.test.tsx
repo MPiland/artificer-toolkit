@@ -47,6 +47,35 @@ describe('Character Sheet item panel hands (SHEET-8)', () => {
     expect(screen.queryByRole('button', { name: 'Swap hands' })).not.toBeInTheDocument()
   })
 
+  it('shows another item’s own name, not an unsaved edit from the previous item', async () => {
+    const user = userEvent.setup()
+    const panelFor = (itemInstanceId: string, customName: string) => (
+      <CharacterSheetItemPanelContent
+        expectedVersion={4}
+        panel={{
+          ...itemPanelFixture,
+          itemInstanceId,
+          textEditors: itemPanelFixture.textEditors.map((editor) =>
+            editor.field === 'CUSTOM_NAME' ? { ...editor, value: customName } : editor
+          )
+        }}
+        pending={false}
+        submitCommand={vi.fn().mockResolvedValue(true)}
+        onClose={vi.fn()}
+      />
+    )
+    const { rerender } = renderWithAppProviders(
+      panelFor('00000000-0000-4000-8000-000000000130', 'Moon-Touched Longsword')
+    )
+    await user.click(screen.getByRole('button', { name: 'Customize' }))
+
+    await user.type(await screen.findByLabelText('Custom name'), ' (spare)')
+    rerender(panelFor('00000000-0000-4000-8000-000000000131', 'Shortbow'))
+
+    expect(await screen.findByLabelText('Custom name')).toHaveValue('Shortbow')
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
   it('equips a carried item', async () => {
     const { submitCommand, user } = renderPanel(null)
     await user.click(screen.getByRole('button', { name: 'Customize' }))

@@ -228,6 +228,27 @@ describe('CharacterBuilderAuthoringRuntime', () => {
     expect(screen.queryByRole('textbox', { name: /character name/i })).not.toBeInTheDocument()
   })
 
+  it('replaces the failure notice with the opening status while a retry is in flight', async () => {
+    const user = userEvent.setup()
+    const retry = deferred<CharacterBuilderDraftDto>()
+    mocks.create
+      .mockRejectedValueOnce(new Error('Temporary failure'))
+      .mockReturnValueOnce(retry.promise)
+    renderWithAppProviders(
+      <AuthoringLayout
+        data={{ systems: [{ id: characterBuilderPayloadFixture.character.systemId }] }}
+        kind='character-builder'
+        mode='create'
+      />
+    )
+    expect(await screen.findByText('Could not open that character draft.')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Try again' }))
+
+    expect(await screen.findByRole('status')).toHaveTextContent('Opening character draft…')
+    expect(screen.queryByText('Could not open that character draft.')).not.toBeInTheDocument()
+  })
+
   it.each(['', ' plus newer edit'])(
     'retains saved values and pending edits: %s',
     async (pendingEdit) => {

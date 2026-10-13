@@ -8,6 +8,8 @@ import {
 import { AUTHORED_LENGTH_AMOUNT_MAX } from '../utils/authoringLimits.js'
 import {
   SCENE_LENGTH_AMOUNT_MAX,
+  SYSTEM_BASE_SQUARE_FEET,
+  convertSceneDistance,
   feetInSceneUnit,
   sceneLengthInFeet,
   lengthMeasurementInSceneUnits,
@@ -51,6 +53,24 @@ describe('length measurement', () => {
     expect(feetInSceneUnit(10, 'FEET')).toBe(10)
     expect(feetInSceneUnit(10, 'METERS')).toBeCloseTo(3.048)
     expect(feetInSceneUnit(10, 'SQUARES')).toBe(2)
+  })
+
+  it('gives the System base square exactly in every Scene unit', () => {
+    expect(
+      (['FEET', 'METERS', 'SQUARES'] as const).map((unit) =>
+        feetInSceneUnit(SYSTEM_BASE_SQUARE_FEET, unit)
+      )
+    ).toEqual([5, 1.524, 1])
+  })
+
+  it('converts a Scene distance between units without float noise on a round trip', () => {
+    expect(convertSceneDistance(5, 'FEET', 'METERS')).toBe(1.524)
+    expect(convertSceneDistance(1.524, 'METERS', 'FEET')).toBe(5)
+    expect(convertSceneDistance(10, 'FEET', 'METERS')).toBe(3.048)
+    expect(convertSceneDistance(3.048, 'METERS', 'FEET')).toBe(10)
+    expect(convertSceneDistance(1, 'SQUARES', 'FEET')).toBe(5)
+    expect(convertSceneDistance(1, 'SQUARES', 'METERS')).toBe(1.524)
+    expect(convertSceneDistance(3, 'FEET', 'FEET')).toBe(3)
   })
 
   it('keeps the largest authored length finite and within the Scene bound in every Scene unit', () => {

@@ -6,7 +6,7 @@ import { convexQuery } from '@convex-dev/react-query'
 import { useMutation as useConvexMutation, usePaginatedQuery } from 'convex/react'
 import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
 import type { SocialListingDto } from '@artificer-toolkit/schema/api/socialHub'
-import { type ComponentProps, type SubmitEvent, useEffect, useState } from 'react'
+import { type ComponentProps, type SubmitEvent, useState } from 'react'
 import { useSystemList } from '#app/data/systems/useSystemList'
 import { SocialInviteDialog } from './components/SocialInviteDialog'
 import { SocialListingApplications } from './components/listing-editor/SocialListingApplications'
@@ -78,11 +78,10 @@ function SocialListingEditor({
   const [draft, setDraft] = useState<SocialListingDraft>(createEmptySocialListingDraft)
   const [savedListing, setSavedListing] = useState<SocialListingDto>()
 
-  useEffect(() => {
-    if (!listing.data || savedListing?.listingPublicId === listing.data.listingPublicId) return
+  if (listing.data && savedListing?.listingPublicId !== listing.data.listingPublicId) {
     setDraft(socialListingToDraft(listing.data))
     setSavedListing(listing.data)
-  }, [savedListing, listing.data])
+  }
 
   const save = useMutation({
     mutationFn: () => {
