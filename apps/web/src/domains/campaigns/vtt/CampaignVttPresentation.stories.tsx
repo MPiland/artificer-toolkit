@@ -319,7 +319,9 @@ export const ReactionHaloBeatsCurrentTurn: Story = {
     await expect(drawnToken(diagnostics, wardenToken!.id).halo).toBeNull()
     await expect(emberPresentation.statuses[0]).toMatchObject({ kind: 'REACTION' })
     await expect(emberPresentation.marked).toBe(true)
-    await expect(description).toContain('Ember. Character. Current turn. Reaction available')
+    await expect(description).toContain(
+      'Ember. Character. Friendly. Current turn. Reaction available'
+    )
     await expect(description).toContain('Yours')
   }
 }
@@ -549,6 +551,20 @@ export const LowZoom: Story = {
     ).toBeGreaterThanOrEqual(minimumFocusedTokenScreenSize - 1e-9)
     renderer.focusToken(emberToken!)
     await expect(renderer.getDiagnostics().zoomScale).toBeCloseTo(focused.zoomScale, 12)
+    // At the minimum zoom every token, whatever its footprint, focuses to a readable size.
+    for (const token of presentationScene.tokens) {
+      let floor = renderer.getDiagnostics().zoomScale
+      let zoomedOutTo = Number.NaN
+      while (zoomedOutTo !== floor) {
+        zoomedOutTo = floor
+        renderer.zoomOut()
+        floor = renderer.getDiagnostics().zoomScale
+      }
+      renderer.focusToken(token)
+      await expect(
+        renderer.getDiagnostics().zoomScale * Math.max(token.width, token.height)
+      ).toBeGreaterThanOrEqual(minimumFocusedTokenScreenSize - 1e-9)
+    }
     await expect(canvas.getByRole('img', { name: 'Interactive campaign scene' })).toHaveAttribute(
       'aria-description',
       expect.stringContaining('Current turn')

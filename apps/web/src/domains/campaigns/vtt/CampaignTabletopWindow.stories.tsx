@@ -374,7 +374,7 @@ export const GmSeesTokenStatuses: Story = {
       if (!value?.includes('Vault Warden. Creature')) throw new Error('Tokens not yet described.')
       return value
     })
-    await expect(description).toContain('Vault Warden. Creature. Current turn.')
+    await expect(description).toContain('Vault Warden. Creature. Hostile. Current turn.')
     await expect(description).toContain('Poisoned')
     await expect(description).toContain('Frightened')
     // The GM also sees how hurt the Warden is.
@@ -582,6 +582,26 @@ export const FocusingATokenNamesItsDispositionAndZoomsIn: Story = {
     await expect(
       renderer.getDiagnostics().zoomScale * Math.max(wardenToken.width, wardenToken.height)
     ).toBeGreaterThanOrEqual(minimumFocusedTokenScreenSize - 1e-9)
+    // At the minimum zoom every token stays reachable: listed in Scene controls, and Focus brings
+    // its larger footprint side up to the readable size.
+    for (const token of projectScene('OWNER', bareWardenFixtures.liveScene).tokens) {
+      let floor = renderer.getDiagnostics().zoomScale
+      let zoomedOutTo = Number.NaN
+      while (zoomedOutTo !== floor) {
+        zoomedOutTo = floor
+        renderer.zoomOut()
+        floor = renderer.getDiagnostics().zoomScale
+      }
+      await userEvent.click(await page.findByRole('button', { name: 'Scene controls' }))
+      const menu = await page.findByRole('menu', { name: 'Scene controls' })
+      await userEvent.click(
+        await within(menu).findByRole('menuitem', { name: `Focus ${token.label}` })
+      )
+      await waitFor(() => expect(renderer.getDiagnostics().zoomScale).toBeGreaterThan(floor))
+      await expect(
+        renderer.getDiagnostics().zoomScale * Math.max(token.width, token.height)
+      ).toBeGreaterThanOrEqual(minimumFocusedTokenScreenSize - 1e-9)
+    }
   }
 }
 
@@ -762,7 +782,7 @@ export const PlayerSeesTokenStatusesWithoutGmHealth: Story = {
       if (!value?.includes('Vault Warden. Creature')) throw new Error('Tokens not yet described.')
       return value
     })
-    await expect(description).toContain('Vault Warden. Creature. Current turn.')
+    await expect(description).toContain('Vault Warden. Creature. Hostile. Current turn.')
     await expect(description).toContain('Poisoned')
     await expect(description).toContain('Frightened')
     await expect(description).not.toContain('Wounded')

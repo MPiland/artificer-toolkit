@@ -128,9 +128,9 @@ export function buildVttTokenPresentations(input: {
       accessibleDescription: [
         token.label,
         actor ? titleCase(actor.kind) : 'Scene token',
+        dispositionLabel,
         isCurrent ? 'Current turn' : null,
         statusDescription || null,
-        dispositionLabel,
         controlled ? 'Yours' : null
       ]
         .filter(Boolean)

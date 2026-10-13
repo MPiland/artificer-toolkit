@@ -227,6 +227,10 @@ describe('VTT token presentation model', () => {
       const result = presentation(disposition)
       expect(result.dispositionLabel).toBe(expectedLabels[disposition])
       expect(result.accessibleDescription).toContain(expectedLabels[disposition])
+      // The disposition says what the creature is, so it follows the label and kind.
+      expect(result.accessibleDescription).toMatch(
+        new RegExp(`^[^.]+\\. [^.]+\\. ${expectedLabels[disposition]}(\\.|$)`)
+      )
     }
     const actorless = presentation(null)
     expect(actorless.dispositionLabel).toBeNull()
