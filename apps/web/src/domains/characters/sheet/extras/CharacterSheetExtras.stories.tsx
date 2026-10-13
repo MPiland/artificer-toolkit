@@ -81,7 +81,9 @@ export const Extras: Story = {
   },
   play: async ({ canvas, canvasElement }) => {
     const body = within(canvasElement.ownerDocument.body)
-    await userEvent.click(canvas.getByRole('button', { name: /add extra/i }))
+    await userEvent.click(
+      await canvas.findByRole('button', { name: /add extra/i }, { timeout: 5_000 })
+    )
     const drawer = await body.findByRole('dialog', { name: 'Add Extra' })
     await waitFor(() => expect(getComputedStyle(drawer).opacity).toBe('1'))
     await waitFor(() => expect(drawer.getAnimations()).toHaveLength(0))
