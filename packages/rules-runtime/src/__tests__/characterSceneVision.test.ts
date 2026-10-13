@@ -69,7 +69,7 @@ describe('deriveCharacterSceneVision', () => {
         senseId,
         channel,
         illuminationAccess,
-        feet: range.amount
+        feet: range?.amount
       }))
     ).toEqual([
       {
@@ -114,10 +114,15 @@ describe('deriveCharacterSceneVision', () => {
     })
   })
 
-  it('presents no sense without a range or with a zero range', () => {
+  it('presents no sense for a zero range', () => {
     expect(deriveCharacterSceneVision(characterId, [])).toEqual({ characterId, senses: [] })
-    expect(senses([pin(SRD_DARKVISION_SENSE_ID, null)])).toEqual([])
     expect(senses([pin(SRD_DARKVISION_SENSE_ID, 0)])).toEqual([])
+  })
+
+  it('presents a sense with no pinned range as unlimited', () => {
+    expect(senses([pin(SRD_DARKVISION_SENSE_ID, null)])).toEqual([
+      expect.objectContaining({ senseId: SRD_DARKVISION_SENSE_ID, range: null })
+    ])
   })
 
   it('presents the strongest capability of a sense with several', () => {

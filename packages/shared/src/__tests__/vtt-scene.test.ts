@@ -464,6 +464,29 @@ describe('VTT scene replay and projection', () => {
     expect(resolve({ amount: 60, unit: 'FEET' })).toEqual([])
   })
 
+  it('presents an unlimited sense on the token whatever the grid can measure', () => {
+    const state = materializeCampaignScene(definition(), ids.scene)
+    const bindings = [{ actorId: ids.user, characterId: ids.player, tokenId: ids.token }]
+    const unlimited = { ...pinnedDarkvision, range: null }
+    const resolve = () =>
+      resolveSceneCharacterVision(state, bindings, [
+        { characterId: ids.player, senses: [unlimited] }
+      ]).tokens[0]?.senses
+
+    state.grid = { kind: 'GRIDLESS', pixelsPerUnit: 5, unit: 'FEET' }
+    expect(resolve()).toEqual([
+      {
+        channel: 'VISUAL',
+        illuminationAccess: 'ORDINARY_DARKNESS',
+        label: 'Darkvision',
+        range: null,
+        senseId: pinnedDarkvision.senseId
+      }
+    ])
+    state.grid = { kind: 'GRIDLESS', pixelsPerUnit: 1, unit: 'SQUARES' }
+    expect(resolve()).toHaveLength(1)
+  })
+
   it('replays durable events deterministically and ignores an idempotent stale event', () => {
     const events: SceneEvent[] = [
       {

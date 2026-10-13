@@ -72,21 +72,24 @@ export interface SceneTokenVision {
   enabled: boolean
 }
 
-/** A sense a token presents to its controllers; its range is in Scene units from the token footprint edge. */
+/**
+ * A sense a token presents to its controllers; its range is in Scene units from the token
+ * footprint edge. A null range is unlimited.
+ */
 export interface SceneTokenSense {
   channel: CombatPerceptionChannel
   illuminationAccess: CombatPerceptionIlluminationAccess
   label: string
-  range: number
+  range: number | null
   /** The pinned sense definition id. */
   senseId: string
 }
 
-/** Pinned Character-derived senses, ranged as typed lengths until a Scene grid converts them. */
+/** Pinned Character-derived senses, ranged as typed lengths (null is unlimited) until a Scene grid converts them. */
 export interface SceneCharacterVision {
   characterId: string
   senses: (Omit<SceneTokenSense, 'range'> & {
-    range: { amount: number; unit: LengthUnitCode }
+    range: { amount: number; unit: LengthUnitCode } | null
   })[]
 }
 

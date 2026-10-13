@@ -27,10 +27,12 @@ export const characterSceneVisionResultSchema: z.ZodMiniType<SceneCharacterVisio
             channel: combatPerceptionChannelDtoSchema,
             illuminationAccess: combatPerceptionIlluminationAccessDtoSchema,
             label: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)),
-            range: z.strictObject({
-              amount: z.number().check(z.positive()),
-              unit: lengthUnitCodeSchema
-            }),
+            range: z.nullable(
+              z.strictObject({
+                amount: z.number().check(z.positive()),
+                unit: lengthUnitCodeSchema
+              })
+            ),
             senseId: postgresUuidSchema
           })
         )

@@ -29,7 +29,10 @@ function primaryCapability(capabilities: readonly Capability[]): Capability {
   )
 }
 
-/** One entry per ranged Sense the Character holds; a range that is not a positive length has none. */
+/**
+ * One entry per Sense the Character holds. A null pinned range is unlimited and stays null, as in
+ * combat perception; a range that is not a positive length has no entry.
+ */
 export function deriveCharacterSceneVision(
   characterId: string,
   pinnedSenses: readonly (Pick<PinnedSenseDefinition, 'document' | 'range'> & { label: string })[]
@@ -37,16 +40,15 @@ export function deriveCharacterSceneVision(
   return {
     characterId,
     senses: pinnedSenses.flatMap(({ document, label, range }) => {
-      if (!range) return []
-      const feet = lengthMeasurementInFeet(range)
-      if (feet <= 0) return []
+      const feet = range && lengthMeasurementInFeet(range)
+      if (feet !== null && feet <= 0) return []
       const { channel, illuminationAccess } = primaryCapability(document.capabilities)
       return [
         {
           channel,
           illuminationAccess,
           label,
-          range: { amount: feet, unit: 'FEET' },
+          range: feet === null ? null : { amount: feet, unit: 'FEET' },
           senseId: document.id
         }
       ]

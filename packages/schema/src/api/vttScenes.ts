@@ -144,7 +144,7 @@ export const sceneTokenSenseDtoSchema: z.ZodMiniType<SceneTokenSense> = lazySche
     channel: combatPerceptionChannelDtoSchema,
     illuminationAccess: combatPerceptionIlluminationAccessDtoSchema,
     label: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)),
-    range: z.number().check(z.positive()).check(z.lte(1_000_000)),
+    range: z.nullable(z.number().check(z.positive()).check(z.lte(1_000_000))),
     senseId: postgresUuidSchema
   })
 )

@@ -105322,7 +105322,7 @@ export declare const api: {
                         | "MAGICAL_DARKNESS"
                         | "IGNORE";
                       label: string;
-                      range: number;
+                      range: number | null;
                       senseId: string;
                     }>;
                     vision: {
@@ -105597,7 +105597,7 @@ export declare const api: {
                       | "MAGICAL_DARKNESS"
                       | "IGNORE";
                     label: string;
-                    range: number;
+                    range: number | null;
                     senseId: string;
                   }>;
                   vision: {
@@ -105925,7 +105925,7 @@ export declare const api: {
                         | "MAGICAL_DARKNESS"
                         | "IGNORE";
                       label: string;
-                      range: number;
+                      range: number | null;
                       senseId: string;
                     }>;
                     vision: {
@@ -106211,7 +106211,7 @@ export declare const api: {
                         | "MAGICAL_DARKNESS"
                         | "IGNORE";
                       label: string;
-                      range: number;
+                      range: number | null;
                       senseId: string;
                     }>;
                     vision: {
@@ -106422,7 +106422,7 @@ export declare const api: {
                   | "MAGICAL_DARKNESS"
                   | "IGNORE";
                 label: string;
-                range: number;
+                range: number | null;
                 senseId: string;
               }>;
               vision: {
@@ -114541,7 +114541,7 @@ export declare const internal: {
                         | "MAGICAL_DARKNESS"
                         | "IGNORE";
                       label: string;
-                      range: number;
+                      range: number | null;
                       senseId: string;
                     }>;
                     vision: {

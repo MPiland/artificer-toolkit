@@ -465,12 +465,16 @@ export function senseEffect(
   return sense.illuminationAccess === 'MAGICAL_DARKNESS' ? 'TRUESIGHT' : null
 }
 
-/** A sense range is measured from the footprint edge, so its radius from the centre adds half the footprint. */
+/**
+ * A sense range is measured from the footprint edge, so its radius from the centre adds half the
+ * footprint. An unlimited sense has an infinite radius: it reaches all of its line of sight.
+ */
 export function senseReachRadius(
   grid: SceneGrid,
   token: Pick<CampaignSceneStateDto['tokens'][number], 'height' | 'width'>,
   sense: Pick<SceneTokenSense, 'range'>
 ): number {
+  if (sense.range === null) return Infinity
   return (
     sceneDistanceAsCoordinateLength(grid, sense.range) + Math.max(token.height, token.width) / 2
   )

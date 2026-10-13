@@ -514,6 +514,31 @@ describe('VTT view token and senses', () => {
     ).toBe(320)
   })
 
+  it('lets an unlimited sense reach the whole line of sight and any token in it', () => {
+    const origin = { x: 0, y: 0 }
+    const lineOfSight = [
+      { x: 5_000, y: 0 },
+      { x: 0, y: 5_000 },
+      { x: -5_000, y: 0 }
+    ]
+    const radius = senseReachRadius(
+      { kind: 'GRIDLESS', pixelsPerUnit: 10, unit: 'FEET' },
+      { height: 40, width: 40 },
+      { range: null }
+    )
+    const polygon = clampPolygonToRadius(lineOfSight, origin, radius)
+
+    expect(polygon).toEqual(lineOfSight)
+    expect(
+      isTokenRevealed({
+        halfSize: 35,
+        illumination: 'ORDINARY_DARKNESS',
+        point: { x: 1_000, y: 1_000 },
+        reaches: [{ effect: 'DARKVISION', origin, polygon, radius }]
+      })
+    ).toBe(true)
+  })
+
   describe('which tokens are seen', () => {
     const origin = { x: 0, y: 0 }
     // Open-space line of sight clamped to the 100 px radius, as a sense reach carries it.

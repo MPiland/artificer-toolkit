@@ -72,7 +72,10 @@ export function sceneLengthInFeet(amount: number, grid: CampaignSceneState['grid
   return null
 }
 
-/** Presents the bound Character's senses on its token; a sense with no usable range is dropped. */
+/**
+ * Presents the bound Character's senses on its token. An unlimited sense stays unlimited; a ranged
+ * sense this Scene cannot measure, or whose range is empty, is dropped.
+ */
 export function resolveSceneCharacterVision<T extends Pick<CampaignSceneState, 'tokens' | 'grid'>>(
   state: T,
   bindings: readonly { actorId: string; characterId: string; tokenId: string }[],
@@ -93,8 +96,10 @@ export function resolveSceneCharacterVision<T extends Pick<CampaignSceneState, '
       return {
         ...token,
         senses: characterVision.senses.flatMap(({ range, ...sense }) => {
-          const sceneRange = range && lengthMeasurementInSceneUnits(range, state.grid)
-          return sceneRange === null || sceneRange <= 0 ? [] : [{ ...sense, range: sceneRange }]
+          const scene = senseRangeInSceneUnits(range, state.grid)
+          return scene === null || (scene.range !== null && scene.range <= 0)
+            ? []
+            : [{ ...sense, range: scene.range }]
         })
       }
     })
