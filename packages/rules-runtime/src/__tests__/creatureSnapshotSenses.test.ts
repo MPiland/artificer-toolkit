@@ -1,3 +1,4 @@
+import { creatureSenseDtoSchema } from '@artificer-toolkit/schema/subjects/creature'
 import { srdBaselineContent } from '@artificer-toolkit/source-data/srd/index.js'
 import { SRD_DARKVISION_SENSE_ID } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { describe, expect, it } from 'vitest'
@@ -29,9 +30,11 @@ describe('Creature snapshot senses', () => {
   })
 
   it('fails closed on a malformed sense instead of dropping it', () => {
-    expect(() =>
-      snapshotStatBlock(withSenses([{ senseDefinitionId: SRD_DARKVISION_SENSE_ID }]))
-    ).toThrow()
-    expect(() => snapshotStatBlock(withSenses(['darkvision 60 ft.']))).toThrow()
+    // The snapshot reader throws the Creature sense schema's own error for the entry.
+    for (const malformed of [{ senseDefinitionId: SRD_DARKVISION_SENSE_ID }, 'darkvision 60 ft.']) {
+      const refusal = creatureSenseDtoSchema.safeParse(malformed).error
+      if (!refusal) throw new Error('The sense should be malformed.')
+      expect(() => snapshotStatBlock(withSenses([malformed]))).toThrow(refusal.message)
+    }
   })
 })
