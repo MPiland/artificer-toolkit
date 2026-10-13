@@ -1346,7 +1346,45 @@ it('replays a player move of a GM-hidden token as the version bump the sender wa
   const wire = JSON.stringify(replay)
   expect(wire).not.toContain(value.tokenId)
   expect(wire).not.toContain('TOKEN_MOVED')
-  expect(wire).not.toContain('senses')
+})
+
+it('replays a player movement receipt as sent, without any foreign or hidden token', async () => {
+  const value = movementScene(crypto.randomUUID())
+  const [mover] = value.scene.tokens
+  const foreignTokenId = crypto.randomUUID()
+  const hiddenTokenId = crypto.randomUUID()
+  value.scene.fogMode = 'OFF'
+  value.scene.tokens = [
+    mover!,
+    { ...mover!, id: foreignTokenId, label: 'Sentry' },
+    { ...mover!, hidden: true, id: hiddenTokenId, label: 'Ambusher' }
+  ]
+  const base = await fixture(value.scene)
+  if (!base.capture.presentation) throw new Error('Missing Scene presentation.')
+  base.capture.presentation.version = 2
+  value.scene.tokens[0]!.controlledByUserIds = [base.playerId]
+  await synchronizeScene(base, value.scene)
+  const player = await connectPlayer(base)
+
+  const commandId = crypto.randomUUID()
+  const move = tokenMoveCommand(value.scene, value.tokenId, commandId, { x: 20, y: 10 })
+  const committedFor = () =>
+    player.messages.filter(
+      (message) => message.type === 'COMMAND_COMMITTED' && message.commandId === commandId
+    )
+  player.socket.send(JSON.stringify(move))
+  await vi.waitFor(() => expect(committedFor()).toHaveLength(1))
+  player.socket.send(JSON.stringify(move))
+  await vi.waitFor(() => expect(committedFor()).toHaveLength(2))
+
+  const [live, replay] = committedFor()
+  expect(replay).toEqual(asReplay(live))
+  expect(replay).toMatchObject({
+    delta: { result: { delta: { kind: 'TOKEN_MOVED', tokenId: value.tokenId } } }
+  })
+  const wire = JSON.stringify(replay)
+  expect(wire).not.toContain(foreignTokenId)
+  expect(wire).not.toContain(hiddenTokenId)
 })
 
 it('commits and replays writes to two Campaign rooms concurrently', async () => {

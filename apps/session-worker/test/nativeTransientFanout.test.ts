@@ -1205,6 +1205,8 @@ async function characterVisionRoom() {
     /** The Character's current CHARACTER revision in Convex. */
     revision: revisionA.characterRevision,
     captures: [] as LiveSessionRoomSceneCaptureInput[],
+    /** The player Convex reports as assigned the Character, who therefore controls its token. */
+    assigneeUserId: playerId as string,
     /** The CHARACTER revision of each Character page the room read. */
     characterReads: [] as string[],
     authorizationReads: 0,
@@ -1245,7 +1247,7 @@ async function characterVisionRoom() {
             systemId,
             ownerUserId: ownerId,
             members,
-            assignments: [{ characterId, userId: playerId }],
+            assignments: [{ characterId, userId: room.assigneeUserId }],
             characterInputs: {
               ...revisionA.characterInputs,
               parts: current.characterInputs.parts
@@ -1281,7 +1283,7 @@ async function characterVisionRoom() {
         return Response.json(
           roomAuthorizationResponse({
             members,
-            assignments: [{ characterId, userId: playerId }],
+            assignments: [{ characterId, userId: room.assigneeUserId }],
             characterRevisions: [{ characterId, revision: room.revision }],
             play: {
               encounter: room.runOpen
@@ -1505,6 +1507,24 @@ it('withholds a bound token senses from a player the Scene lists who does not co
     throw new Error('Missing the private Scene correction.')
   expect(rejected.correction.state.tokens.find(({ id }) => id === tokenId)?.senses).toEqual([])
   expect(await syncedTokenSenses(owner)).toEqual(darkvisionSenses)
+})
+
+it('withholds a bound token senses from a player once the Character is reassigned away from them (ADR 0034)', async () => {
+  const { admittedSenses, room, owner, player, other, stub } = await characterVisionRoom()
+  expect(admittedSenses).toEqual(darkvisionSenses)
+  // The assigned player controls the bound token, so they see the Sense composed onto it.
+  expect(await syncedTokenSenses(player)).toEqual(darkvisionSenses)
+  expect(await syncedTokenSenses(other)).toEqual([])
+
+  // An assigned Character actor's control follows the assignment, not its controller list, so
+  // reassigning the Character is what ends this player's control.
+  room.assigneeUserId = otherPlayerId
+  expect(await (await invalidate(stub, ['CAMPAIGN'])).json()).toEqual({ invalidated: true })
+  await vi.waitFor(async () => {
+    expect(await syncedTokenSenses(player)).toEqual([])
+  })
+  expect(await syncedTokenSenses(owner)).toEqual(darkvisionSenses)
+  expect(await syncedTokenSenses(other)).toEqual(darkvisionSenses)
 })
 
 it('refuses previews and pings while the authorization cache cannot be renewed', async () => {

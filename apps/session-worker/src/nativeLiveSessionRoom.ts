@@ -3859,7 +3859,9 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
 
   /**
    * The committed Scene command as `admission` receives it. The sender's stored receipt is this
-   * same message, so an exact retry replays what the sender was sent, never the raw delta.
+   * message, so an exact retry replays what the sender was sent, never the raw delta. The one
+   * exception: `#commitRoomGeometry` stores the ENCOUNTER receipt when a movement decision
+   * settles, so that replay omits this Scene receipt (RELIABILITY-3).
    */
   #sceneCommittedFor({
     admission,
