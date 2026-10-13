@@ -127,16 +127,31 @@ export function evaluateEncounterAreaTargetPolicy(input: {
   }
 }
 
+/**
+ * The range a point area's origin is measured against; null for a kind the area evaluator refuses
+ * (self, touch, sight, special). A distance's long range is never measured here.
+ */
+export function pointAreaOriginRange(
+  range: CompiledActionTargetPolicy['range']
+):
+  | { rangeKind: 'UNLIMITED' }
+  | Extract<CompiledActionTargetPolicy['range'], { rangeKind: 'DISTANCE' }>
+  | null {
+  if (range.rangeKind === 'UNLIMITED') return { rangeKind: 'UNLIMITED' }
+  return range.rangeKind === 'DISTANCE' ? range : null
+}
+
 /** The range warning for the picked origin; null when the range is not a distance or unlimited. */
 function evaluateRangeWarnings(
   input: Pick<
     Parameters<typeof evaluateEncounterAreaTargetPolicy>[0],
     'point' | 'grid' | 'sourceToken'
   >,
-  range: CompiledActionTargetPolicy['range']
+  policyRange: CompiledActionTargetPolicy['range']
 ): EncounterRuleWarningDto[] | null {
+  const range = pointAreaOriginRange(policyRange)
+  if (range === null) return null
   if (range.rangeKind === 'UNLIMITED') return []
-  if (range.rangeKind !== 'DISTANCE') return null
   const maximum = measuredLength({ amount: range.amount, unit: range.unit }, input.grid)
   if (input.sourceToken === null || maximum === null) return [RANGE_UNCHECKED]
   const { position, width, height } = input.sourceToken

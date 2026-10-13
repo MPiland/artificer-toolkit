@@ -268,9 +268,13 @@ line, wall or dome) stays an actor choice and is refused when resolved. The web 
 coordinates with `pointAreaInSceneCoordinates` (`shared/vtt`), the same function `compileEncounterPointArea`
 uses, to preview it and list the tokens the viewer sees inside; the room still decides who is caught.
 
-Each choice also carries `range` when its compiled target policy has a measurable one: `SELF`, `WITHIN` (Touch is 5 ft; a
-distance without a long range, including the 0 ft swarm space), `RANGED` (normal and long) or `UNLIMITED`. A sight or
-special range, a shaped or path-overridden policy (the single-target evaluator refuses it), or no policy leaves it off.
+Each choice also carries `range` when its compiled target policy has a measurable one, the range the evaluator that
+handles the policy measures. A single-target policy that `singleTargetMeasure` accepts advertises `SELF`, `WITHIN` (Touch
+is 5 ft; a distance without a long range, including the 0 ft swarm space), `RANGED` (normal and long) or `UNLIMITED`. A
+point-area policy advertises its origin range, which `evaluateEncounterAreaTargetPolicy` measures
+(`pointAreaOriginRange`): `WITHIN` the distance (never `RANGED`, the area evaluator ignores a long range) or `UNLIMITED`.
+A policy neither evaluator measures leaves it off: a sight or special range, targeting that is not a single target with a
+disposition (excluded creature types only warn), an area with no supported shape, a path override, or no policy.
 `encounterActionChoiceRange` (`encounterActionRange.ts`) is the one mapping. `rangeLabel` is not derived from `range`:
 it words the authored range with `rangeLabel` (`rangeLabel.ts`), the formatter the Sheet uses, so Touch reads "Touch"
 (its 5 ft geometry stays in `range`) and a ranged weapon reads "150/600 ft" on both surfaces. Only a choice without a
