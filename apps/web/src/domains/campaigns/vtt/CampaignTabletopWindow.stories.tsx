@@ -477,6 +477,71 @@ export const SelectingATokenOutlinesIt: Story = {
   }
 }
 
+// VTT_UI-1.2: the selected token lists every status until the selection clears.
+export const SelectingATokenListsItsStatuses: Story = {
+  args: {
+    campaignId: tabletopCampaignId,
+    currentUserId: tabletopCurrentUserId
+  },
+  render: (args) =>
+    renderWindow(args, createTabletopCampaign('PLAYER'), null, presentedTokensFixtures),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body)
+    await page.findByText('Scene map ready.', undefined, { timeout: mapReadyTimeoutMs })
+    const stage = page.getByRole('img', { name: 'Interactive campaign scene' })
+    const renderer = await latestStageRenderer()
+    const { presentation, wardenToken } = wardenPresentationFor(
+      'PLAYER',
+      presentedTokensFixtures.playerEncounter
+    )
+    await expect(presentation.statuses.length).toBeGreaterThan(0)
+    const statusList = () => page.queryByRole('region', { name: `${wardenToken.label} statuses` })
+
+    renderer.focusPoint(wardenToken.position)
+    await pressStage(stage, 'centre')
+    const list = await page.findByRole('region', { name: `${wardenToken.label} statuses` })
+    for (const status of presentation.statuses) {
+      await expect(within(list).getByText(status.label)).toBeVisible()
+    }
+
+    await pressStage(stage, 'corner')
+    await waitFor(() => expect(statusList()).toBeNull())
+  }
+}
+
+// VTT_UI-1.2: pointing at a token's Focus item in the Scene controls lists every status.
+export const HoveringAFocusItemListsEveryStatus: Story = {
+  args: {
+    campaignId: tabletopCampaignId,
+    currentUserId: tabletopCurrentUserId
+  },
+  render: (args) =>
+    renderWindow(args, createTabletopCampaign('OWNER'), null, presentedTokensFixtures),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body)
+    await page.findByText('Scene map ready.', undefined, { timeout: mapReadyTimeoutMs })
+    const { presentation, wardenToken } = wardenPresentationFor(
+      'OWNER',
+      presentedTokensFixtures.gmEncounter
+    )
+    await expect(presentation.statuses.length).toBeGreaterThan(0)
+    await userEvent.click(await page.findByRole('button', { name: 'Scene controls' }))
+    const sceneControls = await page.findByRole('menu', { name: 'Scene controls' })
+    const focusItem = await within(sceneControls).findByRole('menuitem', {
+      name: `Focus ${wardenToken.label}`
+    })
+    await userEvent.hover(focusItem)
+    const list = await page.findByRole('region', { name: `${wardenToken.label} statuses` })
+    for (const status of presentation.statuses) {
+      await expect(within(list).getByText(status.label)).toBeVisible()
+    }
+    await userEvent.unhover(focusItem)
+    await waitFor(() =>
+      expect(page.queryByRole('region', { name: `${wardenToken.label} statuses` })).toBeNull()
+    )
+  }
+}
+
 export const GmPreviewsATokenView: Story = {
   args: {
     campaignId: tabletopCampaignId,
