@@ -1,5 +1,10 @@
 import { speedDtoSchema } from '@artificer-toolkit/schema/shared/speed'
-import { lengthMeasurementInFeet } from '@artificer-toolkit/shared/core'
+import {
+  EQUIPMENT_PROPERTY_CODE,
+  lengthMeasurementInFeet,
+  resolveHandOccupancy,
+  type HandOccupancyItem
+} from '@artificer-toolkit/shared/core'
 import {
   encounterAttackAgainstContributors,
   hasEncounterDefensiveGrants,
@@ -9,6 +14,7 @@ import {
 } from './encounterActiveGrants.js'
 import { encounterActorCannotAct } from './encounterBasicActions.js'
 import { encounterConditionSpeed } from './encounterConditionMechanics.js'
+import { snapshotCreatureEquipmentItems } from './encounterCreatureEquipmentSources.js'
 import type { MovementTarget } from './encounterMovementTargets.js'
 import { snapshotStatBlock } from './encounterProjection.js'
 import type { CurrentReusableDefinitionSource } from './ruleCapabilityStateService.js'
@@ -48,7 +54,26 @@ export async function encounterHolderState(input: {
       gameSystemId: input.gameSystemId,
       definitions: input.definitions
     })),
-    speedAboveZero: !feet.length || feet.some((value) => value > 0)
+    speedAboveZero: !feet.length || feet.some((value) => value > 0),
+    freeHand: resolveHandOccupancy(heldItems(target)).freeHand
+  }
+}
+
+/** What the holder's hands hold now: a Character's equipped items or a Creature's loadout. */
+function heldItems(target: MovementTarget): HandOccupancyItem[] {
+  switch (target.actor.kind) {
+    case 'CHARACTER':
+      return (target.characterFacts?.ruleEvaluation.facts.handFacts?.items ?? []).map(
+        ({ itemInstanceId, slot, twoHanded }) => ({ id: itemInstanceId, slot, twoHanded })
+      )
+    case 'CREATURE':
+      return snapshotCreatureEquipmentItems(target.actor).map(({ entry, source }) => ({
+        id: entry.id,
+        slot: entry.useState,
+        twoHanded: source.payload.properties.includes(EQUIPMENT_PROPERTY_CODE.TWO_HANDED)
+      }))
+    default:
+      return []
   }
 }
 

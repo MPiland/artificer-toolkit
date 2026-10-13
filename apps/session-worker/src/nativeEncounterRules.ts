@@ -90,7 +90,8 @@ import { evaluateNativeLiveActionEconomy } from './nativeEncounterActionEconomy.
 import {
   nativeLiveRelationshipFacts,
   refuseLegendaryWindowAction,
-  refuseSpatialInterpretation
+  refuseSpatialInterpretation,
+  refuseUnmetBasicActionRestrictions
 } from './nativeEncounterActionInputs.js'
 import { planNativeLiveConcentration } from './nativeEncounterConcentration.js'
 import {
@@ -370,6 +371,14 @@ export async function planNativeLiveEncounterAction(
         })
       }
     : null
+  const definitions = {
+    requireCurrent: async (definitionId: string) => {
+      const response = await capture({ kind: 'DEFINITION', definitionId })
+      if (response.kind !== 'DEFINITION' || !response.definition)
+        throw new Error('The rule definition is unavailable.')
+      return response.definition
+    }
+  }
   const prepared = await prepareEncounterActionMechanics({
     state,
     actor: actors.find((actor) => actor.id === command.actorId)!,
@@ -400,19 +409,17 @@ export async function planNativeLiveEncounterAction(
           actorId: input.actor.id,
           actionId: input.actionId,
           gameSystemId: input.gameSystemId,
-          definitions: {
-            requireCurrent: async (definitionId) => {
-              const response = await capture({ kind: 'DEFINITION', definitionId })
-              if (response.kind !== 'DEFINITION' || !response.definition)
-                throw new Error('The rule definition is unavailable.')
-              return response.definition
-            }
-          }
+          definitions
         })
       }),
     loadRelationshipFacts: nativeLiveRelationshipFacts({ activeEffectsByActorId })
   }).catch(refuseStaleCharacterAction)
   refuseLegendaryWindowAction(prepared)
+  await refuseUnmetBasicActionRestrictions(prepared, {
+    target: movementTargets.get(prepared.actor.id)!,
+    gameSystemId: state.gameSystemId,
+    definitions
+  })
   // Only an attack roll uses the attacker's one-roll grants (Vicious Mockery's disadvantage, Help);
   // a saving-throw action leaves them for the next attack.
   const consumedGrants =

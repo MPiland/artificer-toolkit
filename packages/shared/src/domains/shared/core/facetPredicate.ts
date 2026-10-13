@@ -106,6 +106,7 @@ export type PredicatePayloadByCode = {
   CAN_CAST_SPELL: EmptyObject
   CAN_ACT: EmptyObject
   SPEED_ABOVE_ZERO: EmptyObject
+  FREE_HAND: EmptyObject
   CHARACTER_LEVEL: {
     min: number
     max?: number
@@ -384,6 +385,15 @@ export const PREDICATE_REGISTRY = {
     label: 'Speed Above Zero',
     tooltip: 'Requires the holder to have a speed above 0.',
     description: 'Fails while the holder cannot move. Evaluated live in an Encounter.',
+    subjects: ['CHARACTER', 'CREATURE']
+  },
+
+  FREE_HAND: {
+    code: 'FREE_HAND',
+    label: 'Free Hand',
+    tooltip: 'Requires the holder to have a hand free.',
+    description:
+      'Holds while the main hand or the off hand is empty. A two-handed weapon fills both. Evaluated live in an Encounter.',
     subjects: ['CHARACTER', 'CREATURE']
   },
 

@@ -163,13 +163,22 @@ const CREATURE_DEFENSE_KIND_BY_DOMAIN: Readonly<
   DAMAGE_VULNERABILITY: 'VULNERABILITY'
 }
 
-/** What a holder can do now, read by the holder-state restrictions `CAN_ACT` and `SPEED_ABOVE_ZERO`. */
-export type EncounterHolderState = { canAct: boolean; speedAboveZero: boolean }
+/**
+ * What a holder can do now, read by the holder-state restrictions `CAN_ACT`, `SPEED_ABOVE_ZERO` and
+ * `FREE_HAND` (either hand slot empty, D107).
+ */
+export type EncounterHolderState = { canAct: boolean; speedAboveZero: boolean; freeHand: boolean }
 
 type ModifierRestrictions = CharacterGrantFoldModifier['restrictions']
 
-function isHolderStateKind(kind: string): boolean {
-  return kind === 'CAN_ACT' || kind === 'SPEED_ABOVE_ZERO'
+const HOLDER_STATE_FLAG = {
+  CAN_ACT: 'canAct',
+  SPEED_ABOVE_ZERO: 'speedAboveZero',
+  FREE_HAND: 'freeHand'
+} as const satisfies Record<string, keyof EncounterHolderState>
+
+function isHolderStateKind(kind: string): kind is keyof typeof HOLDER_STATE_FLAG {
+  return Object.hasOwn(HOLDER_STATE_FLAG, kind)
 }
 
 /**
@@ -177,7 +186,7 @@ function isHolderStateKind(kind: string): boolean {
  * and every one is met. Any other condition cannot be decided here and fails closed, so the group
  * does not hold.
  */
-function holderStateRestrictionsHold(
+export function holderStateRestrictionsHold(
   restrictions: ModifierRestrictions,
   holderState: EncounterHolderState
 ): boolean {
@@ -187,8 +196,7 @@ function holderStateRestrictionsHold(
       group.conditions.every(
         (condition) =>
           isHolderStateKind(condition.kind) &&
-          (condition.kind === 'CAN_ACT' ? holderState.canAct : holderState.speedAboveZero) ===
-            (condition.constraint === 'INCLUDE')
+          holderState[HOLDER_STATE_FLAG[condition.kind]] === (condition.constraint === 'INCLUDE')
       )
     )
   )
