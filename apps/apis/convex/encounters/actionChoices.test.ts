@@ -59,6 +59,7 @@ describe('native public Encounter action choices', () => {
       const optional = await base.owner.caller.query(getNativeOptionalActionChoices, input.optional)
       expect(encounterActionChoicesDtoSchema.parse(catalogue)).toEqual(catalogue)
       expect(encounterOptionalActionChoicesDtoSchema.parse(optional)).toEqual(optional)
+      if (!catalogue) throw new Error('Missing action catalogue.')
       expect(catalogue).toMatchObject({
         encounterId: base.run.id,
         encounterVersion: base.command.expectedVersion,

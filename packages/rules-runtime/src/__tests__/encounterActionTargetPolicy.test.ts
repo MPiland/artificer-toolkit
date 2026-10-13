@@ -493,6 +493,7 @@ describe('encounter action target range', () => {
             },
             sceneContext: { grid, sourceToken: source, targetToken: target }
           })
+          if (!warnings) throw new Error('The single-target path refused the ranged policy.')
           expect(warnings.length > 0, `${diagonalPolicy} ${column},${row}`).toBe(band === 'OUT')
           expect(contributor !== null, `${diagonalPolicy} ${column},${row}`).toBe(band === 'LONG')
         }
