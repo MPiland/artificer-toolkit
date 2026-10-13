@@ -550,9 +550,12 @@
             },
             {
               "text": "No package test fails on the default 5 s timeout under a loaded run: the SRD import preparation and authored-corpus tests do bounded work, proved by a loaded root-package run with no per-test timeout raised.",
-              "status": "TODO",
-              "proof": [],
-              "note": "Registered 2026-10-13 from the lane 3 merge. packages/source-data/src/srd/import.test.ts › publishes the SRD basic-action catalogue as System data (Q11) timed out at 5000 ms in the post-merge root-package run (local-validation/lane3-merge/root-packages.log); lane 3 hit the same class in r5c and r6. 781c9529a fixed only the cloneAuthoredItem corpus test. Fix the work the test does, not the timeout.",
+              "status": "DONE",
+              "proof": [
+                "packages/source-data/src/srd/import.test.ts",
+                "local-validation/privacy4-plt136/root-packages.log"
+              ],
+              "note": "Closed 2026-10-13 (merge 6bbbf7f62): new prepareSrdDefinitions serves the Q11 test without preparing 1,057 subjects; one canonical compare and one hash per document. Q11 2324 -> 35 ms, the full-import tests 4052 -> 2597 ms and 1947 -> 1295 ms, the SRD manifest byte-identical, and a loaded root-package run of 274 files / 2536 tests green in 54 s with no timeout raised. Registered 2026-10-13 from the lane 3 merge. packages/source-data/src/srd/import.test.ts › publishes the SRD basic-action catalogue as System data (Q11) timed out at 5000 ms in the post-merge root-package run (local-validation/lane3-merge/root-packages.log); lane 3 hit the same class in r5c and r6. 781c9529a fixed only the cloneAuthoredItem corpus test. Fix the work the test does, not the timeout.",
               "origin": [],
               "id": "PLATFORM-13.6"
             }
@@ -566,7 +569,7 @@
           "tasks": [
             {
               "id": "PLATFORM-13.T1",
-              "text": "Test speed: convex-test upgrade, per-file timings and the parallelism trial.",
+              "text": "Test speed: convex-test upgrade, per-file timings and the parallelism trial. Include the module-load prepareSrdImport() calls (about 1.2 s per process) in contentSnapshots.test.ts, srdCreatureAttackSweep.test.ts and the web builder fixtures, found in PLATFORM-13.6.",
               "status": "TODO",
               "closes": ["PLATFORM-13.3"],
               "wsjf": {
@@ -4336,18 +4339,17 @@
         {
           "id": "ENCOUNTER-5",
           "title": "Three-user Assisted Encounter journey",
-          "status": "TODO",
-          "journeyTests": ["apps/apis/convex/liveSessions/encounterJourneys.test.ts"],
-          "journeyStatus": "partial",
-          "journeyGap": "No three-user Assisted journey with auto-roll on runs locally; the only three-user journey is the managed spec (see the PERF UAT).",
+          "status": "DONE",
+          "journeyTests": ["apps/apis/convex/liveSessions/assistedPartyJourney.test.ts"],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
               "text": "A three-user Encounter journey passes in Assisted mode with auto-roll on.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": ["apps/apis/convex/liveSessions/assistedPartyJourney.test.ts"],
               "origin": ["G5-AUTOMATIC-JOURNEY"],
-              "note": "Replaces the original three-user Automatic journey (ADR 0034); AUTOMATIC is not reinstated.",
+              "note": "Closed 2026-10-13 (merge efd51f5a3), test-only: a GM and two players, each driving their own SRD Fighter against an SRD Wolf with auto-roll on, through the real room. Each player is refused the other's Character and the Wolf (NOT_ACTOR_CONTROLLER); the GM may adjudicate any actor. Declared initiative auto-rolls and every member reads one turn order; a full round of attacks posts identical ATTACK and DAMAGE cards to all three, and players read only TABLE timeline entries. After COMPLETE every member's room frame is released and players cannot read the Run. Uses DECLARED_ACTION_ROLL, the player-driven initiative path. Its missing initiative roll card is ENCOUNTER-9. Replaces the original three-user Automatic journey (ADR 0034); AUTOMATIC is not reinstated.",
               "id": "ENCOUNTER-5.1"
             }
           ],
@@ -7071,17 +7073,17 @@
         {
           "id": "PRIVACY-4",
           "title": "A hidden Concentration source stays hidden when Concentration drops",
-          "status": "TODO",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": ["apps/session-worker/test/nativeRoomChosenConcentrationEnd.test.ts"],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
               "text": "When a caster drops Concentration outside their turn, the recorded notice names a hidden source only to the GM; players read it without the source's name (D99); proved by a test that fails before the fix.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": ["apps/session-worker/test/nativeRoomChosenConcentrationEnd.test.ts"],
               "origin": [],
-              "note": "Registered 2026-10-13 from the band-aid audit; suspected, to be confirmed by the red test. concentrationChosenEnd.ts:77-80 builds the notice from carriedConcentration(ended).label without checking sourceHidden (hideConcentrationSource in activeGrantListings.ts:180 exists for this) and stores it as a run-command label.",
+              "note": "Closed 2026-10-13 (merge 6bbbf7f62), test-only: the suspected leak does not exist, because the notice is GM-only (PRIVATE) by construction, so no player frame, command replay or fresh-connection catch-up carries it, hidden source or not. No fix means no pre-fix red; non-vacuity was proved by mutation instead: widening the player feed scan to the GM scan in roomEncounterSessionFeed.ts turns 3 tests red (local-validation/privacy4-plt136/privacy-mutation-red2.log). Original: registered 2026-10-13 from the band-aid audit; suspected, to be confirmed by the red test. concentrationChosenEnd.ts:77-80 builds the notice from carriedConcentration(ended).label without checking sourceHidden (hideConcentrationSource in activeGrantListings.ts:180 exists for this) and stores it as a run-command label.",
               "id": "PRIVACY-4.1"
             }
           ],
