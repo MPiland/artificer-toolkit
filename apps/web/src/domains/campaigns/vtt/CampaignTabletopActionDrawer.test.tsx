@@ -207,7 +207,7 @@ describe('CampaignTabletopActionDrawer rule warnings', () => {
       grip: { value: grip, attackKey: 'longsword::MELEE_WEAPON_ATTACK' },
       wieldConflict: null,
       warnings: [],
-      target: { kind: 'ACTOR' as const },
+      target: { kind: 'ACTOR' as const, requiresOtherCreature: false },
       attackSlot: null
     })
     renderDrawer(onResolve, { choices: [longsword('ONE_HANDED'), longsword('TWO_HANDED')] })

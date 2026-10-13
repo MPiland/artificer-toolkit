@@ -1,32 +1,6 @@
 import { valuesOf } from '#utils'
 import type { CoreMeta } from './core.js'
 
-export const MEASUREMENT_SYSTEM_CODE = {
-  IMPERIAL: 'IMPERIAL',
-  METRIC: 'METRIC'
-} as const
-
-export type MeasurementSystemCode = keyof typeof MEASUREMENT_SYSTEM_CODE
-
-export type MeasurementSystemOption = CoreMeta<MeasurementSystemCode>
-
-export const MEASUREMENT_SYSTEM_REGISTRY: Record<MeasurementSystemCode, MeasurementSystemOption> = {
-  [MEASUREMENT_SYSTEM_CODE.IMPERIAL]: {
-    code: MEASUREMENT_SYSTEM_CODE.IMPERIAL,
-    label: 'Imperial',
-    short: 'Imperial',
-    tooltip: 'Imperial measurement system.',
-    description: 'Imperial measurement system.'
-  },
-  [MEASUREMENT_SYSTEM_CODE.METRIC]: {
-    code: MEASUREMENT_SYSTEM_CODE.METRIC,
-    label: 'Metric',
-    short: 'Metric',
-    tooltip: 'Metric measurement system.',
-    description: 'Metric measurement system.'
-  }
-}
-
 export const MEASUREMENT_TYPE_CODE = {
   VOLUME: 'VOLUME',
   WEIGHT: 'WEIGHT',
