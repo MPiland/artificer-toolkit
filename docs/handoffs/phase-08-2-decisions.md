@@ -1057,6 +1057,8 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
 
 ## Resolved
 
+- **OQ-2, feature-named rule kinds and spell-named effect kinds (2026-10-13).** Product owner chose option 1. Rule kinds named after one feature and effect kinds named after one spell (PLANT_PORTAL, TREE_STRIDE, TELEPATHIC_LINK) are replaced with general mechanics incrementally: each automation PBI replaces the named kinds it touches, per ADR 0023 ("codes are not dispatch keys"). No one-pass redesign of the rule vocabulary. New automation must not add feature- or spell-named kinds.
+
 - **Q3, token rings (VTT_UI-1.1, 2026-10-12).** Disposition rings: red Hostile, blue Friendly, purple Neutral.
   - Selection gets its own outline. Workshop Teal is the design system's selection colour. It must stay distinct from the disposition ring and from the current-turn and reaction halos, and must not rely on colour alone (VTT_UI-4.1).
   - "Yours" is carried by the token's description and selection, not the ring.
