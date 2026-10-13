@@ -4,8 +4,9 @@ import { SRD_BASIC_ACTION_IDS } from '@artificer-toolkit/source-data/srd/basicAc
 import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
 import { greatclub } from '@artificer-toolkit/source-data/srd/equipment/greatclub.js'
 import { shieldWood } from '@artificer-toolkit/source-data/srd/equipment/shield-wood.js'
-import { SRD_ABILITIES } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import { SRD_ABILITIES, srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
+import { resolveEncounterActionSource } from '../encounterActionSources.js'
 import {
   discoverEncounterBasicActions,
   readEncounterBasicActionEntries
@@ -306,5 +307,36 @@ describe('a copy of the catalogue keeps its restrictions', () => {
         loadoutEntry(2, shieldWood.id, 'OFF_HAND')
       ])
     ).toBe(false)
+  })
+})
+
+describe('a basic action source exists only where the catalogue entries are read', () => {
+  const actor = srdCreatureActor({ id: HOLDER_ID, creature: wolf })
+  const actionId = `${HOLDER_ID}:BASIC_ACTION:${SRD_BASIC_ACTION_IDS.DASH}:EFFECT:x`
+  const source = { actor, actionId, gameSystemId: SRD_SYSTEM_ID, system: srdSystemRecord }
+
+  it('resolves the source of a catalogue entry the caller read', async () => {
+    const basicActions = await readEncounterBasicActionEntries({
+      actorId: HOLDER_ID,
+      actionId,
+      gameSystemId: SRD_SYSTEM_ID,
+      definitions: srdDefinitions
+    })
+    const [offered] = discoverEncounterBasicActions({
+      actorId: HOLDER_ID,
+      gameSystemId: SRD_SYSTEM_ID,
+      entries: basicActions,
+      conditionDefinitionIds: [],
+      abilityDefinitions: SRD_ABILITIES
+    }).available
+    expect(
+      resolveEncounterActionSource({ ...source, actionId: offered!.actionId, basicActions })
+    ).toMatchObject({ kind: 'BASIC_ACTION' })
+  })
+
+  it('is stale for a caller that reads none, as the area, movement and Disarm paths load sources', () => {
+    expect(() => resolveEncounterActionSource(source)).toThrow(
+      'The selected basic action source is stale.'
+    )
   })
 })

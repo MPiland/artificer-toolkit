@@ -415,8 +415,10 @@ export async function planNativeLiveEncounterAction(
     loadRelationshipFacts: nativeLiveRelationshipFacts({ activeEffectsByActorId })
   }).catch(refuseStaleCharacterAction)
   refuseLegendaryWindowAction(prepared)
+  const actorTarget = movementTargets.get(prepared.actor.id)
+  if (!actorTarget) throw new Error('Encounter rules input binding mismatch.')
   await refuseUnmetBasicActionRestrictions(prepared, {
-    target: movementTargets.get(prepared.actor.id)!,
+    target: actorTarget,
     gameSystemId: state.gameSystemId,
     definitions
   })

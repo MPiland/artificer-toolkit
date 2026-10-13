@@ -72,7 +72,7 @@ function heldItems(target: MovementTarget): HandOccupancyItem[] {
         slot: entry.useState,
         twoHanded: source.payload.properties.includes(EQUIPMENT_PROPERTY_CODE.TWO_HANDED)
       }))
-    default:
+    case 'CUSTOM':
       return []
   }
 }
