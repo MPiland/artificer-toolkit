@@ -1,7 +1,10 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { useEffect, useRef, useState } from 'react'
 import { expect, waitFor, within } from 'storybook/test'
-import type { CampaignSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
+import {
+  campaignSceneStateDtoSchema,
+  type CampaignSceneStateDto
+} from '@artificer-toolkit/schema/api/vttScenes'
 import {
   tabletopCurrentUserId,
   tabletopGmEncounter,
@@ -20,11 +23,12 @@ import {
   statusCategoryColours
 } from './vttSceneRenderer.model'
 import { buildVttTokenPresentations, dispositionRingColours } from './vttTokenPresentation.model'
+import { validated } from '../../../test/validatedFixture'
 
 const artUrl =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='
 
-const presentationScene = {
+const presentationScene = validated(campaignSceneStateDtoSchema)({
   ...tabletopLiveScene,
   tokens: [
     {
@@ -49,7 +53,7 @@ const presentationScene = {
       rotationDegrees: 315
     }
   ]
-} satisfies CampaignSceneStateDto
+})
 
 const [emberToken, wardenToken, scoutToken] = presentationScene.tokens
 // Only the DATA varies here; colours, ordering and halo precedence come from the real model.
@@ -61,7 +65,8 @@ const emberActor = {
       label: 'Blessed',
       sourceHidden: false,
       remainingTicks: 4,
-      expiresAtCampaignMinute: null
+      expiresAtCampaignMinute: null,
+      polarity: 'BENEFICIAL' as const
     }
   ],
   conditions: [
@@ -411,7 +416,7 @@ export const SelectionOutlineMarksOnlyTheSelectedToken: Story = {
 
 // A 1x1 token beside a 2x2 token that touches it: their outer rings stay inside their footprints.
 const cell = tabletopLiveScene.grid.cellSize
-const neighbourScene = {
+const neighbourScene = validated(campaignSceneStateDtoSchema)({
   ...presentationScene,
   tokens: [
     { ...emberToken!, height: cell, position: { x: 400, y: 400 }, width: cell },
@@ -422,7 +427,7 @@ const neighbourScene = {
       width: cell * 2
     }
   ]
-} satisfies CampaignSceneStateDto
+})
 const neighbourPresentations = buildVttTokenPresentations({
   actorIdByTokenId: new Map([
     [emberToken!.id, emberActor.id],

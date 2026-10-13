@@ -1,21 +1,6 @@
 import type { PinnedSenseDefinition } from '@artificer-toolkit/schema/projections/characterMechanics'
+import { lengthMeasurementInFeet } from '@artificer-toolkit/shared/core'
 import type { SceneCharacterVision } from '@artificer-toolkit/shared/vtt'
-
-/** Feet in a typed length; a unit that is not a length in feet or its multiples has none. */
-export function lengthInFeet(range: { amount: number; unit: string }): number | null {
-  switch (range.unit) {
-    case 'FEET':
-      return range.amount
-    case 'INCHES':
-      return range.amount / 12
-    case 'MILES':
-      return range.amount * 5_280
-    case 'YARDS':
-      return range.amount * 3
-    default:
-      return null
-  }
-}
 
 const ACCESS_GRADE_RANK = { DETECTED: 0, LOCATED: 1, PRECISE: 2 } as const
 const ILLUMINATION_ACCESS_RANK = {
@@ -52,8 +37,9 @@ export function deriveCharacterSceneVision(
   return {
     characterId,
     senses: pinnedSenses.flatMap(({ document, label, range }) => {
-      const feet = range ? lengthInFeet(range) : null
-      if (feet === null || feet <= 0) return []
+      if (!range) return []
+      const feet = lengthMeasurementInFeet(range)
+      if (feet <= 0) return []
       const { channel, illuminationAccess } = primaryCapability(document.capabilities)
       return [
         {

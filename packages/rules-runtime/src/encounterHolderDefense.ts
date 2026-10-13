@@ -1,5 +1,5 @@
 import { speedDtoSchema } from '@artificer-toolkit/schema/shared/speed'
-import { lengthInFeet } from './character/characterSceneVision.js'
+import { lengthMeasurementInFeet } from '@artificer-toolkit/shared/core'
 import {
   encounterAttackAgainstContributors,
   hasEncounterDefensiveGrants,
@@ -36,7 +36,7 @@ export async function encounterHolderState(input: {
       ? [
           encounterConditionSpeed({
             mechanics: target.conditionMechanics,
-            speed: lengthInFeet(speed.data) ?? 0
+            speed: lengthMeasurementInFeet(speed.data)
           })
         ]
       : []

@@ -26,6 +26,7 @@ import {
 import {
   abilityCodeSchema,
   equipmentCategoryCodeSchema,
+  lengthUnitCodeSchema,
   measurementUnitCodeSchema,
   sizeCodeSchema
 } from '../shared/enums.js'
@@ -161,7 +162,7 @@ const characterMovementFactsSchema = lazySchema(() =>
           speedId: boundedIdentitySchema,
           code: z.nullable(boundedIdentitySchema),
           baseAmount: finiteNumberSchema,
-          unit: measurementUnitCodeSchema,
+          unit: lengthUnitCodeSchema,
           override: z.nullable(
             z.strictObject({ sourceId: boundedIdentitySchema, value: finiteNumberSchema })
           )
@@ -1057,7 +1058,7 @@ export const characterRuleSenseRangeSchema = lazySchema(() =>
     z.strictObject({
       id: boundedIdentitySchema,
       amount: finiteNumberSchema,
-      unit: measurementUnitCodeSchema,
+      unit: lengthUnitCodeSchema,
       calculation: characterDerivedNumericCalculationSchema
     })
   )
@@ -1242,7 +1243,7 @@ export const characterRulePolicyOutputSchema = lazySchema(() =>
             z.strictObject({
               speedId: boundedIdentitySchema,
               amount: finiteNumberSchema,
-              unit: measurementUnitCodeSchema,
+              unit: lengthUnitCodeSchema,
               calculation: characterDerivedNumericCalculationSchema
             })
           )

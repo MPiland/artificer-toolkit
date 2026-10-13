@@ -267,6 +267,19 @@ authored radius or cube edge (`encounterActionChoiceTarget`). A policy this path
 line, wall or dome) stays an actor choice and is refused when resolved. The web converts the area to Scene
 coordinates with `pointAreaInSceneCoordinates` (`shared/vtt`), the same function `compileEncounterPointArea`
 uses, to preview it and list the tokens the viewer sees inside; the room still decides who is caught.
+
+Each choice also carries `range` when its compiled target policy has a measurable one, the range the evaluator that
+handles the policy measures. A single-target policy that `singleTargetMeasure` accepts advertises `SELF`, `WITHIN` (Touch
+is 5 ft; a distance without a long range, including the 0 ft swarm space), `RANGED` (normal and long) or `UNLIMITED`. A
+point-area policy advertises its origin range, which `evaluateEncounterAreaTargetPolicy` measures
+(`pointAreaOriginRange`): `WITHIN` the distance (never `RANGED`, the area evaluator ignores a long range) or `UNLIMITED`.
+A policy neither evaluator measures leaves it off: a sight or special range, targeting that is not a single target with a
+disposition (excluded creature types only warn), an area with no supported shape, a path override, or no policy.
+`encounterActionChoiceRange` (`encounterActionRange.ts`) is the one mapping. `rangeLabel` is not derived from `range`:
+it words the authored range with `rangeLabel` (`rangeLabel.ts`), the formatter the Sheet uses, so Touch reads "Touch"
+(its 5 ft geometry stays in `range`) and a ranged weapon reads "150/600 ft" on both surfaces. Only a choice without a
+policy keeps the label of its action mechanic.
+
 Per-role visibility and the command flow are in
 [live-sessions.md](live-sessions.md#encounter-commands); the decision is
 [D103](../handoffs/phase-08-2-decisions.md).
@@ -626,8 +639,10 @@ it reaches on Characters that are not fighting, through the GM-only `END_ACTIVE_
 a fighting Character's are checked on the next advance.
 
 **Listing and ending (D99 Q2 A, SPELLS-5.8).** `listActiveGrantListings` lists a holder's grants (label,
-whether the source was hidden, rounds left or the carried expiry minute); `hideActiveGrantSources`
-nulls a hidden source's label for everyone but the GM. Encounter actors carry them as `activeGrants`
+whether the source was hidden, rounds left or the carried expiry minute, and its polarity);
+`hideActiveGrantSources` nulls a hidden source's label for everyone but the GM and keeps the polarity (D110).
+Polarity is BENEFICIAL or HARMFUL only when every piece of the grant reads that way for its holder, otherwise
+NEUTRAL; it is derived from the frozen modifiers and senses, never authored, and the VTT status ring colours by it. Encounter actors carry them as `activeGrants`
 (none on a COMPLETED Run, which reads no effects), shown on the token, the turn tracker and the drawer; the
 Sheet overview carries them too. The Campaign owner ends one by hand: a Character's through
 `END_ACTIVE_EFFECT` (gated on Campaign ownership, not on the Sheet viewer, so it works on the GM's own

@@ -14,6 +14,7 @@ import {
   modifierScopeKindSchema
 } from '../shared/enums.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
+import { lengthUnitCodeSchema } from '../shared/enums.js'
 import { reactionMovementTriggerBindingDtoSchema } from '../shared/reaction.js'
 
 const stringSchema = lazySchema(() => z.string())
@@ -269,7 +270,9 @@ const actionInvocationFactSchema = lazySchema(() =>
     range: z.strictObject({
       rangeKind: identitySchema,
       amount: z.nullable(finiteNumberSchema),
-      unit: z.nullable(identitySchema)
+      /** A ranged weapon attack's long range; null for every other range. */
+      longAmount: z.nullable(finiteNumberSchema),
+      unit: z.nullable(lengthUnitCodeSchema)
     }),
     savingThrow: z.nullable(
       z.strictObject({

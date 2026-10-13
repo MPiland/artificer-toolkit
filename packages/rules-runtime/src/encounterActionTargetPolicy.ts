@@ -1,6 +1,7 @@
 import type { EncounterActorDispositionDto } from '@artificer-toolkit/schema/api/encounterData'
 import type { CompiledActionTargetPolicy } from '@artificer-toolkit/schema/projections/characterMechanics'
 import type { EncounterRuleWarningDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
+import type { LengthUnitCode } from '@artificer-toolkit/shared/core'
 import {
   lengthMeasurementInSceneUnits,
   measureSceneTokenFootprintDistance,
@@ -23,7 +24,66 @@ export type EncounterActionSceneContext = {
 }
 
 /** A single-target Touch action reaches an adjacent creature: a 5-foot range that only warns. */
-const TOUCH_RANGE = { amount: 5, unit: 'FEET' } as const
+export const TOUCH_RANGE = { amount: 5, unit: 'FEET' } as const
+
+/**
+ * The policy an action's own targeting is checked against: its excluded creature types are a
+ * warning of their own (TARGET_CREATURE_TYPE_EXCLUDED), not an unsupported target.
+ */
+export function withoutCreatureTypeExclusions(
+  policy: CompiledActionTargetPolicy
+): CompiledActionTargetPolicy {
+  const { targeting } = policy
+  return targeting?.selectionKind === 'SELF' || !targeting
+    ? policy
+    : { ...policy, targeting: { ...targeting, excludedCreatureTypeIds: [] } }
+}
+
+type PolicyRange = CompiledActionTargetPolicy['range']
+type MeasuredRange =
+  | Extract<PolicyRange, { rangeKind: 'DISTANCE' }>
+  | { id: string; rangeKind: 'TOUCH' | 'UNLIMITED' }
+
+const isMeasuredRange = (range: PolicyRange): range is MeasuredRange =>
+  range.rangeKind === 'DISTANCE' || range.rangeKind === 'TOUCH' || range.rangeKind === 'UNLIMITED'
+
+/**
+ * What the single-target evaluator measures: its user for a Self range, otherwise a measurable
+ * range with the disposition it checks. Null is a policy it refuses: a shaped or path-overridden
+ * policy (an area or movement action), a range it cannot measure (sight, special), or targeting
+ * that is not a single target with a disposition and no excluded creature types.
+ */
+export function singleTargetMeasure(policy: CompiledActionTargetPolicy):
+  | { kind: 'SELF' }
+  | {
+      kind: 'MEASURED'
+      range: MeasuredRange
+      dispositionKind: NonNullable<
+        Extract<
+          NonNullable<CompiledActionTargetPolicy['targeting']>,
+          { selectionKind: 'SINGLE_TARGET' }
+        >['dispositionKind']
+      >
+      excludesSelf: boolean | undefined
+    }
+  | null {
+  if (policy.shape !== null || policy.pathOverrides.length !== 0) return null
+  const { range, targeting } = policy
+  if (range.rangeKind === 'SELF') return { kind: 'SELF' }
+  if (
+    !isMeasuredRange(range) ||
+    targeting?.selectionKind !== 'SINGLE_TARGET' ||
+    targeting.dispositionKind === undefined ||
+    targeting.excludedCreatureTypeIds?.length
+  )
+    return null
+  return {
+    kind: 'MEASURED',
+    range,
+    dispositionKind: targeting.dispositionKind,
+    excludesSelf: targeting.excludesSelf
+  }
+}
 
 const RANGE_UNCHECKED: EncounterRuleWarningDto = {
   code: 'TARGET_RANGE_UNCHECKED',
@@ -55,35 +115,23 @@ export function evaluateEncounterActionTargetPolicy(input: {
   /** The action makes an attack roll; an attack never targets its own user (D99). */
   makesAttackRoll: boolean
 }): EncounterRuleWarningDto[] | null {
-  const policy = input.targetPolicy
-  if (policy.shape !== null || policy.pathOverrides.length !== 0) return null
+  const measure = singleTargetMeasure(input.targetPolicy)
+  if (measure === null) return null
   const targetsSelf = input.target.id === input.actor.id
-  if (policy.range.rangeKind === 'SELF')
+  if (measure.kind === 'SELF')
     return targetsSelf
       ? []
       : [{ code: 'TARGET_OUT_OF_RANGE', message: 'This action can only target its user.' }]
-  const { range, targeting } = policy
-  if (
-    (range.rangeKind !== 'DISTANCE' &&
-      range.rangeKind !== 'TOUCH' &&
-      range.rangeKind !== 'UNLIMITED') ||
-    targeting?.selectionKind !== 'SINGLE_TARGET' ||
-    targeting.dispositionKind === undefined ||
-    targeting.excludedCreatureTypeIds?.length
-  )
-    return null
+  const { range, dispositionKind, excludesSelf } = measure
   const warnings: EncounterRuleWarningDto[] = []
   const relationship = encounterActorRelationship(input.actor.disposition, input.target.disposition)
   // SRD "Targeting Yourself": a creature may choose itself unless the effect must be hostile,
   // makes an attack roll or names another creature (D99).
-  if (
-    targetsSelf &&
-    (targeting.dispositionKind === 'HOSTILE' || input.makesAttackRoll || targeting.excludesSelf)
-  )
+  if (targetsSelf && (dispositionKind === 'HOSTILE' || input.makesAttackRoll || excludesSelf))
     warnings.push({ code: 'TARGET_DISPOSITION', message: 'This action targets another creature.' })
-  else if (targeting.dispositionKind === 'WILLING' && relationship === 'HOSTILE')
+  else if (dispositionKind === 'WILLING' && relationship === 'HOSTILE')
     warnings.push({ code: 'TARGET_DISPOSITION', message: 'This action needs a willing target.' })
-  else if (targeting.dispositionKind === 'HOSTILE' && relationship === 'ALLIED')
+  else if (dispositionKind === 'HOSTILE' && relationship === 'ALLIED')
     warnings.push({ code: 'TARGET_DISPOSITION', message: 'This action targets hostile creatures.' })
   if (range.rangeKind === 'UNLIMITED') return warnings
   // Reach 0 ft. (a swarm's "one target in the swarm's space") needs the footprints to overlap.
@@ -140,20 +188,13 @@ export function encounterActionLongRangeContributor(input: {
 /** A range in Scene units and the token footprints' measured distance; null when unmeasurable. */
 export function measuredDistance(
   scene: EncounterActionSceneContext,
-  range: Parameters<typeof lengthMeasurementInSceneUnits>[0]
+  range: { amount: number; unit: LengthUnitCode }
 ) {
   try {
-    const maximum = lengthMeasurementInSceneUnits(range, scene.grid)
-    return maximum === null
-      ? null
-      : {
-          maximum,
-          measured: measureSceneTokenFootprintDistance(
-            scene.grid,
-            scene.sourceToken,
-            scene.targetToken
-          )
-        }
+    return {
+      maximum: lengthMeasurementInSceneUnits(range, scene.grid),
+      measured: measureSceneTokenFootprintDistance(scene.grid, scene.sourceToken, scene.targetToken)
+    }
   } catch {
     return null
   }

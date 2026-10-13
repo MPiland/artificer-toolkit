@@ -72,6 +72,11 @@ describe('native public Encounter action choices', () => {
         ]),
         optionalRules: [{ definitionId: input.optional.definitionId, label: 'Disarm' }]
       })
+      // The Disarm fixture authors an unlimited range; Character and Creature choices both carry it.
+      expect(catalogue.actions.find(({ id }) => id === base.command.actionId)).toMatchObject({
+        range: { kind: 'UNLIMITED' },
+        rangeLabel: 'Unlimited'
+      })
       expect(optional.label).toBe('Disarm')
       expect(optional.fields).toHaveLength(2)
       expect(optional.fields.find((field) => field.label === 'Held item')?.options).toEqual([

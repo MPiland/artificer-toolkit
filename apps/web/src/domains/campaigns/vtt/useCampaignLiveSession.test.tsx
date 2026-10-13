@@ -1,13 +1,14 @@
 import { api } from '@artificer-toolkit/apis/convex/api'
 import { liveSessionTicketDtoSchema } from '@artificer-toolkit/schema/api/liveSessionIdentity'
-import type { LiveSessionCommandDto } from '@artificer-toolkit/schema/api/liveSessions'
-import type { SceneTransientEnvelopeDto } from '@artificer-toolkit/schema/api/vttScenes'
+import { liveSessionCommandDtoSchema } from '@artificer-toolkit/schema/api/liveSessions'
+import { sceneTransientEnvelopeDtoSchema } from '@artificer-toolkit/schema/api/vttScenes'
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { validated } from '../../../test/validatedFixture'
 import type { createLiveSessionConnection } from './liveSessionClient'
 import { useCampaignLiveSession } from './useCampaignLiveSession'
 
-const liveTicket = liveSessionTicketDtoSchema.parse({
+const liveTicket = validated(liveSessionTicketDtoSchema)({
   expiresAt: '2099-08-15T23:59:00.000Z',
   ticket: 'test-live-session-ticket'
 })
@@ -15,7 +16,7 @@ const campaignId = '00000000-0000-4000-8000-000000000001'
 const sceneId = '00000000-0000-4000-8000-000000000003'
 const userId = '00000000-0000-4000-8000-000000000004'
 const commandId = '00000000-0000-4000-8000-000000000006'
-const command = {
+const command = validated(liveSessionCommandDtoSchema)({
   scope: 'SCENE',
   command: {
     barrierId: '00000000-0000-4000-8000-000000000005',
@@ -25,16 +26,16 @@ const command = {
     state: 'OPEN',
     type: 'SET_SCENE_DOOR_STATE'
   }
-} satisfies LiveSessionCommandDto
+})
 const commit = { commandId, delta: null, sequence: 5, type: 'COMMAND_COMMITTED' as const }
-const envelope = {
+const envelope = validated(sceneTransientEnvelopeDtoSchema)({
   baselineVersion: 1,
   audience: 'TABLE',
   kind: 'PING',
   position: { x: 4, y: 8 },
   sceneId,
   sequence: 2
-} satisfies SceneTransientEnvelopeDto
+})
 
 const mocks = vi.hoisted(() => ({
   close: vi.fn(),

@@ -1,4 +1,4 @@
-import type { MeasurementUnitCode } from '../core/measurement.js'
+import type { LengthUnitCode } from '../core/measurement.js'
 import { sceneDistanceAsCoordinateLength } from './geometry.js'
 import { lengthMeasurementInSceneUnits } from './sceneReducer.js'
 import { segmentsIntersect } from './segments.js'
@@ -304,7 +304,7 @@ export type SpatialPointAreaShape =
 /** An authored length; one with `scaling` depends on a level and has no fixed Scene size. */
 interface AuthoredPointAreaLength {
   readonly amount: number
-  readonly unit: MeasurementUnitCode
+  readonly unit: LengthUnitCode
   readonly scaling?: unknown
 }
 
@@ -316,8 +316,7 @@ export type AuthoredPointArea =
 function coordinateLength(length: AuthoredPointAreaLength, grid: SceneGrid): number | null {
   if (length.scaling !== undefined || !(length.amount > 0)) return null
   try {
-    const distance = lengthMeasurementInSceneUnits(length, grid)
-    return distance === null ? null : sceneDistanceAsCoordinateLength(grid, distance)
+    return sceneDistanceAsCoordinateLength(grid, lengthMeasurementInSceneUnits(length, grid))
   } catch {
     return null
   }

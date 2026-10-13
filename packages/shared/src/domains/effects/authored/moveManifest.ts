@@ -1,4 +1,4 @@
-import type { MeasurementUnitCode } from '#core'
+import type { LengthUnitCode } from '#core'
 import { EFFECT_KIND } from '#core'
 
 export type MoveManifestAuthored = {
@@ -6,6 +6,6 @@ export type MoveManifestAuthored = {
   effectKind: typeof EFFECT_KIND.MOVE_MANIFEST
   manifestId: string
   amount: number
-  unit: MeasurementUnitCode
+  unit: LengthUnitCode
   upTo?: boolean
 }

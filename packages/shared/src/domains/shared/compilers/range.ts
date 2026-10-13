@@ -1,4 +1,4 @@
-import type { MeasurementUnitCode, RangeKind, ScalableValueAuthored } from '#core'
+import type { LengthUnitCode, RangeKind, ScalableValueAuthored } from '#core'
 import type { RangeAuthored, RangeMeasurementAuthored } from '#authored'
 
 export type CompiledRange =
@@ -10,7 +10,7 @@ export type CompiledRange =
       id: string
       rangeKind: 'DISTANCE'
       amount: number
-      unit: MeasurementUnitCode
+      unit: LengthUnitCode
       scaling?: ScalableValueAuthored<RangeMeasurementAuthored>
     }
 

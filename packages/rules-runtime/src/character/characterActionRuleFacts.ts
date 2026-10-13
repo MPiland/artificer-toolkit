@@ -76,11 +76,13 @@ function normalizeInvocation(
       ? {
           rangeKind: invocation.range.rangeKind,
           amount: invocation.range.amount,
+          longAmount: nullableNumber(invocation.range.longAmount),
           unit: invocation.range.unit
         }
       : {
           rangeKind: invocation.range.rangeKind,
           amount: null,
+          longAmount: null,
           unit: null
         }
   const savingThrow =

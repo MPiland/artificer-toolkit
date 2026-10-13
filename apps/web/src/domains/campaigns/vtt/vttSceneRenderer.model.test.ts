@@ -1,6 +1,9 @@
 import { Container } from 'pixi.js'
 import { describe, expect, it } from 'vitest'
-import type { CampaignSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
+import {
+  campaignSceneStateDtoSchema,
+  type CampaignSceneStateDto
+} from '@artificer-toolkit/schema/api/vttScenes'
 import { SceneBarrierIndex, type SceneGrid } from '@artificer-toolkit/shared/vtt'
 import {
   buildVttFogMask,
@@ -36,6 +39,7 @@ import {
   visibleGridLinePositions,
   type VttSenseReach
 } from './vttSceneRenderer.model'
+import { validated } from '../../../test/validatedFixture'
 
 describe('VTT scene renderer model', () => {
   it('draws a radius area as a target circle and a cube as a target square centered on the point', () => {
@@ -101,17 +105,17 @@ describe('VTT scene renderer model', () => {
     const current = movementScene()
 
     expect(
-      hasCommittedSceneTokenPositionChanged(current, { tokens: current.tokens }, 'token')
+      hasCommittedSceneTokenPositionChanged(current, { tokens: current.tokens }, movementTokenId)
     ).toBe(false)
     expect(
       hasCommittedSceneTokenPositionChanged(
         current,
         { ...current, tokens: [{ ...current.tokens[0]!, position: { x: 125, y: 75 } }] },
-        'token'
+        movementTokenId
       )
     ).toBe(true)
     expect(
-      hasCommittedSceneTokenPositionChanged(current, { ...current, tokens: [] }, 'token')
+      hasCommittedSceneTokenPositionChanged(current, { ...current, tokens: [] }, movementTokenId)
     ).toBe(true)
   })
 
@@ -174,7 +178,7 @@ describe('VTT scene renderer model', () => {
     const token = current.tokens[0]!
     const update = {
       boundTokenControl: new Map<string, boolean>(),
-      currentUserId: 'user',
+      currentUserId: movementUserId,
       mode: 'PLAY' as const,
       role: 'PLAYER' as const,
       scene: current,
@@ -598,20 +602,20 @@ describe('VTT lighting model', () => {
     expect(lightTintAlpha({ intensity: 0 })).toBeGreaterThan(0)
   })
 
-  it('colours condition, concentration and other statuses distinctly and draws an effect as other', () => {
+  it('colours harmful, beneficial, concentration and other statuses distinctly', () => {
     expect(
       new Set([
-        statusCategoryColours.CONDITION,
+        statusCategoryColours.HARMFUL,
+        statusCategoryColours.BENEFICIAL,
         statusCategoryColours.CONCENTRATION,
         statusCategoryColours.OTHER
       ]).size
-    ).toBe(3)
-    // Pinned hues: amber conditions, teal-green Concentration, neutral grey other.
-    expect(statusCategoryColours.CONDITION).toBe(0xffd43b)
+    ).toBe(4)
+    // Pinned hues: amber harm, lime benefit, teal-green Concentration, neutral grey other.
+    expect(statusCategoryColours.HARMFUL).toBe(0xffd43b)
+    expect(statusCategoryColours.BENEFICIAL).toBe(0x94d82d)
     expect(statusCategoryColours.CONCENTRATION).toBe(0x20c997)
     expect(statusCategoryColours.OTHER).toBe(0xced4da)
-    // Lane 1 ruling: an EFFECT stays neutral until its polarity is derived.
-    expect(statusCategoryColours.EFFECT).toBe(statusCategoryColours.OTHER)
   })
 
   it('never lets the bright radius exceed the dim reach', () => {
@@ -715,14 +719,17 @@ describe('VTT lighting model', () => {
   })
 })
 
+const movementTokenId = '00000000-0000-4000-8000-000000000005'
+const movementUserId = '00000000-0000-4000-8000-000000000006'
+
 function movementScene(): CampaignSceneStateDto {
-  return {
+  return validated(campaignSceneStateDtoSchema)({
     annotations: [],
     ambientIllumination: 'BRIGHT',
     barriers: [],
-    campaignId: 'campaign',
+    campaignId: '00000000-0000-4000-8000-000000000001',
     darknessZones: [],
-    definitionId: 'definition',
+    definitionId: '00000000-0000-4000-8000-000000000002',
     definitionVersion: 1,
     doorStates: {},
     fogLayers: [],
@@ -736,18 +743,23 @@ function movementScene(): CampaignSceneStateDto {
       origin: { x: 0, y: 0 },
       unit: 'FEET'
     },
-    id: 'scene',
+    id: '00000000-0000-4000-8000-000000000003',
     lights: [],
-    map: { assetId: 'map', height: 400, tileManifestAssetId: null, width: 600 },
+    map: {
+      assetId: '00000000-0000-4000-8000-000000000004',
+      height: 400,
+      tileManifestAssetId: null,
+      width: 600
+    },
     measurements: [],
     name: 'Movement scene',
     tokens: [
       {
         assetId: null,
-        controlledByUserIds: ['user'],
+        controlledByUserIds: [movementUserId],
         height: 50,
         hidden: false,
-        id: 'token',
+        id: movementTokenId,
         label: 'Ember',
         locked: false,
         position: { x: 75, y: 75 },
@@ -758,5 +770,5 @@ function movementScene(): CampaignSceneStateDto {
       }
     ],
     version: 1
-  }
+  })
 }

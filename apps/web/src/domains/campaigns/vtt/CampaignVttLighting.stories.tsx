@@ -1,7 +1,10 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { useEffect, useRef, useState } from 'react'
 import { expect, waitFor, within } from 'storybook/test'
-import type { CampaignSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
+import {
+  campaignSceneStateDtoSchema,
+  type CampaignSceneStateDto
+} from '@artificer-toolkit/schema/api/vttScenes'
 import {
   resolveSceneIlluminationAt,
   SceneBarrierIndex,
@@ -17,6 +20,7 @@ import {
   lightTintAlpha,
   resolveViewTokenId
 } from './vttSceneRenderer.model'
+import { validated } from '../../../test/validatedFixture'
 
 type Diagnostics = ReturnType<VttSceneRenderer['getDiagnostics']>
 type Zone = CampaignSceneStateDto['darknessZones'][number]
@@ -25,7 +29,7 @@ type Light = CampaignSceneStateDto['lights'][number]
 const ember = tabletopLiveScene.tokens[0]!
 const warden = tabletopLiveScene.tokens[1]!
 
-const emptyScene = {
+const emptyScene = validated(campaignSceneStateDtoSchema)({
   ...tabletopLiveScene,
   ambientIllumination: 'BRIGHT',
   barriers: [],
@@ -34,7 +38,7 @@ const emptyScene = {
   fogMode: 'OFF',
   lights: [],
   tokens: [{ ...ember, vision: null }]
-} satisfies CampaignSceneStateDto
+})
 
 function lightAt(id: string, x: number, bright: number, dim: number): Light {
   return {
@@ -218,13 +222,13 @@ function expectSamplesMatchResolver(
 
 const wallId = '77777777-7777-4777-8777-777777777891'
 
-const brightAndDimScene = {
+const brightAndDimScene = validated(campaignSceneStateDtoSchema)({
   ...emptyScene,
   lights: [
     lightAt('77777777-7777-4777-8777-777777777801', 400, 100, 250),
     lightAt('77777777-7777-4777-8777-777777777802', 900, 80, 80)
   ]
-} satisfies CampaignSceneStateDto
+})
 // Core and dim ring of the first light, the core of the second, and plain bright ground.
 const brightAndDimPoints = [
   { x: 400, y: 450 },
@@ -274,7 +278,7 @@ const ambientRoomPoints = [
 ]
 
 function ambientRoom(ambientIllumination: CampaignSceneStateDto['ambientIllumination']) {
-  return { ...emptyScene, ambientIllumination } satisfies CampaignSceneStateDto
+  return validated(campaignSceneStateDtoSchema)({ ...emptyScene, ambientIllumination })
 }
 
 const brightRoom = ambientRoom('BRIGHT')
@@ -310,13 +314,13 @@ export const DarkRoomDrawsFullDarkness: Story = {
   }
 }
 
-const darkRoomWithLights = {
+const darkRoomWithLights = validated(campaignSceneStateDtoSchema)({
   ...darkRoom,
   lights: [
     lightAt('77777777-7777-4777-8777-777777777801', 400, 100, 250),
     lightAt('77777777-7777-4777-8777-777777777802', 900, 80, 80)
   ]
-} satisfies CampaignSceneStateDto
+})
 // Core and dim ring of the first light, the core of the second, and unlit ground.
 const darkRoomWithLightsPoints = [
   { x: 400, y: 450 },
@@ -339,11 +343,11 @@ export const LightsPushBackAmbientDarkness: Story = {
   }
 }
 
-const torchInDarkZone = {
+const torchInDarkZone = validated(campaignSceneStateDtoSchema)({
   ...emptyScene,
   darknessZones: [zoneAt('77777777-7777-4777-8777-777777777831', 300, 'ORDINARY_DARKNESS', null)],
   lights: [lightAt('77777777-7777-4777-8777-777777777801', 400, 60, 150)]
-} satisfies CampaignSceneStateDto
+})
 // Torch core, torch dim ring and unlit corner, all inside the zone; then bright ground outside it.
 const torchInDarkZonePoints = [
   { x: 400, y: 450 },
@@ -367,11 +371,11 @@ export const TorchLightsAnOrdinaryDarknessZone: Story = {
   }
 }
 
-const torchInMagicalDarkness = {
+const torchInMagicalDarkness = validated(campaignSceneStateDtoSchema)({
   ...darkRoom,
   darknessZones: [zoneAt('77777777-7777-4777-8777-777777777832', 300, 'MAGICAL_DARKNESS', null)],
   lights: [lightAt('77777777-7777-4777-8777-777777777801', 400, 100, 250)]
-} satisfies CampaignSceneStateDto
+})
 const torchInMagicalDarknessPoints = [
   { x: 400, y: 450 },
   { x: 560, y: 450 },
@@ -391,7 +395,7 @@ export const MagicalDarknessStaysBlackOverATorch: Story = {
   }
 }
 
-const litRoomWithWall = {
+const litRoomWithWall = validated(campaignSceneStateDtoSchema)({
   ...darkRoom,
   barriers: [
     {
@@ -404,7 +408,7 @@ const litRoomWithWall = {
     }
   ],
   lights: [lightAt('77777777-7777-4777-8777-777777777801', 400, 150, 300)]
-} satisfies CampaignSceneStateDto
+})
 const litRoomWithWallPoints = [
   { x: 450, y: 450 },
   { x: 540, y: 450 },
@@ -425,7 +429,7 @@ export const WallBlocksALightInTheDrawnOverlay: Story = {
 
 const doorId = '77777777-7777-4777-8777-777777777892'
 const litRoomBehindADoor = (state: 'CLOSED' | 'OPEN') =>
-  ({
+  validated(campaignSceneStateDtoSchema)({
     ...darkRoom,
     barriers: [
       {
@@ -441,7 +445,7 @@ const litRoomBehindADoor = (state: 'CLOSED' | 'OPEN') =>
     ],
     doorStates: { [doorId]: state },
     lights: [lightAt('77777777-7777-4777-8777-777777777801', 400, 150, 300)]
-  }) satisfies CampaignSceneStateDto
+  })
 const closedDoorScene = litRoomBehindADoor('CLOSED')
 const openDoorScene = litRoomBehindADoor('OPEN')
 // Beside the light, then within its reach but on the far side of the door.
@@ -573,7 +577,7 @@ export const LightAndHeavyObscurement: Story = {
   }
 }
 
-const sightScene = {
+const sightScene = validated(campaignSceneStateDtoSchema)({
   ...emptyScene,
   tokens: [
     {
@@ -600,7 +604,7 @@ const sightScene = {
       }
     }
   ]
-} satisfies CampaignSceneStateDto
+})
 
 export const PlayerVision: Story = {
   args: { role: 'PLAYER', scene: sightScene },
@@ -632,7 +636,7 @@ export const GmFullViewDrawsNoVision: Story = {
   }
 }
 
-const previewScene = {
+const previewScene = validated(campaignSceneStateDtoSchema)({
   ...darkRoom,
   tokens: [
     ...darkRoom.tokens,
@@ -650,7 +654,7 @@ const previewScene = {
       }
     }
   ]
-} satisfies CampaignSceneStateDto
+})
 const previewPoints = [
   { x: 950, y: 450 },
   { x: 200, y: 450 },
@@ -715,15 +719,40 @@ function senseOf(
   channel: Sense['channel'],
   illuminationAccess: Sense['illuminationAccess'],
   range: number,
-  label: string
+  label: string,
+  senseId: string
 ): Sense {
-  return { channel, illuminationAccess, label, range, senseId: `sense:${label}` }
+  return { channel, illuminationAccess, label, range, senseId }
 }
 
-const darkvision = senseOf('VISUAL', 'ORDINARY_DARKNESS', 20, 'Darkvision 20 ft.')
-const truesight = senseOf('VISUAL', 'MAGICAL_DARKNESS', 20, 'Truesight 20 ft.')
-const blindsight = senseOf('NONVISUAL', 'IGNORE', 10, 'Blindsight 10 ft.')
-const tremorsense = senseOf('VIBRATION', 'IGNORE', 20, 'Tremorsense 20 ft.')
+const darkvision = senseOf(
+  'VISUAL',
+  'ORDINARY_DARKNESS',
+  20,
+  'Darkvision 20 ft.',
+  '66666666-6666-4666-8666-666666666601'
+)
+const truesight = senseOf(
+  'VISUAL',
+  'MAGICAL_DARKNESS',
+  20,
+  'Truesight 20 ft.',
+  '66666666-6666-4666-8666-666666666602'
+)
+const blindsight = senseOf(
+  'NONVISUAL',
+  'IGNORE',
+  10,
+  'Blindsight 10 ft.',
+  '66666666-6666-4666-8666-666666666603'
+)
+const tremorsense = senseOf(
+  'VIBRATION',
+  'IGNORE',
+  20,
+  'Tremorsense 20 ft.',
+  '66666666-6666-4666-8666-666666666604'
+)
 
 /** A Token its Player controls, seeing all round: only its senses differ between the scenes. */
 function seerWith(senses: Sense[]) {
@@ -747,7 +776,7 @@ const viewEmber = { assignedTokenId: null, selectedTokenId: ember.id }
 // and a wall below the seer.
 const caveWallId = '77777777-7777-4777-8777-777777777893'
 function caveSceneFor(seer: ReturnType<typeof seerWith>) {
-  return {
+  return validated(campaignSceneStateDtoSchema)({
     ...darkRoom,
     barriers: [
       {
@@ -762,7 +791,7 @@ function caveSceneFor(seer: ReturnType<typeof seerWith>) {
     darknessZones: [zoneAt('77777777-7777-4777-8777-777777777832', 300, 'MAGICAL_DARKNESS', null)],
     lights: [lightAt('77777777-7777-4777-8777-777777777803', 600, 40, 120)],
     tokens: [seer]
-  } satisfies CampaignSceneStateDto
+  })
 }
 // Dark ground beside and above the seer, magical darkness, the torch's dim ring just past the zone, ground behind the
 // wall, and dark ground beyond the 20 ft sense (315 px from the Token centre).
@@ -883,7 +912,7 @@ const litToken = {
   id: '77777777-7777-4777-8777-777777777853',
   position: { x: 1100, y: 450 }
 }
-const tremorScene = {
+const tremorScene = validated(campaignSceneStateDtoSchema)({
   ...darkRoom,
   barriers: [
     {
@@ -897,7 +926,7 @@ const tremorScene = {
   ],
   lights: [lightAt('77777777-7777-4777-8777-777777777804', 1100, 100, 150)],
   tokens: [seerWith([tremorsense]), nearToken, farToken, litToken]
-} satisfies CampaignSceneStateDto
+})
 
 export const TremorsenseRevealsTokensWithoutChangingTheMap: Story = {
   args: { samplePoints: blindsightPoints, scene: tremorScene, view: viewEmber },
@@ -921,7 +950,7 @@ export const TremorsenseRevealsTokensWithoutChangingTheMap: Story = {
 
 // The GM's preview Token has darkvision, but a Player's view is their own Token's: the preview
 // Token's sight is never theirs.
-const previewLeakScene = {
+const previewLeakScene = validated(campaignSceneStateDtoSchema)({
   ...darkRoom,
   tokens: [
     seerWith([]),
@@ -940,7 +969,7 @@ const previewLeakScene = {
       }
     }
   ]
-} satisfies CampaignSceneStateDto
+})
 const previewLeakPoints = [
   { x: 950, y: 450 },
   { x: 250, y: 450 }

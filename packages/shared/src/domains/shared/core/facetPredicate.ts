@@ -7,7 +7,7 @@ import type {
   DurationKind,
   EquipmentCategoryCode,
   EquipmentPropertyCode,
-  MeasurementUnitCode,
+  LengthUnitCode,
   RangeKind,
   ScalingAmountKind,
   SizeCode,
@@ -33,7 +33,7 @@ export type PredicatePayloadByCode = {
         {
           min: number
           max?: number
-          unit: MeasurementUnitCode
+          unit: LengthUnitCode
         }
       >
   DURATION:

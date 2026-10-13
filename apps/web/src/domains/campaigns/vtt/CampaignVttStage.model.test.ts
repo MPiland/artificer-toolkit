@@ -1,6 +1,12 @@
-import type { CampaignSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
+import {
+  campaignSceneStateDtoSchema,
+  type CampaignSceneStateDto
+} from '@artificer-toolkit/schema/api/vttScenes'
 import { describe, expect, it } from 'vitest'
-import type { EncounterSessionStateDto } from '@artificer-toolkit/schema/api/encounterData'
+import {
+  encounterSessionStateDtoSchema,
+  type EncounterSessionStateDto
+} from '@artificer-toolkit/schema/api/encounterData'
 import {
   assignedCharacterTokenId,
   canMoveSceneToken,
@@ -15,11 +21,12 @@ import {
   tabletopGmEncounter,
   tabletopPlayerEncounter
 } from './CampaignTabletop.stories.fixtures'
+import { validated } from '../../../test/validatedFixture'
 
 const currentUserId = '00000000-0000-4000-8000-000000000001'
 
 function scene(): CampaignSceneStateDto {
-  return {
+  return validated(campaignSceneStateDtoSchema)({
     annotations: [],
     ambientIllumination: 'BRIGHT',
     barriers: [],
@@ -66,7 +73,7 @@ function scene(): CampaignSceneStateDto {
       }
     ],
     version: 4
-  }
+  })
 }
 
 describe('Campaign VTT accessible scene controls', () => {
@@ -199,7 +206,7 @@ const walkSpeedId = 'walk-speed'
 
 describe('Campaign VTT active turn movement readout (V07.5)', () => {
   const [character, creature] = tabletopPlayerEncounter.actors
-  const movement = [
+  const movement = validated(encounterSessionStateDtoSchema.shape.turnMovement)([
     {
       actorId: character.id,
       used: 15,
@@ -212,12 +219,17 @@ describe('Campaign VTT active turn movement readout (V07.5)', () => {
       speedId: walkSpeedId,
       allowances: [{ speedId: walkSpeedId, code: 'WALK', label: 'Walking Speed', budget: 40 }]
     }
-  ] satisfies EncounterSessionStateDto['turnMovement']
+  ])
   function state(
     encounter: EncounterSessionStateDto['encounter'],
     turnMovement: EncounterSessionStateDto['turnMovement'] = movement
   ): EncounterSessionStateDto {
-    return { encounter, pending: null, waitingOn: null, turnMovement }
+    return validated(encounterSessionStateDtoSchema)({
+      encounter,
+      pending: null,
+      waitingOn: null,
+      turnMovement
+    })
   }
 
   it("shows a player the readout on their own Character's turn only", () => {

@@ -3,6 +3,7 @@ import type {
   EncounterPlayerProjectionDto
 } from '@artificer-toolkit/schema/api/encounters'
 import type { CampaignSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
+import type { ActiveGrantListingDto } from '@artificer-toolkit/schema/shared/activeGrantListing'
 import type { PendingEncounterRuleOccurrenceSummaryDto } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
 import {
   activeGrantLabel,
@@ -27,15 +28,21 @@ export const dispositionRingColours = {
 const NO_DISPOSITION_RING_COLOUR = 0xffffff
 
 type StatusKind = VttTokenPresentation['statuses'][number]['kind']
-const statusCategories: Record<StatusKind, VttStatusCategory> = {
+/** Every status kind but a grant, whose category is its derived polarity. */
+type NonGrantStatusKind = Exclude<StatusKind, 'EFFECT'>
+const statusCategories: Record<NonGrantStatusKind, VttStatusCategory> = {
   CONCENTRATION: 'CONCENTRATION',
-  CONDITION: 'CONDITION',
-  EFFECT: 'EFFECT',
+  CONDITION: 'HARMFUL',
   HEALTH: 'OTHER',
-  INJURY: 'CONDITION',
-  MORALE: 'CONDITION',
+  INJURY: 'HARMFUL',
+  MORALE: 'HARMFUL',
   REACTION: 'OTHER'
 }
+const grantCategories = {
+  BENEFICIAL: 'BENEFICIAL',
+  HARMFUL: 'HARMFUL',
+  NEUTRAL: 'OTHER'
+} as const satisfies Record<ActiveGrantListingDto['polarity'], VttStatusCategory>
 
 const fallbackColours = [0x1971c2, 0x2f9e44, 0x6741d9, 0x0b7285, 0x9c36b5, 0xc2255c] as const
 
@@ -63,13 +70,12 @@ export function buildVttTokenPresentations(input: {
     const statuses = actor
       ? [
           ...actorConditionStatuses(actor.conditions),
-          ...actor.activeGrants.map((grant) =>
-            statusFromValues(
-              `grant:${grant.effectId}`,
-              'EFFECT',
-              `${activeGrantLabel(grant)}, ${activeGrantTimeLeft(grant)}`
-            )
-          ),
+          ...actor.activeGrants.map((grant) => ({
+            category: grantCategories[grant.polarity],
+            id: `grant:${grant.effectId}`,
+            kind: 'EFFECT' as const,
+            label: `${activeGrantLabel(grant)}, ${activeGrantTimeLeft(grant)}`
+          })),
           ...(actor.concentration
             ? [
                 statusFromValues(
@@ -173,19 +179,16 @@ function actorConditionStatuses(conditions: unknown): VttTokenPresentation['stat
 
 function statusFromValues(
   id: string,
-  kind: StatusKind,
+  kind: NonGrantStatusKind,
   label: string
 ): VttTokenPresentation['statuses'][number] {
   return { category: statusCategories[kind], id, kind, label: label.trim() }
 }
 
-function statusKind(value: unknown): VttTokenPresentation['statuses'][number]['kind'] {
+function statusKind(value: unknown): NonGrantStatusKind {
   if (typeof value !== 'string') return 'CONDITION'
   const normalized = value.toUpperCase()
-  return normalized === 'EFFECT' ||
-    normalized === 'INJURY' ||
-    normalized === 'MORALE' ||
-    normalized === 'REACTION'
+  return normalized === 'INJURY' || normalized === 'MORALE' || normalized === 'REACTION'
     ? normalized
     : 'CONDITION'
 }

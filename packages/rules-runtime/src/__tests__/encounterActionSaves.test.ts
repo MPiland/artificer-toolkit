@@ -404,7 +404,7 @@ describe('a half-damage success authored as an amount kind', () => {
                   invocation: {
                     triggerCode: 'SAVING_THROW',
                     activation: null,
-                    range: { rangeKind: 'UNLIMITED', amount: null, unit: null },
+                    range: { rangeKind: 'UNLIMITED', amount: null, longAmount: null, unit: null },
                     savingThrow: null,
                     reactionMovementTrigger: null
                   },

@@ -1,12 +1,16 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { expect, fireEvent, waitFor, within } from 'storybook/test'
-import type { CampaignSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
+import {
+  campaignSceneStateDtoSchema,
+  type CampaignSceneStateDto
+} from '@artificer-toolkit/schema/api/vttScenes'
 import type { ScenePoint } from '@artificer-toolkit/shared/vtt'
 import { tabletopCurrentUserId, tabletopLiveScene } from './CampaignTabletop.stories.fixtures'
 import { createVttSceneRenderer, type VttSceneRenderer } from './vttSceneRenderer'
+import { validated } from '../../../test/validatedFixture'
 
-const movementScene = {
+const movementScene = validated(campaignSceneStateDtoSchema)({
   ...tabletopLiveScene,
   barriers: [
     {
@@ -18,13 +22,14 @@ const movementScene = {
       kind: 'WALL'
     }
   ],
+  doorStates: {},
   tokens: [tabletopLiveScene.tokens[0]!]
-} satisfies CampaignSceneStateDto
+})
 
 const largeTokenSize = tabletopLiveScene.grid.cellSize * 2
 
 // A 2x2 token on the open map, so only the map edge constrains it.
-const largeTokenScene = {
+const largeTokenScene = validated(campaignSceneStateDtoSchema)({
   ...movementScene,
   barriers: [],
   tokens: [
@@ -35,18 +40,18 @@ const largeTokenScene = {
       width: largeTokenSize
     }
   ]
-} satisfies CampaignSceneStateDto
+})
 
 // The same 2x2 token beside the wall in movementScene.
-const largeTokenBesideWallScene = {
+const largeTokenBesideWallScene = validated(campaignSceneStateDtoSchema)({
   ...movementScene,
   tokens: [{ ...largeTokenScene.tokens[0], position: { x: 300, y: 230 } }]
-} satisfies CampaignSceneStateDto
+})
 
-const rotatedLargeTokenScene = {
+const rotatedLargeTokenScene = validated(campaignSceneStateDtoSchema)({
   ...largeTokenScene,
   tokens: [{ ...largeTokenScene.tokens[0], rotationDegrees: 135 }]
-} satisfies CampaignSceneStateDto
+})
 
 let nextPointerId = 1
 

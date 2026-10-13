@@ -6,7 +6,7 @@ import {
   authoredIdentifierSchema,
   authoredNestedCollectionSchema
 } from '../shared/authoredLimits.js'
-import { measurementUnitCodeSchema } from '../shared/enums.js'
+import { lengthUnitCodeSchema } from '../shared/enums.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 
 const moduleBase = lazySchemaParts(() => ({
@@ -59,7 +59,7 @@ export const actorRelationshipModuleDtoSchema = lazySchema(() =>
       ...moduleBase(),
       kind: z.literal('SOURCE_RELEASE_MOVEMENT_COST'),
       amount: z.number().check(z.positive()),
-      unit: measurementUnitCodeSchema
+      unit: lengthUnitCodeSchema
     }),
     z.object({
       ...moduleBase(),

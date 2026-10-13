@@ -75,6 +75,8 @@ export function plannedModifierGrant(input: {
   rounds?: number
   /** The holder's lifetime scope: a Character's grant outlasts the Encounter (`OWNER`). */
   lifetimeScope?: 'OWNER' | 'ENCOUNTER'
+  /** Set for a grant authored on a hit path (an attack's on-hit rider): the attack's resolved path. */
+  hitPath?: 'ON_HIT' | 'ON_CRIT'
 }) {
   const authored = input.effect ?? antitoxinVial.effects?.[0]
   if (!authored) throw new Error('The SRD Antitoxin has no effect.')
@@ -139,7 +141,21 @@ export function plannedModifierGrant(input: {
     activeEffectPlan: activeEffectPlan ?? null,
     published,
     execution,
-    d20: null,
+    d20: input.hitPath
+      ? {
+          requestId: testUuid(0xc312),
+          rollMode: 'NORMAL',
+          derivedRollMode: 'NORMAL',
+          rawFaces: [15],
+          selectedNatural: 15,
+          contributors: [],
+          contributorChecksum: 'c'.repeat(64),
+          modifier: 0,
+          total: 15,
+          defenseOrDc: 10,
+          resultPath: input.hitPath
+        }
+      : null,
     applications: []
   })
   if (!recurringEffect) throw new Error('No grant effect was planned.')

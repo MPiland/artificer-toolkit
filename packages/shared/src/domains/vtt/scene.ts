@@ -1,4 +1,4 @@
-import type { MeasurementUnitCode } from '../core/measurement.js'
+import type { LengthUnitCode } from '../core/measurement.js'
 import type {
   CombatPerceptionChannel,
   CombatPerceptionIllumination,
@@ -86,7 +86,7 @@ export interface SceneTokenSense {
 export interface SceneCharacterVision {
   characterId: string
   senses: (Omit<SceneTokenSense, 'range'> & {
-    range: { amount: number; unit: MeasurementUnitCode }
+    range: { amount: number; unit: LengthUnitCode }
   })[]
 }
 

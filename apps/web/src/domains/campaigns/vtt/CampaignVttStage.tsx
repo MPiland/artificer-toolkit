@@ -512,10 +512,6 @@ export function CampaignVttStage({
       viewerUserId
     ]
   )
-  const inspectedStatuses = inspectedTokenId
-    ? tokenPresentations?.[inspectedTokenId]?.statuses
-    : undefined
-  const inspectedLabel = scene?.tokens.find((token) => token.id === inspectedTokenId)?.label ?? ''
   const areaAim = useMemo(
     () => (aimingArea && areaShape ? { shape: areaShape } : null),
     [aimingArea, areaShape]
@@ -529,6 +525,10 @@ export function CampaignVttStage({
   const selectedSceneTokenId = scene?.tokens.some((token) => token.id === selectedTokenId)
     ? selectedTokenId
     : null
+  // Hover or focus lists a token's statuses; otherwise the selected token's are listed.
+  const listedTokenId = inspectedTokenId ?? selectedSceneTokenId
+  const listedStatuses = listedTokenId ? tokenPresentations?.[listedTokenId]?.statuses : undefined
+  const listedLabel = scene?.tokens.find((token) => token.id === listedTokenId)?.label ?? ''
   const effectiveRole = gmPreviewUserId ? 'PLAYER' : campaign.role
   const effectivePreviewTokenId =
     campaign.role === 'OWNER' && !gmPreviewUserId ? previewTokenId : null
@@ -1382,8 +1382,8 @@ export function CampaignVttStage({
               {scene.grid.kind === 'SQUARE' ? 'Square grid' : 'Gridless'}
             </span>
           </div>
-          {inspectedStatuses?.length ? (
-            <CampaignVttTokenStatusList label={inspectedLabel} statuses={inspectedStatuses} />
+          {listedStatuses?.length ? (
+            <CampaignVttTokenStatusList label={listedLabel} statuses={listedStatuses} />
           ) : null}
           {effectiveMode === 'EDIT' && tool === 'WALL' ? (
             <Text className={styles.canvasInstruction} role='status' size='xs'>

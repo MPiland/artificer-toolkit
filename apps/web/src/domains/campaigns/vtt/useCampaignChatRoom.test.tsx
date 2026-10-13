@@ -3,10 +3,12 @@ import { act, renderHook } from '@testing-library/react'
 import { getFunctionName } from 'convex/server'
 import type { ReactNode } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { api } from '@artificer-toolkit/apis/convex/api'
 import { campaignChatEntryDtoSchema } from '@artificer-toolkit/schema/api/campaignCommunication'
 import { rollHistoryEntryDtoSchema } from '@artificer-toolkit/schema/api/rolls'
 import { getCampaignLiveAuthority } from '#app/data/campaigns/queries'
 import { useCampaignChatRoom } from './useCampaignChatRoom'
+import { validated } from '../../../test/validatedFixture'
 
 const campaignId = '00000000-0000-4000-8000-000000000123'
 const nonce = '00000000-0000-4000-8000-000000000789'
@@ -24,8 +26,8 @@ const mocks = vi.hoisted(() => ({
 vi.mock('convex/react', () => ({
   useMutation: (reference: Parameters<typeof getFunctionName>[0]) =>
     ({
-      'campaigns/rolls:executePrivate': mocks.convexExecutePrivate,
-      'campaigns/rolls:reveal': mocks.convexReveal
+      [getFunctionName(api.campaigns.rolls.executePrivate)]: mocks.convexExecutePrivate,
+      [getFunctionName(api.campaigns.rolls.reveal)]: mocks.convexReveal
     })[getFunctionName(reference)] ?? vi.fn()
 }))
 
@@ -36,7 +38,7 @@ vi.mock('./useCampaignLiveSession', () => ({
   }
 }))
 
-const privateRoll = rollHistoryEntryDtoSchema.parse({
+const privateRoll = validated(rollHistoryEntryDtoSchema)({
   id: rollId,
   characterId: null,
   characterLabel: 'GM',
@@ -55,7 +57,7 @@ const privateRoll = rollHistoryEntryDtoSchema.parse({
   gmCampaignRoll: { campaignId, creature: null, revealedAt: null, noticedAt: null }
 })
 
-const chatEntry = campaignChatEntryDtoSchema.parse({
+const chatEntry = validated(campaignChatEntryDtoSchema)({
   id: '00000000-0000-4000-8000-000000000a01',
   campaignId,
   conversationId: '00000000-0000-4000-8000-000000000a02',

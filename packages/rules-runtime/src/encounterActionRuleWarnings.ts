@@ -3,7 +3,10 @@ import type {
   EncounterRuleWarningDto
 } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
 import type { evaluateEncounterActionEconomy } from './encounterActionEconomy.js'
-import { evaluateEncounterActionTargetPolicy } from './encounterActionTargetPolicy.js'
+import {
+  evaluateEncounterActionTargetPolicy,
+  withoutCreatureTypeExclusions
+} from './encounterActionTargetPolicy.js'
 
 /** The overridable warning for a stabilize (the Healer's Kit, First Aid) aimed at a creature that is not dying. */
 export const TARGET_NOT_DYING_WARNING: EncounterRuleWarningDto = {
@@ -44,14 +47,7 @@ export function evaluateEncounterActionRuleWarnings(input: {
     (targeting?.selectionKind !== 'SELF' && targeting?.excludedCreatureTypeIds) || []
   const targetWarnings = evaluateEncounterActionTargetPolicy({
     ...input.target,
-    targetPolicy: {
-      ...input.target.targetPolicy,
-      // The exclusion is a warning of its own below, not an unsupported target.
-      targeting:
-        targeting?.selectionKind === 'SELF' || !targeting
-          ? targeting
-          : { ...targeting, excludedCreatureTypeIds: [] }
-    }
+    targetPolicy: withoutCreatureTypeExclusions(input.target.targetPolicy)
   })
   if (targetWarnings === null) return { kind: 'UNSUPPORTED_TARGET' }
   const warnings: EncounterRuleWarningDto[] = [

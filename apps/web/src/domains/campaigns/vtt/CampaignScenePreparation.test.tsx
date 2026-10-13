@@ -5,6 +5,7 @@ import { useNavigate, useRouterState } from '@tanstack/react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ConvexReactClient, usePaginatedQuery } from 'convex/react'
 import { getFunctionName } from 'convex/server'
+import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
 import { finalizeVttMapUploadOutputSchema } from '@artificer-toolkit/schema/api/media'
 import { mediaSinglePutUploadSchema } from '@artificer-toolkit/schema/api/mediaAssets'
 import { sceneDefinitionHeaderSchema } from '@artificer-toolkit/schema/api/sceneDefinitionSave'
@@ -12,6 +13,7 @@ import { loadSceneDefinition, saveSceneDefinition } from '#app/data/campaigns/sc
 import { TestRouterProvider } from '#test/TestRouterProvider'
 import { tabletopSceneDefinition, tabletopMapDelivery } from './CampaignTabletop.stories.fixtures'
 import { CampaignScenePreparation } from './CampaignScenePreparation'
+import { validated } from '../../../test/validatedFixture'
 
 vi.mock('convex/react', async (importOriginal) => ({
   ...(await importOriginal<typeof import('convex/react')>()),
@@ -23,7 +25,7 @@ vi.mock('#app/data/campaigns/scenes', () => ({
 }))
 const { annotations, barriers, darknessZones, lights, tokens, ...sceneSettings } =
   tabletopSceneDefinition
-const sceneHeader = sceneDefinitionHeaderSchema.parse({
+const sceneHeader = validated(sceneDefinitionHeaderSchema)({
   ...sceneSettings,
   saveId: '99999999-9999-4999-8999-999999999999',
   counts: {
@@ -118,7 +120,7 @@ describe('CampaignScenePreparation unsaved navigation', () => {
     vi.mocked(saveSceneDefinition).mockResolvedValue(tabletopSceneDefinition)
     const client = new ConvexReactClient('https://unit-test.convex.cloud', { logger: false })
     const createUpload = vi.spyOn(client, 'mutation').mockResolvedValue(
-      mediaSinglePutUploadSchema.parse({
+      validated(mediaSinglePutUploadSchema)({
         assetId: tabletopMapDelivery.assetId,
         method: 'PUT',
         url: 'https://storage.example/map',
@@ -127,14 +129,14 @@ describe('CampaignScenePreparation unsaved navigation', () => {
     )
     let finalizations = 0
     const action = vi.spyOn(client, 'action').mockImplementation(async (...[reference]) => {
-      if (getFunctionName(reference) === 'media/vttMapActions:finalize') {
+      if (getFunctionName(reference) === getFunctionName(convexApi.media.vttMapActions.finalize)) {
         if (++finalizations === 1) throw new Error('Try finalization again.')
-        return finalizeVttMapUploadOutputSchema.parse({
+        return validated(finalizeVttMapUploadOutputSchema)({
           assetId: tabletopMapDelivery.assetId,
           status: 'READY'
         })
       }
-      if (getFunctionName(reference) === 'media/vttMapActions:getDelivery')
+      if (getFunctionName(reference) === getFunctionName(convexApi.media.vttMapActions.getDelivery))
         return tabletopMapDelivery
       throw new Error('Unexpected action')
     })

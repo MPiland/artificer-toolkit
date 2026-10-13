@@ -1,15 +1,17 @@
 import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeAll, describe, expect, it, vi } from 'vitest'
-import type {
-  EncounterCommandResultDto,
-  EncounterEvidenceRollDto
+import {
+  encounterCommandResultDtoSchema,
+  type EncounterCommandResultDto,
+  type EncounterEvidenceRollDto
 } from '@artificer-toolkit/schema/api/encounters'
 import {
   pendingEncounterRuleOccurrenceSummaryDtoSchema,
   type PendingEncounterRuleOccurrenceSummaryDto
 } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
+import { validated } from '../../../test/validatedFixture'
 import { CampaignTabletopDecisionDrawer } from './CampaignTabletopDecisionDrawer'
 import { tabletopGmEncounter } from './CampaignTabletop.stories.fixtures'
 
@@ -28,7 +30,7 @@ beforeAll(() => {
 })
 
 const occurrenceId = '77777777-7777-4777-8777-777777777790'
-const pending = {
+const pending = validated(pendingEncounterRuleOccurrenceSummaryDtoSchema)({
   kind: 'INITIATIVE_DECLARATION',
   occurrenceId,
   occurrenceVersion: 2,
@@ -53,9 +55,9 @@ const pending = {
   ],
   adjudicationFields: [],
   allowedResponses: ['INITIATIVE_DECLARATION']
-} satisfies PendingEncounterRuleOccurrenceSummaryDto
+})
 
-const adjudicatedPending = {
+const adjudicatedPending = validated(pendingEncounterRuleOccurrenceSummaryDtoSchema)({
   ...pending,
   primaryOptions: [
     {
@@ -94,9 +96,9 @@ const adjudicatedPending = {
       maximum: 12
     }
   ]
-} satisfies PendingEncounterRuleOccurrenceSummaryDto
+})
 
-const actionOutcomePending = {
+const actionOutcomePending = validated(pendingEncounterRuleOccurrenceSummaryDtoSchema)({
   kind: 'ACTION_OUTCOME_EVIDENCE',
   occurrenceId,
   occurrenceVersion: 2,
@@ -104,9 +106,9 @@ const actionOutcomePending = {
   rollerActorId: null,
   request: { requestId: 'action-outcome', min: 0, max: 10 },
   allowedResponses: ['ENTER_INTEGER', 'SYSTEM_ROLL']
-} satisfies PendingEncounterRuleOccurrenceSummaryDto
+})
 
-const passagePending = {
+const passagePending = validated(pendingEncounterRuleOccurrenceSummaryDtoSchema)({
   kind: 'MOVEMENT_PASSAGE_CHOICE',
   occurrenceId,
   occurrenceVersion: 2,
@@ -117,9 +119,9 @@ const passagePending = {
     { optionId: 'b'.repeat(64), ruleKind: 'TUMBLE' as const, economy: 'BONUS_ACTION' as const }
   ],
   allowedResponses: ['DECLINE', 'OPTION']
-} satisfies PendingEncounterRuleOccurrenceSummaryDto
+})
 
-const d20Pending = {
+const d20Pending = validated(pendingEncounterRuleOccurrenceSummaryDtoSchema)({
   kind: 'D20_EVIDENCE',
   occurrenceId,
   occurrenceVersion: 3,
@@ -133,9 +135,9 @@ const d20Pending = {
     derivedRollModeReasons: []
   },
   allowedResponses: ['ENTER_DICE', 'SYSTEM_ROLL']
-} satisfies PendingEncounterRuleOccurrenceSummaryDto
+})
 
-const legendaryPending = {
+const legendaryPending = validated(pendingEncounterRuleOccurrenceSummaryDtoSchema)({
   kind: 'LEGENDARY_ACTION_CHOICE',
   occurrenceId,
   occurrenceVersion: 4,
@@ -161,9 +163,9 @@ const legendaryPending = {
     }
   ],
   allowedResponses: ['DECLINE', 'LEGENDARY_OPTION']
-} satisfies PendingEncounterRuleOccurrenceSummaryDto
+})
 
-const cleavingPending = {
+const cleavingPending = validated(pendingEncounterRuleOccurrenceSummaryDtoSchema)({
   kind: 'OPTIONAL_COMBAT_CLEAVING',
   occurrenceId,
   occurrenceVersion: 5,
@@ -171,10 +173,10 @@ const cleavingPending = {
   sourceActorId: tabletopGmEncounter.actors[0]!.id,
   options: [{ optionId: 'd'.repeat(64), targetActorId: tabletopGmEncounter.actors[1]!.id }],
   allowedResponses: ['DECLINE', 'OPTION']
-} satisfies PendingEncounterRuleOccurrenceSummaryDto
+})
 
 function resolved(occurrenceVersion = 3): EncounterCommandResultDto {
-  return {
+  return validated(encounterCommandResultDtoSchema)({
     projection: tabletopGmEncounter,
     roll: null,
     occurrence: {
@@ -184,7 +186,7 @@ function resolved(occurrenceVersion = 3): EncounterCommandResultDto {
       pending: null
     },
     evidenceRoll: null
-  }
+  })
 }
 
 describe('CampaignTabletopDecisionDrawer initiative declaration', () => {
@@ -622,7 +624,7 @@ describe('CampaignTabletopDecisionDrawer Legendary and Cleaving choices', () => 
 })
 
 describe('CampaignTabletopDecisionDrawer roll rows', () => {
-  const advantagePending = {
+  const advantagePending = validated(pendingEncounterRuleOccurrenceSummaryDtoSchema)({
     ...d20Pending,
     rollerActorId: tabletopGmEncounter.actors[1]!.id,
     request: {
@@ -630,7 +632,7 @@ describe('CampaignTabletopDecisionDrawer roll rows', () => {
       rollMode: 'ADVANTAGE' as const,
       derivedRollModeReasons: ['Flanking', 'Reckless Attack']
     }
-  } satisfies PendingEncounterRuleOccurrenceSummaryDto
+  })
 
   function appRoll(attempt: number, faces: number[]): EncounterEvidenceRollDto {
     return {
@@ -810,7 +812,7 @@ describe('CampaignTabletopDecisionDrawer roll rows', () => {
   it('asks for one more d20 beside the held die and submits only the new face', async () => {
     const user = userEvent.setup()
     const onResolve = rollingResolver([])
-    const heldPending = pendingEncounterRuleOccurrenceSummaryDtoSchema.parse({
+    const heldPending = validated(pendingEncounterRuleOccurrenceSummaryDtoSchema)({
       ...d20Pending,
       request: {
         ...d20Pending.request,
@@ -861,7 +863,8 @@ describe('CampaignTabletopDecisionDrawer area saves', () => {
     rollMode: 'NORMAL' as const,
     derivedRollModeReasons: []
   })
-  const areaBase = {
+  // Not a contract-valid summary alone (no save, choice or caught creature); every derived area is parsed in openArea.
+  const areaBase: Extract<PendingEncounterRuleOccurrenceSummaryDto, { kind: 'AREA_SAVES' }> = {
     kind: 'AREA_SAVES',
     occurrenceId,
     occurrenceVersion: 6,
@@ -872,8 +875,8 @@ describe('CampaignTabletopDecisionDrawer area saves', () => {
     saves: [],
     legendaryResistance: [],
     allowedResponses: ['ENTER_DICE', 'SYSTEM_ROLL', 'AREA_LEGENDARY_RESISTANCE']
-  } satisfies PendingEncounterRuleOccurrenceSummaryDto
-  const gmArea = {
+  }
+  const gmArea = validated(pendingEncounterRuleOccurrenceSummaryDtoSchema)({
     ...areaBase,
     caughtChecksum: 'e'.repeat(64),
     caught: ['Ember', 'Vault Warden', 'Phantom Wolf'],
@@ -881,7 +884,7 @@ describe('CampaignTabletopDecisionDrawer area saves', () => {
       { actorId: ember!.id, request: saveRequest('save-ember') },
       { actorId: warden!.id, request: saveRequest('save-warden') }
     ]
-  } satisfies PendingEncounterRuleOccurrenceSummaryDto
+  })
 
   async function openArea(
     area: PendingEncounterRuleOccurrenceSummaryDto,
@@ -898,7 +901,7 @@ describe('CampaignTabletopDecisionDrawer area saves', () => {
         connected
         encounter={tabletopGmEncounter}
         latestRoll={null}
-        pending={area}
+        pending={pendingEncounterRuleOccurrenceSummaryDtoSchema.parse(area)}
         submitting={false}
         onResolve={options.onResolve}
       />

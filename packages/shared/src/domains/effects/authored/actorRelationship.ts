@@ -1,7 +1,7 @@
 import type { DamageAuthored } from './damage.js'
 import type { ConditionAuthored } from './condition.js'
 import type { ActivationAuthored } from './effect.js'
-import { EFFECT_KIND, type MeasurementUnitCode } from '#core'
+import { EFFECT_KIND, type LengthUnitCode } from '#core'
 
 /** The checks a creature may choose from: any listed skill check or ability check (D105). */
 export type CheckChoiceAuthored = { skillIds: string[]; abilityDefinitionIds: string[] }
@@ -27,7 +27,7 @@ export type ActorRelationshipModuleAuthored =
       order: number
       kind: 'SOURCE_RELEASE_MOVEMENT_COST'
       amount: number
-      unit: MeasurementUnitCode
+      unit: LengthUnitCode
     }
   | {
       id: string

@@ -23,11 +23,12 @@ import {
   sceneFogPatchInputSchema,
   type SceneFogPatchInput
 } from '@artificer-toolkit/schema/api/sceneFog'
-import type {
-  LiveSessionRecipientStateDto,
-  LiveSessionWebSocketServerMessageDto
+import {
+  liveSessionWebSocketClientMessageDtoSchema,
+  liveSessionRecipientStateDtoSchema,
+  liveSessionWebSocketServerMessageDtoSchema,
+  type LiveSessionRecipientStateDto
 } from '@artificer-toolkit/schema/api/liveSessions'
-import { liveSessionWebSocketClientMessageDtoSchema } from '@artificer-toolkit/schema/api/liveSessions'
 import {
   sceneEncounterBindingSchema,
   sceneRecipientHeaderSchema,
@@ -37,11 +38,13 @@ import {
   sceneRecipientPageSchema
 } from '@artificer-toolkit/schema/api/sceneRecipient'
 import {
+  campaignSceneShowingDtoSchema,
   type CampaignSceneShowingDto,
   type CampaignSceneStateDto,
   setCampaignLiveScenePresentationInputDtoSchema,
   setCampaignLiveScenePresentationResultDtoSchema
 } from '@artificer-toolkit/schema/api/vttScenes'
+import { validated } from '../../../test/validatedFixture'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { projectSceneForViewer } from '@artificer-toolkit/shared/vtt'
 import { getCampaignDetail } from '#app/data/campaigns/queries'
@@ -74,11 +77,11 @@ const fogBegin = fn()
 const fogAppend = fn()
 const storyFogSaveId = '77777777-7777-4777-8777-777777777799'
 const showScene = fn()
-const shownScene = {
+const shownScene = validated(campaignSceneShowingDtoSchema)({
   sceneId: '77777777-7777-4777-8777-777777777798',
   sceneName: 'The Ashen Stair',
   shownAt: '2099-08-15T20:00:00.000Z'
-} satisfies CampaignSceneShowingDto
+})
 const meta = {
   component: CampaignTabletopWindow,
   beforeEach({ msw }) {
@@ -477,6 +480,117 @@ export const SelectingATokenOutlinesIt: Story = {
   }
 }
 
+// VTT_UI-1.2: the selected token lists every status until the selection clears.
+export const SelectingATokenListsItsStatuses: Story = {
+  args: {
+    campaignId: tabletopCampaignId,
+    currentUserId: tabletopCurrentUserId
+  },
+  render: (args) =>
+    renderWindow(args, createTabletopCampaign('PLAYER'), null, presentedTokensFixtures),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body)
+    await page.findByText('Scene map ready.', undefined, { timeout: mapReadyTimeoutMs })
+    const stage = page.getByRole('img', { name: 'Interactive campaign scene' })
+    const renderer = await latestStageRenderer()
+    const { presentation, wardenToken } = wardenPresentationFor(
+      'PLAYER',
+      presentedTokensFixtures.playerEncounter
+    )
+    await expect(presentation.statuses.length).toBeGreaterThan(0)
+    const statusList = () => page.queryByRole('region', { name: `${wardenToken.label} statuses` })
+
+    renderer.focusPoint(wardenToken.position)
+    await pressStage(stage, 'centre')
+    const list = await page.findByRole('region', { name: `${wardenToken.label} statuses` })
+    for (const status of presentation.statuses) {
+      await expect(within(list).getByText(status.label)).toBeVisible()
+    }
+
+    await pressStage(stage, 'corner')
+    await waitFor(() => expect(statusList()).toBeNull())
+  }
+}
+
+// VTT_UI-1.2: pointing at a token's Focus item in the Scene controls lists every status.
+export const HoveringAFocusItemListsEveryStatus: Story = {
+  args: {
+    campaignId: tabletopCampaignId,
+    currentUserId: tabletopCurrentUserId
+  },
+  render: (args) =>
+    renderWindow(args, createTabletopCampaign('OWNER'), null, presentedTokensFixtures),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body)
+    await page.findByText('Scene map ready.', undefined, { timeout: mapReadyTimeoutMs })
+    const { presentation, wardenToken } = wardenPresentationFor(
+      'OWNER',
+      presentedTokensFixtures.gmEncounter
+    )
+    await expect(presentation.statuses.length).toBeGreaterThan(0)
+    await userEvent.click(await page.findByRole('button', { name: 'Scene controls' }))
+    const sceneControls = await page.findByRole('menu', { name: 'Scene controls' })
+    const focusItem = await within(sceneControls).findByRole('menuitem', {
+      name: `Focus ${wardenToken.label}`
+    })
+    await userEvent.hover(focusItem)
+    const list = await page.findByRole('region', { name: `${wardenToken.label} statuses` })
+    for (const status of presentation.statuses) {
+      await expect(within(list).getByText(status.label)).toBeVisible()
+    }
+    await userEvent.unhover(focusItem)
+    await waitFor(() =>
+      expect(page.queryByRole('region', { name: `${wardenToken.label} statuses` })).toBeNull()
+    )
+  }
+}
+
+// VTT_UI-1.2: pointing at another token lists its statuses over the selected token's; leaving it
+// lists the selected token's again.
+export const HoveringATokenListsItOverTheSelection: Story = {
+  args: {
+    campaignId: tabletopCampaignId,
+    currentUserId: tabletopCurrentUserId
+  },
+  render: (args) => renderWindow(args, createTabletopCampaign('OWNER'), null, sentryFixtures),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body)
+    await page.findByText('Scene map ready.', undefined, { timeout: mapReadyTimeoutMs })
+    const stage = page.getByRole('img', { name: 'Interactive campaign scene' })
+    const renderer = await latestStageRenderer()
+    const { wardenToken } = wardenPresentationFor('OWNER', sentryFixtures.gmEncounter)
+    const sentryToken = sentryFixtures.liveScene.tokens.find((token) => token.id === sentryTokenId)!
+    const statusList = (label: string) => page.queryByRole('region', { name: `${label} statuses` })
+
+    renderer.focusPoint(wardenToken.position)
+    await pressStage(stage, 'centre')
+    await expect(
+      within(await page.findByRole('region', { name: `${wardenToken.label} statuses` })).getByText(
+        'Poisoned'
+      )
+    ).toBeVisible()
+
+    await userEvent.click(await page.findByRole('button', { name: 'Scene controls' }))
+    const sceneControls = await page.findByRole('menu', { name: 'Scene controls' })
+    const sentryFocus = await within(sceneControls).findByRole('menuitem', {
+      name: `Focus ${sentryToken.label}`
+    })
+    await userEvent.hover(sentryFocus)
+    const sentryList = await page.findByRole('region', { name: `${sentryToken.label} statuses` })
+    await expect(within(sentryList).getByText('Prone')).toBeVisible()
+    await expect(statusList(wardenToken.label)).toBeNull()
+
+    await userEvent.unhover(sentryFocus)
+    await waitFor(() => expect(statusList(sentryToken.label)).toBeNull())
+    const wardenList = await page.findByRole('region', { name: `${wardenToken.label} statuses` })
+    await expect(within(wardenList).getByText('Poisoned')).toBeVisible()
+    // Close the menu: with three tokens it scrolls in the test viewport, and that scroll is not yet
+    // keyboard-reachable (VTT_UI-4.2 tracks it).
+    await userEvent.keyboard('{Escape}')
+    await waitFor(() => expect(page.queryByRole('menu', { name: 'Scene controls' })).toBeNull())
+  }
+}
+
 export const GmPreviewsATokenView: Story = {
   args: {
     campaignId: tabletopCampaignId,
@@ -698,6 +812,39 @@ const presentedTokensFixtures: TabletopFixtures = {
   }
 }
 
+// A second bound creature, the prone Sentry, so pointing at it lists statuses distinct from the
+// selected Warden's.
+const wardenActor = presentedTokensFixtures.gmEncounter.actors[1]!
+const wardenSceneToken = presentedTokensFixtures.liveScene.tokens[1]!
+const sentryTokenId = '77777777-7777-4777-8777-777777777710'
+const sentryFixtures: TabletopFixtures = {
+  ...presentedTokensFixtures,
+  gmEncounter: {
+    ...presentedTokensFixtures.gmEncounter,
+    actors: [
+      ...presentedTokensFixtures.gmEncounter.actors,
+      {
+        ...wardenActor,
+        conditions: [{ id: 'prone', kind: 'CONDITION', label: 'Prone' }],
+        id: '99999999-9999-4999-8999-999999999903',
+        label: 'Vault Sentry'
+      }
+    ]
+  },
+  liveScene: {
+    ...presentedTokensFixtures.liveScene,
+    tokens: [
+      ...presentedTokensFixtures.liveScene.tokens,
+      {
+        ...wardenSceneToken,
+        id: sentryTokenId,
+        label: 'Vault Sentry',
+        position: { x: 700, y: 300 }
+      }
+    ]
+  }
+}
+
 // The Warden sees in a darkened Scene, so previewing its view is distinguishable from the GM's.
 const previewFixtures: TabletopFixtures = {
   ...presentedTokensFixtures,
@@ -744,9 +891,12 @@ function renderWindow(
     queryFn: async () => campaign
   })
   // This Scene fixture has no Character Sheet action data.
-  queryClient.setQueryDefaults(['convexQuery', 'characters/sheetSlices:get'], {
-    queryFn: async () => null
-  })
+  queryClient.setQueryDefaults(
+    ['convexQuery', getFunctionName(convexApi.characters.sheetSlices.get)],
+    {
+      queryFn: async () => null
+    }
+  )
   queryClient.setQueryData(getCampaignDetail(tabletopCampaignId).queryKey, campaign)
   const encounter = campaign.role === 'OWNER' ? fixtures.gmEncounter : fixtures.playerEncounter
   const scene = projectScene(campaign.role, fixtures.liveScene)
@@ -769,7 +919,7 @@ function renderWindow(
     roll: null,
     occurrence: null
   })
-  const sceneBinding = sceneEncounterBindingSchema.parse({
+  const sceneBinding = validated(sceneEncounterBindingSchema)({
     encounterId: encounter.id,
     encounterVersion: encounter.version,
     sceneId: scene.id
@@ -869,7 +1019,7 @@ function renderWindow(
         const start = input.paginationOpts.cursor === null ? 0 : Number(input.paginationOpts.cursor)
         const page = scene.fogLayers.slice(start, start + input.paginationOpts.numItems)
         const next = start + page.length
-        return sceneFogLayersPageSchema.parse({
+        return validated(sceneFogLayersPageSchema)({
           version: scene.version,
           page: page.map((layer, ordinal) => ({
             ownerUserId: layer.ownerUserId,
@@ -892,7 +1042,7 @@ function renderWindow(
         if (!layer) throw new Error('Story fixture fog layer was not found.')
         const page = layer.chunks.slice(input.offset, input.offset + input.numItems)
         const nextOffset = input.offset + page.length
-        return sceneFogChunksPageSchema.parse({
+        return validated(sceneFogChunksPageSchema)({
           version: scene.version,
           ownerUserId: layer.ownerUserId,
           width: layer.width,
@@ -924,7 +1074,7 @@ function renderWindow(
         return null
       if (name === getFunctionName(convexApi.scenes.presentations.setLive)) {
         const input = setCampaignLiveScenePresentationInputDtoSchema.parse(args)
-        return setCampaignLiveScenePresentationResultDtoSchema.parse({
+        return validated(setCampaignLiveScenePresentationResultDtoSchema)({
           commandId: input.commandId,
           replayed: false,
           campaignId: input.campaignId,
@@ -947,7 +1097,7 @@ function renderWindow(
           throw new Error('Story fixture Encounter binding continuation was not found.')
         const pageTokens = scene.tokens.slice(start, start + input.numItems)
         const next = start + pageTokens.length
-        return sceneRecipientEncounterBindingsPageSchema.parse({
+        return validated(sceneRecipientEncounterBindingsPageSchema)({
           ...sceneBinding,
           page: pageTokens.flatMap((token) => {
             const binding = nativeActorTokenBindings.find(
@@ -1003,11 +1153,11 @@ function renderWindow(
   fogBegin.mockReset()
   fogAppend.mockReset()
 
-  const recipientState: LiveSessionRecipientStateDto = {
+  const recipientState = validated(liveSessionRecipientStateDtoSchema)({
     presentationVersion,
     recipientRole: campaign.role,
     scene
-  }
+  })
   liveCommand.mockReset()
   return (
     <StoryLiveSessionTransport encounterResult={encounterResult} state={recipientState}>
@@ -1048,7 +1198,7 @@ function recipientHeader(scene: ReturnType<typeof projectScene>) {
     tokens: _tokens,
     ...header
   } = scene
-  return sceneRecipientHeaderSchema.parse({ ...header, recipientRevision })
+  return validated(sceneRecipientHeaderSchema)({ ...header, recipientRevision })
 }
 
 function StoryConvexFixture({
@@ -1081,16 +1231,16 @@ function StoryLiveSessionTransport({
 
   useEffect(() => {
     const originalWebSocket = globalThis.WebSocket
-    const readyMessage = {
+    const readyMessage = validated(liveSessionWebSocketServerMessageDtoSchema)({
       campaignId: tabletopCampaignId,
       type: 'TRANSIENT_READY'
-    } satisfies LiveSessionWebSocketServerMessageDto
-    const stateSyncMessage = {
+    })
+    const stateSyncMessage = validated(liveSessionWebSocketServerMessageDtoSchema)({
       authorityEpoch: crypto.randomUUID(),
       sequence: 1,
       state,
       type: 'STATE_SYNC'
-    } satisfies LiveSessionWebSocketServerMessageDto
+    })
     let fogInput: SceneFogPatchInput | null = null
     class StoryWebSocket extends EventTarget {
       readyState = 0
@@ -1100,11 +1250,13 @@ function StoryLiveSessionTransport({
         pushStoryScene = (scene) =>
           this.dispatchEvent(
             new MessageEvent('message', {
-              data: JSON.stringify({
-                ...stateSyncMessage,
-                sequence: stateSyncMessage.sequence + 1,
-                state: { ...state, scene }
-              } satisfies LiveSessionWebSocketServerMessageDto)
+              data: JSON.stringify(
+                validated(liveSessionWebSocketServerMessageDtoSchema)({
+                  ...stateSyncMessage,
+                  sequence: stateSyncMessage.sequence + 1,
+                  state: { ...state, scene }
+                })
+              )
             })
           )
         queueMicrotask(() => {
@@ -1133,7 +1285,7 @@ function StoryLiveSessionTransport({
               throw new Error('Unexpected story fog append.')
           }
           if (!fogInput) throw new Error('Story fog append arrived before its begin.')
-          const progress = {
+          const progress = validated(liveSessionWebSocketServerMessageDtoSchema)({
             progress: {
               commandId: fogInput.commandId,
               receivedChunks:
@@ -1146,25 +1298,25 @@ function StoryLiveSessionTransport({
               totalChunks: fogInput.chunkManifest.length
             },
             type: 'SCENE_FOG_PROGRESS'
-          } satisfies LiveSessionWebSocketServerMessageDto
+          })
           this.dispatchEvent(new MessageEvent('message', { data: JSON.stringify(progress) }))
         }
         if (message.type === 'COMMAND') {
           liveCommand(message)
           // The room acknowledges an Encounter command to its initiator, which settles the command.
           if (message.command.scope === 'ENCOUNTER') {
-            const committed = {
+            const committed = validated(liveSessionWebSocketServerMessageDtoSchema)({
               commandId: message.command.command.commandId,
               delta: { scope: 'ENCOUNTER', result: encounterResult },
               sequence: message.expectedSessionSequence,
               type: 'COMMAND_COMMITTED'
-            } satisfies LiveSessionWebSocketServerMessageDto
+            })
             this.dispatchEvent(new MessageEvent('message', { data: JSON.stringify(committed) }))
           }
           // The GM binds an Encounter to the presented Scene through the room (D47).
           if (message.command.scope === 'ENCOUNTER_BINDING' && state.scene) {
             const { command } = message.command
-            const committed = {
+            const committed = validated(liveSessionWebSocketServerMessageDtoSchema)({
               commandId: command.commandId,
               delta: {
                 scope: 'ENCOUNTER_BINDING',
@@ -1177,7 +1329,7 @@ function StoryLiveSessionTransport({
               },
               sequence: message.expectedSessionSequence + 1,
               type: 'COMMAND_COMMITTED'
-            } satisfies LiveSessionWebSocketServerMessageDto
+            })
             this.dispatchEvent(new MessageEvent('message', { data: JSON.stringify(committed) }))
           }
         }

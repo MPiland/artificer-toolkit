@@ -1,5 +1,5 @@
 import type { ShapeAuthored } from '#authored'
-import { MEASUREMENT_UNIT_OPTIONS, SHAPE_KIND_OPTIONS, type ShapeMeasurementAuthored } from '#core'
+import { LENGTH_UNIT_OPTIONS, SHAPE_KIND_OPTIONS, type ShapeMeasurementAuthored } from '#core'
 import { buildNodeMap } from '#utils'
 import { MEASUREMENT_NODE_MAP } from './measurement.js'
 import { createBreakpointScalingNodeMap } from './scaling.js'
@@ -29,7 +29,7 @@ export const SHAPE_MEASUREMENT_NODE_MAP = shapeMeasurement.define(
         'unit',
         selectSingle(['unit'], 'Unit', {
           kind: 'INLINE_OPTIONS',
-          options: MEASUREMENT_UNIT_OPTIONS
+          options: LENGTH_UNIT_OPTIONS
         })
       )
       .set(

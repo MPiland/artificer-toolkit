@@ -447,7 +447,7 @@ describe('VTT scene replay and projection', () => {
     const state = materializeCampaignScene(definition(), ids.scene)
     state.grid = { kind: 'GRIDLESS', pixelsPerUnit: 5, unit: 'METERS' }
     const bindings = [{ actorId: ids.user, characterId: ids.player, tokenId: ids.token }]
-    const sense = (range: { amount: number; unit: 'FEET' | 'CUPS' }) => ({
+    const sense = (range: { amount: number; unit: 'FEET' }) => ({
       ...pinnedDarkvision,
       range
     })
@@ -457,9 +457,8 @@ describe('VTT scene replay and projection', () => {
       ]).tokens[0]?.senses
 
     expect(resolve({ amount: 60, unit: 'FEET' })?.[0]?.range).toBeCloseTo(18.288)
-    expect(resolve({ amount: 12, unit: 'CUPS' })).toEqual([])
     expect(resolve({ amount: 0, unit: 'FEET' })).toEqual([])
-    expect(resolve({ amount: 12, unit: 'CUPS' }, { amount: 30, unit: 'FEET' })).toHaveLength(1)
+    expect(resolve({ amount: 0, unit: 'FEET' }, { amount: 30, unit: 'FEET' })).toHaveLength(1)
 
     state.grid = { kind: 'GRIDLESS', pixelsPerUnit: 1, unit: 'SQUARES' }
     expect(resolve({ amount: 60, unit: 'FEET' })).toEqual([])

@@ -1,6 +1,6 @@
 import { z, lazySchema } from '../zod.js'
 
-import { measurementUnitCodeSchema, sizeCodeSchema } from '../shared/enums.js'
+import { lengthUnitCodeSchema, sizeCodeSchema } from '../shared/enums.js'
 import { authoredIdentifierSchema } from '../shared/authoredLimits.js'
 
 export const plantPortalDtoSchema = lazySchema(() =>
@@ -13,7 +13,7 @@ export const plantPortalDtoSchema = lazySchema(() =>
     destinationMustBeSeenOrTouched: z.boolean(),
     movementCost: z.object({
       amount: z.number().check(z.positive()),
-      unit: measurementUnitCodeSchema
+      unit: lengthUnitCodeSchema
     })
   })
 )

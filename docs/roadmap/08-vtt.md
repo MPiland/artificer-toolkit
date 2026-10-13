@@ -95,7 +95,7 @@ Scene movement and its derived fog chunks commit atomically as one versioned bat
 
 Before public web beta, test representative desktop, tablet, and mobile-class browser hardware:
 
-- One 8K map with 100 tokens and representative walls, lights, darkness, and fog.
+- One 8000 px square map (the largest the 64 MP `mapPixels` limit allows; 8192 px squared exceeds it) with 100 tokens and representative walls, lights, darkness, and fog.
 - Pan, zoom, token drag, measurement, fog, and player-view preview.
 - At least 45 sustained frames per second during the defined stress journey.
 - No gesture stall longer than 100 ms.
