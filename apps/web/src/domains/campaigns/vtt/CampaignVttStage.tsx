@@ -1506,6 +1506,7 @@ function SceneObjectMenu({
         position='bottom-end'
         shadow='none'
         width={260}
+        menuItemTabIndex={0}
         withInitialFocusPlaceholder={false}
       >
         <Menu.Target>

@@ -11,6 +11,7 @@ import { pendingEncounterRuleOccurrenceSummaryDtoSchema } from '@artificer-toolk
 import { validated } from '../../../test/validatedFixture'
 import { CampaignTabletopDecisionDrawer } from './CampaignTabletopDecisionDrawer'
 import { tabletopGmEncounter } from './CampaignTabletop.stories.fixtures'
+import { reachByKeyboard } from './CampaignTabletop.stories.keyboard'
 
 const occurrenceId = '77777777-7777-4777-8777-777777777790'
 const resolveDecision = fn()
@@ -359,20 +360,49 @@ export const KeyboardConflict: Story = {
   },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body)
-    const trigger = await page.findByRole('button', { name: 'Open pending decision' })
-    trigger.focus()
-    await expect(trigger).toHaveFocus()
-    await userEvent.keyboard('{Enter}')
-    const dialog = await page.findByRole('dialog', { name: 'Pending decision' })
-    await waitFor(() => expect(dialog).toBeVisible())
-    await waitFor(() => expect(getComputedStyle(dialog).opacity).toBe('1'))
-    await waitFor(() => expect(dialog.getAnimations()).toHaveLength(0))
-    const drawer = within(dialog)
+    const drawer = await openDecisionByKeyboard(page)
     await userEvent.click(drawer.getByRole('button', { name: 'Roll dice' }))
     await expect(
       await drawer.findByText('This decision changed before it could be resolved.')
     ).toBeVisible()
   }
+}
+
+// VTT_UI-4.2: an evidence roll is rolled, announced and submitted with the keyboard alone.
+export const KeyboardOnlyEvidenceRoll: Story = {
+  args: { pending: initiativePending },
+  play: async ({ canvasElement }) => {
+    resolveDecision.mockClear()
+    const page = within(canvasElement.ownerDocument.body)
+    const drawer = await openDecisionByKeyboard(page)
+    await reachByKeyboard(drawer.getByRole('button', { name: 'Roll dice' }), () => userEvent.tab())
+    await userEvent.keyboard('{Enter}')
+    await waitFor(() => expect(resolveDecision).toHaveBeenCalledTimes(1))
+    const announcement = await drawer.findByText('Rolled by the app · attempt 1')
+    await expect(announcement).toHaveAttribute('aria-live', 'polite')
+    await reachByKeyboard(drawer.getByRole('button', { name: 'Submit roll' }), () =>
+      userEvent.tab()
+    )
+    await userEvent.keyboard(' ')
+    await waitFor(() => expect(resolveDecision).toHaveBeenCalledTimes(2))
+    await expect(resolveDecision).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        resolution: { kind: 'SYSTEM_ROLL', requestId: 'initiative-roll', rollId: appRollId }
+      })
+    )
+    await expect(await drawer.findByText('Decision resolved.')).toBeVisible()
+  }
+}
+
+async function openDecisionByKeyboard(page: ReturnType<typeof within>) {
+  const trigger = await page.findByRole('button', { name: 'Open pending decision' })
+  await reachByKeyboard(trigger, () => userEvent.tab())
+  await userEvent.keyboard('{Enter}')
+  const dialog = await page.findByRole('dialog', { name: 'Pending decision' })
+  await waitFor(() => expect(dialog).toBeVisible())
+  await waitFor(() => expect(getComputedStyle(dialog).opacity).toBe('1'))
+  await waitFor(() => expect(dialog.getAnimations()).toHaveLength(0))
+  return within(dialog)
 }
 
 async function openDecision(page: ReturnType<typeof within>) {

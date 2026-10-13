@@ -6884,10 +6884,10 @@
             },
             {
               "text": "Evidence, conflicts, keyboard navigation, screen-reader output and selectors are covered by tests.",
-              "status": "TODO",
-              "proof": [],
+              "status": "IN_PROGRESS",
+              "proof": ["apps/web/src/domains/campaigns/vtt/CampaignTabletopWindow.stories.tsx › KeyboardOnlyTabletopJourney", "apps/web/src/domains/campaigns/vtt/CampaignTabletopWindow.stories.tsx › KeyboardMoveRejectedAsStaleIsAnnounced", "apps/web/src/domains/campaigns/vtt/CampaignTabletopWindow.stories.tsx › HoveringATokenListsItOverTheSelection", "apps/web/src/domains/campaigns/vtt/CampaignTabletopDecisionDrawer.stories.tsx › KeyboardOnlyEvidenceRoll", "apps/web/src/domains/campaigns/vtt/CampaignTabletopDecisionDrawer.stories.tsx › KeyboardConflict"],
               "origin": ["G3-EVIDENCE-A11Y"],
-              "note": "Original PARTIAL: keyboard, screen-reader and selector coverage has no 8.2 criterion. Found 2026-10-13: the Scene controls menu scrolls once its token list outgrows the viewport, and axe reports scrollable-region-focusable (Mantine keeps the dropdown and items at tabindex -1); reproduce with HoveringATokenListsItOverTheSelection left open with three tokens.",
+              "note": "Original PARTIAL: keyboard, screen-reader and selector coverage has no 8.2 criterion. Found 2026-10-13: the Scene controls menu scrolls once its token list outgrows the viewport, and axe reports scrollable-region-focusable (Mantine keeps the dropdown and items at tabindex -1); reproduce with HoveringATokenListsItOverTheSelection left open with three tokens. Lane 3, completed 2026-10-13, awaiting integration-owner acceptance. Fixed red first: the Scene object menu sets Mantine's menuItemTabIndex={0}, so its items are focusable and axe passes with three tokens (red vtt-ui-4.2-menu-red.log); Tab now moves between menu items. Keyboard-only journeys reach every control by pressing keys until it holds focus (reachByKeyboard), selected by role and accessible name: the map's role=img with its Visible tokens description, Scene controls Focus zooming in and returning focus, a keyboard move sending MOVE_SCENE_TOKEN with its measurement announced, a ping announced, a STALE_STATE rejection shown as an alert, and the decision drawer's evidence roll announced politely with its SYSTEM_ROLL resolution; KeyboardConflict covers the conflicting decision. Red for the journey: vtt-ui-4.2-journey-red.log; green vtt-ui-4.2-final.log.",
               "id": "VTT_UI-4.2"
             }
           ]

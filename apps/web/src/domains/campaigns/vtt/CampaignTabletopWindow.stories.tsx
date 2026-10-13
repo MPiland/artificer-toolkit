@@ -45,6 +45,7 @@ import {
   setCampaignLiveScenePresentationResultDtoSchema
 } from '@artificer-toolkit/schema/api/vttScenes'
 import { validated } from '../../../test/validatedFixture'
+import { reachByKeyboard } from './CampaignTabletop.stories.keyboard'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { projectSceneForViewer } from '@artificer-toolkit/shared/vtt'
 import { getCampaignDetail } from '#app/data/campaigns/queries'
@@ -417,6 +418,13 @@ export const FocusingATokenListsEveryStatus: Story = {
   }
 }
 
+async function reachInMenu(page: ReturnType<typeof within>, name: string | RegExp): Promise<void> {
+  const menu = await page.findByRole('menu', { name: 'Scene controls' })
+  await reachByKeyboard(await within(menu).findByRole('menuitem', { name }), () =>
+    userEvent.keyboard('{ArrowDown}')
+  )
+}
+
 // Presses the canvas centre, where focusing a token puts it, or a corner, which is empty map there.
 async function pressStage(canvas: HTMLElement, where: 'centre' | 'corner'): Promise<void> {
   await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
@@ -647,10 +655,108 @@ export const HoveringATokenListsItOverTheSelection: Story = {
     await waitFor(() => expect(statusList(sentryToken.label)).toBeNull())
     const wardenList = await page.findByRole('region', { name: `${wardenToken.label} statuses` })
     await expect(within(wardenList).getByText('Poisoned')).toBeVisible()
-    // Close the menu: with three tokens it scrolls in the test viewport, and that scroll is not yet
-    // keyboard-reachable (VTT_UI-4.2 tracks it).
-    await userEvent.keyboard('{Escape}')
+  }
+}
+
+// VTT_UI-4.2: the Scene is playable, readable and recoverable without a pointer.
+export const KeyboardOnlyTabletopJourney: Story = {
+  args: {
+    campaignId: tabletopCampaignId,
+    currentUserId: tabletopCurrentUserId
+  },
+  render: (args) => renderWindow(args, createTabletopCampaign('OWNER'), null, sentryFixtures),
+  play: async ({ canvasElement }) => {
+    liveCommand.mockClear()
+    const page = within(canvasElement.ownerDocument.body)
+    await expect(
+      await page.findByText('Scene map ready.', undefined, { timeout: mapReadyTimeoutMs })
+    ).toBeVisible()
+    const stage = page.getByRole('img', { name: 'Interactive campaign scene' })
+    await expect(page.getByRole('combobox', { name: 'Presented campaign scene' })).toBeVisible()
+    const renderer = await latestStageRenderer()
+    const { wardenToken } = wardenPresentationFor('OWNER', sentryFixtures.gmEncounter)
+    const sentryToken = sentryFixtures.liveScene.tokens.find((token) => token.id === sentryTokenId)!
+    await expect(stage).toHaveAccessibleDescription(/^Visible tokens: /)
+    for (const token of [wardenToken, sentryToken])
+      await expect(stage).toHaveAccessibleDescription(new RegExp(token.label))
+    for (let step = 0; step < 40; step += 1) renderer.zoomOut()
+    const zoomedOut = renderer.getDiagnostics().zoomScale
+
+    const trigger = page.getByRole('button', { name: 'Scene controls' })
+    await reachByKeyboard(trigger, () => userEvent.tab())
+    await userEvent.keyboard('{Enter}')
+    await reachInMenu(page, `Focus ${wardenToken.label}`)
+    await userEvent.keyboard('{Enter}')
     await waitFor(() => expect(page.queryByRole('menu', { name: 'Scene controls' })).toBeNull())
+    await waitFor(() => expect(trigger).toHaveFocus())
+    await waitFor(() => expect(renderer.getDiagnostics().zoomScale).toBeGreaterThan(zoomedOut))
+
+    await userEvent.keyboard('{Enter}')
+    await reachInMenu(page, `Move ${wardenToken.label} right`)
+    await userEvent.keyboard('{Enter}')
+    await waitFor(() =>
+      expect(liveCommand).toHaveBeenCalledWith(
+        expect.objectContaining({
+          command: {
+            command: expect.objectContaining({
+              path: expect.arrayContaining([wardenToken.position]),
+              tokenId: wardenToken.id,
+              type: 'MOVE_SCENE_TOKEN'
+            }),
+            scope: 'SCENE'
+          },
+          type: 'COMMAND'
+        })
+      )
+    )
+    await waitFor(() => expect(trigger).toHaveFocus())
+
+    await userEvent.keyboard('{Enter}')
+    await reachInMenu(page, `Measure from ${wardenToken.label}`)
+    await userEvent.keyboard('{Enter}')
+    await waitFor(() => expect(trigger).toHaveFocus())
+    await userEvent.keyboard('{Enter}')
+    await reachInMenu(page, new RegExp(`^To ${sentryToken.label}`))
+    await userEvent.keyboard('{Enter}')
+    await expect(
+      await page.findByText(
+        new RegExp(`^Measured from ${wardenToken.label} to ${sentryToken.label}: .+\\.$`)
+      )
+    ).toBeInTheDocument()
+
+    await reachByKeyboard(stage, () => userEvent.tab())
+    await userEvent.keyboard('p')
+    await expect(await page.findByText('You pinged the map.')).toBeInTheDocument()
+  }
+}
+
+// VTT_UI-4.2: a Scene command the room rejects as stale is announced, not swallowed.
+export const KeyboardMoveRejectedAsStaleIsAnnounced: Story = {
+  args: {
+    campaignId: tabletopCampaignId,
+    currentUserId: tabletopCurrentUserId
+  },
+  render: (args) =>
+    renderWindow(
+      args,
+      createTabletopCampaign('OWNER'),
+      null,
+      sentryFixtures,
+      'The scene changed before the move landed.'
+    ),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body)
+    await page.findByText('Scene map ready.', undefined, { timeout: mapReadyTimeoutMs })
+    const { wardenToken } = wardenPresentationFor('OWNER', sentryFixtures.gmEncounter)
+    await reachByKeyboard(page.getByRole('button', { name: 'Scene controls' }), () =>
+      userEvent.tab()
+    )
+    await userEvent.keyboard('{Enter}')
+    await reachInMenu(page, `Move ${wardenToken.label} right`)
+    await userEvent.keyboard('{Enter}')
+    await expect(await page.findByRole('alert')).toHaveTextContent(
+      'The scene changed before the move landed.'
+    )
   }
 }
 
@@ -954,7 +1060,8 @@ function renderWindow(
   args: ComponentProps<typeof CampaignTabletopWindow>,
   campaign: CampaignDetailDto,
   showing: CampaignSceneShowingDto | null = null,
-  fixtures: TabletopFixtures = defaultTabletopFixtures
+  fixtures: TabletopFixtures = defaultTabletopFixtures,
+  sceneCommandRejection: string | null = null
 ): JSX.Element {
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -1234,7 +1341,11 @@ function renderWindow(
   })
   liveCommand.mockReset()
   return (
-    <StoryLiveSessionTransport encounterResult={encounterResult} state={recipientState}>
+    <StoryLiveSessionTransport
+      encounterResult={encounterResult}
+      sceneCommandRejection={sceneCommandRejection}
+      state={recipientState}
+    >
       <StoryConvexFixture client={convex}>
         <QueryClientProvider client={queryClient}>
           <CampaignTabletopWindow campaignId={args.campaignId} currentUserId={args.currentUserId} />
@@ -1295,10 +1406,13 @@ function StoryConvexFixture({
 function StoryLiveSessionTransport({
   children,
   encounterResult,
+  sceneCommandRejection,
   state
 }: {
   children: ReactNode
   encounterResult: EncounterCommandResultDto
+  /** When set, the room rejects every Scene command as stale with this message. */
+  sceneCommandRejection: string | null
   state: LiveSessionRecipientStateDto
 }) {
   const [installed, setInstalled] = useState(false)
@@ -1377,6 +1491,18 @@ function StoryLiveSessionTransport({
         }
         if (message.type === 'COMMAND') {
           liveCommand(message)
+          if (message.command.scope === 'SCENE' && sceneCommandRejection) {
+            const rejected = validated(liveSessionWebSocketServerMessageDtoSchema)({
+              code: 'STALE_STATE',
+              commandId: message.command.command.commandId,
+              currentSequence: message.expectedSessionSequence,
+              message: sceneCommandRejection,
+              reason: null,
+              type: 'COMMAND_REJECTED',
+              warnings: null
+            })
+            this.dispatchEvent(new MessageEvent('message', { data: JSON.stringify(rejected) }))
+          }
           // The room acknowledges an Encounter command to its initiator, which settles the command.
           if (message.command.scope === 'ENCOUNTER') {
             const committed = validated(liveSessionWebSocketServerMessageDtoSchema)({
@@ -1430,7 +1556,7 @@ function StoryLiveSessionTransport({
       pushStoryScene = null
       Reflect.set(globalThis, 'WebSocket', originalWebSocket)
     }
-  }, [encounterResult, state])
+  }, [encounterResult, sceneCommandRejection, state])
 
   return installed ? children : null
 }
