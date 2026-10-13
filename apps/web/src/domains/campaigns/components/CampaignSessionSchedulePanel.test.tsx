@@ -37,13 +37,14 @@ function panel(current: CampaignSessionDto) {
 }
 
 describe('CampaignSessionSchedulePanel in-progress edits', () => {
-  it('keeps an edit when the title changes elsewhere', () => {
+  it('keeps an edited field and shows the new value of another field the server changed', () => {
     const { rerender } = renderWithAppProviders(panel(session))
 
     fireEvent.change(screen.getByLabelText('Starts'), { target: { value: '2026-09-02T18:00' } })
-    rerender(panel({ ...session, title: 'The vault, part two', version: 3 }))
+    rerender(panel({ ...session, scheduledEndAt: '2026-09-01T22:00:00.000Z', version: 3 }))
 
     expect(screen.getByLabelText('Starts')).toHaveValue('2026-09-02T18:00')
+    expect(screen.getByLabelText('Ends')).toHaveValue('2026-09-01T22:00')
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 

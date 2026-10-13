@@ -64,4 +64,17 @@ describe('CampaignClockEditor in-progress edits', () => {
     expect(screen.getByLabelText('Dawn')).toHaveValue('05:30')
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
+
+  it('keeps the edit and clears the notice when the user keeps theirs', async () => {
+    const user = userEvent.setup()
+    const { rerender } = renderWithAppProviders(editor(clock))
+    await openEditor(user)
+
+    fireEvent.change(screen.getByLabelText('Dawn'), { target: { value: '07:30' } })
+    rerender(editor({ ...clock, dawnMinute: 330, version: 5 }))
+    await user.click(screen.getByRole('button', { name: 'Keep mine' }))
+
+    expect(screen.getByLabelText('Dawn')).toHaveValue('07:30')
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
 })

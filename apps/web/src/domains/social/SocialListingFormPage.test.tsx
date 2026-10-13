@@ -59,7 +59,8 @@ vi.mock('@convex-dev/react-query', async (importOriginal) => ({
     const { listingPublicId } = args as { listingPublicId: string }
     return {
       queryKey: ['listing', listingPublicId],
-      queryFn: async () => listings.get(listingPublicId)
+      queryFn: async () => listings.get(listingPublicId),
+      refetchInterval: 20
     }
   }
 }))
@@ -103,6 +104,30 @@ describe('SocialListingFormPage', () => {
     expect(screen.getByRole('textbox', { name: /Summary/ })).toHaveValue(
       `${baseListing.summary} More.`
     )
+  })
+
+  it('keeps typing when the same listing refetches with new data', async () => {
+    const user = userEvent.setup()
+    renderWithAppProviders(<SocialListingFormPage listingPublicId={baseListing.listingPublicId} />)
+    await user.type(await screen.findByRole('textbox', { name: /Summary/ }), ' Unsaved.')
+
+    listings.set(baseListing.listingPublicId, {
+      ...baseListing,
+      title: 'The Glass Harbor Reborn',
+      summary: 'Rewritten elsewhere.',
+      version: 3
+    })
+
+    try {
+      expect(
+        await screen.findByRole('heading', { name: 'Manage The Glass Harbor Reborn' })
+      ).toBeInTheDocument()
+      expect(screen.getByRole('textbox', { name: /Summary/ })).toHaveValue(
+        `${baseListing.summary} Unsaved.`
+      )
+    } finally {
+      listings.set(baseListing.listingPublicId, baseListing)
+    }
   })
 
   it('starts from the other listing’s values when a different listing is opened', async () => {

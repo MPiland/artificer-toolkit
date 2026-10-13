@@ -199,6 +199,23 @@ describe('ProfileSettingsPage', () => {
     expect(mocks.usernameStatus).not.toHaveBeenCalled()
   })
 
+  it('explains the format rule instead of a stale taken notice once the username stops matching it', async () => {
+    mocks.usernameStatus.mockResolvedValue({ data: { available: false }, error: null })
+    renderWithAppProviders(<ProfileSettingsPage userId='user-1' />)
+
+    const username = await screen.findByRole('textbox', { name: /^username/i })
+    fireEvent.change(username, { target: { value: 'taken_name' } })
+    await screen.findByText('That username is already taken.', {}, { timeout: 1000 })
+
+    fireEvent.change(username, { target: { value: 'a' } })
+
+    expect(
+      screen.getByText(/Use 3–30 letters, numbers, and single underscores/)
+    ).toBeInTheDocument()
+    expect(screen.queryByText('That username is already taken.')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Save profile' })).toBeDisabled()
+  })
+
   it('unsubscribes and hides the private form when authentication is lost', () => {
     const view = renderWithAppProviders(<ProfileSettingsPage userId='user-1' />)
     expect(screen.getByRole('textbox', { name: /^bio/i })).toHaveValue('Forge keeper.')

@@ -88,6 +88,31 @@ describe('CharacterSheetTextEditor in-progress edits', () => {
     expect(screen.getByLabelText('Custom name')).toHaveValue('Flame')
   })
 
+  it('commits the typed value on blur and shows no error when the save succeeds', async () => {
+    const user = userEvent.setup()
+    const onCommit = vi.fn().mockResolvedValue(true)
+    renderWithAppProviders(textEditor('Flame', onCommit))
+
+    await user.type(screen.getByLabelText('Custom name'), 'x')
+    await user.tab()
+
+    expect(onCommit).toHaveBeenCalledExactlyOnceWith('Flamex')
+    expect(screen.getByLabelText('Custom name')).toHaveValue('Flamex')
+    expect(screen.queryByText(/server value was restored/)).not.toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('restores the server value and explains when the save fails', async () => {
+    const user = userEvent.setup()
+    renderWithAppProviders(textEditor('Flame', vi.fn().mockResolvedValue(false)))
+
+    await user.type(screen.getByLabelText('Custom name'), 'x')
+    await user.tab()
+
+    expect(await screen.findByText(/server value was restored/)).toBeInTheDocument()
+    expect(screen.getByLabelText('Custom name')).toHaveValue('Flame')
+  })
+
   it('clears the restored-value error when the user edits again', async () => {
     const user = userEvent.setup()
     renderWithAppProviders(textEditor('Flame', vi.fn().mockResolvedValue(false)))

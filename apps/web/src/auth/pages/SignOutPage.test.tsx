@@ -97,11 +97,10 @@ describe('SignOutPage', () => {
 
   it('clears nothing when sign-out resolves after the page unmounted', async () => {
     let finishSignOut: (result: { ok: boolean }) => void = () => undefined
-    mocks.signOut.mockReturnValue(
-      new Promise((resolve) => {
-        finishSignOut = resolve
-      })
-    )
+    const signOutResult = new Promise<{ ok: boolean }>((resolve) => {
+      finishSignOut = resolve
+    })
+    mocks.signOut.mockReturnValue(signOutResult)
     const queryClient = new QueryClient()
     queryClient.setQueryData(['user'], { id: 'user-1' })
 
@@ -109,7 +108,8 @@ describe('SignOutPage', () => {
     await waitFor(() => expect(mocks.signOut).toHaveBeenCalledTimes(1))
     unmount()
     finishSignOut({ ok: true })
-    await Promise.resolve()
+    // The page awaited this promise first, so its continuation has run once this await returns.
+    await signOutResult
 
     expect(queryClient.getQueryData(['user'])).toEqual({ id: 'user-1' })
     expect(mocks.invalidate).not.toHaveBeenCalled()

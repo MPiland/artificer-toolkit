@@ -20,6 +20,9 @@ import { getUsernameStatus } from '#app/auth/usernameStatus'
 import { ProfileVisibilitySetting } from './ProfileVisibilitySetting'
 import * as styles from './settings.css'
 
+const usernameFormatError =
+  'Use 3–30 letters, numbers, and single underscores between words. Capitalization is preserved.'
+
 export function ProfileSettingsPage({ userId }: { userId: string }) {
   const { isAuthenticated, isLoading } = useConvexAuth()
   // useQueries keys its subscription by request-map identity, including the skipped map.
@@ -80,8 +83,10 @@ function ProfileForm({ initialProfile }: { initialProfile: AccountProfileDto }) 
       ? 'That username is already taken.'
       : usernameAvailability === 'unavailable'
         ? 'Could not check that username. Try again.'
-        : usernameAvailability === 'not_allowed' && usernameToCheck
-          ? "That username isn't allowed."
+        : usernameAvailability === 'not_allowed'
+          ? usernameToCheck
+            ? "That username isn't allowed."
+            : usernameFormatError
           : null
 
   useEffect(() => {
@@ -126,9 +131,7 @@ function ProfileForm({ initialProfile }: { initialProfile: AccountProfileDto }) 
 
     const parsedUsername = usernameInputSchema.safeParse(username)
     if (!parsedUsername.success) {
-      setUsernameError(
-        'Use 3–30 letters, numbers, and single underscores between words. Capitalization is preserved.'
-      )
+      setUsernameError(usernameFormatError)
       return
     }
 

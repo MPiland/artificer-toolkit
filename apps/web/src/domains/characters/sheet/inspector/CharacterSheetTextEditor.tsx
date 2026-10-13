@@ -41,7 +41,6 @@ export function CharacterSheetTextEditor({
     setError(undefined)
     // Marked before the save settles: the server's stored (trimmed) value can arrive first.
     draft.markCommitted('value')
-    // Marked before the save settles: the server's stored (trimmed) value can arrive first.
     if (await onCommit(nextValue)) return
 
     draft.acceptLatest('value')
