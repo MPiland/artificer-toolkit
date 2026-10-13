@@ -124,7 +124,7 @@ export async function equipAllCharacterItems(base: Awaited<ReturnType<typeof set
   await equipAllItems(base.player.caller, base.character.id)
 }
 
-async function equipAllItems(
+export async function equipAllItems(
   caller: Awaited<ReturnType<typeof readySheetFixture>>['owner']['caller'],
   characterId: string
 ) {

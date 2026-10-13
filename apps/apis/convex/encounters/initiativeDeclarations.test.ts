@@ -18,10 +18,7 @@ import type {
 } from '@artificer-toolkit/schema/api/encounters'
 import {
   encounterCommandResultDtoSchema,
-  encounterPlayerProjectionDtoSchema,
-  initiativeDeclarationSelectionDtoSchema,
-  type PendingEncounterRuleOccurrenceSummaryDto,
-  type ResolveRuleOccurrenceInputDto
+  encounterPlayerProjectionDtoSchema
 } from '@artificer-toolkit/schema/api/encounters'
 import type {
   CampaignPlaySettingsDto,
@@ -29,7 +26,10 @@ import type {
 } from '@artificer-toolkit/schema/api/campaignSettings'
 import { api, components, internal } from '../_generated/api'
 import { fixture } from '../../tests/fixtures/characters'
-import { createEncounterInitiativeDefinitions } from '../../tests/fixtures/encounterInitiative'
+import {
+  createEncounterInitiativeDefinitions,
+  declarationCommand
+} from '../../tests/fixtures/encounterInitiative'
 import { equipAllCharacterItems, setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import {
   automaticChargedBiteEffectId,
@@ -157,46 +157,6 @@ async function readPending(
 ) {
   await checkpointLiveRoom(base.campaign.id)
   return caller.query(api.encounters.pendingReads.pendingRuleOccurrence, { encounterId })
-}
-
-function declarationCommand(input: {
-  encounterId: string
-  pending: Pick<
-    Extract<PendingEncounterRuleOccurrenceSummaryDto, { kind: 'INITIATIVE_DECLARATION' }>,
-    'encounterVersion' | 'occurrenceId' | 'occurrenceVersion' | 'primaryOptions' | 'requestId'
-  >
-  commandId?: string
-}): { command: ResolveRuleOccurrenceInputDto } {
-  const option = input.pending.primaryOptions[0]
-  if (!option) throw new Error('Expected an issued declaration option.')
-  const primary = initiativeDeclarationSelectionDtoSchema.parse(
-    option.kind === 'GM_ADJUDICATED'
-      ? {
-          kind: 'GM_ADJUDICATED',
-          optionId: 'GM_ADJUDICATED',
-          actorSize: 'MEDIUM',
-          actionFactors: [],
-          spellLevel: null
-        }
-      : { kind: option.kind, optionId: option.optionId }
-  )
-  return {
-    command: {
-      type: 'RESOLVE_RULE_OCCURRENCE',
-      encounterId: input.encounterId,
-      commandId: input.commandId ?? crypto.randomUUID(),
-      expectedVersion: input.pending.encounterVersion,
-      occurrenceId: input.pending.occurrenceId,
-      expectedOccurrenceVersion: input.pending.occurrenceVersion,
-      correlationId: null,
-      resolution: {
-        kind: 'INITIATIVE_DECLARATION',
-        requestId: input.pending.requestId,
-        primary,
-        bonus: null
-      }
-    }
-  }
 }
 
 async function storedInitiative<
