@@ -6768,6 +6768,72 @@
               "origin": [],
               "note": "Registered 2026-10-13 from lane 3's ruling 3 size report. Modifier values are bare numbers added in the base's unit, so +30 on an 18 m grant gives 48 m, and characterMovementAndSenses defaults a base-less SET_VALUE speed to FEET and 0. The sense override itself becomes a length in the ruling 3 follow-up.",
               "id": "RELIABILITY-5.1"
+            },
+            {
+              "text": "A malformed or unrecognised authored speed is refused at publish and is an invariant failure at read, never silently skipped, so bad data cannot show as a lower speed or defence; proved by tests that fail before the fix.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Registered 2026-10-13 from the band-aid audit: encounterHolderDefense.ts:21-53 and walkingSpeed.ts skip entries they cannot read.",
+              "id": "RELIABILITY-5.2"
+            }
+          ]
+        },
+        {
+          "id": "RELIABILITY-6",
+          "title": "Band-aids from the 2026-10-13 audit are replaced by the domain model",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": [],
+          "acs": [
+            {
+              "text": "A short-rest hit-die roll is recognised by its source kind (HIT_DIE), not its display label, so changing the label cannot break hit-die resolution; proved by a test that fails before the fix.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "sheetRoll.ts:108 gates on label !== 'Short rest hit dice'; the same literal is built at :132.",
+              "id": "RELIABILITY-6.1"
+            },
+            {
+              "text": "The compiled CHARACTER_ACTION contract holds only the versions the compiler emits (COMPILED v4, MANUAL v1); the dead COMPILED v1-v3 members and every reader branch on them are deleted and development data is reseeded.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "characterMechanics.ts:306-405; readers in encounterActionEffects.ts:28, encounterActionMaintenance.ts:42, characterNativeActionResources.ts:216-218. The compiler emits only v4 COMPILED and v1 MANUAL.",
+              "id": "RELIABILITY-6.2"
+            },
+            {
+              "text": "A skill's governing ability and an ability's identity resolve from the System's authored vocabulary by id; a missing mapping is an error, never a silent DEXTERITY; proved by tests that fail before the fix.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "characterSheetVocabulary.ts:104/119, sheetProjection.ts:1078 (SKILL_ABILITY_MAP ?? 'DEXTERITY'), characterArmorClassRuleFacts.ts:37.",
+              "id": "RELIABILITY-6.3"
+            },
+            {
+              "text": "Grant and restriction folding narrows on each grant's discriminant and reads typed fields, with exhaustive switches; no `as unknown as Record<string, unknown>` casts remain, so a new kind or renamed field fails to compile.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "characterGrantFoldSourceFacts.ts:73/125/133, characterGrantFoldRestrictionFacts.ts:25/174, chosenGrantChoiceResolver.ts:266-333.",
+              "id": "RELIABILITY-6.4"
+            },
+            {
+              "text": "Currency holdings always carry an explicit kind: the legacy ambiguous identity and the PRESERVE ambiguity policy are deleted and development data is migrated.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "characterCurrency.ts:4/64/84; 8 non-test PRESERVE callers.",
+              "id": "RELIABILITY-6.5"
+            },
+            {
+              "text": "Stored definitions always carry their publish metadata: the legacy-publisher synthesis in definitionStore is deleted, the fields are required, and development data is reseeded.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "apps/apis/convex/content/definitionStore.ts:65-105 (legacyPublisherUserId). Also check the optional ruleState.ts:163/246 fields read with ?? [] for the same never-written-versus-empty gap.",
+              "id": "RELIABILITY-6.6"
             }
           ]
         }
