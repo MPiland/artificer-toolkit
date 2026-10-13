@@ -160,6 +160,8 @@ export interface MovementRoomConfig {
   autoRoll?: 'GAME_MASTER' | 'PLAYER' | 'BOTH'
   /** The actors the room's player controls, besides any Character assigned to them. */
   playerControlledActorIds?: readonly string[]
+  /** The actors whose Scene tokens start hidden from the room's players. */
+  hiddenActorIds?: readonly string[]
   /**
    * Spatial effects that deal 1 damage to whoever crosses them (or, with `save`, fails their save).
    * They are fixed to the Scene unless `moving` anchors them to the mover's token.
@@ -251,7 +253,7 @@ export async function movementRoom(config: MovementRoomConfig) {
       controlledByUserIds: [],
       height: TOKEN_SIZE,
       width: TOKEN_SIZE,
-      hidden: false,
+      hidden: config.hiddenActorIds?.includes(actor.id) ?? false,
       locked: false,
       label: actor.label,
       rotationDegrees: 0,
