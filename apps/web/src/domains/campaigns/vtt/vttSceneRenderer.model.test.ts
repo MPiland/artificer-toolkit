@@ -500,12 +500,11 @@ describe('VTT view token and senses', () => {
 
   describe('which tokens are seen', () => {
     const origin = { x: 0, y: 0 }
-    const polygon = [
-      { x: -100, y: -100 },
-      { x: 100, y: -100 },
-      { x: 100, y: 100 },
-      { x: -100, y: 100 }
-    ]
+    // Open-space line of sight clamped to the 100 px radius, as a sense reach carries it.
+    const polygon = Array.from({ length: 8 }, (_, step) => ({
+      x: 100 * Math.cos((step * Math.PI) / 4),
+      y: 100 * Math.sin((step * Math.PI) / 4)
+    }))
     const reach = (effect: VttSenseReach['effect']): VttSenseReach => ({
       effect,
       origin,
@@ -562,12 +561,16 @@ describe('VTT view token and senses', () => {
     })
 
     it('measures every other sense to the token centre, not its edge', () => {
-      // The centre is outside the reach while the 35 px edge is inside it.
-      const edgeInside = { x: 120, y: 0 }
-      for (const effect of ['DARKVISION', 'TRUESIGHT', 'BLINDSIGHT'] as const) {
-        expect(seen('ORDINARY_DARKNESS', [effect], edgeInside)).toBe(false)
+      // Each centre is beyond the 100 px reach (110 and 113 px) while its 35 px edge is inside it.
+      for (const edgeInside of [
+        { x: 110, y: 0 },
+        { x: 80, y: 80 }
+      ]) {
+        for (const effect of ['DARKVISION', 'TRUESIGHT', 'BLINDSIGHT'] as const) {
+          expect(seen('ORDINARY_DARKNESS', [effect], edgeInside)).toBe(false)
+        }
+        expect(seen('ORDINARY_DARKNESS', ['TREMORSENSE'], edgeInside)).toBe(true)
       }
-      expect(seen('ORDINARY_DARKNESS', ['TREMORSENSE'], edgeInside)).toBe(true)
     })
   })
 })

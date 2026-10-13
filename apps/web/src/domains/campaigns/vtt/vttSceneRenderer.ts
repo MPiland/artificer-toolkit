@@ -1132,24 +1132,20 @@ export async function createVttSceneRenderer(
       new pixi.Graphics().rect(0, 0, map.width, map.height).fill({ alpha: 1, color: 0 })
     )
     for (const token of seers) {
-      const vision = visionRangeInMapPixels({ grid }, token)?.vision
-      if (!vision) continue
-      // Every seeing token sees along its line of sight to its authored range; within it, the
-      // light and the view token's senses decide what shows.
+      if (!token.vision) continue
+      // Every seeing token sees along its line of sight. The shared visibility polygon already
+      // stops at the authored range, and server fog reads that same polygon, so what is drawn
+      // and what is explored match by construction; within it, the light and the view token's
+      // senses decide what shows.
       const sight = visibilityPolygonForToken(
         token.position,
-        vision,
+        visionRangeInMapPixels(grid, token.vision),
         barriers,
         doorStates,
         barrierIndex
       )
       if (!sight || sight.points.length < 3) continue
-      const reach = clampPolygonToRadius(
-        sight.points,
-        token.position,
-        Math.max(vision.brightRange, vision.dimRange)
-      )
-      mask.addChild(overlayShape(reach, 1, 'erase', `sight:${token.id}`))
+      mask.addChild(overlayShape(sight.points, 1, 'erase', `sight:${token.id}`))
       visionLabels.push(token.label)
       sightPolygonCount += 1
     }

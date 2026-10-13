@@ -11,9 +11,11 @@ import {
   type SceneFogChunk,
   type SceneFogLayer,
   type SceneFogMode,
+  type SceneGrid,
   type ScenePoint,
   type ScenePolygon,
   type SceneToken,
+  type SceneTokenVision,
   type SceneViewer
 } from './scene.js'
 
@@ -155,19 +157,15 @@ export function canonicalizeSceneFogLayer(layer: SceneFogLayer): SceneFogLayer {
   }
 }
 
-/** A Token with its authored vision ranges (Scene distance) converted to map pixels, as fog and sight use them. */
+/** A Token's authored vision ranges (Scene distance) converted to map pixels, as fog and sight use them. */
 export function visionRangeInMapPixels(
-  state: Pick<SceneExplorationState, 'grid'>,
-  token: SceneToken
-): SceneToken | null {
-  if (!token.vision) return null
+  grid: SceneGrid,
+  vision: SceneTokenVision
+): SceneTokenVision {
   return {
-    ...token,
-    vision: {
-      ...token.vision,
-      brightRange: sceneDistanceAsCoordinateLength(state.grid, token.vision.brightRange),
-      dimRange: sceneDistanceAsCoordinateLength(state.grid, token.vision.dimRange)
-    }
+    ...vision,
+    brightRange: sceneDistanceAsCoordinateLength(grid, vision.brightRange),
+    dimRange: sceneDistanceAsCoordinateLength(grid, vision.dimRange)
   }
 }
 
@@ -198,12 +196,11 @@ export function sceneTokenIdsAffectedByBarriers(
   if (barriers.length === 0) return []
   return state.tokens.flatMap((token) => {
     if (token.hidden || token.vision?.enabled !== true) return []
-    const ranged = visionRangeInMapPixels(state, token)
-    if (!ranged?.vision) return []
-    const maximum = Math.max(ranged.vision.brightRange, ranged.vision.dimRange)
+    const vision = visionRangeInMapPixels(state.grid, token.vision)
+    const maximum = Math.max(vision.brightRange, vision.dimRange)
     return maximum > 0 &&
       barriers.some(
-        (barrier) => squaredDistanceToSegment(ranged.position, barrier) <= maximum * maximum
+        (barrier) => squaredDistanceToSegment(token.position, barrier) <= maximum * maximum
       )
       ? [token.id]
       : []
@@ -251,8 +248,8 @@ function tokenVisibilityPolygons(
   positions: readonly ScenePoint[],
   barrierIndex: SceneBarrierIndex
 ): ScenePolygon[] {
-  const vision = visionRangeInMapPixels(state, token)?.vision
-  if (!vision) return []
+  if (!token.vision) return []
+  const vision = visionRangeInMapPixels(state.grid, token.vision)
   return positions.flatMap((position) => {
     const polygon = visibilityPolygonForToken(
       position,
@@ -366,8 +363,8 @@ export function deriveSceneTokenPathExplorationPatch(
 ): SceneFogLayer | null {
   if (options.path.length === 0) return null
   const [token] = eligibleTokens(state, options.ownerUserId, new Set([options.tokenId]))
-  const vision = token && visionRangeInMapPixels(state, token)?.vision
-  if (!token || !vision) return null
+  if (!token?.vision) return null
+  const vision = visionRangeInMapPixels(state.grid, token.vision)
   const dimensions =
     state.fogLayers.find((layer) => layer.ownerUserId === options.ownerUserId) ??
     fogDimensions(state)
