@@ -64,6 +64,7 @@ Tests render the real components with the real query layer; fake only the networ
 - Also built in the worktree: `source-data` (`build-source-data.log`), which `CharacterSheetSpells.test.tsx` imports through its fixtures.
 - Two test-side defects in my new tests surfaced in the first green run and were fixed without touching assertions: the `SignOutPage` router mock returned a new `router` object per render (the real router is stable, and a fresh object re-ran the effect), and `user.clear` on a Mantine `NumberInput` falls back to 1, so the clock test sets the field with `fireEvent.change`.
 - Validation: all 17 touched and dependent test files green, 120 tests (`green-all2.log`; first attempt `green-all.log` showed the three defects above).
+- Typecheck: `yarn turbo:typecheck:web` green (`typecheck.log`, typecheck:app and typecheck:tests). The first run failed with `TS2305 convertSceneDistance` in `CampaignScenePreparation.tsx`: the worktree's built `packages/shared` dist predated the base merge. `yarn workspace @artificer-toolkit/shared build` (`build-shared2.log`) fixed it; no slice code was involved.
 - Storybook cannot start in a worktree. Not run: any story for `EncounterActorCard`, the Campaign clock editor, `CharacterSheetTextEditor`/Inspector, `CharacterSelectionModal`, `CharacterStartingEquipmentChoices`, `SocialListingFormPage`, `ProfileSettingsPage`. Run them in the final-source pass.
 
 ## Proposed ledger edits (filled by the slice session)
