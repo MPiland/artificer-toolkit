@@ -724,6 +724,18 @@ export const KeyboardOnlyTabletopJourney: Story = {
       )
     ).toBeInTheDocument()
 
+    // Escape closes the menu back to its trigger; Tab leaves it rather than walking its items.
+    await userEvent.keyboard('{Enter}')
+    await reachInMenu(page, `Focus ${wardenToken.label}`)
+    await userEvent.keyboard('{Escape}')
+    await waitFor(() => expect(page.queryByRole('menu', { name: 'Scene controls' })).toBeNull())
+    await waitFor(() => expect(trigger).toHaveFocus())
+    await userEvent.keyboard('{Enter}')
+    await reachInMenu(page, `Focus ${wardenToken.label}`)
+    const openMenu = await page.findByRole('menu', { name: 'Scene controls' })
+    await userEvent.tab()
+    await expect(openMenu.contains(document.activeElement)).toBe(false)
+
     await reachByKeyboard(stage, () => userEvent.tab())
     await userEvent.keyboard('p')
     await expect(await page.findByText('You pinged the map.')).toBeInTheDocument()
