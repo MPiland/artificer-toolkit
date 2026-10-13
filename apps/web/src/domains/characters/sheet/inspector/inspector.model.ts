@@ -41,6 +41,16 @@ export function cleanSheetEditorText(value: string): string | undefined {
   return cleaned.length ? cleaned : undefined
 }
 
+/** Remounts an adjustment editor when its committed adjustment changes, never on an equal refetch. */
+export function getSheetEditorKey(editor: {
+  field: string
+  adjustmentId?: string
+  sourceNote?: string
+  value: unknown
+}): string {
+  return `${editor.field}:${editor.adjustmentId ?? 'new'}:${JSON.stringify(editor.value)}:${editor.sourceNote ?? ''}`
+}
+
 export function getSheetAdjustmentMetadata(
   adjustmentId: string | undefined,
   commit: Pick<CharacterSheetEditorCommit, 'sourceNote'>

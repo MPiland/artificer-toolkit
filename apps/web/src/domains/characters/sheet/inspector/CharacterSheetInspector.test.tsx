@@ -216,6 +216,55 @@ describe('Character Sheet inspector', () => {
     })
   })
 
+  describe('sense override draft', () => {
+    const overriddenSensesPanel = (
+      amount: number
+    ): Extract<CharacterSheetPanelDto, { kind: 'SENSES' }> => ({
+      ...sensesPanelFixture,
+      senses: [
+        {
+          ...sensesPanelFixture.senses[0],
+          state: 'OVERRIDDEN',
+          editor: {
+            ...sensesPanelFixture.senses[0].editor,
+            adjustmentId: '00000000-0000-0000-0000-0000000000a1',
+            value: { amount, unit: 'FEET' }
+          }
+        }
+      ]
+    })
+    const renderSensesPanel = (panel: Extract<CharacterSheetPanelDto, { kind: 'SENSES' }>) => (
+      <CharacterSheetRulesPanel
+        expectedVersion={4}
+        panel={panel}
+        pending={false}
+        submitCommand={vi.fn().mockResolvedValue(true)}
+        onTargetChange={vi.fn()}
+      />
+    )
+
+    it('keeps typed text when a refetch returns an equal editor value', async () => {
+      const user = userEvent.setup()
+      const view = renderWithAppProviders(renderSensesPanel(overriddenSensesPanel(60)))
+
+      const input = screen.getByRole('textbox', { name: 'Override Darkvision range' })
+      await user.type(input, '5')
+      expect(input).toHaveValue('605')
+
+      view.rerender(renderSensesPanel(overriddenSensesPanel(60)))
+
+      expect(screen.getByRole('textbox', { name: 'Override Darkvision range' })).toHaveValue('605')
+    })
+
+    it('shows a changed committed value', () => {
+      const view = renderWithAppProviders(renderSensesPanel(overriddenSensesPanel(60)))
+
+      view.rerender(renderSensesPanel(overriddenSensesPanel(90)))
+
+      expect(screen.getByRole('textbox', { name: 'Override Darkvision range' })).toHaveValue('90')
+    })
+  })
+
   it('announces command failures inside the overlay', async () => {
     const watch = mockPanelQueries(abilityPanelFixture)
 

@@ -552,13 +552,17 @@ function buildSensesPanel(
       (candidate) => candidate.senseDefinitionId === sense.id
     )
     const calculation = ruleProjection.calculations.senseRanges[sense.id]
-    const reach =
-      ruleSense?.range.rangeKind === 'UNLIMITED'
+    if (ruleSense?.range.rangeKind === 'DISTANCE' && !calculation)
+      throw new Error(`A held sense is missing its range calculation: ${sense.id}`)
+    // A sense the Character does not hold has no range; a range override on it adds the sense.
+    const reach = !ruleSense
+      ? ({ rangeKind: 'NOT_HELD' } as const)
+      : ruleSense.range.rangeKind === 'UNLIMITED'
         ? ({ rangeKind: 'UNLIMITED' } as const)
         : ({
             rangeKind: 'DISTANCE',
-            range: calculation?.effective ?? 0,
-            unitLabel: formatCode(ruleSense?.range.unit ?? 'FEET').toLowerCase(),
+            range: ruleSense.range.amount,
+            unitLabel: formatCode(ruleSense.range.unit).toLowerCase(),
             calculation: toPanelCalculation(calculation, params)
           } as const)
     return {

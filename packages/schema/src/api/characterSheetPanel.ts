@@ -304,6 +304,7 @@ const sensesPanelDtoSchema = lazySchema(() =>
           })
         }),
         z.discriminatedUnion('rangeKind', [
+          z.object({ rangeKind: z.literal('NOT_HELD') }),
           z.object({ rangeKind: z.literal('UNLIMITED') }),
           z.object({
             rangeKind: z.literal('DISTANCE'),

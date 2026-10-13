@@ -1,10 +1,12 @@
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 
 import { cleanSheetEditorText } from './inspector.model'
 
 /**
  * Owns what every Sheet adjustment editor shares: the source note, the save/clear flow and the
  * restore-on-failure behaviour. `Draft` is the control state, `Value` the committed adjustment value.
+ * State starts from the editor once; the parent remounts the editor with `getSheetEditorKey` when the
+ * committed adjustment changes.
  */
 export function useSheetAdjustmentDraft<Draft, Value>({
   editor,
@@ -27,13 +29,6 @@ export function useSheetAdjustmentDraft<Draft, Value>({
   const [sourceNote, setSourceNote] = useState(editor.sourceNote ?? '')
   const [error, setError] = useState<string | undefined>(undefined)
   const lastSubmitted = useRef<string | undefined>(undefined)
-
-  useEffect(() => {
-    setDraft(toDraft(editor.value))
-    setSourceNote(editor.sourceNote ?? '')
-    setError(undefined)
-    lastSubmitted.current = undefined
-  }, [editor.adjustmentId, editor.sourceNote, editor.value, toDraft])
 
   function restoreServerValue() {
     setDraft(toDraft(editor.value))
