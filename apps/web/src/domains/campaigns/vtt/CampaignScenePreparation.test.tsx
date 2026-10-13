@@ -129,6 +129,56 @@ describe('CampaignScenePreparation unsaved navigation', () => {
     await client.close()
   })
 
+  it('starts a grid at the base square in the chosen unit and converts an edited distance', async () => {
+    const { client, user } = await chooseMapFile({ failFirstFinalization: false })
+    await user.click(screen.getByRole('button', { name: 'Upload map' }))
+    await screen.findByRole('img', { name: 'Uploaded map calibration preview' })
+    const distancePerCell = screen.getByRole('textbox', { name: 'Distance per cell' })
+    const chooseUnit = async (name: 'Feet' | 'Meters' | 'Squares') => {
+      await user.click(screen.getByRole('combobox', { name: 'Distance unit' }))
+      await user.click(await screen.findByRole('option', { name }))
+    }
+    expect(distancePerCell).toHaveValue('5')
+
+    await chooseUnit('Meters')
+    expect(distancePerCell).toHaveValue('1.524')
+    await chooseUnit('Squares')
+    expect(distancePerCell).toHaveValue('1')
+    await chooseUnit('Meters')
+    expect(distancePerCell).toHaveValue('1.524')
+    await chooseUnit('Feet')
+    expect(distancePerCell).toHaveValue('5')
+
+    await user.clear(distancePerCell)
+    await user.type(distancePerCell, '10')
+    await chooseUnit('Meters')
+    expect(distancePerCell).toHaveValue('3.048')
+    await chooseUnit('Feet')
+    expect(distancePerCell).toHaveValue('10')
+    await client.close()
+  })
+
+  it.each([
+    ['Meters', { distancePerCell: 1.524, unit: 'METERS' }],
+    ['Squares', { distancePerCell: 1, unit: 'SQUARES' }]
+  ] as const)('saves a new %s grid at the base square', async (unitName, expected) => {
+    vi.mocked(saveSceneDefinition).mockResolvedValue(tabletopSceneDefinition)
+    const { client, user } = await chooseMapFile({ failFirstFinalization: false })
+    await user.click(screen.getByRole('button', { name: 'Upload map' }))
+    await screen.findByRole('img', { name: 'Uploaded map calibration preview' })
+    await user.click(screen.getByRole('combobox', { name: 'Distance unit' }))
+    await user.click(await screen.findByRole('option', { name: unitName }))
+    await user.click(screen.getByRole('button', { name: 'Save scene' }))
+    await waitFor(() =>
+      expect(saveSceneDefinition).toHaveBeenCalledWith(
+        client,
+        expect.objectContaining({ grid: expect.objectContaining(expected) }),
+        expect.any(String)
+      )
+    )
+    await client.close()
+  })
+
   it('retries finalization of the uploaded asset without creating or sending another upload', async () => {
     vi.mocked(saveSceneDefinition).mockResolvedValue(tabletopSceneDefinition)
     const { client, user, createUpload, action, send } = await chooseMapFile({
