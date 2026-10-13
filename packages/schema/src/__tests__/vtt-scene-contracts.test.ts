@@ -301,6 +301,9 @@ describe('VTT scene contracts', () => {
 
     expect(sceneTokenDtoSchema.safeParse({ ...token, senses: [sense] }).success).toBe(true)
     expect(sceneStoredTokenDtoSchema.safeParse({ ...token, senses: [sense] }).success).toBe(false)
+    expect(sceneStoredTokenDtoSchema.safeParse({ ...token, senses: [sense] }).error?.issues).toEqual([
+      expect.objectContaining({ message: 'Stored Scene tokens never carry senses.', path: ['senses'] })
+    ])
     expect(sceneStoredTokenDtoSchema.safeParse({ ...token, senses: [] }).success).toBe(true)
   })
 

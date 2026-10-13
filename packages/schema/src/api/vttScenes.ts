@@ -181,7 +181,10 @@ export const sceneTokenDtoSchema: z.ZodMiniType<SceneToken> = lazySchema(() =>
 // Senses are composed at runtime and never stored; every storage write parses through this variant.
 export const sceneStoredTokenDtoSchema: z.ZodMiniType<SceneToken> = lazySchema(() =>
   sceneTokenDtoSchema.check(
-    z.refine((token) => token.senses.length === 0, 'Stored Scene tokens never carry senses.')
+    z.refine((token) => token.senses.length === 0, {
+      message: 'Stored Scene tokens never carry senses.',
+      path: ['senses']
+    })
   )
 )
 

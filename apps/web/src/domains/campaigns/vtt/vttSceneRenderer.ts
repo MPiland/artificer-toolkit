@@ -16,6 +16,8 @@ import {
   visibilityPolygonForToken,
   visionRangeInMapPixels,
   type ScenePoint,
+  type SceneToken,
+  type SceneTokenVision,
   type SpatialPointAreaShape
 } from '@artificer-toolkit/shared/vtt'
 import type {
@@ -1122,8 +1124,8 @@ export async function createVttSceneRenderer(
     sightMaskSprite.visible = sightGoverned
     if (!sightGoverned) return
     const seers = tokens.filter(
-      (token) =>
-        token.vision?.enabled &&
+      (token): token is SceneToken & { vision: SceneTokenVision } =>
+        Boolean(token.vision?.enabled) &&
         (next.role === 'PLAYER' ? canControlSceneToken(token, next) : token.id === previewTokenId)
     )
     const barrierIndex = lightingBarrierIndex ?? new SceneBarrierIndex(barriers)
@@ -1132,7 +1134,6 @@ export async function createVttSceneRenderer(
       new pixi.Graphics().rect(0, 0, map.width, map.height).fill({ alpha: 1, color: 0 })
     )
     for (const token of seers) {
-      if (!token.vision) continue
       // Every seeing token sees along its line of sight. The shared visibility polygon already
       // stops at the authored range, and server fog reads that same polygon, so what is drawn
       // and what is explored match by construction; within it, the light and the view token's

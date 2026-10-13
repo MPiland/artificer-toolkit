@@ -920,7 +920,7 @@ it('rejects live Scene source identity and materialization receipt corruption', 
   }
 })
 
-it('rejects a Scene definition token that carries Character-derived senses', async () => {
+it('rejects a Scene definition token that carries Character-derived senses, and persists and replays the batch without them', async () => {
   const base = await createSceneDefinitionFixture()
   const token = {
     id: crypto.randomUUID(),
@@ -959,4 +959,14 @@ it('rejects a Scene definition token that carries Character-derived senses', asy
   )
   const stored = await base.t.run((ctx) => ctx.db.query('sceneDefinitionEntities').collect())
   expect(stored).toEqual([])
+  const sightless = { ...batch, entities: [{ ...token, senses: [] }] }
+  await base.owner.caller.mutation(append, { input: sightless })
+  await expect(base.owner.caller.mutation(append, { input: sightless })).resolves.toMatchObject({
+    received: { tokens: 1 }
+  })
+  await base.owner.caller.mutation(publish, { saveId: save.saveId })
+  const persisted = await base.t.run((ctx) => ctx.db.query('sceneDefinitionEntities').collect())
+  expect(persisted.map((row) => row.value)).toEqual([
+    { collection: 'tokens', entity: { ...token, senses: [] } }
+  ])
 })
