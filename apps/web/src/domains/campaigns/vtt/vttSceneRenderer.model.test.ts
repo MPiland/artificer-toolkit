@@ -1,6 +1,9 @@
 import { Container } from 'pixi.js'
 import { describe, expect, it } from 'vitest'
-import type { CampaignSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
+import {
+  campaignSceneStateDtoSchema,
+  type CampaignSceneStateDto
+} from '@artificer-toolkit/schema/api/vttScenes'
 import { SceneBarrierIndex, type SceneGrid } from '@artificer-toolkit/shared/vtt'
 import {
   buildVttFogMask,
@@ -101,17 +104,17 @@ describe('VTT scene renderer model', () => {
     const current = movementScene()
 
     expect(
-      hasCommittedSceneTokenPositionChanged(current, { tokens: current.tokens }, 'token')
+      hasCommittedSceneTokenPositionChanged(current, { tokens: current.tokens }, movementTokenId)
     ).toBe(false)
     expect(
       hasCommittedSceneTokenPositionChanged(
         current,
         { ...current, tokens: [{ ...current.tokens[0]!, position: { x: 125, y: 75 } }] },
-        'token'
+        movementTokenId
       )
     ).toBe(true)
     expect(
-      hasCommittedSceneTokenPositionChanged(current, { ...current, tokens: [] }, 'token')
+      hasCommittedSceneTokenPositionChanged(current, { ...current, tokens: [] }, movementTokenId)
     ).toBe(true)
   })
 
@@ -174,7 +177,7 @@ describe('VTT scene renderer model', () => {
     const token = current.tokens[0]!
     const update = {
       boundTokenControl: new Map<string, boolean>(),
-      currentUserId: 'user',
+      currentUserId: movementUserId,
       mode: 'PLAY' as const,
       role: 'PLAYER' as const,
       scene: current,
@@ -715,14 +718,17 @@ describe('VTT lighting model', () => {
   })
 })
 
+const movementTokenId = '00000000-0000-4000-8000-000000000005'
+const movementUserId = '00000000-0000-4000-8000-000000000006'
+
 function movementScene(): CampaignSceneStateDto {
-  return {
+  return campaignSceneStateDtoSchema.parse({
     annotations: [],
     ambientIllumination: 'BRIGHT',
     barriers: [],
-    campaignId: 'campaign',
+    campaignId: '00000000-0000-4000-8000-000000000001',
     darknessZones: [],
-    definitionId: 'definition',
+    definitionId: '00000000-0000-4000-8000-000000000002',
     definitionVersion: 1,
     doorStates: {},
     fogLayers: [],
@@ -736,18 +742,23 @@ function movementScene(): CampaignSceneStateDto {
       origin: { x: 0, y: 0 },
       unit: 'FEET'
     },
-    id: 'scene',
+    id: '00000000-0000-4000-8000-000000000003',
     lights: [],
-    map: { assetId: 'map', height: 400, tileManifestAssetId: null, width: 600 },
+    map: {
+      assetId: '00000000-0000-4000-8000-000000000004',
+      height: 400,
+      tileManifestAssetId: null,
+      width: 600
+    },
     measurements: [],
     name: 'Movement scene',
     tokens: [
       {
         assetId: null,
-        controlledByUserIds: ['user'],
+        controlledByUserIds: [movementUserId],
         height: 50,
         hidden: false,
-        id: 'token',
+        id: movementTokenId,
         label: 'Ember',
         locked: false,
         position: { x: 75, y: 75 },
@@ -758,5 +769,5 @@ function movementScene(): CampaignSceneStateDto {
       }
     ],
     version: 1
-  }
+  })
 }

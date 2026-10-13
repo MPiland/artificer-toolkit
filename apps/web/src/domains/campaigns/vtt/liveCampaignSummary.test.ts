@@ -1,24 +1,28 @@
 import { describe, expect, it } from 'vitest'
-import type { LiveCampaignSummaryDto } from '@artificer-toolkit/schema/api/liveSessions'
+import {
+  liveCampaignSummaryDtoSchema,
+  type LiveCampaignSummaryDto
+} from '@artificer-toolkit/schema/api/liveSessions'
 import { mergeEncounterSummary, resolveHitPoints } from './liveCampaignSummary'
 
 const characterId = '00000000-0000-4000-8000-000000000001'
 const encounterId = '00000000-0000-4000-8000-000000000002'
 const actorId = '00000000-0000-4000-8000-000000000003'
 
-const summary = (overrides: Partial<LiveCampaignSummaryDto> = {}): LiveCampaignSummaryDto => ({
-  characters: [
-    {
-      characterId,
-      currentHitPoints: 4,
-      maxHitPoints: 20,
-      tempHitPoints: 0,
-      conditions: []
-    }
-  ],
-  encounter: { encounterId, status: 'ACTIVE', round: 3, currentActorId: null },
-  ...overrides
-})
+const summary = (overrides: Partial<LiveCampaignSummaryDto> = {}): LiveCampaignSummaryDto =>
+  liveCampaignSummaryDtoSchema.parse({
+    characters: [
+      {
+        characterId,
+        currentHitPoints: 4,
+        maxHitPoints: 20,
+        tempHitPoints: 0,
+        conditions: []
+      }
+    ],
+    encounter: { encounterId, status: 'ACTIVE', round: 3, currentActorId: null },
+    ...overrides
+  })
 
 describe('resolveHitPoints', () => {
   const stored = { currentHitPoints: 18, maxHitPoints: 20 }

@@ -8,7 +8,10 @@ import {
 } from './CampaignLiveSceneObjectEditor.model'
 import { createSceneObject, type SceneCreationKind } from './SceneObjectCreator.model'
 import { tabletopLiveScene as scene } from './CampaignTabletop.stories.fixtures'
-import type { SceneDefinitionDto } from '@artificer-toolkit/schema/api/vttScenes'
+import {
+  sceneDefinitionDtoSchema,
+  type SceneDefinitionDto
+} from '@artificer-toolkit/schema/api/vttScenes'
 
 describe('CampaignLiveSceneObjectEditor model', () => {
   it('builds one editable draft and one versioned command for every live object kind', () => {
@@ -88,7 +91,7 @@ describe('CampaignLiveSceneObjectEditor model', () => {
 })
 
 function sceneDefinition(): SceneDefinitionDto {
-  return {
+  return sceneDefinitionDtoSchema.parse({
     annotations: scene.annotations,
     ambientIllumination: scene.ambientIllumination,
     barriers: scene.barriers,
@@ -103,5 +106,5 @@ function sceneDefinition(): SceneDefinitionDto {
     tokens: scene.tokens,
     version: scene.definitionVersion,
     visionRevealMode: scene.visionRevealMode
-  }
+  })
 }

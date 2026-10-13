@@ -7,7 +7,8 @@ import type {
   RollRuleEvidenceInputDto,
   VoidRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounters'
-import type { PendingEncounterRuleOccurrenceSummaryDto } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
+import { pendingEncounterRuleOccurrenceSummaryDtoSchema } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
+import { validated } from '../../validatedFixture'
 import { CampaignTabletopDecisionDrawer } from './CampaignTabletopDecisionDrawer'
 import { tabletopGmEncounter } from './CampaignTabletop.stories.fixtures'
 
@@ -15,7 +16,7 @@ const occurrenceId = '77777777-7777-4777-8777-777777777790'
 const resolveDecision = fn()
 const appRollId = '77777777-7777-4777-8777-777777777795'
 
-const d20Pending = {
+const d20Pending = validated(pendingEncounterRuleOccurrenceSummaryDtoSchema)({
   kind: 'D20_EVIDENCE',
   occurrenceId,
   occurrenceVersion: 2,
@@ -29,9 +30,9 @@ const d20Pending = {
     derivedRollModeReasons: ['Flanking']
   },
   allowedResponses: ['ENTER_DICE', 'SYSTEM_ROLL']
-} satisfies PendingEncounterRuleOccurrenceSummaryDto
+})
 
-const areaPending = {
+const areaPending = validated(pendingEncounterRuleOccurrenceSummaryDtoSchema)({
   kind: 'AREA_SAVES',
   occurrenceId,
   occurrenceVersion: 2,
@@ -51,9 +52,9 @@ const areaPending = {
   })),
   legendaryResistance: [],
   allowedResponses: ['ENTER_DICE', 'SYSTEM_ROLL', 'AREA_LEGENDARY_RESISTANCE']
-} satisfies PendingEncounterRuleOccurrenceSummaryDto
+})
 
-const reactionPending = {
+const reactionPending = validated(pendingEncounterRuleOccurrenceSummaryDtoSchema)({
   kind: 'MOVEMENT_REACTION',
   occurrenceId,
   occurrenceVersion: 2,
@@ -71,9 +72,9 @@ const reactionPending = {
     ]
   },
   allowedResponses: ['DECLINE', 'OPTION']
-} satisfies PendingEncounterRuleOccurrenceSummaryDto
+})
 
-const passagePending = {
+const passagePending = validated(pendingEncounterRuleOccurrenceSummaryDtoSchema)({
   kind: 'MOVEMENT_PASSAGE_CHOICE',
   occurrenceId,
   occurrenceVersion: 2,
@@ -84,18 +85,18 @@ const passagePending = {
     { optionId: 'b'.repeat(64), ruleKind: 'TUMBLE' as const, economy: 'BONUS_ACTION' as const }
   ],
   allowedResponses: ['DECLINE', 'OPTION']
-} satisfies PendingEncounterRuleOccurrenceSummaryDto
+})
 
-const initiativePending = {
+const initiativePending = validated(pendingEncounterRuleOccurrenceSummaryDtoSchema)({
   kind: 'INITIATIVE_EVIDENCE',
   occurrenceId,
   occurrenceVersion: 2,
   encounterVersion: tabletopGmEncounter.version,
   request: { requestId: 'initiative-roll', min: 1, max: 20 },
   allowedResponses: ['ENTER_INTEGER', 'SYSTEM_ROLL']
-} satisfies PendingEncounterRuleOccurrenceSummaryDto
+})
 
-const actionOutcomePending = {
+const actionOutcomePending = validated(pendingEncounterRuleOccurrenceSummaryDtoSchema)({
   kind: 'ACTION_OUTCOME_EVIDENCE',
   occurrenceId,
   occurrenceVersion: 2,
@@ -103,9 +104,9 @@ const actionOutcomePending = {
   rollerActorId: null,
   request: { requestId: 'action-outcome', min: 0, max: 10 },
   allowedResponses: ['ENTER_INTEGER', 'SYSTEM_ROLL']
-} satisfies PendingEncounterRuleOccurrenceSummaryDto
+})
 
-const declarationPending = {
+const declarationPending = validated(pendingEncounterRuleOccurrenceSummaryDtoSchema)({
   kind: 'INITIATIVE_DECLARATION',
   occurrenceId,
   occurrenceVersion: 2,
@@ -130,7 +131,7 @@ const declarationPending = {
   ],
   adjudicationFields: [],
   allowedResponses: ['INITIATIVE_DECLARATION']
-} satisfies PendingEncounterRuleOccurrenceSummaryDto
+})
 
 async function resolveDecisionCommand(
   command:

@@ -1,6 +1,7 @@
-import type {
-  EncounterReadDto,
-  EncounterReadResultDto
+import {
+  encounterReadDtoSchema,
+  encounterReadResultDtoSchema,
+  type EncounterReadResultDto
 } from '@artificer-toolkit/schema/api/encounterRead'
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
@@ -9,8 +10,8 @@ import type { HeldEncounterSession } from './useCampaignLiveSession'
 import { readFromRoomOrFallback, useRoomEncounterRead } from './useRoomEncounterRead'
 
 const encounterId = '00000000-0000-4000-8000-000000000001'
-const read = { input: { encounterId }, kind: 'LATEST_EVIDENCE_ROLLS' } satisfies EncounterReadDto
-const answer = { kind: 'LATEST_EVIDENCE_ROLLS', result: [] } satisfies EncounterReadResultDto
+const read = encounterReadDtoSchema.parse({ input: { encounterId }, kind: 'LATEST_EVIDENCE_ROLLS' })
+const answer = encounterReadResultDtoSchema.parse({ kind: 'LATEST_EVIDENCE_ROLLS', result: [] })
 
 function heldAt(version: number): HeldEncounterSession {
   return {

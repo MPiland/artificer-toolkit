@@ -3,6 +3,7 @@ import { act, renderHook } from '@testing-library/react'
 import { getFunctionName } from 'convex/server'
 import type { ReactNode } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { api } from '@artificer-toolkit/apis/convex/api'
 import { campaignChatEntryDtoSchema } from '@artificer-toolkit/schema/api/campaignCommunication'
 import { rollHistoryEntryDtoSchema } from '@artificer-toolkit/schema/api/rolls'
 import { getCampaignLiveAuthority } from '#app/data/campaigns/queries'
@@ -24,8 +25,8 @@ const mocks = vi.hoisted(() => ({
 vi.mock('convex/react', () => ({
   useMutation: (reference: Parameters<typeof getFunctionName>[0]) =>
     ({
-      'campaigns/rolls:executePrivate': mocks.convexExecutePrivate,
-      'campaigns/rolls:reveal': mocks.convexReveal
+      [getFunctionName(api.campaigns.rolls.executePrivate)]: mocks.convexExecutePrivate,
+      [getFunctionName(api.campaigns.rolls.reveal)]: mocks.convexReveal
     })[getFunctionName(reference)] ?? vi.fn()
 }))
 

@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import type { SceneDefinitionDto } from '@artificer-toolkit/schema/api/vttScenes'
+import {
+  sceneDefinitionDtoSchema,
+  type SceneDefinitionDto
+} from '@artificer-toolkit/schema/api/vttScenes'
 import { createEditorSceneState, updateSceneEditorDraft } from './CampaignSceneEditor.model'
 
 const ids = {
@@ -13,7 +16,7 @@ const ids = {
 } as const
 
 function scene(): SceneDefinitionDto {
-  return {
+  return sceneDefinitionDtoSchema.parse({
     annotations: [
       {
         id: ids.annotation,
@@ -75,7 +78,7 @@ function scene(): SceneDefinitionDto {
       }
     ],
     version: 2
-  }
+  })
 }
 
 describe('Campaign scene editor model', () => {

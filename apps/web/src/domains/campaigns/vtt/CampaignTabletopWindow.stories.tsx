@@ -23,11 +23,12 @@ import {
   sceneFogPatchInputSchema,
   type SceneFogPatchInput
 } from '@artificer-toolkit/schema/api/sceneFog'
-import type {
-  LiveSessionRecipientStateDto,
-  LiveSessionWebSocketServerMessageDto
+import {
+  liveSessionWebSocketClientMessageDtoSchema,
+  liveSessionRecipientStateDtoSchema,
+  liveSessionWebSocketServerMessageDtoSchema,
+  type LiveSessionRecipientStateDto
 } from '@artificer-toolkit/schema/api/liveSessions'
-import { liveSessionWebSocketClientMessageDtoSchema } from '@artificer-toolkit/schema/api/liveSessions'
 import {
   sceneEncounterBindingSchema,
   sceneRecipientHeaderSchema,
@@ -37,11 +38,13 @@ import {
   sceneRecipientPageSchema
 } from '@artificer-toolkit/schema/api/sceneRecipient'
 import {
+  campaignSceneShowingDtoSchema,
   type CampaignSceneShowingDto,
   type CampaignSceneStateDto,
   setCampaignLiveScenePresentationInputDtoSchema,
   setCampaignLiveScenePresentationResultDtoSchema
 } from '@artificer-toolkit/schema/api/vttScenes'
+import { validated } from '../../validatedFixture'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { projectSceneForViewer } from '@artificer-toolkit/shared/vtt'
 import { getCampaignDetail } from '#app/data/campaigns/queries'
@@ -74,11 +77,11 @@ const fogBegin = fn()
 const fogAppend = fn()
 const storyFogSaveId = '77777777-7777-4777-8777-777777777799'
 const showScene = fn()
-const shownScene = {
+const shownScene = campaignSceneShowingDtoSchema.parse({
   sceneId: '77777777-7777-4777-8777-777777777798',
   sceneName: 'The Ashen Stair',
   shownAt: '2099-08-15T20:00:00.000Z'
-} satisfies CampaignSceneShowingDto
+})
 const meta = {
   component: CampaignTabletopWindow,
   beforeEach({ msw }) {
@@ -809,9 +812,12 @@ function renderWindow(
     queryFn: async () => campaign
   })
   // This Scene fixture has no Character Sheet action data.
-  queryClient.setQueryDefaults(['convexQuery', 'characters/sheetSlices:get'], {
-    queryFn: async () => null
-  })
+  queryClient.setQueryDefaults(
+    ['convexQuery', getFunctionName(convexApi.characters.sheetSlices.get)],
+    {
+      queryFn: async () => null
+    }
+  )
   queryClient.setQueryData(getCampaignDetail(tabletopCampaignId).queryKey, campaign)
   const encounter = campaign.role === 'OWNER' ? fixtures.gmEncounter : fixtures.playerEncounter
   const scene = projectScene(campaign.role, fixtures.liveScene)
@@ -1068,11 +1074,11 @@ function renderWindow(
   fogBegin.mockReset()
   fogAppend.mockReset()
 
-  const recipientState: LiveSessionRecipientStateDto = {
+  const recipientState = liveSessionRecipientStateDtoSchema.parse({
     presentationVersion,
     recipientRole: campaign.role,
     scene
-  }
+  })
   liveCommand.mockReset()
   return (
     <StoryLiveSessionTransport encounterResult={encounterResult} state={recipientState}>
@@ -1146,16 +1152,16 @@ function StoryLiveSessionTransport({
 
   useEffect(() => {
     const originalWebSocket = globalThis.WebSocket
-    const readyMessage = {
+    const readyMessage = validated(liveSessionWebSocketServerMessageDtoSchema)({
       campaignId: tabletopCampaignId,
       type: 'TRANSIENT_READY'
-    } satisfies LiveSessionWebSocketServerMessageDto
-    const stateSyncMessage = {
+    })
+    const stateSyncMessage = validated(liveSessionWebSocketServerMessageDtoSchema)({
       authorityEpoch: crypto.randomUUID(),
       sequence: 1,
       state,
       type: 'STATE_SYNC'
-    } satisfies LiveSessionWebSocketServerMessageDto
+    })
     let fogInput: SceneFogPatchInput | null = null
     class StoryWebSocket extends EventTarget {
       readyState = 0
@@ -1165,11 +1171,13 @@ function StoryLiveSessionTransport({
         pushStoryScene = (scene) =>
           this.dispatchEvent(
             new MessageEvent('message', {
-              data: JSON.stringify({
-                ...stateSyncMessage,
-                sequence: stateSyncMessage.sequence + 1,
-                state: { ...state, scene }
-              } satisfies LiveSessionWebSocketServerMessageDto)
+              data: JSON.stringify(
+                validated(liveSessionWebSocketServerMessageDtoSchema)({
+                  ...stateSyncMessage,
+                  sequence: stateSyncMessage.sequence + 1,
+                  state: { ...state, scene }
+                })
+              )
             })
           )
         queueMicrotask(() => {
@@ -1198,7 +1206,7 @@ function StoryLiveSessionTransport({
               throw new Error('Unexpected story fog append.')
           }
           if (!fogInput) throw new Error('Story fog append arrived before its begin.')
-          const progress = {
+          const progress = validated(liveSessionWebSocketServerMessageDtoSchema)({
             progress: {
               commandId: fogInput.commandId,
               receivedChunks:
@@ -1211,25 +1219,25 @@ function StoryLiveSessionTransport({
               totalChunks: fogInput.chunkManifest.length
             },
             type: 'SCENE_FOG_PROGRESS'
-          } satisfies LiveSessionWebSocketServerMessageDto
+          })
           this.dispatchEvent(new MessageEvent('message', { data: JSON.stringify(progress) }))
         }
         if (message.type === 'COMMAND') {
           liveCommand(message)
           // The room acknowledges an Encounter command to its initiator, which settles the command.
           if (message.command.scope === 'ENCOUNTER') {
-            const committed = {
+            const committed = validated(liveSessionWebSocketServerMessageDtoSchema)({
               commandId: message.command.command.commandId,
               delta: { scope: 'ENCOUNTER', result: encounterResult },
               sequence: message.expectedSessionSequence,
               type: 'COMMAND_COMMITTED'
-            } satisfies LiveSessionWebSocketServerMessageDto
+            })
             this.dispatchEvent(new MessageEvent('message', { data: JSON.stringify(committed) }))
           }
           // The GM binds an Encounter to the presented Scene through the room (D47).
           if (message.command.scope === 'ENCOUNTER_BINDING' && state.scene) {
             const { command } = message.command
-            const committed = {
+            const committed = validated(liveSessionWebSocketServerMessageDtoSchema)({
               commandId: command.commandId,
               delta: {
                 scope: 'ENCOUNTER_BINDING',
@@ -1242,7 +1250,7 @@ function StoryLiveSessionTransport({
               },
               sequence: message.expectedSessionSequence + 1,
               type: 'COMMAND_COMMITTED'
-            } satisfies LiveSessionWebSocketServerMessageDto
+            })
             this.dispatchEvent(new MessageEvent('message', { data: JSON.stringify(committed) }))
           }
         }

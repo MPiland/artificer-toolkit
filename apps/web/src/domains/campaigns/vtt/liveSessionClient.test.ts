@@ -2,17 +2,17 @@ import {
   liveSessionCommandDtoSchema,
   liveSessionWebSocketClientMessageDtoSchema,
   liveSessionWebSocketServerMessageDtoSchema,
-  type LiveSessionCommandDto,
   type LiveSessionTransientBroadcastDto
 } from '@artificer-toolkit/schema/api/liveSessions'
-import type {
-  CampaignSceneStateDto,
-  SceneTransientEnvelopeDto
+import {
+  campaignSceneStateDtoSchema,
+  sceneTransientEnvelopeDtoSchema
 } from '@artificer-toolkit/schema/api/vttScenes'
 import { DOMAIN_REJECTION_MESSAGES } from '@artificer-toolkit/schema/api/domainRejections'
 import { ConvexError } from 'convex/values'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { errorMessage } from '#app/lib/errorMessage'
+import { validated } from '../../validatedFixture'
 import { tabletopGmEncounter } from './CampaignTabletop.stories.fixtures'
 import { createLiveSessionConnection, resolveLiveSessionWebSocketUrl } from './liveSessionClient'
 
@@ -32,7 +32,7 @@ const door = {
   kind: 'DOOR',
   openAngleDegrees: 90
 } as const
-const sceneState = {
+const sceneState = campaignSceneStateDtoSchema.parse({
   annotations: [],
   ambientIllumination: 'BRIGHT',
   barriers: [door],
@@ -57,7 +57,7 @@ const sceneState = {
   tokens: [],
   version: 4,
   visionRevealMode: 'ON_DRAG'
-} satisfies CampaignSceneStateDto
+})
 
 const recipientState = {
   presentationVersion: 11,
@@ -65,7 +65,7 @@ const recipientState = {
   scene: null
 }
 
-const command = {
+const command = validated(liveSessionCommandDtoSchema)({
   scope: 'SCENE',
   command: {
     barrierId: door.id,
@@ -75,16 +75,16 @@ const command = {
     state: 'OPEN',
     type: 'SET_SCENE_DOOR_STATE'
   }
-} satisfies LiveSessionCommandDto
+})
 
-const envelope = {
+const envelope = sceneTransientEnvelopeDtoSchema.parse({
   baselineVersion: 1,
   audience: 'TABLE',
   kind: 'PING',
   position: { x: 4, y: 8 },
   sceneId,
   sequence: 2
-} satisfies SceneTransientEnvelopeDto
+})
 
 class FakeSocket extends EventTarget {
   static readonly instances: FakeSocket[] = []
@@ -341,11 +341,11 @@ describe('live-session browser connection', () => {
     socket.open()
     await vi.waitFor(() => expect(socket.sent).toHaveLength(1))
     socket.receive({ campaignId, type: 'TRANSIENT_READY' })
-    const drag = {
+    const drag = sceneTransientEnvelopeDtoSchema.parse({
       ...envelope,
       kind: 'TOKEN_DRAG_PREVIEW',
       tokenId: '00000000-0000-4000-8000-000000000015'
-    } satisfies SceneTransientEnvelopeDto
+    })
     const sentAt: Record<string, number[]> = {}
     socket.send = (data) => {
       const message = liveSessionWebSocketClientMessageDtoSchema.parse(JSON.parse(data))
@@ -607,7 +607,7 @@ describe('live-session browser connection', () => {
       state: { ...recipientState, recipientRole: 'OWNER', scene: sceneState },
       type: 'STATE_SYNC'
     })
-    const encounterCommand = {
+    const encounterCommand = validated(liveSessionCommandDtoSchema)({
       command: {
         commandId,
         encounterId: tabletopGmEncounter.id,
@@ -615,7 +615,7 @@ describe('live-session browser connection', () => {
         type: 'ADVANCE_TURN'
       },
       scope: 'ENCOUNTER'
-    } satisfies LiveSessionCommandDto
+    })
     const committed = connection.submitCommand(encounterCommand)
     const result = {
       occurrence: null,
@@ -835,7 +835,7 @@ describe('live-session browser connection', () => {
       state: { ...recipientState, recipientRole: 'OWNER', scene: sceneState },
       type: 'STATE_SYNC'
     })
-    const decision = {
+    const decision = validated(liveSessionCommandDtoSchema)({
       command: {
         commandId,
         correlationId: null,
@@ -847,7 +847,7 @@ describe('live-session browser connection', () => {
         type: 'RESOLVE_RULE_OCCURRENCE'
       },
       scope: 'ENCOUNTER'
-    } satisfies LiveSessionCommandDto
+    })
     let settled = false
     const committed = connection.submitCommand(decision)
     void committed.then(() => {
@@ -901,7 +901,7 @@ describe('live-session browser connection', () => {
       type: 'STATE_SYNC'
     })
 
-    const doorCommand = {
+    const doorCommand = validated(liveSessionCommandDtoSchema)({
       command: {
         barrierId: door.id,
         commandId: '00000000-0000-4000-8000-000000000008',
@@ -911,7 +911,7 @@ describe('live-session browser connection', () => {
         type: 'SET_SCENE_DOOR_STATE'
       },
       scope: 'SCENE'
-    } satisfies LiveSessionCommandDto
+    })
     const committed = connection.submitCommand(doorCommand)
     expect(JSON.parse(socket.sent.at(-1)!) as unknown).toEqual({
       command: doorCommand,

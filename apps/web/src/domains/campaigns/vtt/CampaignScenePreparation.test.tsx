@@ -5,6 +5,7 @@ import { useNavigate, useRouterState } from '@tanstack/react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ConvexReactClient, usePaginatedQuery } from 'convex/react'
 import { getFunctionName } from 'convex/server'
+import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
 import { finalizeVttMapUploadOutputSchema } from '@artificer-toolkit/schema/api/media'
 import { mediaSinglePutUploadSchema } from '@artificer-toolkit/schema/api/mediaAssets'
 import { sceneDefinitionHeaderSchema } from '@artificer-toolkit/schema/api/sceneDefinitionSave'
@@ -127,14 +128,14 @@ describe('CampaignScenePreparation unsaved navigation', () => {
     )
     let finalizations = 0
     const action = vi.spyOn(client, 'action').mockImplementation(async (...[reference]) => {
-      if (getFunctionName(reference) === 'media/vttMapActions:finalize') {
+      if (getFunctionName(reference) === getFunctionName(convexApi.media.vttMapActions.finalize)) {
         if (++finalizations === 1) throw new Error('Try finalization again.')
         return finalizeVttMapUploadOutputSchema.parse({
           assetId: tabletopMapDelivery.assetId,
           status: 'READY'
         })
       }
-      if (getFunctionName(reference) === 'media/vttMapActions:getDelivery')
+      if (getFunctionName(reference) === getFunctionName(convexApi.media.vttMapActions.getDelivery))
         return tabletopMapDelivery
       throw new Error('Unexpected action')
     })
