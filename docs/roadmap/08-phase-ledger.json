@@ -6872,6 +6872,14 @@
               "id": "VTT_UI-3.4"
             },
             {
+              "text": "Devil's Sight sees normally in magical darkness within its range: combat perception treats creatures it reaches there as seen, and the view reveals the token's own and other tokens there while the magical darkness stays visibly marked (its dotted outline and a faint tint distinct from dim light), the same as truesight; beyond its range magical darkness hides as before.",
+              "status": "TODO",
+              "proof": [],
+              "origin": ["G4-PERCEPTION"],
+              "note": "Registered 2026-10-13 by the product owner. Today CLASS_WARLOCK_DEVILS_SIGHT is declared but never applied: the invocation grants 120 ft darkvision with ORDINARY_DARKNESS access, so magical darkness blinds the warlock in combat perception and on the map, and truesight erases magical darkness entirely inside its reach. Model it from data so a Creature's Devil's Sight (imp, devils; text-only today) works the same once VTT_UI-5 brings stat-block senses; the closed rule kind goes if data covers it. Depends on lane 3's ruling 3 (no null sense range).",
+              "id": "VTT_UI-3.5"
+            },
+            {
               "text": "Footprints, large tokens, dragging and rotation behave correctly.",
               "status": "DONE",
               "proof": [
