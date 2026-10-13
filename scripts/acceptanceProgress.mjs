@@ -2,7 +2,8 @@
 // Reports Phase 8 progress from the single agile ledger and validates its structure.
 // Usage: node scripts/acceptanceProgress.mjs [--json]
 // The --json report is the progress dashboard's data.json; it adds a burn-up history from the
-// ledger's git log. Validation errors go to stderr and exit 1; the report is still printed.
+// ledger's git log. Every open PBI carries a WSJF score; the report ranks open work by it.
+// Validation errors go to stderr and exit 1; the report is still printed.
 import { execFileSync } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
@@ -16,6 +17,7 @@ const ledger = JSON.parse(
 const workStatuses = ['TODO', 'IN_PROGRESS', 'DONE']
 const uatStatuses = ['NOT_RUN', 'PASSED', 'FAILED']
 const journeyStatuses = ['verified', 'partial', 'none']
+const wsjfPoints = [1, 2, 3, 5, 8, 13, 20]
 const historyCap = 200
 
 const count = (items, predicate) => items.filter(predicate).length
@@ -72,6 +74,73 @@ const dependencyOrder = (features) => {
   }
 }
 
+// WSJF = (business value + time criticality + risk reduction or enablement) / job size.
+const wsjfScore = ({ bv, tc, rr, size }) => Math.round(((bv + tc + rr) / size) * 100) / 100
+
+const validateWsjf = (id, wsjf, errors) => {
+  if (wsjf === undefined) {
+    errors.push(`${id} is open without a wsjf score`)
+    return
+  }
+  for (const key of ['bv', 'tc', 'rr', 'size']) {
+    if (!wsjfPoints.includes(wsjf[key]))
+      errors.push(`${id} wsjf.${key} must be one of ${wsjfPoints.join(', ')}`)
+  }
+  if (wsjf.after !== undefined && !Array.isArray(wsjf.after))
+    errors.push(`${id} wsjf.after must be a list of PBI or task ids`)
+  if (wsjf.finalSource !== undefined && wsjf.finalSource !== true)
+    errors.push(`${id} wsjf.finalSource may only be true`)
+}
+
+const workItemStatuses = (features) =>
+  new Map(
+    features.flatMap((feature) =>
+      feature.pbis.flatMap((pbi) => [
+        [pbi.id, pbi.status],
+        ...(pbi.tasks ?? []).map((task) => [task.id, task.status])
+      ])
+    )
+  )
+
+// Open work in pull order: scored open tasks rank on their own, and a PBI ranks while it has an
+// open AC that no scored open task closes. Final-source gate items follow everything else.
+const rankWork = (features) => {
+  const statuses = workItemStatuses(features)
+  const toItem = (feature, id, title, wsjf) => ({
+    id,
+    feature: feature.id,
+    title,
+    score: wsjfScore(wsjf),
+    wsjf,
+    waitingOn: (wsjf.after ?? []).filter((after) => statuses.get(after) !== 'DONE')
+  })
+  return features
+    .flatMap((feature) =>
+      feature.pbis
+        .filter((pbi) => pbi.status !== 'DONE' && pbi.wsjf !== undefined)
+        .flatMap((pbi) => {
+          const scoredTasks = (pbi.tasks ?? []).filter(
+            (task) => task.status !== 'DONE' && task.wsjf !== undefined
+          )
+          const closedByTasks = new Set(scoredTasks.flatMap((task) => task.closes))
+          const pbiStillRanks = pbi.acs.some(
+            (ac) => ac.status !== 'DONE' && !closedByTasks.has(ac.id)
+          )
+          return [
+            ...(pbiStillRanks || scoredTasks.length === 0
+              ? [toItem(feature, pbi.id, pbi.title, pbi.wsjf)]
+              : []),
+            ...scoredTasks.map((task) => toItem(feature, task.id, task.text, task.wsjf))
+          ]
+        })
+    )
+    .sort(
+      (a, b) =>
+        Number(a.wsjf.finalSource === true) - Number(b.wsjf.finalSource === true) ||
+        b.score - a.score
+    )
+}
+
 const addUnique = (seen, id, kind, errors) => {
   if (seen.has(id)) errors.push(`Duplicate ${kind} id ${id}`)
   seen.add(id)
@@ -112,7 +181,9 @@ const validatePbi = (pbi, seen, errors) => {
       errors.push(`${task.id} closes no acceptance criteria`)
     for (const id of task.closes ?? [])
       if (!acIds.has(id)) errors.push(`${task.id} closes ${id}, which is not an AC of ${pbi.id}`)
+    if (task.wsjf !== undefined) validateWsjf(task.id, task.wsjf, errors)
   }
+  if (pbi.status !== 'DONE') validateWsjf(pbi.id, pbi.wsjf, errors)
   if (pbi.status === 'DONE' && !isPbiProven(pbi)) {
     errors.push(
       `${pbi.id} is DONE but breaks the definition of done (all ACs DONE with proof and journeyStatus verified)`
@@ -134,6 +205,14 @@ const validate = () => {
         errors.push(`${item.id} has invalid UAT status ${item.status}`)
     }
     for (const pbi of feature.pbis ?? []) validatePbi(pbi, seen, errors)
+  }
+  const statuses = workItemStatuses(ledger.features ?? [])
+  const scored = (ledger.features ?? [])
+    .flatMap((feature) => feature.pbis ?? [])
+    .flatMap((pbi) => [pbi, ...(pbi.tasks ?? [])])
+  for (const item of scored) {
+    for (const id of item.wsjf?.after ?? [])
+      if (!statuses.has(id)) errors.push(`${item.id} wsjf.after names unknown work item ${id}`)
   }
   const { cyclic } = dependencyOrder(ledger.features ?? [])
   if (cyclic.length > 0)
@@ -199,6 +278,7 @@ const buildReport = () => {
       }
     },
     features,
+    ranking: rankWork(ordered),
     retired: ledger.retired ?? [],
     openQuestions: ledger.openQuestions ?? []
   }
@@ -249,7 +329,15 @@ const formatText = (report) => {
         `PBIs ${feature.pbiDone}/${feature.pbiTotal}, ACs ${feature.acDone}/${feature.acTotal}, ` +
         `journey v${journey('verified')} p${journey('partial')} n${journey('none')}`
       )
-    })
+    }),
+    '',
+    'Open work by WSJF (final-source gate items last):',
+    ...report.ranking.map(
+      (item, index) =>
+        `  ${String(index + 1).padStart(3)}. ${item.score.toFixed(2)} ${item.id}` +
+        `${item.wsjf.finalSource ? ' [final source]' : ''}` +
+        `${item.waitingOn.length > 0 ? ` [waits on ${item.waitingOn.join(', ')}]` : ''} ${item.title}`
+    )
   ].join('\n')
 }
 

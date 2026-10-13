@@ -33,9 +33,11 @@ export const VTT_SCENE_LIMITS = {
 /** The System's base square (SRD 5.1: 5 feet): one square on a SQUARES Scene, adjacent on every Scene. */
 export const SYSTEM_BASE_SQUARE_FEET = 5
 
+export const METERS_PER_FOOT = 0.3048
+
 export const FEET_PER_SCENE_UNIT: Record<SceneGrid['unit'], number> = {
   FEET: 1,
-  METERS: 1 / 0.3048,
+  METERS: 1 / METERS_PER_FOOT,
   SQUARES: SYSTEM_BASE_SQUARE_FEET
 }
 
