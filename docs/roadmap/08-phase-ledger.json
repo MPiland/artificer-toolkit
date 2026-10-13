@@ -6818,6 +6818,8 @@
                 "apps/web/src/domains/campaigns/vtt/CampaignVttLighting.stories.tsx",
                 "apps/web/src/domains/campaigns/vtt/vttSceneRenderer.model.test.ts",
                 "apps/web/src/domains/campaigns/vtt/CampaignVttStage.model.test.ts",
+                "apps/apis/convex/scenes/definitions.test.ts",
+                "apps/apis/convex/liveSessions/checkpointScenes.test.ts",
                 "apps/session-worker/src/roomSceneSensesProjection.test.ts",
                 "apps/session-worker/test/nativeLiveSessionRoom.test.ts",
                 "apps/session-worker/test/nativeTransientFanout.test.ts",
@@ -6825,7 +6827,7 @@
                 "packages/schema/src/__tests__/vtt-scene-contracts.test.ts"
               ],
               "origin": ["G4-PERCEPTION"],
-              "note": "Split from VTT_UI-3.2 on 2026-10-12 (product owner: a dwarf with darkvision in a cave sees grey within 60 ft and black beyond). Covers Character senses and authored token sight; Creature senses are VTT_UI-5. Implemented 2026-10-12 in e343e21a1 (A: senses on SceneToken, snapshot and delta redaction by ADR 0034 control) and 20b01c2c2 (B: renderer), awaiting integration-owner acceptance. Vision is authored only; a view token with senses sees along unbounded line of sight, one without keeps its authored range. Truesight keeps DIM as DIM. Blindsight clears every darkness class within range and line of sight. Tremorsense treats every token as on the ground (the Scene has no elevation data) and reveals tokens through walls without changing the map. Tokens in darkness that no sense reaches are concealed; the view token and the Player's own tokens always show.",
+              "note": "Split from VTT_UI-3.2 on 2026-10-12 (product owner: a dwarf with darkvision in a cave sees grey within 60 ft and black beyond). Covers Character senses and authored token sight; Creature senses are VTT_UI-5. Implemented 2026-10-12 in e343e21a1 (A: senses on SceneToken, snapshot and delta redaction by ADR 0034 control) and 20b01c2c2 (B: renderer), awaiting integration-owner acceptance. Audit fixes 2026-10-12: 55c7547fd, 1e9d099e1, c201d2513 (exact retries replay the sender's projected receipt), bd5ce33b1 and 3f037b60f (senses are never persisted: definitions strip them, checkpoints reject them), 794aca484 (drawn sight converts authored ranges to map pixels as server fog does). Vision is authored only; every seeing token sees along its line of sight clamped to its authored range, and within that the light and the view token's senses decide what shows. Truesight keeps DIM as DIM. Blindsight clears every darkness class within range and line of sight. Tremorsense treats every token as on the ground (the Scene has no elevation data) and reveals tokens through walls without changing the map. Tokens in darkness that no sense reaches are concealed; the view token and the Player's own tokens always show.",
               "id": "VTT_UI-3.4"
             },
             {
