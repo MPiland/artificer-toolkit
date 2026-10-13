@@ -130,7 +130,7 @@ describe('room point-area action', () => {
     })
     const biteChoices = await bite.actionChoices()
     expect(biteChoices.actions.map(({ target }) => target)).toEqual([
-      { kind: 'ACTOR', requiresOtherCreature: false }
+      { kind: 'ACTOR', self: 'ALLOWED' }
     ])
   })
 

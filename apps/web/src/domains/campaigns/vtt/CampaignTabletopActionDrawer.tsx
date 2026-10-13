@@ -726,8 +726,8 @@ export function CampaignTabletopActionDrawer({
             <CampaignTabletopBasicActions
               actorId={currentActor.id}
               authoredActions={basicActionChoices}
-              allies={encounter.actors
-                .filter((actor) => actor.id !== currentActor.id && !actor.defeated)
+              creatures={encounter.actors
+                .filter((actor) => actor.id === currentActor.id || !actor.defeated)
                 .map((actor) => ({ id: actor.id, label: actor.label }))}
               disabled={selectionControlsDisabled}
               encounterId={encounter.id}

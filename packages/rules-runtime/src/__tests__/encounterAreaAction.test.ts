@@ -117,10 +117,34 @@ describe('encounter action choice target', () => {
       })
     )
 
-  it('requires another creature only when aiming at the user is refused, never when it only warns', () => {
-    expect(single('REFUSED')).toEqual({ kind: 'ACTOR', requiresOtherCreature: true })
-    expect(single('WARN')).toEqual({ kind: 'ACTOR', requiresOtherCreature: false })
-    expect(single('ALLOWED')).toEqual({ kind: 'ACTOR', requiresOtherCreature: false })
+  it('projects the authored self of a single target, whatever it is', () => {
+    expect(single('REFUSED')).toEqual({ kind: 'ACTOR', self: 'REFUSED' })
+    expect(single('WARN')).toEqual({ kind: 'ACTOR', self: 'WARN' })
+    expect(single('ALLOWED')).toEqual({ kind: 'ACTOR', self: 'ALLOWED' })
+  })
+
+  it('asks for nothing of a self action', () => {
+    expect(
+      encounterActionChoiceTarget(policy({ shape: null, targeting: { selectionKind: 'SELF' } }))
+    ).toEqual({
+      kind: 'SELF'
+    })
+  })
+
+  it('allows the user where the selection authors no self', () => {
+    expect(
+      encounterActionChoiceTarget(
+        policy({
+          shape: null,
+          targeting: { selectionKind: 'SINGLE_TARGET', dispositionKind: 'ANY' }
+        })
+      )
+    ).toEqual({ kind: 'ACTOR', self: 'ALLOWED' })
+    expect(
+      encounterActionChoiceTarget(
+        policy({ shape: null, targeting: { selectionKind: 'CHOSEN_CREATURES' } })
+      )
+    ).toEqual({ kind: 'ACTOR', self: 'ALLOWED' })
   })
 })
 

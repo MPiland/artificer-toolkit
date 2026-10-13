@@ -35,7 +35,7 @@ const actions = [
     grip: { value: 'ONE_HANDED', attackKey: 'staff-instance:MELEE_WEAPON_ATTACK' },
     wieldConflict: null,
     warnings: [],
-    target: { kind: 'ACTOR', requiresOtherCreature: false },
+    target: { kind: 'ACTOR', self: 'ALLOWED' },
     attackSlot: null
   }
 ] satisfies EncounterActionChoiceDto[]
@@ -50,7 +50,7 @@ const greatswordActions = [
     grip: { value: 'TWO_HANDED', attackKey: 'greatsword-instance:MELEE_WEAPON_ATTACK' },
     wieldConflict: { kind: 'STOW_SHIELD', shieldItemInstanceId, armorClassDelta: -2 },
     warnings: [],
-    target: { kind: 'ACTOR', requiresOtherCreature: false },
+    target: { kind: 'ACTOR', self: 'ALLOWED' },
     attackSlot: null
   }
 ] satisfies EncounterActionChoiceDto[]
@@ -66,7 +66,7 @@ const longswordActions = [
     grip: { value: 'ONE_HANDED', attackKey: longswordAttackKey },
     wieldConflict: null,
     warnings: [],
-    target: { kind: 'ACTOR', requiresOtherCreature: false },
+    target: { kind: 'ACTOR', self: 'ALLOWED' },
     attackSlot: null
   },
   {
@@ -79,7 +79,7 @@ const longswordActions = [
     grip: { value: 'TWO_HANDED', attackKey: longswordAttackKey },
     wieldConflict: { kind: 'STOW_SHIELD', shieldItemInstanceId, armorClassDelta: -2 },
     warnings: [],
-    target: { kind: 'ACTOR', requiresOtherCreature: false },
+    target: { kind: 'ACTOR', self: 'ALLOWED' },
     attackSlot: null
   }
 ] satisfies EncounterActionChoiceDto[]
@@ -143,7 +143,8 @@ const basicActionChoices = [
     label: 'Dash',
     rulesText:
       'You gain extra movement for the current turn, equal to your speed after applying any modifiers.',
-    grip: null
+    grip: null,
+    target: { kind: 'SELF' }
   },
   {
     ...actions[0],
@@ -151,7 +152,7 @@ const basicActionChoices = [
     label: 'Help',
     rulesText: 'You aid an ally. Its next attack roll before your next turn has advantage.',
     grip: null,
-    target: { kind: 'ACTOR', requiresOtherCreature: true }
+    target: { kind: 'ACTOR', self: 'REFUSED' }
   },
   {
     ...actions[0],
@@ -354,7 +355,7 @@ export const CreatureSource: Story = {
         grip: null,
         wieldConflict: null,
         warnings: [],
-        target: { kind: 'ACTOR', requiresOtherCreature: false },
+        target: { kind: 'ACTOR', self: 'ALLOWED' },
         attackSlot: null
       }
     ],

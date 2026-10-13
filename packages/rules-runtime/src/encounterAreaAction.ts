@@ -78,9 +78,10 @@ function authoredPointArea(
 }
 
 /**
- * What the action's choice asks the client to pick: a creature, or the point an area is centered on
- * (with the area as authored, for the client's preview). A policy this path cannot resolve stays an
- * actor choice; resolving it is refused.
+ * What the action's choice asks the client to pick, as authored: nothing for a self action, a
+ * creature (with whether its user may be chosen), or the point an area is centered on (with the
+ * area, for the client's preview). A policy this path cannot resolve stays an actor choice;
+ * resolving it is refused.
  */
 export function encounterActionChoiceTarget(
   policy: CompiledActionTargetPolicy | undefined
@@ -88,11 +89,9 @@ export function encounterActionChoiceTarget(
   const area = policy ? authoredPointArea(policy) : null
   if (area) return { kind: 'POINT', area }
   const targeting = policy?.targeting
-  return {
-    kind: 'ACTOR',
-    requiresOtherCreature:
-      targeting?.selectionKind === 'SINGLE_TARGET' && targeting.self === 'REFUSED'
-  }
+  if (targeting?.selectionKind === 'SELF') return { kind: 'SELF' }
+  const self = targeting?.selectionKind === 'SINGLE_TARGET' ? targeting.self : undefined
+  return { kind: 'ACTOR', self: self ?? 'ALLOWED' }
 }
 
 /**
