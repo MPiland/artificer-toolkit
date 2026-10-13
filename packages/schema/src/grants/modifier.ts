@@ -3,7 +3,6 @@ import { z, lazySchema } from '../zod.js'
 import { staticGrantBaseDtoSchema } from './grant.js'
 import {
   authoredIdentifierSchema,
-  authoredLengthAmountSchema,
   authoredNestedCollectionSchema,
   authoredReferenceCollectionSchema
 } from '../shared/authoredLimits.js'
@@ -535,26 +534,6 @@ const buildModifierGrantVariants = () => {
     ),
     buildModifierGrantVariant(
       'RANGE',
-      'SET_VALUE',
-      emptyDomainDtoSchema,
-      z.union([
-        z.object({
-          amount: authoredLengthAmountSchema,
-          unit: authoredIdentifierSchema,
-          rangeKind: z.literal(rangeKindSchema._zod.def.entries.DISTANCE)
-        }),
-        z.object({
-          rangeKind: z.enum([
-            rangeKindSchema._zod.def.entries.SELF,
-            rangeKindSchema._zod.def.entries.TOUCH,
-            rangeKindSchema._zod.def.entries.SIGHT,
-            rangeKindSchema._zod.def.entries.UNLIMITED
-          ])
-        })
-      ])
-    ),
-    buildModifierGrantVariant(
-      'RANGE',
       'REPLACE_RANGE_KIND',
       emptyDomainDtoSchema,
       z.object({
@@ -773,7 +752,6 @@ const UNSUPPORTED_MODIFIERS = new Set([
   'PROFICIENCY_BONUS SET_VALUE',
   'CHARGE_LIMIT MODIFY_CHARGE_LIMIT',
   'CHARGE_LIMIT SET_VALUE',
-  'RANGE SET_VALUE',
   'RANGE REPLACE_RANGE_KIND',
   'DURATION SET_VALUE',
   'DURATION REPLACE_DURATION_KIND',
