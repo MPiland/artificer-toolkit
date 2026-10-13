@@ -138,6 +138,10 @@ D107 tracks what each hand holds, but spellcasting ignores it: a caster with a s
 
 Weapon swaps and stowing are free and unlimited (D107, `encounterWieldConflict`). Candidate: track the SRD's one free object interaction per turn, so a second draw or stow costs the Use an Object action. Raised 2026-10-10 during ATTACK-7 design; post-launch.
 
+### Hex grids
+
+Scenes are square or gridless, and a square is the System's base square (5 ft in D&D 5e). Candidate: a hex grid kind, with hex distance counting for range, reach, movement and areas, using the same base-square length per hex. Raised by the user on 2026-10-13; post-launch.
+
 ## Other future enhancements (parked)
 
 ### Adventure Module Packages
