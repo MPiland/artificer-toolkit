@@ -598,20 +598,20 @@ describe('VTT lighting model', () => {
     expect(lightTintAlpha({ intensity: 0 })).toBeGreaterThan(0)
   })
 
-  it('colours condition, concentration and other statuses distinctly and draws an effect as other', () => {
+  it('colours harmful, beneficial, concentration and other statuses distinctly', () => {
     expect(
       new Set([
-        statusCategoryColours.CONDITION,
+        statusCategoryColours.HARMFUL,
+        statusCategoryColours.BENEFICIAL,
         statusCategoryColours.CONCENTRATION,
         statusCategoryColours.OTHER
       ]).size
-    ).toBe(3)
-    // Pinned hues: amber conditions, teal-green Concentration, neutral grey other.
-    expect(statusCategoryColours.CONDITION).toBe(0xffd43b)
+    ).toBe(4)
+    // Pinned hues: amber harm, lime benefit, teal-green Concentration, neutral grey other.
+    expect(statusCategoryColours.HARMFUL).toBe(0xffd43b)
+    expect(statusCategoryColours.BENEFICIAL).toBe(0x94d82d)
     expect(statusCategoryColours.CONCENTRATION).toBe(0x20c997)
     expect(statusCategoryColours.OTHER).toBe(0xced4da)
-    // Lane 1 ruling: an EFFECT stays neutral until its polarity is derived.
-    expect(statusCategoryColours.EFFECT).toBe(statusCategoryColours.OTHER)
   })
 
   it('never lets the bright radius exceed the dim reach', () => {

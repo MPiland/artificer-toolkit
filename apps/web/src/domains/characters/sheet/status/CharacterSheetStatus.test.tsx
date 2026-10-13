@@ -296,14 +296,16 @@ describe('Character Sheet status', () => {
         label: 'Aid',
         sourceHidden: false,
         remainingTicks: 4,
-        expiresAtCampaignMinute: null
+        expiresAtCampaignMinute: null,
+        polarity: 'BENEFICIAL'
       },
       {
         effectId: '33333333-3333-4333-8333-333333333302',
         label: null,
         sourceHidden: true,
         remainingTicks: null,
-        expiresAtCampaignMinute: null
+        expiresAtCampaignMinute: null,
+        polarity: 'NEUTRAL'
       }
     ]
 

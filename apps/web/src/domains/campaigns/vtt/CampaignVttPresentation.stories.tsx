@@ -61,7 +61,8 @@ const emberActor = {
       label: 'Blessed',
       sourceHidden: false,
       remainingTicks: 4,
-      expiresAtCampaignMinute: null
+      expiresAtCampaignMinute: null,
+      polarity: 'BENEFICIAL' as const
     }
   ],
   conditions: [

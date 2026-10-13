@@ -9,8 +9,8 @@ import * as styles from './CampaignVttStage.css'
 
 const categoryIcons = {
   CONCENTRATION: Brain,
-  CONDITION: TriangleAlert,
-  EFFECT: Sparkles,
+  HARMFUL: TriangleAlert,
+  BENEFICIAL: Sparkles,
   OTHER: CircleDot
 } as const satisfies Record<VttStatusCategory, LucideIcon>
 

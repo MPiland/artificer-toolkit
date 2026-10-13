@@ -61,16 +61,15 @@ export interface VttSceneTokenDragUpdate {
   tool: string
 }
 
-/** Where a status comes from. The Encounter data carries no harmful or beneficial polarity. */
-export type VttStatusCategory = 'CONCENTRATION' | 'CONDITION' | 'EFFECT' | 'OTHER'
+/** How a status reads on the ring: a grant's derived polarity, Concentration, or neither. */
+export type VttStatusCategory = 'CONCENTRATION' | 'HARMFUL' | 'BENEFICIAL' | 'OTHER'
 
 /** The most segments the outer ring draws; beyond it the last segment marks the overflow. */
 export const maxStatusSegments = 8
 export const statusCategoryColours: Record<VttStatusCategory, number> = {
   CONCENTRATION: 0x20c997,
-  CONDITION: 0xffd43b,
-  // A grant draws as "other" until its polarity is derived from its modifiers (lane 1 ruling, 1.2).
-  EFFECT: 0xced4da,
+  HARMFUL: 0xffd43b,
+  BENEFICIAL: 0x94d82d,
   OTHER: 0xced4da
 }
 export const statusOverflowColour = 0xffffff

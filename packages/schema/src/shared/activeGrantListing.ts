@@ -15,7 +15,9 @@ export const activeGrantListingDtoSchema = lazySchema(() =>
     /** The absolute Campaign-clock minute a carried-over grant ends; null for any other grant. */
     expiresAtCampaignMinute: z.nullable(
       z.number().check(z.int()).check(z.gte(0)).check(z.lte(Number.MAX_SAFE_INTEGER))
-    )
+    ),
+    /** What the grant does for its holder, derived from its modifiers and never authored. */
+    polarity: z.enum(['BENEFICIAL', 'HARMFUL', 'NEUTRAL'])
   })
 )
 

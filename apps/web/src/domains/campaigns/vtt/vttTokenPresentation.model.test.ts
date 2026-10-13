@@ -247,14 +247,16 @@ describe('VTT token presentation model', () => {
           label: 'Aid',
           sourceHidden: false,
           remainingTicks: 4,
-          expiresAtCampaignMinute: null
+          expiresAtCampaignMinute: null,
+          polarity: 'BENEFICIAL' as const
         },
         {
           effectId: '55555555-5555-4555-8555-555555555502',
           label: null,
           sourceHidden: true,
           remainingTicks: null,
-          expiresAtCampaignMinute: null
+          expiresAtCampaignMinute: null,
+          polarity: 'NEUTRAL' as const
         }
       ]
     }
@@ -278,7 +280,7 @@ describe('VTT token presentation model', () => {
     expect(result.accessibleDescription).toContain('Aid, 4 rounds left')
   })
 
-  it('categorises statuses by what the Encounter data says they are, with Concentration among them', () => {
+  it('categorises statuses by what the Encounter data says they are, with a grant read by its polarity and Concentration among them', () => {
     const actor = {
       ...tabletopGmEncounter.actors[0]!,
       activeGrants: [
@@ -287,7 +289,24 @@ describe('VTT token presentation model', () => {
           label: 'Aid',
           sourceHidden: false,
           remainingTicks: 4,
-          expiresAtCampaignMinute: null
+          expiresAtCampaignMinute: null,
+          polarity: 'BENEFICIAL' as const
+        },
+        {
+          effectId: '55555555-5555-4555-8555-555555555502',
+          label: 'Hex',
+          sourceHidden: false,
+          remainingTicks: 4,
+          expiresAtCampaignMinute: null,
+          polarity: 'HARMFUL' as const
+        },
+        {
+          effectId: '55555555-5555-4555-8555-555555555503',
+          label: 'Mixed boon',
+          sourceHidden: false,
+          remainingTicks: 4,
+          expiresAtCampaignMinute: null,
+          polarity: 'NEUTRAL' as const
         }
       ],
       concentration: { label: 'Bless', sourceHidden: false },
@@ -311,9 +330,11 @@ describe('VTT token presentation model', () => {
 
     expect(result.statuses.map((status) => [status.label, status.category])).toEqual([
       ['Concentrating: Bless', 'CONCENTRATION'],
-      ['Lingering wound', 'CONDITION'],
-      ['Restrained', 'CONDITION'],
-      ['Aid, 4 rounds left', 'EFFECT']
+      ['Lingering wound', 'HARMFUL'],
+      ['Restrained', 'HARMFUL'],
+      ['Aid, 4 rounds left', 'BENEFICIAL'],
+      ['Hex, 4 rounds left', 'HARMFUL'],
+      ['Mixed boon, 4 rounds left', 'OTHER']
     ])
   })
 

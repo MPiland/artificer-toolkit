@@ -172,14 +172,16 @@ describe('player encounter projection', () => {
         label: 'Aid',
         sourceHidden: false,
         remainingTicks: 5,
-        expiresAtCampaignMinute: null
+        expiresAtCampaignMinute: null,
+        polarity: 'BENEFICIAL' as const
       },
       {
         effectId: '00000000-0000-4000-8000-0000000000a2',
         label: 'Hidden trap blessing',
         sourceHidden: true,
         remainingTicks: null,
-        expiresAtCampaignMinute: 2001
+        expiresAtCampaignMinute: 2001,
+        polarity: 'NEUTRAL' as const
       }
     ]
     const gm = gmEncounter([{ ...gmActor(PUBLIC_ACTOR_ID, true), activeGrants: grants }])

@@ -3394,6 +3394,7 @@ export declare const api: {
               effectId: string;
               expiresAtCampaignMinute: number | null;
               label: string | null;
+              polarity: "BENEFICIAL" | "HARMFUL" | "NEUTRAL";
               remainingTicks: number | null;
               sourceHidden: boolean;
             }>;
@@ -17830,6 +17831,7 @@ export declare const api: {
               effectId: string;
               expiresAtCampaignMinute: number | null;
               label: string | null;
+              polarity: "BENEFICIAL" | "HARMFUL" | "NEUTRAL";
               remainingTicks: number | null;
               sourceHidden: boolean;
             }>;
@@ -19929,6 +19931,7 @@ export declare const api: {
                   effectId: string;
                   expiresAtCampaignMinute: number | null;
                   label: string | null;
+                  polarity: "BENEFICIAL" | "HARMFUL" | "NEUTRAL";
                   remainingTicks: number | null;
                   sourceHidden: boolean;
                 }>;
@@ -132787,6 +132790,7 @@ export declare const api: {
                     effectId: string;
                     expiresAtCampaignMinute: number | null;
                     label: string | null;
+                    polarity: "BENEFICIAL" | "HARMFUL" | "NEUTRAL";
                     remainingTicks: number | null;
                     sourceHidden: boolean;
                   }>;
@@ -132959,6 +132963,7 @@ export declare const api: {
                     effectId: string;
                     expiresAtCampaignMinute: number | null;
                     label: string | null;
+                    polarity: "BENEFICIAL" | "HARMFUL" | "NEUTRAL";
                     remainingTicks: number | null;
                     sourceHidden: boolean;
                   }>;
@@ -133547,6 +133552,7 @@ export declare const api: {
                     effectId: string;
                     expiresAtCampaignMinute: number | null;
                     label: string | null;
+                    polarity: "BENEFICIAL" | "HARMFUL" | "NEUTRAL";
                     remainingTicks: number | null;
                     sourceHidden: boolean;
                   }>;
@@ -133719,6 +133725,7 @@ export declare const api: {
                     effectId: string;
                     expiresAtCampaignMinute: number | null;
                     label: string | null;
+                    polarity: "BENEFICIAL" | "HARMFUL" | "NEUTRAL";
                     remainingTicks: number | null;
                     sourceHidden: boolean;
                   }>;
@@ -134348,6 +134355,7 @@ export declare const api: {
                 effectId: string;
                 expiresAtCampaignMinute: number | null;
                 label: string | null;
+                polarity: "BENEFICIAL" | "HARMFUL" | "NEUTRAL";
                 remainingTicks: number | null;
                 sourceHidden: boolean;
               }>;
@@ -134514,6 +134522,7 @@ export declare const api: {
                 effectId: string;
                 expiresAtCampaignMinute: number | null;
                 label: string | null;
+                polarity: "BENEFICIAL" | "HARMFUL" | "NEUTRAL";
                 remainingTicks: number | null;
                 sourceHidden: boolean;
               }>;
@@ -134623,6 +134632,7 @@ export declare const api: {
                     effectId: string;
                     expiresAtCampaignMinute: number | null;
                     label: string | null;
+                    polarity: "BENEFICIAL" | "HARMFUL" | "NEUTRAL";
                     remainingTicks: number | null;
                     sourceHidden: boolean;
                   }>;
@@ -134795,6 +134805,7 @@ export declare const api: {
                     effectId: string;
                     expiresAtCampaignMinute: number | null;
                     label: string | null;
+                    polarity: "BENEFICIAL" | "HARMFUL" | "NEUTRAL";
                     remainingTicks: number | null;
                     sourceHidden: boolean;
                   }>;
@@ -135102,6 +135113,7 @@ export declare const api: {
               effectId: string;
               expiresAtCampaignMinute: number | null;
               label: string | null;
+              polarity: "BENEFICIAL" | "HARMFUL" | "NEUTRAL";
               remainingTicks: number | null;
               sourceHidden: boolean;
             }>;

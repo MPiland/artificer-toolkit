@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
+import {
+  modifierOperationSchema,
+  senseOperationSchema
+} from '@artificer-toolkit/schema/api/characterGrantFoldRules'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
+import type { ActiveGrantListingDto } from '@artificer-toolkit/schema/shared/activeGrantListing'
 
 import {
   carriedConcentration,
@@ -86,21 +91,24 @@ describe('listActiveGrantListings', () => {
         label: 'Aid',
         sourceHidden: false,
         remainingTicks: null,
-        expiresAtCampaignMinute: 2001
+        expiresAtCampaignMinute: 2001,
+        polarity: 'BENEFICIAL'
       },
       {
         effectId: run.id,
         label: 'Antitoxin (vial)',
         sourceHidden: false,
         remainingTicks: 7,
-        expiresAtCampaignMinute: null
+        expiresAtCampaignMinute: null,
+        polarity: 'BENEFICIAL'
       },
       {
         effectId: untimed.id,
         label: expect.any(String),
         sourceHidden: false,
         remainingTicks: null,
-        expiresAtCampaignMinute: null
+        expiresAtCampaignMinute: null,
+        polarity: 'BENEFICIAL'
       }
     ])
   })
@@ -112,6 +120,178 @@ describe('listActiveGrantListings', () => {
       lifecycle: { schemaVersion: 1, remainingTicks: 3 }
     })
     expect(listActiveGrantListings([nonGrant(grant)])).toEqual([])
+  })
+})
+
+type PolarityPiece = { domain: string; kind: string; payload?: unknown }
+
+function piecesEffect(pieces: readonly PolarityPiece[], senseCount: number): ListedEffect {
+  const base = grantEffect({
+    id: 0xd051,
+    createdOrdinal: 1,
+    lifecycle: { schemaVersion: 1, remainingTicks: 3 }
+  })
+  if (base.definition.schemaVersion !== 2) throw new Error('A grant stores a version 2 definition.')
+  return {
+    ...base,
+    definition: {
+      ...base.definition,
+      stateContributions: base.definition.stateContributions.map((contribution) =>
+        contribution.kind === 'MODIFIER_GRANT'
+          ? {
+              ...contribution,
+              modifiers: pieces.map((piece, index) =>
+                modifierOperationSchema.parse({
+                  grantId: `piece-${index}`,
+                  valueDomainCode: piece.domain,
+                  modifierKind: piece.kind,
+                  domain: {},
+                  grant: { scope: 'GLOBAL', ...(piece.payload ? { payload: piece.payload } : {}) },
+                  restrictions: [],
+                  scopeSpellIds: []
+                })
+              ),
+              senses: Array.from({ length: senseCount }, (_, index) =>
+                senseOperationSchema.parse({
+                  grantId: `sense-${index}`,
+                  scalingKind: 'NONE',
+                  targetIds: [],
+                  levels: [],
+                  range: null
+                })
+              )
+            }
+          : contribution
+      )
+    }
+  }
+}
+
+const polarityOf = (
+  pieces: readonly PolarityPiece[],
+  senseCount = 0
+): ActiveGrantListingDto['polarity'] | undefined =>
+  listActiveGrantListings([piecesEffect(pieces, senseCount)])[0]?.polarity
+
+const fixed = (amount: number) => ({ valueKind: 'FIXED', amount })
+const advantage = { domain: 'INITIATIVE', kind: 'ADVANTAGE' }
+const disadvantage = { domain: 'INITIATIVE', kind: 'DISADVANTAGE' }
+
+describe('grant polarity (VTT_UI-1.2)', () => {
+  it('reads a sense as beneficial', () => {
+    expect(polarityOf([], 1)).toBe('BENEFICIAL')
+  })
+
+  it('reads advantage as beneficial and disadvantage as harmful', () => {
+    expect(polarityOf([advantage])).toBe('BENEFICIAL')
+    expect(polarityOf([disadvantage])).toBe('HARMFUL')
+  })
+
+  it('inverts advantage and disadvantage on attacks against the holder', () => {
+    expect(polarityOf([{ domain: 'ATTACKS_AGAINST', kind: 'ADVANTAGE' }])).toBe('HARMFUL')
+    expect(polarityOf([{ domain: 'ATTACKS_AGAINST', kind: 'DISADVANTAGE' }])).toBe('BENEFICIAL')
+  })
+
+  it('reads bonuses as beneficial and penalties as harmful', () => {
+    expect(polarityOf([{ domain: 'ARMOR_CLASS', kind: 'BONUS', payload: fixed(2) }])).toBe(
+      'BENEFICIAL'
+    )
+    expect(polarityOf([{ domain: 'ARMOR_CLASS', kind: 'PENALTY', payload: fixed(2) }])).toBe(
+      'HARMFUL'
+    )
+    for (const kind of [
+      'ABILITY_MODIFIER_BONUS',
+      'OPTIONAL_ABILITY_MODIFIER_BONUS',
+      'ADD_BONUS_DIE'
+    ])
+      expect(polarityOf([{ domain: 'DAMAGE', kind }])).toBe('BENEFICIAL')
+  })
+
+  it('flips a bonus or penalty whose fixed amount or multiplier is negative', () => {
+    expect(polarityOf([{ domain: 'ARMOR_CLASS', kind: 'PENALTY', payload: fixed(-2) }])).toBe(
+      'BENEFICIAL'
+    )
+    expect(polarityOf([{ domain: 'ARMOR_CLASS', kind: 'BONUS', payload: fixed(-1) }])).toBe(
+      'HARMFUL'
+    )
+    expect(
+      polarityOf([
+        {
+          domain: 'ARMOR_CLASS',
+          kind: 'PENALTY',
+          payload: { valueKind: 'PROFICIENCY_BONUS', multiplier: -1 }
+        }
+      ])
+    ).toBe('BENEFICIAL')
+  })
+
+  it('reads a zero amount or multiplier as neutral and an absent multiplier as one', () => {
+    expect(polarityOf([{ domain: 'ARMOR_CLASS', kind: 'BONUS', payload: fixed(0) }])).toBe(
+      'NEUTRAL'
+    )
+    expect(
+      polarityOf([
+        {
+          domain: 'ARMOR_CLASS',
+          kind: 'PENALTY',
+          payload: { valueKind: 'CHARACTER_LEVEL', multiplier: 0 }
+        }
+      ])
+    ).toBe('NEUTRAL')
+    expect(
+      polarityOf([
+        { domain: 'ARMOR_CLASS', kind: 'PENALTY', payload: { valueKind: 'CHARACTER_LEVEL' } }
+      ])
+    ).toBe('HARMFUL')
+  })
+
+  it('reads the opportunity attack immunity as beneficial', () => {
+    expect(polarityOf([{ domain: 'OPPORTUNITY_ATTACK_IMMUNITY', kind: 'ENABLE' }])).toBe(
+      'BENEFICIAL'
+    )
+  })
+
+  it('reads added options by what they give the holder', () => {
+    for (const domain of [
+      'DAMAGE_RESISTANCE',
+      'DAMAGE_IMMUNITY',
+      'CONDITION_IMMUNITY',
+      'MOVEMENT_MODE'
+    ])
+      expect(polarityOf([{ domain, kind: 'ADD_OPTION' }])).toBe('BENEFICIAL')
+    for (const domain of ['DAMAGE_VULNERABILITY', 'CONDITION'])
+      expect(polarityOf([{ domain, kind: 'ADD_OPTION' }])).toBe('HARMFUL')
+    expect(polarityOf([{ domain: 'ATTRIBUTE', kind: 'ADD_OPTION' }])).toBe('NEUTRAL')
+  })
+
+  it('inverts removed options and keeps a neutral one neutral', () => {
+    expect(polarityOf([{ domain: 'DAMAGE_RESISTANCE', kind: 'REMOVE_OPTION' }])).toBe('HARMFUL')
+    expect(polarityOf([{ domain: 'DAMAGE_VULNERABILITY', kind: 'REMOVE_OPTION' }])).toBe(
+      'BENEFICIAL'
+    )
+    expect(polarityOf([{ domain: 'ATTRIBUTE', kind: 'REMOVE_OPTION' }])).toBe('NEUTRAL')
+  })
+
+  it('reads every other kind as neutral', () => {
+    for (const kind of [
+      'SET_VALUE',
+      'REPLACE_DAMAGE_TYPE',
+      'REPLACE_RANGE_KIND',
+      'MODIFY_CHARGE_LIMIT',
+      'NOT_A_KIND'
+    ])
+      expect(polarityOf([{ domain: 'HIT_POINTS_MAX', kind }])).toBe('NEUTRAL')
+  })
+
+  it('reads a grant as beneficial or harmful only when every piece agrees', () => {
+    expect(polarityOf([advantage, advantage], 1)).toBe('BENEFICIAL')
+    expect(polarityOf([disadvantage, disadvantage])).toBe('HARMFUL')
+    expect(polarityOf([advantage, disadvantage])).toBe('NEUTRAL')
+    expect(polarityOf([disadvantage], 1)).toBe('NEUTRAL')
+  })
+
+  it('reads a grant containing any neutral piece as neutral', () => {
+    expect(polarityOf([advantage, { domain: 'HIT_POINTS_MAX', kind: 'SET_VALUE' }])).toBe('NEUTRAL')
   })
 })
 
