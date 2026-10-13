@@ -14,6 +14,17 @@ import {
   hideConcentrationSource,
   listActiveGrantListings
 } from '../activeGrantListings.js'
+import type { EffectAuthored, PathLifecycleAuthored } from '@artificer-toolkit/shared/authored'
+import {
+  SRD_BASIC_ACTION_DEFINITIONS,
+  SRD_BASIC_ACTION_IDS
+} from '@artificer-toolkit/source-data/srd/basicActions.js'
+import { fly } from '@artificer-toolkit/source-data/srd/spells/fly.js'
+import { heroism } from '@artificer-toolkit/source-data/srd/spells/heroism.js'
+import { rayOfFrost } from '@artificer-toolkit/source-data/srd/spells/ray-of-frost.js'
+import { shockingGrasp } from '@artificer-toolkit/source-data/srd/spells/shocking-grasp.js'
+import { viciousMockery } from '@artificer-toolkit/source-data/srd/spells/vicious-mockery.js'
+
 import { ENCOUNTER_ID, testUuid } from '../testing/dnd5eSrdEncounter.js'
 import { plannedModifierGrant } from '../testing/modifierGrantFixture.js'
 
@@ -290,8 +301,149 @@ describe('grant polarity (VTT_UI-1.2)', () => {
     expect(polarityOf([disadvantage], 1)).toBe('NEUTRAL')
   })
 
+  it('reads a negative ability modifier multiplier as a flip and a zero one as neutral', () => {
+    const abilityBonus = (multiplier: number) => ({
+      domain: 'ARMOR_CLASS',
+      kind: 'ABILITY_MODIFIER_BONUS',
+      payload: { ability: 'DEX', multiplier }
+    })
+    expect(polarityOf([abilityBonus(1)])).toBe('BENEFICIAL')
+    expect(polarityOf([abilityBonus(-1)])).toBe('HARMFUL')
+    expect(polarityOf([abilityBonus(0)])).toBe('NEUTRAL')
+  })
+
+  it('reads a bonus die as beneficial', () => {
+    expect(
+      polarityOf([{ domain: 'DAMAGE', kind: 'ADD_BONUS_DIE', payload: { dice: '1d4' } }])
+    ).toBe('BENEFICIAL')
+  })
+
+  it('reads an enable by its domain and an unclassified one as neutral', () => {
+    expect(polarityOf([{ domain: 'ARMOR_CLASS', kind: 'ENABLE' }])).toBe('NEUTRAL')
+  })
+
+  it('reads a set value by its domain and value (D110)', () => {
+    const set = (domain: string, amount: number) => ({
+      domain,
+      kind: 'SET_VALUE',
+      payload: { amount }
+    })
+    expect(polarityOf([set('SPEED', 60)])).toBe('BENEFICIAL')
+    expect(polarityOf([set('SPEED', 0)])).toBe('HARMFUL')
+    expect(polarityOf([set('REACTION_COUNT', 0)])).toBe('HARMFUL')
+    expect(polarityOf([set('REACTION_COUNT', 2)])).toBe('NEUTRAL')
+    expect(polarityOf([set('HIT_POINTS_MAX', 0)])).toBe('NEUTRAL')
+    expect(polarityOf([set('HIT_POINTS_MAX', 30)])).toBe('NEUTRAL')
+  })
+
   it('reads a grant containing any neutral piece as neutral', () => {
     expect(polarityOf([advantage, { domain: 'HIT_POINTS_MAX', kind: 'SET_VALUE' }])).toBe('NEUTRAL')
+  })
+})
+
+describe('polarity of real SRD grants (D110)', () => {
+  function srdPolarity(
+    effect: EffectAuthored | undefined,
+    lifecycle: PathLifecycleAuthored = {},
+    hitPath?: 'ON_HIT'
+  ) {
+    if (!effect) throw new Error('The SRD source has no effect.')
+    const planned = plannedModifierGrant({
+      encounterId: ENCOUNTER_ID,
+      sourceActorId: testUuid(0xd001),
+      holderActorId: testUuid(0xd002),
+      lifecycle,
+      hitPath,
+      effect
+    })
+    return listActiveGrantListings([
+      {
+        id: testUuid(0xd061),
+        createdOrdinal: 1,
+        definition: planned.definition,
+        lifecycle: { schemaVersion: 1, remainingTicks: 3 }
+      }
+    ]).map(({ polarity }) => polarity)
+  }
+  const basicAction = (id: string) =>
+    SRD_BASIC_ACTION_DEFINITIONS.find((action) => action.id === id)?.document.effects?.[0]
+
+  it('reads Fly (speed set above zero) as beneficial', () => {
+    expect(srdPolarity(fly.effects?.[0])).toEqual(['BENEFICIAL'])
+  })
+
+  it('reads Shocking Grasp (reactions set to zero) as harmful', () => {
+    expect(
+      srdPolarity(
+        shockingGrasp.effects?.[0],
+        {
+          turnAnchor: { actor: 'TARGET', boundary: 'START_OF_TURN' }
+        },
+        'ON_HIT'
+      )
+    ).toEqual(['HARMFUL'])
+  })
+
+  it('reads Ray of Frost (a speed penalty) as harmful', () => {
+    expect(
+      srdPolarity(
+        rayOfFrost.effects?.[0],
+        {
+          turnAnchor: { actor: 'SOURCE', boundary: 'START_OF_TURN' }
+        },
+        'ON_HIT'
+      )
+    ).toEqual(['HARMFUL'])
+  })
+
+  it('reads Vicious Mockery (disadvantage on attacks) as harmful', () => {
+    expect(
+      srdPolarity(viciousMockery.effects?.[0], {
+        turnAnchor: { actor: 'TARGET', boundary: 'END_OF_TURN' }
+      })
+    ).toEqual(['HARMFUL'])
+  })
+
+  it('reads Dodge, Disengage and Heroism as beneficial', () => {
+    expect(srdPolarity(basicAction(SRD_BASIC_ACTION_IDS.DODGE))).toEqual(['BENEFICIAL'])
+    expect(srdPolarity(basicAction(SRD_BASIC_ACTION_IDS.DISENGAGE))).toEqual(['BENEFICIAL'])
+    expect(srdPolarity(heroism.effects?.[0])).toEqual(['BENEFICIAL'])
+  })
+
+  it('reads a grant that mixes Fly with Ray of Frost as neutral', () => {
+    const frost = rayOfFrost.effects?.[0]?.paths
+      .flatMap((path) => (path.selectionKind === 'FIXED' ? path.resultBlock.outcomes : []))
+      .flatMap((outcome) =>
+        outcome.effectKind === 'APPLY_GRANT' ? (outcome.grants.modifiers ?? []) : []
+      )
+    const flyEffect = fly.effects?.[0]
+    if (!flyEffect || !frost?.length) throw new Error('The SRD sources lack the expected grants.')
+    expect(
+      srdPolarity({
+        ...flyEffect,
+        paths: flyEffect.paths.map((path) =>
+          path.selectionKind !== 'FIXED'
+            ? path
+            : {
+                ...path,
+                resultBlock: {
+                  ...path.resultBlock,
+                  outcomes: path.resultBlock.outcomes.map((outcome) =>
+                    outcome.effectKind === 'APPLY_GRANT'
+                      ? {
+                          ...outcome,
+                          grants: {
+                            ...outcome.grants,
+                            modifiers: [...(outcome.grants.modifiers ?? []), ...frost]
+                          }
+                        }
+                      : outcome
+                  )
+                }
+              }
+        )
+      })
+    ).toEqual(['NEUTRAL'])
   })
 })
 
@@ -334,6 +486,21 @@ describe('Concentration listings (SPELLS-5.11)', () => {
 })
 
 describe('hideActiveGrantSources', () => {
+  it('keeps the polarity of a hidden source while its label goes (D110)', () => {
+    const [hidden] = listActiveGrantListings([
+      grantEffect({
+        id: 0xd033,
+        createdOrdinal: 1,
+        sourceLabel: 'Hidden trap blessing',
+        sourceHidden: true,
+        lifecycle: { schemaVersion: 1, remainingTicks: 3 }
+      })
+    ])
+    expect(hideActiveGrantSources([hidden!])).toEqual([
+      { ...hidden, label: null, polarity: 'BENEFICIAL' }
+    ])
+  })
+
   it('clears only the label of a grant whose source was hidden', () => {
     const [shown, hidden] = listActiveGrantListings([
       grantEffect({

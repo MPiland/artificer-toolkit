@@ -7,10 +7,13 @@ import type {
   ActiveGrantListingDto,
   ConcentrationListingDto
 } from '@artificer-toolkit/schema/shared/activeGrantListing'
+import { modifierKindSchema, valueDomainCodeSchema } from '@artificer-toolkit/schema/shared/enums'
+import type { z } from 'zod'
 
 import { record } from './character/activeEffectGrantTotals.js'
 
 type GrantPolarity = ActiveGrantListingDto['polarity']
+type ValueDomainCode = z.infer<typeof valueDomainCodeSchema>
 
 const INVERSE_POLARITY = {
   BENEFICIAL: 'HARMFUL',
@@ -19,7 +22,7 @@ const INVERSE_POLARITY = {
 } as const satisfies Record<GrantPolarity, GrantPolarity>
 
 /** What adding one of these options does for the holder; any other option domain is neutral. */
-const OPTION_DOMAIN_POLARITY: Readonly<Record<string, GrantPolarity>> = {
+const OPTION_DOMAIN_POLARITY: Readonly<Partial<Record<ValueDomainCode, GrantPolarity>>> = {
   DAMAGE_RESISTANCE: 'BENEFICIAL',
   DAMAGE_IMMUNITY: 'BENEFICIAL',
   CONDITION_IMMUNITY: 'BENEFICIAL',
@@ -28,34 +31,65 @@ const OPTION_DOMAIN_POLARITY: Readonly<Record<string, GrantPolarity>> = {
   CONDITION: 'HARMFUL'
 }
 
+/** What enabling something does for the holder; any other enabled domain is neutral. */
+const ENABLE_DOMAIN_POLARITY: Readonly<Partial<Record<ValueDomainCode, GrantPolarity>>> = {
+  OPPORTUNITY_ATTACK_IMMUNITY: 'BENEFICIAL'
+}
+
+/**
+ * What setting a domain's value does (D110): its polarity when set to zero and when set above zero.
+ * Setting any other domain, or a value in between, is neutral.
+ */
+const SET_VALUE_DOMAIN_POLARITY: Readonly<
+  Partial<Record<ValueDomainCode, { zero?: GrantPolarity; positive?: GrantPolarity }>>
+> = {
+  SPEED: { zero: 'HARMFUL', positive: 'BENEFICIAL' },
+  REACTION_COUNT: { zero: 'HARMFUL' }
+}
+
 /** A bonus or penalty's sign: a negative amount or multiplier flips it, zero cancels it. */
-function scalarSign(payload: unknown): number {
-  const scalar = record(payload)
-  const value = scalar?.valueKind === 'FIXED' ? scalar.amount : (scalar?.multiplier ?? 1)
+function scalarSign(payload: Record<string, unknown> | null): number {
+  const value = payload?.valueKind === 'FIXED' ? payload.amount : (payload?.multiplier ?? 1)
   return typeof value === 'number' ? Math.sign(value) : 1
 }
 
 function modifierPolarity(modifier: CharacterGrantFoldModifier): GrantPolarity {
-  switch (modifier.modifierKind) {
+  const kind = modifierKindSchema.safeParse(modifier.modifierKind).data
+  const domain = valueDomainCodeSchema.safeParse(modifier.valueDomainCode).data
+  if (!kind || !domain) return 'NEUTRAL'
+  const payload = record(record(modifier.grant)?.payload)
+  switch (kind) {
     case 'ADVANTAGE':
-      return modifier.valueDomainCode === 'ATTACKS_AGAINST' ? 'HARMFUL' : 'BENEFICIAL'
+      return domain === 'ATTACKS_AGAINST' ? 'HARMFUL' : 'BENEFICIAL'
     case 'DISADVANTAGE':
-      return modifier.valueDomainCode === 'ATTACKS_AGAINST' ? 'BENEFICIAL' : 'HARMFUL'
+      return domain === 'ATTACKS_AGAINST' ? 'BENEFICIAL' : 'HARMFUL'
     case 'BONUS':
     case 'PENALTY': {
-      const sign = scalarSign(record(modifier.grant)?.payload)
+      const sign = scalarSign(payload)
       if (sign === 0) return 'NEUTRAL'
-      return (modifier.modifierKind === 'BONUS') === sign > 0 ? 'BENEFICIAL' : 'HARMFUL'
+      return (kind === 'BONUS') === sign > 0 ? 'BENEFICIAL' : 'HARMFUL'
     }
-    case 'ABILITY_MODIFIER_BONUS':
-    case 'OPTIONAL_ABILITY_MODIFIER_BONUS':
+    case 'ABILITY_MODIFIER_BONUS': {
+      const sign = scalarSign(payload)
+      return sign === 0 ? 'NEUTRAL' : sign > 0 ? 'BENEFICIAL' : 'HARMFUL'
+    }
     case 'ADD_BONUS_DIE':
-    case 'ENABLE':
+    case 'OPTIONAL_ABILITY_MODIFIER_BONUS':
       return 'BENEFICIAL'
+    case 'ENABLE':
+      return ENABLE_DOMAIN_POLARITY[domain] ?? 'NEUTRAL'
+    case 'SET_VALUE': {
+      const amount = payload?.amount
+      if (typeof amount !== 'number') return 'NEUTRAL'
+      const byValue = SET_VALUE_DOMAIN_POLARITY[domain]
+      return (
+        (amount === 0 ? byValue?.zero : amount > 0 ? byValue?.positive : undefined) ?? 'NEUTRAL'
+      )
+    }
     case 'ADD_OPTION':
-      return OPTION_DOMAIN_POLARITY[modifier.valueDomainCode] ?? 'NEUTRAL'
+      return OPTION_DOMAIN_POLARITY[domain] ?? 'NEUTRAL'
     case 'REMOVE_OPTION':
-      return INVERSE_POLARITY[OPTION_DOMAIN_POLARITY[modifier.valueDomainCode] ?? 'NEUTRAL']
+      return INVERSE_POLARITY[OPTION_DOMAIN_POLARITY[domain] ?? 'NEUTRAL']
     default:
       return 'NEUTRAL'
   }
@@ -63,8 +97,20 @@ function modifierPolarity(modifier: CharacterGrantFoldModifier): GrantPolarity {
 
 /**
  * What a grant does for its holder, derived from its frozen modifiers and never authored: beneficial
- * or harmful only when every piece agrees, neutral when they mix or any piece is neutral. Advantage
- * on attacks against the holder harms them.
+ * or harmful only when every piece agrees, neutral when they mix or any piece is neutral. Each piece
+ * reads as follows:
+ * - Advantage and disadvantage help the holder, except on attacks against them.
+ * - A bonus or penalty follows its sign; a negative amount or multiplier flips it, zero is neutral.
+ * - An ability modifier bonus helps; a negative multiplier harms and a zero one is neutral. An
+ *   optional ability modifier bonus always helps.
+ * - A bonus die helps: its payload names only the dice and cannot express a subtracted one (Bane is
+ *   a closed rule, not a grant).
+ * - Enabling something helps only for the domains in `ENABLE_DOMAIN_POLARITY` (opportunity attack
+ *   immunity); any other enabled domain is neutral.
+ * - Setting a value is read by domain and value (D110): speed above zero helps (Fly); speed or
+ *   reactions set to zero harms (Shocking Grasp); every other set value is neutral.
+ * - Adding an option follows `OPTION_DOMAIN_POLARITY`; removing one inverts it.
+ * - Senses help.
  */
 function grantPolarity(grant: {
   modifiers: readonly CharacterGrantFoldModifier[]

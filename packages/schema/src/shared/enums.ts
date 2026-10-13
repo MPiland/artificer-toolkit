@@ -377,6 +377,7 @@ export const valueDomainCodeSchema = lazySchema(() =>
     'DAMAGE_RESISTANCE',
     'DAMAGE_IMMUNITY',
     'DAMAGE_VULNERABILITY',
+    'CONDITION_IMMUNITY',
     'ATTRIBUTE'
   ])
 )

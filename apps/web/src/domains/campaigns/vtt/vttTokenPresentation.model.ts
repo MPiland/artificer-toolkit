@@ -28,8 +28,9 @@ export const dispositionRingColours = {
 const NO_DISPOSITION_RING_COLOUR = 0xffffff
 
 type StatusKind = VttTokenPresentation['statuses'][number]['kind']
-/** A grant's category is its derived polarity, so `EFFECT` has none of its own. */
-const statusCategories: Record<Exclude<StatusKind, 'EFFECT'>, VttStatusCategory> = {
+/** Every status kind but a grant, whose category is its derived polarity. */
+type NonGrantStatusKind = Exclude<StatusKind, 'EFFECT'>
+const statusCategories: Record<NonGrantStatusKind, VttStatusCategory> = {
   CONCENTRATION: 'CONCENTRATION',
   CONDITION: 'HARMFUL',
   HEALTH: 'OTHER',
@@ -69,12 +70,14 @@ export function buildVttTokenPresentations(input: {
     const statuses = actor
       ? [
           ...actorConditionStatuses(actor.conditions),
-          ...actor.activeGrants.map((grant) => ({
-            category: grantCategories[grant.polarity],
-            id: `grant:${grant.effectId}`,
-            kind: 'EFFECT' as const,
-            label: `${activeGrantLabel(grant)}, ${activeGrantTimeLeft(grant)}`
-          })),
+          ...actor.activeGrants.map((grant) =>
+            statusFromValues(
+              `grant:${grant.effectId}`,
+              'EFFECT',
+              `${activeGrantLabel(grant)}, ${activeGrantTimeLeft(grant)}`,
+              grantCategories[grant.polarity]
+            )
+          ),
           ...(actor.concentration
             ? [
                 statusFromValues(
@@ -178,13 +181,14 @@ function actorConditionStatuses(conditions: unknown): VttTokenPresentation['stat
 
 function statusFromValues(
   id: string,
-  kind: Exclude<StatusKind, 'EFFECT'>,
-  label: string
+  kind: StatusKind,
+  label: string,
+  category: VttStatusCategory = kind === 'EFFECT' ? 'OTHER' : statusCategories[kind]
 ): VttTokenPresentation['statuses'][number] {
-  return { category: statusCategories[kind], id, kind, label: label.trim() }
+  return { category, id, kind, label: label.trim() }
 }
 
-function statusKind(value: unknown): Exclude<StatusKind, 'EFFECT'> {
+function statusKind(value: unknown): NonGrantStatusKind {
   if (typeof value !== 'string') return 'CONDITION'
   const normalized = value.toUpperCase()
   return normalized === 'INJURY' || normalized === 'MORALE' || normalized === 'REACTION'
