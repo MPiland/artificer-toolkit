@@ -17,6 +17,7 @@ import { CharacterSheetExtraPanel } from './CharacterSheetExtraPanel'
 import { CharacterSheetInspector } from './CharacterSheetInspector'
 import { CharacterSheetItemPanelContent } from './CharacterSheetItemPanel'
 import { CharacterSheetRulesPanel } from './CharacterSheetRulesPanel'
+import { CharacterSheetSpellPanelContent } from './CharacterSheetSpellPanelContent'
 import { CharacterSheetSpellCustomizationEditor } from './CharacterSheetSpellCustomizationEditor'
 import { CharacterSheetSpellsPanelContent } from './CharacterSheetSpellsPanelContent'
 import {
@@ -27,6 +28,7 @@ import {
   savingThrowPanelFixture,
   sensesPanelFixture,
   spellPanelAttackDamageFixture,
+  spellPanelFixture,
   spellPanelConfiguredCustomizationsFixture,
   spellsPanelFixture,
   vehiclePanelFixture
@@ -1057,6 +1059,73 @@ describe('Character Sheet inspector', () => {
         extra: expect.objectContaining({ hitDice: [{ die: 8, total: 2, used: 0 }] })
       })
     )
+  })
+
+  it('shows another Spell source’s own name, not an unsaved edit from the previous source', async () => {
+    const user = userEvent.setup()
+    const spellFor = (sourceInstanceId: string, customName: string) => {
+      const source = { ...spellPanelFixture.source, sourceInstanceId }
+      return (
+        <CharacterSheetSpellPanelContent
+          expectedVersion={4}
+          panel={{
+            ...spellPanelFixture,
+            source,
+            target: { kind: 'SPELL', source },
+            textEditors: spellPanelFixture.textEditors.map((editor) =>
+              editor.field === 'CUSTOM_NAME' ? { ...editor, value: customName } : editor
+            )
+          }}
+          pending={false}
+          submitCommand={vi.fn().mockResolvedValue(true)}
+        />
+      )
+    }
+    const { rerender } = renderWithAppProviders(spellFor('CLASS:wizard', 'Darts'))
+    await user.click(await screen.findByRole('button', { name: /Customize/ }))
+
+    await user.type(await screen.findByLabelText('Custom name'), ' (spare)')
+    rerender(spellFor('CLASS:sorcerer', 'Bolts'))
+
+    expect(await screen.findByLabelText('Custom name')).toHaveValue('Bolts')
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('shows another Companion’s own name, not an unsaved edit from the previous Companion', async () => {
+    const user = userEvent.setup()
+    const companionFor = (companionInstanceId: string, customName: string) => (
+      <CharacterSheetExtraPanel
+        equipmentItems={[]}
+        expectedVersion={4}
+        panel={{
+          ...companionPanelFixture,
+          companionInstanceId,
+          textEditors: [
+            {
+              kind: 'TEXT',
+              field: 'CUSTOM_NAME',
+              label: 'Custom name',
+              value: customName,
+              multiline: false,
+              maximumLength: 120,
+              commitIntent: 'ON_BLUR_OR_ENTER'
+            }
+          ]
+        }}
+        pending={false}
+        submitCommand={vi.fn().mockResolvedValue(true)}
+        onClose={vi.fn()}
+      />
+    )
+    const { rerender } = renderWithAppProviders(
+      companionFor('00000000-0000-4000-8000-000000000501', 'Ferdinand')
+    )
+
+    await user.type(screen.getByLabelText('Custom name'), ' the Wise')
+    rerender(companionFor('00000000-0000-4000-8000-000000000502', 'Hoot'))
+
+    expect(screen.getByLabelText('Custom name')).toHaveValue('Hoot')
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 
   it('does not render companion mutations without the matching permissions', () => {

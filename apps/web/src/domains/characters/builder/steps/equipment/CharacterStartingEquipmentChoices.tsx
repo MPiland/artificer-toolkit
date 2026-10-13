@@ -223,8 +223,12 @@ function StartingEquipmentGoldField({
   const [rolling, setRolling] = useState(false)
   const totalGold = decision.gold?.totalGold ?? 0
   const [goldInput, setGoldInput] = useState<string | number>(totalGold)
+  const [seenTotalGold, setSeenTotalGold] = useState(totalGold)
 
-  useEffect(() => setGoldInput(totalGold), [totalGold])
+  if (seenTotalGold !== totalGold) {
+    setSeenTotalGold(totalGold)
+    setGoldInput(totalGold)
+  }
 
   useEffect(() => {
     if (!presentedRoll || rolling) return

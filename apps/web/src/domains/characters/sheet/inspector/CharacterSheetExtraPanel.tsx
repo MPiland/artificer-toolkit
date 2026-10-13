@@ -406,7 +406,7 @@ export function CharacterSheetExtraPanel({
         {panel.textEditors.map((editor) => (
           <CharacterSheetTextEditor
             editor={editor}
-            key={editor.field}
+            key={`${isCreature ? panel.companionInstanceId : panel.vehicleInstanceId}:${editor.field}`}
             pending={pending || !canUpdate}
             onCommit={(value) =>
               update(editor.field === 'CUSTOM_NAME' ? { customName: value } : { notes: value })

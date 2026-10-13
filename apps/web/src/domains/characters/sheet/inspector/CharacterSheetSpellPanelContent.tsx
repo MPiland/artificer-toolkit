@@ -188,7 +188,7 @@ export function CharacterSheetSpellPanelContent({
                   {panel.textEditors.map((editor) => (
                     <CharacterSheetTextEditor
                       editor={editor}
-                      key={editor.field}
+                      key={`${panel.source.spellId}:${panel.source.sourceKind}:${panel.source.sourceInstanceId}:${editor.field}`}
                       pending={pending}
                       onCommit={async (value) =>
                         await submitCommand({
