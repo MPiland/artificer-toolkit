@@ -3,6 +3,7 @@ import { z, lazySchema } from '../zod.js'
 import { staticGrantBaseDtoSchema } from './grant.js'
 import {
   authoredIdentifierSchema,
+  authoredLengthAmountSchema,
   authoredNestedCollectionSchema,
   authoredReferenceCollectionSchema
 } from '../shared/authoredLimits.js'
@@ -538,7 +539,7 @@ const buildModifierGrantVariants = () => {
       emptyDomainDtoSchema,
       z.union([
         z.object({
-          amount: z.number(),
+          amount: authoredLengthAmountSchema,
           unit: authoredIdentifierSchema,
           rangeKind: z.literal(rangeKindSchema._zod.def.entries.DISTANCE)
         }),

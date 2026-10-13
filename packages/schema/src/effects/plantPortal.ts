@@ -1,7 +1,10 @@
 import { z, lazySchema } from '../zod.js'
 
 import { lengthUnitCodeSchema, sizeCodeSchema } from '../shared/enums.js'
-import { authoredIdentifierSchema } from '../shared/authoredLimits.js'
+import {
+  authoredIdentifierSchema,
+  authoredPositiveLengthAmountSchema
+} from '../shared/authoredLimits.js'
 
 export const plantPortalDtoSchema = lazySchema(() =>
   z.object({
@@ -12,7 +15,7 @@ export const plantPortalDtoSchema = lazySchema(() =>
     samePlaneOnly: z.boolean(),
     destinationMustBeSeenOrTouched: z.boolean(),
     movementCost: z.object({
-      amount: z.number().check(z.positive()),
+      amount: authoredPositiveLengthAmountSchema,
       unit: lengthUnitCodeSchema
     })
   })

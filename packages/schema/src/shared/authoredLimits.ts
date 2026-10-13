@@ -21,6 +21,10 @@ export const AUTHORED_LENGTH_AMOUNT_MAX = 1_000_000
 export const authoredLengthAmountSchema = lazySchema(() =>
   z.number().check(z.nonnegative()).check(z.lte(AUTHORED_LENGTH_AMOUNT_MAX))
 )
+/** An authored length that must be more than nothing, such as a movement cost or a wall thickness. */
+export const authoredPositiveLengthAmountSchema = lazySchema(() =>
+  z.number().check(z.positive()).check(z.lte(AUTHORED_LENGTH_AMOUNT_MAX))
+)
 export const authoredRichTextSchema = lazySchema(() =>
   z
     .string()

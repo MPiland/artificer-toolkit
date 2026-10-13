@@ -1,13 +1,16 @@
 import { z, lazySchema } from '../zod.js'
 import { manifestNestedBehaviorDtoSchema } from './effect.js'
 import { shapeDtoSchema } from '../shared/shape.js'
+import { speedDtoSchema } from '../shared/speed.js'
 import { numericExprSchema } from '../shared/numericExpr.js'
 import { lengthUnitCodeSchema, sizeCodeSchema } from '../shared/enums.js'
 import {
   authoredIdentifierSchema,
+  authoredLengthAmountSchema,
   authoredNestedCollectionSchema,
   authoredNonnegativeNumberSchema,
   authoredPlainTextSchema,
+  authoredPositiveLengthAmountSchema,
   authoredReferenceCollectionSchema,
   authoredShortTextSchema
 } from '../shared/authoredLimits.js'
@@ -57,11 +60,11 @@ const manifestDestructionCriterionDtoSchema = lazySchema(() =>
 const manifestLightDtoSchema = lazySchema(() =>
   z.object({
     bright: z.object({
-      amount: authoredNonnegativeNumberSchema,
+      amount: authoredLengthAmountSchema,
       unit: lengthUnitCodeSchema
     }),
     dimAdditional: z.object({
-      amount: authoredNonnegativeNumberSchema,
+      amount: authoredLengthAmountSchema,
       unit: lengthUnitCodeSchema
     })
   })
@@ -74,19 +77,11 @@ const manifestProximityRuleDtoSchema = lazySchema(() =>
       z.minLength(1)
     ),
     distance: z.object({
-      amount: authoredNonnegativeNumberSchema,
+      amount: authoredLengthAmountSchema,
       unit: lengthUnitCodeSchema
     }),
     requiresSight: z.boolean(),
     behavior: z.lazy(() => manifestNestedBehaviorDtoSchema)
-  })
-)
-
-const speedDtoSchema = lazySchema(() =>
-  z.object({
-    speedId: authoredIdentifierSchema,
-    amount: z.number(),
-    unit: lengthUnitCodeSchema
   })
 )
 
@@ -220,7 +215,7 @@ export const manifestDtoSchema: z.ZodMiniType = lazySchema(() =>
         hollow: z.optional(z.boolean()),
         wallThickness: z.optional(
           z.object({
-            amount: z.number().check(z.positive()),
+            amount: authoredPositiveLengthAmountSchema,
             unit: lengthUnitCodeSchema
           })
         ),

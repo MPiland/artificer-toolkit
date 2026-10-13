@@ -1,5 +1,6 @@
 import { z, lazySchema, lazySchemaParts } from '../zod.js'
 
+import { authoredLengthAmountSchema } from './authoredLimits.js'
 import { combatPerceptionContributionsDtoSchema } from './combatPerception.js'
 import { lengthUnitCodeSchema } from './enums.js'
 import { postgresUuidSchema } from './postgresUuid.js'
@@ -81,7 +82,7 @@ export const conditionMechanicAttackRangeDtoSchema = lazySchema(() =>
     z.strictObject({
       kind: z.enum(['WITHIN', 'BEYOND']),
       distance: z.strictObject({
-        amount: z.number().check(z.gte(0)),
+        amount: authoredLengthAmountSchema,
         unit: lengthUnitCodeSchema
       })
     })

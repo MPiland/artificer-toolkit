@@ -4,7 +4,8 @@ import { damageDtoSchema } from './damage.js'
 import { conditionDtoSchema } from './condition.js'
 import {
   authoredIdentifierSchema,
-  authoredNestedCollectionSchema
+  authoredNestedCollectionSchema,
+  authoredPositiveLengthAmountSchema
 } from '../shared/authoredLimits.js'
 import { lengthUnitCodeSchema } from '../shared/enums.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
@@ -58,7 +59,7 @@ export const actorRelationshipModuleDtoSchema = lazySchema(() =>
     z.object({
       ...moduleBase(),
       kind: z.literal('SOURCE_RELEASE_MOVEMENT_COST'),
-      amount: z.number().check(z.positive()),
+      amount: authoredPositiveLengthAmountSchema,
       unit: lengthUnitCodeSchema
     }),
     z.object({
