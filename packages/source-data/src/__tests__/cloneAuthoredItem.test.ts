@@ -71,35 +71,32 @@ describe('cloneAuthoredItem canonical authored corpus conformance', () => {
           }
         }
 
+        // One assertion per item: ~144k per-leaf expect calls cost seconds across the corpus.
+        const expectedLeaves = new Map<string, unknown>()
         for (const inputLeaf of inputLeaves) {
-          const outputLeaf = outputLeaves.get(inputLeaf.path)
-          expect(outputLeaf, inputLeaf.path).toBeDefined()
-          if (!outputLeaf) continue
-
           if (inputLeaf.path === 'label') {
-            expect(outputLeaf.value).toBe(`${inputLeaf.value} Copy`)
+            expectedLeaves.set(inputLeaf.path, `${inputLeaf.value} Copy`)
             continue
           }
           if (inputLeaf.path === 'status') {
-            expect(outputLeaf.value).toBe('DRAFT')
+            expectedLeaves.set(inputLeaf.path, 'DRAFT')
             continue
           }
 
           const oldValue = inputLeaf.value
-          const isReference = isReferenceKey(inputLeaf.key)
-          if (isReference) {
+          const ownedReference = typeof oldValue === 'string' ? ownedIdMap.get(oldValue) : undefined
+          if (isReferenceKey(inputLeaf.key)) {
             referenceCount += 1
             const referenceKind = inputLeaf.key ?? '<unknown>'
-            if (typeof oldValue === 'string' && ownedIdMap.has(oldValue)) {
-              ownedReferenceKinds.add(referenceKind)
-              expect(outputLeaf.value).toBe(ownedIdMap.get(oldValue))
-            } else externalReferenceKinds.add(referenceKind)
-          }
-
-          if (!(isReference && typeof oldValue === 'string' && ownedIdMap.has(oldValue))) {
-            expect(outputLeaf.value).toEqual(oldValue)
-          }
+            if (ownedReference) ownedReferenceKinds.add(referenceKind)
+            else externalReferenceKinds.add(referenceKind)
+            expectedLeaves.set(inputLeaf.path, ownedReference ?? oldValue)
+          } else expectedLeaves.set(inputLeaf.path, oldValue)
         }
+        expect(
+          new Map([...outputLeaves].map(([path, leaf]) => [path, leaf.value])),
+          domain
+        ).toEqual(expectedLeaves)
 
         expect(item).toEqual(source)
       }
