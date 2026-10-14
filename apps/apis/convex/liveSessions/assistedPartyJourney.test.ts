@@ -31,7 +31,9 @@ type Member = { caller: RoomCaller; userId: string }
 
 /** A member's own view of the held Run: what the room sends that member's socket. */
 async function viewOf(party: AssistedParty, member: Member) {
-  const frame = await readRoomEncounterSession(member.caller, party.campaign.id, { timeline: false })
+  const frame = await readRoomEncounterSession(member.caller, party.campaign.id, {
+    timeline: false
+  })
   if (!frame.held) throw new Error('Expected the room to hold the Run.')
   if (!frame.state.encounter) throw new Error('Expected an Encounter in the member view.')
   return frame.state.encounter
@@ -41,7 +43,10 @@ async function viewOf(party: AssistedParty, member: Member) {
 function conductor() {
   let version = 0
   return {
-    send: async (member: Member, command: (expectedVersion: number) => EncounterCommandInputDto) => {
+    send: async (
+      member: Member,
+      command: (expectedVersion: number) => EncounterCommandInputDto
+    ) => {
       const result = await executeInRoom(member.caller, { command: command(version) })
       version = result.projection.version
       return result
@@ -81,7 +86,10 @@ function complete(party: AssistedParty) {
  * actor at a time, and the auto-roll preference lets the server make the d20 behind each declaration.
  * The three d20 faces (0-based) are 4, 9 and 14 in declaration order. Returns the actors in that order.
  */
-async function declarePartyInitiative(party: AssistedParty, send: ReturnType<typeof conductor>['send']) {
+async function declarePartyInitiative(
+  party: AssistedParty,
+  send: ReturnType<typeof conductor>['send']
+) {
   const controllers = new Map<string, Member>([
     [party.aria.actorId, party.aria.player],
     [party.bryn.actorId, party.bryn.player],
@@ -109,20 +117,13 @@ async function declarePartyInitiative(party: AssistedParty, send: ReturnType<typ
             })
           )
         ).resolves.toMatchObject({ reason: 'NOT_ACTOR_CONTROLLER' })
-    await send(controller, () =>
-      declarationCommand({ encounterId: party.run.id, pending }).command
-    )
+    await send(controller, () => declarationCommand({ encounterId: party.run.id, pending }).command)
     declared.push(pending.actorId)
   }
   return declared
 }
 
-function attack(
-  party: AssistedParty,
-  actorId: string,
-  targetActorId: string,
-  actionId: string
-) {
+function attack(party: AssistedParty, actorId: string, targetActorId: string, actionId: string) {
   return (expectedVersion: number): EncounterCommandInputDto => ({
     type: 'RESOLVE_ACTION',
     acceptedWieldConflict: null,
@@ -151,12 +152,19 @@ describe('Three-user Assisted Encounter with auto-roll (ENCOUNTER-5.1)', () => {
     await declarePartyInitiative(party, send)
 
     // The Run seats both Characters and the Creature; each Character belongs to its own player.
-    const views = [party.gm, party.aria.player, party.bryn.player].map((member) => viewOf(party, member))
+    const views = [party.gm, party.aria.player, party.bryn.player].map((member) =>
+      viewOf(party, member)
+    )
     for (const view of await Promise.all(views))
       expect(view.actors.map((actor) => actor.id).sort()).toEqual(actorIds(party).sort())
 
     // A player's command for the other player's Character is refused, and for the GM's Creature too.
-    const stranger = attack(party, party.bryn.actorId, party.wolf.actorId, party.bryn.attackActionId)
+    const stranger = attack(
+      party,
+      party.bryn.actorId,
+      party.wolf.actorId,
+      party.bryn.attackActionId
+    )
     await expect(
       domainRejection(
         executeInRoom(party.aria.player.caller, { command: stranger(await party.version()) })

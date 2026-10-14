@@ -1291,7 +1291,10 @@ describe('declared initiative roll cards', () => {
     for (let steps = 0; steps < 12; steps += 1) {
       const pending = await readPending(base, base.owner.caller, runId)
       if (!pending) return
-      const resolve = (caller: RoomCaller, resolution: ResolveRuleOccurrenceInputDto['resolution']) =>
+      const resolve = (
+        caller: RoomCaller,
+        resolution: ResolveRuleOccurrenceInputDto['resolution']
+      ) =>
         executeInRoom(caller, {
           command: {
             type: 'RESOLVE_RULE_OCCURRENCE',
@@ -1305,7 +1308,10 @@ describe('declared initiative roll cards', () => {
           }
         })
       if (pending.kind === 'INITIATIVE_DECLARATION')
-        await executeInRoom(callerFor(pending.actorId), declarationCommand({ encounterId: runId, pending }))
+        await executeInRoom(
+          callerFor(pending.actorId),
+          declarationCommand({ encounterId: runId, pending })
+        )
       else if (pending.kind === 'INITIATIVE_EVIDENCE')
         await resolve(base.owner.caller, {
           kind: 'ENTER_INTEGER',
@@ -1347,7 +1353,8 @@ describe('declared initiative roll cards', () => {
     const cards = initiativeCards(await readRoomRollCards(base.owner.caller, base.campaign.id))
     expect(cards).toHaveLength(2)
     // Declaration order: the 1st actor rolled face 5, the 2nd face 10, each plus the same modifier.
-    const labelOf = (actorId: string) => base.run.actors.find((actor) => actor.id === actorId)!.label
+    const labelOf = (actorId: string) =>
+      base.run.actors.find((actor) => actor.id === actorId)!.label
     const declared = [...scores].map(([actorId, score]) => ({ actorId, score }))
     for (const { actorId, score } of declared) {
       const card = cards.find((candidate) => candidate.characterLabel === labelOf(actorId))
@@ -1357,7 +1364,9 @@ describe('declared initiative roll cards', () => {
         evidence: { total: score, terms: [{ rolls: [expect.any(Number)] }] }
       })
     }
-    expect(cards.map((card) => card.evidence.terms[0]!.rolls[0]).sort((a, b) => a! - b!)).toEqual([5, 10])
+    expect(cards.map((card) => card.evidence.terms[0]!.rolls[0]).sort((a, b) => a! - b!)).toEqual([
+      5, 10
+    ])
   }, 30000)
 
   it('posts one Initiative card with the value the GM entered for an Assisted declaration', async () => {
@@ -1374,7 +1383,9 @@ describe('declared initiative roll cards', () => {
     const scores = await storedScores(base)
     const cards = initiativeCards(await readRoomRollCards(base.owner.caller, base.campaign.id))
     expect(cards).toHaveLength(2)
-    expect(cards.map((card) => card.evidence.terms[0]!.rolls[0]).sort((a, b) => a! - b!)).toEqual([7, 12])
+    expect(cards.map((card) => card.evidence.terms[0]!.rolls[0]).sort((a, b) => a! - b!)).toEqual([
+      7, 12
+    ])
     expect(cards.map((card) => card.evidence.total).sort((a, b) => a - b)).toEqual(
       [...scores.values()].sort((a, b) => a - b)
     )
@@ -1401,13 +1412,18 @@ describe('declared initiative roll cards', () => {
       base.owner.caller,
       declarationCommand({ encounterId: base.run.id, pending: await terminalPending() })
     )
-    const terminal = declarationCommand({ encounterId: base.run.id, pending: await terminalPending() })
+    const terminal = declarationCommand({
+      encounterId: base.run.id,
+      pending: await terminalPending()
+    })
     const settled = await executeInRoom(base.owner.caller, terminal)
     const before = initiativeCards(await readRoomRollCards(base.owner.caller, base.campaign.id))
     expect(before).toHaveLength(2)
     await expect(executeInRoom(base.owner.caller, terminal)).resolves.toEqual(settled)
     await executeInRoom(base.owner.caller, start)
-    expect(initiativeCards(await readRoomRollCards(base.owner.caller, base.campaign.id))).toEqual(before)
+    expect(initiativeCards(await readRoomRollCards(base.owner.caller, base.campaign.id))).toEqual(
+      before
+    )
   }, 30000)
 
   it('keeps a hidden Creature’s card private to the GM and gives a player Character’s card to the table', async () => {

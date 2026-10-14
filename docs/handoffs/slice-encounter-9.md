@@ -31,5 +31,8 @@ Read first: ADR 0034, the ENCOUNTER-7 turn-stage dice entries and the declared-i
 ## Status log
 
 - 2026-10-14: workbook written; session started.
+- 2026-10-14: red tests written first (commit b2c1eae15): `initiativeDeclarations.test.ts` › `declared initiative roll cards` (checklist 1-4) and the journey assertion in `assistedPartyJourney.test.ts` (checklist 5). Fix in 63dccba04: `initiativeRollRecord` (rules-runtime), `persistEncounterInitiativeRollCards` (encounter-persistence), called from `persistEncounterTurnCommit`; `turnSystemRollAnswers` also takes `INITIATIVE_SYSTEM_ROLL`.
+- Decisions: the card is written in the terminal START/ADVANCE_TURN commit from `root.initiative.evidence.primaryResults` (same transaction as the score, so the admission replay covers a retried declaration); card id is deterministic per occurrence and actor. Tie-attempt dice and results that are not exactly one loggable `1dN` post no card. Only `DECLARED_ACTION_ROLL` is changed. A die an app roll (`INITIATIVE_SYSTEM_ROLL`) settled already has its attempt card and is skipped. The record's modifier is score minus die.
+- Deviation: two file edits to the test file went through a Python heredoc before I reread the workbook rules; the content is the same as an Edit would have produced, and every later edit used Edit/Write.
 
 ## Proposed ledger edits (filled by the slice session)
