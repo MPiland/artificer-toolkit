@@ -352,6 +352,7 @@ describe('catching the creatures in an area', () => {
     const caught = catchEncounterAreaActorIds({
       origin: { x: 0, y: 0 },
       shape: { kind: 'RADIUS', radius: 20 },
+      casterActorId: CASTER_ID,
       tokens: [
         { ...token('00000000-0000-4000-8000-0000000f2004', 100), actorId: FOE_ID },
         { ...token('00000000-0000-4000-8000-0000000f2003', 15), actorId: ALLY_ID },
@@ -367,12 +368,62 @@ describe('catching the creatures in an area', () => {
       catchEncounterAreaActorIds({
         origin: { x: 0, y: 0 },
         shape: { kind: 'CUBE', edgeLength: 40 },
+        casterActorId: CASTER_ID,
         tokens: [
           { ...token('00000000-0000-4000-8000-0000000f2001', 0), actorId: FOE_ID },
           { ...token('00000000-0000-4000-8000-0000000f2002', 5), actorId: FOE_ID }
         ]
       })
     ).toEqual([FOE_ID])
+  })
+})
+
+describe('catching the creatures in a directed area', () => {
+  it('never catches the caster whose space the area extends from, and catches the others once', () => {
+    const tokens = [
+      { ...token('00000000-0000-4000-8000-0000000f2001', 0), actorId: CASTER_ID },
+      { ...token('00000000-0000-4000-8000-0000000f2002', 4), actorId: ALLY_ID },
+      { ...token('00000000-0000-4000-8000-0000000f2003', 40), actorId: FOE_ID }
+    ]
+    const shape = {
+      kind: 'CUBE_FROM_SIDE',
+      edgeLength: 10,
+      cellSize: 2,
+      toward: { x: 20, y: 0 }
+    } as const
+    expect(
+      catchEncounterAreaActorIds({
+        origin: { x: 1, y: 0 },
+        shape,
+        casterActorId: CASTER_ID,
+        tokens
+      })
+    ).toEqual([ALLY_ID])
+  })
+
+  it('does not catch the caster through another token of theirs, nor anyone without a caster token', () => {
+    const shape = { kind: 'CONE', length: 10, toward: { x: 20, y: 0 } } as const
+    const casterTokens = [
+      { ...token('00000000-0000-4000-8000-0000000f2001', 0), actorId: CASTER_ID },
+      { ...token('00000000-0000-4000-8000-0000000f2002', 4), actorId: CASTER_ID },
+      { ...token('00000000-0000-4000-8000-0000000f2003', 5), actorId: ALLY_ID }
+    ]
+    expect(
+      catchEncounterAreaActorIds({
+        origin: { x: 1, y: 0 },
+        shape,
+        casterActorId: CASTER_ID,
+        tokens: casterTokens
+      })
+    ).toEqual([ALLY_ID])
+    expect(
+      catchEncounterAreaActorIds({
+        origin: { x: 1, y: 0 },
+        shape,
+        casterActorId: FOE_ID,
+        tokens: casterTokens
+      })
+    ).toEqual([])
   })
 })
 
