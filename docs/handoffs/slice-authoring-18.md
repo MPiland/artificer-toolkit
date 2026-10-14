@@ -1,6 +1,6 @@
 # Slice workbook: AUTHORING-18 (System vocabulary options show their description)
 
-**Status:** OPEN (started 2026-10-14)
+**Status:** DONE (merged `d87cc4d31`; closed by the main session 2026-10-14)
 **Base:** `codex/phase-08-2-convex-cutover` at this workbook's commit.
 **Rules:** [slice-workbook-rules.md](slice-workbook-rules.md).
 
