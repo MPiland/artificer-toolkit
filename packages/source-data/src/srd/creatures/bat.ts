@@ -25,7 +25,7 @@ export const bat: CreatureAuthored = {
     modifier: -1
   },
   speeds: [...S.walk(5), ...S.fly(30)],
-  senses: ['blindsight 60 ft.'],
+  senses: [S.blindsight(60)],
   passivePerception: 11,
   challengeRatingId: S.CR.CR_0,
   xp: 10,

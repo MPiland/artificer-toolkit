@@ -27,7 +27,7 @@ export const ettercap: CreatureAuthored = {
   },
   speeds: [...S.walk(30), ...S.climb(30)],
   proficiencies: [S.grantedSkillProficiency(99, 1, 'PERCEPTION', 'STEALTH', 'SURVIVAL')],
-  senses: ['darkvision 60 ft.'],
+  senses: [S.darkvision(60)],
   passivePerception: 13,
   challengeRatingId: S.CR.CR_2,
   xp: 450,

@@ -32,7 +32,7 @@ export const cloaker: CreatureAuthored = {
     S.grantedLanguageProficiency(9141, 2, 'DEEP_SPEECH', 'UNDERCOMMON'),
     S.grantedSkillProficiency(9141, 1, 'STEALTH')
   ],
-  senses: ['darkvision 60 ft.'],
+  senses: [S.darkvision(60)],
   passivePerception: 11,
   challengeRatingId: S.CR.CR_8,
   xp: 3900,

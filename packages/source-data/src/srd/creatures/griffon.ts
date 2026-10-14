@@ -26,7 +26,7 @@ export const griffon: CreatureAuthored = {
   },
   speeds: [...S.walk(30), ...S.fly(80)],
   proficiencies: [S.grantedSkillExpertise(10153, 1, 'PERCEPTION')],
-  senses: ['darkvision 60 ft.'],
+  senses: [S.darkvision(60)],
   passivePerception: 15,
   challengeRatingId: S.CR.CR_2,
   xp: 450,

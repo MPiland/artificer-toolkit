@@ -32,7 +32,7 @@ export const dryad: CreatureAuthored = {
     S.grantedSkillProficiency(90, 1, 'PERCEPTION'),
     S.grantedLanguageProficiency(90, 2, 'ELVISH', 'SYLVAN')
   ],
-  senses: ['darkvision 60 ft.'],
+  senses: [S.darkvision(60)],
   passivePerception: 14,
   challengeRatingId: S.CR.CR_1,
   xp: 200,

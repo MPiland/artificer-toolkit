@@ -29,7 +29,7 @@ export const giantWolfSpider: CreatureAuthored = {
     S.grantedSkillExpertise(140, 2, 'STEALTH'),
     S.grantedSkillProficiency(140, 1, 'PERCEPTION')
   ],
-  senses: ['blindsight 10 ft.', 'darkvision 60 ft.'],
+  senses: [S.blindsight(10), S.darkvision(60)],
   passivePerception: 13,
   challengeRatingId: S.CR.CR_1_4,
   xp: 50,

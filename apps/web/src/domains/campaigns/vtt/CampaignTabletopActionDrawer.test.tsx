@@ -7,16 +7,20 @@ import type {
   EscapeRelationshipInputDto,
   ResolveEncounterActionInputDto
 } from '@artificer-toolkit/schema/api/encounters'
-import type {
-  EncounterActionChoiceDto,
-  EncounterActionChoicesDto,
-  EncounterEscapeChoiceDto
+import {
+  encounterActionChoiceDtoSchema,
+  encounterActionChoicesDtoSchema,
+  type EncounterActionChoiceDto,
+  type EncounterActionChoicesDto,
+  type EncounterEscapeChoiceDto
 } from '@artificer-toolkit/schema/api/encounterActionChoices'
 import type { SpatialPointAreaShape } from '@artificer-toolkit/shared/vtt'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
+import { validated } from '../../../test/validatedFixture'
 import { CampaignTabletopActionDrawer } from './CampaignTabletopActionDrawer'
 import { tabletopGmEncounter, tabletopLiveScene } from './CampaignTabletop.stories.fixtures'
 import { LiveSessionCommandRejectedError } from './liveSessionClient'
+import type { VttActionPreview } from './vttSceneRenderer.model'
 
 vi.mock('#app/settings/useGmRollVisibilityPreference', () => ({
   useGmRollVisibilityPreference: () => ({
@@ -32,7 +36,9 @@ beforeAll(() => {
   })
 })
 
-const actions = [
+const validatedChoice = validated(encounterActionChoiceDtoSchema)
+const validatedChoices = validated(encounterActionChoicesDtoSchema.shape.actions)
+const actions = validatedChoices([
   {
     id: 'equipment-staff:attack',
     label: 'Quarterstaff',
@@ -45,7 +51,7 @@ const actions = [
     target: { kind: 'ACTOR', self: 'ALLOWED' },
     attackSlot: null
   }
-] satisfies EncounterActionChoiceDto[]
+])
 const warnings = [
   { code: 'ACTION_ECONOMY_UNAVAILABLE' as const, message: 'No action left this turn.' },
   { code: 'TARGET_OUT_OF_RANGE' as const, message: 'The target is out of range.' }
@@ -74,6 +80,8 @@ function drawerElement(
     areaOrigin = null,
     onAreaOriginChange = vi.fn(),
     onAreaShapeChange = vi.fn(),
+    onActionPreviewChange = vi.fn(),
+    actorIdByTokenId = new Map(),
     onPickAreaOrigin = vi.fn()
   }: {
     choices?: EncounterActionChoiceDto[]
@@ -91,6 +99,8 @@ function drawerElement(
     areaOrigin?: { x: number; y: number } | null
     onAreaOriginChange?: (point: { x: number; y: number } | null) => void
     onAreaShapeChange?: (shape: SpatialPointAreaShape | null) => void
+    onActionPreviewChange?: (preview: VttActionPreview | null) => void
+    actorIdByTokenId?: ReadonlyMap<string, string>
     onPickAreaOrigin?: () => void
   } = {}
 ) {
@@ -102,7 +112,7 @@ function drawerElement(
       escapes={escapes}
       openAttackAction={openAttackAction}
       actionsLoading={false}
-      actorIdByTokenId={new Map()}
+      actorIdByTokenId={actorIdByTokenId}
       connected
       encounter={encounter}
       isGm={isGm}
@@ -115,6 +125,7 @@ function drawerElement(
       waitingOn={waitingOn}
       onAreaOriginChange={onAreaOriginChange}
       onAreaShapeChange={onAreaShapeChange}
+      onActionPreviewChange={onActionPreviewChange}
       onPickAreaOrigin={onPickAreaOrigin}
       onClose={vi.fn()}
       onLoadOptionalChoices={vi.fn()}
@@ -300,7 +311,7 @@ describe('CampaignTabletopActionDrawer availability', () => {
   })
 })
 
-const basicActionChoices = [
+const basicActionChoices = validatedChoices([
   {
     ...actions[0]!,
     id: 'dash-action',
@@ -322,7 +333,7 @@ const basicActionChoices = [
     rulesText: 'You make a DC 10 Wisdom (Medicine) check to stabilize a dying creature.',
     target: { kind: 'ACTOR', self: 'REFUSED' }
   }
-] satisfies EncounterActionChoiceDto[]
+])
 
 describe('CampaignTabletopActionDrawer basic actions', () => {
   it('lists the System basic actions in their own section, apart from feature actions', async () => {
@@ -358,13 +369,13 @@ describe('CampaignTabletopActionDrawer basic actions', () => {
   it('resolves an authored basic action on the current actor', async () => {
     const user = userEvent.setup()
     const onResolve = vi.fn().mockResolvedValue(resolved)
-    const dodge = {
+    const dodge = validatedChoice({
       ...actions[0]!,
       id: 'dodge-action',
       label: 'Dodge',
       rulesText: 'You dodge.',
       target: { kind: 'SELF' }
-    } satisfies EncounterActionChoiceDto
+    })
     renderDrawer(onResolve, { choices: [], authoredBasicActions: [dodge] })
 
     await user.click(await screen.findByRole('button', { name: 'Use Dodge' }))
@@ -421,13 +432,13 @@ describe('CampaignTabletopActionDrawer basic actions', () => {
   it('lists the user among the creatures for an action that only warns about aiming at it', async () => {
     const user = userEvent.setup()
     const onResolve = vi.fn().mockResolvedValue(resolved)
-    const warnsAboutSelf = {
+    const warnsAboutSelf = validatedChoice({
       ...actions[0]!,
       id: 'warns-action',
       label: 'Steady',
       rulesText: 'You steady a creature.',
       target: { kind: 'ACTOR', self: 'WARN' }
-    } satisfies EncounterActionChoiceDto
+    })
     renderDrawer(onResolve, { choices: [], authoredBasicActions: [warnsAboutSelf] })
 
     const use = await screen.findByRole('button', { name: 'Use Steady' })
@@ -478,7 +489,7 @@ describe('CampaignTabletopActionDrawer basic actions', () => {
   })
 })
 
-const escapeChoices = [
+const escapeChoices = validated(encounterActionChoicesDtoSchema.shape.escapes)([
   {
     activeEffectId: '00000000-0000-4000-8000-000000000e01',
     label: 'Escape from Giant Toad',
@@ -493,7 +504,7 @@ const escapeChoices = [
     ],
     warnings: []
   }
-] satisfies EncounterEscapeChoiceDto[]
+])
 
 describe('CampaignTabletopActionDrawer escapes', () => {
   it('offers the escape with its DC and cost in its own section', async () => {
@@ -769,7 +780,7 @@ describe('CampaignTabletopActionDrawer attack slots (D93)', () => {
 })
 
 describe('CampaignTabletopActionDrawer area origin (D103)', () => {
-  const fireball = {
+  const fireball = validatedChoice({
     ...actions[0]!,
     id: 'spell-fireball:cast',
     label: 'Fireball',
@@ -780,7 +791,7 @@ describe('CampaignTabletopActionDrawer area origin (D103)', () => {
       kind: 'POINT' as const,
       area: { kind: 'RADIUS' as const, radius: { amount: 20, unit: 'FEET' as const } }
     }
-  } satisfies EncounterActionChoiceDto
+  })
   const ember = tabletopLiveScene.tokens[0]!
   const radiusInCoordinates = (20 / tabletopLiveScene.grid.distancePerCell) * 70
 
@@ -884,5 +895,123 @@ describe('CampaignTabletopActionDrawer area origin (D103)', () => {
     await chooseFireball(user)
     expect(screen.getByText(/no Scene/i)).toBeVisible()
     expect(screen.getByRole('button', { name: 'Resolve action' })).toBeDisabled()
+  })
+})
+
+describe('CampaignTabletopActionDrawer range and target preview (VTT_UI-3.1)', () => {
+  const [emberToken, wardenToken] = tabletopLiveScene.tokens as [
+    (typeof tabletopLiveScene.tokens)[number],
+    (typeof tabletopLiveScene.tokens)[number]
+  ]
+  const [emberActor, wardenActor] = tabletopGmEncounter.actors
+  const actorIdByTokenId = new Map([
+    [emberToken.id, emberActor.id],
+    [wardenToken.id, wardenActor.id]
+  ])
+  const longbow = validatedChoice({
+    ...actions[0]!,
+    id: 'equipment-longbow:attack',
+    label: 'Longbow',
+    rangeLabel: '150/600 ft',
+    range: {
+      kind: 'RANGED' as const,
+      normal: { amount: 150, unit: 'FEET' as const },
+      long: { amount: 600, unit: 'FEET' as const }
+    }
+  })
+  const dodge = validatedChoice({
+    ...actions[0]!,
+    id: 'basic-dodge:use',
+    label: 'Dodge',
+    rangeLabel: 'Self',
+    range: { kind: 'SELF' as const },
+    target: { kind: 'SELF' as const }
+  })
+
+  async function chooseAction(user: ReturnType<typeof userEvent.setup>, name: string) {
+    await user.click(await screen.findByRole('combobox', { name: 'Action' }))
+    await user.click(screen.getByRole('option', { name: new RegExp(name) }))
+  }
+
+  it('previews the chosen action, then its target, around the acting token', async () => {
+    const user = userEvent.setup()
+    const onActionPreviewChange = vi.fn()
+    renderDrawer(vi.fn(), { choices: [longbow], actorIdByTokenId, onActionPreviewChange })
+    expect(onActionPreviewChange).toHaveBeenLastCalledWith(null)
+
+    await chooseAction(user, 'Longbow')
+    expect(onActionPreviewChange).toHaveBeenLastCalledWith({
+      range: longbow.range,
+      sourceTokenId: emberToken.id,
+      targetTokenId: null
+    })
+
+    await user.click(screen.getByRole('combobox', { name: 'Target' }))
+    await user.click(screen.getByRole('option', { name: wardenActor.label }))
+    expect(onActionPreviewChange).toHaveBeenLastCalledWith({
+      range: longbow.range,
+      sourceTokenId: emberToken.id,
+      targetTokenId: wardenToken.id
+    })
+  })
+
+  it('previews an area action by its range alone, since its origin is drawn as the area', async () => {
+    const user = userEvent.setup()
+    const onActionPreviewChange = vi.fn()
+    const spell = validatedChoice({
+      ...longbow,
+      id: 'spell-fireball:cast',
+      label: 'Fireball',
+      rangeLabel: '150 ft',
+      range: { kind: 'WITHIN' as const, distance: { amount: 150, unit: 'FEET' as const } },
+      target: {
+        kind: 'POINT' as const,
+        area: { kind: 'RADIUS' as const, radius: { amount: 20, unit: 'FEET' as const } }
+      }
+    })
+    renderDrawer(vi.fn(), { choices: [spell], actorIdByTokenId, onActionPreviewChange })
+
+    await chooseAction(user, 'Fireball')
+    expect(onActionPreviewChange).toHaveBeenLastCalledWith({
+      range: spell.range,
+      sourceTokenId: emberToken.id,
+      targetTokenId: null
+    })
+  })
+
+  it('names no target token for an action that targets nobody', async () => {
+    const user = userEvent.setup()
+    const onActionPreviewChange = vi.fn()
+    renderDrawer(vi.fn(), { choices: [dodge], actorIdByTokenId, onActionPreviewChange })
+
+    await chooseAction(user, 'Dodge')
+    await user.click(screen.getByRole('combobox', { name: 'Target' }))
+    await user.click(screen.getByRole('option', { name: wardenActor.label }))
+    expect(onActionPreviewChange).toHaveBeenLastCalledWith({
+      range: dodge.range,
+      sourceTokenId: emberToken.id,
+      targetTokenId: null
+    })
+  })
+
+  it('removes the preview when the choice is cleared or the drawer goes away', async () => {
+    const user = userEvent.setup()
+    const onActionPreviewChange = vi.fn()
+    const view = renderDrawer(vi.fn(), {
+      choices: [longbow],
+      actorIdByTokenId,
+      onActionPreviewChange
+    })
+
+    await chooseAction(user, 'Longbow')
+    expect(onActionPreviewChange).toHaveBeenLastCalledWith(
+      expect.objectContaining({ range: longbow.range })
+    )
+    await chooseAction(user, 'Longbow')
+    expect(onActionPreviewChange).toHaveBeenLastCalledWith(null)
+
+    await chooseAction(user, 'Longbow')
+    view.unmount()
+    expect(onActionPreviewChange).toHaveBeenLastCalledWith(null)
   })
 })

@@ -34,7 +34,7 @@ export const youngGoldDragon: CreatureAuthored = {
     S.grantedSkillProficiency(9907, 1, 'INSIGHT', 'PERSUASION', 'STEALTH')
   ],
   damageImmunities: ['fire'],
-  senses: ['blindsight 30 ft.', 'darkvision 120 ft.'],
+  senses: [S.blindsight(30), S.darkvision(120)],
   passivePerception: 19,
   challengeRatingId: S.CR.CR_10,
   xp: 5900,

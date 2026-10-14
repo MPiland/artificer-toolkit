@@ -1,3 +1,8 @@
+import {
+  initiativeDeclarationSelectionDtoSchema,
+  type PendingEncounterRuleOccurrenceSummaryDto,
+  type ResolveRuleOccurrenceInputDto
+} from '@artificer-toolkit/schema/api/encounters'
 import type {
   SourceImportBootstrapInput,
   SourceImportDefinitionsInput
@@ -127,6 +132,47 @@ export function createEncounterInitiativeDefinitions(
     }))
   ]
   return { definitions, policyIds: policyDocuments.map((policy) => policy.id) }
+}
+
+/** The command a declaring actor's controller sends to settle a pending Initiative declaration. */
+export function declarationCommand(input: {
+  encounterId: string
+  pending: Pick<
+    Extract<PendingEncounterRuleOccurrenceSummaryDto, { kind: 'INITIATIVE_DECLARATION' }>,
+    'encounterVersion' | 'occurrenceId' | 'occurrenceVersion' | 'primaryOptions' | 'requestId'
+  >
+  commandId?: string
+}): { command: ResolveRuleOccurrenceInputDto } {
+  const option = input.pending.primaryOptions[0]
+  if (!option) throw new Error('Expected an issued declaration option.')
+  const primary = initiativeDeclarationSelectionDtoSchema.parse(
+    option.kind === 'GM_ADJUDICATED'
+      ? {
+          kind: 'GM_ADJUDICATED',
+          optionId: 'GM_ADJUDICATED',
+          actorSize: 'MEDIUM',
+          actionFactors: [],
+          spellLevel: null
+        }
+      : { kind: option.kind, optionId: option.optionId }
+  )
+  return {
+    command: {
+      type: 'RESOLVE_RULE_OCCURRENCE',
+      encounterId: input.encounterId,
+      commandId: input.commandId ?? crypto.randomUUID(),
+      expectedVersion: input.pending.encounterVersion,
+      occurrenceId: input.pending.occurrenceId,
+      expectedOccurrenceVersion: input.pending.occurrenceVersion,
+      correlationId: null,
+      resolution: {
+        kind: 'INITIATIVE_DECLARATION',
+        requestId: input.pending.requestId,
+        primary,
+        bonus: null
+      }
+    }
+  }
 }
 
 function createMovementReactionDefinitions(): {

@@ -255,6 +255,7 @@ describe('Creature movement target', () => {
       baseScalarValues,
       effectiveScalarValues: { ...baseScalarValues, [DEXTERITY]: 7, [STRENGTH]: 9 },
       baseRulePolicyOutput: null,
+      perceptionSenses: [],
       effectiveRulePolicyOutput: null,
       characterCurrentness: null,
       attackAgainstContributors: [],

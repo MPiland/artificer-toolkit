@@ -28,7 +28,7 @@ export const ochreJelly: CreatureAuthored = {
   damageResistances: ['acid'],
   damageImmunities: ['lightning', 'slashing'],
   conditionImmunities: ['blinded', 'charmed', 'deafened', 'exhaustion', 'frightened', 'prone'],
-  senses: ['blindsight 60 ft. (blind beyond this radius)'],
+  senses: [S.blindsight(60, '(blind beyond this radius)')],
   passivePerception: 8,
   challengeRatingId: S.CR.CR_2,
   xp: 450,

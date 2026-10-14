@@ -43,6 +43,7 @@ import { CampaignTabletopActionConfirmation } from './CampaignTabletopActionConf
 import { CampaignTabletopBasicActions } from './CampaignTabletopBasicActions'
 import { CampaignTabletopEscapes } from './CampaignTabletopEscapes'
 import { LiveSessionCommandRejectedError } from './liveSessionClient'
+import type { VttActionPreview } from './vttSceneRenderer.model'
 
 const NO_TOKENS: CampaignSceneStateDto['tokens'] = []
 
@@ -72,6 +73,7 @@ export function CampaignTabletopActionDrawer({
   waitingOn,
   onAreaOriginChange,
   onAreaShapeChange,
+  onActionPreviewChange,
   onPickAreaOrigin,
   onResolve,
   onEscape,
@@ -105,6 +107,8 @@ export function CampaignTabletopActionDrawer({
   onAreaOriginChange: (point: ScenePoint | null) => void
   /** The selected action's area in Scene coordinates, for the stage's preview; null when none. */
   onAreaShapeChange: (shape: SpatialPointAreaShape | null) => void
+  /** The selected action's range and target token, for the stage's preview; null when none is selected. */
+  onActionPreviewChange: (preview: VttActionPreview | null) => void
   /** Asks the stage to let the caster click the map for the area's center. */
   onPickAreaOrigin: () => void
   onResolve: (command: ResolveEncounterActionInputDto) => Promise<EncounterCommandResultDto>
@@ -342,6 +346,24 @@ export function CampaignTabletopActionDrawer({
     onAreaShapeChange(areaShape)
     return () => onAreaShapeChange(null)
   }, [areaShape, onAreaShapeChange])
+
+  // An area's target is its origin, which the stage draws as the area, so only a creature target is ringed.
+  const actionPreview = useMemo<VttActionPreview | null>(
+    () =>
+      selectedAction && sourceTokenId
+        ? {
+            range: selectedAction.range,
+            sourceTokenId,
+            targetTokenId: selectedAction.target.kind === 'ACTOR' ? targetTokenId : null
+          }
+        : null,
+    [selectedAction, sourceTokenId, targetTokenId]
+  )
+
+  useEffect(() => {
+    onActionPreviewChange(actionPreview)
+    return () => onActionPreviewChange(null)
+  }, [actionPreview, onActionPreviewChange])
 
   async function resolveAction(
     acceptedWieldConflict: ResolveEncounterActionInputDto['acceptedWieldConflict'],

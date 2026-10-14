@@ -3,6 +3,7 @@ import type { EncounterMovementReactionCharacterSource } from './encounterMoveme
 import { discoverCharacterActionCapabilities } from './characterActionCapabilityDiscoveryRegistry.js'
 import { compileCharacterActionEntryPoints } from './encounterActionEntryPointCompiler.js'
 import type { CharacterRulePolicyOutput } from '@artificer-toolkit/schema/api/characterRules'
+import type { SenseRangeDto } from '@artificer-toolkit/schema/grants/sense'
 import { effectiveHitPointMaximum } from './character/activeEffectGrantTotals.js'
 import {
   type EncounterAttackAgainstContributor,
@@ -85,6 +86,8 @@ export type MovementTarget<
   effectiveScalarValues: Readonly<Record<string, number>>
   baseRulePolicyOutput: CharacterRulePolicyOutput | null
   effectiveRulePolicyOutput: CharacterRulePolicyOutput | null
+  /** The Senses the actor perceives with: a Character's pinned Senses or a Creature's authored ones. */
+  perceptionSenses: readonly { senseDefinitionId: string; range: SenseRangeDto }[]
   targetDerivedFacts: Readonly<Record<string, unknown>>
   defenses: TargetBoundActiveRuleEffectExecutionInput['defenses']
   /** Defenses that apply only to attacks without their bypassing traits. */
@@ -231,6 +234,7 @@ export function buildMovementTarget<
       effectiveScalarValues,
       baseRulePolicyOutput,
       effectiveRulePolicyOutput,
+      perceptionSenses: baseRulePolicyOutput.senses,
       ...(input.includeReactionSources
         ? {
             characterReactionSource: {
@@ -351,6 +355,7 @@ export function buildMovementTarget<
     effectiveScalarValues,
     baseRulePolicyOutput: null,
     effectiveRulePolicyOutput: null,
+    perceptionSenses: creatureStatBlock?.senses ?? [],
     characterCurrentness: null,
     targetDerivedFacts: {
       actorId: actorRule.actorId,

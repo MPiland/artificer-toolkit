@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { SRD_REUSABLE_DEFINITIONS } from './catalogue.js'
 import { srdBaselineContent } from './index.js'
-import { prepareSrdImport } from './import.js'
+import { prepareSrdDefinitions, prepareSrdImport } from './import.js'
 import {
   SRD_DND5E_CONCENTRATION_CHECK_DEFINITION_ID,
   SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID
@@ -30,7 +30,11 @@ function emptySubjectBundle(): BaselineContentBundle {
 
 describe('canonical Convex import preparation', () => {
   it('publishes the SRD basic-action catalogue as System data (Q11)', () => {
-    const catalogue = prepareSrdImport().definitions.filter(
+    // The catalogue is reusable-definition data; no authored subject needs preparing for it.
+    const catalogue = prepareSrdDefinitions(
+      SRD_REUSABLE_DEFINITIONS,
+      new Set(srdBaselineContent.vocabulary.systems.map((system) => system.id))
+    ).filter(
       (definition) => definition.definitionFamilyKey === 'basic-action'
     )
     expect(

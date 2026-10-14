@@ -46,7 +46,7 @@ export const ghost: CreatureAuthored = {
     'prone',
     'restrained'
   ],
-  senses: ['darkvision 60 ft.'],
+  senses: [S.darkvision(60)],
   passivePerception: 11,
   challengeRatingId: S.CR.CR_4,
   xp: 1100,

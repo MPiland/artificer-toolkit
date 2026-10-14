@@ -30,7 +30,7 @@ export const greenHag: CreatureAuthored = {
     S.grantedSkillProficiency(4388, 1, 'ARCANA', 'DECEPTION', 'PERCEPTION', 'STEALTH'),
     S.grantedLanguageProficiency(4388, 2, 'COMMON', 'DRACONIC', 'SYLVAN')
   ],
-  senses: ['darkvision 60 ft.'],
+  senses: [S.darkvision(60)],
   passivePerception: 14,
   challengeRatingId: S.CR.CR_3,
   xp: 700,

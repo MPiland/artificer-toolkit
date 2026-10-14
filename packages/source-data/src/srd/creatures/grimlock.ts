@@ -32,7 +32,7 @@ export const grimlock: CreatureAuthored = {
     S.grantedLanguageProficiency(154, 2, 'UNDERCOMMON')
   ],
   conditionImmunities: ['blinded'],
-  senses: ['blindsight 30 ft. or 10 ft. while deafened (blind beyond this radius)'],
+  senses: [S.blindsight(30, 'or 10 ft. while deafened (blind beyond this radius)')],
   passivePerception: 13,
   challengeRatingId: S.CR.CR_1_4,
   xp: 50,

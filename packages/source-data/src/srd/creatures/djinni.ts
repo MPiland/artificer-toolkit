@@ -32,7 +32,7 @@ export const djinni: CreatureAuthored = {
     S.grantedLanguageProficiency(2690, 2, 'AURAN')
   ],
   damageImmunities: ['lightning', 'thunder'],
-  senses: ['darkvision 120 ft.'],
+  senses: [S.darkvision(120)],
   passivePerception: 13,
   challengeRatingId: S.CR.CR_11,
   xp: 7200,

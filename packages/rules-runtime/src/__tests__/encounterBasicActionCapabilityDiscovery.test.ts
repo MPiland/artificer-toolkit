@@ -47,6 +47,7 @@ describe('authored basic action compilation', () => {
     for (const capability of available) {
       expect(capability).toMatchObject({
         kind: 'BASIC_ACTION',
+        restrictions: null,
         encounterActorId: ACTOR_ID,
         entryPointDefinitionId: capability.effectId,
         sourceId: capability.definitionId

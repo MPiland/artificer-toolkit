@@ -1,7 +1,6 @@
 import { z, lazySchema } from '../zod.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
-import { characterSceneVisionResultSchema } from './characterMechanicsRead.js'
-import { projectionChecksumSchema } from '../projections/identity.js'
+import { sceneActorVisionResultSchema } from './characterMechanicsRead.js'
 import { VTT_SCENE_LIMITS } from '@artificer-toolkit/shared/vtt/scene'
 
 const version = lazySchema(() => z.number().check(z.int()).check(z.nonnegative()))
@@ -30,17 +29,11 @@ export const sceneSessionVisionScopeSchema = lazySchema(() =>
   })
 )
 
-const sceneSessionCharacterVisionResultSchema = lazySchema(() =>
+const sceneSessionActorBindingSchema = lazySchema(() =>
   z.strictObject({
-    binding: z.strictObject({
-      encounterId: postgresUuidSchema,
-      actorId: postgresUuidSchema,
-      characterId: postgresUuidSchema,
-      tokenId: postgresUuidSchema
-    }),
-    characterVision: characterSceneVisionResultSchema,
-    characterRevision: z.nullable(postgresUuidSchema),
-    snapshotChecksum: projectionChecksumSchema
+    encounterId: postgresUuidSchema,
+    actorId: postgresUuidSchema,
+    tokenId: postgresUuidSchema
   })
 )
 
@@ -55,11 +48,11 @@ export const sceneSessionVisionCharacterRevisionsSchema = lazySchema(() =>
 export const sceneSessionVisionCompositionSchema = lazySchema(() =>
   z.strictObject({
     context: z.strictObject({
-      encounterCharacterBindings: z
-        .array(sceneSessionCharacterVisionResultSchema.shape.binding)
+      encounterActorBindings: z
+        .array(sceneSessionActorBindingSchema)
         .check(z.maxLength(VTT_SCENE_LIMITS.tokens)),
-      characterVisions: z
-        .array(characterSceneVisionResultSchema)
+      actorVisions: z
+        .array(sceneActorVisionResultSchema)
         .check(z.maxLength(VTT_SCENE_LIMITS.tokens))
     }),
     characterRevisions: sceneSessionVisionCharacterRevisionsSchema

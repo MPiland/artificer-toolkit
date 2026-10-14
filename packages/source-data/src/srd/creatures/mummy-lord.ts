@@ -39,7 +39,7 @@ export const mummyLord: CreatureAuthored = {
     'bludgeoning, piercing, and slashing from nonmagical attacks'
   ],
   conditionImmunities: ['charmed', 'exhaustion', 'frightened', 'paralyzed', 'poisoned'],
-  senses: ['darkvision 60 ft.'],
+  senses: [S.darkvision(60)],
   passivePerception: 14,
   challengeRatingId: S.CR.CR_15,
   xp: 13000,

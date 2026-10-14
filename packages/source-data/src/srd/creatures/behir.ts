@@ -32,7 +32,7 @@ export const behir: CreatureAuthored = {
     S.grantedLanguageProficiency(43, 2, 'DRACONIC')
   ],
   damageImmunities: ['lightning'],
-  senses: ['darkvision 90 ft.'],
+  senses: [S.darkvision(90)],
   passivePerception: 16,
   challengeRatingId: S.CR.CR_11,
   xp: 7200,

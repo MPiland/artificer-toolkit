@@ -29,7 +29,7 @@ export const ghoul: CreatureAuthored = {
   proficiencies: [S.grantedLanguageProficiency(112, 1, 'COMMON')],
   damageImmunities: ['poison'],
   conditionImmunities: ['charmed', 'exhaustion', 'poisoned'],
-  senses: ['darkvision 60 ft.'],
+  senses: [S.darkvision(60)],
   passivePerception: 10,
   challengeRatingId: S.CR.CR_1,
   xp: 200,

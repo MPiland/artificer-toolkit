@@ -31,7 +31,7 @@ export const bugbear: CreatureAuthored = {
     S.grantedSkillProficiency(56, 1, 'SURVIVAL'),
     S.grantedLanguageProficiency(56, 2, 'COMMON', 'GOBLIN')
   ],
-  senses: ['darkvision 60 ft.'],
+  senses: [S.darkvision(60)],
   passivePerception: 10,
   challengeRatingId: S.CR.CR_1,
   xp: 200,

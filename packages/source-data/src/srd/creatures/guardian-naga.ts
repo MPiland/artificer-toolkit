@@ -40,7 +40,7 @@ export const guardianNaga: CreatureAuthored = {
   ],
   damageImmunities: ['poison'],
   conditionImmunities: ['charmed', 'poisoned'],
-  senses: ['darkvision 60 ft.'],
+  senses: [S.darkvision(60)],
   passivePerception: 14,
   challengeRatingId: S.CR.CR_10,
   xp: 5900,

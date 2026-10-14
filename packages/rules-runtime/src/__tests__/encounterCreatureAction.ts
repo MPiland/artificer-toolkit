@@ -421,14 +421,12 @@ export async function prepareCreatureAction(input: {
               target: input.targetBlindsight
                 ? {
                     ...targetFacts,
-                    baseRulePolicyOutput: {
-                      senses: [
-                        {
-                          senseDefinitionId: SRD_BLINDSIGHT_SENSE_ID,
-                          range: { id: 'sense-range', rangeKind: 'UNLIMITED' as const }
-                        }
-                      ]
-                    }
+                    perceptionSenses: [
+                      {
+                        senseDefinitionId: SRD_BLINDSIGHT_SENSE_ID,
+                        range: { id: 'sense-range', rangeKind: 'UNLIMITED' as const }
+                      }
+                    ]
                   }
                 : targetFacts,
               placement: null

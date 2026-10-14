@@ -30,7 +30,7 @@ export const sahuagin: CreatureAuthored = {
     S.grantedSkillExpertise(243, 3, 'PERCEPTION'),
     S.grantedLanguageProficiency(243, 2, 'SAHUAGIN')
   ],
-  senses: ['darkvision 120 ft.'],
+  senses: [S.darkvision(120)],
   passivePerception: 15,
   challengeRatingId: S.CR.CR_1_2,
   xp: 100,

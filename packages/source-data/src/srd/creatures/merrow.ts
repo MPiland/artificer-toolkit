@@ -28,7 +28,7 @@ export const merrow: CreatureAuthored = {
   },
   speeds: [...S.walk(10), ...S.swim(40)],
   proficiencies: [S.grantedLanguageProficiency(196, 1, 'ABYSSAL', 'AQUAN')],
-  senses: ['darkvision 60 ft.'],
+  senses: [S.darkvision(60)],
   passivePerception: 10,
   challengeRatingId: S.CR.CR_2,
   xp: 450,

@@ -29,7 +29,7 @@ export const minotaur: CreatureAuthored = {
     S.grantedSkillExpertise(198, 3, 'PERCEPTION'),
     S.grantedLanguageProficiency(198, 2, 'ABYSSAL')
   ],
-  senses: ['darkvision 60 ft.'],
+  senses: [S.darkvision(60)],
   passivePerception: 17,
   challengeRatingId: S.CR.CR_3,
   xp: 700,

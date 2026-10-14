@@ -25,7 +25,7 @@ export const giantCentipede: CreatureAuthored = {
     modifier: 1
   },
   speeds: [...S.walk(30), ...S.climb(30)],
-  senses: ['blindsight 30 ft.'],
+  senses: [S.blindsight(30)],
   passivePerception: 8,
   challengeRatingId: S.CR.CR_1_4,
   xp: 50,

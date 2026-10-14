@@ -26,7 +26,7 @@ export const cockatrice: CreatureAuthored = {
     modifier: 6
   },
   speeds: [...S.walk(20), ...S.fly(40)],
-  senses: ['darkvision 60 ft.'],
+  senses: [S.darkvision(60)],
   passivePerception: 11,
   challengeRatingId: S.CR.CR_1_2,
   xp: 100,

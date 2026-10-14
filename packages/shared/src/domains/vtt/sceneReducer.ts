@@ -3,7 +3,7 @@ import type { CombatPerceptionRange } from '../rules/combatPerception.js'
 import type {
   CampaignSceneState,
   SceneAtomicDelta,
-  SceneCharacterVision,
+  SceneActorVision,
   SceneDefinition,
   SceneDelta,
   SceneEvent,
@@ -15,7 +15,7 @@ import type {
   SceneTransientReveal,
   SceneViewer
 } from './scene.js'
-import { FEET_PER_SCENE_UNIT, VTT_SCENE_LIMITS } from './scene.js'
+import { FEET_PER_SCENE_UNIT, METERS_PER_FOOT, VTT_SCENE_LIMITS } from './scene.js'
 import {
   deriveSceneTokenPreviewFogLayers,
   isScenePointExplored,
@@ -41,7 +41,17 @@ type SceneLength = { amount: number; unit: LengthUnitCode }
 
 /** Feet in a Scene's distance unit; a SQUARES Scene counts base squares. */
 export function feetInSceneUnit(feet: number, unit: SceneGrid['unit']): number {
-  return feet / FEET_PER_SCENE_UNIT[unit]
+  return unit === 'METERS' ? feet * METERS_PER_FOOT : feet / FEET_PER_SCENE_UNIT[unit]
+}
+
+/** A distance expressed in another Scene unit; a Metres round trip of a whole-foot distance is exact. */
+export function convertSceneDistance(
+  amount: number,
+  from: SceneGrid['unit'],
+  to: SceneGrid['unit']
+): number {
+  const feet = from === 'METERS' ? amount / METERS_PER_FOOT : amount * FEET_PER_SCENE_UNIT[from]
+  return feetInSceneUnit(feet, to)
 }
 
 /** A typed length in authoritative Scene units. Never negative. */
@@ -65,29 +75,25 @@ export function sceneLengthInFeet(amount: number, grid: CampaignSceneState['grid
 }
 
 /**
- * Presents the bound Character's senses on its token. An unlimited sense stays unlimited; a ranged
- * sense whose range is empty is dropped.
+ * Presents the bound actor's senses (a Character's or a Creature's) on its token. An unlimited
+ * sense stays unlimited; a ranged sense whose range is empty is dropped.
  */
-export function resolveSceneCharacterVision<T extends Pick<CampaignSceneState, 'tokens' | 'grid'>>(
+export function resolveSceneActorVision<T extends Pick<CampaignSceneState, 'tokens' | 'grid'>>(
   state: T,
-  bindings: readonly { actorId: string; characterId: string; tokenId: string }[],
-  characterVisions: readonly SceneCharacterVision[]
+  bindings: readonly { actorId: string; tokenId: string }[],
+  actorVisions: readonly SceneActorVision[]
 ): T {
-  const characterIdByTokenId = new Map(
-    bindings.map((binding) => [binding.tokenId, binding.characterId])
-  )
-  const visionByCharacterId = new Map(
-    characterVisions.map((vision) => [vision.characterId, vision])
-  )
+  const actorIdByTokenId = new Map(bindings.map((binding) => [binding.tokenId, binding.actorId]))
+  const visionByActorId = new Map(actorVisions.map((vision) => [vision.actorId, vision]))
   return {
     ...state,
     tokens: state.tokens.map((token) => {
-      const characterId = characterIdByTokenId.get(token.id)
-      const characterVision = characterId ? visionByCharacterId.get(characterId) : undefined
-      if (!characterVision) return token
+      const actorId = actorIdByTokenId.get(token.id)
+      const actorVision = actorId ? visionByActorId.get(actorId) : undefined
+      if (!actorVision) return token
       return {
         ...token,
-        senses: characterVision.senses.flatMap(({ range, ...sense }) => {
+        senses: actorVision.senses.flatMap(({ range, ...sense }) => {
           const sceneRange = senseRangeInSceneUnits(range, state.grid)
           return sceneRange.rangeKind === 'DISTANCE' && sceneRange.amount <= 0
             ? []

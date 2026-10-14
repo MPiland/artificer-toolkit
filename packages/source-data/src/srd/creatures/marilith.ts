@@ -39,7 +39,7 @@ export const marilith: CreatureAuthored = {
   ],
   damageImmunities: ['poison'],
   conditionImmunities: ['poisoned'],
-  senses: ['truesight 120 ft.'],
+  senses: [S.truesight(120)],
   passivePerception: 13,
   challengeRatingId: S.CR.CR_16,
   xp: 15000,

@@ -26,7 +26,7 @@ export const manticore: CreatureAuthored = {
   },
   speeds: [...S.walk(30), ...S.fly(50)],
   proficiencies: [S.grantedLanguageProficiency(191, 1, 'COMMON')],
-  senses: ['darkvision 60 ft.'],
+  senses: [S.darkvision(60)],
   passivePerception: 11,
   challengeRatingId: S.CR.CR_3,
   xp: 700,

@@ -26,7 +26,7 @@ export const giantWeasel: CreatureAuthored = {
   },
   speeds: [...S.walk(40)],
   proficiencies: [S.grantedSkillProficiency(139, 1, 'PERCEPTION', 'STEALTH')],
-  senses: ['darkvision 60 ft.'],
+  senses: [S.darkvision(60)],
   passivePerception: 13,
   challengeRatingId: S.CR.CR_1_8,
   xp: 25,

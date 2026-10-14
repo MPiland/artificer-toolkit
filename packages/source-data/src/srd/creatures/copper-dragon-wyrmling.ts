@@ -33,7 +33,7 @@ export const copperDragonWyrmling: CreatureAuthored = {
     S.grantedLanguageProficiency(7951, 3, 'DRACONIC')
   ],
   damageImmunities: ['acid'],
-  senses: ['blindsight 10 ft.', 'darkvision 60 ft.'],
+  senses: [S.blindsight(10), S.darkvision(60)],
   passivePerception: 14,
   challengeRatingId: S.CR.CR_1,
   xp: 200,

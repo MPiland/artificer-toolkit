@@ -110,7 +110,7 @@ export function CampaignClockControl({ campaign }: { campaign: CampaignDetailDto
               </ActionIcon>
             </Tooltip>
           ) : null}
-          <CampaignClockEditor campaign={campaign} clock={clock.data ?? null} />
+          <CampaignClockEditor key={campaign.id} campaign={campaign} clock={clock.data ?? null} />
         </Group>
       ) : null}
     </div>
