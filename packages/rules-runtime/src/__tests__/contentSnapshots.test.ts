@@ -18,8 +18,7 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { EquipmentAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { resolveEquipmentAuthored } from '@artificer-toolkit/shared/subjects/compilers'
 import { prepareSrdImport } from '@artificer-toolkit/source-data/srd/import.js'
-import { srdBaselineContent } from '@artificer-toolkit/source-data/srd/index.js'
-import { beforeAll, describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
 import { toCharacterBuilderEquipmentCatalogRecord } from '../character/builderCatalog.js'
 import {
@@ -42,17 +41,15 @@ const KINDS = [
   'VEHICLE'
 ] as const satisfies readonly ContentSnapshotKind[]
 
-// Prepared on first use, without the reusable definitions these tests never read.
-let srd: ReturnType<typeof prepareSrdImport> | undefined
+const srd = prepareSrdImport()
 // The import manifest already validated each document against its publication schema.
 function srdDocuments<Kind extends ContentSnapshotKind>(kind: Kind) {
-  srd ??= prepareSrdImport(srdBaselineContent, [])
   return srd.subjects
     .filter((subject) => subject.subjectKind === kind)
     .map((subject) => subject.document as unknown as ContentSnapshotDocument<Kind>)
 }
 
-let equipmentById: Map<string, ContentSnapshotDocument<'EQUIPMENT'>> | undefined
+const equipmentById = new Map(srdDocuments('EQUIPMENT').map((document) => [document.id, document]))
 function publicationVersions<Kind extends ContentSnapshotKind>(
   kind: Kind,
   documents: readonly ContentSnapshotDocument<Kind>[],
@@ -85,13 +82,11 @@ function indexSource<Kind extends ContentSnapshotKind>(
   type Source = Extract<ContentSnapshotIndexSource, { subjectKind: Kind }>
   if (kind !== 'EQUIPMENT') return { subjectKind: kind, document } as unknown as Source
   const equipment = document as unknown as EquipmentAuthoredDto
-  equipmentById ??= new Map(srdDocuments('EQUIPMENT').map((entry) => [entry.id, entry]))
-  const catalogue = equipmentById
   const effective = toCharacterBuilderEquipmentCatalogRecord(
     // Authored charge refinements narrow beyond the validated DTO's inferred type.
     resolveEquipmentAuthored(
       equipment as EquipmentAuthored,
-      (id) => catalogue.get(id) as EquipmentAuthored | undefined
+      (id) => equipmentById.get(id) as EquipmentAuthored | undefined
     )
   )
   const source: Extract<ContentSnapshotIndexSource, { subjectKind: 'EQUIPMENT' }> = {
@@ -131,12 +126,9 @@ function header<Kind extends ContentSnapshotKind, Part extends ContentSnapshotPa
   return { format: 2 as const, scope, scopeId, kind, part }
 }
 
-describe('content snapshot parts', () => {
-  let races: ContentSnapshotDocument<'RACE'>[]
-  beforeAll(() => {
-    races = srdDocuments('RACE')
-  })
+const races = srdDocuments('RACE')
 
+describe('content snapshot parts', () => {
   it('requires matching publication pins and rejects missing or duplicate pins', () => {
     const roots = [races[0]!]
     const pins = publicationVersions('RACE', roots)

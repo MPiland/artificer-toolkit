@@ -92,19 +92,13 @@ The loaded root run timed out `canonical Convex import preparation > publishes t
 
 The existing 20 s timeout on `preserves every authored root and separate policy definition deterministically` was not touched: it prepares the full corpus twice by design (reordered determinism check).
 
-## Fix: module-load `prepareSrdImport()` removed
+## Module-load `prepareSrdImport()`: tried, no gain, reverted
 
-| File | Change |
-| --- | --- |
-| `rules-runtime/src/__tests__/contentSnapshots.test.ts` | Prepared on first use without the reusable definitions; `races` and the Equipment lookup are lazy. |
-| `rules-runtime/src/__tests__/srdCreatureAttackSweep.test.ts` | Prepares only Creatures and the Equipment they reference, with no definitions. |
-| `apps/web/.../builder/evaluation/builderSnapshot.fixtures.ts` | Prepares only the five kinds the Builder reads, with no definitions. |
+Three files prepare the full SRD at module load: `contentSnapshots.test.ts`, `srdCreatureAttackSweep.test.ts` and the web `builderSnapshot.fixtures.ts`. A trial change (commit 7a4495546) made each lazy or bounded to the kinds it reads, using `prepareSrdImport`'s existing bundle and definitions parameters (`prepareSrdDefinitions` does not apply: these files read authored subjects). The measurements below showed no gain, and the sweep and fixture changes stopped preparing the full seeded corpus that those files say they read "the way Blueprint creation reads them". The three files were restored to base; only the `import.test.ts` fix stays. The module-load item moves to the end-of-phase speed work.
 
-`prepareSrdDefinitions` (PLATFORM-13.6) does not apply to these three: they read authored subjects, not reusable definitions. `prepareSrdImport` already takes a bundle and a definitions list, so the bounded form needs no product change.
+### Before and after the trial change (touched files only, run serially, warm transform cache)
 
-### Before and after (touched files only, run serially, warm transform cache)
-
-Before is base `754a44402`; after is the fix commit. Each cell is the file's test time from the default reporter. The very first "after" run was cold-cache and is excluded from the table (62 s root, 54 s web wall); two warm "after" runs are shown.
+Before is base `754a44402`; after is the trial commit 7a4495546 (now reverted for the three module-load files; the `import.test.ts` row is the kept fix). Each cell is the file's test time from the default reporter. The very first "after" run was cold-cache and is excluded from the table (62 s root, 54 s web wall); two warm "after" runs are shown.
 
 | File | Before | After (run 1 / run 2) |
 | --- | --- | --- |
@@ -115,10 +109,11 @@ Before is base `754a44402`; after is the fix commit. Each cell is the file's tes
 | Web invocation, two files using the fixtures (wall) | 21.8 s | 24.7 s / 20.5 s |
 | Web invocation, import time (sum) | 38.4 s | 38.8 s / 36.0 s |
 
-Reading: the module-load removal does not make these files measurably faster. Collection no longer pays for the preparation, but the work moves into the first test that needs it (`contentSnapshots` +1.2 s in test time, as expected, since its round-trip test needs all eight kinds). The sweep's time is its own 2 tests, not preparation. The web fixture still exports `srdSnapshot` built at module load by design; narrowing it to five kinds saves little. The real gain from this slice is the `import.test.ts` timeout fix (3.8 s to 2.8 to 3.0 s isolated, and a bounded path that no longer scales with the full corpus under load).
+Reading: the module-load removal does not make these files measurably faster. Collection no longer pays for the preparation, but the work moves into the first test that needs it (`contentSnapshots` +1.2 s in test time, as expected, since its round-trip test needs all eight kinds). The sweep's time is its own 2 tests, not preparation. The web fixture still builds `srdSnapshot` at module load by design; narrowing it to five kinds saved little. Decision: no gain, reverted. The real gain from this slice is the `import.test.ts` timeout fix (3.8 s to 2.8 to 3.0 s isolated, and a bounded path that no longer scales with the full corpus under load).
 
 ## Deferred to the end of Phase 8.2
 
 - Parallelism trial for the Convex suite (2, 4, then the physical-core cap of 8; three consecutive clean runs for the kept setting; free memory and paging recorded; a run that swaps or times out is a rejection). A first 8-way run was queued and cancelled before it started; no parallel data exists yet.
 - Full-suite timing record, including a loaded root-package run as proof that the `import.test.ts` fix holds at the default 5 s timeout.
 - Convex suite speed work, starting from the top-20 table above.
+- Module-load `prepareSrdImport()` in the three files above: revisit only with a change that keeps the full seeded corpus (for example a shared, cached prepared corpus), since subsetting gained nothing.

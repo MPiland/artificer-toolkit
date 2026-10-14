@@ -16,7 +16,6 @@ import { acolyte } from '@artificer-toolkit/source-data/srd/backgrounds/acolyte.
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { fighter } from '@artificer-toolkit/source-data/srd/classes/fighter.js'
 import { prepareSrdImport } from '@artificer-toolkit/source-data/srd/import.js'
-import { srdBaselineContent } from '@artificer-toolkit/source-data/srd/index.js'
 import { human } from '@artificer-toolkit/source-data/srd/races/human.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import {
@@ -30,15 +29,7 @@ export const SRD_SNAPSHOT_KINDS = ['RACE', 'CLASS', 'BACKGROUND', 'FEAT', 'SPELL
 
 if (fighter.category !== 'BASE') throw new Error('Expected the canonical parent Fighter class.')
 
-// Only the kinds the Builder reads are prepared: no Creature, Equipment, Vehicle or definition.
-const { backgrounds, classes, feats, races, spells } = srdBaselineContent.subjects
-const srd = prepareSrdImport(
-  {
-    ...srdBaselineContent,
-    subjects: { backgrounds, classes, creatures: [], equipment: [], feats, races, spells, vehicles: [] }
-  },
-  []
-)
+const srd = prepareSrdImport()
 
 /** The parts of a publication document the snapshot builder reads. */
 type SrdDocument = {
