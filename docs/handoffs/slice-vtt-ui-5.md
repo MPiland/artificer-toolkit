@@ -1,6 +1,6 @@
 # Slice workbook: VTT_UI-5 (Creatures see with their stat-block senses)
 
-**Status:** OPEN (started 2026-10-13)
+**Status:** DONE (merged `e6edf041f`, fixes `13a58bef8` and `f2e6ec254`; closed by the main session 2026-10-14)
 **Base:** `codex/phase-08-2-convex-cutover` at this workbook's commit.
 **Rules:** [slice-workbook-rules.md](slice-workbook-rules.md).
 

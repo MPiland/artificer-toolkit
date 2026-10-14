@@ -141,12 +141,15 @@ export async function prepareNativeLiveMovementTarget(input: {
     gameSystemId: state.gameSystemId,
     definitions
   })
+  const inputs = await capture({ kind: 'INPUTS' })
+  if (inputs.kind !== 'INPUTS') throw new Error('Encounter inputs are unavailable.')
   // Only an actor with a defensive grant (Dodge) reads its capability definitions.
   return {
     target: await withEncounterHolderDefense({
       target,
       gameSystemId: state.gameSystemId,
-      definitions
+      definitions,
+      speedDefinitions: inputs.system.speeds
     }),
     revisions
   }

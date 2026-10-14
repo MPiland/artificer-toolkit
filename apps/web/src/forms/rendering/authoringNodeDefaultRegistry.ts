@@ -6,7 +6,9 @@ type AuthoringDefaultKind =
   | 'actorRelationshipRecurrence'
   | 'capacity'
   | 'chargeBonus'
+  | 'check'
   | 'checkChoice'
+  | 'checkDc'
   | 'chargeLevelScaling'
   | 'charges'
   | 'classDetail'
@@ -115,7 +117,6 @@ type AuthoringDefaultKind =
   | 'targetCount'
   | 'targeting'
   | 'damageLevelScalingEntry'
-  | 'escapeCheckDc'
   | 'weight'
 
 const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly string[]>> = {
@@ -126,7 +127,9 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   actorRelationshipRecurrence: ['actorRelationshipRecurrence'],
   capacity: ['capacity', 'creatureCapacity'],
   chargeBonus: ['chargeBonus'],
+  check: ['check'],
   checkChoice: ['checkChoice'],
+  checkDc: ['checkDc'],
   chargeLevelScaling: ['levels'],
   charges: ['charges'],
   classDetail: [
@@ -242,7 +245,6 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   targetCount: ['targetCount'],
   targeting: ['targeting'],
   damageLevelScalingEntry: ['damageLevelScalingEntry'],
-  escapeCheckDc: ['escapeCheckDc'],
   weight: ['weight']
 }
 

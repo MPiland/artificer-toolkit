@@ -1,10 +1,15 @@
-import { feetInLengthUnit, lengthMeasurementInFeet } from '@artificer-toolkit/shared/core'
+import {
+  feetInLengthUnit,
+  lengthMeasurementInFeet,
+  type LengthUnitCode
+} from '@artificer-toolkit/shared/core'
 import type { CharacterGrantFoldOutput } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
 import type {
   CharacterRulePolicyInput,
   CharacterRulePolicyOutput
 } from '@artificer-toolkit/schema/api/characterRules'
 
+import { lengthInUnit, widestLengthByKey } from '../../modifierLength.js'
 import type { CharacterResolvedModifierGroup } from './characterModifiers.js'
 import { characterPolicyRecord } from './characterPolicyValues.js'
 import {
@@ -41,32 +46,46 @@ export function evaluateDnd5eCharacterMovementAndSenses(
         )
       )
     )
-  /** "Your speed is X" replaces the base speed; the best applicable one wins. */
-  const speedReplacements = new Map<string, number>()
-  for (const group of modifierGroups) {
-    if (group.valueDomainCode !== 'SPEED' || group.modifierKind !== 'SET_VALUE') continue
-    const speedId = groupDomain(group).speedId
-    if (typeof speedId !== 'string') continue
-    for (const contribution of characterWide([group]))
-      speedReplacements.set(
-        speedId,
-        Math.max(speedReplacements.get(speedId) ?? Number.NEGATIVE_INFINITY, contribution.value)
-      )
-  }
+  /** "Your speed is X" replaces the base speed; the best applicable one wins, in its authored unit. */
+  const speedReplacements = widestLengthByKey(
+    modifierGroups
+      .filter((group) => group.valueDomainCode === 'SPEED' && group.modifierKind === 'SET_VALUE')
+      .flatMap((group) => {
+        const speedId = groupDomain(group).speedId
+        return typeof speedId === 'string'
+          ? characterWide([group]).map((contribution) => ({
+              key: speedId,
+              payload: characterPolicyRecord(
+                grantFold.modifiers[contribution.acceptedModifierIndex]?.grant
+              ).payload
+            }))
+          : []
+      })
+  )
+  /**
+   * Speed and sense range contributions are feet; they add to the base in the base's own unit. A
+   * total never falls below 0, as a Creature's speed does not.
+   */
   const calculation = (
     base: number,
+    unit: LengthUnitCode,
     groups: CharacterResolvedModifierGroup[],
     override: { sourceId: string; value: number } | null
   ): CharacterRulePolicyOutput['derivedStats']['armorClass'] => {
-    const contributions = characterWide(groups)
+    const contributions = characterWide(groups).map((contribution) => ({
+      ...contribution,
+      value: feetInLengthUnit(contribution.value, unit)
+    }))
     return {
       base,
-      effective:
+      effective: Math.max(
+        0,
         override?.value ??
-        base +
-          contributions
-            .filter((contribution) => contribution.state === 'APPLIED')
-            .reduce((sum, contribution) => sum + contribution.value, 0),
+          base +
+            contributions
+              .filter((contribution) => contribution.state === 'APPLIED')
+              .reduce((sum, contribution) => sum + contribution.value, 0)
+      ),
       contributions: contributions.map((contribution) => ({
         sourceId: contribution.sourceId,
         source: contribution.source,
@@ -86,22 +105,26 @@ export function evaluateDnd5eCharacterMovementAndSenses(
   }
   const factSpeeds = input.movementFacts?.speeds ?? []
   const speeds = [
-    ...factSpeeds,
-    ...[...speedReplacements.keys()]
-      .filter((speedId) => !factSpeeds.some((speed) => speed.speedId === speedId))
-      .map((speedId) => ({ speedId, baseAmount: 0, unit: 'FEET' as const, override: null }))
-  ].map((speed) => {
+    ...factSpeeds.map(({ speedId, base, override }) => {
+      // A speed is in its base's unit, or in its override's own unit when the Character has no base.
+      const length = base ?? override?.value
+      if (length === undefined) throw new Error('A Character speed needs a base or an override.')
+      return { speedId, base: length, override }
+    }),
+    ...[...speedReplacements]
+      .filter(([speedId]) => !factSpeeds.some((speed) => speed.speedId === speedId))
+      .map(([speedId, base]) => ({ speedId, base, override: null }))
+  ].map(({ speedId, base, override }) => {
+    const replacement = speedReplacements.get(speedId)
     const resolved = calculation(
-      speedReplacements.get(speed.speedId) ?? speed.baseAmount,
-      matchingGroups('SPEED', 'speedId', speed.speedId),
-      speed.override
+      replacement === undefined ? base.amount : lengthInUnit(replacement, base.unit),
+      base.unit,
+      matchingGroups('SPEED', 'speedId', speedId),
+      override === null
+        ? null
+        : { sourceId: override.sourceId, value: lengthInUnit(override.value, base.unit) }
     )
-    return {
-      speedId: speed.speedId,
-      amount: resolved.effective,
-      unit: speed.unit,
-      calculation: resolved
-    }
+    return { speedId, amount: resolved.effective, unit: base.unit, calculation: resolved }
   })
   const preference = input.movementFacts?.preference
   const primaryMovementSpeedId =
@@ -137,7 +160,7 @@ export function evaluateDnd5eCharacterMovementAndSenses(
       // A Sheet override sets the distance outright, in the widest grant's unit (its own with no grant).
       const unit = widest?.unit ?? override.value.unit
       const amount = feetInLengthUnit(lengthMeasurementInFeet(override.value), unit)
-      const resolved = calculation(widest?.amount ?? amount, modifiers, {
+      const resolved = calculation(widest?.amount ?? amount, unit, modifiers, {
         sourceId: override.sourceId,
         value: amount
       })
@@ -154,7 +177,7 @@ export function evaluateDnd5eCharacterMovementAndSenses(
     }
     if (unlimited !== undefined) return { senseDefinitionId, range: unlimited }
     if (widest === undefined) throw new Error('A Character sense needs a granted range.')
-    const resolved = calculation(widest.amount, modifiers, null)
+    const resolved = calculation(widest.amount, widest.unit, modifiers, null)
     return {
       senseDefinitionId,
       range: {

@@ -3,6 +3,7 @@ import type { SelectProps, MultiSelectProps } from '@mantine/core'
 export type AppSelectOption = {
   value: string
   label: string
+  description?: string
   disabled?: boolean
 }
 

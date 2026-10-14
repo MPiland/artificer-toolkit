@@ -41,15 +41,13 @@ export const CLASS_ATTRIBUTE_REGISTRY: Record<ClassAttribute, ClassAttributeOpti
   SPELLCASTER: {
     code: CLASS_ATTRIBUTE.SPELLCASTER,
     label: 'Spellcaster',
-    description: 'The class has spellcasting.',
-    tooltip: 'Can cast spells.'
+    description: 'Can cast spells.'
   },
 
   RESOURCE: {
     code: CLASS_ATTRIBUTE.RESOURCE,
     label: 'Resource',
-    description: 'The class has resource-based mechanics.',
-    tooltip: 'Resource such as Inspiration Dice or Ki Points.'
+    description: 'Resource such as Inspiration Dice or Ki Points.'
   }
 } as const
 
@@ -71,9 +69,7 @@ export const SUBCLASS_ATTRIBUTE_REGISTRY: Record<SubclassAttribute, SubclassAttr
   SPECIALIZATION: {
     code: SUBCLASS_ATTRIBUTE.SPECIALIZATION,
     label: 'Specialization',
-    description:
-      'The subclass has a persistent specialization identity, such as Druid Circle of the Land terrain or Barbarian totem path.',
-    tooltip: 'Defines a lasting specialization within the subclass.'
+    description: 'Defines a lasting specialization within the subclass.'
   }
 } as const
 
@@ -100,41 +96,31 @@ export const SPELLCASTING_ATTRIBUTE_REGISTRY: Record<
   [SPELLCASTING_ATTRIBUTE.LIMIT_KNOWN_SPELL_AMOUNT]: {
     code: SPELLCASTING_ATTRIBUTE.LIMIT_KNOWN_SPELL_AMOUNT,
     label: 'Limited Known Spells',
-    tooltip: 'Spells known are capped rather than fully prepared.',
-    description:
-      'This class learns a limited number of spells, which are permanently known and do not require daily preparation.'
+    description: 'Spells known are capped rather than fully prepared.'
   },
 
   [SPELLCASTING_ATTRIBUTE.PREPARES_SPELLS]: {
     code: SPELLCASTING_ATTRIBUTE.PREPARES_SPELLS,
     label: 'Prepares Spells',
-    tooltip: 'Spells are prepared from a larger available list.',
-    description:
-      'This class prepares spells from its available spell list, choosing which spells are usable at a given time.'
+    description: 'Spells are prepared from a larger available list.'
   },
 
   [SPELLCASTING_ATTRIBUTE.CUSTOM_MAGIC_NAME]: {
     code: SPELLCASTING_ATTRIBUTE.CUSTOM_MAGIC_NAME,
     label: 'Custom Magic Name',
-    tooltip: 'Uses a custom term instead of "spells".',
-    description:
-      'This class uses a custom name for its magical abilities, such as invocations, maneuvers, or techniques.'
+    description: 'Uses a custom term instead of "spells".'
   },
 
   [SPELLCASTING_ATTRIBUTE.USES_SPELLBOOK]: {
     code: SPELLCASTING_ATTRIBUTE.USES_SPELLBOOK,
     label: 'Uses Spellbook',
-    tooltip: 'Spells are recorded and learned through a spellbook.',
-    description:
-      'This class records spells in a spellbook and must reference it to prepare or learn spells.'
+    description: 'Spells are recorded and learned through a spellbook.'
   },
 
   [SPELLCASTING_ATTRIBUTE.RITUAL_CASTER]: {
     code: SPELLCASTING_ATTRIBUTE.RITUAL_CASTER,
     label: 'Ritual Caster',
-    tooltip: 'Can cast certain spells as rituals.',
-    description:
-      'This class can cast eligible spells as rituals, typically without expending spell slots.'
+    description: 'Can cast certain spells as rituals.'
   }
 } as const
 
@@ -159,25 +145,19 @@ export const PREPARE_LIMIT_METHOD_REGISTRY: Record<
   [PREPARE_LIMIT_METHOD_KIND.SPELLCASTING_ABILITY]: {
     code: PREPARE_LIMIT_METHOD_KIND.SPELLCASTING_ABILITY,
     label: 'Spellcasting Ability',
-    tooltip: 'Preparation limit is based on a spellcasting ability.',
-    description:
-      "The number of spells that can be prepared is determined using the class's spellcasting ability."
+    description: 'Preparation limit is based on a spellcasting ability.'
   },
 
   [PREPARE_LIMIT_METHOD_KIND.CLASS_LEVEL]: {
     code: PREPARE_LIMIT_METHOD_KIND.CLASS_LEVEL,
     label: 'Class Level',
-    tooltip: 'Preparation limit is based on class level.',
-    description:
-      "The number of spells that can be prepared scales with the character's level in this class."
+    description: 'Preparation limit is based on class level.'
   },
 
   [PREPARE_LIMIT_METHOD_KIND.PER_LEVEL]: {
     code: PREPARE_LIMIT_METHOD_KIND.PER_LEVEL,
     label: 'Per-Level Table',
-    tooltip: 'Preparation limit uses a level-based table.',
-    description:
-      'The number of spells that can be prepared is defined by an explicit per-level progression table.'
+    description: 'Preparation limit uses a level-based table.'
   }
 } as const
 

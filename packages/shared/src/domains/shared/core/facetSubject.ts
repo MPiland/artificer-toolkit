@@ -37,54 +37,43 @@ export const NODE_SUBJECT: NodeSubjectRegistry = {
   FEATURE: {
     code: 'FEATURE',
     label: 'Feature',
-    tooltip: 'Narrows selection to feature(s).',
-    description:
-      'Narrows selection to one or more specific features. This can be used to target class features, racial attributes, feat features, or other authored features.'
+    description: 'Narrows selection to feature(s).'
   },
 
   OPTION: {
     code: 'OPTION',
     label: 'Feature Option',
-    tooltip: 'Narrows selection to feature option.',
-    description:
-      'Narrows selection to one or more specific feature options, such as Fighting Style selections, invocation choices, or other option-based feature paths.'
+    description: 'Narrows selection to feature option.'
   },
 
   SUBCLASS: {
     code: 'SUBCLASS',
     label: 'Subclass',
-    tooltip: 'Narrows to a subclass.',
-    description: 'Narrows selection to a specific subclass for their class.'
+    description: 'Narrows to a subclass.'
   },
 
   RESOURCE: {
     code: 'RESOURCE',
     label: 'Resource',
-    tooltip: 'Narrows to a class resource.',
-    description:
-      'Narrows applicability to a specific resource of a class such as Ki or Inspiration Dice.'
+    description: 'Narrows to a class resource.'
   },
 
   SUBRACE: {
     code: 'SUBRACE',
     label: 'Subrace',
-    tooltip: 'Narrows to a subrace.',
-    description: 'Narrows selections to a specific subrace within a race.'
+    description: 'Narrows to a subrace.'
   },
 
   RACE_ANCESTRY_OPTION: {
     code: 'RACE_ANCESTRY_OPTION',
     label: 'Ancestry Option',
-    tooltip: 'Narrows selection to ancestry option(s).',
-    description:
-      'Narrows one or more specific options within an ancestry, such as Red or Blue for Draconic Ancestry.'
+    description: 'Narrows selection to ancestry option(s).'
   },
 
   PROFICIENCY_GRANT: {
     code: 'PROFICIENCY_GRANT',
     label: 'Proficiency Grant',
-    tooltip: 'Narrows select to proficiency grants',
-    description: 'Narrows one or more proficiency kinds, such as ability, equipment, etc'
+    description: 'Narrows select to proficiency grants'
   }
 } as const
 

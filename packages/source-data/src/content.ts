@@ -72,7 +72,6 @@ export interface VocabularySeedRecord {
   code: string
   label: string
   description?: string | null
-  tooltip?: string | null
   short?: string | null
 }
 

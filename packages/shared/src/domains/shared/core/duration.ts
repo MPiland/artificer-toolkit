@@ -22,63 +22,52 @@ export const DURATION_REGISTRY: Record<DurationKind, DurationOption> = {
   [DURATION_KIND.INSTANTANEOUS]: {
     code: DURATION_KIND.INSTANTANEOUS,
     label: 'Instantaneous',
-    description: 'An effect that occurs immediately and does not persist over time.',
-    tooltip: 'No duration.'
+    description: 'No duration.'
   },
   [DURATION_KIND.UNTIL_DISPELLED]: {
     code: DURATION_KIND.UNTIL_DISPELLED,
     label: 'Until Dispelled',
-    description:
-      'The effect persists until it is ended by dispelling magic or another specific rule.',
-    tooltip: 'Lasts until dispelled.'
+    description: 'Lasts until dispelled.'
   },
   [DURATION_KIND.TURN]: {
     code: DURATION_KIND.TURN,
     label: 'Turn',
-    description: "The duration of a single creature's turn.",
-    tooltip: "One creature's turn."
+    description: "One creature's turn."
   },
   [DURATION_KIND.ROUND]: {
     code: DURATION_KIND.ROUND,
     label: 'Round',
-    description: 'A complete cycle of turns for all participants.',
-    tooltip: 'One full round.'
+    description: 'One full round.'
   },
   [DURATION_KIND.MINUTE]: {
     code: DURATION_KIND.MINUTE,
     label: 'Minute',
-    description: 'A short span of time composed of multiple rounds.',
-    tooltip: 'One minute.'
+    description: 'One minute.'
   },
   [DURATION_KIND.HOUR]: {
     code: DURATION_KIND.HOUR,
     label: 'Hour',
-    description: 'A longer continuous span of time.',
-    tooltip: 'One hour.'
+    description: 'One hour.'
   },
   [DURATION_KIND.DAY]: {
     code: DURATION_KIND.DAY,
     label: 'Day',
-    description: 'A full daily cycle.',
-    tooltip: 'One day.'
+    description: 'One day.'
   },
   [DURATION_KIND.WEEK]: {
     code: DURATION_KIND.WEEK,
     label: 'Week',
-    description: 'A span of time consisting of multiple consecutive days.',
-    tooltip: 'One week.'
+    description: 'One week.'
   },
   [DURATION_KIND.MONTH]: {
     code: DURATION_KIND.MONTH,
     label: 'Month',
-    description: 'A longer span of time used for extended effects or narrative pacing.',
-    tooltip: 'One month.'
+    description: 'One month.'
   },
   [DURATION_KIND.YEAR]: {
     code: DURATION_KIND.YEAR,
     label: 'Year',
-    description: 'A long-term span of time measured in annual cycles.',
-    tooltip: 'One year.'
+    description: 'One year.'
   }
 } as const
 

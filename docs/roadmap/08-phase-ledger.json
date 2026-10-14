@@ -566,6 +566,14 @@
               "note": "Closed 2026-10-13 (merge 6bbbf7f62): new prepareSrdDefinitions serves the Q11 test without preparing 1,057 subjects; one canonical compare and one hash per document. Q11 2324 -> 35 ms, the full-import tests 4052 -> 2597 ms and 1947 -> 1295 ms, the SRD manifest byte-identical, and a loaded root-package run of 274 files / 2536 tests green in 54 s with no timeout raised. Registered 2026-10-13 from the lane 3 merge. packages/source-data/src/srd/import.test.ts › publishes the SRD basic-action catalogue as System data (Q11) timed out at 5000 ms in the post-merge root-package run (local-validation/lane3-merge/root-packages.log); lane 3 hit the same class in r5c and r6. 781c9529a fixed only the cloneAuthoredItem corpus test. Fix the work the test does, not the timeout.",
               "origin": [],
               "id": "PLATFORM-13.6"
+            },
+            {
+              "id": "PLATFORM-13.7",
+              "text": "The slowest Convex test files from the 2026-10-14 top-20 (the corpus-scale journeys, media/* fixture setup and module import) are profiled and made faster without replacing real-code proof; the per-file timing record shows each file before and after.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Registered 2026-10-14 from the PLATFORM-13.T1 serial baseline (docs/validation/platform-13-t1-test-timings-2026-10-14.md)."
             }
           ],
           "wsjf": {
@@ -577,8 +585,8 @@
           "tasks": [
             {
               "id": "PLATFORM-13.T1",
-              "text": "Test speed: convex-test upgrade, per-file timings and the parallelism trial. Include the module-load prepareSrdImport() calls (about 1.2 s per process) in contentSnapshots.test.ts, srdCreatureAttackSweep.test.ts and the web builder fixtures, found in PLATFORM-13.6.",
-              "status": "TODO",
+              "text": "Test speed, per-file work: convex-test 0.0.60 upgrade (6507a4678), the import.test.ts 5 s timeout regression of PLATFORM-13.6 (reads definitions only), and the partial serial timing baseline (docs/validation/platform-13-t1-test-timings-2026-10-14.md). The module-load prepareSrdImport() subsetting was tried and reverted: no measurable gain.",
+              "status": "DONE",
               "closes": ["PLATFORM-13.3"],
               "wsjf": {
                 "bv": 1,
@@ -607,6 +615,31 @@
               "wsjf": {
                 "bv": 1,
                 "tc": 1,
+                "rr": 3,
+                "size": 5
+              }
+            },
+            {
+              "id": "PLATFORM-13.T4",
+              "text": "End of phase: Convex parallelism trial (2, 4, then 8 file workers, one run each, then three consecutive clean runs for the kept setting; wall time, failures, peak memory and paging recorded; a run that swaps or times out rejects the setting; no per-test timeout raised) and the full-suite timing record (Convex, worker, root), including a loaded root run proving import.test.ts passes at the default 5 s.",
+              "status": "TODO",
+              "closes": ["PLATFORM-13.3"],
+              "wsjf": {
+                "bv": 1,
+                "tc": 8,
+                "rr": 8,
+                "size": 3,
+                "finalSource": true
+              }
+            },
+            {
+              "id": "PLATFORM-13.T5",
+              "text": "Convex-suite speed work from the 2026-10-14 top-20: the corpus-scale journeys (equipmentLimits, developmentLifecycleProof, commitReferencedContext, seed, seedAudit, builderSnapshotParity, equipmentCharacter, catalogueReadBudget, developmentCustody: 970 s of 2808 s), media/* per-test fixture setup (profile first) and module import (688 s across 380 files). Per-file timings only; proofs keep running real code.",
+              "status": "TODO",
+              "closes": ["PLATFORM-13.7"],
+              "wsjf": {
+                "bv": 1,
+                "tc": 3,
                 "rr": 3,
                 "size": 5
               }
@@ -1906,17 +1939,23 @@
         {
           "id": "AUTHORING-18",
           "title": "System vocabulary options show their description",
-          "status": "TODO",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": ["apps/web/src/forms/tests/SystemVocabularyOptionTooltips.test.tsx"],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
               "text": "Every authored-form option drawn from System vocabulary (speeds, senses, damage types, skills, abilities, proficiencies and the rest) carries the vocabulary entry's description to the option tooltip, served by the shared resolver; proved by a real-resolver test that fails before the fix.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/authoring/src/nodeRuntime/systemVocabularyOptions.test.ts (real resolver serves each System vocabulary description)",
+                "apps/apis/convex/authoring/nodeRuntime.test.ts (skills options carry their description)",
+                "apps/web/src/test/nodeRuntimeResolver.test.ts",
+                "apps/web/src/ui/primitives/Select/selectOptions.test.ts",
+                "apps/web/src/forms/tests/SystemVocabularyOptionTooltips.test.tsx (resolver output through the real FormRenderer; hovering a single and a multi select option shows the description)"
+              ],
               "origin": [],
-              "note": "Found 2026-10-14 in the RELIABILITY-7 review: node maps select [id, label, tooltip] from System vocabulary tables, but System vocabulary rows carry description, not tooltip, so the resolver serves no description (the base Convex reader did the same; the old static web model hid it). The relationship executor already reads tooltip or description.",
+              "note": "Found 2026-10-14 in the RELIABILITY-7 review: node maps select [id, label, tooltip] from System vocabulary tables, but System vocabulary rows carry description, not tooltip, so the resolver serves no description (the base Convex reader did the same; the old static web model hid it). The relationship executor already reads tooltip or description. Merged d87cc4d31: description is the single option-description column (tooltip dropped from the source manifest); AppSelect and AppMultiSelect render a described option in a Tooltip.",
               "id": "AUTHORING-18.1"
             }
           ],
@@ -1924,6 +1963,63 @@
             "bv": 2,
             "tc": 1,
             "rr": 2,
+            "size": 1
+          }
+        },
+        {
+          "id": "AUTHORING-19",
+          "title": "One option-description field",
+          "status": "DONE",
+          "journeyTests": ["apps/web/src/forms/tests/SystemVocabularyOptionTooltips.test.tsx"],
+          "journeyStatus": "verified",
+          "origin": [],
+          "acs": [
+            {
+              "id": "AUTHORING-19.1",
+              "text": "Option and vocabulary copy has one field, description: tooltip is removed from the System vocabulary record, schema, SRD corpus rows and manifest, and from the shared CoreMeta code-list metadata; the authoring resolver reads description only (no tooltip fallback); the AUTHORING-18 journey and the publication and resolver tests pass unchanged.",
+              "status": "DONE",
+              "proof": [
+                "packages/authoring/src/nodeRuntime/systemVocabularyOptions.test.ts (code-list description served by the real resolver; red before the fix)",
+                "packages/schema/src/__tests__/vocabulary-dto.test.ts (description is the only copy field; red before the fix)",
+                "apps/web/src/forms/tests/SystemVocabularyOptionTooltips.test.tsx, apps/apis/convex/authoring/nodeRuntime.test.ts (AUTHORING-18 proofs unchanged)"
+              ],
+              "origin": [],
+              "note": "Found 2026-10-14 in AUTHORING-18: after description became the one option-description column, nothing reads tooltip (skills' tooltip duplicates governingAbilityDefinitionId). Pre-launch rule: remove unused fields. Touches the protected SRD corpus; reset and reseed after merge. Re-scoped 2026-10-14 at workbook time: nodeRuntimeService toOptions still reads option.tooltip ?? option.description for ~50 shared code-list files. Merged 14bdeb4ef: tooltip removed from CoreMeta, Vocabulary, vocabularyDtoSchema, source-data and the SRD skill rows; 557 code-list entries carry the former tooltip text as description; the six ABILITIES keep the long Reference-panel sentence (integration ruling). Local Convex reset and reseeded."
+            }
+          ],
+          "wsjf": {
+            "bv": 1,
+            "tc": 1,
+            "rr": 2,
+            "size": 2,
+            "after": ["AUTHORING-18"]
+          }
+        },
+        {
+          "id": "AUTHORING-20",
+          "title": "Authors can add an invocation Check and a Check DC",
+          "status": "DONE",
+          "journeyTests": ["apps/web/src/forms/tests/CheckAddActions.test.tsx"],
+          "journeyStatus": "verified",
+          "origin": [],
+          "acs": [
+            {
+              "id": "AUTHORING-20.1",
+              "text": "Every add-enabled child group reachable from the authored root maps has a default factory, including invocation.check -> check, check.dc -> checkDc and actorRelationshipModule.dc -> checkDc; apps/web/src/forms/rendering/authoringNodeDefaultInventory.test.ts passes; adding a Check and a DC in the authoring editor creates a valid default row (a test through the real form renderer that fails before the fix).",
+              "status": "DONE",
+              "proof": [
+                "apps/web/src/forms/rendering/authoringNodeDefaultInventory.test.ts",
+                "apps/web/src/forms/rendering/authoringNodeDefaults.test.ts (check and checkDc defaults parse with checkDtoSchema and checkDcDtoSchema through resolver output)",
+                "apps/web/src/forms/tests/CheckAddActions.test.tsx (Add Check on an invocation and Add Escape DC on an actor relationship module through the real FormRenderer)"
+              ],
+              "origin": [],
+              "note": "Regression found 2026-10-14 by the RELIABILITY-5 web run: the inventory test fails on the base tip since ATTACK-18 slice D (b26e108cb, e876a5939) added CHECK_NODE_MAP and CHECK_DC_NODE_MAP without factories. Merged 419d4d6e4: registry and factories renamed the stale escapeCheckDc kind to the shared checkDc map; web src/forms (434 tests) and web typecheck green."
+            }
+          ],
+          "wsjf": {
+            "bv": 3,
+            "tc": 3,
+            "rr": 3,
             "size": 1
           }
         }
@@ -5237,18 +5333,58 @@
         {
           "id": "ATTACK-9",
           "title": "Class-feature resolvers",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "journeyTests": [],
           "journeyStatus": "none",
           "origin": [],
           "acs": [
             {
-              "text": "Rage, Sneak Attack, Smite, Action Surge, Second Wind and two-weapon fighting resolve.",
+              "id": "ATTACK-9.1",
+              "text": "A Barbarian rages in an Encounter: Rage is offered as a bonus action, spends a rage charge, and for its duration grants the level-scaled Rage damage bonus on Strength melee weapon attacks, resistance to bludgeoning, piercing and slashing damage, and advantage on Strength checks and saving throws; while raging the Barbarian cannot cast spells or keep Concentration; Rage ends at its duration, by choice, or when the Barbarian is incapacitated; GM undo restores the charge. The feature is authored only from core authoring options (no CLOSED_RULE, no feature-specific kind or executor); an author-built equivalent made through the real authoring form publishes to the same structure and resolves identically.",
               "status": "TODO",
               "proof": [],
               "origin": [],
-              "note": "rul-9-rules-audit.md slice 7 (Extra Attack, Sneak Attack and Rage first for beta).",
-              "id": "ATTACK-9.1"
+              "note": "Split 2026-10-14 from the original AC (Rage, Sneak Attack, Smite, Action Surge, Second Wind, two-weapon fighting resolve); rul-9-rules-audit.md slice 7. Inventory: all but Second Wind are inert CLOSED_RULE outcomes (closed-rule-effect.ts) that compile to MANUAL and are never offered. The SRD early end (no attack on a hostile creature and no damage taken since the last turn) is ATTACK-9.6 / T6."
+            },
+            {
+              "id": "ATTACK-9.2",
+              "text": "Sneak Attack adds its level-scaled dice once per turn to a hit with a finesse or ranged weapon when the attack has advantage or an enemy of the target is within 5 feet of it and the attacker has no disadvantage; critical hits double the dice. The feature is authored only from core authoring options (no CLOSED_RULE, no feature-specific kind or executor); an author-built equivalent made through the real authoring form publishes to the same structure and resolves identically.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "D58: extra-dice riders are CLOSED_RULE until this AC."
+            },
+            {
+              "id": "ATTACK-9.3",
+              "text": "Second Wind (bonus action, 1d10 + Fighter level healing, one use per short rest) and Action Surge (one additional action this turn, uses per short rest by level) resolve in an Encounter through the generic feature-action path, with spend, refresh and GM undo. The feature is authored only from core authoring options (no CLOSED_RULE, no feature-specific kind or executor); an author-built equivalent made through the real authoring form publishes to the same structure and resolves identically.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Second Wind likely compiles today (DICE_HEAL, CLASS_LEVEL bonus) but no test proves it; Action Surge needs an action-allowance grant (encounterActionEconomy.ts)."
+            },
+            {
+              "id": "ATTACK-9.4",
+              "text": "Divine Smite: after a Paladin hits with a melee weapon attack, the player may spend a spell slot to add 2d8 radiant (+1d8 per slot level above 1st, max 5d8; +1d8 against undead or fiends), doubled on a critical hit; Improved Divine Smite adds 1d8 radiant to every melee weapon hit. The feature is authored only from core authoring options (no CLOSED_RULE, no feature-specific kind or executor); an author-built equivalent made through the real authoring form publishes to the same structure and resolves identically.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": ""
+            },
+            {
+              "id": "ATTACK-9.5",
+              "text": "Two-weapon fighting: after an Attack action with a light melee weapon, the actor is offered the off-hand light weapon attack as a bonus action (D107), which adds no positive ability modifier to damage unless the actor has the Two-Weapon Fighting style. The feature is authored only from core authoring options (no CLOSED_RULE, no feature-specific kind or executor); an author-built equivalent made through the real authoring form publishes to the same structure and resolves identically.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "D107."
+            },
+            {
+              "id": "ATTACK-9.6",
+              "text": "Rage ends early at the start of the Barbarian's turn when they neither attacked a hostile creature nor took damage since their previous turn, read from the per-turn Encounter record ATTACK-9.T2 builds. The feature is authored only from core authoring options (no CLOSED_RULE, no feature-specific kind or executor); an author-built equivalent made through the real authoring form publishes to the same structure and resolves identically.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Deferred from ATTACK-9.T1 on 2026-10-14: no per-turn attack/damage record existed."
             }
           ],
           "wsjf": {
@@ -5256,7 +5392,86 @@
             "tc": 5,
             "rr": 8,
             "size": 8
-          }
+          },
+          "tasks": [
+            {
+              "id": "ATTACK-9.T1",
+              "text": "Rage resolves in an Encounter (bonus action, charge spend, timed grant, spellcasting and Concentration lock, end conditions, undo).",
+              "status": "TODO",
+              "closes": ["ATTACK-9.1"],
+              "wsjf": {
+                "bv": 13,
+                "tc": 5,
+                "rr": 8,
+                "size": 3
+              }
+            },
+            {
+              "id": "ATTACK-9.T2",
+              "text": "Sneak Attack once-per-turn ON_HIT rider.",
+              "status": "TODO",
+              "closes": ["ATTACK-9.2"],
+              "wsjf": {
+                "bv": 13,
+                "tc": 5,
+                "rr": 8,
+                "size": 3,
+                "after": ["ATTACK-9.T1"]
+              }
+            },
+            {
+              "id": "ATTACK-9.T3",
+              "text": "Second Wind proof and Action Surge action-allowance grant.",
+              "status": "TODO",
+              "closes": ["ATTACK-9.3"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 3,
+                "size": 2,
+                "after": ["ATTACK-9.T2"]
+              }
+            },
+            {
+              "id": "ATTACK-9.T4",
+              "text": "Divine Smite post-hit slot spend and Improved Divine Smite.",
+              "status": "TODO",
+              "closes": ["ATTACK-9.4"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 3,
+                "size": 3,
+                "after": ["ATTACK-9.T2"]
+              }
+            },
+            {
+              "id": "ATTACK-9.T5",
+              "text": "Two-weapon fighting off-hand bonus attack and the Fighting Style.",
+              "status": "TODO",
+              "closes": ["ATTACK-9.5"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 3,
+                "size": 3,
+                "after": ["ATTACK-9.T3"]
+              }
+            },
+            {
+              "id": "ATTACK-9.T6",
+              "text": "Rage early end from the per-turn attack and damage record.",
+              "status": "TODO",
+              "closes": ["ATTACK-9.6"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 2,
+                "size": 1,
+                "after": ["ATTACK-9.T1", "ATTACK-9.T2"]
+              }
+            }
+          ]
         },
         {
           "id": "ATTACK-10",
@@ -7006,17 +7221,22 @@
         {
           "id": "SPELLS-24",
           "title": "Lasting zones catch by positive-area overlap",
-          "status": "TODO",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": ["apps/session-worker/test/nativeMovementZoneOverlap.test.ts"],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
               "text": "Lasting and moving zones (Spirit Guardians, Moonbeam, Cloud of Daggers) affect a creature on entry, at the start of its turn and in perception only when its footprint overlaps the zone with positive area, using the one shared overlap test that areas use; a creature touching the zone's edge or corner is not affected; D103 is amended; proved by tests that fail before the change.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/shared/src/__tests__/vtt-spatial.test.ts (edge and corner touches do not catch; L-shaped concave zone: notch and inner corner not caught, arm overlap caught)",
+                "packages/rules-runtime/src/__tests__/encounterTurnEffectPerception.test.ts",
+                "packages/rules-runtime/src/__tests__/encounterMovementReactionPerception.test.ts",
+                "apps/session-worker/test/nativeMovementZoneOverlap.test.ts (zone entry through the native movement path)"
+              ],
               "origin": [],
-              "note": "User ruling 2026-10-14 (\"Same overlap rule\"). Today encounterTurnEffectPerception.ts, encounterMovementReactionPerception.ts and path crossings use the inclusive footprintIntersectsSpatialGeometry.",
+              "note": "User ruling 2026-10-14 (\"Same overlap rule\"). Today encounterTurnEffectPerception.ts, encounterMovementReactionPerception.ts and path crossings use the inclusive footprintIntersectsSpatialGeometry. Merged b0a2345d5: footprintOverlapsSpatialGeometry (positive-area clip test, convex and concave polygons) replaces the inclusive footprintIntersectsSpatialGeometry and the SAT convexPolygonsOverlap; spatialGeometryIntersectsTokenFootprint is renamed spatialGeometryOverlapsTokenFootprint; D103 amended.",
               "id": "SPELLS-24.1"
             }
           ],
@@ -7655,25 +7875,45 @@
         {
           "id": "RELIABILITY-5",
           "title": "Speed and sense modifiers carry their length unit",
-          "status": "TODO",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": [
+            "packages/rules-runtime/src/__tests__/modifierLengthJourney.test.ts",
+            "apps/apis/convex/characters/panels.test.ts"
+          ],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
               "text": "Authored SPEED and SENSE_RANGE modifier values (BONUS, PENALTY, SET_VALUE) are lengths with a unit, converted through the one shared length conversion, so +30 ft on a 20-yard sense or speed adds 30 ft; a SET_VALUE speed with no base speed takes its unit from the modifier, with no default unit or zero; SRD content and the authoring node map are migrated; proved by tests that fail before the fix.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/schema/src/__tests__/character-sheet-adjustment-contracts.test.ts (length override parses; bare number, unknown unit and over-bound refused)",
+                "packages/schema/src/__tests__/character-rules-contracts.test.ts",
+                "packages/rules-runtime/src/__tests__/sheetSpeedOverrideLength.test.ts (cross-unit override converts; unheld base takes the override unit; neither is never a rule speed)",
+                "packages/rules-runtime/src/__tests__/sheetProjectionSpeed.test.ts",
+                "apps/apis/convex/characters/sheetAdjustments.test.ts (mutation stores and returns the length; bare number refused)",
+                "apps/apis/convex/characters/panels.test.ts (journey: a player sets a speed override with a unit through the real mutation and reads it back in the Sheet projection)",
+                "apps/web/src/domains/characters/sheet/inspector/CharacterSheetInspector.test.tsx (the override input sends amount and unit; the panel shows the unit)"
+              ],
               "origin": [],
-              "note": "Registered 2026-10-13 from lane 3's ruling 3 size report. Modifier values are bare numbers added in the base's unit, so +30 on an 18 m grant gives 48 m, and characterMovementAndSenses defaults a base-less SET_VALUE speed to FEET and 0. The sense override itself becomes a length in the ruling 3 follow-up. Wording amended 2026-10-14: length units are INCHES, FEET, YARDS and MILES; METERS is only a Scene grid unit, so the example uses yards. Adding a metric length unit is a separate decision.",
+              "note": "Registered 2026-10-13 from lane 3's ruling 3 size report. Modifier values are bare numbers added in the base's unit, so +30 on an 18 m grant gives 48 m, and characterMovementAndSenses defaults a base-less SET_VALUE speed to FEET and 0. The sense override itself becomes a length in the ruling 3 follow-up. Wording amended 2026-10-14: length units are INCHES, FEET, YARDS and MILES; METERS is only a Scene grid unit, so the example uses yards. Adding a metric length unit is a separate decision. T1 (a11b9d368) delivers modifier lengths everywhere except the persisted Sheet SPEED_OVERRIDE, which T2 types. Merged 17daa954e (T2): SPEED_OVERRIDE is an authored length; FEET/0 defaults removed; an unheld speed is NOT_HELD in the Sheet panel with a length editor. Local Convex reset, reseeded and SRD-audited after merge.",
               "id": "RELIABILITY-5.1"
             },
             {
               "text": "A malformed or unrecognised authored speed is refused at publish and is an invariant failure at read, never silently skipped, so bad data cannot show as a lower speed or defence; proved by tests that fail before the fix.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/apis/convex/content/modifierLengthPublication.test.ts (malformed SPEED and SENSE_RANGE lengths refused at publication with the exact issue)",
+                "apps/apis/convex/content/creaturePublication.test.ts",
+                "packages/schema/src/__tests__/modifier-length-payload.test.ts",
+                "packages/rules-runtime/src/__tests__/modifierLengths.test.ts",
+                "packages/rules-runtime/src/__tests__/walkingSpeed.test.ts (a malformed speed throws at read)",
+                "packages/rules-runtime/src/__tests__/encounterHolderDefense.test.ts",
+                "packages/rules-runtime/src/__tests__/modifierLengthJourney.test.ts",
+                "packages/source-data/src/srd/modifierLengths.test.ts"
+              ],
               "origin": [],
-              "note": "Registered 2026-10-13 from the band-aid audit: encounterHolderDefense.ts:21-53 and walkingSpeed.ts skip entries they cannot read.",
+              "note": "Registered 2026-10-13 from the band-aid audit: encounterHolderDefense.ts:21-53 and walkingSpeed.ts skip entries they cannot read. Merged a11b9d368 (D112 adopted). Local Convex reset, reseeded and audited after merge.",
               "id": "RELIABILITY-5.2"
             }
           ],
@@ -7688,7 +7928,7 @@
             {
               "id": "RELIABILITY-5.T1",
               "text": "Speed and sense modifier values are lengths with a unit through the shared conversion; malformed speeds refused at publish and an invariant failure at read; SRD content and node map migrated.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["RELIABILITY-5.2"],
               "wsjf": {
                 "bv": 3,
@@ -7701,7 +7941,7 @@
             {
               "id": "RELIABILITY-5.T2",
               "text": "The persisted Sheet MOVEMENT SPEED_OVERRIDE adjustment is a length with a unit (Sheet input with a unit), and the FEET/0 defaults in characterMovementRuleFacts.ts and sheetPanel.ts are removed; dev data migrated by reset. Found 2026-10-14 in the RELIABILITY-5 fix round.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RELIABILITY-5.1"],
               "wsjf": {
                 "bv": 2,
@@ -8232,6 +8472,30 @@
             "tc": 1,
             "rr": 3,
             "size": 5
+          }
+        },
+        {
+          "id": "RELIABILITY-11",
+          "title": "Convex infers real types for the senses panel and rule-evaluation speeds",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": [],
+          "acs": [
+            {
+              "id": "RELIABILITY-11.1",
+              "text": "The Sheet senses panel DTO and the rule-evaluation movement.speeds DTO are flat discriminated unions (no zod intersection), so apps/apis/convex/_generated/api.d.ts carries their real types instead of Array<any>; a type-level test or typecheck:convex assertion proves it.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Found 2026-10-14 by RELIABILITY-5.T2 codegen: an intersection makes Convex infer Array<any>; T2 fixed the movement speeds panel the same way."
+            }
+          ],
+          "wsjf": {
+            "bv": 2,
+            "tc": 2,
+            "rr": 5,
+            "size": 1
           }
         }
       ]

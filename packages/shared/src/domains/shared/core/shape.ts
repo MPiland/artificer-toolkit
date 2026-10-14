@@ -20,50 +20,42 @@ export const SHAPE_REGISTRY: Record<ShapeKind, ShapeOption> = {
   [SHAPE_KIND.LINE]: {
     code: SHAPE_KIND.LINE,
     label: 'Line',
-    description: 'A straight geometric path extending from a point of origin.',
-    tooltip: 'Straight line area.'
+    description: 'Straight line area.'
   },
   [SHAPE_KIND.CONE]: {
     code: SHAPE_KIND.CONE,
     label: 'Cone',
-    description: 'An area extending outward from a point of origin in a widening form.',
-    tooltip: 'Cone-shaped area.'
+    description: 'Cone-shaped area.'
   },
   [SHAPE_KIND.CUBE]: {
     code: SHAPE_KIND.CUBE,
     label: 'Cube',
-    description: 'A uniform three-dimensional area with equal length, width, and height.',
-    tooltip: 'Cube-shaped area.'
+    description: 'Cube-shaped area.'
   },
   [SHAPE_KIND.CYLINDER]: {
     code: SHAPE_KIND.CYLINDER,
     label: 'Cylinder',
-    description: 'A circular area extended through a uniform height.',
-    tooltip: 'Cylindrical area.'
+    description: 'Cylindrical area.'
   },
   [SHAPE_KIND.SPHERE]: {
     code: SHAPE_KIND.SPHERE,
     label: 'Sphere',
-    description: 'A radial three-dimensional volume extending equally in all directions.',
-    tooltip: 'Spherical area.'
+    description: 'Spherical area.'
   },
   [SHAPE_KIND.WALL]: {
     code: SHAPE_KIND.WALL,
     label: 'Wall',
-    description: 'A vertical planar barrier with a defined length and height.',
-    tooltip: 'Wall-shaped area.'
+    description: 'Wall-shaped area.'
   },
   [SHAPE_KIND.CIRCLE]: {
     code: SHAPE_KIND.CIRCLE,
     label: 'Circle',
-    description: 'A flat, circular area defined by a radius on a surface.',
-    tooltip: 'Circular area.'
+    description: 'Circular area.'
   },
   [SHAPE_KIND.DOME]: {
     code: SHAPE_KIND.DOME,
     label: 'Dome',
-    description: 'A hemispherical area extending outward from a surface or point.',
-    tooltip: 'Half-sphere area.'
+    description: 'Half-sphere area.'
   }
 } as const
 

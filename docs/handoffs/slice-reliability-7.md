@@ -1,6 +1,6 @@
 # Slice workbook: RELIABILITY-7 (the web uses the shared resolver and rules instead of copies)
 
-**Status:** READY TO MERGE (started 2026-10-13; review round done 2026-10-14; codegen and `typecheck:convex` owed to the main checkout)
+**Status:** DONE (merged `e031c2738`; closed by the main session 2026-10-14)
 **Base:** `codex/phase-08-2-convex-cutover` at this workbook's commit.
 **Rules:** [slice-workbook-rules.md](slice-workbook-rules.md).
 

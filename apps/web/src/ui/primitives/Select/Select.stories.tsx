@@ -48,6 +48,28 @@ function SelectStory() {
   )
 }
 
+const describedSpeeds: AppSelectData = [
+  { value: 'walk', label: 'Walking Speed', description: 'Base movement speed on foot.' },
+  { value: 'fly', label: 'Flying Speed', description: 'Movement speed through the air.' },
+  { value: 'swim', label: 'Swimming Speed' }
+]
+
+function SelectOptionDescriptionsStory() {
+  const [value, setValue] = useState<string | null>(null)
+
+  return (
+    <StoryFrame>
+      <AppSelect
+        label='Speed'
+        description='Hover an option to read its description.'
+        data={describedSpeeds}
+        value={value}
+        onChange={setValue}
+      />
+    </StoryFrame>
+  )
+}
+
 function SelectErrorStory() {
   const [value, setValue] = useState<string | null>(null)
 
@@ -147,6 +169,10 @@ type Story = StoryObj<typeof meta>
 
 export const Single: Story = {
   render: () => <SelectStory />
+}
+
+export const SingleWithOptionDescriptions: Story = {
+  render: () => <SelectOptionDescriptionsStory />
 }
 
 export const SingleWithError: Story = {

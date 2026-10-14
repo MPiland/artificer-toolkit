@@ -106,7 +106,12 @@ describe('Character play state versus Builder structure', () => {
         type: 'UPSERT_SHEET_ADJUSTMENT',
         commandId: crypto.randomUUID(),
         expectedVersion: before.play.streamVersion,
-        adjustment: { family: 'MOVEMENT', speedId: walk.id, field: 'SPEED_OVERRIDE', value: 45 }
+        adjustment: {
+          family: 'MOVEMENT',
+          speedId: walk.id,
+          field: 'SPEED_OVERRIDE',
+          value: { amount: 45, unit: 'FEET' }
+        }
       }
     })
     await expect(commit(readCharacterRecord(before))).rejects.toThrow('changed')

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { SRD_REUSABLE_DEFINITIONS } from './catalogue.js'
+import { SRD_REUSABLE_DEFINITIONS, SRD_RULES_CATALOGUE } from './catalogue.js'
 import { srdBaselineContent } from './index.js'
 import { prepareSrdDefinitions, prepareSrdImport } from './import.js'
 import {
@@ -28,13 +28,17 @@ function emptySubjectBundle(): BaselineContentBundle {
   }
 }
 
+/** The reusable definitions alone: no authored subject needs preparing to read them. */
+function preparedDefinitions() {
+  return prepareSrdDefinitions(
+    SRD_REUSABLE_DEFINITIONS,
+    new Set(srdBaselineContent.vocabulary.systems.map((system) => system.id))
+  )
+}
+
 describe('canonical Convex import preparation', () => {
   it('publishes the SRD basic-action catalogue as System data (Q11)', () => {
-    // The catalogue is reusable-definition data; no authored subject needs preparing for it.
-    const catalogue = prepareSrdDefinitions(
-      SRD_REUSABLE_DEFINITIONS,
-      new Set(srdBaselineContent.vocabulary.systems.map((system) => system.id))
-    ).filter(
+    const catalogue = preparedDefinitions().filter(
       (definition) => definition.definitionFamilyKey === 'basic-action'
     )
     expect(
@@ -181,15 +185,15 @@ describe('canonical Convex import preparation', () => {
   }, 20_000)
 
   it('publishes the canonical concentration maintenance definition with its damage graph link', () => {
-    const result = prepareSrdImport()
-    const maintenance = result.definitions.find(
+    const definitions = preparedDefinitions()
+    const maintenance = definitions.find(
       (definition) => definition.id === SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID
     )
     expect(maintenance).toMatchObject({
       definitionFamilyKey: 'rule-maintenance',
       document: {
         kind: 'RULE_MAINTENANCE',
-        gameSystemId: result.catalogue.gameSystemId,
+        gameSystemId: SRD_RULES_CATALOGUE.gameSystemId,
         replacementPolicy: 'REPLACE_SAME_DEFINITION',
         emptyDependentPolicy: 'TERMINATE_WHEN_EMPTY',
         damageCheckDefinitionId: SRD_DND5E_CONCENTRATION_CHECK_DEFINITION_ID
@@ -197,9 +201,7 @@ describe('canonical Convex import preparation', () => {
     })
     expect(maintenance?.checksum).toBe(checksumRuleDocument(maintenance?.document))
     expect(
-      result.definitions.some(
-        (definition) => definition.id === SRD_DND5E_CONCENTRATION_CHECK_DEFINITION_ID
-      )
+      definitions.some((definition) => definition.id === SRD_DND5E_CONCENTRATION_CHECK_DEFINITION_ID)
     ).toBe(true)
   })
 

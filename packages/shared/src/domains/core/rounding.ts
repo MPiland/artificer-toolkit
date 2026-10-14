@@ -15,22 +15,19 @@ export const ROUNDING_REGISTRY: Record<RoundingCode, RoundingOption> = {
   [ROUNDING_CODE.UP]: {
     code: ROUNDING_CODE.UP,
     label: 'Round Up',
-    tooltip: 'Rounds fractional values upward.',
-    description: 'Always rounds the value up to the next whole number.'
+    description: 'Rounds fractional values upward.'
   },
 
   [ROUNDING_CODE.DOWN]: {
     code: ROUNDING_CODE.DOWN,
     label: 'Round Down',
-    tooltip: 'Rounds fractional values downward.',
-    description: 'Always rounds the value down to the previous whole number.'
+    description: 'Rounds fractional values downward.'
   },
 
   [ROUNDING_CODE.NEAREST]: {
     code: ROUNDING_CODE.NEAREST,
     label: 'Round to Nearest',
-    tooltip: 'Rounds to the closest whole number.',
-    description: 'Rounds the value to the nearest whole number.'
+    description: 'Rounds to the closest whole number.'
   }
 } as const
 

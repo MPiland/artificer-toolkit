@@ -537,7 +537,7 @@ export function heavyArmorStrengthModifier(
     modifierKind: MODIFIER_KIND.PENALTY,
     scope: MODIFIER_SCOPE_KIND.GLOBAL,
     selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-    payload: { valueKind: 'FIXED' as const, amount: 10 },
+    payload: { amount: 10, unit: 'FEET' as const },
     restrictions: whileEquippedWithConditionRestriction(childId, 1, 0x341, [
       {
         id: childId(0x345, 1),

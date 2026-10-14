@@ -7,6 +7,7 @@ import {
   CHARGE_RESET_OPTIONS,
   CHARGE_SCALING_OPTIONS,
   DURATION_OPTIONS,
+  LENGTH_UNIT_OPTIONS,
   MODIFIER_KIND_OPTIONS,
   MODIFIER_SCOPE_OPTIONS,
   MODIFIER_VALUE_SOURCE_OPTIONS,
@@ -15,7 +16,7 @@ import {
   VALUE_DOMAIN_OPTIONS
 } from '#core'
 import { FACET_NODE_MAP } from '../../shared/maps/facet.js'
-import { AUTHORING_ACTION_PRESENTATIONS, buildNodeMap } from '#utils'
+import { AUTHORED_LENGTH_AMOUNT_MAX, AUTHORING_ACTION_PRESENTATIONS, buildNodeMap } from '#utils'
 import type { AllUnionFields } from 'type-fest'
 
 type ModifierGrantUnion = AllUnionFields<ModifierGrantAuthored>
@@ -62,7 +63,7 @@ const MODIFIER_GRANT_DOMAIN_NODE_MAP = modifierGrantDomain.define(
           {
             kind: 'DATA',
             relationship: table('skills', {
-              selectColumns: ['id', 'label', 'tooltip']
+              selectColumns: ['id', 'label', 'description']
             })
           },
           {
@@ -78,7 +79,7 @@ const MODIFIER_GRANT_DOMAIN_NODE_MAP = modifierGrantDomain.define(
           {
             kind: 'DATA',
             relationship: table('speeds', {
-              selectColumns: ['id', 'label', 'tooltip']
+              selectColumns: ['id', 'label', 'description']
             })
           },
           {
@@ -124,7 +125,7 @@ const MODIFIER_GRANT_DOMAIN_NODE_MAP = modifierGrantDomain.define(
           {
             kind: 'DATA',
             relationship: table('senses', {
-              selectColumns: ['id', 'label']
+              selectColumns: ['id', 'label', 'description']
             })
           },
           {
@@ -156,7 +157,7 @@ const MODIFIER_GRANT_DOMAIN_NODE_MAP = modifierGrantDomain.define(
           {
             kind: 'DATA',
             relationship: table('condition_types', {
-              selectColumns: ['id', 'label']
+              selectColumns: ['id', 'label', 'description']
             })
           },
           {
@@ -195,10 +196,15 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
     const { text, number, selectSingle, selectMulti, groupArray } = nodes
     const parent = cond.parent<ModifierGrantUnion>()
     const local = cond.local()
-    const { and, or } = logic
+    const { and, or, not } = logic
     const { table } = data
     const isBonus = parent.field(['modifierKind']).eq('BONUS')
     const isPenalty = parent.field(['modifierKind']).eq('PENALTY')
+    // A speed or sense range is a typed length, never a value source (D111).
+    const isLength = or([
+      parent.field(['valueDomainCode']).eq('SPEED'),
+      parent.field(['valueDomainCode']).eq('SENSE_RANGE')
+    ])
     const usesScalarMultiplier = or([
       local.field(['valueKind']).eq('PROFICIENCY_BONUS'),
       local.field(['valueKind']).eq('SKILL_BONUS'),
@@ -218,10 +224,7 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
             options: MODIFIER_VALUE_SOURCE_OPTIONS
           },
           {
-            showIf: or([
-              parent.field(['modifierKind']).eq('BONUS'),
-              parent.field(['modifierKind']).eq('PENALTY')
-            ])
+            showIf: and([or([isBonus, isPenalty]), not(isLength)])
           }
         )
       )
@@ -247,7 +250,7 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
           {
             kind: 'DATA',
             relationship: table('skills', {
-              selectColumns: ['id', 'label', 'tooltip']
+              selectColumns: ['id', 'label', 'description']
             })
           },
           {
@@ -311,7 +314,7 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
           {
             kind: 'DATA',
             relationship: table('damage_types', {
-              selectColumns: ['id', 'label']
+              selectColumns: ['id', 'label', 'description']
             })
           },
           {
@@ -332,7 +335,7 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
           {
             kind: 'DATA',
             relationship: table('condition_types', {
-              selectColumns: ['id', 'label']
+              selectColumns: ['id', 'label', 'description']
             })
           },
           {
@@ -490,18 +493,38 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
         'bonusAmount',
         number(['amount'], 'Amount', {
           constraints: { minimum: 0 },
-          showIf: and([isBonus, local.field(['valueKind']).eq('FIXED')])
+          showIf: and([isBonus, local.field(['valueKind']).eq('FIXED'), not(isLength)])
         })
       )
       .set(
         'amount',
         number(['amount'], 'Amount', {
-          showIf: or([
-            parent.field(['modifierKind']).eq('SET_VALUE'),
-            parent.field(['modifierKind']).eq('MODIFY_CHARGE_LIMIT'),
-            and([isPenalty, local.field(['valueKind']).eq('FIXED')])
+          showIf: and([
+            or([
+              parent.field(['modifierKind']).eq('SET_VALUE'),
+              parent.field(['modifierKind']).eq('MODIFY_CHARGE_LIMIT'),
+              and([isPenalty, local.field(['valueKind']).eq('FIXED')])
+            ]),
+            not(isLength)
           ])
         })
+      )
+      .set(
+        'lengthAmount',
+        number(['amount'], 'Amount', {
+          constraints: { minimum: 0, maximum: AUTHORED_LENGTH_AMOUNT_MAX },
+          showIf: isLength,
+          requiredIf: true
+        })
+      )
+      .set(
+        'unit',
+        selectSingle(
+          ['unit'],
+          'Unit',
+          { kind: 'INLINE_OPTIONS', options: LENGTH_UNIT_OPTIONS },
+          { showIf: isLength, requiredIf: true }
+        )
       )
       .set(
         'levels',

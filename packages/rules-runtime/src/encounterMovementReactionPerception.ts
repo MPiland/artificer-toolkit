@@ -9,7 +9,7 @@ import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/sys
 import type { CombatPerceptionEnvironment } from '@artificer-toolkit/shared/rules'
 import {
   effectiveSpatialGeometry,
-  spatialGeometryIntersectsTokenFootprint,
+  spatialGeometryOverlapsTokenFootprint,
   type CampaignSceneState,
   type SceneGrid
 } from '@artificer-toolkit/shared/vtt'
@@ -121,8 +121,8 @@ export async function createEncounterMovementReactionPerception(
       )
       return (
         geometry !== null &&
-        (spatialGeometryIntersectsTokenFootprint({ geometry, token: observerToken }) ||
-          spatialGeometryIntersectsTokenFootprint({ geometry, token: subjectToken }))
+        (spatialGeometryOverlapsTokenFootprint({ geometry, token: observerToken }) ||
+          spatialGeometryOverlapsTokenFootprint({ geometry, token: subjectToken }))
       )
     })
     return resolveEncounterCombatPerception({

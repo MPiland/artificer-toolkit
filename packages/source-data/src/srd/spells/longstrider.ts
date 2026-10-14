@@ -87,8 +87,8 @@ export const longstrider: SpellAuthored = {
                       scope: MODIFIER_SCOPE_KIND.GLOBAL,
                       selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
                       payload: {
-                        valueKind: 'FIXED',
-                        amount: 10
+                        amount: 10,
+                        unit: 'FEET'
                       },
                       order: 1
                     }

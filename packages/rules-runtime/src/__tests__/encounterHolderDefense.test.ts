@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { ATTACK_DOMAIN_CODE } from '@artificer-toolkit/shared/core'
 import { createCharacterMechanicSourceKey } from '@artificer-toolkit/shared/character'
-import { SRD_ABILITY_DEFINITION_IDS } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import { SRD_ABILITY_DEFINITION_IDS, SRD_SPEEDS } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { resolveCharacterRulePolicyRollModes } from '../character/characterRuleRollProjection.js'
 import {
@@ -17,6 +17,8 @@ import {
   CAMPAIGN_ID,
   SRD_SYSTEM_ID,
   characterActor,
+  creatureActor,
+  creatureRuleFacts,
   srdCondition,
   srdCreatureActor,
   srdDefinitions,
@@ -29,6 +31,7 @@ const HOLDER_ID = testUuid(0xd5a1)
 const DODGE_ID = testUuid(0xd5a2)
 const { DEXTERITY } = SRD_ABILITY_DEFINITION_IDS
 const ATTACK_DOMAINS = Object.values(ATTACK_DOMAIN_CODE)
+const WALK_ID = SRD_SPEEDS.find((speed) => speed.code === 'WALK')?.id ?? ''
 const DODGE_SOURCE_ID = createCharacterMechanicSourceKey({
   kind: 'ACTIVE_EFFECT',
   activeEffectId: DODGE_ID
@@ -48,7 +51,12 @@ function creatureHolder(conditionIds: readonly string[] = []) {
 }
 
 const defend = (target: MovementTarget) =>
-  withEncounterHolderDefense({ target, gameSystemId: SRD_SYSTEM_ID, definitions: srdDefinitions })
+  withEncounterHolderDefense({
+    target,
+    gameSystemId: SRD_SYSTEM_ID,
+    definitions: srdDefinitions,
+    speedDefinitions: SRD_SPEEDS
+  })
 
 const dexteritySave = (target: MovementTarget) =>
   (
@@ -188,7 +196,8 @@ describe('holder-state predicates CAN_ACT and SPEED_ABOVE_ZERO', () => {
     encounterHolderState({
       target: creatureHolder(conditionIds),
       gameSystemId: SRD_SYSTEM_ID,
-      definitions: srdDefinitions
+      definitions: srdDefinitions,
+      speedDefinitions: SRD_SPEEDS
     })
 
   it('CAN_ACT fails once a condition suppresses the actor-action capability', async () => {
@@ -216,6 +225,65 @@ describe('holder-state predicates CAN_ACT and SPEED_ABOVE_ZERO', () => {
         }[]
       ).map(({ sourceId }) => sourceId)
     ).not.toContain(DODGE_SOURCE_ID)
+  })
+
+  it('fails the read on a Creature speed that is not a typed length', async () => {
+    const scores = {
+      STRENGTH: 11,
+      DEXTERITY: 12,
+      CONSTITUTION: 12,
+      INTELLIGENCE: 10,
+      WISDOM: 10,
+      CHARISMA: 10
+    }
+    const malformed = (speeds: unknown[]) =>
+      buildMovementTarget({
+        actor: creatureActor({
+          id: HOLDER_ID,
+          currentHitPoints: 7,
+          maxHitPoints: 11,
+          tempHitPoints: 0,
+          conditions: [],
+          snapshot: {
+            payload: {
+              size: 'MEDIUM',
+              naturalArmorBonus: 1,
+              abilityScores: scores,
+              speeds,
+              senses: [],
+              damageVulnerabilities: [],
+              damageResistances: [],
+              damageImmunities: [],
+              conditionImmunities: []
+            },
+            ruleFacts: creatureRuleFacts(scores)
+          }
+        }),
+        activeEffects: [],
+        gameSystemId: SRD_SYSTEM_ID,
+        campaignId: CAMPAIGN_ID,
+        characterFacts: null
+      })
+    // The target reads its speeds when built, so building it is part of the read.
+    const read = async (speeds: unknown[]) =>
+      encounterHolderState({
+        target: malformed(speeds),
+        gameSystemId: SRD_SYSTEM_ID,
+        definitions: srdDefinitions,
+        speedDefinitions: SRD_SPEEDS
+      })
+    await expect(read([{ speedId: WALK_ID, amount: 30, unit: 'FEET' }])).resolves.toMatchObject({
+      speedAboveZero: true
+    })
+    await expect(read([{ speedId: WALK_ID, amount: 'fast', unit: 'FEET' }])).rejects.toThrow(
+      /amount/
+    )
+    await expect(read([{ speedId: WALK_ID, amount: 30, unit: 'FURLONGS' }])).rejects.toThrow(
+      /unit/
+    )
+    await expect(read([{ speedId: testUuid(0xd5a4), amount: 30, unit: 'FEET' }])).rejects.toThrow(
+      `Speed ${testUuid(0xd5a4)} is not in the System speed vocabulary.`
+    )
   })
 
   it('a restriction with a condition other than the holder-state ones fails closed', () => {

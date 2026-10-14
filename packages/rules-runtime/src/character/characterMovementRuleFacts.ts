@@ -28,15 +28,13 @@ export function buildCharacterMovementRuleFacts(
       .map((speed) => speed.id),
     ...adjustments.map((adjustment) => adjustment.speedId)
   ].filter((speedId, index, all) => all.indexOf(speedId) === index)
-  const defaultUnit = baseSpeeds[0]?.unit ?? 'FEET'
   const speeds: MovementFacts['speeds'] = orderedIds.map((speedId) => {
     const speed = baseById.get(speedId)
     const override = adjustments.find((adjustment) => adjustment.speedId === speedId)
     return {
       speedId,
       code: systemCodes.get(speedId) ?? null,
-      baseAmount: speed?.amount ?? 0,
-      unit: speed?.unit ?? defaultUnit,
+      base: speed ? { amount: speed.amount, unit: speed.unit } : null,
       override: override ? { sourceId: override.id, value: override.value } : null
     }
   })

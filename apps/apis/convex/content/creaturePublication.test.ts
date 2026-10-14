@@ -320,6 +320,56 @@ describe('native Creature publication', () => {
     ])
   })
 
+  it('refuses a Creature speed the room could not run, so reads never meet one', async () => {
+    const { first } = await fixture()
+    const draft = await copyDraft(first.caller)
+    const copied = creatureAuthoredDtoSchema.parse(draft.payload)
+    const [walk] = copied.speeds ?? []
+    if (!walk) throw new Error('Missing Warhorse speed.')
+    const saveAndPublish = async (speeds: unknown) =>
+      first.caller.mutation(
+        publish,
+        creaturePublicationInput(
+          await first.caller.mutation(api.content.drafts.save, {
+            subjectKind: 'CREATURE',
+            subjectId: draft.subjectId,
+            systemId: draft.systemId,
+            label: 'Homebrew Warhorse',
+            payload: { ...copied, speeds }
+          })
+        )
+      )
+
+    // Node-map normalization drops a speed id outside the System vocabulary, so publication then
+    // finds the speed without its id.
+    await expect(
+      saveAndPublish([{ ...walk, speedId: '00000000-0000-0000-000b-0ff000000000' }])
+    ).rejects.toThrow(
+      /"speedId"\s*\],\s*"message": "Invalid input: expected string, received undefined"/
+    )
+    await expect(saveAndPublish([{ speedId: walk.speedId, amount: 40 }])).rejects.toThrow()
+    await expect(
+      saveAndPublish([{ speedId: walk.speedId, amount: 40, unit: 'FURLONGS' }])
+    ).rejects.toThrow()
+    await expect(
+      saveAndPublish([{ speedId: walk.speedId, amount: 'fast', unit: 'FEET' }])
+    ).rejects.toThrow()
+    await expect(
+      saveAndPublish([
+        { speedId: walk.speedId, amount: AUTHORED_LENGTH_AMOUNT_MAX + 1, unit: 'FEET' }
+      ])
+    ).rejects.toThrow(`Too big: expected number to be <=${AUTHORED_LENGTH_AMOUNT_MAX}`)
+
+    const published = await saveAndPublish([{ ...walk, amount: 40, unit: 'YARDS' }])
+    const detail = await first.caller.query(details, {
+      subjectKind: 'CREATURE',
+      id: published.subjectId
+    })
+    expect(creatureResponseDtoSchema.parse(detail)?.item?.speeds).toEqual([
+      expect.objectContaining({ speedId: walk.speedId, amount: 40, unit: 'YARDS' })
+    ])
+  })
+
   it('returns the computed armor class on Creature detail reads', async () => {
     const { first } = await fixture()
     for (const creature of selectedCreatures) {

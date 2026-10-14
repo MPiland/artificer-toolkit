@@ -18,20 +18,17 @@ export const FORCED_MOVEMENT_DIRECTION_REGISTRY: Record<
   [FORCED_MOVEMENT_DIRECTION.AWAY_FROM_SOURCE]: {
     code: FORCED_MOVEMENT_DIRECTION.AWAY_FROM_SOURCE,
     label: 'Away From Source',
-    description: 'Move away from the source of the effect.',
-    tooltip: 'Move away from source.'
+    description: 'Move away from source.'
   },
   [FORCED_MOVEMENT_DIRECTION.TOWARD_SOURCE]: {
     code: FORCED_MOVEMENT_DIRECTION.TOWARD_SOURCE,
     label: 'Toward Source',
-    description: 'Move toward the source of the effect.',
-    tooltip: 'Move toward source.'
+    description: 'Move toward source.'
   },
   [FORCED_MOVEMENT_DIRECTION.CHOICE]: {
     code: FORCED_MOVEMENT_DIRECTION.CHOICE,
     label: 'Choice',
-    description: 'Direction is selected by the effect or table rules.',
-    tooltip: 'Direction is chosen by rule.'
+    description: 'Direction is chosen by rule.'
   }
 } as const
 
@@ -55,14 +52,12 @@ export const FORCED_MOVEMENT_DISTANCE_MODE_REGISTRY: Record<
   [FORCED_MOVEMENT_DISTANCE_MODE.UP_TO_SPEED]: {
     code: FORCED_MOVEMENT_DISTANCE_MODE.UP_TO_SPEED,
     label: 'Up To Speed',
-    description: "Move up to the target's current speed.",
-    tooltip: 'Up to speed.'
+    description: 'Up to speed.'
   },
   [FORCED_MOVEMENT_DISTANCE_MODE.FIXED_DISTANCE]: {
     code: FORCED_MOVEMENT_DISTANCE_MODE.FIXED_DISTANCE,
     label: 'Fixed Distance',
-    description: 'Move a fixed distance value.',
-    tooltip: 'Fixed distance.'
+    description: 'Fixed distance.'
   }
 } as const
 
@@ -86,14 +81,12 @@ export const FORCED_MOVEMENT_ACTION_ECONOMY_REGISTRY: Record<
   [FORCED_MOVEMENT_ACTION_ECONOMY.NONE]: {
     code: FORCED_MOVEMENT_ACTION_ECONOMY.NONE,
     label: 'None',
-    description: 'No explicit action-economy cost is consumed.',
-    tooltip: 'No action cost.'
+    description: 'No action cost.'
   },
   [FORCED_MOVEMENT_ACTION_ECONOMY.REACTION]: {
     code: FORCED_MOVEMENT_ACTION_ECONOMY.REACTION,
     label: 'Reaction',
-    description: 'Consumes the target reaction when movement is executed.',
-    tooltip: 'Consumes reaction.'
+    description: 'Consumes reaction.'
   }
 } as const
 

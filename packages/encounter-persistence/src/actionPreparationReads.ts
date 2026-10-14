@@ -94,7 +94,8 @@ export async function readActionHolderState(
   return encounterHolderState({
     target,
     gameSystemId: input.state.gameSystemId,
-    definitions: campaignDefinitions(tx, input.campaign)
+    definitions: campaignDefinitions(tx, input.campaign),
+    speedDefinitions: (await tx.ports.requireSystem(input.state.gameSystemId)).speeds
   })
 }
 

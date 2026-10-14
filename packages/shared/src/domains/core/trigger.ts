@@ -22,73 +22,61 @@ export const TRIGGER_REGISTRY: Record<Trigger, TriggerOption> = {
   ACTIVATED: {
     code: TRIGGER.ACTIVATED,
     label: 'Activated',
-    description: 'Indicates an activated effect that resolves when the source uses it.',
-    tooltip: 'Activated effect.'
+    description: 'Activated effect.'
   },
 
   MELEE_WEAPON_ATTACK: {
     code: TRIGGER.MELEE_WEAPON_ATTACK,
     label: 'Melee Weapon Attack',
-    description: 'Indicates a melee weapon attack against a target.',
-    tooltip: 'Attack action trigger.'
+    description: 'Attack action trigger.'
   },
 
   RANGED_WEAPON_ATTACK: {
     code: TRIGGER.RANGED_WEAPON_ATTACK,
     label: 'Ranged Weapon Attack',
-    description: 'Indicates a ranged weapon attack against a target.',
-    tooltip: 'Attack action trigger.'
+    description: 'Attack action trigger.'
   },
 
   UNARMED_ATTACK: {
     code: TRIGGER.UNARMED_ATTACK,
     label: 'Unarmed Attack',
-    description:
-      'Indicates an attack made without a weapon, using the creature’s body or natural weapons.',
-    tooltip: 'Unarmed attack.'
+    description: 'Unarmed attack.'
   },
 
   MELEE_SPELL_ATTACK: {
     code: TRIGGER.MELEE_SPELL_ATTACK,
     label: 'Melee Spell Attack',
-    description: 'Indicates a melee spell attack roll made against a target within reach.',
-    tooltip: 'Melee spell attack roll.'
+    description: 'Melee spell attack roll.'
   },
 
   RANGED_SPELL_ATTACK: {
     code: TRIGGER.RANGED_SPELL_ATTACK,
     label: 'Ranged Spell Attack',
-    description: 'Indicates a ranged spell attack roll made against a target.',
-    tooltip: 'Ranged spell attack roll.'
+    description: 'Ranged spell attack roll.'
   },
 
   INCOMING_SAVING_THROW: {
     code: TRIGGER.INCOMING_SAVING_THROW,
     label: 'Incoming Saving Throw',
-    description: 'Indicates a passive rule that modifies a saving throw made by the source.',
-    tooltip: 'Source makes a saving throw.'
+    description: 'Source makes a saving throw.'
   },
 
   SAVING_THROW: {
     code: TRIGGER.SAVING_THROW,
     label: 'Saving Throw',
-    description: 'The target of this effect is required to attempt a saving throw.',
-    tooltip: 'Target rolls saving throw.'
+    description: 'Target rolls saving throw.'
   },
 
   CHECK: {
     code: TRIGGER.CHECK,
     label: 'Check',
-    description:
-      'The actor makes one of the authored ability or skill checks against a fixed DC; the outcomes run only on success.',
-    tooltip: 'Actor rolls a check.'
+    description: 'Actor rolls a check.'
   },
 
   ENTER_AREA: {
     code: TRIGGER.ENTER_AREA,
     label: 'Enter area',
-    description: 'Indicates that the trigger is when the target enters the area.',
-    tooltip: 'Triggers when target enters area.'
+    description: 'Triggers when target enters area.'
   }
 }
 
