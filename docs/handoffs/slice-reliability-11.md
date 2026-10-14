@@ -1,6 +1,6 @@
 # Slice workbook: RELIABILITY-11 (Convex infers real types for the senses panel and rule-evaluation speeds)
 
-**Status:** OPEN (started 2026-10-14)
+**Status:** DONE (merged `370210252`; closed by the main session 2026-10-14)
 **Base:** `codex/phase-08-2-convex-cutover` at this workbook's commit.
 **Rules:** [slice-workbook-rules.md](slice-workbook-rules.md).
 
