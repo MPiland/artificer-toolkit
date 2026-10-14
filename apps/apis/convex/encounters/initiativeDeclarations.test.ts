@@ -1507,6 +1507,7 @@ describe('declared initiative roll cards', () => {
       owner: Awaited<ReturnType<typeof fixture>>['owner']
     }
   ) {
+    await checkpointLiveRoom(base.campaign.id)
     await base.owner.caller.mutation(api.campaigns.conversations.open, {
       campaignId: base.campaign.id,
       kind: 'TABLE'
