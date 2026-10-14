@@ -1,6 +1,6 @@
 # Slice workbook: SPELLS-22 (self-radius areas centered on the caster)
 
-**Status:** OPEN (started 2026-10-14)
+**Status:** DONE, ready to merge (2026-10-14)
 **Base:** `codex/phase-08-2-convex-cutover` at this workbook's commit.
 **Rules:** [slice-workbook-rules.md](slice-workbook-rules.md).
 
@@ -56,5 +56,22 @@ If the Encounter action UI needs to offer a no-aim area, keep the change inside 
 ## Status log
 
 - 2026-10-14: workbook written.
+- 2026-10-14: built red-first, base 5c969a735, then merged the lane head (incl. 6bd2b4874). Logs under `local-validation/spells-22/`.
+  - Red (`red-*.log`, tests against base production code): shared 7 failed, rules-runtime 10, encounter-persistence 1, session-worker 11, web 1.
+  - Green (`green*-*.log`, `final-*.log`): shared 407 passed, encounter-persistence 97, web drawer 40, rules-runtime area tests 84, session-worker centered + point-area journeys 88, `final-typecheck` (turbo, 16 tasks) and `final-convex-tsc` exit 0, `convex-codegen.log` exit 0 (contract changed: new `CASTER_CENTERED` command and choice target).
+  - Design: the persisted shape stays `RADIUS{radius}` and the origin is the caster token's position. The caster-centered meaning is the persisted command target kind `CASTER_CENTERED` (`{sceneId, expectedSceneVersion}`, no origin or direction). The support table `encounterAreaTargetKind` pairs Self plus sphere/cylinder/circle with it; wall/dome stay null. The Worker and `requireAreaActionPendingRoot` recompute the catch from the target kind, and the pending guard checks the sealed origin is still the caster's token.
+  - Geometry: new `spatialTokensWithinSpaceRadius` (shared, transient, no new `SpatialGeometry` kind). The caster footprint grown by r is a rounded rectangle, exact as `hypot(max(0,|dx|-hwA-hwB), max(0,|dy|-hhA-hhB)) < r - EPSILON`; touching never catches (D103). Caster never caught; point areas still catch it.
+  - UI (inside the existing `CampaignTabletopActionDrawer`): a centered area shows "Centered on you" instead of the Target select and Aim on map, and sends the centered target with `sceneContext: null`. Drawer unit test added.
+  - Finding: no authored "includes the caster" targeting option exists, so the caster stays excluded. No authored field added.
+  - SRD row: the checklist's "real SRD row compiles" item is proved with the compile helper on a Self-range override of Fireball (sphere, cylinder, circle). Real SRD Self spheres are not usable yet: Spirit Guardians leaves a lasting effect (refused until SPELLS-19/20) and monster death bursts are text-only, not authored actions.
+  - Not run: Storybook and web e2e (cannot run in a worktree).
+  - Open risk: Large/Huge reach and the rounded-corner geometry are covered by shared unit tests only, not a Worker journey (the fixture room has Medium tokens).
 
 ## Proposed ledger edits (filled by the slice session)
+
+- AC SPELLS-22.1: met (Self sphere/cylinder/circle resolves like a point area, centered on the caster with no aim).
+- Proposed D114: "Within N feet of you" for a Self radius area is measured from the edge of the caster's space. A creature is caught when its footprint shares positive area with the caster's footprint expanded by the radius (D103 overlap, touching never catches). The caster is excluded; the persisted shape is unchanged (`RADIUS`) and the caster-centered meaning is the command target kind `CASTER_CENTERED`.
+- Premise changes (tests that asserted the old refusal):
+  - `encounterAreaAction.test.ts`: the "directed area" loop no longer lists Self + sphere/cylinder/circle as null; only wall/dome stay null.
+  - `encounterAreaActionCompilation.test.ts`: the `a self range` refusal row was removed; Self radius areas now compile (new "caster-centered area action compilation" tests).
+- Follow-up note: an authored "includes the caster" targeting option is not modelled; register it if a card needs it.

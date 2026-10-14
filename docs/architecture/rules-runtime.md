@@ -296,8 +296,8 @@ the viewer sees inside; the room still decides who is caught.
 
 An `AREA_CONTENTS` action whose range is Self and whose shape is a sphere, cylinder or circle takes the fourth
 target, `{ kind: 'CASTER_CENTERED', sceneId, expectedSceneVersion }`: it names no origin or direction. The
-origin is the caster's own token (`evaluateEncounterCasterCenteredAreaTarget`, refusing `NO_CASTER_TOKEN`
-without one), and the sealed area is the same `RADIUS` shape a point area seals, so no persisted shape changes;
+origin is the caster's own token (`evaluateEncounterCasterCenteredAreaTarget` returns the `RADIUS` shape and
+refuses `NO_CASTER_TOKEN` without one; the room seals the token's position), and the sealed area is the same `RADIUS` shape a point area seals, so no persisted shape changes;
 the caster-centered meaning lives in the persisted command's target kind. "Within N feet of you" is measured
 from the edge of the caster's space (D114): `spatialTokensWithinSpaceRadius` catches a token whose footprint
 shares positive area with the caster's footprint grown by the radius (a rounded rectangle, so a Large or
