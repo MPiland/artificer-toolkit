@@ -1,5 +1,6 @@
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
-import type { NodeRuntimeQueryRow } from './nodeRuntimeSourceContract.js'
+import type { NodeRuntimeQueryRow, NodeRuntimeSourceReader } from './nodeRuntimeSourceContract.js'
+import type { NodeRuntimeSourceTable } from './nodeRuntimeSourceManifest.js'
 
 /** The System vocabulary behind each resolver source table that the System, not a root, owns. */
 export function systemVocabularyRows(
@@ -31,4 +32,40 @@ export function sortAuthoredSourceRows(rows: NodeRuntimeQueryRow[]): NodeRuntime
       String(left.id ?? '').localeCompare(String(right.id ?? '')) ||
       JSON.stringify(left).localeCompare(JSON.stringify(right))
   )
+}
+
+/**
+ * The one resolver source reader: System vocabulary and reusable definitions come from the
+ * System, every other table from the authored roots. Callers (the Convex reader, the web test
+ * harness) supply only where those rows are stored.
+ */
+export function createNodeRuntimeSourceReader({
+  readAuthoredRows,
+  readReusableDefinitions,
+  system
+}: {
+  readAuthoredRows: (
+    table: NodeRuntimeSourceTable
+  ) => readonly NodeRuntimeQueryRow[] | Promise<readonly NodeRuntimeQueryRow[]>
+  readReusableDefinitions: () => Promise<readonly { id: string; label: string }[]>
+  system: SystemAuthoredDto
+}): NodeRuntimeSourceReader {
+  const systemId = system.id.toLowerCase()
+  const vocabulary = systemVocabularyRows(system)
+  // Nested feature maps share this read for the life of one reader.
+  let definitions: Promise<NodeRuntimeQueryRow[]> | undefined
+
+  return async (table, columns, _where, scopeSystemId) => {
+    if (scopeSystemId?.toLowerCase() !== systemId) throw new Error('Authoring System mismatch.')
+    const rows =
+      table === 'reusable_definitions'
+        ? await (definitions ??= readReusableDefinitions().then((rows) =>
+            sortAuthoredSourceRows(rows.map(({ id, label }) => ({ id, label })))
+          ))
+        : (vocabulary[table] ?? (await readAuthoredRows(table)))
+    // The shared executor applies the validated predicate; this reader only supplies trusted facts.
+    return rows.map((row) =>
+      Object.fromEntries(columns.map((column) => [column, row[column] ?? null]))
+    )
+  }
 }

@@ -1,4 +1,7 @@
-import { CHARACTER_ABILITY_GENERATION_METHOD } from '@artificer-toolkit/shared/core'
+import {
+  CHARACTER_ABILITY_GENERATION_METHOD,
+  HITPOINT_CALCULATION_METHOD_CODE
+} from '@artificer-toolkit/shared/core'
 import { abilityModifier } from '@artificer-toolkit/rules-runtime/systems/dnd5e/abilityModifier'
 import {
   hitPointGain,
@@ -47,7 +50,8 @@ export function syncHitpointLevels({
           resolvedAbilityScores
         })
       : 0
-    const fixed = character.intent.hitpoints.method === 'FIXED'
+    const fixed =
+      character.intent.hitpoints.method === HITPOINT_CALCULATION_METHOD_CODE.FIXED
     const rolled = orderedRow.rolls?.[0]?.value
     const roll = typeof rolled === 'number' && Number.isInteger(rolled) ? rolled : null
 

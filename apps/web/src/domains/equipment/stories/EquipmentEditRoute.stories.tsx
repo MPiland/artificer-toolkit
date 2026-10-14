@@ -22,7 +22,7 @@ import {
 import {
   configureAuthoredRouteStoryQueries,
   createAuthoredEditRouteOverrides
-} from '#domains/authoredRouteStory.utils'
+} from '#test/authoredRouteStory.utils'
 
 const meta = {
   title: 'Domains/Equipment/Routes/Edit',

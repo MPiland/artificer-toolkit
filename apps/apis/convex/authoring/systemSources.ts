@@ -1,7 +1,6 @@
 import type { AuthoredNodeRuntimeSourceFacts } from '@artificer-toolkit/schema/api/nodeRuntimeSources'
 import {
-  systemVocabularyRows,
-  type NodeRuntimeQueryRow,
+  createNodeRuntimeSourceReader,
   type NodeRuntimeSourceReader
 } from '@artificer-toolkit/authoring/nodeRuntime'
 import { postgresUuidSchema } from '@artificer-toolkit/schema/shared/postgresUuid'
@@ -24,25 +23,15 @@ export async function createSystemSourceReader(
     .unique()
   if (!stored) throw new Error('System not found.')
   const system = readSystem(stored)
-  const vocabulary = systemVocabularyRows(system)
-  // Nested feature maps share these reads within this one query, never across requests/users.
-  let definitions: Promise<NodeRuntimeQueryRow[]> | undefined
   const authored = createAuthoredSourceReader(ctx, systemId, userId)
-  return async (table, columns, _where, scopeSystemId) => {
-    if (scopeSystemId?.toLowerCase() !== systemId) throw new Error('Authoring System mismatch.')
-    const rows =
-      table === 'reusable_definitions'
-        ? await (definitions ??= readDefinitionOptions(ctx, systemId, userId, system.userId))
-        : (vocabulary[table] ?? [
-            ...(await authored(table)),
-            ...(currentDraftFacts?.rows[table] ?? [])
-          ])
-    if (!rows) throw new Error(`Authoring source is not migrated: ${table}.`)
-    // The shared executor applies the validated predicate; this reader only supplies trusted facts.
-    return rows.map((row) =>
-      Object.fromEntries(columns.map((column) => [column, row[column] ?? null]))
-    )
-  }
+  return createNodeRuntimeSourceReader({
+    system,
+    readAuthoredRows: async (table) => [
+      ...(await authored(table)),
+      ...(currentDraftFacts?.rows[table] ?? [])
+    ],
+    readReusableDefinitions: () => readDefinitionOptions(ctx, systemId, userId, system.userId)
+  })
 }
 
 async function readDefinitionOptions(
@@ -50,20 +39,9 @@ async function readDefinitionOptions(
   systemId: string,
   userId: string,
   systemAuthorUserId: string
-): Promise<NodeRuntimeQueryRow[]> {
+) {
   const sources = await readAuthoringSources(ctx, systemId, userId)
-  const definitions = await readCurrentSourceDefinitions(
-    ctx,
-    sources,
-    userId,
-    systemAuthorUserId
-  ).catch(() => {
+  return readCurrentSourceDefinitions(ctx, sources, userId, systemAuthorUserId).catch(() => {
     throw new Error('Stored authoring definition mismatch.')
   })
-  const rows = definitions.map(({ id, label }) => ({ id, label }))
-  return rows.sort(
-    (left, right) =>
-      String(left.label).localeCompare(String(right.label)) ||
-      String(left.id).localeCompare(String(right.id))
-  )
 }

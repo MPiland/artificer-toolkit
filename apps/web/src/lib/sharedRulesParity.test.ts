@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest'
 import { abilityModifier } from '@artificer-toolkit/rules-runtime/systems/dnd5e/abilityModifier'
 import {
   hitDieAverage,
-  hitPointGain,
   parseHitDie
 } from '@artificer-toolkit/rules-runtime/systems/dnd5e/hitPointRules'
 import { proficiencyBonus } from '@artificer-toolkit/rules-runtime/systems/dnd5e/proficiencyBonus'
@@ -13,7 +12,6 @@ import {
   resolveSnapshotCharacterBuilderPayload
 } from '@artificer-toolkit/rules-runtime/character/snapshotBuilderEvaluation'
 import { createSnapshotReaders } from '@artificer-toolkit/rules-runtime/character/snapshotReaders'
-import { characterHitpointLevelEntryDtoSchema } from '@artificer-toolkit/schema/subjects/characterIntent'
 import { parentClassAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/class'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { barbarian } from '@artificer-toolkit/source-data/srd/classes/barbarian.js'
@@ -66,11 +64,7 @@ function hitDieOf(classId: string): number {
   return die
 }
 
-function placeholderLevels(
-  classes: ClassLevels,
-  method: 'FIXED' | 'MANUAL',
-  legacy: Partial<HitpointLevel> = {}
-): HitpointLevel[] {
+function placeholderLevels(classes: ClassLevels, method: 'FIXED' | 'MANUAL'): HitpointLevel[] {
   return classes.flatMap(({ classId, classLevel }, classIndex) =>
     Array.from({ length: classLevel }, (_, index) => {
       const level =
@@ -84,8 +78,7 @@ function placeholderLevels(
         value: 1,
         ...(method === 'MANUAL' && level > 1
           ? { rolls: [{ die: hitDieOf(classId), value: 2 }] }
-          : {}),
-        ...legacy
+          : {})
       }
     })
   )
@@ -250,28 +243,3 @@ describe('creature detail matches the shared ability modifier', () => {
   })
 })
 
-describe('the legacy hit point override is gone', () => {
-  it('is dropped from stored levels by the contract', () => {
-    const stored = { level: 2, classId: fighter.id, classLevel: 2, value: 99, overridden: true }
-
-    expect(characterHitpointLevelEntryDtoSchema.parse(stored)).not.toHaveProperty('overridden')
-  })
-
-  it('reads a Character that had one from the shared rules', async () => {
-    const classes = [{ classId: fighter.id, classLevel: 2 }]
-    const character = characterWith(
-      classes,
-      'FIXED',
-      placeholderLevels(classes, 'FIXED', { value: 99, overridden: true } as Partial<HitpointLevel>)
-    )
-    const { preview } = await evaluateOnServer(character)
-
-    expect(preview.character.intent.hitpoints.levels.map((level) => level.value)).toEqual([
-      hitPointGain({ die: 10, characterLevel: 1, fixed: true, roll: null, modifier: 2 }),
-      hitPointGain({ die: 10, characterLevel: 2, fixed: true, roll: null, modifier: 2 })
-    ])
-    for (const level of preview.character.intent.hitpoints.levels) {
-      expect(level).not.toHaveProperty('overridden')
-    }
-  })
-})

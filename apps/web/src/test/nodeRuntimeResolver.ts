@@ -1,12 +1,14 @@
 import {
   authoredSourceFacts,
   authoredSourceKindsByTable,
+  createNodeRuntimeSourceReader,
   normalizeNodeRuntimeValues,
+  resolveNestedRuntimeScopes,
   resolveNodeRuntime,
   sortAuthoredSourceRows,
-  systemVocabularyRows,
   type NodeRuntimeQueryRow,
-  type NodeRuntimeSourceReader
+  type NodeRuntimeSourceReader,
+  type NodeRuntimeSourceTable
 } from '@artificer-toolkit/authoring/nodeRuntime'
 import type {
   NodeRuntimeNormalizeValuesRequestDto,
@@ -66,23 +68,18 @@ export function warmFixtureAuthoredSources() {
   for (const kind of Object.keys(subjectsByKind) as SubjectKind[]) readKindFacts(kind)
 }
 
-/** The production reader contract (`createSystemSourceReader`) over the in-memory SRD. */
+/** The production reader (`createSystemSourceReader`) over the in-memory SRD. */
 export function createSrdNodeRuntimeReader(
   system: SystemAuthoredDto = srdSystemRecord
 ): NodeRuntimeSourceReader {
-  const vocabulary = systemVocabularyRows(system)
-  return async (table, columns) => {
-    const rows: readonly NodeRuntimeQueryRow[] =
-      table === 'reusable_definitions'
-        ? SRD_REUSABLE_DEFINITIONS.map(({ id, label }) => ({ id, label }))
-        : (vocabulary[table] ?? readAuthoredRows(table))
-    return rows.map((row) =>
-      Object.fromEntries(columns.map((column) => [column, row[column] ?? null]))
-    )
-  }
+  return createNodeRuntimeSourceReader({
+    system,
+    readAuthoredRows,
+    readReusableDefinitions: async () => SRD_REUSABLE_DEFINITIONS
+  })
 }
 
-function readAuthoredRows(table: Parameters<NodeRuntimeSourceReader>[0]): NodeRuntimeQueryRow[] {
+function readAuthoredRows(table: NodeRuntimeSourceTable): NodeRuntimeQueryRow[] {
   const kinds = authoredSourceKindsByTable[table]
   if (!kinds) throw new Error(`Authoring source is not migrated: ${table}.`)
   return sortAuthoredSourceRows(

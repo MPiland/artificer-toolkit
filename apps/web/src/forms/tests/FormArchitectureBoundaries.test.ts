@@ -45,7 +45,21 @@ describe('authoring form architecture boundaries', () => {
 
     expect(offenders).toEqual([])
   })
+
+  it('keeps test support (which holds the real resolver) out of production imports', () => {
+    const offenders = readSourceFiles(sourceRoot)
+      .filter((filePath) => !/\.(test|stories)\.tsx?$/.test(filePath))
+      .filter((filePath) => !relative(sourceRoot, filePath).split(sep).some(isTestSupportSegment))
+      .filter((filePath) => readFileSync(filePath, 'utf8').includes("'#test/"))
+      .map((filePath) => relative(sourceRoot, filePath).split(sep).join('/'))
+
+    expect(offenders).toEqual([])
+  })
 })
+
+function isTestSupportSegment(segment: string) {
+  return segment === 'test' || segment === 'tests'
+}
 
 function readSourceFiles(root: string): string[] {
   return readdirSync(root).flatMap((entry) => {

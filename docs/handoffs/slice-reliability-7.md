@@ -72,7 +72,7 @@ Final run on the merged tree (base merged twice; second merge brought the VTT_UI
 
 ### Development-data migration
 
-The main session resets and reseeds after merge. Stored `hitpoints.levels[].overridden` is dropped by the contract on read; nothing else carries it. A Character that had an override now reads its hit points from the shared rules (proved in `sharedRulesParity.test.ts`). A MANUAL Character with no roll for a level now requires one instead of falling back to the override.
+The main session resets and reseeds after merge. Stored `hitpoints.levels[].overridden` is not tolerated: `characterBuildStates` is Convex-validated (`zodToConvexFields(characterStoredBuildStateSchema.shape)`), so a stored row that still has the field would be rejected until the reset and reseed removes it. There is no legacy-data handling (pre-launch); the reset and reseed after merge is the migration. The contract no longer carries the field (`character-rules-contracts.test.ts`). A MANUAL Character with no roll for a level now requires one instead of falling back to the override.
 
 ### Deviations
 
@@ -90,11 +90,10 @@ The main session resets and reseeds after merge. Stored `hitpoints.levels[].over
 
 ### Follow-ups (outside this slice)
 
-- Remaining ability-modifier copies: `effectActionCompiler.ts:351` and `characterResources.ts:134,145` should call the shared `abilityModifier`.
+None. The remaining ability-modifier copies (`effectActionCompiler.ts`, `characterResources.ts`) were folded into this slice in the review round and now call the shared `abilityModifier`.
 
 ## Proposed ledger edits (filled by the slice session)
 
 - RELIABILITY-7.1: DONE once the stories above pass and the Builder opens (risk above). Evidence: `red-web-reliability-7` / `green-web-reliability-7-final`, `FormArchitectureBoundaries.test.ts`.
 - RELIABILITY-7.2: DONE. Evidence: `sharedRulesParity.test.ts`, `green-schema-contract`, `character-rules-contracts.test.ts`.
 - RELIABILITY-7: DONE after the main checkout's codegen, `typecheck:convex`, Convex hit point tests and the story run pass.
-- New follow-up item: shared `abilityModifier` in `effectActionCompiler.ts` and `characterResources.ts` (low risk; same arithmetic).

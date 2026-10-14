@@ -115,12 +115,21 @@ The web `useResolvedNodeModel` hook calls `nodeRuntime.resolve`. The forms platf
 
 The web has no second resolver. Authoring stories and tests resolve node maps through the same
 `resolveNodeRuntime` and `normalizeNodeRuntimeValues` over an in-memory reader built from the SRD
-baseline (`apps/web/src/test/nodeRuntimeResolver.ts`). The reader applies the production import
-checksum and `authoredSourceFacts` path and shares `systemVocabularyRows` and `sortAuthoredSourceRows`
-with the Convex source readers, so options match the server's. `FormArchitectureBoundaries.test.ts`
-fails if production web code imports `@artificer-toolkit/authoring` or reintroduces a static
-resolved model; the harness is a dev dependency under `src/test/` only. A form with
-`resolveModel: false` and no provided `model` renders nothing instead of a locally computed copy.
+baseline (`apps/web/src/test/nodeRuntimeResolver.ts`). The reader is the one
+`createNodeRuntimeSourceReader` factory the Convex source reader also uses (System vocabulary, sorted
+reusable definitions, projected columns, System check); only the storage of authored rows and
+reusable definitions differs, and the harness builds those rows through the production import
+checksum and `authoredSourceFacts` path, so options match the server's. Test fixtures that need
+scopes for a handcrafted model call the exported `resolveNestedRuntimeScopes`.
+`FormArchitectureBoundaries.test.ts` fails if production web code imports
+`@artificer-toolkit/authoring`, reintroduces a static resolved model, or imports `#test/` support;
+the harness is a dev dependency under `src/test/` only. A form with `resolveModel: false` and no
+provided `model` renders nothing instead of a locally computed copy.
+
+The server emits scopes only for populated rows, so a group row added in the browser (or an object
+group whose value is still `{}`) has no scope in the root model until the root re-resolves. A child
+renderer without a scope resolves its own model (showing the loading state meanwhile) instead of
+rendering blank.
 
 Resolution failures remain inside the shared renderer: show a recoverable error and retry the existing query, preserve the owning TanStack form and unsaved values, and disable activation until resolution succeeds. Do not throw a resolver error through the route boundary or leave a failed query displayed as loading. Guided content remains available alongside the error.
 

@@ -4,14 +4,14 @@ import { nodeRuntimeResolveRequestDtoSchema } from '@artificer-toolkit/schema/ap
 import type { QueryClient } from '@tanstack/react-query'
 import { createAuthoredFormRouteLoaderData } from '#forms/layout/authoredFormRouteContext'
 import type { AuthoredFormDomain } from '#forms/factories/authoredFormFactories.types'
-import { resolveFixtureNodeRuntime } from '#test/nodeRuntimeResolver'
+import { resolveFixtureNodeRuntime } from './nodeRuntimeResolver'
 import {
   authoredRouteStorySystem,
   authoredRouteStorySystems,
   createEditLoaderData,
   type AuthoredRouteStoryRecordMap,
   type AuthoredRouteStoryEditState
-} from './authoredRouteStory.fixtures'
+} from '#domains/authoredRouteStory.fixtures'
 
 export function configureAuthoredRouteStoryQueries(queryClient: QueryClient) {
   queryClient.setQueryDefaults(

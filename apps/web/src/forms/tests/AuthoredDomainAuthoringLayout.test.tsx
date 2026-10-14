@@ -657,6 +657,39 @@ describe('non-character authored domain layout coverage', () => {
     })
   }, 20_000)
 
+  it('renders a freshly added Creature sense editor while the root model has no scope for it', async () => {
+    const user = userEvent.setup()
+    const { authoringData } = authoredEditRouteLoaderData.creature
+    const creature = authoringData.response.item
+    if (!creature) throw new Error('Expected the owned Creature fixture.')
+    convexMocks.nodeRuntimeResolve.mockImplementation((queryKey: readonly unknown[]) => {
+      const { values } = nodeRuntimeResolveRequestDtoSchema.parse(queryKey[2])
+      // The root request that includes the new sense never settles, so the root model keeps no
+      // scope for the added row.
+      if (Array.isArray(values.senses) && values.senses.length > 0) return new Promise(() => undefined)
+      return resolveNodeRuntimeQuery(queryKey)
+    })
+
+    render(
+      <TestRouterProvider>
+        <AuthoringLayout
+          data={{
+            ...authoringData,
+            response: { ...authoringData.response, item: { ...creature, senses: [] } }
+          }}
+          domain='creature'
+          mode='edit'
+        />
+      </TestRouterProvider>
+    )
+
+    await user.click(await screen.findByRole('link', { name: /^stats/i }))
+    await user.click(await screen.findByRole('button', { name: /add sense/i }))
+    await user.click(await screen.findByRole('button', { name: /^sens 1/i }))
+
+    expect(await screen.findByRole('combobox', { name: /^sense/i }, { timeout: 5000 })).toBeInTheDocument()
+  }, 20_000)
+
   it('loads native Spell copy sources after selection', async () => {
     const user = userEvent.setup()
     useFixtureNodeRuntimeResolver()

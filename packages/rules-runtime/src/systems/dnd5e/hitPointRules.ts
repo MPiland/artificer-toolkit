@@ -13,9 +13,9 @@ export function hitDieAverage(die: number): number {
 }
 
 /**
- * The hit points one Character level adds, before any other modifier. The first level takes the
- * die maximum; later levels take the fixed average, or the rolled value (a roll of 1 until one is
- * entered) when hit points are rolled.
+ * The hit points one Character level adds: the die part plus `modifier`, never less than 1. The
+ * first level takes the die maximum; later levels take the fixed average, or the rolled value (a
+ * roll of 1 until one is entered) when hit points are rolled.
  */
 export function hitPointGain(input: {
   die: number
