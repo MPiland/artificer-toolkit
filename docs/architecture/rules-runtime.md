@@ -301,7 +301,7 @@ pipeline above: the same `ENCOUNTER_AREA_ACTION` occurrence, sealed saves, froze
 undo. The pending guard (`requireAreaActionPendingRoot`) checks the sealed origin and direction against the command.
 Catching (`spatialTokensInsideArea`, for every area) is strict positive-area overlap, so a creature the area
 only touches along an edge or at a corner is not caught (D103, user ruling 2026-10-14); a directed shape needs the
-caster's token, which it excludes (it catches nobody without it). A cone is the triangle from the origin to a
+caster's token among the Scene's tokens, which it excludes (it throws without it: the room has already refused `NO_CASTER_TOKEN`, so a missing caster here is an invariant failure). A cone is the triangle from the origin to a
 far edge as wide as it is long; a line is a rectangle, 5 ft wide unless authored (a scaled or non-positive
 authored width is refused at compile). A Self cube follows the 5e rule that its origin lies anywhere on a face
 of the cube (`cubeFromSideOutline`): the side faced is the dominant axis of `toward`, the face is flush against
