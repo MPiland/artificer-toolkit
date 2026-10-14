@@ -11,7 +11,7 @@ import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/sys
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import {
   effectiveSpatialGeometry,
-  spatialGeometryIntersectsTokenFootprint,
+  spatialGeometryOverlapsTokenFootprint,
   type CampaignSceneState,
   type SceneGrid,
   type SceneToken
@@ -89,8 +89,8 @@ export async function resolveEncounterActorPairPerception(input: {
         const geometry = effectiveSpatialGeometry(effect.placement, placement.scene.tokens)
         return (
           geometry !== null &&
-          (spatialGeometryIntersectsTokenFootprint({ geometry, token: placement.observerToken }) ||
-            spatialGeometryIntersectsTokenFootprint({ geometry, token: placement.subjectToken }))
+          (spatialGeometryOverlapsTokenFootprint({ geometry, token: placement.observerToken }) ||
+            spatialGeometryOverlapsTokenFootprint({ geometry, token: placement.subjectToken }))
         )
       })
     : []

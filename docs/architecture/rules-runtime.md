@@ -300,7 +300,7 @@ refusal has its own message (`UNSUPPORTED_AREA`, `NO_CASTER_TOKEN`, `ORIGIN_OFF_
 pipeline above: the same `ENCOUNTER_AREA_ACTION` occurrence, sealed saves, frozen damage, GM removal, commit and
 undo. The pending guard (`requireAreaActionPendingRoot`) checks the sealed origin and direction against the command.
 Catching (`spatialTokensInsideArea`, for every area) is strict positive-area overlap, so a creature the area
-only touches along an edge or at a corner is not caught (D103, user ruling 2026-10-14); a directed shape needs the
+only touches along an edge or at a corner is not caught (D103, user ruling 2026-10-14). Lasting and moving zones use the same rule through the same predicate (`footprintOverlapsSpatialGeometry`): entry, start-of-turn effects (`encounterTurnEffectPerception`) and movement-reaction perception (`encounterMovementReactionPerception`) see a zone only when the footprint shares area with it, so touching its edge or a corner never catches (SPELLS-24); a directed shape needs the
 caster's token among the Scene's tokens, which it excludes (it throws without it: the room has already refused `NO_CASTER_TOKEN`, so a missing caster here is an invariant failure). A cone is the triangle from the origin to a
 far edge as wide as it is long; a line is a rectangle, 5 ft wide unless authored (a scaled or non-positive
 authored width is refused at compile). A Self cube follows the 5e rule that its origin lies anywhere on a face
@@ -766,6 +766,13 @@ vocabulary: Character record stats pass `registry.system.speeds`, and `encounter
 `speedDefinitions` (the worker's `INPUTS` capture, persistence's `requireSystem`). Publication owns the refusal, so a
 malformed or out-of-vocabulary speed at read is an invariant failure. Displayed lengths round through the shared
 `roundLengthForDisplay` (three decimals); stored and computed amounts never do.
+
+The Sheet `MOVEMENT` `SPEED_OVERRIDE` adjustment is the same typed length, like the sense `RANGE_OVERRIDE`.
+`buildCharacterMovementRuleFacts` hands the policy each speed as `base` (a length, or `null` when the Character holds
+none) and `override`; a speed with neither is never listed, and `characterMovementAndSenses` throws on a fact with
+neither. The override is converted into the base's unit, or kept in its own unit when there is no base. The Movement
+panel marks a System speed the Character does not hold `NOT_HELD` (its editor still adds it) and carries the held
+unit as the editor's `defaultUnit`, so the Sheet input offers an amount and a unit starting in the speed's own unit.
 
 **Concentration grants (D99).** A grant whose result block names a `maintenanceDefinitionId` plans the
 same `SOURCE_ACTOR` maintenance policy as a maintained recurring effect (`maintenancePlan`), so it is a

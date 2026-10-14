@@ -17,15 +17,13 @@ export const STARTING_EQUIPMENT_KIND_REGISTRY: Record<
   [STARTING_EQUIPMENT_KIND.EQUIPMENT]: {
     code: STARTING_EQUIPMENT_KIND.EQUIPMENT,
     label: 'Equipment Item',
-    tooltip: 'Equipment item.',
-    description: 'Grants equipment items directly such as Longsword or Sabres.'
+    description: 'Equipment item.'
   },
 
   [STARTING_EQUIPMENT_KIND.CURRENCY]: {
     code: STARTING_EQUIPMENT_KIND.CURRENCY,
     label: 'Currency',
-    tooltip: 'Currency such as gold.',
-    description: 'Gives the character currency to use during campaigns.'
+    description: 'Currency such as gold.'
   }
 } as const
 

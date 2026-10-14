@@ -17,29 +17,25 @@ export const SCALING_SOURCE_REGISTRY: Record<ScalingSource, ScalingSourceOption>
   [SCALING_SOURCE.CHARACTER_LEVEL]: {
     code: SCALING_SOURCE.CHARACTER_LEVEL,
     label: 'Character Level',
-    tooltip: 'Character level as source.',
-    description: 'The level scaling is based on the character level.'
+    description: 'Character level as source.'
   },
 
   [SCALING_SOURCE.CLASS_LEVEL]: {
     code: SCALING_SOURCE.CLASS_LEVEL,
     label: 'Class Level',
-    tooltip: 'Class level as source.',
-    description: 'The level scaling is based on the class level.'
+    description: 'Class level as source.'
   },
 
   [SCALING_SOURCE.PARENT_CLASS_LEVEL]: {
     code: SCALING_SOURCE.PARENT_CLASS_LEVEL,
     label: 'Parent Class Level',
-    tooltip: 'Owning class level as source.',
-    description: 'The level scaling is based on the owning class progression.'
+    description: 'Owning class level as source.'
   },
 
   [SCALING_SOURCE.SPELL_CAST_LEVEL]: {
     code: SCALING_SOURCE.SPELL_CAST_LEVEL,
     label: 'Spell Cast Level',
-    tooltip: 'Actual cast level as source.',
-    description: 'The level scaling is based on the actual spell cast or upcast level.'
+    description: 'Actual cast level as source.'
   }
 } as const
 
@@ -78,15 +74,13 @@ export const SCALING_REGISTRY: Record<ScalingKind, ScalingOption> = {
   NONE: {
     code: SCALING.NONE,
     label: 'No Scaling',
-    tooltip: 'This does not change at source levels.',
-    description: 'The content remains the same regardless of source level.'
+    description: 'This does not change at source levels.'
   },
 
   PER_LEVEL: {
     code: SCALING.PER_LEVEL,
     label: 'Scales by Level',
-    tooltip: 'This changes based on source level.',
-    description: 'The content varies dependent on the source level, using level-based rules.'
+    description: 'This changes based on source level.'
   }
 } as const
 
@@ -132,22 +126,19 @@ export const SCALING_AMOUNT_REGISTRY: Record<ScalingAmountKind, ScalingAmountOpt
   [SCALING_AMOUNT_KIND.FULL]: {
     code: SCALING_AMOUNT_KIND.FULL,
     label: 'Full',
-    tooltip: 'Uses the full value.',
-    description: 'Applies the value without modification.'
+    description: 'Uses the full value.'
   },
 
   [SCALING_AMOUNT_KIND.HALF]: {
     code: SCALING_AMOUNT_KIND.HALF,
     label: 'Half',
-    tooltip: 'Uses half the value.',
-    description: 'Applies half of the original value.'
+    description: 'Uses half the value.'
   },
 
   [SCALING_AMOUNT_KIND.DOUBLE]: {
     code: SCALING_AMOUNT_KIND.DOUBLE,
     label: 'Double',
-    tooltip: 'Uses double the value.',
-    description: 'Applies twice the original value.'
+    description: 'Uses double the value.'
   }
 } as const
 

@@ -23,69 +23,57 @@ export const SIZE_REGISTRY: Record<SizeCode, SizeOption> = {
     code: SIZE_CODE.TINY,
     label: 'Tiny',
     short: 'T',
-    description: 'Tiny creatures are very small, often no larger than a small animal or object.',
-    tooltip: 'Very small size.'
+    description: 'Very small size.'
   },
   [SIZE_CODE.SMALL]: {
     code: SIZE_CODE.SMALL,
     label: 'Small',
     short: 'S',
-    description: 'Small creatures are shorter and lighter than average humanoids.',
-    tooltip: 'Below average size.'
+    description: 'Below average size.'
   },
   [SIZE_CODE.MEDIUM]: {
     code: SIZE_CODE.MEDIUM,
     label: 'Medium',
     short: 'M',
-    description: 'Medium creatures are roughly human-sized in stature and mass.',
-    tooltip: 'Average humanoid size.'
+    description: 'Average humanoid size.'
   },
   [SIZE_CODE.LARGE]: {
     code: SIZE_CODE.LARGE,
     label: 'Large',
     short: 'L',
-    description:
-      'Large creatures are significantly bigger than humanoids and occupy substantial space.',
-    tooltip: 'Larger than humanoid.'
+    description: 'Larger than humanoid.'
   },
   [SIZE_CODE.HUGE]: {
     code: SIZE_CODE.HUGE,
     label: 'Huge',
     short: 'H',
-    description: 'Huge creatures are massive and dominate their surroundings through sheer scale.',
-    tooltip: 'Massive size.'
+    description: 'Massive size.'
   },
   [SIZE_CODE.GARGANTUAN]: {
     code: SIZE_CODE.GARGANTUAN,
     label: 'Gargantuan',
     short: 'G',
-    description: 'Gargantuan creatures are enormous, often towering over buildings or landscapes.',
-    tooltip: 'Enormous size.'
+    description: 'Enormous size.'
   },
   [SIZE_CODE.GIANT]: {
     code: SIZE_CODE.GIANT,
     label: 'Giant',
-    description:
-      'Giant represents an exceptionally large size category beyond typical classifications.',
-    tooltip: 'Exceptionally large.'
+    description: 'Exceptionally large.'
   },
   [SIZE_CODE.FINE]: {
     code: SIZE_CODE.FINE,
     label: 'Fine',
-    description: 'Fine creatures are extremely small, often insect-sized or smaller.',
-    tooltip: 'Extremely small.'
+    description: 'Extremely small.'
   },
   [SIZE_CODE.DIMUNITIVE]: {
     code: SIZE_CODE.DIMUNITIVE,
     label: 'Diminutive',
-    description: 'Diminutive creatures are tiny, smaller than typical Tiny creatures.',
-    tooltip: 'Very tiny.'
+    description: 'Very tiny.'
   },
   [SIZE_CODE.COLOSSAL]: {
     code: SIZE_CODE.COLOSSAL,
     label: 'Colossal',
-    description: 'Colossal creatures are vast beyond ordinary scale, often legendary in size.',
-    tooltip: 'Legendary size.'
+    description: 'Legendary size.'
   }
 } as const
 

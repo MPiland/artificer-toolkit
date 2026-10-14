@@ -21,8 +21,7 @@ const runtimeCopyFieldNames = new Set([
   'quote',
   'short',
   'summary',
-  'text',
-  'tooltip'
+  'text'
 ])
 
 export function fingerprintNodeRuntimeRequest(input: NodeRuntimeResolveRequestDto): string {

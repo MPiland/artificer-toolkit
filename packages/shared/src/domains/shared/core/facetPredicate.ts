@@ -191,182 +191,147 @@ export const PREDICATE_REGISTRY = {
   SUBCLASS_SPECIALIZATION: {
     code: 'SUBCLASS_SPECIALIZATION',
     label: 'Subclass Specialization',
-    tooltip: 'Narrows selection to subclass-defined specialization choice.',
-    description:
-      'Used for subclass specialization identities such as Druid Circle of the Land terrain.',
+    description: 'Narrows selection to subclass-defined specialization choice.',
     subjects: ['SUBCLASS']
   },
 
   SPELLCASTING: {
     code: 'SPELLCASTING',
     label: 'Spellcasting',
-    tooltip: 'Narrows to spellcasting classes.',
-    description: 'Narrows applicability to classes that have the spellcasting ability.',
+    description: 'Narrows to spellcasting classes.',
     subjects: ['CLASS', 'SUBCLASS']
   },
 
   RANGE: {
     code: 'RANGE',
     label: 'Range',
-    tooltip: 'Narrows selection to range(s).',
-    description: 'Narrows the selection path to a specific range or ranges.',
+    description: 'Narrows selection to range(s).',
     subjects: ['FEATURE', 'FEAT', 'SPELL', 'EQUIPMENT', 'OPTION']
   },
 
   DURATION: {
     code: 'DURATION',
     label: 'Duration',
-    tooltip: 'Narrows selection to duration(s).',
-    description: 'Narrows the selection path to a specific duration or durations.',
+    description: 'Narrows selection to duration(s).',
     subjects: ['FEATURE', 'FEAT', 'SPELL', 'EQUIPMENT', 'OPTION']
   },
 
   CONCENTRATION: {
     code: 'CONCENTRATION',
     label: 'Concentration',
-    tooltip: 'Narrows selection to spells with concentration',
-    description:
-      'Narrows selections to spells that require the character to concentrate while casting.',
+    description: 'Narrows selection to spells with concentration',
     subjects: ['SPELL']
   },
 
   RITUAL: {
     code: 'RITUAL',
     label: 'Ritual',
-    tooltip: 'Narrows selection to ritual spells',
-    description: 'Narrows selections to spells that can be cast as rituals.',
+    description: 'Narrows selection to ritual spells',
     subjects: ['SPELL']
   },
 
   SIZE: {
     code: 'SIZE',
     label: 'Size',
-    tooltip: 'Narrows selection to creature size(s).',
-    description: 'Such as Small, Medium, or Large.',
+    description: 'Narrows selection to creature size(s).',
     subjects: ['RACE', 'CHARACTER']
   },
 
   MAGIC_SCHOOL: {
     code: 'MAGIC_SCHOOL',
     label: 'Magic School',
-    tooltip: 'Narrows selection to spell school.',
-    description:
-      'Narrows selection to spells belonging to a specific magic school, such as Evocation, Illusion, or Necromancy.',
+    description: 'Narrows selection to spell school.',
     subjects: ['SPELL']
   },
 
   SPELLCASTING_ABILITY: {
     code: 'SPELLCASTING_ABILITY',
     label: 'Spellcasting ability',
-    tooltip: 'Narrows selection to spellcastinga abilities.',
-    description:
-      'Narrows selection to classes that can cast spells based on their spellcasting ability.',
+    description: 'Narrows selection to spellcastinga abilities.',
     subjects: ['CLASS', 'SUBCLASS']
   },
 
   SPELL_LEVEL: {
     code: 'SPELL_LEVEL',
     label: 'Spell Level',
-    tooltip: 'Narrows selection to spell level.',
-    description:
-      'Narrows selection to spells of a specific level (0–9), such as only cantrips or only 3rd-level spells.',
+    description: 'Narrows selection to spell level.',
     subjects: ['SPELL']
   },
 
   SAVING_THROW_ABILITY: {
     code: 'SAVING_THROW_ABILITY',
     label: 'Saving Throw Ability',
-    tooltip: 'Narrows selection to saving throw ability.',
-    description:
-      'Narrows selection to spells or effects that require a saving throw using specific abilities, such as Strength, Dexterity, Constitution, Intelligence, Wisdom, or Charisma.',
+    description: 'Narrows selection to saving throw ability.',
     subjects: ['CHARACTER']
   },
 
   SAVING_THROW_DC: {
     code: 'SAVING_THROW_DC',
     label: 'Saving Throw DC',
-    tooltip: 'Narrows selection to saving throw DC.',
-    description:
-      'Narrows selection to spells or effects that require a saving throw with a specific DC.',
+    description: 'Narrows selection to saving throw DC.',
     subjects: ['SPELL']
   },
 
   EQUIPMENT_CATEGORY: {
     code: 'EQUIPMENT_CATEGORY',
     label: 'Category',
-    tooltip: 'Narrows selection to category.',
-    description:
-      'Narrows selection to items of a specific category, such as Weapon, Armor, Tool, Shield, or Adventuring Gear.',
+    description: 'Narrows selection to category.',
     subjects: ['EQUIPMENT']
   },
 
   EQUIPMENT_PROPERTY: {
     code: 'EQUIPMENT_PROPERTY',
     label: 'Property',
-    tooltip: 'Narrows selection to property.',
-    description:
-      'Narrows selection to entities with specific properties, such as weapon properties (Finesse, Heavy, Light) or item-specific attributes.',
+    description: 'Narrows selection to property.',
     subjects: ['EQUIPMENT']
   },
 
   SOLE_WIELDED_WEAPON: {
     code: 'SOLE_WIELDED_WEAPON',
     label: 'Only Weapon Wielded',
-    tooltip: 'Requires the item to be the only weapon wielded.',
-    description:
-      'Narrows to an attack whose item is the only weapon the character wields: no other weapon is equipped. A shield is not a weapon.',
+    description: 'Requires the item to be the only weapon wielded.',
     subjects: ['EQUIPMENT']
   },
 
   ARMOR_CLASS: {
     code: 'ARMOR_CLASS',
     label: 'Armor Class',
-    tooltip: 'Narrows selection to armor class within a range.',
-    description: 'Narrows selection to equipment that falls within a value range.',
+    description: 'Narrows selection to armor class within a range.',
     subjects: ['EQUIPMENT']
   },
 
   DAMAGE_TYPE: {
     code: 'DAMAGE_TYPE',
     label: 'Damage Type',
-    tooltip: 'Narrows selection to damage type.',
-    description:
-      'Narrows selection to entities that deal or reference a specific damage type, such as Fire, Cold, Slashing, or Radiant.',
+    description: 'Narrows selection to damage type.',
     subjects: ['FEATURE', 'FEAT', 'SPELL', 'EQUIPMENT', 'OPTION']
   },
 
   CONDITION_TYPE: {
     code: 'CONDITION_TYPE',
     label: 'Condition',
-    tooltip: 'Narrows selection to condition type.',
-    description:
-      'Narrows selection to effects, spells, or features that apply or reference one or more specific conditions, such as Blinded, Charmed, Frightened, or Poisoned.',
+    description: 'Narrows selection to condition type.',
     subjects: ['FEATURE', 'FEAT', 'SPELL', 'EQUIPMENT', 'OPTION']
   },
 
   CHARGE_LIMIT_KIND: {
     code: 'CHARGE_LIMIT_KIND',
     label: 'Charge Limit',
-    tooltip: 'Narrows selection to charge limit kind.',
-    description:
-      'Narrows selection to a specific charge limit kind, such as Ki, Rage, Channel Divinity, or a feature-specific resource.',
+    description: 'Narrows selection to charge limit kind.',
     subjects: ['FEATURE', 'FEAT', 'EQUIPMENT', 'OPTION', 'RESOURCE']
   },
 
   CHARGE_RESET_KIND: {
     code: 'CHARGE_RESET_KIND',
     label: 'Charge Reset',
-    tooltip: 'Narrows selection to charge reset type.',
-    description:
-      'Narrows selection to charge pools that reset on a specific condition, such as Short Rest, Long Rest, Dawn, or Custom resets.',
+    description: 'Narrows selection to charge reset type.',
     subjects: ['FEATURE', 'FEAT', 'EQUIPMENT', 'OPTION', 'RESOURCE']
   },
 
   CAN_CAST_SPELL: {
     code: 'CAN_CAST_SPELL',
     label: 'Can Cast Spells',
-    tooltip: 'Requires spellcasting.',
-    description: 'Does not imply knowing any specific spell.',
+    description: 'Requires spellcasting.',
     subjects: ['CHARACTER'],
     owners: ['SPELL_GRANT']
   },
@@ -374,99 +339,83 @@ export const PREDICATE_REGISTRY = {
   CAN_ACT: {
     code: 'CAN_ACT',
     label: 'Can Act',
-    tooltip: 'Requires the holder to be able to take actions.',
-    description:
-      'Fails while the holder is incapacitated, paralyzed, petrified, stunned, unconscious or otherwise unable to act. Evaluated live in an Encounter.',
+    description: 'Requires the holder to be able to take actions.',
     subjects: ['CHARACTER', 'CREATURE']
   },
 
   SPEED_ABOVE_ZERO: {
     code: 'SPEED_ABOVE_ZERO',
     label: 'Speed Above Zero',
-    tooltip: 'Requires the holder to have a speed above 0.',
-    description: 'Fails while the holder cannot move. Evaluated live in an Encounter.',
+    description: 'Requires the holder to have a speed above 0.',
     subjects: ['CHARACTER', 'CREATURE']
   },
 
   FREE_HAND: {
     code: 'FREE_HAND',
     label: 'Free Hand',
-    tooltip: 'Requires the holder to have a hand free.',
-    description:
-      'Holds while the main hand or the off hand is empty. A two-handed weapon fills both. Evaluated live in an Encounter.',
+    description: 'Requires the holder to have a hand free.',
     subjects: ['CHARACTER', 'CREATURE']
   },
 
   CHARACTER_LEVEL: {
     code: 'CHARACTER_LEVEL',
     label: 'Character Level',
-    tooltip: 'Requires a minimum or maximum total character level.',
-    description: 'Counts all class levels combined.',
+    description: 'Requires a minimum or maximum total character level.',
     subjects: ['CHARACTER']
   },
 
   CLASS_LEVEL: {
     code: 'CLASS_LEVEL',
     label: 'Class Level',
-    tooltip: 'Requires a minimum or maximum class level.',
-    description: 'Counts all class levels combined.',
+    description: 'Requires a minimum or maximum class level.',
     subjects: ['CHARACTER']
   },
 
   SPELL_OBTAINED: {
     code: 'SPELL_OBTAINED',
     label: 'Spell Obtained',
-    tooltip: 'Requires access to a specific spell.',
-    description: 'Used for spell synergies or upgrades.',
+    description: 'Requires access to a specific spell.',
     subjects: ['CHARACTER']
   },
 
   FEAT_OBTAINED: {
     code: 'FEAT_OBTAINED',
     label: 'Feat Obtained',
-    tooltip: 'Requires a feat to already be obtained.',
-    description: 'Used for dependent or upgraded feats.',
+    description: 'Requires a feat to already be obtained.',
     subjects: ['CHARACTER']
   },
 
   HERITAGE: {
     code: 'HERITAGE',
     label: 'Heritage',
-    tooltip: 'Requires a character heritage membership.',
-    description:
-      'Requires the character to belong to one or more specific heritages such as Elven or Dwarven.',
+    description: 'Requires a character heritage membership.',
     subjects: ['CHARACTER']
   },
 
   FEATURE_OBTAINED: {
     code: 'FEATURE_OBTAINED',
     label: 'Feature Obtained',
-    tooltip: 'Requires a feature to already be obtained.',
-    description: 'Used for dependent or upgraded features.',
+    description: 'Requires a feature to already be obtained.',
     subjects: ['CHARACTER']
   },
 
   OPTION_OBTAINED: {
     code: 'OPTION_OBTAINED',
     label: 'Feature Option Obtained',
-    tooltip: 'Narrows selection to feature option selection.',
-    description: 'Used for feature path branching.',
+    description: 'Narrows selection to feature option selection.',
     subjects: ['CHARACTER']
   },
 
   EQUIPMENT_PROFICIENCY: {
     code: 'EQUIPMENT_PROFICIENCY',
     label: 'Equipment Proficiency',
-    tooltip: 'Narrows selection to proficiency with specific equipment.',
-    description:
-      'Narrows selection to proficiency with specific equipment and optionally the level.',
+    description: 'Narrows selection to proficiency with specific equipment.',
     subjects: ['CHARACTER', 'CLASS', 'FEAT', 'FEATURE', 'OPTION']
   },
 
   EQUIPMENT_PROPERTY_PROFICIENCY: {
     code: 'EQUIPMENT_PROPERTY_PROFICIENCY',
     label: 'Equipment Property Proficiency',
-    tooltip: 'Narrows selection to proficiency with equipment that has certain properties.',
     description: 'Narrows selection to proficiency with equipment that has certain properties.',
     subjects: ['CHARACTER', 'CLASS', 'FEAT', 'FEATURE', 'OPTION']
   },
@@ -474,67 +423,56 @@ export const PREDICATE_REGISTRY = {
   LANGUAGE_PROFICIENCY: {
     code: 'LANGUAGE_PROFICIENCY',
     label: 'Language Proficiency',
-    tooltip: 'Narrows selection to proficiency in one or more languages.',
-    description:
-      'Narrows selection to proficiency in one or more languages and optionally the level.',
+    description: 'Narrows selection to proficiency in one or more languages.',
     subjects: ['CHARACTER', 'FEAT', 'FEATURE', 'OPTION']
   },
 
   SAVE_ABILITY_PROFICIENCY: {
     code: 'SAVE_ABILITY_PROFICIENCY',
     label: 'Save Ability Proficiency',
-    tooltip: 'Narrows selection to proficiency in one or more save abilities.',
-    description:
-      'Narrows selection to proficiency in one or more save abilities and optionally the level.',
+    description: 'Narrows selection to proficiency in one or more save abilities.',
     subjects: ['CHARACTER', 'CLASS', 'FEAT', 'FEATURE', 'OPTION']
   },
 
   SKILL_PROFICIENCY: {
     code: 'SKILL_PROFICIENCY',
     label: 'Skill Proficiency',
-    tooltip: 'Narrows selection to proficiency in one or more skills.',
-    description: 'Narrows selection to proficiency in one or more skills and optionally the level.',
+    description: 'Narrows selection to proficiency in one or more skills.',
     subjects: ['CHARACTER', 'CLASS', 'FEAT', 'FEATURE', 'OPTION']
   },
 
   EQUIPMENT_EQUIPPED: {
     code: 'EQUIPMENT_EQUIPPED',
     label: 'Equipment Equipped',
-    tooltip: 'Requires specific equipment to be equipped.',
-    description: 'Evaluated dynamically at runtime.',
+    description: 'Requires specific equipment to be equipped.',
     subjects: ['CHARACTER']
   },
 
   SKILL_SCORE: {
     code: 'SKILL_SCORE',
     label: 'Skill Score',
-    tooltip: 'Requires a minimum or maximum skill bonus.',
-    description: 'Includes proficiency and other modifiers.',
+    description: 'Requires a minimum or maximum skill bonus.',
     subjects: ['CHARACTER']
   },
 
   ABILITY_SCORE: {
     code: 'ABILITY_SCORE',
     label: 'Ability Score',
-    tooltip: 'Requires a minimum or maximum ability score.',
-    description: 'For example: Strength 13 or higher.',
+    description: 'Requires a minimum or maximum ability score.',
     subjects: ['CHARACTER']
   },
 
   SAVING_THROW_ABILITY_BONUS: {
     code: 'SAVING_THROW_ABILITY_BONUS',
     label: 'Saving Throw Ability Bonus',
-    tooltip: 'Ability bonus score of the character.',
-    description: "Limits the targeting to the character's ability bonus score.",
+    description: 'Ability bonus score of the character.',
     subjects: ['CHARACTER']
   },
 
   WHILE_SOURCE_CARRIED: {
     code: 'WHILE_SOURCE_CARRIED',
     label: 'While Carried',
-    tooltip: 'Applies while the item is carried by the character.',
-    description:
-      "The modifier applies as long as the item is in the character's possession, even if it is not equipped or attuned.",
+    description: 'Applies while the item is carried by the character.',
     subjects: ['CHARACTER'],
     owners: ['EQUIPMENT']
   },
@@ -542,9 +480,7 @@ export const PREDICATE_REGISTRY = {
   WHILE_SOURCE_EQUIPPED: {
     code: 'WHILE_SOURCE_EQUIPPED',
     label: 'While Equipped',
-    tooltip: 'Applies only while the item is equipped.',
-    description:
-      'The modifier applies only when the item is actively equipped or worn. This is the default behavior for most equipment.',
+    description: 'Applies only while the item is equipped.',
     subjects: ['CHARACTER'],
     owners: ['EQUIPMENT']
   },
@@ -552,9 +488,7 @@ export const PREDICATE_REGISTRY = {
   WHILE_SOURCE_ATTUNED: {
     code: 'WHILE_SOURCE_ATTUNED',
     label: 'While Attuned',
-    tooltip: 'Applies only while the item is attuned.',
-    description:
-      'The modifier applies only while the character is attuned to the item. Attunement alone decides it; add While Equipped when the item must also be worn or wielded.',
+    description: 'Applies only while the item is attuned.',
     subjects: ['CHARACTER'],
     owners: ['EQUIPMENT']
   },
@@ -562,59 +496,49 @@ export const PREDICATE_REGISTRY = {
   CREATURE_CATEGORY: {
     code: 'CREATURE_CATEGORY',
     label: 'Creature Category',
-    tooltip: 'Narrows selection to creature categories.',
-    description:
-      'Narrows creature applicability to categories such as monster, beast, companion, or summon.',
+    description: 'Narrows selection to creature categories.',
     subjects: ['CREATURE']
   },
 
   CREATURE_TYPE: {
     code: 'CREATURE_TYPE',
     label: 'Creature Type',
-    tooltip: 'Narrows selection to creature types.',
-    description:
-      'Narrows creature applicability to one or more master creature types such as beast, humanoid, or undead.',
+    description: 'Narrows selection to creature types.',
     subjects: ['CREATURE']
   },
 
   CREATURE_SIZE: {
     code: 'CREATURE_SIZE',
     label: 'Creature Size',
-    tooltip: 'Narrows selection to creature sizes.',
-    description: 'Narrows creature applicability to one or more creature sizes.',
+    description: 'Narrows selection to creature sizes.',
     subjects: ['CREATURE']
   },
 
   CREATURE_IS_MOUNT: {
     code: 'CREATURE_IS_MOUNT',
     label: 'Is Mount',
-    tooltip: 'Requires mount-capable creatures.',
-    description: 'Narrows creature applicability to creatures that can be treated as mounts.',
+    description: 'Requires mount-capable creatures.',
     subjects: ['CREATURE']
   },
 
   CREATURE_IS_COMPANION: {
     code: 'CREATURE_IS_COMPANION',
     label: 'Is Companion',
-    tooltip: 'Requires companion-capable creatures.',
-    description: 'Narrows creature applicability to creatures that can be treated as companions.',
+    description: 'Requires companion-capable creatures.',
     subjects: ['CREATURE']
   },
 
   VEHICLE_CATEGORY: {
     code: 'VEHICLE_CATEGORY',
     label: 'Vehicle Category',
-    tooltip: 'Narrows selection to vehicle categories.',
-    description:
-      'Narrows vehicle applicability to land, water, air, or similar vehicle categories.',
+    description: 'Narrows selection to vehicle categories.',
     subjects: ['VEHICLE']
   },
 
   VEHICLE_SIZE: {
     code: 'VEHICLE_SIZE',
     label: 'Vehicle Size',
-    tooltip: 'Narrows selection to vehicle sizes.',
-    description: 'Narrows vehicle applicability to one or more vehicle sizes.',
+    description: 'Narrows selection to vehicle sizes.',
     subjects: ['VEHICLE']
   }
 } as const satisfies Record<PredicateCode, PredicateOption>

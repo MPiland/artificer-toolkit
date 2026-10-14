@@ -49,7 +49,7 @@ describe('Sheet overview Speed fact', () => {
             family: 'MOVEMENT',
             speedId: extraSpeed.id,
             field: 'SPEED_OVERRIDE',
-            value: 40
+            value: { amount: 40, unit: 'FEET' }
           }
         ]
       })

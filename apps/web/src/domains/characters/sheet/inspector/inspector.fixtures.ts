@@ -408,46 +408,41 @@ export const movementPanelFixture = {
   preference: { mode: 'AUTO' },
   preferenceOptions: [
     { value: 'AUTO', label: 'Automatic' },
-    { value: walkingSpeedId, label: 'Walking' },
-    { value: swimmingSpeedId, label: 'Swimming' }
+    { value: walkingSpeedId, label: 'Walking' }
   ],
   speeds: [
     {
       speedId: walkingSpeedId,
       label: 'Walking',
-      amount: 30,
-      unitLabel: 'feet',
+      speedKind: 'HELD',
+      amount: 10,
+      unitLabel: 'yards',
       state: 'DEFAULT',
       calculation: {
-        base: 30,
+        base: 10,
         contributions: [],
-        effective: 30
+        effective: 10
       },
       editor: {
-        ...numberEditorDefaults,
+        kind: 'LENGTH',
+        commitIntent: 'ON_BLUR_OR_ENTER',
         field: 'SPEED_OVERRIDE',
         label: 'Override Walking speed',
         value: null,
-        validation: { integer: true, minimum: 0 }
+        defaultUnit: 'YARDS'
       }
     },
     {
       speedId: swimmingSpeedId,
       label: 'Swimming',
-      amount: 30,
-      unitLabel: 'feet',
+      speedKind: 'NOT_HELD',
       state: 'DEFAULT',
-      calculation: {
-        base: 30,
-        contributions: [],
-        effective: 30
-      },
       editor: {
-        ...numberEditorDefaults,
+        kind: 'LENGTH',
+        commitIntent: 'ON_BLUR_OR_ENTER',
         field: 'SPEED_OVERRIDE',
         label: 'Override Swimming speed',
-        value: null,
-        validation: { integer: true, minimum: 0 }
+        value: null
       }
     }
   ]

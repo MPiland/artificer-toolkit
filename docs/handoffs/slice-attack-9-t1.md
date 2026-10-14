@@ -70,7 +70,8 @@ No web change is expected: the action is offered through the existing Encounter 
 3. Lock: a raging Barbarian is refused a spell. Raging while concentrating ends the Concentration.
 4. End: the grant expires after 10 rounds, ends on the player's end-Rage action, and ends when the Barbarian becomes incapacitated. Add the early-end rule if implemented (see the Brief).
 5. Undo: GM undo of the Rage action restores the charge and removes the grant.
-6. Journey: a Worker or Convex Encounter journey through real code. The Barbarian rages, hits with a greataxe and takes slashing damage; the damage dealt and taken reflect Rage, and the charge count drops by one.
+6. Authorability (user ruling 2026-10-14): every new shape is a core authoring option in the shared node maps, with default factories where add-enabled. The SRD Rage uses no shape the form cannot produce. An authoring journey through the real FormRenderer, node-runtime resolver and publication path builds a homebrew Rage. Its published effect is structurally equal to the SRD one, ignoring ids and copy, and it resolves identically in an Encounter.
+7. Journey: a Worker or Convex Encounter journey through real code. The Barbarian rages, hits with a greataxe and takes slashing damage; the damage dealt and taken reflect Rage, and the charge count drops by one.
 
 ## Status log
 

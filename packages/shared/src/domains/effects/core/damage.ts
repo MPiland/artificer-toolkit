@@ -23,22 +23,19 @@ export const DAMAGE_VALUE_REGISTRY: Record<DamageValueKind, DamageValueOption> =
   [DAMAGE_VALUE_KIND.DICE]: {
     code: DAMAGE_VALUE_KIND.DICE,
     label: 'Dice',
-    description: 'Damage is determined by rolling one or more dice.',
-    tooltip: 'Roll damage dice such as 1d8 or 2d6.'
+    description: 'Roll damage dice such as 1d8 or 2d6.'
   },
 
   [DAMAGE_VALUE_KIND.FIXED]: {
     code: DAMAGE_VALUE_KIND.FIXED,
     label: 'Fixed Value',
-    description: 'Damage is determined by a fixed numeric expression.',
-    tooltip: 'Use a fixed value or a value derived from level, ability, or proficiency.'
+    description: 'Use a fixed value or a value derived from level, ability, or proficiency.'
   },
 
   [DAMAGE_VALUE_KIND.POOL]: {
     code: DAMAGE_VALUE_KIND.POOL,
     label: 'Pool',
-    description: 'Damage is drawn from a shared pool with optional limits.',
-    tooltip: 'Use a pool of damage that can be partially or fully expended.'
+    description: 'Use a pool of damage that can be partially or fully expended.'
   }
 }
 
@@ -58,22 +55,19 @@ export const DAMAGE_BONUS_REGISTRY: Record<DamageBonusKind, DamageBonusOption> =
   [DAMAGE_BONUS_KIND.ABILITY_BONUS]: {
     code: DAMAGE_BONUS_KIND.ABILITY_BONUS,
     label: 'Ability Bonus',
-    tooltip: 'Adds ability bonus to damage.',
-    description: 'Uses a chosen ability bonus for to add to the damage.'
+    description: 'Adds ability bonus to damage.'
   },
 
   [DAMAGE_BONUS_KIND.SKILL_BONUS]: {
     code: DAMAGE_BONUS_KIND.SKILL_BONUS,
     label: 'Skill Bonus',
-    tooltip: 'Adds skill bonus to damage.',
-    description: 'Uses a chosen skill bonus for to add to the damage.'
+    description: 'Adds skill bonus to damage.'
   },
 
   [DAMAGE_BONUS_KIND.PROFICIENCY_BONUS]: {
     code: DAMAGE_BONUS_KIND.PROFICIENCY_BONUS,
     label: 'Proficiency Bonus',
-    tooltip: 'Adds proficiency bonus to damage.',
-    description: "Uses character's proficiency bonus for to add to the damage."
+    description: 'Adds proficiency bonus to damage.'
   }
 }
 
@@ -95,14 +89,12 @@ export const SAVE_SUCCESS_OUTCOME_REGISTRY: Record<
   [SAVE_SUCCESS_OUTCOME_KIND.NONE]: {
     code: SAVE_SUCCESS_OUTCOME_KIND.NONE,
     label: 'No Effect On Success',
-    description: 'A successful saving throw prevents this damage outcome entirely.',
-    tooltip: 'Use when a successful save negates the damage.'
+    description: 'Use when a successful save negates the damage.'
   },
   [SAVE_SUCCESS_OUTCOME_KIND.HALF]: {
     code: SAVE_SUCCESS_OUTCOME_KIND.HALF,
     label: 'Half On Success',
-    description: 'A successful saving throw reduces this damage outcome to half.',
-    tooltip: 'Use when a successful save halves the damage.'
+    description: 'Use when a successful save halves the damage.'
   }
 }
 

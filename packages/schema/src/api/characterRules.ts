@@ -163,10 +163,9 @@ const characterMovementFactsSchema = lazySchema(() =>
         z.strictObject({
           speedId: boundedIdentitySchema,
           code: z.nullable(boundedIdentitySchema),
-          baseAmount: finiteNumberSchema,
-          unit: lengthUnitCodeSchema,
+          base: z.nullable(authoredLengthSchema),
           override: z.nullable(
-            z.strictObject({ sourceId: boundedIdentitySchema, value: finiteNumberSchema })
+            z.strictObject({ sourceId: boundedIdentitySchema, value: authoredLengthSchema })
           )
         })
       )

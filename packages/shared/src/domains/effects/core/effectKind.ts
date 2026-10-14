@@ -35,149 +35,122 @@ export const EFFECT_KIND_REGISTRY: Record<EffectKind, EffectKindOption> = {
   [EFFECT_KIND.DAMAGE]: {
     code: EFFECT_KIND.DAMAGE,
     label: 'Damage',
-    tooltip: 'This effect deals damage.',
     description: 'This effect deals damage.'
   },
   [EFFECT_KIND.HIT_POINT_MAXIMUM_REDUCTION]: {
     code: EFFECT_KIND.HIT_POINT_MAXIMUM_REDUCTION,
     label: 'Hit Point Maximum Reduction',
-    tooltip: 'Reduces a target’s hit point maximum by an already resolved damage outcome.',
-    description:
-      'References one earlier damage outcome and records the recovery tag required to end it.'
+    description: 'Reduces a target’s hit point maximum by an already resolved damage outcome.'
   },
   [EFFECT_KIND.SCALAR_REDUCTION]: {
     code: EFFECT_KIND.SCALAR_REDUCTION,
     label: 'Scalar Reduction',
-    tooltip: 'Reduces one UUID-backed scalar by a bounded amount.',
-    description: 'Persists an additive, recoverable reduction without changing the base value.'
+    description: 'Reduces one UUID-backed scalar by a bounded amount.'
   },
   [EFFECT_KIND.CONDITION]: {
     code: EFFECT_KIND.CONDITION,
     label: 'Condition',
-    tooltip: 'This effect applies a condition.',
     description: 'This effect applies a condition.'
   },
   [EFFECT_KIND.HEAL]: {
     code: EFFECT_KIND.HEAL,
     label: 'Heal',
-    tooltip: 'This effect restores hit points or grants temporary hit points.',
     description: 'This effect restores hit points or grants temporary hit points.'
   },
   [EFFECT_KIND.APPLY_GRANT]: {
     code: EFFECT_KIND.APPLY_GRANT,
     label: 'Apply Grant',
-    tooltip: 'This effect applies one or more typed grants for a duration or trigger.',
     description: 'This effect applies one or more typed grants for a duration or trigger.'
   },
   [EFFECT_KIND.FORCED_MOVEMENT]: {
     code: EFFECT_KIND.FORCED_MOVEMENT,
     label: 'Forced Movement',
-    tooltip:
-      'This effect compels movement with typed direction, distance, and action-economy usage.',
     description:
       'This effect compels movement with typed direction, distance, and action-economy usage.'
   },
   [EFFECT_KIND.TELEPORT]: {
     code: EFFECT_KIND.TELEPORT,
     label: 'Teleport',
-    tooltip: 'This effect repositions a creature.',
     description: 'This effect repositions a creature.'
   },
   [EFFECT_KIND.MANIFEST]: {
     code: EFFECT_KIND.MANIFEST,
     label: 'Manifest',
-    tooltip:
-      'This effect creates a persistent manifested thing such as a summon, wall, cloud, or sensor.',
     description:
       'This effect creates a persistent manifested thing such as a summon, wall, cloud, or sensor.'
   },
   [EFFECT_KIND.MOVE_MANIFEST]: {
     code: EFFECT_KIND.MOVE_MANIFEST,
     label: 'Move Manifest',
-    tooltip: 'This effect repositions a previously created manifestation.',
     description: 'This effect repositions a previously created manifestation.'
   },
   [EFFECT_KIND.COMMAND_MANIFEST]: {
     code: EFFECT_KIND.COMMAND_MANIFEST,
     label: 'Command Manifest',
-    tooltip: 'This effect commands a previously created manifestation to use one of its behaviors.',
     description:
       'This effect commands a previously created manifestation to use one of its behaviors.'
   },
   [EFFECT_KIND.FOLLOW_UP_SAVE]: {
     code: EFFECT_KIND.FOLLOW_UP_SAVE,
     label: 'Follow-up Save',
-    tooltip: 'This effect schedules a later saving throw with typed success and failure results.',
-    description: 'Schedules a later saving throw without applying encounter state.'
+    description:
+      'This effect schedules a later saving throw with typed success and failure results.'
   },
   [EFFECT_KIND.FOLLOW_UP_CHECK]: {
     code: EFFECT_KIND.FOLLOW_UP_CHECK,
     label: 'Follow-up Check',
-    tooltip: 'Offers a later fixed-DC ability check with typed success and failure results.',
-    description: 'Schedules an ability check without applying encounter state.'
+    description: 'Offers a later fixed-DC ability check with typed success and failure results.'
   },
   [EFFECT_KIND.MOVEMENT_RULE]: {
     code: EFFECT_KIND.MOVEMENT_RULE,
     label: 'Movement Rule',
-    tooltip: 'Applies a closed movement or anchor restriction.',
-    description: 'Describes a deterministic movement restriction for a future encounter resolver.'
+    description: 'Applies a closed movement or anchor restriction.'
   },
   [EFFECT_KIND.ACTION_ECONOMY_RULE]: {
     code: EFFECT_KIND.ACTION_ECONOMY_RULE,
     label: 'Action Economy Rule',
-    tooltip: 'Limits attacks for an activation or turn.',
-    description: 'Describes a deterministic attack-count restriction.'
+    description: 'Limits attacks for an activation or turn.'
   },
   [EFFECT_KIND.STABILIZE]: {
     code: EFFECT_KIND.STABILIZE,
     label: 'Stabilize',
-    tooltip: 'Stabilizes a creature at 0 hit points.',
-    description: 'Marks a creature at 0 hit points as stable.'
+    description: 'Stabilizes a creature at 0 hit points.'
   },
   [EFFECT_KIND.ARMOR_CLASS_FLOOR]: {
     code: EFFECT_KIND.ARMOR_CLASS_FLOOR,
     label: 'Armor Class Floor',
-    tooltip: 'Prevents Armor Class from falling below a fixed minimum.',
-    description: 'Applies a minimum Armor Class without lowering a higher value.'
+    description: 'Prevents Armor Class from falling below a fixed minimum.'
   },
   [EFFECT_KIND.TELEPATHIC_LINK]: {
     code: EFFECT_KIND.TELEPATHIC_LINK,
     label: 'Telepathic Link',
-    tooltip: 'Links selected creatures for telepathic communication.',
-    description: 'Defines the range, language, plane, and Intelligence limits of a telepathic link.'
+    description: 'Links selected creatures for telepathic communication.'
   },
   [EFFECT_KIND.PLANT_PORTAL]: {
     code: EFFECT_KIND.PLANT_PORTAL,
     label: 'Plant Portal',
-    tooltip: 'Links two plants as a movement-powered portal.',
-    description: 'Defines the plants, destination knowledge, plane, and movement cost of a portal.'
+    description: 'Links two plants as a movement-powered portal.'
   },
   [EFFECT_KIND.TREE_STRIDE]: {
     code: EFFECT_KIND.TREE_STRIDE,
     label: 'Tree Stride',
-    tooltip: 'Moves a creature between qualifying trees.',
-    description: 'Defines qualifying trees, distance, movement costs, and per-round use.'
+    description: 'Moves a creature between qualifying trees.'
   },
   [EFFECT_KIND.ACTOR_RELATIONSHIP]: {
     code: EFFECT_KIND.ACTOR_RELATIONSHIP,
     label: 'Grappled',
-    tooltip:
-      'Grapples the target: how it escapes, the largest target, conditions until the grapple ends and how many it holds at once.',
     description:
-      'Persists the grapple as one target-owned active effect, held by the source and counted per outcome against Held at Once.'
+      'Grapples the target: how it escapes, the largest target, conditions until the grapple ends and how many it holds at once.'
   },
   [EFFECT_KIND.CLOSED_RULE]: {
     code: EFFECT_KIND.CLOSED_RULE,
     label: 'Closed Rule',
-    tooltip: 'Selects an audited deterministic SRD rule descriptor.',
-    description:
-      'Records an audited SRD rule by its closed identity without free-form scripting. Only rule kinds with an implemented System consumer change outcomes; the rest are descriptive until their mechanics are authored or implemented.'
+    description: 'Selects an audited deterministic SRD rule descriptor.'
   },
   [EFFECT_KIND.MANUAL_ADJUDICATION]: {
     code: EFFECT_KIND.MANUAL_ADJUDICATION,
     label: 'Manual Adjudication',
-    tooltip: 'This outcome is descriptive and must be resolved by a player or GM.',
-    description: 'Marks behavior the engine intentionally does not automate.'
+    description: 'This outcome is descriptive and must be resolved by a player or GM.'
   }
 } as const
 
