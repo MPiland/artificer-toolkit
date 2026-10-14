@@ -6266,7 +6266,7 @@
         {
           "id": "SPELLS-8",
           "title": "Cast spells in an Encounter",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "journeyTests": [],
           "journeyStatus": "none",
           "origin": [],
@@ -6314,7 +6314,7 @@
             {
               "id": "SPELLS-8.T1",
               "text": "Core Encounter casting: action choice, slot spend and undo, upcasting, rituals, Concentration start, multi-effect spells and components.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-8.1"],
               "wsjf": {
                 "bv": 13,
@@ -6556,7 +6556,7 @@
         {
           "id": "SPELLS-13",
           "title": "Cone, line and caster-origin areas",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "journeyTests": [],
           "journeyStatus": "none",
           "origin": [],
