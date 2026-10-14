@@ -1,6 +1,6 @@
 # Slice workbook: RELIABILITY-7 (the web uses the shared resolver and rules instead of copies)
 
-**Status:** READY TO MERGE (started 2026-10-13; codegen and `typecheck:convex` owed to the main checkout)
+**Status:** READY TO MERGE (started 2026-10-13; review round done 2026-10-14; codegen and `typecheck:convex` owed to the main checkout)
 **Base:** `codex/phase-08-2-convex-cutover` at this workbook's commit.
 **Rules:** [slice-workbook-rules.md](slice-workbook-rules.md).
 
@@ -34,15 +34,17 @@ Storybook cannot run in a worktree: list the stories to run after merge in the s
 
 - 2026-10-13: workbook written; session started.
 - 2026-10-13: implemented on `claude/clever-panini-865ecb`; base `codex/phase-08-2-convex-cutover` merged. Logs live in the main checkout under `local-validation/reliability-7/`.
+- 2026-10-14: review round (nested group editors, one reader factory, shared `resolveNestedRuntimeScopes` and `abilityModifier`, override test deleted, utils moved to `src/test`); base merged a third time. Final logs are the `g-*` and `h-*` set.
 
 ### Checklist evidence
 
 | # | Proof | Red log | Green log |
 | --- | --- | --- | --- |
 | 1 | `useAuthoringResolvedModel.test.tsx` (the hook never serves an embedded copy) and `nodeRuntimeResolver.test.ts` (all SRD classes and speeds come from the real `packages/authoring` resolver) | `red-web-reliability-7` | `green-web-reliability-7-final`, `m-green-web-reliability-7` |
-| 2 | `FormArchitectureBoundaries.test.ts`: the files are gone and production web code imports neither `@artificer-toolkit/authoring` nor `staticResolvedModel` | `red-web-reliability-7` | same |
-| 3 | `sharedRulesParity.test.ts` (real SRD Fighter, Wizard, Barbarian and multiclass through the real server evaluation; class detail hit-die average and proficiency bonus for 20 levels; Creature modifiers for scores 1-30) and the new `EncounterEnemyStatBlock.test.tsx` describe | `red-web-reliability-7` | `green-web-parity-final`, `green-web-reliability-7-final` |
-| 4 | `character-rules-contracts.test.ts` (contract drops `overridden`) and `sharedRulesParity.test.ts` (a Character that stored an override reads its hit points from the shared rules) | `red-schema-contract`, `red-web-reliability-7` | `green-schema-contract`, `m-green-schema-contract` |
+| 2 | `FormArchitectureBoundaries.test.ts`: the files are gone, production web code imports neither `@artificer-toolkit/authoring` nor `staticResolvedModel`, and nothing outside `src/test` or a `tests` folder imports `#test/*` | `red-web-reliability-7` | `h-green-web-reliability-7` |
+| 3 | `sharedRulesParity.test.ts` (real SRD Fighter, Wizard, Barbarian and multiclass through the real server evaluation; class detail hit-die average and proficiency bonus for 20 levels; Creature modifiers for scores 1-30) and the new `EncounterEnemyStatBlock.test.tsx` describe | `red-web-reliability-7` | `green-web-parity-final`, `h-green-web-reliability-7`; `g-green-rules-runtime` (87 files) for the shared `abilityModifier` callers |
+| 4 | `character-rules-contracts.test.ts` (contract drops `overridden`) (the Convex validator is built from this schema, so a stored `overridden` is rejected; the reset and reseed is the migration, see below) | `red-schema-contract` | `g-green-schema-contract` |
+| 5 (review) | `AuthoredDomainAuthoringLayout.test.tsx` "renders a freshly added Creature sense editor while the root model has no scope for it": a nested group editor whose row the root model has no scope for resolves its own model (`FormRenderer.tsx`) | `r3-red-nested-editor` (combobox not found) | `h-green-web-reliability-7` |
 
 Item 3, the case where the local copy disagreed: a custom class with hit die `2d6`. The web copy recomputed the stored rows as 8 and 6, while the server (shared `parseHitDie` returns no die) keeps the stored 10 and 5. Real SRD content did not disagree (the dice are all `1dN`), so those cases stay as drift guards: a reintroduced local copy would have to match the shared functions at every level and score to stay green.
 
@@ -55,7 +57,12 @@ Item 3, the case where the local copy disagreed: a custom class with hit die `2d
 
 ### Validation run
 
-Final run on the merged tree (base merged twice; second merge brought the VTT_UI-5 fixes), all exit 0: `f-green-web-reliability-7` (12 files, 333 tests, from `apps/web` with the web `vitest.config.ts`, `--project=unit`; the file count matches the 12 files listed), `f-green-schema-contract` (4 tests), package builds `f-build-*`, and typechecks `f-tc-shared`, `f-tc-schema`, `f-tc-rules-runtime`, `f-tc-rules-runtime-tests`, `f-tc-authoring`, `f-tc-web-app`, `f-tc-web-tests`, `f-tc-web-stories`. `tc-apis-build` (pre-merge, exit 0) covers the touched Convex source. Earlier pre-merge runs are the `green-*` and `m-*` logs.
+Final runs on the tree after the review round and the third base merge (RELIABILITY-3 and VTT_UI-5 `874e37636`), all exit 0 (logs in the main checkout under `local-validation/reliability-7/`):
+
+- `g-build-*`: package builds in dependency order.
+- `g-green-schema-contract` (1 file, 4 tests), `g-green-authoring` (7 files, 71 tests), `g-green-rules-runtime` (87 files, 991 tests): from the root `vitest.config.ts`; the file counts match the package directories.
+- `h-green-web-reliability-7`: 14 files from `apps/web` with the web `vitest.config.ts` and `--project=unit` (the 12 earlier files plus `src/test/authoredRouteStory.utils.test.ts` and `src/domains/authoredRouteStory.fixtures.test.ts`); the file count matches the 14 listed. (`g-green-web-reliability-7` was exit 1 for two assertions fixed afterwards: the speed matcher and the boundary test's handling of `forms/tests`.)
+- Typechecks `h-tc-shared`, `h-tc-schema`, `h-tc-rules-runtime`, `h-tc-rules-runtime-tests`, `h-tc-authoring`, `h-tc-web-app`, `h-tc-web-tests`, `h-tc-web-stories`, and `h-tc-apis-build` (covers the rewritten `systemSources.ts` and `authoredSources.ts`).
 
 ### Owed to the main checkout after merge
 
@@ -72,7 +79,7 @@ Final run on the merged tree (base merged twice; second merge brought the VTT_UI
 
 ### Development-data migration
 
-The main session resets and reseeds after merge. Stored `hitpoints.levels[].overridden` is not tolerated: `characterBuildStates` is Convex-validated (`zodToConvexFields(characterStoredBuildStateSchema.shape)`), so a stored row that still has the field would be rejected until the reset and reseed removes it. There is no legacy-data handling (pre-launch); the reset and reseed after merge is the migration. The contract no longer carries the field (`character-rules-contracts.test.ts`). A MANUAL Character with no roll for a level now requires one instead of falling back to the override.
+The main session resets and reseeds after merge. Stored `hitpoints.levels[].overridden` is not tolerated: `characterBuildStates` is Convex-validated (`zodToConvexFields(characterStoredBuildStateSchema.shape)`), so a stored row that still has the field is rejected until the reset and reseed removes it. There is no legacy-data handling (pre-launch); the reset and reseed after merge is the migration. The contract no longer carries the field (`character-rules-contracts.test.ts`). A MANUAL Character with no roll for a level now requires one instead of falling back to the override.
 
 ### Deviations
 
@@ -80,6 +87,10 @@ The main session resets and reseeds after merge. Stored `hitpoints.levels[].over
 - The third proficiency copy in `characterDerivedStats.ts` was folded in, not only the web copies.
 - `GuidedEntryJourneys` and `AuthoredDomainAuthoringLayout` stubbed the normalizer; they now use the real one. This exposed fixtures with relationship IDs that are not in the SRD (equipment, speed): the real normalizer clears them, which opens the "Clear hidden values?" confirmation. Fixtures now use real SRD IDs (`authoredRouteStory.fixtures.ts` speeds are the SRD speeds; the SRD walking code is `WALK`).
 - A form with `resolveModel: false` and no provided model now renders nothing (the static branch used to render something). Test harnesses supply scopes through `withResolvedScopes`, which recurses into nested object and array groups and is re-resolved as values change. They also gate on the context's `providedModel` (it reaches the layout one render after local state) and warm the SRD facts first (`warmFixtureAuthoredSources`), because the first resolve builds the SRD source projections.
+- Review round: a nested group editor rendered empty whenever the root model had scopes but none for its row (a freshly added row before re-resolve, and `{}` object groups permanently, because the server emits scopes only for populated rows). `FormRenderer` now resolves a child's own model whenever its scope lookup is undefined (`renderChild` and the delegated renderer).
+- Review round: one resolver source reader, `createNodeRuntimeSourceReader` in `packages/authoring`, replaces the near-identical readers in `apps/apis/convex/authoring/systemSources.ts` and the web test harness; `resolveNestedRuntimeScopes` is exported from `@artificer-toolkit/authoring/nodeRuntime` and `withResolvedScopes.ts` calls it instead of a copy.
+- Review round: `authoredRouteStory.utils.ts` moved to `src/test` (it imports the real resolver); `FormArchitectureBoundaries` now fails if production code imports `#test/*`. The VTT_UI-5 compact transport is kept: the story client answers with `compactNodeRuntimeResponse(...)` of the real resolver output, and `authoredRouteStory.utils.test.ts` asserts it expands to that output for `creature` and `spell`.
+- Finding (existing, not this slice): the speed option `description` is never served. The `speed` node map selects `['id','label','tooltip']`, the System speed rows carry `description`, and the shared reader projects only the selected columns, in the Convex reader before this slice as well. So the Walking Speed option has no description in production. The matcher asserts what the resolver serves; the fix (select `description`, or the vocabulary carries `tooltip`) belongs to whoever owns the speed map.
 - Several `nodeRuntimeResolver.test.ts` and parity assertions are stronger than before: the class filter now uses `category === 'BASE'`; the old `'CLASS'` filter matched nothing and passed vacuously.
 
 ### Risks
@@ -90,7 +101,9 @@ The main session resets and reseeds after merge. Stored `hitpoints.levels[].over
 
 ### Follow-ups (outside this slice)
 
-None. The remaining ability-modifier copies (`effectActionCompiler.ts`, `characterResources.ts`) were folded into this slice in the review round and now call the shared `abilityModifier`.
+- Speed option descriptions are not served (see Deviations, finding): the `speed` node map selects `tooltip`, the System speeds carry `description`. Needs an owner; not fixed here because it changes a shared node map's served options.
+
+The remaining ability-modifier copies (`effectActionCompiler.ts`, `characterResources.ts`) were folded into this slice in the review round and now call the shared `abilityModifier`.
 
 ## Proposed ledger edits (filled by the slice session)
 
