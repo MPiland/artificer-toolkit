@@ -7679,7 +7679,35 @@
             "rr": 5,
             "size": 3,
             "after": ["VTT_UI-5"]
-          }
+          },
+          "tasks": [
+            {
+              "id": "RELIABILITY-5.T1",
+              "text": "Speed and sense modifier values are lengths with a unit through the shared conversion; malformed speeds refused at publish and an invariant failure at read; SRD content and node map migrated.",
+              "status": "IN_PROGRESS",
+              "closes": ["RELIABILITY-5.2"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 5,
+                "size": 3,
+                "after": ["VTT_UI-5"]
+              }
+            },
+            {
+              "id": "RELIABILITY-5.T2",
+              "text": "The persisted Sheet MOVEMENT SPEED_OVERRIDE adjustment is a length with a unit (Sheet input with a unit), and the FEET/0 defaults in characterMovementRuleFacts.ts and sheetPanel.ts are removed; dev data migrated by reset. Found 2026-10-14 in the RELIABILITY-5 fix round.",
+              "status": "TODO",
+              "closes": ["RELIABILITY-5.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": ["RELIABILITY-5.T1"]
+              }
+            }
+          ]
         },
         {
           "id": "RELIABILITY-6",
