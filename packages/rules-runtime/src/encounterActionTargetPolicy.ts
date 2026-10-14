@@ -154,7 +154,7 @@ export function evaluateEncounterActionTargetPolicy(input: {
       code: 'TARGET_OUT_OF_RANGE',
       // Reach 0 ft. (a swarm's "one target in the swarm's space") needs the footprints to overlap.
       message:
-        range.rangeKind === 'DISTANCE' && range.amount === 0
+        range.rangeKind === 'DISTANCE' && range.amount === 0 && range.longAmount === undefined
           ? "The target isn't in this creature's space."
           : 'The target is out of range.'
     })

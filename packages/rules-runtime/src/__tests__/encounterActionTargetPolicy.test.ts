@@ -476,6 +476,7 @@ describe('encounter action target range', () => {
         unit: 'FEET' as const
       }
       const source = token(10, 10, 2)
+      const bandsSeen = new Set<string>()
       for (let column = 0; column <= 22; column += 1)
         for (let row = 0; row <= 22; row += 1) {
           const target = token(column, row)
@@ -483,6 +484,7 @@ describe('encounter action target range', () => {
             normal: { amount: 20, unit: 'FEET' },
             long: { amount: 40, unit: 'FEET' }
           })
+          bandsSeen.add(band)
           const warnings = rangeWarnings({ range, scene: { grid, source, target } })
           const contributor = encounterActionLongRangeContributor({
             targetPolicy: {
@@ -497,8 +499,38 @@ describe('encounter action target range', () => {
           expect(warnings.length > 0, `${diagonalPolicy} ${column},${row}`).toBe(band === 'OUT')
           expect(contributor !== null, `${diagonalPolicy} ${column},${row}`).toBe(band === 'LONG')
         }
+      expect([...bandsSeen].sort()).toEqual(['LONG', 'NORMAL', 'OUT'])
     }
   )
+
+  it('still grants long range disadvantage past a zero normal range that has a long range', () => {
+    const targetPolicy = {
+      range: {
+        id: 'range',
+        rangeKind: 'DISTANCE' as const,
+        amount: 0,
+        longAmount: 30,
+        unit: 'FEET' as const
+      },
+      targeting: { selectionKind: 'SINGLE_TARGET' as const, dispositionKind: 'ANY' as const },
+      shape: null,
+      pathOverrides: []
+    }
+    const contributorAt = (column: number) =>
+      encounterActionLongRangeContributor({
+        targetPolicy,
+        sceneContext: {
+          grid: FEET_GRID,
+          sourceToken: token(5, 5, 2),
+          targetToken: token(column, 5)
+        }
+      })
+    // Column 6 overlaps the Large source; squares are measured a cell apart from the next one over.
+    expect(contributorAt(6)).toBeNull()
+    expect(contributorAt(7)).not.toBeNull()
+    expect(contributorAt(12)).not.toBeNull()
+    expect(contributorAt(13)).toBeNull()
+  })
 
   it('refuses policies the single-target path cannot resolve', () => {
     const cone = {

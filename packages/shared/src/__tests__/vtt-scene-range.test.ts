@@ -82,6 +82,15 @@ describe('Scene range band', () => {
     expect(sceneRangeBand(equal, source, cellToken(7, 5), { normal: feet(0) })).toBe('OUT')
   })
 
+  it('judges a zero normal range that has a long range by distance, not overlap', () => {
+    const source = cellToken(5, 5, 2)
+    const range = { normal: feet(0), long: feet(30) }
+    expect(sceneRangeBand(equal, source, cellToken(6, 6), range)).toBe('NORMAL')
+    expect(sceneRangeBand(equal, source, cellToken(7, 5), range)).toBe('LONG')
+    expect(sceneRangeBand(equal, source, cellToken(12, 5), range)).toBe('LONG')
+    expect(sceneRangeBand(equal, source, cellToken(13, 5), range)).toBe('OUT')
+  })
+
   it('adds the base square on a gridless Scene', () => {
     const source = { height: 50, position: { x: 0, y: 0 }, width: 50 }
     const target = (gap: number) => ({
@@ -106,8 +115,8 @@ describe('Scene range outline', () => {
       const source = cellToken(20, 20, 2)
       for (const reach of [15, 30]) {
         const outline = sceneRangeOutline(grid, source, feet(reach))
-        expect(outline).not.toBeNull()
-        const polygon = { points: outline ?? [] }
+        if (!outline) throw new Error(`Expected a ${reach} ft outline.`)
+        const polygon = { points: outline }
         for (const column of window)
           for (const row of window) {
             const target = cellToken(21 + column, 21 + row)
@@ -123,7 +132,9 @@ describe('Scene range outline', () => {
   it('reaches a Large target when any of its squares is enclosed', () => {
     const grid = squareGrid('ALTERNATING')
     const source = cellToken(20, 20)
-    const outline = { points: sceneRangeOutline(grid, source, feet(15)) ?? [] }
+    const points = sceneRangeOutline(grid, source, feet(15))
+    if (!points) throw new Error('Expected a 15 ft outline.')
+    const outline = { points }
     for (const column of window)
       for (const row of window) {
         const target = cellToken(21 + column, 21 + row, 2)
@@ -143,8 +154,13 @@ describe('Scene range outline', () => {
   it('rounds a gridless footprint out by the range less the base square', () => {
     const source = { height: 50, position: { x: 400, y: 400 }, width: 50 }
     // The arcs are polygon chords, so a point must clear the edge by a few pixels to be decided.
-    const inner = { points: sceneRangeOutline(gridless, source, feet(14.5)) ?? [] }
-    const outer = { points: sceneRangeOutline(gridless, source, feet(15.5)) ?? [] }
+    const innerPoints = sceneRangeOutline(gridless, source, feet(14.5))
+    const outerPoints = sceneRangeOutline(gridless, source, feet(15.5))
+    if (!innerPoints || !outerPoints) throw new Error('Expected gridless outlines.')
+    const inner = { points: innerPoints }
+    const outer = { points: outerPoints }
+    let decidedInside = 0
+    let decidedOutside = 0
     for (let x = 250; x <= 550; x += 7)
       for (let y = 250; y <= 550; y += 7) {
         const point = { x, y }
@@ -156,9 +172,17 @@ describe('Scene range outline', () => {
             normal: feet(15)
           }
         )
-        if (scenePointInPolygon(point, inner)) expect(band, `${x},${y}`).toBe('NORMAL')
-        if (!scenePointInPolygon(point, outer)) expect(band, `${x},${y}`).toBe('OUT')
+        if (scenePointInPolygon(point, inner)) {
+          decidedInside += 1
+          expect(band, `${x},${y}`).toBe('NORMAL')
+        }
+        if (!scenePointInPolygon(point, outer)) {
+          decidedOutside += 1
+          expect(band, `${x},${y}`).toBe('OUT')
+        }
       }
+    expect(decidedInside).toBeGreaterThan(0)
+    expect(decidedOutside).toBeGreaterThan(0)
   })
 
   it('has no outline for an empty range or one shorter than the base square', () => {

@@ -175,6 +175,47 @@ const targetRingBands = {
   OUT: { color: 0xe03131, label: 'Target out of range' }
 } as const
 
+type ActionPreviewScene = Pick<CampaignSceneStateDto, 'grid' | 'tokens'>
+type ActionPreviewLength = Extract<
+  NonNullable<VttActionPreview['range']>,
+  { kind: 'WITHIN' }
+>['distance']
+
+let rangeOutlinesMemo: { key: string; overlays: VttScenePresentationOverlay[] } | null = null
+
+/**
+ * The RANGE outlines of an acting token. The stage rebuilds its overlays on every Scene update,
+ * but the outlines depend only on the token's footprint, the grid and the range, so the last
+ * result is reused for an equal key (a target change or another token's move builds nothing).
+ */
+function rangeOutlineOverlays(
+  grid: SceneGrid,
+  source: ActionPreviewScene['tokens'][number],
+  distances: readonly ActionPreviewLength[]
+): VttScenePresentationOverlay[] {
+  const key = JSON.stringify([grid, distances, source.position, source.width, source.height])
+  if (rangeOutlinesMemo?.key !== key)
+    rangeOutlinesMemo = {
+      key,
+      overlays: distances.flatMap((distance, index) => {
+        const points = distance.scaling === undefined && sceneRangeOutline(grid, source, distance)
+        return points
+          ? [
+              {
+                color: rangeColor,
+                id: `action-range-${index}`,
+                kind: 'POLYGON' as const,
+                label: index === 0 ? 'Action range' : 'Action long range',
+                points,
+                purpose: 'RANGE' as const
+              }
+            ]
+          : []
+      })
+    }
+  return rangeOutlinesMemo.overlays
+}
+
 /**
  * The RANGE outlines around the acting token and the TARGET ring around the chosen target, in Scene
  * coordinates. Both come from the shared range functions the rules judge a target with, so the
@@ -184,7 +225,7 @@ const targetRingBands = {
  */
 export function actionPreviewOverlays(
   preview: VttActionPreview | null,
-  scene: Pick<CampaignSceneStateDto, 'grid' | 'tokens'>
+  scene: ActionPreviewScene
 ): VttScenePresentationOverlay[] {
   if (!preview) return []
   const overlays: VttScenePresentationOverlay[] = []
@@ -195,21 +236,7 @@ export function actionPreviewOverlays(
       : preview.range?.kind === 'RANGED'
         ? [preview.range.normal, preview.range.long]
         : []
-  if (source) {
-    for (const [index, distance] of distances.entries()) {
-      const points =
-        distance.scaling === undefined && sceneRangeOutline(scene.grid, source, distance)
-      if (points)
-        overlays.push({
-          color: rangeColor,
-          id: `action-range-${index}`,
-          kind: 'POLYGON',
-          label: index === 0 ? 'Action range' : 'Action long range',
-          points,
-          purpose: 'RANGE'
-        })
-    }
-  }
+  if (source) overlays.push(...rangeOutlineOverlays(scene.grid, source, distances))
   const target = scene.tokens.find((token) => token.id === preview.targetTokenId)
   if (target) {
     const [normal, long] = distances

@@ -210,6 +210,32 @@ describe('VTT scene renderer model', () => {
         ).toMatchObject({ label: 'Action target', purpose: 'TARGET' })
     })
 
+    it('rebuilds the range outlines only when the acting token, the grid or the range changes', () => {
+      const range = { kind: 'RANGED' as const, normal: feet(30), long: feet(120) }
+      const overlaysFor = (scene: ReturnType<typeof sceneWith>, rangeToDraw = range) =>
+        actionPreviewOverlays(preview(rangeToDraw, target.id), scene)
+      const first = overlaysFor(sceneWith(target.position))
+      const targetMoved = overlaysFor(
+        sceneWith({ x: target.position.x + 70, y: target.position.y })
+      )
+      const refetched = overlaysFor(structuredClone(sceneWith(target.position)))
+      for (const next of [targetMoved, refetched]) {
+        expect(next[0]).toBe(first[0])
+        expect(next[1]).toBe(first[1])
+      }
+      const sourceMoved = overlaysFor({
+        ...sceneWith(target.position),
+        tokens: [
+          { ...source, position: { x: source.position.x + 70, y: source.position.y } },
+          { ...target }
+        ]
+      })
+      expect(sourceMoved[0]).not.toBe(first[0])
+      expect(overlaysFor(sceneWith(target.position), { ...range, normal: feet(35) })[0]).not.toBe(
+        first[0]
+      )
+    })
+
     it('draws nothing without a preview', () => {
       expect(actionPreviewOverlays(null, tabletopLiveScene)).toEqual([])
     })

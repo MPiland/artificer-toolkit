@@ -13,6 +13,6 @@ describe('validated fixture', () => {
 
   it('rejects a fixture that breaks its schema, so a contract change fails the fixture first', () => {
     // @ts-expect-error the literal is deliberately off-contract
-    expect(() => validatedNamed({ name: 3 })).toThrow()
+    expect(() => validatedNamed({ name: 3 })).toThrow(z.ZodError)
   })
 })

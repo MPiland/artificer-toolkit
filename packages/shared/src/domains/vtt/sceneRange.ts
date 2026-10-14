@@ -16,7 +16,7 @@ export type SceneRangeBand = 'NORMAL' | 'LONG' | 'OUT'
 /**
  * The band `target` falls in for an action ranged from `source`. The one place a range is held
  * against a footprint-to-footprint distance, so the rules and the table preview cannot disagree.
- * A zero range reaches only a footprint that overlaps the source.
+ * A zero range without a long range reaches only a footprint that overlaps the source.
  */
 export function sceneRangeBand(
   grid: SceneGrid,
@@ -24,7 +24,7 @@ export function sceneRangeBand(
   target: RangeToken,
   range: { normal: RangeLength; long?: RangeLength }
 ): SceneRangeBand {
-  if (range.normal.amount === 0)
+  if (range.normal.amount === 0 && !range.long)
     return sceneTokenFootprintsOverlap(source, target) ? 'NORMAL' : 'OUT'
   const measured = measureSceneTokenFootprintDistance(grid, source, target)
   const normalMaximum = lengthMeasurementInSceneUnits(range.normal, grid)
@@ -74,9 +74,27 @@ function roundedBoxOutline(source: RangeToken, reach: number): ScenePoint[] {
 }
 
 /**
+ * The largest offset in 0..`limit` at which `inRange` holds, or -1 when it fails at offset 0.
+ * `inRange` must hold up to some offset and never again after it (a distance only grows with the gap).
+ */
+function farthestInRange(limit: number, inRange: (offset: number) => boolean): number {
+  if (!inRange(0)) return -1
+  let near = 0
+  let far = limit
+  while (near < far) {
+    const middle = Math.ceil((near + far) / 2)
+    if (inRange(middle)) near = middle
+    else far = middle - 1
+  }
+  return near
+}
+
+/**
  * The outline of the squares a Medium target may stand on and still be measured within `maximum`
- * of the source, each one tested with the same footprint measure the rules use. Rows reach
- * contiguously from the source because distance only grows with the gap.
+ * of the source, each one tested with the same footprint measure the rules use. From the square
+ * under the source's center the range runs contiguously in every direction, and the square in a
+ * row nearest the source is the one in the source's column, so each edge is a binary search
+ * rather than a scan of the whole window.
  */
 function squareRangeOutline(
   grid: Extract<SceneGrid, { kind: 'SQUARE' }>,
@@ -90,32 +108,32 @@ function squareRangeOutline(
     2
   const sourceColumn = Math.floor((source.position.x - origin.x) / cellSize)
   const sourceRow = Math.floor((source.position.y - origin.y) / cellSize)
-  const rows: { bottom: number; left: number; right: number; top: number }[] = []
-  for (let row = sourceRow - reach; row <= sourceRow + reach; row += 1) {
-    let first: number | null = null
-    let last: number | null = null
-    for (let column = sourceColumn - reach; column <= sourceColumn + reach; column += 1) {
-      const target = {
-        height: cellSize,
-        position: {
-          x: origin.x + (column + 0.5) * cellSize,
-          y: origin.y + (row + 0.5) * cellSize
-        },
-        width: cellSize
-      }
-      if (measureSceneTokenFootprintDistance(grid, source, target) > maximum) continue
-      first ??= column
-      last = column
+  const isWithin = (column: number, row: number) =>
+    measureSceneTokenFootprintDistance(grid, source, {
+      height: cellSize,
+      position: { x: origin.x + (column + 0.5) * cellSize, y: origin.y + (row + 0.5) * cellSize },
+      width: cellSize
+    }) <= maximum
+  const above = farthestInRange(reach, (offset) => isWithin(sourceColumn, sourceRow - offset))
+  const below = farthestInRange(reach, (offset) => isWithin(sourceColumn, sourceRow + offset))
+  if (above < 0 || below < 0) return null
+  const rows = Array.from({ length: above + below + 1 }, (_, index) => {
+    const row = sourceRow - above + index
+    return {
+      bottom: origin.y + (row + 1) * cellSize,
+      left:
+        origin.x +
+        (sourceColumn - farthestInRange(reach, (offset) => isWithin(sourceColumn - offset, row))) *
+          cellSize,
+      right:
+        origin.x +
+        (sourceColumn +
+          1 +
+          farthestInRange(reach, (offset) => isWithin(sourceColumn + offset, row))) *
+          cellSize,
+      top: origin.y + row * cellSize
     }
-    if (first !== null && last !== null)
-      rows.push({
-        bottom: origin.y + (row + 1) * cellSize,
-        left: origin.x + first * cellSize,
-        right: origin.x + (last + 1) * cellSize,
-        top: origin.y + row * cellSize
-      })
-  }
-  if (rows.length === 0) return null
+  })
   return withoutRedundantPoints([
     ...rows.flatMap(({ bottom, left, top }) => [
       { x: left, y: top },
