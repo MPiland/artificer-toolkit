@@ -18,7 +18,7 @@ import {
   latestStageRenderer,
   type VttRendererDiagnostics
 } from './vttSceneRenderer.assertions'
-import type { VttScenePresentationOverlay } from './vttSceneRenderer.model'
+import { actionPreviewOverlays, type VttScenePresentationOverlay } from './vttSceneRenderer.model'
 import {
   maxStatusSegments,
   minimumFocusedTokenScreenSize,
@@ -181,11 +181,13 @@ const overlays = [
 
 function PresentationFixture({
   lowZoom = false,
+  overlays: shownOverlays = overlays,
   presentations = tokenPresentations,
   scene = presentationScene,
   selectedTokenId = null
 }: {
   lowZoom?: boolean
+  overlays?: VttScenePresentationOverlay[]
   presentations?: typeof tokenPresentations
   scene?: CampaignSceneStateDto
   selectedTokenId?: string | null
@@ -221,7 +223,7 @@ function PresentationFixture({
         currentUserId: tabletopCurrentUserId,
         mapDelivery: null,
         mode: 'PLAY',
-        overlays,
+        overlays: shownOverlays,
         role: 'OWNER',
         scene,
         selectedTokenId,
@@ -236,7 +238,7 @@ function PresentationFixture({
       renderer.current?.destroy()
       renderer.current = null
     }
-  }, [lowZoom, presentations, scene, selectedTokenId])
+  }, [lowZoom, presentations, scene, selectedTokenId, shownOverlays])
 
   return (
     <section
@@ -270,6 +272,29 @@ async function renderedScene(canvasElement: HTMLElement) {
         .getByRole('img', { name: 'Interactive campaign scene' })
         .getAttribute('aria-description') ?? '',
     diagnostics: JSON.parse(output.textContent ?? '{}') as VttRendererDiagnostics
+  }
+}
+
+// VTT_UI-3.1: the chosen action's range and target are drawn from the server's range geometry.
+export const ActionRangeAndTargetPreview: Story = {
+  args: {
+    overlays: actionPreviewOverlays(
+      {
+        range: {
+          kind: 'RANGED',
+          normal: { amount: 30, unit: 'FEET' },
+          long: { amount: 120, unit: 'FEET' }
+        },
+        sourceTokenId: emberToken!.id,
+        targetTokenId: wardenToken!.id
+      },
+      presentationScene
+    )
+  },
+  play: async ({ canvasElement }) => {
+    const { diagnostics } = await renderedScene(canvasElement)
+    // Normal and long range around the acting token, and the ring on the target.
+    await expect(diagnostics).toMatchObject({ overlayCount: 3 })
   }
 }
 
