@@ -8105,7 +8105,7 @@
                 "apps/web/src/domains/campaigns/vtt/vttSceneRenderer.model.test.ts"
               ],
               "origin": ["G4-PERCEPTION"],
-              "note": "Original PARTIAL: V03.5 covers visibility facts, not rendering. Refined 2026-10-12 by the product owner (map colour and darkvision); senses split into VTT_UI-3.4. Rules stay in rules-runtime and the Session Worker; apps/web only draws. Refined by the PO; D108 precedence. Rework of 6568f57eb: lights erase ambient darkness, DARK renders black, no vision wash, GM see-all and token-view preview, pixel-sampled proof against resolveSceneIlluminationAt. Lane 3: D108 precedence drawn as one darkness overlay whose alpha encodes the class (BRIGHT 0, DIM 0.5, ORDINARY and MAGICAL 1): ambient, then darkening zones, then lights erase within their radii clipped by walls, then magical darkness (zone or ambient) last. Light colour is a faint tint; obscurement its own layer; no vision wash, a player's map is black outside their tokens' sight. GM sees all at darkness alpha 0.6 (approved) and can preview one token's view. Lighting stories sample drawn overlay alpha at points and compare with resolveSceneIlluminationAt, including a torch in an ordinary darkness zone, magical darkness over a torch, a magically dark Scene, a wall blocking a light, and a closed versus an open door. The light tint is read from the drawn tint layer (light colour, alpha lightTintAlpha at most 0.2, one polygon per radius); visual-only zones draw at their own opacities (0.3 and 0.62, VisualZonesDrawAtTheirOwnOpacity; red with a fixed 0.5 in tight-red.log). A Player with no seeing token sees a black map. Through the Stage, the GM preview draws one sight polygon and stops on toggle-off or when the token leaves the Scene (window stories). Known behaviour (accepted by lane 1): the GM's chosen preview resumes if that token returns to the Scene. Awaiting lane 1 acceptance of the review fixes. The GM's Creature-token preview shows authored token sight until VTT_UI-5 brings stat-block senses.",
+              "note": "Original PARTIAL: V03.5 covers visibility facts, not rendering. Refined 2026-10-12 by the product owner (map colour and darkvision); senses split into VTT_UI-3.4. Rules stay in rules-runtime and the Session Worker; apps/web only draws. Refined by the PO; D108 precedence. Rework of 6568f57eb: lights erase ambient darkness, DARK renders black, no vision wash, GM see-all and token-view preview, pixel-sampled proof against resolveSceneIlluminationAt. Lane 3: D108 precedence drawn as one darkness overlay whose alpha encodes the class (BRIGHT 0, DIM 0.5, ORDINARY and MAGICAL 1): ambient, then darkening zones, then lights erase within their radii clipped by walls, then magical darkness (zone or ambient) last. Light colour is a faint tint; obscurement its own layer; no vision wash, a player's map is black outside their tokens' sight. GM sees all at darkness alpha 0.6 (approved) and can preview one token's view. Lighting stories sample drawn overlay alpha at points and compare with resolveSceneIlluminationAt, including a torch in an ordinary darkness zone, magical darkness over a torch, a magically dark Scene, a wall blocking a light, and a closed versus an open door. The light tint is read from the drawn tint layer (light colour, alpha lightTintAlpha at most 0.2, one polygon per radius); visual-only zones draw at their own opacities (0.3 and 0.62, VisualZonesDrawAtTheirOwnOpacity; red with a fixed 0.5 in tight-red.log). A Player with no seeing token sees a black map. Through the Stage, the GM preview draws one sight polygon and stops on toggle-off or when the token leaves the Scene (window stories). Known behaviour (accepted by lane 1): the GM's chosen preview resumes if that token returns to the Scene. Awaiting lane 1 acceptance of the review fixes. The GM's Creature-token preview reads the Creature's stat-block senses since VTT_UI-5 (2026-10-14).",
               "id": "VTT_UI-3.2"
             },
             {
@@ -8195,23 +8195,35 @@
         {
           "id": "VTT_UI-5",
           "title": "Creatures see with their stat-block senses",
-          "status": "TODO",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": ["apps/session-worker/src/roomSceneVision.test.ts"],
+          "journeyStatus": "verified",
           "origin": [],
-          "note": "Split from VTT_UI-3.4 on 2026-10-12 (D108). Creature senses are free-text display strings today (subjects/creature.ts, snapshotStatBlock), and roomSceneVision binds Character actors only. Until this lands, the GM's preview of a Creature's view shows only its authored token sight.",
+          "note": "Split from VTT_UI-3.4 on 2026-10-12 (D108). Done 2026-10-14 (D111; merges after fbe216325 plus the post-merge fix 11a2f4f2f): Creature senses are structured entries checked at publication, the room derives Creature and Character senses through one function (rules-runtime actorSenses.ts), and attack and movement-reaction perception read them; D100's UNKNOWN sight verdict is retired. Post-merge green: rules-runtime, shared and schema 208 files, apis encounters, content, scenes and liveSessions 173 files, session-worker 47 files, typecheck and typecheck:convex (local-validation/vtt-ui-5-merge2/); local Convex deployed, reset (backup convex-reset/vtt-ui-5-senses.before.zip), reseeded 1057 subjects, audit OK.",
           "acs": [
             {
               "text": "Creature senses are authored as structured entries (sense definition and range) on the Creature and its stat block, and every SRD Creature's senses are migrated to them; a source-data test proves the structured senses match the printed ones.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/source-data/src/srd/creatureStatBlocks.test.ts",
+                "packages/shared/src/__tests__/creature-senses.test.ts",
+                "packages/rules-runtime/src/__tests__/creatureSnapshotSenses.test.ts",
+                "apps/apis/convex/content/creaturePublication.test.ts",
+                "apps/web/src/forms/tests/AuthoredDomainAuthoringLayout.test.tsx › submits a Creature sense entry added in the editor",
+                "apps/web/src/domains/creatures/stories/CreatureEditRoute.stories.tsx"
+              ],
               "origin": [],
               "id": "VTT_UI-5.1"
             },
             {
               "text": "A Creature token on a Scene carries its senses like a Character token, derived by the same function, so the GM's preview of its view and combat perception both use them.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/rules-runtime/src/__tests__/actorSenses.test.ts",
+                "packages/rules-runtime/src/__tests__/encounterAttackPerception.test.ts",
+                "apps/session-worker/src/roomSceneVision.test.ts",
+                "apps/web/src/domains/campaigns/components/EncounterEnemyStatBlock.test.tsx"
+              ],
               "origin": [],
               "id": "VTT_UI-5.2"
             }
