@@ -385,7 +385,12 @@ describe('catching the creatures in a directed area', () => {
       { ...token('00000000-0000-4000-8000-0000000f2002', 4), actorId: ALLY_ID },
       { ...token('00000000-0000-4000-8000-0000000f2003', 40), actorId: FOE_ID }
     ]
-    const shape = { kind: 'CUBE_FROM_SIDE', edgeLength: 10, toward: { x: 20, y: 0 } } as const
+    const shape = {
+      kind: 'CUBE_FROM_SIDE',
+      edgeLength: 10,
+      cellSize: 2,
+      toward: { x: 20, y: 0 }
+    } as const
     expect(
       catchEncounterAreaActorIds({
         origin: { x: 1, y: 0 },
@@ -394,6 +399,31 @@ describe('catching the creatures in a directed area', () => {
         tokens
       })
     ).toEqual([ALLY_ID])
+  })
+
+  it('does not catch the caster through another token of theirs, nor anyone without a caster token', () => {
+    const shape = { kind: 'CONE', length: 10, toward: { x: 20, y: 0 } } as const
+    const casterTokens = [
+      { ...token('00000000-0000-4000-8000-0000000f2001', 0), actorId: CASTER_ID },
+      { ...token('00000000-0000-4000-8000-0000000f2002', 4), actorId: CASTER_ID },
+      { ...token('00000000-0000-4000-8000-0000000f2003', 5), actorId: ALLY_ID }
+    ]
+    expect(
+      catchEncounterAreaActorIds({
+        origin: { x: 1, y: 0 },
+        shape,
+        casterActorId: CASTER_ID,
+        tokens: casterTokens
+      })
+    ).toEqual([ALLY_ID])
+    expect(
+      catchEncounterAreaActorIds({
+        origin: { x: 1, y: 0 },
+        shape,
+        casterActorId: FOE_ID,
+        tokens: casterTokens
+      })
+    ).toEqual([])
   })
 })
 

@@ -14,13 +14,16 @@ import {
   type EncounterActionChoicesDto,
   type EncounterEscapeChoiceDto
 } from '@artificer-toolkit/schema/api/encounterActionChoices'
-import type { SpatialAreaShape } from '@artificer-toolkit/shared/vtt'
+import {
+  directedAreaSizeInSceneCoordinates,
+  pointAreaInSceneCoordinates
+} from '@artificer-toolkit/shared/vtt'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { validated } from '../../../test/validatedFixture'
 import { CampaignTabletopActionDrawer } from './CampaignTabletopActionDrawer'
 import { tabletopGmEncounter, tabletopLiveScene } from './CampaignTabletop.stories.fixtures'
 import { LiveSessionCommandRejectedError } from './liveSessionClient'
-import type { VttActionPreview } from './vttSceneRenderer.model'
+import type { VttActionPreview, VttAreaAim, VttAreaSize } from './vttSceneRenderer.model'
 
 vi.mock('#app/settings/useGmRollVisibilityPreference', () => ({
   useGmRollVisibilityPreference: () => ({
@@ -77,11 +80,9 @@ function drawerElement(
     isGm = false,
     waitingOn = null,
     scene = tabletopLiveScene,
-    areaOrigin = null,
-    areaToward = null,
-    onAreaOriginChange = vi.fn(),
-    onAreaTowardChange = vi.fn(),
-    onAreaShapeChange = vi.fn(),
+    areaAim = null,
+    onAreaAimChange = vi.fn(),
+    onAreaSizeChange = vi.fn(),
     onActionPreviewChange = vi.fn(),
     actorIdByTokenId = new Map(),
     onPickAreaOrigin = vi.fn()
@@ -98,11 +99,9 @@ function drawerElement(
     isGm?: boolean
     waitingOn?: 'GM' | 'PLAYER' | null
     scene?: typeof tabletopLiveScene | null
-    areaOrigin?: { x: number; y: number } | null
-    areaToward?: { x: number; y: number } | null
-    onAreaOriginChange?: (point: { x: number; y: number } | null) => void
-    onAreaTowardChange?: (point: { x: number; y: number } | null) => void
-    onAreaShapeChange?: (shape: SpatialAreaShape | null) => void
+    areaAim?: VttAreaAim | null
+    onAreaAimChange?: (aim: VttAreaAim | null) => void
+    onAreaSizeChange?: (size: VttAreaSize | null) => void
     onActionPreviewChange?: (preview: VttActionPreview | null) => void
     actorIdByTokenId?: ReadonlyMap<string, string>
     onPickAreaOrigin?: () => void
@@ -125,12 +124,10 @@ function drawerElement(
       pending={false}
       unavailableActions={unavailableActions}
       scene={scene}
-      areaOrigin={areaOrigin}
-      areaToward={areaToward}
+      areaAim={areaAim}
       waitingOn={waitingOn}
-      onAreaOriginChange={onAreaOriginChange}
-      onAreaTowardChange={onAreaTowardChange}
-      onAreaShapeChange={onAreaShapeChange}
+      onAreaAimChange={onAreaAimChange}
+      onAreaSizeChange={onAreaSizeChange}
       onActionPreviewChange={onActionPreviewChange}
       onPickAreaOrigin={onPickAreaOrigin}
       onClose={vi.fn()}
@@ -786,6 +783,10 @@ describe('CampaignTabletopActionDrawer attack slots (D93)', () => {
 })
 
 describe('CampaignTabletopActionDrawer area origin (D103)', () => {
+  const fireballArea = {
+    kind: 'RADIUS' as const,
+    radius: { amount: 20, unit: 'FEET' as const }
+  }
   const fireball = validatedChoice({
     ...actions[0]!,
     id: 'spell-fireball:cast',
@@ -793,13 +794,9 @@ describe('CampaignTabletopActionDrawer area origin (D103)', () => {
     sourceLabel: 'Spell',
     rangeLabel: '150 ft',
     attackBonus: undefined,
-    target: {
-      kind: 'POINT' as const,
-      area: { kind: 'RADIUS' as const, radius: { amount: 20, unit: 'FEET' as const } }
-    }
+    target: { kind: 'POINT' as const, area: fireballArea }
   })
   const ember = tabletopLiveScene.tokens[0]!
-  const radiusInCoordinates = (20 / tabletopLiveScene.grid.distancePerCell) * 70
 
   async function chooseFireball(user: ReturnType<typeof userEvent.setup>) {
     await user.click(await screen.findByRole('combobox', { name: 'Action' }))
@@ -809,15 +806,13 @@ describe('CampaignTabletopActionDrawer area origin (D103)', () => {
   it('asks for an origin instead of a target, then sends the point with the Scene it was picked on', async () => {
     const user = userEvent.setup()
     const onResolve = vi.fn<(command: ResolveEncounterActionInputDto) => Promise<unknown>>()
-    const onAreaOriginChange = vi.fn()
-    const onAreaTowardChange = vi.fn()
-    const onAreaShapeChange = vi.fn()
+    const onAreaAimChange = vi.fn()
+    const onAreaSizeChange = vi.fn()
     const onPickAreaOrigin = vi.fn()
     const options = {
       choices: [fireball],
-      onAreaOriginChange,
-      onAreaTowardChange,
-      onAreaShapeChange,
+      onAreaAimChange,
+      onAreaSizeChange,
       onPickAreaOrigin
     }
     const view = renderDrawer(onResolve, options)
@@ -826,18 +821,19 @@ describe('CampaignTabletopActionDrawer area origin (D103)', () => {
     expect(screen.queryByRole('combobox', { name: 'Target' })).not.toBeInTheDocument()
     expect(screen.getByText('Area origin')).toBeVisible()
     expect(screen.getByRole('button', { name: 'Resolve action' })).toBeDisabled()
-    expect(onAreaShapeChange).toHaveBeenLastCalledWith({
-      kind: 'RADIUS',
-      radius: radiusInCoordinates
-    })
+    expect(onAreaSizeChange).toHaveBeenLastCalledWith(
+      pointAreaInSceneCoordinates(fireballArea, tabletopLiveScene.grid)
+    )
 
     await user.click(screen.getByRole('button', { name: 'Pick on map' }))
     expect(onPickAreaOrigin).toHaveBeenCalledTimes(1)
     await user.click(screen.getByRole('combobox', { name: 'Center on token' }))
     await user.click(screen.getByRole('option', { name: ember.label }))
-    expect(onAreaOriginChange).toHaveBeenLastCalledWith(ember.position)
+    expect(onAreaAimChange).toHaveBeenLastCalledWith({ origin: ember.position, toward: null })
 
-    view.rerender(drawerElement(onResolve, { ...options, areaOrigin: ember.position }))
+    view.rerender(
+      drawerElement(onResolve, { ...options, areaAim: { origin: ember.position, toward: null } })
+    )
     expect(await screen.findByText(`In the area: ${ember.label}`)).toBeVisible()
     await user.click(screen.getByRole('button', { name: 'Resolve action' }))
     expect(onResolve).toHaveBeenCalledWith(
@@ -852,8 +848,7 @@ describe('CampaignTabletopActionDrawer area origin (D103)', () => {
         }
       })
     )
-    expect(onAreaOriginChange).toHaveBeenLastCalledWith(null)
-    expect(onAreaTowardChange).toHaveBeenLastCalledWith(null)
+    expect(onAreaAimChange).toHaveBeenLastCalledWith(null)
   })
 
   it('shows an out-of-range rejection and resends the same point acknowledged', async () => {
@@ -871,7 +866,10 @@ describe('CampaignTabletopActionDrawer area origin (D103)', () => {
         })
       })
       .mockResolvedValue(resolved)
-    const options = { choices: [fireball], areaOrigin: ember.position }
+    const options = {
+      choices: [fireball],
+      areaAim: { origin: ember.position, toward: null }
+    }
     const view = renderDrawer(onResolve, options)
 
     await chooseFireball(user)
@@ -898,7 +896,12 @@ describe('CampaignTabletopActionDrawer area origin (D103)', () => {
     })
     await user.click(screen.getByRole('button', { name: 'Resolve action' }))
     await screen.findByRole('alert')
-    view.rerender(drawerElement(onResolve, { ...options, areaOrigin: { x: 700, y: 500 } }))
+    view.rerender(
+      drawerElement(onResolve, {
+        ...options,
+        areaAim: { origin: { x: 700, y: 500 }, toward: null }
+      })
+    )
     await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument())
   })
 
@@ -927,6 +930,7 @@ describe('CampaignTabletopActionDrawer directed area (SPELLS-13)', () => {
     ...tabletopLiveScene,
     tokens: [emberToken, { ...wardenToken, position: { x: 370, y: 230 } }]
   }
+  const breathArea = { kind: 'CONE' as const, length: { amount: 15, unit: 'FEET' as const } }
   const breath = validatedChoice({
     ...actions[0]!,
     id: 'creature-dragon:breath',
@@ -935,10 +939,7 @@ describe('CampaignTabletopActionDrawer directed area (SPELLS-13)', () => {
     rangeLabel: 'Self',
     attackBonus: undefined,
     range: { kind: 'SELF' as const },
-    target: {
-      kind: 'DIRECTED' as const,
-      area: { kind: 'CONE' as const, length: { amount: 15, unit: 'FEET' as const } }
-    }
+    target: { kind: 'DIRECTED' as const, area: breathArea }
   })
   /** On Ember's east edge, aimed east. */
   const origin = { x: emberToken.position.x + 35, y: emberToken.position.y }
@@ -949,14 +950,14 @@ describe('CampaignTabletopActionDrawer directed area (SPELLS-13)', () => {
     await user.keyboard('{ArrowDown}{Enter}')
   }
 
-  it('asks to be aimed instead of for a target, sizing the cone from the caster until it is aimed', async () => {
+  it('asks to be aimed instead of for a target, reporting the cone’s size before it has a direction', async () => {
     const user = userEvent.setup()
     const onPickAreaOrigin = vi.fn()
-    const onAreaShapeChange = vi.fn()
+    const onAreaSizeChange = vi.fn()
     renderDrawer(vi.fn(), {
       choices: [breath],
       actorIdByTokenId,
-      onAreaShapeChange,
+      onAreaSizeChange,
       onPickAreaOrigin
     })
 
@@ -964,11 +965,9 @@ describe('CampaignTabletopActionDrawer directed area (SPELLS-13)', () => {
     expect(screen.queryByRole('combobox', { name: 'Target' })).not.toBeInTheDocument()
     expect(screen.getByText('Area direction')).toBeVisible()
     expect(screen.getByRole('button', { name: 'Resolve action' })).toBeDisabled()
-    expect(onAreaShapeChange).toHaveBeenLastCalledWith({
-      kind: 'CONE',
-      length: (15 / tabletopLiveScene.grid.distancePerCell) * tabletopLiveScene.grid.cellSize,
-      toward: emberToken.position
-    })
+    expect(onAreaSizeChange).toHaveBeenLastCalledWith(
+      directedAreaSizeInSceneCoordinates(breathArea, tabletopLiveScene.grid)
+    )
 
     await user.click(screen.getByRole('button', { name: 'Aim on map' }))
     expect(onPickAreaOrigin).toHaveBeenCalledTimes(1)
@@ -977,19 +976,17 @@ describe('CampaignTabletopActionDrawer directed area (SPELLS-13)', () => {
   it('sends the origin and direction with the Scene they were aimed on, and names who is in the cone', async () => {
     const user = userEvent.setup()
     const onResolve = vi.fn<(command: ResolveEncounterActionInputDto) => Promise<unknown>>()
-    const onAreaOriginChange = vi.fn()
-    const onAreaTowardChange = vi.fn()
+    const onAreaAimChange = vi.fn()
     const options = {
       choices: [breath],
       scene: sceneWithWardenBesideEmber,
       actorIdByTokenId,
-      onAreaOriginChange,
-      onAreaTowardChange
+      onAreaAimChange
     }
     const view = renderDrawer(onResolve, options)
     await chooseBreath(user)
 
-    view.rerender(drawerElement(onResolve, { ...options, areaOrigin: origin, areaToward: toward }))
+    view.rerender(drawerElement(onResolve, { ...options, areaAim: { origin, toward } }))
     expect(await screen.findByText(`In the area: ${wardenToken.label}`)).toBeVisible()
     await user.click(screen.getByRole('button', { name: 'Resolve action' }))
     expect(onResolve).toHaveBeenCalledWith(
@@ -1005,27 +1002,48 @@ describe('CampaignTabletopActionDrawer directed area (SPELLS-13)', () => {
         }
       })
     )
-    expect(onAreaOriginChange).toHaveBeenLastCalledWith(null)
-    expect(onAreaTowardChange).toHaveBeenLastCalledWith(null)
+    expect(onAreaAimChange).toHaveBeenLastCalledWith(null)
+  })
+
+  it('never lists the caster, even when the cone overlaps their own square', async () => {
+    const user = userEvent.setup()
+    // From the east edge near the bottom, aimed steeply down: the cone's near edge sweeps back over Ember.
+    const slantedOrigin = { x: emberToken.position.x + 35, y: emberToken.position.y + 20 }
+    const slantedToward = { x: slantedOrigin.x + 100, y: slantedOrigin.y + 400 }
+    const scene = {
+      ...tabletopLiveScene,
+      tokens: [
+        emberToken,
+        {
+          ...wardenToken,
+          position: { x: emberToken.position.x + 70, y: emberToken.position.y + 150 }
+        }
+      ]
+    }
+    renderDrawer(vi.fn(), {
+      choices: [breath],
+      scene,
+      actorIdByTokenId,
+      areaAim: { origin: slantedOrigin, toward: slantedToward }
+    })
+    await chooseBreath(user)
+
+    expect(await screen.findByText(`In the area: ${wardenToken.label}`)).toBeVisible()
   })
 
   it('clears the aim', async () => {
     const user = userEvent.setup()
-    const onAreaOriginChange = vi.fn()
-    const onAreaTowardChange = vi.fn()
+    const onAreaAimChange = vi.fn()
     renderDrawer(vi.fn(), {
       choices: [breath],
       actorIdByTokenId,
-      areaOrigin: origin,
-      areaToward: toward,
-      onAreaOriginChange,
-      onAreaTowardChange
+      areaAim: { origin, toward },
+      onAreaAimChange
     })
     await chooseBreath(user)
 
     await user.click(screen.getByRole('button', { name: 'Clear aim' }))
-    expect(onAreaOriginChange).toHaveBeenLastCalledWith(null)
-    expect(onAreaTowardChange).toHaveBeenLastCalledWith(null)
+    expect(onAreaAimChange).toHaveBeenLastCalledWith(null)
   })
 
   it('cannot be drawn when the caster has no token on the Scene', async () => {

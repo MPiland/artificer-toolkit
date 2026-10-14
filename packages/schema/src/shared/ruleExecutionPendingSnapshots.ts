@@ -537,6 +537,7 @@ const encounterAreaShapeDtoSchema = lazySchema(() =>
     z.strictObject({
       kind: z.literal('CUBE_FROM_SIDE'),
       edgeLength: z.number().check(z.positive()),
+      cellSize: z.number().check(z.positive()),
       toward: spatialPointDtoSchema
     })
   ])

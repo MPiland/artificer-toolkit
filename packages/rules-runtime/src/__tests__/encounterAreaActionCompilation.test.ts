@@ -180,6 +180,23 @@ describe('directed area action compilation', () => {
         }
       }
     ],
+    ['a line of no width', { id: 's', shapeKind: 'LINE', length: feet(100), width: feet(0) }],
+    [
+      'a line with a scaled width',
+      {
+        id: 's',
+        shapeKind: 'LINE',
+        length: feet(100),
+        width: {
+          ...feet(5),
+          scaling: {
+            scalingKind: 'BREAKPOINTS',
+            scalingSource: 'SPELL_CAST_LEVEL',
+            breakpoints: [{ id: 'b', level: 4, order: 1, value: feet(10) }]
+          }
+        }
+      }
+    ],
     ['a self wall', { id: 's', shapeKind: 'WALL', length: feet(60), height: feet(20) }],
     ['a self dome', { id: 's', shapeKind: 'DOME', radius: feet(10) }]
   ])('still refuses %s', (_name, shape) => {

@@ -5,8 +5,10 @@ import {
   canMoveBetween,
   directedAreaOutline,
   isDirectedAreaOriginOnToken,
+  isDirectedAreaShape,
   measureScenePathDistance,
   nearestFootprintEdgePoint,
+  pointCubeOutline,
   SceneBarrierIndex,
   sceneDistanceAsCoordinateLength,
   scenePointInPolygon,
@@ -16,8 +18,9 @@ import {
   type ScenePoint,
   type SceneTokenSense,
   type SpatialAreaShape,
-  type SpatialDirectedAreaShape,
-  type SpatialSceneToken
+  type SpatialDirectedAreaSize,
+  type SpatialPointAreaShape,
+  type SpatialTokenFootprint
 } from '@artificer-toolkit/shared/vtt'
 
 const unexploredOpacity = 224
@@ -132,17 +135,38 @@ export type VttScenePresentationOverlay =
 const pointAreaColor = 0xe8590c
 
 /**
- * The overlay for an area at `origin`: a circle for a radius, a square for a cube, and for a
- * directed area the polygon the rules catch creatures with (`directedAreaOutline`). Null when a
- * directed area has no direction.
+ * Where the caster aimed an area: a point area's center, or a directed area's origin on their
+ * token's edge and the point it extends toward (null until it is aimed, and for a point area).
+ */
+export interface VttAreaAim {
+  origin: ScenePoint
+  toward: ScenePoint | null
+}
+
+/** The selected action's area in Scene coordinates, before it is aimed. */
+export type VttAreaSize = SpatialPointAreaShape | SpatialDirectedAreaSize
+
+/** The area `aim` places: null for a directed area that has no direction yet. */
+export function aimedAreaShape(size: VttAreaSize, aim: VttAreaAim): SpatialAreaShape | null {
+  if (!isDirectedAreaShape(size)) return size
+  return aim.toward ? { ...size, toward: aim.toward } : null
+}
+
+/**
+ * The overlay for an area aimed at `aim`: a circle for a radius, a square for a point cube, and for a
+ * directed area the polygon the rules catch creatures with (`directedAreaOutline`) from `caster`'s
+ * space. Null when a directed area has no direction or no caster.
  */
 export function areaOverlay(
-  shape: SpatialAreaShape,
-  origin: ScenePoint
+  size: VttAreaSize,
+  aim: VttAreaAim,
+  caster: SpatialTokenFootprint | null
 ): VttScenePresentationOverlay | null {
+  const shape = aimedAreaShape(size, aim)
+  if (!shape) return null
   if (shape.kind === 'RADIUS') {
     return {
-      center: origin,
+      center: aim.origin,
       color: pointAreaColor,
       id: 'area-origin',
       kind: 'CIRCLE',
@@ -151,16 +175,10 @@ export function areaOverlay(
       radius: shape.radius
     }
   }
-  const half = shape.kind === 'CUBE' ? shape.edgeLength / 2 : 0
   const points =
     shape.kind === 'CUBE'
-      ? [
-          { x: origin.x - half, y: origin.y - half },
-          { x: origin.x + half, y: origin.y - half },
-          { x: origin.x + half, y: origin.y + half },
-          { x: origin.x - half, y: origin.y + half }
-        ]
-      : directedAreaOutline(origin, shape)
+      ? pointCubeOutline(aim.origin, shape.edgeLength)
+      : caster && directedAreaOutline(aim.origin, shape, caster)
   return points
     ? {
         color: pointAreaColor,
@@ -183,20 +201,18 @@ export function directedAreaAim({
   caster,
   pointer,
   pressedAt,
-  shape
+  size
 }: {
-  caster: SpatialSceneToken
+  caster: SpatialTokenFootprint
   pointer: ScenePoint
   pressedAt: ScenePoint | null
-  shape: SpatialDirectedAreaShape
-}): { origin: ScenePoint; shape: SpatialDirectedAreaShape } | null {
+  size: SpatialDirectedAreaSize
+}): { origin: ScenePoint; toward: ScenePoint } | null {
   const origin = nearestFootprintEdgePoint(caster, pressedAt ?? pointer)
-  const aimed = { ...shape, toward: pointer }
-  return isDirectedAreaOriginOnToken({ token: caster, origin, shape: aimed })
-    ? { origin, shape: aimed }
+  return isDirectedAreaOriginOnToken({ token: caster, origin, shape: { ...size, toward: pointer } })
+    ? { origin, toward: pointer }
     : null
 }
-
 /** The chosen action's range and target as the stage previews them while the drawer is picking. */
 export interface VttActionPreview {
   range: EncounterActionChoiceDto['range']
@@ -303,19 +319,21 @@ export function actionPreviewOverlays(
 export function stageOverlays({
   actionPreview,
   aimingArea,
-  areaOrigin,
-  areaShape,
+  areaAim,
+  areaSize,
   drawerOpened,
   scene
 }: {
   actionPreview: VttActionPreview | null
   aimingArea: boolean
-  areaOrigin: ScenePoint | null
-  areaShape: SpatialAreaShape | null
+  areaAim: VttAreaAim | null
+  areaSize: VttAreaSize | null
   drawerOpened: boolean
   scene: Pick<CampaignSceneStateDto, 'grid' | 'tokens'> | null
 }): VttScenePresentationOverlay[] | undefined {
-  const picked = areaShape && areaOrigin && !aimingArea ? areaOverlay(areaShape, areaOrigin) : null
+  // A directed area is drawn from the token the action is previewed for.
+  const caster = scene?.tokens.find((token) => token.id === actionPreview?.sourceTokenId) ?? null
+  const picked = areaSize && areaAim && !aimingArea ? areaOverlay(areaSize, areaAim, caster) : null
   const overlays = [
     ...(drawerOpened && scene ? actionPreviewOverlays(actionPreview, scene) : []),
     ...(picked ? [picked] : [])

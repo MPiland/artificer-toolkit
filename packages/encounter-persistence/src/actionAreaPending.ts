@@ -53,6 +53,22 @@ export function areaActionPendingContext(snapshot: ServerRuleExecutionPendingSna
     : null
 }
 
+/** Whether the sealed area is the one the command aimed: the same origin and, if directed, direction. */
+export function areaMatchesTarget(
+  area: EncounterAreaActionPendingContextDto['area'],
+  target: AreaActionTargetDto
+) {
+  const origin = areaActionTargetOrigin(target)
+  return (
+    area.origin.x === origin.x &&
+    area.origin.y === origin.y &&
+    (target.kind !== 'DIRECTED' ||
+      ('toward' in area.shape &&
+        area.shape.toward.x === target.toward.x &&
+        area.shape.toward.y === target.toward.y))
+  )
+}
+
 /** The creatures the area still waits on or caught, each with its own sealed save. */
 function areaTargets(context: EncounterAreaActionPendingContextDto) {
   return context.targets.map((target) => {
@@ -141,8 +157,7 @@ export async function requireAreaActionPendingRoot(
     context.casterActorId !== command.actorId ||
     context.scene.sceneId !== command.target.sceneId ||
     context.scene.sceneVersion !== command.target.expectedSceneVersion ||
-    context.area.origin.x !== areaActionTargetOrigin(command.target).x ||
-    context.area.origin.y !== areaActionTargetOrigin(command.target).y ||
+    !areaMatchesTarget(context.area, command.target) ||
     snapshot.optionalCombatSnapshotChecksum !== state.optionalCombatSnapshotChecksum ||
     !state.actorIds.includes(context.casterActorId)
   )

@@ -50,6 +50,7 @@ import type {
   CharacterRuleActionSpatialDirective
 } from '../../characterRuleActionSystemAdapter.js'
 import { CharacterRuleActionUnsupportedCompilationError } from '../../characterRuleActionSystemAdapter.js'
+import { encounterAreaTargetKind } from '../../encounterAreaAction.js'
 import {
   BASIC_ACTION_DEFINITION_FAMILY_KEY,
   CONDITION_RULE_STATE_DEFINITION_FAMILY_KEY,
@@ -432,12 +433,8 @@ function isSupportedTestArea(
     invocation.activation.amount !== 1
   )
     return false
-  const fromCaster = range.rangeKind === 'SELF'
-  if (fromCaster) {
-    if (shape.shapeKind !== 'CONE' && shape.shapeKind !== 'LINE' && shape.shapeKind !== 'CUBE')
-      return false
-  } else if (shape.shapeKind === 'CONE' || shape.shapeKind === 'LINE') return false
-  else if (range.rangeKind !== 'UNLIMITED') {
+  if (encounterAreaTargetKind(range.rangeKind, shape.shapeKind) === null) return false
+  if (range.rangeKind !== 'SELF' && range.rangeKind !== 'UNLIMITED') {
     if (
       range.rangeKind !== 'DISTANCE' ||
       !Number.isSafeInteger(range.amount) ||
@@ -460,7 +457,11 @@ function isSupportedTestArea(
     size !== null &&
     size.scaling === undefined &&
     size.amount > 0 &&
-    !(shape.shapeKind === 'LINE' && shape.width?.scaling !== undefined) &&
+    !(
+      shape.shapeKind === 'LINE' &&
+      shape.width !== undefined &&
+      (shape.width.scaling !== undefined || !(shape.width.amount > 0))
+    ) &&
     !(shape.shapeKind === 'CYLINDER' && shape.height.scaling !== undefined)
   )
 }

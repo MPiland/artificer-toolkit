@@ -140,6 +140,13 @@ type AreaPlanInput = {
   autoRollByActorId: Readonly<Record<string, boolean>>
 }
 
+/** Why a directed area is refused, as the player is told. */
+const DIRECTED_AREA_REFUSALS = {
+  UNSUPPORTED_AREA: "This action's area size is not supported.",
+  NO_CASTER_TOKEN: 'The caster has no token on the map.',
+  ORIGIN_OFF_CASTER: 'This area cannot extend from there.'
+} as const
+
 /** What every creature of one area shares: the caster, the Scene the point was picked in, and the area. */
 async function prepareAreaScene(input: AreaPlanInput) {
   const { command, state, actors, capture } = input
@@ -201,16 +208,13 @@ async function prepareAreaScene(input: AreaPlanInput) {
               capture
             })) === 'SEES'
         })
-  if (!area) {
-    // A directed area is refused for what the player chose: an origin off the caster's token.
-    if (target.kind === 'DIRECTED')
-      throw new LiveSessionDomainRejectionError(422, {
-        code: 'DOMAIN_REJECTED',
-        reason: 'TARGET_UNAVAILABLE',
-        message: 'This area cannot extend from there.'
-      })
-    throw new Error('The selected action area is not supported.')
-  }
+  if (!area) throw new Error('The selected action area is not supported.')
+  if ('refusal' in area)
+    throw new LiveSessionDomainRejectionError(422, {
+      code: 'DOMAIN_REJECTED',
+      reason: 'TARGET_UNAVAILABLE',
+      message: DIRECTED_AREA_REFUSALS[area.refusal]
+    })
   return { caster, casterFacts, movementTargets, scene, grid, area }
 }
 

@@ -367,34 +367,38 @@ describe('directed area', () => {
       grid: METERS_GRID,
       sourceToken: SOURCE_TOKEN
     })
-    expect(metric?.shape.kind === 'CONE' ? metric.shape.length : null).toBeCloseTo(304.8, 6)
+    expect(
+      'shape' in metric && metric.shape.kind === 'CONE' ? metric.shape.length : null
+    ).toBeCloseTo(304.8, 6)
   })
 
-  it('refuses an origin off the caster, a point policy, and a caster with no token', () => {
+  it('carries the grid’s cell size on a cube, so it can sit on the grid beside the caster', () => {
+    expect(
+      evaluateEncounterDirectedAreaTarget({
+        targetPolicy: directed(SHAPES.CUBE),
+        ...east,
+        grid: FEET_GRID,
+        sourceToken: SOURCE_TOKEN
+      })
+    ).toEqual({
+      shape: { kind: 'CUBE_FROM_SIDE', edgeLength: 300, cellSize: 100, toward: east.toward },
+      warnings: []
+    })
+  })
+
+  it('refuses with the reason: a size or policy it cannot draw, no caster token, or an origin off the caster', () => {
     const base = { grid: FEET_GRID, sourceToken: SOURCE_TOKEN, ...east }
-    expect(
+    const refusal = (input: Partial<Parameters<typeof evaluateEncounterDirectedAreaTarget>[0]>) =>
       evaluateEncounterDirectedAreaTarget({
-        ...base,
         targetPolicy: directed(SHAPES.CONE),
-        origin: { x: 250, y: 50 }
-      })
-    ).toBeNull()
-    expect(
-      evaluateEncounterDirectedAreaTarget({ ...base, targetPolicy: policy({ shape: SHAPES.CUBE }) })
-    ).toBeNull()
-    expect(
-      evaluateEncounterDirectedAreaTarget({
         ...base,
-        targetPolicy: directed(SHAPES.CONE),
-        sourceToken: null
+        ...input
       })
-    ).toBeNull()
-    expect(
-      evaluateEncounterDirectedAreaTarget({
-        ...base,
-        targetPolicy: directed(SHAPES.CONE),
-        toward: east.origin
-      })
-    ).toBeNull()
+    expect(refusal({ origin: { x: 250, y: 50 } })).toEqual({ refusal: 'ORIGIN_OFF_CASTER' })
+    expect(refusal({ toward: east.origin })).toEqual({ refusal: 'ORIGIN_OFF_CASTER' })
+    expect(refusal({ targetPolicy: policy({ shape: SHAPES.CUBE }) })).toEqual({
+      refusal: 'UNSUPPORTED_AREA'
+    })
+    expect(refusal({ sourceToken: null })).toEqual({ refusal: 'NO_CASTER_TOKEN' })
   })
 })

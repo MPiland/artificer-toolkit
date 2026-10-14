@@ -1,5 +1,7 @@
 import {
+  isDirectedAreaShape,
   spatialTokensInsideArea,
+  type ScenePoint,
   type SpatialAreaShape,
   type SpatialSceneToken
 } from '@artificer-toolkit/shared/vtt'
@@ -56,23 +58,28 @@ export type EncounterAreaTargetTest =
     }
 
 /**
- * The actors with a token touching an area, in token-id order, each once. A point area catches the
- * caster and allies like anyone else; a directed area starts on the caster's own space and never
- * catches the caster, whatever token of theirs it overlaps.
+ * The actors with a token sharing area with an area, in token-id order, each once. A point area
+ * catches the caster and allies like anyone else; a directed area starts on the caster's own space
+ * (the first token bound to them) and never catches the caster, whatever token of theirs it
+ * overlaps.
  */
 export function catchEncounterAreaActorIds(input: {
-  origin: Parameters<typeof spatialTokensInsideArea>[0]['origin']
+  origin: ScenePoint
   shape: SpatialAreaShape
   casterActorId: string
   tokens: readonly (SpatialSceneToken & { actorId: string })[]
 }): string[] {
-  const actorByTokenId = new Map(input.tokens.map((token) => [token.id, token.actorId]))
-  const caught = spatialTokensInsideArea(input).map((tokenId) => actorByTokenId.get(tokenId)!)
-  const directed =
-    input.shape.kind === 'CONE' ||
-    input.shape.kind === 'LINE' ||
-    input.shape.kind === 'CUBE_FROM_SIDE'
-  return [...new Set(caught)].filter((actorId) => !directed || actorId !== input.casterActorId)
+  const { origin, shape, tokens } = input
+  const casterToken = tokens.find((token) => token.actorId === input.casterActorId)
+  const tokenIds = isDirectedAreaShape(shape)
+    ? casterToken
+      ? spatialTokensInsideArea({ origin, shape, tokens, casterTokenId: casterToken.id })
+      : []
+    : spatialTokensInsideArea({ origin, shape, tokens })
+  const actorByTokenId = new Map(tokens.map((token) => [token.id, token.actorId]))
+  const caught = new Set(tokenIds.map((tokenId) => actorByTokenId.get(tokenId)!))
+  if (isDirectedAreaShape(shape)) caught.delete(input.casterActorId)
+  return [...caught]
 }
 
 function requireDistinctTargets(targets: readonly EncounterAreaTarget[]) {

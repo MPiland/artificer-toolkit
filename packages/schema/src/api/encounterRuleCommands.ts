@@ -5,7 +5,7 @@ import { rollVisibilityDtoSchema } from './rolls.js'
 import { movementReactionChoiceSelectionDtoSchema } from '../shared/reaction.js'
 import { serverRuleExecutionCorrelationIdDtoSchema } from '../shared/ruleExecutionProtocol.js'
 import { sizeCodeSchema } from '../shared/enums.js'
-import { spatialPointDtoSchema } from '../shared/spatialFacts.js'
+import { spatialPointDtoSchema, type SpatialPointDto } from '../shared/spatialFacts.js'
 import { encounterAcknowledgedRuleWarningsDtoSchema } from '../shared/encounterRuleWarnings.js'
 
 const uuidSchema = lazySchema(() => z.string().check(z.uuid()))
@@ -143,7 +143,7 @@ export function actionTargetActorId(target: ResolveEncounterActionTargetDto): st
 }
 
 /** Where an area action's area starts: the picked point, or the directed area's origin. */
-export function areaActionTargetOrigin(target: AreaActionTargetDto): { x: number; y: number } {
+export function areaActionTargetOrigin(target: AreaActionTargetDto): SpatialPointDto {
   return target.kind === 'POINT' ? target.point : target.origin
 }
 

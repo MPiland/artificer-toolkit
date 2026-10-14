@@ -171,9 +171,13 @@ describe('room refusals of the wrong target for an area', () => {
   })
 })
 
-describe('dragon breath journey', () => {
-  /** The SRD Black Dragon Wyrmling's Acid Breath (DC 11 Dexterity, half on a success) as a Self 15 ft cone. */
-  function breathingWolf() {
+describe('a Creature’s Self cone action', () => {
+  /**
+   * A Self 15 ft cone action with a Dexterity save and half damage on a success. The SRD breaths are
+   * not authored as areas, so this borrows the Black Dragon Wyrmling's Acid Breath save and damage
+   * and rewrites its shape (a line in the SRD) and range.
+   */
+  function coneActionWolf() {
     const breath = blackDragonWyrmling.features?.find(({ label }) =>
       label.startsWith('Acid Breath')
     )
@@ -210,12 +214,12 @@ describe('dragon breath journey', () => {
   }
 
   it('catches the Wolves in the cone, rolls their saves, deals full and half damage once, and the GM undoes it', async () => {
-    const { creature, featureId } = breathingWolf()
+    const { creature, featureId } = coneActionWolf()
     const room = await directedRoom(creature, featureId)
     const stub = room.room.base.stub
     const before = await readRoomHistory(stub)
 
-    // 1. The GM breathes east: the three Wolves in the cone are caught, the caster and the Wolf
+    // 1. The GM aims the cone east: the three Wolves in the cone are caught, the caster and the Wolf
     // off the row are not.
     const started = await room.startDirectedAreaAction(EAST.origin, EAST.toward)
     expect(started.answer.type, JSON.stringify(started.answer)).toBe('COMMAND_COMMITTED')

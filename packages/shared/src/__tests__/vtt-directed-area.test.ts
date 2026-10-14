@@ -33,8 +33,16 @@ const everySquare = Array.from({ length: 29 }, (_, row) =>
   Array.from({ length: 29 }, (_, column) => squareAt(column - 14, row - 14))
 ).flat()
 
+/** The square the caster stands on: `everySquare` holds it as an ordinary token. */
+const casterSquare = '0,0'
+
 function caught(origin: { x: number; y: number }, shape: SpatialDirectedAreaShape) {
-  return spatialTokensInsideArea({ origin, shape, tokens: everySquare }).sort()
+  return spatialTokensInsideArea({
+    origin,
+    shape,
+    tokens: everySquare,
+    casterTokenId: casterSquare
+  }).sort()
 }
 const squares = (...ids: string[]) => ids.sort()
 /** The squares of one column (east of the caster) in the given rows. */
@@ -87,6 +95,26 @@ describe('a cone from the caster’s edge', () => {
       caught(eastEdge, { kind: 'CONE', length: 300, toward: { x: 700, y: 550 } })
     ).not.toContain('1,1')
   })
+
+  it('never catches the caster, even when the template overlaps the caster’s own square', () => {
+    // Aimed almost due north from the east edge, the cone’s left edge sweeps back over the caster’s
+    // square. A second token on the very same square stands in for the caster to prove it does.
+    const shape: SpatialDirectedAreaShape = {
+      kind: 'CONE',
+      length: 300,
+      toward: { x: 610, y: 0 }
+    }
+    const origin = { x: 600, y: 520 }
+    const bystander = { ...squareAt(0, 0), id: 'bystander' }
+    const catches = spatialTokensInsideArea({
+      origin,
+      shape,
+      tokens: [...everySquare, bystander],
+      casterTokenId: casterSquare
+    })
+    expect(catches).toContain('bystander')
+    expect(catches).not.toContain(casterSquare)
+  })
 })
 
 describe('a line from the caster’s edge', () => {
@@ -125,7 +153,8 @@ describe('a line from the caster’s edge', () => {
       spatialTokensInsideArea({
         origin: { x: 600, y: 550 },
         shape: { kind: 'LINE', length: 2000, width: 100, toward: { x: 700, y: 550 } },
-        tokens: along
+        tokens: along,
+        casterTokenId: casterSquare
       }).sort()
     ).toEqual(squares(...row(0, range(1, 20))))
   })
@@ -158,28 +187,64 @@ describe('a line from the caster’s edge', () => {
 })
 
 describe('a cube from the caster’s side', () => {
-  it('extends its full edge out from the chosen side, centered on the origin, without the caster', () => {
-    expect(
-      caught(
-        { x: 600, y: 550 },
-        { kind: 'CUBE_FROM_SIDE', edgeLength: 300, toward: { x: 700, y: 550 } }
-      )
-    ).toEqual(squares(...column(1, [-1, 0, 1]), ...column(2, [-1, 0, 1]), ...column(3, [-1, 0, 1])))
-    expect(
-      caught(
-        { x: 550, y: 500 },
-        { kind: 'CUBE_FROM_SIDE', edgeLength: 300, toward: { x: 550, y: 400 } }
-      )
-    ).not.toContain('0,0')
+  const cubeToward = (x: number, y: number): SpatialDirectedAreaShape => ({
+    kind: 'CUBE_FROM_SIDE',
+    edgeLength: 300,
+    cellSize: 100,
+    toward: { x, y }
+  })
+
+  it('extends its full edge out from the chosen side, centered on the caster at the middle of the side', () => {
+    expect(caught({ x: 600, y: 550 }, cubeToward(700, 550))).toEqual(
+      squares(...column(1, [-1, 0, 1]), ...column(2, [-1, 0, 1]), ...column(3, [-1, 0, 1]))
+    )
+  })
+
+  it('slides along the side so the caster’s row is the first or the last of the cube’s rows', () => {
+    // The face of a 15 ft cube is 3 squares; the caster's side is 1, so the face sits in one of
+    // three snapped places: pressing near either end of the side picks that end.
+    expect(caught({ x: 600, y: 505 }, cubeToward(700, 505))).toEqual(
+      squares(...column(1, [-2, -1, 0]), ...column(2, [-2, -1, 0]), ...column(3, [-2, -1, 0]))
+    )
+    expect(caught({ x: 600, y: 595 }, cubeToward(700, 595))).toEqual(
+      squares(...column(1, [0, 1, 2]), ...column(2, [0, 1, 2]), ...column(3, [0, 1, 2]))
+    )
+    expect(caught({ x: 550, y: 500 }, cubeToward(550, 400))).toEqual(
+      squares(...row(-1, [-1, 0, 1]), ...row(-2, [-1, 0, 1]), ...row(-3, [-1, 0, 1]))
+    )
+    expect(caught({ x: 595, y: 500 }, cubeToward(595, 400))).toEqual(
+      squares(...row(-1, [0, 1, 2]), ...row(-2, [0, 1, 2]), ...row(-3, [0, 1, 2]))
+    )
+  })
+
+  it('always covers exactly 9 squares, whichever point of the side is pressed, never 12 from a corner', () => {
+    for (const y of range(0, 20).map((step) => 500 + step * 5)) {
+      expect(caught({ x: 600, y }, cubeToward(700, y))).toHaveLength(9)
+      expect(caught({ x: 500, y }, cubeToward(400, y))).toHaveLength(9)
+    }
   })
 
   it('takes the side its direction mostly faces', () => {
+    expect(caught({ x: 550, y: 500 }, cubeToward(600, 400))).toEqual(
+      squares(...row(-1, [-1, 0, 1]), ...row(-2, [-1, 0, 1]), ...row(-3, [-1, 0, 1]))
+    )
+  })
+
+  it('never catches the caster', () => {
+    expect(caught({ x: 550, y: 500 }, cubeToward(550, 400))).not.toContain(casterSquare)
+  })
+})
+
+describe('a cube from a point', () => {
+  // User ruling 2026-10-14, D103: an area catches a footprint only when it shares area with it.
+  it('on grid lines catches exactly the 9 squares it covers, not the ones it touches', () => {
     expect(
-      caught(
-        { x: 550, y: 500 },
-        { kind: 'CUBE_FROM_SIDE', edgeLength: 300, toward: { x: 600, y: 400 } }
-      )
-    ).toEqual(squares(...row(-1, [-1, 0, 1]), ...row(-2, [-1, 0, 1]), ...row(-3, [-1, 0, 1])))
+      spatialTokensInsideArea({
+        origin: { x: 550, y: 550 },
+        shape: { kind: 'CUBE', edgeLength: 300 },
+        tokens: everySquare
+      }).sort()
+    ).toEqual(squares(...range(-1, 1).flatMap((x) => column(x, [-1, 0, 1]))))
   })
 })
 
@@ -188,7 +253,8 @@ describe('directedAreaOutline', () => {
     expect(
       directedAreaOutline(
         { x: 600, y: 550 },
-        { kind: 'CONE', length: 300, toward: { x: 700, y: 550 } }
+        { kind: 'CONE', length: 300, toward: { x: 700, y: 550 } },
+        caster
       )
     ).toEqual([
       { x: 600, y: 550 },
@@ -198,9 +264,25 @@ describe('directedAreaOutline', () => {
     expect(
       directedAreaOutline(
         { x: 600, y: 550 },
-        { kind: 'CONE', length: 300, toward: { x: 600, y: 550 } }
+        { kind: 'CONE', length: 300, toward: { x: 600, y: 550 } },
+        caster
       )
     ).toBeNull()
+  })
+
+  it('draws a cube flush against the side, slid to the squares the origin picks', () => {
+    expect(
+      directedAreaOutline(
+        { x: 600, y: 505 },
+        { kind: 'CUBE_FROM_SIDE', edgeLength: 300, cellSize: 100, toward: { x: 700, y: 505 } },
+        caster
+      )
+    ).toEqual([
+      { x: 600, y: 300 },
+      { x: 900, y: 300 },
+      { x: 900, y: 600 },
+      { x: 600, y: 600 }
+    ])
   })
 })
 
@@ -217,7 +299,18 @@ describe('directedAreaInSceneCoordinates', () => {
     })
     expect(
       directedAreaInSceneCoordinates({ kind: 'CUBE_FROM_SIDE', edgeLength: feet(15) }, toward, grid)
-    ).toEqual({ kind: 'CUBE_FROM_SIDE', edgeLength: 300, toward })
+    ).toEqual({ kind: 'CUBE_FROM_SIDE', edgeLength: 300, cellSize: 100, toward })
+  })
+
+  it('snaps a cube on a gridless Scene to 5 ft squares', () => {
+    const gridless: SceneGrid = { kind: 'GRIDLESS', pixelsPerUnit: 20, unit: 'FEET' }
+    expect(
+      directedAreaInSceneCoordinates(
+        { kind: 'CUBE_FROM_SIDE', edgeLength: feet(15) },
+        toward,
+        gridless
+      )
+    ).toEqual({ kind: 'CUBE_FROM_SIDE', edgeLength: 300, cellSize: 100, toward })
   })
 
   it('gives a line the authored width, or 5 ft when none is authored', () => {
@@ -253,6 +346,7 @@ describe('isDirectedAreaOriginOnToken', () => {
   const cube = (toward: { x: number; y: number }): SpatialDirectedAreaShape => ({
     kind: 'CUBE_FROM_SIDE',
     edgeLength: 300,
+    cellSize: 100,
     toward
   })
 

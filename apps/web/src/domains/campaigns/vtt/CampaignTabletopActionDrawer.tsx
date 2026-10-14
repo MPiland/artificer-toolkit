@@ -32,11 +32,10 @@ import type { CampaignSceneStateDto } from '@artificer-toolkit/schema/api/vttSce
 import type { EncounterRuleWarningDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
 import { EQUIPMENT_GRIP_REGISTRY } from '@artificer-toolkit/shared/core'
 import {
-  directedAreaInSceneCoordinates,
+  directedAreaSizeInSceneCoordinates,
+  isDirectedAreaShape,
   pointAreaInSceneCoordinates,
-  spatialTokensInsideArea,
-  type ScenePoint,
-  type SpatialAreaShape
+  spatialTokensInsideArea
 } from '@artificer-toolkit/shared/vtt'
 import { GmRollVisibilityToggle } from '#app/components/dice/GmRollVisibilityToggle'
 import { useGmRollVisibilityPreference } from '#app/settings/useGmRollVisibilityPreference'
@@ -44,7 +43,12 @@ import { CampaignTabletopActionConfirmation } from './CampaignTabletopActionConf
 import { CampaignTabletopBasicActions } from './CampaignTabletopBasicActions'
 import { CampaignTabletopEscapes } from './CampaignTabletopEscapes'
 import { LiveSessionCommandRejectedError } from './liveSessionClient'
-import type { VttActionPreview } from './vttSceneRenderer.model'
+import {
+  aimedAreaShape,
+  type VttActionPreview,
+  type VttAreaAim,
+  type VttAreaSize
+} from './vttSceneRenderer.model'
 
 const NO_TOKENS: CampaignSceneStateDto['tokens'] = []
 
@@ -70,12 +74,10 @@ export function CampaignTabletopActionDrawer({
   onClose,
   pending,
   scene,
-  areaOrigin,
-  areaToward,
+  areaAim,
   waitingOn,
-  onAreaOriginChange,
-  onAreaTowardChange,
-  onAreaShapeChange,
+  onAreaAimChange,
+  onAreaSizeChange,
   onActionPreviewChange,
   onPickAreaOrigin,
   onResolve,
@@ -104,18 +106,16 @@ export function CampaignTabletopActionDrawer({
   /** The Scene the Encounter is bound to; null when the presented Scene is not that one. */
   scene: CampaignSceneStateDto | null
   /**
-   * Where the caster picked a point area's center, or a directed area's origin on their token's
-   * edge; the stage draws it and keeps it while the drawer is closed.
+   * Where the caster aimed the area: a point area's center, or a directed area's origin on their
+   * token's edge and the point it extends toward; the stage draws it and keeps it while the drawer
+   * is closed.
    */
-  areaOrigin: ScenePoint | null
-  /** The point a directed area was aimed toward; set with `areaOrigin`, null for a point area. */
-  areaToward: ScenePoint | null
+  areaAim: VttAreaAim | null
   /** Who must answer a pending decision the viewer can't; derived by the server. */
   waitingOn: EncounterSessionStateDto['waitingOn']
-  onAreaOriginChange: (point: ScenePoint | null) => void
-  onAreaTowardChange: (point: ScenePoint | null) => void
-  /** The selected action's area in Scene coordinates, for the stage's preview; null when none. */
-  onAreaShapeChange: (shape: SpatialAreaShape | null) => void
+  onAreaAimChange: (aim: VttAreaAim | null) => void
+  /** The selected action's area in Scene coordinates, for the stage's aiming and preview; null when none. */
+  onAreaSizeChange: (size: VttAreaSize | null) => void
   /** The selected action's range and target token, for the stage's preview; null when none is selected. */
   onActionPreviewChange: (preview: VttActionPreview | null) => void
   /** Asks the stage to let the caster aim the area on the map: click its center, or drag from their token's edge. */
@@ -180,42 +180,46 @@ export function CampaignTabletopActionDrawer({
     () => sceneTokens.find((token) => actorIdByTokenId.get(token.id) === currentActor?.id),
     [actorIdByTokenId, currentActor?.id, sceneTokens]
   )
-  // A directed area has no direction until it is aimed, so its size is drawn from the caster's own position.
-  const areaShape = useMemo(() => {
+  const sourceTokenId = sourceToken?.id ?? null
+  // A directed area starts on the caster's own token, so it cannot be drawn without one.
+  const areaSize = useMemo<VttAreaSize | null>(() => {
     if (!areaTarget || !sceneGrid) return null
     if (areaTarget.kind === 'POINT') return pointAreaInSceneCoordinates(areaTarget.area, sceneGrid)
-    return sourceToken
-      ? directedAreaInSceneCoordinates(
-          areaTarget.area,
-          areaToward ?? sourceToken.position,
-          sceneGrid
-        )
-      : null
-  }, [areaTarget, areaToward, sceneGrid, sourceToken])
+    return sourceTokenId ? directedAreaSizeInSceneCoordinates(areaTarget.area, sceneGrid) : null
+  }, [areaTarget, sceneGrid, sourceTokenId])
   const tokensInArea = useMemo(() => {
-    if (!areaOrigin || !areaShape) return []
-    const inside = new Set(
-      spatialTokensInsideArea({ origin: areaOrigin, shape: areaShape, tokens: sceneTokens })
-    )
+    const shape = areaSize && areaAim ? aimedAreaShape(areaSize, areaAim) : null
+    if (!areaAim || !shape) return []
+    const caught = isDirectedAreaShape(shape)
+      ? sourceTokenId
+        ? spatialTokensInsideArea({
+            origin: areaAim.origin,
+            shape,
+            tokens: sceneTokens,
+            casterTokenId: sourceTokenId
+          })
+        : []
+      : spatialTokensInsideArea({ origin: areaAim.origin, shape, tokens: sceneTokens })
+    const inside = new Set(caught)
     return sceneTokens.filter((token) => inside.has(token.id)).map((token) => token.label)
-  }, [areaOrigin, areaShape, sceneTokens])
+  }, [areaAim, areaSize, sceneTokens, sourceTokenId])
   const areaCommandTarget: ResolveEncounterActionInputDto['target'] | null =
-    !areaTarget || !scene || !areaOrigin || !areaShape
+    !areaTarget || !scene || !areaAim || !areaSize
       ? null
       : areaTarget.kind === 'POINT'
         ? {
             kind: 'POINT',
             sceneId: scene.id,
             expectedSceneVersion: scene.version,
-            point: areaOrigin
+            point: areaAim.origin
           }
-        : areaToward
+        : areaAim.toward
           ? {
               kind: 'DIRECTED',
               sceneId: scene.id,
               expectedSceneVersion: scene.version,
-              origin: areaOrigin,
-              toward: areaToward
+              origin: areaAim.origin,
+              toward: areaAim.toward
             }
           : null
   const target: ResolveEncounterActionInputDto['target'] | null = areaTarget
@@ -250,7 +254,6 @@ export function CampaignTabletopActionDrawer({
     () => sceneTokens.find((token) => actorIdByTokenId.get(token.id) === targetActorId),
     [actorIdByTokenId, sceneTokens, targetActorId]
   )
-  const sourceTokenId = sourceToken?.id ?? null
   const targetTokenId = targetToken?.id ?? null
   const sceneContext = useMemo(
     () =>
@@ -275,10 +278,10 @@ export function CampaignTabletopActionDrawer({
     scene?.version,
     sourceTokenId,
     targetTokenId,
-    areaOrigin?.x,
-    areaOrigin?.y,
-    areaToward?.x,
-    areaToward?.y
+    areaAim?.origin.x,
+    areaAim?.origin.y,
+    areaAim?.toward?.x,
+    areaAim?.toward?.y
   ])
   const currentOptionalChoices =
     optionalChoices?.requestIdentity === choiceRequestIdentity ? optionalChoices.value : null
@@ -372,14 +375,13 @@ export function CampaignTabletopActionDrawer({
 
   // An origin belongs to the action it was picked for.
   useEffect(() => {
-    onAreaOriginChange(null)
-    onAreaTowardChange(null)
-  }, [onAreaOriginChange, onAreaTowardChange, selectedActionId])
+    onAreaAimChange(null)
+  }, [onAreaAimChange, selectedActionId])
 
   useEffect(() => {
-    onAreaShapeChange(areaShape)
-    return () => onAreaShapeChange(null)
-  }, [areaShape, onAreaShapeChange])
+    onAreaSizeChange(areaSize)
+    return () => onAreaSizeChange(null)
+  }, [areaSize, onAreaSizeChange])
 
   // An area's target is its origin, which the stage draws as the area, so only a creature target is ringed.
   const actionPreview = useMemo<VttActionPreview | null>(
@@ -398,11 +400,6 @@ export function CampaignTabletopActionDrawer({
     onActionPreviewChange(actionPreview)
     return () => onActionPreviewChange(null)
   }, [actionPreview, onActionPreviewChange])
-
-  function clearArea(): void {
-    onAreaOriginChange(null)
-    onAreaTowardChange(null)
-  }
 
   async function resolveAction(
     acceptedWieldConflict: ResolveEncounterActionInputDto['acceptedWieldConflict'],
@@ -448,7 +445,7 @@ export function CampaignTabletopActionDrawer({
             }
           : null
       })
-      if (areaTarget) clearArea()
+      if (areaTarget) onAreaAimChange(null)
       if (response.occurrence?.status === 'PENDING') {
         setFeedback('Action paused for a required decision.')
       } else if (response.roll) {
@@ -587,7 +584,7 @@ export function CampaignTabletopActionDrawer({
                     <Text c='dimmed' size='sm'>
                       There is no Scene for this Encounter, so an area cannot be placed.
                     </Text>
-                  ) : areaShape === null ? (
+                  ) : areaSize === null ? (
                     <Text c='dimmed' size='sm'>
                       This area cannot be drawn on the current Scene.
                     </Text>
@@ -617,7 +614,7 @@ export function CampaignTabletopActionDrawer({
                               const token = sceneTokens.find(
                                 (candidate) => candidate.id === tokenId
                               )
-                              if (token) onAreaOriginChange(token.position)
+                              if (token) onAreaAimChange({ origin: token.position, toward: null })
                             }}
                           />
                         ) : (
@@ -626,7 +623,7 @@ export function CampaignTabletopActionDrawer({
                           </Text>
                         )}
                       </Group>
-                      {areaOrigin ? (
+                      {areaAim ? (
                         <>
                           <Text size='sm'>
                             In the area: {tokensInArea.length ? tokensInArea.join(', ') : 'no one'}
@@ -635,7 +632,7 @@ export function CampaignTabletopActionDrawer({
                             disabled={selectionControlsDisabled}
                             size='compact-sm'
                             variant='subtle'
-                            onClick={clearArea}
+                            onClick={() => onAreaAimChange(null)}
                           >
                             {areaTarget.kind === 'POINT' ? 'Clear origin' : 'Clear aim'}
                           </Button>
