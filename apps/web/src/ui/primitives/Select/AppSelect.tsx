@@ -1,5 +1,6 @@
 import { Select } from '@mantine/core'
 import type { AppSelectProps } from './Select.types'
+import { SelectOptionContent } from './SelectOptionContent'
 import { getClearButtonAriaLabel, toComboboxData } from './selectOptions'
 import * as selectStyles from './Select.css.ts'
 
@@ -27,7 +28,7 @@ export function AppSelect({
         ...clearButtonProps
       }}
       searchable={searchable}
-      checkIconPosition='right'
+      renderOption={(input) => <SelectOptionContent {...input} />}
       comboboxProps={{
         withinPortal: true,
         ...comboboxProps
