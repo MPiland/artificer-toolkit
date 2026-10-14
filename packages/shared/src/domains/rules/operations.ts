@@ -62,6 +62,57 @@ export const integerRangeEvidenceRuleOperation = {
 } satisfies RuleOperationContract
 
 /**
+ * An `evidence.integer-range` that asks for its value only while `enabled` is true; otherwise it
+ * settles at `min` without a request. A d20 test asks for a second die this way only when a fact
+ * says the roll has advantage or disadvantage.
+ */
+export const optionalIntegerRangeEvidenceRuleOperation = {
+  key: 'evidence.optional-integer-range',
+  contractVersion: 1,
+  inputs: {
+    min: RULE_VALUE_KIND.NUMBER,
+    max: RULE_VALUE_KIND.NUMBER,
+    enabled: RULE_VALUE_KIND.BOOLEAN
+  },
+  outputs: { value: RULE_VALUE_KIND.NUMBER },
+  executionKind: 'EVIDENCE',
+  evidence: {
+    kind: 'INTEGER_RANGE',
+    minInput: 'min',
+    maxInput: 'max',
+    valueOutput: 'value',
+    enabledInput: 'enabled'
+  }
+} satisfies RuleOperationContract
+
+/** Keeps one of two rolled faces by roll mode: the first on NORMAL, the higher or lower otherwise. */
+export const keepByRollModeRuleOperation = {
+  key: 'number.keep-by-roll-mode',
+  contractVersion: 1,
+  inputs: {
+    first: RULE_VALUE_KIND.NUMBER,
+    second: RULE_VALUE_KIND.NUMBER,
+    rollMode: RULE_VALUE_KIND.TEXT
+  },
+  outputs: { value: RULE_VALUE_KIND.NUMBER },
+  executionKind: 'PURE',
+  execute(inputs) {
+    const first = requireNumber(inputs, 'first')
+    const second = requireNumber(inputs, 'second')
+    switch (inputs.rollMode) {
+      case 'NORMAL':
+        return { value: first }
+      case 'ADVANTAGE':
+        return { value: Math.max(first, second) }
+      case 'DISADVANTAGE':
+        return { value: Math.min(first, second) }
+      default:
+        throw new Error('Rule operation input "rollMode" must be a known roll mode.')
+    }
+  }
+} satisfies RuleOperationContract
+
+/**
  * Requests one index from an application-owned, frozen option list. The
  * application context owns option identities, labels, authority, and
  * redaction; the portable kernel only validates and records the bounded
@@ -85,5 +136,7 @@ export const coreRuleOperations = [
   addNumbersRuleOperation,
   compareThresholdRuleOperation,
   integerRangeEvidenceRuleOperation,
+  optionalIntegerRangeEvidenceRuleOperation,
+  keepByRollModeRuleOperation,
   boundedChoiceIndexEvidenceRuleOperation
 ] as const satisfies readonly RuleOperationContract[]

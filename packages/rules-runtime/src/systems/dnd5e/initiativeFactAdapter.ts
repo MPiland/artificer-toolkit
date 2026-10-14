@@ -20,6 +20,7 @@ export const DND5E_INITIATIVE_FACT_KEYS = {
   automatic: 'initiative.automatic',
   modifier: 'initiative.modifier',
   rollMode: 'initiative.roll-mode',
+  extraD20: 'initiative.extra-d20',
   speedFactorModifier: 'initiative.speed-factor.modifier',
   orderChoiceMinimumIndex: 'initiative.choice-min-index',
   orderChoiceMaximumIndex: 'initiative.choice-max-index'
@@ -36,6 +37,7 @@ export const dnd5eInitiativeCapabilityContribution = {
     { key: DND5E_INITIATIVE_FACT_KEYS.automatic, valueKind: RULE_VALUE_KIND.BOOLEAN },
     { key: DND5E_INITIATIVE_FACT_KEYS.modifier, valueKind: RULE_VALUE_KIND.NUMBER },
     { key: DND5E_INITIATIVE_FACT_KEYS.rollMode, valueKind: RULE_VALUE_KIND.TEXT },
+    { key: DND5E_INITIATIVE_FACT_KEYS.extraD20, valueKind: RULE_VALUE_KIND.BOOLEAN },
     {
       key: DND5E_INITIATIVE_FACT_KEYS.speedFactorModifier,
       valueKind: RULE_VALUE_KIND.NUMBER
@@ -51,6 +53,8 @@ export const dnd5eInitiativeCapabilityContribution = {
   ],
   operationContracts: [
     { key: 'evidence.integer-range', contractVersion: 1 },
+    { key: 'evidence.optional-integer-range', contractVersion: 1 },
+    { key: 'number.keep-by-roll-mode', contractVersion: 1 },
     { key: 'number.add', contractVersion: 1 }
   ]
 } as const satisfies Pick<
@@ -245,6 +249,24 @@ export function createDnd5eSpeedFactorInitiativeDefinition() {
         }
       },
       {
+        id: 'd20-extra',
+        operation: { key: 'evidence.optional-integer-range', contractVersion: 1 },
+        inputs: {
+          min: { kind: 'LITERAL', value: 1 },
+          max: { kind: 'LITERAL', value: 20 },
+          enabled: { kind: 'FACT', factKey: DND5E_INITIATIVE_FACT_KEYS.extraD20 }
+        }
+      },
+      {
+        id: 'd20-kept',
+        operation: { key: 'number.keep-by-roll-mode', contractVersion: 1 },
+        inputs: {
+          first: { kind: 'NODE_OUTPUT', nodeId: 'd20', port: 'value' },
+          second: { kind: 'NODE_OUTPUT', nodeId: 'd20-extra', port: 'value' },
+          rollMode: { kind: 'FACT', factKey: DND5E_INITIATIVE_FACT_KEYS.rollMode }
+        }
+      },
+      {
         id: 'declared-modifier',
         operation: { key: 'number.add', contractVersion: 1 },
         inputs: {
@@ -256,7 +278,7 @@ export function createDnd5eSpeedFactorInitiativeDefinition() {
         id: 'score',
         operation: { key: 'number.add', contractVersion: 1 },
         inputs: {
-          left: { kind: 'NODE_OUTPUT', nodeId: 'd20', port: 'value' },
+          left: { kind: 'NODE_OUTPUT', nodeId: 'd20-kept', port: 'value' },
           right: { kind: 'NODE_OUTPUT', nodeId: 'declared-modifier', port: 'value' }
         }
       }
@@ -319,6 +341,7 @@ export const dnd5eInitiativeFactAdapter: InitiativeFactAdapter = {
         [DND5E_INITIATIVE_FACT_KEYS.automatic]: true,
         [DND5E_INITIATIVE_FACT_KEYS.modifier]: baseModifier,
         [DND5E_INITIATIVE_FACT_KEYS.rollMode]: rollMode,
+        [DND5E_INITIATIVE_FACT_KEYS.extraD20]: rollMode !== 'NORMAL',
         [DND5E_INITIATIVE_FACT_KEYS.speedFactorModifier]: modifier
       }
     }
