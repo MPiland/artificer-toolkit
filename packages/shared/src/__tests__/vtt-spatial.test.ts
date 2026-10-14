@@ -5,6 +5,7 @@ import {
   collectSpatialMovementCandidates,
   collectTokenFootprintPathCrossings,
   effectiveSpatialGeometry,
+  spatialGeometryOverlapsTokenFootprint,
   type SpatialEffectInstance,
   spatialTokensInsideArea,
   type SpatialSceneToken,
@@ -304,16 +305,101 @@ describe('spatial movement candidates', () => {
     expect(candidates.map((candidate) => candidate.effectId)).toEqual([ids.effect, ids.effectTwo])
   })
 
-  it('reports the last inclusive tangential full-footprint boundary as the exit contact', () => {
-    const candidates = collect({
-      movementKind: 'VOLUNTARY',
-      path: [
-        { x: 0, y: 2 },
-        { x: 5, y: 2 }
-      ]
+  it('reports no contact for a path that only touches the zone tangentially (user ruling 2026-10-14, D103)', () => {
+    expect(
+      collect({
+        movementKind: 'VOLUNTARY',
+        path: [
+          { x: 0, y: 2 },
+          { x: 5, y: 2 }
+        ]
+      })
+    ).toEqual([])
+  })
+
+  it('reports no contact when a path slides along a polygon zone edge or grazes its corner', () => {
+    const square = effect({
+      geometry: {
+        frame: 'SCENE_ABSOLUTE',
+        shape: {
+          kind: 'POLYGON',
+          points: [
+            { x: -1, y: -1 },
+            { x: 1, y: -1 },
+            { x: 1, y: 1 },
+            { x: -1, y: 1 }
+          ]
+        }
+      }
     })
-    expect(candidates).toMatchObject([{ trigger: 'EXIT' }])
-    expect(candidates[0]?.contact).toEqual({ x: 1, y: 2 })
+    expect(
+      collect({
+        effects: [square],
+        movementKind: 'VOLUNTARY',
+        path: [
+          { x: -5, y: 2 },
+          { x: 5, y: 2 }
+        ]
+      })
+    ).toEqual([])
+    expect(
+      collect({
+        effects: [square],
+        movementKind: 'VOLUNTARY',
+        path: [
+          { x: 3, y: 1 },
+          { x: 1, y: 3 }
+        ]
+      })
+    ).toEqual([])
+  })
+
+  it('reports a CROSS when a path clips the interior of a polygon zone corner', () => {
+    const square = effect({
+      geometry: {
+        frame: 'SCENE_ABSOLUTE',
+        shape: {
+          kind: 'POLYGON',
+          points: [
+            { x: -1, y: -1 },
+            { x: 1, y: -1 },
+            { x: 1, y: 1 },
+            { x: -1, y: 1 }
+          ]
+        }
+      }
+    })
+    expect(
+      collect({
+        effects: [square],
+        movementKind: 'VOLUNTARY',
+        path: [
+          { x: 3, y: 0.5 },
+          { x: 0.5, y: 3 }
+        ]
+      })
+    ).toMatchObject([{ trigger: 'CROSS' }])
+  })
+
+  it('reports no contact for a teleport that lands touching a zone edge', () => {
+    expect(
+      collect({
+        movementKind: 'TELEPORT',
+        path: [
+          { x: -5, y: 0 },
+          { x: 2, y: 0 }
+        ]
+      })
+    ).toEqual([])
+    expect(
+      collect({
+        movementKind: 'TELEPORT',
+        path: [
+          { x: -5, y: 0 },
+          { x: 1.5, y: 0 }
+        ]
+      })
+    ).toMatchObject([{ trigger: 'ENTER' }])
   })
 
   it('fails closed before geometry for out-of-range scene coordinates or token dimensions', () => {
@@ -372,6 +458,50 @@ describe('spatial movement candidates', () => {
         tokens: [{ ...token(ids.targetToken, -5), width: subMinimum }]
       })
     ).toEqual([])
+  })
+})
+
+describe('spatialGeometryOverlapsTokenFootprint', () => {
+  const circle = { kind: 'CIRCLE', center: { x: 0, y: 0 }, radius: 1 } as const
+  const square = {
+    kind: 'POLYGON',
+    points: [
+      { x: -1, y: -1 },
+      { x: 1, y: -1 },
+      { x: 1, y: 1 },
+      { x: -1, y: 1 }
+    ]
+  } as const
+  const touches = (
+    geometry: Parameters<typeof spatialGeometryOverlapsTokenFootprint>[0]['geometry'],
+    x: number,
+    y = 0
+  ) => spatialGeometryOverlapsTokenFootprint({ geometry, token: token(ids.targetToken, x, y) })
+
+  it('does not catch a footprint that only touches a radius zone edge', () => {
+    expect(touches(circle, 2)).toBe(false)
+    expect(touches(circle, 0, 2)).toBe(false)
+  })
+
+  it('does not catch a footprint that only touches a polygon zone edge or corner', () => {
+    expect(touches(square, 2)).toBe(false)
+    expect(touches(square, 2, 2)).toBe(false)
+  })
+
+  it('catches a footprint that overlaps a zone by any positive area', () => {
+    expect(touches(circle, 1.5)).toBe(true)
+    expect(touches(square, 1.5)).toBe(true)
+    expect(touches(square, 1.5, 1.5)).toBe(true)
+    expect(touches(square, 0)).toBe(true)
+  })
+
+  it('catches a footprint that fully contains a zone', () => {
+    expect(
+      spatialGeometryOverlapsTokenFootprint({
+        geometry: { kind: 'CIRCLE', center: { x: 0, y: 0 }, radius: 0.25 },
+        token: { ...token(ids.targetToken, 0), height: 4, width: 4 }
+      })
+    ).toBe(true)
   })
 })
 

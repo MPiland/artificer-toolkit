@@ -243,19 +243,6 @@ function footprintCorners(value: Footprint): ScenePoint[] {
   ]
 }
 
-function pointInPolygon(point: ScenePoint, points: readonly ScenePoint[]): boolean {
-  let inside = false
-  for (let index = 0; index < points.length; index += 1) {
-    const from = points[index]!
-    const to = points[(index + 1) % points.length]!
-    if (segmentsIntersect(point, point, from, to)) return true
-    if (from.y > point.y === to.y > point.y) continue
-    const crossing = ((to.x - from.x) * (point.y - from.y)) / (to.y - from.y) + from.x
-    if (point.x <= crossing) inside = !inside
-  }
-  return inside
-}
-
 /** How far `point` is from the nearest point of the footprint; zero inside or on it. */
 function distanceFromFootprint(value: Footprint, point: ScenePoint): number {
   const closestX = Math.max(
@@ -269,28 +256,29 @@ function distanceFromFootprint(value: Footprint, point: ScenePoint): number {
   return Math.hypot(point.x - closestX, point.y - closestY)
 }
 
-function footprintIntersectsSpatialGeometry(value: Footprint, geometry: SpatialGeometry): boolean {
-  if (geometry.kind === 'CIRCLE')
-    return distanceFromFootprint(value, geometry.center) <= geometry.radius + EPSILON
-  const corners = footprintCorners(value)
-  if (corners.some((corner) => pointInPolygon(corner, geometry.points))) return true
-  if (geometry.points.some((point) => pointInFootprint(point, value))) return true
-  return corners.some((from, index) => {
-    const to = corners[(index + 1) % corners.length]!
-    return geometry.points.some((edgeFrom, edge) =>
-      segmentsIntersect(from, to, edgeFrom, geometry.points[(edge + 1) % geometry.points.length]!)
-    )
-  })
+/**
+ * The one overlap rule of areas and zones: a footprint shares area with the geometry, and touching
+ * its edge or a corner never counts (user ruling 2026-10-14, D103). A polygon must be convex, as
+ * every area outline and authored zone is.
+ */
+function footprintOverlapsSpatialGeometry(value: Footprint, geometry: SpatialGeometry): boolean {
+  return geometry.kind === 'CIRCLE'
+    ? distanceFromFootprint(value, geometry.center) < geometry.radius - EPSILON
+    : convexPolygonsOverlap(geometry.points, footprintCorners(value))
 }
 
-/** Full-footprint containment fact for current spatial/perception evaluation. */
-export function spatialGeometryIntersectsTokenFootprint(input: {
+/**
+ * Whether the token's whole footprint shares area with the geometry, for current spatial and
+ * perception evaluation. Touching the geometry's edge or a corner is not in it. An invalid
+ * geometry or token is in nothing (fails closed).
+ */
+export function spatialGeometryOverlapsTokenFootprint(input: {
   geometry: SpatialGeometry
   position?: ScenePoint
   token: SpatialSceneToken
 }): boolean {
   if (!validSpatialGeometry(input.geometry) || !validSpatialToken(input.token)) return false
-  return footprintIntersectsSpatialGeometry(
+  return footprintOverlapsSpatialGeometry(
     footprint(input.token, input.position ?? sceneTokenAnchor(input.token)),
     input.geometry
   )
@@ -604,9 +592,12 @@ export function spatialTokensInsideArea(input: {
   casterTokenId?: string | null
 }): string[] {
   const { origin, shape } = input
-  const catches = (tokens: readonly SpatialSceneToken[], overlaps: (space: Footprint) => boolean) =>
+  const catches = (tokens: readonly SpatialSceneToken[], area: SpatialGeometry) =>
     tokens
-      .filter((token) => validSpatialToken(token) && overlaps(footprint(token)))
+      .filter(
+        (token) =>
+          validSpatialToken(token) && footprintOverlapsSpatialGeometry(footprint(token), area)
+      )
       .map((token) => token.id)
       .sort()
   if (isDirectedAreaShape(shape)) {
@@ -616,19 +607,14 @@ export function spatialTokensInsideArea(input: {
     if (!outline) return []
     return catches(
       input.tokens.filter((token) => token !== caster),
-      (space) => convexPolygonsOverlap(outline, footprintCorners(space))
+      { kind: 'POLYGON', points: outline }
     )
   }
-  if (shape.kind === 'RADIUS') {
-    if (!validSpatialGeometry({ kind: 'CIRCLE', center: origin, radius: shape.radius })) return []
-    return catches(
-      input.tokens,
-      (space) => distanceFromFootprint(space, origin) < shape.radius - EPSILON
-    )
-  }
-  const outline = pointCubeOutline(origin, shape.edgeLength)
-  if (!validSpatialGeometry({ kind: 'POLYGON', points: outline })) return []
-  return catches(input.tokens, (space) => convexPolygonsOverlap(outline, footprintCorners(space)))
+  const area: SpatialGeometry =
+    shape.kind === 'RADIUS'
+      ? { kind: 'CIRCLE', center: origin, radius: shape.radius }
+      : { kind: 'POLYGON', points: pointCubeOutline(origin, shape.edgeLength) }
+  return validSpatialGeometry(area) ? catches(input.tokens, area) : []
 }
 
 function interpolate(from: ScenePoint, to: ScenePoint, progress: number): ScenePoint {
@@ -803,11 +789,11 @@ function candidateContact(input: {
       const progress = times[timeIndex]!
       const prior = times[timeIndex - 1] ?? 0
       const next = times[timeIndex + 1] ?? 1
-      const before = footprintIntersectsSpatialGeometry(
+      const before = footprintOverlapsSpatialGeometry(
         footprint(input.token, interpolate(from, to, (prior + progress) / 2)),
         input.geometry
       )
-      const after = footprintIntersectsSpatialGeometry(
+      const after = footprintOverlapsSpatialGeometry(
         footprint(input.token, interpolate(from, to, (progress + next) / 2)),
         input.geometry
       )
@@ -838,8 +824,8 @@ function movementTrigger(input: {
   const first = input.path[0]
   const last = input.path.at(-1)
   if (!first || !last) return null
-  const start = footprintIntersectsSpatialGeometry(footprint(input.token, first), input.geometry)
-  const end = footprintIntersectsSpatialGeometry(footprint(input.token, last), input.geometry)
+  const start = footprintOverlapsSpatialGeometry(footprint(input.token, first), input.geometry)
+  const end = footprintOverlapsSpatialGeometry(footprint(input.token, last), input.geometry)
   if (input.kind === 'TELEPORT') {
     if (input.path.length !== 2) return null
     const totalDistance = Math.hypot(last.x - first.x, last.y - first.y)
