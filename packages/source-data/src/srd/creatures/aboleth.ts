@@ -34,7 +34,7 @@ export const aboleth: CreatureAuthored = {
     S.grantedSaveProficiency(1, 1, 'CONSTITUTION', 'INTELLIGENCE', 'WISDOM'),
     S.grantedLanguageProficiency(1, 3, 'DEEP_SPEECH')
   ],
-  senses: ['darkvision 120 ft.'],
+  senses: [S.darkvision(120)],
   passivePerception: 20,
   challengeRatingId: S.CR.CR_10,
   xp: 5900,

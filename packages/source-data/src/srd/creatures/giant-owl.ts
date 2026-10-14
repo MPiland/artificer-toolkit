@@ -30,7 +30,7 @@ export const giantOwl: CreatureAuthored = {
     S.grantedSkillProficiency(129, 1, 'STEALTH'),
     S.grantedLanguageProficiency(129, 2, 'COMMON', 'ELVISH', 'GIANT_OWL', 'SYLVAN')
   ],
-  senses: ['darkvision 120 ft.'],
+  senses: [S.darkvision(120)],
   passivePerception: 15,
   challengeRatingId: S.CR.CR_1_4,
   xp: 50,

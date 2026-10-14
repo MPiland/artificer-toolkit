@@ -177,7 +177,6 @@ async function prepareAreaScene(input: AreaPlanInput) {
     point: command.target.point,
     grid,
     sourceToken: scene.sourceToken,
-    // An undecided sight (a Creature's unmodeled free-text Senses) counts as seen, as in D100.
     pointSeen:
       (await readNativeLivePointSight({
         state,
@@ -186,7 +185,7 @@ async function prepareAreaScene(input: AreaPlanInput) {
         point: command.target.point,
         sceneContext: { sceneId: scene.sceneId, sceneVersion: scene.sceneVersion, grid },
         capture
-      })) !== 'UNSEEN'
+      })) === 'SEES'
   })
   if (!area) throw new Error('The selected action area is not supported.')
   return { caster, casterFacts, movementTargets, scene, grid, area }
@@ -274,9 +273,7 @@ export async function planNativeLiveEncounterAreaAction(input: AreaPlanInput) {
     if (!movementTargets.has(actor.id)) movementTargets.set(actor.id, await input.loadTarget(actor))
 
   // Whom the caster perceives is decided once, as the area opens, and sealed with each creature's
-  // save: a later change of sight or lighting does not change what the caster is told (D100). An
-  // UNKNOWN sight (a Creature whose free-text Senses are not modeled) counts as perceived, as D100
-  // does not penalise it either.
+  // save: a later change of sight or lighting does not change what the caster is told (D100).
   const perceivedByCaster = new Set<string>()
   for (const { actor } of caught) {
     const target = movementTargets.get(actor.id)
@@ -292,7 +289,7 @@ export async function planNativeLiveEncounterAreaAction(input: AreaPlanInput) {
             sceneContext: { sceneId: scene.sceneId, sceneVersion: scene.sceneVersion, grid },
             capture
           })
-        ).actual.attackerSeesTarget !== 'UNSEEN')
+        ).actual.attackerSeesTarget === 'SEES')
     )
       perceivedByCaster.add(actor.id)
   }

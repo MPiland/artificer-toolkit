@@ -34,6 +34,7 @@ type AuthoringDefaultKind =
   | 'creatureMountProfile'
   | 'creatureNpcProfile'
   | 'creatureQualifiedDamageDefense'
+  | 'creatureSense'
   | 'duration'
   | 'durationScalingBreakpoint'
   | 'durationValue'
@@ -160,6 +161,7 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   creatureMountProfile: ['creatureMountProfile'],
   creatureNpcProfile: ['creatureNpcProfile'],
   creatureQualifiedDamageDefense: ['creatureQualifiedDamageDefense'],
+  creatureSense: ['creatureSense'],
   duration: ['duration'],
   durationScalingBreakpoint: ['durationScalingBreakpoint', 'targetCountScalingBreakpoint'],
   durationValue: ['durationValue'],
@@ -235,15 +237,7 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   startingEquipmentItem: ['startingEquipmentItem'],
   startingEquipmentOption: ['startingEquipmentOption'],
   startingEquipmentSet: ['startingEquipmentSet'],
-  string: [
-    'actionEffectId',
-    'vehicleString',
-    'string',
-    'logisticsNote',
-    'regionalEffect',
-    'sense',
-    'tag'
-  ],
+  string: ['actionEffectId', 'vehicleString', 'string', 'logisticsNote', 'regionalEffect', 'tag'],
   summonStatBlock: ['summonStatBlock'],
   targetCount: ['targetCount'],
   targeting: ['targeting'],

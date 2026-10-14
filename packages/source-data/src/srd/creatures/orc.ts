@@ -33,7 +33,7 @@ export const orc: CreatureAuthored = {
     S.grantedLanguageProficiency(212, 2, 'COMMON', 'ORC'),
     S.grantedSkillProficiency(212, 1, 'INTIMIDATION')
   ],
-  senses: ['darkvision 60 ft.'],
+  senses: [S.darkvision(60)],
   passivePerception: 10,
   challengeRatingId: CR.CR_1_2,
   xp: 100,

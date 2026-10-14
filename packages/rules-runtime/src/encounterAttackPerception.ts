@@ -6,7 +6,6 @@ import type {
   SceneToken
 } from '@artificer-toolkit/shared/vtt'
 
-import { snapshotStatBlock } from './encounterProjection.js'
 import type { EncounterAttackAgainstContributor } from './encounterActiveGrants.js'
 import type { MovementTarget } from './encounterMovementTargets.js'
 import {
@@ -22,12 +21,8 @@ import {
   type EncounterPerceptionActor
 } from './encounterTurnEffectPerception.js'
 
-/**
- * Whether one actor sees another. A Character's pinned Senses are complete, so its answer is
- * definitive. A Creature's authored free-text Senses ("darkvision 60 ft.") are not modeled, so a
- * Creature that has them and does not see by the modeled facts may still see: UNKNOWN.
- */
-export type EncounterAttackSight = 'SEES' | 'UNSEEN' | 'UNKNOWN'
+/** Whether one actor sees another, by its structured Senses (a Character's or a Creature's). */
+export type EncounterAttackSight = 'SEES' | 'UNSEEN'
 
 export type EncounterAttackPerception = {
   targetSeesAttacker: EncounterAttackSight
@@ -65,7 +60,7 @@ export type EncounterAttackPerceptionPlacement = {
 
 /**
  * Whether one observer sees one subject, and by which System Senses. `believed` decides only on the
- * facts the observer's roller knows: a Creature's unmodeled authored Senses are never undecided.
+ * facts the observer's roller knows, so it names no Senses.
  */
 async function resolveAttackSight(
   input: AttackPerceptionLoaders & {
@@ -87,14 +82,7 @@ async function resolveAttackSight(
     loadDefinition: input.loadDefinition,
     loadSystem: input.loadSystem
   })
-  if (!result.satisfied)
-    return {
-      sight:
-        !input.believed && (snapshotStatBlock(observer.actor)?.senses.length ?? 0) > 0
-          ? 'UNKNOWN'
-          : 'UNSEEN',
-      senseLabels: []
-    }
+  if (!result.satisfied) return { sight: 'UNSEEN', senseLabels: [] }
   if (input.believed || result.qualifying.length === 0) return { sight: 'SEES', senseLabels: [] }
   const { senses } = await input.loadSystem()
   const qualifying = new Set(result.qualifying.map((identity) => identity.definitionId))
@@ -185,7 +173,7 @@ export async function resolveEncounterPointSight(
 const strippedAttackActor = (actor: AttackPerceptionActor): AttackPerceptionActor => ({
   ...actor,
   activeEffects: [],
-  baseRulePolicyOutput: null,
+  perceptionSenses: [],
   conditionDefinitions: []
 })
 

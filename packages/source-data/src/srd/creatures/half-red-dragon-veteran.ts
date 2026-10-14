@@ -31,7 +31,7 @@ export const halfRedDragonVeteran: CreatureAuthored = {
     S.grantedLanguageProficiency(158, 2, 'COMMON', 'DRACONIC')
   ],
   damageResistances: ['fire'],
-  senses: ['blindsight 10 ft.', 'darkvision 60 ft.'],
+  senses: [S.blindsight(10), S.darkvision(60)],
   passivePerception: 12,
   challengeRatingId: S.CR.CR_5,
   xp: 1800,

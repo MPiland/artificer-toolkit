@@ -37,7 +37,7 @@ export const hornedDevil: CreatureAuthored = {
   ],
   damageImmunities: ['fire', 'poison'],
   conditionImmunities: ['poisoned'],
-  senses: ['darkvision 120 ft.'],
+  senses: [S.darkvision(120)],
   passivePerception: 13,
   challengeRatingId: S.CR.CR_11,
   xp: 7200,

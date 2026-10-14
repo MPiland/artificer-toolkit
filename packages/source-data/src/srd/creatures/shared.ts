@@ -28,6 +28,7 @@ import {
   type ActorRelationshipAuthored,
   type ActorRelationshipModuleAuthored,
   type CreatureAuthored,
+  type CreatureSenseAuthored,
   type FeatureAuthored,
   type FollowUpSaveAuthored,
   type SizeCode
@@ -39,14 +40,18 @@ import {
   SRD_ABILITY_DEFINITION_IDS,
   SRD_ACROBATICS_SKILL_ID,
   SRD_ATHLETICS_SKILL_ID,
+  SRD_BLINDSIGHT_SENSE_ID,
   SRD_CHALLENGE_RATINGS,
   SRD_CONDITION_TYPES,
   SRD_CREATURE_TYPES,
   SRD_DAMAGE_TYPES,
+  SRD_DARKVISION_SENSE_ID,
   SRD_LANGUAGES,
   SRD_SKILLS,
   SRD_SPEEDS,
   SRD_SYSTEM_ID,
+  SRD_TREMORSENSE_SENSE_ID,
+  SRD_TRUESIGHT_SENSE_ID,
   SRD_USER_ID
 } from '../vocabulary.js'
 
@@ -171,6 +176,29 @@ export function fly(amount: number) {
 export function burrow(amount: number) {
   return [{ speedId: BURROW_SPEED_ID, amount, unit: MEASUREMENT_UNIT_CODE.FEET }]
 }
+
+/** A printed Sense ("darkvision 60 ft."); `qualifier` is the printed note after its range. */
+function sense(senseDefinitionId: string, feet: number, qualifier?: string): CreatureSenseAuthored {
+  return {
+    senseDefinitionId,
+    range: {
+      id: `${senseDefinitionId}-range`,
+      rangeKind: RANGE_KIND.DISTANCE,
+      amount: feet,
+      unit: MEASUREMENT_UNIT_CODE.FEET
+    },
+    ...(qualifier ? { qualifier } : {})
+  }
+}
+
+export const darkvision = (feet: number, qualifier?: string) =>
+  sense(SRD_DARKVISION_SENSE_ID, feet, qualifier)
+export const blindsight = (feet: number, qualifier?: string) =>
+  sense(SRD_BLINDSIGHT_SENSE_ID, feet, qualifier)
+export const tremorsense = (feet: number, qualifier?: string) =>
+  sense(SRD_TREMORSENSE_SENSE_ID, feet, qualifier)
+export const truesight = (feet: number, qualifier?: string) =>
+  sense(SRD_TRUESIGHT_SENSE_ID, feet, qualifier)
 
 export function featureId(creatureIndex: number, localIndex: number) {
   return localId(1, creatureIndex, localIndex)

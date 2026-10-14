@@ -9,6 +9,10 @@ import {
 } from '../creatureAuthoring.utils'
 
 const generatedId = '00000000-0000-4000-8000-000000000001'
+const darkvision60 = {
+  senseDefinitionId: 'darkvision',
+  range: { id: 'darkvision-range', rangeKind: 'DISTANCE', amount: 60, unit: 'FEET' }
+} as const
 
 describe('creature authoring helpers', () => {
   afterEach(() => {
@@ -56,7 +60,7 @@ describe('creature authoring helpers', () => {
     const formValues = toCreatureFormValues({
       ...authored,
       tags: ['forest', 'ambush'],
-      senses: ['darkvision 60 ft.'],
+      senses: [darkvision60],
       logisticsNotes: ['Requires a saddle.'],
       npcProfile: {
         bonds: ['Protects the village.'],
@@ -68,7 +72,7 @@ describe('creature authoring helpers', () => {
 
     expect(formValues).toMatchObject({
       tags: [{ value: 'forest' }, { value: 'ambush' }],
-      senses: [{ value: 'darkvision 60 ft.' }],
+      senses: [darkvision60],
       logisticsNotes: [{ value: 'Requires a saddle.' }],
       npcProfile: {
         bonds: [{ value: 'Protects the village.' }],
@@ -85,7 +89,7 @@ describe('creature authoring helpers', () => {
 
     expect(normalized).toMatchObject({
       tags: ['forest', 'ambush'],
-      senses: ['darkvision 60 ft.'],
+      senses: [darkvision60],
       logisticsNotes: ['Requires a saddle.'],
       npcProfile: {
         bonds: ['Protects the village.'],

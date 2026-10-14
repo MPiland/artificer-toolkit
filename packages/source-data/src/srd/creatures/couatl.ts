@@ -30,7 +30,7 @@ export const couatl: CreatureAuthored = {
   proficiencies: [S.grantedSaveProficiency(8048, 1, 'CONSTITUTION', 'WISDOM', 'CHARISMA')],
   damageResistances: ['radiant'],
   damageImmunities: ['psychic', 'bludgeoning, piercing, and slashing from nonmagical attacks'],
-  senses: ['truesight 120 ft.'],
+  senses: [S.truesight(120)],
   passivePerception: 15,
   challengeRatingId: S.CR.CR_4,
   xp: 1100,

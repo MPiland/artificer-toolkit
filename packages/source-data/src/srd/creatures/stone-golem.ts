@@ -39,7 +39,7 @@ export const stoneGolem: CreatureAuthored = {
     'psychic',
     "bludgeoning, piercing, and slashing from nonmagical attacks that aren't adamantine"
   ],
-  senses: ['darkvision 120 ft.'],
+  senses: [S.darkvision(120)],
   passivePerception: 10,
   challengeRatingId: S.CR.CR_10,
   xp: 5900,

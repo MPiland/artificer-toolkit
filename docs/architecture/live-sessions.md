@@ -107,7 +107,11 @@ reloads a stale or expired authorization cache (a failed read refuses it with `U
 the journal answers an exact retry (same command ID and input) with its stored receipt, and a reused
 command ID with different input is `INVALID_COMMAND`. An Encounter command's retry returns its own
 journaled result (occurrence, roll) shown over the Run's current projection, so a retry after later
-work never moves a client's view backwards (`replayRoomEncounterCommand`). A command runs its planner inside one
+work never moves a client's view backwards (`replayRoomEncounterCommand`). A movement decision (a
+`RESOLVE_RULE_OCCURRENCE` answer or a GM `VOID_RULE_OCCURRENCE` settled through the Scene) sends its sender two
+messages with one command ID, the Scene `COMMAND_COMMITTED` and then the Encounter result, so its receipt stores
+both as a JSON array; a retry replays the Scene receipt (with `replayed: true`, as for every Scene retry) and then
+the re-presented Encounter result, each as live projected it for that sender. A command runs its planner inside one
 `RoomEncounterStore.transact`, and `DurableCommandJournal.commitInTransaction` stores the receipt and
 authority head in the same SQLite transaction. The room acknowledges and fans out only after that
 transaction commits. A command that changes nothing writes no row.
@@ -649,11 +653,15 @@ does not replace the chain.
 separate. Raw rows are what checkpoints carry; vision is recomputed. Native storage-row helpers are in
 `roomSceneRecords.ts`.
 
-**Token senses (current, VTT_UI-3.4).** A token's `vision` is authored only, and fog follows authored
-vision only. Composition (`resolveSceneCharacterVision`) writes a bound token's Character senses
-(Darkvision, Blindsight, Tremorsense, Truesight and similar) to the token's `senses`; an unbound token
-carries none. Senses are player-private: `projectSceneForViewer` and both Scene delta projections empty
-`senses` on every token the PLAYER does not control, using the room's per-viewer bound-token control
+**Token senses (current, VTT_UI-3.4, VTT_UI-5.2).** A token's `vision` is authored only, and fog follows authored
+vision only. Composition (`resolveSceneActorVision`, keyed by bound Encounter actor) writes a bound
+token's senses (Darkvision, Blindsight, Tremorsense, Truesight and similar) to the token's `senses`: a
+Character's granted senses or a Creature's structured stat-block senses (D111), both pinned to the
+System's Sense definitions by the one `createActorSensePinner` and derived by the one
+`deriveActorSceneVision` (`packages/rules-runtime/src/actorSenses.ts`). An unbound token carries none
+(`apps/session-worker/src/roomSceneVision.ts`). Senses are player-private: `projectSceneForViewer` and
+both Scene delta projections empty `senses` on every token the PLAYER does not control, using the
+room's per-viewer bound-token control
 (`#boundTokenControl`, ADR 0034; no current play authorization reads as no control). The GM sees all
 senses. The client renderer applies the view token's senses on top of authored lighting.
 Senses are never persisted. One storage rule enforces it: `sceneStoredTokenDtoSchema`

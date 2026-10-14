@@ -25,7 +25,7 @@ export const scorpion: CreatureAuthored = {
     modifier: -1
   },
   speeds: [...S.walk(10)],
-  senses: ['blindsight 10 ft.'],
+  senses: [S.blindsight(10)],
   passivePerception: 9,
   challengeRatingId: S.CR.CR_0,
   xp: 10,

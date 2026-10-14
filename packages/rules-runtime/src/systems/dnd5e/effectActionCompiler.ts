@@ -17,6 +17,7 @@ import {
   type CompiledEffectGroup
 } from '@artificer-toolkit/shared/compilers'
 import { buildCharacterGrantFoldModifierFacts } from '../../character/characterGrantFoldSourceFacts.js'
+import { abilityModifier } from './abilityModifier.js'
 import type {
   ActorRelationshipAuthored,
   HitPointMaximumReductionAuthored
@@ -348,7 +349,7 @@ export function resolveCreatureDamageExpression(input: {
     if (typeof score !== 'number' || !Number.isSafeInteger(score)) return null
     const multiplier = row.multiplier === null || row.multiplier === undefined ? 1 : row.multiplier
     if (typeof multiplier !== 'number' || !Number.isSafeInteger(multiplier)) return null
-    let resolved = Math.floor((score - 10) / 2) * multiplier
+    let resolved = abilityModifier(score) * multiplier
     if (row.min !== null && row.min !== undefined) {
       if (typeof row.min !== 'number' || !Number.isSafeInteger(row.min)) return null
       resolved = Math.max(resolved, row.min)

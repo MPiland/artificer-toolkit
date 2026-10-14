@@ -17,11 +17,11 @@ import {
   seedStorySystemId,
   seedStoryUserId
 } from '#domains/authoredRouteStory.fixtures'
+import { resolveFixtureNodeRuntime } from '#test/nodeRuntimeResolver'
 import { TestRouterProvider } from '#test/TestRouterProvider'
 import { authoredFormFactories } from '../factories/authoredFormFactories'
 import type { AuthoredFormDomain } from '../factories/authoredFormFactories.types'
 import { AuthoringLayout } from '../layout/AuthoringLayout'
-import { createStaticResolvedFormModel } from '../node-map/staticResolvedModel'
 import { FormRenderer } from '../rendering/FormRenderer'
 import { isRenderableNode } from '../rendering/FormRenderer.utils'
 import { useAppForm } from '../app-form/AppForm'
@@ -50,15 +50,20 @@ const SYSTEM_MANAGED_PATH_KEYS = new Set([
 const scenarios = createBranchScenarios()
 // One case per resolved context: rendering a whole scenario in a single test made the
 // heaviest ones (equipment: 23 contexts) run ~10s alone and time out under CPU load.
-const registrationCases = scenarios.flatMap((scenario) =>
-  collectResolvedParity(
-    scenario.domain,
-    toActualFormValues(scenario.domain, parseScenarioRecord(scenario))
-  ).contexts.map((context, index) => ({
-    context,
-    name: `${scenario.label} registers every visible resolved node of ${context.model.mapId} context ${index} with TanStack Form`
-  }))
-)
+const registrationCases = (
+  await Promise.all(
+    scenarios.map(async (scenario) => {
+      const { contexts } = await collectResolvedParity(
+        scenario.domain,
+        toActualFormValues(scenario.domain, parseScenarioRecord(scenario))
+      )
+      return contexts.map((context, index) => ({
+        context,
+        name: `${scenario.label} registers every visible resolved node of ${context.model.mapId} context ${index} with TanStack Form`
+      }))
+    })
+  )
+).flat()
 const RegistrationRenderer = FormRenderer<Record<string, unknown>>({ defaultValues: {} })
 
 afterEach(cleanup)
@@ -70,7 +75,7 @@ describe('authored domain schema, adapter, node, and field parity', () => {
 
     const parsedRecord = parseScenarioRecord(scenario)
     const formValues = { ...toActualFormValues('spell', parsedRecord), level: 0 }
-    const rootContext = collectResolvedParity('spell', formValues).contexts.find(
+    const rootContext = (await collectResolvedParity('spell', formValues)).contexts.find(
       ({ model }) => model.mapId === 'spell'
     )
     if (!rootContext) throw new Error('Expected the resolved spell root context.')
@@ -88,10 +93,10 @@ describe('authored domain schema, adapter, node, and field parity', () => {
 
   it.each(scenarios)(
     '$label exposes every populated authored field through its node tree',
-    (scenario) => {
+    async (scenario) => {
       const parsedRecord = parseScenarioRecord(scenario)
       const formValues = toActualFormValues(scenario.domain, parsedRecord)
-      const { authoredPaths, contexts, systemPaths } = collectResolvedParity(
+      const { authoredPaths, contexts, systemPaths } = await collectResolvedParity(
         scenario.domain,
         formValues
       )
@@ -395,12 +400,12 @@ function toActualFormValues(
   return session!.initialValues as Record<string, unknown>
 }
 
-function collectResolvedParity(mapId: string, values: Record<string, unknown>) {
+async function collectResolvedParity(mapId: string, values: Record<string, unknown>) {
   const authoredPaths = new Set<string>()
   const systemPaths = new Set<string>()
   const contexts: ResolvedContext[] = []
 
-  collectResolvedContext({
+  await collectResolvedContext({
     ancestors: [],
     authoredPaths,
     systemPaths,
@@ -414,7 +419,7 @@ function collectResolvedParity(mapId: string, values: Record<string, unknown>) {
   return { authoredPaths, contexts, systemPaths }
 }
 
-function collectResolvedContext({
+async function collectResolvedContext({
   ancestors,
   authoredPaths,
   systemPaths,
@@ -433,17 +438,16 @@ function collectResolvedContext({
   pathPrefix: readonly (string | number)[]
   values: Record<string, unknown>
 }) {
-  const model = createStaticResolvedFormModel(mapId, {
-    ancestors,
+  const model = await resolveFixtureNodeRuntime({
+    ancestors: [...ancestors],
+    mapId,
     parentValues,
-    system: authoredRouteStorySystem,
     values
   })
 
-  expect(model, `Missing static node map ${mapId}`).toBeDefined()
-  contexts.push({ model: model!, values })
+  contexts.push({ model, values })
 
-  for (const node of model!.steps.flatMap((step) =>
+  for (const node of model.steps.flatMap((step) =>
     step.sections.flatMap((section) => section.nodes)
   )) {
     const localPath = [...node.path]
@@ -462,24 +466,24 @@ function collectResolvedContext({
     if (!node.childMapId) continue
     const childValue = readPath(values, localPath)
     if (Array.isArray(childValue)) {
-      childValue.forEach((row, index) => {
-        if (!isRecord(row)) return
-        collectResolvedContext({
+      for (const [index, row] of childValue.entries()) {
+        if (!isRecord(row)) continue
+        await collectResolvedContext({
           ancestors: [values, ...ancestors],
           authoredPaths,
           systemPaths,
           contexts,
-          mapId: node.childMapId!,
+          mapId: node.childMapId,
           parentValues: values,
           pathPrefix: [...completePath, index],
           values: row
         })
-      })
+      }
       continue
     }
 
     if (isRecord(childValue)) {
-      collectResolvedContext({
+      await collectResolvedContext({
         ancestors: [values, ...ancestors],
         authoredPaths,
         systemPaths,

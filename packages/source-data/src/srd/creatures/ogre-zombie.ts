@@ -28,7 +28,7 @@ export const ogreZombie: CreatureAuthored = {
   proficiencies: [S.grantedSaveProficiency(210, 1, 'WISDOM')],
   damageImmunities: ['poison'],
   conditionImmunities: ['poisoned'],
-  senses: ['darkvision 60 ft.'],
+  senses: [S.darkvision(60)],
   passivePerception: 8,
   challengeRatingId: S.CR.CR_2,
   xp: 450,

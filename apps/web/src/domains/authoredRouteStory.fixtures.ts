@@ -21,7 +21,7 @@ import type { FeatAuthoredDto } from '@artificer-toolkit/schema/subjects/feat'
 import type { RaceAuthoredDto } from '@artificer-toolkit/schema/subjects/race'
 import type { SpellAuthoredDto } from '@artificer-toolkit/schema/subjects/spell'
 import type { VehicleAuthoredDto } from '@artificer-toolkit/schema/subjects/vehicle'
-import { SpeedType, speedOptions } from '@artificer-toolkit/shared/authored'
+import { SRD_SPEEDS } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import type {
   BackgroundEditLoaderData,
   ClassEditLoaderData,
@@ -37,10 +37,10 @@ import type { AuthoredFormDomain } from '#forms/factories/authoredFormFactories.
 
 export const seedStoryUserId = '00000000-0000-0000-0000-000000000000'
 export const seedStorySystemId = '00000000-0000-0000-0000-000000000001'
-const authoredStorySpeeds = speedOptions.map((option) => ({ ...option }))
-const authoredStoryWalkingSpeedId =
-  authoredStorySpeeds.find((option) => option.code === SpeedType.WALKING)?.id ??
-  '1bd431c3-1556-49ee-b384-3cf04a734a47'
+const authoredStorySpeeds = SRD_SPEEDS.map((speed) => ({ ...speed }))
+const authoredStoryWalkingSpeedId = authoredStorySpeeds.find(
+  (speed) => speed.code === 'WALK'
+)!.id
 
 export const authoredRouteStoryUser = {
   id: 'story-author',
@@ -164,7 +164,7 @@ export const authoredRouteStorySystem = {
       label: 'Legendary'
     }
   ],
-  senses: [],
+  senses: [{ id: '00000000-0000-0000-000a-000100000000', code: 'DARKVISION', label: 'Darkvision' }],
   skills: [],
   speeds: authoredStorySpeeds,
   terrains: [],

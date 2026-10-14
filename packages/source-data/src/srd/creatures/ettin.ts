@@ -29,7 +29,7 @@ export const ettin: CreatureAuthored = {
     S.grantedSkillExpertise(100, 3, 'PERCEPTION'),
     S.grantedLanguageProficiency(100, 2, 'GIANT', 'ORC')
   ],
-  senses: ['darkvision 60 ft.'],
+  senses: [S.darkvision(60)],
   passivePerception: 14,
   challengeRatingId: S.CR.CR_4,
   xp: 1100,

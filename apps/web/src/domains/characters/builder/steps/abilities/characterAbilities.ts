@@ -1,8 +1,15 @@
-import { CHARACTER_ABILITY_GENERATION_METHOD } from '@artificer-toolkit/shared/core'
+import {
+  CHARACTER_ABILITY_GENERATION_METHOD,
+  HITPOINT_CALCULATION_METHOD_CODE
+} from '@artificer-toolkit/shared/core'
+import { abilityModifier } from '@artificer-toolkit/rules-runtime/systems/dnd5e/abilityModifier'
+import {
+  hitPointGain,
+  parseHitDie
+} from '@artificer-toolkit/rules-runtime/systems/dnd5e/hitPointRules'
 import type { CharacterBuilderReferencesDto } from '@artificer-toolkit/schema/api/characters'
 import type { CharacterFormValues } from '../../core/characterBuilder.types'
 type HitpointLevel = CharacterFormValues['intent']['hitpoints']['levels'][number]
-type CharacterClassReference = CharacterBuilderReferencesDto['classes'][number]
 
 export function syncHitpointLevels({
   character,
@@ -24,50 +31,36 @@ export function syncHitpointLevels({
   return orderedRows.map((orderedRow, index) => {
     const characterLevel = index + 1
     const classReference = classReferencesById.get(orderedRow.classId)
-    const dieSides = getHitpointDieSides(classReference)
+    const dieSides = parseHitDie(classReference?.hitpoint?.dieConfig)
     if (!dieSides) {
       return {
         level: characterLevel,
         classId: orderedRow.classId,
         classLevel: orderedRow.classLevel,
         value: orderedRow.value,
-        ...(orderedRow.rolls ? { rolls: orderedRow.rolls } : {}),
-        ...(orderedRow.overridden !== undefined ? { overridden: orderedRow.overridden } : {})
+        ...(orderedRow.rolls ? { rolls: orderedRow.rolls } : {})
       }
     }
 
     const hitpointAbility = classReference?.hitpoint?.ability
-    const abilityModifier = hitpointAbility
+    const modifier = hitpointAbility
       ? getHitpointAbilityModifier({
           ability: hitpointAbility,
           character,
           resolvedAbilityScores
         })
       : 0
+    const fixed =
+      character.intent.hitpoints.method === HITPOINT_CALCULATION_METHOD_CODE.FIXED
+    const rolled = orderedRow.rolls?.[0]?.value
+    const roll = typeof rolled === 'number' && Number.isInteger(rolled) ? rolled : null
 
-    if (character.intent.hitpoints.method === 'FIXED' || characterLevel === 1) {
-      return {
-        level: characterLevel,
-        classId: orderedRow.classId,
-        classLevel: orderedRow.classLevel,
-        value: getDefaultHitpointValue({ abilityModifier, characterLevel, dieSides })
-      }
-    }
-
-    const roll = orderedRow.rolls?.[0]?.value
-    const hasRoll = typeof roll === 'number' && Number.isInteger(roll)
-    const legacyOverride = !hasRoll && orderedRow.existing && orderedRow.overridden !== false
     return {
       level: characterLevel,
       classId: orderedRow.classId,
       classLevel: orderedRow.classLevel,
-      value: hasRoll
-        ? Math.max(roll + abilityModifier, 1)
-        : legacyOverride
-          ? orderedRow.value
-          : Math.max(abilityModifier + 1, 1),
-      ...(hasRoll ? { rolls: orderedRow.rolls } : {}),
-      ...(legacyOverride ? { overridden: true } : { overridden: false })
+      value: hitPointGain({ die: dieSides, characterLevel, fixed, roll, modifier }),
+      ...(!fixed && characterLevel > 1 && roll !== null ? { rolls: orderedRow.rolls } : {})
     }
   })
 }
@@ -75,12 +68,12 @@ export function syncHitpointLevels({
 function getOrderedHitpointRows(
   classes: CharacterFormValues['intent']['classes'],
   rows: HitpointLevel[]
-): Array<HitpointLevel & { existing: boolean }> {
+): HitpointLevel[] {
   const selectedLevelsByClass = new Map(
     classes.map((entry) => [entry.classId, Math.max(Math.trunc(entry.classLevel), 0)])
   )
   const acceptedLevelsByClass = new Map<string, number>()
-  const orderedRows: Array<HitpointLevel & { existing: boolean }> = []
+  const orderedRows: HitpointLevel[] = []
 
   for (const row of [...rows].sort((left, right) => left.level - right.level)) {
     const selectedClassLevel = selectedLevelsByClass.get(row.classId)
@@ -93,7 +86,7 @@ function getOrderedHitpointRows(
       continue
 
     acceptedLevelsByClass.set(row.classId, row.classLevel)
-    orderedRows.push({ ...row, level: orderedRows.length + 1, existing: true })
+    orderedRows.push({ ...row, level: orderedRows.length + 1 })
   }
 
   const primaryClassId = classes[0]?.classId
@@ -109,9 +102,7 @@ function getOrderedHitpointRows(
         level: 1,
         classId: primaryClassId,
         classLevel: 1,
-        value: 1,
-        overridden: false,
-        existing: false
+        value: 1
       })
       acceptedLevelsByClass.set(primaryClassId, 1)
     }
@@ -129,9 +120,7 @@ function getOrderedHitpointRows(
         level: orderedRows.length + 1,
         classId: classRow.classId,
         classLevel,
-        value: 1,
-        overridden: false,
-        existing: false
+        value: 1
       })
     }
   }
@@ -167,20 +156,6 @@ export function isHitpointProgressionComplete(
     })
 }
 
-function getDefaultHitpointValue({
-  abilityModifier,
-  characterLevel,
-  dieSides
-}: {
-  abilityModifier: number
-  characterLevel: number
-  dieSides: number
-}): number {
-  const dieValue = characterLevel === 1 ? dieSides : Math.floor(dieSides / 2) + 1
-
-  return Math.max(dieValue + abilityModifier, 1)
-}
-
 export function getHitpointAbilityModifier({
   ability,
   character,
@@ -192,7 +167,7 @@ export function getHitpointAbilityModifier({
 }): number {
   const score = resolvedAbilityScores[ability] ?? getIntentAbilityScore(character, ability)
 
-  return typeof score === 'number' && Number.isFinite(score) ? Math.floor((score - 10) / 2) : 0
+  return typeof score === 'number' && Number.isFinite(score) ? abilityModifier(score) : 0
 }
 
 function getIntentAbilityScore(
@@ -209,13 +184,4 @@ function getIntentAbilityScore(
 
   const score = Number(option)
   return Number.isFinite(score) ? score : undefined
-}
-
-export function getHitpointDieSides(
-  classReference: CharacterClassReference | undefined
-): number | null {
-  const match = /d(?<sides>\d+)/iu.exec(classReference?.hitpoint?.dieConfig ?? '')
-  const sides = match?.groups?.sides ? Number(match.groups.sides) : Number.NaN
-
-  return Number.isInteger(sides) && sides > 0 ? sides : null
 }

@@ -2,7 +2,10 @@ import { z, lazySchema } from '../zod.js'
 
 import { automationModeDtoSchema } from './campaignSettings.js'
 import { featureReferenceDtoSchema } from '../features/reference.js'
-import { creatureQualifiedDamageDefenseDtoSchema } from '../subjects/creature.js'
+import {
+  creatureQualifiedDamageDefenseDtoSchema,
+  creatureSenseDtoSchema
+} from '../subjects/creature.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { encounterInitiativePolicySummaryDtoSchema } from '../shared/initiativePolicySnapshot.js'
 import { encounterOptionalCombatSummaryDtoSchema } from '../shared/optionalCombat.js'
@@ -159,7 +162,7 @@ export const encounterGmActorDtoSchema = lazySchema(() =>
         armorClass: z.nullable(z.number().check(z.int()).check(z.nonnegative())),
         abilityScores: z.nullable(z.record(z.string(), z.number())),
         speeds: z.array(z.unknown()),
-        senses: z.array(z.string()),
+        senses: z.array(creatureSenseDtoSchema),
         damageVulnerabilities: z.array(z.string()),
         damageResistances: z.array(z.string()),
         damageImmunities: z.array(z.string()),

@@ -1,6 +1,6 @@
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState, type ReactElement } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import { useSelector } from '@tanstack/react-form'
 import type {
@@ -25,7 +25,7 @@ import { TestRouterProvider } from '#test/TestRouterProvider'
 import { buildAuthoringNavigationTree } from '../layout/authoringNavigation'
 import { toAuthoringRailSummaries } from '../layout/Steps/Steps.utils'
 import { getAuthoringProgress } from '../validation/authoringProgress'
-import { withStaticResolvedScopes } from './withStaticResolvedScopes'
+import { withResolvedScopes } from './withResolvedScopes'
 
 type TestFormValues = {
   category: string | undefined
@@ -543,13 +543,22 @@ const TestAuthoringContent = withForm({
     onSaveDraft: () => void
   },
   render: function TestAuthoringContent({ canSaveDraft, form, model, onCancel, onSaveDraft }) {
-    const { updateAuthoringFormActions, updateAuthoringFormState } = useAuthoringForm()
+    const { providedModel, updateAuthoringFormActions, updateAuthoringFormState } =
+      useAuthoringForm()
     const nameValue = useSelector(form.store, (state) => state.values.name)
     const formValues = useSelector(form.store, (state) => state.values)
-    const resolvedModel = useMemo(
-      () => withStaticResolvedScopes(model, formValues),
-      [formValues, model]
-    )
+    const [resolvedModel, setResolvedModel] = useState<NodeRuntimeResolveResponseDto>()
+
+    useEffect(() => {
+      let current = true
+      void withResolvedScopes(model, formValues).then((resolved) => {
+        if (current) setResolvedModel(resolved)
+      })
+      return () => {
+        current = false
+      }
+    }, [formValues, model])
+
     const statePatch = useMemo(
       () => ({
         authoringKind: 'authored-form' as const,
@@ -574,6 +583,8 @@ const TestAuthoringContent = withForm({
       updateAuthoringFormActions(actions)
     }, [actions, updateAuthoringFormActions])
 
+    if (!providedModel) return null
+
     return (
       <>
         <AuthoringRenderer form={form} />
@@ -584,9 +595,15 @@ const TestAuthoringContent = withForm({
   }
 })
 
+async function renderForm(ui: ReactElement) {
+  const result = render(ui)
+  await screen.findByLabelText('name value')
+  return result
+}
+
 describe('authoring form platform', () => {
-  it('renders the first visible step and skips hidden or system-managed nodes', () => {
-    render(
+  it('renders the first visible step and skips hidden or system-managed nodes', async () => {
+    await renderForm(
       <TestRouterProvider>
         <TestAuthoringForm />
       </TestRouterProvider>
@@ -604,10 +621,10 @@ describe('authoring form platform', () => {
     ).toHaveTextContent(/^Basics$/)
   })
 
-  it('keeps Cancel out of the floating step-navigation action bar', () => {
+  it('keeps Cancel out of the floating step-navigation action bar', async () => {
     const onCancel = vi.fn()
 
-    render(
+    await renderForm(
       <TestRouterProvider>
         <TestAuthoringForm onCancel={onCancel} />
       </TestRouterProvider>
@@ -626,7 +643,7 @@ describe('authoring form platform', () => {
     const user = userEvent.setup()
     const onCancel = vi.fn()
 
-    render(
+    await renderForm(
       <TestRouterProvider>
         <TestAuthoringForm onCancel={onCancel} />
       </TestRouterProvider>
@@ -644,7 +661,7 @@ describe('authoring form platform', () => {
   it('advances with Next until the last step', async () => {
     const user = userEvent.setup()
 
-    render(
+    await renderForm(
       <TestRouterProvider>
         <TestAuthoringForm />
       </TestRouterProvider>
@@ -666,7 +683,7 @@ describe('authoring form platform', () => {
   it('updates TanStack form state when fields change', async () => {
     const user = userEvent.setup()
 
-    render(
+    await renderForm(
       <TestRouterProvider>
         <TestAuthoringForm />
       </TestRouterProvider>
@@ -677,8 +694,8 @@ describe('authoring form platform', () => {
     expect(screen.getByLabelText('name value')).toHaveTextContent('Fire Lace')
   })
 
-  it('renders empty array groups as overview screens without item rows', () => {
-    render(
+  it('renders empty array groups as overview screens without item rows', async () => {
+    await renderForm(
       <TestRouterProvider>
         <TestAuthoringForm model={groupModel} />
       </TestRouterProvider>
@@ -696,8 +713,8 @@ describe('authoring form platform', () => {
     expect(screen.queryByText('Feature 1')).not.toBeInTheDocument()
   })
 
-  it('does not repeat a collection heading already owned by its section', () => {
-    render(
+  it('does not repeat a collection heading already owned by its section', async () => {
+    await renderForm(
       <TestRouterProvider>
         <TestAuthoringForm model={sectionedGroupModel} />
       </TestRouterProvider>
@@ -712,8 +729,8 @@ describe('authoring form platform', () => {
     ).toBeInTheDocument()
   })
 
-  it('keeps the parent section surface when the collection owns a distinct heading', () => {
-    render(
+  it('keeps the parent section surface when the collection owns a distinct heading', async () => {
+    await renderForm(
       <TestRouterProvider>
         <TestAuthoringForm model={surfacedGroupModel} />
       </TestRouterProvider>
@@ -729,7 +746,7 @@ describe('authoring form platform', () => {
   it('adds a focused array item in the overlay editor', async () => {
     const user = userEvent.setup()
 
-    render(
+    await renderForm(
       <TestRouterProvider>
         <TestAuthoringForm model={groupModel} />
       </TestRouterProvider>
@@ -749,7 +766,7 @@ describe('authoring form platform', () => {
   it('cancels a staged summary add and restores focus without changing the owning leaf', async () => {
     const user = userEvent.setup()
 
-    render(
+    await renderForm(
       <TestRouterProvider>
         <TestAuthoringForm
           canSaveDraft
@@ -794,7 +811,7 @@ describe('authoring form platform', () => {
       ]
     }
 
-    render(
+    await renderForm(
       <TestRouterProvider>
         <TestAuthoringForm canSaveDraft defaultValues={initialValues} model={summaryGroupModel} />
       </TestRouterProvider>
@@ -849,7 +866,7 @@ describe('authoring form platform', () => {
       ]
     }
 
-    render(
+    await renderForm(
       <TestRouterProvider>
         <TestAuthoringForm
           canSaveDraft
@@ -893,7 +910,7 @@ describe('authoring form platform', () => {
       ]
     }
 
-    render(
+    await renderForm(
       <TestRouterProvider>
         <TestAuthoringForm canSaveDraft defaultValues={initialValues} model={focusedGroupModel} />
       </TestRouterProvider>
@@ -925,8 +942,8 @@ describe('authoring form platform', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
   })
 
-  it('keeps an absent optional complex object inline so it can be added', () => {
-    render(
+  it('keeps an absent optional complex object inline so it can be added', async () => {
+    await renderForm(
       <TestRouterProvider>
         <TestAuthoringForm model={complexObjectModel} />
       </TestRouterProvider>
@@ -938,8 +955,8 @@ describe('authoring form platform', () => {
     ).toBeInTheDocument()
   })
 
-  it('keeps populated simple object groups inline', () => {
-    render(
+  it('keeps populated simple object groups inline', async () => {
+    await renderForm(
       <TestRouterProvider>
         <TestAuthoringForm
           defaultValues={{ ...testDefaults, simple: { amount: 12, unit: 'POUNDS' } }}
@@ -996,11 +1013,11 @@ describe('authoring navigation tree', () => {
     expect(JSON.stringify(navigation.navigationTree)).not.toContain('Feature 1')
   })
 
-  it('makes populated branch collections selectable without a synthetic Overview row', () => {
+  it('makes populated branch collections selectable without a synthetic Overview row', async () => {
     const values = { ...testDefaults, features: [{ label: 'Arcane Ward' }] }
     const navigation = buildAuthoringNavigationTree({
       mapId: branchGroupModel.mapId,
-      model: withStaticResolvedScopes(branchGroupModel, values),
+      model: await withResolvedScopes(branchGroupModel, values),
       values
     })
     const features = navigation.navigationTree[0]
@@ -1017,11 +1034,11 @@ describe('authoring navigation tree', () => {
     expect(features?.children?.map((child) => child.label)).not.toContain('Overview')
   })
 
-  it('adds focused array rows as drawer leaves when values exist', () => {
+  it('adds focused array rows as drawer leaves when values exist', async () => {
     const values = { ...testDefaults, features: [{ label: '' }] }
     const navigation = buildAuthoringNavigationTree({
       mapId: groupModel.mapId,
-      model: withStaticResolvedScopes(groupModel, values),
+      model: await withResolvedScopes(groupModel, values),
       values
     })
     const nestedFeatureTarget = navigation.navigationTargets.find(
@@ -1078,7 +1095,7 @@ describe('authoring navigation tree', () => {
     )
   })
 
-  it('uses populated complex object groups as rail branches', () => {
+  it('uses populated complex object groups as rail branches', async () => {
     const values = {
       ...testDefaults,
       complex: {
@@ -1095,7 +1112,7 @@ describe('authoring navigation tree', () => {
     }
     const navigation = buildAuthoringNavigationTree({
       mapId: complexObjectModel.mapId,
-      model: withStaticResolvedScopes(complexObjectModel, values),
+      model: await withResolvedScopes(complexObjectModel, values),
       values
     })
 
@@ -1294,7 +1311,7 @@ describe('authoring progress', () => {
     expect(progress.canFinalize).toBe(false)
   })
 
-  it('marks object groups incomplete when required child fields are missing', () => {
+  it('marks object groups incomplete when required child fields are missing', async () => {
     const requiredChildGroupModel = {
       ...groupModel,
       steps: [
@@ -1331,7 +1348,7 @@ describe('authoring progress', () => {
 
     const values = { ...testDefaults, charges: { id: 'charges-1' } }
     const progress = getAuthoringProgress({
-      model: withStaticResolvedScopes(requiredChildGroupModel, values),
+      model: await withResolvedScopes(requiredChildGroupModel, values),
       values
     })
 

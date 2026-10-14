@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { useEffect, useMemo } from 'react'
+import { useSelector } from '@tanstack/react-form'
+import { useEffect, useMemo, useState, type ReactElement } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import type {
   NodeRuntimeArrayGroupNodeDto,
@@ -27,7 +28,7 @@ import { TestRouterProvider } from '#test/TestRouterProvider'
 import { wideField } from '../rendering/FormRenderer.css'
 import { getRequiredValidators } from '../rendering/FormRenderer.utils'
 import { Item as AuthoringRailItem } from '../layout/Steps/Item/Item'
-import { withStaticResolvedScopes } from './withStaticResolvedScopes'
+import { withResolvedScopes } from './withResolvedScopes'
 
 // Opening nested effect editors renders the full effect model under jsdom (about 4s alone for the
 // deepest journey), so these journeys need more than the default budget when workers share a core.
@@ -745,10 +746,7 @@ function TestForm({
   onSubmit?: (value: TestFormValues) => void
 }) {
   const clonedDefaultValues = useMemo(() => structuredClone(defaultValues), [defaultValues])
-  const clonedModel = useMemo(
-    () => withStaticResolvedScopes(structuredClone(model), clonedDefaultValues),
-    [clonedDefaultValues, model]
-  )
+  const clonedModel = useMemo(() => structuredClone(model), [model])
   const form = useAppForm({
     defaultValues: clonedDefaultValues,
     onSubmit: async ({ value }) => onSubmit(value)
@@ -796,7 +794,21 @@ const TestFormContent = withForm({
     onDelete,
     onSaveDraft
   }) {
-    const { updateAuthoringFormActions, updateAuthoringFormState } = useAuthoringForm()
+    const { providedModel, updateAuthoringFormActions, updateAuthoringFormState } =
+      useAuthoringForm()
+    const formValues = useSelector(form.store, (state) => state.values)
+    const [resolvedModel, setResolvedModel] = useState<NodeRuntimeResolveResponseDto>()
+
+    useEffect(() => {
+      let current = true
+      void withResolvedScopes(model, formValues).then((resolved) => {
+        if (current) setResolvedModel(resolved)
+      })
+      return () => {
+        current = false
+      }
+    }, [formValues, model])
+
     const statePatch = useMemo(
       () => ({
         canDelete,
@@ -807,14 +819,14 @@ const TestFormContent = withForm({
         authoringKind: 'authored-form' as const,
         mapId: 'test-form',
         mode,
-        providedModel: model,
+        providedModel: resolvedModel,
         readOnly: mode === 'view',
         resolveModel: false,
         subjectKindLabel: 'Test Form',
         subjectLabel: 'Test Form',
         systemId: 'system-1'
       }),
-      [canDelete, canSaveDraft, hasActiveDraft, isDraft, mode, model]
+      [canDelete, canSaveDraft, hasActiveDraft, isDraft, mode, resolvedModel]
     )
     const actions = useMemo(
       () => ({
@@ -833,6 +845,8 @@ const TestFormContent = withForm({
       updateAuthoringFormActions(actions)
     }, [actions, updateAuthoringFormActions])
 
+    if (!providedModel) return null
+
     return (
       <>
         <button type='button' onClick={() => void form.handleSubmit()}>
@@ -844,13 +858,19 @@ const TestFormContent = withForm({
   }
 })
 
+async function renderForm(ui: ReactElement) {
+  const result = render(ui)
+  await screen.findByRole('button', { name: 'Submit' }, { timeout: 10_000 })
+  return result
+}
+
 describe('authoring form platform', () => {
   it('accepts cantrip zero in required numeric selects', () => {
     expect(getRequiredValidators('SELECT_NUMBER', 'Level').onSubmit({ value: 0 })).toBeUndefined()
   })
 
-  it('renders visible resolved fields and skips hidden fields', () => {
-    render(
+  it('renders visible resolved fields and skips hidden fields', async () => {
+    await renderForm(
       <TestRouterProvider>
         <TestForm />
       </TestRouterProvider>
@@ -868,8 +888,8 @@ describe('authoring form platform', () => {
     expect(actionBar).toBeInTheDocument()
   })
 
-  it('renders rich text and prose fields as full-width rows', () => {
-    render(
+  it('renders rich text and prose fields as full-width rows', async () => {
+    await renderForm(
       <TestRouterProvider>
         <TestForm />
       </TestRouterProvider>
@@ -880,8 +900,8 @@ describe('authoring form platform', () => {
     expect(screen.getByText('Notes').closest(`.${wideField}`)).not.toBeNull()
   })
 
-  it('shows the canonical fallback title and save status in the compact header', () => {
-    const { rerender } = render(
+  it('shows the canonical fallback title and save status in the compact header', async () => {
+    const { rerender } = await renderForm(
       <TestRouterProvider>
         <TestForm />
       </TestRouterProvider>
@@ -912,7 +932,7 @@ describe('authoring form platform', () => {
   it('updates values through TanStack Form fields', async () => {
     const user = userEvent.setup()
     const onSubmit = vi.fn()
-    render(
+    await renderForm(
       <TestRouterProvider>
         <TestForm onSubmit={onSubmit} />
       </TestRouterProvider>
@@ -941,7 +961,7 @@ describe('authoring form platform', () => {
     if (!notesNode) throw new Error('Expected the Notes node in the test model.')
     notesNode.visible = false
 
-    render(
+    await renderForm(
       <TestRouterProvider>
         <TestForm
           defaultValues={{ ...testFormDefaults, notes: 'Keep this note.' }}
@@ -961,7 +981,7 @@ describe('authoring form platform', () => {
     const user = userEvent.setup()
     const onDelete = vi.fn()
 
-    render(
+    await renderForm(
       <TestRouterProvider>
         <TestForm canDelete onDelete={onDelete} />
       </TestRouterProvider>
@@ -977,7 +997,7 @@ describe('authoring form platform', () => {
     const user = userEvent.setup()
     const onSaveDraft = vi.fn()
 
-    render(
+    await renderForm(
       <TestRouterProvider>
         <TestForm canSaveDraft onSaveDraft={onSaveDraft} />
       </TestRouterProvider>
@@ -994,8 +1014,8 @@ describe('authoring form platform', () => {
     expect(onSaveDraft).toHaveBeenCalledTimes(1)
   })
 
-  it('uses selected outcome path labels for path rows', () => {
-    render(
+  it('uses selected outcome path labels for path rows', async () => {
+    await renderForm(
       <TestRouterProvider>
         <TestForm model={outcomePathResolvedModel} />
       </TestRouterProvider>
@@ -1019,7 +1039,7 @@ describe('authoring form platform', () => {
       }
     ]
 
-    render(
+    await renderForm(
       <TestRouterProvider>
         <TestForm
           defaultValues={defaultValues}
@@ -1043,7 +1063,7 @@ describe('authoring form platform', () => {
     const user = userEvent.setup()
     const onSaveDraft = vi.fn()
 
-    render(
+    await renderForm(
       <TestRouterProvider>
         <TestForm canSaveDraft model={effectResolvedModel} onSaveDraft={onSaveDraft} />
       </TestRouterProvider>
@@ -1074,7 +1094,7 @@ describe('authoring form platform', () => {
     async () => {
       const user = userEvent.setup()
 
-      render(
+      await renderForm(
         <TestRouterProvider>
           <TestForm defaultValues={manifestBehaviorDefaults} model={effectResolvedModel} />
         </TestRouterProvider>
@@ -1116,7 +1136,7 @@ describe('authoring form platform', () => {
     async () => {
       const user = userEvent.setup()
 
-      render(
+      await renderForm(
         <TestRouterProvider>
           <TestForm model={effectResolvedModel} />
         </TestRouterProvider>
@@ -1144,7 +1164,7 @@ describe('authoring form platform', () => {
   it('returns to the empty effects overview after removing the active effect', async () => {
     const user = userEvent.setup()
 
-    render(
+    await renderForm(
       <TestRouterProvider>
         <TestForm model={effectResolvedModel} />
       </TestRouterProvider>
@@ -1160,8 +1180,8 @@ describe('authoring form platform', () => {
     expect(actionBar.getByRole('button', { name: /^activate$/i })).toBeEnabled()
   })
 
-  it('shows absent charges and empty restrictions as add actions only', () => {
-    render(
+  it('shows absent charges and empty restrictions as add actions only', async () => {
+    await renderForm(
       <TestRouterProvider>
         <TestForm
           defaultValues={{ ...testFormDefaults, restrictions: undefined }}
@@ -1180,7 +1200,7 @@ describe('authoring form platform', () => {
 
   it('names restriction removal actions and confirmations by what they remove', async () => {
     const user = userEvent.setup()
-    render(
+    await renderForm(
       <TestRouterProvider>
         <TestForm
           defaultValues={{
@@ -1227,7 +1247,7 @@ describe('authoring form platform', () => {
   it('renders feature grants inline with nested add grant actions', async () => {
     const user = userEvent.setup()
 
-    render(
+    await renderForm(
       <TestRouterProvider>
         <TestForm model={grantsResolvedModel} />
       </TestRouterProvider>
@@ -1245,7 +1265,7 @@ describe('authoring form platform', () => {
   it('renders option rows inline instead of opening a separate editor first', async () => {
     const user = userEvent.setup()
 
-    render(
+    await renderForm(
       <TestRouterProvider>
         <TestForm model={optionRowsResolvedModel} />
       </TestRouterProvider>
@@ -1262,7 +1282,7 @@ describe('authoring form platform', () => {
   it('renders direct grant arrays inline across authored domains', async () => {
     const user = userEvent.setup()
 
-    render(
+    await renderForm(
       <TestRouterProvider>
         <TestForm model={directGrantRowsResolvedModel} />
       </TestRouterProvider>
@@ -1278,7 +1298,7 @@ describe('authoring form platform', () => {
   it('renders starting equipment rows inline on the owning step', async () => {
     const user = userEvent.setup()
 
-    render(
+    await renderForm(
       <TestRouterProvider>
         <TestForm model={startingEquipmentResolvedModel} />
       </TestRouterProvider>
@@ -1301,7 +1321,7 @@ describe('authoring form platform', () => {
   it('resets only the current step fields', async () => {
     const user = userEvent.setup()
 
-    render(
+    await renderForm(
       <TestRouterProvider>
         <TestForm model={multiStepResolvedModel} />
       </TestRouterProvider>
@@ -1340,7 +1360,7 @@ describe('authoring form platform', () => {
   it('uses the structure rail for direct step navigation', async () => {
     const user = userEvent.setup()
 
-    render(
+    await renderForm(
       <TestRouterProvider>
         <Shell currentPath='/forms/fire-lace/edit' navigation={platformNavigation}>
           <TestForm canSaveDraft model={multiStepResolvedModel} />
@@ -1413,7 +1433,7 @@ describe('authoring form platform', () => {
           label: 'Senses',
           kind: 'GROUP',
           groupKind: 'ARRAY',
-          childMapId: 'sense',
+          childMapId: 'creatureSense',
           presentation: 'inline',
           visible: true,
           required: false,
@@ -1421,7 +1441,10 @@ describe('authoring form platform', () => {
         }),
         0
       )
-    ).toEqual({ value: '' })
+    ).toEqual({
+      senseDefinitionId: '',
+      range: { id: expect.any(String), rangeKind: 'DISTANCE', amount: 30, unit: 'FEET' }
+    })
     expect(
       createDefaultAuthoringObjectItem(
         objectGroupNode({

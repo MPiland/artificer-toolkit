@@ -25,7 +25,7 @@ export const stirge: CreatureAuthored = {
     modifier: 0
   },
   speeds: [...S.walk(10), ...S.fly(40)],
-  senses: ['darkvision 60 ft.'],
+  senses: [S.darkvision(60)],
   passivePerception: 9,
   challengeRatingId: S.CR.CR_1_8,
   xp: 25,

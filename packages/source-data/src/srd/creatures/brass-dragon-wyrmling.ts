@@ -34,7 +34,7 @@ export const brassDragonWyrmling: CreatureAuthored = {
     S.grantedLanguageProficiency(53, 3, 'DRACONIC')
   ],
   damageImmunities: ['fire'],
-  senses: ['blindsight 10 ft.', 'darkvision 60 ft.'],
+  senses: [S.blindsight(10), S.darkvision(60)],
   passivePerception: 14,
   challengeRatingId: S.CR.CR_1,
   xp: 200,

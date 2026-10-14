@@ -6,20 +6,9 @@ import {
   type ContentSnapshotManifestDto,
   type ContentSnapshotPart
 } from '@artificer-toolkit/schema/api/contentSnapshots'
-import {
-  liveRoomCharacterPartSchema,
-  liveRoomDefinitionSchema
-} from '@artificer-toolkit/schema/api/liveRoomInputs'
-import { reusableDefinitionCurrentDtoSchema } from '@artificer-toolkit/schema/shared/reusableDefinitions'
-import { systemVocabularySnapshotSchema } from '@artificer-toolkit/schema/projections/systemVocabulary'
-import { systemAuthoredDtoSchema } from '@artificer-toolkit/schema/vocabulary/system'
-import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import { SRD_SENSE_DEFINITIONS } from '@artificer-toolkit/source-data/srd/senses.js'
+import { liveRoomCharacterPartSchema } from '@artificer-toolkit/schema/api/liveRoomInputs'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
-import {
-  SRD_DARKVISION_SENSE_ID,
-  srdSystemRecord
-} from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import {
   characterPageFixtureFor,
@@ -31,34 +20,13 @@ import { insertPendingMovementDecision } from './pendingMovementFixture.js'
 import type { EquipmentAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { buildSrdSourceKinds, type ClassFeature, type ClassSpells } from '../src/testing/srdCharacterSource.js'
 import type { RoomCharacterInputs } from './roomInputsFixture.js'
+import { srdSystemRoomInputs } from './srdSenseInputsFixture.js'
 
 const NOW = '2026-09-30T00:00:00.000Z'
 const gzipContent = {
   contentType: 'application/json',
   contentEncoding: 'gzip'
 }
-
-const darkvisionSeed = SRD_SENSE_DEFINITIONS.find(({ id }) => id === SRD_DARKVISION_SENSE_ID)!
-
-/** The platform Sense definition a room reads for the Darkvision `darkvision` grants. */
-export const darkvisionDefinition = liveRoomDefinitionSchema.parse({
-  id: darkvisionSeed.id,
-  sourceKind: 'PLATFORM',
-  definition: reusableDefinitionCurrentDtoSchema.parse({
-    id: darkvisionSeed.id,
-    gameSystemId: srdSystemRecord.id,
-    contentSourceId: SRD_CONTENT_SOURCE.id,
-    definitionFamilyKey: 'sense',
-    label: darkvisionSeed.label,
-    description: darkvisionSeed.description,
-    document: darkvisionSeed.document,
-    checksum: darkvisionSeed.checksum,
-    contractVersion: 1,
-    version: 1,
-    publishedAt: NOW,
-    publishedBy: crypto.randomUUID()
-  })
-})
 
 /** Builds the SRD source's snapshot objects, stores them in R2 as the build does, and returns its head. */
 async function publishSrdSource(
@@ -177,32 +145,6 @@ export async function characterRoomInputs({
   )
 
   return { parts: [part], system: srdSystemRoomInputs(campaignId), characterRevision, systemId }
-}
-
-/** The SRD System and its vocabulary snapshot as a room reads them for the Campaign. */
-export function srdSystemRoomInputs(campaignId: string): RoomCharacterInputs['system'] {
-  const systemId = srdSystemRecord.id
-  const system = systemAuthoredDtoSchema.parse(srdSystemRecord)
-  const vocabularyIdentity = {
-    snapshotId: crypto.randomUUID(),
-    systemId,
-    snapshotVersion: 1,
-    schemaVersion: 1,
-    document: system
-  }
-  return {
-    kind: 'SYSTEM',
-    revisions: [
-      { scope: 'SYSTEM', id: systemId, revision: null },
-      { scope: 'CAMPAIGN', id: campaignId, revision: null },
-      { scope: 'PLAY', id: campaignId, revision: null }
-    ],
-    system,
-    vocabulary: systemVocabularySnapshotSchema.parse({
-      ...vocabularyIdentity,
-      checksum: checksumCanonicalJson(vocabularyIdentity)
-    })
-  }
 }
 
 /**

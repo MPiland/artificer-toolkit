@@ -4,6 +4,7 @@ import type {
   CharacterRulePolicyOutput
 } from '@artificer-toolkit/schema/api/characterRules'
 
+import { abilityModifier } from './abilityModifier.js'
 import { characterPolicyRecord } from './characterPolicyValues.js'
 
 type DerivedStats = Omit<CharacterRulePolicyOutput['derivedStats'], 'armorClass' | 'maxHitPoints'>
@@ -131,7 +132,7 @@ function calculateChargeMaximums(
       charge.base.kind === 'PER_LEVEL'
         ? (selectedLevel?.amount ?? 0)
         : charge.base.kind === 'ABILITY_MODIFIER'
-          ? Math.floor((baseFact - 10) / 2)
+          ? abilityModifier(baseFact)
           : baseFact
     const baseValue =
       'multiplier' in charge.base
@@ -142,7 +143,7 @@ function calculateChargeMaximums(
           )
         : Math.floor(baseRaw)
     const bonusContributions = bonuses.map(({ bonus, factValue }) => {
-      const raw = bonus.kind === 'ABILITY_MODIFIER' ? Math.floor((factValue! - 10) / 2) : factValue!
+      const raw = bonus.kind === 'ABILITY_MODIFIER' ? abilityModifier(factValue!) : factValue!
       return {
         sourceId: bonus.sourceId,
         value: clampedInteger(raw * (bonus.multiplier ?? 1), bonus.minimum, bonus.maximum)

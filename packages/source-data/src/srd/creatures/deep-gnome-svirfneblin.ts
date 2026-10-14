@@ -31,7 +31,7 @@ export const deepGnomeSvirfneblin: CreatureAuthored = {
     S.grantedSkillProficiency(78, 1, 'INVESTIGATION', 'PERCEPTION', 'STEALTH'),
     S.grantedLanguageProficiency(78, 2, 'GNOMISH', 'TERRAN', 'UNDERCOMMON')
   ],
-  senses: ['darkvision 120 ft.'],
+  senses: [S.darkvision(120)],
   passivePerception: 12,
   challengeRatingId: S.CR.CR_1_2,
   xp: 100,

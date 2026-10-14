@@ -6,7 +6,7 @@ import { expectCreateEmptyAuthoringRoute } from '#domains/authoredRouteStory.pla
 import {
   configureAuthoredRouteStoryQueries,
   createAuthoredCreateRouteOverrides
-} from '#domains/authoredRouteStory.utils'
+} from '#test/authoredRouteStory.utils'
 
 const meta = {
   title: 'Domains/Feats/Routes/Create',

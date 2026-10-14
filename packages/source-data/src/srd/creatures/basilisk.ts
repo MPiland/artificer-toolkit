@@ -25,7 +25,7 @@ export const basilisk: CreatureAuthored = {
     modifier: 16
   },
   speeds: [...S.walk(20)],
-  senses: ['darkvision 60 ft.'],
+  senses: [S.darkvision(60)],
   passivePerception: 9,
   challengeRatingId: S.CR.CR_3,
   xp: 700,

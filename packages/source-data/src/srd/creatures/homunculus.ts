@@ -29,7 +29,7 @@ export const homunculus: CreatureAuthored = {
   speeds: [...S.walk(20), ...S.fly(40)],
   damageImmunities: ['poison'],
   conditionImmunities: ['charmed', 'poisoned'],
-  senses: ['darkvision 60 ft.'],
+  senses: [S.darkvision(60)],
   passivePerception: 10,
   challengeRatingId: S.CR.CR_0,
   xp: 10,

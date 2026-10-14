@@ -17,6 +17,7 @@
     "types": "wrangler types src/worker-configuration.d.ts --env-file=.dev.vars.example"
   },
   "dependencies": {
+    "@artificer-toolkit/authoring": "workspace:^",
     "@artificer-toolkit/encounter-persistence": "workspace:^",
     "@artificer-toolkit/rules-runtime": "workspace:^",
     "@artificer-toolkit/schema": "workspace:^",

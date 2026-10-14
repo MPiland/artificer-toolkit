@@ -195,9 +195,7 @@ export const CharacterAbilitiesStep = withForm({
                               levels:
                                 value === HITPOINT_CALCULATION_METHOD_CODE.MANUAL
                                   ? field.state.value.levels.map((level, index) =>
-                                      index === 0
-                                        ? level
-                                        : { ...level, rolls: undefined, overridden: false }
+                                      index === 0 ? level : { ...level, rolls: undefined }
                                     )
                                   : field.state.value.levels
                             })

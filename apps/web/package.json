@@ -91,6 +91,7 @@
     "three": "0.186.1"
   },
   "devDependencies": {
+    "@artificer-toolkit/authoring": "workspace:^",
     "@artificer-toolkit/source-data": "workspace:^",
     "@chromatic-com/storybook": "^5.4.0",
     "@cloudflare/vite-plugin": "^1.62.5",

@@ -26,7 +26,7 @@ export const giantCrab: CreatureAuthored = {
   },
   speeds: [...S.walk(30), ...S.swim(30)],
   proficiencies: [S.grantedSkillProficiency(119, 1, 'STEALTH')],
-  senses: ['blindsight 30 ft.'],
+  senses: [S.blindsight(30)],
   passivePerception: 9,
   challengeRatingId: S.CR.CR_1_8,
   xp: 25,

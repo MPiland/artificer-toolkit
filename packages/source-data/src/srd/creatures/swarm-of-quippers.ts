@@ -37,7 +37,7 @@ export const swarmOfQuippers: CreatureAuthored = {
     'restrained',
     'stunned'
   ],
-  senses: ['darkvision 60 ft.'],
+  senses: [S.darkvision(60)],
   passivePerception: 8,
   challengeRatingId: S.CR.CR_1,
   xp: 200,

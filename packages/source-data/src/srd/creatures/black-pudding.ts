@@ -27,7 +27,7 @@ export const blackPudding: CreatureAuthored = {
   speeds: [...S.walk(20), ...S.climb(20)],
   damageImmunities: ['acid', 'cold', 'lightning', 'slashing'],
   conditionImmunities: ['blinded', 'charmed', 'deafened', 'exhaustion', 'frightened', 'prone'],
-  senses: ['blindsight 60 ft. (blind beyond this radius)'],
+  senses: [S.blindsight(60, '(blind beyond this radius)')],
   passivePerception: 8,
   challengeRatingId: S.CR.CR_4,
   xp: 1100,

@@ -21,7 +21,7 @@ import {
   lengthMeasurementInSceneUnits,
   SCENE_LENGTH_AMOUNT_MAX
 } from '@artificer-toolkit/shared/vtt'
-import { characterSceneVisionResultSchema } from '../api/characterMechanicsRead.js'
+import { sceneActorVisionResultSchema } from '../api/characterMechanicsRead.js'
 
 const ids = {
   campaign: '00000000-0000-4000-8000-000000000001',
@@ -275,8 +275,8 @@ describe('VTT scene contracts', () => {
     // Seeded System Senses keep deterministic IDs without an RFC version nibble.
     expect(parses([{ ...sense, senseId: seededSenseId }])).toBe(true)
     expect(
-      characterSceneVisionResultSchema.safeParse({
-        characterId: ids.token,
+      sceneActorVisionResultSchema.safeParse({
+        actorId: ids.token,
         senses: [
           {
             ...sense,

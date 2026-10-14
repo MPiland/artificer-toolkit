@@ -28,7 +28,7 @@ export const hellHound: CreatureAuthored = {
   speeds: [...S.walk(50)],
   proficiencies: [S.grantedSkillExpertise(161, 3, 'PERCEPTION')],
   damageImmunities: ['fire'],
-  senses: ['darkvision 60 ft.'],
+  senses: [S.darkvision(60)],
   passivePerception: 15,
   challengeRatingId: S.CR.CR_3,
   xp: 700,

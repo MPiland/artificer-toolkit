@@ -30,7 +30,7 @@ export const worg: CreatureAuthored = {
     S.grantedSkillExpertise(297, 3, 'PERCEPTION'),
     S.grantedLanguageProficiency(297, 2, 'GOBLIN', 'WORG')
   ],
-  senses: ['darkvision 60 ft.'],
+  senses: [S.darkvision(60)],
   passivePerception: 14,
   challengeRatingId: S.CR.CR_1_2,
   xp: 100,

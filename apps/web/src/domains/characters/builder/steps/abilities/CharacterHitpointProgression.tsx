@@ -1,11 +1,16 @@
 import { Group, NumberInput, Stack, Text } from '@mantine/core'
+import {
+  hitDieAverage,
+  hitPointGain,
+  parseHitDie
+} from '@artificer-toolkit/rules-runtime/systems/dnd5e/hitPointRules'
 import type {
   CharacterBuilderPayloadDto,
   CharacterBuilderReferencesDto
 } from '@artificer-toolkit/schema/api/characters'
 import type { SelectOption } from '#forms/utils/formUtils'
 import type { CharacterFormValues } from '../../core/characterBuilder.types'
-import { getHitpointAbilityModifier, getHitpointDieSides } from './characterAbilities'
+import { getHitpointAbilityModifier } from './characterAbilities'
 import { formatSignedNumber } from './abilityFormatting'
 import * as sharedStyles from '../../shared/builderShared.css'
 import * as styles from './characterAbilities.css'
@@ -57,7 +62,7 @@ export function CharacterHitpointProgression({
             const classLabel = classReference?.label ?? classRow.classId
             const classRows = rows.filter((row) => row.classId === classRow.classId)
             const classSubtotal = classRows.reduce((total, row) => total + row.value, 0)
-            const dieSides = getHitpointDieSides(classReference)
+            const dieSides = parseHitDie(classReference?.hitpoint?.dieConfig)
             const hitpointAbility = classReference?.hitpoint?.ability
             const abilityModifier = hitpointAbility
               ? getHitpointAbilityModifier({
@@ -78,12 +83,10 @@ export function CharacterHitpointProgression({
                 {classRows.map((row) => {
                   const roll = row.rolls?.[0]?.value
                   const isStartingLevel = row.level === 1
-                  const isLegacyOverride =
-                    isManual && !isStartingLevel && row.overridden === true && roll === undefined
                   const hitDieValue = dieSides
                     ? isStartingLevel
                       ? dieSides
-                      : Math.floor(dieSides / 2) + 1
+                      : hitDieAverage(dieSides)
                     : null
                   const abilityLabel = abilityOptions.find(
                     (option) => option.value === hitpointAbility
@@ -100,30 +103,6 @@ export function CharacterHitpointProgression({
                               ? 'Unavailable'
                               : `${hitDieValue} (${isStartingLevel ? 'maximum' : 'average'})`}
                           </Text>
-                        </td>
-                      ) : isLegacyOverride ? (
-                        <td data-label='HP gained (legacy)'>
-                          <NumberInput
-                            hideControls
-                            aria-label='HP gained (legacy)'
-                            min={1}
-                            value={row.value}
-                            disabled={readOnly}
-                            onChange={(value) => {
-                              if (typeof value !== 'number') return
-                              onChange(
-                                rows.map((candidate) =>
-                                  candidate === row
-                                    ? {
-                                        ...candidate,
-                                        value: Math.max(Math.trunc(value), 1),
-                                        overridden: true
-                                      }
-                                    : candidate
-                                )
-                              )
-                            }}
-                          />
                         </td>
                       ) : (
                         <td data-label={dieSides ? `d${dieSides} roll` : 'Hit-die roll'}>
@@ -142,9 +121,14 @@ export function CharacterHitpointProgression({
                                   candidate === row
                                     ? {
                                         ...candidate,
-                                        value: Math.max(nextRoll + abilityModifier, 1),
-                                        rolls: [{ die: dieSides, value: nextRoll }],
-                                        overridden: false
+                                        value: hitPointGain({
+                                          die: dieSides,
+                                          characterLevel: row.level,
+                                          fixed: false,
+                                          roll: nextRoll,
+                                          modifier: abilityModifier
+                                        }),
+                                        rolls: [{ die: dieSides, value: nextRoll }]
                                       }
                                     : candidate
                                 )

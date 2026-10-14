@@ -25,7 +25,7 @@ export const badger: CreatureAuthored = {
     modifier: 1
   },
   speeds: [...S.walk(20), ...S.burrow(5)],
-  senses: ['darkvision 30 ft.'],
+  senses: [S.darkvision(30)],
   passivePerception: 11,
   challengeRatingId: S.CR.CR_0,
   xp: 10,

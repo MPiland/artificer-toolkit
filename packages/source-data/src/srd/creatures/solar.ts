@@ -32,7 +32,7 @@ export const solar: CreatureAuthored = {
   damageResistances: ['radiant', 'bludgeoning, piercing, and slashing from nonmagical attacks'],
   damageImmunities: ['necrotic', 'poison'],
   conditionImmunities: ['charmed', 'exhaustion', 'frightened', 'poisoned'],
-  senses: ['truesight 120 ft.'],
+  senses: [S.truesight(120)],
   passivePerception: 24,
   challengeRatingId: S.CR.CR_21,
   xp: 33000,

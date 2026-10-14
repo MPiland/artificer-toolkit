@@ -8,7 +8,7 @@ import { expectCreateGuidedSpellRoute } from '#domains/authoredRouteStory.play'
 import {
   configureAuthoredRouteStoryQueries,
   createAuthoredCreateRouteOverrides
-} from '#domains/authoredRouteStory.utils'
+} from '#test/authoredRouteStory.utils'
 
 const meta = {
   title: 'Domains/Spells/Routes/Create',

@@ -46,7 +46,7 @@ export const wraith: CreatureAuthored = {
     'prone',
     'restrained'
   ],
-  senses: ['darkvision 60 ft.'],
+  senses: [S.darkvision(60)],
   passivePerception: 12,
   challengeRatingId: S.CR.CR_5,
   xp: 1800,

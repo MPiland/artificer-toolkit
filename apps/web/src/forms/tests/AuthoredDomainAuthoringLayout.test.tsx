@@ -1,12 +1,12 @@
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   nodeRuntimeNormalizeValuesRequestDtoSchema,
-  nodeRuntimeNormalizeValuesResponseDtoSchema,
   nodeRuntimeResolveRequestDtoSchema
 } from '@artificer-toolkit/schema/api/nodeRuntime'
 import { compactNodeRuntimeResponse } from '@artificer-toolkit/schema/api/nodeRuntimeTransport'
+import { srdBaselineContent } from '@artificer-toolkit/source-data/srd/index.js'
 import { getFunctionName } from 'convex/server'
 import { api } from '@artificer-toolkit/apis/convex/api'
 import type { AuthSessionUserDto } from '@artificer-toolkit/schema/api/auth'
@@ -17,11 +17,15 @@ import {
   authoredRouteStoryRecords,
   authoredRouteStorySystem
 } from '#domains/authoredRouteStory.fixtures'
+import {
+  normalizeFixtureNodeRuntimeValues,
+  resolveFixtureNodeRuntime,
+  warmFixtureAuthoredSources
+} from '#test/nodeRuntimeResolver'
 import { TestRouterProvider } from '#test/TestRouterProvider'
 import { AuthoringLayout, AuthoringLayoutContent } from '../layout/AuthoringLayout'
 import { AuthoringFormProvider } from '../layout/AuthoringFormProvider'
 import { useAuthoringForm } from '../layout/AuthoringFormContext'
-import { createStaticResolvedFormModel } from '../node-map/staticResolvedModel'
 import type { AuthoredFormDomain } from '../factories/authoredFormFactories.types'
 
 const convexMocks = vi.hoisted(() => ({
@@ -113,10 +117,12 @@ const nativeRaceCatalogueItems = [
   }
 ]
 
+beforeAll(warmFixtureAuthoredSources, 60_000)
+
 beforeEach(() => {
   convexMocks.mutation.mockReset().mockResolvedValue(authoredRouteStoryDrafts.race)
-  convexMocks.nodeRuntimeResolve.mockReset().mockImplementation(resolveStaticNodeRuntimeQuery)
-  convexMocks.query.mockReset().mockImplementation(resolveStaticNormalization)
+  convexMocks.nodeRuntimeResolve.mockReset().mockImplementation(resolveNodeRuntimeQuery)
+  convexMocks.query.mockReset().mockImplementation(resolveNormalization)
   convexMocks.useContentCatalogue
     .mockReset()
     .mockImplementation((_subjectKind, { enabled = true } = {}) => ({
@@ -129,7 +135,7 @@ beforeEach(() => {
 describe('non-character authored domain layout coverage', () => {
   it.each(DOMAINS)('renders the %s create authoring route data', async (domain) => {
     const user = userEvent.setup()
-    useStaticNodeRuntimeResolver()
+    useFixtureNodeRuntimeResolver()
 
     render(<TestRouterProvider>{renderCreateLayout(domain)}</TestRouterProvider>)
 
@@ -145,7 +151,7 @@ describe('non-character authored domain layout coverage', () => {
 
   it('shows Back after advancing from the first create step', async () => {
     const user = userEvent.setup()
-    useStaticNodeRuntimeResolver()
+    useFixtureNodeRuntimeResolver()
 
     render(<TestRouterProvider>{renderCreateLayout('race')}</TestRouterProvider>)
 
@@ -159,7 +165,7 @@ describe('non-character authored domain layout coverage', () => {
 
   it('keeps starting-point UI state clean until an inline copy is confirmed', async () => {
     const user = userEvent.setup()
-    useStaticNodeRuntimeResolver()
+    useFixtureNodeRuntimeResolver()
     render(<TestRouterProvider>{renderCreateLayout('race')}</TestRouterProvider>)
 
     expect(await screen.findByText('All changes saved')).toBeInTheDocument()
@@ -197,7 +203,7 @@ describe('non-character authored domain layout coverage', () => {
 
   it('loads native Race parents only for a subrace and excludes subrace parents', async () => {
     const user = userEvent.setup()
-    useStaticNodeRuntimeResolver()
+    useFixtureNodeRuntimeResolver()
 
     render(<TestRouterProvider>{renderCreateLayout('race')}</TestRouterProvider>)
     await user.click(await screen.findByRole('button', { name: /Start from scratch/i }))
@@ -224,7 +230,7 @@ describe('non-character authored domain layout coverage', () => {
 
   it('updates the live preview title from the current form name', async () => {
     const user = userEvent.setup()
-    useStaticNodeRuntimeResolver()
+    useFixtureNodeRuntimeResolver()
 
     render(<TestRouterProvider>{renderCreateLayout('equipment')}</TestRouterProvider>)
 
@@ -241,7 +247,7 @@ describe('non-character authored domain layout coverage', () => {
   })
 
   it('updates the Advanced workspace title from the current form name', async () => {
-    useStaticNodeRuntimeResolver()
+    useFixtureNodeRuntimeResolver()
 
     render(
       <TestRouterProvider user={createAdvancedAuthoringUser()}>
@@ -255,7 +261,7 @@ describe('non-character authored domain layout coverage', () => {
   })
 
   it('uses natural equipment language in the guided start choice', async () => {
-    useStaticNodeRuntimeResolver()
+    useFixtureNodeRuntimeResolver()
 
     render(<TestRouterProvider>{renderCreateLayout('equipment')}</TestRouterProvider>)
 
@@ -266,7 +272,7 @@ describe('non-character authored domain layout coverage', () => {
 
   it('guides a new spell through grouped questions on the canonical form', async () => {
     const user = userEvent.setup()
-    useStaticNodeRuntimeResolver()
+    useFixtureNodeRuntimeResolver()
 
     render(<TestRouterProvider>{renderCreateLayout('spell')}</TestRouterProvider>)
 
@@ -323,7 +329,7 @@ describe('non-character authored domain layout coverage', () => {
 
     convexMocks.nodeRuntimeResolve.mockImplementation(async (queryKey) => {
       await pendingModel
-      return resolveStaticNodeRuntimeQuery(queryKey)
+      return resolveNodeRuntimeQuery(queryKey)
     })
 
     render(<TestRouterProvider>{renderCreateLayout('spell')}</TestRouterProvider>)
@@ -345,7 +351,7 @@ describe('non-character authored domain layout coverage', () => {
 
     convexMocks.nodeRuntimeResolve.mockImplementation(async (queryKey) => {
       await pendingModel
-      return resolveStaticNodeRuntimeQuery(queryKey)
+      return resolveNodeRuntimeQuery(queryKey)
     })
 
     render(
@@ -382,7 +388,7 @@ describe('non-character authored domain layout coverage', () => {
     expect(screen.queryByText('Loading authoring tools…')).not.toBeInTheDocument()
     expect(screen.getByRole('heading', { level: 1, name: 'Unsaved spell' })).toBeInTheDocument()
 
-    useStaticNodeRuntimeResolver()
+    useFixtureNodeRuntimeResolver()
     await user.click(within(alert).getByRole('button', { name: 'Retry' }))
 
     expect(await screen.findByRole('textbox', { name: 'Name' })).toHaveValue('Unsaved spell')
@@ -391,7 +397,7 @@ describe('non-character authored domain layout coverage', () => {
 
   it('preserves a guided spell when switching through Advanced', async () => {
     const user = userEvent.setup()
-    useStaticNodeRuntimeResolver()
+    useFixtureNodeRuntimeResolver()
 
     render(<TestRouterProvider>{renderCreateLayout('spell')}</TestRouterProvider>)
 
@@ -420,7 +426,7 @@ describe('non-character authored domain layout coverage', () => {
 
   it('returns Guided to its initial question when the canonical form is reset', async () => {
     const user = userEvent.setup()
-    useStaticNodeRuntimeResolver()
+    useFixtureNodeRuntimeResolver()
 
     render(<TestRouterProvider>{renderCreateSpellWithResetTrigger()}</TestRouterProvider>)
 
@@ -436,7 +442,7 @@ describe('non-character authored domain layout coverage', () => {
   })
 
   it.each(DOMAINS)('renders the %s edit authoring route data', async (domain) => {
-    useStaticNodeRuntimeResolver()
+    useFixtureNodeRuntimeResolver()
 
     render(<TestRouterProvider>{renderEditLayout(domain)}</TestRouterProvider>)
 
@@ -452,7 +458,7 @@ describe('non-character authored domain layout coverage', () => {
 
   it('marks an unchanged submitted draft as saved without reloading the editor', async () => {
     const user = userEvent.setup()
-    useStaticNodeRuntimeResolver()
+    useFixtureNodeRuntimeResolver()
     render(<TestRouterProvider>{renderEditLayout('spell')}</TestRouterProvider>)
 
     const name = await screen.findByRole('textbox', { name: /name/i })
@@ -469,7 +475,7 @@ describe('non-character authored domain layout coverage', () => {
 
   it('guards populated Spell material values before deselecting Material', async () => {
     const user = userEvent.setup()
-    useStaticNodeRuntimeResolver()
+    useFixtureNodeRuntimeResolver()
 
     render(<TestRouterProvider>{renderEditLayout('spell')}</TestRouterProvider>)
 
@@ -505,7 +511,7 @@ describe('non-character authored domain layout coverage', () => {
 
   it('clears an empty Spell material branch without prompting', async () => {
     const user = userEvent.setup()
-    useStaticNodeRuntimeResolver()
+    useFixtureNodeRuntimeResolver()
     const spell = authoredEditRouteLoaderData.spell.authoringData.response.item
     if (!spell) throw new Error('Expected the owned Spell fixture.')
 
@@ -540,7 +546,7 @@ describe('non-character authored domain layout coverage', () => {
 
   it('preserves the Spell branch when normalization fails', async () => {
     const user = userEvent.setup()
-    useStaticNodeRuntimeResolver()
+    useFixtureNodeRuntimeResolver()
     convexMocks.query.mockRejectedValue(new Error('Native normalization failed.'))
 
     render(<TestRouterProvider>{renderEditLayout('spell')}</TestRouterProvider>)
@@ -556,13 +562,13 @@ describe('non-character authored domain layout coverage', () => {
 
   it('submits a Creature loadout hand slot and natural armor bonus from the editor', async () => {
     const user = userEvent.setup()
-    useStaticNodeRuntimeResolver()
+    useFixtureNodeRuntimeResolver()
     const { authoringData } = authoredEditRouteLoaderData.creature
     const creature = authoringData.response.item
     if (!creature) throw new Error('Expected the owned Creature fixture.')
     const loadoutEntry = {
       id: '00000000-0000-4000-8000-0000000000a1',
-      equipmentId: '00000000-0000-4000-8000-0000000000a2',
+      equipmentId: srdBaselineContent.subjects.equipment[0]!.id,
       quantity: 1,
       useState: 'MAIN_HAND' as const,
       attuned: false,
@@ -596,6 +602,9 @@ describe('non-character authored domain layout coverage', () => {
     for (const label of ['Main hand', 'Off hand', 'Carried', 'Worn'])
       expect(await screen.findByRole('option', { name: label })).toBeInTheDocument()
     await user.click(screen.getByRole('option', { name: 'Off hand' }))
+    await waitFor(() =>
+      expect(screen.getByRole('combobox', { name: /use state/i })).toHaveValue('Off hand')
+    )
 
     await user.click(screen.getByRole('button', { name: 'Save Draft' }))
 
@@ -606,11 +615,84 @@ describe('non-character authored domain layout coverage', () => {
         equipmentLoadout: [{ ...loadoutEntry, useState: 'OFF_HAND' }]
       }
     })
-  })
+  }, 20_000)
+
+  it('submits a Creature sense entry added in the editor', async () => {
+    const user = userEvent.setup()
+    useFixtureNodeRuntimeResolver()
+    const { authoringData } = authoredEditRouteLoaderData.creature
+    const creature = authoringData.response.item
+    if (!creature) throw new Error('Expected the owned Creature fixture.')
+
+    render(
+      <TestRouterProvider>
+        <AuthoringLayout
+          data={{
+            ...authoringData,
+            response: { ...authoringData.response, item: { ...creature, senses: [] } }
+          }}
+          domain='creature'
+          mode='edit'
+        />
+      </TestRouterProvider>
+    )
+
+    await user.click(await screen.findByRole('link', { name: /^stats/i }))
+    await user.click(await screen.findByRole('button', { name: /add sense/i }))
+    await user.click(await screen.findByRole('button', { name: /^sens 1/i }))
+    await user.click(await screen.findByRole('combobox', { name: /^sense/i }))
+    await user.click(await screen.findByRole('option', { name: 'Darkvision' }))
+    await user.click(screen.getByRole('button', { name: 'Save Draft' }))
+
+    await waitFor(() => expect(convexMocks.mutation).toHaveBeenCalled())
+    expect(convexMocks.mutation.mock.calls.at(-1)?.[1]).toMatchObject({
+      payload: {
+        senses: [
+          {
+            senseDefinitionId: '00000000-0000-0000-000a-000100000000',
+            range: { rangeKind: 'DISTANCE', amount: 30, unit: 'FEET' }
+          }
+        ]
+      }
+    })
+  }, 20_000)
+
+  it('renders a freshly added Creature sense editor while the root model has no scope for it', async () => {
+    const user = userEvent.setup()
+    const { authoringData } = authoredEditRouteLoaderData.creature
+    const creature = authoringData.response.item
+    if (!creature) throw new Error('Expected the owned Creature fixture.')
+    convexMocks.nodeRuntimeResolve.mockImplementation((queryKey: readonly unknown[]) => {
+      const { values } = nodeRuntimeResolveRequestDtoSchema.parse(queryKey[2])
+      // The root request that includes the new sense never settles, so the root model keeps no
+      // scope for the added row.
+      if (Array.isArray(values.senses) && values.senses.length > 0) return new Promise(() => undefined)
+      return resolveNodeRuntimeQuery(queryKey)
+    })
+
+    render(
+      <TestRouterProvider>
+        <AuthoringLayout
+          data={{
+            ...authoringData,
+            response: { ...authoringData.response, item: { ...creature, senses: [] } }
+          }}
+          domain='creature'
+          mode='edit'
+        />
+      </TestRouterProvider>
+    )
+
+    await user.click(await screen.findByRole('link', { name: /^stats/i }))
+    await user.click(await screen.findByRole('button', { name: /add sense/i }))
+    await user.click(await screen.findByRole('button', { name: /^sens 1/i }))
+
+    expect(await screen.findByRole('combobox', { name: /^sense/i }, { timeout: 5000 })).toBeInTheDocument()
+  }, 20_000)
 
   it('loads native Spell copy sources after selection', async () => {
     const user = userEvent.setup()
-    useStaticNodeRuntimeResolver()
+    useFixtureNodeRuntimeResolver()
 
     render(<TestRouterProvider>{renderCreateLayout('spell')}</TestRouterProvider>)
 
@@ -623,41 +705,21 @@ describe('non-character authored domain layout coverage', () => {
   })
 })
 
-function useStaticNodeRuntimeResolver() {
-  convexMocks.nodeRuntimeResolve.mockImplementation(resolveStaticNodeRuntimeQuery)
+function useFixtureNodeRuntimeResolver() {
+  convexMocks.nodeRuntimeResolve.mockImplementation(resolveNodeRuntimeQuery)
 }
 
-function resolveStaticNodeRuntimeQuery(queryKey: readonly unknown[]) {
-  const input = nodeRuntimeResolveRequestDtoSchema.parse(queryKey[2])
-  const model = createStaticResolvedFormModel(input.mapId, {
-    ancestors: input.ancestors,
-    parentValues: input.parentValues,
-    system: authoredRouteStorySystem,
-    values: input.values
-  })
-  if (!model) throw new Error('Expected an authored form model.')
-  return compactNodeRuntimeResponse(model)
+async function resolveNodeRuntimeQuery(queryKey: readonly unknown[]) {
+  return compactNodeRuntimeResponse(
+    await resolveFixtureNodeRuntime(nodeRuntimeResolveRequestDtoSchema.parse(queryKey[2]))
+  )
 }
 
-function resolveStaticNormalization(
-  reference: Parameters<typeof getFunctionName>[0],
-  input: unknown
-) {
+function resolveNormalization(reference: Parameters<typeof getFunctionName>[0], input: unknown) {
   if (getFunctionName(reference) !== getFunctionName(api.authoring.nodeRuntime.normalizeValues)) {
     throw new Error('Expected native node-runtime normalization.')
   }
-  const request = nodeRuntimeNormalizeValuesRequestDtoSchema.parse(input)
-  const model = createStaticResolvedFormModel(request.mapId, {
-    ancestors: request.ancestors,
-    parentValues: request.parentValues,
-    system: authoredRouteStorySystem,
-    values: request.values
-  })
-  if (!model) throw new Error('Expected an authored form model.')
-  return nodeRuntimeNormalizeValuesResponseDtoSchema.parse({
-    clearedPaths: model.clearPaths,
-    values: request.values
-  })
+  return normalizeFixtureNodeRuntimeValues(nodeRuntimeNormalizeValuesRequestDtoSchema.parse(input))
 }
 
 function renderCreateLayout(domain: AuthoredFormDomain) {

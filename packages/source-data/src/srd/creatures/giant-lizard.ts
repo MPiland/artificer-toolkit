@@ -25,7 +25,7 @@ export const giantLizard: CreatureAuthored = {
     modifier: 3
   },
   speeds: [...S.walk(30), ...S.climb(30)],
-  senses: ['darkvision 30 ft.'],
+  senses: [S.darkvision(30)],
   passivePerception: 10,
   challengeRatingId: S.CR.CR_1_4,
   xp: 50,

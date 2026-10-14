@@ -1,6 +1,5 @@
 import { useMemo } from 'react'
 import type { NodeRuntimeResolveResponseDto } from '@artificer-toolkit/schema/api/nodeRuntime'
-import { createStaticResolvedFormModel } from '../node-map/staticResolvedModel'
 import { useResolvedNodeModel } from './useResolvedNodeModel'
 
 export type VisibleAuthoringSteps = NodeRuntimeResolveResponseDto['steps']
@@ -36,18 +35,7 @@ export function useAuthoringResolvedModel({
     enabled: resolveModel && !model,
     debounceMs
   })
-  const staticModel = useMemo(
-    () =>
-      !resolveModel && !model
-        ? createStaticResolvedFormModel(mapId, {
-            ancestors: resolvedAncestors,
-            parentValues,
-            values
-          })
-        : undefined,
-    [mapId, model, parentValues, resolveModel, resolvedAncestors, values]
-  )
-  const activeModel = model ?? resolution.model ?? staticModel
+  const activeModel = model ?? resolution.model
   const visibleSteps = useMemo(() => getVisibleAuthoringSteps(activeModel), [activeModel])
 
   return {

@@ -25,7 +25,7 @@ export const rat: CreatureAuthored = {
     modifier: -1
   },
   speeds: [...S.walk(20)],
-  senses: ['darkvision 30 ft.'],
+  senses: [S.darkvision(30)],
   passivePerception: 10,
   challengeRatingId: S.CR.CR_0,
   xp: 10,

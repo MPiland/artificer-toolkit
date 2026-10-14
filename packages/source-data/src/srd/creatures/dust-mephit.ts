@@ -34,7 +34,7 @@ export const dustMephit: CreatureAuthored = {
   damageVulnerabilities: ['fire'],
   damageImmunities: ['poison'],
   conditionImmunities: ['poisoned'],
-  senses: ['darkvision 60 ft.'],
+  senses: [S.darkvision(60)],
   passivePerception: 12,
   challengeRatingId: S.CR.CR_1_2,
   xp: 100,

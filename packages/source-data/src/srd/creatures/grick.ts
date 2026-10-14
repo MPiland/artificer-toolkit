@@ -26,7 +26,7 @@ export const grick: CreatureAuthored = {
   },
   speeds: [...S.walk(30), ...S.climb(30)],
   damageResistances: ['bludgeoning, piercing, and slashing from nonmagical attacks'],
-  senses: ['darkvision 60 ft.'],
+  senses: [S.darkvision(60)],
   passivePerception: 12,
   challengeRatingId: S.CR.CR_2,
   xp: 450,

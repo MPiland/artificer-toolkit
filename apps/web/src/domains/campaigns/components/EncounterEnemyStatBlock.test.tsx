@@ -1,5 +1,6 @@
 import { screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
+import { abilityModifier } from '@artificer-toolkit/rules-runtime/systems/dnd5e/abilityModifier'
 import {
   encounterGmActorDtoSchema,
   type EncounterGmActorDto
@@ -26,7 +27,8 @@ vi.mock('convex/react', async (importOriginal) => ({
       { id: ids.slashing, code: 'SLASHING', label: 'Slashing' },
       { id: ids.psychic, code: 'PSYCHIC', label: 'Psychic' }
     ],
-    conditionTypes: [{ id: ids.charmed, code: 'CHARMED', label: 'Charmed' }]
+    conditionTypes: [{ id: ids.charmed, code: 'CHARMED', label: 'Charmed' }],
+    senses: [{ id: 'darkvision', label: 'Darkvision' }]
   })
 }))
 
@@ -52,6 +54,25 @@ function actorWith(statBlock: Partial<NonNullable<EncounterGmActorDto['statBlock
     }
   })
 }
+
+describe('EncounterEnemyStatBlock senses', () => {
+  it('prints structured Senses with the System label, range and note', () => {
+    renderWithAppProviders(
+      <EncounterEnemyStatBlock
+        actor={actorWith({
+          senses: [
+            {
+              senseDefinitionId: 'darkvision',
+              range: { id: 'darkvision-range', rangeKind: 'DISTANCE', amount: 60, unit: 'FEET' },
+              qualifier: '(blind beyond this radius)'
+            }
+          ]
+        })}
+      />
+    )
+    expect(screen.getByText('darkvision 60 ft (blind beyond this radius)')).toBeInTheDocument()
+  })
+})
 
 describe('EncounterEnemyStatBlock defenses', () => {
   it('names damage types and shows "from nonmagical attacks" defenses (SRD Couatl)', () => {
@@ -99,5 +120,25 @@ describe('EncounterEnemyStatBlock defenses', () => {
       )
     ).toBeInTheDocument()
     expect(screen.queryByText('Immune')).not.toBeInTheDocument()
+  })
+})
+
+describe('EncounterEnemyStatBlock ability modifiers', () => {
+  it('shows the modifier the shared rules derive, including below 10 and odd scores', () => {
+    const scores = {
+      STRENGTH: 1,
+      DEXTERITY: 9,
+      CONSTITUTION: 10,
+      INTELLIGENCE: 11,
+      WISDOM: 20,
+      CHARISMA: 30
+    }
+    renderWithAppProviders(<EncounterEnemyStatBlock actor={actorWith({ abilityScores: scores })} />)
+
+    for (const [ability, score] of Object.entries(scores)) {
+      const modifier = abilityModifier(score)
+      const entry = screen.getByText(ability.slice(0, 3)).closest('div')!
+      expect(entry).toHaveTextContent(`${score}(${modifier >= 0 ? '+' : ''}${modifier})`)
+    }
   })
 })

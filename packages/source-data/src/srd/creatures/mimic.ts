@@ -29,7 +29,7 @@ export const mimic: CreatureAuthored = {
   proficiencies: [S.grantedSkillExpertise(10197, 1, 'STEALTH')],
   damageImmunities: ['acid'],
   conditionImmunities: ['prone'],
-  senses: ['darkvision 60 ft.'],
+  senses: [S.darkvision(60)],
   passivePerception: 11,
   challengeRatingId: S.CR.CR_2,
   xp: 450,

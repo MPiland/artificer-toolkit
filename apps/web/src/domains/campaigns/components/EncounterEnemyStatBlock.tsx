@@ -1,8 +1,9 @@
 import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
+import { abilityModifier } from '@artificer-toolkit/rules-runtime/systems/dnd5e/abilityModifier'
 import type { EncounterGmActorDto } from '@artificer-toolkit/schema/api/encounters'
 import { useQuery } from 'convex/react'
 import * as encounterStyles from './encounter.css'
-import { encounterStatBlockDefenses } from './encounterStatBlock.utils'
+import { encounterStatBlockDefenses, encounterStatBlockSenses } from './encounterStatBlock.utils'
 
 export function EncounterEnemyStatBlock({ actor }: { actor: EncounterGmActorDto }) {
   // Defenses are vocabulary ids; the System names them.
@@ -39,7 +40,7 @@ export function EncounterEnemyStatBlock({ actor }: { actor: EncounterGmActorDto 
         </div>
         <div>
           <dt>Senses</dt>
-          <dd>{formatTextList(statBlock.senses)}</dd>
+          <dd>{formatTextList(encounterStatBlockSenses(statBlock, system))}</dd>
         </div>
       </dl>
       {abilityScores.length ? (
@@ -77,7 +78,7 @@ function abilitySortIndex(ability: string): number {
 }
 
 function formatAbilityModifier(score: number): string {
-  const modifier = Math.floor((score - 10) / 2)
+  const modifier = abilityModifier(score)
   return `(${modifier >= 0 ? '+' : ''}${modifier})`
 }
 

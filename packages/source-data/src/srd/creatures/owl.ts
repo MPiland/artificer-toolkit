@@ -26,7 +26,7 @@ export const owl: CreatureAuthored = {
   },
   speeds: [...S.walk(5), ...S.fly(60)],
   proficiencies: [S.grantedSkillProficiency(214, 1, 'PERCEPTION', 'STEALTH')],
-  senses: ['darkvision 120 ft.'],
+  senses: [S.darkvision(120)],
   passivePerception: 13,
   challengeRatingId: S.CR.CR_0,
   xp: 10,

@@ -144,6 +144,7 @@ function target(
     baseScalarValues: {},
     effectiveScalarValues: {},
     baseRulePolicyOutput: null,
+    perceptionSenses: [],
     effectiveRulePolicyOutput: null,
     targetDerivedFacts: {
       savingThrowDefinitions: [

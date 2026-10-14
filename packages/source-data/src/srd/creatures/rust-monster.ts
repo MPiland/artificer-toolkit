@@ -26,7 +26,7 @@ export const rustMonster: CreatureAuthored = {
     modifier: 5
   },
   speeds: [...S.walk(40)],
-  senses: ['darkvision 60 ft.'],
+  senses: [S.darkvision(60)],
   passivePerception: 11,
   challengeRatingId: S.CR.CR_1_2,
   xp: 100,

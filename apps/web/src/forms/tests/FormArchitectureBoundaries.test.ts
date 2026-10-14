@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync, statSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, relative, sep } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
@@ -28,7 +28,38 @@ describe('authoring form architecture boundaries', () => {
       )
     ).toEqual([])
   })
+
+  it('has no web copy of the node-map resolver and keeps the real one in test support only', () => {
+    expect(existsSync(join(sourceRoot, 'forms', 'node-map', 'staticResolvedModel.ts'))).toBe(false)
+
+    const offenders = readSourceFiles(sourceRoot)
+      .filter((filePath) => !relative(sourceRoot, filePath).split(sep).some(isTestSupportSegment))
+      .filter((filePath) => !filePath.endsWith('FormArchitectureBoundaries.test.ts'))
+      .filter((filePath) => {
+        const source = readFileSync(filePath, 'utf8')
+        return (
+          source.includes('staticResolvedModel') || source.includes('@artificer-toolkit/authoring')
+        )
+      })
+      .map((filePath) => relative(sourceRoot, filePath).split(sep).join('/'))
+
+    expect(offenders).toEqual([])
+  })
+
+  it('keeps test support (which holds the real resolver) out of production imports', () => {
+    const offenders = readSourceFiles(sourceRoot)
+      .filter((filePath) => !/\.(test|stories)\.tsx?$/.test(filePath))
+      .filter((filePath) => !relative(sourceRoot, filePath).split(sep).some(isTestSupportSegment))
+      .filter((filePath) => readFileSync(filePath, 'utf8').includes("'#test/"))
+      .map((filePath) => relative(sourceRoot, filePath).split(sep).join('/'))
+
+    expect(offenders).toEqual([])
+  })
 })
+
+function isTestSupportSegment(segment: string) {
+  return segment === 'test' || segment === 'tests'
+}
 
 function readSourceFiles(root: string): string[] {
   return readdirSync(root).flatMap((entry) => {

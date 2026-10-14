@@ -26,7 +26,7 @@ export const wyvern: CreatureAuthored = {
   },
   speeds: [...S.walk(20), ...S.fly(80)],
   proficiencies: [S.grantedSkillProficiency(299, 1, 'PERCEPTION')],
-  senses: ['darkvision 60 ft.'],
+  senses: [S.darkvision(60)],
   passivePerception: 14,
   challengeRatingId: S.CR.CR_6,
   xp: 2300,
