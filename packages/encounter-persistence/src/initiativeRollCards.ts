@@ -1,4 +1,8 @@
-import { initiativeRollRecord } from '@artificer-toolkit/rules-runtime/encounterRuleCheckRolls'
+import {
+  initiativeRollExpression,
+  initiativeRollRecord,
+  ruleCheckRollId
+} from '@artificer-toolkit/rules-runtime/encounterRuleCheckRolls'
 import type {
   EncounterRunActorState,
   EncounterRunState
@@ -12,8 +16,9 @@ import { recordRuleRollCard } from './ruleRollCards.js'
 /**
  * Posts the Initiative card of every die a declared-action initiative settled, as a GM-rolled
  * initiative does, in declaration order. A die the app rolled for its member already has its
- * "Rolled by the app" attempt card, so only an auto-rolled or entered die is carded here. A result
- * that did not settle on exactly one loggable die has none to show.
+ * "Rolled by the app" attempt card, so only an auto-rolled or entered die is carded here. A flat
+ * score rolled no die and has no card; a result that settled several dice, or a die that is not a
+ * logged `1dN`, throws rather than posting nothing.
  */
 export async function persistEncounterInitiativeRollCards(
   ctx: EncounterReadTransaction & {
@@ -38,15 +43,16 @@ export async function persistEncounterInitiativeRollCards(
       entry.evidence ? [{ entry, evidence: entry.evidence }] : []
     )
     const [die, ...others] = dice
-    const sides = die?.entry.inputs.max
-    if (
-      !die ||
-      others.length > 0 ||
-      die.entry.inputs.min !== 1 ||
-      typeof sides !== 'number' ||
-      !LOGGED_DICE.has(sides)
-    )
-      return []
+    // A flat score rolled no die, so there is no card to post.
+    if (!die) return []
+    // The settlement records neither a roll mode nor how several dice combined into the score
+    // (ENCOUNTER-10 adds advantage and disadvantage to the declared graph), so a card for more
+    // than one die would show a total the dice do not explain.
+    if (others.length > 0)
+      throw new Error('A declared initiative that settled more than one die has no roll card.')
+    const sides = die.entry.inputs.max
+    if (die.entry.inputs.min !== 1 || typeof sides !== 'number' || !LOGGED_DICE.has(sides))
+      throw new Error('A declared initiative die must be a logged 1dN to post its roll card.')
     return [
       {
         actorId: entity.id,
@@ -67,10 +73,10 @@ export async function persistEncounterInitiativeRollCards(
     const actor = input.actors.find((candidate) => candidate.id === actorId)
     if (!actor) throw new Error('Live Session initiative roller is unavailable.')
     const roll = initiativeRollRecord({
-      occurrenceId: `${occurrenceId}:initiative:${actorId}`,
-      sides,
-      rawDie: settled.value,
-      modifier,
+      id: ruleCheckRollId(`${occurrenceId}:initiative:${actorId}`, 0),
+      expression: initiativeRollExpression(sides, modifier),
+      rollMode: 'NORMAL',
+      nextInt: () => settled.value - 1,
       characterId: actor.kind === 'CHARACTER' ? actor.sourceId : null,
       rollerLabel: actor.label,
       ruleset: { systemId: system.id, code: system.rulesetCode, version: system.rulesetVersion },

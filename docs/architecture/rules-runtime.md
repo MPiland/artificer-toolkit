@@ -161,9 +161,11 @@ applying state and carries no rules cue (ADR 0034). **One card per die (ENCOUNTE
 Encounter rule die posts exactly one roll card through `recordRuleRollCard`: an action's d20s and damage
 totals, a Legendary Action's (`recordActionRollCards`), each Recharge d6 (source kind `RECHARGE`), the
 turn-start death save and, under `DECLARED_ACTION_ROLL`, each declared actor's initiative die (ENCOUNTER-9,
-the same `INITIATIVE` card `ROLL_ACTOR_INITIATIVE` posts, written by `persistEncounterInitiativeRollCards`
-in the terminal turn commit from the settled `root.initiative` evidence; a result that is not exactly one
-loggable die, and tie-resolution dice, post none). A die settled by a `SYSTEM_ROLL` answer already has its
+the same `INITIATIVE` card `ROLL_ACTOR_INITIATIVE` posts, both built by the one `initiativeRollRecord`,
+written by `persistEncounterInitiativeRollCards` in the terminal turn commit from the settled
+`root.initiative` evidence; a flat score and tie-resolution dice post none, and a result of several dice or
+a die that is not a logged `1dN` throws. Declared advantage and disadvantage are **target** behavior
+(ENCOUNTER-10): the shipped declared graph rolls one d20 and ignores the roll-mode fact). A die settled by a `SYSTEM_ROLL` answer already has its
 "Rolled by the app" attempt card, so the commit skips it; an auto-rolled or entered die (including one
 entered after an app roll) is carded at commit. `readAppCardedDice`
 (`packages/encounter-persistence/src/appCardedDice.ts`) decides this

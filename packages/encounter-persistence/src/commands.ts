@@ -18,6 +18,7 @@ import {
   snapshotFeatureDefinitions,
   withFeatureChargeUsed
 } from '@artificer-toolkit/rules-runtime/encounterActorState'
+import { initiativeRollRecord } from '@artificer-toolkit/rules-runtime/encounterRuleCheckRolls'
 import { buildEncounterActorRuleFacts } from '@artificer-toolkit/rules-runtime/encounterActorRuleFacts'
 import {
   findEncounterFeatureResource,
@@ -376,21 +377,18 @@ async function recordEncounterToolCommand(
     if (input.type === 'ROLL_ACTOR_INITIATIVE') {
       const initiative = await ctx.ports.readActorInitiativeRoll(state, campaign, actor.id)
       const system = await ctx.ports.requireSystem(state.gameSystemId)
-      roll = rollRecordDtoSchema.parse({
+      roll = initiativeRollRecord({
         id: crypto.randomUUID(),
+        expression: initiative.expression,
+        rollMode: initiative.rollMode,
+        nextInt,
         characterId: initiative.characterId,
-        characterLabel: actor.label,
-        source: { kind: 'INITIATIVE', label: 'Initiative' },
+        rollerLabel: actor.label,
         ruleset: {
           systemId: system.id,
           code: system.rulesetCode,
           version: system.rulesetVersion
         },
-        ...evaluateRollExpression(
-          parseRollExpression(initiative.expression),
-          { nextInt },
-          initiative.rollMode
-        ),
         createdAt: updatedAt
       })
       await recordRuleRollCard(ctx, {
