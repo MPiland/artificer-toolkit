@@ -2,7 +2,7 @@ import { EQUIPPED_SLOT_CODES } from '@artificer-toolkit/shared/core'
 import { z, lazySchema } from '../zod.js'
 
 import { authoredLengthSchema } from '../shared/authoredLimits.js'
-import { abilityCodeSchema } from '../shared/enums.js'
+import { abilityCodeSchema, lengthUnitCodeSchema } from '../shared/enums.js'
 import {
   characterMechanicSourceRefDtoSchema,
   characterMovementDisplayPreferenceDtoSchema,
@@ -110,6 +110,17 @@ const numericAdjustmentEditorBaseDtoSchema = lazySchema(() =>
       minimum: z.optional(numberSchema),
       maximum: z.optional(numberSchema)
     })
+  })
+)
+
+const lengthAdjustmentEditorBaseDtoSchema = lazySchema(() =>
+  z.extend(adjustmentEditorMetadataDtoSchema, {
+    kind: z.literal('LENGTH'),
+    label: stringSchema.check(z.minLength(1)),
+    value: z.nullable(authoredLengthSchema),
+    /** The unit a blank draft starts in: the unit the Character already holds, when it holds one. */
+    defaultUnit: z.optional(lengthUnitCodeSchema),
+    commitIntent: z.literal('ON_BLUR_OR_ENTER')
   })
 )
 
@@ -295,12 +306,8 @@ const sensesPanelDtoSchema = lazySchema(() =>
           senseId: uuidSchema,
           label: stringSchema.check(z.minLength(1)),
           state: characterSheetAdjustmentStateDtoSchema,
-          editor: z.extend(adjustmentEditorMetadataDtoSchema, {
-            kind: z.literal('LENGTH'),
-            field: z.literal('RANGE_OVERRIDE'),
-            label: stringSchema.check(z.minLength(1)),
-            value: z.nullable(authoredLengthSchema),
-            commitIntent: z.literal('ON_BLUR_OR_ENTER')
+          editor: z.extend(lengthAdjustmentEditorBaseDtoSchema, {
+            field: z.literal('RANGE_OVERRIDE')
           })
         }),
         z.discriminatedUnion('rangeKind', [
@@ -331,17 +338,25 @@ const movementPanelDtoSchema = lazySchema(() =>
       })
     ),
     speeds: z.array(
-      z.object({
-        speedId: uuidSchema,
-        label: stringSchema.check(z.minLength(1)),
-        amount: integerSchema.check(z.nonnegative()),
-        unitLabel: stringSchema.check(z.minLength(1)),
-        state: characterSheetAdjustmentStateDtoSchema,
-        calculation: characterSheetPanelNumericCalculationDtoSchema,
-        editor: z.extend(numericAdjustmentEditorBaseDtoSchema, {
-          field: z.literal('SPEED_OVERRIDE')
-        })
-      })
+      z.intersection(
+        z.object({
+          speedId: uuidSchema,
+          label: stringSchema.check(z.minLength(1)),
+          state: characterSheetAdjustmentStateDtoSchema,
+          editor: z.extend(lengthAdjustmentEditorBaseDtoSchema, {
+            field: z.literal('SPEED_OVERRIDE')
+          })
+        }),
+        z.discriminatedUnion('speedKind', [
+          z.object({ speedKind: z.literal('NOT_HELD') }),
+          z.object({
+            speedKind: z.literal('HELD'),
+            amount: numberSchema.check(z.nonnegative()),
+            unitLabel: stringSchema.check(z.minLength(1)),
+            calculation: characterSheetPanelNumericCalculationDtoSchema
+          })
+        ])
+      )
     )
   })
 )

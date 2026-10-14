@@ -25,6 +25,7 @@ import {
   astralTearItemPanelFixture,
   companionPanelFixture,
   itemPanelFixture,
+  movementPanelFixture,
   savingThrowPanelFixture,
   sensesPanelFixture,
   spellPanelAttackDamageFixture,
@@ -215,6 +216,72 @@ describe('Character Sheet inspector', () => {
         field: 'RANGE_OVERRIDE',
         value: { amount: 20, unit: 'YARDS' }
       }
+    })
+  })
+
+  describe('speed override', () => {
+    const renderMovementPanel = () => {
+      const submitCommand = vi.fn().mockResolvedValue(true)
+      renderWithAppProviders(
+        <CharacterSheetRulesPanel
+          expectedVersion={4}
+          panel={movementPanelFixture}
+          pending={false}
+          submitCommand={submitCommand}
+          onTargetChange={vi.fn()}
+        />
+      )
+      return submitCommand
+    }
+
+    it('shows each speed in its own unit and a speed the Character does not hold as not held', () => {
+      renderMovementPanel()
+
+      expect(screen.getByText('Walking: 10 yards')).toBeVisible()
+      expect(screen.getByText('Swimming: not held. Set a speed to add it.')).toBeVisible()
+    })
+
+    it('commits an amount in the speed’s base unit without choosing one', async () => {
+      const user = userEvent.setup()
+      const submitCommand = renderMovementPanel()
+
+      expect(screen.getAllByRole('combobox', { name: 'Unit' })[0]).toHaveValue('Yards')
+      await user.type(screen.getByRole('textbox', { name: 'Override Walking speed' }), '30')
+      await user.tab()
+
+      expect(submitCommand).toHaveBeenCalledTimes(1)
+      expect(submitCommand).toHaveBeenCalledWith({
+        type: 'UPSERT_SHEET_ADJUSTMENT',
+        expectedVersion: 4,
+        adjustment: {
+          family: 'MOVEMENT',
+          speedId: movementPanelFixture.speeds[0].speedId,
+          field: 'SPEED_OVERRIDE',
+          value: { amount: 30, unit: 'YARDS' }
+        }
+      })
+    })
+
+    it('commits a speed for a Character with no base in the unit the player picks', async () => {
+      const user = userEvent.setup()
+      const submitCommand = renderMovementPanel()
+
+      await user.click(screen.getAllByRole('combobox', { name: 'Unit' })[1])
+      await user.click(await screen.findByRole('option', { name: 'Miles' }))
+      await user.type(screen.getByRole('textbox', { name: 'Override Swimming speed' }), '2')
+      await user.tab()
+
+      expect(submitCommand).toHaveBeenCalledTimes(1)
+      expect(submitCommand).toHaveBeenCalledWith({
+        type: 'UPSERT_SHEET_ADJUSTMENT',
+        expectedVersion: 4,
+        adjustment: {
+          family: 'MOVEMENT',
+          speedId: movementPanelFixture.speeds[1].speedId,
+          field: 'SPEED_OVERRIDE',
+          value: { amount: 2, unit: 'MILES' }
+        }
+      })
     })
   })
 

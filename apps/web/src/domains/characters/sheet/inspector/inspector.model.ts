@@ -14,11 +14,12 @@ export type CharacterSheetNumberEditorDto =
   | SavingThrowPanel['numericEditors'][number]
   | SkillPanel['numericEditors'][number]
   | SensesPanel['passiveChecks'][number]['editor']
-  | MovementPanel['speeds'][number]['editor']
   | ItemPanel['numericEditors'][number]
   | CompanionPanel['numericEditors'][number]
 
-export type CharacterSheetLengthEditorDto = SensesPanel['senses'][number]['editor']
+export type CharacterSheetLengthEditorDto =
+  | SensesPanel['senses'][number]['editor']
+  | MovementPanel['speeds'][number]['editor']
 
 export type CharacterSheetSelectEditorDto =
   | SavingThrowPanel['proficiencyEditor']

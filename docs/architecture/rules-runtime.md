@@ -767,6 +767,13 @@ vocabulary: Character record stats pass `registry.system.speeds`, and `encounter
 malformed or out-of-vocabulary speed at read is an invariant failure. Displayed lengths round through the shared
 `roundLengthForDisplay` (three decimals); stored and computed amounts never do.
 
+The Sheet `MOVEMENT` `SPEED_OVERRIDE` adjustment is the same typed length, like the sense `RANGE_OVERRIDE`.
+`buildCharacterMovementRuleFacts` hands the policy each speed as `base` (a length, or `null` when the Character holds
+none) and `override`; a speed with neither is never listed, and `characterMovementAndSenses` throws on a fact with
+neither. The override is converted into the base's unit, or kept in its own unit when there is no base. The Movement
+panel marks a System speed the Character does not hold `NOT_HELD` (its editor still adds it) and carries the held
+unit as the editor's `defaultUnit`, so the Sheet input offers an amount and a unit starting in the speed's own unit.
+
 **Concentration grants (D99).** A grant whose result block names a `maintenanceDefinitionId` plans the
 same `SOURCE_ACTOR` maintenance policy as a maintained recurring effect (`maintenancePlan`), so it is a
 dependent of its source's maintained state and ends with it on a failed check, D95 incapacitation or a

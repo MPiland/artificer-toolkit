@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { AUTHORED_LENGTH_AMOUNT_MAX } from '../shared/authoredLimits.js'
 import {
   characterMovementDisplayPreferenceDtoSchema,
   characterResourceOwnerRefDtoSchema,
@@ -59,7 +60,7 @@ describe('character Sheet adjustment contracts', () => {
       family: 'MOVEMENT',
       speedId: targetId,
       field: 'SPEED_OVERRIDE',
-      value: 35
+      value: { amount: 35, unit: 'FEET' }
     },
     {
       ...metadata,
@@ -133,6 +134,28 @@ describe('character Sheet adjustment contracts', () => {
         value: { amount: 30, unit: 'FEET' }
       })
     ).toMatchObject({ value: { amount: 30, unit: 'FEET' } })
+  })
+
+  it('types a speed override as a length, never a bare number', () => {
+    const speed = { ...metadata, family: 'MOVEMENT', speedId: targetId, field: 'SPEED_OVERRIDE' }
+    for (const value of [
+      35,
+      { amount: 35 },
+      { amount: 35, unit: 'FURLONGS' },
+      { amount: 35, unit: 'feet' },
+      { amount: AUTHORED_LENGTH_AMOUNT_MAX + 1, unit: 'FEET' },
+      { amount: -5, unit: 'FEET' }
+    ])
+      expect(
+        () => characterSheetAdjustmentWriteDtoSchema.parse({ ...speed, value }),
+        JSON.stringify(value)
+      ).toThrow()
+    expect(
+      characterSheetAdjustmentWriteDtoSchema.parse({
+        ...speed,
+        value: { amount: 12, unit: 'YARDS' }
+      })
+    ).toMatchObject({ value: { amount: 12, unit: 'YARDS' } })
   })
 
   it('keeps source notes short and single-line', () => {

@@ -17,6 +17,7 @@ import { cat } from '@artificer-toolkit/source-data/srd/creatures/cat.js'
 import { rowboat } from '@artificer-toolkit/source-data/srd/vehicles/rowboat.js'
 import { fireBolt } from '@artificer-toolkit/source-data/srd/spells/fire-bolt.js'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
+import { SRD_SPEEDS } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { readyCharacterFixture, readySheetFixture } from '../../tests/fixtures/readyCharacter'
 import { importedSubject } from '../../tests/fixtures/publication'
 import { api, internal } from '../_generated/api'
@@ -155,6 +156,72 @@ describe('native personal Sheet inspector panels', () => {
       unitLabel: 'feet',
       state: 'OVERRIDDEN'
     })
+  })
+
+  it('lists a speed the Character does not hold as not held until a unit-typed override adds it', async () => {
+    const { owner, character, committed } = await readySheetFixture()
+    const walk = SRD_SPEEDS.find((speed) => speed.code === 'WALK')!
+    const fly = SRD_SPEEDS.find((speed) => speed.code === 'FLY')!
+    const read = async () => {
+      const result = await owner.caller.query(panel, {
+        id: committed.publicId,
+        target: { kind: 'MOVEMENT' }
+      })
+      if (result.kind !== 'MOVEMENT') throw new Error('Expected the movement panel.')
+      return result.speeds
+    }
+    const setYards = (expectedVersion: number, speedId: string, amount: number) =>
+      owner.caller.mutation(execute, {
+        id: character.id,
+        command: {
+          type: 'UPSERT_SHEET_ADJUSTMENT',
+          commandId: crypto.randomUUID(),
+          expectedVersion,
+          adjustment: {
+            family: 'MOVEMENT',
+            speedId,
+            field: 'SPEED_OVERRIDE',
+            value: { amount, unit: 'YARDS' }
+          }
+        }
+      })
+
+    const before = await read()
+    expect(before.find((speed) => speed.speedId === fly.id)).toMatchObject({
+      speedKind: 'NOT_HELD',
+      state: 'DEFAULT',
+      editor: { value: null }
+    })
+    expect(before.find((speed) => speed.speedId === fly.id)?.editor).not.toHaveProperty(
+      'defaultUnit'
+    )
+    expect(before.find((speed) => speed.speedId === walk.id)).toMatchObject({
+      speedKind: 'HELD',
+      amount: 30,
+      unitLabel: 'feet',
+      editor: { value: null, defaultUnit: 'FEET' }
+    })
+
+    await setYards(1, fly.id, 12)
+    await setYards(2, walk.id, 12)
+    const after = await read()
+    expect(after.find((speed) => speed.speedId === fly.id)).toMatchObject({
+      speedKind: 'HELD',
+      amount: 12,
+      unitLabel: 'yards',
+      state: 'OVERRIDDEN',
+      editor: { value: { amount: 12, unit: 'YARDS' }, defaultUnit: 'YARDS' }
+    })
+    // 12 yards overrides the 30-foot base, shown in the base's own unit.
+    expect(after.find((speed) => speed.speedId === walk.id)).toMatchObject({
+      speedKind: 'HELD',
+      amount: 36,
+      unitLabel: 'feet',
+      state: 'OVERRIDDEN',
+      editor: { value: { amount: 12, unit: 'YARDS' }, defaultUnit: 'FEET' }
+    })
+    const sheet = (await owner.caller.query(getSheet, { id: character.id }))!
+    expect(sheet.overview.facts.find((fact) => fact.label === 'Speed')?.value).toBe('36 feet')
   })
 
   it('resolves exact current spell, resource, companion and vehicle owners', async () => {
