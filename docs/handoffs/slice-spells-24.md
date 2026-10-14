@@ -1,6 +1,6 @@
 # Slice workbook: SPELLS-24 (lasting zones catch by positive-area overlap)
 
-**Status:** OPEN (started 2026-10-14)
+**Status:** DONE (merged `b0a2345d5`; closed by the main session 2026-10-14)
 **Base:** `codex/phase-08-2-convex-cutover` at this workbook's commit.
 **Rules:** [slice-workbook-rules.md](slice-workbook-rules.md).
 
