@@ -203,6 +203,39 @@ export function rechargeRollRecord(input: {
 }
 
 /**
+ * The roll-log record of one initiative die a declaration settled, as the Initiative card a
+ * GM-rolled initiative posts: the die plus the modifier the score added to it. The caller scopes
+ * `occurrenceId` per actor so one settlement's several cards keep distinct ids.
+ */
+export function initiativeRollRecord(input: {
+  occurrenceId: string
+  sides: number
+  rawDie: number
+  modifier: number
+  characterId: string | null
+  rollerLabel: string
+  ruleset: RollRecordDto['ruleset']
+  createdAt: string
+}): RollRecordDto {
+  const modifier =
+    input.modifier === 0 ? '' : input.modifier > 0 ? `+${input.modifier}` : `${input.modifier}`
+  const evaluated = evaluateRollExpression(
+    parseRollExpression(`1d${input.sides}${modifier}`),
+    { nextInt: () => input.rawDie - 1 },
+    'NORMAL'
+  )
+  return rollRecordDtoSchema.parse({
+    id: ruleCheckRollId(input.occurrenceId, 0),
+    ...evaluated,
+    characterId: input.characterId,
+    characterLabel: input.rollerLabel,
+    source: { kind: 'INITIATIVE', label: 'Initiative' },
+    ruleset: input.ruleset,
+    createdAt: input.createdAt
+  })
+}
+
+/**
  * The roll-log record of a basic action's check (First Aid's Wisdom (Medicine)), from its recorded
  * faces and the helper's modifier. The card is the helper's own.
  */
