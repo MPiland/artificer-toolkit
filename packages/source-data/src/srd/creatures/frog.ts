@@ -27,7 +27,7 @@ export const frog: CreatureAuthored = {
   },
   speeds: [...S.walk(20), ...S.swim(20)],
   proficiencies: [S.grantedSkillProficiency(106, 1, 'PERCEPTION', 'STEALTH')],
-  senses: ['darkvision 30 ft.'],
+  senses: [S.darkvision(30)],
   passivePerception: 11,
   challengeRatingId: S.CR.CR_0,
   xp: 0,

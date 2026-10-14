@@ -168,7 +168,7 @@ export function evaluateEncounterAreaTargetPolicy(input: {
   grid: SceneGrid
   /** The caster's token; null when it is not on the map. */
   sourceToken: Pick<SceneToken, 'position' | 'height' | 'width' | 'rotationDegrees'> | null
-  /** Whether the caster can see the point; an undecided sight counts as seen. */
+  /** Whether the caster can see the point. */
   pointSeen: boolean
 }): { shape: SpatialPointAreaShape; warnings: EncounterRuleWarningDto[] } | null {
   const { range } = input.targetPolicy

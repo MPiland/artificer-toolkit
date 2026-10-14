@@ -41,7 +41,7 @@ export const kraken: CreatureAuthored = {
   ],
   damageImmunities: ['lightning', 'bludgeoning, piercing, and slashing from nonmagical attacks'],
   conditionImmunities: ['frightened', 'paralyzed'],
-  senses: ['truesight 120 ft.'],
+  senses: [S.truesight(120)],
   passivePerception: 14,
   challengeRatingId: S.CR.CR_23,
   xp: 50000,

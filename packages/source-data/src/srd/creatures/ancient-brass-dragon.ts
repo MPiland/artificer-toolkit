@@ -34,7 +34,7 @@ export const ancientBrassDragon: CreatureAuthored = {
     S.grantedLanguageProficiency(16, 3, 'COMMON', 'DRACONIC')
   ],
   damageImmunities: ['fire'],
-  senses: ['blindsight 60 ft.', 'darkvision 120 ft.'],
+  senses: [S.blindsight(60), S.darkvision(120)],
   passivePerception: 24,
   challengeRatingId: S.CR.CR_20,
   xp: 25000,

@@ -29,7 +29,7 @@ export const grayOoze: CreatureAuthored = {
   proficiencies: [S.grantedSkillExpertise(149, 1, 'STEALTH')],
   damageResistances: ['acid', 'cold', 'fire'],
   conditionImmunities: ['blinded', 'charmed', 'deafened', 'exhaustion', 'frightened', 'prone'],
-  senses: ['blindsight 60 ft. (blind beyond this radius)'],
+  senses: [S.blindsight(60, '(blind beyond this radius)')],
   passivePerception: 8,
   challengeRatingId: S.CR.CR_1_2,
   xp: 100,

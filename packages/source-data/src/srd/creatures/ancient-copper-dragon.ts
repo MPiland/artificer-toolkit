@@ -34,7 +34,7 @@ export const ancientCopperDragon: CreatureAuthored = {
     S.grantedLanguageProficiency(5710, 3, 'COMMON', 'DRACONIC')
   ],
   damageImmunities: ['acid'],
-  senses: ['blindsight 60 ft.', 'darkvision 120 ft.'],
+  senses: [S.blindsight(60), S.darkvision(120)],
   passivePerception: 27,
   challengeRatingId: S.CR.CR_21,
   xp: 33000,

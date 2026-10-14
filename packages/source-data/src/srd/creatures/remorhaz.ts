@@ -26,7 +26,7 @@ export const remorhaz: CreatureAuthored = {
   },
   speeds: [...S.walk(30), ...S.burrow(20)],
   damageImmunities: ['cold', 'fire'],
-  senses: ['darkvision 60 ft.', 'tremorsense 60 ft.'],
+  senses: [S.darkvision(60), S.tremorsense(60)],
   passivePerception: 10,
   challengeRatingId: S.CR.CR_11,
   xp: 7200,

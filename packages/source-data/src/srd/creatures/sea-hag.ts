@@ -28,7 +28,7 @@ export const seaHag: CreatureAuthored = {
   },
   speeds: [...S.walk(30), ...S.swim(40)],
   proficiencies: [S.grantedLanguageProficiency(248, 1, 'AQUAN', 'COMMON', 'GIANT')],
-  senses: ['darkvision 60 ft.'],
+  senses: [S.darkvision(60)],
   passivePerception: 11,
   challengeRatingId: S.CR.CR_2,
   xp: 450,

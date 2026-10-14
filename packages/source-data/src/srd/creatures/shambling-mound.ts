@@ -29,7 +29,7 @@ export const shamblingMound: CreatureAuthored = {
   speeds: [...S.walk(20), ...S.swim(20)],
   proficiencies: [S.grantedSkillProficiency(251, 1, 'STEALTH')],
   conditionImmunities: ['blinded', 'deafened', 'exhaustion'],
-  senses: ['blindsight 60 ft. (blind beyond this radius)'],
+  senses: [S.blindsight(60, '(blind beyond this radius)')],
   damageResistances: ['cold', 'fire'],
   damageImmunities: ['lightning'],
   passivePerception: 10,

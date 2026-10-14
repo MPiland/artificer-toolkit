@@ -28,7 +28,7 @@ export const shieldGuardian: CreatureAuthored = {
   speeds: [...S.walk(30)],
   damageImmunities: ['poison'],
   conditionImmunities: ['charmed', 'exhaustion', 'frightened', 'paralyzed', 'poisoned'],
-  senses: ['blindsight 10 ft.', 'darkvision 60 ft.'],
+  senses: [S.blindsight(10), S.darkvision(60)],
   passivePerception: 10,
   challengeRatingId: S.CR.CR_7,
   xp: 2900,

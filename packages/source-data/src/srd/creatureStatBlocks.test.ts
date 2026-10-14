@@ -1,10 +1,12 @@
 import { challengeRatings } from '@artificer-toolkit/shared/authored'
 import type { AbilityCode, CreatureAuthored } from '@artificer-toolkit/shared'
+import { printCreatureSenses } from '@artificer-toolkit/shared/subjects/core'
 import { describe, expect, it } from 'vitest'
 import { SRD_CREATURE_DESCRIPTION_ONLY_ACTIONS } from './creatureDescriptionOnlyActions.js'
 import { SRD_CREATURE_STAT_BLOCK_EXCEPTIONS } from './creatureStatBlockExceptions.js'
 import { SRD_CREATURE_STAT_BLOCKS, type SrdCreatureStatBlock } from './creatures/stat-blocks.js'
 import { srdBaselineContent } from './index.js'
+import { SRD_SENSE_DEFINITIONS } from './senses.js'
 import {
   SRD_ABILITY_DEFINITION_IDS,
   SRD_ALIGNMENTS,
@@ -55,6 +57,25 @@ const LANGUAGE_FEATURE_LABELS = new Set([
 ])
 
 type Defense = NonNullable<SrdCreatureStatBlock['damageResistances']>[number]
+
+const senseNameById = new Map(SRD_SENSE_DEFINITIONS.map((sense) => [sense.id, sense.label]))
+const senseLabel = (id: string) => senseNameById.get(id) ?? id
+
+/** "blindsight 60 ft. (blind beyond this radius)" read apart from the authored model. */
+function parsePrintedSense(printed: string) {
+  const match = /^(\w+) (\d+) ft\.(?: (.+))?$/.exec(printed)
+  if (!match) throw new Error(`Unreadable printed Sense "${printed}".`)
+  return { sense: match[1], feet: Number(match[2]), qualifier: match[3] ?? null }
+}
+
+function structuredSense(sense: NonNullable<CreatureAuthored['senses']>[number]) {
+  const { range } = sense
+  return {
+    sense: senseLabel(sense.senseDefinitionId).toLowerCase(),
+    feet: range.rangeKind === 'DISTANCE' && range.unit === 'FEET' ? range.amount : null,
+    qualifier: sense.qualifier ?? null
+  }
+}
 
 /** Each field's printed and authored values, compared as JSON. */
 function statBlockFields(creature: CreatureAuthored, block: SrdCreatureStatBlock) {
@@ -162,7 +183,10 @@ function statBlockFields(creature: CreatureAuthored, block: SrdCreatureStatBlock
       []
     ],
     conditionImmunities: [sorted(block.conditionImmunities), codes(creature.conditionImmunities)],
-    senses: [block.senses ?? [], creature.senses ?? []],
+    senses: [
+      (block.senses ?? []).map(parsePrintedSense),
+      (creature.senses ?? []).map(structuredSense)
+    ],
     passivePerception: [block.passivePerception, creature.passivePerception],
     languages: [
       sorted(block.languageCodes),
@@ -307,6 +331,20 @@ describe('SRD Creature stat blocks', () => {
     expect(
       [...SRD_CREATURE_STAT_BLOCK_EXCEPTIONS.keys()].filter((key) => !mismatches.has(key))
     ).toEqual([])
+  })
+
+  it('derives every printed Sense line from the structured Senses', () => {
+    const differences = srdBaselineContent.subjects.creatures.flatMap((creature) => {
+      // The book abbreviates feet "ft."; the unit registry's abbreviation is "ft". Qualifier text is
+      // kept as the book words it, so both sides are compared in the registry's form.
+      const unabbreviated = (line: string) => line.replaceAll(' ft.', ' ft')
+      const printed = (SRD_CREATURE_STAT_BLOCKS.get(creature.id)?.senses ?? []).map(unabbreviated)
+      const derived = printCreatureSenses(creature.senses ?? [], senseLabel).map(unabbreviated)
+      return derived.join('; ') === printed.join('; ')
+        ? []
+        : [`${creature.label}: printed ${printed.join('; ')}, derived ${derived.join('; ')}`]
+    })
+    expect(differences).toEqual([])
   })
 
   it('prints a stat block for every SRD Creature', () => {

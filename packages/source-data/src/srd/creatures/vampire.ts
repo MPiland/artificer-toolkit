@@ -33,7 +33,7 @@ export const vampire: CreatureAuthored = {
     S.grantedSkillProficiency(277, 2, 'PERCEPTION', 'STEALTH')
   ],
   damageResistances: ['necrotic; bludgeoning, piercing, and slashing from nonmagical attacks'],
-  senses: ['darkvision 120 ft.'],
+  senses: [S.darkvision(120)],
   passivePerception: 17,
   challengeRatingId: S.CR.CR_13,
   xp: 10000,

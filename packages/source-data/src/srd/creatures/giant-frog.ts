@@ -27,7 +27,7 @@ export const giantFrog: CreatureAuthored = {
   },
   speeds: [...S.walk(30), ...S.swim(30)],
   proficiencies: [S.grantedSkillProficiency(124, 1, 'PERCEPTION', 'STEALTH')],
-  senses: ['darkvision 30 ft.'],
+  senses: [S.darkvision(30)],
   passivePerception: 12,
   challengeRatingId: S.CR.CR_1_4,
   xp: 50,

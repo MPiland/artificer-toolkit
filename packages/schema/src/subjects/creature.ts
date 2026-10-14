@@ -18,6 +18,7 @@ import { speedDtoSchema } from '../shared/speed.js'
 import { ATTACK_TRIGGER_CODES } from '../effects/effect.js'
 import { featureDtoSchema } from '../features/feature.js'
 import { proficiencyGrantDtoSchema } from '../grants/proficiency.js'
+import { senseRangeDtoSchema } from '../grants/sense.js'
 import { costDtoSchema } from './shared.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import {
@@ -27,6 +28,39 @@ import {
   measurementUnitCodeSchema,
   sizeCodeSchema
 } from '../shared/enums.js'
+
+/**
+ * A Sense a Creature has: a System sense definition and how far it reaches. This is the shape a
+ * Character sense grant resolves to; `qualifier` is the printed note after the range ("(blind
+ * beyond this radius)") and never changes what the Creature perceives.
+ */
+export const creatureSenseDtoSchema = lazySchema(() =>
+  z.strictObject({
+    senseDefinitionId: authoredIdentifierSchema,
+    range: senseRangeDtoSchema,
+    qualifier: z.optional(authoredShortTextSchema)
+  })
+)
+
+export type CreatureSenseDto = z.infer<typeof creatureSenseDtoSchema>
+
+// The room pins a Creature's senses by definition, so a repeated one cannot be admitted.
+const creatureSensesSchema = lazySchema(() =>
+  authoredNestedCollectionSchema(creatureSenseDtoSchema).check(
+    z.superRefine((senses, context) => {
+      const seen = new Set<string>()
+      for (const [index, { senseDefinitionId }] of senses.entries()) {
+        if (seen.has(senseDefinitionId))
+          context.addIssue({
+            code: 'custom',
+            path: [index, 'senseDefinitionId'],
+            message: 'A Creature can have each sense only once.'
+          })
+        seen.add(senseDefinitionId)
+      }
+    })
+  )
+)
 
 export const creatureQualifiedDamageDefenseDtoSchema = lazySchema(() =>
   z.strictObject({
@@ -334,7 +368,7 @@ const creatureAuthoredDtoObject = lazySchema(() =>
     hitPoints: z.number().check(z.int()).check(z.nonnegative()),
     hitDice: z.optional(diceExpressionDtoSchema),
     speeds: authoredNestedCollectionSchema(speedDtoSchema),
-    senses: z.optional(authoredReferenceCollectionSchema(authoredShortTextSchema)),
+    senses: z.optional(creatureSensesSchema),
     passivePerception: z.optional(z.number()),
     damageVulnerabilities: z.optional(authoredReferenceCollectionSchema(authoredShortTextSchema)),
     damageResistances: z.optional(authoredReferenceCollectionSchema(authoredShortTextSchema)),

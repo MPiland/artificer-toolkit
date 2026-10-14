@@ -26,7 +26,7 @@ export const owlbear: CreatureAuthored = {
   },
   speeds: [...S.walk(40)],
   proficiencies: [S.grantedSkillProficiency(215, 1, 'PERCEPTION')],
-  senses: ['darkvision 60 ft.'],
+  senses: [S.darkvision(60)],
   passivePerception: 13,
   challengeRatingId: S.CR.CR_3,
   xp: 700,

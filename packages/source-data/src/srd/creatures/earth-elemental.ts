@@ -31,7 +31,7 @@ export const earthElemental: CreatureAuthored = {
   damageResistances: ['bludgeoning, piercing, and slashing from nonmagical attacks'],
   damageImmunities: ['poison'],
   conditionImmunities: ['exhaustion', 'paralyzed', 'petrified', 'poisoned', 'unconscious'],
-  senses: ['darkvision 60 ft.', 'tremorsense 60 ft.'],
+  senses: [S.darkvision(60), S.tremorsense(60)],
   passivePerception: 10,
   challengeRatingId: S.CR.CR_5,
   xp: 1800,

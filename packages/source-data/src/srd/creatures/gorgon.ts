@@ -29,7 +29,7 @@ export const gorgon: CreatureAuthored = {
   speeds: [...S.walk(40)],
   proficiencies: [S.grantedSkillProficiency(148, 1, 'PERCEPTION')],
   conditionImmunities: ['petrified'],
-  senses: ['darkvision 60 ft.'],
+  senses: [S.darkvision(60)],
   passivePerception: 14,
   challengeRatingId: S.CR.CR_5,
   xp: 1800,

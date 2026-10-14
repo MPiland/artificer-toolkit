@@ -5,10 +5,10 @@ import {
   sceneTokenIdsAffectedByBarriers,
   type SceneExplorationState
 } from './exploration.js'
-import { resolveSceneCharacterVision } from './sceneReducer.js'
+import { resolveSceneActorVision } from './sceneReducer.js'
 import type {
+  SceneActorVision,
   SceneAtomicDelta,
-  SceneCharacterVision,
   SceneFogLayer,
   SceneFogMode,
   ScenePoint,
@@ -36,8 +36,8 @@ export function planSceneCommandExploration(
   state: Omit<SceneExplorationState, 'fogLayers'>,
   delta: SceneAtomicDelta,
   sceneVisionContext?: {
-    encounterCharacterBindings: readonly { actorId: string; characterId: string; tokenId: string }[]
-    characterVisions: readonly SceneCharacterVision[]
+    encounterActorBindings: readonly { actorId: string; tokenId: string }[]
+    actorVisions: readonly SceneActorVision[]
   }
 ): {
   state: Omit<SceneExplorationState, 'fogLayers'>
@@ -53,10 +53,10 @@ export function planSceneCommandExploration(
     fogMode: state.fogMode
   }
   const resolvedState = sceneVisionContext
-    ? resolveSceneCharacterVision(
+    ? resolveSceneActorVision(
         geometry,
-        sceneVisionContext.encounterCharacterBindings,
-        sceneVisionContext.characterVisions
+        sceneVisionContext.encounterActorBindings,
+        sceneVisionContext.actorVisions
       )
     : geometry
   const affectedBarriers =

@@ -35,7 +35,7 @@ export const iceDevil: CreatureAuthored = {
   ],
   damageImmunities: ['cold', 'fire', 'poison'],
   conditionImmunities: ['poisoned'],
-  senses: ['blindsight 60 ft.', 'darkvision 120 ft.'],
+  senses: [S.blindsight(60), S.darkvision(120)],
   passivePerception: 12,
   challengeRatingId: S.CR.CR_14,
   xp: 11500,

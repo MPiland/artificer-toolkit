@@ -26,7 +26,7 @@ export const giantShark: CreatureAuthored = {
   },
   speeds: [...S.walk(0), ...S.swim(50)],
   proficiencies: [S.grantedSkillProficiency(134, 1, 'PERCEPTION')],
-  senses: ['blindsight 60 ft.'],
+  senses: [S.blindsight(60)],
   passivePerception: 13,
   challengeRatingId: S.CR.CR_5,
   xp: 1800,

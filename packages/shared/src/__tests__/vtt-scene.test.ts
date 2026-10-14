@@ -25,7 +25,7 @@ import {
   measureScenePathMovementCost,
   projectSceneForViewer,
   replaySceneEvents,
-  resolveSceneCharacterVision,
+  resolveSceneActorVision,
   sceneDeltaConflictKeys,
   sceneDerivesExploration,
   sceneLengthInFeet,
@@ -158,10 +158,8 @@ it('derives command fog from geometry alone while preserving explicit token visi
   }
   const before = structuredClone(state)
   const context = {
-    encounterCharacterBindings: [
-      { actorId: ids.encounter, characterId: ids.user, tokenId: ids.token }
-    ],
-    characterVisions: [{ characterId: ids.user, senses: [pinnedDarkvision] }]
+    encounterActorBindings: [{ actorId: ids.encounter, tokenId: ids.token }],
+    actorVisions: [{ actorId: ids.encounter, senses: [pinnedDarkvision] }]
   }
   const after = { ...state, barriers: state.barriers.filter((barrier) => barrier.id !== ids.door) }
   const deltas = deriveSceneCommandExplorationDeltas(
@@ -292,10 +290,8 @@ it('plans recipients without fog and matches command exploration one recipient a
   }
   const before = structuredClone(geometry)
   const context = {
-    encounterCharacterBindings: [
-      { actorId: ids.encounter, characterId: ids.user, tokenId: ids.token }
-    ],
-    characterVisions: [{ characterId: ids.user, senses: [pinnedDarkvision] }]
+    encounterActorBindings: [{ actorId: ids.encounter, tokenId: ids.token }],
+    actorVisions: [{ actorId: ids.encounter, senses: [pinnedDarkvision] }]
   }
   const delta = { kind: 'DOOR_STATE_SET' as const, barrierId: ids.door, state: 'OPEN' as const }
   const opened = { ...geometry, doorStates: { ...geometry.doorStates, [ids.door]: delta.state } }
@@ -397,12 +393,12 @@ describe('VTT scene conflict keys', () => {
 })
 
 describe('VTT scene replay and projection', () => {
-  it('presents the bound Character senses on the token and leaves its vision alone', () => {
+  it('presents the bound actor senses on the token and leaves its vision alone', () => {
     const state = materializeCampaignScene(definition(), ids.scene)
-    const bindings = [{ actorId: ids.user, characterId: ids.player, tokenId: ids.token }]
-    const characterVisions = [
+    const bindings = [{ actorId: ids.user, tokenId: ids.token }]
+    const actorVisions = [
       {
-        characterId: ids.player,
+        actorId: ids.user,
         senses: [
           {
             ...pinnedDarkvision,
@@ -412,7 +408,7 @@ describe('VTT scene replay and projection', () => {
       }
     ]
 
-    const resolved = resolveSceneCharacterVision(state, bindings, characterVisions)
+    const resolved = resolveSceneActorVision(state, bindings, actorVisions)
     expect(resolved.tokens[0]?.senses).toEqual([
       {
         channel: 'VISUAL',
@@ -432,7 +428,7 @@ describe('VTT scene replay and projection', () => {
       enabled: true
     }
     state.tokens[0] = { ...state.tokens[0]!, vision: explicitVision }
-    const overridden = resolveSceneCharacterVision(state, bindings, characterVisions).tokens[0]
+    const overridden = resolveSceneActorVision(state, bindings, actorVisions).tokens[0]
     expect(overridden?.vision).toEqual(explicitVision)
     expect(overridden?.senses).toHaveLength(1)
   })
@@ -440,26 +436,22 @@ describe('VTT scene replay and projection', () => {
   it('leaves unbound tokens without senses', () => {
     const state = materializeCampaignScene(definition(), ids.scene)
     expect(
-      resolveSceneCharacterVision(
-        state,
-        [],
-        [{ characterId: ids.player, senses: [pinnedDarkvision] }]
-      ).tokens[0]?.senses
+      resolveSceneActorVision(state, [], [{ actorId: ids.user, senses: [pinnedDarkvision] }])
+        .tokens[0]?.senses
     ).toEqual([])
   })
 
   it('converts sense ranges to scene units and drops empty ones', () => {
     const state = materializeCampaignScene(definition(), ids.scene)
     state.grid = { kind: 'GRIDLESS', pixelsPerUnit: 5, unit: 'METERS' }
-    const bindings = [{ actorId: ids.user, characterId: ids.player, tokenId: ids.token }]
+    const bindings = [{ actorId: ids.user, tokenId: ids.token }]
     const sense = (range: { rangeKind: 'DISTANCE'; amount: number; unit: 'FEET' }) => ({
       ...pinnedDarkvision,
       range
     })
     const resolve = (...ranges: Parameters<typeof sense>[0][]) =>
-      resolveSceneCharacterVision(state, bindings, [
-        { characterId: ids.player, senses: ranges.map(sense) }
-      ]).tokens[0]?.senses
+      resolveSceneActorVision(state, bindings, [{ actorId: ids.user, senses: ranges.map(sense) }])
+        .tokens[0]?.senses
 
     expect(resolve({ rangeKind: 'DISTANCE', amount: 60, unit: 'FEET' })?.[0]?.range).toEqual({
       rangeKind: 'DISTANCE',
@@ -483,12 +475,11 @@ describe('VTT scene replay and projection', () => {
 
   it('presents an unlimited sense on the token whatever the grid can measure', () => {
     const state = materializeCampaignScene(definition(), ids.scene)
-    const bindings = [{ actorId: ids.user, characterId: ids.player, tokenId: ids.token }]
+    const bindings = [{ actorId: ids.user, tokenId: ids.token }]
     const unlimited = { ...pinnedDarkvision, range: { rangeKind: 'UNLIMITED' as const } }
     const resolve = () =>
-      resolveSceneCharacterVision(state, bindings, [
-        { characterId: ids.player, senses: [unlimited] }
-      ]).tokens[0]?.senses
+      resolveSceneActorVision(state, bindings, [{ actorId: ids.user, senses: [unlimited] }])
+        .tokens[0]?.senses
 
     state.grid = { kind: 'GRIDLESS', pixelsPerUnit: 5, unit: 'FEET' }
     expect(resolve()).toEqual([
@@ -637,6 +628,37 @@ describe('VTT scene replay and projection', () => {
     expect(projectSceneForViewer(state, { role: 'GM', userId: ids.user }, new Map())).toEqual(state)
     // Withholding a player's view of another token's senses never alters the stored scene.
     expect(state.tokens.map(({ senses }) => senses)).toEqual([presented, presented])
+  })
+
+  it('shows a bound Creature token its senses by Encounter control, for the GM and the controller only', () => {
+    const creatureActorId = ids.encounter
+    const base = materializeCampaignScene({ ...definition(), fogMode: 'OFF' }, ids.scene)
+    const state = resolveSceneActorVision(
+      base,
+      [{ actorId: creatureActorId, tokenId: ids.token }],
+      [{ actorId: creatureActorId, senses: [pinnedDarkvision] }]
+    )
+    const presented = state.tokens[0]!.senses
+    expect(presented).toHaveLength(1)
+    const controlled = new Map([[ids.token, true]])
+    const notControlled = new Map([[ids.token, false]])
+
+    expect(projectSceneForViewer(state, { role: 'GM', userId: ids.user }, notControlled)).toEqual(
+      state
+    )
+    expect(
+      projectSceneForViewer(state, { role: 'PLAYER', userId: ids.player }, controlled).tokens[0]
+        ?.senses
+    ).toEqual(presented)
+    // Encounter control, not the stored token control list, decides who sees a bound token's senses.
+    const withStaleControl = {
+      ...state,
+      tokens: [{ ...state.tokens[0]!, controlledByUserIds: [ids.player] }]
+    }
+    expect(
+      projectSceneForViewer(withStaleControl, { role: 'PLAYER', userId: ids.player }, notControlled)
+        .tokens[0]?.senses
+    ).toEqual([])
   })
 
   it('withholds senses from token deltas exactly as from the snapshot', () => {

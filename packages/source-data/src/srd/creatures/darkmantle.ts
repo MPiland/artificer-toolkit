@@ -27,7 +27,7 @@ export const darkmantle: CreatureAuthored = {
   },
   speeds: [...S.walk(10), ...S.fly(30)],
   proficiencies: [S.grantedSkillProficiency(6527, 1, 'STEALTH')],
-  senses: ['blindsight 60 ft.'],
+  senses: [S.blindsight(60)],
   passivePerception: 10,
   challengeRatingId: S.CR.CR_1_2,
   xp: 100,

@@ -608,6 +608,45 @@ describe('non-character authored domain layout coverage', () => {
     })
   })
 
+  it('submits a Creature sense entry added in the editor', async () => {
+    const user = userEvent.setup()
+    useStaticNodeRuntimeResolver()
+    const { authoringData } = authoredEditRouteLoaderData.creature
+    const creature = authoringData.response.item
+    if (!creature) throw new Error('Expected the owned Creature fixture.')
+
+    render(
+      <TestRouterProvider>
+        <AuthoringLayout
+          data={{
+            ...authoringData,
+            response: { ...authoringData.response, item: { ...creature, senses: [] } }
+          }}
+          domain='creature'
+          mode='edit'
+        />
+      </TestRouterProvider>
+    )
+
+    await user.click(await screen.findByRole('link', { name: /^stats/i }))
+    await user.click(await screen.findByRole('button', { name: /add sense/i }))
+    await user.click(await screen.findByRole('combobox', { name: /^sense$/i }))
+    await user.click(await screen.findByRole('option', { name: 'Darkvision' }))
+    await user.click(screen.getByRole('button', { name: 'Save Draft' }))
+
+    await waitFor(() => expect(convexMocks.mutation).toHaveBeenCalled())
+    expect(convexMocks.mutation.mock.calls.at(-1)?.[1]).toMatchObject({
+      payload: {
+        senses: [
+          {
+            senseDefinitionId: '00000000-0000-0000-000a-000100000000',
+            range: { rangeKind: 'DISTANCE', amount: 30, unit: 'FEET' }
+          }
+        ]
+      }
+    })
+  })
+
   it('loads native Spell copy sources after selection', async () => {
     const user = userEvent.setup()
     useStaticNodeRuntimeResolver()

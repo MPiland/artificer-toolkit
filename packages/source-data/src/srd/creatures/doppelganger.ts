@@ -33,7 +33,7 @@ export const doppelganger: CreatureAuthored = {
     S.grantedLanguageProficiency(83, 2, 'COMMON')
   ],
   conditionImmunities: ['charmed'],
-  senses: ['darkvision 60 ft.'],
+  senses: [S.darkvision(60)],
   passivePerception: 11,
   challengeRatingId: S.CR.CR_3,
   xp: 700,

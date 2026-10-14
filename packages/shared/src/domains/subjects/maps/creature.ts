@@ -8,7 +8,12 @@ import {
   SIZE_OPTIONS,
   type DiceExpression
 } from '#core'
-import { CREATURE_FEATURE_NODE_MAP, PROFICIENCY_NODE_MAP, SPEED_NODE_MAP } from '#maps'
+import {
+  CREATURE_FEATURE_NODE_MAP,
+  PROFICIENCY_NODE_MAP,
+  SENSE_RANGE_NODE_MAP,
+  SPEED_NODE_MAP
+} from '#maps'
 import { AUTHORED_LIMITS, buildNodeMap } from '#utils'
 import type {
   CapacityAuthored,
@@ -19,6 +24,7 @@ import type {
   CreatureMountProfile,
   CreatureNpcProfile,
   CreatureQualifiedDamageDefenseAuthored,
+  CreatureSenseAuthored,
   DetailAuthored
 } from '#authored'
 
@@ -269,6 +275,33 @@ export const CREATURE_QUALIFIED_DAMAGE_DEFENSE_NODE_MAP = qualifiedDamageDefense
   }
 )
 
+const senseNode = buildNodeMap<CreatureSenseAuthored>()
+
+export const CREATURE_SENSE_NODE_MAP = senseNode.define('creatureSense', ({ map, nodes, data }) => {
+  map
+    .set(
+      'senseDefinitionId',
+      nodes.selectSingle(
+        ['senseDefinitionId'],
+        'Sense',
+        {
+          kind: 'DATA',
+          relationship: data.table('senses', { selectColumns: ['id', 'label'] })
+        },
+        { order: 1, requiredIf: true }
+      )
+    )
+    .set(
+      'range',
+      nodes.groupObject(['range'], 'Range', () => SENSE_RANGE_NODE_MAP, {
+        presentation: 'inline',
+        order: 2,
+        requiredIf: true
+      })
+    )
+    .set('qualifier', nodes.text(['qualifier'], 'Note', { order: 3 }))
+})
+
 const diceExpressionNode = buildNodeMap<DiceExpression>()
 
 export const CREATURE_HIT_DICE_NODE_MAP = diceExpressionNode.define(
@@ -296,10 +329,6 @@ export const CREATURE_NODE_MAP = creatureNode.define(
 
     const tagNode = buildNodeMap<{ value: string }>().define('tag', ({ map: m, nodes: n }) => {
       m.set('value', n.text(['value'], 'Tag'))
-    })
-
-    const senseNode = buildNodeMap<{ value: string }>().define('sense', ({ map: m, nodes: n }) => {
-      m.set('value', n.text(['value'], 'Sense'))
     })
 
     map
@@ -476,7 +505,7 @@ export const CREATURE_NODE_MAP = creatureNode.define(
       )
       .set(
         'senses',
-        groupArray(['senses'], 'Senses', () => senseNode, {
+        groupArray(['senses'], 'Senses', () => CREATURE_SENSE_NODE_MAP, {
           presentation: 'inline',
           section: CREATURE_SECTIONS.stats,
           order: 70
