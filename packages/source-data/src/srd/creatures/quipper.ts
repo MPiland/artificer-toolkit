@@ -25,7 +25,7 @@ export const quipper: CreatureAuthored = {
     modifier: -1
   },
   speeds: [...S.walk(0), ...S.swim(40)],
-  senses: ['darkvision 60 ft.'],
+  senses: [S.darkvision(60)],
   passivePerception: 8,
   challengeRatingId: S.CR.CR_0,
   xp: 10,

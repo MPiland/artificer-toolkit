@@ -30,7 +30,7 @@ export const drider: CreatureAuthored = {
     S.grantedSkillProficiency(87, 1, 'PERCEPTION'),
     S.grantedLanguageProficiency(87, 2, 'ELVISH', 'UNDERCOMMON')
   ],
-  senses: ['darkvision 120 ft.'],
+  senses: [S.darkvision(120)],
   passivePerception: 15,
   challengeRatingId: S.CR.CR_6,
   xp: 2300,

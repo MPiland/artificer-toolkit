@@ -35,7 +35,7 @@ export const tarrasque: CreatureAuthored = {
     'bludgeoning, piercing, and slashing from nonmagical attacks'
   ],
   conditionImmunities: ['charmed', 'frightened', 'paralyzed', 'poisoned'],
-  senses: ['blindsight 120 ft.'],
+  senses: [S.blindsight(120)],
   passivePerception: 10,
   challengeRatingId: S.CR.CR_30,
   xp: 155000,

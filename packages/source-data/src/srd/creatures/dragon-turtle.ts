@@ -32,7 +32,7 @@ export const dragonTurtle: CreatureAuthored = {
     S.grantedLanguageProficiency(85, 2, 'AQUAN', 'DRACONIC')
   ],
   damageResistances: ['fire'],
-  senses: ['darkvision 120 ft.'],
+  senses: [S.darkvision(120)],
   passivePerception: 11,
   challengeRatingId: S.CR.CR_17,
   xp: 18000,

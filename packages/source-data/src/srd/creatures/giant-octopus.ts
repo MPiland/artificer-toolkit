@@ -27,7 +27,7 @@ export const giantOctopus: CreatureAuthored = {
   },
   speeds: [...S.walk(10), ...S.swim(60)],
   proficiencies: [S.grantedSkillExpertise(128, 1, 'PERCEPTION', 'STEALTH')],
-  senses: ['darkvision 60 ft.'],
+  senses: [S.darkvision(60)],
   passivePerception: 14,
   challengeRatingId: S.CR.CR_1,
   xp: 200,

@@ -37,7 +37,7 @@ export const swarmOfInsects: CreatureAuthored = {
     'restrained',
     'stunned'
   ],
-  senses: ['blindsight 10 ft.'],
+  senses: [S.blindsight(10)],
   passivePerception: 8,
   challengeRatingId: S.CR.CR_1_2,
   xp: 100,

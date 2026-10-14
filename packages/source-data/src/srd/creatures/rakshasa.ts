@@ -32,7 +32,7 @@ export const rakshasa: CreatureAuthored = {
   ],
   damageVulnerabilities: ['piercing from magic weapons wielded by good creatures'],
   damageImmunities: ['bludgeoning, piercing, and slashing from nonmagical attacks'],
-  senses: ['darkvision 60 ft.'],
+  senses: [S.darkvision(60)],
   passivePerception: 13,
   challengeRatingId: S.CR.CR_13,
   xp: 10000,

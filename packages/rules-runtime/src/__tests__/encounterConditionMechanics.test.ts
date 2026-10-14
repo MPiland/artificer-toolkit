@@ -114,6 +114,7 @@ function target(conditions: readonly string[], initialConditionRows: unknown[] |
     baseScalarValues: {},
     effectiveScalarValues: {},
     baseRulePolicyOutput: null,
+    perceptionSenses: [],
     effectiveRulePolicyOutput: null,
     targetDerivedFacts: {
       savingThrowDefinitions: [

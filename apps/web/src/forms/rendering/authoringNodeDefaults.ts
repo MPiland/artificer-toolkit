@@ -204,6 +204,11 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
         damageTypeIds: [],
         bypassedBy: []
       }
+    case 'creatureSense':
+      return {
+        senseDefinitionId: '',
+        range: createRange('DISTANCE')
+      }
     case 'creatureMountProfile':
       return {
         mountType: 'CONTROLLED',

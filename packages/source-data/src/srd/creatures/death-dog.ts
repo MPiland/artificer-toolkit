@@ -32,7 +32,7 @@ export const deathDog: CreatureAuthored = {
     S.grantedSkillExpertise(1389, 2, 'PERCEPTION'),
     S.grantedSkillProficiency(1389, 1, 'STEALTH')
   ],
-  senses: ['darkvision 120 ft.'],
+  senses: [S.darkvision(120)],
   passivePerception: 15,
   challengeRatingId: S.CR.CR_1,
   xp: 200,

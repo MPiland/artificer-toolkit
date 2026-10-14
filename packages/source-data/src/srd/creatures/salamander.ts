@@ -31,7 +31,7 @@ export const salamander: CreatureAuthored = {
   damageVulnerabilities: ['cold'],
   damageResistances: ['bludgeoning, piercing, and slashing from nonmagical attacks'],
   damageImmunities: ['fire'],
-  senses: ['darkvision 60 ft.'],
+  senses: [S.darkvision(60)],
   passivePerception: 10,
   challengeRatingId: S.CR.CR_5,
   xp: 1800,

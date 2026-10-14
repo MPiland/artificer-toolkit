@@ -29,7 +29,7 @@ export const troll: CreatureAuthored = {
     S.grantedSkillProficiency(274, 1, 'PERCEPTION'),
     S.grantedLanguageProficiency(274, 2, 'GIANT')
   ],
-  senses: ['darkvision 60 ft.'],
+  senses: [S.darkvision(60)],
   passivePerception: 12,
   challengeRatingId: S.CR.CR_5,
   xp: 1800,

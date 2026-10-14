@@ -26,7 +26,7 @@ export const crab: CreatureAuthored = {
   },
   speeds: [...S.walk(20), ...S.swim(20)],
   proficiencies: [S.grantedSkillProficiency(72, 1, 'STEALTH')],
-  senses: ['blindsight 30 ft.'],
+  senses: [S.blindsight(30)],
   passivePerception: 9,
   challengeRatingId: S.CR.CR_0,
   xp: 10,

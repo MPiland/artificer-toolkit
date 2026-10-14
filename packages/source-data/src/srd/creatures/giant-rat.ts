@@ -25,7 +25,7 @@ export const giantRat: CreatureAuthored = {
     modifier: 0
   },
   speeds: [...S.walk(30)],
-  senses: ['darkvision 60 ft.'],
+  senses: [S.darkvision(60)],
   passivePerception: 10,
   challengeRatingId: S.CR.CR_1_8,
   xp: 25,

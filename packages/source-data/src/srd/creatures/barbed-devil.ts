@@ -37,7 +37,7 @@ export const barbedDevil: CreatureAuthored = {
   ],
   damageImmunities: ['fire', 'poison'],
   conditionImmunities: ['poisoned'],
-  senses: ['darkvision 120 ft.'],
+  senses: [S.darkvision(120)],
   passivePerception: 18,
   challengeRatingId: S.CR.CR_5,
   xp: 1800,

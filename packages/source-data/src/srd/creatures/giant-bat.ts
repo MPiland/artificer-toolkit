@@ -25,7 +25,7 @@ export const giantBat: CreatureAuthored = {
     modifier: 0
   },
   speeds: [...S.walk(10), ...S.fly(60)],
-  senses: ['blindsight 60 ft.'],
+  senses: [S.blindsight(60)],
   passivePerception: 11,
   challengeRatingId: S.CR.CR_1_4,
   xp: 50,

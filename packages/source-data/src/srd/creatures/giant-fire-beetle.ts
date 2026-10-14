@@ -25,7 +25,7 @@ export const giantFireBeetle: CreatureAuthored = {
     modifier: 1
   },
   speeds: [...S.walk(30)],
-  senses: ['blindsight 30 ft.'],
+  senses: [S.blindsight(30)],
   passivePerception: 8,
   challengeRatingId: S.CR.CR_0,
   xp: 10,

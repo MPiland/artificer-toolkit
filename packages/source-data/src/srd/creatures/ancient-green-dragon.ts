@@ -35,7 +35,7 @@ export const ancientGreenDragon: CreatureAuthored = {
   ],
   damageImmunities: ['poison'],
   conditionImmunities: ['poisoned'],
-  senses: ['blindsight 60 ft.', 'darkvision 120 ft.'],
+  senses: [S.blindsight(60), S.darkvision(120)],
   passivePerception: 27,
   challengeRatingId: S.CR.CR_22,
   xp: 41000,

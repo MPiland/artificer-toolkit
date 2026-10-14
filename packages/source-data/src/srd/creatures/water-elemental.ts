@@ -39,7 +39,7 @@ export const waterElemental: CreatureAuthored = {
     'restrained',
     'unconscious'
   ],
-  senses: ['darkvision 60 ft.'],
+  senses: [S.darkvision(60)],
   passivePerception: 10,
   challengeRatingId: S.CR.CR_5,
   xp: 1800,

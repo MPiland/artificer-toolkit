@@ -30,7 +30,8 @@ import {
 
 import { ROOM_LIMITS } from '../src/roomLimits.js'
 import { NO_CHECKPOINT_IO } from './checkpointIoFixture.js'
-import { characterSheetInputsFixture, darkvisionDefinition } from './characterSheetInputsFixture.js'
+import { characterSheetInputsFixture } from './characterSheetInputsFixture.js'
+import { darkvisionDefinition } from './srdSenseInputsFixture.js'
 import { ROOM_AUTHORIZATION_PATH, roomAuthorizationResponse } from './roomAuthorizationFixture.js'
 import {
   ROOM_INPUTS_PATH,

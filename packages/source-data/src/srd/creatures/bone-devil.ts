@@ -38,7 +38,7 @@ export const boneDevil: CreatureAuthored = {
   ],
   damageImmunities: ['fire', 'poison'],
   conditionImmunities: ['poisoned'],
-  senses: ['darkvision 120 ft.'],
+  senses: [S.darkvision(120)],
   passivePerception: 12,
   challengeRatingId: S.CR.CR_9,
   xp: 5000,

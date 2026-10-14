@@ -109,7 +109,7 @@ export const duergar: CreatureAuthored = {
   speeds: [...S.walk(25)],
   proficiencies: [S.grantedLanguageProficiency(3450, 2, 'DWARVISH', 'UNDERCOMMON')],
   damageResistances: ['poison'],
-  senses: ['darkvision 120 ft.'],
+  senses: [S.darkvision(120)],
   passivePerception: 10,
   challengeRatingId: S.CR.CR_1,
   xp: 200,

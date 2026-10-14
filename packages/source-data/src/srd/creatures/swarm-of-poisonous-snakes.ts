@@ -37,7 +37,7 @@ export const swarmOfPoisonousSnakes: CreatureAuthored = {
     'restrained',
     'stunned'
   ],
-  senses: ['blindsight 10 ft.'],
+  senses: [S.blindsight(10)],
   passivePerception: 10,
   challengeRatingId: S.CR.CR_2,
   xp: 450,

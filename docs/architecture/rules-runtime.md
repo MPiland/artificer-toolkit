@@ -798,14 +798,14 @@ fail closed to Manual/Judgment. Fog and viewer projection are never mechanics in
 Attack-roll perception (current, D100): the room's `RESOLVE_ACTION` passes an optional
 `loadAttackPerception` to `prepareEncounterActionMechanics`
 (`packages/rules-runtime/src/encounterAttackPerception.ts`). For attack rolls it resolves requirement SEE both
-ways (`SEES | UNSEEN | UNKNOWN`): a target that can't see the attacker gives advantage, an attacker that can't
+ways (`SEES | UNSEEN`): a target that can't see the attacker gives advantage, an attacker that can't
 see the target gets disadvantage, and Dodge's disadvantage is dropped only when the dodger definitively can't
 see the attacker. Inputs are the ordinary-sight baseline, pinned senses, active effects, pinned condition
 definitions (Invisible suppresses VISUAL emission unless a perceives-invisible sense such as truesight
 bypasses it; Blinded suppresses VISUAL sensing) and, with a Scene whose id and version match the action's
 lock, tokens, grid, lighting, darkness, barriers and spatial effects; without a Scene the environment is
-neutral (bright, unobscured, line of effect). A Creature observer with authored free-text senses whose
-ordinary sight fails is `UNKNOWN`: no contributor, Dodge stays. Not wired: Convex action preparation, Disarm,
+neutral (bright, unobscured, line of effect). A Creature observer's senses are its structured stat-block
+senses (D111), carried on the perception actor as `perceptionSenses` like a Character's; `createActorSensePinner` (`actorSenses.ts`) pins and validates them once per sense definition for the Worker and both movement perception paths. Not wired: Convex action preparation, Disarm,
 opportunity attacks (movement-owned; movement reaction perception also omits condition contributions).
 
 Believed vs true attack mode (current, D100): `encounterAttackBelief.ts` derives the roller's _believed_

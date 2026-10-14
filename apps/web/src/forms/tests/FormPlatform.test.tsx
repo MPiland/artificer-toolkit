@@ -1413,7 +1413,7 @@ describe('authoring form platform', () => {
           label: 'Senses',
           kind: 'GROUP',
           groupKind: 'ARRAY',
-          childMapId: 'sense',
+          childMapId: 'creatureSense',
           presentation: 'inline',
           visible: true,
           required: false,
@@ -1421,7 +1421,10 @@ describe('authoring form platform', () => {
         }),
         0
       )
-    ).toEqual({ value: '' })
+    ).toEqual({
+      senseDefinitionId: '',
+      range: { id: expect.any(String), rangeKind: 'DISTANCE', amount: 30, unit: 'FEET' }
+    })
     expect(
       createDefaultAuthoringObjectItem(
         objectGroupNode({

@@ -27,7 +27,7 @@ export const chimera: CreatureAuthored = {
   },
   speeds: [...S.walk(30), ...S.fly(60)],
   proficiencies: [S.grantedSkillExpertise(62, 3, 'PERCEPTION')],
-  senses: ['darkvision 60 ft.'],
+  senses: [S.darkvision(60)],
   passivePerception: 18,
   challengeRatingId: S.CR.CR_6,
   xp: 2300,

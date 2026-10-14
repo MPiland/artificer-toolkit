@@ -34,7 +34,7 @@ export const youngCopperDragon: CreatureAuthored = {
     S.grantedSkillProficiency(4834, 1, 'DECEPTION', 'STEALTH')
   ],
   damageImmunities: ['acid'],
-  senses: ['blindsight 30 ft.', 'darkvision 120 ft.'],
+  senses: [S.blindsight(30), S.darkvision(120)],
   passivePerception: 17,
   challengeRatingId: S.CR.CR_7,
   xp: 2900,

@@ -33,7 +33,7 @@ export const nightHag: CreatureAuthored = {
     "cold, fire; bludgeoning, piercing, and slashing from nonmagical attacks that aren't silvered"
   ],
   conditionImmunities: ['charmed'],
-  senses: ['darkvision 120 ft.'],
+  senses: [S.darkvision(120)],
   passivePerception: 16,
   challengeRatingId: S.CR.CR_5,
   xp: 1800,

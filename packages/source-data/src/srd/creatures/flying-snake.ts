@@ -25,7 +25,7 @@ export const flyingSnake: CreatureAuthored = {
     modifier: 0
   },
   speeds: [...S.walk(30), ...S.fly(60), ...S.swim(30)],
-  senses: ['blindsight 10 ft.'],
+  senses: [S.blindsight(10)],
   passivePerception: 11,
   challengeRatingId: S.CR.CR_1_8,
   xp: 25,

@@ -27,7 +27,7 @@ export const hydra: CreatureAuthored = {
   },
   speeds: [...S.walk(30), ...S.swim(30)],
   proficiencies: [S.grantedSkillExpertise(10169, 1, 'PERCEPTION')],
-  senses: ['darkvision 60 ft.'],
+  senses: [S.darkvision(60)],
   passivePerception: 16,
   challengeRatingId: S.CR.CR_8,
   xp: 3900,

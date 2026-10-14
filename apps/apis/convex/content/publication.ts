@@ -11,6 +11,7 @@ import { authoredSourceFacts } from '@artificer-toolkit/authoring/nodeRuntime/au
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { mutation } from '../lib/mutations'
 import { assertCreatureLoadoutHands, readCreatureArmorClass } from './creatureLoadoutHands'
+import { assertCreatureSensesDefined } from './creatureSensePublication'
 import { compilePublicationDocument } from './publicationDocument'
 import {
   assertEquipmentRelationshipsIndexed,
@@ -47,6 +48,7 @@ export const publishDraft = mutation({
       const publishable = creaturePublicationDtoSchema.safeParse(subject.document)
       if (!publishable.success)
         throw new Error(publishable.error.issues.map((issue) => issue.message).join(' '))
+      await assertCreatureSensesDefined(ctx, publishable.data, state.userId)
       await assertCreatureLoadoutHands(ctx, publishable.data, state.userId)
       const armorClass = await readCreatureArmorClass(ctx, publishable.data, state.userId)
       if (armorClass && !armorClass.ok) throw new Error(armorClass.reason)

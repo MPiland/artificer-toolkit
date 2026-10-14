@@ -30,7 +30,7 @@ export const chuul: CreatureAuthored = {
   proficiencies: [S.grantedSkillExpertise(63, 3, 'PERCEPTION')],
   damageImmunities: ['poison'],
   conditionImmunities: ['poisoned'],
-  senses: ['darkvision 60 ft.'],
+  senses: [S.darkvision(60)],
   passivePerception: 14,
   challengeRatingId: S.CR.CR_4,
   xp: 1100,

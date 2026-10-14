@@ -36,7 +36,7 @@ export const androsphinx: CreatureAuthored = {
   ],
   damageImmunities: ['psychic', 'bludgeoning, piercing, and slashing from nonmagical attacks'],
   conditionImmunities: ['charmed', 'frightened'],
-  senses: ['truesight 120 ft.'],
+  senses: [S.truesight(120)],
   passivePerception: 20,
   challengeRatingId: S.CR.CR_17,
   xp: 18000,
