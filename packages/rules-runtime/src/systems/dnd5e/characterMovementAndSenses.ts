@@ -105,24 +105,26 @@ export function evaluateDnd5eCharacterMovementAndSenses(
   }
   const factSpeeds = input.movementFacts?.speeds ?? []
   const speeds = [
-    ...factSpeeds,
+    ...factSpeeds.map(({ speedId, base, override }) => {
+      // A speed is in its base's unit, or in its override's own unit when the Character has no base.
+      const length = base ?? override?.value
+      if (length === undefined) throw new Error('A Character speed needs a base or an override.')
+      return { speedId, base: length, override }
+    }),
     ...[...speedReplacements]
       .filter(([speedId]) => !factSpeeds.some((speed) => speed.speedId === speedId))
-      .map(([speedId, { amount, unit }]) => ({ speedId, baseAmount: amount, unit, override: null }))
-  ].map((speed) => {
-    const replacement = speedReplacements.get(speed.speedId)
+      .map(([speedId, base]) => ({ speedId, base, override: null }))
+  ].map(({ speedId, base, override }) => {
+    const replacement = speedReplacements.get(speedId)
     const resolved = calculation(
-      replacement === undefined ? speed.baseAmount : lengthInUnit(replacement, speed.unit),
-      speed.unit,
-      matchingGroups('SPEED', 'speedId', speed.speedId),
-      speed.override
+      replacement === undefined ? base.amount : lengthInUnit(replacement, base.unit),
+      base.unit,
+      matchingGroups('SPEED', 'speedId', speedId),
+      override === null
+        ? null
+        : { sourceId: override.sourceId, value: lengthInUnit(override.value, base.unit) }
     )
-    return {
-      speedId: speed.speedId,
-      amount: resolved.effective,
-      unit: speed.unit,
-      calculation: resolved
-    }
+    return { speedId, amount: resolved.effective, unit: base.unit, calculation: resolved }
   })
   const preference = input.movementFacts?.preference
   const primaryMovementSpeedId =

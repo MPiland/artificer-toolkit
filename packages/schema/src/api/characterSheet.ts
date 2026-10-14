@@ -180,7 +180,7 @@ const movementAdjustmentDtoSchema = lazySchema(() =>
     family: z.literal('MOVEMENT'),
     speedId: uuidSchema,
     field: z.literal('SPEED_OVERRIDE'),
-    value: z.number().check(z.int()).check(z.nonnegative())
+    value: authoredLengthSchema
   })
 )
 

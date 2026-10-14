@@ -313,6 +313,53 @@ describe('native Character Sheet adjustment storage', () => {
     expect(removedSheet.overview).toMatchObject({ currentHitPoints: 0, maxHitPoints: 11 })
   })
 
+  it('stores a speed override as a length and refuses a bare number at the boundary', async () => {
+    const { owner, character, readState } = await readySheetFixture()
+    const fly = SRD_SPEEDS.find((speed) => speed.code === 'FLY')!
+    const before = await readState()
+    await expect(
+      owner.caller.mutation(execute, {
+        id: character.id,
+        command: {
+          type: 'UPSERT_SHEET_ADJUSTMENT',
+          commandId: crypto.randomUUID(),
+          expectedVersion: 1,
+          // @ts-expect-error A speed override is a length, never a bare number.
+          adjustment: {
+            family: 'MOVEMENT',
+            speedId: fly.id,
+            field: 'SPEED_OVERRIDE',
+            value: 42
+          }
+        }
+      })
+    ).rejects.toThrow()
+    expect(await readState()).toEqual(before)
+
+    await owner.caller.mutation(execute, {
+      id: character.id,
+      command: {
+        type: 'UPSERT_SHEET_ADJUSTMENT',
+        commandId: crypto.randomUUID(),
+        expectedVersion: 1,
+        adjustment: {
+          family: 'MOVEMENT',
+          speedId: fly.id,
+          field: 'SPEED_OVERRIDE',
+          value: { amount: 12, unit: 'YARDS' }
+        }
+      }
+    })
+    expect(readCharacterSheetState((await readState()).character!).adjustments).toEqual([
+      expect.objectContaining({
+        family: 'MOVEMENT',
+        speedId: fly.id,
+        field: 'SPEED_OVERRIDE',
+        value: { amount: 12, unit: 'YARDS' }
+      })
+    ])
+  })
+
   it('hydrates current movement settings into policy and rejects foreign System targets', async () => {
     const { owner, character, readState } = await readySheetFixture()
     const fly = SRD_SPEEDS.find((speed) => speed.code === 'FLY')!
@@ -324,7 +371,12 @@ describe('native Character Sheet adjustment storage', () => {
         type: 'UPSERT_SHEET_ADJUSTMENT',
         commandId: crypto.randomUUID(),
         expectedVersion: 1,
-        adjustment: { family: 'MOVEMENT', speedId: fly.id, field: 'SPEED_OVERRIDE', value: 42 }
+        adjustment: {
+          family: 'MOVEMENT',
+          speedId: fly.id,
+          field: 'SPEED_OVERRIDE',
+          value: { amount: 42, unit: 'FEET' }
+        }
       }
     })
     await owner.caller.mutation(execute, {

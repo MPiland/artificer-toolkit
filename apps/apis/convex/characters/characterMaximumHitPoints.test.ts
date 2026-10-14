@@ -197,7 +197,12 @@ describe('stored Character walking speed (D38)', () => {
         type: 'UPSERT_SHEET_ADJUSTMENT',
         commandId: crypto.randomUUID(),
         expectedVersion: created.row.play.streamVersion,
-        adjustment: { family: 'MOVEMENT', speedId: walk.id, field: 'SPEED_OVERRIDE', value: 45 }
+        adjustment: {
+          family: 'MOVEMENT',
+          speedId: walk.id,
+          field: 'SPEED_OVERRIDE',
+          value: { amount: 45, unit: 'FEET' }
+        }
       }
     })
     expect((await fixture.read()).row.play.speeds).toContainEqual({
