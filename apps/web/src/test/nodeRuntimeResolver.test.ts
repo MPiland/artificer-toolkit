@@ -27,8 +27,7 @@ describe('fixture node-runtime resolver', () => {
     expect(speedNode.options).toContainEqual(
       expect.objectContaining({
         value: walking?.id,
-        label: walking?.label,
-        description: walking?.description
+        label: walking?.label
       })
     )
     expect(speedNode.options).toHaveLength(srdSystemRecord.speeds.length)

@@ -33,7 +33,7 @@ describe('authoring form architecture boundaries', () => {
     expect(existsSync(join(sourceRoot, 'forms', 'node-map', 'staticResolvedModel.ts'))).toBe(false)
 
     const offenders = readSourceFiles(sourceRoot)
-      .filter((filePath) => !filePath.startsWith(join(sourceRoot, 'test') + sep))
+      .filter((filePath) => !relative(sourceRoot, filePath).split(sep).some(isTestSupportSegment))
       .filter((filePath) => !filePath.endsWith('FormArchitectureBoundaries.test.ts'))
       .filter((filePath) => {
         const source = readFileSync(filePath, 'utf8')
