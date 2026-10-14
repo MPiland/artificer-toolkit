@@ -495,6 +495,39 @@ describe('spatialGeometryOverlapsTokenFootprint', () => {
     expect(touches(square, 0)).toBe(true)
   })
 
+  describe('a concave L-shaped zone', () => {
+    // Two arms along the x and y axes; the notch is x > 2 and y > 2, inside the convex hull only.
+    const lShape = {
+      kind: 'POLYGON',
+      points: [
+        { x: 0, y: 0 },
+        { x: 6, y: 0 },
+        { x: 6, y: 2 },
+        { x: 2, y: 2 },
+        { x: 2, y: 6 },
+        { x: 0, y: 6 }
+      ]
+    } as const
+
+    it('does not catch a footprint in the notch, inside the hull but outside the polygon', () => {
+      expect(touches(lShape, 3.5, 3.5)).toBe(false)
+    })
+
+    it('catches a footprint that overlaps an arm', () => {
+      expect(touches(lShape, 5, 1)).toBe(true)
+      expect(touches(lShape, 1, 5)).toBe(true)
+      expect(touches(lShape, 1, 1)).toBe(true)
+    })
+
+    it('does not catch a footprint that only touches the inner corner and its edges', () => {
+      expect(touches(lShape, 3, 3)).toBe(false)
+    })
+
+    it('catches a footprint that overlaps the notch and an arm', () => {
+      expect(touches(lShape, 3, 2)).toBe(true)
+    })
+  })
+
   it('catches a footprint that fully contains a zone', () => {
     expect(
       spatialGeometryOverlapsTokenFootprint({

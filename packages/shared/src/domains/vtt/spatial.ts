@@ -257,14 +257,56 @@ function distanceFromFootprint(value: Footprint, point: ScenePoint): number {
 }
 
 /**
- * The one overlap rule of areas and zones: a footprint shares area with the geometry, and touching
- * its edge or a corner never counts (user ruling 2026-10-14, D103). A polygon must be convex, as
- * every area outline and authored zone is.
+ * The area a simple polygon (convex or concave) shares with the footprint: the polygon clipped
+ * against the footprint's four half-planes (Sutherland–Hodgman), then the shoelace area. A concave
+ * subject can leave zero-width bridges in the clip, which add no area.
+ */
+function polygonFootprintOverlapArea(points: readonly ScenePoint[], value: Footprint): number {
+  const { center, halfWidth, halfHeight } = value
+  const inwardDistances = [
+    (point: ScenePoint) => point.x - (center.x - halfWidth),
+    (point: ScenePoint) => center.x + halfWidth - point.x,
+    (point: ScenePoint) => point.y - (center.y - halfHeight),
+    (point: ScenePoint) => center.y + halfHeight - point.y
+  ]
+  const clipped = inwardDistances.reduce<readonly ScenePoint[]>(
+    (polygon, distance) =>
+      polygon.flatMap((current, index) => {
+        const previous = polygon[(index + polygon.length - 1) % polygon.length]!
+        const [currentDistance, previousDistance] = [distance(current), distance(previous)]
+        const crossing =
+          currentDistance >= 0 !== (previousDistance >= 0)
+            ? [
+                interpolate(
+                  previous,
+                  current,
+                  previousDistance / (previousDistance - currentDistance)
+                )
+              ]
+            : []
+        return currentDistance >= 0 ? [...crossing, current] : crossing
+      }),
+    points
+  )
+  return (
+    Math.abs(
+      clipped.reduce((twiceArea, from, index) => {
+        const to = clipped[(index + 1) % clipped.length]!
+        return twiceArea + from.x * to.y - to.x * from.y
+      }, 0)
+    ) / 2
+  )
+}
+
+/**
+ * The one overlap rule of areas and zones: a footprint shares positive area with the geometry, and
+ * touching its edge or a corner never counts (user ruling 2026-10-14, D103). A polygon may be any
+ * simple polygon, convex or concave.
  */
 function footprintOverlapsSpatialGeometry(value: Footprint, geometry: SpatialGeometry): boolean {
   return geometry.kind === 'CIRCLE'
     ? distanceFromFootprint(value, geometry.center) < geometry.radius - EPSILON
-    : convexPolygonsOverlap(geometry.points, footprintCorners(value))
+    : polygonFootprintOverlapArea(geometry.points, value) > EPSILON
 }
 
 /**
@@ -555,27 +597,6 @@ export function nearestFootprintEdgePoint(
     { gap: point.y - top, edge: { x: point.x, y: top } },
     { gap: bottom - point.y, edge: { x: point.x, y: bottom } }
   ].reduce((nearest, side) => (side.gap < nearest.gap ? side : nearest)).edge
-}
-
-/** Whether two convex polygons share area: touching along an edge or at a corner does not count. */
-function convexPolygonsOverlap(
-  first: readonly ScenePoint[],
-  second: readonly ScenePoint[]
-): boolean {
-  const project = (polygon: readonly ScenePoint[], axis: ScenePoint) => {
-    const values = polygon.map((point) => point.x * axis.x + point.y * axis.y)
-    return { min: Math.min(...values), max: Math.max(...values) }
-  }
-  return ![first, second].some((polygon) =>
-    polygon.some((from, index) => {
-      const to = polygon[(index + 1) % polygon.length]!
-      const length = Math.hypot(to.x - from.x, to.y - from.y)
-      if (length === 0) return false
-      const axis = { x: (from.y - to.y) / length, y: (to.x - from.x) / length }
-      const [a, b] = [project(first, axis), project(second, axis)]
-      return a.max <= b.min + EPSILON || b.max <= a.min + EPSILON
-    })
-  )
 }
 
 /**
