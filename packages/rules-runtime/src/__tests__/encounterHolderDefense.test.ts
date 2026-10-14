@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { ATTACK_DOMAIN_CODE } from '@artificer-toolkit/shared/core'
 import { createCharacterMechanicSourceKey } from '@artificer-toolkit/shared/character'
-import { SRD_ABILITY_DEFINITION_IDS } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import { SRD_ABILITY_DEFINITION_IDS, SRD_SPEEDS } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { resolveCharacterRulePolicyRollModes } from '../character/characterRuleRollProjection.js'
 import {
@@ -31,6 +31,7 @@ const HOLDER_ID = testUuid(0xd5a1)
 const DODGE_ID = testUuid(0xd5a2)
 const { DEXTERITY } = SRD_ABILITY_DEFINITION_IDS
 const ATTACK_DOMAINS = Object.values(ATTACK_DOMAIN_CODE)
+const WALK_ID = SRD_SPEEDS.find((speed) => speed.code === 'WALK')?.id ?? ''
 const DODGE_SOURCE_ID = createCharacterMechanicSourceKey({
   kind: 'ACTIVE_EFFECT',
   activeEffectId: DODGE_ID
@@ -50,7 +51,12 @@ function creatureHolder(conditionIds: readonly string[] = []) {
 }
 
 const defend = (target: MovementTarget) =>
-  withEncounterHolderDefense({ target, gameSystemId: SRD_SYSTEM_ID, definitions: srdDefinitions })
+  withEncounterHolderDefense({
+    target,
+    gameSystemId: SRD_SYSTEM_ID,
+    definitions: srdDefinitions,
+    speedDefinitions: SRD_SPEEDS
+  })
 
 const dexteritySave = (target: MovementTarget) =>
   (
@@ -190,7 +196,8 @@ describe('holder-state predicates CAN_ACT and SPEED_ABOVE_ZERO', () => {
     encounterHolderState({
       target: creatureHolder(conditionIds),
       gameSystemId: SRD_SYSTEM_ID,
-      definitions: srdDefinitions
+      definitions: srdDefinitions,
+      speedDefinitions: SRD_SPEEDS
     })
 
   it('CAN_ACT fails once a condition suppresses the actor-action capability', async () => {
@@ -262,17 +269,21 @@ describe('holder-state predicates CAN_ACT and SPEED_ABOVE_ZERO', () => {
       encounterHolderState({
         target: malformed(speeds),
         gameSystemId: SRD_SYSTEM_ID,
-        definitions: srdDefinitions
+        definitions: srdDefinitions,
+        speedDefinitions: SRD_SPEEDS
       })
-    await expect(
-      read([{ speedId: testUuid(0xd5a4), amount: 30, unit: 'FEET' }])
-    ).resolves.toMatchObject({ speedAboveZero: true })
-    await expect(
-      read([{ speedId: testUuid(0xd5a4), amount: 'fast', unit: 'FEET' }])
-    ).rejects.toThrow()
-    await expect(
-      read([{ speedId: testUuid(0xd5a4), amount: 30, unit: 'FURLONGS' }])
-    ).rejects.toThrow()
+    await expect(read([{ speedId: WALK_ID, amount: 30, unit: 'FEET' }])).resolves.toMatchObject({
+      speedAboveZero: true
+    })
+    await expect(read([{ speedId: WALK_ID, amount: 'fast', unit: 'FEET' }])).rejects.toThrow(
+      /amount/
+    )
+    await expect(read([{ speedId: WALK_ID, amount: 30, unit: 'FURLONGS' }])).rejects.toThrow(
+      /unit/
+    )
+    await expect(read([{ speedId: testUuid(0xd5a4), amount: 30, unit: 'FEET' }])).rejects.toThrow(
+      `Speed ${testUuid(0xd5a4)} is not in the System speed vocabulary.`
+    )
   })
 
   it('a restriction with a condition other than the holder-state ones fails closed', () => {

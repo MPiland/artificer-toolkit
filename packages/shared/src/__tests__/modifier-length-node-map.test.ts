@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { LENGTH_UNIT_CODES } from '#core'
 import { MODIFIER_GRANT_NODE_MAP } from '#maps'
 import { AUTHORED_LENGTH_AMOUNT_MAX, evaluateConditionIf, type ConditionIfExpr } from '#utils'
+import { MODIFIER_KINDS_BY_DOMAIN } from '../domains/grants/core/modifier.js'
 
 type PayloadNode = {
   kind: string
@@ -36,9 +37,7 @@ describe('the modifier payload node map for SPEED and SENSE_RANGE (RELIABILITY-5
     ['SPEED', 'BONUS'],
     ['SPEED', 'PENALTY'],
     ['SPEED', 'SET_VALUE'],
-    ['SENSE_RANGE', 'BONUS'],
-    ['SENSE_RANGE', 'PENALTY'],
-    ['SENSE_RANGE', 'SET_VALUE']
+    ['SENSE_RANGE', 'BONUS']
   ])('authors a %s %s as an amount and a unit with no value source', (domain, kind) => {
     const parent = { valueDomainCode: domain, modifierKind: kind }
     expect(shown('lengthAmount', parent)).toBe(true)
@@ -46,6 +45,12 @@ describe('the modifier payload node map for SPEED and SENSE_RANGE (RELIABILITY-5
     expect(shown('valueKind', parent)).toBe(false)
     expect(shown('bonusAmount', parent, { valueKind: 'FIXED' })).toBe(false)
     expect(shown('amount', parent, { valueKind: 'FIXED' })).toBe(false)
+  })
+
+  it('offers a sense range only the modifier kinds the rules apply', () => {
+    // A sense range has no SET_VALUE (publication refuses it) and no PENALTY (the contract has none).
+    expect(MODIFIER_KINDS_BY_DOMAIN.SENSE_RANGE).toEqual(['BONUS'])
+    expect(MODIFIER_KINDS_BY_DOMAIN.SPEED).toEqual(['BONUS', 'PENALTY', 'SET_VALUE'])
   })
 
   it('keeps the value source and plain amount for other domains, with no unit', () => {

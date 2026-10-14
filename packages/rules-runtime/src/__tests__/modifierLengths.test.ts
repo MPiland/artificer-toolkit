@@ -164,21 +164,21 @@ describe('a Creature holder reads authored speed grants as lengths', () => {
       withActiveGrantSpeeds(speeds, [
         lengthEffect([speedModifier('BONUS', { valueKind: 'FIXED', amount: 10 })])
       ])
-    ).toThrow()
+    ).toThrow(/unit/)
     expect(() =>
       withActiveGrantSpeeds(speeds, [
         lengthEffect([speedModifier('SET_VALUE', { amount: 60, unit: 'FURLONGS' })])
       ])
-    ).toThrow()
+    ).toThrow(/unit/)
   })
 
   it('fails the read on a malformed base speed', () => {
     expect(() =>
       withActiveGrantSpeeds([{ speedId: WALK, amount: 'fast', unit: 'FEET' }], [])
-    ).toThrow()
+    ).toThrow(/amount/)
     expect(() =>
       withActiveGrantSpeeds([{ speedId: WALK, amount: 30, unit: 'FURLONGS' }], [])
-    ).toThrow()
+    ).toThrow(/unit/)
   })
 })
 
@@ -222,10 +222,16 @@ describe('a Character holder reads authored speed and sense grants as lengths', 
     expect(flySpeed).toMatchObject({ amount: 40, unit: 'YARDS' })
   })
 
+  it('never lets a penalty take a speed below zero', () => {
+    expect(
+      walk([lengthEffect([speedModifier('PENALTY', { amount: baseWalk + 10, unit: 'FEET' })])])
+    ).toMatchObject({ amount: 0, unit: 'FEET' })
+  })
+
   it('fails the policy on a speed grant that is not a length', () => {
     expect(() =>
       policyWith([lengthEffect([speedModifier('BONUS', { valueKind: 'FIXED', amount: 10 })])])
-    ).toThrow()
+    ).toThrow(/unit/)
   })
 
   const darkvisionRanges = (darkvision: ActiveRuleEffectRecord, bonus: LengthPayload) =>

@@ -293,7 +293,7 @@ export const MODIFIER_KINDS_BY_DOMAIN: Record<ValueDomainCode, readonly Modifier
 
   MOVEMENT_MODE: [MODIFIER_KIND.ADD_OPTION, MODIFIER_KIND.REMOVE_OPTION],
 
-  SENSE_RANGE: [MODIFIER_KIND.BONUS, MODIFIER_KIND.SET_VALUE],
+  SENSE_RANGE: [MODIFIER_KIND.BONUS],
 
   /* ──────────────────────────────────────────────
    * SPELL STRUCTURE

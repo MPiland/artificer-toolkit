@@ -1,7 +1,5 @@
-import { speedDtoSchema } from '@artificer-toolkit/schema/shared/speed'
 import {
   EQUIPMENT_PROPERTY_CODE,
-  lengthMeasurementInFeet,
   resolveHandOccupancy,
   type HandOccupancyItem
 } from '@artificer-toolkit/shared/core'
@@ -18,6 +16,7 @@ import { snapshotCreatureEquipmentItems } from './encounterCreatureEquipmentSour
 import type { MovementTarget } from './encounterMovementTargets.js'
 import { snapshotStatBlock } from './encounterProjection.js'
 import type { CurrentReusableDefinitionSource } from './ruleCapabilityStateService.js'
+import { resolveSpeedsFeet } from './walkingSpeed.js'
 
 /**
  * What the target can do now: whether its System's actor-action capability is available, and
@@ -28,6 +27,8 @@ export async function encounterHolderState(input: {
   target: MovementTarget
   gameSystemId: string
   definitions: CurrentReusableDefinitionSource
+  /** The System speed vocabulary every holder speed, granted or stored, must belong to. */
+  speedDefinitions: readonly { id: string }[]
 }): Promise<EncounterHolderState> {
   const { target } = input
   const speeds =
@@ -36,11 +37,8 @@ export async function encounterHolderState(input: {
       : target.actor.kind === 'CREATURE'
         ? withActiveGrantSpeeds(snapshotStatBlock(target.actor)?.speeds ?? [], target.activeEffects)
         : []
-  const feet = speeds.map((entry: unknown) =>
-    encounterConditionSpeed({
-      mechanics: target.conditionMechanics,
-      speed: lengthMeasurementInFeet(speedDtoSchema.parse(entry))
-    })
+  const feet = resolveSpeedsFeet(speeds, input.speedDefinitions).map(({ feet: speedFeet }) =>
+    encounterConditionSpeed({ mechanics: target.conditionMechanics, speed: speedFeet })
   )
   return {
     canAct: !(await encounterActorCannotAct({
@@ -84,6 +82,7 @@ export async function withEncounterHolderDefense<T extends MovementTarget>(input
   target: T
   gameSystemId: string
   definitions: CurrentReusableDefinitionSource
+  speedDefinitions: readonly { id: string }[]
 }): Promise<T> {
   const { target } = input
   if (!hasEncounterDefensiveGrants(target.activeEffects)) return target

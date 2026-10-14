@@ -88,15 +88,27 @@ describe('native Spell publication of speed modifier lengths (RELIABILITY-5.1)',
         )
       )
 
-    for (const payload of [
-      { amount: 30 },
-      { amount: 30, unit: 'FURLONGS' },
-      { amount: 30, unit: 'feet' },
-      { amount: AUTHORED_LENGTH_AMOUNT_MAX + 1, unit: 'FEET' },
-      { amount: -5, unit: 'FEET' },
-      { valueKind: 'FIXED', amount: 10 }
+    // The refusal is a JSON dump of every modifier-grant union branch, so each case asserts the
+    // exact issue message of the length field it breaks, escaped as it appears in that dump.
+    const issue = (message: string) => JSON.stringify(message).slice(1, -1)
+    const unitRefusal = issue('Invalid option: expected one of "INCHES"|"FEET"|"YARDS"|"MILES"')
+    for (const { payload, message } of [
+      { payload: { amount: 30 }, message: unitRefusal },
+      { payload: { amount: 30, unit: 'FURLONGS' }, message: unitRefusal },
+      { payload: { amount: 30, unit: 'feet' }, message: unitRefusal },
+      {
+        payload: { amount: AUTHORED_LENGTH_AMOUNT_MAX + 1, unit: 'FEET' },
+        message: issue(`Too big: expected number to be <=${AUTHORED_LENGTH_AMOUNT_MAX}`)
+      },
+      {
+        payload: { amount: -5, unit: 'FEET' },
+        message: issue('Too small: expected number to be >=0')
+      },
+      { payload: { valueKind: 'FIXED', amount: 10 }, message: unitRefusal }
     ])
-      await expect(saveAndPublish(payload), JSON.stringify(payload)).rejects.toThrow()
+      await expect
+        .soft(saveAndPublish(payload), JSON.stringify(payload))
+        .rejects.toThrow(message)
 
     await saveAndPublish({ amount: 30, unit: 'FEET' })
     const detail = await first.caller.query(api.content.exports.get, {

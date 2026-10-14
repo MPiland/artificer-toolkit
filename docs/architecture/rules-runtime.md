@@ -753,8 +753,12 @@ speed grants. The speed type a move names (`MOVE_SCENE_TOKEN.speedId`, stored on
 **Length modifiers (D112).** `SPEED` and `SENSE_RANGE` modifier payloads are typed lengths (`modifierLength.ts` parses
 them; anything else throws). `evaluateDnd5eCharacterModifiers` turns each into feet, and
 `characterMovementAndSenses` and `withActiveGrantSpeeds` convert the net back into the base's unit through the shared
-`feetInLengthUnit`; a speed with no base takes the winning `SET_VALUE` modifier's unit. `resolveSpeedsFeet` and
-`encounterHolderState` read speeds strictly: publication owns the refusal, so a bad speed at read is an invariant failure.
+`feetInLengthUnit`, floor it at 0, and pick the winning `SET_VALUE` speed through the one `widestLengthByKey` fold; a
+speed with no base takes that modifier's unit. `resolveSpeedsFeet` reads speeds strictly against the System speed
+vocabulary: Character record stats pass `registry.system.speeds`, and `encounterHolderState` takes the same list as
+`speedDefinitions` (the worker's `INPUTS` capture, persistence's `requireSystem`). Publication owns the refusal, so a
+malformed or out-of-vocabulary speed at read is an invariant failure. Displayed lengths round through the shared
+`roundLengthForDisplay` (three decimals); stored and computed amounts never do.
 
 **Concentration grants (D99).** A grant whose result block names a `maintenanceDefinitionId` plans the
 same `SOURCE_ACTOR` maintenance policy as a maintained recurring effect (`maintenancePlan`), so it is a

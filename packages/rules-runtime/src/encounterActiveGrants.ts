@@ -7,11 +7,7 @@ import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projectio
 import { attackDomainCodeSchema } from '@artificer-toolkit/schema/shared/enums'
 import { speedDtoSchema, type SpeedDto } from '@artificer-toolkit/schema/shared/speed'
 import { createCharacterMechanicSourceKey } from '@artificer-toolkit/shared/character'
-import {
-  feetInLengthUnit,
-  lengthMeasurementInFeet,
-  type AttackDomainCode
-} from '@artificer-toolkit/shared/core'
+import { feetInLengthUnit, type AttackDomainCode } from '@artificer-toolkit/shared/core'
 import { resolveD20Contributors } from '@artificer-toolkit/shared/rolls'
 import { compareCanonicalD20Contributors } from '@artificer-toolkit/shared/rules'
 
@@ -23,7 +19,7 @@ import {
 } from './character/activeEffectGrantTotals.js'
 import { normalizeCharacterGrantRestrictions } from './character/characterGrantFoldRestrictionFacts.js'
 import type { EncounterRelationshipD20Contributor } from './encounterRelationshipActionFacts.js'
-import { lengthInUnit, modifierLength } from './modifierLength.js'
+import { lengthInUnit, widestLengthByKey } from './modifierLength.js'
 import {
   DND5E_ABILITY_DEFINITION_ID_BY_CODE,
   DND5E_REACTION_ALLOWANCE_DEFINITION_ID
@@ -495,24 +491,20 @@ export function withActiveGrantSpeeds(
   speeds: readonly unknown[],
   effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[]
 ): SpeedDto[] {
-  const replacements = new Map<string, ReturnType<typeof modifierLength>>()
-  for (const { modifiers } of listActiveEffectGrants(effects)) {
-    for (const modifier of modifiers) {
-      const speedId = record(modifier.domain)?.speedId
-      const grant = record(modifier.grant)
-      if (
-        modifier.valueDomainCode !== 'SPEED' ||
-        modifier.modifierKind !== 'SET_VALUE' ||
-        grant?.scope !== 'GLOBAL' ||
-        typeof speedId !== 'string'
-      )
-        continue
-      const replacement = modifierLength(grant.payload)
-      const best = replacements.get(speedId)
-      if (best === undefined || lengthMeasurementInFeet(replacement) > lengthMeasurementInFeet(best))
-        replacements.set(speedId, replacement)
-    }
-  }
+  const replacements = widestLengthByKey(
+    listActiveEffectGrants(effects).flatMap(({ modifiers }) =>
+      modifiers.flatMap((modifier) => {
+        const speedId = record(modifier.domain)?.speedId
+        const grant = record(modifier.grant)
+        return modifier.valueDomainCode === 'SPEED' &&
+          modifier.modifierKind === 'SET_VALUE' &&
+          grant?.scope === 'GLOBAL' &&
+          typeof speedId === 'string'
+          ? [{ key: speedId, payload: grant.payload }]
+          : []
+      })
+    )
+  )
   const base = speeds.map((entry) => speedDtoSchema.parse(entry))
   return [
     ...base,

@@ -179,6 +179,16 @@ export function feetInLengthUnit(feet: number, unit: LengthUnitCode): number {
   return feet / FEET_PER_LENGTH_UNIT[unit]
 }
 
+/** A converted length amount at the precision the product displays: three decimals, no trailing zeros. */
+export function roundLengthForDisplay(amount: number): number {
+  return Math.round(amount * 1_000) / 1_000
+}
+
+/** A length as the product displays it, such as "11.667 yards". */
+export function formatLengthMeasurement(length: { amount: number; unit: LengthUnitCode }): string {
+  return `${roundLengthForDisplay(length.amount)} ${MEASUREMENT_UNIT_REGISTRY[length.unit].label.toLowerCase()}`
+}
+
 export const LENGTH_UNIT_OPTIONS: readonly MeasurementUnitOption[] = LENGTH_UNIT_CODES.map(
   (code) => MEASUREMENT_UNIT_REGISTRY[code]
 )

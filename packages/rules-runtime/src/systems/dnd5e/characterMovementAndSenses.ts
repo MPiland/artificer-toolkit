@@ -9,7 +9,7 @@ import type {
   CharacterRulePolicyOutput
 } from '@artificer-toolkit/schema/api/characterRules'
 
-import { lengthInUnit, modifierLength } from '../../modifierLength.js'
+import { lengthInUnit, widestLengthByKey } from '../../modifierLength.js'
 import type { CharacterResolvedModifierGroup } from './characterModifiers.js'
 import { characterPolicyRecord } from './characterPolicyValues.js'
 import {
@@ -47,21 +47,25 @@ export function evaluateDnd5eCharacterMovementAndSenses(
       )
     )
   /** "Your speed is X" replaces the base speed; the best applicable one wins, in its authored unit. */
-  const speedReplacements = new Map<string, ReturnType<typeof modifierLength>>()
-  for (const group of modifierGroups) {
-    if (group.valueDomainCode !== 'SPEED' || group.modifierKind !== 'SET_VALUE') continue
-    const speedId = groupDomain(group).speedId
-    if (typeof speedId !== 'string') continue
-    for (const contribution of characterWide([group])) {
-      const replacement = modifierLength(
-        characterPolicyRecord(grantFold.modifiers[contribution.acceptedModifierIndex]?.grant).payload
-      )
-      const best = speedReplacements.get(speedId)
-      if (best === undefined || lengthMeasurementInFeet(replacement) > lengthMeasurementInFeet(best))
-        speedReplacements.set(speedId, replacement)
-    }
-  }
-  /** Speed and sense range contributions are feet; they add to the base in the base's own unit. */
+  const speedReplacements = widestLengthByKey(
+    modifierGroups
+      .filter((group) => group.valueDomainCode === 'SPEED' && group.modifierKind === 'SET_VALUE')
+      .flatMap((group) => {
+        const speedId = groupDomain(group).speedId
+        return typeof speedId === 'string'
+          ? characterWide([group]).map((contribution) => ({
+              key: speedId,
+              payload: characterPolicyRecord(
+                grantFold.modifiers[contribution.acceptedModifierIndex]?.grant
+              ).payload
+            }))
+          : []
+      })
+  )
+  /**
+   * Speed and sense range contributions are feet; they add to the base in the base's own unit. A
+   * total never falls below 0, as a Creature's speed does not.
+   */
   const calculation = (
     base: number,
     unit: LengthUnitCode,
@@ -74,12 +78,14 @@ export function evaluateDnd5eCharacterMovementAndSenses(
     }))
     return {
       base,
-      effective:
+      effective: Math.max(
+        0,
         override?.value ??
-        base +
-          contributions
-            .filter((contribution) => contribution.state === 'APPLIED')
-            .reduce((sum, contribution) => sum + contribution.value, 0),
+          base +
+            contributions
+              .filter((contribution) => contribution.state === 'APPLIED')
+              .reduce((sum, contribution) => sum + contribution.value, 0)
+      ),
       contributions: contributions.map((contribution) => ({
         sourceId: contribution.sourceId,
         source: contribution.source,
