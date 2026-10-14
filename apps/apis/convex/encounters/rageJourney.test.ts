@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { EncounterExecuteInput } from '@artificer-toolkit/schema/api/encounters'
+import type { EncounterRuleWarningCodeDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
 import { readCharacterSheetState } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { discoverCharacterActionCapabilities } from '@artificer-toolkit/rules-runtime/characterActionCapabilityDiscoveryRegistry'
 import { discoverEncounterFeatureActionCapabilities } from '@artificer-toolkit/rules-runtime/encounterFeatureActionCapabilityDiscoveryRegistry'
@@ -27,6 +28,7 @@ import {
   useLocalRoomWorker
 } from '../../tests/fixtures/localRoomWorker'
 import { importedSubject } from '../../tests/fixtures/publication'
+import { rejection } from '../../tests/fixtures/roomRefusals'
 import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
 import { srdWolf } from '../../tests/fixtures/srdCreatures'
 import { api, internal } from '../_generated/api'
@@ -266,6 +268,96 @@ describe('a Barbarian rages in an Encounter (ATTACK-9.T1)', () => {
     expect(afterRage.hitPoints - afterBite.hitPoints).toBe(3)
     expect(afterBite.rageChargesUsed).toBe(1)
   }, 120000)
+
+  describe('ending the Rage as its holder', () => {
+    /** The Barbarian rages, then the turn passes to the Wolf and back, so its bonus action is fresh. */
+    async function ragingOnItsNextTurn(fixture: Fixture) {
+      const raged = await rages(fixture)
+      const [grantId] = (await barbarianState(fixture)).grantIds
+      if (!grantId) throw new Error('Rage granted nothing.')
+      const wolfTurn = await execute(fixture, (base) => ({
+        ...base,
+        type: 'ADVANCE_TURN',
+        expectedVersion: raged.projection.version
+      }))
+      const barbarianTurn = await execute(fixture, (base) => ({
+        ...base,
+        type: 'ADVANCE_TURN',
+        expectedVersion: wolfTurn.projection.version
+      }))
+      return { raged, wolfTurn, barbarianTurn, grantId }
+    }
+
+    /** The Barbarian's own player ends the grant. */
+    function endsRage(
+      fixture: Fixture,
+      from: Pick<Result, 'projection'>,
+      grantId: string,
+      acknowledgedWarnings: EncounterRuleWarningCodeDto[] = []
+    ) {
+      return executeInRoom(fixture.player.caller, {
+        command: {
+          type: 'END_HELD_GRANT',
+          encounterId: fixture.run.id,
+          commandId: crypto.randomUUID(),
+          expectedVersion: from.projection.version,
+          actorId: fixture.actor.id,
+          activeEffectId: grantId,
+          acknowledgedWarnings
+        }
+      })
+    }
+
+    it('ends the Rage on the holder turn, spending the bonus action; the charge stays spent', async () => {
+      const fixture = await setup()
+      const { barbarianTurn, grantId } = await ragingOnItsNextTurn(fixture)
+
+      const ended = await endsRage(fixture, barbarianTurn, grantId)
+      expect(await barbarianState(fixture)).toMatchObject({ rageChargesUsed: 1, grantIds: [] })
+
+      // The end spent the bonus action, so a second Rage this turn has none left.
+      const second = await rejection(
+        act(fixture, ended, {
+          actorId: fixture.actor.id,
+          actionId: fixture.actions.rage.actionId,
+          targetActorId: fixture.actor.id
+        })
+      )
+      expect(second).toMatchObject({
+        reason: 'RULE_WARNINGS',
+        warnings: [{ code: 'ACTION_ECONOMY_UNAVAILABLE' }]
+      })
+    }, 120000)
+
+    it('refuses to end the Rage off the holder turn', async () => {
+      const fixture = await setup()
+      const raged = await rages(fixture)
+      const [grantId] = (await barbarianState(fixture)).grantIds
+      if (!grantId) throw new Error('Rage granted nothing.')
+      const wolfTurn = await execute(fixture, (base) => ({
+        ...base,
+        type: 'ADVANCE_TURN',
+        expectedVersion: raged.projection.version
+      }))
+      expect(wolfTurn.projection.currentActorId).toBe(fixture.wolf.id)
+      expect(await rejection(endsRage(fixture, wolfTurn, grantId))).toMatchObject({
+        reason: 'NOT_CURRENT_ACTOR'
+      })
+      expect((await barbarianState(fixture)).grantIds).toEqual([grantId])
+    }, 120000)
+
+    it('refuses to end the Rage once the bonus action is spent unless the warning is acknowledged', async () => {
+      const fixture = await setup()
+      const raged = await rages(fixture)
+      const [grantId] = (await barbarianState(fixture)).grantIds
+      if (!grantId) throw new Error('Rage granted nothing.')
+      expect(await rejection(endsRage(fixture, raged, grantId))).toMatchObject({
+        reason: 'RULE_WARNINGS',
+        warnings: [{ code: 'ACTION_ECONOMY_UNAVAILABLE' }]
+      })
+      expect((await barbarianState(fixture)).grantIds).toEqual([grantId])
+    }, 120000)
+  })
 
   it('gives the charge back and removes the grant when the GM undoes the Rage', async () => {
     const fixture = await setup()

@@ -71,6 +71,8 @@ No web change is expected: the action is offered through the existing Encounter 
 4. End: the grant expires after 10 rounds, ends on the player's end-Rage action, and ends when the Barbarian becomes incapacitated. Add the early-end rule if implemented (see the Brief).
 5. Undo: GM undo of the Rage action restores the charge and removes the grant.
 6. Journey: a Worker or Convex Encounter journey through real code. The Barbarian rages, hits with a greataxe and takes slashing damage; the damage dealt and taken reflect Rage, and the charge count drops by one.
+7. Authored-parity journey: an author builds a homebrew "Rage" through the real FormRenderer, node-runtime resolver and publication path. The published effect structurally equals the SRD Rage effect (ignoring ids and copy), and the Encounter behaves the same (damage, resistance, lock, end, holder-end).
+8. Holder-end (3a): the holder ends their own Rage on their own turn, spending the bonus action; refused off-turn; refused when the bonus action is already spent; another player refused.
 
 ## Proposed D113 (additive generic shapes for Rage; main session adopts at merge)
 
@@ -78,16 +80,22 @@ Follows D95 and D106. None of these shapes is named for Rage.
 
 1. **Attack ability.** Resolving an attack records the ability it used (finesse records the chosen one, STR or DEX) on the ability-modifier contribution, and the action mechanic puts it on the attacking item. A new facet predicate `ATTACK_ABILITY` gates modifier applicability on it. No attack ability fails closed.
 2. **Level steps.** Modifier payload value kinds are linear only (no level table), so a stepped bonus is authored as several FIXED bonuses each gated by `CLASS_LEVEL` facets.
-3. **Grant end events.** New `endOnEvents` values `ON_INCAPACITATED` and `ON_HOLDER_CHOICE`. `ON_INCAPACITATED` ends at the D95 detection point (`encounterConcentrationEndReason`), the same point that ends Concentration. No second detector. `ON_HOLDER_CHOICE` lets the holder's controller end that grant; every other effect stays Campaign-owner-only (D99), and the GM can still end any effect.
+3. **Grant end events.** New `endOnEvents` value `ON_INCAPACITATED`, ended at the D95 detection point (`encounterConcentrationEndReason`), the same point that ends Concentration. No second detector.
    - The commit carries the grants it ended as `endedGrants`. Persistence re-derives the reason from the committed state and refuses a forged end. The ended grants join the root's `consumedGrants`, so GM undo restores them.
-   - **Premise change:** the `sheetCommandReducer.test.ts` assertions that every `END_ACTIVE_EFFECT` caller must be the Campaign owner were rewritten, because the owner gate now has the `ON_HOLDER_CHOICE` exception. Tests added for both sides of it (`sheetEndActiveEffect.test.ts`).
    - Known gap: a movement-pass hit (opportunity attack or hazard) that incapacitates a raging mover does not end the grant; the action and turn commits do.
+3a. **Holder-end option (requirement B).** A grant's lifecycle carries an optional `holderEnd: { activation }` using the existing activation codes (SRD Rage: `BONUS_ACTION`). It replaces the earlier `ON_HOLDER_CHOICE` event.
+   - Only a grant that carries it may be ended by its holder's controller; every other effect stays Campaign-owner-only (D99), and the GM can still end any effect. D99 is otherwise unchanged, including no GM undo of an ended grant.
+   - In an Encounter a non-free cost is available only on the holder's turn and spends that slot. A new stored run command kind `END_HELD_GRANT` (a Run command, like Escape) carries it: `admitCurrentActorCommand` makes it holder-turn-only, the planner evaluates and consumes the economy, persistence re-reads the grant's own `holderEnd`, deletes the grant and records the command.
+   - The holder's Encounter action choices list it (`heldGrantEnds`), and the tabletop drawer renders an "Active effects" list. Outside an Encounter the Sheet `END_ACTIVE_EFFECT` command accepts the holder-end grant; inside one, a costed holder-end is refused there and must go through `END_HELD_GRANT`.
+   - **Premise change:** the `sheetCommandReducer.test.ts` assertions that every `END_ACTIVE_EFFECT` caller must be the Campaign owner were rewritten, because the owner gate now has the holder-end exception. Tests added for both sides of it (`sheetEndActiveEffect.test.ts`).
 4. **Spellcasting lock.** A generic grant effect `SPELLCASTING_LOCK` (`ENABLE`), named for the effect: the holder cannot cast spells (the cast decision returns `SPELLCASTING_LOCKED`; domain rejection at the casting entry) and cannot hold Concentration. Applying it ends current Concentration through the D95 detector, which gains the end reason `SPELLCASTING_LOCKED` (after DEFEATED and INCAPACITATED); starting Concentration while it is held is an `EncounterValidationError`.
 5. **Deferred.** The SRD early-end rule (no attack and no damage since the last turn) is deferred to ATTACK-9.T6.
+6. **Authored parity.** Class features are authored from core options; the SRD corpus uses no shape the authoring form cannot produce. Every shape above has node-map labels, descriptions, visibility and a default factory (`ATTACK_ABILITY` facet field, `SPELLCASTING_LOCK` modifier domain, `endOnEvents`, `holderEnd` with the `pathLifecycleHolderEnd` factory).
 
 ## Status log
 
 - 2026-10-14: workbook written.
-- 2026-10-14: integration owner approved shapes 1-5 (recorded above). Player-ended Rage escalated against D99; building `ON_HOLDER_CHOICE` unless told otherwise.
+- 2026-10-14: integration owner approved shapes 1-5 (recorded above). Player-ended Rage escalated against D99; approved as the holder-end option with an activation cost (3a), plus authored parity (6).
+- 2026-10-14: all code written and committed as WIP (`3c5335b6c`); nothing compiled or run yet, waiting on the validation lock for builds and the typecheck.
 
 ## Proposed ledger edits (filled by the slice session)
