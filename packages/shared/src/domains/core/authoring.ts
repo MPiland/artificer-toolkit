@@ -14,18 +14,13 @@ export const AUTHORING_MODE_KIND_REGISTRY: Record<AuthoringModeKind, AuthoringMo
   [AUTHORING_MODE_KIND.ALL]: {
     code: AUTHORING_MODE_KIND.ALL,
     label: 'All',
-    tooltip: 'All eligible options are granted automatically.',
-    description:
-      'Every option that meets the current restrictions is granted. ' + 'No selection is required.'
+    description: 'All eligible options are granted automatically.'
   },
 
   [AUTHORING_MODE_KIND.SELECTED]: {
     code: AUTHORING_MODE_KIND.SELECTED,
     label: 'Selected',
-    tooltip: 'Only selected options are ed.',
-    description:
-      'Only the explicitly selected options are granted. ' +
-      'The available options may be Targeted by restrictions.'
+    description: 'Only selected options are ed.'
   }
 }
 
@@ -49,15 +44,13 @@ export const AUTHORING_CONSTRAINT_REGISTRY: Record<
   [AUTHORING_CONSTRAINT.INCLUDE]: {
     code: AUTHORING_CONSTRAINT.INCLUDE,
     label: 'Must Match',
-    tooltip: 'Condition must be satisfied.',
-    description: 'The Target or restriction requires the condition to be true.'
+    description: 'Condition must be satisfied.'
   },
 
   [AUTHORING_CONSTRAINT.EXCLUDE]: {
     code: AUTHORING_CONSTRAINT.EXCLUDE,
     label: 'Must Not Match',
-    tooltip: 'Condition must not be satisfied.',
-    description: 'The restriction requires the condition to be false.'
+    description: 'Condition must not be satisfied.'
   }
 } as const
 
@@ -79,16 +72,13 @@ export const AUTHORING_SELECTION_REGISTRY: Record<
   [AUTHORING_SELECTION_KIND.GRANTED]: {
     code: AUTHORING_SELECTION_KIND.GRANTED,
     label: 'Automatically Granted',
-    tooltip: 'This option is automatically applied and does not require a choice.',
-    description:
-      'The player does not make a selection. This grant is applied automatically when it becomes available.'
+    description: 'This option is automatically applied and does not require a choice.'
   },
 
   [AUTHORING_SELECTION_KIND.CHOSEN]: {
     code: AUTHORING_SELECTION_KIND.CHOSEN,
     label: 'Player Chooses',
-    tooltip: 'The player chooses one or more options.',
-    description: 'The player must select which option(s) to gain from the available choices.'
+    description: 'The player chooses one or more options.'
   }
 } as const
 
@@ -110,16 +100,13 @@ export const AUTHORING_SELECTION_DUPLICATE_POLICY_REGISTRY: Record<
   [AUTHORING_SELECTION_DUPLICATE_POLICY.UNIQUE]: {
     code: AUTHORING_SELECTION_DUPLICATE_POLICY.UNIQUE,
     label: 'Unique',
-    tooltip: 'Each selected option must be different.',
-    description: 'Each selected option can only be chosen once.'
+    description: 'Each selected option must be different.'
   },
 
   [AUTHORING_SELECTION_DUPLICATE_POLICY.REPEATABLE]: {
     code: AUTHORING_SELECTION_DUPLICATE_POLICY.REPEATABLE,
     label: 'Repeatable',
-    tooltip: 'The same option may be selected more than once.',
-    description:
-      'The same option may fill more than one choice slot when the authored count allows it.'
+    description: 'The same option may be selected more than once.'
   }
 } as const
 

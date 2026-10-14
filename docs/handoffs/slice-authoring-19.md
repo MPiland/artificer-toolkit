@@ -44,5 +44,16 @@ Read first: AUTHORING-18's workbook ([slice-authoring-18.md](slice-authoring-18.
 ## Status log
 
 - 2026-10-14: workbook written.
+- 2026-10-14: stop condition hit for the six `ABILITIES` entries only: the Sheet Reference panel reads `ABILITIES[code].description` (long sentence) while the select tooltip showed the short `tooltip`. Integration owner's ruling: keep the long `description`, drop the short tooltip text, so both surfaces show the same sentence. All other entries with both fields have no other `description` reader, so they keep the tooltip text. `SPELLCASTING` (the reference-only entry in `ABILITY_MODIFIER_REFERENCE_OPTIONS`, no other reader) follows the general rule: description is now the old tooltip text.
+- 2026-10-14: premise change: the `systemVocabularyOptions.test.ts` skill test asserted `skill.tooltip === 'DEX'`; that data no longer exists, so the assertion is removed and the test only proves the skill description is served.
+
+- 2026-10-14: edits done. 557 code-list entries across 44 `packages/shared/src/domains` files (plus the 7 in `ability.ts`) all carried both fields and none was tooltip-only; each now has the old tooltip text as `description` (ABILITIES keep the long description per the ruling above). `tooltip` removed from `CoreMeta`, `Vocabulary`, `vocabularyDtoSchema`, the source-data content type, the 18 SRD skill rows and `runtimeCopyFieldNames`; `toOptions` reads `description` only; `srdManifest.generated.ts` regenerated; `authoring-schema.md` updated.
+- 2026-10-14: red (`local-validation/authoring-19/red-authoring.log`, `red-schema.log`): with production files stashed and shared rebuilt at base, the new code-list resolver test and the schema DTO test fail. Green (`green-schema.log` 661, `green-authoring.log` 77, `green-apis.log` 17, `green-web.log` 194 tests) pass on the changed tree.
+- 2026-10-14: base merged (`b2f2a9620`); final hold on the merged tree (`local-validation/authoring-19/summary2.log`): builds green, authoring `nodeRuntime` 77, convex `nodeRuntime.test.ts` 17, web `SystemVocabularyOptionTooltips` + `nodeRuntimeResolver` 10, Turbo typecheck (`typecheck`, `typecheck:tests`, `typecheck:stories`) 17/17, local codegen exit 0 (refreshed `apps/apis/convex/_generated/api.d.ts`, no `tooltip`). Storybook not run (worktree).
 
 ## Proposed ledger edits (filled by the slice session)
+
+- AC AUTHORING-19.1: proven by `systemVocabularyOptions.test.ts` (code-list description served by the real resolver, red before fix), `vocabulary-dto.test.ts` (schema carries `description` only, red before fix), the unchanged AUTHORING-18 proofs (`SystemVocabularyOptionTooltips.test.tsx`, web `nodeRuntimeResolver.test.ts`, convex `nodeRuntime.test.ts`) and the grep proof (`\btooltip\b` absent from `packages/shared`, `schema`, `source-data`, `authoring`, `apps/apis/convex` except the generated types refreshed by codegen).
+- Copy decision (integration owner): ABILITIES select tooltips now show the long Reference-panel sentence, not the short phrase.
+- Main session: reset and reseed local Convex after merge (SRD skill rows lost `tooltip`).
+- Contract note: `description` is the single option-description field for vocabulary rows and `CoreMeta` code lists (`docs/architecture/authoring-schema.md`).

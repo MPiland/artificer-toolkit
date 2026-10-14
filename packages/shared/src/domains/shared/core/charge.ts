@@ -14,15 +14,13 @@ export const CHARGE_SCALING_REGISTRY: Record<ChargeScalingKind, ChargeScalingOpt
   [CHARGE_SCALING.NONE]: {
     code: CHARGE_SCALING.NONE,
     label: 'No Scaling',
-    tooltip: 'This charge does not change as the character levels up.',
-    description: 'The chargeed content remains the same regardless of character level.'
+    description: 'This charge does not change as the character levels up.'
   },
 
   [CHARGE_SCALING.PER_LEVEL]: {
     code: CHARGE_SCALING.PER_LEVEL,
     label: 'Scales by Level',
-    tooltip: 'This charge changes based on character level.',
-    description: 'The charge content varies as the character gains levels, using level-based rules.'
+    description: 'This charge changes based on character level.'
   }
 } as const
 
@@ -47,44 +45,37 @@ export const CHARGE_RESET_REGISTRY: Record<keyof typeof CHARGE_RESET_KIND, Charg
   [CHARGE_RESET_KIND.DAILY]: {
     code: CHARGE_RESET_KIND.DAILY,
     label: 'Daily',
-    tooltip: 'All uses are restored when the player applies daily recovery.',
-    description:
-      'The feature regains all of its uses when its daily recovery is explicitly applied.'
+    description: 'All uses are restored when the player applies daily recovery.'
   },
 
   [CHARGE_RESET_KIND.DAWN]: {
     code: CHARGE_RESET_KIND.DAWN,
     label: 'Dawn',
-    tooltip: 'All uses are restored when the player applies dawn recovery.',
-    description: 'The feature regains all of its uses when its dawn recovery is explicitly applied.'
+    description: 'All uses are restored when the player applies dawn recovery.'
   },
 
   [CHARGE_RESET_KIND.DUSK]: {
     code: CHARGE_RESET_KIND.DUSK,
     label: 'Dusk',
-    tooltip: 'All uses are restored when the player applies dusk recovery.',
-    description: 'The feature regains all of its uses when its dusk recovery is explicitly applied.'
+    description: 'All uses are restored when the player applies dusk recovery.'
   },
 
   [CHARGE_RESET_KIND.LONG_REST]: {
     code: CHARGE_RESET_KIND.LONG_REST,
     label: 'Long Rest',
-    tooltip: 'All uses are restored after a long rest.',
-    description: 'The feature regains all of its uses when the character finishes a long rest.'
+    description: 'All uses are restored after a long rest.'
   },
 
   [CHARGE_RESET_KIND.SHORT_REST]: {
     code: CHARGE_RESET_KIND.SHORT_REST,
     label: 'Short Rest',
-    tooltip: 'All uses are restored after a short rest.',
-    description: 'The feature regains all of its uses when the character finishes a short rest.'
+    description: 'All uses are restored after a short rest.'
   },
 
   [CHARGE_RESET_KIND.MANUAL]: {
     code: CHARGE_RESET_KIND.MANUAL,
     label: 'Manual',
-    tooltip: 'Uses must be restored manually.',
-    description: 'Uses do not automatically refresh and must be restored by another rule or effect.'
+    description: 'Uses must be restored manually.'
   }
 } as const
 
@@ -109,52 +100,43 @@ export const CHARGE_LIMIT_REGISTRY: Record<ChargeLimitKind, ChargeLimitOption> =
   [CHARGE_LIMIT_KIND.FIXED_AMOUNT]: {
     code: CHARGE_LIMIT_KIND.FIXED_AMOUNT,
     label: 'Fixed amount',
-    tooltip: 'Sets to a fixed number.',
-    description: 'Sets the charges to a fixed amount that can still have bonuses added.'
+    description: 'Sets to a fixed number.'
   },
 
   [CHARGE_LIMIT_KIND.CHARACTER_LEVEL]: {
     code: CHARGE_LIMIT_KIND.CHARACTER_LEVEL,
     label: 'Character Level',
-    tooltip: "Uses the character's level.",
-    description: "The number of uses increases based on the character's overall level."
+    description: "Uses the character's level."
   },
 
   [CHARGE_LIMIT_KIND.CLASS_LEVEL]: {
     code: CHARGE_LIMIT_KIND.CLASS_LEVEL,
     label: 'Class Level',
-    tooltip: 'Uses a specific class level.',
-    description: 'The number of uses increases based on a specific class progression.'
+    description: 'Uses a specific class level.'
   },
 
   [CHARGE_LIMIT_KIND.PARENT_CLASS_LEVEL]: {
     code: CHARGE_LIMIT_KIND.PARENT_CLASS_LEVEL,
     label: 'Parent Class Level',
-    tooltip: 'Uses the owning class level.',
-    description: 'The number of uses increases based on the owning class progression.'
+    description: 'Uses the owning class level.'
   },
 
   [CHARGE_LIMIT_KIND.SPELL_CAST_LEVEL]: {
     code: CHARGE_LIMIT_KIND.SPELL_CAST_LEVEL,
     label: 'Spell Cast Level',
-    tooltip: 'Uses the actual cast level.',
-    description: 'The number of uses increases based on the actual spell cast or upcast level.'
+    description: 'Uses the actual cast level.'
   },
 
   [CHARGE_LIMIT_KIND.ABILITY_MODIFIER]: {
     code: CHARGE_LIMIT_KIND.ABILITY_MODIFIER,
     label: 'Ability Modifier',
-    tooltip: 'Uses equal to an ability score modifier.',
-    description:
-      'The number of uses equals a chosen ability score modifier (e.g. Charisma modifier for Bardic Inspiration).'
+    description: 'Uses equal to an ability score modifier.'
   },
 
   [CHARGE_LIMIT_KIND.SOURCE_CHARGES]: {
     code: CHARGE_LIMIT_KIND.SOURCE_CHARGES,
     label: 'Source Charges',
-    tooltip: 'Consumes charges from the containing source.',
-    description:
-      'Uses the charge pool defined by the containing item, feature, or other authored source.'
+    description: 'Consumes charges from the containing source.'
   }
 } as const
 
@@ -179,22 +161,19 @@ export const CHARGE_BONUS_REGISTRY: Record<ChargeBonusKind, ChargeBonusOption> =
   [CHARGE_BONUS_KIND.PROFICIENCY_BONUS]: {
     code: CHARGE_BONUS_KIND.PROFICIENCY_BONUS,
     label: 'Proficiency Bonus',
-    tooltip: 'Adds your proficiency bonus to the number of uses.',
-    description: 'The number of uses increases based on the character’s proficiency bonus.'
+    description: 'Adds your proficiency bonus to the number of uses.'
   },
 
   [CHARGE_BONUS_KIND.ABILITY_MODIFIER]: {
     code: CHARGE_BONUS_KIND.ABILITY_MODIFIER,
     label: 'Ability Modifier',
-    tooltip: 'Adds an ability score modifier to the number of uses.',
-    description: 'The number of uses increases based on a chosen ability score modifier.'
+    description: 'Adds an ability score modifier to the number of uses.'
   },
 
   [CHARGE_BONUS_KIND.SKILL_BONUS]: {
     code: CHARGE_BONUS_KIND.SKILL_BONUS,
     label: 'Skill Bonus',
-    tooltip: 'Adds a bonus based on a specific skill.',
-    description: 'The number of uses increases based on the character’s bonus in a chosen skill.'
+    description: 'Adds a bonus based on a specific skill.'
   }
 } as const
 

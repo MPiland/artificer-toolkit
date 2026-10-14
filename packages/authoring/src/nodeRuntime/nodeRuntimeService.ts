@@ -559,14 +559,13 @@ function toOptions(
   options: readonly {
     code: unknown
     label: string
-    tooltip?: string | null
     description?: string | null
   }[]
 ): NodeRuntimeOptionDto[] {
   return options.map((option) => ({
     value: String(option.code),
     label: option.label,
-    description: option.tooltip ?? option.description ?? undefined
+    description: option.description ?? undefined
   }))
 }
 

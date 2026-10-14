@@ -17,40 +17,32 @@ export const PROFICIENCY_KIND_REGISTRY: Record<ProficiencyKind, ProficiencyTypeO
   [PROFICIENCY_KIND.SKILL]: {
     code: PROFICIENCY_KIND.SKILL,
     label: 'Skill Proficiency',
-    tooltip: 'Grants proficiency in one or more skills.',
-    description:
-      'Targets skills (e.g., Stealth, Perception). Use grant mode/type to choose or grant.'
+    description: 'Grants proficiency in one or more skills.'
   },
 
   [PROFICIENCY_KIND.SAVE_ABILITY]: {
     code: PROFICIENCY_KIND.SAVE_ABILITY,
     label: 'Saving Throw Proficiency',
-    tooltip: 'Grants proficiency in one or more saving throw abilities.',
-    description: 'Targets saving throw abilities (e.g., Constitution saves).'
+    description: 'Grants proficiency in one or more saving throw abilities.'
   },
 
   [PROFICIENCY_KIND.EQUIPMENT]: {
     code: PROFICIENCY_KIND.EQUIPMENT,
     label: 'Equipment Proficiency',
-    tooltip: 'Grants proficiency with specific equipment or equipment categories.',
-    description:
-      'Targets equipment IDs and/or equipment categories (e.g., “Longsword” or “Martial Weapons”).'
+    description: 'Grants proficiency with specific equipment or equipment categories.'
   },
 
   [PROFICIENCY_KIND.EQUIPMENT_PROPERTY]: {
     code: PROFICIENCY_KIND.EQUIPMENT_PROPERTY,
     label: 'Equipment Property Proficiency',
-    tooltip:
-      'Grants proficiency with equipment matching properties (optionally scoped by category).',
     description:
-      'Targets equipment properties (e.g., “Heavy”) and optionally a category (e.g., “Armor”).'
+      'Grants proficiency with equipment matching properties (optionally scoped by category).'
   },
 
   [PROFICIENCY_KIND.LANGUAGE]: {
     code: PROFICIENCY_KIND.LANGUAGE,
     label: 'Language Proficiency',
-    tooltip: 'Grants proficiency in one or more languages.',
-    description: 'Targets language IDs (e.g., Common, Elvish).'
+    description: 'Grants proficiency in one or more languages.'
   }
 } as const
 
