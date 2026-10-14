@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import { SIZE_OPTIONS } from '@artificer-toolkit/shared/core'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { getRuntimeNodeMap, listRuntimeNodeMapIds } from './mapRegistry.js'
@@ -69,13 +70,22 @@ describe('System vocabulary option descriptions', () => {
     )
   })
 
-  it('serves the skill description, not the ability abbreviation stored as its tooltip', async () => {
+  it('serves the skill description', async () => {
     const options = await optionsOf('proficiencyGrant', 'skillIds', {
       authoringModeKind: 'SELECTED',
       proficiencyKind: 'SKILL'
     })
-    expect(srdSystemRecord.skills.some((skill) => skill.tooltip === 'DEX')).toBe(true)
     expectDescriptions(options, srdSystemRecord.skills)
+  })
+
+  it('serves the code-list description for an inline option', async () => {
+    const options = await optionsOf('vehicle', 'size')
+    expect(SIZE_OPTIONS.some((size) => size.description)).toBe(true)
+    for (const size of SIZE_OPTIONS) {
+      expect(options.find((option) => option.value === size.code)?.description).toBe(
+        size.description ?? undefined
+      )
+    }
   })
 
   it('exposes the description column, and no tooltip column, on every System vocabulary source', () => {

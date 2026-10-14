@@ -94,9 +94,10 @@ System UUID; it is not a client-provided query or a new rules language.
 - evaluates visibility and required state against `values`, `parentValues`, and `ancestors`;
 - executes relationship plans for data-backed options and inline filters, and resolves bounded
   `LOCAL_COLLECTION` options from the current authored root;
-- serves each System vocabulary option's `description` as the option description (its tooltip). Every
-  System vocabulary source in the node-runtime source manifest exposes `description`, and every
-  node-map select on one selects it; the vocabulary `tooltip` field is not a source column. The web
+- serves `description` as the one option description (its tooltip), for both System vocabulary rows
+  and shared code-list entries (`CoreMeta`). Every System vocabulary source in the node-runtime
+  source manifest exposes `description`, and every node-map select on one selects it; there is no
+  separate `tooltip` field on vocabulary records, code lists or the manifest. The web
   `AppSelect`/`AppMultiSelect` render a described option's text as a Mantine tooltip on the option;
 - returns the root runtime DTO plus paths that should be cleared when hidden;
 - recursively emits flat resolved scopes for every visible, populated nested object or array row, keyed by absolute path.

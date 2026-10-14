@@ -6,7 +6,6 @@ export const vocabularyDtoSchema = lazySchema(() =>
     code: z.string(),
     label: z.string(),
     description: z.optional(z.nullable(z.string())),
-    tooltip: z.optional(z.nullable(z.string())),
     short: z.optional(z.nullable(z.string()))
   })
 )
