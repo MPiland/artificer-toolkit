@@ -6704,25 +6704,37 @@
         {
           "id": "SPELLS-13",
           "title": "Cone, line and caster-origin areas",
-          "status": "IN_PROGRESS",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": ["apps/session-worker/test/nativeRoomDirectedAreaAction.test.ts"],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
               "text": "The caster picks an origin and a direction for a cone or line area (Burning Hands, Lightning Bolt, a dragon's breath), and it catches and resolves every creature inside it as SPELLS-7 does.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/shared/src/__tests__/vtt-directed-area.test.ts (cone 15 ft and 60 ft on axis and diagonal, every direction; line in each direction, length and width; missing caster throws)",
+                "packages/rules-runtime/src/__tests__/encounterAreaAction.test.ts",
+                "packages/rules-runtime/src/__tests__/encounterAreaActionCompilation.test.ts",
+                "packages/rules-runtime/src/__tests__/encounterAreaActionExecution.test.ts",
+                "apps/session-worker/test/nativeRoomDirectedAreaAction.test.ts (room cone and line; wrong-target refusals; a Creature Self cone: two caught creatures save, full and half damage once, GM undo)",
+                "apps/web/src/domains/campaigns/vtt/vttSceneRenderer.model.test.ts (drawn outline equals the caught set over 24 angles x 3 distances)",
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopActionDrawer.test.tsx (directed area command target and \"In the area\" list)"
+              ],
               "origin": [],
               "note": "Split from SPELLS-7 on 2026-10-10; builds after SPELLS-7 on the same area executor. A dragon's breath is proved here with a synthetic Creature Self cone action; the SRD breaths themselves are authored and proved in SPELLS-21. User ruling 2026-10-14: every area (point or directed) catches a token only when its footprint overlaps the area with positive area; touching an edge or corner never catches (D103 amended in this slice).",
               "id": "SPELLS-13.1"
             },
             {
               "text": "An area with Self range starts at the caster (Thunderwave's cube): the caster picks which side of their space it extends from, it never catches the caster unless the text says so, and it resolves every other creature inside it as SPELLS-7 does.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/shared/src/__tests__/vtt-directed-area.test.ts (cube from the caster's side)",
+                "packages/rules-runtime/src/__tests__/encounterAreaActionCompilation.test.ts (SRD Thunderwave compiles as the cube from the caster)",
+                "apps/session-worker/test/nativeRoomDirectedAreaAction.test.ts (room cube from the side of the caster's space)"
+              ],
               "origin": [],
-              "note": "Found in SPELLS-7.1 on 2026-10-10: point-area compilation refuses Self- and Touch-range areas because they have no picked point.",
+              "note": "Found in SPELLS-7.1 on 2026-10-10: point-area compilation refuses Self- and Touch-range areas because they have no picked point. Merged 5489f675c and follow-up 008aa4ae9 (spatialTokensInsideArea owns the caster rule). Self cube grid placement and the aim gesture moved to SPELLS-23.",
               "id": "SPELLS-13.2"
             }
           ],
@@ -8958,7 +8970,7 @@
             "rr": 8,
             "size": 3,
             "finalSource": true,
-            "after": ["RELEASE-2"]
+            "after": ["RELEASE-2", "RELEASE-8"]
           }
         },
         {
@@ -9072,6 +9084,40 @@
             "rr": 1,
             "size": 3,
             "finalSource": true
+          }
+        },
+        {
+          "id": "RELEASE-8",
+          "title": "Review data for the owner's UI review",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": [],
+          "acs": [
+            {
+              "text": "A re-runnable local script builds named review Campaigns with members, Scenes with tokens and Encounters that cover the shipped play surfaces (a party of Characters, SRD Creatures, point and directed areas, spells and slots, conditions, Concentration, reactions, initiative and roll cards), through the product's own commands, against the local Docker Convex backend only; running it again after a reset rebuilds the same data.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "User ruling 2026-10-14: the owner reviews the UI locally before staging, using test Campaigns, Scenes and Encounters. The final local lifecycle (validatePreStagingLocal.mjs) resets local Convex first, so review data is a scripted seed run after RELEASE-2, not hand-kept data.",
+              "id": "RELEASE-8.1"
+            },
+            {
+              "text": "The owner reviews the UI on the review data and signs off before staging promotion; findings are fixed or registered.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Gate between RELEASE-2 (final local lifecycle) and RELEASE-3 (staging).",
+              "id": "RELEASE-8.2"
+            }
+          ],
+          "wsjf": {
+            "bv": 5,
+            "tc": 8,
+            "rr": 8,
+            "size": 3,
+            "finalSource": true,
+            "after": ["RELEASE-2"]
           }
         }
       ]
