@@ -1,5 +1,6 @@
 import { screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
+import { abilityModifier } from '@artificer-toolkit/rules-runtime/systems/dnd5e/abilityModifier'
 import {
   encounterGmActorDtoSchema,
   type EncounterGmActorDto
@@ -99,5 +100,25 @@ describe('EncounterEnemyStatBlock defenses', () => {
       )
     ).toBeInTheDocument()
     expect(screen.queryByText('Immune')).not.toBeInTheDocument()
+  })
+})
+
+describe('EncounterEnemyStatBlock ability modifiers', () => {
+  it('shows the modifier the shared rules derive, including below 10 and odd scores', () => {
+    const scores = {
+      STRENGTH: 1,
+      DEXTERITY: 9,
+      CONSTITUTION: 10,
+      INTELLIGENCE: 11,
+      WISDOM: 20,
+      CHARISMA: 30
+    }
+    renderWithAppProviders(<EncounterEnemyStatBlock actor={actorWith({ abilityScores: scores })} />)
+
+    for (const [ability, score] of Object.entries(scores)) {
+      const modifier = abilityModifier(score)
+      const entry = screen.getByText(ability.slice(0, 3)).closest('div')!
+      expect(entry).toHaveTextContent(`${score}(${modifier >= 0 ? '+' : ''}${modifier})`)
+    }
   })
 })

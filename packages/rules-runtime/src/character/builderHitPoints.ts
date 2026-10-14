@@ -9,6 +9,7 @@ import type {
   CharacterRulePolicyOutput
 } from '@artificer-toolkit/schema/api/characterRules'
 
+import { parseHitDie } from '../systems/dnd5e/hitPointRules.js'
 import type { CharacterBuilderRegistry, CharacterBuilderValidation } from './builderTypes.js'
 
 type CharacterHitpointLevelEntry = CharacterAuthored['intent']['hitpoints']['levels'][number]
@@ -91,7 +92,7 @@ export function prepareCharacterHitpointProgression(
       (record): record is ParentClassAuthored =>
         record.category === CLASS_CATEGORY.BASE && record.id === orderedLevel.classId
     )
-    const die = parseClassHitDie(authoredClass?.hitpoint?.dieConfig)
+    const die = parseHitDie(authoredClass?.hitpoint?.dieConfig)
     const hitpointAbility = authoredClass?.hitpoint?.ability
     const normalizedHitpointAbility = hitpointAbility
       ? (resolveAbilityAlias(hitpointAbility) ?? hitpointAbility)
@@ -103,13 +104,7 @@ export function prepareCharacterHitpointProgression(
       : -1
     const key = `${orderedLevel.classId}:${orderedLevel.classLevel}`
     const submitted = levelsByClass.get(key)
-    const persisted = existingLevelsByClass.get(key)
     const roll = submitted?.rolls?.[0]
-    const persistedLegacyOverride =
-      existingCharacter?.intent.hitpoints.method === HITPOINT_CALCULATION_METHOD_CODE.MANUAL &&
-      persisted !== undefined &&
-      !persisted.rolls?.length &&
-      persisted.overridden !== false
 
     if (!authoredClass || die === null) {
       entries.push({ ...orderedLevel, level })
@@ -129,8 +124,7 @@ export function prepareCharacterHitpointProgression(
         classId: orderedLevel.classId,
         classLevel: orderedLevel.classLevel,
         value: orderedLevel.value,
-        ...(roll ? { rolls: submitted?.rolls, overridden: false } : {}),
-        ...(!roll && persistedLegacyOverride ? { overridden: true } : { overridden: false })
+        ...(roll ? { rolls: submitted?.rolls } : {})
       })
     }
 
@@ -142,8 +136,7 @@ export function prepareCharacterHitpointProgression(
       die,
       abilityIndex: abilityIndex < 0 ? null : abilityIndex,
       fallbackValue: orderedLevel.value,
-      rollValue: roll?.value ?? null,
-      legacyOverrideValue: persistedLegacyOverride ? (submitted?.value ?? persisted.value) : null
+      rollValue: roll?.value ?? null
     }
   })
 
@@ -205,14 +198,6 @@ function reconcileCharacterHitpointProgression(
   return reconciled
 }
 
-function parseClassHitDie(dieConfig: string | undefined): number | null {
-  const match = /^(?:1)?d([1-9]\d*)$/i.exec(dieConfig?.trim() ?? '')
-  if (!match?.[1]) return null
-
-  const die = Number(match[1])
-  return Number.isSafeInteger(die) ? die : null
-}
-
 export function appendManualHitpointValidationIssues(
   character: CharacterAuthored,
   authoredClasses: CharacterBuilderRegistry['classes'],
@@ -227,9 +212,8 @@ export function appendManualHitpointValidationIssues(
       (record): record is ParentClassAuthored =>
         record.category === CLASS_CATEGORY.BASE && record.id === level.classId
     )
-    const die = parseClassHitDie(authoredClass?.hitpoint?.dieConfig)
+    const die = parseHitDie(authoredClass?.hitpoint?.dieConfig)
     const rolls = level.rolls ?? []
-    if (rolls.length === 0 && level.overridden === true) continue
 
     if (rolls.length === 0) {
       validations.push({
@@ -271,7 +255,7 @@ export function reconcileCharacterHitDice(
     const authoredClass = authoredClasses.find((record) => record.id === selection.classId)
     if (!authoredClass || authoredClass.category !== CLASS_CATEGORY.BASE) continue
 
-    const die = parseClassHitDie(authoredClass.hitpoint?.dieConfig)
+    const die = parseHitDie(authoredClass.hitpoint?.dieConfig)
     if (die === null) continue
 
     totalsByDie.set(die, (totalsByDie.get(die) ?? 0) + selection.classLevel)

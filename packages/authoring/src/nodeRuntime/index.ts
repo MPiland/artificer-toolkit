@@ -13,3 +13,4 @@ export type {
   NodeRuntimeSourceReader
 } from './nodeRuntimeSourceContract.js'
 export { authoredSourceFacts, authoredSourceKindsByTable } from './authoredSourceFacts.js'
+export { sortAuthoredSourceRows, systemVocabularyRows } from './systemSourceRows.js'

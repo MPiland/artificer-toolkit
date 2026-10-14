@@ -543,6 +543,15 @@ edit draft evaluates against the active Character it replaces, read by
 `characters/builder.activeCharacter`; replacement allowances and the change preview compare
 against it, as commit does with its stored active document.
 
+Web surfaces that show Character or Creature numbers (the Builder abilities step, class detail,
+Creature detail, the Encounter enemy stat block) call the same `rules-runtime` functions and keep
+no local copy: `hitDieAverage` and `hitPointGain` (`rules-runtime/systems/dnd5e/hitPointRules`,
+also used by `builderHitPoints` and `characterVitals`), `abilityModifier`, and `proficiencyBonus`
+(`rules-runtime/systems/dnd5e/proficiencyBonus`, also used by the derived-stat and modifier
+modules). There is no hit point override: the Builder either rolls, takes the average, or enters a
+manual roll, and `CharacterBuilderIntent` has no `overridden` field. The web also keeps no copy of
+the Authoring Schema resolver ([authoring-schema](authoring-schema.md)).
+
 - **Worker** (`domains/characters/builder/evaluation`). A module worker created after mount on the
   Builder route only, and started on its first evaluation; nothing evaluates during SSR. It keeps
   parsed objects by hash and the readers of the current manifest, with the documents they have

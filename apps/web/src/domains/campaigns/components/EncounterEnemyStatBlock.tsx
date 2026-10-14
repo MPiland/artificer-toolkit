@@ -1,4 +1,5 @@
 import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
+import { abilityModifier } from '@artificer-toolkit/rules-runtime/systems/dnd5e/abilityModifier'
 import type { EncounterGmActorDto } from '@artificer-toolkit/schema/api/encounters'
 import { useQuery } from 'convex/react'
 import * as encounterStyles from './encounter.css'
@@ -77,7 +78,7 @@ function abilitySortIndex(ability: string): number {
 }
 
 function formatAbilityModifier(score: number): string {
-  const modifier = Math.floor((score - 10) / 2)
+  const modifier = abilityModifier(score)
   return `(${modifier >= 0 ? '+' : ''}${modifier})`
 }
 

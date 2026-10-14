@@ -1,4 +1,5 @@
 import { authoredSourceKindsByTable } from '@artificer-toolkit/authoring/nodeRuntime/authoredSourceFacts'
+import { sortAuthoredSourceRows } from '@artificer-toolkit/authoring/nodeRuntime'
 import {
   authoredNodeRuntimeSourceFactsSchema,
   type AuthoredNodeRuntimeSourceFacts,
@@ -59,11 +60,6 @@ export function createAuthoredSourceReader(ctx: QueryCtx, systemId: string, user
       }
       for (const facts of await pending) rows.push(...(facts.rows[table] ?? []))
     }
-    return rows.sort(
-      (left, right) =>
-        String(left.label ?? '').localeCompare(String(right.label ?? '')) ||
-        String(left.id ?? '').localeCompare(String(right.id ?? '')) ||
-        JSON.stringify(left).localeCompare(JSON.stringify(right))
-    )
+    return sortAuthoredSourceRows(rows)
   }
 }

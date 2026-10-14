@@ -180,6 +180,7 @@ __metadata:
   resolution: "@artificer-toolkit/web@workspace:apps/web"
   dependencies:
     "@artificer-toolkit/apis": "workspace:"
+    "@artificer-toolkit/authoring": "workspace:^"
     "@artificer-toolkit/design-system": "workspace:^"
     "@artificer-toolkit/rules-runtime": "workspace:^"
     "@artificer-toolkit/schema": "workspace:^"

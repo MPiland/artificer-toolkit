@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync, statSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, relative, sep } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
@@ -27,6 +27,23 @@ describe('authoring form architecture boundaries', () => {
         readFileSync(filePath, 'utf8').includes('staticResolvedModel')
       )
     ).toEqual([])
+  })
+
+  it('has no web copy of the node-map resolver and keeps the real one in test support only', () => {
+    expect(existsSync(join(sourceRoot, 'forms', 'node-map', 'staticResolvedModel.ts'))).toBe(false)
+
+    const offenders = readSourceFiles(sourceRoot)
+      .filter((filePath) => !filePath.startsWith(join(sourceRoot, 'test') + sep))
+      .filter((filePath) => !filePath.endsWith('FormArchitectureBoundaries.test.ts'))
+      .filter((filePath) => {
+        const source = readFileSync(filePath, 'utf8')
+        return (
+          source.includes('staticResolvedModel') || source.includes('@artificer-toolkit/authoring')
+        )
+      })
+      .map((filePath) => relative(sourceRoot, filePath).split(sep).join('/'))
+
+    expect(offenders).toEqual([])
   })
 })
 
