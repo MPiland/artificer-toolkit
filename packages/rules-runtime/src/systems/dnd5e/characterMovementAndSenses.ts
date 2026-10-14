@@ -1,10 +1,15 @@
-import { feetInLengthUnit, lengthMeasurementInFeet } from '@artificer-toolkit/shared/core'
+import {
+  feetInLengthUnit,
+  lengthMeasurementInFeet,
+  type LengthUnitCode
+} from '@artificer-toolkit/shared/core'
 import type { CharacterGrantFoldOutput } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
 import type {
   CharacterRulePolicyInput,
   CharacterRulePolicyOutput
 } from '@artificer-toolkit/schema/api/characterRules'
 
+import { lengthInUnit, widestLengthByKey } from '../../modifierLength.js'
 import type { CharacterResolvedModifierGroup } from './characterModifiers.js'
 import { characterPolicyRecord } from './characterPolicyValues.js'
 import {
@@ -41,32 +46,46 @@ export function evaluateDnd5eCharacterMovementAndSenses(
         )
       )
     )
-  /** "Your speed is X" replaces the base speed; the best applicable one wins. */
-  const speedReplacements = new Map<string, number>()
-  for (const group of modifierGroups) {
-    if (group.valueDomainCode !== 'SPEED' || group.modifierKind !== 'SET_VALUE') continue
-    const speedId = groupDomain(group).speedId
-    if (typeof speedId !== 'string') continue
-    for (const contribution of characterWide([group]))
-      speedReplacements.set(
-        speedId,
-        Math.max(speedReplacements.get(speedId) ?? Number.NEGATIVE_INFINITY, contribution.value)
-      )
-  }
+  /** "Your speed is X" replaces the base speed; the best applicable one wins, in its authored unit. */
+  const speedReplacements = widestLengthByKey(
+    modifierGroups
+      .filter((group) => group.valueDomainCode === 'SPEED' && group.modifierKind === 'SET_VALUE')
+      .flatMap((group) => {
+        const speedId = groupDomain(group).speedId
+        return typeof speedId === 'string'
+          ? characterWide([group]).map((contribution) => ({
+              key: speedId,
+              payload: characterPolicyRecord(
+                grantFold.modifiers[contribution.acceptedModifierIndex]?.grant
+              ).payload
+            }))
+          : []
+      })
+  )
+  /**
+   * Speed and sense range contributions are feet; they add to the base in the base's own unit. A
+   * total never falls below 0, as a Creature's speed does not.
+   */
   const calculation = (
     base: number,
+    unit: LengthUnitCode,
     groups: CharacterResolvedModifierGroup[],
     override: { sourceId: string; value: number } | null
   ): CharacterRulePolicyOutput['derivedStats']['armorClass'] => {
-    const contributions = characterWide(groups)
+    const contributions = characterWide(groups).map((contribution) => ({
+      ...contribution,
+      value: feetInLengthUnit(contribution.value, unit)
+    }))
     return {
       base,
-      effective:
+      effective: Math.max(
+        0,
         override?.value ??
-        base +
-          contributions
-            .filter((contribution) => contribution.state === 'APPLIED')
-            .reduce((sum, contribution) => sum + contribution.value, 0),
+          base +
+            contributions
+              .filter((contribution) => contribution.state === 'APPLIED')
+              .reduce((sum, contribution) => sum + contribution.value, 0)
+      ),
       contributions: contributions.map((contribution) => ({
         sourceId: contribution.sourceId,
         source: contribution.source,
@@ -87,12 +106,14 @@ export function evaluateDnd5eCharacterMovementAndSenses(
   const factSpeeds = input.movementFacts?.speeds ?? []
   const speeds = [
     ...factSpeeds,
-    ...[...speedReplacements.keys()]
-      .filter((speedId) => !factSpeeds.some((speed) => speed.speedId === speedId))
-      .map((speedId) => ({ speedId, baseAmount: 0, unit: 'FEET' as const, override: null }))
+    ...[...speedReplacements]
+      .filter(([speedId]) => !factSpeeds.some((speed) => speed.speedId === speedId))
+      .map(([speedId, { amount, unit }]) => ({ speedId, baseAmount: amount, unit, override: null }))
   ].map((speed) => {
+    const replacement = speedReplacements.get(speed.speedId)
     const resolved = calculation(
-      speedReplacements.get(speed.speedId) ?? speed.baseAmount,
+      replacement === undefined ? speed.baseAmount : lengthInUnit(replacement, speed.unit),
+      speed.unit,
       matchingGroups('SPEED', 'speedId', speed.speedId),
       speed.override
     )
@@ -137,7 +158,7 @@ export function evaluateDnd5eCharacterMovementAndSenses(
       // A Sheet override sets the distance outright, in the widest grant's unit (its own with no grant).
       const unit = widest?.unit ?? override.value.unit
       const amount = feetInLengthUnit(lengthMeasurementInFeet(override.value), unit)
-      const resolved = calculation(widest?.amount ?? amount, modifiers, {
+      const resolved = calculation(widest?.amount ?? amount, unit, modifiers, {
         sourceId: override.sourceId,
         value: amount
       })
@@ -154,7 +175,7 @@ export function evaluateDnd5eCharacterMovementAndSenses(
     }
     if (unlimited !== undefined) return { senseDefinitionId, range: unlimited }
     if (widest === undefined) throw new Error('A Character sense needs a granted range.')
-    const resolved = calculation(widest.amount, modifiers, null)
+    const resolved = calculation(widest.amount, widest.unit, modifiers, null)
     return {
       senseDefinitionId,
       range: {

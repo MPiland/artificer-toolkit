@@ -4,7 +4,11 @@ import { SRD_BASIC_ACTION_IDS } from '@artificer-toolkit/source-data/srd/basicAc
 import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
 import { greatclub } from '@artificer-toolkit/source-data/srd/equipment/greatclub.js'
 import { shieldWood } from '@artificer-toolkit/source-data/srd/equipment/shield-wood.js'
-import { SRD_ABILITIES, srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import {
+  SRD_ABILITIES,
+  SRD_SPEEDS,
+  srdSystemRecord
+} from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { resolveEncounterActionSource } from '../encounterActionSources.js'
 import {
@@ -86,7 +90,12 @@ function creatureHolder(
 }
 
 const stateOf = (target: Parameters<typeof encounterHolderState>[0]['target']) =>
-  encounterHolderState({ target, gameSystemId: SRD_SYSTEM_ID, definitions: srdDefinitions })
+  encounterHolderState({
+    target,
+    gameSystemId: SRD_SYSTEM_ID,
+    definitions: srdDefinitions,
+    speedDefinitions: SRD_SPEEDS
+  })
 
 /** A Fighter whose sheet the real fact builders produced, holding what `equipped` puts in hand. */
 async function fighterHolder(equipped: { equipmentId: string; slot: 'MAIN_HAND' | 'OFF_HAND' }[]) {

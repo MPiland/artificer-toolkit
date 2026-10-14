@@ -3,6 +3,7 @@ import { z, lazySchema } from '../zod.js'
 import { staticGrantBaseDtoSchema } from './grant.js'
 import {
   authoredIdentifierSchema,
+  authoredLengthSchema,
   authoredNestedCollectionSchema,
   authoredReferenceCollectionSchema
 } from '../shared/authoredLimits.js'
@@ -495,19 +496,9 @@ const buildModifierGrantVariants = () => {
       emptyDomainDtoSchema,
       optionPayloadByDomainDtoSchema.DAMAGE_VULNERABILITY
     ),
-    buildModifierGrantVariant('SPEED', 'BONUS', speedParamDtoSchema, modifierScalarValueDtoSchema),
-    buildModifierGrantVariant(
-      'SPEED',
-      'PENALTY',
-      speedParamDtoSchema,
-      modifierScalarValueDtoSchema
-    ),
-    buildModifierGrantVariant(
-      'SPEED',
-      'SET_VALUE',
-      speedParamDtoSchema,
-      z.object({ amount: z.number() })
-    ),
+    buildModifierGrantVariant('SPEED', 'BONUS', speedParamDtoSchema, authoredLengthSchema),
+    buildModifierGrantVariant('SPEED', 'PENALTY', speedParamDtoSchema, authoredLengthSchema),
+    buildModifierGrantVariant('SPEED', 'SET_VALUE', speedParamDtoSchema, authoredLengthSchema),
     buildModifierGrantVariant(
       'MOVEMENT_MODE',
       'ADD_OPTION',
@@ -520,18 +511,8 @@ const buildModifierGrantVariants = () => {
       emptyDomainDtoSchema,
       optionPayloadByDomainDtoSchema.MOVEMENT_MODE
     ),
-    buildModifierGrantVariant(
-      'SENSE_RANGE',
-      'BONUS',
-      senseParamDtoSchema,
-      modifierScalarValueDtoSchema
-    ),
-    buildModifierGrantVariant(
-      'SENSE_RANGE',
-      'SET_VALUE',
-      senseParamDtoSchema,
-      z.object({ amount: z.number() })
-    ),
+    buildModifierGrantVariant('SENSE_RANGE', 'BONUS', senseParamDtoSchema, authoredLengthSchema),
+    buildModifierGrantVariant('SENSE_RANGE', 'SET_VALUE', senseParamDtoSchema, authoredLengthSchema),
     buildModifierGrantVariant(
       'RANGE',
       'REPLACE_RANGE_KIND',

@@ -42,10 +42,11 @@ export function aidAtSecondLevel(): EffectAuthored {
                         ...outcome,
                         grants: {
                           ...outcome.grants,
-                          modifiers: outcome.grants.modifiers?.map((modifier) => ({
-                            ...modifier,
-                            payload: { valueKind: 'FIXED' as const, amount: 5 }
-                          }))
+                          modifiers: outcome.grants.modifiers?.map((modifier) =>
+                            modifier.valueDomainCode === 'HIT_POINTS_MAX'
+                              ? { ...modifier, payload: { valueKind: 'FIXED' as const, amount: 5 } }
+                              : modifier
+                          )
                         }
                       }
                     ]

@@ -28,6 +28,8 @@ export function buildCharacterMovementRuleFacts(
       .map((speed) => speed.id),
     ...adjustments.map((adjustment) => adjustment.speedId)
   ].filter((speedId, index, all) => all.indexOf(speedId) === index)
+  // The persisted SPEED_OVERRIDE is a bare number, so a speed with no base needs a default unit and
+  // amount here. RELIABILITY-5.T2 types the override as a length and removes both defaults.
   const defaultUnit = baseSpeeds[0]?.unit ?? 'FEET'
   const speeds: MovementFacts['speeds'] = orderedIds.map((speedId) => {
     const speed = baseById.get(speedId)

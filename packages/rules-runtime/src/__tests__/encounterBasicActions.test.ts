@@ -13,6 +13,7 @@ import {
   SRD_BASIC_ACTION_DEFINITIONS,
   SRD_BASIC_ACTION_IDS
 } from '@artificer-toolkit/source-data/srd/basicActions.js'
+import { SRD_SPEEDS } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { compileEffect } from '@artificer-toolkit/shared/compilers'
 import { buildCompiledActionTargetPolicy } from '../encounterActionEntryPointCompiler.js'
@@ -201,7 +202,8 @@ describe('basic action mechanics (Q11)', () => {
     const defended = await withEncounterHolderDefense({
       target: target(fighter, { activeEffects: [dodge] }),
       gameSystemId: SYSTEM_ID,
-      definitions
+      definitions,
+      speedDefinitions: SRD_SPEEDS
     })
     const sourceId = createCharacterMechanicSourceKey({
       kind: 'ACTIVE_EFFECT',
@@ -243,7 +245,8 @@ describe('basic action mechanics (Q11)', () => {
       await withEncounterHolderDefense({
         target: target(fighter),
         gameSystemId: SYSTEM_ID,
-        definitions
+        definitions,
+        speedDefinitions: SRD_SPEEDS
       })
     ).toEqual(target(fighter))
   })
@@ -275,7 +278,8 @@ describe('basic action mechanics (Q11)', () => {
       const defended = await withEncounterHolderDefense({
         target: suspended,
         gameSystemId: SYSTEM_ID,
-        definitions
+        definitions,
+        speedDefinitions: SRD_SPEEDS
       })
       expect(defended.attackAgainstContributors).toEqual([])
       expect(defended.targetDerivedFacts).toEqual(suspended.targetDerivedFacts)
