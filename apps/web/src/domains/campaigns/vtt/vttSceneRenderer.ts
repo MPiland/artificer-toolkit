@@ -8,6 +8,7 @@ import {
   applySceneDelta,
   createSceneFogAreaPatch,
   extendSceneMovementPath,
+  isDirectedAreaShape,
   isSceneMovementPathValid,
   resolveSceneIlluminationAt,
   SceneBarrierIndex,
@@ -17,8 +18,7 @@ import {
   visionRangeInMapPixels,
   type ScenePoint,
   type SceneToken,
-  type SceneTokenVision,
-  type SpatialPointAreaShape
+  type SceneTokenVision
 } from '@artificer-toolkit/shared/vtt'
 import type {
   Application,
@@ -31,12 +31,14 @@ import type {
   Texture
 } from 'pixi.js'
 import {
+  areaOverlay,
   buildVttFogMask,
   canControlSceneToken,
   canPreserveSceneTokenDrag,
   clampPolygonToRadius,
   darknessZoneStyle,
   dashedPolygonSegments,
+  directedAreaAim,
   dimOverlayAlpha,
   ellipseArcPoints,
   describeSceneLighting,
@@ -50,7 +52,6 @@ import {
   lightRadii,
   lightTintAlpha,
   maxStatusSegments,
-  pointAreaOverlay,
   positionVttMapTiles,
   resolveVttMapLoadDecision,
   resolveSceneTokenMove,
@@ -65,6 +66,8 @@ import {
   statusOverflowColour,
   shouldReloadVttMap,
   visibleGridLinePositions,
+  type VttAreaAim,
+  type VttAreaSize,
   type VttScenePresentationOverlay,
   type VttSenseEffect,
   type VttSenseReach,
@@ -90,8 +93,10 @@ export type CampaignVttTool =
   | 'FOG_HIDE'
 
 interface VttSceneRendererCallbacks {
-  /** The caster clicked the map while aiming an area. */
+  /** The caster clicked the map while aiming a point area. */
   onAreaPoint?: (point: ScenePoint) => void
+  /** The caster released a drag from their token's edge while aiming a directed area. */
+  onAreaDirection?: (aim: { origin: ScenePoint; toward: ScenePoint }) => void
   /** The caster pressed Escape while aiming an area. */
   onAreaAimCancel?: () => void
   onMapLoadStatus?: (status: VttMapLoadStatus) => void
@@ -122,8 +127,11 @@ interface VttSceneRendererCallbacks {
 export type VttMapLoadStatus = 'ERROR' | 'LOADING' | 'READY'
 
 export interface VttSceneRendererUpdate {
-  /** While set, the pointer aims this area: a preview follows it and a click picks its origin. */
-  areaAim?: { shape: SpatialPointAreaShape } | null
+  /**
+   * While set, the pointer aims this area: a preview follows it. A point area is picked by a click
+   * on its center; a directed area by a drag from the edge of the caster's token (`casterTokenId`).
+   */
+  areaAim?: { casterTokenId: string | null; size: VttAreaSize } | null
   boundTokenControl: ReadonlyMap<string, boolean>
   currentUserId: string
   mapDelivery: SignedVttMapDeliveryDto | null
@@ -457,6 +465,8 @@ export async function createVttSceneRenderer(
   let gestureStart: ScenePoint | null = null
   let gesturePath: ScenePoint[] = []
   let wallChainStart: ScenePoint | null = null
+  /** Where the press that began a directed area's aim landed; its origin snaps to the caster's edge. */
+  let areaPress: ScenePoint | null = null
   let drag: {
     appearanceKey: string
     last: ScenePoint
@@ -2053,7 +2063,8 @@ export async function createVttSceneRenderer(
     if (!current) return
     const point = worldPoint(event)
     if (current.areaAim && event.button === 0) {
-      callbacks.onAreaPoint?.(point)
+      if (isDirectedAreaShape(current.areaAim.size)) areaPress = point
+      else callbacks.onAreaPoint?.(point)
       return
     }
     if (current.tool === 'PAN' || event.button === 1) {
@@ -2118,9 +2129,11 @@ export async function createVttSceneRenderer(
     if (panStart || drag || gestureStart || current?.areaAim) requestRender()
     if (current?.areaAim && !panStart) {
       destroyChildren(measurementLayer)
-      measurementLayer.addChild(
-        overlayGraphic(pointAreaOverlay(current.areaAim.shape, worldPoint(event)))
-      )
+      const { casterTokenId, size } = current.areaAim
+      const aim = aimedArea(worldPoint(event))
+      const caster = current.scene.tokens.find((token) => token.id === casterTokenId) ?? null
+      const overlay = aim ? areaOverlay(size, aim, caster) : null
+      if (overlay) measurementLayer.addChild(overlayGraphic(overlay))
       return
     }
     if (panStart) {
@@ -2162,6 +2175,12 @@ export async function createVttSceneRenderer(
     requestRender()
     pingPress.end()
     panStart = null
+    if (areaPress) {
+      const aimed = aimedDirection(worldPoint(event))
+      areaPress = null
+      if (aimed) callbacks.onAreaDirection?.(aimed)
+      return
+    }
     if (drag) {
       const completed = drag
       drag = null
@@ -2621,10 +2640,28 @@ export async function createVttSceneRenderer(
     requestRender()
   }
 
+  /** The directed area the pointer aims at `pointer`; null when the area is not directed or the aim is not valid there. */
+  function aimedDirection(pointer: ScenePoint): { origin: ScenePoint; toward: ScenePoint } | null {
+    const aim = current?.areaAim
+    if (!current || !aim || !isDirectedAreaShape(aim.size)) return null
+    const caster = current.scene.tokens.find((token) => token.id === aim.casterTokenId)
+    return caster
+      ? directedAreaAim({ caster, pointer, pressedAt: areaPress, size: aim.size })
+      : null
+  }
+
+  /** What the pointer aims at: a point area's center, or the directed area's aim when it is valid there. */
+  function aimedArea(pointer: ScenePoint): VttAreaAim | null {
+    return current?.areaAim && !isDirectedAreaShape(current.areaAim.size)
+      ? { origin: pointer, toward: null }
+      : aimedDirection(pointer)
+  }
+
   function cancelActiveInteraction(): void {
     requestRender()
     pingPress.end()
     panStart = null
+    areaPress = null
     gestureStart = null
     wallChainStart = null
     gesturePath = []

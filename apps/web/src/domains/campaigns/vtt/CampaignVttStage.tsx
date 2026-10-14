@@ -34,8 +34,7 @@ import {
   createUniformSceneFogLayer,
   projectSceneForViewer,
   sceneFogOwnerFailure,
-  type ScenePoint,
-  type SpatialPointAreaShape
+  type ScenePoint
 } from '@artificer-toolkit/shared/vtt'
 import { getCampaignLiveScenes } from '#app/data/campaigns/scenes'
 import { loadCampaignSceneEncounterBindings } from '#app/data/campaigns/liveScenes'
@@ -97,7 +96,9 @@ import {
   formatSceneMeasurement,
   resolveViewTokenId,
   stageOverlays,
-  type VttActionPreview
+  type VttActionPreview,
+  type VttAreaAim,
+  type VttAreaSize
 } from './vttSceneRenderer.model'
 import { buildVttTokenPresentations } from './vttTokenPresentation.model'
 import { CampaignVttTokenStatusList } from './CampaignVttTokenStatusList'
@@ -112,9 +113,9 @@ export function CampaignVttStage({
 }) {
   const convex = useConvex()
   const [actionsOpened, setActionsOpened] = useState(false)
-  // An area action's center, picked on the map, and the area's size on this Scene.
-  const [areaOrigin, setAreaOrigin] = useState<ScenePoint | null>(null)
-  const [areaShape, setAreaShape] = useState<SpatialPointAreaShape | null>(null)
+  // Where the caster aimed an area action on the map, and the area's size on this Scene.
+  const [areaAim, setAreaAim] = useState<VttAreaAim | null>(null)
+  const [areaSize, setAreaSize] = useState<VttAreaSize | null>(null)
   const [aimingArea, setAimingArea] = useState(false)
   const [actionPreview, setActionPreview] = useState<VttActionPreview | null>(null)
   const renderer = useRef<VttSceneRenderer | null>(null)
@@ -514,22 +515,25 @@ export function CampaignVttStage({
       viewerUserId
     ]
   )
-  const areaAim = useMemo(
-    () => (aimingArea && areaShape ? { shape: areaShape } : null),
-    [aimingArea, areaShape]
+  const rendererAreaAim = useMemo(
+    () =>
+      aimingArea && areaSize
+        ? { casterTokenId: actionPreview?.sourceTokenId ?? null, size: areaSize }
+        : null,
+    [actionPreview?.sourceTokenId, aimingArea, areaSize]
   )
   // The preview shows while the drawer is open, including while the caster aims an area's center.
   const overlays = useMemo(
     () =>
       stageOverlays({
         actionPreview,
-        aimingArea: areaAim !== null,
-        areaOrigin,
-        areaShape,
+        aimingArea: rendererAreaAim !== null,
+        areaAim,
+        areaSize,
         drawerOpened: actionsOpened,
         scene: renderedScene ?? null
       }),
-    [actionPreview, actionsOpened, areaAim, areaOrigin, areaShape, renderedScene]
+    [actionPreview, actionsOpened, areaAim, areaSize, rendererAreaAim, renderedScene]
   )
   // A selection whose token left the Scene counts as no selection.
   const selectedSceneTokenId = scene?.tokens.some((token) => token.id === selectedTokenId)
@@ -564,7 +568,7 @@ export function CampaignVttStage({
     : null
   rendererUpdateRef.current = renderedScene
     ? {
-        areaAim,
+        areaAim: rendererAreaAim,
         boundTokenControl,
         currentUserId: viewerUserId,
         mapDelivery: mapDelivery.data ?? null,
@@ -687,7 +691,12 @@ export function CampaignVttStage({
         setActionsOpened(true)
       },
       onAreaPoint: (point) => {
-        setAreaOrigin(point)
+        setAreaAim({ origin: point, toward: null })
+        setAimingArea(false)
+        setActionsOpened(true)
+      },
+      onAreaDirection: (aim) => {
+        setAreaAim(aim)
         setAimingArea(false)
         setActionsOpened(true)
       },
@@ -797,7 +806,7 @@ export function CampaignVttStage({
     const latestUpdate = rendererUpdateRef.current
     if (latestUpdate) renderer.current?.update(latestUpdate)
   }, [
-    areaAim,
+    rendererAreaAim,
     boundTokenControl,
     campaign.role,
     currentUserId,
@@ -1221,11 +1230,11 @@ export function CampaignVttStage({
               optionalRules={currentActionChoices?.optionalRules ?? []}
               pending={encounterCommand.isPending || pendingOccurrence !== null}
               scene={activeEncounterSceneBinding?.sceneId === scene.id ? scene : null}
-              areaOrigin={areaOrigin}
+              areaAim={areaAim}
               waitingOn={encounterSessionState?.waitingOn ?? null}
               actorIdByTokenId={actorIdByTokenId}
-              onAreaOriginChange={setAreaOrigin}
-              onAreaShapeChange={setAreaShape}
+              onAreaAimChange={setAreaAim}
+              onAreaSizeChange={setAreaSize}
               onActionPreviewChange={setActionPreview}
               onPickAreaOrigin={() => setAimingArea(true)}
               onResolve={(command) => encounterCommand.mutateAsync(command)}

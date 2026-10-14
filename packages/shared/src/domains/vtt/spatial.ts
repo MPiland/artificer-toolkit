@@ -43,7 +43,10 @@ export interface SpatialEffectInstance {
   readonly movementKinds: readonly SpatialMovementKind[]
 }
 
-export type SpatialSceneToken = Pick<SceneToken, 'height' | 'id' | 'position' | 'width'>
+/** The space a token occupies. */
+export type SpatialTokenFootprint = Pick<SceneToken, 'height' | 'position' | 'width'>
+
+export type SpatialSceneToken = SpatialTokenFootprint & Pick<SceneToken, 'id'>
 
 export interface SpatialMovementCandidate {
   /**
@@ -136,7 +139,7 @@ function validSpatialGeometry(geometry: SpatialGeometry): boolean {
   )
 }
 
-function validSpatialToken(token: SpatialSceneToken): boolean {
+function validSpatialToken(token: SpatialTokenFootprint): boolean {
   return (
     isAbsolutePoint(token.position) &&
     isBoundedDistance(token.width) &&
@@ -206,7 +209,7 @@ export function effectiveSpatialGeometry(
   return validSpatialGeometry(translated) ? translated : null
 }
 
-function footprint(token: SpatialSceneToken, center = sceneTokenAnchor(token)): Footprint {
+function footprint(token: SpatialTokenFootprint, center = sceneTokenAnchor(token)): Footprint {
   return { center, halfHeight: token.height / 2, halfWidth: token.width / 2 }
 }
 
@@ -253,21 +256,22 @@ function pointInPolygon(point: ScenePoint, points: readonly ScenePoint[]): boole
   return inside
 }
 
+/** How far `point` is from the nearest point of the footprint; zero inside or on it. */
+function distanceFromFootprint(value: Footprint, point: ScenePoint): number {
+  const closestX = Math.max(
+    value.center.x - value.halfWidth,
+    Math.min(point.x, value.center.x + value.halfWidth)
+  )
+  const closestY = Math.max(
+    value.center.y - value.halfHeight,
+    Math.min(point.y, value.center.y + value.halfHeight)
+  )
+  return Math.hypot(point.x - closestX, point.y - closestY)
+}
+
 function footprintIntersectsSpatialGeometry(value: Footprint, geometry: SpatialGeometry): boolean {
-  if (geometry.kind === 'CIRCLE') {
-    const closestX = Math.max(
-      value.center.x - value.halfWidth,
-      Math.min(geometry.center.x, value.center.x + value.halfWidth)
-    )
-    const closestY = Math.max(
-      value.center.y - value.halfHeight,
-      Math.min(geometry.center.y, value.center.y + value.halfHeight)
-    )
-    return (
-      Math.hypot(geometry.center.x - closestX, geometry.center.y - closestY) <=
-      geometry.radius + EPSILON
-    )
-  }
+  if (geometry.kind === 'CIRCLE')
+    return distanceFromFootprint(value, geometry.center) <= geometry.radius + EPSILON
   const corners = footprintCorners(value)
   if (corners.some((corner) => pointInPolygon(corner, geometry.points))) return true
   if (geometry.points.some((point) => pointInFootprint(point, value))) return true
@@ -334,32 +338,300 @@ export function pointAreaInSceneCoordinates(
   return radius === null ? null : { kind: 'RADIUS', radius }
 }
 
+/** The square a point cube covers: it is centered on the picked point. */
+export function pointCubeOutline(origin: ScenePoint, edgeLength: number): ScenePoint[] {
+  const half = edgeLength / 2
+  return [
+    { x: origin.x - half, y: origin.y - half },
+    { x: origin.x + half, y: origin.y - half },
+    { x: origin.x + half, y: origin.y + half },
+    { x: origin.x - half, y: origin.y + half }
+  ]
+}
+
 /**
- * The tokens whose footprint touches a point-origin area, sorted by id. A cylinder's height is not
- * modeled: the Scene is flat. An invalid shape or token catches nothing (fails closed).
+ * A directed area in Scene units. Its point of origin lies on the caster's footprint and it extends
+ * toward `toward`. A cone is as wide as it is long and a line is a rectangle centered on its axis.
+ * A cube extends one full edge out from the side of the footprint `toward` mostly faces, with its
+ * face flush against that side: the origin picks where along the side the face sits, in steps of
+ * `cellSize`, so the cube stays on the grid and never starts inside the caster's space.
  */
-export function spatialTokensInsidePointArea(input: {
+export type SpatialDirectedAreaShape =
+  | { readonly kind: 'CONE'; readonly length: number; readonly toward: ScenePoint }
+  | {
+      readonly kind: 'LINE'
+      readonly length: number
+      readonly width: number
+      readonly toward: ScenePoint
+    }
+  | {
+      readonly kind: 'CUBE_FROM_SIDE'
+      readonly edgeLength: number
+      readonly cellSize: number
+      readonly toward: ScenePoint
+    }
+
+/** A directed area's size before it is aimed: its shape without the direction. */
+export type SpatialDirectedAreaSize = SpatialDirectedAreaShape extends infer Shape
+  ? Shape extends SpatialDirectedAreaShape
+    ? Omit<Shape, 'toward'>
+    : never
+  : never
+
+export type SpatialAreaShape = SpatialPointAreaShape | SpatialDirectedAreaShape
+
+/** Narrows a shape, or a size before it is aimed, to its directed members. */
+export function isDirectedAreaShape<Shape extends SpatialAreaShape | SpatialDirectedAreaSize>(
+  shape: Shape
+): shape is Extract<Shape, { readonly kind: SpatialDirectedAreaShape['kind'] }> {
+  return shape.kind !== 'RADIUS' && shape.kind !== 'CUBE'
+}
+
+/** A directed area as authored. A line with no authored width is 5 feet wide (one square). */
+export type AuthoredDirectedArea =
+  | { readonly kind: 'CONE'; readonly length: AuthoredPointAreaLength }
+  | {
+      readonly kind: 'LINE'
+      readonly length: AuthoredPointAreaLength
+      readonly width?: AuthoredPointAreaLength
+    }
+  | { readonly kind: 'CUBE_FROM_SIDE'; readonly edgeLength: AuthoredPointAreaLength }
+
+const FIVE_FEET: AuthoredPointAreaLength = { amount: 5, unit: 'FEET' }
+
+/** The authored directed area's size in Scene coordinates. Null for a size that is scaled or empty. */
+export function directedAreaSizeInSceneCoordinates(
+  area: AuthoredDirectedArea,
+  grid: SceneGrid
+): SpatialDirectedAreaSize | null {
+  if (area.kind === 'CUBE_FROM_SIDE') {
+    const edgeLength = coordinateLength(area.edgeLength, grid)
+    // A gridless Scene has no cells, so the cube snaps to the 5 ft square of the rules.
+    const cellSize = grid.kind === 'GRIDLESS' ? coordinateLength(FIVE_FEET, grid) : grid.cellSize
+    return edgeLength === null || cellSize === null
+      ? null
+      : { kind: 'CUBE_FROM_SIDE', edgeLength, cellSize }
+  }
+  const length = coordinateLength(area.length, grid)
+  if (length === null) return null
+  if (area.kind === 'CONE') return { kind: 'CONE', length }
+  const width = coordinateLength(area.width ?? FIVE_FEET, grid)
+  return width === null ? null : { kind: 'LINE', length, width }
+}
+
+/** The authored directed area in Scene coordinates, aimed at `toward`; null for an unusable size. */
+export function directedAreaInSceneCoordinates(
+  area: AuthoredDirectedArea,
+  toward: ScenePoint,
+  grid: SceneGrid
+): SpatialDirectedAreaShape | null {
+  const size = directedAreaSizeInSceneCoordinates(area, grid)
+  return size && { ...size, toward }
+}
+
+/**
+ * The cube that extends from the side of `caster` the direction mostly faces, on the grid. Its face
+ * is flush against that side and sits in one of the snapped places that still share the side with
+ * the caster; where the origin lies along the side picks the place, from one end to the other.
+ */
+function cubeFromSideOutline(
+  caster: SpatialTokenFootprint,
+  origin: ScenePoint,
+  shape: Extract<SpatialDirectedAreaShape, { kind: 'CUBE_FROM_SIDE' }>
+): ScenePoint[] {
+  const space = footprint(caster)
+  const faceX = Math.abs(shape.toward.x - origin.x) >= Math.abs(shape.toward.y - origin.y)
+  const out = Math.sign(faceX ? shape.toward.x - origin.x : shape.toward.y - origin.y)
+  // `depth` runs out from the side the cube is on and `slide` along it.
+  const [depthHalf, slideHalf] = faceX
+    ? [space.halfWidth, space.halfHeight]
+    : [space.halfHeight, space.halfWidth]
+  const [depthCenter, slideCenter, slideOrigin] = faceX
+    ? [space.center.x, space.center.y, origin.y]
+    : [space.center.y, space.center.x, origin.x]
+  const { edgeLength, cellSize } = shape
+  const sideLength = slideHalf * 2
+  const sideStart = slideCenter - slideHalf
+  const earliest = cellSize - edgeLength
+  const places = Math.max(0, Math.round((sideLength - cellSize - earliest) / cellSize))
+  const along = Math.min(Math.max((slideOrigin - sideStart) / sideLength, 0), 1)
+  const start = sideStart + earliest + Math.round(along * places) * cellSize
+  const near = depthCenter + out * depthHalf
+  const far = near + out * edgeLength
+  const corner = (depth: number, slide: number): ScenePoint =>
+    faceX ? { x: depth, y: slide } : { x: slide, y: depth }
+  return [
+    corner(near, start),
+    corner(far, start),
+    corner(far, start + edgeLength),
+    corner(near, start + edgeLength)
+  ]
+}
+
+/**
+ * The polygon a directed area covers, in order around its edge, for a caster whose space is
+ * `caster`. Null when `toward` is the origin (no direction) or a size is not a positive finite
+ * number.
+ */
+export function directedAreaOutline(
+  origin: ScenePoint,
+  shape: SpatialDirectedAreaShape,
+  caster: SpatialTokenFootprint
+): ScenePoint[] | null {
+  const dx = shape.toward.x - origin.x
+  const dy = shape.toward.y - origin.y
+  const distance = Math.hypot(dx, dy)
+  const length = shape.kind === 'CUBE_FROM_SIDE' ? shape.edgeLength : shape.length
+  const width = shape.kind === 'LINE' ? shape.width : length
+  const sizes = shape.kind === 'CUBE_FROM_SIDE' ? [length, shape.cellSize] : [length, width]
+  if (!(distance > EPSILON) || !sizes.every((size) => Number.isFinite(size) && size > 0))
+    return null
+  if (shape.kind === 'CUBE_FROM_SIDE')
+    return validSpatialToken(caster) ? cubeFromSideOutline(caster, origin, shape) : null
+  const axis = { x: dx / distance, y: dy / distance }
+  const across = { x: -axis.y, y: axis.x }
+  const far = { x: origin.x + axis.x * length, y: origin.y + axis.y * length }
+  const beside = (point: ScenePoint, offset: number): ScenePoint => ({
+    x: point.x + across.x * offset,
+    y: point.y + across.y * offset
+  })
+  if (shape.kind === 'CONE') return [origin, beside(far, width / 2), beside(far, -width / 2)]
+  return [
+    beside(origin, width / 2),
+    beside(far, width / 2),
+    beside(far, -width / 2),
+    beside(origin, -width / 2)
+  ]
+}
+
+/** How far past the origin the direction is sampled to see whether it leaves the footprint. */
+const ORIGIN_STEP = 1e-3
+
+/**
+ * Whether a directed area may start at `origin` for a caster whose space is `token`: the origin
+ * lies on the edge or a corner of the footprint, the direction leaves the footprint (pointing
+ * along an edge or into the space does not), and a cube's origin lies on the side its direction
+ * faces. This is the one rule both the rules and the stage's aiming apply.
+ */
+export function isDirectedAreaOriginOnToken(input: {
+  token: SpatialTokenFootprint
   origin: ScenePoint
-  shape: SpatialPointAreaShape
-  tokens: readonly SpatialSceneToken[]
-}): string[] {
-  const { origin, shape } = input
-  const geometry: SpatialGeometry =
-    shape.kind === 'RADIUS'
-      ? { kind: 'CIRCLE', center: origin, radius: shape.radius }
-      : {
-          kind: 'POLYGON',
-          points: [
-            { x: origin.x - shape.edgeLength / 2, y: origin.y - shape.edgeLength / 2 },
-            { x: origin.x + shape.edgeLength / 2, y: origin.y - shape.edgeLength / 2 },
-            { x: origin.x + shape.edgeLength / 2, y: origin.y + shape.edgeLength / 2 },
-            { x: origin.x - shape.edgeLength / 2, y: origin.y + shape.edgeLength / 2 }
-          ]
-        }
-  return input.tokens
-    .filter((token) => spatialGeometryIntersectsTokenFootprint({ geometry, token }))
-    .map((token) => token.id)
-    .sort()
+  shape: SpatialDirectedAreaShape
+}): boolean {
+  const { token, origin, shape } = input
+  const dx = shape.toward.x - origin.x
+  const dy = shape.toward.y - origin.y
+  const distance = Math.hypot(dx, dy)
+  if (!validSpatialToken(token) || !(distance > EPSILON)) return false
+  const space = footprint(token)
+  const onEdge =
+    pointInFootprint(origin, space) &&
+    (Math.abs(origin.x - space.center.x) >= space.halfWidth - EPSILON ||
+      Math.abs(origin.y - space.center.y) >= space.halfHeight - EPSILON)
+  if (!onEdge) return false
+  if (shape.kind !== 'CUBE_FROM_SIDE')
+    return !pointInFootprint(
+      { x: origin.x + (dx / distance) * ORIGIN_STEP, y: origin.y + (dy / distance) * ORIGIN_STEP },
+      space
+    )
+  const [position, edge] =
+    Math.abs(dx) >= Math.abs(dy)
+      ? [origin.x - space.center.x, space.halfWidth * Math.sign(dx)]
+      : [origin.y - space.center.y, space.halfHeight * Math.sign(dy)]
+  return Math.abs(position - edge) <= EPSILON
+}
+
+/**
+ * The point on the edge of `token`'s footprint nearest `point`: a point outside snaps to the
+ * footprint, one inside to the nearest side. This is where the stage places a directed area's origin.
+ */
+export function nearestFootprintEdgePoint(
+  token: SpatialTokenFootprint,
+  point: ScenePoint
+): ScenePoint {
+  const { center, halfWidth, halfHeight } = footprint(token)
+  const [left, right, top, bottom] = [
+    center.x - halfWidth,
+    center.x + halfWidth,
+    center.y - halfHeight,
+    center.y + halfHeight
+  ]
+  const clamped = {
+    x: Math.min(Math.max(point.x, left), right),
+    y: Math.min(Math.max(point.y, top), bottom)
+  }
+  if (clamped.x !== point.x || clamped.y !== point.y) return clamped
+  return [
+    { gap: point.x - left, edge: { x: left, y: point.y } },
+    { gap: right - point.x, edge: { x: right, y: point.y } },
+    { gap: point.y - top, edge: { x: point.x, y: top } },
+    { gap: bottom - point.y, edge: { x: point.x, y: bottom } }
+  ].reduce((nearest, side) => (side.gap < nearest.gap ? side : nearest)).edge
+}
+
+/** Whether two convex polygons share area: touching along an edge or at a corner does not count. */
+function convexPolygonsOverlap(
+  first: readonly ScenePoint[],
+  second: readonly ScenePoint[]
+): boolean {
+  const project = (polygon: readonly ScenePoint[], axis: ScenePoint) => {
+    const values = polygon.map((point) => point.x * axis.x + point.y * axis.y)
+    return { min: Math.min(...values), max: Math.max(...values) }
+  }
+  return ![first, second].some((polygon) =>
+    polygon.some((from, index) => {
+      const to = polygon[(index + 1) % polygon.length]!
+      const length = Math.hypot(to.x - from.x, to.y - from.y)
+      if (length === 0) return false
+      const axis = { x: (from.y - to.y) / length, y: (to.x - from.x) / length }
+      const [a, b] = [project(first, axis), project(second, axis)]
+      return a.max <= b.min + EPSILON || b.max <= a.min + EPSILON
+    })
+  )
+}
+
+/**
+ * The tokens whose footprint shares area with an area, sorted by id: touching its edge or a corner
+ * of it never catches (user ruling 2026-10-14, D103). A cylinder's height is not modeled: the Scene
+ * is flat. A directed area starts on the caster's own space and never catches the caster's token
+ * (`casterTokenId`, which must be among `tokens`). An invalid shape or token catches nothing (fails
+ * closed).
+ */
+export function spatialTokensInsideArea(
+  input: {
+    origin: ScenePoint
+    tokens: readonly SpatialSceneToken[]
+  } & (
+    | { shape: SpatialPointAreaShape }
+    | { shape: SpatialDirectedAreaShape; casterTokenId: string }
+  )
+): string[] {
+  const { origin } = input
+  const catches = (tokens: readonly SpatialSceneToken[], overlaps: (space: Footprint) => boolean) =>
+    tokens
+      .filter((token) => validSpatialToken(token) && overlaps(footprint(token)))
+      .map((token) => token.id)
+      .sort()
+  if ('casterTokenId' in input) {
+    const caster = input.tokens.find((token) => token.id === input.casterTokenId)
+    const outline = caster && directedAreaOutline(origin, input.shape, caster)
+    if (!outline) return []
+    return catches(
+      input.tokens.filter((token) => token !== caster),
+      (space) => convexPolygonsOverlap(outline, footprintCorners(space))
+    )
+  }
+  const { shape } = input
+  if (shape.kind === 'RADIUS') {
+    if (!validSpatialGeometry({ kind: 'CIRCLE', center: origin, radius: shape.radius })) return []
+    return catches(
+      input.tokens,
+      (space) => distanceFromFootprint(space, origin) < shape.radius - EPSILON
+    )
+  }
+  const outline = pointCubeOutline(origin, shape.edgeLength)
+  if (!validSpatialGeometry({ kind: 'POLYGON', points: outline })) return []
+  return catches(input.tokens, (space) => convexPolygonsOverlap(outline, footprintCorners(space)))
 }
 
 function interpolate(from: ScenePoint, to: ScenePoint, progress: number): ScenePoint {

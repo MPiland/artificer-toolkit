@@ -1,7 +1,9 @@
 import {
   actionAreaSceneRequestDtoSchema,
+  areaActionTargetOrigin,
   resolveEncounterActionInputDtoSchema,
   type ActionAreaSceneRequestDto,
+  type AreaActionTargetDto,
   type ResolveEncounterActionInputDto
 } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import type { LiveSessionEncounterRulesResponse } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
@@ -40,7 +42,7 @@ type AreaCommand = Omit<
   Extract<ResolveEncounterActionInputDto, { type: 'RESOLVE_ACTION' }>,
   'target'
 > & {
-  target: Extract<ResolveEncounterActionInputDto['target'], { kind: 'POINT' }>
+  target: AreaActionTargetDto
 }
 
 /** The area occurrence's own snapshot narrowed to its aggregate context. */
@@ -49,6 +51,22 @@ export function areaActionPendingContext(snapshot: ServerRuleExecutionPendingSna
     snapshot.applicationContext.kind === 'ENCOUNTER_AREA_ACTION'
     ? snapshot.applicationContext
     : null
+}
+
+/** Whether the sealed area is the one the command aimed: the same origin and, if directed, direction. */
+export function areaMatchesTarget(
+  area: EncounterAreaActionPendingContextDto['area'],
+  target: AreaActionTargetDto
+) {
+  const origin = areaActionTargetOrigin(target)
+  return (
+    area.origin.x === origin.x &&
+    area.origin.y === origin.y &&
+    (target.kind !== 'DIRECTED' ||
+      ('toward' in area.shape &&
+        area.shape.toward.x === target.toward.x &&
+        area.shape.toward.y === target.toward.y))
+  )
 }
 
 /** The creatures the area still waits on or caught, each with its own sealed save. */
@@ -101,7 +119,7 @@ export async function readNativeAreaActionPending(
   const command = resolveEncounterActionInputDtoSchema.parse(JSON.parse(context.commandJson))
   if (
     command.type !== 'RESOLVE_ACTION' ||
-    command.target.kind !== 'POINT' ||
+    command.target.kind === 'ACTOR' ||
     command.commandId !== occurrence.rootCommandId ||
     command.encounterId !== occurrence.encounterId ||
     command.expectedVersion !== occurrence.expectedEncounterVersion ||
@@ -139,8 +157,7 @@ export async function requireAreaActionPendingRoot(
     context.casterActorId !== command.actorId ||
     context.scene.sceneId !== command.target.sceneId ||
     context.scene.sceneVersion !== command.target.expectedSceneVersion ||
-    context.area.origin.x !== command.target.point.x ||
-    context.area.origin.y !== command.target.point.y ||
+    !areaMatchesTarget(context.area, command.target) ||
     snapshot.optionalCombatSnapshotChecksum !== state.optionalCombatSnapshotChecksum ||
     !state.actorIds.includes(context.casterActorId)
   )
@@ -166,6 +183,7 @@ export async function requireAreaActionPendingRoot(
   const caught = catchEncounterAreaActorIds({
     origin: context.area.origin,
     shape: context.area.shape,
+    casterActorId: context.casterActorId,
     tokens: scene.tokens.map((token) => ({ ...token, id: token.tokenId }))
   })
   // A creature the GM removed is still caught by the Scene; it is simply no longer tested.
