@@ -74,6 +74,9 @@ export type PredicatePayloadByCode = {
     { category?: EquipmentCategoryCode }
   >
   SOLE_WIELDED_WEAPON: EmptyObject
+  ATTACK_ABILITY: {
+    ability: AbilityCode
+  }
   EQUIPMENT_PROFICIENCY: Selectable<
     { equipmentIds: string[] },
     {
@@ -315,6 +318,15 @@ export const PREDICATE_REGISTRY = {
     tooltip: 'Requires the item to be the only weapon wielded.',
     description:
       'Narrows to an attack whose item is the only weapon the character wields: no other weapon is equipped. A shield is not a weapon.',
+    subjects: ['EQUIPMENT']
+  },
+
+  ATTACK_ABILITY: {
+    code: 'ATTACK_ABILITY',
+    label: 'Attack Ability',
+    tooltip: 'Requires the attack to use the ability.',
+    description:
+      'Narrows to an attack that uses a specific ability for its attack and damage rolls. A finesse weapon uses whichever of Strength or Dexterity gives the higher modifier.',
     subjects: ['EQUIPMENT']
   },
 

@@ -458,6 +458,7 @@ export async function persistEncounterAreaCommit(
     occurredAt: input.occurredAt,
     concentration: input.concentration,
     concentrationEnds: input.concentrationEnds,
+    endedGrants: input.endedGrants,
     pendingConcentration: input.pendingConcentration
   })
   const projection = await projectNativeGm(ctx, nextState, settledChildren.actors, input.rules)

@@ -425,7 +425,8 @@ export const PATH_LIFECYCLE_TURN_BOUNDARY_OPTIONS = valuesOf(
 export const PATH_LIFECYCLE_END_EVENT = {
   ON_ATTACK_ROLL: 'ON_ATTACK_ROLL',
   ON_CAST_SPELL: 'ON_CAST_SPELL',
-  ON_HIT_POINTS_REGAINED: 'ON_HIT_POINTS_REGAINED'
+  ON_HIT_POINTS_REGAINED: 'ON_HIT_POINTS_REGAINED',
+  ON_INCAPACITATED: 'ON_INCAPACITATED'
 } as const
 
 export type PathLifecycleEndEvent = keyof typeof PATH_LIFECYCLE_END_EVENT
@@ -453,6 +454,12 @@ export const PATH_LIFECYCLE_END_EVENT_REGISTRY: Record<
     label: 'On Hit Points Regained',
     description: 'The effect ends when the affected creature regains hit points.',
     tooltip: 'Ends on healing.'
+  },
+  [PATH_LIFECYCLE_END_EVENT.ON_INCAPACITATED]: {
+    code: PATH_LIFECYCLE_END_EVENT.ON_INCAPACITATED,
+    label: 'On Incapacitated',
+    description: 'The effect ends when the creature carrying it becomes incapacitated.',
+    tooltip: 'Ends on incapacitation.'
   }
 } as const
 

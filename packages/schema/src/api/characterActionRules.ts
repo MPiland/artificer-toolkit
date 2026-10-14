@@ -337,6 +337,7 @@ const actionModifierGroupSchema = lazySchema(() =>
         z.strictObject({
           sourceId: identitySchema,
           value: finiteNumberSchema,
+          ability: z.nullable(identitySchema),
           state: z.enum(['APPLIED', 'SUPPRESSED']),
           scope: modifierScopeKindSchema,
           itemRequirements: characterGrantFoldRestrictionSchema,
@@ -708,7 +709,8 @@ const characterSpellCastReasonSchema = lazySchema(() =>
     'RESOURCE_EXHAUSTED',
     'SPELL_SLOT_REMAINING',
     'SPELL_SLOT_EXHAUSTED',
-    'NO_ELIGIBLE_SPELL_SLOT'
+    'NO_ELIGIBLE_SPELL_SLOT',
+    'SPELLCASTING_LOCKED'
   ])
 )
 
@@ -834,6 +836,8 @@ export const characterActionModelInputSchema = lazySchema(() =>
     spellSlots: z._default(characterSpellCastSlotsSchema, []),
     spellEffects: z._default(characterSpellActionFactsSchema, []),
     spellMechanics: z._default(characterSpellSourceMechanicsSchema, []),
+    /** An active `SPELLCASTING_LOCK` grant bars every spell cast. */
+    spellcastingLocked: z._default(z.boolean(), false),
     activeSourceIds: z.array(identitySchema).check(z.maxLength(10_000)),
     activeEquipmentInstanceIds: z.array(identitySchema).check(z.maxLength(1_000)),
     resources: characterResourcesSchema,

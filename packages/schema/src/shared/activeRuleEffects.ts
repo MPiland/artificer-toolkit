@@ -8,7 +8,11 @@ import { actorRelationshipModuleDtoSchema } from '../effects/actorRelationship.j
 import { hitPointMaximumReductionRecoveryTagsSchema } from '../effects/hitPointMaximumReduction.js'
 import { activeRuleEffectLifecycleDtoSchema } from './activeRuleEffectLifecycle.js'
 import { combatPerceptionContributionsDtoSchema } from './combatPerception.js'
-import { pathLifecycleConsumeEventSchema, pathLifecycleEndEventSchema } from './enums.js'
+import {
+  activationCodeSchema,
+  pathLifecycleConsumeEventSchema,
+  pathLifecycleEndEventSchema
+} from './enums.js'
 import { compiledRuleGraphDtoSchema } from './ruleExecutionCore.js'
 
 export {
@@ -103,6 +107,19 @@ export const activeGrantConsumeEventsSchema = lazySchema(() =>
   sortedUniqueEventsSchema(z.enum(['ON_ATTACK_ROLL', 'ON_ABILITY_CHECK']), 'grant consume events')
 )
 
+/** The end events a timed grant can carry (it is never ended by a cast or a heal): sorted and unique. */
+export const activeGrantEndEventsSchema = lazySchema(() =>
+  sortedUniqueEventsSchema(z.enum(['ON_INCAPACITATED']), 'grant end events')
+)
+
+/**
+ * The holder ending a timed grant by choice, at the cost of one activation (`FREE` costs none). In
+ * an Encounter a costed end is available only on the holder's turn and spends that slot.
+ */
+export const activeGrantHolderEndSchema = lazySchema(() =>
+  z.strictObject({ activation: activationCodeSchema })
+)
+
 /** Immutable provenance, compiled plan, and recurrence configuration for one active effect. */
 const activeRuleEffectDefinitionBaseDtoSchema = lazySchema(() =>
   z.strictObject({
@@ -117,6 +134,7 @@ const activeRuleEffectDefinitionBaseDtoSchema = lazySchema(() =>
       recurrenceStage: z.enum(['NONE', 'START_OF_TURN', 'END_OF_TURN']),
       consumeOnFirstEvents: activeEffectConsumeEventsSchema,
       endOnEvents: activeEffectEndEventsSchema,
+      holderEnd: z._default(z.nullable(activeGrantHolderEndSchema), null),
       lifetimeScope: z.enum(['OWNER', 'ENCOUNTER']),
       expiration: z.discriminatedUnion('kind', [
         z.strictObject({ kind: z.literal('INDEFINITE') }),
@@ -370,5 +388,6 @@ export const activeRuleEffectStateDtoSchema = lazySchema(() =>
     )
 )
 
+export type ActiveGrantHolderEnd = z.infer<typeof activeGrantHolderEndSchema>
 export type ActiveRuleEffectDefinitionDto = z.infer<typeof activeRuleEffectDefinitionDtoSchema>
 export type ActiveRuleEffectStateDto = z.infer<typeof activeRuleEffectStateDtoSchema>

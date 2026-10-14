@@ -214,6 +214,7 @@ export async function prepareNativeLiveActionMaintenance(input: {
   let slot: { definitionId: string; stateId: string } | null = null
   return prepareEncounterActionMaintenance({
     prepared,
+    activeEffects: input.activeEffectsByActorId.get(prepared.actor.id) ?? [],
     readDefinition: async (definitionId) => {
       const response = await capture({ kind: 'DEFINITION', definitionId })
       if (response.kind !== 'DEFINITION') throw new Error('Maintenance definition is unavailable.')

@@ -133,6 +133,7 @@ export const predicateCodeSchema = lazySchema(() =>
     'EQUIPMENT_CATEGORY',
     'EQUIPMENT_PROPERTY',
     'SOLE_WIELDED_WEAPON',
+    'ATTACK_ABILITY',
     'ARMOR_CLASS',
     'DAMAGE_TYPE',
     'CONDITION_TYPE',
@@ -339,7 +340,12 @@ export const pathLifecycleConsumeEventSchema = lazySchema(() =>
   z.enum(['ON_ATTACK_ROLL', 'ON_ABILITY_CHECK', 'ON_CAST_SPELL'])
 )
 export const pathLifecycleEndEventSchema = lazySchema(() =>
-  z.enum(['ON_ATTACK_ROLL', 'ON_CAST_SPELL', 'ON_HIT_POINTS_REGAINED'])
+  z.enum([
+    'ON_ATTACK_ROLL',
+    'ON_CAST_SPELL',
+    'ON_HIT_POINTS_REGAINED',
+    'ON_INCAPACITATED'
+  ])
 )
 export const forcedMovementDirectionSchema = lazySchema(() =>
   z.enum(['AWAY_FROM_SOURCE', 'TOWARD_SOURCE', 'CHOICE'])

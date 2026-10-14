@@ -4,6 +4,8 @@ import type {
   EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { nativeConcentrationDamageApplications } from '@artificer-toolkit/rules-runtime/encounterConcentrationDamage'
+import { grantsEndedOnIncapacitation } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
+import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import {
   concentrationCommandId,
   concentrationOccurrenceId
@@ -17,6 +19,7 @@ import {
   persistNativeConcentrationResult
 } from './actionChildPersistence.js'
 import { postConcentrationEndMessage, readConcentrationEndReason } from './concentrationEnd.js'
+import { deleteConsumedGrants } from './consumedGrantPersistence.js'
 import { createActiveRuleEffectStore } from './effectStore.js'
 import type { EncounterCharacterWriteTransaction, EncounterWritePorts } from './ports.js'
 import type { EncounterWriteContext } from './store.js'
@@ -78,7 +81,7 @@ export async function persistEncounterConcentrationChildren(
     occurredAt: string
   } & Pick<
     LiveSessionEncounterActionCommitInput,
-    'concentration' | 'concentrationEnds' | 'pendingConcentration'
+    'concentration' | 'concentrationEnds' | 'endedGrants' | 'pendingConcentration'
   >,
   callbacks: {
     currentCharacterStreamVersion(characterId: string): Promise<number>
@@ -132,6 +135,26 @@ export async function persistEncounterConcentrationChildren(
     previousOwnerId = end.ownerActorId
     ends.push({ end, slot, holder })
   }
+  // The grants that same incapacitation ends must be stored as sent and held by a holder who is
+  // incapacitated or defeated in the committed state.
+  for (const grant of args.endedGrants) {
+    const stored = await store.findById(grant.owner, grant.id)
+    const holder = actors.find(
+      (actor) =>
+        checksumCanonicalJson(turnEffectOwner(actor, state.id)) ===
+        checksumCanonicalJson(grant.owner)
+    )
+    const reason =
+      holder &&
+      (await readConcentrationEndReason(ctx, { state, actor: holder, userId: args.userId }))
+    if (
+      state.automationMode === 'MANUAL' ||
+      stored?.version !== grant.version ||
+      !grantsEndedOnIncapacitation([stored]).length ||
+      (reason !== 'INCAPACITATED' && reason !== 'DEFEATED')
+    )
+      throw new Error('Live Session grant end is unexpected.')
+  }
   for (const { end, slot, holder } of ends) {
     actors = await callbacks.applyCleanup({
       state,
@@ -158,6 +181,7 @@ export async function persistEncounterConcentrationChildren(
     })
     remaining = remaining.filter((entry) => entry.maintainedStateId !== end.maintainedStateId)
   }
+  await deleteConsumedGrants(ctx, args.endedGrants)
   for (const child of args.concentration) {
     const result = child.result
     const application = remaining.shift()

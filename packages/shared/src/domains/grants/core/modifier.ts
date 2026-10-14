@@ -255,6 +255,8 @@ export const MODIFIER_KINDS_BY_DOMAIN: Record<ValueDomainCode, readonly Modifier
 
   OPPORTUNITY_ATTACK_IMMUNITY: [MODIFIER_KIND.ENABLE],
 
+  SPELLCASTING_LOCK: [MODIFIER_KIND.ENABLE],
+
   SKILL_MODIFIER: [
     MODIFIER_KIND.BONUS,
     MODIFIER_KIND.PENALTY,
@@ -468,23 +470,23 @@ export type ModifierPayloadFor<V extends ValueDomainCode, K extends ModifierKind
           : { amount: number }
         : ModifierScalarValueAuthored
     : K extends 'ABILITY_MODIFIER_BONUS'
-        ? { ability: AbilityCode; multiplier?: number; min?: number; max?: number }
-        : K extends 'MODIFY_CHARGE_LIMIT'
-          ? ChargeLimitPayload
-          : K extends 'ADD_BONUS_DIE'
-            ? { dice: string }
-            : K extends 'REPLACE_DAMAGE_TYPE'
-              ? { damageTypeId: string } // consider renaming to REPLACE_DAMAGE_TYPE
-              : K extends 'ADVANTAGE' | 'DISADVANTAGE' | 'ENABLE'
-                ? undefined
-                : K extends 'OPTIONAL_ABILITY_MODIFIER_BONUS'
-                  ? { abilities: AbilityCode[] }
-                  : // option-like operations must be domain-supported
-                    K extends 'ADD_OPTION' | 'REMOVE_OPTION' | 'REPLACE_OPTION'
-                    ? V extends keyof ValueDomainOptionPayloadByDomain
-                      ? ValueDomainOptionPayloadByDomain[V]
-                      : never
+      ? { ability: AbilityCode; multiplier?: number; min?: number; max?: number }
+      : K extends 'MODIFY_CHARGE_LIMIT'
+        ? ChargeLimitPayload
+        : K extends 'ADD_BONUS_DIE'
+          ? { dice: string }
+          : K extends 'REPLACE_DAMAGE_TYPE'
+            ? { damageTypeId: string } // consider renaming to REPLACE_DAMAGE_TYPE
+            : K extends 'ADVANTAGE' | 'DISADVANTAGE' | 'ENABLE'
+              ? undefined
+              : K extends 'OPTIONAL_ABILITY_MODIFIER_BONUS'
+                ? { abilities: AbilityCode[] }
+                : // option-like operations must be domain-supported
+                  K extends 'ADD_OPTION' | 'REMOVE_OPTION' | 'REPLACE_OPTION'
+                  ? V extends keyof ValueDomainOptionPayloadByDomain
+                    ? ValueDomainOptionPayloadByDomain[V]
                     : never
+                  : never
 
 export type ModifierPayloadByDomain<
   V extends ValueDomainCode,

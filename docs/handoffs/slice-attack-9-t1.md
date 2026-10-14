@@ -72,8 +72,22 @@ No web change is expected: the action is offered through the existing Encounter 
 5. Undo: GM undo of the Rage action restores the charge and removes the grant.
 6. Journey: a Worker or Convex Encounter journey through real code. The Barbarian rages, hits with a greataxe and takes slashing damage; the damage dealt and taken reflect Rage, and the charge count drops by one.
 
+## Proposed D113 (additive generic shapes for Rage; main session adopts at merge)
+
+Follows D95 and D106. None of these shapes is named for Rage.
+
+1. **Attack ability.** Resolving an attack records the ability it used (finesse records the chosen one, STR or DEX) on the ability-modifier contribution, and the action mechanic puts it on the attacking item. A new facet predicate `ATTACK_ABILITY` gates modifier applicability on it. No attack ability fails closed.
+2. **Level steps.** Modifier payload value kinds are linear only (no level table), so a stepped bonus is authored as several FIXED bonuses each gated by `CLASS_LEVEL` facets.
+3. **Grant end events.** New `endOnEvents` values `ON_INCAPACITATED` and `ON_HOLDER_CHOICE`. `ON_INCAPACITATED` ends at the D95 detection point (`encounterConcentrationEndReason`), the same point that ends Concentration. No second detector. `ON_HOLDER_CHOICE` lets the holder's controller end that grant; every other effect stays Campaign-owner-only (D99), and the GM can still end any effect.
+   - The commit carries the grants it ended as `endedGrants`. Persistence re-derives the reason from the committed state and refuses a forged end. The ended grants join the root's `consumedGrants`, so GM undo restores them.
+   - **Premise change:** the `sheetCommandReducer.test.ts` assertions that every `END_ACTIVE_EFFECT` caller must be the Campaign owner were rewritten, because the owner gate now has the `ON_HOLDER_CHOICE` exception. Tests added for both sides of it (`sheetEndActiveEffect.test.ts`).
+   - Known gap: a movement-pass hit (opportunity attack or hazard) that incapacitates a raging mover does not end the grant; the action and turn commits do.
+4. **Spellcasting lock.** A generic grant effect `SPELLCASTING_LOCK` (`ENABLE`), named for the effect: the holder cannot cast spells (the cast decision returns `SPELLCASTING_LOCKED`; domain rejection at the casting entry) and cannot hold Concentration. Applying it ends current Concentration through the D95 detector, which gains the end reason `SPELLCASTING_LOCKED` (after DEFEATED and INCAPACITATED); starting Concentration while it is held is an `EncounterValidationError`.
+5. **Deferred.** The SRD early-end rule (no attack and no damage since the last turn) is deferred to ATTACK-9.T6.
+
 ## Status log
 
 - 2026-10-14: workbook written.
+- 2026-10-14: integration owner approved shapes 1-5 (recorded above). Player-ended Rage escalated against D99; building `ON_HOLDER_CHOICE` unless told otherwise.
 
 ## Proposed ledger edits (filled by the slice session)

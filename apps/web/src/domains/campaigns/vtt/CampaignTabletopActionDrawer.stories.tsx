@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { expect, fn, userEvent, waitFor, within } from 'storybook/test'
 import type {
   EncounterCommandResultDto,
+  EndHeldGrantInputDto,
   EscapeRelationshipInputDto,
   ResolveEncounterActionInputDto
 } from '@artificer-toolkit/schema/api/encounters'
@@ -185,7 +186,7 @@ const escapes = validated(encounterActionChoicesDtoSchema.shape.escapes)([
 ])
 
 async function sendEscapeCommand(
-  command: EscapeRelationshipInputDto
+  command: EscapeRelationshipInputDto | EndHeldGrantInputDto
 ): Promise<EncounterCommandResultDto> {
   escapeSent(command)
   return {
@@ -204,6 +205,7 @@ const meta = {
     waitingOn: null,
     basicActionChoices: [],
     escapes: [],
+    heldGrantEnds: [],
     openAttackAction: null,
     areaAim: null,
     onAreaAimChange: fn(),
@@ -211,6 +213,7 @@ const meta = {
     onActionPreviewChange: fn(),
     onPickAreaOrigin: fn(),
     onEscape: sendEscapeCommand,
+    onEndHeldGrant: sendEscapeCommand,
     onOpen: fn(),
     onClose: fn()
   },

@@ -49,15 +49,14 @@ export async function findStoredEscape(
 }
 
 /**
- * Rejects a spent allowance that is not the one the escape's authored activation spends: the System
- * binds the activation to its capability, and a free activation or a Manual Run spends none.
+ * Whether a spent allowance is the one the activation spends: the System binds the activation to
+ * its capability, and a free activation or a Manual Run spends none.
  */
-export function requireEscapeAllowance(
+export function activationAllowanceMatches(
   state: Pick<EncounterRunState, 'gameSystemId' | 'automationMode'>,
-  escape: StoredEscape,
+  activation: { code: string; amount: number },
   spent: { definitionId: string } | null
-): void {
-  const { activation } = escape.module
+): boolean {
   const binding =
     activation.code === 'FREE'
       ? null
@@ -70,5 +69,15 @@ export function requireEscapeAllowance(
     binding?.kind === 'REQUIRED' && state.automationMode !== 'MANUAL'
       ? binding.capabilityDefinitionId
       : null
-  if ((spent?.definitionId ?? null) !== expected) throw new Error(ESCAPE_EFFECT_MISMATCH)
+  return (spent?.definitionId ?? null) === expected
+}
+
+/** Rejects a spent allowance that is not the one the escape's authored activation spends. */
+export function requireEscapeAllowance(
+  state: Pick<EncounterRunState, 'gameSystemId' | 'automationMode'>,
+  escape: StoredEscape,
+  spent: { definitionId: string } | null
+): void {
+  if (!activationAllowanceMatches(state, escape.module.activation, spent))
+    throw new Error(ESCAPE_EFFECT_MISMATCH)
 }

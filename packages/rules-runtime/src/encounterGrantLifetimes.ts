@@ -35,6 +35,17 @@ export function consumableGrants(
   )
 }
 
+/** Grants that end when their holder is incapacitated or defeated (D95), whatever else is true of them. */
+export function grantsEndedOnIncapacitation<Effect extends ActiveRuleEffectRecord>(
+  effects: readonly Effect[]
+) {
+  return effects.filter(
+    (effect) =>
+      isModifierGrant(effect) &&
+      effect.definition.recurrence.endOnEvents.includes('ON_INCAPACITATED')
+  )
+}
+
 /** The actor whose turns count a timed grant down: its holder, or the Encounter actor that applied it. */
 function grantAnchorActorId(
   effect: ActiveRuleEffectRecord,

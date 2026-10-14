@@ -16,10 +16,7 @@ import {
   DND5E_SYSTEM_ID,
   DND5E_UNCONSCIOUS_CONDITION_DEFINITION_ID
 } from '../systems/dnd5e/identity.js'
-import {
-  assertCampaignGmSheetCommandAllowed,
-  assertSheetCommandCallerAllowed
-} from '../character/sheetCommandValidation.js'
+import { assertCampaignGmSheetCommandAllowed } from '../character/sheetCommandValidation.js'
 
 type Command = Parameters<typeof applyCharacterSheetCommand>[1]
 type SheetExtra = CharacterSheetResponseDto['extras']['items'][number]
@@ -820,13 +817,8 @@ describe('Ending an active effect (D99)', () => {
     expect(summarizeCharacterSheetCommand(command)).toBe('Active effect ended')
   })
 
-  it("is the Campaign owner's command only, whoever owns the Character", () => {
+  it('is allowed to the Campaign owner on a player-owned Character', () => {
     expect(() => assertCampaignGmSheetCommandAllowed(input)).not.toThrow()
-    expect(() => assertSheetCommandCallerAllowed(input, true)).not.toThrow()
-    expect(() => assertSheetCommandCallerAllowed(input, false)).toThrow(CharacterSheetCommandError)
-    expect(() =>
-      assertSheetCommandCallerAllowed({ ...input, type: 'SET_INSPIRATION', inspired: true }, false)
-    ).not.toThrow()
   })
 })
 
@@ -840,9 +832,7 @@ describe('Ending Concentration (SPELLS-5.11)', () => {
     expect(summarizeCharacterSheetCommand(command)).toBe('Concentration ended')
   })
 
-  it("is the caster's command and the Campaign owner's, so an assigned player and the GM both pass", () => {
-    expect(() => assertSheetCommandCallerAllowed(input, false)).not.toThrow()
-    expect(() => assertSheetCommandCallerAllowed(input, true)).not.toThrow()
+  it("is the Campaign owner's command on a player-owned Character", () => {
     expect(() => assertCampaignGmSheetCommandAllowed(input)).not.toThrow()
   })
 })

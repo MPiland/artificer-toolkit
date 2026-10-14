@@ -43,6 +43,7 @@ import { executeRoomEncounterDisarm } from './roomEncounterDisarm.js'
 import {
   executeRoomEncounterBasicActionResponse,
   executeRoomEncounterEscape,
+  executeRoomEncounterEndHeldGrant,
   executeRoomEncounterEscapeResponse
 } from './roomEncounterBasicActions.js'
 import { removeAreaActionTarget } from '@artificer-toolkit/encounter-persistence/areaTargetRemoval'
@@ -51,6 +52,7 @@ import {
   recordRuleOccurrenceVoid
 } from '@artificer-toolkit/encounter-persistence/occurrenceVoid'
 import type {
+  EndHeldGrantInputDto,
   EscapeRelationshipInputDto,
   RemoveAreaTargetInputDto,
   ResolveRuleOccurrenceInputDto
@@ -245,7 +247,9 @@ export async function executeRoomEncounterCommand(input: {
               ? await executeAreaRemoval(command)
               : command.type === 'ESCAPE_RELATIONSHIP'
                 ? await executeEscape(command)
-                : command.type === 'SET_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING' ||
+                : command.type === 'END_HELD_GRANT'
+                  ? await executeEndHeldGrant(command)
+                  : command.type === 'SET_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING' ||
                     command.type === 'REMOVE_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING'
                   ? await executeTokenBinding(command)
                   : await recordEncounterCommand(context, command, userId, input.random)
@@ -373,6 +377,29 @@ export async function executeRoomEncounterCommand(input: {
     if (!input.turnExecution) throw new Error('Room Escape execution is unavailable.')
     const { membership } = await context.ports.requireCampaignAuthority(campaignId, userId)
     return executeRoomEncounterEscape({
+      ...input.turnExecution,
+      ctx: context,
+      store,
+      transaction,
+      inputs,
+      observed,
+      random: input.random,
+      scope: {
+        campaignId,
+        authorityEpoch: epoch,
+        expectedUserId: userId,
+        expectedRole: membership.role,
+        encounterId: command.encounterId.toLowerCase(),
+        expectedVersion: command.expectedVersion
+      },
+      command
+    })
+  }
+
+  async function executeEndHeldGrant(command: EndHeldGrantInputDto) {
+    if (!input.turnExecution) throw new Error('Room end-grant execution is unavailable.')
+    const { membership } = await context.ports.requireCampaignAuthority(campaignId, userId)
+    return executeRoomEncounterEndHeldGrant({
       ...input.turnExecution,
       ctx: context,
       store,

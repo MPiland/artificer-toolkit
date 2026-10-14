@@ -4,6 +4,7 @@ import {
   SRD_BASIC_ACTION_DEFINITIONS,
   SRD_BASIC_ACTION_IDS
 } from '@artificer-toolkit/source-data/srd/basicActions.js'
+import { barbarian } from '@artificer-toolkit/source-data/srd/classes/barbarian.js'
 import { antitoxinVial } from '@artificer-toolkit/source-data/srd/equipment/antitoxin-vial.js'
 import { unicorn } from '@artificer-toolkit/source-data/srd/creatures/unicorn.js'
 import { darkvision } from '@artificer-toolkit/source-data/srd/spells/darkvision.js'
@@ -67,6 +68,7 @@ export function plannedGrantEffect(input: {
     },
     createdOrdinal: 1,
     consumeOnFirstEvents: plan.modifierGrantContribution.consumeOnFirstEvents,
+    endOnEvents: plan.modifierGrantContribution.endOnEvents,
     stateContributions: [
       {
         kind: 'MODIFIER_GRANT',
@@ -118,6 +120,15 @@ export function disengageEffect(input: { id: string; holderActorId: string }) {
     ...input,
     effect: disengage?.document.effects[0],
     sourceLabel: disengage?.label ?? 'Disengage'
+  })
+}
+
+/** The active effect the real compiler plans for the SRD Barbarian's Rage, held by the Barbarian. */
+export function rageEffect(input: { id: string; holderActorId: string }) {
+  return plannedGrantEffect({
+    ...input,
+    effect: barbarian.features?.find(({ label }) => label === 'Rage')?.effects?.[0],
+    sourceLabel: 'Rage'
   })
 }
 

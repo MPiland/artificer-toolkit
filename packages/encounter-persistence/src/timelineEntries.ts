@@ -107,11 +107,14 @@ export function presentTimelineEntry(
     label:
       command.commandType === 'RESOLVE_ACTION' ||
       command.commandType === 'ESCAPE_RELATIONSHIP' ||
+      command.commandType === 'END_HELD_GRANT' ||
       command.commandType === 'CONCENTRATION_DROPPED_OUTSIDE'
         ? command.label
         : null,
     ruleOverrides:
-      command.commandType === 'RESOLVE_ACTION' || command.commandType === 'ESCAPE_RELATIONSHIP'
+      command.commandType === 'RESOLVE_ACTION' ||
+      command.commandType === 'ESCAPE_RELATIONSHIP' ||
+      command.commandType === 'END_HELD_GRANT'
         ? command.ruleOverrides
         : [],
     issuerLines: command.commandType === 'RESOLVE_ACTION' ? command.issuerLines : [],

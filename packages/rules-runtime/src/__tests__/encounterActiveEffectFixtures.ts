@@ -16,7 +16,7 @@ import {
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { prepareActiveRuleEffectRecord } from '../activeRuleEffectRecords.js'
-import type { GrantConsumeEvent } from '../characterRuleActionSystemAdapter.js'
+import type { GrantConsumeEvent, GrantEndEvent } from '../characterRuleActionSystemAdapter.js'
 import type { RulesRuntimeService } from '../rulesRuntimeService.js'
 import {
   DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY,
@@ -235,6 +235,7 @@ export function activeEffect(input: {
   createdOrdinal: number
   version?: number
   consumeOnFirstEvents?: readonly GrantConsumeEvent[]
+  endOnEvents?: readonly GrantEndEvent[]
   stateContributions: [StateContribution, ...StateContribution[]]
 }): ActiveRuleEffectRecord {
   const authoredEffectId = '00000000-0000-4000-8000-00000000b004'
@@ -270,7 +271,7 @@ export function activeEffect(input: {
     recurrence: {
       recurrenceStage: 'NONE',
       consumeOnFirstEvents: [...(input.consumeOnFirstEvents ?? [])],
-      endOnEvents: [],
+      endOnEvents: [...(input.endOnEvents ?? [])],
       lifetimeScope: 'OWNER',
       expiration: { kind: 'INDEFINITE' }
     },

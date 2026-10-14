@@ -28,7 +28,11 @@ import {
   serverPublishedRuleDefinitionDtoSchema,
   ruleGraphSourceIdentityDtoSchema
 } from '../shared/ruleExecutionCore.js'
-import { activeGrantConsumeEventsSchema } from '../shared/activeRuleEffects.js'
+import {
+  activeGrantConsumeEventsSchema,
+  activeGrantEndEventsSchema,
+  activeGrantHolderEndSchema
+} from '../shared/activeRuleEffects.js'
 import { serverUuidIdentityDtoSchema } from '../shared/serverUuidIdentity.js'
 import { characterInitiativeActorFactsSchema } from './characterInitiativeFacts.js'
 import { actorRelationshipModuleDtoSchema } from '../effects/actorRelationship.js'
@@ -153,7 +157,9 @@ const compiledActionActiveEffectPlanSchema = lazySchema(() =>
             senses: z.array(senseOperationSchema).check(z.maxLength(200)),
             tickAnchor: z.enum(['HOLDER', 'SOURCE']),
             includesCurrentTurn: z.boolean(),
-            consumeOnFirstEvents: activeGrantConsumeEventsSchema
+            consumeOnFirstEvents: activeGrantConsumeEventsSchema,
+            endOnEvents: activeGrantEndEventsSchema,
+            holderEnd: z._default(z.nullable(activeGrantHolderEndSchema), null)
           })
           .check(
             z.refine(

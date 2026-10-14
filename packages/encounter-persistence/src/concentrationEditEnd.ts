@@ -2,6 +2,8 @@ import type {
   EncounterRunActorState,
   EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
+import { grantsEndedOnIncapacitation } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
+import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import { DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from '@artificer-toolkit/rules-runtime/systems/dnd5e/concentrationIdentity'
 import { persistNativeConcentrationEnd } from './actionChildPersistence.js'
 import {
@@ -9,12 +11,14 @@ import {
   deriveLiveConcentrationCleanup
 } from './concentrationCleanupPersistence.js'
 import { postConcentrationEndMessage, readConcentrationEndReason } from './concentrationEnd.js'
+import { deleteConsumedGrants } from './consumedGrantPersistence.js'
 import { createActiveRuleEffectStore } from './effectStore.js'
 import type { EncounterCharacterWriteTransaction, EncounterWritePorts } from './ports.js'
 
 /**
- * Ends the holder's Concentration with no check (D95) when a GM actor edit or a Sheet edit, already
- * written in this transaction, left it defeated or unable to act. The edit's command id stands in
+ * Ends the holder's Concentration with no check (D95), and the holder's grants that end on
+ * incapacitation, when a GM actor edit or a Sheet edit, already written in this transaction, left it
+ * defeated or unable to act. The edit's command id stands in
  * for the parent occurrence, so the end is a child receipt like any other D95 end. A MANUAL Run and
  * a holder still able to act end nothing.
  */
@@ -44,13 +48,18 @@ export async function endConcentrationAfterEdit(
     ownerActorId: holder.id,
     maintenanceDefinitionId: DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID
   })
-  if (!slot) return
+  const incapacitationGrants = grantsEndedOnIncapacitation(
+    await store.list(turnEffectOwner(holder, state.id))
+  )
+  if (!slot && !incapacitationGrants.length) return
   const reason = await readConcentrationEndReason(ctx, {
     state,
     actor: holder,
     userId: input.userId
   })
-  if (!reason) return
+  if (reason === 'INCAPACITATED' || reason === 'DEFEATED')
+    await deleteConsumedGrants(ctx, incapacitationGrants)
+  if (!slot || !reason) return
   const authorizedCharacterIds = new Set(
     input.actors.flatMap((actor) => (actor.kind === 'CHARACTER' ? [actor.sourceId] : []))
   )

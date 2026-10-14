@@ -322,6 +322,17 @@ export const encounterStoredRunCommandSchema = lazySchema(() =>
       })
     }),
     z.extend(encounterStoredRunCommandResultSchema, {
+      commandType: z.literal('END_HELD_GRANT'),
+      /** The timeline label: plain "End effect", which never names a source a player cannot see. */
+      label: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)),
+      ruleOverrides: encounterRuleWarningsDtoSchema,
+      /** What ending the grant spent. The ended grant itself is not restored by an undo (D99). */
+      receipt: z.strictObject({
+        actorId: postgresUuidSchema,
+        actionEconomy: z.nullable(encounterActionEconomyTransitionDtoSchema)
+      })
+    }),
+    z.extend(encounterStoredRunCommandResultSchema, {
       commandType: z.literal('CONCENTRATION_DROPPED_OUTSIDE'),
       /** The GM-only notice: "<caster> dropped Concentration: <label> ends on <holders>". */
       label: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160))

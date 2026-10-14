@@ -24,7 +24,7 @@ describe('Concentration end receipts', () => {
   }
 
   it('records a chosen end alongside the involuntary ones', () => {
-    for (const reason of ['INCAPACITATED', 'DEFEATED', 'CHOSEN'])
+    for (const reason of ['INCAPACITATED', 'DEFEATED', 'SPELLCASTING_LOCKED', 'CHOSEN'])
       expect(concentrationEndDtoSchema.safeParse({ ...end, reason }).success).toBe(true)
     expect(concentrationEndDtoSchema.safeParse({ ...end, reason: 'DROPPED' }).success).toBe(false)
   })

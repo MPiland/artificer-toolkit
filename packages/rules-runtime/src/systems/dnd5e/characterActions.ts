@@ -130,8 +130,9 @@ export function evaluateDnd5e2014CharacterActions(
             (pool) => pool.poolId === candidate.resourceOwnerKey && pool.state === 'RESOLVED'
           ) ?? null)
     const resourceRemaining = resource?.remaining ?? null
-    const decision =
-      candidate.spellLevel === 0
+    const decision = parsedInput.spellcastingLocked
+      ? { status: 'UNAVAILABLE', reasonCode: 'SPELLCASTING_LOCKED' }
+      : candidate.spellLevel === 0
         ? { status: 'AVAILABLE', reasonCode: 'CANTRIP' }
         : candidate.castMode === 'AT_WILL'
           ? { status: 'AVAILABLE', reasonCode: 'AT_WILL' }

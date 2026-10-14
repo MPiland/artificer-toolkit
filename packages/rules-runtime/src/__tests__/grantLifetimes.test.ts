@@ -8,6 +8,7 @@ import {
   SRD_BASIC_ACTION_DEFINITIONS,
   SRD_BASIC_ACTION_IDS
 } from '@artificer-toolkit/source-data/srd/basicActions.js'
+import { barbarian } from '@artificer-toolkit/source-data/srd/classes/barbarian.js'
 import { antitoxinVial } from '@artificer-toolkit/source-data/srd/equipment/antitoxin-vial.js'
 import { aid } from '@artificer-toolkit/source-data/srd/spells/aid.js'
 import { darkvision } from '@artificer-toolkit/source-data/srd/spells/darkvision.js'
@@ -26,6 +27,7 @@ import { prepareEncounterActionEffectPlans } from '../encounterActionEffectPlans
 import {
   consumableGrants,
   expiredCarriedOverGrants,
+  grantsEndedOnIncapacitation,
   planCarriedOverGrants,
   planConcentrationCarriedGrantEnds,
   planDepartedSourceGrantRemovals,
@@ -547,6 +549,62 @@ describe('a Help made on the helper’s own turn', () => {
   it('ends at the start of the helper’s next turn, unused or not', () => {
     expect(plan('START_OF_TURN', SOURCE_ID)).toMatchObject([
       { kind: 'EXPIRE', effect: { id: record.id }, owner: { targetActorId: TARGET_ID } }
+    ])
+  })
+})
+
+describe('a Rage made on the Barbarian’s own turn', () => {
+  const rage = onlyEffect(barbarian.features?.find(({ label }) => label === 'Rage')?.effects)
+  const stored = (currentActorId: string | null) =>
+    storedGrant({ effect: rage, lifecycle: {}, currentActorId, holderId: TARGET_ID })
+  const record = grantRecord(stored(TARGET_ID), { id: 0xc370, holderId: TARGET_ID })
+  const plan = (turnActorId: string, effects: ActiveRuleEffectRecord[]) =>
+    planEncounterGrantTicks({
+      encounterId: ENCOUNTER_ID,
+      stage: 'END_OF_TURN',
+      turnActorId,
+      holders: [{ actor: holder(TARGET_ID).actor, effects }]
+    })
+
+  it('compiles to a one-minute holder-counted grant ended by incapacitation or its holder', () => {
+    expect(srdPlan(rage, {})).toMatchObject({
+      recurrenceStage: 'END_OF_TURN',
+      initialRemaining: 10,
+      modifierGrantContribution: {
+        tickAnchor: 'HOLDER',
+        endOnEvents: ['ON_INCAPACITATED'],
+        holderEnd: { activation: 'BONUS_ACTION' }
+      }
+    })
+    expect(stored(TARGET_ID).definition.recurrence).toMatchObject({
+      endOnEvents: ['ON_INCAPACITATED'],
+      holderEnd: { activation: 'BONUS_ACTION' }
+    })
+  })
+
+  it('lasts through the end of that turn and ten more rounds', () => {
+    expect(record.lifecycle.remainingTicks).toBe(11)
+    expect(stored(OTHER_ID).lifecycle.remainingTicks).toBe(10)
+  })
+
+  it('counts down at the Barbarian’s end of turn only, and expires on the last one', () => {
+    expect(plan(OTHER_ID, [record])).toEqual([])
+    expect(plan(TARGET_ID, [record])).toMatchObject([{ kind: 'UPDATE', remainingTicks: 10 }])
+    const last = grantRecord(stored(TARGET_ID), {
+      id: 0xc371,
+      holderId: TARGET_ID,
+      remainingTicks: 1
+    })
+    expect(plan(TARGET_ID, [last])).toMatchObject([{ kind: 'EXPIRE', effect: { id: last.id } }])
+  })
+
+  it('is among the grants incapacitation ends, which an Antitoxin is not', () => {
+    const antitoxinRecord = grantRecord(storedGrant({ lifecycle: {}, currentActorId: null }), {
+      id: 0xc372,
+      holderId: TARGET_ID
+    })
+    expect(grantsEndedOnIncapacitation([antitoxinRecord, record]).map(({ id }) => id)).toEqual([
+      record.id
     ])
   })
 })

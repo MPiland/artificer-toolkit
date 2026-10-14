@@ -1,4 +1,7 @@
-import type { EscapeRelationshipInputDto } from '@artificer-toolkit/schema/api/encounters'
+import type {
+  EndHeldGrantInputDto,
+  EscapeRelationshipInputDto
+} from '@artificer-toolkit/schema/api/encounters'
 import type { ResolveCheckActionInputDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import type { LiveSessionEncounterRulesInput } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
@@ -10,7 +13,10 @@ import { presentStoredCommandReplay } from './resultPresentation.js'
 import { presentTimelineEntry, requireUnusedEvidenceCommandId } from './timelineEntries.js'
 import type { EncounterReadTransaction } from './ports.js'
 
-type BasicActionRootCommand = ResolveCheckActionInputDto | EscapeRelationshipInputDto
+type BasicActionRootCommand =
+  | ResolveCheckActionInputDto
+  | EscapeRelationshipInputDto
+  | EndHeldGrantInputDto
 type BasicActionScopeInput = Omit<LiveSessionEncounterRulesInput, 'request'>
 
 /**
@@ -125,6 +131,20 @@ export async function readEscapeAdmission(
   input: BasicActionScopeInput & { command: EscapeRelationshipInputDto }
 ) {
   const command: EscapeRelationshipInputDto = {
+    ...input.command,
+    encounterId: input.command.encounterId.toLowerCase(),
+    commandId: input.command.commandId.toLowerCase(),
+    actorId: input.command.actorId.toLowerCase()
+  }
+  return admitCurrentActorCommand(ctx, input, command)
+}
+
+/** Admits ending a held grant (D113) for the room: the caller controls the current actor, which holds it. */
+export async function readEndHeldGrantAdmission(
+  ctx: EncounterReadTransaction,
+  input: BasicActionScopeInput & { command: EndHeldGrantInputDto }
+) {
+  const command: EndHeldGrantInputDto = {
     ...input.command,
     encounterId: input.command.encounterId.toLowerCase(),
     commandId: input.command.commandId.toLowerCase(),

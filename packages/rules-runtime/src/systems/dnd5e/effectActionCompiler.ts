@@ -48,6 +48,7 @@ import type {
   CharacterRuleActionConditionOutcomeRules,
   CharacterRuleActionPositionalFacts,
   GrantConsumeEvent,
+  GrantEndEvent,
   CharacterRuleActionSpatialDirective
 } from '../../characterRuleActionSystemAdapter.js'
 import { CharacterRuleActionUnsupportedCompilationError } from '../../characterRuleActionSystemAdapter.js'
@@ -1238,6 +1239,10 @@ function isGrantConsumeEvent(event: string): event is GrantConsumeEvent {
   return event === 'ON_ATTACK_ROLL' || event === 'ON_ABILITY_CHECK'
 }
 
+function isGrantEndEvent(event: string): event is GrantEndEvent {
+  return event === 'ON_INCAPACITATED'
+}
+
 /**
  * A timed APPLY_GRANT of modifiers (an Antitoxin's advantage for 1 hour): the target holds an
  * Encounter active effect that carries the modifiers into its rules while it lasts and counts the
@@ -1270,9 +1275,17 @@ function modifierGrantPlan(
   if (!entry || !('outcome' in entry) || entry.outcome.effectKind !== 'APPLY_GRANT') return null
   const { grants } = entry.outcome
   const initialRemaining = entry.duration ? conditionDurationTurns(entry.duration) : null
-  const { turnAnchor, consumeOnFirstEvents = [], ...otherLifecycle } = entry.lifecycle ?? {}
+  const {
+    turnAnchor,
+    consumeOnFirstEvents = [],
+    endOnEvents = [],
+    holderEnd = null,
+    ...otherLifecycle
+  } = entry.lifecycle ?? {}
   const consumeEvents = [...new Set(consumeOnFirstEvents)].sort()
   const grantConsumeEvents = consumeEvents.filter(isGrantConsumeEvent)
+  const endEvents = [...new Set(endOnEvents)].sort()
+  const grantEndEvents = endEvents.filter(isGrantEndEvent)
   const senses = grants.senses ?? []
   const grantedSenses = senses.flatMap((sense) =>
     sense.selectionKind === 'GRANTED' && sense.scalingKind === 'NONE' && 'senseIds' in sense
@@ -1300,6 +1313,7 @@ function modifierGrantPlan(
     initialRemaining >= MAX_ACTIVE_EFFECT_TURNS ||
     Object.values(otherLifecycle).some((value) => value !== undefined) ||
     grantConsumeEvents.length !== consumeEvents.length ||
+    grantEndEvents.length !== endEvents.length ||
     !UUID.test(entry.entryId)
   )
     return null
@@ -1318,7 +1332,9 @@ function modifierGrantPlan(
       senses: grantedSenses,
       tickAnchor: turnAnchor?.actor === 'SOURCE' ? 'SOURCE' : 'HOLDER',
       includesCurrentTurn: entry.duration?.durationKind === 'TURN',
-      consumeOnFirstEvents: grantConsumeEvents
+      consumeOnFirstEvents: grantConsumeEvents,
+      endOnEvents: grantEndEvents,
+      holderEnd
     },
     adapterFacts: attack ? { 'dnd5e.grant-authored-path': entry.pathCode } : {},
     perceptionContributions: [],

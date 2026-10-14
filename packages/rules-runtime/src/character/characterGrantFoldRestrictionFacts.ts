@@ -226,6 +226,8 @@ function normalizeItemContext(
         }
       if (condition.kind === 'PREDICATE' && condition.predicateCode === 'SOLE_WIELDED_WEAPON')
         return baseCondition(condition, 'ITEM_SOLE_WEAPON')
+      if (condition.kind === 'PREDICATE' && condition.predicateCode === 'ATTACK_ABILITY')
+        return { ...baseCondition(condition, 'ITEM_ATTACK_ABILITY'), abilityId: condition.ability }
       return baseCondition(condition, 'UNSUPPORTED')
     })
   ]

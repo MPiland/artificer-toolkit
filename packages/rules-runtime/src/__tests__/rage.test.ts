@@ -1,0 +1,185 @@
+import { describe, expect, it } from 'vitest'
+import { activeRuleEffectDefinitionDtoSchema } from '@artificer-toolkit/schema/shared/activeRuleEffects'
+import {
+  SRD_ABILITY_DEFINITION_IDS,
+  SRD_DAMAGE_TYPES
+} from '@artificer-toolkit/source-data/srd/vocabulary.js'
+
+import { resolveCharacterRulePolicyRollModes } from '../character/characterRuleRollProjection.js'
+import {
+  encounterGrantsEnabledDomain,
+  withCharacterActiveGrants
+} from '../encounterActiveGrants.js'
+import { evaluateDnd5e2014CharacterActions } from '../systems/dnd5e/characterActions.js'
+import { evaluateDnd5e2014CharacterPolicy } from '../systems/dnd5e/characterPolicy.js'
+import { rageEffect } from './antitoxinEffectFixture.js'
+import {
+  damageExpression,
+  evaluateSrdCharacter,
+  itemAction,
+  vocabulary,
+  type SrdCharacter
+} from './dnd5eSrdCharacter.js'
+
+const HOLDER_ID = '00000000-0000-4000-8000-00000000b901'
+const EFFECT_ID = '00000000-0000-4000-8000-00000000b902'
+const rage = () => rageEffect({ id: EFFECT_ID, holderActorId: HOLDER_ID })
+const damageTypeId = (code: string) => SRD_DAMAGE_TYPES.find((type) => type.code === code)?.id
+
+const barbarian = (input: {
+  level: number
+  abilities?: Parameters<typeof evaluateSrdCharacter>[0]['abilities']
+  items?: Parameters<typeof evaluateSrdCharacter>[0]['items']
+}) =>
+  evaluateSrdCharacter({
+    classes: [{ label: 'Barbarian', level: input.level }],
+    abilities: { STRENGTH: 16, ...input.abilities },
+    items: input.items ?? []
+  })
+
+/** The Character's policy with the Rage grant held (or not), rolls projected as the Sheet reads them. */
+const policy = (character: SrdCharacter, raging: boolean) =>
+  resolveCharacterRulePolicyRollModes(
+    evaluateDnd5e2014CharacterPolicy(
+      raging ? withCharacterActiveGrants(character.facts, [rage()]) : character.facts
+    ),
+    vocabulary
+  )
+
+/** The damage expression of one item attack under the policy. */
+function attackDamage(character: SrdCharacter, label: string, attackKind: string, raging: boolean) {
+  const { candidate } = itemAction(character, label, { attackKind })
+  const decision = policy(character, raging).actionDecisions.find(
+    (entry) => entry.actionId === candidate.actionId
+  )
+  if (!decision) throw new Error(`No decision for ${label}.`)
+  return damageExpression(decision)
+}
+
+describe('the Rage active effect', () => {
+  it('is a valid persisted grant that ends on incapacitation or by its holder', () => {
+    const { definition } = rage()
+    expect(activeRuleEffectDefinitionDtoSchema.parse(definition)).toEqual(definition)
+    expect(definition.recurrence.endOnEvents).toEqual(['ON_INCAPACITATED'])
+    expect(definition.recurrence.holderEnd).toEqual({ activation: 'BONUS_ACTION' })
+  })
+
+  it('locks spellcasting while held, and only while held', () => {
+    expect(encounterGrantsEnabledDomain([rage()], 'SPELLCASTING_LOCK')).toBe(true)
+    expect(encounterGrantsEnabledDomain([], 'SPELLCASTING_LOCK')).toBe(false)
+  })
+})
+
+describe('the spellcasting lock on spell casts', () => {
+  const SPELL_ID = '00000000-0000-4000-8000-00000000b903'
+  const SOURCE_ID = '00000000-0000-4000-8000-00000000b904'
+  const castDecisions = (spellcastingLocked: boolean) =>
+    evaluateDnd5e2014CharacterActions({
+      candidates: [],
+      abilityDefinitions: [],
+      spellCandidates: [
+        {
+          sequence: 0,
+          candidateId: 'cantrip',
+          spellId: SPELL_ID,
+          source: { spellId: SPELL_ID, sourceKind: 'CLASS', sourceInstanceId: SOURCE_ID },
+          spellLevel: 0,
+          castMode: 'AT_WILL',
+          castLevel: 0,
+          baseEntry: false,
+          resourceOwnerKey: null
+        }
+      ],
+      spellSlots: [],
+      spellEffects: [],
+      spellMechanics: [],
+      spellcastingLocked,
+      proficiencies: [],
+      itemAdjustments: [],
+      activeSourceIds: [],
+      activeEquipmentInstanceIds: [],
+      resources: [],
+      modifierGroups: [],
+      totalLevel: 1,
+      classLevels: [],
+      proficiencyBonus: 2,
+      abilities: [],
+      skills: [],
+      spellcasting: null
+    }).spellCastDecisions.map(({ status, reasonCode }) => ({ status, reasonCode }))
+
+  it('refuses even a cantrip while the lock is held, and allows it otherwise', () => {
+    expect(castDecisions(false)).toEqual([{ status: 'AVAILABLE', reasonCode: 'CANTRIP' }])
+    expect(castDecisions(true)).toEqual([
+      { status: 'UNAVAILABLE', reasonCode: 'SPELLCASTING_LOCKED' }
+    ])
+  })
+})
+
+describe('the Rage damage bonus', () => {
+  it.each([
+    { level: 1, bonus: 2 },
+    { level: 8, bonus: 2 },
+    { level: 9, bonus: 3 },
+    { level: 15, bonus: 3 },
+    { level: 16, bonus: 4 },
+    { level: 20, bonus: 4 }
+  ])(
+    'adds +$bonus to a Strength melee weapon hit at Barbarian level $level',
+    ({ level, bonus }) => {
+      const character = barbarian({ level, items: [{ label: 'Greataxe' }] })
+      expect(attackDamage(character, 'Greataxe', 'MELEE', false)).toBe('1d12 + 3')
+      expect(attackDamage(character, 'Greataxe', 'MELEE', true)).toBe(`1d12 + ${3 + bonus}`)
+    }
+  )
+
+  it('adds nothing to a Dexterity finesse attack', () => {
+    const character = barbarian({
+      level: 9,
+      abilities: { STRENGTH: 10, DEXTERITY: 16 },
+      items: [{ label: 'Rapier' }]
+    })
+    const calm = attackDamage(character, 'Rapier', 'MELEE', false)
+    expect(calm).toBe('1d8 + 3')
+    expect(attackDamage(character, 'Rapier', 'MELEE', true)).toBe(calm)
+  })
+
+  it('adds nothing to a ranged weapon attack, even with a high Strength', () => {
+    const character = barbarian({ level: 9, items: [{ label: 'Shortbow' }] })
+    const calm = attackDamage(character, 'Shortbow', 'RANGED', false)
+    expect(attackDamage(character, 'Shortbow', 'RANGED', true)).toBe(calm)
+  })
+})
+
+describe('the Rage defenses and Strength advantage', () => {
+  const character = barbarian({ level: 9 })
+  const { STRENGTH, DEXTERITY } = SRD_ABILITY_DEFINITION_IDS
+
+  it('resists bludgeoning, piercing and slashing damage and no other type', () => {
+    const resisted = policy(character, true)
+      .defenses.filter((defense) => defense.kind === 'RESISTANCE')
+      .map((defense) => defense.damageTypeId)
+    expect(resisted).toEqual(
+      expect.arrayContaining(['BLUDGEONING', 'PIERCING', 'SLASHING'].map(damageTypeId))
+    )
+    expect(resisted).not.toContain(damageTypeId('FIRE'))
+    expect(policy(character, false).defenses).toEqual([])
+  })
+
+  it('rolls Strength saving throws with advantage and Dexterity saves normally', () => {
+    const saves = policy(character, true).savingThrowDefinitions
+    const rollMode = (abilityDefinitionId: string) =>
+      saves.find(
+        (save) => save.abilityDefinitionId === abilityDefinitionId && !('conditionTypeId' in save)
+      )?.rollMode
+    expect(rollMode(STRENGTH)).toBe('ADVANTAGE')
+    expect(rollMode(DEXTERITY)).toBe('NORMAL')
+  })
+
+  it('rolls Strength ability checks with advantage and Dexterity checks normally', () => {
+    const { abilityChecks } = policy(character, true).rollModes
+    expect(abilityChecks.STRENGTH).toBe('ADVANTAGE')
+    expect(abilityChecks.DEXTERITY).toBe('NORMAL')
+    expect(policy(character, false).rollModes.abilityChecks.STRENGTH).toBe('NORMAL')
+  })
+})

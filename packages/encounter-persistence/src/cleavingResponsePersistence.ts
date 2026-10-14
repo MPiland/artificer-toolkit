@@ -205,6 +205,7 @@ export async function persistEncounterCleavingResponse(
     occurredAt,
     concentration: input.concentration,
     concentrationEnds: input.concentrationEnds,
+    endedGrants: input.endedGrants,
     pendingConcentration: input.pendingConcentration
   })
   const projection = await projectNativeGm(ctx, nextState, nextActors, input.rules)

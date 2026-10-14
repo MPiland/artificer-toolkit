@@ -12,17 +12,18 @@ import type { EncounterPersistenceTransaction, EncounterWritePorts } from './por
 import { readRuleRollRouting } from './ruleRollCards.js'
 
 /** Why a Concentration ended: involuntarily (D95) or by its holder's choice (SPELLS-5.11). */
-export type ConcentrationEndReason = 'INCAPACITATED' | 'DEFEATED' | 'CHOSEN'
+export type ConcentrationEndReason = 'INCAPACITATED' | 'DEFEATED' | 'SPELLCASTING_LOCKED' | 'CHOSEN'
 
 /**
  * Why the committed state ends the actor's Concentration without a check (D95): a defeated
- * Creature or custom actor, or one whose System actor-action capability is unavailable. Null when
- * neither holds, so a stale or invented end is rejected by comparison.
+ * Creature or custom actor, one whose System actor-action capability is unavailable, or one under a
+ * `SPELLCASTING_LOCK` grant. Null when none holds, so a stale or invented end is rejected by
+ * comparison.
  */
 export async function readConcentrationEndReason(
   ctx: EncounterPersistenceTransaction,
   input: { state: EncounterRunState; actor: EncounterRunActorState; userId: string }
-): Promise<'INCAPACITATED' | 'DEFEATED' | null> {
+): ReturnType<typeof encounterConcentrationEndReason> {
   const { state, actor } = input
   const deadCharacterIds = await readDeadCharacterIds(ctx, [actor])
   if (isEncounterActorDefeated(actor, deadCharacterIds)) return 'DEFEATED'
@@ -79,6 +80,8 @@ function concentrationEndMessage(label: string, reason: ConcentrationEndReason) 
       return `${label} is defeated and loses Concentration.`
     case 'INCAPACITATED':
       return `${label} can't act and loses Concentration.`
+    case 'SPELLCASTING_LOCKED':
+      return `${label} can't cast spells and loses Concentration.`
   }
 }
 

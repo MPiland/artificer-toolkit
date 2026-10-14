@@ -79,7 +79,7 @@ export async function persistEncounterTurnCommit(
         occurredAt: string
       } & Pick<
         LiveSessionEncounterTurnCommitInput,
-        'concentration' | 'concentrationEnds' | 'pendingConcentration'
+        'concentration' | 'concentrationEnds' | 'endedGrants' | 'pendingConcentration'
       >
     ): Promise<{ actors: EncounterRunActorState[]; failed: boolean }>
   }
@@ -315,6 +315,7 @@ export async function persistEncounterTurnCommit(
     occurredAt: input.occurredAt,
     concentration: input.concentration,
     concentrationEnds: input.concentrationEnds,
+    endedGrants: input.endedGrants,
     pendingConcentration: input.pendingConcentration
   })
   const nextProjection = await projectNativeGm(ctx, nextState, actors, input.rules)
