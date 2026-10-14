@@ -4490,18 +4490,22 @@
         {
           "id": "ENCOUNTER-9",
           "title": "Declared initiative rolls post a roll card",
-          "status": "TODO",
-          "journeyTests": [],
-          "journeyStatus": "none",
-          "journeyGap": "Extend apps/apis/convex/liveSessions/assistedPartyJourney.test.ts so every member loads one Initiative card per declared actor.",
+          "status": "DONE",
+          "journeyTests": ["apps/apis/convex/liveSessions/assistedPartyJourney.test.ts"],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
               "text": "Each initiative die rolled for a declaration (auto-rolled or entered) posts one Initiative roll card to the table, the same card a GM-rolled initiative posts.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/apis/convex/encounters/initiativeDeclarations.test.ts (declared initiative roll cards: auto-rolled and entered dice post one Initiative card each, same card as a GM roll)",
+                "apps/apis/convex/liveSessions/assistedPartyJourney.test.ts (every member loads one Initiative card per declared actor)",
+                "packages/rules-runtime/src/__tests__/encounterInitiativeRollRecord.test.ts",
+                "packages/encounter-persistence/src/__tests__/initiativeRollCards.test.ts"
+              ],
               "origin": [],
-              "note": "Found 2026-10-13 in ENCOUNTER-5: under DECLARED_ACTION_ROLL the room rolls initiative and posts no card (readRoomRollCards finds no conversation until an attack posts), while ROLL_ACTOR_INITIATIVE posts one through recordRuleRollCard (packages/encounter-persistence/src/commands.ts:376-396). Same gap ENCOUNTER-7.1 closed for turn-stage dice.",
+              "note": "Found 2026-10-13 in ENCOUNTER-5: under DECLARED_ACTION_ROLL the room rolls initiative and posts no card (readRoomRollCards finds no conversation until an attack posts), while ROLL_ACTOR_INITIATIVE posts one through recordRuleRollCard (packages/encounter-persistence/src/commands.ts:376-396). Same gap ENCOUNTER-7.1 closed for turn-stage dice. Merged 91427de04: declarations and ROLL_ACTOR_INITIATIVE share initiativeRollRecord; persistEncounterInitiativeRollCards replays the settled face.",
               "id": "ENCOUNTER-9.1"
             }
           ],
