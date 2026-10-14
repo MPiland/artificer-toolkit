@@ -1,6 +1,6 @@
 # Slice workbook: RELIABILITY-5 (speed and sense modifiers carry their length unit)
 
-**Status:** OPEN (started 2026-10-14)
+**Status:** DONE (T1 merged `a11b9d368`; T2 continues in [slice-reliability-5-t2.md](slice-reliability-5-t2.md))
 **Base:** `codex/phase-08-2-convex-cutover` at this workbook's commit.
 **Rules:** [slice-workbook-rules.md](slice-workbook-rules.md).
 
