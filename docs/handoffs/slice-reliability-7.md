@@ -55,7 +55,7 @@ Item 3, the case where the local copy disagreed: a custom class with hit die `2d
 
 ### Validation run
 
-Web unit set (12 files, 331 tests) green before and after the merge; schema contract test; typechecks for shared, schema, rules-runtime (build and tests), authoring, apis build, web app, web tests, web stories. Post-merge reruns are the `m-` logs.
+Final run on the merged tree (base merged twice; second merge brought the VTT_UI-5 fixes), all exit 0: `f-green-web-reliability-7` (12 files, 333 tests, from `apps/web` with the web `vitest.config.ts`, `--project=unit`; the file count matches the 12 files listed), `f-green-schema-contract` (4 tests), package builds `f-build-*`, and typechecks `f-tc-shared`, `f-tc-schema`, `f-tc-rules-runtime`, `f-tc-rules-runtime-tests`, `f-tc-authoring`, `f-tc-web-app`, `f-tc-web-tests`, `f-tc-web-stories`. `tc-apis-build` (pre-merge, exit 0) covers the touched Convex source. Earlier pre-merge runs are the `green-*` and `m-*` logs.
 
 ### Owed to the main checkout after merge
 
