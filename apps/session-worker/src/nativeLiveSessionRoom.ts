@@ -272,7 +272,12 @@ function send(socket: WebSocket, message: LiveSessionWebSocketServerMessageDto):
  * `replayed: true`, as Convex's replays do; an Encounter result has no replay flag.
  */
 function replayReceipt(receiptJson: string): LiveSessionWebSocketServerMessageDto {
-  const receipt = liveSessionWebSocketServerMessageDtoSchema.parse(JSON.parse(receiptJson))
+  return replayMessage(liveSessionWebSocketServerMessageDtoSchema.parse(JSON.parse(receiptJson)))
+}
+
+function replayMessage(
+  receipt: LiveSessionWebSocketServerMessageDto
+): LiveSessionWebSocketServerMessageDto {
   if (receipt.type !== 'COMMAND_COMMITTED')
     throw new Error('Live Session command receipt is invalid.')
   const { delta } = receipt
@@ -2149,11 +2154,14 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       return
     }
     if (prior.kind === 'REPLAY') {
-      const replay = liveSessionWebSocketServerMessageDtoSchema.parse(
-        JSON.parse(prior.receipt.receiptJson)
+      const stored: unknown = JSON.parse(prior.receipt.receiptJson)
+      // A movement decision stores the Scene receipt its sender was sent, then the Encounter result.
+      const messages = (Array.isArray(stored) ? stored : [stored]).map((message) =>
+        liveSessionWebSocketServerMessageDtoSchema.parse(message)
       )
+      const replay = messages.at(-1)
       // A commit recovered after a restart kept only its Scene receipt.
-      if (replay.type === 'COMMAND_COMMITTED' && replay.delta?.scope === 'ENCOUNTER') {
+      if (replay?.type === 'COMMAND_COMMITTED' && replay.delta?.scope === 'ENCOUNTER') {
         try {
           if (
             prior.receipt.checkpointBeforeAcknowledgement &&
@@ -2178,6 +2186,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
             userId: admission.userId,
             replayed: { kind: 'RECORDED', result: replay.delta.result }
           })
+          for (const sceneReceipt of messages.slice(0, -1)) send(socket, replayMessage(sceneReceipt))
           send(socket, {
             ...replay,
             sequence:
@@ -3195,7 +3204,11 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       checksum: current.stateChecksum
     })
     const sequence = current.sequence + 1
-    let receipt: LiveSessionWebSocketServerMessageDto | null = null
+    // A movement decision stores both messages its sender is sent: the Scene receipt, then the Encounter result.
+    let receipt:
+      | LiveSessionWebSocketServerMessageDto
+      | [LiveSessionWebSocketServerMessageDto, LiveSessionWebSocketServerMessageDto]
+      | null = null
     let nextStateJson: string | null = null
     const { result: committed } = await this.#prepareWithRetry(authorization, (prepared, random) =>
       this.#roomStore.transact(
@@ -3251,13 +3264,22 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
               occurrence: scene.occurrence
             })
           )
+          // Only a movement decision commits an Encounter result; a Scene command's retry replays one message.
+          if (
+            (command.type === 'RESOLVE_RULE_OCCURRENCE' || command.type === 'VOID_RULE_OCCURRENCE') !==
+            (result.encounter !== null)
+          )
+            throw new Error('Only a movement decision commits an Encounter result.')
           receipt = result.encounter
-            ? liveSessionWebSocketServerMessageDtoSchema.parse({
-                commandId: command.commandId,
-                delta: { scope: 'ENCOUNTER', result: result.encounter },
-                sequence,
-                type: 'COMMAND_COMMITTED'
-              })
+            ? [
+                sent,
+                liveSessionWebSocketServerMessageDtoSchema.parse({
+                  commandId: command.commandId,
+                  delta: { scope: 'ENCOUNTER', result: result.encounter },
+                  sequence,
+                  type: 'COMMAND_COMMITTED'
+                })
+              ]
             : sent
           return {
             ...result,
@@ -3858,9 +3880,8 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
 
   /**
    * The committed Scene command as `admission` receives it. The sender's stored receipt is this
-   * message, so an exact retry replays what the sender was sent, never the raw delta. The one
-   * exception: `#commitRoomGeometry` stores the ENCOUNTER receipt when a movement decision
-   * settles, so that replay omits this Scene receipt (RELIABILITY-3).
+   * message, so an exact retry replays what the sender was sent, never the raw delta. When a
+   * movement decision settles, `#commitRoomGeometry` stores it ahead of the Encounter result.
    */
   #sceneCommittedFor({
     admission,
