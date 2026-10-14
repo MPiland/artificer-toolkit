@@ -7741,25 +7741,35 @@
         {
           "id": "RELIABILITY-7",
           "title": "The web uses the shared resolver and rules instead of copies",
-          "status": "TODO",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": ["apps/web/src/forms/tests/AuthoredDomainAuthoringLayout.test.tsx"],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
               "text": "Authoring stories and tests resolve node maps through the real packages/authoring resolver over an in-memory registry; the web's static resolver copy and its embedded fixture options are deleted from the production bundle.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/web/src/forms/hooks/useAuthoringResolvedModel.test.tsx",
+                "apps/web/src/test/nodeRuntimeResolver.test.ts",
+                "apps/web/src/test/authoredRouteStory.utils.test.ts",
+                "apps/web/src/forms/tests/FormArchitectureBoundaries.test.ts",
+                "apps/web/src/forms/tests/AuthoredDomainAuthoringLayout.test.tsx"
+              ],
               "origin": [],
-              "note": "Registered 2026-10-13 from the band-aid audit. apps/web/src/forms/node-map/staticResolvedModel.ts (493 lines) mirrors nodeRuntimeService.ts and is imported by the production hook useAuthoringResolvedModel.ts:39-50; it embeds Sorcerer/Wizard/Shortsword/Evocation options and more roots than the server registry.",
+              "note": "Registered 2026-10-13 from the band-aid audit. apps/web/src/forms/node-map/staticResolvedModel.ts (493 lines) mirrors nodeRuntimeService.ts and is imported by the production hook useAuthoringResolvedModel.ts:39-50; it embeds Sorcerer/Wizard/Shortsword/Evocation options and more roots than the server registry. Done 2026-10-14: staticResolvedModel.ts and withStaticResolvedScopes.ts are deleted; stories and tests resolve through apps/web/src/test/nodeRuntimeResolver.ts, which uses createNodeRuntimeSourceReader from packages/authoring, the same reader Convex uses. Production code may not import #test/*. A nested group editor whose row the root model has no scope for resolves its own model (FormRenderer). All 16 authored route stories, the Builder and the System, Campaign and Encounter stories pass. The real resolver showed that System vocabulary options never carried a description (AUTHORING-18).",
               "id": "RELIABILITY-7.1"
             },
             {
               "text": "The Builder, class detail and creature stat blocks compute hit points, hit-die averages, ability modifiers and proficiency bonus through the shared rules-runtime functions (ADR 0036), with no local copies; the legacy hit-point override and its \"HP gained (legacy)\" input are deleted and development data is migrated.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/web/src/lib/sharedRulesParity.test.ts",
+                "apps/web/src/domains/campaigns/components/EncounterEnemyStatBlock.test.tsx",
+                "packages/schema/src/__tests__/character-rules-contracts.test.ts"
+              ],
               "origin": [],
-              "note": "characterAbilities.ts:1-222, CharacterHitpointProgression.tsx:81-127, ClassDetail.model.ts:94/321-331, CreatureDetail.model.ts:306, EncounterEnemyStatBlock.tsx:80; server builderHitPoints.ts:108-146, characterVitals.ts:175.",
+              "note": "characterAbilities.ts:1-222, CharacterHitpointProgression.tsx:81-127, ClassDetail.model.ts:94/321-331, CreatureDetail.model.ts:306, EncounterEnemyStatBlock.tsx:80; server builderHitPoints.ts:108-146, characterVitals.ts:175. Done 2026-10-14: rules-runtime hitPointRules.ts and proficiencyBonus.ts, plus abilityModifier, back the Builder, class detail, Creature detail and Encounter stat block, and the server paths. The hit-point override field and its input are deleted; local Convex was reset and reseeded (SRD audit green).",
               "id": "RELIABILITY-7.2"
             }
           ],
