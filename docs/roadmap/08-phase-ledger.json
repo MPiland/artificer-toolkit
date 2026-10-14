@@ -1902,6 +1902,30 @@
               "closes": ["AUTHORING-17.1", "AUTHORING-17.2"]
             }
           ]
+        },
+        {
+          "id": "AUTHORING-18",
+          "title": "System vocabulary options show their description",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": [],
+          "acs": [
+            {
+              "text": "Every authored-form option drawn from System vocabulary (speeds, senses, damage types, skills, abilities, proficiencies and the rest) carries the vocabulary entry's description to the option tooltip, served by the shared resolver; proved by a real-resolver test that fails before the fix.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Found 2026-10-14 in the RELIABILITY-7 review: node maps select [id, label, tooltip] from System vocabulary tables, but System vocabulary rows carry description, not tooltip, so the resolver serves no description (the base Convex reader did the same; the old static web model hid it). The relationship executor already reads tooltip or description.",
+              "id": "AUTHORING-18.1"
+            }
+          ],
+          "wsjf": {
+            "bv": 2,
+            "tc": 1,
+            "rr": 2,
+            "size": 1
+          }
         }
       ]
     },
