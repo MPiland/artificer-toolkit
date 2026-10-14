@@ -196,8 +196,26 @@ describe('Three-user Assisted Encounter with auto-roll (ENCOUNTER-5.1)', () => {
     expect(scores[0]!).toBeLessThan(scores[1]!)
     expect(scores[1]).toBeLessThan(scores[2]!)
 
-    // Every member reads that same order, last declarer first.
+    // Every member loads one Initiative card per declared actor, in declaration order: the d20 each
+    // declaration rolled, and the total that became the stored score (ENCOUNTER-9.1).
     const members = [party.gm, party.aria.player, party.bryn.player]
+    const labelOf = (actorId: string) =>
+      party.run.actors.find((actor) => actor.id === actorId)?.label ?? 'missing'
+    const initiativeCardsBy = await Promise.all(
+      members.map(async (member) =>
+        (await readRoomRollCards(member.caller, party.campaign.id)).filter(
+          (card) => card.source.kind === 'INITIATIVE'
+        )
+      )
+    )
+    for (const cards of initiativeCardsBy) {
+      expect(cards.map((card) => card.characterLabel)).toEqual(declared.map(labelOf))
+      expect(cards.map((card) => card.evidence.terms[0]?.rolls)).toEqual([[5], [10], [15]])
+      expect(cards.map((card) => card.evidence.total)).toEqual(scores)
+      expect(cards).toEqual(initiativeCardsBy[0])
+    }
+
+    // Every member reads that same order, last declarer first.
     for (const actorId of [...declared].reverse()) {
       for (const member of members)
         expect(await viewOf(party, member)).toMatchObject({ round: 1, currentActorId: actorId })

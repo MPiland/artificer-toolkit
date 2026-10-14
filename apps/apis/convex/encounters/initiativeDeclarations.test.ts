@@ -14,8 +14,10 @@ import type {
   CreateEncounterInputDto,
   EncounterBlueprintDto,
   EncounterGmProjectionDto,
-  EncounterExecuteInput
+  EncounterExecuteInput,
+  ResolveRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounters'
+import type { RollRecordDto } from '@artificer-toolkit/schema/api/rolls'
 import {
   encounterCommandResultDtoSchema,
   encounterPlayerProjectionDtoSchema
@@ -57,9 +59,12 @@ import {
   closeRoom,
   executeInRoom,
   expectRedactedRoomRefusal,
+  queueRoomRolls,
+  readRoomRollCards,
   readRoomTimeline,
   roomErrorLogs,
-  useLocalRoomWorker
+  useLocalRoomWorker,
+  type RoomCaller
 } from '../../tests/fixtures/localRoomWorker'
 
 useLocalRoomWorker()
@@ -175,7 +180,7 @@ async function storedInitiative<
 }
 
 /** A started Run whose declarations alternate between an assigned Character and a Custom enemy. */
-async function startCharacterDeclarationRun() {
+async function startCharacterDeclarationRun(options: { hideEnemy?: boolean } = {}) {
   // Deliberately unequipped: a carried weapon is declared as drawn.
   const base = await setupCharacterRun()
   const initiative = createEncounterInitiativeDefinitions([
@@ -208,15 +213,31 @@ async function startCharacterDeclarationRun() {
   await attachFixtureRoom(base.t, base.campaign.id)
   const characterActor = run.actors.find((actor) => actor.kind === 'CHARACTER')
   if (!characterActor) throw new Error('Expected assigned Character actor.')
+  const enemyActor = run.actors.find((actor) => actor.kind !== 'CHARACTER')
+  if (!enemyActor) throw new Error('Expected enemy actor.')
+  let expectedVersion = run.version
+  if (options.hideEnemy)
+    expectedVersion = (
+      await executeInRoom(base.owner.caller, {
+        command: {
+          type: 'UPDATE_ACTOR',
+          encounterId: run.id,
+          commandId: crypto.randomUUID(),
+          expectedVersion,
+          actorId: enemyActor.id,
+          public: false
+        }
+      })
+    ).projection.version
   const started = await executeInRoom(base.owner.caller, {
     command: {
       type: 'START',
       encounterId: run.id,
       commandId: crypto.randomUUID(),
-      expectedVersion: run.version
+      expectedVersion
     }
   })
-  return { base, run, characterActor, started }
+  return { base, run, characterActor, enemyActor, started }
 }
 
 describe('native initiative declarations', () => {
@@ -1251,5 +1272,185 @@ describe('native initiative declarations', () => {
         effectId: automaticChargedBiteEffectId
       }
     })
+  }, 30000)
+})
+
+/**
+ * ENCOUNTER-9.1: every initiative die a declaration settles posts the Initiative card a GM-rolled
+ * initiative posts, with the same visibility.
+ */
+describe('declared initiative roll cards', () => {
+  /** Answers every pending step of the Run's initiative until it opens, as each member would. */
+  async function settleInitiative(
+    base: { campaign: { id: string }; owner: Awaited<ReturnType<typeof fixture>>['owner'] },
+    runId: string,
+    callerFor: (actorId: string) => RoomCaller,
+    enterDice: readonly number[] | null
+  ) {
+    const entered = [...(enterDice ?? [])]
+    for (let steps = 0; steps < 12; steps += 1) {
+      const pending = await readPending(base, base.owner.caller, runId)
+      if (!pending) return
+      const resolve = (caller: RoomCaller, resolution: ResolveRuleOccurrenceInputDto['resolution']) =>
+        executeInRoom(caller, {
+          command: {
+            type: 'RESOLVE_RULE_OCCURRENCE',
+            encounterId: runId,
+            commandId: crypto.randomUUID(),
+            expectedVersion: pending.encounterVersion,
+            occurrenceId: pending.occurrenceId,
+            expectedOccurrenceVersion: pending.occurrenceVersion,
+            correlationId: null,
+            resolution
+          }
+        })
+      if (pending.kind === 'INITIATIVE_DECLARATION')
+        await executeInRoom(callerFor(pending.actorId), declarationCommand({ encounterId: runId, pending }))
+      else if (pending.kind === 'INITIATIVE_EVIDENCE')
+        await resolve(base.owner.caller, {
+          kind: 'ENTER_INTEGER',
+          requestId: pending.request.requestId,
+          value: entered.shift() ?? 10
+        })
+      else if (pending.kind === 'INITIATIVE_ORDER')
+        await resolve(base.owner.caller, {
+          kind: 'INITIATIVE_ENTITY',
+          requestId: pending.requestId,
+          entityId: pending.optionIds[0]!
+        })
+      else throw new Error('Unexpected initiative step.')
+    }
+    throw new Error('Initiative did not settle.')
+  }
+
+  const initiativeCards = (cards: readonly RollRecordDto[]) =>
+    cards.filter((card) => card.source.kind === 'INITIATIVE')
+
+  async function storedScores(base: Parameters<typeof storedInitiative>[0]) {
+    const { participants } = await storedInitiative(base)
+    return new Map(participants.map((row) => [row.actorId, row.initiativeScore]))
+  }
+
+  it('posts one Initiative card for each auto-rolled declaration, with its die and total', async () => {
+    const base = await setup()
+    await queueRoomRolls(base.campaign.id, { rolls: [4, 9] })
+    await executeInRoom(base.owner.caller, {
+      command: {
+        type: 'START',
+        encounterId: base.run.id,
+        commandId: crypto.randomUUID(),
+        expectedVersion: base.run.version
+      }
+    })
+    await settleInitiative(base, base.run.id, () => base.owner.caller, null)
+    const scores = await storedScores(base)
+    const cards = initiativeCards(await readRoomRollCards(base.owner.caller, base.campaign.id))
+    expect(cards).toHaveLength(2)
+    // Declaration order: the 1st actor rolled face 5, the 2nd face 10, each plus the same modifier.
+    const labelOf = (actorId: string) => base.run.actors.find((actor) => actor.id === actorId)!.label
+    const declared = [...scores].map(([actorId, score]) => ({ actorId, score }))
+    for (const { actorId, score } of declared) {
+      const card = cards.find((candidate) => candidate.characterLabel === labelOf(actorId))
+      expect(card).toMatchObject({
+        characterId: null,
+        source: { kind: 'INITIATIVE', label: 'Initiative' },
+        evidence: { total: score, terms: [{ rolls: [expect.any(Number)] }] }
+      })
+    }
+    expect(cards.map((card) => card.evidence.terms[0]!.rolls[0]).sort((a, b) => a! - b!)).toEqual([5, 10])
+  }, 30000)
+
+  it('posts one Initiative card with the value the GM entered for an Assisted declaration', async () => {
+    const base = await setup({ rolls: 'PROMPT' })
+    await executeInRoom(base.owner.caller, {
+      command: {
+        type: 'START',
+        encounterId: base.run.id,
+        commandId: crypto.randomUUID(),
+        expectedVersion: base.run.version
+      }
+    })
+    await settleInitiative(base, base.run.id, () => base.owner.caller, [12, 7])
+    const scores = await storedScores(base)
+    const cards = initiativeCards(await readRoomRollCards(base.owner.caller, base.campaign.id))
+    expect(cards).toHaveLength(2)
+    expect(cards.map((card) => card.evidence.terms[0]!.rolls[0]).sort((a, b) => a! - b!)).toEqual([7, 12])
+    expect(cards.map((card) => card.evidence.total).sort((a, b) => a - b)).toEqual(
+      [...scores.values()].sort((a, b) => a - b)
+    )
+  }, 30000)
+
+  it('replays a retried declaration to the same card instead of posting another', async () => {
+    const base = await setup()
+    await queueRoomRolls(base.campaign.id, { rolls: [4, 9] })
+    const start: EncounterExecuteInput = {
+      command: {
+        type: 'START',
+        encounterId: base.run.id,
+        commandId: crypto.randomUUID(),
+        expectedVersion: base.run.version
+      }
+    }
+    await executeInRoom(base.owner.caller, start)
+    const terminalPending = async () => {
+      const pending = await readPending(base, base.owner.caller, base.run.id)
+      if (pending?.kind !== 'INITIATIVE_DECLARATION') throw new Error('Expected a declaration.')
+      return pending
+    }
+    await executeInRoom(
+      base.owner.caller,
+      declarationCommand({ encounterId: base.run.id, pending: await terminalPending() })
+    )
+    const terminal = declarationCommand({ encounterId: base.run.id, pending: await terminalPending() })
+    const settled = await executeInRoom(base.owner.caller, terminal)
+    const before = initiativeCards(await readRoomRollCards(base.owner.caller, base.campaign.id))
+    expect(before).toHaveLength(2)
+    await expect(executeInRoom(base.owner.caller, terminal)).resolves.toEqual(settled)
+    await executeInRoom(base.owner.caller, start)
+    expect(initiativeCards(await readRoomRollCards(base.owner.caller, base.campaign.id))).toEqual(before)
+  }, 30000)
+
+  it('keeps a hidden Creature’s card private to the GM and gives a player Character’s card to the table', async () => {
+    const { base, run, characterActor, enemyActor } = await startCharacterDeclarationRun({
+      hideEnemy: true
+    })
+    await queueRoomRolls(base.campaign.id, { rolls: [4, 9] })
+    await settleInitiative(
+      base,
+      run.id,
+      (actorId) => (actorId === characterActor.id ? base.player.caller : base.owner.caller),
+      null
+    )
+    const scores = await storedScores(base)
+    const tableCards = initiativeCards(await readRoomRollCards(base.owner.caller, base.campaign.id))
+    // The Character's card is the table's, and the player loads the same one.
+    expect(tableCards).toEqual([
+      expect.objectContaining({
+        characterId: base.character.id,
+        characterLabel: characterActor.label,
+        source: { kind: 'INITIATIVE', label: 'Initiative' },
+        evidence: expect.objectContaining({ total: scores.get(characterActor.id) })
+      })
+    ])
+    expect(initiativeCards(await readRoomRollCards(base.player.caller, base.campaign.id))).toEqual(
+      tableCards
+    )
+    // The hidden Creature's card is the GM's alone: unrevealed in their private history.
+    const retained = (await base.owner.caller.query(api.rolls.history, {})).filter(
+      (record) => record.source.kind === 'INITIATIVE'
+    )
+    expect(retained).toEqual([
+      expect.objectContaining({
+        characterId: null,
+        characterLabel: enemyActor.label,
+        evidence: expect.objectContaining({ total: scores.get(enemyActor.id) }),
+        gmCampaignRoll: expect.objectContaining({ revealedAt: null })
+      })
+    ])
+    expect(
+      (await base.player.caller.query(api.rolls.history, {})).filter(
+        (record) => record.source.kind === 'INITIATIVE'
+      )
+    ).toEqual([])
   }, 30000)
 })
