@@ -498,7 +498,7 @@ export type EncounterAreaActionPendingContextDto = {
   initiatorUserId: string
   casterActorId: string
   scene: { sceneId: string; sceneVersion: number }
-  /** The picked origin and the compiled shape, in Scene units. */
+  /** The origin and the compiled shape (a directed shape holds its direction), in Scene units. */
   area: { origin: { x: number; y: number }; shape: EncounterAreaShapeDto }
   /** Binds the Scene version, the area, and every creature still caught with its token footprint. */
   caughtChecksum: string
@@ -522,7 +522,24 @@ export type EncounterAreaActionPendingContextDto = {
 const encounterAreaShapeDtoSchema = lazySchema(() =>
   z.discriminatedUnion('kind', [
     z.strictObject({ kind: z.literal('RADIUS'), radius: z.number().check(z.positive()) }),
-    z.strictObject({ kind: z.literal('CUBE'), edgeLength: z.number().check(z.positive()) })
+    z.strictObject({ kind: z.literal('CUBE'), edgeLength: z.number().check(z.positive()) }),
+    z.strictObject({
+      kind: z.literal('CONE'),
+      length: z.number().check(z.positive()),
+      toward: spatialPointDtoSchema
+    }),
+    z.strictObject({
+      kind: z.literal('LINE'),
+      length: z.number().check(z.positive()),
+      width: z.number().check(z.positive()),
+      toward: spatialPointDtoSchema
+    }),
+    z.strictObject({
+      kind: z.literal('CUBE_FROM_SIDE'),
+      edgeLength: z.number().check(z.positive()),
+      cellSize: z.number().check(z.positive()),
+      toward: spatialPointDtoSchema
+    })
   ])
 )
 export type EncounterAreaShapeDto = z.infer<typeof encounterAreaShapeDtoSchema>

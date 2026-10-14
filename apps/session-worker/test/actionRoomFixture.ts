@@ -159,6 +159,46 @@ export function fireballWolf(): CreatureAuthored {
   })
 }
 
+/**
+ * The SRD Wolf with its Bite made a save over an area that extends from the Wolf (a Self range): a
+ * dragon's cone of breath, a line, or the cube of Thunderwave. Every creature in it makes a
+ * Dexterity save (DC 10) against 1 damage, as the point-area Wolf of `fireballWolf` does.
+ */
+export function directedAreaWolf(
+  shape:
+    | { shapeKind: 'CONE'; length: { amount: number; unit: 'FEET' } }
+    | {
+        shapeKind: 'LINE'
+        length: { amount: number; unit: 'FEET' }
+        width: { amount: number; unit: 'FEET' }
+      }
+    | { shapeKind: 'CUBE'; edgeLength: { amount: number; unit: 'FEET' } }
+): CreatureAuthored {
+  const bite = biteWolf('SAVE', { reachFeet: 150 })
+  return creatureAuthoredDtoSchema.parse({
+    ...bite,
+    features: bite.features?.map((feature) =>
+      feature.label !== 'Bite'
+        ? feature
+        : {
+            ...feature,
+            effects: feature.effects?.map((effect) => ({
+              ...effect,
+              invocation: {
+                ...effect.invocation,
+                range: { id: effect.invocation.range.id, rangeKind: 'SELF' as const },
+                targeting: {
+                  selectionKind: 'AREA_CONTENTS' as const,
+                  dispositionKind: 'ANY' as const
+                },
+                shape: { id: '00000000-0000-4000-8000-000000000c97', ...shape }
+              }
+            }))
+          }
+    )
+  })
+}
+
 export interface ActionRoomConfig extends Pick<
   MovementRoomConfig,
   | 'automationMode'
@@ -182,6 +222,8 @@ export interface ActionRoomConfig extends Pick<
   actors: readonly EncounterRunActorState[]
   /** The Creature feature the acting actor's action comes from. */
   ownerFeatureId?: string
+  /** Scene positions that replace an actor's default (150 + 100 x its index, 150). */
+  positions?: Readonly<Record<string, { x: number; y: number }>>
   /** For a Character actor, the one of its offered actions the room acts with. */
   characterAction?: (action: EncounterActionChoiceDto) => boolean
   /** The grip of a versatile weapon attack, which is its own action. */
@@ -213,7 +255,10 @@ export async function actionRoom(config: ActionRoomConfig) {
     ...config,
     moverActorId: source.id,
     positions: Object.fromEntries(
-      config.actors.map((actor, index) => [actor.id, { x: 150 + index * 100, y: 150 }])
+      config.actors.map((actor, index) => [
+        actor.id,
+        config.positions?.[actor.id] ?? { x: 150 + index * 100, y: 150 }
+      ])
     )
   })
 
@@ -357,11 +402,34 @@ export async function actionRoom(config: ActionRoomConfig) {
       return { command, answer: await send(command) }
     },
     /** The acting actor's area action at the Scene `point`; the room's answer, not yet checked. */
-    async startAreaAction(
+    startAreaAction(
       point: { x: number; y: number },
       acknowledgedWarnings: ResolveEncounterActionInputDto['acknowledgedWarnings'] = [],
       /** Whose socket sends it: the GM's, or the player who controls the acting actor. */
       sender: 'GM' | 'PLAYER' = 'GM'
+    ) {
+      return this.startAreaCommand({ kind: 'POINT', point }, acknowledgedWarnings, sender)
+    },
+    /** The acting actor's directed area action from `origin` toward `toward`; not yet checked. */
+    startDirectedAreaAction(
+      origin: { x: number; y: number },
+      toward: { x: number; y: number },
+      acknowledgedWarnings: ResolveEncounterActionInputDto['acknowledgedWarnings'] = [],
+      sender: 'GM' | 'PLAYER' = 'GM'
+    ) {
+      return this.startAreaCommand(
+        { kind: 'DIRECTED', origin, toward },
+        acknowledgedWarnings,
+        sender
+      )
+    },
+    /** The acting actor's area action on the Scene as the room holds it now. */
+    async startAreaCommand(
+      target:
+        | { kind: 'POINT'; point: { x: number; y: number } }
+        | { kind: 'DIRECTED'; origin: { x: number; y: number }; toward: { x: number; y: number } },
+      acknowledgedWarnings: ResolveEncounterActionInputDto['acknowledgedWarnings'],
+      sender: 'GM' | 'PLAYER'
     ) {
       const command: ResolveEncounterActionInputDto = {
         type: 'RESOLVE_ACTION',
@@ -372,10 +440,9 @@ export async function actionRoom(config: ActionRoomConfig) {
         expectedVersion: await version(),
         actorId: source.id,
         target: {
-          kind: 'POINT',
+          ...target,
           sceneId: room.scene.id,
-          expectedSceneVersion: room.scene.version,
-          point
+          expectedSceneVersion: room.scene.version
         },
         actionId,
         optionalCombatIntent: null,

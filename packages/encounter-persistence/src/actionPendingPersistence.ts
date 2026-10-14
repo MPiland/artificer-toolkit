@@ -83,7 +83,7 @@ export async function persistEncounterActionPending(
   let evidence:
     | Extract<typeof snapshot, { snapshotKind: 'KERNEL_EVIDENCE' }>['applicationContext']
     | null = null
-  if (target.kind === 'POINT') {
+  if (target.kind !== 'ACTOR') {
     if (input.command.optionalCombatIntent != null)
       throw new Error('Live Session pending action root mismatch.')
     if (resume) {
