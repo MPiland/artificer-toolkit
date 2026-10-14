@@ -47,7 +47,11 @@ const SET_VALUE_DOMAIN_POLARITY: Readonly<
 
 /** A bonus or penalty's sign: a negative amount or multiplier flips it, zero cancels it. */
 function scalarSign(payload: Record<string, unknown> | null): number {
-  const value = payload?.valueKind === 'FIXED' ? payload.amount : (payload?.multiplier ?? 1)
+  // A fixed amount or a typed length (speed, sense range) carries its sign in `amount`.
+  const value =
+    payload?.valueKind === 'FIXED' || typeof payload?.unit === 'string'
+      ? payload.amount
+      : (payload?.multiplier ?? 1)
   return typeof value === 'number' ? Math.sign(value) : 1
 }
 

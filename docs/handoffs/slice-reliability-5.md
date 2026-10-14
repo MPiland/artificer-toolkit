@@ -34,5 +34,15 @@ Read first: D100, D108, D111 in `docs/handoffs/phase-08-2-decisions.md`; `docs/a
 ## Status log
 
 - 2026-10-14: workbook written; session started.
+- 2026-10-14: red logs captured under `local-validation/reliability-5/` (`red-packages.log` 39 failures, `red-source-data.log` 1, `red-apis.log` Spell publication red; the Creature publication tests were blocked by a stale `dist` in the worktree, a baseline environment issue).
+- 2026-10-14: implementation: modifier payload is `authoredLengthSchema`; feet contributions converted into the base unit; base-less `SET_VALUE` speed takes the modifier's unit; `walkingSpeed` and `encounterHolderDefense` throw instead of skipping; node map and SRD producers migrated. Decision D112 and the rules-runtime guide updated.
+- Premise changes: `walkingSpeed.test.ts` (skip became throw), `grant-facet-schema-parsing.test.ts` (SPEED and SENSE_RANGE payloads now `{ amount, unit }`), `activeGrantListings.test.ts` (SPEED `SET_VALUE` payloads now lengths).
+- Deviations: the length units have no metric unit, so YARDS stands in for "metric" (18 m); the Scene token is proven through `resolveCharacterRecordStats` (the feet the room stores and `turnMovement` reads), not a live-room journey; the Creature speed refusal at publication was already enforced at baseline by `speedDtoSchema`, so that case has no genuine red.
+
+- 2026-10-14: green: `green-packages-all.log` (233 files, 2187 tests across rules-runtime, schema, shared, source-data and the other packages), `green-source-data.log`, `green-apis-content.log` (40 files, 226 tests), `green-apis-encounters.log`, `green-apis-commandBoundary.log`; `tsc-convex.log` exit 0; `turbo-typecheck.log` exit 0 (13 tasks); `codegen.log` exit 0 (local push against the existing local Convex backend). The worktree needed `dist` rebuilds of shared, schema, packages and emails (baseline environment, not slice changes). Base had not moved (9ada1065e), so no merge was needed. No Convex reset or reseed was run; the SRD audit after reseed is for the main session.
 
 ## Proposed ledger edits (filled by the slice session)
+
+- RELIABILITY-5: set `status` to done (5.1 modifier lengths, 5.2 malformed speeds refused at publish and failing at read), with the D112 decision and `docs/architecture/rules-runtime.md` as the doc evidence.
+- Follow-up for the main session after merge: reseed the local Convex backend (the SRD corpus changed shape) and rerun the SRD audit (checklist item 6, last clause).
+- Open limit recorded in D112: `LENGTH_UNIT_CODES` has no metric unit, so an "18 m" authored length cannot be expressed yet. Register a slice to add one if metric authoring is wanted.

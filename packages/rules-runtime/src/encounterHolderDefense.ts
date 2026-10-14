@@ -36,17 +36,12 @@ export async function encounterHolderState(input: {
       : target.actor.kind === 'CREATURE'
         ? withActiveGrantSpeeds(snapshotStatBlock(target.actor)?.speeds ?? [], target.activeEffects)
         : []
-  const feet = speeds.flatMap((entry: unknown) => {
-    const speed = speedDtoSchema.safeParse(entry)
-    return speed.success
-      ? [
-          encounterConditionSpeed({
-            mechanics: target.conditionMechanics,
-            speed: lengthMeasurementInFeet(speed.data)
-          })
-        ]
-      : []
-  })
+  const feet = speeds.map((entry: unknown) =>
+    encounterConditionSpeed({
+      mechanics: target.conditionMechanics,
+      speed: lengthMeasurementInFeet(speedDtoSchema.parse(entry))
+    })
+  )
   return {
     canAct: !(await encounterActorCannotAct({
       conditionIds: target.state.conditions,

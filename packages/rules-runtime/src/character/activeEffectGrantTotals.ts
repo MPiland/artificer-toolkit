@@ -4,6 +4,7 @@ import type {
 } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 
+import { modifierLengthFeet } from '../modifierLength.js'
 import { listHitPointMaximumReductions, reduceHitPointMaximum } from './hitPointMaximumReductions.js'
 
 // Grant reads the Sheet and the Encounter share. This module must stay free of `encounter*` imports:
@@ -36,6 +37,26 @@ export function record(value: unknown): Record<string, unknown> | null {
     : null
 }
 
+/** The global active bonuses and penalties to one value domain whose domain `applies` accepts. */
+function* activeBonusGrants(
+  effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[],
+  valueDomainCode: string,
+  applies: (domain: Record<string, unknown> | null) => boolean
+) {
+  for (const { modifiers } of listActiveEffectGrants(effects)) {
+    for (const modifier of modifiers) {
+      const grant = record(modifier.grant)
+      if (
+        modifier.valueDomainCode === valueDomainCode &&
+        (modifier.modifierKind === 'BONUS' || modifier.modifierKind === 'PENALTY') &&
+        grant?.scope === 'GLOBAL' &&
+        applies(record(modifier.domain))
+      )
+        yield { sign: modifier.modifierKind === 'PENALTY' ? -1 : 1, payload: record(grant.payload) }
+    }
+  }
+}
+
 /**
  * The net of a holder's active fixed bonuses and penalties to one value domain, for the grants
  * whose domain `applies` accepts.
@@ -46,24 +67,28 @@ export function activeFixedGrantTotal(
   applies: (domain: Record<string, unknown> | null) => boolean = () => true
 ): number {
   let total = 0
-  for (const { modifiers } of listActiveEffectGrants(effects)) {
-    for (const modifier of modifiers) {
-      const grant = record(modifier.grant)
-      if (
-        modifier.valueDomainCode !== valueDomainCode ||
-        (modifier.modifierKind !== 'BONUS' && modifier.modifierKind !== 'PENALTY') ||
-        grant?.scope !== 'GLOBAL' ||
-        !applies(record(modifier.domain))
-      )
-        continue
-      const payload = record(grant.payload)
-      if (payload?.valueKind !== 'FIXED' || typeof payload.amount !== 'number')
-        throw new Error(`An active ${valueDomainCode} grant must be a fixed amount.`)
-      // A penalty is authored as a positive amount and subtracted once, here.
-      total += modifier.modifierKind === 'PENALTY' ? -payload.amount : payload.amount
-    }
+  for (const { sign, payload } of activeBonusGrants(effects, valueDomainCode, applies)) {
+    if (payload?.valueKind !== 'FIXED' || typeof payload.amount !== 'number')
+      throw new Error(`An active ${valueDomainCode} grant must be a fixed amount.`)
+    // A penalty is authored as a positive amount and subtracted once, here.
+    total += sign * payload.amount
   }
   return total
+}
+
+/**
+ * The net feet of a holder's active speed bonuses and penalties, for the grants whose domain
+ * `applies` accepts. Each payload is a typed length, converted through the shared unit conversion;
+ * one that is not is an invariant failure.
+ */
+export function activeSpeedGrantFeet(
+  effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[],
+  applies: (domain: Record<string, unknown> | null) => boolean
+): number {
+  let feet = 0
+  for (const { sign, payload } of activeBonusGrants(effects, 'SPEED', applies))
+    feet += sign * modifierLengthFeet(payload)
+  return feet
 }
 
 /**

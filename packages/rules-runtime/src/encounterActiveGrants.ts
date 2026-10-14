@@ -7,17 +7,23 @@ import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projectio
 import { attackDomainCodeSchema } from '@artificer-toolkit/schema/shared/enums'
 import { speedDtoSchema, type SpeedDto } from '@artificer-toolkit/schema/shared/speed'
 import { createCharacterMechanicSourceKey } from '@artificer-toolkit/shared/character'
-import type { AttackDomainCode } from '@artificer-toolkit/shared/core'
+import {
+  feetInLengthUnit,
+  lengthMeasurementInFeet,
+  type AttackDomainCode
+} from '@artificer-toolkit/shared/core'
 import { resolveD20Contributors } from '@artificer-toolkit/shared/rolls'
 import { compareCanonicalD20Contributors } from '@artificer-toolkit/shared/rules'
 
 import {
   activeFixedGrantTotal,
+  activeSpeedGrantFeet,
   listActiveEffectGrants,
   record
 } from './character/activeEffectGrantTotals.js'
 import { normalizeCharacterGrantRestrictions } from './character/characterGrantFoldRestrictionFacts.js'
 import type { EncounterRelationshipD20Contributor } from './encounterRelationshipActionFacts.js'
+import { lengthInUnit, modifierLength } from './modifierLength.js'
 import {
   DND5E_ABILITY_DEFINITION_ID_BY_CODE,
   DND5E_REACTION_ALLOWANCE_DEFINITION_ID
@@ -481,44 +487,48 @@ export function withCreatureActiveGrantArmorClass(
 /**
  * A holder's typed speeds with its active speed grants applied the way the Character policy folds
  * them: the best "your speed is X" grant replaces a speed's base (adding a speed the holder lacked,
- * as Fly does), then fixed bonuses and penalties add (Longstrider, Ray of Frost), never below 0.
+ * as Fly does, in the grant's own unit), then bonuses and penalties add (Longstrider, Ray of Frost),
+ * never below 0. Grant lengths convert into the speed's unit through the shared conversion; a speed
+ * or grant that is not a typed length is an invariant failure.
  */
 export function withActiveGrantSpeeds(
   speeds: readonly unknown[],
   effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[]
 ): SpeedDto[] {
-  const replacements = new Map<string, number>()
+  const replacements = new Map<string, ReturnType<typeof modifierLength>>()
   for (const { modifiers } of listActiveEffectGrants(effects)) {
     for (const modifier of modifiers) {
       const speedId = record(modifier.domain)?.speedId
       const grant = record(modifier.grant)
-      const amount = record(grant?.payload)?.amount
       if (
         modifier.valueDomainCode !== 'SPEED' ||
         modifier.modifierKind !== 'SET_VALUE' ||
         grant?.scope !== 'GLOBAL' ||
-        typeof speedId !== 'string' ||
-        typeof amount !== 'number'
+        typeof speedId !== 'string'
       )
         continue
-      replacements.set(speedId, Math.max(replacements.get(speedId) ?? amount, amount))
+      const replacement = modifierLength(grant.payload)
+      const best = replacements.get(speedId)
+      if (best === undefined || lengthMeasurementInFeet(replacement) > lengthMeasurementInFeet(best))
+        replacements.set(speedId, replacement)
     }
   }
-  const base = speeds.flatMap((entry) => {
-    const speed = speedDtoSchema.safeParse(entry)
-    return speed.success ? [speed.data] : []
-  })
+  const base = speeds.map((entry) => speedDtoSchema.parse(entry))
   return [
     ...base,
-    ...[...replacements.keys()]
-      .filter((speedId) => !base.some((speed) => speed.speedId === speedId))
-      .map((speedId) => ({ speedId, amount: 0, unit: 'FEET' as const }))
-  ].map((speed) => ({
-    ...speed,
-    amount: Math.max(
-      0,
-      (replacements.get(speed.speedId) ?? speed.amount) +
-        activeFixedGrantTotal(effects, 'SPEED', (domain) => domain?.speedId === speed.speedId)
-    )
-  }))
+    ...[...replacements]
+      .filter(([speedId]) => !base.some((speed) => speed.speedId === speedId))
+      .map(([speedId, { amount, unit }]) => ({ speedId, amount, unit }))
+  ].map((speed) => {
+    const replacement = replacements.get(speed.speedId)
+    const bonusFeet = activeSpeedGrantFeet(effects, (domain) => domain?.speedId === speed.speedId)
+    return {
+      ...speed,
+      amount: Math.max(
+        0,
+        (replacement === undefined ? speed.amount : lengthInUnit(replacement, speed.unit)) +
+          (bonusFeet === 0 ? 0 : feetInLengthUnit(bonusFeet, speed.unit))
+      )
+    }
+  })
 }

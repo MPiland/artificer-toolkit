@@ -218,6 +218,16 @@ describe('grant polarity (VTT_UI-1.2)', () => {
       expect(polarityOf([{ domain: 'DAMAGE', kind }])).toBe('BENEFICIAL')
   })
 
+  it('reads a speed length bonus as beneficial, a penalty as harmful and a zero length as neutral', () => {
+    const length = (amount: number) => ({ amount, unit: 'FEET' })
+    expect(polarityOf([{ domain: 'SPEED', kind: 'BONUS', payload: length(10) }])).toBe(
+      'BENEFICIAL'
+    )
+    expect(polarityOf([{ domain: 'SPEED', kind: 'PENALTY', payload: length(10) }])).toBe('HARMFUL')
+    expect(polarityOf([{ domain: 'SPEED', kind: 'BONUS', payload: length(0) }])).toBe('NEUTRAL')
+    expect(polarityOf([{ domain: 'SPEED', kind: 'PENALTY', payload: length(0) }])).toBe('NEUTRAL')
+  })
+
   it('flips a bonus or penalty whose fixed amount or multiplier is negative', () => {
     expect(polarityOf([{ domain: 'ARMOR_CLASS', kind: 'PENALTY', payload: fixed(-2) }])).toBe(
       'BENEFICIAL'
@@ -332,8 +342,13 @@ describe('grant polarity (VTT_UI-1.2)', () => {
       kind: 'SET_VALUE',
       payload: { amount }
     })
-    expect(polarityOf([set('SPEED', 60)])).toBe('BENEFICIAL')
-    expect(polarityOf([set('SPEED', 0)])).toBe('HARMFUL')
+    const setSpeed = (amount: number) => ({
+      domain: 'SPEED',
+      kind: 'SET_VALUE',
+      payload: { amount, unit: 'FEET' }
+    })
+    expect(polarityOf([setSpeed(60)])).toBe('BENEFICIAL')
+    expect(polarityOf([setSpeed(0)])).toBe('HARMFUL')
     expect(polarityOf([set('REACTION_COUNT', 0)])).toBe('HARMFUL')
     expect(polarityOf([set('REACTION_COUNT', 2)])).toBe('NEUTRAL')
     expect(polarityOf([set('HIT_POINTS_MAX', 0)])).toBe('NEUTRAL')

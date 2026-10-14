@@ -21,10 +21,19 @@ describe('resolveSpeedsFeet', () => {
     ])
   })
 
-  it('has no speed for an unknown speed type or a value that is not a speed', () => {
-    expect(
-      resolveSpeedsFeet([{ speedId: fly.id, amount: 60, unit: 'FEET' }, 'not a speed'], [walk])
-    ).toEqual([])
+  it('fails the read on a speed type the System vocabulary does not know', () => {
+    expect(() =>
+      resolveSpeedsFeet([{ speedId: fly.id, amount: 60, unit: 'FEET' }], [walk])
+    ).toThrow()
+  })
+
+  it('fails the read on a value that is not a speed', () => {
+    expect(() =>
+      resolveSpeedsFeet([{ speedId: walk.id, amount: 30, unit: 'FEET' }, 'not a speed'], [walk])
+    ).toThrow()
+    expect(() =>
+      resolveSpeedsFeet([{ speedId: walk.id, amount: 30, unit: 'FURLONGS' }], [walk])
+    ).toThrow()
   })
 
   it('keeps the first entry of a speed type', () => {

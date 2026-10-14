@@ -17,6 +17,8 @@ import {
   CAMPAIGN_ID,
   SRD_SYSTEM_ID,
   characterActor,
+  creatureActor,
+  creatureRuleFacts,
   srdCondition,
   srdCreatureActor,
   srdDefinitions,
@@ -216,6 +218,61 @@ describe('holder-state predicates CAN_ACT and SPEED_ABOVE_ZERO', () => {
         }[]
       ).map(({ sourceId }) => sourceId)
     ).not.toContain(DODGE_SOURCE_ID)
+  })
+
+  it('fails the read on a Creature speed that is not a typed length', async () => {
+    const scores = {
+      STRENGTH: 11,
+      DEXTERITY: 12,
+      CONSTITUTION: 12,
+      INTELLIGENCE: 10,
+      WISDOM: 10,
+      CHARISMA: 10
+    }
+    const malformed = (speeds: unknown[]) =>
+      buildMovementTarget({
+        actor: creatureActor({
+          id: HOLDER_ID,
+          currentHitPoints: 7,
+          maxHitPoints: 11,
+          tempHitPoints: 0,
+          conditions: [],
+          snapshot: {
+            payload: {
+              size: 'MEDIUM',
+              naturalArmorBonus: 1,
+              abilityScores: scores,
+              speeds,
+              senses: [],
+              damageVulnerabilities: [],
+              damageResistances: [],
+              damageImmunities: [],
+              conditionImmunities: []
+            },
+            ruleFacts: creatureRuleFacts(scores)
+          }
+        }),
+        activeEffects: [],
+        gameSystemId: SRD_SYSTEM_ID,
+        campaignId: CAMPAIGN_ID,
+        characterFacts: null
+      })
+    // The target reads its speeds when built, so building it is part of the read.
+    const read = async (speeds: unknown[]) =>
+      encounterHolderState({
+        target: malformed(speeds),
+        gameSystemId: SRD_SYSTEM_ID,
+        definitions: srdDefinitions
+      })
+    await expect(
+      read([{ speedId: testUuid(0xd5a4), amount: 30, unit: 'FEET' }])
+    ).resolves.toMatchObject({ speedAboveZero: true })
+    await expect(
+      read([{ speedId: testUuid(0xd5a4), amount: 'fast', unit: 'FEET' }])
+    ).rejects.toThrow()
+    await expect(
+      read([{ speedId: testUuid(0xd5a4), amount: 30, unit: 'FURLONGS' }])
+    ).rejects.toThrow()
   })
 
   it('a restriction with a condition other than the holder-state ones fails closed', () => {

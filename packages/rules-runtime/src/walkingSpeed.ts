@@ -6,8 +6,9 @@ import { lengthMeasurementInFeet } from '@artificer-toolkit/shared/core'
 export const WALK_SPEED_CODE = 'WALK'
 
 /**
- * The feet of every typed speed among a Character's evaluated speeds or a creature stat block's
- * that the System speed vocabulary knows, in their given order; the first entry of a speed type wins.
+ * The feet of every typed speed among a Character's evaluated speeds or a creature stat block's, in
+ * their given order; the first entry of a speed type wins. Publication refuses a malformed speed or
+ * one outside the System speed vocabulary, so meeting one here is an invariant failure.
  */
 export function resolveSpeedsFeet(
   speeds: readonly unknown[],
@@ -16,9 +17,11 @@ export function resolveSpeedsFeet(
   const known = new Set(speedDefinitions.map((definition) => definition.id))
   const resolved = new Map<string, number>()
   for (const entry of speeds) {
-    const speed = speedDtoSchema.safeParse(entry)
-    if (speed.success && known.has(speed.data.speedId) && !resolved.has(speed.data.speedId))
-      resolved.set(speed.data.speedId, Math.max(lengthMeasurementInFeet(speed.data), 0))
+    const speed = speedDtoSchema.parse(entry)
+    if (!known.has(speed.speedId))
+      throw new Error(`Speed ${speed.speedId} is not in the System speed vocabulary.`)
+    if (!resolved.has(speed.speedId))
+      resolved.set(speed.speedId, Math.max(lengthMeasurementInFeet(speed), 0))
   }
   return [...resolved].map(([speedId, feet]) => ({ speedId, feet }))
 }
