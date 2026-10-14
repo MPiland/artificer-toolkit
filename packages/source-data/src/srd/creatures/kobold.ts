@@ -27,7 +27,7 @@ export const kobold: CreatureAuthored = {
   },
   speeds: [...S.walk(30)],
   proficiencies: [S.grantedLanguageProficiency(179, 1, 'COMMON', 'DRACONIC')],
-  senses: ['darkvision 60 ft.'],
+  senses: [S.darkvision(60)],
   passivePerception: 8,
   challengeRatingId: S.CR.CR_1_8,
   xp: 25,

@@ -30,7 +30,7 @@ export const ghast: CreatureAuthored = {
   damageResistances: ['necrotic'],
   damageImmunities: ['poison'],
   conditionImmunities: ['charmed', 'exhaustion', 'poisoned'],
-  senses: ['darkvision 60 ft.'],
+  senses: [S.darkvision(60)],
   passivePerception: 10,
   challengeRatingId: S.CR.CR_2,
   xp: 450,

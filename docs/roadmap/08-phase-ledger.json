@@ -475,21 +475,29 @@
         {
           "id": "PLATFORM-12",
           "title": "Web tests run real contracts",
-          "status": "IN_PROGRESS",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": [
+            "apps/web/src/domains/campaigns/vtt/CampaignTabletopActionDrawer.stories.tsx",
+            "apps/web/src/domains/characters/sheet/rest/CharacterSheetRest.stories.tsx"
+          ],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
               "text": "Web tests run real contracts: fixtures and story data parse through the shared DTO schemas, mocks use the real generated api references, and the Sheet harness takes its rest preview from the real projection",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "proof": [
                 "apps/web/src/domains/fixtureContracts.test.ts",
+                "apps/web/src/test/validatedFixture.test.ts",
+                "apps/web/src/domains/characters/sheet/rest/CharacterSheetRest.stories.tsx",
+                "apps/web/src/marketing/stories/MarketingProductCapture.stories.tsx",
+                "apps/web/src/domains/characters/builder/core/CharacterBuilderAuthoringRuntime.stories.tsx",
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopActionDrawer.stories.tsx",
                 "apps/web/src/domains/characters/sheet/rest/CharacterSheetRestMulticlass.test.tsx › offers mixed hit dice and the Max HP adjustment in the short rest",
                 "apps/web/src/domains/characters/sheet/rest/CharacterSheetRestControl.test.tsx",
                 "apps/web/src/domains/characters/builder/evaluation/builderEvaluator.test.ts"
               ],
-              "note": "Lane 2 (2026-10-12) completed every web folder except campaigns/vtt: mocks use generated api refs, fixtures and story data parse through DTO schemas, and Sheet rest previews come from the real rules-runtime projection (playedCharacters.fixture.ts). Open: (1) the campaigns/vtt violations listed in docs/handoffs/lane-2-platform-closeout.md; (2) post-merge Storybook runs of the Rest, MarketingProductCapture and Builder Native Draft stories, which cannot start in a worktree. Lane 3 (2026-10-13): campaigns/vtt done, proved by the campaigns/vtt unit and Storybook runs with fixtures validated through apps/web/src/test/validatedFixture.ts except the CampaignTabletopActionDrawer stories and test, CampaignTabletopBasicActions and CampaignTabletopEscapes, held until ATTACK-18 slice D merges. Fixture data that failed its schema was fixed in the data (the load map is 8000 px square under the 64 MP limit; stale door states; non-UUID ids; an area summary with nothing to show).",
+              "note": "Lane 2 (2026-10-12) completed every web folder except campaigns/vtt: mocks use generated api refs, fixtures and story data parse through DTO schemas, and Sheet rest previews come from the real rules-runtime projection (playedCharacters.fixture.ts). Open: (1) the campaigns/vtt violations listed in docs/handoffs/lane-2-platform-closeout.md; (2) post-merge Storybook runs of the Rest, MarketingProductCapture and Builder Native Draft stories, which cannot start in a worktree. Lane 3 (2026-10-13): campaigns/vtt done, proved by the campaigns/vtt unit and Storybook runs with fixtures validated through apps/web/src/test/validatedFixture.ts except the CampaignTabletopActionDrawer stories and test, CampaignTabletopBasicActions and CampaignTabletopEscapes, held until ATTACK-18 slice D merges. Fixture data that failed its schema was fixed in the data (the load map is 8000 px square under the 64 MP limit; stale door states; non-UUID ids; an area summary with nothing to show). Done 2026-10-13: the drawer fixtures parse through validated(...) (merge 838fe79a2; validatedFixture.test.ts shows an invalid fixture fails), and the owed Storybook runs (Rest, MarketingProductCapture, Builder Native Draft, the drawer, Presentation and Window stories) passed on the lane branch, 8 files and 85 tests (local-validation/owed-storybook/).",
               "origin": ["REL-10"],
               "id": "PLATFORM-12.1"
             }
@@ -550,9 +558,12 @@
             },
             {
               "text": "No package test fails on the default 5 s timeout under a loaded run: the SRD import preparation and authored-corpus tests do bounded work, proved by a loaded root-package run with no per-test timeout raised.",
-              "status": "TODO",
-              "proof": [],
-              "note": "Registered 2026-10-13 from the lane 3 merge. packages/source-data/src/srd/import.test.ts › publishes the SRD basic-action catalogue as System data (Q11) timed out at 5000 ms in the post-merge root-package run (local-validation/lane3-merge/root-packages.log); lane 3 hit the same class in r5c and r6. 781c9529a fixed only the cloneAuthoredItem corpus test. Fix the work the test does, not the timeout.",
+              "status": "DONE",
+              "proof": [
+                "packages/source-data/src/srd/import.test.ts",
+                "local-validation/privacy4-plt136/root-packages.log"
+              ],
+              "note": "Closed 2026-10-13 (merge 6bbbf7f62): new prepareSrdDefinitions serves the Q11 test without preparing 1,057 subjects; one canonical compare and one hash per document. Q11 2324 -> 35 ms, the full-import tests 4052 -> 2597 ms and 1947 -> 1295 ms, the SRD manifest byte-identical, and a loaded root-package run of 274 files / 2536 tests green in 54 s with no timeout raised. Registered 2026-10-13 from the lane 3 merge. packages/source-data/src/srd/import.test.ts › publishes the SRD basic-action catalogue as System data (Q11) timed out at 5000 ms in the post-merge root-package run (local-validation/lane3-merge/root-packages.log); lane 3 hit the same class in r5c and r6. 781c9529a fixed only the cloneAuthoredItem corpus test. Fix the work the test does, not the timeout.",
               "origin": [],
               "id": "PLATFORM-13.6"
             }
@@ -566,7 +577,7 @@
           "tasks": [
             {
               "id": "PLATFORM-13.T1",
-              "text": "Test speed: convex-test upgrade, per-file timings and the parallelism trial.",
+              "text": "Test speed: convex-test upgrade, per-file timings and the parallelism trial. Include the module-load prepareSrdImport() calls (about 1.2 s per process) in contentSnapshots.test.ts, srdCreatureAttackSweep.test.ts and the web builder fixtures, found in PLATFORM-13.6.",
               "status": "TODO",
               "closes": ["PLATFORM-13.3"],
               "wsjf": {
@@ -4336,18 +4347,17 @@
         {
           "id": "ENCOUNTER-5",
           "title": "Three-user Assisted Encounter journey",
-          "status": "TODO",
-          "journeyTests": ["apps/apis/convex/liveSessions/encounterJourneys.test.ts"],
-          "journeyStatus": "partial",
-          "journeyGap": "No three-user Assisted journey with auto-roll on runs locally; the only three-user journey is the managed spec (see the PERF UAT).",
+          "status": "DONE",
+          "journeyTests": ["apps/apis/convex/liveSessions/assistedPartyJourney.test.ts"],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
               "text": "A three-user Encounter journey passes in Assisted mode with auto-roll on.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": ["apps/apis/convex/liveSessions/assistedPartyJourney.test.ts"],
               "origin": ["G5-AUTOMATIC-JOURNEY"],
-              "note": "Replaces the original three-user Automatic journey (ADR 0034); AUTOMATIC is not reinstated.",
+              "note": "Closed 2026-10-13 (merge efd51f5a3), test-only: a GM and two players, each driving their own SRD Fighter against an SRD Wolf with auto-roll on, through the real room. Each player is refused the other's Character and the Wolf (NOT_ACTOR_CONTROLLER); the GM may adjudicate any actor. Declared initiative auto-rolls and every member reads one turn order; a full round of attacks posts identical ATTACK and DAMAGE cards to all three, and players read only TABLE timeline entries. After COMPLETE every member's room frame is released and players cannot read the Run. Uses DECLARED_ACTION_ROLL, the player-driven initiative path. Its missing initiative roll card is ENCOUNTER-9. Replaces the original three-user Automatic journey (ADR 0034); AUTOMATIC is not reinstated.",
               "id": "ENCOUNTER-5.1"
             }
           ],
@@ -5546,31 +5556,47 @@
         {
           "id": "ATTACK-18",
           "title": "Basic actions are authored actions",
-          "status": "IN_PROGRESS",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": ["apps/apis/convex/encounters/basicActionRestrictions.test.ts"],
+          "journeyStatus": "verified",
           "origin": [],
           "note": "Registered 2026-10-10 by the product owner (D106). Supersedes the closed mechanics half of Q11. ATTACK-7 slices C and F build on it.",
           "acs": [
             {
               "text": "Every System basic action (Dash, Disengage, Dodge, Help, First Aid, Grapple, Shove, Hide, Ready, Search and Use an Object) is an authored action whose resolution and outcomes use the same effect model and editor as a feature's action; the catalogue stays locked in the SRD and copyable into a homebrew System, and the closed basic-action mechanic codes no longer exist.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/apis/convex/encounters/basicActions.test.ts",
+                "packages/rules-runtime/src/__tests__/encounterBasicActionRestrictions.test.ts › a copy of the catalogue keeps its restrictions",
+                "docs/handoffs/slice-attack-18-e.md (checklist 7: closed-code search over apps and packages, no hits)"
+              ],
+              "note": "Closed 2026-10-13 (merge 3ebbd4a4c). Copying is proved on the data path; running a non-SRD System's encounters stays deferred with homebrew Systems (docs/architecture/data-lifecycle.md).",
               "origin": [],
               "id": "ATTACK-18.1"
             },
             {
               "text": "Dash, Disengage, Dodge, Help and First Aid behave exactly as before: their existing room, Convex and browser proofs (D45, D46, D96, D98) pass unchanged against the authored versions.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/apis/convex/encounters/basicActions.test.ts",
+                "apps/apis/convex/encounters/turnDeathSave.test.ts",
+                "packages/rules-runtime/src/__tests__/encounterBasicActions.test.ts",
+                "packages/rules-runtime/src/__tests__/encounterHolderDefense.test.ts",
+                "apps/session-worker First Aid room test",
+                "local-validation/attack18e/GREEN-final-2.log"
+              ],
               "origin": [],
               "note": "Product-owner ruling 2026-10-12: Disengage ends only at the holder's real end of turn (Next Turn), like Dodge. A GM cursor correction (set current actor, previous turn, set round) no longer ends it; the old Q11 proof was rewritten to cover both cases. Also changed (integration-owner call, same warn-instead-of-block rule as every self-range authored action): Disengage or Dodge aimed at another creature is the overridable TARGET_OUT_OF_RANGE warning instead of a hard refusal, and \"Do it anyway\" applies it to the chosen creature. Help follows the same rule (slice C): aimed at an enemy it warns \"This action needs a willing target.\" and aimed at the helper itself it warns \"This action targets another creature.\", both overridable TARGET_DISPOSITION warnings.",
               "id": "ATTACK-18.2"
             },
             {
               "text": "A basic action is offered only to actors that meet its authored facet restrictions, and an unmet restriction is refused; a basic action with no restriction is offered to every actor. FREE_HAND is an authorable predicate, true while either hand is empty.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/apis/convex/encounters/basicActionRestrictions.test.ts (offer, SOURCE_REQUIREMENTS_NOT_MET refusal through the real room, unrestricted default, CAN_ACT, journey)",
+                "packages/rules-runtime/src/__tests__/encounterBasicActionRestrictions.test.ts (Character and Creature hand occupancy, EXCLUDE, fail-closed, CREATURE context, source scope)",
+                "local-validation/attack18e/RED-convex-restrictions.log"
+              ],
               "origin": [],
               "note": "Restrictions use FacetAuthored and the existing sourceStateRequirements check (refusal SOURCE_REQUIREMENTS_NOT_MET). FREE_HAND reads the hand-occupancy function from AUTHORING-17.",
               "id": "ATTACK-18.3"
@@ -5615,8 +5641,8 @@
             {
               "id": "ATTACK-18.T6",
               "text": "Slice E: delete the closed codes, USE_BASIC_ACTION and every old path; offer basic actions through their facet restrictions with the FREE_HAND predicate in the rules and the drawer; a journey uses an authored basic action end to end; migrate development data and update the architecture docs.",
-              "status": "TODO",
-              "note": "Also delete the USE_BASIC_ACTION drawer tests and stories whose fixtures still list Dash and Hide as legacy untargeted entries (CampaignTabletopActionDrawer.test.tsx and .stories.tsx).",
+              "status": "DONE",
+              "note": "Done 2026-10-13 (merge 3ebbd4a4c). FREE_HAND facet predicate read from resolveHandOccupancy; the server's choice list filters by restrictions, so the drawer needed no change; the worker refuses unmet restrictions on the only path that reads basic-action entries. The USE_BASIC_ACTION drawer fixtures are gone (no hits in apps or packages). Logs: local-validation/attack18e.",
               "closes": ["ATTACK-18.1", "ATTACK-18.3"]
             }
           ],
@@ -6248,7 +6274,7 @@
         {
           "id": "SPELLS-8",
           "title": "Cast spells in an Encounter",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "journeyTests": [],
           "journeyStatus": "none",
           "origin": [],
@@ -6296,7 +6322,7 @@
             {
               "id": "SPELLS-8.T1",
               "text": "Core Encounter casting: action choice, slot spend and undo, upcasting, rituals, Concentration start, multi-effect spells and components.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-8.1"],
               "wsjf": {
                 "bv": 13,
@@ -6538,7 +6564,7 @@
         {
           "id": "SPELLS-13",
           "title": "Cone, line and caster-origin areas",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "journeyTests": [],
           "journeyStatus": "none",
           "origin": [],
@@ -7071,17 +7097,17 @@
         {
           "id": "PRIVACY-4",
           "title": "A hidden Concentration source stays hidden when Concentration drops",
-          "status": "TODO",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": ["apps/session-worker/test/nativeRoomChosenConcentrationEnd.test.ts"],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
               "text": "When a caster drops Concentration outside their turn, the recorded notice names a hidden source only to the GM; players read it without the source's name (D99); proved by a test that fails before the fix.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": ["apps/session-worker/test/nativeRoomChosenConcentrationEnd.test.ts"],
               "origin": [],
-              "note": "Registered 2026-10-13 from the band-aid audit; suspected, to be confirmed by the red test. concentrationChosenEnd.ts:77-80 builds the notice from carriedConcentration(ended).label without checking sourceHidden (hideConcentrationSource in activeGrantListings.ts:180 exists for this) and stores it as a run-command label.",
+              "note": "Closed 2026-10-13 (merge 6bbbf7f62), test-only: the suspected leak does not exist, because the notice is GM-only (PRIVATE) by construction, so no player frame, command replay or fresh-connection catch-up carries it, hidden source or not. No fix means no pre-fix red; non-vacuity was proved by mutation instead: widening the player feed scan to the GM scan in roomEncounterSessionFeed.ts turns 3 tests red (local-validation/privacy4-plt136/privacy-mutation-red2.log). Original: registered 2026-10-13 from the band-aid audit; suspected, to be confirmed by the red test. concentrationChosenEnd.ts:77-80 builds the notice from carriedConcentration(ended).label without checking sourceHidden (hideConcentrationSource in activeGrantListings.ts:180 exists for this) and stores it as a run-command label.",
               "id": "PRIVACY-4.1"
             }
           ],
@@ -8009,10 +8035,16 @@
                 "packages/rules-runtime/src/__tests__/encounterActionRange.test.ts",
                 "packages/schema/src/__tests__/encounter-action-choice-range-contracts.test.ts",
                 "apps/apis/convex/encounters/shieldStow.test.ts",
-                "apps/apis/convex/encounters/actionChoices.test.ts"
+                "apps/apis/convex/encounters/actionChoices.test.ts",
+                "packages/shared/src/__tests__/vtt-scene-range.test.ts",
+                "packages/rules-runtime/src/__tests__/encounterActionTargetPolicy.test.ts",
+                "apps/web/src/domains/campaigns/vtt/vttSceneRenderer.model.test.ts › action preview overlays",
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopActionDrawer.test.tsx › range and target preview (VTT_UI-3.1)",
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopActionDrawer.stories.tsx › PreviewRangeAndTarget",
+                "apps/web/src/domains/campaigns/vtt/CampaignVttPresentation.stories.tsx › ActionRangeAndTargetPreview"
               ],
               "origin": ["G4-PREVIEWS"],
-              "note": "BLOCKED for aura and trap: no aura producer (SPELLS-17) and no trap model. Range contract (lane 1 option A): each encounter action choice carries `range` (SELF, WITHIN, RANGED, UNLIMITED), the geometry its compiled target policy enforces (none for sight, special, or an area or path policy the evaluator refuses), and `rangeLabel` from the authored range through the one formatter the Sheet uses (packages/rules-runtime/src/rangeLabel.ts): Touch reads Touch, a longbow 150/600 ft on both surfaces (packages/rules-runtime/src/__tests__/encounterActionRange.test.ts, packages/schema/src/__tests__/encounter-action-choice-range-contracts.test.ts, apps/apis/convex/encounters/actionChoices.test.ts). Drawing the RANGE and TARGET overlays from the drawer waits on ATTACK-18 slice D. Path: done; the drag draws its route line (drag path plus the current position), removed on release (PathPreviewDuringDrag reads the drawn route).",
+              "note": "BLOCKED for aura and trap: no aura producer (SPELLS-17) and no trap model. Range and target: done 2026-10-13 (merge 838fe79a2); the drawer draws the range outline and the in range / long range / out of range ring from the shared sceneRangeOutline and sceneRangeBand the rules use (agreement sweep in encounterActionTargetPolicy.test.ts), stories green post-merge (local-validation/owed-storybook/). Range contract (lane 1 option A): each encounter action choice carries `range` (SELF, WITHIN, RANGED, UNLIMITED), the geometry its compiled target policy enforces (none for sight, special, or an area or path policy the evaluator refuses), and `rangeLabel` from the authored range through the one formatter the Sheet uses (packages/rules-runtime/src/rangeLabel.ts): Touch reads Touch, a longbow 150/600 ft on both surfaces (packages/rules-runtime/src/__tests__/encounterActionRange.test.ts, packages/schema/src/__tests__/encounter-action-choice-range-contracts.test.ts, apps/apis/convex/encounters/actionChoices.test.ts). Path: done; the drag draws its route line (drag path plus the current position), removed on release (PathPreviewDuringDrag reads the drawn route).",
               "id": "VTT_UI-3.1"
             },
             {
@@ -8041,12 +8073,12 @@
                 "apps/session-worker/test/nativeTransientFanout.test.ts",
                 "packages/shared/src/__tests__/vtt-scene.test.ts",
                 "packages/schema/src/__tests__/vtt-scene-contracts.test.ts",
-                "packages/rules-runtime/src/__tests__/characterSceneVision.test.ts",
+                "packages/rules-runtime/src/__tests__/actorSenses.test.ts",
                 "packages/shared/src/__tests__/length-measurement.test.ts",
                 "packages/rules-runtime/src/__tests__/encounterCombatPerceptionSquaresScene.test.ts"
               ],
               "origin": ["G4-PERCEPTION"],
-              "note": "Regression proof updated 2026-10-13 after the RELIABILITY-4 rulings: a sense range is never null; an UNLIMITED sense stays unlimited and shows on its token whatever the grid (vtt-scene.test.ts › presents an unlimited sense on the token whatever the grid can measure; length-measurement.test.ts; encounterCombatPerceptionSquaresScene.test.ts › keeps an unlimited pinned sense unlimited). Accepted 2026-10-13 by lane 1: lane 3 merged in 8dda19f80; post-merge builds, codegen, typechecks, root packages 2189/2190 (srd/import timeout flake only), session-worker 567/567, vtt and Sheet web unit 377/377 on the merged tree. Regression found 2026-10-13 (RELIABILITY-4 review): a Character sense with a null pinned range (unlimited in combat perception) was dropped from the token. Fixed red first: deriveCharacterSceneVision and resolveSceneCharacterVision keep it with range null, SceneTokenSense.range is nullable, and the renderer gives it an infinite reach, so it sees its whole line of sight (characterSceneVision.test.ts, vtt-scene.test.ts, vttSceneRenderer.model.test.ts; red logs local-validation/lane3/logs/red-root.log and red-web.log). Split from VTT_UI-3.2 on 2026-10-12 (product owner: a dwarf with darkvision in a cave sees grey within 60 ft and black beyond). Covers Character senses and authored token sight; Creature senses are VTT_UI-5. Implemented 2026-10-12 in e343e21a1 (A: senses on SceneToken, snapshot and delta redaction by ADR 0034 control) and 20b01c2c2 (B: renderer), awaiting integration-owner acceptance. Audit fixes 2026-10-12: 55c7547fd, 1e9d099e1, c201d2513 (exact retries replay the sender's projected receipt), bd5ce33b1, 3f037b60f and 2f0ea3811 (senses are never persisted: the stored Token schema requires empty senses, so definition appends and checkpoints both reject them), 794aca484 and 229749488 (drawn sight is the shared visibility polygon, with authored ranges converted to map pixels as server fog does), 32c2a55ab (every Scene receipt is the message the sender was sent), 9e54f0a7e (Scene definition batch replay proof restored; stored-senses refine reports path senses), 4bc4ee298 (bound senses withheld after a Character reassignment; visible-mover receipt replays as sent), 23f310ea6 (room seeding cancels its redundant scheduled Content Snapshot builds, replacing the real-clock wait of e8a3f415c). The movement decision replay that omits the Scene receipt is RELIABILITY-3. Vision is authored only; every seeing token sees along its line of sight clamped to its authored range, and within that the light and the view token's senses decide what shows. Truesight keeps DIM as DIM. Blindsight clears every darkness class within range and line of sight. Tremorsense treats every token as on the ground (the Scene has no elevation data) and reveals tokens through walls without changing the map. Tokens in darkness that no sense reaches are concealed; the view token and the Player's own tokens always show. Accepted by lane 1 on 2026-10-13 (merged `ad7e6b279`): assertion audit and production review clean after fixes; post-merge green (worker 560/560, touched Convex 519/519, vtt unit 216/216, vtt stories 91/91, typechecks, codegen; `local-validation/lane3-34-merge/`).",
+              "note": "Regression proof updated 2026-10-13 after the RELIABILITY-4 rulings: a sense range is never null; an UNLIMITED sense stays unlimited and shows on its token whatever the grid (vtt-scene.test.ts › presents an unlimited sense on the token whatever the grid can measure; length-measurement.test.ts; encounterCombatPerceptionSquaresScene.test.ts › keeps an unlimited pinned sense unlimited). Accepted 2026-10-13 by lane 1: lane 3 merged in 8dda19f80; post-merge builds, codegen, typechecks, root packages 2189/2190 (srd/import timeout flake only), session-worker 567/567, vtt and Sheet web unit 377/377 on the merged tree. Regression found 2026-10-13 (RELIABILITY-4 review): a Character sense with a null pinned range (unlimited in combat perception) was dropped from the token. Fixed red first: deriveCharacterSceneVision and resolveSceneCharacterVision keep it with range null, SceneTokenSense.range is nullable, and the renderer gives it an infinite reach, so it sees its whole line of sight (actorSenses.test.ts, vtt-scene.test.ts, vttSceneRenderer.model.test.ts; red logs local-validation/lane3/logs/red-root.log and red-web.log). Split from VTT_UI-3.2 on 2026-10-12 (product owner: a dwarf with darkvision in a cave sees grey within 60 ft and black beyond). Covers Character senses and authored token sight; Creature senses are VTT_UI-5. Implemented 2026-10-12 in e343e21a1 (A: senses on SceneToken, snapshot and delta redaction by ADR 0034 control) and 20b01c2c2 (B: renderer), awaiting integration-owner acceptance. Audit fixes 2026-10-12: 55c7547fd, 1e9d099e1, c201d2513 (exact retries replay the sender's projected receipt), bd5ce33b1, 3f037b60f and 2f0ea3811 (senses are never persisted: the stored Token schema requires empty senses, so definition appends and checkpoints both reject them), 794aca484 and 229749488 (drawn sight is the shared visibility polygon, with authored ranges converted to map pixels as server fog does), 32c2a55ab (every Scene receipt is the message the sender was sent), 9e54f0a7e (Scene definition batch replay proof restored; stored-senses refine reports path senses), 4bc4ee298 (bound senses withheld after a Character reassignment; visible-mover receipt replays as sent), 23f310ea6 (room seeding cancels its redundant scheduled Content Snapshot builds, replacing the real-clock wait of e8a3f415c). The movement decision replay that omits the Scene receipt is RELIABILITY-3. Vision is authored only; every seeing token sees along its line of sight clamped to its authored range, and within that the light and the view token's senses decide what shows. Truesight keeps DIM as DIM. Blindsight clears every darkness class within range and line of sight. Tremorsense treats every token as on the ground (the Scene has no elevation data) and reveals tokens through walls without changing the map. Tokens in darkness that no sense reaches are concealed; the view token and the Player's own tokens always show. Accepted by lane 1 on 2026-10-13 (merged `ad7e6b279`): assertion audit and production review clean after fixes; post-merge green (worker 560/560, touched Convex 519/519, vtt unit 216/216, vtt stories 91/91, typechecks, codegen; `local-validation/lane3-34-merge/`).",
               "id": "VTT_UI-3.4"
             },
             {

@@ -25,7 +25,7 @@ export const giantToad: CreatureAuthored = {
     modifier: 6
   },
   speeds: [...S.walk(20), ...S.swim(40)],
-  senses: ['darkvision 30 ft.'],
+  senses: [S.darkvision(30)],
   passivePerception: 10,
   challengeRatingId: S.CR.CR_1,
   xp: 200,

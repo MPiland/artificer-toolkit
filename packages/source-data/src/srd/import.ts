@@ -18,7 +18,11 @@ import { raceAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/race'
 import { spellAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/spell'
 import { vehicleAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/vehicle'
 import { systemAuthoredDtoSchema } from '@artificer-toolkit/schema/vocabulary/system'
-import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import {
+  canonicalizeRuleDocument,
+  checksumCanonicalRuleDocument,
+  checksumRuleDocument
+} from '@artificer-toolkit/shared/rules'
 import type { BaselineContentBundle } from '../content.js'
 import {
   SRD_CONTENT_SOURCE,
@@ -53,13 +57,40 @@ function jsonDocument(value: unknown): JsonValue {
   return jsonValueSchema.parse(JSON.parse(JSON.stringify(value)))
 }
 
-function assertUnchanged(source: unknown, parsed: unknown, identity: string): JsonValue {
-  const original = jsonDocument(source)
+/** The parsed document and its checksum, once `parsed` is proven to say what `source` says. */
+function assertUnchanged(source: unknown, parsed: unknown, identity: string) {
   const document = jsonDocument(parsed)
-  if (checksumRuleDocument(original) !== checksumRuleDocument(document)) {
+  const canonical = canonicalizeRuleDocument(document)
+  if (canonicalizeRuleDocument(jsonDocument(source)) !== canonical) {
     throw new Error(`Import validation would change canonical source ${identity}.`)
   }
-  return document
+  return { document, checksum: checksumCanonicalRuleDocument(canonical) }
+}
+
+/** The validated reusable definitions, for callers that need no authored subjects. */
+export function prepareSrdDefinitions(
+  definitionSeeds: readonly SrdReusableDefinitionSeed[],
+  systemIds: ReadonlySet<string>
+) {
+  const definitions = definitionSeeds
+    .map((source) => {
+      const parsed = reusableDefinitionDocumentDtoSchema.parse(source.document)
+      const { checksum } = assertUnchanged(source.document, parsed, source.id)
+      if (
+        source.id !== parsed.id ||
+        !systemIds.has(parsed.gameSystemId) ||
+        source.definitionFamilyKey !== reusableDefinitionDocumentFamilyKey(parsed) ||
+        source.checksum !== checksum
+      ) {
+        throw new Error(`Invalid canonical definition identity, family, or checksum: ${source.id}.`)
+      }
+      return { ...source, document: parsed }
+    })
+    .sort((left, right) => (left.id < right.id ? -1 : left.id > right.id ? 1 : 0))
+  if (new Set(definitions.map((definition) => definition.id)).size !== definitions.length) {
+    throw new Error('Duplicate canonical reusable-definition UUID.')
+  }
+  return definitions
 }
 
 /** Pure preparation; persistence and deployment selection belong to the importer. */
@@ -71,8 +102,7 @@ export function prepareSrdImport(
     .map((source) => {
       postgresUuidSchema.parse(source.id)
       const parsed = systemAuthoredDtoSchema.parse(source)
-      const document = assertUnchanged(source, parsed, source.id)
-      return { id: source.id, checksum: checksumRuleDocument(document), document }
+      return { id: source.id, ...assertUnchanged(source, parsed, source.id) }
     })
     .sort((left, right) => (left.id < right.id ? -1 : left.id > right.id ? 1 : 0))
   const systemIds = new Set(systems.map((system) => system.id))
@@ -89,14 +119,12 @@ export function prepareSrdImport(
     for (const source of sources) {
       postgresUuidSchema.parse(source.id)
       if (!systemIds.has(source.systemId)) throw new Error(`Missing System for ${source.id}.`)
-      const document = assertUnchanged(source, schema.parse(source), source.id)
       subjects.push({
         subjectKind,
         id: source.id,
         systemId: source.systemId,
         label: source.label,
-        checksum: checksumRuleDocument(document),
-        document
+        ...assertUnchanged(source, schema.parse(source), source.id)
       })
     }
   }
@@ -138,35 +166,17 @@ export function prepareSrdImport(
       requireReference(equipmentIds, item.equipmentId, source.id)
   }
 
-  const definitions = definitionSeeds
-    .map((source) => {
-      const parsed = reusableDefinitionDocumentDtoSchema.parse(source.document)
-      assertUnchanged(source.document, parsed, source.id)
-      if (
-        source.id !== parsed.id ||
-        !systemIds.has(parsed.gameSystemId) ||
-        source.definitionFamilyKey !== reusableDefinitionDocumentFamilyKey(parsed) ||
-        source.checksum !== checksumRuleDocument(jsonDocument(parsed))
-      ) {
-        throw new Error(`Invalid canonical definition identity, family, or checksum: ${source.id}.`)
-      }
-      return { ...source, document: parsed }
-    })
-    .sort((left, right) => (left.id < right.id ? -1 : left.id > right.id ? 1 : 0))
-  if (new Set(definitions.map((definition) => definition.id)).size !== definitions.length) {
-    throw new Error('Duplicate canonical reusable-definition UUID.')
-  }
+  const definitions = prepareSrdDefinitions(definitionSeeds, systemIds)
 
   // The payload checksum includes metadata as well as mechanics; ordering is stable across runs.
-  const manifestChecksum = checksumRuleDocument(
-    jsonDocument({
-      systems,
-      subjects,
-      definitions,
-      catalogue: SRD_RULES_CATALOGUE,
-      contentSource: SRD_CONTENT_SOURCE
-    })
-  )
+  // Systems and subjects already hold JSON documents, so only the rest is normalised again.
+  const manifestChecksum = checksumRuleDocument({
+    systems,
+    subjects,
+    definitions: jsonDocument(definitions),
+    catalogue: jsonDocument(SRD_RULES_CATALOGUE),
+    contentSource: jsonDocument(SRD_CONTENT_SOURCE)
+  })
   return {
     systems,
     subjects,

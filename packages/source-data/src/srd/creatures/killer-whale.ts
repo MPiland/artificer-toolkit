@@ -26,7 +26,7 @@ export const killerWhale: CreatureAuthored = {
   },
   speeds: [...S.walk(0), ...S.swim(60)],
   proficiencies: [S.grantedSkillProficiency(177, 1, 'PERCEPTION')],
-  senses: ['blindsight 120 ft.'],
+  senses: [S.blindsight(120)],
   passivePerception: 13,
   challengeRatingId: S.CR.CR_3,
   xp: 700,

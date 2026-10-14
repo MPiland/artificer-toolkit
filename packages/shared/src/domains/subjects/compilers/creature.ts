@@ -65,7 +65,7 @@ export interface CompiledCreature extends CompiledCreatureBase {
   naturalArmorBonus: number
   hitPoints: number
   hitDice?: CreatureAuthored['hitDice']
-  senses?: string[]
+  senses?: CreatureAuthored['senses']
   passivePerception?: number
   damageVulnerabilities?: string[]
   damageResistances?: string[]

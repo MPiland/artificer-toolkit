@@ -37,7 +37,7 @@ export const hezrou: CreatureAuthored = {
   ],
   damageImmunities: ['poison'],
   conditionImmunities: ['poisoned'],
-  senses: ['darkvision 120 ft.'],
+  senses: [S.darkvision(120)],
   passivePerception: 11,
   challengeRatingId: S.CR.CR_8,
   xp: 3900,

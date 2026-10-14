@@ -26,7 +26,7 @@ export const ankheg: CreatureAuthored = {
     modifier: 6
   },
   speeds: [...S.walk(30), ...S.burrow(10)],
-  senses: ['darkvision 60 ft.', 'tremorsense 60 ft.'],
+  senses: [S.darkvision(60), S.tremorsense(60)],
   passivePerception: 11,
   challengeRatingId: S.CR.CR_2,
   xp: 450,

@@ -31,7 +31,7 @@ export const stoneGiant: CreatureAuthored = {
     S.grantedSaveProficiency(3307, 2, 'DEXTERITY', 'CONSTITUTION', 'WISDOM'),
     S.grantedSkillProficiency(3307, 1, 'PERCEPTION')
   ],
-  senses: ['darkvision 60 ft.'],
+  senses: [S.darkvision(60)],
   passivePerception: 14,
   challengeRatingId: S.CR.CR_7,
   xp: 2900,

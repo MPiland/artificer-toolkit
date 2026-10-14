@@ -31,7 +31,7 @@ export const deva: CreatureAuthored = {
   ],
   damageResistances: ['radiant', 'bludgeoning, piercing, and slashing from nonmagical attacks'],
   conditionImmunities: ['charmed', 'exhaustion', 'frightened'],
-  senses: ['darkvision 120 ft.'],
+  senses: [S.darkvision(120)],
   passivePerception: 19,
   challengeRatingId: S.CR.CR_10,
   xp: 5900,

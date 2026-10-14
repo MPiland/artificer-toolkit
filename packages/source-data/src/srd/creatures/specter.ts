@@ -46,7 +46,7 @@ export const specter: CreatureAuthored = {
     'restrained',
     'unconscious'
   ],
-  senses: ['darkvision 60 ft.'],
+  senses: [S.darkvision(60)],
   passivePerception: 10,
   challengeRatingId: S.CR.CR_1,
   xp: 200,

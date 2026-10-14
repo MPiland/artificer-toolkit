@@ -26,7 +26,7 @@ export const reefShark: CreatureAuthored = {
   },
   speeds: [...S.walk(0), ...S.swim(40)],
   proficiencies: [S.grantedSkillProficiency(234, 1, 'PERCEPTION')],
-  senses: ['blindsight 30 ft.'],
+  senses: [S.blindsight(30)],
   passivePerception: 12,
   challengeRatingId: S.CR.CR_1_2,
   xp: 100,

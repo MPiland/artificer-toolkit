@@ -1,0 +1,40 @@
+import { creatureSenseDtoSchema } from '@artificer-toolkit/schema/subjects/creature'
+import { srdBaselineContent } from '@artificer-toolkit/source-data/srd/index.js'
+import { SRD_DARKVISION_SENSE_ID } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import { describe, expect, it } from 'vitest'
+
+import { snapshotStatBlock } from '../encounterProjection.js'
+import { srdCreatureActor, testUuid } from '../testing/dnd5eSrdEncounter.js'
+
+const ogre = srdBaselineContent.subjects.creatures.find(({ label }) => label === 'Ogre')
+if (!ogre) throw new Error('Missing SRD Ogre.')
+const actor = srdCreatureActor({ id: testUuid(1), creature: ogre })
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value)
+
+function withSenses(senses: unknown) {
+  const { snapshot } = actor
+  if (!isRecord(snapshot) || !isRecord(snapshot.payload)) throw new Error('Missing snapshot.')
+  return { ...actor, snapshot: { ...snapshot, payload: { ...snapshot.payload, senses } } }
+}
+
+describe('Creature snapshot senses', () => {
+  it('reads the structured senses of the snapshot', () => {
+    expect(snapshotStatBlock(actor)?.senses).toEqual([
+      expect.objectContaining({
+        senseDefinitionId: SRD_DARKVISION_SENSE_ID,
+        range: expect.objectContaining({ rangeKind: 'DISTANCE', amount: 60, unit: 'FEET' })
+      })
+    ])
+  })
+
+  it('fails closed on a malformed sense instead of dropping it', () => {
+    // The snapshot reader throws the Creature sense schema's own error for the entry.
+    for (const malformed of [{ senseDefinitionId: SRD_DARKVISION_SENSE_ID }, 'darkvision 60 ft.']) {
+      const refusal = creatureSenseDtoSchema.safeParse(malformed).error
+      if (!refusal) throw new Error('The sense should be malformed.')
+      expect(() => snapshotStatBlock(withSenses([malformed]))).toThrow(refusal.message)
+    }
+  })
+})

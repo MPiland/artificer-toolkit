@@ -25,7 +25,7 @@ export const poisonousSnake: CreatureAuthored = {
     modifier: 0
   },
   speeds: [...S.walk(30), ...S.swim(30)],
-  senses: ['blindsight 10 ft.'],
+  senses: [S.blindsight(10)],
   passivePerception: 10,
   challengeRatingId: S.CR.CR_1_8,
   xp: 25,

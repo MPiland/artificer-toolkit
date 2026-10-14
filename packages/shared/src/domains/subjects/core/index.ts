@@ -1,6 +1,7 @@
 export * from './character.js'
 export * from './class.js'
 export * from './creature.js'
+export * from './creatureSenses.js'
 export * from './equipment.js'
 export * from './equipmentHands.js'
 export * from './race.js'

@@ -11,6 +11,7 @@ import {
   readEncounterDisarmSelection,
   requireEncounterDisarmDefinition
 } from '@artificer-toolkit/rules-runtime/encounterDisarmPreparation'
+import { encounterHolderState } from '@artificer-toolkit/rules-runtime/encounterHolderDefense'
 import type { MovementTarget } from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
 import {
   lockedRelationshipActionFacts,
@@ -68,6 +69,33 @@ function campaignDefinitions(tx: EncounterTurnReadTransaction, campaign: Campaig
       return current
     }
   }
+}
+
+/** What the actor can do now, read from its current target; the caller's own target when it has one. */
+export async function readActionHolderState(
+  tx: EncounterTurnReadTransaction,
+  input: {
+    actor: EncounterRunActorState
+    state: EncounterRunState
+    campaign: Campaign
+    target?: MovementTarget
+  }
+) {
+  const target =
+    input.target ??
+    (
+      await loadMovementTargets(tx, {
+        state: input.state,
+        campaign: input.campaign,
+        targetActorIds: [input.actor.id]
+      })
+    ).get(input.actor.id)
+  if (!target) throw new Error('Encounter actor state is unavailable.')
+  return encounterHolderState({
+    target,
+    gameSystemId: input.state.gameSystemId,
+    definitions: campaignDefinitions(tx, input.campaign)
+  })
 }
 
 function economyInput<TFacts extends CharacterTurnFacts>(

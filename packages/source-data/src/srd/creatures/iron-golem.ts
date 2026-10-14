@@ -37,7 +37,7 @@ export const ironGolem: CreatureAuthored = {
     'petrified',
     'poisoned'
   ],
-  senses: ['darkvision 120 ft.'],
+  senses: [S.darkvision(120)],
   passivePerception: 10,
   challengeRatingId: S.CR.CR_16,
   xp: 15000,

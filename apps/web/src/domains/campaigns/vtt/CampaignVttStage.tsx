@@ -95,8 +95,9 @@ import {
 } from './vttSceneRenderer'
 import {
   formatSceneMeasurement,
-  pointAreaOverlay,
-  resolveViewTokenId
+  resolveViewTokenId,
+  stageOverlays,
+  type VttActionPreview
 } from './vttSceneRenderer.model'
 import { buildVttTokenPresentations } from './vttTokenPresentation.model'
 import { CampaignVttTokenStatusList } from './CampaignVttTokenStatusList'
@@ -115,6 +116,7 @@ export function CampaignVttStage({
   const [areaOrigin, setAreaOrigin] = useState<ScenePoint | null>(null)
   const [areaShape, setAreaShape] = useState<SpatialPointAreaShape | null>(null)
   const [aimingArea, setAimingArea] = useState(false)
+  const [actionPreview, setActionPreview] = useState<VttActionPreview | null>(null)
   const renderer = useRef<VttSceneRenderer | null>(null)
   const rendererHost = useRef<HTMLDivElement | null>(null)
   const rendererUpdateRef = useRef<VttSceneRendererUpdate | null>(null)
@@ -516,10 +518,18 @@ export function CampaignVttStage({
     () => (aimingArea && areaShape ? { shape: areaShape } : null),
     [aimingArea, areaShape]
   )
-  const areaOverlays = useMemo(
+  // The preview shows while the drawer is open, including while the caster aims an area's center.
+  const overlays = useMemo(
     () =>
-      areaShape && areaOrigin && !areaAim ? [pointAreaOverlay(areaShape, areaOrigin)] : undefined,
-    [areaAim, areaOrigin, areaShape]
+      stageOverlays({
+        actionPreview,
+        aimingArea: areaAim !== null,
+        areaOrigin,
+        areaShape,
+        drawerOpened: actionsOpened,
+        scene: renderedScene ?? null
+      }),
+    [actionPreview, actionsOpened, areaAim, areaOrigin, areaShape, renderedScene]
   )
   // A selection whose token left the Scene counts as no selection.
   const selectedSceneTokenId = scene?.tokens.some((token) => token.id === selectedTokenId)
@@ -559,7 +569,7 @@ export function CampaignVttStage({
         currentUserId: viewerUserId,
         mapDelivery: mapDelivery.data ?? null,
         mode: effectiveMode,
-        overlays: areaOverlays,
+        overlays,
         previewTokenId: effectivePreviewTokenId,
         role: effectiveRole,
         scene: renderedScene,
@@ -788,7 +798,6 @@ export function CampaignVttStage({
     if (latestUpdate) renderer.current?.update(latestUpdate)
   }, [
     areaAim,
-    areaOverlays,
     boundTokenControl,
     campaign.role,
     currentUserId,
@@ -796,6 +805,7 @@ export function CampaignVttStage({
     gmPreviewUserId,
     live.error,
     mapDelivery.data,
+    overlays,
     previewTokenId,
     scene,
     selectedSceneTokenId,
@@ -1216,6 +1226,7 @@ export function CampaignVttStage({
               actorIdByTokenId={actorIdByTokenId}
               onAreaOriginChange={setAreaOrigin}
               onAreaShapeChange={setAreaShape}
+              onActionPreviewChange={setActionPreview}
               onPickAreaOrigin={() => setAimingArea(true)}
               onResolve={(command) => encounterCommand.mutateAsync(command)}
               onEscape={(command) => encounterCommand.mutateAsync(command)}

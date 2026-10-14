@@ -31,7 +31,7 @@ export const lamia: CreatureAuthored = {
     S.grantedSkillProficiency(181, 1, 'INSIGHT', 'STEALTH'),
     S.grantedLanguageProficiency(181, 2, 'ABYSSAL', 'COMMON')
   ],
-  senses: ['darkvision 60 ft.'],
+  senses: [S.darkvision(60)],
   passivePerception: 12,
   challengeRatingId: S.CR.CR_4,
   xp: 1100,

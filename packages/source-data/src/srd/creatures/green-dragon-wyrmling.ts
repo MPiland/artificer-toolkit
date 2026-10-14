@@ -34,7 +34,7 @@ export const greenDragonWyrmling: CreatureAuthored = {
   ],
   damageImmunities: ['poison'],
   conditionImmunities: ['poisoned'],
-  senses: ['blindsight 10 ft.', 'darkvision 60 ft.'],
+  senses: [S.blindsight(10), S.darkvision(60)],
   passivePerception: 14,
   challengeRatingId: S.CR.CR_2,
   xp: 450,

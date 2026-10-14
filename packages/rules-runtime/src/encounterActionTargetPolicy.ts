@@ -5,7 +5,7 @@ import type { LengthUnitCode } from '@artificer-toolkit/shared/core'
 import {
   lengthMeasurementInSceneUnits,
   measureSceneTokenFootprintDistance,
-  sceneTokenFootprintsOverlap,
+  sceneRangeBand,
   type SceneGrid,
   type SceneToken
 } from '@artificer-toolkit/shared/vtt'
@@ -139,31 +139,39 @@ export function evaluateEncounterActionTargetPolicy(input: {
   else if (dispositionKind === 'HOSTILE' && relationship === 'ALLIED')
     warnings.push({ code: 'TARGET_DISPOSITION', message: 'This action targets hostile creatures.' })
   if (range.rangeKind === 'UNLIMITED') return warnings
-  // Reach 0 ft. (a swarm's "one target in the swarm's space") needs the footprints to overlap.
-  if (range.rangeKind === 'DISTANCE' && range.amount === 0) {
-    if (!input.sceneContext) warnings.push(RANGE_UNCHECKED)
-    else if (
-      !sceneTokenFootprintsOverlap(input.sceneContext.sourceToken, input.sceneContext.targetToken)
-    )
-      warnings.push({
-        code: 'TARGET_OUT_OF_RANGE',
-        message: "The target isn't in this creature's space."
-      })
-    return warnings
-  }
   // A ranged weapon attack reaches its long range, at disadvantage beyond its normal range.
-  const distance = input.sceneContext
-    ? measuredDistance(
-        input.sceneContext,
-        range.rangeKind === 'DISTANCE'
-          ? { amount: range.longAmount ?? range.amount, unit: range.unit }
-          : TOUCH_RANGE
+  const band = input.sceneContext
+    ? sceneRangeBand(
+        input.sceneContext.grid,
+        input.sceneContext.sourceToken,
+        input.sceneContext.targetToken,
+        policyRangeLengths(range)
       )
     : null
-  if (distance === null) warnings.push(RANGE_UNCHECKED)
-  else if (distance.measured > distance.maximum)
-    warnings.push({ code: 'TARGET_OUT_OF_RANGE', message: 'The target is out of range.' })
+  if (band === null) warnings.push(RANGE_UNCHECKED)
+  else if (band === 'OUT')
+    warnings.push({
+      code: 'TARGET_OUT_OF_RANGE',
+      // Reach 0 ft. (a swarm's "one target in the swarm's space") needs the footprints to overlap.
+      message:
+        range.rangeKind === 'DISTANCE' && range.amount === 0 && range.longAmount === undefined
+          ? "The target isn't in this creature's space."
+          : 'The target is out of range.'
+    })
   return warnings
+}
+
+/** The lengths an action's range is held against: Touch is a 5-foot range, and only a ranged attack has a long one. */
+function policyRangeLengths(range: MeasuredRange) {
+  return range.rangeKind === 'DISTANCE'
+    ? {
+        normal: { amount: range.amount, unit: range.unit },
+        long:
+          range.longAmount === undefined
+            ? undefined
+            : { amount: range.longAmount, unit: range.unit }
+      }
+    : { normal: TOUCH_RANGE }
 }
 
 /**
@@ -178,9 +186,8 @@ export function encounterActionLongRangeContributor(input: {
   const { range } = input.targetPolicy
   if (range.rangeKind !== 'DISTANCE' || range.longAmount === undefined || !input.sceneContext)
     return null
-  const normal = measuredDistance(input.sceneContext, { amount: range.amount, unit: range.unit })
-  const long = measuredDistance(input.sceneContext, { amount: range.longAmount, unit: range.unit })
-  return normal.measured > normal.maximum && long.measured <= long.maximum
+  const { grid, sourceToken, targetToken } = input.sceneContext
+  return sceneRangeBand(grid, sourceToken, targetToken, policyRangeLengths(range)) === 'LONG'
     ? {
         sourceId: ENCOUNTER_LONG_RANGE_CONTRIBUTOR_SOURCE_ID,
         grantId: null,

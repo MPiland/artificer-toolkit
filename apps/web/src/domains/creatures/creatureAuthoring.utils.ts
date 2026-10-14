@@ -20,10 +20,9 @@ type CreatureNpcProfileFormValues = Omit<
 
 export type CreatureFormValues = Omit<
   CreatureAuthoringInputDto,
-  'tags' | 'senses' | 'logisticsNotes' | 'npcProfile'
+  'tags' | 'logisticsNotes' | 'npcProfile'
 > & {
   tags?: CreatureStringFormValue[]
-  senses?: CreatureStringFormValue[]
   logisticsNotes?: CreatureStringFormValue[]
   npcProfile?: CreatureNpcProfileFormValues
 }
@@ -82,7 +81,7 @@ export function normalizeCreatureForSubmit(
     status: creature.status ?? 'DRAFT',
     tags: normalizeStringFormValues(creature.tags),
     speeds: creature.speeds ?? [],
-    senses: normalizeStringFormValues(creature.senses),
+    senses: creature.senses ?? [],
     damageVulnerabilities: creature.damageVulnerabilities ?? [],
     damageResistances: creature.damageResistances ?? [],
     damageImmunities: creature.damageImmunities ?? [],
@@ -113,7 +112,7 @@ export function toCreatureFormValues(
     tags: toStringFormValues(creature.tags),
     abilityScores: creature.abilityScores ?? createDefaultAbilityScores(),
     speeds: creature.speeds ?? [],
-    senses: toStringFormValues(creature.senses),
+    senses: creature.senses ?? [],
     damageVulnerabilities: creature.damageVulnerabilities ?? [],
     damageResistances: creature.damageResistances ?? [],
     damageImmunities: creature.damageImmunities ?? [],

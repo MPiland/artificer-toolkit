@@ -29,7 +29,7 @@ export const tiger: CreatureAuthored = {
     S.grantedSkillExpertise(270, 2, 'STEALTH'),
     S.grantedSkillProficiency(270, 1, 'PERCEPTION')
   ],
-  senses: ['darkvision 60 ft.'],
+  senses: [S.darkvision(60)],
   passivePerception: 13,
   challengeRatingId: S.CR.CR_1,
   xp: 200,

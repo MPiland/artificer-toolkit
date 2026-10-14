@@ -13,6 +13,7 @@ import type {
 } from '@artificer-toolkit/schema/api/encounters'
 import { encounterRunStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import type { EquipmentAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { discoverEncounterFeatureActionCapabilities } from '@artificer-toolkit/rules-runtime/encounterFeatureActionCapabilityDiscoveryRegistry'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdWolf as wolf } from './srdCreatures'
@@ -40,6 +41,13 @@ const TRIGGER = {
   ATTACK: 'MELEE_WEAPON_ATTACK',
   SAVE: 'SAVING_THROW'
 } as const
+
+/** What the fixture Creatures carry: published Equipment, held in the slot named. */
+export type PlayerControlLoadout = readonly {
+  id: string
+  equipment: EquipmentAuthored
+  useState: 'MAIN_HAND' | 'OFF_HAND'
+}[]
 
 export function companionCreature(bite: PlayerControlBite) {
   const dexterityId = srdSystemRecord.abilities?.find((ability) => ability.code === 'DEXTERITY')?.id
@@ -140,7 +148,13 @@ const createRun = makeFunctionReference<
  * Creatures, which act last.
  */
 export async function playerControlFixture(
-  options: { bite?: PlayerControlBite; promptRolls?: boolean; additionalCreatures?: number } = {}
+  options: {
+    bite?: PlayerControlBite
+    promptRolls?: boolean
+    additionalCreatures?: number
+    /** Equipment the fixture Creatures hold; none by default. */
+    loadout?: PlayerControlLoadout
+  } = {}
 ) {
   const bite = options.bite ?? 'ACTIVATED'
   const base = await setupCharacterRun()
@@ -155,7 +169,19 @@ export async function playerControlFixture(
   if (options.promptRolls)
     for (const userId of [base.owner.userId, base.player.userId, other.userId])
       await setAutoRollDice(base.t, userId, false)
-  const creature = companionCreature(bite)
+  const creature = {
+    ...companionCreature(bite),
+    ...(options.loadout && {
+      equipmentLoadout: options.loadout.map(({ id, equipment, useState }) => ({
+        id,
+        equipmentId: equipment.id,
+        quantity: 1,
+        useState,
+        attuned: false,
+        actionFeatureIds: []
+      }))
+    })
+  }
   await base.t.mutation(internal.content.import.importDefinitions, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     definitions: SRD_RULE_STATE_DEFINITIONS.filter(
@@ -164,7 +190,12 @@ export async function playerControlFixture(
   })
   await base.t.mutation(internal.content.import.importSubjects, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
-    subjects: [importedSubject({ ...creature, subjectKind: 'CREATURE', document: creature })]
+    subjects: [
+      ...(options.loadout ?? []).map(({ equipment }) =>
+        importedSubject({ ...equipment, subjectKind: 'EQUIPMENT', document: equipment })
+      ),
+      importedSubject({ ...creature, subjectKind: 'CREATURE', document: creature })
+    ]
   })
   const blueprint = await base.owner.caller.mutation(createBlueprint, {
     gameSystemId: base.campaign.gameSystemId,

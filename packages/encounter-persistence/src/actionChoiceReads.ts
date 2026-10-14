@@ -9,6 +9,7 @@ import { encounterAttackActionState } from '@artificer-toolkit/rules-runtime/enc
 import { encounterLegendaryActionFeatureIds } from '@artificer-toolkit/rules-runtime/encounterActionSources'
 import { readEncounterActorDefeated } from './characterStates.js'
 import { discoverEncounterBasicActions } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
+import { encounterBasicActionRestrictionsHold } from '@artificer-toolkit/rules-runtime/encounterBasicActionRestrictions'
 import { requireEncounterBasicActionDefinition } from '@artificer-toolkit/rules-runtime/encounterBasicActions'
 import { encounterBasicActionCheckLabel } from '@artificer-toolkit/rules-runtime/encounterBasicActionCheck'
 import { findEncounterHolderEscape } from '@artificer-toolkit/rules-runtime/encounterEscapeCheck'
@@ -30,7 +31,11 @@ import {
 import type { EncounterRuleWarningDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
 import { activeOptionalCombatDefinitions } from '@artificer-toolkit/schema/shared/optionalCombat'
 import { requireEncounterActorControl } from './actorController.js'
-import { evaluateActionAttackAction, readDisarmSelection } from './actionPreparationReads.js'
+import {
+  evaluateActionAttackAction,
+  readActionHolderState,
+  readDisarmSelection
+} from './actionPreparationReads.js'
 import { rejectDomain } from './domainRejections.js'
 import { readRunActor, readRunActors, readRunState } from './documents.js'
 import { listActiveRuleEffects } from './effectStore.js'
@@ -265,8 +270,16 @@ export async function readEncounterActionChoices(
       abilityDefinitions:
         'abilities' in system ? system.abilities.map(({ id, code }) => ({ id, code })) : []
     })
+    // An action is offered only to an actor that meets its restrictions; none means every actor.
+    const holderState = discovered.available.some(({ restrictions }) => restrictions)
+      ? await readActionHolderState(tx, { actor, state, campaign, target: actorTarget })
+      : null
+    const offered = discovered.available.filter(
+      ({ restrictions }) =>
+        !holderState || encounterBasicActionRestrictionsHold(restrictions, holderState)
+    )
     basicActionChoices = await Promise.all(
-      discovered.available.map(async (action) => {
+      offered.map(async (action) => {
         const economy = await readEconomy(
           action.mechanicFacts.invocation.activation,
           action.mechanicFacts.invocation.triggerCode

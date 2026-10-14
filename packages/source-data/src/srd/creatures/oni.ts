@@ -31,7 +31,7 @@ export const oni: CreatureAuthored = {
     S.grantedSkillProficiency(3186, 1, 'ARCANA', 'PERCEPTION'),
     S.grantedLanguageProficiency(3186, 2, 'COMMON', 'GIANT')
   ],
-  senses: ['darkvision 60 ft.'],
+  senses: [S.darkvision(60)],
   passivePerception: 14,
   challengeRatingId: S.CR.CR_7,
   xp: 2900,

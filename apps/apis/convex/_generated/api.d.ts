@@ -111337,7 +111337,18 @@ export declare const api: {
                       damageTypeIds: Array<string>;
                       kind: "RESISTANCE" | "IMMUNITY";
                     }>;
-                    senses: Array<string>;
+                    senses: Array<{
+                      qualifier?: string;
+                      range:
+                        | { id: string; rangeKind: "UNLIMITED" }
+                        | {
+                            amount: number;
+                            id: string;
+                            rangeKind: "DISTANCE";
+                            unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                          };
+                      senseDefinitionId: string;
+                    }>;
                     speeds: Array<any>;
                   } | null;
                   systemId: string | null;
@@ -112099,7 +112110,18 @@ export declare const api: {
                       damageTypeIds: Array<string>;
                       kind: "RESISTANCE" | "IMMUNITY";
                     }>;
-                    senses: Array<string>;
+                    senses: Array<{
+                      qualifier?: string;
+                      range:
+                        | { id: string; rangeKind: "UNLIMITED" }
+                        | {
+                            amount: number;
+                            id: string;
+                            rangeKind: "DISTANCE";
+                            unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                          };
+                      senseDefinitionId: string;
+                    }>;
                     speeds: Array<any>;
                   } | null;
                   systemId: string | null;
@@ -112897,7 +112919,18 @@ export declare const api: {
                   damageTypeIds: Array<string>;
                   kind: "RESISTANCE" | "IMMUNITY";
                 }>;
-                senses: Array<string>;
+                senses: Array<{
+                  qualifier?: string;
+                  range:
+                    | { id: string; rangeKind: "UNLIMITED" }
+                    | {
+                        amount: number;
+                        id: string;
+                        rangeKind: "DISTANCE";
+                        unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                      };
+                  senseDefinitionId: string;
+                }>;
                 speeds: Array<any>;
               } | null;
               systemId: string | null;
@@ -113179,7 +113212,18 @@ export declare const api: {
                       damageTypeIds: Array<string>;
                       kind: "RESISTANCE" | "IMMUNITY";
                     }>;
-                    senses: Array<string>;
+                    senses: Array<{
+                      qualifier?: string;
+                      range:
+                        | { id: string; rangeKind: "UNLIMITED" }
+                        | {
+                            amount: number;
+                            id: string;
+                            rangeKind: "DISTANCE";
+                            unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                          };
+                      senseDefinitionId: string;
+                    }>;
                     speeds: Array<any>;
                   } | null;
                   systemId: string | null;
@@ -113655,7 +113699,18 @@ export declare const api: {
                 damageTypeIds: Array<string>;
                 kind: "RESISTANCE" | "IMMUNITY";
               }>;
-              senses: Array<string>;
+              senses: Array<{
+                qualifier?: string;
+                range:
+                  | { id: string; rangeKind: "UNLIMITED" }
+                  | {
+                      amount: number;
+                      id: string;
+                      rangeKind: "DISTANCE";
+                      unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                    };
+                senseDefinitionId: string;
+              }>;
               speeds: Array<any>;
             } | null;
             systemId: string | null;

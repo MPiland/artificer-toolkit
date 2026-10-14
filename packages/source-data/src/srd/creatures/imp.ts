@@ -38,7 +38,7 @@ export const imp: CreatureAuthored = {
   ],
   damageImmunities: ['fire', 'poison'],
   conditionImmunities: ['poisoned'],
-  senses: ['darkvision 120 ft.'],
+  senses: [S.darkvision(120)],
   passivePerception: 11,
   challengeRatingId: S.CR.CR_1,
   xp: 200,

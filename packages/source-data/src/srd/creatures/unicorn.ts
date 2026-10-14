@@ -28,7 +28,7 @@ export const unicorn: CreatureAuthored = {
   proficiencies: [S.grantedLanguageProficiency(276, 1, 'CELESTIAL', 'ELVISH', 'SYLVAN')],
   damageImmunities: ['poison'],
   conditionImmunities: ['charmed', 'paralyzed', 'poisoned'],
-  senses: ['darkvision 60 ft.'],
+  senses: [S.darkvision(60)],
   passivePerception: 13,
   challengeRatingId: S.CR.CR_5,
   xp: 1800,

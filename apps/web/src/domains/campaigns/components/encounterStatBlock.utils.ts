@@ -1,9 +1,13 @@
 import type { EncounterGmActorDto } from '@artificer-toolkit/schema/api/encounters'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
+import { printCreatureSenses } from '@artificer-toolkit/shared/core'
 
 type StatBlock = NonNullable<EncounterGmActorDto['statBlock']>
 type QualifiedDefense = StatBlock['qualifiedDamageDefenses'][number]
-type Vocabulary = Pick<SystemAuthoredDto, 'damageTypes' | 'conditionTypes'> | null | undefined
+type Vocabulary =
+  | Pick<SystemAuthoredDto, 'damageTypes' | 'conditionTypes' | 'senses'>
+  | null
+  | undefined
 
 function labelFor(id: string, entries: readonly { id: string; label: string }[] | undefined) {
   return entries?.find((entry) => entry.id === id)?.label ?? id
@@ -26,6 +30,11 @@ function formatQualifiedDefense(defense: QualifiedDefense, vocabulary: Vocabular
     materials.length > 0 ? ` that aren't ${materials.join(' or ')}` : ''
   }`
   return text.charAt(0).toUpperCase() + text.slice(1)
+}
+
+/** The stat block's Senses as printed ("darkvision 60 ft."), named by the System's Sense labels. */
+export function encounterStatBlockSenses(statBlock: StatBlock, vocabulary: Vocabulary): string[] {
+  return printCreatureSenses(statBlock.senses, (id) => labelFor(id, vocabulary?.senses))
 }
 
 /**

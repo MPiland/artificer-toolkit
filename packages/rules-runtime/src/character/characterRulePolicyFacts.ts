@@ -6,6 +6,7 @@ import type { CreatureAuthored, SpellAuthored } from '@artificer-toolkit/shared/
 import type { CharacterResourceUsage } from '@artificer-toolkit/shared/core'
 
 import { buildCharacterArmorClassRuleFacts } from './characterArmorClassRuleFacts.js'
+import { buildCharacterHandRuleFacts } from './characterHandRuleFacts.js'
 import { buildCharacterActionRuleFacts } from './characterActionRuleFacts.js'
 import { buildCharacterCompanionMechanicsRuleFacts } from './characterCompanionMechanicsRuleFacts.js'
 import { buildCharacterDefenseRuleFacts } from './characterDefenseRuleFacts.js'
@@ -109,6 +110,7 @@ export function composeCharacterRulePolicyFacts(
     ...buildCharacterMovementRuleFacts(snapshot, registry),
     ...buildCharacterSenseRuleFacts(snapshot),
     ...buildCharacterArmorClassRuleFacts(snapshot),
+    ...buildCharacterHandRuleFacts(snapshot),
     ...buildCharacterHitPointRuleFacts(snapshot, input.hitPointProgression ?? null),
     ...spellFacts,
     ...spellPreparationFacts,

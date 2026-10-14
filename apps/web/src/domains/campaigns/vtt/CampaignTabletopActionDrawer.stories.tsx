@@ -7,25 +7,28 @@ import type {
   EscapeRelationshipInputDto,
   ResolveEncounterActionInputDto
 } from '@artificer-toolkit/schema/api/encounters'
-import type {
-  EncounterActionChoiceDto,
-  EncounterActionChoicesDto,
-  EncounterEscapeChoiceDto,
-  EncounterOptionalActionChoicesDto,
-  GetEncounterOptionalActionChoicesInputDto
+import {
+  encounterActionChoiceDtoSchema,
+  encounterActionChoicesDtoSchema,
+  encounterOptionalActionChoicesDtoSchema,
+  type EncounterOptionalActionChoicesDto,
+  type GetEncounterOptionalActionChoicesInputDto
 } from '@artificer-toolkit/schema/api/encounterActionChoices'
 import type { ScenePoint } from '@artificer-toolkit/shared/vtt'
+import { validated } from '../../../test/validatedFixture'
 import { CampaignTabletopActionDrawer } from './CampaignTabletopActionDrawer'
 import { tabletopGmEncounter, tabletopLiveScene } from './CampaignTabletop.stories.fixtures'
 
 const resolveAction = fn()
+const previewChanged = fn()
 const sourceActor = tabletopGmEncounter.actors[0]!
 const targetActor = tabletopGmEncounter.actors[1]!
 const actorIdByTokenId = new Map([
   [tabletopLiveScene.tokens[0]!.id, sourceActor.id],
   [tabletopLiveScene.tokens[1]!.id, targetActor.id]
 ])
-const actions = [
+const validatedActions = validated(encounterActionChoicesDtoSchema.shape.actions)
+const actions = validatedActions([
   {
     id: 'equipment-staff:attack',
     label: 'Quarterstaff',
@@ -38,9 +41,9 @@ const actions = [
     target: { kind: 'ACTOR', self: 'ALLOWED' },
     attackSlot: null
   }
-] satisfies EncounterActionChoiceDto[]
+])
 const shieldItemInstanceId = '77777777-7777-4777-8777-777777777721'
-const greatswordActions = [
+const greatswordActions = validatedActions([
   {
     id: 'equipment-greatsword:attack',
     label: 'Greatsword',
@@ -53,9 +56,9 @@ const greatswordActions = [
     target: { kind: 'ACTOR', self: 'ALLOWED' },
     attackSlot: null
   }
-] satisfies EncounterActionChoiceDto[]
+])
 const longswordAttackKey = 'longsword-instance:MELEE_WEAPON_ATTACK'
-const longswordActions = [
+const longswordActions = validatedActions([
   {
     id: 'equipment-longsword:one-hand',
     label: 'Longsword',
@@ -82,11 +85,11 @@ const longswordActions = [
     target: { kind: 'ACTOR', self: 'ALLOWED' },
     attackSlot: null
   }
-] satisfies EncounterActionChoiceDto[]
-const optionalRules = [
+])
+const optionalRules = validated(encounterActionChoicesDtoSchema.shape.optionalRules)([
   { definitionId: '77777777-7777-4777-8777-777777777701', label: 'Disarm' }
-] satisfies EncounterActionChoicesDto['optionalRules']
-const optionalChoices = {
+])
+const optionalChoices = validated(encounterOptionalActionChoicesDtoSchema)({
   definitionId: optionalRules[0].definitionId,
   optionId: 'c'.repeat(64),
   selectionContract: 'd'.repeat(64),
@@ -105,7 +108,7 @@ const optionalChoices = {
       options: [{ id: '77777777-7777-4777-8777-777777777712', label: 'Athletics' }]
     }
   ]
-} satisfies EncounterOptionalActionChoicesDto
+})
 const loadOptionalChoices = fn(
   async (
     _request: GetEncounterOptionalActionChoicesInputDto
@@ -136,7 +139,7 @@ async function resolveActionCommand(
   }
 }
 
-const basicActionChoices = [
+const basicActionChoices = validatedActions([
   {
     ...actions[0],
     id: 'dash-action',
@@ -161,10 +164,10 @@ const basicActionChoices = [
     rulesText: 'You make a Dexterity (Stealth) check to hide.',
     grip: null
   }
-] satisfies EncounterActionChoiceDto[]
+])
 
 const escapeSent = fn()
-const escapes = [
+const escapes = validated(encounterActionChoicesDtoSchema.shape.escapes)([
   {
     activeEffectId: '00000000-0000-4000-8000-000000000e01',
     label: 'Escape from Giant Toad',
@@ -179,7 +182,7 @@ const escapes = [
     ],
     warnings: []
   }
-] satisfies EncounterEscapeChoiceDto[]
+])
 
 async function sendEscapeCommand(
   command: EscapeRelationshipInputDto
@@ -205,6 +208,7 @@ const meta = {
     areaOrigin: null,
     onAreaOriginChange: fn(),
     onAreaShapeChange: fn(),
+    onActionPreviewChange: fn(),
     onPickAreaOrigin: fn(),
     onEscape: sendEscapeCommand,
     onOpen: fn(),
@@ -658,7 +662,7 @@ export const EscapeFromGrapple: Story = {
   }
 }
 
-const fireball = {
+const fireball = validated(encounterActionChoiceDtoSchema)({
   id: 'spell-fireball:cast',
   label: 'Fireball',
   sourceLabel: 'Spell',
@@ -668,7 +672,51 @@ const fireball = {
   warnings: [],
   target: { kind: 'POINT', area: { kind: 'RADIUS', radius: { amount: 20, unit: 'FEET' } } },
   attackSlot: null
-} satisfies EncounterActionChoiceDto
+})
+const longbow = validated(encounterActionChoiceDtoSchema)({
+  ...actions[0],
+  id: 'equipment-longbow:attack',
+  label: 'Longbow',
+  rangeLabel: '150/600 ft',
+  range: {
+    kind: 'RANGED',
+    normal: { amount: 150, unit: 'FEET' },
+    long: { amount: 600, unit: 'FEET' }
+  }
+})
+
+/** The chosen action's range and target are handed to the stage, and withdrawn when cleared. */
+export const PreviewRangeAndTarget: Story = {
+  args: {
+    ...ResolveTargetedAction.args,
+    actions: [longbow],
+    optionalRules: [],
+    onActionPreviewChange: previewChanged
+  },
+  play: async ({ canvasElement }) => {
+    previewChanged.mockClear()
+    const { page, drawer } = await openActions(canvasElement)
+
+    await userEvent.click(drawer.getByRole('combobox', { name: 'Action' }))
+    await userEvent.click(await page.findByRole('option', { name: 'Longbow · Equipment' }))
+    await waitFor(() =>
+      expect(previewChanged).toHaveBeenLastCalledWith({
+        range: longbow.range,
+        sourceTokenId: tabletopLiveScene.tokens[0]!.id,
+        targetTokenId: null
+      })
+    )
+    await userEvent.click(drawer.getByRole('combobox', { name: 'Target' }))
+    await userEvent.click(await page.findByRole('option', { name: 'Vault Warden' }))
+    await waitFor(() =>
+      expect(previewChanged).toHaveBeenLastCalledWith({
+        range: longbow.range,
+        sourceTokenId: tabletopLiveScene.tokens[0]!.id,
+        targetTokenId: tabletopLiveScene.tokens[1]!.id
+      })
+    )
+  }
+}
 
 /** An area action asks for its center, lists who stands in it, and sends the point. */
 export const ResolveAreaAction: Story = {

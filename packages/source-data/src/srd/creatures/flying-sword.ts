@@ -37,7 +37,7 @@ export const flyingSword: CreatureAuthored = {
     'petrified',
     'poisoned'
   ],
-  senses: ['blindsight 60 ft. (blind beyond this radius)'],
+  senses: [S.blindsight(60, '(blind beyond this radius)')],
   passivePerception: 7,
   challengeRatingId: S.CR.CR_1_4,
   xp: 50,

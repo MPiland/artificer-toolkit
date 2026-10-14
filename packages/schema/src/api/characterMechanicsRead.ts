@@ -1,4 +1,4 @@
-import type { SceneCharacterVision } from '@artificer-toolkit/shared/vtt'
+import type { SceneActorVision } from '@artificer-toolkit/shared/vtt'
 import { z, lazySchema } from '../zod.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { lengthUnitCodeSchema } from '../shared/enums.js'
@@ -17,27 +17,26 @@ export const characterMechanicsReadInputSchema = lazySchema(() =>
   })
 )
 
-export const characterSceneVisionResultSchema: z.ZodMiniType<SceneCharacterVision> = lazySchema(
-  () =>
-    z.strictObject({
-      characterId: z.string().check(z.uuid()),
-      senses: z
-        .array(
-          z.strictObject({
-            channel: combatPerceptionChannelDtoSchema,
-            illuminationAccess: combatPerceptionIlluminationAccessDtoSchema,
-            label: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)),
-            range: z.union([
-              z.strictObject({ rangeKind: z.literal('UNLIMITED') }),
-              z.strictObject({
-                rangeKind: z.literal('DISTANCE'),
-                amount: z.number().check(z.positive()),
-                unit: lengthUnitCodeSchema
-              })
-            ]),
-            senseId: postgresUuidSchema
-          })
-        )
-        .check(z.maxLength(100))
-    })
+export const sceneActorVisionResultSchema: z.ZodMiniType<SceneActorVision> = lazySchema(() =>
+  z.strictObject({
+    actorId: z.string().check(z.uuid()),
+    senses: z
+      .array(
+        z.strictObject({
+          channel: combatPerceptionChannelDtoSchema,
+          illuminationAccess: combatPerceptionIlluminationAccessDtoSchema,
+          label: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)),
+          range: z.union([
+            z.strictObject({ rangeKind: z.literal('UNLIMITED') }),
+            z.strictObject({
+              rangeKind: z.literal('DISTANCE'),
+              amount: z.number().check(z.positive()),
+              unit: lengthUnitCodeSchema
+            })
+          ]),
+          senseId: postgresUuidSchema
+        })
+      )
+      .check(z.maxLength(100))
+  })
 )

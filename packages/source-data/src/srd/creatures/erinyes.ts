@@ -37,7 +37,7 @@ export const erinyes: CreatureAuthored = {
   ],
   damageImmunities: ['fire', 'poison'],
   conditionImmunities: ['poisoned'],
-  senses: ['truesight 120 ft.'],
+  senses: [S.truesight(120)],
   passivePerception: 12,
   challengeRatingId: S.CR.CR_12,
   xp: 8400,

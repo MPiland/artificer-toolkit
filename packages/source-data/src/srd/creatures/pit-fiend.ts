@@ -38,7 +38,7 @@ export const pitFiend: CreatureAuthored = {
   ],
   damageImmunities: ['fire', 'poison'],
   conditionImmunities: ['poisoned'],
-  senses: ['truesight 120 ft.'],
+  senses: [S.truesight(120)],
   passivePerception: 14,
   challengeRatingId: S.CR.CR_20,
   xp: 25000,
