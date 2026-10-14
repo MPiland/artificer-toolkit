@@ -933,6 +933,8 @@ describe('native initiative declarations', () => {
           model: 'user',
           data: {
             name: 'Second declaration player',
+            // Registered accounts always have a username; the Character's Initiative card is authored by its controller.
+            username: 'seconddeclarationplayer',
             email: 'second-declaration-player@example.invalid',
             emailVerified: true,
             createdAt: Date.now(),
@@ -1334,7 +1336,12 @@ describe('declared initiative roll cards', () => {
 
   async function storedScores(base: Parameters<typeof storedInitiative>[0]) {
     const { participants } = await storedInitiative(base)
-    return new Map(participants.map((row) => [row.actorId, row.initiativeScore]))
+    return new Map(
+      participants.map((row) => {
+        if (row.initiativeScore === null) throw new Error('Expected a settled initiative score.')
+        return [row.actorId, row.initiativeScore]
+      })
+    )
   }
 
   it('posts one Initiative card for each auto-rolled declaration, with its die and total', async () => {
@@ -1438,6 +1445,11 @@ describe('declared initiative roll cards', () => {
       null
     )
     const scores = await storedScores(base)
+    // Only the player's card reached the table, so the GM opens the table chat as their client does.
+    await base.owner.caller.mutation(api.campaigns.conversations.open, {
+      campaignId: base.campaign.id,
+      kind: 'TABLE'
+    })
     const tableCards = initiativeCards(await readRoomRollCards(base.owner.caller, base.campaign.id))
     // The Character's card is the table's, and the player loads the same one.
     expect(tableCards).toEqual([
