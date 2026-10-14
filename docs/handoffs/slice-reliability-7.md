@@ -1,6 +1,6 @@
 # Slice workbook: RELIABILITY-7 (the web uses the shared resolver and rules instead of copies)
 
-**Status:** OPEN (started 2026-10-13)
+**Status:** READY TO MERGE (started 2026-10-13; codegen and `typecheck:convex` owed to the main checkout)
 **Base:** `codex/phase-08-2-convex-cutover` at this workbook's commit.
 **Rules:** [slice-workbook-rules.md](slice-workbook-rules.md).
 
@@ -33,5 +33,68 @@ Storybook cannot run in a worktree: list the stories to run after merge in the s
 ## Status log
 
 - 2026-10-13: workbook written; session started.
+- 2026-10-13: implemented on `claude/clever-panini-865ecb`; base `codex/phase-08-2-convex-cutover` merged. Logs live in the main checkout under `local-validation/reliability-7/`.
+
+### Checklist evidence
+
+| # | Proof | Red log | Green log |
+| --- | --- | --- | --- |
+| 1 | `useAuthoringResolvedModel.test.tsx` (the hook never serves an embedded copy) and `nodeRuntimeResolver.test.ts` (all SRD classes and speeds come from the real `packages/authoring` resolver) | `red-web-reliability-7` | `green-web-reliability-7-final`, `m-green-web-reliability-7` |
+| 2 | `FormArchitectureBoundaries.test.ts`: the files are gone and production web code imports neither `@artificer-toolkit/authoring` nor `staticResolvedModel` | `red-web-reliability-7` | same |
+| 3 | `sharedRulesParity.test.ts` (real SRD Fighter, Wizard, Barbarian and multiclass through the real server evaluation; class detail hit-die average and proficiency bonus for 20 levels; Creature modifiers for scores 1-30) and the new `EncounterEnemyStatBlock.test.tsx` describe | `red-web-reliability-7` | `green-web-parity-final`, `green-web-reliability-7-final` |
+| 4 | `character-rules-contracts.test.ts` (contract drops `overridden`) and `sharedRulesParity.test.ts` (a Character that stored an override reads its hit points from the shared rules) | `red-schema-contract`, `red-web-reliability-7` | `green-schema-contract`, `m-green-schema-contract` |
+
+Item 3, the case where the local copy disagreed: a custom class with hit die `2d6`. The web copy recomputed the stored rows as 8 and 6, while the server (shared `parseHitDie` returns no die) keeps the stored 10 and 5. Real SRD content did not disagree (the dice are all `1dN`), so those cases stay as drift guards: a reintroduced local copy would have to match the shared functions at every level and score to stay green.
+
+### What changed
+
+- 7.1: deleted `forms/node-map/staticResolvedModel.ts` (+ test) and `withStaticResolvedScopes.ts`. `useAuthoringResolvedModel` now uses the provided model or the backend resolution, nothing else. Stories and tests resolve through `apps/web/src/test/nodeRuntimeResolver.ts` (real `packages/authoring` resolver over the in-memory SRD, same reader contract as `createSystemSourceReader`). `packages/authoring/src/nodeRuntime/systemSourceRows.ts` is new: the vocabulary and sort helpers the Convex reader and this harness now share. `@artificer-toolkit/authoring` is a web devDependency (tests and stories only; the architecture test pins that).
+- 7.2: new `rules-runtime` `hitPointRules.ts` (`parseHitDie`, `hitDieAverage`, `hitPointGain`) and `proficiencyBonus.ts`. The Builder (`characterAbilities.ts`, `CharacterHitpointProgression.tsx`, `CharacterAbilitiesStep.tsx`), class detail, Creature detail and the Encounter enemy stat block call them; the server paths (`builderHitPoints.ts`, `characterVitals.ts`, `characterModifiers.ts`, `characterDerivedStats.ts`) were folded onto the same functions, which also removed a third copy of the proficiency table.
+- Legacy override: `overridden` removed from `characterHitpointLevelEntryDtoSchema`, the API contract and the shared type; the "HP gained (legacy)" input is gone.
+- Docs: `docs/architecture/authoring-schema.md` (no web resolver copy; harness location), `docs/architecture/character.md` (shared hit point rules in the browser evaluation).
+
+### Validation run
+
+Web unit set (12 files, 331 tests) green before and after the merge; schema contract test; typechecks for shared, schema, rules-runtime (build and tests), authoring, apis build, web app, web tests, web stories. Post-merge reruns are the `m-` logs.
+
+### Owed to the main checkout after merge
+
+- `codegen:convex` against the local backend (refreshes `apps/apis/convex/_generated/api.d.ts`: seven stale `overridden?: boolean` entries for the removed field). Not run here: the worktree has no `apps/apis` dependencies.
+- `typecheck:convex` (Convex test typing). In the worktree it fails only because `convex-test` and `@convex-dev/*` do not resolve (`tc-apis-convex` log); every non-environmental error there cascades from that. The touched Convex code (`authoredSources.ts`, `systemSources.ts`) passes `tc-apis-build`.
+- Convex tests that read Character hit points (anything using `hitpoints.levels`).
+
+### Stories to run after merge (Storybook cannot run in a worktree)
+
+- All authored route stories, which now take their model from the real resolver: `{Background,Class,Creature,Equipment,Feat,Race,Spell,Vehicle}{Create,Edit}Route.stories.tsx`.
+- `forms/previews/EquipmentParentPreview.stories.tsx`, `CampaignEncounterBuilderPage.stories.tsx`, `CampaignSettings.stories.tsx`, `SystemDetailPage.stories.tsx`.
+- `CharacterBuilderAuthoringRuntime.stories.tsx` (Builder abilities and hit point steps: no "HP gained (legacy)" input, MANUAL method asks for a roll).
+- Check the Creature and Encounter stat block stories for unchanged modifiers.
+
+### Development-data migration
+
+The main session resets and reseeds after merge. Stored `hitpoints.levels[].overridden` is dropped by the contract on read; nothing else carries it. A Character that had an override now reads its hit points from the shared rules (proved in `sharedRulesParity.test.ts`). A MANUAL Character with no roll for a level now requires one instead of falling back to the override.
+
+### Deviations
+
+- Hit die `2d6` finding (item 3) and the proficiency level 0 edge: the web returned 1 where the server returns 2. Unreachable through SRD progression tables, so not covered by a test; the shared function is the single source now.
+- The third proficiency copy in `characterDerivedStats.ts` was folded in, not only the web copies.
+- `GuidedEntryJourneys` and `AuthoredDomainAuthoringLayout` stubbed the normalizer; they now use the real one. This exposed fixtures with relationship IDs that are not in the SRD (equipment, speed): the real normalizer clears them, which opens the "Clear hidden values?" confirmation. Fixtures now use real SRD IDs (`authoredRouteStory.fixtures.ts` speeds are the SRD speeds; the SRD walking code is `WALK`).
+- A form with `resolveModel: false` and no provided model now renders nothing (the static branch used to render something). Test harnesses supply scopes through `withResolvedScopes`, which recurses into nested object and array groups and is re-resolved as values change. They also gate on the context's `providedModel` (it reaches the layout one render after local state) and warm the SRD facts first (`warmFixtureAuthoredSources`), because the first resolve builds the SRD source projections.
+- Several `nodeRuntimeResolver.test.ts` and parity assertions are stronger than before: the class filter now uses `category === 'BASE'`; the old `'CLASS'` filter matched nothing and passed vacuously.
+
+### Risks
+
+- The Character Builder registration (`authoringSessionState.ts:215`, `resolveModel: false`, `providedModel: undefined`) now has no static fallback. I assumed the Builder supplies its own models; I did not verify this in a browser. Check the Builder first after merge.
+- Two `src/routes` web suites cannot load in a worktree (Vite `fs.allow`); run them in the main checkout.
+- First-resolve latency of the SRD facts build (seconds) in tests that do not call `warmFixtureAuthoredSources`.
+
+### Follow-ups (outside this slice)
+
+- Remaining ability-modifier copies: `effectActionCompiler.ts:351` and `characterResources.ts:134,145` should call the shared `abilityModifier`.
 
 ## Proposed ledger edits (filled by the slice session)
+
+- RELIABILITY-7.1: DONE once the stories above pass and the Builder opens (risk above). Evidence: `red-web-reliability-7` / `green-web-reliability-7-final`, `FormArchitectureBoundaries.test.ts`.
+- RELIABILITY-7.2: DONE. Evidence: `sharedRulesParity.test.ts`, `green-schema-contract`, `character-rules-contracts.test.ts`.
+- RELIABILITY-7: DONE after the main checkout's codegen, `typecheck:convex`, Convex hit point tests and the story run pass.
+- New follow-up item: shared `abilityModifier` in `effectActionCompiler.ts` and `characterResources.ts` (low risk; same arithmetic).

@@ -619,7 +619,7 @@ describe('non-character authored domain layout coverage', () => {
 
   it('submits a Creature sense entry added in the editor', async () => {
     const user = userEvent.setup()
-    useStaticNodeRuntimeResolver()
+    useFixtureNodeRuntimeResolver()
     const { authoringData } = authoredEditRouteLoaderData.creature
     const creature = authoringData.response.item
     if (!creature) throw new Error('Expected the owned Creature fixture.')
@@ -639,7 +639,7 @@ describe('non-character authored domain layout coverage', () => {
 
     await user.click(await screen.findByRole('link', { name: /^stats/i }))
     await user.click(await screen.findByRole('button', { name: /add sense/i }))
-    await user.click(await screen.findByRole('combobox', { name: /^sense$/i }))
+    await user.click(await screen.findByRole('combobox', { name: /^sense\s*\*?$/i }))
     await user.click(await screen.findByRole('option', { name: 'Darkvision' }))
     await user.click(screen.getByRole('button', { name: 'Save Draft' }))
 
@@ -654,7 +654,7 @@ describe('non-character authored domain layout coverage', () => {
         ]
       }
     })
-  })
+  }, 20_000)
 
   it('loads native Spell copy sources after selection', async () => {
     const user = userEvent.setup()
