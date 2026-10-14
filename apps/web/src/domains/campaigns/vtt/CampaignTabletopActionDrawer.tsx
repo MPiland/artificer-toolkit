@@ -33,7 +33,6 @@ import type { EncounterRuleWarningDto } from '@artificer-toolkit/schema/shared/e
 import { EQUIPMENT_GRIP_REGISTRY } from '@artificer-toolkit/shared/core'
 import {
   directedAreaSizeInSceneCoordinates,
-  isDirectedAreaShape,
   pointAreaInSceneCoordinates,
   spatialTokensInsideArea
 } from '@artificer-toolkit/shared/vtt'
@@ -190,16 +189,12 @@ export function CampaignTabletopActionDrawer({
   const tokensInArea = useMemo(() => {
     const shape = areaSize && areaAim ? aimedAreaShape(areaSize, areaAim) : null
     if (!areaAim || !shape) return []
-    const caught = isDirectedAreaShape(shape)
-      ? sourceTokenId
-        ? spatialTokensInsideArea({
-            origin: areaAim.origin,
-            shape,
-            tokens: sceneTokens,
-            casterTokenId: sourceTokenId
-          })
-        : []
-      : spatialTokensInsideArea({ origin: areaAim.origin, shape, tokens: sceneTokens })
+    const caught = spatialTokensInsideArea({
+      origin: areaAim.origin,
+      shape,
+      tokens: sceneTokens,
+      casterTokenId: sourceTokenId
+    })
     const inside = new Set(caught)
     return sceneTokens.filter((token) => inside.has(token.id)).map((token) => token.label)
   }, [areaAim, areaSize, sceneTokens, sourceTokenId])

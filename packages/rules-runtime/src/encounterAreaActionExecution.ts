@@ -1,5 +1,4 @@
 import {
-  isDirectedAreaShape,
   spatialTokensInsideArea,
   type ScenePoint,
   type SpatialAreaShape,
@@ -60,8 +59,7 @@ export type EncounterAreaTargetTest =
 /**
  * The actors with a token sharing area with an area, in token-id order, each once. A point area
  * catches the caster and allies like anyone else; a directed area starts on the caster's own space
- * (the first token bound to them) and never catches the caster, whatever token of theirs it
- * overlaps.
+ * (the first token bound to them), never catches it, and needs it (`spatialTokensInsideArea`).
  */
 export function catchEncounterAreaActorIds(input: {
   origin: ScenePoint
@@ -71,14 +69,14 @@ export function catchEncounterAreaActorIds(input: {
 }): string[] {
   const { origin, shape, tokens } = input
   const casterToken = tokens.find((token) => token.actorId === input.casterActorId)
-  const tokenIds = isDirectedAreaShape(shape)
-    ? casterToken
-      ? spatialTokensInsideArea({ origin, shape, tokens, casterTokenId: casterToken.id })
-      : []
-    : spatialTokensInsideArea({ origin, shape, tokens })
+  const tokenIds = spatialTokensInsideArea({
+    origin,
+    shape,
+    tokens,
+    casterTokenId: casterToken?.id
+  })
   const actorByTokenId = new Map(tokens.map((token) => [token.id, token.actorId]))
   const caught = new Set(tokenIds.map((tokenId) => actorByTokenId.get(tokenId)!))
-  if (isDirectedAreaShape(shape)) caught.delete(input.casterActorId)
   return [...caught]
 }
 
