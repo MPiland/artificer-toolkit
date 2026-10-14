@@ -226,7 +226,7 @@ describe('native Convex authoring resolver', () => {
       srdSystemRecord.skills.map((item) => ({
         value: item.id,
         label: item.label,
-        ...(item.tooltip ? { description: item.tooltip } : {})
+        ...(item.description ? { description: item.description } : {})
       }))
     )
     expect(JSON.stringify(result)).not.toMatch(/"(_id|_creationTime|document|checksum)"/)

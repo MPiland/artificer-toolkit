@@ -58,7 +58,7 @@ const CHARGE_BONUS_NODE_MAP = chargeBonus.define('chargeBonus', ({ map, nodes, c
         {
           kind: 'DATA',
           relationship: table('skills', {
-            selectColumns: ['id', 'label', 'tooltip']
+            selectColumns: ['id', 'label', 'description']
           })
         },
         {

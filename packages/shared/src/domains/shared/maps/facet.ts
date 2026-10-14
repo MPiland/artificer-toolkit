@@ -1592,7 +1592,7 @@ function createFacetPredicateNodeMap(
                 .mapValues('magic_schools', {
                   whereColumn: 'id',
                   valueColumn: 'id',
-                  selectColumns: ['id', 'label']
+                  selectColumns: ['id', 'label', 'description']
                 })
                 .end()
             )
@@ -2664,7 +2664,7 @@ function createFacetPredicateNodeMap(
           {
             kind: 'DATA',
             relationship: table('heritages', {
-              selectColumns: ['id', 'label']
+              selectColumns: ['id', 'label', 'description']
             })
           },
           {

@@ -72,7 +72,7 @@ export const DAMAGE_BONUS_NODE_MAP = damageBonus.define(
           {
             kind: 'DATA',
             relationship: table('skills', {
-              selectColumns: ['id', 'label']
+              selectColumns: ['id', 'label', 'description']
             })
           },
           {
@@ -133,7 +133,7 @@ export const DAMAGE_NODE_MAP = damage.define('damage', ({ map, nodes, cond, data
         {
           kind: 'DATA',
           relationship: table('damage_types', {
-            selectColumns: ['id', 'label']
+            selectColumns: ['id', 'label', 'description']
           })
         },
         {

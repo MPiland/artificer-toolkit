@@ -62,7 +62,7 @@ const MODIFIER_GRANT_DOMAIN_NODE_MAP = modifierGrantDomain.define(
           {
             kind: 'DATA',
             relationship: table('skills', {
-              selectColumns: ['id', 'label', 'tooltip']
+              selectColumns: ['id', 'label', 'description']
             })
           },
           {
@@ -78,7 +78,7 @@ const MODIFIER_GRANT_DOMAIN_NODE_MAP = modifierGrantDomain.define(
           {
             kind: 'DATA',
             relationship: table('speeds', {
-              selectColumns: ['id', 'label', 'tooltip']
+              selectColumns: ['id', 'label', 'description']
             })
           },
           {
@@ -124,7 +124,7 @@ const MODIFIER_GRANT_DOMAIN_NODE_MAP = modifierGrantDomain.define(
           {
             kind: 'DATA',
             relationship: table('senses', {
-              selectColumns: ['id', 'label']
+              selectColumns: ['id', 'label', 'description']
             })
           },
           {
@@ -156,7 +156,7 @@ const MODIFIER_GRANT_DOMAIN_NODE_MAP = modifierGrantDomain.define(
           {
             kind: 'DATA',
             relationship: table('condition_types', {
-              selectColumns: ['id', 'label']
+              selectColumns: ['id', 'label', 'description']
             })
           },
           {
@@ -247,7 +247,7 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
           {
             kind: 'DATA',
             relationship: table('skills', {
-              selectColumns: ['id', 'label', 'tooltip']
+              selectColumns: ['id', 'label', 'description']
             })
           },
           {
@@ -311,7 +311,7 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
           {
             kind: 'DATA',
             relationship: table('damage_types', {
-              selectColumns: ['id', 'label']
+              selectColumns: ['id', 'label', 'description']
             })
           },
           {
@@ -332,7 +332,7 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
           {
             kind: 'DATA',
             relationship: table('condition_types', {
-              selectColumns: ['id', 'label']
+              selectColumns: ['id', 'label', 'description']
             })
           },
           {

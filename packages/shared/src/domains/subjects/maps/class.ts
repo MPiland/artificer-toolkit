@@ -279,7 +279,7 @@ const CLASS_STARTING_GOLD_NODE_MAP = classStartingGoldNode.define(
         selectSingle(['currencyId'], 'Currency', {
           kind: 'DATA',
           relationship: table('currencies', {
-            selectColumns: ['id', 'label']
+            selectColumns: ['id', 'label', 'description']
           })
         })
       )

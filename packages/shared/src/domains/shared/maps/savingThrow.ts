@@ -40,7 +40,9 @@ const SAVING_THROW_DC_BONUS_NODE_MAP = savingThrowDcBonus.define(
           'DC Ability',
           {
             kind: 'DATA',
-            relationship: table('ability_definitions', { selectColumns: ['id', 'label'] })
+            relationship: table('ability_definitions', {
+              selectColumns: ['id', 'label', 'description']
+            })
           },
           {
             order: 2,
@@ -92,7 +94,9 @@ export const SAVING_THROW_NODE_MAP = savingThrow.define(
           'Save Ability',
           {
             kind: 'DATA',
-            relationship: table('ability_definitions', { selectColumns: ['id', 'label'] })
+            relationship: table('ability_definitions', {
+              selectColumns: ['id', 'label', 'description']
+            })
           },
           {
             order: 2,
