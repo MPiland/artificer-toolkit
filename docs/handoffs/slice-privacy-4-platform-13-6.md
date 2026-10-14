@@ -1,6 +1,6 @@
 # Slice workbook: PRIVACY-4 and PLATFORM-13.6 (small bundle)
 
-**Status:** OPEN (started 2026-10-13)
+**Status:** DONE (merged `6bbbf7f62`; closed by the main session 2026-10-14)
 **Base:** `codex/phase-08-2-convex-cutover` at this workbook's commit.
 **Rules:** [slice-workbook-rules.md](slice-workbook-rules.md).
 
