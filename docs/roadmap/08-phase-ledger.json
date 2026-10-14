@@ -5332,7 +5332,7 @@
           "acs": [
             {
               "id": "ATTACK-9.1",
-              "text": "A Barbarian rages in an Encounter: Rage is offered as a bonus action, spends a rage charge, and for its duration grants the level-scaled Rage damage bonus on Strength melee weapon attacks, resistance to bludgeoning, piercing and slashing damage, and advantage on Strength checks and saving throws; while raging the Barbarian cannot cast spells or keep Concentration; Rage ends at its duration, by choice, or when the Barbarian is incapacitated; GM undo restores the charge.",
+              "text": "A Barbarian rages in an Encounter: Rage is offered as a bonus action, spends a rage charge, and for its duration grants the level-scaled Rage damage bonus on Strength melee weapon attacks, resistance to bludgeoning, piercing and slashing damage, and advantage on Strength checks and saving throws; while raging the Barbarian cannot cast spells or keep Concentration; Rage ends at its duration, by choice, or when the Barbarian is incapacitated; GM undo restores the charge. The feature is authored only from core authoring options (no CLOSED_RULE, no feature-specific kind or executor); an author-built equivalent made through the real authoring form publishes to the same structure and resolves identically.",
               "status": "TODO",
               "proof": [],
               "origin": [],
@@ -5340,7 +5340,7 @@
             },
             {
               "id": "ATTACK-9.2",
-              "text": "Sneak Attack adds its level-scaled dice once per turn to a hit with a finesse or ranged weapon when the attack has advantage or an enemy of the target is within 5 feet of it and the attacker has no disadvantage; critical hits double the dice.",
+              "text": "Sneak Attack adds its level-scaled dice once per turn to a hit with a finesse or ranged weapon when the attack has advantage or an enemy of the target is within 5 feet of it and the attacker has no disadvantage; critical hits double the dice. The feature is authored only from core authoring options (no CLOSED_RULE, no feature-specific kind or executor); an author-built equivalent made through the real authoring form publishes to the same structure and resolves identically.",
               "status": "TODO",
               "proof": [],
               "origin": [],
@@ -5348,7 +5348,7 @@
             },
             {
               "id": "ATTACK-9.3",
-              "text": "Second Wind (bonus action, 1d10 + Fighter level healing, one use per short rest) and Action Surge (one additional action this turn, uses per short rest by level) resolve in an Encounter through the generic feature-action path, with spend, refresh and GM undo.",
+              "text": "Second Wind (bonus action, 1d10 + Fighter level healing, one use per short rest) and Action Surge (one additional action this turn, uses per short rest by level) resolve in an Encounter through the generic feature-action path, with spend, refresh and GM undo. The feature is authored only from core authoring options (no CLOSED_RULE, no feature-specific kind or executor); an author-built equivalent made through the real authoring form publishes to the same structure and resolves identically.",
               "status": "TODO",
               "proof": [],
               "origin": [],
@@ -5356,7 +5356,7 @@
             },
             {
               "id": "ATTACK-9.4",
-              "text": "Divine Smite: after a Paladin hits with a melee weapon attack, the player may spend a spell slot to add 2d8 radiant (+1d8 per slot level above 1st, max 5d8; +1d8 against undead or fiends), doubled on a critical hit; Improved Divine Smite adds 1d8 radiant to every melee weapon hit.",
+              "text": "Divine Smite: after a Paladin hits with a melee weapon attack, the player may spend a spell slot to add 2d8 radiant (+1d8 per slot level above 1st, max 5d8; +1d8 against undead or fiends), doubled on a critical hit; Improved Divine Smite adds 1d8 radiant to every melee weapon hit. The feature is authored only from core authoring options (no CLOSED_RULE, no feature-specific kind or executor); an author-built equivalent made through the real authoring form publishes to the same structure and resolves identically.",
               "status": "TODO",
               "proof": [],
               "origin": [],
@@ -5364,7 +5364,7 @@
             },
             {
               "id": "ATTACK-9.5",
-              "text": "Two-weapon fighting: after an Attack action with a light melee weapon, the actor is offered the off-hand light weapon attack as a bonus action (D107), which adds no positive ability modifier to damage unless the actor has the Two-Weapon Fighting style.",
+              "text": "Two-weapon fighting: after an Attack action with a light melee weapon, the actor is offered the off-hand light weapon attack as a bonus action (D107), which adds no positive ability modifier to damage unless the actor has the Two-Weapon Fighting style. The feature is authored only from core authoring options (no CLOSED_RULE, no feature-specific kind or executor); an author-built equivalent made through the real authoring form publishes to the same structure and resolves identically.",
               "status": "TODO",
               "proof": [],
               "origin": [],
@@ -5372,7 +5372,7 @@
             },
             {
               "id": "ATTACK-9.6",
-              "text": "Rage ends early at the start of the Barbarian's turn when they neither attacked a hostile creature nor took damage since their previous turn, read from the per-turn Encounter record ATTACK-9.T2 builds.",
+              "text": "Rage ends early at the start of the Barbarian's turn when they neither attacked a hostile creature nor took damage since their previous turn, read from the per-turn Encounter record ATTACK-9.T2 builds. The feature is authored only from core authoring options (no CLOSED_RULE, no feature-specific kind or executor); an author-built equivalent made through the real authoring form publishes to the same structure and resolves identically.",
               "status": "TODO",
               "proof": [],
               "origin": [],
