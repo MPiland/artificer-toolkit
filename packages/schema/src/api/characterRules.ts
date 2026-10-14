@@ -252,8 +252,7 @@ const characterHitPointFactsSchema = lazySchema(() =>
                 die: z.nullable(integerSchema.check(z.positive())),
                 abilityIndex: z.nullable(integerSchema.check(z.gte(0)).check(z.lte(31))),
                 fallbackValue: integerSchema,
-                rollValue: z.nullable(integerSchema),
-                legacyOverrideValue: z.nullable(integerSchema)
+                rollValue: z.nullable(integerSchema)
               })
             )
             .check(z.maxLength(400))

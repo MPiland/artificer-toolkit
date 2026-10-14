@@ -94,7 +94,8 @@ async function resolveNodeRuntimeScope(
   }
 }
 
-async function resolveNestedRuntimeScopes(
+/** The scopes of every populated nested group under `steps`, as `resolveNodeRuntime` returns them. */
+export async function resolveNestedRuntimeScopes(
   db: NodeRuntimeReader,
   request: NodeRuntimeResolveRequestDto,
   steps: readonly NodeRuntimeStepDto[],

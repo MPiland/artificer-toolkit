@@ -284,8 +284,7 @@ describe('Character rule contracts', () => {
           die: 10,
           abilityIndex: 0,
           fallbackValue: 10,
-          rollValue: null,
-          legacyOverrideValue: null
+          rollValue: null
         }
       ]
     }

@@ -1,5 +1,9 @@
 export { getRuntimeNodeMap, listRuntimeNodeMapIds, NodeRuntimeInputError } from './mapRegistry.js'
-export { normalizeNodeRuntimeValues, resolveNodeRuntime } from './nodeRuntimeService.js'
+export {
+  normalizeNodeRuntimeValues,
+  resolveNestedRuntimeScopes,
+  resolveNodeRuntime
+} from './nodeRuntimeService.js'
 export { executeRelationshipPlan, streamToOptions } from './relationshipExecutor.js'
 export {
   isNodeRuntimeSourceColumn,
@@ -13,3 +17,8 @@ export type {
   NodeRuntimeSourceReader
 } from './nodeRuntimeSourceContract.js'
 export { authoredSourceFacts, authoredSourceKindsByTable } from './authoredSourceFacts.js'
+export {
+  createNodeRuntimeSourceReader,
+  sortAuthoredSourceRows,
+  systemVocabularyRows
+} from './systemSourceRows.js'

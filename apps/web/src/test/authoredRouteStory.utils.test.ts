@@ -2,9 +2,9 @@ import { QueryClient } from '@tanstack/react-query'
 import { describe, expect, it } from 'vitest'
 import { expandNodeRuntimeResponse } from '@artificer-toolkit/schema/api/nodeRuntimeTransport'
 import { getNodeRuntimeResolve } from '#app/data/nodeRuntime/queries'
-import { createStaticResolvedFormModel } from '#forms/node-map/staticResolvedModel'
-import { authoredRouteStoryRecords, authoredRouteStorySystem } from './authoredRouteStory.fixtures'
+import { authoredRouteStoryRecords, authoredRouteStorySystem } from '#domains/authoredRouteStory.fixtures'
 import { configureAuthoredRouteStoryQueries } from './authoredRouteStory.utils'
+import { resolveFixtureNodeRuntime } from './nodeRuntimeResolver'
 
 describe('authored route story node-runtime resolution', () => {
   it.each(['creature', 'spell'] as const)(
@@ -19,7 +19,7 @@ describe('authored route story node-runtime resolution', () => {
       )
 
       expect(expandNodeRuntimeResponse(response)).toEqual(
-        createStaticResolvedFormModel(domain, { system: authoredRouteStorySystem, values })
+        await resolveFixtureNodeRuntime({ mapId: domain, systemId: authoredRouteStorySystem.id, values })
       )
     }
   )

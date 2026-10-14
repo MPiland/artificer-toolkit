@@ -2,11 +2,10 @@ import { Suspense } from 'react'
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useRouterState } from '@tanstack/react-router'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { authoredCatalogueItemSchema } from '@artificer-toolkit/schema/api/authoredCatalogue'
 import {
   nodeRuntimeNormalizeValuesRequestDtoSchema,
-  nodeRuntimeNormalizeValuesResponseDtoSchema,
   nodeRuntimeResolveRequestDtoSchema
 } from '@artificer-toolkit/schema/api/nodeRuntime'
 import { compactNodeRuntimeResponse } from '@artificer-toolkit/schema/api/nodeRuntimeTransport'
@@ -17,14 +16,17 @@ import {
   authoredCreateRouteLoaderData,
   authoredRouteStoryDrafts,
   authoredRouteStoryResponses,
-  authoredRouteStorySystem,
   createEditLoaderData
 } from '#domains/authoredRouteStory.fixtures'
 import { masterRaceFixture, raceListResponseFixture } from '#domains/races/race.fixtures'
 import { RaceDetailPage } from '#domains/races/pages/RaceDetailPage'
+import {
+  normalizeFixtureNodeRuntimeValues,
+  resolveFixtureNodeRuntime,
+  warmFixtureAuthoredSources
+} from '#test/nodeRuntimeResolver'
 import { TestRouterProvider } from '#test/TestRouterProvider'
 import { AuthoringLayout } from '../layout/AuthoringLayout'
-import { createStaticResolvedFormModel } from '../node-map/staticResolvedModel'
 
 const convexMocks = vi.hoisted(() => ({
   loadMore: vi.fn(),
@@ -74,17 +76,10 @@ vi.mock('#app/query/createAppQueryClient', async (importOriginal) => {
         queryFn: async () => null
       })
       client.setQueryDefaults(['convexQuery', getFunctionName(api.authoring.nodeRuntime.resolve)], {
-        queryFn: ({ queryKey }) => {
-          const input = nodeRuntimeResolveRequestDtoSchema.parse(queryKey[2])
-          const model = createStaticResolvedFormModel(input.mapId, {
-            ancestors: input.ancestors,
-            parentValues: input.parentValues,
-            system: authoredRouteStorySystem,
-            values: input.values
-          })
-          if (!model) throw new Error('Expected a Race authored form model.')
-          return compactNodeRuntimeResponse(model)
-        }
+        queryFn: async ({ queryKey }) =>
+          compactNodeRuntimeResponse(
+            await resolveFixtureNodeRuntime(nodeRuntimeResolveRequestDtoSchema.parse(queryKey[2]))
+          )
       })
       return client
     }
@@ -108,10 +103,12 @@ const copiedRaceAuthoringData = {
 const ownedResponse = { ...authoredRouteStoryResponses.race, draft: null, hasDraft: false }
 const ownedRace = ownedResponse.item!
 
+beforeAll(warmFixtureAuthoredSources, 60_000)
+
 beforeEach(() => {
   convexMocks.loadMore.mockClear()
   convexMocks.mutation.mockClear()
-  convexMocks.query.mockReset().mockImplementation(resolveStaticNormalization)
+  convexMocks.query.mockReset().mockImplementation(resolveNormalization)
   convexMocks.usePaginatedQuery.mockClear()
   contentCatalogueMock.mockReturnValue({
     items: raceListResponseFixture.items.map((item) =>
@@ -140,18 +137,11 @@ beforeEach(() => {
   })
 })
 
-function resolveStaticNormalization(
-  reference: Parameters<typeof getFunctionName>[0],
-  input: unknown
-) {
+function resolveNormalization(reference: Parameters<typeof getFunctionName>[0], input: unknown) {
   if (getFunctionName(reference) !== getFunctionName(api.authoring.nodeRuntime.normalizeValues)) {
     throw new Error('Expected native node-runtime normalization.')
   }
-  const request = nodeRuntimeNormalizeValuesRequestDtoSchema.parse(input)
-  return nodeRuntimeNormalizeValuesResponseDtoSchema.parse({
-    clearedPaths: [],
-    values: request.values
-  })
+  return normalizeFixtureNodeRuntimeValues(nodeRuntimeNormalizeValuesRequestDtoSchema.parse(input))
 }
 
 function GuidedRaceDestination() {
