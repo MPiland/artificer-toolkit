@@ -1,5 +1,5 @@
 import type { CreatureSenseAuthored } from '#authored'
-import { MEASUREMENT_UNIT_REGISTRY } from '#core'
+import { MEASUREMENT_UNIT_REGISTRY } from '../../core/measurement.js'
 
 /**
  * A Creature's Senses as a stat block prints them ("darkvision 60 ft. (blind beyond this radius)").
