@@ -324,11 +324,11 @@ describe('native Character Sheet adjustment storage', () => {
           type: 'UPSERT_SHEET_ADJUSTMENT',
           commandId: crypto.randomUUID(),
           expectedVersion: 1,
+          // @ts-expect-error A speed override is a length, never a bare number.
           adjustment: {
             family: 'MOVEMENT',
             speedId: fly.id,
             field: 'SPEED_OVERRIDE',
-            // @ts-expect-error A speed override is a length, never a bare number.
             value: 42
           }
         }

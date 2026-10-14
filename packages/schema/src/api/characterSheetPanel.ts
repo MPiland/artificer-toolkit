@@ -325,6 +325,16 @@ const sensesPanelDtoSchema = lazySchema(() =>
   })
 )
 
+/** Shared by both speed kinds: a flat union, because Convex infers an intersection as `any`. */
+const movementSpeedShape = () => ({
+  speedId: uuidSchema,
+  label: stringSchema.check(z.minLength(1)),
+  state: characterSheetAdjustmentStateDtoSchema,
+  editor: z.extend(lengthAdjustmentEditorBaseDtoSchema, {
+    field: z.literal('SPEED_OVERRIDE')
+  })
+})
+
 const movementPanelDtoSchema = lazySchema(() =>
   z.extend(characterSheetPanelCommonDtoSchema, {
     kind: z.literal('MOVEMENT'),
@@ -338,25 +348,16 @@ const movementPanelDtoSchema = lazySchema(() =>
       })
     ),
     speeds: z.array(
-      z.intersection(
+      z.discriminatedUnion('speedKind', [
+        z.object({ ...movementSpeedShape(), speedKind: z.literal('NOT_HELD') }),
         z.object({
-          speedId: uuidSchema,
-          label: stringSchema.check(z.minLength(1)),
-          state: characterSheetAdjustmentStateDtoSchema,
-          editor: z.extend(lengthAdjustmentEditorBaseDtoSchema, {
-            field: z.literal('SPEED_OVERRIDE')
-          })
-        }),
-        z.discriminatedUnion('speedKind', [
-          z.object({ speedKind: z.literal('NOT_HELD') }),
-          z.object({
-            speedKind: z.literal('HELD'),
-            amount: numberSchema.check(z.nonnegative()),
-            unitLabel: stringSchema.check(z.minLength(1)),
-            calculation: characterSheetPanelNumericCalculationDtoSchema
-          })
-        ])
-      )
+          ...movementSpeedShape(),
+          speedKind: z.literal('HELD'),
+          amount: numberSchema.check(z.nonnegative()),
+          unitLabel: stringSchema.check(z.minLength(1)),
+          calculation: characterSheetPanelNumericCalculationDtoSchema
+        })
+      ])
     )
   })
 )

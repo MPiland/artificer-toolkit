@@ -23,7 +23,9 @@ const prepare = async (overrides: readonly SpeedOverride[]) => {
   const fixture = readyFighterFixture()
   const documents = {
     ...fixture.documents,
-    RACE: [{ ...human, speeds: [{ speedId: walk.id, amount: 6, unit: 'YARDS' as const }] }]
+    RACE: [
+      { ...human, features: [], speeds: [{ speedId: walk.id, amount: 6, unit: 'YARDS' as const }] }
+    ]
   }
   const { character } = await prepareFixtureBuilder({ character: fixture.character, documents })
   const timestamp = new Date(0).toISOString()
