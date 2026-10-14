@@ -59,6 +59,11 @@ Dev data changes: the main session resets and reseeds after merge.
   - Builds green (schema, shared, rules-runtime, source-data, encounter-persistence, authoring); touched suites 18 files, 161 tests green (`green-touched.log`), plus `actorSenses` and `creatureSnapshotSenses` after test-typing fixes (`green-touched2.log`); worker Workers-pool suites green; `turbo:affected:typecheck` green (`typecheck2.log`); local Convex codegen push green (`codegen.log`).
   - The first run found three test defects, fixed: UNLIMITED ranges in new tests lacked the `id` the contract requires, and the oracle test compared the derived qualifier ("ft.") with the normalised printed line.
   - Red-first: the review's new tests were authored against the fixed production code in the same pass; no red logs were captured for them (the review accepted this for items 2 to 6). `creatureSnapshotSenses.test.ts` pins the throw with a bare `toThrow()`.
+- 2026-10-13: second review round (main session).
+  - Correction: `creaturePublication.test.ts` is a Convex-config test (`yarn vitest run --config apps/apis/vitest.config.ts <path>`); the root config's filter silently matched no file, so the earlier "green" logs never ran it. It runs now (`green-review-publication.log`, 10 tests green).
+  - The first real run showed that node-map normalization drops any sense id outside the System vocabulary (unknown, another System's, unlisted) before the publication schema runs. The foreign-System and vocabulary checks added in the first review round were unreachable and are removed; the test now pins the refusal each id actually gets, and an empty id still hits `assertCreatureSensesDefined`. Red proof for those two reverts is therefore not possible and not needed (nothing to revert).
+  - `creatureSnapshotSenses.test.ts` pins the throw with the Creature sense schema's own error message.
+  - Red proof (fix reverted, pinned test run, fix restored, green rerun): `red-review-1.log` duplicate-sense refinement, `red-review-4.log` empty range id (both `promise resolved instead of rejecting`), `red-review-5.log` snapshot fail-closed throw (`expected [Function] to throw an error`). Green: `green-review-publication.log`, `green-review.log`; `typecheck3.log` green.
 
 ## Red / green evidence
 
