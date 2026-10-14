@@ -165,11 +165,11 @@ export function evaluateEncounterDirectedAreaTarget(input: {
 }
 
 /**
- * Resolves a caster-centered area action from its policy: the radius to catch creatures with, and
- * the caster's token center it is drawn around. No aim is taken, so no range or sight is checked,
- * and every creature in the area is caught, so the single-target disposition rules (D99) do not
- * apply. A refusal is hard and says why: the policy takes no centered area or its size is
- * unsupported, or the caster has no token on the map.
+ * Resolves a caster-centered area action from its policy: the radius to catch creatures with, drawn
+ * around the caster's token. No aim is taken, so no range or sight is checked, and every creature in
+ * the area is caught, so the single-target disposition rules (D99) do not apply. A refusal is hard
+ * and says why: the policy takes no centered area or its size is unsupported, or the caster has no
+ * token on the map.
  */
 export function evaluateEncounterCasterCenteredAreaTarget(input: {
   targetPolicy: CompiledActionTargetPolicy
@@ -177,7 +177,7 @@ export function evaluateEncounterCasterCenteredAreaTarget(input: {
   /** The caster's token; null when it is not on the map. */
   sourceToken: Pick<SceneToken, 'position'> | null
 }):
-  | { shape: SpatialPointAreaShape; origin: ScenePoint; warnings: EncounterRuleWarningDto[] }
+  | { shape: SpatialPointAreaShape; warnings: EncounterRuleWarningDto[] }
   | { refusal: 'UNSUPPORTED_AREA' | 'NO_CASTER_TOKEN' } {
   const shape =
     encounterActionTargetKind(input.targetPolicy) === 'CASTER_CENTERED'
@@ -185,7 +185,7 @@ export function evaluateEncounterCasterCenteredAreaTarget(input: {
       : null
   if (!shape) return { refusal: 'UNSUPPORTED_AREA' }
   if (input.sourceToken === null) return { refusal: 'NO_CASTER_TOKEN' }
-  return { shape, origin: input.sourceToken.position, warnings: [] }
+  return { shape, warnings: [] }
 }
 
 /**

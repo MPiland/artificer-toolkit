@@ -222,7 +222,9 @@ async function prepareAreaScene(input: AreaPlanInput) {
       reason: 'TARGET_UNAVAILABLE',
       message: DIRECTED_AREA_REFUSALS[area.refusal]
     })
-  const origin = 'origin' in area ? area.origin : areaActionTargetOrigin(target)
+  const origin =
+    target.kind === 'CASTER_CENTERED' ? scene.sourceToken?.position : areaActionTargetOrigin(target)
+  if (!origin) throw new Error('A caster-centered area needs the caster’s token.')
   return { caster, casterFacts, movementTargets, scene, grid, area, origin }
 }
 

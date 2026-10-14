@@ -434,7 +434,7 @@ describe('caster-centered area', () => {
         grid: FEET_GRID,
         sourceToken: SOURCE_TOKEN
       })
-    ).toEqual({ shape: { kind: 'RADIUS', radius: 400 }, origin: SOURCE_TOKEN.position, warnings: [] })
+    ).toEqual({ shape: { kind: 'RADIUS', radius: 400 }, warnings: [] })
   })
 
   it('refuses with the reason: a size or policy it cannot draw, or no caster token', () => {
