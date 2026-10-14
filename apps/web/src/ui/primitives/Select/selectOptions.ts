@@ -2,6 +2,8 @@ import type { ComboboxData, ComboboxItem } from '@mantine/core'
 import { isValidElement, type ReactNode } from 'react'
 import type { AppSelectData, AppSelectOption, AppSelectOptionGroup } from './Select.types'
 
+type AppComboboxItem = ComboboxItem & { description?: string }
+
 export const DEFAULT_ALL_OPTION_VALUE = 'all'
 export const DEFAULT_ALL_OPTION_LABEL = 'All'
 
@@ -53,12 +55,17 @@ export function resolveMultiSelectValue({
   return nextValue
 }
 
-function normalizeOptions(options: AppSelectOption[]): ComboboxItem[] {
+export function getOptionDescription({ description }: AppComboboxItem): string | undefined {
+  return description?.trim() || undefined
+}
+
+function normalizeOptions(options: AppSelectOption[]): AppComboboxItem[] {
   return options
     .filter((option) => option.label.trim().length > 0)
     .map((option) => ({
       value: option.value,
       label: option.label,
+      description: option.description,
       disabled: option.disabled
     }))
 }

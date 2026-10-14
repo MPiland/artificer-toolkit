@@ -33,6 +33,20 @@ describe('fixture node-runtime resolver', () => {
     expect(speedNode.options).toHaveLength(srdSystemRecord.speeds.length)
   })
 
+  it('serves each System vocabulary description as the option description', async () => {
+    const model = await resolveFixtureNodeRuntime({ mapId: 'speed', values: {} })
+    const speedNode = getNode(model, 'speedId')
+
+    if (!speedNode || speedNode.kind !== 'INPUT' || speedNode.type !== 'SELECT_SINGLE') {
+      throw new Error('Expected speedId to resolve as a single select.')
+    }
+
+    expect(srdSystemRecord.speeds.every((speed) => speed.description)).toBe(true)
+    expect(speedNode.options.map(({ value, description }) => ({ value, description }))).toEqual(
+      srdSystemRecord.speeds.map((speed) => ({ value: speed.id, description: speed.description }))
+    )
+  })
+
   it('serves every SRD class, not an embedded sample, for class references', async () => {
     const model = await resolveFixtureNodeRuntime({
       mapId: 'charges',

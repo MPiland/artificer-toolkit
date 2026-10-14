@@ -137,7 +137,7 @@ describe('grant and facet schema parsing', () => {
         valueDomainCode: 'SENSE_RANGE',
         modifierKind: 'SET_VALUE',
         domain: { senseDefinitionId: '00000000-0000-0000-0000-000000000001' },
-        payload: { amount: 60 }
+        payload: { amount: 60, unit: 'FEET' }
       },
       {
         ...base,
@@ -231,7 +231,7 @@ describe('grant and facet schema parsing', () => {
         valueDomainCode: 'SPEED',
         modifierKind: 'SET_VALUE',
         domain: { speedId: 'fly' },
-        payload: { amount: 60 }
+        payload: { amount: 60, unit: 'FEET' }
       }).success
     ).toBe(true)
     // SRD Shocking Grasp: the target can't take reactions (applied by a granted effect).
@@ -437,7 +437,7 @@ describe('grant and facet schema parsing', () => {
       valueDomainCode: 'SENSE_RANGE',
       modifierKind: 'BONUS',
       scope: 'GLOBAL',
-      payload: { valueKind: 'FIXED', amount: 30 }
+      payload: { amount: 30, unit: 'FEET' }
     }
 
     expect(

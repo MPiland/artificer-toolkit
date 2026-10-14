@@ -13,8 +13,10 @@ import {
   CREATURE_RELATIONSHIP_KIND_REGISTRY,
   EQUIPMENT_PROPERTY_REGISTRY,
   FEATURE_ATTRIBUTE,
+  formatLengthMeasurement,
   MEASUREMENT_UNIT_REGISTRY,
   VEHICLE_CATEGORY_REGISTRY,
+  type LengthUnitCode,
   type MeasurementUnitCode
 } from '@artificer-toolkit/shared/core'
 import {
@@ -174,7 +176,7 @@ function formatProficiencyLabel(params: {
 
 function formatSenseRange(sense: CharacterRuleSense): string {
   if (sense.range.rangeKind === 'UNLIMITED') return 'Unlimited'
-  return `${sense.range.amount} ${formatCodeLabel(sense.range.unit).toLowerCase()}`
+  return formatLengthMeasurement(sense.range)
 }
 
 type OverviewSkillRow = CharacterSheetResponseDto['overview']['skills'][number]
@@ -711,7 +713,7 @@ function formatExtraMeasurement(amount: number, unit: MeasurementUnitCode): stri
 }
 
 function formatExtraSpeedLabel(
-  speeds: ReadonlyArray<{ speedId: string; amount: number; unit: MeasurementUnitCode }> | undefined,
+  speeds: ReadonlyArray<{ speedId: string; amount: number; unit: LengthUnitCode }> | undefined,
   speedDefinitions: ReadonlyArray<{ id: string; code?: string; label: string }> | undefined
 ): string | undefined {
   if (!speeds?.length) return undefined
@@ -732,7 +734,7 @@ function formatExtraSpeedLabel(
   const selected = resolvedSpeeds.find(({ isWalking }) => !isWalking) ?? resolvedSpeeds[0]
   if (!selected) return undefined
 
-  const measurement = formatExtraMeasurement(selected.speed.amount, selected.speed.unit)
+  const measurement = formatLengthMeasurement(selected.speed)
   if (selected.isWalking) return measurement
   const movementLabel = selected.definition?.label.replace(/\s+speed$/i, '')
   return movementLabel ? `${movementLabel} ${measurement}` : measurement

@@ -117,7 +117,7 @@ export const caltropsBagOf20: EquipmentAuthored = {
                                         modifierKind: S.MODIFIER_KIND.PENALTY,
                                         scope: S.MODIFIER_SCOPE_KIND.GLOBAL,
                                         selectionKind: S.AUTHORING_SELECTION_KIND.GRANTED,
-                                        payload: { valueKind: 'FIXED' as const, amount: 10 },
+                                        payload: { amount: 10, unit: 'FEET' as const },
                                         order: 1
                                       }
                                     ]

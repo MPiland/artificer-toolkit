@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   addAllOption,
   getClearButtonAriaLabel,
+  getOptionDescription,
   resolveMultiSelectValue,
   toComboboxData
 } from './selectOptions'
@@ -22,6 +23,19 @@ describe('select option helpers', () => {
         { value: 'blank', label: '   ' }
       ])
     ).toEqual([{ value: 'wizard', label: 'Wizard', disabled: undefined }])
+  })
+
+  it('carries option descriptions through normalization and ignores blank ones', () => {
+    const option = { value: 'walk', label: 'Walking Speed' }
+
+    expect(
+      toComboboxData([{ ...option, description: 'Base movement on foot.' }])
+    ).toEqual([{ ...option, description: 'Base movement on foot.' }])
+    expect(getOptionDescription({ ...option, description: 'Base movement on foot.' })).toBe(
+      'Base movement on foot.'
+    )
+    expect(getOptionDescription({ ...option, description: '  ' })).toBeUndefined()
+    expect(getOptionDescription(option)).toBeUndefined()
   })
 
   it('normalizes grouped select options for Mantine', () => {

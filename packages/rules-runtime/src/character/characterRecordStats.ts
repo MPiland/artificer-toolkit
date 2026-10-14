@@ -9,7 +9,7 @@ import type { CharacterRuleEvaluationResult } from './characterRuleEvaluation.js
  * evaluating both live.
  */
 export function resolveCharacterRecordStats(
-  evaluation: Pick<CharacterRuleEvaluationResult, 'facts' | 'output'>
+  evaluation: Pick<CharacterRuleEvaluationResult, 'output' | 'registry'>
 ): {
   maximumHitPoints: number
   speeds: { speedId: string; amount: number; unit: 'FEET' }[]
@@ -20,7 +20,7 @@ export function resolveCharacterRecordStats(
     ),
     speeds: resolveSpeedsFeet(
       evaluation.output.movement.speeds,
-      (evaluation.facts.movementFacts?.speeds ?? []).map((speed) => ({ id: speed.speedId }))
+      evaluation.registry.system?.speeds ?? []
     ).map(({ speedId, feet }) => ({ speedId, amount: feet, unit: 'FEET' as const }))
   }
 }

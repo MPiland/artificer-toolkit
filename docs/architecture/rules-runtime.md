@@ -757,6 +757,16 @@ held grant's hit points survive them. The tabletop movement readout gives each s
 speed grants. The speed type a move names (`MOVE_SCENE_TOKEN.speedId`, stored on the turn movement row) selects the allowance shown; `used` is the single total, so remaining feet at a type is that allowance minus `used` (SRD Using Different Speeds). Slot-scaled amounts (Aid's `SPELL_SLOT_LEVEL`) need cast-time resolution, so
 `modifierGrantPlan` leaves them manual until spell casting (SPELLS-8) supplies it.
 
+**Length modifiers (D112).** `SPEED` and `SENSE_RANGE` modifier payloads are typed lengths (`modifierLength.ts` parses
+them; anything else throws). `evaluateDnd5eCharacterModifiers` turns each into feet, and
+`characterMovementAndSenses` and `withActiveGrantSpeeds` convert the net back into the base's unit through the shared
+`feetInLengthUnit`, floor it at 0, and pick the winning `SET_VALUE` speed through the one `widestLengthByKey` fold; a
+speed with no base takes that modifier's unit. `resolveSpeedsFeet` reads speeds strictly against the System speed
+vocabulary: Character record stats pass `registry.system.speeds`, and `encounterHolderState` takes the same list as
+`speedDefinitions` (the worker's `INPUTS` capture, persistence's `requireSystem`). Publication owns the refusal, so a
+malformed or out-of-vocabulary speed at read is an invariant failure. Displayed lengths round through the shared
+`roundLengthForDisplay` (three decimals); stored and computed amounts never do.
+
 **Concentration grants (D99).** A grant whose result block names a `maintenanceDefinitionId` plans the
 same `SOURCE_ACTOR` maintenance policy as a maintained recurring effect (`maintenancePlan`), so it is a
 dependent of its source's maintained state and ends with it on a failed check, D95 incapacitation or a

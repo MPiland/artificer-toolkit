@@ -68,7 +68,7 @@ const SENSE_GRANT_LEVEL_NODE_MAP = senseGrantLevel.define(
           {
             kind: 'DATA',
             relationship: table('senses', {
-              selectColumns: ['id', 'label']
+              selectColumns: ['id', 'label', 'description']
             })
           },
           {
@@ -199,7 +199,7 @@ export const SENSE_GRANT_NODE_MAP = senseGrant.define(
           {
             kind: 'DATA',
             relationship: table('senses', {
-              selectColumns: ['id', 'label']
+              selectColumns: ['id', 'label', 'description']
             })
           },
           {

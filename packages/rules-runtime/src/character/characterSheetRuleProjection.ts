@@ -2,6 +2,7 @@ import type {
   AbilityCode,
   AttackDomainCode,
   EquipmentCategoryCode,
+  LengthUnitCode,
   MeasurementUnitCode,
   SizeCode,
   SpellGrantAttribute
@@ -57,7 +58,7 @@ export interface CharacterRuleDefense {
 interface CharacterRuleMovementSpeed {
   speedId: string
   amount: number
-  unit: MeasurementUnitCode
+  unit: LengthUnitCode
 }
 
 export interface CharacterRuleDerivedStats {

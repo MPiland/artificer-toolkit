@@ -18,7 +18,7 @@ export const SPEED_NODE_MAP = speed.define(
           {
             kind: 'DATA',
             relationship: table('speeds', {
-              selectColumns: ['id', 'label', 'tooltip']
+              selectColumns: ['id', 'label', 'description']
             })
           },
           {

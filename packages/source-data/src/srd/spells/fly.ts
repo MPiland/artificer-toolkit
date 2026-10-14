@@ -92,7 +92,8 @@ export const fly: SpellAuthored = {
                       scope: MODIFIER_SCOPE_KIND.GLOBAL,
                       selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
                       payload: {
-                        amount: 60
+                        amount: 60,
+                        unit: 'FEET'
                       },
                       order: 1
                     }

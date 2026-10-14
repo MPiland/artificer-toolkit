@@ -120,7 +120,7 @@ export const PROFICIENCY_NODE_MAP = proficiencyNodeMap.define(
           {
             kind: 'DATA',
             relationship: table('skills', {
-              selectColumns: ['id', 'label', 'tooltip']
+              selectColumns: ['id', 'label', 'description']
             })
           },
           {
@@ -158,7 +158,7 @@ export const PROFICIENCY_NODE_MAP = proficiencyNodeMap.define(
           {
             kind: 'DATA',
             relationship: table('languages', {
-              selectColumns: ['id', 'label', 'tooltip']
+              selectColumns: ['id', 'label', 'description']
             })
           },
           {

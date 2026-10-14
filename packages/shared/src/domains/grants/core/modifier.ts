@@ -3,6 +3,7 @@ import type {
   AbilityCode,
   ValueDomainCode,
   CoreMeta,
+  LengthUnitCode,
   ValueDomainOptionPayloadByDomain
 } from '#core'
 import { valuesOf } from '#utils'
@@ -292,7 +293,7 @@ export const MODIFIER_KINDS_BY_DOMAIN: Record<ValueDomainCode, readonly Modifier
 
   MOVEMENT_MODE: [MODIFIER_KIND.ADD_OPTION, MODIFIER_KIND.REMOVE_OPTION],
 
-  SENSE_RANGE: [MODIFIER_KIND.BONUS, MODIFIER_KIND.SET_VALUE],
+  SENSE_RANGE: [MODIFIER_KIND.BONUS],
 
   /* ──────────────────────────────────────────────
    * SPELL STRUCTURE
@@ -452,16 +453,21 @@ export type ModifierScalarValueAuthored =
   // NOTE: slot/spell level is contextual; keep it scalar-only if needed
   | { valueKind: 'SPELL_SLOT_LEVEL'; multiplier?: number; subtractLevels?: number }
 
+/** A speed or sense range modifier is a typed length, never a bare number (D112). */
+export type ModifierLengthAuthored = { amount: number; unit: LengthUnitCode }
+
 export type ModifierPayloadFor<V extends ValueDomainCode, K extends ModifierKind> =
   // numeric-like
-  K extends 'BONUS' | 'PENALTY'
-    ? ModifierScalarValueAuthored
-    : K extends 'SET_VALUE'
-      ? V extends 'ARMOR_CLASS'
-        ? // An armor class formula: the amount plus each listed ability modifier.
-          { amount: number; abilities: AbilityCode[] }
-        : { amount: number }
-      : K extends 'ABILITY_MODIFIER_BONUS'
+  K extends 'BONUS' | 'PENALTY' | 'SET_VALUE'
+    ? V extends 'SPEED' | 'SENSE_RANGE'
+      ? ModifierLengthAuthored
+      : K extends 'SET_VALUE'
+        ? V extends 'ARMOR_CLASS'
+          ? // An armor class formula: the amount plus each listed ability modifier.
+            { amount: number; abilities: AbilityCode[] }
+          : { amount: number }
+        : ModifierScalarValueAuthored
+    : K extends 'ABILITY_MODIFIER_BONUS'
         ? { ability: AbilityCode; multiplier?: number; min?: number; max?: number }
         : K extends 'MODIFY_CHARGE_LIMIT'
           ? ChargeLimitPayload

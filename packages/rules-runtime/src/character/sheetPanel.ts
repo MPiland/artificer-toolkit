@@ -8,6 +8,7 @@ import {
 import {
   ABILITIES,
   FEATURE_ATTRIBUTE,
+  roundLengthForDisplay,
   SIZE_OPTIONS,
   type CharacterCalculation,
   type CharacterMechanicSourceRef
@@ -561,7 +562,7 @@ function buildSensesPanel(
         ? ({ rangeKind: 'UNLIMITED' } as const)
         : ({
             rangeKind: 'DISTANCE',
-            range: ruleSense.range.amount,
+            range: roundLengthForDisplay(ruleSense.range.amount),
             unitLabel: formatCode(ruleSense.range.unit).toLowerCase(),
             calculation: toPanelCalculation(calculation, params)
           } as const)
@@ -632,7 +633,8 @@ function buildMovementPanel(
     return {
       speedId: speed.id,
       label: speed.label,
-      amount: calculation?.effective ?? ruleSpeed?.amount ?? 0,
+      amount: roundLengthForDisplay(calculation?.effective ?? ruleSpeed?.amount ?? 0),
+      // RELIABILITY-5.T2 removes this default with the bare-number SPEED_OVERRIDE.
       unitLabel: formatCode(ruleSpeed?.unit ?? 'FEET').toLowerCase(),
       state: adjustment ? ('OVERRIDDEN' as const) : ('DEFAULT' as const),
       calculation: toPanelCalculation(calculation, params),
