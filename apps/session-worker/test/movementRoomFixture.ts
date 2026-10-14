@@ -571,6 +571,8 @@ export async function movementRoom(config: MovementRoomConfig) {
     base,
     campaignId,
     encounterId,
+    /** The Run's version when the room was built. */
+    encounterVersion: state.version,
     moverActorId: config.moverActorId,
     /** The Concentration-maintained effects, in `concentrationDependentActorIds` order. */
     dependentEffectIds,

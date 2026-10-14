@@ -142,6 +142,31 @@ it('replays a hidden mover to a player as live projected it, never as the GM saw
   expect(JSON.stringify(replay)).not.toContain(room.moverTokenId)
 })
 
+it('replays a Scene command in an Encounter room as the one message its sender was sent', async () => {
+  const room = await reactionRoom()
+  const commandId = crypto.randomUUID()
+  const command = {
+    scope: 'SCENE',
+    command: {
+      type: 'MOVE_SCENE_TOKEN',
+      commandId,
+      correlationId: null,
+      expectedEncounterVersion: room.encounterVersion,
+      expectedSceneVersion: room.scene.version,
+      movementKind: 'VOLUNTARY',
+      path: EAST,
+      sceneId: room.scene.id,
+      tokenId: room.moverTokenId
+    }
+  }
+
+  const live = await sendCommand(gm(room), commandId, command, 1)
+  const replay = (await sendCommand(gm(room), commandId, command, 2)).slice(1)
+
+  expect(scopes(live)).toEqual(['SCENE'])
+  expect(replay).toEqual(live.map(asReplay))
+})
+
 it('refuses a retry that changes the payload under the same key, as before', async () => {
   const room = await reactionRoom({ playerControlledActorIds: [REACTOR_ID] })
   const player = await connectPlayer(room.base)

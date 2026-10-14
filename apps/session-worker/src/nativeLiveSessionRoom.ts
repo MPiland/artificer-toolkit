@@ -3264,6 +3264,12 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
               occurrence: scene.occurrence
             })
           )
+          // Only a movement decision commits an Encounter result; a Scene command's retry replays one message.
+          if (
+            (command.type === 'RESOLVE_RULE_OCCURRENCE' || command.type === 'VOID_RULE_OCCURRENCE') !==
+            (result.encounter !== null)
+          )
+            throw new Error('Only a movement decision commits an Encounter result.')
           receipt = result.encounter
             ? [
                 sent,
