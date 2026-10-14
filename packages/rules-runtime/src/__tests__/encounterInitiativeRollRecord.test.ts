@@ -24,7 +24,7 @@ describe('initiativeRollRecord', () => {
       id: '00000000-0000-4000-8000-0000000000aa',
       characterLabel: 'Mira',
       source: { kind: 'INITIATIVE', label: 'Initiative' },
-      normalizedExpression: '1d20+3'
+      normalizedExpression: '1d20 + 3'
     })
     expect(roll.evidence.terms[0]?.rolls).toEqual([12])
     expect(roll.evidence.total).toBe(15)

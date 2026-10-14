@@ -220,7 +220,7 @@ export function initiativeRollRecord(input: {
   id: string
   expression: string
   rollMode: Parameters<typeof evaluateRollExpression>[2]
-  nextInt: () => number
+  nextInt: (size: number) => number
   characterId: string | null
   rollerLabel: string
   ruleset: RollRecordDto['ruleset']
