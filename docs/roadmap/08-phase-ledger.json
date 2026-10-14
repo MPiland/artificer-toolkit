@@ -4511,6 +4511,31 @@
             "rr": 3,
             "size": 2
           }
+        },
+        {
+          "id": "ENCOUNTER-10",
+          "title": "Declared initiative honors advantage and disadvantage",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": [],
+          "acs": [
+            {
+              "text": "Under DECLARED_ACTION_ROLL, an actor with advantage or disadvantage on initiative rolls two d20s and keeps the higher or lower, as a GM-rolled initiative does; the settlement records the roll mode and both faces, and the Initiative roll card shows them; proved by tests that fail before the fix.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Found 2026-10-14 in ENCOUNTER-9: createDnd5eSpeedFactorInitiativeDefinition rolls one evidence.integer-range d20 with number.add only; the initiative.roll-mode fact bound in bindDeclaredActor is read by nothing, and the settlement evidence does not record the mode. Needs a graph operation that keeps the higher or lower die (or a conditional), the published definition and its checksum updated, and a reseed. Integration-owner ruling: the behavior is dictated by the rules, so this is a bug fix, not a scope change.",
+              "id": "ENCOUNTER-10.1"
+            }
+          ],
+          "wsjf": {
+            "bv": 5,
+            "tc": 3,
+            "rr": 5,
+            "size": 3,
+            "after": ["ENCOUNTER-9"]
+          }
         }
       ]
     },
