@@ -5325,18 +5325,50 @@
         {
           "id": "ATTACK-9",
           "title": "Class-feature resolvers",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "journeyTests": [],
           "journeyStatus": "none",
           "origin": [],
           "acs": [
             {
-              "text": "Rage, Sneak Attack, Smite, Action Surge, Second Wind and two-weapon fighting resolve.",
+              "id": "ATTACK-9.1",
+              "text": "A Barbarian rages in an Encounter: Rage is offered as a bonus action, spends a rage charge, and for its duration grants the level-scaled Rage damage bonus on Strength melee weapon attacks, resistance to bludgeoning, piercing and slashing damage, and advantage on Strength checks and saving throws; while raging the Barbarian cannot cast spells or keep Concentration; Rage ends at its duration, by choice, or when the Barbarian is incapacitated; GM undo restores the charge.",
               "status": "TODO",
               "proof": [],
               "origin": [],
-              "note": "rul-9-rules-audit.md slice 7 (Extra Attack, Sneak Attack and Rage first for beta).",
-              "id": "ATTACK-9.1"
+              "note": "Split 2026-10-14 from the original AC (Rage, Sneak Attack, Smite, Action Surge, Second Wind, two-weapon fighting resolve); rul-9-rules-audit.md slice 7. Inventory: all but Second Wind are inert CLOSED_RULE outcomes (closed-rule-effect.ts) that compile to MANUAL and are never offered."
+            },
+            {
+              "id": "ATTACK-9.2",
+              "text": "Sneak Attack adds its level-scaled dice once per turn to a hit with a finesse or ranged weapon when the attack has advantage or an enemy of the target is within 5 feet of it and the attacker has no disadvantage; critical hits double the dice.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "D58: extra-dice riders are CLOSED_RULE until this AC."
+            },
+            {
+              "id": "ATTACK-9.3",
+              "text": "Second Wind (bonus action, 1d10 + Fighter level healing, one use per short rest) and Action Surge (one additional action this turn, uses per short rest by level) resolve in an Encounter through the generic feature-action path, with spend, refresh and GM undo.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Second Wind likely compiles today (DICE_HEAL, CLASS_LEVEL bonus) but no test proves it; Action Surge needs an action-allowance grant (encounterActionEconomy.ts)."
+            },
+            {
+              "id": "ATTACK-9.4",
+              "text": "Divine Smite: after a Paladin hits with a melee weapon attack, the player may spend a spell slot to add 2d8 radiant (+1d8 per slot level above 1st, max 5d8; +1d8 against undead or fiends), doubled on a critical hit; Improved Divine Smite adds 1d8 radiant to every melee weapon hit.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": ""
+            },
+            {
+              "id": "ATTACK-9.5",
+              "text": "Two-weapon fighting: after an Attack action with a light melee weapon, the actor is offered the off-hand light weapon attack as a bonus action (D107), which adds no positive ability modifier to damage unless the actor has the Two-Weapon Fighting style.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "D107."
             }
           ],
           "wsjf": {
@@ -5344,7 +5376,73 @@
             "tc": 5,
             "rr": 8,
             "size": 8
-          }
+          },
+          "tasks": [
+            {
+              "id": "ATTACK-9.T1",
+              "text": "Rage resolves in an Encounter (bonus action, charge spend, timed grant, spellcasting and Concentration lock, end conditions, undo).",
+              "status": "TODO",
+              "closes": ["ATTACK-9.1"],
+              "wsjf": {
+                "bv": 13,
+                "tc": 5,
+                "rr": 8,
+                "size": 3
+              }
+            },
+            {
+              "id": "ATTACK-9.T2",
+              "text": "Sneak Attack once-per-turn ON_HIT rider.",
+              "status": "TODO",
+              "closes": ["ATTACK-9.2"],
+              "wsjf": {
+                "bv": 13,
+                "tc": 5,
+                "rr": 8,
+                "size": 3,
+                "after": ["ATTACK-9.T1"]
+              }
+            },
+            {
+              "id": "ATTACK-9.T3",
+              "text": "Second Wind proof and Action Surge action-allowance grant.",
+              "status": "TODO",
+              "closes": ["ATTACK-9.3"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 3,
+                "size": 2,
+                "after": ["ATTACK-9.T2"]
+              }
+            },
+            {
+              "id": "ATTACK-9.T4",
+              "text": "Divine Smite post-hit slot spend and Improved Divine Smite.",
+              "status": "TODO",
+              "closes": ["ATTACK-9.4"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 3,
+                "size": 3,
+                "after": ["ATTACK-9.T2"]
+              }
+            },
+            {
+              "id": "ATTACK-9.T5",
+              "text": "Two-weapon fighting off-hand bonus attack and the Fighting Style.",
+              "status": "TODO",
+              "closes": ["ATTACK-9.5"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 3,
+                "size": 3,
+                "after": ["ATTACK-9.T3"]
+              }
+            }
+          ]
         },
         {
           "id": "ATTACK-10",
