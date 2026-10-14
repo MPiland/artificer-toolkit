@@ -414,6 +414,50 @@ describe('catching the creatures in a directed area', () => {
   })
 })
 
+describe('catching the creatures in a radius centered on the caster', () => {
+  const tokens = (xs: { foe: number; ally: number }) => [
+    { ...token('00000000-0000-4000-8000-0000000f2001', 0), actorId: CASTER_ID },
+    { ...token('00000000-0000-4000-8000-0000000f2002', xs.ally), actorId: ALLY_ID },
+    { ...token('00000000-0000-4000-8000-0000000f2003', xs.foe), actorId: FOE_ID }
+  ]
+  const centered = (xs: { foe: number; ally: number }) =>
+    catchEncounterAreaActorIds({
+      origin: { x: 0, y: 0 },
+      shape: { kind: 'RADIUS', radius: 10 },
+      casterActorId: CASTER_ID,
+      tokens: tokens(xs),
+      fromCasterSpace: true
+    })
+
+  it('measures the radius from the edge of the caster’s space, never catching the caster', () => {
+    // The caster’s space is x -1..1: a 2-wide token at x 11 (10..12) lies 9 away, one at 12 only touches 10.
+    expect(centered({ foe: 12, ally: 11 })).toEqual([ALLY_ID])
+  })
+
+  it('catches the caster when the same radius is measured as a point area', () => {
+    expect(
+      catchEncounterAreaActorIds({
+        origin: { x: 0, y: 0 },
+        shape: { kind: 'RADIUS', radius: 10 },
+        casterActorId: CASTER_ID,
+        tokens: tokens({ foe: 12, ally: 11 })
+      })
+    ).toEqual([CASTER_ID, ALLY_ID])
+  })
+
+  it('needs the caster’s token: a centered area without one is an invariant, not an empty catch', () => {
+    expect(() =>
+      catchEncounterAreaActorIds({
+        origin: { x: 0, y: 0 },
+        shape: { kind: 'RADIUS', radius: 10 },
+        casterActorId: WARDED_FOE_ID,
+        tokens: tokens({ foe: 12, ally: 11 }),
+        fromCasterSpace: true
+      })
+    ).toThrow('A caster-centered area needs the caster’s token.')
+  })
+})
+
 describe('an area action executed as one occurrence', () => {
   it('asks each caught creature for its own save, to its own roller, without rolling damage', async () => {
     const { caster, ally, foe } = areaActors(fireball(), FIRE)

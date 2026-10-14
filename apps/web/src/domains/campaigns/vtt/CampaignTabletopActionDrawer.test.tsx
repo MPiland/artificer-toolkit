@@ -1031,6 +1031,38 @@ describe('CampaignTabletopActionDrawer directed area (SPELLS-13)', () => {
     expect(await screen.findByText(`In the area: ${wardenToken.label}`)).toBeVisible()
   })
 
+  it('asks for no aim when the area is centered on the caster, and sends only the Scene it was resolved on', async () => {
+    const user = userEvent.setup()
+    const onResolve = vi.fn<(command: ResolveEncounterActionInputDto) => Promise<unknown>>()
+    const burst = validatedChoice({
+      ...breath,
+      id: 'creature-dragon:burst',
+      label: 'Burst',
+      target: {
+        kind: 'CASTER_CENTERED' as const,
+        area: { kind: 'RADIUS' as const, radius: { amount: 10, unit: 'FEET' as const } }
+      }
+    })
+    renderDrawer(onResolve, { choices: [burst], actorIdByTokenId })
+    await chooseBreath(user)
+
+    expect(screen.queryByRole('combobox', { name: 'Target' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Aim on map' })).not.toBeInTheDocument()
+    expect(screen.getByText(/Centered on you/)).toBeVisible()
+    await user.click(screen.getByRole('button', { name: 'Resolve action' }))
+    expect(onResolve).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actionId: burst.id,
+        sceneContext: null,
+        target: {
+          kind: 'CASTER_CENTERED',
+          sceneId: tabletopLiveScene.id,
+          expectedSceneVersion: tabletopLiveScene.version
+        }
+      })
+    )
+  })
+
   it('clears the aim', async () => {
     const user = userEvent.setup()
     const onAreaAimChange = vi.fn()

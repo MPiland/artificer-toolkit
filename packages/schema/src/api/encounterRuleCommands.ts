@@ -111,7 +111,8 @@ export type EncounterAcceptedWieldConflictDto = z.infer<
  * What a RESOLVE_ACTION aims at: one creature, the origin of a point-area action (AREA_CONTENTS
  * targeting), or the origin and direction of a directed area (a cone, a line, or a cube from the
  * caster's own side), in the coordinates of the Scene version the caster saw. A directed
- * area's origin must lie on the caster's token footprint.
+ * area's origin must lie on the caster's token footprint. A caster-centered area (a Self sphere,
+ * cylinder or circle) takes no aim: it names only the Scene version it is fenced to.
  */
 export const resolveEncounterActionTargetDtoSchema = lazySchema(() =>
   z.discriminatedUnion('kind', [
@@ -128,6 +129,11 @@ export const resolveEncounterActionTargetDtoSchema = lazySchema(() =>
       expectedSceneVersion: versionSchema,
       origin: spatialPointDtoSchema,
       toward: spatialPointDtoSchema
+    }),
+    z.strictObject({
+      kind: z.literal('CASTER_CENTERED'),
+      sceneId: uuidSchema,
+      expectedSceneVersion: versionSchema
     })
   ])
 )
@@ -142,8 +148,13 @@ export function actionTargetActorId(target: ResolveEncounterActionTargetDto): st
   return target.actorId
 }
 
-/** Where an area action's area starts: the picked point, or the directed area's origin. */
+/**
+ * Where an aimed area action's area starts: the picked point, or the directed area's origin. A
+ * caster-centered area has none in its command: it starts at the caster's token.
+ */
 export function areaActionTargetOrigin(target: AreaActionTargetDto): SpatialPointDto {
+  if (target.kind === 'CASTER_CENTERED')
+    throw new Error('A caster-centered area names no origin: it starts at the caster’s token.')
   return target.kind === 'POINT' ? target.point : target.origin
 }
 

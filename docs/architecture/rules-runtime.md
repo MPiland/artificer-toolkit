@@ -280,20 +280,36 @@ reverse, then the root. An outcome that leaves a condition, a lasting or recurri
 effect is refused whole until SPELLS-19.
 
 Each action choice carries `target`: `{ kind: 'ACTOR' }`, `{ kind: 'POINT', area }` (the authored radius or
-cube edge) or `{ kind: 'DIRECTED', area }` (the authored cone length, line length and width, or the edge of a
-cube that extends from the caster), built by `encounterActionChoiceTarget`. A policy this path cannot resolve
-(a wall, dome, Self sphere, cylinder or circle, or a cone or line whose range is not Self) stays an actor
-choice and is refused when resolved. The web converts the area to Scene coordinates with
+cube edge), `{ kind: 'DIRECTED', area }` (the authored cone length, line length and width, or the edge of a
+cube that extends from the caster) or `{ kind: 'CASTER_CENTERED', area: { kind: 'RADIUS', radius } }` (a Self
+sphere, cylinder or circle: no aim), built by `encounterActionChoiceTarget`. A policy this path cannot resolve
+(a wall, dome, or a cone or line whose range is not Self) stays an actor choice and is refused when resolved. The web converts the area to Scene coordinates with
 `pointAreaInSceneCoordinates` or `directedAreaInSceneCoordinates` (`shared/vtt`), the same functions
 `compileEncounterPointArea` and `evaluateEncounterDirectedAreaTarget` use, to preview it and list the tokens
 the viewer sees inside; the room still decides who is caught.
+
+### Caster-centered radius areas (current, SPELLS-22)
+
+An `AREA_CONTENTS` action whose range is Self and whose shape is a sphere, cylinder or circle takes the fourth
+target, `{ kind: 'CASTER_CENTERED', sceneId, expectedSceneVersion }`: it names no origin or direction. The
+origin is the caster's own token (`evaluateEncounterCasterCenteredAreaTarget`, refusing `NO_CASTER_TOKEN`
+without one), and the sealed area is the same `RADIUS` shape a point area seals, so no persisted shape changes;
+the caster-centered meaning lives in the persisted command's target kind. "Within N feet of you" is measured
+from the edge of the caster's space (D114): `spatialTokensWithinSpaceRadius` catches a token whose footprint
+shares positive area with the caster's footprint grown by the radius (a rounded rectangle, so a Large or
+Huge caster reaches farther than a Medium one), by the same strict overlap rule as every area (D103), and never
+catches the caster. `catchEncounterAreaActorIds` takes `fromCasterSpace` for it; the room and
+`requireAreaActionPendingRoot` both set it from `command.target.kind`, and the latter also checks the sealed
+origin is still the caster's token. The authored targeting has no "includes the caster" option, so the caster
+is always excluded. Everything after the catch is the point-area pipeline; an outcome that leaves a condition or
+lasting effect is refused whole until SPELLS-19, and a moving aura is SPELLS-20.
 
 ### Directed areas: cone, line and caster-origin cube (current, SPELLS-13)
 
 An `AREA_CONTENTS` action whose range is Self and whose shape is a cone, line or cube takes the third target,
 `{ kind: 'DIRECTED', origin, toward, sceneId, expectedSceneVersion }`. The origin must lie on the caster's token
 footprint (`isDirectedAreaOriginOnToken`) and `toward` is the point the area is aimed at. `encounterAreaTargetKind`
-is the one range × shape table (point or directed or unsupported) that the compiler, the choice target and the
+is the one range × shape table (point, directed, caster-centered or unsupported) that the compiler, the choice target and the
 evaluators share; a target of the wrong kind is `TARGET_UNAVAILABLE`, as is an origin off the footprint, and each
 refusal has its own message (`UNSUPPORTED_AREA`, `NO_CASTER_TOKEN`, `ORIGIN_OFF_CASTER`).
 `evaluateEncounterDirectedAreaTarget` returns the Scene-unit shape, and everything after it is the point-area

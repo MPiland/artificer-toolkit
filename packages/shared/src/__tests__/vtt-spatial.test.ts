@@ -8,6 +8,7 @@ import {
   spatialGeometryOverlapsTokenFootprint,
   type SpatialEffectInstance,
   spatialTokensInsideArea,
+  spatialTokensWithinSpaceRadius,
   type SpatialSceneToken,
   VTT_SPATIAL_LIMITS
 } from '../domains/vtt/spatial.js'
@@ -795,5 +796,62 @@ describe('spatialTokensInsideArea', () => {
         tokens: [near]
       })
     ).toEqual([])
+  })
+})
+
+// SPELLS-22, D114: "within N feet of you" is measured from the edge of the caster's space, by the
+// D103 rule: a footprint is caught when it shares positive area with the space grown by the radius.
+describe('spatialTokensWithinSpaceRadius', () => {
+  const casterId = '00000000-0000-4000-8000-0000000000c0'
+  const at = (suffix: string, x: number, y = 0, size = 2): SpatialSceneToken => ({
+    height: size,
+    id: `00000000-0000-4000-8000-0000000000${suffix}`,
+    position: { x, y },
+    width: size
+  })
+  const caster = (size = 2): SpatialSceneToken => ({ ...at('c0', 0, 0, size), id: casterId })
+  const within = (radius: number, tokens: SpatialSceneToken[], size = 2) =>
+    spatialTokensWithinSpaceRadius({
+      radius,
+      tokens: [caster(size), ...tokens],
+      casterTokenId: casterId
+    })
+
+  it('catches a footprint that reaches into the radius from the caster’s edge', () => {
+    const inside = at('a1', 11.9)
+    expect(within(10, [inside])).toEqual([inside.id])
+  })
+
+  it('does not catch a footprint that only touches the grown edge', () => {
+    expect(within(10, [at('a1', 12)])).toEqual([])
+  })
+
+  it('rounds the grown corners instead of squaring them', () => {
+    const diagonalInside = at('a1', 9, 9)
+    const diagonalOutside = at('a2', 9.2, 9.2)
+    expect(within(10, [diagonalInside, diagonalOutside])).toEqual([diagonalInside.id])
+  })
+
+  it('measures a Huge caster’s reach from its space edge', () => {
+    const reached = at('a1', 13.9)
+    expect(within(10, [reached], 6)).toEqual([reached.id])
+    expect(within(10, [at('a2', 14)], 6)).toEqual([])
+    expect(within(10, [reached])).toEqual([])
+  })
+
+  it('never catches the caster and sorts by token id', () => {
+    const [a, b] = [at('b2', -5), at('b1', 5)]
+    expect(within(10, [a, b])).toEqual([b.id, a.id])
+  })
+
+  it('catches nothing for an invalid radius', () => {
+    expect(within(0, [at('a1', 2)])).toEqual([])
+    expect(within(-1, [at('a1', 2)])).toEqual([])
+  })
+
+  it('needs the caster’s token', () => {
+    expect(() =>
+      spatialTokensWithinSpaceRadius({ radius: 10, tokens: [at('a1', 2)], casterTokenId: casterId })
+    ).toThrow('caster')
   })
 })
