@@ -4490,18 +4490,22 @@
         {
           "id": "ENCOUNTER-9",
           "title": "Declared initiative rolls post a roll card",
-          "status": "TODO",
-          "journeyTests": [],
-          "journeyStatus": "none",
-          "journeyGap": "Extend apps/apis/convex/liveSessions/assistedPartyJourney.test.ts so every member loads one Initiative card per declared actor.",
+          "status": "DONE",
+          "journeyTests": ["apps/apis/convex/liveSessions/assistedPartyJourney.test.ts"],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
               "text": "Each initiative die rolled for a declaration (auto-rolled or entered) posts one Initiative roll card to the table, the same card a GM-rolled initiative posts.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/apis/convex/encounters/initiativeDeclarations.test.ts (declared initiative roll cards: auto-rolled and entered dice post one Initiative card each, same card as a GM roll)",
+                "apps/apis/convex/liveSessions/assistedPartyJourney.test.ts (every member loads one Initiative card per declared actor)",
+                "packages/rules-runtime/src/__tests__/encounterInitiativeRollRecord.test.ts",
+                "packages/encounter-persistence/src/__tests__/initiativeRollCards.test.ts"
+              ],
               "origin": [],
-              "note": "Found 2026-10-13 in ENCOUNTER-5: under DECLARED_ACTION_ROLL the room rolls initiative and posts no card (readRoomRollCards finds no conversation until an attack posts), while ROLL_ACTOR_INITIATIVE posts one through recordRuleRollCard (packages/encounter-persistence/src/commands.ts:376-396). Same gap ENCOUNTER-7.1 closed for turn-stage dice.",
+              "note": "Found 2026-10-13 in ENCOUNTER-5: under DECLARED_ACTION_ROLL the room rolls initiative and posts no card (readRoomRollCards finds no conversation until an attack posts), while ROLL_ACTOR_INITIATIVE posts one through recordRuleRollCard (packages/encounter-persistence/src/commands.ts:376-396). Same gap ENCOUNTER-7.1 closed for turn-stage dice. Merged 91427de04: declarations and ROLL_ACTOR_INITIATIVE share initiativeRollRecord; persistEncounterInitiativeRollCards replays the settled face.",
               "id": "ENCOUNTER-9.1"
             }
           ],
@@ -4510,6 +4514,31 @@
             "tc": 2,
             "rr": 3,
             "size": 2
+          }
+        },
+        {
+          "id": "ENCOUNTER-10",
+          "title": "Declared initiative honors advantage and disadvantage",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": [],
+          "acs": [
+            {
+              "text": "Under DECLARED_ACTION_ROLL, an actor with advantage or disadvantage on initiative rolls two d20s and keeps the higher or lower, as a GM-rolled initiative does; the settlement records the roll mode and both faces, and the Initiative roll card shows them; proved by tests that fail before the fix.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Found 2026-10-14 in ENCOUNTER-9: createDnd5eSpeedFactorInitiativeDefinition rolls one evidence.integer-range d20 with number.add only; the initiative.roll-mode fact bound in bindDeclaredActor is read by nothing, and the settlement evidence does not record the mode. Needs a graph operation that keeps the higher or lower die (or a conditional), the published definition and its checksum updated, and a reseed. Integration-owner ruling: the behavior is dictated by the rules, so this is a bug fix, not a scope change.",
+              "id": "ENCOUNTER-10.1"
+            }
+          ],
+          "wsjf": {
+            "bv": 5,
+            "tc": 3,
+            "rr": 5,
+            "size": 3,
+            "after": ["ENCOUNTER-9"]
           }
         }
       ]
@@ -6679,25 +6708,37 @@
         {
           "id": "SPELLS-13",
           "title": "Cone, line and caster-origin areas",
-          "status": "IN_PROGRESS",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": ["apps/session-worker/test/nativeRoomDirectedAreaAction.test.ts"],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
               "text": "The caster picks an origin and a direction for a cone or line area (Burning Hands, Lightning Bolt, a dragon's breath), and it catches and resolves every creature inside it as SPELLS-7 does.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/shared/src/__tests__/vtt-directed-area.test.ts (cone 15 ft and 60 ft on axis and diagonal, every direction; line in each direction, length and width; missing caster throws)",
+                "packages/rules-runtime/src/__tests__/encounterAreaAction.test.ts",
+                "packages/rules-runtime/src/__tests__/encounterAreaActionCompilation.test.ts",
+                "packages/rules-runtime/src/__tests__/encounterAreaActionExecution.test.ts",
+                "apps/session-worker/test/nativeRoomDirectedAreaAction.test.ts (room cone and line; wrong-target refusals; a Creature Self cone: two caught creatures save, full and half damage once, GM undo)",
+                "apps/web/src/domains/campaigns/vtt/vttSceneRenderer.model.test.ts (drawn outline equals the caught set over 24 angles x 3 distances)",
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopActionDrawer.test.tsx (directed area command target and \"In the area\" list)"
+              ],
               "origin": [],
               "note": "Split from SPELLS-7 on 2026-10-10; builds after SPELLS-7 on the same area executor. A dragon's breath is proved here with a synthetic Creature Self cone action; the SRD breaths themselves are authored and proved in SPELLS-21. User ruling 2026-10-14: every area (point or directed) catches a token only when its footprint overlaps the area with positive area; touching an edge or corner never catches (D103 amended in this slice).",
               "id": "SPELLS-13.1"
             },
             {
               "text": "An area with Self range starts at the caster (Thunderwave's cube): the caster picks which side of their space it extends from, it never catches the caster unless the text says so, and it resolves every other creature inside it as SPELLS-7 does.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/shared/src/__tests__/vtt-directed-area.test.ts (cube from the caster's side)",
+                "packages/rules-runtime/src/__tests__/encounterAreaActionCompilation.test.ts (SRD Thunderwave compiles as the cube from the caster)",
+                "apps/session-worker/test/nativeRoomDirectedAreaAction.test.ts (room cube from the side of the caster's space)"
+              ],
               "origin": [],
-              "note": "Found in SPELLS-7.1 on 2026-10-10: point-area compilation refuses Self- and Touch-range areas because they have no picked point.",
+              "note": "Found in SPELLS-7.1 on 2026-10-10: point-area compilation refuses Self- and Touch-range areas because they have no picked point. Merged 5489f675c and follow-up 008aa4ae9 (spatialTokensInsideArea owns the caster rule). Self cube grid placement and the aim gesture moved to SPELLS-23.",
               "id": "SPELLS-13.2"
             }
           ],
@@ -7642,7 +7683,35 @@
             "rr": 5,
             "size": 3,
             "after": ["VTT_UI-5"]
-          }
+          },
+          "tasks": [
+            {
+              "id": "RELIABILITY-5.T1",
+              "text": "Speed and sense modifier values are lengths with a unit through the shared conversion; malformed speeds refused at publish and an invariant failure at read; SRD content and node map migrated.",
+              "status": "IN_PROGRESS",
+              "closes": ["RELIABILITY-5.2"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 5,
+                "size": 3,
+                "after": ["VTT_UI-5"]
+              }
+            },
+            {
+              "id": "RELIABILITY-5.T2",
+              "text": "The persisted Sheet MOVEMENT SPEED_OVERRIDE adjustment is a length with a unit (Sheet input with a unit), and the FEET/0 defaults in characterMovementRuleFacts.ts and sheetPanel.ts are removed; dev data migrated by reset. Found 2026-10-14 in the RELIABILITY-5 fix round.",
+              "status": "TODO",
+              "closes": ["RELIABILITY-5.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": ["RELIABILITY-5.T1"]
+              }
+            }
+          ]
         },
         {
           "id": "RELIABILITY-6",
@@ -8933,7 +9002,7 @@
             "rr": 8,
             "size": 3,
             "finalSource": true,
-            "after": ["RELEASE-2"]
+            "after": ["RELEASE-2", "RELEASE-8"]
           }
         },
         {
@@ -9047,6 +9116,40 @@
             "rr": 1,
             "size": 3,
             "finalSource": true
+          }
+        },
+        {
+          "id": "RELEASE-8",
+          "title": "Review data for the owner's UI review",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": [],
+          "acs": [
+            {
+              "text": "A re-runnable local script builds named review Campaigns with members, Scenes with tokens and Encounters that cover the shipped play surfaces (a party of Characters, SRD Creatures, point and directed areas, spells and slots, conditions, Concentration, reactions, initiative and roll cards), through the product's own commands, against the local Docker Convex backend only; running it again after a reset rebuilds the same data.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "User ruling 2026-10-14: the owner reviews the UI locally before staging, using test Campaigns, Scenes and Encounters. The final local lifecycle (validatePreStagingLocal.mjs) resets local Convex first, so review data is a scripted seed run after RELEASE-2, not hand-kept data.",
+              "id": "RELEASE-8.1"
+            },
+            {
+              "text": "The owner reviews the UI on the review data and signs off before staging promotion; findings are fixed or registered.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Gate between RELEASE-2 (final local lifecycle) and RELEASE-3 (staging).",
+              "id": "RELEASE-8.2"
+            }
+          ],
+          "wsjf": {
+            "bv": 5,
+            "tc": 8,
+            "rr": 8,
+            "size": 3,
+            "finalSource": true,
+            "after": ["RELEASE-2"]
           }
         }
       ]

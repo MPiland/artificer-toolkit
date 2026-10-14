@@ -33,6 +33,7 @@ import { completeNativeInitiativeOccurrence } from './initiativeTerminalCompleti
 import { readLiveEncounterTurnAdmission } from './turnCommandAdmission.js'
 import { deleteHeldAttackRollGrants } from './consumedGrantPersistence.js'
 import { persistEncounterGrantTicks } from './grantTickPersistence.js'
+import { persistEncounterInitiativeRollCards } from './initiativeRollCards.js'
 import { persistEncounterTurnEffects } from './turnEffectsPersistence.js'
 import {
   persistEncounterTurnDeathSave,
@@ -207,6 +208,14 @@ export async function persistEncounterTurnCommit(
       applyMechanics: callbacks.applyMechanics
     }
   )
+  await persistEncounterInitiativeRollCards(ctx, {
+    state,
+    campaign,
+    actors: durableActors,
+    root,
+    occurrenceId: input.occurrenceId,
+    occurredAt: input.occurredAt
+  })
   if (staged)
     await initiative.persistStagedInitiativeRound(
       staged.stagedRoundState,
