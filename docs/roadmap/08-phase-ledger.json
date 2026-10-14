@@ -4511,6 +4511,31 @@
             "rr": 3,
             "size": 2
           }
+        },
+        {
+          "id": "ENCOUNTER-10",
+          "title": "Declared initiative honors advantage and disadvantage",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": [],
+          "acs": [
+            {
+              "text": "Under DECLARED_ACTION_ROLL, an actor with advantage or disadvantage on initiative rolls two d20s and keeps the higher or lower, as a GM-rolled initiative does; the settlement records the roll mode and both faces, and the Initiative roll card shows them; proved by tests that fail before the fix.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Found 2026-10-14 in ENCOUNTER-9: createDnd5eSpeedFactorInitiativeDefinition rolls one evidence.integer-range d20 with number.add only; the initiative.roll-mode fact bound in bindDeclaredActor is read by nothing, and the settlement evidence does not record the mode. Needs a graph operation that keeps the higher or lower die (or a conditional), the published definition and its checksum updated, and a reseed. Integration-owner ruling: the behavior is dictated by the rules, so this is a bug fix, not a scope change.",
+              "id": "ENCOUNTER-10.1"
+            }
+          ],
+          "wsjf": {
+            "bv": 5,
+            "tc": 3,
+            "rr": 5,
+            "size": 3,
+            "after": ["ENCOUNTER-9"]
+          }
         }
       ]
     },
@@ -6345,7 +6370,7 @@
           "tasks": [
             {
               "id": "SPELLS-8.T1",
-              "text": "Core Encounter casting: action choice, slot spend and undo, upcasting, rituals, Concentration start, multi-effect spells and components.",
+              "text": "Core Encounter casting: spell action choices, slot spend and GM undo, and upcasting from any available slot at or above the spell level.",
               "status": "IN_PROGRESS",
               "closes": ["SPELLS-8.1"],
               "wsjf": {
@@ -6391,6 +6416,97 @@
                 "tc": 2,
                 "rr": 2,
                 "size": 5,
+                "after": ["SPELLS-8.T1"]
+              }
+            },
+            {
+              "id": "SPELLS-8.T5",
+              "text": "Casting any SRD Concentration spell starts Concentration and replaces the current one (proved with Hold Person replacing Fly), not only spells with a maintenance definition.",
+              "status": "TODO",
+              "closes": ["SPELLS-8.1"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 5,
+                "rr": 8,
+                "size": 3,
+                "after": ["SPELLS-8.T1"]
+              }
+            },
+            {
+              "id": "SPELLS-8.T6",
+              "text": "Scaling heals (Cure Wounds, Healing Word, Mass Cure Wounds, Mass Healing Word, Prayer of Healing) cast in an Encounter, and an Effect's excluded creature types are applied to targets instead of refusing the spell.",
+              "status": "TODO",
+              "closes": ["SPELLS-8.1"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 5,
+                "rr": 5,
+                "size": 3,
+                "after": ["SPELLS-8.T1"]
+              }
+            },
+            {
+              "id": "SPELLS-8.T7",
+              "text": "Multi-Effect spells (Arcane Sword, Faithful Hound, Grease, Spiritual Weapon) cast in an Encounter.",
+              "status": "TODO",
+              "closes": ["SPELLS-8.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-8.T1"]
+              }
+            },
+            {
+              "id": "SPELLS-8.T8",
+              "text": "Spells cast from LIMITED_USE features and resource pools (FIXED_LEVEL casts) spend and restore that use, not a slot.",
+              "status": "TODO",
+              "closes": ["SPELLS-8.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-8.T1"]
+              }
+            },
+            {
+              "id": "SPELLS-8.T9",
+              "text": "Spells with a bonus action, reaction, mixed or no activation casting time are offered with the right activation.",
+              "status": "TODO",
+              "closes": ["SPELLS-8.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-8.T1"]
+              }
+            },
+            {
+              "id": "SPELLS-8.T10",
+              "text": "Spell components are checked and shown when casting in an Encounter.",
+              "status": "TODO",
+              "closes": ["SPELLS-8.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 2,
+                "size": 3,
+                "after": ["SPELLS-8.T1"]
+              }
+            },
+            {
+              "id": "SPELLS-8.T11",
+              "text": "Ritual casting in an Encounter follows the ritual rules (no slot, ritual casting time).",
+              "status": "TODO",
+              "closes": ["SPELLS-8.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 1,
+                "rr": 1,
+                "size": 2,
                 "after": ["SPELLS-8.T1"]
               }
             }
@@ -6588,25 +6704,37 @@
         {
           "id": "SPELLS-13",
           "title": "Cone, line and caster-origin areas",
-          "status": "IN_PROGRESS",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": ["apps/session-worker/test/nativeRoomDirectedAreaAction.test.ts"],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
               "text": "The caster picks an origin and a direction for a cone or line area (Burning Hands, Lightning Bolt, a dragon's breath), and it catches and resolves every creature inside it as SPELLS-7 does.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/shared/src/__tests__/vtt-directed-area.test.ts (cone 15 ft and 60 ft on axis and diagonal, every direction; line in each direction, length and width; missing caster throws)",
+                "packages/rules-runtime/src/__tests__/encounterAreaAction.test.ts",
+                "packages/rules-runtime/src/__tests__/encounterAreaActionCompilation.test.ts",
+                "packages/rules-runtime/src/__tests__/encounterAreaActionExecution.test.ts",
+                "apps/session-worker/test/nativeRoomDirectedAreaAction.test.ts (room cone and line; wrong-target refusals; a Creature Self cone: two caught creatures save, full and half damage once, GM undo)",
+                "apps/web/src/domains/campaigns/vtt/vttSceneRenderer.model.test.ts (drawn outline equals the caught set over 24 angles x 3 distances)",
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopActionDrawer.test.tsx (directed area command target and \"In the area\" list)"
+              ],
               "origin": [],
               "note": "Split from SPELLS-7 on 2026-10-10; builds after SPELLS-7 on the same area executor. A dragon's breath is proved here with a synthetic Creature Self cone action; the SRD breaths themselves are authored and proved in SPELLS-21. User ruling 2026-10-14: every area (point or directed) catches a token only when its footprint overlaps the area with positive area; touching an edge or corner never catches (D103 amended in this slice).",
               "id": "SPELLS-13.1"
             },
             {
               "text": "An area with Self range starts at the caster (Thunderwave's cube): the caster picks which side of their space it extends from, it never catches the caster unless the text says so, and it resolves every other creature inside it as SPELLS-7 does.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/shared/src/__tests__/vtt-directed-area.test.ts (cube from the caster's side)",
+                "packages/rules-runtime/src/__tests__/encounterAreaActionCompilation.test.ts (SRD Thunderwave compiles as the cube from the caster)",
+                "apps/session-worker/test/nativeRoomDirectedAreaAction.test.ts (room cube from the side of the caster's space)"
+              ],
               "origin": [],
-              "note": "Found in SPELLS-7.1 on 2026-10-10: point-area compilation refuses Self- and Touch-range areas because they have no picked point.",
+              "note": "Found in SPELLS-7.1 on 2026-10-10: point-area compilation refuses Self- and Touch-range areas because they have no picked point. Merged 5489f675c and follow-up 008aa4ae9 (spatialTokensInsideArea owns the caster rule). Self cube grid placement and the aim gesture moved to SPELLS-23.",
               "id": "SPELLS-13.2"
             }
           ],
@@ -6836,6 +6964,62 @@
             "bv": 5,
             "tc": 2,
             "rr": 2,
+            "size": 3
+          }
+        },
+        {
+          "id": "SPELLS-23",
+          "title": "Aiming a directed area on the map",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": [],
+          "acs": [
+            {
+              "text": "Pressing, dragging and releasing on the map aims a cone, line or Self cube and commits exactly the drawn origin and direction; a point picked for a directed area, or a direction for a point area, is refused with its own message; proved through the renderer gesture and the room refusals.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Found in the SPELLS-13 review 2026-10-14: the renderer aim gesture (vttSceneRenderer.ts press/drag/release) has no test; point-for-directed and direction-for-point share one message and room tests never assert messages; NO_CASTER_TOKEN is unreachable in the room; areaMatchesTarget is unproven in the guard path.",
+              "id": "SPELLS-23.1"
+            },
+            {
+              "text": "A Self cube snaps to the grid on the side the caster picks, centered evenly along that side, wherever the caster stands; proved for every side and size.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "SPELLS-13 review 2026-10-14: Math.round gives an uneven 25/50/25 split and snaps to the caster's side rather than the grid. Also tighten the diagonal 60-ft cone test from spot checks to the exact caught set, and fix the test nits (dragon wording in actionRoomFixture, drawer fixture creature-dragon:breath, \"touches\" in titles).",
+              "id": "SPELLS-23.2"
+            }
+          ],
+          "wsjf": {
+            "bv": 3,
+            "tc": 2,
+            "rr": 3,
+            "size": 3
+          }
+        },
+        {
+          "id": "SPELLS-24",
+          "title": "Lasting zones catch by positive-area overlap",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": [],
+          "acs": [
+            {
+              "text": "Lasting and moving zones (Spirit Guardians, Moonbeam, Cloud of Daggers) affect a creature on entry, at the start of its turn and in perception only when its footprint overlaps the zone with positive area, using the one shared overlap test that areas use; a creature touching the zone's edge or corner is not affected; D103 is amended; proved by tests that fail before the change.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "User ruling 2026-10-14 (\"Same overlap rule\"). Today encounterTurnEffectPerception.ts, encounterMovementReactionPerception.ts and path crossings use the inclusive footprintIntersectsSpatialGeometry.",
+              "id": "SPELLS-24.1"
+            }
+          ],
+          "wsjf": {
+            "bv": 5,
+            "tc": 3,
+            "rr": 5,
             "size": 3
           }
         }
@@ -7473,11 +7657,11 @@
           "origin": [],
           "acs": [
             {
-              "text": "Authored SPEED and SENSE_RANGE modifier values (BONUS, PENALTY, SET_VALUE) are lengths with a unit, converted through the one shared length conversion, so +30 ft on an 18 m sense or speed adds 30 ft; a SET_VALUE speed with no base speed takes its unit from the modifier, with no default unit or zero; SRD content and the authoring node map are migrated; proved by tests that fail before the fix.",
+              "text": "Authored SPEED and SENSE_RANGE modifier values (BONUS, PENALTY, SET_VALUE) are lengths with a unit, converted through the one shared length conversion, so +30 ft on a 20-yard sense or speed adds 30 ft; a SET_VALUE speed with no base speed takes its unit from the modifier, with no default unit or zero; SRD content and the authoring node map are migrated; proved by tests that fail before the fix.",
               "status": "TODO",
               "proof": [],
               "origin": [],
-              "note": "Registered 2026-10-13 from lane 3's ruling 3 size report. Modifier values are bare numbers added in the base's unit, so +30 on an 18 m grant gives 48 m, and characterMovementAndSenses defaults a base-less SET_VALUE speed to FEET and 0. The sense override itself becomes a length in the ruling 3 follow-up.",
+              "note": "Registered 2026-10-13 from lane 3's ruling 3 size report. Modifier values are bare numbers added in the base's unit, so +30 on an 18 m grant gives 48 m, and characterMovementAndSenses defaults a base-less SET_VALUE speed to FEET and 0. The sense override itself becomes a length in the ruling 3 follow-up. Wording amended 2026-10-14: length units are INCHES, FEET, YARDS and MILES; METERS is only a Scene grid unit, so the example uses yards. Adding a metric length unit is a separate decision.",
               "id": "RELIABILITY-5.1"
             },
             {
@@ -7495,7 +7679,35 @@
             "rr": 5,
             "size": 3,
             "after": ["VTT_UI-5"]
-          }
+          },
+          "tasks": [
+            {
+              "id": "RELIABILITY-5.T1",
+              "text": "Speed and sense modifier values are lengths with a unit through the shared conversion; malformed speeds refused at publish and an invariant failure at read; SRD content and node map migrated.",
+              "status": "IN_PROGRESS",
+              "closes": ["RELIABILITY-5.2"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 5,
+                "size": 3,
+                "after": ["VTT_UI-5"]
+              }
+            },
+            {
+              "id": "RELIABILITY-5.T2",
+              "text": "The persisted Sheet MOVEMENT SPEED_OVERRIDE adjustment is a length with a unit (Sheet input with a unit), and the FEET/0 defaults in characterMovementRuleFacts.ts and sheetPanel.ts are removed; dev data migrated by reset. Found 2026-10-14 in the RELIABILITY-5 fix round.",
+              "status": "TODO",
+              "closes": ["RELIABILITY-5.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": ["RELIABILITY-5.T1"]
+              }
+            }
+          ]
         },
         {
           "id": "RELIABILITY-6",
@@ -8786,7 +8998,7 @@
             "rr": 8,
             "size": 3,
             "finalSource": true,
-            "after": ["RELEASE-2"]
+            "after": ["RELEASE-2", "RELEASE-8"]
           }
         },
         {
@@ -8900,6 +9112,40 @@
             "rr": 1,
             "size": 3,
             "finalSource": true
+          }
+        },
+        {
+          "id": "RELEASE-8",
+          "title": "Review data for the owner's UI review",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": [],
+          "acs": [
+            {
+              "text": "A re-runnable local script builds named review Campaigns with members, Scenes with tokens and Encounters that cover the shipped play surfaces (a party of Characters, SRD Creatures, point and directed areas, spells and slots, conditions, Concentration, reactions, initiative and roll cards), through the product's own commands, against the local Docker Convex backend only; running it again after a reset rebuilds the same data.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "User ruling 2026-10-14: the owner reviews the UI locally before staging, using test Campaigns, Scenes and Encounters. The final local lifecycle (validatePreStagingLocal.mjs) resets local Convex first, so review data is a scripted seed run after RELEASE-2, not hand-kept data.",
+              "id": "RELEASE-8.1"
+            },
+            {
+              "text": "The owner reviews the UI on the review data and signs off before staging promotion; findings are fixed or registered.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Gate between RELEASE-2 (final local lifecycle) and RELEASE-3 (staging).",
+              "id": "RELEASE-8.2"
+            }
+          ],
+          "wsjf": {
+            "bv": 5,
+            "tc": 8,
+            "rr": 8,
+            "size": 3,
+            "finalSource": true,
+            "after": ["RELEASE-2"]
           }
         }
       ]

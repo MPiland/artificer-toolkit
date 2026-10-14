@@ -10,7 +10,11 @@ import { evaluateRollExpression, parseRollExpression } from '@artificer-toolkit/
 const ruleCheckRollNamespace = '6b1f0c7e-3d2a-4f5b-9c8e-1a2b3c4d5e6f'
 
 /** One settled rule check's log identity: its occurrence plus the check's index within it. */
-function ruleCheckRollId(occurrenceId: string, checkIndex: number, scope = 'rule-check-roll') {
+export function ruleCheckRollId(
+  occurrenceId: string,
+  checkIndex: number,
+  scope = 'rule-check-roll'
+) {
   return uuidv5(`${occurrenceId}:${checkIndex}:${scope}`, ruleCheckRollNamespace)
 }
 
@@ -197,6 +201,42 @@ export function rechargeRollRecord(input: {
     characterId: null,
     characterLabel: input.rollerLabel,
     source: { kind: 'RECHARGE', label: `${input.featureLabel} recharge`.slice(0, 80) },
+    ruleset: input.ruleset,
+    createdAt: input.createdAt
+  })
+}
+
+/** `1dN` plus a signed initiative modifier, as a roll expression. */
+export function initiativeRollExpression(sides: number, modifier: number) {
+  return `1d${sides}${modifier === 0 ? '' : modifier > 0 ? `+${modifier}` : modifier}`
+}
+
+/**
+ * The roll-log record of one initiative roll: the Initiative card both a GM-rolled initiative
+ * (live `nextInt`) and a declaration's settled die (recorded faces replayed through `nextInt`)
+ * post, so the two cards are the same by construction.
+ */
+export function initiativeRollRecord(input: {
+  id: string
+  expression: string
+  rollMode: Parameters<typeof evaluateRollExpression>[2]
+  nextInt: (size: number) => number
+  characterId: string | null
+  rollerLabel: string
+  ruleset: RollRecordDto['ruleset']
+  createdAt: string
+}): RollRecordDto {
+  const evaluated = evaluateRollExpression(
+    parseRollExpression(input.expression),
+    { nextInt: input.nextInt },
+    input.rollMode
+  )
+  return rollRecordDtoSchema.parse({
+    id: input.id,
+    ...evaluated,
+    characterId: input.characterId,
+    characterLabel: input.rollerLabel,
+    source: { kind: 'INITIATIVE', label: 'Initiative' },
     ruleset: input.ruleset,
     createdAt: input.createdAt
   })

@@ -1,4 +1,5 @@
 import { prepareEncounterInitiativeSources } from '@artificer-toolkit/rules-runtime/encounterInitiativeSources'
+import { initiativeRollExpression } from '@artificer-toolkit/rules-runtime/encounterRuleCheckRolls'
 import type { InitiativeFactSources } from '@artificer-toolkit/schema/shared/initiativeFactSources'
 import type {
   EncounterRunActorState,
@@ -56,7 +57,7 @@ export async function readActorInitiativeRoll(
       : 0
   return {
     characterId: source.kind === 'CHARACTER' ? source.characterId : null,
-    expression: modifier === 0 ? '1d20' : `1d20${modifier > 0 ? '+' : ''}${modifier}`,
+    expression: initiativeRollExpression(20, modifier),
     rollMode: policy?.rollModes.initiative ?? 'NORMAL'
   }
 }

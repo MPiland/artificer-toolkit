@@ -159,12 +159,19 @@ players (it reads "Unseen source"); known limit: a contributor from the roller's
 redacted. Manual mode records an idempotent receipt at an unchanged version without invoking the Kernel or
 applying state and carries no rules cue (ADR 0034). **One card per die (ENCOUNTER-7, current).** Every
 Encounter rule die posts exactly one roll card through `recordRuleRollCard`: an action's d20s and damage
-totals, a Legendary Action's (`recordActionRollCards`), each Recharge d6 (source kind `RECHARGE`) and the
-turn-start death save. A die settled by a `SYSTEM_ROLL` answer already has its "Rolled by the app" attempt
-card, so the commit skips it; an auto-rolled or entered die (including one entered after an app roll) is
-carded at commit. `readAppCardedDice` (`packages/encounter-persistence/src/appCardedDice.ts`) decides this
+totals, a Legendary Action's (`recordActionRollCards`), each Recharge d6 (source kind `RECHARGE`), the
+turn-start death save and, under `DECLARED_ACTION_ROLL`, each declared actor's initiative die (ENCOUNTER-9,
+the same `INITIATIVE` card `ROLL_ACTOR_INITIATIVE` posts, both built by the one `initiativeRollRecord`,
+written by `persistEncounterInitiativeRollCards` in the terminal turn commit from the settled
+`root.initiative` evidence; a flat score and tie-resolution dice post none, and a result of several dice or
+a die that is not a logged `1dN` throws. Declared advantage and disadvantage are **target** behavior
+(ENCOUNTER-10): the shipped declared graph rolls one d20 and ignores the roll-mode fact). A die settled by a `SYSTEM_ROLL` answer already has its
+"Rolled by the app" attempt card, so the commit skips it; an auto-rolled or entered die (including one
+entered after an app roll) is carded at commit. `readAppCardedDice`
+(`packages/encounter-persistence/src/appCardedDice.ts`) decides this
 from journaled answers, never from die values: each `SYSTEM_ROLL` answer (an action's `ACTION_EVIDENCE`
-receipts, a turn root's `resolutionCommands`, `LEGENDARY_SYSTEM_ROLL` for Legendary windows) is joined to
+receipts, a turn root's `resolutionCommands`, `LEGENDARY_SYSTEM_ROLL` for Legendary windows,
+`INITIATIVE_SYSTEM_ROLL` for declared initiative) is joined to
 its latest attempt and covers at most one settled die of the same request and value.
 Known limit: an app-rolled single-die damage request also gets a commit total card.
 Actions in a Manual Encounter are refused with the
@@ -294,7 +301,7 @@ pipeline above: the same `ENCOUNTER_AREA_ACTION` occurrence, sealed saves, froze
 undo. The pending guard (`requireAreaActionPendingRoot`) checks the sealed origin and direction against the command.
 Catching (`spatialTokensInsideArea`, for every area) is strict positive-area overlap, so a creature the area
 only touches along an edge or at a corner is not caught (D103, user ruling 2026-10-14); a directed shape needs the
-caster's token, which it excludes (it catches nobody without it). A cone is the triangle from the origin to a
+caster's token among the Scene's tokens, which it excludes (it throws without it: the room has already refused `NO_CASTER_TOKEN`, so a missing caster here is an invariant failure). A cone is the triangle from the origin to a
 far edge as wide as it is long; a line is a rectangle, 5 ft wide unless authored (a scaled or non-positive
 authored width is refused at compile). A Self cube follows the 5e rule that its origin lies anywhere on a face
 of the cube (`cubeFromSideOutline`): the side faced is the dominant axis of `toward`, the face is flush against
