@@ -4812,74 +4812,95 @@ export declare const api: {
               { mode: "AUTO" } | { mode: "EXPLICIT"; speedId: string };
             preferenceOptions: Array<{ label: string; value: string }>;
             primarySpeedId?: string;
-            speeds: Array<{
-              amount: number;
-              calculation: {
-                base: number;
-                contributions: Array<{
-                  id: string;
-                  source:
-                    | {
-                        definitionId: string;
-                        kind: "AUTHORED";
-                        sourceInstanceId: string;
-                        sourceKind:
-                          | "ANCESTRY"
-                          | "BACKGROUND"
-                          | "CLASS"
-                          | "FEAT"
-                          | "FEATURE"
-                          | "OPTION"
-                          | "RACE"
-                          | "SPELL"
-                          | "SUBRACE"
-                          | "SUBCLASS";
-                      }
-                    | {
-                        equipmentId: string;
-                        itemInstanceId: string;
-                        kind: "EQUIPMENT_INSTANCE";
-                      }
-                    | {
-                        companionInstanceId: string;
-                        creatureId: string;
-                        kind: "COMPANION_INSTANCE";
-                      }
-                    | { kind: "SYSTEM"; systemId: string }
-                    | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
-                    | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
-                  sourceLabel: string;
-                  sourceNote?: string;
-                  state: "APPLIED" | "SUPPRESSED";
-                  value: number;
-                }>;
-                effective: number;
-                override?: {
-                  adjustmentId: string;
-                  sourceLabel: string;
-                  sourceNote?: string;
-                  value: number;
-                };
-              };
-              editor: {
-                adjustmentId?: string;
-                commitIntent: "ON_BLUR_OR_ENTER";
-                field: "SPEED_OVERRIDE";
-                kind: "NUMBER";
-                label: string;
-                sourceNote?: string;
-                validation: {
-                  integer: boolean;
-                  maximum?: number;
-                  minimum?: number;
-                };
-                value: number | null;
-              };
-              label: string;
-              speedId: string;
-              state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
-              unitLabel: string;
-            }>;
+            speeds: Array<
+              | {
+                  editor: {
+                    adjustmentId?: string;
+                    commitIntent: "ON_BLUR_OR_ENTER";
+                    defaultUnit?: "INCHES" | "FEET" | "YARDS" | "MILES";
+                    field: "SPEED_OVERRIDE";
+                    kind: "LENGTH";
+                    label: string;
+                    sourceNote?: string;
+                    value: {
+                      amount: number;
+                      unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                    } | null;
+                  };
+                  label: string;
+                  speedId: string;
+                  speedKind: "NOT_HELD";
+                  state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
+                }
+              | {
+                  amount: number;
+                  calculation: {
+                    base: number;
+                    contributions: Array<{
+                      id: string;
+                      source:
+                        | {
+                            definitionId: string;
+                            kind: "AUTHORED";
+                            sourceInstanceId: string;
+                            sourceKind:
+                              | "ANCESTRY"
+                              | "BACKGROUND"
+                              | "CLASS"
+                              | "FEAT"
+                              | "FEATURE"
+                              | "OPTION"
+                              | "RACE"
+                              | "SPELL"
+                              | "SUBRACE"
+                              | "SUBCLASS";
+                          }
+                        | {
+                            equipmentId: string;
+                            itemInstanceId: string;
+                            kind: "EQUIPMENT_INSTANCE";
+                          }
+                        | {
+                            companionInstanceId: string;
+                            creatureId: string;
+                            kind: "COMPANION_INSTANCE";
+                          }
+                        | { kind: "SYSTEM"; systemId: string }
+                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                        | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
+                      sourceLabel: string;
+                      sourceNote?: string;
+                      state: "APPLIED" | "SUPPRESSED";
+                      value: number;
+                    }>;
+                    effective: number;
+                    override?: {
+                      adjustmentId: string;
+                      sourceLabel: string;
+                      sourceNote?: string;
+                      value: number;
+                    };
+                  };
+                  editor: {
+                    adjustmentId?: string;
+                    commitIntent: "ON_BLUR_OR_ENTER";
+                    defaultUnit?: "INCHES" | "FEET" | "YARDS" | "MILES";
+                    field: "SPEED_OVERRIDE";
+                    kind: "LENGTH";
+                    label: string;
+                    sourceNote?: string;
+                    value: {
+                      amount: number;
+                      unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                    } | null;
+                  };
+                  label: string;
+                  speedId: string;
+                  speedKind: "HELD";
+                  state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
+                  unitLabel: string;
+                }
+            >;
             state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
             target: { kind: "MOVEMENT" };
             title: string;
@@ -15144,74 +15165,95 @@ export declare const api: {
               { mode: "AUTO" } | { mode: "EXPLICIT"; speedId: string };
             preferenceOptions: Array<{ label: string; value: string }>;
             primarySpeedId?: string;
-            speeds: Array<{
-              amount: number;
-              calculation: {
-                base: number;
-                contributions: Array<{
-                  id: string;
-                  source:
-                    | {
-                        definitionId: string;
-                        kind: "AUTHORED";
-                        sourceInstanceId: string;
-                        sourceKind:
-                          | "ANCESTRY"
-                          | "BACKGROUND"
-                          | "CLASS"
-                          | "FEAT"
-                          | "FEATURE"
-                          | "OPTION"
-                          | "RACE"
-                          | "SPELL"
-                          | "SUBRACE"
-                          | "SUBCLASS";
-                      }
-                    | {
-                        equipmentId: string;
-                        itemInstanceId: string;
-                        kind: "EQUIPMENT_INSTANCE";
-                      }
-                    | {
-                        companionInstanceId: string;
-                        creatureId: string;
-                        kind: "COMPANION_INSTANCE";
-                      }
-                    | { kind: "SYSTEM"; systemId: string }
-                    | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
-                    | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
-                  sourceLabel: string;
-                  sourceNote?: string;
-                  state: "APPLIED" | "SUPPRESSED";
-                  value: number;
-                }>;
-                effective: number;
-                override?: {
-                  adjustmentId: string;
-                  sourceLabel: string;
-                  sourceNote?: string;
-                  value: number;
-                };
-              };
-              editor: {
-                adjustmentId?: string;
-                commitIntent: "ON_BLUR_OR_ENTER";
-                field: "SPEED_OVERRIDE";
-                kind: "NUMBER";
-                label: string;
-                sourceNote?: string;
-                validation: {
-                  integer: boolean;
-                  maximum?: number;
-                  minimum?: number;
-                };
-                value: number | null;
-              };
-              label: string;
-              speedId: string;
-              state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
-              unitLabel: string;
-            }>;
+            speeds: Array<
+              | {
+                  editor: {
+                    adjustmentId?: string;
+                    commitIntent: "ON_BLUR_OR_ENTER";
+                    defaultUnit?: "INCHES" | "FEET" | "YARDS" | "MILES";
+                    field: "SPEED_OVERRIDE";
+                    kind: "LENGTH";
+                    label: string;
+                    sourceNote?: string;
+                    value: {
+                      amount: number;
+                      unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                    } | null;
+                  };
+                  label: string;
+                  speedId: string;
+                  speedKind: "NOT_HELD";
+                  state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
+                }
+              | {
+                  amount: number;
+                  calculation: {
+                    base: number;
+                    contributions: Array<{
+                      id: string;
+                      source:
+                        | {
+                            definitionId: string;
+                            kind: "AUTHORED";
+                            sourceInstanceId: string;
+                            sourceKind:
+                              | "ANCESTRY"
+                              | "BACKGROUND"
+                              | "CLASS"
+                              | "FEAT"
+                              | "FEATURE"
+                              | "OPTION"
+                              | "RACE"
+                              | "SPELL"
+                              | "SUBRACE"
+                              | "SUBCLASS";
+                          }
+                        | {
+                            equipmentId: string;
+                            itemInstanceId: string;
+                            kind: "EQUIPMENT_INSTANCE";
+                          }
+                        | {
+                            companionInstanceId: string;
+                            creatureId: string;
+                            kind: "COMPANION_INSTANCE";
+                          }
+                        | { kind: "SYSTEM"; systemId: string }
+                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                        | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
+                      sourceLabel: string;
+                      sourceNote?: string;
+                      state: "APPLIED" | "SUPPRESSED";
+                      value: number;
+                    }>;
+                    effective: number;
+                    override?: {
+                      adjustmentId: string;
+                      sourceLabel: string;
+                      sourceNote?: string;
+                      value: number;
+                    };
+                  };
+                  editor: {
+                    adjustmentId?: string;
+                    commitIntent: "ON_BLUR_OR_ENTER";
+                    defaultUnit?: "INCHES" | "FEET" | "YARDS" | "MILES";
+                    field: "SPEED_OVERRIDE";
+                    kind: "LENGTH";
+                    label: string;
+                    sourceNote?: string;
+                    value: {
+                      amount: number;
+                      unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                    } | null;
+                  };
+                  label: string;
+                  speedId: string;
+                  speedKind: "HELD";
+                  state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
+                  unitLabel: string;
+                }
+            >;
             state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
             target: { kind: "MOVEMENT" };
             title: string;

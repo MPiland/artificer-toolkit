@@ -408,9 +408,15 @@ describe('Character Sheet shell', () => {
       )
 
       const panel = await screen.findByRole('dialog', { name: 'Movement' })
+      expect(movement.speeds.some((entry) => entry.speedKind === 'HELD')).toBe(true)
+      expect(movement.speeds.some((entry) => entry.speedKind === 'NOT_HELD')).toBe(true)
       for (const entry of movement.speeds) {
         expect(
-          await within(panel).findByText(`${entry.label}: ${entry.amount} ${entry.unitLabel}`)
+          await within(panel).findByText(
+            entry.speedKind === 'HELD'
+              ? `${entry.label}: ${entry.amount} ${entry.unitLabel}`
+              : `${entry.label}: not held. Set a speed to add it.`
+          )
         ).toBeInTheDocument()
       }
     } finally {
