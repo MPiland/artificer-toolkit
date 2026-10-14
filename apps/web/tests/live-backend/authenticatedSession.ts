@@ -8,11 +8,15 @@ export async function verifyAuthenticatedBrowserSession(input: {
   email: string
   password: string
   verifyRevoked: (jwt: string) => Promise<void>
+  /** Native check that the live session JWT is accepted and a forged one is refused. */
+  verifyBearer: (jwt: string) => Promise<void>
   profile?: {
     username: string
     bio: string
     other: { username: string; password: string; bio: string }
     screenshotDirectory: string
+    /** Native check of what the second account reads while the first account holds `visibility`. */
+    verifyVisibility: (visibility: 'Private' | 'Public') => Promise<void>
   }
 }) {
   const origin = 'http://localhost:3000'
@@ -93,12 +97,8 @@ export async function verifyAuthenticatedBrowserSession(input: {
         timeout: 30000
       })
     }
-    async function signOut() {
-      stage = 'sign out'
-      await page.goto(`${origin}/logout`, { waitUntil: 'domcontentloaded', timeout: 90000 })
-      await expect(page).toHaveURL(`${origin}/sign-in`, { timeout: 30000 })
-      await expect(page.getByRole('textbox', { name: 'Email or username' })).toBeEnabled()
-      // A URL change precedes completion of the router's session refresh.
+    // A URL change precedes completion of the router's session refresh.
+    async function waitForRouterIdle() {
       await page.waitForFunction(() => {
         const router = (
           window as Window & {
@@ -108,13 +108,27 @@ export async function verifyAuthenticatedBrowserSession(input: {
         return router?.state.status === 'idle' && !router.state.isLoading
       })
     }
-    await page.goto(`${origin}/systems`, { waitUntil: 'domcontentloaded', timeout: 90000 })
-    await expect(page).toHaveURL(/\/sign-in\?redirect=/, { timeout: 30000 })
+    async function signOut() {
+      stage = 'sign out'
+      await page.goto(`${origin}/logout`, { waitUntil: 'domcontentloaded', timeout: 90000 })
+      await expect(page).toHaveURL(`${origin}/sign-in`, { timeout: 30000 })
+      await expect(page.getByRole('textbox', { name: 'Email or username' })).toBeEnabled()
+      await waitForRouterIdle()
+    }
+    // A protected deep link sends the visitor to sign-in; either login must return to that path.
+    async function signInReturningToSystems(identifier: string, password: string) {
+      stage = 'protected deep link'
+      await page.goto(`${origin}/systems`, { waitUntil: 'domcontentloaded', timeout: 90000 })
+      await expect(page).toHaveURL(/\/sign-in\?redirect=/, { timeout: 30000 })
+      assert.equal(new URL(page.url()).searchParams.get('redirect'), '/systems')
+      await signIn(identifier, password)
+      await expect(page).toHaveURL(`${origin}/systems`, { timeout: 60000 })
+      await expect(page.getByRole('heading', { name: 'Game Systems', exact: true })).toBeVisible({
+        timeout: 60000
+      })
+    }
     const started = performance.now()
-    await signIn(input.email, input.password)
-    await expect(page.getByRole('heading', { name: 'Game Systems', exact: true })).toBeVisible({
-      timeout: 60000
-    })
+    await signInReturningToSystems(input.email, input.password)
     console.log(
       JSON.stringify({ browserSignInToSystemsMs: Math.round(performance.now() - started) })
     )
@@ -133,6 +147,8 @@ export async function verifyAuthenticatedBrowserSession(input: {
         typeof tokenBody.token === 'string'
     )
     jwt = tokenBody.token
+    stage = 'native bearer'
+    await input.verifyBearer(jwt)
 
     const reloadStarted = performance.now()
     stage = 'authenticated reload'
@@ -141,7 +157,13 @@ export async function verifyAuthenticatedBrowserSession(input: {
     assert.match(response?.headers()['cache-control'] ?? '', /private.*no-store/)
     const html = await response.text()
     assert.ok(!html.includes(jwt), 'Backend JWT must not appear in serialized SSR output.')
+    // The reload keeps the session: the server renders the signed-in page before any script runs.
+    assert.ok(html.includes('Game Systems'), 'Reload must server-render the signed-in page.')
+    assert.equal(new URL(page.url()).pathname, '/systems')
     await expect(page.getByRole('heading', { name: 'Game Systems', exact: true })).toBeVisible()
+    // Hydration completes on the same session: the router settles on /systems with no sign-in bounce.
+    await waitForRouterIdle()
+    assert.equal(new URL(page.url()).pathname, '/systems')
     await page.screenshot({
       path: 'local-validation/local-convex-proofs/phase82-foundation/private-ssr-browser.png'
     })
@@ -190,7 +212,7 @@ export async function verifyAuthenticatedBrowserSession(input: {
     await input.verifyRevoked(jwt)
     if (input.profile) {
       const profile = input.profile
-      await signIn(profile.username.toLowerCase(), input.password)
+      await signInReturningToSystems(profile.username.toLowerCase(), input.password)
       await openProfile()
       await expect(page.getByRole('textbox', { name: 'Username', exact: true })).toHaveValue(
         profile.username.toUpperCase()
@@ -240,6 +262,7 @@ export async function verifyAuthenticatedBrowserSession(input: {
         await signIn(profile.other.username, profile.other.password)
       }
       await expectPrimaryProfilePrivate()
+      await profile.verifyVisibility('Private')
       await setPrimaryVisibility('Public')
       await viewPrimaryProfile()
       await expect(
@@ -247,8 +270,10 @@ export async function verifyAuthenticatedBrowserSession(input: {
       ).toBeVisible({ timeout: 30000 })
       await expect(page.getByText(profile.bio, { exact: true })).toBeVisible()
       expect(await page.content()).not.toContain(input.email)
+      await profile.verifyVisibility('Public')
       await setPrimaryVisibility('Private')
       await expectPrimaryProfilePrivate()
+      await profile.verifyVisibility('Private')
       await openProfile()
 
       await page.setViewportSize({ width: 390, height: 844 })

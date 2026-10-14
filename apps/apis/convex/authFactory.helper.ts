@@ -289,7 +289,12 @@ export function createAuthOptions(ctx: GenericCtx<DataModel>) {
           let proxyContext
           try {
             proxyContext = await verifyAuthProxyContext(request, process.env.CONVEX_SITE_URL ?? '')
-          } catch {
+          } catch (error) {
+            // The failed check (jose error name and message) is logged, never the token or secret.
+            console.error(
+              'Auth proxy context rejected:',
+              error instanceof Error ? `${error.name}: ${error.message}` : 'unknown failure'
+            )
             return {
               response: new Response('Invalid authentication request.', {
                 status: 400
