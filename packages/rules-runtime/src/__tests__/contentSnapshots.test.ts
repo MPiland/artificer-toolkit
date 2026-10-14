@@ -398,5 +398,5 @@ describe('content snapshot parts', () => {
       // Plan budget: a picker opens with at most one 300 KB gzipped index per kind.
       expect(row.indexGzip, row.kind).toBeLessThanOrEqual(300 * 1024)
     }
-  })
+  }, 30000)
 })

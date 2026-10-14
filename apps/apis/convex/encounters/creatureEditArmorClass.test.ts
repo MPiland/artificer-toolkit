@@ -12,6 +12,7 @@ import { fixture } from '../../tests/fixtures/characters'
 import { creaturePublicationInput } from '../../tests/fixtures/creatureDrafts'
 import { importedSubject } from '../../tests/fixtures/publication'
 import {
+  importSeededSrdCreatureSenses,
   seededSrdCreature,
   seededSrdLoadoutEquipment,
   srdPrintedArmorClass
@@ -23,6 +24,7 @@ const goblin = seededSrdCreature('Goblin')
 
 async function setup() {
   const base = await fixture()
+  await importSeededSrdCreatureSenses(base.t, goblin)
   await base.t.mutation(internal.content.import.importSubjects, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     subjects: [

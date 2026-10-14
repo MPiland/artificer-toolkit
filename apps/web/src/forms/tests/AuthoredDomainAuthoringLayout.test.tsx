@@ -639,7 +639,8 @@ describe('non-character authored domain layout coverage', () => {
 
     await user.click(await screen.findByRole('link', { name: /^stats/i }))
     await user.click(await screen.findByRole('button', { name: /add sense/i }))
-    await user.click(await screen.findByRole('combobox', { name: /^sense\s*\*?$/i }))
+    await user.click(await screen.findByRole('button', { name: /^sens 1/i }))
+    await user.click(await screen.findByRole('combobox', { name: /^sense/i }))
     await user.click(await screen.findByRole('option', { name: 'Darkvision' }))
     await user.click(screen.getByRole('button', { name: 'Save Draft' }))
 

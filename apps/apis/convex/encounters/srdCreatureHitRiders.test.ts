@@ -36,7 +36,11 @@ import {
 } from '../../tests/fixtures/localRoomWorker'
 import { importedSubject } from '../../tests/fixtures/publication'
 import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
-import { seededSrdCreature, seededSrdLoadoutEquipment } from '../../tests/fixtures/srdCreatures'
+import {
+  seededSrdCreature,
+  importSeededSrdCreatureSenses,
+  seededSrdLoadoutEquipment
+} from '../../tests/fixtures/srdCreatures'
 import { api, internal } from '../_generated/api'
 import { readCharacterRow } from '../characters/stateDocuments'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
@@ -89,6 +93,7 @@ async function setup(input: {
         definition.id === SRD_ACTION_ALLOWANCE_DEFINITION_ID || conditionIds.includes(definition.id)
     )
   })
+  await importSeededSrdCreatureSenses(base.t, creature)
   if (input.basicActions)
     await base.t.mutation(internal.content.import.importDefinitions, {
       contentSourceId: SRD_CONTENT_SOURCE.id,
