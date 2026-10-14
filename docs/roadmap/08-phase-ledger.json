@@ -1968,7 +1968,7 @@
         },
         {
           "id": "AUTHORING-19",
-          "title": "Remove the unread vocabulary tooltip column",
+          "title": "One option-description field",
           "status": "TODO",
           "journeyTests": [],
           "journeyStatus": "none",
@@ -1976,18 +1976,18 @@
           "acs": [
             {
               "id": "AUTHORING-19.1",
-              "text": "The System vocabulary `tooltip` field is removed from the SRD corpus rows (the skills' governing-ability duplicates and the rest), the vocabulary DTO and schema, and the SRD manifest, with no reader left; publication and the authoring resolver tests pass unchanged.",
+              "text": "Option and vocabulary copy has one field, description: tooltip is removed from the System vocabulary record, schema, SRD corpus rows and manifest, and from the shared CoreMeta code-list metadata; the authoring resolver reads description only (no tooltip fallback); the AUTHORING-18 journey and the publication and resolver tests pass unchanged.",
               "status": "TODO",
               "proof": [],
               "origin": [],
-              "note": "Found 2026-10-14 in AUTHORING-18: after description became the one option-description column, nothing reads tooltip (skills' tooltip duplicates governingAbilityDefinitionId). Pre-launch rule: remove unused fields. Touches the protected SRD corpus; reset and reseed after merge."
+              "note": "Found 2026-10-14 in AUTHORING-18: after description became the one option-description column, nothing reads tooltip (skills' tooltip duplicates governingAbilityDefinitionId). Pre-launch rule: remove unused fields. Touches the protected SRD corpus; reset and reseed after merge. Re-scoped 2026-10-14 at workbook time: nodeRuntimeService toOptions still reads option.tooltip ?? option.description for ~50 shared code-list files."
             }
           ],
           "wsjf": {
             "bv": 1,
             "tc": 1,
             "rr": 2,
-            "size": 1,
+            "size": 2,
             "after": ["AUTHORING-18"]
           }
         },
