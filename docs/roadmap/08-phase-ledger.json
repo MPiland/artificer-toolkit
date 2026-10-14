@@ -1994,18 +1994,22 @@
         {
           "id": "AUTHORING-20",
           "title": "Authors can add an invocation Check and a Check DC",
-          "status": "TODO",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": ["apps/web/src/forms/tests/CheckAddActions.test.tsx"],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
               "id": "AUTHORING-20.1",
               "text": "Every add-enabled child group reachable from the authored root maps has a default factory, including invocation.check -> check, check.dc -> checkDc and actorRelationshipModule.dc -> checkDc; apps/web/src/forms/rendering/authoringNodeDefaultInventory.test.ts passes; adding a Check and a DC in the authoring editor creates a valid default row (a test through the real form renderer that fails before the fix).",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/web/src/forms/rendering/authoringNodeDefaultInventory.test.ts",
+                "apps/web/src/forms/rendering/authoringNodeDefaults.test.ts (check and checkDc defaults parse with checkDtoSchema and checkDcDtoSchema through resolver output)",
+                "apps/web/src/forms/tests/CheckAddActions.test.tsx (Add Check on an invocation and Add Escape DC on an actor relationship module through the real FormRenderer)"
+              ],
               "origin": [],
-              "note": "Regression found 2026-10-14 by the RELIABILITY-5 web run: the inventory test fails on the base tip since ATTACK-18 slice D (b26e108cb, e876a5939) added CHECK_NODE_MAP and CHECK_DC_NODE_MAP without factories."
+              "note": "Regression found 2026-10-14 by the RELIABILITY-5 web run: the inventory test fails on the base tip since ATTACK-18 slice D (b26e108cb, e876a5939) added CHECK_NODE_MAP and CHECK_DC_NODE_MAP without factories. Merged 419d4d6e4: registry and factories renamed the stale escapeCheckDc kind to the shared checkDc map; web src/forms (434 tests) and web typecheck green."
             }
           ],
           "wsjf": {
