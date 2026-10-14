@@ -57,9 +57,14 @@ export async function persistEncounterInitiativeRollCards(
       dice.some(({ entry }) => entry.inputs.min !== 1 || entry.inputs.max !== sides)
     )
       throw new Error('A declared initiative die must be a logged 1dN to post its roll card.')
-    const rollMode = dice.length === 2 ? facts[DND5E_INITIATIVE_FACT_KEYS.rollMode] : 'NORMAL'
-    if (rollMode !== 'NORMAL' && rollMode !== 'ADVANTAGE' && rollMode !== 'DISADVANTAGE')
+    const declaredMode = dice.length === 2 ? facts[DND5E_INITIATIVE_FACT_KEYS.rollMode] : 'NORMAL'
+    if (
+      declaredMode !== 'NORMAL' &&
+      declaredMode !== 'ADVANTAGE' &&
+      declaredMode !== 'DISADVANTAGE'
+    )
       throw new Error('A declared initiative roll mode must be normal, advantage or disadvantage.')
+    const rollMode: Parameters<typeof initiativeRollRecord>[0]['rollMode'] = declaredMode
     if ((dice.length === 2) === (rollMode === 'NORMAL'))
       throw new Error('A declared initiative that settled two dice needs an advantage or disadvantage roll mode.')
     const keptValue =

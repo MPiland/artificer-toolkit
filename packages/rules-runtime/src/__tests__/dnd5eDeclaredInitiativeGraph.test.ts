@@ -26,12 +26,13 @@ const compiled = compileRuleGraph({
   operations
 })
 if (!compiled.ok) throw new Error('Expected the declared initiative graph to compile.')
+const graph = compiled.value
 
 /** Settles the declared graph with scripted faces, as the settled evidence of one declared actor. */
 function settle(input: { rollMode: string; faces: readonly number[] }) {
   const remaining = [...input.faces]
   let result = executeRuleGraph({
-    graph: compiled.value,
+    graph,
     occurrenceId: OCCURRENCE_ID,
     facts: {
       [DND5E_INITIATIVE_FACT_KEYS.automatic]: true,

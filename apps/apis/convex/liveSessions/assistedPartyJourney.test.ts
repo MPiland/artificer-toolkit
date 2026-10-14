@@ -239,7 +239,7 @@ describe('Three-user Assisted Encounter with auto-roll (ENCOUNTER-5.1)', () => {
       })
   }, 180000)
 
-  it('auto-rolls two d20s for an advantage Character and every member reads the same one card with both faces', async () => {
+  it('auto-rolls two d20s for each advantage Character and every member reads the same one card with both faces', async () => {
     const feralInstinct = barbarian.features?.find((feature) => feature.label === 'Feral Instinct')
     if (!feralInstinct) throw new Error('Missing SRD Feral Instinct.')
     const party = await assistedPartyFixture({
@@ -247,9 +247,9 @@ describe('Three-user Assisted Encounter with auto-roll (ENCOUNTER-5.1)', () => {
     })
     const { send } = conductor()
     await send(party.gm, start(party))
-    // Aria's advantage takes a fourth die in whichever place she declares: the faces 5, 10, 15, 5
-    // keep her the higher of the two she gets, and the others one each.
-    const declared = await declarePartyInitiative(party, send, [4, 9, 14, 4])
+    // The fixture's class feature reaches both Characters, so Aria and Bryn each take two dice and the
+    // Wolf one, whichever order they declare in.
+    const declared = await declarePartyInitiative(party, send, [4, 9, 14, 4, 9])
     await checkpointLiveRoom(party.campaign.id)
     const scoreOf = (actorId: string) =>
       party.t.run(async (ctx) => {
@@ -275,7 +275,7 @@ describe('Three-user Assisted Encounter with auto-roll (ENCOUNTER-5.1)', () => {
     for (const cards of initiativeCardsBy) {
       expect(cards.map((card) => card.characterLabel)).toEqual(declared.map(labelOf))
       for (const [index, card] of cards.entries()) {
-        const advantage = declared[index] === party.aria.actorId
+        const advantage = declared[index] !== party.wolf.actorId
         const [term] = card.evidence.terms
         expect(card.evidence.mode).toBe(advantage ? 'ADVANTAGE' : 'NORMAL')
         expect(term?.rolls).toHaveLength(advantage ? 2 : 1)
@@ -283,8 +283,8 @@ describe('Three-user Assisted Encounter with auto-roll (ENCOUNTER-5.1)', () => {
       }
       expect(cards).toEqual(initiativeCardsBy[0])
     }
-    const ariaCard = initiativeCardsBy[0]!.find((card) => card.characterLabel === labelOf(party.aria.actorId))
-    expect(ariaCard?.evidence.terms[0]?.subtotal).toBe(Math.max(...ariaCard!.evidence.terms[0]!.rolls))
+    for (const card of initiativeCardsBy[0]!.filter((candidate) => candidate.evidence.mode === 'ADVANTAGE'))
+      expect(card.evidence.terms[0]?.subtotal).toBe(Math.max(...card.evidence.terms[0]!.rolls))
   }, 180000)
 
   it('plays one full round of auto-rolled attacks, then the GM completes it and all three see it end', async () => {

@@ -51,10 +51,10 @@ const createRun = makeFunctionReference<
  * has started.
  */
 export async function assistedPartyFixture(
-  /** Options for Aria's Character, such as a feature that changes how she rolls initiative. */
-  ariaCharacter: Parameters<typeof setupCharacterRun>[0] = {}
+  /** Options for the party's class, shared by Aria and Bryn, such as a feature that changes how they roll initiative. */
+  classOptions: Parameters<typeof setupCharacterRun>[0] = {}
 ) {
-  const base = await setupCharacterRun(ariaCharacter, longsword)
+  const base = await setupCharacterRun(classOptions, longsword)
   const { campaign } = base
   const gm = base.owner
   const ariaPlayer = base.player

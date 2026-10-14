@@ -690,12 +690,13 @@ describe('optional evidence and keep-by-roll-mode operations', () => {
     operations
   })
   if (!compiled.ok) throw new Error('Expected the kept d20 graph to compile.')
+  const graph = compiled.value
 
   /** Runs the graph, answering each pause with the next face; returns outputs and the dice asked. */
   function run(facts: { extraDie: boolean; rollMode: string }, faces: readonly number[]) {
     const remaining = [...faces]
     let result = executeRuleGraph({
-      graph: compiled.value,
+      graph,
       occurrenceId: OCCURRENCE_ID,
       facts: { 'test.extra-die': facts.extraDie, 'test.roll-mode': facts.rollMode },
       operations

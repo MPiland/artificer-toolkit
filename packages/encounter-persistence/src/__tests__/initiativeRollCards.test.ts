@@ -13,6 +13,7 @@ const OWNER_ID = 'owner'
 /** One d20 trace entry, as the settled graph records it. */
 function die(requestId: string, value: number, max = 20) {
   return {
+    operation: { key: 'evidence.integer-range', contractVersion: 1 },
     inputs: { min: 1, max },
     evidence: { requestId, kind: 'INTEGER_RANGE', value }
   }
