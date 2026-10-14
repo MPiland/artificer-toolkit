@@ -4,6 +4,7 @@ import { parseRollExpression } from '@artificer-toolkit/shared/rolls'
 import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { SRD_CREATURE_ATTACK_DAMAGE } from '@artificer-toolkit/source-data/srd/creatures/attack-damage.js'
 import { prepareSrdImport } from '@artificer-toolkit/source-data/srd/import.js'
+import { srdBaselineContent } from '@artificer-toolkit/source-data/srd/index.js'
 import {
   SRD_ABILITIES,
   SRD_DAMAGE_TYPES,
@@ -45,8 +46,27 @@ const scriptedRandom = (maxExclusive: number) =>
 const criticalRandom = (maxExclusive: number) =>
   maxExclusive === 20 ? 19 : Math.floor(maxExclusive / 2)
 
-/** The seeded SRD Creatures, validated the way Blueprint creation reads them. */
-const creatures = prepareSrdImport()
+/**
+ * The seeded SRD Creatures, validated the way Blueprint creation reads them. Only the Creatures and
+ * the Equipment they reference are prepared.
+ */
+const { creatures: srdCreatures, equipment } = srdBaselineContent.subjects
+const creatures = prepareSrdImport(
+  {
+    ...srdBaselineContent,
+    subjects: {
+      backgrounds: [],
+      classes: [],
+      creatures: srdCreatures,
+      equipment,
+      feats: [],
+      races: [],
+      spells: [],
+      vehicles: []
+    }
+  },
+  []
+)
   .subjects.filter((subject) => subject.subjectKind === 'CREATURE')
   .map((subject) => creatureAuthoredDtoSchema.parse(subject.document) as CreatureAuthored)
 
