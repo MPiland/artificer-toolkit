@@ -74,7 +74,12 @@ async function persist(root: TurnCoordinatorRootDto) {
       requireSystem: async () => ({ id: 'system', rulesetCode: 'dnd5e', rulesetVersion: '1' }),
       readGmRollVisibility: async () => 'PUBLIC',
       requireCampaignAuthority: async () => ({}),
-      insertTableRoll: async (_authority: unknown, _author: string, _nonce: string, roll: RollRecordDto) => {
+      insertTableRoll: async (
+        _authority: unknown,
+        _author: string,
+        _nonce: string,
+        roll: RollRecordDto
+      ) => {
         posted.push(roll)
         return null
       },

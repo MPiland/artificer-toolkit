@@ -730,7 +730,9 @@ describe('optional evidence and keep-by-roll-mode operations', () => {
     expect(asked).toEqual(['first', 'second'])
     if (result.status !== 'COMPLETE') throw new Error('Expected a completed execution.')
     expect(result.outputs).toEqual({ value: 17 })
-    expect(result.evidence.trace.filter((entry) => entry.evidence).map((e) => e.evidence?.value)).toEqual([4, 17])
+    expect(
+      result.evidence.trace.filter((entry) => entry.evidence).map((e) => e.evidence?.value)
+    ).toEqual([4, 17])
   })
 
   it('asks for both dice and keeps the lower on disadvantage', () => {
@@ -765,4 +767,3 @@ describe('optional evidence and keep-by-roll-mode operations', () => {
     ).toThrow(/enabling port/)
   })
 })
-

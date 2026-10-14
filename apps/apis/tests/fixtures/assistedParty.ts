@@ -100,10 +100,11 @@ export async function assistedPartyFixture(
     contentSourceId: SRD_CONTENT_SOURCE.id,
     subjects: [importedSubject({ ...srdWolf, subjectKind: 'CREATURE', document: srdWolf })]
   })
-  const { version, updatedAt: _updatedAt, ...settings } = await gm.caller.query(
-    api.campaigns.playSettings.get,
-    { campaignId: campaign.id }
-  )
+  const {
+    version,
+    updatedAt: _updatedAt,
+    ...settings
+  } = await gm.caller.query(api.campaigns.playSettings.get, { campaignId: campaign.id })
   await gm.caller.mutation(api.campaigns.playSettings.save, {
     ...settings,
     expectedVersion: version,

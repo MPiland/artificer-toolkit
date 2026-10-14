@@ -283,7 +283,9 @@ describe('Three-user Assisted Encounter with auto-roll (ENCOUNTER-5.1)', () => {
       }
       expect(cards).toEqual(initiativeCardsBy[0])
     }
-    for (const card of initiativeCardsBy[0]!.filter((candidate) => candidate.evidence.mode === 'ADVANTAGE'))
+    for (const card of initiativeCardsBy[0]!.filter(
+      (candidate) => candidate.evidence.mode === 'ADVANTAGE'
+    ))
       expect(card.evidence.terms[0]?.subtotal).toBe(Math.max(...card.evidence.terms[0]!.rolls))
   }, 180000)
 

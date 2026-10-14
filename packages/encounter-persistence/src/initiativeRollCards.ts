@@ -66,7 +66,9 @@ export async function persistEncounterInitiativeRollCards(
       throw new Error('A declared initiative roll mode must be normal, advantage or disadvantage.')
     const rollMode: Parameters<typeof initiativeRollRecord>[0]['rollMode'] = declaredMode
     if ((dice.length === 2) === (rollMode === 'NORMAL'))
-      throw new Error('A declared initiative that settled two dice needs an advantage or disadvantage roll mode.')
+      throw new Error(
+        'A declared initiative that settled two dice needs an advantage or disadvantage roll mode.'
+      )
     const keptValue =
       dice.length === 1
         ? dice[0]?.evidence.value
@@ -79,7 +81,10 @@ export async function persistEncounterInitiativeRollCards(
         sides,
         rollMode,
         modifier: result.execution.score - keptValue,
-        settled: dice.map(({ evidence }) => ({ requestId: evidence.requestId, value: evidence.value }))
+        settled: dice.map(({ evidence }) => ({
+          requestId: evidence.requestId,
+          value: evidence.value
+        }))
       }
     ]
   })
@@ -103,7 +108,8 @@ export async function persistEncounterInitiativeRollCards(
       rollMode,
       nextInt: () => {
         const face = faces.shift()
-        if (face === undefined) throw new Error('Initiative card asked for more faces than settled.')
+        if (face === undefined)
+          throw new Error('Initiative card asked for more faces than settled.')
         return face - 1
       },
       characterId: actor.kind === 'CHARACTER' ? actor.sourceId : null,

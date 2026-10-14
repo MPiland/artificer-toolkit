@@ -1502,9 +1502,11 @@ describe('declared initiative roll cards', () => {
   }
 
   /** The table's cards after the GM opens the table chat, as their client does. */
-  async function tableInitiativeCards(base: Parameters<typeof storedInitiative>[0] & {
-    owner: Awaited<ReturnType<typeof fixture>>['owner']
-  }) {
+  async function tableInitiativeCards(
+    base: Parameters<typeof storedInitiative>[0] & {
+      owner: Awaited<ReturnType<typeof fixture>>['owner']
+    }
+  ) {
     await base.owner.caller.mutation(api.campaigns.conversations.open, {
       campaignId: base.campaign.id,
       kind: 'TABLE'
@@ -1535,7 +1537,9 @@ describe('declared initiative roll cards', () => {
       terms: [{ count: 2, die: 20, subtotal: 15 }]
     })
     expect([...characterCard!.evidence.terms[0]!.rolls].sort((a, b) => a - b)).toEqual([5, 15])
-    expect(characterCard!.evidence.terms[0]!.rolls[characterCard!.evidence.terms[0]!.keptRollIndex!]).toBe(15)
+    expect(
+      characterCard!.evidence.terms[0]!.rolls[characterCard!.evidence.terms[0]!.keptRollIndex!]
+    ).toBe(15)
     expect(enemyCard?.evidence).toMatchObject({
       mode: 'NORMAL',
       total: scores.get(enemyActor.id),
@@ -1570,4 +1574,3 @@ describe('declared initiative roll cards', () => {
     ).toHaveLength(1)
   }, 30000)
 })
-
