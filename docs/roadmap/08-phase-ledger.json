@@ -5336,7 +5336,7 @@
               "status": "TODO",
               "proof": [],
               "origin": [],
-              "note": "Split 2026-10-14 from the original AC (Rage, Sneak Attack, Smite, Action Surge, Second Wind, two-weapon fighting resolve); rul-9-rules-audit.md slice 7. Inventory: all but Second Wind are inert CLOSED_RULE outcomes (closed-rule-effect.ts) that compile to MANUAL and are never offered."
+              "note": "Split 2026-10-14 from the original AC (Rage, Sneak Attack, Smite, Action Surge, Second Wind, two-weapon fighting resolve); rul-9-rules-audit.md slice 7. Inventory: all but Second Wind are inert CLOSED_RULE outcomes (closed-rule-effect.ts) that compile to MANUAL and are never offered. The SRD early end (no attack on a hostile creature and no damage taken since the last turn) is ATTACK-9.6 / T6."
             },
             {
               "id": "ATTACK-9.2",
@@ -5369,6 +5369,14 @@
               "proof": [],
               "origin": [],
               "note": "D107."
+            },
+            {
+              "id": "ATTACK-9.6",
+              "text": "Rage ends early at the start of the Barbarian's turn when they neither attacked a hostile creature nor took damage since their previous turn, read from the per-turn Encounter record ATTACK-9.T2 builds.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Deferred from ATTACK-9.T1 on 2026-10-14: no per-turn attack/damage record existed."
             }
           ],
           "wsjf": {
@@ -5440,6 +5448,19 @@
                 "rr": 3,
                 "size": 3,
                 "after": ["ATTACK-9.T3"]
+              }
+            },
+            {
+              "id": "ATTACK-9.T6",
+              "text": "Rage early end from the per-turn attack and damage record.",
+              "status": "TODO",
+              "closes": ["ATTACK-9.6"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 2,
+                "size": 1,
+                "after": ["ATTACK-9.T1", "ATTACK-9.T2"]
               }
             }
           ]
