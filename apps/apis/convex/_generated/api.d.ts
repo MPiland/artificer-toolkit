@@ -1719,7 +1719,222 @@ export declare const api: {
           characterId: string;
           command:
             | {
-                adjustment: any | any | any;
+                adjustment:
+                  | {
+                      ability:
+                        | "CHARISMA"
+                        | "CONSTITUTION"
+                        | "DEXTERITY"
+                        | "INTELLIGENCE"
+                        | "STRENGTH"
+                        | "WISDOM";
+                      family: "ABILITY";
+                      field: "OTHER_MODIFIER";
+                      id?: string;
+                      sourceNote?: string;
+                      value: number;
+                    }
+                  | {
+                      ability:
+                        | "CHARISMA"
+                        | "CONSTITUTION"
+                        | "DEXTERITY"
+                        | "INTELLIGENCE"
+                        | "STRENGTH"
+                        | "WISDOM";
+                      family: "ABILITY";
+                      field: "SCORE_OVERRIDE";
+                      id?: string;
+                      sourceNote?: string;
+                      value: number;
+                    }
+                  | {
+                      ability:
+                        | "CHARISMA"
+                        | "CONSTITUTION"
+                        | "DEXTERITY"
+                        | "INTELLIGENCE"
+                        | "STRENGTH"
+                        | "WISDOM";
+                      family: "SAVING_THROW";
+                      field: "MAGIC_BONUS" | "MISC_BONUS" | "TOTAL_OVERRIDE";
+                      id?: string;
+                      sourceNote?: string;
+                      value: number;
+                    }
+                  | {
+                      ability:
+                        | "CHARISMA"
+                        | "CONSTITUTION"
+                        | "DEXTERITY"
+                        | "INTELLIGENCE"
+                        | "STRENGTH"
+                        | "WISDOM";
+                      family: "SAVING_THROW";
+                      field: "PROFICIENCY_OVERRIDE";
+                      id?: string;
+                      sourceNote?: string;
+                      value: "NONE" | "HALF" | "FULL" | "DOUBLE";
+                    }
+                  | {
+                      family: "SKILL";
+                      field: "MAGIC_BONUS" | "MISC_BONUS" | "TOTAL_OVERRIDE";
+                      id?: string;
+                      skillId: string;
+                      sourceNote?: string;
+                      value: number;
+                    }
+                  | {
+                      family: "SKILL";
+                      field: "PROFICIENCY_OVERRIDE";
+                      id?: string;
+                      skillId: string;
+                      sourceNote?: string;
+                      value: "NONE" | "HALF" | "FULL" | "DOUBLE";
+                    }
+                  | {
+                      family: "SKILL";
+                      field: "GOVERNING_ABILITY_OVERRIDE";
+                      id?: string;
+                      skillId: string;
+                      sourceNote?: string;
+                      value:
+                        | "CHARISMA"
+                        | "CONSTITUTION"
+                        | "DEXTERITY"
+                        | "INTELLIGENCE"
+                        | "STRENGTH"
+                        | "WISDOM";
+                    }
+                  | {
+                      family: "PASSIVE";
+                      field: "TOTAL_OVERRIDE";
+                      id?: string;
+                      skillId: string;
+                      sourceNote?: string;
+                      value: number;
+                    }
+                  | {
+                      family: "SENSE";
+                      field: "RANGE_OVERRIDE";
+                      id?: string;
+                      senseId: string;
+                      sourceNote?: string;
+                      value: {
+                        amount: number;
+                        unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                      };
+                    }
+                  | {
+                      family: "MOVEMENT";
+                      field: "SPEED_OVERRIDE";
+                      id?: string;
+                      sourceNote?: string;
+                      speedId: string;
+                      value: {
+                        amount: number;
+                        unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                      };
+                    }
+                  | {
+                      family: "HIT_POINTS";
+                      field: "MAXIMUM_MODIFIER";
+                      id?: string;
+                      sourceNote?: string;
+                      value: number;
+                    }
+                  | {
+                      family: "HIT_POINTS";
+                      field: "MAXIMUM_OVERRIDE";
+                      id?: string;
+                      sourceNote?: string;
+                      value: number;
+                    }
+                  | {
+                      damageTypeId: string;
+                      defenseKind: "IMMUNITY" | "RESISTANCE" | "VULNERABILITY";
+                      family: "DEFENSE";
+                      field: "ADDITION";
+                      id?: string;
+                      sourceNote?: string;
+                      value: true;
+                    }
+                  | {
+                      family: "PROFICIENCY";
+                      field: "ADDITION";
+                      id?: string;
+                      proficiencyKind: "ARMOR" | "LANGUAGE" | "TOOL" | "WEAPON";
+                      sourceNote?: string;
+                      targetId: string;
+                      value: true;
+                    }
+                  | {
+                      family: "ITEM";
+                      field:
+                        | "ATTACK_BONUS"
+                        | "ATTACK_OVERRIDE"
+                        | "COST_OVERRIDE"
+                        | "DAMAGE_BONUS";
+                      id?: string;
+                      itemInstanceId: string;
+                      sourceNote?: string;
+                      value: number;
+                    }
+                  | {
+                      family: "ITEM";
+                      field: "WEIGHT_OVERRIDE";
+                      id?: string;
+                      itemInstanceId: string;
+                      sourceNote?: string;
+                      value: number;
+                    }
+                  | {
+                      family: "ITEM";
+                      field:
+                        | "ADAMANTINE"
+                        | "DISPLAY_AS_ATTACK"
+                        | "DUAL_WIELD"
+                        | "SILVERED";
+                      id?: string;
+                      itemInstanceId: string;
+                      sourceNote?: string;
+                      value: true;
+                    }
+                  | {
+                      companionInstanceId: string;
+                      family: "COMPANION";
+                      field:
+                        "ARMOR_CLASS_OVERRIDE" | "MAXIMUM_HIT_POINTS_OVERRIDE";
+                      id?: string;
+                      sourceNote?: string;
+                      value: number;
+                    }
+                  | {
+                      companionInstanceId: string;
+                      family: "COMPANION";
+                      field: "ALIGNMENT_OVERRIDE" | "CREATURE_TYPE_OVERRIDE";
+                      id?: string;
+                      sourceNote?: string;
+                      value: string;
+                    }
+                  | {
+                      companionInstanceId: string;
+                      family: "COMPANION";
+                      field: "SIZE_OVERRIDE";
+                      id?: string;
+                      sourceNote?: string;
+                      value:
+                        | "COLOSSAL"
+                        | "DIMUNITIVE"
+                        | "FINE"
+                        | "GARGANTUAN"
+                        | "GIANT"
+                        | "HUGE"
+                        | "LARGE"
+                        | "MEDIUM"
+                        | "SMALL"
+                        | "TINY";
+                    };
                 commandId: string;
                 expectedVersion: number;
                 type: "UPSERT_SHEET_ADJUSTMENT";
@@ -4769,7 +4984,114 @@ export declare const api: {
               state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
               total: number;
             }>;
-            senses: Array<any>;
+            senses: Array<
+              | {
+                  editor: {
+                    adjustmentId?: string;
+                    commitIntent: "ON_BLUR_OR_ENTER";
+                    defaultUnit?: "INCHES" | "FEET" | "YARDS" | "MILES";
+                    field: "RANGE_OVERRIDE";
+                    kind: "LENGTH";
+                    label: string;
+                    sourceNote?: string;
+                    value: {
+                      amount: number;
+                      unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                    } | null;
+                  };
+                  label: string;
+                  rangeKind: "NOT_HELD";
+                  senseId: string;
+                  state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
+                }
+              | {
+                  editor: {
+                    adjustmentId?: string;
+                    commitIntent: "ON_BLUR_OR_ENTER";
+                    defaultUnit?: "INCHES" | "FEET" | "YARDS" | "MILES";
+                    field: "RANGE_OVERRIDE";
+                    kind: "LENGTH";
+                    label: string;
+                    sourceNote?: string;
+                    value: {
+                      amount: number;
+                      unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                    } | null;
+                  };
+                  label: string;
+                  rangeKind: "UNLIMITED";
+                  senseId: string;
+                  state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
+                }
+              | {
+                  calculation: {
+                    base: number;
+                    contributions: Array<{
+                      id: string;
+                      source:
+                        | {
+                            definitionId: string;
+                            kind: "AUTHORED";
+                            sourceInstanceId: string;
+                            sourceKind:
+                              | "ANCESTRY"
+                              | "BACKGROUND"
+                              | "CLASS"
+                              | "FEAT"
+                              | "FEATURE"
+                              | "OPTION"
+                              | "RACE"
+                              | "SPELL"
+                              | "SUBRACE"
+                              | "SUBCLASS";
+                          }
+                        | {
+                            equipmentId: string;
+                            itemInstanceId: string;
+                            kind: "EQUIPMENT_INSTANCE";
+                          }
+                        | {
+                            companionInstanceId: string;
+                            creatureId: string;
+                            kind: "COMPANION_INSTANCE";
+                          }
+                        | { kind: "SYSTEM"; systemId: string }
+                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                        | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
+                      sourceLabel: string;
+                      sourceNote?: string;
+                      state: "APPLIED" | "SUPPRESSED";
+                      value: number;
+                    }>;
+                    effective: number;
+                    override?: {
+                      adjustmentId: string;
+                      sourceLabel: string;
+                      sourceNote?: string;
+                      value: number;
+                    };
+                  };
+                  editor: {
+                    adjustmentId?: string;
+                    commitIntent: "ON_BLUR_OR_ENTER";
+                    defaultUnit?: "INCHES" | "FEET" | "YARDS" | "MILES";
+                    field: "RANGE_OVERRIDE";
+                    kind: "LENGTH";
+                    label: string;
+                    sourceNote?: string;
+                    value: {
+                      amount: number;
+                      unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                    } | null;
+                  };
+                  label: string;
+                  range: number;
+                  rangeKind: "DISTANCE";
+                  senseId: string;
+                  state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
+                  unitLabel: string;
+                }
+            >;
             state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
             target: {
               entry?:
@@ -8276,7 +8598,246 @@ export declare const api: {
         "public",
         { campaignId: string; characterId: string },
         Array<{
-          adjustment: any;
+          adjustment:
+            | {
+                ability:
+                  | "CHARISMA"
+                  | "CONSTITUTION"
+                  | "DEXTERITY"
+                  | "INTELLIGENCE"
+                  | "STRENGTH"
+                  | "WISDOM";
+                family: "ABILITY";
+                field: "OTHER_MODIFIER";
+                id?: string;
+                sourceNote?: string;
+                value: number;
+              }
+            | {
+                ability:
+                  | "CHARISMA"
+                  | "CONSTITUTION"
+                  | "DEXTERITY"
+                  | "INTELLIGENCE"
+                  | "STRENGTH"
+                  | "WISDOM";
+                family: "ABILITY";
+                field: "SCORE_OVERRIDE";
+                id?: string;
+                sourceNote?: string;
+                value: number;
+              }
+            | {
+                ability:
+                  | "CHARISMA"
+                  | "CONSTITUTION"
+                  | "DEXTERITY"
+                  | "INTELLIGENCE"
+                  | "STRENGTH"
+                  | "WISDOM";
+                family: "SAVING_THROW";
+                field: "MAGIC_BONUS" | "MISC_BONUS" | "TOTAL_OVERRIDE";
+                id?: string;
+                sourceNote?: string;
+                value: number;
+              }
+            | {
+                ability:
+                  | "CHARISMA"
+                  | "CONSTITUTION"
+                  | "DEXTERITY"
+                  | "INTELLIGENCE"
+                  | "STRENGTH"
+                  | "WISDOM";
+                family: "SAVING_THROW";
+                field: "PROFICIENCY_OVERRIDE";
+                id?: string;
+                sourceNote?: string;
+                value: "NONE" | "HALF" | "FULL" | "DOUBLE";
+              }
+            | {
+                family: "SKILL";
+                field: "MAGIC_BONUS" | "MISC_BONUS" | "TOTAL_OVERRIDE";
+                id?: string;
+                skillId: string;
+                sourceNote?: string;
+                value: number;
+              }
+            | {
+                family: "SKILL";
+                field: "PROFICIENCY_OVERRIDE";
+                id?: string;
+                skillId: string;
+                sourceNote?: string;
+                value: "NONE" | "HALF" | "FULL" | "DOUBLE";
+              }
+            | {
+                family: "SKILL";
+                field: "GOVERNING_ABILITY_OVERRIDE";
+                id?: string;
+                skillId: string;
+                sourceNote?: string;
+                value:
+                  | "CHARISMA"
+                  | "CONSTITUTION"
+                  | "DEXTERITY"
+                  | "INTELLIGENCE"
+                  | "STRENGTH"
+                  | "WISDOM";
+              }
+            | {
+                family: "PASSIVE";
+                field: "TOTAL_OVERRIDE";
+                id?: string;
+                skillId: string;
+                sourceNote?: string;
+                value: number;
+              }
+            | {
+                family: "SENSE";
+                field: "RANGE_OVERRIDE";
+                id?: string;
+                senseId: string;
+                sourceNote?: string;
+                value: {
+                  amount: number;
+                  unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                };
+              }
+            | {
+                family: "MOVEMENT";
+                field: "SPEED_OVERRIDE";
+                id?: string;
+                sourceNote?: string;
+                speedId: string;
+                value: {
+                  amount: number;
+                  unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                };
+              }
+            | {
+                family: "HIT_POINTS";
+                field: "MAXIMUM_MODIFIER";
+                id?: string;
+                sourceNote?: string;
+                value: number;
+              }
+            | {
+                family: "HIT_POINTS";
+                field: "MAXIMUM_OVERRIDE";
+                id?: string;
+                sourceNote?: string;
+                value: number;
+              }
+            | {
+                damageTypeId: string;
+                defenseKind: "IMMUNITY" | "RESISTANCE" | "VULNERABILITY";
+                family: "DEFENSE";
+                field: "ADDITION";
+                id?: string;
+                sourceNote?: string;
+                value: true;
+              }
+            | {
+                family: "PROFICIENCY";
+                field: "ADDITION";
+                id?: string;
+                proficiencyKind: "ARMOR" | "LANGUAGE" | "TOOL" | "WEAPON";
+                sourceNote?: string;
+                targetId: string;
+                value: true;
+              }
+            | {
+                family: "SPELL";
+                field:
+                  | "ATTACK_BONUS"
+                  | "ATTACK_OVERRIDE"
+                  | "DAMAGE_BONUS"
+                  | "DC_BONUS"
+                  | "DC_OVERRIDE";
+                id?: string;
+                source: {
+                  sourceInstanceId: string;
+                  sourceKind:
+                    | "BACKGROUND"
+                    | "CLASS"
+                    | "FEAT"
+                    | "FEATURE"
+                    | "ITEM"
+                    | "OPTION"
+                    | "RACE"
+                    | "SUBCLASS";
+                  spellId: string;
+                };
+                sourceNote?: string;
+                value: number;
+              }
+            | {
+                family: "ITEM";
+                field:
+                  | "ATTACK_BONUS"
+                  | "ATTACK_OVERRIDE"
+                  | "COST_OVERRIDE"
+                  | "DAMAGE_BONUS";
+                id?: string;
+                itemInstanceId: string;
+                sourceNote?: string;
+                value: number;
+              }
+            | {
+                family: "ITEM";
+                field: "WEIGHT_OVERRIDE";
+                id?: string;
+                itemInstanceId: string;
+                sourceNote?: string;
+                value: number;
+              }
+            | {
+                family: "ITEM";
+                field:
+                  | "ADAMANTINE"
+                  | "DISPLAY_AS_ATTACK"
+                  | "DUAL_WIELD"
+                  | "SILVERED";
+                id?: string;
+                itemInstanceId: string;
+                sourceNote?: string;
+                value: true;
+              }
+            | {
+                companionInstanceId: string;
+                family: "COMPANION";
+                field: "ARMOR_CLASS_OVERRIDE" | "MAXIMUM_HIT_POINTS_OVERRIDE";
+                id?: string;
+                sourceNote?: string;
+                value: number;
+              }
+            | {
+                companionInstanceId: string;
+                family: "COMPANION";
+                field: "ALIGNMENT_OVERRIDE" | "CREATURE_TYPE_OVERRIDE";
+                id?: string;
+                sourceNote?: string;
+                value: string;
+              }
+            | {
+                companionInstanceId: string;
+                family: "COMPANION";
+                field: "SIZE_OVERRIDE";
+                id?: string;
+                sourceNote?: string;
+                value:
+                  | "COLOSSAL"
+                  | "DIMUNITIVE"
+                  | "FINE"
+                  | "GARGANTUAN"
+                  | "GIANT"
+                  | "HUGE"
+                  | "LARGE"
+                  | "MEDIUM"
+                  | "SMALL"
+                  | "TINY";
+              };
           campaignId: string;
           characterId: string;
           createdAt: string;
@@ -8330,14 +8891,492 @@ export declare const api: {
         "mutation",
         "public",
         {
-          adjustment: any;
+          adjustment:
+            | {
+                ability:
+                  | "CHARISMA"
+                  | "CONSTITUTION"
+                  | "DEXTERITY"
+                  | "INTELLIGENCE"
+                  | "STRENGTH"
+                  | "WISDOM";
+                family: "ABILITY";
+                field: "OTHER_MODIFIER";
+                id?: string;
+                sourceNote?: string;
+                value: number;
+              }
+            | {
+                ability:
+                  | "CHARISMA"
+                  | "CONSTITUTION"
+                  | "DEXTERITY"
+                  | "INTELLIGENCE"
+                  | "STRENGTH"
+                  | "WISDOM";
+                family: "ABILITY";
+                field: "SCORE_OVERRIDE";
+                id?: string;
+                sourceNote?: string;
+                value: number;
+              }
+            | {
+                ability:
+                  | "CHARISMA"
+                  | "CONSTITUTION"
+                  | "DEXTERITY"
+                  | "INTELLIGENCE"
+                  | "STRENGTH"
+                  | "WISDOM";
+                family: "SAVING_THROW";
+                field: "MAGIC_BONUS" | "MISC_BONUS" | "TOTAL_OVERRIDE";
+                id?: string;
+                sourceNote?: string;
+                value: number;
+              }
+            | {
+                ability:
+                  | "CHARISMA"
+                  | "CONSTITUTION"
+                  | "DEXTERITY"
+                  | "INTELLIGENCE"
+                  | "STRENGTH"
+                  | "WISDOM";
+                family: "SAVING_THROW";
+                field: "PROFICIENCY_OVERRIDE";
+                id?: string;
+                sourceNote?: string;
+                value: "NONE" | "HALF" | "FULL" | "DOUBLE";
+              }
+            | {
+                family: "SKILL";
+                field: "MAGIC_BONUS" | "MISC_BONUS" | "TOTAL_OVERRIDE";
+                id?: string;
+                skillId: string;
+                sourceNote?: string;
+                value: number;
+              }
+            | {
+                family: "SKILL";
+                field: "PROFICIENCY_OVERRIDE";
+                id?: string;
+                skillId: string;
+                sourceNote?: string;
+                value: "NONE" | "HALF" | "FULL" | "DOUBLE";
+              }
+            | {
+                family: "SKILL";
+                field: "GOVERNING_ABILITY_OVERRIDE";
+                id?: string;
+                skillId: string;
+                sourceNote?: string;
+                value:
+                  | "CHARISMA"
+                  | "CONSTITUTION"
+                  | "DEXTERITY"
+                  | "INTELLIGENCE"
+                  | "STRENGTH"
+                  | "WISDOM";
+              }
+            | {
+                family: "PASSIVE";
+                field: "TOTAL_OVERRIDE";
+                id?: string;
+                skillId: string;
+                sourceNote?: string;
+                value: number;
+              }
+            | {
+                family: "SENSE";
+                field: "RANGE_OVERRIDE";
+                id?: string;
+                senseId: string;
+                sourceNote?: string;
+                value: {
+                  amount: number;
+                  unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                };
+              }
+            | {
+                family: "MOVEMENT";
+                field: "SPEED_OVERRIDE";
+                id?: string;
+                sourceNote?: string;
+                speedId: string;
+                value: {
+                  amount: number;
+                  unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                };
+              }
+            | {
+                family: "HIT_POINTS";
+                field: "MAXIMUM_MODIFIER";
+                id?: string;
+                sourceNote?: string;
+                value: number;
+              }
+            | {
+                family: "HIT_POINTS";
+                field: "MAXIMUM_OVERRIDE";
+                id?: string;
+                sourceNote?: string;
+                value: number;
+              }
+            | {
+                damageTypeId: string;
+                defenseKind: "IMMUNITY" | "RESISTANCE" | "VULNERABILITY";
+                family: "DEFENSE";
+                field: "ADDITION";
+                id?: string;
+                sourceNote?: string;
+                value: true;
+              }
+            | {
+                family: "PROFICIENCY";
+                field: "ADDITION";
+                id?: string;
+                proficiencyKind: "ARMOR" | "LANGUAGE" | "TOOL" | "WEAPON";
+                sourceNote?: string;
+                targetId: string;
+                value: true;
+              }
+            | {
+                family: "SPELL";
+                field:
+                  | "ATTACK_BONUS"
+                  | "ATTACK_OVERRIDE"
+                  | "DAMAGE_BONUS"
+                  | "DC_BONUS"
+                  | "DC_OVERRIDE";
+                id?: string;
+                source: {
+                  sourceInstanceId: string;
+                  sourceKind:
+                    | "BACKGROUND"
+                    | "CLASS"
+                    | "FEAT"
+                    | "FEATURE"
+                    | "ITEM"
+                    | "OPTION"
+                    | "RACE"
+                    | "SUBCLASS";
+                  spellId: string;
+                };
+                sourceNote?: string;
+                value: number;
+              }
+            | {
+                family: "ITEM";
+                field:
+                  | "ATTACK_BONUS"
+                  | "ATTACK_OVERRIDE"
+                  | "COST_OVERRIDE"
+                  | "DAMAGE_BONUS";
+                id?: string;
+                itemInstanceId: string;
+                sourceNote?: string;
+                value: number;
+              }
+            | {
+                family: "ITEM";
+                field: "WEIGHT_OVERRIDE";
+                id?: string;
+                itemInstanceId: string;
+                sourceNote?: string;
+                value: number;
+              }
+            | {
+                family: "ITEM";
+                field:
+                  | "ADAMANTINE"
+                  | "DISPLAY_AS_ATTACK"
+                  | "DUAL_WIELD"
+                  | "SILVERED";
+                id?: string;
+                itemInstanceId: string;
+                sourceNote?: string;
+                value: true;
+              }
+            | {
+                companionInstanceId: string;
+                family: "COMPANION";
+                field: "ARMOR_CLASS_OVERRIDE" | "MAXIMUM_HIT_POINTS_OVERRIDE";
+                id?: string;
+                sourceNote?: string;
+                value: number;
+              }
+            | {
+                companionInstanceId: string;
+                family: "COMPANION";
+                field: "ALIGNMENT_OVERRIDE" | "CREATURE_TYPE_OVERRIDE";
+                id?: string;
+                sourceNote?: string;
+                value: string;
+              }
+            | {
+                companionInstanceId: string;
+                family: "COMPANION";
+                field: "SIZE_OVERRIDE";
+                id?: string;
+                sourceNote?: string;
+                value:
+                  | "COLOSSAL"
+                  | "DIMUNITIVE"
+                  | "FINE"
+                  | "GARGANTUAN"
+                  | "GIANT"
+                  | "HUGE"
+                  | "LARGE"
+                  | "MEDIUM"
+                  | "SMALL"
+                  | "TINY";
+              };
           campaignId: string;
           characterId: string;
           expectedVersion: number;
           visibility: "VISIBLE" | "SECRET";
         },
         {
-          adjustment: any;
+          adjustment:
+            | {
+                ability:
+                  | "CHARISMA"
+                  | "CONSTITUTION"
+                  | "DEXTERITY"
+                  | "INTELLIGENCE"
+                  | "STRENGTH"
+                  | "WISDOM";
+                family: "ABILITY";
+                field: "OTHER_MODIFIER";
+                id?: string;
+                sourceNote?: string;
+                value: number;
+              }
+            | {
+                ability:
+                  | "CHARISMA"
+                  | "CONSTITUTION"
+                  | "DEXTERITY"
+                  | "INTELLIGENCE"
+                  | "STRENGTH"
+                  | "WISDOM";
+                family: "ABILITY";
+                field: "SCORE_OVERRIDE";
+                id?: string;
+                sourceNote?: string;
+                value: number;
+              }
+            | {
+                ability:
+                  | "CHARISMA"
+                  | "CONSTITUTION"
+                  | "DEXTERITY"
+                  | "INTELLIGENCE"
+                  | "STRENGTH"
+                  | "WISDOM";
+                family: "SAVING_THROW";
+                field: "MAGIC_BONUS" | "MISC_BONUS" | "TOTAL_OVERRIDE";
+                id?: string;
+                sourceNote?: string;
+                value: number;
+              }
+            | {
+                ability:
+                  | "CHARISMA"
+                  | "CONSTITUTION"
+                  | "DEXTERITY"
+                  | "INTELLIGENCE"
+                  | "STRENGTH"
+                  | "WISDOM";
+                family: "SAVING_THROW";
+                field: "PROFICIENCY_OVERRIDE";
+                id?: string;
+                sourceNote?: string;
+                value: "NONE" | "HALF" | "FULL" | "DOUBLE";
+              }
+            | {
+                family: "SKILL";
+                field: "MAGIC_BONUS" | "MISC_BONUS" | "TOTAL_OVERRIDE";
+                id?: string;
+                skillId: string;
+                sourceNote?: string;
+                value: number;
+              }
+            | {
+                family: "SKILL";
+                field: "PROFICIENCY_OVERRIDE";
+                id?: string;
+                skillId: string;
+                sourceNote?: string;
+                value: "NONE" | "HALF" | "FULL" | "DOUBLE";
+              }
+            | {
+                family: "SKILL";
+                field: "GOVERNING_ABILITY_OVERRIDE";
+                id?: string;
+                skillId: string;
+                sourceNote?: string;
+                value:
+                  | "CHARISMA"
+                  | "CONSTITUTION"
+                  | "DEXTERITY"
+                  | "INTELLIGENCE"
+                  | "STRENGTH"
+                  | "WISDOM";
+              }
+            | {
+                family: "PASSIVE";
+                field: "TOTAL_OVERRIDE";
+                id?: string;
+                skillId: string;
+                sourceNote?: string;
+                value: number;
+              }
+            | {
+                family: "SENSE";
+                field: "RANGE_OVERRIDE";
+                id?: string;
+                senseId: string;
+                sourceNote?: string;
+                value: {
+                  amount: number;
+                  unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                };
+              }
+            | {
+                family: "MOVEMENT";
+                field: "SPEED_OVERRIDE";
+                id?: string;
+                sourceNote?: string;
+                speedId: string;
+                value: {
+                  amount: number;
+                  unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                };
+              }
+            | {
+                family: "HIT_POINTS";
+                field: "MAXIMUM_MODIFIER";
+                id?: string;
+                sourceNote?: string;
+                value: number;
+              }
+            | {
+                family: "HIT_POINTS";
+                field: "MAXIMUM_OVERRIDE";
+                id?: string;
+                sourceNote?: string;
+                value: number;
+              }
+            | {
+                damageTypeId: string;
+                defenseKind: "IMMUNITY" | "RESISTANCE" | "VULNERABILITY";
+                family: "DEFENSE";
+                field: "ADDITION";
+                id?: string;
+                sourceNote?: string;
+                value: true;
+              }
+            | {
+                family: "PROFICIENCY";
+                field: "ADDITION";
+                id?: string;
+                proficiencyKind: "ARMOR" | "LANGUAGE" | "TOOL" | "WEAPON";
+                sourceNote?: string;
+                targetId: string;
+                value: true;
+              }
+            | {
+                family: "SPELL";
+                field:
+                  | "ATTACK_BONUS"
+                  | "ATTACK_OVERRIDE"
+                  | "DAMAGE_BONUS"
+                  | "DC_BONUS"
+                  | "DC_OVERRIDE";
+                id?: string;
+                source: {
+                  sourceInstanceId: string;
+                  sourceKind:
+                    | "BACKGROUND"
+                    | "CLASS"
+                    | "FEAT"
+                    | "FEATURE"
+                    | "ITEM"
+                    | "OPTION"
+                    | "RACE"
+                    | "SUBCLASS";
+                  spellId: string;
+                };
+                sourceNote?: string;
+                value: number;
+              }
+            | {
+                family: "ITEM";
+                field:
+                  | "ATTACK_BONUS"
+                  | "ATTACK_OVERRIDE"
+                  | "COST_OVERRIDE"
+                  | "DAMAGE_BONUS";
+                id?: string;
+                itemInstanceId: string;
+                sourceNote?: string;
+                value: number;
+              }
+            | {
+                family: "ITEM";
+                field: "WEIGHT_OVERRIDE";
+                id?: string;
+                itemInstanceId: string;
+                sourceNote?: string;
+                value: number;
+              }
+            | {
+                family: "ITEM";
+                field:
+                  | "ADAMANTINE"
+                  | "DISPLAY_AS_ATTACK"
+                  | "DUAL_WIELD"
+                  | "SILVERED";
+                id?: string;
+                itemInstanceId: string;
+                sourceNote?: string;
+                value: true;
+              }
+            | {
+                companionInstanceId: string;
+                family: "COMPANION";
+                field: "ARMOR_CLASS_OVERRIDE" | "MAXIMUM_HIT_POINTS_OVERRIDE";
+                id?: string;
+                sourceNote?: string;
+                value: number;
+              }
+            | {
+                companionInstanceId: string;
+                family: "COMPANION";
+                field: "ALIGNMENT_OVERRIDE" | "CREATURE_TYPE_OVERRIDE";
+                id?: string;
+                sourceNote?: string;
+                value: string;
+              }
+            | {
+                companionInstanceId: string;
+                family: "COMPANION";
+                field: "SIZE_OVERRIDE";
+                id?: string;
+                sourceNote?: string;
+                value:
+                  | "COLOSSAL"
+                  | "DIMUNITIVE"
+                  | "FINE"
+                  | "GARGANTUAN"
+                  | "GIANT"
+                  | "HUGE"
+                  | "LARGE"
+                  | "MEDIUM"
+                  | "SMALL"
+                  | "TINY";
+              };
           campaignId: string;
           characterId: string;
           createdAt: string;
@@ -15122,7 +16161,114 @@ export declare const api: {
               state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
               total: number;
             }>;
-            senses: Array<any>;
+            senses: Array<
+              | {
+                  editor: {
+                    adjustmentId?: string;
+                    commitIntent: "ON_BLUR_OR_ENTER";
+                    defaultUnit?: "INCHES" | "FEET" | "YARDS" | "MILES";
+                    field: "RANGE_OVERRIDE";
+                    kind: "LENGTH";
+                    label: string;
+                    sourceNote?: string;
+                    value: {
+                      amount: number;
+                      unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                    } | null;
+                  };
+                  label: string;
+                  rangeKind: "NOT_HELD";
+                  senseId: string;
+                  state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
+                }
+              | {
+                  editor: {
+                    adjustmentId?: string;
+                    commitIntent: "ON_BLUR_OR_ENTER";
+                    defaultUnit?: "INCHES" | "FEET" | "YARDS" | "MILES";
+                    field: "RANGE_OVERRIDE";
+                    kind: "LENGTH";
+                    label: string;
+                    sourceNote?: string;
+                    value: {
+                      amount: number;
+                      unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                    } | null;
+                  };
+                  label: string;
+                  rangeKind: "UNLIMITED";
+                  senseId: string;
+                  state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
+                }
+              | {
+                  calculation: {
+                    base: number;
+                    contributions: Array<{
+                      id: string;
+                      source:
+                        | {
+                            definitionId: string;
+                            kind: "AUTHORED";
+                            sourceInstanceId: string;
+                            sourceKind:
+                              | "ANCESTRY"
+                              | "BACKGROUND"
+                              | "CLASS"
+                              | "FEAT"
+                              | "FEATURE"
+                              | "OPTION"
+                              | "RACE"
+                              | "SPELL"
+                              | "SUBRACE"
+                              | "SUBCLASS";
+                          }
+                        | {
+                            equipmentId: string;
+                            itemInstanceId: string;
+                            kind: "EQUIPMENT_INSTANCE";
+                          }
+                        | {
+                            companionInstanceId: string;
+                            creatureId: string;
+                            kind: "COMPANION_INSTANCE";
+                          }
+                        | { kind: "SYSTEM"; systemId: string }
+                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                        | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
+                      sourceLabel: string;
+                      sourceNote?: string;
+                      state: "APPLIED" | "SUPPRESSED";
+                      value: number;
+                    }>;
+                    effective: number;
+                    override?: {
+                      adjustmentId: string;
+                      sourceLabel: string;
+                      sourceNote?: string;
+                      value: number;
+                    };
+                  };
+                  editor: {
+                    adjustmentId?: string;
+                    commitIntent: "ON_BLUR_OR_ENTER";
+                    defaultUnit?: "INCHES" | "FEET" | "YARDS" | "MILES";
+                    field: "RANGE_OVERRIDE";
+                    kind: "LENGTH";
+                    label: string;
+                    sourceNote?: string;
+                    value: {
+                      amount: number;
+                      unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                    } | null;
+                  };
+                  label: string;
+                  range: number;
+                  rangeKind: "DISTANCE";
+                  senseId: string;
+                  state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
+                  unitLabel: string;
+                }
+            >;
             state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
             target: {
               entry?:
@@ -18282,7 +19428,222 @@ export declare const api: {
         {
           command:
             | {
-                adjustment: any | any | any;
+                adjustment:
+                  | {
+                      ability:
+                        | "CHARISMA"
+                        | "CONSTITUTION"
+                        | "DEXTERITY"
+                        | "INTELLIGENCE"
+                        | "STRENGTH"
+                        | "WISDOM";
+                      family: "ABILITY";
+                      field: "OTHER_MODIFIER";
+                      id?: string;
+                      sourceNote?: string;
+                      value: number;
+                    }
+                  | {
+                      ability:
+                        | "CHARISMA"
+                        | "CONSTITUTION"
+                        | "DEXTERITY"
+                        | "INTELLIGENCE"
+                        | "STRENGTH"
+                        | "WISDOM";
+                      family: "ABILITY";
+                      field: "SCORE_OVERRIDE";
+                      id?: string;
+                      sourceNote?: string;
+                      value: number;
+                    }
+                  | {
+                      ability:
+                        | "CHARISMA"
+                        | "CONSTITUTION"
+                        | "DEXTERITY"
+                        | "INTELLIGENCE"
+                        | "STRENGTH"
+                        | "WISDOM";
+                      family: "SAVING_THROW";
+                      field: "MAGIC_BONUS" | "MISC_BONUS" | "TOTAL_OVERRIDE";
+                      id?: string;
+                      sourceNote?: string;
+                      value: number;
+                    }
+                  | {
+                      ability:
+                        | "CHARISMA"
+                        | "CONSTITUTION"
+                        | "DEXTERITY"
+                        | "INTELLIGENCE"
+                        | "STRENGTH"
+                        | "WISDOM";
+                      family: "SAVING_THROW";
+                      field: "PROFICIENCY_OVERRIDE";
+                      id?: string;
+                      sourceNote?: string;
+                      value: "NONE" | "HALF" | "FULL" | "DOUBLE";
+                    }
+                  | {
+                      family: "SKILL";
+                      field: "MAGIC_BONUS" | "MISC_BONUS" | "TOTAL_OVERRIDE";
+                      id?: string;
+                      skillId: string;
+                      sourceNote?: string;
+                      value: number;
+                    }
+                  | {
+                      family: "SKILL";
+                      field: "PROFICIENCY_OVERRIDE";
+                      id?: string;
+                      skillId: string;
+                      sourceNote?: string;
+                      value: "NONE" | "HALF" | "FULL" | "DOUBLE";
+                    }
+                  | {
+                      family: "SKILL";
+                      field: "GOVERNING_ABILITY_OVERRIDE";
+                      id?: string;
+                      skillId: string;
+                      sourceNote?: string;
+                      value:
+                        | "CHARISMA"
+                        | "CONSTITUTION"
+                        | "DEXTERITY"
+                        | "INTELLIGENCE"
+                        | "STRENGTH"
+                        | "WISDOM";
+                    }
+                  | {
+                      family: "PASSIVE";
+                      field: "TOTAL_OVERRIDE";
+                      id?: string;
+                      skillId: string;
+                      sourceNote?: string;
+                      value: number;
+                    }
+                  | {
+                      family: "SENSE";
+                      field: "RANGE_OVERRIDE";
+                      id?: string;
+                      senseId: string;
+                      sourceNote?: string;
+                      value: {
+                        amount: number;
+                        unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                      };
+                    }
+                  | {
+                      family: "MOVEMENT";
+                      field: "SPEED_OVERRIDE";
+                      id?: string;
+                      sourceNote?: string;
+                      speedId: string;
+                      value: {
+                        amount: number;
+                        unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                      };
+                    }
+                  | {
+                      family: "HIT_POINTS";
+                      field: "MAXIMUM_MODIFIER";
+                      id?: string;
+                      sourceNote?: string;
+                      value: number;
+                    }
+                  | {
+                      family: "HIT_POINTS";
+                      field: "MAXIMUM_OVERRIDE";
+                      id?: string;
+                      sourceNote?: string;
+                      value: number;
+                    }
+                  | {
+                      damageTypeId: string;
+                      defenseKind: "IMMUNITY" | "RESISTANCE" | "VULNERABILITY";
+                      family: "DEFENSE";
+                      field: "ADDITION";
+                      id?: string;
+                      sourceNote?: string;
+                      value: true;
+                    }
+                  | {
+                      family: "PROFICIENCY";
+                      field: "ADDITION";
+                      id?: string;
+                      proficiencyKind: "ARMOR" | "LANGUAGE" | "TOOL" | "WEAPON";
+                      sourceNote?: string;
+                      targetId: string;
+                      value: true;
+                    }
+                  | {
+                      family: "ITEM";
+                      field:
+                        | "ATTACK_BONUS"
+                        | "ATTACK_OVERRIDE"
+                        | "COST_OVERRIDE"
+                        | "DAMAGE_BONUS";
+                      id?: string;
+                      itemInstanceId: string;
+                      sourceNote?: string;
+                      value: number;
+                    }
+                  | {
+                      family: "ITEM";
+                      field: "WEIGHT_OVERRIDE";
+                      id?: string;
+                      itemInstanceId: string;
+                      sourceNote?: string;
+                      value: number;
+                    }
+                  | {
+                      family: "ITEM";
+                      field:
+                        | "ADAMANTINE"
+                        | "DISPLAY_AS_ATTACK"
+                        | "DUAL_WIELD"
+                        | "SILVERED";
+                      id?: string;
+                      itemInstanceId: string;
+                      sourceNote?: string;
+                      value: true;
+                    }
+                  | {
+                      companionInstanceId: string;
+                      family: "COMPANION";
+                      field:
+                        "ARMOR_CLASS_OVERRIDE" | "MAXIMUM_HIT_POINTS_OVERRIDE";
+                      id?: string;
+                      sourceNote?: string;
+                      value: number;
+                    }
+                  | {
+                      companionInstanceId: string;
+                      family: "COMPANION";
+                      field: "ALIGNMENT_OVERRIDE" | "CREATURE_TYPE_OVERRIDE";
+                      id?: string;
+                      sourceNote?: string;
+                      value: string;
+                    }
+                  | {
+                      companionInstanceId: string;
+                      family: "COMPANION";
+                      field: "SIZE_OVERRIDE";
+                      id?: string;
+                      sourceNote?: string;
+                      value:
+                        | "COLOSSAL"
+                        | "DIMUNITIVE"
+                        | "FINE"
+                        | "GARGANTUAN"
+                        | "GIANT"
+                        | "HUGE"
+                        | "LARGE"
+                        | "MEDIUM"
+                        | "SMALL"
+                        | "TINY";
+                    };
                 commandId: string;
                 expectedVersion: number;
                 type: "UPSERT_SHEET_ADJUSTMENT";

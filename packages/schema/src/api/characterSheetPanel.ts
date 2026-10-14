@@ -284,6 +284,16 @@ const skillsPanelDtoSchema = lazySchema(() =>
   })
 )
 
+/** Shared by every sense kind: a flat union, because Convex infers an intersection as `any`. */
+const senseRowShape = () => ({
+  senseId: uuidSchema,
+  label: stringSchema.check(z.minLength(1)),
+  state: characterSheetAdjustmentStateDtoSchema,
+  editor: z.extend(lengthAdjustmentEditorBaseDtoSchema, {
+    field: z.literal('RANGE_OVERRIDE')
+  })
+})
+
 const sensesPanelDtoSchema = lazySchema(() =>
   z.extend(characterSheetPanelCommonDtoSchema, {
     kind: z.literal('SENSES'),
@@ -301,26 +311,17 @@ const sensesPanelDtoSchema = lazySchema(() =>
       })
     ),
     senses: z.array(
-      z.intersection(
+      z.discriminatedUnion('rangeKind', [
+        z.object({ ...senseRowShape(), rangeKind: z.literal('NOT_HELD') }),
+        z.object({ ...senseRowShape(), rangeKind: z.literal('UNLIMITED') }),
         z.object({
-          senseId: uuidSchema,
-          label: stringSchema.check(z.minLength(1)),
-          state: characterSheetAdjustmentStateDtoSchema,
-          editor: z.extend(lengthAdjustmentEditorBaseDtoSchema, {
-            field: z.literal('RANGE_OVERRIDE')
-          })
-        }),
-        z.discriminatedUnion('rangeKind', [
-          z.object({ rangeKind: z.literal('NOT_HELD') }),
-          z.object({ rangeKind: z.literal('UNLIMITED') }),
-          z.object({
-            rangeKind: z.literal('DISTANCE'),
-            range: numberSchema.check(z.nonnegative()),
-            unitLabel: stringSchema.check(z.minLength(1)),
-            calculation: characterSheetPanelNumericCalculationDtoSchema
-          })
-        ])
-      )
+          ...senseRowShape(),
+          rangeKind: z.literal('DISTANCE'),
+          range: numberSchema.check(z.nonnegative()),
+          unitLabel: stringSchema.check(z.minLength(1)),
+          calculation: characterSheetPanelNumericCalculationDtoSchema
+        })
+      ])
     )
   })
 )
