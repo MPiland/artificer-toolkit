@@ -354,6 +354,9 @@ const predicatePayloadSchemas = lazySchemaParts(
       SPEED_ABOVE_ZERO: z.object({
         predicateCode: z.literal(predicateCodeSchema._zod.def.entries.SPEED_ABOVE_ZERO)
       }),
+      FREE_HAND: z.object({
+        predicateCode: z.literal(predicateCodeSchema._zod.def.entries.FREE_HAND)
+      }),
       CHARACTER_LEVEL: z.object({
         predicateCode: z.literal(predicateCodeSchema._zod.def.entries.CHARACTER_LEVEL),
         min: z.number(),

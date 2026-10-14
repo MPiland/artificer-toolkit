@@ -4,6 +4,7 @@ import {
   creatureFeature,
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
+import { plannedModifierGrant } from '@artificer-toolkit/rules-runtime/testing/modifierGrantFixture'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { RoomEncounterStore } from '../src/roomEncounterStore.js'
@@ -114,6 +115,24 @@ async function playerEnds(room: SheetRoom, target?: SheetTarget) {
     )
     if (!answer) throw new Error('The room has not answered the command.')
     return answer.type
+  })
+}
+
+type RoomClient = Pick<Awaited<ReturnType<typeof connectPlayer>>, 'messages'> & {
+  socket: { send(data: string): void }
+}
+
+/** A fresh subscription reads the timeline as that member sees it. */
+async function timelineAs(client: RoomClient) {
+  const first = client.messages.length
+  client.socket.send(JSON.stringify({ type: 'SUBSCRIBE_ENCOUNTER_SESSION', timeline: true }))
+  return vi.waitFor(() => {
+    const message = client.messages
+      .slice(first)
+      .find((candidate) => candidate.type === 'ENCOUNTER_SESSION')
+    if (message?.type !== 'ENCOUNTER_SESSION' || !message.session.held)
+      throw new Error('The room has not sent the held Encounter session.')
+    return message.session.timeline?.entries ?? []
   })
 }
 
@@ -242,7 +261,7 @@ describe('a caster outside the Run ends a carried Concentration (SPELLS-5.11, Q1
   const CASTER_ID = testUuid(0x410)
 
   /** The Run holds a Character carrying a grant the outside caster's Concentration keeps alive. */
-  function outsideCasterRoom(stamped = true) {
+  function outsideCasterRoom(stamped = true, source?: { label: string; hidden: boolean }) {
     return movementRoom({
       actors: [characterActor({ id: HOLDER_ID, characterId: CHARACTER_ID })],
       moverActorId: HOLDER_ID,
@@ -250,15 +269,26 @@ describe('a caster outside the Run ends a carried Concentration (SPELLS-5.11, Q1
       characterPlay: { currentHitPoints: 20 },
       outsideCasterCharacterId: CASTER_ID,
       seed: async ({ effects, encounterId, occurredAt }) => {
+        // With a `source`, the real planned grant carries its label and whether it is hidden (D99).
+        const grant = source
+          ? plannedModifierGrant({
+              encounterId,
+              sourceActorId: HOLDER_ID,
+              holderActorId: HOLDER_ID,
+              lifecycle: {},
+              sourceLabel: source.label,
+              sourceHidden: source.hidden
+            })
+          : null
         await effects.create({
           id: testUuid(0x5200),
           owner: { kind: 'ENCOUNTER_ACTOR', encounterId, targetActorId: HOLDER_ID },
           lifecycle: {
-            schemaVersion: 1,
-            remainingTicks: 3,
+            ...(grant?.lifecycle ?? { schemaVersion: 1, remainingTicks: 3 }),
             concentrationCasterCharacterId: stamped ? CASTER_ID : null
           },
-          definition: dependentEffectDefinition({ encounterId, sourceActorId: HOLDER_ID }),
+          definition:
+            grant?.definition ?? dependentEffectDefinition({ encounterId, sourceActorId: HOLDER_ID }),
           occurredAt
         })
       }
@@ -332,23 +362,6 @@ describe('a caster outside the Run ends a carried Concentration (SPELLS-5.11, Q1
         )
       ).toBe(true)
     )
-    // A fresh subscription reads the timeline as that member sees it.
-    const timelineAs = async (client: {
-      messages: typeof player.messages
-      socket: { send(data: string): void }
-    }) => {
-      const first = client.messages.length
-      client.socket.send(JSON.stringify({ type: 'SUBSCRIBE_ENCOUNTER_SESSION', timeline: true }))
-      return vi.waitFor(() => {
-        const message = client.messages
-          .slice(first)
-          .find((candidate) => candidate.type === 'ENCOUNTER_SESSION')
-        if (message?.type !== 'ENCOUNTER_SESSION' || !message.session.held)
-          throw new Error('The room has not sent the held Encounter session.')
-        return message.session.timeline?.entries ?? []
-      })
-    }
-
     const gm = await timelineAs(room.base)
     expect(gm).toContainEqual(
       expect.objectContaining({
@@ -362,6 +375,68 @@ describe('a caster outside the Run ends a carried Concentration (SPELLS-5.11, Q1
         (entry) => entry.commandType === 'CONCENTRATION_DROPPED_OUTSIDE'
       )
     ).toEqual([])
+  })
+
+  describe('the source named in the drop notice (PRIVACY-4.1, D99, D101)', () => {
+    const SOURCE_LABEL = 'Moonlit Tincture'
+
+    /**
+     * A player subscribed to the timeline drops the Concentration, sends the same command again,
+     * and a second player connection catches up afterwards. Everything each socket received is
+     * kept, so a name leaking through any frame the room pushes is found.
+     */
+    async function dropAsPlayer(hidden: boolean) {
+      const room = await outsideCasterRoom(true, { label: SOURCE_LABEL, hidden })
+      const player = await connectPlayer(room.base)
+      await timelineAs(player)
+      const { commandId, frame } = await sheetFrame(room, casterTarget)
+      const send = () =>
+        player.socket.send(
+          JSON.stringify({ type: 'COMMAND', expectedSessionSequence: 0, command: frame })
+        )
+      const committed = () =>
+        player.messages.filter(
+          (message) => message.type === 'COMMAND_COMMITTED' && message.commandId === commandId
+        )
+      send()
+      await vi.waitFor(() => expect(committed()).toHaveLength(1))
+      send()
+      await vi.waitFor(() => expect(committed()).toHaveLength(2))
+      const reconnected = await connectPlayer(room.base)
+      return {
+        room,
+        player,
+        reconnected,
+        gmTimeline: await timelineAs(room.base),
+        playerTimeline: await timelineAs(player),
+        reconnectedTimeline: await timelineAs(reconnected)
+      }
+    }
+
+    it.each([
+      { hidden: true, shown: 'never names' },
+      { hidden: false, shown: 'does not carry the notice either, even naming no hidden source' }
+    ])('tells the GM the source and no player ($shown it)', async ({ hidden }) => {
+      const { room, player, reconnected, gmTimeline, playerTimeline, reconnectedTimeline } =
+        await dropAsPlayer(hidden)
+
+      expect(gmTimeline).toContainEqual(
+        expect.objectContaining({
+          commandType: 'CONCENTRATION_DROPPED_OUTSIDE',
+          label: expect.stringContaining(`dropped Concentration: ${SOURCE_LABEL} ends on`)
+        })
+      )
+      expect(JSON.stringify(room.base.messages)).toContain(SOURCE_LABEL)
+      for (const timeline of [playerTimeline, reconnectedTimeline])
+        expect(timeline.map((entry) => entry.commandType)).not.toContain(
+          'CONCENTRATION_DROPPED_OUTSIDE'
+        )
+      // Every frame the room pushed to a player, the replay of their command and the catch-up
+      // of a fresh connection included.
+      if (hidden)
+        for (const client of [player, reconnected])
+          expect(JSON.stringify(client.messages)).not.toContain(SOURCE_LABEL)
+    })
   })
 
   it('refuses a caster whose Concentration keeps nothing alive, writing nothing', async () => {

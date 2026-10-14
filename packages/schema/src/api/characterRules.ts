@@ -210,6 +210,21 @@ const characterArmorClassFactsSchema = lazySchema(() =>
   })
 )
 
+/** What the Character's equipped items occupy, read by the `FREE_HAND` predicate (D107). */
+const characterHandFactsSchema = lazySchema(() =>
+  z.strictObject({
+    items: z
+      .array(
+        z.strictObject({
+          itemInstanceId: boundedIdentitySchema,
+          slot: z.enum(EQUIPPED_SLOT_CODES),
+          twoHanded: z.boolean()
+        })
+      )
+      .check(z.maxLength(500))
+  })
+)
+
 const characterHitPointFactsSchema = lazySchema(() =>
   z.strictObject({
     rows: z
@@ -906,6 +921,7 @@ export const characterRulePolicyInputSchema = lazySchema(() =>
     movementFacts: z.optional(characterMovementFactsSchema),
     senseFacts: z.optional(characterSenseFactsSchema),
     armorClassFacts: z.optional(characterArmorClassFactsSchema),
+    handFacts: z.optional(characterHandFactsSchema),
     hitPointFacts: z.optional(characterHitPointFactsSchema),
     spellAccessCandidates: characterSpellAccessCandidatesSchema,
     spellClasses: z

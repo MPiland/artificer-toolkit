@@ -20,6 +20,7 @@ const reasonsWithoutPayload = [
   'REVERT_UNAVAILABLE',
   'ROLL_UNAVAILABLE',
   'SCENE_NOT_PRESENTED',
+  'SOURCE_REQUIREMENTS_NOT_MET',
   'TARGET_UNAVAILABLE',
   'VERSION_STALE'
 ] as const
@@ -44,6 +45,7 @@ export const DOMAIN_REJECTION_MESSAGES: Record<(typeof reasonsWithoutPayload)[nu
   REVERT_UNAVAILABLE: "The last action can't be undone; adjust manually.",
   ROLL_UNAVAILABLE: 'That roll no longer applies to this decision; roll again.',
   SCENE_NOT_PRESENTED: 'Present this Scene to move Encounter tokens.',
+  SOURCE_REQUIREMENTS_NOT_MET: "This actor doesn't meet the requirements to take that action.",
   TARGET_UNAVAILABLE: 'The target is unavailable.',
   VERSION_STALE: 'Encounter version is stale.'
 }

@@ -20,6 +20,7 @@ import { SRD_ABILITIES, SRD_SPEEDS } from '@artificer-toolkit/source-data/srd/vo
 
 import { buildCharacterActionRuleFacts } from '../character/characterActionRuleFacts.js'
 import { buildCharacterArmorClassRuleFacts } from '../character/characterArmorClassRuleFacts.js'
+import { buildCharacterHandRuleFacts } from '../character/characterHandRuleFacts.js'
 import { buildCharacterDerivedRuleFacts } from '../character/characterDerivedRuleFacts.js'
 import { compileCharacterGrantFoldRuleFacts } from '../character/characterGrantFoldRuleFacts.js'
 import { buildCharacterItemMechanicsRuleFacts } from '../character/characterItemMechanicsRuleFacts.js'
@@ -193,6 +194,7 @@ export function evaluateSrdCharacter(input: SrdCharacterInput): SrdCharacter {
     ...buildCharacterItemMechanicsRuleFacts(snapshot),
     ...buildCharacterMovementRuleFacts(snapshot, registry),
     ...buildCharacterArmorClassRuleFacts(snapshot),
+    ...buildCharacterHandRuleFacts(snapshot),
     spellAccessCandidates: [],
     spellClasses: [],
     spellPreparationClasses: [],

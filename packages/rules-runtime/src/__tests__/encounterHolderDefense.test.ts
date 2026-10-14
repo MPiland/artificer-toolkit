@@ -242,12 +242,17 @@ describe('holder-state predicates CAN_ACT and SPEED_ABOVE_ZERO', () => {
       { ...activeEffect, definition: { ...activeEffect.definition, stateContributions: closed } }
     ]
     expect(
-      encounterAttackAgainstContributors(HOLDER_ID, effects, { canAct: true, speedAboveZero: true })
+      encounterAttackAgainstContributors(HOLDER_ID, effects, {
+        canAct: true,
+        speedAboveZero: true,
+        freeHand: true
+      })
     ).toEqual([])
     expect(
       encounterAttackAgainstContributors(HOLDER_ID, [activeEffect], {
         canAct: true,
-        speedAboveZero: true
+        speedAboveZero: true,
+        freeHand: true
       })
     ).toHaveLength(ATTACK_DOMAINS.length)
   })
@@ -255,8 +260,11 @@ describe('holder-state predicates CAN_ACT and SPEED_ABOVE_ZERO', () => {
   it('an INCLUDE predicate holds only while the state is true', () => {
     const [activeEffect] = [dodge()]
     const holds = (canAct: boolean, speedAboveZero: boolean) =>
-      encounterAttackAgainstContributors(HOLDER_ID, [activeEffect!], { canAct, speedAboveZero })
-        .length > 0
+      encounterAttackAgainstContributors(HOLDER_ID, [activeEffect!], {
+        canAct,
+        speedAboveZero,
+        freeHand: true
+      }).length > 0
     expect(holds(true, true)).toBe(true)
     expect(holds(false, true)).toBe(false)
     expect(holds(true, false)).toBe(false)

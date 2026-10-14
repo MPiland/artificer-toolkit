@@ -65,7 +65,7 @@ function actor(id: string, disposition: 'FRIENDLY' | 'HOSTILE' = 'FRIENDLY') {
     resources: {},
     gmNotes: null,
     sideId: '22222222-2222-4222-8222-222222222222',
-    snapshot: {},
+    snapshot: { payload: {} },
     createdAt: '2026-09-26T00:00:00.000Z',
     updatedAt: '2026-09-26T00:00:00.000Z'
   })

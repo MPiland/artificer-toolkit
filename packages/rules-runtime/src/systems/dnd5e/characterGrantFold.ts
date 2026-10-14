@@ -230,6 +230,7 @@ export function evaluateDnd5e2014CharacterGrantFold(
       case 'ITEM_SOLE_WEAPON':
       case 'CAN_ACT':
       case 'SPEED_ABOVE_ZERO':
+      case 'FREE_HAND':
       case 'UNAVAILABLE':
       case 'UNSUPPORTED':
         return false
@@ -245,6 +246,7 @@ export function evaluateDnd5e2014CharacterGrantFold(
     condition.kind !== 'UNAVAILABLE' &&
     condition.kind !== 'CAN_ACT' &&
     condition.kind !== 'SPEED_ABOVE_ZERO' &&
+    condition.kind !== 'FREE_HAND' &&
     !ITEM_CONDITION_KINDS.has(condition.kind) &&
     (condition.constraint === 'INCLUDE'
       ? conditionMatches(condition, sourceState)
