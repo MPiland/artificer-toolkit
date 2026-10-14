@@ -10,6 +10,11 @@ import {
   type GrantDetailLine
 } from '#components/AuthoredDetail'
 import type { AuthoredContentReferenceData } from '#app/data/contentReferences'
+import {
+  hitDieAverage,
+  parseHitDie
+} from '@artificer-toolkit/rules-runtime/systems/dnd5e/hitPointRules'
+import { proficiencyBonus } from '@artificer-toolkit/rules-runtime/systems/dnd5e/proficiencyBonus'
 import type { ClassResponseDto } from '@artificer-toolkit/schema/api/content'
 import type { ClassAuthoringInputDto } from '@artificer-toolkit/schema/subjects/class'
 
@@ -89,9 +94,9 @@ export function getClassParentLabel(
 function formatHitPointHtml(classRecord: ClassAuthoringInputDto): string {
   if (!classRecord.hitpoint) return ''
 
-  const hitDie = normalizeHitDie(classRecord.hitpoint.dieConfig)
-  const dieSize = parseHitDieSize(hitDie)
-  const average = dieSize ? Math.floor(dieSize / 2) + 1 : null
+  const dieSize = parseHitDie(classRecord.hitpoint.dieConfig)
+  const hitDie = dieSize ? `1d${dieSize}` : classRecord.hitpoint.dieConfig
+  const average = dieSize ? hitDieAverage(dieSize) : null
   const className = classRecord.label.toLowerCase()
   const ability = formatEnumLabel(classRecord.hitpoint.ability)
 
@@ -209,7 +214,7 @@ function formatClassProgressionHtml(classRecord: ClassAuthoringInputDto): string
           '<tr>',
           `<td data-progression-column="level">${formatOrdinal(level)}</td>`,
           classRecord.category === 'BASE'
-            ? `<td data-progression-column="proficiency">+${getProficiencyBonus(level)}</td>`
+            ? `<td data-progression-column="proficiency">+${proficiencyBonus(level)}</td>`
             : '',
           `<td data-progression-column="features">${escapeHtml(formatProgressionFeatures(classRecord, level, firstSpellcastingLevel))}</td>`,
           hasSpellcasting
@@ -316,19 +321,6 @@ function formatSpellSlotCount(
   spellLevel: number
 ): string {
   return String(limit?.slots.find((slot) => slot.spellLevel === spellLevel)?.slotCount ?? '-')
-}
-
-function normalizeHitDie(dieConfig: string): string {
-  return dieConfig.startsWith('d') ? `1${dieConfig}` : dieConfig
-}
-
-function parseHitDieSize(hitDie: string): number | null {
-  const match = /d(\d+)/i.exec(hitDie)
-  return match ? Number(match[1]) : null
-}
-
-function getProficiencyBonus(level: number): number {
-  return Math.ceil(level / 4) + 1
 }
 
 function formatOrdinal(value: number): string {

@@ -97,7 +97,7 @@ System UUID; it is not a client-provided query or a new rules language.
 - returns the root runtime DTO plus paths that should be cleared when hidden;
 - recursively emits flat resolved scopes for every visible, populated nested object or array row, keyed by absolute path.
 
-The root and nested scopes are one authoritative resolution result. Rendering, structure-rail navigation, validation progress, and repair targeting consume those same scopes; production web code must not independently re-run the shared DSL. Step metadata may include an optional authored description, which both backend and static resolution preserve for platform-appropriate canvas guidance. This keeps parent/ancestor conditions and required state identical across every authoring surface while avoiding one request per nested branch.
+The root and nested scopes are one authoritative resolution result. Rendering, structure-rail navigation, validation progress, and repair targeting consume those same scopes; production web code must not independently re-run the shared DSL. Step metadata may include an optional authored description, which the resolver preserves for platform-appropriate canvas guidance. This keeps parent/ancestor conditions and required state identical across every authoring surface while avoiding one request per nested branch.
 
 `normalizeNodeRuntimeValues` resolves the same model, removes select values that are no longer visible/allowed, and clears hidden `CLEAR` paths. This keeps submitted values aligned with the resolved model before an authored save.
 
@@ -112,6 +112,24 @@ Relationship execution is in `relationshipExecutor.ts`; it evaluates table/colum
 ## Frontend contract
 
 The web `useResolvedNodeModel` hook calls `nodeRuntime.resolve`. The forms platform consumes the returned root model and absolute nested scopes, maps node paths to TanStack Form field names, renders controls through real `form.AppField` instances, and keeps object/array groups connected to one TanStack form. Simple inline leaf objects may use TanStack `withFieldGroup`; complex and repeatable groups continue to use their resolved scope and the same root form.
+
+The web has no second resolver. Authoring stories and tests resolve node maps through the same
+`resolveNodeRuntime` and `normalizeNodeRuntimeValues` over an in-memory reader built from the SRD
+baseline (`apps/web/src/test/nodeRuntimeResolver.ts`). The reader is the one
+`createNodeRuntimeSourceReader` factory the Convex source reader also uses (System vocabulary, sorted
+reusable definitions, projected columns, System check); only the storage of authored rows and
+reusable definitions differs, and the harness builds those rows through the production import
+checksum and `authoredSourceFacts` path, so options match the server's. Test fixtures that need
+scopes for a handcrafted model call the exported `resolveNestedRuntimeScopes`.
+`FormArchitectureBoundaries.test.ts` fails if production web code imports
+`@artificer-toolkit/authoring`, reintroduces a static resolved model, or imports `#test/` support;
+the harness is a dev dependency under `src/test/` only. A form with `resolveModel: false` and no
+provided `model` renders nothing instead of a locally computed copy.
+
+The server emits scopes only for populated rows, so a group row added in the browser (or an object
+group whose value is still `{}`) has no scope in the root model until the root re-resolves. A child
+renderer without a scope resolves its own model (showing the loading state meanwhile) instead of
+rendering blank.
 
 Resolution failures remain inside the shared renderer: show a recoverable error and retry the existing query, preserve the owning TanStack form and unsaved values, and disable activation until resolution succeeds. Do not throw a resolver error through the route boundary or leave a failed query displayed as loading. Guided content remains available alongside the error.
 

@@ -145,7 +145,6 @@ export interface CharacterHitpointLevelEntry {
   classLevel: number
   value: number
   rolls?: CharacterDieRollRecord[]
-  overridden?: boolean
 }
 
 /* ──────────────────────────────────────────────

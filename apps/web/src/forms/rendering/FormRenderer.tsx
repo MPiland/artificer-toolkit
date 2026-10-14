@@ -385,7 +385,7 @@ export function FormRenderer<TValues extends object>({
               form={form}
               debounceMs={debounceMs}
               model={childModel}
-              resolveModel={resolvedResolveModel && activeModel?.scopes === undefined}
+              resolveModel={resolvedResolveModel && childModel === undefined}
               systemId={resolvedSystemId}
               structuralChangeGuard={structuralChangeGuard}
               updateAuthoringState={false}
@@ -563,7 +563,7 @@ export function FormRenderer<TValues extends object>({
               }
               readOnly={resolvedReadOnly}
               renderNavigationTarget
-              resolveModel={resolvedResolveModel && activeModel.scopes === undefined}
+              resolveModel={resolvedResolveModel && delegatedModel === undefined}
               systemId={resolvedSystemId}
               structuralChangeGuard={structuralChangeGuard}
               updateAuthoringState={false}

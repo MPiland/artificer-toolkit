@@ -10525,7 +10525,6 @@ export declare const api: {
                 classId: string;
                 classLevel: number;
                 level: number;
-                overridden?: boolean;
                 rolls?: Array<{ die: number; value: number }>;
                 value: number;
               }>;
@@ -10891,7 +10890,6 @@ export declare const api: {
                   classId: string;
                   classLevel: number;
                   level: number;
-                  overridden?: boolean;
                   rolls?: Array<{ die: number; value: number }>;
                   value: number;
                 }>;
@@ -11270,7 +11268,6 @@ export declare const api: {
                   classId: string;
                   classLevel: number;
                   level: number;
-                  overridden?: boolean;
                   rolls?: Array<{ die: number; value: number }>;
                   value: number;
                 }>;
@@ -11973,7 +11970,6 @@ export declare const api: {
                     classId: string;
                     classLevel: number;
                     level: number;
-                    overridden?: boolean;
                     rolls?: Array<{ die: number; value: number }>;
                     value: number;
                   }>;
@@ -12687,7 +12683,6 @@ export declare const api: {
                     classId: string;
                     classLevel: number;
                     level: number;
-                    overridden?: boolean;
                     rolls?: Array<{ die: number; value: number }>;
                     value: number;
                   }>;
@@ -13417,7 +13412,6 @@ export declare const api: {
                   classId: string;
                   classLevel: number;
                   level: number;
-                  overridden?: boolean;
                   rolls?: Array<{ die: number; value: number }>;
                   value: number;
                 }>;
@@ -14113,7 +14107,6 @@ export declare const api: {
                     classId: string;
                     classLevel: number;
                     level: number;
-                    overridden?: boolean;
                     rolls?: Array<{ die: number; value: number }>;
                     value: number;
                   }>;

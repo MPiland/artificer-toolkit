@@ -10,6 +10,7 @@ import {
   dnd5eFoldedModifierApplicability,
   dnd5eModifierApplies
 } from './modifierApplicability.js'
+import { proficiencyBonus } from './proficiencyBonus.js'
 
 type DerivedStats = Omit<CharacterRulePolicyOutput['derivedStats'], 'armorClass' | 'maxHitPoints'>
 type NumericCalculation = DerivedStats['abilities'][number]['score']
@@ -21,10 +22,6 @@ type ResolvedBonus = NumericContribution & { readonly operation: 'ADD' | 'SET' }
 type ResolvedModifierGroup = CharacterRulePolicyOutput['modifierGroups'][number]
 
 const rankValues = { NONE: 0, HALF: 1, FULL: 2, DOUBLE: 3 } as const
-
-function proficiencyBonus(totalLevel: number): number {
-  return Math.floor((Math.max(totalLevel, 1) - 1) / 4) + 2
-}
 
 function requireModifierSource(
   contribution: ResolvedModifierGroup['contributions'][number]

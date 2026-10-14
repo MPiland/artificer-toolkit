@@ -8,6 +8,7 @@ import {
   type AuthoredDetailFact
 } from '#components/AuthoredDetail'
 import type { AuthoredContentReferenceData } from '#app/data/contentReferences'
+import { abilityModifier } from '@artificer-toolkit/rules-runtime/systems/dnd5e/abilityModifier'
 import type { CreatureAuthoredDto } from '@artificer-toolkit/schema/subjects/creature'
 
 type CreatureFeature = NonNullable<CreatureAuthoredDto['features']>[number]
@@ -303,6 +304,6 @@ function formatAbilityAbbreviation(ability: (typeof abilityOrder)[number]): stri
 }
 
 function formatAbilityModifier(score: number): string {
-  const modifier = Math.floor((score - 10) / 2)
+  const modifier = abilityModifier(score)
   return modifier >= 0 ? `+${modifier}` : String(modifier)
 }

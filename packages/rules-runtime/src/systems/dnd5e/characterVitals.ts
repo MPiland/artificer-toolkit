@@ -7,9 +7,11 @@ import type {
 import { createCharacterMechanicSourceKey } from '@artificer-toolkit/shared/character'
 import { isHandSlot } from '@artificer-toolkit/shared/core'
 
+import { abilityModifier } from './abilityModifier.js'
 import { combineDnd5eArmorClass } from './armorClass.js'
 import { resolveDnd5eCharacterAbilityBonuses } from './characterDerivedStats.js'
 import type { CharacterResolvedModifierGroup } from './characterModifiers.js'
+import { hitPointGain } from './hitPointRules.js'
 import {
   DND5E_CHARACTER_WIDE_TARGET,
   dnd5eFoldedModifierApplicability,
@@ -164,17 +166,16 @@ export function evaluateDnd5eCharacterVitals(
   }
   const facts = input.hitPointFacts
   const hitPointProgression = (facts?.progression?.rows ?? []).map((row) => {
-    const abilityModifier = modifierAt(row.abilityIndex)
     const value =
       row.die === null
         ? row.fallbackValue
-        : facts?.progression?.method === 'FIXED' || row.level === 1
-          ? Math.max((row.level === 1 ? row.die : Math.floor(row.die / 2) + 1) + abilityModifier, 1)
-          : row.rollValue !== null
-            ? Math.max(row.rollValue + abilityModifier, 1)
-            : row.legacyOverrideValue !== null
-              ? Math.max(row.legacyOverrideValue, 1)
-              : Math.max(abilityModifier + 1, 1)
+        : hitPointGain({
+            die: row.die,
+            characterLevel: row.level,
+            fixed: facts?.progression?.method === 'FIXED',
+            roll: row.rollValue,
+            modifier: modifierAt(row.abilityIndex)
+          })
     return {
       sequence: row.sequence,
       level: row.level,
@@ -196,15 +197,13 @@ export function evaluateDnd5eCharacterVitals(
   const authoredConstitution =
     constitution === undefined
       ? 0
-      : Math.floor(
-          (constitution.baseScore +
+      : abilityModifier(
+          constitution.baseScore +
             resolveDnd5eCharacterAbilityBonuses(constitution, grantFold, modifierGroups)
               .filter(
                 (bonus) => bonus.source.kind !== 'MANUAL_ADJUSTMENT' && bonus.state === 'APPLIED'
               )
-              .reduce((sum, bonus) => sum + bonus.value, 0) -
-            10) /
-            2
+              .reduce((sum, bonus) => sum + bonus.value, 0)
         )
   const constitutionDelta =
     facts === undefined || facts.progression !== null

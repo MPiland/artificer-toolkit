@@ -141,8 +141,7 @@ const characterHitpointLevelEntryDtoSchemaRaw = lazySchema(() =>
     classId: z.string().check(z.minLength(1)),
     classLevel: z.number().check(z.int()).check(z.positive()),
     value: z.number().check(z.int()),
-    rolls: z.optional(z.array(characterDieRollRecordDtoSchemaRaw)),
-    overridden: z.optional(z.boolean())
+    rolls: z.optional(z.array(characterDieRollRecordDtoSchemaRaw))
   })
 )
 const characterRaceIntentDtoSchemaRaw = lazySchema(() =>

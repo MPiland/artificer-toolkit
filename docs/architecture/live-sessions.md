@@ -107,7 +107,11 @@ reloads a stale or expired authorization cache (a failed read refuses it with `U
 the journal answers an exact retry (same command ID and input) with its stored receipt, and a reused
 command ID with different input is `INVALID_COMMAND`. An Encounter command's retry returns its own
 journaled result (occurrence, roll) shown over the Run's current projection, so a retry after later
-work never moves a client's view backwards (`replayRoomEncounterCommand`). A command runs its planner inside one
+work never moves a client's view backwards (`replayRoomEncounterCommand`). A movement decision (a
+`RESOLVE_RULE_OCCURRENCE` answer or a GM `VOID_RULE_OCCURRENCE` settled through the Scene) sends its sender two
+messages with one command ID, the Scene `COMMAND_COMMITTED` and then the Encounter result, so its receipt stores
+both as a JSON array; a retry replays the Scene receipt (with `replayed: true`, as for every Scene retry) and then
+the re-presented Encounter result, each as live projected it for that sender. A command runs its planner inside one
 `RoomEncounterStore.transact`, and `DurableCommandJournal.commitInTransaction` stores the receipt and
 authority head in the same SQLite transaction. The room acknowledges and fans out only after that
 transaction commits. A command that changes nothing writes no row.

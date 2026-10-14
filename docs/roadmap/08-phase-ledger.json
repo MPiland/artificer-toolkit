@@ -1902,6 +1902,30 @@
               "closes": ["AUTHORING-17.1", "AUTHORING-17.2"]
             }
           ]
+        },
+        {
+          "id": "AUTHORING-18",
+          "title": "System vocabulary options show their description",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": [],
+          "acs": [
+            {
+              "text": "Every authored-form option drawn from System vocabulary (speeds, senses, damage types, skills, abilities, proficiencies and the rest) carries the vocabulary entry's description to the option tooltip, served by the shared resolver; proved by a real-resolver test that fails before the fix.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Found 2026-10-14 in the RELIABILITY-7 review: node maps select [id, label, tooltip] from System vocabulary tables, but System vocabulary rows carry description, not tooltip, so the resolver serves no description (the base Convex reader did the same; the old static web model hid it). The relationship executor already reads tooltip or description.",
+              "id": "AUTHORING-18.1"
+            }
+          ],
+          "wsjf": {
+            "bv": 2,
+            "tc": 1,
+            "rr": 2,
+            "size": 1
+          }
         }
       ]
     },
@@ -6574,7 +6598,7 @@
               "status": "TODO",
               "proof": [],
               "origin": [],
-              "note": "Split from SPELLS-7 on 2026-10-10; builds after SPELLS-7 on the same area executor.",
+              "note": "Split from SPELLS-7 on 2026-10-10; builds after SPELLS-7 on the same area executor. A dragon's breath is proved here with a synthetic Creature Self cone action; the SRD breaths themselves are authored and proved in SPELLS-21. User ruling 2026-10-14: every area (point or directed) catches a token only when its footprint overlaps the area with positive area; touching an edge or corner never catches (D103 amended in this slice).",
               "id": "SPELLS-13.1"
             },
             {
@@ -6765,6 +6789,54 @@
             "tc": 3,
             "rr": 3,
             "size": 5
+          }
+        },
+        {
+          "id": "SPELLS-21",
+          "title": "SRD breath weapons breathe areas",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": [],
+          "acs": [
+            {
+              "text": "Every SRD breath weapon (the dragons' breaths, the Behir's Lightning Breath and the rest) is authored in source data as a Self cone or line area with its printed size, save and damage, and an unmodified SRD dragon breathes it in a real room: the caught creatures save, damage applies (half on a success) and the GM can undo it.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Registered 2026-10-14 from the SPELLS-13 review: source data authors the breaths with SPECIAL range and no area shape (e.g. black-dragon-wyrmling.ts Acid Breath), so no SRD Creature can breathe through the area executor; the SPELLS-13 proofs use a synthetic Self cone action. Breaths that leave a condition (e.g. paralysis or sleep breath) stay refused until SPELLS-19. Needs the SRD manifest regenerated and a reset/reseed. Depends on SPELLS-13; SPELLS-15's area Legendary options reuse it.",
+              "id": "SPELLS-21.1"
+            }
+          ],
+          "wsjf": {
+            "bv": 8,
+            "tc": 3,
+            "rr": 3,
+            "size": 5
+          }
+        },
+        {
+          "id": "SPELLS-22",
+          "title": "Self-radius areas centered on the caster",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": [],
+          "acs": [
+            {
+              "text": "An area with Self range and a sphere, cylinder or circle shape (\"each creature within 10 feet of it\") is centered on the caster's space, catches every creature whose token overlaps it except the caster unless the text says so, and resolves as SPELLS-7 does.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Registered 2026-10-14 from the SPELLS-13 review: SPELLS-13 builds cones, lines and Self cubes and still refuses Self sphere, cylinder and circle areas. Moving auras are SPELLS-20; outcomes that leave conditions stay refused until SPELLS-19. Token rotation is not tracked: 5e footprints are square, so it changes no catch.",
+              "id": "SPELLS-22.1"
+            }
+          ],
+          "wsjf": {
+            "bv": 5,
+            "tc": 2,
+            "rr": 2,
+            "size": 3
           }
         }
       ]
@@ -7325,17 +7397,18 @@
         {
           "id": "RELIABILITY-3",
           "title": "A retried movement decision replays every message its sender was sent",
-          "status": "TODO",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": ["apps/session-worker/test/nativeMovementDecisionReplay.test.ts"],
+          "journeyStatus": "verified",
           "origin": [],
+          "note": "Done 2026-10-14 (merge of claude/eloquent-satoshi-e04d3f). The journey runs the real room with real SRD content: a GM walk raises a reaction decision, the sender answers or the GM voids it, and the retry replays what live sent; only fetch and dice are faked.",
           "acs": [
             {
               "text": "A retried movement decision answer or GM void replays both the Scene receipt and the Encounter result its sender was sent live, each projected for the current viewer, not the Encounter result alone.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": ["apps/session-worker/test/nativeMovementDecisionReplay.test.ts"],
               "origin": [],
-              "note": "Registered 2026-10-12 from the VTT_UI-3.4 review. The geometry commit stores only the ENCOUNTER receipt (nativeLiveSessionRoom.ts #commitRoomGeometry), which is the presented per-sender result sent live and is re-presented per member on replay (replayRoomEncounterCommand), so nothing leaks; the replay just omits the SCENE COMMAND_COMMITTED that live sent, and the Scene catches up through state sync.",
+              "note": "Registered 2026-10-12 from the VTT_UI-3.4 review. Done 2026-10-14: #commitRoomGeometry stores [Scene message, Encounter message] as the receipt when a movement decision settles, and throws (rolling back) unless the command is a movement decision exactly when an Encounter result exists, so Scene commands keep their single-message receipt. The Encounter REPLAY sends the stored Scene receipt then re-presents the Encounter result per viewer (player answer, GM void, hidden-mover redaction, changed-payload refusal). docs/architecture/live-sessions.md documents the two-message receipt. Red/green logs in local-validation/reliability-3/.",
               "id": "RELIABILITY-3.1"
             }
           ],
@@ -7668,25 +7741,35 @@
         {
           "id": "RELIABILITY-7",
           "title": "The web uses the shared resolver and rules instead of copies",
-          "status": "TODO",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": ["apps/web/src/forms/tests/AuthoredDomainAuthoringLayout.test.tsx"],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
               "text": "Authoring stories and tests resolve node maps through the real packages/authoring resolver over an in-memory registry; the web's static resolver copy and its embedded fixture options are deleted from the production bundle.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/web/src/forms/hooks/useAuthoringResolvedModel.test.tsx",
+                "apps/web/src/test/nodeRuntimeResolver.test.ts",
+                "apps/web/src/test/authoredRouteStory.utils.test.ts",
+                "apps/web/src/forms/tests/FormArchitectureBoundaries.test.ts",
+                "apps/web/src/forms/tests/AuthoredDomainAuthoringLayout.test.tsx"
+              ],
               "origin": [],
-              "note": "Registered 2026-10-13 from the band-aid audit. apps/web/src/forms/node-map/staticResolvedModel.ts (493 lines) mirrors nodeRuntimeService.ts and is imported by the production hook useAuthoringResolvedModel.ts:39-50; it embeds Sorcerer/Wizard/Shortsword/Evocation options and more roots than the server registry.",
+              "note": "Registered 2026-10-13 from the band-aid audit. apps/web/src/forms/node-map/staticResolvedModel.ts (493 lines) mirrors nodeRuntimeService.ts and is imported by the production hook useAuthoringResolvedModel.ts:39-50; it embeds Sorcerer/Wizard/Shortsword/Evocation options and more roots than the server registry. Done 2026-10-14: staticResolvedModel.ts and withStaticResolvedScopes.ts are deleted; stories and tests resolve through apps/web/src/test/nodeRuntimeResolver.ts, which uses createNodeRuntimeSourceReader from packages/authoring, the same reader Convex uses. Production code may not import #test/*. A nested group editor whose row the root model has no scope for resolves its own model (FormRenderer). All 16 authored route stories, the Builder and the System, Campaign and Encounter stories pass. The real resolver showed that System vocabulary options never carried a description (AUTHORING-18).",
               "id": "RELIABILITY-7.1"
             },
             {
               "text": "The Builder, class detail and creature stat blocks compute hit points, hit-die averages, ability modifiers and proficiency bonus through the shared rules-runtime functions (ADR 0036), with no local copies; the legacy hit-point override and its \"HP gained (legacy)\" input are deleted and development data is migrated.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/web/src/lib/sharedRulesParity.test.ts",
+                "apps/web/src/domains/campaigns/components/EncounterEnemyStatBlock.test.tsx",
+                "packages/schema/src/__tests__/character-rules-contracts.test.ts"
+              ],
               "origin": [],
-              "note": "characterAbilities.ts:1-222, CharacterHitpointProgression.tsx:81-127, ClassDetail.model.ts:94/321-331, CreatureDetail.model.ts:306, EncounterEnemyStatBlock.tsx:80; server builderHitPoints.ts:108-146, characterVitals.ts:175.",
+              "note": "characterAbilities.ts:1-222, CharacterHitpointProgression.tsx:81-127, ClassDetail.model.ts:94/321-331, CreatureDetail.model.ts:306, EncounterEnemyStatBlock.tsx:80; server builderHitPoints.ts:108-146, characterVitals.ts:175. Done 2026-10-14: rules-runtime hitPointRules.ts and proficiencyBonus.ts, plus abilityModifier, back the Builder, class detail, Creature detail and Encounter stat block, and the server paths. The hit-point override field and its input are deleted; local Convex was reset and reseeded (SRD audit green).",
               "id": "RELIABILITY-7.2"
             }
           ],
@@ -8056,7 +8139,7 @@
                 "apps/web/src/domains/campaigns/vtt/vttSceneRenderer.model.test.ts"
               ],
               "origin": ["G4-PERCEPTION"],
-              "note": "Original PARTIAL: V03.5 covers visibility facts, not rendering. Refined 2026-10-12 by the product owner (map colour and darkvision); senses split into VTT_UI-3.4. Rules stay in rules-runtime and the Session Worker; apps/web only draws. Refined by the PO; D108 precedence. Rework of 6568f57eb: lights erase ambient darkness, DARK renders black, no vision wash, GM see-all and token-view preview, pixel-sampled proof against resolveSceneIlluminationAt. Lane 3: D108 precedence drawn as one darkness overlay whose alpha encodes the class (BRIGHT 0, DIM 0.5, ORDINARY and MAGICAL 1): ambient, then darkening zones, then lights erase within their radii clipped by walls, then magical darkness (zone or ambient) last. Light colour is a faint tint; obscurement its own layer; no vision wash, a player's map is black outside their tokens' sight. GM sees all at darkness alpha 0.6 (approved) and can preview one token's view. Lighting stories sample drawn overlay alpha at points and compare with resolveSceneIlluminationAt, including a torch in an ordinary darkness zone, magical darkness over a torch, a magically dark Scene, a wall blocking a light, and a closed versus an open door. The light tint is read from the drawn tint layer (light colour, alpha lightTintAlpha at most 0.2, one polygon per radius); visual-only zones draw at their own opacities (0.3 and 0.62, VisualZonesDrawAtTheirOwnOpacity; red with a fixed 0.5 in tight-red.log). A Player with no seeing token sees a black map. Through the Stage, the GM preview draws one sight polygon and stops on toggle-off or when the token leaves the Scene (window stories). Known behaviour (accepted by lane 1): the GM's chosen preview resumes if that token returns to the Scene. Awaiting lane 1 acceptance of the review fixes. The GM's Creature-token preview shows authored token sight until VTT_UI-5 brings stat-block senses.",
+              "note": "Original PARTIAL: V03.5 covers visibility facts, not rendering. Refined 2026-10-12 by the product owner (map colour and darkvision); senses split into VTT_UI-3.4. Rules stay in rules-runtime and the Session Worker; apps/web only draws. Refined by the PO; D108 precedence. Rework of 6568f57eb: lights erase ambient darkness, DARK renders black, no vision wash, GM see-all and token-view preview, pixel-sampled proof against resolveSceneIlluminationAt. Lane 3: D108 precedence drawn as one darkness overlay whose alpha encodes the class (BRIGHT 0, DIM 0.5, ORDINARY and MAGICAL 1): ambient, then darkening zones, then lights erase within their radii clipped by walls, then magical darkness (zone or ambient) last. Light colour is a faint tint; obscurement its own layer; no vision wash, a player's map is black outside their tokens' sight. GM sees all at darkness alpha 0.6 (approved) and can preview one token's view. Lighting stories sample drawn overlay alpha at points and compare with resolveSceneIlluminationAt, including a torch in an ordinary darkness zone, magical darkness over a torch, a magically dark Scene, a wall blocking a light, and a closed versus an open door. The light tint is read from the drawn tint layer (light colour, alpha lightTintAlpha at most 0.2, one polygon per radius); visual-only zones draw at their own opacities (0.3 and 0.62, VisualZonesDrawAtTheirOwnOpacity; red with a fixed 0.5 in tight-red.log). A Player with no seeing token sees a black map. Through the Stage, the GM preview draws one sight polygon and stops on toggle-off or when the token leaves the Scene (window stories). Known behaviour (accepted by lane 1): the GM's chosen preview resumes if that token returns to the Scene. Awaiting lane 1 acceptance of the review fixes. The GM's Creature-token preview reads the Creature's stat-block senses since VTT_UI-5 (2026-10-14).",
               "id": "VTT_UI-3.2"
             },
             {
@@ -8146,23 +8229,35 @@
         {
           "id": "VTT_UI-5",
           "title": "Creatures see with their stat-block senses",
-          "status": "TODO",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": ["apps/session-worker/src/roomSceneVision.test.ts"],
+          "journeyStatus": "verified",
           "origin": [],
-          "note": "Split from VTT_UI-3.4 on 2026-10-12 (D108). Creature senses are free-text display strings today (subjects/creature.ts, snapshotStatBlock), and roomSceneVision binds Character actors only. Until this lands, the GM's preview of a Creature's view shows only its authored token sight.",
+          "note": "Split from VTT_UI-3.4 on 2026-10-12 (D108). Done 2026-10-14 (D111; merges after fbe216325 plus the post-merge fix 11a2f4f2f): Creature senses are structured entries checked at publication, the room derives Creature and Character senses through one function (rules-runtime actorSenses.ts), and attack and movement-reaction perception read them; D100's UNKNOWN sight verdict is retired. Post-merge green: rules-runtime, shared and schema 208 files, apis encounters, content, scenes and liveSessions 173 files, session-worker 47 files, typecheck and typecheck:convex (local-validation/vtt-ui-5-merge2/); local Convex deployed, reset (backup convex-reset/vtt-ui-5-senses.before.zip), reseeded 1057 subjects, audit OK.",
           "acs": [
             {
               "text": "Creature senses are authored as structured entries (sense definition and range) on the Creature and its stat block, and every SRD Creature's senses are migrated to them; a source-data test proves the structured senses match the printed ones.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/source-data/src/srd/creatureStatBlocks.test.ts",
+                "packages/shared/src/__tests__/creature-senses.test.ts",
+                "packages/rules-runtime/src/__tests__/creatureSnapshotSenses.test.ts",
+                "apps/apis/convex/content/creaturePublication.test.ts",
+                "apps/web/src/forms/tests/AuthoredDomainAuthoringLayout.test.tsx › submits a Creature sense entry added in the editor",
+                "apps/web/src/domains/creatures/stories/CreatureEditRoute.stories.tsx"
+              ],
               "origin": [],
               "id": "VTT_UI-5.1"
             },
             {
               "text": "A Creature token on a Scene carries its senses like a Character token, derived by the same function, so the GM's preview of its view and combat perception both use them.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/rules-runtime/src/__tests__/actorSenses.test.ts",
+                "packages/rules-runtime/src/__tests__/encounterAttackPerception.test.ts",
+                "apps/session-worker/src/roomSceneVision.test.ts",
+                "apps/web/src/domains/campaigns/components/EncounterEnemyStatBlock.test.tsx"
+              ],
               "origin": [],
               "id": "VTT_UI-5.2"
             }

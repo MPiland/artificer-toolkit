@@ -15,6 +15,7 @@ import {
   dnd5eFoldedModifierApplicability,
   dnd5eModifierApplies
 } from './modifierApplicability.js'
+import { proficiencyBonus } from './proficiencyBonus.js'
 
 type Contribution = CharacterRulePolicyOutput['modifierGroups'][number]['contributions'][number]
 export type CharacterResolvedModifierGroup = Omit<
@@ -32,13 +33,12 @@ export function evaluateDnd5eCharacterModifiers(
 ): CharacterResolvedModifierGroup[] {
   type Group = CharacterGrantFoldOutput['modifierGroups'][number]
   type Contribution = Group['contributions'][number] & { resolvedValue: number }
-  const proficiencyBonus = Math.floor((Math.max(input.totalLevel, 1) - 1) / 4) + 2
   const additiveAmount = (payload: Record<string, unknown>): number => {
     if (payload.valueKind == null)
       return characterPolicyNumber(payload.value ?? payload.amount ?? 0)
     if (payload.valueKind === 'SKILL_BONUS' || payload.valueKind === 'SPELL_SLOT_LEVEL') return 0
     if (payload.valueKind === 'PROFICIENCY_BONUS')
-      return proficiencyBonus * characterPolicyNumber(payload.multiplier ?? 1)
+      return proficiencyBonus(input.totalLevel) * characterPolicyNumber(payload.multiplier ?? 1)
     if (payload.valueKind === 'CHARACTER_LEVEL')
       return input.totalLevel * characterPolicyNumber(payload.multiplier ?? 1)
     if (payload.valueKind === 'CLASS_LEVEL') {
