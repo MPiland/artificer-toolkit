@@ -1,7 +1,9 @@
-import type {
-  RemoveAreaTargetInputDto,
-  ResolveEncounterActionInputDto,
-  ResolveRuleOccurrenceInputDto
+import {
+  areaActionTargetOrigin,
+  type AreaActionTargetDto,
+  type RemoveAreaTargetInputDto,
+  type ResolveEncounterActionInputDto,
+  type ResolveRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import type { ServerAggregateChoicePendingSnapshotDto } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
@@ -53,7 +55,8 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterAreaActionExecution'
 import {
   encounterActionTargetKind,
-  evaluateEncounterAreaTargetPolicy
+  evaluateEncounterAreaTargetPolicy,
+  evaluateEncounterDirectedAreaTarget
 } from '@artificer-toolkit/rules-runtime/encounterAreaAction'
 import {
   buildEncounterAreaPendingSnapshot,
@@ -113,7 +116,7 @@ import type { prepareNativeLiveMovementTarget } from './nativeEncounterTargets.j
 import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
 
 type AreaCommand = Omit<ResolveEncounterActionInputDto, 'target'> & {
-  target: Extract<ResolveEncounterActionInputDto['target'], { kind: 'POINT' }>
+  target: AreaActionTargetDto
 }
 type MovementTargets = Awaited<ReturnType<typeof prepareNativeLiveMovementTarget>>['target']
 
@@ -137,6 +140,13 @@ type AreaPlanInput = {
   autoRollByActorId: Readonly<Record<string, boolean>>
 }
 
+/** Why a directed area is refused, as the player is told. */
+const DIRECTED_AREA_REFUSALS = {
+  UNSUPPORTED_AREA: "This action's area size is not supported.",
+  NO_CASTER_TOKEN: 'The caster has no token on the map.',
+  ORIGIN_OFF_CASTER: 'This area cannot extend from there.'
+} as const
+
 /** What every creature of one area shares: the caster, the Scene the point was picked in, and the area. */
 async function prepareAreaScene(input: AreaPlanInput) {
   const { command, state, actors, capture } = input
@@ -151,12 +161,13 @@ async function prepareAreaScene(input: AreaPlanInput) {
     sourceFacts: casterFacts,
     loadSource: async (source) => resolveEncounterActionSource({ ...source, system: input.system })
   }).catch(refuseStaleCharacterAction)
-  // Only an area action takes a point; any other action names a creature instead.
-  if (encounterActionTargetKind(targetPolicy) !== 'POINT')
+  // An area action takes the target its policy names (a point or a direction from the caster); any
+  // other action names a creature instead.
+  if (encounterActionTargetKind(targetPolicy) !== command.target.kind)
     throw new LiveSessionDomainRejectionError(422, {
       code: 'DOMAIN_REJECTED',
       reason: 'TARGET_UNAVAILABLE',
-      message: 'This action does not take a point.'
+      message: 'This action does not take that target.'
     })
   const captured = await capture({
     kind: 'ACTION_AREA_SCENE',
@@ -172,22 +183,38 @@ async function prepareAreaScene(input: AreaPlanInput) {
     encounter: state,
     sceneGrid: scene.sceneGrid
   })
-  const area = evaluateEncounterAreaTargetPolicy({
-    targetPolicy,
-    point: command.target.point,
-    grid,
-    sourceToken: scene.sourceToken,
-    pointSeen:
-      (await readNativeLivePointSight({
-        state,
-        system: input.system,
-        observer: casterFacts,
-        point: command.target.point,
-        sceneContext: { sceneId: scene.sceneId, sceneVersion: scene.sceneVersion, grid },
-        capture
-      })) === 'SEES'
-  })
+  const { target } = command
+  const area =
+    target.kind === 'DIRECTED'
+      ? evaluateEncounterDirectedAreaTarget({
+          targetPolicy,
+          origin: target.origin,
+          toward: target.toward,
+          grid,
+          sourceToken: scene.sourceToken
+        })
+      : evaluateEncounterAreaTargetPolicy({
+          targetPolicy,
+          point: target.point,
+          grid,
+          sourceToken: scene.sourceToken,
+          pointSeen:
+            (await readNativeLivePointSight({
+              state,
+              system: input.system,
+              observer: casterFacts,
+              point: target.point,
+              sceneContext: { sceneId: scene.sceneId, sceneVersion: scene.sceneVersion, grid },
+              capture
+            })) === 'SEES'
+        })
   if (!area) throw new Error('The selected action area is not supported.')
+  if ('refusal' in area)
+    throw new LiveSessionDomainRejectionError(422, {
+      code: 'DOMAIN_REJECTED',
+      reason: 'TARGET_UNAVAILABLE',
+      message: DIRECTED_AREA_REFUSALS[area.refusal]
+    })
   return { caster, casterFacts, movementTargets, scene, grid, area }
 }
 
@@ -259,8 +286,9 @@ export async function planNativeLiveEncounterAreaAction(input: AreaPlanInput) {
   const { caster, casterFacts, movementTargets, scene, grid, area } = base
 
   const caughtActorIds = catchEncounterAreaActorIds({
-    origin: command.target.point,
+    origin: areaActionTargetOrigin(command.target),
     shape: area.shape,
+    casterActorId: caster.id,
     tokens: scene.tokens.map((token) => ({ ...token, id: token.tokenId }))
   })
   const caught = caughtActorIds.map((actorId) => {
@@ -382,7 +410,7 @@ export async function planNativeLiveEncounterAreaAction(input: AreaPlanInput) {
     initiatorUserId,
     casterActorId: caster.id,
     scene: { sceneId: scene.sceneId, sceneVersion: scene.sceneVersion },
-    area: { origin: command.target.point, shape: area.shape },
+    area: { origin: areaActionTargetOrigin(command.target), shape: area.shape },
     targets
   })
   // A creature whose roller auto-rolls has its save rolled now, so an auto-rolled failure opens its

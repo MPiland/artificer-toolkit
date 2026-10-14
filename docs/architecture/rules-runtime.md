@@ -249,7 +249,7 @@ other contested actions; a second undo is refused. Its implementation is
 ### Point-area actions (current, D103)
 
 A POINT-target action over an area-contents plan opens one pending `ENCOUNTER_AREA_ACTION`
-(`AGGREGATE_CHOICE`) occurrence. `catchEncounterAreaActorIds` picks the actors with a token touching the
+(`AGGREGATE_CHOICE`) occurrence. `catchEncounterAreaActorIds` picks the actors with a token overlapping the
 area, once each, and `encounterAreaCaughtChecksum` seals the Scene version, the area and those creatures.
 Each caught creature carries its own sealed single-target save under
 `encounterAreaTargetOccurrenceId(area, actor)`; `prepareEncounterAreaTests` opens them all without rolling
@@ -272,11 +272,38 @@ holds the source spend once and one mechanics-batch child per kept creature
 reverse, then the root. An outcome that leaves a condition, a lasting or recurring effect or a maintained
 effect is refused whole until SPELLS-19.
 
-Each action choice carries `target`: `{ kind: 'ACTOR' }` or `{ kind: 'POINT', area }`, where `area` is the
-authored radius or cube edge (`encounterActionChoiceTarget`). A policy this path cannot resolve (a cone,
-line, wall or dome) stays an actor choice and is refused when resolved. The web converts the area to Scene
-coordinates with `pointAreaInSceneCoordinates` (`shared/vtt`), the same function `compileEncounterPointArea`
-uses, to preview it and list the tokens the viewer sees inside; the room still decides who is caught.
+Each action choice carries `target`: `{ kind: 'ACTOR' }`, `{ kind: 'POINT', area }` (the authored radius or
+cube edge) or `{ kind: 'DIRECTED', area }` (the authored cone length, line length and width, or the edge of a
+cube that extends from the caster), built by `encounterActionChoiceTarget`. A policy this path cannot resolve
+(a wall, dome, Self sphere, cylinder or circle, or a cone or line whose range is not Self) stays an actor
+choice and is refused when resolved. The web converts the area to Scene coordinates with
+`pointAreaInSceneCoordinates` or `directedAreaInSceneCoordinates` (`shared/vtt`), the same functions
+`compileEncounterPointArea` and `evaluateEncounterDirectedAreaTarget` use, to preview it and list the tokens
+the viewer sees inside; the room still decides who is caught.
+
+### Directed areas: cone, line and caster-origin cube (current, SPELLS-13)
+
+An `AREA_CONTENTS` action whose range is Self and whose shape is a cone, line or cube takes the third target,
+`{ kind: 'DIRECTED', origin, toward, sceneId, expectedSceneVersion }`. The origin must lie on the caster's token
+footprint (`isDirectedAreaOriginOnToken`) and `toward` is the point the area is aimed at. `encounterAreaTargetKind`
+is the one range × shape table (point or directed or unsupported) that the compiler, the choice target and the
+evaluators share; a target of the wrong kind is `TARGET_UNAVAILABLE`, as is an origin off the footprint, and each
+refusal has its own message (`UNSUPPORTED_AREA`, `NO_CASTER_TOKEN`, `ORIGIN_OFF_CASTER`).
+`evaluateEncounterDirectedAreaTarget` returns the Scene-unit shape, and everything after it is the point-area
+pipeline above: the same `ENCOUNTER_AREA_ACTION` occurrence, sealed saves, frozen damage, GM removal, commit and
+undo. The pending guard (`requireAreaActionPendingRoot`) checks the sealed origin and direction against the command.
+Catching (`spatialTokensInsideArea`, for every area) is strict positive-area overlap, so a creature the area
+only touches along an edge or at a corner is not caught (D103, user ruling 2026-10-14); a directed shape needs the
+caster's token, which it excludes (it catches nobody without it). A cone is the triangle from the origin to a
+far edge as wide as it is long; a line is a rectangle, 5 ft wide unless authored (a scaled or non-positive
+authored width is refused at compile). A Self cube follows the 5e rule that its origin lies anywhere on a face
+of the cube (`cubeFromSideOutline`): the side faced is the dominant axis of `toward`, the face is flush against
+that side and slides along it, snapped to the grid, according to where the origin lies along the side, so a
+corner origin catches exactly the cube's squares (9 for a 15 ft cube). The sealed shape carries `cellSize` for
+that snap. Token rotation is ignored: the footprint is axis-aligned. The stage aims the area with one
+`VttAreaAim { origin, toward }` (`vttSceneRenderer.model.ts`): the player presses on their token's edge
+(`nearestFootprintEdgePoint`) and drags the direction, and the outline drawn is `directedAreaOutline` (a point cube
+uses `pointCubeOutline`), the same geometry the room catches with.
 
 Each choice also carries `range` when its compiled target policy has a measurable one, the range the evaluator that
 handles the policy measures. A single-target policy that `singleTargetMeasure` accepts advertises `SELF`, `WITHIN` (Touch

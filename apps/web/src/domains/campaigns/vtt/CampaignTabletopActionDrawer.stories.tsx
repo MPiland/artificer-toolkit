@@ -14,9 +14,9 @@ import {
   type EncounterOptionalActionChoicesDto,
   type GetEncounterOptionalActionChoicesInputDto
 } from '@artificer-toolkit/schema/api/encounterActionChoices'
-import type { ScenePoint } from '@artificer-toolkit/shared/vtt'
 import { validated } from '../../../test/validatedFixture'
 import { CampaignTabletopActionDrawer } from './CampaignTabletopActionDrawer'
+import type { VttAreaAim } from './vttSceneRenderer.model'
 import { tabletopGmEncounter, tabletopLiveScene } from './CampaignTabletop.stories.fixtures'
 
 const resolveAction = fn()
@@ -205,9 +205,9 @@ const meta = {
     basicActionChoices: [],
     escapes: [],
     openAttackAction: null,
-    areaOrigin: null,
-    onAreaOriginChange: fn(),
-    onAreaShapeChange: fn(),
+    areaAim: null,
+    onAreaAimChange: fn(),
+    onAreaSizeChange: fn(),
     onActionPreviewChange: fn(),
     onPickAreaOrigin: fn(),
     onEscape: sendEscapeCommand,
@@ -216,13 +216,13 @@ const meta = {
   },
   render: function Render(args) {
     const [opened, { open, close }] = useDisclosure(false)
-    const [areaOrigin, setAreaOrigin] = useState<ScenePoint | null>(args.areaOrigin)
+    const [areaAim, setAreaAim] = useState<VttAreaAim | null>(args.areaAim)
     return (
       <CampaignTabletopActionDrawer
         {...args}
-        areaOrigin={areaOrigin}
+        areaAim={areaAim}
         opened={opened}
-        onAreaOriginChange={setAreaOrigin}
+        onAreaAimChange={setAreaAim}
         onOpen={open}
         onClose={close}
       />

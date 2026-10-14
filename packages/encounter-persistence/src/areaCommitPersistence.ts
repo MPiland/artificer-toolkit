@@ -148,7 +148,7 @@ export async function persistEncounterAreaCommit(
   const rootExecution = input.execution
   if (
     command.type !== 'RESOLVE_ACTION' ||
-    areaTarget.kind !== 'POINT' ||
+    areaTarget.kind === 'ACTOR' ||
     command.optionalCombatIntent != null ||
     rootExecution.status !== 'AGGREGATE_CHOICE_COMPLETE' ||
     rootExecution.applicationOutputs.kind !== 'ENCOUNTER_AREA_ACTION' ||
