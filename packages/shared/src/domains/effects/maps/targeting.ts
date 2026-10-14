@@ -115,7 +115,7 @@ export const TARGETING_NODE_MAP: NodeMap<TargetingAuthored> = targeting.define(
           {
             kind: 'DATA',
             relationship: table('creature_types', {
-              selectColumns: ['id', 'label']
+              selectColumns: ['id', 'label', 'description']
             })
           },
           {

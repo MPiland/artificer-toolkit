@@ -71,7 +71,7 @@ export const COST_NODE_MAP = costNode.define('cost', ({ map, nodes, data }) => {
     selectSingle(['currencyId'], 'Currency', {
       kind: 'DATA',
       relationship: table('currencies', {
-        selectColumns: ['id', 'label']
+        selectColumns: ['id', 'label', 'description']
       })
     })
   )
@@ -301,7 +301,7 @@ export const EQUIPMENT_NODE_MAP = equipment.define(
           {
             kind: 'DATA',
             relationship: table('rarities', {
-              selectColumns: ['id', 'label']
+              selectColumns: ['id', 'label', 'description']
             })
           },
           { section: EQUIPMENT_SECTIONS.properties, order: 50 }

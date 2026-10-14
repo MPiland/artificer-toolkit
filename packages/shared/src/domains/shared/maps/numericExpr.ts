@@ -68,7 +68,7 @@ const NUMERIC_ATOM_NODE_MAP: NodeMap<NumericAtom> = numericAtom.define(
           {
             kind: 'DATA',
             relationship: table('skills', {
-              selectColumns: ['id', 'label', 'tooltip']
+              selectColumns: ['id', 'label', 'description']
             })
           },
           {
@@ -148,7 +148,7 @@ export const NUMERIC_EXPR_NODE_MAP: NodeMap<NumericExpr> = numericExpr.define(
           {
             kind: 'DATA',
             relationship: table('skills', {
-              selectColumns: ['id', 'label', 'tooltip']
+              selectColumns: ['id', 'label', 'description']
             })
           },
           {

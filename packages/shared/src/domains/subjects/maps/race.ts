@@ -130,7 +130,7 @@ export const RACE_NODE_MAP = raceNode.define('race', ({ map, nodes, cond, data }
         {
           kind: 'DATA',
           relationship: table('heritages', {
-            selectColumns: ['id', 'label']
+            selectColumns: ['id', 'label', 'description']
           })
         },
         {
