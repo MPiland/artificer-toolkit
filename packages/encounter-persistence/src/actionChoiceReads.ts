@@ -210,6 +210,41 @@ export async function readEncounterActionChoices(
         }
       })
     )
+    // Each spell the Character may cast now is one choice per cast level (upcasting is the higher one).
+    const spellActions = await Promise.all(
+      mechanics.spellCast.candidates.map(async (candidate) => {
+        const mechanic = mechanics.spellCast.decisions.find(
+          (decision) => decision.actionId === candidate.actionId
+        )?.mechanic
+        const entry = mechanics.spellCast.compiledActionEntryPoints.find(
+          (value) =>
+            value.kind === 'CHARACTER_ACTION' &&
+            value.actionId === candidate.actionId &&
+            value.effectId === candidate.effectId
+        )
+        const targetPolicy = entry?.kind === 'CHARACTER_ACTION' ? entry.targetPolicy : undefined
+        const damageLabel = mechanic?.outcomes
+          .flatMap((outcome) => (outcome.kind === 'DAMAGE' ? [outcome.expression] : []))
+          .join(' + ')
+        const economy = await readEconomy(
+          candidate.mechanicFacts.invocation.activation,
+          candidate.mechanicFacts.invocation.triggerCode
+        )
+        return {
+          id: candidate.actionId,
+          label: candidate.label ?? candidate.actionId,
+          ...encounterActionChoiceRange(targetPolicy, mechanic?.rangeLabel ?? undefined),
+          ...(mechanic?.attackBonus == null ? {} : { attackBonus: mechanic.attackBonus }),
+          ...(damageLabel ? { damageLabel } : {}),
+          grip: null,
+          wieldConflict: null,
+          attackSlot: economy.attackSlot,
+          target: encounterActionChoiceTarget(targetPolicy),
+          warnings: economy.warnings
+        }
+      })
+    )
+    actions = [...actions, ...spellActions]
   } else if (actor.kind === 'CREATURE') {
     const system = await tx.ports.requireSystem(state.gameSystemId)
     const discovered = discoverEncounterFeatureActions({

@@ -4,6 +4,7 @@ import { discoverCharacterActionCapabilities } from './characterActionCapability
 import { compileCharacterActionEntryPoints } from './encounterActionEntryPointCompiler.js'
 import type { CharacterRulePolicyOutput } from '@artificer-toolkit/schema/api/characterRules'
 import { effectiveHitPointMaximum } from './character/activeEffectGrantTotals.js'
+import { buildCharacterSpellCastActions } from './character/characterSpellCastActions.js'
 import {
   type EncounterAttackAgainstContributor,
   withActiveGrantSpeeds,
@@ -53,7 +54,7 @@ export type CharacterMovementFacts = {
     'conditions' | 'adjustments' | 'attunementSlotOverride'
   >
   prepared: {
-    context: Pick<CharacterBuilderContext, 'vocabularySnapshot'> & {
+    context: Pick<CharacterBuilderContext, 'vocabularySnapshot' | 'spellDocumentsById'> & {
       registry: {
         system: Pick<
           NonNullable<CharacterBuilderContext['registry']['system']>,
@@ -215,6 +216,41 @@ export function buildMovementTarget<
           )
         : baseRulePolicyOutput
     const effectiveMaximumHitPoints = nativeCharacterMaximumHitPoints(characterFacts, activeEffects)
+    const conditionDefinitionIds = [...systemConditions].sort()
+    const spellCast = input.includeReactionSources
+      ? buildCharacterSpellCastActions({
+          spellCastCandidates: characterFacts.ruleEvaluation.facts.spellCastCandidates,
+          policyOutput: effectiveRulePolicyOutput,
+          spellDocumentsById: characterFacts.prepared.context.spellDocumentsById,
+          firstSequence: characterFacts.ruleEvaluation.facts.actionCandidates.length
+        })
+      : null
+    // A cast the Encounter cannot compile is not offered: choosing it could only be refused as stale.
+    const spellEntryPoints = spellCast
+      ? compileCharacterActionEntryPoints({
+          gameSystemId,
+          candidates: spellCast.candidates,
+          descriptors: discoverCharacterActionCapabilities({
+            gameSystemId,
+            candidates: spellCast.candidates,
+            conditionDefinitionIds,
+            abilityDefinitions: characterFacts.ruleEvaluation.facts.abilityDefinitions,
+            entryPoints: spellCast.entryPoints
+          })
+        })
+      : []
+    const executableActionIds = new Set(
+      spellEntryPoints
+        .filter((entry) => entry.compilation.kind === 'COMPILED')
+        .map((entry) => entry.actionId)
+    )
+    const executableSpellCast = {
+      candidates: spellCast?.candidates.filter((c) => executableActionIds.has(c.actionId)) ?? [],
+      decisions: spellCast?.decisions.filter((d) => executableActionIds.has(d.actionId)) ?? [],
+      compiledActionEntryPoints: spellEntryPoints.filter((entry) =>
+        executableActionIds.has(entry.actionId)
+      )
+    }
     return {
       actor,
       activeEffects,
@@ -231,7 +267,7 @@ export function buildMovementTarget<
       effectiveScalarValues,
       baseRulePolicyOutput,
       effectiveRulePolicyOutput,
-      ...(input.includeReactionSources
+      ...(spellCast
         ? {
             characterReactionSource: {
               id: actor.sourceId,
@@ -249,11 +285,12 @@ export function buildMovementTarget<
                   descriptors: discoverCharacterActionCapabilities({
                     gameSystemId,
                     candidates: characterFacts.ruleEvaluation.facts.actionCandidates,
-                    conditionDefinitionIds: [...systemConditions].sort(),
+                    conditionDefinitionIds,
                     abilityDefinitions: characterFacts.ruleEvaluation.facts.abilityDefinitions,
                     entryPoints: characterFacts.ruleEvaluation.actionEntryPoints
                   })
-                })
+                }),
+                spellCast: executableSpellCast
               }
             }
           }

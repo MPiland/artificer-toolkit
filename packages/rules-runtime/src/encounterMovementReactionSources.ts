@@ -1,5 +1,8 @@
 import type { CharacterActionCandidate } from '@artificer-toolkit/schema/api/characterActionRules'
-import type { CharacterRulePolicyInput } from '@artificer-toolkit/schema/api/characterRules'
+import type {
+  CharacterRulePolicyInput,
+  CharacterRulePolicyOutput
+} from '@artificer-toolkit/schema/api/characterRules'
 import type { CompiledActionEntryPoint } from '@artificer-toolkit/schema/projections/characterMechanics'
 import type {
   EncounterRunActorState,
@@ -45,6 +48,15 @@ export type EncounterMovementReactionCharacterSource = {
   mechanics: {
     compiledActionEntryPoints: readonly CompiledActionEntryPoint[]
     rulePolicyInput: Pick<CharacterRulePolicyInput, 'actionCandidates'>
+    /**
+     * The spells the Character may cast now, as actions of their own: movement reactions never
+     * read them, and the Sheet's actions never include them.
+     */
+    spellCast: {
+      candidates: readonly CharacterActionCandidate[]
+      decisions: readonly CharacterRulePolicyOutput['actionDecisions'][number][]
+      compiledActionEntryPoints: readonly CompiledActionEntryPoint[]
+    }
   }
   activeConditionDefinitionIds: readonly string[]
 }

@@ -45,5 +45,18 @@ Read first: D95, D99 (grants and Concentration), D103 (area commit and undo, "Ac
 ## Status log
 
 - 2026-10-13: workbook written; session started.
+- 2026-10-14: core casting built and proven (logs under `local-validation/spells-8-t1/`):
+  - Choices, labels, rituals, unprepared and unexecutable spells: Convex `actionSpellCasting.test.ts` (`green-convex-spell-casting.log`, 7 tests).
+  - Single-target spend/undo, point-area spend on the root (nobody caught; caster caught), upcast (2nd-level slot, 3d4 dice) and undo: Worker `nativeRoomSpellCasting.test.ts` (`green-worker-spell-casting.log`, 4 tests).
+  - Pact slot, exhausted slot offer and stale refusal, Concentration start/replace, undo refusal after a Sheet spend, journey: Convex file above.
+  - Slot write/restore and stale-spend refusal: rules-runtime `encounterMechanicsBatchPlan.test.ts`; Character state: `characterNativeActionResources.test.ts` (`green-rr-native-resources.log`).
+  - Regression: rules-runtime, encounter-persistence, 8 Worker and 11 apis files (`regression-1.log`); typecheck, convex tsc and local codegen green (`typecheck.log`).
+  - Red logs: not captured. The implementation preceded the tests, and a baseline worktree needs a full install; the new tests exercise paths that did not exist before (no `spell-cast:` choice, no `spellCastConsumption`).
 
 ## Proposed ledger edits (filled by the slice session)
+
+- SPELLS-8.T1: done. AC SPELLS-8.1: proven for single-target and point-area casts (slot spend on the same version, GM undo), pact slots, Concentration start/replace and the journey.
+- New follow-up tasks (WSJF to be scored by the integration owner):
+  - dnd5e Effect-action compiler: execute a scaling heal (real Cure Wounds, upcast) and a multi-Effect spell as one action. Today they compile `MANUAL`, so the Encounter does not offer them; checklist items 4 and 9 are proven only for damage-scaling and single-Effect spells.
+  - Spell components (material cost, free hand, silence) have no Sheet rule, so neither surface refuses (item 10 is a reported gap).
+  - LIMITED_USE and pool-backed FIXED_LEVEL casts, and casting times the adapter cannot compile, are not offered.

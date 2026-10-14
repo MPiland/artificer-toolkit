@@ -1013,6 +1013,7 @@ export async function planNativeLiveEncounterAreaCommit(
   const spends = Boolean(
     resourceState?.resourceConsumption ||
     resourceState?.itemConsumption ||
+    resourceState?.spellConsumption ||
     lead.acceptedWieldConflict
   )
   const sourceSpend = merged
@@ -1037,7 +1038,8 @@ export async function planNativeLiveEncounterAreaCommit(
         resourceReceipt: merged.mechanics.resourceReceipt,
         featureResourceReceipt: merged.mechanics.featureResourceReceipt,
         sourceItemUseStateTransition: merged.mechanics.sourceItemUseStateTransition,
-        itemConsumptionReceipt: merged.mechanics.itemConsumptionReceipt
+        itemConsumptionReceipt: merged.mechanics.itemConsumptionReceipt,
+        spellConsumptionReceipt: merged.mechanics.spellConsumptionReceipt
       }
     : sourceSpend!
   const sourceLabel = encounterActionSourceLabel(lead.source)
@@ -1179,6 +1181,7 @@ export async function planNativeLiveEncounterAreaCommit(
     rules,
     resourceConsumption: resourceState?.resourceConsumption ?? null,
     itemConsumption: resourceState?.itemConsumption ?? null,
+    spellConsumption: resourceState?.spellConsumption ?? null,
     label: sourceLabel,
     ruleOverrides,
     concentration
@@ -1206,6 +1209,7 @@ export function buildNativeLiveEncounterAreaCommitInput(
     rules: plan.rules,
     resourceConsumption: plan.resourceConsumption,
     itemConsumption: plan.itemConsumption,
+    spellConsumption: plan.spellConsumption,
     label: plan.label,
     ruleOverrides: plan.ruleOverrides,
     concentration: plan.concentration.completed,

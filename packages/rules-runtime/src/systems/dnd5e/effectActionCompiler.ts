@@ -3398,9 +3398,34 @@ function exactDiceConfiguration(
   const outcome = outcomes[0]
   if (!outcome) unsupported('D&D selected outcome has no authored dice value.')
   if (outcome.valueKind !== 'DICE') unsupported('D&D outcome is not a supported dice value.')
+  const resolved =
+    facts.resolvedDamageOutcomeExpressions?.[outcomeId] ??
+    facts.resolvedDamageExpressions?.[selectedPath]
+  const resolvedTerm = resolved ? parseBoundedDiceConfiguration(resolved).terms[0]! : null
+  const matchesResolvedDice = (dice: string) => {
+    const authoredTerm = parseBoundedDiceConfiguration(dice).terms[0]!
+    return (
+      resolvedTerm !== null &&
+      authoredTerm.count === resolvedTerm.count &&
+      authoredTerm.die === resolvedTerm.die
+    )
+  }
   let authored: string
   if (outcome.scalingKind === 'NONE' && typeof outcome.dice === 'string') {
     authored = outcome.dice
+  } else if (
+    outcome.scalingSource === 'SPELL_CAST_LEVEL' &&
+    facts.spellCastLevel === undefined &&
+    resolved
+  ) {
+    // A cast is resolved at its cast level before it is specialized, so its authored row is the one
+    // the resolved dice came from.
+    const row = outcomes.find(
+      (candidate) => typeof candidate.dice === 'string' && matchesResolvedDice(candidate.dice)
+    )
+    if (!row || typeof row.dice !== 'string')
+      unsupported('D&D resolved damage expression does not match the authored dice.')
+    authored = row.dice
   } else {
     const source = outcome.scalingSource
     let level = scalingLevel(source, facts)
@@ -3434,22 +3459,14 @@ function exactDiceConfiguration(
     outcome.scalingKind === 'NONE' && typeof outcome.halfHitPointsDice === 'string'
       ? outcome.halfHitPointsDice
       : null
-  const resolved =
-    facts.resolvedDamageOutcomeExpressions?.[outcomeId] ??
-    facts.resolvedDamageExpressions?.[selectedPath]
   if (!resolved) {
     if ((Array.isArray(outcome.bonuses) && outcome.bonuses.length > 0) || halfHitPointsDice)
       unsupported('D&D resolved damage expression is unavailable.')
     return authored
   }
-  const resolvedTerm = parseBoundedDiceConfiguration(resolved).terms[0]!
-  const matchesAuthoredDice = (dice: string) => {
-    const authoredTerm = parseBoundedDiceConfiguration(dice).terms[0]!
-    return authoredTerm.count === resolvedTerm.count && authoredTerm.die === resolvedTerm.die
-  }
   if (
-    !matchesAuthoredDice(authored) &&
-    !(halfHitPointsDice && matchesAuthoredDice(halfHitPointsDice))
+    !matchesResolvedDice(authored) &&
+    !(halfHitPointsDice && matchesResolvedDice(halfHitPointsDice))
   )
     unsupported('D&D resolved damage expression does not match the authored dice.')
   return resolved

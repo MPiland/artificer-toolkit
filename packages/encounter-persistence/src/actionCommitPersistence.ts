@@ -130,7 +130,7 @@ export async function persistEncounterActionCommit(
     ('sourceCharacterId' in batch &&
       batch.sourceCharacterId !== (source.kind === 'CHARACTER' ? source.sourceId : null)) ||
     (batch.kind === 'CHARACTER_MECHANICS_BATCH' &&
-      (batch.spellCastConsumption !== null || batch.targetFeatureResourceConsumption !== null)) ||
+      batch.targetFeatureResourceConsumption !== null) ||
     input.rules.actors.length !== ruleActors.length ||
     new Set(input.rules.actors.map((actor) => actor.actorId)).size !== ruleActors.length ||
     input.rules.actors.some((actor) => !ruleActors.some((current) => current.id === actor.actorId))
@@ -178,6 +178,7 @@ export async function persistEncounterActionCommit(
     command,
     resource: input.resourceConsumption,
     item: input.itemConsumption,
+    spell: input.spellConsumption,
     receipts: batch
   })
   const common = {
