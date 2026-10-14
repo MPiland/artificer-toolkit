@@ -27,7 +27,11 @@ import {
 import { domainRejection } from '../../tests/fixtures/playerControl'
 import { importedSubject } from '../../tests/fixtures/publication'
 import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
-import { seededSrdCreature, seededSrdLoadoutEquipment } from '../../tests/fixtures/srdCreatures'
+import {
+  importSeededSrdCreatureSenses,
+  seededSrdCreature,
+  seededSrdLoadoutEquipment
+} from '../../tests/fixtures/srdCreatures'
 import { api, internal } from '../_generated/api'
 import { readCharacterRow } from '../characters/stateDocuments'
 import { sourceImportBatches } from '../content/importBatches'
@@ -57,6 +61,7 @@ async function setup(input: { gmAutoRoll: boolean; playerAutoRoll: boolean; crea
       contentSourceId: SRD_CONTENT_SOURCE.id,
       definitions
     })
+  await importSeededSrdCreatureSenses(base.t, dragon)
   await base.t.mutation(internal.content.import.importSubjects, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     subjects: [

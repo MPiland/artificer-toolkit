@@ -2,7 +2,11 @@ import { makeFunctionReference } from 'convex/server'
 import { describe, expect, it } from 'vitest'
 import { srdBaselineContent } from '@artificer-toolkit/source-data/srd/index.js'
 import { SRD_ENCOUNTER_LIFECYCLE_DEFINITIONS } from '@artificer-toolkit/source-data/srd/encounterLifecycle.js'
-import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
+import {
+  SRD_CONTENT_SOURCE,
+  type SrdReusableDefinitionSeed
+} from '@artificer-toolkit/source-data/srd/catalogue.js'
+import { SRD_SENSE_DEFINITIONS } from '@artificer-toolkit/source-data/srd/senses.js'
 import {
   sourceImportDefinitionDtoSchema,
   type SourceImportSubjectDto
@@ -44,8 +48,11 @@ const candidatesById = new Map<string, Candidate>(
     seeds.map((seed): [string, Candidate] => [seed.id, { subjectKind, seed }])
   )
 )
-const definitionsById = new Map(
-  SRD_ENCOUNTER_LIFECYCLE_DEFINITIONS.map((definition) => [definition.id, definition])
+const definitionsById = new Map<string, SrdReusableDefinitionSeed>(
+  [
+    ...SRD_ENCOUNTER_LIFECYCLE_DEFINITIONS,
+    ...SRD_SENSE_DEFINITIONS.map((definition) => ({ ...definition, definitionFamilyKey: 'sense' }))
+  ].map((definition) => [definition.id, definition])
 )
 
 function shape(value: unknown): { depth: number; idNodes: number } {
@@ -102,7 +109,7 @@ function uuidStrings(value: unknown, found = new Set<string>()): Set<string> {
 /** Every canonical record the chosen records transitively reference, so they can publish. */
 function dependencyClosure(roots: readonly Candidate[]) {
   const subjects = new Map(roots.map((root) => [root.seed.id, root]))
-  const definitions = new Map<string, (typeof SRD_ENCOUNTER_LIFECYCLE_DEFINITIONS)[number]>()
+  const definitions = new Map<string, SrdReusableDefinitionSeed>()
   const queue: unknown[] = roots.map((root) => root.seed)
   for (let value = queue.pop(); value !== undefined; value = queue.pop()) {
     for (const id of uuidStrings(value)) {

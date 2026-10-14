@@ -312,7 +312,7 @@ describe('native Creature publication', () => {
       subjectKind: 'CREATURE',
       id: published.subjectId
     })
-    expect(creatureResponseDtoSchema.parse(detail)?.item.senses).toEqual([
+    expect(creatureResponseDtoSchema.parse(detail)?.item?.senses).toEqual([
       expect.objectContaining({
         senseDefinitionId: SRD_DARKVISION_SENSE_ID,
         range: expect.objectContaining({ rangeKind: 'DISTANCE', amount: 60, unit: 'FEET' })
