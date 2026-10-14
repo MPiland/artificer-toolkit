@@ -1,6 +1,6 @@
 # Slice workbook: RELIABILITY-5.T2 (the Sheet speed override is a length with a unit)
 
-**Status:** OPEN (started 2026-10-14)
+**Status:** DONE (merged `17daa954e`; closed by the main session 2026-10-14)
 **Base:** `codex/phase-08-2-convex-cutover` at this workbook's commit.
 **Rules:** [slice-workbook-rules.md](slice-workbook-rules.md).
 
