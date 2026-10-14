@@ -94,296 +94,197 @@ export const characterSpellSourceRefDtoSchema = lazySchema(() =>
   })
 )
 
-const abilityOtherModifierAdjustmentDtoSchema = lazySchema(() =>
-  z.object({
-    family: z.literal('ABILITY'),
-    ability: abilityCodeSchema,
-    field: z.literal('OTHER_MODIFIER'),
-    value: z.number().check(z.int())
-  })
-)
-
-const abilityScoreOverrideAdjustmentDtoSchema = lazySchema(() =>
-  z.object({
-    family: z.literal('ABILITY'),
-    ability: abilityCodeSchema,
-    field: z.literal('SCORE_OVERRIDE'),
-    value: z.number().check(z.int()).check(z.nonnegative())
-  })
-)
-
-const savingThrowNumericAdjustmentDtoSchema = lazySchema(() =>
-  z.object({
-    family: z.literal('SAVING_THROW'),
-    ability: abilityCodeSchema,
-    field: z.enum(['MAGIC_BONUS', 'MISC_BONUS', 'TOTAL_OVERRIDE']),
-    value: z.number().check(z.int())
-  })
-)
-
-const savingThrowProficiencyAdjustmentDtoSchema = lazySchema(() =>
-  z.object({
-    family: z.literal('SAVING_THROW'),
-    ability: abilityCodeSchema,
-    field: z.literal('PROFICIENCY_OVERRIDE'),
-    value: characterProficiencyLevelDtoSchema
-  })
-)
-
-const skillNumericAdjustmentDtoSchema = lazySchema(() =>
-  z.object({
-    family: z.literal('SKILL'),
-    skillId: uuidSchema,
-    field: z.enum(['MAGIC_BONUS', 'MISC_BONUS', 'TOTAL_OVERRIDE']),
-    value: z.number().check(z.int())
-  })
-)
-
-const skillProficiencyAdjustmentDtoSchema = lazySchema(() =>
-  z.object({
-    family: z.literal('SKILL'),
-    skillId: uuidSchema,
-    field: z.literal('PROFICIENCY_OVERRIDE'),
-    value: characterProficiencyLevelDtoSchema
-  })
-)
-
-const skillAbilityAdjustmentDtoSchema = lazySchema(() =>
-  z.object({
-    family: z.literal('SKILL'),
-    skillId: uuidSchema,
-    field: z.literal('GOVERNING_ABILITY_OVERRIDE'),
-    value: abilityCodeSchema
-  })
-)
-
-const passiveAdjustmentDtoSchema = lazySchema(() =>
-  z.object({
-    family: z.literal('PASSIVE'),
-    skillId: uuidSchema,
-    field: z.literal('TOTAL_OVERRIDE'),
-    value: z.number().check(z.int())
-  })
-)
-
-const senseAdjustmentDtoSchema = lazySchema(() =>
-  z.object({
-    family: z.literal('SENSE'),
-    senseId: uuidSchema,
-    field: z.literal('RANGE_OVERRIDE'),
-    value: authoredLengthSchema
-  })
-)
-
-const movementAdjustmentDtoSchema = lazySchema(() =>
-  z.object({
-    family: z.literal('MOVEMENT'),
-    speedId: uuidSchema,
-    field: z.literal('SPEED_OVERRIDE'),
-    value: authoredLengthSchema
-  })
-)
-
-const hitPointAdjustmentDtoSchema = lazySchema(() =>
-  z.union([
+/**
+ * Every Sheet adjustment kind with `fields` on each, grouped by who may write it. The adjustment
+ * schemas are flat unions of these rather than an intersection of `fields` and a union, because
+ * Convex infers an intersection as `any`.
+ */
+const adjustmentMembers = <Fields extends z.core.$ZodShape>(fields: Fields) => ({
+  core: [
     z.object({
+      ...fields,
+      family: z.literal('ABILITY'),
+      ability: abilityCodeSchema,
+      field: z.literal('OTHER_MODIFIER'),
+      value: z.number().check(z.int())
+    }),
+    z.object({
+      ...fields,
+      family: z.literal('ABILITY'),
+      ability: abilityCodeSchema,
+      field: z.literal('SCORE_OVERRIDE'),
+      value: z.number().check(z.int()).check(z.nonnegative())
+    }),
+    z.object({
+      ...fields,
+      family: z.literal('SAVING_THROW'),
+      ability: abilityCodeSchema,
+      field: z.enum(['MAGIC_BONUS', 'MISC_BONUS', 'TOTAL_OVERRIDE']),
+      value: z.number().check(z.int())
+    }),
+    z.object({
+      ...fields,
+      family: z.literal('SAVING_THROW'),
+      ability: abilityCodeSchema,
+      field: z.literal('PROFICIENCY_OVERRIDE'),
+      value: characterProficiencyLevelDtoSchema
+    }),
+    z.object({
+      ...fields,
+      family: z.literal('SKILL'),
+      skillId: uuidSchema,
+      field: z.enum(['MAGIC_BONUS', 'MISC_BONUS', 'TOTAL_OVERRIDE']),
+      value: z.number().check(z.int())
+    }),
+    z.object({
+      ...fields,
+      family: z.literal('SKILL'),
+      skillId: uuidSchema,
+      field: z.literal('PROFICIENCY_OVERRIDE'),
+      value: characterProficiencyLevelDtoSchema
+    }),
+    z.object({
+      ...fields,
+      family: z.literal('SKILL'),
+      skillId: uuidSchema,
+      field: z.literal('GOVERNING_ABILITY_OVERRIDE'),
+      value: abilityCodeSchema
+    }),
+    z.object({
+      ...fields,
+      family: z.literal('PASSIVE'),
+      skillId: uuidSchema,
+      field: z.literal('TOTAL_OVERRIDE'),
+      value: z.number().check(z.int())
+    }),
+    z.object({
+      ...fields,
+      family: z.literal('SENSE'),
+      senseId: uuidSchema,
+      field: z.literal('RANGE_OVERRIDE'),
+      value: authoredLengthSchema
+    }),
+    z.object({
+      ...fields,
+      family: z.literal('MOVEMENT'),
+      speedId: uuidSchema,
+      field: z.literal('SPEED_OVERRIDE'),
+      value: authoredLengthSchema
+    }),
+    z.object({
+      ...fields,
       family: z.literal('HIT_POINTS'),
       field: z.literal('MAXIMUM_MODIFIER'),
       value: z.number().check(z.int())
     }),
     z.object({
+      ...fields,
       family: z.literal('HIT_POINTS'),
       field: z.literal('MAXIMUM_OVERRIDE'),
       value: z.number().check(z.int()).check(z.nonnegative())
+    }),
+    z.object({
+      ...fields,
+      family: z.literal('DEFENSE'),
+      defenseKind: z.enum(['IMMUNITY', 'RESISTANCE', 'VULNERABILITY']),
+      damageTypeId: uuidSchema,
+      field: z.literal('ADDITION'),
+      value: z.literal(true)
+    }),
+    z.object({
+      ...fields,
+      family: z.literal('PROFICIENCY'),
+      proficiencyKind: z.enum(['ARMOR', 'LANGUAGE', 'TOOL', 'WEAPON']),
+      targetId: uuidSchema,
+      field: z.literal('ADDITION'),
+      value: z.literal(true)
     })
-  ])
-)
+  ] as const,
+  spell: [
+    z.object({
+      ...fields,
+      family: z.literal('SPELL'),
+      source: characterSpellSourceRefDtoSchema,
+      field: z.enum(['ATTACK_BONUS', 'ATTACK_OVERRIDE', 'DAMAGE_BONUS', 'DC_BONUS', 'DC_OVERRIDE']),
+      value: z.number().check(z.int())
+    })
+  ] as const,
+  item: [
+    z.object({
+      ...fields,
+      family: z.literal('ITEM'),
+      itemInstanceId: uuidSchema,
+      field: z.enum(['ATTACK_BONUS', 'ATTACK_OVERRIDE', 'COST_OVERRIDE', 'DAMAGE_BONUS']),
+      value: z.number()
+    }),
+    z.object({
+      ...fields,
+      family: z.literal('ITEM'),
+      itemInstanceId: uuidSchema,
+      field: z.literal('WEIGHT_OVERRIDE'),
+      value: z.number().check(z.nonnegative())
+    }),
+    z.object({
+      ...fields,
+      family: z.literal('ITEM'),
+      itemInstanceId: uuidSchema,
+      field: z.enum(['ADAMANTINE', 'DISPLAY_AS_ATTACK', 'DUAL_WIELD', 'SILVERED']),
+      value: z.literal(true)
+    })
+  ] as const,
+  companion: [
+    z.object({
+      ...fields,
+      family: z.literal('COMPANION'),
+      companionInstanceId: uuidSchema,
+      field: z.enum(['ARMOR_CLASS_OVERRIDE', 'MAXIMUM_HIT_POINTS_OVERRIDE']),
+      value: z.number().check(z.int()).check(z.nonnegative())
+    }),
+    z.object({
+      ...fields,
+      family: z.literal('COMPANION'),
+      companionInstanceId: uuidSchema,
+      field: z.enum(['ALIGNMENT_OVERRIDE', 'CREATURE_TYPE_OVERRIDE']),
+      value: uuidSchema
+    }),
+    z.object({
+      ...fields,
+      family: z.literal('COMPANION'),
+      companionInstanceId: uuidSchema,
+      field: z.literal('SIZE_OVERRIDE'),
+      value: sizeCodeSchema
+    })
+  ] as const
+})
 
-const spellAdjustmentDtoSchema = lazySchema(() =>
-  z.object({
-    family: z.literal('SPELL'),
-    source: characterSpellSourceRefDtoSchema,
-    field: z.enum(['ATTACK_BONUS', 'ATTACK_OVERRIDE', 'DAMAGE_BONUS', 'DC_BONUS', 'DC_OVERRIDE']),
-    value: z.number().check(z.int())
-  })
-)
+const adjustmentUnion = <Fields extends z.core.$ZodShape>(fields: Fields) => {
+  const members = adjustmentMembers(fields)
+  return z.union([...members.core, ...members.spell, ...members.item, ...members.companion])
+}
 
-const itemNumericAdjustmentDtoSchema = lazySchema(() =>
-  z.object({
-    family: z.literal('ITEM'),
-    itemInstanceId: uuidSchema,
-    field: z.enum(['ATTACK_BONUS', 'ATTACK_OVERRIDE', 'COST_OVERRIDE', 'DAMAGE_BONUS']),
-    value: z.number()
-  })
-)
-
-const itemWeightAdjustmentDtoSchema = lazySchema(() =>
-  z.object({
-    family: z.literal('ITEM'),
-    itemInstanceId: uuidSchema,
-    field: z.literal('WEIGHT_OVERRIDE'),
-    value: z.number().check(z.nonnegative())
-  })
-)
-
-const itemPropertyAdjustmentDtoSchema = lazySchema(() =>
-  z.object({
-    family: z.literal('ITEM'),
-    itemInstanceId: uuidSchema,
-    field: z.enum(['ADAMANTINE', 'DISPLAY_AS_ATTACK', 'DUAL_WIELD', 'SILVERED']),
-    value: z.literal(true)
-  })
-)
-
-const companionNumericAdjustmentDtoSchema = lazySchema(() =>
-  z.object({
-    family: z.literal('COMPANION'),
-    companionInstanceId: uuidSchema,
-    field: z.enum(['ARMOR_CLASS_OVERRIDE', 'MAXIMUM_HIT_POINTS_OVERRIDE']),
-    value: z.number().check(z.int()).check(z.nonnegative())
-  })
-)
-
-const companionReferenceAdjustmentDtoSchema = lazySchema(() =>
-  z.object({
-    family: z.literal('COMPANION'),
-    companionInstanceId: uuidSchema,
-    field: z.enum(['ALIGNMENT_OVERRIDE', 'CREATURE_TYPE_OVERRIDE']),
-    value: uuidSchema
-  })
-)
-
-const companionSizeAdjustmentDtoSchema = lazySchema(() =>
-  z.object({
-    family: z.literal('COMPANION'),
-    companionInstanceId: uuidSchema,
-    field: z.literal('SIZE_OVERRIDE'),
-    value: sizeCodeSchema
-  })
-)
-
-const defenseAdditionDtoSchema = lazySchema(() =>
-  z.object({
-    family: z.literal('DEFENSE'),
-    defenseKind: z.enum(['IMMUNITY', 'RESISTANCE', 'VULNERABILITY']),
-    damageTypeId: uuidSchema,
-    field: z.literal('ADDITION'),
-    value: z.literal(true)
-  })
-)
-
-const proficiencyAdditionDtoSchema = lazySchema(() =>
-  z.object({
-    family: z.literal('PROFICIENCY'),
-    proficiencyKind: z.enum(['ARMOR', 'LANGUAGE', 'TOOL', 'WEAPON']),
-    targetId: uuidSchema,
-    field: z.literal('ADDITION'),
-    value: z.literal(true)
-  })
-)
-
-export const characterSheetCoreAdjustmentValueDtoSchema = lazySchema(() =>
-  z.union([
-    abilityOtherModifierAdjustmentDtoSchema,
-    abilityScoreOverrideAdjustmentDtoSchema,
-    savingThrowNumericAdjustmentDtoSchema,
-    savingThrowProficiencyAdjustmentDtoSchema,
-    skillNumericAdjustmentDtoSchema,
-    skillProficiencyAdjustmentDtoSchema,
-    skillAbilityAdjustmentDtoSchema,
-    passiveAdjustmentDtoSchema,
-    senseAdjustmentDtoSchema,
-    movementAdjustmentDtoSchema,
-    hitPointAdjustmentDtoSchema,
-    defenseAdditionDtoSchema,
-    proficiencyAdditionDtoSchema
-  ])
-)
-
-export const characterSheetContentAdjustmentValueDtoSchema = lazySchema(() =>
-  z.union([
-    spellAdjustmentDtoSchema,
-    itemNumericAdjustmentDtoSchema,
-    itemWeightAdjustmentDtoSchema,
-    itemPropertyAdjustmentDtoSchema
-  ])
-)
-
-export const characterSheetAdjustmentValueDtoSchema = lazySchema(() =>
-  z.union([
-    abilityOtherModifierAdjustmentDtoSchema,
-    abilityScoreOverrideAdjustmentDtoSchema,
-    savingThrowNumericAdjustmentDtoSchema,
-    savingThrowProficiencyAdjustmentDtoSchema,
-    skillNumericAdjustmentDtoSchema,
-    skillProficiencyAdjustmentDtoSchema,
-    skillAbilityAdjustmentDtoSchema,
-    passiveAdjustmentDtoSchema,
-    senseAdjustmentDtoSchema,
-    movementAdjustmentDtoSchema,
-    hitPointAdjustmentDtoSchema,
-    spellAdjustmentDtoSchema,
-    itemNumericAdjustmentDtoSchema,
-    itemWeightAdjustmentDtoSchema,
-    itemPropertyAdjustmentDtoSchema,
-    companionNumericAdjustmentDtoSchema,
-    companionReferenceAdjustmentDtoSchema,
-    companionSizeAdjustmentDtoSchema,
-    defenseAdditionDtoSchema,
-    proficiencyAdditionDtoSchema
-  ])
-)
+const adjustmentCommandFields = () => ({
+  id: z.optional(adjustmentUuidSchema),
+  sourceNote: z.optional(characterSheetSourceNoteDtoSchema)
+})
 
 export const characterSheetCoreAdjustmentCommandDtoSchema = lazySchema(() =>
-  z.intersection(
-    z.object({
-      id: z.optional(adjustmentUuidSchema),
-      sourceNote: z.optional(characterSheetSourceNoteDtoSchema)
-    }),
-    characterSheetCoreAdjustmentValueDtoSchema
-  )
+  z.union(adjustmentMembers(adjustmentCommandFields()).core)
 )
 
 export const characterSheetItemAdjustmentCommandDtoSchema = lazySchema(() =>
-  z.intersection(
-    z.object({
-      id: z.optional(adjustmentUuidSchema),
-      sourceNote: z.optional(characterSheetSourceNoteDtoSchema)
-    }),
-    z.union([
-      itemNumericAdjustmentDtoSchema,
-      itemWeightAdjustmentDtoSchema,
-      itemPropertyAdjustmentDtoSchema
-    ])
-  )
+  z.union(adjustmentMembers(adjustmentCommandFields()).item)
 )
 
 export const characterSheetCompanionAdjustmentCommandDtoSchema = lazySchema(() =>
-  z.intersection(
-    z.object({
-      id: z.optional(adjustmentUuidSchema),
-      sourceNote: z.optional(characterSheetSourceNoteDtoSchema)
-    }),
-    z.union([
-      companionNumericAdjustmentDtoSchema,
-      companionReferenceAdjustmentDtoSchema,
-      companionSizeAdjustmentDtoSchema
-    ])
-  )
+  z.union(adjustmentMembers(adjustmentCommandFields()).companion)
 )
 
 export const characterSheetAdjustmentCommandDtoSchema = lazySchema(() =>
-  z.intersection(
-    z.object({
-      id: z.optional(adjustmentUuidSchema),
-      sourceNote: z.optional(characterSheetSourceNoteDtoSchema)
-    }),
-    characterSheetAdjustmentValueDtoSchema
-  )
+  adjustmentUnion(adjustmentCommandFields())
 )
 
-export const characterSheetAdjustmentMetadataDtoSchema = lazySchema(() =>
-  z.object({
+export const characterSheetAdjustmentDtoSchema = lazySchema(() =>
+  adjustmentUnion({
     id: adjustmentUuidSchema,
     characterId: uuidSchema,
     sourceNote: z.optional(characterSheetSourceNoteDtoSchema),
@@ -394,20 +295,13 @@ export const characterSheetAdjustmentMetadataDtoSchema = lazySchema(() =>
   })
 )
 
-export const characterSheetAdjustmentDtoSchema = lazySchema(() =>
-  z.intersection(characterSheetAdjustmentMetadataDtoSchema, characterSheetAdjustmentValueDtoSchema)
-)
-
 export const characterSheetAdjustmentWriteDtoSchema = lazySchema(() =>
-  z.intersection(
-    z.object({
-      id: adjustmentUuidSchema,
-      characterId: uuidSchema,
-      sourceNote: z.optional(characterSheetSourceNoteDtoSchema),
-      actorId: uuidSchema
-    }),
-    characterSheetAdjustmentValueDtoSchema
-  )
+  adjustmentUnion({
+    id: adjustmentUuidSchema,
+    characterId: uuidSchema,
+    sourceNote: z.optional(characterSheetSourceNoteDtoSchema),
+    actorId: uuidSchema
+  })
 )
 
 export const characterMovementDisplayPreferenceDtoSchema = lazySchema(() =>
