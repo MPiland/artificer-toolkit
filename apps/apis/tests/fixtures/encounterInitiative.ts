@@ -15,7 +15,10 @@ import {
 } from '@artificer-toolkit/schema/shared/initiativePolicy'
 import { jsonValueSchema } from '@artificer-toolkit/schema/projections/identity'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
-import { DND5E_INITIATIVE_FACT_KEYS } from '@artificer-toolkit/rules-runtime/systems/dnd5e/initiativeFactAdapter'
+import {
+  createDnd5eSpeedFactorInitiativeDefinition,
+  DND5E_INITIATIVE_FACT_KEYS
+} from '@artificer-toolkit/rules-runtime/systems/dnd5e/initiativeFactAdapter'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import {
   createDnd5eMovementReactionChoiceDefinition,
@@ -28,6 +31,11 @@ type InitiativePolicyInput = Pick<
   'procedure' | 'cadence'
 >
 
+/**
+ * The initiative policies' graphs. An actor or side roll runs the one-d20 fixture graph; a declared
+ * action roll runs D&D's installed speed-factor graph, so declared initiative proves the real
+ * definition (advantage and disadvantage included), not a stand-in.
+ */
 export function createEncounterInitiativeDefinitions(
   policies: ReadonlyArray<InitiativePolicyInput>
 ): { definitions: SourceImportDefinitionsInput['definitions']; policyIds: string[] } {
@@ -60,6 +68,11 @@ export function createEncounterInitiativeDefinitions(
     }
   } satisfies z.input<typeof ruleGraphDefinitionDtoSchema>)
   const graphChecksum = checksumRuleDocument(graph)
+  const declaredGraph = ruleGraphDefinitionDtoSchema.parse({
+    ...createDnd5eSpeedFactorInitiativeDefinition().definition,
+    id: crypto.randomUUID()
+  })
+  const declaredGraphChecksum = checksumRuleDocument(declaredGraph)
   const choice = ruleGraphDefinitionDtoSchema.parse({
     ...graph,
     id: crypto.randomUUID(),
@@ -76,16 +89,18 @@ export function createEncounterInitiativeDefinitions(
     outputs: { selection: { kind: 'NODE_OUTPUT', nodeId: 'order', port: 'value' } }
   } satisfies z.input<typeof ruleGraphDefinitionDtoSchema>)
   const choiceChecksum = checksumRuleDocument(choice)
-  const pin = {
-    definitionId: graph.id,
+  const pinFor = (procedure: InitiativePolicyInput['procedure']) => ({
+    definitionId: procedure === 'DECLARED_ACTION_ROLL' ? declaredGraph.id : graph.id,
     definitionVersion: 1,
-    definitionChecksum: graphChecksum,
+    definitionChecksum:
+      procedure === 'DECLARED_ACTION_ROLL' ? declaredGraphChecksum : graphChecksum,
     scoreOutput: 'score',
     sortDirection: 'DESCENDING' as const,
     automaticOutput: 'automatic'
-  }
-  const policyDocuments = policies.map((policy) =>
-    initiativePolicyReusableDefinitionDocumentDtoSchema.parse({
+  })
+  const policyDocuments = policies.map((policy) => {
+    const pin = pinFor(policy.procedure)
+    return initiativePolicyReusableDefinitionDocumentDtoSchema.parse({
       schemaVersion: 1,
       kind: 'INITIATIVE_POLICY',
       id: crypto.randomUUID(),
@@ -102,18 +117,36 @@ export function createEncounterInitiativeDefinitions(
         maximumIndexFact: DND5E_INITIATIVE_FACT_KEYS.orderChoiceMaximumIndex
       },
       tieResolvers: [{ ...pin, repeatOnTie: false, maximumAttempts: 1 }],
-      defaultTieResolverDefinitionId: graph.id
+      defaultTieResolverDefinitionId: pin.definitionId
     })
-  )
+  })
+  const usesGraph = (declared: boolean) =>
+    policies.some((policy) => (policy.procedure === 'DECLARED_ACTION_ROLL') === declared)
   const definitions: SourceImportDefinitionsInput['definitions'] = [
-    {
-      id: graph.id,
-      definitionFamilyKey: graph.definitionFamilyKey,
-      label: 'V08 lifecycle D20 initiative',
-      description: 'Automatic initiative fixture',
-      document: jsonValueSchema.parse(graph),
-      checksum: graphChecksum
-    },
+    ...(usesGraph(false)
+      ? [
+          {
+            id: graph.id,
+            definitionFamilyKey: graph.definitionFamilyKey,
+            label: 'V08 lifecycle D20 initiative',
+            description: 'Automatic initiative fixture',
+            document: jsonValueSchema.parse(graph),
+            checksum: graphChecksum
+          }
+        ]
+      : []),
+    ...(usesGraph(true)
+      ? [
+          {
+            id: declaredGraph.id,
+            definitionFamilyKey: declaredGraph.definitionFamilyKey,
+            label: 'V08 lifecycle declared D20 initiative',
+            description: 'The installed D&D declared initiative graph',
+            document: jsonValueSchema.parse(declaredGraph),
+            checksum: declaredGraphChecksum
+          }
+        ]
+      : []),
     {
       id: choice.id,
       definitionFamilyKey: choice.definitionFamilyKey,

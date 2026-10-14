@@ -50,8 +50,11 @@ const createRun = makeFunctionReference<
  * dice. The prepared Run seats both Characters against one SRD Wolf; the room is attached and nothing
  * has started.
  */
-export async function assistedPartyFixture() {
-  const base = await setupCharacterRun({}, longsword)
+export async function assistedPartyFixture(
+  /** Options for Aria's Character, such as a feature that changes how she rolls initiative. */
+  ariaCharacter: Parameters<typeof setupCharacterRun>[0] = {}
+) {
+  const base = await setupCharacterRun(ariaCharacter, longsword)
   const { campaign } = base
   const gm = base.owner
   const ariaPlayer = base.player

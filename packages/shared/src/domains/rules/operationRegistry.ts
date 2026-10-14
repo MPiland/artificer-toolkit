@@ -34,6 +34,11 @@ export interface EvidenceRuleOperationContract extends RuleOperationContractBase
     minInput: string
     maxInput: string
     valueOutput: string
+    /**
+     * A BOOLEAN input that, when false, skips the request: the operation settles at the minimum
+     * without asking for evidence, so a graph can ask for a die only when a fact calls for it.
+     */
+    enabledInput?: string
   }
 }
 
@@ -86,6 +91,15 @@ export function createRuleOperationRegistry(
     ) {
       throw new RuleOperationRegistryError(
         `Evidence operation contract "${identity}" must bind numeric minimum, maximum, and value ports.`
+      )
+    }
+    if (
+      contract.executionKind === 'EVIDENCE' &&
+      contract.evidence.enabledInput !== undefined &&
+      contract.inputs[contract.evidence.enabledInput] !== RULE_VALUE_KIND.BOOLEAN
+    ) {
+      throw new RuleOperationRegistryError(
+        `Evidence operation contract "${identity}" must bind a boolean enabling port.`
       )
     }
     byIdentity.set(identity, contract)

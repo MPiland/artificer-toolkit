@@ -193,6 +193,18 @@ function continueExecution(input: {
     validateOperationInputs(operation, resolvedInputs)
     if (operation.executionKind === 'EVIDENCE') {
       const descriptor = operation.evidence
+      if (descriptor.enabledInput !== undefined && resolvedInputs[descriptor.enabledInput] === false) {
+        const outputs = { [descriptor.valueOutput]: resolvedInputs[descriptor.minInput] as number }
+        validateOperationOutputs(operation, outputs)
+        input.nodeOutputs.set(node.id, outputs)
+        input.trace.push({
+          nodeId: node.id,
+          operation: node.operation,
+          inputs: resolvedInputs,
+          outputs
+        })
+        continue
+      }
       const request = requestForNode({
         occurrenceId: input.occurrenceId,
         nodeId: node.id,

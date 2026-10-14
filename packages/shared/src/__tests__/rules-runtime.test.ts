@@ -25,7 +25,9 @@ const capability: GameSystemRuleCapabilityContract = {
   factContracts: [
     { key: 'actor.base', valueKind: 'NUMBER' },
     { key: 'test.threshold', valueKind: 'NUMBER' },
-    { key: 'private.unused', valueKind: 'BOOLEAN' }
+    { key: 'private.unused', valueKind: 'BOOLEAN' },
+    { key: 'test.extra-die', valueKind: 'BOOLEAN' },
+    { key: 'test.roll-mode', valueKind: 'TEXT' }
   ],
   operationContracts: coreRuleOperations.map(({ key, contractVersion }) => ({
     key,
@@ -642,3 +644,124 @@ describe('shared rules runtime', () => {
     expect(additionExecutions).toBe(3)
   })
 })
+
+/** Two d20s, the second optional, kept by a roll mode: the shape of a d20 test with advantage. */
+function keptD20Definition(): RuleGraphDefinition {
+  return {
+    schemaVersion: 1,
+    id: DEFINITION_ID,
+    gameSystemId: SYSTEM_ID,
+    definitionFamilyKey: 'test-resolution',
+    nodes: [
+      {
+        id: 'first',
+        operation: { key: 'evidence.integer-range', contractVersion: 1 },
+        inputs: { min: { kind: 'LITERAL', value: 1 }, max: { kind: 'LITERAL', value: 20 } }
+      },
+      {
+        id: 'second',
+        operation: { key: 'evidence.optional-integer-range', contractVersion: 1 },
+        inputs: {
+          min: { kind: 'LITERAL', value: 1 },
+          max: { kind: 'LITERAL', value: 20 },
+          enabled: { kind: 'FACT', factKey: 'test.extra-die' }
+        }
+      },
+      {
+        id: 'kept',
+        operation: { key: 'number.keep-by-roll-mode', contractVersion: 1 },
+        inputs: {
+          first: { kind: 'NODE_OUTPUT', nodeId: 'first', port: 'value' },
+          second: { kind: 'NODE_OUTPUT', nodeId: 'second', port: 'value' },
+          rollMode: { kind: 'FACT', factKey: 'test.roll-mode' }
+        }
+      }
+    ],
+    outputs: { value: { kind: 'NODE_OUTPUT', nodeId: 'kept', port: 'value' } }
+  }
+}
+
+describe('optional evidence and keep-by-roll-mode operations', () => {
+  const operations = createRuleOperationRegistry(coreRuleOperations)
+  const compiled = compileRuleGraph({
+    definition: keptD20Definition(),
+    sourceChecksum: CHECKSUM,
+    capability,
+    operations
+  })
+  if (!compiled.ok) throw new Error('Expected the kept d20 graph to compile.')
+
+  /** Runs the graph, answering each pause with the next face; returns outputs and the dice asked. */
+  function run(facts: { extraDie: boolean; rollMode: string }, faces: readonly number[]) {
+    const remaining = [...faces]
+    let result = executeRuleGraph({
+      graph: compiled.value,
+      occurrenceId: OCCURRENCE_ID,
+      facts: { 'test.extra-die': facts.extraDie, 'test.roll-mode': facts.rollMode },
+      operations
+    })
+    const asked: string[] = []
+    while (result.status === 'PAUSED') {
+      asked.push(result.continuation.request.nodeId)
+      const value = remaining.shift()
+      if (value === undefined) throw new Error('The graph asked for more dice than were supplied.')
+      result = resumeRuleGraph({
+        continuation: result.continuation,
+        response: { requestId: result.continuation.request.requestId, value },
+        operations
+      })
+    }
+    return { result, asked, unused: remaining }
+  }
+
+  it('asks for one die and keeps it when the extra die is not enabled', () => {
+    const { result, asked, unused } = run({ extraDie: false, rollMode: 'NORMAL' }, [13])
+    expect(asked).toEqual(['first'])
+    expect(unused).toEqual([])
+    if (result.status !== 'COMPLETE') throw new Error('Expected a completed execution.')
+    expect(result.outputs).toEqual({ value: 13 })
+    const skipped = result.evidence.trace.find((entry) => entry.nodeId === 'second')
+    expect(skipped?.evidence).toBeUndefined()
+  })
+
+  it('asks for both dice and keeps the higher on advantage', () => {
+    const { result, asked } = run({ extraDie: true, rollMode: 'ADVANTAGE' }, [4, 17])
+    expect(asked).toEqual(['first', 'second'])
+    if (result.status !== 'COMPLETE') throw new Error('Expected a completed execution.')
+    expect(result.outputs).toEqual({ value: 17 })
+    expect(result.evidence.trace.filter((entry) => entry.evidence).map((e) => e.evidence?.value)).toEqual([4, 17])
+  })
+
+  it('asks for both dice and keeps the lower on disadvantage', () => {
+    const { result } = run({ extraDie: true, rollMode: 'DISADVANTAGE' }, [17, 4])
+    if (result.status !== 'COMPLETE') throw new Error('Expected a completed execution.')
+    expect(result.outputs).toEqual({ value: 4 })
+  })
+
+  it('refuses a roll mode the operation does not know', () => {
+    expect(() => run({ extraDie: true, rollMode: 'SIDEWAYS' }, [4, 17])).toThrow(/roll mode/i)
+  })
+
+  it('rejects an optional evidence contract whose enabling port is not boolean', () => {
+    expect(() =>
+      createRuleOperationRegistry([
+        ...coreRuleOperations,
+        {
+          key: 'test.invalid-optional-evidence',
+          contractVersion: 1,
+          inputs: { min: 'NUMBER', max: 'NUMBER', enabled: 'NUMBER' },
+          outputs: { value: 'NUMBER' },
+          executionKind: 'EVIDENCE',
+          evidence: {
+            kind: 'INTEGER_RANGE',
+            minInput: 'min',
+            maxInput: 'max',
+            valueOutput: 'value',
+            enabledInput: 'enabled'
+          }
+        }
+      ])
+    ).toThrow(/enabling port/)
+  })
+})
+

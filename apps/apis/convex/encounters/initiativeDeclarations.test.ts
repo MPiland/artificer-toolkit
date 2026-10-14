@@ -46,6 +46,7 @@ import {
   SRD_RULES_CATALOGUE
 } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import { barbarian } from '@artificer-toolkit/source-data/srd/classes/barbarian.js'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { serverRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
@@ -180,9 +181,20 @@ async function storedInitiative<
 }
 
 /** A started Run whose declarations alternate between an assigned Character and a Custom enemy. */
-async function startCharacterDeclarationRun(options: { hideEnemy?: boolean } = {}) {
+async function startCharacterDeclarationRun(
+  options: {
+    hideEnemy?: boolean
+    character?: Parameters<typeof setupCharacterRun>[0]
+    /** Both members enter their own dice instead of the app rolling them. */
+    promptDice?: boolean
+  } = {}
+) {
   // Deliberately unequipped: a carried weapon is declared as drawn.
-  const base = await setupCharacterRun()
+  const base = await setupCharacterRun(options.character)
+  if (options.promptDice) {
+    await setAutoRollDice(base.t, base.owner.userId, false)
+    await setAutoRollDice(base.t, base.player.userId, false)
+  }
   const initiative = createEncounterInitiativeDefinitions([
     { procedure: 'DECLARED_ACTION_ROLL', cadence: 'ENCOUNTER_START' }
   ])
@@ -1481,4 +1493,81 @@ describe('declared initiative roll cards', () => {
       )
     ).toEqual([])
   }, 30000)
+
+  /** A Character whose Feral Instinct gives advantage on initiative, with one Custom enemy. */
+  const feralInstinctCharacter = () => {
+    const feralInstinct = barbarian.features?.find((feature) => feature.label === 'Feral Instinct')
+    if (!feralInstinct) throw new Error('Missing SRD Feral Instinct.')
+    return { features: [{ ...feralInstinct, availableAtLevel: 1, effects: [] }] }
+  }
+
+  /** The table's cards after the GM opens the table chat, as their client does. */
+  async function tableInitiativeCards(base: Parameters<typeof storedInitiative>[0] & {
+    owner: Awaited<ReturnType<typeof fixture>>['owner']
+  }) {
+    await base.owner.caller.mutation(api.campaigns.conversations.open, {
+      campaignId: base.campaign.id,
+      kind: 'TABLE'
+    })
+    return initiativeCards(await readRoomRollCards(base.owner.caller, base.campaign.id))
+  }
+
+  it('rolls two d20s for a Character with advantage and posts one card with both faces and the mode', async () => {
+    const { base, run, characterActor, enemyActor } = await startCharacterDeclarationRun({
+      character: feralInstinctCharacter()
+    })
+    // The Character asks for two dice and the enemy for one, in either declaration order: the
+    // faces 5, 15, 5 leave the Character's kept face 15 and the enemy's 5 whichever goes first.
+    await queueRoomRolls(base.campaign.id, { rolls: [4, 14, 4] })
+    await settleInitiative(
+      base,
+      run.id,
+      (actorId) => (actorId === characterActor.id ? base.player.caller : base.owner.caller),
+      null
+    )
+    const scores = await storedScores(base)
+    const cards = await tableInitiativeCards(base)
+    const characterCard = cards.find((card) => card.characterId === base.character.id)
+    const enemyCard = cards.find((card) => card.characterLabel === enemyActor.label)
+    expect(characterCard?.evidence).toMatchObject({
+      mode: 'ADVANTAGE',
+      total: scores.get(characterActor.id),
+      terms: [{ count: 2, die: 20, subtotal: 15 }]
+    })
+    expect([...characterCard!.evidence.terms[0]!.rolls].sort((a, b) => a - b)).toEqual([5, 15])
+    expect(characterCard!.evidence.terms[0]!.rolls[characterCard!.evidence.terms[0]!.keptRollIndex!]).toBe(15)
+    expect(enemyCard?.evidence).toMatchObject({
+      mode: 'NORMAL',
+      total: scores.get(enemyActor.id),
+      terms: [{ rolls: [5] }]
+    })
+    expect(cards).toHaveLength(2)
+  }, 30000)
+
+  it('asks a second time and posts one card with both faces when an advantage Character enters its dice', async () => {
+    const { base, run, characterActor, enemyActor } = await startCharacterDeclarationRun({
+      character: feralInstinctCharacter(),
+      promptDice: true
+    })
+    // The Character is asked twice and the enemy once; 3, 18, 7 leave its kept face 18 either way.
+    await settleInitiative(
+      base,
+      run.id,
+      (actorId) => (actorId === characterActor.id ? base.player.caller : base.owner.caller),
+      [3, 18, 7]
+    )
+    const scores = await storedScores(base)
+    const cards = await tableInitiativeCards(base)
+    const characterCard = cards.find((card) => card.characterId === base.character.id)
+    expect(characterCard?.evidence).toMatchObject({
+      mode: 'ADVANTAGE',
+      total: scores.get(characterActor.id),
+      terms: [{ count: 2, subtotal: 18 }]
+    })
+    expect(characterCard!.evidence.terms[0]!.rolls).toHaveLength(2)
+    expect(
+      cards.find((card) => card.characterLabel === enemyActor.label)?.evidence.terms[0]!.rolls
+    ).toHaveLength(1)
+  }, 30000)
 })
+
