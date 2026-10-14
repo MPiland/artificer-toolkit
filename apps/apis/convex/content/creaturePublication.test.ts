@@ -274,17 +274,20 @@ describe('native Creature publication', () => {
       })
     })
 
-    // Node-map normalization drops a sense outside the System vocabulary, so publication then
-    // finds the sense without its definition id.
+    // Node-map normalization drops a sense id outside the System vocabulary (unknown, another
+    // System's, or unlisted), so publication then finds the sense without its definition id.
     const droppedSense =
       /"senseDefinitionId"\s*\],\s*"message": "Invalid input: expected string, received undefined"/
     for (const senseDefinitionId of [
       '00000000-0000-0000-000a-0ff000000000',
-      '',
       foreignSenseId,
       unlistedSenseId
     ])
       await expect(saveAndPublish([sense(senseDefinitionId)])).rejects.toThrow(droppedSense)
+    // An empty id survives normalization and names no definition.
+    await expect(saveAndPublish([sense('')])).rejects.toThrow(
+      'Every Creature sense must reference a published sense definition.'
+    )
     await expect(
       saveAndPublish([sense(SRD_DARKVISION_SENSE_ID), sense(SRD_DARKVISION_SENSE_ID)])
     ).rejects.toThrow('A Creature can have each sense only once.')
