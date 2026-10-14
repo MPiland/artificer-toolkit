@@ -6574,7 +6574,7 @@
               "status": "TODO",
               "proof": [],
               "origin": [],
-              "note": "Split from SPELLS-7 on 2026-10-10; builds after SPELLS-7 on the same area executor.",
+              "note": "Split from SPELLS-7 on 2026-10-10; builds after SPELLS-7 on the same area executor. A dragon's breath is proved here with a synthetic Creature Self cone action; the SRD breaths themselves are authored and proved in SPELLS-21. User ruling 2026-10-14: every area (point or directed) catches a token only when its footprint overlaps the area with positive area; touching an edge or corner never catches (D103 amended in this slice).",
               "id": "SPELLS-13.1"
             },
             {
@@ -6765,6 +6765,54 @@
             "tc": 3,
             "rr": 3,
             "size": 5
+          }
+        },
+        {
+          "id": "SPELLS-21",
+          "title": "SRD breath weapons breathe areas",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": [],
+          "acs": [
+            {
+              "text": "Every SRD breath weapon (the dragons' breaths, the Behir's Lightning Breath and the rest) is authored in source data as a Self cone or line area with its printed size, save and damage, and an unmodified SRD dragon breathes it in a real room: the caught creatures save, damage applies (half on a success) and the GM can undo it.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Registered 2026-10-14 from the SPELLS-13 review: source data authors the breaths with SPECIAL range and no area shape (e.g. black-dragon-wyrmling.ts Acid Breath), so no SRD Creature can breathe through the area executor; the SPELLS-13 proofs use a synthetic Self cone action. Breaths that leave a condition (e.g. paralysis or sleep breath) stay refused until SPELLS-19. Needs the SRD manifest regenerated and a reset/reseed. Depends on SPELLS-13; SPELLS-15's area Legendary options reuse it.",
+              "id": "SPELLS-21.1"
+            }
+          ],
+          "wsjf": {
+            "bv": 8,
+            "tc": 3,
+            "rr": 3,
+            "size": 5
+          }
+        },
+        {
+          "id": "SPELLS-22",
+          "title": "Self-radius areas centered on the caster",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": [],
+          "acs": [
+            {
+              "text": "An area with Self range and a sphere, cylinder or circle shape (\"each creature within 10 feet of it\") is centered on the caster's space, catches every creature whose token overlaps it except the caster unless the text says so, and resolves as SPELLS-7 does.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Registered 2026-10-14 from the SPELLS-13 review: SPELLS-13 builds cones, lines and Self cubes and still refuses Self sphere, cylinder and circle areas. Moving auras are SPELLS-20; outcomes that leave conditions stay refused until SPELLS-19. Token rotation is not tracked: 5e footprints are square, so it changes no catch.",
+              "id": "SPELLS-22.1"
+            }
+          ],
+          "wsjf": {
+            "bv": 5,
+            "tc": 2,
+            "rr": 2,
+            "size": 3
           }
         }
       ]
