@@ -2,6 +2,8 @@ import type { CompiledActionTargetPolicy } from '@artificer-toolkit/schema/proje
 import type { EncounterRuleWarningDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
 import type { EncounterActionChoiceDto } from '@artificer-toolkit/schema/api/encounterActionChoices'
 import {
+  directedAreaInSceneCoordinates,
+  isDirectedAreaOriginOnToken,
   lengthMeasurementInSceneUnits,
   measureSceneDistance,
   pointAreaInSceneCoordinates,
@@ -9,6 +11,7 @@ import {
   type SceneGrid,
   type ScenePoint,
   type SceneToken,
+  type SpatialDirectedAreaShape,
   type SpatialPointAreaShape
 } from '@artificer-toolkit/shared/vtt'
 
@@ -29,19 +32,25 @@ const POINT_AREA_SHAPE_KINDS: ReadonlySet<string> = new Set([
   'CUBE'
 ])
 
+const DIRECTED_AREA_SHAPE_KINDS: ReadonlySet<string> = new Set(['CONE', 'LINE', 'CUBE'])
+
 /**
- * Which target a compiled action takes. An AREA_CONTENTS action over a sphere, cylinder, circle or
+ * Which target a compiled action takes. An AREA_CONTENTS action with a Self range over a cone, line
+ * or cube takes an origin on the caster and a direction; one over a sphere, cylinder, circle or
  * cube takes a point; a policy that names no shape takes one creature. Null is a policy this path
- * cannot resolve (a cone, line, wall or dome area, or per-path overrides): a hard refusal.
+ * cannot resolve (a wall or dome area, a Self sphere, cylinder or circle, a cone or line with
+ * another range, or per-path overrides): a hard refusal.
  */
 export function encounterActionTargetKind(
   policy: CompiledActionTargetPolicy
-): 'ACTOR' | 'POINT' | null {
+): 'ACTOR' | 'POINT' | 'DIRECTED' | null {
   if (policy.pathOverrides.length !== 0) return null
-  if (policy.targeting?.selectionKind === 'AREA_CONTENTS')
-    return policy.shape !== null && POINT_AREA_SHAPE_KINDS.has(policy.shape.shapeKind)
-      ? 'POINT'
-      : null
+  if (policy.targeting?.selectionKind === 'AREA_CONTENTS') {
+    if (policy.shape === null) return null
+    if (policy.range.rangeKind === 'SELF')
+      return DIRECTED_AREA_SHAPE_KINDS.has(policy.shape.shapeKind) ? 'DIRECTED' : null
+    return POINT_AREA_SHAPE_KINDS.has(policy.shape.shapeKind) ? 'POINT' : null
+  }
   return policy.shape === null ? 'ACTOR' : null
 }
 
@@ -65,9 +74,25 @@ function authoredPointArea(
 }
 
 /**
+ * The authored area of a directed policy: a cone or a line as authored, a cube as the cube that
+ * extends from the caster's side. Null for an action that does not take a direction.
+ */
+function authoredDirectedArea(
+  policy: CompiledActionTargetPolicy
+): Extract<EncounterActionChoiceDto['target'], { kind: 'DIRECTED' }>['area'] | null {
+  const { shape } = policy
+  if (encounterActionTargetKind(policy) !== 'DIRECTED' || shape === null) return null
+  if (shape.shapeKind === 'CUBE') return { kind: 'CUBE_FROM_SIDE', edgeLength: shape.edgeLength }
+  if (shape.shapeKind === 'CONE') return { kind: 'CONE', length: shape.length }
+  if (shape.shapeKind === 'LINE')
+    return { kind: 'LINE', length: shape.length, ...(shape.width ? { width: shape.width } : {}) }
+  return null
+}
+
+/**
  * What the action's choice asks the client to pick, as authored: nothing for a self action, a
- * creature (with whether its user may be chosen), or the point an area is centered on (with the
- * area, for the client's preview). A policy this path cannot resolve stays an actor choice;
+ * creature (with whether its user may be chosen), the point an area is centered on, or the origin
+ * and direction of a directed area (each with the area, for the client's preview). A policy this path cannot resolve stays an actor choice;
  * resolving it is refused.
  */
 export function encounterActionChoiceTarget(
@@ -75,6 +100,8 @@ export function encounterActionChoiceTarget(
 ): EncounterActionChoiceDto['target'] {
   const area = policy ? authoredPointArea(policy) : null
   if (area) return { kind: 'POINT', area }
+  const directedArea = policy ? authoredDirectedArea(policy) : null
+  if (directedArea) return { kind: 'DIRECTED', area: directedArea }
   const targeting = policy?.targeting
   if (targeting?.selectionKind === 'SELF') return { kind: 'SELF' }
   const self = targeting?.selectionKind === 'SINGLE_TARGET' ? targeting.self : undefined
@@ -91,6 +118,42 @@ export function compileEncounterPointArea(
 ): SpatialPointAreaShape | null {
   const area = authoredPointArea(policy)
   return area ? pointAreaInSceneCoordinates(area, grid) : null
+}
+
+/**
+ * Resolves a directed area action from its policy: the area to catch creatures with, aimed from
+ * `origin` toward `toward`. Every creature in the area is caught, so the single-target disposition
+ * rules (D99) do not apply, and the origin is on the caster so no range or sight is checked. Null
+ * is a hard refusal: the policy does not take a direction, its size is unsupported, the caster has
+ * no token on the map, no direction is given, or the origin does not lie on the caster's token as
+ * the shape requires.
+ */
+export function evaluateEncounterDirectedAreaTarget(input: {
+  targetPolicy: CompiledActionTargetPolicy
+  origin: ScenePoint
+  toward: ScenePoint
+  grid: SceneGrid
+  /** The caster's token; null when it is not on the map. */
+  sourceToken: Pick<SceneToken, 'position' | 'height' | 'width'> | null
+}): { shape: SpatialDirectedAreaShape; warnings: EncounterRuleWarningDto[] } | null {
+  const area = authoredDirectedArea(input.targetPolicy)
+  if (
+    area === null ||
+    input.sourceToken === null ||
+    (input.toward.x === input.origin.x && input.toward.y === input.origin.y)
+  )
+    return null
+  const shape = directedAreaInSceneCoordinates(area, input.toward, input.grid)
+  if (
+    shape === null ||
+    !isDirectedAreaOriginOnToken({
+      token: { ...input.sourceToken, id: 'caster' },
+      origin: input.origin,
+      shape
+    })
+  )
+    return null
+  return { shape, warnings: [] }
 }
 
 /**

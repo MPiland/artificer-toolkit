@@ -411,10 +411,11 @@ function isSupportedTestActivation(
 }
 
 /**
- * An AREA_CONTENTS save action over a sphere, cylinder, circle or cube of fixed size, centered on a
- * point within a distance (or unlimited). Cones, lines, walls, domes, Self and Touch origins and
- * breakpoint-scaled sizes stay refused. The area only decides who is caught: each caught creature
- * runs the same per-creature test plan a single target does.
+ * An AREA_CONTENTS save action over a fixed-size area. Either a sphere, cylinder, circle or cube
+ * centered on a point within a distance (or unlimited), or a cone, line or cube that extends from
+ * the caster (a Self range). Walls, domes, a Self sphere, Touch origins and breakpoint-scaled sizes
+ * stay refused. The area only decides who is caught: each caught creature runs the same
+ * per-creature test plan a single target does.
  */
 function isSupportedTestArea(
   invocation: Dnd5eCompiledEffectActionSource['compiledEffect']['invocation']
@@ -431,7 +432,12 @@ function isSupportedTestArea(
     invocation.activation.amount !== 1
   )
     return false
-  if (range.rangeKind !== 'UNLIMITED') {
+  const fromCaster = range.rangeKind === 'SELF'
+  if (fromCaster) {
+    if (shape.shapeKind !== 'CONE' && shape.shapeKind !== 'LINE' && shape.shapeKind !== 'CUBE')
+      return false
+  } else if (shape.shapeKind === 'CONE' || shape.shapeKind === 'LINE') return false
+  else if (range.rangeKind !== 'UNLIMITED') {
     if (
       range.rangeKind !== 'DISTANCE' ||
       !Number.isSafeInteger(range.amount) ||
@@ -443,15 +449,18 @@ function isSupportedTestArea(
   const size =
     shape.shapeKind === 'CUBE'
       ? shape.edgeLength
-      : shape.shapeKind === 'SPHERE' ||
-          shape.shapeKind === 'CYLINDER' ||
-          shape.shapeKind === 'CIRCLE'
-        ? shape.radius
-        : null
+      : shape.shapeKind === 'CONE' || shape.shapeKind === 'LINE'
+        ? shape.length
+        : shape.shapeKind === 'SPHERE' ||
+            shape.shapeKind === 'CYLINDER' ||
+            shape.shapeKind === 'CIRCLE'
+          ? shape.radius
+          : null
   return (
     size !== null &&
     size.scaling === undefined &&
     size.amount > 0 &&
+    !(shape.shapeKind === 'LINE' && shape.width?.scaling !== undefined) &&
     !(shape.shapeKind === 'CYLINDER' && shape.height.scaling !== undefined)
   )
 }

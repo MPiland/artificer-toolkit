@@ -35,7 +35,7 @@ import {
   projectSceneForViewer,
   sceneFogOwnerFailure,
   type ScenePoint,
-  type SpatialPointAreaShape
+  type SpatialAreaShape
 } from '@artificer-toolkit/shared/vtt'
 import { getCampaignLiveScenes } from '#app/data/campaigns/scenes'
 import { loadCampaignSceneEncounterBindings } from '#app/data/campaigns/liveScenes'
@@ -114,7 +114,8 @@ export function CampaignVttStage({
   const [actionsOpened, setActionsOpened] = useState(false)
   // An area action's center, picked on the map, and the area's size on this Scene.
   const [areaOrigin, setAreaOrigin] = useState<ScenePoint | null>(null)
-  const [areaShape, setAreaShape] = useState<SpatialPointAreaShape | null>(null)
+  const [areaToward, setAreaToward] = useState<ScenePoint | null>(null)
+  const [areaShape, setAreaShape] = useState<SpatialAreaShape | null>(null)
   const [aimingArea, setAimingArea] = useState(false)
   const [actionPreview, setActionPreview] = useState<VttActionPreview | null>(null)
   const renderer = useRef<VttSceneRenderer | null>(null)
@@ -515,8 +516,11 @@ export function CampaignVttStage({
     ]
   )
   const areaAim = useMemo(
-    () => (aimingArea && areaShape ? { shape: areaShape } : null),
-    [aimingArea, areaShape]
+    () =>
+      aimingArea && areaShape
+        ? { casterTokenId: actionPreview?.sourceTokenId ?? null, shape: areaShape }
+        : null,
+    [actionPreview?.sourceTokenId, aimingArea, areaShape]
   )
   // The preview shows while the drawer is open, including while the caster aims an area's center.
   const overlays = useMemo(
@@ -688,6 +692,12 @@ export function CampaignVttStage({
       },
       onAreaPoint: (point) => {
         setAreaOrigin(point)
+        setAimingArea(false)
+        setActionsOpened(true)
+      },
+      onAreaDirection: ({ origin, toward }) => {
+        setAreaOrigin(origin)
+        setAreaToward(toward)
         setAimingArea(false)
         setActionsOpened(true)
       },
@@ -1222,9 +1232,11 @@ export function CampaignVttStage({
               pending={encounterCommand.isPending || pendingOccurrence !== null}
               scene={activeEncounterSceneBinding?.sceneId === scene.id ? scene : null}
               areaOrigin={areaOrigin}
+              areaToward={areaToward}
               waitingOn={encounterSessionState?.waitingOn ?? null}
               actorIdByTokenId={actorIdByTokenId}
               onAreaOriginChange={setAreaOrigin}
+              onAreaTowardChange={setAreaToward}
               onAreaShapeChange={setAreaShape}
               onActionPreviewChange={setActionPreview}
               onPickAreaOrigin={() => setAimingArea(true)}

@@ -5,21 +5,26 @@ import {
   type CampaignSceneStateDto
 } from '@artificer-toolkit/schema/api/vttScenes'
 import {
+  directedAreaOutline,
   SceneBarrierIndex,
   scenePointInPolygon,
   sceneRangeBand,
   sceneRangeOutline,
-  type SceneGrid
+  spatialTokensInsideArea,
+  type SceneGrid,
+  type SpatialDirectedAreaShape
 } from '@artificer-toolkit/shared/vtt'
 import { tabletopLiveScene } from './CampaignTabletop.stories.fixtures'
 import {
   actionPreviewOverlays,
+  areaOverlay,
   buildVttFogMask,
   canPreserveSceneTokenDrag,
   clampPolygonToRadius,
   countDarknessZones,
   darknessZoneStyle,
   dashedPolygonSegments,
+  directedAreaAim,
   describeDarknessZone,
   describeSceneLighting,
   formatSceneMeasurement,
@@ -32,7 +37,6 @@ import {
   gmDarknessCapAlpha,
   illuminationOverlayAlpha,
   lightRadii,
-  pointAreaOverlay,
   positionVttMapTiles,
   resolveViewTokenId,
   resolveVttMapLoadDecision,
@@ -55,13 +59,13 @@ import { validated } from '../../../test/validatedFixture'
 
 describe('VTT scene renderer model', () => {
   it('draws a radius area as a target circle and a cube as a target square centered on the point', () => {
-    expect(pointAreaOverlay({ kind: 'RADIUS', radius: 400 }, { x: 700, y: 500 })).toMatchObject({
+    expect(areaOverlay({ kind: 'RADIUS', radius: 400 }, { x: 700, y: 500 })).toMatchObject({
       kind: 'CIRCLE',
       purpose: 'TARGET',
       center: { x: 700, y: 500 },
       radius: 400
     })
-    expect(pointAreaOverlay({ kind: 'CUBE', edgeLength: 300 }, { x: 700, y: 500 })).toMatchObject({
+    expect(areaOverlay({ kind: 'CUBE', edgeLength: 300 }, { x: 700, y: 500 })).toMatchObject({
       kind: 'POLYGON',
       purpose: 'TARGET',
       points: [
@@ -70,6 +74,104 @@ describe('VTT scene renderer model', () => {
         { x: 850, y: 650 },
         { x: 550, y: 650 }
       ]
+    })
+  })
+
+  describe('directed areas', () => {
+    const cell = 70
+    const caster = { id: 'caster', position: { x: 500, y: 500 }, width: cell, height: cell }
+    const toward = caster.position
+    const shapes: SpatialDirectedAreaShape[] = [
+      { kind: 'CONE', length: 3 * cell, toward },
+      { kind: 'LINE', length: 6 * cell, width: cell, toward },
+      { kind: 'CUBE_FROM_SIDE', edgeLength: 3 * cell, toward }
+    ]
+    /** The caster and a token on every square within eight of it. */
+    const tokens = Array.from({ length: 17 }, (_, row) =>
+      Array.from({ length: 17 }, (_, column) => ({
+        id: `${column - 8},${row - 8}`,
+        position: {
+          x: caster.position.x + (column - 8) * cell,
+          y: caster.position.y + (row - 8) * cell
+        },
+        width: cell,
+        height: cell
+      }))
+    )
+      .flat()
+      .map((token) => (token.id === '0,0' ? caster : token))
+
+    it('draws nothing for a directed area without a direction', () => {
+      const origin = { x: 535, y: 500 }
+      expect(areaOverlay({ kind: 'CONE', length: 210, toward: origin }, origin)).toBeNull()
+    })
+
+    it('starts on the caster’s edge nearest the pointer and extends toward it', () => {
+      const pointer = { x: 900, y: 520 }
+      expect(directedAreaAim({ caster, pointer, pressedAt: null, shape: shapes[0]! })).toEqual({
+        origin: { x: 535, y: 520 },
+        shape: { ...shapes[0]!, toward: pointer }
+      })
+    })
+
+    it('keeps the origin where the press began while the pointer moves', () => {
+      const pointer = { x: 700, y: 200 }
+      const aim = directedAreaAim({
+        caster,
+        pointer,
+        pressedAt: { x: 600, y: 520 },
+        shape: shapes[1]!
+      })
+      expect(aim?.origin).toEqual({ x: 535, y: 520 })
+      expect(aim?.shape.toward).toEqual(pointer)
+    })
+
+    it('aims nothing the rules would refuse: into the caster’s space, along its edge, or off a cube’s side', () => {
+      const [cone, , cube] = shapes as [SpatialDirectedAreaShape, unknown, SpatialDirectedAreaShape]
+      expect(
+        directedAreaAim({ caster, pointer: { x: 510, y: 500 }, pressedAt: null, shape: cone })
+      ).toBeNull()
+      const eastEdge = { x: 535, y: 500 }
+      expect(
+        directedAreaAim({ caster, pointer: { x: 535, y: 100 }, pressedAt: eastEdge, shape: cone })
+      ).toBeNull()
+      expect(
+        directedAreaAim({ caster, pointer: { x: 700, y: 100 }, pressedAt: eastEdge, shape: cube })
+      ).toBeNull()
+    })
+
+    it('draws the polygon the rules catch with, for every aim around the caster', () => {
+      let aimed = 0
+      for (const shape of shapes) {
+        for (let angle = 0; angle < 360; angle += 15) {
+          for (const distance of [60, 150, 300]) {
+            const pointer = {
+              x: caster.position.x + distance * Math.cos((angle * Math.PI) / 180),
+              y: caster.position.y + distance * Math.sin((angle * Math.PI) / 180)
+            }
+            const aim = directedAreaAim({ caster, pointer, pressedAt: null, shape })
+            // Outside the caster's space there is always somewhere to start from.
+            expect(aim).not.toBeNull()
+            if (!aim) continue
+            aimed += 1
+            const overlay = areaOverlay(aim.shape, aim.origin)
+            expect(overlay).toMatchObject({ kind: 'POLYGON', purpose: 'TARGET' })
+            const points = directedAreaOutline(aim.origin, aim.shape)!
+            expect(overlay).toMatchObject({ points })
+            const caught = new Set(
+              spatialTokensInsideArea({ origin: aim.origin, shape: aim.shape, tokens })
+            )
+            // The caster's own space is never in an area drawn from its edge.
+            expect(caught.has('caster')).toBe(false)
+            // Everything whose center lies inside the drawn area is caught.
+            for (const token of tokens) {
+              if (scenePointInPolygon(token.position, { points }))
+                expect(caught.has(token.id)).toBe(true)
+            }
+          }
+        }
+      }
+      expect(aimed).toBe(shapes.length * 24 * 3)
     })
   })
 
@@ -265,11 +367,11 @@ describe('VTT scene renderer model', () => {
         const previewOnly = actionPreviewOverlays(ranged, tabletopLiveScene)
         expect(stageOverlays({ ...stage, ...area })).toEqual([
           ...previewOnly,
-          pointAreaOverlay(area.areaShape, area.areaOrigin)
+          areaOverlay(area.areaShape, area.areaOrigin)
         ])
         expect(stageOverlays({ ...stage, ...area, aimingArea: true })).toEqual(previewOnly)
         expect(stageOverlays({ ...stage, ...area, drawerOpened: false })).toEqual([
-          pointAreaOverlay(area.areaShape, area.areaOrigin)
+          areaOverlay(area.areaShape, area.areaOrigin)
         ])
       })
     })

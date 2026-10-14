@@ -1,7 +1,9 @@
 import {
   actionAreaSceneRequestDtoSchema,
+  areaActionTargetOrigin,
   resolveEncounterActionInputDtoSchema,
   type ActionAreaSceneRequestDto,
+  type AreaActionTargetDto,
   type ResolveEncounterActionInputDto
 } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import type { LiveSessionEncounterRulesResponse } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
@@ -40,7 +42,7 @@ type AreaCommand = Omit<
   Extract<ResolveEncounterActionInputDto, { type: 'RESOLVE_ACTION' }>,
   'target'
 > & {
-  target: Extract<ResolveEncounterActionInputDto['target'], { kind: 'POINT' }>
+  target: AreaActionTargetDto
 }
 
 /** The area occurrence's own snapshot narrowed to its aggregate context. */
@@ -101,7 +103,7 @@ export async function readNativeAreaActionPending(
   const command = resolveEncounterActionInputDtoSchema.parse(JSON.parse(context.commandJson))
   if (
     command.type !== 'RESOLVE_ACTION' ||
-    command.target.kind !== 'POINT' ||
+    command.target.kind === 'ACTOR' ||
     command.commandId !== occurrence.rootCommandId ||
     command.encounterId !== occurrence.encounterId ||
     command.expectedVersion !== occurrence.expectedEncounterVersion ||
@@ -139,8 +141,8 @@ export async function requireAreaActionPendingRoot(
     context.casterActorId !== command.actorId ||
     context.scene.sceneId !== command.target.sceneId ||
     context.scene.sceneVersion !== command.target.expectedSceneVersion ||
-    context.area.origin.x !== command.target.point.x ||
-    context.area.origin.y !== command.target.point.y ||
+    context.area.origin.x !== areaActionTargetOrigin(command.target).x ||
+    context.area.origin.y !== areaActionTargetOrigin(command.target).y ||
     snapshot.optionalCombatSnapshotChecksum !== state.optionalCombatSnapshotChecksum ||
     !state.actorIds.includes(context.casterActorId)
   )
@@ -166,6 +168,7 @@ export async function requireAreaActionPendingRoot(
   const caught = catchEncounterAreaActorIds({
     origin: context.area.origin,
     shape: context.area.shape,
+    casterActorId: context.casterActorId,
     tokens: scene.tokens.map((token) => ({ ...token, id: token.tokenId }))
   })
   // A creature the GM removed is still caught by the Scene; it is simply no longer tested.

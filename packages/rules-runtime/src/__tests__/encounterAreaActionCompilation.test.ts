@@ -9,7 +9,11 @@ import {
   buildCompiledActionTargetPolicy
 } from '../encounterActionEntryPointCompiler.js'
 import { catchEncounterAreaActorIds } from '../encounterAreaActionExecution.js'
-import { compileEncounterPointArea, encounterActionTargetKind } from '../encounterAreaAction.js'
+import {
+  compileEncounterPointArea,
+  encounterActionChoiceTarget,
+  encounterActionTargetKind
+} from '../encounterAreaAction.js'
 import { dnd5eCharacterRuleActionSystemAdapter } from '../systems/dnd5e/effectActionCompiler.js'
 import {
   ACTION_EFFECT_ID,
@@ -81,6 +85,7 @@ describe('area action compilation from the SRD', () => {
       catchEncounterAreaActorIds({
         origin: { x: 0, y: 0 },
         shape,
+        casterActorId: '00000000-0000-4000-8000-0000000a0000',
         tokens: [at('0001', 300), at('0002', 700)]
       })
     ).toEqual(['00000000-0000-4000-8000-0000000a0001'])
@@ -117,6 +122,70 @@ describe('area action compilation from the SRD', () => {
       { id: 's', shapeKind: 'CIRCLE', radius: feet(5) }
     ] as const)
       expect(compile({ shape }).plan?.kind, shape.shapeKind).toBe('TEST_OUTCOME')
+  })
+})
+
+describe('directed area action compilation', () => {
+  const SELF = { id: 'r', rangeKind: 'SELF' } as const
+
+  it.each([
+    [
+      'a cone',
+      { id: 's', shapeKind: 'CONE', length: feet(15) },
+      { kind: 'CONE', length: feet(15) }
+    ],
+    [
+      'a line',
+      { id: 's', shapeKind: 'LINE', length: feet(100), width: feet(5) },
+      { kind: 'LINE', length: feet(100), width: feet(5) }
+    ],
+    [
+      'a cube',
+      { id: 's', shapeKind: 'CUBE', edgeLength: feet(15) },
+      { kind: 'CUBE_FROM_SIDE', edgeLength: feet(15) }
+    ]
+  ] as const)('compiles %s from the caster to the per-creature test plan', (_name, shape, area) => {
+    const { action, plan } = compile({ range: SELF, shape })
+    expect(plan?.kind).toBe('TEST_OUTCOME')
+    const policy = buildCompiledActionTargetPolicy(action)
+    expect(encounterActionTargetKind(policy)).toBe('DIRECTED')
+    expect(encounterActionChoiceTarget(policy)).toEqual({ kind: 'DIRECTED', area })
+  })
+
+  it('compiles SRD Thunderwave as the cube that extends from the caster', () => {
+    const action = characterActionDescriptor(
+      compileEffect({ ...spellEffect('Thunderwave'), id: ACTION_EFFECT_ID })
+    )
+    const policy = buildCompiledActionTargetPolicy(action)
+    expect(policy.range.rangeKind).toBe('SELF')
+    expect(encounterActionChoiceTarget(policy)).toEqual({
+      kind: 'DIRECTED',
+      area: { kind: 'CUBE_FROM_SIDE', edgeLength: feet(15) }
+    })
+  })
+
+  it.each<[string, NonNullable<Invocation['shape']>]>([
+    [
+      'a scaled cone',
+      {
+        id: 's',
+        shapeKind: 'CONE',
+        length: {
+          ...feet(15),
+          scaling: {
+            scalingKind: 'BREAKPOINTS',
+            scalingSource: 'SPELL_CAST_LEVEL',
+            breakpoints: [{ id: 'b', level: 4, order: 1, value: feet(30) }]
+          }
+        }
+      }
+    ],
+    ['a self wall', { id: 's', shapeKind: 'WALL', length: feet(60), height: feet(20) }],
+    ['a self dome', { id: 's', shapeKind: 'DOME', radius: feet(10) }]
+  ])('still refuses %s', (_name, shape) => {
+    expect(() => compile({ range: SELF, shape })).toThrow(
+      CharacterRuleActionUnsupportedCompilationError
+    )
   })
 })
 

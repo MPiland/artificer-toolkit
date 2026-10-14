@@ -3,7 +3,10 @@ import type { EncounterActionChoiceDto } from '@artificer-toolkit/schema/api/enc
 import type { CampaignSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
 import {
   canMoveBetween,
+  directedAreaOutline,
+  isDirectedAreaOriginOnToken,
   measureScenePathDistance,
+  nearestFootprintEdgePoint,
   SceneBarrierIndex,
   sceneDistanceAsCoordinateLength,
   scenePointInPolygon,
@@ -12,7 +15,9 @@ import {
   type SceneGrid,
   type ScenePoint,
   type SceneTokenSense,
-  type SpatialPointAreaShape
+  type SpatialAreaShape,
+  type SpatialDirectedAreaShape,
+  type SpatialSceneToken
 } from '@artificer-toolkit/shared/vtt'
 
 const unexploredOpacity = 224
@@ -126,11 +131,15 @@ export type VttScenePresentationOverlay =
 
 const pointAreaColor = 0xe8590c
 
-/** The overlay for a point-origin area centered on `origin`: a circle for a radius, a square for a cube. */
-export function pointAreaOverlay(
-  shape: SpatialPointAreaShape,
+/**
+ * The overlay for an area at `origin`: a circle for a radius, a square for a cube, and for a
+ * directed area the polygon the rules catch creatures with (`directedAreaOutline`). Null when a
+ * directed area has no direction.
+ */
+export function areaOverlay(
+  shape: SpatialAreaShape,
   origin: ScenePoint
-): VttScenePresentationOverlay {
+): VttScenePresentationOverlay | null {
   if (shape.kind === 'RADIUS') {
     return {
       center: origin,
@@ -142,20 +151,50 @@ export function pointAreaOverlay(
       radius: shape.radius
     }
   }
-  const half = shape.edgeLength / 2
-  return {
-    color: pointAreaColor,
-    id: 'area-origin',
-    kind: 'POLYGON',
-    label: 'Area origin',
-    points: [
-      { x: origin.x - half, y: origin.y - half },
-      { x: origin.x + half, y: origin.y - half },
-      { x: origin.x + half, y: origin.y + half },
-      { x: origin.x - half, y: origin.y + half }
-    ],
-    purpose: 'TARGET'
-  }
+  const half = shape.kind === 'CUBE' ? shape.edgeLength / 2 : 0
+  const points =
+    shape.kind === 'CUBE'
+      ? [
+          { x: origin.x - half, y: origin.y - half },
+          { x: origin.x + half, y: origin.y - half },
+          { x: origin.x + half, y: origin.y + half },
+          { x: origin.x - half, y: origin.y + half }
+        ]
+      : directedAreaOutline(origin, shape)
+  return points
+    ? {
+        color: pointAreaColor,
+        id: 'area-origin',
+        kind: 'POLYGON',
+        label: 'Area origin',
+        points,
+        purpose: 'TARGET'
+      }
+    : null
+}
+
+/**
+ * The directed area the pointer aims. The origin is the point on the caster's footprint edge nearest
+ * where the press began (the pointer, before a press), and the area extends toward the pointer. Null
+ * unless the rules would accept that origin for that direction, so a preview or a pick the rules
+ * would refuse never shows.
+ */
+export function directedAreaAim({
+  caster,
+  pointer,
+  pressedAt,
+  shape
+}: {
+  caster: SpatialSceneToken
+  pointer: ScenePoint
+  pressedAt: ScenePoint | null
+  shape: SpatialDirectedAreaShape
+}): { origin: ScenePoint; shape: SpatialDirectedAreaShape } | null {
+  const origin = nearestFootprintEdgePoint(caster, pressedAt ?? pointer)
+  const aimed = { ...shape, toward: pointer }
+  return isDirectedAreaOriginOnToken({ token: caster, origin, shape: aimed })
+    ? { origin, shape: aimed }
+    : null
 }
 
 /** The chosen action's range and target as the stage previews them while the drawer is picking. */
@@ -272,13 +311,14 @@ export function stageOverlays({
   actionPreview: VttActionPreview | null
   aimingArea: boolean
   areaOrigin: ScenePoint | null
-  areaShape: SpatialPointAreaShape | null
+  areaShape: SpatialAreaShape | null
   drawerOpened: boolean
   scene: Pick<CampaignSceneStateDto, 'grid' | 'tokens'> | null
 }): VttScenePresentationOverlay[] | undefined {
+  const picked = areaShape && areaOrigin && !aimingArea ? areaOverlay(areaShape, areaOrigin) : null
   const overlays = [
     ...(drawerOpened && scene ? actionPreviewOverlays(actionPreview, scene) : []),
-    ...(areaShape && areaOrigin && !aimingArea ? [pointAreaOverlay(areaShape, areaOrigin)] : [])
+    ...(picked ? [picked] : [])
   ]
   return overlays.length > 0 ? overlays : undefined
 }

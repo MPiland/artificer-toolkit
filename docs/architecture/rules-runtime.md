@@ -272,11 +272,30 @@ holds the source spend once and one mechanics-batch child per kept creature
 reverse, then the root. An outcome that leaves a condition, a lasting or recurring effect or a maintained
 effect is refused whole until SPELLS-19.
 
-Each action choice carries `target`: `{ kind: 'ACTOR' }` or `{ kind: 'POINT', area }`, where `area` is the
-authored radius or cube edge (`encounterActionChoiceTarget`). A policy this path cannot resolve (a cone,
-line, wall or dome) stays an actor choice and is refused when resolved. The web converts the area to Scene
-coordinates with `pointAreaInSceneCoordinates` (`shared/vtt`), the same function `compileEncounterPointArea`
-uses, to preview it and list the tokens the viewer sees inside; the room still decides who is caught.
+Each action choice carries `target`: `{ kind: 'ACTOR' }`, `{ kind: 'POINT', area }` (the authored radius or
+cube edge) or `{ kind: 'DIRECTED', area }` (the authored cone length, line length and width, or the edge of a
+cube that extends from the caster), built by `encounterActionChoiceTarget`. A policy this path cannot resolve
+(a wall, dome, Self sphere, cylinder or circle, or a cone or line whose range is not Self) stays an actor
+choice and is refused when resolved. The web converts the area to Scene coordinates with
+`pointAreaInSceneCoordinates` or `directedAreaInSceneCoordinates` (`shared/vtt`), the same functions
+`compileEncounterPointArea` and `evaluateEncounterDirectedAreaTarget` use, to preview it and list the tokens
+the viewer sees inside; the room still decides who is caught.
+
+### Directed areas: cone, line and caster-origin cube (current, SPELLS-13)
+
+An `AREA_CONTENTS` action whose range is Self and whose shape is a cone, line or cube takes the third target,
+`{ kind: 'DIRECTED', origin, toward, sceneId, expectedSceneVersion }`. The origin must lie on the caster's token
+footprint (`isDirectedAreaOriginOnToken`) and `toward` is the point the area is aimed at; a point target for such
+an action, a directed target for a point area, or an origin off the footprint is `TARGET_UNAVAILABLE`.
+`evaluateEncounterDirectedAreaTarget` returns the Scene-unit shape, and everything after it is the point-area
+pipeline above: the same `ENCOUNTER_AREA_ACTION` occurrence, sealed saves, frozen damage, GM removal, commit and
+undo. Catching (`spatialTokensInsideArea`) is strict positive-area overlap, so a creature the area only touches
+is not caught, and the caster is never caught. A cube extends from the chosen side (its axis snaps to the
+dominant axis of `toward`); a cone is the triangle from the origin to a far edge as wide as it is long; a line is
+a rectangle, 5 ft wide unless authored. Token rotation is ignored: the footprint is axis-aligned. The stage
+aims it with `directedAreaAim` (`vttSceneRenderer.model.ts`): the player presses on their token's edge
+(`nearestFootprintEdgePoint`) and drags the direction, and the outline drawn is `directedAreaOutline`, the same
+geometry the room catches with.
 
 Each choice also carries `range` when its compiled target policy has a measurable one, the range the evaluator that
 handles the policy measures. A single-target policy that `singleTargetMeasure` accepts advertises `SELF`, `WITHIN` (Touch

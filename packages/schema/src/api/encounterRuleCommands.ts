@@ -108,8 +108,10 @@ export type EncounterAcceptedWieldConflictDto = z.infer<
 >
 
 /**
- * What a RESOLVE_ACTION aims at: one creature, or the origin of a point-area action
- * (AREA_CONTENTS targeting) in the coordinates of the Scene version the caster saw.
+ * What a RESOLVE_ACTION aims at: one creature, the origin of a point-area action (AREA_CONTENTS
+ * targeting), or the origin and direction of a directed area (a cone, a line, or a cube from the
+ * caster's own side), in the coordinates of the Scene version the caster saw. A directed
+ * area's origin must lie on the caster's token footprint.
  */
 export const resolveEncounterActionTargetDtoSchema = lazySchema(() =>
   z.discriminatedUnion('kind', [
@@ -119,15 +121,30 @@ export const resolveEncounterActionTargetDtoSchema = lazySchema(() =>
       sceneId: uuidSchema,
       expectedSceneVersion: versionSchema,
       point: spatialPointDtoSchema
+    }),
+    z.strictObject({
+      kind: z.literal('DIRECTED'),
+      sceneId: uuidSchema,
+      expectedSceneVersion: versionSchema,
+      origin: spatialPointDtoSchema,
+      toward: spatialPointDtoSchema
     })
   ])
 )
 export type ResolveEncounterActionTargetDto = z.infer<typeof resolveEncounterActionTargetDtoSchema>
 
-/** The creature a single-target action aims at; a point-origin area names none. */
+/** A target that aims an area rather than names a creature. */
+export type AreaActionTargetDto = Exclude<ResolveEncounterActionTargetDto, { kind: 'ACTOR' }>
+
+/** The creature a single-target action aims at; an area names none. */
 export function actionTargetActorId(target: ResolveEncounterActionTargetDto): string {
-  if (target.kind !== 'ACTOR') throw new Error('A point-origin area action names no creature.')
+  if (target.kind !== 'ACTOR') throw new Error('An area action names no creature.')
   return target.actorId
+}
+
+/** Where an area action's area starts: the picked point, or the directed area's origin. */
+export function areaActionTargetOrigin(target: AreaActionTargetDto): { x: number; y: number } {
+  return target.kind === 'POINT' ? target.point : target.origin
 }
 
 export const resolveEncounterActionInputDtoSchema = lazySchema(() =>

@@ -206,7 +206,9 @@ const meta = {
     escapes: [],
     openAttackAction: null,
     areaOrigin: null,
+    areaToward: null,
     onAreaOriginChange: fn(),
+    onAreaTowardChange: fn(),
     onAreaShapeChange: fn(),
     onActionPreviewChange: fn(),
     onPickAreaOrigin: fn(),
@@ -217,12 +219,15 @@ const meta = {
   render: function Render(args) {
     const [opened, { open, close }] = useDisclosure(false)
     const [areaOrigin, setAreaOrigin] = useState<ScenePoint | null>(args.areaOrigin)
+    const [areaToward, setAreaToward] = useState<ScenePoint | null>(args.areaToward)
     return (
       <CampaignTabletopActionDrawer
         {...args}
         areaOrigin={areaOrigin}
+        areaToward={areaToward}
         opened={opened}
         onAreaOriginChange={setAreaOrigin}
+        onAreaTowardChange={setAreaToward}
         onOpen={open}
         onClose={close}
       />

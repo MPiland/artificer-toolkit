@@ -182,7 +182,7 @@ the GM (`NOT_ACTOR_CONTROLLER` otherwise).
   TURN, ACTION, CONCENTRATION, CLEAVING, BASIC_ACTION, ESCAPE, DISARM or MOVEMENT. The selected planner repeats canonical
   admission. A decision no planner owns is refused with `VERSION_STALE` unless it names the Run's one
   pending occurrence and the caller may answer it.
-- `REMOVE_AREA_TARGET` (GM-only) takes one creature out of a pending point-area action
+- `REMOVE_AREA_TARGET` (GM-only) takes one creature out of a pending area action (point or directed)
   (`areaTargetRemoval.ts`, routed with `AREA_REMOVAL` admission). It is not a Run command, and while the area
   still waits on another creature it writes no command receipt and leaves the Run version alone; only the
   occurrence version moves. A removal that leaves nothing to wait on writes nothing itself and the room commits

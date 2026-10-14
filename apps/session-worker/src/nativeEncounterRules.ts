@@ -278,7 +278,7 @@ export async function planNativeLiveEncounterAction(
       reason: 'TARGET_UNAVAILABLE',
       message: TARGET_NOT_PERMITTED_MESSAGE
     })
-  if (command.target.kind === 'POINT') {
+  if (command.target.kind !== 'ACTOR') {
     const areaInput = {
       initial,
       command: { ...command, target: command.target },

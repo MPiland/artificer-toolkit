@@ -68,8 +68,9 @@ export const encounterActionChoiceDtoSchema = lazySchema(() =>
      */
     warnings: encounterRuleWarningsDtoSchema,
     /**
-     * What the client picks before resolving: a creature, or the point an area is centered on. The
-     * area is as authored; the client converts it to the Scene's coordinates to preview it.
+     * What the client picks before resolving: a creature, the point an area is centered on, or the
+     * origin and direction of a directed area. The area is as authored; the client converts it to
+     * the Scene's coordinates to preview it.
      */
     target: z.discriminatedUnion('kind', [
       /** The action resolves on its user (Dash, Dodge): the client asks for nothing. */
@@ -84,6 +85,25 @@ export const encounterActionChoiceDtoSchema = lazySchema(() =>
         area: z.discriminatedUnion('kind', [
           z.strictObject({ kind: z.literal('RADIUS'), radius: shapeMeasurementDtoSchema }),
           z.strictObject({ kind: z.literal('CUBE'), edgeLength: shapeMeasurementDtoSchema })
+        ])
+      }),
+      /**
+       * An area that starts on the caster's own token and extends toward a direction: a cone, a
+       * line, or a cube from the caster's side (a cube authored with a Self range).
+       */
+      z.strictObject({
+        kind: z.literal('DIRECTED'),
+        area: z.discriminatedUnion('kind', [
+          z.strictObject({ kind: z.literal('CONE'), length: shapeMeasurementDtoSchema }),
+          z.strictObject({
+            kind: z.literal('LINE'),
+            length: shapeMeasurementDtoSchema,
+            width: z.optional(shapeMeasurementDtoSchema)
+          }),
+          z.strictObject({
+            kind: z.literal('CUBE_FROM_SIDE'),
+            edgeLength: shapeMeasurementDtoSchema
+          })
         ])
       })
     ]),
