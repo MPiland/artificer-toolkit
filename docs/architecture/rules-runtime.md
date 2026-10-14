@@ -168,8 +168,8 @@ dice or a die that is not a logged `1dN` throws. **Declared advantage and disadv
 current):** the declared graph's `d20-extra` node (`evidence.optional-integer-range`, which asks for its
 die only while the `initiative.extra-d20` fact is true) and its `number.keep-by-roll-mode` node roll two
 d20s and keep the higher or lower under the policy's resolved roll mode; the card replays both faces under
-that mode, so it matches the GM-rolled card. Tie attempts reuse the score graph and take the same
-advantage.) A die settled by a `SYSTEM_ROLL` answer already has its
+that mode, so it matches the GM-rolled card. A tie resolver pinned to the same graph rolls its attempts
+the same way.) A die settled by a `SYSTEM_ROLL` answer already has its
 "Rolled by the app" attempt card, so the commit skips it; an auto-rolled or entered die (including one
 entered after an app roll) is carded at commit. `readAppCardedDice`
 (`packages/encounter-persistence/src/appCardedDice.ts`) decides this

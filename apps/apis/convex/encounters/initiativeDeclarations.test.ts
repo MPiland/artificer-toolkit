@@ -1573,4 +1573,31 @@ describe('declared initiative roll cards', () => {
       cards.find((card) => card.characterLabel === enemyActor.label)?.evidence.terms[0]!.rolls
     ).toHaveLength(1)
   }, 30000)
+
+  it('replays a retried advantage declaration to the same two faces and the same one card', async () => {
+    const { base, run, characterActor } = await startCharacterDeclarationRun({
+      character: feralInstinctCharacter()
+    })
+    await queueRoomRolls(base.campaign.id, { rolls: [4, 14, 4] })
+    const nextDeclaration = async () => {
+      const pending = await readPending(base, base.owner.caller, run.id)
+      if (pending?.kind !== 'INITIATIVE_DECLARATION') throw new Error('Expected a declaration.')
+      return {
+        caller: pending.actorId === characterActor.id ? base.player.caller : base.owner.caller,
+        input: declarationCommand({ encounterId: run.id, pending })
+      }
+    }
+    const first = await nextDeclaration()
+    await executeInRoom(first.caller, first.input)
+    const terminal = await nextDeclaration()
+    const settled = await executeInRoom(terminal.caller, terminal.input)
+    const before = await tableInitiativeCards(base)
+    expect(before).toHaveLength(2)
+    expect(before.find((card) => card.characterId === base.character.id)?.evidence).toMatchObject({
+      mode: 'ADVANTAGE',
+      terms: [{ count: 2 }]
+    })
+    await expect(executeInRoom(terminal.caller, terminal.input)).resolves.toEqual(settled)
+    expect(await tableInitiativeCards(base)).toEqual(before)
+  }, 30000)
 })
