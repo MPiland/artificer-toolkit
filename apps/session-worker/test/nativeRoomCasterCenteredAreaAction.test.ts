@@ -97,7 +97,7 @@ describe('room radius centered on the caster', () => {
     expect(roots.map(({ receipt }) => receipt.commandId)).toEqual([command.commandId])
   })
 
-  it('rolls the saves of the Wolves inside, deals full and half damage once, and the GM undoes it', async () => {
+  it('rolls the saves of the Wolves inside, damages the one that fails once, and the GM undoes it', async () => {
     const room = await centeredRoom(casterCenteredAreaWolf(TEN_FOOT_SPHERE, 10))
     const stub = room.room.base.stub
     const before = await readRoomHistory(stub)
@@ -127,7 +127,7 @@ describe('room radius centered on the caster', () => {
     expect(vitalsOf(await readRoomHistory(stub))).toEqual(vitalsOf(before))
     await answer(FIRST_ID, 1)
 
-    // 3. The last answer commits the area once: full damage on the failure, half on the success.
+    // 3. The last answer commits the area once: full damage on the failure, none on the success.
     expect(await readPendingActionDecision(stub)).toBeNull()
     const committed = await readRoomHistory(stub)
     expect(
@@ -140,7 +140,7 @@ describe('room radius centered on the caster', () => {
     const damageTaken = (id: string) =>
       (hitPointsOf(before, id) ?? Number.NaN) - (hitPointsOf(committed, id) ?? Number.NaN)
     expect(damageTaken(FIRST_ID)).toBe(10)
-    expect(damageTaken(SECOND_ID)).toBe(5)
+    expect(damageTaken(SECOND_ID)).toBe(0)
     expect(damageTaken(THIRD_ID)).toBe(0)
     expect(damageTaken(FAR_ID)).toBe(0)
     expect(damageTaken(CASTER_ID)).toBe(0)

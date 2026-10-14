@@ -434,7 +434,7 @@ describe('catching the creatures in a radius centered on the caster', () => {
     expect(centered({ foe: 12, ally: 11 })).toEqual([ALLY_ID])
   })
 
-  it('catches the caster when the same radius is measured as a point area', () => {
+  it('catches the caster, and not the token the radius from the center only touches, as a point area', () => {
     expect(
       catchEncounterAreaActorIds({
         origin: { x: 0, y: 0 },
@@ -442,7 +442,7 @@ describe('catching the creatures in a radius centered on the caster', () => {
         casterActorId: CASTER_ID,
         tokens: tokens({ foe: 12, ally: 11 })
       })
-    ).toEqual([CASTER_ID, ALLY_ID])
+    ).toEqual([CASTER_ID])
   })
 
   it('needs the caster’s token: a centered area without one is an invariant, not an empty catch', () => {

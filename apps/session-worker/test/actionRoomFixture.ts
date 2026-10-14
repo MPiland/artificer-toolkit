@@ -190,7 +190,7 @@ export function casterCenteredAreaWolf(
         height: { amount: number; unit: 'FEET' }
       }
     | { shapeKind: 'CIRCLE'; radius: { amount: number; unit: 'FEET' } },
-  /** The damage a failed save takes; half of it on a success. */
+  /** The damage a failed save takes; a success takes none. */
   damage = 1
 ): CreatureAuthored {
   return selfAreaWolf(shape, damage)
