@@ -582,9 +582,10 @@ describe('Character mechanics batch plan', () => {
       )
       expect(plan.characterStreamVersion).toBe(STREAM_VERSION + 1)
       expect(plan.shouldAdvance).toBe(true)
+      // The Sheet's own slot write: a used slot keeps its place.
       expect(plan.characterUpdate?.character.state.spellSlots).toEqual([
-        { slotKey: 'STANDARD:2', used: 1 },
-        { slotKey: 'STANDARD:1', used: 2 }
+        { slotKey: 'STANDARD:1', used: 2 },
+        { slotKey: 'STANDARD:2', used: 1 }
       ])
     })
 

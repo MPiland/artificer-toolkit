@@ -82,6 +82,7 @@ import { getProficiencyTargetKind } from './sheetProficiency.js'
 import {
   getPreparedAndKnownSpellIds,
   getKnownSpellIdsForClassIntent,
+  getPreparationCapableClassIds,
   getSheetSpellIdsByClass
 } from './sheetSpellIds.js'
 
@@ -287,7 +288,7 @@ type CharacterSheetSpellSource = {
   resourceOwner?: CharacterResourceOwnerRef
 }
 
-function getSpellSourcesBySpellId(
+export function getSpellSourcesBySpellId(
   character: CharacterAuthored,
   classLabels: ReadonlyMap<string, string>,
   sheetSpellIdsByClassId: ReadonlyMap<string, ReadonlySet<string>>,
@@ -472,9 +473,10 @@ function getSpellSourcesBySpellId(
   )
 }
 
-function isActiveSpellSource(spell: SheetSpell, source: SheetSpellSource): boolean {
+/** Whether the Sheet lists a spell from this source among the Character's castable spells. */
+export function isActiveSpellSource(spellLevel: number, source: SheetSpellSource): boolean {
   if (source.acquisition === 'ALWAYS_PREPARED' || source.acquisition === 'GRANTED') return true
-  if (spell.level === 0) return source.acquisition === 'KNOWN' || Boolean(source.prepared)
+  if (spellLevel === 0) return source.acquisition === 'KNOWN' || Boolean(source.prepared)
   if (source.canPrepare) return Boolean(source.prepared)
   return source.acquisition === 'KNOWN' || Boolean(source.prepared)
 }
@@ -494,8 +496,24 @@ function getSpellPrimaryEffect(
   return undefined
 }
 
-function getExplicitSpellCastLevels(
-  spell: SheetSpell,
+/** The slot levels a Character owns: a spell may be cast at the levels it scales at among them. */
+export function getOwnedSpellSlotLevels(
+  spellSlots: CharacterRuleEvaluationResult['output']['spellSlots']
+): ReadonlySet<number> {
+  return new Set([
+    ...spellSlots.maxByLevel.flatMap((slot) => (slot.slotCount > 0 ? [slot.spellLevel] : [])),
+    ...(spellSlots.pactMagic && spellSlots.pactMagic.slots > 0 ? [spellSlots.pactMagic.level] : [])
+  ])
+}
+
+/** The levels a spell is cast at from one source: its own, and each level it scales at that is owned. */
+export function getExplicitSpellCastLevels(
+  spell: {
+    level: number
+    mechanics?: readonly {
+      outcomes: readonly { kind: string; scaling?: readonly { level: number }[] }[]
+    }[]
+  },
   source: SheetSpellSource,
   ownedSlotLevels: ReadonlySet<number>
 ): number[] {
@@ -567,14 +585,10 @@ function buildActiveSpellGroups(params: {
   slots: readonly SheetSpellSlot[]
   spellCastDecisions: CharacterRuleEvaluationResult['output']['spellCastDecisions']
   spellCastMechanics: CharacterRuleEvaluationResult['output']['spellCastMechanics']
+  ownedSlotLevels: ReadonlySet<number>
   actionReferences: CharacterRuleActionPresentationReferences
 }): CharacterSheetResponseDto['spells']['activeGroups'] {
-  const ownedSlotLevels = new Set(
-    params.slots.flatMap((slot) => {
-      const level = slot.level ?? parseSlotLevel(slot.slotKey)
-      return level !== null && slot.max > 0 ? [level] : []
-    })
-  )
+  const { ownedSlotLevels } = params
   const spellCastDecisionsByCandidateId = new Map(
     params.spellCastDecisions.map((decision) => [decision.candidateId, decision])
   )
@@ -589,7 +603,7 @@ function buildActiveSpellGroups(params: {
   }
   const rows = params.spells.flatMap((spell) =>
     (spell.sources ?? []).flatMap((source) => {
-      if (!isActiveSpellSource(spell, source)) return []
+      if (!isActiveSpellSource(spell.level, source)) return []
       const castLevels = getExplicitSpellCastLevels(spell, source, ownedSlotLevels)
       return castLevels.map((castLevel) => {
         const candidateId = createCharacterSpellCastCandidateId(source.source, castLevel)
@@ -836,11 +850,7 @@ export function projectCharacterSheetBundle(
   for (const spellIds of sheetSpellIdsByClassId.values()) {
     for (const spellId of spellIds) displayedSpellIds.add(spellId)
   }
-  const preparationCapableClassIds = new Set(
-    ruleEvaluation.output.spellPreparation.sources.flatMap((source) =>
-      source.preparedSpellLimit === null ? [] : [source.classId]
-    )
-  )
+  const preparationCapableClassIds = getPreparationCapableClassIds(ruleEvaluation.output)
   const ruleProjection = projectCharacterRulePolicyToSheetProjection(ruleEvaluation)
   const itemMechanicsByInstanceId = new Map(
     ruleProjection.itemMechanics.map((item) => [item.itemInstanceId, item])
@@ -1355,6 +1365,7 @@ export function projectCharacterSheetBundle(
     slots: sheetSpellSlots,
     spellCastDecisions: ruleEvaluation.output.spellCastDecisions,
     spellCastMechanics: ruleEvaluation.output.spellCastMechanics,
+    ownedSlotLevels: getOwnedSpellSlotLevels(ruleEvaluation.output.spellSlots),
     actionReferences: mechanicPresentation.actionReferences
   })
   const displayedProficiencyKeys = new Set<string>()

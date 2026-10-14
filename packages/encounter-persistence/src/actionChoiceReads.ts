@@ -129,17 +129,27 @@ export async function readEncounterActionChoices(
   if (actor.kind === 'CHARACTER') {
     const facts = actorTarget?.characterFacts
     const mechanics = actorTarget?.characterReactionSource?.mechanics
+    const spellCast = actorTarget?.characterSpellCast
     const policyOutput = actorTarget?.effectiveRulePolicyOutput
-    if (!facts || !mechanics || !policyOutput)
+    if (!facts || !mechanics || !spellCast || !policyOutput)
       throw new Error('Encounter Character actions are unavailable.')
-    const available = projectCharacterTurnActions(facts, policyOutput).filter(
+    // Each spell the Character may cast now is one choice per cast level (upcasting is the higher one).
+    const actionCandidates = [
+      ...mechanics.rulePolicyInput.actionCandidates,
+      ...spellCast.candidates
+    ]
+    const entryPoints = [
+      ...mechanics.compiledActionEntryPoints,
+      ...spellCast.compiledActionEntryPoints
+    ]
+    const available = projectCharacterTurnActions(facts, policyOutput, spellCast.decisions).filter(
       (action) =>
         // Unequipped or exhausted actions stay selectable; resolving them warns ("Do it anyway").
         (action.availability.status === 'AVAILABLE' ||
           action.availability.reasonCode === 'SOURCE_NOT_EQUIPPED' ||
           action.availability.reasonCode === 'INSUFFICIENT_RESOURCE') &&
         action.mechanic &&
-        mechanics.compiledActionEntryPoints.some(
+        entryPoints.some(
           (entry) =>
             entry.kind === 'CHARACTER_ACTION' &&
             entry.actionId === action.id &&
@@ -150,10 +160,8 @@ export async function readEncounterActionChoices(
       available.map(async (action) => {
         const reasonCode =
           action.availability.status === 'UNAVAILABLE' ? action.availability.reasonCode : null
-        const candidate = mechanics.rulePolicyInput.actionCandidates.find(
-          (value) => value.actionId === action.id
-        )
-        const entry = mechanics.compiledActionEntryPoints.find(
+        const candidate = actionCandidates.find((value) => value.actionId === action.id)
+        const entry = entryPoints.find(
           (value) =>
             value.kind === 'CHARACTER_ACTION' &&
             value.actionId === action.id &&
@@ -178,7 +186,10 @@ export async function readEncounterActionChoices(
         )
         return {
           id: action.id,
-          label: action.label,
+          // A cast is titled with its level; every other action with the Sheet's own label.
+          label:
+            (candidate?.mechanicsOwner.kind === 'SPELL' ? candidate.label : undefined) ??
+            action.label,
           ...(action.sourceLabel ? { sourceLabel: action.sourceLabel } : {}),
           ...encounterActionChoiceRange(targetPolicy, action.mechanic?.rangeLabel),
           ...(action.mechanic?.attackBonus === undefined
@@ -210,41 +221,6 @@ export async function readEncounterActionChoices(
         }
       })
     )
-    // Each spell the Character may cast now is one choice per cast level (upcasting is the higher one).
-    const spellActions = await Promise.all(
-      mechanics.spellCast.candidates.map(async (candidate) => {
-        const mechanic = mechanics.spellCast.decisions.find(
-          (decision) => decision.actionId === candidate.actionId
-        )?.mechanic
-        const entry = mechanics.spellCast.compiledActionEntryPoints.find(
-          (value) =>
-            value.kind === 'CHARACTER_ACTION' &&
-            value.actionId === candidate.actionId &&
-            value.effectId === candidate.effectId
-        )
-        const targetPolicy = entry?.kind === 'CHARACTER_ACTION' ? entry.targetPolicy : undefined
-        const damageLabel = mechanic?.outcomes
-          .flatMap((outcome) => (outcome.kind === 'DAMAGE' ? [outcome.expression] : []))
-          .join(' + ')
-        const economy = await readEconomy(
-          candidate.mechanicFacts.invocation.activation,
-          candidate.mechanicFacts.invocation.triggerCode
-        )
-        return {
-          id: candidate.actionId,
-          label: candidate.label ?? candidate.actionId,
-          ...encounterActionChoiceRange(targetPolicy, mechanic?.rangeLabel ?? undefined),
-          ...(mechanic?.attackBonus == null ? {} : { attackBonus: mechanic.attackBonus }),
-          ...(damageLabel ? { damageLabel } : {}),
-          grip: null,
-          wieldConflict: null,
-          attackSlot: economy.attackSlot,
-          target: encounterActionChoiceTarget(targetPolicy),
-          warnings: economy.warnings
-        }
-      })
-    )
-    actions = [...actions, ...spellActions]
   } else if (actor.kind === 'CREATURE') {
     const system = await tx.ports.requireSystem(state.gameSystemId)
     const discovered = discoverEncounterFeatureActions({

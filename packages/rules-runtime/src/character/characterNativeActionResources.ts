@@ -23,6 +23,8 @@ type NativeCharacterActionMechanic = Omit<
   'save'
 > & {
   save: { abilityDefinitionId: string; dc: number | null } | null
+  /** The level a spell is cast at, which selects the authored scaling row of its outcomes. */
+  spellCastLevel?: number
 }
 
 type ActionIdentity = Pick<
@@ -185,8 +187,15 @@ export function prepareNativeCharacterActionState(input: {
     : []
 
   const savingThrow = input.candidate.mechanicFacts.invocation.savingThrow
+  const spellCastLevel =
+    input.candidate.mechanicsOwner.kind === 'SPELL'
+      ? input.policyOutput.spellCastMechanics.find(
+          (value) => value.candidateId === input.candidate.sourceId
+        )?.castLevel
+      : undefined
   const actionMechanic: NativeCharacterActionMechanic = {
     ...decision.mechanic,
+    ...(spellCastLevel === undefined ? {} : { spellCastLevel }),
     save:
       decision.mechanic.save === null
         ? null

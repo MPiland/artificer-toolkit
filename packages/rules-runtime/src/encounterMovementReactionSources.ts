@@ -48,15 +48,6 @@ export type EncounterMovementReactionCharacterSource = {
   mechanics: {
     compiledActionEntryPoints: readonly CompiledActionEntryPoint[]
     rulePolicyInput: Pick<CharacterRulePolicyInput, 'actionCandidates'>
-    /**
-     * The spells the Character may cast now, as actions of their own: movement reactions never
-     * read them, and the Sheet's actions never include them.
-     */
-    spellCast: {
-      candidates: readonly CharacterActionCandidate[]
-      decisions: readonly CharacterRulePolicyOutput['actionDecisions'][number][]
-      compiledActionEntryPoints: readonly CompiledActionEntryPoint[]
-    }
   }
   activeConditionDefinitionIds: readonly string[]
 }

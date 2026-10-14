@@ -3,33 +3,54 @@ import type {
   CharacterActionRuleEntryPoint,
   CharacterResolvedActionMechanic
 } from '@artificer-toolkit/schema/api/characterActionRules'
+import type { CompiledActionEntryPoint } from '@artificer-toolkit/schema/projections/characterMechanics'
 import type {
   CharacterRulePolicyInput,
   CharacterRulePolicyOutput
 } from '@artificer-toolkit/schema/api/characterRules'
+import type { CharacterAuthored } from '@artificer-toolkit/shared/authored'
 import type { CompiledEffectGroup } from '@artificer-toolkit/shared/compilers'
 import type { SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { compileSpell } from '@artificer-toolkit/shared/subjects/compilers'
+import { v5 as uuidv5 } from 'uuid'
 
 import { normalizeCharacterActionMechanicFacts } from './characterActionRuleFacts.js'
+import { projectCharacterSpellAccess } from './characterRulePolicyAdapter.js'
+import { createCharacterSpellCastCandidateId } from './characterSpellCastRuleFacts.js'
+import {
+  getExplicitSpellCastLevels,
+  getOwnedSpellSlotLevels,
+  getSpellSourcesBySpellId,
+  isActiveSpellSource
+} from './sheetProjection.js'
+import { getPreparationCapableClassIds, getSheetSpellIdsByClass } from './sheetSpellIds.js'
 
 type SpellCastCandidate = CharacterRulePolicyInput['spellCastCandidates'][number]
 type ActionDecision = CharacterRulePolicyOutput['actionDecisions'][number]
 type SpellPolicyOutput = Pick<
   CharacterRulePolicyOutput,
-  | 'spellCastDecisions'
-  | 'spellCastMechanics'
-  | 'spellReferenceMechanics'
-  | 'spellSlots'
-  | 'spellPreparation'
+  'spellCastDecisions' | 'spellCastMechanics' | 'spellSlots'
 >
 
-export const SPELL_CAST_ACTION_PREFIX = 'spell-cast:'
-const MAX_ACTION_ID_LENGTH = 240
+const SPELL_CAST_ACTION_NAMESPACE = 'b7a2f1d6-3c4e-5a89-9d10-6e2f4c8a1b35'
 
-/** A Spell cast resolves through the action seam under this identity; the candidate carries the rest. */
+/**
+ * A Spell cast resolves through the action seam under this identity; the candidate carries the rest.
+ * The candidate id embeds the source and the spell and can outgrow an action identity, so the action
+ * id is a fixed-length digest of it.
+ */
 export function spellCastActionId(candidateId: string): string {
-  return `${SPELL_CAST_ACTION_PREFIX}${candidateId}`
+  return `spell-cast:${uuidv5(candidateId, SPELL_CAST_ACTION_NAMESPACE)}`
+}
+
+/**
+ * The spells a Character may cast in an Encounter, as actions of their own: movement reactions never
+ * read them, and the Sheet's actions never include them.
+ */
+export type CharacterSpellCastActions = {
+  candidates: readonly CharacterActionCandidate[]
+  decisions: readonly ActionDecision[]
+  compiledActionEntryPoints: readonly CompiledActionEntryPoint[]
 }
 
 /** The slot a policy slot key names, with the uses the Character has already spent from it. */
@@ -49,61 +70,65 @@ export function readSpellCastSlot(
 }
 
 /**
- * Whether the Sheet lists this class spell among the Character's castable spells: a preparing class
- * casts what it has prepared, any other class what it knows, and a cantrip what the class knows.
+ * The cast candidates the Sheet lists as castable: a spell from each of its active sources (per
+ * class, always prepared or granted) at its own level and at every level it scales at that the
+ * Character owns a slot for. Read through the Sheet's own source and cast-level logic.
  */
-function isClassSpellActive(cast: SpellCastCandidate, policyOutput: SpellPolicyOutput): boolean {
-  if (cast.source.sourceKind !== 'CLASS' && cast.source.sourceKind !== 'SUBCLASS') return true
-  return policyOutput.spellPreparation.sources.some(
-    (source) =>
-      source.preparedSpellIds.includes(cast.spellId) ||
-      ((cast.spellLevel === 0 || source.preparedSpellLimit === null) &&
-        source.learnedSpellIds.includes(cast.spellId))
+export function listCastableSpellCandidateIds(input: {
+  character: CharacterAuthored
+  ruleEvaluation: Parameters<typeof projectCharacterSpellAccess>[0]
+}): ReadonlySet<string> {
+  const { output, facts } = input.ruleEvaluation
+  // Labels only title a source on the Sheet, which an Encounter does not show.
+  const sourcesBySpellId = getSpellSourcesBySpellId(
+    input.character,
+    new Map(),
+    getSheetSpellIdsByClass(output, facts),
+    getPreparationCapableClassIds(output),
+    projectCharacterSpellAccess(input.ruleEvaluation),
+    new Map()
   )
+  const ownedSlotLevels = getOwnedSpellSlotLevels(output.spellSlots)
+  const spellLevelById = new Map(
+    facts.spellCastCandidates.map((cast) => [cast.spellId, cast.spellLevel])
+  )
+  const candidateIds = new Set<string>()
+  for (const [spellId, sources] of sourcesBySpellId) {
+    const level = spellLevelById.get(spellId)
+    if (level === undefined) continue
+    const mechanics = output.spellReferenceMechanics
+      .filter((entry) => entry.spellId === spellId)
+      .flatMap((entry) => entry.mechanics)
+    for (const source of sources) {
+      if (!isActiveSpellSource(level, source)) continue
+      for (const castLevel of getExplicitSpellCastLevels(
+        { level, mechanics },
+        source,
+        ownedSlotLevels
+      ))
+        candidateIds.add(createCharacterSpellCastCandidateId(source.source, castLevel))
+    }
+  }
+  return candidateIds
 }
 
 /**
  * Whether an Encounter offers this cast: only a decision that is AVAILABLE, never a ritual (a ritual
- * takes ten minutes longer, SRD 5.1), never a cast paid from a limited-use pool, only a spell the
- * Sheet lists as castable, and only a slot of exactly the chosen cast level (the Sheet may spend a
- * higher slot for a base entry; an Encounter upcasts by choosing the higher candidate instead).
+ * takes ten minutes longer, SRD 5.1), never a cast paid from a limited-use pool, and only a cast the
+ * Sheet lists as castable. As on the Sheet, the decision names the slot it spends: the cast level's
+ * own, or a higher one (a Warlock's Pact Magic slot) when that is all the Character has.
  */
 function isCastOffered(
   candidate: SpellCastCandidate,
   decision: SpellPolicyOutput['spellCastDecisions'][number] | undefined,
-  policyOutput: SpellPolicyOutput
+  castableCandidateIds: ReadonlySet<string>
 ): boolean {
-  if (
-    !decision ||
-    decision.status !== 'AVAILABLE' ||
-    candidate.castMode === 'RITUAL' ||
-    candidate.castMode === 'LIMITED_USE' ||
-    (candidate.castMode === 'FIXED_LEVEL' && candidate.resourceOwnerKey !== null) ||
-    !isClassSpellActive(candidate, policyOutput)
-  )
-    return false
-  if (candidate.spellLevel === 0 || candidate.castMode !== 'SPELL_SLOT') return true
-  const slot =
-    decision.slotKey === null ? null : readSpellCastSlot(policyOutput.spellSlots, decision.slotKey)
-  return slot !== null && slot.level === candidate.castLevel
-}
-
-/**
- * The levels a spell's damage or healing scales at: the only levels above its own it can be cast at.
- * Read from the uncast spell's mechanics, as the Sheet does; a cast's own mechanics are already
- * resolved at one level and carry no scaling.
- */
-function scalingLevels(spellId: string, policyOutput: SpellPolicyOutput): ReadonlySet<number> {
-  return new Set(
-    policyOutput.spellReferenceMechanics
-      .filter((entry) => entry.spellId === spellId)
-      .flatMap((entry) => entry.mechanics)
-      .flatMap((mechanic) => mechanic.outcomes)
-      .flatMap((outcome) =>
-        outcome.kind === 'DAMAGE' || outcome.kind === 'HEAL'
-          ? outcome.scaling.map((entry) => entry.level)
-          : []
-      )
+  return (
+    decision?.status === 'AVAILABLE' &&
+    candidate.castMode !== 'RITUAL' &&
+    candidate.castMode !== 'LIMITED_USE' &&
+    !(candidate.castMode === 'FIXED_LEVEL' && candidate.resourceOwnerKey !== null) &&
+    castableCandidateIds.has(candidate.candidateId)
   )
 }
 
@@ -173,6 +198,7 @@ function mergeSpellMechanics(
  */
 export function buildCharacterSpellCastActions(input: {
   spellCastCandidates: readonly SpellCastCandidate[]
+  castableCandidateIds: ReadonlySet<string>
   policyOutput: SpellPolicyOutput
   spellDocumentsById: ReadonlyMap<string, SpellAuthored> | undefined
   firstSequence: number
@@ -195,9 +221,8 @@ export function buildCharacterSpellCastActions(input: {
     const actionId = spellCastActionId(cast.candidateId)
     const spell = input.spellDocumentsById?.get(cast.spellId)
     if (
-      actionId.length > MAX_ACTION_ID_LENGTH ||
       !spell ||
-      !isCastOffered(cast, decisionsByCandidateId.get(cast.candidateId), policyOutput)
+      !isCastOffered(cast, decisionsByCandidateId.get(cast.candidateId), input.castableCandidateIds)
     )
       continue
     const effects = activeSpellEffects(spell)
@@ -206,12 +231,7 @@ export function buildCharacterSpellCastActions(input: {
       effects,
       mechanicsByCandidateId.get(cast.candidateId)?.mechanics ?? []
     )
-    if (
-      !group ||
-      !mechanic ||
-      (!cast.baseEntry && !scalingLevels(cast.spellId, policyOutput).has(cast.castLevel))
-    )
-      continue
+    if (!group || !mechanic) continue
     const mechanicFacts = normalizeCharacterActionMechanicFacts(group)
     const source = {
       kind: 'AUTHORED' as const,

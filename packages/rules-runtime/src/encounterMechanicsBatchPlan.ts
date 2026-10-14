@@ -20,7 +20,7 @@ import type {
   NativeCharacterItemConsumption,
   NativeCharacterSpellConsumption
 } from './character/characterNativeActionResources.js'
-import { unequipCharacterItem } from './character/sheetCommandReducer.js'
+import { unequipCharacterItem, updateSpellSlotUsage } from './character/sheetCommandReducer.js'
 import { nextEncounterActorDefeated } from './encounterActorDefeat.js'
 import { characterZeroHitPointsConditionId } from './characterZeroHitPoints.js'
 
@@ -252,10 +252,11 @@ export function planEncounterMechanicsBatch(input: {
       currentUsed !== spellConsumption.beforeUsed
     )
       throw new Error('Encounter Character spell slot consumption is stale.')
-    nextSpellSlots = [
-      ...currentSlots.filter((slot) => slot.slotKey !== spellConsumption.slotKey),
-      { slotKey: spellConsumption.slotKey, used: spellConsumption.afterUsed }
-    ]
+    nextSpellSlots = updateSpellSlotUsage(
+      loaded.character,
+      spellConsumption.slotKey,
+      () => spellConsumption.afterUsed
+    ).state.spellSlots
   }
 
   const stowItemId = batch.stowEquippedItemInstanceId

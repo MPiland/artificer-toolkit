@@ -5,7 +5,11 @@ import { compileCharacterActionEntryPoints } from './encounterActionEntryPointCo
 import type { CharacterRulePolicyOutput } from '@artificer-toolkit/schema/api/characterRules'
 import type { SenseRangeDto } from '@artificer-toolkit/schema/grants/sense'
 import { effectiveHitPointMaximum } from './character/activeEffectGrantTotals.js'
-import { buildCharacterSpellCastActions } from './character/characterSpellCastActions.js'
+import {
+  buildCharacterSpellCastActions,
+  type CharacterSpellCastActions,
+  listCastableSpellCandidateIds
+} from './character/characterSpellCastActions.js'
 import {
   type EncounterAttackAgainstContributor,
   withActiveGrantSpeeds,
@@ -49,7 +53,7 @@ import type { EncounterConditionMechanic } from './encounterConditionMechanics.j
 
 export type CharacterMovementFacts = {
   active: { id: string; checksum: string; play: { streamVersion: number } }
-  character: Pick<CharacterAuthored, 'systemId' | 'state'>
+  character: CharacterAuthored
   campaignContext: Pick<
     CharacterSheetCampaignContext,
     'conditions' | 'adjustments' | 'attunementSlotOverride'
@@ -71,6 +75,8 @@ export type MovementTarget<
   TCharacterFacts extends CharacterMovementFacts = CharacterMovementFacts
 > = {
   characterReactionSource?: EncounterMovementReactionCharacterSource
+  /** The spells the Character may cast now; present only where reaction sources are requested. */
+  characterSpellCast?: CharacterSpellCastActions
   characterFacts: TCharacterFacts | null
   actor: EncounterRunActorState
   activeEffects: ActiveRuleEffectRecord[]
@@ -223,6 +229,13 @@ export function buildMovementTarget<
     const spellCast = input.includeReactionSources
       ? buildCharacterSpellCastActions({
           spellCastCandidates: characterFacts.ruleEvaluation.facts.spellCastCandidates,
+          castableCandidateIds: listCastableSpellCandidateIds({
+            character: characterFacts.character,
+            ruleEvaluation: {
+              ...characterFacts.ruleEvaluation,
+              output: effectiveRulePolicyOutput
+            }
+          }),
           policyOutput: effectiveRulePolicyOutput,
           spellDocumentsById: characterFacts.prepared.context.spellDocumentsById,
           firstSequence: characterFacts.ruleEvaluation.facts.actionCandidates.length
@@ -247,9 +260,9 @@ export function buildMovementTarget<
         .filter((entry) => entry.compilation.kind === 'COMPILED')
         .map((entry) => entry.actionId)
     )
-    const executableSpellCast = {
-      candidates: spellCast?.candidates.filter((c) => executableActionIds.has(c.actionId)) ?? [],
-      decisions: spellCast?.decisions.filter((d) => executableActionIds.has(d.actionId)) ?? [],
+    const characterSpellCast = spellCast && {
+      candidates: spellCast.candidates.filter((c) => executableActionIds.has(c.actionId)),
+      decisions: spellCast.decisions.filter((d) => executableActionIds.has(d.actionId)),
       compiledActionEntryPoints: spellEntryPoints.filter((entry) =>
         executableActionIds.has(entry.actionId)
       )
@@ -293,10 +306,10 @@ export function buildMovementTarget<
                     abilityDefinitions: characterFacts.ruleEvaluation.facts.abilityDefinitions,
                     entryPoints: characterFacts.ruleEvaluation.actionEntryPoints
                   })
-                }),
-                spellCast: executableSpellCast
+                })
               }
-            }
+            },
+            ...(characterSpellCast ? { characterSpellCast } : {})
           }
         : {}),
       characterCurrentness: {

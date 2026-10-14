@@ -134,7 +134,7 @@ export async function prepareEncounterActionSource<
 }) {
   const { state, actor, actionId, sourceFacts } = input
   const characterAction = sourceFacts.characterReactionSource
-  const spellCast = characterAction?.mechanics.spellCast
+  const spellCast = sourceFacts.characterSpellCast
   const candidate = [
     ...(characterAction?.mechanics.rulePolicyInput.actionCandidates ?? []),
     ...(spellCast?.candidates ?? [])

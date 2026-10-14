@@ -27,6 +27,7 @@ import { readEncounterActorConditionState } from '@artificer-toolkit/rules-runti
 import { nextEncounterActorDefeated } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import { revertEncounterAttackActionTransition } from '@artificer-toolkit/rules-runtime/encounterAttackAction'
 import { characterZeroHitPointsConditionId } from '@artificer-toolkit/rules-runtime/characterZeroHitPoints'
+import { updateSpellSlotUsage } from '@artificer-toolkit/rules-runtime/character/sheetCommandReducer'
 import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import { createCharacterResourceOwnerKey } from '@artificer-toolkit/shared/character'
 import { EQUIPPED_SLOT_CODES } from '@artificer-toolkit/shared/core'
@@ -761,18 +762,12 @@ async function restoreCharacter(
       )
     }
   const spell = inverse.spell
-  if (spell) {
-    const slots = state.spellSlots ?? []
-    if ((slots.find((slot) => slot.slotKey === spell.slotKey)?.used ?? 0) !== spell.afterUsed)
-      unavailable(`${row.label}'s spell slots changed after this action; adjust manually.`)
-    state = {
-      ...state,
-      spellSlots: [
-        ...slots.filter((slot) => slot.slotKey !== spell.slotKey),
-        ...(spell.beforeUsed > 0 ? [{ slotKey: spell.slotKey, used: spell.beforeUsed }] : [])
-      ]
-    }
-  }
+  if (spell)
+    state = updateSpellSlotUsage(
+      { ...character, state },
+      spell.slotKey,
+      () => spell.beforeUsed
+    ).state
   if (inverse.stow) {
     const equipped = state.equipment.equipped
     const itemId = inverse.stow.itemInstanceId

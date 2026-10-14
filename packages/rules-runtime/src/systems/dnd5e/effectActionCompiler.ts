@@ -144,7 +144,7 @@ function isPathConditionImmuneFactKey(factKey: string, pathCode: string): boolea
     conditionImmuneFactKey(pathCode, index + 1)
   ).includes(factKey)
 }
-const DND5E_RESOLVED_DAMAGE_EXPRESSION_FACT_KEYS = {
+export const DND5E_RESOLVED_DAMAGE_EXPRESSION_FACT_KEYS = {
   ON_USE: 'dnd5e.resolved-damage-expression.on-use',
   ON_HIT: 'dnd5e.resolved-damage-expression.on-hit',
   ON_MISS: 'dnd5e.resolved-damage-expression.on-miss',
@@ -155,6 +155,8 @@ const DND5E_RESOLVED_DAMAGE_EXPRESSION_FACT_KEYS = {
 const DND5E_RESOLVED_DAMAGE_OUTCOME_EXPRESSIONS_FACT_KEY =
   'dnd5e.resolved-damage-outcome-expressions'
 const DND5E_RESOLVED_HEAL_MODIFIER_FACT_KEY = 'dnd5e.resolved-heal-modifier'
+/** The level a spell is cast at, which selects its authored per-level scaling. */
+export const DND5E_SPELL_CAST_LEVEL_FACT_KEY = 'dnd5e.spell-cast-level'
 export const DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY =
   'dnd5e.active-effect-save-ability-definition-id'
 export const DND5E_ACTIVE_EFFECT_SAVE_REQUEST_NODE_FACT_KEY =
@@ -269,7 +271,7 @@ function dndScalingFactsFromRuleValues(
   return {
     characterLevel: positiveInteger(facts.characterLevel),
     parentClassLevel: positiveInteger(facts.parentClassLevel),
-    spellCastLevel: positiveInteger(facts.spellCastLevel),
+    spellCastLevel: positiveInteger(facts[DND5E_SPELL_CAST_LEVEL_FACT_KEY]),
     resolvedDamageExpressions: Object.fromEntries(
       Object.entries(DND5E_RESOLVED_DAMAGE_EXPRESSION_FACT_KEYS).flatMap(([path, key]) => {
         const expression = facts[key]
@@ -2986,6 +2988,10 @@ export const dnd5eEffectActionCapability: GameSystemRuleCapabilityContract = {
       valueKind: RULE_VALUE_KIND.NUMBER
     },
     {
+      key: DND5E_SPELL_CAST_LEVEL_FACT_KEY,
+      valueKind: RULE_VALUE_KIND.NUMBER
+    },
+    {
       key: MOVEMENT_REACTION_CHOICE_MIN_FACT_KEY,
       valueKind: RULE_VALUE_KIND.NUMBER
     },
@@ -3409,34 +3415,9 @@ function exactDiceConfiguration(
   const outcome = outcomes[0]
   if (!outcome) unsupported('D&D selected outcome has no authored dice value.')
   if (outcome.valueKind !== 'DICE') unsupported('D&D outcome is not a supported dice value.')
-  const resolved =
-    facts.resolvedDamageOutcomeExpressions?.[outcomeId] ??
-    facts.resolvedDamageExpressions?.[selectedPath]
-  const resolvedTerm = resolved ? parseBoundedDiceConfiguration(resolved).terms[0]! : null
-  const matchesResolvedDice = (dice: string) => {
-    const authoredTerm = parseBoundedDiceConfiguration(dice).terms[0]!
-    return (
-      resolvedTerm !== null &&
-      authoredTerm.count === resolvedTerm.count &&
-      authoredTerm.die === resolvedTerm.die
-    )
-  }
   let authored: string
   if (outcome.scalingKind === 'NONE' && typeof outcome.dice === 'string') {
     authored = outcome.dice
-  } else if (
-    outcome.scalingSource === 'SPELL_CAST_LEVEL' &&
-    facts.spellCastLevel === undefined &&
-    resolved
-  ) {
-    // A cast is resolved at its cast level before it is specialized, so its authored row is the one
-    // the resolved dice came from.
-    const row = outcomes.find(
-      (candidate) => typeof candidate.dice === 'string' && matchesResolvedDice(candidate.dice)
-    )
-    if (!row || typeof row.dice !== 'string')
-      unsupported('D&D resolved damage expression does not match the authored dice.')
-    authored = row.dice
   } else {
     const source = outcome.scalingSource
     let level = scalingLevel(source, facts)
@@ -3470,14 +3451,22 @@ function exactDiceConfiguration(
     outcome.scalingKind === 'NONE' && typeof outcome.halfHitPointsDice === 'string'
       ? outcome.halfHitPointsDice
       : null
+  const resolved =
+    facts.resolvedDamageOutcomeExpressions?.[outcomeId] ??
+    facts.resolvedDamageExpressions?.[selectedPath]
   if (!resolved) {
     if ((Array.isArray(outcome.bonuses) && outcome.bonuses.length > 0) || halfHitPointsDice)
       unsupported('D&D resolved damage expression is unavailable.')
     return authored
   }
+  const resolvedTerm = parseBoundedDiceConfiguration(resolved).terms[0]!
+  const matchesAuthoredDice = (dice: string) => {
+    const authoredTerm = parseBoundedDiceConfiguration(dice).terms[0]!
+    return authoredTerm.count === resolvedTerm.count && authoredTerm.die === resolvedTerm.die
+  }
   if (
-    !matchesResolvedDice(authored) &&
-    !(halfHitPointsDice && matchesResolvedDice(halfHitPointsDice))
+    !matchesAuthoredDice(authored) &&
+    !(halfHitPointsDice && matchesAuthoredDice(halfHitPointsDice))
   )
     unsupported('D&D resolved damage expression does not match the authored dice.')
   return resolved
@@ -6473,6 +6462,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
         [DND5E_RESOLVED_HEAL_MODIFIER_FACT_KEY]: parsed.modifier
       }
     }
+    const spellCastLevel = (actionMechanic as { spellCastLevel?: unknown }).spellCastLevel
     const baseFacts = {
       [DND5E_TARGET_ACTOR_FACT_KEY]: targetActorId,
       [DND5E_TARGET_STATE_CHECKSUM_FACT_KEY]: checksumRuleDocument({
@@ -6496,7 +6486,10 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
             )
           }
         : {}),
-      ...resolvedHealModifierFacts
+      ...resolvedHealModifierFacts,
+      ...(typeof spellCastLevel === 'number'
+        ? { [DND5E_SPELL_CAST_LEVEL_FACT_KEY]: spellCastLevel }
+        : {})
     }
     const action = actionMechanic as {
       attackBonus?: unknown
