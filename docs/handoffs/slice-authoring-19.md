@@ -49,6 +49,7 @@ Read first: AUTHORING-18's workbook ([slice-authoring-18.md](slice-authoring-18.
 
 - 2026-10-14: edits done. 557 code-list entries across 44 `packages/shared/src/domains` files (plus the 7 in `ability.ts`) all carried both fields and none was tooltip-only; each now has the old tooltip text as `description` (ABILITIES keep the long description per the ruling above). `tooltip` removed from `CoreMeta`, `Vocabulary`, `vocabularyDtoSchema`, the source-data content type, the 18 SRD skill rows and `runtimeCopyFieldNames`; `toOptions` reads `description` only; `srdManifest.generated.ts` regenerated; `authoring-schema.md` updated.
 - 2026-10-14: red (`local-validation/authoring-19/red-authoring.log`, `red-schema.log`): with production files stashed and shared rebuilt at base, the new code-list resolver test and the schema DTO test fail. Green (`green-schema.log` 661, `green-authoring.log` 77, `green-apis.log` 17, `green-web.log` 194 tests) pass on the changed tree.
+- 2026-10-14: base merged (`b2f2a9620`); final hold on the merged tree (`local-validation/authoring-19/summary2.log`): builds green, authoring `nodeRuntime` 77, convex `nodeRuntime.test.ts` 17, web `SystemVocabularyOptionTooltips` + `nodeRuntimeResolver` 10, Turbo typecheck (`typecheck`, `typecheck:tests`, `typecheck:stories`) 17/17, local codegen exit 0 (refreshed `apps/apis/convex/_generated/api.d.ts`, no `tooltip`). Storybook not run (worktree).
 
 ## Proposed ledger edits (filled by the slice session)
 

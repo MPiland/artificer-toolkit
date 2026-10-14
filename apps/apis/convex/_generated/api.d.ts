@@ -109409,7 +109409,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             challengeRatings: Array<{
               code: string;
@@ -109417,7 +109416,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             conditionTypes: Array<{
               code: string;
@@ -109425,7 +109423,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             creatureTypes: Array<{
               code: string;
@@ -109433,7 +109430,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             currencies: Array<{
               code: string;
@@ -109441,7 +109437,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             damageTypes: Array<{
               code: string;
@@ -109449,7 +109444,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             description?: string | null;
             heritages: Array<{
@@ -109458,7 +109452,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             id: string;
             label: string;
@@ -109468,7 +109461,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             lifestyles: Array<{
               code: string;
@@ -109476,7 +109468,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             magicSchools: Array<{
               code: string;
@@ -109484,7 +109475,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             passives: Array<{
               code: string;
@@ -109492,7 +109482,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             rarities: Array<{
               code: string;
@@ -109500,7 +109489,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             rulesetCode: string;
             rulesetVersion: string;
@@ -109510,7 +109498,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             skills: Array<{
               code: string;
@@ -109518,7 +109505,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             speeds: Array<{
               code: string;
@@ -109526,7 +109512,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             terrains: Array<{
               code: string;
@@ -109534,7 +109519,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             userId: string;
           }
@@ -109545,7 +109529,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             alignments: Array<{
               code: string;
@@ -109553,7 +109536,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             challengeRatings: Array<{
               code: string;
@@ -109561,7 +109543,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             conditionTypes: Array<{
               code: string;
@@ -109569,7 +109550,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             creatureTypes: Array<{
               code: string;
@@ -109577,7 +109557,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             currencies: Array<{
               code: string;
@@ -109585,7 +109564,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             damageTypes: Array<{
               code: string;
@@ -109593,7 +109571,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             description?: string | null;
             heritages: Array<{
@@ -109602,7 +109579,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             id: string;
             label: string;
@@ -109612,7 +109588,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             lifestyles: Array<{
               code: string;
@@ -109620,7 +109595,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             magicSchools: Array<{
               code: string;
@@ -109628,7 +109602,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             passives: Array<{
               code: string;
@@ -109636,7 +109609,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             rarities: Array<{
               code: string;
@@ -109644,7 +109616,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             rulesetCode: string;
             rulesetVersion: string;
@@ -109655,7 +109626,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             skills: Array<{
               code: string;
@@ -109663,7 +109633,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             speeds: Array<{
               code: string;
@@ -109671,7 +109640,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             terrains: Array<{
               code: string;
@@ -109679,7 +109647,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             userId: string;
           }
@@ -109690,7 +109657,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             alignments: Array<{
               code: string;
@@ -109698,7 +109664,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             challengeRatings: Array<{
               code: string;
@@ -109706,7 +109671,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             conditionTypes: Array<{
               code: string;
@@ -109714,7 +109678,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             creatureTypes: Array<{
               code: string;
@@ -109722,7 +109685,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             currencies: Array<{
               code: string;
@@ -109730,7 +109692,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             damageTypes: Array<{
               code: string;
@@ -109738,7 +109699,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             description?: string | null;
             heritages: Array<{
@@ -109747,7 +109707,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             id: string;
             initiativePolicy: { defaultDefinitionId: string };
@@ -109758,7 +109717,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             lifestyles: Array<{
               code: string;
@@ -109766,7 +109724,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             magicSchools: Array<{
               code: string;
@@ -109774,7 +109731,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             passives: Array<{
               code: string;
@@ -109782,7 +109738,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             rarities: Array<{
               code: string;
@@ -109790,7 +109745,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             rulesetCode: string;
             rulesetVersion: string;
@@ -109801,7 +109755,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             skills: Array<{
               code: string;
@@ -109809,7 +109762,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             speeds: Array<{
               code: string;
@@ -109817,7 +109769,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             terrains: Array<{
               code: string;
@@ -109825,7 +109776,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             userId: string;
           }
@@ -109836,7 +109786,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             alignments: Array<{
               code: string;
@@ -109844,7 +109793,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             challengeRatings: Array<{
               code: string;
@@ -109852,7 +109800,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             conditionTypes: Array<{
               code: string;
@@ -109860,7 +109807,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             creatureTypes: Array<{
               code: string;
@@ -109868,7 +109814,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             currencies: Array<{
               code: string;
@@ -109876,7 +109821,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             damageTypes: Array<{
               code: string;
@@ -109884,7 +109828,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             description?: string | null;
             heritages: Array<{
@@ -109893,7 +109836,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             id: string;
             initiativePolicy?: { defaultDefinitionId: string };
@@ -109904,7 +109846,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             lifestyles: Array<{
               code: string;
@@ -109912,7 +109853,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             magicSchools: Array<{
               code: string;
@@ -109920,7 +109860,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             passives: Array<{
               code: string;
@@ -109928,7 +109867,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             rarities: Array<{
               code: string;
@@ -109936,7 +109874,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             rulesetCode: string;
             rulesetVersion: string;
@@ -109947,7 +109884,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             skills: Array<{
               code: string;
@@ -109956,7 +109892,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             speeds: Array<{
               code: string;
@@ -109964,7 +109899,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             terrains: Array<{
               code: string;
@@ -109972,7 +109906,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             userId: string;
           }
