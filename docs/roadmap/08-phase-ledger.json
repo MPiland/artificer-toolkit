@@ -5548,31 +5548,47 @@
         {
           "id": "ATTACK-18",
           "title": "Basic actions are authored actions",
-          "status": "IN_PROGRESS",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": ["apps/apis/convex/encounters/basicActionRestrictions.test.ts"],
+          "journeyStatus": "verified",
           "origin": [],
           "note": "Registered 2026-10-10 by the product owner (D106). Supersedes the closed mechanics half of Q11. ATTACK-7 slices C and F build on it.",
           "acs": [
             {
               "text": "Every System basic action (Dash, Disengage, Dodge, Help, First Aid, Grapple, Shove, Hide, Ready, Search and Use an Object) is an authored action whose resolution and outcomes use the same effect model and editor as a feature's action; the catalogue stays locked in the SRD and copyable into a homebrew System, and the closed basic-action mechanic codes no longer exist.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/apis/convex/encounters/basicActions.test.ts",
+                "packages/rules-runtime/src/__tests__/encounterBasicActionRestrictions.test.ts › a copy of the catalogue keeps its restrictions",
+                "docs/handoffs/slice-attack-18-e.md (checklist 7: closed-code search over apps and packages, no hits)"
+              ],
+              "note": "Closed 2026-10-13 (merge 3ebbd4a4c). Copying is proved on the data path; running a non-SRD System's encounters stays deferred with homebrew Systems (docs/architecture/data-lifecycle.md).",
               "origin": [],
               "id": "ATTACK-18.1"
             },
             {
               "text": "Dash, Disengage, Dodge, Help and First Aid behave exactly as before: their existing room, Convex and browser proofs (D45, D46, D96, D98) pass unchanged against the authored versions.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/apis/convex/encounters/basicActions.test.ts",
+                "apps/apis/convex/encounters/turnDeathSave.test.ts",
+                "packages/rules-runtime/src/__tests__/encounterBasicActions.test.ts",
+                "packages/rules-runtime/src/__tests__/encounterHolderDefense.test.ts",
+                "apps/session-worker First Aid room test",
+                "local-validation/attack18e/GREEN-final-2.log"
+              ],
               "origin": [],
               "note": "Product-owner ruling 2026-10-12: Disengage ends only at the holder's real end of turn (Next Turn), like Dodge. A GM cursor correction (set current actor, previous turn, set round) no longer ends it; the old Q11 proof was rewritten to cover both cases. Also changed (integration-owner call, same warn-instead-of-block rule as every self-range authored action): Disengage or Dodge aimed at another creature is the overridable TARGET_OUT_OF_RANGE warning instead of a hard refusal, and \"Do it anyway\" applies it to the chosen creature. Help follows the same rule (slice C): aimed at an enemy it warns \"This action needs a willing target.\" and aimed at the helper itself it warns \"This action targets another creature.\", both overridable TARGET_DISPOSITION warnings.",
               "id": "ATTACK-18.2"
             },
             {
               "text": "A basic action is offered only to actors that meet its authored facet restrictions, and an unmet restriction is refused; a basic action with no restriction is offered to every actor. FREE_HAND is an authorable predicate, true while either hand is empty.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/apis/convex/encounters/basicActionRestrictions.test.ts (offer, SOURCE_REQUIREMENTS_NOT_MET refusal through the real room, unrestricted default, CAN_ACT, journey)",
+                "packages/rules-runtime/src/__tests__/encounterBasicActionRestrictions.test.ts (Character and Creature hand occupancy, EXCLUDE, fail-closed, CREATURE context, source scope)",
+                "local-validation/attack18e/RED-convex-restrictions.log"
+              ],
               "origin": [],
               "note": "Restrictions use FacetAuthored and the existing sourceStateRequirements check (refusal SOURCE_REQUIREMENTS_NOT_MET). FREE_HAND reads the hand-occupancy function from AUTHORING-17.",
               "id": "ATTACK-18.3"
@@ -5617,8 +5633,8 @@
             {
               "id": "ATTACK-18.T6",
               "text": "Slice E: delete the closed codes, USE_BASIC_ACTION and every old path; offer basic actions through their facet restrictions with the FREE_HAND predicate in the rules and the drawer; a journey uses an authored basic action end to end; migrate development data and update the architecture docs.",
-              "status": "TODO",
-              "note": "Also delete the USE_BASIC_ACTION drawer tests and stories whose fixtures still list Dash and Hide as legacy untargeted entries (CampaignTabletopActionDrawer.test.tsx and .stories.tsx).",
+              "status": "DONE",
+              "note": "Done 2026-10-13 (merge 3ebbd4a4c). FREE_HAND facet predicate read from resolveHandOccupancy; the server's choice list filters by restrictions, so the drawer needed no change; the worker refuses unmet restrictions on the only path that reads basic-action entries. The USE_BASIC_ACTION drawer fixtures are gone (no hits in apps or packages). Logs: local-validation/attack18e.",
               "closes": ["ATTACK-18.1", "ATTACK-18.3"]
             }
           ],
