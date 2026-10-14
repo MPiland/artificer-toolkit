@@ -1,6 +1,6 @@
 # Slice workbook: PLATFORM-13.T1 (test speed: per-file timings and the parallelism trial)
 
-**Status:** `import.test.ts` FIX DONE, module-load change reverted; AC PLATFORM-13.3 stays open pending the end-of-phase trial and full timing record (started 2026-10-14)
+**Status:** DONE (merged `bb2a31a87`; closed by the main session 2026-10-14). AC PLATFORM-13.3 stays open for PLATFORM-13.T4 (end-of-phase trial and full timing record).
 **Base:** `codex/phase-08-2-convex-cutover` at this workbook's commit.
 **Rules:** [slice-workbook-rules.md](slice-workbook-rules.md).
 

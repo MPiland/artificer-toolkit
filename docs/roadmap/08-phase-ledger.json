@@ -566,6 +566,14 @@
               "note": "Closed 2026-10-13 (merge 6bbbf7f62): new prepareSrdDefinitions serves the Q11 test without preparing 1,057 subjects; one canonical compare and one hash per document. Q11 2324 -> 35 ms, the full-import tests 4052 -> 2597 ms and 1947 -> 1295 ms, the SRD manifest byte-identical, and a loaded root-package run of 274 files / 2536 tests green in 54 s with no timeout raised. Registered 2026-10-13 from the lane 3 merge. packages/source-data/src/srd/import.test.ts › publishes the SRD basic-action catalogue as System data (Q11) timed out at 5000 ms in the post-merge root-package run (local-validation/lane3-merge/root-packages.log); lane 3 hit the same class in r5c and r6. 781c9529a fixed only the cloneAuthoredItem corpus test. Fix the work the test does, not the timeout.",
               "origin": [],
               "id": "PLATFORM-13.6"
+            },
+            {
+              "id": "PLATFORM-13.7",
+              "text": "The slowest Convex test files from the 2026-10-14 top-20 (the corpus-scale journeys, media/* fixture setup and module import) are profiled and made faster without replacing real-code proof; the per-file timing record shows each file before and after.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Registered 2026-10-14 from the PLATFORM-13.T1 serial baseline (docs/validation/platform-13-t1-test-timings-2026-10-14.md)."
             }
           ],
           "wsjf": {
@@ -577,8 +585,8 @@
           "tasks": [
             {
               "id": "PLATFORM-13.T1",
-              "text": "Test speed: convex-test upgrade, per-file timings and the parallelism trial. Include the module-load prepareSrdImport() calls (about 1.2 s per process) in contentSnapshots.test.ts, srdCreatureAttackSweep.test.ts and the web builder fixtures, found in PLATFORM-13.6.",
-              "status": "TODO",
+              "text": "Test speed, per-file work: convex-test 0.0.60 upgrade (6507a4678), the import.test.ts 5 s timeout regression of PLATFORM-13.6 (reads definitions only), and the partial serial timing baseline (docs/validation/platform-13-t1-test-timings-2026-10-14.md). The module-load prepareSrdImport() subsetting was tried and reverted: no measurable gain.",
+              "status": "DONE",
               "closes": ["PLATFORM-13.3"],
               "wsjf": {
                 "bv": 1,
@@ -607,6 +615,31 @@
               "wsjf": {
                 "bv": 1,
                 "tc": 1,
+                "rr": 3,
+                "size": 5
+              }
+            },
+            {
+              "id": "PLATFORM-13.T4",
+              "text": "End of phase: Convex parallelism trial (2, 4, then 8 file workers, one run each, then three consecutive clean runs for the kept setting; wall time, failures, peak memory and paging recorded; a run that swaps or times out rejects the setting; no per-test timeout raised) and the full-suite timing record (Convex, worker, root), including a loaded root run proving import.test.ts passes at the default 5 s.",
+              "status": "TODO",
+              "closes": ["PLATFORM-13.3"],
+              "wsjf": {
+                "bv": 1,
+                "tc": 8,
+                "rr": 8,
+                "size": 3,
+                "finalSource": true
+              }
+            },
+            {
+              "id": "PLATFORM-13.T5",
+              "text": "Convex-suite speed work from the 2026-10-14 top-20: the corpus-scale journeys (equipmentLimits, developmentLifecycleProof, commitReferencedContext, seed, seedAudit, builderSnapshotParity, equipmentCharacter, catalogueReadBudget, developmentCustody: 970 s of 2808 s), media/* per-test fixture setup (profile first) and module import (688 s across 380 files). Per-file timings only; proofs keep running real code.",
+              "status": "TODO",
+              "closes": ["PLATFORM-13.7"],
+              "wsjf": {
+                "bv": 1,
+                "tc": 3,
                 "rr": 3,
                 "size": 5
               }
@@ -1906,17 +1939,23 @@
         {
           "id": "AUTHORING-18",
           "title": "System vocabulary options show their description",
-          "status": "TODO",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": ["apps/web/src/forms/tests/SystemVocabularyOptionTooltips.test.tsx"],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
               "text": "Every authored-form option drawn from System vocabulary (speeds, senses, damage types, skills, abilities, proficiencies and the rest) carries the vocabulary entry's description to the option tooltip, served by the shared resolver; proved by a real-resolver test that fails before the fix.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/authoring/src/nodeRuntime/systemVocabularyOptions.test.ts (real resolver serves each System vocabulary description)",
+                "apps/apis/convex/authoring/nodeRuntime.test.ts (skills options carry their description)",
+                "apps/web/src/test/nodeRuntimeResolver.test.ts",
+                "apps/web/src/ui/primitives/Select/selectOptions.test.ts",
+                "apps/web/src/forms/tests/SystemVocabularyOptionTooltips.test.tsx (resolver output through the real FormRenderer; hovering a single and a multi select option shows the description)"
+              ],
               "origin": [],
-              "note": "Found 2026-10-14 in the RELIABILITY-7 review: node maps select [id, label, tooltip] from System vocabulary tables, but System vocabulary rows carry description, not tooltip, so the resolver serves no description (the base Convex reader did the same; the old static web model hid it). The relationship executor already reads tooltip or description.",
+              "note": "Found 2026-10-14 in the RELIABILITY-7 review: node maps select [id, label, tooltip] from System vocabulary tables, but System vocabulary rows carry description, not tooltip, so the resolver serves no description (the base Convex reader did the same; the old static web model hid it). The relationship executor already reads tooltip or description. Merged d87cc4d31: description is the single option-description column (tooltip dropped from the source manifest); AppSelect and AppMultiSelect render a described option in a Tooltip.",
               "id": "AUTHORING-18.1"
             }
           ],
@@ -1924,6 +1963,55 @@
             "bv": 2,
             "tc": 1,
             "rr": 2,
+            "size": 1
+          }
+        },
+        {
+          "id": "AUTHORING-19",
+          "title": "Remove the unread vocabulary tooltip column",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": [],
+          "acs": [
+            {
+              "id": "AUTHORING-19.1",
+              "text": "The System vocabulary `tooltip` field is removed from the SRD corpus rows (the skills' governing-ability duplicates and the rest), the vocabulary DTO and schema, and the SRD manifest, with no reader left; publication and the authoring resolver tests pass unchanged.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Found 2026-10-14 in AUTHORING-18: after description became the one option-description column, nothing reads tooltip (skills' tooltip duplicates governingAbilityDefinitionId). Pre-launch rule: remove unused fields. Touches the protected SRD corpus; reset and reseed after merge."
+            }
+          ],
+          "wsjf": {
+            "bv": 1,
+            "tc": 1,
+            "rr": 2,
+            "size": 1,
+            "after": ["AUTHORING-18"]
+          }
+        },
+        {
+          "id": "AUTHORING-20",
+          "title": "Authors can add an invocation Check and a Check DC",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": [],
+          "acs": [
+            {
+              "id": "AUTHORING-20.1",
+              "text": "Every add-enabled child group reachable from the authored root maps has a default factory, including invocation.check -> check, check.dc -> checkDc and actorRelationshipModule.dc -> checkDc; apps/web/src/forms/rendering/authoringNodeDefaultInventory.test.ts passes; adding a Check and a DC in the authoring editor creates a valid default row (a test through the real form renderer that fails before the fix).",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Regression found 2026-10-14 by the RELIABILITY-5 web run: the inventory test fails on the base tip since ATTACK-18 slice D (b26e108cb, e876a5939) added CHECK_NODE_MAP and CHECK_DC_NODE_MAP without factories."
+            }
+          ],
+          "wsjf": {
+            "bv": 3,
+            "tc": 3,
+            "rr": 3,
             "size": 1
           }
         }
@@ -7655,9 +7743,9 @@
         {
           "id": "RELIABILITY-5",
           "title": "Speed and sense modifiers carry their length unit",
-          "status": "TODO",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "IN_PROGRESS",
+          "journeyTests": ["packages/rules-runtime/src/__tests__/modifierLengthJourney.test.ts"],
+          "journeyStatus": "partial",
           "origin": [],
           "acs": [
             {
@@ -7665,15 +7753,24 @@
               "status": "TODO",
               "proof": [],
               "origin": [],
-              "note": "Registered 2026-10-13 from lane 3's ruling 3 size report. Modifier values are bare numbers added in the base's unit, so +30 on an 18 m grant gives 48 m, and characterMovementAndSenses defaults a base-less SET_VALUE speed to FEET and 0. The sense override itself becomes a length in the ruling 3 follow-up. Wording amended 2026-10-14: length units are INCHES, FEET, YARDS and MILES; METERS is only a Scene grid unit, so the example uses yards. Adding a metric length unit is a separate decision.",
+              "note": "Registered 2026-10-13 from lane 3's ruling 3 size report. Modifier values are bare numbers added in the base's unit, so +30 on an 18 m grant gives 48 m, and characterMovementAndSenses defaults a base-less SET_VALUE speed to FEET and 0. The sense override itself becomes a length in the ruling 3 follow-up. Wording amended 2026-10-14: length units are INCHES, FEET, YARDS and MILES; METERS is only a Scene grid unit, so the example uses yards. Adding a metric length unit is a separate decision. T1 (a11b9d368) delivers modifier lengths everywhere except the persisted Sheet SPEED_OVERRIDE, which T2 types.",
               "id": "RELIABILITY-5.1"
             },
             {
               "text": "A malformed or unrecognised authored speed is refused at publish and is an invariant failure at read, never silently skipped, so bad data cannot show as a lower speed or defence; proved by tests that fail before the fix.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/apis/convex/content/modifierLengthPublication.test.ts (malformed SPEED and SENSE_RANGE lengths refused at publication with the exact issue)",
+                "apps/apis/convex/content/creaturePublication.test.ts",
+                "packages/schema/src/__tests__/modifier-length-payload.test.ts",
+                "packages/rules-runtime/src/__tests__/modifierLengths.test.ts",
+                "packages/rules-runtime/src/__tests__/walkingSpeed.test.ts (a malformed speed throws at read)",
+                "packages/rules-runtime/src/__tests__/encounterHolderDefense.test.ts",
+                "packages/rules-runtime/src/__tests__/modifierLengthJourney.test.ts",
+                "packages/source-data/src/srd/modifierLengths.test.ts"
+              ],
               "origin": [],
-              "note": "Registered 2026-10-13 from the band-aid audit: encounterHolderDefense.ts:21-53 and walkingSpeed.ts skip entries they cannot read.",
+              "note": "Registered 2026-10-13 from the band-aid audit: encounterHolderDefense.ts:21-53 and walkingSpeed.ts skip entries they cannot read. Merged a11b9d368 (D112 adopted). Local Convex reset, reseeded and audited after merge.",
               "id": "RELIABILITY-5.2"
             }
           ],
@@ -7688,7 +7785,7 @@
             {
               "id": "RELIABILITY-5.T1",
               "text": "Speed and sense modifier values are lengths with a unit through the shared conversion; malformed speeds refused at publish and an invariant failure at read; SRD content and node map migrated.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["RELIABILITY-5.2"],
               "wsjf": {
                 "bv": 3,
