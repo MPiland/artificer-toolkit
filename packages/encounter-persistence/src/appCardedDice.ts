@@ -14,11 +14,12 @@ export type SettledDie = { requestId: string; value: number }
 
 /**
  * The app-roll answers of one kind a turn's journaled resolution commands carry: `SYSTEM_ROLL` for
- * the turn-start Recharge and death save, `LEGENDARY_SYSTEM_ROLL` for Legendary Actions.
+ * the turn-start Recharge and death save, `LEGENDARY_SYSTEM_ROLL` for Legendary Actions,
+ * `INITIATIVE_SYSTEM_ROLL` for the initiative dice of a declaration.
  */
 export function turnSystemRollAnswers(
   commands: readonly TurnResolutionCommandDto[],
-  kind: 'SYSTEM_ROLL' | 'LEGENDARY_SYSTEM_ROLL'
+  kind: 'SYSTEM_ROLL' | 'LEGENDARY_SYSTEM_ROLL' | 'INITIATIVE_SYSTEM_ROLL'
 ): RuleEvidenceAnswer[] {
   return commands.flatMap((command) =>
     command.kind === kind && 'requestId' in command

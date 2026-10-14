@@ -401,29 +401,16 @@ describe('catching the creatures in a directed area', () => {
     ).toEqual([ALLY_ID])
   })
 
-  it('does not catch the caster through another token of theirs, nor anyone without a caster token', () => {
+  it('needs the caster’s token: a directed area without one is an invariant, not an empty catch', () => {
     const shape = { kind: 'CONE', length: 10, toward: { x: 20, y: 0 } } as const
-    const casterTokens = [
-      { ...token('00000000-0000-4000-8000-0000000f2001', 0), actorId: CASTER_ID },
-      { ...token('00000000-0000-4000-8000-0000000f2002', 4), actorId: CASTER_ID },
-      { ...token('00000000-0000-4000-8000-0000000f2003', 5), actorId: ALLY_ID }
-    ]
-    expect(
-      catchEncounterAreaActorIds({
-        origin: { x: 1, y: 0 },
-        shape,
-        casterActorId: CASTER_ID,
-        tokens: casterTokens
-      })
-    ).toEqual([ALLY_ID])
-    expect(
+    expect(() =>
       catchEncounterAreaActorIds({
         origin: { x: 1, y: 0 },
         shape,
         casterActorId: FOE_ID,
-        tokens: casterTokens
+        tokens: [{ ...token('00000000-0000-4000-8000-0000000f2001', 0), actorId: CASTER_ID }]
       })
-    ).toEqual([])
+    ).toThrow('A directed area needs the caster’s token.')
   })
 })
 

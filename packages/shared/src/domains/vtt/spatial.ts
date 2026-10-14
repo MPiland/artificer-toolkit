@@ -593,35 +593,32 @@ function convexPolygonsOverlap(
 /**
  * The tokens whose footprint shares area with an area, sorted by id: touching its edge or a corner
  * of it never catches (user ruling 2026-10-14, D103). A cylinder's height is not modeled: the Scene
- * is flat. A directed area starts on the caster's own space and never catches the caster's token
- * (`casterTokenId`, which must be among `tokens`). An invalid shape or token catches nothing (fails
- * closed).
+ * is flat. A directed area starts on the caster's own space, so it needs `casterTokenId` among
+ * `tokens` (an invariant: it throws without) and never catches that token; a point area ignores the
+ * caster. An invalid shape or token catches nothing (fails closed).
  */
-export function spatialTokensInsideArea(
-  input: {
-    origin: ScenePoint
-    tokens: readonly SpatialSceneToken[]
-  } & (
-    | { shape: SpatialPointAreaShape }
-    | { shape: SpatialDirectedAreaShape; casterTokenId: string }
-  )
-): string[] {
-  const { origin } = input
+export function spatialTokensInsideArea(input: {
+  origin: ScenePoint
+  shape: SpatialAreaShape
+  tokens: readonly SpatialSceneToken[]
+  casterTokenId?: string | null
+}): string[] {
+  const { origin, shape } = input
   const catches = (tokens: readonly SpatialSceneToken[], overlaps: (space: Footprint) => boolean) =>
     tokens
       .filter((token) => validSpatialToken(token) && overlaps(footprint(token)))
       .map((token) => token.id)
       .sort()
-  if ('casterTokenId' in input) {
+  if (isDirectedAreaShape(shape)) {
     const caster = input.tokens.find((token) => token.id === input.casterTokenId)
-    const outline = caster && directedAreaOutline(origin, input.shape, caster)
+    if (!caster) throw new Error('A directed area needs the caster’s token.')
+    const outline = directedAreaOutline(origin, shape, caster)
     if (!outline) return []
     return catches(
       input.tokens.filter((token) => token !== caster),
       (space) => convexPolygonsOverlap(outline, footprintCorners(space))
     )
   }
-  const { shape } = input
   if (shape.kind === 'RADIUS') {
     if (!validSpatialGeometry({ kind: 'CIRCLE', center: origin, radius: shape.radius })) return []
     return catches(

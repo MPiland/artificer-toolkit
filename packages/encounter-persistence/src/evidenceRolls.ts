@@ -35,7 +35,7 @@ import type {
 } from './ports.js'
 
 /** Dice the table roll log can show; other integer ranges are recorded without a log entry. */
-const LOGGED_DICE = new Set([4, 6, 8, 10, 12, 20, 100])
+export const LOGGED_DICE = new Set([4, 6, 8, 10, 12, 20, 100])
 
 const MODE_LABELS = { NORMAL: 'Normal', ADVANTAGE: 'Advantage', DISADVANTAGE: 'Disadvantage' }
 
