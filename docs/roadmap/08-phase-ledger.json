@@ -6345,7 +6345,7 @@
           "tasks": [
             {
               "id": "SPELLS-8.T1",
-              "text": "Core Encounter casting: action choice, slot spend and undo, upcasting, rituals, Concentration start, multi-effect spells and components.",
+              "text": "Core Encounter casting: spell action choices, slot spend and GM undo, and upcasting from any available slot at or above the spell level.",
               "status": "IN_PROGRESS",
               "closes": ["SPELLS-8.1"],
               "wsjf": {
@@ -6391,6 +6391,97 @@
                 "tc": 2,
                 "rr": 2,
                 "size": 5,
+                "after": ["SPELLS-8.T1"]
+              }
+            },
+            {
+              "id": "SPELLS-8.T5",
+              "text": "Casting any SRD Concentration spell starts Concentration and replaces the current one (proved with Hold Person replacing Fly), not only spells with a maintenance definition.",
+              "status": "TODO",
+              "closes": ["SPELLS-8.1"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 5,
+                "rr": 8,
+                "size": 3,
+                "after": ["SPELLS-8.T1"]
+              }
+            },
+            {
+              "id": "SPELLS-8.T6",
+              "text": "Scaling heals (Cure Wounds, Healing Word, Mass Cure Wounds, Mass Healing Word, Prayer of Healing) cast in an Encounter, and an Effect's excluded creature types are applied to targets instead of refusing the spell.",
+              "status": "TODO",
+              "closes": ["SPELLS-8.1"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 5,
+                "rr": 5,
+                "size": 3,
+                "after": ["SPELLS-8.T1"]
+              }
+            },
+            {
+              "id": "SPELLS-8.T7",
+              "text": "Multi-Effect spells (Arcane Sword, Faithful Hound, Grease, Spiritual Weapon) cast in an Encounter.",
+              "status": "TODO",
+              "closes": ["SPELLS-8.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-8.T1"]
+              }
+            },
+            {
+              "id": "SPELLS-8.T8",
+              "text": "Spells cast from LIMITED_USE features and resource pools (FIXED_LEVEL casts) spend and restore that use, not a slot.",
+              "status": "TODO",
+              "closes": ["SPELLS-8.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-8.T1"]
+              }
+            },
+            {
+              "id": "SPELLS-8.T9",
+              "text": "Spells with a bonus action, reaction, mixed or no activation casting time are offered with the right activation.",
+              "status": "TODO",
+              "closes": ["SPELLS-8.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-8.T1"]
+              }
+            },
+            {
+              "id": "SPELLS-8.T10",
+              "text": "Spell components are checked and shown when casting in an Encounter.",
+              "status": "TODO",
+              "closes": ["SPELLS-8.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 2,
+                "size": 3,
+                "after": ["SPELLS-8.T1"]
+              }
+            },
+            {
+              "id": "SPELLS-8.T11",
+              "text": "Ritual casting in an Encounter follows the ritual rules (no slot, ritual casting time).",
+              "status": "TODO",
+              "closes": ["SPELLS-8.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 1,
+                "rr": 1,
+                "size": 2,
                 "after": ["SPELLS-8.T1"]
               }
             }
@@ -6836,6 +6927,62 @@
             "bv": 5,
             "tc": 2,
             "rr": 2,
+            "size": 3
+          }
+        },
+        {
+          "id": "SPELLS-23",
+          "title": "Aiming a directed area on the map",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": [],
+          "acs": [
+            {
+              "text": "Pressing, dragging and releasing on the map aims a cone, line or Self cube and commits exactly the drawn origin and direction; a point picked for a directed area, or a direction for a point area, is refused with its own message; proved through the renderer gesture and the room refusals.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Found in the SPELLS-13 review 2026-10-14: the renderer aim gesture (vttSceneRenderer.ts press/drag/release) has no test; point-for-directed and direction-for-point share one message and room tests never assert messages; NO_CASTER_TOKEN is unreachable in the room; areaMatchesTarget is unproven in the guard path.",
+              "id": "SPELLS-23.1"
+            },
+            {
+              "text": "A Self cube snaps to the grid on the side the caster picks, centered evenly along that side, wherever the caster stands; proved for every side and size.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "SPELLS-13 review 2026-10-14: Math.round gives an uneven 25/50/25 split and snaps to the caster's side rather than the grid. Also tighten the diagonal 60-ft cone test from spot checks to the exact caught set, and fix the test nits (dragon wording in actionRoomFixture, drawer fixture creature-dragon:breath, \"touches\" in titles).",
+              "id": "SPELLS-23.2"
+            }
+          ],
+          "wsjf": {
+            "bv": 3,
+            "tc": 2,
+            "rr": 3,
+            "size": 3
+          }
+        },
+        {
+          "id": "SPELLS-24",
+          "title": "Lasting zones catch by positive-area overlap",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": [],
+          "acs": [
+            {
+              "text": "Lasting and moving zones (Spirit Guardians, Moonbeam, Cloud of Daggers) affect a creature on entry, at the start of its turn and in perception only when its footprint overlaps the zone with positive area, using the one shared overlap test that areas use; a creature touching the zone's edge or corner is not affected; D103 is amended; proved by tests that fail before the change.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "User ruling 2026-10-14 (\"Same overlap rule\"). Today encounterTurnEffectPerception.ts, encounterMovementReactionPerception.ts and path crossings use the inclusive footprintIntersectsSpatialGeometry.",
+              "id": "SPELLS-24.1"
+            }
+          ],
+          "wsjf": {
+            "bv": 5,
+            "tc": 3,
+            "rr": 5,
             "size": 3
           }
         }
@@ -7473,11 +7620,11 @@
           "origin": [],
           "acs": [
             {
-              "text": "Authored SPEED and SENSE_RANGE modifier values (BONUS, PENALTY, SET_VALUE) are lengths with a unit, converted through the one shared length conversion, so +30 ft on an 18 m sense or speed adds 30 ft; a SET_VALUE speed with no base speed takes its unit from the modifier, with no default unit or zero; SRD content and the authoring node map are migrated; proved by tests that fail before the fix.",
+              "text": "Authored SPEED and SENSE_RANGE modifier values (BONUS, PENALTY, SET_VALUE) are lengths with a unit, converted through the one shared length conversion, so +30 ft on a 20-yard sense or speed adds 30 ft; a SET_VALUE speed with no base speed takes its unit from the modifier, with no default unit or zero; SRD content and the authoring node map are migrated; proved by tests that fail before the fix.",
               "status": "TODO",
               "proof": [],
               "origin": [],
-              "note": "Registered 2026-10-13 from lane 3's ruling 3 size report. Modifier values are bare numbers added in the base's unit, so +30 on an 18 m grant gives 48 m, and characterMovementAndSenses defaults a base-less SET_VALUE speed to FEET and 0. The sense override itself becomes a length in the ruling 3 follow-up.",
+              "note": "Registered 2026-10-13 from lane 3's ruling 3 size report. Modifier values are bare numbers added in the base's unit, so +30 on an 18 m grant gives 48 m, and characterMovementAndSenses defaults a base-less SET_VALUE speed to FEET and 0. The sense override itself becomes a length in the ruling 3 follow-up. Wording amended 2026-10-14: length units are INCHES, FEET, YARDS and MILES; METERS is only a Scene grid unit, so the example uses yards. Adding a metric length unit is a separate decision.",
               "id": "RELIABILITY-5.1"
             },
             {
