@@ -1,6 +1,7 @@
 import { api } from '@artificer-toolkit/apis/convex/api'
 import { getFunctionName } from 'convex/server'
 import { nodeRuntimeResolveRequestDtoSchema } from '@artificer-toolkit/schema/api/nodeRuntime'
+import { compactNodeRuntimeResponse } from '@artificer-toolkit/schema/api/nodeRuntimeTransport'
 import type { QueryClient } from '@tanstack/react-query'
 import { createAuthoredFormRouteLoaderData } from '#forms/layout/authoredFormRouteContext'
 import type { AuthoredFormDomain } from '#forms/factories/authoredFormFactories.types'
@@ -18,7 +19,9 @@ export function configureAuthoredRouteStoryQueries(queryClient: QueryClient) {
     ['convexQuery', getFunctionName(api.authoring.nodeRuntime.resolve)],
     {
       queryFn: async ({ queryKey }) =>
-        resolveFixtureNodeRuntime(nodeRuntimeResolveRequestDtoSchema.parse(queryKey[2]))
+        compactNodeRuntimeResponse(
+          await resolveFixtureNodeRuntime(nodeRuntimeResolveRequestDtoSchema.parse(queryKey[2]))
+        )
     }
   )
 }

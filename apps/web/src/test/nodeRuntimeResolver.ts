@@ -3,7 +3,6 @@ import {
   authoredSourceKindsByTable,
   createNodeRuntimeSourceReader,
   normalizeNodeRuntimeValues,
-  resolveNestedRuntimeScopes,
   resolveNodeRuntime,
   sortAuthoredSourceRows,
   type NodeRuntimeQueryRow,
