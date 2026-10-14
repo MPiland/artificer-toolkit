@@ -89,4 +89,5 @@ Only item 1 has a captured red log (`oracle-red.log`, taken before the migration
 
 - Close VTT_UI-5.1 and VTT_UI-5.2.
 - Not run: Storybook (the `creatureSense` editor row and the Creature route story fixture have only jsdom coverage).
+- Storybook regression after the second merge (all three `CreatureEditRoute` stories, "Unable to find an element with the display value: Acolyte"): not the senses fixtures. `configureAuthoredRouteStoryQueries` answered the node-runtime resolve query with a raw model, but `useNodeRuntimeResolve` strictly parses the compact transport shape (since the select/expand change), so the query errored and the form body never rendered. Story util fixture fix: the story now returns `compactNodeRuntimeResponse(...)`. Red/green proof `authoredRouteStory.utils.test.ts` (logs `h3` red, `h4` green). Every authored edit story shared the defect; Storybook rerun is owed by the main session.
 - D100's `UNKNOWN` sight verdict is retired (D111); movement-reaction perception reads Creature Senses too.

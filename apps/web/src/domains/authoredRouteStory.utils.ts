@@ -4,6 +4,7 @@ import {
   nodeRuntimeResolveRequestDtoSchema,
   type NodeRuntimeResolveRequestDto
 } from '@artificer-toolkit/schema/api/nodeRuntime'
+import { compactNodeRuntimeResponse } from '@artificer-toolkit/schema/api/nodeRuntimeTransport'
 import type { QueryClient } from '@tanstack/react-query'
 import { createAuthoredFormRouteLoaderData } from '#forms/layout/authoredFormRouteContext'
 import { createStaticResolvedFormModel } from '#forms/node-map/staticResolvedModel'
@@ -23,7 +24,7 @@ function resolveStoryNodes(input: NodeRuntimeResolveRequestDto) {
       parentValues: input.parentValues,
       system: authoredRouteStorySystem,
       values: input.values
-    }) ?? { mapId: input.mapId, steps: [], clearPaths: [] }
+    }) ?? { mapId: input.mapId, steps: [], clearPaths: [], scopes: [] }
   )
 }
 
@@ -32,7 +33,9 @@ export function configureAuthoredRouteStoryQueries(queryClient: QueryClient) {
     ['convexQuery', getFunctionName(api.authoring.nodeRuntime.resolve)],
     {
       queryFn: async ({ queryKey }) =>
-        resolveStoryNodes(nodeRuntimeResolveRequestDtoSchema.parse(queryKey[2]))
+        compactNodeRuntimeResponse(
+          resolveStoryNodes(nodeRuntimeResolveRequestDtoSchema.parse(queryKey[2]))
+        )
     }
   )
 }
