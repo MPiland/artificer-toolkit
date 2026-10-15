@@ -4,6 +4,7 @@ import {
   creatureFeature,
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
+import { absorbElementsSpell } from '@artificer-toolkit/rules-runtime/testing/absorbElementsSpell'
 import { joltingGauntlet } from '@artificer-toolkit/rules-runtime/testing/joltingGauntlet'
 import { readCharacterPlay } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { creatureAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/creature'
@@ -497,5 +498,99 @@ describe('room reaction authored over an area', () => {
     const { answer } = await room.startAreaAction({ x: 50, y: 150 })
     expect(answer.type).toBe('COMMAND_REJECTED')
     expect(JSON.stringify(answer)).toContain('SOURCE_REQUIREMENTS_NOT_MET')
+  })
+})
+
+/**
+ * REACTION-4.2: a user-authored reaction triggered by damage of chosen types (Absorb Elements) is
+ * offered before that damage applies, grants resistance to it, and leaves its follow-up benefit.
+ */
+describe('room reaction to damage taken (REACTION-4.2)', () => {
+  const absorbElements = absorbElementsSpell(['FIRE', 'COLD'])
+  const fireBite = biteWolf('ATTACK', {
+    damage: 10,
+    save: { ability: 'DEXTERITY', damageTypeCode: 'FIRE' }
+  })
+
+  const absorbRoom = (bite = fireBite) =>
+    actionRoom({
+      actors: [
+        srdCreatureActor({ id: WOLF_ID, creature: bite }),
+        characterActor({ id: CHARACTER_ACTOR_ID, characterId: CHARACTER_ID })
+      ],
+      ownerFeatureId: creatureFeature(bite, 'Bite').id,
+      characterSpellcasting: { spells: [absorbElements], prepared: [absorbElements.id] }
+    })
+
+  it('halves the damage when used, spends the reaction and the slot, and leaves the follow-up effect', async () => {
+    const room = await absorbRoom()
+    await strike(room, 0)
+    const { decision, pending } = await offeredReaction(room)
+    expect(await readSpellSlots(room)).toEqual([])
+
+    const used = await room.resolve(decision, {
+      kind: 'OPTION',
+      optionId: pending.options[0].optionId
+    })
+    expect(used.type, JSON.stringify(used)).toBe('COMMAND_COMMITTED')
+
+    const history = await readRoomHistory(room.room.base.stub)
+    const batch = characterBatch(history)
+    expect(hitPointsLost(batch)).toBe(5)
+    expect(batch.reaction).toMatchObject({
+      selection: 'USE',
+      spellCastConsumption: { spellId: absorbElements.id, afterUsed: 1 },
+      actionEconomyTransition: { beforeUsed: 0, afterUsed: 1 }
+    })
+    expect(history.characterEffects).toHaveLength(1)
+    expect(await readSpellSlots(room)).toEqual([{ slotKey: 'STANDARD:1', used: 1 }])
+  })
+
+  it('applies the whole damage when declined, spending nothing', async () => {
+    const room = await absorbRoom()
+    await strike(room, 0)
+    const { decision } = await offeredReaction(room)
+
+    const declined = await room.resolve(decision, { kind: 'DECLINE' })
+    expect(declined.type, JSON.stringify(declined)).toBe('COMMAND_COMMITTED')
+    const history = await readRoomHistory(room.room.base.stub)
+    expect(hitPointsLost(characterBatch(history))).toBe(10)
+    expect(history.characterEffects).toEqual([])
+    expect(await readSpellSlots(room)).toEqual([])
+  })
+
+  it('undoes the reaction with the damage it halved', async () => {
+    const room = await absorbRoom()
+    const before = await readRoomHistory(room.room.base.stub)
+    await strike(room, 0)
+    const { decision, pending } = await offeredReaction(room)
+    await room.resolve(decision, { kind: 'OPTION', optionId: pending.options[0].optionId })
+
+    await undoLastAction(room)
+    expect(await readSpellSlots(room)).toEqual([])
+    const restored = await readRoomHistory(room.room.base.stub)
+    expect(restored.characterEffects).toEqual([])
+    expect(restored.actors).toEqual(before.actors)
+  })
+
+  it('offers nothing for damage of a type the spell was not authored for', async () => {
+    const room = await absorbRoom(biteWolf('ATTACK', { damage: 10 }))
+    await strike(room, 0)
+
+    expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
+    const batch = characterBatch(await readRoomHistory(room.room.base.stub))
+    expect(batch.reaction).toBeNull()
+    expect(hitPointsLost(batch)).toBe(10)
+  })
+
+  it('offers nothing once the Character’s reaction is spent this round', async () => {
+    const room = await absorbRoom()
+    await strike(room, 0)
+    const { decision, pending } = await offeredReaction(room)
+    await room.resolve(decision, { kind: 'OPTION', optionId: pending.options[0].optionId })
+
+    await strike(room, 0, ['ACTION_ECONOMY_UNAVAILABLE'])
+    expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
+    expect(await readSpellSlots(room)).toEqual([{ slotKey: 'STANDARD:1', used: 1 }])
   })
 })
