@@ -5555,10 +5555,14 @@
             },
             {
               "text": "A Creature's authored Senses are structured Sense definitions, so attack-roll sight is definitive for Creatures (no UNKNOWN).",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/rules-runtime/src/__tests__/encounterAttackPerception.test.ts",
+                "packages/rules-runtime/src/__tests__/creatureSnapshotSenses.test.ts",
+                "apps/session-worker/src/roomSceneVision.test.ts"
+              ],
               "origin": [],
-              "note": "D100 UNKNOWN case: Creature senses are free text today.",
+              "note": "Closed 2026-10-15 at the ATTACK-10 split: delivered by VTT_UI-5 (D111, 2026-10-13), which made Creature Senses structured and retired the UNKNOWN sight; the ledger had not been updated.",
               "id": "ATTACK-10.3"
             },
             {
@@ -5594,18 +5598,6 @@
                 "bv": 5,
                 "tc": 3,
                 "rr": 5,
-                "size": 3
-              }
-            },
-            {
-              "id": "ATTACK-10.T2",
-              "text": "Creature Senses as structured Sense definitions, so attack-roll sight is definitive for Creatures.",
-              "status": "TODO",
-              "closes": ["ATTACK-10.3"],
-              "wsjf": {
-                "bv": 3,
-                "tc": 2,
-                "rr": 3,
                 "size": 3
               }
             },
