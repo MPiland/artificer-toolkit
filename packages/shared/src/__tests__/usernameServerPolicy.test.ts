@@ -86,6 +86,11 @@ describe('validateUsernameOnServer', () => {
     'Dickinson',
     'Hitchcock',
     'Middlesex',
+    // Parts that are all words are not re-read as one compound.
+    'Assassin_Creed',
+    'Titan_Fall',
+    'Compass_Rose',
+    'TitanFall',
     // A padded name never reads as a term with a longer run than its own.
     'asmuncher'
   ])('accepts the ordinary name %s', (username) => {

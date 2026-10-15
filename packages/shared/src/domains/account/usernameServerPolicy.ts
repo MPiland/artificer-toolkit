@@ -76,10 +76,14 @@ export function validateUsernameOnServer(username: string): {
   message: string | null
 } {
   const result = validateUsername(username)
-  if (
-    result.message === null &&
-    usernameModerationCandidates(result.username).some(isBlockedCompound)
-  ) {
+  if (result.message !== null) return result
+
+  // The joined form catches a term split across parts (`a_ss_muncher`); it is skipped when every
+  // part is a word, since then the parts already read as words (`Assassin_Creed`, `Titan_Fall`).
+  const [joined = '', ...parts] = usernameModerationCandidates(result.username)
+  const { words } = getLexicon()
+  const partsAreWords = parts.length > 0 && parts.every((part) => words.has(part))
+  if ((partsAreWords ? parts : [joined, ...parts]).some(isBlockedCompound)) {
     return { username: result.username, message: USERNAME_NOT_ALLOWED_MESSAGE }
   }
   return result
