@@ -115,7 +115,10 @@ export function CharacterSheetRulesPanel({
         const primary = panel.speeds.find((speed) => speed.speedId === panel.primarySpeedId)
         return {
           label: 'Primary movement',
-          value: primary ? `${primary.amount} ${primary.unitLabel}` : 'Not available'
+          value:
+            primary?.speedKind === 'HELD'
+              ? `${primary.amount} ${primary.unitLabel}`
+              : 'Not available'
         }
       }
       case 'DEFENSES':
@@ -266,10 +269,13 @@ export function CharacterSheetRulesPanel({
             {panel.speeds.map((speed) => (
               <div key={speed.speedId}>
                 <Text fw={720}>
-                  {speed.label}: {speed.amount} {speed.unitLabel}
+                  {speed.label}:{' '}
+                  {speed.speedKind === 'HELD'
+                    ? `${speed.amount} ${speed.unitLabel}`
+                    : 'not held. Set a speed to add it.'}
                 </Text>
                 {canCustomize ? (
-                  <CharacterSheetAdjustmentEditor
+                  <CharacterSheetLengthEditor
                     editor={speed.editor}
                     key={getSheetEditorKey(speed.editor)}
                     pending={pending}
@@ -283,7 +289,7 @@ export function CharacterSheetRulesPanel({
                           family: 'MOVEMENT',
                           speedId: speed.speedId,
                           field: 'SPEED_OVERRIDE',
-                          value: Number(commit.value)
+                          value: commit.value
                         }
                       })
                     }

@@ -162,6 +162,8 @@ export interface MovementRoomConfig {
   autoRoll?: 'GAME_MASTER' | 'PLAYER' | 'BOTH'
   /** The actors the room's player controls, besides any Character assigned to them. */
   playerControlledActorIds?: readonly string[]
+  /** The actors a second player, who joins the room's members, controls. */
+  otherPlayerControlledActorIds?: readonly string[]
   /** The actors whose Scene tokens start hidden from the room's players. */
   hiddenActorIds?: readonly string[]
   /**
@@ -271,10 +273,18 @@ export async function movementRoom(config: MovementRoomConfig) {
   const base = await fixture(scene)
   base.room.systemId = SRD_SYSTEM_ID
   base.capture.sceneEncounterId = encounterId
+  if (config.otherPlayerControlledActorIds)
+    base.authorization.members.push({
+      membershipEpoch: base.capture.origin.membershipEpoch,
+      role: 'PLAYER',
+      userId: base.otherPlayerId
+    })
   actors = actors.map((actor) =>
     config.playerControlledActorIds?.includes(actor.id)
       ? { ...actor, controllerUserIds: [base.playerId] }
-      : actor
+      : config.otherPlayerControlledActorIds?.includes(actor.id)
+        ? { ...actor, controllerUserIds: [base.otherPlayerId] }
+        : actor
   )
 
   const character = actors.find((actor) => actor.kind === 'CHARACTER')
@@ -586,7 +596,11 @@ export async function movementRoom(config: MovementRoomConfig) {
     moverTokenId,
     send,
     /** The mover walks `path`, a voluntary move of its token through the room's Scene command. */
-    move(path: readonly ScenePoint[], expectedEncounterVersion: number = state.version) {
+    move(
+      path: readonly ScenePoint[],
+      expectedEncounterVersion: number = state.version,
+      expectedSceneVersion: number = scene.version
+    ) {
       const commandId = crypto.randomUUID()
       return send(commandId, {
         scope: 'SCENE',
@@ -595,7 +609,7 @@ export async function movementRoom(config: MovementRoomConfig) {
           commandId,
           correlationId: null,
           expectedEncounterVersion,
-          expectedSceneVersion: scene.version,
+          expectedSceneVersion,
           movementKind: 'VOLUNTARY',
           path,
           sceneId: scene.id,

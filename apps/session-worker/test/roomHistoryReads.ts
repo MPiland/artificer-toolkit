@@ -173,6 +173,19 @@ export function readRoomRollCards(stub: RoomStub) {
   })
 }
 
+/**
+ * Each private roll the room retains: whose history holds it and whether the GM's reveal binding
+ * rides along (a player's own copy has none).
+ */
+export function readRoomPrivateRollHolders(stub: RoomStub) {
+  return runInDurableObject(stub, async (_instance, context) =>
+    new RoomEncounterStore(context.storage)
+      .records(ROOM_PRIVATE_ROLL)
+      .map((record) => liveSessionCheckpointRetainedRollSchema.parse(JSON.parse(record.json)))
+      .map(({ userId, record, gmCampaignRoll }) => ({ userId, rollId: record.id, gmCampaignRoll }))
+  )
+}
+
 /** The bodies of the Run's chat entries, in the order the room stored them. */
 export function readRoomChatBodies(stub: RoomStub) {
   return runInDurableObject(stub, async (_instance, context) =>

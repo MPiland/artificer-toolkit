@@ -163,9 +163,13 @@ totals, a Legendary Action's (`recordActionRollCards`), each Recharge d6 (source
 turn-start death save and, under `DECLARED_ACTION_ROLL`, each declared actor's initiative die (ENCOUNTER-9,
 the same `INITIATIVE` card `ROLL_ACTOR_INITIATIVE` posts, both built by the one `initiativeRollRecord`,
 written by `persistEncounterInitiativeRollCards` in the terminal turn commit from the settled
-`root.initiative` evidence; a flat score and tie-resolution dice post none, and a result of several dice or
-a die that is not a logged `1dN` throws. Declared advantage and disadvantage are **target** behavior
-(ENCOUNTER-10): the shipped declared graph rolls one d20 and ignores the roll-mode fact). A die settled by a `SYSTEM_ROLL` answer already has its
+`root.initiative` evidence; a flat score and tie-resolution dice post none, and a result of more than two
+dice or a die that is not a logged `1dN` throws. **Declared advantage and disadvantage (ENCOUNTER-10,
+current):** the declared graph's `d20-extra` node (`evidence.optional-integer-range`, which asks for its
+die only while the `initiative.extra-d20` fact is true) and its `number.keep-by-roll-mode` node roll two
+d20s and keep the higher or lower under the policy's resolved roll mode; the card replays both faces under
+that mode, so it matches the GM-rolled card. A tie resolver pinned to the same graph rolls its attempts
+the same way.) A die settled by a `SYSTEM_ROLL` answer already has its
 "Rolled by the app" attempt card, so the commit skips it; an auto-rolled or entered die (including one
 entered after an app roll) is carded at commit. `readAppCardedDice`
 (`packages/encounter-persistence/src/appCardedDice.ts`) decides this
@@ -280,27 +284,43 @@ reverse, then the root. An outcome that leaves a condition, a lasting or recurri
 effect is refused whole until SPELLS-19.
 
 Each action choice carries `target`: `{ kind: 'ACTOR' }`, `{ kind: 'POINT', area }` (the authored radius or
-cube edge) or `{ kind: 'DIRECTED', area }` (the authored cone length, line length and width, or the edge of a
-cube that extends from the caster), built by `encounterActionChoiceTarget`. A policy this path cannot resolve
-(a wall, dome, Self sphere, cylinder or circle, or a cone or line whose range is not Self) stays an actor
-choice and is refused when resolved. The web converts the area to Scene coordinates with
+cube edge), `{ kind: 'DIRECTED', area }` (the authored cone length, line length and width, or the edge of a
+cube that extends from the caster) or `{ kind: 'CASTER_CENTERED', area: { kind: 'RADIUS', radius } }` (a Self
+sphere, cylinder or circle: no aim), built by `encounterActionChoiceTarget`. A policy this path cannot resolve
+(a wall, dome, or a cone or line whose range is not Self) stays an actor choice and is refused when resolved. The web converts the area to Scene coordinates with
 `pointAreaInSceneCoordinates` or `directedAreaInSceneCoordinates` (`shared/vtt`), the same functions
 `compileEncounterPointArea` and `evaluateEncounterDirectedAreaTarget` use, to preview it and list the tokens
 the viewer sees inside; the room still decides who is caught.
+
+### Caster-centered radius areas (current, SPELLS-22)
+
+An `AREA_CONTENTS` action whose range is Self and whose shape is a sphere, cylinder or circle takes the fourth
+target, `{ kind: 'CASTER_CENTERED', sceneId, expectedSceneVersion }`: it names no origin or direction. The
+origin is the caster's own token (`evaluateEncounterCasterCenteredAreaTarget` returns the `RADIUS` shape and
+refuses `NO_CASTER_TOKEN` without one; the room seals the token's position), and the sealed area is the same `RADIUS` shape a point area seals, so no persisted shape changes;
+the caster-centered meaning lives in the persisted command's target kind. "Within N feet of you" is measured
+from the edge of the caster's space (D114): `spatialTokensWithinSpaceRadius` catches a token whose footprint
+shares positive area with the caster's footprint grown by the radius (a rounded rectangle, so a Large or
+Huge caster reaches farther than a Medium one), by the same strict overlap rule as every area (D103), and never
+catches the caster. `catchEncounterAreaActorIds` takes `fromCasterSpace` for it; the room and
+`requireAreaActionPendingRoot` both set it from `command.target.kind`, and the latter also checks the sealed
+origin is still the caster's token. The authored targeting has no "includes the caster" option, so the caster
+is always excluded. Everything after the catch is the point-area pipeline; an outcome that leaves a condition or
+lasting effect is refused whole until SPELLS-19, and a moving aura is SPELLS-20.
 
 ### Directed areas: cone, line and caster-origin cube (current, SPELLS-13)
 
 An `AREA_CONTENTS` action whose range is Self and whose shape is a cone, line or cube takes the third target,
 `{ kind: 'DIRECTED', origin, toward, sceneId, expectedSceneVersion }`. The origin must lie on the caster's token
 footprint (`isDirectedAreaOriginOnToken`) and `toward` is the point the area is aimed at. `encounterAreaTargetKind`
-is the one range × shape table (point or directed or unsupported) that the compiler, the choice target and the
+is the one range × shape table (point, directed, caster-centered or unsupported) that the compiler, the choice target and the
 evaluators share; a target of the wrong kind is `TARGET_UNAVAILABLE`, as is an origin off the footprint, and each
 refusal has its own message (`UNSUPPORTED_AREA`, `NO_CASTER_TOKEN`, `ORIGIN_OFF_CASTER`).
 `evaluateEncounterDirectedAreaTarget` returns the Scene-unit shape, and everything after it is the point-area
 pipeline above: the same `ENCOUNTER_AREA_ACTION` occurrence, sealed saves, frozen damage, GM removal, commit and
 undo. The pending guard (`requireAreaActionPendingRoot`) checks the sealed origin and direction against the command.
 Catching (`spatialTokensInsideArea`, for every area) is strict positive-area overlap, so a creature the area
-only touches along an edge or at a corner is not caught (D103, user ruling 2026-10-14); a directed shape needs the
+only touches along an edge or at a corner is not caught (D103, user ruling 2026-10-14). Lasting and moving zones use the same rule through the same predicate (`footprintOverlapsSpatialGeometry`): entry, start-of-turn effects (`encounterTurnEffectPerception`) and movement-reaction perception (`encounterMovementReactionPerception`) see a zone only when the footprint shares area with it, so touching its edge or a corner never catches (SPELLS-24); a directed shape needs the
 caster's token among the Scene's tokens, which it excludes (it throws without it: the room has already refused `NO_CASTER_TOKEN`, so a missing caster here is an invariant failure). A cone is the triangle from the origin to a
 far edge as wide as it is long; a line is a rectangle, 5 ft wide unless authored (a scaled or non-positive
 authored width is refused at compile). A Self cube follows the 5e rule that its origin lies anywhere on a face
@@ -780,6 +800,13 @@ vocabulary: Character record stats pass `registry.system.speeds`, and `encounter
 `speedDefinitions` (the worker's `INPUTS` capture, persistence's `requireSystem`). Publication owns the refusal, so a
 malformed or out-of-vocabulary speed at read is an invariant failure. Displayed lengths round through the shared
 `roundLengthForDisplay` (three decimals); stored and computed amounts never do.
+
+The Sheet `MOVEMENT` `SPEED_OVERRIDE` adjustment is the same typed length, like the sense `RANGE_OVERRIDE`.
+`buildCharacterMovementRuleFacts` hands the policy each speed as `base` (a length, or `null` when the Character holds
+none) and `override`; a speed with neither is never listed, and `characterMovementAndSenses` throws on a fact with
+neither. The override is converted into the base's unit, or kept in its own unit when there is no base. The Movement
+panel marks a System speed the Character does not hold `NOT_HELD` (its editor still adds it) and carries the held
+unit as the editor's `defaultUnit`, so the Sheet input offers an amount and a unit starting in the speed's own unit.
 
 **Concentration grants (D99).** A grant whose result block names a `maintenanceDefinitionId` plans the
 same `SOURCE_ACTOR` maintenance policy as a maintained recurring effect (`maintenancePlan`), so it is a

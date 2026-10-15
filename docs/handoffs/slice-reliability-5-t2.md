@@ -1,6 +1,6 @@
 # Slice workbook: RELIABILITY-5.T2 (the Sheet speed override is a length with a unit)
 
-**Status:** OPEN (started 2026-10-14)
+**Status:** DONE (merged `17daa954e`; closed by the main session 2026-10-14)
 **Base:** `codex/phase-08-2-convex-cutover` at this workbook's commit.
 **Rules:** [slice-workbook-rules.md](slice-workbook-rules.md).
 
@@ -35,5 +35,16 @@ Read first: D111 and D112 in `docs/handoffs/phase-08-2-decisions.md`; [slice-rel
 ## Status log
 
 - 2026-10-14: workbook written.
+- 2026-10-14: implementation committed (`9bb81934c`); queued for the validation lock (held by another session).
+- Decision: an unheld speed (no base, no override) is `NOT_HELD` in the Sheet panel, with a length editor, matching senses. "Never listed" applies to the rule facts and the policy output (`evaluateDnd5eCharacterMovementAndSenses` throws on a speed with neither). Dropping it from the panel too would stop a Character from adding Fly, a user-visible regression.
+- Premise change: `CharacterSheetView.test.tsx` iterated every speed as if it had an amount; it is now `speedKind`-aware because `NOT_HELD` speeds carry no amount.
+- Red (production files reverted to `c84ab8c6c`, logs in `local-validation/reliability-5-t2/`): `red-packages.log` exit 1 (schema 2+1 failed, rules 2+3 failed), `red-apis.log` exit 1 (5 failed across 4 files), `red-web.log` exit 1 (3+1 failed). The new rules test first failed on a fixture error (the race override dropped `features: []`); fixed, then `red-rules-rerun.log` (old rules source against the new contract) exit 1 on `ZodError`, the contract mismatch.
+- Green on the final tree: `final-packages.log` 29/29, `final-apis.log` 13/13 plus `green-apis-final.log` (`sheetAdjustments`) 6/6, `final-web.log` 44/44, all exit 0. Packages rebuilt first (`build2.log`). Codegen ran under the lock (`codegen2.log`, exit 0): `api.d.ts` regenerated.
+- Typecheck: `turbo run typecheck --filter="[c84ab8c6c]"` 14/14 (`typecheck.log`); `apis tsc -p convex/tsconfig.json` clean after moving a `@ts-expect-error` onto the `adjustment` property.
+- Defect found by codegen: the panel `speeds` as an intersection made Convex infer `Array<any>`; it is now a flat `discriminatedUnion('speedKind')` over a shared shape (`movementSpeedShape`), and `api.d.ts` carries a real type. Follow-up (not T2): the senses panel (`senses`, D111) is still an intersection and is `Array<any>` in `api.d.ts` at base; the rule-evaluation `movement.speeds` is `Array<any>` at base too.
+- Not run: Storybook (cannot start in a worktree); the `MovementInspector` story reads `movementPanelFixture`, which is typed against the new contract and covered by the RTL tests.
 
 ## Proposed ledger edits (filled by the slice session)
+
+- Close task RELIABILITY-5.T2; with it, close AC RELIABILITY-5.1 (the Sheet speed override is a length with a unit; the `FEET`/`0` defaults are gone).
+- Register follow-up: type the senses panel and the rule-evaluation `movement.speeds` DTOs so Convex stops inferring `Array<any>` (see the status log).

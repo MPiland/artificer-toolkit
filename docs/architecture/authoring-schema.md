@@ -22,11 +22,11 @@ An **Authoring Schema** describes the structure of authored content: which field
 
 Authoring Schemas are not a general character-rules language and do not contain React components, CSS classes, design tokens, or platform-specific geometry.
 
-An authored mechanic is complete only when the same typed field is covered by the shared authored type and schema, its Authoring Schema node map, persistence/hydration, owned-ID replacement during copying, and compilation. Adding a value to the existing closed `CLOSED_RULE` discriminant does not create a new payload shape: the existing select node, schema enum, generic-outcome persistence, recursive exact-ID replacement, and compiler pass-through already cover it. A new field or outcome shape must update every boundary explicitly.
+An authored mechanic is complete only when the same typed field is covered by the shared authored type and schema, its Authoring Schema node map, persistence/hydration, owned-ID replacement during copying, and compilation. Adding a value to the existing closed `CLOSED_RULE` discriminant does not create a new payload shape: the existing select node, schema enum, generic-outcome persistence, recursive exact-ID replacement, and compiler pass-through already cover it. A new field or outcome shape must update every boundary explicitly. New closed rule values are no longer added: per [ADR 0038](../adr/0038-rules-authored-from-core-options.md), a mechanic the node map cannot yet express gets a new generic option with an authoring-parity proof.
 
 Line shapes author both length and width. Spell grants may author a casting ability independently from their source class so racial and other source-bound spells retain their SRD ability through compilation and character-level resolution.
 
-Creature Spellcasting and Innate Spellcasting features reuse feature-owned spell grants for exact spell references, cast level, casting ability, at-will use, and limited-use charges. Creature-specific slot schedules and casting lifecycle remain closed rule descriptors until an encounter resolver consumes them; they do not justify a parallel creature-only spell model.
+Creature Spellcasting and Innate Spellcasting features reuse feature-owned spell grants for exact spell references, cast level, casting ability, at-will use, and limited-use charges. Creature-specific slot schedules and casting lifecycle are closed rule descriptors today (transitional: SPELLS-4 converts them to core options under ADR 0038); they do not justify a parallel creature-only spell model.
 
 ## DSL and registry
 
@@ -94,9 +94,10 @@ System UUID; it is not a client-provided query or a new rules language.
 - evaluates visibility and required state against `values`, `parentValues`, and `ancestors`;
 - executes relationship plans for data-backed options and inline filters, and resolves bounded
   `LOCAL_COLLECTION` options from the current authored root;
-- serves each System vocabulary option's `description` as the option description (its tooltip). Every
-  System vocabulary source in the node-runtime source manifest exposes `description`, and every
-  node-map select on one selects it; the vocabulary `tooltip` field is not a source column. The web
+- serves `description` as the one option description (its tooltip), for both System vocabulary rows
+  and shared code-list entries (`CoreMeta`). Every System vocabulary source in the node-runtime
+  source manifest exposes `description`, and every node-map select on one selects it; there is no
+  separate `tooltip` field on vocabulary records, code lists or the manifest. The web
   `AppSelect`/`AppMultiSelect` render a described option's text as a Mantine tooltip on the option;
 - returns the root runtime DTO plus paths that should be cleared when hidden;
 - recursively emits flat resolved scopes for every visible, populated nested object or array row, keyed by absolute path.

@@ -119,20 +119,17 @@ const PATH_SELECTION_KIND_OPTIONS = [
   {
     code: 'FIXED',
     label: 'Direct',
-    description: 'Resolve one selected result directly.',
-    tooltip: 'Direct result.'
+    description: 'Direct result.'
   },
   {
     code: 'CHOICE',
     label: 'Choose One',
-    description: 'Choose one authored option.',
-    tooltip: 'Choose one option.'
+    description: 'Choose one option.'
   },
   {
     code: 'ROLL_TABLE',
     label: 'Roll Table',
-    description: 'Resolve a result by rolling on a table.',
-    tooltip: 'Roll for a result.'
+    description: 'Roll for a result.'
   }
 ] as const
 
@@ -140,14 +137,12 @@ const RESULT_KIND_OPTIONS = [
   {
     code: 'SINGLE',
     label: 'Single',
-    description: 'Resolve one authored outcome.',
-    tooltip: 'Single outcome.'
+    description: 'Single outcome.'
   },
   {
     code: 'SEQUENCE',
     label: 'Resolve In Order',
-    description: 'Resolve multiple outcomes in order.',
-    tooltip: 'Sequential outcomes.'
+    description: 'Sequential outcomes.'
   }
 ] as const
 

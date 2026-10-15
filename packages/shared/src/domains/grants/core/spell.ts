@@ -28,59 +28,51 @@ export const SPELL_GRANT_ATTRIBUTE_REGISTRY: Record<
   LIMITED_USE: {
     code: SPELL_GRANT_ATTRIBUTE.LIMITED_USE,
     label: 'Limited Use',
-    tooltip: 'The spell has a limited number of uses.',
-    description: 'The spell may only be cast a limited number of times before requiring a reset.'
+    description: 'The spell has a limited number of uses.'
   },
 
   CONCENTRATION: {
     code: SPELL_GRANT_ATTRIBUTE.CONCENTRATION,
     label: 'Concentration',
-    tooltip:
-      'The spell requires concentration to maintain the spell which ends if the caster is incapacitated or dies.',
-    description: 'The spell requires concentration.'
+    description:
+      'The spell requires concentration to maintain the spell which ends if the caster is incapacitated or dies.'
   },
 
   RITUAL: {
     code: SPELL_GRANT_ATTRIBUTE.RITUAL,
     label: 'Ritual',
-    tooltip:
-      'The spell requires a ritual to cast which requires the character to remain casting for a longer time.',
-    description: 'The spell requires a ritual to cast.'
+    description:
+      'The spell requires a ritual to cast which requires the character to remain casting for a longer time.'
   },
 
   PREPARED: {
     code: SPELL_GRANT_ATTRIBUTE.PREPARED,
     label: 'Prepared Spell',
-    tooltip: 'The spell is prepared.',
-    description: 'The spell must be prepared but does not need to be learned separately.'
+    description: 'The spell is prepared.'
   },
 
   KNOWN: {
     code: SPELL_GRANT_ATTRIBUTE.KNOWN,
     label: 'Known Spell',
-    tooltip: 'The spell is learned permanently.',
-    description: 'The spell is added to the list of known spells.'
+    description: 'The spell is learned permanently.'
   },
 
   CAST_AT_WILL: {
     code: SPELL_GRANT_ATTRIBUTE.CAST_AT_WILL,
     label: 'Cast at Will',
-    tooltip: 'The spell can be cast without expending a spell slot.',
-    description: 'The spell may be cast an unlimited number of times without using spell slots.'
+    description: 'The spell can be cast without expending a spell slot.'
   },
 
   CAST_AT_LEVEL: {
     code: SPELL_GRANT_ATTRIBUTE.CAST_AT_LEVEL,
     label: 'Cast at Level',
-    tooltip: 'The spell is cast using a specific slot level.',
-    description: 'The spell is always cast using the specified spell slot level.'
+    description: 'The spell is cast using a specific slot level.'
   },
 
   SELF_ONLY: {
     code: SPELL_GRANT_ATTRIBUTE.SELF_ONLY,
     label: 'Self Only',
-    tooltip: 'Spell can only target the caster.',
-    description: 'The spell can only target the caster when cast.'
+    description: 'Spell can only target the caster.'
   }
 } as const
 

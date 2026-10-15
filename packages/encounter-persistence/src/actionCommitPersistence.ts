@@ -38,7 +38,7 @@ import { recordActionRollCards, settledD20s } from './actionRollCards.js'
 /** Validates the admitted completed root and applies its native writes in the owning transaction. */
 export async function persistEncounterActionCommit(
   ctx: EncounterCharacterWriteTransaction & {
-    readonly ports: Pick<EncounterWritePorts, 'insertTableRoll' | 'retainGmRoll'>
+    readonly ports: Pick<EncounterWritePorts, 'insertTableRoll' | 'retainPrivateRoll'>
   },
   input: LiveSessionEncounterActionCommitInput,
   callbacks: {

@@ -66,13 +66,17 @@ export async function readRuleRollRouting(
  * Records one rule roll's chat card: a TABLE card, or a roll retained in the GM's private history
  * with the rolling creature referenced for a later reveal. Returns the posted table entry.
  *
+ * A private card is also the roller's own when a player controls the roller (`playerCopyUserId`):
+ * that player's history holds the generic `roll`, with no reveal to offer, and their answer carries
+ * it. The table and the area's caster learn nothing of it.
+ *
  * A roll the server adjusted for sight (ATTACK-10.1) carries `gmRoll`, the same dice with the GM's
  * specific reason. The table card keeps the generic `roll`; the GM's history holds `gmRoll`, already
  * revealed when the table has `roll`, and the only card when the roll is private.
  */
 export async function recordRuleRollCard(
   ctx: EncounterReadTransaction & {
-    readonly ports: Pick<EncounterWritePorts, 'insertTableRoll' | 'retainGmRoll'>
+    readonly ports: Pick<EncounterWritePorts, 'insertTableRoll' | 'retainPrivateRoll'>
   },
   input: {
     campaign: CampaignAuthority['campaign']
@@ -88,6 +92,8 @@ export async function recordRuleRollCard(
 ): Promise<{
   audience: 'TABLE' | 'PRIVATE'
   entry: CampaignChatEntryDto | null
+  /** The player who rolled a private card and keeps their own copy; null when only the GM holds it. */
+  playerCopyUserId: string | null
 }> {
   const { campaign, roller, roll } = input
   const { audience, authorUserId } = await readRuleRollRouting(ctx, input)
@@ -101,19 +107,21 @@ export async function recordRuleRollCard(
       roll
     )
     if (input.gmRoll)
-      await ctx.ports.retainGmRoll(campaign.ownerUserId, input.gmRoll, {
+      await ctx.ports.retainPrivateRoll(campaign.ownerUserId, input.gmRoll, {
         campaignId: campaign.id,
         creature,
         revealedAt: input.gmRoll.createdAt,
         noticedAt: null
       })
-    return { audience, entry }
+    return { audience, entry, playerCopyUserId: null }
   }
-  await ctx.ports.retainGmRoll(campaign.ownerUserId, input.gmRoll ?? roll, {
+  await ctx.ports.retainPrivateRoll(campaign.ownerUserId, input.gmRoll ?? roll, {
     campaignId: campaign.id,
     creature,
     revealedAt: null,
     noticedAt: null
   })
-  return { audience, entry: null }
+  const playerCopyUserId = authorUserId === campaign.ownerUserId ? null : authorUserId
+  if (playerCopyUserId) await ctx.ports.retainPrivateRoll(playerCopyUserId, roll, null)
+  return { audience, entry: null, playerCopyUserId }
 }

@@ -127,7 +127,7 @@ export function encounterWriteTransaction(
       ...readPorts(ctx),
       insertTableRoll: (authority, userId, clientNonce, roll) =>
         insertPreEvaluatedCampaignTableRoll(ctx, authority, userId, clientNonce, roll),
-      retainGmRoll: async (userId, roll, gmCampaignRoll) => {
+      retainPrivateRoll: async (userId, roll, gmCampaignRoll) => {
         const retained = await ctx.db
           .query('userRollHistory')
           .withIndex('by_userId_id', (q) => q.eq('userId', userId).eq('id', roll.id))

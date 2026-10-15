@@ -14,15 +14,13 @@ export const FEATURE_CATEGORY_REGISTRY: Record<FeatureCategory, FeatureCategoryO
   FEATURE: {
     code: FEATURE_CATEGORY.FEATURE,
     label: 'Feature',
-    description: 'A feature that adds effects, modifiers, or other grants to a character.',
-    tooltip: 'Feature to add grants.'
+    description: 'Feature to add grants.'
   },
 
   OPTION: {
     code: FEATURE_CATEGORY.OPTION,
     label: 'Option',
-    description: 'An optional feature that can be selected by the character.',
-    tooltip: 'Option granted by a feature.'
+    description: 'Option granted by a feature.'
   }
 } as const
 
@@ -40,22 +38,19 @@ export const FEATURE_ATTRIBUTE_REGISTRY: Record<FeatureAttribute, FeatureAttribu
   LIMITED_USE: {
     code: FEATURE_ATTRIBUTE.LIMITED_USE,
     label: 'Limited Use',
-    description: 'A feature that can only be used a limited number of times.',
-    tooltip: 'Feature that can only be used a limited number of times.'
+    description: 'Feature that can only be used a limited number of times.'
   },
 
   HIDDEN_ON_SHEET: {
     code: FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET,
     label: 'Hide On Sheet',
-    description: 'A feature that is hidden on the character sheet.',
-    tooltip: 'Feature that is hidden on the character sheet.'
+    description: 'Feature that is hidden on the character sheet.'
   },
 
   SUBCLASS_SELECTION: {
     code: FEATURE_ATTRIBUTE.SUBCLASS_SELECTION,
     label: 'Subclass Selection',
-    description: 'A feature that owns the subclass selection for its class.',
-    tooltip: 'Feature that owns subclass selection.'
+    description: 'Feature that owns subclass selection.'
   }
 } as const
 

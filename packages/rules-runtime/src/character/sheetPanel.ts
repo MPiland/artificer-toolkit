@@ -630,21 +630,29 @@ function buildMovementPanel(
     const calculation =
       ruleProjection.calculations.movementSpeeds[speed.id] ??
       ruleProjection.calculations.movementSpeeds[speed.code]
+    if (ruleSpeed && !calculation)
+      throw new Error(`A held speed is missing its calculation: ${speed.id}`)
+    // A speed the Character does not hold has no value; a speed override on it adds the speed.
+    const held = !ruleSpeed
+      ? ({ speedKind: 'NOT_HELD' } as const)
+      : ({
+          speedKind: 'HELD',
+          amount: roundLengthForDisplay(ruleSpeed.amount),
+          unitLabel: formatCode(ruleSpeed.unit).toLowerCase(),
+          calculation: toPanelCalculation(calculation, params)
+        } as const)
     return {
       speedId: speed.id,
       label: speed.label,
-      amount: roundLengthForDisplay(calculation?.effective ?? ruleSpeed?.amount ?? 0),
-      // RELIABILITY-5.T2 removes this default with the bare-number SPEED_OVERRIDE.
-      unitLabel: formatCode(ruleSpeed?.unit ?? 'FEET').toLowerCase(),
+      ...held,
       state: adjustment ? ('OVERRIDDEN' as const) : ('DEFAULT' as const),
-      calculation: toPanelCalculation(calculation, params),
       editor: {
-        kind: 'NUMBER' as const,
+        kind: 'LENGTH' as const,
         field: 'SPEED_OVERRIDE' as const,
         label: `Override ${speed.label} speed`,
         value: adjustment?.value ?? null,
+        ...(ruleSpeed ? { defaultUnit: ruleSpeed.unit } : {}),
         commitIntent: 'ON_BLUR_OR_ENTER' as const,
-        validation: { integer: true, minimum: 0 },
         ...adjustmentEditorMetadata(adjustment)
       }
     }
@@ -665,7 +673,7 @@ function buildMovementPanel(
     preferenceOptions: [
       { value: 'AUTO', label: 'Automatic' },
       ...speeds
-        .filter((speed) => speed.amount > 0)
+        .filter((speed) => speed.speedKind === 'HELD' && speed.amount > 0)
         .map((speed) => ({ value: speed.speedId, label: speed.label }))
     ],
     speeds

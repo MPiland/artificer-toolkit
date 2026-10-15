@@ -1719,7 +1719,222 @@ export declare const api: {
           characterId: string;
           command:
             | {
-                adjustment: any | any | any;
+                adjustment:
+                  | {
+                      ability:
+                        | "CHARISMA"
+                        | "CONSTITUTION"
+                        | "DEXTERITY"
+                        | "INTELLIGENCE"
+                        | "STRENGTH"
+                        | "WISDOM";
+                      family: "ABILITY";
+                      field: "OTHER_MODIFIER";
+                      id?: string;
+                      sourceNote?: string;
+                      value: number;
+                    }
+                  | {
+                      ability:
+                        | "CHARISMA"
+                        | "CONSTITUTION"
+                        | "DEXTERITY"
+                        | "INTELLIGENCE"
+                        | "STRENGTH"
+                        | "WISDOM";
+                      family: "ABILITY";
+                      field: "SCORE_OVERRIDE";
+                      id?: string;
+                      sourceNote?: string;
+                      value: number;
+                    }
+                  | {
+                      ability:
+                        | "CHARISMA"
+                        | "CONSTITUTION"
+                        | "DEXTERITY"
+                        | "INTELLIGENCE"
+                        | "STRENGTH"
+                        | "WISDOM";
+                      family: "SAVING_THROW";
+                      field: "MAGIC_BONUS" | "MISC_BONUS" | "TOTAL_OVERRIDE";
+                      id?: string;
+                      sourceNote?: string;
+                      value: number;
+                    }
+                  | {
+                      ability:
+                        | "CHARISMA"
+                        | "CONSTITUTION"
+                        | "DEXTERITY"
+                        | "INTELLIGENCE"
+                        | "STRENGTH"
+                        | "WISDOM";
+                      family: "SAVING_THROW";
+                      field: "PROFICIENCY_OVERRIDE";
+                      id?: string;
+                      sourceNote?: string;
+                      value: "NONE" | "HALF" | "FULL" | "DOUBLE";
+                    }
+                  | {
+                      family: "SKILL";
+                      field: "MAGIC_BONUS" | "MISC_BONUS" | "TOTAL_OVERRIDE";
+                      id?: string;
+                      skillId: string;
+                      sourceNote?: string;
+                      value: number;
+                    }
+                  | {
+                      family: "SKILL";
+                      field: "PROFICIENCY_OVERRIDE";
+                      id?: string;
+                      skillId: string;
+                      sourceNote?: string;
+                      value: "NONE" | "HALF" | "FULL" | "DOUBLE";
+                    }
+                  | {
+                      family: "SKILL";
+                      field: "GOVERNING_ABILITY_OVERRIDE";
+                      id?: string;
+                      skillId: string;
+                      sourceNote?: string;
+                      value:
+                        | "CHARISMA"
+                        | "CONSTITUTION"
+                        | "DEXTERITY"
+                        | "INTELLIGENCE"
+                        | "STRENGTH"
+                        | "WISDOM";
+                    }
+                  | {
+                      family: "PASSIVE";
+                      field: "TOTAL_OVERRIDE";
+                      id?: string;
+                      skillId: string;
+                      sourceNote?: string;
+                      value: number;
+                    }
+                  | {
+                      family: "SENSE";
+                      field: "RANGE_OVERRIDE";
+                      id?: string;
+                      senseId: string;
+                      sourceNote?: string;
+                      value: {
+                        amount: number;
+                        unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                      };
+                    }
+                  | {
+                      family: "MOVEMENT";
+                      field: "SPEED_OVERRIDE";
+                      id?: string;
+                      sourceNote?: string;
+                      speedId: string;
+                      value: {
+                        amount: number;
+                        unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                      };
+                    }
+                  | {
+                      family: "HIT_POINTS";
+                      field: "MAXIMUM_MODIFIER";
+                      id?: string;
+                      sourceNote?: string;
+                      value: number;
+                    }
+                  | {
+                      family: "HIT_POINTS";
+                      field: "MAXIMUM_OVERRIDE";
+                      id?: string;
+                      sourceNote?: string;
+                      value: number;
+                    }
+                  | {
+                      damageTypeId: string;
+                      defenseKind: "IMMUNITY" | "RESISTANCE" | "VULNERABILITY";
+                      family: "DEFENSE";
+                      field: "ADDITION";
+                      id?: string;
+                      sourceNote?: string;
+                      value: true;
+                    }
+                  | {
+                      family: "PROFICIENCY";
+                      field: "ADDITION";
+                      id?: string;
+                      proficiencyKind: "ARMOR" | "LANGUAGE" | "TOOL" | "WEAPON";
+                      sourceNote?: string;
+                      targetId: string;
+                      value: true;
+                    }
+                  | {
+                      family: "ITEM";
+                      field:
+                        | "ATTACK_BONUS"
+                        | "ATTACK_OVERRIDE"
+                        | "COST_OVERRIDE"
+                        | "DAMAGE_BONUS";
+                      id?: string;
+                      itemInstanceId: string;
+                      sourceNote?: string;
+                      value: number;
+                    }
+                  | {
+                      family: "ITEM";
+                      field: "WEIGHT_OVERRIDE";
+                      id?: string;
+                      itemInstanceId: string;
+                      sourceNote?: string;
+                      value: number;
+                    }
+                  | {
+                      family: "ITEM";
+                      field:
+                        | "ADAMANTINE"
+                        | "DISPLAY_AS_ATTACK"
+                        | "DUAL_WIELD"
+                        | "SILVERED";
+                      id?: string;
+                      itemInstanceId: string;
+                      sourceNote?: string;
+                      value: true;
+                    }
+                  | {
+                      companionInstanceId: string;
+                      family: "COMPANION";
+                      field:
+                        "ARMOR_CLASS_OVERRIDE" | "MAXIMUM_HIT_POINTS_OVERRIDE";
+                      id?: string;
+                      sourceNote?: string;
+                      value: number;
+                    }
+                  | {
+                      companionInstanceId: string;
+                      family: "COMPANION";
+                      field: "ALIGNMENT_OVERRIDE" | "CREATURE_TYPE_OVERRIDE";
+                      id?: string;
+                      sourceNote?: string;
+                      value: string;
+                    }
+                  | {
+                      companionInstanceId: string;
+                      family: "COMPANION";
+                      field: "SIZE_OVERRIDE";
+                      id?: string;
+                      sourceNote?: string;
+                      value:
+                        | "COLOSSAL"
+                        | "DIMUNITIVE"
+                        | "FINE"
+                        | "GARGANTUAN"
+                        | "GIANT"
+                        | "HUGE"
+                        | "LARGE"
+                        | "MEDIUM"
+                        | "SMALL"
+                        | "TINY";
+                    };
                 commandId: string;
                 expectedVersion: number;
                 type: "UPSERT_SHEET_ADJUSTMENT";
@@ -4769,7 +4984,114 @@ export declare const api: {
               state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
               total: number;
             }>;
-            senses: Array<any>;
+            senses: Array<
+              | {
+                  editor: {
+                    adjustmentId?: string;
+                    commitIntent: "ON_BLUR_OR_ENTER";
+                    defaultUnit?: "INCHES" | "FEET" | "YARDS" | "MILES";
+                    field: "RANGE_OVERRIDE";
+                    kind: "LENGTH";
+                    label: string;
+                    sourceNote?: string;
+                    value: {
+                      amount: number;
+                      unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                    } | null;
+                  };
+                  label: string;
+                  rangeKind: "NOT_HELD";
+                  senseId: string;
+                  state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
+                }
+              | {
+                  editor: {
+                    adjustmentId?: string;
+                    commitIntent: "ON_BLUR_OR_ENTER";
+                    defaultUnit?: "INCHES" | "FEET" | "YARDS" | "MILES";
+                    field: "RANGE_OVERRIDE";
+                    kind: "LENGTH";
+                    label: string;
+                    sourceNote?: string;
+                    value: {
+                      amount: number;
+                      unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                    } | null;
+                  };
+                  label: string;
+                  rangeKind: "UNLIMITED";
+                  senseId: string;
+                  state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
+                }
+              | {
+                  calculation: {
+                    base: number;
+                    contributions: Array<{
+                      id: string;
+                      source:
+                        | {
+                            definitionId: string;
+                            kind: "AUTHORED";
+                            sourceInstanceId: string;
+                            sourceKind:
+                              | "ANCESTRY"
+                              | "BACKGROUND"
+                              | "CLASS"
+                              | "FEAT"
+                              | "FEATURE"
+                              | "OPTION"
+                              | "RACE"
+                              | "SPELL"
+                              | "SUBRACE"
+                              | "SUBCLASS";
+                          }
+                        | {
+                            equipmentId: string;
+                            itemInstanceId: string;
+                            kind: "EQUIPMENT_INSTANCE";
+                          }
+                        | {
+                            companionInstanceId: string;
+                            creatureId: string;
+                            kind: "COMPANION_INSTANCE";
+                          }
+                        | { kind: "SYSTEM"; systemId: string }
+                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                        | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
+                      sourceLabel: string;
+                      sourceNote?: string;
+                      state: "APPLIED" | "SUPPRESSED";
+                      value: number;
+                    }>;
+                    effective: number;
+                    override?: {
+                      adjustmentId: string;
+                      sourceLabel: string;
+                      sourceNote?: string;
+                      value: number;
+                    };
+                  };
+                  editor: {
+                    adjustmentId?: string;
+                    commitIntent: "ON_BLUR_OR_ENTER";
+                    defaultUnit?: "INCHES" | "FEET" | "YARDS" | "MILES";
+                    field: "RANGE_OVERRIDE";
+                    kind: "LENGTH";
+                    label: string;
+                    sourceNote?: string;
+                    value: {
+                      amount: number;
+                      unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                    } | null;
+                  };
+                  label: string;
+                  range: number;
+                  rangeKind: "DISTANCE";
+                  senseId: string;
+                  state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
+                  unitLabel: string;
+                }
+            >;
             state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
             target: {
               entry?:
@@ -4812,74 +5134,95 @@ export declare const api: {
               { mode: "AUTO" } | { mode: "EXPLICIT"; speedId: string };
             preferenceOptions: Array<{ label: string; value: string }>;
             primarySpeedId?: string;
-            speeds: Array<{
-              amount: number;
-              calculation: {
-                base: number;
-                contributions: Array<{
-                  id: string;
-                  source:
-                    | {
-                        definitionId: string;
-                        kind: "AUTHORED";
-                        sourceInstanceId: string;
-                        sourceKind:
-                          | "ANCESTRY"
-                          | "BACKGROUND"
-                          | "CLASS"
-                          | "FEAT"
-                          | "FEATURE"
-                          | "OPTION"
-                          | "RACE"
-                          | "SPELL"
-                          | "SUBRACE"
-                          | "SUBCLASS";
-                      }
-                    | {
-                        equipmentId: string;
-                        itemInstanceId: string;
-                        kind: "EQUIPMENT_INSTANCE";
-                      }
-                    | {
-                        companionInstanceId: string;
-                        creatureId: string;
-                        kind: "COMPANION_INSTANCE";
-                      }
-                    | { kind: "SYSTEM"; systemId: string }
-                    | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
-                    | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
-                  sourceLabel: string;
-                  sourceNote?: string;
-                  state: "APPLIED" | "SUPPRESSED";
-                  value: number;
-                }>;
-                effective: number;
-                override?: {
-                  adjustmentId: string;
-                  sourceLabel: string;
-                  sourceNote?: string;
-                  value: number;
-                };
-              };
-              editor: {
-                adjustmentId?: string;
-                commitIntent: "ON_BLUR_OR_ENTER";
-                field: "SPEED_OVERRIDE";
-                kind: "NUMBER";
-                label: string;
-                sourceNote?: string;
-                validation: {
-                  integer: boolean;
-                  maximum?: number;
-                  minimum?: number;
-                };
-                value: number | null;
-              };
-              label: string;
-              speedId: string;
-              state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
-              unitLabel: string;
-            }>;
+            speeds: Array<
+              | {
+                  editor: {
+                    adjustmentId?: string;
+                    commitIntent: "ON_BLUR_OR_ENTER";
+                    defaultUnit?: "INCHES" | "FEET" | "YARDS" | "MILES";
+                    field: "SPEED_OVERRIDE";
+                    kind: "LENGTH";
+                    label: string;
+                    sourceNote?: string;
+                    value: {
+                      amount: number;
+                      unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                    } | null;
+                  };
+                  label: string;
+                  speedId: string;
+                  speedKind: "NOT_HELD";
+                  state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
+                }
+              | {
+                  amount: number;
+                  calculation: {
+                    base: number;
+                    contributions: Array<{
+                      id: string;
+                      source:
+                        | {
+                            definitionId: string;
+                            kind: "AUTHORED";
+                            sourceInstanceId: string;
+                            sourceKind:
+                              | "ANCESTRY"
+                              | "BACKGROUND"
+                              | "CLASS"
+                              | "FEAT"
+                              | "FEATURE"
+                              | "OPTION"
+                              | "RACE"
+                              | "SPELL"
+                              | "SUBRACE"
+                              | "SUBCLASS";
+                          }
+                        | {
+                            equipmentId: string;
+                            itemInstanceId: string;
+                            kind: "EQUIPMENT_INSTANCE";
+                          }
+                        | {
+                            companionInstanceId: string;
+                            creatureId: string;
+                            kind: "COMPANION_INSTANCE";
+                          }
+                        | { kind: "SYSTEM"; systemId: string }
+                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                        | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
+                      sourceLabel: string;
+                      sourceNote?: string;
+                      state: "APPLIED" | "SUPPRESSED";
+                      value: number;
+                    }>;
+                    effective: number;
+                    override?: {
+                      adjustmentId: string;
+                      sourceLabel: string;
+                      sourceNote?: string;
+                      value: number;
+                    };
+                  };
+                  editor: {
+                    adjustmentId?: string;
+                    commitIntent: "ON_BLUR_OR_ENTER";
+                    defaultUnit?: "INCHES" | "FEET" | "YARDS" | "MILES";
+                    field: "SPEED_OVERRIDE";
+                    kind: "LENGTH";
+                    label: string;
+                    sourceNote?: string;
+                    value: {
+                      amount: number;
+                      unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                    } | null;
+                  };
+                  label: string;
+                  speedId: string;
+                  speedKind: "HELD";
+                  state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
+                  unitLabel: string;
+                }
+            >;
             state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
             target: { kind: "MOVEMENT" };
             title: string;
@@ -8255,7 +8598,246 @@ export declare const api: {
         "public",
         { campaignId: string; characterId: string },
         Array<{
-          adjustment: any;
+          adjustment:
+            | {
+                ability:
+                  | "CHARISMA"
+                  | "CONSTITUTION"
+                  | "DEXTERITY"
+                  | "INTELLIGENCE"
+                  | "STRENGTH"
+                  | "WISDOM";
+                family: "ABILITY";
+                field: "OTHER_MODIFIER";
+                id?: string;
+                sourceNote?: string;
+                value: number;
+              }
+            | {
+                ability:
+                  | "CHARISMA"
+                  | "CONSTITUTION"
+                  | "DEXTERITY"
+                  | "INTELLIGENCE"
+                  | "STRENGTH"
+                  | "WISDOM";
+                family: "ABILITY";
+                field: "SCORE_OVERRIDE";
+                id?: string;
+                sourceNote?: string;
+                value: number;
+              }
+            | {
+                ability:
+                  | "CHARISMA"
+                  | "CONSTITUTION"
+                  | "DEXTERITY"
+                  | "INTELLIGENCE"
+                  | "STRENGTH"
+                  | "WISDOM";
+                family: "SAVING_THROW";
+                field: "MAGIC_BONUS" | "MISC_BONUS" | "TOTAL_OVERRIDE";
+                id?: string;
+                sourceNote?: string;
+                value: number;
+              }
+            | {
+                ability:
+                  | "CHARISMA"
+                  | "CONSTITUTION"
+                  | "DEXTERITY"
+                  | "INTELLIGENCE"
+                  | "STRENGTH"
+                  | "WISDOM";
+                family: "SAVING_THROW";
+                field: "PROFICIENCY_OVERRIDE";
+                id?: string;
+                sourceNote?: string;
+                value: "NONE" | "HALF" | "FULL" | "DOUBLE";
+              }
+            | {
+                family: "SKILL";
+                field: "MAGIC_BONUS" | "MISC_BONUS" | "TOTAL_OVERRIDE";
+                id?: string;
+                skillId: string;
+                sourceNote?: string;
+                value: number;
+              }
+            | {
+                family: "SKILL";
+                field: "PROFICIENCY_OVERRIDE";
+                id?: string;
+                skillId: string;
+                sourceNote?: string;
+                value: "NONE" | "HALF" | "FULL" | "DOUBLE";
+              }
+            | {
+                family: "SKILL";
+                field: "GOVERNING_ABILITY_OVERRIDE";
+                id?: string;
+                skillId: string;
+                sourceNote?: string;
+                value:
+                  | "CHARISMA"
+                  | "CONSTITUTION"
+                  | "DEXTERITY"
+                  | "INTELLIGENCE"
+                  | "STRENGTH"
+                  | "WISDOM";
+              }
+            | {
+                family: "PASSIVE";
+                field: "TOTAL_OVERRIDE";
+                id?: string;
+                skillId: string;
+                sourceNote?: string;
+                value: number;
+              }
+            | {
+                family: "SENSE";
+                field: "RANGE_OVERRIDE";
+                id?: string;
+                senseId: string;
+                sourceNote?: string;
+                value: {
+                  amount: number;
+                  unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                };
+              }
+            | {
+                family: "MOVEMENT";
+                field: "SPEED_OVERRIDE";
+                id?: string;
+                sourceNote?: string;
+                speedId: string;
+                value: {
+                  amount: number;
+                  unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                };
+              }
+            | {
+                family: "HIT_POINTS";
+                field: "MAXIMUM_MODIFIER";
+                id?: string;
+                sourceNote?: string;
+                value: number;
+              }
+            | {
+                family: "HIT_POINTS";
+                field: "MAXIMUM_OVERRIDE";
+                id?: string;
+                sourceNote?: string;
+                value: number;
+              }
+            | {
+                damageTypeId: string;
+                defenseKind: "IMMUNITY" | "RESISTANCE" | "VULNERABILITY";
+                family: "DEFENSE";
+                field: "ADDITION";
+                id?: string;
+                sourceNote?: string;
+                value: true;
+              }
+            | {
+                family: "PROFICIENCY";
+                field: "ADDITION";
+                id?: string;
+                proficiencyKind: "ARMOR" | "LANGUAGE" | "TOOL" | "WEAPON";
+                sourceNote?: string;
+                targetId: string;
+                value: true;
+              }
+            | {
+                family: "SPELL";
+                field:
+                  | "ATTACK_BONUS"
+                  | "ATTACK_OVERRIDE"
+                  | "DAMAGE_BONUS"
+                  | "DC_BONUS"
+                  | "DC_OVERRIDE";
+                id?: string;
+                source: {
+                  sourceInstanceId: string;
+                  sourceKind:
+                    | "BACKGROUND"
+                    | "CLASS"
+                    | "FEAT"
+                    | "FEATURE"
+                    | "ITEM"
+                    | "OPTION"
+                    | "RACE"
+                    | "SUBCLASS";
+                  spellId: string;
+                };
+                sourceNote?: string;
+                value: number;
+              }
+            | {
+                family: "ITEM";
+                field:
+                  | "ATTACK_BONUS"
+                  | "ATTACK_OVERRIDE"
+                  | "COST_OVERRIDE"
+                  | "DAMAGE_BONUS";
+                id?: string;
+                itemInstanceId: string;
+                sourceNote?: string;
+                value: number;
+              }
+            | {
+                family: "ITEM";
+                field: "WEIGHT_OVERRIDE";
+                id?: string;
+                itemInstanceId: string;
+                sourceNote?: string;
+                value: number;
+              }
+            | {
+                family: "ITEM";
+                field:
+                  | "ADAMANTINE"
+                  | "DISPLAY_AS_ATTACK"
+                  | "DUAL_WIELD"
+                  | "SILVERED";
+                id?: string;
+                itemInstanceId: string;
+                sourceNote?: string;
+                value: true;
+              }
+            | {
+                companionInstanceId: string;
+                family: "COMPANION";
+                field: "ARMOR_CLASS_OVERRIDE" | "MAXIMUM_HIT_POINTS_OVERRIDE";
+                id?: string;
+                sourceNote?: string;
+                value: number;
+              }
+            | {
+                companionInstanceId: string;
+                family: "COMPANION";
+                field: "ALIGNMENT_OVERRIDE" | "CREATURE_TYPE_OVERRIDE";
+                id?: string;
+                sourceNote?: string;
+                value: string;
+              }
+            | {
+                companionInstanceId: string;
+                family: "COMPANION";
+                field: "SIZE_OVERRIDE";
+                id?: string;
+                sourceNote?: string;
+                value:
+                  | "COLOSSAL"
+                  | "DIMUNITIVE"
+                  | "FINE"
+                  | "GARGANTUAN"
+                  | "GIANT"
+                  | "HUGE"
+                  | "LARGE"
+                  | "MEDIUM"
+                  | "SMALL"
+                  | "TINY";
+              };
           campaignId: string;
           characterId: string;
           createdAt: string;
@@ -8309,14 +8891,492 @@ export declare const api: {
         "mutation",
         "public",
         {
-          adjustment: any;
+          adjustment:
+            | {
+                ability:
+                  | "CHARISMA"
+                  | "CONSTITUTION"
+                  | "DEXTERITY"
+                  | "INTELLIGENCE"
+                  | "STRENGTH"
+                  | "WISDOM";
+                family: "ABILITY";
+                field: "OTHER_MODIFIER";
+                id?: string;
+                sourceNote?: string;
+                value: number;
+              }
+            | {
+                ability:
+                  | "CHARISMA"
+                  | "CONSTITUTION"
+                  | "DEXTERITY"
+                  | "INTELLIGENCE"
+                  | "STRENGTH"
+                  | "WISDOM";
+                family: "ABILITY";
+                field: "SCORE_OVERRIDE";
+                id?: string;
+                sourceNote?: string;
+                value: number;
+              }
+            | {
+                ability:
+                  | "CHARISMA"
+                  | "CONSTITUTION"
+                  | "DEXTERITY"
+                  | "INTELLIGENCE"
+                  | "STRENGTH"
+                  | "WISDOM";
+                family: "SAVING_THROW";
+                field: "MAGIC_BONUS" | "MISC_BONUS" | "TOTAL_OVERRIDE";
+                id?: string;
+                sourceNote?: string;
+                value: number;
+              }
+            | {
+                ability:
+                  | "CHARISMA"
+                  | "CONSTITUTION"
+                  | "DEXTERITY"
+                  | "INTELLIGENCE"
+                  | "STRENGTH"
+                  | "WISDOM";
+                family: "SAVING_THROW";
+                field: "PROFICIENCY_OVERRIDE";
+                id?: string;
+                sourceNote?: string;
+                value: "NONE" | "HALF" | "FULL" | "DOUBLE";
+              }
+            | {
+                family: "SKILL";
+                field: "MAGIC_BONUS" | "MISC_BONUS" | "TOTAL_OVERRIDE";
+                id?: string;
+                skillId: string;
+                sourceNote?: string;
+                value: number;
+              }
+            | {
+                family: "SKILL";
+                field: "PROFICIENCY_OVERRIDE";
+                id?: string;
+                skillId: string;
+                sourceNote?: string;
+                value: "NONE" | "HALF" | "FULL" | "DOUBLE";
+              }
+            | {
+                family: "SKILL";
+                field: "GOVERNING_ABILITY_OVERRIDE";
+                id?: string;
+                skillId: string;
+                sourceNote?: string;
+                value:
+                  | "CHARISMA"
+                  | "CONSTITUTION"
+                  | "DEXTERITY"
+                  | "INTELLIGENCE"
+                  | "STRENGTH"
+                  | "WISDOM";
+              }
+            | {
+                family: "PASSIVE";
+                field: "TOTAL_OVERRIDE";
+                id?: string;
+                skillId: string;
+                sourceNote?: string;
+                value: number;
+              }
+            | {
+                family: "SENSE";
+                field: "RANGE_OVERRIDE";
+                id?: string;
+                senseId: string;
+                sourceNote?: string;
+                value: {
+                  amount: number;
+                  unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                };
+              }
+            | {
+                family: "MOVEMENT";
+                field: "SPEED_OVERRIDE";
+                id?: string;
+                sourceNote?: string;
+                speedId: string;
+                value: {
+                  amount: number;
+                  unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                };
+              }
+            | {
+                family: "HIT_POINTS";
+                field: "MAXIMUM_MODIFIER";
+                id?: string;
+                sourceNote?: string;
+                value: number;
+              }
+            | {
+                family: "HIT_POINTS";
+                field: "MAXIMUM_OVERRIDE";
+                id?: string;
+                sourceNote?: string;
+                value: number;
+              }
+            | {
+                damageTypeId: string;
+                defenseKind: "IMMUNITY" | "RESISTANCE" | "VULNERABILITY";
+                family: "DEFENSE";
+                field: "ADDITION";
+                id?: string;
+                sourceNote?: string;
+                value: true;
+              }
+            | {
+                family: "PROFICIENCY";
+                field: "ADDITION";
+                id?: string;
+                proficiencyKind: "ARMOR" | "LANGUAGE" | "TOOL" | "WEAPON";
+                sourceNote?: string;
+                targetId: string;
+                value: true;
+              }
+            | {
+                family: "SPELL";
+                field:
+                  | "ATTACK_BONUS"
+                  | "ATTACK_OVERRIDE"
+                  | "DAMAGE_BONUS"
+                  | "DC_BONUS"
+                  | "DC_OVERRIDE";
+                id?: string;
+                source: {
+                  sourceInstanceId: string;
+                  sourceKind:
+                    | "BACKGROUND"
+                    | "CLASS"
+                    | "FEAT"
+                    | "FEATURE"
+                    | "ITEM"
+                    | "OPTION"
+                    | "RACE"
+                    | "SUBCLASS";
+                  spellId: string;
+                };
+                sourceNote?: string;
+                value: number;
+              }
+            | {
+                family: "ITEM";
+                field:
+                  | "ATTACK_BONUS"
+                  | "ATTACK_OVERRIDE"
+                  | "COST_OVERRIDE"
+                  | "DAMAGE_BONUS";
+                id?: string;
+                itemInstanceId: string;
+                sourceNote?: string;
+                value: number;
+              }
+            | {
+                family: "ITEM";
+                field: "WEIGHT_OVERRIDE";
+                id?: string;
+                itemInstanceId: string;
+                sourceNote?: string;
+                value: number;
+              }
+            | {
+                family: "ITEM";
+                field:
+                  | "ADAMANTINE"
+                  | "DISPLAY_AS_ATTACK"
+                  | "DUAL_WIELD"
+                  | "SILVERED";
+                id?: string;
+                itemInstanceId: string;
+                sourceNote?: string;
+                value: true;
+              }
+            | {
+                companionInstanceId: string;
+                family: "COMPANION";
+                field: "ARMOR_CLASS_OVERRIDE" | "MAXIMUM_HIT_POINTS_OVERRIDE";
+                id?: string;
+                sourceNote?: string;
+                value: number;
+              }
+            | {
+                companionInstanceId: string;
+                family: "COMPANION";
+                field: "ALIGNMENT_OVERRIDE" | "CREATURE_TYPE_OVERRIDE";
+                id?: string;
+                sourceNote?: string;
+                value: string;
+              }
+            | {
+                companionInstanceId: string;
+                family: "COMPANION";
+                field: "SIZE_OVERRIDE";
+                id?: string;
+                sourceNote?: string;
+                value:
+                  | "COLOSSAL"
+                  | "DIMUNITIVE"
+                  | "FINE"
+                  | "GARGANTUAN"
+                  | "GIANT"
+                  | "HUGE"
+                  | "LARGE"
+                  | "MEDIUM"
+                  | "SMALL"
+                  | "TINY";
+              };
           campaignId: string;
           characterId: string;
           expectedVersion: number;
           visibility: "VISIBLE" | "SECRET";
         },
         {
-          adjustment: any;
+          adjustment:
+            | {
+                ability:
+                  | "CHARISMA"
+                  | "CONSTITUTION"
+                  | "DEXTERITY"
+                  | "INTELLIGENCE"
+                  | "STRENGTH"
+                  | "WISDOM";
+                family: "ABILITY";
+                field: "OTHER_MODIFIER";
+                id?: string;
+                sourceNote?: string;
+                value: number;
+              }
+            | {
+                ability:
+                  | "CHARISMA"
+                  | "CONSTITUTION"
+                  | "DEXTERITY"
+                  | "INTELLIGENCE"
+                  | "STRENGTH"
+                  | "WISDOM";
+                family: "ABILITY";
+                field: "SCORE_OVERRIDE";
+                id?: string;
+                sourceNote?: string;
+                value: number;
+              }
+            | {
+                ability:
+                  | "CHARISMA"
+                  | "CONSTITUTION"
+                  | "DEXTERITY"
+                  | "INTELLIGENCE"
+                  | "STRENGTH"
+                  | "WISDOM";
+                family: "SAVING_THROW";
+                field: "MAGIC_BONUS" | "MISC_BONUS" | "TOTAL_OVERRIDE";
+                id?: string;
+                sourceNote?: string;
+                value: number;
+              }
+            | {
+                ability:
+                  | "CHARISMA"
+                  | "CONSTITUTION"
+                  | "DEXTERITY"
+                  | "INTELLIGENCE"
+                  | "STRENGTH"
+                  | "WISDOM";
+                family: "SAVING_THROW";
+                field: "PROFICIENCY_OVERRIDE";
+                id?: string;
+                sourceNote?: string;
+                value: "NONE" | "HALF" | "FULL" | "DOUBLE";
+              }
+            | {
+                family: "SKILL";
+                field: "MAGIC_BONUS" | "MISC_BONUS" | "TOTAL_OVERRIDE";
+                id?: string;
+                skillId: string;
+                sourceNote?: string;
+                value: number;
+              }
+            | {
+                family: "SKILL";
+                field: "PROFICIENCY_OVERRIDE";
+                id?: string;
+                skillId: string;
+                sourceNote?: string;
+                value: "NONE" | "HALF" | "FULL" | "DOUBLE";
+              }
+            | {
+                family: "SKILL";
+                field: "GOVERNING_ABILITY_OVERRIDE";
+                id?: string;
+                skillId: string;
+                sourceNote?: string;
+                value:
+                  | "CHARISMA"
+                  | "CONSTITUTION"
+                  | "DEXTERITY"
+                  | "INTELLIGENCE"
+                  | "STRENGTH"
+                  | "WISDOM";
+              }
+            | {
+                family: "PASSIVE";
+                field: "TOTAL_OVERRIDE";
+                id?: string;
+                skillId: string;
+                sourceNote?: string;
+                value: number;
+              }
+            | {
+                family: "SENSE";
+                field: "RANGE_OVERRIDE";
+                id?: string;
+                senseId: string;
+                sourceNote?: string;
+                value: {
+                  amount: number;
+                  unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                };
+              }
+            | {
+                family: "MOVEMENT";
+                field: "SPEED_OVERRIDE";
+                id?: string;
+                sourceNote?: string;
+                speedId: string;
+                value: {
+                  amount: number;
+                  unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                };
+              }
+            | {
+                family: "HIT_POINTS";
+                field: "MAXIMUM_MODIFIER";
+                id?: string;
+                sourceNote?: string;
+                value: number;
+              }
+            | {
+                family: "HIT_POINTS";
+                field: "MAXIMUM_OVERRIDE";
+                id?: string;
+                sourceNote?: string;
+                value: number;
+              }
+            | {
+                damageTypeId: string;
+                defenseKind: "IMMUNITY" | "RESISTANCE" | "VULNERABILITY";
+                family: "DEFENSE";
+                field: "ADDITION";
+                id?: string;
+                sourceNote?: string;
+                value: true;
+              }
+            | {
+                family: "PROFICIENCY";
+                field: "ADDITION";
+                id?: string;
+                proficiencyKind: "ARMOR" | "LANGUAGE" | "TOOL" | "WEAPON";
+                sourceNote?: string;
+                targetId: string;
+                value: true;
+              }
+            | {
+                family: "SPELL";
+                field:
+                  | "ATTACK_BONUS"
+                  | "ATTACK_OVERRIDE"
+                  | "DAMAGE_BONUS"
+                  | "DC_BONUS"
+                  | "DC_OVERRIDE";
+                id?: string;
+                source: {
+                  sourceInstanceId: string;
+                  sourceKind:
+                    | "BACKGROUND"
+                    | "CLASS"
+                    | "FEAT"
+                    | "FEATURE"
+                    | "ITEM"
+                    | "OPTION"
+                    | "RACE"
+                    | "SUBCLASS";
+                  spellId: string;
+                };
+                sourceNote?: string;
+                value: number;
+              }
+            | {
+                family: "ITEM";
+                field:
+                  | "ATTACK_BONUS"
+                  | "ATTACK_OVERRIDE"
+                  | "COST_OVERRIDE"
+                  | "DAMAGE_BONUS";
+                id?: string;
+                itemInstanceId: string;
+                sourceNote?: string;
+                value: number;
+              }
+            | {
+                family: "ITEM";
+                field: "WEIGHT_OVERRIDE";
+                id?: string;
+                itemInstanceId: string;
+                sourceNote?: string;
+                value: number;
+              }
+            | {
+                family: "ITEM";
+                field:
+                  | "ADAMANTINE"
+                  | "DISPLAY_AS_ATTACK"
+                  | "DUAL_WIELD"
+                  | "SILVERED";
+                id?: string;
+                itemInstanceId: string;
+                sourceNote?: string;
+                value: true;
+              }
+            | {
+                companionInstanceId: string;
+                family: "COMPANION";
+                field: "ARMOR_CLASS_OVERRIDE" | "MAXIMUM_HIT_POINTS_OVERRIDE";
+                id?: string;
+                sourceNote?: string;
+                value: number;
+              }
+            | {
+                companionInstanceId: string;
+                family: "COMPANION";
+                field: "ALIGNMENT_OVERRIDE" | "CREATURE_TYPE_OVERRIDE";
+                id?: string;
+                sourceNote?: string;
+                value: string;
+              }
+            | {
+                companionInstanceId: string;
+                family: "COMPANION";
+                field: "SIZE_OVERRIDE";
+                id?: string;
+                sourceNote?: string;
+                value:
+                  | "COLOSSAL"
+                  | "DIMUNITIVE"
+                  | "FINE"
+                  | "GARGANTUAN"
+                  | "GIANT"
+                  | "HUGE"
+                  | "LARGE"
+                  | "MEDIUM"
+                  | "SMALL"
+                  | "TINY";
+              };
           campaignId: string;
           characterId: string;
           createdAt: string;
@@ -15101,7 +16161,114 @@ export declare const api: {
               state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
               total: number;
             }>;
-            senses: Array<any>;
+            senses: Array<
+              | {
+                  editor: {
+                    adjustmentId?: string;
+                    commitIntent: "ON_BLUR_OR_ENTER";
+                    defaultUnit?: "INCHES" | "FEET" | "YARDS" | "MILES";
+                    field: "RANGE_OVERRIDE";
+                    kind: "LENGTH";
+                    label: string;
+                    sourceNote?: string;
+                    value: {
+                      amount: number;
+                      unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                    } | null;
+                  };
+                  label: string;
+                  rangeKind: "NOT_HELD";
+                  senseId: string;
+                  state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
+                }
+              | {
+                  editor: {
+                    adjustmentId?: string;
+                    commitIntent: "ON_BLUR_OR_ENTER";
+                    defaultUnit?: "INCHES" | "FEET" | "YARDS" | "MILES";
+                    field: "RANGE_OVERRIDE";
+                    kind: "LENGTH";
+                    label: string;
+                    sourceNote?: string;
+                    value: {
+                      amount: number;
+                      unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                    } | null;
+                  };
+                  label: string;
+                  rangeKind: "UNLIMITED";
+                  senseId: string;
+                  state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
+                }
+              | {
+                  calculation: {
+                    base: number;
+                    contributions: Array<{
+                      id: string;
+                      source:
+                        | {
+                            definitionId: string;
+                            kind: "AUTHORED";
+                            sourceInstanceId: string;
+                            sourceKind:
+                              | "ANCESTRY"
+                              | "BACKGROUND"
+                              | "CLASS"
+                              | "FEAT"
+                              | "FEATURE"
+                              | "OPTION"
+                              | "RACE"
+                              | "SPELL"
+                              | "SUBRACE"
+                              | "SUBCLASS";
+                          }
+                        | {
+                            equipmentId: string;
+                            itemInstanceId: string;
+                            kind: "EQUIPMENT_INSTANCE";
+                          }
+                        | {
+                            companionInstanceId: string;
+                            creatureId: string;
+                            kind: "COMPANION_INSTANCE";
+                          }
+                        | { kind: "SYSTEM"; systemId: string }
+                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                        | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
+                      sourceLabel: string;
+                      sourceNote?: string;
+                      state: "APPLIED" | "SUPPRESSED";
+                      value: number;
+                    }>;
+                    effective: number;
+                    override?: {
+                      adjustmentId: string;
+                      sourceLabel: string;
+                      sourceNote?: string;
+                      value: number;
+                    };
+                  };
+                  editor: {
+                    adjustmentId?: string;
+                    commitIntent: "ON_BLUR_OR_ENTER";
+                    defaultUnit?: "INCHES" | "FEET" | "YARDS" | "MILES";
+                    field: "RANGE_OVERRIDE";
+                    kind: "LENGTH";
+                    label: string;
+                    sourceNote?: string;
+                    value: {
+                      amount: number;
+                      unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                    } | null;
+                  };
+                  label: string;
+                  range: number;
+                  rangeKind: "DISTANCE";
+                  senseId: string;
+                  state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
+                  unitLabel: string;
+                }
+            >;
             state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
             target: {
               entry?:
@@ -15144,74 +16311,95 @@ export declare const api: {
               { mode: "AUTO" } | { mode: "EXPLICIT"; speedId: string };
             preferenceOptions: Array<{ label: string; value: string }>;
             primarySpeedId?: string;
-            speeds: Array<{
-              amount: number;
-              calculation: {
-                base: number;
-                contributions: Array<{
-                  id: string;
-                  source:
-                    | {
-                        definitionId: string;
-                        kind: "AUTHORED";
-                        sourceInstanceId: string;
-                        sourceKind:
-                          | "ANCESTRY"
-                          | "BACKGROUND"
-                          | "CLASS"
-                          | "FEAT"
-                          | "FEATURE"
-                          | "OPTION"
-                          | "RACE"
-                          | "SPELL"
-                          | "SUBRACE"
-                          | "SUBCLASS";
-                      }
-                    | {
-                        equipmentId: string;
-                        itemInstanceId: string;
-                        kind: "EQUIPMENT_INSTANCE";
-                      }
-                    | {
-                        companionInstanceId: string;
-                        creatureId: string;
-                        kind: "COMPANION_INSTANCE";
-                      }
-                    | { kind: "SYSTEM"; systemId: string }
-                    | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
-                    | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
-                  sourceLabel: string;
-                  sourceNote?: string;
-                  state: "APPLIED" | "SUPPRESSED";
-                  value: number;
-                }>;
-                effective: number;
-                override?: {
-                  adjustmentId: string;
-                  sourceLabel: string;
-                  sourceNote?: string;
-                  value: number;
-                };
-              };
-              editor: {
-                adjustmentId?: string;
-                commitIntent: "ON_BLUR_OR_ENTER";
-                field: "SPEED_OVERRIDE";
-                kind: "NUMBER";
-                label: string;
-                sourceNote?: string;
-                validation: {
-                  integer: boolean;
-                  maximum?: number;
-                  minimum?: number;
-                };
-                value: number | null;
-              };
-              label: string;
-              speedId: string;
-              state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
-              unitLabel: string;
-            }>;
+            speeds: Array<
+              | {
+                  editor: {
+                    adjustmentId?: string;
+                    commitIntent: "ON_BLUR_OR_ENTER";
+                    defaultUnit?: "INCHES" | "FEET" | "YARDS" | "MILES";
+                    field: "SPEED_OVERRIDE";
+                    kind: "LENGTH";
+                    label: string;
+                    sourceNote?: string;
+                    value: {
+                      amount: number;
+                      unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                    } | null;
+                  };
+                  label: string;
+                  speedId: string;
+                  speedKind: "NOT_HELD";
+                  state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
+                }
+              | {
+                  amount: number;
+                  calculation: {
+                    base: number;
+                    contributions: Array<{
+                      id: string;
+                      source:
+                        | {
+                            definitionId: string;
+                            kind: "AUTHORED";
+                            sourceInstanceId: string;
+                            sourceKind:
+                              | "ANCESTRY"
+                              | "BACKGROUND"
+                              | "CLASS"
+                              | "FEAT"
+                              | "FEATURE"
+                              | "OPTION"
+                              | "RACE"
+                              | "SPELL"
+                              | "SUBRACE"
+                              | "SUBCLASS";
+                          }
+                        | {
+                            equipmentId: string;
+                            itemInstanceId: string;
+                            kind: "EQUIPMENT_INSTANCE";
+                          }
+                        | {
+                            companionInstanceId: string;
+                            creatureId: string;
+                            kind: "COMPANION_INSTANCE";
+                          }
+                        | { kind: "SYSTEM"; systemId: string }
+                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                        | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
+                      sourceLabel: string;
+                      sourceNote?: string;
+                      state: "APPLIED" | "SUPPRESSED";
+                      value: number;
+                    }>;
+                    effective: number;
+                    override?: {
+                      adjustmentId: string;
+                      sourceLabel: string;
+                      sourceNote?: string;
+                      value: number;
+                    };
+                  };
+                  editor: {
+                    adjustmentId?: string;
+                    commitIntent: "ON_BLUR_OR_ENTER";
+                    defaultUnit?: "INCHES" | "FEET" | "YARDS" | "MILES";
+                    field: "SPEED_OVERRIDE";
+                    kind: "LENGTH";
+                    label: string;
+                    sourceNote?: string;
+                    value: {
+                      amount: number;
+                      unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                    } | null;
+                  };
+                  label: string;
+                  speedId: string;
+                  speedKind: "HELD";
+                  state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
+                  unitLabel: string;
+                }
+            >;
             state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
             target: { kind: "MOVEMENT" };
             title: string;
@@ -18240,7 +19428,222 @@ export declare const api: {
         {
           command:
             | {
-                adjustment: any | any | any;
+                adjustment:
+                  | {
+                      ability:
+                        | "CHARISMA"
+                        | "CONSTITUTION"
+                        | "DEXTERITY"
+                        | "INTELLIGENCE"
+                        | "STRENGTH"
+                        | "WISDOM";
+                      family: "ABILITY";
+                      field: "OTHER_MODIFIER";
+                      id?: string;
+                      sourceNote?: string;
+                      value: number;
+                    }
+                  | {
+                      ability:
+                        | "CHARISMA"
+                        | "CONSTITUTION"
+                        | "DEXTERITY"
+                        | "INTELLIGENCE"
+                        | "STRENGTH"
+                        | "WISDOM";
+                      family: "ABILITY";
+                      field: "SCORE_OVERRIDE";
+                      id?: string;
+                      sourceNote?: string;
+                      value: number;
+                    }
+                  | {
+                      ability:
+                        | "CHARISMA"
+                        | "CONSTITUTION"
+                        | "DEXTERITY"
+                        | "INTELLIGENCE"
+                        | "STRENGTH"
+                        | "WISDOM";
+                      family: "SAVING_THROW";
+                      field: "MAGIC_BONUS" | "MISC_BONUS" | "TOTAL_OVERRIDE";
+                      id?: string;
+                      sourceNote?: string;
+                      value: number;
+                    }
+                  | {
+                      ability:
+                        | "CHARISMA"
+                        | "CONSTITUTION"
+                        | "DEXTERITY"
+                        | "INTELLIGENCE"
+                        | "STRENGTH"
+                        | "WISDOM";
+                      family: "SAVING_THROW";
+                      field: "PROFICIENCY_OVERRIDE";
+                      id?: string;
+                      sourceNote?: string;
+                      value: "NONE" | "HALF" | "FULL" | "DOUBLE";
+                    }
+                  | {
+                      family: "SKILL";
+                      field: "MAGIC_BONUS" | "MISC_BONUS" | "TOTAL_OVERRIDE";
+                      id?: string;
+                      skillId: string;
+                      sourceNote?: string;
+                      value: number;
+                    }
+                  | {
+                      family: "SKILL";
+                      field: "PROFICIENCY_OVERRIDE";
+                      id?: string;
+                      skillId: string;
+                      sourceNote?: string;
+                      value: "NONE" | "HALF" | "FULL" | "DOUBLE";
+                    }
+                  | {
+                      family: "SKILL";
+                      field: "GOVERNING_ABILITY_OVERRIDE";
+                      id?: string;
+                      skillId: string;
+                      sourceNote?: string;
+                      value:
+                        | "CHARISMA"
+                        | "CONSTITUTION"
+                        | "DEXTERITY"
+                        | "INTELLIGENCE"
+                        | "STRENGTH"
+                        | "WISDOM";
+                    }
+                  | {
+                      family: "PASSIVE";
+                      field: "TOTAL_OVERRIDE";
+                      id?: string;
+                      skillId: string;
+                      sourceNote?: string;
+                      value: number;
+                    }
+                  | {
+                      family: "SENSE";
+                      field: "RANGE_OVERRIDE";
+                      id?: string;
+                      senseId: string;
+                      sourceNote?: string;
+                      value: {
+                        amount: number;
+                        unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                      };
+                    }
+                  | {
+                      family: "MOVEMENT";
+                      field: "SPEED_OVERRIDE";
+                      id?: string;
+                      sourceNote?: string;
+                      speedId: string;
+                      value: {
+                        amount: number;
+                        unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                      };
+                    }
+                  | {
+                      family: "HIT_POINTS";
+                      field: "MAXIMUM_MODIFIER";
+                      id?: string;
+                      sourceNote?: string;
+                      value: number;
+                    }
+                  | {
+                      family: "HIT_POINTS";
+                      field: "MAXIMUM_OVERRIDE";
+                      id?: string;
+                      sourceNote?: string;
+                      value: number;
+                    }
+                  | {
+                      damageTypeId: string;
+                      defenseKind: "IMMUNITY" | "RESISTANCE" | "VULNERABILITY";
+                      family: "DEFENSE";
+                      field: "ADDITION";
+                      id?: string;
+                      sourceNote?: string;
+                      value: true;
+                    }
+                  | {
+                      family: "PROFICIENCY";
+                      field: "ADDITION";
+                      id?: string;
+                      proficiencyKind: "ARMOR" | "LANGUAGE" | "TOOL" | "WEAPON";
+                      sourceNote?: string;
+                      targetId: string;
+                      value: true;
+                    }
+                  | {
+                      family: "ITEM";
+                      field:
+                        | "ATTACK_BONUS"
+                        | "ATTACK_OVERRIDE"
+                        | "COST_OVERRIDE"
+                        | "DAMAGE_BONUS";
+                      id?: string;
+                      itemInstanceId: string;
+                      sourceNote?: string;
+                      value: number;
+                    }
+                  | {
+                      family: "ITEM";
+                      field: "WEIGHT_OVERRIDE";
+                      id?: string;
+                      itemInstanceId: string;
+                      sourceNote?: string;
+                      value: number;
+                    }
+                  | {
+                      family: "ITEM";
+                      field:
+                        | "ADAMANTINE"
+                        | "DISPLAY_AS_ATTACK"
+                        | "DUAL_WIELD"
+                        | "SILVERED";
+                      id?: string;
+                      itemInstanceId: string;
+                      sourceNote?: string;
+                      value: true;
+                    }
+                  | {
+                      companionInstanceId: string;
+                      family: "COMPANION";
+                      field:
+                        "ARMOR_CLASS_OVERRIDE" | "MAXIMUM_HIT_POINTS_OVERRIDE";
+                      id?: string;
+                      sourceNote?: string;
+                      value: number;
+                    }
+                  | {
+                      companionInstanceId: string;
+                      family: "COMPANION";
+                      field: "ALIGNMENT_OVERRIDE" | "CREATURE_TYPE_OVERRIDE";
+                      id?: string;
+                      sourceNote?: string;
+                      value: string;
+                    }
+                  | {
+                      companionInstanceId: string;
+                      family: "COMPANION";
+                      field: "SIZE_OVERRIDE";
+                      id?: string;
+                      sourceNote?: string;
+                      value:
+                        | "COLOSSAL"
+                        | "DIMUNITIVE"
+                        | "FINE"
+                        | "GARGANTUAN"
+                        | "GIANT"
+                        | "HUGE"
+                        | "LARGE"
+                        | "MEDIUM"
+                        | "SMALL"
+                        | "TINY";
+                    };
                 commandId: string;
                 expectedVersion: number;
                 type: "UPSERT_SHEET_ADJUSTMENT";
@@ -109367,7 +110770,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             challengeRatings: Array<{
               code: string;
@@ -109375,7 +110777,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             conditionTypes: Array<{
               code: string;
@@ -109383,7 +110784,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             creatureTypes: Array<{
               code: string;
@@ -109391,7 +110791,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             currencies: Array<{
               code: string;
@@ -109399,7 +110798,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             damageTypes: Array<{
               code: string;
@@ -109407,7 +110805,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             description?: string | null;
             heritages: Array<{
@@ -109416,7 +110813,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             id: string;
             label: string;
@@ -109426,7 +110822,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             lifestyles: Array<{
               code: string;
@@ -109434,7 +110829,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             magicSchools: Array<{
               code: string;
@@ -109442,7 +110836,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             passives: Array<{
               code: string;
@@ -109450,7 +110843,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             rarities: Array<{
               code: string;
@@ -109458,7 +110850,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             rulesetCode: string;
             rulesetVersion: string;
@@ -109468,7 +110859,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             skills: Array<{
               code: string;
@@ -109476,7 +110866,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             speeds: Array<{
               code: string;
@@ -109484,7 +110873,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             terrains: Array<{
               code: string;
@@ -109492,7 +110880,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             userId: string;
           }
@@ -109503,7 +110890,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             alignments: Array<{
               code: string;
@@ -109511,7 +110897,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             challengeRatings: Array<{
               code: string;
@@ -109519,7 +110904,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             conditionTypes: Array<{
               code: string;
@@ -109527,7 +110911,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             creatureTypes: Array<{
               code: string;
@@ -109535,7 +110918,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             currencies: Array<{
               code: string;
@@ -109543,7 +110925,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             damageTypes: Array<{
               code: string;
@@ -109551,7 +110932,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             description?: string | null;
             heritages: Array<{
@@ -109560,7 +110940,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             id: string;
             label: string;
@@ -109570,7 +110949,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             lifestyles: Array<{
               code: string;
@@ -109578,7 +110956,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             magicSchools: Array<{
               code: string;
@@ -109586,7 +110963,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             passives: Array<{
               code: string;
@@ -109594,7 +110970,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             rarities: Array<{
               code: string;
@@ -109602,7 +110977,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             rulesetCode: string;
             rulesetVersion: string;
@@ -109613,7 +110987,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             skills: Array<{
               code: string;
@@ -109621,7 +110994,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             speeds: Array<{
               code: string;
@@ -109629,7 +111001,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             terrains: Array<{
               code: string;
@@ -109637,7 +111008,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             userId: string;
           }
@@ -109648,7 +111018,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             alignments: Array<{
               code: string;
@@ -109656,7 +111025,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             challengeRatings: Array<{
               code: string;
@@ -109664,7 +111032,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             conditionTypes: Array<{
               code: string;
@@ -109672,7 +111039,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             creatureTypes: Array<{
               code: string;
@@ -109680,7 +111046,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             currencies: Array<{
               code: string;
@@ -109688,7 +111053,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             damageTypes: Array<{
               code: string;
@@ -109696,7 +111060,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             description?: string | null;
             heritages: Array<{
@@ -109705,7 +111068,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             id: string;
             initiativePolicy: { defaultDefinitionId: string };
@@ -109716,7 +111078,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             lifestyles: Array<{
               code: string;
@@ -109724,7 +111085,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             magicSchools: Array<{
               code: string;
@@ -109732,7 +111092,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             passives: Array<{
               code: string;
@@ -109740,7 +111099,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             rarities: Array<{
               code: string;
@@ -109748,7 +111106,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             rulesetCode: string;
             rulesetVersion: string;
@@ -109759,7 +111116,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             skills: Array<{
               code: string;
@@ -109767,7 +111123,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             speeds: Array<{
               code: string;
@@ -109775,7 +111130,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             terrains: Array<{
               code: string;
@@ -109783,7 +111137,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             userId: string;
           }
@@ -109794,7 +111147,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             alignments: Array<{
               code: string;
@@ -109802,7 +111154,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             challengeRatings: Array<{
               code: string;
@@ -109810,7 +111161,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             conditionTypes: Array<{
               code: string;
@@ -109818,7 +111168,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             creatureTypes: Array<{
               code: string;
@@ -109826,7 +111175,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             currencies: Array<{
               code: string;
@@ -109834,7 +111182,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             damageTypes: Array<{
               code: string;
@@ -109842,7 +111189,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             description?: string | null;
             heritages: Array<{
@@ -109851,7 +111197,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             id: string;
             initiativePolicy?: { defaultDefinitionId: string };
@@ -109862,7 +111207,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             lifestyles: Array<{
               code: string;
@@ -109870,7 +111214,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             magicSchools: Array<{
               code: string;
@@ -109878,7 +111221,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             passives: Array<{
               code: string;
@@ -109886,7 +111228,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             rarities: Array<{
               code: string;
@@ -109894,7 +111235,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             rulesetCode: string;
             rulesetVersion: string;
@@ -109905,7 +111245,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             skills: Array<{
               code: string;
@@ -109914,7 +111253,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             speeds: Array<{
               code: string;
@@ -109922,7 +111260,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             terrains: Array<{
               code: string;
@@ -109930,7 +111267,6 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
-              tooltip?: string | null;
             }>;
             userId: string;
           }
@@ -110785,6 +112121,70 @@ export declare const api: {
                   kind: "POINT";
                 }
               | {
+                  area: {
+                    kind: "RADIUS";
+                    radius: {
+                      amount: number;
+                      scaling?:
+                        | {
+                            breakpoints: Array<{
+                              id: string;
+                              level: number;
+                              order: number;
+                              value: {
+                                amount: number;
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                              };
+                            }>;
+                            scalingKind: "BREAKPOINTS";
+                            scalingSource: "CHARACTER_LEVEL";
+                          }
+                        | {
+                            breakpoints: Array<{
+                              id: string;
+                              level: number;
+                              order: number;
+                              value: {
+                                amount: number;
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                              };
+                            }>;
+                            classId: string;
+                            scalingKind: "BREAKPOINTS";
+                            scalingSource: "CLASS_LEVEL";
+                          }
+                        | {
+                            breakpoints: Array<{
+                              id: string;
+                              level: number;
+                              order: number;
+                              value: {
+                                amount: number;
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                              };
+                            }>;
+                            scalingKind: "BREAKPOINTS";
+                            scalingSource: "PARENT_CLASS_LEVEL";
+                          }
+                        | {
+                            breakpoints: Array<{
+                              id: string;
+                              level: number;
+                              order: number;
+                              value: {
+                                amount: number;
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                              };
+                            }>;
+                            scalingKind: "BREAKPOINTS";
+                            scalingSource: "SPELL_CAST_LEVEL";
+                          };
+                      unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                    };
+                  };
+                  kind: "CASTER_CENTERED";
+                }
+              | {
                   area:
                     | {
                         kind: "CONE";
@@ -111375,6 +112775,70 @@ export declare const api: {
                         kind: "CUBE";
                       };
                   kind: "POINT";
+                }
+              | {
+                  area: {
+                    kind: "RADIUS";
+                    radius: {
+                      amount: number;
+                      scaling?:
+                        | {
+                            breakpoints: Array<{
+                              id: string;
+                              level: number;
+                              order: number;
+                              value: {
+                                amount: number;
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                              };
+                            }>;
+                            scalingKind: "BREAKPOINTS";
+                            scalingSource: "CHARACTER_LEVEL";
+                          }
+                        | {
+                            breakpoints: Array<{
+                              id: string;
+                              level: number;
+                              order: number;
+                              value: {
+                                amount: number;
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                              };
+                            }>;
+                            classId: string;
+                            scalingKind: "BREAKPOINTS";
+                            scalingSource: "CLASS_LEVEL";
+                          }
+                        | {
+                            breakpoints: Array<{
+                              id: string;
+                              level: number;
+                              order: number;
+                              value: {
+                                amount: number;
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                              };
+                            }>;
+                            scalingKind: "BREAKPOINTS";
+                            scalingSource: "PARENT_CLASS_LEVEL";
+                          }
+                        | {
+                            breakpoints: Array<{
+                              id: string;
+                              level: number;
+                              order: number;
+                              value: {
+                                amount: number;
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                              };
+                            }>;
+                            scalingKind: "BREAKPOINTS";
+                            scalingSource: "SPELL_CAST_LEVEL";
+                          };
+                      unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                    };
+                  };
+                  kind: "CASTER_CENTERED";
                 }
               | {
                   area:

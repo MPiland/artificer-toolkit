@@ -32,64 +32,55 @@ export const SUBJECT_REGISTRY: SubjectRegistry = {
   SPELL: {
     code: SUBJECT.SPELL,
     label: 'Spell',
-    tooltip: 'A spell that can be cast.',
-    description: 'Represents spell properties and behaviors.'
+    description: 'A spell that can be cast.'
   },
 
   EQUIPMENT: {
     code: SUBJECT.EQUIPMENT,
     label: 'Equipment',
-    tooltip: 'An item the character can carry or equip.',
-    description: 'Represents weapons, armor, and other gear.'
+    description: 'An item the character can carry or equip.'
   },
 
   RACE: {
     code: SUBJECT.RACE,
     label: 'Race',
-    tooltip: "A character's race or ancestry.",
-    description: 'Represents racial attributes and features.'
+    description: "A character's race or ancestry."
   },
 
   FEAT: {
     code: SUBJECT.FEAT,
     label: 'Feat',
-    tooltip: 'A feat chosen by the character.',
-    description: 'Represents a feat and its granted benefits.'
+    description: 'A feat chosen by the character.'
   },
 
   CLASS: {
     code: SUBJECT.CLASS,
     label: 'Class',
-    tooltip: 'A character class.',
-    description: 'Represents class-level features and resources.'
+    description: 'A character class.'
   },
 
   CREATURE: {
     code: SUBJECT.CREATURE,
     label: 'Creature',
-    tooltip: 'A creature or companion record.',
-    description: 'Represents master creature records, including monsters, mounts, and companions.'
+    description: 'A creature or companion record.'
   },
 
   VEHICLE: {
     code: SUBJECT.VEHICLE,
     label: 'Vehicle',
-    tooltip: 'A vehicle record.',
-    description: 'Represents master vehicle records such as carts, boats, and ships.'
+    description: 'A vehicle record.'
   },
 
   CHARACTER: {
     code: SUBJECT.CHARACTER,
     label: 'Character',
-    tooltip: 'The player character.',
-    description: 'Represents the core character state and attributes.'
+    description: 'The player character.'
   },
 
   BACKGROUND: {
     code: SUBJECT.BACKGROUND,
     label: 'Background',
-    tooltip: 'A character background.',
-    description: 'Represents backgrounds feature.'
+    description: 'A character background.'
   }
 } as const
 

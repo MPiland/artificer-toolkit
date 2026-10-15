@@ -1,6 +1,6 @@
 # Slice workbook: AUTHORING-20 (authors can add an invocation Check and a Check DC)
 
-**Status:** OPEN (started 2026-10-14)
+**Status:** DONE (merged `419d4d6e4`; closed by the main session 2026-10-14)
 **Base:** `codex/phase-08-2-convex-cutover` at this workbook's commit.
 **Rules:** [slice-workbook-rules.md](slice-workbook-rules.md).
 

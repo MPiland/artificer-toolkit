@@ -19,43 +19,37 @@ export const ABILITIES: Record<AbilityCode, AbilityOption> = {
     code: ABILITY_CODE.STRENGTH,
     label: 'Strength',
     short: 'STR',
-    description: 'Strength measures physical power, bodily force, and the ability to exert muscle.',
-    tooltip: 'Physical power and force.'
+    description: 'Strength measures physical power, bodily force, and the ability to exert muscle.'
   },
   [ABILITY_CODE.DEXTERITY]: {
     code: ABILITY_CODE.DEXTERITY,
     label: 'Dexterity',
     short: 'DEX',
-    description: 'Dexterity measures agility, reflexes, balance, and precise control of movement.',
-    tooltip: 'Agility and reflexes.'
+    description: 'Dexterity measures agility, reflexes, balance, and precise control of movement.'
   },
   [ABILITY_CODE.CONSTITUTION]: {
     code: ABILITY_CODE.CONSTITUTION,
     label: 'Constitution',
     short: 'CON',
-    description: 'Constitution measures endurance, stamina, and overall bodily health.',
-    tooltip: 'Endurance and vitality.'
+    description: 'Constitution measures endurance, stamina, and overall bodily health.'
   },
   [ABILITY_CODE.INTELLIGENCE]: {
     code: ABILITY_CODE.INTELLIGENCE,
     label: 'Intelligence',
     short: 'INT',
-    description: 'Intelligence measures reasoning ability, memory, and analytical thinking.',
-    tooltip: 'Reasoning and intellect.'
+    description: 'Intelligence measures reasoning ability, memory, and analytical thinking.'
   },
   [ABILITY_CODE.WISDOM]: {
     code: ABILITY_CODE.WISDOM,
     label: 'Wisdom',
     short: 'WIS',
-    description: 'Wisdom measures perception, intuition, awareness, and insight.',
-    tooltip: 'Perception and intuition.'
+    description: 'Wisdom measures perception, intuition, awareness, and insight.'
   },
   [ABILITY_CODE.CHARISMA]: {
     code: ABILITY_CODE.CHARISMA,
     label: 'Charisma',
     short: 'CHA',
-    description: 'Charisma measures confidence, presence, and the ability to influence others.',
-    tooltip: 'Presence and influence.'
+    description: 'Charisma measures confidence, presence, and the ability to influence others.'
   }
 } as const
 
@@ -77,7 +71,6 @@ export const ABILITY_MODIFIER_REFERENCE_OPTIONS: readonly AbilityModifierReferen
   {
     code: SPELLCASTING_ABILITY_REFERENCE,
     label: 'Spellcasting',
-    description: 'Uses the spellcasting ability determined by the effect source.',
-    tooltip: 'Source spellcasting ability.'
+    description: 'Source spellcasting ability.'
   }
 ]

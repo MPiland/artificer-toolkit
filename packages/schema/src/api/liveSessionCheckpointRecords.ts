@@ -187,12 +187,16 @@ export type LiveSessionCheckpointRecordChange = z.infer<
 export type ReceiptLedgerEntry = z.infer<typeof receiptLedgerEntrySchema>
 export type ReceiptLedgerEntryTable = keyof typeof receiptLedgerEntryKeyFields
 
-/** Private room rolls merge into the owner's bounded history, never replace its global snapshot. */
+/**
+ * Private room rolls merge into the user's bounded history, never replace its global snapshot. The
+ * Campaign GM's roll carries its reveal binding; a player's own copy of a hidden creature they
+ * control carries none.
+ */
 export const liveSessionCheckpointRetainedRollSchema = lazySchema(() =>
   z.strictObject({
     userId: postgresUuidSchema,
     record: rollRecordDtoSchema,
-    gmCampaignRoll: gmCampaignRollDtoSchema
+    gmCampaignRoll: z.nullable(gmCampaignRollDtoSchema)
   })
 )
 export type LiveSessionCheckpointRetainedRoll = z.infer<

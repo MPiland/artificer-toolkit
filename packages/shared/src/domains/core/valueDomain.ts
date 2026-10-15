@@ -57,62 +57,49 @@ export const VALUE_DOMAIN_REGISTRY: Record<ValueDomainCode, ValueDomainOption> =
   [VALUE_DOMAIN_CODE.HIT_POINTS_MAX]: {
     code: VALUE_DOMAIN_CODE.HIT_POINTS_MAX,
     label: 'Maximum Hit Points',
-    tooltip: "The character's maximum health.",
-    description: 'Determines the maximum number of hit points the character can have.'
+    description: "The character's maximum health."
   },
 
   [VALUE_DOMAIN_CODE.TEMPORARY_HIT_POINTS]: {
     code: VALUE_DOMAIN_CODE.TEMPORARY_HIT_POINTS,
     label: 'Temporary Hit Points',
-    tooltip: 'Temporary hit points granted by spells, features, or equipment.',
-    description:
-      'Represents temporary hit points that absorb damage before normal hit points are lost.'
+    description: 'Temporary hit points granted by spells, features, or equipment.'
   },
 
   [VALUE_DOMAIN_CODE.ARMOR_CLASS]: {
     code: VALUE_DOMAIN_CODE.ARMOR_CLASS,
     label: 'Armor Class',
-    tooltip: 'How difficult the character is to hit.',
-    description:
-      "Determines the character's Armor Class, which is used to resolve whether attacks hit or miss."
+    description: 'How difficult the character is to hit.'
   },
 
   [VALUE_DOMAIN_CODE.INITIATIVE]: {
     code: VALUE_DOMAIN_CODE.INITIATIVE,
     label: 'Initiative',
-    tooltip: 'Bonus applied to initiative rolls.',
-    description: 'Modifies the bonus added when rolling initiative.'
+    description: 'Bonus applied to initiative rolls.'
   },
 
   [VALUE_DOMAIN_CODE.ABILITY_CHECK]: {
     code: VALUE_DOMAIN_CODE.ABILITY_CHECK,
     label: 'Ability Check',
-    tooltip: 'Advantage or disadvantage applied to ability checks.',
-    description: 'Changes how ability checks are rolled, globally or for a specific ability.'
+    description: 'Advantage or disadvantage applied to ability checks.'
   },
 
   [VALUE_DOMAIN_CODE.ATTACK_ROLL]: {
     code: VALUE_DOMAIN_CODE.ATTACK_ROLL,
     label: 'Attack Roll',
-    tooltip: 'Bonuses or penalties applied to attack rolls.',
-    description:
-      'Modifies the total bonus added to an attack roll, such as melee, ranged, spell, or unarmed attacks.'
+    description: 'Bonuses or penalties applied to attack rolls.'
   },
 
   [VALUE_DOMAIN_CODE.ATTACKS_AGAINST]: {
     code: VALUE_DOMAIN_CODE.ATTACKS_AGAINST,
     label: 'Attacks Against',
-    tooltip: 'Advantage or disadvantage on attack rolls made against the holder.',
-    description:
-      'Changes how attack rolls made against the holder are rolled, for the chosen kinds of attack, optionally only against attackers the holder can see.'
+    description: 'Advantage or disadvantage on attack rolls made against the holder.'
   },
 
   [VALUE_DOMAIN_CODE.OPPORTUNITY_ATTACK_IMMUNITY]: {
     code: VALUE_DOMAIN_CODE.OPPORTUNITY_ATTACK_IMMUNITY,
     label: 'Opportunity Attack Immunity',
-    tooltip: "The holder's movement provokes no opportunity attacks.",
-    description:
-      "While the holder carries this grant, its movement doesn't provoke opportunity attacks."
+    description: "The holder's movement provokes no opportunity attacks."
   },
 
   [VALUE_DOMAIN_CODE.SPELLCASTING_LOCK]: {
@@ -126,210 +113,169 @@ export const VALUE_DOMAIN_REGISTRY: Record<ValueDomainCode, ValueDomainOption> =
   [VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER]: {
     code: VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER,
     label: 'Saving Throw Modifier',
-    tooltip: 'Bonuses or penalties applied to saving throws.',
-    description: "Modifies the bonus added to a character's saving throws for a specific ability."
+    description: 'Bonuses or penalties applied to saving throws.'
   },
 
   [VALUE_DOMAIN_CODE.SAVE_DC]: {
     code: VALUE_DOMAIN_CODE.SAVE_DC,
     label: 'Saving Throw DC',
-    tooltip: 'The difficulty class for saving throws.',
-    description:
-      'Sets or modifies the difficulty class that Targets must meet or exceed when making saving throws.'
+    description: 'The difficulty class for saving throws.'
   },
 
   [VALUE_DOMAIN_CODE.SKILL_MODIFIER]: {
     code: VALUE_DOMAIN_CODE.SKILL_MODIFIER,
     label: 'Skill Modifier',
-    tooltip: 'Bonuses or penalties applied to skill checks.',
-    description: 'Modifies the bonus applied when making a check with a specific skill.'
+    description: 'Bonuses or penalties applied to skill checks.'
   },
 
   [VALUE_DOMAIN_CODE.PROFICIENCY_BONUS]: {
     code: VALUE_DOMAIN_CODE.PROFICIENCY_BONUS,
     label: 'Proficiency Bonus',
-    tooltip: "The character's proficiency bonus.",
-    description:
-      'Represents the proficiency bonus used for attacks, skills, and saving throws. This may be modified by homebrew or campaign rules.'
+    description: "The character's proficiency bonus."
   },
 
   [VALUE_DOMAIN_CODE.ABILITY_SCORE]: {
     code: VALUE_DOMAIN_CODE.ABILITY_SCORE,
     label: 'Ability Score',
-    tooltip: 'An ability score value.',
-    description: 'Represents an ability score such as Strength, Dexterity, or Intelligence.'
+    description: 'An ability score value.'
   },
 
   [VALUE_DOMAIN_CODE.SPEED]: {
     code: VALUE_DOMAIN_CODE.SPEED,
     label: 'Speed',
-    tooltip: 'How fast the character can move.',
-    description:
-      "Determines the character's movement speed for a given movement type, such as walking, flying, or swimming."
+    description: 'How fast the character can move.'
   },
 
   [VALUE_DOMAIN_CODE.MOVEMENT_MODE]: {
     code: VALUE_DOMAIN_CODE.MOVEMENT_MODE,
     label: 'Movement Mode',
-    tooltip: 'A type of movement.',
-    description: 'Represents a movement mode such as walking, flying, climbing, or swimming.'
+    description: 'A type of movement.'
   },
 
   [VALUE_DOMAIN_CODE.SENSE_RANGE]: {
     code: VALUE_DOMAIN_CODE.SENSE_RANGE,
     label: 'Sense Range',
-    tooltip: 'The range of a special sense.',
-    description:
-      'Determines the distance at which a sense such as darkvision, blindsight, or tremorsense is effective.'
+    description: 'The range of a special sense.'
   },
 
   [VALUE_DOMAIN_CODE.DAMAGE]: {
     code: VALUE_DOMAIN_CODE.DAMAGE,
     label: 'Damage',
-    tooltip: 'The amount of damage dealt.',
-    description: 'Represents damage dealt by attacks, spells, or other effects.'
+    description: 'The amount of damage dealt.'
   },
 
   [VALUE_DOMAIN_CODE.DAMAGE_RESISTANCE]: {
     code: VALUE_DOMAIN_CODE.DAMAGE_RESISTANCE,
     label: 'Damage Resistance',
-    tooltip: 'Resistance to a type of damage.',
-    description: 'Represents resistance that reduces damage of a specific type.'
+    description: 'Resistance to a type of damage.'
   },
 
   [VALUE_DOMAIN_CODE.DAMAGE_IMMUNITY]: {
     code: VALUE_DOMAIN_CODE.DAMAGE_IMMUNITY,
     label: 'Damage Immunity',
-    tooltip: 'Immunity to a type of damage.',
-    description: 'Represents immunity that prevents damage of a specific type.'
+    description: 'Immunity to a type of damage.'
   },
 
   [VALUE_DOMAIN_CODE.DAMAGE_VULNERABILITY]: {
     code: VALUE_DOMAIN_CODE.DAMAGE_VULNERABILITY,
     label: 'Damage Vulnerability',
-    tooltip: 'Vulnerability to a type of damage.',
-    description: 'Represents vulnerability that increases damage of a specific type.'
+    description: 'Vulnerability to a type of damage.'
   },
 
   [VALUE_DOMAIN_CODE.CONDITION_IMMUNITY]: {
     code: VALUE_DOMAIN_CODE.CONDITION_IMMUNITY,
     label: 'Condition Immunity',
-    tooltip: 'Immunity to a condition.',
-    description:
-      'Represents immunity that prevents a specific condition from being applied to the creature.'
+    description: 'Immunity to a condition.'
   },
 
   [VALUE_DOMAIN_CODE.RANGE]: {
     code: VALUE_DOMAIN_CODE.RANGE,
     label: 'Range',
-    tooltip: 'How far an action, attack, or spell can reach.',
-    description:
-      "Determines the effective distance for an action or spell, such as a weapon's range or a spell's casting range."
+    description: 'How far an action, attack, or spell can reach.'
   },
 
   [VALUE_DOMAIN_CODE.DURATION]: {
     code: VALUE_DOMAIN_CODE.DURATION,
     label: 'Duration',
-    tooltip: 'How long an effect or spell lasts.',
-    description:
-      'Determines the length of time an effect remains active, such as 1 minute, 10 minutes, or 1 hour.'
+    description: 'How long an effect or spell lasts.'
   },
 
   [VALUE_DOMAIN_CODE.SHAPE]: {
     code: VALUE_DOMAIN_CODE.SHAPE,
     label: 'Shape',
-    tooltip: 'The area or geometry affected by an effect.',
-    description:
-      'Determines the spatial form of an effect, such as cone, line, sphere, cube, or radius-based areas.'
+    description: 'The area or geometry affected by an effect.'
   },
 
   [VALUE_DOMAIN_CODE.SPELL_SLOT_COUNT]: {
     code: VALUE_DOMAIN_CODE.SPELL_SLOT_COUNT,
     label: 'Spell Slot Count',
-    tooltip: 'Number of available spell slots.',
-    description: 'Represents how many spell slots are available at a given level.'
+    description: 'Number of available spell slots.'
   },
 
   [VALUE_DOMAIN_CODE.SPELL_SLOT_LEVEL_MAX]: {
     code: VALUE_DOMAIN_CODE.SPELL_SLOT_LEVEL_MAX,
     label: 'Maximum Spell Slot Level',
-    tooltip: 'Highest spell slot level available.',
-    description: 'Determines the highest spell level the character can cast.'
+    description: 'Highest spell slot level available.'
   },
 
   [VALUE_DOMAIN_CODE.SPELLS_KNOWN]: {
     code: VALUE_DOMAIN_CODE.SPELLS_KNOWN,
     label: 'Spells Known',
-    tooltip: 'Number of spells the character knows.',
-    description: 'Represents how many spells the character knows.'
+    description: 'Number of spells the character knows.'
   },
 
   [VALUE_DOMAIN_CODE.SPELLS_PREPARED]: {
     code: VALUE_DOMAIN_CODE.SPELLS_PREPARED,
     label: 'Spells Prepared',
-    tooltip: 'Number of spells the character can prepare.',
-    description: 'Represents how many spells the character can have prepared at one time.'
+    description: 'Number of spells the character can prepare.'
   },
 
   [VALUE_DOMAIN_CODE.CHARGE_LIMIT]: {
     code: VALUE_DOMAIN_CODE.CHARGE_LIMIT,
     label: 'Charge Limit',
-    tooltip: 'Maximum number of uses.',
-    description:
-      'Determines how many times a feature or resource can be used before it must be recharged.'
+    description: 'Maximum number of uses.'
   },
 
   [VALUE_DOMAIN_CODE.CHARGE_RESET]: {
     code: VALUE_DOMAIN_CODE.CHARGE_RESET,
     label: 'Charge Reset',
-    tooltip: 'When charges are restored.',
-    description:
-      'Determines when expended charges are restored, such as on a short rest, long rest, or at dawn.'
+    description: 'When charges are restored.'
   },
 
   [VALUE_DOMAIN_CODE.ACTION_COUNT]: {
     code: VALUE_DOMAIN_CODE.ACTION_COUNT,
     label: 'Action Count',
-    tooltip: 'How many actions can be taken.',
-    description: 'Determines how many actions the character can take during their turn.'
+    description: 'How many actions can be taken.'
   },
 
   [VALUE_DOMAIN_CODE.BONUS_ACTION_COUNT]: {
     code: VALUE_DOMAIN_CODE.BONUS_ACTION_COUNT,
     label: 'Bonus Action Count',
-    tooltip: 'How many bonus actions can be taken.',
-    description: 'Determines how many bonus actions the character can take during their turn.'
+    description: 'How many bonus actions can be taken.'
   },
 
   [VALUE_DOMAIN_CODE.REACTION_COUNT]: {
     code: VALUE_DOMAIN_CODE.REACTION_COUNT,
     label: 'Reaction Count',
-    tooltip: 'How many reactions can be taken.',
-    description:
-      'Determines how many reactions the character can take before the start of their next turn.'
+    description: 'How many reactions can be taken.'
   },
 
   [VALUE_DOMAIN_CODE.ATTACKS_PER_ATTACK_ACTION]: {
     code: VALUE_DOMAIN_CODE.ATTACKS_PER_ATTACK_ACTION,
     label: 'Attacks Per Attack Action',
-    tooltip: 'How many attacks the Attack action makes.',
-    description:
-      'Determines how many attacks the character makes when they take the Attack action. Several sources do not add together: the highest one applies.'
+    description: 'How many attacks the Attack action makes.'
   },
 
   [VALUE_DOMAIN_CODE.CONDITION]: {
     code: VALUE_DOMAIN_CODE.CONDITION,
     label: 'Condition',
-    tooltip: 'A status effect applied to a creature.',
-    description:
-      'Represents a condition applied to a creature, such as Blinded, Charmed, Frightened, Poisoned, or Restrained. Conditions may have durations, saving throws, and other mechanical effects.'
+    description: 'A status effect applied to a creature.'
   },
 
   [VALUE_DOMAIN_CODE.ATTRIBUTE]: {
     code: VALUE_DOMAIN_CODE.ATTRIBUTE,
     label: 'Attribute',
-    tooltip: 'A attribute such as ritual, concentration, etc.',
-    description: 'Represents a attribute that would be applied to an item, spell, or creature.'
+    description: 'A attribute such as ritual, concentration, etc.'
   }
 } as const
 
@@ -350,29 +296,25 @@ export const ATTACK_DOMAIN_REGISTRY: Record<AttackDomainCode, AttackDomainOption
   [ATTACK_DOMAIN_CODE.MELEE]: {
     code: ATTACK_DOMAIN_CODE.MELEE,
     label: 'Melee',
-    tooltip: 'A melee attack.',
-    description: 'Represents a melee attack using a weapon such as a sword or halbred.'
+    description: 'A melee attack.'
   },
 
   [ATTACK_DOMAIN_CODE.RANGED]: {
     code: ATTACK_DOMAIN_CODE.RANGED,
     label: 'Ranged',
-    tooltip: 'A ranged attack.',
-    description: 'Represents a ranged attack using a weapon such as a bow or crossbow.'
+    description: 'A ranged attack.'
   },
 
   [ATTACK_DOMAIN_CODE.SPELL]: {
     code: ATTACK_DOMAIN_CODE.SPELL,
     label: 'Spell',
-    tooltip: 'A spell attack.',
-    description: 'Represents a spell attack using a spell such as a fireball or lightning bolt.'
+    description: 'A spell attack.'
   },
 
   [ATTACK_DOMAIN_CODE.UNARMED]: {
     code: ATTACK_DOMAIN_CODE.UNARMED,
     label: 'Unarmed',
-    tooltip: 'An unarmed attack.',
-    description: 'Represents an unarmed attack using fists with or without gloves or claws.'
+    description: 'An unarmed attack.'
   }
 }
 

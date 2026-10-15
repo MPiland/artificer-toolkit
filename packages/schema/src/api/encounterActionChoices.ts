@@ -68,9 +68,9 @@ export const encounterActionChoiceDtoSchema = lazySchema(() =>
      */
     warnings: encounterRuleWarningsDtoSchema,
     /**
-     * What the client picks before resolving: a creature, the point an area is centered on, or the
-     * origin and direction of a directed area. The area is as authored; the client converts it to
-     * the Scene's coordinates to preview it.
+     * What the client picks before resolving: a creature, the point an area is centered on, the
+     * origin and direction of a directed area, or nothing for an area centered on the caster. The
+     * area is as authored; the client converts it to the Scene's coordinates to preview it.
      */
     target: z.discriminatedUnion('kind', [
       /** The action resolves on its user (Dash, Dodge): the client asks for nothing. */
@@ -86,6 +86,14 @@ export const encounterActionChoiceDtoSchema = lazySchema(() =>
           z.strictObject({ kind: z.literal('RADIUS'), radius: shapeMeasurementDtoSchema }),
           z.strictObject({ kind: z.literal('CUBE'), edgeLength: shapeMeasurementDtoSchema })
         ])
+      }),
+      /**
+       * A radius centered on the caster, measured from the edge of their space (a Self sphere,
+       * cylinder or circle): the client asks for no aim and only fences the Scene version.
+       */
+      z.strictObject({
+        kind: z.literal('CASTER_CENTERED'),
+        area: z.strictObject({ kind: z.literal('RADIUS'), radius: shapeMeasurementDtoSchema })
       }),
       /**
        * An area that starts on the caster's own token and extends toward a direction: a cone, a

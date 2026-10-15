@@ -308,7 +308,12 @@ export async function executeRoomEncounterCommand(input: {
       await presentEncounterResultForMember(context, {
         campaign,
         membership,
-        result: { ...result, roll: recipient === userId ? result.roll : null }
+        result: {
+          ...result,
+          roll: recipient === userId ? result.roll : null,
+          // The roll and its evidence are the presser's own, as on the Convex route.
+          evidenceRoll: recipient === userId ? result.evidenceRoll : null
+        }
       })
     )
   }

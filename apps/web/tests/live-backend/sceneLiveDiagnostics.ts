@@ -6,7 +6,7 @@ const campaignNotFound =
   'Server Error\\nUncaught ConvexError: \\{[^\\n]*"reason":\\s*"CAMPAIGN_NOT_FOUND"[^\\n]*\\}'
 /** The browser console's rendering of a failed query. */
 const consoleDeparture = new RegExp(
-  `^player verify departed player refusal: console (?:Error: )?\\[CONVEX Q\\(${departedPlayerReads}\\)\\](?: \\[Request ID: [a-f0-9]+\\])? ${campaignNotFound}(?:\\n\\s+(?:Called by client|at [^\\n]+))*\\s*$`
+  `^player verify departed player refusal: console (?:(?:Convex)?Error: )?\\[CONVEX Q\\(${departedPlayerReads}\\)\\](?: \\[Request ID: [a-f0-9]+\\])? ${campaignNotFound}(?:\\n\\s+(?:Called by client|at [^\\n]+))*\\s*$`
 )
 /** The sync socket's `QueryFailed` frame, labelled with the query's name. */
 const socketDeparture = new RegExp(

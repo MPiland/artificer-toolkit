@@ -5,8 +5,10 @@ import {
   collectSpatialMovementCandidates,
   collectTokenFootprintPathCrossings,
   effectiveSpatialGeometry,
+  spatialGeometryOverlapsTokenFootprint,
   type SpatialEffectInstance,
   spatialTokensInsideArea,
+  spatialTokensWithinSpaceRadius,
   type SpatialSceneToken,
   VTT_SPATIAL_LIMITS
 } from '../domains/vtt/spatial.js'
@@ -304,16 +306,101 @@ describe('spatial movement candidates', () => {
     expect(candidates.map((candidate) => candidate.effectId)).toEqual([ids.effect, ids.effectTwo])
   })
 
-  it('reports the last inclusive tangential full-footprint boundary as the exit contact', () => {
-    const candidates = collect({
-      movementKind: 'VOLUNTARY',
-      path: [
-        { x: 0, y: 2 },
-        { x: 5, y: 2 }
-      ]
+  it('reports no contact for a path that only touches the zone tangentially (user ruling 2026-10-14, D103)', () => {
+    expect(
+      collect({
+        movementKind: 'VOLUNTARY',
+        path: [
+          { x: 0, y: 2 },
+          { x: 5, y: 2 }
+        ]
+      })
+    ).toEqual([])
+  })
+
+  it('reports no contact when a path slides along a polygon zone edge or grazes its corner', () => {
+    const square = effect({
+      geometry: {
+        frame: 'SCENE_ABSOLUTE',
+        shape: {
+          kind: 'POLYGON',
+          points: [
+            { x: -1, y: -1 },
+            { x: 1, y: -1 },
+            { x: 1, y: 1 },
+            { x: -1, y: 1 }
+          ]
+        }
+      }
     })
-    expect(candidates).toMatchObject([{ trigger: 'EXIT' }])
-    expect(candidates[0]?.contact).toEqual({ x: 1, y: 2 })
+    expect(
+      collect({
+        effects: [square],
+        movementKind: 'VOLUNTARY',
+        path: [
+          { x: -5, y: 2 },
+          { x: 5, y: 2 }
+        ]
+      })
+    ).toEqual([])
+    expect(
+      collect({
+        effects: [square],
+        movementKind: 'VOLUNTARY',
+        path: [
+          { x: 3, y: 1 },
+          { x: 1, y: 3 }
+        ]
+      })
+    ).toEqual([])
+  })
+
+  it('reports a CROSS when a path clips the interior of a polygon zone corner', () => {
+    const square = effect({
+      geometry: {
+        frame: 'SCENE_ABSOLUTE',
+        shape: {
+          kind: 'POLYGON',
+          points: [
+            { x: -1, y: -1 },
+            { x: 1, y: -1 },
+            { x: 1, y: 1 },
+            { x: -1, y: 1 }
+          ]
+        }
+      }
+    })
+    expect(
+      collect({
+        effects: [square],
+        movementKind: 'VOLUNTARY',
+        path: [
+          { x: 3, y: 0.5 },
+          { x: 0.5, y: 3 }
+        ]
+      })
+    ).toMatchObject([{ trigger: 'CROSS' }])
+  })
+
+  it('reports no contact for a teleport that lands touching a zone edge', () => {
+    expect(
+      collect({
+        movementKind: 'TELEPORT',
+        path: [
+          { x: -5, y: 0 },
+          { x: 2, y: 0 }
+        ]
+      })
+    ).toEqual([])
+    expect(
+      collect({
+        movementKind: 'TELEPORT',
+        path: [
+          { x: -5, y: 0 },
+          { x: 1.5, y: 0 }
+        ]
+      })
+    ).toMatchObject([{ trigger: 'ENTER' }])
   })
 
   it('fails closed before geometry for out-of-range scene coordinates or token dimensions', () => {
@@ -372,6 +459,83 @@ describe('spatial movement candidates', () => {
         tokens: [{ ...token(ids.targetToken, -5), width: subMinimum }]
       })
     ).toEqual([])
+  })
+})
+
+describe('spatialGeometryOverlapsTokenFootprint', () => {
+  const circle = { kind: 'CIRCLE', center: { x: 0, y: 0 }, radius: 1 } as const
+  const square = {
+    kind: 'POLYGON',
+    points: [
+      { x: -1, y: -1 },
+      { x: 1, y: -1 },
+      { x: 1, y: 1 },
+      { x: -1, y: 1 }
+    ]
+  } as const
+  const touches = (
+    geometry: Parameters<typeof spatialGeometryOverlapsTokenFootprint>[0]['geometry'],
+    x: number,
+    y = 0
+  ) => spatialGeometryOverlapsTokenFootprint({ geometry, token: token(ids.targetToken, x, y) })
+
+  it('does not catch a footprint that only touches a radius zone edge', () => {
+    expect(touches(circle, 2)).toBe(false)
+    expect(touches(circle, 0, 2)).toBe(false)
+  })
+
+  it('does not catch a footprint that only touches a polygon zone edge or corner', () => {
+    expect(touches(square, 2)).toBe(false)
+    expect(touches(square, 2, 2)).toBe(false)
+  })
+
+  it('catches a footprint that overlaps a zone by any positive area', () => {
+    expect(touches(circle, 1.5)).toBe(true)
+    expect(touches(square, 1.5)).toBe(true)
+    expect(touches(square, 1.5, 1.5)).toBe(true)
+    expect(touches(square, 0)).toBe(true)
+  })
+
+  describe('a concave L-shaped zone', () => {
+    // Two arms along the x and y axes; the notch is x > 2 and y > 2, inside the convex hull only.
+    const lShape = {
+      kind: 'POLYGON',
+      points: [
+        { x: 0, y: 0 },
+        { x: 6, y: 0 },
+        { x: 6, y: 2 },
+        { x: 2, y: 2 },
+        { x: 2, y: 6 },
+        { x: 0, y: 6 }
+      ]
+    } as const
+
+    it('does not catch a footprint in the notch, inside the hull but outside the polygon', () => {
+      expect(touches(lShape, 3.5, 3.5)).toBe(false)
+    })
+
+    it('catches a footprint that overlaps an arm', () => {
+      expect(touches(lShape, 5, 1)).toBe(true)
+      expect(touches(lShape, 1, 5)).toBe(true)
+      expect(touches(lShape, 1, 1)).toBe(true)
+    })
+
+    it('does not catch a footprint that only touches the inner corner and its edges', () => {
+      expect(touches(lShape, 3, 3)).toBe(false)
+    })
+
+    it('catches a footprint that overlaps the notch and an arm', () => {
+      expect(touches(lShape, 3, 2)).toBe(true)
+    })
+  })
+
+  it('catches a footprint that fully contains a zone', () => {
+    expect(
+      spatialGeometryOverlapsTokenFootprint({
+        geometry: { kind: 'CIRCLE', center: { x: 0, y: 0 }, radius: 0.25 },
+        token: { ...token(ids.targetToken, 0), height: 4, width: 4 }
+      })
+    ).toBe(true)
   })
 })
 
@@ -632,5 +796,62 @@ describe('spatialTokensInsideArea', () => {
         tokens: [near]
       })
     ).toEqual([])
+  })
+})
+
+// SPELLS-22, D114: "within N feet of you" is measured from the edge of the caster's space, by the
+// D103 rule: a footprint is caught when it shares positive area with the space grown by the radius.
+describe('spatialTokensWithinSpaceRadius', () => {
+  const casterId = '00000000-0000-4000-8000-0000000000c0'
+  const at = (suffix: string, x: number, y = 0, size = 2): SpatialSceneToken => ({
+    height: size,
+    id: `00000000-0000-4000-8000-0000000000${suffix}`,
+    position: { x, y },
+    width: size
+  })
+  const caster = (size = 2): SpatialSceneToken => ({ ...at('c0', 0, 0, size), id: casterId })
+  const within = (radius: number, tokens: SpatialSceneToken[], size = 2) =>
+    spatialTokensWithinSpaceRadius({
+      radius,
+      tokens: [caster(size), ...tokens],
+      casterTokenId: casterId
+    })
+
+  it('catches a footprint that reaches into the radius from the caster’s edge', () => {
+    const inside = at('a1', 11.9)
+    expect(within(10, [inside])).toEqual([inside.id])
+  })
+
+  it('does not catch a footprint that only touches the grown edge', () => {
+    expect(within(10, [at('a1', 12)])).toEqual([])
+  })
+
+  it('rounds the grown corners instead of squaring them', () => {
+    const diagonalInside = at('a1', 9, 9)
+    const diagonalOutside = at('a2', 9.2, 9.2)
+    expect(within(10, [diagonalInside, diagonalOutside])).toEqual([diagonalInside.id])
+  })
+
+  it('measures a Huge caster’s reach from its space edge', () => {
+    const reached = at('a1', 13.9)
+    expect(within(10, [reached], 6)).toEqual([reached.id])
+    expect(within(10, [at('a2', 14)], 6)).toEqual([])
+    expect(within(10, [reached])).toEqual([])
+  })
+
+  it('never catches the caster and sorts by token id', () => {
+    const [a, b] = [at('b2', -5), at('b1', 5)]
+    expect(within(10, [a, b])).toEqual([b.id, a.id])
+  })
+
+  it('catches nothing for an invalid radius', () => {
+    expect(within(0, [at('a1', 2)])).toEqual([])
+    expect(within(-1, [at('a1', 2)])).toEqual([])
+  })
+
+  it('needs the caster’s token', () => {
+    expect(() =>
+      spatialTokensWithinSpaceRadius({ radius: 10, tokens: [at('a1', 2)], casterTokenId: casterId })
+    ).toThrow('caster')
   })
 })

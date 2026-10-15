@@ -32,7 +32,7 @@ import type {
 import type { EncounterSessionStateDto } from '@artificer-toolkit/schema/api/encounterData'
 import type { CampaignSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
 import type { EncounterRuleWarningDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
-import { EQUIPMENT_GRIP_REGISTRY } from '@artificer-toolkit/shared/core'
+import { EQUIPMENT_GRIP_REGISTRY, formatLengthMeasurement } from '@artificer-toolkit/shared/core'
 import {
   directedAreaSizeInSceneCoordinates,
   pointAreaInSceneCoordinates,
@@ -178,8 +178,11 @@ export function CampaignTabletopActionDrawer({
   const choiceTarget = selectedAction?.target
   const areaTarget =
     choiceTarget?.kind === 'POINT' || choiceTarget?.kind === 'DIRECTED' ? choiceTarget : null
+  // A caster-centered area takes no aim, so it has no target to pick.
+  const centeredTarget = choiceTarget?.kind === 'CASTER_CENTERED' ? choiceTarget : null
+  const namesNoCreature = areaTarget !== null || centeredTarget !== null
   // Optional rules choose among the target creature's entities, so an area has none.
-  const optionalRuleId = areaTarget ? null : pickedOptionalRuleId
+  const optionalRuleId = namesNoCreature ? null : pickedOptionalRuleId
   const sceneTokens = scene?.tokens ?? NO_TOKENS
   const sceneGrid = scene?.grid ?? null
   const sourceToken = useMemo(
@@ -226,9 +229,13 @@ export function CampaignTabletopActionDrawer({
           : null
   const target: ResolveEncounterActionInputDto['target'] | null = areaTarget
     ? areaCommandTarget
-    : targetActorId
-      ? { kind: 'ACTOR', actorId: targetActorId }
-      : null
+    : centeredTarget
+      ? scene
+        ? { kind: 'CASTER_CENTERED', sceneId: scene.id, expectedSceneVersion: scene.version }
+        : null
+      : targetActorId
+        ? { kind: 'ACTOR', actorId: targetActorId }
+        : null
   // One entry per attack: a versatile weapon's one- and two-hand actions share an attack key.
   const actionGroups = useMemo(() => {
     const groups = new Map<
@@ -431,7 +438,7 @@ export function CampaignTabletopActionDrawer({
         actorId: currentActor.id,
         actionId: selectedAction.id,
         target,
-        sceneContext: areaTarget ? null : sceneContext,
+        sceneContext: namesNoCreature ? null : sceneContext,
         acceptedWieldConflict,
         acknowledgedWarnings,
         ...(isGm ? { visibility: gmRollVisibility } : {}),
@@ -643,6 +650,12 @@ export function CampaignTabletopActionDrawer({
                     </>
                   )}
                 </Stack>
+              ) : centeredTarget ? (
+                <Text c='dimmed' size='sm'>
+                  {scene === null
+                    ? 'There is no Scene for this Encounter, so an area cannot be placed.'
+                    : `Centered on you: creatures within ${formatLengthMeasurement(centeredTarget.area.radius)} of your space are caught.`}
+                </Text>
               ) : (
                 <Select
                   comboboxProps={{ withinPortal: false }}
@@ -677,7 +690,7 @@ export function CampaignTabletopActionDrawer({
                   ))}
                 </List>
               ) : null}
-              {optionalRules.length && !areaTarget ? (
+              {optionalRules.length && !namesNoCreature ? (
                 <Select
                   clearable
                   comboboxProps={{ withinPortal: false }}
