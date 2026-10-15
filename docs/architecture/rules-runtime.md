@@ -490,6 +490,13 @@ options (ADR 0038); nothing in code names Hide.
   condition path is unchanged).
 - **Redaction.** The observer ids are GM knowledge. They live only in the stored effect and receipt; no player projection,
   timeline line, pending read or roll card carries them, so the hider's and other players' views never name the observers.
+- **Movement prune.** Committing an Encounter-bound token move on a Scene drops from each concealment the observers that now
+  see the hider, when the hider's or an observer's token moved (`planConcealmentPrune` plans it from the predicted Scene and the
+  movement plan's targets; `applyConcealmentPrune` writes it through `updateLifecycleCas`). The dropped ids are recorded in the
+  room's `sceneConcealmentPrunes` evidence row keyed by the move command, and the GM's `UNDO_LAST_SCENE_MOVE` of that move
+  gives them back (`restoreConcealmentPrune`) to a concealment that still exists; an ended concealment is never re-created.
+  A standalone move (no Encounter version) cannot move a token bound to an active Run, so it has no prune. Automation MANUAL
+  plans no movement targets, so it prunes nothing; the GM command is the override there.
 - **GM command.** `SET_CONCEALMENT_OBSERVERS` adds or removes observer ids on an existing concealment (GM only, recorded in the
   receipt, undone by `REVERT_LAST_ACTION`). It is the override for lighting and other circumstances the engine does not
   derive.
