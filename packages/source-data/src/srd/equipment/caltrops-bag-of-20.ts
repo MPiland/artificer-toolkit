@@ -58,7 +58,7 @@ export const caltropsBagOf20: EquipmentAuthored = {
                     id: S.equipmentChildId(S.equipId(128), 0x221, 1),
                     order: 1,
                     label: 'Enter the caltrop field',
-                    interactionKind: 'ENTER_SPACE' as const,
+                    interactionKind: 'ENTER_OR_PASS_THROUGH' as const,
                     bypassAtHalfSpeed: true,
                     behaviors: [
                       {
