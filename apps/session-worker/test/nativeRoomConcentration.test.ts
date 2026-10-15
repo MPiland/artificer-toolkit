@@ -4,6 +4,7 @@ import {
   installedSrdCreature,
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
+import { plannedModifierGrant } from '@artificer-toolkit/rules-runtime/testing/modifierGrantFixture'
 import { blackDragonWyrmling } from '@artificer-toolkit/source-data/srd/creatures/black-dragon-wyrmling.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -393,6 +394,73 @@ describe('room Concentration ends without a check (D95)', () => {
     expect(await readRoomChatBodies(room.room.base.stub)).toEqual([
       expect.stringMatching(/can't act and loses Concentration\.$/)
     ])
+  })
+
+  describe('grants that end on incapacitation (Rage)', () => {
+    const ENDING_GRANT_ID = testUuid(0x805)
+    const KEPT_GRANT_ID = testUuid(0x806)
+    /** A Paralyzed holder with one grant that ends on incapacitation and one that does not, hit by a Bite. */
+    function grantHolderRoom() {
+      const attacker = biteWolf('ATTACK')
+      return actionRoom({
+        autoRoll: 'GAME_MASTER',
+        rolls: [18],
+        actors: [
+          srdCreatureActor({ id: ATTACKER_ID, creature: attacker }),
+          srdCreatureActor({
+            id: HOLDER_ID,
+            creature: plainWolf,
+            conditionIds: [conditionId('PARALYZED')]
+          })
+        ],
+        ownerFeatureId: creatureFeature(attacker, 'Bite').id,
+        seed: async ({ effects, encounterId, occurredAt }) => {
+          for (const [id, endOnEvents] of [
+            [ENDING_GRANT_ID, ['ON_INCAPACITATED']],
+            [KEPT_GRANT_ID, []]
+          ] as const)
+            await effects.create({
+              id,
+              owner: { kind: 'ENCOUNTER_ACTOR', encounterId, targetActorId: HOLDER_ID },
+              lifecycle: { schemaVersion: 1, remainingTicks: 10 },
+              definition: plannedModifierGrant({
+                encounterId,
+                sourceActorId: HOLDER_ID,
+                holderActorId: HOLDER_ID,
+                lifecycle: { endOnEvents: [...endOnEvents] },
+                rounds: 10
+              }).definition,
+              occurredAt
+            })
+        }
+      })
+    }
+
+    it('ends only the grants that end on it, in the commit where the holder is found incapacitated', async () => {
+      const room = await grantHolderRoom()
+      expect(effectIds(await readRoomHistory(room.room.base.stub))).toEqual(
+        expect.arrayContaining([ENDING_GRANT_ID, KEPT_GRANT_ID])
+      )
+      const { answer } = await room.startAction(HOLDER_ID)
+      expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+      expect(effectIds(await readRoomHistory(room.room.base.stub))).toEqual([KEPT_GRANT_ID])
+    })
+
+    it('restores the ended grant when the GM undoes the action', async () => {
+      const room = await grantHolderRoom()
+      const { answer } = await room.startAction(HOLDER_ID)
+      expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+      const undone = await room.send({
+        type: 'REVERT_LAST_ACTION',
+        encounterId: room.room.encounterId,
+        commandId: crypto.randomUUID(),
+        expectedVersion: await room.version()
+      })
+      expect(undone.type, JSON.stringify(undone)).toBe('COMMAND_COMMITTED')
+      expect(effectIds(await readRoomHistory(room.room.base.stub))).toEqual(
+        expect.arrayContaining([ENDING_GRANT_ID, KEPT_GRANT_ID])
+      )
+    })
   })
 
   it('keeps a Character’s Concentration while it is only Grappled and Restrained (speed 0), asking for the check', async () => {

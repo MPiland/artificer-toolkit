@@ -163,6 +163,44 @@ function resolveOutcomeValue(
   return selected.amount
 }
 
+/** The contributions of one value domain and modifier kinds in an attack's modifier domain. */
+function attackModifierContributions(
+  input: CharacterActionModelInput,
+  attackDomain: string,
+  valueDomainCode: 'ATTACK_ROLL' | 'DAMAGE',
+  modifierKinds: readonly string[]
+): ModifierContribution[] {
+  return input.modifierGroups
+    .filter((group) =>
+      modifierKinds.some(
+        (kind) => group.domainKey === `${valueDomainCode}:${kind}|attackDomain=${attackDomain}`
+      )
+    )
+    .flatMap((group) => group.contributions)
+}
+
+/** The attack's ability is the one its highest applied ability modifier adds (finesse picks the better). */
+function usedAttackAbility(
+  input: CharacterActionModelInput,
+  attackDomain: string,
+  target: Dnd5eModifierTarget
+): string | null {
+  return (
+    attackModifierContributions(input, attackDomain, 'ATTACK_ROLL', ABILITY_MODIFIER_KINDS)
+      .filter(
+        (contribution) =>
+          contribution.state === 'APPLIED' && dnd5eModifierApplies(contribution, target)
+      )
+      .reduce<ModifierContribution | null>(
+        (best, contribution) =>
+          contribution.ability !== null && (best === null || contribution.value > best.value)
+            ? contribution
+            : best,
+        null
+      )?.ability ?? null
+  )
+}
+
 export function resolveDnd5eActionMechanic(
   input: CharacterActionModelInput,
   candidate: ActionCandidate | SpellEffect,
@@ -173,10 +211,15 @@ export function resolveDnd5eActionMechanic(
   const attackKind = dnd5eAttackKind(invocation.triggerCode)
   const attackDomain = attackKind === null ? null : dnd5eAttackModifierDomain(attackKind)
   const item = dnd5eAttackingItem(equipment)
-  const target: Dnd5eModifierTarget =
+  const actionTarget: Dnd5eModifierTarget =
     'sourceId' in candidate
       ? dnd5eCharacterActionTarget(candidate)
       : { ...DND5E_CHARACTER_WIDE_TARGET, spellId: context.spellId }
+  const target: Dnd5eModifierTarget = {
+    ...actionTarget,
+    attackAbility:
+      attackDomain === null ? null : usedAttackAbility(input, attackDomain, actionTarget)
+  }
   const adjustment =
     equipment === null
       ? null
@@ -191,15 +234,9 @@ export function resolveDnd5eActionMechanic(
   ): ModifierContribution[] =>
     attackDomain === null
       ? []
-      : input.modifierGroups
-          .filter((group) =>
-            modifierKinds.some(
-              (kind) =>
-                group.domainKey === `${valueDomainCode}:${kind}|attackDomain=${attackDomain}`
-            )
-          )
-          .flatMap((group) => group.contributions)
-          .filter(applies)
+      : attackModifierContributions(input, attackDomain, valueDomainCode, modifierKinds).filter(
+          applies
+        )
   const appliedTotal = (contributions: readonly ModifierContribution[]): number =>
     contributions
       .filter((contribution) => contribution.state === 'APPLIED')

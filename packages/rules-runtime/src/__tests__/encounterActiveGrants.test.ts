@@ -19,7 +19,7 @@ import { resolveCharacterRulePolicyRollModes } from '../character/characterRuleR
 import {
   creatureActiveGrantAttackContributors,
   creatureActiveGrantCheckContributors,
-  encounterGrantsOpportunityAttackImmunity,
+  encounterGrantsEnabledDomain,
   withActiveGrantSpeeds,
   withCharacterActiveGrants
 } from '../encounterActiveGrants.js'
@@ -292,9 +292,12 @@ describe('Creature holder of an active grant', () => {
 describe('opportunity attack immunity from active grants', () => {
   it('holds while the holder carries the real Disengage grant, and only then', () => {
     const disengage = disengageEffect({ id: EFFECT_ID, holderActorId: HOLDER_ID })
-    expect(encounterGrantsOpportunityAttackImmunity([disengage])).toBe(true)
-    expect(encounterGrantsOpportunityAttackImmunity([])).toBe(false)
-    expect(encounterGrantsOpportunityAttackImmunity([antitoxin(), aid()])).toBe(false)
+    expect(encounterGrantsEnabledDomain([disengage], 'OPPORTUNITY_ATTACK_IMMUNITY')).toBe(true)
+    expect(encounterGrantsEnabledDomain([], 'OPPORTUNITY_ATTACK_IMMUNITY')).toBe(false)
+    expect(encounterGrantsEnabledDomain([antitoxin(), aid()], 'OPPORTUNITY_ATTACK_IMMUNITY')).toBe(
+      false
+    )
+    expect(encounterGrantsEnabledDomain([disengage], 'SPELLCASTING_LOCK')).toBe(false)
   })
 })
 

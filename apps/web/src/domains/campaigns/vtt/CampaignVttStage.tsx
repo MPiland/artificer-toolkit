@@ -1243,6 +1243,7 @@ export function CampaignVttStage({
               actions={currentActionChoices?.actions ?? []}
               basicActionChoices={currentActionChoices?.basicActionChoices ?? []}
               escapes={currentActionChoices?.escapes ?? []}
+              heldGrantEnds={currentActionChoices?.heldGrantEnds ?? []}
               openAttackAction={currentActionChoices?.openAttackAction ?? null}
               actionsLoading={actionChoicesLoading}
               actionChoicesError={actionChoicesError}
@@ -1265,6 +1266,7 @@ export function CampaignVttStage({
               onPickAreaOrigin={() => setAimingArea(true)}
               onResolve={(command) => encounterCommand.mutateAsync(command)}
               onEscape={(command) => encounterCommand.mutateAsync(command)}
+              onEndHeldGrant={(command) => encounterCommand.mutateAsync(command)}
               onLoadOptionalChoices={loadOptionalActionChoices}
             />
           ) : null}

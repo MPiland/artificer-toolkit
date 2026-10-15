@@ -557,6 +557,8 @@ function projectSpellCastDecision(
   }
 
   switch (decision.reasonCode) {
+    case 'SPELLCASTING_LOCKED':
+      return { available: false, unavailableReason: "You can't cast spells right now." }
     case 'RESOURCE_OWNER_MISSING':
       return { available: false, unavailableReason: 'No linked uses are available.' }
     case 'RESOURCE_EXHAUSTED':

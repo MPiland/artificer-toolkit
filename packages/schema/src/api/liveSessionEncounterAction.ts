@@ -132,6 +132,8 @@ export type LiveSessionEncounterActionCommitInput = Omit<
   pendingConcentration: z.infer<typeof serverRuleExecutionPendingSnapshotDtoSchema> | null
   /** Concentration slots this commit ended because their holders can't act or are defeated (D95). */
   concentrationEnds: z.infer<typeof concentrationEndDtoSchema>[]
+  /** Grants their holders' incapacitation ended in this commit (D95); an action's undo restores them. */
+  endedGrants: z.infer<typeof activeRuleEffectRecordSchema>[]
   cleaving: z.infer<typeof serverRuleExecutionPendingSnapshotDtoSchema> | null
   /** The attacker's grants this attack roll used up; its commit deletes them, its undo restores them. */
   consumedGrants: z.infer<typeof activeRuleEffectRecordSchema>[]
@@ -149,7 +151,10 @@ export const liveSessionEncounterConcentrationFields = lazySchemaParts(() => ({
     )
     .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
   pendingConcentration: z.nullable(serverRuleExecutionPendingSnapshotDtoSchema),
-  concentrationEnds: z.array(concentrationEndDtoSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS))
+  concentrationEnds: z.array(concentrationEndDtoSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
+  endedGrants: z
+    .array(activeRuleEffectRecordSchema)
+    .check(z.maxLength(MAX_ENCOUNTER_ACTORS * MAX_ACTIVE_RULE_EFFECTS_PER_OWNER))
 }))
 
 export const liveSessionEncounterActionCommitInputSchema: z.ZodMiniType<LiveSessionEncounterActionCommitInput> =

@@ -77,7 +77,7 @@ export async function persistEncounterConcentrationResponse(
   )
     throw new Error('Live Session concentration did not complete.')
   // The holder's end was settled with the damage that prompted this check (D95).
-  if (input.concentrationEnds.length)
+  if (input.concentrationEnds.length || input.endedGrants.length)
     throw new Error('Live Session concentration response carries unexpected ends.')
   const output = execution.applicationOutputs
   const failed = output.outcome === 'SAVE_FAILURE'
@@ -272,6 +272,7 @@ export async function persistEncounterConcentrationResponse(
       occurredAt: input.occurredAt,
       concentration: input.concentration,
       concentrationEnds: input.concentrationEnds,
+      endedGrants: input.endedGrants,
       pendingConcentration: nextPending
     })
   ).actors

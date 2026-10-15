@@ -8,7 +8,13 @@ import { actorRelationshipModuleDtoSchema } from '../effects/actorRelationship.j
 import { hitPointMaximumReductionRecoveryTagsSchema } from '../effects/hitPointMaximumReduction.js'
 import { activeRuleEffectLifecycleDtoSchema } from './activeRuleEffectLifecycle.js'
 import { combatPerceptionContributionsDtoSchema } from './combatPerception.js'
-import { pathLifecycleConsumeEventSchema, pathLifecycleEndEventSchema } from './enums.js'
+import {
+  activationCodeSchema,
+  pathLifecycleConsumeEventSchema,
+  pathLifecycleEndEventSchema,
+  pathLifecycleGrantConsumeEventSchema,
+  pathLifecycleGrantEndEventSchema
+} from './enums.js'
 import { compiledRuleGraphDtoSchema } from './ruleExecutionCore.js'
 
 export {
@@ -99,9 +105,27 @@ export const activeEffectConsumeEventsSchema = lazySchema(() =>
   sortedUniqueEventsSchema(pathLifecycleConsumeEventSchema, 'consume events')
 )
 
-/** The consume events a timed grant can carry (a cast does not use a grant up): sorted and unique. */
+/** The consume events a timed grant can carry: sorted and unique. */
 export const activeGrantConsumeEventsSchema = lazySchema(() =>
-  sortedUniqueEventsSchema(z.enum(['ON_ATTACK_ROLL', 'ON_ABILITY_CHECK']), 'grant consume events')
+  sortedUniqueEventsSchema(pathLifecycleGrantConsumeEventSchema, 'grant consume events')
+)
+
+/** The end events a timed grant can carry: sorted and unique. */
+export const activeGrantEndEventsSchema = lazySchema(() =>
+  sortedUniqueEventsSchema(pathLifecycleGrantEndEventSchema, 'grant end events')
+)
+
+/** The conditions whose holder ends a timed grant early (condition type ids): sorted and unique. */
+export const activeGrantEndConditionIdsSchema = lazySchema(() =>
+  sortedUniqueEventsSchema(uuidSchema, 'end conditions')
+)
+
+/**
+ * The holder ending a timed grant by choice, at the cost of one activation (`FREE` costs none). In
+ * an Encounter a costed end is available only on the holder's turn and spends that slot.
+ */
+export const activeGrantHolderEndSchema = lazySchema(() =>
+  z.strictObject({ activation: activationCodeSchema })
 )
 
 /** Immutable provenance, compiled plan, and recurrence configuration for one active effect. */
@@ -118,6 +142,8 @@ const activeRuleEffectDefinitionBaseDtoSchema = lazySchema(() =>
       recurrenceStage: z.enum(['NONE', 'START_OF_TURN', 'END_OF_TURN']),
       consumeOnFirstEvents: activeEffectConsumeEventsSchema,
       endOnEvents: activeEffectEndEventsSchema,
+      endOnConditionIds: activeGrantEndConditionIdsSchema,
+      holderEnd: z.nullable(activeGrantHolderEndSchema),
       lifetimeScope: z.enum(['OWNER', 'ENCOUNTER']),
       expiration: z.discriminatedUnion('kind', [
         z.strictObject({ kind: z.literal('INDEFINITE') }),
@@ -376,5 +402,15 @@ export const activeRuleEffectStateDtoSchema = lazySchema(() =>
     )
 )
 
+export type ActiveGrantHolderEnd = z.infer<typeof activeGrantHolderEndSchema>
+
+/** The events whose first occurrence can use an Encounter grant up. */
+export type GrantConsumeEvent = z.infer<typeof pathLifecycleGrantConsumeEventSchema>
+
+/** The events whose first occurrence ends an active effect. */
+export type ActiveEffectEndEvent = z.infer<typeof pathLifecycleEndEventSchema>
+
+/** The events that end an Encounter grant early. */
+export type GrantEndEvent = z.infer<typeof pathLifecycleGrantEndEventSchema>
 export type ActiveRuleEffectDefinitionDto = z.infer<typeof activeRuleEffectDefinitionDtoSchema>
 export type ActiveRuleEffectStateDto = z.infer<typeof activeRuleEffectStateDtoSchema>

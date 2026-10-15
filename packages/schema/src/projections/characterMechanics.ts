@@ -32,7 +32,10 @@ import {
 } from '../shared/ruleExecutionCore.js'
 import {
   activeEffectEndEventsSchema,
-  activeGrantConsumeEventsSchema
+  activeGrantConsumeEventsSchema,
+  activeGrantEndConditionIdsSchema,
+  activeGrantEndEventsSchema,
+  activeGrantHolderEndSchema
 } from '../shared/activeRuleEffects.js'
 import { serverUuidIdentityDtoSchema } from '../shared/serverUuidIdentity.js'
 import { characterInitiativeActorFactsSchema } from './characterInitiativeFacts.js'
@@ -159,8 +162,9 @@ const compiledActionActiveEffectPlanSchema = lazySchema(() =>
             tickAnchor: z.enum(['HOLDER', 'SOURCE']),
             includesCurrentTurn: z.boolean(),
             consumeOnFirstEvents: activeGrantConsumeEventsSchema,
-            /** Events whose first occurrence ends the grant (a heal ends a speed penalty). */
-            endOnEvents: activeEffectEndEventsSchema
+            endOnEvents: activeGrantEndEventsSchema,
+            endOnConditionIds: activeGrantEndConditionIdsSchema,
+            holderEnd: z.nullable(activeGrantHolderEndSchema)
           })
           .check(
             z.refine(

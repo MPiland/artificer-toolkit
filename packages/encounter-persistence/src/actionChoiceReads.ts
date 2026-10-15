@@ -353,6 +353,30 @@ export async function readEncounterActionChoices(
       })
     }
   }
+  // The grants the actor holds and may end itself, at the cost each grant's own `holderEnd` names (D113).
+  const heldGrantEnds: EncounterActionChoicesDto['heldGrantEnds'] = []
+  for (const effect of actor.kind === 'CUSTOM'
+    ? []
+    : await listActiveRuleEffects(tx, turnEffectOwner(actor, state.id))) {
+    const { holderEnd } = effect.definition.recurrence
+    if (!holderEnd || effect.maintainedEffectStateId !== null) continue
+    const grant =
+      effect.definition.schemaVersion === 2
+        ? effect.definition.stateContributions.find(
+            (contribution) => contribution.kind === 'MODIFIER_GRANT'
+          )
+        : undefined
+    const economy = await readEconomy({ code: holderEnd.activation, amount: 1 })
+    heldGrantEnds.push({
+      activeEffectId: effect.id,
+      label:
+        grant && !(grant.sourceHidden && membership.role !== 'OWNER')
+          ? `End ${grant.sourceLabel}`
+          : 'End effect',
+      actionCost: holderEnd.activation,
+      warnings: economy.warnings
+    })
+  }
   return encounterActionChoicesDtoSchema.parse({
     encounterId: state.id,
     encounterVersion: state.version,
@@ -370,6 +394,7 @@ export async function readEncounterActionChoices(
     unavailableActions,
     basicActionChoices,
     escapes,
+    heldGrantEnds,
     optionalRules: activeOptionalCombatDefinitions({
       automationMode: state.automationMode,
       snapshot: state.optionalCombatSnapshot

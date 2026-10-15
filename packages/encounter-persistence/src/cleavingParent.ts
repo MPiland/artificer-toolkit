@@ -65,7 +65,7 @@ async function terminalReceipt(
   return { ...terminal[0]!, occurrence }
 }
 
-/** Walks the bounded receipt chain back to the original finalized attack. */
+/** Walks the bounded receipt chain back to the original finalized attack, and returns its occurrence. */
 export async function verifyNativeCleavingParentChain(
   ctx: EncounterReadContext,
   state: EncounterRunState,
@@ -167,4 +167,5 @@ export async function verifyNativeCleavingParentChain(
     checksumRuleDocument(context.damage) !== checksumRuleDocument(damage)
   )
     throw new Error('Cleaving retained damage is stale.')
+  return parent.occurrence.id
 }

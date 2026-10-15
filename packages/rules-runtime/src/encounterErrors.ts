@@ -5,6 +5,14 @@ export class EncounterValidationError extends Error {
   }
 }
 
+/** The actor holds a spellcasting lock, so it may not hold Concentration (D113). */
+export class SpellcastingLockedError extends EncounterValidationError {
+  constructor() {
+    super("You can't hold Concentration right now.")
+    this.name = 'SpellcastingLockedError'
+  }
+}
+
 export class EncounterConflictError extends Error {
   constructor(message = 'Encounter changed before this action completed.') {
     super(message)

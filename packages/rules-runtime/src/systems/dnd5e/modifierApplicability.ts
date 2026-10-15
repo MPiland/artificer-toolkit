@@ -22,11 +22,13 @@ export type Dnd5eAttackingItem = {
 
 /**
  * What a modifier consumer evaluates: the sources whose own (SOURCE-scoped) modifiers apply, the
- * attacking item for item facets and the spell for spell facets.
+ * attacking item for item facets, the ability the attack uses for attack-ability facets and the
+ * spell for spell facets.
  */
 export type Dnd5eModifierTarget = {
   readonly sourceIds: readonly string[]
   readonly item: Dnd5eAttackingItem | null
+  readonly attackAbility: string | null
   readonly spellId: string | null
 }
 
@@ -34,6 +36,7 @@ export type Dnd5eModifierTarget = {
 export const DND5E_CHARACTER_WIDE_TARGET: Dnd5eModifierTarget = {
   sourceIds: [],
   item: null,
+  attackAbility: null,
   spellId: null
 }
 
@@ -50,7 +53,15 @@ function dnd5eModifierScope(grant: unknown): 'GLOBAL' | 'SOURCE' {
   return characterPolicyRecord(grant).scope === 'GLOBAL' ? 'GLOBAL' : 'SOURCE'
 }
 
-function itemConditionMatches(condition: ItemCondition, item: Dnd5eAttackingItem): boolean {
+/** An attack-ability condition needs no item, so an unarmed strike can meet it. */
+function itemConditionMatches(
+  condition: ItemCondition,
+  item: Dnd5eAttackingItem | null,
+  attackAbility: string | null
+): boolean {
+  if (condition.kind === 'ITEM_ATTACK_ABILITY')
+    return attackAbility !== null && condition.abilityId === attackAbility
+  if (item === null) return false
   switch (condition.kind) {
     case 'ITEM_IDENTITY':
       return (
@@ -75,19 +86,24 @@ function itemConditionMatches(condition: ItemCondition, item: Dnd5eAttackingItem
   }
 }
 
-/** OR-of-AND item groups; a Character-wide value (no item) meets only an empty requirement. */
+/**
+ * OR-of-AND item groups; a Character-wide value (no item) meets only an empty requirement, or a
+ * group of attack-ability conditions alone.
+ */
 function dnd5eItemRequirementsMet(
   requirements: CharacterGrantFoldRestriction,
-  item: Dnd5eAttackingItem | null
+  item: Dnd5eAttackingItem | null,
+  attackAbility: string | null
 ): boolean {
   if (requirements.length === 0) return true
-  if (item === null) return false
-  return requirements.some((group) =>
-    group.conditions.every((condition) =>
-      condition.constraint === 'INCLUDE'
-        ? itemConditionMatches(condition, item)
-        : !itemConditionMatches(condition, item)
-    )
+  return requirements.some(
+    (group) =>
+      (item !== null || group.conditions.length > 0) &&
+      group.conditions.every((condition) => {
+        if (item === null && condition.kind !== 'ITEM_ATTACK_ABILITY') return false
+        const matches = itemConditionMatches(condition, item, attackAbility)
+        return condition.constraint === 'INCLUDE' ? matches : !matches
+      })
   )
 }
 
@@ -102,7 +118,7 @@ export function dnd5eModifierApplies(
 ): boolean {
   return (
     (modifier.scope === 'GLOBAL' || target.sourceIds.includes(modifier.sourceId)) &&
-    dnd5eItemRequirementsMet(modifier.itemRequirements, target.item) &&
+    dnd5eItemRequirementsMet(modifier.itemRequirements, target.item, target.attackAbility) &&
     (modifier.scopeSpellIds.length === 0 ||
       (target.spellId !== null && modifier.scopeSpellIds.includes(target.spellId)))
   )
@@ -139,6 +155,7 @@ export function dnd5eCharacterActionTarget(
   return {
     sourceIds: [candidate.sourceId],
     item: dnd5eAttackingItem(candidate.equipment),
+    attackAbility: null,
     spellId: candidate.mechanicsOwner.kind === 'SPELL' ? candidate.mechanicsOwner.id : null
   }
 }

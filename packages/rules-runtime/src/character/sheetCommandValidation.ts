@@ -307,15 +307,3 @@ export function assertCampaignGmSheetCommandAllowed(command: CharacterSheetComma
     `Campaign owners cannot apply ${command.type} to a player's Character.`
   )
 }
-
-/**
- * D99: ending an active effect by hand is the Campaign owner's call. It follows the caller's role,
- * not the sheet viewer, because owning a Character adds player paths and removes none (D92).
- */
-export function assertSheetCommandCallerAllowed(
-  command: CharacterSheetCommandInputDto,
-  isCampaignOwner: boolean
-): void {
-  if (command.type === 'END_ACTIVE_EFFECT' && !isCampaignOwner)
-    throw new CharacterSheetCommandError('Only the Campaign owner can end an active effect.')
-}

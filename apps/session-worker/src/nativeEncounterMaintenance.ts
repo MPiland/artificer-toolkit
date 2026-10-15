@@ -1,4 +1,6 @@
 import { prepareEncounterActionMaintenance } from '@artificer-toolkit/rules-runtime/encounterActionMaintenance'
+import { SpellcastingLockedError } from '@artificer-toolkit/rules-runtime/encounterErrors'
+import { DOMAIN_REJECTION_MESSAGES } from '@artificer-toolkit/schema/api/domainRejections'
 import type {
   LiveSessionEncounterRulesRequest,
   LiveSessionEncounterRulesResponse
@@ -13,6 +15,7 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { MovementMaintenanceProjection } from '@artificer-toolkit/rules-runtime/encounterMovementMaintenance'
 import type { MovementTarget } from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
 import type { ProjectableCharacterFacts } from '@artificer-toolkit/rules-runtime/encounterActionProjection'
+import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
 import {
   readCharacterRecord,
   type StoredCharacter
@@ -214,6 +217,7 @@ export async function prepareNativeLiveActionMaintenance(input: {
   let slot: { definitionId: string; stateId: string } | null = null
   return prepareEncounterActionMaintenance({
     prepared,
+    activeEffects: input.activeEffectsByActorId.get(prepared.actor.id) ?? [],
     readDefinition: async (definitionId) => {
       const response = await capture({ kind: 'DEFINITION', definitionId })
       if (response.kind !== 'DEFINITION') throw new Error('Maintenance definition is unavailable.')
@@ -258,5 +262,13 @@ export async function prepareNativeLiveActionMaintenance(input: {
         projection: input.projection
       })
     }
+  }).catch((error: unknown) => {
+    if (error instanceof SpellcastingLockedError)
+      throw new LiveSessionDomainRejectionError(422, {
+        code: 'DOMAIN_REJECTED',
+        reason: 'SOURCE_REQUIREMENTS_NOT_MET',
+        message: DOMAIN_REJECTION_MESSAGES.SOURCE_REQUIREMENTS_NOT_MET
+      })
+    throw error
   })
 }

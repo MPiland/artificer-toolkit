@@ -1275,6 +1275,7 @@ export function buildNativeLiveEncounterAreaCommitInput(
     ruleOverrides: plan.ruleOverrides,
     concentration: plan.concentration.completed,
     pendingConcentration: plan.concentration.pending,
-    concentrationEnds: plan.concentration.concentrationEnds
+    concentrationEnds: plan.concentration.concentrationEnds,
+    endedGrants: plan.concentration.endedGrants
   })
 }

@@ -90,6 +90,16 @@ export function evaluateDnd5e2014CharacterPolicy(
           ])
     ],
     spellEffects: input.spellActionFacts,
+    spellcastingLocked: modifierGroups.some(
+      (group) =>
+        group.valueDomainCode === 'SPELLCASTING_LOCK' &&
+        group.contributions.some((contribution) =>
+          dnd5eModifierApplies(
+            dnd5eFoldedModifierApplicability(grantFold, contribution),
+            DND5E_CHARACTER_WIDE_TARGET
+          )
+        )
+    ),
     spellMechanics: spellMechanics.map((mechanics) => ({
       source: mechanics.source,
       attackBonus: mechanics.attackBonus ?? null,
@@ -110,6 +120,7 @@ export function evaluateDnd5e2014CharacterPolicy(
       contributions: group.contributions.map((contribution) => ({
         ...dnd5eFoldedModifierApplicability(grantFold, contribution),
         value: contribution.value,
+        ability: contribution.ability ?? null,
         state: contribution.state
       }))
     })),

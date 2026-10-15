@@ -31,7 +31,7 @@ export type LiveSessionEncounterConcentrationCommitInput = Omit<
   cleaving: z.infer<typeof serverRuleExecutionPendingSnapshotDtoSchema> | null
 } & Pick<
     LiveSessionEncounterActionCommitInput,
-    'concentration' | 'pendingConcentration' | 'concentrationEnds'
+    'concentration' | 'pendingConcentration' | 'concentrationEnds' | 'endedGrants'
   >
 
 export const liveSessionEncounterConcentrationCommitInputSchema: z.ZodMiniType<LiveSessionEncounterConcentrationCommitInput> =

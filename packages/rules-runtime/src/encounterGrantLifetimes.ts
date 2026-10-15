@@ -1,6 +1,10 @@
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
-import type { ActiveEffectEndEvent, GrantConsumeEvent } from './characterRuleActionSystemAdapter.js'
+import type {
+  ActiveEffectEndEvent,
+  GrantConsumeEvent
+} from '@artificer-toolkit/schema/shared/activeRuleEffects'
+import type { ConcentrationEndReason } from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
 import {
   isEffectLiveInEncounter,
   turnEffectOwner,
@@ -43,6 +47,39 @@ export function grantsEndedBy(
   return effects.filter(
     (effect) => isModifierGrant(effect) && effect.definition.recurrence.endOnEvents.includes(event)
   )
+}
+
+/** Grants whose lifetime follows their holder's state: they end on incapacitation or on a named condition. */
+export function stateBoundGrants<Effect extends ActiveRuleEffectRecord>(
+  effects: readonly Effect[]
+) {
+  return effects.filter(
+    (effect) =>
+      isModifierGrant(effect) &&
+      (effect.definition.recurrence.endOnEvents.includes('ON_INCAPACITATED') ||
+        effect.definition.recurrence.endOnConditionIds.length > 0)
+  )
+}
+
+/**
+ * The holder's grants its state ends (D95): those that end on incapacitation when it is
+ * incapacitated or defeated, and those that name a condition it has, whatever else is true of them.
+ */
+export function grantsEndedByHolderState<Effect extends ActiveRuleEffectRecord>(
+  effects: readonly Effect[],
+  state: {
+    reason: Exclude<ConcentrationEndReason, 'CHOSEN'> | null
+    conditionIds: readonly string[]
+  }
+) {
+  const incapacitated = state.reason === 'INCAPACITATED' || state.reason === 'DEFEATED'
+  return stateBoundGrants(effects).filter(({ definition }) => {
+    const { endOnEvents, endOnConditionIds } = definition.recurrence
+    return (
+      (incapacitated && endOnEvents.includes('ON_INCAPACITATED')) ||
+      endOnConditionIds.some((conditionId) => state.conditionIds.includes(conditionId))
+    )
+  })
 }
 
 /** The actor whose turns count a timed grant down: its holder, or the Encounter actor that applied it. */

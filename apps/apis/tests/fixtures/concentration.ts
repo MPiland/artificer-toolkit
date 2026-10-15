@@ -261,6 +261,8 @@ export async function seedConcentration(fixture: {
         recurrenceStage: 'NONE' as const,
         consumeOnFirstEvents: [],
         endOnEvents: [],
+        endOnConditionIds: [],
+        holderEnd: null,
         lifetimeScope: 'ENCOUNTER' as const,
         expiration: {
           kind: 'TICKS' as const,
