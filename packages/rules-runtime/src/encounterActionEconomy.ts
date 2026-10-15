@@ -5,8 +5,10 @@ import type {
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { TurnActionEconomyRefreshDto } from '@artificer-toolkit/schema/shared/ruleExecutionTurnResources'
 import { ruleCapabilityReusableDefinitionDocumentDtoSchema } from '@artificer-toolkit/schema/shared/ruleState'
+import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { actionEconomyCapabilityRegistry } from './actionEconomyCapabilityRegistry.default.js'
+import { encounterActiveGrantCapabilitySuppressions } from './encounterActiveGrants.js'
 import { encounterRuleUsageUsed, withEncounterRuleUsageUsed } from './encounterActorState.js'
 import type { MovementTarget } from './encounterMovementTargets.js'
 import {
@@ -21,21 +23,26 @@ type ActionEconomyTarget = Pick<
   'actor' | 'state' | 'activeEffects' | 'effectiveRulePolicyOutput'
 >
 
-/** The capabilities an actor's active relationship effects suppress. */
-export function activeEffectCapabilitySuppressions(effects: ActionEconomyTarget['activeEffects']) {
-  return effects.flatMap((effect) =>
-    effect.definition.schemaVersion === 2
-      ? effect.definition.stateContributions.flatMap((contribution) =>
-          contribution.kind === 'ACTOR_RELATIONSHIP'
-            ? contribution.capabilitySuppressions.map((suppression) => ({
-                activeEffectId: effect.id,
-                contributionId: suppression.contributionId,
-                capabilityDefinitionIds: suppression.capabilityDefinitionIds
-              }))
-            : []
-        )
-      : []
-  )
+/** The capabilities an actor's active relationship effects and grants (D99) suppress. */
+export function activeEffectCapabilitySuppressions(
+  effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[]
+) {
+  return [
+    ...effects.flatMap((effect) =>
+      effect.definition.schemaVersion === 2
+        ? effect.definition.stateContributions.flatMap((contribution) =>
+            contribution.kind === 'ACTOR_RELATIONSHIP'
+              ? contribution.capabilitySuppressions.map((suppression) => ({
+                  activeEffectId: effect.id,
+                  contributionId: suppression.contributionId,
+                  capabilityDefinitionIds: suppression.capabilityDefinitionIds
+                }))
+              : []
+          )
+        : []
+    ),
+    ...encounterActiveGrantCapabilitySuppressions(effects)
+  ]
 }
 export async function stageEncounterActionEconomyRefreshes(input: {
   actor: EncounterRunActorState

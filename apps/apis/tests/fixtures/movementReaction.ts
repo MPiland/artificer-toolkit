@@ -68,7 +68,7 @@ const reactionCreature = {
         ...effect.invocation,
         triggerCode: 'MELEE_WEAPON_ATTACK' as const,
         activation: { code: 'REACTION' as const, amount: 1 },
-        reactionMovementTrigger: reactionBinding
+        reactionTrigger: reactionBinding
       }
     }))
   }))
@@ -336,7 +336,7 @@ export async function setupCreatureReactionRun(
                   }
                 }
               : {}),
-            reactionMovementTrigger: {
+            reactionTrigger: {
               ...reactionBinding,
               perceptionRequirement,
               movementInterruption: stopOnFailedSave
@@ -356,12 +356,12 @@ export async function setupCreatureReactionRun(
       effects: feature.effects?.map((effect) => ({
         ...effect,
         invocation:
-          'reactionMovementTrigger' in effect.invocation &&
-          effect.invocation.reactionMovementTrigger
+          'reactionTrigger' in effect.invocation &&
+          effect.invocation.reactionTrigger
             ? {
                 ...effect.invocation,
-                reactionMovementTrigger: {
-                  ...effect.invocation.reactionMovementTrigger,
+                reactionTrigger: {
+                  ...effect.invocation.reactionTrigger,
                   eligibilityDefinitionId: additionalOpportunityId
                 }
               }

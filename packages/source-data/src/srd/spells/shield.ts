@@ -39,6 +39,7 @@ export const shield: SpellAuthored = {
           code: ACTIVATION_CODE.REACTION,
           amount: 1
         },
+        reactionTrigger: { kind: 'ATTACKED_SELF' as const },
         range: {
           id: spellChildId(SPELL_IDS.SHIELD, 0x211, 1),
           rangeKind: RANGE_KIND.SELF

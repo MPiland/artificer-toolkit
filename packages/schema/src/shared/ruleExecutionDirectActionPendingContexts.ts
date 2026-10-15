@@ -21,6 +21,7 @@ import {
   serverRuleExecutionD20PolicyDtoSchema,
   serverRuleExecutionNestedD20EvidenceDtoSchema
 } from './ruleExecutionEvidence.js'
+import { encounterReactionOutcomeAuditDtoSchema } from './ruleExecutionReactionChoice.js'
 import { pendingD20FaceSchema } from './ruleExecutionSpatial.js'
 import { serverCompletedRuleExecutionDtoSchema } from './ruleExecutionProtocol.js'
 import {
@@ -160,6 +161,8 @@ export const directActionTwoPhaseDtoSchema = lazySchema(() =>
           z.nullable(directActionLegendaryResistanceOutcomeAuditDtoSchema),
           null
         ),
+        /** Null unless an interstitial reaction choice preceded this OUTCOME. */
+        reaction: z._default(z.nullable(encounterReactionOutcomeAuditDtoSchema), null),
         /** Server-sealed d20 evidence from the completed TEST phase. */
         testRollEvidence: z
           .strictObject({

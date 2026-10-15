@@ -55,7 +55,7 @@ function opportunityWolf(stopOnHit: boolean): CreatureAuthored {
             invocation: {
               ...biteEffect.invocation,
               activation: { code: 'REACTION' as const, amount: 1 },
-              reactionMovementTrigger: {
+              reactionTrigger: {
                 kind: 'MOVEMENT' as const,
                 stage: 'BEFORE_LEAVE_REACH' as const,
                 perceptionRequirement: null,
@@ -87,7 +87,7 @@ export const saveStopWolf: CreatureAuthored = (() => {
   const bite = creatureFeature(reactionWolf, 'Bite')
   const effect = bite.effects?.[0]
   const trigger =
-    effect?.invocation.kind === 'ACTION' ? effect.invocation.reactionMovementTrigger : null
+    effect?.invocation.kind === 'ACTION' ? effect.invocation.reactionTrigger : null
   const damagePath = effect?.paths.find(
     (path) =>
       'resultBlock' in path &&
@@ -113,7 +113,7 @@ export const saveStopWolf: CreatureAuthored = (() => {
                 baseDc: 30,
                 abilityDefinitionId: SRD_ABILITY_DEFINITION_IDS.DEXTERITY
               },
-              reactionMovementTrigger: {
+              reactionTrigger: {
                 ...trigger,
                 movementInterruption: {
                   kind: 'STOP' as const,

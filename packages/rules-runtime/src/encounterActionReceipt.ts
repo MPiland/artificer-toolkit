@@ -12,9 +12,11 @@ import type {
   planNativeEncounterAreaSourceSpend
 } from './encounterActionMechanicsPlan.js'
 import type { encounterTargetLegendaryResistance } from './encounterAreaLegendaryResistance.js'
+import { characterSpellConsumptionReceipt } from './encounterActionMechanicsPlan.js'
+import type { encounterReactionAudit } from './encounterReactionChoice.js'
 
 /** Recorded so a GM undo restores the allowance exactly; an override may exceed the maximum. */
-function actionEconomyReceipt(consumption: EncounterActionEconomyConsumption | null) {
+export function actionEconomyReceipt(consumption: EncounterActionEconomyConsumption | null) {
   return consumption
     ? {
         definitionId: consumption.definitionId,
@@ -46,12 +48,35 @@ export function buildEncounterActionStoredExecution(input: {
   area?: { parentOccurrenceId: string }
   /** The target's decided Legendary Resistance and the charge it cost, when its failed save offered one. */
   resistance?: ReturnType<typeof encounterTargetLegendaryResistance> | null
+  /** The target Character's decided reaction to the hit and what using it spent and created. */
+  reaction?: {
+    audit: ReturnType<typeof encounterReactionAudit>
+    spent: {
+      spellConsumption: Parameters<typeof characterSpellConsumptionReceipt>[0]
+      economy: EncounterActionEconomyConsumption
+      activeEffectTransitions: ReturnType<
+        typeof projectNativeActionEffectTransitions
+      >['activeEffectTransitions']
+    } | null
+  } | null
 }) {
   const { prepared, execution, occurrenceId, occurrenceVersion, settled, effects } = input
   const { state, source, actor, target } = prepared
   const { mechanics, resourceReceipt, featureResourceReceipt } = settled
   const { stateEffectTransitions, activeEffectTransitions } = effects
   const actionEconomyTransition = actionEconomyReceipt(input.actionEconomy)
+  const characterEffectReceipt = (
+    transition: (typeof activeEffectTransitions)[number],
+    maintainedEffectStateId: string | null
+  ) => {
+    const { targetActorId: _targetActorId, ...receipt } = transition
+    return {
+      ...receipt,
+      characterId: target.sourceId,
+      sourceEncounterId: state.id,
+      maintainedEffectStateId
+    }
+  }
   const parentOccurrenceId = input.area ? { parentOccurrenceId: input.area.parentOccurrenceId } : {}
   const sourceCharacterStreamVersion =
     settled.sourceCharacterStreamVersion ??
@@ -88,15 +113,28 @@ export function buildEncounterActionStoredExecution(input: {
             sourceItemConsumption: settled.itemConsumptionReceipt,
             actionEconomyTransition,
             ...(input.attackAction ? { attackActionTransition: input.attackAction } : {}),
-            activeEffectTransitions: activeEffectTransitions.map(
-              ({ targetActorId: _targetActorId, ...transition }) => ({
-                ...transition,
-                characterId: target.sourceId,
-                sourceEncounterId: state.id,
-                maintainedEffectStateId: input.maintainedState?.id ?? null
-              })
+            activeEffectTransitions: activeEffectTransitions.map((transition) =>
+              characterEffectReceipt(transition, input.maintainedState?.id ?? null)
             ),
             stateEffectTransitions,
+            reaction: input.reaction
+              ? {
+                  selection: input.reaction.audit.selection,
+                  reaction: input.reaction.audit.reaction,
+                  choiceExecution: input.reaction.audit.choiceExecution,
+                  originalExecutionChecksum: input.reaction.audit.originalExecutionChecksum,
+                  adjustment: input.reaction.audit.adjustment,
+                  spellCastConsumption: characterSpellConsumptionReceipt(
+                    input.reaction.spent?.spellConsumption
+                  ),
+                  actionEconomyTransition: actionEconomyReceipt(
+                    input.reaction.spent?.economy ?? null
+                  ),
+                  activeEffectTransitions: (input.reaction.spent?.activeEffectTransitions ?? []).map(
+                    (transition) => characterEffectReceipt(transition, null)
+                  )
+                }
+              : null,
             ...(input.maintenanceTransition
               ? { maintenanceTransition: input.maintenanceTransition }
               : {}),

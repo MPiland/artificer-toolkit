@@ -139,7 +139,7 @@ async function setup(replacement = false, futureReactor = false, assisted = fals
     triggerCode: 'MELEE_WEAPON_ATTACK',
     activation: { code: 'REACTION', amount: 1 },
     ...(assisted ? { resourceUse: { chargeId, cost: 1 } } : {}),
-    reactionMovementTrigger: {
+    reactionTrigger: {
       ...reactionBinding,
       movementInterruption: stop ? { kind: 'STOP', whenResultPath: 'ON_HIT' } : null
     }
