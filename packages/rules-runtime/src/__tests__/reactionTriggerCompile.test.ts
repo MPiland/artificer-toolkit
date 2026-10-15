@@ -4,6 +4,7 @@ import { compileEffect } from '@artificer-toolkit/shared/compilers'
 import type { EffectAuthored } from '@artificer-toolkit/shared/authored'
 import { shield } from '@artificer-toolkit/source-data/srd/spells/shield.js'
 
+import { CharacterRuleActionUnsupportedCompilationError } from '../characterRuleActionSystemAdapter.js'
 import { dnd5eCharacterRuleActionSystemAdapter } from '../systems/dnd5e/effectActionCompiler.js'
 import {
   ACTION_EFFECT_ID,
@@ -51,12 +52,14 @@ describe('a reaction authored with the ATTACKED_SELF trigger compiles through th
     expect(operationKeys(compile(shieldEffect()))).toContain(MODIFIER_GRANT_OPERATION_KEY)
   })
 
-  it('refuses a self reaction that names no trigger', () => {
+  it('refuses a REACTION activation that names no trigger as an unsupported action shape', () => {
     const effect = shieldEffect()
     const { reactionTrigger: _trigger, ...invocation } = effect.invocation as Record<
       string,
       unknown
     >
-    expect(() => compile({ ...effect, invocation } as EffectAuthored)).toThrow()
+    expect(() => compile({ ...effect, invocation } as EffectAuthored)).toThrow(
+      CharacterRuleActionUnsupportedCompilationError
+    )
   })
 })

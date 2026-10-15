@@ -81,6 +81,8 @@ describe('effect node maps', () => {
     }
     expect(reactionTriggerNode.presentation).toBe('inline')
     expect(reactionTriggerNode.showIf).toBeDefined()
+    // Optional while the trigger union is incomplete (workbook slice-reaction-4.md, premise change 2026-10-15).
+    expect(reactionTriggerNode.requiredIf).toBeUndefined()
 
     const reactionMap =
       typeof reactionTriggerNode.nodes === 'function'
