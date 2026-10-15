@@ -43,6 +43,20 @@ Deliver a live-backend CI job (manifest, codegen, deploy, seed, SRD audit agains
 
 ## Proof
 
+Final source `6eebd664a` (after the merge-review fixes):
+
+| Run | Ref | Trigger | Result |
+| --- | --- | --- | --- |
+| [38813514949](https://github.com/MPiland/artificer-toolkit/actions/runs/38813514949) | `ci/merge-platform-13-t9` | push | green, audit `"subjects": 1057`, drift check green (regenerated manifest and `_generated` files are byte-identical on Linux and Windows) |
+| [38814079363](https://github.com/MPiland/artificer-toolkit/actions/runs/38814079363) | `ci/platform-13-t9` | dispatch `steps=manifest,codegen,deploy,audit` | red: audit `Missing platform content source.` (job fails, drift check skipped, logs uploaded); `--fresh` still ran `env` first |
+| [38813511069](https://github.com/MPiland/artificer-toolkit/actions/runs/38813511069) | `ci/platform-13-t9` | push (Tests) | green |
+
+Step durations in seconds (script `summary.json`): green 38813514949 env 1, manifest 16, codegen 24, deploy 18, seed 95, audit 2 (job 4 m 25 s); red 38814079363 env 1, manifest 16, codegen 23, deploy 19, audit 2 (exit 1).
+
+The `ci/merge-platform-13-t9` Tests run (38813514954) failed twice (the run and its rerun) in `apps/apis/convex/encounters/developmentLifecycleProof.test.ts` (Convex suite 3/4, a strict deep-equal `AssertionError` on a stat block); the same test failed on the earlier `3984b9140` Tests run, while the identical source passed on `ci/platform-13-t9` (38813511069). This slice touches nothing that test imports, so it is an intermittent failure to track (follow-up below), not a regression of this slice.
+
+First version (`3984b9140`, before the review fixes):
+
 | Run | Ref | Trigger | Result |
 | --- | --- | --- | --- |
 | [38802771155](https://github.com/MPiland/artificer-toolkit/actions/runs/38802771155) | `ci/merge-platform-13-t9` | push | green, audit `"subjects": 1057` |
@@ -67,7 +81,7 @@ Step durations in seconds (script `summary.json`; job totals from the API):
 
 Setup time varies with runner load (the 335 s run shared the account with a full Tests run).
 
-Local heavy-lane proof (read-only): batch `platform-13-t9-local-audit` through `withValidationLock.ps1` ran `node scripts/liveBackendValidation.mjs --steps=audit` against `phase82-convex-local-linux`: exit 0, audit `"subjects": 1057`, 5 s (log `local-validation/platform-13-t9/local-batch.log`). Audit only, so the local backend's deployed code and data stay untouched; the deploy and seed steps share the same script and were proved in CI.
+Local heavy-lane proof (read-only), re-run on the fixed source `6eebd664a`: batch `platform-13-t9-local-audit-2` through `withValidationLock.ps1` ran `node scripts/liveBackendValidation.mjs --steps=audit` against `phase82-convex-local-linux`: exit 0, audit `"subjects": 1057`, `"definitions": 60`, `"systems": 1`, 39 s (log `local-validation/platform-13-t9/local-batch2.log`). The worktree has no installed dependencies, so the batch linked the main checkout's `node_modules` in as junctions for the run and removed the links afterwards. The first proof, before the fixes, was exit 0 in 5 s. Audit only, so the local backend's deployed code and data stay untouched; the deploy and seed steps share the same script and were proved in CI.
 
 ## Proposed ledger edits
 
@@ -76,3 +90,4 @@ Local heavy-lane proof (read-only): batch `platform-13-t9-local-audit` through `
 ## Follow-ups (out of scope)
 
 - Run the Session Worker (wrangler) and Playwright live proofs in CI.
+- Investigate the intermittent `developmentLifecycleProof.test.ts` deep-equal failure in CI Convex suite 3/4 (passes on some runs of the same source).
