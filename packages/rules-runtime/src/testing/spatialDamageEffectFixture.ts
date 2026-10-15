@@ -65,6 +65,8 @@ export async function buildSpatialDamageEffect(input: {
     activation: 'ONE_SHOT' | 'REPEATABLE'
     hidden: boolean
   }
+  /** Makes a Scene-fixed effect a hidden, unrevealed field that allows passage at half speed. */
+  hiddenHalfSpeedField?: boolean
 }) {
   const fire = SRD_DAMAGE_TYPES.find((type) => type.code === 'FIRE')
   if (!fire) throw new Error('The SRD fire damage type is missing.')
@@ -219,7 +221,11 @@ export async function buildSpatialDamageEffect(input: {
   })
   const lifecycle = { schemaVersion: 1 as const, remainingTicks: input.remainingTicks }
   const { moving } = input
-  const spatialState = { schemaVersion: 1 as const, revealed: !moving?.hidden }
+  const hiddenField = !moving && input.hiddenHalfSpeedField === true
+  const spatialState = {
+    schemaVersion: 1 as const,
+    revealed: !moving?.hidden && !hiddenField
+  }
   const placement = moving
     ? {
         schemaVersion: 1 as const,
@@ -246,8 +252,9 @@ export async function buildSpatialDamageEffect(input: {
         triggerModes: ['CROSS' as const],
         movementKinds: ['VOLUNTARY' as const],
         activation: 'ONE_SHOT' as const,
-        visibility: 'PUBLIC' as const,
-        revealOnTrigger: false
+        visibility: hiddenField ? ('HIDDEN' as const) : ('PUBLIC' as const),
+        revealOnTrigger: false,
+        ...(hiddenField && { bypassAtHalfSpeed: true })
       }
   return { id: input.ids.effectId, definition, lifecycle, placement, spatialState }
 }

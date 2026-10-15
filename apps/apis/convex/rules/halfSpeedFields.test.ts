@@ -84,7 +84,10 @@ const placement = (
   ...overrides
 })
 
-async function seed(placements: readonly SpatialRuleEffectPlacementDto[]) {
+async function seed(
+  placements: readonly SpatialRuleEffectPlacementDto[],
+  revealedHidden: readonly number[] = []
+) {
   const t = convexTest(schema)
   await t.run(async (ctx) => {
     await ctx.db.insert('encounterSceneBindings', {
@@ -108,7 +111,10 @@ async function seed(placements: readonly SpatialRuleEffectPlacementDto[]) {
         definition,
         lifecycle: { schemaVersion: 1, remainingTicks: null },
         placement: entry,
-        spatialState: { schemaVersion: 1, revealed: true }
+        spatialState: {
+          schemaVersion: 1,
+          revealed: entry.visibility === 'PUBLIC' || revealedHidden.includes(index)
+        }
       })
   })
   return t
@@ -137,5 +143,21 @@ describe('readHalfSpeedFields', () => {
     ])
     expect(await read(t)).toEqual([])
     expect(await read(t, effectId(99))).toEqual([])
+  })
+
+  it('lists a hidden field once it has been revealed', async () => {
+    const t = await seed(
+      [
+        placement({ bypassAtHalfSpeed: true, visibility: 'HIDDEN', label: 'Pit' }),
+        placement({ bypassAtHalfSpeed: true, visibility: 'HIDDEN' })
+      ],
+      [0]
+    )
+    expect(await read(t)).toEqual([{ id: effectId(20), label: 'Pit', shape: square }])
+  })
+
+  it('reads nothing when the Run has no bound Scene', async () => {
+    const t = convexTest(schema)
+    expect(await read(t)).toEqual([])
   })
 })

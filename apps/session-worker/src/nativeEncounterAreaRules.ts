@@ -429,6 +429,7 @@ export async function planNativeLiveEncounterAreaAction(input: AreaPlanInput) {
     commandFingerprint: input.fingerprint,
     initiatorUserId,
     casterActorId: caster.id,
+    placesZone: base.zone !== null,
     scene: { sceneId: scene.sceneId, sceneVersion: scene.sceneVersion },
     area: { origin: base.origin, shape: area.shape },
     targets

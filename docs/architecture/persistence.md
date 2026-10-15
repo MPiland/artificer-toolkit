@@ -304,6 +304,14 @@ receipt; a matching replay returns the stored projection before loading sources.
 `characterActiveRuleEffects`, `encounterActiveRuleEffects`, `encounterMaintainedEffectStates` and
 `encounterSpatialRuleEffects` (`rules/schema.ts`) through the same Encounter store port.
 
+A placed zone (SPELLS-17) is one `encounterSpatialRuleEffects` row written by the area commit
+(`persistEncounterAreaCommit` takes it as `placedZone` on its input). Its `placement` carries `label` (one shared
+rule, `spatialZoneLabelSchema`), `visibility`, `activation`, `movementKinds`, `triggerModes` and
+`bypassAtHalfSpeed` (the zone may be crossed carefully at double cost); `recurrence.endOnEvents` stays empty, and a
+creature's lingering grant takes its end events from the grant template. The area receipt names the row as
+`placedSpatialEffectId`, so GM undo deletes it with the commit. The Scene holds at most
+`MAX_SPATIAL_RULE_EFFECTS_PER_SCENE` rows; the next placement is refused with `TARGET_UNAVAILABLE`.
+
 ## Scene storage
 
 `sceneDefinitions` holds the current settings and save ID of a Scene definition. An owner save uploads typed

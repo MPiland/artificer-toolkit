@@ -177,6 +177,8 @@ export interface MovementRoomConfig {
     /** Applies this condition instead of dealing damage. */
     condition?: { conditionId: string }
     moving?: { activation: 'ONE_SHOT' | 'REPEATABLE'; hidden: boolean }
+    /** A Scene-fixed field that is hidden and unrevealed yet flagged for half-speed passage. */
+    hiddenHalfSpeedField?: boolean
   }[]
   /** Scene lighting and barriers, where the room's open, bright Scene is not what a test needs. */
   sceneOverrides?: Partial<

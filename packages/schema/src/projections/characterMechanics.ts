@@ -10,7 +10,8 @@ import { characterAuthoredDtoSchema } from '../subjects/character.js'
 import { characterProvenanceDtoSchema } from '../subjects/characterIntent.js'
 import { rangeDtoSchema } from '../shared/range.js'
 import { shapeDtoSchema } from '../shared/shape.js'
-import { spatialMovementKindDtoSchema, spatialTriggerDtoSchema } from '../shared/spatialFacts.js'
+import { spatialTriggerDtoSchema } from '../shared/spatialFacts.js'
+import { spatialZoneLabelSchema } from '../shared/spatial.js'
 import { targetingDtoSchema } from '../effects/targeting.js'
 import { ruleValueDtoSchema } from '../api/rulesRuntime.js'
 import {
@@ -159,7 +160,7 @@ const compiledActionActiveEffectPlanSchema = lazySchema(() =>
             includesCurrentTurn: z.boolean(),
             consumeOnFirstEvents: activeGrantConsumeEventsSchema,
             /** Events whose first occurrence ends the grant (a heal ends a speed penalty). */
-            endOnEvents: z._default(activeEffectEndEventsSchema, [])
+            endOnEvents: activeEffectEndEventsSchema
           })
           .check(
             z.refine(
@@ -217,21 +218,23 @@ const compiledActionActiveEffectPlanSchema = lazySchema(() =>
  */
 const compiledActionZonePlacementSchema = lazySchema(() =>
   z.strictObject({
-    label: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(240)),
+    label: spatialZoneLabelSchema,
     shape: shapeDtoSchema,
     triggerModes: z.array(spatialTriggerDtoSchema).check(z.minLength(1)).check(z.maxLength(3)),
-    movementKinds: z
-      .array(spatialMovementKindDtoSchema)
-      .check(z.minLength(1))
-      .check(z.maxLength(3)),
-    activation: z.enum(['ONE_SHOT', 'REPEATABLE']),
-    visibility: z.enum(['PUBLIC', 'HIDDEN']),
     /** Whether a mover who crosses at half speed (moves carefully) skips the entry. */
     bypassAtHalfSpeed: z.optional(z.boolean()),
     /** What a creature the zone triggers on is put through (its authored save and outcomes). */
     entry: compiledActionActiveEffectPlanSchema,
-    /** What a creature that fails the entry carries afterwards; null when nothing lingers. */
-    lingeringEffect: z.nullable(compiledActionActiveEffectPlanSchema)
+    /** The grant a creature that fails the entry keeps; null when nothing lingers. */
+    grant: z.nullable(
+      z.strictObject({
+        applyGrantOutcomeId: serverUuidIdentityDtoSchema,
+        modifiers: z.array(modifierOperationSchema).check(z.maxLength(200)),
+        senses: z.array(senseOperationSchema).check(z.maxLength(200)),
+        /** The events whose first occurrence ends the grant (a heal ends a speed penalty). */
+        endOnEvents: activeEffectEndEventsSchema
+      })
+    )
   })
 )
 
@@ -393,7 +396,7 @@ const compiledActionEntryPointSchema = lazySchema(() =>
         resourceBinding: z.nullable(compiledActionResourceBindingSchema),
         activeEffectPlan: z.nullable(compiledActionActiveEffectPlanSchema),
         /** Set for an action that places a zone; its `executionPlan` is then never run. */
-        zonePlacement: z._default(z.nullable(compiledActionZonePlacementSchema), null),
+        zonePlacement: z.nullable(compiledActionZonePlacementSchema),
         executionPlan: compiledActionExecutionPlanSchema
       })
     }),

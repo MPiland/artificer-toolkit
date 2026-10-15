@@ -29,8 +29,9 @@ import type { ActorRelationshipModuleAuthored } from '@artificer-toolkit/shared/
 /** The events whose first occurrence can use an Encounter grant up. */
 export type GrantConsumeEvent = 'ON_ATTACK_ROLL' | 'ON_ABILITY_CHECK'
 
-/** The events whose first occurrence ends an active effect. */
-export type ActiveEffectEndEvent = 'ON_ATTACK_ROLL' | 'ON_CAST_SPELL' | 'ON_HIT_POINTS_REGAINED'
+/** The events whose first occurrence ends an active effect (the schema's end-event enum). */
+export type ActiveEffectEndEvent =
+  ActiveRuleEffectDefinitionDto['recurrence']['endOnEvents'][number]
 
 /**
  * A System-owned, bounded recurrence declaration. The Encounter coordinator
@@ -103,18 +104,8 @@ export interface CharacterRuleActionActiveEffectPlan {
 }
 
 /** A zone an action leaves on the Scene; see `compiledActionZonePlacementSchema`. */
-export type CharacterRuleActionZonePlacementPlan = Pick<
-  CompiledActionZonePlacement,
-  | 'label'
-  | 'shape'
-  | 'triggerModes'
-  | 'movementKinds'
-  | 'activation'
-  | 'visibility'
-  | 'bypassAtHalfSpeed'
-> & {
+export type CharacterRuleActionZonePlacementPlan = Omit<CompiledActionZonePlacement, 'entry'> & {
   entry: CharacterRuleActionActiveEffectPlan
-  lingeringEffect: CharacterRuleActionActiveEffectPlan | null
 }
 
 /**

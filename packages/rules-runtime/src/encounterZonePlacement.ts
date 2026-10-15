@@ -14,7 +14,8 @@ type PlacedSpaceManifest = Exclude<
 
 /** An authored zone an action places at a chosen point, with the behavior its entry runs. */
 export interface PlacedSpaceZone {
-  manifest: PlacedSpaceManifest
+  label: string
+  shape: NonNullable<PlacedSpaceManifest['shape']>
   component: CompiledManifestComponent
   behavior: CompiledEffectGroup
 }
@@ -39,7 +40,12 @@ const MODELED_COMPONENT_KEYS: ReadonlySet<string> = new Set([
 ])
 
 const ZONE_INTERACTION_TRIGGER_MODES: Readonly<
-  Record<string, CompiledActionZonePlacement['triggerModes']>
+  Partial<
+    Record<
+      NonNullable<CompiledManifestComponent['interactionKind']>,
+      CompiledActionZonePlacement['triggerModes']
+    >
+  >
 > = {
   ENTER_SPACE: ['ENTER'],
   ENTER_OR_PASS_THROUGH: ['ENTER', 'CROSS'],
@@ -80,7 +86,8 @@ export function placedSpaceZone(compiledEffect: CompiledEffectGroup): PlacedSpac
       'A placed zone models only its label, shape and entering components.'
     )
   const [component] = manifest.components ?? []
-  if (manifest.components?.length !== 1 || !component || !manifest.shape || !manifest.label)
+  const { label, shape } = manifest
+  if (manifest.components?.length !== 1 || !component || !shape || !label)
     throw new CharacterRuleActionUnsupportedCompilationError(
       'A placed zone needs a label, a shape and exactly one component.'
     )
@@ -93,7 +100,7 @@ export function placedSpaceZone(compiledEffect: CompiledEffectGroup): PlacedSpac
     throw new CharacterRuleActionUnsupportedCompilationError(
       'A placed zone component needs exactly one behavior.'
     )
-  return { manifest, component, behavior }
+  return { label, shape, component, behavior }
 }
 
 /** The movement a zone component reacts to, in canonical order; null for an unmodeled interaction. */

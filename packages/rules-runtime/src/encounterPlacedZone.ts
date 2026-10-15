@@ -13,8 +13,11 @@ import { compileEffectGraph } from './encounterActionEffectPlans.js'
 
 /**
  * The spatial effect an area action leaves at the point its user chose: the compiled zone fixed to
- * the Scene at that point. A creature entering it runs the zone's entry; a lingering grant is the
- * zone's modifier-grant template, so it ends on the events the zone authors.
+ * the Scene at that point. A creature entering it runs the zone's entry; the grant it keeps on a
+ * failure is the zone's modifier-grant template, which names the events that end it.
+ *
+ * Every placed zone is visible to all, triggers again for each mover and reacts to every kind of
+ * movement: these are the System's defaults for a zone, not authored by the action.
  */
 export function planEncounterPlacedZone(input: {
   zone: CompiledActionZonePlacement
@@ -28,8 +31,7 @@ export function planEncounterPlacedZone(input: {
 }): LiveSessionPlacedSpatialEffect {
   const { zone, point, area } = input
   if (isDirectedAreaShape(area)) throw new Error('A placed zone needs a point-origin area.')
-  const { entry, lingeringEffect } = zone
-  const grant = lingeringEffect?.modifierGrantContribution ?? null
+  const { entry, grant } = zone
   const definition = activeRuleEffectDefinitionDtoSchema.parse({
     schemaVersion: grant ? 2 : 1,
     origin: {
@@ -48,7 +50,7 @@ export function planEncounterPlacedZone(input: {
     recurrence: {
       recurrenceStage: 'NONE',
       consumeOnFirstEvents: [],
-      endOnEvents: grant?.endOnEvents ?? [],
+      endOnEvents: [],
       lifetimeScope: 'ENCOUNTER',
       expiration: { kind: 'INDEFINITE' }
     },
@@ -61,7 +63,8 @@ export function planEncounterPlacedZone(input: {
               modifiers: grant.modifiers,
               senses: grant.senses,
               sourceLabel: zone.label,
-              sourceHidden: false
+              sourceHidden: false,
+              endOnEvents: grant.endOnEvents
             }
           ]
         }
@@ -83,9 +86,9 @@ export function planEncounterPlacedZone(input: {
             : { kind: 'CIRCLE', center: point, radius: area.radius }
       },
       triggerModes: zone.triggerModes,
-      movementKinds: zone.movementKinds,
-      activation: zone.activation,
-      visibility: zone.visibility,
+      movementKinds: ['VOLUNTARY', 'FORCED', 'TELEPORT'],
+      activation: 'REPEATABLE',
+      visibility: 'PUBLIC',
       revealOnTrigger: false,
       label: zone.label,
       bypassAtHalfSpeed: zone.bypassAtHalfSpeed

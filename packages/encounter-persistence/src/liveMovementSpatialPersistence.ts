@@ -247,9 +247,12 @@ export async function persistLiveMovementSpatial(
   const grantStore = createActiveRuleEffectStore(ctx)
   for (const execution of step.executions) {
     const targetActorId = execution.candidate.candidate.targetActorId
-    const owner = turnEffectOwner(actors.get(targetActorId)!, state.id)
+    const target = actors.get(targetActorId)
+    const zone = input.effectOriginals.get(execution.candidate.effect.effectId)
+    if (!target || !zone) throw new Error('Spatial entry grant lost its target or zone.')
+    const owner = turnEffectOwner(target, state.id)
     const grant = planSpatialEntryGrant({
-      zoneDefinition: input.effectOriginals.get(execution.candidate.effect.effectId)!.definition,
+      zoneDefinition: zone.definition,
       holderEffects: await grantStore.list(owner),
       execution: execution.execution,
       encounterId: state.id,

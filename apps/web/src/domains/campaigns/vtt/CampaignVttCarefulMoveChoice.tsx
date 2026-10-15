@@ -1,4 +1,5 @@
 import { Button, Group, Text } from '@mantine/core'
+import { useEffect, useRef } from 'react'
 import type { HalfSpeedField } from './CampaignVttCarefulMove.model'
 import * as styles from './CampaignVttStage.css'
 
@@ -17,6 +18,9 @@ export function CampaignVttCarefulMoveChoice({
   onCancel: () => void
 }) {
   const names = fields.map(({ label }) => (label ? `the ${label}` : 'a field')).join(' and ')
+  const carefullyRef = useRef<HTMLButtonElement>(null)
+  // The path waits on this choice, so keyboard focus starts inside it and Escape reaches it.
+  useEffect(() => carefullyRef.current?.focus(), [])
   return (
     <section
       aria-label='Cross field'
@@ -33,7 +37,7 @@ export function CampaignVttCarefulMoveChoice({
         makes the save on entering.
       </Text>
       <Group gap='xs' mt='xs'>
-        <Button size='xs' onClick={() => onChoose(true)}>
+        <Button ref={carefullyRef} size='xs' onClick={() => onChoose(true)}>
           Move carefully
         </Button>
         <Button size='xs' variant='default' onClick={() => onChoose(false)}>

@@ -1240,6 +1240,11 @@ function isGrantConsumeEvent(event: string): event is GrantConsumeEvent {
   return event === 'ON_ATTACK_ROLL' || event === 'ON_ABILITY_CHECK'
 }
 
+/** The only end event the Encounter reads for a grant; any other would compile but never fire. */
+function isGrantEndEvent(event: string): event is 'ON_HIT_POINTS_REGAINED' {
+  return event === 'ON_HIT_POINTS_REGAINED'
+}
+
 /**
  * A timed APPLY_GRANT of modifiers (an Antitoxin's advantage for 1 hour): the target holds an
  * Encounter active effect that carries the modifiers into its rules while it lasts and counts the
@@ -1276,8 +1281,8 @@ function modifierGrantPlan(
 
 /**
  * The plan of one APPLY_GRANT entry. With `untilEndEvent` the grant has no counted duration and
- * lasts until one of its authored end events (the speed penalty a Caltrops wound leaves until the
- * creature regains Hit Points); without it the grant must be timed and may not end on an event.
+ * lasts until one of its authored end events (a speed penalty that lasts until the creature
+ * regains Hit Points); without it the grant must be timed and may not end on an event.
  */
 function modifierGrantEntryPlan(input: {
   effectId: string
@@ -1328,6 +1333,7 @@ function modifierGrantEntryPlan(input: {
         endEvents.length > 0) ||
     Object.values(otherLifecycle).some((value) => value !== undefined) ||
     grantConsumeEvents.length !== consumeEvents.length ||
+    !endEvents.every(isGrantEndEvent) ||
     !UUID.test(entry.entryId)
   )
     return null
@@ -1412,6 +1418,13 @@ function zonePlacementPlan(
   const triggerModes = zoneTriggerModes(zone.component)
   const { invocation, entries } = zone.behavior
   const savingThrow = 'savingThrow' in invocation ? invocation.savingThrow : undefined
+  const placementKind = encounterAreaTargetKind(
+    action.compiledEffect.invocation.range.rangeKind,
+    zone.shape.shapeKind
+  )
+  // A directed area is aimed, not placed at a point; a zone is left where its action is centered.
+  if (placementKind !== 'POINT' && placementKind !== 'CASTER_CENTERED')
+    unsupported('A placed zone takes a point or the caster as its center.')
   if (
     !triggerModes ||
     invocation.triggerCode !== 'SAVING_THROW' ||
@@ -1475,21 +1488,30 @@ function zonePlacementPlan(
         untilEndEvent: true
       })
     : null
-  if (grant && !lingeringPlan) unsupported('A placed zone grant must last until its end event.')
+  const lingering = lingeringPlan?.modifierGrantContribution
+  // The grant is read only for its modifiers and end events; one that is also consumed or
+  // maintained would silently lose that behavior on a creature.
+  if (
+    grant &&
+    (!lingering || lingering.consumeOnFirstEvents.length > 0 || lingeringPlan?.maintenance)
+  )
+    unsupported('A placed zone grant must last until its end event.')
   return {
-    label: zone.manifest.label!,
-    shape: zone.manifest.shape!,
+    label: zone.label,
+    shape: zone.shape,
     triggerModes,
-    movementKinds: ['VOLUNTARY', 'FORCED', 'TELEPORT'],
-    activation: 'REPEATABLE',
-    visibility: 'PUBLIC',
     bypassAtHalfSpeed: zone.component.bypassAtHalfSpeed === true,
     entry: {
       ...entryPlan,
       frozenGraph: stops.length ? withMovementInterruption(saveGraph, 'ON_SAVE_FAIL') : saveGraph
     },
-    lingeringEffect: lingeringPlan
-      ? { ...lingeringPlan, frozenGraph: durationPublishedGraph({ action, plan: lingeringPlan }) }
+    grant: lingering
+      ? {
+          applyGrantOutcomeId: lingering.applyGrantOutcomeId,
+          modifiers: lingering.modifiers,
+          senses: lingering.senses,
+          endOnEvents: lingering.endOnEvents
+        }
       : null
   }
 }

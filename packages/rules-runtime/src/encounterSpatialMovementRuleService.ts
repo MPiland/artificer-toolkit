@@ -39,6 +39,7 @@ import type { RulesRuntimeService } from './rulesRuntimeService.js'
 import { foldCharacterMechanicsApplications } from './encounterCharacterMechanicsBatch.js'
 import { EncounterConflictError, EncounterValidationError } from './encounterErrors.js'
 import { checksumSpatialCurrentness } from './encounterSpatialMovementCurrentness.js'
+import { isVisibleHalfSpeedField } from './halfSpeedField.js'
 import type { EncounterAutoRollByActorId } from './encounterEvidenceMode.js'
 import {
   resolveEncounterD20Answer,
@@ -963,7 +964,7 @@ function toSpatialInstance(effect: EncounterSpatialRuleEffectRecord) {
     geometry: effect.placement.geometry,
     triggerModes: effect.placement.triggerModes,
     movementKinds: effect.placement.movementKinds,
-    bypassAtHalfSpeed: effect.placement.bypassAtHalfSpeed
+    bypassAtHalfSpeed: isVisibleHalfSpeedField(effect)
   } as const
 }
 

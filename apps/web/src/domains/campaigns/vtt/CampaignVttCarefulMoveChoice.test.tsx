@@ -48,11 +48,18 @@ describe('CampaignVttCarefulMoveChoice', () => {
     expect(onCancel).not.toHaveBeenCalled()
   })
 
-  it('cancels from the button or Escape without choosing', () => {
+  it('takes keyboard focus when it opens, so Escape cancels without choosing', () => {
+    const { onCancel, onChoose } = renderChoice()
+    expect(screen.getByRole('button', { name: 'Move carefully' })).toHaveFocus()
+    fireEvent.keyDown(document.activeElement!, { key: 'Escape' })
+    expect(onCancel).toHaveBeenCalledExactlyOnceWith()
+    expect(onChoose).not.toHaveBeenCalled()
+  })
+
+  it('cancels from the button without choosing', () => {
     const { onCancel, onChoose } = renderChoice()
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
-    fireEvent.keyDown(screen.getByRole('button', { name: 'Move carefully' }), { key: 'Escape' })
-    expect(onCancel).toHaveBeenCalledTimes(2)
+    expect(onCancel).toHaveBeenCalledExactlyOnceWith()
     expect(onChoose).not.toHaveBeenCalled()
   })
 

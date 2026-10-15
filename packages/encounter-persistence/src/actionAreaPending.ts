@@ -145,8 +145,6 @@ export async function requireAreaActionPendingRoot(
     fingerprint: string
     initiatorUserId: string
     state: EncounterRunState
-    /** Whether the area places a zone, which catches nobody: a creature in it is tested on entering. */
-    placesZone: boolean
   },
   readAreaSceneInputs: (
     state: EncounterRunState,
@@ -194,7 +192,8 @@ export async function requireAreaActionPendingRoot(
       casterToken.position.y !== context.area.origin.y)
   )
     throw new Error('Live Session pending area action Scene mismatch.')
-  const caught = input.placesZone
+  // A zone catches nobody: a creature in it is tested on entering.
+  const caught = context.placesZone
     ? []
     : catchEncounterAreaActorIds({
         origin: context.area.origin,

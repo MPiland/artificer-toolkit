@@ -239,6 +239,7 @@ export function compileCharacterActionEntryPoints(
             kind: 'COMPILED',
             resourceBinding: compiledResourceBinding(candidate),
             activeEffectPlan: activeEffectPlans[0] ?? null,
+            zonePlacement: null,
             executionPlan
           }
         }

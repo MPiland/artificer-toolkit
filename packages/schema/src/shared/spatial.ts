@@ -108,6 +108,11 @@ export const spatialPersistedGeometryDtoSchema = lazySchema(() =>
   })
 )
 
+/** The authored name of a placed zone, shown wherever the zone is listed or drawn. */
+export const spatialZoneLabelSchema = lazySchema(() =>
+  z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(240))
+)
+
 /**
  * Immutable Encounter/Scene placement. Trigger and movement arrays are already
  * canonical when persisted; parsing never silently changes execution order.
@@ -130,8 +135,7 @@ export const spatialRuleEffectPlacementDtoSchema = lazySchema(() =>
       activation: z.enum(['ONE_SHOT', 'REPEATABLE']),
       visibility: z.enum(['PUBLIC', 'HIDDEN']),
       revealOnTrigger: z.boolean(),
-      /** The authored name of the field ("Caltrop field"), shown wherever the zone is listed or drawn. */
-      label: z.optional(z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(240))),
+      label: z.optional(spatialZoneLabelSchema),
       /** A voluntary mover moving carefully crosses the field at double cost and makes no entry save. */
       bypassAtHalfSpeed: z.optional(z.boolean())
     })

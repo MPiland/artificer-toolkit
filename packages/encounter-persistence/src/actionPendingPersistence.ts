@@ -108,8 +108,7 @@ export async function persistEncounterActionPending(
           command: { ...admission.input, target },
           fingerprint,
           initiatorUserId,
-          state,
-          placesZone: false
+          state
         },
         callbacks.readAreaSceneInputs
       )

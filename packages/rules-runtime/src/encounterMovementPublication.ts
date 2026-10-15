@@ -11,6 +11,7 @@ import {
 import { EncounterValidationError } from './encounterErrors.js'
 import { readEncounterMovementPendingContext } from './encounterMovementPendingContext.js'
 import { sliceMovementPath } from './encounterMovementPath.js'
+import { isVisibleHalfSpeedField } from './halfSpeedField.js'
 
 type Point = { x: number; y: number }
 type MovementOutcome = SceneSpatialPreparation['outcome']
@@ -114,7 +115,7 @@ export function preparedMovementCost(input: {
   careful?: {
     tokenId: string
     tokens: readonly SpatialSceneToken[]
-    effects: readonly Pick<EncounterSpatialRuleEffectRecord, 'placement'>[]
+    effects: readonly Pick<EncounterSpatialRuleEffectRecord, 'placement' | 'spatialState'>[]
   }
 }): number {
   const careful = input.careful
@@ -122,7 +123,7 @@ export function preparedMovementCost(input: {
   const fields =
     careful && token
       ? careful.effects
-          .filter(({ placement }) => placement.bypassAtHalfSpeed)
+          .filter(isVisibleHalfSpeedField)
           .flatMap(({ placement }) => effectiveSpatialGeometry(placement, careful.tokens) ?? [])
       : []
   const doubledShare =

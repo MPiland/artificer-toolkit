@@ -184,8 +184,7 @@ export async function persistEncounterAreaCommit(
       command: { ...command, target: areaTarget },
       fingerprint,
       initiatorUserId,
-      state,
-      placesZone: input.placedZone !== null
+      state
     },
     callbacks.readAreaSceneInputs
   )
@@ -207,6 +206,7 @@ export async function persistEncounterAreaCommit(
     root.sourceActorId !== command.actorId ||
     root.caughtChecksum !== context.caughtChecksum ||
     root.placedSpatialEffectId !== (input.placedZone?.id ?? null) ||
+    context.placesZone !== (input.placedZone !== null) ||
     checksumCanonicalJson(root.removedActorIds) !==
       checksumCanonicalJson(context.removedActorIds) ||
     checksumCanonicalJson(root.targetOccurrenceIds) !==

@@ -1,6 +1,10 @@
 import type { EncounterSessionStateDto } from '@artificer-toolkit/schema/api/encounterData'
-import { MAX_SPATIAL_RULE_EFFECTS_PER_SCENE } from '@artificer-toolkit/schema/shared/spatial'
-import { readSpatialEffect } from './spatialEffectStore.js'
+import {
+  MAX_SPATIAL_RULE_EFFECTS_PER_SCENE,
+  spatialRuleEffectPlacementDtoSchema,
+  spatialRuleEffectStateDtoSchema
+} from '@artificer-toolkit/schema/shared/spatial'
+import { isVisibleHalfSpeedField } from '@artificer-toolkit/rules-runtime/halfSpeedField'
 import type { EncounterReadContext } from './store.js'
 
 /**
@@ -22,13 +26,16 @@ export async function readHalfSpeedFields(
       q.eq('encounterId', encounterId).eq('sceneId', binding.sceneId)
     )
     .take(MAX_SPATIAL_RULE_EFFECTS_PER_SCENE)
-  return rows
-    .map(readSpatialEffect)
-    .flatMap(({ id, placement }) =>
-      placement.bypassAtHalfSpeed &&
-      placement.visibility === 'PUBLIC' &&
-      placement.geometry.frame === 'SCENE_ABSOLUTE'
-        ? [{ id, label: placement.label ?? null, shape: placement.geometry.shape }]
-        : []
-    )
+  // A presentation read on every session read: it parses the placement and reveal state only, as
+  // the movement path's full record read (definition and checksums) is where integrity is enforced.
+  return rows.flatMap((row) => {
+    const field = {
+      placement: spatialRuleEffectPlacementDtoSchema.parse(row.placement),
+      spatialState: spatialRuleEffectStateDtoSchema.parse(row.spatialState)
+    }
+    const { placement } = field
+    return isVisibleHalfSpeedField(field) && placement.geometry.frame === 'SCENE_ABSOLUTE'
+      ? [{ id: row.id, label: placement.label ?? null, shape: placement.geometry.shape }]
+      : []
+  })
 }

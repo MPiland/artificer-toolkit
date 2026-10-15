@@ -90,7 +90,8 @@ const walkerActor = srdCreatureActor({ id: WALKER_ID, creature: selfHealWolf })
  */
 function caltropsRoom(
   die: number,
-  spatialEffects: Parameters<typeof actionRoom>[0]['spatialEffects'] = []
+  spatialEffects: Parameters<typeof actionRoom>[0]['spatialEffects'] = [],
+  { walker = walkerActor, walkerAt = WALKER_START } = {}
 ) {
   return actionRoom({
     actors: [
@@ -99,9 +100,9 @@ function caltropsRoom(
         // Initiative reads the Character's frozen identity, which a turn change checks.
         snapshot: { kind: 'CHARACTER', id: SPREADER_ID, systemId: srdSystemRecord.id }
       },
-      walkerActor
+      walker
     ],
-    positions: { [WALKER_ID]: WALKER_START },
+    positions: { [WALKER_ID]: walkerAt },
     characterEquipment: [caltropsBagOf20],
     characterAction: (action) => action.label === caltropsBagOf20.label,
     autoRoll: 'GAME_MASTER',
@@ -257,9 +258,21 @@ describe('spreading Caltrops (SPELLS-17)', () => {
 
     const { answer } = await room.startAreaAction(FIELD_POINT)
 
-    expect(answer).toMatchObject({ type: 'COMMAND_REJECTED' })
+    expect(answer).toMatchObject({ type: 'COMMAND_REJECTED', reason: 'TARGET_UNAVAILABLE' })
     expect(await readZones(room)).toHaveLength(SCENE_ZONE_CAP)
     expect(vitalsOf(await readRoomHistory(room.room.base.stub))).toEqual(vitalsOf(before))
+  })
+
+  it('catches nobody it is spread over: a token already in the field is tested on entering, not on spreading', async () => {
+    const room = await caltropsRoom(0, [], { walkerAt: FIELD_POINT })
+    const hitPointsBefore = await walkerHitPoints(room)
+
+    const { answer } = await room.startAreaAction(FIELD_POINT)
+
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    expect(await readZones(room)).toHaveLength(1)
+    expect(await walkerHitPoints(room)).toBe(hitPointsBefore)
+    expect(await walkerEffects(room)).toEqual([])
   })
 })
 
@@ -342,6 +355,31 @@ describe('crossing a caltrop field carefully (SPELLS-17)', () => {
   })
 })
 
+describe('a hidden field flagged for half-speed passage (SPELLS-17)', () => {
+  const HIDDEN_FIELD = [
+    { center: { x: 350, y: 150 }, radius: 30, save: true, hiddenHalfSpeedField: true }
+  ]
+  const ACROSS = [WALKER_START, FIELD_POINT]
+
+  it('still triggers on a creature that says it moves carefully, at the plain cost', async () => {
+    const plain = await caltropsRoom(0, HIDDEN_FIELD)
+    await plain.advanceTurn()
+    const plainWalk = await walkerMoves(plain, ACROSS)
+    const plainFeet = await walkerFeetMoved(plain)
+    expect(plainWalk.executions).toHaveLength(1)
+
+    // A creature cannot choose to pass carefully a field it has not seen.
+    const room = await caltropsRoom(0, HIDDEN_FIELD)
+    await room.advanceTurn()
+    const hitPointsBefore = await walkerHitPoints(room)
+    const walk = await walkerMoves(room, ACROSS, true)
+
+    expect(walk.executions).toHaveLength(1)
+    expect(await walkerHitPoints(room)).toBe((hitPointsBefore ?? 0) - 1)
+    expect(await walkerFeetMoved(room)).toBe(plainFeet)
+  })
+})
+
 describe('the Caltrops journey (SPELLS-17.1)', () => {
   it('spreads, is taken back, spreads again, snares a walker, is healed and is crossed with care', async () => {
     const room = await caltropsRoom(0)
@@ -415,5 +453,49 @@ describe('ending a caltrop slow (SPELLS-17)', () => {
 
     expect(await walkerHitPoints(room)).toBe(hitPointsBefore)
     expect(await walkerEffects(room)).toEqual([])
+  })
+
+  it('keeps the reduction through a heal that restores nothing', async () => {
+    // Five temporary hit points soak up the caltrop's damage, so the slow lands at full health.
+    const tempWalker = srdCreatureActor({
+      id: WALKER_ID,
+      creature: selfHealWolf,
+      tempHitPoints: 5
+    })
+    const room = await caltropsRoom(0, [], { walker: tempWalker })
+    await spreadCaltrops(room)
+    await room.advanceTurn()
+    const hitPointsBefore = await walkerHitPoints(room)
+    await walkerMoves(room, WALK_INTO)
+    expect(await walkerHitPoints(room)).toBe(hitPointsBefore)
+    expect(await walkerEffects(room)).toHaveLength(1)
+
+    const healed = await room.startAction(
+      WALKER_ID,
+      [],
+      null,
+      null,
+      room.featureActionId(tempWalker, creatureFeature(selfHealWolf, 'Bite').id),
+      WALKER_ID
+    )
+    expect(healed.answer.type, JSON.stringify(healed.answer)).toBe('COMMAND_COMMITTED')
+
+    expect(await walkerHitPoints(room)).toBe(hitPointsBefore)
+    expect(await walkerEffects(room)).toHaveLength(1)
+  })
+
+  it('keeps the reduction through more damage', async () => {
+    const room = await caltropsRoom(0)
+    await spreadCaltrops(room)
+    await room.advanceTurn()
+    const first = await walkerMoves(room, WALK_INTO)
+    const hitPointsAfterFirst = await walkerHitPoints(room)
+    const [slow] = await walkerEffects(room)
+
+    await walkerMoves(room, [first.terminalPosition, WALKER_START])
+    await walkerMoves(room, [WALKER_START, FIELD_POINT])
+
+    expect(await walkerHitPoints(room)).toBe((hitPointsAfterFirst ?? 0) - 1)
+    expect(await walkerEffects(room)).toEqual([slow])
   })
 })
