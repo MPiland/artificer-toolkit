@@ -4,9 +4,10 @@ import { chromium, expect, type BrowserContext, type Page } from '@playwright/te
 import { api } from '@artificer-toolkit/apis/convex/api'
 import { authSessionSnapshotDtoSchema } from '@artificer-toolkit/schema/api/auth'
 import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
-import { domainRejectionErrorDataSchema } from '@artificer-toolkit/schema/api/domainRejections'
-import { ConvexError } from 'convex/values'
-import type { DevelopmentClient } from '../../../apis/tests/developmentClient'
+import {
+  assertDomainRejection,
+  type DevelopmentClient
+} from '../../../apis/tests/developmentClient'
 import type { CampaignMembershipLifecycleStage } from '../../../apis/tests/developmentCampaignMembershipLifecycle'
 import {
   signIn,
@@ -171,7 +172,7 @@ export async function verifyCampaignMembershipBrowser<T>(
           (index === 2 && ['BEFORE_REMOVE', 'AFTER_REMOVE'].includes(currentStage))
         const denialWindow = index === 3 || departureWindow
         const queryDenial =
-          /^(?:Error: )?\[CONVEX Q\(campaigns\/(?:queries:get|clock:get)\)\](?: \[Request ID: [a-f0-9]+\])? Server Error\nUncaught ConvexError: \{[^\n]*"reason":\s*"CAMPAIGN_NOT_FOUND"[^\n]*\}(?:\n\s+(?:Called by client|at [^\n]+))*\s*$/.test(
+          /^(?:(?:Convex)?Error: )?\[CONVEX Q\(campaigns\/(?:queries:get|clock:get)\)\](?: \[Request ID: [a-f0-9]+\])? Server Error\nUncaught ConvexError: \{[^\n]*"reason":\s*"CAMPAIGN_NOT_FOUND"[^\n]*\}(?:\n\s+(?:Called by client|at [^\n]+))*\s*$/.test(
             detail
           )
         const denialBoundary =
@@ -360,9 +361,8 @@ export async function verifyCampaignMembershipBrowser<T>(
             retryNativeQuery(() =>
               account.client.query(api.campaigns.queries.get, { id: input.campaignId })
             ),
-          (error: unknown) =>
-            error instanceof ConvexError &&
-            domainRejectionErrorDataSchema.parse(error.data).reason === 'CAMPAIGN_NOT_FOUND',
+          // The client throws the apis package's ConvexError, a different class from this file's.
+          (error: unknown) => assertDomainRejection(error, 'CAMPAIGN_NOT_FOUND'),
           `Account ${index} must receive the specific native Campaign-not-found denial`
         )
         campaigns.push('CAMPAIGN_NOT_FOUND')
