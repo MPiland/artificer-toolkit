@@ -114,7 +114,7 @@ const createBladeManifest = (
       id: spellChildId(SPELL_IDS.BLADE_BARRIER, scope + 1, 1),
       order: 1,
       label: 'Whirling Blades',
-      interactionKinds: ['ENTER_SPACE', 'START_TURN_IN_SPACE'],
+      interactionKinds: ['ENTER_OR_PASS_THROUGH', 'START_TURN_IN_SPACE'],
       movementCostMultiplier: 2,
       maxApplicationsPerTurn: 1,
       blockingRules: ['THREE_QUARTERS_COVER'],

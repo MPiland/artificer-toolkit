@@ -253,6 +253,8 @@ async function startWorker() {
       // Like `wrangler dev --host localhost`: without an origin wrangler infers the first route's
       // deployed domain as the request host, and the development routes only answer loopback hosts.
       origin: { hostname: '127.0.0.1' },
+      // The default inspector binds a fixed port, so parallel test files would collide on it.
+      inspector: false,
       persist: resolve(directory, 'state'),
       remote: false,
       server: { hostname: '127.0.0.1', port: 0 },
