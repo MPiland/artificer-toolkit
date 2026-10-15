@@ -426,8 +426,13 @@ or the stored `gmRollVisibility` decides. Convex and the room present rolls thro
 Area save cards (current, D103): each caught creature's save is its own card, authored by the creature's
 roller and routed by the rules above, except that a creature the area's caster cannot perceive is routed as a
 hidden roller (`rollerAsPerceivedByCaster`, D62), so its card is PRIVATE and never reaches the table. The
-area's one damage roll is carded once, with the first creature. The player who rolled an unperceived
-creature's save gets no card yet (ATTACK-17.5).
+area's one damage roll is carded once, with the first creature. A PRIVATE card of a creature a player
+controls is also that player's own (ATTACK-17.5): `recordRuleRollCard` retains the generic `roll` in the
+player's history with no reveal binding (`retainPrivateRoll`, `gmCampaignRoll: null`) beside the GM's
+bound copy, and returns `playerCopyUserId`, so the answer to the player's command carries the roll while
+the table and the area's caster get nothing. The room pushes it as a `privateRoll` to that player's
+sockets only. A hidden creature the GM controls, or whose controller left the Campaign, stays the GM's
+alone. Concentration check cards still go to the GM alone.
 
 **Rate buckets (D72).** Per-account token buckets live in room SQLite
 ([roomRateLimits](../../apps/session-worker/src/roomRateLimits.ts), allowances in `roomLimits.ts`):
