@@ -576,6 +576,14 @@
               "proof": [],
               "origin": "CI run 38778258014 attempt 1 (SPELLS-8, Convex 1/4): accountJourneys.test.ts:97 got INVALID_USERNAME instead of EMAIL_PASSWORD_SIGN_UP_DISABLED. The random Journey_<12 hex> suffix can contain a profanity substring (for example a55 reads as \"ass\" after the digit swap). apps/apis/tests/localAuth.ts generates Auth_<12 hex> the same way.",
               "note": "Product question Q22 (substring profanity match rejects ordinary names) is open; this AC fixes the test data either way."
+            },
+            {
+              "id": "PLATFORM-13.10",
+              "text": "Convex test runs log no errors from scheduled jobs the test environment leaves unconfigured (MEDIA_STORAGE_MODE, MAIL_DELIVERY_MODE, LIVE_SESSION_WORKER_URL): the convex-test setup configures the same test modes the product supports, so a CI failure log shows only the real failure.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Registered 2026-10-15: every Convex shard log carries \"Error when running scheduled function … must be configured\" lines (for example runs 38792840212, 38789989223) that fail nothing but bury real failures. Use the product's own test or disabled modes; do not silence logging."
             }
           ],
           "wsjf": {
@@ -672,6 +680,18 @@
                 "size": 1
               },
               "activeWorkbook": "docs/handoffs/slice-platform-13-t5.md"
+            },
+            {
+              "id": "PLATFORM-13.T8",
+              "text": "Configure the convex-test environment so scheduled content-snapshot, email and live-session control jobs run in their supported test modes instead of throwing \"must be configured\".",
+              "status": "TODO",
+              "closes": ["PLATFORM-13.10"],
+              "wsjf": {
+                "bv": 1,
+                "tc": 2,
+                "rr": 3,
+                "size": 1
+              }
             }
           ]
         },
