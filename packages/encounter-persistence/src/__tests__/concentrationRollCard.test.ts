@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { GmCampaignRollDto, RollRecordDto } from '@artificer-toolkit/schema/api/rolls'
-import type { StoredRuleExecutionResultDto } from '@artificer-toolkit/schema/api/ruleExecution'
+import type { StoredRuleExecutionResultDto } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import { concentrationCheckApplicationOutputDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
 import {
   CAMPAIGN_ID,
