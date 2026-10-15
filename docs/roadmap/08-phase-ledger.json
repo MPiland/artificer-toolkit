@@ -1162,6 +1162,14 @@
               "proof": [],
               "origin": "Q22 (2026-10-15), from the PLATFORM-13.9 test-data flake.",
               "note": ""
+            },
+            {
+              "id": "ACCOUNTS-7.5",
+              "text": "Campaign text moderation (campaignTextPolicy) uses the same maintained profanity library and tiers as usernames; @2toad/profanity is removed from the repo and the web bundle carries one profanity library.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Registered 2026-10-15 from the ACCOUNTS-7.T1 merge review (S5)."
             }
           ],
           "wsjf": {
@@ -1183,6 +1191,19 @@
                 "size": 3
               },
               "activeWorkbook": "docs/handoffs/slice-accounts-7-t1.md"
+            },
+            {
+              "id": "ACCOUNTS-7.T2",
+              "text": "Move campaignTextPolicy to obscenity with the username tiers (no dictionary on the web), remove @2toad/profanity, keep campaign text tests red-first.",
+              "status": "TODO",
+              "closes": ["ACCOUNTS-7.5"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": ["ACCOUNTS-7.T1"]
+              }
             }
           ]
         },
