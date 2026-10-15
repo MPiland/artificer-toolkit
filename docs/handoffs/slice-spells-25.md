@@ -1,6 +1,6 @@
 # Slice workbook: SPELLS-25 (every zone states where it is placed)
 
-**Status:** READY FOR REVIEW (implemented 2026-10-15)
+**Status:** DONE, merged 92674da15 (2026-10-15)
 **Base:** `codex/phase-08-2-convex-cutover` at this workbook's commit.
 **Rules:** [slice-workbook-rules.md](slice-workbook-rules.md).
 

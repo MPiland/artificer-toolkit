@@ -7461,17 +7461,21 @@
         {
           "id": "SPELLS-25",
           "title": "Every zone states where it is placed",
-          "status": "TODO",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": ["packages/source-data/src/srd/zoneAttachment.test.ts"],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
               "text": "attachmentKind is required on every ZONE manifest in the schema and the zone node map, and every SRD zone sets it from its SRD text; a corpus test fails on any zone without it.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/schema/src/__tests__/manifest-zone-attachment.test.ts (attachmentKind required on ZONE only)",
+                "packages/shared/src/__tests__/effect-node-maps.test.ts ('requires an attachment only on ZONE manifests')",
+                "packages/source-data/src/srd/zoneAttachment.test.ts (every SRD zone parses through manifestDtoSchema; SOURCE and PRIMARY_TARGET sets exact)"
+              ],
               "origin": [],
-              "note": "User ruling 2026-10-14 (decisions: hazards and traps). 2026-10-14 scan: 36 of 39 SRD zones (all spells) leave it unset, so the SPELLS-17 creator would place none of them.",
+              "note": "User ruling 2026-10-14 (decisions: hazards and traps). 2026-10-14 scan: 36 of 39 SRD zones (all spells) leave it unset, so the SPELLS-17 creator would place none of them. Merged 92674da15: Globe of Invulnerability is PLACED_SPACE; SOURCE is Antilife Shell and Antimagic Field; PRIMARY_TARGET is Resilient Sphere.",
               "id": "SPELLS-25.1"
             }
           ],
