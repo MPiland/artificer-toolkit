@@ -1083,7 +1083,7 @@
         {
           "id": "ACCOUNTS-7",
           "title": "Choose a username",
-          "status": "DONE",
+          "status": "IN_PROGRESS",
           "journeyTests": ["apps/apis/convex/auth.test.ts"],
           "journeyStatus": "verified",
           "origin": ["F09"],
@@ -1108,6 +1108,34 @@
               "proof": [".codex/validation/phase82-foundation/profile-browser-closure-proof.md"],
               "origin": ["F09.3"],
               "id": "ACCOUNTS-7.3"
+            },
+            {
+              "id": "ACCOUNTS-7.4",
+              "text": "Username moderation is tiered (Q22): normalized names are split into parts at separators, case changes and letter-digit changes; a blocked part, an unambiguous term anywhere, or a blocked word plus dictionary words (server-side) is refused; ordinary names such as Cassandra, Classic, Dickens, Essex, Glasshouse and Assassin are accepted; ass_muncher, AssMuncher, Ass1Muncher and assmuncher are refused.",
+              "status": "TODO",
+              "proof": [],
+              "origin": "Q22 (2026-10-15), from the PLATFORM-13.9 test-data flake.",
+              "note": ""
+            }
+          ],
+          "wsjf": {
+            "bv": 3,
+            "tc": 5,
+            "rr": 2,
+            "size": 3
+          },
+          "tasks": [
+            {
+              "id": "ACCOUNTS-7.T1",
+              "text": "Replace the substring profanity check in validateUsername with the Q22 tiered policy; evaluate the obscenity npm library first; dictionary segmentation runs server-side only.",
+              "status": "TODO",
+              "closes": ["ACCOUNTS-7.4"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 5,
+                "rr": 2,
+                "size": 3
+              }
             }
           ]
         },

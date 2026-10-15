@@ -1080,6 +1080,14 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
 
 ## Resolved
 
+- **Q22, username moderation (ACCOUNTS-7.T1, 2026-10-15).** The substring profanity check refused ordinary names (Cassandra, Classic, Dickens, Essex, Glasshouse, Assassin) and random test names. The product owner approved the tiered policy:
+  - Normalize: lowercase, digit and look-alike swaps, collapse repeats.
+  - Split into parts at `_`, lower-to-upper case changes and letter-digit changes; refuse a blocked part (`ass_muncher`, `AssMuncher`, `Ass1Muncher`).
+  - Unambiguous terms are refused anywhere; short ambiguous terms (ass, dick, cum, tit) only as a whole part. A maintained allowlist covers known false positives.
+  - An unbroken compound (`assmuncher`) is refused when it splits into a blocked word plus dictionary words, server-side only so the client bundle carries no dictionary.
+  - Reports and a moderator rename are the backstop.
+  - Evaluate the maintained `obscenity` npm library first; adding it is approved if it fits.
+
 - **OQ-1, authoring form state (RELIABILITY-10, 2026-10-13).** Product owner chose option 1, including narrowed subscriptions.
   - The top-level TanStack form is the only store for form values and form flags. Contexts hold only stable, non-form coordination (actions, navigation, mode, layout), split by behaviour. No component copies state into a parent through an effect. This replaces `AuthoringFormContext`/`AuthoringFormProvider` (about 70 fields), `AuthoringLayoutProvider` and the `CharacterSheetRollContext` controller.
   - **Subscriptions:** no component subscribes to all values or all field meta. Node resolution reads values through a debounced store subscription outside render. Step status and progress come from narrow selectors, and each button, header or footer selects only the flags it shows. `useSelector` (react-store 0.11.2) compares with `===`, so object or array selectors pass `{ compare: shallow }` (tanstack/form#2090).
