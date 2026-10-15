@@ -738,7 +738,7 @@ describe('internal canonical source import', () => {
     const t = convexTest(schema, modules)
     await t.mutation(internal.content.import.bootstrap, bootstrap)
     const valid = subject('10000000-0000-4000-8000-000000000002')
-    const document = { ...valid.document, unknownKey: 'rejected by the schema parse' }
+    const document = { ...acolyte, id: valid.id, unknownKey: 'rejected by the schema parse' }
     const invalid = { ...valid, document, checksum: checksumRuleDocument(document) }
     await expect(
       t.mutation(internal.content.import.importSubjects, {
