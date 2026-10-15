@@ -11,6 +11,10 @@ on:
   push:
     branches: ['ci/**']
   workflow_dispatch:
+    inputs:
+      convex_workers:
+        description: Vitest workers per Convex shard (trial; pushes use 1)
+        default: '1'
 
 permissions:
   contents: read
@@ -49,7 +53,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
-      - run: yarn workspace @artificer-toolkit/apis test:convex --shard=${{ matrix.shard }}/4
+      - name: Convex tests
+        env:
+          CONVEX_WORKERS: ${{ inputs.convex_workers || '1' }}
+        run: |
+          if [ "$CONVEX_WORKERS" = "1" ]; then
+            yarn workspace @artificer-toolkit/apis test:convex --shard=${{ matrix.shard }}/4
+          else
+            yarn workspace @artificer-toolkit/apis test:convex --shard=${{ matrix.shard }}/4 --fileParallelism --maxWorkers=$CONVEX_WORKERS
+          fi
 
   packages-worker:
     name: Packages and Worker
