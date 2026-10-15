@@ -29,6 +29,7 @@ import {
   srdConditionId
 } from './encounterCreatureAction.js'
 import { currentConditionDefinition } from './srdConditionDefinitions.js'
+import { concealmentRecord } from '../testing/concealmentFixture.js'
 import { creatureFeature, srdCreatureActor, testUuid } from '../testing/dnd5eSrdEncounter.js'
 
 const ATTACKER_ID = testUuid(0xa1)
@@ -365,6 +366,89 @@ describe('encounter attack perception: believed perception (ATTACK-10.1)', () =>
       targetBlindsight: false
     })
     expect(blindedAttacker.believed.attackerSeesTarget).toBe('UNSEEN')
+  })
+})
+
+describe('encounter attack perception: a concealed attacker (ATTACK-10.T1)', () => {
+  /** The true and the believed sight of an attacker whose concealment fooled `fooledIds` only. */
+  async function concealedAttackerPerceptions(input: {
+    fooledIds: readonly string[]
+    targetDisposition: 'FRIENDLY' | 'HOSTILE'
+  }) {
+    const prepared = await prepareCreatureAction({
+      actor: creatureActor({
+        id: ATTACKER_ID,
+        label: 'Quill Beast',
+        features: [quillVolley({ charges: 1, cost: 1, rangeFeet: 80 })]
+      }),
+      target: creatureActor({
+        id: TARGET_ID,
+        label: 'Wolf',
+        features: [],
+        disposition: input.targetDisposition
+      }),
+      featureId: QUILL_VOLLEY_ID,
+      overridable: true
+    })
+    const attacker = {
+      ...prepared.sourceFacts,
+      activeEffects: [
+        concealmentRecord({
+          encounterId: prepared.state.id,
+          holderActorId: ATTACKER_ID,
+          observerActorIds: input.fooledIds,
+          concealmentTotal: 15
+        })
+      ]
+    }
+    const loaders = srdSenseLoaders(prepared.state.gameSystemId)
+    return {
+      actual: await resolveEncounterAttackPerception({
+        ...loaders,
+        attacker,
+        target: prepared.targetFacts,
+        placement: null
+      }),
+      believed: await resolveEncounterBelievedAttackPerception({
+        ...loaders,
+        attacker,
+        target: prepared.targetFacts
+      })
+    }
+  }
+
+  it('is unseen by the observers it fooled and seen by the ones that noticed it', async () => {
+    const fooled = await concealedAttackerPerceptions({
+      fooledIds: [TARGET_ID],
+      targetDisposition: 'FRIENDLY'
+    })
+    const noticed = await concealedAttackerPerceptions({
+      fooledIds: [],
+      targetDisposition: 'FRIENDLY'
+    })
+    expect(fooled.actual.targetSeesAttacker).toBe('UNSEEN')
+    expect(noticed.actual.targetSeesAttacker).toBe('SEES')
+  })
+
+  it('is believed hidden from every non-allied target, so the prompt never names who failed', async () => {
+    const fooled = await concealedAttackerPerceptions({
+      fooledIds: [TARGET_ID],
+      targetDisposition: 'FRIENDLY'
+    })
+    const noticed = await concealedAttackerPerceptions({
+      fooledIds: [],
+      targetDisposition: 'FRIENDLY'
+    })
+    expect(fooled.believed).toEqual(noticed.believed)
+    expect(fooled.believed.targetSeesAttacker).toBe('UNSEEN')
+  })
+
+  it('is believed seen by an ally, which a concealment never hides it from', async () => {
+    const ally = await concealedAttackerPerceptions({
+      fooledIds: [TARGET_ID],
+      targetDisposition: 'HOSTILE'
+    })
+    expect(ally.believed.targetSeesAttacker).toBe('SEES')
   })
 })
 

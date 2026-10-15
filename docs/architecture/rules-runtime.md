@@ -466,14 +466,14 @@ Hide and Search (ATTACK-10.T1, current) are authored `SELF` check actions with p
 options (ADR 0038); nothing in code names Hide.
 
 - **Authored shape.** Hide checks Dexterity (Stealth) against `dc: { kind: 'PASSIVE', passiveDefinitionId }` (the System passive,
-  for example Passive Perception, whose skill is the passive's `PASSIVE_<SKILL>` name) and applies `CONCEAL_FROM_OBSERVERS
+  for example Passive Perception, whose skill is the passive's authored `skillDefinitionId` in the System) and applies `CONCEAL_FROM_OBSERVERS
   { observers: 'NON_ALLIES' }` for an `UNTIL_DISPELLED` duration that is consumed by `ON_ATTACK_ROLL`. Search checks Wisdom
   (Perception) against `dc: { kind: 'CONCEALMENT' }` and applies `DETECT_CONCEALED`. Both compile to the existing check
   pipeline with a `resolution` discriminant on `BASIC_ACTION_CHECK` (`CONCEAL` or `DETECT`); Escape keeps its own command.
 - **Per-observer DCs freeze at creation.** The pending check context holds each observer's passive score, or each concealment the
   actor can search, so the settle needs no further loads and the player's pending read keeps `dc: null`.
 - **State.** The stored effect is a `schemaVersion 2` active rule effect whose immutable definition carries
-  `LOCATION_CONCEALMENT { stealthTotal }`; the observers it still hides the holder from live in the mutable lifecycle
+  `LOCATION_CONCEALMENT { concealmentTotal }`; the observers it still hides the holder from live in the mutable lifecycle
   (`concealedFromActorIds`, sorted, unique). Search, the GM command and the movement prune change that set through
   `updateLifecycleCas`. An empty set stays stored and inert until consumed.
 - **Ties go to the observer.** An observer notices when its score (passive, or Search total) is at least the Stealth total; the
@@ -881,7 +881,7 @@ batch's own active-effect CREATE receipt (`frozenGraphNodeId`) and the TEST's re
 kernel trace.
 
 **Escape against a fixed DC (D105, ATTACK-7.3).** A holder whose own Encounter effect carries an
-`ESCAPE_CHECK` module (`dc.kind === 'FIXED'`, `actorKinds` including `TARGET`) can spend the module's
+`ESCAPE_CHECK` module (`dc.kind === 'FIXED'`, `actorKinds` including `TARGET`; the authoring schema and node map offer an Escape only `FIXED` and `CONTEST`) can spend the module's
 authored `activation` to try to break the hold (`findEncounterHolderEscape`). `prepareEncounterEscapeCheck`
 freezes the check for one allowed `skillIds` or `abilityDefinitionIds` entry: a Creature holder's total
 comes from its `checkTotals` or, for an ability check, its score through the shared `abilityModifier`

@@ -754,12 +754,14 @@ async function revertConcealmentCheck(
   const { resolution } = outputs
   if (resolution.kind === 'CONCEAL') {
     const created = resolution.createdEffect
-    if (created)
-      await createActiveRuleEffectStore(ctx).deleteCas({
-        id: created.activeEffectId,
-        owner: concealmentHolderOwner(state, actors, created.targetActorId),
-        expectedVersion: created.afterVersion
-      })
+    if (created) {
+      const store = createActiveRuleEffectStore(ctx)
+      const owner = concealmentHolderOwner(state, actors, created.targetActorId)
+      const effect = await store.findById(owner, created.activeEffectId)
+      if (!effect || effect.version !== created.afterVersion)
+        unavailable('The concealment changed after this action; adjust manually.')
+      await store.deleteCas({ id: effect.id, owner, expectedVersion: effect.version })
+    }
     return
   }
   for (const found of resolution.found)

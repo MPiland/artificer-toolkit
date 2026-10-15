@@ -226,12 +226,7 @@ export function selfCone(rangeId: string, shapeId: string, lengthFeet: number) {
 }
 
 /** A breath weapon's line: a Self area that starts at the creature and catches everyone in it. */
-export function selfLine(
-  rangeId: string,
-  shapeId: string,
-  lengthFeet: number,
-  widthFeet: number
-) {
+export function selfLine(rangeId: string, shapeId: string, lengthFeet: number, widthFeet: number) {
   return {
     range: { id: rangeId, rangeKind: RANGE_KIND.SELF },
     shape: {

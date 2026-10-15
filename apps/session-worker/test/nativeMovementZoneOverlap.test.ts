@@ -61,11 +61,7 @@ describe('a zone caught by positive-area overlap', () => {
     const room = await zoneRoom()
 
     // Along y 250 the footprint spans y 200 to 300 and touches the zone's lower edge.
-    const answer = await room.move([
-      MOVER_START,
-      { x: 150, y: 250 },
-      { x: 550, y: 250 }
-    ])
+    const answer = await room.move([MOVER_START, { x: 150, y: 250 }, { x: 550, y: 250 }])
 
     expect(answer).toMatchObject({ type: 'COMMAND_COMMITTED' })
     expect(await room.receipts()).toEqual([])

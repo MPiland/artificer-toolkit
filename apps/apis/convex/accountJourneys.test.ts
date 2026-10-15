@@ -118,7 +118,9 @@ describe('account journeys through the Better Auth HTTP handler', () => {
     })
     // An unverified account cannot sign in; the attempt resends the confirmation link.
     expect((await request('sign-in/email', { body: signup })).status).toBe(403)
-    const links = (await deliveries(signup.email)).filter((delivery) => delivery.action === 'signup')
+    const links = (await deliveries(signup.email)).filter(
+      (delivery) => delivery.action === 'signup'
+    )
     expect(links.length).toBeGreaterThan(0)
     const link = new URL(links.at(-1)!.actionUrl)
     expect(link.origin).toBe(appOrigin)

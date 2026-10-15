@@ -133,9 +133,7 @@ describe('a Character whose speed and sense are authored in yards gains a bonus 
     const { sheet } = await prepare(raceWith([speedModifier('BONUS', { amount: 5, unit: 'FEET' })]))
 
     // 10 yd + 5 ft = 10 yd + 1.6666... yd.
-    expect(sheet.overview.facts.find((fact) => fact.label === 'Speed')?.value).toBe(
-      '11.667 yards'
-    )
+    expect(sheet.overview.facts.find((fact) => fact.label === 'Speed')?.value).toBe('11.667 yards')
   })
 })
 

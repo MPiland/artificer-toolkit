@@ -13,7 +13,10 @@ import {
   findAuthoringValidationTarget,
   type AuthoringNavigationTarget
 } from '../layout/authoringNavigation'
-import { getCollectionRowLabel, getCollectionRowMetadata } from '../rendering/collectionPresentation'
+import {
+  getCollectionRowLabel,
+  getCollectionRowMetadata
+} from '../rendering/collectionPresentation'
 
 const inputAuthoring = resolveInputAuthoringMeta(undefined)
 

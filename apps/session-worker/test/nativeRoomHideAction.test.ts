@@ -12,12 +12,21 @@ import {
   SRD_PERCEPTION_SKILL_ID,
   SRD_STEALTH_SKILL_ID
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import { runInDurableObject } from 'cloudflare:test'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { RoomEncounterStore } from '../src/roomEncounterStore.js'
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { actionRoom, biteWolf, withCheckTotals } from './actionRoomFixture.js'
-import { closeTrackedSockets } from './liveRoomFixture.js'
-import { parseReceiptExecution, readRoomHistory, readRoomTimeline } from './roomHistoryReads.js'
+import { closeTrackedSockets, connectPlayer } from './liveRoomFixture.js'
+import {
+  parseReceiptExecution,
+  readRoomChatBodies,
+  readRoomHistory,
+  readRoomPrivateRollHolders,
+  readRoomRollCards,
+  readRoomTimeline
+} from './roomHistoryReads.js'
 
 const HIDER_ID = testUuid(0xe00)
 /** Passive Perception 10, 15 and 20: the hider's Stealth +5 beats only the first at a d20 of 10. */
@@ -71,15 +80,17 @@ const wall = {
 
 /**
  * A Wolf hider with Stealth +5, acting first, beside three friendly Wolves of differing Perception.
- * `walled` puts a wall of the Scene between the hider and the two Wolves further away.
+ * `walled` puts a wall of the Scene between the hider and the two Wolves further away;
+ * `playerHider` makes the hider a player's creature; `rolls` feeds the room's own dice.
  */
-function hideRoom(options: { walled?: boolean } = {}) {
+function hideRoom(options: { walled?: boolean; playerHider?: boolean; rolls?: number[] } = {}) {
   const hider = withCheckTotals(srdCreatureActor({ id: HIDER_ID, creature: bite }), {
     [SRD_STEALTH_SKILL_ID]: 5
   })
   return actionRoom({
     ...(options.walled ? { sceneOverrides: { barriers: [wall] } } : {}),
-    rolls: [],
+    rolls: options.rolls ?? [],
+    ...(options.playerHider ? { playerControlledActorIds: [HIDER_ID] } : {}),
     actors: [
       hider,
       ...OBSERVER_PERCEPTION.map(([id, perception]) =>
@@ -132,7 +143,7 @@ async function concealments(fixture: Fixture) {
   return activeEffects.map((effect) => ({
     holder: effect.targetActorId,
     observers: effect.lifecycle.concealedFromActorIds,
-    stealthTotal: Number(/"stealthTotal":(\d+)/.exec(effect.definitionJson)?.[1])
+    concealmentTotal: Number(/"concealmentTotal":(\d+)/.exec(effect.definitionJson)?.[1])
   }))
 }
 
@@ -148,13 +159,17 @@ async function concealmentOutputs(fixture: Fixture) {
   })
 }
 
-async function revertLast(fixture: Fixture) {
-  const undone = await fixture.room.send({
+async function requestRevert(fixture: Fixture) {
+  return fixture.room.send({
     type: 'REVERT_LAST_ACTION',
     encounterId: fixture.room.room.encounterId,
     commandId: crypto.randomUUID(),
     expectedVersion: await fixture.room.version()
   })
+}
+
+async function revertLast(fixture: Fixture) {
+  const undone = await requestRevert(fixture)
   expect(undone.type, JSON.stringify(undone)).toBe('COMMAND_COMMITTED')
 }
 
@@ -164,7 +179,7 @@ describe('Hide, a System basic action with a per-observer check, in the room', (
     // d20 10 + Stealth 5 = 15: above passive 10, level with passive 15, below passive 20.
     await hide(fixture, 10)
     expect(await concealments(fixture)).toEqual([
-      { holder: HIDER_ID, observers: [SHARP_ID], stealthTotal: 15 }
+      { holder: HIDER_ID, observers: [SHARP_ID], concealmentTotal: 15 }
     ])
     expect(await concealmentOutputs(fixture)).toMatchObject([
       { resolution: { kind: 'CONCEAL', hiddenFromActorIds: [SHARP_ID] } }
@@ -176,7 +191,7 @@ describe('Hide, a System basic action with a per-observer check, in the room', (
     // d20 20 + Stealth 5 = 25 beats every passive, but the Wolf at x 250 sees the hider past the wall.
     await hide(fixture, 20, true)
     expect(await concealments(fixture)).toEqual([
-      { holder: HIDER_ID, observers: [KEEN_ID, ALERT_ID].sort(), stealthTotal: 25 }
+      { holder: HIDER_ID, observers: [KEEN_ID, ALERT_ID].sort(), concealmentTotal: 25 }
     ])
   })
 
@@ -187,7 +202,7 @@ describe('Hide, a System basic action with a per-observer check, in the room', (
       {
         holder: HIDER_ID,
         observers: [SHARP_ID, KEEN_ID, ALERT_ID].sort(),
-        stealthTotal: 25
+        concealmentTotal: 25
       }
     ])
   })
@@ -242,33 +257,49 @@ describe('Hide, a System basic action with a per-observer check, in the room', (
     await revertLast(fixture)
     expect(await concealments(fixture)).toEqual([])
   })
+
+  it('refuses to undo a Hide once its concealment changed, and keeps the concealment', async () => {
+    const fixture = await hideRoom()
+    await hide(fixture, 10)
+    // Another write to the effect after the Hide, as a concurrent change would leave it.
+    await runInDurableObject(fixture.room.room.base.stub, async (_instance, context) => {
+      const room = new RoomEncounterStore(context.storage)
+      const effect = room.documents('encounterActiveRuleEffects')[0]!
+      await room.store.patch(effect._id, { version: effect.version + 1 })
+    })
+    expect(await requestRevert(fixture)).toMatchObject({
+      type: 'COMMAND_REJECTED',
+      message: 'The concealment changed after this action; adjust manually.'
+    })
+    expect(await concealments(fixture)).toHaveLength(1)
+  })
 })
 
-describe('Search, a System basic action against concealments, in the room', () => {
-  /** The hider hides at a total of 15, the turn passes to the searcher, and the searcher searches. */
-  async function search(fixture: Fixture, searcherId: string, face: number) {
-    await hide(fixture, 10)
-    // The hider acts first; the observers follow in `OBSERVER_PERCEPTION` order.
-    const turnsUntilSearcher = 1 + OBSERVER_PERCEPTION.findIndex(([id]) => id === searcherId)
-    for (let turn = 0; turn < turnsUntilSearcher; turn += 1) await fixture.room.advanceTurn()
-    const { answer } = await fixture.room.startAction(
-      searcherId,
-      [],
-      null,
-      null,
-      searchActionId(searcherId),
-      searcherId
-    )
-    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
-    await answerD20(fixture, face)
-  }
+/** The hider hides at a total of 15, the turn passes to the searcher, and the searcher searches. */
+async function search(fixture: Fixture, searcherId: string, face: number) {
+  await hide(fixture, 10)
+  // The hider acts first; the observers follow in `OBSERVER_PERCEPTION` order.
+  const turnsUntilSearcher = 1 + OBSERVER_PERCEPTION.findIndex(([id]) => id === searcherId)
+  for (let turn = 0; turn < turnsUntilSearcher; turn += 1) await fixture.room.advanceTurn()
+  const { answer } = await fixture.room.startAction(
+    searcherId,
+    [],
+    null,
+    null,
+    searchActionId(searcherId),
+    searcherId
+  )
+  expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+  await answerD20(fixture, face)
+}
 
+describe('Search, a System basic action against concealments, in the room', () => {
   it('reveals the hider to a searcher whose total reaches the Stealth total, and a tie finds it', async () => {
     const found = await hideRoom()
     // Sharp has Perception +0: a d20 of 15 totals 15, level with the Stealth total.
     await search(found, SHARP_ID, 15)
     expect(await concealments(found)).toEqual([
-      { holder: HIDER_ID, observers: [], stealthTotal: 15 }
+      { holder: HIDER_ID, observers: [], concealmentTotal: 15 }
     ])
     expect(await concealmentOutputs(found)).toMatchObject([
       { resolution: { kind: 'CONCEAL' } },
@@ -280,7 +311,7 @@ describe('Search, a System basic action against concealments, in the room', () =
     const missed = await hideRoom()
     await search(missed, SHARP_ID, 14)
     expect(await concealments(missed)).toEqual([
-      { holder: HIDER_ID, observers: [SHARP_ID], stealthTotal: 15 }
+      { holder: HIDER_ID, observers: [SHARP_ID], concealmentTotal: 15 }
     ])
   })
 
@@ -288,7 +319,7 @@ describe('Search, a System basic action against concealments, in the room', () =
     const fixture = await hideRoom()
     await search(fixture, ALERT_ID, 20)
     expect(await concealments(fixture)).toEqual([
-      { holder: HIDER_ID, observers: [SHARP_ID], stealthTotal: 15 }
+      { holder: HIDER_ID, observers: [SHARP_ID], concealmentTotal: 15 }
     ])
   })
 
@@ -298,7 +329,7 @@ describe('Search, a System basic action against concealments, in the room', () =
     expect((await concealments(fixture))[0]?.observers).toEqual([])
     await revertLast(fixture)
     expect(await concealments(fixture)).toEqual([
-      { holder: HIDER_ID, observers: [SHARP_ID], stealthTotal: 15 }
+      { holder: HIDER_ID, observers: [SHARP_ID], concealmentTotal: 15 }
     ])
   })
 })
@@ -374,5 +405,92 @@ describe('who learns whom the hider is hidden from, in the room', () => {
     const player = await readRoomTimeline(base.stub, { player: true, userId: base.playerId })
     expect(JSON.stringify(player)).not.toContain(SHARP_ID)
     expect(player.entries.every((entry) => entry.gmLines.length === 0)).toBe(true)
+  })
+})
+
+describe('who sees the Hide and Search rolls, in the room', () => {
+  const secretKeys = ['concealedFromActorIds', 'concealmentTotal', 'hiddenFromActorIds']
+  const framesOf = (player: Awaited<ReturnType<typeof connectPlayer>>) =>
+    JSON.stringify(player.messages)
+
+  it('keeps a GM hider’s roll to the GM though the GM’s roll preference is public, for Hide and Search', async () => {
+    const fixture = await hideRoom()
+    const { stub, userId } = fixture.room.room.base
+    await search(fixture, SHARP_ID, 15)
+    const cards = await readRoomRollCards(stub)
+    expect(cards.filter(({ audience }) => audience === 'TABLE')).toEqual([])
+    // The Hide and the Search each left a private card, and the GM alone holds them.
+    expect(cards.filter(({ audience }) => audience === 'PRIVATE')).toHaveLength(2)
+    expect((await readRoomPrivateRollHolders(stub)).map((holder) => holder.userId)).toEqual([
+      userId,
+      userId
+    ])
+    expect(await readRoomChatBodies(stub)).toEqual([])
+  })
+
+  it('shows a player hider’s roll to that player and the GM alone, never another player or the table', async () => {
+    const fixture = await hideRoom({ playerHider: true })
+    const { base } = fixture.room.room
+    const hiderPlayer = await connectPlayer(base)
+    const otherPlayer = await connectPlayer(base, 'OTHER_PLAYER')
+    await hide(fixture, 10)
+
+    const cards = await readRoomRollCards(base.stub)
+    expect(cards.filter(({ audience }) => audience === 'TABLE')).toEqual([])
+    expect(
+      (await readRoomPrivateRollHolders(base.stub)).map(({ userId }) => userId).sort()
+    ).toEqual([base.userId, base.playerId].sort())
+    expect(framesOf(otherPlayer)).not.toContain('privateRoll')
+    for (const player of [hiderPlayer, otherPlayer])
+      for (const key of secretKeys) expect(framesOf(player)).not.toContain(key)
+  })
+
+  it('keeps the same secrecy when the hider’s player presses Roll dice', async () => {
+    const fixture = await hideRoom({ playerHider: true, rolls: [10] })
+    const { base } = fixture.room.room
+    const hiderPlayer = await connectPlayer(base)
+    const otherPlayer = await connectPlayer(base, 'OTHER_PLAYER')
+    const { answer } = await fixture.room.startAction(
+      HIDER_ID,
+      [],
+      null,
+      null,
+      hideActionId,
+      HIDER_ID
+    )
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    const decision = await fixture.room.pendingDecision()
+    if (decision.pending.kind !== 'D20_EVIDENCE') throw new Error('Expected a d20 request.')
+    hiderPlayer.socket.send(
+      JSON.stringify({
+        type: 'COMMAND',
+        expectedSessionSequence: 0,
+        command: {
+          scope: 'ENCOUNTER',
+          command: {
+            type: 'ROLL_RULE_EVIDENCE',
+            encounterId: fixture.room.room.encounterId,
+            commandId: crypto.randomUUID(),
+            expectedVersion: decision.encounterVersion,
+            occurrenceId: decision.occurrence.id,
+            expectedOccurrenceVersion: decision.occurrence.version,
+            requestId: decision.pending.request.requestId,
+            rollMode: null
+          }
+        }
+      })
+    )
+    await vi.waitFor(async () => {
+      expect(await concealmentOutputs(fixture)).toHaveLength(1)
+    })
+
+    const cards = await readRoomRollCards(base.stub)
+    expect(cards.filter(({ audience }) => audience === 'TABLE')).toEqual([])
+    expect(
+      (await readRoomPrivateRollHolders(base.stub)).map(({ userId }) => userId).sort()
+    ).toEqual([base.userId, base.playerId].sort())
+    expect(framesOf(otherPlayer)).not.toContain('privateRoll')
+    for (const player of [hiderPlayer, otherPlayer])
+      for (const key of secretKeys) expect(framesOf(player)).not.toContain(key)
   })
 })

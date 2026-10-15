@@ -666,7 +666,8 @@ describe('non-character authored domain layout coverage', () => {
       const { values } = nodeRuntimeResolveRequestDtoSchema.parse(queryKey[2])
       // The root request that includes the new sense never settles, so the root model keeps no
       // scope for the added row.
-      if (Array.isArray(values.senses) && values.senses.length > 0) return new Promise(() => undefined)
+      if (Array.isArray(values.senses) && values.senses.length > 0)
+        return new Promise(() => undefined)
       return resolveNodeRuntimeQuery(queryKey)
     })
 
@@ -687,7 +688,9 @@ describe('non-character authored domain layout coverage', () => {
     await user.click(await screen.findByRole('button', { name: /add sense/i }))
     await user.click(await screen.findByRole('button', { name: /^sens 1/i }))
 
-    expect(await screen.findByRole('combobox', { name: /^sense/i }, { timeout: 5000 })).toBeInTheDocument()
+    expect(
+      await screen.findByRole('combobox', { name: /^sense/i }, { timeout: 5000 })
+    ).toBeInTheDocument()
   }, 20_000)
 
   it('loads native Spell copy sources after selection', async () => {

@@ -28,7 +28,7 @@ export function concealmentRecord(input: {
   encounterId: string
   holderActorId: string
   observerActorIds: readonly string[]
-  stealthTotal: number
+  concealmentTotal: number
   id?: string
 }): ActiveRuleEffectRecord {
   const action = characterActionDescriptor(
@@ -46,7 +46,10 @@ export function concealmentRecord(input: {
     sourceHidden: false,
     currentActorId: input.holderActorId,
     activeEffectPlan: activeEffectPlan ?? null,
-    concealment: { stealthTotal: input.stealthTotal, observerActorIds: input.observerActorIds },
+    concealment: {
+      concealmentTotal: input.concealmentTotal,
+      observerActorIds: input.observerActorIds
+    },
     published: published as ServerPublishedRuleDefinitionDto
   })
   if (!effect) throw new Error('No concealment effect was planned.')

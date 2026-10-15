@@ -7,6 +7,7 @@ import {
 } from '@artificer-toolkit/schema/shared/rulesExecution'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import { compileRuleGraph, createRuleOperationRegistry } from '@artificer-toolkit/shared/rules'
+import { normalizeObserverActorIds } from './encounterConcealment.js'
 import {
   installedGameSystemRuleOperations,
   requireInstalledGameSystemRuleCapability
@@ -80,7 +81,7 @@ export function prepareEncounterActionEffectPlans(input: {
    * What a settled concealment check decided: the total it froze and the observers it beats, or
    * null when it beats none. Omitted for every action that plans no concealment.
    */
-  concealment?: { stealthTotal: number; observerActorIds: readonly string[] } | null
+  concealment?: { concealmentTotal: number; observerActorIds: readonly string[] } | null
   published: ServerPublishedRuleDefinitionDto
   execution: ServerCompletedRuleExecutionDto
   d20: ServerRuleExecutionD20EvidenceDto | null
@@ -333,9 +334,10 @@ function prepareRecurringActiveEffect(
     recurrence: {
       // The grant tick planner counts a grant, so the turn-effect kernel never selects it.
       recurrenceStage: grantContribution ? 'NONE' : plan.recurrenceStage,
-      consumeOnFirstEvents: concealment
-        ? ['ON_ATTACK_ROLL']
-        : (grantContribution?.consumeOnFirstEvents ?? []),
+      consumeOnFirstEvents:
+        grantContribution?.consumeOnFirstEvents ??
+        plan.concealmentContribution?.consumeOnFirstEvents ??
+        [],
       endOnEvents: grantContribution?.endOnEvents ?? [],
       endOnConditionIds: grantContribution?.endOnConditionIds ?? [],
       holderEnd: grantContribution?.holderEnd ?? null,
@@ -356,7 +358,12 @@ function prepareRecurringActiveEffect(
       ? {
           stateContributions: [
             ...(concealment
-              ? [{ kind: 'LOCATION_CONCEALMENT' as const, stealthTotal: concealment.stealthTotal }]
+              ? [
+                  {
+                    kind: 'LOCATION_CONCEALMENT' as const,
+                    concealmentTotal: concealment.concealmentTotal
+                  }
+                ]
               : []),
             ...(grantContribution
               ? [
@@ -418,7 +425,9 @@ function prepareRecurringActiveEffect(
     lifecycle: activeRuleEffectLifecycleDtoSchema.parse({
       schemaVersion: 1,
       remainingTicks: initialRemaining,
-      ...(concealment ? { concealedFromActorIds: [...concealment.observerActorIds].sort() } : {})
+      ...(concealment
+        ? { concealedFromActorIds: normalizeObserverActorIds(concealment.observerActorIds) }
+        : {})
     })
   }
 }

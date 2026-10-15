@@ -254,7 +254,7 @@ const activeRuleEffectModifierGrantContributionDtoSchema = lazySchema(() =>
 const activeRuleEffectLocationConcealmentContributionDtoSchema = lazySchema(() =>
   z.strictObject({
     kind: z.literal('LOCATION_CONCEALMENT'),
-    stealthTotal: z.number().check(z.int())
+    concealmentTotal: z.number().check(z.int())
   })
 )
 

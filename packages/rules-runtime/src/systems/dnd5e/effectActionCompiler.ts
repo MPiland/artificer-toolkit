@@ -1381,7 +1381,8 @@ function modifierGrantEntryPlan(input: {
 
 /**
  * Hide: a successful check conceals the actor from the observers its total beats. It lasts until
- * dispelled and its first attack roll consumes it; any other lifecycle stays unsupported.
+ * dispelled and the events its lifecycle authors consume it (Hide: the first attack roll); any
+ * other lifecycle stays unsupported.
  */
 function concealmentPlan(
   action: Dnd5eCompiledEffectActionSource
@@ -1391,10 +1392,11 @@ function concealmentPlan(
   if (entries.length !== 1 || !entry || !('outcome' in entry)) return null
   if (entry.outcome.effectKind !== 'CONCEAL_FROM_OBSERVERS') return null
   const { consumeOnFirstEvents = [], ...otherLifecycle } = entry.lifecycle ?? {}
+  const consumeEvents = [...new Set(consumeOnFirstEvents)].sort()
+  const grantConsumeEvents = consumeEvents.filter(isGrantConsumeEvent)
   if (
     entry.duration?.durationKind !== 'UNTIL_DISPELLED' ||
-    consumeOnFirstEvents.length !== 1 ||
-    consumeOnFirstEvents[0] !== 'ON_ATTACK_ROLL' ||
+    grantConsumeEvents.length !== consumeEvents.length ||
     Object.values(otherLifecycle).some((value) => value !== undefined) ||
     !UUID.test(entry.entryId)
   )
@@ -1406,7 +1408,10 @@ function concealmentPlan(
     capabilityContractVersion: DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
     recurrenceStage: 'NONE',
     initialRemaining: null,
-    concealmentContribution: { observers: entry.outcome.observers },
+    concealmentContribution: {
+      observers: entry.outcome.observers,
+      consumeOnFirstEvents: grantConsumeEvents
+    },
     adapterFacts: {},
     perceptionContributions: [],
     maintenance: maintenancePlan(entry)
@@ -2336,6 +2341,18 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
     outcome.effectKind !== 'DETECT_CONCEALED'
   )
     unsupported('D&D check action outcome is not supported yet.')
+  // A concealment check is decided against scores the roller never sees: a passive DC only conceals
+  // and a concealment DC only detects, and neither pairs with any other outcome.
+  if (
+    invocation.triggerCode === 'CHECK' &&
+    (invocation.check.dc.kind === 'PASSIVE') !== (outcome.effectKind === 'CONCEAL_FROM_OBSERVERS')
+  )
+    unsupported('D&D check action passive DC and conceal outcome must be authored together.')
+  if (
+    invocation.triggerCode === 'CHECK' &&
+    (invocation.check.dc.kind === 'CONCEALMENT') !== (outcome.effectKind === 'DETECT_CONCEALED')
+  )
+    unsupported('D&D check action concealment DC and detect outcome must be authored together.')
   // A resolution names no check choice, so the action must list exactly one.
   if (
     invocation.triggerCode === 'CHECK' &&

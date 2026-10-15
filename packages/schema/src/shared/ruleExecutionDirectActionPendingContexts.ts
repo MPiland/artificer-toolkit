@@ -607,7 +607,7 @@ export type EncounterConcealmentCheckPendingContextDto = {
         concealments: {
           effectId: z.infer<typeof uuidSchema>
           holderActorId: z.infer<typeof uuidSchema>
-          stealthTotal: z.infer<typeof integerSchema>
+          concealmentTotal: z.infer<typeof integerSchema>
         }[]
       }
   consumedGrants: ActiveRuleEffectRecord[]
@@ -657,7 +657,7 @@ export const encounterConcealmentCheckPendingContextDtoSchema = lazySchema(() =>
             z.strictObject({
               effectId: uuidSchema,
               holderActorId: uuidSchema,
-              stealthTotal: integerSchema
+              concealmentTotal: integerSchema
             })
           )
           .check(z.maxLength(MAX_ENCOUNTER_ACTORS))

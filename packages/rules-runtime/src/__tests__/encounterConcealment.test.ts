@@ -34,7 +34,7 @@ const hiddenFrom = (...observerActorIds: string[]) =>
     encounterId: ENCOUNTER_ID,
     holderActorId: HIDER_ID,
     observerActorIds: observerActorIds.sort(),
-    stealthTotal: 15
+    concealmentTotal: 15
   })
 
 describe('concealment rules', () => {
@@ -60,11 +60,34 @@ describe('concealment rules', () => {
     expect(found(20, FOOLED_ID)).toEqual([])
   })
 
-  it('builds a passive score on the skill its passive is named for', () => {
+  it('builds a passive score on the skill its System authors for the passive', () => {
     expect(passiveSkillDefinitionId(srdSystemRecord, SRD_PASSIVE_PERCEPTION_ID)).toBe(
       SRD_PERCEPTION_SKILL_ID
     )
     expect(encounterPassiveScore(3, 'NORMAL')).toBe(13)
+  })
+
+  it('reads the authored skill link, not the passive code, and none when the System authors none', () => {
+    const secondSkill = srdSystemRecord.skills[1]
+    const passive = (skillDefinitionId: string | null) => ({
+      id: SRD_PASSIVE_PERCEPTION_ID,
+      code: 'PASSIVE_PERCEPTION',
+      label: 'Passive Perception',
+      skillDefinitionId
+    })
+    expect(
+      passiveSkillDefinitionId(
+        { ...srdSystemRecord, passives: [passive(secondSkill!.id)] },
+        SRD_PASSIVE_PERCEPTION_ID
+      )
+    ).toBe(secondSkill!.id)
+    expect(
+      passiveSkillDefinitionId(
+        { ...srdSystemRecord, passives: [passive(null)] },
+        SRD_PASSIVE_PERCEPTION_ID
+      )
+    ).toBeNull()
+    expect(passiveSkillDefinitionId(srdSystemRecord, testUuid(0xa9))).toBeNull()
   })
 
   it('adds 5 to a passive score with advantage and removes 5 with disadvantage', () => {
@@ -75,7 +98,7 @@ describe('concealment rules', () => {
   it('reads the frozen total and the observers a stored concealment still hides its holder from', () => {
     const record = hiddenFrom(FOOLED_ID, SEEING_ID)
     expect(encounterConcealmentOf([record])).toMatchObject({
-      stealthTotal: 15,
+      concealmentTotal: 15,
       observerActorIds: [SEEING_ID, FOOLED_ID].sort()
     })
     expect(isConcealedFrom([record], FOOLED_ID)).toBe(true)

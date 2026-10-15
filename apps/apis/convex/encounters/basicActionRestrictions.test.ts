@@ -44,10 +44,7 @@ if (useAnObject?.document.kind !== 'BASIC_ACTION') throw new Error('Missing Use 
 const useAnObjectEffectId = useAnObject.document.effects[0]!.id
 
 /** One OR-group holding one AND-ed holder predicate, the way a basic action's restrictions are authored. */
-function restrictedTo(
-  seed: number,
-  predicateCode: 'FREE_HAND' | 'CAN_ACT'
-): FacetDto {
+function restrictedTo(seed: number, predicateCode: 'FREE_HAND' | 'CAN_ACT'): FacetDto {
   const id = (offset: number) => `00000000-0000-4000-8000-0000000e${seed}0${offset}`
   return {
     id: id(0),

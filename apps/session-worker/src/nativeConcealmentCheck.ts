@@ -71,7 +71,7 @@ export function settleNativeConcealmentCheck(input: {
           roller,
           rollerEffects: input.activeEffectsByActorId.get(roller.id) ?? [],
           capability: input.capability,
-          stealthTotal: evaluated.d20.total,
+          concealmentTotal: evaluated.d20.total,
           observerActorIds: decision.hiddenFromActorIds
         })
       : null

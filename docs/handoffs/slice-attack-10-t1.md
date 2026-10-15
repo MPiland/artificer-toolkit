@@ -66,7 +66,7 @@ Red-first, per the checklist below.
   - Search is in scope.
   - Do NOT fix Invisibility's dead `ON_ATTACK_ROLL` end event; if widening consumption would start consuming Invisibility, stop and tell the main session.
 - 2026-10-15: implementation decisions (phase 2):
-  - Active-effect definitions are immutable (`schemaVersion 2`, checksummed), so the observer set lives in the mutable lifecycle (`concealedFromActorIds`); the definition's `LOCATION_CONCEALMENT` carries `stealthTotal`. Search, the GM command and the move prune update the lifecycle through `updateLifecycleCas`.
+  - Active-effect definitions are immutable (`schemaVersion 2`, checksummed), so the observer set lives in the mutable lifecycle (`concealedFromActorIds`); the definition's `LOCATION_CONCEALMENT` carries `concealmentTotal`. Search, the GM command and the move prune update the lifecycle through `updateLifecycleCas`.
   - The check pipeline is extended with a `resolution` discriminant on `BASIC_ACTION_CHECK` (no new command type); Escape stays its own command.
   - `consumableGrants` widens to modifier grants OR `LOCATION_CONCEALMENT` effects only, so Invisibility (condition path) is untouched.
   - Scope is large (about 25 files reference `BASIC_ACTION_CHECK`, about 10 per effect kind, about 15 compiler sites). Delivery is in green increments: (1) foundation + pure rules, (2) pipeline, Worker, GM command, prune, journey, docs.
@@ -98,3 +98,36 @@ Red-first, per the checklist below.
   - Stale generated types: `apps/apis/convex/_generated/api.d.ts` is tracked and bakes in inferred DTOs; the new `LOCATION_CONCEALMENT` contribution broke the web typecheck until codegen regenerates it.
   - Tests: `apps/session-worker/test/nativeRoomConcealmentPrune.test.ts` (hider move prunes and undo restores; observer move prunes; effect ended in between stays ended).
 - Phase 2 complete. SRD Hide/Search catalogue expectations and manifest regenerated (97f25d0d0); Search test now advances to the searcher's initiative turn (b362e2acb). Cloud CI run 38787642952 on `ci/attack-10-t1` is green on every job (builds, all typechecks, Convex 1-4, packages and Worker, web). Earlier `developmentLifecycleProof` failure (run 38781197096, suite 3/4) did not recur and is treated as a flake.
+
+## Merge review round 1 (2026-10-15, main session; list frozen)
+
+Reviewed commit 745eb25b4. Fixes land at their cause, red first, then scoped tests and CI on `ci/attack-10-t1`.
+
+Frozen list:
+
+- **Blocker 1.** Hide and Search roll cards must be private (GM plus the roller's controller), whatever the roller's public flag or the GM's preference. Proof through the real path: another player gets no card or total; a GM hider with a PUBLIC preference shows no player a card; no non-GM frame carries observer ids or the total.
+- **Blocker 2.** Believed mode must not reveal which observers failed. Ruling: believed mode treats the hider as hidden from any non-allied target while it holds a concealment effect; true mode still uses the set and cancels with the existing caption.
+- **3.** The compiler rejects PASSIVE without CONCEAL_FROM_OBSERVERS and CONCEALMENT without DETECT_CONCEALED (one test each).
+- **4.** `encounterActionEffectPlans.ts` carries the authored consume events (no hard-coded `ON_ATTACK_ROLL`), proved with an authored variant.
+- **5.** The passive-to-skill link is authored data in the System, not derived from a `PASSIVE_<SKILL>` code.
+- **6.** A discriminant replaces `'createdEffect' in settlement`.
+- **7.** The Escape DC offers FIXED and CONTEST only, in the schema, the authored type and the node map, tested through node-runtime resolution.
+- **8.** A type-level equality assertion for `EncounterConcealmentCheckPendingContextDto`.
+- **9.** `revertConcealmentCheck` throws `unavailable(...)` on a stale version.
+- **Nits.** Unused exports dropped; one observer-set normalizer and one set-equality method (`normalizeObserverActorIds`, `sameObserverActorIds`); the `input` wrapper in `nativeConcealmentPrune.ts` removed; `stealthTotal` renamed `concealmentTotal`.
+
+Resolutions:
+
+- Blocker 1: `asHiddenRoller` (`ruleRollCards.ts`) forces the card private; the concealment settlement and the app-roll path (`evidenceRolls.ts`) both use it. Tests: `nativeRoomHideAction.test.ts`, "who sees the Hide and Search rolls" (GM hider with the room's PUBLIC preference, player hider on both dice paths, another player's frames).
+- Blocker 2: `resolveAttackSight` believed guard is "concealment present and relationship not ALLIED"; tests in `encounterAttackPerception.test.ts` (noticed by A but not B gives the same believed prompt against both; true mode differs).
+- 3: `concealCompile.test.ts`. 4: variant with `ON_ABILITY_CHECK` plus `ON_ATTACK_ROLL`, `GrantConsumeEvent` being only those two. 5: `systemPassiveDefinitionDtoSchema.skillDefinitionId` (additive, v4 System), SRD passives author it. 6: `isConcealmentCheckSettlement`. 7: `escapeDcDtoSchema`, `ESCAPE_DC_NODE_MAP` (`escapeDc`), `escapeDcOptions.test.ts`. 8: `concealment-check-pending-context.test.ts`. 9: `actionRevert.ts`, room test "refuses to undo a Hide once its concealment changed".
+- Nit not done: `concealmentObserverCommand.ts` still scans the actors for the effect. The store indexes an effect by (encounter, holder, id) and the command carries no holder, so an id-only lookup needs a `holderActorId` on the command (a transport contract change). The GM tracker UI that issues this command needs the holder with the effect id anyway; add it there.
+
+Report-only answers:
+
+1. **Attack sight on a Scene ignores the persisted set.** Intended, and it is the SRD rule (you cannot hide from a creature that sees you clearly): on a Scene the geometry decides who sees the hider, the prune keeps the set honest for Search and the GM, and only the neutral environment (D94, no Scene) falls back to the set. Consequence: a GM edit of the set has no effect on attacks while a Scene is active. If main wants the GM override to bind on a Scene too, the change is one line (also UNSEEN when the observer is in the set), made safe by the prune.
+2. **No slice owns a UI for `SET_CONCEALMENT_OBSERVERS`.** The ledger has no item for it, and the GM Encounter projection carries no concealment (no effect id, holder or observers; player projections have none either). Needs a registered PBI on the GM tracker/token surface: project the GM-only concealment with its effect id and holder, and issue the command. Main registers it.
+3. **`restoreRoomConcealmentPrune` is safe, by design.** It runs in the same room transaction as the Scene undo, so nothing interleaves. It only adds back `before - after` (the observers the move itself dropped), never removes, so a GM's later edit is kept. It never recreates an ended effect, and it returns silently when the Run is not the held one because the concealments of a Run that is not active matter to no one. Residual: an observer a later Search removed is re-added by the undo of the earlier move. A version fence (item 9's rule) would need an `afterVersion` on the persisted prune entry and would block the Scene undo itself over a nuance, so it is not added.
+4. **A Scene-undo prune restore does not republish the Encounter projection, and needs none today**: no projection carries concealment (see 2) and the Encounter stream version does not move. The GM-tracker PBI must republish when it adds the projection.
+
+Contract changes in this round (flag for main): the System v4 `passives[].skillDefinitionId` (additive, optional); the Escape `dc` narrowed to FIXED and CONTEST (pre-launch, no authored Escape uses another kind); the persisted `LOCATION_CONCEALMENT` field renamed `stealthTotal` to `concealmentTotal` (pre-launch; no data migration, local dev Runs reset).

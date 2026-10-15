@@ -8,7 +8,9 @@ import { encounterStoredRunCommandSchema } from '@artificer-toolkit/schema/proje
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import {
   concealmentLifecycleFor,
-  encounterConcealmentOf
+  encounterConcealmentOf,
+  normalizeObserverActorIds,
+  sameObserverActorIds
 } from '@artificer-toolkit/rules-runtime/encounterConcealment'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import { rejectDomain } from './domainRejections.js'
@@ -87,10 +89,11 @@ export async function setConcealmentObservers(
   )
     rejectDomain('TARGET_UNAVAILABLE', 'Only another creature in the Encounter can be an observer.')
   const before = [...concealment.observerActorIds]
-  const after = [
-    ...new Set([...before.filter((id) => !input.remove.includes(id)), ...input.add])
-  ].sort()
-  if (checksumCanonicalJson(after) === checksumCanonicalJson(before))
+  const after = normalizeObserverActorIds([
+    ...before.filter((id) => !input.remove.includes(id)),
+    ...input.add
+  ])
+  if (sameObserverActorIds(after, before))
     rejectDomain('TARGET_UNAVAILABLE', 'That does not change who the creature is hidden from.')
 
   const updated = await store.updateLifecycleCas({

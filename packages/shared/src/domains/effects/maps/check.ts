@@ -30,50 +30,67 @@ export const CHECK_CHOICE_NODE_MAP = checkChoice.define('checkChoice', ({ map, n
     )
 })
 
-export const CHECK_DC_NODE_MAP = checkDc.define('checkDc', ({ map, nodes, data, cond }) => {
-  const { number, selectSingle, groupObject } = nodes
-  const { table } = data
-  const local = cond.local()
-  map
-    .set(
-      'kind',
-      selectSingle(['kind'], 'DC', {
-        kind: 'INLINE_OPTIONS',
-        options: [
-          { code: 'FIXED', label: 'Fixed DC' },
-          { code: 'CONTEST', label: 'Contest' },
-          { code: 'PASSIVE', label: 'Observer Passive Score' },
-          { code: 'CONCEALMENT', label: 'Concealment Check Total' }
-        ]
-      })
-    )
-    .set(
-      'value',
-      number(['value'], 'Fixed DC', {
-        constraints: { minimum: 1 },
-        showIf: local.field(['kind']).eq('FIXED')
-      })
-    )
-    .set(
-      'checks',
-      groupObject(['checks'], 'Source Checks', () => CHECK_CHOICE_NODE_MAP, {
-        presentation: 'inline',
-        showIf: local.field(['kind']).eq('CONTEST')
-      })
-    )
-    .set(
-      'passiveDefinitionId',
-      selectSingle(
-        ['passiveDefinitionId'],
-        'Passive Score',
-        {
-          kind: 'DATA',
-          relationship: table('passives', { selectColumns: ['id', 'label', 'description'] })
-        },
-        { showIf: local.field(['kind']).eq('PASSIVE') }
+const CHECK_DC_KIND_OPTIONS = [
+  { code: 'FIXED', label: 'Fixed DC' },
+  { code: 'CONTEST', label: 'Contest' },
+  { code: 'PASSIVE', label: 'Observer Passive Score' },
+  { code: 'CONCEALMENT', label: 'Concealment Check Total' }
+] as const
+
+/** A check DC map offering only `kinds`, so a context offers just the DCs its rules honour. */
+function defineCheckDcNodeMap(mapId: string, kinds: readonly CheckDcAuthored['kind'][]) {
+  return checkDc.define(mapId, ({ map, nodes, data, cond }) => {
+    const { number, selectSingle, groupObject } = nodes
+    const { table } = data
+    const local = cond.local()
+    map
+      .set(
+        'kind',
+        selectSingle(['kind'], 'DC', {
+          kind: 'INLINE_OPTIONS',
+          options: CHECK_DC_KIND_OPTIONS.filter(({ code }) => kinds.includes(code))
+        })
       )
-    )
-})
+      .set(
+        'value',
+        number(['value'], 'Fixed DC', {
+          constraints: { minimum: 1 },
+          showIf: local.field(['kind']).eq('FIXED')
+        })
+      )
+      .set(
+        'checks',
+        groupObject(['checks'], 'Source Checks', () => CHECK_CHOICE_NODE_MAP, {
+          presentation: 'inline',
+          showIf: local.field(['kind']).eq('CONTEST')
+        })
+      )
+    if (kinds.includes('PASSIVE'))
+      map.set(
+        'passiveDefinitionId',
+        selectSingle(
+          ['passiveDefinitionId'],
+          'Passive Score',
+          {
+            kind: 'DATA',
+            relationship: table('passives', { selectColumns: ['id', 'label', 'description'] })
+          },
+          { showIf: local.field(['kind']).eq('PASSIVE') }
+        )
+      )
+  })
+}
+
+/** Every DC kind: a check an actor makes on itself (Hide, Search, First Aid). */
+export const CHECK_DC_NODE_MAP = defineCheckDcNodeMap('checkDc', [
+  'FIXED',
+  'CONTEST',
+  'PASSIVE',
+  'CONCEALMENT'
+])
+
+/** An escape check is held against a fixed DC or a contest only. */
+export const ESCAPE_DC_NODE_MAP = defineCheckDcNodeMap('escapeDc', ['FIXED', 'CONTEST'])
 
 export const CHECK_NODE_MAP = check.define('check', ({ map, nodes }) => {
   const { groupObject } = nodes

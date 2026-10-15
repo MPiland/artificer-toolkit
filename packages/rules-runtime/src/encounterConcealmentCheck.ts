@@ -34,7 +34,7 @@ type ConcealmentResolution = EncounterConcealmentCheckPendingContextDto['resolut
 type ConcealmentCheckDc = { kind: 'PASSIVE'; passiveDefinitionId: string } | { kind: 'CONCEALMENT' }
 
 /** A concealment an actor holds, with the actor that holds it. */
-export type HeldConcealment = EncounterConcealment & { holderActorId: string }
+type HeldConcealment = EncounterConcealment & { holderActorId: string }
 
 /** Every concealment the actors' effects hold. */
 export function heldConcealments(
@@ -112,10 +112,10 @@ export function prepareEncounterConcealmentCheck<
             [...input.targets].map(([actorId, target]) => [actorId, target.activeEffects] as const)
           )
             .filter(({ observerActorIds }) => observerActorIds.includes(roller.actor.id))
-            .map(({ effect, holderActorId, stealthTotal }) => ({
+            .map(({ effect, holderActorId, concealmentTotal }) => ({
               effectId: effect.id,
               holderActorId,
-              stealthTotal
+              concealmentTotal
             }))
         }
   return encounterConcealmentCheckPendingContextDtoSchema.parse({
@@ -229,7 +229,7 @@ export function createEncounterConcealmentEffect(input: {
   roller: EncounterRunActorState
   rollerEffects: readonly ActiveRuleEffectRecord[]
   capability: EncounterBasicActionCapabilityDescriptor
-  stealthTotal: number
+  concealmentTotal: number
   observerActorIds: readonly string[]
 }): ActiveRuleEffectRecord | null {
   const adapter = characterRuleActionSystemAdapterRegistry.get(input.gameSystemId)
@@ -250,7 +250,10 @@ export function createEncounterConcealmentEffect(input: {
     sourceHidden: !input.roller.public,
     currentActorId: input.currentActorId,
     activeEffectPlan,
-    concealment: { stealthTotal: input.stealthTotal, observerActorIds: input.observerActorIds },
+    concealment: {
+      concealmentTotal: input.concealmentTotal,
+      observerActorIds: input.observerActorIds
+    },
     published: plan.published
   })
   if (!effect) return null

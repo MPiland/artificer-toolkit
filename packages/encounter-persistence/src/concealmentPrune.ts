@@ -5,13 +5,15 @@ import type {
 import type { sceneStoredConcealmentPruneSchema } from '@artificer-toolkit/schema/projections/sceneLivePersistence'
 import {
   concealmentLifecycleFor,
-  encounterConcealmentOf
+  encounterConcealmentOf,
+  normalizeObserverActorIds,
+  sameObserverActorIds
 } from '@artificer-toolkit/rules-runtime/encounterConcealment'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import { createActiveRuleEffectStore } from './effectStore.js'
 import type { EncounterWriteContext } from './store.js'
 
-export type ConcealmentPruneEntry = ReturnType<
+type ConcealmentPruneEntry = ReturnType<
   typeof sceneStoredConcealmentPruneSchema.parse
 >['entries'][number]
 
@@ -39,12 +41,8 @@ async function changeObservers(
   const concealment = effect ? encounterConcealmentOf([effect]) : null
   if (!effect || !concealment) return null
   const before = [...concealment.observerActorIds]
-  const after = [...new Set(change(before))].sort()
-  if (
-    after.length === before.length &&
-    after.every((id, index) => id === [...before].sort()[index])
-  )
-    return null
+  const after = normalizeObserverActorIds(change(before))
+  if (sameObserverActorIds(after, before)) return null
   await store.updateLifecycleCas({
     id: effect.id,
     owner,

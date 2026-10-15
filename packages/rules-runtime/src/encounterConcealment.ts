@@ -5,7 +5,7 @@ import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/sys
 /** A concealment an actor holds: the Stealth total it froze and the observers it is still hidden from. */
 export type EncounterConcealment = {
   effect: ActiveRuleEffectRecord
-  stealthTotal: number
+  concealmentTotal: number
   observerActorIds: readonly string[]
 }
 
@@ -21,18 +21,26 @@ export function encounterConcealmentOf(
     if (contribution?.kind === 'LOCATION_CONCEALMENT')
       return {
         effect,
-        stealthTotal: contribution.stealthTotal,
+        concealmentTotal: contribution.concealmentTotal,
         observerActorIds: effect.lifecycle.concealedFromActorIds ?? []
       }
   }
   return null
 }
 
-/** The concealment's lifecycle once it hides its holder from exactly these observers (sorted, unique). */
+/** An observer set as a concealment stores it: unique and sorted, so two equal sets compare equal. */
+export const normalizeObserverActorIds = (observerActorIds: readonly string[]) =>
+  [...new Set(observerActorIds)].sort()
+
+/** Whether two normalized observer sets hold the same actors. */
+export const sameObserverActorIds = (a: readonly string[], b: readonly string[]) =>
+  a.length === b.length && a.every((id, index) => id === b[index])
+
+/** The concealment's lifecycle once it hides its holder from exactly these observers. */
 export const concealmentLifecycleFor = (
   effect: ActiveRuleEffectRecord,
   observerActorIds: readonly string[]
-) => ({ ...effect.lifecycle, concealedFromActorIds: [...new Set(observerActorIds)].sort() })
+) => ({ ...effect.lifecycle, concealedFromActorIds: normalizeObserverActorIds(observerActorIds) })
 
 /** Whether the effects hide their holder from this observer. */
 export const isConcealedFrom = (
@@ -40,14 +48,10 @@ export const isConcealedFrom = (
   observerActorId: string
 ) => encounterConcealmentOf(effects)?.observerActorIds.includes(observerActorId) ?? false
 
-/**
- * The System skill a passive score is built on: the skill whose code the passive's code names
- * (`PASSIVE_PERCEPTION` is built on `PERCEPTION`). Null when the System has no such pair.
- */
+/** The System skill a passive score is built on, as the System authors it; null when it names none. */
 export function passiveSkillDefinitionId(system: SystemAuthoredDto, passiveDefinitionId: string) {
-  const code = system.passives.find(({ id }) => id === passiveDefinitionId)?.code
-  const skillCode = code?.replace(/^PASSIVE_/, '')
-  return (code && system.skills.find((skill) => skill.code === skillCode)?.id) ?? null
+  const passives: readonly { id: string; skillDefinitionId?: string | null }[] = system.passives
+  return passives.find(({ id }) => id === passiveDefinitionId)?.skillDefinitionId ?? null
 }
 
 const PASSIVE_ROLL_MODE_ADJUSTMENT = { NORMAL: 0, ADVANTAGE: 5, DISADVANTAGE: -5 } as const
@@ -61,11 +65,11 @@ export const encounterPassiveScore = (skillModifier: number, rollMode: Encounter
  * notices a hider whose total only equals its score.
  */
 export const observersHiddenFrom = (
-  stealthTotal: number,
+  concealmentTotal: number,
   observers: readonly { actorId: string; passiveScore: number }[]
 ) =>
   observers
-    .filter(({ passiveScore }) => stealthTotal > passiveScore)
+    .filter(({ passiveScore }) => concealmentTotal > passiveScore)
     .map(({ actorId }) => actorId)
     .sort()
 
@@ -80,8 +84,8 @@ export function concealmentsFoundBy(input: {
 }) {
   return input.concealments
     .filter(
-      ({ observerActorIds, stealthTotal }) =>
-        observerActorIds.includes(input.searcherActorId) && input.searchTotal >= stealthTotal
+      ({ observerActorIds, concealmentTotal }) =>
+        observerActorIds.includes(input.searcherActorId) && input.searchTotal >= concealmentTotal
     )
     .map((concealment) => ({
       ...concealment,

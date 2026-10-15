@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { ATTACK_DOMAIN_CODE } from '@artificer-toolkit/shared/core'
 import { createCharacterMechanicSourceKey } from '@artificer-toolkit/shared/character'
-import { SRD_ABILITY_DEFINITION_IDS, SRD_SPEEDS } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import {
+  SRD_ABILITY_DEFINITION_IDS,
+  SRD_SPEEDS
+} from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { resolveCharacterRulePolicyRollModes } from '../character/characterRuleRollProjection.js'
 import {
@@ -278,9 +281,7 @@ describe('holder-state predicates CAN_ACT and SPEED_ABOVE_ZERO', () => {
     await expect(read([{ speedId: WALK_ID, amount: 'fast', unit: 'FEET' }])).rejects.toThrow(
       /amount/
     )
-    await expect(read([{ speedId: WALK_ID, amount: 30, unit: 'FURLONGS' }])).rejects.toThrow(
-      /unit/
-    )
+    await expect(read([{ speedId: WALK_ID, amount: 30, unit: 'FURLONGS' }])).rejects.toThrow(/unit/)
     await expect(read([{ speedId: testUuid(0xd5a4), amount: 30, unit: 'FEET' }])).rejects.toThrow(
       `Speed ${testUuid(0xd5a4)} is not in the System speed vocabulary.`
     )

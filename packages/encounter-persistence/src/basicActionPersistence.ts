@@ -34,7 +34,10 @@ import { deleteConsumedGrants } from './consumedGrantPersistence.js'
 import { readBasicActionAdmission } from './basicActionAdmission.js'
 import { projectNativeBasicActionCheckPending } from './basicActionCheckPending.js'
 import { settleEncounterBasicActionCheck } from './basicActionCheckSettlement.js'
-import { settleEncounterConcealmentCheck } from './concealmentCheckSettlement.js'
+import {
+  isConcealmentCheckSettlement,
+  settleEncounterConcealmentCheck
+} from './concealmentCheckSettlement.js'
 import { readRunActors, replaceRunActor } from './documents.js'
 import { projectNativeGm } from './nativeProjection.js'
 import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.js'
@@ -146,14 +149,13 @@ export async function persistEncounterBasicAction(
       occurrenceVersion: 0
     }
     const { settlement } = check
-    const settled =
-      'createdEffect' in settlement
-        ? await settleEncounterConcealmentCheck(ctx, { ...settleInput, settlement })
-        : await settleEncounterBasicActionCheck(ctx, {
-            ...settleInput,
-            settlement,
-            applyMechanics: callbacks.applyMechanics
-          })
+    const settled = isConcealmentCheckSettlement(settlement)
+      ? await settleEncounterConcealmentCheck(ctx, { ...settleInput, settlement })
+      : await settleEncounterBasicActionCheck(ctx, {
+          ...settleInput,
+          settlement,
+          applyMechanics: callbacks.applyMechanics
+        })
     nextActors = settled.actors
   }
   const storedOccurrence = check

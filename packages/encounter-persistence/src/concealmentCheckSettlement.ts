@@ -1,4 +1,7 @@
-import type { ConcealmentCheckSettlement } from '@artificer-toolkit/schema/api/liveSessionEncounterBasicAction'
+import type {
+  ConcealmentCheckSettlement,
+  StabilizeCheckSettlement
+} from '@artificer-toolkit/schema/api/liveSessionEncounterBasicAction'
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { ServerRuleExecutionApplicationOutputsDto } from '@artificer-toolkit/schema/shared/ruleExecutionApplicationOutputs'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
@@ -10,14 +13,20 @@ import {
 import { basicActionCheckRollRecord } from '@artificer-toolkit/rules-runtime/encounterRuleCheckRolls'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import { createActiveRuleEffectStore } from './effectStore.js'
-import { recordRuleRollCard } from './ruleRollCards.js'
+import { asHiddenRoller, recordRuleRollCard } from './ruleRollCards.js'
 import type { EncounterWriteTransaction } from './ports.js'
 import type { EncounterDocument } from './store.js'
 
-export type ConcealmentCheckOutput = Extract<
+type ConcealmentCheckOutput = Extract<
   ServerRuleExecutionApplicationOutputsDto,
   { kind: 'CONCEALMENT_CHECK' }
 >
+
+/** Whether a settled basic action check is a concealment check (Hide, Search) and not a stabilizing one. */
+export const isConcealmentCheckSettlement = (
+  settlement: StabilizeCheckSettlement | ConcealmentCheckSettlement
+): settlement is ConcealmentCheckSettlement =>
+  settlement.context.kind === 'ENCOUNTER_CONCEALMENT_CHECK'
 
 /**
  * Settles a concealment check (Hide, Search). The room planned the result from the roller's total;
@@ -111,7 +120,7 @@ export async function settleEncounterConcealmentCheck(
       if (
         !receipt ||
         concealment?.kind !== 'LOCATION_CONCEALMENT' ||
-        concealment.stealthTotal !== output.d20.total ||
+        concealment.concealmentTotal !== output.d20.total ||
         checksumCanonicalJson(created.lifecycle.concealedFromActorIds) !==
           checksumCanonicalJson(decision.hiddenFromActorIds) ||
         receipt.activeEffectId !== created.id ||
@@ -159,10 +168,11 @@ export async function settleEncounterConcealmentCheck(
       ruleset: { systemId: system.id, code: system.rulesetCode, version: system.rulesetVersion },
       createdAt: input.occurredAt
     })
+    // A concealment total is secret: no table learns it, whoever rolls (D100).
     await recordRuleRollCard(ctx, {
       campaign: input.campaign,
       encounterId: state.id,
-      roller,
+      roller: asHiddenRoller(roller),
       initiatorUserId: input.initiatorUserId,
       visibility: undefined,
       clientNonce: roll.id,

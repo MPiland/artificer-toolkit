@@ -64,7 +64,7 @@ function pruneRoom(mover: 'HIDER' | 'NEAR') {
         encounterId,
         holderActorId: HIDER_ID,
         observerActorIds: [NEAR_ID, FAR_ID],
-        stealthTotal: STEALTH_TOTAL
+        concealmentTotal: STEALTH_TOTAL
       })
       await effects.create({
         id: EFFECT_ID,

@@ -169,7 +169,7 @@ const ruleCheckD20EvidenceDtoSchema = lazySchema(() =>
 )
 
 /** The settled d20 of a check compared with per-actor scores, so it names no single DC. */
-export const ruleCheckRollEvidenceDtoSchema = lazySchema(() =>
+const ruleCheckRollEvidenceDtoSchema = lazySchema(() =>
   z.strictObject(ruleCheckRollFields()).check(z.superRefine(checkRollMatchesRollMode))
 )
 

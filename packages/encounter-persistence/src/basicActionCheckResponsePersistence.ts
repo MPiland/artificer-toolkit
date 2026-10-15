@@ -26,7 +26,10 @@ import {
   readEscapeCheckResponseAdmission
 } from './basicActionCheckAdmission.js'
 import { settleEncounterBasicActionCheck } from './basicActionCheckSettlement.js'
-import { settleEncounterConcealmentCheck } from './concealmentCheckSettlement.js'
+import {
+  isConcealmentCheckSettlement,
+  settleEncounterConcealmentCheck
+} from './concealmentCheckSettlement.js'
 import { changedFields, readRunActors } from './documents.js'
 import { settleEncounterEscapeCheck } from './escapeCheckSettlement.js'
 import { projectNativeGm } from './nativeProjection.js'
@@ -94,7 +97,7 @@ export function persistEncounterBasicActionResponse(
         ? execution.applicationOutputs.d20.selectedNatural
         : null,
     settle: (transaction, settleInput) =>
-      'createdEffect' in settleInput.settlement
+      isConcealmentCheckSettlement(settleInput.settlement)
         ? settleEncounterConcealmentCheck(transaction, {
             ...settleInput,
             settlement: settleInput.settlement

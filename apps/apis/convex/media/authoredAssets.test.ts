@@ -430,9 +430,9 @@ describe('authored image media', () => {
       ).rejects.toThrow()
       const { assetId } = await uploadAndSave(owner.client, item)
       const draftTarget = { ...target(item), scope: 'DRAFT' as const }
-      expect(
-        await owner.client.query(api.media.authoredAssets.binding, draftTarget)
-      ).toMatchObject({ assetId })
+      expect(await owner.client.query(api.media.authoredAssets.binding, draftTarget)).toMatchObject(
+        { assetId }
+      )
       const read = await owner.client.action(api.media.authoredActions.getImage, {
         target: draftTarget,
         variantKind: 'DISPLAY'
@@ -662,7 +662,8 @@ describe('authored image media', () => {
     expect(uploaded.status).toBe('READY')
     expect(uploaded.chargedBytes).toBeGreaterThan(0)
     expect(uploaded.variants.length).toBeGreaterThan(0)
-    for (const variant of uploaded.variants) expect(server.objects.has(variant.objectKey)).toBe(true)
+    for (const variant of uploaded.variants)
+      expect(server.objects.has(variant.objectKey)).toBe(true)
     expect(await mediaBytes()).toBe(uploaded.chargedBytes)
 
     await owner.client.mutation(
@@ -693,7 +694,8 @@ describe('authored image media', () => {
     await t.finishAllScheduledFunctions(vi.runAllTimers)
     expect(await readAsset()).toMatchObject({ status: 'DELETED', chargedBytes: 0 })
     expect(await mediaBytes()).toBe(0)
-    for (const variant of uploaded.variants) expect(server.objects.has(variant.objectKey)).toBe(false)
+    for (const variant of uploaded.variants)
+      expect(server.objects.has(variant.objectKey)).toBe(false)
   }, 40_000)
 
   it('rejects stale settlement after draft discard and keeps the prior draft artwork on failed processing', async () => {

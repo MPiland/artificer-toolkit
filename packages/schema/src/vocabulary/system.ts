@@ -49,6 +49,20 @@ const systemCheckDefinitionDtoSchema = lazySchema(() =>
   })
 )
 
+/** A System passive score (10 + a skill's modifier). It names its skill, or none when no skill underlies it. */
+const systemPassiveDefinitionDtoSchema = lazySchema(() =>
+  z.extend(vocabularyDtoSchema, {
+    skillDefinitionId: z.optional(
+      z.nullable(
+        z.pipe(
+          postgresUuidSchema,
+          z.transform((value) => value.toLowerCase())
+        )
+      )
+    )
+  })
+)
+
 const systemInitiativePolicyDtoSchema = lazySchema(() =>
   z.strictObject({
     defaultDefinitionId: z.pipe(
@@ -136,6 +150,7 @@ const systemAuthoredV4DtoSchema = lazySchema(() =>
       schemaVersion: z.literal(4),
       abilities: z.array(abilityVocabularyDtoSchema).check(z.maxLength(500)),
       skills: z.array(systemCheckDefinitionDtoSchema),
+      passives: z.array(systemPassiveDefinitionDtoSchema),
       initiativePolicy: z.optional(systemInitiativePolicyDtoSchema)
     })
     .check(
@@ -190,6 +205,16 @@ const systemAuthoredV4DtoSchema = lazySchema(() =>
           }
           checkIds.add(check.id)
           checkCodes.add(check.code)
+        }
+        for (const [index, passive] of document.passives.entries()) {
+          if (passive.skillDefinitionId && !checkIds.has(passive.skillDefinitionId)) {
+            context.addIssue({
+              code: 'custom',
+              path: ['passives', index, 'skillDefinitionId'],
+              message:
+                'System passive definitions must reference a skill in the same System document.'
+            })
+          }
         }
       })
     )

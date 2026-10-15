@@ -17,12 +17,12 @@ export async function planConcealmentPrune(
   >,
   scene: CampaignSceneStateDto
 ) {
-  const input = { ...planned, scene, movedTokenId: planned.token.id }
-  const movedActorId = input.actorIdByTokenId.get(input.movedTokenId)
+  const { state, system, targets, actorIdByTokenId, spatialEffects, definitions } = planned
+  const movedActorId = actorIdByTokenId.get(planned.token.id)
   const tokenOf = (actorId: string) =>
-    input.scene.tokens.find((token) => input.actorIdByTokenId.get(token.id) === actorId)
+    scene.tokens.find((token) => actorIdByTokenId.get(token.id) === actorId)
   const prunes: { holderActorId: string; activeEffectId: string; observerActorIds: string[] }[] = []
-  for (const holder of input.targets.values()) {
+  for (const holder of targets.values()) {
     const concealment = encounterConcealmentOf(holder.activeEffects)
     const holderToken = tokenOf(holder.actor.id)
     if (!concealment || !holderToken) continue
@@ -30,18 +30,18 @@ export async function planConcealmentPrune(
       (id) => holder.actor.id === movedActorId || id === movedActorId
     )
     const observers = candidates.flatMap((id) => {
-      const observer = input.targets.get(id)
+      const observer = targets.get(id)
       const observerToken = tokenOf(id)
       return observer && observerToken
         ? [
             {
               observer,
               placement: {
-                scene: input.scene,
-                sceneGrid: input.scene.grid,
+                scene,
+                sceneGrid: scene.grid,
                 observerToken,
                 subjectToken: holderToken,
-                spatialEffects: input.spatialEffects
+                spatialEffects
               }
             }
           ]
@@ -49,16 +49,16 @@ export async function planConcealmentPrune(
     })
     if (!observers.length) continue
     const seeing = await resolveEncounterObserversSeeing({
-      gameSystemId: input.state.gameSystemId,
+      gameSystemId: state.gameSystemId,
       loadDefinition: async (id) => {
-        const current = await input.definitions.requireCurrent(id)
+        const current = await definitions.requireCurrent(id)
         return {
           definitionFamilyKey: current.definitionFamilyKey,
           gameSystemId: current.gameSystemId,
           current
         }
       },
-      loadSystem: async () => input.system,
+      loadSystem: async () => system,
       subject: holder,
       observers
     })

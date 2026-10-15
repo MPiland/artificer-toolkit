@@ -21,8 +21,9 @@ Rulings (integration owner, 2026-10-14):
   - they control it;
   - its token on the active scene is visible to them under the exact predicate the map uses, imported and not copied;
   - the GM revealed it (below).
-  
+
   A public actor with no token on the active scene stays listed, as today, because there's nothing to see or hide. If the map's draw decision also uses sense or light perception (VTT_UI-5), the list uses the same rule. If the map and the attack-perception rule disagree, report it instead of choosing.
+
 - **GM reveal:**
   - Add one persisted per-actor setting to the Encounter actor contract in `packages/schema`: not revealed (the default), revealed unnamed, or revealed by name. Name it to match the contract's style.
   - "Revealed unnamed" lists the actor to players as "Unseen creature", with no name, portrait, hit points or conditions.
@@ -58,8 +59,9 @@ What exists:
   - sorts by distance and shows the range;
   - marks out-of-range entries;
   - goes back to initiative order when targeting ends.
-  
+
   A revealed actor with no drawn token sorts last as "distance unknown". The map and the list share one selection. The list is the keyboard, screen-reader and no-map path, so it needs real buttons and labels.
+
 - **Out of scope:** attacking an empty square (ATTACK-17.4) and the per-user roll card (ATTACK-17.T1).
 
 Escalate (`SendMessage` to the main session) only for the AGENTS.md triggers. In particular:

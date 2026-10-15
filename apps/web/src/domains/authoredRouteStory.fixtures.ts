@@ -38,9 +38,7 @@ import type { AuthoredFormDomain } from '#forms/factories/authoredFormFactories.
 export const seedStoryUserId = '00000000-0000-0000-0000-000000000000'
 export const seedStorySystemId = '00000000-0000-0000-0000-000000000001'
 const authoredStorySpeeds = SRD_SPEEDS.map((speed) => ({ ...speed }))
-const authoredStoryWalkingSpeedId = authoredStorySpeeds.find(
-  (speed) => speed.code === 'WALK'
-)!.id
+const authoredStoryWalkingSpeedId = authoredStorySpeeds.find((speed) => speed.code === 'WALK')!.id
 
 export const authoredRouteStoryUser = {
   id: 'story-author',

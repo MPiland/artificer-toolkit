@@ -86,7 +86,7 @@ import {
 import { MODIFIER_GRANT_NODE_MAP } from '../../grants/maps/modifier.js'
 import { PROFICIENCY_NODE_MAP } from '../../grants/maps/proficiency.js'
 import { SENSE_GRANT_NODE_MAP } from '../../grants/maps/sense.js'
-import { CHECK_CHOICE_NODE_MAP, CHECK_DC_NODE_MAP } from './check.js'
+import { CHECK_CHOICE_NODE_MAP, ESCAPE_DC_NODE_MAP } from './check.js'
 import { ACTIVATION_NODE_MAP, INVOCATION_NODE_MAP } from './invocation.js'
 import { OUTCOME_BONUS_NODE_MAP } from './outcomeBonus.js'
 import { TARGETING_NODE_MAP } from './targeting.js'
@@ -1007,7 +1007,7 @@ const ACTOR_RELATIONSHIP_MODULE_NODE_MAP = actorRelationshipModule.define(
       )
       .set(
         'dc',
-        groupObject(['dc'], 'Escape DC', () => CHECK_DC_NODE_MAP, {
+        groupObject(['dc'], 'Escape DC', () => ESCAPE_DC_NODE_MAP, {
           presentation: 'inline',
           showIf: local.field(['kind']).eq('ESCAPE_CHECK')
         })

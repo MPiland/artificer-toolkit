@@ -7,7 +7,8 @@ import type {
 } from '@artificer-toolkit/shared/vtt'
 
 import type { EncounterAttackAgainstContributor } from './encounterActiveGrants.js'
-import { isConcealedFrom } from './encounterConcealment.js'
+import { encounterActorRelationship } from './encounterActionTargetPolicy.js'
+import { encounterConcealmentOf, isConcealedFrom } from './encounterConcealment.js'
 import type { MovementTarget } from './encounterMovementTargets.js'
 import {
   ENCOUNTER_UNSEEN_ATTACKER_CONTRIBUTOR_SOURCE_ID,
@@ -75,7 +76,15 @@ async function resolveAttackSight(
   // A concealed subject is unseen by the observers its concealment still hides it from (ATTACK-10.T1).
   // On a Scene an observer that really sees the subject has noticed it, so the Scene decides; without
   // one (the neutral environment, where everyone sees everyone) the persisted observer set decides.
-  if (input.placement === null && isConcealedFrom(subject.activeEffects, observer.actor.id))
+  // `believed` knows which observers failed to notice no better than its roller does (D100), so it
+  // treats the subject as hidden from every observer the concealment could have fooled.
+  if (
+    input.believed
+      ? encounterConcealmentOf(subject.activeEffects) !== null &&
+        encounterActorRelationship(subject.actor.disposition, observer.actor.disposition) !==
+          'ALLIED'
+      : input.placement === null && isConcealedFrom(subject.activeEffects, observer.actor.id)
+  )
     return { sight: 'UNSEEN', senseLabels: [] }
   const result = await resolveEncounterActorPairPerception({
     gameSystemId: input.gameSystemId,
