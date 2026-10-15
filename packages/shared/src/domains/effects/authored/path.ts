@@ -6,6 +6,7 @@ import type {
   TargetingAuthored
 } from '#authored'
 import type {
+  ActivationCode,
   PathCodesByTrigger,
   PathGroupType,
   PathLifecycleConsumeEvent,
@@ -31,6 +32,8 @@ export type PathLifecycleAuthored = {
   turnAnchor?: { actor: PathLifecycleTurnActor; boundary: PathLifecycleTurnBoundary }
   consumeOnFirstEvents?: PathLifecycleConsumeEvent[]
   endOnEvents?: PathLifecycleEndEvent[]
+  /** The holder may end the effect themselves, at the cost of this activation. */
+  holderEnd?: { activation: ActivationCode }
 }
 
 export type ResultBlockAuthored<TOutcome extends OutcomeAuthored = OutcomeAuthored> = {

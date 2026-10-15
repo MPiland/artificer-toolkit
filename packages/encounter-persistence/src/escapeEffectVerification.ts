@@ -54,11 +54,11 @@ export async function findStoredEscape(
  */
 export function activationAllowanceMatches(
   state: Pick<EncounterRunState, 'gameSystemId' | 'automationMode'>,
-  activation: { code: string; amount: number },
+  activation: { code: 'FREE' } | { code: string; amount: number },
   spent: { definitionId: string } | null
 ): boolean {
   const binding =
-    activation.code === 'FREE'
+    activation.code === 'FREE' || !('amount' in activation)
       ? null
       : actionEconomyCapabilityRegistry.resolveActionEconomyCapability({
           gameSystemId: state.gameSystemId,

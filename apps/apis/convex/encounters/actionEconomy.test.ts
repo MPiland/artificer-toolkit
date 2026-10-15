@@ -291,6 +291,7 @@ describe('native action economy', () => {
             recurrenceStage: 'NONE',
             consumeOnFirstEvents: [],
             endOnEvents: [],
+            holderEnd: null,
             lifetimeScope: 'ENCOUNTER',
             expiration: { kind: 'INDEFINITE' }
           },

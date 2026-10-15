@@ -134,6 +134,7 @@ export function activeEffect(input: {
       recurrenceStage: 'NONE',
       consumeOnFirstEvents: [],
       endOnEvents: [],
+      holderEnd: null,
       lifetimeScope: input.lifetimeScope ?? 'OWNER',
       expiration: { kind: 'INDEFINITE' }
     },

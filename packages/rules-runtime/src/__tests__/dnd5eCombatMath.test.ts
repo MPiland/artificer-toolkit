@@ -46,7 +46,8 @@ const noActionSources = {
   spellSlots: [],
   spellMechanics: [],
   proficiencies: [],
-  itemAdjustments: []
+  itemAdjustments: [],
+  spellcastingLocked: false
 }
 
 const fighter = (level = 1) => ({ label: 'Fighter', level })
@@ -662,13 +663,13 @@ describe('D&D 5e modifier scope', () => {
     expect(
       dnd5eModifierApplies(
         { ...modifier, scope: 'SOURCE' },
-        { sourceIds: ['item'], item: sword, spellId: null }
+        { sourceIds: ['item'], item: sword, spellId: null, attackAbility: null }
       )
     ).toBe(true)
     expect(
       dnd5eModifierApplies(
         { ...modifier, scope: 'SOURCE' },
-        { sourceIds: ['other'], item: sword, spellId: null }
+        { sourceIds: ['other'], item: sword, spellId: null, attackAbility: null }
       )
     ).toBe(false)
   })
@@ -681,12 +682,20 @@ describe('D&D 5e modifier scope', () => {
       scopeSpellIds: []
     }
     expect(dnd5eModifierApplies(dueling, DND5E_CHARACTER_WIDE_TARGET)).toBe(false)
-    expect(dnd5eModifierApplies(dueling, { sourceIds: [], item: sword, spellId: null })).toBe(true)
+    expect(
+      dnd5eModifierApplies(dueling, {
+        sourceIds: [],
+        item: sword,
+        spellId: null,
+        attackAbility: null
+      })
+    ).toBe(true)
     expect(
       dnd5eModifierApplies(dueling, {
         sourceIds: [],
         item: { ...sword, grip: 'TWO_HANDED' },
-        spellId: null
+        spellId: null,
+        attackAbility: null
       })
     ).toBe(false)
   })
@@ -700,10 +709,20 @@ describe('D&D 5e modifier scope', () => {
     }
     expect(dnd5eModifierApplies(agonizing, DND5E_CHARACTER_WIDE_TARGET)).toBe(false)
     expect(
-      dnd5eModifierApplies(agonizing, { sourceIds: [], item: null, spellId: 'eldritch-blast' })
+      dnd5eModifierApplies(agonizing, {
+        sourceIds: [],
+        item: null,
+        spellId: 'eldritch-blast',
+        attackAbility: null
+      })
     ).toBe(true)
     expect(
-      dnd5eModifierApplies(agonizing, { sourceIds: [], item: null, spellId: 'fire-bolt' })
+      dnd5eModifierApplies(agonizing, {
+        sourceIds: [],
+        item: null,
+        spellId: 'fire-bolt',
+        attackAbility: null
+      })
     ).toBe(false)
   })
 })
@@ -844,7 +863,8 @@ describe('D&D 5e restrictions and spell-scoped damage', () => {
     const target = (otherWeaponEquipped: boolean) => ({
       sourceIds: [],
       item: { ...item, otherWeaponEquipped },
-      spellId: null
+      spellId: null,
+      attackAbility: null
     })
     expect(group!.conditions.map((condition) => condition.kind)).toEqual(['ITEM_SOLE_WEAPON'])
     expect(dnd5eModifierApplies(modifier, target(false))).toBe(true)
@@ -915,6 +935,7 @@ describe('D&D 5e restrictions and spell-scoped damage', () => {
             {
               sourceId: 'agonizing-blast',
               value: 3,
+              ability: null,
               state: 'APPLIED',
               scope: 'GLOBAL',
               itemRequirements: [],

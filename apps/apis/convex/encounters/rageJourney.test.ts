@@ -140,7 +140,7 @@ async function setup() {
       rage: {
         actionId: rage.actionId,
         entry,
-        activation: rageDecision?.mechanic.invocation.activation
+        activation: rageDecision?.mechanic.activation
       },
       axe: { actionId: axe.actionId, expression: damage.expression },
       biteActionId: bite.actionId
@@ -216,7 +216,7 @@ async function barbarianState(fixture: Fixture) {
 describe('a Barbarian rages in an Encounter (ATTACK-9.T1)', () => {
   it('compiles Rage as a bonus action that spends one Rage charge', async () => {
     const { actions } = await setup()
-    expect(actions.rage.activation).toMatchObject({ code: 'BONUS_ACTION' })
+    expect(actions.rage.activation).toMatchObject({ kind: 'BONUS_ACTION' })
     expect(actions.rage.entry).toMatchObject({
       compilation: {
         kind: 'COMPILED',

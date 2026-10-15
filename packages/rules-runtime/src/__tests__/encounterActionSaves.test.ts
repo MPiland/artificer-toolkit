@@ -394,6 +394,7 @@ describe('a half-damage success authored as an amount kind', () => {
         spellMechanics: [],
         proficiencies: [],
         itemAdjustments: [],
+        spellcastingLocked: false,
         spellEffects: [
           {
             spellId: SPELL_ID,

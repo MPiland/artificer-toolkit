@@ -120,6 +120,7 @@ export function dependentEffectDefinition(input: { encounterId: string; sourceAc
       recurrenceStage: 'NONE',
       consumeOnFirstEvents: [],
       endOnEvents: [],
+      holderEnd: null,
       lifetimeScope: 'ENCOUNTER',
       expiration: {
         kind: 'TICKS',

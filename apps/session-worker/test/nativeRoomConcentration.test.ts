@@ -388,9 +388,9 @@ describe('room Concentration ends without a check (D95)', () => {
         ],
         ownerFeatureId: creatureFeature(attacker, 'Bite').id,
         seed: async ({ effects, encounterId, occurredAt }) => {
-          for (const [id, lifecycle] of [
-            [ENDING_GRANT_ID, { endOnEvents: ['ON_INCAPACITATED' as const] }],
-            [KEPT_GRANT_ID, {}]
+          for (const [id, endOnEvents] of [
+            [ENDING_GRANT_ID, ['ON_INCAPACITATED']],
+            [KEPT_GRANT_ID, []]
           ] as const)
             await effects.create({
               id,
@@ -400,7 +400,7 @@ describe('room Concentration ends without a check (D95)', () => {
                 encounterId,
                 sourceActorId: HOLDER_ID,
                 holderActorId: HOLDER_ID,
-                lifecycle,
+                lifecycle: { endOnEvents: [...endOnEvents] },
                 rounds: 10
               }).definition,
               occurredAt

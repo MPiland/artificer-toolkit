@@ -59,6 +59,7 @@ function relationshipEffect(input: {
       recurrenceStage: 'NONE',
       consumeOnFirstEvents: [],
       endOnEvents: [],
+      holderEnd: null,
       lifetimeScope: 'ENCOUNTER',
       expiration: { kind: 'INDEFINITE' }
     },

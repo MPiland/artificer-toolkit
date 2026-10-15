@@ -194,6 +194,7 @@ export async function turnSaveDamageEffect(
       recurrenceStage: stage,
       consumeOnFirstEvents: [],
       endOnEvents: [],
+      holderEnd: null,
       lifetimeScope: input.lifetimeScope ?? 'ENCOUNTER',
       expiration:
         input.ticks === null
@@ -272,6 +273,7 @@ export function activeEffect(input: {
       recurrenceStage: 'NONE',
       consumeOnFirstEvents: [...(input.consumeOnFirstEvents ?? [])],
       endOnEvents: [...(input.endOnEvents ?? [])],
+      holderEnd: null,
       lifetimeScope: 'OWNER',
       expiration: { kind: 'INDEFINITE' }
     },

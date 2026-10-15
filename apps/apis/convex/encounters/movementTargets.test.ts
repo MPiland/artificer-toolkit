@@ -304,6 +304,7 @@ describe('native movement target facts', () => {
         recurrenceStage: 'NONE',
         consumeOnFirstEvents: [],
         endOnEvents: [],
+        holderEnd: null,
         lifetimeScope: 'OWNER',
         expiration: { kind: 'INDEFINITE' }
       },

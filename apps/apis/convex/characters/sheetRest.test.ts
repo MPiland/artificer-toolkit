@@ -175,6 +175,7 @@ function reductionDefinition(
       recurrenceStage: 'NONE',
       consumeOnFirstEvents: [],
       endOnEvents: [],
+      holderEnd: null,
       lifetimeScope: 'OWNER',
       expiration: { kind: 'INDEFINITE' }
     },

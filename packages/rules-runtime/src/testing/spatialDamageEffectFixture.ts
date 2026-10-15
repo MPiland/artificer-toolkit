@@ -205,6 +205,7 @@ export async function buildSpatialDamageEffect(input: {
       recurrenceStage: 'NONE',
       consumeOnFirstEvents: [],
       endOnEvents: [],
+      holderEnd: null,
       lifetimeScope: 'ENCOUNTER',
       expiration:
         input.remainingTicks === null

@@ -99,6 +99,7 @@ export async function seedSpatialEffect(
         recurrenceStage: 'NONE',
         consumeOnFirstEvents: [],
         endOnEvents: [],
+        holderEnd: null,
         lifetimeScope: 'ENCOUNTER',
         expiration: {
           kind: 'TICKS',

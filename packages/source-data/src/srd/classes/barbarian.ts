@@ -283,17 +283,24 @@ function rageEffect(): EffectAuthored {
       order: 3 + index
     })
   )
-  const strengthAdvantages = [
-    VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER,
-    VALUE_DOMAIN_CODE.ABILITY_CHECK
-  ].map((valueDomainCode, index): ModifierGrantAuthored => ({
-    ...grantShape,
-    id: classRowId(B, 0x84, 7 + index),
-    valueDomainCode,
-    domain: { ability: ABILITY_CODE.STRENGTH },
-    modifierKind: MODIFIER_KIND.ADVANTAGE,
-    order: 6 + index
-  }))
+  const strengthAdvantages: ModifierGrantAuthored[] = [
+    {
+      ...grantShape,
+      id: classRowId(B, 0x84, 7),
+      valueDomainCode: VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER,
+      domain: { ability: ABILITY_CODE.STRENGTH },
+      modifierKind: MODIFIER_KIND.ADVANTAGE,
+      order: 6
+    },
+    {
+      ...grantShape,
+      id: classRowId(B, 0x84, 8),
+      valueDomainCode: VALUE_DOMAIN_CODE.ABILITY_CHECK,
+      domain: { ability: ABILITY_CODE.STRENGTH },
+      modifierKind: MODIFIER_KIND.ADVANTAGE,
+      order: 7
+    }
+  ]
   const spellcastingLock: ModifierGrantAuthored = {
     ...grantShape,
     id: classRowId(B, 0x84, 9),
@@ -325,7 +332,10 @@ function rageEffect(): EffectAuthored {
           id: classRowId(B, 0x81, 1),
           resultKind: 'SINGLE',
           duration: { id: classRowId(B, 0x83, 1), durationKind: DURATION_KIND.MINUTE, amount: 1 },
-          lifecycle: { endOnEvents: ['ON_INCAPACITATED'], holderEnd: { activation: 'BONUS_ACTION' } },
+          lifecycle: {
+            endOnEvents: ['ON_INCAPACITATED'],
+            holderEnd: { activation: 'BONUS_ACTION' }
+          },
           outcomes: [
             {
               id: classRowId(B, 0x82, 1),
