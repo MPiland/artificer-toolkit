@@ -28,6 +28,7 @@ import {
   seedRoomContentSnapshots,
   useLocalRoomWorker
 } from '../../tests/fixtures/localRoomWorker'
+import { createPartyPlayer } from '../../tests/fixtures/partyPlayer'
 import { importedSubject } from '../../tests/fixtures/publication'
 import { homebrewCopy } from '../../tests/fixtures/homebrewCopy'
 import { rejection } from '../../tests/fixtures/roomRefusals'
@@ -364,6 +365,30 @@ describe.each(BARBARIANS)('$name rages in an Encounter (ATTACK-9.T1)', ({ source
       expect(await rejection(endsRage(fixture, wolfTurn, grantId))).toMatchObject({
         reason: 'NOT_CURRENT_ACTOR'
       })
+      expect((await barbarianState(fixture)).grantIds).toEqual([grantId])
+    }, 120000)
+
+    it('refuses to end the Rage for a player who does not control the Barbarian', async () => {
+      const fixture = await setup(source)
+      // The room closes its sockets when membership changes, so the third member joins first.
+      const party = await createPartyPlayer(fixture.t, fixture.campaign)
+      await party.join()
+      const { barbarianTurn, grantId } = await ragingOnItsNextTurn(fixture)
+      expect(
+        await rejection(
+          executeInRoom(party.caller, {
+            command: {
+              type: 'END_HELD_GRANT',
+              encounterId: fixture.run.id,
+              commandId: crypto.randomUUID(),
+              expectedVersion: barbarianTurn.projection.version,
+              actorId: fixture.actor.id,
+              activeEffectId: grantId,
+              acknowledgedWarnings: []
+            }
+          })
+        )
+      ).toMatchObject({ reason: 'NOT_ACTOR_CONTROLLER' })
       expect((await barbarianState(fixture)).grantIds).toEqual([grantId])
     }, 120000)
 
