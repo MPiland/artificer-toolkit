@@ -72,8 +72,11 @@ jobs:
         include:
           - name: Convex
             run: yarn turbo run typecheck:convex --filter=@artificer-toolkit/apis --env-mode=loose
-          - name: packages and Worker
-            run: yarn workspace @artificer-toolkit/session-worker types && yarn turbo run typecheck --filter=@artificer-toolkit/apis --filter=@artificer-toolkit/session-worker --filter=@artificer-toolkit/rules-runtime --filter=@artificer-toolkit/encounter-persistence --filter=@artificer-toolkit/schema --filter=@artificer-toolkit/shared --filter=@artificer-toolkit/source-data --filter=@artificer-toolkit/authoring --env-mode=loose --continue
+          # One tsc at a time per job: parallel tsc processes exhaust a runner's memory.
+          - name: Worker and apis
+            run: yarn turbo run typecheck --filter=@artificer-toolkit/session-worker --filter=@artificer-toolkit/apis --concurrency=1 --env-mode=loose --continue
+          - name: packages
+            run: yarn turbo run typecheck --filter=@artificer-toolkit/rules-runtime --filter=@artificer-toolkit/encounter-persistence --filter=@artificer-toolkit/schema --filter=@artificer-toolkit/shared --filter=@artificer-toolkit/source-data --filter=@artificer-toolkit/authoring --concurrency=1 --env-mode=loose --continue
           - name: web app
             run: yarn turbo run typecheck:app --filter=@artificer-toolkit/web --env-mode=loose
           - name: web tests
