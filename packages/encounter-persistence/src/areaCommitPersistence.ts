@@ -32,6 +32,7 @@ import {
   requireAreaActionRemoval
 } from './actionAreaPending.js'
 import { persistCompletedChild } from './actionChildPersistence.js'
+import { receiptConsumedGrants } from './consumedGrantPersistence.js'
 import { completeActionOccurrence, recordActionRoot } from './actionCommitRecords.js'
 import { settleActionSourceSpend, sourceSpendMutation } from './actionSourceSpend.js'
 import { actionSystemRollAnswers, readAppCardedDice } from './appCardedDice.js'
@@ -515,7 +516,7 @@ export async function persistEncounterAreaCommit(
     commandFields: {
       label: input.label,
       ruleOverrides: input.ruleOverrides,
-      consumedGrants: [],
+      consumedGrants: receiptConsumedGrants(input),
       addedConcentrationCasterId: null,
       speedBonusTurn: null,
       issuerLines: children.flatMap(({ actor, batch }) => {

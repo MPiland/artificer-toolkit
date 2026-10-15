@@ -61,9 +61,7 @@ function HeldGrantEndList({
     )
   }
 
-  const confirmingChoice = heldGrantEnds.find(
-    (choice) => choice.activeEffectId === confirming?.id
-  )
+  const confirmingChoice = heldGrantEnds.find((choice) => choice.activeEffectId === confirming?.id)
   return (
     <section aria-labelledby={titleId} className={styles.section}>
       <Title id={titleId} order={3} size='h5'>
@@ -86,7 +84,7 @@ function HeldGrantEndList({
               ) : null}
             </Stack>
             <Button
-              aria-label={choice.label}
+              aria-label={`End ${choice.label}`}
               disabled={disabled || submittingId !== null}
               loading={submittingId === choice.activeEffectId}
               size='xs'

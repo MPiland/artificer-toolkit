@@ -33,6 +33,7 @@ import {
   type FacetAuthored,
   type ModifierGrantAuthored
 } from '@artificer-toolkit/shared'
+import { conditionTypeId } from '../equipment/shared.js'
 import { CLASS_IDS } from '../ids.js'
 import {
   SRD_CURRENCIES,
@@ -253,7 +254,7 @@ function rageDamageTypeId(code: string): string {
 
 /**
  * Rage: a bonus action that spends one Rage charge and grants the rage for 1 minute. The holder or
- * the GM can end it and incapacitation ends it; the grant carries the benefits and the spellcasting
+ * the GM can end it and being knocked unconscious ends it; the grant carries the benefits and the spellcasting
  * lock.
  */
 function rageEffect(): EffectAuthored {
@@ -333,7 +334,7 @@ function rageEffect(): EffectAuthored {
           resultKind: 'SINGLE',
           duration: { id: classRowId(B, 0x83, 1), durationKind: DURATION_KIND.MINUTE, amount: 1 },
           lifecycle: {
-            endOnEvents: ['ON_INCAPACITATED'],
+            endOnConditionIds: [conditionTypeId('UNCONSCIOUS')],
             holderEnd: { activation: 'BONUS_ACTION' }
           },
           outcomes: [

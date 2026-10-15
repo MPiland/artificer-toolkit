@@ -11,7 +11,9 @@ import { combatPerceptionContributionsDtoSchema } from './combatPerception.js'
 import {
   activationCodeSchema,
   pathLifecycleConsumeEventSchema,
-  pathLifecycleEndEventSchema
+  pathLifecycleEndEventSchema,
+  pathLifecycleGrantConsumeEventSchema,
+  pathLifecycleGrantEndEventSchema
 } from './enums.js'
 import { compiledRuleGraphDtoSchema } from './ruleExecutionCore.js'
 
@@ -102,14 +104,19 @@ export const activeEffectConsumeEventsSchema = lazySchema(() =>
   sortedUniqueEventsSchema(pathLifecycleConsumeEventSchema, 'consume events')
 )
 
-/** The consume events a timed grant can carry (a cast does not use a grant up): sorted and unique. */
+/** The consume events a timed grant can carry: sorted and unique. */
 export const activeGrantConsumeEventsSchema = lazySchema(() =>
-  sortedUniqueEventsSchema(z.enum(['ON_ATTACK_ROLL', 'ON_ABILITY_CHECK']), 'grant consume events')
+  sortedUniqueEventsSchema(pathLifecycleGrantConsumeEventSchema, 'grant consume events')
 )
 
-/** The end events a timed grant can carry (it is never ended by a cast or a heal): sorted and unique. */
+/** The end events a timed grant can carry: sorted and unique. */
 export const activeGrantEndEventsSchema = lazySchema(() =>
-  sortedUniqueEventsSchema(z.enum(['ON_INCAPACITATED']), 'grant end events')
+  sortedUniqueEventsSchema(pathLifecycleGrantEndEventSchema, 'grant end events')
+)
+
+/** The conditions whose holder ends a timed grant early (condition type ids): sorted and unique. */
+export const activeGrantEndConditionIdsSchema = lazySchema(() =>
+  sortedUniqueEventsSchema(uuidSchema, 'end conditions')
 )
 
 /**
@@ -134,7 +141,8 @@ const activeRuleEffectDefinitionBaseDtoSchema = lazySchema(() =>
       recurrenceStage: z.enum(['NONE', 'START_OF_TURN', 'END_OF_TURN']),
       consumeOnFirstEvents: activeEffectConsumeEventsSchema,
       endOnEvents: activeEffectEndEventsSchema,
-      holderEnd: z._default(z.nullable(activeGrantHolderEndSchema), null),
+      endOnConditionIds: activeGrantEndConditionIdsSchema,
+      holderEnd: z.nullable(activeGrantHolderEndSchema),
       lifetimeScope: z.enum(['OWNER', 'ENCOUNTER']),
       expiration: z.discriminatedUnion('kind', [
         z.strictObject({ kind: z.literal('INDEFINITE') }),
@@ -389,5 +397,11 @@ export const activeRuleEffectStateDtoSchema = lazySchema(() =>
 )
 
 export type ActiveGrantHolderEnd = z.infer<typeof activeGrantHolderEndSchema>
+
+/** The events whose first occurrence can use an Encounter grant up. */
+export type GrantConsumeEvent = z.infer<typeof pathLifecycleGrantConsumeEventSchema>
+
+/** The events that end an Encounter grant early. */
+export type GrantEndEvent = z.infer<typeof pathLifecycleGrantEndEventSchema>
 export type ActiveRuleEffectDefinitionDto = z.infer<typeof activeRuleEffectDefinitionDtoSchema>
 export type ActiveRuleEffectStateDto = z.infer<typeof activeRuleEffectStateDtoSchema>

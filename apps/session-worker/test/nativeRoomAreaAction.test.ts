@@ -4,6 +4,7 @@ import {
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import type { ResolveEncounterActionInputDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
+import { plannedModifierGrant } from '@artificer-toolkit/rules-runtime/testing/modifierGrantFixture'
 import { readCharacterPlay } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { creatureAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/creature'
 import {
@@ -960,6 +961,54 @@ describe('room area commit', () => {
     })
     expect(vitalsOf(history)).toEqual(vitalsOf(before))
     expect(await readCharacterHitPoints(room)).toBe(hitPointsBefore)
+  })
+})
+
+describe('room area commit with a grant that ends on incapacitation (D113)', () => {
+  const GRANT_ID = testUuid(0x705)
+  const grantIds = async (room: AnyAreaRoom) =>
+    (await readRoomHistory(room.room.base.stub)).activeEffects.map((effect) => effect.id)
+
+  it('ends the grant of a caught holder who is incapacitated, and the area’s undo restores it', async () => {
+    const paralyzed = srdSystemRecord.conditionTypes.find(({ code }) => code === 'PARALYZED')
+    if (!paralyzed) throw new Error('The SRD vocabulary has no Paralyzed condition.')
+    const room = await actionRoom({
+      actors: [
+        srdCreatureActor({ id: CASTER_ID, creature: fireballWolf() }),
+        srdCreatureActor({ id: CAUGHT_IDS[0]!, creature: plainWolf, conditionIds: [paralyzed.id] }),
+        srdCreatureActor({ id: CAUGHT_IDS[1]!, creature: plainWolf })
+      ],
+      ownerFeatureId: fireballWolf().features?.find((feature) => feature.label === 'Bite')?.id,
+      seed: async ({ effects, encounterId, occurredAt }) => {
+        await effects.create({
+          id: GRANT_ID,
+          owner: { kind: 'ENCOUNTER_ACTOR', encounterId, targetActorId: CAUGHT_IDS[0]! },
+          lifecycle: { schemaVersion: 1, remainingTicks: 10 },
+          definition: plannedModifierGrant({
+            encounterId,
+            sourceActorId: CAUGHT_IDS[0]!,
+            holderActorId: CAUGHT_IDS[0]!,
+            lifecycle: { endOnEvents: ['ON_INCAPACITATED'] },
+            rounds: 10
+          }).definition,
+          occurredAt
+        })
+      }
+    })
+    expect(await grantIds(room)).toContain(GRANT_ID)
+
+    await room.startAreaAction({ x: 50, y: 150 })
+    await answerAllSaves(room)
+    expect(await grantIds(room)).not.toContain(GRANT_ID)
+
+    const undone = await room.send({
+      type: 'REVERT_LAST_ACTION',
+      encounterId: room.room.encounterId,
+      commandId: crypto.randomUUID(),
+      expectedVersion: await room.version()
+    })
+    expect(undone.type, JSON.stringify(undone)).toBe('COMMAND_COMMITTED')
+    expect(await grantIds(room)).toContain(GRANT_ID)
   })
 })
 

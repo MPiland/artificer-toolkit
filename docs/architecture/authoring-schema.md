@@ -77,6 +77,12 @@ authoring: {
 
 Invalid examples include `presentation: 'focused-drawer'`, manual ordering without `identityPath`, a scalar input with options, a select input without a source, duplicate action types, `tone: '#ff9900'`, and any platform class or token path.
 
+Grant lifecycle options on an effect (`path.ts`) are generic node-map options, not class rules: `endOnEvents`
+(`ON_INCAPACITATED`), `endOnConditionIds` (a `condition_types` multi-select; the grant ends while its holder has any of them),
+`holderEnd` (`{ activation }`, the holder may end it at that cost) and `consumeOnFirstEvents`. Modifier facets include
+`ATTACK_ABILITY` / `ITEM_ATTACK_ABILITY` (gate a modifier on the ability an attack used) and the `SPELLCASTING_LOCK` `ENABLE`
+domain (bars every spell cast). Rage (ATTACK-9.T1) is authored with these and has parity with the authoring form.
+
 Maps live in `packages/shared/src/domains/{subjects,features,grants,effects,shared}/maps`. The authoring package's `mapRegistry` registers roots and recursively registers child maps by `mapId`. Duplicate IDs with conflicting signatures fail inventory validation; unknown IDs are `NodeRuntimeInputError`. Add-enabled child maps must have an exact web default factory—there is no generic `{ id, order }` fallback.
 
 ## Backend resolution

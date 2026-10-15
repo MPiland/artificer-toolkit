@@ -837,7 +837,7 @@ export const characterActionModelInputSchema = lazySchema(() =>
     spellEffects: z._default(characterSpellActionFactsSchema, []),
     spellMechanics: z._default(characterSpellSourceMechanicsSchema, []),
     /** An active `SPELLCASTING_LOCK` grant bars every spell cast. */
-    spellcastingLocked: z._default(z.boolean(), false),
+    spellcastingLocked: z.boolean(),
     activeSourceIds: z.array(identitySchema).check(z.maxLength(10_000)),
     activeEquipmentInstanceIds: z.array(identitySchema).check(z.maxLength(1_000)),
     resources: characterResourcesSchema,

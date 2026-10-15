@@ -4,7 +4,7 @@ import type {
   EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { nativeConcentrationDamageApplications } from '@artificer-toolkit/rules-runtime/encounterConcentrationDamage'
-import { grantsEndedOnIncapacitation } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
+import { grantsEndedByHolderState } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import {
   concentrationCommandId,
@@ -18,7 +18,7 @@ import {
   persistNativeConcentrationPending,
   persistNativeConcentrationResult
 } from './actionChildPersistence.js'
-import { postConcentrationEndMessage, readConcentrationEndReason } from './concentrationEnd.js'
+import { postConcentrationEndMessage, readHolderEndState } from './concentrationEnd.js'
 import { deleteConsumedGrants } from './consumedGrantPersistence.js'
 import { createActiveRuleEffectStore } from './effectStore.js'
 import type { EncounterCharacterWriteTransaction, EncounterWritePorts } from './ports.js'
@@ -128,15 +128,14 @@ export async function persistEncounterConcentrationChildren(
       slot.ownerActorId !== end.ownerActorId ||
       slot.maintenanceDefinitionId !== DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID ||
       !holder ||
-      (await readConcentrationEndReason(ctx, { state, actor: holder, userId: args.userId })) !==
+      (await readHolderEndState(ctx, { state, actor: holder, userId: args.userId })).reason !==
         end.reason
     )
       throw new Error('Live Session concentration end is unexpected.')
     previousOwnerId = end.ownerActorId
     ends.push({ end, slot, holder })
   }
-  // The grants that same incapacitation ends must be stored as sent and held by a holder who is
-  // incapacitated or defeated in the committed state.
+  // The grants the holder's state ends must be stored as sent and be ones the committed state ends.
   for (const grant of args.endedGrants) {
     const stored = await store.findById(grant.owner, grant.id)
     const holder = actors.find(
@@ -144,14 +143,14 @@ export async function persistEncounterConcentrationChildren(
         checksumCanonicalJson(turnEffectOwner(actor, state.id)) ===
         checksumCanonicalJson(grant.owner)
     )
-    const reason =
-      holder &&
-      (await readConcentrationEndReason(ctx, { state, actor: holder, userId: args.userId }))
+    const holderState =
+      holder && (await readHolderEndState(ctx, { state, actor: holder, userId: args.userId }))
     if (
       state.automationMode === 'MANUAL' ||
-      stored?.version !== grant.version ||
-      !grantsEndedOnIncapacitation([stored]).length ||
-      (reason !== 'INCAPACITATED' && reason !== 'DEFEATED')
+      !stored ||
+      checksumCanonicalJson(stored) !== checksumCanonicalJson(grant) ||
+      !holderState ||
+      !grantsEndedByHolderState([stored], holderState).length
     )
       throw new Error('Live Session grant end is unexpected.')
   }

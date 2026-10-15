@@ -335,4 +335,94 @@ describe('Sheet play on a held Character', () => {
     })
     expect(await effectIds()).toEqual([])
   }, 120000)
+
+  describe('ending a grant its holder may end (D113)', () => {
+    /** Aid granted twice, one end costing a bonus action and one free, each with its `holderEnd`. */
+    async function holdingEndableGrants() {
+      const ids = { costed: '', free: '' }
+      const base = await heldCharacter(async ({ t, run, character }) => {
+        const characterId = character.sourceId
+        if (!characterId) throw new Error('Missing held Character source.')
+        for (const [kind, activation] of [
+          ['costed', 'BONUS_ACTION'],
+          ['free', 'FREE']
+        ] as const) {
+          const effect = await t.run((ctx) =>
+            createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) }).create({
+              id: crypto.randomUUID(),
+              owner: { kind: 'CHARACTER', characterId },
+              definition: plannedModifierGrant({
+                encounterId: run.id,
+                sourceActorId: character.id,
+                holderActorId: character.id,
+                lifecycle: { holderEnd: { activation } },
+                effect: aidAtSecondLevel(),
+                rounds: 30,
+                lifetimeScope: 'OWNER'
+              }).definition,
+              lifecycle: { schemaVersion: 1, remainingTicks: 30 }
+            })
+          )
+          ids[kind] = effect.id
+        }
+      })
+      const effectIds = () =>
+        base.t.run(async (ctx) =>
+          (
+            await ctx.db
+              .query('characterActiveRuleEffects')
+              .withIndex('by_characterId_id', (q) => q.eq('characterId', base.characterId))
+              .collect()
+          ).map(({ id }) => id)
+        )
+      const end = (caller: typeof base.player.caller, effectId: string, expectedVersion: number) =>
+        executeSheetInRoom(caller, {
+          scope: 'CHARACTER_SHEET',
+          characterId: base.characterId,
+          encounterId: base.run.id,
+          command: {
+            type: 'END_ACTIVE_EFFECT',
+            commandId: crypto.randomUUID(),
+            expectedVersion,
+            effectId
+          }
+        })
+      return { ...base, ids, effectIds, end }
+    }
+
+    it('lets the player end a free grant at the Sheet, and sends a costed one to the Encounter actions', async () => {
+      const held = await holdingEndableGrants()
+      const { ids, player, effectIds, end } = held
+      const both = [ids.costed, ids.free].sort()
+      const { streamVersion } = await held.play()
+
+      await expect(end(player.caller, ids.costed, streamVersion)).rejects.toThrow(
+        'End this effect from the Encounter actions.'
+      )
+      expect((await effectIds()).sort()).toEqual(both)
+
+      const ended = await end(player.caller, ids.free, streamVersion)
+      expect(await effectIds()).toEqual([ids.costed])
+      expect(ended.streamVersion).toBe(streamVersion + 1)
+    }, 120000)
+
+    it('refuses an effect that has already ended, and a member who does not own the Character', async () => {
+      const held = await holdingEndableGrants()
+      const { ids, player, other, effectIds, end } = held
+      const { streamVersion } = await held.play()
+
+      await expectRedactedRoomRefusal(
+        end(other.caller, ids.free, streamVersion),
+        'Assigned Character not found.',
+        'DOMAIN_REJECTED'
+      )
+      expect((await effectIds()).sort()).toEqual([ids.costed, ids.free].sort())
+
+      const ended = await end(player.caller, ids.free, streamVersion)
+      await expect(end(player.caller, ids.free, ended.streamVersion)).rejects.toThrow(
+        'Active effect is unavailable.'
+      )
+      expect(await effectIds()).toEqual([ids.costed])
+    }, 120000)
+  })
 })

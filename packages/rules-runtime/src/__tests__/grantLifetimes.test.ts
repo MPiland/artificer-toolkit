@@ -10,6 +10,7 @@ import {
 } from '@artificer-toolkit/source-data/srd/basicActions.js'
 import { barbarian } from '@artificer-toolkit/source-data/srd/classes/barbarian.js'
 import { antitoxinVial } from '@artificer-toolkit/source-data/srd/equipment/antitoxin-vial.js'
+import { conditionTypeId } from '@artificer-toolkit/source-data/srd/equipment/shared.js'
 import { aid } from '@artificer-toolkit/source-data/srd/spells/aid.js'
 import { darkvision } from '@artificer-toolkit/source-data/srd/spells/darkvision.js'
 import { fly } from '@artificer-toolkit/source-data/srd/spells/fly.js'
@@ -27,14 +28,16 @@ import { prepareEncounterActionEffectPlans } from '../encounterActionEffectPlans
 import {
   consumableGrants,
   expiredCarriedOverGrants,
-  grantsEndedOnIncapacitation,
+  grantsEndedByHolderState,
   planCarriedOverGrants,
   planConcentrationCarriedGrantEnds,
   planDepartedSourceGrantRemovals,
-  planEncounterGrantTicks
+  planEncounterGrantTicks,
+  stateBoundGrants
 } from '../encounterGrantLifetimes.js'
 import { isTurnEffectEligible } from '../encounterTurnEffectState.js'
 import { dnd5eCharacterRuleActionSystemAdapter } from '../systems/dnd5e/effectActionCompiler.js'
+import { DND5E_UNCONSCIOUS_CONDITION_DEFINITION_ID } from '../systems/dnd5e/identity.js'
 import {
   ENCOUNTER_ID,
   TIMESTAMP,
@@ -566,18 +569,20 @@ describe('a Rage made on the Barbarian’s own turn', () => {
       holders: [{ actor: holder(TARGET_ID).actor, effects }]
     })
 
-  it('compiles to a one-minute holder-counted grant ended by incapacitation or its holder', () => {
+  it('compiles to a one-minute holder-counted grant ended by Unconscious or its holder', () => {
     expect(srdPlan(rage, {})).toMatchObject({
       recurrenceStage: 'END_OF_TURN',
       initialRemaining: 10,
       modifierGrantContribution: {
         tickAnchor: 'HOLDER',
-        endOnEvents: ['ON_INCAPACITATED'],
+        endOnEvents: [],
+        endOnConditionIds: [DND5E_UNCONSCIOUS_CONDITION_DEFINITION_ID],
         holderEnd: { activation: 'BONUS_ACTION' }
       }
     })
     expect(stored(TARGET_ID).definition.recurrence).toMatchObject({
-      endOnEvents: ['ON_INCAPACITATED'],
+      endOnEvents: [],
+      endOnConditionIds: [DND5E_UNCONSCIOUS_CONDITION_DEFINITION_ID],
       holderEnd: { activation: 'BONUS_ACTION' }
     })
   })
@@ -598,14 +603,51 @@ describe('a Rage made on the Barbarian’s own turn', () => {
     expect(plan(TARGET_ID, [last])).toMatchObject([{ kind: 'EXPIRE', effect: { id: last.id } }])
   })
 
-  it('is among the grants incapacitation ends, which an Antitoxin is not', () => {
+  it('is among the grants that follow their holder’s state, which an Antitoxin is not', () => {
     const antitoxinRecord = grantRecord(storedGrant({ lifecycle: {}, currentActorId: null }), {
       id: 0xc372,
       holderId: TARGET_ID
     })
-    expect(grantsEndedOnIncapacitation([antitoxinRecord, record]).map(({ id }) => id)).toEqual([
-      record.id
-    ])
+    expect(stateBoundGrants([antitoxinRecord, record]).map(({ id }) => id)).toEqual([record.id])
+  })
+
+  it('ends while its holder is Unconscious, and stays through Stunned and incapacitation', () => {
+    const stunned = conditionTypeId('STUNNED')
+    expect(
+      grantsEndedByHolderState([record], {
+        reason: null,
+        conditionIds: [DND5E_UNCONSCIOUS_CONDITION_DEFINITION_ID]
+      }).map(({ id }) => id)
+    ).toEqual([record.id])
+    expect(
+      grantsEndedByHolderState([record], { reason: 'INCAPACITATED', conditionIds: [stunned] })
+    ).toEqual([])
+    expect(grantsEndedByHolderState([record], { reason: 'DEFEATED', conditionIds: [] })).toEqual([])
+  })
+})
+
+describe('a grant that ends on incapacitation', () => {
+  const incapacitation = grantRecord(
+    storedGrant({ lifecycle: { endOnEvents: ['ON_INCAPACITATED'] }, currentActorId: null }),
+    { id: 0xc373, holderId: TARGET_ID }
+  )
+
+  it.each([['INCAPACITATED' as const], ['DEFEATED' as const]])(
+    'ends when its holder is %s, whatever conditions it has',
+    (reason) => {
+      expect(
+        grantsEndedByHolderState([incapacitation], { reason, conditionIds: [] }).map(({ id }) => id)
+      ).toEqual([incapacitation.id])
+    }
+  )
+
+  it.each([[null], ['SPELLCASTING_LOCKED' as const]])('stays when its holder is %s', (reason) => {
+    expect(
+      grantsEndedByHolderState([incapacitation], {
+        reason,
+        conditionIds: [DND5E_UNCONSCIOUS_CONDITION_DEFINITION_ID]
+      })
+    ).toEqual([])
   })
 })
 

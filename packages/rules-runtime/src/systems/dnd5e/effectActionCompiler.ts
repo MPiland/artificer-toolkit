@@ -5,7 +5,11 @@ import {
 } from '@artificer-toolkit/schema/shared/ruleExecutionCore'
 import type { ServerRuleExecutionResultDto } from '@artificer-toolkit/schema/shared/ruleExecutionProtocol'
 import { resolveDispositionDamage } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
-import { attackKindSchema } from '@artificer-toolkit/schema/shared/enums'
+import {
+  attackKindSchema,
+  pathLifecycleGrantConsumeEventSchema,
+  pathLifecycleGrantEndEventSchema
+} from '@artificer-toolkit/schema/shared/enums'
 import {
   hitPointMaximumReductionRecoveryTagsSchema,
   type HitPointMaximumReductionRecoveryTag
@@ -47,10 +51,12 @@ import type {
   CharacterRuleActionActiveEffectPlan,
   CharacterRuleActionConditionOutcomeRules,
   CharacterRuleActionPositionalFacts,
-  GrantConsumeEvent,
-  GrantEndEvent,
   CharacterRuleActionSpatialDirective
 } from '../../characterRuleActionSystemAdapter.js'
+import type {
+  GrantConsumeEvent,
+  GrantEndEvent
+} from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import { CharacterRuleActionUnsupportedCompilationError } from '../../characterRuleActionSystemAdapter.js'
 import { encounterAreaTargetKind } from '../../encounterAreaAction.js'
 import {
@@ -557,7 +563,8 @@ function supportedRecurringPlan(
     lifecycle &&
     recurringStage !== null &&
     (lifecycle.consumeOnFirstEvents?.length ?? 0) === 0 &&
-    (lifecycle.endOnEvents?.length ?? 0) === 0
+    (lifecycle.endOnEvents?.length ?? 0) === 0 &&
+    (lifecycle.endOnConditionIds?.length ?? 0) === 0
   const maintenance = maintenancePlan(entry)
   if (
     invocation.kind === 'ACTION' &&
@@ -1236,11 +1243,11 @@ function timedImmediateConditionPlan(
 }
 
 function isGrantConsumeEvent(event: string): event is GrantConsumeEvent {
-  return event === 'ON_ATTACK_ROLL' || event === 'ON_ABILITY_CHECK'
+  return pathLifecycleGrantConsumeEventSchema.safeParse(event).success
 }
 
 function isGrantEndEvent(event: string): event is GrantEndEvent {
-  return event === 'ON_INCAPACITATED'
+  return pathLifecycleGrantEndEventSchema.safeParse(event).success
 }
 
 /**
@@ -1279,6 +1286,7 @@ function modifierGrantPlan(
     turnAnchor,
     consumeOnFirstEvents = [],
     endOnEvents = [],
+    endOnConditionIds = [],
     holderEnd = null,
     ...otherLifecycle
   } = entry.lifecycle ?? {}
@@ -1334,6 +1342,7 @@ function modifierGrantPlan(
       includesCurrentTurn: entry.duration?.durationKind === 'TURN',
       consumeOnFirstEvents: grantConsumeEvents,
       endOnEvents: grantEndEvents,
+      endOnConditionIds: [...new Set(endOnConditionIds)].sort(),
       holderEnd
     },
     adapterFacts: attack ? { 'dnd5e.grant-authored-path': entry.pathCode } : {},

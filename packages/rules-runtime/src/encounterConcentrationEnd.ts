@@ -1,3 +1,4 @@
+import type { ConcentrationEndReason } from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { isEncounterActorDefeated, type DeadCharacterIds } from './encounterActorDefeat.js'
 import { encounterGrantsEnabledDomain } from './encounterActiveGrants.js'
@@ -14,7 +15,7 @@ export async function encounterConcentrationEndReason(
     actor: EncounterRunActorState
     deadCharacterIds: DeadCharacterIds
   } & Parameters<typeof encounterActorCannotAct>[0]
-): Promise<'INCAPACITATED' | 'DEFEATED' | 'SPELLCASTING_LOCKED' | null> {
+): Promise<Exclude<ConcentrationEndReason, 'CHOSEN'> | null> {
   if (isEncounterActorDefeated(input.actor, input.deadCharacterIds)) return 'DEFEATED'
   if (await encounterActorCannotAct(input)) return 'INCAPACITATED'
   return encounterGrantsEnabledDomain(input.activeEffects, 'SPELLCASTING_LOCK')

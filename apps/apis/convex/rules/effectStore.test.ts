@@ -88,6 +88,7 @@ function ownerDefinition(characterId: string): ActiveRuleEffectDefinitionDto {
       recurrenceStage: 'NONE',
       consumeOnFirstEvents: [],
       endOnEvents: [],
+      endOnConditionIds: [],
       holderEnd: null,
       lifetimeScope: 'OWNER',
       expiration: { kind: 'INDEFINITE' }

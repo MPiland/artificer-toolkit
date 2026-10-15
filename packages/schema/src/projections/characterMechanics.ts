@@ -30,6 +30,7 @@ import {
 } from '../shared/ruleExecutionCore.js'
 import {
   activeGrantConsumeEventsSchema,
+  activeGrantEndConditionIdsSchema,
   activeGrantEndEventsSchema,
   activeGrantHolderEndSchema
 } from '../shared/activeRuleEffects.js'
@@ -159,7 +160,8 @@ const compiledActionActiveEffectPlanSchema = lazySchema(() =>
             includesCurrentTurn: z.boolean(),
             consumeOnFirstEvents: activeGrantConsumeEventsSchema,
             endOnEvents: activeGrantEndEventsSchema,
-            holderEnd: z._default(z.nullable(activeGrantHolderEndSchema), null)
+            endOnConditionIds: activeGrantEndConditionIdsSchema,
+            holderEnd: z.nullable(activeGrantHolderEndSchema)
           })
           .check(
             z.refine(

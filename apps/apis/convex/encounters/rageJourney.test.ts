@@ -31,7 +31,7 @@ import {
 import { createPartyPlayer } from '../../tests/fixtures/partyPlayer'
 import { importedSubject } from '../../tests/fixtures/publication'
 import { homebrewCopy } from '../../tests/fixtures/homebrewCopy'
-import { rejection } from '../../tests/fixtures/roomRefusals'
+import { expectUnavailableRefusal, rejection } from '../../tests/fixtures/roomRefusals'
 import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
 import { srdWolf } from '../../tests/fixtures/srdCreatures'
 import { api, internal } from '../_generated/api'
@@ -55,10 +55,14 @@ const BARBARIANS = [
 ]
 
 /**
- * A level-1 SRD Barbarian with an equipped Greataxe, acting first in an Assisted Run against the
- * seeded SRD Wolf. Its Rage is the real SRD Feature, compiled from the seeded Barbarian Class.
+ * A level-1 SRD Barbarian with an equipped Greataxe, acting first in an Assisted (or Manual) Run
+ * against the seeded SRD Wolf. Its Rage is the real SRD Feature, compiled from the seeded
+ * Barbarian Class.
  */
-async function setup(source: typeof srdBarbarian) {
+async function setup(
+  source: typeof srdBarbarian,
+  automationMode: 'ASSISTED' | 'MANUAL' = 'ASSISTED'
+) {
   const base = await setupCharacterRun({ base: source, features: source.features }, greataxe)
   await attachRoomWorker(base.t)
   await equipAllCharacterItems(base)
@@ -102,12 +106,10 @@ async function setup(source: typeof srdBarbarian) {
   const wolf = run.actors.find((candidate) => candidate.kind === 'CREATURE')
   if (!actor || !wolf) throw new Error('The Rage fixture actors are missing.')
   const actions = await base.t.run(async (ctx) => {
-    await activateFixtureRun(
-      ctx,
-      run.id,
-      { automationMode: 'ASSISTED', round: 1, currentActorId: actor.id },
-      [actor.id, wolf.id]
-    )
+    await activateFixtureRun(ctx, run.id, { automationMode, round: 1, currentActorId: actor.id }, [
+      actor.id,
+      wolf.id
+    ])
     const facts = await loadCharacterSheetFacts(
       ctx,
       base.player.userId,
@@ -349,6 +351,29 @@ describe.each(BARBARIANS)('$name rages in an Encounter (ATTACK-9.T1)', ({ source
         reason: 'RULE_WARNINGS',
         warnings: [{ code: 'ACTION_ECONOMY_UNAVAILABLE' }]
       })
+    }, 120000)
+
+    it('refuses to end a Rage that has already ended', async () => {
+      const fixture = await setup(source)
+      const { barbarianTurn, grantId } = await ragingOnItsNextTurn(fixture)
+      const ended = await endsRage(fixture, barbarianTurn, grantId)
+      expect((await barbarianState(fixture)).grantIds).toEqual([])
+
+      await expectUnavailableRefusal(
+        endsRage(fixture, ended, grantId),
+        'The creature holds no effect it can end.'
+      )
+      expect((await barbarianState(fixture)).grantIds).toEqual([])
+    }, 120000)
+
+    it('lets the player end the Rage in a Manual Run, where the Encounter tracks no action economy', async () => {
+      const fixture = await setup(source, 'MANUAL')
+      const raged = await rages(fixture)
+      const [grantId] = (await barbarianState(fixture)).grantIds
+      if (!grantId) throw new Error('Rage granted nothing.')
+      // The bonus action Rage used is not tracked, so ending it the same turn warns of nothing.
+      await endsRage(fixture, raged, grantId)
+      expect((await barbarianState(fixture)).grantIds).toEqual([])
     }, 120000)
 
     it('refuses to end the Rage off the holder turn', async () => {

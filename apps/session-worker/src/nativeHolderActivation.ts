@@ -1,0 +1,100 @@
+import type {
+  EndHeldGrantInputDto,
+  EscapeRelationshipInputDto
+} from '@artificer-toolkit/schema/api/encounterRuleCommands'
+import {
+  liveSessionEncounterRulesInputSchema,
+  type LiveSessionEncounterRulesInput
+} from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
+import {
+  evaluateEncounterActionEconomy,
+  type ActionEconomyInput
+} from '@artificer-toolkit/rules-runtime/encounterActionEconomy'
+import { consumeEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomyConsumption'
+import {
+  encounterActionEconomyWarnings,
+  overridesActionEconomy,
+  RULE_WARNINGS_MESSAGE
+} from '@artificer-toolkit/rules-runtime/encounterActionRuleWarnings'
+import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
+import { captureActionEconomyDefinitions } from './nativeEncounterActionEconomy.js'
+import { liveEncounterCaptures, type LiveCaptureReads } from './nativeEncounterReads.js'
+
+type HolderActivationCommand = EndHeldGrantInputDto | EscapeRelationshipInputDto
+
+/**
+ * Admits a command a creature runs on an effect it holds (an Escape, D105, or an end of its own
+ * grant, D113) and reads the Run inputs it plans against: the replay of an already-recorded
+ * command, or the admitted command with the reads that fence its commit.
+ */
+export async function admitNativeLiveHolderCommand(
+  scope: Omit<LiveSessionEncounterRulesInput, 'request'>,
+  command: HolderActivationCommand,
+  captures: LiveCaptureReads,
+  label: string
+) {
+  const request = { kind: 'BASIC_ACTION' as const, command }
+  const initial = liveSessionEncounterRulesInputSchema.parse({
+    ...scope,
+    // A player's admitted command lets its follow-up captures read the rules inputs.
+    ...(scope.expectedRole === 'PLAYER' ? { action: request } : {}),
+    request
+  })
+  if (
+    command.encounterId.toLowerCase() !== initial.encounterId ||
+    command.expectedVersion !== initial.expectedVersion
+  )
+    throw new Error(`Live ${label} scope mismatch.`)
+  const reads = liveEncounterCaptures(initial, captures)
+  const { capture } = reads
+  const admission = await capture(request)
+  if (admission.result) return { kind: 'REPLAY' as const, result: admission.result }
+  if (!admission.ready) throw new Error(`The ${label} is unavailable.`)
+  const { state, system } = await capture({ kind: 'INPUTS' })
+  if (state.id !== initial.encounterId || state.version !== initial.expectedVersion)
+    throw new Error(`${label} Run inputs changed during capture.`)
+  return { kind: 'ADMITTED' as const, initial, reads, ready: admission.ready, state, system }
+}
+
+/**
+ * Spends the activation a holder command costs: its economy consumption, the warnings the command
+ * must have acknowledged and the actor after paying. A FREE activation costs nothing.
+ */
+export async function spendNativeHolderActivation(input: {
+  actor: ActionEconomyInput['actor']
+  state: ActionEconomyInput['state']
+  holder: NonNullable<ActionEconomyInput['target']>
+  activation: ActionEconomyInput['activation']
+  acknowledgedWarnings: readonly string[]
+  capture: ReturnType<typeof liveEncounterCaptures>['capture']
+}) {
+  const { actor, state, holder, activation, acknowledgedWarnings, capture } = input
+  const economy =
+    activation.code === 'FREE'
+      ? null
+      : await evaluateEncounterActionEconomy({
+          actor,
+          state,
+          activation,
+          target: holder,
+          loadTarget: async () => holder,
+          definitions: captureActionEconomyDefinitions(capture)
+        })
+  const warnings = encounterActionEconomyWarnings(economy, activation.code)
+  if (!warnings.every((warning) => acknowledgedWarnings.includes(warning.code)))
+    throw new LiveSessionDomainRejectionError(422, {
+      code: 'DOMAIN_REJECTED',
+      reason: 'RULE_WARNINGS',
+      message: RULE_WARNINGS_MESSAGE,
+      warnings
+    })
+  const actionEconomy = economy?.consumption ?? null
+  const spent = actionEconomy
+    ? consumeEncounterActionEconomy({
+        actor,
+        consumption: actionEconomy,
+        overridden: overridesActionEconomy(warnings)
+      })
+    : actor
+  return { actionEconomy, warnings, spent }
+}

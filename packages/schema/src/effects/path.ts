@@ -120,6 +120,8 @@ export const pathLifecycleDtoSchema = lazySchema(() =>
       authoredReferenceCollectionSchema(pathLifecycleConsumeEventSchema)
     ),
     endOnEvents: z.optional(authoredReferenceCollectionSchema(pathLifecycleEndEventSchema)),
+    /** Condition type ids; the effect ends early while its holder has any of them. */
+    endOnConditionIds: z.optional(authoredReferenceCollectionSchema(postgresUuidSchema)),
     /** The holder may end the effect themselves, at the cost of this activation. */
     holderEnd: z.optional(z.strictObject({ activation: activationCodeSchema }))
   })

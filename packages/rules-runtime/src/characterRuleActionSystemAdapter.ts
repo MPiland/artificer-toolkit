@@ -11,7 +11,11 @@ import type {
   ServerPublishedRuleDefinitionDto,
   ServerRuleExecutionResultDto
 } from '@artificer-toolkit/schema/shared/rulesExecution'
-import type { ActiveGrantHolderEnd } from '@artificer-toolkit/schema/shared/activeRuleEffects'
+import type {
+  ActiveGrantHolderEnd,
+  GrantConsumeEvent,
+  GrantEndEvent
+} from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import type { CombatPerceptionContributionsDto } from '@artificer-toolkit/schema/shared/combatPerception'
 import type { EffectActionCapabilityDescriptor } from './characterActionCapabilityDiscovery.js'
 import type { CompiledRuleGraph, RuleValue } from '@artificer-toolkit/shared/rules'
@@ -23,12 +27,6 @@ import type { DamageDispositionDto } from '@artificer-toolkit/schema/shared/rule
 import type { HitPointMaximumReductionRecoveryTag } from '@artificer-toolkit/schema/effects/hitPointMaximumReduction'
 import type { CompiledActionCompilerSource } from '@artificer-toolkit/schema/projections/characterMechanics'
 import type { ActorRelationshipModuleAuthored } from '@artificer-toolkit/shared/authored'
-
-/** The events whose first occurrence can use an Encounter grant up. */
-export type GrantConsumeEvent = 'ON_ATTACK_ROLL' | 'ON_ABILITY_CHECK'
-
-/** The events that end a grant early: its holder is incapacitated. */
-export type GrantEndEvent = 'ON_INCAPACITATED'
 
 /**
  * A System-owned, bounded recurrence declaration. The Encounter coordinator
@@ -72,6 +70,8 @@ export interface CharacterRuleActionActiveEffectPlan {
     consumeOnFirstEvents: readonly GrantConsumeEvent[]
     /** The events that end the grant early, sorted and unique. */
     endOnEvents: readonly GrantEndEvent[]
+    /** The condition types that end the grant early while its holder has any, sorted and unique. */
+    endOnConditionIds: readonly string[]
     /** The activation its holder pays to end the grant by choice, or null when only the GM can. */
     holderEnd: ActiveGrantHolderEnd | null
   }

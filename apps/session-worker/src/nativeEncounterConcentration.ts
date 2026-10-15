@@ -30,7 +30,10 @@ import {
 import { DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from '@artificer-toolkit/rules-runtime/systems/dnd5e/concentrationIdentity'
 import { deadCharacterIdsOfTargets } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import { encounterConcentrationEndReason } from '@artificer-toolkit/rules-runtime/encounterConcentrationEnd'
-import { grantsEndedOnIncapacitation } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
+import {
+  grantsEndedByHolderState,
+  stateBoundGrants
+} from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
 import { nextRollInt } from '@artificer-toolkit/rules-runtime/random'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
@@ -292,8 +295,8 @@ export async function planNativeLiveConcentration(input: {
       const actor = projection.actors.find((value) => value.id === target.actor.id)
       if (!actor) throw new Error('Concentration actor is unavailable.')
       const maintained = await slotFor(actor.id)
-      const incapacitationGrants = grantsEndedOnIncapacitation(target.activeEffects)
-      if (!maintained && !incapacitationGrants.length) continue
+      const stateBound = stateBoundGrants(target.activeEffects)
+      if (!maintained && !stateBound.length) continue
       const reason = await encounterConcentrationEndReason({
         actor,
         deadCharacterIds: deadCharacterIdsOfTargets([target]),
@@ -309,8 +312,9 @@ export async function planNativeLiveConcentration(input: {
           reason,
           cleanup: await loseConcentration(maintained)
         })
-      if (reason === 'INCAPACITATED' || reason === 'DEFEATED')
-        endedGrants.push(...incapacitationGrants)
+      endedGrants.push(
+        ...grantsEndedByHolderState(stateBound, { reason, conditionIds: target.state.conditions })
+      )
     }
   }
   if (!input.applications.length)

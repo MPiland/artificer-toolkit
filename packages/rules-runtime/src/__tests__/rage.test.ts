@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { activeRuleEffectDefinitionDtoSchema } from '@artificer-toolkit/schema/shared/activeRuleEffects'
+import { conditionTypeId } from '@artificer-toolkit/source-data/srd/equipment/shared.js'
 import {
   SRD_ABILITY_DEFINITION_IDS,
   SRD_DAMAGE_TYPES
@@ -57,10 +58,11 @@ function attackDamage(character: SrdCharacter, label: string, attackKind: string
 }
 
 describe('the Rage active effect', () => {
-  it('is a valid persisted grant that ends on incapacitation or by its holder', () => {
+  it('is a valid persisted grant that ends while its holder is Unconscious, or by its holder', () => {
     const { definition } = rage()
     expect(activeRuleEffectDefinitionDtoSchema.parse(definition)).toEqual(definition)
-    expect(definition.recurrence.endOnEvents).toEqual(['ON_INCAPACITATED'])
+    expect(definition.recurrence.endOnEvents).toEqual([])
+    expect(definition.recurrence.endOnConditionIds).toEqual([conditionTypeId('UNCONSCIOUS')])
     expect(definition.recurrence.holderEnd).toEqual({ activation: 'BONUS_ACTION' })
   })
 
@@ -143,6 +145,18 @@ describe('the Rage damage bonus', () => {
     expect(calm).toBe('1d8 + 3')
     expect(attackDamage(character, 'Rapier', 'MELEE', true)).toBe(calm)
   })
+
+  it.each([
+    { order: 'Strength first', abilities: { STRENGTH: 16, DEXTERITY: 16 } },
+    { order: 'Dexterity first', abilities: { DEXTERITY: 16, STRENGTH: 16 } }
+  ])(
+    'counts a finesse attack as Strength when both scores tie, whichever is listed ($order)',
+    ({ abilities }) => {
+      const character = barbarian({ level: 9, abilities, items: [{ label: 'Rapier' }] })
+      expect(attackDamage(character, 'Rapier', 'MELEE', false)).toBe('1d8 + 3')
+      expect(attackDamage(character, 'Rapier', 'MELEE', true)).toBe('1d8 + 6')
+    }
+  )
 
   it('adds nothing to a ranged weapon attack, even with a high Strength', () => {
     const character = barbarian({ level: 9, items: [{ label: 'Shortbow' }] })

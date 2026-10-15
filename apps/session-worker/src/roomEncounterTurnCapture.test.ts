@@ -121,6 +121,7 @@ it('admits native turn scopes and pages the selected actor effects without a bac
       recurrenceStage: 'NONE',
       consumeOnFirstEvents: [],
       endOnEvents: [],
+      endOnConditionIds: [],
       holderEnd: null,
       lifetimeScope: 'ENCOUNTER',
       expiration: {

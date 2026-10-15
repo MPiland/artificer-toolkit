@@ -80,6 +80,7 @@ function effectDefinition() {
       recurrenceStage: 'NONE' as const,
       consumeOnFirstEvents: [],
       endOnEvents: [],
+      endOnConditionIds: [],
       holderEnd: null,
       lifetimeScope: 'ENCOUNTER' as const,
       expiration: { kind: 'INDEFINITE' as const }

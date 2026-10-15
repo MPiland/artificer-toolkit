@@ -144,6 +144,17 @@ describe('END_ACTIVE_EFFECT', () => {
     await expect(end(aided.id)).rejects.toThrow('Only the Campaign owner can end an active effect.')
     expect(await effectIds()).toEqual(expect.arrayContaining([raging.id, aided.id]))
 
+    // The end gate is specific to END_ACTIVE_EFFECT: the player's other commands still pass.
+    await player.caller.mutation(api.characters.sheetCommands.execute, {
+      id: character.id,
+      command: {
+        type: 'SET_INSPIRATION',
+        commandId: crypto.randomUUID(),
+        expectedVersion: (await base.readState()).character!.play.streamVersion,
+        inspired: true
+      }
+    })
+
     await end(raging.id)
     expect(await effectIds()).toEqual([aided.id])
   })

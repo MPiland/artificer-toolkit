@@ -297,21 +297,20 @@ const PATH_LIFECYCLE_TURN_ANCHOR_NODE_MAP: NodeMap<
     )
 })
 
-const PATH_LIFECYCLE_HOLDER_END_NODE_MAP: NodeMap<
-  NonNullable<PathLifecycleAuthored['holderEnd']>
-> = pathLifecycleHolderEnd.define('pathLifecycleHolderEnd', ({ map, nodes }) => {
-  const { selectSingle } = nodes
+const PATH_LIFECYCLE_HOLDER_END_NODE_MAP: NodeMap<NonNullable<PathLifecycleAuthored['holderEnd']>> =
+  pathLifecycleHolderEnd.define('pathLifecycleHolderEnd', ({ map, nodes }) => {
+    const { selectSingle } = nodes
 
-  map.set(
-    'activation',
-    selectSingle(
-      ['activation'],
-      'Costs',
-      { kind: 'INLINE_OPTIONS', options: ACTIVATION_OPTIONS },
-      { requiredIf: true }
+    map.set(
+      'activation',
+      selectSingle(
+        ['activation'],
+        'Costs',
+        { kind: 'INLINE_OPTIONS', options: ACTIVATION_OPTIONS },
+        { requiredIf: true }
+      )
     )
-  )
-})
+  })
 
 const PATH_LIFECYCLE_NODE_MAP: NodeMap<PathLifecycleAuthored> = pathLifecycle.define(
   'pathLifecycle',
@@ -344,6 +343,15 @@ const PATH_LIFECYCLE_NODE_MAP: NodeMap<PathLifecycleAuthored> = pathLifecycle.de
         selectMulti(['endOnEvents'], 'End On Events', {
           kind: 'INLINE_OPTIONS',
           options: PATH_LIFECYCLE_END_EVENT_OPTIONS
+        })
+      )
+      .set(
+        'endOnConditionIds',
+        selectMulti(['endOnConditionIds'], 'End While Holder Has', {
+          kind: 'DATA',
+          relationship: table('condition_types', {
+            selectColumns: ['id', 'label', 'description']
+          })
         })
       )
       .set(

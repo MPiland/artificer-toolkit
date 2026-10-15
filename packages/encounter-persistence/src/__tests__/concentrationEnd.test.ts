@@ -9,7 +9,7 @@ import {
   srdDefinitions,
   srdEncounterState
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
-import { readConcentrationEndReason } from '../concentrationEnd.js'
+import { readHolderEndState } from '../concentrationEnd.js'
 import { persistEncounterConcentrationChildren } from '../concentrationChildrenPersistence.js'
 import { endConcentrationAfterEdit } from '../concentrationEditEnd.js'
 import { persistLiveMovementConcentrationEnd } from '../liveMovementConcentrationPersistence.js'
@@ -81,14 +81,15 @@ async function holderFixture(actor: Holder) {
 }
 
 /** Persistence re-derives each Concentration end's reason from the committed state (D95). */
-describe('readConcentrationEndReason', () => {
+describe('readHolderEndState', () => {
   async function reasonFor(actor: Holder) {
     const { ctx } = await holderFixture(actor)
-    return readConcentrationEndReason(ctx, {
+    const { reason } = await readHolderEndState(ctx, {
       state: srdEncounterState({ actors: [actor], currentActorId: null }),
       actor,
       userId: USER_ID
     })
+    return reason
   }
 
   it('is DEFEATED for a defeated Creature or custom actor', async () => {
@@ -271,6 +272,26 @@ describe('persistEncounterConcentrationChildren ends grants on incapacitation', 
     expect(held()).toHaveLength(1)
     await persist()
     expect(held()).toEqual([])
+  })
+
+  const holding = (label: string): Parameters<typeof creatureActor>[0] => ({
+    id: ACTOR_ID,
+    kind: 'CUSTOM',
+    snapshot: {},
+    conditions: [srdCondition(label)]
+  })
+  const endsOnUnconscious = { endOnConditionIds: [srdCondition('Unconscious')] }
+
+  it('deletes a grant that names a condition when its holder has it', async () => {
+    const { persist, held } = await endGrants(holding('Unconscious'), endsOnUnconscious)
+    await persist()
+    expect(held()).toEqual([])
+  })
+
+  it('refuses to end a grant that names a condition its holder lacks, even when incapacitated', async () => {
+    const { persist, held } = await endGrants(holding('Stunned'), endsOnUnconscious)
+    await expect(persist()).rejects.toThrow('Live Session grant end is unexpected.')
+    expect(held()).toHaveLength(1)
   })
 
   it.each([
