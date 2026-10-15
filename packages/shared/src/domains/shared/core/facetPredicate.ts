@@ -299,9 +299,7 @@ export const PREDICATE_REGISTRY = {
   ATTACK_ABILITY: {
     code: 'ATTACK_ABILITY',
     label: 'Attack Ability',
-    tooltip: 'Requires the attack to use the ability.',
-    description:
-      'Narrows to an attack that uses a specific ability for its attack and damage rolls. A finesse weapon uses whichever of Strength or Dexterity gives the higher modifier.',
+    description: 'Requires the attack to use the ability.',
     subjects: ['EQUIPMENT']
   },
 

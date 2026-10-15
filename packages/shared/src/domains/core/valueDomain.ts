@@ -105,9 +105,8 @@ export const VALUE_DOMAIN_REGISTRY: Record<ValueDomainCode, ValueDomainOption> =
   [VALUE_DOMAIN_CODE.SPELLCASTING_LOCK]: {
     code: VALUE_DOMAIN_CODE.SPELLCASTING_LOCK,
     label: 'Spellcasting Lock',
-    tooltip: "The holder can't cast spells or concentrate on them.",
     description:
-      "While the holder carries this grant, it can't cast spells or hold Concentration; gaining the grant ends any Concentration it holds."
+      "The holder can't cast spells or hold Concentration; gaining the grant ends any Concentration it holds."
   },
 
   [VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER]: {
