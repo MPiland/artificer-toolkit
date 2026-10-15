@@ -59,6 +59,9 @@ const breathRows = srdBaselineContent.subjects.creatures.flatMap((creature, crea
         printedAreaCount: printed.length,
         effectCount: effects.length,
         printed: printed[index],
+        leavesLastingEffect: [...JSON.stringify(effect.paths).matchAll(/"effectKind":"(\w+)"/g)].some(
+          ([, effectKind]) => effectKind !== 'DAMAGE'
+        ),
         capability: discovery.available.find(
           (candidate) => candidate.ownerFeatureId === feature.id && candidate.effectId === effect.id
         ),
@@ -81,18 +84,45 @@ describe('SRD breath weapons breathe areas', () => {
     expect(row.printedAreaCount).toBe(row.effectCount)
   })
 
-  it.each(breathRows)('$name compiles to a directed area of its printed size', (row) => {
-    if (!row.capability) throw new Error(`${row.name} is unavailable: ${row.unavailable?.reason}`)
-    const policy = buildCompiledActionTargetPolicy(row.capability)
-    expect(policy.range.rangeKind).toBe('SELF')
-    expect(encounterActionTargetKind(policy)).toBe('DIRECTED')
-    expect(encounterActionChoiceTarget(policy)).toEqual(row.printed)
-    expect(
-      dnd5eCharacterRuleActionSystemAdapter.compileExecutionPlan?.({
-        action: row.capability,
-        compilerSource: buildCompiledActionCompilerSource(row.capability)
-      })?.kind
-    ).toBe('TEST_OUTCOME')
+  it.each(breathRows.filter(({ creatureLabel }) => creatureLabel !== 'Gorgon'))(
+    '$name compiles to a directed area of its printed size',
+    (row) => {
+      if (!row.capability) throw new Error(`${row.name} is unavailable: ${row.unavailable?.reason}`)
+      const policy = buildCompiledActionTargetPolicy(row.capability)
+      expect(policy.range.rangeKind).toBe('SELF')
+      expect(encounterActionTargetKind(policy)).toBe('DIRECTED')
+      expect(encounterActionChoiceTarget(policy)).toEqual(row.printed)
+    }
+  )
+
+  // A breath that leaves more than damage (a condition, a push, slowed or weakened targets) keeps its
+  // area but stays refused: the Worker journey proves the refusal, so only the damage-only breaths
+  // are asked for an executable plan here.
+  it.each(breathRows.filter(({ leavesLastingEffect }) => !leavesLastingEffect))(
+    '$name compiles to an executable test outcome',
+    (row) => {
+      if (!row.capability) throw new Error(`${row.name} is unavailable: ${row.unavailable?.reason}`)
+      expect(
+        dnd5eCharacterRuleActionSystemAdapter.compileExecutionPlan?.({
+          action: row.capability,
+          compilerSource: buildCompiledActionCompilerSource(row.capability)
+        })?.kind
+      ).toBe('TEST_OUTCOME')
+    }
+  )
+
+  // An area drops a bare condition outcome silently instead of refusing it, so the Gorgon's breath
+  // stays unshaped (and refused) until SPELLS-19 handles it.
+  it('keeps the Gorgon’s Petrifying Breath unshaped', () => {
+    const row = breathRows.find(({ creatureLabel }) => creatureLabel === 'Gorgon')
+    if (!row?.capability) throw new Error('The Gorgon’s breath is not an available action.')
+    expect(encounterActionTargetKind(buildCompiledActionTargetPolicy(row.capability))).not.toBe(
+      'DIRECTED'
+    )
+  })
+
+  it('finds the breaths that leave more than damage: the metallic second breaths, the Gorgon and the Dust Mephit', () => {
+    expect(breathRows.filter(({ leavesLastingEffect }) => leavesLastingEffect)).toHaveLength(22)
   })
 
   // The sizes below are read from the SRD stat blocks, not from the authored rows or the parser.

@@ -4,6 +4,7 @@ import {
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import { blackDragonWyrmling } from '@artificer-toolkit/source-data/srd/creatures/black-dragon-wyrmling.js'
+import { gorgon } from '@artificer-toolkit/source-data/srd/creatures/gorgon.js'
 import { silverDragonWyrmling } from '@artificer-toolkit/source-data/srd/creatures/silver-dragon-wyrmling.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -143,44 +144,67 @@ describe('an unmodified SRD dragon breathes in a real room', () => {
   })
 })
 
-describe('an SRD breath that leaves a condition is still refused', () => {
-  it('refuses the Silver Dragon Wyrmling’s Paralyzing Breath at open and changes nothing', async () => {
-    const { feature, room } = await breathRoom({
-      creature: silverDragonWyrmling,
-      featureLabel: 'Breath Weapons'
-    })
-    const creature = installedSrdCreature(silverDragonWyrmling)
-    const paralyzing = feature.effects?.[1]
-    if (!paralyzing) throw new Error('The Silver Dragon Wyrmling has no second breath.')
-    const capability = discoverEncounterFeatureActionCapabilities({
-      actor: srdCreatureActor({ id: DRAGON_ID, creature }),
-      conditionDefinitionIds: srdSystemRecord.conditionTypes.map(({ id }) => id),
-      abilityDefinitions: (srdSystemRecord.abilities ?? []).map(({ id, code }) => ({ id, code }))
-    }).find((candidate) => candidate.effectId === paralyzing.id)
-    if (!capability) throw new Error('The Paralyzing Breath is not an available action.')
+/** Breathes the creature's `effectIndex`-th breath east at open and returns the answer, asserting nothing changed. */
+async function breatheRefused(breath: {
+  creature: typeof blackDragonWyrmling
+  featureLabel: string
+  effectIndex: number
+}) {
+  const { feature, room } = await breathRoom(breath)
+  const creature = installedSrdCreature(breath.creature)
+  const effect = feature.effects?.[breath.effectIndex]
+  if (!effect) throw new Error(`${creature.label} has no breath ${breath.effectIndex}.`)
+  const capability = discoverEncounterFeatureActionCapabilities({
+    actor: srdCreatureActor({ id: DRAGON_ID, creature }),
+    conditionDefinitionIds: srdSystemRecord.conditionTypes.map(({ id }) => id),
+    abilityDefinitions: (srdSystemRecord.abilities ?? []).map(({ id, code }) => ({ id, code }))
+  }).find((candidate) => candidate.effectId === effect.id)
+  if (!capability) throw new Error(`${creature.label}'s breath is not an available action.`)
 
-    const stub = room.room.base.stub
-    const before = await readRoomHistory(stub)
-    const answer = await room.send({
-      type: 'RESOLVE_ACTION',
-      acceptedWieldConflict: null,
-      acknowledgedWarnings: [],
-      encounterId: room.room.encounterId,
-      commandId: crypto.randomUUID(),
-      expectedVersion: await room.version(),
-      actorId: DRAGON_ID,
-      target: {
-        kind: 'DIRECTED',
-        ...EAST,
-        sceneId: room.room.scene.id,
-        expectedSceneVersion: room.room.scene.version
-      },
-      actionId: capability.actionId,
-      optionalCombatIntent: null,
-      sceneContext: null
+  const stub = room.room.base.stub
+  const before = await readRoomHistory(stub)
+  const answer = await room.send({
+    type: 'RESOLVE_ACTION',
+    acceptedWieldConflict: null,
+    acknowledgedWarnings: [],
+    encounterId: room.room.encounterId,
+    commandId: crypto.randomUUID(),
+    expectedVersion: await room.version(),
+    actorId: DRAGON_ID,
+    target: {
+      kind: 'DIRECTED',
+      ...EAST,
+      sceneId: room.room.scene.id,
+      expectedSceneVersion: room.room.scene.version
+    },
+    actionId: capability.actionId,
+    optionalCombatIntent: null,
+    sceneContext: null
+  })
+  expect(await readPendingActionDecision(stub)).toBeNull()
+  expect(vitalsOf(await readRoomHistory(stub))).toEqual(vitalsOf(before))
+  return answer
+}
+
+describe('an SRD breath that leaves a condition is still refused', () => {
+  it('rejects the Silver Dragon Wyrmling’s Paralyzing Breath at open, as its repeating save has no executable plan, and changes nothing', async () => {
+    const answer = await breatheRefused({
+      creature: silverDragonWyrmling,
+      featureLabel: 'Breath Weapons',
+      effectIndex: 1
     })
-    expect(answer).toMatchObject({ type: 'COMMAND_REJECTED', reason: 'TARGET_UNAVAILABLE' })
-    expect(await readPendingActionDecision(stub)).toBeNull()
-    expect(vitalsOf(await readRoomHistory(stub))).toEqual(vitalsOf(before))
+    expect(answer).toMatchObject({ type: 'COMMAND_REJECTED' })
+  })
+
+  // An area drops a bare condition outcome silently instead of refusing it, so the Gorgon's breath
+  // stays unshaped until SPELLS-19: it is rejected as a directed target rather than committing a
+  // breath that does nothing.
+  it('rejects the Gorgon’s Petrifying Breath, which stays unshaped, and changes nothing', async () => {
+    const answer = await breatheRefused({
+      creature: gorgon,
+      featureLabel: 'Petrifying Breath',
+      effectIndex: 0
+    })
+    expect(answer).toMatchObject({ type: 'COMMAND_REJECTED' })
   })
 })

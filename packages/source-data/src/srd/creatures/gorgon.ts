@@ -176,7 +176,12 @@ export const gorgon: CreatureAuthored = {
               code: S.ACTIVATION_CODE.ACTION,
               amount: 1
             },
-            ...S.selfCone(S.actionId(148, 8), S.actionId(148, 11), 30)
+            // A 30-foot cone waits on SPELLS-19: an area drops a bare condition outcome silently
+            // instead of refusing it, so the breath stays unshaped (and refused) until then.
+            range: {
+              id: S.actionId(148, 8),
+              rangeKind: S.RANGE_KIND.SPECIAL
+            }
           },
           paths: [
             {
