@@ -612,14 +612,15 @@
             {
               "id": "PLATFORM-13.T6",
               "text": "Find why concurrent readRoomRollCards checkpoints can miss the TABLE conversation (fixture race or a product race in checkpoint/chat), fix it at the cause, and prove it with a loaded run.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["PLATFORM-13.8"],
               "wsjf": {
                 "bv": 2,
                 "tc": 3,
                 "rr": 5,
                 "size": 2
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-platform-13-t6.md"
             }
           ]
         },
@@ -7664,7 +7665,7 @@
         {
           "id": "REACTION-4",
           "title": "Non-movement reactions",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "journeyTests": [],
           "journeyStatus": "none",
           "origin": [],
@@ -7692,7 +7693,8 @@
             "rr": 3,
             "size": 5,
             "after": ["SPELLS-8.T1"]
-          }
+          },
+          "activeWorkbook": "docs/handoffs/slice-reaction-4.md"
         }
       ]
     },
