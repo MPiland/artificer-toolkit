@@ -568,6 +568,14 @@
               "proof": [],
               "origin": "SPELLS-8.T1 merge batch 2026-10-15 (local-validation/merge-s8t1/apis.log): assistedPartyJourney.test.ts failed once under load at readRoomRollCards (three members read through Promise.all, each running checkpointLiveRoom); passed alone (rerun-apj.log).",
               "note": ""
+            },
+            {
+              "id": "PLATFORM-13.9",
+              "text": "Convex tests and live-backend proofs never fail by chance on generated account data: every generated username passes the real username policy, proved by the account journeys and local auth helpers using a username that the imported validateUsername accepts.",
+              "status": "TODO",
+              "proof": [],
+              "origin": "CI run 38778258014 attempt 1 (SPELLS-8, Convex 1/4): accountJourneys.test.ts:97 got INVALID_USERNAME instead of EMAIL_PASSWORD_SIGN_UP_DISABLED. The random Journey_<12 hex> suffix can contain a profanity substring (for example a55 reads as \"ass\" after the digit swap). apps/apis/tests/localAuth.ts generates Auth_<12 hex> the same way.",
+              "note": "Product question Q22 (substring profanity match rejects ordinary names) is open; this AC fixes the test data either way."
             }
           ],
           "wsjf": {
@@ -650,6 +658,18 @@
                 "size": 2
               },
               "activeWorkbook": "docs/handoffs/slice-platform-13-t6.md"
+            },
+            {
+              "id": "PLATFORM-13.T7",
+              "text": "Make generated test usernames (accountJourneys.test.ts signupInput, tests/localAuth.ts) always valid under the real imported validateUsername, without copying the policy, and prove the journey red with a known-rejected suffix first.",
+              "status": "TODO",
+              "closes": ["PLATFORM-13.9"],
+              "wsjf": {
+                "bv": 1,
+                "tc": 3,
+                "rr": 5,
+                "size": 1
+              }
             }
           ]
         },

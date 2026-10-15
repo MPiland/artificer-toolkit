@@ -48,10 +48,11 @@ Escalate (`SendMessage` to the main session) only if:
 ## Closes
 
 - AC PLATFORM-13.7.
+- AC PLATFORM-13.9 (task T7).
 
 ## File scope
 
-- Test files and fixtures under `apps/apis/convex/**` and `apps/apis/tests/fixtures/**`.
+- Test files and fixtures under `apps/apis/convex/**` and `apps/apis/tests/fixtures/**`, plus `apps/apis/tests/localAuth.ts` (T7).
 - Product code only for a profiled, tested product inefficiency (see above).
 - `docs/validation/`: a new timing record for this slice, `platform-13-t5-test-timings-2026-10-15.md`, with before and after per-file figures.
 
@@ -68,6 +69,14 @@ Escalate (`SendMessage` to the main session) only if:
    gh workflow run tests.yml --ref ci/platform-13-t5 -f convex_workers=3
    ```
    Read it with `gh run watch <id> --exit-status --interval 120`. Record the shard times. A timeout or failure there is a finding to fix in this slice, not to rerun.
+
+## Also in this slice: PLATFORM-13.T7 (AC PLATFORM-13.9)
+
+CI run 38778258014 (attempt 1, Convex 1/4) failed `accountJourneys.test.ts:97`. It got `INVALID_USERNAME` instead of `EMAIL_PASSWORD_SIGN_UP_DISABLED`. `signupInput()` builds `Journey_<12 random hex>`, and `validateUsername` (`packages/shared/src/domains/account/usernamePolicy.ts`) rejects any name containing a profanity substring, also after swapping digits for letters (`a55` reads as "ass"). `apps/apis/tests/localAuth.ts` builds `Auth_<12 hex>` the same way.
+
+- Make every generated username valid under the real policy: import `validateUsername` and draw again until it accepts, or use a suffix that cannot spell words. Never copy the policy into the test.
+- Red first: a test of the generator with a suffix the policy rejects (for example `a55b…`) shows the old shape fails.
+- The policy itself is product question Q22 in [phase-08-2-open-questions.md](phase-08-2-open-questions.md). Do not change it here.
 
 ## Status log
 
