@@ -104,13 +104,13 @@ export async function readEncounterMechanicsBatchTarget<CharacterSources>(
   return { ctx, input, userId, runRow, state, campaign, actor, actorRow }
 }
 
-/** A heal that restores at least 1 hit point ends the grants that last until hit points are regained. */
-async function endGrantsOnHeal<CharacterSources>(
+/** Regaining hit points, by a heal or a death save, ends the grants that last until they are regained. */
+async function endGrantsOnRegain<CharacterSources>(
   ctx: EncounterCharacterWriteTransaction<CharacterSources>,
   target: Awaited<ReturnType<typeof readEncounterMechanicsBatchTarget>>,
-  applications: ReceiptApplications
+  { before, after }: EncounterMechanicsBatchPlan['targetTransition']
 ) {
-  return applications.some((entry) => entry.kind === 'HEAL' && entry.appliedAmount >= 1)
+  return after.currentHitPoints > before.currentHitPoints
     ? endGrantsOnHitPointsRegained(ctx, turnEffectOwner(target.actor, target.state.id))
     : []
 }
@@ -172,7 +172,7 @@ export async function persistEncounterMechanicsBatchPlan<CharacterSources>(
       targetTransition: plan.targetTransition,
       characterStreamVersion: null,
       itemUseStateTransition: null,
-      endedGrants: await endGrantsOnHeal(ctx, target, plan.receiptApplications)
+      endedGrants: await endGrantsOnRegain(ctx, target, plan.targetTransition)
     }
   }
   if (
@@ -229,6 +229,6 @@ export async function persistEncounterMechanicsBatchPlan<CharacterSources>(
     targetTransition: plan.targetTransition,
     characterStreamVersion: plan.characterStreamVersion,
     itemUseStateTransition: plan.itemUseStateTransition,
-    endedGrants: await endGrantsOnHeal(ctx, target, plan.receiptApplications)
+    endedGrants: await endGrantsOnRegain(ctx, target, plan.targetTransition)
   }
 }

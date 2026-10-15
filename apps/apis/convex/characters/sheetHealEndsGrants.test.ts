@@ -11,13 +11,12 @@ describe('Sheet healing and grants that last until hit points are regained', () 
   async function fixture() {
     const base = await setupCharacterRun()
     const { t, run, actor, character, owner, campaign } = base
-    const grant = (endOnEvents: Parameters<typeof plannedModifierGrant>[0]['endOnEvents']) => {
+    const grant = (endOnEvents: 'ON_HIT_POINTS_REGAINED'[]) => {
       const planned = plannedModifierGrant({
         encounterId: run.id,
         sourceActorId: actor.id,
         holderActorId: actor.id,
-        lifecycle: {},
-        endOnEvents,
+        lifecycle: { endOnEvents },
         lifetimeScope: 'OWNER'
       })
       return t.run((ctx) =>
@@ -41,7 +40,11 @@ describe('Sheet healing and grants that last until hit points are regained', () 
         ).map(({ id }) => id)
       )
     let version = base.characterStreamVersion
-    const sheet = async (command: Record<string, unknown>) => {
+    const sheet = async (
+      command:
+        | { type: 'SET_HIT_POINTS'; current: number }
+        | { type: 'ADJUST_HIT_POINTS'; mode: 'HEAL' | 'DAMAGE'; amount: number }
+    ) => {
       const answer = await owner.caller.mutation(api.campaigns.characterSheet.execute, {
         campaignId: campaign.id,
         characterId: character.id,
@@ -49,7 +52,7 @@ describe('Sheet healing and grants that last until hit points are regained', () 
           commandId: crypto.randomUUID(),
           expectedVersion: version,
           ...command
-        } as never
+        }
       })
       version = answer.streamVersion
     }
@@ -66,8 +69,9 @@ describe('Sheet healing and grants that last until hit points are regained', () 
     expect(await effectIds()).toEqual([lasting.id])
   })
 
-  it('keeps the grant through damage and through a heal that restores nothing', async () => {
+  it('keeps the grant through damage, a heal at full hit points and a heal of nothing', async () => {
     const { sheet, effectIds, untilHealed, lasting } = await fixture()
+    await sheet({ type: 'ADJUST_HIT_POINTS', mode: 'HEAL', amount: 5 })
     await sheet({ type: 'ADJUST_HIT_POINTS', mode: 'DAMAGE', amount: 1 })
     await sheet({ type: 'ADJUST_HIT_POINTS', mode: 'HEAL', amount: 0 })
 
@@ -81,6 +85,5 @@ describe('Sheet healing and grants that last until hit points are regained', () 
     await sheet({ type: 'SET_HIT_POINTS', current: 2 })
 
     expect(await effectIds()).toEqual([lasting.id])
-    expect(await effectIds()).not.toContain(untilHealed.id)
   })
 })

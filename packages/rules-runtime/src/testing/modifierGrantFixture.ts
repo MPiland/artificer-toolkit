@@ -2,7 +2,6 @@ import type {
   ServerCompletedRuleExecutionDto,
   ServerPublishedRuleDefinitionDto
 } from '@artificer-toolkit/schema/shared/rulesExecution'
-import type { ActiveEffectEndEvent } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import type { EffectAuthored, PathLifecycleAuthored } from '@artificer-toolkit/shared/authored'
 import { compileEffect } from '@artificer-toolkit/shared/compilers'
 import { antitoxinVial } from '@artificer-toolkit/source-data/srd/equipment/antitoxin-vial.js'
@@ -77,11 +76,6 @@ export function plannedModifierGrant(input: {
   rounds?: number
   /** The holder's lifetime scope: a Character's grant outlasts the Encounter (`OWNER`). */
   lifetimeScope?: 'OWNER' | 'ENCOUNTER'
-  /**
-   * Events that end the grant. The timed grants the compiler plans carry none (an end-event grant is
-   * untimed, as the Caltrops slow is), so this stamps them on the planned definition's recurrence.
-   */
-  endOnEvents?: readonly ActiveEffectEndEvent[]
   /** Set for a grant authored on a hit path (an attack's on-hit rider): the attack's resolved path. */
   hitPath?: 'ON_HIT' | 'ON_CRIT'
 }) {
@@ -166,14 +160,5 @@ export function plannedModifierGrant(input: {
     applications: []
   })
   if (!recurringEffect) throw new Error('No grant effect was planned.')
-  const { endOnEvents } = input
-  return endOnEvents
-    ? {
-        ...recurringEffect,
-        definition: {
-          ...recurringEffect.definition,
-          recurrence: { ...recurringEffect.definition.recurrence, endOnEvents: [...endOnEvents] }
-        }
-      }
-    : recurringEffect
+  return recurringEffect
 }

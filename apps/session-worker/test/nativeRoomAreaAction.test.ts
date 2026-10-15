@@ -1010,6 +1010,75 @@ describe('room area commit with a grant that ends on incapacitation (D113)', () 
     expect(undone.type, JSON.stringify(undone)).toBe('COMMAND_COMMITTED')
     expect(await grantIds(room)).toContain(GRANT_ID)
   })
+
+  it('ends the grant of a caught holder an area heal restores hit points to, and the area’s undo restores it (SPELLS-17.3)', async () => {
+    const healingWolf = creatureAuthoredDtoSchema.parse({
+      ...fireballWolf(),
+      features: fireballWolf().features?.map((feature) =>
+        feature.label !== 'Bite'
+          ? feature
+          : {
+              ...feature,
+              effects: feature.effects?.map((effect) => ({
+                ...effect,
+                paths: effect.paths.map((path) =>
+                  !('resultBlock' in path)
+                    ? path
+                    : {
+                        ...path,
+                        resultBlock: {
+                          ...path.resultBlock,
+                          outcomes: path.resultBlock.outcomes.map((outcome) => ({
+                            id: outcome.id,
+                            effectKind: 'HEAL' as const,
+                            valueKind: 'FIXED' as const,
+                            scalingKind: 'NONE' as const,
+                            amount: 1
+                          }))
+                        }
+                      }
+                )
+              }))
+            }
+      )
+    })
+    const room = await actionRoom({
+      actors: [
+        srdCreatureActor({ id: CASTER_ID, creature: healingWolf }),
+        srdCreatureActor({ id: CAUGHT_IDS[0]!, creature: plainWolf, currentHitPoints: 5 })
+      ],
+      ownerFeatureId: healingWolf.features?.find((feature) => feature.label === 'Bite')?.id,
+      seed: async ({ effects, encounterId, occurredAt }) => {
+        const grant = plannedModifierGrant({
+          encounterId,
+          sourceActorId: CAUGHT_IDS[0]!,
+          holderActorId: CAUGHT_IDS[0]!,
+          lifecycle: { endOnEvents: ['ON_HIT_POINTS_REGAINED'] }
+        })
+        await effects.create({
+          id: GRANT_ID,
+          owner: { kind: 'ENCOUNTER_ACTOR', encounterId, targetActorId: CAUGHT_IDS[0]! },
+          lifecycle: grant.lifecycle,
+          definition: grant.definition,
+          occurredAt
+        })
+      }
+    })
+    expect(await grantIds(room)).toContain(GRANT_ID)
+
+    await room.startAreaAction({ x: 50, y: 150 })
+    await answerAllSaves(room)
+    expect(await grantIds(room)).not.toContain(GRANT_ID)
+
+    const undone = await room.send({
+      type: 'REVERT_LAST_ACTION',
+      encounterId: room.room.encounterId,
+      commandId: crypto.randomUUID(),
+      expectedVersion: await room.version()
+    })
+    expect(undone.type, JSON.stringify(undone)).toBe('COMMAND_COMMITTED')
+    expect(await grantIds(room)).toContain(GRANT_ID)
+  })
 })
 
 describe('room area commit with Legendary Resistance', () => {

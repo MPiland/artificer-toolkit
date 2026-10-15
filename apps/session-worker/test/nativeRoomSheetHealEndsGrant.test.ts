@@ -38,8 +38,7 @@ function healRoom() {
           encounterId,
           sourceActorId: HOLDER_ID,
           holderActorId: HOLDER_ID,
-          lifecycle: {},
-          endOnEvents
+          lifecycle: { endOnEvents }
         })
         await effects.create({
           id,

@@ -42,8 +42,9 @@ export async function deleteHeldAttackRollGrants(
 }
 
 /**
- * Ends the owner's grants that last until hit points are regained, for a heal that restored at
- * least 1 hit point. The records come back so the heal's root can give them back on a GM undo.
+ * Ends the owner's grants that last until hit points are regained, for a change that raised its
+ * hit points (a heal, a death save, a Sheet or GM edit). The records come back so an undoable root
+ * can give them back on a GM undo.
  */
 export async function endGrantsOnHitPointsRegained(
   ctx: EncounterWriteContext,
@@ -104,7 +105,7 @@ export async function addEndedGrantsToRoot(
 
 /** Gives back the exact records an undone roll had used up: same ordinal, version and timestamps. */
 export async function restoreConsumedGrants(
-  ctx: EncounterWriteContext,
+  ctx: EncounterPersistenceTransaction,
   grants: readonly ActiveRuleEffectRecord[]
 ) {
   const store = createActiveRuleEffectStore(ctx)
