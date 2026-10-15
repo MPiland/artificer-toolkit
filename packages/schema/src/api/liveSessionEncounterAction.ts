@@ -1,8 +1,18 @@
 import { z, lazySchema, lazySchemaParts } from '../zod.js'
 import {
+  activeRuleEffectDefinitionDtoSchema,
+  activeRuleEffectLifecycleDtoSchema,
   MAX_ACTIVE_RULE_EFFECTS_PER_OWNER,
-  MAX_MAINTAINED_RULE_EFFECT_DEPENDENTS_PER_ACTOR
+  MAX_MAINTAINED_RULE_EFFECT_DEPENDENTS_PER_ACTOR,
+  type ActiveRuleEffectDefinitionDto,
+  type ActiveRuleEffectLifecycleDto
 } from '../shared/activeRuleEffects.js'
+import {
+  spatialRuleEffectPlacementDtoSchema,
+  spatialRuleEffectStateDtoSchema,
+  type SpatialRuleEffectPlacementDto,
+  type SpatialRuleEffectStateDto
+} from '../shared/spatial.js'
 import { serverRuleExecutionPendingSnapshotDtoSchema } from '../shared/ruleExecutionPendingSnapshots.js'
 import {
   removeAreaTargetInputDtoSchema,
@@ -167,10 +177,31 @@ export const liveSessionEncounterActionCommitInputSchema: z.ZodMiniType<LiveSess
     })
   )
 
+/** The Scene spatial effect an action places, as the planner built it; persistence stores it as is. */
+export type LiveSessionPlacedSpatialEffect = {
+  id: string
+  definition: ActiveRuleEffectDefinitionDto
+  lifecycle: ActiveRuleEffectLifecycleDto
+  placement: SpatialRuleEffectPlacementDto
+  spatialState: SpatialRuleEffectStateDto
+}
+
+export const liveSessionPlacedSpatialEffectSchema: z.ZodMiniType<LiveSessionPlacedSpatialEffect> =
+  lazySchema(() =>
+    z.strictObject({
+      id: postgresUuidSchema,
+      definition: activeRuleEffectDefinitionDtoSchema,
+      lifecycle: activeRuleEffectLifecycleDtoSchema,
+      placement: spatialRuleEffectPlacementDtoSchema,
+      spatialState: spatialRuleEffectStateDtoSchema
+    })
+  )
+
 /**
  * The terminal outcome of a point-area action: the root with the caster's one spend, one settled
  * outcome per kept creature, and the area's final snapshot the last answer produced. It creates no
- * maintained state, cleaving choice or effect, so those fields do not exist here.
+ * maintained state, cleaving choice or effect on a creature, so those fields do not exist here; it
+ * may place one spatial effect in the Scene.
  */
 export type LiveSessionEncounterAreaCommitInput = Omit<
   LiveSessionEncounterActionCommitInput,
@@ -189,6 +220,8 @@ export type LiveSessionEncounterAreaCommitInput = Omit<
   area: z.infer<typeof serverRuleExecutionPendingSnapshotDtoSchema>
   /** The GM removal that left the area settled, when it rather than an answer committed it. */
   removal: RemoveAreaTargetInputDto | null
+  /** The zone this action places at the picked point, which its undo deletes; null for none. */
+  placedZone: LiveSessionPlacedSpatialEffect | null
 }
 
 export const liveSessionEncounterAreaCommitInputSchema: z.ZodMiniType<LiveSessionEncounterAreaCommitInput> =
@@ -212,6 +245,7 @@ export const liveSessionEncounterAreaCommitInputSchema: z.ZodMiniType<LiveSessio
           .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
         area: serverRuleExecutionPendingSnapshotDtoSchema,
         removal: z.nullable(removeAreaTargetInputDtoSchema),
+        placedZone: z.nullable(liveSessionPlacedSpatialEffectSchema),
         rules: encounterActorRuleOutputSchema,
         resourceConsumption: z.nullable(liveSessionCharacterResourceConsumptionSchema),
         itemConsumption: z.nullable(liveSessionCharacterItemConsumptionSchema),

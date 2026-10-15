@@ -339,6 +339,13 @@ are never rendered. Hydration retries only the client's transient interrupted-ac
 twice; authority and consistency failures are not retried. Native presentation writes retain command
 IDs and presentation CAS.
 
+Half-speed fields (SPELLS-17): the voluntary `MOVE_SCENE_TOKEN` command carries an optional `carefully` flag
+(forced and teleport movement ignore it). The held `ENCOUNTER_SESSION` frame and `encounters/activeReads:active`
+carry `halfSpeedFields` (`encounterSessionStateDtoSchema`: `id`, `label`, `shape`), listing only the visible zones
+(`PUBLIC`, or revealed) that allow passage at half speed; one `readHalfSpeedFields` read feeds both. The server
+re-derives which zones `carefully` applies to with the same visibility predicate, so a client cannot bypass a
+hidden zone.
+
 Ordinary Scene editing uses the owning Convex functions. While a Session authority epoch is active,
 live Door commands and standalone token move/undo travel through the Session Durable Object; direct
 overlapping Convex writes are fenced. The browser supplies the exact expected versions and command ID.

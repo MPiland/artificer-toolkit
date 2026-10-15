@@ -838,6 +838,12 @@ export const sceneTokenMovementCommandInputDtoSchema = lazySchema(() =>
        * actor's latest. Absent or null when the move names none; only a voluntary move can name one.
        */
       speedId: z.optional(z.nullable(authoredIdentifierSchema)),
+      /**
+       * The mover chose to move carefully (SPELLS-17, decisions Q2): every square of the path inside a
+       * field that allows passage at half speed costs double movement, and that field's entry save is
+       * skipped. Absent or false is moving normally, with the save. Only voluntary movement can choose.
+       */
+      carefully: z.optional(z.boolean()),
       tokenId: uuidSchema,
       path: z
         .array(scenePointDtoSchema)
@@ -851,6 +857,12 @@ export const sceneTokenMovementCommandInputDtoSchema = lazySchema(() =>
             code: 'custom',
             path: ['speedId'],
             message: 'Only voluntary movement names a speed type.'
+          })
+        if (command.carefully && command.movementKind !== 'VOLUNTARY')
+          context.addIssue({
+            code: 'custom',
+            path: ['carefully'],
+            message: 'Only voluntary movement can move carefully.'
           })
         if (command.movementKind === 'TELEPORT' && command.path.length !== 2)
           context.addIssue({

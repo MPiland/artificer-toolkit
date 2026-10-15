@@ -186,7 +186,13 @@ describe('useCampaignLiveSession', () => {
     const held = {
       held: true as const,
       version: 3,
-      state: { encounter: null, pending: null, waitingOn: null, turnMovement: [] },
+      state: {
+        encounter: null,
+        pending: null,
+        waitingOn: null,
+        turnMovement: [],
+        halfSpeedFields: []
+      },
       preparedPending: [],
       actorSides: null,
       settlement: null,

@@ -89,7 +89,8 @@ const sortedUniqueEventsSchema = <TEvent extends z.ZodMiniType<string>>(
       })
     )
 
-const activeEffectEndEventsSchema = lazySchema(() =>
+/** The events whose first occurrence ends an active effect: sorted and unique. */
+export const activeEffectEndEventsSchema = lazySchema(() =>
   sortedUniqueEventsSchema(pathLifecycleEndEventSchema, 'end events')
 )
 
@@ -205,7 +206,12 @@ const activeRuleEffectModifierGrantContributionDtoSchema = lazySchema(() =>
       /** The granting action or item label ("Antitoxin (vial)"), frozen when the grant is created. */
       sourceLabel: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(500)),
       /** Whether the source was hidden from players when the grant was created. */
-      sourceHidden: z.boolean()
+      sourceHidden: z.boolean(),
+      /**
+       * Only on the template a placed zone carries: the events that end the grant the zone leaves
+       * on a creature. A created grant reads them from its own `recurrence.endOnEvents`.
+       */
+      endOnEvents: z.optional(activeEffectEndEventsSchema)
     })
     .check(
       z.refine(

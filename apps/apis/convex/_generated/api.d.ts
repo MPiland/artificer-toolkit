@@ -113454,6 +113454,17 @@ export declare const api: {
                 version: number;
               }
             | null;
+          halfSpeedFields: Array<{
+            id: string;
+            label: string | null;
+            shape:
+              | {
+                  center: { x: number; y: number };
+                  kind: "CIRCLE";
+                  radius: number;
+                }
+              | { kind: "POLYGON"; points: Array<{ x: number; y: number }> };
+          }>;
           pending:
             | {
                 allowedResponses: Array<"ENTER_DICE" | "SYSTEM_ROLL">;

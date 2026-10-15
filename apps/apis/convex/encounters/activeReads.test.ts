@@ -129,7 +129,8 @@ it('reads the active projection and pending decision together with existing visi
     encounter: null,
     pending: null,
     waitingOn: null,
-    turnMovement: []
+    turnMovement: [],
+    halfSpeedFields: []
   })
   await expect(base.t.query(activeState, input)).rejects.toThrow('Unauthenticated')
   await expect(base.other.caller.query(activeState, input)).rejects.toThrow('Campaign not found')
@@ -227,7 +228,11 @@ it('reads the active projection and pending decision together with existing visi
     pending: await base.owner.caller.query(pending, { encounterId: run.id }),
     waitingOn: null,
     // The GM sees every actor's movement this turn against its stat block's walking speed.
-    turnMovement: expect.arrayContaining([walking(visible?.id, 0, 40), walking(hidden?.id, 15, 80)])
+    turnMovement: expect.arrayContaining([
+      walking(visible?.id, 0, 40),
+      walking(hidden?.id, 15, 80)
+    ]),
+    halfSpeedFields: []
   })
   expect(ownerState.turnMovement).toHaveLength(2)
   expect(ownerState.pending).toMatchObject({ encounterVersion: ownerState.encounter?.version })
@@ -239,7 +244,8 @@ it('reads the active projection and pending decision together with existing visi
     // The player can't answer the GM's pending turn step, and the signal survives a reload.
     waitingOn: 'GM',
     // A player sees movement only for actors they control.
-    turnMovement: []
+    turnMovement: [],
+    halfSpeedFields: []
   })
   expect(playerState.pending).toBeNull()
   expect(playerState.encounter?.actors).toHaveLength(1)

@@ -1616,6 +1616,21 @@ describe('VTT scene geometry', () => {
     expect(sceneLengthInFeet(3, { ...grid, unit: 'SQUARES' })).toBe(15)
   })
 
+  it('doubles the cost of the share of a segment a caller marks', () => {
+    const grid = definition().grid
+    const path = [
+      { x: 0, y: 0 },
+      { x: 100, y: 0 }
+    ]
+    const plain = measureScenePathMovementCost(grid, { barriers: [] }, path)
+    expect(measureScenePathMovementCost(grid, { barriers: [] }, path, () => 0.4)).toBeCloseTo(
+      plain * 1.4
+    )
+    expect(measureScenePathMovementCost(grid, { barriers: [] }, path, () => 1)).toBeCloseTo(
+      plain * 2
+    )
+  })
+
   it('keeps alternating diagonals across walked segments', () => {
     const grid = definition().grid
     const path = [

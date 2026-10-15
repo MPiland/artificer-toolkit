@@ -1,6 +1,6 @@
 # Slice workbook: SPELLS-17 (placed zones: Caltrops)
 
-**Status:** OPEN (written 2026-10-14)
+**Status:** DONE on branch, awaiting main-session review (2026-10-15)
 **Base:** `codex/phase-08-2-convex-cutover` at this workbook's commit.
 **Rules:** [slice-workbook-rules.md](slice-workbook-rules.md).
 
@@ -21,7 +21,7 @@ Source data already authors Caltrops as a generic zone: `packages/source-data/sr
 - **Entry behavior:**
   - A creature entering the zone saves.
   - On a failure, its movement stops, it takes the damage, and it gets the speed reduction as an active effect.
-  - A creature moving at half speed through the zone skips the save. If the movement path doesn't carry half-speed movement yet, stop and report.
+  - A creature that chooses Move carefully (double cost, decision Q2) through the zone skips the save. Approved scope change: the movement command, planner and drag-path preview choice are built here.
 - **End reader:** add the `ON_HIT_POINTS_REGAINED` end event. A heal of at least 1 hit point ends the speed reduction. Wire it where the other end events are read, not as a one-off.
 - **Label:** the zone row needs its authored label for SPELLS-20 and the map. If the placement or definition contract has no label field, add one to the shared contract in `packages/schema`. That is allowed here: it is a pre-launch persisted shape. Migrate nothing, because no production zone rows exist.
 - **Out of scope:** client drawing of zones (projection and map) is SPELLS-20 and VTT_UI-3.1. Auras, start-of-turn zones and token-anchored creation are SPELLS-20. Traps are MOVE-3.
@@ -45,11 +45,12 @@ Read first:
 ## File scope
 
 - `packages/rules-runtime`: the compiler and area action, the movement rule service, and end events.
-- `packages/encounter-persistence`: the store, plus the receipt and undo.
-- `packages/schema`: the label field and the end event, only if missing.
-- `apps/session-worker`: the native action path that commits the zone.
+- `packages/encounter-persistence`: the store, plus the receipt and undo, and the session-state read of half-speed fields.
+- `packages/schema`: the label field and the end event, only if missing; the optional `carefully` flag on `MOVE_SCENE_TOKEN`; `halfSpeedFields` on the Encounter session state.
+- `packages/shared`: the movement planner and spatial candidate evaluation (`carefully` skips a half-speed component's save; doubled cost share).
+- `apps/session-worker`: the native action path that commits the zone, and the movement path that honors `carefully`.
+- `apps/web/src/domains/campaigns/vtt`: the drag-path preview choice only ("Move carefully" / "Move normally", decision Q2). Not `CampaignTabletopActionDrawer.tsx`.
 - Tests next to each.
-- No web change.
 
 ## Red-first checklist
 
@@ -58,12 +59,22 @@ Read first:
 3. **Entry, in the Worker:**
    - a creature that walks into the field and fails the save stops in the field, takes 1 piercing damage, and has its walking speed reduced by 10 feet;
    - a creature that succeeds keeps moving;
-   - a creature at half speed is not asked to save.
+   - (3c) a mover who chose Move carefully pays double cost for the field's squares and is not asked to save, through the real movement path.
 4. **End:** healing that creature by at least 1 hit point ends the speed reduction. Taking more damage does not.
-5. **Journey:** a Worker Encounter journey through real code. A Character spreads real SRD Caltrops in a room, and a creature walks into them, fails, stops, takes the damage and is slowed. A heal clears the slow, and GM undo of the spread removes the field.
+5. **Journey:** a Worker Encounter journey through real code. A Character spreads real SRD Caltrops in a room, and a creature walks into them, fails, stops, takes the damage and is slowed. A heal clears the slow, and GM undo of the spread removes the field. The journey adds one careful crossing. A component test covers the two preview choices.
 
 ## Status log
 
 - 2026-10-14: workbook written.
+- 2026-10-15: slice complete on `claude/reverent-elbakyan-4f4686`; base merged in (commits `5a6da58dc`, merge `18cfe5c2f`). Items 1-5 green with real SRD Caltrops, including the careful crossing (3c). Logs under `local-validation/spells-17/` (red: `red-1-compile.log` to `red-7-web.log`; green: `green-2-shared.log` to `green-7-web.log`, `typecheck-2.log`, `typecheck-3-convex.log` (empty: clean), `typecheck-4-web.log`, `codegen.log`).
+- Caveat (flag for the ledger): SRD Caltrops author the interaction as `ENTER_SPACE`, which maps to the ENTER trigger. ENTER fires only when the dragged path ends inside the field; a drag that passes through and ends outside is CROSS and does not trigger. No source-data change made. The ENTER_SPACE wording ("enters") versus pass-through needs a ruling.
+- Known gaps: GM undo of a heal does not restore the ended slow; Sheet healing outside Encounter mechanics batches does not emit `ON_HIT_POINTS_REGAINED`; a fully resisted hit leaves the target out of `changed`; the stage-level wiring of the careful choice (`commitTokenMove` in `CampaignVttStage.tsx`) has no dedicated test (covered by the component and model tests).
+- Storybook (cannot run in a worktree): new `CampaignVttCarefulMoveChoice.stories.tsx` (SingleLabeledField, UnlabeledAndMultipleFields). Suggested stage-level story in `CampaignTabletopWindow.stories.tsx` seeding `halfSpeedFields` so a dragged path ending in a field shows the choice.
 
 ## Proposed ledger edits (filled by the slice session)
+
+- Close AC SPELLS-17.1 (creator, entry, end event, careful crossing, journey).
+- New follow-up: ruling on `ENTER_SPACE` versus pass-through for Caltrops (authoring/semantics; possibly `ENTER_OR_PASS_THROUGH` in source data).
+- New follow-up: stage-level test for the careful-move choice in `CampaignVttStage`.
+- New follow-up: emit `ON_HIT_POINTS_REGAINED` for Sheet healing outside Encounter mechanics batches; decide undo semantics for an ended slow.
+- Hidden/unnoticed zones stay MOVE-3.3 to 3.5; client drawing of zones stays SPELLS-20 / VTT_UI-3.1.

@@ -20,11 +20,18 @@ import type { CombatPerceptionRequirementDto } from '@artificer-toolkit/schema/s
 import type { ResolvedRuleCapabilityStateDto } from '@artificer-toolkit/schema/shared/ruleState'
 import type { DamageDispositionDto } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
 import type { HitPointMaximumReductionRecoveryTag } from '@artificer-toolkit/schema/effects/hitPointMaximumReduction'
-import type { CompiledActionCompilerSource } from '@artificer-toolkit/schema/projections/characterMechanics'
+import type {
+  CompiledActionCompilerSource,
+  CompiledActionZonePlacement
+} from '@artificer-toolkit/schema/projections/characterMechanics'
 import type { ActorRelationshipModuleAuthored } from '@artificer-toolkit/shared/authored'
 
 /** The events whose first occurrence can use an Encounter grant up. */
 export type GrantConsumeEvent = 'ON_ATTACK_ROLL' | 'ON_ABILITY_CHECK'
+
+/** The events whose first occurrence ends an active effect (the schema's end-event enum). */
+export type ActiveEffectEndEvent =
+  ActiveRuleEffectDefinitionDto['recurrence']['endOnEvents'][number]
 
 /**
  * A System-owned, bounded recurrence declaration. The Encounter coordinator
@@ -66,6 +73,8 @@ export interface CharacterRuleActionActiveEffectPlan {
     includesCurrentTurn: boolean
     /** The events whose first occurrence uses the grant up, sorted and unique. */
     consumeOnFirstEvents: readonly GrantConsumeEvent[]
+    /** The events whose first occurrence ends the grant, sorted and unique. */
+    endOnEvents: readonly ActiveEffectEndEvent[]
   }
   /** Target-owned relationship state selected by the System from the exact action outcome. */
   actorRelationshipContribution?: null | {
@@ -92,6 +101,11 @@ export interface CharacterRuleActionActiveEffectPlan {
     replacementPolicy: 'REPLACE_SAME_DEFINITION'
     emptyDependentPolicy: 'TERMINATE_WHEN_EMPTY' | 'RETAIN_UNTIL_TERMINAL'
   }
+}
+
+/** A zone an action leaves on the Scene; see `compiledActionZonePlacementSchema`. */
+export type CharacterRuleActionZonePlacementPlan = Omit<CompiledActionZonePlacement, 'entry'> & {
+  entry: CharacterRuleActionActiveEffectPlan
 }
 
 /**
@@ -311,6 +325,13 @@ export interface CharacterRuleActionSystemAdapter {
     selectedPath: string
     facts: Readonly<Record<string, RuleValue>>
   }): CharacterRuleActionOutcomeTemplate | null
+  /**
+   * The zone this action places when its authored outcome is a placed-space manifest, or null for
+   * any other action. An unsupported zone throws the unsupported-compilation error.
+   */
+  compileZonePlacement?(input: {
+    action: EffectActionCapabilityDescriptor
+  }): CharacterRuleActionZonePlacementPlan | null
   /** Returns the exact supported recurring plan for this locked action, if any. */
   activeEffectPlans?(input: {
     action: EffectActionCapabilityDescriptor

@@ -15,6 +15,7 @@ import type {
 } from './characterActionCapabilityDiscovery.js'
 import { CharacterRuleActionUnsupportedCompilationError } from './characterRuleActionSystemAdapter.js'
 import { characterRuleActionSystemAdapterRegistry } from './characterRuleActionSystemAdapterRegistry.js'
+import { placedSpaceManifest } from './encounterZonePlacement.js'
 
 class CharacterActionEntryPointIntegrityError extends Error {
   constructor(message: string) {
@@ -29,7 +30,11 @@ export function buildCompiledActionTargetPolicy(
   return {
     range: descriptor.compiledEffect.invocation.range,
     targeting: descriptor.compiledEffect.invocation.targeting ?? null,
-    shape: descriptor.compiledEffect.invocation.shape ?? null,
+    // A zone an action places is the area it takes a point for, when the invocation names none.
+    shape:
+      descriptor.compiledEffect.invocation.shape ??
+      placedSpaceManifest(descriptor.compiledEffect)?.shape ??
+      null,
     pathOverrides: descriptor.compiledEffect.entries.flatMap((entry) => {
       const range = 'rangeOverride' in entry ? (entry.rangeOverride ?? null) : null
       const targeting = 'targetingOverride' in entry ? (entry.targetingOverride ?? null) : null
@@ -177,6 +182,24 @@ export function compileCharacterActionEntryPoints(
       const descriptor = input.descriptors[index]!
       const exactTargetPolicy = buildCompiledActionTargetPolicy(descriptor)
       try {
+        const zonePlacement = adapter.compileZonePlacement?.({ action: descriptor }) ?? null
+        if (zonePlacement) {
+          // The zone's entry graph runs when a creature enters it, never when the action is used.
+          return {
+            schemaVersion: 4,
+            kind: 'CHARACTER_ACTION',
+            actionId: candidate.actionId,
+            effectId: candidate.effectId,
+            targetPolicy: exactTargetPolicy,
+            compilation: {
+              kind: 'COMPILED',
+              resourceBinding: compiledResourceBinding(candidate),
+              activeEffectPlan: null,
+              zonePlacement,
+              executionPlan: { kind: 'SINGLE_GRAPH', published: zonePlacement.entry.frozenGraph }
+            }
+          }
+        }
         const source = buildCompiledActionCompilerSource(descriptor)
         const executionPlan = adapter.compileExecutionPlan?.({
           action: descriptor,
@@ -216,6 +239,7 @@ export function compileCharacterActionEntryPoints(
             kind: 'COMPILED',
             resourceBinding: compiledResourceBinding(candidate),
             activeEffectPlan: activeEffectPlans[0] ?? null,
+            zonePlacement: null,
             executionPlan
           }
         }
