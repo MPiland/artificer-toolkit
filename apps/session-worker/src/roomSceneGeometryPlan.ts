@@ -174,7 +174,19 @@ export async function prepareStagedSceneCommit(input: {
     const segment = preparedMovementSegment(walk)
     explorationDelta = { kind: 'TOKEN_MOVED', tokenId: staged.tokenId, position: segment.position }
     explorationPath = segment.path
-    movementCost = preparedMovementCost({ ...walk, grid: scene.grid, scene })
+    movementCost = preparedMovementCost({
+      ...walk,
+      grid: scene.grid,
+      scene,
+      careful:
+        staged.carefully && movement
+          ? {
+              tokenId: staged.tokenId,
+              tokens: scene.tokens,
+              effects: movement.planned.spatialEffects
+            }
+          : undefined
+    })
     publishedDelta = preparedMovementSceneDelta({
       tokenId: staged.tokenId,
       path: staged.path,

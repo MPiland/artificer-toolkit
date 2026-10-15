@@ -348,9 +348,11 @@ export const pathLifecycleGrantConsumeEventSchema = lazySchema(() =>
     typeof pathLifecycleConsumeEventSchema
   >[])
 )
-/** The end events a timed grant can carry (it is never ended by a cast or a heal). */
+/** The end events a timed grant can carry (it is never ended by an attack roll or a cast). */
 export const pathLifecycleGrantEndEventSchema = lazySchema(() =>
-  z.enum(['ON_INCAPACITATED'] satisfies z.infer<typeof pathLifecycleEndEventSchema>[])
+  z.enum(['ON_HIT_POINTS_REGAINED', 'ON_INCAPACITATED'] satisfies z.infer<
+    typeof pathLifecycleEndEventSchema
+  >[])
 )
 export const forcedMovementDirectionSchema = lazySchema(() =>
   z.enum(['AWAY_FROM_SOURCE', 'TOWARD_SOURCE', 'CHOICE'])

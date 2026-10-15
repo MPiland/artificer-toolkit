@@ -51,6 +51,7 @@ import type {
   CharacterRuleActionActiveEffectPlan,
   CharacterRuleActionConditionOutcomeRules,
   CharacterRuleActionPositionalFacts,
+  CharacterRuleActionZonePlacementPlan,
   CharacterRuleActionSpatialDirective
 } from '../../characterRuleActionSystemAdapter.js'
 import type {
@@ -59,6 +60,7 @@ import type {
 } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import { CharacterRuleActionUnsupportedCompilationError } from '../../characterRuleActionSystemAdapter.js'
 import { encounterAreaTargetKind } from '../../encounterAreaAction.js'
+import { placedSpaceZone, zoneTriggerModes } from '../../encounterZonePlacement.js'
 import {
   BASIC_ACTION_DEFINITION_FAMILY_KEY,
   CONDITION_RULE_STATE_DEFINITION_FAMILY_KEY,
@@ -1281,7 +1283,24 @@ function modifierGrantPlan(
   )
     unsupported('D&D attacks apply one active effect on a hit.')
   const entry = attack ? hitGrants[0] : entries[0]
-  if (!entry || !('outcome' in entry) || entry.outcome.effectKind !== 'APPLY_GRANT') return null
+  return entry
+    ? modifierGrantEntryPlan({ effectId: action.effectId, entry, attack, untilEndEvent: false })
+    : null
+}
+
+/**
+ * The plan of one APPLY_GRANT entry. With `untilEndEvent` the grant has no counted duration and
+ * lasts until one of its authored end events (a speed penalty that lasts until the creature
+ * regains Hit Points); without it the grant must be timed and may not end on an event.
+ */
+function modifierGrantEntryPlan(input: {
+  effectId: string
+  entry: CompiledEffectGroup['entries'][number]
+  attack: boolean
+  untilEndEvent: boolean
+}): Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'> | null {
+  const { entry, attack, untilEndEvent } = input
+  if (!('outcome' in entry) || entry.outcome.effectKind !== 'APPLY_GRANT') return null
   const { grants } = entry.outcome
   const initialRemaining = entry.duration ? conditionDurationTurns(entry.duration) : null
   const {
@@ -1293,8 +1312,8 @@ function modifierGrantPlan(
     ...otherLifecycle
   } = entry.lifecycle ?? {}
   const consumeEvents = [...new Set(consumeOnFirstEvents)].sort()
-  const grantConsumeEvents = consumeEvents.filter(isGrantConsumeEvent)
   const endEvents = [...new Set(endOnEvents)].sort()
+  const grantConsumeEvents = consumeEvents.filter(isGrantConsumeEvent)
   const grantEndEvents = endEvents.filter(isGrantEndEvent)
   const senses = grants.senses ?? []
   const grantedSenses = senses.flatMap((sense) =>
@@ -1318,9 +1337,12 @@ function modifierGrantPlan(
       ({ payload }) => payload && 'valueKind' in payload && payload.valueKind === 'SPELL_SLOT_LEVEL'
     ) ||
     grants.proficiencies?.length ||
-    initialRemaining === null ||
-    // A grant created on its anchor's own turn is stored one turn longer (see the Encounter planner).
-    initialRemaining >= MAX_ACTIVE_EFFECT_TURNS ||
+    (untilEndEvent
+      ? entry.duration !== undefined || endEvents.length === 0 || turnAnchor !== undefined
+      : initialRemaining === null ||
+        // A grant created on its anchor's own turn is stored one turn longer (see the Encounter planner).
+        initialRemaining >= MAX_ACTIVE_EFFECT_TURNS ||
+        endEvents.length > 0) ||
     Object.values(otherLifecycle).some((value) => value !== undefined) ||
     grantConsumeEvents.length !== consumeEvents.length ||
     grantEndEvents.length !== endEvents.length ||
@@ -1328,11 +1350,11 @@ function modifierGrantPlan(
   )
     return null
   return {
-    authoredEffectId: action.effectId,
+    authoredEffectId: input.effectId,
     compiledEntryId: entry.entryId,
     frozenGraphNodeId: 'modifier-grant',
     capabilityContractVersion: DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
-    recurrenceStage: turnAnchor?.boundary ?? 'END_OF_TURN',
+    recurrenceStage: untilEndEvent ? 'NONE' : (turnAnchor?.boundary ?? 'END_OF_TURN'),
     initialRemaining,
     modifierGrantContribution: {
       applyGrantOutcomeId: entry.outcome.id,
@@ -1395,6 +1417,117 @@ function durationPublishedGraph(input: {
     checksum: checksumRuleDocument(definition),
     definition
   })
+}
+
+/**
+ * The zone a PLACED_SPACE manifest action places. Its one entering behavior is a fixed-DC saving
+ * throw whose failure stops the mover, deals fixed damage and may leave a grant that lasts until
+ * its authored end event. Anything else the behavior authors is refused rather than partly honored.
+ */
+function zonePlacementPlan(
+  action: Dnd5eCompiledEffectActionSource
+): CharacterRuleActionZonePlacementPlan | null {
+  const zone = placedSpaceZone(action.compiledEffect)
+  if (!zone) return null
+  const triggerModes = zoneTriggerModes(zone.component)
+  const { invocation, entries } = zone.behavior
+  const savingThrow = 'savingThrow' in invocation ? invocation.savingThrow : undefined
+  const placementKind = encounterAreaTargetKind(
+    action.compiledEffect.invocation.range.rangeKind,
+    zone.shape.shapeKind
+  )
+  // A directed area is aimed, not placed at a point; a zone is left where its action is centered.
+  if (placementKind !== 'POINT' && placementKind !== 'CASTER_CENTERED')
+    unsupported('A placed zone takes a point or the caster as its center.')
+  if (
+    !triggerModes ||
+    invocation.triggerCode !== 'SAVING_THROW' ||
+    savingThrow?.dcMethod !== 'FIXED_DC' ||
+    !UUID.test(savingThrow.abilityDefinitionId) ||
+    !Number.isSafeInteger(savingThrow.baseDc) ||
+    entries.some(
+      (entry) =>
+        entry.resolutionKind !== 'DIRECT' ||
+        !('outcome' in entry) ||
+        entry.pathCode !== 'ON_SAVE_FAIL' ||
+        entry.rangeOverride ||
+        entry.targetingOverride
+    )
+  )
+    unsupported('A placed zone behavior is a fixed-DC saving throw with direct failure outcomes.')
+  const outcomeEntries = (effectKind: string) =>
+    entries.filter((entry) => 'outcome' in entry && entry.outcome.effectKind === effectKind)
+  const stops = outcomeEntries('MOVEMENT_RULE').filter(
+    (entry) =>
+      'outcome' in entry &&
+      entry.outcome.effectKind === 'MOVEMENT_RULE' &&
+      entry.outcome.ruleKind === 'STOP_CURRENT_MOVEMENT'
+  )
+  const [damage] = outcomeEntries('DAMAGE')
+  const [grant] = outcomeEntries('APPLY_GRANT')
+  if (
+    !damage ||
+    !UUID.test(damage.entryId) ||
+    outcomeEntries('DAMAGE').length !== 1 ||
+    outcomeEntries('APPLY_GRANT').length > 1 ||
+    stops.length > 1 ||
+    stops.length + 1 + (grant ? 1 : 0) !== entries.length
+  )
+    unsupported('A placed zone failure stops movement, deals one damage and may apply one grant.')
+  const entryPlan: Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'> = {
+    authoredEffectId: action.effectId,
+    compiledEntryId: damage.entryId,
+    frozenGraphNodeId: 'proposal-on_save_fail',
+    capabilityContractVersion: DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
+    recurrenceStage: 'NONE',
+    initialRemaining: null,
+    adapterFacts: {
+      [DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY]: savingThrow.abilityDefinitionId,
+      [DND5E_SAVE_DC_FACT_KEY]: savingThrow.baseDc,
+      [DND5E_ACTIVE_EFFECT_SAVE_REQUEST_NODE_FACT_KEY]: 'd20'
+    },
+    perceptionContributions: [],
+    maintenance: null
+  }
+  const saveGraph = compileTestDefinition(
+    action,
+    { kind: 'SAVE', branches: new Map([['ON_SAVE_FAIL', boundedTestOutcome(damage)]]) },
+    entryPlan
+  )
+  const lingeringPlan = grant
+    ? modifierGrantEntryPlan({
+        effectId: action.effectId,
+        entry: grant,
+        attack: false,
+        untilEndEvent: true
+      })
+    : null
+  const lingering = lingeringPlan?.modifierGrantContribution
+  // The grant is read only for its modifiers and end events; one that is also consumed or
+  // maintained would silently lose that behavior on a creature.
+  if (
+    grant &&
+    (!lingering || lingering.consumeOnFirstEvents.length > 0 || lingeringPlan?.maintenance)
+  )
+    unsupported('A placed zone grant must last until its end event.')
+  return {
+    label: zone.label,
+    shape: zone.shape,
+    triggerModes,
+    bypassAtHalfSpeed: zone.component.bypassAtHalfSpeed === true,
+    entry: {
+      ...entryPlan,
+      frozenGraph: stops.length ? withMovementInterruption(saveGraph, 'ON_SAVE_FAIL') : saveGraph
+    },
+    grant: lingering
+      ? {
+          applyGrantOutcomeId: lingering.applyGrantOutcomeId,
+          modifiers: [...lingering.modifiers],
+          senses: [...lingering.senses],
+          endOnEvents: [...lingering.endOnEvents]
+        }
+      : null
+  }
 }
 
 /**
@@ -4508,10 +4641,18 @@ function bindMovementInterruptionTestOutput(input: {
     throw new Dnd5eEffectActionCompilerError(
       'Movement interruption must bind one exact authored D&D test path.'
     )
+  return withMovementInterruption(input.published, binding.whenResultPath)
+}
+
+/** Adds the output that stops the mover when the test resolves to `whenResultPath`. */
+function withMovementInterruption(
+  published: ServerPublishedRuleDefinitionDto,
+  whenResultPath: string
+): ServerPublishedRuleDefinitionDto {
   const definition: RuleGraphDefinition = {
-    ...input.published.definition,
+    ...published.definition,
     nodes: [
-      ...input.published.definition.nodes,
+      ...published.definition.nodes,
       {
         id: 'movement-interruption',
         operation: {
@@ -4520,12 +4661,12 @@ function bindMovementInterruptionTestOutput(input: {
         },
         inputs: {
           resultPath: { kind: 'NODE_OUTPUT', nodeId: 'test', port: 'resultPath' },
-          authoredPath: { kind: 'LITERAL', value: binding.whenResultPath }
+          authoredPath: { kind: 'LITERAL', value: whenResultPath }
         }
       }
     ],
     outputs: {
-      ...input.published.definition.outputs,
+      ...published.definition.outputs,
       movementInterruption: {
         kind: 'NODE_OUTPUT',
         nodeId: 'movement-interruption',
@@ -4534,7 +4675,7 @@ function bindMovementInterruptionTestOutput(input: {
     }
   }
   return serverPublishedRuleDefinitionDtoSchema.parse({
-    ...input.published,
+    ...published,
     checksum: checksumRuleDocument(definition),
     definition
   })
@@ -6204,6 +6345,7 @@ function testOutcomeTemplateIdentities(action: Dnd5eCompiledEffectActionSource) 
 export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAdapter = {
   gameSystemId: DND5E_SYSTEM_ID,
   compile: compileDnd5eEffectAction,
+  compileZonePlacement: ({ action }) => zonePlacementPlan(action),
   interpretSpatial,
   compileExecutionPlan: ({ action, compilerSource }) => {
     const source = dndSourceFromCompilerSource(compilerSource)

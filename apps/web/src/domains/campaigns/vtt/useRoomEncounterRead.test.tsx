@@ -24,7 +24,13 @@ function heldAt(version: number): HeldEncounterSession {
   return {
     held: true,
     version,
-    state: { encounter: null, pending: null, waitingOn: null, turnMovement: [] },
+    state: {
+      encounter: null,
+      pending: null,
+      waitingOn: null,
+      turnMovement: [],
+      halfSpeedFields: []
+    },
     preparedPending: [],
     actorSides: null,
     settlement: null,

@@ -374,10 +374,7 @@ export const adultBlackDragon: CreatureAuthored = {
               code: S.ACTIVATION_CODE.ACTION,
               amount: 1
             },
-            range: {
-              id: S.actionId(3, 28),
-              rangeKind: S.RANGE_KIND.SPECIAL
-            }
+            ...S.selfLine(S.actionId(3, 28), S.actionId(3, 200), 60, 5)
           },
           paths: [
             {

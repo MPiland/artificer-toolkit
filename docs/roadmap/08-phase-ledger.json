@@ -37,49 +37,6 @@
       "uat": [],
       "pbis": [
         {
-          "id": "PLATFORM-1",
-          "title": "Develop and generate code against local Convex",
-          "status": "IN_PROGRESS",
-          "journeyTests": [],
-          "journeyStatus": "none",
-          "origin": ["F01"],
-          "acs": [
-            {
-              "text": "Official Convex push and codegen succeed against an isolated local deployment and against personal dev flexible-goshawk-837.",
-              "status": "DONE",
-              "proof": [
-                ".codex/validation/phase82-foundation/local-final-dev.log",
-                ".codex/validation/phase82-foundation/cloud-dev-first-push.log"
-              ],
-              "origin": ["F01.1"],
-              "id": "PLATFORM-1.1"
-            },
-            {
-              "text": "The shared schema, including the indexed profile table, typechecks against the generated API.",
-              "status": "DONE",
-              "proof": [".codex/validation/phase82-foundation/typecheck.log"],
-              "origin": ["F01.2"],
-              "id": "PLATFORM-1.2"
-            },
-            {
-              "text": "Over real HTTP a public query succeeds, anonymous session and identity calls are denied and signup stays closed.",
-              "status": "DONE",
-              "proof": [
-                ".codex/validation/phase82-foundation/local-http-smoke-2.log",
-                ".codex/validation/phase82-foundation/cloud-dev-foundation-smoke.log"
-              ],
-              "origin": ["F01.3"],
-              "id": "PLATFORM-1.3"
-            }
-          ],
-          "wsjf": {
-            "bv": 3,
-            "tc": 8,
-            "rr": 13,
-            "size": 3
-          }
-        },
-        {
           "id": "PLATFORM-2",
           "title": "Typed schemas, indexes and bounded contracts",
           "status": "DONE",
@@ -655,14 +612,15 @@
             {
               "id": "PLATFORM-13.T6",
               "text": "Find why concurrent readRoomRollCards checkpoints can miss the TABLE conversation (fixture race or a product race in checkpoint/chat), fix it at the cause, and prove it with a loaded run.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["PLATFORM-13.8"],
               "wsjf": {
                 "bv": 2,
                 "tc": 3,
                 "rr": 5,
                 "size": 2
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-platform-13-t6.md"
             }
           ]
         },
@@ -5489,7 +5447,8 @@
                 "tc": 5,
                 "rr": 8,
                 "size": 3
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-attack-9-t1.md"
             },
             {
               "id": "ATTACK-9.T2",
@@ -5596,10 +5555,14 @@
             },
             {
               "text": "A Creature's authored Senses are structured Sense definitions, so attack-roll sight is definitive for Creatures (no UNKNOWN).",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/rules-runtime/src/__tests__/encounterAttackPerception.test.ts",
+                "packages/rules-runtime/src/__tests__/creatureSnapshotSenses.test.ts",
+                "apps/session-worker/src/roomSceneVision.test.ts"
+              ],
               "origin": [],
-              "note": "D100 UNKNOWN case: Creature senses are free text today.",
+              "note": "Closed 2026-10-15 at the ATTACK-10 split: delivered by VTT_UI-5 (D111, 2026-10-13), which made Creature Senses structured and retired the UNKNOWN sight; the ledger had not been updated.",
               "id": "ATTACK-10.3"
             },
             {
@@ -5624,7 +5587,46 @@
             "tc": 2,
             "rr": 3,
             "size": 5
-          }
+          },
+          "tasks": [
+            {
+              "id": "ATTACK-10.T1",
+              "text": "Hide: a successful Stealth check hides its actor from the creatures that fail to notice it; attacking from hiding has advantage; attacking or being noticed ends it.",
+              "status": "IN_PROGRESS",
+              "closes": ["ATTACK-10.2"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 5,
+                "size": 3
+              },
+              "activeWorkbook": "docs/handoffs/slice-attack-10-t1.md"
+            },
+            {
+              "id": "ATTACK-10.T3",
+              "text": "Opportunity attacks and Disarm apply attack-roll sight; movement-reaction perception applies condition contributions.",
+              "status": "TODO",
+              "closes": ["ATTACK-10.4"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 1,
+                "rr": 2,
+                "size": 3
+              }
+            },
+            {
+              "id": "ATTACK-10.T4",
+              "text": "Saving throws use the believed mode in the prompt and settle in the true mode; player reasons never name a hidden fact.",
+              "status": "TODO",
+              "closes": ["ATTACK-10.5"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 2,
+                "size": 3
+              }
+            }
+          ]
         },
         {
           "id": "ATTACK-11",
@@ -5967,7 +5969,7 @@
                 "tc": 5,
                 "rr": 2,
                 "size": 2,
-                "after": ["ATTACK-17.T3", "ATTACK-10"]
+                "after": ["ATTACK-17.T3", "ATTACK-10.T1"]
               }
             },
             {
@@ -6843,16 +6845,17 @@
             },
             {
               "id": "SPELLS-8.T5",
-              "text": "Casting any SRD Concentration spell starts Concentration and replaces the current one (proved with Hold Person replacing Fly), not only spells with a maintenance definition.",
+              "text": "Casting any SRD Concentration spell starts Concentration and replaces the current one (proved with Hold Person replacing Fly), not only spells with a maintenance definition. Re-sized 2026-10-15: probe showed 108 of 110 SRD Concentration spells compile MANUAL; T5 also generalizes the timed-condition and repeat-save plans to the caster save DC so Hold Person (with its SRD repeat save) compiles.",
               "status": "TODO",
               "closes": ["SPELLS-8.1"],
               "wsjf": {
                 "bv": 8,
                 "tc": 5,
                 "rr": 8,
-                "size": 3,
+                "size": 5,
                 "after": ["SPELLS-8.T1"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-8-t1.md"
             },
             {
               "id": "SPELLS-8.T6",
@@ -7250,18 +7253,55 @@
         {
           "id": "SPELLS-17",
           "title": "Placed zones from any authored item, spell or feature (Caltrops proof)",
-          "status": "TODO",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "IN_PROGRESS",
+          "journeyTests": ["apps/session-worker/test/nativeRoomPlacedZone.test.ts"],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
               "text": "Spreading Caltrops places a field on the map; a creature that enters it makes a DC 15 Dexterity save, and on a failure its movement stops, it takes 1 piercing damage, and its speed drops by 10 feet until it regains hit points.",
+              "status": "DONE",
+              "proof": [
+                "apps/session-worker/test/nativeRoomPlacedZone.test.ts (journey: spread real SRD Caltrops, walk in, fail, stop, damage, slow; heal clears it; GM undo removes the field; careful crossing; hidden field ignores carefully)",
+                "packages/rules-runtime/src/__tests__/encounterZonePlacementCompilation.test.ts (compile, one negative per unsupported branch, directed shapes refused, unread end events refused)",
+                "packages/authoring/src/nodeRuntime/zoneAuthoringParity.test.ts (ADR 0038: author-built variant zone through the equipment node map)",
+                "apps/apis/convex/rules/halfSpeedFields.test.ts (visible-only half-speed fields)",
+                "apps/web/src/domains/campaigns/vtt/CampaignVttCarefulMoveChoice.test.tsx (careful or normal crossing choice)"
+              ],
+              "origin": [],
+              "note": "Was SPELLS-7.2 (registered from the SPELLS-5 refinement, D99: an area APPLY_GRANT), widened on 2026-10-10 to the whole item. It needs a production spatial-effect creator (only test fixtures create them today) and an ON_HIT_POINTS_REGAINED end reader. First check that the MANIFEST ZONE outcome compiles. Moving at half speed to avoid the save is offered in the drag path preview when the path enters the field: Move carefully (double cost, no save) or Move normally (save on entry) (Q2, resolved 2026-10-12). Merged aba540d19. Touch point areas now measure from the 5 ft. single-target touch reach.",
+              "id": "SPELLS-17.1"
+            },
+            {
+              "id": "SPELLS-17.2",
+              "text": "A creature whose move passes through a Caltrops or Ball Bearings field without ending in it makes the save on entering it, as the SRD \"enters the area\" says; on a failure it stops in the field.",
               "status": "TODO",
               "proof": [],
-              "origin": [],
-              "note": "Was SPELLS-7.2 (registered from the SPELLS-5 refinement, D99: an area APPLY_GRANT), widened on 2026-10-10 to the whole item. It needs a production spatial-effect creator (only test fixtures create them today) and an ON_HIT_POINTS_REGAINED end reader. First check that the MANIFEST ZONE outcome compiles. Moving at half speed to avoid the save is offered in the drag path preview when the path enters the field: Move carefully (double cost, no save) or Move normally (save on entry) (Q2, resolved 2026-10-12).",
-              "id": "SPELLS-17.1"
+              "origin": "Follow-up from SPELLS-17 (aba540d19), workbook docs/handoffs/slice-spells-17.md.",
+              "note": "SRD Caltrops author ENTER_SPACE, which maps to ENTER only when the path ends inside; a pass-through is CROSS and does not trigger. Fix the authored trigger through core options, not a Caltrops branch."
+            },
+            {
+              "id": "SPELLS-17.3",
+              "text": "Healing that restores hit points ends a \"until healed\" grant wherever it happens (Sheet healing outside an Encounter batch included), GM undo of that heal restores the grant, and a failed save whose damage is fully resisted still applies the slow.",
+              "status": "TODO",
+              "proof": [],
+              "origin": "Follow-up from SPELLS-17 (aba540d19), workbook docs/handoffs/slice-spells-17.md.",
+              "note": ""
+            },
+            {
+              "id": "SPELLS-17.4",
+              "text": "Dragging a token across a visible half-speed field on the board offers the careful or normal choice and commits the chosen move.",
+              "status": "TODO",
+              "proof": [],
+              "origin": "Follow-up from SPELLS-17 (aba540d19), workbook docs/handoffs/slice-spells-17.md.",
+              "note": "commitTokenMove in CampaignVttStage.tsx has no stage-level test; the component and model are covered."
+            },
+            {
+              "id": "SPELLS-17.5",
+              "text": "Every SRD zone whose text triggers when a creature enters the area authors ENTER_OR_PASS_THROUGH (Oil Flask, Blade Barrier, Hunting Trap), proved by source-data tests on each entry.",
+              "status": "TODO",
+              "proof": [],
+              "origin": "Found in SPELLS-17.T1 (e58b9dad8): the same \"enters the area\" wording as Caltrops, authored ENTER_SPACE."
             }
           ],
           "wsjf": {
@@ -7269,7 +7309,59 @@
             "tc": 1,
             "rr": 2,
             "size": 3
-          }
+          },
+          "tasks": [
+            {
+              "id": "SPELLS-17.T1",
+              "text": "Pass-through triggers for entered fields (SRD Caltrops, Ball Bearings) with a Worker test.",
+              "status": "TODO",
+              "closes": ["SPELLS-17.2"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 5,
+                "rr": 5,
+                "size": 2
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-17.md"
+            },
+            {
+              "id": "SPELLS-17.T2",
+              "text": "ON_HIT_POINTS_REGAINED from every heal path, heal undo restores the ended grant, fully resisted damage still applies the failure sequence.",
+              "status": "TODO",
+              "closes": ["SPELLS-17.3"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 5,
+                "size": 3
+              }
+            },
+            {
+              "id": "SPELLS-17.T3",
+              "text": "Stage-level test of the careful-crossing choice through CampaignVttStage.",
+              "status": "TODO",
+              "closes": ["SPELLS-17.4"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 1,
+                "rr": 3,
+                "size": 1
+              }
+            },
+            {
+              "id": "SPELLS-17.T4",
+              "text": "Author Oil Flask, Blade Barrier and Hunting Trap enter components as ENTER_OR_PASS_THROUGH with source-data tests; regenerate the manifest.",
+              "status": "IN_PROGRESS",
+              "closes": ["SPELLS-17.5"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 1,
+                "rr": 2,
+                "size": 1
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-17.md"
+            }
+          ]
         },
         {
           "id": "SPELLS-18",
@@ -7308,6 +7400,14 @@
               "origin": [],
               "note": "Registered 2026-10-10 from SPELLS-7 slice 5d, which refuses these at open and commit (refuseAreaEffectOutcomes in apps/session-worker/src/nativeEncounterAreaRules.ts: stateEffect, recurringEffect, relationshipConditionApplications, maintenance). One maintained effect must span every caught creature under one Concentration. Depends on SPELLS-7.",
               "id": "SPELLS-19.1"
+            },
+            {
+              "id": "SPELLS-19.2",
+              "text": "Every SRD breath weapon that leaves a condition (the 21 shaped non-damage breaths, such as the Silver Dragon Wyrmling's Paralyzing Breath, and the Gorgon's Petrifying Breath with its printed repeat save authored) is offered and resolves through the area executor; the SPELLS-21 corpus test's list of non-compiling breaths is empty.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Registered 2026-10-15 at the SPELLS-21 merge (3aa01bf6d): these breaths are authored as areas but listed unavailable, because an area does not yet commit a condition and the Gorgon's SRD repeat save is not authored."
             }
           ],
           "wsjf": {
@@ -7345,17 +7445,22 @@
         {
           "id": "SPELLS-21",
           "title": "SRD breath weapons breathe areas",
-          "status": "TODO",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": ["apps/session-worker/test/nativeRoomSrdBreathJourney.test.ts"],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
               "text": "Every SRD breath weapon (the dragons' breaths, the Behir's Lightning Breath and the rest) is authored in source data as a Self cone or line area with its printed size, save and damage, and an unmodified SRD dragon breathes it in a real room: the caught creatures save, damage applies (half on a success) and the GM can undo it.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "3aa01bf6d",
+                "packages/rules-runtime/src/__tests__/srdBreathWeaponAreas.test.ts (every SRD breath authored as a Self cone or line with its printed size, save and damage; the non-compiling rows are exactly the 21 condition breaths plus the Gorgon)",
+                "apps/session-worker/test/nativeRoomSrdBreathJourney.test.ts (unmodified Black Dragon Wyrmling line and Winter Wolf cone in a real room: saves, full and half damage, out-of-area creatures untouched, GM undo)",
+                "local-validation/merge-s21/summary.log"
+              ],
               "origin": [],
-              "note": "Registered 2026-10-14 from the SPELLS-13 review: source data authors the breaths with SPECIAL range and no area shape (e.g. black-dragon-wyrmling.ts Acid Breath), so no SRD Creature can breathe through the area executor; the SPELLS-13 proofs use a synthetic Self cone action. Breaths that leave a condition (e.g. paralysis or sleep breath) stay refused until SPELLS-19. Needs the SRD manifest regenerated and a reset/reseed. Depends on SPELLS-13; SPELLS-15's area Legendary options reuse it.",
+              "note": "Registered 2026-10-14 from the SPELLS-13 review: source data authors the breaths with SPECIAL range and no area shape (e.g. black-dragon-wyrmling.ts Acid Breath), so no SRD Creature can breathe through the area executor; the SPELLS-13 proofs use a synthetic Self cone action. Breaths that leave a condition (e.g. paralysis or sleep breath) stay refused until SPELLS-19. Needs the SRD manifest regenerated and a reset/reseed. Depends on SPELLS-13; SPELLS-15's area Legendary options reuse it. Merged 3aa01bf6d (2026-10-15): Creature discovery lists an action its System cannot compile as unavailable with the reason, and RESOLVE_ACTION refuses it (DOMAIN_REJECTED / SOURCE_REQUIREMENTS_NOT_MET); the condition breaths move to SPELLS-19.2.",
               "id": "SPELLS-21.1"
             }
           ],
@@ -7461,17 +7566,21 @@
         {
           "id": "SPELLS-25",
           "title": "Every zone states where it is placed",
-          "status": "TODO",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": ["packages/source-data/src/srd/zoneAttachment.test.ts"],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
               "text": "attachmentKind is required on every ZONE manifest in the schema and the zone node map, and every SRD zone sets it from its SRD text; a corpus test fails on any zone without it.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/schema/src/__tests__/manifest-zone-attachment.test.ts (attachmentKind required on ZONE only)",
+                "packages/shared/src/__tests__/effect-node-maps.test.ts ('requires an attachment only on ZONE manifests')",
+                "packages/source-data/src/srd/zoneAttachment.test.ts (every SRD zone parses through manifestDtoSchema; SOURCE and PRIMARY_TARGET sets exact)"
+              ],
               "origin": [],
-              "note": "User ruling 2026-10-14 (decisions: hazards and traps). 2026-10-14 scan: 36 of 39 SRD zones (all spells) leave it unset, so the SPELLS-17 creator would place none of them.",
+              "note": "User ruling 2026-10-14 (decisions: hazards and traps). 2026-10-14 scan: 36 of 39 SRD zones (all spells) leave it unset, so the SPELLS-17 creator would place none of them. Merged 92674da15: Globe of Invulnerability is PLACED_SPACE; SOURCE is Antilife Shell and Antimagic Field; PRIMARY_TARGET is Resilient Sphere.",
               "id": "SPELLS-25.1"
             }
           ],
@@ -7480,6 +7589,62 @@
             "tc": 5,
             "rr": 5,
             "size": 2
+          }
+        },
+        {
+          "id": "SPELLS-26",
+          "title": "Spells that target several chosen creatures",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": [],
+          "acs": [
+            {
+              "id": "SPELLS-26.1",
+              "text": "Every SRD spell that targets chosen creatures (CHOSEN_CREATURES with maxTargets) compiles and resolves per target through core options, including split attacks or projectiles (Magic Missile darts divided among targets, each a separate damage instance); a corpus test fails on any such spell that does not compile.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Registered 2026-10-15 from the REACTION-4 design review: the compiler accepts only SINGLE_TARGET or AREA_CONTENTS (effectActionCompiler.ts), so 31 SRD spells authoring CHOSEN_CREATURES, Magic Missile among them, are not castable."
+            }
+          ],
+          "wsjf": {
+            "bv": 8,
+            "tc": 3,
+            "rr": 5,
+            "size": 5
+          }
+        },
+        {
+          "id": "SPELLS-27",
+          "title": "Effects end on their authored end events",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": [],
+          "acs": [
+            {
+              "id": "SPELLS-27.1",
+              "text": "An effect authored to end on an event ends when its holder triggers it, through one generic end-event consumer: Invisibility ends when the invisible creature makes an attack roll or casts a spell, and GM undo of that attack or cast restores it.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Registered 2026-10-15 from the ATTACK-10.T1 (Hide) design review: only ON_HIT_POINTS_REGAINED has an end-event consumer (mechanicsBatchPersistence.ts); the compiler rejects other grant end events, and Invisibility authors endOnEvents ON_ATTACK_ROLL and ON_CAST_SPELL that nothing reads."
+            },
+            {
+              "id": "SPELLS-27.2",
+              "text": "Every SRD effect whose text ends it on an event (for example Sanctuary when its target attacks or casts a spell on an enemy, Charm Person when the caster or companions harm the target) authors that end event from core options; a corpus test lists any SRD effect left with such text and no authored end event.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Registered 2026-10-15 from the ATTACK-10.T1 (Hide) design review: only ON_HIT_POINTS_REGAINED has an end-event consumer (mechanicsBatchPersistence.ts); the compiler rejects other grant end events, and Invisibility authors endOnEvents ON_ATTACK_ROLL and ON_CAST_SPELL that nothing reads."
+            }
+          ],
+          "wsjf": {
+            "bv": 5,
+            "tc": 2,
+            "rr": 3,
+            "size": 3
           }
         }
       ]
@@ -7631,7 +7796,7 @@
         {
           "id": "REACTION-4",
           "title": "Non-movement reactions",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "journeyTests": [],
           "journeyStatus": "none",
           "origin": [],
@@ -7651,6 +7816,22 @@
               "origin": [],
               "note": "Added 2026-10-08 at the user's request: non-SRD reactions must be user-authorable. Prove it with a user-authored Absorb Elements in a test fixture, not seeded content.",
               "id": "REACTION-4.2"
+            },
+            {
+              "id": "REACTION-4.3",
+              "text": "A Counterspell is itself a cast that can be countered: other eligible casters in range are offered their own Counterspell, and the chain resolves innermost first inside the one triggering occurrence; a countered cast spends its slot and action and has no effect.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Registered 2026-10-15 at the REACTION-4 design review (SRD Counterspell rules; the design keeps one pending occurrence per Run)."
+            },
+            {
+              "id": "REACTION-4.4",
+              "text": "An attack that hits a creature holding a reaction such as Shield offers its controller Use or Decline; Use spends the reaction and the spell slot and grants the AC bonus, which counts against the triggering attack, so the hit becomes a miss when the new AC beats the roll; GM undo restores the reaction, the slot and the hit.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Registered 2026-10-15 at the REACTION-4 design review: the trigger model and the Shield-against-a-hit slice (REACTION-4.T1)."
             }
           ],
           "wsjf": {
@@ -7659,7 +7840,61 @@
             "rr": 3,
             "size": 5,
             "after": ["SPELLS-8.T1"]
-          }
+          },
+          "tasks": [
+            {
+              "id": "REACTION-4.T1",
+              "text": "Generic reactionTrigger union (replaces reactionMovementTrigger, node-map group), REACTION activation in the compiler and economy, the REACTION_CHOICE phase inside the triggering occurrence, the D26 hold for any reaction decision, the REACTION undo child, and Shield against a hit (ATTACKED_SELF, sealed re-evaluation of the TEST).",
+              "status": "IN_PROGRESS",
+              "closes": ["REACTION-4.4"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 5,
+                "rr": 5,
+                "size": 5
+              },
+              "activeWorkbook": "docs/handoffs/slice-reaction-4.md"
+            },
+            {
+              "id": "REACTION-4.T2",
+              "text": "DAMAGE_TAKEN trigger with a one-instance resistance applied before the damage, and a user-authored Absorb Elements fixture with its follow-up grant.",
+              "status": "TODO",
+              "closes": ["REACTION-4.2"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 3,
+                "size": 3,
+                "after": ["REACTION-4.T1"]
+              }
+            },
+            {
+              "id": "REACTION-4.T3",
+              "text": "SPELL_CAST trigger, TRIGGER_FACT expressions, CANCEL_TRIGGERING_EVENT and the SPENT_NO_EFFECT settlement; Counterspell converted to core options (COUNTERSPELL closed-rule kind deleted), including the counter-chain.",
+              "status": "TODO",
+              "closes": ["REACTION-4.3"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 3,
+                "rr": 5,
+                "size": 5,
+                "after": ["REACTION-4.T1"]
+              }
+            },
+            {
+              "id": "REACTION-4.T4",
+              "text": "TARGETED_SELF trigger and the source-filtered damage immunity: Shield against Magic Missile.",
+              "status": "TODO",
+              "closes": ["REACTION-4.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 2,
+                "size": 2,
+                "after": ["REACTION-4.T3", "SPELLS-26"]
+              }
+            }
+          ]
         }
       ]
     },
@@ -9747,6 +9982,12 @@
       "origin": ["CP-S4-b"],
       "reason": "ADR 0035: commands run in the room, so the CP-S4-b room capture cache and one-read command bundle were removed; no command makes a per-command Convex round trip.",
       "decision": "Approved by the user on 2026-10-07 (needs-proof audit)."
+    },
+    {
+      "id": "PLATFORM-1",
+      "origin": ["F01"],
+      "reason": "Development tooling, not a user-visible behavior, so it can never have a journey test. Its three ACs were done; every merge now proves it locally (Convex codegen push, deploy, SRD seed and audit against the local Docker backend), apps/apis/tests/developmentFoundation.ts (run by the pre-staging lifecycle) and the ACCOUNTS-1 journey prove anonymous denial and closed signup over real HTTP. AC 1.1 also proved a push to the personal cloud dev deployment, which ADR 0035 now forbids for development and agents.",
+      "decision": "Approved by the user on 2026-10-15."
     }
   ],
   "openQuestions": []

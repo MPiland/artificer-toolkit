@@ -18,7 +18,10 @@ import type {
 
 class EncounterActionEffectPlanError extends Error {}
 
-function compileEffectGraph(published: ServerPublishedRuleDefinitionDto, contractVersion: number) {
+export function compileEffectGraph(
+  published: ServerPublishedRuleDefinitionDto,
+  contractVersion: number
+) {
   const graph = compileRuleGraph({
     definition: published.definition,
     sourceChecksum: published.checksum,

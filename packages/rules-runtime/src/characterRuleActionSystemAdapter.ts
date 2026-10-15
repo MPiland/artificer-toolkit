@@ -25,7 +25,10 @@ import type { CombatPerceptionRequirementDto } from '@artificer-toolkit/schema/s
 import type { ResolvedRuleCapabilityStateDto } from '@artificer-toolkit/schema/shared/ruleState'
 import type { DamageDispositionDto } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
 import type { HitPointMaximumReductionRecoveryTag } from '@artificer-toolkit/schema/effects/hitPointMaximumReduction'
-import type { CompiledActionCompilerSource } from '@artificer-toolkit/schema/projections/characterMechanics'
+import type {
+  CompiledActionCompilerSource,
+  CompiledActionZonePlacement
+} from '@artificer-toolkit/schema/projections/characterMechanics'
 import type { ActorRelationshipModuleAuthored } from '@artificer-toolkit/shared/authored'
 
 /**
@@ -100,6 +103,11 @@ export interface CharacterRuleActionActiveEffectPlan {
     replacementPolicy: 'REPLACE_SAME_DEFINITION'
     emptyDependentPolicy: 'TERMINATE_WHEN_EMPTY' | 'RETAIN_UNTIL_TERMINAL'
   }
+}
+
+/** A zone an action leaves on the Scene; see `compiledActionZonePlacementSchema`. */
+export type CharacterRuleActionZonePlacementPlan = Omit<CompiledActionZonePlacement, 'entry'> & {
+  entry: CharacterRuleActionActiveEffectPlan
 }
 
 /**
@@ -319,6 +327,13 @@ export interface CharacterRuleActionSystemAdapter {
     selectedPath: string
     facts: Readonly<Record<string, RuleValue>>
   }): CharacterRuleActionOutcomeTemplate | null
+  /**
+   * The zone this action places when its authored outcome is a placed-space manifest, or null for
+   * any other action. An unsupported zone throws the unsupported-compilation error.
+   */
+  compileZonePlacement?(input: {
+    action: EffectActionCapabilityDescriptor
+  }): CharacterRuleActionZonePlacementPlan | null
   /** Returns the exact supported recurring plan for this locked action, if any. */
   activeEffectPlans?(input: {
     action: EffectActionCapabilityDescriptor

@@ -302,7 +302,15 @@ describe('area target policy', () => {
       ).toEqual([])
   })
 
-  it('refuses a policy that takes an actor, an unsupported shape, or a self or touch origin', () => {
+  it('measures a touch origin against the 5 ft. a single-target touch reaches', () => {
+    const touch = policy({ range: { id: 'range', rangeKind: 'TOUCH' } })
+    expect(evaluate({ targetPolicy: touch, point: at(1) })?.warnings).toEqual([])
+    expect(evaluate({ targetPolicy: touch, point: at(2) })?.warnings).toEqual([
+      { code: 'TARGET_OUT_OF_RANGE', message: 'The area origin is out of range.' }
+    ])
+  })
+
+  it('refuses a policy that takes an actor, an unsupported shape, or a self origin', () => {
     expect(
       evaluate({
         targetPolicy: policy({
@@ -316,7 +324,7 @@ describe('area target policy', () => {
       evaluate({ targetPolicy: policy({ range: { id: 'range', rangeKind: 'SELF' } }) })
     ).toBeNull()
     expect(
-      evaluate({ targetPolicy: policy({ range: { id: 'range', rangeKind: 'TOUCH' } }) })
+      evaluate({ targetPolicy: policy({ range: { id: 'range', rangeKind: 'SPECIAL' } }) })
     ).toBeNull()
   })
 })

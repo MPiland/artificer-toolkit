@@ -107,6 +107,7 @@ export async function prepareNativeLiveMovement(
   if (save.input.type !== 'MOVE_SCENE_TOKEN' || save.input.expectedEncounterVersion === null)
     throw new Error('Movement requires an Encounter move.')
   const { random, scene } = input
+  const { carefully } = save.input
   const userId = input.scope.expectedUserId
   // Each roll goes to its actor's controllers; the mover rolls for the actors they control.
   const autoRoll = captured.autoRollByActorId
@@ -272,7 +273,7 @@ export async function prepareNativeLiveMovement(
       },
       evaluateSpatial: (spatial, targets, stageTerminalSettlement) =>
         prepareEncounterSpatialMovement({
-          input: spatial,
+          input: { ...spatial, carefully },
           state,
           userId,
           runtime: state.automationMode === 'MANUAL' ? undefined : runtime,

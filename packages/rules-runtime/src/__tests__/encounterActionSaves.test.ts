@@ -139,20 +139,22 @@ const acidBurst = () =>
 
 /**
  * The SRD Black Dragon Wyrmling's Acid Breath (DC 11 Dexterity, 5d8 acid, half on a success),
- * aimed at one target: the Encounter does not run its 15-foot line area yet.
+ * re-aimed at one target: its printed 15-foot line is dropped so the save and damage rules run alone.
  */
 function acidBreath(): CreatureFeature {
   const feature = blackDragonWyrmling.features?.find(({ label }) => label.startsWith('Acid Breath'))
   const effect = feature?.effects?.[0]
   if (!feature || effect?.invocation.kind !== 'ACTION')
     throw new Error('The SRD Acid Breath action is missing.')
+  const { shape, ...invocation } = effect.invocation
+  void shape
   return {
     ...feature,
     effects: [
       {
         ...effect,
         invocation: {
-          ...effect.invocation,
+          ...invocation,
           range: { id: effect.invocation.range.id, rangeKind: RANGE_KIND.UNLIMITED },
           targeting: { selectionKind: 'SINGLE_TARGET', dispositionKind: 'ANY' }
         }

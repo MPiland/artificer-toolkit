@@ -19,7 +19,7 @@ type SpatialGeometryFrame = 'SCENE_ABSOLUTE' | 'TOKEN_LOCAL'
 export type SpatialMovementKind = 'VOLUNTARY' | 'FORCED' | 'TELEPORT'
 export type SpatialTriggerMode = 'ENTER' | 'EXIT' | 'CROSS'
 
-type SpatialGeometry =
+export type SpatialGeometry =
   | {
       readonly kind: 'CIRCLE'
       readonly center: ScenePoint
@@ -41,6 +41,8 @@ export interface SpatialEffectInstance {
   readonly geometry: SpatialPersistedGeometry
   readonly triggerModes: readonly SpatialTriggerMode[]
   readonly movementKinds: readonly SpatialMovementKind[]
+  /** A voluntary mover moving carefully crosses the field at double cost and makes no entry save. */
+  readonly bypassAtHalfSpeed?: boolean
 }
 
 /** The space a token occupies. */
@@ -833,6 +835,35 @@ function candidateTimes(
     .filter((value, index, all) => index === 0 || Math.abs(value - all[index - 1]!) > EPSILON)
 }
 
+/**
+ * The fraction (0 to 1) of the straight segment during which the token's footprint overlaps any of
+ * the geometries, by the same overlap rule that raises an ENTER contact.
+ */
+export function spatialSegmentShareInside(input: {
+  readonly geometries: readonly SpatialGeometry[]
+  readonly token: SpatialTokenFootprint
+  readonly from: ScenePoint
+  readonly to: ScenePoint
+}): number {
+  const geometries = input.geometries.filter(validSpatialGeometry)
+  if (!validSpatialToken(input.token)) return 0
+  const moving = footprint(input.token)
+  const times = [
+    ...new Set(
+      geometries.flatMap((geometry) => candidateTimes(input.from, input.to, geometry, moving))
+    )
+  ].sort((left, right) => left - right)
+  let inside = 0
+  for (let index = 1; index < times.length; index += 1) {
+    const start = times[index - 1]!
+    const end = times[index]!
+    const midpoint = footprint(input.token, interpolate(input.from, input.to, (start + end) / 2))
+    if (geometries.some((geometry) => footprintOverlapsSpatialGeometry(midpoint, geometry)))
+      inside += end - start
+  }
+  return inside
+}
+
 function candidateContact(input: {
   readonly geometry: SpatialGeometry
   readonly path: readonly ScenePoint[]
@@ -1041,6 +1072,8 @@ export function collectSpatialMovementCandidates(input: {
   readonly path: readonly ScenePoint[]
   readonly tokens: readonly SpatialSceneToken[]
   readonly movingTokenId: string
+  /** The voluntary mover chose to move carefully: fields that allow it raise no candidate. */
+  readonly carefully?: boolean
 }): SpatialMovementCandidate[] {
   const movingToken = input.tokens.find((token) => token.id === input.movingTokenId)
   const tokenIds = new Set(input.tokens.map((token) => token.id))
@@ -1057,6 +1090,7 @@ export function collectSpatialMovementCandidates(input: {
   for (const effect of input.effects) {
     if (!validSpatialEffect(effect, tokenIds) || !effect.movementKinds.includes(input.movementKind))
       continue
+    if (input.carefully && effect.bypassAtHalfSpeed && input.movementKind === 'VOLUNTARY') continue
     const sourceMoved =
       effect.anchorKind === 'TOKEN' && effect.sourceTokenId === input.movingTokenId
     const targets = sourceMoved

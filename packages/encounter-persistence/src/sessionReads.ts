@@ -12,6 +12,7 @@ import { projectPlayerEncounterProjection } from '@artificer-toolkit/rules-runti
 import { readRunProjectionFacts } from './actorProjectionFacts.js'
 import { readEncounterCharacterStates } from './characterStates.js'
 import { readCampaignRunState } from './documents.js'
+import { readHalfSpeedFields } from './halfSpeedFields.js'
 import { readEncounterHealthViewer } from './healthViewer.js'
 import { projectEncounterFacts } from './nativeProjection.js'
 import { readEncounterWaitingOn, readPendingRunDecision } from './pendingReads.js'
@@ -110,13 +111,21 @@ export async function readEncounterSessionState(
   input: { row: Run | null; campaign: Campaign; membership: Membership }
 ): Promise<EncounterSessionStateDto> {
   const { row, campaign, membership } = input
-  if (!row) return { encounter: null, pending: null, waitingOn: null, turnMovement: [] }
+  if (!row)
+    return {
+      encounter: null,
+      pending: null,
+      waitingOn: null,
+      turnMovement: [],
+      halfSpeedFields: []
+    }
   const pending = await readPendingRunDecision(ctx, row, campaign, membership)
   return {
     encounter: await presentEncounterRun(ctx, row, campaign, membership),
     pending,
     waitingOn: pending ? null : await readEncounterWaitingOn(ctx, row, campaign),
-    turnMovement: await readTurnMovementView(ctx, { row, campaign, membership })
+    turnMovement: await readTurnMovementView(ctx, { row, campaign, membership }),
+    halfSpeedFields: await readHalfSpeedFields(ctx, row.id)
   }
 }
 

@@ -497,6 +497,8 @@ export type EncounterAreaActionPendingContextDto = {
   commandFingerprint: string
   initiatorUserId: string
   casterActorId: string
+  /** Whether the action leaves a zone at the origin; such an area catches no creature by itself. */
+  placesZone: boolean
   scene: { sceneId: string; sceneVersion: number }
   /** The origin and the compiled shape (a directed shape holds its direction), in Scene units. */
   area: { origin: { x: number; y: number }; shape: EncounterAreaShapeDto }
@@ -564,6 +566,7 @@ const encounterAreaActionPendingContextDtoSchema = lazySchema(() =>
       commandFingerprint: checksumSchema,
       initiatorUserId: uuidSchema,
       casterActorId: uuidSchema,
+      placesZone: z.boolean(),
       scene: z.strictObject({ sceneId: uuidSchema, sceneVersion: nonNegativeIntegerSchema }),
       area: z.strictObject({ origin: spatialPointDtoSchema, shape: encounterAreaShapeDtoSchema }),
       caughtChecksum: checksumSchema,

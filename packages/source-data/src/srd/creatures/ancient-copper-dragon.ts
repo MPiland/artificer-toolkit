@@ -385,10 +385,7 @@ export const ancientCopperDragon: CreatureAuthored = {
               code: S.ACTIVATION_CODE.ACTION,
               amount: 1
             },
-            range: {
-              id: S.actionId(5710, 32),
-              rangeKind: S.RANGE_KIND.SPECIAL
-            }
+            ...S.selfLine(S.actionId(5710, 32), S.actionId(5710, 618), 90, 10)
           },
           paths: [
             {
@@ -454,10 +451,7 @@ export const ancientCopperDragon: CreatureAuthored = {
               code: S.ACTIVATION_CODE.ACTION,
               amount: 1
             },
-            range: {
-              id: S.actionId(5710, 37),
-              rangeKind: S.RANGE_KIND.SPECIAL
-            }
+            ...S.selfCone(S.actionId(5710, 37), S.actionId(5710, 619), 90)
           },
           paths: [
             {

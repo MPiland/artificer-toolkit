@@ -1,6 +1,9 @@
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
-import type { GrantConsumeEvent } from '@artificer-toolkit/schema/shared/activeRuleEffects'
+import type {
+  ActiveEffectEndEvent,
+  GrantConsumeEvent
+} from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import type { ConcentrationEndReason } from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
 import {
   isEffectLiveInEncounter,
@@ -33,6 +36,16 @@ export function consumableGrants(
   return effects.filter(
     (effect) =>
       isModifierGrant(effect) && effect.definition.recurrence.consumeOnFirstEvents.includes(event)
+  )
+}
+
+/** Grants that end the moment their holder undergoes the event. */
+export function grantsEndedBy(
+  effects: readonly ActiveRuleEffectRecord[],
+  event: ActiveEffectEndEvent
+) {
+  return effects.filter(
+    (effect) => isModifierGrant(effect) && effect.definition.recurrence.endOnEvents.includes(event)
   )
 }
 

@@ -126,6 +126,21 @@ describe('spatial contracts', () => {
         revealOnTrigger: false
       })
     ).toMatchObject({ anchorKind: 'FIXED', visibility: 'PUBLIC' })
+    expect(
+      spatialRuleEffectPlacementDtoSchema.parse({
+        ...placement(),
+        anchorKind: 'FIXED',
+        sourceTokenId: null,
+        geometry: {
+          frame: 'SCENE_ABSOLUTE',
+          shape: { kind: 'CIRCLE', center: { x: 0, y: 0 }, radius: 10 }
+        },
+        visibility: 'PUBLIC',
+        revealOnTrigger: false,
+        label: 'Caltrop field',
+        bypassAtHalfSpeed: true
+      })
+    ).toMatchObject({ label: 'Caltrop field', bypassAtHalfSpeed: true })
     expect(spatialRuleEffectStateDtoSchema.parse({ schemaVersion: 1, revealed: false })).toEqual({
       schemaVersion: 1,
       revealed: false

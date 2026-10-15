@@ -213,10 +213,7 @@ export const halfRedDragonVeteran: CreatureAuthored = {
               code: S.ACTIVATION_CODE.ACTION,
               amount: 1
             },
-            range: {
-              id: S.actionId(158, 18),
-              rangeKind: S.RANGE_KIND.SPECIAL
-            }
+            ...S.selfCone(S.actionId(158, 18), S.actionId(158, 21), 15)
           },
           paths: [
             {

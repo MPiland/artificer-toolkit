@@ -347,6 +347,13 @@ payloads (action, area, cleaving, concentration and turn) carry the grants the e
 The Sheet `END_ACTIVE_EFFECT` command ends a `holderEnd` effect for its own player only when the Run is not live: in an
 ACTIVE Encounter that holds the Character, a costed end is refused with "End this effect from the Encounter actions."
 
+Half-speed fields (SPELLS-17): the voluntary `MOVE_SCENE_TOKEN` command carries an optional `carefully` flag
+(forced and teleport movement ignore it). The held `ENCOUNTER_SESSION` frame and `encounters/activeReads:active`
+carry `halfSpeedFields` (`encounterSessionStateDtoSchema`: `id`, `label`, `shape`), listing only the visible zones
+(`PUBLIC`, or revealed) that allow passage at half speed; one `readHalfSpeedFields` read feeds both. The server
+re-derives which zones `carefully` applies to with the same visibility predicate, so a client cannot bypass a
+hidden zone.
+
 Ordinary Scene editing uses the owning Convex functions. While a Session authority epoch is active,
 live Door commands and standalone token move/undo travel through the Session Durable Object; direct
 overlapping Convex writes are fenced. The browser supplies the exact expected versions and command ID.

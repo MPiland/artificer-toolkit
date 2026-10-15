@@ -155,6 +155,8 @@ export function buildEncounterAreaStoredExecution(input: {
   caughtChecksum: string
   removedActorIds: readonly string[]
   targetOccurrenceIds: readonly string[]
+  /** The Scene spatial effect this action placed; its undo deletes it. */
+  placedSpatialEffectId: string | null
   damage: ReturnType<typeof nativeConcentrationDamageApplications>
   spend: Pick<
     ReturnType<typeof planNativeEncounterAreaSourceSpend>,
@@ -183,6 +185,7 @@ export function buildEncounterAreaStoredExecution(input: {
       caughtChecksum: input.caughtChecksum,
       removedActorIds: input.removedActorIds,
       targetOccurrenceIds: input.targetOccurrenceIds,
+      placedSpatialEffectId: input.placedSpatialEffectId,
       damage: input.damage,
       sourceCharacterStreamVersion: spend.sourceCharacterStreamVersion,
       resourceConsumption: spend.resourceReceipt,

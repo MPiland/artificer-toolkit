@@ -30,6 +30,7 @@ import { encounterBlueprintMetadataDtoSchema } from '../shared/encounterBlueprin
 import { encounterRuleWarningsDtoSchema } from '../shared/encounterRuleWarnings.js'
 import { rollRecordDtoSchema } from './rolls.js'
 import { healthDisplayLevelDtoSchema, playerActorHealthDtoSchema } from './healthDisplay.js'
+import { MAX_SPATIAL_RULE_EFFECTS_PER_SCENE, spatialGeometryDtoSchema } from '../shared/spatial.js'
 
 const uuidSchema = lazySchema(() => z.string().check(z.uuid()))
 const versionSchema = lazySchema(() => z.number().check(z.int()).check(z.nonnegative()))
@@ -521,7 +522,23 @@ export const encounterSessionStateDtoSchema = lazySchema(() =>
             .check(z.maxLength(AUTHORED_LIMITS.nestedCollectionItems))
         })
       )
-      .check(z.maxLength(MAX_ENCOUNTER_ACTORS))
+      .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
+    /**
+     * The visible fields in the Run's Scene that a voluntary mover may cross carefully: double the
+     * movement cost for no entry save. A dragged path that enters one offers that choice. A hidden
+     * field is never listed.
+     */
+    halfSpeedFields: z
+      .array(
+        z.strictObject({
+          id: postgresUuidSchema,
+          label: z.nullable(
+            z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(240))
+          ),
+          shape: spatialGeometryDtoSchema
+        })
+      )
+      .check(z.maxLength(MAX_SPATIAL_RULE_EFFECTS_PER_SCENE))
   })
 )
 export type EncounterSessionStateDto = z.infer<typeof encounterSessionStateDtoSchema>

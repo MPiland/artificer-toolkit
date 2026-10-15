@@ -1,0 +1,433 @@
+import { describe, expect, it } from 'vitest'
+import {
+  SRD_ABILITIES,
+  SRD_ABILITY_DEFINITION_IDS,
+  SRD_CONDITION_TYPES,
+  SRD_SYSTEM_ID
+} from '@artificer-toolkit/source-data/srd/vocabulary.js'
+
+import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
+import { equipmentAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/equipment'
+import type { EquipmentAuthored } from '@artificer-toolkit/shared/subjects/authored'
+import { caltropsBagOf20 } from '@artificer-toolkit/source-data/srd/equipment/caltrops-bag-of-20.js'
+
+import { prepareActiveRuleEffectRecord } from '../activeRuleEffectRecords.js'
+import { discoverCharacterActionCapabilities } from '../characterActionCapabilityDiscoveryRegistry.js'
+import { compileCharacterActionEntryPoints } from '../encounterActionEntryPointCompiler.js'
+import { encounterActionTargetKind } from '../encounterAreaAction.js'
+import { grantsEndedBy } from '../encounterGrantLifetimes.js'
+import { planEncounterPlacedZone } from '../encounterPlacedZone.js'
+import { planSpatialEntryGrant } from '../encounterSpatialEntryGrant.js'
+import {
+  DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY,
+  DND5E_SAVE_DC_FACT_KEY
+} from '../systems/dnd5e/effectActionCompiler.js'
+import { ENCOUNTER_ID, TIMESTAMP, testUuid } from '../testing/dnd5eSrdEncounter.js'
+import { evaluateSrdCharacter } from './dnd5eSrdCharacter.js'
+
+const CALTROPS = 'Caltrops (bag of 20)'
+
+/**
+ * A Character carrying an item (real SRD Caltrops unless a further authored record is given),
+ * compiled through the real policy and entry compiler.
+ */
+function compileItemEntry(equipment?: EquipmentAuthored) {
+  const label = equipment?.label ?? CALTROPS
+  const character = evaluateSrdCharacter({
+    abilities: { DEXTERITY: 14 },
+    classes: [{ label: 'Fighter', level: 1 }],
+    items: [{ label }],
+    ...(equipment ? { extraEquipment: [equipment] } : {})
+  })
+  const itemInstanceId = character.itemInstanceId(label)
+  const candidate = character.facts.actionCandidates.find(
+    (entry) => entry.equipment?.itemInstanceId === itemInstanceId
+  )
+  if (!candidate) throw new Error('The item must offer an action.')
+  const entry = compileCharacterActionEntryPoints({
+    gameSystemId: SRD_SYSTEM_ID,
+    candidates: character.facts.actionCandidates,
+    descriptors: discoverCharacterActionCapabilities({
+      gameSystemId: SRD_SYSTEM_ID,
+      candidates: character.facts.actionCandidates,
+      conditionDefinitionIds: SRD_CONDITION_TYPES.map((condition) => condition.id).sort(),
+      abilityDefinitions: SRD_ABILITIES.map(({ id, code }) => ({ id, code })),
+      entryPoints: character.entryPoints
+    })
+  }).find((compiled) => compiled.actionId === candidate.actionId)
+  if (entry?.kind !== 'CHARACTER_ACTION') throw new Error('The item must compile an action entry.')
+  return entry
+}
+
+function compileCaltropsEntry(equipment?: EquipmentAuthored) {
+  const entry = compileItemEntry(equipment)
+  if (entry.schemaVersion !== 4)
+    throw new Error('Caltrops must compile to a v4 Character action entry.')
+  if (entry.compilation.kind !== 'COMPILED')
+    throw new Error('Caltrops must compile, not go manual.')
+  return { entry, compilation: entry.compilation }
+}
+
+describe('placed-space zone compilation from real SRD Caltrops', () => {
+  it('compiles the manifest zone to a point-placed 5-foot square that triggers on entering or passing through', () => {
+    const { entry, compilation } = compileCaltropsEntry()
+    expect(compilation.activeEffectPlan).toBeNull()
+    expect(compilation.zonePlacement).toMatchObject({
+      label: 'Caltrop field',
+      shape: { shapeKind: 'CUBE', edgeLength: { amount: 5, unit: 'FEET' } },
+      triggerModes: ['ENTER', 'CROSS'],
+      bypassAtHalfSpeed: true
+    })
+    expect(entry.targetPolicy?.shape).toMatchObject({ shapeKind: 'CUBE' })
+    expect(entry.targetPolicy && encounterActionTargetKind(entry.targetPolicy)).toBe('POINT')
+  })
+
+  it('freezes the authored Dexterity save, stop, damage and speed penalty as the zone entry', () => {
+    const zone = compileCaltropsEntry().compilation.zonePlacement
+    if (!zone) throw new Error('Caltrops must place a zone.')
+    expect(zone.entry.frozenGraph.definition.nodes.map((node) => node.id)).toEqual([
+      'd20',
+      'test',
+      'proposal-on_save_fail',
+      'movement-interruption'
+    ])
+    expect(zone.entry.frozenGraph.definition.outputs).toHaveProperty('movementInterruption')
+    expect(zone.entry.adapterFacts).toMatchObject({
+      [DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY]: SRD_ABILITY_DEFINITION_IDS.DEXTERITY,
+      [DND5E_SAVE_DC_FACT_KEY]: 15
+    })
+    expect(zone.grant).toMatchObject({
+      modifiers: [expect.objectContaining({ modifierKind: 'PENALTY' })],
+      endOnEvents: ['ON_HIT_POINTS_REGAINED']
+    })
+    expect(zone.grant?.modifiers[0]?.grant).toMatchObject({
+      payload: { amount: 10, unit: 'FEET' }
+    })
+  })
+})
+
+const ZONE_ID = testUuid(0x1701)
+const SOURCE_ID = testUuid(0x1702)
+const MOVER_ID = testUuid(0x1703)
+const OCCURRENCE_ID = testUuid(0x1704)
+const SPREAD_COMMAND_ID = testUuid(0x1705)
+const MOVE_COMMAND_ID = testUuid(0x1706)
+
+/** The zone the real planner leaves at a point for real Caltrops, with 5 feet as 100 Scene units. */
+function placedCaltropsZone() {
+  const zone = compileCaltropsEntry().compilation.zonePlacement
+  if (!zone) throw new Error('Caltrops must place a zone.')
+  return planEncounterPlacedZone({
+    zone,
+    id: ZONE_ID,
+    encounterId: ENCOUNTER_ID,
+    occurrenceId: OCCURRENCE_ID,
+    rootCommandId: SPREAD_COMMAND_ID,
+    sourceActorId: SOURCE_ID,
+    point: { x: 250, y: 350 },
+    area: { kind: 'CUBE', edgeLength: 100 }
+  })
+}
+
+/** What a failed entry save leaves on the mover: the zone's grant under the movement's origin. */
+function plannedEntryGrant(input: {
+  resultPath: string
+  holderEffects?: ActiveRuleEffectRecord[]
+}) {
+  return planSpatialEntryGrant({
+    zoneDefinition: placedCaltropsZone().definition,
+    holderEffects: input.holderEffects ?? [],
+    execution: { outputs: { resultPath: input.resultPath } },
+    encounterId: ENCOUNTER_ID,
+    occurrenceId: OCCURRENCE_ID,
+    sourceCommandId: MOVE_COMMAND_ID,
+    ordinal: 0,
+    targetActorId: MOVER_ID
+  })
+}
+
+function grantRecordFor(grant: Pick<ActiveRuleEffectRecord, 'id' | 'definition' | 'lifecycle'>) {
+  return prepareActiveRuleEffectRecord({
+    id: grant.id,
+    owner: { kind: 'ENCOUNTER_ACTOR', encounterId: ENCOUNTER_ID, targetActorId: MOVER_ID },
+    definition: grant.definition,
+    lifecycle: grant.lifecycle,
+    currentEffects: [],
+    occurredAt: TIMESTAMP
+  })
+}
+
+describe('the zone an area action leaves at its chosen point', () => {
+  it('is one fixed, visible, repeatable 5-foot square around the point, labeled and half-speed passable', () => {
+    expect(placedCaltropsZone().placement).toMatchObject({
+      anchorKind: 'FIXED',
+      sourceTokenId: null,
+      geometry: {
+        frame: 'SCENE_ABSOLUTE',
+        shape: {
+          kind: 'POLYGON',
+          points: [
+            { x: 200, y: 300 },
+            { x: 300, y: 300 },
+            { x: 300, y: 400 },
+            { x: 200, y: 400 }
+          ]
+        }
+      },
+      triggerModes: ['ENTER', 'CROSS'],
+      activation: 'REPEATABLE',
+      visibility: 'PUBLIC',
+      revealOnTrigger: false,
+      label: 'Caltrop field',
+      bypassAtHalfSpeed: true
+    })
+  })
+
+  it('freezes the authored entry and carries the speed penalty template that names its end event', () => {
+    const { definition } = placedCaltropsZone()
+    expect(definition).toMatchObject({
+      schemaVersion: 2,
+      origin: { kind: 'ENCOUNTER', sourceAggregateId: ENCOUNTER_ID, sourceActorId: SOURCE_ID },
+      recurrence: { endOnEvents: [], expiration: { kind: 'INDEFINITE' } },
+      stateContributions: [
+        {
+          kind: 'MODIFIER_GRANT',
+          sourceLabel: 'Caltrop field',
+          endOnEvents: ['ON_HIT_POINTS_REGAINED']
+        }
+      ]
+    })
+  })
+
+  it('leaves the zone itself standing when hit points are regained: only the grant it hands out ends', () => {
+    expect(grantsEndedBy([grantRecordFor(placedCaltropsZone())], 'ON_HIT_POINTS_REGAINED')).toEqual(
+      []
+    )
+  })
+})
+
+describe('a creature that fails the zone’s entry save', () => {
+  it('keeps the zone’s speed penalty under the movement’s origin', () => {
+    const grant = plannedEntryGrant({ resultPath: 'ON_SAVE_FAIL' })
+    expect(grant?.definition).toMatchObject({
+      origin: { sourceAggregateId: ENCOUNTER_ID, rootCommandId: MOVE_COMMAND_ID },
+      recurrence: { endOnEvents: ['ON_HIT_POINTS_REGAINED'] }
+    })
+  })
+
+  it('keeps nothing when it succeeds', () => {
+    expect(plannedEntryGrant({ resultPath: 'ON_SAVE_SUCCESS' })).toBeNull()
+  })
+
+  it('holds a grant of its own whose end event the grant carries, not the zone definition', () => {
+    const grant = plannedEntryGrant({ resultPath: 'ON_SAVE_FAIL' })
+    expect(grant?.definition.schemaVersion).toBe(2)
+    expect(
+      grant?.definition.schemaVersion === 2 &&
+        grant.definition.stateContributions.every(
+          (contribution) =>
+            contribution.kind !== 'MODIFIER_GRANT' || !('endOnEvents' in contribution)
+        )
+    ).toBe(true)
+  })
+
+  it('does not stack the same field’s penalty', () => {
+    const grant = plannedEntryGrant({ resultPath: 'ON_SAVE_FAIL' })
+    if (!grant) throw new Error('A failed save must grant the penalty.')
+    expect(
+      plannedEntryGrant({ resultPath: 'ON_SAVE_FAIL', holderEffects: [grantRecordFor(grant)] })
+    ).toBeNull()
+  })
+
+  it('loses the penalty when it regains hit points, and only then', () => {
+    const grant = plannedEntryGrant({ resultPath: 'ON_SAVE_FAIL' })
+    if (!grant) throw new Error('A failed save must grant the penalty.')
+    const held = [grantRecordFor(grant)]
+    expect(grantsEndedBy(held, 'ON_HIT_POINTS_REGAINED')).toEqual(held)
+    expect(grantsEndedBy(held, 'ON_ATTACK_ROLL')).toEqual([])
+    expect(grantsEndedBy(held, 'ON_CAST_SPELL')).toEqual([])
+  })
+})
+
+const VARIANT_ID = testUuid(0x1790)
+const VARIANT_LABEL = 'Spike field (bag)'
+const extraId = (offset: number) => testUuid(0x1800 + offset)
+
+/** The pieces of the one zone action Caltrops authors, found by narrowing the authored record. */
+function zoneParts(equipment: EquipmentAuthored) {
+  const effect = equipment.effects?.[0]
+  const path = effect?.paths[0]
+  const outcome = path?.selectionKind === 'FIXED' ? path.resultBlock.outcomes[0] : undefined
+  if (!effect || outcome?.effectKind !== 'MANIFEST' || outcome.manifestKind !== 'ZONE')
+    throw new Error('The record must author a zone action.')
+  const component = outcome.components?.[0]
+  const behavior = component?.behaviors?.[0]
+  const savePath = behavior?.paths[0]
+  const invocation = behavior?.invocation
+  if (
+    !component ||
+    !behavior ||
+    savePath?.selectionKind !== 'FIXED' ||
+    !invocation ||
+    !('savingThrow' in invocation)
+  )
+    throw new Error('The zone must author one saving-throw behavior.')
+  return { effect, zone: outcome, component, behavior, savePath, invocation }
+}
+type ZoneParts = ReturnType<typeof zoneParts>
+
+/** A copy of the real SRD Caltrops record, edited and given an identity of its own. */
+function variantEquipment(change: (parts: ZoneParts) => void): EquipmentAuthored {
+  const equipment: EquipmentAuthored = {
+    ...structuredClone(caltropsBagOf20),
+    id: VARIANT_ID,
+    label: VARIANT_LABEL
+  }
+  change(zoneParts(equipment))
+  return equipment
+}
+
+function zonePlacementOf(equipment?: EquipmentAuthored) {
+  const zone = compileCaltropsEntry(equipment).compilation.zonePlacement
+  if (!zone) throw new Error('The item must place a zone.')
+  return zone
+}
+
+describe('a zone authored with another save DC and a circle shape', () => {
+  const authored = variantEquipment(({ zone, invocation }) => {
+    zone.label = 'Spike field'
+    zone.shape = { id: extraId(1), shapeKind: 'CIRCLE', radius: { amount: 10, unit: 'FEET' } }
+    invocation.savingThrow = {
+      id: invocation.savingThrow.id,
+      abilityDefinitionId: invocation.savingThrow.abilityDefinitionId,
+      dcMethod: 'FIXED_DC',
+      baseDc: 13
+    }
+  })
+
+  it('passes the equipment publication contract', () => {
+    expect(equipmentAuthoredDtoSchema.safeParse(authored).success).toBe(true)
+  })
+
+  it('compiles like the SRD shape, with its own circle, label and save DC', () => {
+    const srd = zonePlacementOf()
+    const zone = zonePlacementOf(authored)
+    expect(zone).toMatchObject({
+      label: 'Spike field',
+      shape: { shapeKind: 'CIRCLE', radius: { amount: 10, unit: 'FEET' } },
+      triggerModes: srd.triggerModes,
+      bypassAtHalfSpeed: srd.bypassAtHalfSpeed,
+      grant: { endOnEvents: srd.grant?.endOnEvents }
+    })
+    expect(zone.entry.adapterFacts).toMatchObject({ [DND5E_SAVE_DC_FACT_KEY]: 13 })
+    expect(zone.entry.frozenGraph.definition.nodes.map((node) => node.id)).toEqual(
+      srd.entry.frozenGraph.definition.nodes.map((node) => node.id)
+    )
+    const { entry } = compileCaltropsEntry(authored)
+    expect(entry.targetPolicy && encounterActionTargetKind(entry.targetPolicy)).toBe('POINT')
+  })
+
+  it('is placed as a circle around the chosen point', () => {
+    const placed = planEncounterPlacedZone({
+      zone: zonePlacementOf(authored),
+      id: ZONE_ID,
+      encounterId: ENCOUNTER_ID,
+      occurrenceId: OCCURRENCE_ID,
+      rootCommandId: SPREAD_COMMAND_ID,
+      sourceActorId: SOURCE_ID,
+      point: { x: 250, y: 350 },
+      area: { kind: 'RADIUS', radius: 200 }
+    })
+    expect(placed.placement).toMatchObject({
+      geometry: { shape: { kind: 'CIRCLE', center: { x: 250, y: 350 }, radius: 200 } },
+      label: 'Spike field',
+      bypassAtHalfSpeed: true
+    })
+  })
+})
+
+describe('a zone the System cannot honor in full stays manual', () => {
+  const REFUSED: readonly (readonly [string, (parts: ZoneParts) => void])[] = [
+    [
+      'two components',
+      ({ zone, component }) => {
+        zone.components = [component, { ...component, id: extraId(2), order: 2 }]
+      }
+    ],
+    [
+      'two behaviors',
+      ({ component, behavior }) => {
+        component.behaviors = [behavior, { ...behavior, id: extraId(3), order: 2 }]
+      }
+    ],
+    [
+      'an unmodeled zone field',
+      ({ zone }) => {
+        Object.assign(zone, { hollow: true })
+      }
+    ],
+    [
+      'an unmodeled component field',
+      ({ component }) => {
+        Object.assign(component, { requiresFullyWithin: true })
+      }
+    ],
+    [
+      'a save DC that is not fixed',
+      ({ invocation }) => {
+        invocation.savingThrow = {
+          id: invocation.savingThrow.id,
+          abilityDefinitionId: invocation.savingThrow.abilityDefinitionId,
+          dcMethod: 'SOURCE_SAVE_DC'
+        }
+      }
+    ],
+    [
+      'an entry that is not the failed save',
+      ({ savePath }) => {
+        savePath.pathCode = 'ON_SAVE_SUCCESS'
+      }
+    ],
+    [
+      'two damage outcomes',
+      ({ savePath }) => {
+        const damage = savePath.resultBlock.outcomes.find(
+          (outcome) => outcome.effectKind === 'DAMAGE'
+        )
+        if (!damage) throw new Error('The zone must author damage.')
+        savePath.resultBlock.outcomes.push({ ...damage, id: extraId(4) })
+      }
+    ],
+    [
+      'a grant that ends on an attack roll, which the Encounter never reads for a grant',
+      ({ savePath }) => {
+        savePath.resultBlock.lifecycle = { endOnEvents: ['ON_ATTACK_ROLL'] }
+      }
+    ],
+    [
+      'a grant that ends on casting a spell, which the Encounter never reads for a grant',
+      ({ savePath }) => {
+        savePath.resultBlock.lifecycle = { endOnEvents: ['ON_CAST_SPELL'] }
+      }
+    ],
+    [
+      'a cone, which is aimed rather than placed at a point',
+      ({ zone }) => {
+        zone.shape = { id: extraId(5), shapeKind: 'CONE', length: { amount: 15, unit: 'FEET' } }
+      }
+    ],
+    [
+      'a cube aimed from the caster',
+      ({ effect }) => {
+        effect.invocation.range = { id: effect.invocation.range.id, rangeKind: 'SELF' }
+      }
+    ]
+  ]
+
+  it.each(REFUSED)('refuses %s instead of partly honoring it', (_name, change) => {
+    expect(compileItemEntry(variantEquipment(change)).compilation).toMatchObject({
+      kind: 'MANUAL',
+      reasonCode: 'NOT_NORMALIZED'
+    })
+  })
+})

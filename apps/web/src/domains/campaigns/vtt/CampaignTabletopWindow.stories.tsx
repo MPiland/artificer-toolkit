@@ -1134,7 +1134,13 @@ function renderWindow(
     queryFn: async () => sceneBinding
   })
   queryClient.setQueryDefaults(activeEncounterQuery.queryKey, {
-    queryFn: async () => ({ encounter, pending: null, waitingOn: null, turnMovement: [] })
+    queryFn: async () => ({
+      encounter,
+      pending: null,
+      waitingOn: null,
+      turnMovement: [],
+      halfSpeedFields: []
+    })
   })
   queryClient.setQueryDefaults(pendingPreparedQuery.queryKey, { queryFn: async () => [] })
   const rollPreferencesQuery = convexQuery(convexApi.account.rollPreferences, {})
@@ -1170,7 +1176,8 @@ function renderWindow(
     encounter,
     pending: null,
     waitingOn: null,
-    turnMovement: []
+    turnMovement: [],
+    halfSpeedFields: []
   })
   queryClient.setQueryData(pendingPreparedQuery.queryKey, [])
   queryClient.setQueryData(rollPreferencesQuery.queryKey, {
@@ -1184,7 +1191,7 @@ function renderWindow(
     value: fn<ConvexReactClient['query']>().mockImplementation(async (...[reference, args]) => {
       const name = getFunctionName(reference)
       if (name === getFunctionName(convexApi.encounters.activeReads.active))
-        return { encounter, pending: null, waitingOn: null, turnMovement: [] }
+        return { encounter, pending: null, waitingOn: null, turnMovement: [], halfSpeedFields: [] }
       if (name === getFunctionName(convexApi.encounters.projectionReads.pendingPrepared)) return []
       if (name === getFunctionName(convexApi.scenes.recipientReads.header)) return header
       if (name === getFunctionName(convexApi.encounters.sceneBindings.get)) return sceneBinding

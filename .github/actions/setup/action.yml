@@ -1,0 +1,19 @@
+name: Set up the workspace
+description: Node 24, the Yarn cache, an immutable install and the package builds that tests and typechecks resolve through dist.
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 24
+    - uses: actions/cache@v4
+      with:
+        path: ~/.yarn/berry/cache
+        key: yarn-${{ runner.os }}-${{ hashFiles('yarn.lock') }}
+        restore-keys: yarn-${{ runner.os }}-
+    - name: Install
+      shell: bash
+      run: corepack enable && yarn install --immutable
+    - name: Build packages
+      shell: bash
+      run: yarn turbo run build --filter=@artificer-toolkit/shared --filter=@artificer-toolkit/schema --filter=@artificer-toolkit/rules-runtime --filter=@artificer-toolkit/encounter-persistence --filter=@artificer-toolkit/source-data --filter=@artificer-toolkit/authoring --filter=@artificer-toolkit/emails --env-mode=loose
