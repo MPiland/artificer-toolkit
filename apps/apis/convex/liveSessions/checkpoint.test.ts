@@ -1598,7 +1598,9 @@ it("retains an active member's own private checkpoint roll and refuses a copy th
     [[{ ...copy, record: makeRoll(4), gmCampaignRoll: binding }], 'another owner'],
     [[{ userId: base.owner.userId, record: makeRoll(5), gmCampaignRoll: null }], 'another owner'],
     [
-      [{ ...copy, record: { ...copy.record, source: { ...copy.record.source, label: 'Changed' } } }],
+      [
+        { ...copy, record: { ...copy.record, source: { ...copy.record.source, label: 'Changed' } } }
+      ],
       'identity is reused'
     ],
     [[{ ...copy, record: boundMemberRoll }], 'identity is reused'],

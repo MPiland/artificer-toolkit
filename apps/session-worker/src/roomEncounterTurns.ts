@@ -35,7 +35,10 @@ export async function executeRoomEncounterTurn(input: {
     ports: EncounterCharacterWriteTransaction['ports'] &
       Pick<
         EncounterWritePorts,
-        'recordConcentrationCheckRoll' | 'postRulesChatMessage' | 'insertTableRoll' | 'retainPrivateRoll'
+        | 'recordConcentrationCheckRoll'
+        | 'postRulesChatMessage'
+        | 'insertTableRoll'
+        | 'retainPrivateRoll'
       >
   }
   store: RoomEncounterStore

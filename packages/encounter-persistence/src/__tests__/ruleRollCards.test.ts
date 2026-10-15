@@ -36,7 +36,10 @@ async function record(
   const ctx = {
     db: {
       query: () => ({
-        withIndex: (_name: string, build: (q: { eq: (...args: unknown[]) => unknown }) => unknown) => {
+        withIndex: (
+          _name: string,
+          build: (q: { eq: (...args: unknown[]) => unknown }) => unknown
+        ) => {
           const q = { eq: () => q }
           build(q)
           return { unique: async () => ({ status: options.playerStatus ?? 'ACTIVE' }) }
