@@ -114,3 +114,30 @@ Follows D95 and D106. None of these shapes is named for Rage.
 - **D113 (final text):** items 1-6, 3a and 3b above, plus: `endOnConditionIds` is a generic grant end option; ended grants join `consumedGrants` on action, area and cleaving roots; a costed `END_HELD_GRANT` Run command blocks undo of the prior action (D99); and `SPELLCASTING_LOCK` refusal is `SOURCE_REQUIREMENTS_NOT_MET` (a `SpellcastingLockedError`, no new reason); the stored Run command kind `END_HELD_GRANT` is new; an ended grant has no GM undo (D99).
 - **Authored parity, as proved:** the web half renders and round-trips the real SRD Rage feature through the real FormRenderer, node-runtime resolver and form adapter; the Encounter half runs the same Barbarian as an SRD import and as a homebrew-owned copy (fresh ids and copy). Together they show the form can produce the SRD effect and that behavior does not depend on ids, copy or source. It is not a clicked-through UI publication of a homebrew Rage into an Encounter; do that in the Storybook/E2E pass if wanted (Storybook cannot run in a worktree).
 - **Known gaps (candidates for ATTACK-9.T6 or later):** a movement-pass hit that incapacitates a raging mover does not end the grant; the early-end rule (T6); a costed holder-end is ended only through `END_HELD_GRANT` inside an Encounter, not the Sheet `END_ACTIVE_EFFECT`.
+
+## ATTACK-9.T7 (AC ATTACK-9.1): fixes from the merge review
+
+**Status:** in progress. T1 merged at `13f634280` (2026-10-15). The main-session production review found no blockers. These items keep AC 9.1 open; fix each at its cause, red first:
+
+1. **Defeated holder (correctness).** `apps/session-worker/src/nativeEncounterConcentration.ts` (~306-317) plans grant ends from `target.state.conditions` even when the reason is DEFEATED. `readHolderEndState` in `packages/encounter-persistence/src/concentrationEnd.ts` returns `conditionIds: []` for DEFEATED. A defeated holder carrying a condition that ends a grant is therefore planned as an end and refused at `concentrationChildrenPersistence.ts` (~1428-1454, "Live Session grant end is unexpected"), which fails the whole commit. Make the planner and persistence read the same holder end state from one shared function.
+2. **Completeness check.** Persistence checks only the ends the planner sent (~1429). It must also refuse a commit that omits a grant the committed holder state ends.
+3. **Attack ability is guessed.** `usedAttackAbility` in `characterActionMechanics.ts` (~2268-2288) picks the largest ability-modifier contribution. D113.1 says the resolver records the ability it used. With a higher extra ability bonus (for example a CHA rider) it picks the wrong ability and suppresses Rage damage. Record the ability; do not infer it.
+4. **MANUAL and non-ACTIVE Runs.** `roomCharacterSheetCommands.ts` (~237) hard-codes `inEncounter: true`, and `admitCurrentActorCommand` refuses `END_HELD_GRANT` in MANUAL (ASSISTED_ONLY) and in non-ACTIVE Runs. A player in a room-held MANUAL or PREPARED Run cannot end their own Rage, which contradicts the workbook's "in a MANUAL Run `END_HELD_GRANT` spends nothing" and `rageJourney.test.ts`. Decide by the D113.3a rule (costed holder-end only on the holder's turn in an ACTIVE Assisted Run; otherwise the Sheet end is free), make the code and the journey agree, and correct the workbook text.
+5. **Turn-commit ends.** `turnCommitPersistence.ts` (~315) deletes `endedGrants` with no receipt. Prove whether a turn advance can be undone. If it can, route the grants through `receiptConsumedGrants`; if not, note why in D113.
+6. **Silent ends after an edit.** `concentrationEditEnd.ts` (~1498-1506) deletes grants that a GM or Sheet edit ended, with no chat notice. Post the same end notice the action path posts, so players see why Rage ended.
+7. **Undo when Rage ends Concentration.** A Rage that ends Concentration (`SPELLCASTING_LOCKED`) creates a CONCENTRATION_END child, which `actionRevert.ts` treats as unsupported, so GM undo of that Rage is unavailable. Either support it (restore the Concentration as the D95 undo does) or record the limit in D113 and show the reason in the undo refusal. The AC requires "GM undo restores the charge", so prefer support.
+8. **Known gaps from T1, now in scope:**
+   - a movement-pass hit that incapacitates (knocks unconscious) a raging mover ends the grant (`findEnd` in `nativeEncounterMovementConcentration.ts`; movement receipts carry `endedGrants`);
+   - heavy armor: add a generic Character equipment predicate for armor weight or category, and author Rage's heavy-armor restriction with it. Escalate if no generic shape fits.
+9. **Nits:**
+   - the aria-label reads "End End Rage", because the server label already starts with "End": use the label as is;
+   - `deleteConsumedGrants` is a misleading name for ending grants: rename it for both uses;
+   - `endOnConditionIds` uses `postgresUuidSchema` in the authored path but `uuidSchema` in `activeRuleEffects`: use one;
+   - the stories `onEndHeldGrant: sendEscapeCommand`: give it its own mock;
+   - the `nativeHolderActivation.ts` `label` parameter and the duplicated `'amount' in activation` guard;
+   - the unreachable MANUAL branch in `activationAllowanceMatches`;
+   - `SpellcastingLockedError` mapping on the persistence maintenance callers (`roomEncounterActions.ts:134`, `liveMovementReactionPersistence.ts:111`): the same `SOURCE_REQUIREMENTS_NOT_MET` everywhere.
+
+**AC wording:** AC 9.1 says Rage ends "when the Barbarian is incapacitated". SRD Rage ends when knocked unconscious, and D113.3b followed the SRD. The main session amended the AC to the SRD wording.
+
+Sync the base first. Push to `ci/attack-9-t7`. Report as for T1.
