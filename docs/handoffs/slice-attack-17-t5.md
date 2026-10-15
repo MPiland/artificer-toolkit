@@ -46,5 +46,9 @@ Read first:
 ## Status log
 
 - 2026-10-15: workbook written.
+- 2026-10-15: implemented. `retainPrivateRuleRoll` extracted from `recordRuleRollCard`; the concentration PRIVATE branch calls it. No transport or checkpoint change was needed. Red logs (`local-validation/attack-17-t5/`): `red-unit-final.log` (player copy missing), `red-convex.log`, `red-worker.log`. Green logs: `green-unit.log`, `green2-convex.log`, `green2-worker.log` (checklist 1-3 plus the four T1 files, items 4). Worker journey: the controller presses the save (autoRoll excludes the second player), so the card is created by that resolve command; the room holders assertion stands in for checkpoint replay, and the Convex test checkpoints into `userRollHistory`.
+- Possible follow-up (out of scope): `concentrationEnd.ts` posts its end notice as a chat message, not a roll card, and posts nothing for a hidden creature. Nothing there reaches the controlling player.
 
 ## Proposed ledger edits (filled by the slice session)
+
+- AC ATTACK-17.6 closed. A hidden concentrating creature's check card keeps the GM's bound copy and now also gives the controlling player their own generic copy (null binding) through the shared `retainPrivateRuleRoll`, the one routing point `recordRuleRollCard` uses too. Proofs: `packages/encounter-persistence/src/__tests__/concentrationRollCard.test.ts` (unit), `apps/apis/convex/encounters/concentration.test.ts` ("keeps a hidden Creature holder's check card for the GM and the player who controls it"), `apps/session-worker/test/nativeRoomConcentration.test.ts` ("room Concentration check of a hidden Creature a player controls"). T1 proof files rerun unchanged and green.
