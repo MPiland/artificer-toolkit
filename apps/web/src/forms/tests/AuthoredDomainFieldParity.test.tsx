@@ -11,13 +11,17 @@ import { featAuthoringInputDtoSchema } from '@artificer-toolkit/schema/subjects/
 import { raceAuthoringInputDtoSchema } from '@artificer-toolkit/schema/subjects/race'
 import { spellAuthoringInputDtoSchema } from '@artificer-toolkit/schema/subjects/spell'
 import { vehicleAuthoringInputDtoSchema } from '@artificer-toolkit/schema/subjects/vehicle'
+import { barbarian } from '@artificer-toolkit/source-data/srd/classes/barbarian.js'
 import {
   authoredRouteStoryRecords,
   authoredRouteStorySystem,
   seedStorySystemId,
   seedStoryUserId
 } from '#domains/authoredRouteStory.fixtures'
-import { resolveFixtureNodeRuntime } from '#test/nodeRuntimeResolver'
+import {
+  normalizeFixtureNodeRuntimeValues,
+  resolveFixtureNodeRuntime
+} from '#test/nodeRuntimeResolver'
 import { TestRouterProvider } from '#test/TestRouterProvider'
 import { authoredFormFactories } from '../factories/authoredFormFactories'
 import type { AuthoredFormDomain } from '../factories/authoredFormFactories.types'
@@ -46,6 +50,11 @@ const SYSTEM_MANAGED_PATH_KEYS = new Set([
   'systemId',
   'userId'
 ])
+// Labels and descriptions are display copy (the rich-text control rewrites descriptions as HTML
+// on mount) and row ids are generated per record, so neither is part of an effect's structure.
+const DISPLAY_COPY_KEYS = new Set(['description', 'label'])
+const NON_STRUCTURAL_KEYS = new Set([...DISPLAY_COPY_KEYS, 'id'])
+const RAGE_SCENARIO_LABEL = 'class SRD Rage feature'
 
 const scenarios = createBranchScenarios()
 // One case per resolved context: rendering a whole scenario in a single test made the
@@ -59,11 +68,18 @@ const registrationCases = (
       )
       return contexts.map((context, index) => ({
         context,
+        scenarioLabel: scenario.label,
         name: `${scenario.label} registers every visible resolved node of ${context.model.mapId} context ${index} with TanStack Form`
       }))
     })
   )
 ).flat()
+const rageCases = registrationCases.filter(
+  ({ scenarioLabel }) => scenarioLabel === RAGE_SCENARIO_LABEL
+)
+const rageScenario = scenarios.find(({ label }) => label === RAGE_SCENARIO_LABEL)
+if (!rageScenario) throw new Error('Expected the SRD Rage class scenario.')
+const rageFormValues = toActualFormValues('class', parseScenarioRecord(rageScenario))
 const RegistrationRenderer = FormRenderer<Record<string, unknown>>({ defaultValues: {} })
 
 afterEach(cleanup)
@@ -111,22 +127,91 @@ describe('authored domain schema, adapter, node, and field parity', () => {
 
   for (const { context, name } of registrationCases) {
     it(name, async () => {
-      render(
-        <TestRouterProvider>
-          <RegistrationHarness model={context.model} values={context.values} />
-        </TestRouterProvider>
-      )
-
-      const expectedFieldNames = getDirectRenderableFieldNames(context.model)
-      await waitFor(() => {
-        const registered = new Set<string>(
-          JSON.parse(screen.getByTestId('registered-fields').textContent ?? '[]')
-        )
-        expect(expectedFieldNames.filter((fieldName) => !registered.has(fieldName))).toEqual([])
-      })
+      await renderUntilRegistered(context.model, context.values)
     })
   }
 })
+
+describe('SRD Rage feature effect authoring parity', () => {
+  const rageEffects = barbarian.features?.find(({ label }) => label === 'Rage')?.effects
+
+  it('authors the Rage shapes this parity gate is meant to prove', () => {
+    const authored = JSON.stringify(rageEffects)
+    for (const shape of ['ATTACK_ABILITY', 'SPELLCASTING_LOCK', 'ON_INCAPACITATED', 'holderEnd']) {
+      expect(authored).toContain(shape)
+    }
+  })
+
+  it('keeps every Rage value through node-runtime normalization', async () => {
+    const normalized = await normalizeFixtureNodeRuntimeValues({
+      mapId: 'class',
+      values: rageFormValues
+    })
+
+    expect(normalized.clearedPaths).toEqual([])
+    expect(normalized.values).toEqual(rageFormValues)
+  })
+
+  for (const [index, { context }] of rageCases.entries()) {
+    it(`keeps the values of ${context.model.mapId} Rage context ${index} once its field controls mount`, async () => {
+      await renderUntilRegistered(context.model, context.values)
+
+      expect(stripKeys(readOutput('form-values'), DISPLAY_COPY_KEYS)).toEqual(
+        stripKeys(context.values, DISPLAY_COPY_KEYS)
+      )
+    })
+  }
+
+  it('submits the form values of the Rage class as the SRD Rage effect', async () => {
+    const rootContext = rageCases[0]?.context
+    if (!rootContext) throw new Error('Expected the resolved Rage class root context.')
+    await renderUntilRegistered(rootContext.model, rageFormValues)
+
+    const session = createScenarioSession('class', parseScenarioRecord(rageScenario))
+    const submitted = classAuthoringInputDtoSchema.parse(
+      session.normalizeForSubmit(readOutput('form-values'))
+    )
+
+    expect(stripKeys(submitted.features?.[0]?.effects, NON_STRUCTURAL_KEYS)).toEqual(
+      stripKeys(rageEffects, NON_STRUCTURAL_KEYS)
+    )
+  })
+})
+
+async function renderUntilRegistered(
+  model: NodeRuntimeResolveResponseDto,
+  values: Record<string, unknown>
+) {
+  render(
+    <TestRouterProvider>
+      <RegistrationHarness model={model} values={values} />
+    </TestRouterProvider>
+  )
+
+  const expectedFieldNames = getDirectRenderableFieldNames(model)
+  await waitFor(() => {
+    const registered = new Set<string>(
+      JSON.parse(screen.getByTestId('registered-fields').textContent ?? '[]')
+    )
+    expect(expectedFieldNames.filter((fieldName) => !registered.has(fieldName))).toEqual([])
+  })
+}
+
+function readOutput(testId: string): Record<string, unknown> {
+  const parsed: unknown = JSON.parse(screen.getByTestId(testId).textContent ?? 'null')
+  if (!isRecord(parsed)) throw new Error(`Expected ${testId} to hold an object.`)
+  return parsed
+}
+
+function stripKeys(value: unknown, keys: ReadonlySet<string>): unknown {
+  if (Array.isArray(value)) return value.map((item) => stripKeys(item, keys))
+  if (!isRecord(value)) return value
+  return Object.fromEntries(
+    Object.entries(value)
+      .filter(([key]) => !keys.has(key))
+      .map(([key, child]) => [key, stripKeys(child, keys)])
+  )
+}
 
 function RegistrationHarness({
   model,
@@ -141,6 +226,7 @@ function RegistrationHarness({
     onSubmit: async () => undefined
   })
   const registeredFields = useSelector(form.store, (state) => Object.keys(state.fieldMeta).sort())
+  const formValues = useSelector(form.store, (state) => state.values)
 
   return (
     <AuthoringLayout>
@@ -154,6 +240,7 @@ function RegistrationHarness({
           updateAuthoringState={false}
         />
         <output data-testid='registered-fields'>{JSON.stringify(registeredFields)}</output>
+        <output data-testid='form-values'>{JSON.stringify(formValues)}</output>
       </form.AppForm>
     </AuthoringLayout>
   )
@@ -176,6 +263,18 @@ function createBranchScenarios(): BranchScenario[] {
   return [
     { domain: 'background', label: 'background', record: authoredRouteStoryRecords.background },
     { domain: 'class', label: 'class base', record: wizard },
+    {
+      domain: 'class',
+      label: RAGE_SCENARIO_LABEL,
+      record: {
+        ...wizard,
+        id: 'story-rage-class',
+        label: 'Rage Test Class',
+        attributes: [],
+        features: barbarian.features?.filter(({ label }) => label === 'Rage'),
+        resources: barbarian.resources
+      }
+    },
     {
       domain: 'class',
       label: 'class subclass',
@@ -379,10 +478,7 @@ function parseScenarioRecord({ domain, record }: BranchScenario): Record<string,
   }
 }
 
-function toActualFormValues(
-  domain: AuthoredFormDomain,
-  record: Record<string, unknown>
-): Record<string, unknown> {
+function createScenarioSession(domain: AuthoredFormDomain, record: Record<string, unknown>) {
   const session = authoredFormFactories[domain].createSession?.({
     data: {
       draft: null,
@@ -397,7 +493,14 @@ function toActualFormValues(
   })
 
   expect(session).toBeDefined()
-  return session!.initialValues as Record<string, unknown>
+  return session!
+}
+
+function toActualFormValues(
+  domain: AuthoredFormDomain,
+  record: Record<string, unknown>
+): Record<string, unknown> {
+  return createScenarioSession(domain, record).initialValues as Record<string, unknown>
 }
 
 async function collectResolvedParity(mapId: string, values: Record<string, unknown>) {
