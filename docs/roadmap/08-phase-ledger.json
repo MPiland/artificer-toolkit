@@ -7470,6 +7470,14 @@
                 "Merge adb748f66; CI 38776510529 green; local build, reset, deploy, seed and audit green (local-validation/merge-s17t4/summary-2.log; the first seed attempt timed out under load, registered as PLATFORM-5.T1)"
               ],
               "origin": "Found in SPELLS-17.T1 (e58b9dad8): the same \"enters the area\" wording as Caltrops, authored ENTER_SPACE."
+            },
+            {
+              "id": "SPELLS-17.6",
+              "text": "Every mechanics-batch caller that can end a grant (basic action check settlement, cleaving response, live movement reaction and spatial persistence) carries the ended grants into its undo receipt, so undoing that root restores them.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Registered 2026-10-15 from the SPELLS-17.T2 merge review (report-only item; no SRD heal reaches these paths today)."
             }
           ],
           "wsjf": {
@@ -7526,6 +7534,19 @@
                 "tc": 1,
                 "rr": 2,
                 "size": 1
+              }
+            },
+            {
+              "id": "SPELLS-17.T5",
+              "text": "Carry endedGrants into the undo receipts of the remaining mechanics-batch callers, with a revert test per root kind that can heal.",
+              "status": "TODO",
+              "closes": ["SPELLS-17.6"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 1,
+                "rr": 3,
+                "size": 2,
+                "after": ["SPELLS-17.T2"]
               }
             }
           ]

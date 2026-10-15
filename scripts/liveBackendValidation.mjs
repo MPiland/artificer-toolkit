@@ -1,0 +1,130 @@
+// Manifest, codegen push, deploy, seed and SRD audit against the self-hosted Convex backend container
+// at http://127.0.0.1:3210: the local Docker backend by default, or an ephemeral container on a GitHub
+// runner (.github/workflows/live-backend.yml). Stops at the first failing step; with --log-dir each
+// step's log and duration are written there. The admin key never reaches a log or a file.
+//   node scripts/liveBackendValidation.mjs [--container=<name>] [--fresh]
+//     [--steps=manifest,codegen,deploy,seed,audit] [--log-dir=<dir>]
+// --fresh is for a just-started ephemeral container: it first sets the deployment env the auth config
+// needs. It is refused for the local container, which keeps its own.
+import { spawn } from 'node:child_process'
+import { once } from 'node:events'
+import { createWriteStream } from 'node:fs'
+import { mkdir, writeFile } from 'node:fs/promises'
+import { join, resolve } from 'node:path'
+import { createInterface } from 'node:readline'
+import { finished } from 'node:stream/promises'
+import {
+  assertConvexInstance,
+  convexCliArguments,
+  convexCliEnvironment,
+  generateAdminKey,
+  localConvex,
+  yarnSpawn
+} from './convexSelfHosted.mjs'
+
+const root = resolve(import.meta.dirname, '..')
+const defaultSteps = ['manifest', 'codegen', 'deploy', 'seed', 'audit']
+
+const options = { container: localConvex.container, fresh: false, logDir: undefined, steps: defaultSteps }
+for (const argument of process.argv.slice(2)) {
+  const match = /^--(container|steps|log-dir)=(.+)$/u.exec(argument)
+  if (argument === '--fresh') options.fresh = true
+  else if (match?.[1] === 'container') options.container = match[2]
+  else if (match?.[1] === 'steps') options.steps = match[2].split(',')
+  else if (match?.[1] === 'log-dir') options.logDir = resolve(match[2])
+  else throw new Error(`Unknown or malformed argument: ${argument}`)
+}
+for (const name of options.steps) {
+  if (!defaultSteps.includes(name)) throw new Error(`Unknown step: "${name}".`)
+}
+if (options.fresh && options.container === localConvex.container) {
+  throw new Error('--fresh would reset the local container deployment env; it is for an ephemeral container.')
+}
+
+await assertConvexInstance(localConvex.url, localConvex.instance)
+const adminKey = generateAdminKey(options.container)
+// The key is `<instance>|<secret>`; both the whole key and the secret half are kept out of every log.
+const secrets = [adminKey, adminKey.split('|').at(-1)].filter((secret) => secret.length >= 8)
+// Keeps the secrets out of the runner's log even if a tool were to echo them.
+if (process.env.GITHUB_ACTIONS === 'true') {
+  for (const secret of secrets) console.log(`::add-mask::${secret}`)
+}
+
+const convex = (...args) => [
+  'workspace',
+  '@artificer-toolkit/apis',
+  'exec',
+  'convex',
+  ...args,
+  ...convexCliArguments(localConvex.url, adminKey)
+]
+// Each step is a list of Yarn commands run from the repository root.
+const allSteps = {
+  manifest: [['workspace', '@artificer-toolkit/apis', 'generate:srd:manifest']],
+  // auth.config.ts needs JWKS before any push; an empty value selects the database-backed signing keys.
+  env: [convex('env', 'set', 'JWKS', '')],
+  codegen: [convex('codegen', '--typecheck', 'disable')],
+  deploy: [convex('deploy', '--yes', '--typecheck', 'disable', '--codegen', 'disable')],
+  seed: [convex('run', 'content/seed:seed')],
+  audit: [convex('run', 'content/seed:audit')]
+}
+const stepNames = options.fresh ? ['env', ...options.steps] : options.steps
+
+const redact = (line) => secrets.reduce((text, secret) => text.replaceAll(secret, '***'), line)
+
+async function runCommand(yarnArguments, log) {
+  const [executable, args] = yarnSpawn(yarnArguments)
+  const child = spawn(executable, args, {
+    cwd: root,
+    env: convexCliEnvironment(),
+    shell: false,
+    stdio: ['ignore', 'pipe', 'pipe']
+  })
+  const forward = (stream, target) => {
+    stream.setEncoding('utf8')
+    const lines = createInterface({ input: stream })
+    lines.on('line', (line) => {
+      const text = `${redact(line)}\n`
+      target.write(text)
+      log?.write(text)
+    })
+    return once(lines, 'close')
+  }
+  const closed = once(child, 'close')
+  await Promise.all([forward(child.stdout, process.stdout), forward(child.stderr, process.stderr)])
+  const [status] = await closed
+  return status ?? 1
+}
+
+async function runStep(name) {
+  const log = options.logDir ? createWriteStream(join(options.logDir, `${name}.log`)) : undefined
+  let status = 0
+  for (const command of allSteps[name]) {
+    status = await runCommand(command, log)
+    if (status !== 0) break
+  }
+  if (log) {
+    log.end()
+    await finished(log)
+  }
+  return status
+}
+
+if (options.logDir) await mkdir(options.logDir, { recursive: true })
+const summary = []
+let failed = false
+for (const name of stepNames) {
+  const started = Date.now()
+  const status = await runStep(name)
+  const seconds = Math.round((Date.now() - started) / 1000)
+  summary.push({ step: name, status, seconds })
+  console.log(`step ${name} exit ${status} ${seconds}s`)
+  if (status !== 0) {
+    failed = true
+    break
+  }
+}
+if (options.logDir) {
+  await writeFile(join(options.logDir, 'summary.json'), `${JSON.stringify(summary, null, 2)}\n`)
+}
+process.exit(failed ? 1 : 0)
