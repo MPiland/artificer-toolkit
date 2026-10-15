@@ -18,9 +18,9 @@ import { SRD_DAMAGE_TYPES } from '@artificer-toolkit/source-data/srd/vocabulary.
 
 import { testUuid } from './dnd5eSrdEncounter.js'
 
-export const ABSORB_ELEMENTS_ID = testUuid(0xae0)
+const ABSORB_ELEMENTS_ID = testUuid(0xae0)
 /** The extra damage of the spell's follow-up grant, in the one fixed amount a grant carries. */
-export const ABSORB_ELEMENTS_MELEE_BONUS = 2
+const ABSORB_ELEMENTS_MELEE_BONUS = 2
 
 /**
  * A user-authored reaction in the shape of Absorb Elements (not SRD 5.1): when its caster takes damage

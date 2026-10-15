@@ -441,7 +441,9 @@ is unchanged (`defenseBefore === defenseAfter`), so "the reaction changed the at
 defenses as well as the bound facts. The follow-up benefit is an ordinary grant in the same effect (a melee
 `DAMAGE` bonus until the start of the caster's next turn). Limits: only the attack-hit path pauses (save-based
 and area damage do not offer it), a bonus grant applies to every melee hit while it lasts rather than the next
-one only, and only the first eligible reaction is offered.
+one only, only the first eligible reaction is offered, and the resistance covers every damage type the
+reaction names rather than only the triggering one (binding the triggering type needs a trigger fact, which the
+SPELL_CAST chain, REACTION-4.T3, introduces).
 
 ### 0 hit points (D63, current)
 

@@ -539,11 +539,55 @@ describe('room reaction to damage taken (REACTION-4.2)', () => {
     expect(hitPointsLost(batch)).toBe(5)
     expect(batch.reaction).toMatchObject({
       selection: 'USE',
+      reaction: { trigger: 'DAMAGE_TAKEN' },
       spellCastConsumption: { spellId: absorbElements.id, afterUsed: 1 },
       actionEconomyTransition: { beforeUsed: 0, afterUsed: 1 }
     })
     expect(history.characterEffects).toHaveLength(1)
     expect(await readSpellSlots(room)).toEqual([{ slotKey: 'STANDARD:1', used: 1 }])
+  })
+
+  it('leaves the caster resistance to each chosen type and extra damage on melee attacks', async () => {
+    const room = await absorbRoom()
+    await strike(room, 0)
+    const { decision, pending } = await offeredReaction(room)
+    await room.resolve(decision, { kind: 'OPTION', optionId: pending.options[0].optionId })
+
+    const [effect] = (await readRoomHistory(room.room.base.stub)).characterEffects
+    const [grant] = JSON.parse(effect!.definitionJson).stateContributions
+    expect(grant.kind).toBe('MODIFIER_GRANT')
+    expect(grant.modifiers).toHaveLength(3)
+    expect(grant.modifiers).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ valueDomainCode: 'DAMAGE_RESISTANCE' }),
+        expect.objectContaining({
+          valueDomainCode: 'DAMAGE',
+          modifierKind: 'BONUS',
+          domain: { attackDomain: 'MELEE' }
+        })
+      ])
+    )
+    expect(
+      grant.modifiers.filter(
+        ({ valueDomainCode }: { valueDomainCode: string }) =>
+          valueDomainCode === 'DAMAGE_RESISTANCE'
+      )
+    ).toHaveLength(2)
+  })
+
+  it('is offered when a later chosen type is the one the hit deals', async () => {
+    const room = await absorbRoom(
+      biteWolf('ATTACK', { damage: 10, save: { ability: 'DEXTERITY', damageTypeCode: 'COLD' } })
+    )
+    await strike(room, 0)
+    const { decision, pending } = await offeredReaction(room)
+
+    const used = await room.resolve(decision, {
+      kind: 'OPTION',
+      optionId: pending.options[0].optionId
+    })
+    expect(used.type, JSON.stringify(used)).toBe('COMMAND_COMMITTED')
+    expect(hitPointsLost(characterBatch(await readRoomHistory(room.room.base.stub)))).toBe(5)
   })
 
   it('applies the whole damage when declined, spending nothing', async () => {

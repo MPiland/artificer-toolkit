@@ -1,4 +1,5 @@
 import type { CharacterActionCandidate } from '@artificer-toolkit/schema/api/characterActionRules'
+import type { EncounterReactionPinDto } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
 
 import type { MovementTarget } from './encounterMovementTargets.js'
 
@@ -24,7 +25,7 @@ export function discoverAttackReactionActions(
   target: Pick<MovementTarget, 'characterReactionSource' | 'characterSpellCast'>,
   hitDamageTypeIds: ReadonlySet<string>
 ): readonly (Pick<CharacterActionCandidate, 'actionId' | 'effectId'> & {
-  trigger: 'ATTACKED_SELF' | 'DAMAGE_TAKEN'
+  trigger: EncounterReactionPinDto['trigger']
 })[] {
   const candidates: readonly CharacterActionCandidate[] = [
     ...(target.characterReactionSource?.mechanics.rulePolicyInput.actionCandidates ?? []),
