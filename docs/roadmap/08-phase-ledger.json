@@ -7582,6 +7582,38 @@
             "rr": 5,
             "size": 5
           }
+        },
+        {
+          "id": "SPELLS-27",
+          "title": "Effects end on their authored end events",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": [],
+          "acs": [
+            {
+              "id": "SPELLS-27.1",
+              "text": "An effect authored to end on an event ends when its holder triggers it, through one generic end-event consumer: Invisibility ends when the invisible creature makes an attack roll or casts a spell, and GM undo of that attack or cast restores it.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Registered 2026-10-15 from the ATTACK-10.T1 (Hide) design review: only ON_HIT_POINTS_REGAINED has an end-event consumer (mechanicsBatchPersistence.ts); the compiler rejects other grant end events, and Invisibility authors endOnEvents ON_ATTACK_ROLL and ON_CAST_SPELL that nothing reads."
+            },
+            {
+              "id": "SPELLS-27.2",
+              "text": "Every SRD effect whose text ends it on an event (for example Sanctuary when its target attacks or casts a spell on an enemy, Charm Person when the caster or companions harm the target) authors that end event from core options; a corpus test lists any SRD effect left with such text and no authored end event.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Registered 2026-10-15 from the ATTACK-10.T1 (Hide) design review: only ON_HIT_POINTS_REGAINED has an end-event consumer (mechanicsBatchPersistence.ts); the compiler rejects other grant end events, and Invisibility authors endOnEvents ON_ATTACK_ROLL and ON_CAST_SPELL that nothing reads."
+            }
+          ],
+          "wsjf": {
+            "bv": 5,
+            "tc": 2,
+            "rr": 3,
+            "size": 3
+          }
         }
       ]
     },

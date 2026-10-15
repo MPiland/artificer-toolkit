@@ -57,3 +57,4 @@ Red-first, per the checklist below.
 ## Status log
 
 - 2026-10-15: workbook written.
+- 2026-10-15: design approved (option A). Rulings: ties go to the observer (noticed when the score is at least the Stealth total, for passive and Search alike); the believed mode as recommended; a narrow GM concealment-observer command; prune on any token-move commit by the hider or a set member, plus a read-time guard; Search in scope. Invisibility's unconsumed end events are registered as SPELLS-27.
