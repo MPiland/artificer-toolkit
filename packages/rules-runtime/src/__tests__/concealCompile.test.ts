@@ -104,13 +104,16 @@ describe('the SRD Hide and Search actions compile through core options (ATTACK-1
     const hide = catalogueBasicActionEffect(SRD_BASIC_ACTION_IDS.HIDE)
     const effect: EffectAuthored = {
       ...hide,
-      paths: hide.paths.map((path) => ({
-        ...path,
-        resultBlock: {
-          ...path.resultBlock,
-          lifecycle: { consumeOnFirstEvents: ['ON_ABILITY_CHECK', 'ON_ATTACK_ROLL'] }
+      paths: hide.paths.map((path) => {
+        if (path.selectionKind !== 'FIXED') throw new Error('Expected the Hide path to be fixed.')
+        return {
+          ...path,
+          resultBlock: {
+            ...path.resultBlock,
+            lifecycle: { consumeOnFirstEvents: ['ON_ABILITY_CHECK', 'ON_ATTACK_ROLL'] }
+          }
         }
-      }))
+      })
     }
     const action = characterActionDescriptor(compileEffect(effect))
     const published = compile(effect)

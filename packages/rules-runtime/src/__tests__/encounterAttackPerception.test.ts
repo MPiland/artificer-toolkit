@@ -34,6 +34,7 @@ import { creatureFeature, srdCreatureActor, testUuid } from '../testing/dnd5eSrd
 
 const ATTACKER_ID = testUuid(0xa1)
 const TARGET_ID = testUuid(0xa2)
+const BYSTANDER_ID = testUuid(0xa3)
 const INVISIBLE = srdConditionId('INVISIBLE')
 const BLINDED = srdConditionId('BLINDED')
 const DODGE_SOURCE_ID = 'test:dodge'
@@ -370,7 +371,7 @@ describe('encounter attack perception: believed perception (ATTACK-10.1)', () =>
 })
 
 describe('encounter attack perception: a concealed attacker (ATTACK-10.T1)', () => {
-  /** The true and the believed sight of an attacker whose concealment fooled `fooledIds` only. */
+  /** The true and believed sight of an attacker whose concealment fooled `fooledIds` (never empty: no observers plans no effect). */
   async function concealedAttackerPerceptions(input: {
     fooledIds: readonly string[]
     targetDisposition: 'FRIENDLY' | 'HOSTILE'
@@ -423,7 +424,7 @@ describe('encounter attack perception: a concealed attacker (ATTACK-10.T1)', () 
       targetDisposition: 'FRIENDLY'
     })
     const noticed = await concealedAttackerPerceptions({
-      fooledIds: [],
+      fooledIds: [BYSTANDER_ID],
       targetDisposition: 'FRIENDLY'
     })
     expect(fooled.actual.targetSeesAttacker).toBe('UNSEEN')
@@ -436,7 +437,7 @@ describe('encounter attack perception: a concealed attacker (ATTACK-10.T1)', () 
       targetDisposition: 'FRIENDLY'
     })
     const noticed = await concealedAttackerPerceptions({
-      fooledIds: [],
+      fooledIds: [BYSTANDER_ID],
       targetDisposition: 'FRIENDLY'
     })
     expect(fooled.believed).toEqual(noticed.believed)
