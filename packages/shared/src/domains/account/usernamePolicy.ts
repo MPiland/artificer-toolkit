@@ -78,7 +78,7 @@ const dataset = [
 const { blacklistedTerms, whitelistedTerms } = dataset.build()
 const matcher = new RegExpMatcher({
   blacklistedTerms,
-  whitelistedTerms: [...whitelistedTerms, ...allowedTerms],
+  whitelistedTerms: [...(whitelistedTerms ?? []), ...allowedTerms],
   ...englishRecommendedTransformers
 })
 
