@@ -2,7 +2,8 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules/checksum'
 import { z, lazySchema } from '../zod.js'
 import {
   characterSpellSlotConsumptionReceiptDtoSchema,
-  encounterActionEconomyTransitionDtoSchema
+  encounterActionEconomyTransitionDtoSchema,
+  type CharacterSpellSlotConsumptionReceiptDto
 } from './ruleExecutionEncounterApplications.js'
 import {
   serverRuleExecutionD20EvidenceDtoSchema,
@@ -170,7 +171,21 @@ export const encounterReactionOutcomeAuditDtoSchema: z.ZodMiniType<EncounterReac
 )
 
 /** What a settled reaction spent and sealed, recorded with the outcome of the attack it answered. */
-export const encounterActionReactionReceiptDtoSchema = lazySchema(() =>
+export type EncounterActionReactionReceiptDto = {
+  selection: 'DECLINE' | 'USE'
+  reaction: EncounterReactionPinDto
+  choiceExecution: ServerCompletedRuleExecutionDto
+  originalExecutionChecksum: string
+  adjustment: EncounterReactionAdjustmentDto | null
+  spellCastConsumption: CharacterSpellSlotConsumptionReceiptDto | null
+  actionEconomyTransition: z.infer<typeof encounterActionEconomyTransitionDtoSchema> | null
+  /** The reactor's own effect the reaction created; it is what changed the defense. */
+  activeEffectTransitions: z.infer<typeof characterActiveEffectCreateReceiptDtoSchema>[]
+}
+
+// Named so the receipt unions that embed it stay under the compiler's declaration size limit (TS7056).
+export const encounterActionReactionReceiptDtoSchema: z.ZodMiniType<EncounterActionReactionReceiptDto> =
+  lazySchema(() =>
   z
     .strictObject({
       selection: z.enum(['DECLINE', 'USE']),
@@ -201,6 +216,3 @@ export const encounterActionReactionReceiptDtoSchema = lazySchema(() =>
       })
     )
 )
-export type EncounterActionReactionReceiptDto = z.infer<
-  typeof encounterActionReactionReceiptDtoSchema
->
