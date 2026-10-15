@@ -7333,8 +7333,11 @@
             {
               "id": "SPELLS-17.5",
               "text": "Every SRD zone whose text triggers when a creature enters the area authors ENTER_OR_PASS_THROUGH (Oil Flask, Blade Barrier, Hunting Trap), proved by source-data tests on each entry.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/source-data/src/srd/zoneInteractionKinds.test.ts (Oil Flask, Hunting Trap and Blade Barrier enter components, plus Caltrops and Ball Bearings, author ENTER_OR_PASS_THROUGH; red before the edit in local-validation/spells-17/t4-red.log)",
+                "Merge adb748f66; CI 38776510529 green; local build, reset, deploy, seed and audit green (local-validation/merge-s17t4/summary-2.log; the first seed attempt timed out under load, registered as PLATFORM-5.T1)"
+              ],
               "origin": "Found in SPELLS-17.T1 (e58b9dad8): the same \"enters the area\" wording as Caltrops, authored ENTER_SPACE."
             }
           ],
@@ -7360,14 +7363,15 @@
             {
               "id": "SPELLS-17.T2",
               "text": "ON_HIT_POINTS_REGAINED from every heal path, heal undo restores the ended grant, fully resisted damage still applies the failure sequence.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-17.3"],
               "wsjf": {
                 "bv": 3,
                 "tc": 2,
                 "rr": 5,
                 "size": 3
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-17.md"
             },
             {
               "id": "SPELLS-17.T3",
@@ -7384,15 +7388,14 @@
             {
               "id": "SPELLS-17.T4",
               "text": "Author Oil Flask, Blade Barrier and Hunting Trap enter components as ENTER_OR_PASS_THROUGH with source-data tests; regenerate the manifest.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-17.5"],
               "wsjf": {
                 "bv": 3,
                 "tc": 1,
                 "rr": 2,
                 "size": 1
-              },
-              "activeWorkbook": "docs/handoffs/slice-spells-17.md"
+              }
             }
           ]
         },

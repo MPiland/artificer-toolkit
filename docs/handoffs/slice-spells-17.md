@@ -90,7 +90,7 @@ The SRD says "Any creature that enters the area must make the save", so a move t
 
 ## SPELLS-17.T4 (AC 17.5): the other "enters the area" zones
 
-**Status:** done on the branch; CI run recorded below. Closes AC 17.5.
+**Status:** DONE, merged adb748f66 (2026-10-15); CI 38776510529 and the local reset, seed and audit green (the first seed attempt timed out under machine load and passed on rerun; registered as PLATFORM-5.T1). Closes AC 17.5.
 
 Synced to the lane (fast-forward to `1c7829549`, which holds the T1 merge). The T1 text checks found three more SRD components worded "enters the area" or "steps on" that still author `ENTER_SPACE`. Each is now `ENTER_OR_PASS_THROUGH`:
 
