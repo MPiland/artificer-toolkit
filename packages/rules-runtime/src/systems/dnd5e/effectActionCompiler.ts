@@ -419,8 +419,8 @@ function isSupportedTestActivation(
   if (invocation.activation.code === 'ACTION') return true
   return (
     invocation.activation.code === 'REACTION' &&
-    'reactionMovementTrigger' in invocation &&
-    invocation.reactionMovementTrigger?.kind === 'MOVEMENT'
+    'reactionTrigger' in invocation &&
+    invocation.reactionTrigger?.kind === 'MOVEMENT'
   )
 }
 
@@ -2266,7 +2266,11 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
     (invocation.activation.code === 'FREE'
       ? invocation.resourceUse !== undefined
       : (invocation.activation.code === 'ACTION' ||
-          invocation.activation.code === 'BONUS_ACTION') &&
+          invocation.activation.code === 'BONUS_ACTION' ||
+          // A reaction to being attacked; the attack's pending decision offers it (never a direct action).
+          (invocation.activation.code === 'REACTION' &&
+            'reactionTrigger' in invocation &&
+            invocation.reactionTrigger?.kind === 'ATTACKED_SELF')) &&
         invocation.activation.amount === 1)
   if (
     invocation.kind !== 'ACTION' ||
@@ -4636,15 +4640,18 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
  * compiler projects it into the graph so execution never infers it from an
  * action label, outcome, or system-specific branch.
  */
+function movementInterruptionOf(action: Dnd5eCompiledEffectActionSource) {
+  const { invocation } = action.compiledEffect
+  const trigger = 'reactionTrigger' in invocation ? invocation.reactionTrigger : undefined
+  return trigger?.kind === 'MOVEMENT' ? trigger.movementInterruption : null
+}
+
 function bindMovementInterruptionTestOutput(input: {
   action: Dnd5eCompiledEffectActionSource
   published: ServerPublishedRuleDefinitionDto
   kind: TestKind
 }): ServerPublishedRuleDefinitionDto {
-  const binding =
-    'reactionMovementTrigger' in input.action.compiledEffect.invocation
-      ? input.action.compiledEffect.invocation.reactionMovementTrigger?.movementInterruption
-      : null
+  const binding = movementInterruptionOf(input.action)
   if (binding?.kind !== 'STOP') return input.published
   const allowedPaths =
     input.kind === 'ATTACK' ? ['ON_HIT', 'ON_MISS', 'ON_CRIT'] : ['ON_SAVE_FAIL', 'ON_SAVE_SUCCESS']
@@ -4699,10 +4706,7 @@ function bindMovementInterruptionOutput(input: {
   action: Dnd5eCompiledEffectActionSource
   published: ServerPublishedRuleDefinitionDto
 }): ServerPublishedRuleDefinitionDto {
-  const binding =
-    'reactionMovementTrigger' in input.action.compiledEffect.invocation
-      ? input.action.compiledEffect.invocation.reactionMovementTrigger?.movementInterruption
-      : null
+  const binding = movementInterruptionOf(input.action)
   if (binding?.kind !== 'STOP') return input.published
 
   const proposalNodeId = `proposal-${binding.whenResultPath.toLowerCase()}`

@@ -564,8 +564,13 @@
             {
               "id": "PLATFORM-13.8",
               "text": "The ENCOUNTER-5.1 assisted-party journey reads every member's roll cards deterministically under a loaded run: no \"Conversation not found.\" from concurrent room checkpoints, proved by a loaded scoped Convex run.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "merge ed78136cf",
+                "apps/apis/convex/liveSessions/assistedPartyJourney.test.ts (initiative faces keep scores >=9 apart in every declaration order)",
+                "local-validation/platform-13-t6/red-stress-before-fix.log (3-8/83 failed) and green-stress-after-fix.log (83/83)",
+                "CI run 38802484516 (journey 4/4; shard 3 lifecycle failure is the pre-PRIVACY-1.T1 base defect, fixed in bd4fc26f4)"
+              ],
               "origin": "SPELLS-8.T1 merge batch 2026-10-15 (local-validation/merge-s8t1/apis.log): assistedPartyJourney.test.ts failed once under load at readRoomRollCards (three members read through Promise.all, each running checkpointLiveRoom); passed alone (rerun-apj.log).",
               "note": ""
             },
@@ -584,6 +589,14 @@
               "proof": [],
               "origin": [],
               "note": "Registered 2026-10-15: every Convex shard log carries \"Error when running scheduled function … must be configured\" lines (for example runs 38792840212, 38789989223) that fail nothing but bury real failures. Use the product's own test or disabled modes; do not silence logging."
+            },
+            {
+              "id": "PLATFORM-13.11",
+              "text": "Live-backend validation (manifest, codegen, deploy, seed, SRD audit) runs on GitHub Actions against an ephemeral self-hosted Convex backend container, for merge branches and on demand for slice branches, sharing one deploy-and-seed implementation with the local path; Convex Cloud is never targeted.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Registered 2026-10-15: the local heavy lock queued 9 batches deep. User approved: ADR 0035 forbids Convex Cloud (free-plan cost), not an ephemeral runner container."
             }
           ],
           "wsjf": {
@@ -658,15 +671,14 @@
             {
               "id": "PLATFORM-13.T6",
               "text": "Find why concurrent readRoomRollCards checkpoints can miss the TABLE conversation (fixture race or a product race in checkpoint/chat), fix it at the cause, and prove it with a loaded run.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["PLATFORM-13.8"],
               "wsjf": {
                 "bv": 2,
                 "tc": 3,
                 "rr": 5,
                 "size": 2
-              },
-              "activeWorkbook": "docs/handoffs/slice-platform-13-t6.md"
+              }
             },
             {
               "id": "PLATFORM-13.T7",
@@ -691,6 +703,18 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 1
+              }
+            },
+            {
+              "id": "PLATFORM-13.T9",
+              "text": "Live Convex backend job in GitHub CI (ephemeral self-hosted container), shared deploy/seed script, ADR 0035 amendment, AGENTS.md heavy-lane scope.",
+              "status": "IN_PROGRESS",
+              "closes": ["PLATFORM-13.11"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 8,
+                "rr": 5,
+                "size": 3
               }
             }
           ]
@@ -1138,6 +1162,14 @@
               "proof": [],
               "origin": "Q22 (2026-10-15), from the PLATFORM-13.9 test-data flake.",
               "note": ""
+            },
+            {
+              "id": "ACCOUNTS-7.5",
+              "text": "Campaign text moderation (campaignTextPolicy) uses the same maintained profanity library and tiers as usernames; @2toad/profanity is removed from the repo and the web bundle carries one profanity library.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Registered 2026-10-15 from the ACCOUNTS-7.T1 merge review (S5)."
             }
           ],
           "wsjf": {
@@ -1159,6 +1191,19 @@
                 "size": 3
               },
               "activeWorkbook": "docs/handoffs/slice-accounts-7-t1.md"
+            },
+            {
+              "id": "ACCOUNTS-7.T2",
+              "text": "Move campaignTextPolicy to obscenity with the username tiers (no dictionary on the web), remove @2toad/profanity, keep campaign text tests red-first.",
+              "status": "TODO",
+              "closes": ["ACCOUNTS-7.5"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": ["ACCOUNTS-7.T1"]
+              }
             }
           ]
         },
@@ -7950,10 +7995,26 @@
             {
               "id": "REACTION-4.4",
               "text": "An attack that hits a creature holding a reaction such as Shield offers its controller Use or Decline; Use spends the reaction and the spell slot and grants the AC bonus, which counts against the triggering attack, so the hit becomes a miss when the new AC beats the roll; GM undo restores the reaction, the slot and the hit.",
+              "status": "DONE",
+              "proof": [
+                "merge f875185dc",
+                "apps/session-worker/test/nativeRoomReaction.test.ts",
+                "apps/session-worker/test/nativeRoomReactionGrant.test.ts",
+                "packages/rules-runtime/src/__tests__/hitGrant.test.ts (D99 regression)",
+                "CI run 38804169007 (ci/merge-p1 on 2c30b97d7, includes the regenerated manifest 07e2e4b11)",
+                "branch CI 38793504512",
+                "local-validation/merge-r4/summary.log"
+              ],
+              "origin": [],
+              "note": "Registered 2026-10-15 at the REACTION-4 design review: the trigger model and the Shield-against-a-hit slice (REACTION-4.T1)."
+            },
+            {
+              "id": "REACTION-4.5",
+              "text": "A reaction decision is deterministic and complete: rebuilding the plan on an answer or a replay derives the same ids (no ambient randomness), a reaction-only action is refused as an ordinary action on every action path (single-target and area), and admission accepts any reaction the offer carries.",
               "status": "TODO",
               "proof": [],
               "origin": [],
-              "note": "Registered 2026-10-15 at the REACTION-4 design review: the trigger model and the Shield-against-a-hit slice (REACTION-4.T1)."
+              "note": "Registered 2026-10-15 from the REACTION-4.T1 merge review (D115)."
             }
           ],
           "wsjf": {
@@ -7967,15 +8028,14 @@
             {
               "id": "REACTION-4.T1",
               "text": "Generic reactionTrigger union (replaces reactionMovementTrigger, node-map group), REACTION activation in the compiler and economy, the REACTION_CHOICE phase inside the triggering occurrence, the D26 hold for any reaction decision, the REACTION undo child, and Shield against a hit (ATTACKED_SELF, sealed re-evaluation of the TEST).",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["REACTION-4.4"],
               "wsjf": {
                 "bv": 8,
                 "tc": 5,
                 "rr": 5,
                 "size": 5
-              },
-              "activeWorkbook": "docs/handoffs/slice-reaction-4.md"
+              }
             },
             {
               "id": "REACTION-4.T2",
@@ -8015,6 +8075,19 @@
                 "size": 2,
                 "after": ["REACTION-4.T3", "SPELLS-26"]
               }
+            },
+            {
+              "id": "REACTION-4.T5",
+              "text": "REACTION-4.T1 merge-review hardening: deterministic reaction effect id, REACTION_TRIGGER_ONLY on the area path, admission across all offered reactions, plus nits.",
+              "status": "IN_PROGRESS",
+              "closes": ["REACTION-4.5"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 5,
+                "size": 2
+              },
+              "activeWorkbook": "docs/handoffs/slice-reaction-4.md"
             }
           ]
         }
@@ -8032,7 +8105,7 @@
         {
           "id": "PRIVACY-1",
           "title": "Players see only redacted combat data",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "journeyTests": [
             "apps/apis/convex/encounters/cutoverPrivacy.test.ts",
             "apps/apis/convex/encounters/encounterProjectionParity.test.ts"
@@ -8097,8 +8170,14 @@
             {
               "id": "PRIVACY-1.7",
               "text": "Once the room has received the ownership notice, a command replay after an ownership transfer is presented for the issuer's current role: the owner who regains ownership gets the GM projection, and a former owner who is now a player gets the redacted player projection. Before the notice arrives, the documented accepted-exposure window applies (live-sessions.md, ADR 0035 A21). The lifecycle proof delivers the notice deterministically instead of racing it.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "merge bd4fc26f4",
+                "apps/session-worker/test/nativeRoomOwnershipReplay.test.ts (both directions: notice delivered, then replay)",
+                "apps/apis/convex/encounters/developmentLifecycleProof.test.ts (deterministic via deliverQueuedRoomControl)",
+                "apps/apis/convex/campaigns/ownership.test.ts (accept moves the Campaign scope revision)",
+                "CI runs 38795738617 (+2 Convex 3/4 reruns green), 38801676606"
+              ],
               "origin": "Intermittent CI failure of developmentLifecycleProof.test.ts at tests/developmentEncounterTransactions.ts:286 (runs 38782976507, 38781276358 attempt 1, 38782673073): after ownership returned to the owner, replaying START returned the player projection (health null, no features). Base 79a60ef0a passed 3 of 3 locally (local-validation/lifecycle-base/).",
               "note": "Until T1 merges, this exact failure on a slice CI run is a known base defect and does not block that slice's merge. 2026-10-15: the cause was the proof racing asynchronous notice delivery, not a Worker defect; option A was approved."
             }
@@ -8113,15 +8192,14 @@
             {
               "id": "PRIVACY-1.T1",
               "text": "Find why a replay is presented for the issuer's stale role after an ownership transfer, fix it at the cause, and prove both directions deterministically.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["PRIVACY-1.7"],
               "wsjf": {
                 "bv": 3,
                 "tc": 5,
                 "rr": 8,
                 "size": 3
-              },
-              "activeWorkbook": "docs/handoffs/slice-privacy-1-t1.md"
+              }
             }
           ]
         },

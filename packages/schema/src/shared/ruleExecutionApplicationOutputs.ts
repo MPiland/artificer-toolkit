@@ -42,6 +42,7 @@ import {
   serverRuleExecutionD20EvidenceDtoSchema,
   serverRuleExecutionNestedD20EvidenceDtoSchema
 } from './ruleExecutionEvidence.js'
+import { encounterActionReactionReceiptDtoSchema } from './ruleExecutionReactionChoice.js'
 import {
   ruleExecutionAggregateVersionSchema as aggregateVersionSchema,
   ruleExecutionChecksumSchema as checksumSchema,
@@ -95,6 +96,8 @@ const serverRuleExecutionApplicationOutputsDtoSchemaImpl = lazySchema(() =>
         actionEconomyTransition: z.nullable(encounterActionEconomyTransitionDtoSchema),
         /** Present when the attack opened or filled the actor's Attack action; undo restores `before`. */
         attackActionTransition: z.optional(encounterAttackActionTransitionDtoSchema),
+        /** The target's reaction decision on this attack; its spend belongs to the target, not the source. */
+        reaction: z._default(z.nullable(encounterActionReactionReceiptDtoSchema), null),
         activeEffectTransitions: z
           .array(characterActiveEffectCreateReceiptDtoSchema)
           .check(z.maxLength(1)),
@@ -440,6 +443,19 @@ const serverRuleExecutionApplicationOutputsDtoSchemaImpl = lazySchema(() =>
               message: 'Item consumption must match the source Character.'
             })
           const hasActiveEffectCreation = value.activeEffectTransitions.length > 0
+          const reaction = value.reaction
+          const hasReactionMutation = reaction?.spellCastConsumption != null
+          if (
+            reaction &&
+            (reaction.reaction.reactorActorId !== value.targetActorId ||
+              (reaction.spellCastConsumption &&
+                reaction.spellCastConsumption.characterId !== reaction.reaction.characterId))
+          )
+            context.addIssue({
+              code: 'custom',
+              path: ['reaction'],
+              message: 'A reaction belongs to the attacked Character.'
+            })
           if (
             stow &&
             (value.sourceCharacterId === null ||
@@ -458,7 +474,8 @@ const serverRuleExecutionApplicationOutputsDtoSchemaImpl = lazySchema(() =>
             value.targetCharacterStreamVersion !==
             (transitionChanged ||
             (value.sourceActorId === value.targetActorId && hasSourceMutation) ||
-            hasActiveEffectCreation
+            hasActiveEffectCreation ||
+            hasReactionMutation
               ? value.targetCharacterStreamVersion
               : null)
           )
@@ -471,7 +488,8 @@ const serverRuleExecutionApplicationOutputsDtoSchemaImpl = lazySchema(() =>
             !(
               transitionChanged ||
               (value.sourceActorId === value.targetActorId && hasSourceMutation) ||
-              hasActiveEffectCreation
+              hasActiveEffectCreation ||
+              hasReactionMutation
             )
           )
             context.addIssue({

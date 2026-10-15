@@ -101,6 +101,18 @@ export function readPendingActionDecision(stub: RoomStub, isOwner = true) {
   })
 }
 
+/** The stored context of the Encounter's one PENDING single-target action, server-side facts included. */
+export function readPendingActionContext(stub: RoomStub) {
+  return runInDurableObject(stub, async (_instance, context) => {
+    const room = new RoomEncounterStore(context.storage)
+    const occurrence = room
+      .documents('encounterRuleOccurrences')
+      .find((candidate) => candidate.state === 'PENDING')
+    if (!occurrence) throw new Error('No action decision is pending.')
+    return (await readNativeActionPending({ db: room.store }, occurrence)).context
+  })
+}
+
 /**
  * The pending area as one viewer reads it: the GM, or a player who controls `controlledActorIds`.
  * Null when the viewer has nothing in it to answer.

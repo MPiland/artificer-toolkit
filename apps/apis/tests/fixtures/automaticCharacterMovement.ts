@@ -179,7 +179,7 @@ export async function setupAutomaticCharacterMovement(
             ...effect.invocation,
             triggerCode: 'MELEE_WEAPON_ATTACK' as const,
             activation: { code: 'REACTION' as const, amount: 1 },
-            reactionMovementTrigger: {
+            reactionTrigger: {
               kind: 'MOVEMENT' as const,
               stage: 'BEFORE_LEAVE_REACH' as const,
               perceptionRequirement: null,

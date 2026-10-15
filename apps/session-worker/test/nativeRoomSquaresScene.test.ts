@@ -122,7 +122,7 @@ function seeingStrike(reachFeet: number): ClassFeature {
             amount: reachFeet,
             unit: 'FEET' as const
           },
-          reactionMovementTrigger: {
+          reactionTrigger: {
             kind: 'MOVEMENT' as const,
             stage: 'BEFORE_LEAVE_REACH' as const,
             perceptionRequirement: 'SEE' as const,

@@ -51,6 +51,14 @@ export const reactionMovementTriggerBindingDtoSchema = lazySchema(() =>
   })
 )
 
+/** An authored reaction can bind to any supported factual event; each arm is one event kind. */
+export const reactionTriggerBindingDtoSchema = lazySchema(() =>
+  z.discriminatedUnion('kind', [
+    reactionMovementTriggerBindingDtoSchema,
+    z.strictObject({ kind: z.literal('ATTACKED_SELF') })
+  ])
+)
+
 /** Encounter-owned factual relationship. Game System policy interprets it. */
 export const encounterActorRelationshipKindDtoSchema = lazySchema(() =>
   z.enum(['ALLIED', 'NEUTRAL', 'HOSTILE'])
