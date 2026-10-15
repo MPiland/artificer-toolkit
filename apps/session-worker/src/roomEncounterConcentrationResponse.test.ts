@@ -315,6 +315,8 @@ it('atomically resolves a failed native Concentration save, retains the private 
         recurrenceStage: 'NONE',
         consumeOnFirstEvents: [],
         endOnEvents: [],
+        endOnConditionIds: [],
+        holderEnd: null,
         lifetimeScope: 'ENCOUNTER',
         expiration: {
           kind: 'TICKS',
@@ -670,9 +672,10 @@ it('atomically resolves a failed native Concentration save, retains the private 
     })
     expect(receipt.resultChecksum).toBe(checksumRuleDocument(execution))
     expect(store.documents('encounterRunCommands')).toHaveLength(1)
-    const roll = liveSessionCheckpointRetainedRollSchema.parse(
-      JSON.parse(store.records(ROOM_PRIVATE_ROLL)[0]!.json)
-    )
+    const rolls = store
+      .records(ROOM_PRIVATE_ROLL)
+      .map((row) => liveSessionCheckpointRetainedRollSchema.parse(JSON.parse(row.json)))
+    const roll = rolls.find((retained) => retained.userId === gmId)
     expect(roll).toMatchObject({
       userId: gmId,
       gmCampaignRoll: {
@@ -686,7 +689,11 @@ it('atomically resolves a failed native Concentration save, retains the private 
         ruleCheck: { kind: 'CONCENTRATION', actorId: actor.id, outcome: 'LOST' }
       }
     })
-    expect(store.records(ROOM_PRIVATE_ROLL)).toHaveLength(1)
+    // The hidden Character's own player keeps the generic copy, with no reveal to offer (ATTACK-17.6).
+    expect(rolls.filter((retained) => retained.userId !== gmId)).toEqual([
+      expect.objectContaining({ userId: owner.userId, gmCampaignRoll: null, record: roll!.record })
+    ])
+    expect(rolls).toHaveLength(2)
     expect(store.documents('campaignConversationEntries')).toEqual([])
     const after = evidence()
     expect(after.sequence).toBe(1)

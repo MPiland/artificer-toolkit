@@ -2,6 +2,7 @@ import type {
   EncounterRunActorState,
   EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
+import type { ConcentrationEndReason } from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
 import { isEncounterActorDefeated } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import { encounterConcentrationEndReason } from '@artificer-toolkit/rules-runtime/encounterConcentrationEnd'
 import { readEncounterActorConditionState } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
@@ -11,21 +12,24 @@ import { listActiveRuleEffects } from './effectStore.js'
 import type { EncounterPersistenceTransaction, EncounterWritePorts } from './ports.js'
 import { readRuleRollRouting } from './ruleRollCards.js'
 
-/** Why a Concentration ended: involuntarily (D95) or by its holder's choice (SPELLS-5.11). */
-export type ConcentrationEndReason = 'INCAPACITATED' | 'DEFEATED' | 'CHOSEN'
-
 /**
- * Why the committed state ends the actor's Concentration without a check (D95): a defeated
- * Creature or custom actor, or one whose System actor-action capability is unavailable. Null when
- * neither holds, so a stale or invented end is rejected by comparison.
+ * What the committed state says about the actor's involuntary ends, so a stale or invented end is
+ * rejected by comparison. `reason` is why its Concentration ends without a check (D95): a defeated
+ * Creature or custom actor, one whose System actor-action capability is unavailable, or one under a
+ * `SPELLCASTING_LOCK` grant; null when none holds. `conditionIds` are the condition types it has,
+ * which end the grants that name them; a defeated actor's are not read.
  */
-export async function readConcentrationEndReason(
+export async function readHolderEndState(
   ctx: EncounterPersistenceTransaction,
   input: { state: EncounterRunState; actor: EncounterRunActorState; userId: string }
-): Promise<'INCAPACITATED' | 'DEFEATED' | null> {
+): Promise<{
+  reason: Awaited<ReturnType<typeof encounterConcentrationEndReason>>
+  conditionIds: string[]
+}> {
   const { state, actor } = input
   const deadCharacterIds = await readDeadCharacterIds(ctx, [actor])
-  if (isEncounterActorDefeated(actor, deadCharacterIds)) return 'DEFEATED'
+  if (isEncounterActorDefeated(actor, deadCharacterIds))
+    return { reason: 'DEFEATED', conditionIds: [] }
   const { campaign } = await ctx.ports.requireCampaignAuthority(state.campaignId, input.userId)
   let conditionIds: string[]
   let activeEffects
@@ -55,7 +59,7 @@ export async function readConcentrationEndReason(
       targetActorId: actor.id
     })
   }
-  return encounterConcentrationEndReason({
+  const reason = await encounterConcentrationEndReason({
     actor,
     deadCharacterIds,
     conditionIds,
@@ -69,6 +73,7 @@ export async function readConcentrationEndReason(
       }
     }
   })
+  return { reason, conditionIds }
 }
 
 function concentrationEndMessage(label: string, reason: ConcentrationEndReason) {
@@ -79,6 +84,8 @@ function concentrationEndMessage(label: string, reason: ConcentrationEndReason) 
       return `${label} is defeated and loses Concentration.`
     case 'INCAPACITATED':
       return `${label} can't act and loses Concentration.`
+    case 'SPELLCASTING_LOCKED':
+      return `${label} can't cast spells and loses Concentration.`
   }
 }
 

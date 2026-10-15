@@ -28,6 +28,7 @@ import { targetingDtoSchema } from './targeting.js'
 import { teleportDtoSchema } from './teleport.js'
 import { durationDtoSchema } from '../shared/duration.js'
 import {
+  activationCodeSchema,
   pathCodeSchema,
   pathGroupTypeSchema,
   pathLifecycleConsumeEventSchema,
@@ -124,7 +125,11 @@ export const pathLifecycleDtoSchema = lazySchema(() =>
     consumeOnFirstEvents: z.optional(
       authoredReferenceCollectionSchema(pathLifecycleConsumeEventSchema)
     ),
-    endOnEvents: z.optional(authoredReferenceCollectionSchema(pathLifecycleEndEventSchema))
+    endOnEvents: z.optional(authoredReferenceCollectionSchema(pathLifecycleEndEventSchema)),
+    /** Condition type ids; the effect ends early while its holder has any of them. */
+    endOnConditionIds: z.optional(authoredReferenceCollectionSchema(postgresUuidSchema)),
+    /** The holder may end the effect themselves, at the cost of this activation. */
+    holderEnd: z.optional(z.strictObject({ activation: activationCodeSchema }))
   })
 )
 

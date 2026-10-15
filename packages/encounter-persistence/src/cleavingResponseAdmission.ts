@@ -167,7 +167,7 @@ export async function readCleavingResponseAdmission(
     )
     .unique()
   if (usedRoot) rejectDomain('COMMAND_ID_REUSED')
-  await verifyNativeCleavingParentChain(ctx, state, context)
+  const actionOccurrenceId = await verifyNativeCleavingParentChain(ctx, state, context)
   const optionalSnapshot = encounterOptionalCombatSnapshotDtoSchema.parse(
     state.optionalCombatSnapshot
   )
@@ -204,6 +204,7 @@ export async function readCleavingResponseAdmission(
     kind: 'READY' as const,
     pending,
     selected,
+    actionOccurrenceId,
     // The answer continues the source's attack; each damaged actor's check goes to its controllers.
     autoRollByActorId: await readEncounterAutoRollByActorId(ctx, {
       campaign,

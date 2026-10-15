@@ -37,6 +37,7 @@ function sheetRangeLabel(effect: AuthoredEffect | undefined): string | null {
     spellMechanics: [],
     proficiencies: [],
     itemAdjustments: [],
+    spellcastingLocked: false,
     spellEffects: [
       {
         spellId: 'spell',

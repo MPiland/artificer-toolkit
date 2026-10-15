@@ -32,7 +32,8 @@ const OPTION_DOMAIN_POLARITY: Readonly<Partial<Record<ValueDomainCode, GrantPola
 
 /** What enabling something does for the holder; any other enabled domain is neutral. */
 const ENABLE_DOMAIN_POLARITY: Readonly<Partial<Record<ValueDomainCode, GrantPolarity>>> = {
-  OPPORTUNITY_ATTACK_IMMUNITY: 'BENEFICIAL'
+  OPPORTUNITY_ATTACK_IMMUNITY: 'BENEFICIAL',
+  SPELLCASTING_LOCK: 'HARMFUL'
 }
 
 /**
@@ -106,8 +107,8 @@ function modifierPolarity(modifier: CharacterGrantFoldModifier): GrantPolarity {
  *   optional ability modifier bonus always helps.
  * - A bonus die helps: its payload names only the dice and cannot express a subtracted one (Bane is
  *   a closed rule, not a grant).
- * - Enabling something helps only for the domains in `ENABLE_DOMAIN_POLARITY` (opportunity attack
- *   immunity); any other enabled domain is neutral.
+ * - Enabling something is read by the domains in `ENABLE_DOMAIN_POLARITY` (opportunity attack
+ *   immunity helps, the spellcasting lock harms); any other enabled domain is neutral.
  * - Setting a value is read by domain and value (D110): speed above zero helps (Fly); speed or
  *   reactions set to zero harms (Shocking Grasp); every other set value is neutral.
  * - Adding an option follows `OPTION_DOMAIN_POLARITY`; removing one inverts it.

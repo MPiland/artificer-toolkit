@@ -387,6 +387,8 @@ export async function seedTurnSaveEffect(
           recurrenceStage: input.stage,
           consumeOnFirstEvents: [],
           endOnEvents: [],
+          endOnConditionIds: [],
+          holderEnd: null,
           lifetimeScope: 'ENCOUNTER',
           expiration: {
             kind: 'TICKS',

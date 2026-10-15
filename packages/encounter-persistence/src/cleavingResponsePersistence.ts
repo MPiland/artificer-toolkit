@@ -30,6 +30,7 @@ import { insertNativeCleavingChoice } from './actionChildPersistence.js'
 import { projectNativeGm } from './nativeProjection.js'
 import { presentEncounterResultForMember } from './resultPresentation.js'
 import { insertRunCommand } from './timelineEntries.js'
+import { addEndedGrantsToRoot } from './consumedGrantPersistence.js'
 import { encounterReplayReceipt } from './replayReceipts.js'
 import type { readEncounterMaintenanceCapture } from './maintenanceCapture.js'
 import type {
@@ -73,8 +74,18 @@ export async function persistEncounterCleavingResponse(
   const admission = await readCleavingResponseAdmission(ctx, input)
   // A lost acknowledgement replays before checking inputs its commit consumed.
   if (admission.kind === 'REPLAY') return admission.result
-  const { run, state, campaign, membership, actors, occurrence, fingerprint, pending, selected } =
-    admission
+  const {
+    run,
+    state,
+    campaign,
+    membership,
+    actors,
+    occurrence,
+    fingerprint,
+    pending,
+    selected,
+    actionOccurrenceId
+  } = admission
   const { response, execution, occurredAt } = input
   const { context } = pending
   const output =
@@ -205,7 +216,13 @@ export async function persistEncounterCleavingResponse(
     occurredAt,
     concentration: input.concentration,
     concentrationEnds: input.concentrationEnds,
+    endedGrants: input.endedGrants,
     pendingConcentration: input.pendingConcentration
+  })
+  await addEndedGrantsToRoot(ctx, {
+    campaignId: campaign.id,
+    actionOccurrenceId,
+    endedGrants: input.endedGrants
   })
   const projection = await projectNativeGm(ctx, nextState, nextActors, input.rules)
   const result = encounterCommandResultDtoSchema.parse({

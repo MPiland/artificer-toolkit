@@ -1039,6 +1039,8 @@ describe('rules runtime contracts', () => {
           recurrenceStage: 'START_OF_TURN',
           consumeOnFirstEvents: [],
           endOnEvents: ['ON_ATTACK_ROLL'],
+          endOnConditionIds: [],
+          holderEnd: null,
           expiration: {
             kind: 'TICKS',
             initialRemaining: 2,

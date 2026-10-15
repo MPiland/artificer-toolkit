@@ -4,9 +4,11 @@ import {
 } from '@artificer-toolkit/encounter-persistence/basicActionCheckResponsePersistence'
 import { persistEncounterBasicAction } from '@artificer-toolkit/encounter-persistence/basicActionPersistence'
 import { readRunActors, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
+import { persistEncounterEndHeldGrant } from '@artificer-toolkit/encounter-persistence/endHeldGrantPersistence'
 import { persistEncounterEscape } from '@artificer-toolkit/encounter-persistence/escapePersistence'
 import type { EncounterWriteTransaction } from '@artificer-toolkit/encounter-persistence/ports'
 import type {
+  EndHeldGrantInputDto,
   EscapeRelationshipInputDto,
   ResolveRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounterRuleCommands'
@@ -15,6 +17,7 @@ import type { LiveSessionEncounterRulesInput } from '@artificer-toolkit/schema/a
 import type { LiveSessionRulesRevisions } from '@artificer-toolkit/schema/api/liveSessionRulesRevisions'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import { planNativeLiveBasicActionResponse } from './nativeBasicActionResponse.js'
+import { planNativeLiveEndHeldGrant } from './nativeEndHeldGrantAction.js'
 import { planNativeLiveEscape } from './nativeEscapeAction.js'
 import { planNativeLiveEscapeResponse } from './nativeEscapeActionResponse.js'
 import { applyRoomEncounterMechanicsBatch } from './roomEncounterMechanics.js'
@@ -126,6 +129,28 @@ export async function executeRoomEncounterEscape(
   const revisions = await readBasicActionRevisions(input)
   mergeNativeRulesRevisions(revisions, plan.input.revisions)
   return persistEncounterEscape(
+    ctx,
+    { ...plan.input, revisions },
+    {
+      validateReadFence: (state, actors, fence) =>
+        assertRoomEncounterReadFence(ctx, transaction, observed, state, actors, {
+          revisions: fence.revisions,
+          scenes: []
+        })
+    }
+  )
+}
+
+/** Ending a held grant spends its activation and deletes the grant in one native commit. */
+export async function executeRoomEncounterEndHeldGrant(
+  input: RoomBasicActionInput & { command: EndHeldGrantInputDto }
+) {
+  const { ctx, transaction, scope, observed } = input
+  const plan = await planNativeLiveEndHeldGrant(scope, input.command, basicActionExecution(input))
+  if (plan.kind === 'REPLAY') return plan.result
+  const revisions = await readBasicActionRevisions(input)
+  mergeNativeRulesRevisions(revisions, plan.input.revisions)
+  return persistEncounterEndHeldGrant(
     ctx,
     { ...plan.input, revisions },
     {

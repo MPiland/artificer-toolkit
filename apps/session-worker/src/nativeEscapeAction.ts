@@ -3,17 +3,7 @@ import {
   liveSessionEncounterEscapeCommitInputSchema,
   type LiveSessionEncounterEscapeCommitInput
 } from '@artificer-toolkit/schema/api/liveSessionEncounterBasicAction'
-import {
-  liveSessionEncounterRulesInputSchema,
-  type LiveSessionEncounterRulesInput
-} from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
-import { evaluateEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomy'
-import { consumeEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomyConsumption'
-import {
-  encounterActionEconomyWarnings,
-  overridesActionEconomy,
-  RULE_WARNINGS_MESSAGE
-} from '@artificer-toolkit/rules-runtime/encounterActionRuleWarnings'
+import type { LiveSessionEncounterRulesInput } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import { buildEncounterActorRuleFacts } from '@artificer-toolkit/rules-runtime/encounterActorRuleFacts'
 import { reconcileEncounterActorRuleOutput } from '@artificer-toolkit/rules-runtime/encounterActorRuleOutput'
 import {
@@ -32,13 +22,15 @@ import { EncounterValidationError } from '@artificer-toolkit/rules-runtime/encou
 import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
-import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
-import { captureActionEconomyDefinitions } from './nativeEncounterActionEconomy.js'
-import { liveEncounterCaptures, type LiveCaptureReads } from './nativeEncounterReads.js'
+import type { LiveCaptureReads } from './nativeEncounterReads.js'
 import {
   prepareNativeLiveMovementTarget,
   readNativeLiveActorsAndEffects
 } from './nativeEncounterTargets.js'
+import {
+  admitNativeLiveHolderCommand,
+  spendNativeHolderActivation
+} from './nativeHolderActivation.js'
 
 /**
  * Plans one Escape in the room (D105): the activation it spends, its warnings and the holder's d20
@@ -54,29 +46,17 @@ export async function planNativeLiveEscape(
     captures: LiveCaptureReads
   }
 ) {
-  const { captures } = executionOptions
-  const request = { kind: 'BASIC_ACTION' as const, command }
-  const initial = liveSessionEncounterRulesInputSchema.parse({
-    ...scope,
-    // A player's admitted escape lets its follow-up captures read the rules inputs.
-    ...(scope.expectedRole === 'PLAYER' ? { action: request } : {}),
-    request
-  })
-  if (
-    command.encounterId.toLowerCase() !== initial.encounterId ||
-    command.expectedVersion !== initial.expectedVersion
+  const admitted = await admitNativeLiveHolderCommand(
+    scope,
+    command,
+    executionOptions.captures,
+    'escape'
   )
-    throw new Error('Live escape scope mismatch.')
-  const reads = liveEncounterCaptures(initial, captures)
+  if (admitted.kind === 'REPLAY') return admitted
+  const { initial, reads, ready, state, system } = admitted
   const { capture } = reads
-  const admission = await capture(request)
-  if (admission.result) return { kind: 'REPLAY' as const, result: admission.result }
-  if (!admission.ready) throw new Error('The escape is unavailable.')
-  const root = admission.ready.command
+  const root = ready.command
   if (root.type !== 'ESCAPE_RELATIONSHIP') throw new Error('The escape is unavailable.')
-  const { state, system } = await capture({ kind: 'INPUTS' })
-  if (state.id !== initial.encounterId || state.version !== initial.expectedVersion)
-    throw new Error('Escape Run inputs changed during capture.')
   const { actors, activeEffectsByActorId } = await readNativeLiveActorsAndEffects({
     state,
     capture
@@ -95,47 +75,27 @@ export async function planNativeLiveEscape(
     state,
     actor,
     activeEffectsByActorId,
-    captures
+    captures: executionOptions.captures
   })
   reads.observe(prepared.revisions)
   const holder = prepared.target
   const context = prepareEncounterEscapeCheck({
     gameSystemId: state.gameSystemId,
     commandId: root.commandId,
-    commandFingerprint: admission.ready.fingerprint,
+    commandFingerprint: ready.fingerprint,
     system,
     holder,
     activeEffectId: effect.id,
     checkDefinitionId: root.checkDefinitionId
   })
-  const { activation } = escape.module
-  const economy =
-    activation.code === 'FREE'
-      ? null
-      : await evaluateEncounterActionEconomy({
-          actor,
-          state,
-          activation: { code: activation.code, amount: activation.amount },
-          target: holder,
-          loadTarget: async () => holder,
-          definitions: captureActionEconomyDefinitions(capture)
-        })
-  const warnings = encounterActionEconomyWarnings(economy, activation.code)
-  if (!warnings.every((warning) => root.acknowledgedWarnings.includes(warning.code)))
-    throw new LiveSessionDomainRejectionError(422, {
-      code: 'DOMAIN_REJECTED',
-      reason: 'RULE_WARNINGS',
-      message: RULE_WARNINGS_MESSAGE,
-      warnings
-    })
-  const actionEconomy = economy?.consumption ?? null
-  const spent = actionEconomy
-    ? consumeEncounterActionEconomy({
-        actor,
-        consumption: actionEconomy,
-        overridden: overridesActionEconomy(warnings)
-      })
-    : actor
+  const { actionEconomy, warnings, spent } = await spendNativeHolderActivation({
+    actor,
+    state,
+    holder,
+    activation: escape.module.activation,
+    acknowledgedWarnings: root.acknowledgedWarnings,
+    capture
+  })
   const facts = buildEncounterActorRuleFacts({ actors })
   let nextActors = actors.map((entry) => (entry.id === spent.id ? spent : entry))
   const occurrenceId = crypto.randomUUID()
@@ -146,7 +106,7 @@ export async function planNativeLiveEscape(
   })
   let check: LiveSessionEncounterEscapeCommitInput['check']
   // The holder's controller rolls unless their preference rolls for them (ADR 0034 decision 3).
-  if (admission.ready.autoRollByActorId[actor.id] !== true)
+  if (ready.autoRollByActorId[actor.id] !== true)
     check = {
       kind: 'PENDING',
       snapshot: encounterBasicActionCheckPendingSnapshot({

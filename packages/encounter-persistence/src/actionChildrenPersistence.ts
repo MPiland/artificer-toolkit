@@ -62,6 +62,7 @@ export async function persistEncounterActionChildren(
     occurredAt: input.occurredAt,
     concentration: input.concentration,
     concentrationEnds: input.concentrationEnds,
+    endedGrants: input.endedGrants,
     pendingConcentration: input.pendingConcentration
   })
   const pending = input.pendingConcentration

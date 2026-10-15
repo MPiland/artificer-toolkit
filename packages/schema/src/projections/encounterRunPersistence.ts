@@ -276,10 +276,10 @@ export const encounterStoredRunCommandSchema = lazySchema(() =>
       label: z.nullable(z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160))),
       /** Warnings the submitter overrode ("Do it anyway"); the GM timeline badges each one. */
       ruleOverrides: encounterRuleWarningsDtoSchema,
-      /** The grants (Vicious Mockery, Help) this action's rolls used up; its undo gives them back. */
+      /** The grants (Vicious Mockery, Help) this action's rolls used up and the grants its incapacitations ended; its undo gives them back. */
       consumedGrants: z
         .array(activeRuleEffectRecordSchema)
-        .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER)),
+        .check(z.maxLength(MAX_ENCOUNTER_ACTORS * MAX_ACTIVE_RULE_EFFECTS_PER_OWNER)),
       /** The Character this action newly added to the Run's `concentrationCasterCharacterIds`; its undo removes it. */
       addedConcentrationCasterId: z.nullable(postgresUuidSchema),
       /** The turn movement record a Dash's speed bonus was added to; its undo removes it. */
@@ -332,6 +332,17 @@ export const encounterStoredRunCommandSchema = lazySchema(() =>
           .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
         afterObserverActorIds: z.array(postgresUuidSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
         afterVersion: z.number().check(z.int()).check(z.positive())
+      })
+    }),
+    z.extend(encounterStoredRunCommandResultSchema, {
+      commandType: z.literal('END_HELD_GRANT'),
+      /** The timeline label: plain "End effect", which never names a source a player cannot see. */
+      label: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)),
+      ruleOverrides: encounterRuleWarningsDtoSchema,
+      /** What ending the grant spent. The ended grant itself is not restored by an undo (D99). */
+      receipt: z.strictObject({
+        actorId: postgresUuidSchema,
+        actionEconomy: z.nullable(encounterActionEconomyTransitionDtoSchema)
       })
     }),
     z.extend(encounterStoredRunCommandResultSchema, {

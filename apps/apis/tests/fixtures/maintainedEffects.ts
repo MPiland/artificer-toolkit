@@ -56,6 +56,8 @@ export function definition(
       recurrenceStage: 'NONE',
       consumeOnFirstEvents: [],
       endOnEvents: [],
+      endOnConditionIds: [],
+      holderEnd: null,
       lifetimeScope: 'ENCOUNTER',
       expiration: {
         kind: 'TICKS',

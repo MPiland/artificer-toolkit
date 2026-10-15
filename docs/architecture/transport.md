@@ -339,6 +339,14 @@ are never rendered. Hydration retries only the client's transient interrupted-ac
 twice; authority and consistency failures are not retried. Native presentation writes retain command
 IDs and presentation CAS.
 
+An effect whose holder may end it (`recurrence.holderEnd`, D113) is offered in the action choices as
+`heldGrantEnds` (`activeEffectId`, label, `actionCost`, `warnings`). The holder ends it with the
+`END_HELD_GRANT` Run command (`EndHeldGrantInputDto`: `actorId`, `activeEffectId`, `acknowledgedWarnings`), which spends that activation
+and is refused for another member, an effect already ended, or an activation not available. The live commit
+payloads (action, area, cleaving, concentration and turn) carry the grants the engine ended as `endedGrants`.
+The Sheet `END_ACTIVE_EFFECT` command ends a `holderEnd` effect for its own player only when the Run is not live: in an
+ACTIVE Encounter that holds the Character, a costed end is refused with "End this effect from the Encounter actions."
+
 Half-speed fields (SPELLS-17): the voluntary `MOVE_SCENE_TOKEN` command carries an optional `carefully` flag
 (forced and teleport movement ignore it). The held `ENCOUNTER_SESSION` frame and `encounters/activeReads:active`
 carry `halfSpeedFields` (`encounterSessionStateDtoSchema`: `id`, `label`, `shape`), listing only the visible zones

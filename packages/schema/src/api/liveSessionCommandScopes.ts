@@ -1,17 +1,19 @@
 import { z, lazySchema } from '../zod.js'
 import { advanceEncounterTurnInputDtoSchema } from './encounters.js'
 import {
+  endHeldGrantInputDtoSchema,
   escapeRelationshipInputDtoSchema,
   resolveCheckActionInputDtoSchema,
   resolveEncounterActionInputDtoSchema,
   resolveRuleOccurrenceInputDtoSchema
 } from './encounterRuleCommands.js'
 
-/** A CHECK action or an Escape, or the answer to the check either started (First Aid, Escape). */
+/** A CHECK action, an Escape or the end of a held grant, or the answer to the check either of the first two started. */
 export const liveSessionEncounterBasicActionCommandSchema = lazySchema(() =>
   z.discriminatedUnion('type', [
     resolveCheckActionInputDtoSchema,
     escapeRelationshipInputDtoSchema,
+    endHeldGrantInputDtoSchema,
     resolveRuleOccurrenceInputDtoSchema
   ])
 )

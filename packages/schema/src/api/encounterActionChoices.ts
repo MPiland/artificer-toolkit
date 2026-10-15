@@ -153,6 +153,21 @@ export const encounterEscapeChoiceDtoSchema = lazySchema(() =>
   })
 )
 
+/**
+ * A grant the actor holds and may end itself (D113): the end-grant offer. The client submits
+ * `activeEffectId`; the grant's own `holderEnd` names the cost.
+ */
+export const encounterHeldGrantEndChoiceDtoSchema = lazySchema(() =>
+  z.strictObject({
+    activeEffectId: postgresUuidSchema,
+    /** "End <grant source>", or "End effect" when the source is hidden from the requester. */
+    label: labelSchema,
+    actionCost: z.enum(['ACTION', 'BONUS_ACTION', 'REACTION', 'FREE']),
+    /** Soft-rule warnings that already apply, as for `actions`. */
+    warnings: encounterRuleWarningsDtoSchema
+  })
+)
+
 export const encounterActionChoicesDtoSchema = lazySchema(() =>
   z.strictObject({
     encounterId: postgresUuidSchema,
@@ -183,6 +198,10 @@ export const encounterActionChoicesDtoSchema = lazySchema(() =>
     /** One entry per escapable relationship the actor holds. */
     escapes: z
       .array(encounterEscapeChoiceDtoSchema)
+      .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER)),
+    /** One entry per grant the actor holds that lets its holder end it. */
+    heldGrantEnds: z
+      .array(encounterHeldGrantEndChoiceDtoSchema)
       .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER)),
     optionalRules: z.array(z.strictObject({ definitionId: postgresUuidSchema, label: labelSchema }))
   })
@@ -239,6 +258,7 @@ export type GetEncounterActionChoicesInputDto = z.infer<
 >
 export type EncounterActionChoiceDto = z.infer<typeof encounterActionChoiceDtoSchema>
 export type EncounterEscapeChoiceDto = z.infer<typeof encounterEscapeChoiceDtoSchema>
+export type EncounterHeldGrantEndChoiceDto = z.infer<typeof encounterHeldGrantEndChoiceDtoSchema>
 export type EncounterActionChoicesDto = z.infer<typeof encounterActionChoicesDtoSchema>
 export type EncounterActionChoicesResponseDto = z.infer<
   typeof encounterActionChoicesResponseDtoSchema

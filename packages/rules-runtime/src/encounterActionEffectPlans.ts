@@ -337,6 +337,8 @@ function prepareRecurringActiveEffect(
         ? ['ON_ATTACK_ROLL']
         : (grantContribution?.consumeOnFirstEvents ?? []),
       endOnEvents: grantContribution?.endOnEvents ?? [],
+      endOnConditionIds: grantContribution?.endOnConditionIds ?? [],
+      holderEnd: grantContribution?.holderEnd ?? null,
       // A grant outlasts the Encounter when the target's lifetime scope says so. A Concentration
       // grant keeps its maintenance link while the Run lasts and is detached from it at COMPLETE.
       lifetimeScope: grantContribution ? input.target.lifetimeScope : 'ENCOUNTER',
@@ -486,6 +488,8 @@ function prepareTargetStateEffect(
       recurrenceStage: 'NONE',
       consumeOnFirstEvents: [],
       endOnEvents: [],
+      endOnConditionIds: [],
+      holderEnd: null,
       lifetimeScope: input.target.lifetimeScope,
       expiration: { kind: 'INDEFINITE' }
     },

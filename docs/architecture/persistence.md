@@ -293,6 +293,12 @@ store.
   Scene vision. `encounterRuns` carries the creation key (`createCommandId`,
   `createCommandFingerprint`, index `by_campaignId_createCommandId`) so a `runs.create` retry returns
   the same Run after COMPLETE. Run deletion and Campaign deletion delete the remaining rows too.
+- **Ended grants and undo (D113):** state-bound grants the engine ends (incapacitation or defeat for `ON_INCAPACITATED` grants, a named Condition for `endOnConditionIds`) are deleted in
+  the same commit. A `RESOLVE_ACTION`, area or cleaving root keeps them in `consumedGrants` (`receiptConsumedGrants`,
+  `addEndedGrantsToRoot`), so `REVERT_LAST_ACTION` restores them with the consumed grants. The commit validates every
+  `endedGrants` record against the stored effect and the holder's state, not the client's claim
+  (`concentrationChildrenPersistence.ts`). A holder-ended grant is the stored Run command `END_HELD_GRANT`; like any costed
+  Run command it blocks undo of the prior action (D99).
 - **No Convex timeline:** the timeline and latest evidence roll are read only from the room. Encounter
   commands write no Character receipts, and the Character history API is removed.
 

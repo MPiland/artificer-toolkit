@@ -108,7 +108,8 @@ describe('Character rule contracts', () => {
       proficiencyBonus: 2,
       abilities: [],
       skills: [],
-      spellcasting: null
+      spellcasting: null,
+      spellcastingLocked: false
     })
     const output = characterActionModelOutputSchema.parse({
       actionDecisions: [],

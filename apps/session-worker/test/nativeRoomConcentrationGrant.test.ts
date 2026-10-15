@@ -96,6 +96,63 @@ function wardFeature(input: { seed: number; label: string; self: boolean }): Cla
 const selfWard = wardFeature({ seed: 0xd100, label: 'Self Ward', self: true })
 const targetedWard = wardFeature({ seed: 0xd200, label: 'Targeted Ward', self: false })
 
+/** A Fighter Feature whose 1-minute self grant keeps its holder from casting spells or holding Concentration. */
+const spellLock: ClassFeature = {
+  id: testUuid(0xd400),
+  label: 'Spell Lock',
+  description: 'Seals the holder’s spellcasting for a minute.',
+  availableAtLevel: 1,
+  order: 1,
+  effects: [
+    {
+      id: testUuid(0xd401),
+      order: 1,
+      invocation: {
+        kind: 'ACTION',
+        triggerCode: 'ACTIVATED',
+        activation: { code: 'ACTION', amount: 1 },
+        range: { id: testUuid(0xd402), rangeKind: 'SELF' },
+        targeting: { selectionKind: 'SELF' }
+      },
+      paths: [
+        {
+          id: testUuid(0xd403),
+          order: 1,
+          pathCode: 'ON_USE',
+          groupType: 'SINGLE',
+          originKind: 'SOURCE',
+          selectionKind: 'FIXED',
+          resultBlock: {
+            id: testUuid(0xd404),
+            resultKind: 'SINGLE',
+            duration: { id: testUuid(0xd405), durationKind: 'MINUTE', amount: 1 },
+            outcomes: [
+              {
+                id: testUuid(0xd406),
+                effectKind: 'APPLY_GRANT',
+                grants: {
+                  modifiers: [
+                    {
+                      id: testUuid(0xd407),
+                      grantKind: 'MODIFIER_GRANT',
+                      valueDomainCode: 'SPELLCASTING_LOCK',
+                      domain: {},
+                      modifierKind: 'ENABLE',
+                      scope: 'GLOBAL',
+                      selectionKind: 'GRANTED',
+                      order: 1
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
+
 function wardRoom(seed?: ActionRoomConfig['seed']) {
   return actionRoom({
     seed,
@@ -104,7 +161,7 @@ function wardRoom(seed?: ActionRoomConfig['seed']) {
       characterActor({ id: FIGHTER_ACTOR_ID, characterId: FIGHTER_ID }),
       srdCreatureActor({ id: WOLF_ID, creature: plainWolf })
     ],
-    characterClassFeatures: [selfWard, targetedWard],
+    characterClassFeatures: [selfWard, targetedWard, spellLock],
     characterAction: (action) => action.label.includes('Self Ward')
   })
 }
@@ -224,5 +281,40 @@ describe('a grant that needs Concentration (SPELLS-5.7)', () => {
     const after = await readRoomHistory(room.room.base.stub)
     expect(after.maintainedStates).toEqual([])
     expect(after.characterEffects).toEqual([])
+  })
+
+  it('ends with the Concentration when a spellcasting lock is applied, and refuses a new Concentration while it is held (D95)', async () => {
+    const room = await wardRoom()
+    const ward = await room.startAction(FIGHTER_ACTOR_ID)
+    expect(ward.answer.type, JSON.stringify(ward.answer)).toBe('COMMAND_COMMITTED')
+    expect((await readRoomHistory(room.room.base.stub)).characterEffects).toHaveLength(1)
+
+    const lockActionId = (await room.actionChoices()).actions.find(({ label }) =>
+      label.includes('Spell Lock')
+    )?.id
+    if (!lockActionId) throw new Error('The Fighter offers no Spell Lock.')
+    // Both actions use the turn's one Action: the second is a soft override.
+    const locked = await room.startAction(
+      FIGHTER_ACTOR_ID,
+      ['ACTION_ECONOMY_UNAVAILABLE'],
+      null,
+      null,
+      lockActionId
+    )
+    expect(locked.answer.type, JSON.stringify(locked.answer)).toBe('COMMAND_COMMITTED')
+    const afterLock = await readRoomHistory(room.room.base.stub)
+    // The ward ended with the Concentration; the lock grant, which needs none, is what remains.
+    expect(afterLock.maintainedStates).toEqual([])
+    expect(afterLock.characterEffects).toHaveLength(1)
+    expect(afterLock.characterEffects[0]!.maintainedEffectStateId).toBeNull()
+
+    const refused = await room.startAction(FIGHTER_ACTOR_ID, ['ACTION_ECONOMY_UNAVAILABLE'])
+    expect(refused.answer).toMatchObject({
+      type: 'COMMAND_REJECTED',
+      reason: 'SOURCE_REQUIREMENTS_NOT_MET'
+    })
+    const afterRefusal = await readRoomHistory(room.room.base.stub)
+    expect(afterRefusal.maintainedStates).toEqual([])
+    expect(afterRefusal.characterEffects).toHaveLength(1)
   })
 })

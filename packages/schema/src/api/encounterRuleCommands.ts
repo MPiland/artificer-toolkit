@@ -239,6 +239,20 @@ export const escapeRelationshipInputDtoSchema = lazySchema(() =>
   })
 )
 
+/**
+ * The current actor ends a grant it holds that lets its holder end it (D113), spending the
+ * activation the grant's `holderEnd` names. `activeEffectId` names the grant.
+ */
+export const endHeldGrantInputDtoSchema = lazySchema(() =>
+  z.extend(commandBaseDtoSchema, {
+    type: z.literal('END_HELD_GRANT'),
+    actorId: uuidSchema,
+    activeEffectId: postgresUuidSchema,
+    /** Assisted-mode warnings the submitter chose to override ("Do it anyway"). */
+    acknowledgedWarnings: z._default(z.optional(encounterAcknowledgedRuleWarningsDtoSchema), [])
+  })
+)
+
 const requestIdSchema = lazySchema(() =>
   z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(256))
 )
@@ -384,6 +398,7 @@ export const revertLastEncounterActionInputDtoSchema = lazySchema(() =>
 )
 export type ResolveEncounterActionInputDto = z.infer<typeof resolveEncounterActionInputDtoSchema>
 export type EscapeRelationshipInputDto = z.infer<typeof escapeRelationshipInputDtoSchema>
+export type EndHeldGrantInputDto = z.infer<typeof endHeldGrantInputDtoSchema>
 export type ResolveRuleOccurrenceInputDto = z.infer<typeof resolveRuleOccurrenceInputDtoSchema>
 export type VoidRuleOccurrenceInputDto = z.infer<typeof voidRuleOccurrenceInputDtoSchema>
 export type RemoveAreaTargetInputDto = z.infer<typeof removeAreaTargetInputDtoSchema>
