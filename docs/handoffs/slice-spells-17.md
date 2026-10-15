@@ -73,7 +73,7 @@ Read first:
 
 ## SPELLS-17.T1 (AC 17.2): pass-through triggers
 
-**Status:** code and tests green; see the log below. Closes AC 17.2.
+**Status:** DONE, merged e58b9dad8 (2026-10-15); CI 38769788109 and the local reset, seed and audit green. Closes AC 17.2.
 
 The SRD says "Any creature that enters the area must make the save", so a move that passes through a field and ends outside it enters the area; no ruling is needed. `ENTER_OR_PASS_THROUGH` already exists as a generic option (schema enum, node map, `ZONE_INTERACTION_TRIGGER_MODES` to ENTER and CROSS), so the fix is data only: no Caltrops branch.
 
