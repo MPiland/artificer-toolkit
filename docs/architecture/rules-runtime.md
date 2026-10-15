@@ -163,9 +163,13 @@ totals, a Legendary Action's (`recordActionRollCards`), each Recharge d6 (source
 turn-start death save and, under `DECLARED_ACTION_ROLL`, each declared actor's initiative die (ENCOUNTER-9,
 the same `INITIATIVE` card `ROLL_ACTOR_INITIATIVE` posts, both built by the one `initiativeRollRecord`,
 written by `persistEncounterInitiativeRollCards` in the terminal turn commit from the settled
-`root.initiative` evidence; a flat score and tie-resolution dice post none, and a result of several dice or
-a die that is not a logged `1dN` throws. Declared advantage and disadvantage are **target** behavior
-(ENCOUNTER-10): the shipped declared graph rolls one d20 and ignores the roll-mode fact). A die settled by a `SYSTEM_ROLL` answer already has its
+`root.initiative` evidence; a flat score and tie-resolution dice post none, and a result of more than two
+dice or a die that is not a logged `1dN` throws. **Declared advantage and disadvantage (ENCOUNTER-10,
+current):** the declared graph's `d20-extra` node (`evidence.optional-integer-range`, which asks for its
+die only while the `initiative.extra-d20` fact is true) and its `number.keep-by-roll-mode` node roll two
+d20s and keep the higher or lower under the policy's resolved roll mode; the card replays both faces under
+that mode, so it matches the GM-rolled card. A tie resolver pinned to the same graph rolls its attempts
+the same way.) A die settled by a `SYSTEM_ROLL` answer already has its
 "Rolled by the app" attempt card, so the commit skips it; an auto-rolled or entered die (including one
 entered after an app roll) is carded at commit. `readAppCardedDice`
 (`packages/encounter-persistence/src/appCardedDice.ts`) decides this

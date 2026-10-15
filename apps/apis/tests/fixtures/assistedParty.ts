@@ -50,8 +50,11 @@ const createRun = makeFunctionReference<
  * dice. The prepared Run seats both Characters against one SRD Wolf; the room is attached and nothing
  * has started.
  */
-export async function assistedPartyFixture() {
-  const base = await setupCharacterRun({}, longsword)
+export async function assistedPartyFixture(
+  /** Options for the party's class, shared by Aria and Bryn, such as a feature that changes how they roll initiative. */
+  classOptions: Parameters<typeof setupCharacterRun>[0] = {}
+) {
+  const base = await setupCharacterRun(classOptions, longsword)
   const { campaign } = base
   const gm = base.owner
   const ariaPlayer = base.player
@@ -97,10 +100,11 @@ export async function assistedPartyFixture() {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     subjects: [importedSubject({ ...srdWolf, subjectKind: 'CREATURE', document: srdWolf })]
   })
-  const { version, updatedAt: _updatedAt, ...settings } = await gm.caller.query(
-    api.campaigns.playSettings.get,
-    { campaignId: campaign.id }
-  )
+  const {
+    version,
+    updatedAt: _updatedAt,
+    ...settings
+  } = await gm.caller.query(api.campaigns.playSettings.get, { campaignId: campaign.id })
   await gm.caller.mutation(api.campaigns.playSettings.save, {
     ...settings,
     expectedVersion: version,
