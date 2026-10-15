@@ -330,14 +330,14 @@ describe('basic combat actions in the room (Q11)', () => {
 
     const before = await base.version()
     const budgetBefore = await turnBudget(base, base.companion.id)
-    const result = await base.gm(await resolveBasicAction(base, base.companion.id, 'Hide'))
+    const result = await base.gm(await resolveBasicAction(base, base.companion.id, 'Use an Object'))
     expect(result.projection.version).toBe(before + 1)
     const companion = await actorState(base, base.companion.id)
     expect(await activeEffectCount(base, base.companion.id)).toBe(0)
     expect(await turnBudget(base, base.companion.id)).toBe(budgetBefore)
     expect(encounterRuleUsageUsed(companion, SRD_ACTION_ALLOWANCE_DEFINITION_ID)).toBe(1)
     const entries = await readRoomTimeline(base.owner.caller, base.campaign.id)
-    expect(entries[0]).toMatchObject({ commandType: 'RESOLVE_ACTION', label: 'Hide' })
+    expect(entries[0]).toMatchObject({ commandType: 'RESOLVE_ACTION', label: 'Use an Object' })
   })
 
   it('Dash spends the action and adds the speed to this turn’s budget; a second one warns first', async () => {

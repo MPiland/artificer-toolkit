@@ -62,9 +62,9 @@ describe('canonical Convex import preparation', () => {
       Disengage: ['ACTION', ['APPLY_GRANT']],
       Dodge: ['ACTION', ['APPLY_GRANT']],
       Help: ['ACTION', ['APPLY_GRANT']],
-      Hide: ['ACTION', ['MANUAL_ADJUDICATION']],
+      Hide: ['ACTION', ['CONCEAL_FROM_OBSERVERS']],
       Ready: ['ACTION', ['MANUAL_ADJUDICATION']],
-      Search: ['ACTION', ['MANUAL_ADJUDICATION']],
+      Search: ['ACTION', ['DETECT_CONCEALED']],
       'Use an Object': ['ACTION', ['MANUAL_ADJUDICATION']],
       'First Aid': ['ACTION', ['STABILIZE']]
     })
@@ -201,7 +201,9 @@ describe('canonical Convex import preparation', () => {
     })
     expect(maintenance?.checksum).toBe(checksumRuleDocument(maintenance?.document))
     expect(
-      definitions.some((definition) => definition.id === SRD_DND5E_CONCENTRATION_CHECK_DEFINITION_ID)
+      definitions.some(
+        (definition) => definition.id === SRD_DND5E_CONCENTRATION_CHECK_DEFINITION_ID
+      )
     ).toBe(true)
   })
 
