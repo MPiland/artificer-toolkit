@@ -1488,8 +1488,10 @@ it('merges private checkpoint rolls into global owner history without changing r
         {
           ...incoming[0],
           gmCampaignRoll: {
-            ...incoming[0].gmCampaignRoll,
-            campaignId: foreign.id
+            campaignId: foreign.id,
+            creature: null,
+            revealedAt: null,
+            noticedAt: null
           }
         }
       ],

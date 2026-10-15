@@ -214,6 +214,8 @@ export async function fixture(
   const activationFingerprint = 'a'.repeat(64)
   const userId = crypto.randomUUID()
   const playerId = crypto.randomUUID()
+  /** A second player, who joins the room's members only where a test adds them. */
+  const otherPlayerId = crypto.randomUUID()
   const issuedAt = Math.floor(Date.now() / 1_000)
   const ticket = await signTicket({
     authorityEpoch,
@@ -231,6 +233,7 @@ export async function fixture(
   const issueAccessToken = (expirationTime: number) => issueAccessTokenFor(userId, expirationTime)
   const accessToken = await issueAccessToken(issuedAt + accessTokenSeconds)
   const playerAccessToken = await issueAccessTokenFor(playerId, issuedAt + 3_600)
+  const otherPlayerAccessToken = await issueAccessTokenFor(otherPlayerId, issuedAt + 3_600)
   const capture: LiveSessionTransientCapture = {
     campaignId,
     origin: { membershipEpoch: new Date().toISOString(), role: 'OWNER', userId },
@@ -344,7 +347,9 @@ export async function fixture(
             ? accessToken
             : body.expectedUserId === playerId
               ? playerAccessToken
-              : null
+              : body.expectedUserId === otherPlayerId
+                ? otherPlayerAccessToken
+                : null
         expect(request.headers.get('authorization')).toBe(`Bearer ${expectedAccessToken}`)
         expect(body).toMatchObject({ campaignId })
         return Response.json({
@@ -449,6 +454,8 @@ export async function fixture(
     issueAccessToken,
     issuedAt,
     messages,
+    otherPlayerAccessToken,
+    otherPlayerId,
     playerAccessToken,
     playerId,
     request,
@@ -460,13 +467,18 @@ export async function fixture(
 
 export type LiveRoomFixture = Awaited<ReturnType<typeof fixture>>
 
-export async function connectPlayer(base: LiveRoomFixture) {
+/** A socket for the room's player, or for its second player where a test added them as a member. */
+export async function connectPlayer(
+  base: LiveRoomFixture,
+  who: 'PLAYER' | 'OTHER_PLAYER' = 'PLAYER'
+) {
+  const subject = who === 'PLAYER' ? base.playerId : base.otherPlayerId
   const ticket = await signTicket({
     authorityEpoch: base.authorityEpoch,
     campaignId: base.capture.campaignId,
     issuedAt: base.issuedAt,
     role: 'PLAYER',
-    subject: base.playerId
+    subject
   })
   const response = await base.stub.fetch(base.request(ticket))
   const socket = response.webSocket
@@ -477,7 +489,12 @@ export async function connectPlayer(base: LiveRoomFixture) {
     messages.push(liveSessionWebSocketServerMessageDtoSchema.parse(JSON.parse(String(event.data))))
   })
   socket.accept()
-  socket.send(JSON.stringify({ type: 'AUTHENTICATE', accessToken: base.playerAccessToken }))
+  socket.send(
+    JSON.stringify({
+      type: 'AUTHENTICATE',
+      accessToken: who === 'PLAYER' ? base.playerAccessToken : base.otherPlayerAccessToken
+    })
+  )
   await vi.waitFor(() =>
     expect(messages.some((message) => message.type === 'TRANSIENT_READY')).toBe(true)
   )

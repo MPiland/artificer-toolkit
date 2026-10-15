@@ -201,11 +201,11 @@ export async function executeRoomCampaignChatCommand(input: {
     const retained = readRoomPrivateRoll(transaction, userId, rollId.toLowerCase())
     // Rolls made before the live table started are Convex-only: the room holds no bounded scope
     // to hydrate them from, so reveal waits until the session ends.
-    if (!retained || retained.gmCampaignRoll.campaignId !== campaignId)
+    const gmCampaignRoll = retained?.gmCampaignRoll
+    if (!retained || !gmCampaignRoll || gmCampaignRoll.campaignId !== campaignId)
       throw new CampaignChatCommandError(
         'This roll was made before the live table started; reveal it after the session.'
       )
-    const { gmCampaignRoll } = retained
     const refusal = readRollRevealRefusal(gmCampaignRoll, mode)
     if (refusal) throw new CampaignChatCommandError(refusal)
     const access = await openConversation(ctx, authority, 'TABLE', requirePeer)

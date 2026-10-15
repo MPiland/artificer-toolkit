@@ -204,6 +204,7 @@ export interface ActionRoomConfig extends Pick<
   | 'automationMode'
   | 'autoRoll'
   | 'playerControlledActorIds'
+  | 'otherPlayerControlledActorIds'
   | 'sceneOverrides'
   | 'sceneGrid'
   | 'optionalCombatKinds'
@@ -474,9 +475,15 @@ export async function actionRoom(config: ActionRoomConfig) {
         ...overrides
       }
     },
-    /** Sends `command` on a player's socket instead of the GM's; the room's answer. */
-    async sendAsPlayer(command: Record<string, unknown> & { commandId: string }) {
-      const player = await connectPlayer(room.base)
+    /**
+     * Sends `command` on a player's socket instead of the GM's; the room's answer. `who` is the
+     * room's player, or its second player when the room was built with one.
+     */
+    async sendAsPlayer(
+      command: Record<string, unknown> & { commandId: string },
+      who: 'PLAYER' | 'OTHER_PLAYER' = 'PLAYER'
+    ) {
+      const player = await connectPlayer(room.base, who)
       const first = player.messages.length
       player.socket.send(
         JSON.stringify({

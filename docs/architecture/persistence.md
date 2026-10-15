@@ -131,7 +131,8 @@ pass `finalSequence`. It applies the records and patches the authority row in th
   value before the write: ordinal uniqueness is checked on the final state (a claim set within the batch plus a
   holder check that ignores rows the batch rewrites), and fog saves and chunks written in the same checkpoint
   are validated from the batch, with only earlier-checkpoint rows read from the database.
-- `retainedRolls` merge into the Campaign owner's `userRollHistory`.
+- `retainedRolls` merge into the owner's `userRollHistory`, and into a Campaign member's own history for
+  a hidden creature that member controls (ATTACK-17.5); the member's copy has `gmCampaignRoll: null`.
 
 **Receipt ledgers** (D70, D71; `lib/receiptLedgers.ts`, `lib/receiptLedgerSchema.ts`,
 `packages/schema/src/projections/receiptLedgerPersistence.ts`). Immutable history payloads are packed once

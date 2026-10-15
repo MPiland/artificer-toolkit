@@ -293,6 +293,17 @@ export async function executeRoomEncounterCommand(input: {
     command.type === 'START' ||
     command.type === 'COMPLETE' ||
     (removed !== null && readStoredRunActor(removed).kind === 'CHARACTER')
+  // The dice of a roll kept from the table are shown only to the users who hold its private card
+  // (the roller among them), never to other recipients of the command.
+  const privateCardHolders = new Set(
+    written.retainedPrivateRolls
+      .filter(
+        ({ roll }) =>
+          roll.id === result.evidenceRoll?.rollId &&
+          (roll.gmCampaignRoll === null || roll.gmCampaignRoll.revealedAt === null)
+      )
+      .map(({ userId: holderUserId }) => holderUserId)
+  )
   const recipients = new Map<string, EncounterCommandResultDto>()
   for (const recipient of new Set([userId, ...input.recipientUserIds])) {
     const { campaign, membership } = await context.ports.requireCampaignAuthority(
@@ -304,7 +315,14 @@ export async function executeRoomEncounterCommand(input: {
       await presentEncounterResultForMember(context, {
         campaign,
         membership,
-        result: { ...result, roll: recipient === userId ? result.roll : null }
+        result: {
+          ...result,
+          roll: recipient === userId ? result.roll : null,
+          evidenceRoll:
+            privateCardHolders.size === 0 || privateCardHolders.has(recipient)
+              ? result.evidenceRoll
+              : null
+        }
       })
     )
   }

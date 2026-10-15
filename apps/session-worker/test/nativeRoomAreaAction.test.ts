@@ -25,6 +25,7 @@ import {
   readPendingAreaForViewer,
   readRoomChatBodies,
   readRoomHistory,
+  readRoomPrivateRollHolders,
   readRoomRollCards,
   readRoomTimeline,
   type RoomHistory
@@ -1965,5 +1966,81 @@ describe('room area save prompt of a creature the caster cannot perceive', () =>
     )
     // Having answered, that roller has nothing left in the area to answer.
     expect(await viewAs(room, [PHANTOM_ID])).toBeNull()
+  })
+})
+
+describe('room area save card of an unperceived creature rolled by its own player (ATTACK-17.5)', () => {
+  const SEEN_ID = CAUGHT_IDS[0]!
+  const PHANTOM_ID = testUuid(0x714)
+  const INVISIBLE_ID = srdSystemRecord.conditionTypes.find(
+    (condition) => condition.code === 'INVISIBLE'
+  )?.id
+
+  /**
+   * A senseless caster the room's first player controls, a Wolf in plain sight, and an Invisible
+   * Wolf the caster cannot perceive whose roller is the room's second player; the first player
+   * starts the area.
+   */
+  async function twoPlayerRoom() {
+    const room = await actionRoom({
+      playerControlledActorIds: [CASTER_ID],
+      otherPlayerControlledActorIds: [PHANTOM_ID],
+      actors: [
+        srdCreatureActor({ id: CASTER_ID, creature: { ...fireballWolf(), senses: [] } }),
+        srdCreatureActor({ id: SEEN_ID, creature: plainWolf }),
+        srdCreatureActor({
+          id: PHANTOM_ID,
+          creature: { ...plainWolf, label: 'Phantom Wolf' },
+          conditionIds: INVISIBLE_ID ? [INVISIBLE_ID] : []
+        })
+      ],
+      ownerFeatureId: BITE_ID
+    })
+    const started = await room.startAreaAction({ x: 250, y: 150 }, [], 'PLAYER')
+    expect(started.answer.type, JSON.stringify(started.answer)).toBe('COMMAND_COMMITTED')
+    return room
+  }
+
+  it('answers the creature’s player with the roll and keeps it in only the GM’s and that player’s history', async () => {
+    const room = await twoPlayerRoom()
+    const { base } = room.room
+    const decision = await room.pendingDecision()
+    if (decision.pending.kind !== 'AREA_SAVES') throw new Error('Expected the area saves.')
+    const save = decision.pending.saves.find((entry) => entry.actorId === PHANTOM_ID)!
+    const answered = await room.sendAsPlayer(
+      {
+        type: 'ROLL_RULE_EVIDENCE',
+        encounterId: room.room.encounterId,
+        commandId: crypto.randomUUID(),
+        expectedVersion: decision.encounterVersion,
+        occurrenceId: decision.occurrence.id,
+        expectedOccurrenceVersion: decision.occurrence.version,
+        requestId: save.request.requestId,
+        rollMode: null
+      },
+      'OTHER_PLAYER'
+    )
+    if (answered.type !== 'COMMAND_COMMITTED' || answered.delta?.scope !== 'ENCOUNTER')
+      throw new Error(`Expected the committed save roll: ${JSON.stringify(answered)}`)
+    expect(answered.delta.result.roll).not.toBeNull()
+
+    const holders = await readRoomPrivateRollHolders(base.stub)
+    const rollId = answered.delta.result.roll!.id
+    expect(
+      holders.map(({ userId, rollId: held, gmCampaignRoll }) => ({
+        userId,
+        held,
+        bound: gmCampaignRoll !== null
+      }))
+    ).toEqual(
+      expect.arrayContaining([
+        { userId: base.userId, held: rollId, bound: true },
+        { userId: base.otherPlayerId, held: rollId, bound: false }
+      ])
+    )
+    expect(holders).toHaveLength(2)
+    expect(holders.map(({ userId }) => userId)).not.toContain(base.playerId)
+    const table = (await readRoomRollCards(base.stub)).filter((card) => card.audience === 'TABLE')
+    expect(JSON.stringify(table)).not.toContain('Phantom')
   })
 })

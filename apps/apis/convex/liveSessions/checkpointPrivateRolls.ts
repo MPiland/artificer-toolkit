@@ -27,13 +27,21 @@ export async function applyCheckpointPrivateRolls(
     .unique()
   if (!profile) throw new Error('Checkpoint private roll owner account is unavailable.')
   const seen = new Set<string>()
-  const pending: Array<Parameters<typeof retainUserRolls>[2][number]> = []
+  const pending = new Map<string, Array<Parameters<typeof retainUserRolls>[2][number]>>()
   for (const { userId, record, gmCampaignRoll } of rolls) {
-    if (
-      userId !== campaign.ownerUserId ||
-      record.ruleset.systemId !== campaign.gameSystemId ||
-      gmCampaignRoll.campaignId !== frame.campaignId
-    )
+    // The GM's copy carries the reveal binding; a member's own copy of a hidden creature they
+    // control (D62) carries none.
+    const belongs =
+      userId === campaign.ownerUserId
+        ? gmCampaignRoll?.campaignId === frame.campaignId
+        : gmCampaignRoll === null &&
+          (await ctx.db
+            .query('campaignMemberships')
+            .withIndex('by_campaignId_userId', (query) =>
+              query.eq('campaignId', frame.campaignId).eq('userId', userId)
+            )
+            .unique()) !== null
+    if (!belongs || record.ruleset.systemId !== campaign.gameSystemId)
       throw new Error('Checkpoint private roll belongs to another owner, Campaign or System.')
     const identity = checksumCanonicalJson([userId, record.id])
     if (seen.has(identity)) throw new Error('Checkpoint private roll identity is duplicated.')
@@ -43,7 +51,7 @@ export async function applyCheckpointPrivateRolls(
       .withIndex('by_userId_id', (query) => query.eq('userId', userId).eq('id', record.id))
       .unique()
     if (!current) {
-      pending.push({ record, gmCampaignRoll })
+      pending.set(userId, [...(pending.get(userId) ?? []), { record, gmCampaignRoll }])
       continue
     }
     const {
@@ -56,17 +64,18 @@ export async function applyCheckpointPrivateRolls(
     } = current
     if (
       checksumCanonicalJson(existing) !== checksumCanonicalJson(record) ||
-      binding?.campaignId !== gmCampaignRoll.campaignId
+      (binding?.campaignId ?? null) !== (gmCampaignRoll?.campaignId ?? null)
     )
       throw new Error('Checkpoint private roll identity is reused.')
     // A reveal is never undone: the room's binding adds marks, it cannot clear a recorded one.
-    await ctx.db.patch(_id, {
-      gmCampaignRoll: {
-        ...gmCampaignRoll,
-        revealedAt: binding.revealedAt ?? gmCampaignRoll.revealedAt,
-        noticedAt: binding.noticedAt ?? gmCampaignRoll.noticedAt
-      }
-    })
+    if (binding && gmCampaignRoll)
+      await ctx.db.patch(_id, {
+        gmCampaignRoll: {
+          ...gmCampaignRoll,
+          revealedAt: binding.revealedAt ?? gmCampaignRoll.revealedAt,
+          noticedAt: binding.noticedAt ?? gmCampaignRoll.noticedAt
+        }
+      })
   }
-  await retainUserRolls(ctx, campaign.ownerUserId, pending)
+  for (const [userId, records] of pending) await retainUserRolls(ctx, userId, records)
 }
