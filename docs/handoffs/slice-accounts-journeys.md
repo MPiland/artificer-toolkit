@@ -1,6 +1,6 @@
 # Slice workbook: ACCOUNTS-1, ACCOUNTS-5, ACCOUNTS-8 and RELEASE-6 (account journeys and the live Campaign refusal)
 
-**Status:** OPEN (started 2026-10-14)
+**Status:** DONE, merged 72193db49 (2026-10-14)
 **Base:** `codex/phase-08-2-convex-cutover` at this workbook's commit.
 **Rules:** [slice-workbook-rules.md](slice-workbook-rules.md).
 
@@ -62,5 +62,22 @@ Journeys that pass on first run against already-working product code are accepta
 ## Status log
 
 - 2026-10-14: workbook written.
+- 2026-10-14: journeys added to the existing `--auth-browser`/`--profile-browser` proof (`apps/apis/tests/developmentDrafts.ts` driving `apps/web/tests/live-backend/authenticatedSession.ts`), run by `scripts/runLocalConvexProof.ps1` against the local Docker backend:
+  - ACCOUNTS-1: SSR sign-in, reload keeps the session (the reload response server-renders the signed-in shell, then hydrates on `/systems` with no sign-in bounce), a live native bearer resolves `api.account.identity` to the author, a forged bearer is refused (`InvalidAuthHeader`: "Could not decode token... does this key match any key in the provider's JWKS?"), and the unauthenticated client gets `Unauthenticated`.
+  - ACCOUNTS-5: a protected deep link (`/systems`) redirects to `/sign-in?redirect=/systems`; an email login and a username login each return to `/systems`.
+  - ACCOUNTS-8: two accounts, under Private and Public: the second account's browser view (page or "private or doesn't exist"), its native `publicProfile` read, the author's own `profile.visibility`, and Social eligibility equal to the pre-change baseline.
+- 2026-10-14: **Bug, auth proxy 400 on every browser sign-in (found by these journeys; data, not code).** The local deployment's env values had been set from a CRLF file and carried a trailing CR. The Convex function's HMAC key (`AUTH_PROXY_SECRET`) therefore differed by one byte from the web app's, so the `server-client-ip` plugin rejected every proxied request with 400. PowerShell splits native output on CR/LF, so equality and length checks hid it; only a raw byte read (`yarn convex env get` through node `spawnSync`) shows it. The OIDC discovery document also carried a literal `\r`. Rejections are now logged (`authFactory.helper.ts`: jose error name and message, never the token) and covered by `authProxyRejection.test.ts`. The main session re-set the affected vars (`AUTH_PROXY_SECRET`, `SITE_URL`, and nine others: `MEDIA_STORAGE_MODE`, `MAIL_DELIVERY_MODE`, `LIVE_SESSION_*`, `LOCAL_*`, `CONTENT_SNAPSHOT_TOKEN_SECRET`, `RULES_CONTINUATION_SECRET`). `BETTER_AUTH_SECRET` keeps its CR on purpose (a consistent value everywhere; changing it rotates the encrypted JWKS).
+- 2026-10-14: **Journey corrections (mine, not product bugs).** (1) D75 renders page bodies client-side, so the SSR signal after reload is the signed-in shell (`aria-label="Open account menu"`, which `Shell` passes as the `accountControl`; `Header` ignores `accountLabel` when one is given), not page content. (2) Better Auth allows 3 requests per 10 s on each sign-in path and answers the next with a 429. The journey signs in more often than that, so `signIn` waits out the window instead of depending on machine speed. (3) The live-backend `CAMPAIGN_NOT_FOUND` check used `instanceof ConvexError` from the web test directory; the workspace holds two `convex` copies (root and `apps/apis`, both 1.46.0), so the apis-side client throws a different class. It now uses `assertDomainRejection` from `apps/apis/tests/developmentClient.ts`.
+- 2026-10-14: **RELEASE-6.1 observed text** (campaign-membership browser run, player console, query `campaigns/queries:get`):
+  `ConvexError: [CONVEX Q(campaigns/queries:get)] [Request ID: <hex>] Server Error` then `Uncaught ConvexError: {"code":"DOMAIN_REJECTED","reason":"CAMPAIGN_NOT_FOUND","message":"Campaign not found."}`, then `  Called by client` and `    at ...` stack lines. The regexes expected an optional `Error: ` prefix only; the console prefix is `ConvexError: `. `queryDenial` (campaignMembership.ts) and `consoleDeparture` (sceneLiveDiagnostics.ts) now accept `(?:(?:Convex)?Error: )?`; the rest of both patterns matched the observed text unchanged. The React-boundary variants (`denialBoundary`, `liveDenialBoundary`) did not occur in the observed runs and are unchanged.
+- 2026-10-14: Stale `packages/*/dist` after the base merge produced 26 `typecheck:convex` errors and a Worker zod `valueKind` failure (close 1008 in scene-live). Rebuilding shared, schema, source-data, authoring, rules-runtime and encounter-persistence in that order cleared both. Not a branch defect.
+- Logs: `local-validation/accounts-journeys/` (`run5-*`, `run6-*` and `run7-*`: fixtures, web build, probe, per-proof logs and exit files, session worker and web app logs).
 
 ## Proposed ledger edits (filled by the slice session)
+
+Do not apply until the main session reviews the merge.
+
+- ACCOUNTS-1: `journeyStatus: "verified"`, drop `journeyGap`, `status: "DONE"`; `journeyTests`: add `apps/web/tests/live-backend/authenticatedSession.ts` and `apps/apis/tests/developmentDrafts.ts` (`scripts/runLocalConvexProof.ps1 -Proof profile-browser`; the `auth-browser` proof shares the same verification code but was not run in this slice); add `apps/apis/convex/authProxyRejection.test.ts`.
+- ACCOUNTS-5: `journeyStatus: "verified"`, drop `journeyGap`, `status: "DONE"`; `journeyTests`: add `apps/web/tests/live-backend/authenticatedSession.ts` and `apps/apis/tests/developmentDrafts.ts` (`--profile-browser`, `-Proof profile-browser`).
+- ACCOUNTS-8: `journeyStatus: "verified"`, drop `journeyGap`, `status: "DONE"`; `journeyTests`: add `apps/web/tests/live-backend/authenticatedSession.ts` and `apps/apis/tests/developmentDrafts.ts` (`--profile-browser`, `-Proof profile-browser`).
+- RELEASE-6: AC RELEASE-6.1 `status: "DONE"`, proof `apps/web/tests/live-backend/campaignMembership.ts` and `sceneLiveDiagnostics.ts` (`-Proof campaign-membership-browser`, `-Proof scene-live-browser`, logs `local-validation/accounts-journeys/run7-*`, observed text in the status log above); PBI `status: "DONE"`, `journeyTests` both files, `journeyStatus: "verified"`.

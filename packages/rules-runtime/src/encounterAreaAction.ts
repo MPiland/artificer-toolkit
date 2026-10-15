@@ -28,38 +28,40 @@ const OUT_OF_SIGHT: EncounterRuleWarningDto = {
   message: 'The area origin is out of sight.'
 }
 
-const POINT_AREA_SHAPE_KINDS: ReadonlySet<string> = new Set([
-  'SPHERE',
-  'CYLINDER',
-  'CIRCLE',
-  'CUBE'
-])
+const ROUND_AREA_SHAPE_KINDS: ReadonlySet<string> = new Set(['SPHERE', 'CYLINDER', 'CIRCLE'])
+
+const POINT_AREA_SHAPE_KINDS: ReadonlySet<string> = new Set([...ROUND_AREA_SHAPE_KINDS, 'CUBE'])
 
 const DIRECTED_AREA_SHAPE_KINDS: ReadonlySet<string> = new Set(['CONE', 'LINE', 'CUBE'])
 
 /**
  * Which target an area of `shapeKind` takes from `rangeKind`: a Self range over a cone, line or
- * cube takes an origin on the caster and a direction; any other range over a sphere, cylinder,
- * circle or cube takes a point. Null is a pairing this path cannot resolve (a wall or dome area, a
- * Self sphere, cylinder or circle, a cone or line with another range). This is the one support
- * table: the System compiler and the target policy both read it.
+ * cube takes an origin on the caster and a direction, and over a sphere, cylinder or circle it is
+ * centered on the caster and takes no aim; any other range over a sphere, cylinder, circle or cube
+ * takes a point. Null is a pairing this path cannot resolve (a wall or dome area, a cone or line
+ * with another range). This is the one support table: the System compiler and the target policy
+ * both read it.
  */
 export function encounterAreaTargetKind(
   rangeKind: string,
   shapeKind: string
-): 'POINT' | 'DIRECTED' | null {
-  if (rangeKind === 'SELF') return DIRECTED_AREA_SHAPE_KINDS.has(shapeKind) ? 'DIRECTED' : null
+): 'POINT' | 'DIRECTED' | 'CASTER_CENTERED' | null {
+  if (rangeKind === 'SELF') {
+    if (ROUND_AREA_SHAPE_KINDS.has(shapeKind)) return 'CASTER_CENTERED'
+    return DIRECTED_AREA_SHAPE_KINDS.has(shapeKind) ? 'DIRECTED' : null
+  }
   return POINT_AREA_SHAPE_KINDS.has(shapeKind) ? 'POINT' : null
 }
 
 /**
- * Which target a compiled action takes: a directed or point target for an AREA_CONTENTS action
- * ({@link encounterAreaTargetKind}), one creature for a policy that names no shape. Null is a policy
- * this path cannot resolve (an unsupported area, or per-path overrides): a hard refusal.
+ * Which target a compiled action takes: a directed, point or caster-centered target for an
+ * AREA_CONTENTS action ({@link encounterAreaTargetKind}), one creature for a policy that names no
+ * shape. Null is a policy this path cannot resolve (an unsupported area, or per-path overrides): a
+ * hard refusal.
  */
 export function encounterActionTargetKind(
   policy: CompiledActionTargetPolicy
-): 'ACTOR' | 'POINT' | 'DIRECTED' | null {
+): 'ACTOR' | 'POINT' | 'DIRECTED' | 'CASTER_CENTERED' | null {
   if (policy.pathOverrides.length !== 0) return null
   if (policy.targeting?.selectionKind === 'AREA_CONTENTS')
     return policy.shape === null
@@ -69,14 +71,15 @@ export function encounterActionTargetKind(
 }
 
 /**
- * The authored area of a point-taking policy: a sphere, cylinder or circle is a radius and a cube
- * is its edge. Null for an action that does not take a point.
+ * The authored area of a policy that takes a point or is centered on the caster: a sphere, cylinder
+ * or circle is a radius and a cube is its edge. Null for an action that takes neither.
  */
 function authoredPointArea(
   policy: CompiledActionTargetPolicy
 ): Extract<EncounterActionChoiceDto['target'], { kind: 'POINT' }>['area'] | null {
   const { shape } = policy
-  if (encounterActionTargetKind(policy) !== 'POINT' || shape === null) return null
+  const targetKind = encounterActionTargetKind(policy)
+  if ((targetKind !== 'POINT' && targetKind !== 'CASTER_CENTERED') || shape === null) return null
   if (shape.shapeKind === 'CUBE') return { kind: 'CUBE', edgeLength: shape.edgeLength }
   if (
     shape.shapeKind === 'SPHERE' ||
@@ -113,6 +116,8 @@ export function encounterActionChoiceTarget(
   policy: CompiledActionTargetPolicy | undefined
 ): EncounterActionChoiceDto['target'] {
   const area = policy ? authoredPointArea(policy) : null
+  if (area?.kind === 'RADIUS' && policy && encounterActionTargetKind(policy) === 'CASTER_CENTERED')
+    return { kind: 'CASTER_CENTERED', area }
   if (area) return { kind: 'POINT', area }
   const directedArea = policy ? authoredDirectedArea(policy) : null
   if (directedArea) return { kind: 'DIRECTED', area: directedArea }
@@ -159,6 +164,30 @@ export function evaluateEncounterDirectedAreaTarget(input: {
   return isDirectedAreaOriginOnToken({ token: input.sourceToken, origin: input.origin, shape })
     ? { shape, warnings: [] }
     : { refusal: 'ORIGIN_OFF_CASTER' }
+}
+
+/**
+ * Resolves a caster-centered area action from its policy: the radius to catch creatures with, drawn
+ * around the caster's token. No aim is taken, so no range or sight is checked, and every creature in
+ * the area is caught, so the single-target disposition rules (D99) do not apply. A refusal is hard
+ * and says why: the policy takes no centered area or its size is unsupported, or the caster has no
+ * token on the map.
+ */
+export function evaluateEncounterCasterCenteredAreaTarget(input: {
+  targetPolicy: CompiledActionTargetPolicy
+  grid: SceneGrid
+  /** The caster's token; null when it is not on the map. */
+  sourceToken: Pick<SceneToken, 'position'> | null
+}):
+  | { shape: SpatialPointAreaShape; warnings: EncounterRuleWarningDto[] }
+  | { refusal: 'UNSUPPORTED_AREA' | 'NO_CASTER_TOKEN' } {
+  const shape =
+    encounterActionTargetKind(input.targetPolicy) === 'CASTER_CENTERED'
+      ? compileEncounterPointArea(input.targetPolicy, input.grid)
+      : null
+  if (!shape) return { refusal: 'UNSUPPORTED_AREA' }
+  if (input.sourceToken === null) return { refusal: 'NO_CASTER_TOKEN' }
+  return { shape, warnings: [] }
 }
 
 /**

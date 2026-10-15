@@ -8,11 +8,12 @@ import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { plainWolf } from '../src/testing/movementPlannerFixture.js'
 import { actionRoom } from './actionRoomFixture.js'
 import { areaReceipts, vitalsOf } from './areaRoomReads.js'
-import { closeTrackedSockets } from './liveRoomFixture.js'
+import { closeTrackedSockets, connectPlayer } from './liveRoomFixture.js'
 import {
   readPendingActionDecision,
   readPendingAreaForViewer,
   readRoomChatBodies,
+  readRoomPrivateRollHolders,
   readRoomRollCards,
   readRoomHistory,
   readRoomTimeline,
@@ -85,11 +86,12 @@ function fireballCaster() {
  * out of it. The five dice of the damage roll come up 2, so Fireball deals 10: 10 on a failed save,
  * 5 on a success.
  */
-async function journeyRoom() {
+async function journeyRoom(options: { otherPlayerControlledActorIds?: readonly string[] } = {}) {
   const { creature, featureId } = fireballCaster()
   const wolf = (label: string) => ({ ...plainWolf, label })
   return actionRoom({
     playerControlledActorIds: [CASTER_ID],
+    otherPlayerControlledActorIds: options.otherPlayerControlledActorIds,
     rolls: [1, 1, 1, 1, 1],
     actors: [
       srdCreatureActor({ id: CASTER_ID, creature }),
@@ -261,5 +263,109 @@ describe('Fireball journey', () => {
     })
     expect(undone.type, JSON.stringify(undone)).toBe('COMMAND_COMMITTED')
     expect(vitalsOf(await readRoomHistory(stub))).toEqual(vitalsOf(before))
+  })
+})
+
+describe('Fireball journey: a creature the caster cannot perceive, rolled by its own player (ATTACK-17.5)', () => {
+  /** The room's answers to one command, in the order a member's socket received them. */
+  const answersTo = (
+    messages: Awaited<ReturnType<typeof connectPlayer>>['messages'],
+    commandId: string
+  ) =>
+    messages.flatMap((message) =>
+      message.type === 'COMMAND_COMMITTED' && message.commandId === commandId ? [message.delta] : []
+    )
+  const privateRollsIn = (deltas: ReturnType<typeof answersTo>) =>
+    deltas.flatMap((delta) =>
+      delta?.scope === 'CAMPAIGN_CHAT' && delta.privateRoll ? [delta.privateRoll] : []
+    )
+  const encounterRollIn = (deltas: ReturnType<typeof answersTo>) =>
+    deltas.flatMap((delta) => (delta?.scope === 'ENCOUNTER' ? [delta.result.roll] : []))
+  const evidenceRollIn = (deltas: ReturnType<typeof answersTo>) =>
+    deltas.flatMap((delta) => (delta?.scope === 'ENCOUNTER' ? [delta.result.evidenceRoll] : []))
+
+  it('shows the roll to that player and the GM alone, never the caster or the table', async () => {
+    const room = await journeyRoom({ otherPlayerControlledActorIds: [PHANTOM_ID] })
+    const { base } = room.room
+    const caster = await connectPlayer(base)
+    const phantomPlayer = await connectPlayer(base, 'OTHER_PLAYER')
+
+    // The caster's player casts the area over a creature they cannot perceive.
+    const started = await room.startAreaAction({ x: 50, y: 150 }, [], 'PLAYER')
+    expect(started.answer.type, JSON.stringify(started.answer)).toBe('COMMAND_COMMITTED')
+
+    // The creature's own player presses "Roll dice" for its save.
+    const decision = await room.pendingDecision()
+    if (decision.pending.kind !== 'AREA_SAVES') throw new Error('Expected the area saves.')
+    const save = decision.pending.saves.find((entry) => entry.actorId === PHANTOM_ID)
+    if (!save) throw new Error('The creature has no pending save.')
+    const commandId = crypto.randomUUID()
+    phantomPlayer.socket.send(
+      JSON.stringify({
+        type: 'COMMAND',
+        expectedSessionSequence: 0,
+        command: {
+          scope: 'ENCOUNTER',
+          command: {
+            type: 'ROLL_RULE_EVIDENCE',
+            encounterId: room.room.encounterId,
+            commandId,
+            expectedVersion: decision.encounterVersion,
+            occurrenceId: decision.occurrence.id,
+            expectedOccurrenceVersion: decision.occurrence.version,
+            requestId: save.request.requestId,
+            rollMode: null
+          }
+        }
+      })
+    )
+    await vi.waitFor(() => {
+      expect(privateRollsIn(answersTo(phantomPlayer.messages, commandId))).toHaveLength(1)
+      expect(encounterRollIn(answersTo(caster.messages, commandId))).toHaveLength(1)
+    })
+
+    // That player's socket receives the private roll, and their own answer carries it.
+    const [own] = privateRollsIn(answersTo(phantomPlayer.messages, commandId))
+    expect(own).toMatchObject({ gmCampaignRoll: null })
+    expect(encounterRollIn(answersTo(phantomPlayer.messages, commandId))).toEqual([
+      expect.objectContaining({ id: own!.id })
+    ])
+
+    // The evidence roll is the presser's own: they keep it, and the caster's answer has none.
+    expect(evidenceRollIn(answersTo(phantomPlayer.messages, commandId))).toEqual([
+      expect.objectContaining({ rollId: own!.id })
+    ])
+    expect(evidenceRollIn(answersTo(caster.messages, commandId))).toEqual([null])
+
+    // The caster's socket receives no roll in its answer and nothing from the chat.
+    expect(encounterRollIn(answersTo(caster.messages, commandId))).toEqual([null])
+    expect(privateRollsIn(answersTo(caster.messages, commandId))).toEqual([])
+    expect(
+      answersTo(caster.messages, commandId).filter((delta) => delta?.scope === 'CAMPAIGN_CHAT')
+    ).toEqual([])
+    expect(JSON.stringify(caster.messages)).not.toContain(own!.id)
+
+    // The GM's socket receives the card with its reveal binding, and the table's chat none of it.
+    expect(privateRollsIn(answersTo(base.messages, commandId))).toEqual([
+      expect.objectContaining({
+        id: own!.id,
+        gmCampaignRoll: expect.objectContaining({ revealedAt: null, noticedAt: null })
+      })
+    ])
+    const stub = base.stub
+    const cards = await readRoomRollCards(stub)
+    expect(cards.filter((card) => card.audience === 'TABLE')).toEqual([])
+    expect(JSON.stringify(await readRoomChatBodies(stub))).not.toContain('Phantom')
+
+    // The GM's history and the creature's player's hold the card; the caster's does not.
+    const holders = await readRoomPrivateRollHolders(stub)
+    expect(holders.map(({ userId, rollId }) => [userId, rollId]).sort()).toEqual(
+      [
+        [base.userId, own!.id],
+        [base.otherPlayerId, own!.id]
+      ].sort()
+    )
+    expect(holders.find(({ userId }) => userId === base.userId)?.gmCampaignRoll).not.toBeNull()
+    expect(holders.find(({ userId }) => userId === base.otherPlayerId)?.gmCampaignRoll).toBeNull()
   })
 })

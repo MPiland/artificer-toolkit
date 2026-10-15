@@ -83,7 +83,7 @@ async function persist(root: TurnCoordinatorRootDto) {
         posted.push(roll)
         return null
       },
-      retainGmRoll: async () => undefined
+      retainPrivateRoll: async () => undefined
     }
   } as unknown as Parameters<typeof persistEncounterInitiativeRollCards>[0]
   await persistEncounterInitiativeRollCards(ctx, {

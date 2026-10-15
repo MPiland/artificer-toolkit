@@ -21,7 +21,7 @@ import { readRuleRollRouting } from './ruleRollCards.js'
  */
 export async function recordConcentrationCheckRoll(
   ctx: EncounterPersistenceTransaction & {
-    readonly ports: Pick<EncounterWritePorts, 'retainGmRoll'>
+    readonly ports: Pick<EncounterWritePorts, 'retainPrivateRoll'>
   },
   input: Parameters<EncounterWritePorts['recordConcentrationCheckRoll']>[0]
 ): Promise<CampaignChatEntryDto | null> {
@@ -47,7 +47,7 @@ export async function recordConcentrationCheckRoll(
     visibility: undefined
   })
   if (audience === 'PRIVATE') {
-    await ctx.ports.retainGmRoll(campaign.ownerUserId, roll, {
+    await ctx.ports.retainPrivateRoll(campaign.ownerUserId, roll, {
       campaignId: campaign.id,
       creature: { encounterId: state.id, actorId: actor.id },
       revealedAt: null,

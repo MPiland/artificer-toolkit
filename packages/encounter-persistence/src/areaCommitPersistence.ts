@@ -95,7 +95,7 @@ function carriesCasterSpend(batch: TargetBatch, root: AreaRoot, merged: boolean)
  */
 export async function persistEncounterAreaCommit(
   ctx: EncounterCharacterWriteTransaction & {
-    readonly ports: Pick<EncounterWritePorts, 'insertTableRoll' | 'retainGmRoll'>
+    readonly ports: Pick<EncounterWritePorts, 'insertTableRoll' | 'retainPrivateRoll'>
   },
   input: LiveSessionEncounterAreaCommitInput,
   callbacks: {

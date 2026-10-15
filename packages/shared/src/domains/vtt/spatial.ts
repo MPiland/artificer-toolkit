@@ -640,6 +640,45 @@ export function spatialTokensInsideArea(input: {
   return validSpatialGeometry(area) ? catches(input.tokens, area) : []
 }
 
+/**
+ * The tokens within `radius` of the caster's space, sorted by id, never the caster's own: "within N
+ * feet of you" is measured from the edge of the space, not its center (D114). A footprint is caught
+ * when it shares area with the space grown by `radius`, a rounded rectangle, which is the D103 rule
+ * of {@link spatialTokensInsideArea} (touching never catches) applied to that grown space: the two
+ * rectangles are closer than `radius`. `casterTokenId` must be among `tokens` (an invariant: it
+ * throws without). An invalid radius or token catches nothing (fails closed).
+ */
+export function spatialTokensWithinSpaceRadius(input: {
+  radius: number
+  tokens: readonly SpatialSceneToken[]
+  casterTokenId?: string | null
+}): string[] {
+  const caster = input.tokens.find((token) => token.id === input.casterTokenId)
+  if (!caster) throw new Error('A caster-centered area needs the caster’s token.')
+  if (!validSpatialToken(caster) || !(input.radius > 0) || !Number.isFinite(input.radius)) return []
+  const space = footprint(caster)
+  return input.tokens
+    .filter((token) => token !== caster && validSpatialToken(token))
+    .filter((token) => {
+      const other = footprint(token)
+      return (
+        Math.hypot(
+          Math.max(
+            0,
+            Math.abs(other.center.x - space.center.x) - space.halfWidth - other.halfWidth
+          ),
+          Math.max(
+            0,
+            Math.abs(other.center.y - space.center.y) - space.halfHeight - other.halfHeight
+          )
+        ) <
+        input.radius - EPSILON
+      )
+    })
+    .map((token) => token.id)
+    .sort()
+}
+
 function interpolate(from: ScenePoint, to: ScenePoint, progress: number): ScenePoint {
   return {
     x: from.x + (to.x - from.x) * progress,

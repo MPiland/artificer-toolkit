@@ -158,13 +158,15 @@ export interface EncounterWritePorts<CharacterSources = never> extends Encounter
     roll: RollRecordDto
   ): Promise<CampaignChatEntryDto>
   /**
-   * Retains a roll in the Campaign GM's private history (Q14): players see nothing of it until the
-   * GM reveals it. Retaining the same roll again changes nothing.
+   * Retains a roll in one user's private history. The Campaign GM's copy (Q14) carries the
+   * `gmCampaignRoll` binding to reveal it; players see nothing of it until the GM does. A player's
+   * own copy of a hidden creature they control (D62) carries no binding. Retaining the same roll
+   * again changes nothing.
    */
-  retainGmRoll(
+  retainPrivateRoll(
     userId: string,
     roll: RollRecordDto,
-    gmCampaignRoll: GmCampaignRollDto
+    gmCampaignRoll: GmCampaignRollDto | null
   ): Promise<void>
   /**
    * Logs a settled Concentration check as a rules roll entry, once per check. Returns the table

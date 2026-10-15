@@ -7,6 +7,7 @@ import {
   encounterActionChoiceTarget,
   encounterActionTargetKind,
   evaluateEncounterAreaTargetPolicy,
+  evaluateEncounterCasterCenteredAreaTarget,
   evaluateEncounterDirectedAreaTarget
 } from '../encounterAreaAction.js'
 
@@ -331,7 +332,7 @@ describe('directed area', () => {
       expect(encounterActionTargetKind(directed(shape)), shape.shapeKind).toBe('DIRECTED')
     for (const shape of [SHAPES.CONE, SHAPES.LINE])
       expect(encounterActionTargetKind(policy({ shape })), shape.shapeKind).toBeNull()
-    for (const shape of [SHAPES.SPHERE, SHAPES.CYLINDER, SHAPES.CIRCLE])
+    for (const shape of [SHAPES.WALL, SHAPES.DOME])
       expect(encounterActionTargetKind(directed(shape)), shape.shapeKind).toBeNull()
     expect(encounterActionTargetKind(policy({ shape: SHAPES.CUBE }))).toBe('POINT')
   })
@@ -400,5 +401,58 @@ describe('directed area', () => {
       refusal: 'UNSUPPORTED_AREA'
     })
     expect(refusal({ sourceToken: null })).toEqual({ refusal: 'NO_CASTER_TOKEN' })
+  })
+})
+
+// SPELLS-22, D114: a Self sphere, cylinder or circle is centered on the caster and takes no aim.
+describe('caster-centered area', () => {
+  const SELF: CompiledActionTargetPolicy['range'] = { id: 'range', rangeKind: 'SELF' }
+  const centered = (shape: CompiledActionTargetPolicy['shape']) => policy({ range: SELF, shape })
+
+  it('takes no aim for a Self sphere, cylinder or circle, and refuses a Self wall or dome', () => {
+    for (const shape of [SHAPES.SPHERE, SHAPES.CYLINDER, SHAPES.CIRCLE])
+      expect(encounterActionTargetKind(centered(shape)), shape.shapeKind).toBe('CASTER_CENTERED')
+    for (const shape of [SHAPES.WALL, SHAPES.DOME])
+      expect(encounterActionTargetKind(centered(shape)), shape.shapeKind).toBeNull()
+  })
+
+  it('projects the authored radius of a centered choice', () => {
+    expect(encounterActionChoiceTarget(centered(SHAPES.SPHERE))).toEqual({
+      kind: 'CASTER_CENTERED',
+      area: { kind: 'RADIUS', radius: feet(20) }
+    })
+    expect(encounterActionChoiceTarget(centered(SHAPES.CIRCLE))).toEqual({
+      kind: 'CASTER_CENTERED',
+      area: { kind: 'RADIUS', radius: feet(5) }
+    })
+  })
+
+  it('compiles the radius in Scene units, centered on the caster’s token', () => {
+    expect(
+      evaluateEncounterCasterCenteredAreaTarget({
+        targetPolicy: centered(SHAPES.SPHERE),
+        grid: FEET_GRID,
+        sourceToken: SOURCE_TOKEN
+      })
+    ).toEqual({ shape: { kind: 'RADIUS', radius: 400 }, warnings: [] })
+  })
+
+  it('refuses with the reason: a size or policy it cannot draw, or no caster token', () => {
+    const refusal = (
+      input: Partial<Parameters<typeof evaluateEncounterCasterCenteredAreaTarget>[0]>
+    ) =>
+      evaluateEncounterCasterCenteredAreaTarget({
+        targetPolicy: centered(SHAPES.SPHERE),
+        grid: FEET_GRID,
+        sourceToken: SOURCE_TOKEN,
+        ...input
+      })
+    expect(refusal({ sourceToken: null })).toEqual({ refusal: 'NO_CASTER_TOKEN' })
+    expect(refusal({ targetPolicy: policy({ shape: SHAPES.SPHERE }) })).toEqual({
+      refusal: 'UNSUPPORTED_AREA'
+    })
+    expect(refusal({ targetPolicy: centered(SHAPES.DOME) })).toEqual({
+      refusal: 'UNSUPPORTED_AREA'
+    })
   })
 })

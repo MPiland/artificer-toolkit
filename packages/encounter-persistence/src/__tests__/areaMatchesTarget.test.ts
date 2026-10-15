@@ -51,4 +51,10 @@ describe('the sealed area against the command that aimed it', () => {
       })
     ).toBe(false)
   })
+
+  it('matches a caster-centered command to the radius it sealed, and to no other shape', () => {
+    const centered: AreaActionTargetDto = { kind: 'CASTER_CENTERED', ...SCENE }
+    expect(areaMatchesTarget(sealed({ kind: 'RADIUS', radius: 400 }), centered)).toBe(true)
+    expect(areaMatchesTarget(cone, centered)).toBe(false)
+  })
 })

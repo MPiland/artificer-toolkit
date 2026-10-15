@@ -37,7 +37,7 @@ export function settledD20s(
  */
 export async function recordActionRollCards(
   ctx: EncounterCharacterWriteTransaction & {
-    readonly ports: Pick<EncounterWritePorts, 'insertTableRoll' | 'retainGmRoll'>
+    readonly ports: Pick<EncounterWritePorts, 'insertTableRoll' | 'retainPrivateRoll'>
   },
   input: {
     campaign: CampaignAuthority['campaign']

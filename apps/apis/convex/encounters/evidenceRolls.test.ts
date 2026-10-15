@@ -428,3 +428,94 @@ describe('Action roll cards (Q14, D83)', () => {
     expect(cards.gm).toEqual([])
   })
 })
+
+describe('Roll cards of a hidden creature a player controls (ATTACK-17.5)', () => {
+  useLocalRoomWorker()
+
+  /** The player's companion, hidden from the table (D62) and controlled by `base.other`. */
+  async function hiddenPlayerCompanion(base: PlayerControlFixture) {
+    await setActorControllers(base, base.companion.id, [base.other.userId])
+    await base.gm({
+      type: 'UPDATE_ACTOR',
+      encounterId: base.run.id,
+      commandId: crypto.randomUUID(),
+      expectedVersion: await base.version(),
+      actorId: base.companion.id,
+      public: false
+    })
+  }
+
+  /** Everything one user's private roll history holds, after the room checkpoints. */
+  async function historyOf(base: PlayerControlFixture, userId: string) {
+    await checkpointLiveRoom(base.campaign.id)
+    return base.t.run((ctx) =>
+      ctx.db
+        .query('userRollHistory')
+        .withIndex('by_userId_createdAt_id', (q) => q.eq('userId', userId))
+        .collect()
+    )
+  }
+
+  async function tableRolls(base: PlayerControlFixture) {
+    await checkpointLiveRoom(base.campaign.id)
+    return base.t.run(async (ctx) =>
+      (await ctx.db.query('campaignConversationEntryPayloads').collect()).flatMap((payload) =>
+        payload.roll ? [payload.roll] : []
+      )
+    )
+  }
+
+  it("holds the controller's own copy of an automatic card, with the GM's alone carrying the creature binding", async () => {
+    const base = await playerControlFixture({ bite: 'ATTACK' })
+    await hiddenPlayerCompanion(base)
+    await executeInRoom(base.other.caller, {
+      command: await base.bite(base.companion.id, base.enemy.id)
+    })
+    expect(await tableRolls(base)).toEqual([])
+    const gm = await historyOf(base, base.owner.userId)
+    const own = await historyOf(base, base.other.userId)
+    expect(gm.length).toBeGreaterThan(0)
+    expect(own.map((row) => row.id).sort()).toEqual(gm.map((row) => row.id).sort())
+    expect(own.every((row) => row.gmCampaignRoll === null)).toBe(true)
+    expect(gm.every((row) => row.gmCampaignRoll?.revealedAt === null)).toBe(true)
+    // Players who do not control the creature learn nothing of the card.
+    await expect(historyOf(base, base.player.userId)).resolves.toEqual([])
+  })
+
+  it('answers the controlling player who pressed Roll dice with the roll, and nobody else at the table', async () => {
+    const base = await playerControlFixture({ bite: 'ATTACK', promptRolls: true })
+    await hiddenPlayerCompanion(base)
+    await executeInRoom(base.other.caller, {
+      command: await base.bite(base.companion.id, base.enemy.id)
+    })
+    const pending = await d20Pending(base, base.other)
+    const rolled = await rollDice(base, base.other, pending)
+    expect(rolled.roll).not.toBeNull()
+    expect(await tableRolls(base)).toEqual([])
+    expect((await historyOf(base, base.other.userId)).map((row) => row.id)).toEqual([
+      rolled.roll!.id
+    ])
+    expect((await historyOf(base, base.owner.userId)).map((row) => row.id)).toEqual([
+      rolled.roll!.id
+    ])
+    await expect(historyOf(base, base.player.userId)).resolves.toEqual([])
+  })
+
+  it('keeps a GM-controlled hidden creature’s card for the GM alone', async () => {
+    const base = await playerControlFixture({ bite: 'ATTACK' })
+    await base.gm({
+      type: 'UPDATE_ACTOR',
+      encounterId: base.run.id,
+      commandId: crypto.randomUUID(),
+      expectedVersion: await base.version(),
+      actorId: base.companion.id,
+      public: false
+    })
+    await executeInRoom(base.owner.caller, {
+      command: await base.bite(base.companion.id, base.character.id)
+    })
+    expect((await historyOf(base, base.owner.userId)).length).toBeGreaterThan(0)
+    for (const member of [base.other, base.player])
+      await expect(historyOf(base, member.userId)).resolves.toEqual([])
+  })
+})

@@ -53,11 +53,15 @@ export function areaActionPendingContext(snapshot: ServerRuleExecutionPendingSna
     : null
 }
 
-/** Whether the sealed area is the one the command aimed: the same origin and, if directed, direction. */
+/**
+ * Whether the sealed area is the one the command aimed: the same origin and, if directed, direction.
+ * A caster-centered command aims nothing; its origin is the caster's token, checked against the Scene.
+ */
 export function areaMatchesTarget(
   area: EncounterAreaActionPendingContextDto['area'],
   target: AreaActionTargetDto
 ) {
+  if (target.kind === 'CASTER_CENTERED') return area.shape.kind === 'RADIUS'
   const origin = areaActionTargetOrigin(target)
   return (
     area.origin.x === origin.x &&
@@ -182,13 +186,22 @@ export async function requireAreaActionPendingRoot(
       expectedSceneVersion: command.target.expectedSceneVersion
     })
   )
+  const centered = command.target.kind === 'CASTER_CENTERED'
+  const casterToken = scene.tokens.find((token) => token.actorId === context.casterActorId)
+  if (
+    centered &&
+    (casterToken?.position.x !== context.area.origin.x ||
+      casterToken.position.y !== context.area.origin.y)
+  )
+    throw new Error('Live Session pending area action Scene mismatch.')
   const caught = input.placesZone
     ? []
     : catchEncounterAreaActorIds({
         origin: context.area.origin,
         shape: context.area.shape,
         casterActorId: context.casterActorId,
-        tokens: scene.tokens.map((token) => ({ ...token, id: token.tokenId }))
+        tokens: scene.tokens.map((token) => ({ ...token, id: token.tokenId })),
+        fromCasterSpace: centered
       })
   // A creature the GM removed is still caught by the Scene; it is simply no longer tested.
   const sealed = [...targets.map((target) => target.actorId), ...context.removedActorIds]

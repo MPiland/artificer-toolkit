@@ -5302,10 +5302,15 @@ try {
   ) {
     const author = await createAuthor()
     const other = process.argv.includes('--profile-browser') ? await createAuthor() : null
+    const profileUsername = author.username.replace('Draft_', 'Reader_')
+    const profileBio = 'Private profile proof for the first account.'
+    const socialBaseline = other
+      ? await author.client.mutation(api.social.profiles.initialize, {})
+      : null
     const profile = other
       ? {
-          username: author.username.replace('Draft_', 'Reader_'),
-          bio: 'Private profile proof for the first account.',
+          username: profileUsername,
+          bio: profileBio,
           other: {
             username: other.username,
             password: other.password,
@@ -5316,7 +5321,29 @@ try {
               '../../../local-validation/local-convex-proofs/phase82-foundation/',
               import.meta.url
             )
-          )
+          ),
+          // What the second account reads natively while the first holds `visibility`.
+          verifyVisibility: async (visibility: 'Private' | 'Public') => {
+            const viewed = await other.client.query(api.account.publicProfile, {
+              username: profileUsername.toLowerCase()
+            })
+            if (visibility === 'Private') assert.equal(viewed, null)
+            else
+              assert.deepEqual(viewed, {
+                username: profileUsername.toUpperCase(),
+                bio: profileBio,
+                avatarRevision: null
+              })
+            assert.equal(
+              (await author.client.query(api.account.profile, {})).visibility,
+              visibility.toUpperCase()
+            )
+            // Social eligibility and its minimal identity do not move with profile visibility.
+            assert.deepEqual(
+              await author.client.query(api.social.profiles.getEligibility, {}),
+              socialBaseline
+            )
+          }
         }
       : undefined
     if (other && profile) {
@@ -5383,6 +5410,25 @@ try {
       email: author.email,
       password: author.password,
       profile,
+      verifyBearer: async (jwt) => {
+        const bearerClient = (token: string) => {
+          const client = new DevelopmentHttpClient(deploymentUrl.origin, { logger: false })
+          client.setAuth(token)
+          return client
+        }
+        assert.equal(
+          (await bearerClient(jwt).query(api.account.identity, {})).userId,
+          author.identity.userId
+        )
+        const [header, payload, signature] = jwt.split('.')
+        const forged = `${header}.${payload}.${[...signature!].reverse().join('')}`
+        assert.notEqual(forged, jwt)
+        await assert.rejects(
+          bearerClient(forged).query(api.account.identity, {}),
+          /InvalidAuthHeader/
+        )
+        await assert.rejects(publicClient.query(api.account.identity, {}), /Unauthenticated/)
+      },
       verifyRevoked: async (jwt) => {
         const browserClient = new DevelopmentHttpClient(deploymentUrl.origin, {
           logger: false
@@ -5410,11 +5456,13 @@ try {
       )
       assert.deepEqual(await author.client.query(api.account.profile, {}), {
         username: profile.username.toUpperCase(),
-        bio: profile.bio
+        bio: profile.bio,
+        visibility: 'PRIVATE'
       })
       assert.deepEqual(await other.client.query(api.account.profile, {}), {
         username: profile.other.username,
-        bio: profile.other.bio
+        bio: profile.other.bio,
+        visibility: 'PRIVATE'
       })
       console.log(
         'Profile privacy, server state, anonymous denial and owner-argument rejection passed.'

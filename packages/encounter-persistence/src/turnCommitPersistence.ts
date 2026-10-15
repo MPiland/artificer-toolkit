@@ -45,7 +45,7 @@ import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.
 /** Commits a DO-computed turn in one transaction, using the native normalized writes and receipts. */
 export async function persistEncounterTurnCommit(
   ctx: EncounterCharacterWriteTransaction & {
-    readonly ports: Pick<EncounterWritePorts, 'insertTableRoll' | 'retainGmRoll'>
+    readonly ports: Pick<EncounterWritePorts, 'insertTableRoll' | 'retainPrivateRoll'>
   },
   input: LiveSessionEncounterTurnCommitInput,
   callbacks: {
