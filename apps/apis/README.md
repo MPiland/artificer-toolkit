@@ -1060,6 +1060,11 @@ key arguments. This requires no OS permission or SDK change. The current isolate
 `phase82-convex-local-linux` at `127.0.0.1:3210` / `127.0.0.1:3211` (instance `phase82-local-linux`,
 volume `phase82-convex-local-linux-data`, image
 `ghcr.io/get-convex/convex-backend@sha256:69885bae73766f625404a5425b22702341e89b43002f1d700864f8364be0d1f8`).
+`scripts/liveBackendValidation.mjs` runs manifest, codegen, deploy, seed and audit against this
+container locally and against an ephemeral container of the same image in CI
+(`.github/workflows/live-backend.yml`); a fresh container needs `CONVEX_CLOUD_ORIGIN` and
+`CONVEX_SITE_ORIGIN` set to its loopback origins (they become the built-in `CONVEX_URL` and
+`CONVEX_SITE_URL`) and the script's `env` step (`JWKS` empty).
 No admin key is stored: scripts generate one per run with
 `docker exec phase82-convex-local-linux ./generate_admin_key.sh` and never write or print it. The
 ignored `local-validation/local-convex/local.application.env` holds the local application environment

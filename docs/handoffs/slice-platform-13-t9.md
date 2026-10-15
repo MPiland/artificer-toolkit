@@ -37,6 +37,36 @@ Deliver a live-backend CI job (manifest, codegen, deploy, seed, SRD audit agains
 ## Status log
 
 - 2026-10-15: workbook written; workflow and scripts pushed to `ci/merge-platform-13-t9`.
+- 2026-10-15: three fix-forward runs on a fresh container, each a missing deployment prerequisite (runs 38800055892, 38801424688, 38802403610): `auth.config.ts` needs `JWKS` set (new `env` step sets it empty, as `apps/apis/README.md` documents for a fresh backend); the provider domain is the built-in `CONVEX_SITE_URL`, which is not settable and comes from the container's `CONVEX_SITE_ORIGIN` (the workflow now passes `CONVEX_CLOUD_ORIGIN`/`CONVEX_SITE_ORIGIN` loopback origins, matching the local container).
+- 2026-10-15: proof recorded below. The seed and audit prove what they proved locally (audit reports 1057 subjects); no change to either.
+
+## Proof
+
+| Run | Ref | Trigger | Result |
+| --- | --- | --- | --- |
+| [38802771155](https://github.com/MPiland/artificer-toolkit/actions/runs/38802771155) | `ci/merge-platform-13-t9` | push | green, audit `"subjects": 1057` |
+| [38804230986](https://github.com/MPiland/artificer-toolkit/actions/runs/38804230986) | `ci/platform-13-t9` | dispatch (all steps) | green, audit `"subjects": 1057` |
+| [38803655961](https://github.com/MPiland/artificer-toolkit/actions/runs/38803655961) | `ci/platform-13-t9` | dispatch `steps=manifest,env,codegen,deploy,audit` | red: audit `Missing platform content source.` (job fails, logs uploaded) |
+
+The red proof uses the permanent `steps` dispatch input (it is also how a slice runs a partial check), so there is no test-only input to remove.
+
+Step durations in seconds (script `summary.json`; job totals from the API):
+
+| Step | 38802771155 | 38804230986 | red 38803655961 |
+| --- | --- | --- | --- |
+| manifest | 16 | 17 | 10 |
+| env | 1 | 1 | 1 |
+| codegen | 22 | 24 | 15 |
+| deploy | 18 | 18 | 12 |
+| seed | 90 | 94 | skipped |
+| audit | 2 | 2 | 1 (exit 1) |
+| install and package build (setup action) | 88 | 335 | n/a |
+| backend start to `/version` | 13 | 8 | n/a |
+| job total | 4 m 20 s | 8 m 32 s | about 3 m |
+
+Setup time varies with runner load (the 335 s run shared the account with a full Tests run).
+
+Local heavy-lane proof (read-only): see the status line below.
 
 ## Proposed ledger edits
 
