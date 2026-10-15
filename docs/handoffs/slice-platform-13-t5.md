@@ -78,6 +78,21 @@ CI run 38778258014 (attempt 1, Convex 1/4) failed `accountJourneys.test.ts:97`. 
 - Red first: a test of the generator with a suffix the policy rejects (for example `a55b…`) shows the old shape fails.
 - The policy itself is product question Q22 in [phase-08-2-open-questions.md](phase-08-2-open-questions.md). Do not change it here.
 
+## Custody split: assertion map (main-session ruling (b), 2026-10-15)
+
+Old test: `developmentCustody.test.ts` "mixed Character custody driver" (one test, 30 s). The 32-item bounded-cleanup proof made the party hold 37 items for every later read, so the Vehicle lifecycle proof paged it five times per read.
+
+| Old assertion | Now proved by |
+| --- | --- |
+| Inventory proof prefix: carts, shares, transfers, currency systems, lossy-scale refusal, player/owner views (`verifyCampaignInventory`) | Both new tests and `developmentInventoryProof.test.ts` (unchanged code) |
+| Bounded tail: 32 ITEM_ADDs, player unshare refusal, `evacuatedVehicles` empty, one `pendingVehicleCleanupIds`, durable cleanup, party = party + Vehicle A cargo, replays | `verifyCampaignInventory` with `boundedCleanup` true (default): the new durable-receipt test and `developmentInventoryProof.test.ts`. Unchanged assertions |
+| Character custody, Vehicle lifecycle, shared Equipment retention, sheet reads | Mixed-driver test, now with `boundedCleanup: false` for the inventory step: Vehicle A is empty, so the unshare evacuates it at once (`evacuatedVehicles` is `[Vehicle A]`, no `pendingVehicleCleanupIds`) and the later reads page a small party |
+| Lifecycle receipt actor tamper: remove refuses `lifecycle audit mismatch`, state unchanged, restore equals before | Mixed-driver test, unchanged |
+| Evacuation payload tamper: remove refuses `durable Vehicle evacuation receipt mismatch`, state unchanged, restore equals before | Durable-receipt test, unchanged message. The mixed-driver test tampers the immediate evacuation event instead and expects `Vehicle evacuation identity mismatch` (same helper `expectTamperedEvacuationRefused`) |
+| Removal resolves; items, events, vehicles, balances, inventories empty; only the first Character stays assigned | Both tests |
+
+Nothing is deleted or weakened. The mixed-driver test no longer exercises the bounded path itself; the Vehicle lifecycle proof's oversized background Vehicle (`developmentCampaignVehicleLifecycle.ts`) still does, so durable cleanup stays covered in the same test. The live `developmentDrafts.ts --campaign-custody` proof now runs the immediate tail; the bounded tail still runs in its `--campaign-inventory` proof.
+
 ## Status log
 
 - 2026-10-15: workbook written.
@@ -85,7 +100,7 @@ CI run 38778258014 (attempt 1, Convex 1/4) failed `accountJourneys.test.ts:97`. 
 - 2026-10-15 T5 profile: CI baseline run 38792840212. Media fixtures are already cheap on CI (authoredAssets 8.7 s for 17 tests, avatar 1.85 s); the 6 s avatar stall is local Windows only.
 - 2026-10-15 T5 cuts: 3485f1d72 (builder snapshot parity reads each scope once; 65.4 s to 39.6 s serial) and 40310628f (custody step loop reuses the previous replay read; 4 of about 18 reads). Seed sharing in `equipmentCharacter`, `seed` action cost, the 500-option journey and the page size of 8 were ruled out; see the timing record.
 - 2026-10-15 CI: 1-worker run 38814606154 green. 3-worker trial 38812568410 green (before cuts). 3-worker trial 38816855225 (after cuts) failed on one test: `developmentCustody` mixed driver timed out, 38.7 s against 30 s. Timing record: `docs/validation/platform-13-t5-test-timings-2026-10-15.md`.
-- 2026-10-15 Escalated to the main session: the mixed driver cannot be made 2 times cheaper within the allowed cuts (see the timing record).
+- 2026-10-15 Escalated to the main session: the mixed driver cannot be made 2 times cheaper within the allowed cuts (see the timing record). Ruling (b): split the bounded-cleanup proof from the Vehicle lifecycle proof. Done; assertion map above.
 
 ## Proposed ledger edits (filled by the slice session)
 

@@ -451,7 +451,8 @@ export async function verifyCampaignCustody(
     owner: cohort.owner,
     player: cohort.players[0].client,
     anonymous,
-    campaignId: cohort.campaignId
+    campaignId: cohort.campaignId,
+    boundedCleanup: false
   })
   await verifyCharacterCustody(cohort)
   await verifyCampaignVehicleLifecycle(cohort, anonymous)
