@@ -151,3 +151,7 @@ All items done on branch `claude/frosty-grothendieck-0a7840`; CI on `ci/reaction
 - **Nits.** Choice definition renamed `reactionChoiceDefinition.ts` (`createReactionChoiceDefinition`, `ASSISTED_REACTION_CHOICE_DEFINITION_ID`); coded `REACTION_UNSUPPORTED` refusal (new transport reason in `domainRejections.ts`) replaces plain `Error`; IIFEs replaced with plain control flow; stale-option message names the option.
 - **Follow-up (T3):** the pending summary (`REACTION_CHOICE.options` single-element tuple in `encounterRuleOccurrence.ts`) and the drawer (`options[0]`) still show one option. Admission accepts any offered reaction; widening the contract/UI belongs with the SPELL_CAST chain.
 - Not run locally: Worker tests (stale rules-runtime dist, heavy lane queued), local codegen push, Storybook/Playwright.
+
+## REACTION-4.T3 notes (carried from T5)
+
+- The pending summary `REACTION_CHOICE.options` (`packages/schema/src/shared/encounterRuleOccurrence.ts`) is a single-element tuple and `CampaignTabletopDecisionDrawer.tsx` reads `pending.options[0]`. Resume admission already accepts any offered reaction (`offeredDecisionOptionIds`), so T3 widens the summary contract to every offered option and the drawer to list them, when a chain can hold more than one reaction.
