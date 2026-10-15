@@ -74,9 +74,11 @@ function onlyEffect(effects: readonly AuthoredEffect[] | undefined): AuthoredEff
  */
 function plansFor(effect: AuthoredEffect, lifecycle: PathLifecycleAuthored, spell?: SpellAuthored) {
   const authored = { ...grantOnly(effect, lifecycle), id: ACTION_EFFECT_ID }
-  const action = characterActionDescriptor(
-    spell ? compileSpell({ ...spell, effects: [authored] }).effects[0]! : compileEffect(authored)
-  )
+  const compiled = spell
+    ? compileSpell({ ...spell, effects: [authored] }).effects?.[0]
+    : compileEffect(authored)
+  if (!compiled) throw new Error('The spell compiled no Effect.')
+  const action = characterActionDescriptor(compiled)
   return dnd5eCharacterRuleActionSystemAdapter.activeEffectPlans?.({
     action,
     published: grantPublishedIdentity()

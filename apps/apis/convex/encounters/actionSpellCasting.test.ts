@@ -493,6 +493,20 @@ async function concentrationCasterIds(fixture: Fixture) {
   return run?.concentrationCasterCharacterIds
 }
 
+/** The Character's own active-effect rows (a Character holder keeps its grants there), by maintained effect. */
+async function characterActiveEffects(fixture: Fixture) {
+  await checkpointLiveRoom(fixture.campaign.id)
+  const rows = await fixture.t.run((ctx) =>
+    ctx.db
+      .query('characterActiveRuleEffects')
+      .withIndex('by_characterId_createdOrdinal_id', (q) =>
+        q.eq('characterId', fixture.character.id)
+      )
+      .take(16)
+  )
+  return rows.map(({ maintainedEffectStateId }) => ({ maintainedEffectStateId }))
+}
+
 /** The Run's active-effect rows, as the target and maintained effect they are held under. */
 async function activeEffects(fixture: Fixture) {
   await checkpointLiveRoom(fixture.campaign.id)
@@ -516,6 +530,20 @@ function concentrationSpell(source: SpellAuthored): SpellAuthored {
   spell.id = crypto.randomUUID()
   targetAnyCreatureAtAnyRange(spell)
   return spell
+}
+
+/** Advances turns until `actorId` is the current actor, as the Run's turn order has it. */
+async function advanceToTurnOf(
+  fixture: Fixture,
+  from: Awaited<ReturnType<typeof advanceTurn>>,
+  actorId: string
+) {
+  let result = from
+  for (let turns = 0; result.projection.currentActorId !== actorId; turns += 1) {
+    if (turns > fixture.run.actors.length) throw new Error('The actor never takes a turn.')
+    result = await advanceTurn(fixture, result.projection.version)
+  }
+  return result
 }
 
 function advanceTurn(fixture: Fixture, expectedVersion: number) {
@@ -910,12 +938,16 @@ describe('Character spell casting in an Encounter', () => {
     async function castFlyThenHoldPerson() {
       const flight = concentrationSpell(fly)
       const hold = concentrationSpell(holdPerson)
-      const fixture = await setup({ known: [flight, hold], slots: SLOTS })
+      // A Custom actor has no saving throws; the SRD Wolf is the target that rolls the Wisdom save.
+      const fixture = await setup({ known: [flight, hold], slots: SLOTS, withOthers: true })
+      const wolf = fixture.wolf
+      if (!wolf) throw new Error('Missing the Wolf.')
       const flyId = await choiceId(fixture, 'Fly (3rd level)', 0)
       const flying = await executeInRoom(fixture.gm.caller, {
         command: castCommand(fixture, flyId, 0)
       })
       expect(flying.occurrence?.status).toBe('COMPLETE')
+      expect(await characterActiveEffects(fixture)).toHaveLength(1)
       const [flyConcentration] = await maintainedEffects(fixture)
       expect(flyConcentration?.maintenanceDefinitionId).toBe(
         SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID
@@ -926,44 +958,38 @@ describe('Character spell casting in an Encounter', () => {
       await resetActionAllowance(fixture)
       const holdId = await choiceId(fixture, 'Hold Person (2nd level)', flying.projection.version)
       const held = await executeInRoom(fixture.gm.caller, {
-        command: castCommand(
-          fixture,
-          holdId,
-          flying.projection.version,
-          undefined,
-          fixture.target.id
-        )
+        command: castCommand(fixture, holdId, flying.projection.version, undefined, wolf.id)
       })
-      return { fixture, flyId, flyConcentration, held }
+      return { fixture, wolf, flyId, flyConcentration, held }
     }
 
     it('replaces Fly, leaves the target Paralyzed, and ends the condition on a successful repeat save', async () => {
-      const { fixture, flyConcentration, held } = await castFlyThenHoldPerson()
+      const { fixture, wolf, flyConcentration, held } = await castFlyThenHoldPerson()
       expect(held.occurrence?.status).toBe('COMPLETE')
       expect(await concentrationCasterIds(fixture)).toEqual([fixture.character.id])
       const [replacement, ...others] = await maintainedEffects(fixture)
       expect(others).toEqual([])
       expect(replacement?.id).not.toBe(flyConcentration?.id)
       // Fly's grant ended with its Concentration; the Paralyzed condition is the only effect left.
+      expect(await characterActiveEffects(fixture)).toEqual([])
       expect(await activeEffects(fixture)).toEqual([
-        { targetActorId: fixture.target.id, maintainedEffectStateId: replacement?.id }
+        { targetActorId: wolf.id, maintainedEffectStateId: replacement?.id }
       ])
 
-      // The target's turn ends while the save keeps failing: the condition holds.
-      const targetTurn = await advanceTurn(fixture, held.projection.version)
+      // The Wolf's turn ends while its save keeps failing: the condition holds.
+      const targetTurn = await advanceToTurnOf(fixture, held, wolf.id)
       const failedRepeat = await advanceTurn(fixture, targetTurn.projection.version)
       expect(failedRepeat.occurrence?.status).toBe('COMPLETE')
       expect(await activeEffects(fixture)).toHaveLength(1)
 
-      // A natural 20 on the next end-of-turn save ends the condition, and Concentration with it.
-      await queueRoomRolls(fixture.campaign.id, { rolls: [20], repeat: 20 })
-      const casterTurn = await advanceTurn(fixture, failedRepeat.projection.version)
-      const targetAgain = await advanceTurn(fixture, casterTurn.projection.version)
+      // A natural 20 (raw die 19) on the next end-of-turn save ends the condition, and Concentration with it.
+      await queueRoomRolls(fixture.campaign.id, { rolls: [19], repeat: 19 })
+      const targetAgain = await advanceToTurnOf(fixture, failedRepeat, wolf.id)
       const saved = await advanceTurn(fixture, targetAgain.projection.version)
       expect(saved.occurrence?.status).toBe('COMPLETE')
       expect(await activeEffects(fixture)).toEqual([])
+      expect(await characterActiveEffects(fixture)).toEqual([])
       expect(await maintainedEffects(fixture)).toEqual([])
-      expect(await concentrationCasterIds(fixture)).toEqual([])
     }, 180000)
 
     it('is dropped with its condition when the next Concentration spell is cast', async () => {
@@ -978,8 +1004,9 @@ describe('Character spell casting in an Encounter', () => {
       const [flight, ...others] = await maintainedEffects(fixture)
       expect(others).toEqual([])
       // The Paralyzed condition ended with the Hold Person Concentration; only Fly's grant remains.
-      expect(await activeEffects(fixture)).toEqual([
-        { targetActorId: fixture.actor.id, maintainedEffectStateId: flight?.id }
+      expect(await activeEffects(fixture)).toEqual([])
+      expect(await characterActiveEffects(fixture)).toEqual([
+        { maintainedEffectStateId: flight?.id }
       ])
     }, 180000)
   })
