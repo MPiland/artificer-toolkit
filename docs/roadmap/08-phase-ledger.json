@@ -5592,14 +5592,15 @@
             {
               "id": "ATTACK-10.T1",
               "text": "Hide: a successful Stealth check hides its actor from the creatures that fail to notice it; attacking from hiding has advantage; attacking or being noticed ends it.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["ATTACK-10.2"],
               "wsjf": {
                 "bv": 5,
                 "tc": 3,
                 "rr": 5,
                 "size": 3
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-attack-10-t1.md"
             },
             {
               "id": "ATTACK-10.T3",
