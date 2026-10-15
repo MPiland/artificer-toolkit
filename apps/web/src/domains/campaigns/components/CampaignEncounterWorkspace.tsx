@@ -653,5 +653,6 @@ function encounterCommandLabel(commandType: string): string {
   if (commandType === 'COMPLETE') return 'Encounter completed'
   if (commandType === 'VOID_RULE_OCCURRENCE') return 'Voided by the GM'
   if (commandType === 'REVERT_LAST_ACTION') return 'Undone by the GM'
+  if (commandType === 'SET_CONCEALMENT_OBSERVERS') return 'Concealment corrected by the GM'
   return commandType.toLowerCase().replaceAll('_', ' ')
 }
