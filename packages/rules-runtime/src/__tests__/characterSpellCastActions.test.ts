@@ -129,8 +129,31 @@ const PLAIN_HOLD = {
   id: '00000000-0000-4000-8000-00000000b01d',
   attributes: [] as SpellAuthored['attributes']
 }
+/** Cure Wounds with the dice rows `rows` name instead of the SRD's, as `[level, order, dice]`. */
+function healWithRows(id: string, rows: readonly (readonly [number, number, string])[]): SpellAuthored {
+  const authored = structuredClone(CURE_WOUNDS)
+  const path = authored.effects?.[0]?.paths?.[0]
+  const outcome = path && 'resultBlock' in path ? path.resultBlock.outcomes?.[0] : undefined
+  if (outcome?.effectKind !== 'HEAL' || outcome.valueKind !== 'DICE' || !('levels' in outcome))
+    throw new Error('Cure Wounds heals with scaling dice.')
+  outcome.levels = rows.map(([level, order, diceConfig], index) => ({
+    id: `00000000-0000-4000-8000-0000000000b${index}`,
+    level,
+    order,
+    diceConfig
+  }))
+  return { ...authored, id, label: `Rows ${rows.map(([level]) => level).join(',')}` }
+}
+/** Rows at levels 1 and 3, and a second level-3 row that a higher `order` ranks behind the first. */
+const GAPPED_HEAL = healWithRows('00000000-0000-4000-8000-00000000c001', [
+  [1, 0, '1d4'],
+  [3, 0, '3d4'],
+  [3, 1, '9d4']
+])
+/** The first row sits above the spell's own level, so no row applies to a cast at it. */
+const LATE_HEAL = healWithRows('00000000-0000-4000-8000-00000000c002', [[3, 0, '3d4']])
 const authoredById = new Map(
-  [FIREBALL, MEND, FLY, HOLD_PERSON, DERIVED_FLY, PLAIN_HOLD, CURE_WOUNDS, HEALING_WORD].map((entry) => [entry.id, entry])
+  [FIREBALL, MEND, FLY, HOLD_PERSON, DERIVED_FLY, PLAIN_HOLD, CURE_WOUNDS, HEALING_WORD, GAPPED_HEAL, LATE_HEAL].map((entry) => [entry.id, entry])
 )
 
 function build(
@@ -404,5 +427,20 @@ describe('the scaling heal a cast carries', () => {
     expect(rolledDice(authored, castLevel)).toEqual(
       Array.from({ length: count }, () => ({ kind: 'LITERAL', value: die }))
     )
+  })
+
+  const d4s = (count: number) => Array.from({ length: count }, () => ({ kind: 'LITERAL', value: 4 }))
+
+  it.each([
+    { castLevel: 1, dice: 1 },
+    { castLevel: 2, dice: 1 },
+    { castLevel: 3, dice: 3 },
+    { castLevel: 8, dice: 3 }
+  ])('takes the nearest row at or below cast level $castLevel, the lower order on a tie', ({ castLevel, dice }) => {
+    expect(rolledDice(GAPPED_HEAL, castLevel)).toEqual(d4s(dice))
+  })
+
+  it('is not offered for a cast no row applies to', () => {
+    expect(compiledCast(LATE_HEAL, 1)).toBeNull()
   })
 })

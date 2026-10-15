@@ -1123,7 +1123,7 @@ describe('Character spell casting in an Encounter', () => {
       ).toBe(1 + 3 + 1)
     }, 120000)
 
-    it('heals an ally with the bonus-action Healing Word as authored, at a Creature of a permitted type', async () => {
+    it('heals an ally with Healing Word as authored, at a Creature of a permitted type', async () => {
       const fixture = await setup({ known: [srdSpell(healingWord)], withOthers: true })
       const wolf = fixture.wolf
       if (!wolf) throw new Error('Missing the Wolf.')
@@ -1167,6 +1167,9 @@ describe('Character spell casting in an Encounter', () => {
       })
       expect(healed.occurrence?.status).toBe('COMPLETE')
       expect(await creatureHitPoints(fixture, wolf.id)).toBe(1 + 3 + 1)
+      expect((await storedCharacter(fixture)).record.state.spellSlots).toEqual([
+        { slotKey: 'STANDARD:1', used: 1 }
+      ])
     }, 120000)
   })
 })

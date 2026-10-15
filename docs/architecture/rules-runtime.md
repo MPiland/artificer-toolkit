@@ -376,7 +376,7 @@ is 5 ft; a distance without a long range, including the 0 ft swarm space), `RANG
 point-area policy advertises its origin range, which `evaluateEncounterAreaTargetPolicy` measures
 (`pointAreaOriginRange`): `WITHIN` the distance (never `RANGED`, the area evaluator ignores a long range) or `UNLIMITED`.
 A policy neither evaluator measures leaves it off: a sight or special range, targeting that is not a single target with a
-disposition (excluded creature types only warn; neither the compiler nor the evaluators refuse a single-target policy for them, the room raises the overridable `TARGET_CREATURE_TYPE_EXCLUDED` warning, only for a Creature target, since a Character's facts carry no creature type), an area with no supported shape, a path override, or no policy.
+disposition (excluded creature types only warn; neither the compiler nor the single-target action evaluators refuse a single-target policy for them (movement reactions still do), the room raises the overridable `TARGET_CREATURE_TYPE_EXCLUDED` warning, only for a Creature target, since a Character's facts carry no creature type), an area with no supported shape, a path override, or no policy.
 `encounterActionChoiceRange` (`encounterActionRange.ts`) is the one mapping. `rangeLabel` is not derived from `range`:
 it words the authored range with `rangeLabel` (`rangeLabel.ts`), the formatter the Sheet uses, so Touch reads "Touch"
 (its 5 ft geometry stays in `range`) and a ranged weapon reads "150/600 ft" on both surfaces. Only a choice without a
