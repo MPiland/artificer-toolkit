@@ -593,10 +593,24 @@
             {
               "id": "PLATFORM-13.11",
               "text": "Live-backend validation (manifest, codegen, deploy, seed, SRD audit) runs on GitHub Actions against an ephemeral self-hosted Convex backend container, for merge branches and on demand for slice branches, sharing one deploy-and-seed implementation with the local path; Convex Cloud is never targeted.",
+              "status": "DONE",
+              "proof": [
+                "merge 6e40942da (format 9a51cca79)",
+                ".github/workflows/live-backend.yml + scripts/liveBackendValidation.mjs + scripts/convexSelfHosted.mjs",
+                "live-backend run 38813514949 green; red proof 38814079363 (stale manifest fails the drift check)",
+                "merge live-backend run 38820312771 green (ci/merge-t9r5)",
+                "local-validation/merge-t9r5/summary.log (build, reset, live: manifest, codegen, deploy, seed, audit all exit 0)"
+              ],
+              "origin": [],
+              "note": "Registered 2026-10-15: the local heavy lock queued 9 batches deep. User approved: ADR 0035 forbids Convex Cloud (free-plan cost), not an ephemeral runner container."
+            },
+            {
+              "id": "PLATFORM-13.12",
+              "text": "Every local Convex runner (including scripts/validatePreStagingLocal.mjs) builds its CLI arguments and environment through scripts/convexSelfHosted.mjs, so CONVEX_DEPLOYMENT and CONVEX_DEPLOY_KEY never reach a child; and the live-backend drift check fails on untracked generated files, not only modified ones.",
               "status": "TODO",
               "proof": [],
               "origin": [],
-              "note": "Registered 2026-10-15: the local heavy lock queued 9 batches deep. User approved: ADR 0035 forbids Convex Cloud (free-plan cost), not an ephemeral runner container."
+              "note": "Registered 2026-10-15 from the PLATFORM-13.T9 merge review. Low-likelihood residuals (spawn-error rejection, --fresh name-only guard, README digest prose) deferred to future-enhancements.md \"Deferred edge cases\"."
             }
           ],
           "wsjf": {
@@ -708,13 +722,26 @@
             {
               "id": "PLATFORM-13.T9",
               "text": "Live Convex backend job in GitHub CI (ephemeral self-hosted container), shared deploy/seed script, ADR 0035 amendment, AGENTS.md heavy-lane scope.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["PLATFORM-13.11"],
               "wsjf": {
                 "bv": 3,
                 "tc": 8,
                 "rr": 5,
                 "size": 3
+              }
+            },
+            {
+              "id": "PLATFORM-13.T10",
+              "text": "Route validatePreStagingLocal.mjs through convexCliArguments/convexCliEnvironment and make the generated-file drift check use git status --porcelain (untracked included), each with a red-first test.",
+              "status": "TODO",
+              "closes": ["PLATFORM-13.12"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 5,
+                "size": 1,
+                "after": ["PLATFORM-13.T9"]
               }
             }
           ]
@@ -7470,6 +7497,14 @@
                 "Merge adb748f66; CI 38776510529 green; local build, reset, deploy, seed and audit green (local-validation/merge-s17t4/summary-2.log; the first seed attempt timed out under load, registered as PLATFORM-5.T1)"
               ],
               "origin": "Found in SPELLS-17.T1 (e58b9dad8): the same \"enters the area\" wording as Caltrops, authored ENTER_SPACE."
+            },
+            {
+              "id": "SPELLS-17.6",
+              "text": "Every mechanics-batch caller that can end a grant (basic action check settlement, cleaving response, live movement reaction and spatial persistence) carries the ended grants into its undo receipt, so undoing that root restores them.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Registered 2026-10-15 from the SPELLS-17.T2 merge review (report-only item; no SRD heal reaches these paths today)."
             }
           ],
           "wsjf": {
@@ -7526,6 +7561,19 @@
                 "tc": 1,
                 "rr": 2,
                 "size": 1
+              }
+            },
+            {
+              "id": "SPELLS-17.T5",
+              "text": "Carry endedGrants into the undo receipts of the remaining mechanics-batch callers, with a revert test per root kind that can heal.",
+              "status": "TODO",
+              "closes": ["SPELLS-17.6"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 1,
+                "rr": 3,
+                "size": 2,
+                "after": ["SPELLS-17.T2"]
               }
             }
           ]
@@ -8012,9 +8060,11 @@
               "id": "REACTION-4.5",
               "text": "A reaction decision is deterministic and complete: rebuilding the plan on an answer or a replay derives the same ids (no ambient randomness), a reaction-only action is refused as an ordinary action on every action path (single-target and area), and admission accepts any reaction the offer carries.",
               "status": "TODO",
-              "proof": [],
+              "proof": [
+                "merge d98b1264f (partial: deterministic ids, REACTION_TRIGGER_ONLY on every action path, admission of any offered reaction)"
+              ],
               "origin": [],
-              "note": "Registered 2026-10-15 from the REACTION-4.T1 merge review (D115)."
+              "note": "Registered 2026-10-15 from the REACTION-4.T1 merge review (D115). Remaining: replay test, admission-path integration test, settlement of a non-first offered reaction (REACTION-4.T6)."
             }
           ],
           "wsjf": {
@@ -8079,7 +8129,7 @@
             {
               "id": "REACTION-4.T5",
               "text": "REACTION-4.T1 merge-review hardening: deterministic reaction effect id, REACTION_TRIGGER_ONLY on the area path, admission across all offered reactions, plus nits.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["REACTION-4.5"],
               "wsjf": {
                 "bv": 3,
@@ -8087,7 +8137,20 @@
                 "rr": 5,
                 "size": 2
               },
-              "activeWorkbook": "docs/handoffs/slice-reaction-4.md"
+              "note": "Merged d98b1264f: deterministic reaction effect id, shared REACTION_TRIGGER_ONLY admission on single-target and area paths, admission accepts any offered reaction. Remaining AC 4.5 proof moved to REACTION-4.T6."
+            },
+            {
+              "id": "REACTION-4.T6",
+              "text": "Finish AC 4.5: a replay test proving the rebuilt plan derives the same ids, an admission-path integration test through the real command, and settleEncounterReactionChoice settling the chosen reaction instead of offer.reactions[0] (encounterReactionChoice.ts:128), red-first.",
+              "status": "TODO",
+              "closes": ["REACTION-4.5"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 5,
+                "size": 1,
+                "after": ["REACTION-4.T5"]
+              }
             }
           ]
         }

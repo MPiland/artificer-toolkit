@@ -1,6 +1,6 @@
 # Slice workbook: REACTION-4 (non-movement reactions: trigger model)
 
-**Status:** T1 merged (f875185dc, CI 38804169007 green). Next: T5 (merge-review hardening), then T2, T3, T4 in order.
+**Status:** T1 and T5 merged (f875185dc, d98b1264f). Next: T6 (finish AC 4.5: replay test, admission-path test, settle the chosen reaction), then T2, T3, T4 in order.
 **Base:** `codex/phase-08-2-convex-cutover` at this workbook's commit.
 **Rules:** [slice-workbook-rules.md](slice-workbook-rules.md).
 
@@ -140,3 +140,14 @@ Nits (fix in passing):
 - The generic stale-option message; say which option went stale.
 
 Red-first: each should-fix item gets a failing test against real code first (replay id equality; area reaction-only refusal; a second offered reaction admitted). CI on `ci/reaction-4-t5`.
+
+### T5 results
+
+All items done on branch `claude/frosty-grothendieck-0a7840`; CI on `ci/reaction-4-t5`.
+
+- **1. Derived effect id.** `nativeReactionEffectId({ commandId, occurrenceId })` (uuid v5) replaces `crypto.randomUUID()`; the id flows through `reactionEffect: { id, plan }` into settlement. Red: `ci/reaction-4-t5-red2` (missing export). Test: `nativeRoomReaction.test.ts` replay id equality.
+- **2. `REACTION_TRIGGER_ONLY` everywhere.** `refuseActionOutsideItsWindow` in `nativeEncounterActionInputs.ts` now serves single-target and the three area call sites (lead, per-target x2). Covered end to end by the single-target Shield-as-action test. **No end-to-end red proof for the area path:** the compiler admits an area only for an Action (`isSupportedTestArea`), so a reaction-activated area is refused earlier as `SOURCE_REQUIREMENTS_NOT_MET`; `nativeRoomReaction.test.ts` asserts that outcome. The area call sites are covered by sharing the helper.
+- **3. Resume admission.** `offeredDecisionOptionIds` (`actionPending.ts`) lists every offered option; `actionResumeAdmission` admits any carried option and refuses others with a message naming the option. Unit test `actionPendingOffers.test.ts` (red first).
+- **Nits.** Choice definition renamed `reactionChoiceDefinition.ts` (`createReactionChoiceDefinition`, `ASSISTED_REACTION_CHOICE_DEFINITION_ID`); coded `REACTION_UNSUPPORTED` refusal (new transport reason in `domainRejections.ts`) replaces plain `Error`; IIFEs replaced with plain control flow; stale-option message names the option.
+- **Follow-up (T3):** the pending summary (`REACTION_CHOICE.options` single-element tuple in `encounterRuleOccurrence.ts`) and the drawer (`options[0]`) still show one option. Admission accepts any offered reaction; widening the contract/UI belongs with the SPELL_CAST chain.
+- Not run locally: Worker tests (stale rules-runtime dist, heavy lane queued), local codegen push, Storybook/Playwright.

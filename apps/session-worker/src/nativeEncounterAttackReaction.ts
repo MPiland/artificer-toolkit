@@ -14,11 +14,13 @@ import { advanceNativeActionGraphs } from '@artificer-toolkit/rules-runtime/enco
 import { prepareNativeActionEffectsPlan } from '@artificer-toolkit/rules-runtime/encounterActionEffects'
 import type { prepareEncounterActionMechanics } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
 import { StaleCharacterActionError } from '@artificer-toolkit/rules-runtime/encounterErrors'
-import { ASSISTED_MOVEMENT_REACTION_CHOICE_DEFINITION_ID } from '@artificer-toolkit/rules-runtime/encounterMovementReactionDecision'
+import { ASSISTED_REACTION_CHOICE_DEFINITION_ID } from '@artificer-toolkit/rules-runtime/encounterMovementReactionDecision'
 import type { EncounterAttackReactionCandidate } from '@artificer-toolkit/rules-runtime/encounterReactionChoice'
-import { createMovementReactionChoiceDefinition } from '@artificer-toolkit/rules-runtime/movementReactionChoice'
+import { createReactionChoiceDefinition } from '@artificer-toolkit/rules-runtime/reactionChoiceDefinition'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
+import { v5 as uuidV5 } from 'uuid'
 
+import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
 import { evaluateNativeLiveActionEconomy } from './nativeEncounterActionEconomy.js'
 import type { LiveCaptureReads } from './nativeEncounterReads.js'
 import { nativeEffectOwner } from './nativeEncounterSettlement.js'
@@ -44,7 +46,9 @@ export function discoverNativeAttackReaction(input: {
   state: EncounterRunState
   attack: Pick<Prepared, 'actor' | 'target' | 'movementTargets'>
   prepareReaction(actionId: string): Promise<Prepared>
-  capture: (request: LiveSessionEncounterRulesRequest) => ReturnType<LiveCaptureReads['encounterRules']>
+  capture: (
+    request: LiveSessionEncounterRulesRequest
+  ) => ReturnType<LiveCaptureReads['encounterRules']>
 }) {
   return async (): Promise<NativeAttackReaction | null> => {
     const { actor, target, movementTargets } = input.attack
@@ -86,8 +90,8 @@ export function discoverNativeAttackReaction(input: {
             beforeUsed: economy.consumption.beforeUsed,
             maximum: economy.consumption.maximum
           },
-          choiceGraph: createMovementReactionChoiceDefinition({
-            definitionId: ASSISTED_MOVEMENT_REACTION_CHOICE_DEFINITION_ID,
+          choiceGraph: createReactionChoiceDefinition({
+            definitionId: ASSISTED_REACTION_CHOICE_DEFINITION_ID,
             gameSystemId: input.state.gameSystemId
           })
         }
@@ -96,6 +100,20 @@ export function discoverNativeAttackReaction(input: {
     return null
   }
 }
+
+const reactionEffectNamespace = 'c2a9f1d4-5b3e-4e7a-8d60-1f4b7a92e5c3'
+
+/** The id of the effect a used reaction leaves on its reactor: a replay of the command mints the same one. */
+export function nativeReactionEffectId(input: { commandId: string; occurrenceId: string }) {
+  return uuidV5(`${input.commandId}:${input.occurrenceId}`, reactionEffectNamespace)
+}
+
+const unsupportedReaction = (message: string) =>
+  new LiveSessionDomainRejectionError(422, {
+    code: 'DOMAIN_REJECTED',
+    reason: 'REACTION_UNSUPPORTED',
+    message
+  })
 
 /**
  * Runs a used reaction and works out the attack it answered once the reaction's effect holds: the
@@ -127,7 +145,7 @@ export async function applyNativeAttackReaction(input: {
     afterTest: async () => undefined
   })
   if (execution.kind !== 'COMPLETE')
-    throw new Error('A reaction that needs rolls cannot answer an attack.')
+    throw unsupportedReaction('A reaction that needs rolls cannot answer an attack.')
   const effects = prepareNativeActionEffectsPlan({
     prepared,
     execution,
@@ -136,11 +154,11 @@ export async function applyNativeAttackReaction(input: {
     activeEffectsByActorId: input.activeEffectsByActorId
   })
   if (effects.stateEffect || !effects.recurringEffect || effects.maintenance)
-    throw new Error('The reaction must create exactly one effect on its reactor.')
+    throw unsupportedReaction('A reaction must create exactly one effect on its reactor.')
   const reactorId = prepared.target.id
   const held = input.activeEffectsByActorId.get(reactorId) ?? []
   const pending = prepareActiveRuleEffectRecord({
-    id: crypto.randomUUID(),
+    id: nativeReactionEffectId(input),
     owner: nativeEffectOwner(prepared.target, prepared.state.id),
     definition: effects.recurringEffect.definition,
     lifecycle: effects.recurringEffect.lifecycle,
@@ -154,5 +172,10 @@ export async function applyNativeAttackReaction(input: {
   const adjustedAttack = await input.prepareAttack(
     new Map(prepared.movementTargets).set(reactorId, adjustedTarget)
   )
-  return { execution, effects, adjustedBinding: adjustedAttack.binding }
+  return {
+    execution,
+    effects,
+    reactionEffect: { id: pending.id, plan: effects.recurringEffect },
+    adjustedBinding: adjustedAttack.binding
+  }
 }

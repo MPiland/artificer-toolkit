@@ -66,7 +66,12 @@ export function planNativeLiveEncounterSettlement(input: {
   mechanics: ReturnType<typeof planNativeEncounterActionMechanics>
   effects: ReturnType<typeof prepareNativeActionEffectsPlan<CharacterFacts>>
   /** The effect plan of the reaction the target used against this action, when it used one. */
-  reactionEffect: ReturnType<typeof prepareNativeActionEffectsPlan<CharacterFacts>>['stateEffect']
+  reactionEffect: {
+    id: string
+    plan: NonNullable<
+      ReturnType<typeof prepareNativeActionEffectsPlan<CharacterFacts>>['stateEffect']
+    >
+  } | null
   actionEconomy: Awaited<ReturnType<typeof prepareEncounterActionEconomy>>
   actionEconomyOverridden: boolean
   attackAction: EncounterAttackActionTransitionDto | null
@@ -105,10 +110,14 @@ export function planNativeLiveEncounterSettlement(input: {
     (effect) => !removedIds.has(effect.id)
   )
   const createdEffects: ActiveRuleEffectRecord[] = []
-  const create = (plan: typeof effects.stateEffect, maintainedEffectStateId?: string) => {
+  const create = (
+    plan: typeof effects.stateEffect,
+    maintainedEffectStateId?: string,
+    id = crypto.randomUUID()
+  ) => {
     if (!plan) return null
     const record = prepareActiveRuleEffectRecord({
-      id: crypto.randomUUID(),
+      id,
       owner,
       definition: plan.definition,
       lifecycle: plan.lifecycle,
@@ -123,7 +132,8 @@ export function planNativeLiveEncounterSettlement(input: {
   const stateEffect = create(effects.stateEffect)
   const recurringEffect = create(effects.recurringEffect, maintainedState?.id)
   // The effect of the reaction the target used lands on the target after the attack's own effects.
-  const reactionEffect = create(input.reactionEffect)
+  const reactionEffect =
+    input.reactionEffect && create(input.reactionEffect.plan, undefined, input.reactionEffect.id)
   const consumedActor = input.actionEconomy
     ? consumeEncounterActionEconomy({
         actor: mechanics.settledSource,

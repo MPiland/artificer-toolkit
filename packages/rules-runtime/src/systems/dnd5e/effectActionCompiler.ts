@@ -69,10 +69,10 @@ import {
   SENSE_DEFINITION_FAMILY_KEY
 } from '@artificer-toolkit/schema/shared/reusableDefinitionIdentity'
 import {
-  MOVEMENT_REACTION_CHOICE_MAX_FACT_KEY,
-  MOVEMENT_REACTION_CHOICE_MIN_FACT_KEY,
-  MOVEMENT_REACTION_CHOICE_OPERATION_KEY
-} from '../../movementReactionChoice.js'
+  REACTION_CHOICE_MAX_FACT_KEY,
+  REACTION_CHOICE_MIN_FACT_KEY,
+  REACTION_CHOICE_OPERATION_KEY
+} from '../../reactionChoiceDefinition.js'
 import { dnd5eAttackKind, dnd5eAttackModifierDomain, isDnd5eMeleeAttackKind } from './attackKind.js'
 import { DND5E_SYSTEM_ID } from './characterActionCapabilityDiscovery.js'
 import {
@@ -3168,11 +3168,11 @@ export const dnd5eEffectActionCapability: GameSystemRuleCapabilityContract = {
       valueKind: RULE_VALUE_KIND.NUMBER
     },
     {
-      key: MOVEMENT_REACTION_CHOICE_MIN_FACT_KEY,
+      key: REACTION_CHOICE_MIN_FACT_KEY,
       valueKind: RULE_VALUE_KIND.NUMBER
     },
     {
-      key: MOVEMENT_REACTION_CHOICE_MAX_FACT_KEY,
+      key: REACTION_CHOICE_MAX_FACT_KEY,
       valueKind: RULE_VALUE_KIND.NUMBER
     },
     ...dnd5eConcentrationCapabilityContribution.factContracts,
@@ -3184,7 +3184,7 @@ export const dnd5eEffectActionCapability: GameSystemRuleCapabilityContract = {
   operationContracts: [
     'evidence.integer-range',
     addNumbersRuleOperation.key,
-    MOVEMENT_REACTION_CHOICE_OPERATION_KEY,
+    REACTION_CHOICE_OPERATION_KEY,
     DND5E_HEAL_PROPOSAL_OPERATION_KEY,
     DND5E_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY,
     DND5E_STABILIZE_PROPOSAL_OPERATION_KEY,
