@@ -43,7 +43,10 @@ jobs:
           build: 'true'
       - name: Start Convex backend
         run: |
-          docker run -d --name convex-live -p 127.0.0.1:3210:3210 -p 127.0.0.1:3211:3211 "$CONVEX_BACKEND_IMAGE"
+          # The origins become the deployment's built-in CONVEX_URL and CONVEX_SITE_URL (the auth config's domain).
+          docker run -d --name convex-live -p 127.0.0.1:3210:3210 -p 127.0.0.1:3211:3211 \
+            -e CONVEX_CLOUD_ORIGIN=http://127.0.0.1:3210 -e CONVEX_SITE_ORIGIN=http://127.0.0.1:3211 \
+            "$CONVEX_BACKEND_IMAGE"
           for _ in $(seq 60); do
             curl -fsS http://127.0.0.1:3210/version && exit 0
             sleep 2

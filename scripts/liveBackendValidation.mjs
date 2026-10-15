@@ -16,12 +16,11 @@ import {
 } from './convexSelfHosted.mjs'
 
 // Each step is a list of commands run in apps/apis. `env` is for a fresh backend only (the CI
-// container): auth.config.ts needs JWKS (empty selects the database-backed signing keys) and the site
-// URL before any push. The local container already has its own, so `env` is not a default step.
-const convexEnvSet = (name, value) => ['yarn', ['convex', 'env', 'set', name, value]]
+// container): auth.config.ts needs JWKS before any push, and an empty value selects the database-backed
+// signing keys. The local container already has its own, so `env` is not a default step.
 const allSteps = {
   manifest: [['yarn', ['generate:srd:manifest']]],
-  env: [convexEnvSet('JWKS', ''), convexEnvSet('CONVEX_SITE_URL', 'http://127.0.0.1:3211')],
+  env: [['yarn', ['convex', 'env', 'set', 'JWKS', '']]],
   codegen: [['yarn', ['convex', 'codegen', '--typecheck', 'disable']]],
   deploy: [['yarn', ['convex', 'deploy', '--yes', '--typecheck', 'disable', '--codegen', 'disable']]],
   seed: [['yarn', ['convex', 'run', 'content/seed:seed']]],
