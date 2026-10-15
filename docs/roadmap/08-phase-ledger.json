@@ -806,10 +806,15 @@
         {
           "id": "ACCOUNTS-1",
           "title": "Sign in works on web and native",
-          "status": "IN_PROGRESS",
-          "journeyTests": ["apps/apis/convex/auth.test.ts", "apps/apis/convex/authJwks.test.ts"],
-          "journeyStatus": "partial",
-          "journeyGap": "No browser SSR sign-in, hydration and reload, and no HTTP-level native bearer call; convex-test covers identity and key pinning only.",
+          "status": "DONE",
+          "journeyTests": [
+            "apps/apis/convex/auth.test.ts",
+            "apps/apis/convex/authJwks.test.ts",
+            "apps/web/tests/live-backend/authenticatedSession.ts",
+            "apps/apis/tests/developmentDrafts.ts",
+            "apps/apis/convex/authProxyRejection.test.ts"
+          ],
+          "journeyStatus": "verified",
           "origin": ["F03"],
           "acs": [
             {
@@ -852,7 +857,8 @@
             "tc": 8,
             "rr": 13,
             "size": 3
-          }
+          },
+          "note": "Merged 72193db49; proved by scripts/runLocalConvexProof.ps1 -Proof profile-browser (logs local-validation/accounts-journeys/run7-*)."
         },
         {
           "id": "ACCOUNTS-2",
@@ -970,13 +976,14 @@
         {
           "id": "ACCOUNTS-5",
           "title": "Log in",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "journeyTests": [
             "apps/apis/convex/auth.test.ts",
-            "apps/web/tests/e2e/app/authConfirmation.spec.ts"
+            "apps/web/tests/e2e/app/authConfirmation.spec.ts",
+            "apps/web/tests/live-backend/authenticatedSession.ts",
+            "apps/apis/tests/developmentDrafts.ts"
           ],
-          "journeyStatus": "partial",
-          "journeyGap": "No successful email or username login returning to the requested path; only unverified-login feedback and session identity.",
+          "journeyStatus": "verified",
           "origin": ["F07"],
           "acs": [
             {
@@ -1009,7 +1016,8 @@
             "tc": 8,
             "rr": 13,
             "size": 3
-          }
+          },
+          "note": "Merged 72193db49; proved by scripts/runLocalConvexProof.ps1 -Proof profile-browser (logs local-validation/accounts-journeys/run7-*)."
         },
         {
           "id": "ACCOUNTS-6",
@@ -1079,13 +1087,14 @@
         {
           "id": "ACCOUNTS-8",
           "title": "Control who sees my profile",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "journeyTests": [
             "apps/apis/convex/social/profiles.test.ts",
-            "apps/apis/convex/auth.test.ts"
+            "apps/apis/convex/auth.test.ts",
+            "apps/web/tests/live-backend/authenticatedSession.ts",
+            "apps/apis/tests/developmentDrafts.ts"
           ],
-          "journeyStatus": "partial",
-          "journeyGap": "Caller-only profile reads and updates plus Social eligibility are tested; no two-account journey shows what another account sees under each privacy setting.",
+          "journeyStatus": "verified",
           "origin": ["F10"],
           "acs": [
             {
@@ -1127,7 +1136,8 @@
             "tc": 8,
             "rr": 13,
             "size": 3
-          }
+          },
+          "note": "Merged 72193db49; proved by scripts/runLocalConvexProof.ps1 -Proof profile-browser (logs local-validation/accounts-journeys/run7-*)."
         },
         {
           "id": "ACCOUNTS-9",
@@ -7310,17 +7320,24 @@
         {
           "id": "SPELLS-22",
           "title": "Self-radius areas centered on the caster",
-          "status": "TODO",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": ["apps/session-worker/test/nativeRoomCasterCenteredAreaAction.test.ts"],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
               "text": "An area with Self range and a sphere, cylinder or circle shape (\"each creature within 10 feet of it\") is centered on the caster's space, catches every creature whose token overlaps it except the caster unless the text says so, and resolves as SPELLS-7 does.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/session-worker/test/nativeRoomCasterCenteredAreaAction.test.ts (live room: caster-centered area, no aim, caster excluded)",
+                "packages/shared/src/__tests__/vtt-spatial.test.ts (expanded caster footprint, positive-area overlap)",
+                "packages/rules-runtime/src/__tests__/encounterAreaActionCompilation.test.ts (Self radius areas compile)",
+                "packages/rules-runtime/src/__tests__/encounterAreaActionExecution.test.ts",
+                "packages/encounter-persistence/src/__tests__/areaMatchesTarget.test.ts",
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopActionDrawer.test.tsx (centered copy from the authored radius)"
+              ],
               "origin": [],
-              "note": "Registered 2026-10-14 from the SPELLS-13 review: SPELLS-13 builds cones, lines and Self cubes and still refuses Self sphere, cylinder and circle areas. Moving auras are SPELLS-20; outcomes that leave conditions stay refused until SPELLS-19. Token rotation is not tracked: 5e footprints are square, so it changes no catch.",
+              "note": "Registered 2026-10-14 from the SPELLS-13 review: SPELLS-13 builds cones, lines and Self cubes and still refuses Self sphere, cylinder and circle areas. Moving auras are SPELLS-20; outcomes that leave conditions stay refused until SPELLS-19. Token rotation is not tracked: 5e footprints are square, so it changes no catch. Merged 72193db49; D114 adopted (edge-of-space measure, D103 overlap, caster excluded).",
               "id": "SPELLS-22.1"
             }
           ],
@@ -9526,17 +9543,23 @@
         {
           "id": "RELEASE-6",
           "title": "Live-backend tests read the typed Campaign refusal",
-          "status": "TODO",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": [
+            "apps/web/tests/live-backend/campaignMembership.ts",
+            "apps/web/tests/live-backend/sceneLiveDiagnostics.ts"
+          ],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
               "text": "A live-backend run (apps/web/tests/live-backend campaignMembership and sceneLiveDiagnostics) observes the deployed console shape of the typed CAMPAIGN_NOT_FOUND rejection and the regexes match it.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/web/tests/live-backend/campaignMembership.ts (-Proof campaign-membership-browser)",
+                "apps/web/tests/live-backend/sceneLiveDiagnostics.ts (-Proof scene-live-browser)"
+              ],
               "origin": [],
-              "note": "Registered from CAMPAIGN-8: the regexes were updated from the transport contract, not from an observed live run.",
+              "note": "Registered from CAMPAIGN-8: the regexes were updated from the transport contract, not from an observed live run. Merged 72193db49; observed console prefix is \"ConvexError: \", recorded in docs/handoffs/slice-accounts-journeys.md; logs local-validation/accounts-journeys/run7-*.",
               "id": "RELEASE-6.1"
             }
           ],

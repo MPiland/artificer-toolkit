@@ -1,6 +1,6 @@
 # Slice workbook: ACCOUNTS-1, ACCOUNTS-5, ACCOUNTS-8 and RELEASE-6 (account journeys and the live Campaign refusal)
 
-**Status:** OPEN (started 2026-10-14)
+**Status:** DONE, merged 72193db49 (2026-10-14)
 **Base:** `codex/phase-08-2-convex-cutover` at this workbook's commit.
 **Rules:** [slice-workbook-rules.md](slice-workbook-rules.md).
 

@@ -275,7 +275,7 @@ function polygonFootprintOverlapArea(points: readonly ScenePoint[], value: Footp
         const previous = polygon[(index + polygon.length - 1) % polygon.length]!
         const [currentDistance, previousDistance] = [distance(current), distance(previous)]
         const crossing =
-          currentDistance >= 0 !== (previousDistance >= 0)
+          currentDistance >= 0 !== previousDistance >= 0
             ? [
                 interpolate(
                   previous,
@@ -661,8 +661,14 @@ export function spatialTokensWithinSpaceRadius(input: {
       const other = footprint(token)
       return (
         Math.hypot(
-          Math.max(0, Math.abs(other.center.x - space.center.x) - space.halfWidth - other.halfWidth),
-          Math.max(0, Math.abs(other.center.y - space.center.y) - space.halfHeight - other.halfHeight)
+          Math.max(
+            0,
+            Math.abs(other.center.x - space.center.x) - space.halfWidth - other.halfWidth
+          ),
+          Math.max(
+            0,
+            Math.abs(other.center.y - space.center.y) - space.halfHeight - other.halfHeight
+          )
         ) <
         input.radius - EPSILON
       )

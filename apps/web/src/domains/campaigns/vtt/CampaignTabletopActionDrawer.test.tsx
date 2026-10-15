@@ -1048,7 +1048,9 @@ describe('CampaignTabletopActionDrawer directed area (SPELLS-13)', () => {
 
     expect(screen.queryByRole('combobox', { name: 'Target' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Aim on map' })).not.toBeInTheDocument()
-    expect(screen.getByText('Centered on you: creatures within 10 feet of your space are caught.')).toBeVisible()
+    expect(
+      screen.getByText('Centered on you: creatures within 10 feet of your space are caught.')
+    ).toBeVisible()
     await user.click(screen.getByRole('button', { name: 'Resolve action' }))
     expect(onResolve).toHaveBeenCalledWith(
       expect.objectContaining({

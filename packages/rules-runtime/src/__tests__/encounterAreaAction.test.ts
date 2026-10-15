@@ -438,7 +438,9 @@ describe('caster-centered area', () => {
   })
 
   it('refuses with the reason: a size or policy it cannot draw, or no caster token', () => {
-    const refusal = (input: Partial<Parameters<typeof evaluateEncounterCasterCenteredAreaTarget>[0]>) =>
+    const refusal = (
+      input: Partial<Parameters<typeof evaluateEncounterCasterCenteredAreaTarget>[0]>
+    ) =>
       evaluateEncounterCasterCenteredAreaTarget({
         targetPolicy: centered(SHAPES.SPHERE),
         grid: FEET_GRID,

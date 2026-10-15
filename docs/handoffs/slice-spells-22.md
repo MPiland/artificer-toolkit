@@ -1,6 +1,6 @@
 # Slice workbook: SPELLS-22 (self-radius areas centered on the caster)
 
-**Status:** DONE, ready to merge (2026-10-14)
+**Status:** DONE, merged 72193db49 (2026-10-14)
 **Base:** `codex/phase-08-2-convex-cutover` at this workbook's commit.
 **Rules:** [slice-workbook-rules.md](slice-workbook-rules.md).
 

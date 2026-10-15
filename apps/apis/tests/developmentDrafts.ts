@@ -5423,7 +5423,10 @@ try {
         const [header, payload, signature] = jwt.split('.')
         const forged = `${header}.${payload}.${[...signature!].reverse().join('')}`
         assert.notEqual(forged, jwt)
-        await assert.rejects(bearerClient(forged).query(api.account.identity, {}), /InvalidAuthHeader/)
+        await assert.rejects(
+          bearerClient(forged).query(api.account.identity, {}),
+          /InvalidAuthHeader/
+        )
         await assert.rejects(publicClient.query(api.account.identity, {}), /Unauthenticated/)
       },
       verifyRevoked: async (jwt) => {

@@ -220,7 +220,11 @@ describe('caster-centered area action compilation', () => {
       { id: 's', shapeKind: 'CYLINDER', radius: feet(10), height: feet(40) },
       { kind: 'RADIUS', radius: feet(10) }
     ],
-    ['a circle', { id: 's', shapeKind: 'CIRCLE', radius: feet(5) }, { kind: 'RADIUS', radius: feet(5) }]
+    [
+      'a circle',
+      { id: 's', shapeKind: 'CIRCLE', radius: feet(5) },
+      { kind: 'RADIUS', radius: feet(5) }
+    ]
   ] as const)('compiles Self %s to the per-creature test plan', (_name, shape, area) => {
     const { action, plan } = compile({ range: SELF, shape })
     expect(plan?.kind).toBe('TEST_OUTCOME')

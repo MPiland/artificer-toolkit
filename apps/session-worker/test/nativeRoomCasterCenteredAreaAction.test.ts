@@ -169,9 +169,7 @@ describe('room refusals of the wrong target for a radius centered on the caster'
 
   it('refuses a direction for it', async () => {
     const room = await centeredRoom(casterCenteredAreaWolf(TEN_FOOT_SPHERE))
-    refused(
-      (await room.startDirectedAreaAction({ x: 200, y: 150 }, { x: 500, y: 150 })).answer
-    )
+    refused((await room.startDirectedAreaAction({ x: 200, y: 150 }, { x: 500, y: 150 })).answer)
   })
 
   it('refuses a creature target for it', async () => {
