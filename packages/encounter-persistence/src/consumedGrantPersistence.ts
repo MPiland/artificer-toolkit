@@ -1,17 +1,18 @@
-import { consumableGrants } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
+import {
+  consumableGrants,
+  grantsEndedBy
+} from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { readRunActors } from './documents.js'
 import { createActiveRuleEffectStore } from './effectStore.js'
-import type {
-  EncounterCharacterWriteTransaction,
-  EncounterPersistenceTransaction
-} from './ports.js'
+import type { EncounterCharacterWriteTransaction } from './ports.js'
+import type { EncounterWriteContext } from './store.js'
 
 /** Ends grants a roll used up, with the versions the roll was planned against. */
 export async function deleteConsumedGrants(
-  ctx: EncounterPersistenceTransaction,
+  ctx: EncounterWriteContext,
   grants: readonly ActiveRuleEffectRecord[]
 ) {
   const store = createActiveRuleEffectStore(ctx)
@@ -37,9 +38,25 @@ export async function deleteHeldAttackRollGrants(
     )
 }
 
+/**
+ * Ends the owner's grants that last until hit points are regained, for a heal that restored at
+ * least 1 hit point. The records come back so the heal's root can give them back on a GM undo.
+ */
+export async function endGrantsOnHitPointsRegained(
+  ctx: EncounterWriteContext,
+  owner: ActiveRuleEffectRecord['owner']
+) {
+  const ended = grantsEndedBy(
+    await createActiveRuleEffectStore(ctx).list(owner),
+    'ON_HIT_POINTS_REGAINED'
+  )
+  await deleteConsumedGrants(ctx, ended)
+  return ended
+}
+
 /** Gives back the exact records an undone roll had used up: same ordinal, version and timestamps. */
 export async function restoreConsumedGrants(
-  ctx: EncounterPersistenceTransaction,
+  ctx: EncounterWriteContext,
   grants: readonly ActiveRuleEffectRecord[]
 ) {
   const store = createActiveRuleEffectStore(ctx)

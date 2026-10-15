@@ -64,6 +64,7 @@ import type { CharacterSheetSourceContext } from './sheetFacts'
 import { readCharacterPublication, readCharacterSources } from './context'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 import { endCharacterActiveEffect } from '@artificer-toolkit/encounter-persistence/characterActiveEffects'
+import { endGrantsOnHitPointsRegained } from '@artificer-toolkit/encounter-persistence/consumedGrantPersistence'
 import { endCarriedConcentration } from './sheetConcentration'
 import { prepareCharacterRest } from './rest'
 import { readCharacterCommandReplay, writeCharacterCommandReceipt } from './sheetCommandReceipts'
@@ -474,6 +475,12 @@ export async function executeCharacterSheetCommand(
       if (activeEffectEndsOnRest(effect, command.restKind))
         await effectStore.deleteCas({ id: effect.id, owner, expectedVersion: effect.version })
   }
+
+  if (updated.state.hitpoints.current > initial.character.state.hitpoints.current)
+    await endGrantsOnHitPointsRegained(
+      { db: createConvexEncounterStore(ctx) },
+      { kind: 'CHARACTER', characterId: initial.active.id }
+    )
 
   // The validated authored sources cannot change within this transaction. Reload only when the
   // command changes which source-backed records belong to the Character.

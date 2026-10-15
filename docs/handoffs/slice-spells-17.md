@@ -68,7 +68,7 @@ Read first:
 - 2026-10-14: workbook written.
 - 2026-10-15: slice complete on `claude/reverent-elbakyan-4f4686`; base merged in (commits `5a6da58dc`, merge `18cfe5c2f`). Items 1-5 green with real SRD Caltrops, including the careful crossing (3c). Logs under `local-validation/spells-17/` (red: `red-1-compile.log` to `red-7-web.log`; green: `green-2-shared.log` to `green-7-web.log`, `typecheck-2.log`, `typecheck-3-convex.log` (empty: clean), `typecheck-4-web.log`, `codegen.log`).
 - Caveat (flag for the ledger): SRD Caltrops author the interaction as `ENTER_SPACE`, which maps to the ENTER trigger. ENTER fires only when the dragged path ends inside the field; a drag that passes through and ends outside is CROSS and does not trigger. No source-data change made. The ENTER_SPACE wording ("enters") versus pass-through needs a ruling.
-- Known gaps: GM undo of a heal does not restore the ended slow; Sheet healing outside Encounter mechanics batches does not emit `ON_HIT_POINTS_REGAINED`; a fully resisted hit leaves the target out of `changed`; the stage-level wiring of the careful choice (`commitTokenMove` in `CampaignVttStage.tsx`) has no dedicated test (covered by the component and model tests).
+- Known gaps (the first three closed by SPELLS-17.T2): GM undo of a heal did not restore the ended slow; Sheet healing outside Encounter mechanics batches did not end `ON_HIT_POINTS_REGAINED` grants; a fully resisted hit was thought to leave the target out of `changed` (it does not; see T2); the stage-level wiring of the careful choice (`commitTokenMove` in `CampaignVttStage.tsx`) has no dedicated test (covered by the component and model tests).
 - Storybook (cannot run in a worktree): new `CampaignVttCarefulMoveChoice.stories.tsx` (SingleLabeledField, UnlabeledAndMultipleFields). Suggested stage-level story in `CampaignTabletopWindow.stories.tsx` seeding `halfSpeedFields` so a dragged path ending in a field shows the choice.
 
 ## SPELLS-17.T1 (AC 17.2): pass-through triggers
@@ -100,10 +100,23 @@ Synced to the lane (fast-forward to `1c7829549`, which holds the T1 merge). The 
 
 Proof: `packages/source-data/src/srd/zoneInteractionKinds.test.ts` asserts the kind per entry (also Caltrops and Ball Bearings from T1). Red before the edit for Oil Flask, Hunting Trap and Blade Barrier (`local-validation/spells-17/t4-red.log`). None of the three compiles into a placed zone today, so there is no live behavior change; the compile parity test covers Caltrops only. Manifest regenerated.
 
+## SPELLS-17.T2 (AC 17.3): heals end the slow everywhere, undo restores it
+
+**Status:** done on the branch; CI run recorded in the report. Closes AC 17.3.
+
+Synced to the lane first. One helper now ends "until healed" grants: `endGrantsOnHitPointsRegained(ctx, owner)` in `consumedGrantPersistence.ts` (select with `grantsEndedBy`, delete, return the records).
+
+- **Encounter batch:** `persistEncounterMechanicsBatchPlan` returns `endedGrants`; the action and area commits append them to the root's `consumedGrants` (area collects across children). GM undo already restores `consumedGrants` through `restoreConsumedGrants`, so the slow comes back with its id and version. No schema change.
+- **Sheet:** Convex `executeCharacterSheetCommand` and the room's `executeRoomCharacterSheetCommand` call the helper when the command raises current hit points (`HEAL`, `SET_HIT_POINTS` higher). Damage and a heal that restores nothing leave the grant. Owner is the Character's own grant owner.
+- **Fully resisted slow:** a failed save whose damage is fully resisted already applies the slow on base (the target stays in `changed`). It did not reproduce; the Worker test "still slows a creature whose resistance takes the whole of the hurt" is regression coverage.
+- **Fixture:** `plannedModifierGrant` takes optional `endOnEvents`. The dnd5e compiler refuses `endOnEvents` on timed grants, so the end-event grants in these tests are untimed.
+- **Proof:** Worker `nativeRoomPlacedZone.test.ts` (undo restores the slow; resisted walker), Worker `nativeRoomSheetHealEndsGrant.test.ts` (Sheet heal in a live room), Convex `sheetHealEndsGrants.test.ts` (Sheet heal, damage, zero heal, `SET_HIT_POINTS`). Logs: `local-validation/spells-17/t2-red-*.log`, `t2-green-*.log`.
+- **Not covered (no undoable root):** heals through turn effects, turn resources and a GM `UPDATE_ACTOR` edit end the grant but are not undoable; a GM edit of a non-Character actor's hit points does not end it.
+
 ## Proposed ledger edits (filled by the slice session)
 
 - Close AC SPELLS-17.1 (creator, entry, end event, careful crossing, journey).
 - New follow-up: ruling on `ENTER_SPACE` versus pass-through for Caltrops (authoring/semantics; possibly `ENTER_OR_PASS_THROUGH` in source data).
 - New follow-up: stage-level test for the careful-move choice in `CampaignVttStage`.
-- New follow-up: emit `ON_HIT_POINTS_REGAINED` for Sheet healing outside Encounter mechanics batches; decide undo semantics for an ended slow.
+- Done in SPELLS-17.T2 (AC 17.3): Sheet healing ends `ON_HIT_POINTS_REGAINED` grants and GM undo of a heal restores them.
 - Hidden/unnoticed zones stay MOVE-3.3 to 3.5; client drawing of zones stays SPELLS-20 / VTT_UI-3.1.

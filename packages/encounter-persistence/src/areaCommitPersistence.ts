@@ -11,6 +11,7 @@ import {
   type EncounterRunActorState,
   type EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
+import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { ServerRuleExecutionApplicationOutputsDto } from '@artificer-toolkit/schema/shared/ruleExecutionApplicationOutputs'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
@@ -341,6 +342,7 @@ export async function persistEncounterAreaCommit(
   } else if (!(mergedSpend && spends) && root.sourceCharacterStreamVersion !== null)
     throw new Error('Live Session source Character receipt mismatch.')
 
+  const endedGrants: ActiveRuleEffectRecord[] = []
   for (const { actor, batch, occurrenceId } of children) {
     const merged = mergedSpend && actor.id === source.id
     const mechanics = await callbacks.applyMechanics({
@@ -375,6 +377,7 @@ export async function persistEncounterAreaCommit(
     )
       throw new Error('Live Session mechanics receipt mismatch.')
     current.set(actor.id, mechanics.updatedActor)
+    endedGrants.push(...mechanics.endedGrants)
     // A Legendary Resistance the creature used spends one of its own charges.
     const charge =
       batch.kind === 'ENCOUNTER_ACTOR_MECHANICS_BATCH'
@@ -531,7 +534,7 @@ export async function persistEncounterAreaCommit(
     commandFields: {
       label: input.label,
       ruleOverrides: input.ruleOverrides,
-      consumedGrants: [],
+      consumedGrants: endedGrants,
       addedConcentrationCasterId: null,
       speedBonusTurn: null,
       issuerLines: children.flatMap(({ actor, batch }) => {
