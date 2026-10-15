@@ -374,7 +374,8 @@ describe('the Concentration a cast starts', () => {
 describe('the scaling heal a cast carries', () => {
   /** The dice the spell's authored scaling row names for a cast level, read from the SRD data. */
   function authoredDice(authored: SpellAuthored, castLevel: number) {
-    const outcome = compileSpell(authored).effects?.[0]?.entries[0]?.outcome
+    const entry = compileSpell(authored).effects?.[0]?.entries[0]
+    const outcome = entry && 'outcome' in entry ? entry.outcome : undefined
     if (outcome?.effectKind !== 'HEAL' || !('levels' in outcome))
       throw new Error(`${authored.label} has no scaling heal.`)
     const row = outcome.levels.find((level) => level.level === castLevel)

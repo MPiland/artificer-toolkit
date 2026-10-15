@@ -1077,7 +1077,9 @@ describe('Character spell casting in an Encounter', () => {
   }, 60000)
 
   describe('a scaling heal (SPELLS-8.1)', () => {
-    const RANGE_UNCHECKED = ['TARGET_RANGE_UNCHECKED'] as const
+    const RANGE_UNCHECKED: NonNullable<ResolveEncounterActionInputDto['acknowledgedWarnings']> = [
+      'TARGET_RANGE_UNCHECKED'
+    ]
     const EXCLUDED_TYPE = 'TARGET_CREATURE_TYPE_EXCLUDED'
 
     it('heals the dice of the cast level the Character chose, on the SRD Cure Wounds as authored', async () => {
