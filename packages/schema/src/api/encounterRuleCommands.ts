@@ -150,11 +150,11 @@ export function actionTargetActorId(target: ResolveEncounterActionTargetDto): st
 
 /**
  * Where an aimed area action's area starts: the picked point, or the directed area's origin. A
- * caster-centered area has none in its command: it starts at the caster's token.
+ * caster-centered area has none in its command (it starts at the caster's token), so it is not accepted.
  */
-export function areaActionTargetOrigin(target: AreaActionTargetDto): SpatialPointDto {
-  if (target.kind === 'CASTER_CENTERED')
-    throw new Error('A caster-centered area names no origin: it starts at the caster’s token.')
+export function areaActionTargetOrigin(
+  target: Exclude<AreaActionTargetDto, { kind: 'CASTER_CENTERED' }>
+): SpatialPointDto {
   return target.kind === 'POINT' ? target.point : target.origin
 }
 
