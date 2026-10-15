@@ -469,6 +469,10 @@ export async function planNativeLiveEncounterAction(
       targetIds: [prepared.target.id],
       capture
     })
+  const mechanicFacts =
+    prepared.source.kind === 'CHARACTER_ACTION'
+      ? prepared.source.candidate.mechanicFacts
+      : prepared.source.capability.mechanicFacts
   const ruleWarnings = evaluateEncounterActionRuleWarnings({
     preparedWarnings: suppressed
       ? [...prepared.ruleWarnings, encounterActionSuppressedWarning(activationCode)]
