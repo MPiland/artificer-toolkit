@@ -20,6 +20,9 @@ export const dnd5eActionEconomyCapabilityAdapter: ActionEconomyCapabilityAdapter
         capabilityDefinitionId: DND5E_BONUS_ACTION_ALLOWANCE_DEFINITION_ID
       }
     }
+    if (activationKind === 'REACTION') {
+      return { kind: 'REQUIRED', capabilityDefinitionId: DND5E_REACTION_ALLOWANCE_DEFINITION_ID }
+    }
     return { kind: 'NONE' }
   },
   /** Weapon and unarmed attacks made with the Action are the Attack action; spell attacks are not. */

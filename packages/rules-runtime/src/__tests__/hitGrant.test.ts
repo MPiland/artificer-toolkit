@@ -1,10 +1,15 @@
 import type { ServerCompletedRuleExecutionDto } from '@artificer-toolkit/schema/shared/rulesExecution'
+import { reusableDefinitionCurrentDtoSchema } from '@artificer-toolkit/schema/shared/reusableDefinitions'
+import { SRD_RULE_STATE_DEFINITIONS } from '@artificer-toolkit/source-data/srd/ruleState.js'
+import { SRD_SYSTEM_ID, SRD_USER_ID } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { compileEffect } from '@artificer-toolkit/shared/compilers'
 import { describe, expect, it } from 'vitest'
 
+import { evaluateEncounterActionEconomy } from '../encounterActionEconomy.js'
 import { prepareEncounterActionEffectPlans } from '../encounterActionEffectPlans.js'
 import { encounterActiveGrantCapabilitySuppressions } from '../encounterActiveGrants.js'
 import { buildCompiledActionCompilerSource } from '../encounterActionEntryPointCompiler.js'
+import type { CurrentReusableDefinitionSource } from '../ruleCapabilityStateService.js'
 import { dnd5eCharacterRuleActionSystemAdapter as adapter } from '../systems/dnd5e/effectActionCompiler.js'
 import { DND5E_REACTION_ALLOWANCE_DEFINITION_ID } from '../systems/dnd5e/identity.js'
 import {
@@ -13,6 +18,7 @@ import {
 } from '../testing/characterActionDescriptor.js'
 import { testUuid } from '../testing/dnd5eSrdEncounter.js'
 import { joltingGauntlet } from '../testing/joltingGauntlet.js'
+import { creatureActor, creatureEncounter } from './encounterCreatureAction.js'
 
 /**
  * SPELLS-5.5 (D99): an attack's hit applies its grant, like Shocking Grasp's "can't take
@@ -22,6 +28,23 @@ import { joltingGauntlet } from '../testing/joltingGauntlet.js'
 const ENCOUNTER_ID = testUuid(0xf50)
 const SOURCE_ID = testUuid(0xf51)
 const TARGET_ID = testUuid(0xf52)
+
+/** The published SRD rule-state definitions, served as current reusable definitions. */
+const srdDefinitions: CurrentReusableDefinitionSource = {
+  async requireCurrent(definitionId) {
+    const seed = SRD_RULE_STATE_DEFINITIONS.find((definition) => definition.id === definitionId)
+    if (!seed) throw new Error(`SRD rule-state definition ${definitionId} is missing.`)
+    return reusableDefinitionCurrentDtoSchema.parse({
+      ...seed,
+      gameSystemId: SRD_SYSTEM_ID,
+      contentSourceId: testUuid(0xf56),
+      contractVersion: 1,
+      version: 1,
+      publishedAt: '2026-09-26T00:00:00.000Z',
+      publishedBy: SRD_USER_ID
+    })
+  }
+}
 
 function gauntletAction(input?: Parameters<typeof joltingGauntlet>[0]) {
   const [effect] = joltingGauntlet(input).effects ?? []
@@ -167,5 +190,46 @@ describe('a creature that can’t take reactions (SPELLS-5.5)', () => {
         { id: testUuid(0xf55), definition: grant.definition }
       ])
     ).toEqual([])
+  })
+
+  it('refuses its reaction allowance while the grant is active, on the action-economy path', async () => {
+    const grant = plannedGrant('ON_HIT')
+    if (!grant) throw new Error('No grant was planned.')
+    const actor = creatureActor({ id: TARGET_ID, label: 'Wolf', features: [] })
+    const { state, movementTargets } = creatureEncounter([actor])
+    const target = movementTargets.get(actor.id)
+    if (!target) throw new Error('The Encounter has no target.')
+    const effect = {
+      id: testUuid(0xf55),
+      owner: {
+        kind: 'ENCOUNTER_ACTOR' as const,
+        encounterId: state.id,
+        targetActorId: actor.id
+      },
+      sourceEncounterId: state.id,
+      maintainedEffectStateId: null,
+      createdOrdinal: 1,
+      version: 1,
+      definition: grant.definition,
+      definitionChecksum: 'a'.repeat(64),
+      lifecycle: { schemaVersion: 1 as const, remainingTicks: 1 },
+      lifecycleChecksum: 'b'.repeat(64),
+      createdAt: '2026-10-15T00:00:00.000Z',
+      updatedAt: '2026-10-15T00:00:00.000Z'
+    }
+    const evaluate = (activeEffects: readonly (typeof effect)[]) =>
+      evaluateEncounterActionEconomy({
+        actor,
+        state,
+        activation: { code: 'REACTION', amount: 1 },
+        target: { ...target, activeEffects: [...activeEffects] },
+        loadTarget: async () => target,
+        definitions: srdDefinitions
+      })
+
+    await expect(evaluate([])).resolves.toMatchObject({ available: true })
+    await expect(evaluate([effect])).resolves.toMatchObject({
+      available: false
+    })
   })
 })

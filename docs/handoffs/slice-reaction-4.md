@@ -1,6 +1,6 @@
 # Slice workbook: REACTION-4 (non-movement reactions: trigger model)
 
-**Status:** IN_PROGRESS, design approved 2026-10-15; this session builds REACTION-4.T1 (T2-T4 follow in order)
+**Status:** T1 merged (f875185dc, CI 38804169007 green). Next: T5 (merge-review hardening), then T2, T3, T4 in order.
 **Base:** `codex/phase-08-2-convex-cutover` at this workbook's commit.
 **Rules:** [slice-workbook-rules.md](slice-workbook-rules.md).
 
@@ -95,3 +95,48 @@ Red-first, per the checklist below.
     - T3: SPELL_CAST, Counterspell conversion and chain; AC 4.3.
     - T4: TARGETED_SELF, Shield against Magic Missile; AC 4.1, after SPELLS-26 (multi-target spells, registered).
   - The main session records the decision entry at merge. The slice updates ADR 0038 and the engine guide.
+- 2026-10-15: REACTION-4.T1 built (state: compiling and testing; see the final report for results).
+  - **Shape:**
+    - `reactionTrigger` is a discriminated union (`MOVEMENT`, `ATTACKED_SELF`) in the authored node map, schema, compiler and economy. The old movement-only field is gone and the fixtures migrated in the same change.
+    - A reaction pause is `applicationContext.reactionChoice` on the triggering ENCOUNTER_ACTION occurrence, beside `legendaryResistance`. Its `reactions` array is a stack (innermost first) for T3 chains; T1 only ever holds one.
+    - The choice comes after TEST on ON_HIT/ON_CRIT and before OUTCOME. Use re-evaluates the TEST against the defense after the reaction, as a sealed `adjustment` (`defenseBefore`, `defenseAfter`, `adjustedBoundFactsChecksum`) in the evidence and checksum. The "TEST evidence is stale" guard still applies to everything else.
+    - D26 holds the Scene for the pending reaction decision ("Waiting on a reaction decision.").
+  - **Deviations from the approved design:**
+    - Undo is not a separate REACTION undo child. The reaction's slot, allowance and effect ride in the attack's `CHARACTER_MECHANICS_BATCH.reaction` receipt, so the existing action undo restores them. A GM void of the held attack cancels the whole attack (same as Legendary Resistance).
+    - The node map shows `reactionTrigger` for every ACTION invocation, not only REACTION activations, because the node-map condition language cannot read `activation.code` from the invocation union. The schema refuses a trigger on a non-REACTION activation, and the compiler refuses a self reaction that has no trigger.
+    - The shared choice graph still carries the "movement" name (`ASSISTED_MOVEMENT_REACTION_CHOICE_DEFINITION_ID`).
+  - **Premise change: `reactionTrigger` is optional in the node map.** The trigger union covers only MOVEMENT and ATTACKED_SELF until T2/T3, so requiring it for every REACTION activation would make other SRD reactions unsaveable. `effect-node-maps.test.ts` asserts `requiredIf` is undefined, so a later change fails loudly. Requiring it for REACTION activation is revisited at REACTION-4.T4. A REACTION activation authored with no trigger compiles to `CharacterRuleActionUnsupportedCompilationError`, so capability discovery leaves it manual (`reactionTriggerCompile.test.ts`).
+  - **Legendary Resistance and reaction cannot collide.** LR is offered only on ON_SAVE_FAIL and a reaction only on ON_HIT/ON_CRIT. A TEST has either an attack path or a save path, and `continueNativeActionAfterTest` rejects an audit carrying both.
+  - **Out-of-range refusal is vacuous for Shield** (its range is SELF), so no test exercises it in T1.
+  - **Follow-ups to register (outside T1):**
+    - Movement-reaction opportunity attacks and the area and explicit-flow callers do not offer the reaction yet.
+    - `movementInterruption` is not in the authoring form.
+    - Creature (non-Character) reactors, multiple eligible reactions (only the first is offered), self-attacks.
+    - Reactions that need dice, create state effects or use maintenance are refused.
+    - Limits: `activeEffectTransitions` max 1 and commit `createdEffects` max 3.
+    - The legacy `ENCOUNTER_ACTOR_RULE_ACTION` and `ENCOUNTER_CREATURE_RULE_ACTION` contexts have no reaction phase.
+- 2026-10-15: REACTION-4.T1 results (CI `ci/reaction-4-t1`, run 38789232225, sha b9d1ebd41, attempt 2 green on all nine jobs).
+  - **Attempt 1** failed only `developmentLifecycleProof` (`developmentEncounterTransactions.ts:286`, replayed START returns the player projection with `health: null`): the base defect registered as PRIVACY-1.T1, not this slice. Run 38786881067 (sha 5502e8d44) was green on that suite.
+  - **D99 bug found and fixed.** The action-economy path ignored `REACTION_COUNT 0` grant suppressions (`activeEffectCapabilitySuppressions` lacked `encounterActiveGrantCapabilitySuppressions`), so a creature that "can't take reactions" was still offered one. One shared helper now serves both `encounterActionEconomy.ts` and `encounterRuleCapabilityState.ts`. Regression: `hitGrant.test.ts` (fails without the fix, passes with it); it also fixes `encounterBasicActions.ts`, which uses the same helper.
+  - **Test-premise corrections** (not product changes): the D63 case now uses a dead Character (0 HP, three death-save failures, D96) because a 0-HP Character is dying, not defeated, and acknowledges the attacker's `TARGET_DEFEATED` warning; the wrong-player case uses `otherPlayerControlledActorIds` and `OTHER_PLAYER` because the main player owns the Character. The fixture gained an optional `deathSaves` play override.
+  - **Premise change: reactions are metered.** The REACTION allowance now binds to the SRD reaction allowance, so `encounterActionRuleWarnings.test.ts` asserts that binding instead of "REACTION is unmetered".
+  - Not run: local codegen push for `apps/apis/convex` (heavy lane; CI Convex suites cover the contract change), Storybook, Playwright.
+
+## REACTION-4.T5: T1 merge-review hardening (frozen list)
+
+Closes AC REACTION-4.5. Base: the phase branch at or after `2c30b97d7` (sync first). The review list is frozen; new findings go to a follow-up task.
+
+Should-fix:
+
+1. `nativeEncounterAttackReaction.ts:143` mints the reaction effect id with `crypto.randomUUID()`. Derive it from the command and occurrence ids so a replay produces the same id (no ambient randomness on the rules path).
+2. The `REACTION_TRIGGER_ONLY` refusal covers only the single-target path (`nativeEncounterRules.ts:476`). Apply it on every action path, including area actions, through the shared admission point rather than a second copy.
+3. `actionResumeAdmission` reads `reactions[0]`. Admit any reaction the offer carries, and refuse one it does not.
+
+Nits (fix in passing):
+
+- The choice definition is still named for movement; name it for reactions generally.
+- Plain `Error` throws on the reaction path; use the coded refusals the rest of the path uses.
+- The IIFE in the reaction resolution; use plain control flow.
+- The generic stale-option message; say which option went stale.
+
+Red-first: each should-fix item gets a failing test against real code first (replay id equality; area reaction-only refusal; a second offered reaction admitted). CI on `ci/reaction-4-t5`.

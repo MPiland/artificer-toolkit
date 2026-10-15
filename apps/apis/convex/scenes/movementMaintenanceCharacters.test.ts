@@ -139,7 +139,7 @@ async function setup() {
               baseDc: 30,
               abilityDefinitionId: SRD_ABILITY_DEFINITION_IDS.DEXTERITY
             },
-            reactionMovementTrigger: {
+            reactionTrigger: {
               kind: 'MOVEMENT' as const,
               stage: 'BEFORE_LEAVE_REACH' as const,
               perceptionRequirement: null,

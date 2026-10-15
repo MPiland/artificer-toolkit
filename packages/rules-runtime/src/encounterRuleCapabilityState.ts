@@ -8,7 +8,7 @@ import {
 } from './ruleCapabilityStateService.js'
 import { readEncounterActorConditionState } from './encounterCharacterMechanicsBatch.js'
 import { encounterRuleUsageSnapshot } from './encounterActorState.js'
-import { encounterActiveGrantCapabilitySuppressions } from './encounterActiveGrants.js'
+import { activeEffectCapabilitySuppressions } from './encounterActionEconomy.js'
 import type {
   EncounterMovementReactionEncounter,
   EncounterMovementReactionRuleStateCharacterSource
@@ -54,28 +54,13 @@ export async function resolveEncounterRuleCapabilityStates(input: {
         : readEncounterActorConditionState(actor.conditions).ids
     const activeEffects = input.activeEffectsByActorId.get(actor.id)
     if (!activeEffects) throw new Error('Encounter actor active-effect state was not locked.')
-    const activeEffectSuppressions = [
-      ...activeEffects.flatMap((effect) =>
-        effect.definition.schemaVersion === 2
-          ? effect.definition.stateContributions.flatMap((contribution) =>
-              contribution.kind === 'ACTOR_RELATIONSHIP'
-                ? contribution.capabilitySuppressions.map((suppression) => ({
-                    activeEffectId: effect.id,
-                    ...suppression
-                  }))
-                : []
-            )
-          : []
-      ),
-      ...encounterActiveGrantCapabilitySuppressions(activeEffects)
-    ]
     resolved.set(actor.id, {
       capabilityState: await resolveRuleCapabilityState({
         definitions,
         gameSystemId: input.encounter.gameSystemId,
         activeConditionDefinitionIds,
         capabilityDefinitionIds: input.capabilityDefinitionIds,
-        activeEffectSuppressions
+        activeEffectSuppressions: activeEffectCapabilitySuppressions(activeEffects)
       }),
       ruleUsage: encounterRuleUsageSnapshot(actor)
     })

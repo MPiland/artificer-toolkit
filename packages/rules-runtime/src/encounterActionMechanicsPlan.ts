@@ -46,6 +46,22 @@ export type NativeEncounterActionMechanicsInput = {
 
 type SourceSpend = 'WITH_OUTCOME' | 'NONE'
 
+/** What a Character's spell cast spent, recorded so a GM undo can restore the exact slot. */
+export function characterSpellConsumptionReceipt(
+  spellConsumption: NonNullable<PreparedActionMechanics['characterActionState']>['spellConsumption'] | undefined
+) {
+  return spellConsumption
+    ? {
+        characterId: spellConsumption.characterId,
+        spellId: spellConsumption.spellId,
+        candidateId: spellConsumption.candidateId,
+        slotKey: spellConsumption.slotKey,
+        beforeUsed: spellConsumption.beforeUsed,
+        afterUsed: spellConsumption.afterUsed
+      }
+    : null
+}
+
 /** Uses the same event identities and batches for planning and publication. */
 function prepareNativeActionMechanicsBatches(
   input: NativeEncounterActionMechanicsInput,
@@ -159,16 +175,7 @@ function nativeSourceSpendReceipts(prepared: NativeEncounterActionMechanicsInput
         afterQuantity: itemConsumption.afterQuantity
       }
     : null
-  const spellConsumptionReceipt = spellConsumption
-    ? {
-        characterId: spellConsumption.characterId,
-        spellId: spellConsumption.spellId,
-        candidateId: spellConsumption.candidateId,
-        slotKey: spellConsumption.slotKey,
-        beforeUsed: spellConsumption.beforeUsed,
-        afterUsed: spellConsumption.afterUsed
-      }
-    : null
+  const spellConsumptionReceipt = characterSpellConsumptionReceipt(spellConsumption)
   const featureResourceReceipt =
     source.kind === 'CREATURE' &&
     resourceUse &&

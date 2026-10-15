@@ -110,18 +110,17 @@ function normalizeInvocation(
         }
       : null
 
+  const trigger = 'reactionTrigger' in invocation ? invocation.reactionTrigger : undefined
+
   return {
     triggerCode: invocation.triggerCode,
     activation,
     range,
     savingThrow,
-    reactionMovementTrigger:
-      'reactionMovementTrigger' in invocation && invocation.reactionMovementTrigger
-        ? {
-            ...invocation.reactionMovementTrigger,
-            movementInterruption: invocation.reactionMovementTrigger.movementInterruption ?? null
-          }
-        : null
+    reactionTrigger:
+      trigger?.kind === 'MOVEMENT'
+        ? { ...trigger, movementInterruption: trigger.movementInterruption ?? null }
+        : (trigger ?? null)
   }
 }
 

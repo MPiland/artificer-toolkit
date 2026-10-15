@@ -24601,7 +24601,7 @@ export declare const api: {
                                     };
                                 unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
-                          reactionMovementTrigger?: never;
+                          reactionTrigger?: never;
                           resourceUse?: never;
                           savingThrow:
                             | {
@@ -25770,7 +25770,7 @@ export declare const api: {
                                     };
                                 unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
-                          reactionMovementTrigger?: never;
+                          reactionTrigger?: never;
                           resourceUse?: never;
                           shape?:
                             | {
@@ -26902,7 +26902,7 @@ export declare const api: {
                                     };
                                 unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
-                          reactionMovementTrigger?: never;
+                          reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           savingThrow:
                             | {
@@ -28072,31 +28072,37 @@ export declare const api: {
                                     };
                                 unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
-                          reactionMovementTrigger: {
-                            eligibilityDefinitionId: string;
-                            kind: "MOVEMENT";
-                            movementInterruption?: null | {
-                              kind: "STOP";
-                              whenResultPath:
-                                | "PASSIVE"
-                                | "ON_USE"
-                                | "ON_CAST"
-                                | "ON_ATTACK"
-                                | "ON_HIT"
-                                | "ON_MISS"
-                                | "ON_CRIT"
-                                | "ON_CHECK_SUCCESS"
-                                | "ON_SAVE_FAIL"
-                                | "ON_SAVE_SUCCESS"
-                                | "START_OF_TURN"
-                                | "END_OF_TURN"
-                                | "ON_MOVE"
-                                | "ON_HP_ZERO";
-                            };
-                            perceptionRequirement:
-                              "DETECT" | "LOCATE" | "PRECISE" | "SEE" | null;
-                            stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
-                          };
+                          reactionTrigger:
+                            | {
+                                eligibilityDefinitionId: string;
+                                kind: "MOVEMENT";
+                                movementInterruption?: null | {
+                                  kind: "STOP";
+                                  whenResultPath:
+                                    | "PASSIVE"
+                                    | "ON_USE"
+                                    | "ON_CAST"
+                                    | "ON_ATTACK"
+                                    | "ON_HIT"
+                                    | "ON_MISS"
+                                    | "ON_CRIT"
+                                    | "ON_CHECK_SUCCESS"
+                                    | "ON_SAVE_FAIL"
+                                    | "ON_SAVE_SUCCESS"
+                                    | "START_OF_TURN"
+                                    | "END_OF_TURN"
+                                    | "ON_MOVE"
+                                    | "ON_HP_ZERO";
+                                };
+                                perceptionRequirement:
+                                  | "DETECT"
+                                  | "LOCATE"
+                                  | "PRECISE"
+                                  | "SEE"
+                                  | null;
+                                stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
+                              }
+                            | { kind: "ATTACKED_SELF" };
                           resourceUse?: { chargeId: string; cost: number };
                           savingThrow:
                             | {
@@ -29285,7 +29291,7 @@ export declare const api: {
                                     };
                                 unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
-                          reactionMovementTrigger?: never;
+                          reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           shape?:
                             | {
@@ -30409,7 +30415,7 @@ export declare const api: {
                                     };
                                 unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
-                          reactionMovementTrigger?: never;
+                          reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           shape?:
                             | {
@@ -31537,31 +31543,37 @@ export declare const api: {
                                     };
                                 unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
-                          reactionMovementTrigger: {
-                            eligibilityDefinitionId: string;
-                            kind: "MOVEMENT";
-                            movementInterruption?: null | {
-                              kind: "STOP";
-                              whenResultPath:
-                                | "PASSIVE"
-                                | "ON_USE"
-                                | "ON_CAST"
-                                | "ON_ATTACK"
-                                | "ON_HIT"
-                                | "ON_MISS"
-                                | "ON_CRIT"
-                                | "ON_CHECK_SUCCESS"
-                                | "ON_SAVE_FAIL"
-                                | "ON_SAVE_SUCCESS"
-                                | "START_OF_TURN"
-                                | "END_OF_TURN"
-                                | "ON_MOVE"
-                                | "ON_HP_ZERO";
-                            };
-                            perceptionRequirement:
-                              "DETECT" | "LOCATE" | "PRECISE" | "SEE" | null;
-                            stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
-                          };
+                          reactionTrigger:
+                            | {
+                                eligibilityDefinitionId: string;
+                                kind: "MOVEMENT";
+                                movementInterruption?: null | {
+                                  kind: "STOP";
+                                  whenResultPath:
+                                    | "PASSIVE"
+                                    | "ON_USE"
+                                    | "ON_CAST"
+                                    | "ON_ATTACK"
+                                    | "ON_HIT"
+                                    | "ON_MISS"
+                                    | "ON_CRIT"
+                                    | "ON_CHECK_SUCCESS"
+                                    | "ON_SAVE_FAIL"
+                                    | "ON_SAVE_SUCCESS"
+                                    | "START_OF_TURN"
+                                    | "END_OF_TURN"
+                                    | "ON_MOVE"
+                                    | "ON_HP_ZERO";
+                                };
+                                perceptionRequirement:
+                                  | "DETECT"
+                                  | "LOCATE"
+                                  | "PRECISE"
+                                  | "SEE"
+                                  | null;
+                                stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
+                              }
+                            | { kind: "ATTACKED_SELF" };
                           resourceUse?: { chargeId: string; cost: number };
                           shape?:
                             | {
@@ -34327,7 +34339,7 @@ export declare const api: {
                                     };
                                 unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
-                          reactionMovementTrigger?: never;
+                          reactionTrigger?: never;
                           resourceUse?: never;
                           savingThrow:
                             | {
@@ -35496,7 +35508,7 @@ export declare const api: {
                                     };
                                 unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
-                          reactionMovementTrigger?: never;
+                          reactionTrigger?: never;
                           resourceUse?: never;
                           shape?:
                             | {
@@ -36628,7 +36640,7 @@ export declare const api: {
                                     };
                                 unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
-                          reactionMovementTrigger?: never;
+                          reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           savingThrow:
                             | {
@@ -37798,31 +37810,37 @@ export declare const api: {
                                     };
                                 unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
-                          reactionMovementTrigger: {
-                            eligibilityDefinitionId: string;
-                            kind: "MOVEMENT";
-                            movementInterruption?: null | {
-                              kind: "STOP";
-                              whenResultPath:
-                                | "PASSIVE"
-                                | "ON_USE"
-                                | "ON_CAST"
-                                | "ON_ATTACK"
-                                | "ON_HIT"
-                                | "ON_MISS"
-                                | "ON_CRIT"
-                                | "ON_CHECK_SUCCESS"
-                                | "ON_SAVE_FAIL"
-                                | "ON_SAVE_SUCCESS"
-                                | "START_OF_TURN"
-                                | "END_OF_TURN"
-                                | "ON_MOVE"
-                                | "ON_HP_ZERO";
-                            };
-                            perceptionRequirement:
-                              "DETECT" | "LOCATE" | "PRECISE" | "SEE" | null;
-                            stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
-                          };
+                          reactionTrigger:
+                            | {
+                                eligibilityDefinitionId: string;
+                                kind: "MOVEMENT";
+                                movementInterruption?: null | {
+                                  kind: "STOP";
+                                  whenResultPath:
+                                    | "PASSIVE"
+                                    | "ON_USE"
+                                    | "ON_CAST"
+                                    | "ON_ATTACK"
+                                    | "ON_HIT"
+                                    | "ON_MISS"
+                                    | "ON_CRIT"
+                                    | "ON_CHECK_SUCCESS"
+                                    | "ON_SAVE_FAIL"
+                                    | "ON_SAVE_SUCCESS"
+                                    | "START_OF_TURN"
+                                    | "END_OF_TURN"
+                                    | "ON_MOVE"
+                                    | "ON_HP_ZERO";
+                                };
+                                perceptionRequirement:
+                                  | "DETECT"
+                                  | "LOCATE"
+                                  | "PRECISE"
+                                  | "SEE"
+                                  | null;
+                                stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
+                              }
+                            | { kind: "ATTACKED_SELF" };
                           resourceUse?: { chargeId: string; cost: number };
                           savingThrow:
                             | {
@@ -39011,7 +39029,7 @@ export declare const api: {
                                     };
                                 unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
-                          reactionMovementTrigger?: never;
+                          reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           shape?:
                             | {
@@ -40135,7 +40153,7 @@ export declare const api: {
                                     };
                                 unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
-                          reactionMovementTrigger?: never;
+                          reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           shape?:
                             | {
@@ -41263,31 +41281,37 @@ export declare const api: {
                                     };
                                 unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
-                          reactionMovementTrigger: {
-                            eligibilityDefinitionId: string;
-                            kind: "MOVEMENT";
-                            movementInterruption?: null | {
-                              kind: "STOP";
-                              whenResultPath:
-                                | "PASSIVE"
-                                | "ON_USE"
-                                | "ON_CAST"
-                                | "ON_ATTACK"
-                                | "ON_HIT"
-                                | "ON_MISS"
-                                | "ON_CRIT"
-                                | "ON_CHECK_SUCCESS"
-                                | "ON_SAVE_FAIL"
-                                | "ON_SAVE_SUCCESS"
-                                | "START_OF_TURN"
-                                | "END_OF_TURN"
-                                | "ON_MOVE"
-                                | "ON_HP_ZERO";
-                            };
-                            perceptionRequirement:
-                              "DETECT" | "LOCATE" | "PRECISE" | "SEE" | null;
-                            stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
-                          };
+                          reactionTrigger:
+                            | {
+                                eligibilityDefinitionId: string;
+                                kind: "MOVEMENT";
+                                movementInterruption?: null | {
+                                  kind: "STOP";
+                                  whenResultPath:
+                                    | "PASSIVE"
+                                    | "ON_USE"
+                                    | "ON_CAST"
+                                    | "ON_ATTACK"
+                                    | "ON_HIT"
+                                    | "ON_MISS"
+                                    | "ON_CRIT"
+                                    | "ON_CHECK_SUCCESS"
+                                    | "ON_SAVE_FAIL"
+                                    | "ON_SAVE_SUCCESS"
+                                    | "START_OF_TURN"
+                                    | "END_OF_TURN"
+                                    | "ON_MOVE"
+                                    | "ON_HP_ZERO";
+                                };
+                                perceptionRequirement:
+                                  | "DETECT"
+                                  | "LOCATE"
+                                  | "PRECISE"
+                                  | "SEE"
+                                  | null;
+                                stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
+                              }
+                            | { kind: "ATTACKED_SELF" };
                           resourceUse?: { chargeId: string; cost: number };
                           shape?:
                             | {
@@ -44062,7 +44086,7 @@ export declare const api: {
                                     };
                                 unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
-                          reactionMovementTrigger?: never;
+                          reactionTrigger?: never;
                           resourceUse?: never;
                           savingThrow:
                             | {
@@ -45231,7 +45255,7 @@ export declare const api: {
                                     };
                                 unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
-                          reactionMovementTrigger?: never;
+                          reactionTrigger?: never;
                           resourceUse?: never;
                           shape?:
                             | {
@@ -46363,7 +46387,7 @@ export declare const api: {
                                     };
                                 unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
-                          reactionMovementTrigger?: never;
+                          reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           savingThrow:
                             | {
@@ -47533,31 +47557,37 @@ export declare const api: {
                                     };
                                 unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
-                          reactionMovementTrigger: {
-                            eligibilityDefinitionId: string;
-                            kind: "MOVEMENT";
-                            movementInterruption?: null | {
-                              kind: "STOP";
-                              whenResultPath:
-                                | "PASSIVE"
-                                | "ON_USE"
-                                | "ON_CAST"
-                                | "ON_ATTACK"
-                                | "ON_HIT"
-                                | "ON_MISS"
-                                | "ON_CRIT"
-                                | "ON_CHECK_SUCCESS"
-                                | "ON_SAVE_FAIL"
-                                | "ON_SAVE_SUCCESS"
-                                | "START_OF_TURN"
-                                | "END_OF_TURN"
-                                | "ON_MOVE"
-                                | "ON_HP_ZERO";
-                            };
-                            perceptionRequirement:
-                              "DETECT" | "LOCATE" | "PRECISE" | "SEE" | null;
-                            stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
-                          };
+                          reactionTrigger:
+                            | {
+                                eligibilityDefinitionId: string;
+                                kind: "MOVEMENT";
+                                movementInterruption?: null | {
+                                  kind: "STOP";
+                                  whenResultPath:
+                                    | "PASSIVE"
+                                    | "ON_USE"
+                                    | "ON_CAST"
+                                    | "ON_ATTACK"
+                                    | "ON_HIT"
+                                    | "ON_MISS"
+                                    | "ON_CRIT"
+                                    | "ON_CHECK_SUCCESS"
+                                    | "ON_SAVE_FAIL"
+                                    | "ON_SAVE_SUCCESS"
+                                    | "START_OF_TURN"
+                                    | "END_OF_TURN"
+                                    | "ON_MOVE"
+                                    | "ON_HP_ZERO";
+                                };
+                                perceptionRequirement:
+                                  | "DETECT"
+                                  | "LOCATE"
+                                  | "PRECISE"
+                                  | "SEE"
+                                  | null;
+                                stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
+                              }
+                            | { kind: "ATTACKED_SELF" };
                           resourceUse?: { chargeId: string; cost: number };
                           savingThrow:
                             | {
@@ -48746,7 +48776,7 @@ export declare const api: {
                                     };
                                 unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
-                          reactionMovementTrigger?: never;
+                          reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           shape?:
                             | {
@@ -49870,7 +49900,7 @@ export declare const api: {
                                     };
                                 unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
-                          reactionMovementTrigger?: never;
+                          reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           shape?:
                             | {
@@ -50998,31 +51028,37 @@ export declare const api: {
                                     };
                                 unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
-                          reactionMovementTrigger: {
-                            eligibilityDefinitionId: string;
-                            kind: "MOVEMENT";
-                            movementInterruption?: null | {
-                              kind: "STOP";
-                              whenResultPath:
-                                | "PASSIVE"
-                                | "ON_USE"
-                                | "ON_CAST"
-                                | "ON_ATTACK"
-                                | "ON_HIT"
-                                | "ON_MISS"
-                                | "ON_CRIT"
-                                | "ON_CHECK_SUCCESS"
-                                | "ON_SAVE_FAIL"
-                                | "ON_SAVE_SUCCESS"
-                                | "START_OF_TURN"
-                                | "END_OF_TURN"
-                                | "ON_MOVE"
-                                | "ON_HP_ZERO";
-                            };
-                            perceptionRequirement:
-                              "DETECT" | "LOCATE" | "PRECISE" | "SEE" | null;
-                            stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
-                          };
+                          reactionTrigger:
+                            | {
+                                eligibilityDefinitionId: string;
+                                kind: "MOVEMENT";
+                                movementInterruption?: null | {
+                                  kind: "STOP";
+                                  whenResultPath:
+                                    | "PASSIVE"
+                                    | "ON_USE"
+                                    | "ON_CAST"
+                                    | "ON_ATTACK"
+                                    | "ON_HIT"
+                                    | "ON_MISS"
+                                    | "ON_CRIT"
+                                    | "ON_CHECK_SUCCESS"
+                                    | "ON_SAVE_FAIL"
+                                    | "ON_SAVE_SUCCESS"
+                                    | "START_OF_TURN"
+                                    | "END_OF_TURN"
+                                    | "ON_MOVE"
+                                    | "ON_HP_ZERO";
+                                };
+                                perceptionRequirement:
+                                  | "DETECT"
+                                  | "LOCATE"
+                                  | "PRECISE"
+                                  | "SEE"
+                                  | null;
+                                stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
+                              }
+                            | { kind: "ATTACKED_SELF" };
                           resourceUse?: { chargeId: string; cost: number };
                           shape?:
                             | {
@@ -53788,7 +53824,7 @@ export declare const api: {
                                     };
                                 unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
-                          reactionMovementTrigger?: never;
+                          reactionTrigger?: never;
                           resourceUse?: never;
                           savingThrow:
                             | {
@@ -54957,7 +54993,7 @@ export declare const api: {
                                     };
                                 unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
-                          reactionMovementTrigger?: never;
+                          reactionTrigger?: never;
                           resourceUse?: never;
                           shape?:
                             | {
@@ -56089,7 +56125,7 @@ export declare const api: {
                                     };
                                 unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
-                          reactionMovementTrigger?: never;
+                          reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           savingThrow:
                             | {
@@ -57259,31 +57295,37 @@ export declare const api: {
                                     };
                                 unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
-                          reactionMovementTrigger: {
-                            eligibilityDefinitionId: string;
-                            kind: "MOVEMENT";
-                            movementInterruption?: null | {
-                              kind: "STOP";
-                              whenResultPath:
-                                | "PASSIVE"
-                                | "ON_USE"
-                                | "ON_CAST"
-                                | "ON_ATTACK"
-                                | "ON_HIT"
-                                | "ON_MISS"
-                                | "ON_CRIT"
-                                | "ON_CHECK_SUCCESS"
-                                | "ON_SAVE_FAIL"
-                                | "ON_SAVE_SUCCESS"
-                                | "START_OF_TURN"
-                                | "END_OF_TURN"
-                                | "ON_MOVE"
-                                | "ON_HP_ZERO";
-                            };
-                            perceptionRequirement:
-                              "DETECT" | "LOCATE" | "PRECISE" | "SEE" | null;
-                            stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
-                          };
+                          reactionTrigger:
+                            | {
+                                eligibilityDefinitionId: string;
+                                kind: "MOVEMENT";
+                                movementInterruption?: null | {
+                                  kind: "STOP";
+                                  whenResultPath:
+                                    | "PASSIVE"
+                                    | "ON_USE"
+                                    | "ON_CAST"
+                                    | "ON_ATTACK"
+                                    | "ON_HIT"
+                                    | "ON_MISS"
+                                    | "ON_CRIT"
+                                    | "ON_CHECK_SUCCESS"
+                                    | "ON_SAVE_FAIL"
+                                    | "ON_SAVE_SUCCESS"
+                                    | "START_OF_TURN"
+                                    | "END_OF_TURN"
+                                    | "ON_MOVE"
+                                    | "ON_HP_ZERO";
+                                };
+                                perceptionRequirement:
+                                  | "DETECT"
+                                  | "LOCATE"
+                                  | "PRECISE"
+                                  | "SEE"
+                                  | null;
+                                stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
+                              }
+                            | { kind: "ATTACKED_SELF" };
                           resourceUse?: { chargeId: string; cost: number };
                           savingThrow:
                             | {
@@ -58472,7 +58514,7 @@ export declare const api: {
                                     };
                                 unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
-                          reactionMovementTrigger?: never;
+                          reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           shape?:
                             | {
@@ -59596,7 +59638,7 @@ export declare const api: {
                                     };
                                 unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
-                          reactionMovementTrigger?: never;
+                          reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           shape?:
                             | {
@@ -60724,31 +60766,37 @@ export declare const api: {
                                     };
                                 unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
-                          reactionMovementTrigger: {
-                            eligibilityDefinitionId: string;
-                            kind: "MOVEMENT";
-                            movementInterruption?: null | {
-                              kind: "STOP";
-                              whenResultPath:
-                                | "PASSIVE"
-                                | "ON_USE"
-                                | "ON_CAST"
-                                | "ON_ATTACK"
-                                | "ON_HIT"
-                                | "ON_MISS"
-                                | "ON_CRIT"
-                                | "ON_CHECK_SUCCESS"
-                                | "ON_SAVE_FAIL"
-                                | "ON_SAVE_SUCCESS"
-                                | "START_OF_TURN"
-                                | "END_OF_TURN"
-                                | "ON_MOVE"
-                                | "ON_HP_ZERO";
-                            };
-                            perceptionRequirement:
-                              "DETECT" | "LOCATE" | "PRECISE" | "SEE" | null;
-                            stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
-                          };
+                          reactionTrigger:
+                            | {
+                                eligibilityDefinitionId: string;
+                                kind: "MOVEMENT";
+                                movementInterruption?: null | {
+                                  kind: "STOP";
+                                  whenResultPath:
+                                    | "PASSIVE"
+                                    | "ON_USE"
+                                    | "ON_CAST"
+                                    | "ON_ATTACK"
+                                    | "ON_HIT"
+                                    | "ON_MISS"
+                                    | "ON_CRIT"
+                                    | "ON_CHECK_SUCCESS"
+                                    | "ON_SAVE_FAIL"
+                                    | "ON_SAVE_SUCCESS"
+                                    | "START_OF_TURN"
+                                    | "END_OF_TURN"
+                                    | "ON_MOVE"
+                                    | "ON_HP_ZERO";
+                                };
+                                perceptionRequirement:
+                                  | "DETECT"
+                                  | "LOCATE"
+                                  | "PRECISE"
+                                  | "SEE"
+                                  | null;
+                                stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
+                              }
+                            | { kind: "ATTACKED_SELF" };
                           resourceUse?: { chargeId: string; cost: number };
                           shape?:
                             | {
@@ -63549,7 +63597,7 @@ export declare const api: {
                                     };
                                 unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
-                          reactionMovementTrigger?: never;
+                          reactionTrigger?: never;
                           resourceUse?: never;
                           savingThrow:
                             | {
@@ -64718,7 +64766,7 @@ export declare const api: {
                                     };
                                 unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
-                          reactionMovementTrigger?: never;
+                          reactionTrigger?: never;
                           resourceUse?: never;
                           shape?:
                             | {
@@ -65850,7 +65898,7 @@ export declare const api: {
                                     };
                                 unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
-                          reactionMovementTrigger?: never;
+                          reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           savingThrow:
                             | {
@@ -67020,31 +67068,37 @@ export declare const api: {
                                     };
                                 unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
-                          reactionMovementTrigger: {
-                            eligibilityDefinitionId: string;
-                            kind: "MOVEMENT";
-                            movementInterruption?: null | {
-                              kind: "STOP";
-                              whenResultPath:
-                                | "PASSIVE"
-                                | "ON_USE"
-                                | "ON_CAST"
-                                | "ON_ATTACK"
-                                | "ON_HIT"
-                                | "ON_MISS"
-                                | "ON_CRIT"
-                                | "ON_CHECK_SUCCESS"
-                                | "ON_SAVE_FAIL"
-                                | "ON_SAVE_SUCCESS"
-                                | "START_OF_TURN"
-                                | "END_OF_TURN"
-                                | "ON_MOVE"
-                                | "ON_HP_ZERO";
-                            };
-                            perceptionRequirement:
-                              "DETECT" | "LOCATE" | "PRECISE" | "SEE" | null;
-                            stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
-                          };
+                          reactionTrigger:
+                            | {
+                                eligibilityDefinitionId: string;
+                                kind: "MOVEMENT";
+                                movementInterruption?: null | {
+                                  kind: "STOP";
+                                  whenResultPath:
+                                    | "PASSIVE"
+                                    | "ON_USE"
+                                    | "ON_CAST"
+                                    | "ON_ATTACK"
+                                    | "ON_HIT"
+                                    | "ON_MISS"
+                                    | "ON_CRIT"
+                                    | "ON_CHECK_SUCCESS"
+                                    | "ON_SAVE_FAIL"
+                                    | "ON_SAVE_SUCCESS"
+                                    | "START_OF_TURN"
+                                    | "END_OF_TURN"
+                                    | "ON_MOVE"
+                                    | "ON_HP_ZERO";
+                                };
+                                perceptionRequirement:
+                                  | "DETECT"
+                                  | "LOCATE"
+                                  | "PRECISE"
+                                  | "SEE"
+                                  | null;
+                                stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
+                              }
+                            | { kind: "ATTACKED_SELF" };
                           resourceUse?: { chargeId: string; cost: number };
                           savingThrow:
                             | {
@@ -68233,7 +68287,7 @@ export declare const api: {
                                     };
                                 unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
-                          reactionMovementTrigger?: never;
+                          reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           shape?:
                             | {
@@ -69357,7 +69411,7 @@ export declare const api: {
                                     };
                                 unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
-                          reactionMovementTrigger?: never;
+                          reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           shape?:
                             | {
@@ -70485,31 +70539,37 @@ export declare const api: {
                                     };
                                 unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
-                          reactionMovementTrigger: {
-                            eligibilityDefinitionId: string;
-                            kind: "MOVEMENT";
-                            movementInterruption?: null | {
-                              kind: "STOP";
-                              whenResultPath:
-                                | "PASSIVE"
-                                | "ON_USE"
-                                | "ON_CAST"
-                                | "ON_ATTACK"
-                                | "ON_HIT"
-                                | "ON_MISS"
-                                | "ON_CRIT"
-                                | "ON_CHECK_SUCCESS"
-                                | "ON_SAVE_FAIL"
-                                | "ON_SAVE_SUCCESS"
-                                | "START_OF_TURN"
-                                | "END_OF_TURN"
-                                | "ON_MOVE"
-                                | "ON_HP_ZERO";
-                            };
-                            perceptionRequirement:
-                              "DETECT" | "LOCATE" | "PRECISE" | "SEE" | null;
-                            stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
-                          };
+                          reactionTrigger:
+                            | {
+                                eligibilityDefinitionId: string;
+                                kind: "MOVEMENT";
+                                movementInterruption?: null | {
+                                  kind: "STOP";
+                                  whenResultPath:
+                                    | "PASSIVE"
+                                    | "ON_USE"
+                                    | "ON_CAST"
+                                    | "ON_ATTACK"
+                                    | "ON_HIT"
+                                    | "ON_MISS"
+                                    | "ON_CRIT"
+                                    | "ON_CHECK_SUCCESS"
+                                    | "ON_SAVE_FAIL"
+                                    | "ON_SAVE_SUCCESS"
+                                    | "START_OF_TURN"
+                                    | "END_OF_TURN"
+                                    | "ON_MOVE"
+                                    | "ON_HP_ZERO";
+                                };
+                                perceptionRequirement:
+                                  | "DETECT"
+                                  | "LOCATE"
+                                  | "PRECISE"
+                                  | "SEE"
+                                  | null;
+                                stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
+                              }
+                            | { kind: "ATTACKED_SELF" };
                           resourceUse?: { chargeId: string; cost: number };
                           shape?:
                             | {
@@ -73275,7 +73335,7 @@ export declare const api: {
                                     };
                                 unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
-                          reactionMovementTrigger?: never;
+                          reactionTrigger?: never;
                           resourceUse?: never;
                           savingThrow:
                             | {
@@ -74444,7 +74504,7 @@ export declare const api: {
                                     };
                                 unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
-                          reactionMovementTrigger?: never;
+                          reactionTrigger?: never;
                           resourceUse?: never;
                           shape?:
                             | {
@@ -75576,7 +75636,7 @@ export declare const api: {
                                     };
                                 unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
-                          reactionMovementTrigger?: never;
+                          reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           savingThrow:
                             | {
@@ -76746,31 +76806,37 @@ export declare const api: {
                                     };
                                 unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
-                          reactionMovementTrigger: {
-                            eligibilityDefinitionId: string;
-                            kind: "MOVEMENT";
-                            movementInterruption?: null | {
-                              kind: "STOP";
-                              whenResultPath:
-                                | "PASSIVE"
-                                | "ON_USE"
-                                | "ON_CAST"
-                                | "ON_ATTACK"
-                                | "ON_HIT"
-                                | "ON_MISS"
-                                | "ON_CRIT"
-                                | "ON_CHECK_SUCCESS"
-                                | "ON_SAVE_FAIL"
-                                | "ON_SAVE_SUCCESS"
-                                | "START_OF_TURN"
-                                | "END_OF_TURN"
-                                | "ON_MOVE"
-                                | "ON_HP_ZERO";
-                            };
-                            perceptionRequirement:
-                              "DETECT" | "LOCATE" | "PRECISE" | "SEE" | null;
-                            stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
-                          };
+                          reactionTrigger:
+                            | {
+                                eligibilityDefinitionId: string;
+                                kind: "MOVEMENT";
+                                movementInterruption?: null | {
+                                  kind: "STOP";
+                                  whenResultPath:
+                                    | "PASSIVE"
+                                    | "ON_USE"
+                                    | "ON_CAST"
+                                    | "ON_ATTACK"
+                                    | "ON_HIT"
+                                    | "ON_MISS"
+                                    | "ON_CRIT"
+                                    | "ON_CHECK_SUCCESS"
+                                    | "ON_SAVE_FAIL"
+                                    | "ON_SAVE_SUCCESS"
+                                    | "START_OF_TURN"
+                                    | "END_OF_TURN"
+                                    | "ON_MOVE"
+                                    | "ON_HP_ZERO";
+                                };
+                                perceptionRequirement:
+                                  | "DETECT"
+                                  | "LOCATE"
+                                  | "PRECISE"
+                                  | "SEE"
+                                  | null;
+                                stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
+                              }
+                            | { kind: "ATTACKED_SELF" };
                           resourceUse?: { chargeId: string; cost: number };
                           savingThrow:
                             | {
@@ -77959,7 +78025,7 @@ export declare const api: {
                                     };
                                 unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
-                          reactionMovementTrigger?: never;
+                          reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           shape?:
                             | {
@@ -79083,7 +79149,7 @@ export declare const api: {
                                     };
                                 unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
-                          reactionMovementTrigger?: never;
+                          reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           shape?:
                             | {
@@ -80211,31 +80277,37 @@ export declare const api: {
                                     };
                                 unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
-                          reactionMovementTrigger: {
-                            eligibilityDefinitionId: string;
-                            kind: "MOVEMENT";
-                            movementInterruption?: null | {
-                              kind: "STOP";
-                              whenResultPath:
-                                | "PASSIVE"
-                                | "ON_USE"
-                                | "ON_CAST"
-                                | "ON_ATTACK"
-                                | "ON_HIT"
-                                | "ON_MISS"
-                                | "ON_CRIT"
-                                | "ON_CHECK_SUCCESS"
-                                | "ON_SAVE_FAIL"
-                                | "ON_SAVE_SUCCESS"
-                                | "START_OF_TURN"
-                                | "END_OF_TURN"
-                                | "ON_MOVE"
-                                | "ON_HP_ZERO";
-                            };
-                            perceptionRequirement:
-                              "DETECT" | "LOCATE" | "PRECISE" | "SEE" | null;
-                            stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
-                          };
+                          reactionTrigger:
+                            | {
+                                eligibilityDefinitionId: string;
+                                kind: "MOVEMENT";
+                                movementInterruption?: null | {
+                                  kind: "STOP";
+                                  whenResultPath:
+                                    | "PASSIVE"
+                                    | "ON_USE"
+                                    | "ON_CAST"
+                                    | "ON_ATTACK"
+                                    | "ON_HIT"
+                                    | "ON_MISS"
+                                    | "ON_CRIT"
+                                    | "ON_CHECK_SUCCESS"
+                                    | "ON_SAVE_FAIL"
+                                    | "ON_SAVE_SUCCESS"
+                                    | "START_OF_TURN"
+                                    | "END_OF_TURN"
+                                    | "ON_MOVE"
+                                    | "ON_HP_ZERO";
+                                };
+                                perceptionRequirement:
+                                  | "DETECT"
+                                  | "LOCATE"
+                                  | "PRECISE"
+                                  | "SEE"
+                                  | null;
+                                stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
+                              }
+                            | { kind: "ATTACKED_SELF" };
                           resourceUse?: { chargeId: string; cost: number };
                           shape?:
                             | {
@@ -82976,7 +83048,7 @@ export declare const api: {
                                   };
                               unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                             };
-                        reactionMovementTrigger?: never;
+                        reactionTrigger?: never;
                         resourceUse?: never;
                         savingThrow:
                           | {
@@ -84127,7 +84199,7 @@ export declare const api: {
                                   };
                               unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                             };
-                        reactionMovementTrigger?: never;
+                        reactionTrigger?: never;
                         resourceUse?: never;
                         shape?:
                           | {
@@ -85247,7 +85319,7 @@ export declare const api: {
                                   };
                               unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                             };
-                        reactionMovementTrigger?: never;
+                        reactionTrigger?: never;
                         resourceUse?: { chargeId: string; cost: number };
                         savingThrow:
                           | {
@@ -86399,31 +86471,33 @@ export declare const api: {
                                   };
                               unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                             };
-                        reactionMovementTrigger: {
-                          eligibilityDefinitionId: string;
-                          kind: "MOVEMENT";
-                          movementInterruption?: null | {
-                            kind: "STOP";
-                            whenResultPath:
-                              | "PASSIVE"
-                              | "ON_USE"
-                              | "ON_CAST"
-                              | "ON_ATTACK"
-                              | "ON_HIT"
-                              | "ON_MISS"
-                              | "ON_CRIT"
-                              | "ON_CHECK_SUCCESS"
-                              | "ON_SAVE_FAIL"
-                              | "ON_SAVE_SUCCESS"
-                              | "START_OF_TURN"
-                              | "END_OF_TURN"
-                              | "ON_MOVE"
-                              | "ON_HP_ZERO";
-                          };
-                          perceptionRequirement:
-                            "DETECT" | "LOCATE" | "PRECISE" | "SEE" | null;
-                          stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
-                        };
+                        reactionTrigger:
+                          | {
+                              eligibilityDefinitionId: string;
+                              kind: "MOVEMENT";
+                              movementInterruption?: null | {
+                                kind: "STOP";
+                                whenResultPath:
+                                  | "PASSIVE"
+                                  | "ON_USE"
+                                  | "ON_CAST"
+                                  | "ON_ATTACK"
+                                  | "ON_HIT"
+                                  | "ON_MISS"
+                                  | "ON_CRIT"
+                                  | "ON_CHECK_SUCCESS"
+                                  | "ON_SAVE_FAIL"
+                                  | "ON_SAVE_SUCCESS"
+                                  | "START_OF_TURN"
+                                  | "END_OF_TURN"
+                                  | "ON_MOVE"
+                                  | "ON_HP_ZERO";
+                              };
+                              perceptionRequirement:
+                                "DETECT" | "LOCATE" | "PRECISE" | "SEE" | null;
+                              stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
+                            }
+                          | { kind: "ATTACKED_SELF" };
                         resourceUse?: { chargeId: string; cost: number };
                         savingThrow:
                           | {
@@ -87594,7 +87668,7 @@ export declare const api: {
                                   };
                               unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                             };
-                        reactionMovementTrigger?: never;
+                        reactionTrigger?: never;
                         resourceUse?: { chargeId: string; cost: number };
                         shape?:
                           | {
@@ -88706,7 +88780,7 @@ export declare const api: {
                                   };
                               unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                             };
-                        reactionMovementTrigger?: never;
+                        reactionTrigger?: never;
                         resourceUse?: { chargeId: string; cost: number };
                         shape?:
                           | {
@@ -89822,31 +89896,33 @@ export declare const api: {
                                   };
                               unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                             };
-                        reactionMovementTrigger: {
-                          eligibilityDefinitionId: string;
-                          kind: "MOVEMENT";
-                          movementInterruption?: null | {
-                            kind: "STOP";
-                            whenResultPath:
-                              | "PASSIVE"
-                              | "ON_USE"
-                              | "ON_CAST"
-                              | "ON_ATTACK"
-                              | "ON_HIT"
-                              | "ON_MISS"
-                              | "ON_CRIT"
-                              | "ON_CHECK_SUCCESS"
-                              | "ON_SAVE_FAIL"
-                              | "ON_SAVE_SUCCESS"
-                              | "START_OF_TURN"
-                              | "END_OF_TURN"
-                              | "ON_MOVE"
-                              | "ON_HP_ZERO";
-                          };
-                          perceptionRequirement:
-                            "DETECT" | "LOCATE" | "PRECISE" | "SEE" | null;
-                          stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
-                        };
+                        reactionTrigger:
+                          | {
+                              eligibilityDefinitionId: string;
+                              kind: "MOVEMENT";
+                              movementInterruption?: null | {
+                                kind: "STOP";
+                                whenResultPath:
+                                  | "PASSIVE"
+                                  | "ON_USE"
+                                  | "ON_CAST"
+                                  | "ON_ATTACK"
+                                  | "ON_HIT"
+                                  | "ON_MISS"
+                                  | "ON_CRIT"
+                                  | "ON_CHECK_SUCCESS"
+                                  | "ON_SAVE_FAIL"
+                                  | "ON_SAVE_SUCCESS"
+                                  | "START_OF_TURN"
+                                  | "END_OF_TURN"
+                                  | "ON_MOVE"
+                                  | "ON_HP_ZERO";
+                              };
+                              perceptionRequirement:
+                                "DETECT" | "LOCATE" | "PRECISE" | "SEE" | null;
+                              stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
+                            }
+                          | { kind: "ATTACKED_SELF" };
                         resourceUse?: { chargeId: string; cost: number };
                         shape?:
                           | {
@@ -92607,7 +92683,7 @@ export declare const api: {
                                     };
                                 unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
-                          reactionMovementTrigger?: never;
+                          reactionTrigger?: never;
                           resourceUse?: never;
                           savingThrow:
                             | {
@@ -93776,7 +93852,7 @@ export declare const api: {
                                     };
                                 unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
-                          reactionMovementTrigger?: never;
+                          reactionTrigger?: never;
                           resourceUse?: never;
                           shape?:
                             | {
@@ -94908,7 +94984,7 @@ export declare const api: {
                                     };
                                 unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
-                          reactionMovementTrigger?: never;
+                          reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           savingThrow:
                             | {
@@ -96078,31 +96154,37 @@ export declare const api: {
                                     };
                                 unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
-                          reactionMovementTrigger: {
-                            eligibilityDefinitionId: string;
-                            kind: "MOVEMENT";
-                            movementInterruption?: null | {
-                              kind: "STOP";
-                              whenResultPath:
-                                | "PASSIVE"
-                                | "ON_USE"
-                                | "ON_CAST"
-                                | "ON_ATTACK"
-                                | "ON_HIT"
-                                | "ON_MISS"
-                                | "ON_CRIT"
-                                | "ON_CHECK_SUCCESS"
-                                | "ON_SAVE_FAIL"
-                                | "ON_SAVE_SUCCESS"
-                                | "START_OF_TURN"
-                                | "END_OF_TURN"
-                                | "ON_MOVE"
-                                | "ON_HP_ZERO";
-                            };
-                            perceptionRequirement:
-                              "DETECT" | "LOCATE" | "PRECISE" | "SEE" | null;
-                            stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
-                          };
+                          reactionTrigger:
+                            | {
+                                eligibilityDefinitionId: string;
+                                kind: "MOVEMENT";
+                                movementInterruption?: null | {
+                                  kind: "STOP";
+                                  whenResultPath:
+                                    | "PASSIVE"
+                                    | "ON_USE"
+                                    | "ON_CAST"
+                                    | "ON_ATTACK"
+                                    | "ON_HIT"
+                                    | "ON_MISS"
+                                    | "ON_CRIT"
+                                    | "ON_CHECK_SUCCESS"
+                                    | "ON_SAVE_FAIL"
+                                    | "ON_SAVE_SUCCESS"
+                                    | "START_OF_TURN"
+                                    | "END_OF_TURN"
+                                    | "ON_MOVE"
+                                    | "ON_HP_ZERO";
+                                };
+                                perceptionRequirement:
+                                  | "DETECT"
+                                  | "LOCATE"
+                                  | "PRECISE"
+                                  | "SEE"
+                                  | null;
+                                stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
+                              }
+                            | { kind: "ATTACKED_SELF" };
                           resourceUse?: { chargeId: string; cost: number };
                           savingThrow:
                             | {
@@ -97291,7 +97373,7 @@ export declare const api: {
                                     };
                                 unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
-                          reactionMovementTrigger?: never;
+                          reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           shape?:
                             | {
@@ -98415,7 +98497,7 @@ export declare const api: {
                                     };
                                 unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
-                          reactionMovementTrigger?: never;
+                          reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           shape?:
                             | {
@@ -99543,31 +99625,37 @@ export declare const api: {
                                     };
                                 unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
-                          reactionMovementTrigger: {
-                            eligibilityDefinitionId: string;
-                            kind: "MOVEMENT";
-                            movementInterruption?: null | {
-                              kind: "STOP";
-                              whenResultPath:
-                                | "PASSIVE"
-                                | "ON_USE"
-                                | "ON_CAST"
-                                | "ON_ATTACK"
-                                | "ON_HIT"
-                                | "ON_MISS"
-                                | "ON_CRIT"
-                                | "ON_CHECK_SUCCESS"
-                                | "ON_SAVE_FAIL"
-                                | "ON_SAVE_SUCCESS"
-                                | "START_OF_TURN"
-                                | "END_OF_TURN"
-                                | "ON_MOVE"
-                                | "ON_HP_ZERO";
-                            };
-                            perceptionRequirement:
-                              "DETECT" | "LOCATE" | "PRECISE" | "SEE" | null;
-                            stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
-                          };
+                          reactionTrigger:
+                            | {
+                                eligibilityDefinitionId: string;
+                                kind: "MOVEMENT";
+                                movementInterruption?: null | {
+                                  kind: "STOP";
+                                  whenResultPath:
+                                    | "PASSIVE"
+                                    | "ON_USE"
+                                    | "ON_CAST"
+                                    | "ON_ATTACK"
+                                    | "ON_HIT"
+                                    | "ON_MISS"
+                                    | "ON_CRIT"
+                                    | "ON_CHECK_SUCCESS"
+                                    | "ON_SAVE_FAIL"
+                                    | "ON_SAVE_SUCCESS"
+                                    | "START_OF_TURN"
+                                    | "END_OF_TURN"
+                                    | "ON_MOVE"
+                                    | "ON_HP_ZERO";
+                                };
+                                perceptionRequirement:
+                                  | "DETECT"
+                                  | "LOCATE"
+                                  | "PRECISE"
+                                  | "SEE"
+                                  | null;
+                                stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
+                              }
+                            | { kind: "ATTACKED_SELF" };
                           resourceUse?: { chargeId: string; cost: number };
                           shape?:
                             | {
@@ -102333,7 +102421,7 @@ export declare const api: {
                                     };
                                 unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
-                          reactionMovementTrigger?: never;
+                          reactionTrigger?: never;
                           resourceUse?: never;
                           savingThrow:
                             | {
@@ -103502,7 +103590,7 @@ export declare const api: {
                                     };
                                 unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
-                          reactionMovementTrigger?: never;
+                          reactionTrigger?: never;
                           resourceUse?: never;
                           shape?:
                             | {
@@ -104634,7 +104722,7 @@ export declare const api: {
                                     };
                                 unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
-                          reactionMovementTrigger?: never;
+                          reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           savingThrow:
                             | {
@@ -105804,31 +105892,37 @@ export declare const api: {
                                     };
                                 unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
-                          reactionMovementTrigger: {
-                            eligibilityDefinitionId: string;
-                            kind: "MOVEMENT";
-                            movementInterruption?: null | {
-                              kind: "STOP";
-                              whenResultPath:
-                                | "PASSIVE"
-                                | "ON_USE"
-                                | "ON_CAST"
-                                | "ON_ATTACK"
-                                | "ON_HIT"
-                                | "ON_MISS"
-                                | "ON_CRIT"
-                                | "ON_CHECK_SUCCESS"
-                                | "ON_SAVE_FAIL"
-                                | "ON_SAVE_SUCCESS"
-                                | "START_OF_TURN"
-                                | "END_OF_TURN"
-                                | "ON_MOVE"
-                                | "ON_HP_ZERO";
-                            };
-                            perceptionRequirement:
-                              "DETECT" | "LOCATE" | "PRECISE" | "SEE" | null;
-                            stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
-                          };
+                          reactionTrigger:
+                            | {
+                                eligibilityDefinitionId: string;
+                                kind: "MOVEMENT";
+                                movementInterruption?: null | {
+                                  kind: "STOP";
+                                  whenResultPath:
+                                    | "PASSIVE"
+                                    | "ON_USE"
+                                    | "ON_CAST"
+                                    | "ON_ATTACK"
+                                    | "ON_HIT"
+                                    | "ON_MISS"
+                                    | "ON_CRIT"
+                                    | "ON_CHECK_SUCCESS"
+                                    | "ON_SAVE_FAIL"
+                                    | "ON_SAVE_SUCCESS"
+                                    | "START_OF_TURN"
+                                    | "END_OF_TURN"
+                                    | "ON_MOVE"
+                                    | "ON_HP_ZERO";
+                                };
+                                perceptionRequirement:
+                                  | "DETECT"
+                                  | "LOCATE"
+                                  | "PRECISE"
+                                  | "SEE"
+                                  | null;
+                                stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
+                              }
+                            | { kind: "ATTACKED_SELF" };
                           resourceUse?: { chargeId: string; cost: number };
                           savingThrow:
                             | {
@@ -107017,7 +107111,7 @@ export declare const api: {
                                     };
                                 unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
-                          reactionMovementTrigger?: never;
+                          reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           shape?:
                             | {
@@ -108141,7 +108235,7 @@ export declare const api: {
                                     };
                                 unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
-                          reactionMovementTrigger?: never;
+                          reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           shape?:
                             | {
@@ -109269,31 +109363,37 @@ export declare const api: {
                                     };
                                 unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                               };
-                          reactionMovementTrigger: {
-                            eligibilityDefinitionId: string;
-                            kind: "MOVEMENT";
-                            movementInterruption?: null | {
-                              kind: "STOP";
-                              whenResultPath:
-                                | "PASSIVE"
-                                | "ON_USE"
-                                | "ON_CAST"
-                                | "ON_ATTACK"
-                                | "ON_HIT"
-                                | "ON_MISS"
-                                | "ON_CRIT"
-                                | "ON_CHECK_SUCCESS"
-                                | "ON_SAVE_FAIL"
-                                | "ON_SAVE_SUCCESS"
-                                | "START_OF_TURN"
-                                | "END_OF_TURN"
-                                | "ON_MOVE"
-                                | "ON_HP_ZERO";
-                            };
-                            perceptionRequirement:
-                              "DETECT" | "LOCATE" | "PRECISE" | "SEE" | null;
-                            stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
-                          };
+                          reactionTrigger:
+                            | {
+                                eligibilityDefinitionId: string;
+                                kind: "MOVEMENT";
+                                movementInterruption?: null | {
+                                  kind: "STOP";
+                                  whenResultPath:
+                                    | "PASSIVE"
+                                    | "ON_USE"
+                                    | "ON_CAST"
+                                    | "ON_ATTACK"
+                                    | "ON_HIT"
+                                    | "ON_MISS"
+                                    | "ON_CRIT"
+                                    | "ON_CHECK_SUCCESS"
+                                    | "ON_SAVE_FAIL"
+                                    | "ON_SAVE_SUCCESS"
+                                    | "START_OF_TURN"
+                                    | "END_OF_TURN"
+                                    | "ON_MOVE"
+                                    | "ON_HP_ZERO";
+                                };
+                                perceptionRequirement:
+                                  | "DETECT"
+                                  | "LOCATE"
+                                  | "PRECISE"
+                                  | "SEE"
+                                  | null;
+                                stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
+                              }
+                            | { kind: "ATTACKED_SELF" };
                           resourceUse?: { chargeId: string; cost: number };
                           shape?:
                             | {
@@ -113578,6 +113678,15 @@ export declare const api: {
                 targetActorId: string;
               }
             | {
+                allowedResponses: Array<"DECLINE" | "OPTION">;
+                encounterVersion: number;
+                kind: "REACTION_CHOICE";
+                occurrenceId: string;
+                occurrenceVersion: number;
+                options: Array<{ optionId: string }>;
+                targetActorId: string;
+              }
+            | {
                 allowedResponses: Array<"DECLINE" | "LEGENDARY_OPTION">;
                 encounterVersion: number;
                 kind: "LEGENDARY_ACTION_CHOICE";
@@ -113856,6 +113965,15 @@ export declare const api: {
                   allowedResponses: Array<"DECLINE" | "OPTION">;
                   encounterVersion: number;
                   kind: "LEGENDARY_RESISTANCE_CHOICE";
+                  occurrenceId: string;
+                  occurrenceVersion: number;
+                  options: Array<{ optionId: string }>;
+                  targetActorId: string;
+                }
+              | {
+                  allowedResponses: Array<"DECLINE" | "OPTION">;
+                  encounterVersion: number;
+                  kind: "REACTION_CHOICE";
                   occurrenceId: string;
                   occurrenceVersion: number;
                   options: Array<{ optionId: string }>;
@@ -114661,6 +114779,15 @@ export declare const api: {
             targetActorId: string;
           }
         | {
+            allowedResponses: Array<"DECLINE" | "OPTION">;
+            encounterVersion: number;
+            kind: "REACTION_CHOICE";
+            occurrenceId: string;
+            occurrenceVersion: number;
+            options: Array<{ optionId: string }>;
+            targetActorId: string;
+          }
+        | {
             allowedResponses: Array<"DECLINE" | "LEGENDARY_OPTION">;
             encounterVersion: number;
             kind: "LEGENDARY_ACTION_CHOICE";
@@ -115446,6 +115573,15 @@ export declare const api: {
                 allowedResponses: Array<"DECLINE" | "OPTION">;
                 encounterVersion: number;
                 kind: "LEGENDARY_RESISTANCE_CHOICE";
+                occurrenceId: string;
+                occurrenceVersion: number;
+                options: Array<{ optionId: string }>;
+                targetActorId: string;
+              }
+            | {
+                allowedResponses: Array<"DECLINE" | "OPTION">;
+                encounterVersion: number;
+                kind: "REACTION_CHOICE";
                 occurrenceId: string;
                 occurrenceVersion: number;
                 options: Array<{ optionId: string }>;

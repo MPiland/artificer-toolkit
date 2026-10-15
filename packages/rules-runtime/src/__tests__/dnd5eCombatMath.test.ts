@@ -889,7 +889,7 @@ describe('D&D 5e restrictions and spell-scoped damage', () => {
                 unit: 'FEET' as const
               },
               savingThrow: null,
-              reactionMovementTrigger: null
+              reactionTrigger: null
             },
             outcomes: [
               {
@@ -981,7 +981,7 @@ describe('D&D 5e healing', () => {
                   activation: null,
                   range: { rangeKind: 'TOUCH', amount: null, longAmount: null, unit: null },
                   savingThrow: null,
-                  reactionMovementTrigger: null
+                  reactionTrigger: null
                 },
                 outcomes: [
                   {
