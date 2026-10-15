@@ -3,7 +3,7 @@ import { EventEmitter, on } from 'node:events'
 import { createServer } from 'node:http'
 import { ConvexHttpClient } from 'convex/browser'
 import { api } from '../convex/_generated/api.js'
-import { validateUsername } from '@artificer-toolkit/shared/account/username'
+import { generateValidUsername } from './fixtures/generatedUsername'
 
 function localUrl(value: string | undefined): URL {
   assert.ok(value, 'Load the isolated local Convex environment.')
@@ -108,12 +108,8 @@ try {
     (await publicClient.query(api.application.featureFlags, {})).publicSignUpEnabled,
     true
   )
-  const suffix = crypto.randomUUID().replaceAll('-', '').slice(0, 12)
+  const { username, suffix } = generateValidUsername('Auth_')
   const email = `auth-${suffix}@example.invalid`
-  let username = `Auth_${suffix}`
-  while (validateUsername(username).message) {
-    username = `Auth_${crypto.randomUUID().replaceAll('-', '').slice(0, 12)}`
-  }
   const password = 'Local-proof-password-8175!'
   const replacementPassword = 'Local-replacement-password-8296!'
   const signup = { email, name: 'Local auth proof', username: ` ${username} `, password }
