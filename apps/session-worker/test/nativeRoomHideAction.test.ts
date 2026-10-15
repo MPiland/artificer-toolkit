@@ -266,10 +266,13 @@ describe('Hide, a System basic action with a per-observer check, in the room', (
     expect(await concealments(fixture)).toMatchObject([{ observers: [KEEN_ID, ALERT_ID].sort() }])
 
     // Crossing the wall brings the hider into plain sight of both observers; the move is not a Run command.
-    const moved = await fixture.room.room.move([
-      { x: 150, y: 150 },
-      { x: 320, y: 150 }
-    ])
+    const moved = await fixture.room.room.move(
+      [
+        { x: 150, y: 150 },
+        { x: 320, y: 150 }
+      ],
+      await fixture.room.version()
+    )
     expect(moved.type, JSON.stringify(moved)).toBe('COMMAND_COMMITTED')
     expect(await concealments(fixture)).toMatchObject([{ observers: [] }])
 
