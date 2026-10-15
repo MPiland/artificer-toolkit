@@ -7,7 +7,10 @@ import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projectio
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { readRunActors } from './documents.js'
 import { createActiveRuleEffectStore } from './effectStore.js'
-import type { EncounterCharacterWriteTransaction } from './ports.js'
+import type {
+  EncounterCharacterWriteTransaction,
+  EncounterPersistenceTransaction
+} from './ports.js'
 import type { EncounterWriteContext } from './store.js'
 
 /** Ends grants a roll used up, with the versions the roll was planned against. */

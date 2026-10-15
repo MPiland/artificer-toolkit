@@ -2,13 +2,13 @@ import type {
   ServerCompletedRuleExecutionDto,
   ServerPublishedRuleDefinitionDto
 } from '@artificer-toolkit/schema/shared/rulesExecution'
+import type { ActiveEffectEndEvent } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import type { EffectAuthored, PathLifecycleAuthored } from '@artificer-toolkit/shared/authored'
 import { compileEffect } from '@artificer-toolkit/shared/compilers'
 import { antitoxinVial } from '@artificer-toolkit/source-data/srd/equipment/antitoxin-vial.js'
 import { aid } from '@artificer-toolkit/source-data/srd/spells/aid.js'
 
 import { prepareEncounterActionEffectPlans } from '../encounterActionEffectPlans.js'
-import type { ActiveEffectEndEvent } from '../characterRuleActionSystemAdapter.js'
 import { dnd5eCharacterRuleActionSystemAdapter } from '../systems/dnd5e/effectActionCompiler.js'
 import { ACTION_EFFECT_ID, characterActionDescriptor } from './characterActionDescriptor.js'
 import { testUuid } from './dnd5eSrdEncounter.js'
