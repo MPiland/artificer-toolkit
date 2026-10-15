@@ -281,6 +281,8 @@ describe('Fireball journey: a creature the caster cannot perceive, rolled by its
     )
   const encounterRollIn = (deltas: ReturnType<typeof answersTo>) =>
     deltas.flatMap((delta) => (delta?.scope === 'ENCOUNTER' ? [delta.result.roll] : []))
+  const evidenceRollIn = (deltas: ReturnType<typeof answersTo>) =>
+    deltas.flatMap((delta) => (delta?.scope === 'ENCOUNTER' ? [delta.result.evidenceRoll] : []))
 
   it('shows the roll to that player and the GM alone, never the caster or the table', async () => {
     const room = await journeyRoom({ otherPlayerControlledActorIds: [PHANTOM_ID] })
@@ -328,6 +330,12 @@ describe('Fireball journey: a creature the caster cannot perceive, rolled by its
     expect(encounterRollIn(answersTo(phantomPlayer.messages, commandId))).toEqual([
       expect.objectContaining({ id: own!.id })
     ])
+
+    // The evidence roll is the presser's own: they keep it, and the caster's answer has none.
+    expect(evidenceRollIn(answersTo(phantomPlayer.messages, commandId))).toEqual([
+      expect.objectContaining({ rollId: own!.id })
+    ])
+    expect(evidenceRollIn(answersTo(caster.messages, commandId))).toEqual([null])
 
     // The caster's socket receives no roll in its answer and nothing from the chat.
     expect(encounterRollIn(answersTo(caster.messages, commandId))).toEqual([null])

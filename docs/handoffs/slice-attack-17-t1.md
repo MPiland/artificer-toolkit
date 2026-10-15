@@ -21,7 +21,7 @@ In both cases, the player who controls that creature and presses Roll dice gets 
   - Nobody else gets it: not the table, the caster, or other players.
   - Decide this once, in `recordRuleRollCard`, so both the evidence-roll path and the area-commit path get it. No per-caller branches.
 - **Ports:**
-  - `retainGmRoll` already takes a user id: the Worker's `apps/session-worker/src/roomEncounterWritePorts.ts` and Convex's `apps/apis/convex/encounters/encounterPorts.ts`.
+  - `retainPrivateRoll` (formerly `retainGmRoll`) already takes a user id: the Worker's `apps/session-worker/src/roomEncounterWritePorts.ts` and Convex's `apps/apis/convex/encounters/encounterPorts.ts`.
   - If the port is reused for the player, rename it to describe what it does (for example `retainPrivateRoll`) across every implementation and caller. Don't add a second near-identical port.
   - The Worker already sends a retained private roll only to that user's sockets (`nativeLiveSessionRoom.ts`, about line 2874). Confirm this rather than re-implementing it.
 - **GM reveal:**
@@ -37,7 +37,7 @@ Escalate (`SendMessage` to the main session) only if:
 Read first:
 
 - D62, D83 and the SPELLS-7 slice 5e entry (the ISSUER timeline audience) in `docs/handoffs/phase-08-2-decisions.md`.
-- `ruleRollCards.ts`, `evidenceRolls.ts` and the `retainGmRoll` implementations.
+- `ruleRollCards.ts`, `evidenceRolls.ts` and the `retainPrivateRoll` implementations (formerly `retainGmRoll`).
 
 ## Closes
 
@@ -76,6 +76,7 @@ Other sessions are editing `areaCommitPersistence.ts`, `nativeLiveSessionRoom.ts
 - 2026-10-14: worktree was missing 522f6b9ae; merged `codex/phase-08-2-convex-cutover`.
 - 2026-10-14: red first (`local-validation/attack-17-t1/red-*.log`, builds exit 0). The unit, Convex, area-save and journey tests failed for the intended reasons: no `retainPrivateRoll`, the controller's answer and history empty. One Convex case (GM-controlled hidden creature) failed on setup (`NOT_ACTOR_CONTROLLER`, later `TARGET_UNAVAILABLE`); I rewrote its setup to a GM-controlled hidden attacker, the assertions are unchanged in intent.
 - 2026-10-14: green (`green-*.log`, `green2-*.log`). One journey assertion still failed after the routing fix: the Worker's fan-out sent the roller's `evidenceRoll` (same roll id and faces) to every recipient of the command, including the caster. Fixed in `roomEncounterCommands.ts` (see Deviations).
+- 2026-10-14: review round (frozen list): `evidenceRoll` made initiator-scoped (dropped the holders set), checkpoint member copy requires an active member plus profile with a per-user cache, negative checkpoint cases added, reveal refusal for an unbound roll, workbook names fixed. Reruns in `green3-*.log`.
 - Process slip: early in the slice I edited two Worker test files with a Python heredoc and used shell `ls`/`head`/`git diff`, against the workbook rules. Files were re-read afterwards; no functional damage.
 
 ### Checklist
@@ -87,16 +88,17 @@ Other sessions are editing `areaCommitPersistence.ts`, `nativeLiveSessionRoom.ts
 
 ### Deviations
 
-- `retainGmRoll` is renamed `retainPrivateRoll` in every port, `Pick` and caller; its binding is `GmCampaignRollDto | null`. The player's copy has a null binding, so no reveal button or "Revealed to table" label shows. It holds the generic `roll`, never `gmRoll`, so the sight reason does not leak.
-- Checkpoint retained-roll schema: `gmCampaignRoll` is now nullable (not a new field or table, so no escalation). `checkpointPrivateRolls.ts` now accepts a member's own roll when the binding is null and the member belongs to the Campaign; the owner's roll still needs a binding for this Campaign. The "belongs to another owner, Campaign or System" cases in `checkpoint.test.ts` still throw. One test literal in that file was rewritten as an explicit object so it typechecks against the nullable binding; the assertion is unchanged.
-- Worker fan-out (`roomEncounterCommands.ts`): the roller's `evidenceRoll` is withheld from recipients that hold no copy of a private card for that roll. This closes a leak of the dice to the caster that the journey exposed; it is not a change to the card routing.
+- `retainGmRoll` was renamed `retainPrivateRoll` in every port, `Pick` and caller; its binding is `GmCampaignRollDto | null`. The player's copy has a null binding, so no reveal button or "Revealed to table" label shows. It holds the generic `roll`, never `gmRoll`, so the sight reason does not leak.
+- Checkpoint retained-roll schema: `gmCampaignRoll` is now nullable (not a new field or table, so no escalation). `checkpointPrivateRolls.ts` accepts a member's own roll only when the binding is null and the member has an `ACTIVE` membership and a `userProfiles` row (checked once per user per checkpoint); the owner's roll still needs a binding for this Campaign. The "belongs to another owner, Campaign or System" cases in `checkpoint.test.ts` still throw, and a new test covers a non-member, a `LEFT` member, an owner with a null binding, a member copy with a binding, a changed record, and null-versus-bound mismatches both ways. One test literal in that file was rewritten as an explicit object so it typechecks against the nullable binding; the assertion is unchanged.
+- Worker fan-out (`roomEncounterCommands.ts`): the roller's `evidenceRoll` is initiator-scoped, like `roll` and as on the Convex route (`evidenceRolls.ts`). The caster no longer receives the dice of a roll they cannot perceive; the journey test asserts the caster's `evidenceRoll` is null and the roller's is their own. This is not a change to the card routing and adds no second copy of the privacy rule.
+- Reveal (`roomChatCommands.ts`): a retained roll with no binding for this Campaign now gets its own refusal ("not a private GM roll of this Campaign"), not the "made before the live table started" one.
 - Fixtures: a second player (`otherPlayerId`, token), `otherPlayerControlledActorIds`, `sendAsPlayer(..., who)`, `readRoomPrivateRollHolders`.
 - Docs: `live-sessions.md` and `persistence.md` describe the player's copy.
 
 ### Risks
 
-- Concentration check cards (`concentrationRollPersistence.ts`, `concentrationEnd.ts`) still retain for the GM only, so a player controlling a hidden concentrating creature sees no card for the check. Not part of AC 17.5; candidate follow-up.
-- A reveal request on a player's own copy (null binding) gets the "made before the live table started" refusal; players cannot reveal today, so no user-visible change.
+- Out of scope, follow-up for the ledger: concentration check cards (`concentrationRollPersistence.ts`, `concentrationEnd.ts`) still retain for the GM only, so a player controlling a hidden concentrating creature sees no card for the check. Not part of AC 17.5.
+- A reveal request on a roll with no binding for this Campaign (a player's own copy) is refused with its own message; only the owner can reveal today, so no user-visible change.
 - Typecheck of `apps/web` was not run (no web import of the changed types).
 
 ## Proposed ledger edits (filled by the slice session)

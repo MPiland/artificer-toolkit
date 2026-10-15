@@ -1306,6 +1306,34 @@ it('refuses Character play insertion, deletion, a stale clock and mismatched pla
   }
 })
 
+/** A one-d20 roll in `system`, created at the epoch millisecond `at`. */
+function makeRetainedRoll(
+  system: { id: string; rulesetCode: string; rulesetVersion: string },
+  at: number
+) {
+  return rollRecordDtoSchema.parse({
+    id: crypto.randomUUID(),
+    normalizedExpression: '1d20',
+    characterId: null,
+    characterLabel: '',
+    source: { kind: 'MANUAL', label: 'Retained private checkpoint roll' },
+    ruleset: {
+      systemId: system.id,
+      code: system.rulesetCode,
+      version: system.rulesetVersion
+    },
+    createdAt: new Date(at).toISOString(),
+    evidence: {
+      terms: [{ count: 1, die: 20, rolls: [10], subtotal: 10 }],
+      modifier: 0,
+      mode: 'NORMAL',
+      subtotal: 10,
+      transform: { kind: 'NONE' },
+      total: 10
+    }
+  })
+}
+
 it('merges private checkpoint rolls into global owner history without changing replayed evidence or leaking invalid frames', async () => {
   const base = await setupCharacterRun()
   await base.t.run((ctx) =>
@@ -1324,28 +1352,7 @@ it('merges private checkpoint rolls into global owner history without changing r
   })
   const system = await base.t.run((ctx) => requireSystem(ctx, base.campaign.gameSystemId))
   const startedAt = Date.now()
-  const makeRoll = (ordinal: number) =>
-    rollRecordDtoSchema.parse({
-      id: crypto.randomUUID(),
-      normalizedExpression: '1d20',
-      characterId: null,
-      characterLabel: '',
-      source: { kind: 'MANUAL', label: 'Retained private checkpoint roll' },
-      ruleset: {
-        systemId: system.id,
-        code: system.rulesetCode,
-        version: system.rulesetVersion
-      },
-      createdAt: new Date(startedAt + ordinal).toISOString(),
-      evidence: {
-        terms: [{ count: 1, die: 20, rolls: [10], subtotal: 10 }],
-        modifier: 0,
-        mode: 'NORMAL',
-        subtotal: 10,
-        transform: { kind: 'NONE' },
-        total: 10
-      }
-    })
+  const makeRoll = (ordinal: number) => makeRetainedRoll(system, startedAt + ordinal)
   const existing = makeRoll(19)
   const seed = Array.from({ length: 19 }, (_, index) => ({
     record: makeRoll(index),
@@ -1529,4 +1536,112 @@ it('merges private checkpoint rolls into global owner history without changing r
     expect(await snapshot(base)).toEqual(finalState)
     expect(await retained()).toEqual(after)
   }
+})
+
+it("retains an active member's own private checkpoint roll and refuses a copy that does not belong", async () => {
+  const base = await setupCharacterRun()
+  const system = await base.t.run((ctx) => requireSystem(ctx, base.campaign.gameSystemId))
+  const startedAt = Date.now()
+  const makeRoll = (ordinal: number) => makeRetainedRoll(system, startedAt + ordinal)
+  const binding = {
+    campaignId: base.campaign.id,
+    creature: null,
+    revealedAt: null,
+    noticedAt: null
+  }
+  const copy: LiveSessionCheckpointRetainedRoll = {
+    userId: base.player.userId,
+    record: makeRoll(0),
+    gmCampaignRoll: null
+  }
+  const historyOf = (userId: string) =>
+    base.t.run((ctx) =>
+      ctx.db
+        .query('userRollHistory')
+        .withIndex('by_userId_createdAt_id', (q) => q.eq('userId', userId))
+        .take(21)
+    )
+
+  const authority = await activate(base)
+  const run = await runChange(base)
+  const input = frame(authority, {
+    changes: [run.change],
+    history: [],
+    retainedRolls: [copy]
+  })
+  const committed = await base.t.mutation(publish, input)
+  expect(committed.status).toBe('COMMITTED')
+  expect(await historyOf(base.player.userId)).toEqual([
+    expect.objectContaining({ id: copy.record.id, gmCampaignRoll: null })
+  ])
+  expect(await historyOf(base.owner.userId)).toEqual([])
+  const afterCommit = await snapshot(base)
+  expect((await base.t.mutation(publish, input)).status).toBe('REPLAYED')
+  expect(await snapshot(base)).toEqual(afterCommit)
+
+  // Rows that exist with the opposite binding: a bound member row and an unbound owner row.
+  const boundMemberRoll = makeRoll(1)
+  const unboundOwnerRoll = makeRoll(2)
+  await base.t.run(async (ctx) => {
+    await retainUserRolls(ctx, base.player.userId, [
+      { record: boundMemberRoll, gmCampaignRoll: binding }
+    ])
+    await retainUserRolls(ctx, base.owner.userId, [
+      { record: unboundOwnerRoll, gmCampaignRoll: null }
+    ])
+  })
+  const beforeRejections = await snapshot(base)
+  const playerBefore = await historyOf(base.player.userId)
+  const ownerBefore = await historyOf(base.owner.userId)
+  const cases: [LiveSessionCheckpointRetainedRoll[], string][] = [
+    [[{ ...copy, record: makeRoll(3), userId: crypto.randomUUID() }], 'another owner'],
+    [[{ ...copy, record: makeRoll(4), gmCampaignRoll: binding }], 'another owner'],
+    [[{ userId: base.owner.userId, record: makeRoll(5), gmCampaignRoll: null }], 'another owner'],
+    [
+      [{ ...copy, record: { ...copy.record, source: { ...copy.record.source, label: 'Changed' } } }],
+      'identity is reused'
+    ],
+    [[{ ...copy, record: boundMemberRoll }], 'identity is reused'],
+    [
+      [{ userId: base.owner.userId, record: unboundOwnerRoll, gmCampaignRoll: binding }],
+      'identity is reused'
+    ]
+  ]
+  const finalRun = await runChange(base)
+  for (const [retainedRolls, error] of cases) {
+    await expect(
+      base.t.mutation(
+        publish,
+        frame(committed.authority, { changes: [finalRun.change], history: [], retainedRolls })
+      )
+    ).rejects.toThrow(error)
+    expect(await snapshot(base)).toEqual(beforeRejections)
+    expect(await historyOf(base.player.userId)).toEqual(playerBefore)
+    expect(await historyOf(base.owner.userId)).toEqual(ownerBefore)
+  }
+
+  // A member who left the Campaign no longer keeps new copies.
+  await base.t.run(async (ctx) => {
+    const membership = await ctx.db
+      .query('campaignMemberships')
+      .withIndex('by_campaignId_userId', (q) =>
+        q.eq('campaignId', base.campaign.id).eq('userId', base.player.userId)
+      )
+      .unique()
+    if (!membership) throw new Error('Missing player membership.')
+    await ctx.db.patch(membership._id, { status: 'LEFT', leftAt: new Date().toISOString() })
+  })
+  const afterLeaving = await snapshot(base)
+  await expect(
+    base.t.mutation(
+      publish,
+      frame(committed.authority, {
+        changes: [finalRun.change],
+        history: [],
+        retainedRolls: [{ ...copy, record: makeRoll(6) }]
+      })
+    )
+  ).rejects.toThrow('another owner')
+  expect(await snapshot(base)).toEqual(afterLeaving)
+  expect(await historyOf(base.player.userId)).toEqual(playerBefore)
 })

@@ -201,11 +201,14 @@ export async function executeRoomCampaignChatCommand(input: {
     const retained = readRoomPrivateRoll(transaction, userId, rollId.toLowerCase())
     // Rolls made before the live table started are Convex-only: the room holds no bounded scope
     // to hydrate them from, so reveal waits until the session ends.
-    const gmCampaignRoll = retained?.gmCampaignRoll
-    if (!retained || !gmCampaignRoll || gmCampaignRoll.campaignId !== campaignId)
+    if (!retained)
       throw new CampaignChatCommandError(
         'This roll was made before the live table started; reveal it after the session.'
       )
+    // The owner's retained rolls always carry this Campaign's binding; only a member's own copy has none.
+    const gmCampaignRoll = retained.gmCampaignRoll
+    if (gmCampaignRoll?.campaignId !== campaignId)
+      throw new CampaignChatCommandError('This roll is not a private GM roll of this Campaign.')
     const refusal = readRollRevealRefusal(gmCampaignRoll, mode)
     if (refusal) throw new CampaignChatCommandError(refusal)
     const access = await openConversation(ctx, authority, 'TABLE', requirePeer)

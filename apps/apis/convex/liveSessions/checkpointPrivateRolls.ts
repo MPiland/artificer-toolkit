@@ -26,6 +26,26 @@ export async function applyCheckpointPrivateRolls(
     .withIndex('by_userId', (query) => query.eq('userId', campaign.ownerUserId))
     .unique()
   if (!profile) throw new Error('Checkpoint private roll owner account is unavailable.')
+  const activeMembers = new Map<string, boolean>()
+  const isActiveMember = async (userId: string) => {
+    const known = activeMembers.get(userId)
+    if (known !== undefined) return known
+    const membership = await ctx.db
+      .query('campaignMemberships')
+      .withIndex('by_campaignId_userId', (query) =>
+        query.eq('campaignId', frame.campaignId).eq('userId', userId)
+      )
+      .unique()
+    const memberProfile =
+      membership?.status === 'ACTIVE'
+        ? await ctx.db
+            .query('userProfiles')
+            .withIndex('by_userId', (query) => query.eq('userId', userId))
+            .unique()
+        : null
+    activeMembers.set(userId, memberProfile !== null)
+    return memberProfile !== null
+  }
   const seen = new Set<string>()
   const pending = new Map<string, Array<Parameters<typeof retainUserRolls>[2][number]>>()
   for (const { userId, record, gmCampaignRoll } of rolls) {
@@ -34,13 +54,7 @@ export async function applyCheckpointPrivateRolls(
     const belongs =
       userId === campaign.ownerUserId
         ? gmCampaignRoll?.campaignId === frame.campaignId
-        : gmCampaignRoll === null &&
-          (await ctx.db
-            .query('campaignMemberships')
-            .withIndex('by_campaignId_userId', (query) =>
-              query.eq('campaignId', frame.campaignId).eq('userId', userId)
-            )
-            .unique()) !== null
+        : gmCampaignRoll === null && (await isActiveMember(userId))
     if (!belongs || record.ruleset.systemId !== campaign.gameSystemId)
       throw new Error('Checkpoint private roll belongs to another owner, Campaign or System.')
     const identity = checksumCanonicalJson([userId, record.id])
@@ -51,7 +65,9 @@ export async function applyCheckpointPrivateRolls(
       .withIndex('by_userId_id', (query) => query.eq('userId', userId).eq('id', record.id))
       .unique()
     if (!current) {
-      pending.set(userId, [...(pending.get(userId) ?? []), { record, gmCampaignRoll }])
+      const queued = pending.get(userId) ?? []
+      queued.push({ record, gmCampaignRoll })
+      pending.set(userId, queued)
       continue
     }
     const {
@@ -67,15 +83,16 @@ export async function applyCheckpointPrivateRolls(
       (binding?.campaignId ?? null) !== (gmCampaignRoll?.campaignId ?? null)
     )
       throw new Error('Checkpoint private roll identity is reused.')
+    // A member's copy has no reveal marks to merge.
+    if (!binding || !gmCampaignRoll) continue
     // A reveal is never undone: the room's binding adds marks, it cannot clear a recorded one.
-    if (binding && gmCampaignRoll)
-      await ctx.db.patch(_id, {
-        gmCampaignRoll: {
-          ...gmCampaignRoll,
-          revealedAt: binding.revealedAt ?? gmCampaignRoll.revealedAt,
-          noticedAt: binding.noticedAt ?? gmCampaignRoll.noticedAt
-        }
-      })
+    await ctx.db.patch(_id, {
+      gmCampaignRoll: {
+        ...gmCampaignRoll,
+        revealedAt: binding.revealedAt ?? gmCampaignRoll.revealedAt,
+        noticedAt: binding.noticedAt ?? gmCampaignRoll.noticedAt
+      }
+    })
   }
   for (const [userId, records] of pending) await retainUserRolls(ctx, userId, records)
 }
