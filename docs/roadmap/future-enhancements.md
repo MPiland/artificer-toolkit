@@ -153,6 +153,18 @@ Rules data is imperial: authored lengths use inches, feet, yards or miles, and t
 
 Scenes are square or gridless, and a square is the System's base square (5 ft in D&D 5e). Candidate: a hex grid kind, with hex distance counting for range, reach, movement and areas, using the same base-square length per hex. Raised by the user on 2026-10-13; post-launch.
 
+### Hazard and trap tools
+
+MOVE-3 ships the small version: the GM places zones through the zone node map, types spot and disarm DCs, and reveals or disarms by hand. Candidates:
+
+- a trap library of presets dropped onto a Scene;
+- a Scene sidebar listing every zone, highlighting each on the map on hover;
+- picking a roll card's result as the spot DC instead of typing it;
+- a GM trigger that fires a zone on a chosen creature, for a botched disarm;
+- the 2024 caltrops and ball bearings rule (first entry per turn, Speed 0, no half-speed bypass), as a System option.
+
+Raised by the user on 2026-10-14 during the hazards and traps design; post-launch.
+
 ## Other future enhancements (parked)
 
 ### Adventure Module Packages

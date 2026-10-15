@@ -4095,7 +4095,7 @@
         },
         {
           "id": "MOVE-3",
-          "title": "Auras and traps",
+          "title": "Auras, hidden hazards and traps",
           "status": "TODO",
           "journeyTests": [],
           "journeyStatus": "none",
@@ -4110,51 +4110,59 @@
               "id": "MOVE-3.1"
             },
             {
-              "text": "The SRD sample traps are in the corpus as authored zones, each with its SRD detection DC, disarm check and DC, and triggered effect; a GM can author a custom trap from the same core options.",
+              "text": "The GM places a zone on a Scene through a GM zone tool that renders the same zone node map as authored content (shape, label, entry interactions and behaviors), so an environmental trap needs no trap-specific contract; it resolves like any placed zone, and GM undo removes it. Proved with an authoring-parity test: a GM-built pit and a GM-built caltrop field resolve the same as authored zones.",
               "status": "TODO",
               "proof": [],
               "origin": [],
-              "note": "User ruling 2026-10-14 (decisions: hidden traps and zones). Today the corpus has no SRD traps, only trap-like equipment (caltrops, hunting trap). Authorable from core options, nothing trap-specific.",
+              "note": "User ruling 2026-10-14 (decisions: hazards and traps). Environmental traps exist only on the Scene; there is no trap subject or item category. A hazard is any ZONE with an entry interaction.",
               "id": "MOVE-3.2"
             },
             {
-              "text": "The GM places a trap concealed at its authored detection DC; a creature that lays a zone (caltrops, ball bearings, a hunting trap) may conceal it with a Dexterity (Stealth) check whose result is the spot DC. A concealed zone is drawn only for the GM and the Characters that know of it.",
+              "text": "A placed zone has an optional spot DC and an optional disarm DC, which the GM sets at placement or later by typing a flat number or the result of the placer's Stealth or Sleight of Hand roll. A zone without a spot DC is in plain sight. A concealed zone is drawn and listed only for the GM and the Characters that know of it, redacted per viewer on the server.",
               "status": "TODO",
               "proof": [],
               "origin": [],
-              "note": "User ruling 2026-10-14 (decisions: hidden traps and zones). Unconcealed laid zones are in plain sight, as the SRD treats them. The Stealth rule is a System option. Per-viewer drawing follows the ATTACK-17.3 server-side redaction rule.",
+              "note": "User ruling 2026-10-14 (decisions: hazards and traps). Players lay their own hazards and roll on their sheet; the GM types the result. Per-viewer redaction follows the ATTACK-17.3 rule.",
               "id": "MOVE-3.3"
             },
             {
-              "text": "A campaign setting chooses how hidden zones are noticed: Passive and Search (default) or Search only. A passive check runs silently on the server when a creature first has sight of the zone; the Search action lets a player roll their own Character's Perception or Investigation. Only a success reveals the zone, and only to that Character; a failure shows nothing to anyone but the GM.",
+              "text": "A ZONE manifest can author camouflage: an optional concealment whose spot DC uses an existing DC method (for example the source's spell save DC), available in the zone node map; placing such a zone sets its spot DC automatically. Proved with an author-built camouflaged spell zone through the real form.",
               "status": "TODO",
               "proof": [],
               "origin": [],
-              "note": "User ruling 2026-10-14 (decisions: hidden traps and zones). The user worried passive would give traps away; a silent server-side check reveals nothing on failure.",
+              "note": "User ruling 2026-10-14 (decisions: hazards and traps). SRD Spike Growth adopts it when SPELLS-4.2 converts it to core options.",
               "id": "MOVE-3.4"
             },
             {
-              "text": "A creature that has not noticed a zone gets no path warning and no Move carefully offer; entering it triggers it. The GM's path preview shows which creatures have not noticed it.",
+              "text": "A campaign setting chooses how concealed zones are noticed: GM prompt (default) or Search only. With GM prompt, when a Character that does not know of a concealed zone first has it in sight and its passive Perception meets the spot DC, only the GM gets a quiet prompt to reveal it to that Character; players see nothing either way. There is no Search button: a player rolls from their sheet and the GM decides.",
               "status": "TODO",
               "proof": [],
               "origin": [],
-              "note": "User ruling 2026-10-14 (decisions: hidden traps and zones). Move carefully is Q2 (SPELLS-17).",
+              "note": "User ruling 2026-10-14 (decisions: hazards and traps). Rejected: automatic reveal and player-facing passive roll requests, because either tells the table that something is there.",
               "id": "MOVE-3.5"
             },
             {
-              "text": "A creature that knows of a trap can attempt its authored disarm check; success removes the trap, and failing by the trap's authored margin triggers it. GM undo restores either outcome.",
+              "text": "A creature that does not know of a concealed zone gets no path warning and no Move carefully offer; entering it triggers it. The GM's path preview shows which creatures have not noticed it.",
               "status": "TODO",
               "proof": [],
               "origin": [],
-              "note": "User ruling 2026-10-14 (decisions: hidden traps and zones).",
+              "note": "User ruling 2026-10-14 (decisions: hazards and traps). Move carefully is Q2 (SPELLS-17).",
               "id": "MOVE-3.6"
+            },
+            {
+              "text": "The GM can reveal a concealed zone to chosen Characters (after a Search roll or from the passive prompt) and can disarm a zone, which removes it; GM undo restores either. The disarm DC is shown only to the GM.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "User ruling 2026-10-14 (decisions: hazards and traps). The player rolls the disarm check from their sheet. A botched disarm is the GM's call; on-demand triggering is a future enhancement.",
+              "id": "MOVE-3.7"
             }
           ],
           "wsjf": {
             "bv": 8,
             "tc": 3,
             "rr": 3,
-            "size": 8,
+            "size": 13,
             "after": ["SPELLS-17", "SPELLS-20"]
           }
         },
@@ -6348,27 +6356,63 @@
         },
         {
           "id": "SPELLS-4",
-          "title": "Every authored CLOSED_RULE kind has a resolver",
+          "title": "Closed rules become core authoring options",
           "status": "TODO",
           "journeyTests": [],
           "journeyStatus": "none",
           "origin": [],
           "acs": [
             {
-              "text": "CLOSED_RULE kinds that can be authored all have a resolver in rules-runtime.",
+              "text": "Every CLOSED_RULE in the SRD corpus is replaced by core authoring options, adding generic options where a rule cannot yet be expressed; each conversion has an authoring-parity proof, and the closed-rule kind and its resolver are deleted.",
               "status": "TODO",
               "proof": [],
               "origin": [],
-              "note": "Carry-over: rules-runtime.md lists kinds authored with no resolver.",
+              "note": "User ruling 2026-10-14 (decisions: hazards and traps). Re-scoped from \"every closed rule has a resolver\" under the authorable-from-core-options rule. 2026-10-14 scan: 195 closed rules (154 spell, 41 equipment).",
               "id": "SPELLS-4.1"
+            },
+            {
+              "text": "Every SRD hazard zone spell (Spike Growth, Wall of Fire, Wall of Thorns, Moonbeam, Spirit Guardians, Sleet Storm, Incendiary Cloud, Cloudkill, Web, Grease, Entangle, Black Tentacles, Insect Plague) places a zone whose entry and turn rules are authored from core options and resolve in Encounters.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "User ruling 2026-10-14 (decisions: hazards and traps). The first seven are closed rules; the last six have zones with no entry interaction (audit whether their rules are elsewhere). Spike Growth needs a damage-per-distance-moved option and MOVE-3.4 camouflage.",
+              "id": "SPELLS-4.2"
             }
           ],
           "wsjf": {
             "bv": 5,
             "tc": 3,
             "rr": 3,
-            "size": 5
-          }
+            "size": 13
+          },
+          "tasks": [
+            {
+              "id": "SPELLS-4.T1",
+              "text": "Audit and convert the SRD hazard zone spells to core options; size T2 from the audit.",
+              "status": "TODO",
+              "closes": ["SPELLS-4.2"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 3,
+                "rr": 5,
+                "size": 8,
+                "after": ["SPELLS-25", "SPELLS-17"]
+              }
+            },
+            {
+              "id": "SPELLS-4.T2",
+              "text": "Convert the remaining closed rules to core options and delete their kinds and resolvers.",
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 13,
+                "after": ["SPELLS-4.T1"]
+              }
+            }
+          ]
         },
         {
           "id": "SPELLS-5",
@@ -7236,7 +7280,7 @@
             "tc": 3,
             "rr": 3,
             "size": 5,
-            "after": ["SPELLS-17"]
+            "after": ["SPELLS-17", "SPELLS-25"]
           }
         },
         {
@@ -7346,6 +7390,30 @@
             "tc": 3,
             "rr": 5,
             "size": 3
+          }
+        },
+        {
+          "id": "SPELLS-25",
+          "title": "Every zone states where it is placed",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": [],
+          "acs": [
+            {
+              "text": "attachmentKind is required on every ZONE manifest in the schema and the zone node map, and every SRD zone sets it from its SRD text; a corpus test fails on any zone without it.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "User ruling 2026-10-14 (decisions: hazards and traps). 2026-10-14 scan: 36 of 39 SRD zones (all spells) leave it unset, so the SPELLS-17 creator would place none of them.",
+              "id": "SPELLS-25.1"
+            }
+          ],
+          "wsjf": {
+            "bv": 5,
+            "tc": 5,
+            "rr": 5,
+            "size": 2
           }
         }
       ]

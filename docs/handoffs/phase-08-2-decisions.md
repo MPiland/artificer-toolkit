@@ -1094,17 +1094,16 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
     - This replaces the icon badges around the token.
 - **Q4, profile visibility (ACCOUNTS-8, 2026-10-12).** Profiles are owner-only by default, and the owner can set their profile to Public or Private, like most social apps. Public lets any signed-in account open the profile page; Private returns it to owner-only at once. Registered as ACCOUNTS-8.4.
 - **Q2, moving carefully through caltrops (SPELLS-17, 2026-10-12).** The game asks at the moment it matters; there is no movement-mode toggle. When a dragged path enters a field whose save is skipped at half speed, the path preview offers two choices. "Move carefully" costs double movement and skips the save. "Move normally" means a save on entry. Rejected: a Walk / Normal / Dash mode switch, because Dash is an action (ATTACK-18 slice B), not a pace.
-- **Hidden traps and zones (MOVE-3 and SPELLS-17, 2026-10-14).** Decided by the product owner.
-  - **SPELLS-17 is generic.** It covers any authored placed zone from an item, spell or feature. Caltrops are only its proof.
-  - **Spot DC:**
-    - SRD traps carry their own authored DCs to detect, disarm and save.
-    - A zone a creature lays, such as caltrops, ball bearings or a hunting trap, is in plain sight unless the placer conceals it. The placer's Dexterity (Stealth) check, rolled as it is laid, is then the spot DC. That rule is a System option, so it stays authorable.
-  - **Noticing:**
-    - A campaign setting chooses between Passive and Search (the SRD default) and Search only.
-    - A passive check runs silently on the server, so a failure shows nothing to anyone but the GM.
-    - Search (the SRD action) lets a player roll their own Character's Perception or Investigation check, as the System allows.
-    - Only a success reveals the zone, and only to that Character.
-  - **Disarm is in scope.** A creature that knows of a trap can attempt the trap's authored disarm check. Success removes the trap; failing by the authored margin triggers it.
+- **Hazards and traps (MOVE-3, SPELLS-4, SPELLS-17 and SPELLS-25, 2026-10-14).** Decided by the product owner. The SRD 5.1 has no sample traps: it gives only the detect and disarm procedure, and only Spike Growth is camouflaged by its own text.
+  - **A hazard comes from content, not a category.** Any `ZONE` manifest with an entry interaction is a hazard, whether an item, a spell or a feature places it. No item category or property marks it: ball bearings could also be sling ammunition, so the hazard belongs to the effect, not the item. SPELLS-17 is the generic creator; Caltrops are only its proof.
+  - **SRD 5.1 rules are authored, not hardcoded.** Caltrops use `bypassAtHalfSpeed` (with Q2's Move carefully), Stop Current Movement, damage and a speed penalty that ends On Hit Points Regained. The 2024 caltrops rule is a future System option.
+  - **Every zone states where it is placed (SPELLS-25).** `attachmentKind` becomes required on `ZONE`. Rejected: the creator inferring placement from range, which replaces content with a guess.
+  - **Closed rules become core options (SPELLS-4, re-scoped).** Hazard spells such as Spike Growth and Wall of Fire are rewritten with core options and new generic options, not given resolvers.
+  - **Concealment is placement state (MOVE-3.3).** A placed zone has an optional spot DC and disarm DC. The GM types a flat number or the result of the placer's Stealth or Sleight of Hand roll. Without a spot DC a zone is in plain sight. Content can author camouflage that sets the spot DC from an existing DC method (MOVE-3.4, for Spike Growth's spell save DC).
+  - **Environmental traps live on the Scene (MOVE-3.2).** The GM zone tool renders the same zone node map as authored content. There is no trap subject.
+  - **Noticing (MOVE-3.5).** A campaign setting chooses GM prompt (default) or Search only. With GM prompt, a passive Perception that meets the spot DC quietly asks only the GM whether to reveal the zone to that Character. Players see nothing either way. There is no Search button: players roll from their sheet and the GM decides. Rejected: automatic reveal and player-facing passive roll requests, because either tells the table that something is there.
+  - **Reveal and disarm are GM actions (MOVE-3.7).** Reveal to… shows a zone to chosen Characters. Disarm removes it. Both are undoable. A botched disarm is the GM's call.
+  - **Later ([future enhancements](../roadmap/future-enhancements.md#hazard-and-trap-tools)).** A trap library, a Scene list of zones, picking a roll card as the spot DC, on-demand triggering and the 2024 caltrops rule.
 - **Q1, automatic cover (SPELLS-14, 2026-10-12).** On by default for a new Campaign. Cover comes from the Scene's walls, and the GM can change any target's tier.
 - **Q5 and Q6, shared table screen (SCENE-5, 2026-10-12).** Decided by the product owner.
   - **Table mode is chosen at Session launch, not stored as a setting.** The GM picks how the table plays that day: each player on their own device, or one shared screen for the players, with the GM on their own screen.
