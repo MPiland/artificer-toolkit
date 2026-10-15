@@ -118,3 +118,4 @@ Logs under `local-validation/spells-8-t1/` (not committed). Every batch ran thro
 - 2026-10-15: second review round (seven frozen items) done, merged with the lane, g9 green; see Evidence.
 - 2026-10-15: T5 built (derived Concentration, Hold Person, shared caster save DC); light-lane proofs green; CI on `ci/spells-8-t5`.
 - 2026-10-15: T6a built (cast-level heal, excluded creature types applied instead of refused); new Convex journeys green locally; the final fixture edit to the offer test is verified by CI on `ci/spells-8-t6`.
+- 2026-10-15: T6a CI `ci/spells-8-t6` run 38818552686 (head 8c5972a16): every job green except Convex suite 1/4, whose only failure is `accountJourneys.test.ts` (sign-in returned 400 INVALID_USERNAME). Not in the T6 diff; recorded, not rerun. Typecheck, packages, web and the other three Convex shards (with the new spell-casting journeys) are green. Earlier runs 38812635327 and 38816489302 failed in typecheck only (test typing), fixed.
