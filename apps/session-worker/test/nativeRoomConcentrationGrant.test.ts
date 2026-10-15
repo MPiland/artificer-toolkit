@@ -311,7 +311,7 @@ describe('a grant that needs Concentration (SPELLS-5.7)', () => {
     const refused = await room.startAction(FIGHTER_ACTOR_ID, ['ACTION_ECONOMY_UNAVAILABLE'])
     expect(refused.answer).toMatchObject({
       type: 'COMMAND_REJECTED',
-      message: expect.stringContaining('hold Concentration')
+      reason: 'SOURCE_REQUIREMENTS_NOT_MET'
     })
     const afterRefusal = await readRoomHistory(room.room.base.stub)
     expect(afterRefusal.maintainedStates).toEqual([])

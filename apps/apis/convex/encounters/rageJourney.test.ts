@@ -12,6 +12,7 @@ import { barbarian } from '@artificer-toolkit/source-data/srd/classes/barbarian.
 import { greataxe } from '@artificer-toolkit/source-data/srd/equipment/greataxe.js'
 import {
   SRD_ACTION_ALLOWANCE_DEFINITION_ID,
+  SRD_ACTOR_ACTION_CAPABILITY_DEFINITION_ID,
   SRD_BONUS_ACTION_ALLOWANCE_DEFINITION_ID,
   SRD_RULE_STATE_DEFINITIONS
 } from '@artificer-toolkit/source-data/srd/ruleState.js'
@@ -51,12 +52,23 @@ async function setup() {
   )
   await attachRoomWorker(base.t)
   await equipAllCharacterItems(base)
+  // Table roll cards post to the opened Table chat, which needs a username.
+  await base.player.caller.mutation(api.account.updateProfile, {
+    username: 'RagingHero',
+    bio: null
+  })
+  await base.owner.caller.mutation(api.account.updateProfile, { username: 'RageGm', bio: null })
+  await base.owner.caller.mutation(api.campaigns.conversations.open, {
+    campaignId: base.campaign.id,
+    kind: 'TABLE'
+  })
   for (const { userId } of [base.player, base.owner]) await setAutoRollDice(base.t, userId, true)
   await base.t.mutation(internal.content.import.importDefinitions, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     definitions: SRD_RULE_STATE_DEFINITIONS.filter(
       (definition) =>
         definition.id === SRD_ACTION_ALLOWANCE_DEFINITION_ID ||
+        definition.id === SRD_ACTOR_ACTION_CAPABILITY_DEFINITION_ID ||
         definition.id === SRD_BONUS_ACTION_ALLOWANCE_DEFINITION_ID
     )
   })
@@ -197,9 +209,9 @@ async function barbarianState(fixture: Fixture) {
     const row = await readCharacterRow(ctx, fixture.character.id)
     if (!row) throw new Error('The Barbarian is missing.')
     const grants = await ctx.db
-      .query('encounterActiveRuleEffects')
-      .withIndex('by_encounterId_targetActorId_id', (q) =>
-        q.eq('encounterId', fixture.run.id).eq('targetActorId', fixture.actor.id)
+      .query('characterActiveRuleEffects')
+      .withIndex('by_characterId_createdOrdinal_id', (q) =>
+        q.eq('characterId', fixture.character.id)
       )
       .collect()
     return {

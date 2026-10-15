@@ -15,7 +15,7 @@ import {
 import { readEncounterActorConditionState } from './encounterCharacterMechanicsBatch.js'
 import { effectiveHitPointMaximum } from './character/activeEffectGrantTotals.js'
 import { encounterGrantsEnabledDomain } from './encounterActiveGrants.js'
-import { EncounterValidationError } from './encounterErrors.js'
+import { EncounterValidationError, SpellcastingLockedError } from './encounterErrors.js'
 import { planConcentrationCarriedGrantEnds } from './encounterGrantLifetimes.js'
 
 /** Selects and validates current maintenance before the caller consumes action evidence. */
@@ -56,7 +56,7 @@ export async function prepareEncounterActionMaintenance<TOwners extends object>(
   const policy = policies[0]
   if (!policy) return null
   if (encounterGrantsEnabledDomain(input.activeEffects, 'SPELLCASTING_LOCK'))
-    throw new EncounterValidationError("You can't hold Concentration right now.")
+    throw new SpellcastingLockedError()
   const definition = await input.readDefinition(policy.definitionId)
   if (
     !definition ||

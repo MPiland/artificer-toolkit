@@ -69,6 +69,7 @@ export function plannedGrantEffect(input: {
     createdOrdinal: 1,
     consumeOnFirstEvents: plan.modifierGrantContribution.consumeOnFirstEvents,
     endOnEvents: plan.modifierGrantContribution.endOnEvents,
+    holderEnd: plan.modifierGrantContribution.holderEnd,
     stateContributions: [
       {
         kind: 'MODIFIER_GRANT',

@@ -237,6 +237,7 @@ export function activeEffect(input: {
   version?: number
   consumeOnFirstEvents?: readonly GrantConsumeEvent[]
   endOnEvents?: readonly GrantEndEvent[]
+  holderEnd?: ActiveRuleEffectDefinitionDto['recurrence']['holderEnd']
   stateContributions: [StateContribution, ...StateContribution[]]
 }): ActiveRuleEffectRecord {
   const authoredEffectId = '00000000-0000-4000-8000-00000000b004'
@@ -273,7 +274,7 @@ export function activeEffect(input: {
       recurrenceStage: 'NONE',
       consumeOnFirstEvents: [...(input.consumeOnFirstEvents ?? [])],
       endOnEvents: [...(input.endOnEvents ?? [])],
-      holderEnd: null,
+      holderEnd: input.holderEnd ?? null,
       lifetimeScope: 'OWNER',
       expiration: { kind: 'INDEFINITE' }
     },
