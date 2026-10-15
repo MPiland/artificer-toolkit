@@ -322,6 +322,19 @@ export const encounterStoredRunCommandSchema = lazySchema(() =>
       })
     }),
     z.extend(encounterStoredRunCommandResultSchema, {
+      commandType: z.literal('SET_CONCEALMENT_OBSERVERS'),
+      /** The observers the GM changed, so the GM's undo restores them while the effect is as this left it. */
+      receipt: z.strictObject({
+        activeEffectId: postgresUuidSchema,
+        holderActorId: postgresUuidSchema,
+        beforeObserverActorIds: z
+          .array(postgresUuidSchema)
+          .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
+        afterObserverActorIds: z.array(postgresUuidSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
+        afterVersion: z.number().check(z.int()).check(z.positive())
+      })
+    }),
+    z.extend(encounterStoredRunCommandResultSchema, {
       commandType: z.literal('CONCENTRATION_DROPPED_OUTSIDE'),
       /** The GM-only notice: "<caster> dropped Concentration: <label> ends on <holders>". */
       label: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160))

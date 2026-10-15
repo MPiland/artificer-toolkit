@@ -5,6 +5,7 @@ import { encounterRuleWarningsDtoSchema } from '../shared/encounterRuleWarnings.
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import {
   encounterBasicActionCheckPendingContextDtoSchema,
+  encounterConcealmentCheckPendingContextDtoSchema,
   encounterEscapeCheckPendingContextDtoSchema
 } from '../shared/ruleExecutionDirectActionPendingContexts.js'
 import { encounterActionEconomyTransitionDtoSchema } from '../shared/ruleExecutionEncounterApplications.js'
@@ -29,14 +30,31 @@ const basicActionScope = lazySchema(() =>
   })
 )
 
-/** A settled basic action check: the frozen check, its stored result and the app roll it used. */
-const basicActionCheckSettlementSchema = lazySchema(() =>
+/** A settled stabilizing check (First Aid): the frozen check, its stored result and the app roll it used. */
+const stabilizeCheckSettlementSchema = lazySchema(() =>
   z.strictObject({
     context: encounterBasicActionCheckPendingContextDtoSchema,
     execution: storedRuleExecutionResultDtoSchema,
     /** The recorded app roll the d20 settled with, whose card exists; null for an entered or auto-rolled die. */
     appRollId: z.nullable(postgresUuidSchema)
   })
+)
+
+/**
+ * A settled concealment check (Hide, Search): the frozen check, its stored result, the app roll it
+ * used and the concealment a successful Hide stores on its roller.
+ */
+const concealmentCheckSettlementSchema = lazySchema(() =>
+  z.strictObject({
+    context: encounterConcealmentCheckPendingContextDtoSchema,
+    execution: storedRuleExecutionResultDtoSchema,
+    appRollId: z.nullable(postgresUuidSchema),
+    createdEffect: z.nullable(activeRuleEffectRecordSchema)
+  })
+)
+
+const basicActionCheckSettlementSchema = lazySchema(() =>
+  z.union([stabilizeCheckSettlementSchema, concealmentCheckSettlementSchema])
 )
 
 /**
@@ -141,6 +159,8 @@ export type LiveSessionEncounterEscapeCommitInput = z.infer<
 export type LiveSessionEncounterEscapeResponseCommitInput = z.infer<
   typeof liveSessionEncounterEscapeResponseCommitInputSchema
 >
+export type StabilizeCheckSettlement = z.infer<typeof stabilizeCheckSettlementSchema>
+export type ConcealmentCheckSettlement = z.infer<typeof concealmentCheckSettlementSchema>
 export type LiveSessionEncounterBasicActionCommitInput = z.infer<
   typeof liveSessionEncounterBasicActionCommitInputSchema
 >

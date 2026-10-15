@@ -290,6 +290,20 @@ export function frightenOnFailedSave(base: CreatureAuthored): CreatureAuthored {
   })
 }
 
+/** `actor` with its frozen check totals replaced (a skill or ability definition ID to its total). */
+export function withCheckTotals(
+  actor: EncounterRunActorState,
+  checkTotals: Readonly<Record<string, number>>
+): EncounterRunActorState {
+  const { snapshot } = actor
+  if (typeof snapshot !== 'object' || snapshot === null || Array.isArray(snapshot))
+    throw new Error('The fixture Creature snapshot must be an object.')
+  const { ruleFacts } = snapshot
+  if (typeof ruleFacts !== 'object' || ruleFacts === null || Array.isArray(ruleFacts))
+    throw new Error('The fixture Creature carries rule facts.')
+  return { ...actor, snapshot: { ...snapshot, ruleFacts: { ...ruleFacts, checkTotals } } }
+}
+
 export interface ActionRoomConfig extends Pick<
   MovementRoomConfig,
   | 'automationMode'

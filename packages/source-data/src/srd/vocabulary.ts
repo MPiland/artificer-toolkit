@@ -591,9 +591,11 @@ export const SRD_MAGIC_SCHOOLS = [
 
 // ─── Passives ─────────────────────────────────────────────────────────────────
 
+export const SRD_PASSIVE_PERCEPTION_ID = vocabId(D.passive, 1)
+
 const SRD_PASSIVES = [
   {
-    id: vocabId(D.passive, 1),
+    id: SRD_PASSIVE_PERCEPTION_ID,
     code: 'PASSIVE_PERCEPTION',
     label: 'Passive Perception',
     description: '10 + Perception modifier.'
@@ -668,6 +670,8 @@ export const SRD_TRUESIGHT_SENSE_ID = SRD_SENSES[3]!.id
 export const SRD_ACROBATICS_SKILL_ID = vocabId(D.skill, 1)
 export const SRD_ATHLETICS_SKILL_ID = vocabId(D.skill, 4)
 export const SRD_MEDICINE_SKILL_ID = vocabId(D.skill, 10)
+export const SRD_PERCEPTION_SKILL_ID = vocabId(D.skill, 12)
+export const SRD_STEALTH_SKILL_ID = vocabId(D.skill, 17)
 
 export const SRD_SKILLS = [
   {

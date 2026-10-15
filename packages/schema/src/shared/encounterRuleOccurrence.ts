@@ -117,12 +117,15 @@ export const encounterRuleRollTriggerDtoSchema = lazySchema(() =>
       successes: z.number().check(z.int()).check(z.gte(0)).check(z.lte(2)),
       failures: z.number().check(z.int()).check(z.gte(0)).check(z.lte(2))
     }),
-    /** The check a basic action asks its helper to make, such as First Aid's Wisdom (Medicine). */
+    /**
+     * The check a basic action asks its roller to make, such as First Aid's Wisdom (Medicine).
+     * `dc` is null for a check against hidden per-observer scores, such as Hide.
+     */
     z.strictObject({
       kind: z.literal('BASIC_ACTION_CHECK'),
       actionLabel: triggerLabelSchema,
       checkLabel: triggerLabelSchema,
-      dc: z.number().check(z.int()).check(z.positive())
+      dc: z.nullable(z.number().check(z.int()).check(z.positive()))
     })
   ])
 )

@@ -23,6 +23,8 @@ export const EFFECT_KIND = {
   PLANT_PORTAL: 'PLANT_PORTAL',
   TREE_STRIDE: 'TREE_STRIDE',
   ACTOR_RELATIONSHIP: 'ACTOR_RELATIONSHIP',
+  CONCEAL_FROM_OBSERVERS: 'CONCEAL_FROM_OBSERVERS',
+  DETECT_CONCEALED: 'DETECT_CONCEALED',
   CLOSED_RULE: 'CLOSED_RULE',
   MANUAL_ADJUDICATION: 'MANUAL_ADJUDICATION'
 } as const
@@ -141,6 +143,17 @@ export const EFFECT_KIND_REGISTRY: Record<EffectKind, EffectKindOption> = {
     label: 'Grappled',
     description:
       'Grapples the target: how it escapes, the largest target, conditions until the grapple ends and how many it holds at once.'
+  },
+  [EFFECT_KIND.CONCEAL_FROM_OBSERVERS]: {
+    code: EFFECT_KIND.CONCEAL_FROM_OBSERVERS,
+    label: 'Conceal From Observers',
+    description:
+      'Makes the holder’s location unknown to each observer who fails to notice it, until noticed or until it attacks.'
+  },
+  [EFFECT_KIND.DETECT_CONCEALED]: {
+    code: EFFECT_KIND.DETECT_CONCEALED,
+    label: 'Detect Concealed',
+    description: 'Ends the checking creature’s ignorance of every concealment its check beats.'
   },
   [EFFECT_KIND.CLOSED_RULE]: {
     code: EFFECT_KIND.CLOSED_RULE,

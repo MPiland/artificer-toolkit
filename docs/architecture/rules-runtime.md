@@ -459,6 +459,33 @@ saves, restores the consumed grants and keeps the roll on the record; it is refu
 (`packages/encounter-persistence/src/basicActionCheck*.ts`, `packages/rules-runtime/src/encounterBasicActionCheck.ts`).
 Spare the Dying and Sheet tracking of death saves are not built (target).
 
+Hide and Search (ATTACK-10.T1, current) are authored `SELF` check actions with per-observer outcomes, built from generic
+options (ADR 0038); nothing in code names Hide.
+
+- **Authored shape.** Hide checks Dexterity (Stealth) against `dc: { kind: 'PASSIVE', passiveDefinitionId }` (the System passive,
+  for example Passive Perception, whose skill is the passive's `PASSIVE_<SKILL>` name) and applies `CONCEAL_FROM_OBSERVERS
+  { observers: 'NON_ALLIES' }` for an `UNTIL_DISPELLED` duration that is consumed by `ON_ATTACK_ROLL`. Search checks Wisdom
+  (Perception) against `dc: { kind: 'CONCEALMENT' }` and applies `DETECT_CONCEALED`. Both compile to the existing check
+  pipeline with a `resolution` discriminant on `BASIC_ACTION_CHECK` (`CONCEAL` or `DETECT`); Escape keeps its own command.
+- **Per-observer DCs freeze at creation.** The pending check context holds each observer's passive score, or each concealment the
+  actor can search, so the settle needs no further loads and the player's pending read keeps `dc: null`.
+- **State.** The stored effect is a `schemaVersion 2` active rule effect whose immutable definition carries
+  `LOCATION_CONCEALMENT { stealthTotal }`; the observers it still hides the holder from live in the mutable lifecycle
+  (`concealedFromActorIds`, sorted, unique). Search, the GM command and the movement prune change that set through
+  `updateLifecycleCas`. An empty set stays stored and inert until consumed.
+- **Ties go to the observer.** An observer notices when its score (passive, or Search total) is at least the Stealth total; the
+  hider is hidden from observers whose score is strictly lower. One rule for both (`encounterConcealment.ts`).
+- **Attacks.** `resolveAttackSight` treats a subject as `UNSEEN` by an observer its concealment still hides it from, whatever
+  the observer's Senses (D100), so the attack-roll caption and advantage follow the existing unseen-attacker path. The believed
+  mode follows the same set; the true mode may cancel it ("Advantage cancelled: the target can sense you"). The first attack
+  roll consumes the concealment for everyone (`consumableGrants`: modifier grants and concealments only, so the Invisibility
+  condition path is unchanged).
+- **Redaction.** The observer ids are GM knowledge. They live only in the stored effect and receipt; no player projection,
+  timeline line, pending read or roll card carries them, so the hider's and other players' views never name the observers.
+- **GM command.** `SET_CONCEALMENT_OBSERVERS` adds or removes observer ids on an existing concealment (GM only, recorded in the
+  receipt, undone by `REVERT_LAST_ACTION`). It is the override for lighting and other circumstances the engine does not
+  derive.
+
 ### Condition mechanics (D94, current)
 
 A System's condition-rule-state definition authors what a condition does as data, in its `mechanics`
@@ -492,7 +519,7 @@ speed mechanics before Dash. A condition contributor's derived-mode reason names
 generic for players when the holder is hidden.
 
 Not modeled (registered in the phase ledger): the source of fear (Frightened applies while present),
-Hide-action hidden state (Stealth check, ends on attack), Unconscious falling Prone, Petrified damage
+Unconscious falling Prone, Petrified damage
 resistance, Exhaustion 4 and 6, concentration saves under conditions, and conditions on Convex-side
 action preparation reads (the room owns resolution).
 

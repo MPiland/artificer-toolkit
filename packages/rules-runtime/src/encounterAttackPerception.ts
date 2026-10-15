@@ -7,6 +7,7 @@ import type {
 } from '@artificer-toolkit/shared/vtt'
 
 import type { EncounterAttackAgainstContributor } from './encounterActiveGrants.js'
+import { isConcealedFrom } from './encounterConcealment.js'
 import type { MovementTarget } from './encounterMovementTargets.js'
 import {
   ENCOUNTER_UNSEEN_ATTACKER_CONTRIBUTOR_SOURCE_ID,
@@ -71,6 +72,10 @@ async function resolveAttackSight(
   }
 ): Promise<{ sight: EncounterAttackSight; senseLabels: readonly string[] }> {
   const { observer, subject } = input
+  // A concealed subject is unseen by the observers its concealment still hides it from, whatever
+  // their Senses (ATTACK-10.T1); its persisted observer set is authoritative.
+  if (isConcealedFrom(subject.activeEffects, observer.actor.id))
+    return { sight: 'UNSEEN', senseLabels: [] }
   const result = await resolveEncounterActorPairPerception({
     gameSystemId: input.gameSystemId,
     requirement: 'SEE',

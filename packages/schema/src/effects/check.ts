@@ -24,14 +24,16 @@ export const checkChoiceDtoSchema = lazySchema(() =>
     )
 )
 
-/** A fixed DC, or a contest against the opposing creature's own check (D105). */
+/** The DC kinds a check can roll against; see `CheckDcAuthored`. */
 export const checkDcDtoSchema = lazySchema(() =>
   z.discriminatedUnion('kind', [
     z.object({
       kind: z.literal('FIXED'),
       value: z.number().check(z.int()).check(z.positive())
     }),
-    z.object({ kind: z.literal('CONTEST'), checks: checkChoiceDtoSchema })
+    z.object({ kind: z.literal('CONTEST'), checks: checkChoiceDtoSchema }),
+    z.object({ kind: z.literal('PASSIVE'), passiveDefinitionId: postgresUuidSchema }),
+    z.object({ kind: z.literal('CONCEALMENT') })
   ])
 )
 

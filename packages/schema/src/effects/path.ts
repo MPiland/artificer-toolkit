@@ -22,6 +22,8 @@ import { plantPortalDtoSchema } from './plantPortal.js'
 import { treeStrideDtoSchema } from './treeStride.js'
 import { closedRuleDtoSchema } from './closedRule.js'
 import { actorRelationshipDtoSchema } from './actorRelationship.js'
+import { concealFromObserversDtoSchema } from './concealFromObservers.js'
+import { detectConcealedDtoSchema } from './detectConcealed.js'
 import { targetingDtoSchema } from './targeting.js'
 import { teleportDtoSchema } from './teleport.js'
 import { durationDtoSchema } from '../shared/duration.js'
@@ -74,7 +76,9 @@ const createOutcomePayloadDtoSchema = ({ includeManifest }: { includeManifest: b
             telepathicLinkDtoSchema,
             plantPortalDtoSchema,
             treeStrideDtoSchema,
-            actorRelationshipDtoSchema
+            actorRelationshipDtoSchema,
+            concealFromObserversDtoSchema,
+            detectConcealedDtoSchema
           ]
         : [
             closedRuleDtoSchema,
@@ -98,7 +102,9 @@ const createOutcomePayloadDtoSchema = ({ includeManifest }: { includeManifest: b
             telepathicLinkDtoSchema,
             plantPortalDtoSchema,
             treeStrideDtoSchema,
-            actorRelationshipDtoSchema
+            actorRelationshipDtoSchema,
+            concealFromObserversDtoSchema,
+            detectConcealedDtoSchema
           ]
     )
   )

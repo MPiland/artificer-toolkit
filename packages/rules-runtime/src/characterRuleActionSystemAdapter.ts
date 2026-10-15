@@ -76,6 +76,11 @@ export interface CharacterRuleActionActiveEffectPlan {
     /** The events whose first occurrence ends the grant, sorted and unique. */
     endOnEvents: readonly ActiveEffectEndEvent[]
   }
+  /**
+   * A successful check makes the holder's location unknown to the observers that fail to notice it
+   * (Hide). The settled check total and the observers it beats are added when the effect is created.
+   */
+  concealmentContribution?: null | { observers: 'NON_ALLIES' }
   /** Target-owned relationship state selected by the System from the exact action outcome. */
   actorRelationshipContribution?: null | {
     relationshipOutcomeId: string

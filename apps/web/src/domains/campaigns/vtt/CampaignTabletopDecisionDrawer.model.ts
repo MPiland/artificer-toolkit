@@ -62,6 +62,6 @@ export function rollPromptText(
   if (trigger?.kind === 'CONCENTRATION') return concentrationPromptText(actorLabel, trigger)
   if (trigger?.kind === 'DEATH_SAVE') return deathSavePromptText(actorLabel, trigger)
   if (trigger?.kind === 'BASIC_ACTION_CHECK')
-    return `${trigger.actionLabel}: ${trigger.checkLabel} DC ${trigger.dc}`
+    return `${trigger.actionLabel}: ${trigger.checkLabel}${trigger.dc === null ? '' : ` DC ${trigger.dc}`}`
   return `Roll for ${actorLabel}`
 }

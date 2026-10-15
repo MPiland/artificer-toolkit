@@ -1,0 +1,129 @@
+import {
+  SRD_PASSIVE_PERCEPTION_ID,
+  SRD_PERCEPTION_SKILL_ID,
+  srdSystemRecord
+} from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import { describe, expect, it } from 'vitest'
+
+import {
+  concealmentsFoundBy,
+  encounterConcealmentOf,
+  encounterPassiveScore,
+  isConcealedFrom,
+  observersHiddenFrom,
+  passiveSkillDefinitionId
+} from '../encounterConcealment.js'
+import { consumableGrants } from '../encounterGrantLifetimes.js'
+import { ENCOUNTER_UNSEEN_ATTACKER_CONTRIBUTOR_SOURCE_ID } from '../encounterRollModeReasons.js'
+import { concealmentRecord } from '../testing/concealmentFixture.js'
+import { ENCOUNTER_ID, testUuid } from '../testing/dnd5eSrdEncounter.js'
+import {
+  QUILL_VOLLEY_ID,
+  creatureActor,
+  prepareCreatureAction,
+  quillVolley,
+  settleCreatureAction
+} from './encounterCreatureAction.js'
+
+const HIDER_ID = testUuid(0xa1)
+const SEEING_ID = testUuid(0xa2)
+const FOOLED_ID = testUuid(0xa3)
+
+const hiddenFrom = (...observerActorIds: string[]) =>
+  concealmentRecord({
+    encounterId: ENCOUNTER_ID,
+    holderActorId: HIDER_ID,
+    observerActorIds: observerActorIds.sort(),
+    stealthTotal: 15
+  })
+
+describe('concealment rules', () => {
+  it('hides the roller from observers whose passive score its Stealth total beats, ties to the observer', () => {
+    expect(
+      observersHiddenFrom(15, [
+        { actorId: testUuid(3), passiveScore: 16 },
+        { actorId: testUuid(2), passiveScore: 15 },
+        { actorId: testUuid(1), passiveScore: 14 }
+      ])
+    ).toEqual([testUuid(1)])
+  })
+
+  it('finds a concealment when the search total reaches its Stealth total, ties to the searcher', () => {
+    const concealment = {
+      ...encounterConcealmentOf([hiddenFrom(SEEING_ID)])!,
+      holderActorId: HIDER_ID
+    }
+    const found = (searchTotal: number, searcherActorId = SEEING_ID) =>
+      concealmentsFoundBy({ searcherActorId, searchTotal, concealments: [concealment] })
+    expect(found(14)).toEqual([])
+    expect(found(15)).toMatchObject([{ holderActorId: HIDER_ID, remainingObserverActorIds: [] }])
+    expect(found(20, FOOLED_ID)).toEqual([])
+  })
+
+  it('builds a passive score on the skill its passive is named for', () => {
+    expect(passiveSkillDefinitionId(srdSystemRecord, SRD_PASSIVE_PERCEPTION_ID)).toBe(
+      SRD_PERCEPTION_SKILL_ID
+    )
+    expect(encounterPassiveScore(3, 'NORMAL')).toBe(13)
+  })
+
+  it('adds 5 to a passive score with advantage and removes 5 with disadvantage', () => {
+    expect(encounterPassiveScore(3, 'ADVANTAGE')).toBe(18)
+    expect(encounterPassiveScore(3, 'DISADVANTAGE')).toBe(8)
+  })
+
+  it('reads the frozen total and the observers a stored concealment still hides its holder from', () => {
+    const record = hiddenFrom(FOOLED_ID, SEEING_ID)
+    expect(encounterConcealmentOf([record])).toMatchObject({
+      stealthTotal: 15,
+      observerActorIds: [SEEING_ID, FOOLED_ID].sort()
+    })
+    expect(isConcealedFrom([record], FOOLED_ID)).toBe(true)
+    expect(isConcealedFrom([record], HIDER_ID)).toBe(false)
+    expect(isConcealedFrom([], FOOLED_ID)).toBe(false)
+  })
+
+  it('is used up by the first attack roll and by nothing else', () => {
+    const record = hiddenFrom(FOOLED_ID)
+    expect(consumableGrants([record], 'ON_ATTACK_ROLL')).toEqual([record])
+    expect(consumableGrants([record], 'ON_ABILITY_CHECK')).toEqual([])
+  })
+
+  it('leaves an effect that is neither a grant nor a concealment (Invisibility) unconsumed by an attack', () => {
+    const record = hiddenFrom(FOOLED_ID)
+    const condition = { ...record, definition: { ...record.definition, stateContributions: [] } }
+    expect(consumableGrants([condition], 'ON_ATTACK_ROLL')).toEqual([])
+  })
+})
+
+describe('attacking from hiding', () => {
+  const volley = (observerActorIds: string[]) =>
+    prepareCreatureAction({
+      actor: creatureActor({
+        id: HIDER_ID,
+        label: 'Rogue',
+        features: [quillVolley({ charges: 1, cost: 1, rangeFeet: 80 })]
+      }),
+      target: creatureActor({ id: FOOLED_ID, label: 'Wolf', features: [] }),
+      featureId: QUILL_VOLLEY_ID,
+      overridable: true,
+      attackPerception: true,
+      actorActiveEffects: [hiddenFrom(...observerActorIds)]
+    })
+
+  it('rolls with advantage against an observer the attacker is hidden from', async () => {
+    const prepared = await volley([FOOLED_ID])
+    expect(prepared.relationshipContributors.map(({ sourceId }) => sourceId)).toContain(
+      ENCOUNTER_UNSEEN_ATTACKER_CONTRIBUTOR_SOURCE_ID
+    )
+    const { execution } = await settleCreatureAction({ prepared, rolls: [5, 9] })
+    expect(execution.d20).toMatchObject({ derivedRollMode: 'ADVANTAGE', selectedNatural: 10 })
+  })
+
+  it('rolls normally against an observer that sees the attacker', async () => {
+    const prepared = await volley([SEEING_ID])
+    expect(prepared.relationshipContributors.map(({ sourceId }) => sourceId)).not.toContain(
+      ENCOUNTER_UNSEEN_ATTACKER_CONTRIBUTOR_SOURCE_ID
+    )
+  })
+})

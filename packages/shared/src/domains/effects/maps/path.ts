@@ -1972,6 +1972,21 @@ function registerOutcomeFields(
       })
     )
     .set(
+      'observers',
+      selectSingle(
+        ['observers'],
+        'Hidden From',
+        {
+          kind: 'INLINE_OPTIONS',
+          options: [{ code: 'NON_ALLIES', label: 'Creatures not on its side' }]
+        },
+        {
+          requiredIf: true,
+          showIf: local.field(['effectKind']).eq(EFFECT_KIND.CONCEAL_FROM_OBSERVERS)
+        }
+      )
+    )
+    .set(
       'maximumCreatures',
       number(['maximumCreatures'], 'Maximum Creatures', {
         constraints: { minimum: 1 },

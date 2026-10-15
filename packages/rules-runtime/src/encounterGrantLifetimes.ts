@@ -1,6 +1,7 @@
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { ActiveEffectEndEvent, GrantConsumeEvent } from './characterRuleActionSystemAdapter.js'
+import { encounterConcealmentOf } from './encounterConcealment.js'
 import {
   isEffectLiveInEncounter,
   turnEffectOwner,
@@ -24,14 +25,15 @@ function isModifierGrant(effect: ActiveRuleEffectRecord) {
   )
 }
 
-/** Grants the first occurrence of the event, by their holder, uses up. */
+/** Grants and concealments the first occurrence of the event, by their holder, uses up. */
 export function consumableGrants(
   effects: readonly ActiveRuleEffectRecord[],
   event: GrantConsumeEvent
 ) {
   return effects.filter(
     (effect) =>
-      isModifierGrant(effect) && effect.definition.recurrence.consumeOnFirstEvents.includes(event)
+      (isModifierGrant(effect) || encounterConcealmentOf([effect])) &&
+      effect.definition.recurrence.consumeOnFirstEvents.includes(event)
   )
 }
 

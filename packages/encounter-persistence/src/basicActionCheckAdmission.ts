@@ -188,14 +188,15 @@ async function admitCheckResponse<
   }
 }
 
-/** Admits the helper's d20 for a pending basic action check (First Aid). */
+/** Admits the roller's d20 for a pending basic action check: the helper's (First Aid) or the hider's or searcher's. */
 export function readBasicActionCheckResponseAdmission(
   ctx: EncounterReadTransaction,
   input: CheckResponseInput
 ) {
   return admitCheckResponse(ctx, input, {
     readPending: readNativeBasicActionCheckPending,
-    rollerActorId: (context) => context.helperActorId
+    rollerActorId: (context) =>
+      context.kind === 'ENCOUNTER_BASIC_ACTION_CHECK' ? context.helperActorId : context.actorId
   })
 }
 

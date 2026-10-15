@@ -30,8 +30,9 @@ export const CHECK_CHOICE_NODE_MAP = checkChoice.define('checkChoice', ({ map, n
     )
 })
 
-export const CHECK_DC_NODE_MAP = checkDc.define('checkDc', ({ map, nodes, cond }) => {
+export const CHECK_DC_NODE_MAP = checkDc.define('checkDc', ({ map, nodes, data, cond }) => {
   const { number, selectSingle, groupObject } = nodes
+  const { table } = data
   const local = cond.local()
   map
     .set(
@@ -40,7 +41,9 @@ export const CHECK_DC_NODE_MAP = checkDc.define('checkDc', ({ map, nodes, cond }
         kind: 'INLINE_OPTIONS',
         options: [
           { code: 'FIXED', label: 'Fixed DC' },
-          { code: 'CONTEST', label: 'Contest' }
+          { code: 'CONTEST', label: 'Contest' },
+          { code: 'PASSIVE', label: 'Observer Passive Score' },
+          { code: 'CONCEALMENT', label: 'Concealment Check Total' }
         ]
       })
     )
@@ -57,6 +60,18 @@ export const CHECK_DC_NODE_MAP = checkDc.define('checkDc', ({ map, nodes, cond }
         presentation: 'inline',
         showIf: local.field(['kind']).eq('CONTEST')
       })
+    )
+    .set(
+      'passiveDefinitionId',
+      selectSingle(
+        ['passiveDefinitionId'],
+        'Passive Score',
+        {
+          kind: 'DATA',
+          relationship: table('passives', { selectColumns: ['id', 'label', 'description'] })
+        },
+        { showIf: local.field(['kind']).eq('PASSIVE') }
+      )
     )
 })
 

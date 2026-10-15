@@ -110,44 +110,60 @@ export const concentrationEndApplicationOutputDtoSchema = lazySchema(() =>
     )
 )
 
+/** The fields of a settled check roll, shared by checks with one DC and checks with none. */
+const ruleCheckRollFields = () => ({
+  requestId: z.string().check(z.minLength(1)).check(z.maxLength(256)),
+  /** The mode the faces were rolled with; `derivedRollMode` is the rules-derived one. */
+  rollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
+  derivedRollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
+  rawFaces: z
+    .array(integerSchema.check(z.gte(1)).check(z.lte(20)))
+    .check(z.minLength(1))
+    .check(z.maxLength(2)),
+  selectedNatural: integerSchema.check(z.gte(1)).check(z.lte(20)),
+  modifier: integerSchema,
+  total: integerSchema,
+  contributors: canonicalConcentrationContributorsDtoSchema,
+  contributorChecksum: checksumSchema
+})
+
+const checkRollMatchesRollMode = (
+  value: {
+    rollMode: 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE'
+    rawFaces: number[]
+    selectedNatural: number
+    modifier: number
+    total: number
+  },
+  context: { addIssue: (issue: { code: 'custom'; path: string[]; message: string }) => void }
+) => {
+  if (
+    value.rawFaces.length !== (value.rollMode === 'NORMAL' ? 1 : 2) ||
+    value.selectedNatural !==
+      (value.rollMode === 'ADVANTAGE'
+        ? Math.max(...value.rawFaces)
+        : value.rollMode === 'DISADVANTAGE'
+          ? Math.min(...value.rawFaces)
+          : value.rawFaces[0]) ||
+    value.total !== value.selectedNatural + value.modifier
+  )
+    context.addIssue({
+      code: 'custom',
+      path: ['rawFaces'],
+      message: 'Check d20 evidence does not match its pinned roll mode.'
+    })
+}
+
 /** The settled d20 of a pinned check (a Concentration save, a basic action's check). */
 const ruleCheckD20EvidenceDtoSchema = lazySchema(() =>
   z
-    .strictObject({
-      requestId: z.string().check(z.minLength(1)).check(z.maxLength(256)),
-      /** The mode the faces were rolled with; `derivedRollMode` is the rules-derived one. */
-      rollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
-      derivedRollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
-      rawFaces: z
-        .array(integerSchema.check(z.gte(1)).check(z.lte(20)))
-        .check(z.minLength(1))
-        .check(z.maxLength(2)),
-      selectedNatural: integerSchema.check(z.gte(1)).check(z.lte(20)),
-      modifier: integerSchema,
-      total: integerSchema,
-      dc: positiveIntegerSchema,
-      contributors: canonicalConcentrationContributorsDtoSchema,
-      contributorChecksum: checksumSchema
-    })
-    .check(
-      z.superRefine((value, context) => {
-        if (
-          value.rawFaces.length !== (value.rollMode === 'NORMAL' ? 1 : 2) ||
-          value.selectedNatural !==
-            (value.rollMode === 'ADVANTAGE'
-              ? Math.max(...value.rawFaces)
-              : value.rollMode === 'DISADVANTAGE'
-                ? Math.min(...value.rawFaces)
-                : value.rawFaces[0]) ||
-          value.total !== value.selectedNatural + value.modifier
-        )
-          context.addIssue({
-            code: 'custom',
-            path: ['rawFaces'],
-            message: 'Check d20 evidence does not match its pinned roll mode.'
-          })
-      })
-    )
+    .strictObject({ ...ruleCheckRollFields(), dc: positiveIntegerSchema })
+    .check(z.superRefine(checkRollMatchesRollMode))
+)
+
+/** The settled d20 of a check compared with per-actor scores, so it names no single DC. */
+export const ruleCheckRollEvidenceDtoSchema = lazySchema(() =>
+  z.strictObject(ruleCheckRollFields()).check(z.superRefine(checkRollMatchesRollMode))
 )
 
 export const concentrationCheckApplicationOutputDtoSchema = lazySchema(() =>
@@ -1232,6 +1248,68 @@ export const basicActionCheckApplicationOutputDtoSchema = lazySchema(() =>
             code: 'custom',
             path: ['outcome'],
             message: 'A check that reaches its DC does not fail.'
+          })
+      })
+    )
+)
+
+/**
+ * A settled concealment check (Hide, Search). The roll names no DC; what it decided is in
+ * `resolution`. The observer ids are GM-only knowledge: only the stored receipt holds them, and no player read serves it.
+ */
+export const concealmentCheckApplicationOutputDtoSchema = lazySchema(() =>
+  z
+    .strictObject({
+      kind: z.literal('CONCEALMENT_CHECK'),
+      schemaVersion: z.literal(1),
+      occurrenceId: uuidSchema,
+      commandId: uuidSchema,
+      definition: z.strictObject({
+        id: uuidSchema,
+        version: positiveIntegerSchema,
+        checksum: checksumSchema
+      }),
+      actorId: uuidSchema,
+      check: z.strictObject({ checkDefinitionId: uuidSchema }),
+      d20: ruleCheckRollEvidenceDtoSchema,
+      resolution: z.discriminatedUnion('kind', [
+        z.strictObject({
+          kind: z.literal('CONCEAL'),
+          /** The observers the Stealth total beat, sorted; the effect lists exactly these. */
+          hiddenFromActorIds: z.array(uuidSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
+          /** The concealment effect made; null when no observer was beaten. Undo deletes it. */
+          createdEffect: z.nullable(encounterActorActiveEffectCreateReceiptDtoSchema)
+        }),
+        z.strictObject({
+          kind: z.literal('DETECT'),
+          /** Each concealment the search total reached; undo restores `beforeObserverActorIds`. */
+          found: z
+            .array(
+              z.strictObject({
+                activeEffectId: uuidSchema,
+                holderActorId: uuidSchema,
+                beforeObserverActorIds: z
+                  .array(uuidSchema)
+                  .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
+                afterObserverActorIds: z.array(uuidSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
+                afterVersion: aggregateVersionSchema
+              })
+            )
+            .check(z.maxLength(MAX_ENCOUNTER_ACTORS))
+        })
+      ])
+    })
+    .check(
+      z.superRefine((value, context) => {
+        const { resolution } = value
+        if (
+          resolution.kind === 'CONCEAL' &&
+          (resolution.hiddenFromActorIds.length === 0) !== (resolution.createdEffect === null)
+        )
+          context.addIssue({
+            code: 'custom',
+            path: ['resolution', 'createdEffect'],
+            message: 'A concealment effect exists exactly when it hides its holder from someone.'
           })
       })
     )

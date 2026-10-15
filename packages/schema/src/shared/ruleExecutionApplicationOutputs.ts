@@ -30,6 +30,7 @@ import {
   characterItemUseStateTransitionDtoSchema,
   characterSpellSlotConsumptionReceiptDtoSchema,
   cleavingDamageApplicationOutputDtoSchema,
+  concealmentCheckApplicationOutputDtoSchema,
   concentrationCheckApplicationOutputDtoSchema,
   concentrationEndApplicationOutputDtoSchema,
   contestedActionApplicationOutputDtoSchema,
@@ -58,6 +59,7 @@ const serverRuleExecutionApplicationOutputsDtoSchemaImpl = lazySchema(() =>
     encounterActorMechanicsBatchApplicationOutputDtoSchema,
     basicActionCheckApplicationOutputDtoSchema,
     escapeCheckApplicationOutputDtoSchema,
+    concealmentCheckApplicationOutputDtoSchema,
     z
       .strictObject({
         kind: z.literal('CHARACTER_MECHANICS_BATCH'),
