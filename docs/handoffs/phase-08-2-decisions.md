@@ -45,7 +45,7 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - A hidden creature's app rolls stay out of the table roll log.
 * **D25** A player's bound-token drag preview reuses the short-lived authority capture cache instead of one Convex capture per preview. Done in S4-b.
   - A Scene with Character vision still captures per drag preview, for the GM too, to recheck the Character revisions behind its vision.
-* **D26 (approved 2026-09-25)** While a movement decision is pending on the presented Scene (an opportunity attack, a passage choice, a save), the room holds other token moves and door changes on that Scene. Players see "Waiting on a movement decision". The GM can answer for anyone, or cancel the decision if a player is taking too long.
+* **D26 (approved 2026-09-25)** While a movement decision is pending on the presented Scene (an opportunity attack, a passage choice, a save), the room holds other token moves and door changes on that Scene. Players see "Waiting on a movement decision". The GM can answer for anyone, or cancel the decision if a player is taking too long. Amended by D115: the hold also covers any pending reaction decision ("Waiting on a reaction decision.").
   - Canceling declines the option (the reaction isn't taken and the movement continues) and releases the hold.
   - The decision drawer and chat show the player "The GM skipped this decision".
   - There is no automatic timer. The GM decides when the wait is too long, the same as at a table.
@@ -708,6 +708,14 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - **Measure:** "within N feet of you" for a Self-range sphere, cylinder or circle is measured from the edge of the caster's space. A creature is caught when its footprint shares positive area with the caster's footprint expanded by the radius (D103 overlap: touching never catches). The caster is excluded.
   - **Shape:** the persisted area stays `RADIUS`; the caster-centered meaning is the command target kind `CASTER_CENTERED`, which needs no aim. Self wall and dome areas stay unsupported.
   - **Later:** an authored "includes the caster" targeting option is not modeled; register it when a card needs it.
+* **D115** (2026-10-15) Non-movement reactions (REACTION-4.T1, design option A). Adopted by the main session at merge. Workbook: [slice-reaction-4.md](slice-reaction-4.md).
+  - **Trigger model:** an ACTION invocation carries an optional authored `reactionTrigger`, a discriminated union (`MOVEMENT`, `ATTACKED_SELF`; T2 to T4 add `DAMAGE_TAKEN`, `SPELL_CAST` and `TARGETED_SELF`). It replaced the movement-only field with no shim. The schema refuses a trigger on a non-REACTION activation. A reaction-only action is refused as an ordinary action (`REACTION_TRIGGER_ONLY`). A REACTION activation with no trigger compiles as unsupported, so it stays manual. The node map keeps the trigger optional until REACTION-4.T4.
+  - **Phase:** a reaction pause is `reactionChoice` on the triggering occurrence's application context, beside `legendaryResistance`. Its `reactions` array is a stack (innermost first) for Counterspell chains (T3). On an attack it sits after TEST on a hit or crit and before OUTCOME. Use re-evaluates the TEST against the post-reaction defense as a sealed `adjustment` (`defenseBefore`, `defenseAfter`, `adjustedBoundFactsChecksum`) inside the evidence checksum. Legendary Resistance stays after a failed save, so the two never meet on one TEST.
+  - **Answer:** only the reactor's controller (or the GM) answers (D19). The reaction spends the reactor's SRD reaction allowance (REACTION is now metered) and the slot.
+  - **Undo:** the reaction rides the attack's `CHARACTER_MECHANICS_BATCH.reaction` receipt, so the attack's undo restores the slot, the allowance and the effect. A GM void of the held attack cancels the whole attack.
+  - **D26 amended:** the room holds the Scene for any pending reaction decision ("Waiting on a reaction decision."), not only movement decisions.
+  - **D99 fix:** the action economy honours `REACTION_COUNT 0` grant suppressions through the one shared `activeEffectCapabilitySuppressions`.
+  - **Follow-ups:** REACTION-4.T5 (merge-review hardening), plus the slice's registered gaps: opportunity-attack and area callers, Creature reactors, more than one eligible reaction, dice-bearing reactions.
 
 ## Approved implementation decisions
 

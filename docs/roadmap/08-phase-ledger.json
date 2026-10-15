@@ -584,6 +584,14 @@
               "proof": [],
               "origin": [],
               "note": "Registered 2026-10-15: every Convex shard log carries \"Error when running scheduled function … must be configured\" lines (for example runs 38792840212, 38789989223) that fail nothing but bury real failures. Use the product's own test or disabled modes; do not silence logging."
+            },
+            {
+              "id": "PLATFORM-13.11",
+              "text": "Live-backend validation (manifest, codegen, deploy, seed, SRD audit) runs on GitHub Actions against an ephemeral self-hosted Convex backend container, for merge branches and on demand for slice branches, sharing one deploy-and-seed implementation with the local path; Convex Cloud is never targeted.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Registered 2026-10-15: the local heavy lock queued 9 batches deep. User approved: ADR 0035 forbids Convex Cloud (free-plan cost), not an ephemeral runner container."
             }
           ],
           "wsjf": {
@@ -691,6 +699,18 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 1
+              }
+            },
+            {
+              "id": "PLATFORM-13.T9",
+              "text": "Live Convex backend job in GitHub CI (ephemeral self-hosted container), shared deploy/seed script, ADR 0035 amendment, AGENTS.md heavy-lane scope.",
+              "status": "IN_PROGRESS",
+              "closes": ["PLATFORM-13.11"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 8,
+                "rr": 5,
+                "size": 3
               }
             }
           ]
