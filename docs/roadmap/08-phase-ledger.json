@@ -5975,7 +5975,7 @@
             {
               "id": "ATTACK-17.T5",
               "text": "Route concentration check cards through the ATTACK-17.T1 private-card routing (player copy for the controller).",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["ATTACK-17.6"],
               "wsjf": {
                 "bv": 3,
@@ -5983,7 +5983,8 @@
                 "rr": 3,
                 "size": 2,
                 "after": ["ATTACK-17.T1"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-attack-17-t5.md"
             }
           ]
         },
