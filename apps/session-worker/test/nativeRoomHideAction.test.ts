@@ -441,28 +441,18 @@ describe('who sees the Hide and Search rolls, in the room', () => {
     expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
     const decision = await fixture.room.pendingDecision()
     if (decision.pending.kind !== 'D20_EVIDENCE') throw new Error('Expected a d20 request.')
-    hiderPlayer.socket.send(
-      JSON.stringify({
-        type: 'COMMAND',
-        expectedSessionSequence: 0,
-        command: {
-          scope: 'ENCOUNTER',
-          command: {
-            type: 'ROLL_RULE_EVIDENCE',
-            encounterId: fixture.room.room.encounterId,
-            commandId: crypto.randomUUID(),
-            expectedVersion: decision.encounterVersion,
-            occurrenceId: decision.occurrence.id,
-            expectedOccurrenceVersion: decision.occurrence.version,
-            requestId: decision.pending.request.requestId,
-            rollMode: null
-          }
-        }
-      })
-    )
-    await vi.waitFor(async () => {
-      expect(await concealmentOutputs(fixture)).toHaveLength(1)
+    const rolled = await fixture.room.sendAsPlayer({
+      type: 'ROLL_RULE_EVIDENCE',
+      encounterId: fixture.room.room.encounterId,
+      commandId: crypto.randomUUID(),
+      expectedVersion: decision.encounterVersion,
+      occurrenceId: decision.occurrence.id,
+      expectedOccurrenceVersion: decision.occurrence.version,
+      requestId: decision.pending.request.requestId,
+      rollMode: null
     })
+    expect(rolled.type, JSON.stringify(rolled)).toBe('COMMAND_COMMITTED')
+    expect(await concealmentOutputs(fixture)).toHaveLength(1)
 
     const cards = await readRoomRollCards(base.stub)
     expect(cards.filter(({ audience }) => audience === 'TABLE')).toEqual([])
