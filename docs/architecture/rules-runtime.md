@@ -850,8 +850,24 @@ maintained effect. The same seam records the caster in the Run row's `concentrat
 (`recordConcentrationCaster`; the stored command keeps `addedConcentrationCasterId` so the GM's undo
 removes only an id that command added), which the checkpoint reads to end the caster's carried grants on Characters
 outside the Run (see [persistence](persistence.md#encounter-run-storage)). The movement-reaction receipt
-accepts an owner transition for a holder whose carried grant ends. The SRD Fly, Heroism (its grant), Protection from Energy and Shield of Faith link the SRD Concentration
-maintenance definition.
+accepts an owner transition for a holder whose carried grant ends.
+
+**Concentration is derived from the spell (SPELLS-8.T5).** A spell with the `CONCENTRATION` attribute marks each
+compiled Effect group `requiresConcentration` (`compileSpell`), so an authored Concentration spell needs no
+`maintenanceDefinitionId`: `maintenancePlan` plans the D&D Concentration maintenance
+(`DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID`) for every active-effect plan the action ends up with. An
+explicit `maintenanceDefinitionId` on a result block still overrides the derived one. A Concentration spell
+whose action compiles to no maintained plan is not compiled (MANUAL on the Sheet), so a cast never skips the
+Concentration it would start. Fly, Heroism, Protection from Energy, Shield of Faith and Hold Person rely on
+the attribute alone.
+
+**Repeated saves against the caster's DC.** The repeat-save plans (`repeatingDirectFollowUpSavePlan`,
+`repeatingImmediateFollowUpSavePlan`, the recurring save of `supportedRecurringPlan`) pin their DC through one
+helper, `pinnedSaveDc`: a fixed DC is stored in the plan's `dnd5e.save-dc` fact, and `SOURCE_SAVE_DC` sets
+`castSaveDcFactKey`, so `prepareRecurringActiveEffect` stores the cast's own save DC (`d20.defenseOrDc`, from the
+same `resolveSave` path every save-trigger plan uses) under that fact when the active effect is created. The repeat
+graph's threshold reads the fact either way. Hold Person authors the SRD repeat save as a `FOLLOW_UP_SAVE`
+after its Paralyzed condition, and its condition lasts the `conditionDurationTurns` of its duration.
 
 **Chosen end (D101, SPELLS-5.11).** The caster ends their own Concentration at any time with no action
 and no check. A Character uses the Sheet command `END_CONCENTRATION`: in a live table the room runs it

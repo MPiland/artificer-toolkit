@@ -70,6 +70,7 @@ import {
   DND5E_POISON_DAMAGE_TYPE_DEFINITION_ID,
   DND5E_POISONED_CONDITION_DEFINITION_ID
 } from './identity.js'
+import { DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from './concentrationIdentity.js'
 import { dnd5eConcentrationCapabilityContribution } from './concentrationPolicy.js'
 import { dnd5eEncounterLifecycleCapabilityContribution } from './encounterLifecyclePolicy.js'
 import { dnd5eInitiativeCapabilityContribution } from './initiativeFactAdapter.js'
@@ -518,19 +519,46 @@ function unsupported(message: string): never {
   throw new CharacterRuleActionUnsupportedCompilationError(message)
 }
 
-/** The source actor's maintained effect (Concentration) an entry's result block names, if any. */
-function maintenancePlan(entry: {
-  maintenanceDefinitionId?: string
-}): CharacterRuleActionActiveEffectPlan['maintenance'] {
-  if (!entry.maintenanceDefinitionId) return null
-  uuid(entry.maintenanceDefinitionId, 'D&D maintenance definition identity')
+/**
+ * The source actor's maintained effect (Concentration) an action starts: the one its result block
+ * names, else Concentration when the spell it belongs to requires it.
+ */
+function maintenancePlan(
+  action: Dnd5eCompiledEffectActionSource,
+  entry: CompiledEffectGroup['entries'][number]
+): CharacterRuleActionActiveEffectPlan['maintenance'] {
+  const definitionId =
+    ('maintenanceDefinitionId' in entry ? entry.maintenanceDefinitionId : undefined) ??
+    (action.compiledEffect.requiresConcentration
+      ? DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID
+      : undefined)
+  if (!definitionId) return null
+  uuid(definitionId, 'D&D maintenance definition identity')
   return {
-    definitionId: entry.maintenanceDefinitionId,
+    definitionId,
     definitionChecksum: null,
     owner: 'SOURCE_ACTOR',
     replacementPolicy: 'REPLACE_SAME_DEFINITION',
     emptyDependentPolicy: 'TERMINATE_WHEN_EMPTY'
   }
+}
+
+/**
+ * How an active effect's repeated save pins its DC: an exact fixed DC is stored in the plan, while
+ * the caster's save DC is only known once the action is cast and is stored then, under the same fact.
+ * Null for any other way of setting a DC.
+ */
+function pinnedSaveDc(
+  savingThrow: { dcMethod: string; baseDc?: number } | undefined
+): Pick<CharacterRuleActionActiveEffectPlan, 'adapterFacts' | 'castSaveDcFactKey'> | null {
+  if (savingThrow?.dcMethod === 'SOURCE_SAVE_DC')
+    return { adapterFacts: {}, castSaveDcFactKey: DND5E_SAVE_DC_FACT_KEY }
+  if (savingThrow?.dcMethod === 'FIXED_DC' && Number.isSafeInteger(savingThrow.baseDc))
+    return {
+      adapterFacts: { [DND5E_SAVE_DC_FACT_KEY]: savingThrow.baseDc! },
+      castSaveDcFactKey: null
+    }
+  return null
 }
 
 function supportedRecurringPlan(
@@ -559,7 +587,7 @@ function supportedRecurringPlan(
     recurringStage !== null &&
     (lifecycle.consumeOnFirstEvents?.length ?? 0) === 0 &&
     (lifecycle.endOnEvents?.length ?? 0) === 0
-  const maintenance = maintenancePlan(entry)
+  const maintenance = maintenancePlan(action, entry)
   if (
     invocation.kind === 'ACTION' &&
     invocation.triggerCode === 'SAVING_THROW' &&
@@ -573,20 +601,14 @@ function supportedRecurringPlan(
     recurringLifecycleIsSupported
   ) {
     if (recurringStage === null || recurringAmount === null) return null
-    const savingThrow = invocation.savingThrow
-    const pinnedSaveDc =
-      savingThrow?.dcMethod === 'FIXED_DC' &&
-      typeof savingThrow.baseDc === 'number' &&
-      Number.isSafeInteger(savingThrow.baseDc)
-        ? savingThrow.baseDc
-        : null
+    const pinnedDc = pinnedSaveDc(invocation.savingThrow)
     if (
       !action.savingThrowAbilityDefinitionId ||
       !UUID.test(action.savingThrowAbilityDefinitionId) ||
-      pinnedSaveDc === null
+      pinnedDc === null
     ) {
       unsupported(
-        'D&D recurring saving throws require one pinned ability definition and exact fixed DC.'
+        'D&D recurring saving throws require one pinned ability definition and a fixed or caster save DC.'
       )
     }
     if (!UUID.test(entry.resultBlockId))
@@ -601,9 +623,10 @@ function supportedRecurringPlan(
       adapterFacts: {
         [DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY]:
           action.savingThrowAbilityDefinitionId,
-        [DND5E_SAVE_DC_FACT_KEY]: pinnedSaveDc,
+        ...pinnedDc.adapterFacts,
         [DND5E_ACTIVE_EFFECT_SAVE_REQUEST_NODE_FACT_KEY]: 'd20'
       },
+      castSaveDcFactKey: pinnedDc.castSaveDcFactKey,
       perceptionContributions: [],
       maintenance
     }
@@ -1113,14 +1136,14 @@ function repeatingImmediateFollowUpSavePlan(
   const saveEntry = resolved?.saveEntry
   if (!saveEntry || saveEntry.outcome.effectKind !== 'FOLLOW_UP_SAVE') return null
   const save = saveEntry.outcome
+  const pinnedDc = pinnedSaveDc(save.savingThrow)
   if (
     save.timing !== 'IMMEDIATE' ||
     save.repeatTiming !== 'TARGET_TURN_END' ||
     save.attempts.kind !== 'ONCE' ||
     save.attempts.repeatOnFailure !== true ||
-    save.savingThrow.dcMethod !== 'FIXED_DC' ||
+    !pinnedDc ||
     !UUID.test(save.savingThrow.abilityDefinitionId) ||
-    !Number.isSafeInteger(save.savingThrow.baseDc) ||
     save.onSuccess.kind !== 'END' ||
     save.onFailure.kind !== 'OUTCOMES' ||
     (save.onDurationComplete !== undefined && save.onDurationComplete.kind !== 'END')
@@ -1154,12 +1177,13 @@ function repeatingImmediateFollowUpSavePlan(
     conditionContribution: { conditionId: condition.conditionId },
     adapterFacts: {
       [DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY]: save.savingThrow.abilityDefinitionId,
-      [DND5E_SAVE_DC_FACT_KEY]: save.savingThrow.baseDc,
+      ...pinnedDc.adapterFacts,
       [DND5E_ACTIVE_EFFECT_SAVE_REQUEST_NODE_FACT_KEY]: 'repeat-save-d20',
       [DND5E_ACTIVE_EFFECT_REPEAT_SAVE_CONDITION_FACT_KEY]: condition.conditionId
     },
+    castSaveDcFactKey: pinnedDc.castSaveDcFactKey,
     perceptionContributions: [],
-    maintenance: null
+    maintenance: maintenancePlan(action, saveEntry)
   }
 }
 
@@ -1232,7 +1256,7 @@ function timedImmediateConditionPlan(
     conditionContribution: { conditionId: condition.conditionId },
     adapterFacts: { [DND5E_ACTIVE_EFFECT_TIMED_CONDITION_FACT_KEY]: condition.conditionId },
     perceptionContributions: [],
-    maintenance: null
+    maintenance: maintenancePlan(action, resolved.saveEntry)
   }
 }
 
@@ -1324,7 +1348,7 @@ function modifierGrantPlan(
     },
     adapterFacts: attack ? { 'dnd5e.grant-authored-path': entry.pathCode } : {},
     perceptionContributions: [],
-    maintenance: maintenancePlan(entry)
+    maintenance: maintenancePlan(action, entry)
   }
 }
 
@@ -1404,22 +1428,20 @@ function repeatingDirectFollowUpSavePlan(
   }
   const condition = conditionEntry.outcome
   const save = saveEntry.outcome
-  const duration = conditionEntry.duration
+  const initialRemaining = conditionEntry.duration
+    ? conditionDurationTurns(conditionEntry.duration)
+    : null
+  const pinnedDc = pinnedSaveDc(save.savingThrow)
   if (
     !UUID.test(condition.conditionId) ||
     !(action.conditionDefinitionIds ?? []).includes(condition.conditionId) ||
     !UUID.test(conditionEntry.resultBlockId) ||
-    !duration ||
-    duration.durationKind !== 'ROUND' ||
-    duration.scaling ||
-    !Number.isSafeInteger(duration.amount) ||
-    duration.amount < 1 ||
+    initialRemaining === null ||
     save.timing !== 'TARGET_TURN_END' ||
     save.attempts.kind !== 'ONCE' ||
     save.attempts.repeatOnFailure !== true ||
-    save.savingThrow.dcMethod !== 'FIXED_DC' ||
+    !pinnedDc ||
     !UUID.test(save.savingThrow.abilityDefinitionId) ||
-    !Number.isSafeInteger(save.savingThrow.baseDc) ||
     save.onSuccess.kind !== 'END' ||
     save.onFailure.kind !== 'CONTINUE' ||
     (save.onDurationComplete !== undefined && save.onDurationComplete.kind !== 'END')
@@ -1432,11 +1454,11 @@ function repeatingDirectFollowUpSavePlan(
     frozenGraphNodeId: 'repeat-save-test',
     capabilityContractVersion: DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
     recurrenceStage: 'END_OF_TURN',
-    initialRemaining: duration.amount,
+    initialRemaining,
     conditionContribution: { conditionId: condition.conditionId },
     adapterFacts: {
       [DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY]: save.savingThrow.abilityDefinitionId,
-      [DND5E_SAVE_DC_FACT_KEY]: save.savingThrow.baseDc,
+      ...pinnedDc.adapterFacts,
       [DND5E_ACTIVE_EFFECT_SAVE_REQUEST_NODE_FACT_KEY]: 'repeat-save-d20',
       [DND5E_ACTIVE_EFFECT_REPEAT_SAVE_CONDITION_FACT_KEY]: condition.conditionId,
       ...(save.repeatRollInfluence
@@ -1448,8 +1470,9 @@ function repeatingDirectFollowUpSavePlan(
           }
         : {})
     },
+    castSaveDcFactKey: pinnedDc.castSaveDcFactKey,
     perceptionContributions: [],
-    maintenance: null
+    maintenance: maintenancePlan(action, conditionEntry)
   }
 }
 
@@ -1465,13 +1488,7 @@ function repeatFollowUpSavePublishedGraph(input: {
 }): ServerPublishedRuleDefinitionDto {
   const abilityDefinitionId =
     input.plan.adapterFacts[DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY]
-  const dc = input.plan.adapterFacts[DND5E_SAVE_DC_FACT_KEY]
-  if (
-    typeof abilityDefinitionId !== 'string' ||
-    !UUID.test(abilityDefinitionId) ||
-    typeof dc !== 'number' ||
-    !Number.isSafeInteger(dc)
-  ) {
+  if (typeof abilityDefinitionId !== 'string' || !UUID.test(abilityDefinitionId)) {
     throw new Dnd5eEffectActionCompilerError('D&D repeat-save facts are unavailable.')
   }
   const definition: RuleGraphDefinition = {
@@ -1499,7 +1516,7 @@ function repeatFollowUpSavePublishedGraph(input: {
             port: 'value'
           },
           modifier: { kind: 'FACT', factKey: DND5E_SAVE_MODIFIER_FACT_KEY },
-          threshold: { kind: 'LITERAL', value: dc },
+          threshold: { kind: 'FACT', factKey: DND5E_SAVE_DC_FACT_KEY },
           contributorChecksum: {
             kind: 'FACT',
             factKey: DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY
@@ -4555,6 +4572,18 @@ function bindMovementInterruptionOutput(input: {
   })
 }
 
+/** Whether the active-effect plan the action ends up with is held under a maintained effect. */
+function startsMaintainedEffect(action: Dnd5eCompiledEffectActionSource): boolean {
+  const plan =
+    repeatingDirectFollowUpSavePlan(action) ??
+    repeatingImmediateFollowUpSavePlan(action) ??
+    timedImmediateConditionPlan(action) ??
+    modifierGrantPlan(action) ??
+    relationshipPlan(action) ??
+    supportedRecurringPlan(action)
+  return plan?.maintenance != null
+}
+
 function compileDnd5eEffectAction({
   action
 }: {
@@ -4572,6 +4601,8 @@ function compileDnd5eEffectAction({
     throw new Dnd5eEffectActionCompilerError(
       'D&D Effect action entry point does not match its exact Effect.'
     )
+  if (action.compiledEffect.requiresConcentration && !startsMaintainedEffect(action))
+    unsupported('D&D Concentration spell has no supported maintained effect.')
   if (isExactImmediateFollowUpSaveAction(action) || repeatingDirectFollowUpSavePlan(action)) {
     return compileDnd5eEffectActionTestTemplate({ action }).published
   }

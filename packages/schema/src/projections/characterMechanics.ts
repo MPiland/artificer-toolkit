@@ -139,6 +139,10 @@ const compiledActionActiveEffectPlanSchema = lazySchema(() =>
       z.string().check(z.regex(/^[a-z][a-z0-9.-]{0,79}$/)),
       ruleValueDtoSchema
     ),
+    castSaveDcFactKey: z._default(
+      z.nullable(z.string().check(z.regex(/^[a-z][a-z0-9.-]{0,79}$/))),
+      null
+    ),
     perceptionContributions: combatPerceptionContributionsDtoSchema,
     conditionContribution: z._default(
       z.nullable(z.strictObject({ conditionId: serverUuidIdentityDtoSchema })),

@@ -18,6 +18,10 @@ import type {
   ResolveEncounterActionInputDto
 } from '@artificer-toolkit/schema/api/encounters'
 import type { CharacterSheetExecuteInput } from '@artificer-toolkit/schema/api/characterSheetCommands'
+import type {
+  NodeRuntimeNormalizeValuesResponseDto,
+  NodeRuntimeResolveRequestDto
+} from '@artificer-toolkit/schema/api/nodeRuntime'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { withEncounterRuleUsageUsed } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import {
@@ -41,6 +45,8 @@ import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.j
 import { cureWounds } from '@artificer-toolkit/source-data/srd/spells/cure-wounds.js'
 import { fireball } from '@artificer-toolkit/source-data/srd/spells/fireball.js'
 import { fireBolt } from '@artificer-toolkit/source-data/srd/spells/fire-bolt.js'
+import { fly } from '@artificer-toolkit/source-data/srd/spells/fly.js'
+import { holdPerson } from '@artificer-toolkit/source-data/srd/spells/hold-person.js'
 import { wizard } from '@artificer-toolkit/source-data/srd/classes/wizard.js'
 import { warlock } from '@artificer-toolkit/source-data/srd/classes/warlock.js'
 import { writeRunActor } from '@artificer-toolkit/encounter-persistence/documents'
@@ -58,6 +64,7 @@ import {
   checkpointLiveRoom,
   closeRoom,
   executeInRoom,
+  queueRoomRolls,
   executeSheetInRoom,
   useLocalRoomWorker
 } from '../../tests/fixtures/localRoomWorker'
@@ -80,6 +87,11 @@ const actionChoices = makeFunctionReference<
   GetEncounterActionChoicesInputDto,
   EncounterActionChoicesResponseDto
 >('encounters/actionChoices:get')
+const normalizeValues = makeFunctionReference<
+  'query',
+  NodeRuntimeResolveRequestDto,
+  NodeRuntimeNormalizeValuesResponseDto
+>('authoring/nodeRuntime:normalizeValues')
 const executeSheet = makeFunctionReference<'mutation', CharacterSheetExecuteInput, unknown>(
   'characters/sheetCommands:execute'
 )
@@ -481,6 +493,42 @@ async function concentrationCasterIds(fixture: Fixture) {
   return run?.concentrationCasterCharacterIds
 }
 
+/** The Run's active-effect rows, as the target and maintained effect they are held under. */
+async function activeEffects(fixture: Fixture) {
+  await checkpointLiveRoom(fixture.campaign.id)
+  const rows = await fixture.t.run((ctx) =>
+    ctx.db
+      .query('encounterActiveRuleEffects')
+      .withIndex('by_encounterId_targetActorId_createdOrdinal_id', (q) =>
+        q.eq('encounterId', fixture.run.id)
+      )
+      .take(16)
+  )
+  return rows.map(({ targetActorId, maintainedEffectStateId }) => ({
+    targetActorId,
+    maintainedEffectStateId
+  }))
+}
+
+/** An SRD Concentration spell on its own ids, aimed at one creature at any distance (no Scene geometry). */
+function concentrationSpell(source: SpellAuthored): SpellAuthored {
+  const spell = rekeyed(source)
+  spell.id = crypto.randomUUID()
+  targetAnyCreatureAtAnyRange(spell)
+  return spell
+}
+
+function advanceTurn(fixture: Fixture, expectedVersion: number) {
+  return executeInRoom(fixture.gm.caller, {
+    command: {
+      type: 'ADVANCE_TURN',
+      encounterId: fixture.run.id,
+      commandId: crypto.randomUUID(),
+      expectedVersion
+    }
+  })
+}
+
 /** A Creature's current hit points, after the room publishes what it holds. */
 async function creatureHitPoints(fixture: Fixture, actorId: string) {
   await checkpointLiveRoom(fixture.campaign.id)
@@ -804,6 +852,137 @@ describe('Character spell casting in an Encounter', () => {
       REPLACED_CONCENTRATION
     )
   }, 120000)
+
+  it('derives Concentration from the CONCENTRATION attribute alone, and not for a spell without it', async () => {
+    const author = (label: string, attributes: SpellAuthored['attributes']) =>
+      healSpell(label, (spell) => {
+        fixHeal(spell, 1)
+        spell.attributes = attributes
+        const path = spell.effects?.[0]?.paths?.[0]
+        if (!path || !('resultBlock' in path)) throw new Error('Expected a result block.')
+        path.resultBlock = {
+          ...path.resultBlock,
+          duration: { id: crypto.randomUUID(), durationKind: 'ROUND', amount: 3 },
+          lifecycle: { recurringKind: 'START_OF_TURN' }
+        }
+      })
+    const focus = author('Focus', ['CONCENTRATION'])
+    const plain = author('Plain', [])
+    const fixture = await setup({ known: [focus, plain] })
+    // The Spell node map accepts the author's document as written: it clears nothing and adds no maintenance.
+    const normalized = await fixture.gm.caller.query(normalizeValues, {
+      mapId: 'spell',
+      systemId: focus.systemId,
+      values: { ...focus, classIds: [fixture.baseClass.id] }
+    })
+    expect(normalized.clearedPaths).toEqual([])
+    expect(JSON.stringify(normalized.values)).not.toContain('maintenanceDefinitionId')
+
+    const plainId = await choiceId(fixture, 'Plain (1st level)', 0)
+    const cast = await executeInRoom(fixture.gm.caller, {
+      command: castCommand(fixture, plainId, 0)
+    })
+    expect(cast.occurrence?.status).toBe('COMPLETE')
+    expect(await maintainedEffects(fixture)).toEqual([])
+    expect(await concentrationCasterIds(fixture)).toEqual([])
+
+    await resetActionAllowance(fixture)
+    const focusId = await choiceId(fixture, 'Focus (1st level)', cast.projection.version)
+    await executeInRoom(fixture.gm.caller, {
+      command: castCommand(fixture, focusId, cast.projection.version)
+    })
+    expect(await concentrationCasterIds(fixture)).toEqual([fixture.character.id])
+    expect(await maintainedEffects(fixture)).toEqual([
+      {
+        id: expect.any(String),
+        ownerActorId: fixture.actor.id,
+        maintenanceDefinitionId: SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID
+      }
+    ])
+  }, 120000)
+
+  describe('Hold Person', () => {
+    const SLOTS = [
+      { spellLevel: 2, slotCount: 2 },
+      { spellLevel: 3, slotCount: 2 }
+    ]
+
+    async function castFlyThenHoldPerson() {
+      const flight = concentrationSpell(fly)
+      const hold = concentrationSpell(holdPerson)
+      const fixture = await setup({ known: [flight, hold], slots: SLOTS })
+      const flyId = await choiceId(fixture, 'Fly (3rd level)', 0)
+      const flying = await executeInRoom(fixture.gm.caller, {
+        command: castCommand(fixture, flyId, 0)
+      })
+      expect(flying.occurrence?.status).toBe('COMPLETE')
+      const [flyConcentration] = await maintainedEffects(fixture)
+      expect(flyConcentration?.maintenanceDefinitionId).toBe(
+        SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID
+      )
+
+      // Every d20 lands on 1: the target fails its Wisdom save against the caster's DC.
+      await queueRoomRolls(fixture.campaign.id, { rolls: [], repeat: 1 })
+      await resetActionAllowance(fixture)
+      const holdId = await choiceId(fixture, 'Hold Person (2nd level)', flying.projection.version)
+      const held = await executeInRoom(fixture.gm.caller, {
+        command: castCommand(
+          fixture,
+          holdId,
+          flying.projection.version,
+          undefined,
+          fixture.target.id
+        )
+      })
+      return { fixture, flyId, flyConcentration, held }
+    }
+
+    it('replaces Fly, leaves the target Paralyzed, and ends the condition on a successful repeat save', async () => {
+      const { fixture, flyConcentration, held } = await castFlyThenHoldPerson()
+      expect(held.occurrence?.status).toBe('COMPLETE')
+      expect(await concentrationCasterIds(fixture)).toEqual([fixture.character.id])
+      const [replacement, ...others] = await maintainedEffects(fixture)
+      expect(others).toEqual([])
+      expect(replacement?.id).not.toBe(flyConcentration?.id)
+      // Fly's grant ended with its Concentration; the Paralyzed condition is the only effect left.
+      expect(await activeEffects(fixture)).toEqual([
+        { targetActorId: fixture.target.id, maintainedEffectStateId: replacement?.id }
+      ])
+
+      // The target's turn ends while the save keeps failing: the condition holds.
+      const targetTurn = await advanceTurn(fixture, held.projection.version)
+      const failedRepeat = await advanceTurn(fixture, targetTurn.projection.version)
+      expect(failedRepeat.occurrence?.status).toBe('COMPLETE')
+      expect(await activeEffects(fixture)).toHaveLength(1)
+
+      // A natural 20 on the next end-of-turn save ends the condition, and Concentration with it.
+      await queueRoomRolls(fixture.campaign.id, { rolls: [20], repeat: 20 })
+      const casterTurn = await advanceTurn(fixture, failedRepeat.projection.version)
+      const targetAgain = await advanceTurn(fixture, casterTurn.projection.version)
+      const saved = await advanceTurn(fixture, targetAgain.projection.version)
+      expect(saved.occurrence?.status).toBe('COMPLETE')
+      expect(await activeEffects(fixture)).toEqual([])
+      expect(await maintainedEffects(fixture)).toEqual([])
+      expect(await concentrationCasterIds(fixture)).toEqual([])
+    }, 180000)
+
+    it('is dropped with its condition when the next Concentration spell is cast', async () => {
+      const { fixture, flyId, held } = await castFlyThenHoldPerson()
+      expect(await activeEffects(fixture)).toHaveLength(1)
+      await resetActionAllowance(fixture)
+      const recast = await executeInRoom(fixture.gm.caller, {
+        command: castCommand(fixture, flyId, held.projection.version)
+      })
+      expect(recast.occurrence?.status).toBe('COMPLETE')
+      expect(await concentrationCasterIds(fixture)).toEqual([fixture.character.id])
+      const [flight, ...others] = await maintainedEffects(fixture)
+      expect(others).toEqual([])
+      // The Paralyzed condition ended with the Hold Person Concentration; only Fly's grant remains.
+      expect(await activeEffects(fixture)).toEqual([
+        { targetActorId: fixture.actor.id, maintainedEffectStateId: flight?.id }
+      ])
+    }, 180000)
+  })
 
   it('does not offer a multi-Effect spell the Encounter cannot execute as one action', async () => {
     const twin = healSpell('Twin Mend', (spell) => {

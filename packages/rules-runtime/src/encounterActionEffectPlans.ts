@@ -255,6 +255,12 @@ function prepareRecurringActiveEffect(
           : [])
       ].filter((conditionId, index, values) => values.indexOf(conditionId) === index)
     : []
+  if (plan.castSaveDcFactKey && !input.d20)
+    throw new EncounterActionEffectPlanError('The repeated save needs the cast save DC.')
+  const castSaveDcFact =
+    plan.castSaveDcFactKey && input.d20
+      ? { key: plan.castSaveDcFactKey, dc: input.d20.defenseOrDc }
+      : null
   const tickAnchor = grantContribution?.tickAnchor ?? 'HOLDER'
   // A grant made on its anchor actor's own turn would otherwise lose a counted turn to the very
   // end of turn it was made in, so "until the end of the next turn" counts one more. A duration
@@ -281,7 +287,9 @@ function prepareRecurringActiveEffect(
     compiledEntryId: plan.compiledEntryId,
     frozenGraphNodeId: plan.frozenGraphNodeId,
     frozenGraph: compileEffectGraph(frozenGraph, plan.capabilityContractVersion),
-    adapterFacts: plan.adapterFacts,
+    adapterFacts: castSaveDcFact
+      ? { ...plan.adapterFacts, [castSaveDcFact.key]: castSaveDcFact.dc }
+      : plan.adapterFacts,
     perceptionContributions: plan.perceptionContributions,
     recurrence: {
       // The grant tick planner counts a grant, so the turn-effect kernel never selects it.

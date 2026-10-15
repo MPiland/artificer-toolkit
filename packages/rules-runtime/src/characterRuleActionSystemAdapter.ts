@@ -81,6 +81,11 @@ export interface CharacterRuleActionActiveEffectPlan {
     }[]
   }
   adapterFacts: Readonly<Record<string, RuleValue>>
+  /**
+   * The adapter fact the cast's own save DC is stored under when the effect is created (the
+   * caster's save DC is unknown until then); null when the plan pins its DC itself or needs none.
+   */
+  castSaveDcFactKey?: null | string
   /** Exact System-authored perception contributions carried into the frozen effect definition. */
   perceptionContributions: CombatPerceptionContributionsDto
   /** Exact System-authored maintenance policy, or no maintained state. */

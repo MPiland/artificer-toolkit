@@ -3,6 +3,7 @@ import type { CharacterRulePolicyOutput } from '@artificer-toolkit/schema/api/ch
 import type { SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { compileSpell } from '@artificer-toolkit/shared/subjects/compilers'
 import { srdSpells } from '@artificer-toolkit/source-data/srd/spells/index.js'
+import { SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from '@artificer-toolkit/source-data/srd/concentration.js'
 import {
   SRD_ABILITIES,
   SRD_CONDITION_TYPES,
@@ -34,6 +35,8 @@ const spell = (label: string): SpellAuthored => {
   return found
 }
 const FIREBALL = spell('Fireball')
+const FLY = spell('Fly')
+const HOLD_PERSON = spell('Hold Person')
 const MEND = { ...fixedHealSpell(), id: '00000000-0000-4000-8000-00000000c0de', label: 'Mend' }
 
 /** The cast candidate of a spell at a level, the way the policy lists it. */
@@ -109,7 +112,24 @@ function policyFor(
   }
 }
 
-const authoredById = new Map([FIREBALL, MEND].map((entry) => [entry.id, entry]))
+/** The spell with no explicit maintenance definition, as an author who only ticks Concentration writes it. */
+function withoutExplicitMaintenance(authored: SpellAuthored): SpellAuthored {
+  return JSON.parse(JSON.stringify(authored), (key, value) =>
+    key === 'maintenanceDefinitionId' ? undefined : value
+  )
+}
+const DERIVED_FLY = {
+  ...withoutExplicitMaintenance(FLY),
+  id: '00000000-0000-4000-8000-00000000f1a1'
+}
+const PLAIN_HOLD = {
+  ...HOLD_PERSON,
+  id: '00000000-0000-4000-8000-00000000b01d',
+  attributes: [] as SpellAuthored['attributes']
+}
+const authoredById = new Map(
+  [FIREBALL, MEND, FLY, HOLD_PERSON, DERIVED_FLY, PLAIN_HOLD].map((entry) => [entry.id, entry])
+)
 
 function build(
   candidates: readonly SpellCastCandidate[],
@@ -288,5 +308,63 @@ describe('what a leveled cast carries into the Encounter action', () => {
         'PACT'
       )
     ).toEqual({ level: 3, used: 1 })
+  })
+})
+
+describe('the Concentration a cast starts', () => {
+  /** The compiled entry the Encounter would run for the spell's cast, or null when it stays manual. */
+  function compiledCast(authored: SpellAuthored) {
+    const built = build([candidate(authored, authored.level)])
+    const compiled = compileCharacterActionEntryPoints({
+      gameSystemId: SRD_SYSTEM_ID,
+      candidates: built.candidates,
+      descriptors: discoverCharacterActionCapabilities({
+        gameSystemId: SRD_SYSTEM_ID,
+        candidates: built.candidates,
+        conditionDefinitionIds: SRD_CONDITION_TYPES.map((condition) => condition.id).sort(),
+        abilityDefinitions: SRD_ABILITIES.map(({ id, code }) => ({ id, code })),
+        entryPoints: built.entryPoints
+      })
+    })
+    const [entry] = compiled
+    return entry?.kind === 'CHARACTER_ACTION' &&
+      entry.schemaVersion === 4 &&
+      entry.compilation.kind === 'COMPILED'
+      ? entry.compilation
+      : null
+  }
+
+  it('marks the Effect group of a Concentration spell and no other', () => {
+    expect(compileSpell(HOLD_PERSON).effects?.map((group) => group.requiresConcentration)).toEqual([
+      true
+    ])
+    expect(compileSpell(PLAIN_HOLD).effects?.map((group) => group.requiresConcentration)).toEqual([
+      undefined
+    ])
+    expect(compileSpell(FIREBALL).effects?.some((group) => group.requiresConcentration)).toBe(false)
+  })
+
+  it('derives the maintenance from the CONCENTRATION attribute when the author names none', () => {
+    const maintenance = compiledCast(DERIVED_FLY)?.activeEffectPlan?.maintenance
+    expect(maintenance).toEqual({
+      definitionId: SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID,
+      definitionChecksum: null,
+      owner: 'SOURCE_ACTOR',
+      replacementPolicy: 'REPLACE_SAME_DEFINITION',
+      emptyDependentPolicy: 'TERMINATE_WHEN_EMPTY'
+    })
+    expect(maintenance).toEqual(compiledCast(FLY)?.activeEffectPlan?.maintenance)
+  })
+
+  it('compiles Hold Person with the Concentration maintenance and the caster save DC', () => {
+    const plan = compiledCast(HOLD_PERSON)?.activeEffectPlan
+    expect(plan?.maintenance?.definitionId).toBe(SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID)
+    expect(plan?.conditionContribution).not.toBeNull()
+  })
+
+  it('starts no Concentration for a spell that is not a Concentration spell', () => {
+    const plan = compiledCast(PLAIN_HOLD)?.activeEffectPlan
+    expect(plan).toBeDefined()
+    expect(plan?.maintenance).toBeNull()
   })
 })

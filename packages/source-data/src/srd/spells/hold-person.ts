@@ -75,7 +75,7 @@ export const holdPerson: SpellAuthored = {
           selectionKind: 'FIXED' as const,
           resultBlock: {
             id: spellChildId(SPELL_IDS.HOLD_PERSON, 0x212, 1) + '__result',
-            resultKind: 'SINGLE' as const,
+            resultKind: 'SEQUENCE' as const,
             duration: {
               id: spellChildId(SPELL_IDS.HOLD_PERSON, 0x213, 1),
               durationKind: DURATION_KIND.MINUTE,
@@ -86,6 +86,19 @@ export const holdPerson: SpellAuthored = {
                 id: spellChildId(SPELL_IDS.HOLD_PERSON, 0x212, 1),
                 effectKind: EFFECT_KIND.CONDITION,
                 conditionId: conditionTypeId('PARALYZED')
+              },
+              {
+                id: spellChildId(SPELL_IDS.HOLD_PERSON, 0x215, 1),
+                effectKind: EFFECT_KIND.FOLLOW_UP_SAVE,
+                timing: 'TARGET_TURN_END' as const,
+                savingThrow: {
+                  id: spellChildId(SPELL_IDS.HOLD_PERSON, 0x216, 1),
+                  dcMethod: 'SOURCE_SAVE_DC' as const,
+                  abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.WISDOM
+                },
+                attempts: { kind: 'ONCE' as const, repeatOnFailure: true },
+                onSuccess: { kind: 'END' as const },
+                onFailure: { kind: 'CONTINUE' as const }
               }
             ]
           }
