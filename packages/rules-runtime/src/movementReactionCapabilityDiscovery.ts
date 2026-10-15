@@ -1,5 +1,5 @@
 import {
-  reactionMovementTriggerBindingDtoSchema,
+  reactionTriggerBindingDtoSchema,
   type ReactionMovementTriggerBindingDto
 } from '@artificer-toolkit/schema/shared/reaction'
 
@@ -15,21 +15,19 @@ interface MovementReactionCapabilityDescriptor<
 function bindingOf(
   capability: EffectActionCapabilityDescriptor
 ): ReactionMovementTriggerBindingDto | null {
-  const normalized = capability.mechanicFacts.invocation.reactionMovementTrigger
+  const normalized = capability.mechanicFacts.invocation.reactionTrigger
   const compiled =
-    'reactionMovementTrigger' in capability.compiledEffect.invocation
-      ? capability.compiledEffect.invocation.reactionMovementTrigger
-        ? reactionMovementTriggerBindingDtoSchema.parse(
-            capability.compiledEffect.invocation.reactionMovementTrigger
-          )
+    'reactionTrigger' in capability.compiledEffect.invocation
+      ? capability.compiledEffect.invocation.reactionTrigger
+        ? reactionTriggerBindingDtoSchema.parse(capability.compiledEffect.invocation.reactionTrigger)
         : null
       : null
   if (JSON.stringify(normalized) !== JSON.stringify(compiled)) {
     throw new Error(
-      'Effect action capability reaction movement binding does not match the compiled Effect.'
+      'Effect action capability reaction trigger binding does not match the compiled Effect.'
     )
   }
-  return normalized
+  return normalized?.kind === 'MOVEMENT' ? normalized : null
 }
 
 export function discoverMovementReactionCapabilities<

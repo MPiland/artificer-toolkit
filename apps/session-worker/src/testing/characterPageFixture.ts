@@ -5,6 +5,7 @@ import {
 } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { characterSheetStateSchema } from '@artificer-toolkit/schema/projections/characterSheetState'
 import { splitCharacterPlayState } from '@artificer-toolkit/schema/projections/characterPlayState'
+import type { CharacterDeathSaves } from '@artificer-toolkit/schema/shared/characterDeathSaves'
 import { NO_DEATH_SAVES } from '@artificer-toolkit/schema/subjects/characterState'
 import { EQUIPMENT_PROPERTY_CODE, nextEquipSlot } from '@artificer-toolkit/shared/core'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
@@ -170,6 +171,8 @@ export interface CharacterPlayOverrides {
   /** How many of each carried item (default 1). */
   carriedQuantity?: number
   currentHitPoints?: number
+  /** The Character's death saves (default none); three failures leave it dead (D96). */
+  deathSaves?: CharacterDeathSaves
   /** The Fighter's Class level (default 1); each level after the first adds 7 fixed hit points and a hit die. */
   fighterLevel?: number
   /** Sheet conditions the Character already carries. */
@@ -200,7 +203,7 @@ export function characterOwnerRowFor({
     equipmentId: item.id,
     quantity: carriedQuantity
   }))
-  const { currentHitPoints = maximumHitPoints } = playOverrides
+  const { currentHitPoints = maximumHitPoints, deathSaves = NO_DEATH_SAVES } = playOverrides
   const character = characterDocumentSchema.parse({
     ...capturedPage.inputs.character,
     id: characterId,
@@ -252,7 +255,7 @@ export function characterOwnerRowFor({
       hitpoints: {
         current: currentHitPoints,
         hitDice: [{ die: 10, total: fighterLevel, used: 0 }],
-        deathSaves: NO_DEATH_SAVES
+        deathSaves
       },
       ...(conditions && { conditions }),
       ...(spells && {

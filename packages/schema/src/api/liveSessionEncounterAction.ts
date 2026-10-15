@@ -116,6 +116,8 @@ export type LiveSessionEncounterActionCommitInput = Omit<
   itemConsumption: z.infer<typeof liveSessionCharacterItemConsumptionSchema> | null
   /** The spell slot this cast spent, with the Character version it was planned at. */
   spellConsumption: z.infer<typeof liveSessionCharacterSpellConsumptionSchema> | null
+  /** The spell slot the attacked Character's reaction spent, with the Character version it was planned at. */
+  reactionSpellConsumption: z.infer<typeof liveSessionCharacterSpellConsumptionSchema> | null
   /** The resolved action's display name; the stored command and the timeline carry it. */
   label: string | null
   /** Warnings the command acknowledged and the planner found; recorded as overrides. */
@@ -170,9 +172,11 @@ export const liveSessionEncounterActionCommitInputSchema: z.ZodMiniType<LiveSess
       resourceConsumption: z.nullable(liveSessionCharacterResourceConsumptionSchema),
       itemConsumption: z.nullable(liveSessionCharacterItemConsumptionSchema),
       spellConsumption: z.nullable(liveSessionCharacterSpellConsumptionSchema),
+      reactionSpellConsumption: z.nullable(liveSessionCharacterSpellConsumptionSchema),
       label: z.nullable(z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160))),
       ruleOverrides: encounterRuleWarningsDtoSchema,
-      createdEffects: z.array(activeRuleEffectRecordSchema).check(z.maxLength(2)),
+      // The action's state and recurring effects, and the effect of a reaction its target used.
+      createdEffects: z.array(activeRuleEffectRecordSchema).check(z.maxLength(3)),
       maintainedState: z.nullable(encounterMaintainedEffectStateRecordSchema),
       ...liveSessionEncounterConcentrationFields(),
       cleaving: z.nullable(serverRuleExecutionPendingSnapshotDtoSchema),
@@ -216,6 +220,7 @@ export type LiveSessionEncounterAreaCommitInput = Omit<
   | 'maintainedState'
   | 'cleaving'
   | 'consumedGrants'
+  | 'reactionSpellConsumption'
 > & {
   execution: z.infer<typeof storedRuleExecutionResultDtoSchema>
   targets: {

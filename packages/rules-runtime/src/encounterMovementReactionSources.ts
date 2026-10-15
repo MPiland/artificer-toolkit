@@ -123,8 +123,12 @@ function characterSources(input: {
   const actionCandidates: readonly CharacterActionCandidate[] =
     input.locked.mechanics.rulePolicyInput.actionCandidates
   return actionCandidates.flatMap((candidate): EncounterMovementReactionSource[] => {
-    const binding = candidate.mechanicFacts.invocation.reactionMovementTrigger
-    if (!binding || candidate.mechanicFacts.invocation.activation?.code !== 'REACTION') return []
+    const binding = candidate.mechanicFacts.invocation.reactionTrigger
+    if (
+      binding?.kind !== 'MOVEMENT' ||
+      candidate.mechanicFacts.invocation.activation?.code !== 'REACTION'
+    )
+      return []
     const entry = entriesByActionId.get(candidate.actionId)
     if (
       !entry ||

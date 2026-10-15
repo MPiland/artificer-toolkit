@@ -9,6 +9,10 @@ import {
   serverRuleExecutionD20PolicyDtoSchema
 } from './ruleExecutionEvidence.js'
 import {
+  encounterReactionOfferDtoSchema,
+  validateEncounterReactionPin
+} from './ruleExecutionReactionChoice.js'
+import {
   ruleExecutionChecksumSchema,
   ruleExecutionReceiptD20FaceSchema,
   ruleExecutionUuidSchema
@@ -61,7 +65,12 @@ export const encounterActionPendingContextDtoSchema = lazySchema(() =>
        * Set while the target's failed save waits on its Legendary Resistance choice. The snapshot's
        * continuation is that choice; the TEST stays unsettled until the answer.
        */
-      legendaryResistance: z.optional(encounterLegendaryResistanceOfferDtoSchema)
+      legendaryResistance: z.optional(encounterLegendaryResistanceOfferDtoSchema),
+      /**
+       * Set while a hit attack waits on its target's reaction decision. The snapshot's continuation is
+       * that choice; the TEST stays unsettled until the answer.
+       */
+      reactionChoice: z.optional(encounterReactionOfferDtoSchema)
     })
     .check(
       z.superRefine((value, context) => {
@@ -82,6 +91,23 @@ export const encounterActionPendingContextDtoSchema = lazySchema(() =>
               path: ['legendaryResistance'],
               message:
                 'A Legendary Resistance offer belongs to a TEST held for the resisting creature.'
+            })
+        }
+        if (value.reactionChoice) {
+          for (const [index, reaction] of value.reactionChoice.reactions.entries())
+            validateEncounterReactionPin(reaction, context, ['reactionChoice', 'reactions', index])
+          if (
+            value.legendaryResistance ||
+            value.twoPhase?.phase !== 'TEST' ||
+            value.rollerActorId !== value.reactionChoice.reactions[0]?.reactorActorId ||
+            value.d20Policy !== null ||
+            value.contest ||
+            value.heldD20
+          )
+            context.addIssue({
+              code: 'custom',
+              path: ['reactionChoice'],
+              message: 'A reaction offer belongs to a TEST held for the reacting creature.'
             })
         }
         if (value.heldD20 && value.d20Policy === null)

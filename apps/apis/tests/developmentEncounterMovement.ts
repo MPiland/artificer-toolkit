@@ -51,7 +51,7 @@ export async function publishMovementReactionCreature(
             ? {
                 triggerCode: 'MELEE_WEAPON_ATTACK' as const,
                 activation: { code: 'REACTION' as const, amount: 1 },
-                reactionMovementTrigger: { ...reactionBinding, eligibilityDefinitionId }
+                reactionTrigger: { ...reactionBinding, eligibilityDefinitionId }
               }
             : {})
         },

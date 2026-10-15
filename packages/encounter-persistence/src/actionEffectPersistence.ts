@@ -63,11 +63,16 @@ function classifyCreatedEffects(input: EffectCommitInput) {
   const outputs = actionOutputs(input)
   const stateTransition = outputs.stateEffectTransitions
   const activeTransition = outputs.activeEffectTransitions
+  // The effect of a reaction the target used lands on the target beside the action's own effects.
+  const reactionTransition =
+    outputs.kind === 'CHARACTER_MECHANICS_BATCH' ? (outputs.reaction?.activeEffectTransitions ?? []) : []
   if (
-    input.createdEffects.length > 2 ||
+    input.createdEffects.length > 3 ||
     stateTransition.length > 1 ||
     activeTransition.length > 1 ||
-    input.createdEffects.length !== stateTransition.length + activeTransition.length
+    reactionTransition.length > 1 ||
+    input.createdEffects.length !==
+      stateTransition.length + activeTransition.length + reactionTransition.length
   )
     throw new Error('Completed action effects do not match the stored receipt.')
   const ids = input.createdEffects.map((effect) => effect.id)
@@ -81,13 +86,19 @@ function classifyCreatedEffects(input: EffectCommitInput) {
     ? (input.createdEffects.find((effect) => effect.id === activeTransition[0]!.activeEffectId) ??
       null)
     : null
+  const reaction = reactionTransition.length
+    ? (input.createdEffects.find((effect) => effect.id === reactionTransition[0]!.activeEffectId) ??
+      null)
+    : null
   if (
     (stateTransition.length > 0 && !state) ||
     (activeTransition.length > 0 && !recurring) ||
-    (state && recurring && state.id === recurring.id)
+    (reactionTransition.length > 0 && !reaction) ||
+    (state && recurring && state.id === recurring.id) ||
+    (reaction && (reaction.id === state?.id || reaction.id === recurring?.id))
   )
     throw new Error('Completed action effects do not match the stored receipt.')
-  return { state, recurring, outputs }
+  return { state, recurring, reaction, outputs }
 }
 
 /**
@@ -216,7 +227,7 @@ export async function persistEncounterActionEffects(
     occurredAt: string
   }
 ): Promise<EncounterRunActorState[]> {
-  const { state, recurring, outputs } = classifyCreatedEffects(input)
+  const { state, recurring, reaction, outputs } = classifyCreatedEffects(input)
   const target = input.actors.find(
     (actor) => actor.id === actionTargetActorId(input.command.target)
   )
@@ -244,7 +255,8 @@ export async function persistEncounterActionEffects(
       checksumCanonicalJson(effect.owner) !== checksumCanonicalJson(owner) ||
       origin.kind !== 'ENCOUNTER' ||
       origin.sourceAggregateId !== input.state.id ||
-      origin.sourceActorId !== input.command.actorId ||
+      // A reaction's effect comes from the reactor, which is the target.
+      origin.sourceActorId !== (effect.id === reaction?.id ? target.id : input.command.actorId) ||
       origin.sourceOccurrenceId !== input.execution.occurrenceId ||
       origin.rootCommandId !== input.command.commandId ||
       effect.definition.frozenGraph.source.gameSystemId !== input.state.gameSystemId ||
@@ -262,22 +274,35 @@ export async function persistEncounterActionEffects(
     recurring,
     targetActorId: target.id
   })
-  const activeEffectTransitions =
+  const characterReceipts = (
+    transitions: typeof projected.activeEffectTransitions,
+    maintainedEffectStateId: string | null
+  ) =>
     target.kind === 'CHARACTER'
-      ? projected.activeEffectTransitions.map(
-          ({ targetActorId: _targetActorId, ...transition }) => ({
-            ...transition,
-            characterId: target.sourceId,
-            sourceEncounterId: input.state.id,
-            maintainedEffectStateId: input.maintainedState?.id ?? null
-          })
-        )
-      : projected.activeEffectTransitions
+      ? transitions.map(({ targetActorId: _targetActorId, ...transition }) => ({
+          ...transition,
+          characterId: target.sourceId,
+          sourceEncounterId: input.state.id,
+          maintainedEffectStateId
+        }))
+      : transitions
+  const reactionReceipts = characterReceipts(
+    projectNativeActionEffectTransitions({ state: null, recurring: reaction, targetActorId: target.id })
+      .activeEffectTransitions,
+    null
+  )
   if (
     checksumCanonicalJson(projected.stateEffectTransitions) !==
       checksumCanonicalJson(outputs.stateEffectTransitions) ||
-    checksumCanonicalJson(activeEffectTransitions) !==
-      checksumCanonicalJson(outputs.activeEffectTransitions)
+    checksumCanonicalJson(
+      characterReceipts(projected.activeEffectTransitions, input.maintainedState?.id ?? null)
+    ) !== checksumCanonicalJson(outputs.activeEffectTransitions) ||
+    checksumCanonicalJson(reactionReceipts) !==
+      checksumCanonicalJson(
+        outputs.kind === 'CHARACTER_MECHANICS_BATCH'
+          ? (outputs.reaction?.activeEffectTransitions ?? [])
+          : []
+      )
   )
     throw new Error('Completed action effect receipts changed before settlement.')
   if (Boolean(input.maintainedState) !== Boolean(input.maintenance))
