@@ -69,13 +69,13 @@ function compileCaltropsEntry(equipment?: EquipmentAuthored) {
 }
 
 describe('placed-space zone compilation from real SRD Caltrops', () => {
-  it('compiles the manifest zone to a point-placed 5-foot square that triggers on entering', () => {
+  it('compiles the manifest zone to a point-placed 5-foot square that triggers on entering or passing through', () => {
     const { entry, compilation } = compileCaltropsEntry()
     expect(compilation.activeEffectPlan).toBeNull()
     expect(compilation.zonePlacement).toMatchObject({
       label: 'Caltrop field',
       shape: { shapeKind: 'CUBE', edgeLength: { amount: 5, unit: 'FEET' } },
-      triggerModes: ['ENTER'],
+      triggerModes: ['ENTER', 'CROSS'],
       bypassAtHalfSpeed: true
     })
     expect(entry.targetPolicy?.shape).toMatchObject({ shapeKind: 'CUBE' })
@@ -174,7 +174,7 @@ describe('the zone an area action leaves at its chosen point', () => {
           ]
         }
       },
-      triggerModes: ['ENTER'],
+      triggerModes: ['ENTER', 'CROSS'],
       activation: 'REPEATABLE',
       visibility: 'PUBLIC',
       revealOnTrigger: false,

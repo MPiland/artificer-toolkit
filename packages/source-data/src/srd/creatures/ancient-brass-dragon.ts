@@ -358,10 +358,7 @@ export const ancientBrassDragon: CreatureAuthored = {
               code: S.ACTIVATION_CODE.ACTION,
               amount: 1
             },
-            range: {
-              id: S.actionId(16, 27),
-              rangeKind: S.RANGE_KIND.SPECIAL
-            }
+            ...S.selfLine(S.actionId(16, 27), S.actionId(16, 105), 90, 10)
           },
           paths: [
             {
@@ -427,10 +424,7 @@ export const ancientBrassDragon: CreatureAuthored = {
               code: S.ACTIVATION_CODE.ACTION,
               amount: 1
             },
-            range: {
-              id: S.actionId(16, 34),
-              rangeKind: S.RANGE_KIND.SPECIAL
-            }
+            ...S.selfCone(S.actionId(16, 34), S.actionId(16, 106), 90)
           },
           paths: [
             {

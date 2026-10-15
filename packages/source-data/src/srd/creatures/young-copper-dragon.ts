@@ -61,11 +61,7 @@ export const youngCopperDragon: CreatureAuthored = {
               baseDc: 14
             },
             activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(305, 202), rangeKind: S.RANGE_KIND.SPECIAL },
-            targeting: {
-              selectionKind: S.TARGET_SELECTION_KIND.AREA_CONTENTS,
-              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
-            }
+            ...S.selfLine(S.actionId(305, 202), S.actionId(305, 239), 40, 5)
           },
           paths: [
             {
@@ -128,11 +124,7 @@ export const youngCopperDragon: CreatureAuthored = {
               baseDc: 14
             },
             activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(305, 232), rangeKind: S.RANGE_KIND.SPECIAL },
-            targeting: {
-              selectionKind: S.TARGET_SELECTION_KIND.AREA_CONTENTS,
-              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
-            }
+            ...S.selfCone(S.actionId(305, 232), S.actionId(305, 240), 30)
           },
           paths: [
             {

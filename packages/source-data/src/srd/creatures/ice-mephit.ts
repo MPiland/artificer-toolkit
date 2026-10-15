@@ -183,14 +183,7 @@ export const iceMephit: CreatureAuthored = {
               code: S.ACTIVATION_CODE.ACTION,
               amount: 1
             },
-            range: {
-              id: S.actionId(172, 7),
-              rangeKind: S.RANGE_KIND.SPECIAL
-            },
-            targeting: {
-              selectionKind: S.TARGET_SELECTION_KIND.AREA_CONTENTS,
-              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
-            }
+            ...S.selfCone(S.actionId(172, 7), S.actionId(172, 1303), 15)
           },
           paths: [
             {

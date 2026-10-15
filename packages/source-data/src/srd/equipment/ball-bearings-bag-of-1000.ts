@@ -58,7 +58,7 @@ export const ballBearingsBagOf1000: EquipmentAuthored = {
                     id: S.equipmentChildId(S.equipId(122), 0x221, 1),
                     order: 1,
                     label: 'Move across the ball bearings',
-                    interactionKind: 'MOVE_ACROSS' as const,
+                    interactionKind: 'ENTER_OR_PASS_THROUGH' as const,
                     bypassAtHalfSpeed: true,
                     behaviors: [
                       {

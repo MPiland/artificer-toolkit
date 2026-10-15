@@ -5555,10 +5555,14 @@
             },
             {
               "text": "A Creature's authored Senses are structured Sense definitions, so attack-roll sight is definitive for Creatures (no UNKNOWN).",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/rules-runtime/src/__tests__/encounterAttackPerception.test.ts",
+                "packages/rules-runtime/src/__tests__/creatureSnapshotSenses.test.ts",
+                "apps/session-worker/src/roomSceneVision.test.ts"
+              ],
               "origin": [],
-              "note": "D100 UNKNOWN case: Creature senses are free text today.",
+              "note": "Closed 2026-10-15 at the ATTACK-10 split: delivered by VTT_UI-5 (D111, 2026-10-13), which made Creature Senses structured and retired the UNKNOWN sight; the ledger had not been updated.",
               "id": "ATTACK-10.3"
             },
             {
@@ -5583,7 +5587,46 @@
             "tc": 2,
             "rr": 3,
             "size": 5
-          }
+          },
+          "tasks": [
+            {
+              "id": "ATTACK-10.T1",
+              "text": "Hide: a successful Stealth check hides its actor from the creatures that fail to notice it; attacking from hiding has advantage; attacking or being noticed ends it.",
+              "status": "IN_PROGRESS",
+              "closes": ["ATTACK-10.2"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 5,
+                "size": 3
+              },
+              "activeWorkbook": "docs/handoffs/slice-attack-10-t1.md"
+            },
+            {
+              "id": "ATTACK-10.T3",
+              "text": "Opportunity attacks and Disarm apply attack-roll sight; movement-reaction perception applies condition contributions.",
+              "status": "TODO",
+              "closes": ["ATTACK-10.4"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 1,
+                "rr": 2,
+                "size": 3
+              }
+            },
+            {
+              "id": "ATTACK-10.T4",
+              "text": "Saving throws use the believed mode in the prompt and settle in the true mode; player reasons never name a hidden fact.",
+              "status": "TODO",
+              "closes": ["ATTACK-10.5"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 2,
+                "size": 3
+              }
+            }
+          ]
         },
         {
           "id": "ATTACK-11",
@@ -5926,7 +5969,7 @@
                 "tc": 5,
                 "rr": 2,
                 "size": 2,
-                "after": ["ATTACK-17.T3", "ATTACK-10"]
+                "after": ["ATTACK-17.T3", "ATTACK-10.T1"]
               }
             },
             {
@@ -7252,6 +7295,13 @@
               "proof": [],
               "origin": "Follow-up from SPELLS-17 (aba540d19), workbook docs/handoffs/slice-spells-17.md.",
               "note": "commitTokenMove in CampaignVttStage.tsx has no stage-level test; the component and model are covered."
+            },
+            {
+              "id": "SPELLS-17.5",
+              "text": "Every SRD zone whose text triggers when a creature enters the area authors ENTER_OR_PASS_THROUGH (Oil Flask, Blade Barrier, Hunting Trap), proved by source-data tests on each entry.",
+              "status": "TODO",
+              "proof": [],
+              "origin": "Found in SPELLS-17.T1 (e58b9dad8): the same \"enters the area\" wording as Caltrops, authored ENTER_SPACE."
             }
           ],
           "wsjf": {
@@ -7297,6 +7347,19 @@
                 "rr": 3,
                 "size": 1
               }
+            },
+            {
+              "id": "SPELLS-17.T4",
+              "text": "Author Oil Flask, Blade Barrier and Hunting Trap enter components as ENTER_OR_PASS_THROUGH with source-data tests; regenerate the manifest.",
+              "status": "IN_PROGRESS",
+              "closes": ["SPELLS-17.5"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 1,
+                "rr": 2,
+                "size": 1
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-17.md"
             }
           ]
         },
@@ -7337,6 +7400,14 @@
               "origin": [],
               "note": "Registered 2026-10-10 from SPELLS-7 slice 5d, which refuses these at open and commit (refuseAreaEffectOutcomes in apps/session-worker/src/nativeEncounterAreaRules.ts: stateEffect, recurringEffect, relationshipConditionApplications, maintenance). One maintained effect must span every caught creature under one Concentration. Depends on SPELLS-7.",
               "id": "SPELLS-19.1"
+            },
+            {
+              "id": "SPELLS-19.2",
+              "text": "Every SRD breath weapon that leaves a condition (the 21 shaped non-damage breaths, such as the Silver Dragon Wyrmling's Paralyzing Breath, and the Gorgon's Petrifying Breath with its printed repeat save authored) is offered and resolves through the area executor; the SPELLS-21 corpus test's list of non-compiling breaths is empty.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Registered 2026-10-15 at the SPELLS-21 merge (3aa01bf6d): these breaths are authored as areas but listed unavailable, because an area does not yet commit a condition and the Gorgon's SRD repeat save is not authored."
             }
           ],
           "wsjf": {
@@ -7374,17 +7445,22 @@
         {
           "id": "SPELLS-21",
           "title": "SRD breath weapons breathe areas",
-          "status": "TODO",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": ["apps/session-worker/test/nativeRoomSrdBreathJourney.test.ts"],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
               "text": "Every SRD breath weapon (the dragons' breaths, the Behir's Lightning Breath and the rest) is authored in source data as a Self cone or line area with its printed size, save and damage, and an unmodified SRD dragon breathes it in a real room: the caught creatures save, damage applies (half on a success) and the GM can undo it.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "3aa01bf6d",
+                "packages/rules-runtime/src/__tests__/srdBreathWeaponAreas.test.ts (every SRD breath authored as a Self cone or line with its printed size, save and damage; the non-compiling rows are exactly the 21 condition breaths plus the Gorgon)",
+                "apps/session-worker/test/nativeRoomSrdBreathJourney.test.ts (unmodified Black Dragon Wyrmling line and Winter Wolf cone in a real room: saves, full and half damage, out-of-area creatures untouched, GM undo)",
+                "local-validation/merge-s21/summary.log"
+              ],
               "origin": [],
-              "note": "Registered 2026-10-14 from the SPELLS-13 review: source data authors the breaths with SPECIAL range and no area shape (e.g. black-dragon-wyrmling.ts Acid Breath), so no SRD Creature can breathe through the area executor; the SPELLS-13 proofs use a synthetic Self cone action. Breaths that leave a condition (e.g. paralysis or sleep breath) stay refused until SPELLS-19. Needs the SRD manifest regenerated and a reset/reseed. Depends on SPELLS-13; SPELLS-15's area Legendary options reuse it.",
+              "note": "Registered 2026-10-14 from the SPELLS-13 review: source data authors the breaths with SPECIAL range and no area shape (e.g. black-dragon-wyrmling.ts Acid Breath), so no SRD Creature can breathe through the area executor; the SPELLS-13 proofs use a synthetic Self cone action. Breaths that leave a condition (e.g. paralysis or sleep breath) stay refused until SPELLS-19. Needs the SRD manifest regenerated and a reset/reseed. Depends on SPELLS-13; SPELLS-15's area Legendary options reuse it. Merged 3aa01bf6d (2026-10-15): Creature discovery lists an action its System cannot compile as unavailable with the reason, and RESOLVE_ACTION refuses it (DOMAIN_REJECTED / SOURCE_REQUIREMENTS_NOT_MET); the condition breaths move to SPELLS-19.2.",
               "id": "SPELLS-21.1"
             }
           ],
@@ -7393,8 +7469,7 @@
             "tc": 3,
             "rr": 3,
             "size": 5
-          },
-          "activeWorkbook": "docs/handoffs/slice-spells-21.md"
+          }
         },
         {
           "id": "SPELLS-22",
@@ -7538,6 +7613,38 @@
             "tc": 3,
             "rr": 5,
             "size": 5
+          }
+        },
+        {
+          "id": "SPELLS-27",
+          "title": "Effects end on their authored end events",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": [],
+          "acs": [
+            {
+              "id": "SPELLS-27.1",
+              "text": "An effect authored to end on an event ends when its holder triggers it, through one generic end-event consumer: Invisibility ends when the invisible creature makes an attack roll or casts a spell, and GM undo of that attack or cast restores it.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Registered 2026-10-15 from the ATTACK-10.T1 (Hide) design review: only ON_HIT_POINTS_REGAINED has an end-event consumer (mechanicsBatchPersistence.ts); the compiler rejects other grant end events, and Invisibility authors endOnEvents ON_ATTACK_ROLL and ON_CAST_SPELL that nothing reads."
+            },
+            {
+              "id": "SPELLS-27.2",
+              "text": "Every SRD effect whose text ends it on an event (for example Sanctuary when its target attacks or casts a spell on an enemy, Charm Person when the caster or companions harm the target) authors that end event from core options; a corpus test lists any SRD effect left with such text and no authored end event.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Registered 2026-10-15 from the ATTACK-10.T1 (Hide) design review: only ON_HIT_POINTS_REGAINED has an end-event consumer (mechanicsBatchPersistence.ts); the compiler rejects other grant end events, and Invisibility authors endOnEvents ON_ATTACK_ROLL and ON_CAST_SPELL that nothing reads."
+            }
+          ],
+          "wsjf": {
+            "bv": 5,
+            "tc": 2,
+            "rr": 3,
+            "size": 3
           }
         }
       ]

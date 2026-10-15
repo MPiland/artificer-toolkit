@@ -176,6 +176,8 @@ export const gorgon: CreatureAuthored = {
               code: S.ACTIVATION_CODE.ACTION,
               amount: 1
             },
+            // A 30-foot cone waits on SPELLS-19: the breath is a lone on-fail Restrained whose repeat save
+            // is not authored, which the System cannot execute, and an area does not refuse a bare condition.
             range: {
               id: S.actionId(148, 8),
               rangeKind: S.RANGE_KIND.SPECIAL

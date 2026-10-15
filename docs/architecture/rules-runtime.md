@@ -340,7 +340,10 @@ graph's `movementInterruption` output) and an optional lingering modifier-grant 
 `endOnEvents`). Only point shapes (`SPHERE`, `CYLINDER`, `CIRCLE`, a cube) compile; a directed zone (cone, line, a
 Self cube) and any authored feature the System cannot honor in full (a second component, behavior or outcome, an
 unmodeled field, a save DC other than fixed, an end event the System never reads) stay manual with
-`NOT_NORMALIZED`. The System, not the authored zone, owns the placement defaults: `planEncounterPlacedZone` sets
+`NOT_NORMALIZED`. The component's `interactionKind` picks the trigger modes (`ZONE_INTERACTION_TRIGGER_MODES`):
+`ENTER_SPACE` is ENTER (the path ends inside), `MOVE_ACROSS` is CROSS, and `ENTER_OR_PASS_THROUGH` is both. SRD text
+that says a creature "enters the area" (Caltrops, Ball Bearings) authors `ENTER_OR_PASS_THROUGH`, so a drag that
+ends beyond the field still triggers the save and, on a failure, stops at the first field square it entered. The System, not the authored zone, owns the placement defaults: `planEncounterPlacedZone` sets
 `movementKinds` to voluntary, forced and teleport movement, `activation` to `REPEATABLE` and `visibility` to
 `PUBLIC`. The compiled zone stores only the grant contribution the planner reads: the zone row's own
 `recurrence.endOnEvents` stays empty, and the creature's grant takes its end events from the grant template. The
