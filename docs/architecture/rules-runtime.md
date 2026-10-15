@@ -422,9 +422,9 @@ A defeated reactor (D63), a spent allowance, an Unconscious Character and a `REA
 grant (D99) all drop the offer through the same discovery as an action. Only the first eligible reaction
 is offered, only Character reactors, and a reaction taken as an action is refused (`REACTION_TRIGGER_ONLY`) on
 every action path (single-target and area) through `refuseActionOutsideItsWindow`, the one admission point it
-shares with `LEGENDARY_WINDOW_ONLY`. The pause lists every reaction its offer carries (`offeredDecisionOptionIds`,
-shared by the pending summary and resume admission); an answer naming an option the offer does not carry is
-refused as stale. The reaction's effect id is derived from the command and occurrence ids
+shares with `LEGENDARY_WINDOW_ONLY`. Resume admission accepts any option the offer carries
+(`offeredDecisionOptionIds`) and refuses one it does not as stale; the pending summary and Decision drawer still
+show only the first reaction (transport contract and UI widening belong to the SPELL_CAST chain, REACTION-4.T3). The reaction's effect id is derived from the command and occurrence ids
 (`nativeReactionEffectId`), so replaying the answer mints the same id. A reaction that needs rolls or does not
 create exactly one effect on its reactor is refused as `REACTION_UNSUPPORTED`.
 Decision: D26 is extended to hold the Scene for a pending reaction decision.
