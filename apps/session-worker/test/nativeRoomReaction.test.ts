@@ -372,7 +372,7 @@ describe('room reaction to a hit (REACTION-4.4)', () => {
           deathSaves: { successes: 0, failures: 3, stable: false }
         }
       })
-      await strike(room, 0)
+      await strike(room, 0, ['TARGET_DEFEATED'])
       expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
     })
 
