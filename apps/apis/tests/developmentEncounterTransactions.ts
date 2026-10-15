@@ -34,12 +34,19 @@ export async function verifyEncounterTransactions({
   fixture,
   rollback,
   concurrent,
-  checkpoint
+  checkpoint,
+  deliverRoomControl
 }: {
   owner: DevelopmentClient & Pick<ConvexHttpClient, 'action'>
   player: DevelopmentClient
   /** Publishes the room's committed commands; Convex reads show a held Run only after one. */
   checkpoint: () => Promise<void>
+  /**
+   * Delivers the ownership notices Convex queued for the room. Absent against a live backend, whose
+   * scheduler delivers them. The room serves its cached role until the notice arrives, so a step
+   * that depends on the new audience follows the delivery.
+   */
+  deliverRoomControl?: () => Promise<void>
   ownerUserId: string
   playerUserId: string
   campaignId: string
@@ -246,6 +253,7 @@ export async function verifyEncounterTransactions({
     if (transfer[0]!.status === 'rejected')
       // The room plans the former owner's advance as a player, who does not control the actor.
       assert.match(String(transfer[0]!.reason), /NOT_ACTOR_CONTROLLER/)
+    await deliverRoomControl?.()
     // Convex holds the room's commands only after a save point (D86).
     await checkpoint()
     const current = encounterGmProjectionDtoSchema.parse(
@@ -270,6 +278,7 @@ export async function verifyEncounterTransactions({
       await owner.mutation(api.campaigns.ownership.accept, { campaignId })
     }
   }
+  await deliverRoomControl?.()
   assert.equal((await owner.query(api.campaigns.queries.get, { id: campaignId })).role, 'OWNER')
   // Becoming the Campaign owner removes the player's Character assignment.
   assert.deepEqual(

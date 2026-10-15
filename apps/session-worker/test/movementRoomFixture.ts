@@ -498,11 +498,14 @@ export async function movementRoom(config: MovementRoomConfig) {
         : config.autoRoll === 'BOTH'
           ? [base.userId, base.playerId]
           : []
+  /** Set it where a test changes the room's members, as Convex bumps it on every such change. */
+  const campaignRevision: { current: string | null } = { current: null }
   await routeEncounterRequests(base, async (pathname, request) => {
     if (pathname === ROOM_AUTHORIZATION_PATH)
       return Response.json(
         roomAuthorizationResponse({
           members: base.authorization.members,
+          campaignRevision: campaignRevision.current,
           assignments,
           characterRevisions: [
             ...(characterPage
@@ -588,6 +591,7 @@ export async function movementRoom(config: MovementRoomConfig) {
   return {
     base,
     campaignId,
+    campaignRevision,
     encounterId,
     /** The Run's version when the room was built. */
     encounterVersion: state.version,
