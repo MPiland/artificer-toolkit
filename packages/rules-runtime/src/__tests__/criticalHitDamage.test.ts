@@ -91,7 +91,7 @@ describe('critical hits double every damage die of the attack (SRD 5.1)', () => 
           invocation: {
             ...bite.invocation,
             activation: { code: 'REACTION' as const, amount: 1 },
-            reactionMovementTrigger: {
+            reactionTrigger: {
               kind: 'MOVEMENT' as const,
               stage: 'BEFORE_LEAVE_REACH' as const,
               perceptionRequirement: null,

@@ -17,6 +17,8 @@ export function roomAuthorizationResponse(input: {
   play?: LiveSessionRoomAuthorization['play']
   /** Members whose stored preference rolls dice automatically. */
   autoRollUserIds?: readonly string[]
+  /** The Campaign scope revision Convex bumps when memberships, ownership or assignments change. */
+  campaignRevision?: string | null
 }): LiveSessionRoomAuthorizationResponse {
   const members = [...new Map(input.members.map((member) => [member.userId, member])).values()]
   const ownerUserId =
@@ -26,7 +28,7 @@ export function roomAuthorizationResponse(input: {
   return {
     revisions: {
       system: null,
-      campaign: null,
+      campaign: input.campaignRevision ?? null,
       play: null,
       characters: characterRevisions,
       preferences: '0'.repeat(64)

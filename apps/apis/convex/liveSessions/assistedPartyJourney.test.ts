@@ -248,8 +248,10 @@ describe('Three-user Assisted Encounter with auto-roll (ENCOUNTER-5.1)', () => {
     const { send } = conductor()
     await send(party.gm, start(party))
     // The fixture's class feature reaches both Characters, so Aria and Bryn each take two dice and the
-    // Wolf one, whichever order they declare in.
-    const declared = await declarePartyInitiative(party, send, [4, 9, 14, 4, 9])
+    // Wolf one, in whatever order they declare. The faces keep the three best scores at least nine
+    // apart for every order the actors can declare in: a tie would draw unqueued platform dice and,
+    // tied again, leave the Run waiting on a manual order choice.
+    const declared = await declarePartyInitiative(party, send, [0, 1, 10, 2, 19])
     await checkpointLiveRoom(party.campaign.id)
     const scoreOf = (actorId: string) =>
       party.t.run(async (ctx) => {

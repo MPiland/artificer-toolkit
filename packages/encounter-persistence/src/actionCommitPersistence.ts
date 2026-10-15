@@ -181,6 +181,29 @@ export async function persistEncounterActionCommit(
     spell: input.spellConsumption,
     receipts: batch
   })
+  // A reaction the target used spends its own slot and allowance with the outcome it answered.
+  const reaction = batch.kind === 'CHARACTER_MECHANICS_BATCH' ? batch.reaction : null
+  if (
+    reaction &&
+    (target.kind !== 'CHARACTER' ||
+      reaction.reaction.reactorActorId !== target.id ||
+      reaction.reaction.characterId !== target.sourceId)
+  )
+    throw new Error('Live Session reaction scope mismatch.')
+  if (!reaction && input.reactionSpellConsumption)
+    throw new Error('Live Session reaction spell slot has no reaction.')
+  const reactionSpend = sourceSpendMutation({
+    source: target,
+    command: { acceptedWieldConflict: null },
+    resource: null,
+    item: null,
+    spell: input.reactionSpellConsumption,
+    receipts: {
+      resourceConsumption: null,
+      sourceItemConsumption: null,
+      spellCastConsumption: reaction?.spellCastConsumption ?? null
+    }
+  })
   const common = {
     encounterId: state.id,
     expectedEncounterVersion: state.version,
@@ -220,7 +243,8 @@ export async function persistEncounterActionCommit(
     effectiveMaximumHitPoints: batch.targetTransition.before.maximumHitPoints,
     effectiveScalarValues: batch.targetTransition.before.scalarValues,
     forceVersionAdvance: target.kind === 'CHARACTER' && input.createdEffects.length > 0,
-    ...(source.id === target.id ? sourceMutation : {})
+    ...(source.id === target.id ? sourceMutation : {}),
+    ...reactionSpend.mutation
   })
   if (
     checksumCanonicalJson(mechanics.receiptApplications) !==
@@ -240,18 +264,19 @@ export async function persistEncounterActionCommit(
     batch.kind === 'ENCOUNTER_ACTOR_MECHANICS_BATCH' ? batch.targetFeatureResourceConsumption : null
   if (targetCharge && targetCharge.ownerActorId !== target.id)
     throw new Error('Live Session action charge scope mismatch.')
-  const settledTarget = targetCharge
-    ? await settleActionSourceSpend(ctx, {
-        encounterId: state.id,
-        source: mechanics.updatedActor,
-        spend: {
-          featureResourceConsumption: targetCharge,
-          actionEconomyTransition: null,
-          attackActionTransition: undefined
-        },
-        economyOverridden: false
-      })
-    : mechanics.updatedActor
+  const settledTarget =
+    targetCharge || reaction?.actionEconomyTransition
+      ? await settleActionSourceSpend(ctx, {
+          encounterId: state.id,
+          source: mechanics.updatedActor,
+          spend: {
+            featureResourceConsumption: targetCharge,
+            actionEconomyTransition: reaction?.actionEconomyTransition ?? null,
+            attackActionTransition: undefined
+          },
+          economyOverridden: false
+        })
+      : mechanics.updatedActor
   const beforeSource =
     sourceMechanics?.updatedActor ?? (source.id === target.id ? settledTarget : source)
   const settledSource = await settleActionSourceSpend(ctx, {
