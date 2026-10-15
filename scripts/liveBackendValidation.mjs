@@ -25,7 +25,12 @@ import {
 const root = resolve(import.meta.dirname, '..')
 const defaultSteps = ['manifest', 'codegen', 'deploy', 'seed', 'audit']
 
-const options = { container: localConvex.container, fresh: false, logDir: undefined, steps: defaultSteps }
+const options = {
+  container: localConvex.container,
+  fresh: false,
+  logDir: undefined,
+  steps: defaultSteps
+}
 for (const argument of process.argv.slice(2)) {
   const match = /^--(container|steps|log-dir)=(.+)$/u.exec(argument)
   if (argument === '--fresh') options.fresh = true
@@ -38,7 +43,9 @@ for (const name of options.steps) {
   if (!defaultSteps.includes(name)) throw new Error(`Unknown step: "${name}".`)
 }
 if (options.fresh && options.container === localConvex.container) {
-  throw new Error('--fresh would reset the local container deployment env; it is for an ephemeral container.')
+  throw new Error(
+    '--fresh would reset the local container deployment env; it is for an ephemeral container.'
+  )
 }
 
 await assertConvexInstance(localConvex.url, localConvex.instance)

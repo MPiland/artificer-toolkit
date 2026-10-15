@@ -1,6 +1,6 @@
 # Slice workbook: REACTION-4 (non-movement reactions: trigger model)
 
-**Status:** T1 merged (f875185dc, CI 38804169007 green). Next: T5 (merge-review hardening), then T2, T3, T4 in order.
+**Status:** T1 and T5 merged (f875185dc, d98b1264f). Next: T6 (finish AC 4.5: replay test, admission-path test, settle the chosen reaction), then T2, T3, T4 in order.
 **Base:** `codex/phase-08-2-convex-cutover` at this workbook's commit.
 **Rules:** [slice-workbook-rules.md](slice-workbook-rules.md).
 

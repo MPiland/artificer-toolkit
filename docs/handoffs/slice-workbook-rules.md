@@ -29,4 +29,17 @@ Every slice session follows these rules. Its workbook (`docs/handoffs/slice-<id>
 
 ## Report
 
+Before reporting, run one independent review. Spawn a read-only reviewer subagent with a fresh context (`model: "opus"`; it must not check out branches). Give it the diff against your base, the workbook's ACs, and any frozen review list, but not your own conclusions. Require it to do two things:
+
+- map each AC to the test that proves it, and name any part left unproved (an untested branch, replay or idempotency path, or admission path);
+- list band-aids, single-use helpers, duplicated logic, non-null assertions and hard-coded first-element picks.
+
+Triage each finding by how likely it is to happen in early real use and how much harm it does:
+
+- **Fix now:** an unproved AC, a security, privacy or data-loss risk, a broken core rule, or anything likely in ordinary play.
+- **Defer:** a rare path (roughly under 5% of sessions) whose failure is visible and recoverable. Record it, with a concrete example, under "Deferred edge cases" in [future-enhancements.md](../roadmap/future-enhancements.md).
+- **Stands:** nits and naming. Note them in the status log.
+
+Then commit.
+
 When green, commit on your branch and report to the main session: commits, the checklist with red and green log names, validation run, deviations, and open risks.
