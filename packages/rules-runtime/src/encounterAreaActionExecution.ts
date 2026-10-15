@@ -1,5 +1,6 @@
 import {
   spatialTokensInsideArea,
+  spatialTokensWithinSpaceRadius,
   type ScenePoint,
   type SpatialAreaShape,
   type SpatialSceneToken
@@ -59,22 +60,27 @@ export type EncounterAreaTargetTest =
 /**
  * The actors with a token sharing area with an area, in token-id order, each once. A point area
  * catches the caster and allies like anyone else; a directed area starts on the caster's own space
- * (the first token bound to them), never catches it, and needs it (`spatialTokensInsideArea`).
+ * (the first token bound to them), never catches it, and needs it (`spatialTokensInsideArea`). A
+ * caster-centered radius (`fromCasterSpace`) is measured from the edge of the caster's space, never
+ * catches the caster, and needs its token (`spatialTokensWithinSpaceRadius`, D114).
  */
 export function catchEncounterAreaActorIds(input: {
   origin: ScenePoint
   shape: SpatialAreaShape
   casterActorId: string
   tokens: readonly (SpatialSceneToken & { actorId: string })[]
+  fromCasterSpace?: boolean
 }): string[] {
   const { origin, shape, tokens } = input
   const casterToken = tokens.find((token) => token.actorId === input.casterActorId)
-  const tokenIds = spatialTokensInsideArea({
-    origin,
-    shape,
-    tokens,
-    casterTokenId: casterToken?.id
-  })
+  const tokenIds =
+    input.fromCasterSpace && shape.kind === 'RADIUS'
+      ? spatialTokensWithinSpaceRadius({
+          radius: shape.radius,
+          tokens,
+          casterTokenId: casterToken?.id
+        })
+      : spatialTokensInsideArea({ origin, shape, tokens, casterTokenId: casterToken?.id })
   const actorByTokenId = new Map(tokens.map((token) => [token.id, token.actorId]))
   const caught = new Set(tokenIds.map((tokenId) => actorByTokenId.get(tokenId)!))
   return [...caught]

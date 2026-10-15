@@ -16,7 +16,7 @@ import { RoomEncounterStore } from '../src/roomEncounterStore.js'
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import type { ClassFeature } from '../src/testing/srdCharacterSource.js'
 import { legendaryWolf, plainWolf } from '../src/testing/movementPlannerFixture.js'
-import { actionRoom, fireballWolf } from './actionRoomFixture.js'
+import { actionRoom, fireballWolf, frightenOnFailedSave } from './actionRoomFixture.js'
 import { areaReceipts, vitalsOf } from './areaRoomReads.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
 import {
@@ -1044,75 +1044,9 @@ describe('room area commit with Legendary Resistance', () => {
   })
 })
 
-/** A Fireball whose failed save leaves a Frightened Condition for two rounds instead of damage. */
-function conditionFireballWolf() {
-  const frightened = srdSystemRecord.conditionTypes.find(({ code }) => code === 'FRIGHTENED')
-  const dexterityId = srdSystemRecord.abilities?.find(({ code }) => code === 'DEXTERITY')?.id
-  if (!frightened || !dexterityId) throw new Error('Missing frightened condition fixture.')
-  const base = fireballWolf()
-  return creatureAuthoredDtoSchema.parse({
-    ...base,
-    features: base.features?.map((feature) =>
-      feature.label !== 'Bite'
-        ? feature
-        : {
-            ...feature,
-            effects: feature.effects?.map((effect) => ({
-              ...effect,
-              paths: effect.paths.slice(0, 1).map((path) => {
-                if (!('resultBlock' in path)) return path
-                return {
-                  id: path.id,
-                  order: path.order,
-                  pathCode: 'ON_SAVE_FAIL' as const,
-                  groupType: 'SEQUENTIAL' as const,
-                  originKind: 'SOURCE' as const,
-                  selectionKind: 'FIXED' as const,
-                  resultBlock: {
-                    id: '00000000-0000-4000-8000-000000000099',
-                    resultKind: 'SEQUENCE' as const,
-                    duration: {
-                      id: '00000000-0000-4000-8000-000000000098',
-                      durationKind: 'ROUND' as const,
-                      amount: 2
-                    },
-                    outcomes: [
-                      {
-                        id: '00000000-0000-4000-8000-0000000000ab',
-                        effectKind: 'CONDITION' as const,
-                        conditionId: frightened.id
-                      },
-                      {
-                        id: '00000000-0000-4000-8000-0000000000ac',
-                        effectKind: 'FOLLOW_UP_SAVE' as const,
-                        timing: 'TARGET_TURN_END' as const,
-                        savingThrow: {
-                          id: '00000000-0000-4000-8000-0000000000ad',
-                          dcMethod: 'FIXED_DC' as const,
-                          abilityDefinitionId: dexterityId,
-                          baseDc: 10
-                        },
-                        attempts: {
-                          kind: 'ONCE' as const,
-                          repeatOnFailure: true
-                        },
-                        onSuccess: { kind: 'END' as const },
-                        onFailure: { kind: 'CONTINUE' as const },
-                        onDurationComplete: { kind: 'END' as const }
-                      }
-                    ]
-                  }
-                }
-              })
-            }))
-          }
-    )
-  })
-}
-
 describe('room area action that leaves an effect behind', () => {
   it('is refused whole when it opens, spending and changing nothing', async () => {
-    const creature = conditionFireballWolf()
+    const creature = frightenOnFailedSave(fireballWolf())
     const room = await actionRoom({
       actors: [
         srdCreatureActor({ id: CASTER_ID, creature }),
