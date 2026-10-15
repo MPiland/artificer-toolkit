@@ -7,6 +7,7 @@ import {
   AUTHORING_SELECTION_KIND,
   CLASS_CATEGORY,
   CLOSED_RULE_KIND,
+  DURATION_KIND,
   EFFECT_KIND,
   EQUIPMENT_CATEGORY_CODE,
   EQUIPMENT_PROPERTY_CODE,
@@ -28,10 +29,19 @@ import {
   type ActivationCode,
   type ClassAuthored,
   type ClosedRuleKind,
-  type EffectAuthored
+  type EffectAuthored,
+  type FacetAuthored,
+  type ModifierGrantAuthored
 } from '@artificer-toolkit/shared'
+import { conditionTypeId } from '../equipment/shared.js'
 import { CLASS_IDS } from '../ids.js'
-import { SRD_CURRENCIES, SRD_SKILLS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
+import {
+  SRD_CURRENCIES,
+  SRD_DAMAGE_TYPES,
+  SRD_SKILLS,
+  SRD_SYSTEM_ID,
+  SRD_USER_ID
+} from '../vocabulary.js'
 import {
   abilityScoreImprovementOptions,
   attacksPerAttackActionGrant,
@@ -175,6 +185,176 @@ const rageCharge = {
     { id: classRowId(B, 1, 20), level: 19, amount: 6 },
     { id: classRowId(B, 1, 21), level: 20, amount: 0 } // Unlimited at 20
   ]
+}
+
+/** The Rage Damage column of the Barbarian table, by class level band. */
+const RAGE_DAMAGE_BANDS: readonly { amount: number; min: number; max?: number }[] = [
+  { amount: 2, min: 1, max: 8 },
+  { amount: 3, min: 9, max: 15 },
+  { amount: 4, min: 16 }
+]
+
+/** Rage damage applies to the attack when the holder is in that level band and attacked with Strength. */
+function rageDamageRestriction(
+  { min, max }: (typeof RAGE_DAMAGE_BANDS)[number],
+  band: number
+): FacetAuthored {
+  const id = (entry: number) => classRowId(B, 0x85, band * 8 + entry)
+  return {
+    id: id(0),
+    groups: [
+      {
+        id: id(1),
+        order: 0,
+        contexts: [
+          {
+            id: id(2),
+            order: 0,
+            subject: 'CHARACTER',
+            conditions: [
+              {
+                id: id(3),
+                order: 0,
+                kind: 'PREDICATE',
+                constraint: 'INCLUDE',
+                predicateCode: 'CLASS_LEVEL',
+                classIds: [CLASS_IDS.BARBARIAN],
+                min,
+                ...(max === undefined ? {} : { max })
+              }
+            ]
+          },
+          {
+            id: id(4),
+            order: 1,
+            subject: 'EQUIPMENT',
+            authoringModeKind: 'ALL',
+            conditions: [
+              {
+                id: id(5),
+                order: 0,
+                kind: 'PREDICATE',
+                constraint: 'INCLUDE',
+                predicateCode: 'ATTACK_ABILITY',
+                ability: ABILITY_CODE.STRENGTH
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
+
+function rageDamageTypeId(code: string): string {
+  const entry = SRD_DAMAGE_TYPES.find((damageType) => damageType.code === code)
+  if (!entry) throw new Error(`SRD damage type vocabulary entry for ${code} required.`)
+  return entry.id
+}
+
+/**
+ * Rage: a bonus action that spends one Rage charge and grants the rage for 1 minute. The holder or
+ * the GM can end it and being knocked unconscious ends it; the grant carries the benefits and the spellcasting
+ * lock.
+ */
+function rageEffect(): EffectAuthored {
+  const grantShape = {
+    grantKind: GRANT_KIND.MODIFIER_GRANT,
+    scope: MODIFIER_SCOPE_KIND.GLOBAL,
+    selectionKind: AUTHORING_SELECTION_KIND.GRANTED
+  } as const
+  const damageBonuses = RAGE_DAMAGE_BANDS.map((band, index): ModifierGrantAuthored => ({
+    ...grantShape,
+    id: classRowId(B, 0x84, index + 1),
+    valueDomainCode: VALUE_DOMAIN_CODE.DAMAGE,
+    domain: { attackDomain: 'MELEE' },
+    modifierKind: MODIFIER_KIND.BONUS,
+    payload: { valueKind: 'FIXED', amount: band.amount },
+    order: index,
+    restrictions: rageDamageRestriction(band, index)
+  }))
+  const resistances = ['BLUDGEONING', 'PIERCING', 'SLASHING'].map(
+    (code, index): ModifierGrantAuthored => ({
+      ...grantShape,
+      id: classRowId(B, 0x84, 4 + index),
+      valueDomainCode: VALUE_DOMAIN_CODE.DAMAGE_RESISTANCE,
+      domain: {},
+      modifierKind: MODIFIER_KIND.ADD_OPTION,
+      payload: { damageTypeId: rageDamageTypeId(code) },
+      order: 3 + index
+    })
+  )
+  const strengthAdvantages: ModifierGrantAuthored[] = [
+    {
+      ...grantShape,
+      id: classRowId(B, 0x84, 7),
+      valueDomainCode: VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER,
+      domain: { ability: ABILITY_CODE.STRENGTH },
+      modifierKind: MODIFIER_KIND.ADVANTAGE,
+      order: 6
+    },
+    {
+      ...grantShape,
+      id: classRowId(B, 0x84, 8),
+      valueDomainCode: VALUE_DOMAIN_CODE.ABILITY_CHECK,
+      domain: { ability: ABILITY_CODE.STRENGTH },
+      modifierKind: MODIFIER_KIND.ADVANTAGE,
+      order: 7
+    }
+  ]
+  const spellcastingLock: ModifierGrantAuthored = {
+    ...grantShape,
+    id: classRowId(B, 0x84, 9),
+    valueDomainCode: VALUE_DOMAIN_CODE.SPELLCASTING_LOCK,
+    domain: {},
+    modifierKind: MODIFIER_KIND.ENABLE,
+    order: 8
+  }
+  return {
+    id: classRowId(B, 0x60, 1),
+    order: 1,
+    invocation: {
+      kind: 'ACTION',
+      triggerCode: TRIGGER.ACTIVATED,
+      resourceUse: { chargeId: rageCharge.id, cost: 1 },
+      activation: { code: ACTIVATION_CODE.BONUS_ACTION, amount: 1 },
+      range: { id: classRowId(B, 0x69, 1), rangeKind: RANGE_KIND.SELF },
+      targeting: { selectionKind: 'SELF' }
+    },
+    paths: [
+      {
+        id: classRowId(B, 0x80, 1),
+        order: 1,
+        pathCode: PATH_CODE.ON_USE,
+        groupType: PATH_GROUP_TYPE.SINGLE,
+        originKind: 'SOURCE',
+        selectionKind: 'FIXED',
+        resultBlock: {
+          id: classRowId(B, 0x81, 1),
+          resultKind: 'SINGLE',
+          duration: { id: classRowId(B, 0x83, 1), durationKind: DURATION_KIND.MINUTE, amount: 1 },
+          lifecycle: {
+            endOnConditionIds: [conditionTypeId('UNCONSCIOUS')],
+            holderEnd: { activation: 'BONUS_ACTION' }
+          },
+          outcomes: [
+            {
+              id: classRowId(B, 0x82, 1),
+              effectKind: EFFECT_KIND.APPLY_GRANT,
+              grants: {
+                modifiers: [
+                  ...damageBonuses,
+                  ...resistances,
+                  ...strengthAdvantages,
+                  spellcastingLock
+                ]
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }
 }
 
 export const barbarian: ClassAuthored = {
@@ -451,14 +631,7 @@ export const barbarian: ClassAuthored = {
       label: 'Rage',
       description:
         "In battle, you fight with primal ferocity. On your turn, you can enter a rage as a bonus action.\n\nWhile raging, you gain the following benefits if you aren't wearing heavy armor:\n\n* You have advantage on Strength checks and Strength saving throws.\n* When you make a melee weapon attack using Strength, you gain a bonus to the damage roll that increases as you gain levels as a barbarian, as shown in the Rage Damage column of the Barbarian table.\n* You have resistance to bludgeoning, piercing, and slashing damage.\n\nIf you are able to cast spells, you can't cast them or concentrate on them while raging.\n\nYour rage lasts for 1 minute. It ends early if you are knocked unconscious or if your turn ends and you haven't attacked a hostile creature since your last turn or taken damage since then. You can also end your rage on your turn as a bonus action.\n\nOnce you have raged the number of times shown for your barbarian level in the Rages column of the Barbarian table, you must finish a long rest before you can rage again.",
-      effects: [
-        selfClassRuleEffect(
-          1,
-          CLOSED_RULE_KIND.CLASS_BARBARIAN_RAGE,
-          ACTIVATION_CODE.BONUS_ACTION,
-          rageCharge.id
-        )
-      ],
+      effects: [rageEffect()],
       availableAtLevel: 1,
       order: 0
     },

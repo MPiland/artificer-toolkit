@@ -170,7 +170,8 @@ export interface EncounterWritePorts<CharacterSources = never> extends Encounter
   ): Promise<void>
   /**
    * Logs a settled Concentration check as a rules roll entry, once per check. Returns the table
-   * entry it posted; a private check posts none.
+   * entry it posted; a private check posts none and is retained for the GM, and for the
+   * player who controls the hidden creature, through `retainPrivateRoll`.
    */
   recordConcentrationCheckRoll(input: {
     state: EncounterRunState

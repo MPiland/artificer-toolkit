@@ -10,6 +10,7 @@ import {
 } from '../../tests/fixtures/concentration'
 import { api } from '../_generated/api'
 import { readCharacterRecord, readCharacterRow } from '../characters/stateDocuments'
+import { createPartyPlayer } from '../../tests/fixtures/partyPlayer'
 import { storeRunAutomationMode } from '../../tests/fixtures/playerControl'
 import type { FixtureRolls } from '../../tests/fixtures/rollPreferences'
 import {
@@ -53,7 +54,10 @@ function response(
     encounterVersion: number
     occurrenceId: string
     occurrenceVersion: number
-    request: { requestId: string; rollMode: 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE' }
+    request: {
+      requestId: string
+      rollMode: 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE'
+    }
   },
   answer: number | { rollId: string }
 ) {
@@ -121,7 +125,9 @@ it('pauses an Assisted concentration child and settles success without cleanup',
     }
   })
   expect(rolled.evidenceRoll).toMatchObject({ faces: [20], value: 20 })
-  const command = response(fixture.run.id, pending, { rollId: rolled.evidenceRoll!.rollId })
+  const command = response(fixture.run.id, pending, {
+    rollId: rolled.evidenceRoll!.rollId
+  })
   const pendingRow = staged.pending[0]
   if (!pendingRow) throw new Error('Expected stored concentration child.')
   const colliding = {
@@ -166,7 +172,9 @@ it('raises no concentration prompt in a Manual Run, where the damaging action is
     executeInRoom(fixture.owner.caller, {
       command: concentrationAction(fixture)
     })
-  ).rejects.toMatchObject({ data: { code: 'DOMAIN_REJECTED', reason: 'ASSISTED_ONLY' } })
+  ).rejects.toMatchObject({
+    data: { code: 'DOMAIN_REJECTED', reason: 'ASSISTED_ONLY' }
+  })
   expect(await records(fixture)).toEqual(before)
   expect(before.states.map((state) => state.id)).toContain(seeded.state.id)
   for (const member of [fixture.owner, fixture.player])
@@ -290,7 +298,9 @@ it.each([
     const { fixture, seeded } = await creatureHolderFixture('AUTO_ROLL')
     const root = concentrationAction(fixture)
     await queueRoomRolls(fixture.campaign.id, { rolls: [face - 1] })
-    const settled = await executeInRoom(fixture.owner.caller, { command: root })
+    const settled = await executeInRoom(fixture.owner.caller, {
+      command: root
+    })
     expect(settled.occurrence?.status).toBe('COMPLETE')
     expect(await pendingFor(fixture, fixture.owner)).toBeNull()
     const after = await records(fixture)
@@ -304,6 +314,46 @@ it.each([
   },
   60_000
 )
+
+it('keeps a hidden Creature holder’s check card for the GM and the player who controls it (ATTACK-17.6)', async () => {
+  const fixture = await setupConcentration('AUTO_ROLL', undefined, 'CREATURE')
+  await seedConcentration({ ...fixture, creatureHolder: true })
+  const other = await createPartyPlayer(fixture.t, fixture.campaign)
+  await other.join()
+  await attachFixtureRoom(fixture.t, fixture.campaign.id)
+  // The holder is hidden from the table (D62) and its save is the player's to roll.
+  await executeInRoom(fixture.owner.caller, {
+    command: {
+      type: 'UPDATE_ACTOR',
+      encounterId: fixture.run.id,
+      commandId: crypto.randomUUID(),
+      expectedVersion: (await concentrationRecords(fixture)).run!.version,
+      actorId: fixture.target.id,
+      public: false,
+      controllerUserIds: [fixture.player.userId]
+    }
+  })
+  await queueRoomRolls(fixture.campaign.id, { rolls: [0] })
+  const settled = await executeInRoom(fixture.owner.caller, {
+    command: concentrationAction(fixture, (await records(fixture)).run!.version)
+  })
+  expect(settled.occurrence?.status).toBe('COMPLETE')
+  await checkpointLiveRoom(fixture.campaign.id)
+  const [gmCard] = await fixture.owner.caller.query(api.rolls.history, {})
+  const playerCards = await fixture.player.caller.query(api.rolls.history, {})
+  expect(gmCard).toMatchObject({
+    gmCampaignRoll: {
+      creature: { actorId: fixture.target.id },
+      revealedAt: null
+    }
+  })
+  expect(playerCards).toEqual([expect.objectContaining({ id: gmCard!.id, gmCampaignRoll: null })])
+  expect(await other.caller.query(api.rolls.history, {})).toEqual([])
+  // Nothing reached the table's chat.
+  expect(await readRoomRollCards(fixture.owner.caller, fixture.campaign.id)).not.toContainEqual(
+    expect.objectContaining({ id: gmCard!.id })
+  )
+}, 60_000)
 
 it('pauses a Creature holder’s Concentration check for the GM and settles the answer', async () => {
   const { fixture, seeded } = await creatureHolderFixture('PROMPT')

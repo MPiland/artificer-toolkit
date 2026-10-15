@@ -1784,6 +1784,19 @@ function createFacetPredicateNodeMap(
         )
       )
       .set(
+        'ability',
+        selectSingle(
+          ['ability'],
+          'Attack Ability',
+          { kind: 'INLINE_OPTIONS', options: ABILITY_OPTIONS },
+          {
+            order: 3,
+            showIf: local.field(['predicateCode']).eq('ATTACK_ABILITY'),
+            requiredIf: local.field(['predicateCode']).eq('ATTACK_ABILITY')
+          }
+        )
+      )
+      .set(
         'category',
         selectSingle(
           ['category'],

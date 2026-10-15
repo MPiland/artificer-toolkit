@@ -4,6 +4,7 @@ import {
   installedSrdCreature,
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
+import { plannedModifierGrant } from '@artificer-toolkit/rules-runtime/testing/modifierGrantFixture'
 import { blackDragonWyrmling } from '@artificer-toolkit/source-data/srd/creatures/black-dragon-wyrmling.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -11,13 +12,14 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { plainWolf } from '../src/testing/movementPlannerFixture.js'
 import { actionRoom, biteWolf } from './actionRoomFixture.js'
-import { closeTrackedSockets } from './liveRoomFixture.js'
+import { closeTrackedSockets, connectPlayer } from './liveRoomFixture.js'
 import { dependentEffectDefinition } from './movementRoomFixture.js'
 import {
   parseReceiptExecution,
   readPendingActionDecision,
   readRoomChatBodies,
   readRoomHistory,
+  readRoomPrivateRollHolders,
   type RoomHistory
 } from './roomHistoryReads.js'
 
@@ -59,9 +61,16 @@ function concentratingRoom(
     seed: async ({ effects, encounterId, occurredAt }) => {
       await effects.create({
         id: INDEPENDENT_EFFECT_ID,
-        owner: { kind: 'ENCOUNTER_ACTOR', encounterId, targetActorId: DEPENDENT_HOLDER_ID },
+        owner: {
+          kind: 'ENCOUNTER_ACTOR',
+          encounterId,
+          targetActorId: DEPENDENT_HOLDER_ID
+        },
         lifecycle: { schemaVersion: 1, remainingTicks: 3 },
-        definition: dependentEffectDefinition({ encounterId, sourceActorId: DEPENDENT_HOLDER_ID }),
+        definition: dependentEffectDefinition({
+          encounterId,
+          sourceActorId: DEPENDENT_HOLDER_ID
+        }),
         occurredAt
       })
     }
@@ -99,7 +108,10 @@ async function startedBite(room: ConcentratingRoom) {
 describe('room Concentration checks', () => {
   it('pauses on the Character’s player and keeps the Concentration on a successful save', async () => {
     // The Wolf's attack die shows 19 and hits for 1 damage.
-    const room = await concentratingRoom({ autoRoll: 'GAME_MASTER', rolls: [18] })
+    const room = await concentratingRoom({
+      autoRoll: 'GAME_MASTER',
+      rolls: [18]
+    })
     const before = await readRoomHistory(room.room.base.stub)
     expect(before.maintainedStates).toHaveLength(1)
     await startedBite(room)
@@ -130,7 +142,10 @@ describe('room Concentration checks', () => {
   })
 
   it('ends the exact Concentration and its dependent effect on a failed save, keeping an independent one', async () => {
-    const room = await concentratingRoom({ autoRoll: 'GAME_MASTER', rolls: [18] })
+    const room = await concentratingRoom({
+      autoRoll: 'GAME_MASTER',
+      rolls: [18]
+    })
     const before = await readRoomHistory(room.room.base.stub)
     const [dependentId] = room.room.dependentEffectIds
     expect(effectIds(before)).toEqual(expect.arrayContaining([dependentId, INDEPENDENT_EFFECT_ID]))
@@ -160,7 +175,10 @@ describe('room Concentration checks', () => {
     'settles an auto-rolled Concentration save atomically for $outcome',
     async ({ face, outcome, kept }) => {
       // The attack die shows 19; the Character's player auto-rolls the save die.
-      const room = await concentratingRoom({ autoRoll: 'BOTH', rolls: [18, face - 1] })
+      const room = await concentratingRoom({
+        autoRoll: 'BOTH',
+        rolls: [18, face - 1]
+      })
       const [dependentId] = room.room.dependentEffectIds
       await startedBite(room)
       expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
@@ -299,7 +317,11 @@ describe('room Concentration ends without a check (D95)', () => {
   })
 
   it.each([
-    { name: 'defeated', holder: { currentHitPoints: 1 }, reason: 'DEFEATED' as const },
+    {
+      name: 'defeated',
+      holder: { currentHitPoints: 1 },
+      reason: 'DEFEATED' as const
+    },
     {
       name: 'Paralyzed',
       holder: { conditionIds: [conditionId('PARALYZED')] },
@@ -341,7 +363,10 @@ describe('room Concentration ends without a check (D95)', () => {
   )
 
   it('posts no notice for a hidden Creature’s end, which is private like its check card', async () => {
-    const room = await creatureHolderRoom({ conditionIds: [conditionId('STUNNED')], hidden: true })
+    const room = await creatureHolderRoom({
+      conditionIds: [conditionId('STUNNED')],
+      hidden: true
+    })
     const { answer } = await room.startAction(HOLDER_ID)
     expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
     const after = await readRoomHistory(room.room.base.stub)
@@ -351,7 +376,10 @@ describe('room Concentration ends without a check (D95)', () => {
   })
 
   it('ends a Character’s Concentration while a Sheet condition stops it acting, posting the table notice', async () => {
-    const stunned = { conditionTypeId: conditionId('STUNNED'), label: 'Stunned' }
+    const stunned = {
+      conditionTypeId: conditionId('STUNNED'),
+      label: 'Stunned'
+    }
     const room = await concentratingRoom({
       autoRoll: 'GAME_MASTER',
       rolls: [18],
@@ -366,6 +394,73 @@ describe('room Concentration ends without a check (D95)', () => {
     expect(await readRoomChatBodies(room.room.base.stub)).toEqual([
       expect.stringMatching(/can't act and loses Concentration\.$/)
     ])
+  })
+
+  describe('grants that end on incapacitation (Rage)', () => {
+    const ENDING_GRANT_ID = testUuid(0x805)
+    const KEPT_GRANT_ID = testUuid(0x806)
+    /** A Paralyzed holder with one grant that ends on incapacitation and one that does not, hit by a Bite. */
+    function grantHolderRoom() {
+      const attacker = biteWolf('ATTACK')
+      return actionRoom({
+        autoRoll: 'GAME_MASTER',
+        rolls: [18],
+        actors: [
+          srdCreatureActor({ id: ATTACKER_ID, creature: attacker }),
+          srdCreatureActor({
+            id: HOLDER_ID,
+            creature: plainWolf,
+            conditionIds: [conditionId('PARALYZED')]
+          })
+        ],
+        ownerFeatureId: creatureFeature(attacker, 'Bite').id,
+        seed: async ({ effects, encounterId, occurredAt }) => {
+          for (const [id, endOnEvents] of [
+            [ENDING_GRANT_ID, ['ON_INCAPACITATED']],
+            [KEPT_GRANT_ID, []]
+          ] as const)
+            await effects.create({
+              id,
+              owner: { kind: 'ENCOUNTER_ACTOR', encounterId, targetActorId: HOLDER_ID },
+              lifecycle: { schemaVersion: 1, remainingTicks: 10 },
+              definition: plannedModifierGrant({
+                encounterId,
+                sourceActorId: HOLDER_ID,
+                holderActorId: HOLDER_ID,
+                lifecycle: { endOnEvents: [...endOnEvents] },
+                rounds: 10
+              }).definition,
+              occurredAt
+            })
+        }
+      })
+    }
+
+    it('ends only the grants that end on it, in the commit where the holder is found incapacitated', async () => {
+      const room = await grantHolderRoom()
+      expect(effectIds(await readRoomHistory(room.room.base.stub))).toEqual(
+        expect.arrayContaining([ENDING_GRANT_ID, KEPT_GRANT_ID])
+      )
+      const { answer } = await room.startAction(HOLDER_ID)
+      expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+      expect(effectIds(await readRoomHistory(room.room.base.stub))).toEqual([KEPT_GRANT_ID])
+    })
+
+    it('restores the ended grant when the GM undoes the action', async () => {
+      const room = await grantHolderRoom()
+      const { answer } = await room.startAction(HOLDER_ID)
+      expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+      const undone = await room.send({
+        type: 'REVERT_LAST_ACTION',
+        encounterId: room.room.encounterId,
+        commandId: crypto.randomUUID(),
+        expectedVersion: await room.version()
+      })
+      expect(undone.type, JSON.stringify(undone)).toBe('COMMAND_COMMITTED')
+      expect(effectIds(await readRoomHistory(room.room.base.stub))).toEqual(
+        expect.arrayContaining([ENDING_GRANT_ID, KEPT_GRANT_ID])
+      )
+    })
   })
 
   it('keeps a Character’s Concentration while it is only Grappled and Restrained (speed 0), asking for the check', async () => {
@@ -384,6 +479,92 @@ describe('room Concentration ends without a check (D95)', () => {
     expect(concentrationEnds(after)).toEqual([])
     expect(after.maintainedStates).toHaveLength(1)
     expect((await room.pendingDecision()).pending.kind).toBe('D20_EVIDENCE')
+  })
+})
+
+describe('room Concentration check of a hidden Creature a player controls (ATTACK-17.6)', () => {
+  /** The room's second player controls the hidden holder; the room's first player controls nothing of it. */
+  function hiddenControlledHolderRoom(rolls: number[]) {
+    const attacker = biteWolf('ATTACK')
+    return actionRoom({
+      autoRoll: 'BOTH',
+      rolls,
+      otherPlayerControlledActorIds: [HOLDER_ID],
+      actors: [
+        srdCreatureActor({ id: ATTACKER_ID, creature: attacker }),
+        {
+          ...srdCreatureActor({ id: HOLDER_ID, creature: plainWolf }),
+          public: false
+        },
+        srdCreatureActor({ id: DEPENDENT_HOLDER_ID, creature: plainWolf })
+      ],
+      ownerFeatureId: creatureFeature(attacker, 'Bite').id,
+      concentration: true,
+      concentrationOwnerActorId: HOLDER_ID,
+      concentrationDependentActorIds: [DEPENDENT_HOLDER_ID]
+    })
+  }
+
+  const privateRollsIn = (messages: Awaited<ReturnType<typeof connectPlayer>>['messages']) =>
+    messages.flatMap((message) =>
+      message.type === 'COMMAND_COMMITTED' &&
+      message.delta?.scope === 'CAMPAIGN_CHAT' &&
+      message.delta.privateRoll
+        ? [message.delta.privateRoll]
+        : []
+    )
+
+  it('delivers the check card to the controlling player alone and keeps the GM’s card bound to the creature', async () => {
+    const room = await hiddenControlledHolderRoom([18])
+    const { base } = room.room
+    const controller = await connectPlayer(base, 'OTHER_PLAYER')
+    const bystander = await connectPlayer(base)
+
+    const { answer } = await room.startAction(HOLDER_ID)
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+
+    // The player controls the hidden holder, so its save is theirs to roll; the table sees no prompt card.
+    const decision = await room.pendingDecision()
+    if (decision.pending.kind !== 'D20_EVIDENCE') throw new Error('Expected a concentration save.')
+    const { request } = decision.pending
+    const settled = await room.resolve(decision, {
+      kind: 'ENTER_DICE',
+      requestId: request.requestId,
+      rawFaces: [20],
+      rollMode: request.rollMode
+    })
+    expect(settled.type, JSON.stringify(settled)).toBe('COMMAND_COMMITTED')
+
+    await vi.waitFor(() => expect(privateRollsIn(controller.messages)).toHaveLength(1))
+    const [own] = privateRollsIn(controller.messages)
+    expect(own).toMatchObject({ gmCampaignRoll: null })
+    expect(privateRollsIn(base.messages)).toEqual([
+      expect.objectContaining({
+        id: own!.id,
+        gmCampaignRoll: expect.objectContaining({
+          creature: expect.objectContaining({ actorId: HOLDER_ID }),
+          revealedAt: null,
+          noticedAt: null
+        })
+      })
+    ])
+    // The other player's socket and the table learn nothing of the card.
+    expect(privateRollsIn(bystander.messages)).toEqual([])
+    expect(JSON.stringify(bystander.messages)).not.toContain(own!.id)
+    expect(await readRoomChatBodies(base.stub)).toEqual([])
+
+    // The room retains the card for the GM and the controller only; this is what a checkpoint replays.
+    const holders = await readRoomPrivateRollHolders(base.stub)
+    expect(
+      holders.map(({ userId, rollId, gmCampaignRoll }) => [userId, rollId, gmCampaignRoll !== null])
+    ).toEqual(
+      expect.arrayContaining([
+        [base.userId, own!.id, true],
+        [base.otherPlayerId, own!.id, false]
+      ])
+    )
+    expect(holders).toHaveLength(2)
+    expect(concentrationChecks(await readRoomHistory(base.stub))).toHaveLength(1)
   })
 })
 
@@ -419,7 +600,10 @@ describe('room Concentration checks held by a Creature', () => {
     expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
     const after = await readRoomHistory(room.room.base.stub)
     expect(concentrationChecks(after)).toMatchObject([
-      { outcome: 'SAVE_SUCCESS', d20: { selectedNatural: 7, modifier: 3, total: 10, dc: 10 } }
+      {
+        outcome: 'SAVE_SUCCESS',
+        d20: { selectedNatural: 7, modifier: 3, total: 10, dc: 10 }
+      }
     ])
     expect(after.maintainedStates).toHaveLength(1)
   })

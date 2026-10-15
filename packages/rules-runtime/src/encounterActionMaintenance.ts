@@ -14,6 +14,8 @@ import {
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { readEncounterActorConditionState } from './encounterCharacterMechanicsBatch.js'
 import { effectiveHitPointMaximum } from './character/activeEffectGrantTotals.js'
+import { encounterGrantsEnabledDomain } from './encounterActiveGrants.js'
+import { EncounterValidationError, SpellcastingLockedError } from './encounterErrors.js'
 import { planConcentrationCarriedGrantEnds } from './encounterGrantLifetimes.js'
 
 /** Selects and validates current maintenance before the caller consumes action evidence. */
@@ -22,6 +24,8 @@ export async function prepareEncounterActionMaintenance<TOwners extends object>(
     Awaited<ReturnType<typeof prepareEncounterActionMechanics>>,
     'state' | 'actor' | 'plan' | 'source' | 'adapter'
   >
+  /** The acting actor's active effects; a `SPELLCASTING_LOCK` grant among them bars a new Concentration. */
+  activeEffects: readonly ActiveRuleEffectRecord[]
   readDefinition: (definitionId: string) => Promise<ReusableDefinitionCurrentDto | null>
   readSlot: (definitionId: string) => Promise<{
     state: EncounterMaintainedEffectStateRecord | null
@@ -51,6 +55,8 @@ export async function prepareEncounterActionMaintenance<TOwners extends object>(
     throw new Error('Encounter action selected multiple maintenance policies.')
   const policy = policies[0]
   if (!policy) return null
+  if (encounterGrantsEnabledDomain(input.activeEffects, 'SPELLCASTING_LOCK'))
+    throw new SpellcastingLockedError()
   const definition = await input.readDefinition(policy.definitionId)
   if (
     !definition ||

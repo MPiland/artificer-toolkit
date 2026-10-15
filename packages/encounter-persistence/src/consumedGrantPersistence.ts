@@ -54,6 +54,51 @@ export async function endGrantsOnHitPointsRegained(
   return ended
 }
 
+/**
+ * What an action's undo gives back: the grants its rolls used up and the grants an incapacitation
+ * it caused ended (D113). Every commit that roots an action builds its receipt through this.
+ */
+export function receiptConsumedGrants(input: {
+  consumedGrants?: readonly ActiveRuleEffectRecord[]
+  endedGrants: readonly ActiveRuleEffectRecord[]
+}) {
+  return [...(input.consumedGrants ?? []), ...input.endedGrants]
+}
+
+/**
+ * A response committed after its action's root (a Cleaving choice, answering the action's
+ * occurrence) can end grants too: the root's receipt takes them, so the action's undo gives them
+ * back with everything else.
+ */
+export async function addEndedGrantsToRoot(
+  ctx: EncounterPersistenceTransaction,
+  input: {
+    campaignId: string
+    actionOccurrenceId: string
+    endedGrants: readonly ActiveRuleEffectRecord[]
+  }
+) {
+  if (!input.endedGrants.length) return
+  const occurrence = await ctx.db
+    .query('encounterRuleOccurrences')
+    .withIndex('by_publicId', (q) => q.eq('id', input.actionOccurrenceId))
+    .unique()
+  if (!occurrence) throw new Error('Stored action occurrence is missing.')
+  const root = await ctx.db
+    .query('encounterRunCommands')
+    .withIndex('by_campaignId_commandId', (q) =>
+      q.eq('campaignId', input.campaignId).eq('commandId', occurrence.rootCommandId)
+    )
+    .unique()
+  if (root?.commandType !== 'RESOLVE_ACTION') throw new Error('Stored action root is missing.')
+  await ctx.db.patch(root._id, {
+    consumedGrants: receiptConsumedGrants({
+      consumedGrants: root.consumedGrants,
+      endedGrants: input.endedGrants
+    })
+  })
+}
+
 /** Gives back the exact records an undone roll had used up: same ordinal, version and timestamps. */
 export async function restoreConsumedGrants(
   ctx: EncounterWriteContext,

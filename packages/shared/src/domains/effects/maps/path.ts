@@ -62,6 +62,7 @@ import {
   ACTION_ECONOMY_RULE_KIND_OPTIONS,
   CLOSED_RULE_KIND_OPTIONS,
   SIZE_OPTIONS,
+  ACTIVATION_OPTIONS,
   type Trigger
 } from '#core'
 import {
@@ -198,6 +199,7 @@ const SUMMON_VISIBILITY_OPTIONS = valuesOf(
 
 const pathLifecycle = buildNodeMap<PathLifecycleAuthored>()
 const pathLifecycleTurnAnchor = buildNodeMap<NonNullable<PathLifecycleAuthored['turnAnchor']>>()
+const pathLifecycleHolderEnd = buildNodeMap<NonNullable<PathLifecycleAuthored['holderEnd']>>()
 const applyGrants = buildNodeMap<ApplyGrantsNode>()
 const summonAbilityScores = buildNodeMap<SummonAbilityScoresNode>()
 const summonStatBlock = buildNodeMap<SummonStatBlockAuthored>()
@@ -295,10 +297,26 @@ const PATH_LIFECYCLE_TURN_ANCHOR_NODE_MAP: NodeMap<
     )
 })
 
+const PATH_LIFECYCLE_HOLDER_END_NODE_MAP: NodeMap<NonNullable<PathLifecycleAuthored['holderEnd']>> =
+  pathLifecycleHolderEnd.define('pathLifecycleHolderEnd', ({ map, nodes }) => {
+    const { selectSingle } = nodes
+
+    map.set(
+      'activation',
+      selectSingle(
+        ['activation'],
+        'Costs',
+        { kind: 'INLINE_OPTIONS', options: ACTIVATION_OPTIONS },
+        { requiredIf: true }
+      )
+    )
+  })
+
 const PATH_LIFECYCLE_NODE_MAP: NodeMap<PathLifecycleAuthored> = pathLifecycle.define(
   'pathLifecycle',
-  ({ map, nodes }) => {
+  ({ map, nodes, data }) => {
     const { selectSingle, selectMulti, groupObject } = nodes
+    const { table } = data
 
     map
       .set(
@@ -326,6 +344,21 @@ const PATH_LIFECYCLE_NODE_MAP: NodeMap<PathLifecycleAuthored> = pathLifecycle.de
         selectMulti(['endOnEvents'], 'End On Events', {
           kind: 'INLINE_OPTIONS',
           options: PATH_LIFECYCLE_END_EVENT_OPTIONS
+        })
+      )
+      .set(
+        'endOnConditionIds',
+        selectMulti(['endOnConditionIds'], 'End While Holder Has', {
+          kind: 'DATA',
+          relationship: table('condition_types', {
+            selectColumns: ['id', 'label', 'description']
+          })
+        })
+      )
+      .set(
+        'holderEnd',
+        groupObject(['holderEnd'], 'Holder Can End', () => PATH_LIFECYCLE_HOLDER_END_NODE_MAP, {
+          presentation: 'inline'
         })
       )
   }

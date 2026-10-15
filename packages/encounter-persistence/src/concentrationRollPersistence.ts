@@ -10,14 +10,15 @@ import { insertConversationEntry, openConversation } from './conversationPersist
 import { presentChatEntries } from './conversationPresentation.js'
 import { readRunActor } from './documents.js'
 import type { EncounterPersistenceTransaction, EncounterWritePorts } from './ports.js'
-import { readRuleRollRouting } from './ruleRollCards.js'
+import { readRuleRollRouting, retainPrivateRuleRoll } from './ruleRollCards.js'
 
 /**
  * Logs one settled Concentration check, prompted or automatic, as a system roll entry. The roller
  * is the checked actor, so its card follows the rule-roll routing (Q14): a player's check is the
- * table's and authored by that player, a hidden creature's is private, another GM creature's
- * follows the GM's stored preference. The entry id is the check's idempotency key, and it spends no chat rate limit: its
- * command was already limited. Returns the table entry it posted.
+ * table's and authored by that player, a hidden creature's is private (the GM's, and the
+ * controlling player's own copy, D62), another GM creature's follows the GM's stored preference.
+ * The entry id is the check's idempotency key, and it spends no chat rate limit: its command was
+ * already limited. Returns the table entry it posted.
  */
 export async function recordConcentrationCheckRoll(
   ctx: EncounterPersistenceTransaction & {
@@ -33,7 +34,11 @@ export async function recordConcentrationCheckRoll(
   const roll = concentrationCheckRollRecord({
     output: result.applicationOutputs,
     actorLabel: actor.label,
-    ruleset: { systemId: system.id, code: system.rulesetCode, version: system.rulesetVersion },
+    ruleset: {
+      systemId: system.id,
+      code: system.rulesetCode,
+      version: system.rulesetVersion
+    },
     createdAt: input.occurredAt
   })
   const { campaign } = await ctx.ports.requireCampaignAuthority(
@@ -47,11 +52,11 @@ export async function recordConcentrationCheckRoll(
     visibility: undefined
   })
   if (audience === 'PRIVATE') {
-    await ctx.ports.retainPrivateRoll(campaign.ownerUserId, roll, {
-      campaignId: campaign.id,
+    await retainPrivateRuleRoll(ctx, {
+      campaign,
       creature: { encounterId: state.id, actorId: actor.id },
-      revealedAt: null,
-      noticedAt: null
+      authorUserId,
+      roll
     })
     return null
   }

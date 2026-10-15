@@ -302,6 +302,7 @@ export async function planNativeLiveCleavingResponse(
     concentration: concentration.completed,
     pendingConcentration: concentration.pending,
     concentrationEnds: concentration.concentrationEnds,
+    endedGrants: concentration.endedGrants,
     cleaving
   })
   return { kind: 'PLANNED' as const, input }

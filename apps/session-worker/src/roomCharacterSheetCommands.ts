@@ -30,10 +30,7 @@ import {
   getSheetCommandResourceUsageUpdate
 } from '@artificer-toolkit/rules-runtime/character/sheetResourceUsage'
 import { deathSaveRollRecord } from '@artificer-toolkit/rules-runtime/encounterRuleCheckRolls'
-import {
-  assertCampaignGmSheetCommandAllowed,
-  assertSheetCommandCallerAllowed
-} from '@artificer-toolkit/rules-runtime/character/sheetCommandValidation'
+import { assertCampaignGmSheetCommandAllowed } from '@artificer-toolkit/rules-runtime/character/sheetCommandValidation'
 import { clampCharacterCurrentHitPoints } from '@artificer-toolkit/shared/character'
 import { canonicalizeRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { RoomEncounterStore, RoomTransaction } from './roomEncounterStore.js'
@@ -128,7 +125,6 @@ export async function executeRoomCharacterSheetCommand(input: {
     (actor) =>
       actor.kind === 'CHARACTER' && actor.sourceId === characterId && actor.frozenState === null
   )
-  assertSheetCommandCallerAllowed(command, membership.role === 'OWNER')
   if (assignment.userId !== userId) assertCampaignGmSheetCommandAllowed(command)
   if (!holder) {
     // The caster is outside this Run, so Convex owns their play. Only ending a Concentration whose
@@ -239,7 +235,12 @@ export async function executeRoomCharacterSheetCommand(input: {
     })
   )
   if (command.type === 'END_ACTIVE_EFFECT') {
-    await endCharacterActiveEffect(ctx, { characterId, effectId: command.effectId })
+    await endCharacterActiveEffect(ctx, {
+      characterId,
+      effectId: command.effectId,
+      isCampaignOwner: membership.role === 'OWNER',
+      inEncounter: true
+    })
     updated.state.hitpoints.current = clampCharacterCurrentHitPoints(
       updated.state.hitpoints.current,
       projectRoomCharacterSheet(

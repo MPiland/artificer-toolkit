@@ -54,6 +54,8 @@ const definition: ActiveRuleEffectDefinitionDto = {
     recurrenceStage: 'NONE',
     consumeOnFirstEvents: [],
     endOnEvents: [],
+    endOnConditionIds: [],
+    holderEnd: null,
     lifetimeScope: 'ENCOUNTER',
     expiration: { kind: 'INDEFINITE' }
   }

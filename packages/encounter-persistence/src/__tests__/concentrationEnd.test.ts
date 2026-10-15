@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
+import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import { DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from '@artificer-toolkit/rules-runtime/systems/dnd5e/concentrationIdentity'
+import { plannedModifierGrant } from '@artificer-toolkit/rules-runtime/testing/modifierGrantFixture'
 import {
   ENCOUNTER_ID,
   creatureActor,
@@ -7,7 +9,7 @@ import {
   srdDefinitions,
   srdEncounterState
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
-import { readConcentrationEndReason } from '../concentrationEnd.js'
+import { readHolderEndState } from '../concentrationEnd.js'
 import { persistEncounterConcentrationChildren } from '../concentrationChildrenPersistence.js'
 import { endConcentrationAfterEdit } from '../concentrationEditEnd.js'
 import { persistLiveMovementConcentrationEnd } from '../liveMovementConcentrationPersistence.js'
@@ -79,14 +81,15 @@ async function holderFixture(actor: Holder) {
 }
 
 /** Persistence re-derives each Concentration end's reason from the committed state (D95). */
-describe('readConcentrationEndReason', () => {
+describe('readHolderEndState', () => {
   async function reasonFor(actor: Holder) {
     const { ctx } = await holderFixture(actor)
-    return readConcentrationEndReason(ctx, {
+    const { reason } = await readHolderEndState(ctx, {
       state: srdEncounterState({ actors: [actor], currentActorId: null }),
       actor,
       userId: USER_ID
     })
+    return reason
   }
 
   it('is DEFEATED for a defeated Creature or custom actor', async () => {
@@ -179,6 +182,7 @@ describe('persistEncounterConcentrationChildren refuses a forged Concentration e
           occurredAt: '2026-10-08T00:00:00.000Z',
           concentration: [],
           pendingConcentration: null,
+          endedGrants: [],
           concentrationEnds: [
             {
               ownerActorId: actor.id,
@@ -201,6 +205,102 @@ describe('persistEncounterConcentrationChildren refuses a forged Concentration e
     expect(snapshot()).toEqual(before)
     expect(memory.documents('encounterMaintainedEffectStates')).toHaveLength(1)
     expect(memory.documents('encounterRuleReceipts')).toEqual([])
+  })
+})
+
+/** D95: the incapacitation that ends Concentration also ends the grants that end on it (Rage). */
+describe('persistEncounterConcentrationChildren ends grants on incapacitation', () => {
+  const paralyzed: Parameters<typeof creatureActor>[0] = {
+    id: ACTOR_ID,
+    kind: 'CUSTOM',
+    snapshot: {},
+    conditions: [srdCondition('Paralyzed')]
+  }
+  const ableToAct: Parameters<typeof creatureActor>[0] = {
+    id: ACTOR_ID,
+    kind: 'CUSTOM',
+    snapshot: {},
+    conditions: [srdCondition('Grappled')]
+  }
+
+  /** Persists `endedGrants` for the holder and returns the grants it still stores. */
+  async function endGrants(
+    actorInput: Parameters<typeof creatureActor>[0],
+    lifecycle: Parameters<typeof plannedModifierGrant>[0]['lifecycle']
+  ) {
+    const actor = creatureActor(actorInput)
+    const { memory, ctx } = await holderFixture(actor)
+    const store = createActiveRuleEffectStore(ctx)
+    const grant = await store.create({
+      id: crypto.randomUUID(),
+      owner: turnEffectOwner(actor, ENCOUNTER_ID),
+      definition: plannedModifierGrant({
+        encounterId: ENCOUNTER_ID,
+        sourceActorId: actor.id,
+        holderActorId: actor.id,
+        lifecycle,
+        rounds: 10
+      }).definition,
+      lifecycle: { schemaVersion: 1, remainingTicks: 10 }
+    })
+    const persist = () =>
+      persistEncounterConcentrationChildren(
+        ctx as Parameters<typeof persistEncounterConcentrationChildren>[0],
+        {
+          state: srdEncounterState({ actors: [actor], currentActorId: null }),
+          actors: [actor],
+          parentOccurrenceId: OCCURRENCE_ID,
+          parentCommandFingerprint: 'b'.repeat(64),
+          finalizedDamageEnvelopeChecksum: 'c'.repeat(64),
+          remaining: [],
+          correlationId: OCCURRENCE_ID,
+          userId: USER_ID,
+          authorizedCharacterIds: new Set(),
+          occurredAt: '2026-10-08T00:00:00.000Z',
+          concentration: [],
+          pendingConcentration: null,
+          concentrationEnds: [],
+          endedGrants: [grant]
+        },
+        { currentCharacterStreamVersion: vi.fn(), applyCleanup: vi.fn() }
+      )
+    return { persist, held: () => memory.documents('encounterActiveRuleEffects') }
+  }
+
+  it('deletes a grant that ends on incapacitation when its holder is incapacitated', async () => {
+    const { persist, held } = await endGrants(paralyzed, { endOnEvents: ['ON_INCAPACITATED'] })
+    expect(held()).toHaveLength(1)
+    await persist()
+    expect(held()).toEqual([])
+  })
+
+  const holding = (label: string): Parameters<typeof creatureActor>[0] => ({
+    id: ACTOR_ID,
+    kind: 'CUSTOM',
+    snapshot: {},
+    conditions: [srdCondition(label)]
+  })
+  const endsOnUnconscious = { endOnConditionIds: [srdCondition('Unconscious')] }
+
+  it('deletes a grant that names a condition when its holder has it', async () => {
+    const { persist, held } = await endGrants(holding('Unconscious'), endsOnUnconscious)
+    await persist()
+    expect(held()).toEqual([])
+  })
+
+  it('refuses to end a grant that names a condition its holder lacks, even when incapacitated', async () => {
+    const { persist, held } = await endGrants(holding('Stunned'), endsOnUnconscious)
+    await expect(persist()).rejects.toThrow('Live Session grant end is unexpected.')
+    expect(held()).toHaveLength(1)
+  })
+
+  it.each([
+    ['a holder that can act', ableToAct, { endOnEvents: ['ON_INCAPACITATED' as const] }],
+    ['a grant that does not end on incapacitation', paralyzed, {}]
+  ])('refuses to end the grant of %s', async (_name, actorInput, lifecycle) => {
+    const { persist, held } = await endGrants(actorInput, lifecycle)
+    await expect(persist()).rejects.toThrow('Live Session grant end is unexpected.')
+    expect(held()).toHaveLength(1)
   })
 })
 

@@ -2,6 +2,7 @@ import {
   creatureFeature,
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
+import { plannedModifierGrant } from '@artificer-toolkit/rules-runtime/testing/modifierGrantFixture'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
@@ -17,6 +18,7 @@ import {
 
 const SOURCE_ID = testUuid(0x900)
 const TARGET_IDS = [testUuid(0x901), testUuid(0x902), testUuid(0x903)]
+const ENDING_GRANT_ID = testUuid(0x904)
 
 afterEach(() => {
   closeTrackedSockets()
@@ -32,6 +34,10 @@ function cleavingRoom(options: {
   rolls?: readonly number[]
   /** The target that holds a Concentration the Bite then ends. */
   concentrationOwnerActorId?: string
+  /** The target that holds a grant ending on incapacitation (D113), which the Bite's chain defeats. */
+  grantHolderActorId?: string
+  /** The creatures the Bite can reach; the first is the attack's target. */
+  targetIds?: readonly string[]
 }) {
   const attacker = biteWolf('ATTACK', { damage: 40, reachFeet: 20 })
   return actionRoom({
@@ -39,10 +45,32 @@ function cleavingRoom(options: {
     concentration: options.concentrationOwnerActorId !== undefined,
     actors: [
       srdCreatureActor({ id: SOURCE_ID, creature: attacker }),
-      ...TARGET_IDS.map((id) => srdCreatureActor({ id, creature: plainWolf }))
+      ...(options.targetIds ?? TARGET_IDS).map((id) =>
+        srdCreatureActor({ id, creature: plainWolf })
+      )
     ],
     ownerFeatureId: creatureFeature(attacker, 'Bite').id,
-    optionalCombatKinds: ['CLEAVING']
+    optionalCombatKinds: ['CLEAVING'],
+    seed: async ({ effects, encounterId, occurredAt }) => {
+      if (options.grantHolderActorId === undefined) return
+      await effects.create({
+        id: ENDING_GRANT_ID,
+        owner: {
+          kind: 'ENCOUNTER_ACTOR',
+          encounterId,
+          targetActorId: options.grantHolderActorId
+        },
+        lifecycle: { schemaVersion: 1, remainingTicks: 10 },
+        definition: plannedModifierGrant({
+          encounterId,
+          sourceActorId: options.grantHolderActorId,
+          holderActorId: options.grantHolderActorId,
+          lifecycle: { endOnEvents: ['ON_INCAPACITATED'] },
+          rounds: 10
+        }).definition,
+        occurredAt
+      })
+    }
   })
 }
 
@@ -127,6 +155,62 @@ describe('room Cleaving chain', () => {
       expect(carried.sort((left, right) => right - left)).toEqual([29, 18])
     }
   )
+
+  describe('with a target that holds a grant ending on incapacitation (D113)', () => {
+    it('ends the grant in the response that defeats its holder, and the action’s undo restores it', async () => {
+      const room = await cleavingRoom({
+        autoRoll: 'GAME_MASTER',
+        rolls: [18],
+        grantHolderActorId: TARGET_IDS[1],
+        targetIds: TARGET_IDS.slice(0, 2)
+      })
+      await startAttack(room)
+      const heldGrantIds = async () =>
+        (await readRoomHistory(room.room.base.stub)).activeEffects.map((effect) => effect.id)
+      expect(await heldGrantIds()).toContain(ENDING_GRANT_ID)
+
+      const first = await pendingChoice(room)
+      const option = first.pending.options.find((entry) => entry.targetActorId === TARGET_IDS[1])
+      const answered = await room.resolve(first, { kind: 'OPTION', optionId: option!.optionId })
+      expect(answered.type, JSON.stringify(answered)).toBe('COMMAND_COMMITTED')
+      expect(await heldGrantIds()).not.toContain(ENDING_GRANT_ID)
+
+      const undone = await room.send({
+        type: 'REVERT_LAST_ACTION',
+        encounterId: room.room.encounterId,
+        commandId: crypto.randomUUID(),
+        expectedVersion: await room.version()
+      })
+      expect(undone.type, JSON.stringify(undone)).toBe('COMMAND_COMMITTED')
+      expect(await heldGrantIds()).toContain(ENDING_GRANT_ID)
+    })
+
+    it('ends the grant in a later response of the chain, whose parent is the earlier response', async () => {
+      const room = await cleavingRoom({
+        autoRoll: 'GAME_MASTER',
+        rolls: [18],
+        grantHolderActorId: TARGET_IDS[2]
+      })
+      await startAttack(room)
+      const heldGrantIds = async () =>
+        (await readRoomHistory(room.room.base.stub)).activeEffects.map((effect) => effect.id)
+
+      const first = await pendingChoice(room)
+      const toSecond = first.pending.options.find((entry) => entry.targetActorId === TARGET_IDS[1])
+      expect(
+        (await room.resolve(first, { kind: 'OPTION', optionId: toSecond!.optionId })).type
+      ).toBe('COMMAND_COMMITTED')
+      expect(await heldGrantIds()).toContain(ENDING_GRANT_ID)
+
+      const second = await pendingChoice(room)
+      const answered = await room.resolve(second, {
+        kind: 'OPTION',
+        optionId: second.pending.options[0]!.optionId
+      })
+      expect(answered.type, JSON.stringify(answered)).toBe('COMMAND_COMMITTED')
+      expect(await heldGrantIds()).not.toContain(ENDING_GRANT_ID)
+    })
+  })
 
   describe('with a target that holds Concentration (D95)', () => {
     const concentrationEnds = (history: RoomHistory) =>

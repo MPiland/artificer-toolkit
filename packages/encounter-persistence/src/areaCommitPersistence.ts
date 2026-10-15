@@ -33,6 +33,7 @@ import {
   requireAreaActionRemoval
 } from './actionAreaPending.js'
 import { persistCompletedChild } from './actionChildPersistence.js'
+import { receiptConsumedGrants } from './consumedGrantPersistence.js'
 import { completeActionOccurrence, recordActionRoot } from './actionCommitRecords.js'
 import { settleActionSourceSpend, sourceSpendMutation } from './actionSourceSpend.js'
 import { actionSystemRollAnswers, readAppCardedDice } from './appCardedDice.js'
@@ -342,7 +343,7 @@ export async function persistEncounterAreaCommit(
   } else if (!(mergedSpend && spends) && root.sourceCharacterStreamVersion !== null)
     throw new Error('Live Session source Character receipt mismatch.')
 
-  const endedGrants: ActiveRuleEffectRecord[] = []
+  const healEndedGrants: ActiveRuleEffectRecord[] = []
   for (const { actor, batch, occurrenceId } of children) {
     const merged = mergedSpend && actor.id === source.id
     const mechanics = await callbacks.applyMechanics({
@@ -377,7 +378,7 @@ export async function persistEncounterAreaCommit(
     )
       throw new Error('Live Session mechanics receipt mismatch.')
     current.set(actor.id, mechanics.updatedActor)
-    endedGrants.push(...mechanics.endedGrants)
+    healEndedGrants.push(...mechanics.endedGrants)
     // A Legendary Resistance the creature used spends one of its own charges.
     const charge =
       batch.kind === 'ENCOUNTER_ACTOR_MECHANICS_BATCH'
@@ -478,6 +479,7 @@ export async function persistEncounterAreaCommit(
     occurredAt: input.occurredAt,
     concentration: input.concentration,
     concentrationEnds: input.concentrationEnds,
+    endedGrants: input.endedGrants,
     pendingConcentration: input.pendingConcentration
   })
   const projection = await projectNativeGm(ctx, nextState, settledChildren.actors, input.rules)
@@ -534,7 +536,10 @@ export async function persistEncounterAreaCommit(
     commandFields: {
       label: input.label,
       ruleOverrides: input.ruleOverrides,
-      consumedGrants: endedGrants,
+      consumedGrants: receiptConsumedGrants({
+        ...input,
+        endedGrants: [...input.endedGrants, ...healEndedGrants]
+      }),
       addedConcentrationCasterId: null,
       speedBonusTurn: null,
       issuerLines: children.flatMap(({ actor, batch }) => {

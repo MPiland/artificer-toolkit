@@ -49,8 +49,7 @@ import {
   validateSheetAdjustmentTarget,
   validateSpellMechanicCustomization,
   validateSpellSource,
-  assertCampaignGmSheetCommandAllowed,
-  assertSheetCommandCallerAllowed
+  assertCampaignGmSheetCommandAllowed
 } from '@artificer-toolkit/rules-runtime/character/sheetCommandValidation'
 import { characterSheetAdjustmentMatchesPanelTarget } from '@artificer-toolkit/rules-runtime/character/sheetPanelTarget'
 import { projectCharacterSheetForViewer } from '@artificer-toolkit/rules-runtime/character/campaignCharacterSheet'
@@ -176,10 +175,6 @@ export async function executeCharacterSheetCommand(
       : []
   )
   if (!initial) throw new Error('Character Sheet is unavailable for the current user.')
-  assertSheetCommandCallerAllowed(
-    input.command,
-    initial.sourceContext.context.sourceAccess.campaign?.ownerUserId === userId
-  )
   if (initial.campaignContext.viewer === 'CAMPAIGN_OWNER') {
     if (initial.campaignContext.campaignStatus !== 'ACTIVE')
       throw new Error('Archived Campaigns are read-only.')
@@ -458,7 +453,12 @@ export async function executeCharacterSheetCommand(
   if (command.type === 'END_ACTIVE_EFFECT')
     await endCharacterActiveEffect(
       { db: createConvexEncounterStore(ctx) },
-      { characterId: initial.active.id, effectId: command.effectId }
+      {
+        characterId: initial.active.id,
+        effectId: command.effectId,
+        isCampaignOwner: initial.sourceContext.context.sourceAccess.campaign?.ownerUserId === userId,
+        inEncounter: false
+      }
     )
 
   if (command.type === 'END_CONCENTRATION')

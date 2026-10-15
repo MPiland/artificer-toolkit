@@ -696,7 +696,15 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - **Invariant failures, as coded:** a speed that is not a typed length, has an unknown unit, or names a speed id outside the System speed vocabulary throws at read in `resolveSpeedsFeet` (Character record stats, Creature holder state), `encounterHolderDefense` and `withActiveGrantSpeeds`; a modifier payload that is not a typed length throws in `modifierLength`. None is skipped. Character record stats and Creature holder state both take the System speed definitions as the vocabulary, never the holder's own speeds. Publication refuses a modifier length with no unit, an unknown unit or an out-of-bounds amount through the grant schema, and a Creature speed through `speedDtoSchema`.
   - **Sheet speed override (RELIABILITY-5.T2):** the persisted Character `MOVEMENT` adjustment `SPEED_OVERRIDE` is an `authoredLengthSchema` length, like the sense `RANGE_OVERRIDE`, not a bare number. It is converted into the base speed's unit; a speed the Character has no base for takes the override's own unit and amount, and a speed with neither base nor override is never listed, so the `FEET` and `0` defaults are gone. The Movement panel lists a System speed the Character does not hold as `NOT_HELD` with its editor, so a player can still add one; the Sheet input takes an amount and a unit, starting in the speed's held unit. No compatibility shim; local data resets.
   - **Known limits:** there is no metric length unit, so tests use FEET, YARDS and MILES.
-* **D114** (2026-10-14) Caster-centered areas (SPELLS-22). Adopted by the main session at merge; D113 is reserved for ATTACK-9.T1.
+* **D113** (2026-10-15) Generic shapes for Rage (ATTACK-9.T1). Adopted by the main session at merge (`13f634280`). Full text with rationale: [slice-attack-9-t1.md](slice-attack-9-t1.md#proposed-d113-additive-generic-shapes-for-rage-main-session-adopts-at-merge).
+  - **Attack ability:** resolving an attack records the ability it used (finesse: the chosen one); the facet predicate `ATTACK_ABILITY` gates modifiers on it and fails closed. (The merged code infers it; ATTACK-9.T7 makes it recorded.)
+  - **Level steps:** stepped bonuses are several FIXED bonuses gated by `CLASS_LEVEL` facets; no level tables.
+  - **Grant ends:** `endOnEvents` gains `ON_INCAPACITATED`, ended at the D95 detection point. A new `endOnConditionIds` names Conditions that end a grant (SRD Rage: Unconscious only). Ended grants travel as `endedGrants`; persistence re-derives and refuses a forged end, and action, area and cleaving roots keep them in `consumedGrants` (`receiptConsumedGrants`), so GM undo restores them.
+  - **Holder end:** an optional lifecycle `holderEnd: { activation }` lets the holder's controller end that grant; every other effect stays owner-only (D99). In an ACTIVE Assisted Run a costed end is the Run command `END_HELD_GRANT` on the holder's turn, spending that slot; it blocks undo of the prior action (D99). Outside it the Sheet `END_ACTIVE_EFFECT` ends it.
+  - **Spellcasting lock:** the generic grant effect `SPELLCASTING_LOCK` refuses casting and Concentration (`SOURCE_REQUIREMENTS_NOT_MET` via `SpellcastingLockedError`) and ends current Concentration with the D95 reason `SPELLCASTING_LOCKED`.
+  - **Authored parity:** every shape has node-map labels, visibility and default factories; the SRD corpus uses no shape the form cannot produce.
+  - **Deferred:** the early-end rule (ATTACK-9.T6); heavy armor and the movement-pass end (ATTACK-9.T7).
+* **D114** (2026-10-14) Caster-centered areas (SPELLS-22). Adopted by the main session at merge.
   - **Measure:** "within N feet of you" for a Self-range sphere, cylinder or circle is measured from the edge of the caster's space. A creature is caught when its footprint shares positive area with the caster's footprint expanded by the radius (D103 overlap: touching never catches). The caster is excluded.
   - **Shape:** the persisted area stays `RADIUS`; the caster-centered meaning is the command target kind `CASTER_CENTERED`, which needs no aim. Self wall and dome areas stay unsupported.
   - **Later:** an authored "includes the caster" targeting option is not modeled; register it when a card needs it.
@@ -1079,6 +1087,14 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   is now only that finished view.
 
 ## Resolved
+
+- **Q22, username moderation (ACCOUNTS-7.T1, 2026-10-15).** The substring profanity check refused ordinary names (Cassandra, Classic, Dickens, Essex, Glasshouse, Assassin) and random test names. The product owner approved the tiered policy:
+  - Normalize: lowercase, digit and look-alike swaps, collapse repeats.
+  - Split into parts at `_`, lower-to-upper case changes and letter-digit changes; refuse a blocked part (`ass_muncher`, `AssMuncher`, `Ass1Muncher`).
+  - Unambiguous terms are refused anywhere; short ambiguous terms (ass, dick, cum, tit) only as a whole part. A maintained allowlist covers known false positives.
+  - An unbroken compound (`assmuncher`) is refused when it splits into a blocked word plus dictionary words, server-side only so the client bundle carries no dictionary.
+  - Reports and a moderator rename are the backstop.
+  - Evaluate the maintained `obscenity` npm library first; adding it is approved if it fits.
 
 - **OQ-1, authoring form state (RELIABILITY-10, 2026-10-13).** Product owner chose option 1, including narrowed subscriptions.
   - The top-level TanStack form is the only store for form values and form flags. Contexts hold only stable, non-form coordination (actions, navigation, mode, layout), split by behaviour. No component copies state into a parent through an effect. This replaces `AuthoringFormContext`/`AuthoringFormProvider` (about 70 fields), `AuthoringLayoutProvider` and the `CharacterSheetRollContext` controller.

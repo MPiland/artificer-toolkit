@@ -4,6 +4,7 @@ import { beforeAll, describe, expect, it, vi } from 'vitest'
 import type {
   EncounterCommandResultDto,
   EncounterGmProjectionDto,
+  EndHeldGrantInputDto,
   EscapeRelationshipInputDto,
   ResolveEncounterActionInputDto
 } from '@artificer-toolkit/schema/api/encounters'
@@ -73,9 +74,11 @@ function drawerElement(
     unavailableActions = [],
     authoredBasicActions = [],
     escapes = [],
+    heldGrantEnds = [],
     openAttackAction = null,
     encounter = tabletopGmEncounter,
     onEscape = vi.fn(),
+    onEndHeldGrant = vi.fn(),
     escapeResult = resolved,
     isGm = false,
     waitingOn = null,
@@ -91,9 +94,11 @@ function drawerElement(
     unavailableActions?: EncounterActionChoicesDto['unavailableActions']
     authoredBasicActions?: EncounterActionChoiceDto[]
     escapes?: EncounterEscapeChoiceDto[]
+    heldGrantEnds?: EncounterActionChoicesDto['heldGrantEnds']
     openAttackAction?: EncounterActionChoicesDto['openAttackAction']
     encounter?: EncounterGmProjectionDto
     onEscape?: (command: EscapeRelationshipInputDto) => Promise<unknown>
+    onEndHeldGrant?: (command: EndHeldGrantInputDto) => Promise<unknown>
     /** What the room answers an escape with. */
     escapeResult?: EncounterCommandResultDto
     isGm?: boolean
@@ -113,6 +118,7 @@ function drawerElement(
       actions={choices}
       basicActionChoices={authoredBasicActions}
       escapes={escapes}
+      heldGrantEnds={heldGrantEnds}
       openAttackAction={openAttackAction}
       actionsLoading={false}
       actorIdByTokenId={actorIdByTokenId}
@@ -140,6 +146,10 @@ function drawerElement(
       onEscape={async (command) => {
         await onEscape(command)
         return escapeResult
+      }}
+      onEndHeldGrant={async (command) => {
+        await onEndHeldGrant(command)
+        return resolved
       }}
     />
   )
@@ -508,6 +518,47 @@ const escapeChoices = validated(encounterActionChoicesDtoSchema.shape.escapes)([
     warnings: []
   }
 ])
+
+const heldGrantEndChoices = validated(encounterActionChoicesDtoSchema.shape.heldGrantEnds)([
+  {
+    activeEffectId: '00000000-0000-4000-8000-000000000f01',
+    label: 'Rage',
+    actionCost: 'BONUS_ACTION',
+    warnings: []
+  }
+])
+
+describe('CampaignTabletopActionDrawer held grant ends', () => {
+  it('offers each effect the actor may end with its cost, and sends the end command', async () => {
+    const user = userEvent.setup()
+    const onEndHeldGrant = vi.fn().mockResolvedValue(resolved)
+    renderDrawer(vi.fn(), { heldGrantEnds: heldGrantEndChoices, onEndHeldGrant })
+
+    const section = await screen.findByRole('region', { name: 'Active effects' })
+    expect(within(section).getByText('Rage')).toBeVisible()
+    expect(within(section).getByText(/Bonus action/i)).toBeVisible()
+
+    await user.click(within(section).getByRole('button', { name: 'End Rage' }))
+    expect(onEndHeldGrant).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        type: 'END_HELD_GRANT',
+        encounterId: tabletopGmEncounter.id,
+        expectedVersion: tabletopGmEncounter.version,
+        actorId: tabletopGmEncounter.currentActorId,
+        activeEffectId: heldGrantEndChoices[0].activeEffectId,
+        acknowledgedWarnings: []
+      })
+    )
+    expect(await screen.findByText('Effect ended.')).toBeVisible()
+  })
+
+  it('shows no section when the actor holds nothing it may end', async () => {
+    renderDrawer(vi.fn())
+
+    await screen.findByRole('button', { name: 'Resolve action' })
+    expect(screen.queryByRole('region', { name: 'Active effects' })).not.toBeInTheDocument()
+  })
+})
 
 describe('CampaignTabletopActionDrawer escapes', () => {
   it('offers the escape with its DC and cost in its own section', async () => {

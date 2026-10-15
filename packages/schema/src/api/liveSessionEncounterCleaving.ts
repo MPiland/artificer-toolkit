@@ -34,7 +34,7 @@ export type LiveSessionEncounterCleavingCommitInput = Omit<
   cleaving: ServerAggregateChoicePendingSnapshotDto | null
 } & Pick<
     LiveSessionEncounterActionCommitInput,
-    'concentration' | 'pendingConcentration' | 'concentrationEnds'
+    'concentration' | 'pendingConcentration' | 'concentrationEnds' | 'endedGrants'
   >
 
 export const liveSessionEncounterCleavingCommitInputSchema: z.ZodMiniType<LiveSessionEncounterCleavingCommitInput> =
