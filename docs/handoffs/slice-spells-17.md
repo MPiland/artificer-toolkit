@@ -1,6 +1,6 @@
 # Slice workbook: SPELLS-17 (placed zones: Caltrops)
 
-**Status:** OPEN (written 2026-10-14)
+**Status:** DONE on branch, awaiting main-session review (2026-10-15)
 **Base:** `codex/phase-08-2-convex-cutover` at this workbook's commit.
 **Rules:** [slice-workbook-rules.md](slice-workbook-rules.md).
 
@@ -66,5 +66,15 @@ Read first:
 ## Status log
 
 - 2026-10-14: workbook written.
+- 2026-10-15: slice complete on `claude/reverent-elbakyan-4f4686`; base merged in (commits `5a6da58dc`, merge `18cfe5c2f`). Items 1-5 green with real SRD Caltrops, including the careful crossing (3c). Logs under `local-validation/spells-17/` (red: `red-1-compile.log` to `red-7-web.log`; green: `green-2-shared.log` to `green-7-web.log`, `typecheck-2.log`, `typecheck-3-convex.log` (empty: clean), `typecheck-4-web.log`, `codegen.log`).
+- Caveat (flag for the ledger): SRD Caltrops author the interaction as `ENTER_SPACE`, which maps to the ENTER trigger. ENTER fires only when the dragged path ends inside the field; a drag that passes through and ends outside is CROSS and does not trigger. No source-data change made. The ENTER_SPACE wording ("enters") versus pass-through needs a ruling.
+- Known gaps: GM undo of a heal does not restore the ended slow; Sheet healing outside Encounter mechanics batches does not emit `ON_HIT_POINTS_REGAINED`; a fully resisted hit leaves the target out of `changed`; the stage-level wiring of the careful choice (`commitTokenMove` in `CampaignVttStage.tsx`) has no dedicated test (covered by the component and model tests).
+- Storybook (cannot run in a worktree): new `CampaignVttCarefulMoveChoice.stories.tsx` (SingleLabeledField, UnlabeledAndMultipleFields). Suggested stage-level story in `CampaignTabletopWindow.stories.tsx` seeding `halfSpeedFields` so a dragged path ending in a field shows the choice.
 
 ## Proposed ledger edits (filled by the slice session)
+
+- Close AC SPELLS-17.1 (creator, entry, end event, careful crossing, journey).
+- New follow-up: ruling on `ENTER_SPACE` versus pass-through for Caltrops (authoring/semantics; possibly `ENTER_OR_PASS_THROUGH` in source data).
+- New follow-up: stage-level test for the careful-move choice in `CampaignVttStage`.
+- New follow-up: emit `ON_HIT_POINTS_REGAINED` for Sheet healing outside Encounter mechanics batches; decide undo semantics for an ended slow.
+- Hidden/unnoticed zones stay MOVE-3.3 to 3.5; client drawing of zones stays SPELLS-20 / VTT_UI-3.1.
