@@ -88,7 +88,8 @@ export const grease: SpellAuthored = {
               {
                 id: spellChildId(SPELL_IDS.GREASE, 0x213, 1),
                 effectKind: EFFECT_KIND.MANIFEST,
-                manifestKind: MANIFEST_KIND.ZONE
+                manifestKind: MANIFEST_KIND.ZONE,
+                attachmentKind: 'PLACED_SPACE'
               }
             ]
           }

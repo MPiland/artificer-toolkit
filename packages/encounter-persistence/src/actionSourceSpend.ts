@@ -20,6 +20,7 @@ type SourceSpendReceipts = Pick<
   Extract<ServerRuleExecutionApplicationOutputsDto, { kind: 'ENCOUNTER_ACTOR_MECHANICS_BATCH' }>,
   | 'resourceConsumption'
   | 'sourceItemConsumption'
+  | 'spellCastConsumption'
   | 'featureResourceConsumption'
   | 'actionEconomyTransition'
   | 'attackActionTransition'
@@ -35,9 +36,13 @@ export function sourceSpendMutation(input: {
   command: Pick<ResolveEncounterActionInputDto, 'acceptedWieldConflict'>
   resource: LiveSessionEncounterActionCommitInput['resourceConsumption']
   item: LiveSessionEncounterActionCommitInput['itemConsumption']
-  receipts: Pick<SourceSpendReceipts, 'resourceConsumption' | 'sourceItemConsumption'>
+  spell: LiveSessionEncounterActionCommitInput['spellConsumption']
+  receipts: Pick<
+    SourceSpendReceipts,
+    'resourceConsumption' | 'sourceItemConsumption' | 'spellCastConsumption'
+  >
 }) {
-  const { source, resource, item, receipts } = input
+  const { source, resource, item, spell, receipts } = input
   if (resource) {
     const {
       owner: _owner,
@@ -66,14 +71,26 @@ export function sourceSpendMutation(input: {
       throw new Error('Live Session action item scope mismatch.')
   } else if (receipts.sourceItemConsumption !== null)
     throw new Error('Live Session action item is missing.')
+  if (spell) {
+    // The mechanics batch checks the version against the fenced Character it plans with.
+    const { expectedStreamVersion: _spellStreamVersion, ...receipt } = spell
+    if (
+      source.kind !== 'CHARACTER' ||
+      source.sourceId !== spell.characterId ||
+      checksumCanonicalJson(receipt) !== checksumCanonicalJson(receipts.spellCastConsumption)
+    )
+      throw new Error('Live Session action spell slot scope mismatch.')
+  } else if (receipts.spellCastConsumption !== null)
+    throw new Error('Live Session action spell slot is missing.')
   const stow = input.command.acceptedWieldConflict
   if (stow && source.kind !== 'CHARACTER')
     throw new Error('Live Session shield stow scope mismatch.')
   return {
-    spends: Boolean(resource || item || stow),
+    spends: Boolean(resource || item || spell || stow),
     mutation: {
       ...(resource ? { characterResourceConsumption: resource } : {}),
       ...(item ? { characterItemConsumption: item } : {}),
+      ...(spell ? { characterSpellConsumption: spell } : {}),
       ...(stow ? { stowEquippedItemInstanceId: stow.shieldItemInstanceId } : {})
     }
   }

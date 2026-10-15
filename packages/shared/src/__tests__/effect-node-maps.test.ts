@@ -1,12 +1,13 @@
 import { describe, expect, it } from 'vitest'
 
-import { EFFECT_KIND, TRIGGER } from '#core'
+import { EFFECT_KIND, MANIFEST_KIND, TRIGGER } from '#core'
 import {
   EFFECT_NODE_MAP,
   MANIFEST_NESTED_EFFECT_NODE_MAP,
   PATH_NODE_MAP,
   SPELL_NODE_MAP
 } from '#maps'
+import { evaluateConditionIf } from '#utils'
 
 describe('effect node maps', () => {
   it('offers incoming saving throws as an authored trigger', () => {
@@ -282,5 +283,50 @@ describe('effect node maps', () => {
 
     expect(directCodes).not.toContain(EFFECT_KIND.MANIFEST)
     expect(rollTableCodes).not.toContain(EFFECT_KIND.MANIFEST)
+  })
+
+  it('requires an attachment only on ZONE manifests', () => {
+    const resultNode = PATH_NODE_MAP.nodes.resultBlock
+
+    if (!resultNode || resultNode.kind !== 'GROUP') {
+      throw new Error('Expected result block to be a group node')
+    }
+
+    const resultMap = typeof resultNode.nodes === 'function' ? resultNode.nodes() : resultNode.nodes
+    const outcomesNode = resultMap.nodes.outcomes
+
+    if (!outcomesNode || outcomesNode.kind !== 'GROUP') {
+      throw new Error('Expected outcomes to be a group node')
+    }
+
+    const outcomeMap =
+      typeof outcomesNode.nodes === 'function' ? outcomesNode.nodes() : outcomesNode.nodes
+    const attachmentNode = outcomeMap.nodes.attachmentKind
+
+    if (attachmentNode.kind !== 'INPUT') {
+      throw new Error('Expected attachment to be an input node')
+    }
+
+    const requiredIf = attachmentNode.requiredIf
+    expect(requiredIf).toBeDefined()
+    if (!requiredIf || requiredIf === true) {
+      throw new Error('Expected attachment to be conditionally required')
+    }
+
+    const manifest = (manifestKind: string) => ({
+      values: { effectKind: EFFECT_KIND.MANIFEST, manifestKind }
+    })
+
+    expect(evaluateConditionIf(requiredIf, manifest(MANIFEST_KIND.ZONE))).toBe(true)
+    for (const manifestKind of [
+      MANIFEST_KIND.CREATURE,
+      MANIFEST_KIND.SUMMON,
+      MANIFEST_KIND.SENSOR,
+      MANIFEST_KIND.WEAPON,
+      MANIFEST_KIND.OBJECT,
+      MANIFEST_KIND.ILLUSION
+    ]) {
+      expect(evaluateConditionIf(requiredIf, manifest(manifestKind))).toBe(false)
+    }
   })
 })

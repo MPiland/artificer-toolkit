@@ -68,7 +68,8 @@ export const antimagicField: SpellAuthored = {
               {
                 id: spellChildId(SPELL_IDS.ANTIMAGIC_FIELD, 0x212, 1),
                 effectKind: EFFECT_KIND.MANIFEST,
-                manifestKind: MANIFEST_KIND.ZONE
+                manifestKind: MANIFEST_KIND.ZONE,
+                attachmentKind: 'SOURCE'
               }
             ]
           }

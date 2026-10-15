@@ -198,6 +198,8 @@ export interface MovementRoomConfig {
   characterEquipment?: readonly EquipmentAuthored[]
   /** The mover Character's starting play state, where it differs from the capture. */
   characterPlay?: CharacterPlayOverrides
+  /** The mover Character's Class casts these spells, preparing the listed ones. */
+  characterSpellcasting?: Parameters<typeof characterRoomInputs>[0]['spellcasting']
   /** An assigned Character the Run does not hold, owned by the room's player (SPELLS-5.11, Q1). */
   outsideCasterCharacterId?: string
   /** The next dice results (see `rigDice`); `fallbackRoll` serves every roll after them. */
@@ -296,7 +298,8 @@ export async function movementRoom(config: MovementRoomConfig) {
         darkvision: config.characterDarkvision,
         classFeatures: config.characterClassFeatures,
         equipment: config.characterEquipment,
-        play: config.characterPlay
+        play: config.characterPlay,
+        spellcasting: config.characterSpellcasting
       })
     : null
   const outsideCasterPage = config.outsideCasterCharacterId

@@ -251,7 +251,7 @@ export function unequipCharacterItem(
   })
 }
 
-function updateSpellSlotUsage(
+export function updateSpellSlotUsage(
   character: CharacterAuthored,
   slotKey: string,
   updater: (used: number) => number

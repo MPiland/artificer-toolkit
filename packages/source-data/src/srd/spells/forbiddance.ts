@@ -71,7 +71,8 @@ export const forbiddance: SpellAuthored = {
               {
                 id: spellChildId(SPELL_IDS.FORBIDDANCE, 0x212, 1),
                 effectKind: EFFECT_KIND.MANIFEST,
-                manifestKind: MANIFEST_KIND.ZONE
+                manifestKind: MANIFEST_KIND.ZONE,
+                attachmentKind: 'PLACED_SPACE'
               }
             ]
           }

@@ -79,7 +79,8 @@ export const magnificentMansion: SpellAuthored = {
               {
                 id: spellChildId(SPELL_IDS.MAGNIFICENT_MANSION, 0x212, 1),
                 effectKind: EFFECT_KIND.MANIFEST,
-                manifestKind: MANIFEST_KIND.ZONE
+                manifestKind: MANIFEST_KIND.ZONE,
+                attachmentKind: 'PLACED_SPACE'
               }
             ]
           }

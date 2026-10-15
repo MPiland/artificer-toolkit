@@ -17,9 +17,10 @@ import type { CharacterItemUseStateTransitionDto } from '@artificer-toolkit/sche
 import type { CharacterRuleActionApplication } from './characterRuleActionSystemAdapter.js'
 import type {
   NativeCharacterActionResourceConsumption,
-  NativeCharacterItemConsumption
+  NativeCharacterItemConsumption,
+  NativeCharacterSpellConsumption
 } from './character/characterNativeActionResources.js'
-import { unequipCharacterItem } from './character/sheetCommandReducer.js'
+import { unequipCharacterItem, updateSpellSlotUsage } from './character/sheetCommandReducer.js'
 import { nextEncounterActorDefeated } from './encounterActorDefeat.js'
 import { characterZeroHitPointsConditionId } from './characterZeroHitPoints.js'
 
@@ -46,10 +47,11 @@ export type EncounterMechanicsBatchInput = {
   forceVersionAdvance: boolean
   retainedConditionIds?: readonly string[]
   effectiveScalarValues?: Readonly<Record<string, number>>
-  spellSlotUsage?: NonNullable<CharacterAuthored['state']['spellSlots']>
   characterResourceConsumption?: NativeCharacterActionResourceConsumption
   /** A single-use item this Assisted action used up; recorded as play usage, never as a structure edit. */
   characterItemConsumption?: NativeCharacterItemConsumption
+  /** The slot a cast spent, recorded on the Character in the same version as the outcome. */
+  characterSpellConsumption?: NativeCharacterSpellConsumption
   /** An accepted wield conflict: unequip this item in the same Character version. */
   stowEquippedItemInstanceId?: string
   /** A dying Character's turn-start death save die (D96); Characters only. */
@@ -85,12 +87,12 @@ export function planEncounterMechanicsBatch(input: {
   if (actor.kind !== 'CHARACTER') {
     if (batch.expectedCharacterStreamVersion !== null)
       throw new Error('Encounter non-Character actors have no Character stream version.')
-    if (batch.spellSlotUsage !== undefined)
-      throw new Error('Encounter non-Character actors cannot use spell slots.')
     if (batch.characterResourceConsumption !== undefined)
       throw new Error('Encounter non-Character actors cannot use Character resources.')
     if (batch.characterItemConsumption !== undefined)
       throw new Error('Encounter non-Character actors cannot use up Character items.')
+    if (batch.characterSpellConsumption !== undefined)
+      throw new Error('Encounter non-Character actors cannot spend Character spell slots.')
     if (batch.stowEquippedItemInstanceId !== undefined)
       throw new Error('Encounter non-Character actors cannot stow Character equipment.')
     if (batch.deathSave !== undefined)
@@ -233,6 +235,26 @@ export function planEncounterMechanicsBatch(input: {
     ]
   }
 
+  const spellConsumption = batch.characterSpellConsumption
+  let nextSpellSlots: CharacterAuthored['state']['spellSlots']
+  if (spellConsumption !== undefined) {
+    const currentSlots = loaded.character.state.spellSlots ?? []
+    const currentUsed =
+      currentSlots.find((slot) => slot.slotKey === spellConsumption.slotKey)?.used ?? 0
+    if (
+      spellConsumption.characterId !== loaded.active.id ||
+      spellConsumption.expectedStreamVersion !== loaded.active.play.streamVersion ||
+      spellConsumption.afterUsed !== spellConsumption.beforeUsed + 1 ||
+      currentUsed !== spellConsumption.beforeUsed
+    )
+      throw new Error('Encounter Character spell slot consumption is stale.')
+    nextSpellSlots = updateSpellSlotUsage(
+      loaded.character,
+      spellConsumption.slotKey,
+      () => spellConsumption.afterUsed
+    ).state.spellSlots
+  }
+
   const stowItemId = batch.stowEquippedItemInstanceId
   if (
     stowItemId !== undefined &&
@@ -284,8 +306,8 @@ export function planEncounterMechanicsBatch(input: {
       .map((conditionTypeId) => ({ conditionTypeId }))
   ]
   const spellSlotsChanged =
-    batch.spellSlotUsage !== undefined &&
-    JSON.stringify(batch.spellSlotUsage) !== JSON.stringify(loaded.character.state.spellSlots ?? [])
+    nextSpellSlots !== undefined &&
+    JSON.stringify(nextSpellSlots) !== JSON.stringify(loaded.character.state.spellSlots ?? [])
   const sheetStateChanged = resourceConsumption !== undefined || itemConsumption !== undefined
   const shouldAdvance =
     folded.stateChanged ||
@@ -305,7 +327,7 @@ export function planEncounterMechanicsBatch(input: {
         deathSaves: folded.after.deathSaves
       },
       conditions: nextConditions,
-      ...(spellSlotsChanged ? { spellSlots: batch.spellSlotUsage } : {})
+      ...(spellSlotsChanged ? { spellSlots: nextSpellSlots } : {})
     }
   }
   const nextSheetState = sheetStateChanged

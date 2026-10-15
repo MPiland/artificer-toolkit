@@ -307,6 +307,7 @@ export interface ActionRoomConfig extends Pick<
   | 'characterClassFeatures'
   | 'characterEquipment'
   | 'characterPlay'
+  | 'characterSpellcasting'
   | 'definitions'
   | 'seed'
 > {
