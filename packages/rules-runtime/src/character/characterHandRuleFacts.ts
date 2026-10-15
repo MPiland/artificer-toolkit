@@ -1,8 +1,5 @@
 import type { CharacterRulePolicyInput } from '@artificer-toolkit/schema/api/characterRules'
-import {
-  EQUIPMENT_PROPERTY_CODE,
-  type CharacterBuildSnapshot
-} from '@artificer-toolkit/shared/core'
+import { EQUIPMENT_PROPERTY_CODE, type CharacterBuildSnapshot } from '@artificer-toolkit/shared/core'
 
 export function buildCharacterHandRuleFacts(
   snapshot: CharacterBuildSnapshot

@@ -84,6 +84,16 @@ describe('the SRD Hide and Search actions compile through core options (ATTACK-1
     ).toThrow('concealment DC and detect outcome must be authored together')
   })
 
+  it('rejects a conceal or detect outcome on an action that is not a check', () => {
+    const dash = catalogueBasicActionEffect(SRD_BASIC_ACTION_IDS.DASH)
+    for (const checkActionId of [SRD_BASIC_ACTION_IDS.HIDE, SRD_BASIC_ACTION_IDS.SEARCH]) {
+      const { outcome } = catalogueBasicActionEffect(checkActionId).entries[0]!
+      expect(() => compile({ ...dash, entries: [{ ...dash.entries[0]!, outcome }] })).toThrow(
+        'conceal and detect outcomes belong to a check action'
+      )
+    }
+  })
+
   it('plans the Hide concealment as an indefinite active effect consumed by the first attack roll', () => {
     const plans = dnd5eCharacterRuleActionSystemAdapter.activeEffectPlans?.({
       action: characterActionDescriptor(

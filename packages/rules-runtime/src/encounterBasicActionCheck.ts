@@ -2,7 +2,7 @@ import type { ServerRuleExecutionApplicationOutputsDto } from '@artificer-toolki
 import { basicActionCheckApplicationOutputDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
 import {
   encounterBasicActionCheckPendingContextDtoSchema,
-  type encounterConcealmentCheckPendingContextDtoSchema,
+  type EncounterConcealmentCheckPendingContextDto,
   type encounterEscapeCheckPendingContextDtoSchema
 } from '@artificer-toolkit/schema/shared/ruleExecutionDirectActionPendingContexts'
 import type { characterMechanicsTargetStateDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
@@ -34,9 +34,6 @@ type EncounterBasicActionCheckPendingContextDto = ReturnType<
 >
 type EncounterEscapeCheckPendingContextDto = ReturnType<
   typeof encounterEscapeCheckPendingContextDtoSchema.parse
->
-type EncounterConcealmentCheckPendingContextDto = ReturnType<
-  typeof encounterConcealmentCheckPendingContextDtoSchema.parse
 >
 type CharacterMechanicsTargetStateDto = ReturnType<
   typeof characterMechanicsTargetStateDtoSchema.parse

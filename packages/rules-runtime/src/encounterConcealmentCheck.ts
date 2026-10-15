@@ -1,6 +1,9 @@
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { EncounterRuleRollTriggerDto } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
-import { encounterConcealmentCheckPendingContextDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionDirectActionPendingContexts'
+import {
+  encounterConcealmentCheckPendingContextDtoSchema,
+  type EncounterConcealmentCheckPendingContextDto
+} from '@artificer-toolkit/schema/shared/ruleExecutionDirectActionPendingContexts'
 import { concealmentCheckApplicationOutputDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
 import type { ServerRuleExecutionContinuationDto } from '@artificer-toolkit/schema/shared/rulesExecution'
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
@@ -22,14 +25,12 @@ import {
   type EncounterConcealment
 } from './encounterConcealment.js'
 import { EncounterValidationError } from './encounterErrors.js'
+import { turnEffectOwner } from './encounterTurnEffectState.js'
 import { consumableGrants } from './encounterGrantLifetimes.js'
 import { actorContestFacts } from './encounterMovementPassagePreparation.js'
 import type { CharacterMovementFacts, MovementTarget } from './encounterMovementTargets.js'
 import { characterRuleActionSystemAdapterRegistry } from './characterRuleActionSystemAdapterRegistry.js'
 
-type EncounterConcealmentCheckPendingContextDto = ReturnType<
-  typeof encounterConcealmentCheckPendingContextDtoSchema.parse
->
 type ConcealmentResolution = EncounterConcealmentCheckPendingContextDto['resolution']
 type ConcealmentCheckDc = { kind: 'PASSIVE'; passiveDefinitionId: string } | { kind: 'CONCEALMENT' }
 
@@ -257,18 +258,9 @@ export function createEncounterConcealmentEffect(input: {
     published: plan.published
   })
   if (!effect) return null
-  if (input.roller.kind === 'CHARACTER' && !input.roller.sourceId)
-    throw new Error('Encounter Character effect owner is incomplete.')
   return prepareActiveRuleEffectRecord({
     id: input.id,
-    owner:
-      input.roller.kind === 'CHARACTER'
-        ? { kind: 'CHARACTER', characterId: input.roller.sourceId! }
-        : {
-            kind: 'ENCOUNTER_ACTOR',
-            encounterId: input.encounterId,
-            targetActorId: input.roller.id
-          },
+    owner: turnEffectOwner(input.roller, input.encounterId),
     definition: effect.definition,
     lifecycle: effect.lifecycle,
     currentEffects: input.rollerEffects,

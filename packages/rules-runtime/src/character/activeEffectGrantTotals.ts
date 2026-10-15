@@ -5,10 +5,7 @@ import type {
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 
 import { modifierLengthFeet } from '../modifierLength.js'
-import {
-  listHitPointMaximumReductions,
-  reduceHitPointMaximum
-} from './hitPointMaximumReductions.js'
+import { listHitPointMaximumReductions, reduceHitPointMaximum } from './hitPointMaximumReductions.js'
 
 // Grant reads the Sheet and the Encounter share. This module must stay free of `encounter*` imports:
 // the browser bundles it through the Sheet projection (ADR 0036 S6, rulesRuntimeBoundary.test.ts).

@@ -52,12 +52,10 @@ const systemCheckDefinitionDtoSchema = lazySchema(() =>
 /** A System passive score (10 + a skill's modifier). It names its skill, or none when no skill underlies it. */
 const systemPassiveDefinitionDtoSchema = lazySchema(() =>
   z.extend(vocabularyDtoSchema, {
-    skillDefinitionId: z.optional(
-      z.nullable(
-        z.pipe(
-          postgresUuidSchema,
-          z.transform((value) => value.toLowerCase())
-        )
+    skillDefinitionId: z.nullable(
+      z.pipe(
+        postgresUuidSchema,
+        z.transform((value) => value.toLowerCase())
       )
     )
   })

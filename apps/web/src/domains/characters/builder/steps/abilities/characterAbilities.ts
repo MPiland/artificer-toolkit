@@ -50,7 +50,8 @@ export function syncHitpointLevels({
           resolvedAbilityScores
         })
       : 0
-    const fixed = character.intent.hitpoints.method === HITPOINT_CALCULATION_METHOD_CODE.FIXED
+    const fixed =
+      character.intent.hitpoints.method === HITPOINT_CALCULATION_METHOD_CODE.FIXED
     const rolled = orderedRow.rolls?.[0]?.value
     const roll = typeof rolled === 'number' && Number.isInteger(rolled) ? rolled : null
 

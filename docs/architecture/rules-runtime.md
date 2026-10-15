@@ -485,7 +485,8 @@ options (ADR 0038); nothing in code names Hide.
 - **Attacks.** Off a Scene, `resolveAttackSight` treats a subject as `UNSEEN` by an observer its concealment still hides it from,
   whatever the observer's Senses (D100); on a Scene the Scene decides. The attack-roll caption and advantage follow the existing
   unseen-attacker path. The believed
-  mode follows the same set; the true mode may cancel it ("Advantage cancelled: the target can sense you"). The first attack
+  mode must not reveal which observers failed, so it treats the hider as hidden from any non-allied target while a concealment
+  exists; the true mode uses the set and may cancel it ("Advantage cancelled: the target can sense you"). The first attack
   roll consumes the concealment for everyone (`consumableGrants`: modifier grants and concealments only, so the Invisibility
   condition path is unchanged).
 - **Redaction.** The observer ids are GM knowledge. They live only in the stored effect and receipt; no player projection,

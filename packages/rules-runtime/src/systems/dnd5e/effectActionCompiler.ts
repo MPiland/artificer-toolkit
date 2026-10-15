@@ -2341,6 +2341,11 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
     outcome.effectKind !== 'DETECT_CONCEALED'
   )
     unsupported('D&D check action outcome is not supported yet.')
+  if (
+    !checkAction &&
+    (outcome.effectKind === 'CONCEAL_FROM_OBSERVERS' || outcome.effectKind === 'DETECT_CONCEALED')
+  )
+    unsupported('D&D conceal and detect outcomes belong to a check action.')
   // A concealment check is decided against scores the roller never sees: a passive DC only conceals
   // and a concealment DC only detects, and neither pairs with any other outcome.
   if (

@@ -75,18 +75,24 @@ const wall = {
   blocksLight: true,
   blocksMovement: true
 }
+/** The same wall, but a token can cross it. */
+const sightWall = { ...wall, blocksMovement: false }
 
 /**
  * A Wolf hider with Stealth +5, acting first, beside three friendly Wolves of differing Perception.
  * `walled` puts a wall of the Scene between the hider and the two Wolves further away;
  * `playerHider` makes the hider a player's creature and the Sharp Wolf another player's; `rolls` feeds the room's own dice.
  */
-function hideRoom(options: { walled?: boolean; playerHider?: boolean; rolls?: number[] } = {}) {
+function hideRoom(
+  options: { walled?: boolean | 'SIGHT_ONLY'; playerHider?: boolean; rolls?: number[] } = {}
+) {
   const hider = withCheckTotals(srdCreatureActor({ id: HIDER_ID, creature: bite }), {
     [SRD_STEALTH_SKILL_ID]: 5
   })
   return actionRoom({
-    ...(options.walled ? { sceneOverrides: { barriers: [wall] } } : {}),
+    ...(options.walled
+      ? { sceneOverrides: { barriers: [options.walled === 'SIGHT_ONLY' ? sightWall : wall] } }
+      : {}),
     rolls: options.rolls ?? [],
     ...(options.playerHider
       ? { playerControlledActorIds: [HIDER_ID], otherPlayerControlledActorIds: [SHARP_ID] }
@@ -252,6 +258,30 @@ describe('Hide, a System basic action with a per-observer check, in the room', (
     await hide(fixture, 10)
     await revertLast(fixture)
     expect(await concealments(fixture)).toEqual([])
+  })
+
+  it('refuses to undo the Hide once a token move pruned its observers, and keeps the concealment', async () => {
+    const fixture = await hideRoom({ walled: 'SIGHT_ONLY' })
+    await hide(fixture, 20, true)
+    expect(await concealments(fixture)).toMatchObject([{ observers: [KEEN_ID, ALERT_ID].sort() }])
+
+    // Crossing the wall brings the hider into plain sight of both observers; the move is not a Run command.
+    const moved = await fixture.room.room.move([
+      { x: 150, y: 150 },
+      { x: 320, y: 150 }
+    ])
+    expect(moved.type, JSON.stringify(moved)).toBe('COMMAND_COMMITTED')
+    expect(await concealments(fixture)).toMatchObject([{ observers: [] }])
+
+    const refused = await fixture.room.send({
+      type: 'REVERT_LAST_ACTION',
+      encounterId: fixture.room.room.encounterId,
+      commandId: crypto.randomUUID(),
+      expectedVersion: await fixture.room.version()
+    })
+    expect(refused.type, JSON.stringify(refused)).toBe('COMMAND_REJECTED')
+    expect(JSON.stringify(refused)).toContain('The concealment changed after this action')
+    expect(await concealments(fixture)).toMatchObject([{ observers: [] }])
   })
 })
 

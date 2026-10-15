@@ -4,7 +4,7 @@ import type {
 } from '@artificer-toolkit/schema/api/liveSessionEncounterBasicAction'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
-import type { encounterConcealmentCheckPendingContextDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionDirectActionPendingContexts'
+import type { EncounterConcealmentCheckPendingContextDto } from '@artificer-toolkit/schema/shared/ruleExecutionDirectActionPendingContexts'
 import type { ServerRuleExecutionContinuationDto } from '@artificer-toolkit/schema/shared/rulesExecution'
 import type { EncounterBasicActionCapabilityDescriptor } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
 import {
@@ -29,17 +29,13 @@ import {
   type NativeLiveCheckActionInput
 } from './nativeCheckAction.js'
 
-type ConcealmentCheckContext = ReturnType<
-  typeof encounterConcealmentCheckPendingContextDtoSchema.parse
->
-
 /**
  * Settles a rolled concealment check (Hide, Search) against the actors as they are now: decides
  * it from the check's total, stores a Hide's concealment on its roller, and builds the stored
  * result. Convex re-derives the decision from the context and total and records it.
  */
 export function settleNativeConcealmentCheck(input: {
-  context: ConcealmentCheckContext
+  context: EncounterConcealmentCheckPendingContextDto
   continuation: ServerRuleExecutionContinuationDto
   evaluated: Awaited<ReturnType<typeof rollEncounterCheck>>
   appRollId: string | null

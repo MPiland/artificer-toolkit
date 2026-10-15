@@ -18,8 +18,7 @@ export async function endCharacterActiveEffect(
   if (!effect) throw new CharacterSheetCommandError('Active effect is unavailable.')
   if (!input.isCampaignOwner) {
     const { holderEnd } = effect.definition.recurrence
-    if (!holderEnd)
-      throw new CharacterSheetCommandError('Only the Campaign owner can end an active effect.')
+    if (!holderEnd) throw new CharacterSheetCommandError('Only the Campaign owner can end an active effect.')
     if (input.inEncounter && holderEnd.activation !== 'FREE')
       throw new CharacterSheetCommandError('End this effect from the Encounter actions.')
   }

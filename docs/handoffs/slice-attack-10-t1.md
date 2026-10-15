@@ -113,14 +113,14 @@ Frozen list:
 - **6.** A discriminant replaces `'createdEffect' in settlement`.
 - **7.** The Escape DC offers FIXED and CONTEST only, in the schema, the authored type and the node map, tested through node-runtime resolution.
 - **8.** A type-level equality assertion for `EncounterConcealmentCheckPendingContextDto`.
-- **9.** `revertConcealmentCheck` throws `unavailable(...)` on a stale version. Defensive: through commands it is unreachable (revert requires the action to be the Run's latest change), and the room store is writable only inside a room command, so no room test is possible without a store hack; not tested.
+- **9.** `revertConcealmentCheck` throws `unavailable(...)` on a stale version.
 - **Nits.** Unused exports dropped; one observer-set normalizer and one set-equality method (`normalizeObserverActorIds`, `sameObserverActorIds`); the `input` wrapper in `nativeConcealmentPrune.ts` removed; `stealthTotal` renamed `concealmentTotal`.
 
 Resolutions:
 
 - Blocker 1: `asHiddenRoller` (`ruleRollCards.ts`) forces the card private; the concealment settlement and the app-roll path (`evidenceRolls.ts`) both use it. Tests: `nativeRoomHideAction.test.ts`, "who sees the Hide and Search rolls" (GM hider with the room's PUBLIC preference, player hider on both dice paths, another player's frames).
 - Blocker 2: `resolveAttackSight` believed guard is "concealment present and relationship not ALLIED"; tests in `encounterAttackPerception.test.ts` (noticed by A but not B gives the same believed prompt against both; true mode differs).
-- 3: `concealCompile.test.ts`. 4: variant with `ON_ABILITY_CHECK` plus `ON_ATTACK_ROLL`, `GrantConsumeEvent` being only those two. 5: `systemPassiveDefinitionDtoSchema.skillDefinitionId` (additive, v4 System), SRD passives author it. 6: `isConcealmentCheckSettlement`. 7: `escapeDcDtoSchema`, `ESCAPE_DC_NODE_MAP` (`escapeDc`), `escapeDcOptions.test.ts`. 8: `concealment-check-pending-context.test.ts`. 9: `actionRevert.ts`, room test "refuses to undo a Hide once its concealment changed".
+- 3: `concealCompile.test.ts`. 4: variant with `ON_ABILITY_CHECK` plus `ON_ATTACK_ROLL`, `GrantConsumeEvent` being only those two. 5: `systemPassiveDefinitionDtoSchema.skillDefinitionId` (additive, v4 System), SRD passives author it. 6: `isConcealmentCheckSettlement`. 7: `escapeDcDtoSchema`, `ESCAPE_DC_NODE_MAP` (`escapeDc`), `escapeDcOptions.test.ts`. 8: `concealment-check-pending-context.test.ts`. 9: `actionRevert.ts`. Reachable (review round 2): an uninterrupted voluntary token move writes no Run command but prunes the observers, which bumps the effect version, so a Hide undo after it is refused. Room test "refuses to undo the Hide once a token move pruned its observers" (`nativeRoomHideAction.test.ts`).
 - Nit not done: `concealmentObserverCommand.ts` still scans the actors for the effect. The store indexes an effect by (encounter, holder, id) and the command carries no holder, so an id-only lookup needs a `holderActorId` on the command (a transport contract change). The GM tracker UI that issues this command needs the holder with the effect id anyway; add it there.
 
 Report-only answers:
@@ -131,3 +131,21 @@ Report-only answers:
 4. **A Scene-undo prune restore does not republish the Encounter projection, and needs none today**: no projection carries concealment (see 2) and the Encounter stream version does not move. The GM-tracker PBI must republish when it adds the projection.
 
 Contract changes in this round (flag for main): the System v4 `passives[].skillDefinitionId` (additive, optional); the Escape `dc` narrowed to FIXED and CONTEST (pre-launch, no authored Escape uses another kind); the persisted `LOCATION_CONCEALMENT` field renamed `stealthTotal` to `concealmentTotal` (pre-launch; no data migration, local dev Runs reset).
+
+## Independent review (2026-10-15, opus, read-only) and what was done
+
+Fixed:
+
+- **B2 (item 9).** Reachable: an uninterrupted voluntary token move writes no Run command but its prune bumps the effect version, so a Hide undo after it is refused (`unavailable`, concealment kept). Room test "refuses to undo the Hide once a token move pruned its observers"; the item 9 text above is corrected.
+- **S1.** `docs/architecture/rules-runtime.md` now states the ruled believed mode (hidden from any non-allied target while a concealment exists).
+- **S3.** The compiler rejects a conceal or detect outcome on a non-check action (`concealCompile.test.ts`).
+- **S4.** Formatter churn restored from base (betterAuth `_generated`, `sheetCommands.ts`, `characterActiveEffects.ts`, `activeEffectGrantTotals.ts`, `characterHandRuleFacts.ts`, `walkingSpeed.ts`, `characterAbilities.ts`, `authoredRouteStory.fixtures.ts`, the timings doc).
+- **S5.** `systemPassiveDefinitionDtoSchema.skillDefinitionId` is required and nullable (one absence).
+- **N1.** The three local aliases import the exported `EncounterConcealmentCheckPendingContextDto`. **N2.** The `sourceId!` owner is `turnEffectOwner`.
+
+Stands, with the reason:
+
+- **B1 (GM view of the failed observers).** No GM Encounter projection carries any concealment today (report-only answer 2), so the GM-facing surface is a new projection plus the GM tracker UI that issues `SET_CONCEALMENT_OBSERVERS`. It changes a transport contract and needs its own registered PBI; this slice proves the negative half (no player-visible frame carries observers) and the stored/receipt half. Main decides whether it joins this AC.
+- **S2.** On a Scene-bound Run with no `sceneContext`, observers are not Scene-gated (the neutral-environment rule, D94). Warning or requiring the context changes action-start behavior; flagged for main, not changed.
+- **N3, N4, N5, N7.** The `afterVersion` repeat is a plan-versus-settlement agreement check and a shared helper would be a single-use abstraction; `prepareEncounterConcealmentEffect` is exported and used by the test fixture; the `isConcealmentCheck` read and `loadDefinition` adapter are one-liners at distinct seams; N7 is the acknowledged residual above. N6: the System v4 field is recorded under "Contract changes" above.
+- **Test gaps, recorded:** attack-time advantage on a Scene is proved by the journey test "gives an attack from hiding advantage"; not covered: a target-side concealment (Blocker 2 target stripping beyond the unit test), GM Roll dice with explicit PUBLIC visibility, a player Search card, `ON_ABILITY_CHECK` consumption end to end, a Character-owned concealment. Register as a follow-up test slice.
