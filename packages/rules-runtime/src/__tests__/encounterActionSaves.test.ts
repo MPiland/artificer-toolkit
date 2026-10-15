@@ -406,7 +406,7 @@ describe('a half-damage success authored as an amount kind', () => {
                     activation: null,
                     range: { rangeKind: 'UNLIMITED', amount: null, longAmount: null, unit: null },
                     savingThrow: null,
-                    reactionMovementTrigger: null
+                    reactionTrigger: null
                   },
                   outcomes: bound.map((outcome) => ({
                     kind: 'DAMAGE' as const,

@@ -15,7 +15,7 @@ import {
 } from '../shared/enums.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { lengthUnitCodeSchema } from '../shared/enums.js'
-import { reactionMovementTriggerBindingDtoSchema } from '../shared/reaction.js'
+import { reactionTriggerBindingDtoSchema } from '../shared/reaction.js'
 
 const stringSchema = lazySchema(() => z.string())
 const integerSchema = lazySchema(() => z.number().check(z.int()))
@@ -282,7 +282,7 @@ const actionInvocationFactSchema = lazySchema(() =>
         bonuses: z.array(actionSavingThrowBonusSchema).check(z.maxLength(100))
       })
     ),
-    reactionMovementTrigger: z.nullable(reactionMovementTriggerBindingDtoSchema)
+    reactionTrigger: z.nullable(reactionTriggerBindingDtoSchema)
   })
 )
 

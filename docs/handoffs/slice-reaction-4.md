@@ -95,3 +95,22 @@ Red-first, per the checklist below.
     - T3: SPELL_CAST, Counterspell conversion and chain; AC 4.3.
     - T4: TARGETED_SELF, Shield against Magic Missile; AC 4.1, after SPELLS-26 (multi-target spells, registered).
   - The main session records the decision entry at merge. The slice updates ADR 0038 and the engine guide.
+- 2026-10-15: REACTION-4.T1 built (state: compiling and testing; see the final report for results).
+  - **Shape:**
+    - `reactionTrigger` is a discriminated union (`MOVEMENT`, `ATTACKED_SELF`) in the authored node map, schema, compiler and economy. The old movement-only field is gone and the fixtures migrated in the same change.
+    - A reaction pause is `applicationContext.reactionChoice` on the triggering ENCOUNTER_ACTION occurrence, beside `legendaryResistance`. Its `reactions` array is a stack (innermost first) for T3 chains; T1 only ever holds one.
+    - The choice comes after TEST on ON_HIT/ON_CRIT and before OUTCOME. Use re-evaluates the TEST against the defense after the reaction, as a sealed `adjustment` (`defenseBefore`, `defenseAfter`, `adjustedBoundFactsChecksum`) in the evidence and checksum. The "TEST evidence is stale" guard still applies to everything else.
+    - D26 holds the Scene for the pending reaction decision ("Waiting on a reaction decision.").
+  - **Deviations from the approved design:**
+    - Undo is not a separate REACTION undo child. The reaction's slot, allowance and effect ride in the attack's `CHARACTER_MECHANICS_BATCH.reaction` receipt, so the existing action undo restores them. A GM void of the held attack cancels the whole attack (same as Legendary Resistance).
+    - The node map shows `reactionTrigger` for every ACTION invocation, not only REACTION activations, because the node-map condition language cannot read `activation.code` from the invocation union. The schema refuses a trigger on a non-REACTION activation, and the compiler refuses a self reaction that has no trigger.
+    - The shared choice graph still carries the "movement" name (`ASSISTED_MOVEMENT_REACTION_CHOICE_DEFINITION_ID`).
+  - **Legendary Resistance and reaction cannot collide.** LR is offered only on ON_SAVE_FAIL and a reaction only on ON_HIT/ON_CRIT. A TEST has either an attack path or a save path, and `continueNativeActionAfterTest` rejects an audit carrying both.
+  - **Out-of-range refusal is vacuous for Shield** (its range is SELF), so no test exercises it in T1.
+  - **Follow-ups to register (outside T1):**
+    - Movement-reaction opportunity attacks and the area and explicit-flow callers do not offer the reaction yet.
+    - `movementInterruption` is not in the authoring form.
+    - Creature (non-Character) reactors, multiple eligible reactions (only the first is offered), self-attacks.
+    - Reactions that need dice, create state effects or use maintenance are refused.
+    - Limits: `activeEffectTransitions` max 1 and commit `createdEffects` max 3.
+    - The legacy `ENCOUNTER_ACTOR_RULE_ACTION` and `ENCOUNTER_CREATURE_RULE_ACTION` contexts have no reaction phase.

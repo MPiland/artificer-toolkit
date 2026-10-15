@@ -65,6 +65,42 @@ describe('effect node maps', () => {
     expect(resourceUseNode?.kind === 'GROUP' && resourceUseNode.showIf).toBeDefined()
   })
 
+  it('offers the reaction trigger as a conditional group with its attacked-self kind', () => {
+    const invocationNode = EFFECT_NODE_MAP.nodes.invocation
+
+    if (invocationNode.kind !== 'GROUP') {
+      throw new Error('Expected invocation to be a group node')
+    }
+
+    const invocationMap =
+      typeof invocationNode.nodes === 'function' ? invocationNode.nodes() : invocationNode.nodes
+    const reactionTriggerNode = invocationMap.nodes.reactionTrigger
+
+    if (reactionTriggerNode?.kind !== 'GROUP') {
+      throw new Error('Expected reactionTrigger to be a group node')
+    }
+    expect(reactionTriggerNode.presentation).toBe('inline')
+    expect(reactionTriggerNode.showIf).toBeDefined()
+    expect(reactionTriggerNode.requiredIf).toBeDefined()
+
+    const reactionMap =
+      typeof reactionTriggerNode.nodes === 'function'
+        ? reactionTriggerNode.nodes()
+        : reactionTriggerNode.nodes
+    const kindNode = reactionMap.nodes.kind
+    if (
+      kindNode.kind !== 'INPUT' ||
+      kindNode.type !== 'SELECT_SINGLE' ||
+      kindNode.source.kind !== 'INLINE_OPTIONS'
+    ) {
+      throw new Error('Expected the reaction trigger kind to be an inline select')
+    }
+    expect(kindNode.source.options.map((option) => option.code)).toEqual([
+      'MOVEMENT',
+      'ATTACKED_SELF'
+    ])
+  })
+
   it('exposes result structure on all effect result blocks', () => {
     const directResultNode = PATH_NODE_MAP.nodes.resultBlock
     const choiceOptionsNode = PATH_NODE_MAP.nodes.options

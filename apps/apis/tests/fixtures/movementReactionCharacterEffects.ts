@@ -107,12 +107,12 @@ export async function setupMovementReactionCharacterEffects(withSecondReactor = 
         effects: feature.effects?.map((effect) => ({
           ...effect,
           invocation:
-            'reactionMovementTrigger' in effect.invocation &&
-            effect.invocation.reactionMovementTrigger
+            'reactionTrigger' in effect.invocation &&
+            effect.invocation.reactionTrigger
               ? {
                   ...effect.invocation,
-                  reactionMovementTrigger: {
-                    ...effect.invocation.reactionMovementTrigger,
+                  reactionTrigger: {
+                    ...effect.invocation.reactionTrigger,
                     eligibilityDefinitionId: policy.id
                   }
                 }
