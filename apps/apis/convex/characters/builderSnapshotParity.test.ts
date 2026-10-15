@@ -62,9 +62,10 @@ async function resolveBothWays(
   t: Test,
   caller: Caller,
   userId: string,
-  request: CharacterBuilderResolveInput
+  request: CharacterBuilderResolveInput,
+  scopeReads?: Parameters<typeof evaluateBuilderCandidate>[4]
 ) {
-  const evaluation = await evaluateBuilderCandidate(t, caller, userId, request)
+  const evaluation = await evaluateBuilderCandidate(t, caller, userId, request, scopeReads)
   return {
     local: await evaluation.resolve(),
     localPreview: await evaluation.preview(),
@@ -258,6 +259,9 @@ describe('Builder resolution from content snapshots', () => {
       }
     ]
 
+    // Published content is unchanged across the scenarios, so they share one snapshot read per scope.
+    const scopeReads: Parameters<typeof resolveBothWays>[4] = new Map()
+
     async function expectParity(intent: Partial<CharacterAuthored['intent']>) {
       const draft = await owner.caller.mutation(api.characters.drafts.create, input())
       const character = characterAuthoredDtoSchema.parse({
@@ -266,7 +270,7 @@ describe('Builder resolution from content snapshots', () => {
         intent: { ...draft.payload.character.intent, abilities: standardArray, ...intent }
       })
       const request = { expectedDraftId: draft.id, mode: 'create' as const, character }
-      const resolved = await resolveBothWays(t, owner.caller, owner.userId, request)
+      const resolved = await resolveBothWays(t, owner.caller, owner.userId, request, scopeReads)
       expect(resolved.local).toEqual(resolved.fullPool)
       expect(resolved.localPreview).toEqual(resolved.fullPoolPreview)
       return { ...resolved, request }
