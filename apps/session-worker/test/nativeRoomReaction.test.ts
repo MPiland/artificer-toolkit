@@ -246,11 +246,12 @@ describe('room reaction to a hit (REACTION-4.4)', () => {
     expect(answered.type, JSON.stringify(answered)).toBe('COMMAND_COMMITTED')
     expect(await readPendingActionDecision(targetPlayer.room.base.stub)).toBeNull()
 
-    const wolfPlayer = await shieldRoom({ playerControlledActorIds: [WOLF_ID] })
+    const wolfPlayer = await shieldRoom({ otherPlayerControlledActorIds: [WOLF_ID] })
     await strike(wolfPlayer, 0)
     const foreign = await offeredReaction(wolfPlayer)
     const refused = await wolfPlayer.sendAsPlayer(
-      wolfPlayer.resolveCommand(foreign.decision, { kind: 'DECLINE' })
+      wolfPlayer.resolveCommand(foreign.decision, { kind: 'DECLINE' }),
+      'OTHER_PLAYER'
     )
     expect(refused.type).toBe('COMMAND_REJECTED')
     expect(await readPendingActionDecision(wolfPlayer.room.base.stub)).not.toBeNull()
@@ -364,8 +365,13 @@ describe('room reaction to a hit (REACTION-4.4)', () => {
       expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
     })
 
-    it('to a defeated Character (D63)', async () => {
-      const room = await shieldRoom({ characterPlay: { currentHitPoints: 0 } })
+    it('to a dead Character (D63, D96)', async () => {
+      const room = await shieldRoom({
+        characterPlay: {
+          currentHitPoints: 0,
+          deathSaves: { successes: 0, failures: 3, stable: false }
+        }
+      })
       await strike(room, 0)
       expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
     })
