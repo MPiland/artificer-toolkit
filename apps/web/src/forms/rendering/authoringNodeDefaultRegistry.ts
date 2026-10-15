@@ -90,6 +90,7 @@ type AuthoringDefaultKind =
   | 'raceAncestry'
   | 'raceAncestryOption'
   | 'range'
+  | 'reactionTrigger'
   | 'resourceUse'
   | 'scaling'
   | 'resultBlock'
@@ -218,6 +219,7 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   raceAncestry: ['raceAncestry'],
   raceAncestryOption: ['raceAncestryOption'],
   range: ['range', 'senseRange'],
+  reactionTrigger: ['reactionTrigger'],
   resourceUse: ['resourceUse'],
   scaling: ['durationScaling', 'rangeScaling', 'shapeMeasurementScaling', 'targetCountScaling'],
   resultBlock: ['nonManifestResultBlock', 'resultBlock'],

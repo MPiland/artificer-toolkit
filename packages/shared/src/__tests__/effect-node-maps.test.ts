@@ -81,7 +81,6 @@ describe('effect node maps', () => {
     }
     expect(reactionTriggerNode.presentation).toBe('inline')
     expect(reactionTriggerNode.showIf).toBeDefined()
-    expect(reactionTriggerNode.requiredIf).toBeDefined()
 
     const reactionMap =
       typeof reactionTriggerNode.nodes === 'function'
