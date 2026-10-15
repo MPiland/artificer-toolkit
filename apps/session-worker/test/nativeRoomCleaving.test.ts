@@ -36,6 +36,8 @@ function cleavingRoom(options: {
   concentrationOwnerActorId?: string
   /** The target that holds a grant ending on incapacitation (D113), which the Bite's chain defeats. */
   grantHolderActorId?: string
+  /** The creatures the Bite can reach; the first is the attack's target. */
+  targetIds?: readonly string[]
 }) {
   const attacker = biteWolf('ATTACK', { damage: 40, reachFeet: 20 })
   return actionRoom({
@@ -43,7 +45,9 @@ function cleavingRoom(options: {
     concentration: options.concentrationOwnerActorId !== undefined,
     actors: [
       srdCreatureActor({ id: SOURCE_ID, creature: attacker }),
-      ...TARGET_IDS.map((id) => srdCreatureActor({ id, creature: plainWolf }))
+      ...(options.targetIds ?? TARGET_IDS).map((id) =>
+        srdCreatureActor({ id, creature: plainWolf })
+      )
     ],
     ownerFeatureId: creatureFeature(attacker, 'Bite').id,
     optionalCombatKinds: ['CLEAVING'],
@@ -157,7 +161,8 @@ describe('room Cleaving chain', () => {
       const room = await cleavingRoom({
         autoRoll: 'GAME_MASTER',
         rolls: [18],
-        grantHolderActorId: TARGET_IDS[1]
+        grantHolderActorId: TARGET_IDS[1],
+        targetIds: TARGET_IDS.slice(0, 2)
       })
       await startAttack(room)
       const heldGrantIds = async () =>
@@ -170,15 +175,6 @@ describe('room Cleaving chain', () => {
       expect(answered.type, JSON.stringify(answered)).toBe('COMMAND_COMMITTED')
       expect(await heldGrantIds()).not.toContain(ENDING_GRANT_ID)
 
-      const second = await pendingChoice(room)
-      expect(
-        (
-          await room.resolve(second, {
-            kind: 'OPTION',
-            optionId: second.pending.options[0]!.optionId
-          })
-        ).type
-      ).toBe('COMMAND_COMMITTED')
       const undone = await room.send({
         type: 'REVERT_LAST_ACTION',
         encounterId: room.room.encounterId,
@@ -187,6 +183,32 @@ describe('room Cleaving chain', () => {
       })
       expect(undone.type, JSON.stringify(undone)).toBe('COMMAND_COMMITTED')
       expect(await heldGrantIds()).toContain(ENDING_GRANT_ID)
+    })
+
+    it('ends the grant in a later response of the chain, whose parent is the earlier response', async () => {
+      const room = await cleavingRoom({
+        autoRoll: 'GAME_MASTER',
+        rolls: [18],
+        grantHolderActorId: TARGET_IDS[2]
+      })
+      await startAttack(room)
+      const heldGrantIds = async () =>
+        (await readRoomHistory(room.room.base.stub)).activeEffects.map((effect) => effect.id)
+
+      const first = await pendingChoice(room)
+      const toSecond = first.pending.options.find((entry) => entry.targetActorId === TARGET_IDS[1])
+      expect(
+        (await room.resolve(first, { kind: 'OPTION', optionId: toSecond!.optionId })).type
+      ).toBe('COMMAND_COMMITTED')
+      expect(await heldGrantIds()).toContain(ENDING_GRANT_ID)
+
+      const second = await pendingChoice(room)
+      const answered = await room.resolve(second, {
+        kind: 'OPTION',
+        optionId: second.pending.options[0]!.optionId
+      })
+      expect(answered.type, JSON.stringify(answered)).toBe('COMMAND_COMMITTED')
+      expect(await heldGrantIds()).not.toContain(ENDING_GRANT_ID)
     })
   })
 

@@ -6,6 +6,8 @@ import { discoverCharacterActionCapabilities } from '@artificer-toolkit/rules-ru
 import { discoverEncounterFeatureActionCapabilities } from '@artificer-toolkit/rules-runtime/encounterFeatureActionCapabilityDiscoveryRegistry'
 import { compileCharacterActionEntryPoints } from '@artificer-toolkit/rules-runtime/encounterActionEntryPointCompiler'
 import { readRunActor, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
+import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
+import { plannedModifierGrant } from '@artificer-toolkit/rules-runtime/testing/modifierGrantFixture'
 import { parseRollExpression } from '@artificer-toolkit/shared/rolls'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { barbarian } from '@artificer-toolkit/source-data/srd/classes/barbarian.js'
@@ -37,7 +39,10 @@ import { srdWolf } from '../../tests/fixtures/srdCreatures'
 import { api, internal } from '../_generated/api'
 import { loadCharacterSheetFacts } from '../characters/sheetFacts'
 import { readCharacterRecord, readCharacterRow } from '../characters/stateDocuments'
-import { createConvexEncounterStoreReader } from '../lib/convexEncounterStore'
+import {
+  createConvexEncounterStore,
+  createConvexEncounterStoreReader
+} from '../lib/convexEncounterStore'
 
 useLocalRoomWorker()
 
@@ -315,7 +320,7 @@ describe.each(BARBARIANS)('$name rages in an Encounter (ATTACK-9.T1)', ({ source
     /** The Barbarian's own player ends the grant. */
     function endsRage(
       fixture: Fixture,
-      from: Pick<Result, 'projection'>,
+      from: { projection: Pick<Result['projection'], 'version'> },
       grantId: string,
       acknowledgedWarnings: EncounterRuleWarningCodeDto[] = []
     ) {
@@ -366,14 +371,32 @@ describe.each(BARBARIANS)('$name rages in an Encounter (ATTACK-9.T1)', ({ source
       expect((await barbarianState(fixture)).grantIds).toEqual([])
     }, 120000)
 
-    it('lets the player end the Rage in a Manual Run, where the Encounter tracks no action economy', async () => {
+    it('refuses to end the Rage from a Manual Run, which resolves no Encounter commands', async () => {
       const fixture = await setup(source, 'MANUAL')
-      const raged = await rages(fixture)
-      const [grantId] = (await barbarianState(fixture)).grantIds
-      if (!grantId) throw new Error('Rage granted nothing.')
-      // The bonus action Rage used is not tracked, so ending it the same turn warns of nothing.
-      await endsRage(fixture, raged, grantId)
-      expect((await barbarianState(fixture)).grantIds).toEqual([])
+      // A Manual Run resolves no actions, so the Barbarian already holds the Rage the table granted.
+      const effect = source.features?.find(({ label }) => label === 'Rage')?.effects?.[0]
+      const grant = await fixture.t.run((ctx) =>
+        createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) }).create({
+          id: crypto.randomUUID(),
+          owner: { kind: 'CHARACTER', characterId: fixture.character.id },
+          definition: plannedModifierGrant({
+            encounterId: fixture.run.id,
+            sourceActorId: fixture.actor.id,
+            holderActorId: fixture.actor.id,
+            lifecycle: {},
+            effect,
+            rounds: 10,
+            lifetimeScope: 'OWNER'
+          }).definition,
+          lifecycle: { schemaVersion: 1, remainingTicks: 10 }
+        })
+      )
+      expect(
+        await rejection(
+          endsRage(fixture, { projection: { version: fixture.run.version } }, grant.id)
+        )
+      ).toMatchObject({ reason: 'ASSISTED_ONLY' })
+      expect((await barbarianState(fixture)).grantIds).toEqual([grant.id])
     }, 120000)
 
     it('refuses to end the Rage off the holder turn', async () => {

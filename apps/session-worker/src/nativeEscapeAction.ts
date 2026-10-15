@@ -92,7 +92,7 @@ export async function planNativeLiveEscape(
     actor,
     state,
     holder,
-    activation: { code: escape.module.activation.code, amount: escape.module.activation.amount },
+    activation: escape.module.activation,
     acknowledgedWarnings: root.acknowledgedWarnings,
     capture
   })

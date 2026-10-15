@@ -366,8 +366,10 @@ describe('Sheet play on a held Character', () => {
           ids[kind] = effect.id
         }
       })
-      const effectIds = () =>
-        base.t.run(async (ctx) =>
+      // The room holds the Character: its ended effect reaches Convex with the checkpoint.
+      const effectIds = async () => {
+        await checkpointLiveRoom(base.campaign.id)
+        return base.t.run(async (ctx) =>
           (
             await ctx.db
               .query('characterActiveRuleEffects')
@@ -375,6 +377,7 @@ describe('Sheet play on a held Character', () => {
               .collect()
           ).map(({ id }) => id)
         )
+      }
       const end = (caller: typeof base.player.caller, effectId: string, expectedVersion: number) =>
         executeSheetInRoom(caller, {
           scope: 'CHARACTER_SHEET',

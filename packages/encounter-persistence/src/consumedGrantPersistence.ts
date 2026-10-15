@@ -49,22 +49,28 @@ export function receiptConsumedGrants(input: {
 }
 
 /**
- * A response committed after its action's root (a Cleaving choice) can end grants too: the root's
- * receipt takes them, so the action's undo gives them back with everything else.
+ * A response committed after its action's root (a Cleaving choice, answering the action's
+ * occurrence) can end grants too: the root's receipt takes them, so the action's undo gives them
+ * back with everything else.
  */
 export async function addEndedGrantsToRoot(
   ctx: EncounterPersistenceTransaction,
   input: {
     campaignId: string
-    rootCommandId: string
+    actionOccurrenceId: string
     endedGrants: readonly ActiveRuleEffectRecord[]
   }
 ) {
   if (!input.endedGrants.length) return
+  const occurrence = await ctx.db
+    .query('encounterRuleOccurrences')
+    .withIndex('by_publicId', (q) => q.eq('id', input.actionOccurrenceId))
+    .unique()
+  if (!occurrence) throw new Error('Stored action occurrence is missing.')
   const root = await ctx.db
     .query('encounterRunCommands')
     .withIndex('by_campaignId_commandId', (q) =>
-      q.eq('campaignId', input.campaignId).eq('commandId', input.rootCommandId)
+      q.eq('campaignId', input.campaignId).eq('commandId', occurrence.rootCommandId)
     )
     .unique()
   if (root?.commandType !== 'RESOLVE_ACTION') throw new Error('Stored action root is missing.')

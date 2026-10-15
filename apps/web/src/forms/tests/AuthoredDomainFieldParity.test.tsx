@@ -137,7 +137,7 @@ describe('SRD Rage feature effect authoring parity', () => {
 
   it('authors the Rage shapes this parity gate is meant to prove', () => {
     const authored = JSON.stringify(rageEffects)
-    for (const shape of ['ATTACK_ABILITY', 'SPELLCASTING_LOCK', 'ON_INCAPACITATED', 'holderEnd']) {
+    for (const shape of ['ATTACK_ABILITY', 'SPELLCASTING_LOCK', 'endOnConditionIds', 'holderEnd']) {
       expect(authored).toContain(shape)
     }
   })

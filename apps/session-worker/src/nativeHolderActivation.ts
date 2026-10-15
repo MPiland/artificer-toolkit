@@ -64,13 +64,13 @@ export async function spendNativeHolderActivation(input: {
   actor: ActionEconomyInput['actor']
   state: ActionEconomyInput['state']
   holder: NonNullable<ActionEconomyInput['target']>
-  activation: ActionEconomyInput['activation']
+  activation: { code: 'FREE' } | ActionEconomyInput['activation']
   acknowledgedWarnings: readonly string[]
   capture: ReturnType<typeof liveEncounterCaptures>['capture']
 }) {
   const { actor, state, holder, activation, acknowledgedWarnings, capture } = input
   const economy =
-    activation.code === 'FREE'
+    activation.code === 'FREE' || !('amount' in activation)
       ? null
       : await evaluateEncounterActionEconomy({
           actor,
