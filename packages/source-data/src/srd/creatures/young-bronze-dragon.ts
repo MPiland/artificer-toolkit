@@ -108,7 +108,7 @@ export const youngBronzeDragon: CreatureAuthored = {
               baseDc: 15
             },
             activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(304, 22), rangeKind: S.RANGE_KIND.SPECIAL }
+            ...S.selfLine(S.actionId(304, 22), S.actionId(304, 36), 60, 5)
           },
           paths: [
             {
@@ -171,7 +171,7 @@ export const youngBronzeDragon: CreatureAuthored = {
               baseDc: 15
             },
             activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(304, 32), rangeKind: S.RANGE_KIND.SPECIAL }
+            ...S.selfCone(S.actionId(304, 32), S.actionId(304, 37), 30)
           },
           paths: [
             {

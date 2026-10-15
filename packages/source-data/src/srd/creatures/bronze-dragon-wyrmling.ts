@@ -143,10 +143,7 @@ export const bronzeDragonWyrmling: CreatureAuthored = {
               code: S.ACTIVATION_CODE.ACTION,
               amount: 1
             },
-            range: {
-              id: S.actionId(6062, 7),
-              rangeKind: S.RANGE_KIND.SPECIAL
-            }
+            ...S.selfLine(S.actionId(6062, 7), S.actionId(6062, 15), 40, 5)
           },
           paths: [
             {
@@ -212,10 +209,7 @@ export const bronzeDragonWyrmling: CreatureAuthored = {
               code: S.ACTIVATION_CODE.ACTION,
               amount: 1
             },
-            range: {
-              id: S.actionId(6062, 12),
-              rangeKind: S.RANGE_KIND.SPECIAL
-            }
+            ...S.selfCone(S.actionId(6062, 12), S.actionId(6062, 16), 30)
           },
           paths: [
             {

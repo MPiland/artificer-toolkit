@@ -127,10 +127,7 @@ export const silverDragonWyrmling: CreatureAuthored = {
               code: S.ACTIVATION_CODE.ACTION,
               amount: 1
             },
-            range: {
-              id: S.actionId(254, 7),
-              rangeKind: S.RANGE_KIND.SPECIAL
-            }
+            ...S.selfCone(S.actionId(254, 7), S.actionId(254, 17), 15)
           },
           paths: [
             {
@@ -196,10 +193,7 @@ export const silverDragonWyrmling: CreatureAuthored = {
               code: S.ACTIVATION_CODE.ACTION,
               amount: 1
             },
-            range: {
-              id: S.actionId(254, 12),
-              rangeKind: S.RANGE_KIND.SPECIAL
-            }
+            ...S.selfCone(S.actionId(254, 12), S.actionId(254, 18), 15)
           },
           paths: [
             {
