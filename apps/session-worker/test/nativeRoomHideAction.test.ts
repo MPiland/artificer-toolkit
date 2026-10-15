@@ -452,6 +452,14 @@ describe('who sees the Hide and Search rolls, in the room', () => {
       rollMode: null
     })
     expect(rolled.type, JSON.stringify(rolled)).toBe('COMMAND_COMMITTED')
+    // The app's roll is held until the roller settles on it.
+    const [held] = (await readRoomHistory(base.stub)).evidenceRolls
+    const settled = await fixture.room.resolve(decision, {
+      kind: 'SYSTEM_ROLL',
+      requestId: decision.pending.request.requestId,
+      rollId: held!.id
+    })
+    expect(settled.type, JSON.stringify(settled)).toBe('COMMAND_COMMITTED')
     expect(await concealmentOutputs(fixture)).toHaveLength(1)
 
     const cards = await readRoomRollCards(base.stub)
