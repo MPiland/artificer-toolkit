@@ -31,8 +31,9 @@ describe('validateUsernameOnServer', () => {
     }
   )
 
-  // Short dictionary words count as dictionary words.
-  it.each(['bigass', 'bigdick', 'mydick', 'cumbag', 'hotass'])(
+  // Short dictionary words count as dictionary words. `asslicker` also reads as `as` + `slicker`,
+  // which is no shorter than `ass` + `licker`, so the blocked reading is kept.
+  it.each(['bigass', 'bigdick', 'mydick', 'cumbag', 'hotass', 'asslicker'])(
     'refuses the short-word compound %s',
     (username) => {
       expect(validateUsernameOnServer(username)).toEqual({
@@ -85,6 +86,26 @@ describe('validateUsernameOnServer', () => {
       })
     }
   )
+
+  // A name that also reads as ordinary words in fewer pieces is not a compound of a blocked term.
+  it.each([
+    'titanslayer',
+    'titanqueen',
+    'basstitan',
+    'Titanfall_Fan',
+    'compassrose',
+    'Bluetit',
+    'Cuminseed',
+    'Titus',
+    'TitusLee',
+    'matthewtitus',
+    'Dickerson',
+    'Pettit',
+    'Pettitt',
+    'Cockburn'
+  ])('accepts the name %s that reads as words', (username) => {
+    expect(validateUsernameOnServer(username)).toEqual({ username, message: null })
+  })
 
   it.each([
     'cassandra',

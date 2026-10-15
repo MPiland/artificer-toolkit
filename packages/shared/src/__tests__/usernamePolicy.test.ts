@@ -54,7 +54,19 @@ describe('validateUsername', () => {
     'Penistone',
     'Titan',
     'Compass',
-    'Player1'
+    'Player1',
+    // Surnames that end in a blocked term's neighbour, and names the dataset's prefixes refuse.
+    'Glassman',
+    'Bassman',
+    'Grassman',
+    'Hassman',
+    'Brassman',
+    'Glass_Man',
+    'Annalise',
+    'Analise',
+    'Shital',
+    'Shittu',
+    'Shiitake'
   ])('accepts the ordinary name %s', (username) => {
     expect(validateUsername(username)).toEqual({ username, message: null })
   })
