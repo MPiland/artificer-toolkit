@@ -5,6 +5,7 @@ import type { VehicleAuthored } from '@artificer-toolkit/shared/subjects/authore
 import type { CharacterMovementFacts } from '../encounterMovementTargets.js'
 import type { CharacterSheetCampaignContext } from './campaignCharacterSheet.js'
 import { getVisibleCampaignConditions } from './campaignConditionVisibility.js'
+import type { CharacterSpellCastActions } from './characterSpellCastActions.js'
 import type { prepareCharacterSheetFromContext } from './sheetPreparation.js'
 import { projectCharacterSheetBundle } from './sheetProjection.js'
 
@@ -26,10 +27,14 @@ export type CharacterTurnFacts = CharacterMovementFacts &
     activeEffects: ActiveRuleEffectRecord[]
   }
 
-/** The Sheet's actions as the Character's own Sheet lists them, under the policy a turn evaluates. */
+/**
+ * The Sheet's actions as the Character's own Sheet lists them, under the policy a turn evaluates,
+ * followed by the spell casts the turn offers (decisions the Sheet's own actions never carry).
+ */
 export function projectCharacterTurnActions(
   facts: CharacterTurnFacts,
-  rulePolicyOutput: CharacterRulePolicyOutput
+  rulePolicyOutput: CharacterRulePolicyOutput,
+  spellCastDecisions: CharacterSpellCastActions['decisions']
 ) {
   return projectCharacterSheetBundle({
     character: facts.prepared.character,
@@ -41,7 +46,13 @@ export function projectCharacterTurnActions(
     creaturesById: facts.prepared.context.creaturesById,
     vehiclesById: facts.prepared.context.vehiclesById,
     spellCustomizations: facts.sheetState.spellCustomizations,
-    ruleEvaluation: { ...facts.ruleEvaluation, output: rulePolicyOutput },
+    ruleEvaluation: {
+      ...facts.ruleEvaluation,
+      output: {
+        ...rulePolicyOutput,
+        actionDecisions: [...rulePolicyOutput.actionDecisions, ...spellCastDecisions]
+      }
+    },
     activeEffects: facts.activeEffects,
     concentration: null
   }).sheet.actions.items

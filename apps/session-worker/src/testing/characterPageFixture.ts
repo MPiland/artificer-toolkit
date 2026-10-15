@@ -174,6 +174,8 @@ export interface CharacterPlayOverrides {
   fighterLevel?: number
   /** Sheet conditions the Character already carries. */
   conditions?: { conditionTypeId: string; label: string }[]
+  /** The spells the Character's Class has learned and prepared. */
+  spells?: { learned: readonly string[]; prepared: readonly string[] }
 }
 
 /** The captured Character's private stored row (structure with its play record), re-keyed to an owner. */
@@ -187,7 +189,8 @@ export function characterOwnerRowFor({
     carried = [],
     carriedQuantity = 1,
     fighterLevel = 1,
-    conditions
+    conditions,
+    spells
   } = playOverrides
   const [capturedLevel] = capturedPage.inputs.character.intent.hitpoints.levels
   const maximumHitPoints = capturedLevel!.value + 7 * (fighterLevel - 1)
@@ -251,7 +254,15 @@ export function characterOwnerRowFor({
         hitDice: [{ die: 10, total: fighterLevel, used: 0 }],
         deathSaves: NO_DEATH_SAVES
       },
-      ...(conditions && { conditions })
+      ...(conditions && { conditions }),
+      ...(spells && {
+        classes: [
+          {
+            classId: capturedPage.inputs.character.intent.classes[0]!.classId,
+            spells: { learned: [...spells.learned], prepared: [...spells.prepared] }
+          }
+        ]
+      })
     }
   })
   const play = splitCharacterPlayState({ state: character.state, sheetState }).play

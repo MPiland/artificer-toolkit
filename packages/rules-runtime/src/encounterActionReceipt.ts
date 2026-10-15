@@ -81,7 +81,7 @@ export function buildEncounterActionStoredExecution(input: {
             sourceCharacterStreamVersion,
             targetCharacterStreamVersion: mechanics.characterStreamVersion,
             resourceConsumption: resourceReceipt,
-            spellCastConsumption: null,
+            spellCastConsumption: settled.spellConsumptionReceipt,
             featureResourceConsumption: featureResourceReceipt,
             targetFeatureResourceConsumption: null,
             sourceItemUseStateTransition: settled.sourceItemUseStateTransition,
@@ -114,13 +114,15 @@ export function buildEncounterActionStoredExecution(input: {
             targetActorId: target.id,
             ...(input.maintenanceTransition ||
             settled.sourceItemUseStateTransition ||
-            settled.itemConsumptionReceipt
+            settled.itemConsumptionReceipt ||
+            settled.spellConsumptionReceipt
               ? {
                   sourceCharacterId: actor.kind === 'CHARACTER' ? actor.sourceId : null
                 }
               : {}),
             sourceCharacterStreamVersion,
             resourceConsumption: resourceReceipt,
+            spellCastConsumption: settled.spellConsumptionReceipt,
             featureResourceConsumption: featureResourceReceipt,
             targetFeatureResourceConsumption: input.resistance?.charge ?? null,
             legendaryResistance: input.resistance?.legendaryResistance ?? null,
@@ -161,6 +163,7 @@ export function buildEncounterAreaStoredExecution(input: {
     | 'featureResourceReceipt'
     | 'sourceItemUseStateTransition'
     | 'itemConsumptionReceipt'
+    | 'spellConsumptionReceipt'
   >
   actionEconomy: EncounterActionEconomyConsumption | null
   attackAction: EncounterAttackActionTransitionDto | null
@@ -186,6 +189,7 @@ export function buildEncounterAreaStoredExecution(input: {
       featureResourceConsumption: spend.featureResourceReceipt,
       sourceItemUseStateTransition: spend.sourceItemUseStateTransition,
       sourceItemConsumption: spend.itemConsumptionReceipt,
+      spellCastConsumption: spend.spellConsumptionReceipt,
       actionEconomyTransition: actionEconomyReceipt(input.actionEconomy),
       ...(input.attackAction ? { attackActionTransition: input.attackAction } : {})
     }
