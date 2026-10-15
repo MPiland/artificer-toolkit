@@ -16,6 +16,8 @@ import {
   type SpatialTokenFootprint
 } from '@artificer-toolkit/shared/vtt'
 
+import { TOUCH_RANGE } from './encounterActionTargetPolicy.js'
+
 const RANGE_UNCHECKED: EncounterRuleWarningDto = {
   code: 'TARGET_RANGE_UNCHECKED',
   message: "Range can't be checked without both tokens on the map."
@@ -187,7 +189,8 @@ export function evaluateEncounterAreaTargetPolicy(input: {
 
 /**
  * The range a point area's origin is measured against; null for a kind the area evaluator refuses
- * (self, touch, sight, special). A distance's long range is never measured here.
+ * (self, sight, special). A touch range reaches as far as a single-target touch does. A distance's
+ * long range is never measured here.
  */
 export function pointAreaOriginRange(
   range: CompiledActionTargetPolicy['range']
@@ -196,6 +199,7 @@ export function pointAreaOriginRange(
   | Extract<CompiledActionTargetPolicy['range'], { rangeKind: 'DISTANCE' }>
   | null {
   if (range.rangeKind === 'UNLIMITED') return { rangeKind: 'UNLIMITED' }
+  if (range.rangeKind === 'TOUCH') return { ...range, rangeKind: 'DISTANCE', ...TOUCH_RANGE }
   return range.rangeKind === 'DISTANCE' ? range : null
 }
 

@@ -540,6 +540,27 @@ describe('VTT scene contracts', () => {
     expect(sceneCommandInputDtoSchema.safeParse(move('FORCED', null)).success).toBe(true)
   })
 
+  it('lets only a voluntary move be made carefully (SPELLS-17)', () => {
+    const move = (movementKind: string, carefully: boolean) => ({
+      commandId: ids.campaign,
+      correlationId: null,
+      expectedEncounterVersion: null,
+      expectedSceneVersion: 3,
+      movementKind,
+      path: [
+        { x: 1, y: 2 },
+        { x: 3, y: 4 }
+      ],
+      sceneId: ids.scene,
+      tokenId: ids.token,
+      type: 'MOVE_SCENE_TOKEN',
+      carefully
+    })
+    expect(sceneCommandInputDtoSchema.safeParse(move('VOLUNTARY', true)).success).toBe(true)
+    expect(sceneCommandInputDtoSchema.safeParse(move('FORCED', true)).success).toBe(false)
+    expect(sceneCommandInputDtoSchema.safeParse(move('FORCED', false)).success).toBe(true)
+  })
+
   it('validates movement paths, GM undo commands, and exact fog replacement ownership', () => {
     expect(
       sceneCommandInputDtoSchema.safeParse({

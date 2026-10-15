@@ -42,7 +42,13 @@ const result = encounterCommandResultDtoSchema.parse({
 const heldRoom: HeldEncounterSession = {
   held: true,
   version: tabletopGmEncounter.version,
-  state: { encounter: tabletopGmEncounter, pending, waitingOn: null, turnMovement: [] },
+  state: {
+    encounter: tabletopGmEncounter,
+    pending,
+    waitingOn: null,
+    turnMovement: [],
+    halfSpeedFields: []
+  },
   preparedPending: [],
   actorSides: null,
   settlement: null,

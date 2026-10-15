@@ -316,6 +316,30 @@ that snap. Token rotation is ignored: the footprint is axis-aligned. The stage a
 (`nearestFootprintEdgePoint`) and drags the direction, and the outline drawn is `directedAreaOutline` (a point cube
 uses `pointCubeOutline`), the same geometry the room catches with.
 
+**Placed zones (SPELLS-17, current).** An authored `MANIFEST` `ZONE` `PLACED_SPACE` outcome is a point-area action
+that leaves a zone behind instead of catching creatures. The System compiler (`zonePlacementPlan`) turns the
+outcome into a `zonePlacement` on the v4 `CHARACTER_ACTION` compiled entry: label, shape, trigger modes, movement
+kinds, activation, visibility, the entry graph (the authored save, `ON_SAVE_FAIL` damage and, when authored, a
+`STOP_CURRENT_MOVEMENT` that surfaces as the graph's `movementInterruption` output) and an optional lingering
+modifier-grant template. The action opens no area occurrence (`placesZone` on the pending root): it commits the
+spend and one `liveSessionPlacedSpatialEffect` in the same transaction as every other area commit. The zone is
+built by `planEncounterPlacedZone` (FIXED, `SCENE_ABSOLUTE`, a cube as a polygon via `pointCubeOutline`), stored
+through `createPlacedSpatialEffect` (refused with `TARGET_UNAVAILABLE` at `MAX_SPATIAL_RULE_EFFECTS_PER_SCENE`), named
+on the area root as `placedSpatialEffectId`, and deleted by GM undo (`actionRevert.ts`) like a D99 grant. When a
+creature fails the zone's entry save, `persistLiveMovementSpatial` copies the zone's grant template under the
+movement's origin onto that creature (`planSpatialEntryGrant`; it does not stack per authored zone entry). A grant
+whose `recurrence.endOnEvents` names `ON_HIT_POINTS_REGAINED` ends in `persistEncounterMechanicsBatchPlan` when any
+application heals at least 1 hit point (`grantsEndedBy`). A zone whose component authors `bypassAtHalfSpeed`
+(SRD "through the area at half speed") can be crossed carefully (decision Q2): the voluntary `MOVE_SCENE_TOKEN`
+command carries an optional `carefully` flag, the movement cost doubles for the path's footprint share inside that
+zone (`spatialSegmentShareInside` through `preparedMovementCost`), and the flag reaches candidate evaluation so that
+zone's save is skipped (`collectSpatialMovementCandidates`; forced and teleport movement ignore it). The tabletop
+learns which fields offer the choice from `halfSpeedFields` on the Encounter session state (visible, scene-absolute
+placements only, read once by `readHalfSpeedFields` for both the Convex read and the room push); the stage's drag
+preview offers "Move carefully" and "Move normally" before sending. Not yet: undo of a healing action restores the
+ended grant, healing outside Encounter mechanics batches (Sheet) ends the grant, and hidden or unnoticed zones
+(MOVE-3.3 to 3.5).
+
 Each choice also carries `range` when its compiled target policy has a measurable one, the range the evaluator that
 handles the policy measures. A single-target policy that `singleTargetMeasure` accepts advertises `SELF`, `WITHIN` (Touch
 is 5 ft; a distance without a long range, including the 0 ft swarm space), `RANGED` (normal and long) or `UNLIMITED`. A

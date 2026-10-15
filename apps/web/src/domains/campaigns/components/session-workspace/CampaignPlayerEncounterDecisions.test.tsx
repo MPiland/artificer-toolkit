@@ -145,7 +145,13 @@ describe('CampaignPlayerEncounterDecisions', () => {
       mocks.encounterSession = {
         held: true,
         version: 4,
-        state: { encounter: null, pending: null, waitingOn: null, turnMovement: [] },
+        state: {
+          encounter: null,
+          pending: null,
+          waitingOn: null,
+          turnMovement: [],
+          halfSpeedFields: []
+        },
         preparedPending: [{ encounter: prepared, pending }],
         actorSides: null,
         settlement: null,

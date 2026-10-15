@@ -1,4 +1,6 @@
 import { checksumRunActorPlayState } from '@artificer-toolkit/rules-runtime/encounterActorStorage'
+import { grantsEndedBy } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
+import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import { effectiveHitPointMaximum } from '@artificer-toolkit/rules-runtime/character/activeEffectGrantTotals'
 import { postgresUuidSchema } from '@artificer-toolkit/schema/shared/postgresUuid'
 import type {
@@ -13,7 +15,7 @@ import type {
   EncounterMechanicsBatchPlan
 } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
 import { rejectDomain } from './domainRejections.js'
-import { listActiveRuleEffects } from './effectStore.js'
+import { createActiveRuleEffectStore, listActiveRuleEffects } from './effectStore.js'
 import type { EncounterCharacterRow } from './characterPlay.js'
 import type { EncounterCharacterWriteTransaction } from './ports.js'
 
@@ -99,6 +101,19 @@ export async function readEncounterMechanicsBatchTarget<CharacterSources>(
   return { ctx, input, userId, runRow, state, campaign, actor, actorRow }
 }
 
+/** A heal that restores at least 1 hit point ends the grants that last until hit points are regained. */
+async function endGrantsOnHitPointsRegained<CharacterSources>(
+  ctx: EncounterCharacterWriteTransaction<CharacterSources>,
+  target: Awaited<ReturnType<typeof readEncounterMechanicsBatchTarget>>,
+  applications: ReceiptApplications
+) {
+  if (!applications.some((entry) => entry.kind === 'HEAL' && entry.appliedAmount >= 1)) return
+  const store = createActiveRuleEffectStore(ctx)
+  const owner = turnEffectOwner(target.actor, target.state.id)
+  for (const effect of grantsEndedBy(await store.list(owner), 'ON_HIT_POINTS_REGAINED'))
+    await store.deleteCas({ id: effect.id, owner, expectedVersion: effect.version })
+}
+
 /**
  * Writes a trusted domain plan after current authority and exact aggregate checks. The caller
  * owns source/effect freshness and root command replay in the same transaction. This helper is
@@ -150,6 +165,7 @@ export async function persistEncounterMechanicsBatchPlan<CharacterSources>(
     )
       throw new Error('Encounter non-Character plan contains Character state.')
     if (plan.stateChanged) await writeRunActor(ctx, actorRow._id, plan.updatedActor)
+    await endGrantsOnHitPointsRegained(ctx, target, plan.receiptApplications)
     return {
       updatedActor: plan.updatedActor,
       receiptApplications: plan.receiptApplications,
@@ -206,6 +222,7 @@ export async function persistEncounterMechanicsBatchPlan<CharacterSources>(
   }
   if (checksumRunActorPlayState(plan.updatedActor) !== actorRow.stateChecksum)
     await writeRunActor(ctx, actorRow._id, plan.updatedActor)
+  await endGrantsOnHitPointsRegained(ctx, target, plan.receiptApplications)
   return {
     updatedActor: plan.updatedActor,
     receiptApplications: plan.receiptApplications,

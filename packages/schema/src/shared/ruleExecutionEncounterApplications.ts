@@ -989,7 +989,9 @@ const encounterAreaActionApplicationOutputImplSchema = lazySchema(() =>
       sourceItemUseStateTransition: z.nullable(characterItemUseStateTransitionDtoSchema),
       sourceItemConsumption: z.nullable(characterItemConsumptionReceiptDtoSchema),
       actionEconomyTransition: z.nullable(encounterActionEconomyTransitionDtoSchema),
-      attackActionTransition: z.optional(encounterAttackActionTransitionDtoSchema)
+      attackActionTransition: z.optional(encounterAttackActionTransitionDtoSchema),
+      /** The spatial effect this action placed in the Scene, which GM undo deletes; null for none. */
+      placedSpatialEffectId: z.nullable(uuidSchema)
     })
     .check(
       z.superRefine((value, context) => {
@@ -1074,6 +1076,7 @@ export type EncounterAreaActionApplicationOutputDto = AreaActionSpendReceipts & 
   targetOccurrenceIds: string[]
   damage: z.infer<typeof concentrationDamageApplicationDtoSchema>[]
   sourceCharacterStreamVersion: number | null
+  placedSpatialEffectId: string | null
 }
 
 /**

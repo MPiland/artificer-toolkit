@@ -168,7 +168,13 @@ describe('CampaignEncounterWorkspace controls', () => {
     mocks.encounterSession = {
       held: true,
       version: roomEncounter.version,
-      state: { encounter: roomEncounter, pending: null, waitingOn: null, turnMovement: [] },
+      state: {
+        encounter: roomEncounter,
+        pending: null,
+        waitingOn: null,
+        turnMovement: [],
+        halfSpeedFields: []
+      },
       preparedPending: [],
       actorSides: null,
       settlement: null,
@@ -257,7 +263,13 @@ describe('CampaignEncounterWorkspace controls', () => {
       mocks.encounterSession = {
         held: true,
         version: roomEncounter.version,
-        state: { encounter: roomEncounter, pending: null, waitingOn: null, turnMovement: [] },
+        state: {
+          encounter: roomEncounter,
+          pending: null,
+          waitingOn: null,
+          turnMovement: [],
+          halfSpeedFields: []
+        },
         preparedPending: [],
         actorSides: null,
         settlement: null,

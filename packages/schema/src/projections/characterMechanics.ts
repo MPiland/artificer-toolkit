@@ -10,6 +10,7 @@ import { characterAuthoredDtoSchema } from '../subjects/character.js'
 import { characterProvenanceDtoSchema } from '../subjects/characterIntent.js'
 import { rangeDtoSchema } from '../shared/range.js'
 import { shapeDtoSchema } from '../shared/shape.js'
+import { spatialMovementKindDtoSchema, spatialTriggerDtoSchema } from '../shared/spatialFacts.js'
 import { targetingDtoSchema } from '../effects/targeting.js'
 import { ruleValueDtoSchema } from '../api/rulesRuntime.js'
 import {
@@ -28,7 +29,10 @@ import {
   serverPublishedRuleDefinitionDtoSchema,
   ruleGraphSourceIdentityDtoSchema
 } from '../shared/ruleExecutionCore.js'
-import { activeGrantConsumeEventsSchema } from '../shared/activeRuleEffects.js'
+import {
+  activeEffectEndEventsSchema,
+  activeGrantConsumeEventsSchema
+} from '../shared/activeRuleEffects.js'
 import { serverUuidIdentityDtoSchema } from '../shared/serverUuidIdentity.js'
 import { characterInitiativeActorFactsSchema } from './characterInitiativeFacts.js'
 import { actorRelationshipModuleDtoSchema } from '../effects/actorRelationship.js'
@@ -153,7 +157,9 @@ const compiledActionActiveEffectPlanSchema = lazySchema(() =>
             senses: z.array(senseOperationSchema).check(z.maxLength(200)),
             tickAnchor: z.enum(['HOLDER', 'SOURCE']),
             includesCurrentTurn: z.boolean(),
-            consumeOnFirstEvents: activeGrantConsumeEventsSchema
+            consumeOnFirstEvents: activeGrantConsumeEventsSchema,
+            /** Events whose first occurrence ends the grant (a heal ends a speed penalty). */
+            endOnEvents: z._default(activeEffectEndEventsSchema, [])
           })
           .check(
             z.refine(
@@ -204,6 +210,32 @@ const compiledActionActiveEffectPlanSchema = lazySchema(() =>
     )
   })
 )
+
+/**
+ * A placed-space zone the action leaves on the Scene at the point its user picks. The geometry is
+ * fixed when the point is known; everything else is compiled from the authored manifest.
+ */
+const compiledActionZonePlacementSchema = lazySchema(() =>
+  z.strictObject({
+    label: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(240)),
+    shape: shapeDtoSchema,
+    triggerModes: z.array(spatialTriggerDtoSchema).check(z.minLength(1)).check(z.maxLength(3)),
+    movementKinds: z
+      .array(spatialMovementKindDtoSchema)
+      .check(z.minLength(1))
+      .check(z.maxLength(3)),
+    activation: z.enum(['ONE_SHOT', 'REPEATABLE']),
+    visibility: z.enum(['PUBLIC', 'HIDDEN']),
+    /** Whether a mover who crosses at half speed (moves carefully) skips the entry. */
+    bypassAtHalfSpeed: z.optional(z.boolean()),
+    /** What a creature the zone triggers on is put through (its authored save and outcomes). */
+    entry: compiledActionActiveEffectPlanSchema,
+    /** What a creature that fails the entry carries afterwards; null when nothing lingers. */
+    lingeringEffect: z.nullable(compiledActionActiveEffectPlanSchema)
+  })
+)
+
+export type CompiledActionZonePlacement = z.infer<typeof compiledActionZonePlacementSchema>
 
 const compiledActionTemplateIdentitySchema = ruleGraphSourceIdentityDtoSchema
 
@@ -360,6 +392,8 @@ const compiledActionEntryPointSchema = lazySchema(() =>
         kind: z.literal('COMPILED'),
         resourceBinding: z.nullable(compiledActionResourceBindingSchema),
         activeEffectPlan: z.nullable(compiledActionActiveEffectPlanSchema),
+        /** Set for an action that places a zone; its `executionPlan` is then never run. */
+        zonePlacement: z._default(z.nullable(compiledActionZonePlacementSchema), null),
         executionPlan: compiledActionExecutionPlanSchema
       })
     }),

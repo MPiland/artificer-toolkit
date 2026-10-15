@@ -42,6 +42,7 @@ import type {
   persistEncounterConcentrationChildren
 } from './concentrationChildrenPersistence.js'
 import { readRunActors } from './documents.js'
+import { createPlacedSpatialEffect } from './placedSpatialEffects.js'
 import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.js'
 import { projectNativeGm } from './nativeProjection.js'
 import type { EncounterCharacterWriteTransaction, EncounterWritePorts } from './ports.js'
@@ -183,7 +184,8 @@ export async function persistEncounterAreaCommit(
       command: { ...command, target: areaTarget },
       fingerprint,
       initiatorUserId,
-      state
+      state,
+      placesZone: input.placedZone !== null
     },
     callbacks.readAreaSceneInputs
   )
@@ -204,6 +206,7 @@ export async function persistEncounterAreaCommit(
     areaActionPendingContext(input.area) === null ||
     root.sourceActorId !== command.actorId ||
     root.caughtChecksum !== context.caughtChecksum ||
+    root.placedSpatialEffectId !== (input.placedZone?.id ?? null) ||
     checksumCanonicalJson(root.removedActorIds) !==
       checksumCanonicalJson(context.removedActorIds) ||
     checksumCanonicalJson(root.targetOccurrenceIds) !==
@@ -411,6 +414,12 @@ export async function persistEncounterAreaCommit(
     resume: pendingOccurrence ? { occurrence: pendingOccurrence } : null,
     occurredAt: input.occurredAt
   })
+  if (input.placedZone)
+    await createPlacedSpatialEffect(ctx, {
+      encounterId: state.id,
+      sceneId: context.scene.sceneId,
+      zone: input.placedZone
+    })
   for (const { execution, actor, occurrenceId } of children)
     await persistCompletedChild(ctx, {
       state: nextState,

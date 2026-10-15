@@ -141,6 +141,8 @@ export async function requireAreaActionPendingRoot(
     fingerprint: string
     initiatorUserId: string
     state: EncounterRunState
+    /** Whether the area places a zone, which catches nobody: a creature in it is tested on entering. */
+    placesZone: boolean
   },
   readAreaSceneInputs: (
     state: EncounterRunState,
@@ -180,12 +182,14 @@ export async function requireAreaActionPendingRoot(
       expectedSceneVersion: command.target.expectedSceneVersion
     })
   )
-  const caught = catchEncounterAreaActorIds({
-    origin: context.area.origin,
-    shape: context.area.shape,
-    casterActorId: context.casterActorId,
-    tokens: scene.tokens.map((token) => ({ ...token, id: token.tokenId }))
-  })
+  const caught = input.placesZone
+    ? []
+    : catchEncounterAreaActorIds({
+        origin: context.area.origin,
+        shape: context.area.shape,
+        casterActorId: context.casterActorId,
+        tokens: scene.tokens.map((token) => ({ ...token, id: token.tokenId }))
+      })
   // A creature the GM removed is still caught by the Scene; it is simply no longer tested.
   const sealed = [...targets.map((target) => target.actorId), ...context.removedActorIds]
   const footprintsMatch = targets.every((target) => {

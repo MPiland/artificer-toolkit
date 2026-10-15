@@ -81,7 +81,13 @@ describe('CampaignVttStage Convex reads (ADR 0035 A28)', () => {
     mocks.encounterSession = {
       held: true,
       version: 1,
-      state: { encounter: null, pending: null, waitingOn: null, turnMovement: [] },
+      state: {
+        encounter: null,
+        pending: null,
+        waitingOn: null,
+        turnMovement: [],
+        halfSpeedFields: []
+      },
       preparedPending: [],
       actorSides: null,
       settlement: null,

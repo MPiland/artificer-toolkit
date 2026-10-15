@@ -232,6 +232,11 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
   resolution?: SpatialMovementRuleResolution
   resolutionCommand?: SpatialResolutionCommand
   rollD20: () => number
+  /**
+   * The voluntary mover chose to move carefully: a field that allows passage at half speed raises no
+   * contact, so it asks for no save. Every call for one move supplies its saved command's choice.
+   */
+  carefully?: boolean
   beforeTerminalApply?: () => Promise<void>
   /** Stages, but does not apply, every spatial candidate through this contact. */
   interruptAfterPathDistance?: number
@@ -363,7 +368,8 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
         movementKind: root.movementKind,
         path: root.originalPath,
         tokens: input.sceneTokens,
-        movingTokenId: root.tokenId
+        movingTokenId: root.tokenId,
+        carefully: input.carefully
       })
   const computedSelectionChecksum = checksumSpatialMovementSelection({
     encounterId: input.encounter.id,
@@ -516,7 +522,8 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
         movementKind: root.movementKind,
         path: root.originalPath,
         tokens: input.sceneTokens,
-        movingTokenId: root.tokenId
+        movingTokenId: root.tokenId,
+        carefully: input.carefully
       })
   if (checksumRuleDocument(lockedCandidates) !== checksumRuleDocument(candidates))
     throw new EncounterConflictError('Spatial candidates changed after target locking.')
@@ -955,7 +962,8 @@ function toSpatialInstance(effect: EncounterSpatialRuleEffectRecord) {
     anchorKind: effect.placement.anchorKind,
     geometry: effect.placement.geometry,
     triggerModes: effect.placement.triggerModes,
-    movementKinds: effect.placement.movementKinds
+    movementKinds: effect.placement.movementKinds,
+    bypassAtHalfSpeed: effect.placement.bypassAtHalfSpeed
   } as const
 }
 

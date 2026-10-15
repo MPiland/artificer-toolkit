@@ -642,19 +642,26 @@ export function measureSceneMovementCost(
 /**
  * The movement a walked path spends: each segment's share of the path distance (so alternating
  * diagonals count across segments) times the highest terrain multiplier that segment crosses.
+ * `doubledShare` names the fraction of a segment (0 to 1) that costs double on top of terrain: the
+ * stretch a careful mover spends inside a field that allows passage at half speed.
  */
 export function measureScenePathMovementCost(
   grid: SceneGrid,
   state: { readonly barriers: readonly SceneBarrier[] },
-  path: readonly ScenePoint[]
+  path: readonly ScenePoint[],
+  doubledShare?: (from: ScenePoint, to: ScenePoint) => number
 ): number {
   const index = new SceneBarrierIndex(state.barriers)
   let cost = 0
   let walked = 0
   for (let end = 1; end < path.length; end += 1) {
+    const from = path[end - 1]!
+    const to = path[end]!
     const distance = measureScenePathDistance(grid, path.slice(0, end + 1))
     cost +=
-      (distance - walked) * terrainMovementMultiplier(state, path[end - 1]!, path[end]!, index)
+      (distance - walked) *
+      terrainMovementMultiplier(state, from, to, index) *
+      (1 + (doubledShare?.(from, to) ?? 0))
     walked = distance
   }
   return cost

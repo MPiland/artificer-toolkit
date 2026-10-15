@@ -21,7 +21,7 @@ Source data already authors Caltrops as a generic zone: `packages/source-data/sr
 - **Entry behavior:**
   - A creature entering the zone saves.
   - On a failure, its movement stops, it takes the damage, and it gets the speed reduction as an active effect.
-  - A creature moving at half speed through the zone skips the save. If the movement path doesn't carry half-speed movement yet, stop and report.
+  - A creature that chooses Move carefully (double cost, decision Q2) through the zone skips the save. Approved scope change: the movement command, planner and drag-path preview choice are built here.
 - **End reader:** add the `ON_HIT_POINTS_REGAINED` end event. A heal of at least 1 hit point ends the speed reduction. Wire it where the other end events are read, not as a one-off.
 - **Label:** the zone row needs its authored label for SPELLS-20 and the map. If the placement or definition contract has no label field, add one to the shared contract in `packages/schema`. That is allowed here: it is a pre-launch persisted shape. Migrate nothing, because no production zone rows exist.
 - **Out of scope:** client drawing of zones (projection and map) is SPELLS-20 and VTT_UI-3.1. Auras, start-of-turn zones and token-anchored creation are SPELLS-20. Traps are MOVE-3.
@@ -45,11 +45,12 @@ Read first:
 ## File scope
 
 - `packages/rules-runtime`: the compiler and area action, the movement rule service, and end events.
-- `packages/encounter-persistence`: the store, plus the receipt and undo.
-- `packages/schema`: the label field and the end event, only if missing.
-- `apps/session-worker`: the native action path that commits the zone.
+- `packages/encounter-persistence`: the store, plus the receipt and undo, and the session-state read of half-speed fields.
+- `packages/schema`: the label field and the end event, only if missing; the optional `carefully` flag on `MOVE_SCENE_TOKEN`; `halfSpeedFields` on the Encounter session state.
+- `packages/shared`: the movement planner and spatial candidate evaluation (`carefully` skips a half-speed component's save; doubled cost share).
+- `apps/session-worker`: the native action path that commits the zone, and the movement path that honors `carefully`.
+- `apps/web/src/domains/campaigns/vtt`: the drag-path preview choice only ("Move carefully" / "Move normally", decision Q2). Not `CampaignTabletopActionDrawer.tsx`.
 - Tests next to each.
-- No web change.
 
 ## Red-first checklist
 
@@ -58,9 +59,9 @@ Read first:
 3. **Entry, in the Worker:**
    - a creature that walks into the field and fails the save stops in the field, takes 1 piercing damage, and has its walking speed reduced by 10 feet;
    - a creature that succeeds keeps moving;
-   - a creature at half speed is not asked to save.
+   - (3c) a mover who chose Move carefully pays double cost for the field's squares and is not asked to save, through the real movement path.
 4. **End:** healing that creature by at least 1 hit point ends the speed reduction. Taking more damage does not.
-5. **Journey:** a Worker Encounter journey through real code. A Character spreads real SRD Caltrops in a room, and a creature walks into them, fails, stops, takes the damage and is slowed. A heal clears the slow, and GM undo of the spread removes the field.
+5. **Journey:** a Worker Encounter journey through real code. A Character spreads real SRD Caltrops in a room, and a creature walks into them, fails, stops, takes the damage and is slowed. A heal clears the slow, and GM undo of the spread removes the field. The journey adds one careful crossing. A component test covers the two preview choices.
 
 ## Status log
 

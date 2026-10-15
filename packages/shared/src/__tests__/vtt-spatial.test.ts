@@ -6,6 +6,7 @@ import {
   collectTokenFootprintPathCrossings,
   effectiveSpatialGeometry,
   spatialGeometryOverlapsTokenFootprint,
+  spatialSegmentShareInside,
   type SpatialEffectInstance,
   spatialTokensInsideArea,
   type SpatialSceneToken,
@@ -85,6 +86,50 @@ describe('spatial movement candidates', () => {
     expect(cross[0]?.contact.x).toBeCloseTo(-2)
     expect(exit).toMatchObject([{ trigger: 'EXIT', sourceMoved: false }])
     expect(exit[0]?.contact.x).toBeCloseTo(2)
+  })
+
+  describe('half-speed passage', () => {
+    const field = effect({ bypassAtHalfSpeed: true })
+    const walk = [
+      { x: -5, y: 0 },
+      { x: 5, y: 0 }
+    ]
+
+    it('skips a flagged field for a voluntary mover who moves carefully', () => {
+      expect(collect({ effects: [field], movementKind: 'VOLUNTARY', path: walk })).toHaveLength(1)
+      expect(
+        collect({ carefully: true, effects: [field], movementKind: 'VOLUNTARY', path: walk })
+      ).toEqual([])
+    })
+
+    it('still triggers an unflagged field and every non-voluntary movement', () => {
+      expect(
+        collect({ carefully: true, effects: [effect()], movementKind: 'VOLUNTARY', path: walk })
+      ).toHaveLength(1)
+      expect(
+        collect({ carefully: true, effects: [field], movementKind: 'FORCED', path: walk })
+      ).toHaveLength(1)
+    })
+
+    it('measures the share of a segment the footprint spends inside geometry', () => {
+      const geometry = effectiveSpatialGeometry(field, [])
+      expect(
+        spatialSegmentShareInside({
+          geometries: [geometry!],
+          token: token(ids.targetToken, -5),
+          from: walk[0]!,
+          to: walk[1]!
+        })
+      ).toBeCloseTo(0.4)
+      expect(
+        spatialSegmentShareInside({
+          geometries: [geometry!],
+          token: token(ids.targetToken, -5),
+          from: { x: -5, y: 10 },
+          to: { x: 5, y: 10 }
+        })
+      ).toBe(0)
+    })
   })
 
   it('uses the full occupied footprint for polygon CROSS and EXIT contacts', () => {

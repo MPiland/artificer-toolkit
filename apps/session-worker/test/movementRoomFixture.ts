@@ -584,11 +584,13 @@ export async function movementRoom(config: MovementRoomConfig) {
     scene,
     moverTokenId,
     send,
-    /** The mover walks `path`, a voluntary move of its token through the room's Scene command. */
+    /** The mover (or the Token `tokenId` names) walks `path`, a voluntary move through the room's Scene command. */
     move(
       path: readonly ScenePoint[],
       expectedEncounterVersion: number = state.version,
-      expectedSceneVersion: number = scene.version
+      expectedSceneVersion: number = scene.version,
+      tokenId: string = moverTokenId,
+      carefully = false
     ) {
       const commandId = crypto.randomUUID()
       return send(commandId, {
@@ -602,7 +604,8 @@ export async function movementRoom(config: MovementRoomConfig) {
           movementKind: 'VOLUNTARY',
           path,
           sceneId: scene.id,
-          tokenId: moverTokenId
+          tokenId,
+          ...(carefully ? { carefully } : {})
         }
       })
     },

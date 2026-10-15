@@ -8,14 +8,17 @@ import {
   deriveEncounterCharacterMechanicsEventCommandId,
   targetTransitionChecksum
 } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
+import { planSpatialEntryGrant } from '@artificer-toolkit/rules-runtime/encounterSpatialEntryGrant'
 import {
   spatialEffectTransition,
   spatialMovementEffectBeforeTransition
 } from '@artificer-toolkit/rules-runtime/encounterSpatialMovementEffects'
+import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
 import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.js'
 import type { EncounterCharacterWriteTransaction } from './ports.js'
+import { createActiveRuleEffectStore } from './effectStore.js'
 import { createSpatialRuleEffectStore } from './spatialEffectStore.js'
 import {
   readLiveCharacterStreamVersion,
@@ -237,6 +240,30 @@ export async function persistLiveMovementSpatial(
         afterStreamVersion: applied.characterStreamVersion!,
         before,
         after: applied.targetTransition.after
+      })
+  }
+
+  // A zone that leaves a lingering grant on the creature that failed its entry save.
+  const grantStore = createActiveRuleEffectStore(ctx)
+  for (const execution of step.executions) {
+    const targetActorId = execution.candidate.candidate.targetActorId
+    const owner = turnEffectOwner(actors.get(targetActorId)!, state.id)
+    const grant = planSpatialEntryGrant({
+      zoneDefinition: input.effectOriginals.get(execution.candidate.effect.effectId)!.definition,
+      holderEffects: await grantStore.list(owner),
+      execution: execution.execution,
+      encounterId: state.id,
+      occurrenceId: input.occurrenceId,
+      sourceCommandId: input.sourceCommandId,
+      ordinal: execution.ordinal,
+      targetActorId
+    })
+    if (grant)
+      await grantStore.create({
+        ...grant,
+        owner,
+        maintainedEffectStateId: null,
+        occurredAt: input.occurredAt
       })
   }
 

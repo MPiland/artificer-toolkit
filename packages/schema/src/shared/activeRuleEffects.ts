@@ -89,7 +89,8 @@ const sortedUniqueEventsSchema = <TEvent extends z.ZodMiniType<string>>(
       })
     )
 
-const activeEffectEndEventsSchema = lazySchema(() =>
+/** The events whose first occurrence ends an active effect: sorted and unique. */
+export const activeEffectEndEventsSchema = lazySchema(() =>
   sortedUniqueEventsSchema(pathLifecycleEndEventSchema, 'end events')
 )
 

@@ -1,8 +1,12 @@
 import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
+import type { EncounterSpatialRuleEffectRecord } from '@artificer-toolkit/schema/projections/spatialRuleEffectPersistence'
 import {
+  effectiveSpatialGeometry,
   measureScenePathMovementCost,
+  spatialSegmentShareInside,
   type SceneBarrier,
-  type SceneGrid
+  type SceneGrid,
+  type SpatialSceneToken
 } from '@artificer-toolkit/shared/vtt'
 import { EncounterValidationError } from './encounterErrors.js'
 import { readEncounterMovementPendingContext } from './encounterMovementPendingContext.js'
@@ -98,6 +102,8 @@ export function preparedMovementSceneDelta(input: {
  * The movement a published segment spends (D38): the path's terrain-aware cost walked to the
  * segment's end less its cost to the segment's start. Measuring from the path's origin keeps grid
  * rounding consistent, so a move's segments sum to its whole walk across decision pauses.
+ * A careful mover (SPELLS-17) pays double for the stretch its footprint spends inside a field that
+ * allows passage at half speed.
  */
 export function preparedMovementCost(input: {
   grid: SceneGrid
@@ -105,9 +111,27 @@ export function preparedMovementCost(input: {
   path: readonly Point[]
   startDistance: number
   outcome: MovementOutcome | null
+  careful?: {
+    tokenId: string
+    tokens: readonly SpatialSceneToken[]
+    effects: readonly Pick<EncounterSpatialRuleEffectRecord, 'placement'>[]
+  }
 }): number {
+  const careful = input.careful
+  const token = careful?.tokens.find(({ id }) => id === careful.tokenId)
+  const fields =
+    careful && token
+      ? careful.effects
+          .filter(({ placement }) => placement.bypassAtHalfSpeed)
+          .flatMap(({ placement }) => effectiveSpatialGeometry(placement, careful.tokens) ?? [])
+      : []
+  const doubledShare =
+    token && fields.length
+      ? (from: Point, to: Point) =>
+          spatialSegmentShareInside({ geometries: fields, token, from, to })
+      : undefined
   const walked = (path: readonly Point[]) =>
-    measureScenePathMovementCost(input.grid, input.scene, path)
+    measureScenePathMovementCost(input.grid, input.scene, path, doubledShare)
   const toEnd = preparedMovementSegment({ ...input, startDistance: 0 }).path
   const toStart =
     input.startDistance > 0 ? walked(sliceMovementPath(input.path, 0, input.startDistance)) : 0
