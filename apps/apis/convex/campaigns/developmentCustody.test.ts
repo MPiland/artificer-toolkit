@@ -742,7 +742,7 @@ describe('development custody fixture cleanup', () => {
     expect(after.balances).toEqual([])
     expect(after.inventories).toEqual([])
     expect(after.assignments.map((row) => row.characterId)).toEqual([base.character.id])
-  }, 60000)
+  }, 30000)
 
   it('admits the exact cohort and removes validated inventory while retaining the first player and both Characters', async () => {
     const base = await setup()

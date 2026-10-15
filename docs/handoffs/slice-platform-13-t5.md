@@ -91,7 +91,12 @@ Old test: `developmentCustody.test.ts` "mixed Character custody driver" (one tes
 | Evacuation payload tamper: remove refuses `durable Vehicle evacuation receipt mismatch`, state unchanged, restore equals before | Durable-receipt test, unchanged message. The mixed-driver test tampers the immediate evacuation event instead and expects `Vehicle evacuation identity mismatch` (same helper `expectTamperedEvacuationRefused`) |
 | Removal resolves; items, events, vehicles, balances, inventories empty; only the first Character stays assigned | Both tests |
 
-Nothing is deleted or weakened. The mixed-driver test no longer exercises the bounded path itself; the Vehicle lifecycle proof's oversized background Vehicle (`developmentCampaignVehicleLifecycle.ts`) still does, so durable cleanup stays covered in the same test. The live `developmentDrafts.ts --campaign-custody` proof now runs the immediate tail; the bounded tail still runs in its `--campaign-inventory` proof.
+Nothing is deleted or weakened. Reviewer findings (independent read-only review, 2026-10-15) and how they are recorded:
+
+- The mixed driver no longer sees a durable source-loss receipt; that check lives only in the durable-receipt test (both tests keep a 30 s timeout). The Vehicle lifecycle proof's oversized background Vehicle is a manual removal (`VEHICLE_LIFECYCLE` event), not a source-loss evacuation, so it does not replace that check.
+- The live `developmentDrafts.ts --campaign-custody` proof now runs the immediate tail. The bounded tail still runs in `--campaign-inventory` and `developmentInventoryProof.test.ts`, but that proof's fixture removal is `developmentInventory:removeFixtureState`, not `developmentCustody`. So the durable receipt check in `developmentCustody.ts` is covered only in convex-test. Follow-up if wanted: a live custody proof with a durable evacuation.
+- The party in the mixed driver now fits one page until the lifecycle proof's background Vehicle returns, so the cursor-advance assertions in `verifyCharacterCustody` read are not exercised there. Multi-page party reads stay covered in `verifyCampaignInventory` (all three callers).
+- No cohort holds both a durable source-loss evacuation and a durable lifecycle cleanup in one `remove` validation any more.
 
 ## Status log
 
