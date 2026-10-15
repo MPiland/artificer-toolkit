@@ -62,31 +62,42 @@ jobs:
       - uses: ./.github/actions/setup
       - run: yarn workspace @artificer-toolkit/web test
 
-  typecheck:
-    name: Typecheck ${{ matrix.name }}
+  # The account runs at most 20 jobs at once, so typechecks share two sequential jobs instead of one job
+  # each; both finish inside the Convex and web test critical path. Every step runs even after a failure,
+  # so one run reports all typecheck errors. One tsc at a time: parallel tsc processes exhaust a runner.
+  typecheck-packages:
+    name: Typecheck Convex, Worker and packages
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: Convex
-            run: yarn turbo run typecheck:convex --filter=@artificer-toolkit/apis --env-mode=loose
-          # One tsc at a time per job: parallel tsc processes exhaust a runner's memory.
-          - name: Worker and apis
-            run: yarn turbo run typecheck --filter=@artificer-toolkit/session-worker --filter=@artificer-toolkit/apis --concurrency=1 --env-mode=loose --continue
-          - name: packages
-            run: yarn turbo run typecheck --filter=@artificer-toolkit/rules-runtime --filter=@artificer-toolkit/encounter-persistence --filter=@artificer-toolkit/schema --filter=@artificer-toolkit/shared --filter=@artificer-toolkit/source-data --filter=@artificer-toolkit/authoring --concurrency=1 --env-mode=loose --continue
-          - name: web app
-            run: yarn turbo run typecheck:app --filter=@artificer-toolkit/web --env-mode=loose
-          - name: web tests
-            run: yarn turbo run typecheck:tests --filter=@artificer-toolkit/web --env-mode=loose
-          - name: web stories
-            run: yarn turbo run typecheck:stories --filter=@artificer-toolkit/web --env-mode=loose
     env:
       # The Convex typecheck loads ~2.9 MB of generated API types; give tsc room.
       NODE_OPTIONS: --max-old-space-size=8192
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
-      - run: ${{ matrix.run }}
+      - name: Convex
+        run: yarn turbo run typecheck:convex --filter=@artificer-toolkit/apis --env-mode=loose
+      - name: Worker and apis
+        if: success() || failure()
+        run: yarn turbo run typecheck --filter=@artificer-toolkit/session-worker --filter=@artificer-toolkit/apis --concurrency=1 --env-mode=loose --continue
+      - name: Packages
+        if: success() || failure()
+        run: yarn turbo run typecheck --filter=@artificer-toolkit/rules-runtime --filter=@artificer-toolkit/encounter-persistence --filter=@artificer-toolkit/schema --filter=@artificer-toolkit/shared --filter=@artificer-toolkit/source-data --filter=@artificer-toolkit/authoring --concurrency=1 --env-mode=loose --continue
+
+  typecheck-web:
+    name: Typecheck web
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      NODE_OPTIONS: --max-old-space-size=8192
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - name: App
+        run: yarn turbo run typecheck:app --filter=@artificer-toolkit/web --env-mode=loose
+      - name: Tests
+        if: success() || failure()
+        run: yarn turbo run typecheck:tests --filter=@artificer-toolkit/web --env-mode=loose
+      - name: Stories
+        if: success() || failure()
+        run: yarn turbo run typecheck:stories --filter=@artificer-toolkit/web --env-mode=loose
