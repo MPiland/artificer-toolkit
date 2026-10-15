@@ -1,6 +1,6 @@
 # Slice workbook: ATTACK-17.T1 (the roller sees their own private roll card)
 
-**Status:** OPEN (written 2026-10-14)
+**Status:** DONE, merged 9dac2816c (2026-10-15)
 **Base:** `codex/phase-08-2-convex-cutover` at this workbook's commit.
 **Rules:** [slice-workbook-rules.md](slice-workbook-rules.md).
 
