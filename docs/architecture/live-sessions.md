@@ -432,7 +432,9 @@ player's history with no reveal binding (`retainPrivateRoll`, `gmCampaignRoll: n
 bound copy, and returns `playerCopyUserId`, so the answer to the player's command carries the roll while
 the table and the area's caster get nothing. The room pushes it as a `privateRoll` to that player's
 sockets only. A hidden creature the GM controls, or whose controller left the Campaign, stays the GM's
-alone. Concentration check cards still go to the GM alone.
+alone. A hidden creature's Concentration check card takes the same route (ATTACK-17.6): the GM's bound copy
+plus the controlling player's own generic copy through the shared `retainPrivateRuleRoll`, and nothing to the
+table. Its Concentration end notice is a chat message, not a roll card, and a hidden creature posts none.
 
 **Rate buckets (D72).** Per-account token buckets live in room SQLite
 ([roomRateLimits](../../apps/session-worker/src/roomRateLimits.ts), allowances in `roomLimits.ts`):
