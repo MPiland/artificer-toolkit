@@ -13,13 +13,14 @@ import { RoomEncounterStore } from '../src/roomEncounterStore.js'
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { plainWolf } from '../src/testing/movementPlannerFixture.js'
 import { actionRoom } from './actionRoomFixture.js'
-import { areaReceipts } from './areaRoomReads.js'
+import { areaReceipts, vitalsOf } from './areaRoomReads.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
 import { readPendingActionDecision, readRoomHistory } from './roomHistoryReads.js'
 
 const CHARACTER_ACTOR_ID = testUuid(0x7c0)
 const CHARACTER_ID = testUuid(0x7c1)
 const CAUGHT_IDS = [testUuid(0x7c2), testUuid(0x7c3)]
+const OUT_OF_REACH_ID = testUuid(0x7c8)
 
 afterEach(() => {
   closeTrackedSockets()
@@ -256,4 +257,63 @@ describe('room single-target spell cast by a Character', () => {
     expect(await readHitPoints()).toBe(1)
     expect(await readSpellSlots(room)).toEqual([])
   })
+})
+
+describe('room Fireball cast by a Character wizard (SPELLS-8.4)', () => {
+  // The fixture Character has Intelligence 12 and a +2 proficiency bonus: the wizard's spell save DC is 8 + 2 + 1.
+  const WIZARD_SAVE_DC = 11
+
+  /** The SRD Fireball, a Wolf out of its 20 ft reach, and `rolls` as the damage dice, then a 6 for any more. */
+  const fireballRoom = (label: string, rolls: readonly number[]) =>
+    actionRoom({
+      actors: [
+        characterActor({ id: CHARACTER_ACTOR_ID, characterId: CHARACTER_ID }),
+        ...CAUGHT_IDS.map((id) => srdCreatureActor({ id, creature: plainWolf })),
+        srdCreatureActor({ id: OUT_OF_REACH_ID, creature: plainWolf })
+      ],
+      positions: { [OUT_OF_REACH_ID]: { x: 1500, y: 150 } },
+      characterSpellcasting: { spells: [fireball], prepared: [fireball.id] },
+      characterAction: (action) => action.label === label,
+      rolls,
+      fallbackRoll: 5
+    })
+
+  it.each([
+    // A raw die is its face less one: 8d6 faces 2 3 4 5 6 1 2 3 and 9d6 faces 2 3 4 5 6 1 2 3 4.
+    { label: 'Fireball (3rd level)', slotKey: 'STANDARD:3', rolls: [1, 2, 3, 4, 5, 0, 1, 2], damage: 26 },
+    { label: 'Fireball (4th level)', slotKey: 'STANDARD:4', rolls: [1, 2, 3, 4, 5, 0, 1, 2, 3], damage: 30 }
+  ])(
+    'rolls the $label dice once for the whole area, saves against the wizard’s DC, and one undo restores the slot and every creature',
+    async ({ label, slotKey, rolls, damage }) => {
+      const room = await fireballRoom(label, rolls)
+      const before = vitalsOf(await readRoomHistory(room.room.base.stub))
+
+      const { answer } = await room.startAreaAction({ x: 300, y: 150 })
+      expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+      const decision = await readPendingActionDecision(room.room.base.stub)
+      if (decision?.pending.kind !== 'AREA_SAVES') throw new Error('Expected the area saves.')
+      expect(decision.pending.saves.map(({ actorId }) => actorId).sort()).toEqual(
+        [CHARACTER_ACTOR_ID, ...CAUGHT_IDS].sort()
+      )
+      await answerAllSaves(room)
+
+      const { roots, children } = areaReceipts(await readRoomHistory(room.room.base.stub))
+      expect(roots[0]?.outputs.spellCastConsumption).toMatchObject({ slotKey, beforeUsed: 0, afterUsed: 1 })
+      expect(children).toHaveLength(CAUGHT_IDS.length + 1)
+      expect(children.map(({ outputs }) => outputs.d20?.defenseOrDc)).toEqual(
+        children.map(() => WIZARD_SAVE_DC)
+      )
+      // Every caught creature takes the same roll; a roll per creature would take the 6s that follow the queue.
+      const requested = children.flatMap(({ outputs }) =>
+        outputs.applications.map((application) => application.requestedAmount)
+      )
+      expect(requested).toEqual(children.map(() => damage))
+      expect(await readSpellSlots(room)).toEqual([{ slotKey, used: 1 }])
+
+      await undoLastAction(room)
+      expect(await readSpellSlots(room)).toEqual([])
+      expect(vitalsOf(await readRoomHistory(room.room.base.stub))).toEqual(before)
+    },
+    120000
+  )
 })
