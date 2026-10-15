@@ -232,14 +232,15 @@
             {
               "id": "PLATFORM-5.T1",
               "text": "Measure each SRD seed mutation under load, find the one near the 1 s limit, cut its work, and prove the margin with a loaded run.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["PLATFORM-5.7"],
               "wsjf": {
                 "bv": 2,
                 "tc": 3,
                 "rr": 5,
                 "size": 2
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-platform-5-t1.md"
             }
           ],
           "wsjf": {
