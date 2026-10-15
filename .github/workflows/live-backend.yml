@@ -5,7 +5,7 @@
 # not this container, which is discarded with the runner. No pull_request trigger (so never for forks),
 # no repository secrets: the admin key is generated inside the container and only masked in memory.
 #   git push origin HEAD:ci/merge-<slice>
-#   gh workflow run live-backend.yml --ref ci/<slice> [-f steps=manifest,codegen,deploy,seed,audit]
+#   gh workflow run live-backend.yml --ref ci/<slice> [-f steps=manifest,env,codegen,deploy,seed,audit]
 name: Live backend
 
 on:
@@ -15,7 +15,7 @@ on:
     inputs:
       steps:
         description: Comma-separated scripts/liveBackendValidation.mjs steps to run
-        default: manifest,codegen,deploy,seed,audit
+        default: manifest,env,codegen,deploy,seed,audit
 
 permissions:
   contents: read
@@ -52,7 +52,7 @@ jobs:
           exit 1
       - name: Deploy, seed and audit
         env:
-          STEPS: ${{ inputs.steps || 'manifest,codegen,deploy,seed,audit' }}
+          STEPS: ${{ inputs.steps || 'manifest,env,codegen,deploy,seed,audit' }}
         run: node scripts/liveBackendValidation.mjs --container=convex-live --steps="$STEPS" --log-dir=live-backend-logs
       - name: Step durations
         if: always()

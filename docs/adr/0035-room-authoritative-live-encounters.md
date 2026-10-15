@@ -596,3 +596,10 @@ insert without re-reads (Amendment 27). V15 measures it.
 
 - **Development and tests use the local backend only (Q15 option c).** Development, automated tests, load checks and agents run against the local Docker backend. Cloud deployments are touched only for a deliberate, approved staging smoke check.
 - **Read budgets in the gates (Q15 option d).** See Decision 9.
+
+## Amendment 2026-10-15: ephemeral self-hosted backends on GitHub runners
+
+- **Allowed:** the open-source self-hosted Convex backend image (the digest the local container runs) started as a temporary container on a GitHub Actions runner, for manifest, codegen, deploy, seed and audit checks. It is discarded with the runner, so it costs no Convex plan I/O. `.github/workflows/live-backend.yml` runs it on `ci/merge-*` pushes and manual dispatch with no repository secrets; the admin key is generated inside the container and never logged or stored.
+- **Still forbidden:** Convex Cloud (any dev, staging or production deployment) for development, automated tests, load checks and agents. Every script that drives a backend refuses a non-loopback URL.
+- **Unchanged:** a staging smoke check against a cloud deployment still needs the user's explicit approval each time.
+- **Not covered:** the Session Worker (Wrangler) and Playwright live proofs stay local until a follow-up moves them.

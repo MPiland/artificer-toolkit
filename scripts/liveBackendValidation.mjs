@@ -3,7 +3,7 @@
 // .github/workflows/live-backend.yml). Stops at the first failing step; each step's log and duration
 // go to --log-dir when given. The admin key never reaches a log or a file (convexSelfHosted.mjs).
 //   node scripts/liveBackendValidation.mjs [--url=<loopback url>] [--container=<name>]
-//     [--steps=manifest,codegen,deploy,seed,audit] [--log-dir=<dir>]
+//     [--steps=manifest,env,codegen,deploy,seed,audit] [--log-dir=<dir>]
 import { spawn } from 'node:child_process'
 import { createWriteStream } from 'node:fs'
 import { mkdir, writeFile } from 'node:fs/promises'
@@ -15,8 +15,12 @@ import {
   selfHostedEnv
 } from './convexSelfHosted.mjs'
 
+// `env` is for a fresh backend only (the CI container): auth.config.ts needs JWKS set before any push,
+// and an empty value selects the database-backed signing keys. The local container already has its own,
+// so `env` is not a default step.
 const allSteps = {
   manifest: ['yarn', ['generate:srd:manifest']],
+  env: ['yarn', ['convex', 'env', 'set', 'JWKS', '']],
   codegen: ['yarn', ['convex', 'codegen', '--typecheck', 'disable']],
   deploy: ['yarn', ['convex', 'deploy', '--yes', '--typecheck', 'disable', '--codegen', 'disable']],
   seed: ['yarn', ['convex', 'run', 'content/seed:seed']],
@@ -31,7 +35,7 @@ const options = Object.fromEntries(
 )
 const url = options.url || localConvex.url
 const container = options.container || localConvex.container
-const stepNames = (options.steps || Object.keys(allSteps).join(',')).split(',')
+const stepNames = (options.steps || 'manifest,codegen,deploy,seed,audit').split(',')
 const unknown = stepNames.filter((name) => !(name in allSteps))
 if (unknown.length) throw new Error(`Unknown steps: ${unknown.join(', ')}.`)
 assertLoopbackUrl(url)
