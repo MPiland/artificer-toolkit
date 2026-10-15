@@ -564,8 +564,13 @@
             {
               "id": "PLATFORM-13.8",
               "text": "The ENCOUNTER-5.1 assisted-party journey reads every member's roll cards deterministically under a loaded run: no \"Conversation not found.\" from concurrent room checkpoints, proved by a loaded scoped Convex run.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "merge ed78136cf",
+                "apps/apis/convex/liveSessions/assistedPartyJourney.test.ts (initiative faces keep scores >=9 apart in every declaration order)",
+                "local-validation/platform-13-t6/red-stress-before-fix.log (3-8/83 failed) and green-stress-after-fix.log (83/83)",
+                "CI run 38802484516 (journey 4/4; shard 3 lifecycle failure is the pre-PRIVACY-1.T1 base defect, fixed in bd4fc26f4)"
+              ],
               "origin": "SPELLS-8.T1 merge batch 2026-10-15 (local-validation/merge-s8t1/apis.log): assistedPartyJourney.test.ts failed once under load at readRoomRollCards (three members read through Promise.all, each running checkpointLiveRoom); passed alone (rerun-apj.log).",
               "note": ""
             },
@@ -666,15 +671,14 @@
             {
               "id": "PLATFORM-13.T6",
               "text": "Find why concurrent readRoomRollCards checkpoints can miss the TABLE conversation (fixture race or a product race in checkpoint/chat), fix it at the cause, and prove it with a loaded run.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["PLATFORM-13.8"],
               "wsjf": {
                 "bv": 2,
                 "tc": 3,
                 "rr": 5,
                 "size": 2
-              },
-              "activeWorkbook": "docs/handoffs/slice-platform-13-t6.md"
+              }
             },
             {
               "id": "PLATFORM-13.T7",
@@ -1158,6 +1162,14 @@
               "proof": [],
               "origin": "Q22 (2026-10-15), from the PLATFORM-13.9 test-data flake.",
               "note": ""
+            },
+            {
+              "id": "ACCOUNTS-7.5",
+              "text": "Campaign text moderation (campaignTextPolicy) uses the same maintained profanity library and tiers as usernames; @2toad/profanity is removed from the repo and the web bundle carries one profanity library.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Registered 2026-10-15 from the ACCOUNTS-7.T1 merge review (S5)."
             }
           ],
           "wsjf": {
@@ -1179,6 +1191,19 @@
                 "size": 3
               },
               "activeWorkbook": "docs/handoffs/slice-accounts-7-t1.md"
+            },
+            {
+              "id": "ACCOUNTS-7.T2",
+              "text": "Move campaignTextPolicy to obscenity with the username tiers (no dictionary on the web), remove @2toad/profanity, keep campaign text tests red-first.",
+              "status": "TODO",
+              "closes": ["ACCOUNTS-7.5"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": ["ACCOUNTS-7.T1"]
+              }
             }
           ]
         },
