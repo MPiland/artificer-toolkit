@@ -43,7 +43,7 @@ describe('validateUsernameOnServer', () => {
   )
 
   // Repeated-letter padding is collapsed before the compound check.
-  it.each(['assmuncherrr', 'diickmuncher', 'cuummuncher'])(
+  it.each(['assmuncherrr', 'diickmuncher', 'cuummuncher', 'aassmuncher'])(
     'refuses the padded compound %s',
     (username) => {
       expect(validateUsernameOnServer(username)).toEqual({
@@ -82,7 +82,12 @@ describe('validateUsernameOnServer', () => {
     'Player_One',
     'Dickson',
     'Cockpit',
-    'Sextant'
+    'Sextant',
+    'Dickinson',
+    'Hitchcock',
+    'Middlesex',
+    // A padded name never reads as a term with a longer run than its own.
+    'asmuncher'
   ])('accepts the ordinary name %s', (username) => {
     expect(validateUsernameOnServer(username)).toEqual({ username, message: null })
   })

@@ -33,19 +33,19 @@ const moderationDigitSubstitutions: Record<string, string> = {
 
 // Q22 tiers. Short ambiguous terms are refused only as a whole part, so Cassandra, Dickens and
 // Cummings pass; the server also refuses them inside an unbroken compound (usernameServerPolicy).
-const wholePartPatterns: Record<string, string[]> = {
-  ass: ['|ass|'],
-  dick: ['|dick|', '|dicks|', '|dck|'],
-  cum: ['|cum|'],
-  tit: ['|tit|', '|tits|', '|titt', '|tiddies', '|tities']
-}
-export const wholePartUsernameTerms = Object.keys(wholePartPatterns)
+const replacedEnglishPhrases = [
+  { term: 'ass', patterns: ['|ass|'] },
+  { term: 'dick', patterns: ['|dick|', '|dicks|', '|dck|'] },
+  { term: 'cum', patterns: ['|cum|', '|cums|'] },
+  { term: 'tit', patterns: ['|tit|', '|tits|', '|titt', '|tiddies', '|tities'] }
+]
 // Dictionary words built on a whole-part term. The server compound check exempts dictionary words.
 const profaneCompounds = [
   'asshole',
   'asshat',
   'asswipe',
   'assclown',
+  'assman',
   'dumbass',
   'jackass',
   'smartass',
@@ -58,11 +58,24 @@ const profaneCompounds = [
   'cumslut',
   'cumdump'
 ]
-// Known false positives of the unambiguous terms.
-const allowedTerms = ['penistone', 'fukushima', 'fukuoka', 'fukui']
+// Known false positives of the matcher.
+export const allowedUsernameTerms = [
+  'penistone',
+  'fukushima',
+  'fukuoka',
+  'fukui',
+  'cockpit',
+  'dickson',
+  'dickinson',
+  'hitchcock',
+  'middlesex'
+]
 
+// Terms whose patterns are bounded on both sides are refused only as a whole part. The server
+// compound check looks for them inside an unbroken part, so the set comes from the same dataset.
+const englishWholePartTerms: string[] = []
 const dataset = [
-  ...wholePartUsernameTerms.map((term) => ({ term, patterns: wholePartPatterns[term] ?? [] })),
+  ...replacedEnglishPhrases,
   ...profaneCompounds.map((term) => ({ term, patterns: [term] }))
 ].reduce(
   (set, { term, patterns }) =>
@@ -73,12 +86,23 @@ const dataset = [
     ),
   new DataSet<{ originalWord: string }>()
     .addAll(englishDataset)
-    .removePhrasesIf(({ metadata }) => wholePartUsernameTerms.includes(metadata?.originalWord ?? ''))
+    .removePhrasesIf(({ metadata, patterns }) => {
+      const term = metadata?.originalWord ?? ''
+      if (replacedEnglishPhrases.some((replaced) => replaced.term === term)) return true
+      if (patterns.some((p) => p.requireWordBoundaryAtStart && p.requireWordBoundaryAtEnd)) {
+        englishWholePartTerms.push(term)
+      }
+      return false
+    })
 )
+export const wholePartUsernameTerms = [
+  ...replacedEnglishPhrases.map(({ term }) => term),
+  ...englishWholePartTerms
+]
 const { blacklistedTerms, whitelistedTerms } = dataset.build()
 const matcher = new RegExpMatcher({
   blacklistedTerms,
-  whitelistedTerms: [...(whitelistedTerms ?? []), ...allowedTerms],
+  whitelistedTerms: [...(whitelistedTerms ?? []), ...allowedUsernameTerms],
   ...englishRecommendedTransformers
 })
 
@@ -92,18 +116,24 @@ function resolveDigits(text: string): string {
 }
 
 /**
- * Parts of a username, lowercased with digits read as look-alike letters. Splits at `_`, at case
- * changes, and (as a second segmentation) at letter-digit changes, so `Ass1Muncher` yields `ass`
- * and `a55_muncher` yields `ass`.
+ * The texts a username is moderated as, lowercased with digits read as look-alike letters: the
+ * name joined without `_`, its `_` parts, its `_`-and-case parts and, as a further segmentation,
+ * those split at letter-digit changes. So `Ass1Muncher` yields `ass`, `a55_muncher` yields `ass`,
+ * and `My_aSS` yields `ass` although the case change would split it.
  */
-export function usernameModerationParts(username: string): string[] {
+export function usernameModerationCandidates(username: string): string[] {
+  const underscoreParts = username.split('_')
   const parts = username.split(partBoundary)
-  return [...parts, ...parts.flatMap((part) => part.split(letterDigitBoundary))].map(resolveDigits)
-}
-
-function hasBlockedTerm(username: string): boolean {
-  const joined = resolveDigits(username.replaceAll('_', ''))
-  return [joined, ...usernameModerationParts(username)].some((text) => matcher.hasMatch(text))
+  return [
+    ...new Set(
+      [
+        underscoreParts.join(''),
+        ...underscoreParts,
+        ...parts,
+        ...parts.flatMap((part) => part.split(letterDigitBoundary))
+      ].map(resolveDigits)
+    )
+  ]
 }
 
 function normalizeUsername(username: string): string {
@@ -118,7 +148,7 @@ export function validateUsername(username: string): { username: string; message:
     normalizedUsername.length <= 30 &&
     usernamePattern.test(normalizedUsername) &&
     !reservedUsernames.has(normalizedUsername.toLowerCase()) &&
-    !hasBlockedTerm(normalizedUsername)
+    !usernameModerationCandidates(normalizedUsername).some((text) => matcher.hasMatch(text))
 
   return {
     username: normalizedUsername,
