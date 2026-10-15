@@ -7,6 +7,7 @@ import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/sys
 import {
   resolveEncounterAttackPerception,
   resolveEncounterBelievedAttackPerception,
+  resolveEncounterObserversSeeing,
   resolveEncounterPointSight
 } from '@artificer-toolkit/rules-runtime/encounterAttackPerception'
 import type { MovementTarget } from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
@@ -87,6 +88,66 @@ export async function readNativeLiveAttackPerception(input: {
     })
   ])
   return { actual, believed }
+}
+
+/**
+ * The observers that see the subject now, by the same perception rules and live Scene reads as
+ * `readNativeLiveAttackPerception`: each observer's own placement on the action's locked Scene.
+ */
+export async function readNativeLiveObserversSeeing(input: {
+  state: EncounterRunState
+  system: SystemAuthoredDto
+  subject: MovementTarget
+  observers: readonly MovementTarget[]
+  sceneContext: { sceneId: string; sceneVersion: number; grid: SceneGrid }
+  capture: (request: LiveSessionEncounterRulesRequest) => Promise<LiveSessionEncounterRulesResponse>
+}) {
+  const { state, capture, sceneContext } = input
+  if (input.system.id !== state.gameSystemId)
+    throw new Error('Attack perception System binding mismatch.')
+  const spatialEffects = await readNativeLiveSpatialEffects({
+    encounterId: state.id,
+    sceneId: sceneContext.sceneId,
+    sceneVersion: sceneContext.sceneVersion,
+    capture
+  })
+  const observers = await Promise.all(
+    input.observers.map(async (observer) => {
+      const loaded = await readNativeLivePerceptionScene({
+        campaignId: state.campaignId,
+        observerActorId: observer.actor.id,
+        subjectActorId: input.subject.actor.id,
+        capture
+      })
+      if (
+        !loaded ||
+        loaded.id !== sceneContext.sceneId ||
+        loaded.version !== sceneContext.sceneVersion
+      )
+        throw new Error('Encounter action facts are stale.')
+      const observerToken = loaded.scene.tokens.find((token) => token.id === loaded.observerTokenId)
+      const subjectToken = loaded.scene.tokens.find((token) => token.id === loaded.subjectTokenId)
+      if (!observerToken || !subjectToken) throw new Error('Encounter action facts are stale.')
+      return {
+        observer,
+        placement: {
+          scene: loaded.scene,
+          sceneGrid: sceneContext.grid,
+          observerToken,
+          subjectToken,
+          spatialEffects
+        }
+      }
+    })
+  )
+  return resolveEncounterObserversSeeing({
+    gameSystemId: state.gameSystemId,
+    loadDefinition: (definitionId) =>
+      readNativeLiveDefinition({ gameSystemId: state.gameSystemId, definitionId, capture }),
+    loadSystem: async () => input.system,
+    subject: input.subject,
+    observers
+  })
 }
 
 /**

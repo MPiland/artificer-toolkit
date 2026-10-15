@@ -22,6 +22,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterConcealmentCheck'
 import { EncounterValidationError } from '@artificer-toolkit/rules-runtime/encounterErrors'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import { readNativeLiveObserversSeeing } from './nativeAttackPerception.js'
 import {
   authoredCheckOf,
   nativeLiveCheckCommitInput,
@@ -96,13 +97,32 @@ export async function planNativeLiveConcealmentCheckAction(
   input: NativeLiveCheckActionInput & {
     /** Every actor in the Run, loaded: a concealment check compares the roller with each. */
     targets: ReadonlyMap<string, NativeLiveCheckActionInput['actor']>
+    state: Parameters<typeof readNativeLiveObserversSeeing>[0]['state']
     activeEffectsByActorId: ReadonlyMap<string, readonly ActiveRuleEffectRecord[]>
+    /** The action's locked Scene; null for an action without Scene positions. */
+    sceneContext: Parameters<typeof readNativeLiveObserversSeeing>[0]['sceneContext'] | null
+    capture: Parameters<typeof readNativeLiveObserversSeeing>[0]['capture']
   }
 ) {
   const { capability, command, state, actor, targets } = input
   const { checkKind, checkDefinitionId, dc } = authoredCheckOf(capability)
   if (dc.kind !== 'PASSIVE' && dc.kind !== 'CONCEALMENT')
     throw new EncounterValidationError('The selected action makes no concealment check.')
+  // On a Scene a Hide cannot hide its roller from an observer that sees it clearly. Without one
+  // (the neutral environment, where everyone sees everyone) the GM decides the circumstances.
+  const observersThatSee =
+    dc.kind === 'PASSIVE' && input.sceneContext
+      ? await readNativeLiveObserversSeeing({
+          state,
+          system: input.system,
+          subject: actor,
+          observers: [...targets.values()].filter(
+            (target) => target.actor.id !== actor.actor.id && target.actor.kind !== 'CUSTOM'
+          ),
+          sceneContext: input.sceneContext,
+          capture: input.capture
+        })
+      : new Set<string>()
   const context = prepareEncounterConcealmentCheck({
     gameSystemId: state.gameSystemId,
     commandId: command.commandId,
@@ -119,7 +139,8 @@ export async function planNativeLiveConcealmentCheckAction(
     checkLabel: encounterBasicActionCheckLabel(input.system, checkDefinitionId),
     dc,
     targets,
-    rollerActorId: actor.actor.id
+    rollerActorId: actor.actor.id,
+    observersThatSee
   })
   const occurrenceId = crypto.randomUUID()
   const continuation = await startEncounterBasicActionCheck({

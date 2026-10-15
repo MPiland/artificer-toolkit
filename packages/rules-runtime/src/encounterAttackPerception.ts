@@ -175,6 +175,31 @@ export async function resolveEncounterPointSight(
   ).sight
 }
 
+/**
+ * The observers that see a subject now on a Scene, each by its own placement. A concealment check
+ * never hides its roller from these (SRD: you can't hide from a creature that sees you clearly).
+ */
+export async function resolveEncounterObserversSeeing(
+  input: AttackPerceptionLoaders & {
+    subject: AttackPerceptionActor
+    observers: readonly {
+      observer: AttackPerceptionActor
+      placement: NonNullable<Parameters<typeof resolveEncounterActorPairPerception>[0]['placement']>
+    }[]
+  }
+): Promise<ReadonlySet<string>> {
+  const sights = await Promise.all(
+    input.observers.map(({ observer, placement }) =>
+      resolveAttackSight({ ...input, observer, placement, believed: false })
+    )
+  )
+  return new Set(
+    input.observers.flatMap(({ observer }, index) =>
+      sights[index]?.sight === 'SEES' ? [observer.actor.id] : []
+    )
+  )
+}
+
 /** An actor as a roller who knows nothing of it sees it: no Senses, effects or conditions. */
 const strippedAttackActor = (actor: AttackPerceptionActor): AttackPerceptionActor => ({
   ...actor,

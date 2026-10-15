@@ -531,7 +531,9 @@ export async function planNativeLiveEncounterAction(
         ? await planNativeLiveConcealmentCheckAction({
             ...checkInput,
             targets: concealmentTargets,
-            activeEffectsByActorId
+            activeEffectsByActorId,
+            sceneContext,
+            capture
           })
         : await planNativeLiveCheckAction(checkInput)),
       dependencies,

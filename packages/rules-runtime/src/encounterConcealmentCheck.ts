@@ -62,7 +62,8 @@ export function encounterConcealmentCheckTrigger(
  * Freezes a concealment check (Hide, Search) from the roller's own facts and the scores it is
  * compared with: each non-allied observer's passive score (Hide), or the concealments that hide
  * someone from the roller (Search). An observer with no facts for the passive (a custom actor, or
- * one with no total) is left out, so a Hide never hides its roller from it.
+ * one with no total) or that sees the roller clearly is left out, so a Hide never hides its roller
+ * from it.
  */
 export function prepareEncounterConcealmentCheck<
   TCharacterFacts extends CharacterMovementFacts
@@ -79,6 +80,8 @@ export function prepareEncounterConcealmentCheck<
   /** Every actor in the Run, the roller included. */
   targets: ReadonlyMap<string, MovementTarget<TCharacterFacts>>
   rollerActorId: string
+  /** The observers that see the roller clearly now; a Hide never hides it from them. */
+  observersThatSee: ReadonlySet<string>
 }): EncounterConcealmentCheckPendingContextDto {
   const roller = input.targets.get(input.rollerActorId)
   if (!roller) throw new EncounterValidationError('The roller is not in the Encounter.')
@@ -146,6 +149,7 @@ function concealmentObservers<TCharacterFacts extends CharacterMovementFacts>(in
   dc: Extract<ConcealmentCheckDc, { kind: 'PASSIVE' }>
   targets: ReadonlyMap<string, MovementTarget<TCharacterFacts>>
   roller: MovementTarget<TCharacterFacts>
+  observersThatSee: ReadonlySet<string>
 }) {
   const skillId = passiveSkillDefinitionId(input.system, input.dc.passiveDefinitionId)
   if (!skillId) throw new EncounterValidationError('The System defines no skill for the passive.')
@@ -153,6 +157,7 @@ function concealmentObservers<TCharacterFacts extends CharacterMovementFacts>(in
     if (
       observer.actor.id === input.roller.actor.id ||
       observer.actor.kind === 'CUSTOM' ||
+      input.observersThatSee.has(observer.actor.id) ||
       encounterActorRelationship(input.roller.actor.disposition, observer.actor.disposition) ===
         'ALLIED'
     )

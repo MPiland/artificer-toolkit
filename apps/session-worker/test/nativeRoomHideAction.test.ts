@@ -59,12 +59,26 @@ afterEach(() => {
 
 const bite = biteWolf('ATTACK', { damage: 1, reachFeet: 5 })
 
-/** A Wolf hider with Stealth +5, acting first, beside three friendly Wolves of differing Perception. */
-function hideRoom() {
+/** Between the hider (x 150) and the Wolves at x 350 and 450, but not the one at x 250. */
+const wall = {
+  kind: 'WALL' as const,
+  id: testUuid(0xe10),
+  a: { x: 300, y: -500 },
+  b: { x: 300, y: 500 },
+  blocksLight: true,
+  blocksMovement: true
+}
+
+/**
+ * A Wolf hider with Stealth +5, acting first, beside three friendly Wolves of differing Perception.
+ * `walled` puts a wall of the Scene between the hider and the two Wolves further away.
+ */
+function hideRoom(options: { walled?: boolean } = {}) {
   const hider = withCheckTotals(srdCreatureActor({ id: HIDER_ID, creature: bite }), {
     [SRD_STEALTH_SKILL_ID]: 5
   })
   return actionRoom({
+    ...(options.walled ? { sceneOverrides: { barriers: [wall] } } : {}),
     rolls: [],
     actors: [
       hider,
@@ -98,12 +112,12 @@ async function answerD20(fixture: Fixture, face: number) {
   return request.rollMode
 }
 
-/** The hider hides, rolling `face` (Stealth +5 adds to it). */
-async function hide(fixture: Fixture, face: number) {
+/** The hider hides, rolling `face` (Stealth +5 adds to it); `onScene` hides it on the Scene. */
+async function hide(fixture: Fixture, face: number, onScene = false) {
   const { answer } = await fixture.room.startAction(
     HIDER_ID,
     [],
-    null,
+    onScene ? fixture.room.sceneContext(0) : null,
     null,
     hideActionId,
     HIDER_ID
@@ -145,7 +159,7 @@ async function revertLast(fixture: Fixture) {
 }
 
 describe('Hide, a System basic action with a per-observer check, in the room', () => {
-  it('hides the hider from the observers its Stealth total beats, and never from one that ties or sees clearly', async () => {
+  it('hides the hider from the observers its Stealth total beats, and never from one that ties', async () => {
     const fixture = await hideRoom()
     // d20 10 + Stealth 5 = 15: above passive 10, level with passive 15, below passive 20.
     await hide(fixture, 10)
@@ -154,6 +168,15 @@ describe('Hide, a System basic action with a per-observer check, in the room', (
     ])
     expect(await concealmentOutputs(fixture)).toMatchObject([
       { resolution: { kind: 'CONCEAL', hiddenFromActorIds: [SHARP_ID] } }
+    ])
+  })
+
+  it('never hides the hider from an observer that sees it clearly on the Scene, whatever its Perception', async () => {
+    const fixture = await hideRoom({ walled: true })
+    // d20 20 + Stealth 5 = 25 beats every passive, but the Wolf at x 250 sees the hider past the wall.
+    await hide(fixture, 20, true)
+    expect(await concealments(fixture)).toEqual([
+      { holder: HIDER_ID, observers: [KEEN_ID, ALERT_ID].sort(), stealthTotal: 25 }
     ])
   })
 
