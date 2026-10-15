@@ -87,10 +87,19 @@ describe('the SRD Hide and Search actions compile through core options (ATTACK-1
   it('rejects a conceal or detect outcome on an action that is not a check', () => {
     const dash = catalogueBasicActionEffect(SRD_BASIC_ACTION_IDS.DASH)
     for (const checkActionId of [SRD_BASIC_ACTION_IDS.HIDE, SRD_BASIC_ACTION_IDS.SEARCH]) {
-      const { outcome } = catalogueBasicActionEffect(checkActionId).entries[0]!
-      expect(() => compile({ ...dash, entries: [{ ...dash.entries[0]!, outcome }] })).toThrow(
-        'conceal and detect outcomes belong to a check action'
-      )
+      const [checkPath] = catalogueBasicActionEffect(checkActionId).paths
+      if (checkPath?.selectionKind !== 'FIXED') throw new Error('Expected a fixed check path.')
+      const effect: EffectAuthored = {
+        ...dash,
+        paths: dash.paths.map((path) => {
+          if (path.selectionKind !== 'FIXED') throw new Error('Expected a fixed Dash path.')
+          return {
+            ...path,
+            resultBlock: { ...path.resultBlock, outcomes: checkPath.resultBlock.outcomes }
+          }
+        })
+      }
+      expect(() => compile(effect)).toThrow('conceal and detect outcomes belong to a check action')
     }
   })
 
