@@ -7275,8 +7275,12 @@
             {
               "id": "SPELLS-17.2",
               "text": "A creature whose move passes through a Caltrops or Ball Bearings field without ending in it makes the save on entering it, as the SRD \"enters the area\" says; on a failure it stops in the field.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/session-worker/test/nativeRoomPlacedZone.test.ts (Caltrops and Ball Bearings trigger when a path passes through the field, not only when it ends inside)",
+                "packages/rules-runtime/src/__tests__/encounterZonePlacementCompilation.test.ts (ENTER_OR_PASS_THROUGH compiles to ENTER and CROSS events)",
+                "Merge e58b9dad8; CI run 38769788109 green; local build, reset, deploy-seed and SRD audit green (local-validation/merge-s17t1/summary.log)"
+              ],
               "origin": "Follow-up from SPELLS-17 (aba540d19), workbook docs/handoffs/slice-spells-17.md.",
               "note": "SRD Caltrops author ENTER_SPACE, which maps to ENTER only when the path ends inside; a pass-through is CROSS and does not trigger. Fix the authored trigger through core options, not a Caltrops branch."
             },
@@ -7314,15 +7318,14 @@
             {
               "id": "SPELLS-17.T1",
               "text": "Pass-through triggers for entered fields (SRD Caltrops, Ball Bearings) with a Worker test.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-17.2"],
               "wsjf": {
                 "bv": 5,
                 "tc": 5,
                 "rr": 5,
                 "size": 2
-              },
-              "activeWorkbook": "docs/handoffs/slice-spells-17.md"
+              }
             },
             {
               "id": "SPELLS-17.T2",
