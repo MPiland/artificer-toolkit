@@ -209,6 +209,52 @@ describe('room reaction to a hit (REACTION-4.4)', () => {
     ])
   })
 
+  it('replays the answer without using the reaction again or minting a second effect', async () => {
+    const room = await shieldRoom()
+    await strike(room, 0)
+    const { decision, pending } = await offeredReaction(room)
+    const answer = room.resolveCommand(decision, {
+      kind: 'OPTION',
+      optionId: pending.options[0].optionId
+    })
+    expect((await room.send(answer)).type).toBe('COMMAND_COMMITTED')
+    const version = await room.version()
+    const settled = await readRoomHistory(room.room.base.stub)
+
+    const replayed = await room.send(answer)
+    expect(replayed.type, JSON.stringify(replayed)).toBe('COMMAND_COMMITTED')
+    expect(await room.version()).toBe(version)
+    const afterReplay = await readRoomHistory(room.room.base.stub)
+    expect(afterReplay.characterEffects.map(({ id }) => id)).toEqual(
+      settled.characterEffects.map(({ id }) => id)
+    )
+    expect(afterReplay.characterEffects).toHaveLength(1)
+    expect(await readSpellSlots(room)).toEqual([{ slotKey: 'STANDARD:1', used: 1 }])
+  })
+
+  it('refuses an option the pause never offered, leaving the hit held for the real answer', async () => {
+    const room = await shieldRoom()
+    await strike(room, 0)
+    const { decision, pending } = await offeredReaction(room)
+    const version = await room.version()
+    const unissued = 'c'.repeat(64)
+
+    const refused = await room.resolve(decision, { kind: 'OPTION', optionId: unissued })
+    expect(refused.type, JSON.stringify(refused)).toBe('COMMAND_REJECTED')
+    expect(JSON.stringify(refused)).toContain('VERSION_STALE')
+    expect(JSON.stringify(refused)).toContain(
+      `The decision option ${unissued} is not offered by this pause.`
+    )
+    expect(await room.version()).toBe(version)
+    expect(await readSpellSlots(room)).toEqual([])
+
+    const used = await room.resolve(decision, {
+      kind: 'OPTION',
+      optionId: pending.options[0].optionId
+    })
+    expect(used.type, JSON.stringify(used)).toBe('COMMAND_COMMITTED')
+  })
+
   it('keeps the hit when declined, applying the outcome and spending nothing', async () => {
     const room = await shieldRoom()
     await strike(room, 0)
