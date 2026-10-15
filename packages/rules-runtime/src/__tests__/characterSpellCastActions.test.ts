@@ -26,7 +26,7 @@ type Mechanic = CharacterRulePolicyOutput['spellCastMechanics'][number]['mechani
 
 const CHARACTER_ID = '00000000-0000-4000-8000-00000000b101'
 const STREAM_VERSION = 3
-const SLOT_ENTRY = { sourceIds: [], rawUsed: 0, effectiveUsed: 0, remaining: 2 } as const
+const SLOT_ENTRY = { sourceIds: [] as string[], rawUsed: 0, effectiveUsed: 0, remaining: 2 }
 
 const spell = (label: string): SpellAuthored => {
   const found = srdSpells.find((entry) => entry.label === label)

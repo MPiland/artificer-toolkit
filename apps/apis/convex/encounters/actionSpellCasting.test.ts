@@ -136,7 +136,7 @@ type SetupOptions = {
   /** One pact slot of this level (Pact Magic) instead of Wizard slots (two 1st, one 2nd). */
   pactLevel?: number
   /** Standard slots in place of the Wizard's two 1st and one 2nd. */
-  slots?: readonly { spellLevel: number; slotCount: number }[]
+  slots?: { spellLevel: number; slotCount: number }[]
   /** Slots the Sheet has already spent before the Encounter, in order. */
   spentSlots?: readonly string[]
   /** Class spells: known; those in `prepared` are also prepared. */
@@ -534,7 +534,7 @@ async function resetActionAllowance(fixture: Fixture) {
   })
 }
 
-const EXHAUSTED_CAST = 'The committed Character action resource is unavailable or stale.'
+const EXHAUSTED_CAST = 'That action is no longer available; refresh and choose again.'
 const REPLACED_CONCENTRATION = "Undo can't restore a replaced maintained effect; adjust manually."
 const SHEET_CHANGED = /'s Sheet changed after this action; adjust manually\./
 
@@ -582,7 +582,7 @@ describe('Character spell casting in an Encounter', () => {
     const undone = await revert(fixture, cast.projection.version)
     expect(undone.projection.version).toBe(cast.projection.version + 1)
     const after = await storedCharacter(fixture)
-    expect(after.record.state.spellSlots).toEqual([])
+    expect(after.record.state.spellSlots).toBeUndefined()
     expect(after.record.state.hitpoints.current).toBe(1)
   }, 60000)
 
@@ -624,7 +624,7 @@ describe('Character spell casting in an Encounter', () => {
       { slotKey: 'PACT', used: 1 }
     ])
     await revert(fixture, cast.projection.version)
-    expect((await storedCharacter(fixture)).record.state.spellSlots).toEqual([])
+    expect((await storedCharacter(fixture)).record.state.spellSlots).toBeUndefined()
   }, 60000)
 
   it('offers Fireball at its own level and every higher level it scales to that the Character has a slot for', async () => {
@@ -697,7 +697,9 @@ describe('Character spell casting in an Encounter', () => {
     expect((await storedCharacter(fixture)).record.state.spellSlots).toEqual([
       { slotKey: 'STANDARD:1', used: 2 }
     ])
-    expect((await storedCharacter(fixture, allyCharacterId)).record.state.spellSlots).toEqual([])
+    expect(
+      (await storedCharacter(fixture, allyCharacterId)).record.state.spellSlots
+    ).toBeUndefined()
   }, 90000)
 
   it('appends the spent slot after the slots already used and restores only that one on undo', async () => {
@@ -757,7 +759,7 @@ describe('Character spell casting in an Encounter', () => {
     const undone = await revert(fixture, started.projection.version)
     expect(await concentrationCasterIds(fixture)).toEqual([])
     expect(await maintainedEffects(fixture)).toEqual([])
-    expect((await storedCharacter(fixture)).record.state.spellSlots).toEqual([])
+    expect((await storedCharacter(fixture)).record.state.spellSlots).toBeUndefined()
 
     // A second Concentration spell replaces the first (D99); the replacement has no GM undo.
     await resetActionAllowance(fixture)
