@@ -462,8 +462,10 @@ describe('room Shield cast as an action', () => {
   })
 })
 
-describe('room reaction-only action over an area', () => {
-  it('is refused as a single-target action is: a reaction is used when its trigger happens', async () => {
+describe('room reaction authored over an area', () => {
+  // The compiler admits an area only for an Action, so a reaction-triggered area never reaches the
+  // shared window admission (`refuseActionOutsideItsWindow`): it is refused as an unavailable source.
+  it('cannot be taken as an action', async () => {
     const bite = fireballWolf()
     const creature = creatureAuthoredDtoSchema.parse({
       ...bite,
@@ -494,6 +496,6 @@ describe('room reaction-only action over an area', () => {
     })
     const { answer } = await room.startAreaAction({ x: 50, y: 150 })
     expect(answer.type).toBe('COMMAND_REJECTED')
-    expect(JSON.stringify(answer)).toContain('REACTION_TRIGGER_ONLY')
+    expect(JSON.stringify(answer)).toContain('SOURCE_REQUIREMENTS_NOT_MET')
   })
 })
