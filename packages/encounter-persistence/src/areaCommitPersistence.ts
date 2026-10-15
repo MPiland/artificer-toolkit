@@ -474,6 +474,7 @@ export async function persistEncounterAreaCommit(
     userId,
     authorizedCharacterIds: characterIds,
     occurredAt: input.occurredAt,
+    damagedActorIds: new Set(children.map(({ actor }) => actor.id)),
     concentration: input.concentration,
     concentrationEnds: input.concentrationEnds,
     endedGrants: input.endedGrants,

@@ -1,7 +1,7 @@
 import { escapeGrappleEffectDefinition } from '@artificer-toolkit/rules-runtime/testing/escapeGrappleEffectFixture'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { deleteConsumedGrants, restoreConsumedGrants } from '../consumedGrantPersistence.js'
+import { deleteGrants, restoreConsumedGrants } from '../consumedGrantPersistence.js'
 import { createActiveRuleEffectStore } from '../effectStore.js'
 import { createMemoryEncounterStore } from '../memoryEncounterStore.js'
 import type { EncounterPersistenceTransaction } from '../ports.js'
@@ -76,7 +76,7 @@ describe('restoreConsumedGrants', () => {
     const before = await store.list(owner)
 
     vi.setSystemTime(new Date('2026-01-01T00:00:09.000Z'))
-    await deleteConsumedGrants(ctx, [updated])
+    await deleteGrants(ctx, [updated])
     expect((await store.list(owner)).map(({ id }) => id)).toEqual([SECOND_ID])
     await restoreConsumedGrants(ctx, [updated])
 

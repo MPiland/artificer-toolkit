@@ -4,7 +4,10 @@ import type {
   EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { nativeConcentrationDamageApplications } from '@artificer-toolkit/rules-runtime/encounterConcentrationDamage'
-import { grantsEndedByHolderState } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
+import {
+  grantsEndedByHolderState,
+  stateBoundGrants
+} from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import {
   concentrationCommandId,
@@ -18,8 +21,12 @@ import {
   persistNativeConcentrationPending,
   persistNativeConcentrationResult
 } from './actionChildPersistence.js'
-import { postConcentrationEndMessage, readHolderEndState } from './concentrationEnd.js'
-import { deleteConsumedGrants } from './consumedGrantPersistence.js'
+import {
+  postConcentrationEndMessage,
+  postGrantEndMessages,
+  readHolderEndState
+} from './concentrationEnd.js'
+import { deleteGrants } from './consumedGrantPersistence.js'
 import { createActiveRuleEffectStore } from './effectStore.js'
 import type { EncounterCharacterWriteTransaction, EncounterWritePorts } from './ports.js'
 import type { EncounterWriteContext } from './store.js'
@@ -79,6 +86,11 @@ export async function persistEncounterConcentrationChildren(
     userId: string
     authorizedCharacterIds: ReadonlySet<string>
     occurredAt: string
+    /**
+     * The actors this commit's damage reached: the only holders whose state-bound grants the plan
+     * had to end. A continuation settles the checks of damage already committed, so it names none.
+     */
+    damagedActorIds: ReadonlySet<string>
   } & Pick<
     LiveSessionEncounterActionCommitInput,
     'concentration' | 'concentrationEnds' | 'endedGrants' | 'pendingConcentration'
@@ -154,6 +166,21 @@ export async function persistEncounterConcentrationChildren(
     )
       throw new Error('Live Session grant end is unexpected.')
   }
+  // And the plan must omit none: every grant a damaged holder's committed state ends is sent.
+  if (state.automationMode !== 'MANUAL') {
+    const sent = new Set(args.endedGrants.map(({ id }) => id))
+    for (const holder of actors.filter(({ id }) => args.damagedActorIds.has(id))) {
+      const stateBound = stateBoundGrants(await store.list(turnEffectOwner(holder, state.id)))
+      if (!stateBound.length) continue
+      const holderState = await readHolderEndState(ctx, {
+        state,
+        actor: holder,
+        userId: args.userId
+      })
+      if (grantsEndedByHolderState(stateBound, holderState).some(({ id }) => !sent.has(id)))
+        throw new Error('Live Session grant end is missing.')
+    }
+  }
   for (const { end, slot, holder } of ends) {
     actors = await callbacks.applyCleanup({
       state,
@@ -180,7 +207,17 @@ export async function persistEncounterConcentrationChildren(
     })
     remaining = remaining.filter((entry) => entry.maintainedStateId !== end.maintainedStateId)
   }
-  await deleteConsumedGrants(ctx, args.endedGrants)
+  await deleteGrants(ctx, args.endedGrants)
+  for (const holder of actors) {
+    const owner = checksumCanonicalJson(turnEffectOwner(holder, state.id))
+    await postGrantEndMessages(ctx, {
+      state,
+      actor: holder,
+      grants: args.endedGrants.filter((grant) => checksumCanonicalJson(grant.owner) === owner),
+      occurrenceId: parentOccurrenceId,
+      userId: args.userId
+    })
+  }
   for (const child of args.concentration) {
     const result = child.result
     const application = remaining.shift()

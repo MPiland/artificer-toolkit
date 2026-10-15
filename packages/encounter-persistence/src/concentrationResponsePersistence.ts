@@ -270,6 +270,7 @@ export async function persistEncounterConcentrationResponse(
       userId: input.expectedUserId,
       authorizedCharacterIds: characterIds,
       occurredAt: input.occurredAt,
+      damagedActorIds: new Set(),
       concentration: input.concentration,
       concentrationEnds: input.concentrationEnds,
       endedGrants: input.endedGrants,

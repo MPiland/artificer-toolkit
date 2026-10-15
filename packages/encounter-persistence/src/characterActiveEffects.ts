@@ -10,7 +10,13 @@ import type { EncounterWriteContext } from './store.js'
  */
 export async function endCharacterActiveEffect(
   ctx: EncounterWriteContext,
-  input: { characterId: string; effectId: string; isCampaignOwner: boolean; inEncounter: boolean }
+  input: {
+    characterId: string
+    effectId: string
+    isCampaignOwner: boolean
+    /** An Assisted Run enforces the holder-end's action economy, so a costed end goes through its Encounter command. */
+    economyEnforced: boolean
+  }
 ): Promise<void> {
   const store = createActiveRuleEffectStore(ctx)
   const owner = { kind: 'CHARACTER', characterId: input.characterId } as const
@@ -18,8 +24,9 @@ export async function endCharacterActiveEffect(
   if (!effect) throw new CharacterSheetCommandError('Active effect is unavailable.')
   if (!input.isCampaignOwner) {
     const { holderEnd } = effect.definition.recurrence
-    if (!holderEnd) throw new CharacterSheetCommandError('Only the Campaign owner can end an active effect.')
-    if (input.inEncounter && holderEnd.activation !== 'FREE')
+    if (!holderEnd)
+      throw new CharacterSheetCommandError('Only the Campaign owner can end an active effect.')
+    if (input.economyEnforced && holderEnd.activation !== 'FREE')
       throw new CharacterSheetCommandError('End this effect from the Encounter actions.')
   }
   if (effect.maintainedEffectStateId !== null)

@@ -9,11 +9,14 @@ import {
   srdDefinitions,
   srdEncounterState
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
-import { readHolderEndState } from '../concentrationEnd.js'
+import { endHolderStateGrants, readHolderEndState } from '../concentrationEnd.js'
 import { persistEncounterConcentrationChildren } from '../concentrationChildrenPersistence.js'
 import { endConcentrationAfterEdit } from '../concentrationEditEnd.js'
 import { persistLiveMovementConcentrationEnd } from '../liveMovementConcentrationPersistence.js'
-import { concentrationEndOccurrenceId } from '@artificer-toolkit/rules-runtime/encounterConcentrationIdentity'
+import {
+  concentrationEndOccurrenceId,
+  grantEndNoticeId
+} from '@artificer-toolkit/rules-runtime/encounterConcentrationIdentity'
 import { createActiveRuleEffectStore } from '../effectStore.js'
 import { createMemoryEncounterStore } from '../memoryEncounterStore.js'
 import type { EncounterCharacterWriteTransaction } from '../ports.js'
@@ -32,8 +35,11 @@ const OWNED_TABLES = [
 
 type Holder = ReturnType<typeof creatureActor>
 
-/** A memory store holding the Run, the holder and the holder's Concentration slot. */
-async function holderFixture(actor: Holder) {
+/**
+ * A memory store holding the Run, the holder and the holder's Concentration slot. A GM-held actor's
+ * chat entries post only when the GM's rolls are public.
+ */
+async function holderFixture(actor: Holder, gmRollVisibility: 'PUBLIC' | 'PRIVATE' = 'PRIVATE') {
   const memory = createMemoryEncounterStore()
   memory.load(
     'encounterRuns',
@@ -56,7 +62,7 @@ async function holderFixture(actor: Holder) {
       requireCampaignAuthority: async () => ({ campaign: { ownerUserId: USER_ID } }),
       readCurrentDefinition: async (definitionId: string) =>
         srdDefinitions.requireCurrent(definitionId),
-      readGmRollVisibility: async () => 'PRIVATE',
+      readGmRollVisibility: async () => gmRollVisibility,
       postRulesChatMessage
     }
   } as unknown as EncounterCharacterWriteTransaction & {
@@ -78,6 +84,28 @@ async function holderFixture(actor: Holder) {
     }
   })
   return { memory, ctx, postRulesChatMessage }
+}
+
+/** Stores a ten-round modifier grant on the holder, ended by the given lifecycle. */
+function storeGrant(
+  ctx: Awaited<ReturnType<typeof holderFixture>>['ctx'],
+  actor: Holder,
+  lifecycle: Parameters<typeof plannedModifierGrant>[0]['lifecycle'],
+  sourceLabel?: string
+) {
+  return createActiveRuleEffectStore(ctx).create({
+    id: crypto.randomUUID(),
+    owner: turnEffectOwner(actor, ENCOUNTER_ID),
+    definition: plannedModifierGrant({
+      encounterId: ENCOUNTER_ID,
+      sourceActorId: actor.id,
+      holderActorId: actor.id,
+      lifecycle,
+      rounds: 10,
+      sourceLabel
+    }).definition,
+    lifecycle: { schemaVersion: 1, remainingTicks: 10 }
+  })
 }
 
 /** Persistence re-derives each Concentration end's reason from the committed state (D95). */
@@ -183,6 +211,7 @@ describe('persistEncounterConcentrationChildren refuses a forged Concentration e
           concentration: [],
           pendingConcentration: null,
           endedGrants: [],
+          damagedActorIds: new Set([actor.id]),
           concentrationEnds: [
             {
               ownerActorId: actor.id,
@@ -223,26 +252,18 @@ describe('persistEncounterConcentrationChildren ends grants on incapacitation', 
     conditions: [srdCondition('Grappled')]
   }
 
-  /** Persists `endedGrants` for the holder and returns the grants it still stores. */
+  /**
+   * Persists a commit for the holder and returns the grants it still stores. The plan names the
+   * grant as ended unless `sendGrant` is false, and the holder as damaged unless `damaged` is false.
+   */
   async function endGrants(
     actorInput: Parameters<typeof creatureActor>[0],
-    lifecycle: Parameters<typeof plannedModifierGrant>[0]['lifecycle']
+    lifecycle: Parameters<typeof plannedModifierGrant>[0]['lifecycle'],
+    { sendGrant = true, damaged = true }: { sendGrant?: boolean; damaged?: boolean } = {}
   ) {
     const actor = creatureActor(actorInput)
-    const { memory, ctx } = await holderFixture(actor)
-    const store = createActiveRuleEffectStore(ctx)
-    const grant = await store.create({
-      id: crypto.randomUUID(),
-      owner: turnEffectOwner(actor, ENCOUNTER_ID),
-      definition: plannedModifierGrant({
-        encounterId: ENCOUNTER_ID,
-        sourceActorId: actor.id,
-        holderActorId: actor.id,
-        lifecycle,
-        rounds: 10
-      }).definition,
-      lifecycle: { schemaVersion: 1, remainingTicks: 10 }
-    })
+    const { memory, ctx, postRulesChatMessage } = await holderFixture(actor, 'PUBLIC')
+    const grant = await storeGrant(ctx, actor, lifecycle, 'Rage')
     const persist = () =>
       persistEncounterConcentrationChildren(
         ctx as Parameters<typeof persistEncounterConcentrationChildren>[0],
@@ -260,11 +281,17 @@ describe('persistEncounterConcentrationChildren ends grants on incapacitation', 
           concentration: [],
           pendingConcentration: null,
           concentrationEnds: [],
-          endedGrants: [grant]
+          endedGrants: sendGrant ? [grant] : [],
+          damagedActorIds: new Set(damaged ? [actor.id] : [])
         },
         { currentCharacterStreamVersion: vi.fn(), applyCleanup: vi.fn() }
       )
-    return { persist, held: () => memory.documents('encounterActiveRuleEffects') }
+    return {
+      persist,
+      grant,
+      postRulesChatMessage,
+      held: () => memory.documents('encounterActiveRuleEffects')
+    }
   }
 
   it('deletes a grant that ends on incapacitation when its holder is incapacitated', async () => {
@@ -272,6 +299,18 @@ describe('persistEncounterConcentrationChildren ends grants on incapacitation', 
     expect(held()).toHaveLength(1)
     await persist()
     expect(held()).toEqual([])
+  })
+
+  it('tells the table which grant the commit ended, once per grant', async () => {
+    const { persist, grant, postRulesChatMessage } = await endGrants(paralyzed, {
+      endOnEvents: ['ON_INCAPACITATED']
+    })
+    await persist()
+    expect(postRulesChatMessage).toHaveBeenCalledWith(expect.anything(), {
+      authorUserId: USER_ID,
+      clientNonce: grantEndNoticeId(OCCURRENCE_ID, grant.id),
+      body: 'Rage ends for Bandit.'
+    })
   })
 
   const holding = (label: string): Parameters<typeof creatureActor>[0] => ({
@@ -300,6 +339,43 @@ describe('persistEncounterConcentrationChildren ends grants on incapacitation', 
   ])('refuses to end the grant of %s', async (_name, actorInput, lifecycle) => {
     const { persist, held } = await endGrants(actorInput, lifecycle)
     await expect(persist()).rejects.toThrow('Live Session grant end is unexpected.')
+    expect(held()).toHaveLength(1)
+  })
+
+  it('refuses a commit that omits a grant its damaged holder state ends', async () => {
+    const { persist, held } = await endGrants(
+      paralyzed,
+      { endOnEvents: ['ON_INCAPACITATED'] },
+      { sendGrant: false }
+    )
+    await expect(persist()).rejects.toThrow('Live Session grant end is missing.')
+    expect(held()).toHaveLength(1)
+  })
+
+  it('leaves the grants of a holder the commit did not damage alone', async () => {
+    const { persist, held } = await endGrants(
+      paralyzed,
+      { endOnEvents: ['ON_INCAPACITATED'] },
+      { sendGrant: false, damaged: false }
+    )
+    await persist()
+    expect(held()).toHaveLength(1)
+  })
+
+  it('keeps a condition-bound grant on a defeated holder, whose conditions are not read', async () => {
+    const { persist, held } = await endGrants(
+      {
+        id: ACTOR_ID,
+        kind: 'CUSTOM',
+        snapshot: {},
+        currentHitPoints: 0,
+        defeated: true,
+        conditions: [srdCondition('Unconscious')]
+      },
+      endsOnUnconscious,
+      { sendGrant: false }
+    )
+    await persist()
     expect(held()).toHaveLength(1)
   })
 })
@@ -546,6 +622,35 @@ describe('endConcentrationAfterEdit', () => {
     })
   })
 
+  it('tells the table which grant the edit ended, once per grant', async () => {
+    const actor = creatureActor({
+      id: ACTOR_ID,
+      kind: 'CUSTOM',
+      snapshot: {},
+      conditions: [srdCondition('Paralyzed')]
+    })
+    const { memory, ctx, postRulesChatMessage } = await holderFixture(actor, 'PUBLIC')
+    const grant = await storeGrant(ctx, actor, { endOnEvents: ['ON_INCAPACITATED'] }, 'Rage')
+    await endConcentrationAfterEdit(
+      ctx as unknown as Parameters<typeof endConcentrationAfterEdit>[0],
+      {
+        state: srdEncounterState({ actors: [actor], currentActorId: null }),
+        actors: [actor],
+        holder: actor,
+        editCommandId: COMMAND_ID,
+        userId: USER_ID,
+        occurredAt: '2026-10-08T00:00:00.000Z'
+      }
+    )
+
+    expect(memory.documents('encounterActiveRuleEffects')).toEqual([])
+    expect(postRulesChatMessage).toHaveBeenCalledWith(expect.anything(), {
+      authorUserId: USER_ID,
+      clientNonce: grantEndNoticeId(COMMAND_ID, grant.id),
+      body: 'Rage ends for Bandit.'
+    })
+  })
+
   it('ends an incapacitated holder with the derived reason', async () => {
     const { memory } = await endAfterEdit({
       id: ACTOR_ID,
@@ -557,5 +662,40 @@ describe('endConcentrationAfterEdit', () => {
     expect(JSON.parse(memory.documents('encounterRuleReceipts')[0]!.resultJson)).toMatchObject({
       applicationOutputs: { reason: 'INCAPACITATED' }
     })
+  })
+})
+
+describe('endHolderStateGrants', () => {
+  const MOVEMENT_ID = '00000000-0000-4000-8000-0000000c0009'
+
+  async function endFor(conditions: ReturnType<typeof srdCondition>[]) {
+    const actor = creatureActor({ id: ACTOR_ID, kind: 'CUSTOM', snapshot: {}, conditions })
+    const { memory, ctx, postRulesChatMessage } = await holderFixture(actor, 'PUBLIC')
+    const grant = await storeGrant(ctx, actor, { endOnEvents: ['ON_INCAPACITATED'] }, 'Rage')
+    await endHolderStateGrants(ctx as unknown as Parameters<typeof endHolderStateGrants>[0], {
+      state: srdEncounterState({ actors: [actor], currentActorId: null }),
+      actor,
+      occurrenceId: MOVEMENT_ID,
+      userId: USER_ID
+    })
+    return { memory, grant, postRulesChatMessage }
+  }
+
+  it('ends the grant an incapacitated holder state ends and tells the table', async () => {
+    const { memory, grant, postRulesChatMessage } = await endFor([srdCondition('Paralyzed')])
+
+    expect(memory.documents('encounterActiveRuleEffects')).toEqual([])
+    expect(postRulesChatMessage).toHaveBeenCalledWith(expect.anything(), {
+      authorUserId: USER_ID,
+      clientNonce: grantEndNoticeId(MOVEMENT_ID, grant.id),
+      body: 'Rage ends for Bandit.'
+    })
+  })
+
+  it('keeps the grants of a holder that can still act', async () => {
+    const { memory, postRulesChatMessage } = await endFor([])
+
+    expect(memory.documents('encounterActiveRuleEffects')).toHaveLength(1)
+    expect(postRulesChatMessage).not.toHaveBeenCalled()
   })
 })

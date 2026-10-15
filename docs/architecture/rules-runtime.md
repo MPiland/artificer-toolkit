@@ -526,7 +526,8 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   grant it ends only at a real turn end (START or ADVANCE_TURN); GM cursor corrections do not tick grants (product-owner ruling, ATTACK-18.2).
 - **Rage (ATTACK-9.T1, D113)** is authored data on the compiled path, with no Barbarian executor: a bonus action that spends the
   `rageCharge` binding and applies a 1-minute SELF grant. Four generic shapes carry it. (1) An attack records the ability it used
-  (`usedAttackAbility`; a finesse weapon records the chosen one) and the `ATTACK_ABILITY` facet predicate gates a modifier on it, so
+  (`usedAttackAbility`: the highest ability modifier of the attacking item's own `SOURCE`-scoped modifiers, so a finesse weapon records
+  the chosen one and a Character-wide ability bonus from another source adds to the roll without changing the ability) and the `ATTACK_ABILITY` facet predicate gates a modifier on it, so
   Rage's damage bonus applies to Strength weapon attacks only; level steps are three `CLASS_LEVEL`-gated fixed bonuses. (2) A grant is
   state-bound by two lifecycle fields: the end event `ON_INCAPACITATED` in `recurrence.endOnEvents` (grants only; the turn-effect
   kernel still rejects it) and `recurrence.endOnConditionIds`, the Conditions that end it (Rage names Unconscious, the SRD's "knocked
@@ -538,10 +539,15 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   activation; outside one through `END_ACTIVE_EFFECT`/`endCharacterActiveEffect` for a FREE end; every other effect stays Campaign-owner-only, D99). (3) The `SPELLCASTING_LOCK`
   `ENABLE` domain bars every spell cast (`spellcastingLocked` on the action model, reason `SPELLCASTING_LOCKED`), ends the holder's
   Concentration when the grant arrives (end reason `SPELLCASTING_LOCKED`), and `prepareEncounterActionMaintenance` refuses a new
-  Concentration with an `EncounterValidationError`. An actor or Sheet edit ends the grant through `endConcentrationAfterEdit`. Gap: damage taken during a
-  movement pass (opportunity attack, hazard) that incapacitates a raging mover does not yet end the grant:
-  `findEnd` in `nativeEncounterMovementConcentration.ts` returns early without a maintained-effect slot and its receipts carry no
-  `endedGrants`. Heavy armor also does not end Rage yet: no Character equipment predicate names armor weight.
+  Concentration with an `EncounterValidationError`. An actor or Sheet edit ends the grant through `endConcentrationAfterEdit`, and damage taken during a
+  movement pass (opportunity attack, hazard) through `endHolderStateGrants`, which `persistMovementSettlements` calls for each Run
+  actor after its settlement steps have committed (the movement planner does not plan the end, so it lands after the pass, not between
+  contacts). Both read the committed holder state (`readHolderEndState`), delete the grants and post a chat notice per grant
+  (`postGrantEndMessages`), as the action and turn commits do. A commit that omits a grant its damaged holder's state ends is refused
+  ("grant end is missing"); the planner and persistence read the same holder end state. Rage's heavy-armor restriction is an `EXCLUDE`
+  `EQUIPMENT_EQUIPPED` condition (category `ARMOR`, property `HEAVY`) on each Rage benefit's facets, the same predicate Monk's Unarmored
+  Movement uses. A Rage that ends Concentration (`SPELLCASTING_LOCKED`) adds a Concentration-end child that undo cannot restore, so GM
+  undo of that action is refused with that reason (a full restore is a proposed follow-up).
 - **Gone with slice B:** the mechanic codes `SPEED_MOVEMENT_BONUS` and `NO_OPPORTUNITY_ATTACKS`, `suppressesEncounterOpportunityAttacks`,
   the `speedMovementBonus` DTO field and `speedBonusTurn` on `USE_BASIC_ACTION`.
 - **Gone with slice D:** `USE_BASIC_ACTION`, `UseEncounterBasicActionInputDto`, the catalogue `check` and `mechanics`

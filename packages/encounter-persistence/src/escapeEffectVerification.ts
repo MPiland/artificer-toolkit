@@ -50,31 +50,27 @@ export async function findStoredEscape(
 
 /**
  * Whether a spent allowance is the one the activation spends: the System binds the activation to
- * its capability, and a free activation or a Manual Run spends none.
+ * its capability, and a free activation spends none. Both callers admit Assisted Runs only.
  */
 export function activationAllowanceMatches(
-  state: Pick<EncounterRunState, 'gameSystemId' | 'automationMode'>,
+  state: Pick<EncounterRunState, 'gameSystemId'>,
   activation: { code: 'FREE' } | { code: string; amount: number },
   spent: { definitionId: string } | null
 ): boolean {
-  const binding =
-    activation.code === 'FREE' || !('amount' in activation)
-      ? null
-      : actionEconomyCapabilityRegistry.resolveActionEconomyCapability({
-          gameSystemId: state.gameSystemId,
-          activationKind: activation.code,
-          activationAmount: activation.amount
-        })
-  const expected =
-    binding?.kind === 'REQUIRED' && state.automationMode !== 'MANUAL'
-      ? binding.capabilityDefinitionId
-      : null
+  const binding = !('amount' in activation)
+    ? null
+    : actionEconomyCapabilityRegistry.resolveActionEconomyCapability({
+        gameSystemId: state.gameSystemId,
+        activationKind: activation.code,
+        activationAmount: activation.amount
+      })
+  const expected = binding?.kind === 'REQUIRED' ? binding.capabilityDefinitionId : null
   return (spent?.definitionId ?? null) === expected
 }
 
 /** Rejects a spent allowance that is not the one the escape's authored activation spends. */
 export function requireEscapeAllowance(
-  state: Pick<EncounterRunState, 'gameSystemId' | 'automationMode'>,
+  state: Pick<EncounterRunState, 'gameSystemId'>,
   escape: StoredEscape,
   spent: { definitionId: string } | null
 ): void {

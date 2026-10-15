@@ -30,7 +30,7 @@ import {
   readEncounterBasicActionEffect
 } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
 import { requireEncounterBasicActionDefinition } from '@artificer-toolkit/rules-runtime/encounterBasicActions'
-import { deleteConsumedGrants } from './consumedGrantPersistence.js'
+import { deleteGrants } from './consumedGrantPersistence.js'
 import { readBasicActionAdmission } from './basicActionAdmission.js'
 import { projectNativeBasicActionCheckPending } from './basicActionCheckPending.js'
 import { settleEncounterBasicActionCheck } from './basicActionCheckSettlement.js'
@@ -122,7 +122,7 @@ export async function persistEncounterBasicAction(
     : actor
   await replaceRunActor(ctx, actor, spent)
   // A Help the check used is consumed with the action, so a pending check keeps its advantage.
-  await deleteConsumedGrants(ctx, input.consumedGrants)
+  await deleteGrants(ctx, input.consumedGrants)
   let nextActors = actors.map((entry) => (entry.id === spent.id ? spent : entry))
   const nextState = encounterRunStateSchema.parse({
     ...state,
