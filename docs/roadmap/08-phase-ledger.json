@@ -37,49 +37,6 @@
       "uat": [],
       "pbis": [
         {
-          "id": "PLATFORM-1",
-          "title": "Develop and generate code against local Convex",
-          "status": "IN_PROGRESS",
-          "journeyTests": [],
-          "journeyStatus": "none",
-          "origin": ["F01"],
-          "acs": [
-            {
-              "text": "Official Convex push and codegen succeed against an isolated local deployment and against personal dev flexible-goshawk-837.",
-              "status": "DONE",
-              "proof": [
-                ".codex/validation/phase82-foundation/local-final-dev.log",
-                ".codex/validation/phase82-foundation/cloud-dev-first-push.log"
-              ],
-              "origin": ["F01.1"],
-              "id": "PLATFORM-1.1"
-            },
-            {
-              "text": "The shared schema, including the indexed profile table, typechecks against the generated API.",
-              "status": "DONE",
-              "proof": [".codex/validation/phase82-foundation/typecheck.log"],
-              "origin": ["F01.2"],
-              "id": "PLATFORM-1.2"
-            },
-            {
-              "text": "Over real HTTP a public query succeeds, anonymous session and identity calls are denied and signup stays closed.",
-              "status": "DONE",
-              "proof": [
-                ".codex/validation/phase82-foundation/local-http-smoke-2.log",
-                ".codex/validation/phase82-foundation/cloud-dev-foundation-smoke.log"
-              ],
-              "origin": ["F01.3"],
-              "id": "PLATFORM-1.3"
-            }
-          ],
-          "wsjf": {
-            "bv": 3,
-            "tc": 8,
-            "rr": 13,
-            "size": 3
-          }
-        },
-        {
           "id": "PLATFORM-2",
           "title": "Typed schemas, indexes and bounded contracts",
           "status": "DONE",
@@ -9819,6 +9776,12 @@
       "origin": ["CP-S4-b"],
       "reason": "ADR 0035: commands run in the room, so the CP-S4-b room capture cache and one-read command bundle were removed; no command makes a per-command Convex round trip.",
       "decision": "Approved by the user on 2026-10-07 (needs-proof audit)."
+    },
+    {
+      "id": "PLATFORM-1",
+      "origin": ["F01"],
+      "reason": "Development tooling, not a user-visible behavior, so it can never have a journey test. Its three ACs were done; every merge now proves it locally (Convex codegen push, deploy, SRD seed and audit against the local Docker backend), apps/apis/tests/developmentFoundation.ts (run by the pre-staging lifecycle) and the ACCOUNTS-1 journey prove anonymous denial and closed signup over real HTTP. AC 1.1 also proved a push to the personal cloud dev deployment, which ADR 0035 now forbids for development and agents.",
+      "decision": "Approved by the user on 2026-10-15."
     }
   ],
   "openQuestions": []
