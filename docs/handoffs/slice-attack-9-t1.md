@@ -97,5 +97,7 @@ Follows D95 and D106. None of these shapes is named for Rage.
 - 2026-10-14: workbook written.
 - 2026-10-14: integration owner approved shapes 1-5 (recorded above). Player-ended Rage escalated against D99; approved as the holder-end option with an activation cost (3a), plus authored parity (6).
 - 2026-10-14: all code written and committed as WIP (`3c5335b6c`); nothing compiled or run yet, waiting on the validation lock for builds and the typecheck.
+- 2026-10-15: build and Turbo + Convex typecheck green; SRD manifest regenerated. Full unit batches green for rules-runtime (1054), encounter-persistence, source-data, schema, web (forms/rendering, VTT) and session-worker (606). Red-first fixes: the `activeEffect` fixture dropped `holderEnd`; the Concentration refusal under a spellcasting lock is now a domain rejection (`SpellcastingLockedError` -> `SOURCE_REQUIREMENTS_NOT_MET`), no longer an unexplained UNAVAILABLE.
+- 2026-10-15: `rageJourney.test.ts` green: compile, damage/resistance journey, holder-end (own turn spends the bonus action, off-turn refused, spent bonus action refused with `ACTION_ECONOMY_UNAVAILABLE`) and GM undo. It runs for the SRD Barbarian and for the same document owned as homebrew (`homebrewCopy`: fresh ids, different copy).
 
 ## Proposed ledger edits (filled by the slice session)

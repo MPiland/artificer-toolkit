@@ -29,6 +29,7 @@ import {
   useLocalRoomWorker
 } from '../../tests/fixtures/localRoomWorker'
 import { importedSubject } from '../../tests/fixtures/publication'
+import { homebrewCopy } from '../../tests/fixtures/homebrewCopy'
 import { rejection } from '../../tests/fixtures/roomRefusals'
 import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
 import { srdWolf } from '../../tests/fixtures/srdCreatures'
@@ -39,17 +40,25 @@ import { createConvexEncounterStoreReader } from '../lib/convexEncounterStore'
 
 useLocalRoomWorker()
 
-const RAGE_CHARGE_ID = barbarian.resources?.charges?.id
+/**
+ * The two Barbarians every journey runs: the SRD Class, and the same document as a homebrew author
+ * owns it (fresh ids, different copy; D113's authored parity). Behavior must not tell them apart.
+ */
+const srdBarbarian = {
+  ...barbarian,
+  features: barbarian.features?.filter(({ label }) => label === 'Rage')
+}
+const BARBARIANS = [
+  { name: 'an SRD Barbarian', source: srdBarbarian },
+  { name: 'a homebrew Barbarian with the same options', source: homebrewCopy(srdBarbarian) }
+]
 
 /**
  * A level-1 SRD Barbarian with an equipped Greataxe, acting first in an Assisted Run against the
  * seeded SRD Wolf. Its Rage is the real SRD Feature, compiled from the seeded Barbarian Class.
  */
-async function setup() {
-  const base = await setupCharacterRun(
-    { base: barbarian, features: barbarian.features?.filter(({ label }) => label === 'Rage') },
-    greataxe
-  )
+async function setup(source: typeof srdBarbarian) {
+  const base = await setupCharacterRun({ base: source, features: source.features }, greataxe)
   await attachRoomWorker(base.t)
   await equipAllCharacterItems(base)
   // Table roll cards post to the opened Table chat, which needs a username.
@@ -107,7 +116,7 @@ async function setup() {
     if (!facts) throw new Error('The Rage fixture Character facts are missing.')
     const { actionCandidates } = facts.ruleEvaluation.facts
     const rage = actionCandidates.find(
-      (candidate) => candidate.resourceUse?.chargeId === RAGE_CHARGE_ID
+      (candidate) => candidate.resourceUse?.chargeId === source.resources?.charges?.id
     )
     const axe = actionCandidates.find((candidate) => candidate.equipment?.grip === 'TWO_HANDED')
     if (!rage || !axe) throw new Error('The Barbarian offers no Rage or Greataxe action.')
@@ -225,20 +234,20 @@ async function barbarianState(fixture: Fixture) {
   })
 }
 
-describe('a Barbarian rages in an Encounter (ATTACK-9.T1)', () => {
+describe.each(BARBARIANS)('$name rages in an Encounter (ATTACK-9.T1)', ({ source }) => {
   it('compiles Rage as a bonus action that spends one Rage charge', async () => {
-    const { actions } = await setup()
+    const { actions } = await setup(source)
     expect(actions.rage.activation).toMatchObject({ kind: 'BONUS_ACTION' })
     expect(actions.rage.entry).toMatchObject({
       compilation: {
         kind: 'COMPILED',
-        resourceBinding: { chargeId: RAGE_CHARGE_ID, cost: 1 }
+        resourceBinding: { chargeId: source.resources?.charges?.id, cost: 1 }
       }
     })
   }, 60000)
 
   it('spends a charge, adds the Rage damage to the Greataxe hit, and halves the damage the Barbarian takes', async () => {
-    const fixture = await setup()
+    const fixture = await setup(source)
     const before = await barbarianState(fixture)
     expect(before).toMatchObject({ rageChargesUsed: 0, grantIds: [] })
 
@@ -321,7 +330,7 @@ describe('a Barbarian rages in an Encounter (ATTACK-9.T1)', () => {
     }
 
     it('ends the Rage on the holder turn, spending the bonus action; the charge stays spent', async () => {
-      const fixture = await setup()
+      const fixture = await setup(source)
       const { barbarianTurn, grantId } = await ragingOnItsNextTurn(fixture)
 
       const ended = await endsRage(fixture, barbarianTurn, grantId)
@@ -342,7 +351,7 @@ describe('a Barbarian rages in an Encounter (ATTACK-9.T1)', () => {
     }, 120000)
 
     it('refuses to end the Rage off the holder turn', async () => {
-      const fixture = await setup()
+      const fixture = await setup(source)
       const raged = await rages(fixture)
       const [grantId] = (await barbarianState(fixture)).grantIds
       if (!grantId) throw new Error('Rage granted nothing.')
@@ -359,7 +368,7 @@ describe('a Barbarian rages in an Encounter (ATTACK-9.T1)', () => {
     }, 120000)
 
     it('refuses to end the Rage once the bonus action is spent unless the warning is acknowledged', async () => {
-      const fixture = await setup()
+      const fixture = await setup(source)
       const raged = await rages(fixture)
       const [grantId] = (await barbarianState(fixture)).grantIds
       if (!grantId) throw new Error('Rage granted nothing.')
@@ -372,7 +381,7 @@ describe('a Barbarian rages in an Encounter (ATTACK-9.T1)', () => {
   })
 
   it('gives the charge back and removes the grant when the GM undoes the Rage', async () => {
-    const fixture = await setup()
+    const fixture = await setup(source)
     const raged = await rages(fixture)
     expect((await barbarianState(fixture)).rageChargesUsed).toBe(1)
 
