@@ -206,13 +206,40 @@ describe('directed area action compilation', () => {
   })
 })
 
+describe('caster-centered area action compilation', () => {
+  const SELF = { id: 'r', rangeKind: 'SELF' } as const
+
+  it.each([
+    [
+      'a sphere',
+      { id: 's', shapeKind: 'SPHERE', radius: feet(10) },
+      { kind: 'RADIUS', radius: feet(10) }
+    ],
+    [
+      'a cylinder',
+      { id: 's', shapeKind: 'CYLINDER', radius: feet(10), height: feet(40) },
+      { kind: 'RADIUS', radius: feet(10) }
+    ],
+    ['a circle', { id: 's', shapeKind: 'CIRCLE', radius: feet(5) }, { kind: 'RADIUS', radius: feet(5) }]
+  ] as const)('compiles Self %s to the per-creature test plan', (_name, shape, area) => {
+    const { action, plan } = compile({ range: SELF, shape })
+    expect(plan?.kind).toBe('TEST_OUTCOME')
+    const policy = buildCompiledActionTargetPolicy(action)
+    expect(encounterActionTargetKind(policy)).toBe('CASTER_CENTERED')
+    expect(encounterActionChoiceTarget(policy)).toEqual({ kind: 'CASTER_CENTERED', area })
+    expect(compileEncounterPointArea(policy, FEET_GRID)).toEqual({
+      kind: 'RADIUS',
+      radius: (area.radius.amount / 5) * FEET_GRID.cellSize
+    })
+  })
+})
+
 describe('area action compilation refusals', () => {
   const refused: Array<[string, Partial<Invocation>]> = [
     ['a cone', { shape: { id: 's', shapeKind: 'CONE', length: feet(15) } }],
     ['a line', { shape: { id: 's', shapeKind: 'LINE', length: feet(100), width: feet(5) } }],
     ['a wall', { shape: { id: 's', shapeKind: 'WALL', length: feet(60), height: feet(20) } }],
     ['a dome', { shape: { id: 's', shapeKind: 'DOME', radius: feet(10) } }],
-    ['a self range', { range: { id: 'r', rangeKind: 'SELF' } }],
     ['a touch range', { range: { id: 'r', rangeKind: 'TOUCH' } }],
     [
       'a scaled radius',
