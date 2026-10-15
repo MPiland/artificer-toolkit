@@ -22,16 +22,17 @@ Deliver a live-backend CI job (manifest, codegen, deploy, seed, SRD audit agains
 
 ## Design
 
-- One implementation for local and CI: `node scripts/liveBackendValidation.mjs [--url] [--container] [--steps] [--log-dir]`. Defaults are the local container (`phase82-convex-local-linux`, `http://127.0.0.1:3210`). CI passes `--container=convex-live`.
-- `assertLoopbackUrl` refuses any non-loopback URL, so no invocation can reach Convex Cloud.
-- The admin key is generated inside the container, kept in the child environment only, masked with `::add-mask::` on GitHub, and redacted from forwarded output. Step logs and `summary.json` (step, exit, seconds) go to `--log-dir` and are uploaded as the `live-backend-logs` artifact.
+- One implementation for local and CI: `node scripts/liveBackendValidation.mjs [--container] [--fresh] [--steps] [--log-dir]`. The URL is the `localConvex.url` constant (`http://127.0.0.1:3210`), checked against `/instance_name` (`phase82-local-linux`; the CI container sets the same `INSTANCE_NAME`). Defaults are the local container and `manifest,codegen,deploy,seed,audit`. CI passes `--container=convex-live --fresh`; `--fresh` adds the `env` step (`JWKS` empty) and is refused for the local container.
+- Convex CLI children run through `yarnSpawn` with `shell:false`, explicit `--url`/`--admin-key` arguments and `CONVEX_DEPLOYMENT`/`CONVEX_DEPLOY_KEY` removed from their environment, so no env file or selector can redirect them to Convex Cloud. `convexRunLocal.mjs` and `validatePreStagingLocal.mjs` share the same module and its single loopback guard.
+- The admin key is generated inside the container, passed only as a CLI argument, masked (key and secret half) with `::add-mask::` on GitHub, and redacted line by line from forwarded output and step logs.
+- A drift check after the script fails the job if the regenerated SRD manifest or `_generated` files differ from the commit. A green audit reports 1057 subjects. Step logs and `summary.json` (step, exit, seconds) go to `--log-dir` and are uploaded as the `live-backend-logs` artifact.
 - Image pinned by digest (`ghcr.io/get-convex/convex-backend@sha256:69885bae…d1f8`), the digest the local container runs (also recorded in `apps/apis/README.md`).
 - Triggers: push to `ci/merge-*`, `workflow_dispatch` (guarded to `refs/heads/ci/*`). No `pull_request`, no secrets, `contents: read`, concurrency group `live-backend-${{ github.ref }}`.
 
 ## Red-first checklist
 
 1. Green run: all five steps pass; the audit log shows the subject count (1057).
-2. Red run: dispatch with `steps=manifest,codegen,deploy,audit` (seed skipped); the audit fails and the job is red.
+2. Red run: dispatch with `steps=manifest,codegen,deploy,audit` (seed skipped; `--fresh` still sets `JWKS`); the audit fails and the job is red.
 3. Local heavy batch (last): `liveBackendValidation.mjs` against the local container through `withValidationLock.ps1`.
 
 ## Status log

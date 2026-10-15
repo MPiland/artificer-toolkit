@@ -5,7 +5,8 @@
 # not this container, which is discarded with the runner. No pull_request trigger (so never for forks),
 # no repository secrets: the admin key is generated inside the container and only masked in memory.
 #   git push origin HEAD:ci/merge-<slice>
-#   gh workflow run live-backend.yml --ref ci/<slice> [-f steps=manifest,env,codegen,deploy,seed,audit]
+#   gh workflow run live-backend.yml --ref ci/<slice> [-f steps=manifest,codegen,deploy,seed,audit]
+# The run then fails if the regenerated SRD manifest or Convex `_generated` files differ from the commit.
 name: Live backend
 
 on:
@@ -14,8 +15,8 @@ on:
   workflow_dispatch:
     inputs:
       steps:
-        description: Comma-separated scripts/liveBackendValidation.mjs steps to run
-        default: manifest,env,codegen,deploy,seed,audit
+        description: Comma-separated scripts/liveBackendValidation.mjs steps to run (empty runs all)
+        required: false
 
 permissions:
   contents: read
@@ -25,7 +26,8 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  # The digest the local phase82-convex-local-linux container runs (apps/apis/README.md).
+  # The one machine-readable source of the image digest: the digest the local phase82-convex-local-linux
+  # container runs (apps/apis/README.md points here).
   CONVEX_BACKEND_IMAGE: ghcr.io/get-convex/convex-backend@sha256:69885bae73766f625404a5425b22702341e89b43002f1d700864f8364be0d1f8
 
 jobs:
@@ -38,13 +40,17 @@ jobs:
       NODE_OPTIONS: --max-old-space-size=8192
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: ./.github/actions/setup
         with:
           build: 'true'
       - name: Start Convex backend
         run: |
-          # The origins become the deployment's built-in CONVEX_URL and CONVEX_SITE_URL (the auth config's domain).
+          # The origins become the deployment's built-in CONVEX_URL and CONVEX_SITE_URL (the auth config's
+          # domain). The instance name matches the local container, so one /instance_name check serves both.
           docker run -d --name convex-live -p 127.0.0.1:3210:3210 -p 127.0.0.1:3211:3211 \
+            -e INSTANCE_NAME=phase82-local-linux \
             -e CONVEX_CLOUD_ORIGIN=http://127.0.0.1:3210 -e CONVEX_SITE_ORIGIN=http://127.0.0.1:3211 \
             "$CONVEX_BACKEND_IMAGE"
           for _ in $(seq 60); do
@@ -55,12 +61,23 @@ jobs:
           exit 1
       - name: Deploy, seed and audit
         env:
-          STEPS: ${{ inputs.steps || 'manifest,env,codegen,deploy,seed,audit' }}
-        run: node scripts/liveBackendValidation.mjs --container=convex-live --steps="$STEPS" --log-dir=live-backend-logs
+          STEPS: ${{ inputs.steps }}
+        run: |
+          # --steps only when the dispatch input is set; the script owns the default step list.
+          args=(--container=convex-live --fresh --log-dir=live-backend-logs)
+          if [ -n "$STEPS" ]; then args+=(--steps="$STEPS"); fi
+          node scripts/liveBackendValidation.mjs "${args[@]}"
+      - name: Generated files match the commit
+        run: git diff --exit-code -- apps/apis/convex/content/srdManifest.generated.ts apps/apis/convex/_generated
       - name: Step durations
         if: always()
         run: |
-          [ -f live-backend-logs/summary.json ] && node -e "for (const s of JSON.parse(require('fs').readFileSync('live-backend-logs/summary.json','utf8'))) console.log('| ' + s.step + ' | ' + s.status + ' | ' + s.seconds + ' s |')" >> "$GITHUB_STEP_SUMMARY" || true
+          [ -f live-backend-logs/summary.json ] || exit 0
+          {
+            echo '| Step | Exit | Seconds |'
+            echo '| --- | --- | --- |'
+            node -e "for (const s of JSON.parse(require('fs').readFileSync('live-backend-logs/summary.json','utf8'))) console.log('| ' + s.step + ' | ' + s.status + ' | ' + s.seconds + ' |')"
+          } >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
         if: always()
         with:

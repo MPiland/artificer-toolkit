@@ -2,7 +2,7 @@
 
 - **Status:** decision (approved 2026-09-27; groundwork implemented locally; authority switch and final proof pending)
 - **Date:** 2026-09-27
-- **Revised:** 2026-10-03 (D86)
+- **Revised:** 2026-10-15 (user approval of ephemeral runner backends; see the amendment at the end), earlier 2026-10-03 (D86)
 - **Scope:** who owns live Encounter state and combat play state while a table is live, how commands are authorized and made durable, how Convex receives the result, how views outside the room see it, and the free-tier cost budget for live play
 - **Update when:** live Encounter authority, checkpointing, the room's durability, outside-the-room reads or edits, or the live-play cost budget changes
 - **Supersedes:**
@@ -600,6 +600,6 @@ insert without re-reads (Amendment 27). V15 measures it.
 ## Amendment 2026-10-15: ephemeral self-hosted backends on GitHub runners
 
 - **Allowed:** the open-source self-hosted Convex backend image (the digest the local container runs) started as a temporary container on a GitHub Actions runner, for manifest, codegen, deploy, seed and audit checks. It is discarded with the runner, so it costs no Convex plan I/O. `.github/workflows/live-backend.yml` runs it on `ci/merge-*` pushes and manual dispatch with no repository secrets; the admin key is generated inside the container and never logged or stored.
-- **Still forbidden:** Convex Cloud (any dev, staging or production deployment) for development, automated tests, load checks and agents. Every script that drives a backend refuses a non-loopback URL.
+- **Still forbidden:** Convex Cloud (any dev, staging or production deployment) for development, automated tests, load checks and agents. The live-backend scripts take their target from one loopback constant, verify its `/instance_name`, pass the URL and key as explicit CLI arguments and clear `CONVEX_DEPLOYMENT` and `CONVEX_DEPLOY_KEY` from the child environment, so they cannot reach Convex Cloud.
 - **Unchanged:** a staging smoke check against a cloud deployment still needs the user's explicit approval each time.
 - **Not covered:** the Session Worker (Wrangler) and Playwright live proofs stay local until a follow-up moves them.
