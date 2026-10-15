@@ -248,7 +248,9 @@ describe('Search, a System basic action against concealments, in the room', () =
   /** The hider hides at a total of 15, the turn passes to the searcher, and the searcher searches. */
   async function search(fixture: Fixture, searcherId: string, face: number) {
     await hide(fixture, 10)
-    await fixture.room.advanceTurn()
+    // The hider acts first; the observers follow in `OBSERVER_PERCEPTION` order.
+    const turnsUntilSearcher = 1 + OBSERVER_PERCEPTION.findIndex(([id]) => id === searcherId)
+    for (let turn = 0; turn < turnsUntilSearcher; turn += 1) await fixture.room.advanceTurn()
     const { answer } = await fixture.room.startAction(
       searcherId,
       [],
