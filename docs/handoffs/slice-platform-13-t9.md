@@ -66,7 +66,7 @@ Step durations in seconds (script `summary.json`; job totals from the API):
 
 Setup time varies with runner load (the 335 s run shared the account with a full Tests run).
 
-Local heavy-lane proof (read-only): see the status line below.
+Local heavy-lane proof (read-only): batch `platform-13-t9-local-audit` through `withValidationLock.ps1` ran `node scripts/liveBackendValidation.mjs --steps=audit` against `phase82-convex-local-linux`: exit 0, audit `"subjects": 1057`, 5 s (log `local-validation/platform-13-t9/local-batch.log`). Audit only, so the local backend's deployed code and data stay untouched; the deploy and seed steps share the same script and were proved in CI.
 
 ## Proposed ledger edits
 
