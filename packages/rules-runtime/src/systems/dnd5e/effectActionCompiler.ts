@@ -1300,9 +1300,7 @@ function modifierGrantPlan(
   )
     unsupported('D&D attacks apply one active effect on a hit.')
   const entry = attack ? hitGrants[0] : entries[0]
-  return entry
-    ? modifierGrantEntryPlan({ effectId: action.effectId, entry, attack, untilEndEvent: false })
-    : null
+  return entry ? modifierGrantEntryPlan({ action, entry, attack, untilEndEvent: false }) : null
 }
 
 /**
@@ -1311,12 +1309,12 @@ function modifierGrantPlan(
  * regains Hit Points); without it the grant must be timed and may not end on an event.
  */
 function modifierGrantEntryPlan(input: {
-  effectId: string
+  action: Dnd5eCompiledEffectActionSource
   entry: CompiledEffectGroup['entries'][number]
   attack: boolean
   untilEndEvent: boolean
 }): Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'> | null {
-  const { entry, attack, untilEndEvent } = input
+  const { action, entry, attack, untilEndEvent } = input
   if (!('outcome' in entry) || entry.outcome.effectKind !== 'APPLY_GRANT') return null
   const { grants } = entry.outcome
   const initialRemaining = entry.duration ? conditionDurationTurns(entry.duration) : null
@@ -1364,7 +1362,7 @@ function modifierGrantEntryPlan(input: {
   )
     return null
   return {
-    authoredEffectId: input.effectId,
+    authoredEffectId: action.effectId,
     compiledEntryId: entry.entryId,
     frozenGraphNodeId: 'modifier-grant',
     capabilityContractVersion: DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
@@ -1508,7 +1506,7 @@ function zonePlacementPlan(
   )
   const lingeringPlan = grant
     ? modifierGrantEntryPlan({
-        effectId: action.effectId,
+        action,
         entry: grant,
         attack: false,
         untilEndEvent: true

@@ -74,7 +74,7 @@ export const holdPerson: SpellAuthored = {
           originKind: 'SOURCE' as const,
           selectionKind: 'FIXED' as const,
           resultBlock: {
-            id: spellChildId(SPELL_IDS.HOLD_PERSON, 0x212, 1) + '__result',
+            id: spellChildId(SPELL_IDS.HOLD_PERSON, 0x217, 1),
             resultKind: 'SEQUENCE' as const,
             duration: {
               id: spellChildId(SPELL_IDS.HOLD_PERSON, 0x213, 1),
