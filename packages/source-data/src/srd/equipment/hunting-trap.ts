@@ -53,7 +53,7 @@ export const huntingTrap: EquipmentAuthored = {
                     id: S.equipmentChildId(S.equipId(143), 0x220, 1),
                     order: 1,
                     label: 'Pressure plate',
-                    interactionKind: 'ENTER_SPACE' as const,
+                    interactionKind: 'ENTER_OR_PASS_THROUGH' as const,
                     behaviors: [
                       {
                         id: S.equipmentChildId(S.equipId(143), 0x221, 1),

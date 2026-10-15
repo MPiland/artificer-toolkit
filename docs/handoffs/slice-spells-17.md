@@ -88,6 +88,18 @@ The SRD says "Any creature that enters the area must make the save", so a move t
 - Hunting Trap (`hunting-trap.ts:56`): "steps on the pressure plate". Reaching the plate's space means stepping on it, so `ENTER_SPACE` is acceptable; a move that passes over the plate also steps on it, so `ENTER_OR_PASS_THROUGH` is the closer fit. It is authored as an `OBJECT` manifest, not a `ZONE`, so it does not compile into a zone today (the trap flow is MOVE-3).
 - Stinking Cloud (`START_TURN_IN_SPACE`) and Prismatic Wall (already `ENTER_OR_PASS_THROUGH`) need no change.
 
+## SPELLS-17.T4 (AC 17.5): the other "enters the area" zones
+
+**Status:** done on the branch; CI run recorded below. Closes AC 17.5.
+
+Synced to the lane (fast-forward to `1c7829549`, which holds the T1 merge). The T1 text checks found three more SRD components worded "enters the area" or "steps on" that still author `ENTER_SPACE`. Each is now `ENTER_OR_PASS_THROUGH`:
+
+- Oil Flask `Enter burning oil` (`oil-flask.ts`); the end-turn component is unchanged.
+- Hunting Trap `Pressure plate` (`hunting-trap.ts`).
+- Blade Barrier `Whirling Blades` (`blade-barrier.ts`), which keeps `START_TURN_IN_SPACE`.
+
+Proof: `packages/source-data/src/srd/zoneInteractionKinds.test.ts` asserts the kind per entry (also Caltrops and Ball Bearings from T1). Red before the edit for Oil Flask, Hunting Trap and Blade Barrier (`local-validation/spells-17/t4-red.log`). None of the three compiles into a placed zone today, so there is no live behavior change; the compile parity test covers Caltrops only. Manifest regenerated.
+
 ## Proposed ledger edits (filled by the slice session)
 
 - Close AC SPELLS-17.1 (creator, entry, end event, careful crossing, journey).
