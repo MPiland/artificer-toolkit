@@ -1,6 +1,6 @@
 # Slice workbook: ACCOUNTS-7.T1 (tiered username moderation, Q22)
 
-**Status:** in progress
+**Status:** done (CI run 38798429920 green)
 **Base:** `codex/phase-08-2-convex-cutover` at this workbook's commit.
 **Rules:** [slice-workbook-rules.md](slice-workbook-rules.md).
 
@@ -53,7 +53,8 @@ Escalate (`SendMessage` to the main session) only if:
 - 2026-10-15: **Design.** `validateUsername` checks the lowercased, digit-resolved name joined without `_` for unambiguous terms, and every part of two segmentations: split at `_`, case changes (also digit-to-uppercase) and as a second segmentation also at letter-digit changes (`Ass1Muncher` → `ass`); the unsplit digit form catches `a55_muncher`. `validateUsernameOnServer` adds the compound check: a part that is not itself a dictionary word is refused when it segments into a blocked word (`ass`, `dick`, `cum`, `tit`) plus dictionary words.
 - 2026-10-15: **Premise changes (flagged).** `usernamePolicy.test.ts` listed `assassin` as refused; Q22 requires it accepted, so it moved to the accepted list. `Tit4n`-style names are refused by design (the letter-digit split yields the part `tit`).
 - 2026-10-15: **Red.** Local: `local-validation/accounts-7-t1/red-shared.log` (28 failures against the base policy; the server-policy file already existed in the tree, so its failures there are import-shaped and not evidence). CI run 38794114559 on commit f9efc866f (tests only): `usernamePolicy.test.ts` accepted-name cases fail and `usernameModeration.test.ts` 3/3 fail (`local-validation/accounts-7-t1/ci-red-failed.log`). The first CI attempt asserted status 422 for the refusal; Better Auth returns 400, corrected before green.
-- 2026-10-15: **Green (shared).** `green-shared.log`: 2 files, 55 tests pass. Pending: CI on the green commit.
+- 2026-10-15: **Green (shared).** `green-shared.log`: 2 files, 55 tests pass.
+- 2026-10-15: **Green (CI).** The first green attempt (run 38796582621, commit 25caf43b3) failed in "Build packages" on TS2488 (`whitelistedTerms` is optional in obscenity's `build()` type); fixed in 4f687ed7f. Run 38798429920 on 4f687ed7f: all 8 jobs green (build, web and Convex typechecks, package and Worker tests, web tests, Convex shards 1-4), including `usernameModeration.test.ts` with `{ status: 400, code: 'INVALID_USERNAME' }`. Log: `local-validation/accounts-7-t1/ci-green2-watch.log`.
 - Not run here: Storybook (not applicable), web username-field tests (CI "Web tests").
 - Note for PLATFORM-13.T7: random hex test names (`Journey_<12 hex>`) can contain `b00b`-style look-alikes for unambiguous terms (about 1 in 7,000); the server check adds a negligible compound risk. T7's own retry logic stays valid.
 - Docs: no canonical guide describes username moderation, so none changed; Q22 in `phase-08-2-decisions.md` remains the record.
