@@ -7295,6 +7295,13 @@
               "proof": [],
               "origin": "Follow-up from SPELLS-17 (aba540d19), workbook docs/handoffs/slice-spells-17.md.",
               "note": "commitTokenMove in CampaignVttStage.tsx has no stage-level test; the component and model are covered."
+            },
+            {
+              "id": "SPELLS-17.5",
+              "text": "Every SRD zone whose text triggers when a creature enters the area authors ENTER_OR_PASS_THROUGH (Oil Flask, Blade Barrier, Hunting Trap), proved by source-data tests on each entry.",
+              "status": "TODO",
+              "proof": [],
+              "origin": "Found in SPELLS-17.T1 (e58b9dad8): the same \"enters the area\" wording as Caltrops, authored ENTER_SPACE."
             }
           ],
           "wsjf": {
@@ -7340,6 +7347,19 @@
                 "rr": 3,
                 "size": 1
               }
+            },
+            {
+              "id": "SPELLS-17.T4",
+              "text": "Author Oil Flask, Blade Barrier and Hunting Trap enter components as ENTER_OR_PASS_THROUGH with source-data tests; regenerate the manifest.",
+              "status": "IN_PROGRESS",
+              "closes": ["SPELLS-17.5"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 1,
+                "rr": 2,
+                "size": 1
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-17.md"
             }
           ]
         },
