@@ -120,6 +120,14 @@ describe('server-only username compound check (Q22)', () => {
     expect(await findUser(accepted.email)).toMatchObject({ username: 'cassandra' })
   })
 
+  it('accepts a case-split name at signup and keeps the typed casing as the display name', async () => {
+    const { signUp, findUser } = await backend()
+    const accepted = signupInput('TitanFall')
+
+    expect(await signUp(accepted)).toMatchObject({ status: 200 })
+    expect(await findUser(accepted.email)).toMatchObject({ displayUsername: 'TitanFall' })
+  })
+
   it('applies the same check to a rename', async () => {
     const { signedInClient } = await backend()
     const client = await signedInClient()

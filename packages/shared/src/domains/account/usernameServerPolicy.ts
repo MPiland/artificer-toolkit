@@ -1,9 +1,9 @@
 import {
   USERNAME_NOT_ALLOWED_MESSAGE,
   allowedUsernameTerms,
+  anchoredUsernameTerms,
   usernameModerationCandidates,
-  validateUsername,
-  wholePartUsernameTerms
+  validateUsername
 } from './usernamePolicy.js'
 import { usernameWordList } from './usernameWordList.js'
 
@@ -31,7 +31,8 @@ function findsPaddedWord(text: string, index: ReadonlyMap<string, string[]>): bo
   return (index.get(key) ?? []).some((word) => isPaddedForm(text, word))
 }
 
-const blockedTerms = indexByRuns(wholePartUsernameTerms)
+// A plural of a blocked term is blocked too (`bigdicks`).
+const blockedTerms = indexByRuns(anchoredUsernameTerms.flatMap((term) => [term, `${term}s`]))
 
 // Built on the first compound check so isolates that only import the auth options do not pay for it.
 let lexicon: { words: ReadonlySet<string>; wordsByRuns: ReadonlyMap<string, string[]> } | undefined

@@ -37,7 +37,8 @@ const replacedEnglishPhrases = [
   { term: 'ass', patterns: ['|ass|'] },
   { term: 'dick', patterns: ['|dick|', '|dicks|', '|dck|'] },
   { term: 'cum', patterns: ['|cum|', '|cums|'] },
-  { term: 'tit', patterns: ['|tit|', '|tits|', '|titt', '|tiddies', '|tities'] }
+  // The transformers collapse repeated letters, so `titty` is matched as `tity`.
+  { term: 'tit', patterns: ['|tit|', '|tits|', '|tity', '|titie'] }
 ]
 // Dictionary words built on a whole-part term. The server compound check exempts dictionary words.
 const profaneCompounds = [
@@ -68,12 +69,13 @@ export const allowedUsernameTerms = [
   'dickson',
   'dickinson',
   'hitchcock',
-  'middlesex'
+  'middlesex',
+  'shuttlecock'
 ]
 
-// Terms whose patterns are bounded on both sides are refused only as a whole part. The server
-// compound check looks for them inside an unbroken part, so the set comes from the same dataset.
-const englishWholePartTerms: string[] = []
+// Terms the matcher anchors to a word boundary on at least one side only match at a part edge. The
+// server compound check looks for them inside an unbroken part, so the set comes from the same dataset.
+const englishAnchoredTerms: string[] = []
 const dataset = [
   ...replacedEnglishPhrases,
   ...profaneCompounds.map((term) => ({ term, patterns: [term] }))
@@ -89,15 +91,15 @@ const dataset = [
     .removePhrasesIf(({ metadata, patterns }) => {
       const term = metadata?.originalWord ?? ''
       if (replacedEnglishPhrases.some((replaced) => replaced.term === term)) return true
-      if (patterns.some((p) => p.requireWordBoundaryAtStart && p.requireWordBoundaryAtEnd)) {
-        englishWholePartTerms.push(term)
+      if (patterns.some((p) => p.requireWordBoundaryAtStart || p.requireWordBoundaryAtEnd)) {
+        englishAnchoredTerms.push(term)
       }
       return false
     })
 )
-export const wholePartUsernameTerms = [
+export const anchoredUsernameTerms = [
   ...replacedEnglishPhrases.map(({ term }) => term),
-  ...englishWholePartTerms
+  ...englishAnchoredTerms
 ]
 const { blacklistedTerms, whitelistedTerms } = dataset.build()
 const matcher = new RegExpMatcher({

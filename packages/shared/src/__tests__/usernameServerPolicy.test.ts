@@ -64,9 +64,32 @@ describe('validateUsernameOnServer', () => {
     }
   )
 
+  // Terms the matcher anchors on one side only are still refused inside an unbroken part.
+  it.each(['bigcuntface', 'bigtwat', 'bigshitbag', 'bigshithead', 'mywank', 'hugeturd'])(
+    'refuses the one-sided term in %s',
+    (username) => {
+      expect(validateUsernameOnServer(username)).toEqual({
+        username,
+        message: USERNAME_NOT_ALLOWED_MESSAGE
+      })
+    }
+  )
+
+  // A plural of a blocked term is blocked too.
+  it.each(['bigdicks', 'bigcocks', 'mytits', 'Bigwhores'])(
+    'refuses the plural compound %s',
+    (username) => {
+      expect(validateUsernameOnServer(username)).toEqual({
+        username,
+        message: USERNAME_NOT_ALLOWED_MESSAGE
+      })
+    }
+  )
+
   it.each([
     'cassandra',
     'Cassandra',
+    'Shuttlecock',
     'Classic',
     'Dickens',
     'Essex',

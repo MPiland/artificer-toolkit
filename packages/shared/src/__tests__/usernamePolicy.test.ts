@@ -81,7 +81,19 @@ describe('validateUsername', () => {
   })
 
   // Q22: unambiguous terms are refused anywhere, including inside one part and across `_`.
-  it.each(['fuuuck_me', 'Xfuckx', 'n_i_g_g_e_r', 'Asshole', 'DumbAss', 'Dickhead', 'assman'])(
+  it.each([
+    'fuuuck_me',
+    'Xfuckx',
+    'n_i_g_g_e_r',
+    'Asshole',
+    'DumbAss',
+    'Dickhead',
+    'assman',
+    'titty',
+    'Tittie',
+    'TittyLover',
+    'Titty_Fan'
+  ])(
     'refuses the unambiguous term in %s',
     (username) => {
       expect(validateUsername(username)).toEqual({
