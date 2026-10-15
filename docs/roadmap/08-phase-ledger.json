@@ -6843,14 +6843,14 @@
             },
             {
               "id": "SPELLS-8.T5",
-              "text": "Casting any SRD Concentration spell starts Concentration and replaces the current one (proved with Hold Person replacing Fly), not only spells with a maintenance definition.",
+              "text": "Casting any SRD Concentration spell starts Concentration and replaces the current one (proved with Hold Person replacing Fly), not only spells with a maintenance definition. Re-sized 2026-10-15: probe showed 108 of 110 SRD Concentration spells compile MANUAL; T5 also generalizes the timed-condition and repeat-save plans to the caster save DC so Hold Person (with its SRD repeat save) compiles.",
               "status": "TODO",
               "closes": ["SPELLS-8.1"],
               "wsjf": {
                 "bv": 8,
                 "tc": 5,
                 "rr": 8,
-                "size": 3,
+                "size": 5,
                 "after": ["SPELLS-8.T1"]
               }
             },
