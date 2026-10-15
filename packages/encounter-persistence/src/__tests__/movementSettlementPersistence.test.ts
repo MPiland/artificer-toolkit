@@ -29,15 +29,16 @@ const reaction = {
 }
 const { concentrationEnd: _end, ...reactionEvidence } = reaction
 
-function settle(settlements: unknown[]) {
+function settle(settlements: unknown[], automationMode?: 'MANUAL') {
   const callbacks = {
-    persistReaction: vi.fn(async () => []),
-    persistConcentrationEnd: vi.fn(async () => [])
+    persistReaction: vi.fn(async () => [{ id: 'mover' }]),
+    persistConcentrationEnd: vi.fn(async () => [{ id: 'mover' }]),
+    endHolderGrants: vi.fn(async () => {})
   }
   const persisted = persistMovementSettlements(
     {} as Parameters<typeof persistMovementSettlements>[0],
     {
-      state: { version: 1 },
+      state: { version: 1, automationMode },
       actors: [],
       authorizedCharacterIds: new Set<string>(),
       save: { commandId: COMMAND_ID },
@@ -73,5 +74,32 @@ describe('persistMovementSettlements Concentration ends', () => {
 
     await expect(persisted).rejects.toThrow('Movement settlement is incomplete.')
     expect(callbacks.persistConcentrationEnd).not.toHaveBeenCalled()
+  })
+})
+
+describe('persistMovementSettlements holder-state grant ends', () => {
+  const settlements = [
+    { kind: 'REACTION', execution: reactionEvidence },
+    { kind: 'CONCENTRATION_END', execution: end }
+  ]
+
+  it('ends each settled actor state-bound grants once the pass has settled', async () => {
+    const { persisted, callbacks } = settle(settlements)
+
+    await persisted
+    expect(callbacks.endHolderGrants).toHaveBeenCalledOnce()
+    expect(callbacks.endHolderGrants).toHaveBeenCalledWith({
+      state: { version: 1, automationMode: undefined },
+      actor: { id: 'mover' },
+      occurrenceId: OCCURRENCE_ID,
+      userId: 'user'
+    })
+  })
+
+  it('ends nothing in a MANUAL Run', async () => {
+    const { persisted, callbacks } = settle(settlements, 'MANUAL')
+
+    await persisted
+    expect(callbacks.endHolderGrants).not.toHaveBeenCalled()
   })
 })

@@ -194,7 +194,44 @@ const RAGE_DAMAGE_BANDS: readonly { amount: number; min: number; max?: number }[
   { amount: 4, min: 16 }
 ]
 
-/** Rage damage applies to the attack when the holder is in that level band and attacked with Strength. */
+/** Rage's benefits hold only while the holder wears no heavy armor. */
+const heavyArmorExclusion = (id: string, order: number) => ({
+  id,
+  order,
+  kind: 'PREDICATE' as const,
+  constraint: 'EXCLUDE' as const,
+  predicateCode: 'EQUIPMENT_EQUIPPED' as const,
+  authoringModeKind: 'ALL' as const,
+  category: EQUIPMENT_CATEGORY_CODE.ARMOR,
+  properties: [EQUIPMENT_PROPERTY_CODE.HEAVY]
+})
+
+/** The restriction of a Rage benefit that has no other: the holder wears no heavy armor. */
+function rageArmorRestriction(index: number): FacetAuthored {
+  const id = (entry: number) => classRowId(B, 0x86, index * 8 + entry)
+  return {
+    id: id(0),
+    groups: [
+      {
+        id: id(1),
+        order: 0,
+        contexts: [
+          {
+            id: id(2),
+            order: 0,
+            subject: 'CHARACTER',
+            conditions: [heavyArmorExclusion(id(3), 0)]
+          }
+        ]
+      }
+    ]
+  }
+}
+
+/**
+ * Rage damage applies to the attack when the holder is in that level band, wears no heavy armor
+ * and attacked with Strength.
+ */
 function rageDamageRestriction(
   { min, max }: (typeof RAGE_DAMAGE_BANDS)[number],
   band: number
@@ -221,7 +258,8 @@ function rageDamageRestriction(
                 classIds: [CLASS_IDS.BARBARIAN],
                 min,
                 ...(max === undefined ? {} : { max })
-              }
+              },
+              heavyArmorExclusion(id(6), 1)
             ]
           },
           {
@@ -281,7 +319,8 @@ function rageEffect(): EffectAuthored {
       domain: {},
       modifierKind: MODIFIER_KIND.ADD_OPTION,
       payload: { damageTypeId: rageDamageTypeId(code) },
-      order: 3 + index
+      order: 3 + index,
+      restrictions: rageArmorRestriction(index)
     })
   )
   const strengthAdvantages: ModifierGrantAuthored[] = [
@@ -291,7 +330,8 @@ function rageEffect(): EffectAuthored {
       valueDomainCode: VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER,
       domain: { ability: ABILITY_CODE.STRENGTH },
       modifierKind: MODIFIER_KIND.ADVANTAGE,
-      order: 6
+      order: 6,
+      restrictions: rageArmorRestriction(3)
     },
     {
       ...grantShape,
@@ -299,7 +339,8 @@ function rageEffect(): EffectAuthored {
       valueDomainCode: VALUE_DOMAIN_CODE.ABILITY_CHECK,
       domain: { ability: ABILITY_CODE.STRENGTH },
       modifierKind: MODIFIER_KIND.ADVANTAGE,
-      order: 7
+      order: 7,
+      restrictions: rageArmorRestriction(4)
     }
   ]
   const spellcastingLock: ModifierGrantAuthored = {

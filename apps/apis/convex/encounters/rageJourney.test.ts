@@ -25,6 +25,7 @@ import {
   attachRoomWorker,
   checkpointLiveRoom,
   executeInRoom,
+  executeSheetInRoom,
   queueRoomRolls,
   readRoomRollCards,
   seedRoomContentSnapshots,
@@ -371,10 +372,10 @@ describe.each(BARBARIANS)('$name rages in an Encounter (ATTACK-9.T1)', ({ source
       expect((await barbarianState(fixture)).grantIds).toEqual([])
     }, 120000)
 
-    it('refuses to end the Rage from a Manual Run, which resolves no Encounter commands', async () => {
+    it('ends the Rage at the Sheet in a Manual Run, which resolves no Encounter commands', async () => {
       const fixture = await setup(source, 'MANUAL')
       // A Manual Run resolves no actions, so the Barbarian already holds the Rage the table granted.
-      const effect = source.features?.find(({ label }) => label === 'Rage')?.effects?.[0]
+      const effect = source.features?.[0]?.effects?.[0]
       const grant = await fixture.t.run((ctx) =>
         createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) }).create({
           id: crypto.randomUUID(),
@@ -397,6 +398,24 @@ describe.each(BARBARIANS)('$name rages in an Encounter (ATTACK-9.T1)', ({ source
         )
       ).toMatchObject({ reason: 'ASSISTED_ONLY' })
       expect((await barbarianState(fixture)).grantIds).toEqual([grant.id])
+
+      // With no economy to spend, the holder's own player ends it from the Sheet, for free.
+      await executeSheetInRoom(fixture.player.caller, {
+        scope: 'CHARACTER_SHEET',
+        characterId: fixture.character.id,
+        encounterId: fixture.run.id,
+        command: {
+          type: 'END_ACTIVE_EFFECT',
+          commandId: crypto.randomUUID(),
+          expectedVersion: await fixture.t.run(async (ctx) => {
+            const row = await readCharacterRow(ctx, fixture.character.id)
+            if (!row) throw new Error('The Barbarian is missing.')
+            return row.play.streamVersion
+          }),
+          effectId: grant.id
+        }
+      })
+      expect((await barbarianState(fixture)).grantIds).toEqual([])
     }, 120000)
 
     it('refuses to end the Rage off the holder turn', async () => {
