@@ -1291,7 +1291,8 @@ function modifierGrantPlan(
 /**
  * The plan of one APPLY_GRANT entry. With `untilEndEvent` the grant has no counted duration and
  * lasts until one of its authored end events (a speed penalty that lasts until the creature
- * regains Hit Points); without it the grant must be timed and may not end on an event.
+ * regains Hit Points); without it the grant must be timed, and may also end early on an event
+ * (Rage ends when its holder is incapacitated).
  */
 function modifierGrantEntryPlan(input: {
   effectId: string
@@ -1341,8 +1342,7 @@ function modifierGrantEntryPlan(input: {
       ? entry.duration !== undefined || endEvents.length === 0 || turnAnchor !== undefined
       : initialRemaining === null ||
         // A grant created on its anchor's own turn is stored one turn longer (see the Encounter planner).
-        initialRemaining >= MAX_ACTIVE_EFFECT_TURNS ||
-        endEvents.length > 0) ||
+        initialRemaining >= MAX_ACTIVE_EFFECT_TURNS) ||
     Object.values(otherLifecycle).some((value) => value !== undefined) ||
     grantConsumeEvents.length !== consumeEvents.length ||
     grantEndEvents.length !== endEvents.length ||
