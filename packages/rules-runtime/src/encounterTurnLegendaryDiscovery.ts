@@ -5,10 +5,11 @@ import {
 import { buildEncounterActorRuleFacts } from './encounterActorRuleFacts.js'
 import { snapshotFeatureDefinitions } from './encounterActorState.js'
 import { defeatedEncounterActorIds, type DeadCharacterIds } from './encounterActorDefeat.js'
-import { CharacterRuleActionUnsupportedCompilationError } from './characterRuleActionSystemAdapter.js'
 import { characterRuleActionSystemAdapterRegistry } from './characterRuleActionSystemAdapterRegistry.js'
-import { compileEncounterFeatureActionPlan } from './encounterActionMechanicsPreparation.js'
-import { buildCompiledActionTargetPolicy } from './encounterActionEntryPointCompiler.js'
+import {
+  buildCompiledActionTargetPolicy,
+  compileEncounterFeatureActionPlan
+} from './encounterActionEntryPointCompiler.js'
 import { evaluateEncounterActionTargetPolicy } from './encounterActionTargetPolicy.js'
 import { discoverEncounterFeatureActionCapabilities } from './encounterFeatureActionCapabilityDiscoveryRegistry.js'
 import { featureActionMechanic } from './encounterFeatureActionCapabilityDiscovery.js'
@@ -42,13 +43,7 @@ function optionForCandidate(
   const resource = candidate.action.featureResourceUse
   const adapter = characterRuleActionSystemAdapterRegistry.get(candidate.gameSystemId)
   if (!resource || !adapter) throw new Error('The Legendary Action source cannot be executed.')
-  let plan: ReturnType<typeof compileEncounterFeatureActionPlan>
-  try {
-    plan = compileEncounterFeatureActionPlan(adapter, candidate.action)
-  } catch (error) {
-    if (error instanceof CharacterRuleActionUnsupportedCompilationError) return null
-    throw error
-  }
+  const plan = compileEncounterFeatureActionPlan(adapter, candidate.action)
   const targetPolicy = buildCompiledActionTargetPolicy(candidate.action)
   const makesAttackRoll = typeof featureActionMechanic(candidate.action).attackKind === 'string'
   const owner = { id: candidate.ownerActorId, disposition: 'NEUTRAL' as const }

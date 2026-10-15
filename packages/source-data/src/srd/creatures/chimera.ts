@@ -274,10 +274,7 @@ export const chimera: CreatureAuthored = {
               code: S.ACTIVATION_CODE.ACTION,
               amount: 1
             },
-            range: {
-              id: S.actionId(62, 18),
-              rangeKind: S.RANGE_KIND.SPECIAL
-            }
+            ...S.selfCone(S.actionId(62, 18), S.actionId(62, 103), 15)
           },
           paths: [
             {

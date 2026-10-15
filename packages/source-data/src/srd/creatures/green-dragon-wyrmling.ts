@@ -155,10 +155,7 @@ export const greenDragonWyrmling: CreatureAuthored = {
               code: S.ACTIVATION_CODE.ACTION,
               amount: 1
             },
-            range: {
-              id: S.actionId(150, 8),
-              rangeKind: S.RANGE_KIND.SPECIAL
-            }
+            ...S.selfCone(S.actionId(150, 8), S.actionId(150, 11), 15)
           },
           paths: [
             {

@@ -248,10 +248,7 @@ export const youngWhiteDragon: CreatureAuthored = {
               code: S.ACTIVATION_CODE.ACTION,
               amount: 1
             },
-            range: {
-              id: S.actionId(310, 15),
-              rangeKind: S.RANGE_KIND.SPECIAL
-            }
+            ...S.selfCone(S.actionId(310, 15), S.actionId(310, 300), 30)
           },
           paths: [
             {

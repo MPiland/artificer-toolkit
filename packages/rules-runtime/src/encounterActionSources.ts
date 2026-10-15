@@ -3,7 +3,7 @@ import type { CharacterActionCandidate } from '@artificer-toolkit/schema/api/cha
 import type { CharacterRulePolicyOutput } from '@artificer-toolkit/schema/api/characterRules'
 import type { CompiledActionEntryPoint } from '@artificer-toolkit/schema/projections/characterMechanics'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
-import { StaleCharacterActionError } from './encounterErrors.js'
+import { StaleCharacterActionError, UnavailableCreatureActionError } from './encounterErrors.js'
 import { discoverEncounterFeatureActions } from './encounterFeatureActionCapabilityDiscoveryRegistry.js'
 import { snapshotFeatureDefinitions } from './encounterActorState.js'
 import type { EncounterFeatureActionCapabilityDescriptor } from './encounterFeatureActionCapabilityDiscovery.js'
@@ -122,11 +122,8 @@ export function resolveEncounterActionSource(
   const capability = actions.available.find((value) => value.actionId === input.actionId)
   if (!capability) {
     const unavailable = actions.unavailable.find((value) => value.actionId === input.actionId)
-    throw new Error(
-      unavailable
-        ? `${unavailable.label} is unavailable: ${unavailable.reason}`
-        : 'The selected Creature action source is stale.'
-    )
+    if (unavailable) throw new UnavailableCreatureActionError(unavailable.label, unavailable.reason)
+    throw new Error('The selected Creature action source is stale.')
   }
   return { kind: 'CREATURE', actor, capability }
 }

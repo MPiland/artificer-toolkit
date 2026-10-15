@@ -71,6 +71,35 @@ Read first:
 - Known gaps: GM undo of a heal does not restore the ended slow; Sheet healing outside Encounter mechanics batches does not emit `ON_HIT_POINTS_REGAINED`; a fully resisted hit leaves the target out of `changed`; the stage-level wiring of the careful choice (`commitTokenMove` in `CampaignVttStage.tsx`) has no dedicated test (covered by the component and model tests).
 - Storybook (cannot run in a worktree): new `CampaignVttCarefulMoveChoice.stories.tsx` (SingleLabeledField, UnlabeledAndMultipleFields). Suggested stage-level story in `CampaignTabletopWindow.stories.tsx` seeding `halfSpeedFields` so a dragged path ending in a field shows the choice.
 
+## SPELLS-17.T1 (AC 17.2): pass-through triggers
+
+**Status:** DONE, merged e58b9dad8 (2026-10-15); CI 38769788109 and the local reset, seed and audit green. Closes AC 17.2.
+
+The SRD says "Any creature that enters the area must make the save", so a move that passes through a field and ends outside it enters the area; no ruling is needed. `ENTER_OR_PASS_THROUGH` already exists as a generic option (schema enum, node map, `ZONE_INTERACTION_TRIGGER_MODES` to ENTER and CROSS), so the fix is data only: no Caltrops branch.
+
+- Source data: `caltrops-bag-of-20.ts` `ENTER_SPACE` to `ENTER_OR_PASS_THROUGH`; `ball-bearings-bag-of-1000.ts` `MOVE_ACROSS` to `ENTER_OR_PASS_THROUGH` (ENTER_OR_PASS_THROUGH is the instructed kind; the old kind missed a move that ends in the field). Manifest regenerated.
+- Tests: Worker `nativeRoomPlacedZone.test.ts` "passing through a caltrop field (SPELLS-17.2)": fail stops at the first square entered (red before the data change), a passed save reaches the end of the move, a careful crossing is bypassed at the doubled cost. Compile parity in `encounterZonePlacementCompilation.test.ts` now expects `['ENTER', 'CROSS']`.
+- Docs: `docs/architecture/rules-runtime.md` placed-zones paragraph.
+
+**Other SRD `ENTER_SPACE` zones checked against their own text (not changed here):**
+
+- Oil Flask (`oil-flask.ts:164`): "any creature that enters the area or ends its turn in the area" takes 5 fire damage, once per turn. "Enters the area" is the Caltrops wording, so it should be `ENTER_OR_PASS_THROUGH` (the end-turn component is already right). It does not compile into a zone today (two components, ignition), so there is no live behavior yet.
+- Blade Barrier (`blade-barrier.ts:117`): "enters the wall's area for the first time on a turn or starts its turn there". Same wording, so the enter component should be `ENTER_OR_PASS_THROUGH` as Prismatic Wall already is. It is a spell wall, not a point-placed zone, so it is not placed by this creator today.
+- Hunting Trap (`hunting-trap.ts:56`): "steps on the pressure plate". Reaching the plate's space means stepping on it, so `ENTER_SPACE` is acceptable; a move that passes over the plate also steps on it, so `ENTER_OR_PASS_THROUGH` is the closer fit. It is authored as an `OBJECT` manifest, not a `ZONE`, so it does not compile into a zone today (the trap flow is MOVE-3).
+- Stinking Cloud (`START_TURN_IN_SPACE`) and Prismatic Wall (already `ENTER_OR_PASS_THROUGH`) need no change.
+
+## SPELLS-17.T4 (AC 17.5): the other "enters the area" zones
+
+**Status:** DONE, merged adb748f66 (2026-10-15); CI 38776510529 and the local reset, seed and audit green (the first seed attempt timed out under machine load and passed on rerun; registered as PLATFORM-5.T1). Closes AC 17.5.
+
+Synced to the lane (fast-forward to `1c7829549`, which holds the T1 merge). The T1 text checks found three more SRD components worded "enters the area" or "steps on" that still author `ENTER_SPACE`. Each is now `ENTER_OR_PASS_THROUGH`:
+
+- Oil Flask `Enter burning oil` (`oil-flask.ts`); the end-turn component is unchanged.
+- Hunting Trap `Pressure plate` (`hunting-trap.ts`).
+- Blade Barrier `Whirling Blades` (`blade-barrier.ts`), which keeps `START_TURN_IN_SPACE`.
+
+Proof: `packages/source-data/src/srd/zoneInteractionKinds.test.ts` asserts the kind per entry (also Caltrops and Ball Bearings from T1). Red before the edit for Oil Flask, Hunting Trap and Blade Barrier (`local-validation/spells-17/t4-red.log`). None of the three compiles into a placed zone today, so there is no live behavior change; the compile parity test covers Caltrops only. Manifest regenerated.
+
 ## Proposed ledger edits (filled by the slice session)
 
 - Close AC SPELLS-17.1 (creator, entry, end event, careful crossing, journey).

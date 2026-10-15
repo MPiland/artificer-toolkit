@@ -423,7 +423,7 @@ export const ancientGoldDragon: CreatureAuthored = {
               baseDc: 24
             },
             activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(19, 33), rangeKind: S.RANGE_KIND.SPECIAL }
+            ...S.selfCone(S.actionId(19, 33), S.actionId(19, 618), 90)
           },
           paths: [
             {
@@ -486,7 +486,7 @@ export const ancientGoldDragon: CreatureAuthored = {
               baseDc: 24
             },
             activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(19, 38), rangeKind: S.RANGE_KIND.SPECIAL }
+            ...S.selfCone(S.actionId(19, 38), S.actionId(19, 619), 90)
           },
           paths: [
             {

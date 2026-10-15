@@ -353,7 +353,7 @@ export const adultBlueDragon: CreatureAuthored = {
               baseDc: 19
             },
             activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(4, 28), rangeKind: S.RANGE_KIND.SPECIAL }
+            ...S.selfLine(S.actionId(4, 28), S.actionId(4, 200), 90, 5)
           },
           paths: [
             {

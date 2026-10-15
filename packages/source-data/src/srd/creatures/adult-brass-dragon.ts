@@ -343,7 +343,7 @@ export const adultBrassDragon: CreatureAuthored = {
               baseDc: 18
             },
             activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(5, 32), rangeKind: S.RANGE_KIND.SPECIAL }
+            ...S.selfLine(S.actionId(5, 32), S.actionId(5, 105), 60, 5)
           },
           paths: [
             {
@@ -406,7 +406,7 @@ export const adultBrassDragon: CreatureAuthored = {
               baseDc: 18
             },
             activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(5, 37), rangeKind: S.RANGE_KIND.SPECIAL }
+            ...S.selfCone(S.actionId(5, 37), S.actionId(5, 106), 60)
           },
           paths: [
             {

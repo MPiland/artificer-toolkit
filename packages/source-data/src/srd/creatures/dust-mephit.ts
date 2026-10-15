@@ -155,10 +155,7 @@ export const dustMephit: CreatureAuthored = {
               code: S.ACTIVATION_CODE.ACTION,
               amount: 1
             },
-            range: {
-              id: S.actionId(92, 5),
-              rangeKind: S.RANGE_KIND.SPECIAL
-            }
+            ...S.selfCone(S.actionId(92, 5), S.actionId(92, 1303), 15)
           },
           paths: [
             {

@@ -103,8 +103,63 @@ const workItemStatuses = (features) =>
   )
 
 // Open work in pull order: scored open tasks rank on their own, and a PBI ranks while it has an
-// open AC that no scored open task closes. Final-source gate items follow everything else.
+// open AC that no scored open task closes. No item ranks before the open work it waits on (a
+// waited-on PBI includes its open tasks), and waited-on work takes the priority of the highest-scored
+// work it unblocks. Final-source gate items follow everything else; items on a cycle are appended.
 const rankWork = (features) => {
+  const items = scoredOpenWork(features)
+  const prerequisites = new Map(
+    items.map((item) => [
+      item,
+      items.filter(
+        (other) =>
+          other !== item &&
+          item.waitingOn.some((id) => other.id === id || other.id.startsWith(`${id}.T`))
+      )
+    ])
+  )
+  const dependents = new Map(
+    items.map((item) => [item, items.filter((other) => prerequisites.get(other).includes(item))])
+  )
+  const priorities = new Map()
+  const priority = (item, path = new Set()) => {
+    if (priorities.has(item)) return priorities.get(item)
+    if (path.has(item)) return item.score
+    const value = Math.max(
+      item.score,
+      ...dependents.get(item).map((other) => priority(other, new Set([...path, item])))
+    )
+    priorities.set(item, value)
+    return value
+  }
+  const pullFirst = (a, b) =>
+    Number(a.wsjf.finalSource === true) - Number(b.wsjf.finalSource === true) ||
+    priority(b) - priority(a) ||
+    b.score - a.score ||
+    items.indexOf(a) - items.indexOf(b)
+  const ordered = []
+  const remaining = new Set(items)
+  for (;;) {
+    const next = [...remaining]
+      .filter((item) => prerequisites.get(item).every((other) => !remaining.has(other)))
+      .sort(pullFirst)[0]
+    if (!next) break
+    ordered.push(next)
+    remaining.delete(next)
+  }
+  const describe = (item, dependencyCycle) => ({
+    ...item,
+    priority: priority(item),
+    unblocks: dependents.get(item).map((other) => other.id),
+    dependencyCycle
+  })
+  return [
+    ...ordered.map((item) => describe(item, false)),
+    ...[...remaining].sort(pullFirst).map((item) => describe(item, true))
+  ]
+}
+
+const scoredOpenWork = (features) => {
   const statuses = workItemStatuses(features)
   const toItem = (feature, { id, wsjf, activeWorkbook }, title) => ({
     id,
@@ -115,29 +170,23 @@ const rankWork = (features) => {
     activeWorkbook: activeWorkbook ?? null,
     waitingOn: (wsjf.after ?? []).filter((after) => statuses.get(after) !== 'DONE')
   })
-  return features
-    .flatMap((feature) =>
-      feature.pbis
-        .filter((pbi) => pbi.status !== 'DONE' && pbi.wsjf !== undefined)
-        .flatMap((pbi) => {
-          const scoredTasks = (pbi.tasks ?? []).filter(
-            (task) => task.status !== 'DONE' && task.wsjf !== undefined
-          )
-          const closedByTasks = new Set(scoredTasks.flatMap((task) => task.closes))
-          const pbiStillRanks = pbi.acs.some(
-            (ac) => ac.status !== 'DONE' && !closedByTasks.has(ac.id)
-          )
-          return [
-            ...(pbiStillRanks || scoredTasks.length === 0 ? [toItem(feature, pbi, pbi.title)] : []),
-            ...scoredTasks.map((task) => toItem(feature, task, task.text))
-          ]
-        })
-    )
-    .sort(
-      (a, b) =>
-        Number(a.wsjf.finalSource === true) - Number(b.wsjf.finalSource === true) ||
-        b.score - a.score
-    )
+  return features.flatMap((feature) =>
+    feature.pbis
+      .filter((pbi) => pbi.status !== 'DONE' && pbi.wsjf !== undefined)
+      .flatMap((pbi) => {
+        const scoredTasks = (pbi.tasks ?? []).filter(
+          (task) => task.status !== 'DONE' && task.wsjf !== undefined
+        )
+        const closedByTasks = new Set(scoredTasks.flatMap((task) => task.closes))
+        const pbiStillRanks = pbi.acs.some(
+          (ac) => ac.status !== 'DONE' && !closedByTasks.has(ac.id)
+        )
+        return [
+          ...(pbiStillRanks || scoredTasks.length === 0 ? [toItem(feature, pbi, pbi.title)] : []),
+          ...scoredTasks.map((task) => toItem(feature, task, task.text))
+        ]
+      })
+  )
 }
 
 const addUnique = (seen, id, kind, errors) => {
@@ -221,6 +270,9 @@ const validate = () => {
     for (const id of item.wsjf?.after ?? [])
       if (!statuses.has(id)) errors.push(`${item.id} wsjf.after names unknown work item ${id}`)
   }
+  const workCycle = rankWork(ledger.features ?? []).filter((item) => item.dependencyCycle)
+  if (workCycle.length > 0)
+    errors.push(`Dependency cycle among work items: ${workCycle.map((item) => item.id).join(', ')}`)
   const { cyclic } = dependencyOrder(ledger.features ?? [])
   if (cyclic.length > 0)
     errors.push(
@@ -338,12 +390,14 @@ const formatText = (report) => {
       )
     }),
     '',
-    'Open work by WSJF (final-source gate items last):',
+    'Open work in pull order (WSJF after dependencies; final-source gate items last):',
     ...report.ranking.map(
       (item, index) =>
-        `  ${String(index + 1).padStart(3)}. ${item.score.toFixed(2)} ${item.id}` +
+        `  ${String(index + 1).padStart(3)}. ${item.priority.toFixed(2)} ${item.id}` +
+        `${item.priority !== item.score ? ` (own ${item.score.toFixed(2)})` : ''}` +
         `${item.wsjf.finalSource ? ' [final source]' : ''}` +
-        `${item.waitingOn.length > 0 ? ` [waits on ${item.waitingOn.join(', ')}]` : ''} ${item.title}`
+        `${item.waitingOn.length > 0 ? ` [waits on ${item.waitingOn.join(', ')}]` : ''}` +
+        `${item.unblocks.length > 0 ? ` [unblocks ${item.unblocks.join(', ')}]` : ''} ${item.title}`
     )
   ].join('\n')
 }

@@ -172,10 +172,7 @@ export const steamMephit: CreatureAuthored = {
               code: S.ACTIVATION_CODE.ACTION,
               amount: 1
             },
-            range: {
-              id: S.actionId(262, 7),
-              rangeKind: S.RANGE_KIND.SPECIAL
-            }
+            ...S.selfCone(S.actionId(262, 7), S.actionId(262, 1303), 15)
           },
           paths: [
             {

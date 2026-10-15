@@ -10,8 +10,8 @@ import type { CompiledActionEntryPoint } from '@artificer-toolkit/schema/project
 import type { CharacterSheetState } from '@artificer-toolkit/schema/projections/characterSheetState'
 import { prepareNativeCharacterActionState } from './character/characterNativeActionResources.js'
 import {
-  buildCompiledActionCompilerSource,
-  buildCompiledActionTargetPolicy
+  buildCompiledActionTargetPolicy,
+  compileEncounterFeatureActionPlan
 } from './encounterActionEntryPointCompiler.js'
 import { creatureActiveGrantAttackContributors } from './encounterActiveGrants.js'
 import type { EncounterPreparedAttackSight } from './encounterAttackBelief.js'
@@ -27,12 +27,7 @@ import {
   encounterConditionSaveAutoFailAbilityIds
 } from './encounterConditionMechanics.js'
 import { featureChargeUsed } from './encounterActorState.js'
-import type { EffectActionCapabilityDescriptor } from './characterActionCapabilityDiscovery.js'
 import { featureActionMechanic } from './encounterFeatureActionCapabilityDiscovery.js'
-import type {
-  CharacterRuleActionExecutionPlan,
-  CharacterRuleActionSystemAdapter
-} from './characterRuleActionSystemAdapter.js'
 import { characterRuleActionSystemAdapterRegistry } from './characterRuleActionSystemAdapterRegistry.js'
 import {
   mergeCanonicalD20Contributors,
@@ -100,22 +95,6 @@ export function encounterActionCurrentnessChecksum(input: {
     ...(maintenance ? { maintenance } : {}),
     ...(sceneContext ? { sceneContext } : {})
   })
-}
-
-/**
- * The execution plan an authored Effect action runs (a Creature's feature action or an authored
- * basic action); Legendary discovery pins the same plan.
- */
-export function compileEncounterFeatureActionPlan(
-  adapter: CharacterRuleActionSystemAdapter,
-  capability: EffectActionCapabilityDescriptor
-): CharacterRuleActionExecutionPlan {
-  return (
-    adapter.compileExecutionPlan?.({
-      action: capability,
-      compilerSource: buildCompiledActionCompilerSource(capability)
-    }) ?? { kind: 'SINGLE_GRAPH', published: adapter.compile({ action: capability }) }
-  )
 }
 
 /**

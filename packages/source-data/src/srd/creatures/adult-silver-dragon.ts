@@ -406,7 +406,7 @@ export const adultSilverDragon: CreatureAuthored = {
               baseDc: 20
             },
             activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(11, 33), rangeKind: S.RANGE_KIND.SPECIAL }
+            ...S.selfCone(S.actionId(11, 33), S.actionId(11, 615), 60)
           },
           paths: [
             {
@@ -469,7 +469,7 @@ export const adultSilverDragon: CreatureAuthored = {
               baseDc: 20
             },
             activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(11, 38), rangeKind: S.RANGE_KIND.SPECIAL }
+            ...S.selfCone(S.actionId(11, 38), S.actionId(11, 616), 60)
           },
           paths: [
             {
