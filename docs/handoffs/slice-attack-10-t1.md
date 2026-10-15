@@ -82,3 +82,4 @@ Red-first, per the checklist below.
   - **Invisibility.** Not touched. `consumableGrants` widens only to `LOCATION_CONCEALMENT` effects; a unit test proves an effect that is neither a grant nor a concealment is not consumed by an attack.
   - **Proposed ledger edit (main session applies).** ATTACK-10.T1 done once the checklist is green; ATTACK-10.2 closed; ATTACK-17.T4 unblocked (waited only on Hide). Add a follow-up task for the Escape DC gap above.
   - **Validation denial.** A read of the lock/queue files with `ls` was denied by a deny rule; I stopped and did not retry. I do not know the queue state; build1 is queued under `attack-10-t1-build1`.
+- 2026-10-15 (main session): Invisibility's unconsumed end events are registered as SPELLS-27. The approved prune is on any token-move commit by the hider or a set member, plus a read-time guard.

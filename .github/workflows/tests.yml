@@ -1,19 +1,16 @@
-# Manual-only test run. It never runs on ordinary pushes, pull requests or a schedule.
-# Start it from GitHub (Actions → Tests → Run workflow, once this file is on the default branch)
-# or by deliberately pushing a commit to the dedicated `ci/run` branch:
-#   git push --force origin HEAD:ci/run
+# Slice validation on GitHub runners. It never runs on ordinary pushes, pull requests or a schedule.
+# A slice session pushes its branch to its own `ci/<slice>` branch (fast-forward only, never main):
+#   git push origin HEAD:ci/<slice>
+# and reads the result with `gh run list --branch ci/<slice>` / `gh run watch`. Each `ci/*` branch runs
+# on its own, so slices validate in parallel; a newer push to the same branch cancels the older run.
+# Convex tests run in-process with convex-test, so no Convex deployment is touched (ADR 0035). Live
+# backend work (codegen push, reset, seed, audit, live proofs, Playwright) stays local.
 name: Tests
 
 on:
   push:
-    branches: ['ci/run']
+    branches: ['ci/**']
   workflow_dispatch:
-    inputs:
-      convex_shards:
-        description: Number of parallel runners for the Convex suite
-        type: choice
-        options: ['4', '6']
-        default: '4'
 
 permissions:
   contents: read
@@ -23,48 +20,26 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  convex-shards:
-    name: Convex suite ${{ matrix.shard }}/${{ inputs.convex_shards || '4' }}
+  convex:
+    name: Convex suite ${{ matrix.shard }}/4
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
-        # The matrix lists the maximum; jobs above the chosen shard count exit immediately.
-        shard: [1, 2, 3, 4, 5, 6]
+        shard: [1, 2, 3, 4]
     steps:
-      - name: Skip shard outside the chosen count
-        id: gate
-        run: echo "run=$([ ${{ matrix.shard }} -le ${{ inputs.convex_shards || '4' }} ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@v4
-        if: steps.gate.outputs.run == 'true'
-      - uses: actions/setup-node@v4
-        if: steps.gate.outputs.run == 'true'
-        with:
-          node-version: 24
-      - name: Install
-        if: steps.gate.outputs.run == 'true'
-        run: corepack enable && yarn install --immutable
-      - name: Build packages
-        if: steps.gate.outputs.run == 'true'
-        run: yarn turbo run build --filter=@artificer-toolkit/shared --filter=@artificer-toolkit/schema --filter=@artificer-toolkit/rules-runtime --filter=@artificer-toolkit/encounter-persistence --filter=@artificer-toolkit/source-data --filter=@artificer-toolkit/authoring --filter=@artificer-toolkit/emails --env-mode=loose
-      - name: Convex tests (shard ${{ matrix.shard }})
-        if: steps.gate.outputs.run == 'true'
-        run: yarn workspace @artificer-toolkit/apis test:convex --shard=${{ matrix.shard }}/${{ inputs.convex_shards || '4' }}
+      - uses: ./.github/actions/setup
+      - run: yarn workspace @artificer-toolkit/apis test:convex --shard=${{ matrix.shard }}/4
 
-  packages-worker-web:
-    name: Packages, Worker and web
+  packages-worker:
+    name: Packages and Worker
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-      - name: Install
-        run: corepack enable && yarn install --immutable
-      - name: Build packages
-        run: yarn turbo run build --filter=@artificer-toolkit/shared --filter=@artificer-toolkit/schema --filter=@artificer-toolkit/rules-runtime --filter=@artificer-toolkit/encounter-persistence --filter=@artificer-toolkit/source-data --filter=@artificer-toolkit/authoring --filter=@artificer-toolkit/emails --env-mode=loose
+      - uses: ./.github/actions/setup
       - name: Package tests
         run: |
           yarn workspace @artificer-toolkit/schema test
@@ -77,26 +52,41 @@ jobs:
           yarn workspace @artificer-toolkit/session-worker types
           yarn workspace @artificer-toolkit/session-worker test
           yarn workspace @artificer-toolkit/session-worker test:unit
-      - name: Web tests
-        run: yarn workspace @artificer-toolkit/web test
 
-  typechecks:
-    name: Typechecks
+  web:
+    name: Web tests
     runs-on: ubuntu-latest
-    timeout-minutes: 40
-    env:
-      # The Convex typecheck loads ~2.9 MB of generated API types; run typechecks one at a time with room for tsc.
-      NODE_OPTIONS: --max-old-space-size=6144
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-      - name: Install
-        run: corepack enable && yarn install --immutable
-      - name: Worker types
-        run: yarn workspace @artificer-toolkit/session-worker types
-      - name: Backend typechecks
-        run: yarn turbo run typecheck typecheck:convex --filter=@artificer-toolkit/apis --filter=@artificer-toolkit/session-worker --filter=@artificer-toolkit/rules-runtime --filter=@artificer-toolkit/encounter-persistence --filter=@artificer-toolkit/schema --filter=@artificer-toolkit/shared --filter=@artificer-toolkit/source-data --concurrency=1 --env-mode=loose --continue
-      - name: Web typechecks
-        run: yarn turbo run typecheck:app typecheck:stories typecheck:tests --filter=@artificer-toolkit/web --concurrency=1 --env-mode=loose --continue
+      - uses: ./.github/actions/setup
+      - run: yarn workspace @artificer-toolkit/web test
+
+  typecheck:
+    name: Typecheck ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Convex
+            run: yarn turbo run typecheck:convex --filter=@artificer-toolkit/apis --env-mode=loose
+          # One tsc at a time per job: parallel tsc processes exhaust a runner's memory.
+          - name: Worker and apis
+            run: yarn turbo run typecheck --filter=@artificer-toolkit/session-worker --filter=@artificer-toolkit/apis --concurrency=1 --env-mode=loose --continue
+          - name: packages
+            run: yarn turbo run typecheck --filter=@artificer-toolkit/rules-runtime --filter=@artificer-toolkit/encounter-persistence --filter=@artificer-toolkit/schema --filter=@artificer-toolkit/shared --filter=@artificer-toolkit/source-data --filter=@artificer-toolkit/authoring --concurrency=1 --env-mode=loose --continue
+          - name: web app
+            run: yarn turbo run typecheck:app --filter=@artificer-toolkit/web --env-mode=loose
+          - name: web tests
+            run: yarn turbo run typecheck:tests --filter=@artificer-toolkit/web --env-mode=loose
+          - name: web stories
+            run: yarn turbo run typecheck:stories --filter=@artificer-toolkit/web --env-mode=loose
+    env:
+      # The Convex typecheck loads ~2.9 MB of generated API types; give tsc room.
+      NODE_OPTIONS: --max-old-space-size=8192
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - run: ${{ matrix.run }}

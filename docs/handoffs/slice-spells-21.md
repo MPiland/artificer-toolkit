@@ -1,6 +1,6 @@
 # Slice workbook: SPELLS-21 (SRD breath weapons breathe areas)
 
-**Status:** DONE (2026-10-15), pending merge by the main session
+**Status:** DONE (2026-10-15), merged in `3aa01bf6d`; merge validation green
 **Base:** `codex/phase-08-2-convex-cutover` at this workbook's commit.
 **Rules:** [slice-workbook-rules.md](slice-workbook-rules.md).
 

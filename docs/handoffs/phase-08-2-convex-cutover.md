@@ -274,7 +274,7 @@ Hold SPELLS-13 to 17 and 19 (area actions) until ATTACK-18 lands; they share com
 Lane rules:
 - Each lane edits only its own PBIs in the ledger and its own handoff, and rebases before committing.
 - Lanes 2 and 3 test with in-memory convex-test. Codegen, deploy and any reset or reseed of the local backend need lane 1 to be idle; ask lane 1 first.
-- Every compile, test, codegen and Wrangler run takes `local-validation/.validation.lock` (AGENTS.md).
+- Every compile, test, codegen and Wrangler run goes through `scripts/withValidationLock.ps1` (AGENTS.md): scoped test files in the light lane, everything else in the heavy lane.
 - Lane 1 reviews each lane's slice diff and runs the independent assertion audit before it is called done. Lanes report through `SendMessage`.
 
 **Apis suite timing:** the full apis suite is 374 files run serially (`maxWorkers: 1`) and takes about 72 minutes. Never override `maxWorkers`; for focused runs pass explicit file paths, not folder filters.
