@@ -18,7 +18,7 @@ import type { ProjectableCharacterFacts } from './encounterActionProjection.js'
 import type { MovementTarget } from './encounterMovementTargets.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
 import { startEncounterMovementReactionAtBoundary } from './encounterMovementReactionContinuation.js'
-import { createMovementReactionChoiceDefinition } from './movementReactionChoice.js'
+import { createReactionChoiceDefinition } from './reactionChoiceDefinition.js'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { SceneToken } from '@artificer-toolkit/shared/vtt/scene'
@@ -410,7 +410,7 @@ export async function prepareEncounterMovementContinuation<
       runtime: await callbacks.runtime(),
       occurrenceId: input.occurrenceId,
       gameSystemId: input.state.gameSystemId,
-      publishedChoice: createMovementReactionChoiceDefinition({
+      publishedChoice: createReactionChoiceDefinition({
         definitionId,
         gameSystemId: input.state.gameSystemId
       }),

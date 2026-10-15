@@ -24,18 +24,28 @@ export function nativeLiveRelationshipFacts(input: {
     })
 }
 
-/** A Legendary Action is taken only in its own window, never as an ordinary action. */
-export function refuseLegendaryWindowAction(prepared: Pick<Prepared, 'actor' | 'source'>) {
+/**
+ * Every action path admits an action through here: a Legendary Action is taken only in its own
+ * window, and a reaction only when its trigger happens, never as an ordinary action.
+ */
+export function refuseActionOutsideItsWindow(prepared: Pick<Prepared, 'actor' | 'source'>) {
+  const { source } = prepared
   if (
-    prepared.source.kind === 'CREATURE' &&
-    encounterLegendaryActionFeatureIds(prepared.actor).has(
-      prepared.source.capability.ownerFeatureId
-    )
+    source.kind === 'CREATURE' &&
+    encounterLegendaryActionFeatureIds(prepared.actor).has(source.capability.ownerFeatureId)
   )
     throw new LiveSessionDomainRejectionError(422, {
       code: 'DOMAIN_REJECTED',
       reason: 'LEGENDARY_WINDOW_ONLY',
       message: DOMAIN_REJECTION_MESSAGES.LEGENDARY_WINDOW_ONLY
+    })
+  const { mechanicFacts } =
+    source.kind === 'CHARACTER_ACTION' ? source.candidate : source.capability
+  if (mechanicFacts.invocation.reactionTrigger)
+    throw new LiveSessionDomainRejectionError(422, {
+      code: 'DOMAIN_REJECTED',
+      reason: 'REACTION_TRIGGER_ONLY',
+      message: DOMAIN_REJECTION_MESSAGES.REACTION_TRIGGER_ONLY
     })
 }
 

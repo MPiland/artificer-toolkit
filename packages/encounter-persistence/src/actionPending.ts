@@ -83,6 +83,15 @@ export async function canControlEvidenceRoller(
 
 type NativeActionPending = Awaited<ReturnType<typeof readNativeActionPending>>
 
+/** The use options a paused action offers its decider: a Legendary Resistance, or every reaction (innermost first). */
+export function offeredDecisionOptionIds(context: {
+  legendaryResistance?: { resistance: { useOptionId: string } } | null
+  reactionChoice?: { reactions: readonly { useOptionId: string }[] } | null
+}): string[] {
+  if (context.legendaryResistance) return [context.legendaryResistance.resistance.useOptionId]
+  return context.reactionChoice?.reactions.map((reaction) => reaction.useOptionId) ?? []
+}
+
 /**
  * The pending summary one viewer reads. The campaign owner sees the d20's true mode and reasons;
  * everyone else sees what the roller's own facts imply, and a held die with its player caption

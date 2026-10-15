@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { MovementReactionEligibilityOutputDto } from '@artificer-toolkit/schema/shared/reaction'
 
 import {
-  ASSISTED_MOVEMENT_REACTION_CHOICE_DEFINITION_ID,
+  ASSISTED_REACTION_CHOICE_DEFINITION_ID,
   organizeEncounterMovementReactionDecisions
 } from '../encounterMovementReactionDecision.js'
 import type { EvaluatedMovementReactionCandidate } from '../movementReactionEligibilityService.js'
@@ -73,7 +73,7 @@ describe('assisted movement reaction decisions', () => {
     expect(choiceGroups[0]).toMatchObject({ reactorActorId: 'guard', pathDistance: 5 })
     expect(choiceGroups[0]!.options[0]!.evaluated.policy).toMatchObject({
       selectionPolicy: 'CHOICE',
-      choiceDefinitionId: ASSISTED_MOVEMENT_REACTION_CHOICE_DEFINITION_ID
+      choiceDefinitionId: ASSISTED_REACTION_CHOICE_DEFINITION_ID
     })
   })
 

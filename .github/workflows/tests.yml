@@ -4,7 +4,8 @@
 # and reads the result with `gh run list --branch ci/<slice>` / `gh run watch`. Each `ci/*` branch runs
 # on its own, so slices validate in parallel; a newer push to the same branch cancels the older run.
 # Convex tests run in-process with convex-test, so no Convex deployment is touched (ADR 0035). Live
-# backend work (codegen push, reset, seed, audit, live proofs, Playwright) stays local.
+# backend checks (codegen push, deploy, seed, audit) are .github/workflows/live-backend.yml; the Worker,
+# Playwright and reset/review-data work stays local.
 name: Tests
 
 on:

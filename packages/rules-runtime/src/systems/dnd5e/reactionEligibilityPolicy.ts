@@ -13,7 +13,7 @@ import type {
   MovementReactionEligibilityAdapter,
   MovementReactionEligibilityFacts
 } from '../../movementReactionEligibilityService.js'
-import { createMovementReactionChoiceDefinition } from '../../movementReactionChoice.js'
+import { createReactionChoiceDefinition } from '../../reactionChoiceDefinition.js'
 import { RULE_RUNTIME_GRAPH_FAMILY_KEY } from '@artificer-toolkit/schema/shared/reusableDefinitionIdentity'
 import { requireResolvedRuleCapabilityStateIntegrity } from '../../ruleCapabilityStateService.js'
 import { DND5E_SYSTEM_ID, DND5E_REACTION_ALLOWANCE_DEFINITION_ID } from './identity.js'
@@ -303,8 +303,8 @@ export function createDnd5eOpportunityReactionEligibilityDefinition() {
   })
 }
 
-export function createDnd5eMovementReactionChoiceDefinition() {
-  return createMovementReactionChoiceDefinition({
+export function createDnd5eReactionChoiceDefinition() {
+  return createReactionChoiceDefinition({
     definitionId: DND5E_MOVEMENT_REACTION_CHOICE_DEFINITION_ID,
     gameSystemId: DND5E_SYSTEM_ID
   })
