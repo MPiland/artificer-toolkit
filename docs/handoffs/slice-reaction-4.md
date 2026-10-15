@@ -1,6 +1,6 @@
 # Slice workbook: REACTION-4 (non-movement reactions: trigger model)
 
-**Status:** IN_PROGRESS (started 2026-10-15), phase 1 design
+**Status:** IN_PROGRESS, design approved 2026-10-15; this session builds REACTION-4.T1 (T2-T4 follow in order)
 **Base:** `codex/phase-08-2-convex-cutover` at this workbook's commit.
 **Rules:** [slice-workbook-rules.md](slice-workbook-rules.md).
 
@@ -81,3 +81,17 @@ Red-first, per the checklist below.
 ## Status log
 
 - 2026-10-15: workbook written.
+- 2026-10-15: design packet approved (option A).
+  - **Rulings:**
+    - `reactionTrigger` union replaces `reactionMovementTrigger`, with no shim.
+    - The REACTION_CHOICE phase lives inside the triggering occurrence.
+    - `sourceEffectIds` are authored content references.
+    - D26 holds the Scene for any reaction decision.
+    - Counterspell chains resolve innermost first inside the occurrence (AC REACTION-4.3).
+    - Interstitial order on one attack: reaction choice after TEST, before OUTCOME. Legendary Resistance stays where it is (after a failed save).
+  - **Split in the ledger:**
+    - T1: contract, phase, hold, undo child, Shield against a hit; AC 4.4.
+    - T2: DAMAGE_TAKEN and Absorb Elements; AC 4.2.
+    - T3: SPELL_CAST, Counterspell conversion and chain; AC 4.3.
+    - T4: TARGETED_SELF, Shield against Magic Missile; AC 4.1, after SPELLS-26 (multi-target spells, registered).
+  - The main session records the decision entry at merge. The slice updates ADR 0038 and the engine guide.

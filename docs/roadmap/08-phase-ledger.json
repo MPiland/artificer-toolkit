@@ -7515,6 +7515,30 @@
             "rr": 5,
             "size": 2
           }
+        },
+        {
+          "id": "SPELLS-26",
+          "title": "Spells that target several chosen creatures",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": [],
+          "acs": [
+            {
+              "id": "SPELLS-26.1",
+              "text": "Every SRD spell that targets chosen creatures (CHOSEN_CREATURES with maxTargets) compiles and resolves per target through core options, including split attacks or projectiles (Magic Missile darts divided among targets, each a separate damage instance); a corpus test fails on any such spell that does not compile.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Registered 2026-10-15 from the REACTION-4 design review: the compiler accepts only SINGLE_TARGET or AREA_CONTENTS (effectActionCompiler.ts), so 31 SRD spells authoring CHOSEN_CREATURES, Magic Missile among them, are not castable."
+            }
+          ],
+          "wsjf": {
+            "bv": 8,
+            "tc": 3,
+            "rr": 5,
+            "size": 5
+          }
         }
       ]
     },
@@ -7685,6 +7709,22 @@
               "origin": [],
               "note": "Added 2026-10-08 at the user's request: non-SRD reactions must be user-authorable. Prove it with a user-authored Absorb Elements in a test fixture, not seeded content.",
               "id": "REACTION-4.2"
+            },
+            {
+              "id": "REACTION-4.3",
+              "text": "A Counterspell is itself a cast that can be countered: other eligible casters in range are offered their own Counterspell, and the chain resolves innermost first inside the one triggering occurrence; a countered cast spends its slot and action and has no effect.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Registered 2026-10-15 at the REACTION-4 design review (SRD Counterspell rules; the design keeps one pending occurrence per Run)."
+            },
+            {
+              "id": "REACTION-4.4",
+              "text": "An attack that hits a creature holding a reaction such as Shield offers its controller Use or Decline; Use spends the reaction and the spell slot and grants the AC bonus, which counts against the triggering attack, so the hit becomes a miss when the new AC beats the roll; GM undo restores the reaction, the slot and the hit.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Registered 2026-10-15 at the REACTION-4 design review: the trigger model and the Shield-against-a-hit slice (REACTION-4.T1)."
             }
           ],
           "wsjf": {
@@ -7694,7 +7734,60 @@
             "size": 5,
             "after": ["SPELLS-8.T1"]
           },
-          "activeWorkbook": "docs/handoffs/slice-reaction-4.md"
+          "tasks": [
+            {
+              "id": "REACTION-4.T1",
+              "text": "Generic reactionTrigger union (replaces reactionMovementTrigger, node-map group), REACTION activation in the compiler and economy, the REACTION_CHOICE phase inside the triggering occurrence, the D26 hold for any reaction decision, the REACTION undo child, and Shield against a hit (ATTACKED_SELF, sealed re-evaluation of the TEST).",
+              "status": "IN_PROGRESS",
+              "closes": ["REACTION-4.4"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 5,
+                "rr": 5,
+                "size": 5
+              },
+              "activeWorkbook": "docs/handoffs/slice-reaction-4.md"
+            },
+            {
+              "id": "REACTION-4.T2",
+              "text": "DAMAGE_TAKEN trigger with a one-instance resistance applied before the damage, and a user-authored Absorb Elements fixture with its follow-up grant.",
+              "status": "TODO",
+              "closes": ["REACTION-4.2"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 3,
+                "size": 3,
+                "after": ["REACTION-4.T1"]
+              }
+            },
+            {
+              "id": "REACTION-4.T3",
+              "text": "SPELL_CAST trigger, TRIGGER_FACT expressions, CANCEL_TRIGGERING_EVENT and the SPENT_NO_EFFECT settlement; Counterspell converted to core options (COUNTERSPELL closed-rule kind deleted), including the counter-chain.",
+              "status": "TODO",
+              "closes": ["REACTION-4.3"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 3,
+                "rr": 5,
+                "size": 5,
+                "after": ["REACTION-4.T1"]
+              }
+            },
+            {
+              "id": "REACTION-4.T4",
+              "text": "TARGETED_SELF trigger and the source-filtered damage immunity: Shield against Magic Missile.",
+              "status": "TODO",
+              "closes": ["REACTION-4.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 2,
+                "size": 2,
+                "after": ["REACTION-4.T3", "SPELLS-26"]
+              }
+            }
+          ]
         }
       ]
     },
