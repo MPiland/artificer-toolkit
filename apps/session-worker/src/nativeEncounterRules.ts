@@ -742,7 +742,11 @@ export async function planNativeLiveEncounterAction(
   })
   const reactionUse =
     reaction?.audit.selection === 'USE' && reaction.applied
-      ? { applied: reaction.applied, economy: reaction.found.economy.consumption }
+      ? {
+          applied: reaction.applied,
+          prepared: reaction.found.prepared,
+          economy: reaction.found.economy.consumption
+        }
       : null
   refuseSpatialInterpretation(prepared, {
     execution: execution.execution,
@@ -865,7 +869,7 @@ export async function planNativeLiveEncounterAction(
     reaction: reaction && {
       audit: reaction.audit,
       spent: reactionUse && {
-        spellConsumption: reactionUse.applied.prepared.characterActionState?.spellConsumption,
+        spellConsumption: reactionUse.prepared.characterActionState?.spellConsumption,
         economy: reactionUse.economy,
         activeEffectTransitions: settlement.reactionActiveEffectTransitions
       }
@@ -981,7 +985,7 @@ export function buildNativeLiveEncounterActionCommitInput(
     itemConsumption: plan.prepared.characterActionState?.itemConsumption ?? null,
     spellConsumption: plan.prepared.characterActionState?.spellConsumption ?? null,
     reactionSpellConsumption:
-      plan.reactionUse?.applied.prepared.characterActionState?.spellConsumption ?? null,
+      plan.reactionUse?.prepared.characterActionState?.spellConsumption ?? null,
     label: encounterActionSourceLabel(plan.prepared.source),
     ruleOverrides: plan.ruleOverrides,
     createdEffects: plan.settlement.createdEffects,

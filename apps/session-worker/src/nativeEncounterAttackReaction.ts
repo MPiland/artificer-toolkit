@@ -108,11 +108,11 @@ export async function applyNativeAttackReaction(input: {
   occurrenceId: string
   commandId: string
   occurredAt: string
-  activeEffectsByActorId: ReadonlyMap<string, readonly ActiveRuleEffectRecord[]>
+  activeEffectsByActorId: Map<string, ActiveRuleEffectRecord[]>
   prepareAttack(movementTargets: MovementTargets): Promise<Prepared>
   loadTarget(
     actor: EncounterRunActorState,
-    activeEffectsByActorId: ReadonlyMap<string, readonly ActiveRuleEffectRecord[]>
+    activeEffectsByActorId: Map<string, ActiveRuleEffectRecord[]>
   ): Promise<Awaited<ReturnType<typeof prepareNativeLiveMovementTarget>>['target']>
 }) {
   const { prepared } = input.reaction
