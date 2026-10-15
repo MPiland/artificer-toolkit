@@ -21,7 +21,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/systems/dnd5e/initiativeFactAdapter'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import {
-  createDnd5eMovementReactionChoiceDefinition,
+  createDnd5eReactionChoiceDefinition,
   createDnd5eMovementReactionEligibilityDefinition
 } from '@artificer-toolkit/rules-runtime/systems/dnd5e/reactionEligibilityPolicy'
 import type { z } from 'zod'
@@ -212,7 +212,7 @@ function createMovementReactionDefinitions(): {
   definitions: SourceImportDefinitionsInput['definitions']
   eligibilityDefinitionId: string
 } {
-  const choiceTemplate = createDnd5eMovementReactionChoiceDefinition()
+  const choiceTemplate = createDnd5eReactionChoiceDefinition()
   const choiceDefinition = ruleGraphDefinitionDtoSchema.parse({
     ...choiceTemplate.definition,
     id: crypto.randomUUID()

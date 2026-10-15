@@ -13,7 +13,7 @@ import type {
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
-import { startMovementReactionChoice } from './movementReactionChoice.js'
+import { startReactionChoice } from './reactionChoiceDefinition.js'
 
 /** What the reacting creature's controller answers: declining, or the one option that uses the reaction. */
 export type EncounterReactionSelection = { kind: 'DECLINE' } | { kind: 'OPTION'; optionId: string }
@@ -77,7 +77,11 @@ export function encounterReactionAudit(input: {
   reaction: EncounterReactionPinDto
   selection: 'DECLINE' | 'USE'
   choiceExecution: ServerCompletedRuleExecutionDto
-  adjustment: { defenseBefore: number; defenseAfter: number; adjustedBoundFactsChecksum: string } | null
+  adjustment: {
+    defenseBefore: number
+    defenseAfter: number
+    adjustedBoundFactsChecksum: string
+  } | null
 }) {
   return {
     choiceExecution: input.choiceExecution,
@@ -96,7 +100,7 @@ export async function openEncounterReactionChoice(input: {
   occurrenceId: string
   candidate: EncounterAttackReactionCandidate
 }): Promise<ServerRuleExecutionContinuationDto> {
-  return startMovementReactionChoice({
+  return startReactionChoice({
     runtime: input.runtime,
     occurrenceId: input.occurrenceId,
     published: input.candidate.choiceGraph,
@@ -111,7 +115,10 @@ export async function openEncounterReactionChoice(input: {
 export async function settleEncounterReactionChoice(input: {
   runtime: RulesRuntimeService
   occurrenceId: string
-  boundary: { execution: ServerCompletedRuleExecutionDto; d20Policy: ServerRuleExecutionD20PolicyDto }
+  boundary: {
+    execution: ServerCompletedRuleExecutionDto
+    d20Policy: ServerRuleExecutionD20PolicyDto
+  }
   offer: EncounterReactionOfferDto
   candidate: EncounterAttackReactionCandidate
   targetStateChecksum: string
@@ -133,8 +140,7 @@ export async function settleEncounterReactionChoice(input: {
       boundary.execution.outputs.resultPath !== 'ON_CRIT')
   )
     throw new Error('A reaction to an attack requires sealed hit evidence.')
-  const use =
-    input.selection.kind === 'OPTION' && input.selection.optionId === reaction.useOptionId
+  const use = input.selection.kind === 'OPTION' && input.selection.optionId === reaction.useOptionId
   if (input.selection.kind !== 'DECLINE' && !use)
     throw new Error('Reaction selection was not issued.')
   const continuation = await openEncounterReactionChoice(input)
