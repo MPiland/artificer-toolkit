@@ -314,8 +314,9 @@ const PATH_LIFECYCLE_HOLDER_END_NODE_MAP: NodeMap<NonNullable<PathLifecycleAutho
 
 const PATH_LIFECYCLE_NODE_MAP: NodeMap<PathLifecycleAuthored> = pathLifecycle.define(
   'pathLifecycle',
-  ({ map, nodes }) => {
+  ({ map, nodes, data }) => {
     const { selectSingle, selectMulti, groupObject } = nodes
+    const { table } = data
 
     map
       .set(
