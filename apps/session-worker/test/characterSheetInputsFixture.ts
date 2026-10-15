@@ -18,7 +18,11 @@ import { encounterRunFixture } from '../src/testing/encounterRunFixture.js'
 import { createMemoryEncounterStore } from '@artificer-toolkit/encounter-persistence/memoryEncounterStore'
 import { insertPendingMovementDecision } from './pendingMovementFixture.js'
 import type { EquipmentAuthored } from '@artificer-toolkit/shared/subjects/authored'
-import { buildSrdSourceKinds, type ClassFeature, type ClassSpells } from '../src/testing/srdCharacterSource.js'
+import {
+  buildSrdSourceKinds,
+  type ClassFeature,
+  type ClassSpells
+} from '../src/testing/srdCharacterSource.js'
 import type { RoomCharacterInputs } from './roomInputsFixture.js'
 import { srdSystemRoomInputs } from './srdSenseInputsFixture.js'
 

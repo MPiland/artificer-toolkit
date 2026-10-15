@@ -1,6 +1,6 @@
 # Slice workbook: SPELLS-8.T1 (Encounter spell casting: choices, slot spend, undo, upcasting)
 
-**Status:** SECOND FIX ROUND DONE, READY FOR REVIEW (started 2026-10-13; split by the Phase 8 review 2026-10-14)
+**Status:** T1 DONE, merged 6bafbd6ed (2026-10-15); T5, T6 and T2 continue. Previous status: SECOND FIX ROUND DONE, READY FOR REVIEW (started 2026-10-13; split by the Phase 8 review 2026-10-14)
 **Base:** `codex/phase-08-2-convex-cutover`.
 **Rules:** [slice-workbook-rules.md](slice-workbook-rules.md).
 

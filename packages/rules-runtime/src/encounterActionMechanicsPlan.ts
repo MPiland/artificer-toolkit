@@ -186,7 +186,12 @@ function nativeSourceSpendReceipts(prepared: NativeEncounterActionMechanicsInput
           afterRemaining: featureResource.remaining - featureSpent
         }
       : null
-  return { resourceReceipt, itemConsumptionReceipt, spellConsumptionReceipt, featureResourceReceipt }
+  return {
+    resourceReceipt,
+    itemConsumptionReceipt,
+    spellConsumptionReceipt,
+    featureResourceReceipt
+  }
 }
 
 /** A Creature source's feature charge the action spends, applied to the source as settled so far. */

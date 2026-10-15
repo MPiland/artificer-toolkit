@@ -704,7 +704,10 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = lazySchema
             message: 'Item consumption must match the source Character.'
           })
         const spell = value.spellCastConsumption
-        if (spell && (value.sourceCharacterId == null || spell.characterId !== value.sourceCharacterId))
+        if (
+          spell &&
+          (value.sourceCharacterId == null || spell.characterId !== value.sourceCharacterId)
+        )
           context.addIssue({
             code: 'custom',
             path: ['spellCastConsumption'],
