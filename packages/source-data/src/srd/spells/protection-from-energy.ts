@@ -18,7 +18,6 @@ import {
   SPELL_COMPONENT,
   type SpellAuthored
 } from '@artificer-toolkit/shared'
-import { SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from '../concentration.js'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
 import { damageTypeId, schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
 
@@ -84,7 +83,6 @@ export const protectionFromEnergy: SpellAuthored = {
             resultBlock: {
               id: `${spellChildId(SPELL_IDS.PROTECTION_FROM_ENERGY, 0x221, index + 1)}__result`,
               resultKind: 'SINGLE' as const,
-              maintenanceDefinitionId: SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID,
               duration: {
                 id: spellChildId(SPELL_IDS.PROTECTION_FROM_ENERGY, 0x222, index + 1),
                 durationKind: DURATION_KIND.HOUR,

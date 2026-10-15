@@ -376,7 +376,7 @@ is 5 ft; a distance without a long range, including the 0 ft swarm space), `RANG
 point-area policy advertises its origin range, which `evaluateEncounterAreaTargetPolicy` measures
 (`pointAreaOriginRange`): `WITHIN` the distance (never `RANGED`, the area evaluator ignores a long range) or `UNLIMITED`.
 A policy neither evaluator measures leaves it off: a sight or special range, targeting that is not a single target with a
-disposition (excluded creature types only warn), an area with no supported shape, a path override, or no policy.
+disposition (excluded creature types only warn; neither the compiler nor the single-target action evaluators refuse a single-target policy for them (movement reactions still do), the room raises the overridable `TARGET_CREATURE_TYPE_EXCLUDED` warning, only for a Creature target, since a Character's facts carry no creature type), an area with no supported shape, a path override, or no policy.
 `encounterActionChoiceRange` (`encounterActionRange.ts`) is the one mapping. `rangeLabel` is not derived from `range`:
 it words the authored range with `rangeLabel` (`rangeLabel.ts`), the formatter the Sheet uses, so Touch reads "Touch"
 (its 5 ft geometry stays in `range`) and a ranged weapon reads "150/600 ft" on both surfaces. Only a choice without a
@@ -622,8 +622,13 @@ own level and spent whatever its level. A candidate is dropped when its decision
 ritual, a limited-use cast or a pool-backed fixed-level cast. A spell is offered only with exactly one active
 Effect (a PASSIVE Effect is ignored): one cast is one action and the compiler executes one Effect group per
 action. A cast is offered only when the System adapter compiles its entry (`COMPILED`), since choosing one that
-stays `MANUAL` could only be refused as stale. The dnd5e Effect-action compiler does not yet execute a heal
-scaling per cast level or a group that needs several entries, so those are not offered. Labels read "Cure Wounds (2nd level)"; a cantrip reads its name.
+stays `MANUAL` could only be refused as stale. The dnd5e Effect-action compiler does not yet execute a group that
+needs several entries, so those are not offered. A heal that scales per cast level compiles as the unscaled dice of
+the chosen level: `effectAtCastLevel` replaces the `PER_LEVEL` `SPELL_CAST_LEVEL` rows with the row at or below the
+cast level before the entry point is built, so the published graph rolls that many dice (a heal's dice count is
+structural, unlike a damage upcast, which specializes an outcome graph from `dnd5e.spell-cast-level`). A heal
+that targets several chosen creatures (Mass Cure Wounds, Mass Healing Word, Prayer of Healing) is not offered: the
+`RESOLVE_ACTION` target has no list-of-actors kind. Labels read "Cure Wounds (2nd level)"; a cantrip reads its name.
 
 The cast level is a fact of the action. `prepareNativeCharacterActionState` copies the policy's `castLevel`
 onto the action mechanic as `spellCastLevel`, the dnd5e adapter binds it as the declared fact
@@ -944,8 +949,24 @@ maintained effect. The same seam records the caster in the Run row's `concentrat
 (`recordConcentrationCaster`; the stored command keeps `addedConcentrationCasterId` so the GM's undo
 removes only an id that command added), which the checkpoint reads to end the caster's carried grants on Characters
 outside the Run (see [persistence](persistence.md#encounter-run-storage)). The movement-reaction receipt
-accepts an owner transition for a holder whose carried grant ends. The SRD Fly, Heroism (its grant), Protection from Energy and Shield of Faith link the SRD Concentration
-maintenance definition.
+accepts an owner transition for a holder whose carried grant ends.
+
+**Concentration is derived from the spell (SPELLS-8.T5).** A spell with the `CONCENTRATION` attribute marks each
+compiled Effect group `requiresConcentration` (`compileSpell`), so an authored Concentration spell needs no
+`maintenanceDefinitionId`: `maintenancePlan` plans the D&D Concentration maintenance
+(`DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID`) for every active-effect plan the action ends up with. An
+explicit `maintenanceDefinitionId` on a result block still overrides the derived one. A Concentration spell
+whose action compiles to no maintained plan is not compiled (MANUAL on the Sheet), so a cast never skips the
+Concentration it would start. Fly, Heroism, Protection from Energy, Shield of Faith and Hold Person rely on
+the attribute alone.
+
+**Repeated saves against the caster's DC.** The repeat-save plans (`repeatingDirectFollowUpSavePlan`,
+`repeatingImmediateFollowUpSavePlan`, the recurring save of `supportedRecurringPlan`) pin their DC through one
+helper, `pinnedSaveDc`: a fixed DC is stored in the plan's `dnd5e.save-dc` fact, and `SOURCE_SAVE_DC` sets
+`castSaveDcFactKey`, so `prepareRecurringActiveEffect` stores the cast's own save DC (`d20.defenseOrDc`, from the
+same `resolveSave` path every save-trigger plan uses) under that fact when the active effect is created. The repeat
+graph's threshold reads the fact either way. Hold Person authors the SRD repeat save as a `FOLLOW_UP_SAVE`
+after its Paralyzed condition, and its condition lasts the `conditionDurationTurns` of its duration.
 
 **Chosen end (D101, SPELLS-5.11).** The caster ends their own Concentration at any time with no action
 and no check. A Character uses the Sheet command `END_CONCENTRATION`: in a live table the room runs it

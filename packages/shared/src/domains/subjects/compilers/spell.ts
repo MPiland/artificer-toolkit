@@ -1,5 +1,10 @@
 import type { SpellAuthored } from '#authored'
-import type { CastingTimeUnitCode, SpellComponent, SpellAttribute } from '#core'
+import {
+  SPELL_ATTRIBUTE,
+  type CastingTimeUnitCode,
+  type SpellComponent,
+  type SpellAttribute
+} from '#core'
 import { compileEffect, type CompiledEffectGroup } from '#compilers'
 
 export type CompiledCastingTime = {
@@ -21,7 +26,13 @@ export type CompiledSpell = {
 }
 
 export function compileSpell(authored: SpellAuthored): CompiledSpell {
-  const effects = authored.effects?.length ? authored.effects.map(compileEffect) : undefined
+  const concentration = authored.attributes?.includes(SPELL_ATTRIBUTE.CONCENTRATION) ?? false
+  const effects = authored.effects?.length
+    ? authored.effects.map((effect) => ({
+        ...compileEffect(effect),
+        ...(concentration ? { requiresConcentration: true as const } : {})
+      }))
+    : undefined
 
   return {
     id: authored.id,

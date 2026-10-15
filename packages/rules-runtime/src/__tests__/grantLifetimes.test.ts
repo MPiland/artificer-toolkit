@@ -2,8 +2,13 @@ import { describe, expect, it } from 'vitest'
 
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { ServerCompletedRuleExecutionDto } from '@artificer-toolkit/schema/shared/rulesExecution'
-import type { EffectAuthored, PathLifecycleAuthored } from '@artificer-toolkit/shared/authored'
+import type {
+  EffectAuthored,
+  PathLifecycleAuthored,
+  SpellAuthored
+} from '@artificer-toolkit/shared/authored'
 import { compileEffect } from '@artificer-toolkit/shared/compilers'
+import { compileSpell } from '@artificer-toolkit/shared/subjects/compilers'
 import {
   SRD_BASIC_ACTION_DEFINITIONS,
   SRD_BASIC_ACTION_IDS
@@ -15,6 +20,7 @@ import { aid } from '@artificer-toolkit/source-data/srd/spells/aid.js'
 import { darkvision } from '@artificer-toolkit/source-data/srd/spells/darkvision.js'
 import { fly } from '@artificer-toolkit/source-data/srd/spells/fly.js'
 import { heroism } from '@artificer-toolkit/source-data/srd/spells/heroism.js'
+import { protectionFromEnergy } from '@artificer-toolkit/source-data/srd/spells/protection-from-energy.js'
 import { rayOfFrost } from '@artificer-toolkit/source-data/srd/spells/ray-of-frost.js'
 import { shield } from '@artificer-toolkit/source-data/srd/spells/shield.js'
 import { shieldOfFaith } from '@artificer-toolkit/source-data/srd/spells/shield-of-faith.js'
@@ -67,11 +73,17 @@ function onlyEffect(effects: readonly AuthoredEffect[] | undefined): AuthoredEff
   return effect
 }
 
-/** Grant plans never read the published graph beyond its identity (their graph is their own). */
-function plansFor(effect: AuthoredEffect, lifecycle: PathLifecycleAuthored) {
-  const action = characterActionDescriptor(
-    compileEffect({ ...grantOnly(effect, lifecycle), id: ACTION_EFFECT_ID })
-  )
+/**
+ * Grant plans never read the published graph beyond its identity (their graph is their own). An
+ * Effect of a spell compiles with its spell, which is what makes it a Concentration Effect.
+ */
+function plansFor(effect: AuthoredEffect, lifecycle: PathLifecycleAuthored, spell?: SpellAuthored) {
+  const authored = { ...grantOnly(effect, lifecycle), id: ACTION_EFFECT_ID }
+  const compiled = spell
+    ? compileSpell({ ...spell, effects: [authored] }).effects?.[0]
+    : compileEffect(authored)
+  if (!compiled) throw new Error('The spell compiled no Effect.')
+  const action = characterActionDescriptor(compiled)
   return dnd5eCharacterRuleActionSystemAdapter.activeEffectPlans?.({
     action,
     published: grantPublishedIdentity()
@@ -80,8 +92,8 @@ function plansFor(effect: AuthoredEffect, lifecycle: PathLifecycleAuthored) {
 
 const antitoxin = () => onlyEffect(antitoxinVial.effects)
 
-function srdPlan(effect: AuthoredEffect, lifecycle: PathLifecycleAuthored) {
-  const plans = plansFor(effect, lifecycle) ?? []
+function srdPlan(effect: AuthoredEffect, lifecycle: PathLifecycleAuthored, spell?: SpellAuthored) {
+  const plans = plansFor(effect, lifecycle, spell) ?? []
   expect(plans).toHaveLength(1)
   return plans[0]!
 }
@@ -253,12 +265,12 @@ describe('grant plans', () => {
   })
 
   it.each([
-    ['Fly', onlyEffect(fly.effects)],
-    ['Heroism', onlyEffect(heroism.effects)],
-    ['Shield of Faith', onlyEffect(shieldOfFaith.effects)],
-    ['Protection from Energy', protectionFromEnergyChoice('Fire')]
-  ])('makes the real %s grant depend on the caster’s Concentration', (_label, effect) => {
-    expect(srdPlan(effect, {}).maintenance).toEqual({
+    ['Fly', fly, onlyEffect(fly.effects)],
+    ['Heroism', heroism, onlyEffect(heroism.effects)],
+    ['Shield of Faith', shieldOfFaith, onlyEffect(shieldOfFaith.effects)],
+    ['Protection from Energy', protectionFromEnergy, protectionFromEnergyChoice('Fire')]
+  ])('makes the real %s grant depend on the caster’s Concentration', (_label, spell, effect) => {
+    expect(srdPlan(effect, {}, spell).maintenance).toEqual({
       definitionId: SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID,
       definitionChecksum: null,
       owner: 'SOURCE_ACTOR',
