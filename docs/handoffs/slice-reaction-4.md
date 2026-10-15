@@ -1,6 +1,6 @@
 # Slice workbook: REACTION-4 (non-movement reactions: trigger model)
 
-**Status:** IN_PROGRESS, design approved 2026-10-15; this session builds REACTION-4.T1 (T2-T4 follow in order)
+**Status:** T1 merged (f875185dc, CI 38804169007 green). Next: T5 (merge-review hardening), then T2, T3, T4 in order.
 **Base:** `codex/phase-08-2-convex-cutover` at this workbook's commit.
 **Rules:** [slice-workbook-rules.md](slice-workbook-rules.md).
 
@@ -121,3 +121,22 @@ Red-first, per the checklist below.
   - **Test-premise corrections** (not product changes): the D63 case now uses a dead Character (0 HP, three death-save failures, D96) because a 0-HP Character is dying, not defeated, and acknowledges the attacker's `TARGET_DEFEATED` warning; the wrong-player case uses `otherPlayerControlledActorIds` and `OTHER_PLAYER` because the main player owns the Character. The fixture gained an optional `deathSaves` play override.
   - **Premise change: reactions are metered.** The REACTION allowance now binds to the SRD reaction allowance, so `encounterActionRuleWarnings.test.ts` asserts that binding instead of "REACTION is unmetered".
   - Not run: local codegen push for `apps/apis/convex` (heavy lane; CI Convex suites cover the contract change), Storybook, Playwright.
+
+## REACTION-4.T5: T1 merge-review hardening (frozen list)
+
+Closes AC REACTION-4.5. Base: the phase branch at or after `2c30b97d7` (sync first). The review list is frozen; new findings go to a follow-up task.
+
+Should-fix:
+
+1. `nativeEncounterAttackReaction.ts:143` mints the reaction effect id with `crypto.randomUUID()`. Derive it from the command and occurrence ids so a replay produces the same id (no ambient randomness on the rules path).
+2. The `REACTION_TRIGGER_ONLY` refusal covers only the single-target path (`nativeEncounterRules.ts:476`). Apply it on every action path, including area actions, through the shared admission point rather than a second copy.
+3. `actionResumeAdmission` reads `reactions[0]`. Admit any reaction the offer carries, and refuse one it does not.
+
+Nits (fix in passing):
+
+- The choice definition is still named for movement; name it for reactions generally.
+- Plain `Error` throws on the reaction path; use the coded refusals the rest of the path uses.
+- The IIFE in the reaction resolution; use plain control flow.
+- The generic stale-option message; say which option went stale.
+
+Red-first: each should-fix item gets a failing test against real code first (replay id equality; area reaction-only refusal; a second offered reaction admitted). CI on `ci/reaction-4-t5`.
