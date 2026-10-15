@@ -81,5 +81,14 @@ CI run 38778258014 (attempt 1, Convex 1/4) failed `accountJourneys.test.ts:97`. 
 ## Status log
 
 - 2026-10-15: workbook written.
+- 2026-10-15 T7 done (5ec76403f): `generateValidUsername` redraws until the imported `validateUsername` accepts; red run (naive shape) 3 failed, green 3 passed; used by `accountJourneys.test.ts` and `apps/apis/tests/localAuth.ts`.
+- 2026-10-15 T5 profile: CI baseline run 38792840212. Media fixtures are already cheap on CI (authoredAssets 8.7 s for 17 tests, avatar 1.85 s); the 6 s avatar stall is local Windows only.
+- 2026-10-15 T5 cuts: 3485f1d72 (builder snapshot parity reads each scope once; 65.4 s to 39.6 s serial) and 40310628f (custody step loop reuses the previous replay read; 4 of about 18 reads). Seed sharing in `equipmentCharacter`, `seed` action cost, the 500-option journey and the page size of 8 were ruled out; see the timing record.
+- 2026-10-15 CI: 1-worker run 38814606154 green. 3-worker trial 38812568410 green (before cuts). 3-worker trial 38816855225 (after cuts) failed on one test: `developmentCustody` mixed driver timed out, 38.7 s against 30 s. Timing record: `docs/validation/platform-13-t5-test-timings-2026-10-15.md`.
+- 2026-10-15 Escalated to the main session: the mixed driver cannot be made 2 times cheaper within the allowed cuts (see the timing record).
 
 ## Proposed ledger edits (filled by the slice session)
+
+- AC PLATFORM-13.9: done (T7, 5ec76403f). Evidence: `generatedUsername.test.ts` red then green; CI 1-worker run 38814606154.
+- AC PLATFORM-13.7: **not closed**. Serial figures are under 50% of the timeout for every target once runner speed is normalised, but the 3-worker trial 38816855225 failed on the custody mixed driver (38.7 s of 30 s). Close after the ruling on that test.
+
