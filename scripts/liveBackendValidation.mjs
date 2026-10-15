@@ -15,16 +15,17 @@ import {
   selfHostedEnv
 } from './convexSelfHosted.mjs'
 
-// `env` is for a fresh backend only (the CI container): auth.config.ts needs JWKS set before any push,
-// and an empty value selects the database-backed signing keys. The local container already has its own,
-// so `env` is not a default step.
+// Each step is a list of commands run in apps/apis. `env` is for a fresh backend only (the CI
+// container): auth.config.ts needs JWKS (empty selects the database-backed signing keys) and the site
+// URL before any push. The local container already has its own, so `env` is not a default step.
+const convexEnvSet = (name, value) => ['yarn', ['convex', 'env', 'set', name, value]]
 const allSteps = {
-  manifest: ['yarn', ['generate:srd:manifest']],
-  env: ['yarn', ['convex', 'env', 'set', 'JWKS', '']],
-  codegen: ['yarn', ['convex', 'codegen', '--typecheck', 'disable']],
-  deploy: ['yarn', ['convex', 'deploy', '--yes', '--typecheck', 'disable', '--codegen', 'disable']],
-  seed: ['yarn', ['convex', 'run', 'content/seed:seed']],
-  audit: ['yarn', ['convex', 'run', 'content/seed:audit']]
+  manifest: [['yarn', ['generate:srd:manifest']]],
+  env: [convexEnvSet('JWKS', ''), convexEnvSet('CONVEX_SITE_URL', 'http://127.0.0.1:3211')],
+  codegen: [['yarn', ['convex', 'codegen', '--typecheck', 'disable']]],
+  deploy: [['yarn', ['convex', 'deploy', '--yes', '--typecheck', 'disable', '--codegen', 'disable']]],
+  seed: [['yarn', ['convex', 'run', 'content/seed:seed']]],
+  audit: [['yarn', ['convex', 'run', 'content/seed:audit']]]
 }
 
 const options = Object.fromEntries(
@@ -47,10 +48,8 @@ const env = selfHostedEnv(url, adminKey)
 const logDir = options['log-dir'] ? resolve(options['log-dir']) : undefined
 if (logDir) await mkdir(logDir, { recursive: true })
 
-function runStep(name) {
-  const [command, args] = allSteps[name]
-  return new Promise((resolveStep) => {
-    const log = logDir ? createWriteStream(join(logDir, `${name}.log`)) : undefined
+function runCommand([command, args], log) {
+  return new Promise((resolveCommand) => {
     const child = spawn(command, args, {
       cwd: 'apps/apis',
       env,
@@ -64,11 +63,19 @@ function runStep(name) {
     }
     child.stdout.on('data', forward(process.stdout))
     child.stderr.on('data', forward(process.stderr))
-    child.on('close', (status) => {
-      log?.end()
-      resolveStep(status ?? 1)
-    })
+    child.on('close', (status) => resolveCommand(status ?? 1))
   })
+}
+
+async function runStep(name) {
+  const log = logDir ? createWriteStream(join(logDir, `${name}.log`)) : undefined
+  let status = 0
+  for (const command of allSteps[name]) {
+    status = await runCommand(command, log)
+    if (status !== 0) break
+  }
+  log?.end()
+  return status
 }
 
 const summary = []
