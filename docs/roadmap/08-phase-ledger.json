@@ -5446,7 +5446,8 @@
                 "tc": 5,
                 "rr": 8,
                 "size": 3
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-attack-9-t1.md"
             },
             {
               "id": "ATTACK-9.T2",
@@ -6809,7 +6810,8 @@
                 "rr": 8,
                 "size": 5,
                 "after": ["SPELLS-8.T1"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-8-t1.md"
             },
             {
               "id": "SPELLS-8.T6",
@@ -7268,7 +7270,8 @@
                 "tc": 5,
                 "rr": 5,
                 "size": 2
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-17.md"
             },
             {
               "id": "SPELLS-17.T2",
@@ -7389,7 +7392,8 @@
             "tc": 3,
             "rr": 3,
             "size": 5
-          }
+          },
+          "activeWorkbook": "docs/handoffs/slice-spells-21.md"
         },
         {
           "id": "SPELLS-22",

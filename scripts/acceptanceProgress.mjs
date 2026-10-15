@@ -106,12 +106,13 @@ const workItemStatuses = (features) =>
 // open AC that no scored open task closes. Final-source gate items follow everything else.
 const rankWork = (features) => {
   const statuses = workItemStatuses(features)
-  const toItem = (feature, id, title, wsjf) => ({
+  const toItem = (feature, { id, wsjf, activeWorkbook }, title) => ({
     id,
     feature: feature.id,
     title,
     score: wsjfScore(wsjf),
     wsjf,
+    activeWorkbook: activeWorkbook ?? null,
     waitingOn: (wsjf.after ?? []).filter((after) => statuses.get(after) !== 'DONE')
   })
   return features
@@ -127,10 +128,8 @@ const rankWork = (features) => {
             (ac) => ac.status !== 'DONE' && !closedByTasks.has(ac.id)
           )
           return [
-            ...(pbiStillRanks || scoredTasks.length === 0
-              ? [toItem(feature, pbi.id, pbi.title, pbi.wsjf)]
-              : []),
-            ...scoredTasks.map((task) => toItem(feature, task.id, task.text, task.wsjf))
+            ...(pbiStillRanks || scoredTasks.length === 0 ? [toItem(feature, pbi, pbi.title)] : []),
+            ...scoredTasks.map((task) => toItem(feature, task, task.text))
           ]
         })
     )
@@ -182,6 +181,14 @@ const validatePbi = (pbi, seen, errors) => {
     for (const id of task.closes ?? [])
       if (!acIds.has(id)) errors.push(`${task.id} closes ${id}, which is not an AC of ${pbi.id}`)
     if (task.wsjf !== undefined) validateWsjf(task.id, task.wsjf, errors)
+  }
+  // activeWorkbook marks an item a workbook session is working now; it is removed at merge.
+  for (const item of [pbi, ...(pbi.tasks ?? [])].filter(
+    (item) => item.activeWorkbook !== undefined
+  )) {
+    if (item.status === 'DONE') errors.push(`${item.id} is DONE but still has an activeWorkbook`)
+    if (!existsSync(`${repoRoot}${item.activeWorkbook}`))
+      errors.push(`${item.id} activeWorkbook not found: ${item.activeWorkbook}`)
   }
   if (pbi.status !== 'DONE') validateWsjf(pbi.id, pbi.wsjf, errors)
   if (pbi.status === 'DONE' && !isPbiProven(pbi)) {
