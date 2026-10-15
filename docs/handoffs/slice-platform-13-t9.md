@@ -1,6 +1,6 @@
 # Slice workbook: PLATFORM-13.T9 (live-backend validation on GitHub Actions)
 
-**Status:** IN_PROGRESS (started 2026-10-15)
+**Status:** merged (6e40942da; live-backend 38820312771 green). Residuals: PLATFORM-13.T10; deferred edge cases in future-enhancements.md.
 **Base:** `main` at this workbook's commit.
 **Rules:** [slice-workbook-rules.md](slice-workbook-rules.md).
 

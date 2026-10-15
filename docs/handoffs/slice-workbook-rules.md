@@ -34,6 +34,12 @@ Before reporting, run one independent review. Spawn a read-only reviewer subagen
 - map each AC to the test that proves it, and name any part left unproved (an untested branch, replay or idempotency path, or admission path);
 - list band-aids, single-use helpers, duplicated logic, non-null assertions and hard-coded first-element picks.
 
-Fix each finding, or record why it stands, in the status log. Then commit.
+Triage each finding by how likely it is to happen in early real use and how much harm it does:
+
+- **Fix now:** an unproved AC, a security, privacy or data-loss risk, a broken core rule, or anything likely in ordinary play.
+- **Defer:** a rare path (roughly under 5% of sessions) whose failure is visible and recoverable. Record it, with a concrete example, under "Deferred edge cases" in [future-enhancements.md](../roadmap/future-enhancements.md).
+- **Stands:** nits and naming. Note them in the status log.
+
+Then commit.
 
 When green, commit on your branch and report to the main session: commits, the checklist with red and green log names, validation run, deviations, and open risks.
