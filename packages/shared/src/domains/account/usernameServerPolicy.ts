@@ -32,43 +32,56 @@ function findsPaddedWord(text: string, index: ReadonlyMap<string, string[]>): bo
 }
 
 // A plural of a blocked term is blocked too (`bigdicks`).
-const blockedTerms = indexByRuns(anchoredUsernameTerms.flatMap((term) => [term, `${term}s`]))
+const blockedWords = anchoredUsernameTerms.flatMap((term) => [term, `${term}s`])
+const blockedTerms = indexByRuns(blockedWords)
 
 // Built on the first compound check so isolates that only import the auth options do not pay for it.
-let lexicon: { words: ReadonlySet<string>; wordsByRuns: ReadonlyMap<string, string[]> } | undefined
+let lexicon: { words: ReadonlySet<string>; cleanWordsByRuns: ReadonlyMap<string, string[]> } | undefined
 function getLexicon(): NonNullable<typeof lexicon> {
   if (!lexicon) {
     const words = new Set([...usernameWordList.split(' '), ...allowedUsernameTerms])
-    lexicon = { words, wordsByRuns: indexByRuns(words) }
+    const blocked = new Set(blockedWords)
+    lexicon = {
+      words,
+      cleanWordsByRuns: indexByRuns([...words].filter((word) => !blocked.has(word)))
+    }
   }
   return lexicon
 }
 
-// The candidate splits into a blocked term plus dictionary words (`assmuncher` = ass + muncher).
+// The candidate is a compound when it reads as a blocked term plus dictionary words (`assmuncher`
+// = ass + muncher) and no reading as dictionary words alone (`titanslayer` = titan + slayer) uses
+// fewer pieces. A tie keeps the blocked reading: `asslicker` = ass + licker = as + slicker.
 // A candidate that is itself a dictionary word (compass, classic) is never a compound.
 function isBlockedCompound(candidate: string): boolean {
-  const { words, wordsByRuns } = getLexicon()
+  const { words, cleanWordsByRuns } = getLexicon()
   if (words.has(candidate)) return false
 
-  // reachable[i] / withBlocked[i]: candidate[0, i) is covered by pieces, and (withBlocked) at
-  // least one piece is a blocked term.
-  const reachable = Array.from({ length: candidate.length + 1 }, () => false)
-  const withBlocked = [...reachable]
-  reachable[0] = true
+  // cleanPieces[i] / blockedPieces[i]: the fewest pieces that cover candidate[0, i) with only
+  // non-blocked words / with at least one blocked term among words.
+  const cleanPieces = Array.from({ length: candidate.length + 1 }, () => Infinity)
+  const blockedPieces = [...cleanPieces]
+  cleanPieces[0] = 0
   for (let end = 1; end <= candidate.length; end++) {
     for (let start = 0; start < end; start++) {
       const piece = candidate.slice(start, end)
-      const isBlocked = findsPaddedWord(piece, blockedTerms)
-      const isWord = findsPaddedWord(piece, wordsByRuns)
-      if (!isBlocked && !isWord) continue
-      if (reachable[start]) {
-        reachable[end] ||= isWord
-        withBlocked[end] ||= isBlocked
+      if (findsPaddedWord(piece, cleanWordsByRuns)) {
+        cleanPieces[end] = Math.min(cleanPieces[end] ?? Infinity, (cleanPieces[start] ?? Infinity) + 1)
+        blockedPieces[end] = Math.min(
+          blockedPieces[end] ?? Infinity,
+          (blockedPieces[start] ?? Infinity) + 1
+        )
       }
-      if (withBlocked[start]) withBlocked[end] = true
+      if (findsPaddedWord(piece, blockedTerms)) {
+        blockedPieces[end] = Math.min(
+          blockedPieces[end] ?? Infinity,
+          Math.min(cleanPieces[start] ?? Infinity, blockedPieces[start] ?? Infinity) + 1
+        )
+      }
     }
   }
-  return withBlocked[candidate.length] ?? false
+  const blocked = blockedPieces[candidate.length] ?? Infinity
+  return blocked !== Infinity && blocked <= (cleanPieces[candidate.length] ?? Infinity)
 }
 
 /** The server-authoritative username check: the shared policy plus the dictionary compound check. */

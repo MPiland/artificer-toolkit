@@ -33,8 +33,9 @@ const moderationDigitSubstitutions: Record<string, string> = {
 
 // Q22 tiers. Short ambiguous terms are refused only as a whole part, so Cassandra, Dickens and
 // Cummings pass; the server also refuses them inside an unbroken compound (usernameServerPolicy).
-const replacedEnglishPhrases = [
+const wholePartPhrases = [
   { term: 'ass', patterns: ['|ass|'] },
+  { term: 'assman', patterns: ['|assman|'] },
   { term: 'dick', patterns: ['|dick|', '|dicks|', '|dck|'] },
   { term: 'cum', patterns: ['|cum|', '|cums|'] },
   // The transformers collapse repeated letters, so `titty` is matched as `tity`.
@@ -46,7 +47,6 @@ const profaneCompounds = [
   'asshat',
   'asswipe',
   'assclown',
-  'assman',
   'dumbass',
   'jackass',
   'smartass',
@@ -57,7 +57,8 @@ const profaneCompounds = [
   'dickweed',
   'cumshot',
   'cumslut',
-  'cumdump'
+  'cumdump',
+  'shithead'
 ]
 // Known false positives of the matcher.
 export const allowedUsernameTerms = [
@@ -70,14 +71,24 @@ export const allowedUsernameTerms = [
   'dickinson',
   'hitchcock',
   'middlesex',
-  'shuttlecock'
+  'shuttlecock',
+  'annalise',
+  'analise',
+  'shital',
+  'shittu',
+  'shiitake',
+  'titus',
+  'dickerson',
+  'pettit',
+  'cockburn',
+  'bluetit'
 ]
 
 // Terms the matcher anchors to a word boundary on at least one side only match at a part edge. The
 // server compound check looks for them inside an unbroken part, so the set comes from the same dataset.
 const englishAnchoredTerms: string[] = []
 const dataset = [
-  ...replacedEnglishPhrases,
+  ...wholePartPhrases,
   ...profaneCompounds.map((term) => ({ term, patterns: [term] }))
 ].reduce(
   (set, { term, patterns }) =>
@@ -90,7 +101,7 @@ const dataset = [
     .addAll(englishDataset)
     .removePhrasesIf(({ metadata, patterns }) => {
       const term = metadata?.originalWord ?? ''
-      if (replacedEnglishPhrases.some((replaced) => replaced.term === term)) return true
+      if (wholePartPhrases.some((replaced) => replaced.term === term)) return true
       if (patterns.some((p) => p.requireWordBoundaryAtStart || p.requireWordBoundaryAtEnd)) {
         englishAnchoredTerms.push(term)
       }
@@ -98,7 +109,7 @@ const dataset = [
     })
 )
 export const anchoredUsernameTerms = [
-  ...replacedEnglishPhrases.map(({ term }) => term),
+  ...wholePartPhrases.map(({ term }) => term),
   ...englishAnchoredTerms
 ]
 const { blacklistedTerms, whitelistedTerms } = dataset.build()
@@ -142,13 +153,21 @@ function normalizeUsername(username: string): string {
   return username.trim()
 }
 
+/** Length and character set only. Sign-in uses it, so a later moderation rule never locks an account out. */
+export function isUsernameFormatValid(username: string): boolean {
+  const normalizedUsername = normalizeUsername(username)
+  return (
+    normalizedUsername.length >= 3 &&
+    normalizedUsername.length <= 30 &&
+    usernamePattern.test(normalizedUsername)
+  )
+}
+
 export function validateUsername(username: string): { username: string; message: string | null } {
   const normalizedUsername = normalizeUsername(username)
 
   const isAllowed =
-    normalizedUsername.length >= 3 &&
-    normalizedUsername.length <= 30 &&
-    usernamePattern.test(normalizedUsername) &&
+    isUsernameFormatValid(normalizedUsername) &&
     !reservedUsernames.has(normalizedUsername.toLowerCase()) &&
     !usernameModerationCandidates(normalizedUsername).some((text) => matcher.hasMatch(text))
 
