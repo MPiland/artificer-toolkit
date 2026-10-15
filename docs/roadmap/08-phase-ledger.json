@@ -4573,7 +4573,7 @@
               "status": "TODO",
               "proof": [],
               "origin": [],
-              "note": "Registered 2026-10-09 from the user's ATTACK-10.1 ruling; needs a design pass. Depends on ATTACK-10.1, which supplies the cancelled and added die data and a static rendering.",
+              "note": "Registered 2026-10-09 from the user's ATTACK-10.1 ruling; User ruling 2026-10-14: built to DESIGN.md now; the design review is RELEASE-8, after all code is green. Depends on ATTACK-10.1, which supplies the cancelled and added die data and a static rendering.",
               "id": "ENCOUNTER-8.1"
             }
           ],
@@ -5785,7 +5785,7 @@
               "status": "TODO",
               "proof": [],
               "origin": [],
-              "note": "Registered 2026-10-09 from the user's targeting review. Today the target is only a dropdown of non-defeated public actors (CampaignTabletopActionDrawer.tsx), with no map targeting. Needs a design pass first.",
+              "note": "Registered 2026-10-09 from the user's targeting review. Today the target is only a dropdown of non-defeated public actors (CampaignTabletopActionDrawer.tsx), with no map targeting. User ruling 2026-10-14: built to DESIGN.md now; the design review is RELEASE-8, after all code is green.",
               "id": "ATTACK-17.1"
             },
             {
@@ -5826,7 +5826,60 @@
             "tc": 5,
             "rr": 2,
             "size": 5
-          }
+          },
+          "tasks": [
+            {
+              "id": "ATTACK-17.T1",
+              "text": "Per-user roll-card audience: the player who rolls for a creature kept from the table sees their own card.",
+              "status": "TODO",
+              "closes": ["ATTACK-17.5"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 5,
+                "rr": 2,
+                "size": 2
+              }
+            },
+            {
+              "id": "ATTACK-17.T2",
+              "text": "Per-viewer player Encounter projection: only creatures the player can see, plus the GM's unnamed or named reveal.",
+              "status": "TODO",
+              "closes": ["ATTACK-17.3"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 5,
+                "rr": 2,
+                "size": 3,
+                "after": ["ATTACK-9.T1", "SPELLS-22"]
+              }
+            },
+            {
+              "id": "ATTACK-17.T3",
+              "text": "Map targeting mode and the distance-sorted target list with one shared selection.",
+              "status": "TODO",
+              "closes": ["ATTACK-17.1", "ATTACK-17.2"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 5,
+                "rr": 2,
+                "size": 3,
+                "after": ["ATTACK-17.T2"]
+              }
+            },
+            {
+              "id": "ATTACK-17.T4",
+              "text": "Attack an empty square; the GM resolves who, if anyone, is there.",
+              "status": "TODO",
+              "closes": ["ATTACK-17.4"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 5,
+                "rr": 2,
+                "size": 2,
+                "after": ["ATTACK-17.T3", "ATTACK-10"]
+              }
+            }
+          ]
         },
         {
           "id": "ATTACK-18",
