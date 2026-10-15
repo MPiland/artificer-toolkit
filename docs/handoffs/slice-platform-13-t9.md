@@ -45,11 +45,11 @@ Deliver a live-backend CI job (manifest, codegen, deploy, seed, SRD audit agains
 
 Final source `6eebd664a` (after the merge-review fixes):
 
-| Run | Ref | Trigger | Result |
-| --- | --- | --- | --- |
-| [38813514949](https://github.com/MPiland/artificer-toolkit/actions/runs/38813514949) | `ci/merge-platform-13-t9` | push | green, audit `"subjects": 1057`, drift check green (regenerated manifest and `_generated` files are byte-identical on Linux and Windows) |
-| [38814079363](https://github.com/MPiland/artificer-toolkit/actions/runs/38814079363) | `ci/platform-13-t9` | dispatch `steps=manifest,codegen,deploy,audit` | red: audit `Missing platform content source.` (job fails, drift check skipped, logs uploaded); `--fresh` still ran `env` first |
-| [38813511069](https://github.com/MPiland/artificer-toolkit/actions/runs/38813511069) | `ci/platform-13-t9` | push (Tests) | green |
+| Run                                                                                  | Ref                       | Trigger                                        | Result                                                                                                                                   |
+| ------------------------------------------------------------------------------------ | ------------------------- | ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| [38813514949](https://github.com/MPiland/artificer-toolkit/actions/runs/38813514949) | `ci/merge-platform-13-t9` | push                                           | green, audit `"subjects": 1057`, drift check green (regenerated manifest and `_generated` files are byte-identical on Linux and Windows) |
+| [38814079363](https://github.com/MPiland/artificer-toolkit/actions/runs/38814079363) | `ci/platform-13-t9`       | dispatch `steps=manifest,codegen,deploy,audit` | red: audit `Missing platform content source.` (job fails, drift check skipped, logs uploaded); `--fresh` still ran `env` first           |
+| [38813511069](https://github.com/MPiland/artificer-toolkit/actions/runs/38813511069) | `ci/platform-13-t9`       | push (Tests)                                   | green                                                                                                                                    |
 
 Step durations in seconds (script `summary.json`): green 38813514949 env 1, manifest 16, codegen 24, deploy 18, seed 95, audit 2 (job 4 m 25 s); red 38814079363 env 1, manifest 16, codegen 23, deploy 19, audit 2 (exit 1).
 
@@ -57,27 +57,27 @@ The `ci/merge-platform-13-t9` Tests run (38813514954) failed twice (the run and 
 
 First version (`3984b9140`, before the review fixes):
 
-| Run | Ref | Trigger | Result |
-| --- | --- | --- | --- |
-| [38802771155](https://github.com/MPiland/artificer-toolkit/actions/runs/38802771155) | `ci/merge-platform-13-t9` | push | green, audit `"subjects": 1057` |
-| [38804230986](https://github.com/MPiland/artificer-toolkit/actions/runs/38804230986) | `ci/platform-13-t9` | dispatch (all steps) | green, audit `"subjects": 1057` |
-| [38803655961](https://github.com/MPiland/artificer-toolkit/actions/runs/38803655961) | `ci/platform-13-t9` | dispatch `steps=manifest,env,codegen,deploy,audit` | red: audit `Missing platform content source.` (job fails, logs uploaded) |
+| Run                                                                                  | Ref                       | Trigger                                            | Result                                                                   |
+| ------------------------------------------------------------------------------------ | ------------------------- | -------------------------------------------------- | ------------------------------------------------------------------------ |
+| [38802771155](https://github.com/MPiland/artificer-toolkit/actions/runs/38802771155) | `ci/merge-platform-13-t9` | push                                               | green, audit `"subjects": 1057`                                          |
+| [38804230986](https://github.com/MPiland/artificer-toolkit/actions/runs/38804230986) | `ci/platform-13-t9`       | dispatch (all steps)                               | green, audit `"subjects": 1057`                                          |
+| [38803655961](https://github.com/MPiland/artificer-toolkit/actions/runs/38803655961) | `ci/platform-13-t9`       | dispatch `steps=manifest,env,codegen,deploy,audit` | red: audit `Missing platform content source.` (job fails, logs uploaded) |
 
 The red proof uses the permanent `steps` dispatch input (it is also how a slice runs a partial check), so there is no test-only input to remove.
 
 Step durations in seconds (script `summary.json`; job totals from the API):
 
-| Step | 38802771155 | 38804230986 | red 38803655961 |
-| --- | --- | --- | --- |
-| manifest | 16 | 17 | 10 |
-| env | 1 | 1 | 1 |
-| codegen | 22 | 24 | 15 |
-| deploy | 18 | 18 | 12 |
-| seed | 90 | 94 | skipped |
-| audit | 2 | 2 | 1 (exit 1) |
-| install and package build (setup action) | 88 | 335 | n/a |
-| backend start to `/version` | 13 | 8 | n/a |
-| job total | 4 m 20 s | 8 m 32 s | about 3 m |
+| Step                                     | 38802771155 | 38804230986 | red 38803655961 |
+| ---------------------------------------- | ----------- | ----------- | --------------- |
+| manifest                                 | 16          | 17          | 10              |
+| env                                      | 1           | 1           | 1               |
+| codegen                                  | 22          | 24          | 15              |
+| deploy                                   | 18          | 18          | 12              |
+| seed                                     | 90          | 94          | skipped         |
+| audit                                    | 2           | 2           | 1 (exit 1)      |
+| install and package build (setup action) | 88          | 335         | n/a             |
+| backend start to `/version`              | 13          | 8           | n/a             |
+| job total                                | 4 m 20 s    | 8 m 32 s    | about 3 m       |
 
 Setup time varies with runner load (the 335 s run shared the account with a full Tests run).
 
