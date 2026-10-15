@@ -156,9 +156,11 @@ __metadata:
     "@artificer-toolkit/design-system": "workspace:^"
     "@types/rbush": "npm:4.0.0"
     fast-check: "npm:4.10.2"
+    obscenity: "npm:0.4.6"
     polygon-clipping: "npm:0.15.7"
     rbush: "npm:4.0.1"
     robust-predicates: "npm:3.0.3"
+    subtlex-word-frequencies: "npm:2.0.0"
     type-fest: "npm:^5.10.0"
     typescript: "npm:^7.0.2"
     zod: "npm:4.4.3"
@@ -11698,6 +11700,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"obscenity@npm:0.4.6":
+  version: 0.4.6
+  resolution: "obscenity@npm:0.4.6"
+  checksum: 10c0/f5f87023a6e8493ba2e4c8b55736087eda0421b2eef0032965aadc211a289654cd370443d5c70c97cf98c5c4de24e8f11fa8ca49e67954d259ec045bc6a3d211
+  languageName: node
+  linkType: hard
+
 "obug@npm:^2.1.1":
   version: 2.1.1
   resolution: "obug@npm:2.1.1"
@@ -14264,6 +14273,13 @@ __metadata:
     babel-plugin-macros:
       optional: true
   checksum: 10c0/ace50e7ea5ae5ae6a3b65a50994c51fca6ae7df9c7ecfd0104c36be0b4b3a9c5c1a2374d16e2a11e256d0b20be6d47256d768ecb4f91ab390f60752a075780f5
+  languageName: node
+  linkType: hard
+
+"subtlex-word-frequencies@npm:2.0.0":
+  version: 2.0.0
+  resolution: "subtlex-word-frequencies@npm:2.0.0"
+  checksum: 10c0/b53b9e084c5fc68e1573f34ff34af75ea205413b53d3cf40acb2dfced390fb21011aace217a563eaa5d92132c368e80e70f9095f7daebd0d34d0e89e716ec05c
   languageName: node
   linkType: hard
 
