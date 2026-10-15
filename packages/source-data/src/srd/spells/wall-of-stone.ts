@@ -71,7 +71,8 @@ export const wallOfStone: SpellAuthored = {
               {
                 id: spellChildId(SPELL_IDS.WALL_OF_STONE, 0x212, 1),
                 effectKind: EFFECT_KIND.MANIFEST,
-                manifestKind: MANIFEST_KIND.ZONE
+                manifestKind: MANIFEST_KIND.ZONE,
+                attachmentKind: 'PLACED_SPACE'
               }
             ]
           }

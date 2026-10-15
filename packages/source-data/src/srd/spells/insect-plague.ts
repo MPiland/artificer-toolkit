@@ -82,7 +82,8 @@ export const insectPlague: SpellAuthored = {
               {
                 id: spellChildId(SPELL_IDS.INSECT_PLAGUE, 0x213, 1),
                 effectKind: EFFECT_KIND.MANIFEST,
-                manifestKind: MANIFEST_KIND.ZONE
+                manifestKind: MANIFEST_KIND.ZONE,
+                attachmentKind: 'PLACED_SPACE'
               }
             ]
           }

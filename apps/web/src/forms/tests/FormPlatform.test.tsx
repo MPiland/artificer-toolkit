@@ -203,6 +203,7 @@ const manifestBehaviorDefaults: TestFormValues = {
                 id: 'manifest-outcome-1',
                 effectKind: 'MANIFEST',
                 manifestKind: 'ZONE',
+                attachmentKind: 'SOURCE',
                 label: 'Burning Aura',
                 behaviors: [
                   {
