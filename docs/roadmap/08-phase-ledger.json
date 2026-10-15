@@ -7966,7 +7966,7 @@
         {
           "id": "PRIVACY-1",
           "title": "Players see only redacted combat data",
-          "status": "DONE",
+          "status": "IN_PROGRESS",
           "journeyTests": [
             "apps/apis/convex/encounters/cutoverPrivacy.test.ts",
             "apps/apis/convex/encounters/encounterProjectionParity.test.ts"
@@ -8027,6 +8027,34 @@
               ],
               "origin": ["V12.6"],
               "id": "PRIVACY-1.6"
+            },
+            {
+              "id": "PRIVACY-1.7",
+              "text": "A command replay after an ownership transfer is presented for the issuer's current role: the regained owner gets the GM projection and a former owner who is now a player gets the redacted player projection, proved deterministically in both directions.",
+              "status": "TODO",
+              "proof": [],
+              "origin": "Intermittent CI failure of developmentLifecycleProof.test.ts at tests/developmentEncounterTransactions.ts:286 (runs 38782976507, 38781276358 attempt 1, 38782673073): after ownership returned to the owner, replaying START returned the player projection (health null, no features). Base 79a60ef0a passed 3 of 3 locally (local-validation/lifecycle-base/).",
+              "note": "Until T1 merges, this exact failure on a slice CI run is a known base defect and does not block that slice's merge."
+            }
+          ],
+          "wsjf": {
+            "bv": 3,
+            "tc": 5,
+            "rr": 8,
+            "size": 3
+          },
+          "tasks": [
+            {
+              "id": "PRIVACY-1.T1",
+              "text": "Find why a replay is presented for the issuer's stale role after an ownership transfer, fix it at the cause, and prove both directions deterministically.",
+              "status": "TODO",
+              "closes": ["PRIVACY-1.7"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 5,
+                "rr": 8,
+                "size": 3
+              }
             }
           ]
         },
