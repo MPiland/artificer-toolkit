@@ -20,7 +20,7 @@ import { insertActionEvidenceReceipt } from './actionEvidenceReceipt.js'
 import { readRunActors } from './documents.js'
 import { sourceSpendMutation, settleActionSourceSpend } from './actionSourceSpend.js'
 import { completeActionOccurrence, recordActionRoot } from './actionCommitRecords.js'
-import { deleteConsumedGrants } from './consumedGrantPersistence.js'
+import { deleteConsumedGrants, receiptConsumedGrants } from './consumedGrantPersistence.js'
 import { projectNativeGm } from './nativeProjection.js'
 import { recordTurnSpeedBonus } from './turnMovement.js'
 import { presentEncounterResultForMember } from './resultPresentation.js'
@@ -354,7 +354,7 @@ export async function persistEncounterActionCommit(
     commandFields: {
       label: input.label,
       ruleOverrides: input.ruleOverrides,
-      consumedGrants: input.consumedGrants,
+      consumedGrants: receiptConsumedGrants(input),
       addedConcentrationCasterId: maintenance?.addedConcentrationCasterId ?? null,
       speedBonusTurn: addsSpeed ? { round: state.round, turnActorId: source.id } : null
     },

@@ -12,13 +12,17 @@ import { fixture, input } from './characters'
 import { importedSubject } from './publication'
 
 export async function readyCharacterFixture(
-  options: Partial<
-    Pick<typeof fighter | ClassAuthoredDto, 'resources' | 'spellcasting' | 'features'>
-  > = {},
+  {
+    base: sourceClass = fighter,
+    ...options
+  }: Partial<Pick<typeof fighter | ClassAuthoredDto, 'resources' | 'spellcasting' | 'features'>> & {
+    /** The SRD base Class the Character takes; defaults to the Fighter. */
+    base?: typeof fighter
+  } = {},
   equipment = club,
   existing?: Awaited<ReturnType<typeof fixture>>
 ) {
-  if (fighter.category !== 'BASE') throw new Error('Expected the canonical parent Fighter class.')
+  if (sourceClass.category !== 'BASE') throw new Error('Expected a canonical parent base class.')
   const base = existing ?? (await fixture())
   const groupId = crypto.randomUUID()
   const optionId = crypto.randomUUID()
@@ -54,7 +58,7 @@ export async function readyCharacterFixture(
                       id: crypto.randomUUID(),
                       order: 1,
                       startingEquipmentKind: 'CURRENCY' as const,
-                      currencies: [{ currencyId: fighter.startingGold.currencyId, amount: 15 }]
+                      currencies: [{ currencyId: sourceClass.startingGold.currencyId, amount: 15 }]
                     }
                   ]
                 }
@@ -66,11 +70,11 @@ export async function readyCharacterFixture(
     }
   }
   const baseClass = {
-    ...structuredClone(fighter),
+    ...structuredClone(sourceClass),
     ...options,
     features: options.features ?? [],
     proficiencies: [],
-    startingEquipment: { ...fighter.startingEquipment!, sets: [] }
+    startingEquipment: { ...sourceClass.startingEquipment!, sets: [] }
   }
   await base.t.mutation(internal.content.import.importSubjects, {
     contentSourceId: SRD_CONTENT_SOURCE.id,

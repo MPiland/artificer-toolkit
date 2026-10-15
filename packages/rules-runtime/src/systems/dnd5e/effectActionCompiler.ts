@@ -5,7 +5,11 @@ import {
 } from '@artificer-toolkit/schema/shared/ruleExecutionCore'
 import type { ServerRuleExecutionResultDto } from '@artificer-toolkit/schema/shared/ruleExecutionProtocol'
 import { resolveDispositionDamage } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
-import { attackKindSchema } from '@artificer-toolkit/schema/shared/enums'
+import {
+  attackKindSchema,
+  pathLifecycleGrantConsumeEventSchema,
+  pathLifecycleGrantEndEventSchema
+} from '@artificer-toolkit/schema/shared/enums'
 import {
   hitPointMaximumReductionRecoveryTagsSchema,
   type HitPointMaximumReductionRecoveryTag
@@ -48,9 +52,12 @@ import type {
   CharacterRuleActionConditionOutcomeRules,
   CharacterRuleActionPositionalFacts,
   CharacterRuleActionZonePlacementPlan,
-  GrantConsumeEvent,
   CharacterRuleActionSpatialDirective
 } from '../../characterRuleActionSystemAdapter.js'
+import type {
+  GrantConsumeEvent,
+  GrantEndEvent
+} from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import { CharacterRuleActionUnsupportedCompilationError } from '../../characterRuleActionSystemAdapter.js'
 import { encounterAreaTargetKind } from '../../encounterAreaAction.js'
 import { placedSpaceZone, zoneTriggerModes } from '../../encounterZonePlacement.js'
@@ -587,7 +594,8 @@ function supportedRecurringPlan(
     lifecycle &&
     recurringStage !== null &&
     (lifecycle.consumeOnFirstEvents?.length ?? 0) === 0 &&
-    (lifecycle.endOnEvents?.length ?? 0) === 0
+    (lifecycle.endOnEvents?.length ?? 0) === 0 &&
+    (lifecycle.endOnConditionIds?.length ?? 0) === 0
   const maintenance = maintenancePlan(action, entry)
   if (
     invocation.kind === 'ACTION' &&
@@ -1262,12 +1270,11 @@ function timedImmediateConditionPlan(
 }
 
 function isGrantConsumeEvent(event: string): event is GrantConsumeEvent {
-  return event === 'ON_ATTACK_ROLL' || event === 'ON_ABILITY_CHECK'
+  return pathLifecycleGrantConsumeEventSchema.safeParse(event).success
 }
 
-/** The only end event the Encounter reads for a grant; any other would compile but never fire. */
-function isGrantEndEvent(event: string): event is 'ON_HIT_POINTS_REGAINED' {
-  return event === 'ON_HIT_POINTS_REGAINED'
+function isGrantEndEvent(event: string): event is GrantEndEvent {
+  return pathLifecycleGrantEndEventSchema.safeParse(event).success
 }
 
 /**
@@ -1305,7 +1312,8 @@ function modifierGrantPlan(
 /**
  * The plan of one APPLY_GRANT entry. With `untilEndEvent` the grant has no counted duration and
  * lasts until one of its authored end events (a speed penalty that lasts until the creature
- * regains Hit Points); without it the grant must be timed and may not end on an event.
+ * regains Hit Points); without it the grant must be timed, and may also end early on an event
+ * (Rage ends when its holder is incapacitated).
  */
 function modifierGrantEntryPlan(input: {
   action: Dnd5eCompiledEffectActionSource
@@ -1321,11 +1329,14 @@ function modifierGrantEntryPlan(input: {
     turnAnchor,
     consumeOnFirstEvents = [],
     endOnEvents = [],
+    endOnConditionIds = [],
+    holderEnd = null,
     ...otherLifecycle
   } = entry.lifecycle ?? {}
   const consumeEvents = [...new Set(consumeOnFirstEvents)].sort()
   const endEvents = [...new Set(endOnEvents)].sort()
   const grantConsumeEvents = consumeEvents.filter(isGrantConsumeEvent)
+  const grantEndEvents = endEvents.filter(isGrantEndEvent)
   const senses = grants.senses ?? []
   const grantedSenses = senses.flatMap((sense) =>
     sense.selectionKind === 'GRANTED' && sense.scalingKind === 'NONE' && 'senseIds' in sense
@@ -1352,11 +1363,10 @@ function modifierGrantEntryPlan(input: {
       ? entry.duration !== undefined || endEvents.length === 0 || turnAnchor !== undefined
       : initialRemaining === null ||
         // A grant created on its anchor's own turn is stored one turn longer (see the Encounter planner).
-        initialRemaining >= MAX_ACTIVE_EFFECT_TURNS ||
-        endEvents.length > 0) ||
+        initialRemaining >= MAX_ACTIVE_EFFECT_TURNS) ||
     Object.values(otherLifecycle).some((value) => value !== undefined) ||
     grantConsumeEvents.length !== consumeEvents.length ||
-    !endEvents.every(isGrantEndEvent) ||
+    grantEndEvents.length !== endEvents.length ||
     !UUID.test(entry.entryId)
   )
     return null
@@ -1376,7 +1386,9 @@ function modifierGrantEntryPlan(input: {
       tickAnchor: turnAnchor?.actor === 'SOURCE' ? 'SOURCE' : 'HOLDER',
       includesCurrentTurn: entry.duration?.durationKind === 'TURN',
       consumeOnFirstEvents: grantConsumeEvents,
-      endOnEvents: endEvents
+      endOnEvents: grantEndEvents,
+      endOnConditionIds: [...new Set(endOnConditionIds)].sort(),
+      holderEnd
     },
     adapterFacts: attack ? { 'dnd5e.grant-authored-path': entry.pathCode } : {},
     perceptionContributions: [],

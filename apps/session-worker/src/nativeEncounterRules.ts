@@ -854,6 +854,7 @@ export function buildNativeLiveEncounterActionCommitInput(
     concentration: plan.concentration.completed,
     pendingConcentration: plan.concentration.pending,
     concentrationEnds: plan.concentration.concentrationEnds,
+    endedGrants: plan.concentration.endedGrants,
     cleaving: plan.cleaving,
     consumedGrants: plan.consumedGrants
   })

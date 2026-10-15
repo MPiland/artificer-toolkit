@@ -17,6 +17,7 @@ import type {
   EncounterActionChoiceDto,
   EncounterActionChoicesDto,
   EncounterEscapeChoiceDto,
+  EncounterHeldGrantEndChoiceDto,
   EncounterOptionalActionChoicesDto,
   GetEncounterOptionalActionChoicesInputDto
 } from '@artificer-toolkit/schema/api/encounterActionChoices'
@@ -24,6 +25,7 @@ import type {
   EncounterCommandResultDto,
   EncounterGmProjectionDto,
   EncounterPlayerProjectionDto,
+  EndHeldGrantInputDto,
   EscapeRelationshipInputDto,
   ResolveEncounterActionInputDto
 } from '@artificer-toolkit/schema/api/encounters'
@@ -41,6 +43,7 @@ import { useGmRollVisibilityPreference } from '#app/settings/useGmRollVisibility
 import { CampaignTabletopActionConfirmation } from './CampaignTabletopActionConfirmation'
 import { CampaignTabletopBasicActions } from './CampaignTabletopBasicActions'
 import { CampaignTabletopEscapes } from './CampaignTabletopEscapes'
+import { CampaignTabletopHeldGrantEnds } from './CampaignTabletopHeldGrantEnds'
 import { LiveSessionCommandRejectedError } from './liveSessionClient'
 import {
   aimedAreaShape,
@@ -59,6 +62,7 @@ export function CampaignTabletopActionDrawer({
   actions,
   basicActionChoices,
   escapes,
+  heldGrantEnds,
   openAttackAction,
   actionsLoading,
   actionChoicesError,
@@ -81,12 +85,14 @@ export function CampaignTabletopActionDrawer({
   onPickAreaOrigin,
   onResolve,
   onEscape,
+  onEndHeldGrant,
   onLoadOptionalChoices
 }: {
   actions: EncounterActionChoiceDto[]
   /** The System's authored basic actions, which resolve like any action. */
   basicActionChoices: EncounterActionChoiceDto[]
   escapes: EncounterEscapeChoiceDto[]
+  heldGrantEnds: EncounterHeldGrantEndChoiceDto[]
   /** The Attack action opened this turn; its last weapon and target are preselected for the next attack. */
   openAttackAction: EncounterActionChoicesDto['openAttackAction']
   actionsLoading: boolean
@@ -121,6 +127,7 @@ export function CampaignTabletopActionDrawer({
   onPickAreaOrigin: () => void
   onResolve: (command: ResolveEncounterActionInputDto) => Promise<EncounterCommandResultDto>
   onEscape: (command: EscapeRelationshipInputDto) => Promise<EncounterCommandResultDto>
+  onEndHeldGrant: (command: EndHeldGrantInputDto) => Promise<EncounterCommandResultDto>
   onLoadOptionalChoices: (
     request: GetEncounterOptionalActionChoicesInputDto
   ) => Promise<EncounterOptionalActionChoicesDto>
@@ -817,6 +824,16 @@ export function CampaignTabletopActionDrawer({
               encounterVersion={encounter.version}
               escapes={escapes}
               onEscape={onEscape}
+            />
+          ) : null}
+          {currentActor && !actionsLoading && !actionChoicesError && heldGrantEnds.length ? (
+            <CampaignTabletopHeldGrantEnds
+              actorId={currentActor.id}
+              disabled={selectionControlsDisabled}
+              encounterId={encounter.id}
+              encounterVersion={encounter.version}
+              heldGrantEnds={heldGrantEnds}
+              onEnd={onEndHeldGrant}
             />
           ) : null}
           {feedback ? (

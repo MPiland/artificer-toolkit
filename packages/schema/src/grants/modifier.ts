@@ -378,6 +378,7 @@ const buildModifierGrantVariants = () => {
     buildModifierGrantVariant('ATTACKS_AGAINST', 'ADVANTAGE', attacksAgainstParamDtoSchema),
     buildModifierGrantVariant('ATTACKS_AGAINST', 'DISADVANTAGE', attacksAgainstParamDtoSchema),
     buildModifierGrantVariant('OPPORTUNITY_ATTACK_IMMUNITY', 'ENABLE', emptyDomainDtoSchema),
+    buildModifierGrantVariant('SPELLCASTING_LOCK', 'ENABLE', emptyDomainDtoSchema),
     buildModifierGrantVariant(
       'SKILL_MODIFIER',
       'BONUS',
@@ -512,7 +513,12 @@ const buildModifierGrantVariants = () => {
       optionPayloadByDomainDtoSchema.MOVEMENT_MODE
     ),
     buildModifierGrantVariant('SENSE_RANGE', 'BONUS', senseParamDtoSchema, authoredLengthSchema),
-    buildModifierGrantVariant('SENSE_RANGE', 'SET_VALUE', senseParamDtoSchema, authoredLengthSchema),
+    buildModifierGrantVariant(
+      'SENSE_RANGE',
+      'SET_VALUE',
+      senseParamDtoSchema,
+      authoredLengthSchema
+    ),
     buildModifierGrantVariant(
       'RANGE',
       'REPLACE_RANGE_KIND',

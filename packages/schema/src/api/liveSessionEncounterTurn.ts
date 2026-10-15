@@ -59,7 +59,12 @@ export type LiveSessionEncounterTurnCommitInput = Omit<
 > &
   Pick<
     LiveSessionEncounterActionCommitInput,
-    'rules' | 'maintenanceOwners' | 'concentration' | 'pendingConcentration' | 'concentrationEnds'
+    | 'rules'
+    | 'maintenanceOwners'
+    | 'concentration'
+    | 'pendingConcentration'
+    | 'concentrationEnds'
+    | 'endedGrants'
   > & {
     occurrenceId: string
     occurredAt: string

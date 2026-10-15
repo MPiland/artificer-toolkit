@@ -7,7 +7,11 @@ import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projectio
 import { attackDomainCodeSchema } from '@artificer-toolkit/schema/shared/enums'
 import { speedDtoSchema, type SpeedDto } from '@artificer-toolkit/schema/shared/speed'
 import { createCharacterMechanicSourceKey } from '@artificer-toolkit/shared/character'
-import { feetInLengthUnit, type AttackDomainCode } from '@artificer-toolkit/shared/core'
+import {
+  feetInLengthUnit,
+  type AttackDomainCode,
+  type ValueDomainCode
+} from '@artificer-toolkit/shared/core'
 import { resolveD20Contributors } from '@artificer-toolkit/shared/rolls'
 import { compareCanonicalD20Contributors } from '@artificer-toolkit/shared/rules'
 
@@ -223,15 +227,18 @@ export function hasEncounterDefensiveGrants(
   )
 }
 
-/** Whether an active grant (Disengage) makes the holder's movement provoke no opportunity attacks. */
-export function encounterGrantsOpportunityAttackImmunity(
-  effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[]
+/**
+ * Whether an active grant switches on a flag domain (`ENABLE`): Disengage's
+ * `OPPORTUNITY_ATTACK_IMMUNITY` makes the holder's movement provoke no opportunity attacks, and
+ * `SPELLCASTING_LOCK` bars the holder from casting spells and holding Concentration.
+ */
+export function encounterGrantsEnabledDomain(
+  effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[],
+  domain: Extract<ValueDomainCode, 'OPPORTUNITY_ATTACK_IMMUNITY' | 'SPELLCASTING_LOCK'>
 ): boolean {
   return listActiveEffectGrants(effects).some(({ modifiers }) =>
     modifiers.some(
-      (modifier) =>
-        modifier.valueDomainCode === 'OPPORTUNITY_ATTACK_IMMUNITY' &&
-        modifier.modifierKind === 'ENABLE'
+      (modifier) => modifier.valueDomainCode === domain && modifier.modifierKind === 'ENABLE'
     )
   )
 }

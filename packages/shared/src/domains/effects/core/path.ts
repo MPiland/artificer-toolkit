@@ -390,7 +390,8 @@ export const PATH_LIFECYCLE_TURN_BOUNDARY_OPTIONS = valuesOf(
 export const PATH_LIFECYCLE_END_EVENT = {
   ON_ATTACK_ROLL: 'ON_ATTACK_ROLL',
   ON_CAST_SPELL: 'ON_CAST_SPELL',
-  ON_HIT_POINTS_REGAINED: 'ON_HIT_POINTS_REGAINED'
+  ON_HIT_POINTS_REGAINED: 'ON_HIT_POINTS_REGAINED',
+  ON_INCAPACITATED: 'ON_INCAPACITATED'
 } as const
 
 export type PathLifecycleEndEvent = keyof typeof PATH_LIFECYCLE_END_EVENT
@@ -415,6 +416,11 @@ export const PATH_LIFECYCLE_END_EVENT_REGISTRY: Record<
     code: PATH_LIFECYCLE_END_EVENT.ON_HIT_POINTS_REGAINED,
     label: 'On Hit Points Regained',
     description: 'Ends on healing.'
+  },
+  [PATH_LIFECYCLE_END_EVENT.ON_INCAPACITATED]: {
+    code: PATH_LIFECYCLE_END_EVENT.ON_INCAPACITATED,
+    label: 'On Incapacitated',
+    description: 'Ends on incapacitation.'
   }
 } as const
 

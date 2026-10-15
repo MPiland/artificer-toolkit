@@ -568,6 +568,22 @@
               "proof": [],
               "origin": "SPELLS-8.T1 merge batch 2026-10-15 (local-validation/merge-s8t1/apis.log): assistedPartyJourney.test.ts failed once under load at readRoomRollCards (three members read through Promise.all, each running checkpointLiveRoom); passed alone (rerun-apj.log).",
               "note": ""
+            },
+            {
+              "id": "PLATFORM-13.9",
+              "text": "Convex tests and live-backend proofs never fail by chance on generated account data: every generated username passes the real username policy, proved by the account journeys and local auth helpers using a username that the imported validateUsername accepts.",
+              "status": "TODO",
+              "proof": [],
+              "origin": "CI run 38778258014 attempt 1 (SPELLS-8, Convex 1/4): accountJourneys.test.ts:97 got INVALID_USERNAME instead of EMAIL_PASSWORD_SIGN_UP_DISABLED. The random Journey_<12 hex> suffix can contain a profanity substring (for example a55 reads as \"ass\" after the digit swap). apps/apis/tests/localAuth.ts generates Auth_<12 hex> the same way.",
+              "note": "Product question Q22 (substring profanity match rejects ordinary names) is open; this AC fixes the test data either way."
+            },
+            {
+              "id": "PLATFORM-13.10",
+              "text": "Convex test runs log no errors from scheduled jobs the test environment leaves unconfigured (MEDIA_STORAGE_MODE, MAIL_DELIVERY_MODE, LIVE_SESSION_WORKER_URL): the convex-test setup configures the same test modes the product supports, so a CI failure log shows only the real failure.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Registered 2026-10-15: every Convex shard log carries \"Error when running scheduled function … must be configured\" lines (for example runs 38792840212, 38789989223) that fail nothing but bury real failures. Use the product's own test or disabled modes; do not silence logging."
             }
           ],
           "wsjf": {
@@ -629,14 +645,15 @@
             {
               "id": "PLATFORM-13.T5",
               "text": "Convex-suite speed work from the 2026-10-14 top-20: the corpus-scale journeys (equipmentLimits, developmentLifecycleProof, commitReferencedContext, seed, seedAudit, builderSnapshotParity, equipmentCharacter, catalogueReadBudget, developmentCustody: 970 s of 2808 s), media/* per-test fixture setup (profile first) and module import (688 s across 380 files). Per-file timings only; proofs keep running real code.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["PLATFORM-13.7"],
               "wsjf": {
                 "bv": 3,
                 "tc": 5,
                 "rr": 5,
                 "size": 5
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-platform-13-t5.md"
             },
             {
               "id": "PLATFORM-13.T6",
@@ -650,6 +667,31 @@
                 "size": 2
               },
               "activeWorkbook": "docs/handoffs/slice-platform-13-t6.md"
+            },
+            {
+              "id": "PLATFORM-13.T7",
+              "text": "Make generated test usernames (accountJourneys.test.ts signupInput, tests/localAuth.ts) always valid under the real imported validateUsername, without copying the policy, and prove the journey red with a known-rejected suffix first.",
+              "status": "IN_PROGRESS",
+              "closes": ["PLATFORM-13.9"],
+              "wsjf": {
+                "bv": 1,
+                "tc": 3,
+                "rr": 5,
+                "size": 1
+              },
+              "activeWorkbook": "docs/handoffs/slice-platform-13-t5.md"
+            },
+            {
+              "id": "PLATFORM-13.T8",
+              "text": "Configure the convex-test environment so scheduled content-snapshot, email and live-session control jobs run in their supported test modes instead of throwing \"must be configured\".",
+              "status": "TODO",
+              "closes": ["PLATFORM-13.10"],
+              "wsjf": {
+                "bv": 1,
+                "tc": 2,
+                "rr": 3,
+                "size": 1
+              }
             }
           ]
         },
@@ -1063,7 +1105,7 @@
         {
           "id": "ACCOUNTS-7",
           "title": "Choose a username",
-          "status": "DONE",
+          "status": "IN_PROGRESS",
           "journeyTests": ["apps/apis/convex/auth.test.ts"],
           "journeyStatus": "verified",
           "origin": ["F09"],
@@ -1088,6 +1130,35 @@
               "proof": [".codex/validation/phase82-foundation/profile-browser-closure-proof.md"],
               "origin": ["F09.3"],
               "id": "ACCOUNTS-7.3"
+            },
+            {
+              "id": "ACCOUNTS-7.4",
+              "text": "Username moderation is tiered (Q22): normalized names are split into parts at separators, case changes and letter-digit changes; a blocked part, an unambiguous term anywhere, or a blocked word plus dictionary words (server-side) is refused; ordinary names such as Cassandra, Classic, Dickens, Essex, Glasshouse and Assassin are accepted; ass_muncher, AssMuncher, Ass1Muncher and assmuncher are refused.",
+              "status": "TODO",
+              "proof": [],
+              "origin": "Q22 (2026-10-15), from the PLATFORM-13.9 test-data flake.",
+              "note": ""
+            }
+          ],
+          "wsjf": {
+            "bv": 3,
+            "tc": 5,
+            "rr": 2,
+            "size": 3
+          },
+          "tasks": [
+            {
+              "id": "ACCOUNTS-7.T1",
+              "text": "Replace the substring profanity check in validateUsername with the Q22 tiered policy; evaluate the obscenity npm library first; dictionary segmentation runs server-side only.",
+              "status": "IN_PROGRESS",
+              "closes": ["ACCOUNTS-7.4"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 5,
+                "rr": 2,
+                "size": 3
+              },
+              "activeWorkbook": "docs/handoffs/slice-accounts-7-t1.md"
             }
           ]
         },
@@ -5412,11 +5483,11 @@
           "acs": [
             {
               "id": "ATTACK-9.1",
-              "text": "A Barbarian rages in an Encounter: Rage is offered as a bonus action, spends a rage charge, and for its duration grants the level-scaled Rage damage bonus on Strength melee weapon attacks, resistance to bludgeoning, piercing and slashing damage, and advantage on Strength checks and saving throws; while raging the Barbarian cannot cast spells or keep Concentration; Rage ends at its duration, by choice, or when the Barbarian is incapacitated; GM undo restores the charge. The feature is authored only from core authoring options (no CLOSED_RULE, no feature-specific kind or executor); an author-built equivalent made through the real authoring form publishes to the same structure and resolves identically.",
-              "status": "TODO",
+              "text": "A Barbarian rages in an Encounter: Rage is offered as a bonus action, spends a rage charge, and for its duration grants the level-scaled Rage damage bonus on Strength melee weapon attacks, resistance to bludgeoning, piercing and slashing damage, and advantage on Strength checks and saving throws; while raging the Barbarian cannot cast spells or keep Concentration; Rage ends at its duration, by choice, or when the Barbarian is knocked unconscious (SRD; D113.3b); GM undo restores the charge. The feature is authored only from core authoring options (no CLOSED_RULE, no feature-specific kind or executor); an author-built equivalent made through the real authoring form publishes to the same structure and resolves identically.",
+              "status": "IN_PROGRESS",
               "proof": [],
               "origin": [],
-              "note": "Split 2026-10-14 from the original AC (Rage, Sneak Attack, Smite, Action Surge, Second Wind, two-weapon fighting resolve); rul-9-rules-audit.md slice 7. Inventory: all but Second Wind are inert CLOSED_RULE outcomes (closed-rule-effect.ts) that compile to MANUAL and are never offered. The SRD early end (no attack on a hostile creature and no damage taken since the last turn) is ATTACK-9.6 / T6."
+              "note": "Split 2026-10-14 from the original AC (Rage, Sneak Attack, Smite, Action Surge, Second Wind, two-weapon fighting resolve); rul-9-rules-audit.md slice 7. Inventory: all but Second Wind are inert CLOSED_RULE outcomes (closed-rule-effect.ts) that compile to MANUAL and are never offered. The SRD early end (no attack on a hostile creature and no damage taken since the last turn) is ATTACK-9.6 / T6. 2026-10-15: wording amended from \"incapacitated\" to the SRD \"knocked unconscious\" (D113.3b). T1 merged 13f634280; review fixes and the heavy-armor and movement-pass gaps are T7."
             },
             {
               "id": "ATTACK-9.2",
@@ -5469,15 +5540,14 @@
             {
               "id": "ATTACK-9.T1",
               "text": "Rage resolves in an Encounter (bonus action, charge spend, timed grant, spellcasting and Concentration lock, end conditions, undo).",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["ATTACK-9.1"],
               "wsjf": {
                 "bv": 13,
                 "tc": 5,
                 "rr": 8,
                 "size": 3
-              },
-              "activeWorkbook": "docs/handoffs/slice-attack-9-t1.md"
+              }
             },
             {
               "id": "ATTACK-9.T2",
@@ -5543,6 +5613,19 @@
                 "size": 1,
                 "after": ["ATTACK-9.T1", "ATTACK-9.T2"]
               }
+            },
+            {
+              "id": "ATTACK-9.T7",
+              "text": "Rage merge-review fixes: defeated-holder plan/persistence agreement, completeness check of ended grants, recorded attack ability, MANUAL/non-ACTIVE holder end, turn-commit and edit ends, undo when Rage ends Concentration, movement-pass end, heavy-armor predicate, nits.",
+              "status": "IN_PROGRESS",
+              "closes": ["ATTACK-9.1"],
+              "wsjf": {
+                "bv": 13,
+                "tc": 5,
+                "rr": 8,
+                "size": 3
+              },
+              "activeWorkbook": "docs/handoffs/slice-attack-9-t1.md"
             }
           ]
         },
@@ -5937,8 +6020,12 @@
             {
               "id": "ATTACK-17.6",
               "text": "A player who controls a hidden concentrating creature sees that creature's concentration check card as their own private card; other players do not, and the GM keeps the full card.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "merge 60b64d620",
+                "CI run 38790799387 (ci/merge-a9a17; Convex 3/4 fails only the known PRIVACY-1.T1 signature)",
+                "local-validation/merge-a9a17/summary.log"
+              ],
               "origin": "Follow-up from ATTACK-17.T1 review (9dac2816c): concentrationRollPersistence.ts and concentrationEnd.ts still retain the card for the GM only.",
               "note": ""
             }
@@ -6004,7 +6091,7 @@
             {
               "id": "ATTACK-17.T5",
               "text": "Route concentration check cards through the ATTACK-17.T1 private-card routing (player copy for the controller).",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["ATTACK-17.6"],
               "wsjf": {
                 "bv": 3,
@@ -6012,8 +6099,7 @@
                 "rr": 3,
                 "size": 2,
                 "after": ["ATTACK-17.T1"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-attack-17-t5.md"
+              }
             }
           ]
         },
@@ -7946,7 +8032,7 @@
         {
           "id": "PRIVACY-1",
           "title": "Players see only redacted combat data",
-          "status": "DONE",
+          "status": "IN_PROGRESS",
           "journeyTests": [
             "apps/apis/convex/encounters/cutoverPrivacy.test.ts",
             "apps/apis/convex/encounters/encounterProjectionParity.test.ts"
@@ -8007,6 +8093,35 @@
               ],
               "origin": ["V12.6"],
               "id": "PRIVACY-1.6"
+            },
+            {
+              "id": "PRIVACY-1.7",
+              "text": "Once the room has received the ownership notice, a command replay after an ownership transfer is presented for the issuer's current role: the owner who regains ownership gets the GM projection, and a former owner who is now a player gets the redacted player projection. Before the notice arrives, the documented accepted-exposure window applies (live-sessions.md, ADR 0035 A21). The lifecycle proof delivers the notice deterministically instead of racing it.",
+              "status": "TODO",
+              "proof": [],
+              "origin": "Intermittent CI failure of developmentLifecycleProof.test.ts at tests/developmentEncounterTransactions.ts:286 (runs 38782976507, 38781276358 attempt 1, 38782673073): after ownership returned to the owner, replaying START returned the player projection (health null, no features). Base 79a60ef0a passed 3 of 3 locally (local-validation/lifecycle-base/).",
+              "note": "Until T1 merges, this exact failure on a slice CI run is a known base defect and does not block that slice's merge. 2026-10-15: the cause was the proof racing asynchronous notice delivery, not a Worker defect; option A was approved."
+            }
+          ],
+          "wsjf": {
+            "bv": 3,
+            "tc": 5,
+            "rr": 8,
+            "size": 3
+          },
+          "tasks": [
+            {
+              "id": "PRIVACY-1.T1",
+              "text": "Find why a replay is presented for the issuer's stale role after an ownership transfer, fix it at the cause, and prove both directions deterministically.",
+              "status": "IN_PROGRESS",
+              "closes": ["PRIVACY-1.7"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 5,
+                "rr": 8,
+                "size": 3
+              },
+              "activeWorkbook": "docs/handoffs/slice-privacy-1-t1.md"
             }
           ]
         },

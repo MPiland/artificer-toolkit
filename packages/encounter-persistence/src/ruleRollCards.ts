@@ -1,5 +1,9 @@
 import type { CampaignChatEntryDto } from '@artificer-toolkit/schema/api/campaignCommunication'
-import type { RollRecordDto, RollVisibilityDto } from '@artificer-toolkit/schema/api/rolls'
+import type {
+  GmCampaignRollDto,
+  RollRecordDto,
+  RollVisibilityDto
+} from '@artificer-toolkit/schema/api/rolls'
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { readEncounterActorPrimaryController } from './actorController.js'
 import type { CampaignAuthority, EncounterReadTransaction, EncounterWritePorts } from './ports.js'
@@ -59,16 +63,46 @@ export async function readRuleRollRouting(
   const visibility =
     (initiatorUserId === campaign.ownerUserId ? input.visibility : undefined) ??
     (await ctx.ports.readGmRollVisibility(campaign.ownerUserId))
-  return { audience: visibility === 'PUBLIC' ? 'TABLE' : 'PRIVATE', authorUserId }
+  return {
+    audience: visibility === 'PUBLIC' ? 'TABLE' : 'PRIVATE',
+    authorUserId
+  }
 }
 
 /**
- * Records one rule roll's chat card: a TABLE card, or a roll retained in the GM's private history
- * with the rolling creature referenced for a later reveal. Returns the posted table entry.
+ * Retains a private rule roll's card: in the GM's private history with the rolling creature
+ * referenced for a later reveal (the sight-adjusted `gmRoll` when there is one), and, when a player
+ * controls the roller, as that player's own copy of the generic `roll` with no reveal to offer.
+ * Returns that player (`authorUserId` from `readRuleRollRouting`), or null when only the GM holds it.
+ */
+export async function retainPrivateRuleRoll(
+  ctx: { readonly ports: Pick<EncounterWritePorts, 'retainPrivateRoll'> },
+  input: {
+    campaign: CampaignAuthority['campaign']
+    creature: GmCampaignRollDto['creature']
+    authorUserId: string
+    roll: RollRecordDto
+    gmRoll?: RollRecordDto
+  }
+): Promise<string | null> {
+  const { campaign, authorUserId, roll } = input
+  await ctx.ports.retainPrivateRoll(campaign.ownerUserId, input.gmRoll ?? roll, {
+    campaignId: campaign.id,
+    creature: input.creature,
+    revealedAt: null,
+    noticedAt: null
+  })
+  const playerCopyUserId = authorUserId === campaign.ownerUserId ? null : authorUserId
+  if (playerCopyUserId) await ctx.ports.retainPrivateRoll(playerCopyUserId, roll, null)
+  return playerCopyUserId
+}
+
+/**
+ * Records one rule roll's chat card: a TABLE card, or a roll retained as `retainPrivateRuleRoll`
+ * describes. Returns the posted table entry.
  *
  * A private card is also the roller's own when a player controls the roller (`playerCopyUserId`):
- * that player's history holds the generic `roll`, with no reveal to offer, and their answer carries
- * it. The table and the area's caster learn nothing of it.
+ * their answer carries it. The table and the area's caster learn nothing of it.
  *
  * A roll the server adjusted for sight (ATTACK-10.1) carries `gmRoll`, the same dice with the GM's
  * specific reason. The table card keeps the generic `roll`; the GM's history holds `gmRoll`, already
@@ -115,13 +149,12 @@ export async function recordRuleRollCard(
       })
     return { audience, entry, playerCopyUserId: null }
   }
-  await ctx.ports.retainPrivateRoll(campaign.ownerUserId, input.gmRoll ?? roll, {
-    campaignId: campaign.id,
+  const playerCopyUserId = await retainPrivateRuleRoll(ctx, {
+    campaign,
     creature,
-    revealedAt: null,
-    noticedAt: null
+    authorUserId,
+    roll,
+    gmRoll: input.gmRoll
   })
-  const playerCopyUserId = authorUserId === campaign.ownerUserId ? null : authorUserId
-  if (playerCopyUserId) await ctx.ports.retainPrivateRoll(playerCopyUserId, roll, null)
   return { audience, entry: null, playerCopyUserId }
 }

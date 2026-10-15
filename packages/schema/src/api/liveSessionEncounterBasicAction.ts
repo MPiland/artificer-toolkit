@@ -12,6 +12,7 @@ import { serverKernelRuleExecutionPendingSnapshotDtoSchema } from '../shared/rul
 import { storedRuleExecutionResultDtoSchema } from '../shared/ruleExecutionResults.js'
 import { encounterActorRuleOutputSchema } from './encounterActorRules.js'
 import {
+  endHeldGrantInputDtoSchema,
   escapeRelationshipInputDtoSchema,
   resolveCheckActionInputDtoSchema,
   resolveRuleOccurrenceInputDtoSchema
@@ -124,6 +125,22 @@ export const liveSessionEncounterEscapeCommitInputSchema = lazySchema(() =>
   })
 )
 
+/**
+ * A room-planned end of a held grant (D113): the activation it spent. Convex checks it against the
+ * current Run, re-reads the grant's own `holderEnd`, deletes the grant and records the command.
+ */
+export const liveSessionEncounterEndHeldGrantCommitInputSchema = lazySchema(() =>
+  z.extend(basicActionScope, {
+    command: endHeldGrantInputDtoSchema,
+    revisions: liveSessionRulesRevisionsSchema,
+    occurredAt: z.iso.datetime(),
+    actionEconomy: z.nullable(encounterActionEconomyTransitionDtoSchema),
+    /** Warnings the command acknowledged and the room overrode. */
+    ruleOverrides: encounterRuleWarningsDtoSchema,
+    rules: encounterActorRuleOutputSchema
+  })
+)
+
 /** The holder's d20 for a pending Escape check; it settles the check. */
 export const liveSessionEncounterEscapeResponseCommitInputSchema = lazySchema(() =>
   z.extend(basicActionScope, {
@@ -137,6 +154,9 @@ export const liveSessionEncounterEscapeResponseCommitInputSchema = lazySchema(()
 
 export type LiveSessionEncounterEscapeCommitInput = z.infer<
   typeof liveSessionEncounterEscapeCommitInputSchema
+>
+export type LiveSessionEncounterEndHeldGrantCommitInput = z.infer<
+  typeof liveSessionEncounterEndHeldGrantCommitInputSchema
 >
 export type LiveSessionEncounterEscapeResponseCommitInput = z.infer<
   typeof liveSessionEncounterEscapeResponseCommitInputSchema

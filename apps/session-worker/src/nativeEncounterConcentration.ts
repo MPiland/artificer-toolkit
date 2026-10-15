@@ -4,7 +4,10 @@ import type {
   LiveSessionEncounterRulesRequest,
   LiveSessionEncounterRulesResponse
 } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
-import type { EncounterMaintainedEffectStateRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
+import type {
+  ActiveRuleEffectRecord,
+  EncounterMaintainedEffectStateRecord
+} from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { encounterRunStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
@@ -27,6 +30,10 @@ import {
 import { DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from '@artificer-toolkit/rules-runtime/systems/dnd5e/concentrationIdentity'
 import { deadCharacterIdsOfTargets } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import { encounterConcentrationEndReason } from '@artificer-toolkit/rules-runtime/encounterConcentrationEnd'
+import {
+  grantsEndedByHolderState,
+  stateBoundGrants
+} from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
 import { nextRollInt } from '@artificer-toolkit/rules-runtime/random'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
@@ -91,9 +98,11 @@ export async function planNativeLiveConcentration(input: {
   const concentrationEnds: Array<{
     ownerActorId: string
     maintainedStateId: string
-    reason: 'INCAPACITATED' | 'DEFEATED'
+    reason: NonNullable<Awaited<ReturnType<typeof encounterConcentrationEndReason>>>
     cleanup: Awaited<ReturnType<typeof loseConcentration>>
   }> = []
+  // Grants their holder's incapacitation ends (D95), found by the same detection as Concentration.
+  const endedGrants: ActiveRuleEffectRecord[] = []
   let pending: ServerKernelRuleExecutionPendingSnapshotDto | null = null
   let resumed: {
     result: ReturnType<typeof completeNativeConcentrationResult>
@@ -108,6 +117,7 @@ export async function planNativeLiveConcentration(input: {
       ...projection,
       completed: [],
       concentrationEnds,
+      endedGrants,
       pending,
       resumed,
       nextState: state
@@ -285,7 +295,8 @@ export async function planNativeLiveConcentration(input: {
       const actor = projection.actors.find((value) => value.id === target.actor.id)
       if (!actor) throw new Error('Concentration actor is unavailable.')
       const maintained = await slotFor(actor.id)
-      if (!maintained) continue
+      const stateBound = stateBoundGrants(target.activeEffects)
+      if (!maintained && !stateBound.length) continue
       const reason = await encounterConcentrationEndReason({
         actor,
         deadCharacterIds: deadCharacterIdsOfTargets([target]),
@@ -294,13 +305,16 @@ export async function planNativeLiveConcentration(input: {
         gameSystemId: state.gameSystemId,
         definitions: definitionSource
       })
-      if (reason)
+      if (reason && maintained)
         concentrationEnds.push({
           ownerActorId: actor.id,
           maintainedStateId: maintained.id,
           reason,
           cleanup: await loseConcentration(maintained)
         })
+      endedGrants.push(
+        ...grantsEndedByHolderState(stateBound, { reason, conditionIds: target.state.conditions })
+      )
     }
   }
   if (!input.applications.length)
@@ -308,6 +322,7 @@ export async function planNativeLiveConcentration(input: {
       ...projection,
       completed: [],
       concentrationEnds,
+      endedGrants,
       pending,
       resumed,
       nextState: state
@@ -471,6 +486,7 @@ export async function planNativeLiveConcentration(input: {
     ...projection,
     completed,
     concentrationEnds,
+    endedGrants,
     pending,
     resumed,
     nextState

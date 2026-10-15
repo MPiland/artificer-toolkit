@@ -21,7 +21,7 @@ import {
   persistNativeConcentrationEnd,
   persistNativeConcentrationResult
 } from './actionChildPersistence.js'
-import { postConcentrationEndMessage, readConcentrationEndReason } from './concentrationEnd.js'
+import { postConcentrationEndMessage, readHolderEndState } from './concentrationEnd.js'
 import { createActiveRuleEffectStore } from './effectStore.js'
 import type { applyLiveConcentrationCleanup } from './concentrationCleanupPersistence.js'
 import { movementPersistedTransitionState } from './liveMovementTargetState.js'
@@ -255,7 +255,7 @@ export async function persistLiveMovementConcentrationEnd(
     !slot ||
     slot.ownerActorId !== holder.id ||
     slot.maintenanceDefinitionId !== DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID ||
-    (await readConcentrationEndReason(ctx, { state, actor: holder, userId: input.userId })) !==
+    (await readHolderEndState(ctx, { state, actor: holder, userId: input.userId })).reason !==
       output.reason
   )
     throw new Error('Live Session movement Concentration end is unexpected.')

@@ -14,6 +14,7 @@ export const VALUE_DOMAIN_CODE = {
   ATTACK_ROLL: 'ATTACK_ROLL',
   ATTACKS_AGAINST: 'ATTACKS_AGAINST',
   OPPORTUNITY_ATTACK_IMMUNITY: 'OPPORTUNITY_ATTACK_IMMUNITY',
+  SPELLCASTING_LOCK: 'SPELLCASTING_LOCK',
   ARMOR_CLASS: 'ARMOR_CLASS',
   SAVE_DC: 'SAVE_DC',
   SAVING_THROW_MODIFIER: 'SAVING_THROW_MODIFIER',
@@ -99,6 +100,13 @@ export const VALUE_DOMAIN_REGISTRY: Record<ValueDomainCode, ValueDomainOption> =
     code: VALUE_DOMAIN_CODE.OPPORTUNITY_ATTACK_IMMUNITY,
     label: 'Opportunity Attack Immunity',
     description: "The holder's movement provokes no opportunity attacks."
+  },
+
+  [VALUE_DOMAIN_CODE.SPELLCASTING_LOCK]: {
+    code: VALUE_DOMAIN_CODE.SPELLCASTING_LOCK,
+    label: 'Spellcasting Lock',
+    description:
+      "The holder can't cast spells or hold Concentration; gaining the grant ends any Concentration it holds."
   },
 
   [VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER]: {
@@ -336,6 +344,9 @@ export type ValueDomainParamByCode = {
 
   // The holder's movement provokes no opportunity attacks (Disengage).
   OPPORTUNITY_ATTACK_IMMUNITY: EmptyObject
+
+  // The holder can't cast spells or hold Concentration.
+  SPELLCASTING_LOCK: EmptyObject
 
   // Ability checks may apply globally or to one ability.
   ABILITY_CHECK: { ability?: AbilityCode }

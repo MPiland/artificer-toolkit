@@ -999,6 +999,8 @@ const characterRuleContributionResultSchema = lazySchema(() =>
     acceptedModifierIndex: z.optional(integerSchema.check(z.gte(0)).check(z.lte(9_999))),
     grantId: z.optional(boundedIdentitySchema),
     domainKey: z.optional(boundedIdentitySchema),
+    /** The ability an ability-modifier contribution adds; attack-ability facets read it. */
+    ability: z.optional(boundedIdentitySchema),
     source: z.optional(characterMechanicSourceSchema),
     state: z.enum(['APPLIED', 'SUPPRESSED']),
     reasonCode: z.enum(['STACKED', 'SUPPRESSED_BY_STACKING'])

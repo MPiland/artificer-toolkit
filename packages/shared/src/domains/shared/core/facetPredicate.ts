@@ -74,6 +74,9 @@ export type PredicatePayloadByCode = {
     { category?: EquipmentCategoryCode }
   >
   SOLE_WIELDED_WEAPON: EmptyObject
+  ATTACK_ABILITY: {
+    ability: AbilityCode
+  }
   EQUIPMENT_PROFICIENCY: Selectable<
     { equipmentIds: string[] },
     {
@@ -290,6 +293,13 @@ export const PREDICATE_REGISTRY = {
     code: 'SOLE_WIELDED_WEAPON',
     label: 'Only Weapon Wielded',
     description: 'Requires the item to be the only weapon wielded.',
+    subjects: ['EQUIPMENT']
+  },
+
+  ATTACK_ABILITY: {
+    code: 'ATTACK_ABILITY',
+    label: 'Attack Ability',
+    description: 'Requires the attack to use the ability.',
     subjects: ['EQUIPMENT']
   },
 

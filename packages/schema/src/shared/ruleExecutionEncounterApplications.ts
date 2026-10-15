@@ -77,15 +77,22 @@ const concentrationCleanupDtoSchema = lazySchema(() =>
   })
 )
 
+export const concentrationEndReasonSchema = lazySchema(() =>
+  z.enum(['INCAPACITATED', 'DEFEATED', 'SPELLCASTING_LOCKED', 'CHOSEN'])
+)
+
+/** Why a Concentration ended: involuntarily (D95) or by its holder's choice (SPELLS-5.11). */
+export type ConcentrationEndReason = z.infer<typeof concentrationEndReasonSchema>
+
 /**
- * A Concentration slot that ended because its holder can't act or is defeated (D95), or because the
- * holder ended it by choice (SPELLS-5.11); no check is rolled.
+ * A Concentration slot that ended because its holder can't act, is defeated or can't cast spells
+ * (D95), or because the holder ended it by choice (SPELLS-5.11); no check is rolled.
  */
 export const concentrationEndDtoSchema = lazySchema(() =>
   z.strictObject({
     ownerActorId: uuidSchema,
     maintainedStateId: uuidSchema,
-    reason: z.enum(['INCAPACITATED', 'DEFEATED', 'CHOSEN']),
+    reason: concentrationEndReasonSchema,
     cleanup: concentrationCleanupDtoSchema
   })
 )

@@ -33,7 +33,11 @@ export function evaluateDnd5eCharacterModifiers(
   grantFold: CharacterGrantFoldOutput
 ): CharacterResolvedModifierGroup[] {
   type Group = CharacterGrantFoldOutput['modifierGroups'][number]
-  type Contribution = Group['contributions'][number] & { resolvedValue: number }
+  /** `ability` is the ability an ability-modifier contribution adds (a finesse choice is the best). */
+  type Contribution = Group['contributions'][number] & {
+    resolvedValue: number
+    ability?: string | null
+  }
   const additiveAmount = (payload: Record<string, unknown>): number => {
     if (payload.valueKind == null)
       return characterPolicyNumber(payload.value ?? payload.amount ?? 0)
@@ -72,9 +76,14 @@ export function evaluateDnd5eCharacterModifiers(
       return characterPolicyNumber(payload.value ?? payload.amount ?? 0)
     }
     if (
-      ['ADVANTAGE', 'DISADVANTAGE', 'ADD_OPTION', 'REMOVE_OPTION', 'ADD_BONUS_DIE'].includes(
-        group.modifierKind
-      )
+      [
+        'ADVANTAGE',
+        'DISADVANTAGE',
+        'ADD_OPTION',
+        'REMOVE_OPTION',
+        'ADD_BONUS_DIE',
+        'ENABLE'
+      ].includes(group.modifierKind)
     )
       return 1
     if (group.modifierKind === 'REPLACE_DAMAGE_TYPE' || group.valueDomainCode === 'ABILITY_SCORE')
@@ -148,13 +157,30 @@ export function evaluateDnd5eCharacterModifiers(
     const contributions = isAbilityModifier(group.modifierKind)
       ? group.contributions.map((contribution): Contribution => {
           const payload = characterPolicyRecord(characterPolicyRecord(contribution.grant).payload)
-          const resolvedValue =
-            group.modifierKind === 'ABILITY_MODIFIER_BONUS'
-              ? resolveAbilityModifierBonus(abilityModifierOf(payload.ability), payload)
-              : Array.isArray(payload.abilities) && payload.abilities.length > 0
-                ? Math.max(...payload.abilities.map(abilityModifierOf))
-                : 0
-          return { ...contribution, resolvedValue }
+          if (group.modifierKind === 'ABILITY_MODIFIER_BONUS') {
+            return {
+              ...contribution,
+              ability: canonicalCharacterAbility(payload.ability),
+              resolvedValue: resolveAbilityModifierBonus(
+                abilityModifierOf(payload.ability),
+                payload
+              )
+            }
+          }
+          const best = Array.isArray(payload.abilities)
+            ? payload.abilities.reduce<unknown>(
+                (chosen, candidate) =>
+                  chosen === undefined || abilityModifierOf(candidate) > abilityModifierOf(chosen)
+                    ? candidate
+                    : chosen,
+                undefined
+              )
+            : undefined
+          return {
+            ...contribution,
+            ability: canonicalCharacterAbility(best),
+            resolvedValue: best === undefined ? 0 : abilityModifierOf(best)
+          }
         })
       : (
           scalarGroups.find((candidate) => candidate.domainKey === group.domainKey)
@@ -222,6 +248,7 @@ export function evaluateDnd5eCharacterModifiers(
           source,
           domainKey: group.domainKey,
           value: contribution.resolvedValue,
+          ...(contribution.ability == null ? {} : { ability: contribution.ability }),
           state: applied ? 'APPLIED' : 'SUPPRESSED',
           reasonCode: applied ? 'STACKED' : 'SUPPRESSED_BY_STACKING'
         }

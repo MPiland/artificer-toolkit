@@ -57,7 +57,8 @@ const ITEM_CONDITION_KINDS: ReadonlySet<RestrictionCondition['kind']> = new Set(
   'ITEM_IDENTITY',
   'ITEM_CATEGORY',
   'ITEM_PROPERTY',
-  'ITEM_SOLE_WEAPON'
+  'ITEM_SOLE_WEAPON',
+  'ITEM_ATTACK_ABILITY'
 ])
 
 /**
@@ -228,6 +229,7 @@ export function evaluateDnd5e2014CharacterGrantFold(
       case 'ITEM_CATEGORY':
       case 'ITEM_PROPERTY':
       case 'ITEM_SOLE_WEAPON':
+      case 'ITEM_ATTACK_ABILITY':
       case 'CAN_ACT':
       case 'SPEED_ABOVE_ZERO':
       case 'FREE_HAND':
