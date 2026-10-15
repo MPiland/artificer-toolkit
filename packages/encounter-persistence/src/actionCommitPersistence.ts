@@ -194,7 +194,7 @@ export async function persistEncounterActionCommit(
     throw new Error('Live Session reaction spell slot has no reaction.')
   const reactionSpend = sourceSpendMutation({
     source: target,
-    command: { acceptedWieldConflict: undefined },
+    command: { acceptedWieldConflict: null },
     resource: null,
     item: null,
     spell: input.reactionSpellConsumption,
