@@ -376,10 +376,10 @@ describe('the scaling heal a cast carries', () => {
   function authoredDice(authored: SpellAuthored, castLevel: number) {
     const entry = compileSpell(authored).effects?.[0]?.entries[0]
     const outcome = entry && 'outcome' in entry ? entry.outcome : undefined
-    if (outcome?.effectKind !== 'HEAL' || !('levels' in outcome))
-      throw new Error(`${authored.label} has no scaling heal.`)
+    if (outcome?.effectKind !== 'HEAL' || outcome.valueKind !== 'DICE' || !('levels' in outcome))
+      throw new Error(`${authored.label} has no scaling dice heal.`)
     const row = outcome.levels.find((level) => level.level === castLevel)
-    const match = /^(\d+)d(\d+)$/.exec(row?.diceConfig ?? '')
+    const match = /^(\d+)d(\d+)$/.exec(row && 'diceConfig' in row ? row.diceConfig : '')
     if (!match) throw new Error(`${authored.label} has no dice row for level ${castLevel}.`)
     return { count: Number(match[1]), die: Number(match[2]) }
   }
