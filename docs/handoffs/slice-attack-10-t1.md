@@ -113,7 +113,7 @@ Frozen list:
 - **6.** A discriminant replaces `'createdEffect' in settlement`.
 - **7.** The Escape DC offers FIXED and CONTEST only, in the schema, the authored type and the node map, tested through node-runtime resolution.
 - **8.** A type-level equality assertion for `EncounterConcealmentCheckPendingContextDto`.
-- **9.** `revertConcealmentCheck` throws `unavailable(...)` on a stale version.
+- **9.** `revertConcealmentCheck` throws `unavailable(...)` on a stale version. Defensive: through commands it is unreachable (revert requires the action to be the Run's latest change), and the room store is writable only inside a room command, so no room test is possible without a store hack; not tested.
 - **Nits.** Unused exports dropped; one observer-set normalizer and one set-equality method (`normalizeObserverActorIds`, `sameObserverActorIds`); the `input` wrapper in `nativeConcealmentPrune.ts` removed; `stealthTotal` renamed `concealmentTotal`.
 
 Resolutions:

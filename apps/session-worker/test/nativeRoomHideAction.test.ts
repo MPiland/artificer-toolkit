@@ -12,10 +12,8 @@ import {
   SRD_PERCEPTION_SKILL_ID,
   SRD_STEALTH_SKILL_ID
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
-import { runInDurableObject } from 'cloudflare:test'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { RoomEncounterStore } from '../src/roomEncounterStore.js'
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { actionRoom, biteWolf, withCheckTotals } from './actionRoomFixture.js'
 import { closeTrackedSockets, connectPlayer } from './liveRoomFixture.js'
@@ -81,7 +79,7 @@ const wall = {
 /**
  * A Wolf hider with Stealth +5, acting first, beside three friendly Wolves of differing Perception.
  * `walled` puts a wall of the Scene between the hider and the two Wolves further away;
- * `playerHider` makes the hider a player's creature; `rolls` feeds the room's own dice.
+ * `playerHider` makes the hider a player's creature and the Sharp Wolf another player's; `rolls` feeds the room's own dice.
  */
 function hideRoom(options: { walled?: boolean; playerHider?: boolean; rolls?: number[] } = {}) {
   const hider = withCheckTotals(srdCreatureActor({ id: HIDER_ID, creature: bite }), {
@@ -90,7 +88,9 @@ function hideRoom(options: { walled?: boolean; playerHider?: boolean; rolls?: nu
   return actionRoom({
     ...(options.walled ? { sceneOverrides: { barriers: [wall] } } : {}),
     rolls: options.rolls ?? [],
-    ...(options.playerHider ? { playerControlledActorIds: [HIDER_ID] } : {}),
+    ...(options.playerHider
+      ? { playerControlledActorIds: [HIDER_ID], otherPlayerControlledActorIds: [SHARP_ID] }
+      : {}),
     actors: [
       hider,
       ...OBSERVER_PERCEPTION.map(([id, perception]) =>
@@ -159,17 +159,13 @@ async function concealmentOutputs(fixture: Fixture) {
   })
 }
 
-async function requestRevert(fixture: Fixture) {
-  return fixture.room.send({
+async function revertLast(fixture: Fixture) {
+  const undone = await fixture.room.send({
     type: 'REVERT_LAST_ACTION',
     encounterId: fixture.room.room.encounterId,
     commandId: crypto.randomUUID(),
     expectedVersion: await fixture.room.version()
   })
-}
-
-async function revertLast(fixture: Fixture) {
-  const undone = await requestRevert(fixture)
   expect(undone.type, JSON.stringify(undone)).toBe('COMMAND_COMMITTED')
 }
 
@@ -256,22 +252,6 @@ describe('Hide, a System basic action with a per-observer check, in the room', (
     await hide(fixture, 10)
     await revertLast(fixture)
     expect(await concealments(fixture)).toEqual([])
-  })
-
-  it('refuses to undo a Hide once its concealment changed, and keeps the concealment', async () => {
-    const fixture = await hideRoom()
-    await hide(fixture, 10)
-    // Another write to the effect after the Hide, as a concurrent change would leave it.
-    await runInDurableObject(fixture.room.room.base.stub, async (_instance, context) => {
-      const room = new RoomEncounterStore(context.storage)
-      const effect = room.documents('encounterActiveRuleEffects')[0]!
-      await room.store.patch(effect._id, { version: effect.version + 1 })
-    })
-    expect(await requestRevert(fixture)).toMatchObject({
-      type: 'COMMAND_REJECTED',
-      message: 'The concealment changed after this action; adjust manually.'
-    })
-    expect(await concealments(fixture)).toHaveLength(1)
   })
 })
 
