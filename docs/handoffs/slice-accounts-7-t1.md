@@ -1,6 +1,6 @@
 # Slice workbook: ACCOUNTS-7.T1 (tiered username moderation, Q22)
 
-**Status:** done (CI run 38798429920 green)
+**Status:** done (review round: CI run 38814079911 green on d56530a07; first pass run 38798429920)
 **Base:** `codex/phase-08-2-convex-cutover` at this workbook's commit.
 **Rules:** [slice-workbook-rules.md](slice-workbook-rules.md).
 
@@ -64,6 +64,7 @@ Escalate (`SendMessage` to the main session) only if:
   - **S6:** `.oxlintrc.jsonc` forbids `@artificer-toolkit/shared/account/usernameServer` in `apps/web/**` (probe file confirmed the rule fires, then deleted).
   - **N1/N2, N4, N6, N8:** the phrases are an array of `{ term, patterns }`; the no-op `.replace(/[^a-z]/g, '')` is gone; `|cums|` is a cum pattern; `assman` is in `profaneCompounds`; the byte size wording is corrected.
   - **Probe of false positives (throwaway test, deleted):** `Dickinson`, `Hitchcock` and `Middlesex` were refused by the short-word dictionary (dick + in + son, hit + cock, middle + sex) and are now on the allowlist with accepted-name tests. Still refused, as a consequence of B1(b) and S2 (report-only, N10 family): `Assassin_Creed`, `Titan_Fall`, `Compass_Rose`, because the joined form is not a dictionary word and reads as ass/tit + words. Accepted in the probe: Bassett, Cummins, Glass_House, Hannah_Montana, Peacock, Sussex. The long tail of surnames that read as blocked term + short words needs the allowlist or an exemption for joins whose `_` parts are all dictionary words; that is a follow-up for the main session to rule on.
+  - **CI (review round):** run 38814079911 on d56530a07, all 9 jobs green (build, web and Convex typechecks, package and Worker tests, web tests, Convex shards 1-4). Local logs: `red2-shared.log`, `green3-shared.log` (84 tests pass).
 - Not run here: Storybook (not applicable), web username-field tests (CI "Web tests").
 - Note for PLATFORM-13.T7: random hex test names (`Journey_<12 hex>`) can contain `b00b`-style look-alikes for unambiguous terms (about 1 in 7,000); the server check adds a negligible compound risk. T7's own retry logic stays valid.
 - Docs: no canonical guide describes username moderation, so none changed; Q22 in `phase-08-2-decisions.md` remains the record.
