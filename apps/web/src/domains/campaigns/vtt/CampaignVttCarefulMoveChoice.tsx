@@ -43,7 +43,7 @@ export function CampaignVttCarefulMoveChoice({
         <Button size='xs' variant='default' onClick={() => onChoose(false)}>
           Move normally
         </Button>
-        <Button size='xs' variant='subtle' onClick={onCancel}>
+        <Button size='xs' variant='subtle' onClick={() => onCancel()}>
           Cancel
         </Button>
       </Group>

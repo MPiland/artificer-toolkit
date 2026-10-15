@@ -1510,9 +1510,9 @@ function zonePlacementPlan(
     grant: lingering
       ? {
           applyGrantOutcomeId: lingering.applyGrantOutcomeId,
-          modifiers: lingering.modifiers,
-          senses: lingering.senses,
-          endOnEvents: lingering.endOnEvents
+          modifiers: [...lingering.modifiers],
+          senses: [...lingering.senses],
+          endOnEvents: [...lingering.endOnEvents]
         }
       : null
   }
