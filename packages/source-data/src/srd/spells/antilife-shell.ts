@@ -84,7 +84,8 @@ export const antilifeShell: SpellAuthored = {
               {
                 id: spellChildId(SPELL_IDS.ANTILIFE_SHELL, 0x213, 1),
                 effectKind: EFFECT_KIND.MANIFEST,
-                manifestKind: MANIFEST_KIND.ZONE
+                manifestKind: MANIFEST_KIND.ZONE,
+                attachmentKind: 'SOURCE'
               }
             ]
           }

@@ -100,6 +100,7 @@ const createBladeManifest = (
   id: spellChildId(SPELL_IDS.BLADE_BARRIER, scope, 1),
   effectKind: EFFECT_KIND.MANIFEST,
   manifestKind: MANIFEST_KIND.ZONE,
+  attachmentKind: 'PLACED_SPACE',
   label,
   shape,
   ...(ring

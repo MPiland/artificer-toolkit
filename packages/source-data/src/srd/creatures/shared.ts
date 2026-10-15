@@ -18,6 +18,7 @@ import {
   RANGE_KIND,
   SCALING,
   SCALING_AMOUNT_KIND,
+  SHAPE_KIND,
   SIZE_CODE,
   SPELL_GRANT_ATTRIBUTE,
   TARGET_DISPOSITION_KIND,
@@ -206,6 +207,44 @@ export function featureId(creatureIndex: number, localIndex: number) {
 
 export function actionId(creatureIndex: number, localIndex: number) {
   return localId(2, creatureIndex, localIndex)
+}
+
+/** A breath weapon's cone: a Self area that starts at the creature and catches everyone in it. */
+export function selfCone(rangeId: string, shapeId: string, lengthFeet: number) {
+  return {
+    range: { id: rangeId, rangeKind: RANGE_KIND.SELF },
+    shape: {
+      id: shapeId,
+      shapeKind: SHAPE_KIND.CONE,
+      length: { amount: lengthFeet, unit: MEASUREMENT_UNIT_CODE.FEET }
+    },
+    targeting: {
+      selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
+      dispositionKind: TARGET_DISPOSITION_KIND.ANY
+    }
+  }
+}
+
+/** A breath weapon's line: a Self area that starts at the creature and catches everyone in it. */
+export function selfLine(
+  rangeId: string,
+  shapeId: string,
+  lengthFeet: number,
+  widthFeet: number
+) {
+  return {
+    range: { id: rangeId, rangeKind: RANGE_KIND.SELF },
+    shape: {
+      id: shapeId,
+      shapeKind: SHAPE_KIND.LINE,
+      length: { amount: lengthFeet, unit: MEASUREMENT_UNIT_CODE.FEET },
+      width: { amount: widthFeet, unit: MEASUREMENT_UNIT_CODE.FEET }
+    },
+    targeting: {
+      selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
+      dispositionKind: TARGET_DISPOSITION_KIND.ANY
+    }
+  }
 }
 
 export function bonusActionId(creatureIndex: number, localIndex: number) {

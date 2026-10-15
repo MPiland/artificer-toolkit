@@ -226,6 +226,8 @@ export async function spatialDamageEffect(input: {
     activation: 'ONE_SHOT' | 'REPEATABLE'
     hidden: boolean
   }
+  /** Makes a Scene-fixed effect a hidden, unrevealed field that allows passage at half speed. */
+  hiddenHalfSpeedField?: boolean
 }) {
   const offset = (input.variant ?? 0) * 0x10
   return buildSpatialDamageEffect({
@@ -245,7 +247,8 @@ export async function spatialDamageEffect(input: {
     save: input.save ?? false,
     condition: input.condition,
     remainingTicks: 3,
-    moving: input.moving
+    moving: input.moving,
+    hiddenHalfSpeedField: input.hiddenHalfSpeedField
   })
 }
 

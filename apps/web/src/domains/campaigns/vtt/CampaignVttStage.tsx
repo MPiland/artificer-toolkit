@@ -102,6 +102,8 @@ import {
 } from './vttSceneRenderer.model'
 import { buildVttTokenPresentations } from './vttTokenPresentation.model'
 import { CampaignVttTokenStatusList } from './CampaignVttTokenStatusList'
+import { halfSpeedFieldsEntered, type HalfSpeedField } from './CampaignVttCarefulMove.model'
+import { CampaignVttCarefulMoveChoice } from './CampaignVttCarefulMoveChoice'
 import { isEncounterActorMine } from './encounterActorControl'
 
 export function CampaignVttStage({
@@ -140,6 +142,12 @@ export function CampaignVttStage({
   const [movementSpeedChoice, setMovementSpeedChoice] = useState<{
     actorId: string
     speedId: string
+  } | null>(null)
+  // A dragged path waiting for its mover to cross a half-speed field carefully or normally.
+  const [carefulChoice, setCarefulChoice] = useState<{
+    tokenId: string
+    path: ScenePoint[]
+    fields: HalfSpeedField[]
   } | null>(null)
   const fogOwnerUserIdRef = useRef<string | null>(null)
   fogOwnerUserIdRef.current = fogOwnerUserId
@@ -863,7 +871,11 @@ export function CampaignVttStage({
       : null
   }
 
-  function commitTokenMove(tokenId: string, path: ScenePoint[]): void {
+  /**
+   * Sends a voluntary move. A path that enters a field allowing passage at half speed waits for the
+   * mover's choice to move carefully or normally, which re-enters with `carefully` set.
+   */
+  function commitTokenMove(tokenId: string, path: ScenePoint[], carefully?: boolean): void {
     const current = sceneRef.current
     if (!current || path.length < 2) return
     if (
@@ -877,7 +889,21 @@ export function CampaignVttStage({
       return
     const mechanicsEncounter =
       activeEncounterSceneBinding && actorIdByTokenId.has(tokenId) ? activeEncounter : null
+    const mover = current.tokens.find((token) => token.id === tokenId)
+    const fields =
+      mechanicsEncounter && mover && carefully === undefined
+        ? halfSpeedFieldsEntered({
+            fields: encounterSessionState?.halfSpeedFields ?? [],
+            path,
+            token: mover
+          })
+        : []
+    if (fields.length) {
+      setCarefulChoice({ tokenId, path, fields })
+      return
+    }
     const command: SceneCommandInputDto = {
+      ...(carefully === undefined ? {} : { carefully }),
       commandId: crypto.randomUUID(),
       correlationId: null,
       expectedEncounterVersion: mechanicsEncounter?.version ?? null,
@@ -1405,6 +1431,16 @@ export function CampaignVttStage({
               dispositionLabel={listedPresentation.dispositionLabel}
               label={listedLabel}
               statuses={listedPresentation.statuses}
+            />
+          ) : null}
+          {carefulChoice ? (
+            <CampaignVttCarefulMoveChoice
+              fields={carefulChoice.fields}
+              onCancel={() => setCarefulChoice(null)}
+              onChoose={(carefully) => {
+                setCarefulChoice(null)
+                commitTokenMove(carefulChoice.tokenId, carefulChoice.path, carefully)
+              }}
             />
           ) : null}
           {effectiveMode === 'EDIT' && tool === 'WALL' ? (

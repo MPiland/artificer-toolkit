@@ -79,11 +79,7 @@ export const youngGoldDragon: CreatureAuthored = {
               baseDc: 17
             },
             activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(306, 204), rangeKind: S.RANGE_KIND.SPECIAL },
-            targeting: {
-              selectionKind: S.TARGET_SELECTION_KIND.AREA_CONTENTS,
-              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
-            }
+            ...S.selfCone(S.actionId(306, 204), S.actionId(306, 239), 30)
           },
           paths: [
             {
@@ -146,11 +142,7 @@ export const youngGoldDragon: CreatureAuthored = {
               baseDc: 17
             },
             activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(306, 232), rangeKind: S.RANGE_KIND.SPECIAL },
-            targeting: {
-              selectionKind: S.TARGET_SELECTION_KIND.AREA_CONTENTS,
-              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
-            }
+            ...S.selfCone(S.actionId(306, 232), S.actionId(306, 240), 30)
           },
           paths: [
             {

@@ -67,7 +67,8 @@ export const mirageArcane: SpellAuthored = {
               {
                 id: spellChildId(SPELL_IDS.MIRAGE_ARCANE, 0x212, 1),
                 effectKind: EFFECT_KIND.MANIFEST,
-                manifestKind: MANIFEST_KIND.ZONE
+                manifestKind: MANIFEST_KIND.ZONE,
+                attachmentKind: 'PLACED_SPACE'
               }
             ]
           }

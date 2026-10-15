@@ -34,6 +34,7 @@ import { EQUIPPED_SLOT_CODES } from '@artificer-toolkit/shared/core'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { restoreConsumedGrants } from './consumedGrantPersistence.js'
+import { deletePlacedSpatialEffect } from './placedSpatialEffects.js'
 import { rejectDomain } from './domainRejections.js'
 import { createActiveRuleEffectStore } from './effectStore.js'
 import { readRunActors, readRunState, replaceRunActor } from './documents.js'
@@ -493,6 +494,12 @@ export async function revertLastEncounterAction(
     })
   // The grants the action's rolls used up come back with their remaining count.
   await restoreConsumedGrants(ctx, root.consumedGrants)
+  // The zone an area action placed leaves the Scene with it.
+  if (areaRoot?.placedSpatialEffectId)
+    await deletePlacedSpatialEffect(ctx, {
+      encounterId: state.id,
+      id: areaRoot.placedSpatialEffectId
+    })
 
   const updatedAt = new Date().toISOString()
   for (const [characterId, inverse] of characterInverses)

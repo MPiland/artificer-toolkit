@@ -480,8 +480,21 @@ function complete(input: {
     activeEffectId: prepared.activeEffectId,
     emptyApplicationAllowed: interpreted.emptyApplicationAllowed
   })
+  // A graph that declares the output decides whether the contacted creature's movement stops.
+  if (
+    graph.outputs.movementInterruption &&
+    typeof execution.outputs.movementInterruption !== 'boolean'
+  )
+    throw new CharacterActiveRuleEffectExecutionError(
+      'The active-effect movement interruption output is invalid.'
+    )
   return {
-    execution,
+    execution: graph.outputs.movementInterruption
+      ? {
+          ...execution,
+          movementInterruption: execution.outputs.movementInterruption ? { kind: 'STOP' } : null
+        }
+      : execution,
     applications: interpreted.applications,
     terminal: interpreted.terminal,
     d20: d20EvidenceForCompletion({

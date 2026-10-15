@@ -444,10 +444,7 @@ export const adultGoldDragon: CreatureAuthored = {
               code: S.ACTIVATION_CODE.ACTION,
               amount: 1
             },
-            range: {
-              id: S.actionId(8, 30),
-              rangeKind: S.RANGE_KIND.SPECIAL
-            }
+            ...S.selfCone(S.actionId(8, 30), S.actionId(8, 618), 60)
           },
           paths: [
             {
@@ -513,10 +510,7 @@ export const adultGoldDragon: CreatureAuthored = {
               code: S.ACTIVATION_CODE.ACTION,
               amount: 1
             },
-            range: {
-              id: S.actionId(8, 35),
-              rangeKind: S.RANGE_KIND.SPECIAL
-            }
+            ...S.selfCone(S.actionId(8, 35), S.actionId(8, 619), 60)
           },
           paths: [
             {

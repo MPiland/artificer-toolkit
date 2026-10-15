@@ -44,23 +44,28 @@ export function srdByLabel<T extends { readonly label: string }>(
 }
 
 const racesById = new Map<string, RaceAuthored>(SRD.races.map((race) => [race.id, race]))
-const equipmentById = new Map<string, EquipmentAuthored>(
-  SRD.equipment.map((item) => [item.id, item])
-)
-const { registry } = prepareCharacterRuleSources({
-  registry: {
-    races: SRD.races.map((race) => resolveRaceAuthored(race, (id) => racesById.get(id))),
-    classes: SRD.classes,
-    backgrounds: [],
-    equipment: SRD.equipment.map((item) =>
-      resolveEquipmentAuthored(item, (id) => equipmentById.get(id))
-    ),
-    feats: [],
-    features: [],
-    system: { skills: [], speeds: [...SRD_SPEEDS] }
-  },
-  catalog: { spells: [] }
-})
+
+/** The rule registry over the SRD and any further authored equipment, resolved as publication does. */
+function registryWith(extraEquipment: readonly EquipmentAuthored[]) {
+  const equipment = [...SRD.equipment, ...extraEquipment]
+  const equipmentById = new Map<string, EquipmentAuthored>(equipment.map((item) => [item.id, item]))
+  return prepareCharacterRuleSources({
+    registry: {
+      races: SRD.races.map((race) => resolveRaceAuthored(race, (id) => racesById.get(id))),
+      classes: SRD.classes,
+      backgrounds: [],
+      equipment: equipment.map((item) =>
+        resolveEquipmentAuthored(item, (id) => equipmentById.get(id))
+      ),
+      feats: [],
+      features: [],
+      system: { skills: [], speeds: [...SRD_SPEEDS] }
+    },
+    catalog: { spells: [] }
+  }).registry
+}
+
+const srdRegistry = registryWith([])
 
 /** The SRD vocabulary slice that saving-throw projection reads. */
 export const vocabulary = {
@@ -114,6 +119,8 @@ export type SrdCharacterInput = {
   classes: readonly { label: string; level: number; subclass?: string }[]
   features?: readonly SnapshotFeature[]
   items?: readonly { label: string; equipped?: boolean; attuned?: boolean }[]
+  /** Authored equipment beyond the SRD, which `items` may then name by label. */
+  extraEquipment?: readonly EquipmentAuthored[]
 }
 
 export type SrdCharacter = {
@@ -126,6 +133,8 @@ export type SrdCharacter = {
 
 /** Evaluates an SRD Character through the real fact builders and the installed D&D policy. */
 export function evaluateSrdCharacter(input: SrdCharacterInput): SrdCharacter {
+  const registry = input.extraEquipment ? registryWith(input.extraEquipment) : srdRegistry
+  const equipmentRecords = [...SRD.equipment, ...(input.extraEquipment ?? [])]
   const race = input.race === undefined ? undefined : srdByLabel(SRD.races, input.race)
   const subrace = input.subrace === undefined ? undefined : srdByLabel(SRD.races, input.subrace)
   const classes = input.classes.map((entry) => ({
@@ -137,7 +146,7 @@ export function evaluateSrdCharacter(input: SrdCharacterInput): SrdCharacter {
   }))
   const held: HeldItem[] = []
   const items = (input.items ?? []).map((item, index) => {
-    const equipment = srdByLabel(SRD.equipment, item.label)
+    const equipment = srdByLabel(equipmentRecords, item.label)
     const compiledItem = registry.equipment[equipment.id]
     if (compiledItem === undefined) throw new Error(`SRD item "${item.label}" did not compile.`)
     const twoHanded = (compiledItem.properties ?? []).includes(EQUIPMENT_PROPERTY_CODE.TWO_HANDED)

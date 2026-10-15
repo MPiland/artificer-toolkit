@@ -353,7 +353,7 @@ export const adultRedDragon: CreatureAuthored = {
               baseDc: 21
             },
             activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(10, 31), rangeKind: S.RANGE_KIND.SPECIAL }
+            ...S.selfCone(S.actionId(10, 31), S.actionId(10, 200), 60)
           },
           paths: [
             {

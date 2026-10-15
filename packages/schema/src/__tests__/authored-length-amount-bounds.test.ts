@@ -40,6 +40,7 @@ const manifest = (fields: Record<string, unknown>) => ({
   id: 'manifest-1',
   effectKind: 'MANIFEST',
   manifestKind: 'ZONE',
+  attachmentKind: 'PLACED_SPACE',
   ...fields
 })
 

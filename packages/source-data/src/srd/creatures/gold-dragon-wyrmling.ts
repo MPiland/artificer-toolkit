@@ -84,7 +84,7 @@ export const goldDragonWyrmling: CreatureAuthored = {
               baseDc: 13
             },
             activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(147, 22), rangeKind: S.RANGE_KIND.SPECIAL }
+            ...S.selfCone(S.actionId(147, 22), S.actionId(147, 38), 15)
           },
           paths: [
             {
@@ -147,7 +147,7 @@ export const goldDragonWyrmling: CreatureAuthored = {
               baseDc: 13
             },
             activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(147, 32), rangeKind: S.RANGE_KIND.SPECIAL }
+            ...S.selfCone(S.actionId(147, 32), S.actionId(147, 39), 15)
           },
           paths: [
             {

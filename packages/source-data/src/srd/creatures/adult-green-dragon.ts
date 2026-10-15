@@ -360,7 +360,7 @@ export const adultGreenDragon: CreatureAuthored = {
               baseDc: 18
             },
             activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(9, 31), rangeKind: S.RANGE_KIND.SPECIAL }
+            ...S.selfCone(S.actionId(9, 31), S.actionId(9, 200), 60)
           },
           paths: [
             {

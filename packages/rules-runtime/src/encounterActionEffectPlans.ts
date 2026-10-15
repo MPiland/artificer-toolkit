@@ -18,7 +18,10 @@ import type {
 
 class EncounterActionEffectPlanError extends Error {}
 
-function compileEffectGraph(published: ServerPublishedRuleDefinitionDto, contractVersion: number) {
+export function compileEffectGraph(
+  published: ServerPublishedRuleDefinitionDto,
+  contractVersion: number
+) {
   const graph = compileRuleGraph({
     definition: published.definition,
     sourceChecksum: published.checksum,
@@ -295,7 +298,7 @@ function prepareRecurringActiveEffect(
       // The grant tick planner counts a grant, so the turn-effect kernel never selects it.
       recurrenceStage: grantContribution ? 'NONE' : plan.recurrenceStage,
       consumeOnFirstEvents: grantContribution?.consumeOnFirstEvents ?? [],
-      endOnEvents: [],
+      endOnEvents: grantContribution?.endOnEvents ?? [],
       // A grant outlasts the Encounter when the target's lifetime scope says so. A Concentration
       // grant keeps its maintenance link while the Run lasts and is detached from it at COMPLETE.
       lifetimeScope: grantContribution ? input.target.lifetimeScope : 'ENCOUNTER',

@@ -240,6 +240,7 @@ describe('a Creature feature authored with the CHECK test', () => {
     const before = await room.version()
     const { answer } = await room.startAction(FIGHTER_ACTOR_ID, TOUCH_WITHOUT_SCENE)
     expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_REJECTED')
+    expect(answer).toMatchObject({ code: 'DOMAIN_REJECTED', reason: 'SOURCE_REQUIREMENTS_NOT_MET' })
     expect(JSON.stringify(answer)).not.toContain('RULE_WARNINGS')
     expect(await room.version()).toBe(before)
     expect((await settledCheck(room)).outputs).toEqual([])

@@ -240,6 +240,23 @@ export const canvasInstruction = style({
   }
 })
 
+export const carefulMoveChoice = style({
+  '@layer': {
+    [app]: {
+      position: 'absolute',
+      insetInlineStart: '50%',
+      insetBlockEnd: foundationVars.space[3],
+      transform: 'translateX(-50%)',
+      zIndex: 3,
+      inlineSize: 'min(26rem, calc(100% - 2rem))',
+      padding: foundationVars.space[3],
+      border: `1px solid ${foundationVars.color.border.subtle}`,
+      borderRadius: foundationVars.radius.md,
+      background: foundationVars.color.surface.panel
+    }
+  }
+})
+
 export const tokenStatusPanel = style({
   '@layer': {
     [app]: {

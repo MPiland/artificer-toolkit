@@ -116,8 +116,7 @@ export const behir: CreatureAuthored = {
               baseDc: 16
             },
             activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            // A 20-foot line waits on area targeting (D60), like the dragons' breath weapons.
-            range: { id: S.actionId(43, 33), rangeKind: S.RANGE_KIND.SPECIAL }
+            ...S.selfLine(S.actionId(43, 33), S.actionId(43, 36), 20, 5)
           },
           paths: [
             {

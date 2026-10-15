@@ -86,6 +86,7 @@ import {
   buildEncounterAreaStoredExecution
 } from '@artificer-toolkit/rules-runtime/encounterActionReceipt'
 import { encounterActionSourceLabel } from '@artificer-toolkit/rules-runtime/encounterActionSources'
+import { planEncounterPlacedZone } from '@artificer-toolkit/rules-runtime/encounterPlacedZone'
 import { consumeEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomyConsumption'
 import { projectEncounterActionTarget } from '@artificer-toolkit/rules-runtime/encounterActionProjection'
 import { applyEncounterAttackActionTransition } from '@artificer-toolkit/rules-runtime/encounterAttackAction'
@@ -155,7 +156,7 @@ async function prepareAreaScene(input: AreaPlanInput) {
   if (!caster) throw new Error('Encounter rules input binding mismatch.')
   const casterFacts = await input.loadTarget(caster)
   const movementTargets = new Map([[caster.id, casterFacts]])
-  const { targetPolicy } = await prepareEncounterActionSource({
+  const { source, targetPolicy } = await prepareEncounterActionSource({
     state,
     actor: caster,
     actionId: command.actionId,
@@ -225,7 +226,12 @@ async function prepareAreaScene(input: AreaPlanInput) {
   const origin =
     target.kind === 'CASTER_CENTERED' ? scene.sourceToken?.position : areaActionTargetOrigin(target)
   if (!origin) throw new Error('A caster-centered area needs the caster’s token.')
-  return { caster, casterFacts, movementTargets, scene, grid, area, origin }
+  // An action that places a zone leaves it at the picked point instead of putting anyone through it.
+  const zone =
+    source.kind === 'CHARACTER_ACTION' && source.entry.schemaVersion === 4
+      ? source.entry.compilation.zonePlacement
+      : null
+  return { caster, casterFacts, movementTargets, scene, grid, area, origin, zone }
 }
 
 /** One creature's action mechanics against the point's Scene, as its sealed save was prepared. */
@@ -295,13 +301,16 @@ export async function planNativeLiveEncounterAreaAction(input: AreaPlanInput) {
   const base = await prepareAreaScene(input)
   const { caster, casterFacts, movementTargets, scene, grid, area } = base
 
-  const caughtActorIds = catchEncounterAreaActorIds({
-    origin: base.origin,
-    shape: area.shape,
-    casterActorId: caster.id,
-    tokens: scene.tokens.map((token) => ({ ...token, id: token.tokenId })),
-    fromCasterSpace: command.target.kind === 'CASTER_CENTERED'
-  })
+  // A zone is entered later, by movement; placing it puts nobody through its save.
+  const caughtActorIds = base.zone
+    ? []
+    : catchEncounterAreaActorIds({
+        origin: base.origin,
+        shape: area.shape,
+        casterActorId: caster.id,
+        tokens: scene.tokens.map((token) => ({ ...token, id: token.tokenId })),
+        fromCasterSpace: command.target.kind === 'CASTER_CENTERED'
+      })
   const caught = caughtActorIds.map((actorId) => {
     const actor = actors.find((candidate) => candidate.id === actorId)
     const token = scene.tokens.find((candidate) => candidate.actorId === actorId)
@@ -420,6 +429,7 @@ export async function planNativeLiveEncounterAreaAction(input: AreaPlanInput) {
     commandFingerprint: input.fingerprint,
     initiatorUserId,
     casterActorId: caster.id,
+    placesZone: base.zone !== null,
     scene: { sceneId: scene.sceneId, sceneVersion: scene.sceneVersion },
     area: { origin: base.origin, shape: area.shape },
     targets
@@ -1086,6 +1096,18 @@ export async function planNativeLiveEncounterAreaCommit(
   }))
   const damage = nativeConcentrationDamageApplications(damageSources, false)
   const resumed = input.response ?? input.removal
+  const placedZone = base.zone
+    ? planEncounterPlacedZone({
+        zone: base.zone,
+        id: crypto.randomUUID(),
+        encounterId: state.id,
+        occurrenceId: areaOccurrenceId,
+        rootCommandId: command.commandId,
+        sourceActorId: caster.id,
+        point: base.origin,
+        area: base.area.shape
+      })
+    : null
   const execution = buildEncounterAreaStoredExecution({
     occurrenceId: areaOccurrenceId,
     occurrenceVersion: resumed ? resumed.expectedOccurrenceVersion + 1 : 0,
@@ -1094,6 +1116,7 @@ export async function planNativeLiveEncounterAreaCommit(
     caughtChecksum: context.caughtChecksum,
     removedActorIds: context.removedActorIds,
     targetOccurrenceIds: children.map((child) => child.occurrenceId),
+    placedSpatialEffectId: placedZone?.id ?? null,
     damage,
     spend,
     actionEconomy,
@@ -1220,7 +1243,8 @@ export async function planNativeLiveEncounterAreaCommit(
     spellConsumption: resourceState?.spellConsumption ?? null,
     label: sourceLabel,
     ruleOverrides,
-    concentration
+    concentration,
+    placedZone
   }
 }
 
@@ -1242,6 +1266,7 @@ export function buildNativeLiveEncounterAreaCommitInput(
     execution: plan.execution,
     targets: plan.targets,
     area: plan.area,
+    placedZone: plan.placedZone,
     rules: plan.rules,
     resourceConsumption: plan.resourceConsumption,
     itemConsumption: plan.itemConsumption,

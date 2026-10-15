@@ -192,13 +192,16 @@ export async function requireAreaActionPendingRoot(
       casterToken.position.y !== context.area.origin.y)
   )
     throw new Error('Live Session pending area action Scene mismatch.')
-  const caught = catchEncounterAreaActorIds({
-    origin: context.area.origin,
-    shape: context.area.shape,
-    casterActorId: context.casterActorId,
-    tokens: scene.tokens.map((token) => ({ ...token, id: token.tokenId })),
-    fromCasterSpace: centered
-  })
+  // A zone catches nobody: a creature in it is tested on entering.
+  const caught = context.placesZone
+    ? []
+    : catchEncounterAreaActorIds({
+        origin: context.area.origin,
+        shape: context.area.shape,
+        casterActorId: context.casterActorId,
+        tokens: scene.tokens.map((token) => ({ ...token, id: token.tokenId })),
+        fromCasterSpace: centered
+      })
   // A creature the GM removed is still caught by the Scene; it is simply no longer tested.
   const sealed = [...targets.map((target) => target.actorId), ...context.removedActorIds]
   const footprintsMatch = targets.every((target) => {
