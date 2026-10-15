@@ -72,6 +72,15 @@ const readSpellSlots = (room: SpellCasterRoom) =>
     return readCharacterPlay(row).spellSlots ?? []
   })
 
+const readHitPoints = (room: SpellCasterRoom) =>
+  runInDurableObject(room.room.base.stub, (_instance, context) => {
+    const row = new RoomEncounterStore(context.storage)
+      .documents('characterPlayStates')
+      .find((candidate) => candidate.characterId === CHARACTER_ID)
+    if (!row) throw new Error('Missing room Character play state.')
+    return readCharacterPlay(row).hitpoints.current
+  })
+
 /** Answers every save the area still waits on with a failing 1. */
 async function answerAllSaves(room: SpellCasterRoom) {
   for (;;) {
@@ -232,19 +241,11 @@ describe('room single-target spell cast by a Character', () => {
       characterPlay: { currentHitPoints: 1 },
       characterAction: (action) => action.label === 'Mend (1st level)'
     })
-    const readHitPoints = () =>
-      runInDurableObject(room.room.base.stub, (_instance, context) => {
-        const row = new RoomEncounterStore(context.storage)
-          .documents('characterPlayStates')
-          .find((candidate) => candidate.characterId === CHARACTER_ID)
-        if (!row) throw new Error('Missing room Character play state.')
-        return readCharacterPlay(row).hitpoints.current
-      })
-    expect(await readHitPoints()).toBe(1)
+    expect(await readHitPoints(room)).toBe(1)
 
     const { answer } = await room.startAction(CHARACTER_ACTOR_ID)
     expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
-    expect(await readHitPoints()).toBe(3)
+    expect(await readHitPoints(room)).toBe(3)
     expect(await readSpellSlots(room)).toEqual(SLOT_SPENT)
 
     const undone = await room.send({
@@ -254,7 +255,7 @@ describe('room single-target spell cast by a Character', () => {
       expectedVersion: await room.version()
     })
     expect(undone.type, JSON.stringify(undone)).toBe('COMMAND_COMMITTED')
-    expect(await readHitPoints()).toBe(1)
+    expect(await readHitPoints(room)).toBe(1)
     expect(await readSpellSlots(room)).toEqual([])
   })
 })
@@ -287,6 +288,7 @@ describe('room Fireball cast by a Character wizard (SPELLS-8.4)', () => {
     async ({ label, slotKey, rolls, damage }) => {
       const room = await fireballRoom(label, rolls)
       const before = vitalsOf(await readRoomHistory(room.room.base.stub))
+      const casterHitPoints = await readHitPoints(room)
 
       const { answer } = await room.startAreaAction({ x: 300, y: 150 })
       expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
@@ -309,10 +311,13 @@ describe('room Fireball cast by a Character wizard (SPELLS-8.4)', () => {
       )
       expect(requested).toEqual(children.map(() => damage))
       expect(await readSpellSlots(room)).toEqual([{ slotKey, used: 1 }])
+      expect(vitalsOf(await readRoomHistory(room.room.base.stub))).not.toEqual(before)
+      expect(await readHitPoints(room)).toBeLessThan(casterHitPoints)
 
       await undoLastAction(room)
       expect(await readSpellSlots(room)).toEqual([])
       expect(vitalsOf(await readRoomHistory(room.room.base.stub))).toEqual(before)
+      expect(await readHitPoints(room)).toBe(casterHitPoints)
     },
     120000
   )
