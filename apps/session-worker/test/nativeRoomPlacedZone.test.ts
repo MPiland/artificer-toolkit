@@ -31,9 +31,14 @@ const FIELD_POINT = { x: 250, y: 150 }
 const WALKER_START = { x: 450, y: 150 }
 /**
  * Into the field and to its middle: 10 ft, inside the Wolf's 40 ft even once slowed. The Caltrops
- * are entered by ending a move in their space (ENTER_SPACE), so the walk ends inside the field.
+ * are entered or passed through (ENTER_OR_PASS_THROUGH), so this walk ends inside the field.
  */
 const WALK_INTO = [WALKER_START, FIELD_POINT]
+/**
+ * Through the field and out of its far side, 20 ft: the walk ends outside the field, so it only
+ * crosses it. It turns at the field's middle to keep clear of the spreader, who stands beyond it.
+ */
+const WALK_THROUGH = [WALKER_START, FIELD_POINT, { x: FIELD_POINT.x, y: 350 }]
 const SCENE_ZONE_CAP = 64
 
 afterEach(() => {
@@ -329,6 +334,65 @@ describe('entering a caltrop field (SPELLS-17)', () => {
 
     expect(await walkerHitPoints(room)).toBe((hitPointsAfterFirst ?? 0) - 1)
     expect(await walkerEffects(room)).toHaveLength(1)
+  })
+})
+
+describe('passing through a caltrop field (SPELLS-17.2)', () => {
+  it('stops a creature that fails the save inside the field, though its move ended beyond it', async () => {
+    const room = await caltropsRoom(0)
+    await spreadCaltrops(room)
+    await room.advanceTurn()
+    const hitPointsBefore = await walkerHitPoints(room)
+
+    const walk = await walkerMoves(room, WALK_THROUGH)
+
+    expect(walk.executions).toHaveLength(1)
+    expect(walk.executions[0]).toMatchObject({
+      execution: { movementInterruption: { kind: 'STOP' } },
+      applications: [expect.objectContaining({ kind: 'DAMAGE', appliedAmount: 1 })]
+    })
+    // It stops where its footprint first touches the field, still on the first leg of the path.
+    expect(walk.terminalPosition.y).toBe(FIELD_POINT.y)
+    expect(walk.terminalPosition.x).toBeGreaterThan(FIELD_POINT.x)
+    expect(walk.terminalPosition.x).toBeLessThan(WALKER_START.x)
+    expect(await walkerHitPoints(room)).toBe((hitPointsBefore ?? 0) - 1)
+    expect(await walkerEffects(room)).toHaveLength(1)
+  })
+
+  it('lets a creature that makes the save carry on to the end of its move, unhurt and unslowed', async () => {
+    const room = await caltropsRoom(19)
+    await spreadCaltrops(room)
+    await room.advanceTurn()
+    const hitPointsBefore = await walkerHitPoints(room)
+
+    const walk = await walkerMoves(room, WALK_THROUGH)
+
+    expect(walk.terminalPosition).toEqual(WALK_THROUGH.at(-1))
+    expect(walk.executions[0]?.execution.movementInterruption ?? null).toBeNull()
+    expect(await walkerHitPoints(room)).toBe(hitPointsBefore)
+    expect(await walkerEffects(room)).toEqual([])
+  })
+
+  it('is bypassed by a careful crossing, which reaches the end of its move for the half-speed cost', async () => {
+    const plain = await caltropsRoom(19)
+    await spreadCaltrops(plain)
+    await plain.advanceTurn()
+    await walkerMoves(plain, WALK_THROUGH)
+    const normalFeet = await walkerFeetMoved(plain)
+
+    // Every die rolls a natural 1, so a save asked of the Wolf would fail.
+    const room = await caltropsRoom(0)
+    await spreadCaltrops(room)
+    await room.advanceTurn()
+    const hitPointsBefore = await walkerHitPoints(room)
+
+    const walk = await walkerMoves(room, WALK_THROUGH, true)
+
+    expect(walk.terminalPosition).toEqual(WALK_THROUGH.at(-1))
+    expect(walk.executions).toEqual([])
+    expect(await walkerFeetMoved(room)).toBeGreaterThan(normalFeet)
+    expect(await walkerHitPoints(room)).toBe(hitPointsBefore)
+    expect(await walkerEffects(room)).toEqual([])
   })
 })
 
