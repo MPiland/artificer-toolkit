@@ -364,6 +364,7 @@ const createPrismaticManifest = (
   id: spellChildId(SPELL_IDS.PRISMATIC_WALL, formScope, 0),
   effectKind: EFFECT_KIND.MANIFEST,
   manifestKind: 'ZONE' as const,
+  attachmentKind: 'PLACED_SPACE',
   label,
   shape,
   components: createLayers(formScope),

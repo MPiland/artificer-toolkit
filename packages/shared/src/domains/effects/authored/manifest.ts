@@ -215,8 +215,8 @@ type SummonManifestAuthored = ManifestAuthoredBase & {
   behaviors?: ManifestBehaviorAuthored[]
 }
 
-type NonCreatureManifestAuthored = ManifestAuthoredBase & {
-  manifestKind: Exclude<ManifestKind, typeof MANIFEST_KIND.CREATURE | typeof MANIFEST_KIND.SUMMON>
+type NonCreatureManifestAuthored<TKind extends ManifestKind> = ManifestAuthoredBase & {
+  manifestKind: TKind
   creatureId?: never
   statBlock?: never
   behaviors?: ManifestBehaviorAuthored[]
@@ -240,7 +240,16 @@ type NonCreatureManifestAuthored = ManifestAuthoredBase & {
   suppressionImmunities?: Array<keyof typeof MANIFEST_SUPPRESSION_IMMUNITY>
 }
 
+type ZoneManifestAuthored = NonCreatureManifestAuthored<typeof MANIFEST_KIND.ZONE> &
+  Required<Pick<ManifestAuthoredBase, 'attachmentKind'>>
+
 export type ManifestAuthored =
   | CreatureManifestAuthored
   | SummonManifestAuthored
-  | NonCreatureManifestAuthored
+  | NonCreatureManifestAuthored<
+      Exclude<
+        ManifestKind,
+        typeof MANIFEST_KIND.CREATURE | typeof MANIFEST_KIND.SUMMON | typeof MANIFEST_KIND.ZONE
+      >
+    >
+  | ZoneManifestAuthored

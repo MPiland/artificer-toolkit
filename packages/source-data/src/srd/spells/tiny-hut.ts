@@ -71,6 +71,7 @@ export const tinyHut: SpellAuthored = {
                 id: spellChildId(SPELL_IDS.TINY_HUT, 0x212, 1),
                 effectKind: EFFECT_KIND.MANIFEST,
                 manifestKind: MANIFEST_KIND.ZONE,
+                attachmentKind: 'PLACED_SPACE',
                 shape: {
                   id: spellChildId(SPELL_IDS.TINY_HUT, 0x213, 1),
                   shapeKind: SHAPE_KIND.SPHERE,

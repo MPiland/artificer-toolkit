@@ -88,7 +88,8 @@ export const hallucinatoryTerrain: SpellAuthored = {
               {
                 id: spellChildId(SPELL_IDS.HALLUCINATORY_TERRAIN, 0x213, 1),
                 effectKind: EFFECT_KIND.MANIFEST,
-                manifestKind: MANIFEST_KIND.ZONE
+                manifestKind: MANIFEST_KIND.ZONE,
+                attachmentKind: 'PLACED_SPACE'
               }
             ]
           }

@@ -1,6 +1,6 @@
 # Slice workbook: SPELLS-25 (every zone states where it is placed)
 
-**Status:** OPEN (written 2026-10-14)
+**Status:** READY FOR REVIEW (implemented 2026-10-15)
 **Base:** `codex/phase-08-2-convex-cutover` at this workbook's commit.
 **Rules:** [slice-workbook-rules.md](slice-workbook-rules.md).
 
@@ -49,5 +49,17 @@ Read first:
 ## Status log
 
 - 2026-10-14: workbook written.
+- 2026-10-15: AC SPELLS-25.1 implemented. All logs are under `local-validation/spells-25/`.
+  - Worktree needed `yarn install` and a `design-system` build before any test would load; the first two red attempts failed on that (not kept as red evidence).
+  - Schema: `ZONE` split out of the shared kind branch in `manifest.ts`; it extends the `SENSOR`/`WEAPON`/`OBJECT`/`ILLUSION` branch with a required `attachmentKind` (the enum is now one shared const). The other kinds' contract is unchanged. Authored type: `ZoneManifestAuthored` requires it.
+  - Node map: `attachmentKind` is `requiredIf` `manifestKind` is `ZONE` (`maps/path.ts`).
+  - Data: 37 zones set (the scan's 36 plus Ice Devil's Wall of Ice, a creature action the scan did not cover, so the corpus holds 40 zones). `SOURCE`: Antilife Shell, Antimagic Field, Globe of Invulnerability (all "around you / moves with you"). `PRIMARY_TARGET`: Resilient Sphere (encloses a chosen creature or object). `PLACED_SPACE`: the other 33 (Tiny Hut as ruled; both Blade Barrier and both Prismatic forms via their shared factories).
+  - Readings to review: Darkness and Daylight are `PLACED_SPACE`, though the SRD lets the caster put the point on an object (the zone then moves with it). Forbiddance and Hallow ("touch a point") are `PLACED_SPACE`. Cloudkill is `PLACED_SPACE` although it drifts each turn; that is movement of a placed zone, not attachment. No zone fit none of the four kinds, so nothing was escalated.
+  - Fixtures: the `ZONE` fixtures in `authored-length-amount-bounds.test.ts` and `apps/web/src/forms/tests/FormPlatform.test.tsx` gained an `attachmentKind` (required now). The web test was not run (web unit runs cannot reach 0 failures in a worktree); it only added a field to input data.
+  - Checklist: 1 `red-schema.log` / `green-schema.log`; 2 `red-nodemap.log` / `green-shared.log`; 3 `red-corpus.log` / `green-source-data.log`; 4 `green-schema.log` (74 files, 669 tests), `green-shared.log` (52 files, 406 tests), `green-source-data.log` (13 files, 54 tests), `green-apis.log` (the `encounters` and `content` folders, 123 files, 773 tests). Also `green-typecheck.log` (`turbo run typecheck --filter="[codex/phase-08-2-convex-cutover]"`, 17 of 17 tasks) and `green-codegen.log` (local codegen push). SRD manifest regenerated (`green-manifest.log`).
+  - Storybook runs not done (cannot start in a worktree): any story with a `ZONE` manifest fixture; a grep found none under `apps/web`.
 
 ## Proposed ledger edits (filled by the slice session)
+
+- AC SPELLS-25.1: done, proof = `packages/schema/src/__tests__/manifest-zone-attachment.test.ts`, the `requires an attachment only on ZONE manifests` test in `packages/shared/src/__tests__/effect-node-maps.test.ts` and `packages/source-data/src/srd/zoneAttachment.test.ts`.
+- Unblocks SPELLS-17 (creator compiles `ZONE` + `PLACED_SPACE`), SPELLS-20 (`SOURCE` auras) and SPELLS-4.

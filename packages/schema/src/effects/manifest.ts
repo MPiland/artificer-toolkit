@@ -129,20 +129,106 @@ export const manifestDtoSchema: z.ZodMiniType = lazySchema(() =>
       'START_OF_ATTACHED_TARGET_TURN',
       'END_OF_ATTACHED_TARGET_NEXT_TURN'
     ])
+    const attachmentKindSchema = z.enum([
+      'SOURCE',
+      'PRIMARY_TARGET',
+      'PLACED_SPACE',
+      'TOUCHED_OBJECT'
+    ])
     const baseSchema = z.object({
       id: authoredIdentifierSchema,
       effectKind: z.literal('MANIFEST'),
       label: z.optional(authoredShortTextSchema),
       shape: z.optional(shapeDtoSchema),
-      attachmentKind: z.optional(
-        z.enum(['SOURCE', 'PRIMARY_TARGET', 'PLACED_SPACE', 'TOUCHED_OBJECT'])
-      ),
+      attachmentKind: z.optional(attachmentKindSchema),
       maxApplicationsPerTurn: z.optional(z.number().check(z.int()).check(z.positive())),
       placementSurfaceKind: z.optional(z.literal('LEVEL')),
       applicationTargetKind: z.optional(z.enum(['WEAPON', 'AMMUNITION'])),
       applicationCount: z.optional(z.number().check(z.int()).check(z.positive())),
       qualifyingDamageTypeIds: z.optional(
         authoredReferenceCollectionSchema(authoredIdentifierSchema)
+      )
+    })
+
+    const nonCreatureManifestSchema = z.extend(baseSchema, {
+      manifestKind: z.enum(['SENSOR', 'WEAPON', 'OBJECT', 'ILLUSION']),
+      behaviors: z.optional(authoredNestedCollectionSchema(manifestNestedBehaviorDtoSchema)),
+      components: z.optional(
+        authoredNestedCollectionSchema(
+          z.object({
+            id: authoredIdentifierSchema,
+            order: z.number().check(z.int()),
+            label: authoredShortTextSchema,
+            interactionKind: z.optional(manifestInteractionKindSchema),
+            interactionKinds: z.optional(
+              authoredReferenceCollectionSchema(manifestInteractionKindSchema)
+            ),
+            bypassAtHalfSpeed: z.optional(z.boolean()),
+            movementCostMultiplier: z.optional(z.number().check(z.positive())),
+            requiresFullyWithin: z.optional(z.boolean()),
+            automaticSaveSuccessConditions: z.optional(
+              authoredReferenceCollectionSchema(z.enum(['DOES_NOT_BREATHE', 'POISON_IMMUNE']))
+            ),
+            requiresIgnition: z.optional(z.boolean()),
+            maxApplicationsPerTurn: z.optional(z.number().check(z.int()).check(z.positive())),
+            maxApplicationsTotal: z.optional(z.number().check(z.int()).check(z.positive())),
+            armorClass: z.optional(authoredNonnegativeNumberSchema),
+            hitPoints: z.optional(authoredNonnegativeNumberSchema),
+            behaviors: z.optional(authoredNestedCollectionSchema(manifestNestedBehaviorDtoSchema)),
+            blockingRules: z.optional(
+              authoredReferenceCollectionSchema(
+                z.enum([
+                  'NONMAGICAL_RANGED_ATTACKS',
+                  'MAGICAL_RANGED_ATTACKS',
+                  'SPELLS',
+                  'THREE_QUARTERS_COVER'
+                ])
+              )
+            ),
+            destructionCriteria: z.optional(
+              authoredNestedCollectionSchema(manifestDestructionCriterionDtoSchema)
+            ),
+            releaseCriteria: z.optional(
+              authoredNestedCollectionSchema(manifestDestructionCriterionDtoSchema)
+            )
+          })
+        )
+      ),
+      componentsMustResolveInOrder: z.optional(z.boolean()),
+      destructionMustResolveInOrder: z.optional(z.boolean()),
+      destroyedComponentsRemainDestroyed: z.optional(z.boolean()),
+      placementMustBeUnoccupied: z.optional(z.boolean()),
+      invalidPlacementConsumesInvocation: z.optional(z.boolean()),
+      designatedCreatureImmunity: z.optional(z.boolean()),
+      maximumTargetSize: z.optional(sizeCodeSchema),
+      excludesFormlessTargets: z.optional(z.boolean()),
+      proximityRule: z.optional(manifestProximityRuleDtoSchema),
+      light: z.optional(manifestLightDtoSchema),
+      hollow: z.optional(z.boolean()),
+      wallThickness: z.optional(
+        z.object({
+          amount: authoredPositiveLengthAmountSchema,
+          unit: lengthUnitCodeSchema
+        })
+      ),
+      spreadsAroundCorners: z.optional(z.boolean()),
+      obscurementKind: z.optional(z.enum(['LIGHT', 'HEAVY'])),
+      properties: z.optional(
+        authoredReferenceCollectionSchema(
+          z.enum([
+            'NO_HEAT',
+            'NO_OXYGEN_USE',
+            'CANNOT_BE_SMOTHERED',
+            'CANNOT_BE_QUENCHED',
+            'CAN_BE_COVERED_OR_HIDDEN'
+          ])
+        )
+      ),
+      destructionCriteria: z.optional(
+        authoredNestedCollectionSchema(manifestDestructionCriterionDtoSchema)
+      ),
+      suppressionImmunities: z.optional(
+        authoredReferenceCollectionSchema(z.literal('ANTIMAGIC_FIELD'))
       )
     })
 
@@ -156,88 +242,10 @@ export const manifestDtoSchema: z.ZodMiniType = lazySchema(() =>
         statBlock: z.optional(summonStatBlockDtoSchema),
         behaviors: z.optional(authoredNestedCollectionSchema(manifestNestedBehaviorDtoSchema))
       }),
-      z.extend(baseSchema, {
-        manifestKind: z.enum(['ZONE', 'SENSOR', 'WEAPON', 'OBJECT', 'ILLUSION']),
-        behaviors: z.optional(authoredNestedCollectionSchema(manifestNestedBehaviorDtoSchema)),
-        components: z.optional(
-          authoredNestedCollectionSchema(
-            z.object({
-              id: authoredIdentifierSchema,
-              order: z.number().check(z.int()),
-              label: authoredShortTextSchema,
-              interactionKind: z.optional(manifestInteractionKindSchema),
-              interactionKinds: z.optional(
-                authoredReferenceCollectionSchema(manifestInteractionKindSchema)
-              ),
-              bypassAtHalfSpeed: z.optional(z.boolean()),
-              movementCostMultiplier: z.optional(z.number().check(z.positive())),
-              requiresFullyWithin: z.optional(z.boolean()),
-              automaticSaveSuccessConditions: z.optional(
-                authoredReferenceCollectionSchema(z.enum(['DOES_NOT_BREATHE', 'POISON_IMMUNE']))
-              ),
-              requiresIgnition: z.optional(z.boolean()),
-              maxApplicationsPerTurn: z.optional(z.number().check(z.int()).check(z.positive())),
-              maxApplicationsTotal: z.optional(z.number().check(z.int()).check(z.positive())),
-              armorClass: z.optional(authoredNonnegativeNumberSchema),
-              hitPoints: z.optional(authoredNonnegativeNumberSchema),
-              behaviors: z.optional(
-                authoredNestedCollectionSchema(manifestNestedBehaviorDtoSchema)
-              ),
-              blockingRules: z.optional(
-                authoredReferenceCollectionSchema(
-                  z.enum([
-                    'NONMAGICAL_RANGED_ATTACKS',
-                    'MAGICAL_RANGED_ATTACKS',
-                    'SPELLS',
-                    'THREE_QUARTERS_COVER'
-                  ])
-                )
-              ),
-              destructionCriteria: z.optional(
-                authoredNestedCollectionSchema(manifestDestructionCriterionDtoSchema)
-              ),
-              releaseCriteria: z.optional(
-                authoredNestedCollectionSchema(manifestDestructionCriterionDtoSchema)
-              )
-            })
-          )
-        ),
-        componentsMustResolveInOrder: z.optional(z.boolean()),
-        destructionMustResolveInOrder: z.optional(z.boolean()),
-        destroyedComponentsRemainDestroyed: z.optional(z.boolean()),
-        placementMustBeUnoccupied: z.optional(z.boolean()),
-        invalidPlacementConsumesInvocation: z.optional(z.boolean()),
-        designatedCreatureImmunity: z.optional(z.boolean()),
-        maximumTargetSize: z.optional(sizeCodeSchema),
-        excludesFormlessTargets: z.optional(z.boolean()),
-        proximityRule: z.optional(manifestProximityRuleDtoSchema),
-        light: z.optional(manifestLightDtoSchema),
-        hollow: z.optional(z.boolean()),
-        wallThickness: z.optional(
-          z.object({
-            amount: authoredPositiveLengthAmountSchema,
-            unit: lengthUnitCodeSchema
-          })
-        ),
-        spreadsAroundCorners: z.optional(z.boolean()),
-        obscurementKind: z.optional(z.enum(['LIGHT', 'HEAVY'])),
-        properties: z.optional(
-          authoredReferenceCollectionSchema(
-            z.enum([
-              'NO_HEAT',
-              'NO_OXYGEN_USE',
-              'CANNOT_BE_SMOTHERED',
-              'CANNOT_BE_QUENCHED',
-              'CAN_BE_COVERED_OR_HIDDEN'
-            ])
-          )
-        ),
-        destructionCriteria: z.optional(
-          authoredNestedCollectionSchema(manifestDestructionCriterionDtoSchema)
-        ),
-        suppressionImmunities: z.optional(
-          authoredReferenceCollectionSchema(z.literal('ANTIMAGIC_FIELD'))
-        )
+      nonCreatureManifestSchema,
+      z.extend(nonCreatureManifestSchema, {
+        manifestKind: z.literal('ZONE'),
+        attachmentKind: attachmentKindSchema
       })
     ])
   })

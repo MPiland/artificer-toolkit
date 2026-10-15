@@ -2184,7 +2184,10 @@ function registerOutcomeFields(
             { code: 'TOUCHED_OBJECT', label: 'Touched Object' }
           ]
         },
-        { showIf: local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST) }
+        {
+          requiredIf: local.field(['manifestKind']).eq(MANIFEST_KIND.ZONE),
+          showIf: local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST)
+        }
       )
     )
     .set(

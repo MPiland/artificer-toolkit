@@ -120,6 +120,7 @@ export const stinkingCloud: SpellAuthored = {
                 id: spellChildId(SPELL_IDS.STINKING_CLOUD, 0x400, 1),
                 effectKind: EFFECT_KIND.MANIFEST,
                 manifestKind: MANIFEST_KIND.ZONE,
+                attachmentKind: 'PLACED_SPACE',
                 label: 'Stinking Cloud',
                 shape: {
                   id: spellChildId(SPELL_IDS.STINKING_CLOUD, 0x401, 1),
