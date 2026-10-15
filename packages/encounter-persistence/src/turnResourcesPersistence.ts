@@ -48,7 +48,7 @@ import { deriveEncounterCharacterMechanicsEventCommandId } from '@artificer-tool
 /** Applies only the sealed resource outcomes after outgoing effects have committed. */
 export async function persistEncounterTurnResources(
   ctx: EncounterCharacterWriteTransaction & {
-    readonly ports: Pick<EncounterWritePorts, 'insertTableRoll' | 'retainGmRoll'>
+    readonly ports: Pick<EncounterWritePorts, 'insertTableRoll' | 'retainPrivateRoll'>
   },
   input: {
     state: EncounterRunState
@@ -477,7 +477,7 @@ export async function persistEncounterTurnResources(
  */
 export async function persistEncounterTurnDeathSave(
   ctx: EncounterCharacterWriteTransaction & {
-    readonly ports: Pick<EncounterWritePorts, 'insertTableRoll' | 'retainGmRoll'>
+    readonly ports: Pick<EncounterWritePorts, 'insertTableRoll' | 'retainPrivateRoll'>
   },
   input: {
     state: EncounterRunState

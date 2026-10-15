@@ -270,8 +270,14 @@ export async function rollEncounterRuleEvidence(
       clientNonce: input.commandId,
       roll: tableRoll
     })
-    // A private card is the GM's alone; a player's answer never carries it back.
-    if (card.audience === 'PRIVATE' && userId !== campaign.ownerUserId) tableRoll = null
+    // A private card is the GM's and, for a hidden creature a player controls, that player's own;
+    // no other answer carries it back.
+    if (
+      card.audience === 'PRIVATE' &&
+      userId !== campaign.ownerUserId &&
+      userId !== card.playerCopyUserId
+    )
+      tableRoll = null
   }
   return presentEncounterResultForMember(ctx, {
     campaign,
