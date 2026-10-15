@@ -307,7 +307,9 @@ describe('room Fireball cast by a Character wizard (SPELLS-8.4)', () => {
       )
       // Every caught creature takes the same roll; a roll per creature would take the 6s that follow the queue.
       const requested = children.flatMap(({ outputs }) =>
-        outputs.applications.map((application) => application.requestedAmount)
+        outputs.applications.flatMap((application) =>
+          application.kind === 'DAMAGE' ? [application.requestedAmount] : []
+        )
       )
       expect(requested).toEqual(children.map(() => damage))
       expect(await readSpellSlots(room)).toEqual([{ slotKey, used: 1 }])
