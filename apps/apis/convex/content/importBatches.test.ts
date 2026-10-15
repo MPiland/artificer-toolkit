@@ -1,39 +1,60 @@
 import { describe, expect, it } from 'vitest'
-import { sourceImportBatches } from './importBatches'
+import {
+  SOURCE_IMPORT_BATCH_COST_BUDGET,
+  sourceImportBatches,
+  sourceImportRecordCost
+} from './importBatches'
 
-describe('source import CPU-sized batches', () => {
-  it('preserves order and every record while enforcing the ten-record ceiling', () => {
-    const records = Array.from({ length: 23 }, (_, id) => ({ id }))
+const batchCost = (batch: readonly unknown[]) =>
+  batch.reduce<number>((sum, record) => sum + sourceImportRecordCost(record), 0)
+
+describe('source import CPU-budgeted batches', () => {
+  it('preserves order and every record, and yields nothing for no records', () => {
+    const records = Array.from({ length: 237 }, (_, id) => ({ id }))
     const batches = [...sourceImportBatches(records)]
-    expect(batches.map((batch) => batch.length)).toEqual([10, 10, 3])
     expect(batches.flat()).toEqual(records)
     expect([...sourceImportBatches([])]).toEqual([])
   })
 
-  it('isolates large documents without truncation and counts UTF-8 bytes', () => {
-    const records = [
-      { id: 1, value: 'a'.repeat(110 * 1024) },
-      { id: 2, value: 'a'.repeat(110 * 1024) },
-      { id: 3, value: 'é'.repeat(40 * 1024) },
-      { id: 4, value: 'é'.repeat(40 * 1024) },
-      { id: 5, value: 'a'.repeat(150 * 1024) }
-    ]
+  it('packs records to the cost budget without exceeding it or leaving a batch under-filled', () => {
+    const records = Array.from({ length: 237 }, (_, id) => ({ id, value: 'a'.repeat(id % 7 << 10) }))
     const batches = [...sourceImportBatches(records)]
-    expect(batches.map((batch) => batch.length)).toEqual([1, 1, 1, 1, 1])
-    expect(batches.flat()).toEqual(records)
+    expect(batches.length).toBeGreaterThan(1)
+    for (const [index, batch] of batches.entries()) {
+      expect(batchCost(batch)).toBeLessThanOrEqual(SOURCE_IMPORT_BATCH_COST_BUDGET)
+      const next = batches[index + 1]?.[0]
+      if (next !== undefined)
+        expect(batchCost(batch) + sourceImportRecordCost(next)).toBeGreaterThan(
+          SOURCE_IMPORT_BATCH_COST_BUDGET
+        )
+    }
   })
 
-  it('isolates Class records for relationship-validation CPU bounds', () => {
+  it('isolates a record costing more than the budget without truncating it', () => {
+    const large = { id: 'large', value: 'a'.repeat(SOURCE_IMPORT_BATCH_COST_BUDGET * 1024) }
+    const records = [{ id: 1 }, large, { id: 2 }]
+    const batches = [...sourceImportBatches(records)]
+    expect(batches).toEqual([[{ id: 1 }], [large], [{ id: 2 }]])
+  })
+
+  it('weights by UTF-8 bytes', () => {
+    expect(sourceImportRecordCost({ value: 'é'.repeat(4096) })).toBeGreaterThan(
+      sourceImportRecordCost({ value: 'a'.repeat(4096) })
+    )
+  })
+
+  it('isolates every Class record, however small, for parent-document validation cost', () => {
     const records = [
       { id: 1, subjectKind: 'SPELL' },
-      { id: 2, subjectKind: 'SPELL' },
+      { id: 2, subjectKind: 'CLASS' },
       { id: 3, subjectKind: 'CLASS' },
-      { id: 4, subjectKind: 'CLASS' },
-      { id: 5, subjectKind: 'SPELL' },
-      { id: 6, subjectKind: 'SPELL' }
+      { id: 4, subjectKind: 'SPELL' }
     ]
-    const batches = [...sourceImportBatches(records)]
-    expect(batches.map((batch) => batch.length)).toEqual([2, 1, 1, 2])
-    expect(batches.flat()).toEqual(records)
+    expect([...sourceImportBatches(records)]).toEqual([
+      [records[0]],
+      [records[1]],
+      [records[2]],
+      [records[3]]
+    ])
   })
 })

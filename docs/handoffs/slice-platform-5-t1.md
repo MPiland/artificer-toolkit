@@ -73,5 +73,13 @@ Read first:
 ## Status log
 
 - 2026-10-15: workbook written.
+- 2026-10-15: measured on the local backend (backend execution records, base code). `importSubjects` is the only mutation near the limit: idle max 377 ms, loaded (16 busy-loop processes on 16 CPUs) 1005 ms and a timeout. Others: `bootstrap` 199/322 ms, `syncEquipmentDerived` 212 ms, `importDefinitions` 101 ms, `syncClassDerived` 60 ms, `raceRelationships.syncDerived` 85 ms (idle). Red: `local-validation/platform-5-t1/base-loaded.run.log`.
+- 2026-10-15: fix in `import.ts` (one canonicalize per subject instead of about five hash and parse passes) and `importBatches.ts` (cost-budget batching, Class always alone). Import contract, atomicity and idempotency unchanged. Red-first unit log: `red-importBatches.log`.
+- 2026-10-15: green on a fresh backend, `fix4-idle` and `fix4-loaded` (12 busy-loop processes, about 75% load): `importSubjects` max 179 ms idle and 343 ms loaded; every other mutation at most 256 ms; seed success and audit green, backend left seeded and audited. Same 16-process load as the red run: all 385 `importSubjects` calls finished, max 717 ms (`fix2-loaded`). Scoped tests (`importBatches`, `import`, `importSpell`, `importCreatureVehicle`, `seed`, `seedAudit`): 28 pass, `green-import-tests.log`. Record: [platform-5-t1-seed-mutation-margin-2026-10-15.md](../validation/platform-5-t1-seed-mutation-margin-2026-10-15.md).
+- Follow-up (not this slice): `contentSnapshots/heads:readScopeKind` (a query) hits the 1 s limit under load, `content/import:readSubjects` reaches 540 ms loaded; see the record's "Observed" section.
 
 ## Proposed ledger edits (filled by the slice session)
+
+- AC PLATFORM-5.7: mark met. Evidence: [the validation record](../validation/platform-5-t1-seed-mutation-margin-2026-10-15.md): loaded seed on a fresh backend, every seed mutation at most 343 ms (limit 1000 ms), idle `importSubjects` maximum 179 ms.
+- AC PLATFORM-5.5 text ("using 128 KiB input batching", `08-phase-ledger.json:256`): the batching is now cost-budgeted (25 per record plus 1 per KiB, budget 100, Class alone); reword to "cost-budgeted input batching" or leave as history.
+- Register a follow-up item for the `contentSnapshots` read and build timeouts under load (`readScopeKind`, `actions:build`), and the audit query `readSubjects` at 540 ms loaded.

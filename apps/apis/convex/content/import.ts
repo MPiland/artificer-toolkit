@@ -30,7 +30,11 @@ import {
 } from '@artificer-toolkit/schema/shared/reusableDefinitions'
 import { systemAuthoredDtoSchema } from '@artificer-toolkit/schema/vocabulary/system'
 import { equipmentAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/equipment'
-import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import {
+  canonicalizeRuleDocument,
+  checksumCanonicalRuleDocument,
+  checksumRuleDocument
+} from '@artificer-toolkit/shared/rules'
 import type { QueryCtx } from '../_generated/server'
 import { internalQuery } from '../lib/queries'
 import { internalMutation } from '../lib/mutations'
@@ -207,12 +211,18 @@ export const importSubjects: RegisteredMutation<
       })
       if (parsed.document.systemId !== subject.systemId || parsed.document.label !== subject.label)
         throw new Error('Canonical subject metadata mismatch.')
-      // Exact current root/version comparison below already proves an unchanged replay payload.
-      if (!current) validateDocument(subject.document, parsed.document, subject.checksum)
-      if (parsed.subjectKind === 'CLASS' && parsed.document.category === 'SUBCLASS')
-        await requireClassParent(ctx, parsed.document, null)
       const { document, ...metadata } = subject
       const documentJson = canonicalizeRuleDocument(document)
+      // Exact current root/version comparison below already proves an unchanged replay payload.
+      // Canonical JSON is computed once and serves the checksum, schema-parse parity and storage.
+      if (!current) {
+        if (checksumCanonicalRuleDocument(documentJson) !== subject.checksum)
+          throw new Error('Canonical checksum mismatch.')
+        if (canonicalizeRuleDocument(parsed.document) !== documentJson)
+          throw new Error('Canonical content conflict.')
+      }
+      if (parsed.subjectKind === 'CLASS' && parsed.document.category === 'SUBCLASS')
+        await requireClassParent(ctx, parsed.document, null)
       const version = {
         ...metadata,
         contentSourceId,

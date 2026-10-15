@@ -1,30 +1,41 @@
-// Class relationship validation is CPU-heavy enough to require one record per
-// mutation. Other records share a payload/count bound; never split a document.
+// One import mutation must finish well inside Convex's 1 s user-time limit even
+// on a CPU-contended host. Idle measurements on the local backend (PLATFORM-5.T1,
+// docs/validation/platform-5-t1-seed-mutation-margin-2026-10-15.md) fit mutation
+// time as a fixed cost per record plus a cost per KiB of document; loaded hosts ran
+// 3-6x slower. Costs are in idle milliseconds and the budget leaves that headroom.
+const RECORD_COST = 25
+const KIB_COST = 1
+export const SOURCE_IMPORT_BATCH_COST_BUDGET = 100
+
+const encoder = new TextEncoder()
+
+export function sourceImportRecordCost(record: unknown) {
+  // A Class carries the largest documents and a Subclass re-reads and parses its
+  // parent Class document, which dwarfs its own size; it always gets a batch alone.
+  if (
+    typeof record === 'object' &&
+    record !== null &&
+    'subjectKind' in record &&
+    record.subjectKind === 'CLASS'
+  )
+    return SOURCE_IMPORT_BATCH_COST_BUDGET
+  return RECORD_COST + (encoder.encode(JSON.stringify(record)).byteLength / 1024) * KIB_COST
+}
+
+// Packs records in order up to the budget; a record at or over the budget gets its
+// own batch. Never split a document.
 export function* sourceImportBatches<T>(records: readonly T[]) {
-  const encoder = new TextEncoder()
   let batch: T[] = []
-  let bytes = 0
+  let cost = 0
   for (const record of records) {
-    const size = encoder.encode(JSON.stringify(record)).byteLength
-    const isClass =
-      typeof record === 'object' &&
-      record !== null &&
-      'subjectKind' in record &&
-      record.subjectKind === 'CLASS'
-    if (isClass) {
-      if (batch.length) yield batch
-      yield [record]
-      batch = []
-      bytes = 0
-      continue
-    }
-    if (batch.length && (batch.length === 10 || bytes + size > 128 * 1024)) {
+    const recordCost = sourceImportRecordCost(record)
+    if (batch.length && cost + recordCost > SOURCE_IMPORT_BATCH_COST_BUDGET) {
       yield batch
       batch = []
-      bytes = 0
+      cost = 0
     }
     batch.push(record)
-    bytes += size
+    cost += recordCost
   }
   if (batch.length) yield batch
 }
