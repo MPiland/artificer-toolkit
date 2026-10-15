@@ -77,10 +77,28 @@ export async function verifyAuthenticatedBrowserSession(input: {
         legacyRequests.push(`${url.hostname}${url.pathname}`)
       }
     })
+    // Better Auth allows 3 requests per 10 s on each sign-in path and answers the next with a 429
+    // until 10 s pass without a request. The journey signs in more often than that, so it waits
+    // out the window instead of depending on how fast the machine runs.
+    const signInPaths = {
+      email: { count: 0, last: -Infinity },
+      username: { count: 0, last: -Infinity }
+    }
+    async function awaitSignInWindow(identifier: string) {
+      const path = signInPaths[identifier.includes('@') ? 'email' : 'username']
+      const windowMs = 10_000
+      const marginMs = 500
+      if (path.count >= 3 && performance.now() - path.last <= windowMs + marginMs)
+        await page.waitForTimeout(path.last + windowMs + marginMs - performance.now())
+      const now = performance.now()
+      path.count = now - path.last > windowMs ? 1 : path.count + 1
+      path.last = now
+    }
     async function signIn(identifier: string, password: string) {
       stage = 'sign in'
       await page.getByRole('textbox', { name: 'Email or username' }).fill(identifier)
       await page.locator('input[name="password"]').fill(password)
+      await awaitSignInWindow(identifier)
       await page.getByRole('button', { name: 'Sign in', exact: true }).click()
       await expect(page).not.toHaveURL(/\/sign-in/, { timeout: 60000 })
       if (new URL(page.url()).pathname === '/home') {
@@ -157,8 +175,12 @@ export async function verifyAuthenticatedBrowserSession(input: {
     assert.match(response?.headers()['cache-control'] ?? '', /private.*no-store/)
     const html = await response.text()
     assert.ok(!html.includes(jwt), 'Backend JWT must not appear in serialized SSR output.')
-    // The reload keeps the session: the server renders the signed-in page before any script runs.
-    assert.ok(html.includes('Game Systems'), 'Reload must server-render the signed-in page.')
+    // The reload keeps the session: the server renders the signed-in layout for this account before
+    // any script runs. Page bodies render client-side (D75), so the account menu is the SSR signal.
+    assert.ok(
+      html.includes('aria-label="Open account menu"'),
+      'Reload must server-render the signed-in shell.'
+    )
     assert.equal(new URL(page.url()).pathname, '/systems')
     await expect(page.getByRole('heading', { name: 'Game Systems', exact: true })).toBeVisible()
     // Hydration completes on the same session: the router settles on /systems with no sign-in bounce.
