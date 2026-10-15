@@ -383,7 +383,8 @@ export const iceDevil: CreatureAuthored = {
                   {
                     id: S.actionId(171, 305),
                     effectKind: S.EFFECT_KIND.MANIFEST,
-                    manifestKind: MANIFEST_KIND.ZONE
+                    manifestKind: MANIFEST_KIND.ZONE,
+                    attachmentKind: 'PLACED_SPACE'
                   }
                 ]
               }

@@ -86,6 +86,7 @@ describe('native Character action state without a resource', () => {
       actionMechanic: { ...decision.mechanic, save: null },
       resourceConsumption: null,
       itemConsumption: null,
+      spellConsumption: null,
       ruleWarnings: []
     })
   })
@@ -189,6 +190,7 @@ describe('native Character action state with a bound resource', () => {
       actionMechanic: { ...decision.mechanic, save: null },
       ruleWarnings: [],
       itemConsumption: null,
+      spellConsumption: null,
       resourceConsumption: {
         poolId,
         chargeId: 'battle-focus-charge',
@@ -230,6 +232,7 @@ describe('native Character action state with a bound resource', () => {
     ).toEqual({
       actionMechanic: { ...decision.mechanic, save: null },
       itemConsumption: null,
+      spellConsumption: null,
       resourceConsumption: null,
       ruleWarnings: []
     })
@@ -242,6 +245,7 @@ describe('native Character action state with a bound resource', () => {
     ).toEqual({
       actionMechanic: { ...decision.mechanic, save: null },
       itemConsumption: null,
+      spellConsumption: null,
       resourceConsumption: null,
       ruleWarnings: [
         { code: 'RESOURCE_UNAVAILABLE', message: 'Not enough uses left: needs 1, has 0.' }

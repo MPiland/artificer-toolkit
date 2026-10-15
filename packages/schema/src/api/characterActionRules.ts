@@ -111,7 +111,7 @@ const actionResourceUseSchema = lazySchema(() =>
 
 const actionMechanicsOwnerSchema = lazySchema(() =>
   z.strictObject({
-    kind: z.enum(['FEATURE', 'FEATURE_OPTION', 'FEAT', 'EQUIPMENT']),
+    kind: z.enum(['FEATURE', 'FEATURE_OPTION', 'FEAT', 'EQUIPMENT', 'SPELL']),
     id: identitySchema
   })
 )

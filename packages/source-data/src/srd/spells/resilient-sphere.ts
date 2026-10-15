@@ -83,7 +83,8 @@ export const resilientSphere: SpellAuthored = {
               {
                 id: spellChildId(SPELL_IDS.RESILIENT_SPHERE, 0x213, 1),
                 effectKind: EFFECT_KIND.MANIFEST,
-                manifestKind: MANIFEST_KIND.ZONE
+                manifestKind: MANIFEST_KIND.ZONE,
+                attachmentKind: 'PRIMARY_TARGET'
               }
             ]
           }

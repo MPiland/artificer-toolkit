@@ -59,15 +59,18 @@ function prepareNativeActionMechanicsBatches(
     spend === 'NONE' ? undefined : prepared.characterActionState?.resourceConsumption
   const itemConsumption =
     spend === 'NONE' ? undefined : prepared.characterActionState?.itemConsumption
+  const spellConsumption =
+    spend === 'NONE' ? undefined : prepared.characterActionState?.spellConsumption
   const stow = spend === 'NONE' ? undefined : prepared.acceptedWieldConflict
   const sourceMutation = {
     ...(resourceConsumption ? { characterResourceConsumption: resourceConsumption } : {}),
     ...(itemConsumption ? { characterItemConsumption: itemConsumption } : {}),
+    ...(spellConsumption ? { characterSpellConsumption: spellConsumption } : {}),
     ...(stow ? { stowEquippedItemInstanceId: stow.shieldItemInstanceId } : {})
   }
   const sourceResourceBatch: EncounterMechanicsBatchInput | null =
     source.kind === 'CHARACTER_ACTION' &&
-    (resourceConsumption || itemConsumption || stow) &&
+    (resourceConsumption || itemConsumption || spellConsumption || stow) &&
     (spend === 'ONLY' || actor.id !== target.id)
       ? {
           encounterId: input.encounterId,
@@ -134,6 +137,7 @@ function nativeSourceSpendReceipts(prepared: NativeEncounterActionMechanicsInput
   const { actor, source, resourceUse, featureResource, featureUsed, featureSpent } = prepared
   const resourceConsumption = prepared.characterActionState?.resourceConsumption
   const itemConsumption = prepared.characterActionState?.itemConsumption
+  const spellConsumption = prepared.characterActionState?.spellConsumption
   const resourceReceipt = resourceConsumption
     ? {
         poolId: resourceConsumption.poolId,
@@ -155,6 +159,16 @@ function nativeSourceSpendReceipts(prepared: NativeEncounterActionMechanicsInput
         afterQuantity: itemConsumption.afterQuantity
       }
     : null
+  const spellConsumptionReceipt = spellConsumption
+    ? {
+        characterId: spellConsumption.characterId,
+        spellId: spellConsumption.spellId,
+        candidateId: spellConsumption.candidateId,
+        slotKey: spellConsumption.slotKey,
+        beforeUsed: spellConsumption.beforeUsed,
+        afterUsed: spellConsumption.afterUsed
+      }
+    : null
   const featureResourceReceipt =
     source.kind === 'CREATURE' &&
     resourceUse &&
@@ -172,7 +186,12 @@ function nativeSourceSpendReceipts(prepared: NativeEncounterActionMechanicsInput
           afterRemaining: featureResource.remaining - featureSpent
         }
       : null
-  return { resourceReceipt, itemConsumptionReceipt, featureResourceReceipt }
+  return {
+    resourceReceipt,
+    itemConsumptionReceipt,
+    spellConsumptionReceipt,
+    featureResourceReceipt
+  }
 }
 
 /** A Creature source's feature charge the action spends, applied to the source as settled so far. */
@@ -213,6 +232,7 @@ export function finishNativeActionMechanicsSettlement(
     source.kind === 'CHARACTER_ACTION' &&
     (prepared.characterActionState?.resourceConsumption ||
       prepared.characterActionState?.itemConsumption ||
+      prepared.characterActionState?.spellConsumption ||
       prepared.acceptedWieldConflict) &&
     actor.id !== target.id
       ? (sourceResourceMechanics?.characterStreamVersion ??
@@ -235,7 +255,12 @@ export function finishNativeActionMechanicsSettlement(
     sourceItemUseStateTransition,
     ...(spendsSource
       ? nativeSourceSpendReceipts(prepared)
-      : { resourceReceipt: null, itemConsumptionReceipt: null, featureResourceReceipt: null })
+      : {
+          resourceReceipt: null,
+          itemConsumptionReceipt: null,
+          spellConsumptionReceipt: null,
+          featureResourceReceipt: null
+        })
   }
 }
 

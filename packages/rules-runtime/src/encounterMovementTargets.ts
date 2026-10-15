@@ -6,6 +6,11 @@ import type { CharacterRulePolicyOutput } from '@artificer-toolkit/schema/api/ch
 import type { SenseRangeDto } from '@artificer-toolkit/schema/grants/sense'
 import { effectiveHitPointMaximum } from './character/activeEffectGrantTotals.js'
 import {
+  buildCharacterSpellCastActions,
+  type CharacterSpellCastActions,
+  listCastableSpellCandidateIds
+} from './character/characterSpellCastActions.js'
+import {
   type EncounterAttackAgainstContributor,
   withActiveGrantSpeeds,
   withCharacterActiveGrants,
@@ -48,13 +53,13 @@ import type { EncounterConditionMechanic } from './encounterConditionMechanics.j
 
 export type CharacterMovementFacts = {
   active: { id: string; checksum: string; play: { streamVersion: number } }
-  character: Pick<CharacterAuthored, 'systemId' | 'state'>
+  character: CharacterAuthored
   campaignContext: Pick<
     CharacterSheetCampaignContext,
     'conditions' | 'adjustments' | 'attunementSlotOverride'
   >
   prepared: {
-    context: Pick<CharacterBuilderContext, 'vocabularySnapshot'> & {
+    context: Pick<CharacterBuilderContext, 'vocabularySnapshot' | 'spellDocumentsById'> & {
       registry: {
         system: Pick<
           NonNullable<CharacterBuilderContext['registry']['system']>,
@@ -70,6 +75,8 @@ export type MovementTarget<
   TCharacterFacts extends CharacterMovementFacts = CharacterMovementFacts
 > = {
   characterReactionSource?: EncounterMovementReactionCharacterSource
+  /** The spells the Character may cast now; present only where reaction sources are requested. */
+  characterSpellCast?: CharacterSpellCastActions
   characterFacts: TCharacterFacts | null
   actor: EncounterRunActorState
   activeEffects: ActiveRuleEffectRecord[]
@@ -218,6 +225,48 @@ export function buildMovementTarget<
           )
         : baseRulePolicyOutput
     const effectiveMaximumHitPoints = nativeCharacterMaximumHitPoints(characterFacts, activeEffects)
+    const conditionDefinitionIds = [...systemConditions].sort()
+    const spellCast = input.includeReactionSources
+      ? buildCharacterSpellCastActions({
+          spellCastCandidates: characterFacts.ruleEvaluation.facts.spellCastCandidates,
+          castableCandidateIds: listCastableSpellCandidateIds({
+            character: characterFacts.character,
+            ruleEvaluation: {
+              ...characterFacts.ruleEvaluation,
+              output: effectiveRulePolicyOutput
+            }
+          }),
+          policyOutput: effectiveRulePolicyOutput,
+          spellDocumentsById: characterFacts.prepared.context.spellDocumentsById,
+          firstSequence: characterFacts.ruleEvaluation.facts.actionCandidates.length
+        })
+      : null
+    // A cast the Encounter cannot compile is not offered: choosing it could only be refused as stale.
+    const spellEntryPoints = spellCast
+      ? compileCharacterActionEntryPoints({
+          gameSystemId,
+          candidates: spellCast.candidates,
+          descriptors: discoverCharacterActionCapabilities({
+            gameSystemId,
+            candidates: spellCast.candidates,
+            conditionDefinitionIds,
+            abilityDefinitions: characterFacts.ruleEvaluation.facts.abilityDefinitions,
+            entryPoints: spellCast.entryPoints
+          })
+        })
+      : []
+    const executableActionIds = new Set(
+      spellEntryPoints
+        .filter((entry) => entry.compilation.kind === 'COMPILED')
+        .map((entry) => entry.actionId)
+    )
+    const characterSpellCast = spellCast && {
+      candidates: spellCast.candidates.filter((c) => executableActionIds.has(c.actionId)),
+      decisions: spellCast.decisions.filter((d) => executableActionIds.has(d.actionId)),
+      compiledActionEntryPoints: spellEntryPoints.filter((entry) =>
+        executableActionIds.has(entry.actionId)
+      )
+    }
     return {
       actor,
       activeEffects,
@@ -253,13 +302,14 @@ export function buildMovementTarget<
                   descriptors: discoverCharacterActionCapabilities({
                     gameSystemId,
                     candidates: characterFacts.ruleEvaluation.facts.actionCandidates,
-                    conditionDefinitionIds: [...systemConditions].sort(),
+                    conditionDefinitionIds,
                     abilityDefinitions: characterFacts.ruleEvaluation.facts.abilityDefinitions,
                     entryPoints: characterFacts.ruleEvaluation.actionEntryPoints
                   })
                 })
               }
-            }
+            },
+            ...(characterSpellCast ? { characterSpellCast } : {})
           }
         : {}),
       characterCurrentness: {

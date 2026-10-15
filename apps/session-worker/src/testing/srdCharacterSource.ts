@@ -6,14 +6,16 @@ import {
   type ContentSnapshotListSource
 } from '@artificer-toolkit/rules-runtime/contentSnapshots'
 import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
-import type { EquipmentAuthored } from '@artificer-toolkit/shared/subjects/authored'
+import type { EquipmentAuthored, SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { resolveEquipmentAuthored } from '@artificer-toolkit/shared/subjects/compilers'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
+import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { acolyte } from '@artificer-toolkit/source-data/srd/backgrounds/acolyte.js'
 import { fighter } from '@artificer-toolkit/source-data/srd/classes/fighter.js'
 import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
 import { elf } from '@artificer-toolkit/source-data/srd/races/elf.js'
 import { human } from '@artificer-toolkit/source-data/srd/races/human.js'
+import { wizard } from '@artificer-toolkit/source-data/srd/classes/wizard.js'
 
 // The captured Character's starting-equipment choice; the Background below offers exactly it.
 const GROUP_ID = '3b74a8d0-eb08-47c9-b103-8d3ec46bd283'
@@ -24,6 +26,9 @@ const UNHELD_CLASS_ID = '00000000-0000-4000-8000-0000000000b1'
 
 /** `true` keeps the SRD fixed one-use charge; `'UNRESOLVED_MAXIMUM'` bases it on the unheld Class's level. */
 type SecondWind = boolean | 'UNRESOLVED_MAXIMUM'
+
+/** Spells the captured Character's Class casts from, published with the Wizard's spellcasting rules. */
+export type ClassSpells = readonly SpellAuthored[]
 
 /** A Feature the SRD Fighter can carry. */
 export type ClassFeature = NonNullable<typeof fighter.features>[number]
@@ -39,7 +44,8 @@ const darkvisionFeature = elf.features![1]!
 function buildRoots(
   secondWind: SecondWind,
   extraClassFeatures: readonly ClassFeature[],
-  extraEquipment: readonly EquipmentAuthored[]
+  extraEquipment: readonly EquipmentAuthored[],
+  spells: ClassSpells | undefined
 ) {
   if (fighter.category !== 'BASE') throw new Error('The SRD Fighter is a base Class.')
   const background = {
@@ -121,13 +127,32 @@ function buildRoots(
           ...extraClassFeatures
         ],
         proficiencies: [],
-        startingEquipment: { ...fighter.startingEquipment, sets: [] }
+        startingEquipment: { ...fighter.startingEquipment, sets: [] },
+        ...(spells && {
+          spellcasting: {
+            ...wizard.spellcasting!,
+            spellLimits: [
+              {
+                classLevel: 1,
+                slots: [
+                  { spellLevel: 1, slotCount: 2 },
+                  { spellLevel: 2, slotCount: 1 }
+                ],
+                cantripsLimit: 0
+              }
+            ]
+          }
+        })
       }
     },
     { subjectKind: 'BACKGROUND' as const, document: background },
     ...[club, ...extraEquipment].map((document) => ({
       subjectKind: 'EQUIPMENT' as const,
       document
+    })),
+    ...(spells ?? []).map((spell) => ({
+      subjectKind: 'SPELL' as const,
+      document: { ...spell, classIds: [...(spell.classIds ?? []), fighter.id] }
     }))
   ]
 }
@@ -160,6 +185,13 @@ function listSource(root: ReturnType<typeof buildRoots>[number]): ContentSnapsho
     version: 1
   }
   const identity = { publicId: publication.document.id, publicationVersion }
+  if (publication.subjectKind === 'SPELL') {
+    const school = srdSystemRecord.magicSchools.find(
+      ({ id }) => id === publication.document.magicSchoolId
+    )
+    if (!school) throw new Error('The Spell Magic School is not in the SRD System.')
+    return { ...publication, ...identity, magicSchoolLabel: school.label }
+  }
   if (publication.subjectKind !== 'EQUIPMENT') return { ...publication, ...identity }
   if (root.subjectKind !== 'EQUIPMENT') throw new Error('The root is not Equipment.')
   const { builder } = equipmentOptionFacts(
@@ -178,15 +210,24 @@ function listSource(root: ReturnType<typeof buildRoots>[number]): ContentSnapsho
 
 /**
  * The SRD source's snapshot builds, one per kind, as the content snapshot build writes them.
- * `darkvision` gives the Race its Darkvision Feature; `secondWind` gives the Fighter its Second Wind Feature, the Resource pool the stripped Class otherwise lacks; `classFeatures` are further Features the Fighter carries.
+ * `darkvision` gives the Race its Darkvision Feature; `secondWind` gives the Fighter its Second Wind Feature, the Resource pool the stripped Class otherwise lacks; `classFeatures` are further Features the Fighter carries; `spells` make the Fighter a spellcaster
+ * (with the Wizard's spellcasting rules) whose Class spell list they join, and add the SPELL kind.
  */
 export function buildSrdSourceKinds(
   darkvision: boolean,
   secondWind: SecondWind = false,
   classFeatures: readonly ClassFeature[] = [],
-  equipment: readonly EquipmentAuthored[] = []
+  equipment: readonly EquipmentAuthored[] = [],
+  spells?: ClassSpells
 ) {
-  return (['RACE', 'CLASS', 'BACKGROUND', 'EQUIPMENT'] as const).map((kind) => {
+  const kinds = [
+    'RACE',
+    'CLASS',
+    'BACKGROUND',
+    'EQUIPMENT',
+    ...(spells ? ['SPELL' as const] : [])
+  ] as const
+  return kinds.map((kind) => {
     const header = {
       format: 2 as const,
       scope: 'SOURCE' as const,
@@ -195,7 +236,7 @@ export function buildSrdSourceKinds(
     }
     const built = buildContentSnapshotKind(
       header,
-      buildRoots(secondWind, classFeatures, equipment)
+      buildRoots(secondWind, classFeatures, equipment, spells)
         .filter((root) => root.subjectKind === kind)
         .map((root) =>
           darkvision && root.subjectKind === 'RACE'

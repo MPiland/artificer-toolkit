@@ -3,6 +3,7 @@ import type { CharacterActionCandidate } from '@artificer-toolkit/schema/api/cha
 import type { CharacterRulePolicyOutput } from '@artificer-toolkit/schema/api/characterRules'
 import type { CompiledActionEntryPoint } from '@artificer-toolkit/schema/projections/characterMechanics'
 import type { EncounterRuleWarningDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
+import type { CharacterSpellSlotConsumptionReceiptDto } from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
 import {
   createCharacterResourceOwnerKey,
   toCharacterResourceOwnerKey,
@@ -10,6 +11,7 @@ import {
   type CharacterResourceUsage
 } from '@artificer-toolkit/shared/character'
 import { StaleCharacterActionError } from '../encounterErrors.js'
+import { readSpellCastSlot, spellCastActionId } from './characterSpellCastActions.js'
 
 type CompiledCharacterAction = Extract<
   CompiledActionEntryPoint,
@@ -21,6 +23,8 @@ type NativeCharacterActionMechanic = Omit<
   'save'
 > & {
   save: { abilityDefinitionId: string; dc: number | null } | null
+  /** The level a spell is cast at, which selects the authored scaling row of its outcomes. */
+  spellCastLevel?: number
 }
 
 type ActionIdentity = Pick<
@@ -49,6 +53,10 @@ export type NativeCharacterItemConsumption = {
   afterUsed: number
   beforeQuantity: number
   afterQuantity: number
+  expectedStreamVersion: number
+}
+
+export type NativeCharacterSpellConsumption = CharacterSpellSlotConsumptionReceiptDto & {
   expectedStreamVersion: number
 }
 
@@ -151,6 +159,7 @@ export function prepareNativeCharacterActionState(input: {
   actionMechanic: NativeCharacterActionMechanic
   resourceConsumption: NativeCharacterActionResourceConsumption | null
   itemConsumption: NativeCharacterItemConsumption | null
+  spellConsumption: NativeCharacterSpellConsumption | null
   ruleWarnings: EncounterRuleWarningDto[]
 } {
   if (
@@ -178,8 +187,16 @@ export function prepareNativeCharacterActionState(input: {
     : []
 
   const savingThrow = input.candidate.mechanicFacts.invocation.savingThrow
+  // A spell cast's action id is a digest of its cast candidate's id, so the id names the candidate.
+  const isSpellCast = input.candidate.mechanicsOwner.kind === 'SPELL'
+  const namesCast = (value: { candidateId: string }) =>
+    spellCastActionId(value.candidateId) === input.candidate.actionId
+  const spellCastLevel = isSpellCast
+    ? input.policyOutput.spellCastMechanics.find(namesCast)?.castLevel
+    : undefined
   const actionMechanic: NativeCharacterActionMechanic = {
     ...decision.mechanic,
+    ...(spellCastLevel === undefined ? {} : { spellCastLevel }),
     save:
       decision.mechanic.save === null
         ? null
@@ -212,6 +229,26 @@ export function prepareNativeCharacterActionState(input: {
     }
   }
 
+  // A leveled cast spends the slot its decision named, in Assisted play only.
+  let spellConsumption: NativeCharacterSpellConsumption | null = null
+  if (isSpellCast) {
+    const cast = input.policyOutput.spellCastDecisions.find(namesCast)
+    if (!cast || cast.status !== 'AVAILABLE') stale()
+    if (cast.slotKey !== null && input.automationMode !== 'MANUAL') {
+      const slot = readSpellCastSlot(input.policyOutput.spellSlots, cast.slotKey)
+      if (!slot || !Number.isSafeInteger(slot.used) || slot.used < 0) stale()
+      spellConsumption = {
+        characterId: input.characterId,
+        spellId: input.candidate.mechanicsOwner.id,
+        candidateId: cast.candidateId,
+        slotKey: cast.slotKey,
+        beforeUsed: slot.used,
+        afterUsed: slot.used + 1,
+        expectedStreamVersion: input.expectedStreamVersion
+      }
+    }
+  }
+
   const binding =
     input.entry.schemaVersion === 2 ||
     input.entry.schemaVersion === 3 ||
@@ -225,7 +262,13 @@ export function prepareNativeCharacterActionState(input: {
       decision.resourceCost !== null
     )
       stale()
-    return { actionMechanic, resourceConsumption: null, itemConsumption, ruleWarnings }
+    return {
+      actionMechanic,
+      resourceConsumption: null,
+      itemConsumption,
+      spellConsumption,
+      ruleWarnings
+    }
   }
   if (!Number.isSafeInteger(binding.cost) || binding.cost < 1) stale()
   const resource = input.policyOutput.resources.find((value) => value.poolId === binding.poolId)
@@ -268,7 +311,13 @@ export function prepareNativeCharacterActionState(input: {
   const beforeUsed = existing?.used ?? 0
   if (beforeUsed !== resource.rawUsed) stale()
   if (input.automationMode === 'MANUAL')
-    return { actionMechanic, resourceConsumption: null, itemConsumption, ruleWarnings }
+    return {
+      actionMechanic,
+      resourceConsumption: null,
+      itemConsumption,
+      spellConsumption,
+      ruleWarnings
+    }
   // "Do it anyway" spends only what remains; the warning records the shortfall.
   const spent = Math.min(binding.cost, resource.remaining)
   if (spent < binding.cost)
@@ -277,7 +326,13 @@ export function prepareNativeCharacterActionState(input: {
       message: `Not enough uses left: needs ${binding.cost}, has ${resource.remaining}.`
     })
   if (spent === 0)
-    return { actionMechanic, resourceConsumption: null, itemConsumption, ruleWarnings }
+    return {
+      actionMechanic,
+      resourceConsumption: null,
+      itemConsumption,
+      spellConsumption,
+      ruleWarnings
+    }
   const afterUsed = beforeUsed + spent
   const afterRemaining = resource.remaining - spent
   if (!Number.isSafeInteger(afterUsed)) stale()
@@ -285,6 +340,7 @@ export function prepareNativeCharacterActionState(input: {
     actionMechanic,
     ruleWarnings,
     itemConsumption,
+    spellConsumption,
     resourceConsumption: {
       poolId: binding.poolId,
       chargeId: binding.chargeId,

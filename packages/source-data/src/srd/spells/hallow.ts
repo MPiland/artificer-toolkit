@@ -75,7 +75,8 @@ export const hallow: SpellAuthored = {
               {
                 id: spellChildId(SPELL_IDS.HALLOW, 0x212, 1),
                 effectKind: EFFECT_KIND.MANIFEST,
-                manifestKind: MANIFEST_KIND.ZONE
+                manifestKind: MANIFEST_KIND.ZONE,
+                attachmentKind: 'PLACED_SPACE'
               }
             ]
           }

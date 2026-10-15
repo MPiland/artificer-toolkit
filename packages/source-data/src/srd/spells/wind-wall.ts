@@ -75,6 +75,7 @@ export const windWall: SpellAuthored = {
                 id: spellChildId(SPELL_IDS.WIND_WALL, 0x212, 1),
                 effectKind: EFFECT_KIND.MANIFEST,
                 manifestKind: MANIFEST_KIND.ZONE,
+                attachmentKind: 'PLACED_SPACE',
                 shape: {
                   id: spellChildId(SPELL_IDS.WIND_WALL, 0x214, 1),
                   shapeKind: SHAPE_KIND.WALL,

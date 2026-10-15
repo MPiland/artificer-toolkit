@@ -27,6 +27,7 @@ import { readEncounterActorConditionState } from '@artificer-toolkit/rules-runti
 import { nextEncounterActorDefeated } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import { revertEncounterAttackActionTransition } from '@artificer-toolkit/rules-runtime/encounterAttackAction'
 import { characterZeroHitPointsConditionId } from '@artificer-toolkit/rules-runtime/characterZeroHitPoints'
+import { updateSpellSlotUsage } from '@artificer-toolkit/rules-runtime/character/sheetCommandReducer'
 import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import { createCharacterResourceOwnerKey } from '@artificer-toolkit/shared/character'
 import { EQUIPPED_SLOT_CODES } from '@artificer-toolkit/shared/core'
@@ -55,6 +56,7 @@ type CharacterInverse = {
   resource: ActionBatch['resourceConsumption']
   stow: ActionBatch['sourceItemUseStateTransition']
   item: ActionBatch['sourceItemConsumption']
+  spell: ActionBatch['spellCastConsumption']
   expectedStreamVersion: number
 }
 
@@ -254,7 +256,6 @@ export async function revertLastEncounterAction(
         maintenance.endedCarriedGrants.length)
     )
       unsupported.add('a replaced maintained effect')
-    if (action.spellCastConsumption) unsupported.add('a spell slot')
   }
   const spend =
     areaRoot ??
@@ -263,6 +264,7 @@ export async function revertLastEncounterAction(
       resourceConsumption: batch.resourceConsumption,
       sourceItemUseStateTransition: batch.sourceItemUseStateTransition,
       sourceItemConsumption: batch.sourceItemConsumption,
+      spellCastConsumption: batch.spellCastConsumption,
       featureResourceConsumption: batch.featureResourceConsumption,
       actionEconomyTransition: batch.actionEconomyTransition,
       attackActionTransition: batch.attackActionTransition,
@@ -324,6 +326,7 @@ export async function revertLastEncounterAction(
           resource: null,
           stow: null,
           item: null,
+          spell: null,
           expectedStreamVersion: streamVersion
         }
     characterInverses.set(characterId, next)
@@ -430,13 +433,14 @@ export async function revertLastEncounterAction(
   }
   for (const action of targetBatches.toReversed()) await invertTarget(action)
 
-  // The source's one spend: its Character resource, item or stow, feature charge and allowances.
+  // The source's one spend: its Character resource, item or stow, spell slot, feature charge and allowances.
   const sourceCharacterId =
     source.kind === 'CHARACTER' && source.sourceId !== null ? source.sourceId : null
   if (
     (spend.resourceConsumption ||
       spend.sourceItemUseStateTransition ||
-      spend.sourceItemConsumption) &&
+      spend.sourceItemConsumption ||
+      spend.spellCastConsumption) &&
     sourceCharacterId
   ) {
     if (spend.sourceCharacterStreamVersion === null)
@@ -445,6 +449,7 @@ export async function revertLastEncounterAction(
     inverse.resource = spend.resourceConsumption
     inverse.stow = spend.sourceItemUseStateTransition
     inverse.item = spend.sourceItemConsumption
+    inverse.spell = spend.spellCastConsumption
   }
   const feature = spend.featureResourceConsumption
   if (feature) {
@@ -624,6 +629,7 @@ async function revertCheckAction(
         resource: null,
         stow: null,
         item: null,
+        spell: null,
         expectedStreamVersion: stabilized.targetTransition.afterStreamVersion
       },
       userId: input.userId,
@@ -755,6 +761,13 @@ async function restoreCharacter(
         (condition) => !inverse.removedConditionIds.has(condition.conditionTypeId)
       )
     }
+  const spell = inverse.spell
+  if (spell)
+    state = updateSpellSlotUsage(
+      { ...character, state },
+      spell.slotKey,
+      () => spell.beforeUsed
+    ).state
   if (inverse.stow) {
     const equipped = state.equipment.equipped
     const itemId = inverse.stow.itemInstanceId

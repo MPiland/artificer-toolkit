@@ -151,7 +151,7 @@ function isPathConditionImmuneFactKey(factKey: string, pathCode: string): boolea
     conditionImmuneFactKey(pathCode, index + 1)
   ).includes(factKey)
 }
-const DND5E_RESOLVED_DAMAGE_EXPRESSION_FACT_KEYS = {
+export const DND5E_RESOLVED_DAMAGE_EXPRESSION_FACT_KEYS = {
   ON_USE: 'dnd5e.resolved-damage-expression.on-use',
   ON_HIT: 'dnd5e.resolved-damage-expression.on-hit',
   ON_MISS: 'dnd5e.resolved-damage-expression.on-miss',
@@ -162,6 +162,8 @@ const DND5E_RESOLVED_DAMAGE_EXPRESSION_FACT_KEYS = {
 const DND5E_RESOLVED_DAMAGE_OUTCOME_EXPRESSIONS_FACT_KEY =
   'dnd5e.resolved-damage-outcome-expressions'
 const DND5E_RESOLVED_HEAL_MODIFIER_FACT_KEY = 'dnd5e.resolved-heal-modifier'
+/** The level a spell is cast at, which selects its authored per-level scaling. */
+export const DND5E_SPELL_CAST_LEVEL_FACT_KEY = 'dnd5e.spell-cast-level'
 export const DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY =
   'dnd5e.active-effect-save-ability-definition-id'
 export const DND5E_ACTIVE_EFFECT_SAVE_REQUEST_NODE_FACT_KEY =
@@ -276,7 +278,7 @@ function dndScalingFactsFromRuleValues(
   return {
     characterLevel: positiveInteger(facts.characterLevel),
     parentClassLevel: positiveInteger(facts.parentClassLevel),
-    spellCastLevel: positiveInteger(facts.spellCastLevel),
+    spellCastLevel: positiveInteger(facts[DND5E_SPELL_CAST_LEVEL_FACT_KEY]),
     resolvedDamageExpressions: Object.fromEntries(
       Object.entries(DND5E_RESOLVED_DAMAGE_EXPRESSION_FACT_KEYS).flatMap(([path, key]) => {
         const expression = facts[key]
@@ -3008,6 +3010,10 @@ export const dnd5eEffectActionCapability: GameSystemRuleCapabilityContract = {
     },
     {
       key: DND5E_RESOLVED_HEAL_MODIFIER_FACT_KEY,
+      valueKind: RULE_VALUE_KIND.NUMBER
+    },
+    {
+      key: DND5E_SPELL_CAST_LEVEL_FACT_KEY,
       valueKind: RULE_VALUE_KIND.NUMBER
     },
     {
@@ -6481,6 +6487,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
         [DND5E_RESOLVED_HEAL_MODIFIER_FACT_KEY]: parsed.modifier
       }
     }
+    const { spellCastLevel } = actionMechanic
     const baseFacts = {
       [DND5E_TARGET_ACTOR_FACT_KEY]: targetActorId,
       [DND5E_TARGET_STATE_CHECKSUM_FACT_KEY]: checksumRuleDocument({
@@ -6504,7 +6511,8 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
             )
           }
         : {}),
-      ...resolvedHealModifierFacts
+      ...resolvedHealModifierFacts,
+      ...(spellCastLevel === undefined ? {} : { [DND5E_SPELL_CAST_LEVEL_FACT_KEY]: spellCastLevel })
     }
     const action = actionMechanic as {
       attackBonus?: unknown

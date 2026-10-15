@@ -28,6 +28,7 @@ import {
   basicActionCheckApplicationOutputDtoSchema,
   characterItemConsumptionReceiptDtoSchema,
   characterItemUseStateTransitionDtoSchema,
+  characterSpellSlotConsumptionReceiptDtoSchema,
   cleavingDamageApplicationOutputDtoSchema,
   concentrationCheckApplicationOutputDtoSchema,
   concentrationEndApplicationOutputDtoSchema,
@@ -44,8 +45,6 @@ import {
 import {
   ruleExecutionAggregateVersionSchema as aggregateVersionSchema,
   ruleExecutionChecksumSchema as checksumSchema,
-  ruleExecutionNonNegativeIntegerSchema as nonNegativeIntegerSchema,
-  ruleExecutionPositiveIntegerSchema as positiveIntegerSchema,
   ruleExecutionUuidSchema as uuidSchema
 } from './ruleExecutionPrimitives.js'
 const serverRuleExecutionApplicationOutputsDtoSchemaImpl = lazySchema(() =>
@@ -74,24 +73,7 @@ const serverRuleExecutionApplicationOutputsDtoSchemaImpl = lazySchema(() =>
         targetCharacterStreamVersion: z.nullable(aggregateVersionSchema),
         resourceConsumption: z.nullable(characterMechanicsResourceReceiptDtoSchema),
         spellCastConsumption: z._default(
-          z.nullable(
-            z.strictObject({
-              spellId: uuidSchema,
-              spellVersionId: uuidSchema,
-              spellVersion: positiveIntegerSchema,
-              spellChecksum: checksumSchema,
-              candidateId: z
-                .string()
-                .check(z.trim())
-                .check(z.minLength(1))
-                .check(z.maxLength(1_000)),
-              slotKey: z.nullable(
-                z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(1_000))
-              ),
-              beforeUsed: z.nullable(nonNegativeIntegerSchema),
-              afterUsed: z.nullable(nonNegativeIntegerSchema)
-            })
-          ),
+          z.nullable(characterSpellSlotConsumptionReceiptDtoSchema),
           null
         ),
         featureResourceConsumption: z._default(
@@ -432,8 +414,21 @@ const serverRuleExecutionApplicationOutputsDtoSchemaImpl = lazySchema(() =>
               value.targetTransition.after.conditionIds.length
           const stow = value.sourceItemUseStateTransition
           const consumption = value.sourceItemConsumption
+          const spell = value.spellCastConsumption
           const hasSourceMutation =
-            value.resourceConsumption !== null || stow !== null || consumption !== null
+            value.resourceConsumption !== null ||
+            stow !== null ||
+            consumption !== null ||
+            spell !== null
+          if (
+            spell &&
+            (value.sourceCharacterId === null || spell.characterId !== value.sourceCharacterId)
+          )
+            context.addIssue({
+              code: 'custom',
+              path: ['spellCastConsumption'],
+              message: 'Spell slot consumption must match the source Character.'
+            })
           if (
             consumption &&
             (value.sourceCharacterId === null ||
