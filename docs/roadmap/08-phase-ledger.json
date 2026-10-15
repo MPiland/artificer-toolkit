@@ -164,7 +164,7 @@
         {
           "id": "PLATFORM-5",
           "title": "Import and audit the SRD source data",
-          "status": "DONE",
+          "status": "IN_PROGRESS",
           "journeyTests": [
             "apps/apis/convex/content/seed.test.ts",
             "apps/apis/convex/content/import.test.ts"
@@ -218,8 +218,36 @@
               "origin": ["P81-CURRENT-MANIFEST"],
               "note": "Original PARTIAL: freshness hardening not explicit in 8.2.",
               "id": "PLATFORM-5.6"
+            },
+            {
+              "id": "PLATFORM-5.7",
+              "text": "Every SRD seed mutation (bootstrap, subject and definition batches, derived syncs) finishes well under the Convex 1 s execution limit on the local backend while the machine is loaded, proved by recorded per-mutation durations from a loaded seed run.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Registered 2026-10-15 from the SPELLS-17.T4 merge: content/seed:seed failed with \"Function execution timed out (maximum duration: 1s)\" at about 74% host CPU, before bootstrap committed (the audit found no platform content source); the unchanged rerun at 71% passed (local-validation/merge-s17t4/deploy-seed.log, deploy-seed-2.log). Find the mutation near the limit and cut its work; do not raise a limit or add a retry."
             }
-          ]
+          ],
+          "tasks": [
+            {
+              "id": "PLATFORM-5.T1",
+              "text": "Measure each SRD seed mutation under load, find the one near the 1 s limit, cut its work, and prove the margin with a loaded run.",
+              "status": "TODO",
+              "closes": ["PLATFORM-5.7"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 3,
+                "rr": 5,
+                "size": 2
+              }
+            }
+          ],
+          "wsjf": {
+            "bv": 2,
+            "tc": 3,
+            "rr": 5,
+            "size": 2
+          }
         },
         {
           "id": "PLATFORM-6",
