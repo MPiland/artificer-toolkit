@@ -1,0 +1,70 @@
+# Live-backend validation on a GitHub runner: manifest, codegen push, deploy, seed and SRD audit against
+# an ephemeral self-hosted Convex backend container (the open-source image the local Docker backend
+# runs). It is a sibling of tests.yml because it needs a container, runs only on `ci/merge-*` pushes or
+# a manual dispatch, and must not slow every slice's `ci/<slice>` push. ADR 0035 forbids Convex Cloud,
+# not this container, which is discarded with the runner. No pull_request trigger (so never for forks),
+# no repository secrets: the admin key is generated inside the container and only masked in memory.
+#   git push origin HEAD:ci/merge-<slice>
+#   gh workflow run live-backend.yml --ref ci/<slice> [-f steps=manifest,codegen,deploy,seed,audit]
+name: Live backend
+
+on:
+  push:
+    branches: ['ci/merge-*']
+  workflow_dispatch:
+    inputs:
+      steps:
+        description: Comma-separated scripts/liveBackendValidation.mjs steps to run
+        default: manifest,codegen,deploy,seed,audit
+
+permissions:
+  contents: read
+
+concurrency:
+  group: live-backend-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # The digest the local phase82-convex-local-linux container runs (apps/apis/README.md).
+  CONVEX_BACKEND_IMAGE: ghcr.io/get-convex/convex-backend@sha256:69885bae73766f625404a5425b22702341e89b43002f1d700864f8364be0d1f8
+
+jobs:
+  live-backend:
+    name: Deploy, seed and audit on an ephemeral backend
+    if: startsWith(github.ref, 'refs/heads/ci/')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      NODE_OPTIONS: --max-old-space-size=8192
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+        with:
+          build: 'true'
+      - name: Start Convex backend
+        run: |
+          docker run -d --name convex-live -p 127.0.0.1:3210:3210 -p 127.0.0.1:3211:3211 "$CONVEX_BACKEND_IMAGE"
+          for _ in $(seq 60); do
+            curl -fsS http://127.0.0.1:3210/version && exit 0
+            sleep 2
+          done
+          echo 'Convex backend did not become ready.' >&2
+          exit 1
+      - name: Deploy, seed and audit
+        env:
+          STEPS: ${{ inputs.steps || 'manifest,codegen,deploy,seed,audit' }}
+        run: node scripts/liveBackendValidation.mjs --container=convex-live --steps="$STEPS" --log-dir=live-backend-logs
+      - name: Step durations
+        if: always()
+        run: |
+          [ -f live-backend-logs/summary.json ] && node -e "for (const s of JSON.parse(require('fs').readFileSync('live-backend-logs/summary.json','utf8'))) console.log('| ' + s.step + ' | ' + s.status + ' | ' + s.seconds + ' s |')" >> "$GITHUB_STEP_SUMMARY" || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: live-backend-logs
+          path: live-backend-logs/
+          retention-days: 7
+          if-no-files-found: ignore
+      - name: Backend log tail
+        if: failure()
+        run: docker logs --tail 100 convex-live
