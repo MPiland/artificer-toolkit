@@ -56,6 +56,7 @@ import {
 import {
   encounterActionTargetKind,
   evaluateEncounterAreaTargetPolicy,
+  evaluateEncounterCasterCenteredAreaTarget,
   evaluateEncounterDirectedAreaTarget
 } from '@artificer-toolkit/rules-runtime/encounterAreaAction'
 import {
@@ -185,29 +186,35 @@ async function prepareAreaScene(input: AreaPlanInput) {
   })
   const { target } = command
   const area =
-    target.kind === 'DIRECTED'
-      ? evaluateEncounterDirectedAreaTarget({
+    target.kind === 'CASTER_CENTERED'
+      ? evaluateEncounterCasterCenteredAreaTarget({
           targetPolicy,
-          origin: target.origin,
-          toward: target.toward,
           grid,
           sourceToken: scene.sourceToken
         })
-      : evaluateEncounterAreaTargetPolicy({
-          targetPolicy,
-          point: target.point,
-          grid,
-          sourceToken: scene.sourceToken,
-          pointSeen:
-            (await readNativeLivePointSight({
-              state,
-              system: input.system,
-              observer: casterFacts,
-              point: target.point,
-              sceneContext: { sceneId: scene.sceneId, sceneVersion: scene.sceneVersion, grid },
-              capture
-            })) === 'SEES'
-        })
+      : target.kind === 'DIRECTED'
+        ? evaluateEncounterDirectedAreaTarget({
+            targetPolicy,
+            origin: target.origin,
+            toward: target.toward,
+            grid,
+            sourceToken: scene.sourceToken
+          })
+        : evaluateEncounterAreaTargetPolicy({
+            targetPolicy,
+            point: target.point,
+            grid,
+            sourceToken: scene.sourceToken,
+            pointSeen:
+              (await readNativeLivePointSight({
+                state,
+                system: input.system,
+                observer: casterFacts,
+                point: target.point,
+                sceneContext: { sceneId: scene.sceneId, sceneVersion: scene.sceneVersion, grid },
+                capture
+              })) === 'SEES'
+          })
   if (!area) throw new Error('The selected action area is not supported.')
   if ('refusal' in area)
     throw new LiveSessionDomainRejectionError(422, {
@@ -215,7 +222,10 @@ async function prepareAreaScene(input: AreaPlanInput) {
       reason: 'TARGET_UNAVAILABLE',
       message: DIRECTED_AREA_REFUSALS[area.refusal]
     })
-  return { caster, casterFacts, movementTargets, scene, grid, area }
+  const origin =
+    target.kind === 'CASTER_CENTERED' ? scene.sourceToken?.position : areaActionTargetOrigin(target)
+  if (!origin) throw new Error('A caster-centered area needs the caster’s token.')
+  return { caster, casterFacts, movementTargets, scene, grid, area, origin }
 }
 
 /** One creature's action mechanics against the point's Scene, as its sealed save was prepared. */
@@ -286,10 +296,11 @@ export async function planNativeLiveEncounterAreaAction(input: AreaPlanInput) {
   const { caster, casterFacts, movementTargets, scene, grid, area } = base
 
   const caughtActorIds = catchEncounterAreaActorIds({
-    origin: areaActionTargetOrigin(command.target),
+    origin: base.origin,
     shape: area.shape,
     casterActorId: caster.id,
-    tokens: scene.tokens.map((token) => ({ ...token, id: token.tokenId }))
+    tokens: scene.tokens.map((token) => ({ ...token, id: token.tokenId })),
+    fromCasterSpace: command.target.kind === 'CASTER_CENTERED'
   })
   const caught = caughtActorIds.map((actorId) => {
     const actor = actors.find((candidate) => candidate.id === actorId)
@@ -410,7 +421,7 @@ export async function planNativeLiveEncounterAreaAction(input: AreaPlanInput) {
     initiatorUserId,
     casterActorId: caster.id,
     scene: { sceneId: scene.sceneId, sceneVersion: scene.sceneVersion },
-    area: { origin: areaActionTargetOrigin(command.target), shape: area.shape },
+    area: { origin: base.origin, shape: area.shape },
     targets
   })
   // A creature whose roller auto-rolls has its save rolled now, so an auto-rolled failure opens its

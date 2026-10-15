@@ -174,7 +174,33 @@ export function directedAreaWolf(
       }
     | { shapeKind: 'CUBE'; edgeLength: { amount: number; unit: 'FEET' } }
 ): CreatureAuthored {
-  const bite = biteWolf('SAVE', { reachFeet: 150 })
+  return selfAreaWolf(shape)
+}
+
+/**
+ * `directedAreaWolf` with a sphere, cylinder or circle: a Self range makes it a radius centered on
+ * the Wolf, reaching from the edge of its space (a death burst, Destructive Wave).
+ */
+export function casterCenteredAreaWolf(
+  shape:
+    | { shapeKind: 'SPHERE'; radius: { amount: number; unit: 'FEET' } }
+    | {
+        shapeKind: 'CYLINDER'
+        radius: { amount: number; unit: 'FEET' }
+        height: { amount: number; unit: 'FEET' }
+      }
+    | { shapeKind: 'CIRCLE'; radius: { amount: number; unit: 'FEET' } },
+  /** The damage a failed save takes; a success takes none. */
+  damage = 1
+): CreatureAuthored {
+  return selfAreaWolf(shape, damage)
+}
+
+function selfAreaWolf(
+  shape: Record<string, unknown> & { shapeKind: string },
+  damage = 1
+): CreatureAuthored {
+  const bite = biteWolf('SAVE', { reachFeet: 150, damage })
   return creatureAuthoredDtoSchema.parse({
     ...bite,
     features: bite.features?.map((feature) =>
@@ -193,6 +219,71 @@ export function directedAreaWolf(
                 },
                 shape: { id: '00000000-0000-4000-8000-000000000c97', ...shape }
               }
+            }))
+          }
+    )
+  })
+}
+
+/** `base` with its Bite's failed save leaving a Frightened Condition for two rounds instead of damage. */
+export function frightenOnFailedSave(base: CreatureAuthored): CreatureAuthored {
+  const frightened = srdSystemRecord.conditionTypes.find(({ code }) => code === 'FRIGHTENED')
+  const dexterityId = srdSystemRecord.abilities?.find(({ code }) => code === 'DEXTERITY')?.id
+  if (!frightened || !dexterityId) throw new Error('Missing frightened condition fixture.')
+  return creatureAuthoredDtoSchema.parse({
+    ...base,
+    features: base.features?.map((feature) =>
+      feature.label !== 'Bite'
+        ? feature
+        : {
+            ...feature,
+            effects: feature.effects?.map((effect) => ({
+              ...effect,
+              paths: effect.paths.slice(0, 1).map((path) => {
+                if (!('resultBlock' in path)) return path
+                return {
+                  id: path.id,
+                  order: path.order,
+                  pathCode: 'ON_SAVE_FAIL' as const,
+                  groupType: 'SEQUENTIAL' as const,
+                  originKind: 'SOURCE' as const,
+                  selectionKind: 'FIXED' as const,
+                  resultBlock: {
+                    id: '00000000-0000-4000-8000-000000000099',
+                    resultKind: 'SEQUENCE' as const,
+                    duration: {
+                      id: '00000000-0000-4000-8000-000000000098',
+                      durationKind: 'ROUND' as const,
+                      amount: 2
+                    },
+                    outcomes: [
+                      {
+                        id: '00000000-0000-4000-8000-0000000000ab',
+                        effectKind: 'CONDITION' as const,
+                        conditionId: frightened.id
+                      },
+                      {
+                        id: '00000000-0000-4000-8000-0000000000ac',
+                        effectKind: 'FOLLOW_UP_SAVE' as const,
+                        timing: 'TARGET_TURN_END' as const,
+                        savingThrow: {
+                          id: '00000000-0000-4000-8000-0000000000ad',
+                          dcMethod: 'FIXED_DC' as const,
+                          abilityDefinitionId: dexterityId,
+                          baseDc: 10
+                        },
+                        attempts: {
+                          kind: 'ONCE' as const,
+                          repeatOnFailure: true
+                        },
+                        onSuccess: { kind: 'END' as const },
+                        onFailure: { kind: 'CONTINUE' as const },
+                        onDurationComplete: { kind: 'END' as const }
+                      }
+                    ]
+                  }
+                }
+              })
             }))
           }
     )
@@ -424,11 +515,19 @@ export async function actionRoom(config: ActionRoomConfig) {
         sender
       )
     },
+    /** The acting actor's area action centered on its own token; not yet checked. */
+    startCasterCenteredAreaAction(
+      acknowledgedWarnings: ResolveEncounterActionInputDto['acknowledgedWarnings'] = [],
+      sender: 'GM' | 'PLAYER' = 'GM'
+    ) {
+      return this.startAreaCommand({ kind: 'CASTER_CENTERED' }, acknowledgedWarnings, sender)
+    },
     /** The acting actor's area action on the Scene as the room holds it now. */
     async startAreaCommand(
       target:
         | { kind: 'POINT'; point: { x: number; y: number } }
-        | { kind: 'DIRECTED'; origin: { x: number; y: number }; toward: { x: number; y: number } },
+        | { kind: 'DIRECTED'; origin: { x: number; y: number }; toward: { x: number; y: number } }
+        | { kind: 'CASTER_CENTERED' },
       acknowledgedWarnings: ResolveEncounterActionInputDto['acknowledgedWarnings'],
       sender: 'GM' | 'PLAYER'
     ) {
