@@ -37,6 +37,8 @@ const spell = (label: string): SpellAuthored => {
 const FIREBALL = spell('Fireball')
 const FLY = spell('Fly')
 const HOLD_PERSON = spell('Hold Person')
+const CURE_WOUNDS = spell('Cure Wounds')
+const HEALING_WORD = spell('Healing Word')
 const MEND = { ...fixedHealSpell(), id: '00000000-0000-4000-8000-00000000c0de', label: 'Mend' }
 
 /** The cast candidate of a spell at a level, the way the policy lists it. */
@@ -128,7 +130,7 @@ const PLAIN_HOLD = {
   attributes: [] as SpellAuthored['attributes']
 }
 const authoredById = new Map(
-  [FIREBALL, MEND, FLY, HOLD_PERSON, DERIVED_FLY, PLAIN_HOLD].map((entry) => [entry.id, entry])
+  [FIREBALL, MEND, FLY, HOLD_PERSON, DERIVED_FLY, PLAIN_HOLD, CURE_WOUNDS, HEALING_WORD].map((entry) => [entry.id, entry])
 )
 
 function build(
@@ -144,6 +146,28 @@ function build(
     firstSequence: 10,
     ...overrides
   })
+}
+
+/** The compiled entry the Encounter would run for the spell's cast, or null when it stays manual. */
+function compiledCast(authored: SpellAuthored, castLevel = authored.level) {
+  const built = build([candidate(authored, castLevel)])
+  const compiled = compileCharacterActionEntryPoints({
+    gameSystemId: SRD_SYSTEM_ID,
+    candidates: built.candidates,
+    descriptors: discoverCharacterActionCapabilities({
+      gameSystemId: SRD_SYSTEM_ID,
+      candidates: built.candidates,
+      conditionDefinitionIds: SRD_CONDITION_TYPES.map((condition) => condition.id).sort(),
+      abilityDefinitions: SRD_ABILITIES.map(({ id, code }) => ({ id, code })),
+      entryPoints: built.entryPoints
+    })
+  })
+  const [entry] = compiled
+  return entry?.kind === 'CHARACTER_ACTION' &&
+    entry.schemaVersion === 4 &&
+    entry.compilation.kind === 'COMPILED'
+    ? entry.compilation
+    : null
 }
 
 describe('the cast choices an Encounter offers a Character', () => {
@@ -312,28 +336,6 @@ describe('what a leveled cast carries into the Encounter action', () => {
 })
 
 describe('the Concentration a cast starts', () => {
-  /** The compiled entry the Encounter would run for the spell's cast, or null when it stays manual. */
-  function compiledCast(authored: SpellAuthored) {
-    const built = build([candidate(authored, authored.level)])
-    const compiled = compileCharacterActionEntryPoints({
-      gameSystemId: SRD_SYSTEM_ID,
-      candidates: built.candidates,
-      descriptors: discoverCharacterActionCapabilities({
-        gameSystemId: SRD_SYSTEM_ID,
-        candidates: built.candidates,
-        conditionDefinitionIds: SRD_CONDITION_TYPES.map((condition) => condition.id).sort(),
-        abilityDefinitions: SRD_ABILITIES.map(({ id, code }) => ({ id, code })),
-        entryPoints: built.entryPoints
-      })
-    })
-    const [entry] = compiled
-    return entry?.kind === 'CHARACTER_ACTION' &&
-      entry.schemaVersion === 4 &&
-      entry.compilation.kind === 'COMPILED'
-      ? entry.compilation
-      : null
-  }
-
   it('marks the Effect group of a Concentration spell and no other', () => {
     expect(compileSpell(HOLD_PERSON).effects?.map((group) => group.requiresConcentration)).toEqual([
       true
@@ -366,5 +368,40 @@ describe('the Concentration a cast starts', () => {
     const plan = compiledCast(PLAIN_HOLD)?.activeEffectPlan
     expect(plan).toBeDefined()
     expect(plan?.maintenance).toBeNull()
+  })
+})
+
+describe('the scaling heal a cast carries', () => {
+  /** The dice the spell's authored scaling row names for a cast level, read from the SRD data. */
+  function authoredDice(authored: SpellAuthored, castLevel: number) {
+    const outcome = compileSpell(authored).effects?.[0]?.entries[0]?.outcome
+    if (outcome?.effectKind !== 'HEAL' || !('levels' in outcome))
+      throw new Error(`${authored.label} has no scaling heal.`)
+    const row = outcome.levels.find((level) => level.level === castLevel)
+    const match = /^(\d+)d(\d+)$/.exec(row?.diceConfig ?? '')
+    if (!match) throw new Error(`${authored.label} has no dice row for level ${castLevel}.`)
+    return { count: Number(match[1]), die: Number(match[2]) }
+  }
+
+  /** The dice the compiled heal graph rolls. */
+  function rolledDice(authored: SpellAuthored, castLevel: number) {
+    const plan = compiledCast(authored, castLevel)?.executionPlan
+    if (plan?.kind !== 'SINGLE_GRAPH') throw new Error(`${authored.label} must compile to a graph.`)
+    return plan.published.definition.nodes
+      .filter((node) => node.operation.key === 'evidence.integer-range')
+      .map((node) => node.inputs.max)
+  }
+
+  it.each([
+    { authored: CURE_WOUNDS, castLevel: 1 },
+    { authored: CURE_WOUNDS, castLevel: 3 },
+    { authored: CURE_WOUNDS, castLevel: 9 },
+    { authored: HEALING_WORD, castLevel: 1 },
+    { authored: HEALING_WORD, castLevel: 4 }
+  ])('rolls the dice $authored.label names at cast level $castLevel', ({ authored, castLevel }) => {
+    const { count, die } = authoredDice(authored, castLevel)
+    expect(rolledDice(authored, castLevel)).toEqual(
+      Array.from({ length: count }, () => ({ kind: 'LITERAL', value: die }))
+    )
   })
 })

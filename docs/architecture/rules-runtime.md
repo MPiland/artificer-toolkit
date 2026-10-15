@@ -376,7 +376,7 @@ is 5 ft; a distance without a long range, including the 0 ft swarm space), `RANG
 point-area policy advertises its origin range, which `evaluateEncounterAreaTargetPolicy` measures
 (`pointAreaOriginRange`): `WITHIN` the distance (never `RANGED`, the area evaluator ignores a long range) or `UNLIMITED`.
 A policy neither evaluator measures leaves it off: a sight or special range, targeting that is not a single target with a
-disposition (excluded creature types only warn), an area with no supported shape, a path override, or no policy.
+disposition (excluded creature types only warn; neither the compiler nor the evaluators refuse a single-target policy for them, the room raises the overridable `TARGET_CREATURE_TYPE_EXCLUDED` warning, only for a Creature target, since a Character's facts carry no creature type), an area with no supported shape, a path override, or no policy.
 `encounterActionChoiceRange` (`encounterActionRange.ts`) is the one mapping. `rangeLabel` is not derived from `range`:
 it words the authored range with `rangeLabel` (`rangeLabel.ts`), the formatter the Sheet uses, so Touch reads "Touch"
 (its 5 ft geometry stays in `range`) and a ranged weapon reads "150/600 ft" on both surfaces. Only a choice without a
@@ -566,8 +566,13 @@ own level and spent whatever its level. A candidate is dropped when its decision
 ritual, a limited-use cast or a pool-backed fixed-level cast. A spell is offered only with exactly one active
 Effect (a PASSIVE Effect is ignored): one cast is one action and the compiler executes one Effect group per
 action. A cast is offered only when the System adapter compiles its entry (`COMPILED`), since choosing one that
-stays `MANUAL` could only be refused as stale. The dnd5e Effect-action compiler does not yet execute a heal
-scaling per cast level or a group that needs several entries, so those are not offered. Labels read "Cure Wounds (2nd level)"; a cantrip reads its name.
+stays `MANUAL` could only be refused as stale. The dnd5e Effect-action compiler does not yet execute a group that
+needs several entries, so those are not offered. A heal that scales per cast level compiles as the unscaled dice of
+the chosen level: `effectAtCastLevel` replaces the `PER_LEVEL` `SPELL_CAST_LEVEL` rows with the row at or below the
+cast level before the entry point is built, so the published graph rolls that many dice (a heal's dice count is
+structural, unlike a damage upcast, which specializes an outcome graph from `dnd5e.spell-cast-level`). A heal
+that targets several chosen creatures (Mass Cure Wounds, Mass Healing Word, Prayer of Healing) is not offered: the
+`RESOLVE_ACTION` target has no list-of-actors kind. Labels read "Cure Wounds (2nd level)"; a cantrip reads its name.
 
 The cast level is a fact of the action. `prepareNativeCharacterActionState` copies the policy's `castLevel`
 onto the action mechanic as `spellCastLevel`, the dnd5e adapter binds it as the declared fact

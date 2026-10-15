@@ -45,6 +45,7 @@ import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.j
 import { cureWounds } from '@artificer-toolkit/source-data/srd/spells/cure-wounds.js'
 import { fireball } from '@artificer-toolkit/source-data/srd/spells/fireball.js'
 import { fireBolt } from '@artificer-toolkit/source-data/srd/spells/fire-bolt.js'
+import { healingWord } from '@artificer-toolkit/source-data/srd/spells/healing-word.js'
 import { fly } from '@artificer-toolkit/source-data/srd/spells/fly.js'
 import { holdPerson } from '@artificer-toolkit/source-data/srd/spells/hold-person.js'
 import { wizard } from '@artificer-toolkit/source-data/srd/classes/wizard.js'
@@ -109,37 +110,18 @@ function rekeyed<T>(document: T): T {
   })
 }
 
-/** The dice healing outcome of the spell's Effect. */
-function healOutcome(spell: SpellAuthored) {
-  const path = spell.effects?.[0]?.paths?.[0]
-  const found = path && 'resultBlock' in path ? path.resultBlock.outcomes[0] : undefined
-  if (!found || found.effectKind !== 'HEAL' || found.valueKind !== 'DICE')
-    throw new Error('Expected a dice healing outcome.')
-  return found
+/** An SRD spell on its own ids, exactly as authored: its range and heal are the SRD's. */
+function srdSpell(source: SpellAuthored): SpellAuthored {
+  const spell = rekeyed(source)
+  spell.id = crypto.randomUUID()
+  return spell
 }
 
-/**
- * A Cure Wounds variant that needs no Scene geometry. Its heal scales per cast level, which the
- * dnd5e Effect-action compiler cannot execute yet; `edit` reshapes the copy, and `fixHeal` makes the
- * heal an exact unscaled amount, which it can.
- */
-function healSpell(
-  label: string,
-  edit: (spell: SpellAuthored) => void = () => undefined
-): SpellAuthored {
-  const spell = rekeyed(cureWounds)
-  spell.id = crypto.randomUUID()
+/** A Cure Wounds variant that needs no Scene geometry; `edit` reshapes the copy (`fixHeal` fixes its heal). */
+function healSpell(label: string, edit: (spell: SpellAuthored) => void): SpellAuthored {
+  const spell = srdSpell(cureWounds)
   spell.label = label
   targetAnyCreatureAtAnyRange(spell)
-  const healing = healOutcome(spell)
-  if (healing.scalingKind !== 'PER_LEVEL') throw new Error('Expected a scaling heal.')
-  healing.levels = Array.from({ length: 9 }, (_, index) => ({
-    id: crypto.randomUUID(),
-    level: index + 1,
-    order: index + 1,
-    diceConfig: index === 0 ? '1d2' : `${(index + 1) * 2}d2`
-  }))
-  delete healing.bonuses
   edit(spell)
   return spell
 }
@@ -161,6 +143,8 @@ type SetupOptions = {
   }[]
   /** Seats an SRD Wolf and a second player's Character beside the target. */
   withOthers?: boolean
+  /** Replaces the seated Wolf's creature type, by its System code. */
+  wolfTypeCode?: string
 }
 
 async function setup(options: SetupOptions) {
@@ -342,9 +326,14 @@ async function setup(options: SetupOptions) {
         temp: 0
       }
     })
+    const wolfTypeId = options.wolfTypeCode
+      ? srdSystemRecord.creatureTypes?.find((type) => type.code === options.wolfTypeCode)?.id
+      : srdWolf.creatureTypeId
+    if (!wolfTypeId) throw new Error('Missing creature type.')
+    const seatedWolf = { ...srdWolf, creatureTypeId: wolfTypeId }
     await base.t.mutation(internal.content.import.importSubjects, {
       contentSourceId: SRD_CONTENT_SOURCE.id,
-      subjects: [importedSubject({ ...srdWolf, subjectKind: 'CREATURE', document: srdWolf })]
+      subjects: [importedSubject({ ...seatedWolf, subjectKind: 'CREATURE', document: seatedWolf })]
     })
     allyCharacterId = ally.id
   }
@@ -417,12 +406,13 @@ function castCommand(
   actionId: string,
   expectedVersion: number,
   commandId = crypto.randomUUID(),
-  targetActorId = fixture.actor.id
+  targetActorId = fixture.actor.id,
+  acknowledgedWarnings: ResolveEncounterActionInputDto['acknowledgedWarnings'] = []
 ) {
   return {
     type: 'RESOLVE_ACTION' as const,
     acceptedWieldConflict: null,
-    acknowledgedWarnings: [],
+    acknowledgedWarnings,
     encounterId: fixture.run.id,
     commandId,
     expectedVersion,
@@ -526,8 +516,7 @@ async function activeEffects(fixture: Fixture) {
 
 /** An SRD Concentration spell on its own ids, aimed at one creature at any distance (no Scene geometry). */
 function concentrationSpell(source: SpellAuthored): SpellAuthored {
-  const spell = rekeyed(source)
-  spell.id = crypto.randomUUID()
+  const spell = srdSpell(source)
   targetAnyCreatureAtAnyRange(spell)
   return spell
 }
@@ -617,12 +606,12 @@ const SHEET_CHANGED = /'s Sheet changed after this action; adjust manually\./
 describe('Character spell casting in an Encounter', () => {
   useLocalRoomWorker()
 
-  it('offers a cast once per spell it can execute, never a granted ritual, an unprepared spell or a scaling heal', async () => {
+  it('offers a cast once per spell it can execute, never a granted ritual or an unprepared spell', async () => {
     const mend = healSpell('Mend', (spell) => fixHeal(spell, 1))
     const grantedRite = healSpell('Granted Rite', (spell) => fixHeal(spell, 1))
     const unprepared = healSpell('Unprepared', (spell) => fixHeal(spell, 1))
-    // Its heal scales per cast level, which the Encounter cannot execute: choosing it could only be refused.
-    const scaling = healSpell('Scaling Mend')
+    // Its heal scales per cast level: it is offered once for each slot level the Character can cast it at.
+    const scaling = srdSpell(cureWounds)
     const fixture = await setup({
       known: [mend, unprepared, scaling],
       prepared: [mend, scaling],
@@ -634,7 +623,7 @@ describe('Character spell casting in an Encounter', () => {
     const choices = await spellChoices(fixture, 0)
     // A spell granted as a ritual is not offered; an unprepared spell is refused as the Sheet refuses it.
     expect(choices.map(({ label }) => label).sort()).toEqual(
-      ['Fire Bolt', 'Mend (1st level)'].sort()
+      ['Cure Wounds (1st level)', 'Cure Wounds (2nd level)', 'Fire Bolt', 'Mend (1st level)'].sort()
     )
     expect(new Set(choices.map(({ id }) => id)).size).toBe(choices.length)
   }, 60000)
@@ -1086,4 +1075,96 @@ describe('Character spell casting in an Encounter', () => {
       { slotKey: 'STANDARD:2', used: 0, max: 1 }
     ])
   }, 60000)
+
+  describe('a scaling heal (SPELLS-8.1)', () => {
+    const RANGE_UNCHECKED = ['TARGET_RANGE_UNCHECKED'] as const
+    const EXCLUDED_TYPE = 'TARGET_CREATURE_TYPE_EXCLUDED'
+
+    it('heals the dice of the cast level the Character chose, on the SRD Cure Wounds as authored', async () => {
+      const fixture = await setup({ known: [srdSpell(cureWounds)] })
+      expect((await spellChoices(fixture, 0)).map(({ label }) => label).sort()).toEqual([
+        'Cure Wounds (1st level)',
+        'Cure Wounds (2nd level)'
+      ])
+      const first = await choiceId(fixture, 'Cure Wounds (1st level)', 0)
+      const second = await choiceId(fixture, 'Cure Wounds (2nd level)', 0)
+
+      // One die, then two; a raw roll is the face less one, and the Wizard's spellcasting modifier is +1.
+      await queueRoomRolls(fixture.campaign.id, { rolls: [2, 0, 2], repeat: 0 })
+      const oneDie = await executeInRoom(fixture.player.caller, {
+        command: castCommand(fixture, first, 0, undefined, undefined, RANGE_UNCHECKED)
+      })
+      expect(oneDie.occurrence?.status).toBe('COMPLETE')
+      const afterOne = await storedCharacter(fixture)
+      expect(afterOne.record.state.spellSlots).toEqual([{ slotKey: 'STANDARD:1', used: 1 }])
+      expect(afterOne.record.state.hitpoints.current - 1).toBe(3 + 1)
+
+      await resetActionAllowance(fixture)
+      const twoDice = await executeInRoom(fixture.player.caller, {
+        command: castCommand(
+          fixture,
+          second,
+          oneDie.projection.version,
+          undefined,
+          undefined,
+          RANGE_UNCHECKED
+        )
+      })
+      expect(twoDice.occurrence?.status).toBe('COMPLETE')
+      const afterTwo = await storedCharacter(fixture)
+      expect(afterTwo.record.state.spellSlots).toEqual([
+        { slotKey: 'STANDARD:1', used: 1 },
+        { slotKey: 'STANDARD:2', used: 1 }
+      ])
+      expect(
+        afterTwo.record.state.hitpoints.current - afterOne.record.state.hitpoints.current
+      ).toBe(1 + 3 + 1)
+    }, 120000)
+
+    it('heals an ally with the bonus-action Healing Word as authored, at a Creature of a permitted type', async () => {
+      const fixture = await setup({ known: [srdSpell(healingWord)], withOthers: true })
+      const wolf = fixture.wolf
+      if (!wolf) throw new Error('Missing the Wolf.')
+      await wound(fixture, wolf.id, 1)
+      const actionId = await choiceId(fixture, 'Healing Word (1st level)', 0)
+      await queueRoomRolls(fixture.campaign.id, { rolls: [2], repeat: 0 })
+      // A Beast raises no creature-type warning: the range, which this Scene-less Run cannot measure, is the only one.
+      const healed = await executeInRoom(fixture.player.caller, {
+        command: castCommand(fixture, actionId, 0, undefined, wolf.id, RANGE_UNCHECKED)
+      })
+      expect(healed.occurrence?.status).toBe('COMPLETE')
+      expect(await creatureHitPoints(fixture, wolf.id)).toBe(1 + 3 + 1)
+    }, 120000)
+
+    it('warns, overridably, when a heal targets an excluded creature type, and heals once overridden', async () => {
+      const fixture = await setup({
+        known: [srdSpell(cureWounds)],
+        withOthers: true,
+        wolfTypeCode: 'UNDEAD'
+      })
+      const wolf = fixture.wolf
+      if (!wolf) throw new Error('Missing the Wolf.')
+      await wound(fixture, wolf.id, 1)
+      const actionId = await choiceId(fixture, 'Cure Wounds (1st level)', 0)
+      const refused = await executeInRoom(fixture.player.caller, {
+        command: castCommand(fixture, actionId, 0, undefined, wolf.id, RANGE_UNCHECKED)
+      }).then(
+        () => null,
+        (caught: unknown) => caught
+      )
+      expect(`${String(refused)} ${JSON.stringify(refused)}`).toContain(EXCLUDED_TYPE)
+      expect(await creatureHitPoints(fixture, wolf.id)).toBe(1)
+      expect((await storedCharacter(fixture)).record.state.spellSlots).toBeUndefined()
+
+      await queueRoomRolls(fixture.campaign.id, { rolls: [2], repeat: 0 })
+      const healed = await executeInRoom(fixture.player.caller, {
+        command: castCommand(fixture, actionId, 0, undefined, wolf.id, [
+          ...RANGE_UNCHECKED,
+          EXCLUDED_TYPE
+        ])
+      })
+      expect(healed.occurrence?.status).toBe('COMPLETE')
+      expect(await creatureHitPoints(fixture, wolf.id)).toBe(1 + 3 + 1)
+    }, 120000)
+  })
 })

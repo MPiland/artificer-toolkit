@@ -481,8 +481,7 @@ function isSupportedTestTargetPolicy(
   if (invocation.shape) return false
   if (
     invocation.targeting?.selectionKind !== 'SINGLE_TARGET' ||
-    invocation.targeting.dispositionKind !== 'ANY' ||
-    invocation.targeting.excludedCreatureTypeIds?.length
+    invocation.targeting.dispositionKind !== 'ANY'
   ) {
     return false
   }
@@ -2241,14 +2240,14 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
         Number.isSafeInteger(invocation.range.amount) &&
         invocation.range.amount > 0 &&
         invocation.range.longAmount === undefined)) &&
+    // Excluded creature types stay on the invocation: the room warns for an excluded target and the
+    // table can override it, so they never make an action unsupported.
     invocation.targeting?.selectionKind === 'SINGLE_TARGET' &&
     // A grant (Help) or a check (First Aid) may ask for a willing target: an unwilling one only warns,
     // and the table can override it.
     (invocation.targeting.dispositionKind === 'ANY' ||
       (invocation.targeting.dispositionKind === 'WILLING' &&
-        (grantPlan !== null || checkAction))) &&
-    // A grant's excluded creature types stay on the invocation for the room to enforce.
-    (grantPlan !== null || !invocation.targeting.excludedCreatureTypeIds?.length)
+        (grantPlan !== null || checkAction)))
   // A Legendary Action option is free; the Feature charge it spends is its cost.
   const supportedActivation =
     invocation.kind === 'ACTION' &&
