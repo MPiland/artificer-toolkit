@@ -16,10 +16,7 @@ import {
 } from '@artificer-toolkit/schema/shared/rulesExecution'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
-import {
-  resumeMovementReactionChoice,
-  startMovementReactionChoice
-} from './movementReactionChoice.js'
+import { resumeReactionChoice, startReactionChoice } from './reactionChoiceDefinition.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
 import { encounterLegendaryResistancePin } from './encounterLegendaryResistanceChoice.js'
 import type { EncounterLegendaryResistanceCandidate } from './encounterLegendaryResistanceDiscovery.js'
@@ -230,7 +227,7 @@ async function startEncounterMovementReactionChoice(input: {
       'The movement reaction choice definition does not match its exact System policy.'
     )
   }
-  const continuation = await startMovementReactionChoice({
+  const continuation = await startReactionChoice({
     runtime: input.runtime,
     occurrenceId: input.occurrenceId,
     published: input.publishedChoice,
@@ -301,7 +298,7 @@ export async function resolveEncounterMovementReactionChoice(input: {
     ...continuation
   } = input.pendingSnapshot
   const selectedIndex = optionIndex + 1
-  await resumeMovementReactionChoice({
+  await resumeReactionChoice({
     runtime: input.runtime,
     continuation,
     selectedIndex

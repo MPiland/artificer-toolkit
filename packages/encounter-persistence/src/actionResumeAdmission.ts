@@ -11,6 +11,7 @@ import { readNativeEncounterActionAdmission } from './actionAdmission.js'
 import {
   canAnswerNativeActionEvidence,
   canControlEvidenceRoller,
+  offeredDecisionOptionIds,
   readNativeActionPending
 } from './actionPending.js'
 import { areaActionPendingContext, readNativeAreaActionPending } from './actionAreaPending.js'
@@ -172,15 +173,15 @@ export async function readNativeEncounterActionResponseAdmission(
   else {
     // A single-target action holding a creature's Legendary Resistance or reaction offer takes only
     // its answer.
-    const heldUseOptionId = areaSave
-      ? undefined
-      : (pending.context.legendaryResistance?.resistance.useOptionId ??
-        pending.context.reactionChoice?.reactions[0]?.useOptionId)
+    const offeredOptionIds = areaSave ? [] : offeredDecisionOptionIds(pending.context)
     if (answer.kind === 'DECLINE' || answer.kind === 'OPTION') {
-      if (!heldUseOptionId) rejectDomain('DECISION_NOT_PENDING')
-      if (answer.kind === 'OPTION' && answer.optionId !== heldUseOptionId)
-        rejectDomain('VERSION_STALE', 'The decision option is stale.')
-    } else if (heldUseOptionId) rejectDomain('DECISION_NOT_PENDING')
+      if (!offeredOptionIds.length) rejectDomain('DECISION_NOT_PENDING')
+      if (answer.kind === 'OPTION' && !offeredOptionIds.includes(answer.optionId))
+        rejectDomain(
+          'VERSION_STALE',
+          `The decision option ${answer.optionId} is not offered by this pause.`
+        )
+    } else if (offeredOptionIds.length) rejectDomain('DECISION_NOT_PENDING')
   }
   if (response.commandId === parsed.commandId || rootReceipt) rejectDomain('COMMAND_ID_REUSED')
   const used = await ctx.db
