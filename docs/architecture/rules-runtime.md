@@ -570,7 +570,7 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   actor after its settlement steps have committed (the movement planner does not plan the end, so it lands after the pass, not between
   contacts). Both read the committed holder state (`readHolderEndState`), delete the grants and post a chat notice per grant
   (`postGrantEndMessages`), as the action and turn commits do. A commit that omits a grant its damaged holder's state ends is refused
-  ("grant end is missing"); the planner and persistence read the same holder end state. Rage's heavy-armor restriction is an `EXCLUDE`
+  ("grant end is missing"); the planner and persistence share one end rule (`grantsEndedByHolderState`). Rage's heavy-armor restriction is an `EXCLUDE`
   `EQUIPMENT_EQUIPPED` condition (category `ARMOR`, property `HEAVY`) on each Rage benefit's facets, the same predicate Monk's Unarmored
   Movement uses. A Rage that ends Concentration (`SPELLCASTING_LOCKED`) adds a Concentration-end child that undo cannot restore, so GM
   undo of that action is refused with that reason (a full restore is a proposed follow-up).

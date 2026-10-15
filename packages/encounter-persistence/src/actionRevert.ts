@@ -71,7 +71,7 @@ const CONCENTRATION_END_LIMIT: Record<ConcentrationEndReason, string> = {
   INCAPACITATED: 'lost Concentration to incapacitation',
   DEFEATED: 'lost Concentration to defeat',
   SPELLCASTING_LOCKED: 'lost Concentration to a spellcasting lock',
-  CHOSEN: 'lost Concentration its holder ended'
+  CHOSEN: 'lost Concentration because its holder ended it'
 }
 
 function unavailable(message: string): never {
@@ -422,7 +422,9 @@ export async function revertLastEncounterAction(
     const reactionEconomy = reaction?.actionEconomyTransition
     if (reactionEconomy) {
       const reactor = actorsById.get(target.id)!
-      if (encounterRuleUsageUsed(reactor, reactionEconomy.definitionId) !== reactionEconomy.afterUsed)
+      if (
+        encounterRuleUsageUsed(reactor, reactionEconomy.definitionId) !== reactionEconomy.afterUsed
+      )
         unavailable("The target's reactions changed after this action; adjust manually.")
       updateActor(reactor.id, {
         resources: withEncounterRuleUsageUsed(
