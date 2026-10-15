@@ -18,4 +18,16 @@ Options:
 
 Recommendation: **(b)**. Refusing common names at signup is a first-impression cost for every affected player, and the embedded slurs that (b) misses are what reporting covers anyway.
 
+**User (2026-10-15):** agrees in principle, but `ass_muncher` and `AssMuncher` must still be refused. Asked for the best practice.
+
+**Refined recommendation (tiered; the usual answer to the "Scunthorpe problem"):**
+
+1. **Normalize:** lowercase, digit and look-alike swaps (`a55` to `ass`), collapse repeats.
+2. **Split into tokens** on `_`, on lower-to-upper case changes and on letter-digit changes. Refuse any token on the blocklist. `ass_muncher`, `AssMuncher` and `Ass1Muncher` are refused; `Cassandra` is one token and passes.
+3. **Substring tier for unambiguous terms only:** slurs and stems that never occur inside ordinary words are refused anywhere, even inside one unbroken token (`xxslurxx`). Short ambiguous terms (`ass`, `dick`, `cum`, `tit`) stay token-only.
+4. **Allowlist of known false positives** for the substring tier, maintained with the list.
+5. **Backstop:** reports and a moderator rename.
+
+Gap: an all-lowercase compound such as `assmuncher` is one token, and its term is ambiguous, so tiers 2 and 3 miss it. Closing that needs dictionary segmentation (refuse when the name splits into a blocked word plus real words, which `cassandra` does not). Do that server-side only, so the client bundle does not carry a dictionary. Evaluate the maintained `obscenity` npm library first (blocklist, allowlist and leetspeak handling) before building our own.
+
 **Answer:**
