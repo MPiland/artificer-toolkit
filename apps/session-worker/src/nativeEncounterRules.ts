@@ -846,6 +846,7 @@ export function buildNativeLiveEncounterActionCommitInput(
     rules: plan.nextRules,
     resourceConsumption: plan.prepared.characterActionState?.resourceConsumption ?? null,
     itemConsumption: plan.prepared.characterActionState?.itemConsumption ?? null,
+    spellConsumption: plan.prepared.characterActionState?.spellConsumption ?? null,
     label: encounterActionSourceLabel(plan.prepared.source),
     ruleOverrides: plan.ruleOverrides,
     createdEffects: plan.settlement.createdEffects,

@@ -1,49 +1,96 @@
-# Slice workbook: SPELLS-8.T1 (core Encounter casting)
+# Slice workbook: SPELLS-8.T1 (Encounter spell casting: choices, slot spend, undo, upcasting)
 
-**Status:** OPEN (started 2026-10-13)
-**Base:** `codex/phase-08-2-convex-cutover` at this workbook's commit.
+**Status:** SECOND FIX ROUND DONE, READY FOR REVIEW (started 2026-10-13; split by the Phase 8 review 2026-10-14)
+**Base:** `codex/phase-08-2-convex-cutover`.
 **Rules:** [slice-workbook-rules.md](slice-workbook-rules.md).
 
-## Brief
+## Scope after the split
 
-A Character casts its spells in an Encounter through `RESOLVE_ACTION`, like a Feature action. Today no Character spell reaches it: `buildCharacterActionRuleFacts` (`packages/rules-runtime/src/character/characterActionRuleFacts.ts`) has no spell branch, `encounterActionChoices.ts` has no spell kind, and action receipts never spend a slot (`encounterActionReceipt.ts` sets `spellCastConsumption` to null; only movement reactions spend one, and `actionRevert.ts` refuses any root that carries one).
+A Character casts its spells in an Encounter through `RESOLVE_ACTION`, like a Feature action. T1 now delivers:
 
-Build, for Characters:
+1. **Spell action choices.** One choice per `spellCastCandidates` entry (one per offered cast level), id `spell-cast:<uuidv5(candidateId)>` (fixed length), labelled with the spell and level; a cantrip once.
+2. **Slot spend and GM undo.** A leveled cast spends the slot (or pact slot) in the same Character version as its outcome; GM undo restores it. Single-target roots, and point-area roots (D103: the area root holds the spend once; the caster-caught child batch carries it).
+3. **Upcasting.** Any slot at or above the spell's level is offered, as the Sheet offers it (`getExplicitSpellCastLevels`); the cast level is bound as the fact `dnd5e.spell-cast-level` on the compiled action and the dnd5e compiler scales by that fact. A pact slot casts a lower-level spell.
 
-1. **Choice.** One spell action choice per `spellCastCandidates` entry (one per cast level), so upcasting is picking the higher-level candidate and the command needs no cast-level field. Integration-owner ruling (contract shape): the choice is a new member of the closed action-choice union, built from the candidate the Sheet and initiative declarations already read. Label it with the spell and its level, e.g. "Cure Wounds (2nd level)"; a cantrip has one candidate.
-2. **Spend and undo.** Resolving a leveled cast spends the slot (or pact slot) in the same transaction as its outcome, and GM undo restores it, for single-target and point-area roots (D103 commit and undo). Never spend twice on an area: the root holds the spend once.
-3. **Concentration.** A Concentration spell starts the caster's maintained effect and ends the previous one (D95 policy, `prepareEncounterActionMaintenance`). Area spells whose outcome is a maintained or lasting effect stay refused until SPELLS-19; do not lift that.
-4. **Rituals.** A ritual cast takes 10 minutes longer, so it is never offered as a ritual in an Encounter; a ritual spell the Character can cast normally is offered as a normal cast and spends a slot.
-5. **Multi-effect spells and components.** A spell with several Effects resolves all of them in one action. Components follow the rules the Sheet already applies (a material component with a cost needs the item; a Character that cannot speak or has no free hand for V or S is refused with the same refusal the Sheet uses). If the Sheet has no such rule today, report it rather than inventing one.
+T1 delivers **part of** AC SPELLS-8.1. It does not close it.
 
-Slot spend and its undo land in the same change (SPELLS-8.1 note). Fireball (SPELLS-8.4), Spare the Dying (8.2) and the APPLY_GRANT spells (8.3) are later tasks; do not build them, but do not block them.
+Registered as separate tasks (not built here): Concentration start for every SRD Concentration spell, multi-Effect casts, components, LIMITED_USE and pool-backed casts, mixed or non-standard casting times, scaling heals with creature-type exclusions, rituals.
 
-Read first: D95, D99 (grants and Concentration), D103 (area commit and undo, "Action receipts do not yet spend a spell slot"), D104 in `docs/handoffs/phase-08-2-decisions.md`; `docs/architecture/rules-runtime.md`; ADR 0034 for control and redaction.
+Read first: D95, D99, D103, D104 in `docs/handoffs/phase-08-2-decisions.md`; `docs/architecture/rules-runtime.md`; ADR 0034.
 
-## Closes
+## Design (as built)
 
-- Task SPELLS-8.T1; AC SPELLS-8.1.
+- `buildCharacterSpellCastActions` (`packages/rules-runtime/src/character/characterSpellCastActions.ts`) turns the Sheet's declarations into Encounter actions. It reuses the Sheet's own logic: `isActiveSpellSource` (per class, ALWAYS_PREPARED and GRANTED sources), `getExplicitSpellCastLevels`, `getOwnedSpellSlotLevels`, `readSpellCastSlot`. Each spell's Effects are compiled once per load (WeakMap cache).
+- Spell data rides on the action/cast source, not on the movement-reaction source.
+- The slot is spent and restored with the Sheet's `updateSpellSlotUsage` (spend in `characterNativeActionResources.ts`, restore in `actionRevert.ts`). The restore is fenced by the Character `streamVersion`; a Sheet change after the cast refuses undo.
+- The dnd5e compiler reads the cast level from the declared fact `DND5E_SPELL_CAST_LEVEL_FACT_KEY` (`dnd5e.spell-cast-level`), declared in the Game System `factContracts`. The old reverse match on `exactDiceConfiguration` is gone.
+- `actionChoiceReads.ts` maps candidates and spell casts through one path; the damage label includes the damage type.
+- Test helper `packages/rules-runtime/src/testing/fixedHealSpell.ts`: a non-damage spell the compiler can execute (Cure Wounds with an exact heal and unlimited range). Real Cure Wounds upcast compiles `MANUAL`, so it is not offered.
 
-## File scope
+## Fix-round items (Phase 8 review)
 
-`packages/schema` (action choice and receipt contracts), `packages/rules-runtime` (Character action facts, spell choices, mechanics, maintenance), `packages/encounter-persistence` (choices, receipt, revert, Sheet write), `apps/apis/convex/encounters`, the Session Worker's action and area routes, and the web drawer only to list and label the new choice. Out of scope: the VTT stage area aiming (`CampaignVttStage.tsx`, area overlays in `vttSceneRenderer.model.ts`), owned by the parallel SPELLS-13 session. Both slices touch the area commit path; keep your area change to the slot spend on the root and its undo.
+| Item                                                                         | Status                                                                                                                                                       |
+| ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| H2 upcast to any slot at or above spell level; pact slot casts a lower spell | done; Convex `casts a 1st-level spell with a 3rd-level pact slot…`, `offers Fireball at 3rd to 9th…`; unit `characterSpellCastActions.test.ts`               |
+| M2 cast level as a bound fact, no reverse match                              | done; `encounterSpellCastLevelFacts.test.ts` (damage and non-damage spell)                                                                                   |
+| M3 Sheet's `isActiveSpellSource`                                             | done; ALWAYS_PREPARED and GRANTED offered, unprepared not                                                                                                    |
+| M4 `updateSpellSlotUsage` for spend and restore                              | done; exact stored slot objects asserted after spend and undo                                                                                                |
+| M5 casting on another actor                                                  | done; Creature and ally (Wolf) heal test                                                                                                                     |
+| M6 assertion strength                                                        | done; exact Concentration record, specific refusal messages, `MANUAL` mode unit variants, unreachable `restoreCharacter` check deleted; mutation proof below |
+| L1 spellCast off the movement-reaction source                                | done                                                                                                                                                         |
+| L2 compile once per load                                                     | done                                                                                                                                                         |
+| L3 action id length                                                          | done: ids are `spell-cast:` + a v5 UUID, fixed length, so the limit cannot be exceeded                                                                       |
+| L4 duplicate choice mapping, damage type label                               | done                                                                                                                                                         |
+| L5 D103 note                                                                 | done                                                                                                                                                         |
+| L6 workbook                                                                  | this file                                                                                                                                                    |
+| L7 journey reads choices as the casting player                               | done                                                                                                                                                         |
 
-## Red-first checklist
+`encounterMechanicsBatchPlan.test.ts` only gains tests (no existing expectation changed). The two tests that policed the dead `spellSlotUsage` batch input beside `characterSpellConsumption` were removed with that input (round 2, item 2).
 
-1. A Character's spell choices: one per cast level; a cantrip once; labels name the spell and level.
-2. A leveled single-target cast spends the slot in the same Run version as its outcome; GM undo restores it (Convex through the real room).
-3. A leveled point-area cast spends the slot once on the root; GM undo restores it.
-4. Upcasting uses the higher slot and the higher-level scaling of the spell.
-5. A pact-magic Character spends a pact slot.
-6. No slot left at that level: the choice is not offered, and a stale command is refused.
-7. A Concentration spell starts Concentration and ends the previous one; undo restores the previous one.
-8. A ritual spell is never offered as a ritual cast in an Encounter.
-9. A multi-effect spell resolves every Effect in one action and one undo.
-10. Components: the refusals the Sheet applies are applied here (or the gap is reported).
-11. Journey: a player casts a leveled spell on their own Character in a real room, the slot is spent on the Sheet, and the GM undoes it.
+## Second review round (seven frozen items)
+
+| #   | Item                                                                               | Status                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| --- | ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Unused `CharacterRulePolicyOutput` import in `encounterMovementReactionSources.ts` | removed                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| 2   | Dead `spellSlotUsage` batch input, its guard and shadowing                         | deleted from `encounterMechanicsBatchPlan.ts`; `characterSpellConsumption` is the only spend path. The `'spell slot usage'` non-Character refusal case and the full-replacement test went with it; the Convex `mechanicsBatch.character.test.ts` and `mechanicsBatch.test.ts` cases were migrated to `characterSpellConsumption` with their stored-slot, stale-version and refusal assertions kept                                                                                                                                                                                                              |
+| 3   | `mergeSpellEffects`, `mergeSpellMechanics`, `withoutIds`                           | deleted; a spell is offered only with exactly one active Effect; `actionSpellCasting.test.ts` keeps the multi-Effect case, which proves "not offered"                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| 4   | Cast level carried as a typed field; no `sourceId === candidateId`                 | `bindFacts` input `actionMechanic` has `spellCastLevel?: number`; `characterNativeActionResources.ts` finds the policy cast by `spellCastActionId(candidateId) === actionId` and keys the spell branch on `mechanicsOwner.kind === 'SPELL'`                                                                                                                                                                                                                                                                                                                                                                     |
+| 5   | `getSpellSourcesBySpellId` placeholder `new Map()`s                                | labels are trailing defaulted parameters; `listCastableSpellCandidateIds` passes none                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| 6   | `buildActiveSpellGroups` derives owned slot levels from the rules output           | **Behaviour change.** It took owned levels from the Sheet's stored `params.slots` (`max > 0`); it now takes `getOwnedSpellSlotLevels(ruleEvaluation.output.spellSlots)` (standard slots with `slotCount > 0`, and the Pact Magic level), the same function the Encounter uses, so both surfaces list the same cast levels. Proof: Convex `actionSpellCasting.test.ts` "lists a spell on the Sheet at the levels of the Character's owned slots, standard and Pact Magic" reads `sheet.spells.activeGroups` for Fireball with standard slots 3, 5, 9 (levels 3, 5, 9) and with a level-5 pact slot (levels 3, 5) |
+| 7   | Workbook claim about `encounterMechanicsBatchPlan.test.ts`                         | corrected above                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+
+## Old T1 items: what the branch does and what is missing
+
+| Old item            | Does today                                                                                                                                                                                                                                  | Missing                                                                                                                                                                           |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Rituals             | Ritual-mode candidates and ritual-only grants are never offered. A ritual-tagged spell castable normally is offered as a normal slot cast.                                                                                                  | No ritual casting mode exists (nothing to offer, nothing to refuse).                                                                                                              |
+| Concentration start | A single-Effect compiled spell with a maintenance outcome starts the maintained effect and ends the previous one (D99: a replacing start has no GM undo; a start that replaced nothing undoes). Proven with a synthetic Concentration heal. | Not proven for the real SRD Concentration spells; each needs compiling and a per-spell proof.                                                                                     |
+| Multi-Effect        | Only a spell with exactly one active Effect is offered; there is no merging.                                                                                                                                                                | The dnd5e compiler does not execute multi-entry groups. Merging returns with the compiler's multi-entry slice (test `does not offer a multi-Effect spell…` proves "not offered"). |
+| Components          | Nothing.                                                                                                                                                                                                                                    | No Sheet rule exists (material cost, free hand, silence); none was invented.                                                                                                      |
+| Scaling heals       | Not offered.                                                                                                                                                                                                                                | The compiler cannot execute HEAL with PER_LEVEL scaling; real Cure Wounds upcast compiles `MANUAL`.                                                                               |
+
+## Evidence
+
+Logs under `local-validation/spells-8-t1/` (not committed). Every batch ran through the validation lock runner. `g5` ran on `3c68d4277`; `g6` and `g7` on the working tree that became the final commit (test typing fixes, snapshot update, this workbook).
+
+- **Red (unit), g5:** the two new rules-runtime files against the pre-fix production files (14 files swapped from `0abebb01e`): 2 files, 5 of 5 tests fail, exit 1.
+- **Mutation, g5 (`g5.log`):** with the undo's slot restore disabled in `actionRevert.ts`, the Convex test `spends the slot with the outcome in one Character version and GM undo restores both` fails at the stored slots (`expected [ { slotKey: 'STANDARD:1', used: 1 } ] to deeply equal []`), exit 1. Production restored and rebuilt afterwards.
+- **Test-side corrections found by g5:** a cleared slot list is stored as an absent `spellSlots` field (asserted `toBeUndefined()`); the exhausted-cast refusal is `VERSION_STALE` "That action is no longer available; refresh and choose again."
+- **Test typing fixes found by g6:** readonly/mutable fixture types in `characterSpellCastActions.test.ts` and `actionSpellCasting.test.ts`.
+- **Stale dists:** g6's apis and rules-runtime failures (`senses` ZodError, `createNodeRuntimeSourceReader is not a function`) came from stale `source-data` and `authoring` dists. Building them, in order shared, schema, source-data, authoring, rules-runtime, encounter-persistence, made every one pass. None of those tests is red on this branch once built.
+- **Snapshot:** declaring `dnd5e.spell-cast-level` in the Game System `factContracts` adds one fact to the published definition, so `encounterStoreConformance.test.ts.snap` changes by exactly that fact (one line).
+- **Green, g7 (`g7.log`, all exit 0):**
+  - Convex `actionSpellCasting.test.ts`: 1 file / 12 tests.
+  - apis `encounters` folder: 84 files / 552 tests; apis `content` folder: 45 files / 258 tests.
+  - rules-runtime + encounter-persistence: 104 files / 1127 tests.
+  - session-worker: 50 files / 607 tests.
+  - `yarn turbo run typecheck typecheck:app typecheck:tests typecheck:stories --concurrency=1 --env-mode=loose --continue --filter="[5489f675c]"`: 13 of 13 tasks; `yarn workspace @artificer-toolkit/apis typecheck:convex` exit 0; local `convex codegen` exit 0.
+- **Second review round, green, g9 (`g9.log`, all 12 steps exit 0)** on the tree merged with the lane at `72193db49`: rules-runtime + encounter-persistence 112 files / 1181 tests; session-worker 52 files / 621 tests; Convex `encounters`, `content` and `sheetSpellCustomization` 125 files / 790 tests (includes the new Sheet owned-slot-levels test); turbo typecheck against `72193db49`, `typecheck:convex` and local `convex codegen` exit 0.
+- Web tests were not run: no web file changed.
 
 ## Status log
 
-- 2026-10-13: workbook written; session started.
-
-## Proposed ledger edits (filled by the slice session)
+- 2026-10-13: workbook written; session started; core casting built.
+- 2026-10-14: Phase 8 review split T1; fix round (H2, M2 to M6, L1 to L7) built; Worker rejected the undeclared cast-level fact; fact declared in the Game System `factContracts` (commit `3c68d4277`); g5 as above.
+- 2026-10-14: g5 (red, mutation, green unit/Worker), g6 (typing and stale-dist findings), g7 (full regression, typecheck, codegen) green; see Evidence.
+- 2026-10-15: second review round (seven frozen items) done, merged with the lane, g9 green; see Evidence.

@@ -29,6 +29,7 @@ const USER_ID = '00000000-0000-4000-8000-00000000e103'
 const ACTIVE_EFFECT_ID = '00000000-0000-4000-8000-00000000e104'
 const DAMAGE_OUTCOME_ID = '00000000-0000-4000-8000-00000000e105'
 const STREAM_VERSION = 4
+const SPELL_ID = '00000000-0000-4000-8000-00000000e109'
 
 const conditionId = (code: string) => SRD_CONDITION_TYPES.find((entry) => entry.code === code)!.id
 const PRONE = conditionId('PRONE')
@@ -408,9 +409,19 @@ describe('Creature mechanics batch plan', () => {
       message: 'Encounter non-Character actors have no Character stream version.'
     },
     {
-      name: 'spell slot usage',
-      overrides: { spellSlotUsage: [{ slotKey: 'STANDARD:1', used: 1 }] },
-      message: 'Encounter non-Character actors cannot use spell slots.'
+      name: 'a spell slot consumption',
+      overrides: {
+        characterSpellConsumption: {
+          characterId: CHARACTER_ID,
+          spellId: SPELL_ID,
+          candidateId: 'candidate',
+          slotKey: 'STANDARD:1',
+          beforeUsed: 0,
+          afterUsed: 1,
+          expectedStreamVersion: STREAM_VERSION
+        }
+      },
+      message: 'Encounter non-Character actors cannot spend Character spell slots.'
     },
     {
       name: 'an item to stow',
@@ -523,6 +534,84 @@ describe('Character mechanics batch plan', () => {
       }
     ])
     expect(plan.targetTransition.after.conditionIds).toEqual([PRONE, FRIGHTENED])
+  })
+
+  describe('spell slot consumption', () => {
+    const consumption = {
+      characterId: CHARACTER_ID,
+      spellId: SPELL_ID,
+      candidateId: 'candidate',
+      slotKey: 'STANDARD:1',
+      beforeUsed: 1,
+      afterUsed: 2,
+      expectedStreamVersion: STREAM_VERSION
+    }
+    const withSlots = (spellSlots: { slotKey: string; used: number }[]) => ({
+      ...characterFacts,
+      character: { ...document, state: { ...document.state, spellSlots } }
+    })
+    const planFor = (spend: typeof consumption, facts: ReturnType<typeof withSlots>) =>
+      planEncounterMechanicsBatch({
+        batch: batch([], {
+          expectedCharacterStreamVersion: STREAM_VERSION,
+          effectiveMaximumHitPoints: 12,
+          characterSpellConsumption: spend
+        }),
+        actor,
+        userId: USER_ID,
+        characterFacts: facts
+      })
+
+    it('spends the slot in the Character version the outcome writes, leaving other slots alone', () => {
+      const plan = planFor(
+        consumption,
+        withSlots([
+          { slotKey: 'STANDARD:1', used: 1 },
+          { slotKey: 'STANDARD:2', used: 1 }
+        ])
+      )
+      expect(plan.characterStreamVersion).toBe(STREAM_VERSION + 1)
+      expect(plan.shouldAdvance).toBe(true)
+      // The Sheet's own slot write: a used slot keeps its place.
+      expect(plan.characterUpdate?.character.state.spellSlots).toEqual([
+        { slotKey: 'STANDARD:1', used: 2 },
+        { slotKey: 'STANDARD:2', used: 1 }
+      ])
+    })
+
+    it('adds a slot entry the Character has not used yet', () => {
+      const plan = planFor({ ...consumption, beforeUsed: 0, afterUsed: 1 }, withSlots([]))
+      expect(plan.characterUpdate?.character.state.spellSlots).toEqual([
+        { slotKey: 'STANDARD:1', used: 1 }
+      ])
+    })
+
+    it.each([
+      {
+        name: 'the slot was spent since the preparation',
+        spend: consumption,
+        facts: withSlots([{ slotKey: 'STANDARD:1', used: 2 }])
+      },
+      {
+        name: 'the Character version moved',
+        spend: { ...consumption, expectedStreamVersion: STREAM_VERSION - 1 },
+        facts: withSlots([{ slotKey: 'STANDARD:1', used: 1 }])
+      },
+      {
+        name: 'the spend is not one slot',
+        spend: { ...consumption, afterUsed: 3 },
+        facts: withSlots([{ slotKey: 'STANDARD:1', used: 1 }])
+      },
+      {
+        name: 'the spend names another Character',
+        spend: { ...consumption, characterId: ACTOR_ID },
+        facts: withSlots([{ slotKey: 'STANDARD:1', used: 1 }])
+      }
+    ])('refuses a stale spend when $name', ({ spend, facts }) => {
+      expect(() => planFor(spend, facts)).toThrow(
+        'Encounter Character spell slot consumption is stale.'
+      )
+    })
   })
 
   it('does not advance the Character for a batch that changes nothing', () => {

@@ -134,11 +134,16 @@ export async function prepareEncounterActionSource<
 }) {
   const { state, actor, actionId, sourceFacts } = input
   const characterAction = sourceFacts.characterReactionSource
-  const candidate = characterAction?.mechanics.rulePolicyInput.actionCandidates.find(
-    (value) => value.actionId === actionId
-  )
+  const spellCast = sourceFacts.characterSpellCast
+  const candidate = [
+    ...(characterAction?.mechanics.rulePolicyInput.actionCandidates ?? []),
+    ...(spellCast?.candidates ?? [])
+  ].find((value) => value.actionId === actionId)
   const entry = candidate
-    ? characterAction?.mechanics.compiledActionEntryPoints.find(
+    ? [
+        ...(characterAction?.mechanics.compiledActionEntryPoints ?? []),
+        ...(spellCast?.compiledActionEntryPoints ?? [])
+      ].find(
         (
           value
         ): value is Extract<
@@ -162,7 +167,17 @@ export async function prepareEncounterActionSource<
             streamVersion: characterAction.streamVersion,
             candidate,
             entry,
-            effectivePolicyOutput: sourceFacts.effectiveRulePolicyOutput
+            // A cast is decided by the spell decisions, which the Sheet's own actions never carry.
+            effectivePolicyOutput:
+              candidate.mechanicsOwner.kind === 'SPELL' && spellCast
+                ? {
+                    ...sourceFacts.effectiveRulePolicyOutput,
+                    actionDecisions: [
+                      ...sourceFacts.effectiveRulePolicyOutput.actionDecisions,
+                      ...spellCast.decisions
+                    ]
+                  }
+                : sourceFacts.effectiveRulePolicyOutput
           }
         }
       : {})

@@ -62,12 +62,18 @@ type TargetBatch = Extract<
  */
 function carriesCasterSpend(batch: TargetBatch, root: AreaRoot, merged: boolean) {
   const spend = (
-    value: Pick<TargetBatch, 'resourceConsumption' | 'sourceItemConsumption'> &
-      Pick<TargetBatch, 'sourceItemUseStateTransition'>
+    value: Pick<
+      TargetBatch,
+      | 'resourceConsumption'
+      | 'sourceItemConsumption'
+      | 'spellCastConsumption'
+      | 'sourceItemUseStateTransition'
+    >
   ) =>
     checksumCanonicalJson({
       resource: value.resourceConsumption,
       item: value.sourceItemConsumption,
+      spell: value.spellCastConsumption,
       stow: value.sourceItemUseStateTransition
     })
   return (
@@ -81,6 +87,7 @@ function carriesCasterSpend(batch: TargetBatch, root: AreaRoot, merged: boolean)
           : {
               resourceConsumption: null,
               sourceItemConsumption: null,
+              spellCastConsumption: null,
               sourceItemUseStateTransition: null
             }
       )
@@ -248,7 +255,7 @@ export async function persistEncounterAreaCommit(
       batch.stateEffectTransitions.length > 0 ||
       batch.maintenanceTransition !== undefined ||
       (batch.kind === 'CHARACTER_MECHANICS_BATCH' &&
-        (batch.spellCastConsumption !== null || batch.targetFeatureResourceConsumption !== null)) ||
+        batch.targetFeatureResourceConsumption !== null) ||
       initial.evidence.source.definitionId !== input.initialDefinitionId ||
       initial.evidence.source.gameSystemId !== state.gameSystemId ||
       initial.phaseReceipts?.some((phase) => phase.template.gameSystemId !== state.gameSystemId)
@@ -287,6 +294,7 @@ export async function persistEncounterAreaCommit(
     command,
     resource: input.resourceConsumption,
     item: input.itemConsumption,
+    spell: input.spellConsumption,
     receipts: root
   })
   const current = new Map(actors.map((actor) => [actor.id, actor] as const))

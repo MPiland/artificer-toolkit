@@ -35,6 +35,7 @@ import { characterMechanicsResourceReceiptDtoSchema } from '../shared/ruleExecut
 import { storedRuleExecutionResultDtoSchema } from '../shared/ruleExecutionResults.js'
 import {
   characterItemConsumptionFieldsSchema,
+  characterSpellSlotConsumptionFieldsSchema,
   concentrationEndDtoSchema
 } from '../shared/ruleExecutionEncounterApplications.js'
 import { serverRuleExecutionReceiptCommandMetadataDtoSchema } from '../shared/ruleExecutionReceiptCommandMetadata.js'
@@ -88,6 +89,12 @@ export const liveSessionCharacterItemConsumptionSchema = lazySchema(() =>
   })
 )
 
+export const liveSessionCharacterSpellConsumptionSchema = lazySchema(() =>
+  z.extend(characterSpellSlotConsumptionFieldsSchema, {
+    expectedStreamVersion: z.number().check(z.int()).check(z.nonnegative())
+  })
+)
+
 /** Bounded domain outcomes from the private DO; no Character or Run document patches. */
 export type LiveSessionEncounterActionCommitInput = Omit<
   LiveSessionEncounterActionPendingInput,
@@ -107,6 +114,8 @@ export type LiveSessionEncounterActionCommitInput = Omit<
     | null
   /** The single-use item this Assisted action used up, with the Character version it was planned at. */
   itemConsumption: z.infer<typeof liveSessionCharacterItemConsumptionSchema> | null
+  /** The spell slot this cast spent, with the Character version it was planned at. */
+  spellConsumption: z.infer<typeof liveSessionCharacterSpellConsumptionSchema> | null
   /** The resolved action's display name; the stored command and the timeline carry it. */
   label: string | null
   /** Warnings the command acknowledged and the planner found; recorded as overrides. */
@@ -155,6 +164,7 @@ export const liveSessionEncounterActionCommitInputSchema: z.ZodMiniType<LiveSess
       rules: encounterActorRuleOutputSchema,
       resourceConsumption: z.nullable(liveSessionCharacterResourceConsumptionSchema),
       itemConsumption: z.nullable(liveSessionCharacterItemConsumptionSchema),
+      spellConsumption: z.nullable(liveSessionCharacterSpellConsumptionSchema),
       label: z.nullable(z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160))),
       ruleOverrides: encounterRuleWarningsDtoSchema,
       createdEffects: z.array(activeRuleEffectRecordSchema).check(z.maxLength(2)),
@@ -239,6 +249,7 @@ export const liveSessionEncounterAreaCommitInputSchema: z.ZodMiniType<LiveSessio
         rules: encounterActorRuleOutputSchema,
         resourceConsumption: z.nullable(liveSessionCharacterResourceConsumptionSchema),
         itemConsumption: z.nullable(liveSessionCharacterItemConsumptionSchema),
+        spellConsumption: z.nullable(liveSessionCharacterSpellConsumptionSchema),
         label: z.nullable(z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160))),
         ruleOverrides: encounterRuleWarningsDtoSchema,
         ...liveSessionEncounterConcentrationFields()

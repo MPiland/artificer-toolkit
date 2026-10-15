@@ -134,12 +134,12 @@ export function dnd5eFoldedModifierApplicability(
 
 /** A Character action evaluates its own source and, for an item action, the item it attacks with. */
 export function dnd5eCharacterActionTarget(
-  candidate: Pick<CharacterActionCandidate, 'sourceId' | 'equipment'>
+  candidate: Pick<CharacterActionCandidate, 'sourceId' | 'equipment' | 'mechanicsOwner'>
 ): Dnd5eModifierTarget {
   return {
     sourceIds: [candidate.sourceId],
     item: dnd5eAttackingItem(candidate.equipment),
-    spellId: null
+    spellId: candidate.mechanicsOwner.kind === 'SPELL' ? candidate.mechanicsOwner.id : null
   }
 }
 

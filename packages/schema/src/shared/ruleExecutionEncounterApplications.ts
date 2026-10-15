@@ -302,6 +302,39 @@ export const characterItemConsumptionReceiptDtoSchema: z.ZodMiniType<CharacterIt
     )
   )
 
+/** One spell slot (or the pact slot) a cast spent: the slot's used count rises by one. */
+export type CharacterSpellSlotConsumptionReceiptDto = {
+  characterId: string
+  spellId: string
+  candidateId: string
+  slotKey: string
+  beforeUsed: number
+  afterUsed: number
+}
+export const characterSpellSlotConsumptionFieldsSchema = lazySchema(() =>
+  z.strictObject({
+    characterId: uuidSchema,
+    spellId: uuidSchema,
+    candidateId: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(1_000)),
+    slotKey: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(1_000)),
+    beforeUsed: nonNegativeIntegerSchema,
+    afterUsed: positiveIntegerSchema
+  })
+)
+// Named so the receipt unions that embed it stay under the compiler's declaration size limit.
+export const characterSpellSlotConsumptionReceiptDtoSchema: z.ZodMiniType<CharacterSpellSlotConsumptionReceiptDto> =
+  lazySchema(() =>
+    characterSpellSlotConsumptionFieldsSchema.check(
+      z.superRefine((value, context) => {
+        if (value.afterUsed !== value.beforeUsed + 1)
+          context.addIssue({
+            code: 'custom',
+            message: 'A spell slot consumption spends exactly one slot.'
+          })
+      })
+    )
+  )
+
 /** One action-economy allowance use. An overridden ("Do it anyway") use may exceed the maximum. */
 export const encounterActionEconomyTransitionDtoSchema = lazySchema(() =>
   z
@@ -339,20 +372,7 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = lazySchema
       sourceCharacterStreamVersion: z.nullable(aggregateVersionSchema),
       resourceConsumption: z.nullable(characterMechanicsResourceReceiptDtoSchema),
       spellCastConsumption: z._default(
-        z.nullable(
-          z.strictObject({
-            spellId: uuidSchema,
-            spellVersionId: uuidSchema,
-            spellVersion: positiveIntegerSchema,
-            spellChecksum: checksumSchema,
-            candidateId: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(1_000)),
-            slotKey: z.nullable(
-              z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(1_000))
-            ),
-            beforeUsed: z.nullable(nonNegativeIntegerSchema),
-            afterUsed: z.nullable(nonNegativeIntegerSchema)
-          })
-        ),
+        z.nullable(characterSpellSlotConsumptionReceiptDtoSchema),
         null
       ),
       featureResourceConsumption: z._default(
@@ -683,6 +703,13 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = lazySchema
             path: ['sourceItemConsumption'],
             message: 'Item consumption must match the source Character.'
           })
+        const spell = value.spellCastConsumption
+        if (spell && (value.sourceCharacterId == null || spell.characterId !== value.sourceCharacterId))
+          context.addIssue({
+            code: 'custom',
+            path: ['spellCastConsumption'],
+            message: 'Spell slot consumption must match the source Character.'
+          })
         const sourceMaintenanceMutation =
           value.sourceCharacterId != null &&
           (maintenance?.characterOwnerTransitions.some(
@@ -691,7 +718,13 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = lazySchema
             false)
         if (
           (value.sourceCharacterStreamVersion === null) !==
-          !(resource !== null || stow !== null || consumption !== null || sourceMaintenanceMutation)
+          !(
+            resource !== null ||
+            stow !== null ||
+            consumption !== null ||
+            spell !== null ||
+            sourceMaintenanceMutation
+          )
         )
           context.addIssue({
             code: 'custom',
@@ -988,6 +1021,7 @@ const encounterAreaActionApplicationOutputImplSchema = lazySchema(() =>
       featureResourceConsumption: z.nullable(encounterFeatureResourceReceiptDtoSchema),
       sourceItemUseStateTransition: z.nullable(characterItemUseStateTransitionDtoSchema),
       sourceItemConsumption: z.nullable(characterItemConsumptionReceiptDtoSchema),
+      spellCastConsumption: z.nullable(characterSpellSlotConsumptionReceiptDtoSchema),
       actionEconomyTransition: z.nullable(encounterActionEconomyTransitionDtoSchema),
       attackActionTransition: z.optional(encounterAttackActionTransitionDtoSchema),
       /** The spatial effect this action placed in the Scene, which GM undo deletes; null for none. */
@@ -1010,11 +1044,13 @@ const encounterAreaActionApplicationOutputImplSchema = lazySchema(() =>
           })
         const stow = value.sourceItemUseStateTransition
         const consumption = value.sourceItemConsumption
+        const spell = value.spellCastConsumption
         if (
           (stow &&
             (stow.characterId !== value.sourceCharacterId ||
               stow.afterStreamVersion !== value.sourceCharacterStreamVersion)) ||
-          (consumption && consumption.characterId !== value.sourceCharacterId)
+          (consumption && consumption.characterId !== value.sourceCharacterId) ||
+          (spell && spell.characterId !== value.sourceCharacterId)
         )
           context.addIssue({
             code: 'custom',
@@ -1038,7 +1074,7 @@ const encounterAreaActionApplicationOutputImplSchema = lazySchema(() =>
           })
         if (
           (value.sourceCharacterStreamVersion === null) !==
-          !(resource !== null || stow !== null || consumption !== null)
+          !(resource !== null || stow !== null || consumption !== null || spell !== null)
         )
           context.addIssue({
             code: 'custom',
@@ -1061,6 +1097,7 @@ type AreaActionSpendReceipts = Pick<
   | 'featureResourceConsumption'
   | 'sourceItemUseStateTransition'
   | 'sourceItemConsumption'
+  | 'spellCastConsumption'
   | 'actionEconomyTransition'
   | 'attackActionTransition'
 >

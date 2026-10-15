@@ -139,6 +139,45 @@ function activeItems(
   })
 }
 
+export function projectCharacterSpellAccess(
+  evaluation: Evaluation
+): CharacterSheetRuleProjection['spellAccess'] {
+  return evaluation.output.spellAccess.map((access) => {
+    if (access.timingKind === 'CLASS_LEVEL' && !access.owningClassId)
+      throw new Error(
+        `Character rule policy class timing is missing an owning class: ${access.accessId}`
+      )
+    const charges = exactSpellCharge(evaluation, access)
+    return {
+      id: access.accessId,
+      spellId: access.spellId,
+      source:
+        access.sourceKind === 'CLASS'
+          ? { kind: 'CLASS' as const, classId: access.sourceId }
+          : access.sourceKind === 'SUBCLASS'
+            ? { kind: 'SUBCLASS' as const, subclassId: access.sourceId }
+            : access.sourceKind === 'RACE'
+              ? { kind: 'RACE' as const, raceId: access.sourceId }
+              : { kind: 'SUBRACE' as const, subraceId: access.sourceId },
+      timing:
+        access.timingKind === 'CLASS_LEVEL'
+          ? {
+              kind: 'CLASS_LEVEL' as const,
+              classId: access.owningClassId!,
+              classLevel: access.timingLevel
+            }
+          : { kind: 'CHARACTER_LEVEL' as const, level: access.timingLevel },
+      sourceFeatureId: access.sourceFeatureId,
+      grantId: access.grantId,
+      sourceInstanceId: access.sourceInstanceId,
+      attributes: access.attributes,
+      ...(access.castAtLevel ? { castAtLevel: access.castAtLevel } : {}),
+      ...(access.castingAbility ? { castingAbility: access.castingAbility } : {}),
+      ...(charges ? { charges } : {})
+    }
+  })
+}
+
 export function projectCharacterRulePolicyToSheetProjection(
   evaluation: Evaluation
 ): CharacterSheetRuleProjection {
@@ -329,40 +368,7 @@ export function projectCharacterRulePolicyToSheetProjection(
     },
     rollModes: output.rollModes,
     ...(spellState.length > 0 ? { spellState } : {}),
-    spellAccess: output.spellAccess.map((access) => {
-      if (access.timingKind === 'CLASS_LEVEL' && !access.owningClassId)
-        throw new Error(
-          `Character rule policy class timing is missing an owning class: ${access.accessId}`
-        )
-      const charges = exactSpellCharge(evaluation, access)
-      return {
-        id: access.accessId,
-        spellId: access.spellId,
-        source:
-          access.sourceKind === 'CLASS'
-            ? { kind: 'CLASS' as const, classId: access.sourceId }
-            : access.sourceKind === 'SUBCLASS'
-              ? { kind: 'SUBCLASS' as const, subclassId: access.sourceId }
-              : access.sourceKind === 'RACE'
-                ? { kind: 'RACE' as const, raceId: access.sourceId }
-                : { kind: 'SUBRACE' as const, subraceId: access.sourceId },
-        timing:
-          access.timingKind === 'CLASS_LEVEL'
-            ? {
-                kind: 'CLASS_LEVEL' as const,
-                classId: access.owningClassId!,
-                classLevel: access.timingLevel
-              }
-            : { kind: 'CHARACTER_LEVEL' as const, level: access.timingLevel },
-        sourceFeatureId: access.sourceFeatureId,
-        grantId: access.grantId,
-        sourceInstanceId: access.sourceInstanceId,
-        attributes: access.attributes,
-        ...(access.castAtLevel ? { castAtLevel: access.castAtLevel } : {}),
-        ...(access.castingAbility ? { castingAbility: access.castingAbility } : {}),
-        ...(charges ? { charges } : {})
-      }
-    }),
+    spellAccess: projectCharacterSpellAccess(evaluation),
     spellSlots: {
       maxByLevel: Object.fromEntries(
         output.spellSlots.maxByLevel.map((entry) => [entry.spellLevel, entry.slotCount])

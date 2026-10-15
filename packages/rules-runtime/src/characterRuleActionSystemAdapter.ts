@@ -375,7 +375,10 @@ export interface CharacterRuleActionSystemAdapter {
   } | null
   bindFacts(input: {
     /** Exact current source mechanic selected under the aggregate lock. */
-    actionMechanic: Readonly<Record<string, unknown>>
+    actionMechanic: Readonly<Record<string, unknown>> & {
+      /** The level a spell is cast at, which selects the authored scaling row of its outcomes. */
+      spellCastLevel?: number
+    }
     /** Exact published graph selected under the aggregate lock. */
     published: ServerPublishedRuleDefinitionDto
     /** Exact current source derived facts selected under the aggregate lock. */
