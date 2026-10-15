@@ -1,9 +1,13 @@
 import { z, lazySchema } from '../zod.js'
 import { MAX_ACTIVE_RULE_EFFECTS_PER_OWNER } from '../shared/activeRuleEffects.js'
-import { activeRuleEffectRecordSchema } from '../projections/activeRuleEffectPersistence.js'
+import {
+  type ActiveRuleEffectRecord,
+  activeRuleEffectRecordSchema
+} from '../projections/activeRuleEffectPersistence.js'
 import { encounterRuleWarningsDtoSchema } from '../shared/encounterRuleWarnings.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import {
+  type EncounterConcealmentCheckPendingContextDto,
   encounterBasicActionCheckPendingContextDtoSchema,
   encounterConcealmentCheckPendingContextDtoSchema,
   encounterEscapeCheckPendingContextDtoSchema
@@ -44,7 +48,15 @@ const stabilizeCheckSettlementSchema = lazySchema(() =>
  * A settled concealment check (Hide, Search): the frozen check, its stored result, the app roll it
  * used and the concealment a successful Hide stores on its roller.
  */
-const concealmentCheckSettlementSchema = lazySchema(() =>
+export type ConcealmentCheckSettlement = {
+  context: EncounterConcealmentCheckPendingContextDto
+  execution: z.infer<typeof storedRuleExecutionResultDtoSchema>
+  appRollId: z.infer<typeof postgresUuidSchema> | null
+  createdEffect: ActiveRuleEffectRecord | null
+}
+
+// Explicitly typed so the commit inputs stay within the compiler's declaration size limit (TS7056).
+const concealmentCheckSettlementSchema: z.ZodMiniType<ConcealmentCheckSettlement> = lazySchema(() =>
   z.strictObject({
     context: encounterConcealmentCheckPendingContextDtoSchema,
     execution: storedRuleExecutionResultDtoSchema,
@@ -160,7 +172,6 @@ export type LiveSessionEncounterEscapeResponseCommitInput = z.infer<
   typeof liveSessionEncounterEscapeResponseCommitInputSchema
 >
 export type StabilizeCheckSettlement = z.infer<typeof stabilizeCheckSettlementSchema>
-export type ConcealmentCheckSettlement = z.infer<typeof concealmentCheckSettlementSchema>
 export type LiveSessionEncounterBasicActionCommitInput = z.infer<
   typeof liveSessionEncounterBasicActionCommitInputSchema
 >
