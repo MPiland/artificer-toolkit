@@ -559,7 +559,7 @@
               "status": "TODO",
               "proof": [],
               "origin": [],
-              "note": "Registered 2026-10-14 from the PLATFORM-13.T1 serial baseline (docs/validation/platform-13-t1-test-timings-2026-10-14.md)."
+              "note": "Registered 2026-10-14 from the PLATFORM-13.T1 serial baseline (docs/validation/platform-13-t1-test-timings-2026-10-14.md). Re-scored 2026-10-15 after the user-approved CI trial of 3 Convex file workers per shard (run 38775641398): shard wall time fell from about 14 to 7-8 minutes, but developmentCustody.test.ts \"runs the public mixed Character custody driver...\" timed out at its 30 s limit; it takes 23 s with one worker (run 38769788109), so it is near its limit even serially. Per the PLATFORM-13.T4 rule (a run that times out rejects the setting, no per-test timeout raised) CI stays at one worker until these journeys are slimmed; then re-run the 3-worker trial."
             },
             {
               "id": "PLATFORM-13.8",
@@ -632,9 +632,9 @@
               "status": "TODO",
               "closes": ["PLATFORM-13.7"],
               "wsjf": {
-                "bv": 1,
-                "tc": 3,
-                "rr": 3,
+                "bv": 3,
+                "tc": 5,
+                "rr": 5,
                 "size": 5
               }
             },
