@@ -15,7 +15,7 @@ Idle fit before the fix, from `usageStats` regression: about 25 ms per record pl
 
 ## Fix
 
-- `importSubjects` canonicalizes the document once. That one string serves the checksum check, the parse-parity check (`canonicalizeRuleDocument(parsed.document) === documentJson`) and storage. Behaviour is unchanged: the same two errors (`Canonical checksum mismatch.`, `Canonical content conflict.`), still raised only for a new subject; a replay is still proved by the exact comparison with the stored root and version.
+- `validateDocument` (used by `importSubjects`, `importDefinitions` and `bootstrap`) canonicalizes the document once. That one string serves the parse-parity check, the checksum check and, in `importSubjects`, storage. The same two errors in the same order (`Canonical content conflict.`, then `Canonical checksum mismatch.`), still raised only for a new subject; a replay is still proved by the exact comparison with the stored root and version. One difference: canonicalizing throws on an `undefined`-valued key that the old JSON round trip silently dropped. Zod keeps absent optional keys absent and Convex arguments cannot carry `undefined`, so no corpus or test document hits it.
 - `sourceImportBatches` packs records to a cost budget (25 per record plus 1 per KiB, budget 100, in idle milliseconds) instead of a fixed count. A Class always gets a batch alone: its document is the largest, and a Subclass re-reads and parses its parent Class document.
 - No limit raised, no retry, no catch, no smaller corpus. The manifest, the import contract in `packages/schema`, and the idempotency and atomicity behaviour (PLATFORM-5.2, 5.3) are untouched; batches still commit independently and an exact rerun inserts nothing.
 
@@ -25,23 +25,23 @@ Maximum `userExecutionTime` per mutation, in ms. Limit 1000.
 
 | Mutation | Before idle | Before loaded (16 burners) | After idle | After loaded (12 burners) |
 | --- | --- | --- | --- | --- |
-| `bootstrap` | 199 | 322 | 99 | 150 |
-| `importSubjects` | 377 | **1005, timed out** | 179 | 343 |
-| `importDefinitions` | 101 | not reached | 96 | 106 |
-| `syncClassDerived` | 60 | not reached | 44 | 61 |
-| `raceRelationships.syncDerived` | 85 | not reached | 54 | 114 |
-| `syncEquipmentDerived` | 212 | not reached | 149 | 256 |
+| `bootstrap` | 199 | 322 | 76 | 160 |
+| `importSubjects` | 377 | **1005, timed out** | 151 | 308 |
+| `importDefinitions` | 101 | not reached | 85 | 98 |
+| `syncClassDerived` | 60 | not reached | 37 | 53 |
+| `raceRelationships.syncDerived` | 85 | not reached | 60 | 93 |
+| `syncEquipmentDerived` | 212 | not reached | 97 | 222 |
 
-- **Margin reached:** the largest mutation after the fix is `importSubjects` at 179 ms idle (4.7 times under the limit, from 377) and 343 ms loaded (2.9 times under; the loaded run completed and audited green).
+- **Margin reached:** the largest mutation after the fix is `importSubjects` at 151 ms idle (6.6 times under the limit, from 377) and 308 ms loaded (3.2 times under; the loaded run completed and audited green).
 - **Before, loaded:** 16 busy-loop processes on 16 logical CPUs. The seed failed at the 121st `importSubjects` call.
 - **After, loaded:** 12 busy-loop processes on 16 CPUs (about 75% load, the incident's level). The 16-process run cannot finish a seed within the 300 s limit of the HTTP call that `convex run` makes, independent of the mutation limit.
-- **Same 16-process load on the final code** (`fix2-loaded`, same batching and import code as the final run): every one of the 385 `importSubjects` calls finished, maximum 717 ms (a single 155 KiB base Class document, also its OCC retry at 661 ms), 1005 ms before. That is the tightest margin seen and it is under a deliberately oversubscribed host. Every non-Class batch stayed at or under 480 ms there.
+- **Same 16-process load on the final code** (`fix2-loaded`, same batching as the final code): every one of the 385 `importSubjects` calls finished, maximum 717 ms (a single 155 KiB base Class document, also its OCC retry at 661 ms), 1005 ms before. That is the tightest margin seen and it is under a deliberately oversubscribed host. Every non-Class batch stayed at or under 480 ms there.
 - **Idle `importSubjects` calls before the fix** were 136 and are now 390; the seed's wall time is unchanged (128 s before, 117 s after idle).
 
 ## Proofs
 
-- Red: `local-validation/platform-5-t1/base-loaded.run.log` and `base-loaded.summary.txt` (timeout at 1005 ms); `red-importBatches.log` (four of five new batching tests fail on the old code).
-- Green: `fix4-idle.summary.txt` and `fix4-loaded.summary.txt` (seed success, audit exit 0 in `fix4-audit.log`); `green-import-tests.log` (`importBatches`, `import`, `importSpell`, `importCreatureVehicle`, `seed`, `seedAudit`: 28 tests pass).
+- Red: `local-validation/platform-5-t1/base-loaded.run.log` and `base-loaded.summary.txt` (timeout at 1005 ms); `red-importBatches.log` (an earlier draft of the batching tests, which imported the new cost exports; four of its five tests failed on the old batcher). In the final tests, "packs records to the cost budget", "isolates a record costing more than the budget" and "weights by UTF-8 bytes" need the new exports and fail on the old code; "isolates every Class record" and the order test pass on both, as they pin behaviour the change keeps.
+- Green: `fix5-idle.summary.txt` and `fix5-loaded.summary.txt` on the final code (seed success, audit exit 0 in `fix5-audit.log`; the table above). `fix4-*` is the same measurement before the post-review `validateDocument` reshape (idle 179 ms, loaded 343 ms); `green-import-tests.log` (`importBatches`, `import`, `importSpell`, `importCreatureVehicle`, `seed`, `seedAudit`: 29 tests pass).
 - CI: `ci/platform-5-t1`, see the workbook status log.
 
 ## Observed, outside this slice

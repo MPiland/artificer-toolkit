@@ -20,6 +20,7 @@ describe('source import CPU-budgeted batches', () => {
     const records = Array.from({ length: 237 }, (_, id) => ({ id, value: 'a'.repeat(id % 7 << 10) }))
     const batches = [...sourceImportBatches(records)]
     expect(batches.length).toBeGreaterThan(1)
+    expect(batches.flat()).toEqual(records)
     for (const [index, batch] of batches.entries()) {
       expect(batchCost(batch)).toBeLessThanOrEqual(SOURCE_IMPORT_BATCH_COST_BUDGET)
       const next = batches[index + 1]?.[0]
