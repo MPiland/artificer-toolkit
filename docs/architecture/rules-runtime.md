@@ -429,6 +429,20 @@ show only the first reaction (transport contract and UI widening belong to the S
 create exactly one effect on its reactor is refused as `REACTION_UNSUPPORTED`.
 Decision: D26 is extended to hold the Scene for a pending reaction decision.
 
+#### `DAMAGE_TAKEN` (current, REACTION-4.T2)
+
+`reactionTrigger: { kind: 'DAMAGE_TAKEN', damageTypeIds }` (a user-authored Absorb Elements) rides the same
+pause as `ATTACKED_SELF`: discovery (`discoverAttackReactionActions`) offers it when one of `damageTypeIds`
+is a damage type of the hit attack's `ON_HIT`/`ON_CRIT` outcomes (`attackHitDamageTypeIds`). The candidate and
+the sealed pin carry their `trigger`, so a changed trigger is a different offer. The reaction's effect carries
+a `DAMAGE_RESISTANCE` grant, which `encounterActiveGrants` turns into a defense of the reactor; the
+re-evaluated binding hands that defense to the OUTCOME, so the damage is resisted before it applies. The TEST
+is unchanged (`defenseBefore === defenseAfter`), so "the reaction changed the attack" compares the binding's
+defenses as well as the bound facts. The follow-up benefit is an ordinary grant in the same effect (a melee
+`DAMAGE` bonus until the start of the caster's next turn). Limits: only the attack-hit path pauses (save-based
+and area damage do not offer it), a bonus grant applies to every melee hit while it lasts rather than the next
+one only, and only the first eligible reaction is offered.
+
 ### 0 hit points (D63, current)
 
 A Creature or custom Run actor stores `defeated`. `nextEncounterActorDefeated`
