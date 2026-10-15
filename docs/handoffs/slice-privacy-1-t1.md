@@ -77,6 +77,8 @@ Read first: the PRIVACY-1 and D86 entries in `docs/handoffs/phase-08-2-decisions
   | 2 (rerun 1) | 116641389589 | 20:01:30 | 20:13:35 | 12m05s | success |
   | 3 (rerun 2) | 116647863515 | 20:15:36 | 20:23:37 | 8m01s | success |
 
+  Fresh run on `e1a981044` (adds the `ownership.test.ts` revision test): [38801676606](https://github.com/MPiland/artificer-toolkit/actions/runs/38801676606), all 9 jobs green.
+
   Logs: `local-validation/privacy-1-t1/ci-watch*.log`. Passing samples do not prove an intermittent failure gone; the argument is the removed race (next entry).
 - 2026-10-15: **Why the old order could fail, and why the new one cannot** (red on base by reading, not by local loops). Lines are in `apps/apis/tests/developmentEncounterTransactions.ts` as it is now.
   - Old order: the owner's `accept` in the `finally` block (:278) queued `EVICT_USER` and `INVALIDATE_INPUTS` as `scheduler.runAfter(0, …)` jobs. The proof then ran `assign` (:285), `checkpoint()` (:291) and replayed START (:295) with nothing between `accept` and the replay that waited for those jobs. They fire on the fake test clock, so they ran either before the replay (the room reloads its Campaign rows and holds the OWNER role: pass) or after it (the room still holds the PLAYER role from the first transfer's notice, `requireCampaignAuthority` agrees with its own stale cache, and `presentEncounterResultForMember` returns the player projection: the failure at the assertion now at :295, formerly :286).
