@@ -25,7 +25,7 @@ import { recordRuleRollCard } from './ruleRollCards.js'
  */
 export async function persistEncounterInitiativeRollCards(
   ctx: EncounterReadTransaction & {
-    readonly ports: Pick<EncounterWritePorts, 'insertTableRoll' | 'retainGmRoll'>
+    readonly ports: Pick<EncounterWritePorts, 'insertTableRoll' | 'retainPrivateRoll'>
   },
   input: {
     state: EncounterRunState

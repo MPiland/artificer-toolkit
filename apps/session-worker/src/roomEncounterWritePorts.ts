@@ -23,7 +23,7 @@ export type RoomEncounterWriteTransaction = EncounterCharacterWriteTransaction &
     | 'postRulesChatMessage'
     | 'recordConcentrationCheckRoll'
     | 'insertTableRoll'
-    | 'retainGmRoll'
+    | 'retainPrivateRoll'
   >
   /**
    * Table chat entries this command posted (roll cards), in order. The caller fans them out to the
@@ -119,12 +119,9 @@ export async function roomEncounterWriteTransaction(
         postedChatEntries.push(entry)
         return entry
       },
-      retainGmRoll: async (userId, record, gmCampaignRoll) => {
+      retainPrivateRoll: async (userId, record, gmCampaignRoll) => {
         retainRoomPrivateRoll(store, transaction, { userId, record, gmCampaignRoll })
-        const { campaign } = await read.ports.requireCampaignAuthority(
-          gmCampaignRoll.campaignId,
-          userId
-        )
+        const { campaign } = await read.ports.requireCampaignAuthority(campaignId, userId)
         retainedPrivateRolls.push({
           userId,
           roll: presentRetainedRoll({ ...record, gmCampaignRoll }, campaign.contentMaturity)
