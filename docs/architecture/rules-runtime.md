@@ -478,8 +478,13 @@ options (ADR 0038); nothing in code names Hide.
   `updateLifecycleCas`. An empty set stays stored and inert until consumed.
 - **Ties go to the observer.** An observer notices when its score (passive, or Search total) is at least the Stealth total; the
   hider is hidden from observers whose score is strictly lower. One rule for both (`encounterConcealment.ts`).
-- **Attacks.** `resolveAttackSight` treats a subject as `UNSEEN` by an observer its concealment still hides it from, whatever
-  the observer's Senses (D100), so the attack-roll caption and advantage follow the existing unseen-attacker path. The believed
+- **Scene gating.** On a Scene an observer that really sees the hider has noticed it, so a Hide never freezes such an observer
+  into the set (`resolveEncounterObserversSeeing`, read by the Worker per observer on the action's locked Scene) and the Scene's
+  sight decides at attack time. Without a Scene (the neutral environment, where everyone sees everyone, D94) the GM decides the
+  circumstances: the persisted observer set is authoritative.
+- **Attacks.** Off a Scene, `resolveAttackSight` treats a subject as `UNSEEN` by an observer its concealment still hides it from,
+  whatever the observer's Senses (D100); on a Scene the Scene decides. The attack-roll caption and advantage follow the existing
+  unseen-attacker path. The believed
   mode follows the same set; the true mode may cancel it ("Advantage cancelled: the target can sense you"). The first attack
   roll consumes the concealment for everyone (`consumableGrants`: modifier grants and concealments only, so the Invisibility
   condition path is unchanged).
