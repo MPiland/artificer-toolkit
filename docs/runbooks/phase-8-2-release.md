@@ -75,6 +75,9 @@ flowchart LR
      `--local-env-file=<path under local-validation/>`. Yarn injects this file into every child and
      its values override the environment, so the runner rejects a file that stores
      `CONVEX_SELF_HOSTED_ADMIN_KEY` or a remote-only name with a non-loopback value.
+   - Day-to-day deploy, seed and audit checks of a slice or merge run in CI on an ephemeral container
+     (`.github/workflows/live-backend.yml`, ADR 0035 amendment 2026-10-15). This lifecycle stays local
+     because it uses the user's local data, the Session Worker and the browser proofs.
    - Convex codegen, deploy, seed and audit pass the self-hosted URL and generated key as explicit
      `--url`/`--admin-key` arguments. They never use the CLI's `--deployment local` backend.
    - The lifecycle manifest and stage logs go to `local-validation/pre-staging/<timestamp>/`
