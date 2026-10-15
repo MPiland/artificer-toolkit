@@ -36,3 +36,11 @@ Escalate (`SendMessage` to the main session) only if the cause is a product race
 ## Status log
 
 - 2026-10-15: workbook written.
+- 2026-10-15: **Cause found: neither a fixture race nor a product race.** The auto-roll test's dice queue left an initiative tie to unqueued platform dice. The room's declaration order is random per run, and the queue `[4, 9, 14, 4, 9]` (two d20 for each advantage Character, one for the Wolf) is consumed in declaration order. When the Wolf declares second, Aria and Bryn both score best-of-(4, 9) and tie. The tie-break draws platform dice, which re-tie about one time in twenty, and an unresolved tie leaves a manual `INITIATIVE_ORDER` choice. The Run then stays `PREPARED` at version 0 and its occurrence stays `PENDING`. Nothing ever writes the initiative rows or the TABLE conversation and its roll cards, so `chat.list` throws "Conversation not found." Load only made the 3-in-83 rate visible; it does not cause it.
+  - Evidence (repro: the journey's third test copied 83 times, no extra load, `red-stress-before-fix.log`): 3 to 8 failures of 83 across runs.
+    - Every failing campaign's checkpoint 3->4 carried only the declaration tables (`red-bridge-before-fix.log`); a passing one carried `campaignConversations`, `campaignConversationMembers`, `campaignConversationEntries`, `encounterInitiativeParticipants` and `encounterRuns`.
+    - The room's receipt for command 4 in failing campaigns was `PREPARED/0/0` with occurrence status `PENDING`; passing ones were `ACTIVE/1/1` with `COMPLETE` (`red-probe-before-fix.log`).
+    - After the three declarations the GM's `pendingRuleOccurrence` in the three failing campaigns was `INITIATIVE_ORDER` with the two Characters as `optionIds`.
+    - In all three failures the Wolf declared second. Earlier failures in other orders also ended with command 4 at `PREPARED/0/0`, but their pending kind was not captured, so a tie in those orders is inferred from the same dice arithmetic, not observed.
+  - Fix: the queue is `[0, 1, 10, 2, 19]`. For every position the Wolf can declare in, the three best scores are at least nine faces apart, and each Character's two dice differ. Test 3's assertions are unchanged.
+  - Proof: the same 83-repeat stress passes 83/83 (`green-stress-after-fix.log`). Loaded scoped run: see below.
