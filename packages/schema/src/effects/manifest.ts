@@ -150,7 +150,8 @@ export const manifestDtoSchema: z.ZodMiniType = lazySchema(() =>
       )
     })
 
-    const nonCreatureManifestSchema = z.extend(baseSchema, {
+    // SENSOR/WEAPON/OBJECT/ILLUSION; ZONE extends it with a required attachmentKind.
+    const plainManifestSchema = z.extend(baseSchema, {
       manifestKind: z.enum(['SENSOR', 'WEAPON', 'OBJECT', 'ILLUSION']),
       behaviors: z.optional(authoredNestedCollectionSchema(manifestNestedBehaviorDtoSchema)),
       components: z.optional(
@@ -242,8 +243,8 @@ export const manifestDtoSchema: z.ZodMiniType = lazySchema(() =>
         statBlock: z.optional(summonStatBlockDtoSchema),
         behaviors: z.optional(authoredNestedCollectionSchema(manifestNestedBehaviorDtoSchema))
       }),
-      nonCreatureManifestSchema,
-      z.extend(nonCreatureManifestSchema, {
+      plainManifestSchema,
+      z.extend(plainManifestSchema, {
         manifestKind: z.literal('ZONE'),
         attachmentKind: attachmentKindSchema
       })
