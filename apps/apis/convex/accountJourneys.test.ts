@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { z } from 'zod'
 import { authEmailDeliveryInputSchema } from '@artificer-toolkit/schema/api/auth'
 import { convexTest } from '../tests/convexTest'
+import { generateValidUsername } from '../tests/fixtures/generatedUsername'
 import { api, components } from './_generated/api'
 import authSchema from './betterAuth/schema'
 import schema from './schema'
@@ -79,11 +80,11 @@ async function backend() {
 }
 
 function signupInput() {
-  const suffix = crypto.randomUUID().replaceAll('-', '').slice(0, 12)
+  const { username, suffix } = generateValidUsername('Journey_')
   return {
     name: 'Account journey',
     email: `journey-${suffix}@example.invalid`,
-    username: `Journey_${suffix}`,
+    username,
     password: 'Local-journey-password-8175!'
   }
 }
