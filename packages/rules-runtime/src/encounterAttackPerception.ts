@@ -72,9 +72,10 @@ async function resolveAttackSight(
   }
 ): Promise<{ sight: EncounterAttackSight; senseLabels: readonly string[] }> {
   const { observer, subject } = input
-  // A concealed subject is unseen by the observers its concealment still hides it from, whatever
-  // their Senses (ATTACK-10.T1); its persisted observer set is authoritative.
-  if (isConcealedFrom(subject.activeEffects, observer.actor.id))
+  // A concealed subject is unseen by the observers its concealment still hides it from (ATTACK-10.T1).
+  // On a Scene an observer that really sees the subject has noticed it, so the Scene decides; without
+  // one (the neutral environment, where everyone sees everyone) the persisted observer set decides.
+  if (input.placement === null && isConcealedFrom(subject.activeEffects, observer.actor.id))
     return { sight: 'UNSEEN', senseLabels: [] }
   const result = await resolveEncounterActorPairPerception({
     gameSystemId: input.gameSystemId,
