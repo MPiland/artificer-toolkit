@@ -49,7 +49,8 @@ async function backend() {
           body: JSON.stringify(body)
         })
       )
-      return response.status
+      const result = (await response.json()) as { code?: string }
+      return { status: response.status, code: result.code }
     })
   const findUser = (email: string) =>
     t.run((ctx) =>
@@ -107,7 +108,7 @@ describe('server-only username compound check (Q22)', () => {
     const { signUp, findUser } = await backend()
     const refused = signupInput('assmuncher')
 
-    expect(await signUp(refused)).toBe(422)
+    expect(await signUp(refused)).toEqual({ status: 400, code: 'INVALID_USERNAME' })
     expect(await findUser(refused.email)).toBeNull()
   })
 
@@ -115,7 +116,7 @@ describe('server-only username compound check (Q22)', () => {
     const { signUp, findUser } = await backend()
     const accepted = signupInput('cassandra')
 
-    expect(await signUp(accepted)).toBe(200)
+    expect(await signUp(accepted)).toMatchObject({ status: 200 })
     expect(await findUser(accepted.email)).toMatchObject({ username: 'cassandra' })
   })
 
