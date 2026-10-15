@@ -477,7 +477,12 @@ describe('room reaction-only action over an area', () => {
                 invocation: {
                   ...effect.invocation,
                   activation: { code: 'REACTION' as const, amount: 1 },
-                  reactionTrigger: { kind: 'ATTACKED_SELF' as const }
+                  reactionTrigger: {
+                    kind: 'MOVEMENT' as const,
+                    stage: 'ENTER_REACH' as const,
+                    perceptionRequirement: null,
+                    eligibilityDefinitionId: testUuid(0x7d4)
+                  }
                 }
               }))
             }
