@@ -152,6 +152,17 @@ All items done on branch `claude/frosty-grothendieck-0a7840`; CI on `ci/reaction
 - **Follow-up (T3):** the pending summary (`REACTION_CHOICE.options` single-element tuple in `encounterRuleOccurrence.ts`) and the drawer (`options[0]`) still show one option. Admission accepts any offered reaction; widening the contract/UI belongs with the SPELL_CAST chain.
 - Not run locally: Worker tests (stale rules-runtime dist, heavy lane queued), local codegen push, Storybook/Playwright.
 
+## REACTION-4.T2: DAMAGE_TAKEN trigger and a user-authored Absorb Elements (AC REACTION-4.2)
+
+### T2 results
+
+- **Commits:** `582c5680c` (red tests), `c61ed909e` (implementation), `1d7b7b751` (regenerated `apps/apis/convex/_generated/api.d.ts`; the trigger union is in the generated API types, so codegen is needed at merge), then review hardening. Red proof: CI run 38820570288 on `ci/reaction-4-t2-red` (Build fails, TS2322 on `DAMAGE_TAKEN`; branch deleted).
+- **Trigger union** extended in shared authored types, the effect node map (`damageTypeIds` SELECT_MULTI over `damage_types`), schema (`reaction.ts`, the pin), the dnd5e compiler and `discoverAttackReactionActions`. The pin carries `trigger`, so a changed trigger is a different offer.
+- **Proofs:** schema parsing and node-map tests; `reactionTriggerCompile.test.ts`; Worker journeys in `nativeRoomReaction.test.ts` (used halves 10 to 5 and spends reaction and slot; declined applies 10; undo; non-matching type offers nothing; a spent reaction offers nothing; a later chosen type (COLD) is offered; the effect holds two resistances and the melee `DAMAGE` bonus; the sealed reaction names `DAMAGE_TAKEN`).
+- **Independent review (opus, no checkout).** Fixed: follow-up grant and pin trigger unproved; second-type match unproved; the trigger union copy in discovery; two unused exports. Deferred to `future-enhancements.md` "Deferred edge cases": a follow-up-only reaction refused at resolve when the reactor already resists (guard allow-lists defenses), crit-only over-offer, duplicate `damageTypeIds`, an unsealed resistance change in the audit. Registered limit (in `rules-runtime.md`): the resistance covers every named type, not only the triggering one; binding it needs a trigger fact (T3).
+- **Not covered:** a unit test of `discoverAttackReactionActions` variants (ON_MISS, non-REACTION activation, both triggers together): a candidate is a large schema object, so the variants run through the Worker journeys; the fixture is built in code and published through the SRD snapshot, not saved through the user-content path.
+- Not run locally: Worker tests (stale dist), Storybook, Playwright. Codegen push done locally under the heavy lock.
+
 ## REACTION-4.T3 notes (carried from T5)
 
 - The pending summary `REACTION_CHOICE.options` (`packages/schema/src/shared/encounterRuleOccurrence.ts`) is a single-element tuple and `CampaignTabletopDecisionDrawer.tsx` reads `pending.options[0]`. Resume admission already accepts any offered reaction (`offeredDecisionOptionIds`), so T3 widens the summary contract to every offered option and the drawer to list them, when a chain can hold more than one reaction.
