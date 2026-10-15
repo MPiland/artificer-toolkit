@@ -5520,15 +5520,14 @@
             {
               "id": "ATTACK-9.T1",
               "text": "Rage resolves in an Encounter (bonus action, charge spend, timed grant, spellcasting and Concentration lock, end conditions, undo).",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["ATTACK-9.1"],
               "wsjf": {
                 "bv": 13,
                 "tc": 5,
                 "rr": 8,
                 "size": 3
-              },
-              "activeWorkbook": "docs/handoffs/slice-attack-9-t1.md"
+              }
             },
             {
               "id": "ATTACK-9.T2",
@@ -6001,8 +6000,12 @@
             {
               "id": "ATTACK-17.6",
               "text": "A player who controls a hidden concentrating creature sees that creature's concentration check card as their own private card; other players do not, and the GM keeps the full card.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "merge 60b64d620",
+                "CI run 38790799387 (ci/merge-a9a17; Convex 3/4 fails only the known PRIVACY-1.T1 signature)",
+                "local-validation/merge-a9a17/summary.log"
+              ],
               "origin": "Follow-up from ATTACK-17.T1 review (9dac2816c): concentrationRollPersistence.ts and concentrationEnd.ts still retain the card for the GM only.",
               "note": ""
             }
@@ -6068,7 +6071,7 @@
             {
               "id": "ATTACK-17.T5",
               "text": "Route concentration check cards through the ATTACK-17.T1 private-card routing (player copy for the controller).",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["ATTACK-17.6"],
               "wsjf": {
                 "bv": 3,
@@ -6076,8 +6079,7 @@
                 "rr": 3,
                 "size": 2,
                 "after": ["ATTACK-17.T1"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-attack-17-t5.md"
+              }
             }
           ]
         },
