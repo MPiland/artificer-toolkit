@@ -5583,7 +5583,57 @@
             "tc": 2,
             "rr": 3,
             "size": 5
-          }
+          },
+          "tasks": [
+            {
+              "id": "ATTACK-10.T1",
+              "text": "Hide: a successful Stealth check hides its actor from the creatures that fail to notice it; attacking from hiding has advantage; attacking or being noticed ends it.",
+              "status": "TODO",
+              "closes": ["ATTACK-10.2"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 5,
+                "size": 3
+              }
+            },
+            {
+              "id": "ATTACK-10.T2",
+              "text": "Creature Senses as structured Sense definitions, so attack-roll sight is definitive for Creatures.",
+              "status": "TODO",
+              "closes": ["ATTACK-10.3"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 3
+              }
+            },
+            {
+              "id": "ATTACK-10.T3",
+              "text": "Opportunity attacks and Disarm apply attack-roll sight; movement-reaction perception applies condition contributions.",
+              "status": "TODO",
+              "closes": ["ATTACK-10.4"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 1,
+                "rr": 2,
+                "size": 3
+              }
+            },
+            {
+              "id": "ATTACK-10.T4",
+              "text": "Saving throws use the believed mode in the prompt and settle in the true mode; player reasons never name a hidden fact.",
+              "status": "TODO",
+              "closes": ["ATTACK-10.5"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 2,
+                "size": 3
+              }
+            }
+          ]
         },
         {
           "id": "ATTACK-11",
@@ -5926,7 +5976,7 @@
                 "tc": 5,
                 "rr": 2,
                 "size": 2,
-                "after": ["ATTACK-17.T3", "ATTACK-10"]
+                "after": ["ATTACK-17.T3", "ATTACK-10.T1"]
               }
             },
             {
