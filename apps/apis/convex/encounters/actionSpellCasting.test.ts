@@ -641,6 +641,20 @@ describe('Character spell casting in an Encounter', () => {
     ])
   }, 60000)
 
+  it("lists a spell on the Sheet at the levels of the Character's owned slots, standard and Pact Magic", async () => {
+    const readLevels = async (fixture: Fixture) =>
+      (await fixture.player.caller.query(api.characters.sheet.get, {
+        id: fixture.character.id
+      }))!.spells.activeGroups.map(({ level }) => level)
+    const standard = await setup({
+      slots: [3, 5, 9].map((spellLevel) => ({ spellLevel, slotCount: 1 })),
+      known: [fireball]
+    })
+    expect(await readLevels(standard)).toEqual([3, 5, 9])
+    const pact = await setup({ pactLevel: 5, known: [fireball] })
+    expect(await readLevels(pact)).toEqual([3, 5])
+  }, 60000)
+
   it('offers prepared, always prepared and granted spells and not an unprepared one', async () => {
     const prepared = healSpell('Prepared', (spell) => fixHeal(spell, 1))
     const unprepared = healSpell('Unprepared', (spell) => fixHeal(spell, 1))
@@ -802,7 +816,7 @@ describe('Character spell casting in an Encounter', () => {
       fixHeal(spell, 4, 1)
     })
     const fixture = await setup({ known: [twin] })
-    // Both Effects merge into one choice, but the dnd5e compiler runs one entry per Effect action.
+    // One cast is one action and the compiler executes one Effect per action: two Effects offer no choice.
     expect(await spellChoices(fixture, 0)).toEqual([])
   }, 60000)
 

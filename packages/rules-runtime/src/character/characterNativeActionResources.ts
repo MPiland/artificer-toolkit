@@ -11,7 +11,7 @@ import {
   type CharacterResourceUsage
 } from '@artificer-toolkit/shared/character'
 import { StaleCharacterActionError } from '../encounterErrors.js'
-import { readSpellCastSlot } from './characterSpellCastActions.js'
+import { readSpellCastSlot, spellCastActionId } from './characterSpellCastActions.js'
 
 type CompiledCharacterAction = Extract<
   CompiledActionEntryPoint,
@@ -187,12 +187,13 @@ export function prepareNativeCharacterActionState(input: {
     : []
 
   const savingThrow = input.candidate.mechanicFacts.invocation.savingThrow
-  const spellCastLevel =
-    input.candidate.mechanicsOwner.kind === 'SPELL'
-      ? input.policyOutput.spellCastMechanics.find(
-          (value) => value.candidateId === input.candidate.sourceId
-        )?.castLevel
-      : undefined
+  // A spell cast's action id is a digest of its cast candidate's id, so the id names the candidate.
+  const isSpellCast = input.candidate.mechanicsOwner.kind === 'SPELL'
+  const namesCast = (value: { candidateId: string }) =>
+    spellCastActionId(value.candidateId) === input.candidate.actionId
+  const spellCastLevel = isSpellCast
+    ? input.policyOutput.spellCastMechanics.find(namesCast)?.castLevel
+    : undefined
   const actionMechanic: NativeCharacterActionMechanic = {
     ...decision.mechanic,
     ...(spellCastLevel === undefined ? {} : { spellCastLevel }),
@@ -230,10 +231,8 @@ export function prepareNativeCharacterActionState(input: {
 
   // A leveled cast spends the slot its decision named, in Assisted play only.
   let spellConsumption: NativeCharacterSpellConsumption | null = null
-  if (input.candidate.mechanicsOwner.kind === 'SPELL') {
-    const cast = input.policyOutput.spellCastDecisions.find(
-      (value) => value.candidateId === input.candidate.sourceId
-    )
+  if (isSpellCast) {
+    const cast = input.policyOutput.spellCastDecisions.find(namesCast)
     if (!cast || cast.status !== 'AVAILABLE') stale()
     if (cast.slotKey !== null && input.automationMode !== 'MANUAL') {
       const slot = readSpellCastSlot(input.policyOutput.spellSlots, cast.slotKey)

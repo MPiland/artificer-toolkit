@@ -290,13 +290,14 @@ type CharacterSheetSpellSource = {
   resourceOwner?: CharacterResourceOwnerRef
 }
 
+/** Labels only title a source on the Sheet; a reader that does not show sources passes none. */
 export function getSpellSourcesBySpellId(
   character: CharacterAuthored,
-  classLabels: ReadonlyMap<string, string>,
   sheetSpellIdsByClassId: ReadonlyMap<string, ReadonlySet<string>>,
   preparationCapableClassIds: ReadonlySet<string>,
   spellAccess: readonly CharacterSheetRuleProjection['spellAccess'][number][],
-  featureLabels: ReadonlyMap<string, string>
+  classLabels: ReadonlyMap<string, string> = new Map(),
+  featureLabels: ReadonlyMap<string, string> = new Map()
 ): Map<string, CharacterSheetSpellSource[]> {
   const classStateById = new Map(
     (character.state.classes ?? []).map((classState) => [classState.classId, classState])
@@ -1061,10 +1062,10 @@ export function projectCharacterSheetBundle(
   for (const access of ruleProjection.spellAccess) displayedSpellIds.add(access.spellId)
   const spellSourcesBySpellId = getSpellSourcesBySpellId(
     character,
-    classLabels,
     sheetSpellIdsByClassId,
     preparationCapableClassIds,
     ruleProjection.spellAccess,
+    classLabels,
     featureLabels
   )
   const spellPreparationSources = ruleEvaluation.output.spellPreparation.sources.flatMap(

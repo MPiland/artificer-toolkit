@@ -6462,7 +6462,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
         [DND5E_RESOLVED_HEAL_MODIFIER_FACT_KEY]: parsed.modifier
       }
     }
-    const spellCastLevel = (actionMechanic as { spellCastLevel?: unknown }).spellCastLevel
+    const { spellCastLevel } = actionMechanic
     const baseFacts = {
       [DND5E_TARGET_ACTOR_FACT_KEY]: targetActorId,
       [DND5E_TARGET_STATE_CHECKSUM_FACT_KEY]: checksumRuleDocument({
@@ -6487,9 +6487,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
           }
         : {}),
       ...resolvedHealModifierFacts,
-      ...(typeof spellCastLevel === 'number'
-        ? { [DND5E_SPELL_CAST_LEVEL_FACT_KEY]: spellCastLevel }
-        : {})
+      ...(spellCastLevel === undefined ? {} : { [DND5E_SPELL_CAST_LEVEL_FACT_KEY]: spellCastLevel })
     }
     const action = actionMechanic as {
       attackBonus?: unknown

@@ -47,7 +47,6 @@ export type EncounterMechanicsBatchInput = {
   forceVersionAdvance: boolean
   retainedConditionIds?: readonly string[]
   effectiveScalarValues?: Readonly<Record<string, number>>
-  spellSlotUsage?: NonNullable<CharacterAuthored['state']['spellSlots']>
   characterResourceConsumption?: NativeCharacterActionResourceConsumption
   /** A single-use item this Assisted action used up; recorded as play usage, never as a structure edit. */
   characterItemConsumption?: NativeCharacterItemConsumption
@@ -88,8 +87,6 @@ export function planEncounterMechanicsBatch(input: {
   if (actor.kind !== 'CHARACTER') {
     if (batch.expectedCharacterStreamVersion !== null)
       throw new Error('Encounter non-Character actors have no Character stream version.')
-    if (batch.spellSlotUsage !== undefined)
-      throw new Error('Encounter non-Character actors cannot use spell slots.')
     if (batch.characterResourceConsumption !== undefined)
       throw new Error('Encounter non-Character actors cannot use Character resources.')
     if (batch.characterItemConsumption !== undefined)
@@ -239,13 +236,12 @@ export function planEncounterMechanicsBatch(input: {
   }
 
   const spellConsumption = batch.characterSpellConsumption
-  let nextSpellSlots = batch.spellSlotUsage
+  let nextSpellSlots: CharacterAuthored['state']['spellSlots']
   if (spellConsumption !== undefined) {
     const currentSlots = loaded.character.state.spellSlots ?? []
     const currentUsed =
       currentSlots.find((slot) => slot.slotKey === spellConsumption.slotKey)?.used ?? 0
     if (
-      batch.spellSlotUsage !== undefined ||
       spellConsumption.characterId !== loaded.active.id ||
       spellConsumption.expectedStreamVersion !== loaded.active.play.streamVersion ||
       spellConsumption.afterUsed !== spellConsumption.beforeUsed + 1 ||

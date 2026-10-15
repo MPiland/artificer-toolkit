@@ -409,11 +409,6 @@ describe('Creature mechanics batch plan', () => {
       message: 'Encounter non-Character actors have no Character stream version.'
     },
     {
-      name: 'spell slot usage',
-      overrides: { spellSlotUsage: [{ slotKey: 'STANDARD:1', used: 1 }] },
-      message: 'Encounter non-Character actors cannot use spell slots.'
-    },
-    {
       name: 'a spell slot consumption',
       overrides: {
         characterSpellConsumption: {
@@ -555,17 +550,12 @@ describe('Character mechanics batch plan', () => {
       ...characterFacts,
       character: { ...document, state: { ...document.state, spellSlots } }
     })
-    const planFor = (
-      spend: typeof consumption,
-      facts: ReturnType<typeof withSlots>,
-      overrides: Partial<EncounterMechanicsBatchInput> = {}
-    ) =>
+    const planFor = (spend: typeof consumption, facts: ReturnType<typeof withSlots>) =>
       planEncounterMechanicsBatch({
         batch: batch([], {
           expectedCharacterStreamVersion: STREAM_VERSION,
           effectiveMaximumHitPoints: 12,
-          characterSpellConsumption: spend,
-          ...overrides
+          characterSpellConsumption: spend
         }),
         actor,
         userId: USER_ID,
@@ -621,14 +611,6 @@ describe('Character mechanics batch plan', () => {
       expect(() => planFor(spend, facts)).toThrow(
         'Encounter Character spell slot consumption is stale.'
       )
-    })
-
-    it('refuses a spend beside a full slot replacement', () => {
-      expect(() =>
-        planFor(consumption, withSlots([{ slotKey: 'STANDARD:1', used: 1 }]), {
-          spellSlotUsage: [{ slotKey: 'STANDARD:1', used: 2 }]
-        })
-      ).toThrow('Encounter Character spell slot consumption is stale.')
     })
   })
 

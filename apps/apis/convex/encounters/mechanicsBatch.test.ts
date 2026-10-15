@@ -194,17 +194,25 @@ describe('applyEncounterMechanicsBatch', () => {
     expect(await base.readActor()).toEqual(before)
   })
 
-  it('rejects Character spell-slot state for a non-Character actor', async () => {
+  it('rejects a spell slot spend for a non-Character actor', async () => {
     const base = await mechanicsFixture()
     const before = await base.readActor()
     await expect(
       base.owner.caller.run((ctx) =>
         applyEncounterMechanicsBatch(ctx, {
           ...base.input,
-          spellSlotUsage: []
+          characterSpellConsumption: {
+            characterId: crypto.randomUUID(),
+            spellId: crypto.randomUUID(),
+            candidateId: 'candidate',
+            slotKey: 'STANDARD:1',
+            beforeUsed: 0,
+            afterUsed: 1,
+            expectedStreamVersion: 1
+          }
         })
       )
-    ).rejects.toThrow()
+    ).rejects.toThrow('cannot spend Character spell slots')
     expect(await base.readActor()).toEqual(before)
   })
 

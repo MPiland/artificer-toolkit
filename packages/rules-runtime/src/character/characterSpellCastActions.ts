@@ -1,7 +1,6 @@
 import type {
   CharacterActionCandidate,
-  CharacterActionRuleEntryPoint,
-  CharacterResolvedActionMechanic
+  CharacterActionRuleEntryPoint
 } from '@artificer-toolkit/schema/api/characterActionRules'
 import type { CompiledActionEntryPoint } from '@artificer-toolkit/schema/projections/characterMechanics'
 import type {
@@ -79,14 +78,11 @@ export function listCastableSpellCandidateIds(input: {
   ruleEvaluation: Parameters<typeof projectCharacterSpellAccess>[0]
 }): ReadonlySet<string> {
   const { output, facts } = input.ruleEvaluation
-  // Labels only title a source on the Sheet, which an Encounter does not show.
   const sourcesBySpellId = getSpellSourcesBySpellId(
     input.character,
-    new Map(),
     getSheetSpellIdsByClass(output, facts),
     getPreparationCapableClassIds(output),
-    projectCharacterSpellAccess(input.ruleEvaluation),
-    new Map()
+    projectCharacterSpellAccess(input.ruleEvaluation)
   )
   const ownedSlotLevels = getOwnedSpellSlotLevels(output.spellSlots)
   const spellLevelById = new Map(
@@ -153,44 +149,6 @@ function activeSpellEffects(spell: SpellAuthored): readonly CompiledEffectGroup[
   return groups
 }
 
-/** The invocation without its row ids, which differ between Effects that invoke the same way. */
-const withoutIds = (key: string, value: unknown) => (key === 'id' ? undefined : value)
-
-/**
- * Every Effect of the spell as one group, since one cast is one action: the first Effect's identity
- * and invocation, with all entries. Effects that invoke differently cannot be one action.
- */
-function mergeSpellEffects(effects: readonly CompiledEffectGroup[]): CompiledEffectGroup | null {
-  const [first, ...rest] = effects
-  if (!first) return null
-  const invocation = JSON.stringify(first.invocation, withoutIds)
-  if (rest.some((effect) => JSON.stringify(effect.invocation, withoutIds) !== invocation))
-    return null
-  return rest.length === 0
-    ? first
-    : { ...first, entries: effects.flatMap((effect) => effect.entries) }
-}
-
-/** The cast's mechanics as one: the first Effect's roll with every Effect's outcomes. */
-function mergeSpellMechanics(
-  effects: readonly CompiledEffectGroup[],
-  mechanics: readonly CharacterResolvedActionMechanic[]
-): CharacterResolvedActionMechanic | null {
-  const ordered = effects.map((effect) => mechanics.find((entry) => entry.effectId === effect.id))
-  const [first, ...rest] = ordered
-  if (!first || ordered.some((entry) => !entry) || mechanics.length !== effects.length) return null
-  const { outcomes: _outcomes, ...roll } = first
-  const rolls = JSON.stringify(roll)
-  if (
-    rest.some((entry) => {
-      const { outcomes: _other, ...other } = entry!
-      return JSON.stringify({ ...other, effectId: roll.effectId }) !== rolls
-    })
-  )
-    return null
-  return { ...first, outcomes: ordered.flatMap((entry) => entry!.outcomes) }
-}
-
 /**
  * The Encounter's action candidates, entry points and decisions for the spells a Character may cast:
  * one per offered `spellCastCandidates` entry, built from the same candidate the Sheet reads. They
@@ -225,13 +183,12 @@ export function buildCharacterSpellCastActions(input: {
       !isCastOffered(cast, decisionsByCandidateId.get(cast.candidateId), input.castableCandidateIds)
     )
       continue
+    // One cast is one action, and the compiler executes one Effect group per action.
     const effects = activeSpellEffects(spell)
-    const group = mergeSpellEffects(effects)
-    const mechanic = mergeSpellMechanics(
-      effects,
-      mechanicsByCandidateId.get(cast.candidateId)?.mechanics ?? []
-    )
-    if (!group || !mechanic) continue
+    const mechanics = mechanicsByCandidateId.get(cast.candidateId)?.mechanics ?? []
+    const [group] = effects
+    const mechanic = mechanics.find((entry) => entry.effectId === group?.id)
+    if (effects.length !== 1 || !group || mechanics.length !== 1 || !mechanic) continue
     const mechanicFacts = normalizeCharacterActionMechanicFacts(group)
     const source = {
       kind: 'AUTHORED' as const,

@@ -509,14 +509,15 @@ granted spells included) and the candidate must be one of the cast levels the Sh
 (`getExplicitSpellCastLevels`): the spell's own level plus every higher level its authored damage or heal
 scaling reaches for which the Character owns a standard slot. A Warlock's pact slot is offered for the spell's
 own level and spent whatever its level. A candidate is dropped when its decision is not `AVAILABLE`, or it is a
-ritual, a limited-use cast or a pool-backed fixed-level cast. The spell's Effects merge into one action when
-they invoke the same way (a PASSIVE Effect is ignored). A cast is offered only when the System adapter
-compiles its entry (`COMPILED`), since choosing one that stays `MANUAL` could only be refused as stale. The
-dnd5e Effect-action compiler does not yet execute a heal scaling per cast level or a merged group that needs
-several entries, so those are not offered. Labels read "Cure Wounds (2nd level)"; a cantrip reads its name.
+ritual, a limited-use cast or a pool-backed fixed-level cast. A spell is offered only with exactly one active
+Effect (a PASSIVE Effect is ignored): one cast is one action and the compiler executes one Effect group per
+action. A cast is offered only when the System adapter compiles its entry (`COMPILED`), since choosing one that
+stays `MANUAL` could only be refused as stale. The dnd5e Effect-action compiler does not yet execute a heal
+scaling per cast level or a group that needs several entries, so those are not offered. Labels read "Cure Wounds (2nd level)"; a cantrip reads its name.
 
 The cast level is a fact of the action. `prepareNativeCharacterActionState` copies the policy's `castLevel`
-onto the action mechanic as `spellCastLevel`, the dnd5e adapter binds it as the `spellCastLevel` fact, and the
+onto the action mechanic as `spellCastLevel`, the dnd5e adapter binds it as the declared fact
+`dnd5e.spell-cast-level` (a Game System `factContracts` entry), and the
 authored scaling reads it (`dndScalingFactsFromRuleValues`), for damage and non-damage spells alike. Each
 spell compiles once per document (`activeSpellEffects`).
 

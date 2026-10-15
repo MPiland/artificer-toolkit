@@ -316,7 +316,7 @@ describe('applyEncounterMechanicsBatch Character persistence', () => {
     expect(after).toEqual(before)
   })
 
-  it('preserves a no-op and commits only validated sealed spell-slot state', async () => {
+  it('preserves a no-op and commits a spell slot spend only against the planned Character version', async () => {
     const fixture = await setupCharacterRun()
     const read = () =>
       fixture.t.run(async (ctx) => ({
@@ -336,12 +336,18 @@ describe('applyEncounterMechanicsBatch Character persistence', () => {
     const noop = await fixture.owner.caller.run((ctx) => applyEncounterMechanicsBatch(ctx, input))
     expect(noop.characterStreamVersion).toBeNull()
     expect(await read()).toEqual(before)
+    const spend = {
+      characterId: fixture.character.id,
+      spellId: crypto.randomUUID(),
+      candidateId: 'candidate',
+      slotKey: 'STANDARD:1',
+      beforeUsed: 0,
+      afterUsed: 1,
+      expectedStreamVersion: fixture.characterStreamVersion
+    }
     const slots = [{ slotKey: 'STANDARD:1', used: 1 }]
     const result = await fixture.owner.caller.run((ctx) =>
-      applyEncounterMechanicsBatch(ctx, {
-        ...input,
-        spellSlotUsage: slots
-      })
+      applyEncounterMechanicsBatch(ctx, { ...input, characterSpellConsumption: spend })
     )
     expect(result.characterStreamVersion).toBe(fixture.characterStreamVersion + 1)
     const after = await read()
@@ -360,12 +366,15 @@ describe('applyEncounterMechanicsBatch Character persistence', () => {
     await expect(
       fixture.owner.caller.run((ctx) =>
         applyEncounterMechanicsBatch(ctx, {
-          ...input,
-          commandId: crypto.randomUUID(),
-          spellSlotUsage: [{ slotKey: 'STANDARD:1', used: -1 }]
+          ...command(fixture.run, fixture.actor, fixture.characterStreamVersion + 1),
+          applications: [],
+          characterSpellConsumption: {
+            ...spend,
+            expectedStreamVersion: fixture.characterStreamVersion + 1
+          }
         })
       )
-    ).rejects.toThrow()
+    ).rejects.toThrow('Encounter Character spell slot consumption is stale.')
     expect(await read()).toEqual(after)
   })
 

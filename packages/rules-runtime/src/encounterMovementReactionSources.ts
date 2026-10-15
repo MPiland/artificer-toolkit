@@ -1,8 +1,5 @@
 import type { CharacterActionCandidate } from '@artificer-toolkit/schema/api/characterActionRules'
-import type {
-  CharacterRulePolicyInput,
-  CharacterRulePolicyOutput
-} from '@artificer-toolkit/schema/api/characterRules'
+import type { CharacterRulePolicyInput } from '@artificer-toolkit/schema/api/characterRules'
 import type { CompiledActionEntryPoint } from '@artificer-toolkit/schema/projections/characterMechanics'
 import type {
   EncounterRunActorState,
