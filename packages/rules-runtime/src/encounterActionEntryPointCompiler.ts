@@ -13,7 +13,11 @@ import type {
   CharacterActionCapabilityDescriptor,
   EffectActionCapabilityDescriptor
 } from './characterActionCapabilityDiscovery.js'
-import { CharacterRuleActionUnsupportedCompilationError } from './characterRuleActionSystemAdapter.js'
+import {
+  CharacterRuleActionUnsupportedCompilationError,
+  type CharacterRuleActionExecutionPlan,
+  type CharacterRuleActionSystemAdapter
+} from './characterRuleActionSystemAdapter.js'
 import { characterRuleActionSystemAdapterRegistry } from './characterRuleActionSystemAdapterRegistry.js'
 import { placedSpaceManifest } from './encounterZonePlacement.js'
 
@@ -123,6 +127,23 @@ export function buildCompiledActionCompilerSource(
     ...base,
     compilerSourceChecksum: checksumRuleDocument(base)
   } as CompiledActionCompilerSource
+}
+
+/**
+ * The execution plan an authored Effect action runs (a Creature's feature action or an authored
+ * basic action); Legendary discovery pins the same plan. Throws
+ * `CharacterRuleActionUnsupportedCompilationError` when the System cannot execute its shape.
+ */
+export function compileEncounterFeatureActionPlan(
+  adapter: CharacterRuleActionSystemAdapter,
+  capability: EffectActionCapabilityDescriptor
+): CharacterRuleActionExecutionPlan {
+  return (
+    adapter.compileExecutionPlan?.({
+      action: capability,
+      compilerSource: buildCompiledActionCompilerSource(capability)
+    }) ?? { kind: 'SINGLE_GRAPH', published: adapter.compile({ action: capability }) }
+  )
 }
 
 function assertDescriptorAlignment(input: {

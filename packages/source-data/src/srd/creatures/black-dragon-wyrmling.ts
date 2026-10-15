@@ -154,10 +154,7 @@ export const blackDragonWyrmling: CreatureAuthored = {
               code: S.ACTIVATION_CODE.ACTION,
               amount: 1
             },
-            range: {
-              id: S.actionId(46, 8),
-              rangeKind: S.RANGE_KIND.SPECIAL
-            }
+            ...S.selfLine(S.actionId(46, 8), S.actionId(46, 11), 15, 5)
           },
           paths: [
             {

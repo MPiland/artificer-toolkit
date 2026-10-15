@@ -1,6 +1,6 @@
 # Slice workbook: SPELLS-21 (SRD breath weapons breathe areas)
 
-**Status:** OPEN (started 2026-10-14)
+**Status:** DONE (2026-10-15), pending merge by the main session
 **Base:** `codex/phase-08-2-convex-cutover` at this workbook's commit.
 **Rules:** [slice-workbook-rules.md](slice-workbook-rules.md).
 
@@ -60,5 +60,34 @@ A Creature publication change reruns the whole apis `encounters` and `content` f
 ## Status log
 
 - 2026-10-14: workbook written.
+- 2026-10-14: red first. Row edits temporarily reverted under the runner (`local-validation/spells-21/red.ps1`): corpus test 79 of 152 failed (`rules-runtime.red.log`), Worker journey 3 of 3 failed (`session-worker.red.log`).
+- 2026-10-14: 72 breath Effects in 52 creature files authored with `S.selfCone` / `S.selfLine` (new in `creatures/shared.ts`; each row keeps its range id and gets a new shape id). Manifest regenerated.
+- 2026-10-14/15: green runs `green.ps1` to `green5.ps1` (logs `*.green*.log`). The first runs exposed that the breaths that leave more than damage do not compile, and that the Gorgon does not compile either. Tests corrected honestly (below), the Gorgon row left unshaped, and everything rerun on the final data: source-data 52 tests, corpus 203 tests, Worker 4 files / 98 tests, Worker and Convex typechecks green (`green4.summary.log`); apis `content` and `encounters` folders rerun on the final manifest (`green5.summary.log`).
+- 2026-10-15: review fixes: unavailable listing and shared refusal, exact-code refusal test, exact-set corpus test, Winter Wolf cone journey, Gorgon finding corrected (see Findings). Runs: `fix3.ps1`.
 
 ## Proposed ledger edits (filled by the slice session)
+
+- AC SPELLS-21.1 (every SRD breath weapon authored as a Self cone or line with its printed size; an unmodified SRD dragon breathes it in a real room): closes for the 71 breaths below; the Gorgon's Petrifying Breath is deferred to SPELLS-19 (see Findings). Proof:
+  - `packages/rules-runtime/src/__tests__/srdBreathWeaponAreas.test.ts`: 72 breath Effects found; each prints exactly one area; 71 compile to a `SELF` / `DIRECTED` area equal to the printed size; named rows (Black Dragon Wyrmling line 15x5, Red Dragon Wyrmling cone 15, Ancient Red Dragon cone 90, Ancient Blue Dragon line 120x10, Behir line 20x5, Winter Wolf cone 15, Dragon Turtle cone 60); all 50 damage-only breaths compile to a `TEST_OUTCOME`; the 22 breaths that leave more than damage are counted.
+  - `apps/session-worker/test/nativeRoomSrdBreathJourney.test.ts`: the unmodified Black Dragon Wyrmling offers its 15 ft line and breathes it in a real room (three Wolves in the line save, full damage on two failures and half on the success, a Wolf past the line, a Wolf off the row and the dragon untouched, one `RESOLVE_ACTION`, GM undo restores every target).
+- Refusals (checklist 2), proven in the same journey file: discovery lists the Silver Dragon Wyrmling Paralyzing Breath as unavailable with its compile reason (also in the room `unavailableActions`, not in `actions`), and RESOLVE_ACTION is refused with `COMMAND_REJECTED { code: DOMAIN_REJECTED, reason: SOURCE_REQUIREMENTS_NOT_MET, message: "<label> is unavailable: <reason>" }`, nothing pending, vitals unchanged. The Gorgon has no Worker case (see Findings); the corpus test pins it unshaped and unavailable.
+- Regression (checklist 4): `nativeRoomDirectedAreaAction.test.ts`, `nativeRoomAreaJourney.test.ts` and `nativeRoomAreaAction.test.ts` unchanged and green; `encounterAreaAction*` rules-runtime tests green.
+
+### Findings for SPELLS-19 (proposed as ledger notes, not new work in this slice)
+
+- 22 breaths do not compile to an executable plan: the 21 shaped ones that leave more than damage (the metallic dragons second breaths and the Dust Mephit) and the unshaped Gorgon. Reasons (compile errors): "paths must be unique direct outcomes" (Brass x4, Dust Mephit), "outcome is not supported" (Bronze x4), "unsupported bounded shape" (Copper, Gold, Silver x4 each, Silver Dragon Wyrmling, Gorgon). After the review fixes, discovery lists them unavailable with that reason and RESOLVE_ACTION refuses them with `SOURCE_REQUIREMENTS_NOT_MET` (Worker and Convex share the `refuseStaleCharacterAction` path), instead of a reasonless `UNAVAILABLE`.
+- **Gorgon Petrifying Breath is deliberately left unshaped.** Its breath is a lone `ON_SAVE_FAIL` path with a bare `RESTRAINED` condition and the SRD repeat save is not authored; the System rejects it as "unsupported bounded shape" even unshaped, so it is already unavailable. A shaped Gorgon is not offered either, so the earlier claim that an area silently drops the condition could not be run and is unproven. What is established: an area does not refuse a bare condition, and the repeat save is not authored. SPELLS-19 should author the repeat save, make an area refuse (or apply) a bare condition, then shape the Gorgon (30 ft cone) with `S.selfCone(S.actionId(148, 8), S.actionId(148, 11), 30)`.
+
+### Deviations
+
+- `selfCone` / `selfLine` helpers in `creatures/shared.ts` (used 71 times) instead of 71 hand-written blocks.
+- The Hell Hound and Winter Wolf breaths were authored with `CHOSEN_CREATURES` targeting; they now use `AREA_CONTENTS`, as their descriptions ("each creature in that area") print.
+- The Behir's stale comment ("waits on area targeting (D60)") was removed with its row edit.
+- The Young Blue Dragon description reads "an 60-foot line" (existing data typo); size 60 taken, the description left alone.
+- The corpus test asks for an executable plan only from the damage-only breaths; the brief's "every breath compiles" cannot hold for the 22 above. It asserts the non-compiling rows are exactly the 21 shaped non-damage rows plus the Gorgon, each raising `CharacterRuleActionUnsupportedCompilationError` from the real dnd5e adapter, with non-damage rows found by a typed read of outcome kinds.
+- Review fixes added a production change the brief did not expect: `discoverEncounterFeatureActions` compiles every Creature action once per discovery to list unrunnable ones (`compileEncounterFeatureActionPlan` moved to `encounterActionEntryPointCompiler.ts`), `UnavailableCreatureActionError` in `encounterErrors.ts`, and its mapping in `staleCharacterAction.ts`. No new code or transport field.
+
+### Not run
+
+- Stage or browser journeys (this slice changes data and the Worker path, not the stage).
+- The local-backend reset and reseed that publishes the changed Creatures (the apis folders ran green under convex-test).

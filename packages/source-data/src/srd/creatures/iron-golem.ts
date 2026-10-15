@@ -294,10 +294,7 @@ export const ironGolem: CreatureAuthored = {
               code: S.ACTIVATION_CODE.ACTION,
               amount: 1
             },
-            range: {
-              id: S.actionId(175, 18),
-              rangeKind: S.RANGE_KIND.SPECIAL
-            }
+            ...S.selfCone(S.actionId(175, 18), S.actionId(175, 607), 15)
           },
           paths: [
             {

@@ -383,7 +383,7 @@ export const adultWhiteDragon: CreatureAuthored = {
               baseDc: 19
             },
             activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(12, 31), rangeKind: S.RANGE_KIND.SPECIAL }
+            ...S.selfCone(S.actionId(12, 31), S.actionId(12, 200), 60)
           },
           paths: [
             {

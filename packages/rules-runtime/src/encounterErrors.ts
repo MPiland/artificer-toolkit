@@ -20,6 +20,14 @@ export class StaleCharacterActionError extends EncounterConflictError {
   }
 }
 
+/** A Creature action whose authored mechanics cannot run was chosen; discovery lists it unavailable with the reason. */
+export class UnavailableCreatureActionError extends Error {
+  constructor(label: string, reason: string) {
+    super(`${label} is unavailable: ${reason}`)
+    this.name = 'UnavailableCreatureActionError'
+  }
+}
+
 /** An issued movement reaction option no longer matches its source's current facts. */
 export class StaleMovementReactionError extends EncounterConflictError {
   constructor(message: string) {

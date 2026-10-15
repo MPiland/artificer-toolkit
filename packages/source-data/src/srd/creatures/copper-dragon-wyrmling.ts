@@ -126,10 +126,7 @@ export const copperDragonWyrmling: CreatureAuthored = {
               code: S.ACTIVATION_CODE.ACTION,
               amount: 1
             },
-            range: {
-              id: S.actionId(7951, 7),
-              rangeKind: S.RANGE_KIND.SPECIAL
-            }
+            ...S.selfLine(S.actionId(7951, 7), S.actionId(7951, 17), 20, 5)
           },
           paths: [
             {
@@ -195,10 +192,7 @@ export const copperDragonWyrmling: CreatureAuthored = {
               code: S.ACTIVATION_CODE.ACTION,
               amount: 1
             },
-            range: {
-              id: S.actionId(7951, 12),
-              rangeKind: S.RANGE_KIND.SPECIAL
-            }
+            ...S.selfCone(S.actionId(7951, 12), S.actionId(7951, 18), 15)
           },
           paths: [
             {
