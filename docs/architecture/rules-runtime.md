@@ -509,6 +509,45 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   authored action's effects nest deeper than Convex's 16-level value limit (Dodge is 19 deep), as ADR 0029 already does for authored
   versions. Readers and checksums still see the typed document.
 
+### Spell casting in an Encounter (current, SPELLS-8.T1)
+
+A Character casts a spell through `RESOLVE_ACTION` like a Feature action. The choice is built from the same
+`spellCastCandidates` entry the Sheet and the initiative declarations read (`characterSpellCastActions.ts`):
+one action choice per offered candidate, so upcasting is choosing the higher-level candidate and the command
+has no cast-level field. The action id is `spell-cast:<uuid v5 of the candidate id>`, a fixed length however
+long the candidate id grows. The choices travel beside the Character's other actions as
+`characterSpellCast` on the Encounter source facts (`encounterMovementTargets.ts`), so the Sheet's own
+actions and the movement reactions never see spells.
+
+A candidate is offered through the Sheet's own logic, not a copy of it: the spell must come from an active
+source (`isActiveSpellSource`: prepared per preparing class, learned for the others, always prepared and
+granted spells included) and the candidate must be one of the cast levels the Sheet lists
+(`getExplicitSpellCastLevels`): the spell's own level plus every higher level its authored damage or heal
+scaling reaches for which the Character owns a standard slot. A Warlock's pact slot is offered for the spell's
+own level and spent whatever its level. A candidate is dropped when its decision is not `AVAILABLE`, or it is a
+ritual, a limited-use cast or a pool-backed fixed-level cast. A spell is offered only with exactly one active
+Effect (a PASSIVE Effect is ignored): one cast is one action and the compiler executes one Effect group per
+action. A cast is offered only when the System adapter compiles its entry (`COMPILED`), since choosing one that
+stays `MANUAL` could only be refused as stale. The dnd5e Effect-action compiler does not yet execute a heal
+scaling per cast level or a group that needs several entries, so those are not offered. Labels read "Cure Wounds (2nd level)"; a cantrip reads its name.
+
+The cast level is a fact of the action. `prepareNativeCharacterActionState` copies the policy's `castLevel`
+onto the action mechanic as `spellCastLevel`, the dnd5e adapter binds it as the declared fact
+`dnd5e.spell-cast-level` (a Game System `factContracts` entry), and the
+authored scaling reads it (`dndScalingFactsFromRuleValues`), for damage and non-damage spells alike. Each
+spell compiles once per document (`activeSpellEffects`).
+
+The slot is spent in the same Character version as the outcome. `prepareNativeCharacterActionState` returns
+`spellConsumption` (`characterId`, `spellId`, `candidateId`, `slotKey`, `beforeUsed`, `afterUsed`) for the slot
+the decision names (`readSpellCastSlot`), and none in Manual automation. The batch plan writes
+`state.spellSlots` through the Sheet's `updateSpellSlotUsage` and refuses a stale spend (`Encounter Character
+spell slot consumption is stale.`), and the receipt carries it as `spellCastConsumption` (batch for a single
+target, the area root for a point area, once). `REVERT_LAST_ACTION` restores the slot through the same
+function, and only while the Character's Sheet stream is unchanged since the cast (a later Sheet write makes
+the undo unavailable, like any Character state change). A Concentration spell starts Concentration through
+`prepareEncounterActionMaintenance` (D99), so the undo restore rules there apply. Components, hands and
+silence have no Sheet rule yet, so an Encounter applies none either.
+
 ## Initiative
 
 Initiative is application policy over typed rules evidence. Campaign settings select an allowed
@@ -895,7 +934,7 @@ These are not current behavior:
 
 - Phase 8.3 "Player play parity" ([ADR 0034](../adr/0034-player-control-rules-assistance-and-roll-prompts.md)):
   spell casting and area targeting, death saves, Sheet-tabletop integration, map targeting, non-movement
-  reactions. Spell slots are not spent by `RESOLVE_ACTION` until then. The gaps by area (grapple,
+  reactions. Core spell casting and the slot spend are current (SPELLS-8.T1); the Fireball journey, Spare the Dying and `APPLY_GRANT` spells are SPELLS-8.T2 to T4. The gaps by area (grapple,
   conditions, `CLOSED_RULE` kinds with no resolver) are in
   [the RUL-9 audit](../handoffs/rul-9-rules-audit.md).
 - Opposed-test, dice-pool and result-band, and level-less-track Kernel fixtures are conformance work, not

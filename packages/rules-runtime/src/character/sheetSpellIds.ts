@@ -74,6 +74,17 @@ export function getKnownSpellIdsForClassIntent(
   return getClassSpellSelectionIdsForClass(character, classId)
 }
 
+/** The classes that prepare spells: those whose preparation has a limit. */
+export function getPreparationCapableClassIds(
+  output: CharacterRuleEvaluationResult['output']
+): Set<string> {
+  return new Set(
+    output.spellPreparation.sources.flatMap((source) =>
+      source.preparedSpellLimit === null ? [] : [source.classId]
+    )
+  )
+}
+
 export function getSheetSpellIdsByClass(
   output: CharacterRuleEvaluationResult['output'],
   facts: CharacterRuleEvaluationResult['facts']
