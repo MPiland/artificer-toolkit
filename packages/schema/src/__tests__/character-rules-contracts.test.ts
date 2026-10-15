@@ -614,8 +614,7 @@ describe('Character rule contracts', () => {
           {
             speedId: 'walk',
             code: 'WALK',
-            baseAmount: 30,
-            unit: 'FEET',
+            base: { amount: 30, unit: 'FEET' },
             override: null
           }
         ],
@@ -658,7 +657,12 @@ describe('Character rule contracts', () => {
         ...inputWithClosedCodes,
         movementFacts: {
           ...inputWithClosedCodes.movementFacts,
-          speeds: [{ ...inputWithClosedCodes.movementFacts.speeds[0]!, unit: 'METERS' }]
+          speeds: [
+            {
+              ...inputWithClosedCodes.movementFacts.speeds[0]!,
+              base: { amount: 30, unit: 'METERS' }
+            }
+          ]
         }
       }).success
     ).toBe(false)

@@ -13,7 +13,7 @@ import {
   findAuthoringValidationTarget,
   type AuthoringNavigationTarget
 } from '../layout/authoringNavigation'
-import { getCollectionRowLabel } from '../rendering/collectionPresentation'
+import { getCollectionRowLabel, getCollectionRowMetadata } from '../rendering/collectionPresentation'
 
 const inputAuthoring = resolveInputAuthoringMeta(undefined)
 
@@ -194,6 +194,24 @@ describe('authoring group row labels', () => {
       expected: '+1,000 Damage Rolls Advantage'
     },
     {
+      node: createArrayNode('modifierGrant', 'Modifiers', 'modifier'),
+      row: {
+        valueDomainCode: 'SPEED',
+        modifierKind: 'BONUS',
+        payload: { amount: 30, unit: 'FEET' }
+      },
+      expected: '+30 feet Speed'
+    },
+    {
+      node: createArrayNode('modifierGrant', 'Modifiers', 'modifier'),
+      row: {
+        valueDomainCode: 'SENSE_RANGE',
+        modifierKind: 'BONUS',
+        payload: { amount: 10, unit: 'YARDS' }
+      },
+      expected: '+10 yards Sense Range'
+    },
+    {
       node: createArrayNode('effect', 'Effects', 'effect'),
       row: { invocation: { triggerCode: 'SAVING_THROW' } },
       expected: 'Saving Throw'
@@ -288,5 +306,18 @@ describe('authoring group row labels', () => {
         0
       )
     ).toBe('Level 5 · 4/2 slots · 5 known')
+  })
+})
+
+describe('authoring modifier row metadata', () => {
+  it('shows a speed or sense range amount with its unit', () => {
+    expect(
+      getCollectionRowMetadata(createArrayNode('modifierGrant', 'Modifiers', 'modifier'), {
+        valueDomainCode: 'SPEED',
+        modifierKind: 'BONUS',
+        scope: 'GLOBAL',
+        payload: { amount: 30, unit: 'FEET' }
+      })
+    ).toContain('+30 feet')
   })
 })

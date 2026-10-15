@@ -126,7 +126,7 @@ type NumericAdjustmentValue =
       family: 'MOVEMENT'
       speedId: string
       field: 'SPEED_OVERRIDE'
-      value: number
+      value: { amount: number; unit: LengthUnitCode }
     }
   | {
       family: 'HIT_POINTS'

@@ -163,6 +163,27 @@ export const option = style({
   }
 })
 
+export const optionContent = style({
+  '@layer': {
+    [app]: {
+      alignItems: 'center',
+      display: 'flex',
+      flex: 1,
+      gap: foundationVars.space[2],
+      justifyContent: 'space-between'
+    }
+  }
+})
+
+export const optionCheck = style({
+  '@layer': {
+    [app]: {
+      flexShrink: 0,
+      opacity: 0.6
+    }
+  }
+})
+
 export const pill = style({
   '@layer': {
     [app]: {

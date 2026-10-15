@@ -195,10 +195,16 @@ export function getCollectionRowMetadata(
   const scope = getOptionLabel(MODIFIER_SCOPE_OPTIONS, readString(row.scope))
   const valueKind = formatEnumLabel(readString(getRecordValue(row, 'payload.valueKind')))
   const amount = readNumber(getRecordValue(row, 'payload.amount'))
+  const unit = formatEnumLabel(readString(getRecordValue(row, 'payload.unit')))?.toLowerCase()
+  const signedAmount =
+    amount === undefined ? undefined : `${amount > 0 ? '+' : ''}${formatNumber(amount)}`
+  // A speed or sense range amount is a typed length: its unit stands in for the value source.
   const amountLabel =
-    amount === undefined || !valueKind
-      ? valueKind
-      : `${valueKind} ${amount > 0 ? '+' : ''}${formatNumber(amount)}`
+    signedAmount !== undefined && unit
+      ? `${signedAmount} ${unit}`
+      : signedAmount === undefined || !valueKind
+        ? valueKind
+        : `${valueKind} ${signedAmount}`
 
   return [valueDomain, attackDomain, scope, amountLabel, getRestrictionLabel(row)].filter(
     (item): item is string => Boolean(item)
@@ -275,8 +281,11 @@ function getRowSummaryLabel(summary: RowSummary, row: unknown): string | undefin
           : valueDomainCode === 'DAMAGE'
             ? 'Damage Rolls'
             : getOptionLabel(VALUE_DOMAIN_OPTIONS, valueDomainCode)
+      const unit = formatEnumLabel(readString(getRecordValue(row, 'payload.unit')))?.toLowerCase()
       const amountLabel =
-        amount === undefined ? undefined : `${amount > 0 ? '+' : ''}${formatNumber(amount)}`
+        amount === undefined
+          ? undefined
+          : [`${amount > 0 ? '+' : ''}${formatNumber(amount)}`, unit].filter(Boolean).join(' ')
 
       return [amountLabel, valueDomain, modifierKind !== 'Bonus' ? modifierKind : undefined]
         .filter(Boolean)

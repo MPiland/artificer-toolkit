@@ -173,7 +173,7 @@ export const CREATURE_COST_NODE_MAP = costNode.define('creatureCost', ({ map, no
     selectSingle(['currencyId'], 'Currency', {
       kind: 'DATA',
       relationship: table('currencies', {
-        selectColumns: ['id', 'label']
+        selectColumns: ['id', 'label', 'description']
       })
     })
   )
@@ -258,7 +258,9 @@ export const CREATURE_QUALIFIED_DAMAGE_DEFENSE_NODE_MAP = qualifiedDamageDefense
         'damageTypeIds',
         nodes.selectMulti(['damageTypeIds'], 'Damage Types', {
           kind: 'DATA',
-          relationship: data.table('damage_types', { selectColumns: ['id', 'label'] })
+          relationship: data.table('damage_types', {
+            selectColumns: ['id', 'label', 'description']
+          })
         })
       )
       .set(
@@ -286,7 +288,9 @@ export const CREATURE_SENSE_NODE_MAP = senseNode.define('creatureSense', ({ map,
         'Sense',
         {
           kind: 'DATA',
-          relationship: data.table('senses', { selectColumns: ['id', 'label'] })
+          relationship: data.table('senses', {
+            selectColumns: ['id', 'label', 'description']
+          })
         },
         { order: 1, requiredIf: true }
       )
@@ -412,7 +416,7 @@ export const CREATURE_NODE_MAP = creatureNode.define(
           {
             kind: 'DATA',
             relationship: table('creature_types', {
-              selectColumns: ['id', 'label']
+              selectColumns: ['id', 'label', 'description']
             })
           },
           { section: CREATURE_SECTIONS.basics, order: 60 }
@@ -438,7 +442,7 @@ export const CREATURE_NODE_MAP = creatureNode.define(
           {
             kind: 'DATA',
             relationship: table('alignments', {
-              selectColumns: ['id', 'label']
+              selectColumns: ['id', 'label', 'description']
             })
           },
           { section: CREATURE_SECTIONS.basics, order: 80 }
@@ -529,7 +533,7 @@ export const CREATURE_NODE_MAP = creatureNode.define(
             kind: 'DATA',
             preserveUnknownOptions: true,
             relationship: table('damage_types', {
-              selectColumns: ['id', 'label']
+              selectColumns: ['id', 'label', 'description']
             })
           },
           { section: CREATURE_SECTIONS.defenses, order: 10 }
@@ -544,7 +548,7 @@ export const CREATURE_NODE_MAP = creatureNode.define(
             kind: 'DATA',
             preserveUnknownOptions: true,
             relationship: table('damage_types', {
-              selectColumns: ['id', 'label']
+              selectColumns: ['id', 'label', 'description']
             })
           },
           { section: CREATURE_SECTIONS.defenses, order: 20 }
@@ -559,7 +563,7 @@ export const CREATURE_NODE_MAP = creatureNode.define(
             kind: 'DATA',
             preserveUnknownOptions: true,
             relationship: table('damage_types', {
-              selectColumns: ['id', 'label']
+              selectColumns: ['id', 'label', 'description']
             })
           },
           { section: CREATURE_SECTIONS.defenses, order: 30 }
@@ -583,7 +587,7 @@ export const CREATURE_NODE_MAP = creatureNode.define(
             kind: 'DATA',
             preserveUnknownOptions: true,
             relationship: table('condition_types', {
-              selectColumns: ['id', 'label']
+              selectColumns: ['id', 'label', 'description']
             })
           },
           { section: CREATURE_SECTIONS.defenses, order: 40 }
@@ -599,7 +603,7 @@ export const CREATURE_NODE_MAP = creatureNode.define(
           {
             kind: 'DATA',
             relationship: table('challenge_ratings', {
-              selectColumns: ['id', 'label']
+              selectColumns: ['id', 'label', 'description']
             })
           },
           { section: CREATURE_SECTIONS.stats, order: 100 }

@@ -1,6 +1,6 @@
 # Slice workbook: ENCOUNTER-5 (three-user Assisted Encounter journey)
 
-**Status:** DONE (2026-10-13), awaiting main-session review
+**Status:** DONE (merged `efd51f5a3`; closed by the main session 2026-10-14)
 **Base:** `codex/phase-08-2-convex-cutover` at this workbook's commit.
 **Rules:** [slice-workbook-rules.md](slice-workbook-rules.md).
 

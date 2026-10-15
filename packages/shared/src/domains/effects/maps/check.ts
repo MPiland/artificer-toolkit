@@ -16,14 +16,16 @@ export const CHECK_CHOICE_NODE_MAP = checkChoice.define('checkChoice', ({ map, n
       'skillIds',
       selectMulti(['skillIds'], 'Skill Checks', {
         kind: 'DATA',
-        relationship: table('skills', { selectColumns: ['id', 'label'] })
+        relationship: table('skills', { selectColumns: ['id', 'label', 'description'] })
       })
     )
     .set(
       'abilityDefinitionIds',
       selectMulti(['abilityDefinitionIds'], 'Ability Checks', {
         kind: 'DATA',
-        relationship: table('ability_definitions', { selectColumns: ['id', 'label'] })
+        relationship: table('ability_definitions', {
+          selectColumns: ['id', 'label', 'description']
+        })
       })
     )
 })

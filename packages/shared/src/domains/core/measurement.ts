@@ -16,21 +16,18 @@ export const MEASUREMENT_TYPE_REGISTRY: Record<MeasurementTypeCode, MeasurementT
     code: MEASUREMENT_TYPE_CODE.VOLUME,
     label: 'Volume',
     short: 'Volume',
-    tooltip: 'Volume measurement.',
     description: 'Volume measurement.'
   },
   [MEASUREMENT_TYPE_CODE.WEIGHT]: {
     code: MEASUREMENT_TYPE_CODE.WEIGHT,
     label: 'Weight',
     short: 'Weight',
-    tooltip: 'Weight measurement.',
     description: 'Weight measurement.'
   },
   [MEASUREMENT_TYPE_CODE.LENGTH]: {
     code: MEASUREMENT_TYPE_CODE.LENGTH,
     label: 'Length',
     short: 'Length',
-    tooltip: 'Length measurement.',
     description: 'Length measurement.'
   }
 }
@@ -59,96 +56,84 @@ export const MEASUREMENT_UNIT_REGISTRY: Record<MeasurementUnitCode, MeasurementU
     code: MEASUREMENT_UNIT_CODE.POUNDS,
     label: 'Pounds',
     short: 'lb',
-    tooltip: 'Unit of weight.',
-    description: 'Represents weight measured in pounds.'
+    description: 'Unit of weight.'
   },
 
   [MEASUREMENT_UNIT_CODE.GALLONS]: {
     code: MEASUREMENT_UNIT_CODE.GALLONS,
     label: 'Gallons',
     short: 'gal',
-    tooltip: 'Unit of volume.',
-    description: 'Represents volume measured in gallons.'
+    description: 'Unit of volume.'
   },
 
   [MEASUREMENT_UNIT_CODE.INCHES]: {
     code: MEASUREMENT_UNIT_CODE.INCHES,
     label: 'Inches',
     short: 'in',
-    tooltip: 'Unit of length.',
-    description: 'Represents distance or size measured in inches.'
+    description: 'Unit of length.'
   },
 
   [MEASUREMENT_UNIT_CODE.FEET]: {
     code: MEASUREMENT_UNIT_CODE.FEET,
     label: 'Feet',
     short: 'ft',
-    tooltip: 'Unit of length.',
-    description: 'Represents distance or height measured in feet.'
+    description: 'Unit of length.'
   },
 
   [MEASUREMENT_UNIT_CODE.YARDS]: {
     code: MEASUREMENT_UNIT_CODE.YARDS,
     label: 'Yards',
     short: 'yd',
-    tooltip: 'Unit of length.',
-    description: 'Represents distance measured in yards.'
+    description: 'Unit of length.'
   },
 
   [MEASUREMENT_UNIT_CODE.MILES]: {
     code: MEASUREMENT_UNIT_CODE.MILES,
     label: 'Miles',
     short: 'mi',
-    tooltip: 'Unit of long distance.',
-    description: 'Represents long-range distance measured in miles.'
+    description: 'Unit of long distance.'
   },
 
   [MEASUREMENT_UNIT_CODE.OUNCES]: {
     code: MEASUREMENT_UNIT_CODE.OUNCES,
     label: 'Ounces',
     short: 'oz',
-    tooltip: 'Unit of weight or volume.',
-    description: 'Represents small quantities measured in ounces.'
+    description: 'Unit of weight or volume.'
   },
 
   [MEASUREMENT_UNIT_CODE.CUPS]: {
     code: MEASUREMENT_UNIT_CODE.CUPS,
     label: 'Cups',
     short: 'cup',
-    tooltip: 'Unit of volume.',
-    description: 'Represents volume measured in cups.'
+    description: 'Unit of volume.'
   },
 
   [MEASUREMENT_UNIT_CODE.TABLESPOONS]: {
     code: MEASUREMENT_UNIT_CODE.TABLESPOONS,
     label: 'Tablespoons',
     short: 'tbsp',
-    tooltip: 'Small unit of volume.',
-    description: 'Represents small volumes measured in tablespoons.'
+    description: 'Small unit of volume.'
   },
 
   [MEASUREMENT_UNIT_CODE.TEASPOONS]: {
     code: MEASUREMENT_UNIT_CODE.TEASPOONS,
     label: 'Teaspoons',
     short: 'tsp',
-    tooltip: 'Very small unit of volume.',
-    description: 'Represents very small volumes measured in teaspoons.'
+    description: 'Very small unit of volume.'
   },
 
   [MEASUREMENT_UNIT_CODE.LITERS]: {
     code: MEASUREMENT_UNIT_CODE.LITERS,
     label: 'Liters',
     short: 'L',
-    tooltip: 'Metric unit of volume.',
-    description: 'Represents volume measured in liters.'
+    description: 'Metric unit of volume.'
   },
 
   [MEASUREMENT_UNIT_CODE.QUARTS]: {
     code: MEASUREMENT_UNIT_CODE.QUARTS,
     label: 'Quarts',
     short: 'qt',
-    tooltip: 'Unit of volume.',
-    description: 'Represents volume measured in quarts.'
+    description: 'Unit of volume.'
   }
 } as const
 
@@ -177,6 +162,16 @@ export function lengthMeasurementInFeet(length: { amount: number; unit: LengthUn
 /** The amount of a length unit that makes the given feet; the inverse of `lengthMeasurementInFeet`. */
 export function feetInLengthUnit(feet: number, unit: LengthUnitCode): number {
   return feet / FEET_PER_LENGTH_UNIT[unit]
+}
+
+/** A converted length amount at the precision the product displays: three decimals, no trailing zeros. */
+export function roundLengthForDisplay(amount: number): number {
+  return Math.round(amount * 1_000) / 1_000
+}
+
+/** A length as the product displays it, such as "11.667 yards". */
+export function formatLengthMeasurement(length: { amount: number; unit: LengthUnitCode }): string {
+  return `${roundLengthForDisplay(length.amount)} ${MEASUREMENT_UNIT_REGISTRY[length.unit].label.toLowerCase()}`
 }
 
 export const LENGTH_UNIT_OPTIONS: readonly MeasurementUnitOption[] = LENGTH_UNIT_CODES.map(

@@ -57,7 +57,7 @@ export const OUTCOME_BONUS_NODE_MAP = outcomeBonus.define(
           {
             kind: 'DATA',
             relationship: table('skills', {
-              selectColumns: ['id', 'label']
+              selectColumns: ['id', 'label', 'description']
             })
           },
           {

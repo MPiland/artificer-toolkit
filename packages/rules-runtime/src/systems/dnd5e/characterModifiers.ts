@@ -4,6 +4,7 @@ import type {
   CharacterRulePolicyOutput
 } from '@artificer-toolkit/schema/api/characterRules'
 
+import { isLengthModifierDomain, modifierLengthFeet } from '../../modifierLength.js'
 import { abilityModifier, resolveAbilityModifierBonus } from './abilityModifier.js'
 import {
   canonicalCharacterAbility,
@@ -56,6 +57,14 @@ export function evaluateDnd5eCharacterModifiers(
     contribution: Group['contributions'][number]
   ): number | null => {
     const payload = characterPolicyRecord(characterPolicyRecord(contribution.grant).payload)
+    // A speed or sense range is a typed length; its contribution is the feet it converts to.
+    if (
+      isLengthModifierDomain(group.valueDomainCode) &&
+      ['BONUS', 'PENALTY', 'SET_VALUE'].includes(group.modifierKind)
+    ) {
+      const feet = modifierLengthFeet(payload)
+      return group.modifierKind === 'PENALTY' ? -feet : feet
+    }
     // A penalty is authored as a positive amount and is negated here, once, for every consumer.
     if (group.modifierKind === 'PENALTY') return -additiveAmount(payload)
     if (group.modifierKind === 'BONUS') return additiveAmount(payload)

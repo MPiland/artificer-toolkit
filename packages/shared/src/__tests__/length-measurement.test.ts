@@ -3,7 +3,9 @@ import { describe, expect, it } from 'vitest'
 import {
   LENGTH_UNIT_CODES,
   feetInLengthUnit,
-  lengthMeasurementInFeet
+  formatLengthMeasurement,
+  lengthMeasurementInFeet,
+  roundLengthForDisplay
 } from '../domains/core/measurement.js'
 import { AUTHORED_LENGTH_AMOUNT_MAX } from '../utils/authoringLimits.js'
 import {
@@ -39,6 +41,16 @@ describe('length measurement', () => {
     ])
     for (const unit of LENGTH_UNIT_CODES)
       expect(feetInLengthUnit(lengthMeasurementInFeet({ amount: 7, unit }), unit)).toBeCloseTo(7)
+  })
+
+  it('rounds a converted length to three decimals for display and drops trailing zeros', () => {
+    expect(roundLengthForDisplay(40 / 3)).toBe(13.333)
+    expect(roundLengthForDisplay(35 / 3)).toBe(11.667)
+    expect(roundLengthForDisplay(28)).toBe(28)
+    expect(roundLengthForDisplay(0.0004)).toBe(0)
+    expect(formatLengthMeasurement({ amount: 40 / 3, unit: 'YARDS' })).toBe('13.333 yards')
+    expect(formatLengthMeasurement({ amount: 28, unit: 'YARDS' })).toBe('28 yards')
+    expect(formatLengthMeasurement({ amount: 2.5, unit: 'MILES' })).toBe('2.5 miles')
   })
 
   it('measures a length in the Scene unit through the same conversion', () => {

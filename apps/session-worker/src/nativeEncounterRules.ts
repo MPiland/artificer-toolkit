@@ -420,7 +420,8 @@ export async function planNativeLiveEncounterAction(
   await refuseUnmetBasicActionRestrictions(prepared, {
     target: actorTarget,
     gameSystemId: state.gameSystemId,
-    definitions
+    definitions,
+    speedDefinitions: system.speeds
   })
   // Only an attack roll uses the attacker's one-roll grants (Vicious Mockery's disadvantage, Help);
   // a saving-throw action leaves them for the next attack.

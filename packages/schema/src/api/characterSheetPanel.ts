@@ -2,7 +2,7 @@ import { EQUIPPED_SLOT_CODES } from '@artificer-toolkit/shared/core'
 import { z, lazySchema } from '../zod.js'
 
 import { authoredLengthSchema } from '../shared/authoredLimits.js'
-import { abilityCodeSchema } from '../shared/enums.js'
+import { abilityCodeSchema, lengthUnitCodeSchema } from '../shared/enums.js'
 import {
   characterMechanicSourceRefDtoSchema,
   characterMovementDisplayPreferenceDtoSchema,
@@ -110,6 +110,17 @@ const numericAdjustmentEditorBaseDtoSchema = lazySchema(() =>
       minimum: z.optional(numberSchema),
       maximum: z.optional(numberSchema)
     })
+  })
+)
+
+const lengthAdjustmentEditorBaseDtoSchema = lazySchema(() =>
+  z.extend(adjustmentEditorMetadataDtoSchema, {
+    kind: z.literal('LENGTH'),
+    label: stringSchema.check(z.minLength(1)),
+    value: z.nullable(authoredLengthSchema),
+    /** The unit a blank draft starts in: the unit the Character already holds, when it holds one. */
+    defaultUnit: z.optional(lengthUnitCodeSchema),
+    commitIntent: z.literal('ON_BLUR_OR_ENTER')
   })
 )
 
@@ -273,6 +284,16 @@ const skillsPanelDtoSchema = lazySchema(() =>
   })
 )
 
+/** Shared by every sense kind: a flat union, because Convex infers an intersection as `any`. */
+const senseRowShape = () => ({
+  senseId: uuidSchema,
+  label: stringSchema.check(z.minLength(1)),
+  state: characterSheetAdjustmentStateDtoSchema,
+  editor: z.extend(lengthAdjustmentEditorBaseDtoSchema, {
+    field: z.literal('RANGE_OVERRIDE')
+  })
+})
+
 const sensesPanelDtoSchema = lazySchema(() =>
   z.extend(characterSheetPanelCommonDtoSchema, {
     kind: z.literal('SENSES'),
@@ -290,33 +311,30 @@ const sensesPanelDtoSchema = lazySchema(() =>
       })
     ),
     senses: z.array(
-      z.intersection(
+      z.discriminatedUnion('rangeKind', [
+        z.object({ ...senseRowShape(), rangeKind: z.literal('NOT_HELD') }),
+        z.object({ ...senseRowShape(), rangeKind: z.literal('UNLIMITED') }),
         z.object({
-          senseId: uuidSchema,
-          label: stringSchema.check(z.minLength(1)),
-          state: characterSheetAdjustmentStateDtoSchema,
-          editor: z.extend(adjustmentEditorMetadataDtoSchema, {
-            kind: z.literal('LENGTH'),
-            field: z.literal('RANGE_OVERRIDE'),
-            label: stringSchema.check(z.minLength(1)),
-            value: z.nullable(authoredLengthSchema),
-            commitIntent: z.literal('ON_BLUR_OR_ENTER')
-          })
-        }),
-        z.discriminatedUnion('rangeKind', [
-          z.object({ rangeKind: z.literal('NOT_HELD') }),
-          z.object({ rangeKind: z.literal('UNLIMITED') }),
-          z.object({
-            rangeKind: z.literal('DISTANCE'),
-            range: numberSchema.check(z.nonnegative()),
-            unitLabel: stringSchema.check(z.minLength(1)),
-            calculation: characterSheetPanelNumericCalculationDtoSchema
-          })
-        ])
-      )
+          ...senseRowShape(),
+          rangeKind: z.literal('DISTANCE'),
+          range: numberSchema.check(z.nonnegative()),
+          unitLabel: stringSchema.check(z.minLength(1)),
+          calculation: characterSheetPanelNumericCalculationDtoSchema
+        })
+      ])
     )
   })
 )
+
+/** Shared by both speed kinds: a flat union, because Convex infers an intersection as `any`. */
+const movementSpeedShape = () => ({
+  speedId: uuidSchema,
+  label: stringSchema.check(z.minLength(1)),
+  state: characterSheetAdjustmentStateDtoSchema,
+  editor: z.extend(lengthAdjustmentEditorBaseDtoSchema, {
+    field: z.literal('SPEED_OVERRIDE')
+  })
+})
 
 const movementPanelDtoSchema = lazySchema(() =>
   z.extend(characterSheetPanelCommonDtoSchema, {
@@ -331,17 +349,16 @@ const movementPanelDtoSchema = lazySchema(() =>
       })
     ),
     speeds: z.array(
-      z.object({
-        speedId: uuidSchema,
-        label: stringSchema.check(z.minLength(1)),
-        amount: integerSchema.check(z.nonnegative()),
-        unitLabel: stringSchema.check(z.minLength(1)),
-        state: characterSheetAdjustmentStateDtoSchema,
-        calculation: characterSheetPanelNumericCalculationDtoSchema,
-        editor: z.extend(numericAdjustmentEditorBaseDtoSchema, {
-          field: z.literal('SPEED_OVERRIDE')
+      z.discriminatedUnion('speedKind', [
+        z.object({ ...movementSpeedShape(), speedKind: z.literal('NOT_HELD') }),
+        z.object({
+          ...movementSpeedShape(),
+          speedKind: z.literal('HELD'),
+          amount: numberSchema.check(z.nonnegative()),
+          unitLabel: stringSchema.check(z.minLength(1)),
+          calculation: characterSheetPanelNumericCalculationDtoSchema
         })
-      })
+      ])
     )
   })
 )

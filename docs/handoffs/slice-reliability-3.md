@@ -1,6 +1,6 @@
 # Slice workbook: RELIABILITY-3 (a retried movement decision replays every message its sender was sent)
 
-**Status:** OPEN (started 2026-10-13)
+**Status:** DONE (merged `d97983a80`; closed by the main session 2026-10-14)
 **Base:** `codex/phase-08-2-convex-cutover` at this workbook's commit.
 **Rules:** [slice-workbook-rules.md](slice-workbook-rules.md).
 

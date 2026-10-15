@@ -124,7 +124,7 @@ export const SPELL_NODE_MAP = spellNode.define('spell', ({ map, nodes, data, con
         {
           kind: 'DATA',
           relationship: table('magic_schools', {
-            selectColumns: ['id', 'label']
+            selectColumns: ['id', 'label', 'description']
           })
         },
         { section: SPELL_SECTIONS.casting, order: 10 }

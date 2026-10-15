@@ -118,20 +118,17 @@ const PATH_SELECTION_KIND_OPTIONS = [
   {
     code: 'FIXED',
     label: 'Direct',
-    description: 'Resolve one selected result directly.',
-    tooltip: 'Direct result.'
+    description: 'Direct result.'
   },
   {
     code: 'CHOICE',
     label: 'Choose One',
-    description: 'Choose one authored option.',
-    tooltip: 'Choose one option.'
+    description: 'Choose one option.'
   },
   {
     code: 'ROLL_TABLE',
     label: 'Roll Table',
-    description: 'Resolve a result by rolling on a table.',
-    tooltip: 'Roll for a result.'
+    description: 'Roll for a result.'
   }
 ] as const
 
@@ -139,14 +136,12 @@ const RESULT_KIND_OPTIONS = [
   {
     code: 'SINGLE',
     label: 'Single',
-    description: 'Resolve one authored outcome.',
-    tooltip: 'Single outcome.'
+    description: 'Single outcome.'
   },
   {
     code: 'SEQUENCE',
     label: 'Resolve In Order',
-    description: 'Resolve multiple outcomes in order.',
-    tooltip: 'Sequential outcomes.'
+    description: 'Sequential outcomes.'
   }
 ] as const
 
@@ -454,7 +449,7 @@ const SUMMON_STAT_BLOCK_NODE_MAP: NodeMap<SummonStatBlockAuthored> = summonStatB
         selectMulti(['senses'], 'Senses', {
           kind: 'DATA',
           relationship: table('senses', {
-            selectColumns: ['id', 'label']
+            selectColumns: ['id', 'label', 'description']
           })
         })
       )
@@ -469,7 +464,7 @@ const SUMMON_STAT_BLOCK_NODE_MAP: NodeMap<SummonStatBlockAuthored> = summonStatB
         selectMulti(['damageVulnerabilities'], 'Damage Vulnerabilities', {
           kind: 'DATA',
           relationship: table('damage_types', {
-            selectColumns: ['id', 'label']
+            selectColumns: ['id', 'label', 'description']
           })
         })
       )
@@ -478,7 +473,7 @@ const SUMMON_STAT_BLOCK_NODE_MAP: NodeMap<SummonStatBlockAuthored> = summonStatB
         selectMulti(['damageResistances'], 'Damage Resistances', {
           kind: 'DATA',
           relationship: table('damage_types', {
-            selectColumns: ['id', 'label']
+            selectColumns: ['id', 'label', 'description']
           })
         })
       )
@@ -487,7 +482,7 @@ const SUMMON_STAT_BLOCK_NODE_MAP: NodeMap<SummonStatBlockAuthored> = summonStatB
         selectMulti(['damageImmunities'], 'Damage Immunities', {
           kind: 'DATA',
           relationship: table('damage_types', {
-            selectColumns: ['id', 'label']
+            selectColumns: ['id', 'label', 'description']
           })
         })
       )
@@ -496,7 +491,7 @@ const SUMMON_STAT_BLOCK_NODE_MAP: NodeMap<SummonStatBlockAuthored> = summonStatB
         selectMulti(['conditionImmunities'], 'Condition Immunities', {
           kind: 'DATA',
           relationship: table('condition_types', {
-            selectColumns: ['id', 'label']
+            selectColumns: ['id', 'label', 'description']
           })
         })
       )
@@ -544,7 +539,7 @@ const MANIFEST_DESTRUCTION_CRITERION_NODE_MAP: NodeMap<ManifestDestructionCriter
             'Damage Type',
             {
               kind: 'DATA',
-              relationship: table('damage_types', { selectColumns: ['id', 'label', 'tooltip'] })
+              relationship: table('damage_types', { selectColumns: ['id', 'label', 'description'] })
             },
             {
               requiredIf: true,
@@ -1018,7 +1013,9 @@ const ACTOR_RELATIONSHIP_MODULE_NODE_MAP = actorRelationshipModule.define(
           'Conditions',
           {
             kind: 'DATA',
-            relationship: table('condition_types', { selectColumns: ['id', 'label'] })
+            relationship: table('condition_types', {
+              selectColumns: ['id', 'label', 'description']
+            })
           },
           { showIf: local.field(['kind']).eq('CONDITIONAL_TARGET_STATE') }
         )
@@ -1125,7 +1122,9 @@ function registerOutcomeFields(
         'Value',
         {
           kind: 'DATA',
-          relationship: table('ability_definitions', { selectColumns: ['id', 'label'] })
+          relationship: table('ability_definitions', {
+            selectColumns: ['id', 'label', 'description']
+          })
         },
         { showIf: local.field(['effectKind']).eq(EFFECT_KIND.SCALAR_REDUCTION) }
       )
@@ -1246,7 +1245,7 @@ function registerOutcomeFields(
         {
           kind: 'DATA',
           relationship: table('damage_types', {
-            selectColumns: ['id', 'label', 'tooltip']
+            selectColumns: ['id', 'label', 'description']
           })
         },
         {
@@ -1524,7 +1523,7 @@ function registerOutcomeFields(
         {
           kind: 'DATA',
           relationship: table('condition_types', {
-            selectColumns: ['id', 'label', 'tooltip']
+            selectColumns: ['id', 'label', 'description']
           })
         },
         {
@@ -1713,7 +1712,9 @@ function registerOutcomeFields(
         'Qualifying Damage Types',
         {
           kind: 'DATA',
-          relationship: table('damage_types', { selectColumns: ['id', 'label'] })
+          relationship: table('damage_types', {
+            selectColumns: ['id', 'label', 'description']
+          })
         },
         { showIf: local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST) }
       )
@@ -1889,7 +1890,10 @@ function registerOutcomeFields(
       selectSingle(
         ['skillId'],
         'Skill',
-        { kind: 'DATA', relationship: table('skills', { selectColumns: ['id', 'label'] }) },
+        {
+          kind: 'DATA',
+          relationship: table('skills', { selectColumns: ['id', 'label', 'description'] })
+        },
         { showIf: local.field(['effectKind']).eq(EFFECT_KIND.FOLLOW_UP_CHECK) }
       )
     )

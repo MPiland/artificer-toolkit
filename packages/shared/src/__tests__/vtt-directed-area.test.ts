@@ -115,6 +115,31 @@ describe('a cone from the caster’s edge', () => {
     expect(catches).toContain('bystander')
     expect(catches).not.toContain(casterSquare)
   })
+
+  it.each([
+    ['no caster token', null],
+    ['a caster token that is not on the Scene', 'elsewhere']
+  ])('refuses to catch for %s: a directed area starts on the caster', (_name, casterTokenId) => {
+    expect(() =>
+      spatialTokensInsideArea({
+        origin: { x: 600, y: 550 },
+        shape: { kind: 'CONE', length: 300, toward: { x: 900, y: 550 } },
+        tokens: everySquare,
+        casterTokenId
+      })
+    ).toThrow('A directed area needs the caster’s token.')
+  })
+
+  it('ignores the caster of a point area, which can catch the caster', () => {
+    expect(
+      spatialTokensInsideArea({
+        origin: { x: 600, y: 600 },
+        shape: { kind: 'RADIUS', radius: 50 },
+        tokens: [squareAt(0, 0)],
+        casterTokenId: casterSquare
+      })
+    ).toEqual([casterSquare])
+  })
 })
 
 describe('a line from the caster’s edge', () => {

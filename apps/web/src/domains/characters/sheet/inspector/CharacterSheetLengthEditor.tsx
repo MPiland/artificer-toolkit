@@ -14,10 +14,6 @@ const unitData = LENGTH_UNIT_OPTIONS.map((option) => ({
   label: option.label
 }))
 
-const toDraft = (value: LengthValue | null): LengthDraft => ({
-  amount: value?.amount ?? '',
-  unit: value?.unit ?? 'FEET'
-})
 const isEmpty = (draft: LengthDraft) => draft.amount === ''
 const parse = (draft: LengthDraft): LengthValue | null => {
   const amount = Number(draft.amount)
@@ -35,6 +31,11 @@ export function CharacterSheetLengthEditor({
   onClear: () => Promise<boolean>
   onCommit: (commit: CharacterSheetLengthCommit) => Promise<boolean>
 }) {
+  /** A blank draft starts in the unit the Character already holds, else in feet. */
+  const toDraft = (value: LengthValue | null): LengthDraft => ({
+    amount: value?.amount ?? '',
+    unit: value?.unit ?? editor.defaultUnit ?? 'FEET'
+  })
   const { draft, setDraft, sourceNote, setSourceNote, error, commit, clear } =
     useSheetAdjustmentDraft({ editor, toDraft, isEmpty, parse, onClear, onCommit })
 

@@ -675,7 +675,6 @@ export const SRD_SKILLS = [
     code: 'ACROBATICS',
     label: 'Acrobatics',
     governingAbilityDefinitionId: SRD_ABILITY_DEFINITION_IDS.DEXTERITY,
-    tooltip: 'DEX',
     description:
       'Your Dexterity (Acrobatics) check covers attempts to stay on your feet in a tricky situation.'
   },
@@ -684,7 +683,6 @@ export const SRD_SKILLS = [
     code: 'ANIMAL_HANDLING',
     label: 'Animal Handling',
     governingAbilityDefinitionId: SRD_ABILITY_DEFINITION_IDS.WISDOM,
-    tooltip: 'WIS',
     description:
       "When there is any question whether you can calm a domesticated animal, keep a mount from getting spooked, or intuit an animal's intentions, the GM might call for a Wisdom (Animal Handling) check."
   },
@@ -693,7 +691,6 @@ export const SRD_SKILLS = [
     code: 'ARCANA',
     label: 'Arcana',
     governingAbilityDefinitionId: SRD_ABILITY_DEFINITION_IDS.INTELLIGENCE,
-    tooltip: 'INT',
     description:
       'Your Intelligence (Arcana) check measures your ability to recall lore about spells, magic items, eldritch symbols, magical traditions, the planes of existence, and the inhabitants of those planes.'
   },
@@ -702,7 +699,6 @@ export const SRD_SKILLS = [
     code: 'ATHLETICS',
     label: 'Athletics',
     governingAbilityDefinitionId: SRD_ABILITY_DEFINITION_IDS.STRENGTH,
-    tooltip: 'STR',
     description:
       'Your Strength (Athletics) check covers difficult situations you encounter while climbing, jumping, or swimming.'
   },
@@ -711,7 +707,6 @@ export const SRD_SKILLS = [
     code: 'DECEPTION',
     label: 'Deception',
     governingAbilityDefinitionId: SRD_ABILITY_DEFINITION_IDS.CHARISMA,
-    tooltip: 'CHA',
     description:
       'Your Charisma (Deception) check determines whether you can convincingly hide the truth, either verbally or through your actions.'
   },
@@ -720,7 +715,6 @@ export const SRD_SKILLS = [
     code: 'HISTORY',
     label: 'History',
     governingAbilityDefinitionId: SRD_ABILITY_DEFINITION_IDS.INTELLIGENCE,
-    tooltip: 'INT',
     description:
       'Your Intelligence (History) check measures your ability to recall lore about historical events, legendary people, ancient kingdoms, past disputes, recent wars, and lost civilizations.'
   },
@@ -729,7 +723,6 @@ export const SRD_SKILLS = [
     code: 'INSIGHT',
     label: 'Insight',
     governingAbilityDefinitionId: SRD_ABILITY_DEFINITION_IDS.WISDOM,
-    tooltip: 'WIS',
     description:
       'Your Wisdom (Insight) check decides whether you can determine the true intentions of a creature.'
   },
@@ -738,7 +731,6 @@ export const SRD_SKILLS = [
     code: 'INTIMIDATION',
     label: 'Intimidation',
     governingAbilityDefinitionId: SRD_ABILITY_DEFINITION_IDS.CHARISMA,
-    tooltip: 'CHA',
     description:
       'When you attempt to influence someone through overt threats, hostile actions, and physical violence, the GM might ask you to make a Charisma (Intimidation) check.'
   },
@@ -747,7 +739,6 @@ export const SRD_SKILLS = [
     code: 'INVESTIGATION',
     label: 'Investigation',
     governingAbilityDefinitionId: SRD_ABILITY_DEFINITION_IDS.INTELLIGENCE,
-    tooltip: 'INT',
     description:
       'When you look around for clues and make deductions based on those clues, you make an Intelligence (Investigation) check.'
   },
@@ -756,7 +747,6 @@ export const SRD_SKILLS = [
     code: 'MEDICINE',
     label: 'Medicine',
     governingAbilityDefinitionId: SRD_ABILITY_DEFINITION_IDS.WISDOM,
-    tooltip: 'WIS',
     description:
       'A Wisdom (Medicine) check lets you try to stabilize a dying companion or diagnose an illness.'
   },
@@ -765,7 +755,6 @@ export const SRD_SKILLS = [
     code: 'NATURE',
     label: 'Nature',
     governingAbilityDefinitionId: SRD_ABILITY_DEFINITION_IDS.INTELLIGENCE,
-    tooltip: 'INT',
     description:
       'Your Intelligence (Nature) check measures your ability to recall lore about terrain, plants and animals, the weather, and natural cycles.'
   },
@@ -774,7 +763,6 @@ export const SRD_SKILLS = [
     code: 'PERCEPTION',
     label: 'Perception',
     governingAbilityDefinitionId: SRD_ABILITY_DEFINITION_IDS.WISDOM,
-    tooltip: 'WIS',
     description:
       'Your Wisdom (Perception) check lets you spot, hear, or otherwise detect the presence of something.'
   },
@@ -783,7 +771,6 @@ export const SRD_SKILLS = [
     code: 'PERFORMANCE',
     label: 'Performance',
     governingAbilityDefinitionId: SRD_ABILITY_DEFINITION_IDS.CHARISMA,
-    tooltip: 'CHA',
     description:
       'Your Charisma (Performance) check determines how well you can delight an audience with music, dance, acting, storytelling, or some other form of entertainment.'
   },
@@ -792,7 +779,6 @@ export const SRD_SKILLS = [
     code: 'PERSUASION',
     label: 'Persuasion',
     governingAbilityDefinitionId: SRD_ABILITY_DEFINITION_IDS.CHARISMA,
-    tooltip: 'CHA',
     description:
       'When you attempt to influence someone or a group of people with tact, social graces, or good nature, the GM might ask you to make a Charisma (Persuasion) check.'
   },
@@ -801,7 +787,6 @@ export const SRD_SKILLS = [
     code: 'RELIGION',
     label: 'Religion',
     governingAbilityDefinitionId: SRD_ABILITY_DEFINITION_IDS.INTELLIGENCE,
-    tooltip: 'INT',
     description:
       'Your Intelligence (Religion) check measures your ability to recall lore about deities, rites and prayers, religious hierarchies, holy symbols, and the practices of secret cults.'
   },
@@ -810,7 +795,6 @@ export const SRD_SKILLS = [
     code: 'SLEIGHT_OF_HAND',
     label: 'Sleight of Hand',
     governingAbilityDefinitionId: SRD_ABILITY_DEFINITION_IDS.DEXTERITY,
-    tooltip: 'DEX',
     description:
       'Whenever you attempt an act of legerdemain or manual trickery, such as planting something on someone else or concealing an object on your person, make a Dexterity (Sleight of Hand) check.'
   },
@@ -819,7 +803,6 @@ export const SRD_SKILLS = [
     code: 'STEALTH',
     label: 'Stealth',
     governingAbilityDefinitionId: SRD_ABILITY_DEFINITION_IDS.DEXTERITY,
-    tooltip: 'DEX',
     description:
       'Make a Dexterity (Stealth) check when you attempt to conceal yourself from enemies, slink past guards, slip away without being noticed, or sneak up on someone without being seen or heard.'
   },
@@ -828,7 +811,6 @@ export const SRD_SKILLS = [
     code: 'SURVIVAL',
     label: 'Survival',
     governingAbilityDefinitionId: SRD_ABILITY_DEFINITION_IDS.WISDOM,
-    tooltip: 'WIS',
     description:
       'The GM might ask you to make a Wisdom (Survival) check to follow tracks, hunt wild game, guide your group through frozen wastelands, identify signs that owlbears live nearby, predict the weather, or avoid quicksand and other natural hazards.'
   }

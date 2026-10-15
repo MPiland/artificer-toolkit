@@ -16,26 +16,22 @@ export const ACTIVATION_REGISTRY: Record<ActivationCode, ActivationOption> = {
   [ACTIVATION_CODE.ACTION]: {
     code: ACTIVATION_CODE.ACTION,
     label: 'Action',
-    description: "Uses up the creature's action slot for the round.",
-    tooltip: "Round's action slot."
+    description: "Round's action slot."
   },
   [ACTIVATION_CODE.BONUS_ACTION]: {
     code: ACTIVATION_CODE.BONUS_ACTION,
     label: 'Bonus Action',
-    description: "Uses up the creature's bonus action slot for the round.",
-    tooltip: "Round's bonus action slot."
+    description: "Round's bonus action slot."
   },
   [ACTIVATION_CODE.REACTION]: {
     code: ACTIVATION_CODE.REACTION,
     label: 'Reaction',
-    description: "Uses up the creature's reaction slot for the round.",
-    tooltip: "Round's reaction slot."
+    description: "Round's reaction slot."
   },
   [ACTIVATION_CODE.FREE]: {
     code: ACTIVATION_CODE.FREE,
     label: 'Free',
-    description: 'This type of activation does not require any action slot to use.',
-    tooltip: 'No action slot required.'
+    description: 'No action slot required.'
   }
 } as const
 

@@ -18,44 +18,37 @@ export const EQUIPMENT_CATEGORY_REGISTRY: Record<EquipmentCategoryCode, Equipmen
   [EQUIPMENT_CATEGORY_CODE.WEAPON]: {
     code: EQUIPMENT_CATEGORY_CODE.WEAPON,
     label: 'Weapon',
-    tooltip: 'Weapons used to make attacks.',
-    description: 'Includes melee and ranged weapons.'
+    description: 'Weapons used to make attacks.'
   },
 
   [EQUIPMENT_CATEGORY_CODE.VARIANT]: {
     code: EQUIPMENT_CATEGORY_CODE.VARIANT,
     label: 'Variant',
-    tooltip: 'A variant of another item.',
-    description:
-      "Represents a derived version of another item. Variants inherit the base item's core properties and may add or modify behavior through grants, effects, restrictions, cost, or rarity without redefining the base item."
+    description: 'A variant of another item.'
   },
 
   [EQUIPMENT_CATEGORY_CODE.ARMOR]: {
     code: EQUIPMENT_CATEGORY_CODE.ARMOR,
     label: 'Armor',
-    tooltip: 'Protective equipment that increases armor class.',
-    description: 'Includes light, medium, and heavy armor.'
+    description: 'Protective equipment that increases armor class.'
   },
 
   [EQUIPMENT_CATEGORY_CODE.SHIELD]: {
     code: EQUIPMENT_CATEGORY_CODE.SHIELD,
     label: 'Shield',
-    tooltip: 'Defensive equipment held in one hand.',
-    description: 'Provides a bonus to armor class.'
+    description: 'Defensive equipment held in one hand.'
   },
 
   [EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR]: {
     code: EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
     label: 'Adventuring Gear',
-    tooltip: 'General-purpose equipment.',
-    description: 'Includes ropes, torches, kits, and similar items.'
+    description: 'General-purpose equipment.'
   },
 
   [EQUIPMENT_CATEGORY_CODE.TOOL]: {
     code: EQUIPMENT_CATEGORY_CODE.TOOL,
     label: 'Tool',
-    tooltip: 'Tools used for crafting or checks.',
-    description: 'Includes artisan tools, musical instruments, and gaming sets.'
+    description: 'Tools used for crafting or checks.'
   }
 } as const
 
@@ -114,265 +107,223 @@ export const EQUIPMENT_PROPERTY_REGISTRY: Record<EquipmentPropertyCode, Equipmen
   [EQUIPMENT_PROPERTY_CODE.LIGHT]: {
     code: EQUIPMENT_PROPERTY_CODE.LIGHT,
     label: 'Light',
-    tooltip: 'Light weapon or armor.',
-    description:
-      'A light weapon is often used for two-weapon fighting. Light armor is easy to wear and does not impose significant movement restrictions.'
+    description: 'Light weapon or armor.'
   },
 
   [EQUIPMENT_PROPERTY_CODE.ONE_HANDED]: {
     code: EQUIPMENT_PROPERTY_CODE.ONE_HANDED,
     label: 'One-Handed',
-    tooltip: 'Requires only one hand to use.',
-    description: 'Can be used with a shield or free hand.'
+    description: 'Requires only one hand to use.'
   },
 
   [EQUIPMENT_PROPERTY_CODE.TWO_HANDED]: {
     code: EQUIPMENT_PROPERTY_CODE.TWO_HANDED,
     label: 'Two-Handed',
-    tooltip: 'Requires two hands to use.',
-    description: 'Cannot be used with a shield.'
+    description: 'Requires two hands to use.'
   },
 
   [EQUIPMENT_PROPERTY_CODE.FINESSE]: {
     code: EQUIPMENT_PROPERTY_CODE.FINESSE,
     label: 'Finesse',
-    tooltip: 'Can use Dexterity instead of Strength.',
-    description: 'Allows choice of ability for attack and damage.'
+    description: 'Can use Dexterity instead of Strength.'
   },
 
   [EQUIPMENT_PROPERTY_CODE.RANGED]: {
     code: EQUIPMENT_PROPERTY_CODE.RANGED,
     label: 'Ranged',
-    tooltip: 'Used to attack at a distance.',
-    description: 'Includes bows, crossbows, and thrown weapons.'
+    description: 'Used to attack at a distance.'
   },
 
   [EQUIPMENT_PROPERTY_CODE.THROWN]: {
     code: EQUIPMENT_PROPERTY_CODE.THROWN,
     label: 'Thrown',
-    tooltip: 'Can be thrown to make a ranged attack.',
-    description: 'Uses Strength or Dexterity depending on weapon.'
+    description: 'Can be thrown to make a ranged attack.'
   },
 
   [EQUIPMENT_PROPERTY_CODE.HEAVY]: {
     code: EQUIPMENT_PROPERTY_CODE.HEAVY,
     label: 'Heavy',
-    tooltip: 'Large weapon or armor.',
-    description:
-      'Heavy weapons may impose disadvantages on smaller creatures. Heavy armor provides substantial protection but may limit mobility.'
+    description: 'Large weapon or armor.'
   },
 
   [EQUIPMENT_PROPERTY_CODE.LOADING]: {
     code: EQUIPMENT_PROPERTY_CODE.LOADING,
     label: 'Loading',
-    tooltip: 'Requires time to reload.',
-    description: 'Limits number of attacks per turn.'
+    description: 'Requires time to reload.'
   },
 
   [EQUIPMENT_PROPERTY_CODE.AMMUNITION]: {
     code: EQUIPMENT_PROPERTY_CODE.AMMUNITION,
     label: 'Ammunition',
-    tooltip: 'Consumes ammunition when used.',
-    description: 'Requires compatible ammo to function.'
+    description: 'Consumes ammunition when used.'
   },
 
   [EQUIPMENT_PROPERTY_CODE.REACH]: {
     code: EQUIPMENT_PROPERTY_CODE.REACH,
     label: 'Reach',
-    tooltip: 'Extends attack range.',
-    description: 'Allows attacks beyond normal melee reach.'
+    description: 'Extends attack range.'
   },
 
   [EQUIPMENT_PROPERTY_CODE.SPECIAL]: {
     code: EQUIPMENT_PROPERTY_CODE.SPECIAL,
     label: 'Special',
-    tooltip: 'Has special rules.',
-    description: 'Refer to item description for details.'
+    description: 'Has special rules.'
   },
 
   [EQUIPMENT_PROPERTY_CODE.VERSATILE]: {
     code: EQUIPMENT_PROPERTY_CODE.VERSATILE,
     label: 'Versatile',
-    tooltip: 'Can be used one- or two-handed.',
-    description: 'Deals different damage when used with two hands.'
+    description: 'Can be used one- or two-handed.'
   },
 
   [EQUIPMENT_PROPERTY_CODE.MEDIUM]: {
     code: EQUIPMENT_PROPERTY_CODE.MEDIUM,
     label: 'Medium',
-    tooltip: 'Medium armor category.',
-    description:
-      'Indicates medium armor. Medium armor typically allows limited Dexterity bonuses and imposes moderate movement or stealth constraints, depending on system rules.'
+    description: 'Medium armor category.'
   },
 
   [EQUIPMENT_PROPERTY_CODE.SIMPLE]: {
     code: EQUIPMENT_PROPERTY_CODE.SIMPLE,
     label: 'Simple',
-    tooltip: 'Easy to use.',
-    description: 'Typically usable by most classes.'
+    description: 'Easy to use.'
   },
 
   [EQUIPMENT_PROPERTY_CODE.MARTIAL]: {
     code: EQUIPMENT_PROPERTY_CODE.MARTIAL,
     label: 'Martial',
-    tooltip: 'Requires martial training.',
-    description: 'Typically requires proficiency.'
+    description: 'Requires martial training.'
   },
 
   [EQUIPMENT_PROPERTY_CODE.MELEE]: {
     code: EQUIPMENT_PROPERTY_CODE.MELEE,
     label: 'Melee',
-    tooltip: 'Used in close combat.',
-    description: 'Requires adjacency to target.'
+    description: 'Used in close combat.'
   },
 
   [EQUIPMENT_PROPERTY_CODE.FLASK]: {
     code: EQUIPMENT_PROPERTY_CODE.FLASK,
     label: 'Flask',
-    tooltip: 'A small container.',
-    description: 'Often used for liquids.'
+    description: 'A small container.'
   },
 
   [EQUIPMENT_PROPERTY_CODE.VIAL]: {
     code: EQUIPMENT_PROPERTY_CODE.VIAL,
     label: 'Vial',
-    tooltip: 'A small glass container.',
-    description: 'Often used for potions or poisons.'
+    description: 'A small glass container.'
   },
 
   [EQUIPMENT_PROPERTY_CODE.POISON]: {
     code: EQUIPMENT_PROPERTY_CODE.POISON,
     label: 'Poison',
-    tooltip: 'Contains a harmful substance.',
-    description: 'May apply conditions or damage.'
+    description: 'Contains a harmful substance.'
   },
 
   [EQUIPMENT_PROPERTY_CODE.CONTAINER]: {
     code: EQUIPMENT_PROPERTY_CODE.CONTAINER,
     label: 'Container',
-    tooltip: 'Can hold other items.',
-    description: 'Includes bags, cases, and quivers.'
+    description: 'Can hold other items.'
   },
 
   [EQUIPMENT_PROPERTY_CODE.POTION]: {
     code: EQUIPMENT_PROPERTY_CODE.POTION,
     label: 'Potion',
-    tooltip: 'Consumable magical liquid.',
-    description: 'Usually consumed to produce an effect.'
+    description: 'Consumable magical liquid.'
   },
 
   [EQUIPMENT_PROPERTY_CODE.SCROLL]: {
     code: EQUIPMENT_PROPERTY_CODE.SCROLL,
     label: 'Scroll',
-    tooltip: 'Contains a written spell.',
-    description: 'Typically consumed when used.'
+    description: 'Contains a written spell.'
   },
 
   [EQUIPMENT_PROPERTY_CODE.WONDEROUS_ITEM]: {
     code: EQUIPMENT_PROPERTY_CODE.WONDEROUS_ITEM,
     label: 'Wondrous Item',
-    tooltip: 'A unique magical item.',
-    description: 'Does not fit other equipment categories.'
+    description: 'A unique magical item.'
   },
 
   [EQUIPMENT_PROPERTY_CODE.ARCANE_FOCUS]: {
     code: EQUIPMENT_PROPERTY_CODE.ARCANE_FOCUS,
     label: 'Arcane Focus',
-    tooltip: 'Used for arcane spellcasting.',
-    description: 'Substitutes for material components.'
+    description: 'Used for arcane spellcasting.'
   },
 
   [EQUIPMENT_PROPERTY_CODE.HOLY_SYMBOL]: {
     code: EQUIPMENT_PROPERTY_CODE.HOLY_SYMBOL,
     label: 'Holy Symbol',
-    tooltip: 'Used for divine spellcasting.',
-    description: 'Represents a deity or belief.'
+    description: 'Used for divine spellcasting.'
   },
 
   [EQUIPMENT_PROPERTY_CODE.DRINK]: {
     code: EQUIPMENT_PROPERTY_CODE.DRINK,
     label: 'Drink',
-    tooltip: 'Consumable liquid item.',
-    description:
-      'Indicates a consumable liquid, such as water, ale, wine, potions, or other drinkable substances. Mechanical effects, if any, are defined via effects or grants.'
+    description: 'Consumable liquid item.'
   },
 
   [EQUIPMENT_PROPERTY_CODE.FOOD]: {
     code: EQUIPMENT_PROPERTY_CODE.FOOD,
     label: 'Food',
-    tooltip: 'Consumable food item.',
-    description:
-      'Indicates a consumable food item, such as rations or prepared meals. Any benefits, penalties, or special effects are defined separately via effects or grants.'
+    description: 'Consumable food item.'
   },
 
   [EQUIPMENT_PROPERTY_CODE.DRUIDIC_FOCUS]: {
     code: EQUIPMENT_PROPERTY_CODE.DRUIDIC_FOCUS,
     label: 'Druidic Focus',
-    tooltip: 'Used for druid spellcasting.',
-    description: 'Natural object serving as a focus.'
+    description: 'Used for druid spellcasting.'
   },
 
   [EQUIPMENT_PROPERTY_CODE.ARTISANAL_TOOL]: {
     code: EQUIPMENT_PROPERTY_CODE.ARTISANAL_TOOL,
     label: 'Artisan Tool',
-    tooltip: 'Used for crafting.',
-    description: 'Includes smith’s tools, brewer’s supplies, etc.'
+    description: 'Used for crafting.'
   },
 
   [EQUIPMENT_PROPERTY_CODE.MUSICAL_INSTRUMENT]: {
     code: EQUIPMENT_PROPERTY_CODE.MUSICAL_INSTRUMENT,
     label: 'Musical Instrument',
-    tooltip: 'Used to perform music.',
-    description: 'Often associated with bard abilities.'
+    description: 'Used to perform music.'
   },
 
   [EQUIPMENT_PROPERTY_CODE.GAMING_SET]: {
     code: EQUIPMENT_PROPERTY_CODE.GAMING_SET,
     label: 'Gaming Set',
-    tooltip: 'Used for games of chance or skill.',
-    description: 'Includes dice, cards, and boards.'
+    description: 'Used for games of chance or skill.'
   },
 
   [EQUIPMENT_PROPERTY_CODE.PROFESSIONAL_TOOL]: {
     code: EQUIPMENT_PROPERTY_CODE.PROFESSIONAL_TOOL,
     label: 'Professional Tool',
-    tooltip: 'Used for a profession.',
-    description: 'Specialized tools for work or trade.'
+    description: 'Used for a profession.'
   },
 
   [EQUIPMENT_PROPERTY_CODE.WOOD]: {
     code: EQUIPMENT_PROPERTY_CODE.WOOD,
     label: 'Wood',
-    tooltip: 'Made primarily of wood.',
-    description: 'Relevant for material interactions.'
+    description: 'Made primarily of wood.'
   },
 
   [EQUIPMENT_PROPERTY_CODE.METAL]: {
     code: EQUIPMENT_PROPERTY_CODE.METAL,
     label: 'Metal',
-    tooltip: 'Made primarily of metal.',
-    description: 'Relevant for material interactions.'
+    description: 'Made primarily of metal.'
   },
 
   [EQUIPMENT_PROPERTY_CODE.MAGIC]: {
     code: EQUIPMENT_PROPERTY_CODE.MAGIC,
     label: 'Magic',
-    tooltip: 'Magical in nature.',
-    description: 'May interact with anti-magic effects.'
+    description: 'Magical in nature.'
   },
 
   [EQUIPMENT_PROPERTY_CODE.VEX]: {
     code: EQUIPMENT_PROPERTY_CODE.VEX,
     label: 'Vex',
-    tooltip: 'Weapon mastery property.',
-    description: 'Marks a weapon that uses the Vex mastery property.'
+    description: 'Weapon mastery property.'
   },
 
   [EQUIPMENT_PROPERTY_CODE.CLOTHING]: {
     code: EQUIPMENT_PROPERTY_CODE.CLOTHING,
     label: 'Clothing',
-    tooltip: 'A wearable garment.',
-    description: 'Clothing items worn for social, religious, or practical purposes.'
+    description: 'A wearable garment.'
   }
 } as const
 
@@ -464,23 +415,19 @@ export const EQUIPMENT_ATTRIBUTE_REGISTRY: Record<EquipmentAttribute, EquipmentA
   LIMITED_USE: {
     code: EQUIPMENT_ATTRIBUTE.LIMITED_USE,
     label: 'Limited Use',
-    tooltip: 'The equipment has a limited number of uses.',
     description: 'The equipment has a limited number of uses.'
   },
 
   STACKABLE: {
     code: EQUIPMENT_ATTRIBUTE.STACKABLE,
     label: 'Stackable',
-    tooltip: 'The equipment can be stacked.',
     description: 'The equipment can be stacked.'
   },
 
   CONSUMED_ON_USE: {
     code: EQUIPMENT_ATTRIBUTE.CONSUMED_ON_USE,
     label: 'Consumed On Use',
-    tooltip: 'Using the equipment uses one up.',
-    description:
-      'Using the equipment from an action uses one up. When the last is used, the item is gone.'
+    description: 'Using the equipment uses one up.'
   }
 } as const
 
@@ -502,13 +449,11 @@ export const EQUIPMENT_GRIP_REGISTRY: Record<EquipmentGrip, EquipmentGripOption>
   ONE_HANDED: {
     code: EQUIPMENT_GRIP.ONE_HANDED,
     label: 'One hand',
-    tooltip: 'This attack is made holding the weapon in one hand.',
     description: 'This attack is made holding the weapon in one hand.'
   },
   TWO_HANDED: {
     code: EQUIPMENT_GRIP.TWO_HANDED,
     label: 'Two hands',
-    tooltip: 'This attack is made holding the weapon in both hands.',
     description: 'This attack is made holding the weapon in both hands.'
   }
 } as const

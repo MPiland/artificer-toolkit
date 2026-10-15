@@ -3,6 +3,7 @@ import type {
   AbilityCode,
   ValueDomainCode,
   CoreMeta,
+  LengthUnitCode,
   ValueDomainOptionPayloadByDomain
 } from '#core'
 import { valuesOf } from '#utils'
@@ -48,132 +49,103 @@ export const MODIFIER_KIND_REGISTRY: Record<ModifierKind, ModifierTypeOption> = 
   BONUS: {
     code: MODIFIER_KIND.BONUS,
     label: 'Bonus',
-    tooltip: 'Add a bonus to the selected value.',
-    description:
-      'Adds a positive bonus to the selected value, such as a flat number, ability modifier, proficiency bonus, or other calculated value.'
+    description: 'Add a bonus to the selected value.'
   },
 
   PENALTY: {
     code: MODIFIER_KIND.PENALTY,
     label: 'Penalty',
-    tooltip: 'Apply a penalty to the selected value.',
-    description: 'Applies a negative modifier that reduces the selected value.'
+    description: 'Apply a penalty to the selected value.'
   },
 
   SET_VALUE: {
     code: MODIFIER_KIND.SET_VALUE,
     label: 'Set Value',
-    tooltip: 'Set the value to a specific amount.',
-    description: 'Overrides the existing value and sets it to a fixed or calculated value.'
+    description: 'Set the value to a specific amount.'
   },
 
   ABILITY_MODIFIER_BONUS: {
     code: MODIFIER_KIND.ABILITY_MODIFIER_BONUS,
     label: 'Ability Modifier Bonus',
-    tooltip: 'Add a specific ability modifier to the domain.',
-    description:
-      'Adds the modifier from a selected ability, optionally with a multiplier or min/max clamp.'
+    description: 'Add a specific ability modifier to the domain.'
   },
 
   ADD_BONUS_DIE: {
     code: MODIFIER_KIND.ADD_BONUS_DIE,
     label: 'Add Bonus Die',
-    tooltip: 'Add an additional die to the roll.',
-    description:
-      'Adds one or more bonus dice to a roll, such as adding 1d4 to damage or another roll.'
+    description: 'Add an additional die to the roll.'
   },
 
   REPLACE_DAMAGE_TYPE: {
     code: MODIFIER_KIND.REPLACE_DAMAGE_TYPE,
     label: 'Replace Damage Type',
-    tooltip: 'Change the damage type.',
-    description:
-      'Replaces the original damage type (e.g., slashing → force) without rewriting the whole damage payload.'
+    description: 'Change the damage type.'
   },
 
   ADVANTAGE: {
     code: MODIFIER_KIND.ADVANTAGE,
     label: 'Advantage',
-    tooltip: 'Grant advantage on the roll.',
-    description: 'Causes the affected roll to be made with advantage.'
+    description: 'Grant advantage on the roll.'
   },
 
   DISADVANTAGE: {
     code: MODIFIER_KIND.DISADVANTAGE,
     label: 'Disadvantage',
-    tooltip: 'Grant disadvantage on the roll.',
-    description: 'Causes the affected roll to be made with disadvantage.'
+    description: 'Grant disadvantage on the roll.'
   },
 
   ENABLE: {
     code: MODIFIER_KIND.ENABLE,
     label: 'Enable',
-    tooltip: 'Switch the selected rule on.',
-    description:
-      'Turns on the rule the selected domain names, such as movement that provokes no opportunity attacks. It carries no value.'
+    description: 'Switch the selected rule on.'
   },
 
   ADD_OPTION: {
     code: MODIFIER_KIND.ADD_OPTION,
     label: 'Add',
-    tooltip: 'Add a new property or attribute.',
-    description:
-      'Adds a new entry to a set-like value, such as a resistance, immunity, sense, movement mode, or attribute.'
+    description: 'Add a new property or attribute.'
   },
 
   REMOVE_OPTION: {
     code: MODIFIER_KIND.REMOVE_OPTION,
     label: 'Remove',
-    tooltip: 'Remove an existing property or attribute.',
-    description:
-      'Removes an entry from a set-like value, such as a resistance, immunity, sense, movement mode, or attribute.'
+    description: 'Remove an existing property or attribute.'
   },
 
   REPLACE_RANGE_KIND: {
     code: MODIFIER_KIND.REPLACE_RANGE_KIND,
     label: 'Replace Range Kind',
-    tooltip: 'Replace the range kind.',
-    description:
-      'Replaces the range kind (e.g., TOUCH → DISTANCE) without using a generic option replacement.'
+    description: 'Replace the range kind.'
   },
 
   REPLACE_DURATION_KIND: {
     code: MODIFIER_KIND.REPLACE_DURATION_KIND,
     label: 'Replace Duration Kind',
-    tooltip: 'Replace the duration kind.',
-    description:
-      'Replaces the duration kind (e.g., 1 MINUTE → 10 MINUTES, or INSTANTANEOUS → 1 ROUND depending on your duration model).'
+    description: 'Replace the duration kind.'
   },
 
   REPLACE_SHAPE_KIND: {
     code: MODIFIER_KIND.REPLACE_SHAPE_KIND,
     label: 'Replace Shape Kind',
-    tooltip: 'Replace the shape kind.',
-    description:
-      'Replaces the shape kind (e.g., CONE → LINE) without using a generic option replacement.'
+    description: 'Replace the shape kind.'
   },
 
   REPLACE_CHARGE_RESET_KIND: {
     code: MODIFIER_KIND.REPLACE_CHARGE_RESET_KIND,
     label: 'Replace Charge Reset',
-    tooltip: 'Replace the reset timing.',
-    description: 'Replaces the reset kind (e.g., LONG_REST → SHORT_REST) for charges.'
+    description: 'Replace the reset timing.'
   },
 
   MODIFY_CHARGE_LIMIT: {
     code: MODIFIER_KIND.MODIFY_CHARGE_LIMIT,
     label: 'Modify Charge Limit',
-    tooltip: 'Change the number of available uses.',
-    description:
-      'Modifies the maximum number of charges or uses available, potentially scaling with level or other values.'
+    description: 'Change the number of available uses.'
   },
 
   OPTIONAL_ABILITY_MODIFIER_BONUS: {
     code: MODIFIER_KIND.OPTIONAL_ABILITY_MODIFIER_BONUS,
     label: 'Optional Ability Modifier Bonus',
-    tooltip: 'Use the highest modifier from a set of allowed abilities.',
-    description:
-      'Uses the highest applicable ability modifier from the listed abilities instead of stacking them together.'
+    description: 'Use the highest modifier from a set of allowed abilities.'
   }
 } as const
 
@@ -190,15 +162,13 @@ export const MODIFIER_SCOPE_REGISTRY: Record<ModifierScopeKind, ModifierScopeOpt
   [MODIFIER_SCOPE_KIND.GLOBAL]: {
     code: MODIFIER_SCOPE_KIND.GLOBAL,
     label: 'Global',
-    tooltip: 'Applies to character globally.',
-    description: 'Applies to all sources for the character.'
+    description: 'Applies to character globally.'
   },
 
   [MODIFIER_SCOPE_KIND.SOURCE]: {
     code: MODIFIER_SCOPE_KIND.SOURCE,
     label: 'Source',
-    tooltip: 'Applies to a specific source.',
-    description: 'Applies to only this source for the character.'
+    description: 'Applies to a specific source.'
   }
 }
 
@@ -292,7 +262,7 @@ export const MODIFIER_KINDS_BY_DOMAIN: Record<ValueDomainCode, readonly Modifier
 
   MOVEMENT_MODE: [MODIFIER_KIND.ADD_OPTION, MODIFIER_KIND.REMOVE_OPTION],
 
-  SENSE_RANGE: [MODIFIER_KIND.BONUS, MODIFIER_KIND.SET_VALUE],
+  SENSE_RANGE: [MODIFIER_KIND.BONUS],
 
   /* ──────────────────────────────────────────────
    * SPELL STRUCTURE
@@ -395,43 +365,37 @@ export const MODIFIER_VALUE_SOURCE_REGISTRY: Record<
   FIXED: {
     code: MODIFIER_VALUE_SOURCE_CODE.FIXED,
     label: 'Fixed value',
-    description: 'A constant numeric value that does not change.',
-    tooltip: 'Use a fixed number such as 8 or 15.'
+    description: 'Use a fixed number such as 8 or 15.'
   },
 
   PROFICIENCY_BONUS: {
     code: MODIFIER_VALUE_SOURCE_CODE.PROFICIENCY_BONUS,
     label: 'Proficiency Bonus',
-    description: 'Uses the character’s current proficiency bonus.',
-    tooltip: 'Automatically scales with character level.'
+    description: 'Automatically scales with character level.'
   },
 
   SKILL_BONUS: {
     code: MODIFIER_VALUE_SOURCE_CODE.SKILL_BONUS,
     label: 'Skill Bonus',
-    description: 'Uses the bonus for a selected skill.',
-    tooltip: 'Includes proficiency, expertise, and other skill modifiers.'
+    description: 'Includes proficiency, expertise, and other skill modifiers.'
   },
 
   CHARACTER_LEVEL: {
     code: MODIFIER_VALUE_SOURCE_CODE.CHARACTER_LEVEL,
     label: 'Character Level',
-    description: "Uses the character's total level.",
-    tooltip: 'Counts all class levels combined.'
+    description: 'Counts all class levels combined.'
   },
 
   CLASS_LEVEL: {
     code: MODIFIER_VALUE_SOURCE_CODE.CLASS_LEVEL,
     label: 'Class Level',
-    description: 'Uses the level in a specific class.',
-    tooltip: 'Optionally select a class to reference.'
+    description: 'Optionally select a class to reference.'
   },
 
   SPELL_SLOT_LEVEL: {
     code: MODIFIER_VALUE_SOURCE_CODE.SPELL_SLOT_LEVEL,
     label: 'Spell Level',
-    description: 'Uses the level the spell is cast at.',
-    tooltip: 'Higher spell slots result in higher values.'
+    description: 'Higher spell slots result in higher values.'
   }
 } as const
 
@@ -452,33 +416,38 @@ export type ModifierScalarValueAuthored =
   // NOTE: slot/spell level is contextual; keep it scalar-only if needed
   | { valueKind: 'SPELL_SLOT_LEVEL'; multiplier?: number; subtractLevels?: number }
 
+/** A speed or sense range modifier is a typed length, never a bare number (D112). */
+export type ModifierLengthAuthored = { amount: number; unit: LengthUnitCode }
+
 export type ModifierPayloadFor<V extends ValueDomainCode, K extends ModifierKind> =
   // numeric-like
-  K extends 'BONUS' | 'PENALTY'
-    ? ModifierScalarValueAuthored
-    : K extends 'SET_VALUE'
-      ? V extends 'ARMOR_CLASS'
-        ? // An armor class formula: the amount plus each listed ability modifier.
-          { amount: number; abilities: AbilityCode[] }
-        : { amount: number }
-      : K extends 'ABILITY_MODIFIER_BONUS'
-        ? { ability: AbilityCode; multiplier?: number; min?: number; max?: number }
-        : K extends 'MODIFY_CHARGE_LIMIT'
-          ? ChargeLimitPayload
-          : K extends 'ADD_BONUS_DIE'
-            ? { dice: string }
-            : K extends 'REPLACE_DAMAGE_TYPE'
-              ? { damageTypeId: string } // consider renaming to REPLACE_DAMAGE_TYPE
-              : K extends 'ADVANTAGE' | 'DISADVANTAGE' | 'ENABLE'
-                ? undefined
-                : K extends 'OPTIONAL_ABILITY_MODIFIER_BONUS'
-                  ? { abilities: AbilityCode[] }
-                  : // option-like operations must be domain-supported
-                    K extends 'ADD_OPTION' | 'REMOVE_OPTION' | 'REPLACE_OPTION'
-                    ? V extends keyof ValueDomainOptionPayloadByDomain
-                      ? ValueDomainOptionPayloadByDomain[V]
-                      : never
+  K extends 'BONUS' | 'PENALTY' | 'SET_VALUE'
+    ? V extends 'SPEED' | 'SENSE_RANGE'
+      ? ModifierLengthAuthored
+      : K extends 'SET_VALUE'
+        ? V extends 'ARMOR_CLASS'
+          ? // An armor class formula: the amount plus each listed ability modifier.
+            { amount: number; abilities: AbilityCode[] }
+          : { amount: number }
+        : ModifierScalarValueAuthored
+    : K extends 'ABILITY_MODIFIER_BONUS'
+      ? { ability: AbilityCode; multiplier?: number; min?: number; max?: number }
+      : K extends 'MODIFY_CHARGE_LIMIT'
+        ? ChargeLimitPayload
+        : K extends 'ADD_BONUS_DIE'
+          ? { dice: string }
+          : K extends 'REPLACE_DAMAGE_TYPE'
+            ? { damageTypeId: string } // consider renaming to REPLACE_DAMAGE_TYPE
+            : K extends 'ADVANTAGE' | 'DISADVANTAGE' | 'ENABLE'
+              ? undefined
+              : K extends 'OPTIONAL_ABILITY_MODIFIER_BONUS'
+                ? { abilities: AbilityCode[] }
+                : // option-like operations must be domain-supported
+                  K extends 'ADD_OPTION' | 'REMOVE_OPTION' | 'REPLACE_OPTION'
+                  ? V extends keyof ValueDomainOptionPayloadByDomain
+                    ? ValueDomainOptionPayloadByDomain[V]
                     : never
+                  : never
 
 export type ModifierPayloadByDomain<
   V extends ValueDomainCode,

@@ -29,7 +29,7 @@ import {
 type NodeRuntimeReader = NodeRuntimeSourceReader
 
 const implicitTableOptionColumns: Readonly<Record<string, readonly string[]>> = {
-  currencies: ['id', 'code', 'label', 'short', 'tooltip', 'description']
+  currencies: ['id', 'code', 'label', 'short', 'description']
 }
 
 type RuntimeStream = readonly unknown[]
@@ -52,7 +52,7 @@ export function streamToOptions(stream: RuntimeStream): NodeRuntimeOptionDto[] {
         return {
           value,
           label,
-          description: stringFromOptional(item, ['tooltip', 'description'])
+          description: stringFromOptional(item, ['description'])
         }
       }
 

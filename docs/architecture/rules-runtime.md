@@ -159,12 +159,23 @@ players (it reads "Unseen source"); known limit: a contributor from the roller's
 redacted. Manual mode records an idempotent receipt at an unchanged version without invoking the Kernel or
 applying state and carries no rules cue (ADR 0034). **One card per die (ENCOUNTER-7, current).** Every
 Encounter rule die posts exactly one roll card through `recordRuleRollCard`: an action's d20s and damage
-totals, a Legendary Action's (`recordActionRollCards`), each Recharge d6 (source kind `RECHARGE`) and the
-turn-start death save. A die settled by a `SYSTEM_ROLL` answer already has its "Rolled by the app" attempt
-card, so the commit skips it; an auto-rolled or entered die (including one entered after an app roll) is
-carded at commit. `readAppCardedDice` (`packages/encounter-persistence/src/appCardedDice.ts`) decides this
+totals, a Legendary Action's (`recordActionRollCards`), each Recharge d6 (source kind `RECHARGE`), the
+turn-start death save and, under `DECLARED_ACTION_ROLL`, each declared actor's initiative die (ENCOUNTER-9,
+the same `INITIATIVE` card `ROLL_ACTOR_INITIATIVE` posts, both built by the one `initiativeRollRecord`,
+written by `persistEncounterInitiativeRollCards` in the terminal turn commit from the settled
+`root.initiative` evidence; a flat score and tie-resolution dice post none, and a result of more than two
+dice or a die that is not a logged `1dN` throws. **Declared advantage and disadvantage (ENCOUNTER-10,
+current):** the declared graph's `d20-extra` node (`evidence.optional-integer-range`, which asks for its
+die only while the `initiative.extra-d20` fact is true) and its `number.keep-by-roll-mode` node roll two
+d20s and keep the higher or lower under the policy's resolved roll mode; the card replays both faces under
+that mode, so it matches the GM-rolled card. A tie resolver pinned to the same graph rolls its attempts
+the same way.) A die settled by a `SYSTEM_ROLL` answer already has its
+"Rolled by the app" attempt card, so the commit skips it; an auto-rolled or entered die (including one
+entered after an app roll) is carded at commit. `readAppCardedDice`
+(`packages/encounter-persistence/src/appCardedDice.ts`) decides this
 from journaled answers, never from die values: each `SYSTEM_ROLL` answer (an action's `ACTION_EVIDENCE`
-receipts, a turn root's `resolutionCommands`, `LEGENDARY_SYSTEM_ROLL` for Legendary windows) is joined to
+receipts, a turn root's `resolutionCommands`, `LEGENDARY_SYSTEM_ROLL` for Legendary windows,
+`INITIATIVE_SYSTEM_ROLL` for declared initiative) is joined to
 its latest attempt and covers at most one settled die of the same request and value.
 Known limit: an app-rolled single-die damage request also gets a commit total card.
 Actions in a Manual Encounter are refused with the
@@ -293,8 +304,8 @@ refusal has its own message (`UNSUPPORTED_AREA`, `NO_CASTER_TOKEN`, `ORIGIN_OFF_
 pipeline above: the same `ENCOUNTER_AREA_ACTION` occurrence, sealed saves, frozen damage, GM removal, commit and
 undo. The pending guard (`requireAreaActionPendingRoot`) checks the sealed origin and direction against the command.
 Catching (`spatialTokensInsideArea`, for every area) is strict positive-area overlap, so a creature the area
-only touches along an edge or at a corner is not caught (D103, user ruling 2026-10-14); a directed shape needs the
-caster's token, which it excludes (it catches nobody without it). A cone is the triangle from the origin to a
+only touches along an edge or at a corner is not caught (D103, user ruling 2026-10-14). Lasting and moving zones use the same rule through the same predicate (`footprintOverlapsSpatialGeometry`): entry, start-of-turn effects (`encounterTurnEffectPerception`) and movement-reaction perception (`encounterMovementReactionPerception`) see a zone only when the footprint shares area with it, so touching its edge or a corner never catches (SPELLS-24); a directed shape needs the
+caster's token among the Scene's tokens, which it excludes (it throws without it: the room has already refused `NO_CASTER_TOKEN`, so a missing caster here is an invariant failure). A cone is the triangle from the origin to a
 far edge as wide as it is long; a line is a rectangle, 5 ft wide unless authored (a scaled or non-positive
 authored width is refused at compile). A Self cube follows the 5e rule that its origin lies anywhere on a face
 of the cube (`cubeFromSideOutline`): the side faced is the dominant axis of `toward`, the face is flush against
@@ -787,6 +798,23 @@ the new maximum, and room Character reconciliation and Sheet rests bound hit poi
 held grant's hit points survive them. The tabletop movement readout gives each speed type its own allowance and follows
 speed grants. The speed type a move names (`MOVE_SCENE_TOKEN.speedId`, stored on the turn movement row) selects the allowance shown; `used` is the single total, so remaining feet at a type is that allowance minus `used` (SRD Using Different Speeds). Slot-scaled amounts (Aid's `SPELL_SLOT_LEVEL`) need cast-time resolution, so
 `modifierGrantPlan` leaves them manual until spell casting (SPELLS-8) supplies it.
+
+**Length modifiers (D112).** `SPEED` and `SENSE_RANGE` modifier payloads are typed lengths (`modifierLength.ts` parses
+them; anything else throws). `evaluateDnd5eCharacterModifiers` turns each into feet, and
+`characterMovementAndSenses` and `withActiveGrantSpeeds` convert the net back into the base's unit through the shared
+`feetInLengthUnit`, floor it at 0, and pick the winning `SET_VALUE` speed through the one `widestLengthByKey` fold; a
+speed with no base takes that modifier's unit. `resolveSpeedsFeet` reads speeds strictly against the System speed
+vocabulary: Character record stats pass `registry.system.speeds`, and `encounterHolderState` takes the same list as
+`speedDefinitions` (the worker's `INPUTS` capture, persistence's `requireSystem`). Publication owns the refusal, so a
+malformed or out-of-vocabulary speed at read is an invariant failure. Displayed lengths round through the shared
+`roundLengthForDisplay` (three decimals); stored and computed amounts never do.
+
+The Sheet `MOVEMENT` `SPEED_OVERRIDE` adjustment is the same typed length, like the sense `RANGE_OVERRIDE`.
+`buildCharacterMovementRuleFacts` hands the policy each speed as `base` (a length, or `null` when the Character holds
+none) and `override`; a speed with neither is never listed, and `characterMovementAndSenses` throws on a fact with
+neither. The override is converted into the base's unit, or kept in its own unit when there is no base. The Movement
+panel marks a System speed the Character does not hold `NOT_HELD` (its editor still adds it) and carries the held
+unit as the editor's `defaultUnit`, so the Sheet input offers an amount and a unit starting in the speed's own unit.
 
 **Concentration grants (D99).** A grant whose result block names a `maintenanceDefinitionId` plans the
 same `SOURCE_ACTOR` maintenance policy as a maintained recurring effect (`maintenancePlan`), so it is a

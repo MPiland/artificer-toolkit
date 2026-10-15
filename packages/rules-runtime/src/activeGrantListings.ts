@@ -10,6 +10,7 @@ import type {
 import type { ValueDomainCode } from '@artificer-toolkit/shared/core'
 
 import { record } from './character/activeEffectGrantTotals.js'
+import { isLengthModifierDomain } from './modifierLength.js'
 
 type GrantPolarity = ActiveGrantListingDto['polarity']
 
@@ -46,8 +47,12 @@ const SET_VALUE_DOMAIN_POLARITY: Readonly<
 }
 
 /** A bonus or penalty's sign: a negative amount or multiplier flips it, zero cancels it. */
-function scalarSign(payload: Record<string, unknown> | null): number {
-  const value = payload?.valueKind === 'FIXED' ? payload.amount : (payload?.multiplier ?? 1)
+function scalarSign(domain: ValueDomainCode, payload: Record<string, unknown> | null): number {
+  // A fixed amount or a typed length (speed, sense range) carries its sign in `amount`.
+  const value =
+    payload?.valueKind === 'FIXED' || isLengthModifierDomain(domain)
+      ? payload?.amount
+      : (payload?.multiplier ?? 1)
   return typeof value === 'number' ? Math.sign(value) : 1
 }
 
@@ -61,12 +66,12 @@ function modifierPolarity(modifier: CharacterGrantFoldModifier): GrantPolarity {
       return domain === 'ATTACKS_AGAINST' ? 'BENEFICIAL' : 'HARMFUL'
     case 'BONUS':
     case 'PENALTY': {
-      const sign = scalarSign(payload)
+      const sign = scalarSign(domain, payload)
       if (sign === 0) return 'NEUTRAL'
       return (kind === 'BONUS') === sign > 0 ? 'BENEFICIAL' : 'HARMFUL'
     }
     case 'ABILITY_MODIFIER_BONUS': {
-      const sign = scalarSign(payload)
+      const sign = scalarSign(domain, payload)
       return sign === 0 ? 'NEUTRAL' : sign > 0 ? 'BENEFICIAL' : 'HARMFUL'
     }
     case 'ADD_BONUS_DIE':

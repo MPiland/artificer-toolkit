@@ -1,5 +1,6 @@
 import { MultiSelect, Pill } from '@mantine/core'
 import type { AppMultiSelectProps } from './Select.types'
+import { SelectOptionContent } from './SelectOptionContent'
 import {
   addAllOption,
   DEFAULT_ALL_OPTION_LABEL,
@@ -78,7 +79,7 @@ export function AppMultiSelect({
         ...clearButtonProps
       }}
       searchable={searchable}
-      checkIconPosition='right'
+      renderOption={(input) => <SelectOptionContent {...input} />}
       comboboxProps={{
         withinPortal: true,
         ...comboboxProps

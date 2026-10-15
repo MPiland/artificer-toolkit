@@ -1,6 +1,6 @@
 # Slice workbook: RELIABILITY-4 closeout (SQUARES Scene journey; default distance per cell)
 
-**Status:** OPEN (started 2026-10-13)
+**Status:** DONE (merged `be2a6d771`; closed by the main session 2026-10-14)
 **Base:** `codex/phase-08-2-convex-cutover` at this workbook's commit.
 **Rules:** [slice-workbook-rules.md](slice-workbook-rules.md).
 

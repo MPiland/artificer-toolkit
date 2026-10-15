@@ -78,17 +78,18 @@ export async function verifyCampaignGmState(input: {
     })
     stageBefore = current
   }
+  const hpAdjustment = {
+    id: crypto.randomUUID(),
+    family: 'HIT_POINTS',
+    field: 'MAXIMUM_MODIFIER',
+    value: 4,
+    sourceNote: 'secret HP source'
+  } as const
   const hpRequest: CampaignAdjustmentInput = {
     ...scope,
     expectedVersion: 0,
     visibility: 'SECRET',
-    adjustment: {
-      id: crypto.randomUUID(),
-      family: 'HIT_POINTS',
-      field: 'MAXIMUM_MODIFIER',
-      value: 4,
-      sourceNote: 'secret HP source'
-    }
+    adjustment: hpAdjustment
   }
   const strengthRequest: CampaignAdjustmentInput = {
     ...scope,
@@ -295,7 +296,7 @@ export async function verifyCampaignGmState(input: {
   const updatedHp = await input.owner.mutation(api.campaigns.gmWrites.saveAdjustment, {
     ...hpRequest,
     expectedVersion: 0,
-    adjustment: { ...hpRequest.adjustment, value: 6 }
+    adjustment: { ...hpAdjustment, value: 6 }
   })
   assert.equal(updatedHp.id, hp.id)
   assert.equal(updatedHp.createdAt, hp.createdAt)
@@ -690,7 +691,13 @@ async function assertRefusals(input: {
     ...input.scope,
     visibility: 'SECRET' as const,
     expectedVersion: 0,
-    adjustment: { ...input.hp.adjustment, value: 7 }
+    adjustment: {
+      id: input.hp.adjustment.id,
+      family: 'HIT_POINTS' as const,
+      field: 'MAXIMUM_MODIFIER' as const,
+      value: 7,
+      sourceNote: input.hp.adjustment.sourceNote
+    }
   }
   const staleCondition = {
     ...input.scope,

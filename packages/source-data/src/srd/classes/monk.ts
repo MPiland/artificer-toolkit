@@ -124,7 +124,7 @@ const unarmoredMovementModifiers: ModifierGrantAuthored[] = [
     modifierKind: MODIFIER_KIND.BONUS,
     scope: MODIFIER_SCOPE_KIND.GLOBAL,
     selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-    payload: { valueKind: 'FIXED', amount },
+    payload: { amount, unit: 'FEET' },
     order: band,
     restrictions: {
       id: restrictionId(0),
