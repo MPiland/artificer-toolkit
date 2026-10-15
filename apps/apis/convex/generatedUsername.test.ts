@@ -5,8 +5,16 @@ import { generateValidUsername } from '../tests/fixtures/generatedUsername'
 describe('generated fixture usernames', () => {
   it('draws again until the real username policy accepts the name', () => {
     // The first suffix breaks the username format, so a redraw happens whatever the word list says.
-    const suffixes = ['!!!!!!!!!!!!', 'a55b00000000', '0000a55b0000', 'c0ffee123456', 'ffffffffffff']
-    const expected = suffixes.find((suffix) => validateUsername(`Journey_${suffix}`).message === null)
+    const suffixes = [
+      '!!!!!!!!!!!!',
+      'a55b00000000',
+      '0000a55b0000',
+      'c0ffee123456',
+      'ffffffffffff'
+    ]
+    const expected = suffixes.find(
+      (suffix) => validateUsername(`Journey_${suffix}`).message === null
+    )
     let drawn = 0
 
     const generated = generateValidUsername('Journey_', () => suffixes[drawn++] as string)
