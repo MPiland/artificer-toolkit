@@ -22,11 +22,11 @@ An **Authoring Schema** describes the structure of authored content: which field
 
 Authoring Schemas are not a general character-rules language and do not contain React components, CSS classes, design tokens, or platform-specific geometry.
 
-An authored mechanic is complete only when the same typed field is covered by the shared authored type and schema, its Authoring Schema node map, persistence/hydration, owned-ID replacement during copying, and compilation. Adding a value to the existing closed `CLOSED_RULE` discriminant does not create a new payload shape: the existing select node, schema enum, generic-outcome persistence, recursive exact-ID replacement, and compiler pass-through already cover it. A new field or outcome shape must update every boundary explicitly.
+An authored mechanic is complete only when the same typed field is covered by the shared authored type and schema, its Authoring Schema node map, persistence/hydration, owned-ID replacement during copying, and compilation. Adding a value to the existing closed `CLOSED_RULE` discriminant does not create a new payload shape: the existing select node, schema enum, generic-outcome persistence, recursive exact-ID replacement, and compiler pass-through already cover it. A new field or outcome shape must update every boundary explicitly. New closed rule values are no longer added: per [ADR 0038](../adr/0038-rules-authored-from-core-options.md), a mechanic the node map cannot yet express gets a new generic option with an authoring-parity proof.
 
 Line shapes author both length and width. Spell grants may author a casting ability independently from their source class so racial and other source-bound spells retain their SRD ability through compilation and character-level resolution.
 
-Creature Spellcasting and Innate Spellcasting features reuse feature-owned spell grants for exact spell references, cast level, casting ability, at-will use, and limited-use charges. Creature-specific slot schedules and casting lifecycle remain closed rule descriptors until an encounter resolver consumes them; they do not justify a parallel creature-only spell model.
+Creature Spellcasting and Innate Spellcasting features reuse feature-owned spell grants for exact spell references, cast level, casting ability, at-will use, and limited-use charges. Creature-specific slot schedules and casting lifecycle are closed rule descriptors today (transitional: SPELLS-4 converts them to core options under ADR 0038); they do not justify a parallel creature-only spell model.
 
 ## DSL and registry
 
