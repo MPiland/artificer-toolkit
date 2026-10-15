@@ -1,5 +1,5 @@
 import { runInDurableObject } from 'cloudflare:test'
-import { discoverEncounterFeatureActionCapabilities } from '@artificer-toolkit/rules-runtime/encounterFeatureActionCapabilityDiscoveryRegistry'
+import { discoverEncounterFeatureActions } from '@artificer-toolkit/rules-runtime/encounterFeatureActionCapabilityDiscoveryRegistry'
 import type { EncounterActionChoiceDto } from '@artificer-toolkit/schema/api/encounterActionChoices'
 import type {
   EncounterReadDto,
@@ -329,17 +329,21 @@ export interface ActionRoomConfig extends Pick<
 export async function actionRoom(config: ActionRoomConfig) {
   const [source] = config.actors
   if (!source) throw new Error('The room needs an acting actor.')
-  /** The action `actor`'s Creature feature offers. */
+  /** The action `actor`'s Creature feature offers, or the one it lists unavailable. */
   const featureActionId = (
     actor: EncounterRunActorState,
     ownerFeatureId: string,
     grip: ActionRoomConfig['grip'] | null = null
   ) => {
-    const found = discoverEncounterFeatureActionCapabilities({
+    const discovery = discoverEncounterFeatureActions({
       actor,
       conditionDefinitionIds: srdSystemRecord.conditionTypes.map((condition) => condition.id),
       abilityDefinitions: (srdSystemRecord.abilities ?? []).map(({ id, code }) => ({ id, code }))
-    }).find((candidate) => candidate.ownerFeatureId === ownerFeatureId && candidate.grip === grip)
+    })
+    const found =
+      discovery.available.find(
+        (candidate) => candidate.ownerFeatureId === ownerFeatureId && candidate.grip === grip
+      ) ?? discovery.unavailable.find((candidate) => candidate.ownerFeatureId === ownerFeatureId)
     if (!found) throw new Error('The feature has no discovered action.')
     return found.actionId
   }

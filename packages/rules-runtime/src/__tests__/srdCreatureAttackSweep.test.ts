@@ -159,9 +159,9 @@ function unsupportedReason(
   error: unknown
 ): SrdCreatureAttackUnsupportedReason | `UNEXPECTED ${string}` {
   const message = error instanceof Error ? error.message : String(error)
-  if (stage === 'DISCOVERY' && unit.equipmentBound) return 'EQUIPMENT_DAMAGE_TYPE'
   if (/unsupported bounded shape/.test(message)) return 'FOLLOW_UP_SAVE'
   if (/outcome is not supported/.test(message)) return 'OUTCOME_KIND'
+  if (stage === 'DISCOVERY' && unit.equipmentBound) return 'EQUIPMENT_DAMAGE_TYPE'
   return `UNEXPECTED ${stage}: ${message}`
 }
 

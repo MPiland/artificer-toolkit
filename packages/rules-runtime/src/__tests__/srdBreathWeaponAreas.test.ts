@@ -2,17 +2,24 @@ import { describe, expect, it } from 'vitest'
 import { srdBaselineContent } from '@artificer-toolkit/source-data/srd/index.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
+import { CharacterRuleActionUnsupportedCompilationError } from '../characterRuleActionSystemAdapter.js'
 import {
   buildCompiledActionCompilerSource,
-  buildCompiledActionTargetPolicy
+  buildCompiledActionTargetPolicy,
+  compileEncounterFeatureActionPlan
 } from '../encounterActionEntryPointCompiler.js'
 import { encounterActionChoiceTarget, encounterActionTargetKind } from '../encounterAreaAction.js'
+import { createEncounterFeatureActionCapabilityDiscoveryRegistry } from '../encounterFeatureActionCapabilityDiscovery.js'
 import { discoverEncounterFeatureActions } from '../encounterFeatureActionCapabilityDiscoveryRegistry.js'
+import { dnd5eEncounterFeatureActionCapabilityAdapter } from '../systems/dnd5e/encounterFeatureActionCapabilityDiscovery.js'
 import { dnd5eCharacterRuleActionSystemAdapter } from '../systems/dnd5e/effectActionCompiler.js'
 import { srdCreatureActor, testUuid } from '../testing/dnd5eSrdEncounter.js'
 
 const feet = (amount: number) => ({ amount, unit: 'FEET' as const })
-const cone = (length: number) => ({ kind: 'DIRECTED', area: { kind: 'CONE', length: feet(length) } })
+const cone = (length: number) => ({
+  kind: 'DIRECTED',
+  area: { kind: 'CONE', length: feet(length) }
+})
 const line = (length: number, width: number) => ({
   kind: 'DIRECTED',
   area: { kind: 'LINE', length: feet(length), width: feet(width) }
@@ -40,35 +47,65 @@ const BREATH_DESCRIPTION = /\bexhales?\b/i
 const conditionDefinitionIds = srdSystemRecord.conditionTypes.map(({ id }) => id)
 const abilityDefinitions = (srdSystemRecord.abilities ?? []).map(({ id, code }) => ({ id, code }))
 
+/** Every action of a Creature before its System compiles the plan it runs. */
+const everyAction = createEncounterFeatureActionCapabilityDiscoveryRegistry([
+  dnd5eEncounterFeatureActionCapabilityAdapter
+])
+
+/** Whether the System can execute the action; any other compile failure is a real error. */
+function compilesToPlan(capability: Parameters<typeof compileEncounterFeatureActionPlan>[1]) {
+  try {
+    compileEncounterFeatureActionPlan(dnd5eCharacterRuleActionSystemAdapter, capability)
+    return true
+  } catch (error) {
+    if (error instanceof CharacterRuleActionUnsupportedCompilationError) return false
+    throw error
+  }
+}
+
 /** Every action Effect of every SRD breath weapon, with the area its description prints. */
 const breathRows = srdBaselineContent.subjects.creatures.flatMap((creature, creatureIndex) => {
-  const discovery = discoverEncounterFeatureActions({
+  const input = {
     actor: srdCreatureActor({ id: testUuid(0x1000 + creatureIndex), creature }),
     conditionDefinitionIds,
     abilityDefinitions
-  })
+  }
+  const discovery = everyAction.discover(input)
+  const offered = discoverEncounterFeatureActions(input)
   return (creature.features ?? [])
     .filter((feature) => BREATH_DESCRIPTION.test(feature.description ?? ''))
     .flatMap((feature) => {
       const printed = printedAreas(feature.description ?? '')
-      const effects = (feature.effects ?? []).filter(({ invocation }) => invocation.kind === 'ACTION')
-      return effects.map((effect, index) => ({
-        name: `${creature.label} ${feature.label} #${index + 1}`,
-        creatureLabel: creature.label,
-        featureLabel: feature.label,
-        printedAreaCount: printed.length,
-        effectCount: effects.length,
-        printed: printed[index],
-        leavesLastingEffect: [...JSON.stringify(effect.paths).matchAll(/"effectKind":"(\w+)"/g)].some(
-          ([, effectKind]) => effectKind !== 'DAMAGE'
-        ),
-        capability: discovery.available.find(
+      const effects = (feature.effects ?? []).filter(
+        ({ invocation }) => invocation.kind === 'ACTION'
+      )
+      return effects.map((effect, index) => {
+        const capability = discovery.available.find(
           (candidate) => candidate.ownerFeatureId === feature.id && candidate.effectId === effect.id
-        ),
-        unavailable: discovery.unavailable.find(
-          (candidate) => candidate.ownerFeatureId === feature.id
         )
-      }))
+        if (!capability) throw new Error(`${creature.label} ${feature.label} is not an action.`)
+        return {
+          name: `${creature.label} ${feature.label} #${index + 1}`,
+          creatureLabel: creature.label,
+          featureLabel: feature.label,
+          effectId: effect.id,
+          printedAreaCount: printed.length,
+          effectCount: effects.length,
+          printed: printed[index],
+          leavesLastingEffect: effect.paths.some((path) =>
+            'resultBlock' in path
+              ? path.resultBlock.outcomes.some(({ effectKind }) => effectKind !== 'DAMAGE')
+              : false
+          ),
+          capability,
+          compiles: compilesToPlan(capability),
+          offered: offered.available.some(({ actionId }) => actionId === capability.actionId),
+          listedUnavailable: offered.unavailable.some(
+            ({ actionId, ownerFeatureId }) =>
+              actionId === capability.actionId && ownerFeatureId === feature.id
+          )
+        }
+      })
     })
 })
 
@@ -87,7 +124,6 @@ describe('SRD breath weapons breathe areas', () => {
   it.each(breathRows.filter(({ creatureLabel }) => creatureLabel !== 'Gorgon'))(
     '$name compiles to a directed area of its printed size',
     (row) => {
-      if (!row.capability) throw new Error(`${row.name} is unavailable: ${row.unavailable?.reason}`)
       const policy = buildCompiledActionTargetPolicy(row.capability)
       expect(policy.range.rangeKind).toBe('SELF')
       expect(encounterActionTargetKind(policy)).toBe('DIRECTED')
@@ -95,35 +131,65 @@ describe('SRD breath weapons breathe areas', () => {
     }
   )
 
-  // A breath that leaves more than damage (a condition, a push, slowed or weakened targets) keeps its
-  // area but stays refused: the Worker journey proves the refusal, so only the damage-only breaths
-  // are asked for an executable plan here.
-  it.each(breathRows.filter(({ leavesLastingEffect }) => !leavesLastingEffect))(
-    '$name compiles to an executable test outcome',
+  const gorgonRow = breathRows.find(({ creatureLabel }) => creatureLabel === 'Gorgon')
+
+  // The Gorgon's breath is a lone on-fail Restrained whose repeat save is not authored, a shape its
+  // System cannot execute even unshaped, so it is listed unavailable. It stays unshaped: shaping it
+  // would not make it run, and an area does not refuse a bare condition (SPELLS-19).
+  it('keeps the Gorgon’s Petrifying Breath unshaped and unavailable', () => {
+    if (!gorgonRow) throw new Error('The Gorgon has no breath.')
+    expect(
+      encounterActionTargetKind(buildCompiledActionTargetPolicy(gorgonRow.capability))
+    ).not.toBe('DIRECTED')
+    expect(gorgonRow.compiles).toBe(false)
+    expect(gorgonRow.offered).toBe(false)
+    expect(gorgonRow.listedUnavailable).toBe(true)
+  })
+
+  const shapedLeavingMoreThanDamage = breathRows.filter(
+    ({ creatureLabel, leavesLastingEffect }) => leavesLastingEffect && creatureLabel !== 'Gorgon'
+  )
+
+  // The System compiles a damage-only breath to a test outcome. One that also leaves a condition, a
+  // push, slowed or weakened targets has a shape it cannot execute, so discovery never offers it.
+  it('cannot execute exactly the shaped breaths that leave more than damage, and the unshaped Gorgon’s', () => {
+    expect(shapedLeavingMoreThanDamage).toHaveLength(21)
+    expect(
+      breathRows
+        .filter(({ compiles }) => !compiles)
+        .map(({ effectId }) => effectId)
+        .sort()
+    ).toEqual(
+      [...shapedLeavingMoreThanDamage, ...(gorgonRow ? [gorgonRow] : [])]
+        .map(({ effectId }) => effectId)
+        .sort()
+    )
+  })
+
+  it.each(shapedLeavingMoreThanDamage)(
+    '$name is a shaped area its System cannot execute, so it is listed unavailable and not offered',
     (row) => {
-      if (!row.capability) throw new Error(`${row.name} is unavailable: ${row.unavailable?.reason}`)
+      expect(() =>
+        compileEncounterFeatureActionPlan(dnd5eCharacterRuleActionSystemAdapter, row.capability)
+      ).toThrow(CharacterRuleActionUnsupportedCompilationError)
+      expect(row.offered).toBe(false)
+      expect(row.listedUnavailable).toBe(true)
+    }
+  )
+
+  it.each(breathRows.filter(({ compiles }) => compiles))(
+    '$name compiles to an executable test outcome and is offered',
+    (row) => {
       expect(
         dnd5eCharacterRuleActionSystemAdapter.compileExecutionPlan?.({
           action: row.capability,
           compilerSource: buildCompiledActionCompilerSource(row.capability)
         })?.kind
       ).toBe('TEST_OUTCOME')
+      expect(row.offered).toBe(true)
+      expect(row.listedUnavailable).toBe(false)
     }
   )
-
-  // An area drops a bare condition outcome silently instead of refusing it, so the Gorgon's breath
-  // stays unshaped (and refused) until SPELLS-19 handles it.
-  it('keeps the Gorgon’s Petrifying Breath unshaped', () => {
-    const row = breathRows.find(({ creatureLabel }) => creatureLabel === 'Gorgon')
-    if (!row?.capability) throw new Error('The Gorgon’s breath is not an available action.')
-    expect(encounterActionTargetKind(buildCompiledActionTargetPolicy(row.capability))).not.toBe(
-      'DIRECTED'
-    )
-  })
-
-  it('finds the breaths that leave more than damage: the metallic second breaths, the Gorgon and the Dust Mephit', () => {
-    expect(breathRows.filter(({ leavesLastingEffect }) => leavesLastingEffect)).toHaveLength(22)
-  })
 
   // The sizes below are read from the SRD stat blocks, not from the authored rows or the parser.
   it.each([
