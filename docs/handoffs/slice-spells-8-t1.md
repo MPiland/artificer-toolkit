@@ -1,6 +1,6 @@
 # Slice workbook: SPELLS-8.T1 (Encounter spell casting: choices, slot spend, undo, upcasting)
 
-**Status:** FIX ROUND DONE, READY FOR REVIEW (started 2026-10-13; split by the Phase 8 review 2026-10-14)
+**Status:** SECOND FIX ROUND DONE, READY FOR REVIEW (started 2026-10-13; split by the Phase 8 review 2026-10-14)
 **Base:** `codex/phase-08-2-convex-cutover`.
 **Rules:** [slice-workbook-rules.md](slice-workbook-rules.md).
 
@@ -85,6 +85,7 @@ Logs under `local-validation/spells-8-t1/` (not committed). Every batch ran thro
   - rules-runtime + encounter-persistence: 104 files / 1127 tests.
   - session-worker: 50 files / 607 tests.
   - `yarn turbo run typecheck typecheck:app typecheck:tests typecheck:stories --concurrency=1 --env-mode=loose --continue --filter="[5489f675c]"`: 13 of 13 tasks; `yarn workspace @artificer-toolkit/apis typecheck:convex` exit 0; local `convex codegen` exit 0.
+- **Second review round, green, g9 (`g9.log`, all 12 steps exit 0)** on the tree merged with the lane at `72193db49`: rules-runtime + encounter-persistence 112 files / 1181 tests; session-worker 52 files / 621 tests; Convex `encounters`, `content` and `sheetSpellCustomization` 125 files / 790 tests (includes the new Sheet owned-slot-levels test); turbo typecheck against `72193db49`, `typecheck:convex` and local `convex codegen` exit 0.
 - Web tests were not run: no web file changed.
 
 ## Status log
@@ -92,3 +93,4 @@ Logs under `local-validation/spells-8-t1/` (not committed). Every batch ran thro
 - 2026-10-13: workbook written; session started; core casting built.
 - 2026-10-14: Phase 8 review split T1; fix round (H2, M2 to M6, L1 to L7) built; Worker rejected the undeclared cast-level fact; fact declared in the Game System `factContracts` (commit `3c68d4277`); g5 as above.
 - 2026-10-14: g5 (red, mutation, green unit/Worker), g6 (typing and stale-dist findings), g7 (full regression, typecheck, codegen) green; see Evidence.
+- 2026-10-15: second review round (seven frozen items) done, merged with the lane, g9 green; see Evidence.
