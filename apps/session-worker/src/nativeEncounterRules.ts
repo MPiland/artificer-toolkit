@@ -101,7 +101,7 @@ import {
 import { evaluateNativeLiveActionEconomy } from './nativeEncounterActionEconomy.js'
 import {
   nativeLiveRelationshipFacts,
-  refuseLegendaryWindowAction,
+  refuseActionOutsideItsWindow,
   refuseSpatialInterpretation,
   refuseUnmetBasicActionRestrictions
 } from './nativeEncounterActionInputs.js'
@@ -443,7 +443,7 @@ export async function planNativeLiveEncounterAction(
       ...actionSources
     }).catch(refuseStaleCharacterAction)
   const prepared = await prepareAttack(movementTargets)
-  refuseLegendaryWindowAction(prepared)
+  refuseActionOutsideItsWindow(prepared)
   const actorTarget = movementTargets.get(prepared.actor.id)
   if (!actorTarget) throw new Error('Encounter rules input binding mismatch.')
   await refuseUnmetBasicActionRestrictions(prepared, {
@@ -473,12 +473,6 @@ export async function planNativeLiveEncounterAction(
     prepared.source.kind === 'CHARACTER_ACTION'
       ? prepared.source.candidate.mechanicFacts
       : prepared.source.capability.mechanicFacts
-  if (mechanicFacts.invocation.reactionTrigger)
-    throw new LiveSessionDomainRejectionError(422, {
-      code: 'DOMAIN_REJECTED',
-      reason: 'REACTION_TRIGGER_ONLY',
-      message: DOMAIN_REJECTION_MESSAGES.REACTION_TRIGGER_ONLY
-    })
   const ruleWarnings = evaluateEncounterActionRuleWarnings({
     preparedWarnings: suppressed
       ? [...prepared.ruleWarnings, encounterActionSuppressedWarning(activationCode)]
@@ -662,12 +656,20 @@ export async function planNativeLiveEncounterAction(
         ...(await currentResistance())
       })
     : null
-  const reactionAnswered = reactionAnswer
-    ? await (async () => {
-        const current = await currentReaction(reactionAnswer.selection.kind === 'OPTION')
-        return { ...current, ...(await resolveNativeActionReaction({ ...actionSource, ...reactionAnswer, ...current })) }
-      })()
+  const answeredReaction = reactionAnswer
+    ? await currentReaction(reactionAnswer.selection.kind === 'OPTION')
     : null
+  const reactionAnswered =
+    reactionAnswer && answeredReaction
+      ? {
+          ...answeredReaction,
+          ...(await resolveNativeActionReaction({
+            ...actionSource,
+            ...reactionAnswer,
+            ...answeredReaction
+          }))
+        }
+      : null
   const execution =
     answered?.execution ??
     reactionAnswered?.execution ??
@@ -691,22 +693,29 @@ export async function planNativeLiveEncounterAction(
           ...(await currentResistance())
         })
       : null)
+  const retainedReaction =
+    execution.kind !== 'PENDING' &&
+    !reactionAnswered &&
+    retained?.phase === 'OUTCOME' &&
+    retained.reaction
+      ? retained
+      : null
+  const replayedReaction = retainedReaction
+    ? await currentReaction(retainedReaction.reaction!.selection === 'USE')
+    : null
   const reaction =
     execution.kind === 'PENDING'
       ? null
       : (reactionAnswered ??
-        (retained?.phase === 'OUTCOME' && retained.reaction
-          ? await (async () => {
-              const current = await currentReaction(retained.reaction!.selection === 'USE')
-              return {
-                ...current,
-                audit: await replayNativeActionReaction({
-                  ...actionSource,
-                  outcome: retained,
-                  ...current
-                })
-              }
-            })()
+        (retainedReaction && replayedReaction
+          ? {
+              ...replayedReaction,
+              audit: await replayNativeActionReaction({
+                ...actionSource,
+                outcome: retainedReaction,
+                ...replayedReaction
+              })
+            }
           : null))
   const preflight = {
     command,
@@ -811,7 +820,7 @@ export async function planNativeLiveEncounterAction(
     prepared,
     mechanics,
     effects: preparedEffects,
-    reactionEffect: reactionUse?.applied.effects.recurringEffect ?? null,
+    reactionEffect: reactionUse?.applied.reactionEffect ?? null,
     actionEconomy,
     actionEconomyOverridden: overridesActionEconomy(ruleWarnings.overrides),
     attackAction,

@@ -12,16 +12,16 @@ import {
 import { RULE_RUNTIME_GRAPH_FAMILY_KEY } from '@artificer-toolkit/schema/shared/reusableDefinitionIdentity'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
 
-export const MOVEMENT_REACTION_CHOICE_OPERATION_KEY = 'evidence.bounded-choice-index'
-export const MOVEMENT_REACTION_CHOICE_MIN_FACT_KEY = 'choice-min-index'
-export const MOVEMENT_REACTION_CHOICE_MAX_FACT_KEY = 'choice-max-index'
+export const REACTION_CHOICE_OPERATION_KEY = 'evidence.bounded-choice-index'
+export const REACTION_CHOICE_MIN_FACT_KEY = 'choice-min-index'
+export const REACTION_CHOICE_MAX_FACT_KEY = 'choice-max-index'
 
 /**
  * One published, System-owned wrapper around the portable bounded-choice
  * primitive. Option identities, labels, authority, and redaction never enter
  * this graph; the Encounter application context owns them.
  */
-export function createMovementReactionChoiceDefinition(input: {
+export function createReactionChoiceDefinition(input: {
   definitionId: string
   gameSystemId: string
 }): ServerPublishedRuleDefinitionDto {
@@ -34,17 +34,17 @@ export function createMovementReactionChoiceDefinition(input: {
       {
         id: 'choice',
         operation: {
-          key: MOVEMENT_REACTION_CHOICE_OPERATION_KEY,
+          key: REACTION_CHOICE_OPERATION_KEY,
           contractVersion: 1
         },
         inputs: {
           minIndex: {
             kind: 'FACT',
-            factKey: MOVEMENT_REACTION_CHOICE_MIN_FACT_KEY
+            factKey: REACTION_CHOICE_MIN_FACT_KEY
           },
           maxIndex: {
             kind: 'FACT',
-            factKey: MOVEMENT_REACTION_CHOICE_MAX_FACT_KEY
+            factKey: REACTION_CHOICE_MAX_FACT_KEY
           }
         }
       }
@@ -66,7 +66,7 @@ export function createMovementReactionChoiceDefinition(input: {
   })
 }
 
-export async function startMovementReactionChoice(input: {
+export async function startReactionChoice(input: {
   runtime: RulesRuntimeService
   occurrenceId: string
   published: ServerPublishedRuleDefinitionDto
@@ -86,8 +86,8 @@ export async function startMovementReactionChoice(input: {
       definitionId: input.published.id,
       occurrenceId: input.occurrenceId,
       facts: {
-        [MOVEMENT_REACTION_CHOICE_MIN_FACT_KEY]: 0,
-        [MOVEMENT_REACTION_CHOICE_MAX_FACT_KEY]: input.optionCount - 1
+        [REACTION_CHOICE_MIN_FACT_KEY]: 0,
+        [REACTION_CHOICE_MAX_FACT_KEY]: input.optionCount - 1
       }
     },
     published: input.published
@@ -103,7 +103,7 @@ export async function startMovementReactionChoice(input: {
   return execution.continuation
 }
 
-export async function resumeMovementReactionChoice(input: {
+export async function resumeReactionChoice(input: {
   runtime: RulesRuntimeService
   continuation: ServerRuleExecutionContinuationDto
   selectedIndex: number

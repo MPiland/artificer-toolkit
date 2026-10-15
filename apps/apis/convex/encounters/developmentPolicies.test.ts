@@ -10,7 +10,7 @@ import {
 } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import {
-  createDnd5eMovementReactionChoiceDefinition,
+  createDnd5eReactionChoiceDefinition,
   createDnd5eOpportunityReactionEligibilityDefinition
 } from '@artificer-toolkit/rules-runtime/systems/dnd5e/reactionEligibilityPolicy'
 import { createEncounterLifecyclePolicyFixture } from '../../tests/fixtures/encounterInitiative'
@@ -155,7 +155,7 @@ describe('development lifecycle policy cleanup', () => {
     const base = await setup()
     const legacyDefinitions = [
       createDnd5eOpportunityReactionEligibilityDefinition(),
-      createDnd5eMovementReactionChoiceDefinition()
+      createDnd5eReactionChoiceDefinition()
     ].map((published) => ({
       id: published.id,
       definitionFamilyKey: published.definitionFamilyKey,
