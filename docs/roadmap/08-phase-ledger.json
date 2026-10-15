@@ -8052,7 +8052,7 @@
         {
           "id": "PRIVACY-1",
           "title": "Players see only redacted combat data",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "journeyTests": [
             "apps/apis/convex/encounters/cutoverPrivacy.test.ts",
             "apps/apis/convex/encounters/encounterProjectionParity.test.ts"
@@ -8117,8 +8117,14 @@
             {
               "id": "PRIVACY-1.7",
               "text": "Once the room has received the ownership notice, a command replay after an ownership transfer is presented for the issuer's current role: the owner who regains ownership gets the GM projection, and a former owner who is now a player gets the redacted player projection. Before the notice arrives, the documented accepted-exposure window applies (live-sessions.md, ADR 0035 A21). The lifecycle proof delivers the notice deterministically instead of racing it.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "merge bd4fc26f4",
+                "apps/session-worker/test/nativeRoomOwnershipReplay.test.ts (both directions: notice delivered, then replay)",
+                "apps/apis/convex/encounters/developmentLifecycleProof.test.ts (deterministic via deliverQueuedRoomControl)",
+                "apps/apis/convex/campaigns/ownership.test.ts (accept moves the Campaign scope revision)",
+                "CI runs 38795738617 (+2 Convex 3/4 reruns green), 38801676606"
+              ],
               "origin": "Intermittent CI failure of developmentLifecycleProof.test.ts at tests/developmentEncounterTransactions.ts:286 (runs 38782976507, 38781276358 attempt 1, 38782673073): after ownership returned to the owner, replaying START returned the player projection (health null, no features). Base 79a60ef0a passed 3 of 3 locally (local-validation/lifecycle-base/).",
               "note": "Until T1 merges, this exact failure on a slice CI run is a known base defect and does not block that slice's merge. 2026-10-15: the cause was the proof racing asynchronous notice delivery, not a Worker defect; option A was approved."
             }
@@ -8133,15 +8139,14 @@
             {
               "id": "PRIVACY-1.T1",
               "text": "Find why a replay is presented for the issuer's stale role after an ownership transfer, fix it at the cause, and prove both directions deterministically.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["PRIVACY-1.7"],
               "wsjf": {
                 "bv": 3,
                 "tc": 5,
                 "rr": 8,
                 "size": 3
-              },
-              "activeWorkbook": "docs/handoffs/slice-privacy-1-t1.md"
+              }
             }
           ]
         },

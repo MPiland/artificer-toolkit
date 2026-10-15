@@ -1,6 +1,6 @@
 # Slice workbook: PRIVACY-1.T1 (replay after an ownership transfer shows the wrong audience's projection)
 
-**Status:** done, CI green (run 38795738617)
+**Status:** merged (bd4fc26f4); CI 38795738617 and 38801676606 green
 **Base:** `codex/phase-08-2-convex-cutover` at this workbook's commit.
 **Rules:** [slice-workbook-rules.md](slice-workbook-rules.md).
 
@@ -71,15 +71,16 @@ Read first: the PRIVACY-1 and D86 entries in `docs/handoffs/phase-08-2-decisions
 - 2026-10-15: **Lost or late EVICT_USER.** No path found that leaves a former owner with the GM view beyond one lease. A lost `EVICT_USER` keeps retrying until acknowledged (`deliver()`); a lost `INVALIDATE_INPUTS` stops after 5 attempts but the 60 s lease renews through `refresh()`, which reads the new role and closes mismatched sockets (`#refreshAuthorization`, `admitsRoomMember`); the old socket can be served only from the cached role for at most one lease.
 - 2026-10-15: **Convex 3/4 reruns** (run 38795738617, same commit `3c324e795`, only that job, authorized by the main session; `gh run rerun --job`, watched with `--interval 120`). Three samples of `developmentLifecycleProof`, none failed:
 
-  | Attempt | Job id | Started (UTC) | Finished | Duration | Result |
-  |---|---|---|---|---|---|
-  | 1 (original) | 116632519113 | 19:42:06 | 19:54:51 | 12m45s | success |
-  | 2 (rerun 1) | 116641389589 | 20:01:30 | 20:13:35 | 12m05s | success |
-  | 3 (rerun 2) | 116647863515 | 20:15:36 | 20:23:37 | 8m01s | success |
+  | Attempt      | Job id       | Started (UTC) | Finished | Duration | Result  |
+  | ------------ | ------------ | ------------- | -------- | -------- | ------- |
+  | 1 (original) | 116632519113 | 19:42:06      | 19:54:51 | 12m45s   | success |
+  | 2 (rerun 1)  | 116641389589 | 20:01:30      | 20:13:35 | 12m05s   | success |
+  | 3 (rerun 2)  | 116647863515 | 20:15:36      | 20:23:37 | 8m01s    | success |
 
   Fresh run on `e1a981044` (adds the `ownership.test.ts` revision test): [38801676606](https://github.com/MPiland/artificer-toolkit/actions/runs/38801676606), all 9 jobs green.
 
   Logs: `local-validation/privacy-1-t1/ci-watch*.log`. Passing samples do not prove an intermittent failure gone; the argument is the removed race (next entry).
+
 - 2026-10-15: **Why the old order could fail, and why the new one cannot** (red on base by reading, not by local loops). Lines are in `apps/apis/tests/developmentEncounterTransactions.ts` as it is now.
   - Old order: the owner's `accept` in the `finally` block (:278) queued `EVICT_USER` and `INVALIDATE_INPUTS` as `scheduler.runAfter(0, …)` jobs. The proof then ran `assign` (:285), `checkpoint()` (:291) and replayed START (:295) with nothing between `accept` and the replay that waited for those jobs. They fire on the fake test clock, so they ran either before the replay (the room reloads its Campaign rows and holds the OWNER role: pass) or after it (the room still holds the PLAYER role from the first transfer's notice, `requireCampaignAuthority` agrees with its own stale cache, and `presentEncounterResultForMember` returns the player projection: the failure at the assertion now at :295, formerly :286).
   - New order: `await deliverRoomControl?.()` at :281 runs every queued `liveSessions/control:send` and `evictUser` job against the real room (rounds until none are pending, and throws "Room control was not delivered." otherwise) before the `role === 'OWNER'` assertion (:282), `assign` (:285), `checkpoint()` (:291) and the replay (:295). The room has therefore received the notice that returned ownership before the replay; the old interleaving cannot occur. The same call at :256 does this after the first transfer, before the checkpoint at :258.
