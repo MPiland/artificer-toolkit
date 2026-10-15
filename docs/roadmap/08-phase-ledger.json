@@ -4106,16 +4106,56 @@
               "status": "TODO",
               "proof": [],
               "origin": ["G2-SPATIAL-PERCEPTION"],
-              "note": "Original PARTIAL: auras and traps execution is not in 8.2 criteria; movement and geometry facts are covered by V03/V07.",
+              "note": "Original PARTIAL: auras and traps execution is not in 8.2 criteria; movement and geometry facts are covered by V03/V07. 2026-10-14: auras are SPELLS-20; traps are made concrete by MOVE-3.2 to MOVE-3.6.",
               "id": "MOVE-3.1"
+            },
+            {
+              "text": "The SRD sample traps are in the corpus as authored zones, each with its SRD detection DC, disarm check and DC, and triggered effect; a GM can author a custom trap from the same core options.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "User ruling 2026-10-14 (decisions: hidden traps and zones). Today the corpus has no SRD traps, only trap-like equipment (caltrops, hunting trap). Authorable from core options, nothing trap-specific.",
+              "id": "MOVE-3.2"
+            },
+            {
+              "text": "The GM places a trap concealed at its authored detection DC; a creature that lays a zone (caltrops, ball bearings, a hunting trap) may conceal it with a Dexterity (Stealth) check whose result is the spot DC. A concealed zone is drawn only for the GM and the Characters that know of it.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "User ruling 2026-10-14 (decisions: hidden traps and zones). Unconcealed laid zones are in plain sight, as the SRD treats them. The Stealth rule is a System option. Per-viewer drawing follows the ATTACK-17.3 server-side redaction rule.",
+              "id": "MOVE-3.3"
+            },
+            {
+              "text": "A campaign setting chooses how hidden zones are noticed: Passive and Search (default) or Search only. A passive check runs silently on the server when a creature first has sight of the zone; the Search action lets a player roll their own Character's Perception or Investigation. Only a success reveals the zone, and only to that Character; a failure shows nothing to anyone but the GM.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "User ruling 2026-10-14 (decisions: hidden traps and zones). The user worried passive would give traps away; a silent server-side check reveals nothing on failure.",
+              "id": "MOVE-3.4"
+            },
+            {
+              "text": "A creature that has not noticed a zone gets no path warning and no Move carefully offer; entering it triggers it. The GM's path preview shows which creatures have not noticed it.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "User ruling 2026-10-14 (decisions: hidden traps and zones). Move carefully is Q2 (SPELLS-17).",
+              "id": "MOVE-3.5"
+            },
+            {
+              "text": "A creature that knows of a trap can attempt its authored disarm check; success removes the trap, and failing by the trap's authored margin triggers it. GM undo restores either outcome.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "User ruling 2026-10-14 (decisions: hidden traps and zones).",
+              "id": "MOVE-3.6"
             }
           ],
           "wsjf": {
             "bv": 8,
             "tc": 3,
             "rr": 3,
-            "size": 5,
-            "after": ["SPELLS-17"]
+            "size": 8,
+            "after": ["SPELLS-17", "SPELLS-20"]
           }
         },
         {
@@ -7106,7 +7146,7 @@
         },
         {
           "id": "SPELLS-17",
-          "title": "Placed zones (Caltrops)",
+          "title": "Placed zones from any authored item, spell or feature (Caltrops proof)",
           "status": "TODO",
           "journeyTests": [],
           "journeyStatus": "none",

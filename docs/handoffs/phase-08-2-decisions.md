@@ -1094,6 +1094,17 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
     - This replaces the icon badges around the token.
 - **Q4, profile visibility (ACCOUNTS-8, 2026-10-12).** Profiles are owner-only by default, and the owner can set their profile to Public or Private, like most social apps. Public lets any signed-in account open the profile page; Private returns it to owner-only at once. Registered as ACCOUNTS-8.4.
 - **Q2, moving carefully through caltrops (SPELLS-17, 2026-10-12).** The game asks at the moment it matters; there is no movement-mode toggle. When a dragged path enters a field whose save is skipped at half speed, the path preview offers two choices. "Move carefully" costs double movement and skips the save. "Move normally" means a save on entry. Rejected: a Walk / Normal / Dash mode switch, because Dash is an action (ATTACK-18 slice B), not a pace.
+- **Hidden traps and zones (MOVE-3 and SPELLS-17, 2026-10-14).** Decided by the product owner.
+  - **SPELLS-17 is generic.** It covers any authored placed zone from an item, spell or feature. Caltrops are only its proof.
+  - **Spot DC:**
+    - SRD traps carry their own authored DCs to detect, disarm and save.
+    - A zone a creature lays, such as caltrops, ball bearings or a hunting trap, is in plain sight unless the placer conceals it. The placer's Dexterity (Stealth) check, rolled as it is laid, is then the spot DC. That rule is a System option, so it stays authorable.
+  - **Noticing:**
+    - A campaign setting chooses between Passive and Search (the SRD default) and Search only.
+    - A passive check runs silently on the server, so a failure shows nothing to anyone but the GM.
+    - Search (the SRD action) lets a player roll their own Character's Perception or Investigation check, as the System allows.
+    - Only a success reveals the zone, and only to that Character.
+  - **Disarm is in scope.** A creature that knows of a trap can attempt the trap's authored disarm check. Success removes the trap; failing by the authored margin triggers it.
 - **Q1, automatic cover (SPELLS-14, 2026-10-12).** On by default for a new Campaign. Cover comes from the Scene's walls, and the GM can change any target's tier.
 - **Q5 and Q6, shared table screen (SCENE-5, 2026-10-12).** Decided by the product owner.
   - **Table mode is chosen at Session launch, not stored as a setting.** The GM picks how the table plays that day: each player on their own device, or one shared screen for the players, with the GM on their own screen.
