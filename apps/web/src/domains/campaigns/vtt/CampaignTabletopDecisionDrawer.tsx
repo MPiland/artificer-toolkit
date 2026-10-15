@@ -303,7 +303,8 @@ export function CampaignTabletopDecisionDrawer({
                 Decline passage
               </Button>
             </Stack>
-          ) : pending.kind === 'LEGENDARY_RESISTANCE_CHOICE' ? (
+          ) : pending.kind === 'LEGENDARY_RESISTANCE_CHOICE' ||
+            pending.kind === 'REACTION_CHOICE' ? (
             <Group>
               <Button
                 disabled={disabled}
@@ -311,7 +312,7 @@ export function CampaignTabletopDecisionDrawer({
                   void resolve({ kind: 'OPTION', optionId: pending.options[0].optionId })
                 }
               >
-                Use resistance
+                {pending.kind === 'REACTION_CHOICE' ? 'Use reaction' : 'Use resistance'}
               </Button>
               <Button
                 disabled={disabled}

@@ -20,6 +20,7 @@ import {
   attachRoomWorker,
   checkpointRoom,
   closeRoom,
+  deliverQueuedRoomControl,
   queueRoomRolls,
   roomDevelopmentClient,
   seedRoomContentSnapshots,
@@ -141,6 +142,7 @@ it('runs the shared Manual and Assisted lifecycles, native map/Scene binding and
   // binding and preserves every inspected row").
   await verifyEncounterTransactions({
     checkpoint,
+    deliverRoomControl: () => deliverQueuedRoomControl(t),
     owner: clients.owner,
     player: clients.player,
     ownerUserId: owner.userId,

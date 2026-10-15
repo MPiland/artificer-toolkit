@@ -104,6 +104,16 @@ export function projectNativeActionPending(
       options: [{ optionId: context.legendaryResistance.resistance.useOptionId }],
       allowedResponses: ['DECLINE', 'OPTION']
     }
+  if (context.reactionChoice)
+    return {
+      kind: 'REACTION_CHOICE',
+      occurrenceId: occurrence.id,
+      occurrenceVersion: occurrence.version,
+      encounterVersion: occurrence.expectedEncounterVersion,
+      targetActorId: context.rollerActorId,
+      options: [{ optionId: context.reactionChoice.reactions[0].useOptionId }],
+      allowedResponses: ['DECLINE', 'OPTION']
+    }
   const common = {
     occurrenceId: occurrence.id,
     occurrenceVersion: occurrence.version,

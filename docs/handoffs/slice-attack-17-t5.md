@@ -1,6 +1,6 @@
 # Slice workbook: ATTACK-17.T5 (private concentration check cards reach the controller)
 
-**Status:** in progress
+**Status:** merged (60b64d620), CI 38790799387 green except the known PRIVACY-1.T1 signature
 **Base:** `codex/phase-08-2-convex-cutover` at this workbook's commit.
 **Rules:** [slice-workbook-rules.md](slice-workbook-rules.md).
 

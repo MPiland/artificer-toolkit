@@ -397,6 +397,32 @@ OUTCOME on the success branch for USE or the failure branch for DECLINE. On USE 
 action receipt as `targetFeatureResourceConsumption`, and GM undo returns it. Area, movement and single-target
 paths share `decideEncounterLegendaryResistance`. The decision is [D104](../handoffs/phase-08-2-decisions.md).
 
+### Reaction to a hit (current, REACTION-4.T1)
+
+A reaction authored with `reactionTrigger: { kind: 'ATTACKED_SELF' }` (Shield) is offered to the attacked
+Character when a single-target `RESOLVE_ACTION` TEST resolves `ON_HIT` or `ON_CRIT`, before the OUTCOME. The
+`ENCOUNTER_ACTION` pending context keeps a sealed `reactionChoice` offer (a sibling of `legendaryResistance`,
+a stack so Counterspell chains can nest later) with the Character as roller; nothing is spent while it
+waits and the Scene is held (D26, text "Waiting on a reaction decision"). The answer is `DECLINE` or
+`OPTION`, read as the `REACTION_CHOICE` summary; the room re-opens the choice graph by occurrence id, as
+Legendary Resistance does.
+
+DECLINE continues the OUTCOME unchanged. USE runs the reaction's own plan (`applyNativeAttackReaction`),
+prices the reaction through the action economy and the slot through Character mechanics, builds the effect
+it creates on its reactor, and re-evaluates the TEST: `reconstructNativeActionTest` rebinds the recorded
+dice to the attack's defense as the effect leaves it. That rebinding is a sealed `adjustment`
+(`defenseBefore`, `defenseAfter`, adjusted-facts checksum) in the OUTCOME's `reaction` audit and the
+receipt; the "TEST evidence is stale" guard stays intact for everything else. The batch receipt's `reaction`
+carries the spend and the effect; GM undo returns the slot and the allowance and deletes the effect.
+
+Order on one attack: TEST, then the reaction choice (`ON_HIT`/`ON_CRIT` only), then the OUTCOME. It cannot
+meet Legendary Resistance on the same TEST: that choice exists only for `ON_SAVE_FAIL` and a TEST has
+either an attack path or a save path, and `continueNativeActionAfterTest` rejects an audit carrying both.
+A defeated reactor (D63), a spent allowance, an Unconscious Character and a `REACTION_COUNT SET_VALUE 0`
+grant (D99) all drop the offer through the same discovery as an action. Only the first eligible reaction
+is offered, only Character reactors, and a reaction cast as an action is refused (`REACTION_TRIGGER_ONLY`).
+Decision: D26 is extended to hold the Scene for a pending reaction decision.
+
 ### 0 hit points (D63, current)
 
 A Creature or custom Run actor stores `defeated`. `nextEncounterActorDefeated`

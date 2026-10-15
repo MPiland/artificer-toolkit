@@ -5,13 +5,14 @@ import { fileURLToPath } from 'node:url'
 import { resolve } from 'node:path'
 import { afterAll, afterEach, beforeAll, expect, vi } from 'vitest'
 import type { TestConvex } from 'convex-test'
-import { getFunctionName, makeFunctionReference } from 'convex/server'
+import { getFunctionName, makeFunctionReference, type FunctionArgs } from 'convex/server'
 import { ConvexError, convexToJson, jsonToConvex, type JSONValue, type Value } from 'convex/values'
 import {
   LIVE_SESSION_CHECKPOINT_BARRIER_PATH,
   LIVE_SESSION_CONTROL_PATH,
   LIVE_SESSION_CONTROL_SECRET_HEADER,
   LIVE_SESSION_TEST_ROLLS_PATH,
+  type LiveSessionControlInput,
   type LiveSessionInputScope,
   type LiveSessionTestRollsInputDto
 } from '@artificer-toolkit/schema/api/liveSessions'
@@ -622,6 +623,45 @@ export function invalidateRoomInputs(campaignId: string, scopes: LiveSessionInpu
     campaignId,
     operation: { type: 'INVALIDATE_INPUTS', scopes }
   })
+}
+
+const roomControlSend = makeFunctionReference<'action', LiveSessionControlInput, null>(
+  'liveSessions/control:send'
+)
+const roomControlEvictUser = makeFunctionReference<
+  'action',
+  { campaignId: string; userId: string; membershipEpoch: string },
+  null
+>('liveSessions/control:evictUser')
+const ROOM_CONTROL_DELIVERY_ROUNDS = 5
+
+/**
+ * Delivers the room control (`EVICT_USER`, `INVALIDATE_INPUTS`) the product itself queued. Convex's
+ * scheduler fires on the test clock, so a step that depends on a notice (a role change, an
+ * ownership transfer) races it. This runs each pending control job once against the room and
+ * cancels the timer's copy. A delivery the Worker refused is rescheduled by the action, and the next
+ * round delivers that retry.
+ */
+export async function deliverQueuedRoomControl(t: TestConvex<typeof schema>) {
+  await t.finishInProgressScheduledFunctions()
+  const send = getFunctionName(roomControlSend)
+  const evictUser = getFunctionName(roomControlEvictUser)
+  for (let round = 0; round < ROOM_CONTROL_DELIVERY_ROUNDS; round += 1) {
+    const jobs = await t.run(async (ctx) => {
+      const pending = (await ctx.db.system.query('_scheduled_functions').collect()).filter(
+        (job) => job.state.kind === 'pending' && (job.name === send || job.name === evictUser)
+      )
+      for (const job of pending) await ctx.scheduler.cancel(job._id)
+      return pending.map(({ name, args }) => ({ name, args: args[0] }))
+    })
+    if (jobs.length === 0) return
+    for (const { name, args } of jobs)
+      await (name === send
+        ? t.action(roomControlSend, args as LiveSessionControlInput)
+        : t.action(roomControlEvictUser, args as FunctionArgs<typeof roomControlEvictUser>)
+      ).catch(() => undefined)
+  }
+  throw new Error('Room control was not delivered.')
 }
 
 /** The control route Convex calls to close a Campaign's room: it drains, checkpoints and releases. */

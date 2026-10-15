@@ -233,6 +233,29 @@ describe('native Campaign ownership transfer', () => {
     expect(await state(base)).toEqual(after)
   })
 
+  it('moves the Campaign scope revision on accept, which is what makes a live room reload its roles', async () => {
+    const base = await setup()
+    const campaignRevision = () =>
+      base.t.run(
+        async (ctx) =>
+          (
+            await ctx.db
+              .query('sceneVisionRevisions')
+              .withIndex('by_scope_id', (q) =>
+                q.eq('scope', 'CAMPAIGN').eq('id', base.campaign.id)
+              )
+              .unique()
+          )?.revision
+      )
+    const created = await campaignRevision()
+    await transfer(base)
+    expect(await campaignRevision()).toBe(created)
+    await base.other.caller.mutation(acceptTransfer, { campaignId: base.campaign.id })
+    const accepted = await campaignRevision()
+    expect(accepted).toEqual(expect.any(String))
+    expect(accepted).not.toBe(created)
+  })
+
   it('rejects an expired offer at the exact boundary and preserves all state', async () => {
     const base = await setup()
     await transfer(base)
