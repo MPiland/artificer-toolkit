@@ -11,9 +11,10 @@ import { shield } from '@artificer-toolkit/source-data/srd/spells/shield.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { nativeReactionEffectId } from '../src/nativeEncounterAttackReaction.js'
 import { RoomEncounterStore } from '../src/roomEncounterStore.js'
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
-import { actionRoom, biteWolf } from './actionRoomFixture.js'
+import { actionRoom, biteWolf, fireballWolf } from './actionRoomFixture.js'
 import { areaReceipts } from './areaRoomReads.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
 import {
@@ -85,7 +86,7 @@ async function strike(room: Room, margin: number, acknowledgedWarnings: string[]
     rollMode: request.rollMode
   })
   expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
-  return { armorClass: dc }
+  return { armorClass: dc, commandId: started.command.commandId }
 }
 
 /** The reaction choice the room asks of the hit Character. */
@@ -189,6 +190,22 @@ describe('room reaction to a hit (REACTION-4.4)', () => {
     // The reaction is back: the same hit offers it again.
     await strike(room, 0)
     await offeredReaction(room)
+  })
+
+  it('gives the reaction effect an id derived from the command and occurrence, so a replay mints the same one', async () => {
+    const room = await shieldRoom()
+    const { commandId } = await strike(room, 0)
+    const { decision, pending } = await offeredReaction(room)
+    const used = await room.resolve(decision, {
+      kind: 'OPTION',
+      optionId: pending.options[0].optionId
+    })
+    expect(used.type, JSON.stringify(used)).toBe('COMMAND_COMMITTED')
+
+    const { characterEffects } = await readRoomHistory(room.room.base.stub)
+    expect(characterEffects.map(({ id }) => id)).toEqual([
+      nativeReactionEffectId({ commandId, occurrenceId: decision.occurrence.id })
+    ])
   })
 
   it('keeps the hit when declined, applying the outcome and spending nothing', async () => {
@@ -440,6 +457,37 @@ describe('room Shield cast as an action', () => {
       characterAction: (action) => action.label.includes('Shield')
     })
     const { answer } = await room.startAction(CHARACTER_ACTOR_ID)
+    expect(answer.type).toBe('COMMAND_REJECTED')
+    expect(JSON.stringify(answer)).toContain('REACTION_TRIGGER_ONLY')
+  })
+})
+
+describe('room reaction-only action over an area', () => {
+  it('is refused as a single-target action is: a reaction is used when its trigger happens', async () => {
+    const bite = fireballWolf()
+    const creature = creatureAuthoredDtoSchema.parse({
+      ...bite,
+      features: bite.features?.map((feature) =>
+        feature.label !== 'Bite'
+          ? feature
+          : {
+              ...feature,
+              effects: feature.effects?.map((effect) => ({
+                ...effect,
+                invocation: {
+                  ...effect.invocation,
+                  activation: { code: 'REACTION' as const, amount: 1 },
+                  reactionTrigger: { kind: 'ATTACKED_SELF' as const }
+                }
+              }))
+            }
+      )
+    })
+    const room = await actionRoom({
+      actors: [srdCreatureActor({ id: WOLF_ID, creature })],
+      ownerFeatureId: creatureFeature(creature, 'Bite').id
+    })
+    const { answer } = await room.startAreaAction({ x: 50, y: 150 })
     expect(answer.type).toBe('COMMAND_REJECTED')
     expect(JSON.stringify(answer)).toContain('REACTION_TRIGGER_ONLY')
   })
