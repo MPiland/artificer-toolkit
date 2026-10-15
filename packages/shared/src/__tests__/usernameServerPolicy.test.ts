@@ -20,6 +20,50 @@ describe('validateUsernameOnServer', () => {
     })
   })
 
+  // A blocked word split across `_` or case parts is still a compound of the joined name.
+  it.each(['a_ss_muncher', 'aSSmuncher', 'My_aSS', 'Big_DiCk', 'aSS_Muncher'])(
+    'refuses the joined compound %s',
+    (username) => {
+      expect(validateUsernameOnServer(username)).toEqual({
+        username,
+        message: USERNAME_NOT_ALLOWED_MESSAGE
+      })
+    }
+  )
+
+  // Short dictionary words count as dictionary words.
+  it.each(['bigass', 'bigdick', 'mydick', 'cumbag', 'hotass'])(
+    'refuses the short-word compound %s',
+    (username) => {
+      expect(validateUsernameOnServer(username)).toEqual({
+        username,
+        message: USERNAME_NOT_ALLOWED_MESSAGE
+      })
+    }
+  )
+
+  // Repeated-letter padding is collapsed before the compound check.
+  it.each(['assmuncherrr', 'diickmuncher', 'cuummuncher'])(
+    'refuses the padded compound %s',
+    (username) => {
+      expect(validateUsernameOnServer(username)).toEqual({
+        username,
+        message: USERNAME_NOT_ALLOWED_MESSAGE
+      })
+    }
+  )
+
+  // Every whole-part term of the matcher, not only ass, dick, cum and tit.
+  it.each(['cocklover', 'sexmachine', 'prickface'])(
+    'refuses the compound %s of another whole-part term',
+    (username) => {
+      expect(validateUsernameOnServer(username)).toEqual({
+        username,
+        message: USERNAME_NOT_ALLOWED_MESSAGE
+      })
+    }
+  )
+
   it.each([
     'cassandra',
     'Cassandra',
@@ -35,7 +79,10 @@ describe('validateUsernameOnServer', () => {
     'Titanic',
     'Cumberland',
     'Passage',
-    'Player_One'
+    'Player_One',
+    'Dickson',
+    'Cockpit',
+    'Sextant'
   ])('accepts the ordinary name %s', (username) => {
     expect(validateUsernameOnServer(username)).toEqual({ username, message: null })
   })

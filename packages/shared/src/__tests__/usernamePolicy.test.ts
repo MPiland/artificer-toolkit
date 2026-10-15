@@ -70,13 +70,18 @@ describe('validateUsername', () => {
     'Cum_Dump',
     'the_tit_bird',
     'ASSMuncher',
-    'Asssss_Muncher'
+    'Asssss_Muncher',
+    // A case change inside the term must not hide the `_` part from the whole-part check.
+    'My_aSS',
+    'Big_DiCk',
+    'aSS_Muncher',
+    'Big_Cums'
   ])('refuses the blocked part in %s', (username) => {
     expect(validateUsername(username)).toEqual({ username, message: USERNAME_NOT_ALLOWED_MESSAGE })
   })
 
   // Q22: unambiguous terms are refused anywhere, including inside one part and across `_`.
-  it.each(['fuuuck_me', 'Xfuckx', 'n_i_g_g_e_r', 'Asshole', 'DumbAss', 'Dickhead'])(
+  it.each(['fuuuck_me', 'Xfuckx', 'n_i_g_g_e_r', 'Asshole', 'DumbAss', 'Dickhead', 'assman'])(
     'refuses the unambiguous term in %s',
     (username) => {
       expect(validateUsername(username)).toEqual({
