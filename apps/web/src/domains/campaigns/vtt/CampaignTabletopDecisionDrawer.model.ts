@@ -45,6 +45,7 @@ export function decisionTitle(kind: PendingEncounterRuleOccurrenceSummaryDto['ki
   if (kind === 'MOVEMENT_REACTION') return 'Reaction available'
   if (kind === 'MOVEMENT_PASSAGE_CHOICE') return 'Passage choice'
   if (kind === 'LEGENDARY_RESISTANCE_CHOICE') return 'Legendary Resistance'
+  if (kind === 'REACTION_CHOICE') return 'Reaction available'
   if (kind === 'LEGENDARY_ACTION_CHOICE') return 'Legendary Action'
   if (kind === 'INITIATIVE_EVIDENCE') return 'Initiative roll required'
   if (kind === 'INITIATIVE_DECLARATION') return 'Initiative declaration required'

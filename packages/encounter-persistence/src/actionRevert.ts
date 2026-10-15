@@ -346,6 +346,8 @@ export async function revertLastEncounterAction(
           : []
       )
     )
+    // A reaction the target used spent its slot and allowance and created its effect with this outcome.
+    const reaction = action.kind === 'CHARACTER_MECHANICS_BATCH' ? action.reaction : null
     if (action.kind === 'CHARACTER_MECHANICS_BATCH') {
       if (target.kind !== 'CHARACTER' || target.sourceId === null)
         throw new Error('Stored Character action target is invalid.')
@@ -378,6 +380,7 @@ export async function revertLastEncounterAction(
             ? [zeroHitPointsConditionId]
             : [])
         ])
+        inverse.spell = reaction?.spellCastConsumption ?? null
       }
     } else {
       if (target.kind === 'CHARACTER') throw new Error('Stored Encounter actor target is invalid.')
@@ -407,9 +410,25 @@ export async function revertLastEncounterAction(
         )
       })
     }
+    const reactionEconomy = reaction?.actionEconomyTransition
+    if (reactionEconomy) {
+      const reactor = actorsById.get(target.id)!
+      if (encounterRuleUsageUsed(reactor, reactionEconomy.definitionId) !== reactionEconomy.afterUsed)
+        unavailable("The target's reactions changed after this action; adjust manually.")
+      updateActor(reactor.id, {
+        resources: withEncounterRuleUsageUsed(
+          reactor,
+          reactionEconomy.definitionId,
+          reactionEconomy.beforeUsed
+        )
+      })
+    }
     // Created effects and the maintained state go away; their versions prove nothing touched them.
     const characterOwnerId = target.kind === 'CHARACTER' ? target.sourceId : null
-    for (const effect of action.activeEffectTransitions)
+    for (const effect of [
+      ...action.activeEffectTransitions,
+      ...(reaction?.activeEffectTransitions ?? [])
+    ])
       await store.deleteCas({
         id: effect.activeEffectId,
         owner: characterOwnerId

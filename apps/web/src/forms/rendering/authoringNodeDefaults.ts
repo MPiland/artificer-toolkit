@@ -529,6 +529,8 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
       }
     case 'range':
       return createRange('DISTANCE')
+    case 'reactionTrigger':
+      return { kind: 'ATTACKED_SELF' }
     case 'resourceUse':
       return { chargeId: '', cost: 1 }
     case 'featureOptionActionReference':

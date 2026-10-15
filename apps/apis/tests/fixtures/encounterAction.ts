@@ -186,7 +186,7 @@ export function createCutoverWorkloadCreature(eligibilityDefinitionId: string) {
               ...biteEffect.invocation,
               triggerCode: 'MELEE_WEAPON_ATTACK' as const,
               activation: { code: 'REACTION' as const, amount: 1 },
-              reactionMovementTrigger: { ...reactionBinding, eligibilityDefinitionId }
+              reactionTrigger: { ...reactionBinding, eligibilityDefinitionId }
             },
             paths: [
               ...(fixedDamagePaths('ON_HIT') ?? []),

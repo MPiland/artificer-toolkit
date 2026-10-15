@@ -95,7 +95,7 @@ export function conditionReactionCreature() {
             ...effect.invocation,
             triggerCode: 'MELEE_WEAPON_ATTACK' as const,
             activation: { code: 'REACTION' as const, amount: 1 },
-            reactionMovementTrigger: reactionBinding,
+            reactionTrigger: reactionBinding,
             targeting: { selectionKind: 'SINGLE_TARGET' as const, dispositionKind: 'ANY' as const }
           },
           paths: effect.paths?.slice(0, 1).map((path) => {
@@ -286,7 +286,7 @@ export async function setupCreatureReactionRun(
         ...effect,
         invocation: {
           ...effect.invocation,
-          reactionMovementTrigger: {
+          reactionTrigger: {
             ...reactionBinding,
             perceptionRequirement
           }
@@ -302,12 +302,12 @@ export async function setupCreatureReactionRun(
       effects: feature.effects?.map((effect) => ({
         ...effect,
         invocation:
-          'reactionMovementTrigger' in effect.invocation &&
-          effect.invocation.reactionMovementTrigger
+          'reactionTrigger' in effect.invocation &&
+          effect.invocation.reactionTrigger
             ? {
                 ...effect.invocation,
-                reactionMovementTrigger: {
-                  ...effect.invocation.reactionMovementTrigger,
+                reactionTrigger: {
+                  ...effect.invocation.reactionTrigger,
                   eligibilityDefinitionId: additionalOpportunityId
                 }
               }

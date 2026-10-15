@@ -19,7 +19,7 @@ import { rangeDtoSchema } from '../shared/range.js'
 import { savingThrowDtoSchema } from '../shared/savingThrow.js'
 import { shapeDtoSchema } from '../shared/shape.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
-import { reactionMovementTriggerBindingDtoSchema } from '../shared/reaction.js'
+import { reactionTriggerBindingDtoSchema } from '../shared/reaction.js'
 import { targetingDtoSchema } from './targeting.js'
 import {
   authoredIdentifierSchema,
@@ -73,7 +73,7 @@ export const invocationDtoSchema: z.ZodMiniType<EffectInvocationAuthored> = lazy
       shape: z.optional(shapeDtoSchema),
       targeting: z.optional(targetingDtoSchema),
       resourceUse: z.optional(z.never()),
-      reactionMovementTrigger: z.optional(z.never())
+      reactionTrigger: z.optional(z.never())
     }),
     z.object({
       kind: z.literal(invocationKindSchema._zod.def.entries.PASSIVE),
@@ -91,40 +91,40 @@ export const invocationDtoSchema: z.ZodMiniType<EffectInvocationAuthored> = lazy
       shape: z.optional(shapeDtoSchema),
       targeting: z.optional(targetingDtoSchema),
       resourceUse: z.optional(z.never()),
-      reactionMovementTrigger: z.optional(z.never())
+      reactionTrigger: z.optional(z.never())
     }),
     z.object({
       ...actionInvocationShape(),
       triggerCode: z.literal(triggerCodeSchema._zod.def.entries.SAVING_THROW),
       savingThrow: savingThrowDtoSchema,
       activation: activationDtoSchema,
-      reactionMovementTrigger: z.optional(z.never())
+      reactionTrigger: z.optional(z.never())
     }),
     z.object({
       ...actionInvocationShape(),
       triggerCode: z.literal(triggerCodeSchema._zod.def.entries.SAVING_THROW),
       savingThrow: savingThrowDtoSchema,
       activation: reactionActivationDtoSchema,
-      reactionMovementTrigger: reactionMovementTriggerBindingDtoSchema
+      reactionTrigger: reactionTriggerBindingDtoSchema
     }),
     z.object({
       ...actionInvocationShape(),
       triggerCode: z.literal(triggerCodeSchema._zod.def.entries.CHECK),
       check: checkDtoSchema,
       activation: activationDtoSchema,
-      reactionMovementTrigger: z.optional(z.never())
+      reactionTrigger: z.optional(z.never())
     }),
     z.object({
       ...actionInvocationShape(),
       triggerCode: nonSavingThrowTriggerDtoSchema,
       activation: activationDtoSchema,
-      reactionMovementTrigger: z.optional(z.never())
+      reactionTrigger: z.optional(z.never())
     }),
     z.object({
       ...actionInvocationShape(),
       triggerCode: nonSavingThrowTriggerDtoSchema,
       activation: reactionActivationDtoSchema,
-      reactionMovementTrigger: reactionMovementTriggerBindingDtoSchema
+      reactionTrigger: reactionTriggerBindingDtoSchema
     })
   ])
 )

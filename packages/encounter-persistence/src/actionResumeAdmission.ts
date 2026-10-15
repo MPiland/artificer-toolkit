@@ -170,13 +170,17 @@ export async function readNativeEncounterActionResponseAdmission(
       rejectDomain('VERSION_STALE', 'The Legendary Resistance option is stale.')
   } else if (areaSave?.testedJson !== undefined) rejectDomain('DECISION_NOT_PENDING')
   else {
-    // A single-target action holding a creature's Legendary Resistance offer takes only its answer.
-    const held = areaSave ? undefined : pending.context.legendaryResistance
+    // A single-target action holding a creature's Legendary Resistance or reaction offer takes only
+    // its answer.
+    const heldUseOptionId = areaSave
+      ? undefined
+      : (pending.context.legendaryResistance?.resistance.useOptionId ??
+        pending.context.reactionChoice?.reactions[0]?.useOptionId)
     if (answer.kind === 'DECLINE' || answer.kind === 'OPTION') {
-      if (!held) rejectDomain('DECISION_NOT_PENDING')
-      if (answer.kind === 'OPTION' && answer.optionId !== held.resistance.useOptionId)
-        rejectDomain('VERSION_STALE', 'The Legendary Resistance option is stale.')
-    } else if (held) rejectDomain('DECISION_NOT_PENDING')
+      if (!heldUseOptionId) rejectDomain('DECISION_NOT_PENDING')
+      if (answer.kind === 'OPTION' && answer.optionId !== heldUseOptionId)
+        rejectDomain('VERSION_STALE', 'The decision option is stale.')
+    } else if (heldUseOptionId) rejectDomain('DECISION_NOT_PENDING')
   }
   if (response.commandId === parsed.commandId || rootReceipt) rejectDomain('COMMAND_ID_REUSED')
   const used = await ctx.db
