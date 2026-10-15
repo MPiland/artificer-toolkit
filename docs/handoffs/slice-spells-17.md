@@ -1,6 +1,6 @@
 # Slice workbook: SPELLS-17 (placed zones: Caltrops)
 
-**Status:** DONE on branch, awaiting main-session review (2026-10-15)
+**Status:** DONE, merged aba540d19 (2026-10-15); follow-ups SPELLS-17.T1 to T3 in the ledger
 **Base:** `codex/phase-08-2-convex-cutover` at this workbook's commit.
 **Rules:** [slice-workbook-rules.md](slice-workbook-rules.md).
 

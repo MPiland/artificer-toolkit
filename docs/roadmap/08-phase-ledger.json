@@ -7250,18 +7250,48 @@
         {
           "id": "SPELLS-17",
           "title": "Placed zones from any authored item, spell or feature (Caltrops proof)",
-          "status": "TODO",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "IN_PROGRESS",
+          "journeyTests": ["apps/session-worker/test/nativeRoomPlacedZone.test.ts"],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
               "text": "Spreading Caltrops places a field on the map; a creature that enters it makes a DC 15 Dexterity save, and on a failure its movement stops, it takes 1 piercing damage, and its speed drops by 10 feet until it regains hit points.",
+              "status": "DONE",
+              "proof": [
+                "apps/session-worker/test/nativeRoomPlacedZone.test.ts (journey: spread real SRD Caltrops, walk in, fail, stop, damage, slow; heal clears it; GM undo removes the field; careful crossing; hidden field ignores carefully)",
+                "packages/rules-runtime/src/__tests__/encounterZonePlacementCompilation.test.ts (compile, one negative per unsupported branch, directed shapes refused, unread end events refused)",
+                "packages/authoring/src/nodeRuntime/zoneAuthoringParity.test.ts (ADR 0038: author-built variant zone through the equipment node map)",
+                "apps/apis/convex/rules/halfSpeedFields.test.ts (visible-only half-speed fields)",
+                "apps/web/src/domains/campaigns/vtt/CampaignVttCarefulMoveChoice.test.tsx (careful or normal crossing choice)"
+              ],
+              "origin": [],
+              "note": "Was SPELLS-7.2 (registered from the SPELLS-5 refinement, D99: an area APPLY_GRANT), widened on 2026-10-10 to the whole item. It needs a production spatial-effect creator (only test fixtures create them today) and an ON_HIT_POINTS_REGAINED end reader. First check that the MANIFEST ZONE outcome compiles. Moving at half speed to avoid the save is offered in the drag path preview when the path enters the field: Move carefully (double cost, no save) or Move normally (save on entry) (Q2, resolved 2026-10-12). Merged aba540d19. Touch point areas now measure from the 5 ft. single-target touch reach.",
+              "id": "SPELLS-17.1"
+            },
+            {
+              "id": "SPELLS-17.2",
+              "text": "A creature whose move passes through a Caltrops or Ball Bearings field without ending in it makes the save on entering it, as the SRD \"enters the area\" says; on a failure it stops in the field.",
               "status": "TODO",
               "proof": [],
-              "origin": [],
-              "note": "Was SPELLS-7.2 (registered from the SPELLS-5 refinement, D99: an area APPLY_GRANT), widened on 2026-10-10 to the whole item. It needs a production spatial-effect creator (only test fixtures create them today) and an ON_HIT_POINTS_REGAINED end reader. First check that the MANIFEST ZONE outcome compiles. Moving at half speed to avoid the save is offered in the drag path preview when the path enters the field: Move carefully (double cost, no save) or Move normally (save on entry) (Q2, resolved 2026-10-12).",
-              "id": "SPELLS-17.1"
+              "origin": "Follow-up from SPELLS-17 (aba540d19), workbook docs/handoffs/slice-spells-17.md.",
+              "note": "SRD Caltrops author ENTER_SPACE, which maps to ENTER only when the path ends inside; a pass-through is CROSS and does not trigger. Fix the authored trigger through core options, not a Caltrops branch."
+            },
+            {
+              "id": "SPELLS-17.3",
+              "text": "Healing that restores hit points ends a \"until healed\" grant wherever it happens (Sheet healing outside an Encounter batch included), GM undo of that heal restores the grant, and a failed save whose damage is fully resisted still applies the slow.",
+              "status": "TODO",
+              "proof": [],
+              "origin": "Follow-up from SPELLS-17 (aba540d19), workbook docs/handoffs/slice-spells-17.md.",
+              "note": ""
+            },
+            {
+              "id": "SPELLS-17.4",
+              "text": "Dragging a token across a visible half-speed field on the board offers the careful or normal choice and commits the chosen move.",
+              "status": "TODO",
+              "proof": [],
+              "origin": "Follow-up from SPELLS-17 (aba540d19), workbook docs/handoffs/slice-spells-17.md.",
+              "note": "commitTokenMove in CampaignVttStage.tsx has no stage-level test; the component and model are covered."
             }
           ],
           "wsjf": {
@@ -7269,7 +7299,45 @@
             "tc": 1,
             "rr": 2,
             "size": 3
-          }
+          },
+          "tasks": [
+            {
+              "id": "SPELLS-17.T1",
+              "text": "Pass-through triggers for entered fields (SRD Caltrops, Ball Bearings) with a Worker test.",
+              "status": "TODO",
+              "closes": ["SPELLS-17.2"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 5,
+                "rr": 5,
+                "size": 2
+              }
+            },
+            {
+              "id": "SPELLS-17.T2",
+              "text": "ON_HIT_POINTS_REGAINED from every heal path, heal undo restores the ended grant, fully resisted damage still applies the failure sequence.",
+              "status": "TODO",
+              "closes": ["SPELLS-17.3"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 5,
+                "size": 3
+              }
+            },
+            {
+              "id": "SPELLS-17.T3",
+              "text": "Stage-level test of the careful-crossing choice through CampaignVttStage.",
+              "status": "TODO",
+              "closes": ["SPELLS-17.4"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 1,
+                "rr": 3,
+                "size": 1
+              }
+            }
+          ]
         },
         {
           "id": "SPELLS-18",
