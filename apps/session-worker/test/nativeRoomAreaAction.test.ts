@@ -21,7 +21,7 @@ import type { ClassFeature } from '../src/testing/srdCharacterSource.js'
 import { legendaryWolf, plainWolf } from '../src/testing/movementPlannerFixture.js'
 import { actionRoom, fireballWolf, frightenOnFailedSave } from './actionRoomFixture.js'
 import { frightenedId, frightenedResultBlock } from './areaConditionFixture.js'
-import { areaReceipts, vitalsOf } from './areaRoomReads.js'
+import { answerAllSaves, areaReceipts, vitalsOf } from './areaRoomReads.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
 import {
   readPendingActionDecision,
@@ -747,25 +747,6 @@ function resisterAreaRoom() {
 }
 
 type AnyAreaRoom = Awaited<ReturnType<typeof areaRoom>>
-
-/** Answers every save the area still waits on with `faces[actorId]` (a failing 1 unless named). */
-async function answerAllSaves(room: AnyAreaRoom, faces: Record<string, number> = {}) {
-  for (;;) {
-    const decision = await readPendingActionDecision(room.room.base.stub)
-    if (decision?.pending.kind !== 'AREA_SAVES') return
-    const [save] = decision.pending.saves
-    if (!save) return
-    const answer = await room.send(
-      room.resolveCommand(decision, {
-        kind: 'ENTER_DICE',
-        requestId: save.request.requestId,
-        rawFaces: [faces[save.actorId] ?? 1],
-        rollMode: save.request.rollMode
-      })
-    )
-    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
-  }
-}
 
 /** The rows without the stamp a write refreshes, so two reads of the same state compare equal. */
 const unstamped = (rows: readonly object[]) =>

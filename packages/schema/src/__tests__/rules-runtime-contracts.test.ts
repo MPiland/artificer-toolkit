@@ -1215,6 +1215,21 @@ describe('rules runtime contracts', () => {
       activeRuleEffectStateDtoSchema.parse(withTriggers([anyone, sourceSide], encounterOrigin))
         .definition.recurrence.endOnTriggers
     ).toEqual([anyone, sourceSide])
+    const attacksEnemy = { event: 'ATTACK_ROLL', against: 'ENEMY' }
+    const castsAtEnemy = { event: 'SPELL_CAST', against: 'ENEMY' }
+    expect(
+      activeRuleEffectStateDtoSchema.parse(withTriggers([attacksEnemy, anyone, castsAtEnemy]))
+        .definition.recurrence.endOnTriggers
+    ).toEqual([attacksEnemy, anyone, castsAtEnemy])
+    expect(() =>
+      activeRuleEffectStateDtoSchema.parse(withTriggers([castsAtEnemy, attacksEnemy]))
+    ).toThrow('Active-effect end triggers must be sorted.')
+    expect(() =>
+      activeRuleEffectStateDtoSchema.parse(withTriggers([{ ...attacksEnemy, against: 'ALLY' }]))
+    ).toThrow()
+    expect(() =>
+      activeRuleEffectStateDtoSchema.parse(withTriggers([{ event: 'ATTACK_ROLL' }]))
+    ).toThrow()
     expect(() => activeRuleEffectStateDtoSchema.parse(withTriggers([anyone, anyone]))).toThrow(
       'Active-effect end triggers must be unique.'
     )

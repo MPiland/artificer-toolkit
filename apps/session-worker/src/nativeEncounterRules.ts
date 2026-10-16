@@ -40,6 +40,7 @@ import {
 import { encounterActionTargetKind } from '@artificer-toolkit/rules-runtime/encounterAreaAction'
 import {
   actionEndedEffects,
+  actsAgainstEnemy,
   damageTakenEndedEffects
 } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
 import { encounterSceneGridPolicyRegistry } from '@artificer-toolkit/rules-runtime/sceneGridPolicyRegistry'
@@ -122,6 +123,7 @@ import {
   restoreEncounterActionPending
 } from '@artificer-toolkit/rules-runtime/encounterActionPendingSnapshot'
 import { planNativeEncounterActionMechanics } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPlan'
+import { projectSpellSlotSpend } from '@artificer-toolkit/rules-runtime/encounterActionProjection'
 import {
   liveSessionEncounterActionPendingInputSchema,
   liveSessionEncounterActionCommitInputSchema
@@ -680,13 +682,19 @@ export async function planNativeLiveEncounterAction(
   // cast (Invisibility) releases the condition it alone held in the source's own batch. A new
   // Concentration already ends its replaced dependents, and releases their conditions, with the
   // maintenance transition, so those are not ended a second time here.
+  const dispositions = new Map(actors.map(({ id, disposition }) => [id, disposition]))
   const { consumedGrants, sourceReleases } = actionEndedEffects({
     holderActorId: prepared.actor.id,
     held: (activeEffectsByActorId.get(prepared.actor.id) ?? []).filter(
       (effect) => !maintenance?.removed.some((removed) => removed.id === effect.id)
     ),
     makesAttackRoll: typeof prepared.binding.actionMechanic.attackBonus === 'number',
-    castsSpell: preparedCastsSpell(prepared)
+    castsSpell: preparedCastsSpell(prepared),
+    againstEnemy: actsAgainstEnemy({
+      actorId: prepared.actor.id,
+      targetActorIds: [prepared.target.id],
+      dispositions
+    })
   })
   const currentnessChecksum = encounterActionCurrentnessChecksum({
     prepared,
@@ -773,6 +781,24 @@ export async function planNativeLiveEncounterAction(
       ? (snapshot.applicationContext.failedCounters ?? [])
       : []
   let castDiscovery: Promise<ReturnType<typeof discoverNativeCastReactions>> | undefined
+  const castConsumption = prepared.characterActionState?.spellConsumption
+  /**
+   * A reactor counters against the slots it has left. The cast's own caster counters a counter cast
+   * against its cast with the cast's slot already spent, on the Character version both spends commit in.
+   */
+  const castSpentTarget = (
+    reactorActorId: string,
+    reactorTarget: Awaited<ReturnType<typeof loadTarget>>
+  ) =>
+    castConsumption && reactorActorId === prepared.actor.id
+      ? projectSpellSlotSpend({
+          target: reactorTarget,
+          consumption: castConsumption,
+          campaignId: state.campaignId,
+          gameSystemId: state.gameSystemId,
+          occurredAt
+        })
+      : reactorTarget
   /** The creatures that may counter this cast, read once from the Scene the cast names. */
   const discoverCast = (level: number) =>
     (castDiscovery ??= (async () => {
@@ -804,7 +830,7 @@ export async function planNativeLiveEncounterAction(
             wieldConflictAcceptance: { kind: 'UNPROMPTED' },
             overridable: false,
             movementTargets: new Map(movementTargets)
-              .set(reactor.id, reactorTarget)
+              .set(reactor.id, castSpentTarget(reactor.id, reactorTarget))
               .set(against.id, movementTargets.get(against.id) ?? (await loadTarget(against))),
             sceneContext: null,
             ...actionSources
@@ -1091,7 +1117,12 @@ export async function planNativeLiveEncounterAction(
             (effect) => !consumedGrants.some((ended) => ended.id === effect.id)
           ),
           makesAttackRoll: false,
-          castsSpell: true
+          castsSpell: true,
+          againstEnemy: actsAgainstEnemy({
+            actorId: reactionUse.prepared.actor.id,
+            targetActorIds: [reactionUse.prepared.target.id],
+            dispositions
+          })
         })
       : null
   const failedSpends = await plannedFailedCounters(failedCounters)
@@ -1121,7 +1152,7 @@ export async function planNativeLiveEncounterAction(
     ),
     applications,
     damagerActorId: prepared.actor.id,
-    dispositions: new Map(actors.map(({ id, disposition }) => [id, disposition]))
+    dispositions
   })
   const planned = planNativeEncounterActionMechanics(
     {

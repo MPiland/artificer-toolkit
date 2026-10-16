@@ -2,18 +2,14 @@ import {
   creatureFeature,
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
-import { plannedTimedCondition } from '@artificer-toolkit/rules-runtime/testing/plannedTimedCondition'
 import type { ActiveEffectEndTrigger } from '@artificer-toolkit/schema/shared/activeRuleEffects'
-import { invisibility } from '@artificer-toolkit/source-data/srd/spells/invisibility.js'
-import {
-  SRD_CONDITION_TYPES,
-  SRD_DAMAGE_TYPES
-} from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import { SRD_DAMAGE_TYPES } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { plainWolf } from '../src/testing/movementPlannerFixture.js'
 import { actionRoom, biteWolf } from './actionRoomFixture.js'
+import { endTriggerEffectSeed, INVISIBLE_ID } from './endTriggerEffectSeed.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
 import { readActorConditionIds, readRoomHistory } from './roomHistoryReads.js'
 
@@ -26,7 +22,6 @@ const ATTACKER_ID = testUuid(0x900)
 const HOLDER_ID = testUuid(0x901)
 const SOURCE_ID = testUuid(0x902)
 const EFFECT_ID = testUuid(0x5600)
-const INVISIBLE_ID = SRD_CONDITION_TYPES.find(({ code }) => code === 'INVISIBLE')!.id
 const FIRE_ID = SRD_DAMAGE_TYPES.find(({ code }) => code === 'FIRE')!.id
 /** A Wolf whose Bite hits for 3 damage of the SRD's type. */
 const attacker = biteWolf('ATTACK', { damage: 3 })
@@ -60,27 +55,12 @@ function damageRoom(input: {
     // An invisible target is attacked with disadvantage: two d20s, both the same.
     rolls: [input.attackRoll ?? 14, input.attackRoll ?? 14],
     fallbackRoll: 0,
-    seed: async ({ effects, encounterId, occurredAt }) => {
-      const planned = plannedTimedCondition({
-        encounterId,
-        sourceActorId,
-        holderActorId: HOLDER_ID,
-        spell: invisibility,
-        lifetimeScope: 'ENCOUNTER'
-      })
-      if (planned.definition.schemaVersion !== 2)
-        throw new Error('A condition-owning effect is version 2.')
-      await effects.create({
-        id: EFFECT_ID,
-        owner: { kind: 'ENCOUNTER_ACTOR', encounterId, targetActorId: HOLDER_ID },
-        definition: {
-          ...planned.definition,
-          recurrence: { ...planned.definition.recurrence, endOnTriggers: [input.trigger] }
-        },
-        lifecycle: planned.lifecycle,
-        occurredAt
-      })
-    }
+    seed: endTriggerEffectSeed({
+      effectId: EFFECT_ID,
+      holderActorId: HOLDER_ID,
+      sourceActorId,
+      triggers: [input.trigger]
+    })
   })
 }
 

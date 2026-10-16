@@ -34,6 +34,7 @@ import {
   pathGroupTypeSchema,
   pathLifecycleConsumeEventSchema,
   pathLifecycleEndEventSchema,
+  pathLifecycleEndTriggerAgainstSchema,
   pathLifecycleEndTriggerBySchema,
   pathLifecycleRecurringKindSchema,
   pathLifecycleTurnActorSchema,
@@ -133,14 +134,20 @@ export const pathLifecycleDtoSchema = lazySchema(() =>
       authoredReferenceCollectionSchema(pathLifecycleConsumeEventSchema)
     ),
     endOnEvents: z.optional(authoredReferenceCollectionSchema(pathLifecycleEndEventSchema)),
-    /** Structured events that end the effect early, each with a filter on whose damage and which types. */
+    /** Structured events that end the effect early, each with its own filter. */
     endOnTriggers: z.optional(
       authoredReferenceCollectionSchema(
-        z.strictObject({
-          event: z.literal('DAMAGE_TAKEN'),
-          by: pathLifecycleEndTriggerBySchema,
-          damageTypeIds: z.optional(damageTypeFilterDtoSchema)
-        })
+        z.discriminatedUnion('event', [
+          z.strictObject({
+            event: z.literal('DAMAGE_TAKEN'),
+            by: pathLifecycleEndTriggerBySchema,
+            damageTypeIds: z.optional(damageTypeFilterDtoSchema)
+          }),
+          z.strictObject({
+            event: z.enum(['ATTACK_ROLL', 'SPELL_CAST']),
+            against: pathLifecycleEndTriggerAgainstSchema
+          })
+        ])
       )
     ),
     /** Condition type ids; the effect ends early while its holder has any of them. */

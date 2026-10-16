@@ -10,8 +10,9 @@ import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.
 import type { EncounterWriteContext } from './store.js'
 
 /**
- * Checks each counter that failed against a cast: its reactor is another Character of the run, named once,
- * and the slot it spends is the one its receipt recorded. Returns what each reactor's mechanics apply.
+ * Checks each counter that failed against a cast: its reactor is a Character of the run, named once, and
+ * the slot it spends is the one its receipt recorded. The cast's own source may counter a counter cast
+ * against it, never its own cast. Returns what each reactor's mechanics apply.
  */
 export function failedCounterSpends(input: {
   failedCounters: readonly LiveSessionFailedCounter[]
@@ -24,7 +25,7 @@ export function failedCounterSpends(input: {
     const reactor = input.actors.find((actor) => actor.id === reaction.reactorActorId)
     if (
       reactor?.kind !== 'CHARACTER' ||
-      reactor.id === input.source.id ||
+      (reactor.id === input.source.id && failed.receipt.againstActorId === input.source.id) ||
       reactor.sourceId !== reaction.characterId ||
       seen.has(reactor.id)
     )
@@ -53,8 +54,8 @@ export type FailedCounterSpend = ReturnType<typeof failedCounterSpends>[number]
 
 /**
  * Spends each failed reactor's slot and reaction with the cast's terminal commit (D127) and returns the
- * reactors as settled. The reactor named by `exceptActorId` is the cast's target: its spend rides in the
- * target's own mechanics, and the caller settles it there.
+ * reactors as settled. The reactors named by `exceptActorIds` are the cast's source and target: their
+ * spend rides in their own mechanics beside the cast's, and the caller settles them there.
  */
 export async function applyFailedCounterSpends(
   ctx: EncounterWriteContext,
@@ -64,7 +65,7 @@ export async function applyFailedCounterSpends(
     sourceCommandId: string
     occurredAt: string
     spends: readonly FailedCounterSpend[]
-    exceptActorId: string | null
+    exceptActorIds: readonly string[]
     applyMechanics(
       batch: Omit<EncounterMechanicsBatchInput, 'expectedCharacterStreamVersion'>
     ): Promise<EncounterMechanicsBatchResult>
@@ -73,7 +74,7 @@ export async function applyFailedCounterSpends(
 ) {
   const settled = new Map<string, EncounterRunActorState>()
   for (const { failed, reactor, spends, mutation } of input.spends) {
-    if (reactor.id === input.exceptActorId) continue
+    if (input.exceptActorIds.includes(reactor.id)) continue
     const mechanics = spends
       ? await input.applyMechanics({
           encounterId: input.state.id,
