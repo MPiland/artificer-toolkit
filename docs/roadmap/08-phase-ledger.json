@@ -8186,7 +8186,7 @@
             },
             {
               "id": "SPELLS-19.T3b",
-              "text": "Copper Slowing (4) and Gold Weakening (4) breaths re-authored from core options as a grant plus repeat save, the grant gated on the failed save, no closed rule; corpus pin updated row by row.",
+              "text": "Gold Weakening (4) and the speed and reaction riders of Copper Slowing (4) re-authored from core options as a grant plus repeat save, the grant gated on the failed save (compiler fix), no closed rule. Additive core options: an optional ability scope on the ATTACK_ROLL domain read by Creature and Character folds, plain ability-scoped save advantage/disadvantage read for Creature holders, and a SPEED fraction payload rounded down per D94. Corpus pin updated row by row.",
               "status": "IN_PROGRESS",
               "closes": ["SPELLS-19.2"],
               "wsjf": {
@@ -8208,6 +8208,19 @@
                 "tc": 3,
                 "rr": 3,
                 "size": 3,
+                "after": ["SPELLS-19.T3"]
+              }
+            },
+            {
+              "id": "SPELLS-19.T3d",
+              "text": "Action-economy limits from core options, enforced in the room: a cap on attacks per Attack action that lowers Extra Attack, and action-or-bonus-action exclusivity for the turn. Copper Slowing's attack and action riders authored with them, closing the Copper rows. Generic, so the SRD Slow spell can reuse it.",
+              "status": "TODO",
+              "closes": ["SPELLS-19.2"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 3,
+                "rr": 3,
+                "size": 5,
                 "after": ["SPELLS-19.T3b"]
               }
             },
@@ -8683,7 +8696,7 @@
             },
             {
               "id": "SPELLS-28.T4",
-              "text": "Polymorph, True Polymorph, Shapechange and Wild Shape authored from core options on the CREATURE_FORM grant SPELLS-28.T2 builds (separate form HP, revert at 0 with carry-over, revert at duration end), with a corpus proof against the real compiler and one journey.",
+              "text": "Polymorph, True Polymorph (creature to creature), Shapechange (creature form) and Wild Shape authored from core options on the CREATURE_FORM grant, which also applies to CHARACTER Run actors (D130 amendment: one form shape and one revert path; form HP on the actor, carry-over through the Sheet damage batch). A rule-filtered form choice beside the fixed list (creature type, CR cap from target CR/level, caster level or fixed, excluded speed modes), validated at cast against the System creature corpus. Wild Shape and Shapechange keep the origin's Intelligence, Wisdom and Charisma and its save and skill proficiencies (higher bonus wins); casting is refused in a form that cannot cast. Corpus proof against the real compiler and one journey.",
               "status": "IN_PROGRESS",
               "closes": ["SPELLS-28.1"],
               "wsjf": {
@@ -8694,6 +8707,19 @@
                 "after": ["SPELLS-28.T2"]
               },
               "activeWorkbook": "docs/handoffs/slice-spells-28.md"
+            },
+            {
+              "id": "SPELLS-28.T4b",
+              "text": "A Character's creature form outlasts the Run like its other timed grants (D99 carry-over): at COMPLETE the form grant keeps its form HP and gets a Campaign-minute expiry, the next Run's actor resumes it, and ending it on the Sheet reverts without carry-over.",
+              "status": "TODO",
+              "closes": ["SPELLS-28.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-28.T4"]
+              }
             }
           ]
         },
@@ -9105,8 +9131,13 @@
             {
               "id": "REACTION-4.3",
               "text": "A Counterspell is itself a cast that can be countered: other eligible casters in range are offered their own Counterspell, and the chain resolves innermost first inside the one triggering occurrence; a countered cast spends its slot and action and has no effect.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/session-worker/test/nativeRoomCounterspell.test.ts",
+                "packages/rules-runtime/src/__tests__/encounterMechanicsBatchPlan.test.ts",
+                "apps/apis/convex/encounters/mechanicsBatch.test.ts",
+                "apps/apis/convex/encounters/mechanicsBatch.character.test.ts"
+              ],
               "origin": [],
               "note": "Registered 2026-10-15 at the REACTION-4 design review (SRD Counterspell rules; the design keeps one pending occurrence per Run)."
             },
@@ -9239,8 +9270,8 @@
             },
             {
               "id": "REACTION-4.T3g",
-              "text": "The original caster is offered a counter to a Counterspell cast against their own spell: failedCounterSpends lets the cast's source spend against a counter in the chain (never against their own cast). Record the chain model as a dated D127 amendment and remove the gap from future-enhancements. Ruling W: one actor's spell spends in one terminal commit are one ordered mechanics batch (cast, then counter) with one stream bump; discovery projects the pending cast's spend before offering its source a counter; covers the source-is-target fold.",
-              "status": "IN_PROGRESS",
+              "text": "The original caster is offered a counter to a Counterspell cast against their own spell: failedCounterSpends lets the cast's source spend against a counter in the chain (never against their own cast). Record the chain model as a dated D127 amendment and remove the gap from future-enhancements. Ruling W: one actor's spell spends in one terminal commit are one ordered mechanics batch (cast, then counter) with one stream bump; discovery projects the pending cast's spend before offering its source a counter; covers the source-is-target fold. (Red: ci/reaction-4-t3g Tests 38930857134 on d29f9ebb9 failed on the pending cast reaction mismatch. Green: ci/reaction-4-t3g Tests 38939646653 and Live backend 38939646634 on df0004cc1.)",
+              "status": "DONE",
               "closes": ["REACTION-4.3"],
               "wsjf": {
                 "bv": 5,
@@ -9248,13 +9279,12 @@
                 "rr": 3,
                 "size": 5,
                 "after": ["REACTION-4.T3d"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-reaction-4.md"
+              }
             },
             {
               "id": "REACTION-4.T3e",
               "text": "Cast reactions for creature-capability casts, chosen-creature (ACTORS) casts and area casts: the same CAST_REACTION pause and countered-cast terminal as a Character single-target cast.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["REACTION-4.1"],
               "wsjf": {
                 "bv": 5,
@@ -9262,7 +9292,8 @@
                 "rr": 3,
                 "size": 3,
                 "after": ["REACTION-4.T3b"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-reaction-4.md"
             },
             {
               "id": "REACTION-4.T4",
