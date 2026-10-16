@@ -525,7 +525,8 @@ describe('Disarm receipt outputs', () => {
       targetRoll: input.rolls.defender,
       outcome: input.outcome,
       stateTransition: input.stateTransition,
-      actionEconomyTransition: input.actionEconomyTransition
+      actionEconomyTransition: input.actionEconomyTransition,
+      sourceApplications: []
     }
   }
 
@@ -537,7 +538,8 @@ describe('Disarm receipt outputs', () => {
         contest,
         rolls: settled,
         stateTransition: won.stateTransition,
-        actionEconomy
+        actionEconomy,
+        sourceApplications: []
       })
     ).toEqual(
       expectedOutputs({
@@ -560,7 +562,8 @@ describe('Disarm receipt outputs', () => {
         contest,
         rolls: settled,
         stateTransition: { kind: 'NONE' },
-        actionEconomy: null
+        actionEconomy: null,
+        sourceApplications: []
       })
     ).toEqual(
       expectedOutputs({
@@ -579,7 +582,8 @@ describe('Disarm receipt outputs', () => {
         contest,
         rolls: rolls(10, 13),
         stateTransition: won.stateTransition,
-        actionEconomy
+        actionEconomy,
+        sourceApplications: []
       })
     ).toThrow('A contested-action target win or tie cannot mutate item state.')
     expect(() =>
@@ -588,7 +592,8 @@ describe('Disarm receipt outputs', () => {
         contest,
         rolls: rolls(12, 10),
         stateTransition: { kind: 'NONE' },
-        actionEconomy
+        actionEconomy,
+        sourceApplications: []
       })
     ).toThrow('A contested-action source win requires one state transition.')
   })
@@ -606,7 +611,8 @@ describe('Disarm receipt outputs', () => {
       contest: withEvidence,
       rolls: rolls(12, 10),
       stateTransition: won.stateTransition,
-      actionEconomy
+      actionEconomy,
+      sourceApplications: []
     })
     expect(settled.sealedContextChecksum).toBe(checksumRuleDocument(withEvidence))
     expect(settled.sealedContextChecksum).not.toBe(checksumRuleDocument(contest))

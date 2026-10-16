@@ -764,7 +764,7 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = lazySchema
             consumption !== null ||
             spell !== null ||
             sourceMaintenanceMutation ||
-            sourceApplicationsChangeState(value.sourceApplications)
+            sourceApplicationsChangeState(value.sourceApplications, value.sourceCharacterId ?? null)
           )
         )
           context.addIssue({
@@ -965,7 +965,9 @@ export const contestedActionApplicationOutputDtoSchema = lazySchema(() =>
           destination: z.strictObject({ x: z.number(), y: z.number() })
         })
       ]),
-      actionEconomyTransition: z.nullable(encounterActionEconomyTransitionDtoSchema)
+      actionEconomyTransition: z.nullable(encounterActionEconomyTransitionDtoSchema),
+      /** The source's own conditions released by effects its attack roll ended; empty when none. */
+      sourceApplications: sourceApplicationsDtoSchema
     })
     .check(
       z.superRefine((value, context) => {

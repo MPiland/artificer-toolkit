@@ -10,6 +10,7 @@ import type {
 import type { LiveSessionEncounterRulesInput } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import type { LiveSessionRulesRevisions } from '@artificer-toolkit/schema/api/liveSessionRulesRevisions'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
+import { applyRoomEncounterMechanicsBatch } from './roomEncounterMechanics.js'
 import { planNativeLiveDisarm } from './nativeDisarm.js'
 import { readRoomEncounterTurnCapture } from './roomEncounterTurnCapture.js'
 import { assertRoomEncounterRulesRevisions } from './roomEncounterTurns.js'
@@ -72,7 +73,18 @@ export async function executeRoomEncounterDisarm(input: {
     readActionSceneInputs: (state, command) =>
       readRoomActionSceneInputs(ctx, transaction, state, command),
     validateReadFence: async (state, characterIds, revisions) =>
-      assertRoomEncounterRulesRevisions(observed, state, characterIds, revisions)
+      assertRoomEncounterRulesRevisions(observed, state, characterIds, revisions),
+    applyMechanics: (batch) =>
+      applyRoomEncounterMechanicsBatch({
+        ctx,
+        store,
+        transaction,
+        inputs,
+        campaignId: scope.campaignId,
+        epoch: scope.authorityEpoch,
+        observed,
+        batch
+      })
   }
   return plan.kind === 'PENDING'
     ? persistEncounterDisarmPending(ctx, { ...plan.input, revisions }, callbacks)

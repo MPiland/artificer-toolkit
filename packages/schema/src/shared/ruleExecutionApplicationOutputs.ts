@@ -420,7 +420,7 @@ const characterMechanicsBatchApplicationOutputDtoSchema = lazySchema(() =>
           stow !== null ||
           consumption !== null ||
           spell !== null ||
-          sourceApplicationsChangeState(value.sourceApplications)
+          sourceApplicationsChangeState(value.sourceApplications, value.sourceCharacterId)
         if (
           spell &&
           (value.sourceCharacterId === null || spell.characterId !== value.sourceCharacterId)
