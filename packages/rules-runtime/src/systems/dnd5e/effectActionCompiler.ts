@@ -61,6 +61,7 @@ import type {
 import { CharacterRuleActionUnsupportedCompilationError } from '../../characterRuleActionSystemAdapter.js'
 import { encounterAreaTargetKind } from '../../encounterAreaAction.js'
 import { placedSpaceZone, zoneTriggerModes } from '../../encounterZonePlacement.js'
+import { selectScalingRow } from '../../scalingRowSelection.js'
 import {
   BASIC_ACTION_DEFINITION_FAMILY_KEY,
   CONDITION_RULE_STATE_DEFINITION_FAMILY_KEY,
@@ -385,6 +386,7 @@ type Dnd5eCompiledEffectActionSource = Pick<
   | 'conditionDefinitionIds'
   | 'savingThrowAbilityDefinitionId'
   | 'compiledEffect'
+  | 'spellCastLevel'
 >
 interface TestPlan {
   kind: TestKind
@@ -2075,6 +2077,29 @@ function validateDamageBonuses(value: unknown): void {
   }
 }
 
+/**
+ * The dice a heal rolls: its one authored value, or the row the spell's cast level reaches. A
+ * heal's dice count shapes its graph, so the cast level is a compile input rather than a runtime fact.
+ */
+function healDiceConfiguration(
+  outcome: Record<string, unknown>,
+  spellCastLevel: number | undefined
+): string {
+  if (outcome.scalingKind === 'NONE' && typeof outcome.diceConfig === 'string')
+    return outcome.diceConfig
+  if (
+    outcome.scalingKind !== 'PER_LEVEL' ||
+    outcome.scalingSource !== 'SPELL_CAST_LEVEL' ||
+    !Array.isArray(outcome.levels)
+  )
+    unsupported('D&D dice healing requires one authored dice value or spell cast level rows.')
+  if (spellCastLevel === undefined) unsupported('D&D dice healing scaling facts are unavailable.')
+  const row = selectScalingRow(outcome.levels as readonly Record<string, unknown>[], spellCastLevel)
+  if (!row || typeof row.diceConfig !== 'string')
+    unsupported('D&D dice healing scaling does not select an authored value.')
+  return row.diceConfig
+}
+
 function validateHealBonuses(value: unknown): void {
   if (value === undefined) return
   if (!Array.isArray(value) || value.length > 100)
@@ -2331,14 +2356,9 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
   if (outcome.effectKind !== 'HEAL' && outcome.effectKind !== 'DAMAGE')
     unsupported('D&D Effect action outcome is not a supported hit-point or condition outcome.')
   if (outcome.effectKind === 'HEAL' && outcome.valueKind === 'DICE') {
-    if (
-      outcome.scalingKind !== 'NONE' ||
-      !('diceConfig' in outcome) ||
-      typeof outcome.diceConfig !== 'string'
-    ) {
-      unsupported('D&D dice healing requires one unscaled authored dice value.')
-    }
-    parseBoundedDiceConfiguration(outcome.diceConfig)
+    parseBoundedDiceConfiguration(
+      healDiceConfiguration(outcome as unknown as Record<string, unknown>, action.spellCastLevel)
+    )
     validateHealBonuses(outcome.bonuses)
     return { kind: 'DICE_HEAL', temporary: outcome.temporary ?? false }
   }
@@ -3605,19 +3625,10 @@ function exactDiceConfiguration(
         unsupported('D&D class dice scaling facts are unavailable.')
       level = value
     }
-    const candidates = outcomes
-      .filter(
-        (candidate) =>
-          typeof candidate.level === 'number' &&
-          Number.isSafeInteger(candidate.level) &&
-          candidate.level <= level &&
-          typeof candidate.dice === 'string'
-      )
-      .sort(
-        (left, right) =>
-          Number(right.level) - Number(left.level) || Number(left.order) - Number(right.order)
-      )
-    const selected = candidates[0]
+    const selected = selectScalingRow(
+      outcomes.filter((candidate) => typeof candidate.dice === 'string'),
+      level
+    )
     if (!selected || typeof selected.dice !== 'string')
       unsupported('D&D dice scaling does not select an authored value.')
     authored = selected.dice
@@ -4794,7 +4805,10 @@ function compileDnd5eEffectAction({
     const definition = diceGraphDefinition({
       action,
       entry,
-      diceConfig: compiledDiceConfiguration(entry),
+      diceConfig: healDiceConfiguration(
+        entry.outcome as unknown as Record<string, unknown>,
+        action.spellCastLevel
+      ),
       modifierFactKey: DND5E_RESOLVED_HEAL_MODIFIER_FACT_KEY,
       ...(recurringPlan ? { recurring: recurringPlan } : {})
     })
