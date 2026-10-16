@@ -8225,17 +8225,30 @@
           "tasks": [
             {
               "id": "SPELLS-20.T1",
-              "text": "Spirit Guardians as a SOURCE zone authored from core options: a 15 ft aura on the caster's token that moves with the caster; a creature it catches on entry, or when the caster moves onto it, makes the save against the caster's spell DC and takes the damage; GM undo removes it.",
+              "text": "Rolled damage dice on zone entry, generic to every zone: a DICE roll request through the executor and spatial pending path, owned by the zone source's controller (ADR 0034 roll prompts, auto-roll preference or entered dice), recorded in the receipt so undo and replay stay deterministic. Proved on an existing damaging placed zone (such as Cloud of Daggers on entry) with GM undo.",
               "status": "IN_PROGRESS",
               "closes": ["SPELLS-20.1"],
               "wsjf": {
                 "bv": 8,
                 "tc": 3,
                 "rr": 5,
-                "size": 8,
+                "size": 5,
                 "after": ["SPELLS-17", "SPELLS-25"]
               },
               "activeWorkbook": "docs/handoffs/slice-spells-20.md"
+            },
+            {
+              "id": "SPELLS-20.T1b",
+              "text": "Spirit Guardians as a SOURCE zone authored from core options: a 15 ft aura on the caster's token that moves with the caster; a creature it catches on entry, or when the caster moves onto it, makes the save against the caster's spell DC and takes the damage; GM undo removes it.",
+              "status": "TODO",
+              "closes": ["SPELLS-20.1"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 3,
+                "rr": 5,
+                "size": 8,
+                "after": ["SPELLS-20.T1"]
+              }
             },
             {
               "id": "SPELLS-20.T2",
@@ -8247,7 +8260,7 @@
                 "tc": 3,
                 "rr": 5,
                 "size": 3,
-                "after": ["SPELLS-20.T1"]
+                "after": ["SPELLS-20.T1b"]
               }
             },
             {
@@ -8260,7 +8273,7 @@
                 "tc": 5,
                 "rr": 3,
                 "size": 3,
-                "after": ["SPELLS-20.T1"]
+                "after": ["SPELLS-20.T1b"]
               }
             },
             {
@@ -8273,7 +8286,7 @@
                 "tc": 3,
                 "rr": 3,
                 "size": 5,
-                "after": ["SPELLS-20.T1"]
+                "after": ["SPELLS-20.T1b"]
               }
             },
             {
@@ -8286,7 +8299,7 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 5,
-                "after": ["SPELLS-20.T1"]
+                "after": ["SPELLS-20.T1b"]
               }
             },
             {
