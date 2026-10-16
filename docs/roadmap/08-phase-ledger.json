@@ -9131,8 +9131,13 @@
             {
               "id": "REACTION-4.3",
               "text": "A Counterspell is itself a cast that can be countered: other eligible casters in range are offered their own Counterspell, and the chain resolves innermost first inside the one triggering occurrence; a countered cast spends its slot and action and has no effect.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/session-worker/test/nativeRoomCounterspell.test.ts",
+                "packages/rules-runtime/src/__tests__/encounterMechanicsBatchPlan.test.ts",
+                "apps/apis/convex/encounters/mechanicsBatch.test.ts",
+                "apps/apis/convex/encounters/mechanicsBatch.character.test.ts"
+              ],
               "origin": [],
               "note": "Registered 2026-10-15 at the REACTION-4 design review (SRD Counterspell rules; the design keeps one pending occurrence per Run)."
             },
@@ -9265,8 +9270,8 @@
             },
             {
               "id": "REACTION-4.T3g",
-              "text": "The original caster is offered a counter to a Counterspell cast against their own spell: failedCounterSpends lets the cast's source spend against a counter in the chain (never against their own cast). Record the chain model as a dated D127 amendment and remove the gap from future-enhancements. Ruling W: one actor's spell spends in one terminal commit are one ordered mechanics batch (cast, then counter) with one stream bump; discovery projects the pending cast's spend before offering its source a counter; covers the source-is-target fold.",
-              "status": "IN_PROGRESS",
+              "text": "The original caster is offered a counter to a Counterspell cast against their own spell: failedCounterSpends lets the cast's source spend against a counter in the chain (never against their own cast). Record the chain model as a dated D127 amendment and remove the gap from future-enhancements. Ruling W: one actor's spell spends in one terminal commit are one ordered mechanics batch (cast, then counter) with one stream bump; discovery projects the pending cast's spend before offering its source a counter; covers the source-is-target fold. (Red: ci/reaction-4-t3g Tests 38930857134 on d29f9ebb9 failed on the pending cast reaction mismatch. Green: ci/reaction-4-t3g Tests 38939646653 and Live backend 38939646634 on df0004cc1.)",
+              "status": "DONE",
               "closes": ["REACTION-4.3"],
               "wsjf": {
                 "bv": 5,
@@ -9274,13 +9279,12 @@
                 "rr": 3,
                 "size": 5,
                 "after": ["REACTION-4.T3d"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-reaction-4.md"
+              }
             },
             {
               "id": "REACTION-4.T3e",
               "text": "Cast reactions for creature-capability casts, chosen-creature (ACTORS) casts and area casts: the same CAST_REACTION pause and countered-cast terminal as a Character single-target cast.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["REACTION-4.1"],
               "wsjf": {
                 "bv": 5,
@@ -9288,7 +9292,8 @@
                 "rr": 3,
                 "size": 3,
                 "after": ["REACTION-4.T3b"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-reaction-4.md"
             },
             {
               "id": "REACTION-4.T4",
