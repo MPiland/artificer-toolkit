@@ -3862,8 +3862,11 @@
             },
             {
               "text": "Maintenance has multi-Character and detached-Character variants, plus the CHARACTER-owner maintenance producer test.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/session-worker/test/nativeRoomMaintenanceVariants.test.ts",
+                "apps/session-worker/test/nativeRoomCharacterSources.test.ts"
+              ],
               "origin": [],
               "id": "ROOM-6.3"
             },
@@ -3876,15 +3879,15 @@
             },
             {
               "text": "Empty-prior maintenance (RETAIN_UNTIL_TERMINAL) is proved room-side.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": ["apps/session-worker/test/nativeRoomMaintenanceVariants.test.ts"],
               "origin": [],
               "id": "ROOM-6.5"
             },
             {
               "text": "Assisted maintenance pauses and stale refusals are proved, using a room seed route.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": ["apps/session-worker/test/nativeRoomMaintenanceVariants.test.ts"],
               "origin": [],
               "id": "ROOM-6.6"
             },
@@ -3977,21 +3980,20 @@
             },
             {
               "id": "ROOM-6.T2",
-              "text": "Maintenance variants proved room-side: multi-Character, detached, empty-prior and Assisted pauses.",
-              "status": "IN_PROGRESS",
+              "text": "Maintenance variants proved room-side: multi-Character, detached, empty-prior and Assisted pauses. (Proof only, no product change; the ROOM-6.5 room errors were a fixture source-occurrence bug. A detached owner that is not a Run actor is deferred under Deferred edge cases (fixture limit; production shares the GM-removed load path). Green: ci/room-6-t2 Tests 38935190197 and Live backend 38935190347 on 894ddca5b.)",
+              "status": "DONE",
               "closes": ["ROOM-6.3", "ROOM-6.5", "ROOM-6.6"],
               "wsjf": {
                 "bv": 1,
                 "tc": 1,
                 "rr": 5,
                 "size": 5
-              },
-              "activeWorkbook": "docs/handoffs/slice-room-6.md"
+              }
             },
             {
               "id": "ROOM-6.T3",
               "text": "Remaining room-side proofs: spatial save hazard, movement receipts, Disarm, Longsword and R2 equipment seeding, movement coverage and initiative receipts.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": [
                 "ROOM-6.2",
                 "ROOM-6.4",
@@ -4006,7 +4008,8 @@
                 "tc": 1,
                 "rr": 5,
                 "size": 8
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-room-6.md"
             },
             {
               "id": "ROOM-6.T4",
