@@ -6139,7 +6139,11 @@ it('lists a creature whose token the map hides only as far as the GM reveals it 
         ? [message.session.state.encounter?.actors ?? []]
         : []
     )
-    return frames.at(-1)?.map(({ id, label, unseenReason }) => ({ id, label, unseenReason }))
+    return frames.at(-1)?.map((actor) => ({
+      id: actor.id,
+      label: actor.label,
+      unseenReason: 'unseenReason' in actor ? actor.unseenReason : undefined
+    }))
   }
   const visible = { id: actors[0]!.id, label: actors[0]!.label, unseenReason: null }
   player.socket.send(JSON.stringify({ type: 'SUBSCRIBE_ENCOUNTER_SESSION', timeline: false }))
