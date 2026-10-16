@@ -669,7 +669,10 @@ function hitPointPoolCovered<Caught extends { actor: EncounterRunActorState }>(
   const covered = new Set(
     selectHitPointPoolTargets(
       pool,
-      eligible.map(({ actor }) => ({ actorId: actor.id, currentHitPoints: movementTargets.get(actor.id)!.state.current }))
+      eligible.map(({ actor }) => ({
+        actorId: actor.id,
+        currentHitPoints: movementTargets.get(actor.id)!.state.current
+      }))
     )
   )
   return eligible.filter(({ actor }) => covered.has(actor.id))
@@ -790,7 +793,10 @@ export async function planNativeLiveEncounterAreaAction(input: AreaPlanInput) {
       plan: lead.prepared.plan,
       occurrenceId: window.occurrenceId,
       rollsPerTarget: false,
-      targets: reached.map(({ actor, prepared }) => ({ actorId: actor.id, binding: prepared.binding }))
+      targets: reached.map(({ actor, prepared }) => ({
+        actorId: actor.id,
+        binding: prepared.binding
+      }))
     })
     return completeAreaCommit({
       input,

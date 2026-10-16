@@ -33,8 +33,11 @@ type EndEventCover =
   | {
       /** Needs a mechanic the effect forms do not carry yet; the named task adds it. */
       mechanism: 'REGISTERED_FOLLOW_UP'
-      task: 'T7 Sanctuary' | 'T9 Hypnotic Pattern' | 'T11 margin-of-failure riders'
-      | 'T12 wake by action'
+      task:
+        | 'T7 Sanctuary'
+        | 'T9 Hypnotic Pattern'
+        | 'T11 margin-of-failure riders'
+        | 'T12 wake by action'
     }
 
 const GM_ADJUDICATED: EndEventCover = { mechanism: 'GM_ADJUDICATED' }

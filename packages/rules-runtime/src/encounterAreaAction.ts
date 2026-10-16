@@ -111,7 +111,10 @@ export function resolveAreaContentsTargeting(
   levels: { spellCastLevel?: number }
 ): AreaContentsTargeting {
   const { hitPointPoolScaling, ...rest } = targeting
-  if (hitPointPoolScaling?.scalingSource !== 'SPELL_CAST_LEVEL' || levels.spellCastLevel === undefined)
+  if (
+    hitPointPoolScaling?.scalingSource !== 'SPELL_CAST_LEVEL' ||
+    levels.spellCastLevel === undefined
+  )
     return targeting
   const row = selectScalingRow(hitPointPoolScaling.breakpoints, levels.spellCastLevel)
   return row ? { ...rest, hitPointPool: row.value } : rest
@@ -224,7 +227,7 @@ export function encounterActionChoiceTarget(
     forms: readonly { id: string; label: string; maxTargets: number }[]
     filter: unknown
   } | null
-):EncounterActionChoiceDto['target'] {
+): EncounterActionChoiceDto['target'] {
   const forms = formContribution?.forms
   const area = policy ? authoredPointArea(policy) : null
   const targeting = policy?.targeting
