@@ -179,6 +179,8 @@ export interface CharacterPlayOverrides {
   conditions?: { conditionTypeId: string; label: string }[]
   /** The spells the Character's Class has learned and prepared. */
   spells?: { learned: readonly string[]; prepared: readonly string[] }
+  /** Spell slots already spent, by slot key (for example `STANDARD:4`). */
+  spellSlots?: readonly { slotKey: string; used: number }[]
 }
 
 /** The captured Character's private stored row (structure with its play record), re-keyed to an owner. */
@@ -193,7 +195,8 @@ export function characterOwnerRowFor({
     carriedQuantity = 1,
     fighterLevel = 1,
     conditions,
-    spells
+    spells,
+    spellSlots
   } = playOverrides
   const [capturedLevel] = capturedPage.inputs.character.intent.hitpoints.levels
   const maximumHitPoints = capturedLevel!.value + 7 * (fighterLevel - 1)
@@ -258,6 +261,7 @@ export function characterOwnerRowFor({
         deathSaves
       },
       ...(conditions && { conditions }),
+      ...(spellSlots && { spellSlots: [...spellSlots] }),
       ...(spells && {
         classes: [
           {
