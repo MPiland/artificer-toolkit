@@ -19,6 +19,7 @@ import { MAX_ENCOUNTER_ACTORS, authoredIdentifierSchema } from './authoredLimits
 import { rangeDtoSchema } from './range.js'
 import {
   canonicalConcentrationContributorsDtoSchema,
+  frozenCheckD20DtoSchema,
   serverRuleExecutionD20EvidenceDtoSchema,
   serverRuleExecutionD20ModeAdjustmentDtoSchema,
   serverRuleExecutionD20PolicyDtoSchema,
@@ -533,12 +534,7 @@ export const encounterBasicActionCheckPendingContextDtoSchema = lazySchema(() =>
       dc: positiveIntegerSchema,
       label: identifierSchema
     }),
-    d20: z.strictObject({
-      rollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
-      contributors: canonicalConcentrationContributorsDtoSchema,
-      contributorChecksum: checksumSchema,
-      modifier: integerSchema
-    }),
+    d20: frozenCheckD20DtoSchema,
     /** The one-roll grants this check used up (a Help); their rows are gone, so the pending read names them from these. */
     consumedGrants: z
       .array(activeRuleEffectRecordSchema)
@@ -566,12 +562,7 @@ export const encounterEscapeCheckPendingContextDtoSchema = lazySchema(() =>
       dc: positiveIntegerSchema,
       label: identifierSchema
     }),
-    d20: z.strictObject({
-      rollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
-      contributors: canonicalConcentrationContributorsDtoSchema,
-      contributorChecksum: checksumSchema,
-      modifier: integerSchema
-    }),
+    d20: frozenCheckD20DtoSchema,
     /** The one-roll grants this check used up (a Help); their rows are gone, so the pending read names them from these. */
     consumedGrants: z
       .array(activeRuleEffectRecordSchema)
@@ -643,12 +634,7 @@ export const encounterConcealmentCheckPendingContextDtoSchema = lazySchema(() =>
       checkDefinitionId: uuidSchema,
       label: identifierSchema
     }),
-    d20: z.strictObject({
-      rollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
-      contributors: canonicalConcentrationContributorsDtoSchema,
-      contributorChecksum: checksumSchema,
-      modifier: integerSchema
-    }),
+    d20: frozenCheckD20DtoSchema,
     resolution: z.discriminatedUnion('kind', [
       z.strictObject({
         kind: z.literal('CONCEAL'),

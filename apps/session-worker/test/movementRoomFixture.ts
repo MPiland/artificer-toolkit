@@ -168,8 +168,8 @@ export interface MovementRoomConfig {
   positions: Readonly<Record<string, ScenePoint>>
   automationMode?: AutomationModeDto
   optionalCombatKinds?: readonly Dnd5eOptionalCombatRuleKindDto[]
-  /** Whose stored preference rolls dice automatically: the GM's or the Character player's. */
-  autoRoll?: 'GAME_MASTER' | 'PLAYER' | 'BOTH'
+  /** Whose stored preference rolls dice automatically: the GM's, the Character player's, or the other player's. */
+  autoRoll?: 'GAME_MASTER' | 'PLAYER' | 'BOTH' | 'EVERYONE'
   /** The actors the room's player controls, besides any Character assigned to them. */
   playerControlledActorIds?: readonly string[]
   /** The actors a second player, who joins the room's members, controls. */
@@ -538,7 +538,9 @@ export async function movementRoom(config: MovementRoomConfig) {
         ? [base.playerId]
         : config.autoRoll === 'BOTH'
           ? [base.userId, base.playerId]
-          : []
+          : config.autoRoll === 'EVERYONE'
+            ? [base.userId, base.playerId, base.otherPlayerId]
+            : []
   /** Set it where a test changes the room's members, as Convex bumps it on every such change. */
   const campaignRevision: { current: string | null } = { current: null }
   await routeEncounterRequests(base, async (pathname, request) => {

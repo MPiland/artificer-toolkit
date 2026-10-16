@@ -596,25 +596,31 @@ export async function revertLastEncounterAction(
     const marked = actorsById.get(actorId)
     if (marked) updateActor(actorId, { resources: withEncounterActorIdleTurnMark(marked, before) })
   }
-  // The creature that countered the cast spent its own slot and reaction.
-  const counter = counteredRoot?.counter
-  if (counter) {
-    const reactor = actorsById.get(counter.reaction.reactorActorId)
+  // The creature that countered the cast, and each that failed to, spent its own slot and reaction.
+  const invertReactorSpend = (
+    spend: Pick<
+      CounteredRoot['counter'],
+      'reaction' | 'spellCastConsumption' | 'characterStreamVersion' | 'actionEconomyTransition'
+    >
+  ) => {
+    const reactor = actorsById.get(spend.reaction.reactorActorId)
     if (reactor?.kind !== 'CHARACTER')
       throw new Error('Stored Encounter action actors are unavailable.')
-    if (counter.spellCastConsumption) {
-      if (counter.characterStreamVersion === null)
+    if (spend.spellCastConsumption) {
+      if (spend.characterStreamVersion === null)
         throw new Error('Stored reactor Character version is missing.')
-      characterInverse(reactor.sourceId, counter.characterStreamVersion).spell =
-        counter.spellCastConsumption
+      characterInverse(reactor.sourceId, spend.characterStreamVersion).spell =
+        spend.spellCastConsumption
     }
-    const reaction = counter.actionEconomyTransition
+    const reaction = spend.actionEconomyTransition
     if (encounterRuleUsageUsed(reactor, reaction.definitionId) !== reaction.afterUsed)
-      unavailable("The countering creature's reactions changed after this action; adjust manually.")
+      unavailable("The reacting creature's reactions changed after this action; adjust manually.")
     updateActor(reactor.id, {
       resources: withEncounterRuleUsageUsed(reactor, reaction.definitionId, reaction.beforeUsed)
     })
   }
+  if (counteredRoot) invertReactorSpend(counteredRoot.counter)
+  for (const failed of root.failedCounters) invertReactorSpend(failed)
 
   // A Dash's speed bonus leaves the turn's movement record.
   if (root.speedBonusTurn)

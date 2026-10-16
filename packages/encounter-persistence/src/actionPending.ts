@@ -83,37 +83,86 @@ export async function canControlEvidenceRoller(
 
 type NativeActionPending = Awaited<ReturnType<typeof readNativeActionPending>>
 
-type CastReactionOffer = { declinedReactorActorIds: readonly string[] } | null
+type CastPendingContext = {
+  rollerActorId?: string
+  castReaction?: { declinedReactorActorIds: readonly string[]; check?: unknown } | null
+  failedCounters?: readonly { reaction: { reactorActorId: string } }[]
+}
+
+const failedReactorIds = ({ failedCounters = [] }: CastPendingContext) =>
+  failedCounters.map(({ reaction }) => reaction.reactorActorId)
+
+const sameIds = (left: readonly string[], right: readonly string[]) =>
+  left.length === right.length && left.every((id, index) => id === right[index])
 
 /**
- * A held cast leaves its pause only by a decline; using the reaction commits a countered cast instead.
- * When another reactor is offered next, the declined list is exactly the earlier declines plus the answerer.
+ * How a cast's pending may continue (D127). A held cast leaves its pause by a decline, or by choosing a
+ * counter that owes a check, which pauses on that roll; a failed roll then leaves it like a decline.
+ * A choice whose check the app rolls inside the answer leaves the cast the same way a failed roll does.
+ * Using a counter that owes no check, and passing the check, commit a countered cast instead.
+ * When another reactor is offered next, the declined list is exactly the earlier declines plus the
+ * answerer, and the failed counters carried to any next pause or terminal commit are exactly the
+ * earlier ones plus the answerer's failed check.
  */
-export function castReactionAnswerContinues(
-  previous: { rollerActorId?: string; castReaction?: CastReactionOffer },
+export function castPendingContinues(
+  previous: CastPendingContext,
   response: { resolution: { kind: string } } | null | undefined,
-  next: { castReaction?: CastReactionOffer }
+  next: CastPendingContext
 ): boolean {
-  if (!previous.castReaction) return true
-  if (response?.resolution.kind !== 'DECLINE') return false
-  if (!next.castReaction) return true
-  const expected = new Set([
-    ...previous.castReaction.declinedReactorActorIds,
-    ...(previous.rollerActorId ? [previous.rollerActorId] : [])
-  ])
-  const declined = next.castReaction.declinedReactorActorIds
-  return declined.length === expected.size && declined.every((actorId) => expected.has(actorId))
+  const { castReaction } = previous
+  const failed = failedReactorIds(previous)
+  if (!castReaction) return sameIds(failedReactorIds(next), failed)
+  const answered = response?.resolution.kind
+  const roller = previous.rollerActorId ? [previous.rollerActorId] : []
+  const declinedMatches = (expected: readonly string[]) => {
+    if (!next.castReaction) return true
+    const declined = next.castReaction.declinedReactorActorIds
+    const expectedSet = new Set(expected)
+    return declined.length === expectedSet.size && declined.every((id) => expectedSet.has(id))
+  }
+  if (answered === 'OPTION') {
+    if (castReaction.check) return false
+    // The counter owes a check: the cast stays held for the same reactor, now on that roll.
+    if (next.castReaction?.check !== undefined)
+      return (
+        next.rollerActorId === previous.rollerActorId &&
+        sameIds(failedReactorIds(next), failed) &&
+        declinedMatches(castReaction.declinedReactorActorIds)
+      )
+    // The reactor's player has the app roll, so the check failed inside the choice: it leaves the cast
+    // like a failed roll.
+    return (
+      sameIds(failedReactorIds(next), [...failed, ...roller]) &&
+      declinedMatches([...castReaction.declinedReactorActorIds, ...roller])
+    )
+  }
+  const declined = answered === 'DECLINE' && !castReaction.check
+  const failedCheck = answered !== undefined && answered !== 'DECLINE' && !!castReaction.check
+  return (
+    (declined || failedCheck) &&
+    sameIds(failedReactorIds(next), failedCheck ? [...failed, ...roller] : failed) &&
+    declinedMatches([...castReaction.declinedReactorActorIds, ...roller])
+  )
+}
+
+/** Whether a cast countered at its pause carries exactly the failed counters that pause held (D127). */
+export function castCounteredCarriesFailedCounters(
+  previous: CastPendingContext,
+  next: CastPendingContext
+): boolean {
+  return sameIds(failedReactorIds(next), failedReactorIds(previous))
 }
 
 /** The use options a paused action offers its decider: a Legendary Resistance, every on-hit rider, or every reaction (innermost first). */
 export function offeredDecisionOptionIds(context: {
   legendaryResistance?: { resistance: { useOptionId: string } } | null
   reactionChoice?: { reactions: readonly { useOptionId: string }[] } | null
-  castReaction?: { reactions: readonly { useOptionId: string }[] } | null
+  castReaction?: { reactions: readonly { useOptionId: string }[]; check?: unknown } | null
   onHitChoice?: { options: readonly { useOptionId: string }[] } | null
 }): string[] {
   if (context.legendaryResistance) return [context.legendaryResistance.resistance.useOptionId]
   if (context.onHitChoice) return context.onHitChoice.options.map((option) => option.useOptionId)
+  if (context.castReaction?.check) return []
   return (
     (context.reactionChoice ?? context.castReaction)?.reactions.map(
       (reaction) => reaction.useOptionId
@@ -142,7 +191,8 @@ export function projectNativeActionPending(
       options: [{ optionId: context.legendaryResistance.resistance.useOptionId }],
       allowedResponses: ['DECLINE', 'OPTION']
     }
-  const reactionOffer = context.reactionChoice ?? context.castReaction
+  const castCheck = context.castReaction?.check
+  const reactionOffer = context.reactionChoice ?? (castCheck ? undefined : context.castReaction)
   if (reactionOffer)
     return {
       kind: 'REACTION_CHOICE',
@@ -182,7 +232,7 @@ export function projectNativeActionPending(
       : snapshot.request.nodeId === 'target_d20'
         ? context.contest.defender
         : null
-    : context.d20Policy
+    : (context.d20Policy ?? castCheck?.d20 ?? null)
   if (context.contest && (!d20Policy || snapshot.request.min !== 1 || snapshot.request.max !== 20))
     throw new Error('Stored Disarm evidence request is invalid.')
   if (d20Policy && context.heldD20)

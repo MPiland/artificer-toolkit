@@ -6,6 +6,7 @@ import { encounterCreatureEquipmentReplacementSchema } from './encounterCreature
 import { encounterRuleWarningsDtoSchema } from '../shared/encounterRuleWarnings.js'
 import {} from '../shared/basicActions.js'
 import { encounterActionEconomyTransitionDtoSchema } from '../shared/ruleExecutionEncounterApplications.js'
+import { encounterFailedCounterReceiptDtoSchema } from '../shared/ruleExecutionReactionChoice.js'
 import { encounterRuleOccurrenceSummaryDtoSchema } from '../shared/encounterRuleOccurrence.js'
 import { rollRecordDtoSchema } from '../api/rolls.js'
 import { MAX_ACTIVE_RULE_EFFECTS_PER_OWNER } from '../shared/activeRuleEffects.js'
@@ -314,6 +315,11 @@ export const encounterStoredRunCommandSchema = lazySchema(() =>
           })
         ),
         null
+      ),
+      /** The counters reactors failed against this cast and the reactor spend each cost; its undo gives them back (D127). */
+      failedCounters: z._default(
+        z.array(encounterFailedCounterReceiptDtoSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
+        []
       ),
       /** Each actor this action armed or engaged for an idle-bound grant, with the mark it held before; its undo restores them. */
       idleTurnMarkChanges: z._default(
