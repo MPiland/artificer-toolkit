@@ -609,6 +609,54 @@ describe('effect schema parsing', () => {
     expect(effect(passive, rider.choice)).toBe(false)
   })
 
+  it('accepts a path gated on the attack roll mode, and rejects an unknown mode', () => {
+    const gate = (condition: Record<string, unknown>) => ({
+      id: 'gate',
+      groups: [
+        {
+          id: 'gate-group',
+          order: 0,
+          contexts: [
+            {
+              id: 'gate-context',
+              order: 0,
+              subject: 'EQUIPMENT',
+              authoringModeKind: 'ALL',
+              conditions: [
+                { id: 'gate-condition', order: 0, kind: 'PREDICATE', constraint: 'INCLUDE', ...condition }
+              ]
+            }
+          ]
+        }
+      ]
+    })
+    const parse = (restrictions: Record<string, unknown>) =>
+      pathDtoSchema.safeParse(
+        fixedPath(
+          'gated-path',
+          1,
+          'ON_HIT',
+          singleResultBlock('gated-result', {
+            id: 'gated-damage',
+            effectKind: 'DAMAGE',
+            damageTypeId: 'fire',
+            valueKind: 'DICE',
+            scalingKind: 'NONE',
+            diceConfig: '1d6'
+          }),
+          { restrictions }
+        )
+      )
+
+    for (const rollMode of ['ADVANTAGE', 'NOT_DISADVANTAGE']) {
+      expect(parse(gate({ predicateCode: 'ATTACK_ROLL_MODE', rollMode })).success).toBe(true)
+    }
+    expect(parse(gate({ predicateCode: 'ATTACK_ROLL_MODE', rollMode: 'DISADVANTAGE' })).success).toBe(
+      false
+    )
+    expect(parse(gate({ predicateCode: 'ATTACK_ROLL_MODE' })).success).toBe(false)
+  })
+
   it('accepts repeat roll influence only on a target-turn-end repeated follow-up save', () => {
     const followUpSave = {
       id: '00000000-0000-4000-8000-0000000000e4',

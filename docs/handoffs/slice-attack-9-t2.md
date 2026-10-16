@@ -45,6 +45,7 @@ ATTACK-9.T6 (Rage early end) reads a per-turn attack/damage record that (f) is m
 
 - 2026-10-15: survey done; no code. Waiting on the architect's ruling on shapes 1-6 and the split.
 - 2026-10-15: D119 rules shapes 1-3 and splits T2 into T2a-T2d. T2a built.
+- 2026-10-15: T2a merged. T2b (roll-mode predicate) built, pushed to `ci/attack-9-t2b`.
 
 ## T2a (shapes 1-3, D119)
 
@@ -77,7 +78,27 @@ Logs under `local-validation/attack-9-t2a/` (not committed).
 - Deferred (Deferred edge cases in `docs/roadmap/future-enhancements.md`): riders reach equipment attacks only; riders from equipment-granted Features; "first authored" weapon-type pick; a passive CHOICE path's `ON_HIT` damage is collected.
 - Stands: the visibility test widens `VisibilityNode` but evaluates the real `PATH_NODE_MAP`; `exactDiceConfiguration` fails closed when the Character lacks the rider's class, while the sheet's `selectValue` falls back to the first row (a Feature without its class is not a supported grant).
 
+## T2b (shape d, roll-mode predicate, D119)
+
+Built (generic; the facet model already has OR groups, so no new any-of):
+
+- `ATTACK_ROLL_MODE` facet predicate (`ADVANTAGE`; `NOT_DISADVANTAGE`) in shared (`facetPredicate`, facet node map), schema (`enums`, `facet`).
+- `restrictions?: FacetAuthored` on an Effect path (authored type, compiler copy onto entries, DTO, `PATH_NODE_MAP` and `MANIFEST_BEHAVIOR_PATH_NODE_MAP`).
+- `systems/dnd5e/attackRestrictions`: `reduceEffectRestrictions` settles weapon checks when the action facts are built (`dnd5eItemRequirementsMet`, as for Rage); `attackRestrictionsMet` checks the remaining roll-mode checks.
+- `bindFacts` emits `dnd5e.attack-roll-mode` (the net mode after advantage and disadvantage cancel); `specializeDnd5eEffectActionOutcomeBody` filters restricted groups. The sealed template checksum hashes the authored (unfiltered) groups.
+
+Proof (real code): `characterOnHitRiders.test.ts` (journeys: advantage-only, disadvantage excluded, `NOT_DISADVANTAGE` over normal/advantage/disadvantage, any-of groups, all-checks-in-one-group); `attackRestrictions.test.ts` (compile copy, reduction, roll-mode table); schema, node-map inventory tests.
+
+### T2b checklist and proof logs
+
+Logs under `local-validation/attack-9-t2b/` (not committed).
+
+- [x] Red then green: `red-filter-off.log` (filter disabled: 5 journey tests fail) then `green-rules-runtime.log` (39 tests) and `t1-schema-shared.log` (54 tests).
+- [x] Builds shared, schema, source-data, authoring (`build-*.log`, empty = success).
+- [x] Conformance snapshot gains the `dnd5e.attack-roll-mode` contract.
+- [ ] CI typecheck, Convex shards, web and worker tests on `ci/attack-9-t2b`.
+
 ### Proposed ledger edits
 
-ATTACK-9.T2a done (shapes a-c); ATTACK-9.2 stays open for T2b-T2d.
+ATTACK-9.T2a done (shapes a-c); ATTACK-9.T2b (shape d) built; ATTACK-9.2 stays open for T2c-T2d.
 
