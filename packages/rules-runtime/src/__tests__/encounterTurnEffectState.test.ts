@@ -1,6 +1,13 @@
 import { beforeAll, describe, expect, it } from 'vitest'
+import { encounterMaintainedEffectStateRecordSchema } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 
-import { isTurnEffectEligible, turnEffectRetainedConditions } from '../encounterTurnEffectState.js'
+import { encounterAreaTargetOccurrenceId } from '../encounterAreaPending.js'
+import {
+  isTurnEffectEligible,
+  requireTurnMaintainedStates,
+  turnEffectRetainedConditions
+} from '../encounterTurnEffectState.js'
+import { DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from '../systems/dnd5e/concentrationIdentity.js'
 import type { RulesRuntimeService } from '../rulesRuntimeService.js'
 import {
   characterActor as runCharacterActor,
@@ -8,7 +15,8 @@ import {
   ENCOUNTER_ID,
   srdCreatureActor,
   srdEncounterState,
-  testUuid
+  testUuid,
+  TIMESTAMP
 } from '../testing/dnd5eSrdEncounter.js'
 import {
   GOBLIN,
@@ -95,6 +103,71 @@ describe('turnEffectRetainedConditions', () => {
 
     expect(legacyShape.definition.schemaVersion).toBe(1)
     expect(turnEffectRetainedConditions(legacyShape, [legacyShape, other], new Set())).toEqual([])
+  })
+})
+
+describe('requireTurnMaintainedStates', () => {
+  const CASTER_ID = testUuid(0x104)
+  const STATE_ID = testUuid(0x105)
+  const CAST_OCCURRENCE_ID = testUuid(0x106)
+
+  const maintained = encounterMaintainedEffectStateRecordSchema.parse({
+    id: STATE_ID,
+    encounterId: ENCOUNTER_ID,
+    ownerActorId: CASTER_ID,
+    maintenanceDefinitionId: DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID,
+    descriptor: {
+      schemaVersion: 2,
+      maintenanceDefinitionId: DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID,
+      definitionChecksum: '1'.repeat(64),
+      sourceActionId: 'spell-fear',
+      sourceOccurrenceId: CAST_OCCURRENCE_ID,
+      sourceActorId: CASTER_ID,
+      replacementPolicy: 'REPLACE_SAME_DEFINITION',
+      emptyDependentPolicy: 'TERMINATE_WHEN_EMPTY'
+    },
+    descriptorChecksum: '2'.repeat(64),
+    version: 1,
+    createdAt: TIMESTAMP,
+    updatedAt: TIMESTAMP
+  })
+
+  /** The Goblin's effect under the caster's Concentration, applied under `occurrenceId`. */
+  async function heldEffect(occurrenceId: string) {
+    const held = await effect(1, { sourceActorId: CASTER_ID, maintainedEffectStateId: STATE_ID })
+    const { origin } = held.definition
+    if (origin.kind !== 'ENCOUNTER') throw new Error('The fixture effect is applied in an Encounter.')
+    return {
+      ...held,
+      definition: { ...held.definition, origin: { ...origin, sourceOccurrenceId: occurrenceId } }
+    }
+  }
+
+  const bind = async (occurrenceId: string) =>
+    requireTurnMaintainedStates(
+      ENCOUNTER_ID,
+      goblin,
+      [await heldEffect(occurrenceId)],
+      async () => maintained
+    )
+
+  it('binds an effect applied under the cast occurrence to its Concentration', async () => {
+    expect(await bind(CAST_OCCURRENCE_ID)).toEqual(new Map([[STATE_ID, maintained]]))
+  })
+
+  it("binds an area creature's effect, applied under that creature's own save occurrence, to the area's Concentration", async () => {
+    expect(await bind(encounterAreaTargetOccurrenceId(CAST_OCCURRENCE_ID, GOBLIN_ID))).toEqual(
+      new Map([[STATE_ID, maintained]])
+    )
+  })
+
+  it("refuses an effect bound to another creature's area occurrence or another cast", async () => {
+    await expect(
+      bind(encounterAreaTargetOccurrenceId(CAST_OCCURRENCE_ID, CHARACTER_ACTOR_ID))
+    ).rejects.toThrow('Maintained turn effect source binding is stale.')
+    await expect(bind(testUuid(0x107))).rejects.toThrow(
+      'Maintained turn effect source binding is stale.'
+    )
   })
 })
 

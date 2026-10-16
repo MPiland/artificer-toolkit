@@ -73,6 +73,8 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
       return { skillIds: [], abilityDefinitionIds: [] }
     case 'checkDc':
       return { kind: 'FIXED', value: 10 }
+    case 'spellCast':
+      return { castLevel: 1 }
     case 'chargeBonus':
       return createChargeBonus(order)
     case 'chargeLevelScaling':
@@ -465,10 +467,15 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
     case 'followUpSaveRepeatRollInfluence':
       return {
         influence: 'ADVANTAGE',
-        when: createFollowUpSaveRepeatRollInfluenceWhen()
+        when: createFollowUpSaveRepeatPerception()
       }
-    case 'followUpSaveRepeatRollInfluenceWhen':
-      return createFollowUpSaveRepeatRollInfluenceWhen()
+    case 'followUpSaveRepeatAttemptGate':
+      return {
+        allow: 'WHEN_UNMET',
+        when: createFollowUpSaveRepeatPerception()
+      }
+    case 'followUpSaveRepeatPerception':
+      return createFollowUpSaveRepeatPerception()
     case 'hitPointMaximumReductionAmountSource':
       return {
         kind: 'DAMAGE_TAKEN',
@@ -657,7 +664,7 @@ function assertUnreachableDefaultKind(kind: never): never {
   throw new Error(`Unsupported authoring default kind: ${String(kind)}`)
 }
 
-function createFollowUpSaveRepeatRollInfluenceWhen() {
+function createFollowUpSaveRepeatPerception() {
   return {
     kind: 'PERCEPTION',
     observer: 'TARGET',

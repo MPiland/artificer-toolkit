@@ -203,9 +203,10 @@ export async function readEncounterActionChoices(
           candidate?.mechanicFacts.invocation.activation ?? null,
           candidate?.mechanicFacts.invocation.triggerCode
         )
-        // A cast names the activation its Effect authors, whatever it is.
-        const castActivation =
-          candidate?.mechanicsOwner.kind === 'SPELL' &&
+        // A cast or an item attack names the activation its Effect authors, whatever it is: an
+        // off-hand attack is told apart from the Action attack by it.
+        const itemOrCastActivation =
+          (candidate?.mechanicsOwner.kind === 'SPELL' || candidate?.equipment) &&
           candidate.mechanicFacts.invocation.activation
             ? activationCodeSchema.parse(candidate.mechanicFacts.invocation.activation.code)
             : undefined
@@ -217,7 +218,7 @@ export async function readEncounterActionChoices(
             action.label,
           ...(action.sourceLabel ? { sourceLabel: action.sourceLabel } : {}),
           ...encounterActionChoiceRange(targetPolicy, action.mechanic?.rangeLabel),
-          ...(castActivation ? { actionCost: castActivation } : {}),
+          ...(itemOrCastActivation ? { actionCost: itemOrCastActivation } : {}),
           ...(action.mechanic?.attackBonus === undefined
             ? {}
             : { attackBonus: action.mechanic.attackBonus }),

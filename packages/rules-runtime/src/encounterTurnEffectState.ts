@@ -10,6 +10,7 @@ import type { EncounterActorDispositionDto } from '@artificer-toolkit/schema/api
 import type { TurnCoordinatorRootDto } from '@artificer-toolkit/schema/shared/ruleExecutionTurnPending'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { CharacterRuleActionApplication } from './characterRuleActionSystemAdapter.js'
+import { encounterAreaTargetOccurrenceId } from './encounterAreaPending.js'
 import { damageTakenEndedEffects } from './encounterEndedEffectRelease.js'
 
 export type TurnEffectBoundary = {
@@ -104,8 +105,13 @@ export function turnEffectSelectionChecksum(
   })
 }
 
+/**
+ * The maintained states of the effects `actor` holds. An area action's state is bound to the area's
+ * occurrence, while each creature's effect is bound to the occurrence that creature's save ran under.
+ */
 export async function requireTurnMaintainedStates(
   encounterId: string,
+  actor: Pick<EncounterRunActorState, 'id'>,
   candidates: readonly ActiveRuleEffectRecord[],
   loadState: (stateId: string) => Promise<EncounterMaintainedEffectStateRecord | null>
 ) {
@@ -124,7 +130,10 @@ export async function requireTurnMaintainedStates(
     if (
       !state ||
       state.ownerActorId !== origin.sourceActorId ||
-      state.descriptor.sourceOccurrenceId !== origin.sourceOccurrenceId
+      ![
+        state.descriptor.sourceOccurrenceId,
+        encounterAreaTargetOccurrenceId(state.descriptor.sourceOccurrenceId, actor.id)
+      ].includes(origin.sourceOccurrenceId)
     )
       throw new Error('Maintained turn effect source binding is stale.')
     states.set(stateId, state)

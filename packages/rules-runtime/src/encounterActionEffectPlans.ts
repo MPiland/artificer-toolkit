@@ -495,7 +495,10 @@ function prepareRecurringActiveEffect(
                   {
                     kind: 'CONDITION_OWNERSHIP' as const,
                     conditionId: conditionContribution.conditionId,
-                    baselinePresent
+                    baselinePresent,
+                    ...(conditionContribution.recordsSource && {
+                      sourceActorId: input.sourceActorId
+                    })
                   }
                 ]
               : []),

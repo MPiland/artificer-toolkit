@@ -697,7 +697,7 @@ export async function prepareEncounterTurnEffects<
     }
   }
   if (input.retainedPhase?.kind === 'MANUAL') throw new Error('Retained turn automation is stale.')
-  await requireTurnMaintainedStates(input.state.id, candidates, input.loadMaintainedState)
+  await requireTurnMaintainedStates(input.state.id, actor, candidates, input.loadMaintainedState)
   let target = targets.get(actor.id)
   if (!target) target = await input.loadTarget(actor.id)
   if (!target) throw new Error('Turn effect target facts are unavailable.')

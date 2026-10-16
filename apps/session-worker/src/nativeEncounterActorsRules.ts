@@ -10,6 +10,7 @@ import { evaluateNativeLiveActionEconomy } from './nativeEncounterActionEconomy.
 import { refuseActionOutsideItsWindow } from './nativeEncounterActionInputs.js'
 import {
   completeAreaCommit,
+  openReachCastWindow,
   prepareAreaTarget,
   prepareCasterSource,
   prepareChosenActorsReach,
@@ -123,18 +124,27 @@ export async function planNativeLiveEncounterActorsAction(
     targets: prepared,
     movementTargets
   })
+  const opened = await openReachCastWindow(input, { reach, lead, evaluation, ruleOverrides })
+  if (opened.kind === 'PLAN') return opened.plan
+  const { window } = opened
   // An action that asks each creature for a save waits for the rollers it names.
   if (lead.plan.kind !== 'SINGLE_GRAPH')
-    return sealReachSaves(input, { reach, lead, targets: prepared, evaluation, ruleOverrides })
+    return sealReachSaves(input, {
+      reach,
+      lead,
+      targets: prepared,
+      evaluation,
+      ruleOverrides,
+      window
+    })
   const { economy, attackAction } = evaluation
 
-  const occurrenceId = crypto.randomUUID()
   const settled = await executeEncounterActorsAction({
     runtime: input.runtime,
     random: input.random,
     adapter: lead.adapter,
     plan: lead.plan,
-    occurrenceId,
+    occurrenceId: window.occurrenceId,
     rollsPerTarget: allowRepeatedTargets,
     targets: prepared.map(({ actor, prepared: entry }) => ({
       actorId: actor.id,
@@ -145,6 +155,8 @@ export async function planNativeLiveEncounterActorsAction(
     input,
     command,
     caster,
+    occurredAt: window.occurredAt,
+    failedCounters: await window.pause.planFailedCounters(window.failedCounters),
     movementTargets,
     kept: prepared.map(({ actor, prepared: entry }) => ({ actor, target: { prepared: entry } })),
     lead,
@@ -156,13 +168,13 @@ export async function planNativeLiveEncounterActorsAction(
     rollsPerTarget: allowRepeatedTargets,
     tests: [],
     audits: new Map(),
-    areaOccurrenceId: occurrenceId,
+    areaOccurrenceId: window.occurrenceId,
     areaSnapshot: null,
     caughtChecksum: encounterChosenActorsChecksum(actorIds),
     removedActorIds: [],
     placement: null,
-    occurrenceVersion: 0,
-    response: null,
+    occurrenceVersion: window.occurrenceVersion,
+    response: window.response,
     removal: null
   })
 }

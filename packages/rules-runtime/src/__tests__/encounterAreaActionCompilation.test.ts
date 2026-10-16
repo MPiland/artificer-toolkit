@@ -631,15 +631,12 @@ describe('chosen-creature spells in the SRD corpus (SPELLS-26.1)', () => {
 describe('a timed save condition with no authored way to end early (SPELLS-19.T3)', () => {
   // These spells print a repeat save or an early end that is not authored on their effect; compiling
   // them would run the condition to its full duration and drop that rule.
-  it.each([
-    'Hold Monster',
-    'Dominate Beast',
-    'Dominate Person',
-    'Dominate Monster',
-    'Charm Person'
-  ])('refuses %s rather than run its condition without the rider the spell prints', (label) => {
-    expect(() => compile({}, spellEffect(label), 9, 20)).toThrow(
-      CharacterRuleActionUnsupportedCompilationError
-    )
-  })
+  it.each(['Hold Monster', 'Dominate Beast', 'Dominate Person', 'Dominate Monster'])(
+    'refuses %s rather than run its condition without the rider the spell prints',
+    (label) => {
+      expect(() => compile({}, spellEffect(label), 9, 20)).toThrow(
+        CharacterRuleActionUnsupportedCompilationError
+      )
+    }
+  )
 })

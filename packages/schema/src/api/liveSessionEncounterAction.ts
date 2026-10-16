@@ -261,6 +261,8 @@ export const liveSessionEncounterCounteredCastCommitInputSchema: z.ZodMiniType<L
 /** The Scene spatial effect an action places, as the planner built it; persistence stores it as is. */
 export type LiveSessionPlacedSpatialEffect = {
   id: string
+  /** The Concentration the placing cast opens (or joins); null when the zone does not depend on one. */
+  maintainedEffectStateId: string | null
   definition: ActiveRuleEffectDefinitionDto
   lifecycle: ActiveRuleEffectLifecycleDto
   placement: SpatialRuleEffectPlacementDto
@@ -271,6 +273,7 @@ export const liveSessionPlacedSpatialEffectSchema: z.ZodMiniType<LiveSessionPlac
   lazySchema(() =>
     z.strictObject({
       id: postgresUuidSchema,
+      maintainedEffectStateId: z.nullable(postgresUuidSchema),
       definition: activeRuleEffectDefinitionDtoSchema,
       lifecycle: activeRuleEffectLifecycleDtoSchema,
       placement: spatialRuleEffectPlacementDtoSchema,
@@ -288,12 +291,7 @@ export const liveSessionPlacedSpatialEffectSchema: z.ZodMiniType<LiveSessionPlac
  */
 export type LiveSessionEncounterAreaCommitInput = Omit<
   LiveSessionEncounterActionCommitInput,
-  | 'execution'
-  | 'createdEffects'
-  | 'cleaving'
-  | 'turnUses'
-  | 'reactionSpellConsumption'
-  | 'failedCounters'
+  'execution' | 'createdEffects' | 'cleaving' | 'turnUses' | 'reactionSpellConsumption'
 > & {
   execution: z.infer<typeof storedRuleExecutionResultDtoSchema>
   targets: {
@@ -342,6 +340,7 @@ export const liveSessionEncounterAreaCommitInputSchema: z.ZodMiniType<LiveSessio
       resourceConsumption: z.nullable(liveSessionCharacterResourceConsumptionSchema),
       itemConsumption: z.nullable(liveSessionCharacterItemConsumptionSchema),
       spellConsumption: z.nullable(liveSessionCharacterSpellConsumptionSchema),
+      failedCounters: liveSessionFailedCountersSchema,
       label: z.nullable(z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160))),
       ruleOverrides: encounterRuleWarningsDtoSchema,
       consumedGrants: z

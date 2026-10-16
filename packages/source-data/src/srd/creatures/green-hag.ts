@@ -1,5 +1,6 @@
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
 import * as S from './shared.js'
+import { indefiniteInvisibilityEffect } from './indefiniteInvisibility.js'
 
 export const greenHag: CreatureAuthored = {
   id: S.CREATURE_IDS.GREEN_HAG,
@@ -188,16 +189,11 @@ export const greenHag: CreatureAuthored = {
       description:
         'Invisible Passage. The hag magically turns invisible until she attacks or casts a spell, or until her concentration ends (as if concentrating on a spell). While invisible, she leaves no physical evidence of her passage, so she can be tracked only by magic. Any equipment she wears or carries is invisible with her.',
       effects: [
-        S.closedRuleEffect({
-          id: S.actionId(151, 209),
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(151, 1206), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_GREEN_HAG_INVISIBLE_PASSAGE
+        indefiniteInvisibilityEffect({
+          effectId: S.actionId(151, 209),
+          rangeId: S.actionId(151, 1206),
+          pathId: S.actionId(151, 210),
+          endOnEvents: ['ON_ATTACK_ROLL', 'ON_CAST_SPELL']
         })
       ],
       order: 6

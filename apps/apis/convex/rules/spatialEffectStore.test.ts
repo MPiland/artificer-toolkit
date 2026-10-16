@@ -226,6 +226,36 @@ describe('native spatial Rule Effect store', () => {
     ).rejects.toThrow(`${label} checksum`)
   })
 
+  it('records the Concentration a zone depends on and reads it back', async () => {
+    const t = await fixture()
+    const stateId = effectId(40)
+    const created = await t.run(async (ctx) => {
+      const result = await createSpatialRuleEffectStore({
+        db: createConvexEncounterStore(ctx)
+      }).scope({ encounterId: ids.encounter, sceneId: ids.scene })
+      if (!result) throw new Error('Missing fixture scope.')
+      const dependent = await result.create({
+        id: effectId(41),
+        maintainedEffectStateId: stateId,
+        definition,
+        lifecycle,
+        placement,
+        spatialState
+      })
+      const independent = await result.create({
+        id: effectId(42),
+        definition,
+        lifecycle,
+        placement,
+        spatialState
+      })
+      return { dependent, independent, listed: await result.list() }
+    })
+    expect(created.dependent.maintainedEffectStateId).toBe(stateId)
+    expect(created.independent.maintainedEffectStateId).toBeNull()
+    expect(created.listed.map((effect) => effect.maintainedEffectStateId)).toEqual([stateId, null])
+  })
+
   it('enforces limits and ordinals and rejects stale CAS', async () => {
     const t = await fixture()
     await t.run(async (ctx) => {
