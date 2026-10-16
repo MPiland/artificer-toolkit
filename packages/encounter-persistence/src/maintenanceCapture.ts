@@ -1,3 +1,5 @@
+import type { LiveSessionEncounterActionCommitInput } from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
+import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type {
   LiveSessionEncounterRulesRequest,
   LiveSessionEncounterRulesResponse
@@ -7,6 +9,29 @@ import type { EncounterReadTransaction } from './ports.js'
 import type { EncounterCharacterRow } from './characterPlay.js'
 import { readRunActor } from './documents.js'
 import { readCharacterEffect, readEncounterEffect, readMaintainedState } from './effectStore.js'
+
+/**
+ * Reads each owner capture the command sealed (each from the source or the target, once) and adds
+ * the Characters those owners name to `characterIds`, which the read fence then covers.
+ */
+export async function readMaintenanceOwnerRequests(input: {
+  requests: LiveSessionEncounterActionCommitInput['maintenanceOwners']
+  actorIds: readonly string[]
+  characterIds: Set<string>
+  read(
+    request: LiveSessionEncounterActionCommitInput['maintenanceOwners'][number]
+  ): Promise<unknown>
+}) {
+  const seen = new Set<string>()
+  for (const request of input.requests) {
+    const key = checksumCanonicalJson(request)
+    if (!input.actorIds.includes(request.actorId) || seen.has(key))
+      throw new Error('Live Session maintenance owner scope mismatch.')
+    seen.add(key)
+    await input.read(request)
+    if (request.owner.kind === 'CHARACTER') input.characterIds.add(request.owner.characterId)
+  }
+}
 
 /** The private caller authorizes the GM or an issued response/movement scope, Session epoch and exact Run. */
 export async function readEncounterMaintenanceCapture(

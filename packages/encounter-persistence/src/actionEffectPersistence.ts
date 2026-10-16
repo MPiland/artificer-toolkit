@@ -1,4 +1,7 @@
-import { buildEncounterMaintenanceTransition } from '@artificer-toolkit/rules-runtime/encounterActionMaintenance'
+import {
+  buildEncounterJoinedMaintenanceTransition,
+  buildEncounterMaintenanceTransition
+} from '@artificer-toolkit/rules-runtime/encounterActionMaintenance'
 import { planConcentrationCarriedGrantEnds } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
 import { sourceEncounterIdForDefinition } from '@artificer-toolkit/rules-runtime/activeRuleEffectRecords'
 import { projectNativeActionEffectTransitions } from '@artificer-toolkit/rules-runtime/encounterActionEffectReceipts'
@@ -66,7 +69,9 @@ function classifyCreatedEffects(input: EffectCommitInput) {
   const activeTransition = outputs.activeEffectTransitions
   // The effect of a reaction the target used lands on the target beside the action's own effects.
   const reactionTransition =
-    outputs.kind === 'CHARACTER_MECHANICS_BATCH' ? (outputs.reaction?.activeEffectTransitions ?? []) : []
+    outputs.kind === 'CHARACTER_MECHANICS_BATCH'
+      ? (outputs.reaction?.activeEffectTransitions ?? [])
+      : []
   if (
     input.createdEffects.length > 3 ||
     stateTransition.length > 1 ||
@@ -141,7 +146,8 @@ export async function prepareEncounterActionMaintenance(
     created.maintenanceDefinitionId !== created.descriptor.maintenanceDefinitionId ||
     created.descriptor.sourceActorId !== input.command.actorId ||
     created.descriptor.sourceActionId !== input.command.actionId ||
-    created.descriptor.sourceOccurrenceId !== input.execution.occurrenceId
+    created.descriptor.sourceOccurrenceId !==
+      (outputs.parentOccurrenceId ?? input.execution.occurrenceId)
   )
     throw new Error('Created maintained effect state does not match the completed action.')
   if (!outputs.maintenanceTransition)
@@ -224,6 +230,11 @@ export async function persistEncounterActionEffects(
   ctx: EncounterCharacterWriteTransaction,
   input: EffectCommitInput & {
     maintenance: PreparedMaintenance | null
+    /**
+     * Leaves the replaced Concentration's owners for the caller to reconcile once every effect the
+     * action creates exists (an area creates one per creature).
+     */
+    deferOwnerReconcile?: boolean
     actors: EncounterRunActorState[]
     occurredAt: string
   }
@@ -288,8 +299,11 @@ export async function persistEncounterActionEffects(
         }))
       : transitions
   const reactionReceipts = characterReceipts(
-    projectNativeActionEffectTransitions({ state: null, recurring: reaction, targetActorId: target.id })
-      .activeEffectTransitions,
+    projectNativeActionEffectTransitions({
+      state: null,
+      recurring: reaction,
+      targetActorId: target.id
+    }).activeEffectTransitions,
     null
   )
   if (
@@ -306,11 +320,33 @@ export async function persistEncounterActionEffects(
       )
   )
     throw new Error('Completed action effect receipts changed before settlement.')
-  if (Boolean(input.maintainedState) !== Boolean(input.maintenance))
+  const supplied = input.maintainedState
+  if (input.maintenance && !supplied)
     throw new Error('Completed action maintenance preparation is incomplete.')
 
   const store = createActiveRuleEffectStore(ctx)
-  if (input.maintenance) {
+  if (supplied && !input.maintenance) {
+    // One creature of an area whose first creature already created the state its effect depends on.
+    const existing = await store.findMaintainedState({
+      encounterId: input.state.id,
+      ownerActorId: input.command.actorId,
+      maintenanceDefinitionId: supplied.maintenanceDefinitionId
+    })
+    if (
+      !existing ||
+      !outputs.maintenanceTransition ||
+      checksumCanonicalJson(existing) !== checksumCanonicalJson(supplied) ||
+      checksumCanonicalJson(outputs.maintenanceTransition) !==
+        checksumCanonicalJson(
+          buildEncounterJoinedMaintenanceTransition({
+            createdState: supplied,
+            createdDependentEffectIds: recurring ? [recurring.id] : []
+          })
+        )
+    )
+      throw new Error('Joined maintained effect state is unavailable.')
+  }
+  if (input.maintenance && supplied) {
     for (const effect of input.maintenance.removed)
       await store.deleteCas({ id: effect.id, owner: effect.owner, expectedVersion: effect.version })
     if (input.maintenance.prior)
@@ -320,7 +356,6 @@ export async function persistEncounterActionEffects(
         ownerActorId: input.command.actorId,
         expectedVersion: input.maintenance.prior.version
       })
-    const supplied = input.maintainedState!
     const created = await store.createMaintainedState({
       id: supplied.id,
       encounterId: supplied.encounterId,
@@ -351,7 +386,7 @@ export async function persistEncounterActionEffects(
   })
   if (armed !== target) await replaceRunActor(ctx, target, armed)
   const actors = input.actors.map((actor) => (actor.id === armed.id ? armed : actor))
-  return input.maintenance
+  return input.maintenance && !input.deferOwnerReconcile
     ? reconcileNativeMaintenanceOwners(ctx, {
         encounterId: input.state.id,
         maintenance: input.maintenance,
