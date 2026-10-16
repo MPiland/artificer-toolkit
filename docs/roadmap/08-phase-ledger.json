@@ -8173,8 +8173,8 @@
             },
             {
               "id": "SPELLS-19.T3",
-              "text": "Timed and repeat-save condition breaths compile in the dnd5e System compiler and resolve through the area executor: Silver (5), Dust Mephit, Brass Sleep (4), Copper Slowing (4), Gold Weakening (4), and Gorgon Petrifying Breath with its repeat save authored; the corpus test pins each row red first.",
-              "status": "IN_PROGRESS",
+              "text": "Timed and repeat-save condition breaths compile in the dnd5e System compiler and resolve through the area executor: Silver (4), Dust Mephit and Brass Sleep (4, ends on damage taken; waking with an action is a deferred gap). Copper, Gold and the Gorgon split to T3b and T3c. (Red: ci/spells-19-t3-red Tests 38923733569 on 91d2552c7 failed on the corpus pin \"leaves no breath its System cannot execute\". Green: ci/spells-19-t3 Tests 38936308942 and Live backend 38936308878 on 11aa2a122.)",
+              "status": "DONE",
               "closes": ["SPELLS-19.2"],
               "wsjf": {
                 "bv": 8,
@@ -8182,8 +8182,34 @@
                 "rr": 3,
                 "size": 8,
                 "after": ["SPELLS-19.T1"]
+              }
+            },
+            {
+              "id": "SPELLS-19.T3b",
+              "text": "Copper Slowing (4) and Gold Weakening (4) breaths re-authored from core options as a grant plus repeat save, the grant gated on the failed save, no closed rule; corpus pin updated row by row.",
+              "status": "IN_PROGRESS",
+              "closes": ["SPELLS-19.2"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 3,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-19.T3"]
               },
               "activeWorkbook": "docs/handoffs/slice-spells-19.md"
+            },
+            {
+              "id": "SPELLS-19.T3c",
+              "text": "Gorgon Petrifying Breath: 30 ft cone shaped, the printed repeat save and the petrify stage authored from core options.",
+              "status": "TODO",
+              "closes": ["SPELLS-19.2"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 3,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-19.T3b"]
+              }
             },
             {
               "id": "SPELLS-19.T4",
