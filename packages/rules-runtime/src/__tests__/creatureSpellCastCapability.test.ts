@@ -6,10 +6,9 @@ import { SRD, srdByLabel } from './dnd5eSrdCharacter.js'
 import { creatureFeature, srdCreatureActor, testUuid } from '../testing/dnd5eSrdEncounter.js'
 
 const LICH_ID = testUuid(0xe1)
-const SPELL_ID = testUuid(0xe2)
 
 /** The Lich's Paralyzing Touch (a spell attack), discovered with the given `spellCast` authored on it. */
-function paralyzingTouch(spellCast?: { spellId: string } | { castLevel: number }) {
+function paralyzingTouch(spellCast?: { castLevel: number }) {
   const lich = srdByLabel(SRD.creatures, 'Lich')
   const touch = creatureFeature(lich, 'Paralyzing Touch')
   const creature = {
@@ -37,10 +36,6 @@ function paralyzingTouch(spellCast?: { spellId: string } | { castLevel: number }
 describe('Creature capability spellCast (REACTION-4.T3h)', () => {
   it('carries an authored cast level onto the discovered capability', () => {
     expect(paralyzingTouch({ castLevel: 4 }).spellCast).toEqual({ castLevel: 4 })
-  })
-
-  it('carries a referenced System spell onto the discovered capability', () => {
-    expect(paralyzingTouch({ spellId: SPELL_ID }).spellCast).toEqual({ spellId: SPELL_ID })
   })
 
   it('has no cast on a capability that casts no spell, a spell attack included', () => {

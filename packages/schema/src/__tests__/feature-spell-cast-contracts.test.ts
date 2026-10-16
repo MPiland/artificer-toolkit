@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest'
 import { featureEffectDtoSchema } from '../effects/effect.js'
 
 const id = '00000000-0000-4000-8000-000000000001'
-const spellId = '00000000-0000-4000-8000-0000000000aa'
 
 function effect(
   invocation: { kind: 'ACTION' | 'PASSIVE'; triggerCode: string },
@@ -44,19 +43,14 @@ function spellCastIssues(value: unknown) {
 }
 
 describe('Feature effect spellCast', () => {
-  it('accepts a referenced System spell or an authored cast level on an action', () => {
-    for (const spellCast of [{ spellId }, { castLevel: 3 }]) {
-      const result = featureEffectDtoSchema.safeParse(effect(action, { spellCast }))
-      expect(result.success).toBe(true)
-      expect(result.data?.spellCast).toEqual(spellCast)
-    }
+  it('accepts an authored cast level on an action', () => {
+    const result = featureEffectDtoSchema.safeParse(effect(action, { spellCast: { castLevel: 3 } }))
+    expect(result.success).toBe(true)
+    expect(result.data?.spellCast).toEqual({ castLevel: 3 })
   })
 
-  it('requires exactly one of a spell or a cast level', () => {
+  it('requires a cast level', () => {
     expect(spellCastIssues(effect(action, { spellCast: {} })).length).toBeGreaterThan(0)
-    expect(
-      spellCastIssues(effect(action, { spellCast: { spellId, castLevel: 3 } })).length
-    ).toBeGreaterThan(0)
   })
 
   it('bounds the cast level to a spell level', () => {

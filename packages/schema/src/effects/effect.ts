@@ -243,22 +243,41 @@ function isWeaponAttack(effect: { invocation: EffectInvocationAuthored }) {
   )
 }
 
+/** What an action casts: the level it is cast at, which Counterspell's higher-level check reads (D136). */
+const featureSpellCastDtoSchema = lazySchema(() =>
+  z.object({ castLevel: z.number().check(z.int()).check(z.gte(1)).check(z.lte(9)) })
+)
+
 /**
  * Feature effects name a grip only for a versatile weapon attack, which authors one effect per grip
  * so each grip is its own action (D57 ruling 1).
  */
 export const featureEffectDtoSchema = lazySchema(() =>
   (
-    z.extend(createEffectDtoSchema(pathDtoSchema), { grip: z.optional(equipmentGripSchema) }).check(
-      z.superRefine((effect, context) => {
-        if (effect.grip !== undefined && !isWeaponAttack(effect))
-          context.addIssue({
-            code: 'custom',
-            path: ['grip'],
-            message: 'Only weapon attack effects have a grip.'
-          })
+    z
+      .extend(createEffectDtoSchema(pathDtoSchema), {
+        grip: z.optional(equipmentGripSchema),
+        spellCast: z.optional(featureSpellCastDtoSchema)
       })
-    ) as z.ZodMiniType<FeatureEffectAuthored>
+      .check(
+        z.superRefine((effect, context) => {
+          if (effect.grip !== undefined && !isWeaponAttack(effect))
+            context.addIssue({
+              code: 'custom',
+              path: ['grip'],
+              message: 'Only weapon attack effects have a grip.'
+            })
+          if (
+            effect.spellCast !== undefined &&
+            effect.invocation.kind === invocationKindSchema._zod.def.entries.PASSIVE
+          )
+            context.addIssue({
+              code: 'custom',
+              path: ['spellCast'],
+              message: 'Only an action can cast a spell.'
+            })
+        })
+      ) as z.ZodMiniType<FeatureEffectAuthored>
   ).check(z.superRefine(checkWeaponDamageTypeChoices), z.superRefine(checkPathRestrictions))
 )
 

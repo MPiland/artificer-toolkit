@@ -280,6 +280,14 @@ AC 4.3 closes with T3d. Questions for the architect: (1) approve the split; (2) 
 - **Commit:** `LiveSessionEncounterAreaCommitInput.failedCounters` (additive) maps to `{receipt, spellConsumption}`. `persistEncounterAreaCommit` spends each failed reactor: the caster's counter-to-counter merges into the caster's one mechanics call (ruling W), a creature the area also hit merges into its child mechanics call, any other reactor settles through `applyFailedCounterSpends`; receipt versions are checked against the real batch, the stored `failedCounters` must equal the pending's, and the counter's check roll cards post with the commit.
 - **Persistence reads:** a KERNEL_EVIDENCE cast pause on an area root takes the single-action pending path (no target restriction); `requestAreaActionPending` validation covers both the pause and the post-pause area snapshot.
 
+## REACTION-4.T3h: Creature capability casts (D136 packet, for Phase 8 to register at merge)
+
+- **Ruling (final, 2026-10-16).** `spellCast: { castLevel: 1..9 }` sits on the Feature action effect beside `grip`; ACTION invocation only, schema-validated in `packages/schema/src/effects/effect.ts`; additive. The Worker reads only `castLevel`, so there is no spell lookup, capture kind or stored copy. A Creature capability is offered a counter only when `spellCast` is set; spell-attack-only actions (Paralyzing Touch and the like) are not counterable.
+- **Authoring.** `spellCast` is a core-option group on `FEATURE_EFFECT_NODE_MAP` (Creature editors only); plain Feature and Option maps have none. Parity proof: `packages/shared/src/__tests__/creature-feature-node-maps.test.ts`.
+- **One addition beyond "unchanged".** `preparedCastsSpell` is also true for a Creature capability with `spellCast`, so ON_CAST_SPELL sees real creature casts. `castsSpell` for spell attacks is unchanged (deferred item: "Spell attacks count as casts for ON_CAST_SPELL" in `future-enhancements.md`).
+- **SRD data.** No SRD creature action casts a named spell at an authored level, so none is filled; the Worker test (`nativeRoomCounterspellCreatureCast.test.ts`) is the data proof.
+- **Not done by design.** A spell link for display (with a save-time `castLevel` >= spell level check) is a future-enhancements line, not a task.
+
 ## Resume here (after T3e, merged in batch bd 0a8405115)
 
 **Next task: T3h (creature-capability casts).** T3e is DONE; do not reopen it. Read D127 and the T3e-a results above first.
