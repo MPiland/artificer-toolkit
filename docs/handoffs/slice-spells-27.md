@@ -241,25 +241,14 @@ The test walks every SRD subject record and splits its description into sentence
 
 - SPELLS-27.T5 DONE once green; T7 to T11 are already registered; AC 27.2 closes when `REGISTERED_FOLLOW_UP` is empty.
 
-## Resume here (after SPELLS-27.T5, merged in batch be)
+## Resume here (after SPELLS-27.T10, on ci/spells-27-t10)
 
-**Next task: SPELLS-27.T10, indefinite invisibility that ends on attack or cast.** Do not start T7, T8, T9 or T11 in the same session.
+**Next task: SPELLS-27.T6 (D122: unify `consumeOnFirstEvents` and `endOnEvents`) once REACTION-4.T3 has merged, otherwise the next REGISTERED_FOLLOW_UP in `packages/source-data/src/srd/endEvents.test.ts` (T7 Sanctuary, T8 Sleep, T9 Hypnotic Pattern, T11 margin-of-failure riders).** One task per session.
 
-### File map
-- `packages/source-data/src/srd/endEvents.test.ts`: the corpus detector. `COVERED_END_EVENTS` is typed (`GM_ADJUDICATED`, `CONCENTRATION`, `DISMISSAL`, `DISTANCE`, `DURATION`, `REGISTERED_FOLLOW_UP` with a `task`). T10 owns the five entries typed `T10 indefinite invisibility`: `creatures/Imp > Invisibility`, `Quasit > Invisibility`, `Green Hag > Invisible Passage`, `Sprite > Invisibility`, `Will-o'-Wisp > Invisibility`. Authoring one makes the test demand its entry be deleted ("lists only records that print an end event and do not author it").
-- `packages/source-data/src/srd/creatures/duergar.ts` (Invisibility, around action id 3450): the T5 reference for a trait with a duration and `lifecycle.endOnEvents: ['ON_ATTACK_ROLL', 'ON_CAST_SPELL']`. `creatures/imp.ts:199` is the Imp's version with no duration.
-- `packages/rules-runtime/src/systems/dnd5e/effectActionCompiler.ts`: `conditionDurationTurns` (1481) returns null for a duration-less entry, so `timedConditionPlan` (1544) returns null: this is why indefinite invisibility has no effect to carry `endOnEvents`. `maintenancePlan` (765) is the concentration path.
-- Test homes: `packages/rules-runtime/src/__tests__/characterSpellCastActions.test.ts` (`compiledCast`, with the spell added to `authoredById`) for casts; `encounterAreaActionCompilation.test.ts` for the refused-compilation lists.
-
-### Decisions
-- D122 and both 2026-10-16 amendments in `docs/handoffs/phase-08-2-decisions.md` (line ~773 onward) are the ruling. AC 27.2 closes when no entry is `REGISTERED_FOLLOW_UP`. T10 is an unratified mechanic question (an effect with no duration, kept by concentration): check D122 and the ADRs before choosing; escalate to the architect only if no existing source answers it.
-- `CLOSED_RULE` is not an allow-list entry. Never weaken the corpus test.
-
-### Pitfalls
-- The `compile` helper in `encounterAreaActionCompilation.test.ts` passes no `conditionDefinitionIds`, so a timed condition cannot compile there. Prove cast plans through `compiledCast` in `characterSpellCastActions.test.ts`, and register new spells in its `authoredById` map.
-- SRD corpus changes drift `apps/apis/convex/content/srdManifest.generated.ts`. The Live run fails; download its `generated-files` artifact and copy it over `apps/apis/convex`. Never regenerate locally. On merge conflicts in that file take the incoming copy.
-- The light lane is starved: push red to `ci/spells-27-t<n>-red` and green to `ci/spells-27-t<n>`, watch with `scripts/watchCi.ps1 -Ref <sha>`.
-
-### Run ids (T5)
-- Red: Tests 38952365080 on 21f6e15ca.
-- Green: Tests 38967899788 and Live backend 38967899786, both on 7c66e5554 (merged in batch be, a71803362).
+### T10 result
+- `timedConditionPlan` (`effectActionCompiler.ts`) accepts a condition entry with no duration when Concentration maintains it: `initialRemaining: null`, `recurrenceStage: 'NONE'`, planned as `{ kind: 'INDEFINITE' }`. `endOnEvents` ride on the condition contribution as before.
+- `packages/source-data/src/srd/creatures/indefiniteInvisibility.ts` builds the five traits (Imp, Quasit, Will-o'-Wisp: `ON_ATTACK_ROLL`; Sprite, Green Hag: plus `ON_CAST_SPELL`) from core options. Sprite and Green Hag were closed rules; their `CLOSED_RULE_KIND` entries are deleted.
+- Proofs: `creatureIndefiniteInvisibility.test.ts` (plan, journey with release, authoring parity). The five T10 entries are gone from `endEvents.test.ts`.
+- Deferred edge (logged in future-enhancements): ending on using Scare, Consume Life, Enlarge.
+- Run ids: red Tests 38973682677 on f95bacfe5; green Tests 38975443036 and Live 38975443035 on 6e993607d.
+- The red Convex shard also showed `encounterWriteSets.test.ts` at 256002 > 256000; it passed on green, so treat it as flaky.
