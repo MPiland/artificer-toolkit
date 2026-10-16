@@ -133,6 +133,11 @@ describe('native private authoritative rolls', () => {
     expect(hitDie.evidence.terms).toMatchObject([{ die: pool.die, count: 1 }])
     expect(hitDie.evidence.modifier).toBe(constitution.modifier)
     expect(hitDie.evidence.total).toBe(hitDie.evidence.terms[0]!.rolls[0]! + constitution.modifier)
+    const relabelled = await owner.caller.mutation(execute, {
+      ...request,
+      source: { kind: 'HIT_DIE', label: 'Client-provided label' }
+    })
+    expect(relabelled.source).toEqual(hitDie.source)
     await expect(
       owner.caller.mutation(execute, {
         ...request,
