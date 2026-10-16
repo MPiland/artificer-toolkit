@@ -737,8 +737,13 @@
             {
               "id": "PLATFORM-13.12",
               "text": "Every local Convex runner (including scripts/validatePreStagingLocal.mjs) builds its CLI arguments and environment through scripts/convexSelfHosted.mjs, so CONVEX_DEPLOYMENT and CONVEX_DEPLOY_KEY never reach a child; and the live-backend drift check fails on untracked generated files, not only modified ones.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "merge of 4afc1d6db (PLATFORM-13.T10)",
+                "scripts/generatedDrift.test.mjs and validatePreStagingLocal.test.mjs red then green; developmentCustody.test.ts green",
+                "CI Tests 38829445183 and live-backend dispatch 38829450540 green at bc75a872c",
+                "the restored durable Vehicle receipt check in the live --campaign-custody proof runs in yarn validate:pre-staging:local"
+              ],
               "origin": [],
               "note": "Registered 2026-10-15 from the PLATFORM-13.T9 merge review. Low-likelihood residuals (spawn-error rejection, --fresh name-only guard, README digest prose) deferred to future-enhancements.md \"Deferred edge cases\"."
             }
@@ -880,7 +885,7 @@
             {
               "id": "PLATFORM-13.T10",
               "text": "Route validatePreStagingLocal.mjs through convexCliArguments/convexCliEnvironment and make the generated-file drift check use git status --porcelain (untracked included), each with a red-first test. Also: developmentDrafts.ts and developmentCampaignMembershipLifecycle.ts draw usernames through generateValidUsername; restore the durable Vehicle receipt check to a live proof (lost from --campaign-custody in the T5 split) and give verifyCharacterCustody cursor-advance assertions a caller with more than one page.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "PLATFORM-13.12"
               ],
@@ -892,8 +897,7 @@
                 "after": [
                   "PLATFORM-13.T9"
                 ]
-              },
-              "activeWorkbook": "docs/handoffs/slice-platform-13-t5.md"
+              }
             }
           ]
         },
@@ -9860,9 +9864,11 @@
             {
               "id": "REACTION-4.5",
               "text": "A reaction decision is deterministic and complete: rebuilding the plan on an answer or a replay derives the same ids (no ambient randomness), a reaction-only action is refused as an ordinary action on every action path (single-target and area), and admission accepts any reaction the offer carries.",
-              "status": "TODO",
+              "status": "DONE",
               "proof": [
-                "merge d98b1264f (partial: deterministic ids, REACTION_TRIGGER_ONLY on every action path, admission of any offered reaction)"
+                "merge d98b1264f (partial: deterministic ids, REACTION_TRIGGER_ONLY on every action path, admission of any offered reaction)",
+                "merge of 5c7a2e4f8 (REACTION-4.T6): packages/rules-runtime/src/__tests__/encounterReactionRebuild.test.ts builds the plan twice through the real prepareEncounterActionEffectPlans and asserts identical plans, effect id and decision pin; encounterReactionChoice.test.ts settles the chosen pin on a two-pin offer; nativeRoomReaction.test.ts replays with no second use and refuses an unoffered option",
+                "CI 38830029899 green"
               ],
               "origin": [],
               "note": "Registered 2026-10-15 from the REACTION-4.T1 merge review (D115). Remaining: replay test, admission-path integration test, settlement of a non-first offered reaction (REACTION-4.T6)."
@@ -9925,7 +9931,8 @@
                 "after": [
                   "REACTION-4.T1"
                 ]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-reaction-4.md"
             },
             {
               "id": "REACTION-4.T4",
@@ -9963,7 +9970,7 @@
             {
               "id": "REACTION-4.T6",
               "text": "Finish AC 4.5: a replay test proving the rebuilt plan derives the same ids, an admission-path integration test through the real command, and settleEncounterReactionChoice settling the chosen reaction instead of offer.reactions[0] (encounterReactionChoice.ts:128), red-first.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "REACTION-4.5"
               ],
