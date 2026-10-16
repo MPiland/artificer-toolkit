@@ -30,7 +30,7 @@ export async function verifyCampaignInventory({
   campaignId: string
   /**
    * True fills Vehicle A past the ordinary cleanup bound so source loss runs the durable bounded
-   * cleanup job. Callers that only need the Vehicle gone afterwards (custody) pass false: the
+   * cleanup job. The custody convex test passes false to prove the immediate path instead: the
    * Vehicle is then evacuated in the unshare itself and the party stays small for later reads.
    */
   boundedCleanup?: boolean
