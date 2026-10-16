@@ -7114,7 +7114,8 @@
               "status": "TODO",
               "proof": [
                 "apps/apis/convex/encounters/actionSpellCasting.test.ts (choices, slot spend and undo, upcast levels, ritual, Sheet and Encounter list the same cast levels)",
-                "packages/rules-runtime/src/__tests__/encounterSpellCastLevelFacts.test.ts (cast level selects the authored scaling row)"
+                "packages/rules-runtime/src/__tests__/encounterSpellCastLevelFacts.test.ts (cast level selects the authored scaling row)",
+                "partial: T12 (CI 38841168163 at 9b39d86d4, merged 2026-10-15) Mass Cure Wounds, Mass Healing Word and Prayer of Healing in one RESOLVE_ACTION with the ACTORS target kind: apps/session-worker/test/nativeRoomChosenActorsSpell.test.ts, apps/web/src/domains/campaigns/vtt/CampaignTabletopActionDrawer.test.tsx, packages/rules-runtime/src/__tests__/scalingRowSelection.test.ts"
               ],
               "origin": [],
               "note": "rul-9-rules-audit.md slice 5 (depends on area actions). Found in SPELLS-7 slice 5d (2026-10-10): action receipts never spend a slot today (encounterActionReceipt.ts sets spellCastConsumption to null; only movement reactions spend one), and GM undo refuses any action root that carries one (actionRevert.ts). Slot spend on cast needs its inverse in the revert path in the same change, for single-target and area roots. T1 merged 6bafbd6ed: core Encounter casting for single-Effect spells; multi-Effect spells are not offered until the compiler executes multi-entry groups. T5-T11 remain.",
@@ -7313,7 +7314,7 @@
             {
               "id": "SPELLS-8.T12",
               "text": "T6b: Mass Cure Wounds, Mass Healing Word and Prayer of Healing cast in an Encounter through one RESOLVE_ACTION with a reusable list-of-actors target kind and authored maxTargets (D118: one cast = one commit, one slot spend, one undo). Heals scale in the compiler from the bound spellCastLevel fact like damage, through one shared row selector used by the compiler and the Sheet selectValue; remove the effectAtCastLevel pre-flattening.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-8.1"],
               "wsjf": {
                 "bv": 8,
@@ -7321,8 +7322,7 @@
                 "rr": 5,
                 "size": 3,
                 "after": ["SPELLS-8.T6"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-spells-8-t1.md"
+              }
             },
             {
               "id": "SPELLS-8.T13",
@@ -7335,7 +7335,8 @@
                 "rr": 3,
                 "size": 2,
                 "after": ["SPELLS-8.T5"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-8-t1.md"
             }
           ]
         },
