@@ -522,7 +522,7 @@ export async function revertLastEncounterAction(
         (id) => id !== root.addedConcentrationCasterId
       )
     })
-  // The grants the action's rolls used up come back with their remaining count.
+  // The grants the action used up or ended (rolls, an incapacitation, a heal) come back with their remaining count.
   await restoreConsumedGrants(ctx, root.consumedGrants)
   // The zone an area action placed leaves the Scene with it.
   if (areaRoot?.placedSpatialEffectId)

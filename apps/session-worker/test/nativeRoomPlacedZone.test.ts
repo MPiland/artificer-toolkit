@@ -184,6 +184,16 @@ async function walkerHitPoints(room: Room) {
     ?.currentHitPoints
 }
 
+/** The stored effect without its row identity or JSON key order, which a restore may rewrite. */
+function storedContent({
+  _id,
+  _creationTime,
+  definitionJson,
+  ...effect
+}: Awaited<ReturnType<typeof walkerEffects>>[number]) {
+  return { ...effect, definition: JSON.parse(definitionJson) as unknown }
+}
+
 async function walkerEffects(room: Room) {
   const { activeEffects } = await readRoomHistory(room.room.base.stub)
   return activeEffects.filter(({ targetActorId }) => targetActorId === WALKER_ID)
@@ -544,6 +554,64 @@ describe('ending a caltrop slow (SPELLS-17)', () => {
     )
     expect(healed.answer.type, JSON.stringify(healed.answer)).toBe('COMMAND_COMMITTED')
 
+    expect(await walkerHitPoints(room)).toBe(hitPointsBefore)
+    expect(await walkerEffects(room)).toHaveLength(1)
+  })
+
+  it('gives the slow back when the GM takes the healing back', async () => {
+    const room = await caltropsRoom(0)
+    await spreadCaltrops(room)
+    await room.advanceTurn()
+    const hitPointsBefore = await walkerHitPoints(room)
+    await walkerMoves(room, WALK_INTO)
+    const [slow] = await walkerEffects(room)
+    const hitPointsHurt = await walkerHitPoints(room)
+
+    const healed = await room.startAction(
+      WALKER_ID,
+      [],
+      null,
+      null,
+      room.featureActionId(walkerActor, creatureFeature(selfHealWolf, 'Bite').id),
+      WALKER_ID
+    )
+    expect(healed.answer.type, JSON.stringify(healed.answer)).toBe('COMMAND_COMMITTED')
+    expect(await walkerHitPoints(room)).toBe(hitPointsBefore)
+    expect(await walkerEffects(room)).toEqual([])
+
+    const undone = await room.send({
+      type: 'REVERT_LAST_ACTION',
+      encounterId: room.room.encounterId,
+      commandId: crypto.randomUUID(),
+      expectedVersion: await room.version()
+    })
+    expect(undone.type, JSON.stringify(undone)).toBe('COMMAND_COMMITTED')
+
+    expect(await walkerHitPoints(room)).toBe(hitPointsHurt)
+    expect((await walkerEffects(room)).map(storedContent)).toEqual([slow].map(storedContent))
+  })
+
+  it('still slows a creature whose resistance takes the whole of the hurt', async () => {
+    const resistantWalker = srdCreatureActor({
+      id: WALKER_ID,
+      creature: {
+        ...selfHealWolf,
+        damageResistances: [
+          srdSystemRecord.damageTypes!.find(({ code }) => code === 'PIERCING')!.id
+        ]
+      }
+    })
+    const room = await caltropsRoom(0, [], { walker: resistantWalker })
+    await spreadCaltrops(room)
+    await room.advanceTurn()
+    const hitPointsBefore = await walkerHitPoints(room)
+
+    const caught = await walkerMoves(room, WALK_INTO)
+
+    // Half of one point of piercing is nothing, yet the failed save still stops and slows the walker.
+    expect(caught.executions[0]).toMatchObject({
+      execution: { movementInterruption: { kind: 'STOP' } }
+    })
     expect(await walkerHitPoints(room)).toBe(hitPointsBefore)
     expect(await walkerEffects(room)).toHaveLength(1)
   })

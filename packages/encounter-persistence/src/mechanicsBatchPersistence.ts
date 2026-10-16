@@ -1,7 +1,7 @@
 import { checksumRunActorPlayState } from '@artificer-toolkit/rules-runtime/encounterActorStorage'
-import { grantsEndedBy } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import { effectiveHitPointMaximum } from '@artificer-toolkit/rules-runtime/character/activeEffectGrantTotals'
+import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import { postgresUuidSchema } from '@artificer-toolkit/schema/shared/postgresUuid'
 import type {
   ReceiptApplications,
@@ -15,7 +15,8 @@ import type {
   EncounterMechanicsBatchPlan
 } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
 import { rejectDomain } from './domainRejections.js'
-import { createActiveRuleEffectStore, listActiveRuleEffects } from './effectStore.js'
+import { endGrantsOnHitPointsRegained } from './consumedGrantPersistence.js'
+import { listActiveRuleEffects } from './effectStore.js'
 import type { EncounterCharacterRow } from './characterPlay.js'
 import type { EncounterCharacterWriteTransaction } from './ports.js'
 
@@ -29,6 +30,8 @@ export type EncounterMechanicsBatchResult = {
   }
   characterStreamVersion: number | null
   itemUseStateTransition: EncounterMechanicsBatchPlan['itemUseStateTransition']
+  /** The "until healed" grants a heal in this batch ended: the action's undo gives them back. */
+  endedGrants: ActiveRuleEffectRecord[]
 }
 
 function validateInput(input: EncounterMechanicsBatchInput): EncounterMechanicsBatchInput {
@@ -101,17 +104,15 @@ export async function readEncounterMechanicsBatchTarget<CharacterSources>(
   return { ctx, input, userId, runRow, state, campaign, actor, actorRow }
 }
 
-/** A heal that restores at least 1 hit point ends the grants that last until hit points are regained. */
-async function endGrantsOnHitPointsRegained<CharacterSources>(
+/** Regaining hit points, by a heal or a death save, ends the grants that last until they are regained. */
+async function endGrantsOnRegain<CharacterSources>(
   ctx: EncounterCharacterWriteTransaction<CharacterSources>,
   target: Awaited<ReturnType<typeof readEncounterMechanicsBatchTarget>>,
-  applications: ReceiptApplications
+  { before, after }: EncounterMechanicsBatchPlan['targetTransition']
 ) {
-  if (!applications.some((entry) => entry.kind === 'HEAL' && entry.appliedAmount >= 1)) return
-  const store = createActiveRuleEffectStore(ctx)
-  const owner = turnEffectOwner(target.actor, target.state.id)
-  for (const effect of grantsEndedBy(await store.list(owner), 'ON_HIT_POINTS_REGAINED'))
-    await store.deleteCas({ id: effect.id, owner, expectedVersion: effect.version })
+  return after.currentHitPoints > before.currentHitPoints
+    ? endGrantsOnHitPointsRegained(ctx, turnEffectOwner(target.actor, target.state.id))
+    : []
 }
 
 /**
@@ -165,13 +166,13 @@ export async function persistEncounterMechanicsBatchPlan<CharacterSources>(
     )
       throw new Error('Encounter non-Character plan contains Character state.')
     if (plan.stateChanged) await writeRunActor(ctx, actorRow._id, plan.updatedActor)
-    await endGrantsOnHitPointsRegained(ctx, target, plan.receiptApplications)
     return {
       updatedActor: plan.updatedActor,
       receiptApplications: plan.receiptApplications,
       targetTransition: plan.targetTransition,
       characterStreamVersion: null,
-      itemUseStateTransition: null
+      itemUseStateTransition: null,
+      endedGrants: await endGrantsOnRegain(ctx, target, plan.targetTransition)
     }
   }
   if (
@@ -222,12 +223,12 @@ export async function persistEncounterMechanicsBatchPlan<CharacterSources>(
   }
   if (checksumRunActorPlayState(plan.updatedActor) !== actorRow.stateChecksum)
     await writeRunActor(ctx, actorRow._id, plan.updatedActor)
-  await endGrantsOnHitPointsRegained(ctx, target, plan.receiptApplications)
   return {
     updatedActor: plan.updatedActor,
     receiptApplications: plan.receiptApplications,
     targetTransition: plan.targetTransition,
     characterStreamVersion: plan.characterStreamVersion,
-    itemUseStateTransition: plan.itemUseStateTransition
+    itemUseStateTransition: plan.itemUseStateTransition,
+    endedGrants: await endGrantsOnRegain(ctx, target, plan.targetTransition)
   }
 }

@@ -27,12 +27,14 @@ import {
 import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import { nextEncounterActorDefeated } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import { requireEncounterActorControllerCandidates } from './actorController.js'
+import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import { endCompletedRunCharacterEffects } from './characterRunEffects.js'
 import { freezeEncounterCharacterStates } from './characterStates.js'
 import { encounterReplayReceipt } from './replayReceipts.js'
 import { readRunActors, readRunActorWithRow, readRunState, writeRunActor } from './documents.js'
 import { endChosenConcentration } from './concentrationChosenEnd.js'
 import { endConcentrationAfterEdit } from './concentrationEditEnd.js'
+import { endGrantsOnHitPointsRegained } from './consumedGrantPersistence.js'
 import { endEncounterActorGrant } from './grantEndPersistence.js'
 import { createEncounterInitiativeStore } from './initiativeStore.js'
 import { correctInitiativeCursor } from './initiativeCorrection.js'
@@ -401,6 +403,7 @@ async function recordEncounterToolCommand(
         roll
       })
     }
+    const previousHitPoints = actor.kind === 'CHARACTER' ? 0 : actor.currentHitPoints
     actor = encounterRunActorStateSchema.parse(
       input.type === 'SET_INITIATIVE' || input.type === 'ROLL_ACTOR_INITIATIVE'
         ? {
@@ -436,6 +439,10 @@ async function recordEncounterToolCommand(
           }
     )
     await writeRunActor(ctx, actorRow._id, actor)
+    // A GM edit that raises a creature's hit points ends its "until healed" grants (D63's revive
+    // edit included). Like the edit itself, the ending is not undoable.
+    if (actor.kind !== 'CHARACTER' && actor.currentHitPoints > previousHitPoints)
+      await endGrantsOnHitPointsRegained(ctx, turnEffectOwner(actor, state.id))
     if (
       input.type === 'UPDATE_ACTOR' &&
       input.endActiveEffectId !== undefined &&

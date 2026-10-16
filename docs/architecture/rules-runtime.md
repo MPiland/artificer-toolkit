@@ -366,9 +366,13 @@ bypass and the doubled cost apply only to zones the mover can see (`isVisibleHal
 `spatialState.revealed`), so a hidden zone triggers whatever `carefully` says. The tabletop
 learns which fields offer the choice from `halfSpeedFields` on the Encounter session state (visible, scene-absolute
 placements only through the same predicate, read once by `readHalfSpeedFields` for both the Convex read and the room push); the stage's drag
-preview offers "Move carefully" and "Move normally" before sending. Not yet: undo of a healing action restores the
-ended grant, healing outside Encounter mechanics batches (Sheet) ends the grant, and hidden or unnoticed zones
-(MOVE-3.3 to 3.5).
+preview offers "Move carefully" and "Move normally" before sending. Every path that raises a holder's hit points ends its
+`ON_HIT_POINTS_REGAINED` grants through one helper, `endGrantsOnHitPointsRegained` (`consumedGrantPersistence.ts`): the
+Encounter mechanics batch (a heal, or a death save's natural 20, keyed on the target's hit points rising),
+a Character's Sheet command that raises hit points (Convex `executeCharacterSheetCommand` and the room's Sheet command path), and
+a GM `UPDATE_ACTOR` edit that raises a creature's hit points. A batch run by an action or area command hands the ended
+records to the root's `consumedGrants` receipt, so GM undo restores them with the same id and version; the Sheet, death
+save and GM edit paths have no undoable root, so their endings are not undone. Not yet: hidden or unnoticed zones (MOVE-3.3 to 3.5).
 
 Each choice also carries `range` when its compiled target policy has a measurable one, the range the evaluator that
 handles the policy measures. A single-target policy that `singleTargetMeasure` accepts advertises `SELF`, `WITHIN` (Touch

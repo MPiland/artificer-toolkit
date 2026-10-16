@@ -21,6 +21,7 @@ import { SRD_BASIC_ACTION_DEFINITIONS } from '@artificer-toolkit/source-data/srd
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { healersKit } from '@artificer-toolkit/source-data/srd/equipment/healers-kit.js'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
+import { plannedModifierGrant } from '@artificer-toolkit/rules-runtime/testing/modifierGrantFixture'
 import { readCharacterRow } from '../characters/stateDocuments'
 import { domainRejection } from '../../tests/fixtures/playerControl'
 import { setAutoRollDice, type FixtureRolls } from '../../tests/fixtures/rollPreferences'
@@ -60,8 +61,13 @@ function heroIn(fixture: Fixture, result: CommandResult) {
 }
 
 /** A started Run whose Character the Creature has just dropped to 0 hit points, at the Creature's turn. */
-async function dyingCharacter(rolls: FixtureRolls, withAlly = false) {
+async function dyingCharacter(
+  rolls: FixtureRolls,
+  withAlly = false,
+  beforeStart?: (fixture: Fixture) => Promise<void>
+) {
   const fixture = await setup({ withAlly })
+  await beforeStart?.(fixture)
   // Table roll cards post to the chat, which needs a username.
   await fixture.player.caller.mutation(api.account.updateProfile, {
     username: 'DyingHero',
@@ -246,6 +252,32 @@ describe('a dying Character’s turn-start death save (D96)', () => {
       current: 1,
       deathSaves: NO_DEATH_SAVES
     })
+  }, 60000)
+
+  it('ends a grant that lasts until hit points are regained when a 20 brings the Character back (SPELLS-17.3)', async () => {
+    const { fixture, bitten } = await dyingCharacter('AUTO_ROLL', false, (base) =>
+      base.t.run(async (ctx) => {
+        const planned = plannedModifierGrant({
+          encounterId: base.run.id,
+          sourceActorId: base.hero.id,
+          holderActorId: base.hero.id,
+          lifecycle: { endOnEvents: ['ON_HIT_POINTS_REGAINED'] },
+          rounds: 10,
+          lifetimeScope: 'OWNER'
+        })
+        await createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) }).create({
+          id: crypto.randomUUID(),
+          owner: { kind: 'CHARACTER', characterId: base.character.id },
+          definition: planned.definition,
+          lifecycle: planned.lifecycle
+        })
+      })
+    )
+    expect(await heldEffects(fixture, fixture.character.id)).toHaveLength(1)
+    await queueRoomRolls(fixture.campaign.id, { rolls: [draw(20)] })
+    await advance(fixture, bitten)
+    expect((await storedCharacter(fixture)).state.hitpoints.current).toBe(1)
+    expect(await heldEffects(fixture, fixture.character.id)).toEqual([])
   }, 60000)
 
   it('stabilises the Character at three successes and asks for no further saves', async () => {
