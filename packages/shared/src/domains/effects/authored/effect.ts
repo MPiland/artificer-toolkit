@@ -77,11 +77,22 @@ export type ReactionDamageTakenTriggerBindingAuthored = {
   damageTypeIds: string[]
 }
 
+/**
+ * The reactor is a chosen target of an action cast on chosen creatures or an area, before that action
+ * resolves. `sourceEffectIds` narrows it to actions owned by the named authored content (a Spell,
+ * Feature, Option, Feat or equipment id); empty or absent means any such action.
+ */
+export type ReactionTargetedSelfTriggerBindingAuthored = {
+  kind: 'TARGETED_SELF'
+  sourceEffectIds?: string[]
+}
+
 export type ReactionTriggerBindingAuthored =
   | ReactionMovementTriggerBindingAuthored
   | ReactionAttackedSelfTriggerBindingAuthored
   | ReactionSpellCastTriggerBindingAuthored
   | ReactionDamageTakenTriggerBindingAuthored
+  | ReactionTargetedSelfTriggerBindingAuthored
 
 type ReactionActivationAuthored = {
   code: typeof ACTIVATION_CODE.REACTION

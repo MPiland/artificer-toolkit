@@ -332,7 +332,8 @@ export type ModifierKindsByDomain<V extends ValueDomainCode> =
 
 export type ModifierValueDomainOptionPayloadByDomain = {
   DAMAGE_RESISTANCE: { damageTypeId: string }
-  DAMAGE_IMMUNITY: { damageTypeId: string }
+  /** `sourceEffectIds` limits the immunity to damage from actions owned by that authored content. */
+  DAMAGE_IMMUNITY: { damageTypeId: string; sourceEffectIds?: string[] }
   DAMAGE_VULNERABILITY: { damageTypeId: string }
 
   CONDITION: { conditionTypeId: string }

@@ -491,7 +491,7 @@ waits and the Scene is held (D26, text "Waiting on a reaction decision"). The an
 `OPTION`, read as the `REACTION_CHOICE` summary; the room re-opens the choice graph by occurrence id, as
 Legendary Resistance does.
 
-DECLINE continues the OUTCOME unchanged. USE runs the reaction's own plan (`applyNativeAttackReaction`),
+DECLINE continues the OUTCOME unchanged. USE runs the reaction's own plan (`applyNativeReactionEffect`),
 prices the reaction through the action economy and the slot through Character mechanics, builds the effect
 it creates on its reactor, and re-evaluates the TEST: `reconstructNativeActionTest` rebinds the recorded
 dice to the attack's defense as the effect leaves it. That rebinding is a sealed `adjustment`

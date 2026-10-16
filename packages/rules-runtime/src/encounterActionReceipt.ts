@@ -68,6 +68,10 @@ export function buildEncounterActionStoredExecution(input: {
   } | null
   /** The target also failed a counter against this cast, so its slot spend rides in this batch (D127). */
   targetFailedCounterSpend?: boolean
+  /** The effects of reactions the target used on being chosen as this cast's target, which land with its outcome. */
+  reactionEffectTransitions?: ReturnType<
+    typeof projectNativeActionEffectTransitions
+  >['activeEffectTransitions']
 }) {
   const { prepared, execution, occurrenceId, occurrenceVersion, settled, effects } = input
   const { state, source, actor, target } = prepared
@@ -122,9 +126,14 @@ export function buildEncounterActionStoredExecution(input: {
             sourceItemConsumption: settled.itemConsumptionReceipt,
             actionEconomyTransition,
             ...(input.attackAction ? { attackActionTransition: input.attackAction } : {}),
-            activeEffectTransitions: activeEffectTransitions.map((transition) =>
-              characterEffectReceipt(transition, input.maintainedState?.id ?? null)
-            ),
+            activeEffectTransitions: [
+              ...activeEffectTransitions.map((transition) =>
+                characterEffectReceipt(transition, input.maintainedState?.id ?? null)
+              ),
+              ...(input.reactionEffectTransitions ?? []).map((transition) =>
+                characterEffectReceipt(transition, null)
+              )
+            ],
             stateEffectTransitions,
             reaction: input.reaction
               ? {

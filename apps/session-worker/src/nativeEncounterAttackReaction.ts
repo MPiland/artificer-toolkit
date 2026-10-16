@@ -122,15 +122,18 @@ export function discoverNativeAttackReaction(input: {
 }
 
 /**
- * Runs a used reaction and works out the attack it answered once the reaction's effect holds: the
- * effect plan to settle with the outcome, and the attack's binding against the reactor's facts as that
- * effect leaves them. Nothing is stored; the commit settles the plan.
+ * Runs a used reaction (to an attack, or to being chosen as a cast's target) and works out the action
+ * it answered once the reaction's effect holds: the effect plan to settle with the outcome, and the
+ * action's binding against the reactor's facts as that effect leaves them. Nothing is stored; the
+ * commit settles the plan.
  */
-export async function applyNativeAttackReaction(input: {
-  reaction: NativeAttackReaction
+export async function applyNativeReactionEffect(input: {
+  reaction: Pick<NativeAttackReaction, 'prepared' | 'triggerDamageTypeIds'>
   runtime: RulesRuntimeService
   occurrenceId: string
   commandId: string
+  /** Names the reactor in the effect id when several creatures react to one command. */
+  reactorActorId?: string
   occurredAt: string
   activeEffectsByActorId: Map<string, ActiveRuleEffectRecord[]>
   prepareAttack(movementTargets: MovementTargets): Promise<Prepared>

@@ -249,7 +249,10 @@ const buildModifierGrantVariants = () => {
       z.strictObject({ damageTypeId: authoredIdentifierSchema }),
       z.strictObject({ damageTypeSource: z.literal('TRIGGER') })
     ]),
-    DAMAGE_IMMUNITY: z.object({ damageTypeId: authoredIdentifierSchema }),
+    DAMAGE_IMMUNITY: z.object({
+      damageTypeId: authoredIdentifierSchema,
+      sourceEffectIds: z.optional(z.array(authoredIdentifierSchema).check(z.maxLength(100)))
+    }),
     DAMAGE_VULNERABILITY: z.object({ damageTypeId: authoredIdentifierSchema }),
     CONDITION: z.object({ conditionTypeId: authoredIdentifierSchema }),
     CONDITION_IMMUNITY: z.object({ conditionTypeId: authoredIdentifierSchema }),
