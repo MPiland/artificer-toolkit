@@ -31,6 +31,7 @@ const CLERIC_ACTOR_ID = testUuid(0xe02)
 const CLERIC_ID = testUuid(0xe03)
 const WOLF_ID = testUuid(0xe04)
 const PRIOR_STATE_ID = testUuid(0xe10)
+const PRIOR_OCCURRENCE_ID = testUuid(0xe31)
 const wolf = srdCreatureActor({ id: WOLF_ID, creature: plainWolf })
 /** The captured Character page starts at Character stream version 1 (see `characterPageFixture`). */
 const CAPTURED_STREAM_VERSION = 1
@@ -62,7 +63,7 @@ function createPriorState(input: {
       maintenanceDefinitionId: maintenanceDefinition.id,
       definitionChecksum: maintenanceDefinition.checksum,
       sourceActionId: testUuid(0xe30),
-      sourceOccurrenceId: testUuid(0xe31),
+      sourceOccurrenceId: PRIOR_OCCURRENCE_ID,
       sourceActorId: FIGHTER_ACTOR_ID,
       replacementPolicy: 'REPLACE_SAME_DEFINITION',
       emptyDependentPolicy: input.emptyDependentPolicy
@@ -278,7 +279,11 @@ describe('a prior state whose last dependent expired before the next action (ROO
           ticks: 1,
           damage: 1,
           occurredAt,
-          maintainedBy: { stateId: PRIOR_STATE_ID, sourceActorId: FIGHTER_ACTOR_ID }
+          maintainedBy: {
+            stateId: PRIOR_STATE_ID,
+            sourceActorId: FIGHTER_ACTOR_ID,
+            sourceOccurrenceId: PRIOR_OCCURRENCE_ID
+          }
         })
         definitions.push(dependent.definition)
       }

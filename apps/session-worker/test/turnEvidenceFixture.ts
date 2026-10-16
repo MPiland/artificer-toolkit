@@ -40,14 +40,14 @@ export async function seedTurnSaveEffect(input: {
   ticks: number
   damage: number
   occurredAt: string
-  /** Makes the effect a dependent of this maintained state, which `sourceActorId` owns. */
-  maintainedBy?: { stateId: string; sourceActorId: string }
+  /** Makes the effect a dependent of this maintained state: its owner and the occurrence that made it. */
+  maintainedBy?: { stateId: string; sourceActorId: string; sourceOccurrenceId: string }
 }) {
   const { actor } = input
   if (actor.kind === 'CHARACTER') throw new Error('Turn save effects target creature actors.')
   const definitionId = crypto.randomUUID()
   const entryId = crypto.randomUUID()
-  const occurrenceId = crypto.randomUUID()
+  const occurrenceId = input.maintainedBy?.sourceOccurrenceId ?? crypto.randomUUID()
   const graph = {
     schemaVersion: 1,
     id: definitionId,
