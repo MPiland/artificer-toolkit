@@ -629,11 +629,12 @@ describe('a Legendary Action that damages the holder of a damage-triggered effec
     })
     const option = (await readLegendaryChoice(room.base.stub))?.options[0]
     if (!option) throw new Error('Expected a Legendary option.')
-    await respond(room, {
+    const { answer } = await respond(room, {
       kind: 'LEGENDARY_OPTION',
       optionId: option.optionId,
       targetActorId: WOLF_ID
     })
+    expect(answer.type, JSON.stringify(answer).slice(0, 800)).toBe('COMMAND_COMMITTED')
     const history = await readRoomHistory(room.base.stub)
     return {
       effectIds: history.activeEffects.map(({ id }) => id),

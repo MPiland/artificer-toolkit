@@ -83,6 +83,7 @@ export type TurnSaveDamageEffectInput = {
   conditionOwnership?: readonly { conditionId: string; baselinePresent: boolean }[]
   /** The events whose first occurrence ends the effect early; the turn kernel still counts it down. */
   endOnEvents?: readonly ActiveEffectEndEvent[]
+  endOnTriggers?: readonly ActiveRuleEffectDefinitionDto['recurrence']['endOnTriggers'][number][]
   currentEffects?: readonly ActiveRuleEffectRecord[]
 }
 
@@ -199,7 +200,7 @@ export async function turnSaveDamageEffect(
       recurrenceStage: stage,
       consumeOnFirstEvents: [],
       endOnEvents: [...(input.endOnEvents ?? [])],
-      endOnTriggers: [],
+      endOnTriggers: [...(input.endOnTriggers ?? [])],
       endOnConditionIds: [],
       holderEnd: null,
       lifetimeScope: input.lifetimeScope ?? 'ENCOUNTER',

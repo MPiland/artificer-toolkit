@@ -36,7 +36,11 @@ const APP_ROLL_ID = testUuid(0x204)
 const GM_USER_ID = testUuid(0x9a)
 const BOUNDARY = { ordinal: 1, stage: 'START_OF_TURN', actorId: GOBLIN_ID } as const
 const goblin = srdCreatureActor({ id: GOBLIN_ID, creature: GOBLIN })
-const OWNER = { kind: 'ENCOUNTER_ACTOR', encounterId: ENCOUNTER_ID, targetActorId: GOBLIN_ID }
+const OWNER = {
+  kind: 'ENCOUNTER_ACTOR',
+  encounterId: ENCOUNTER_ID,
+  targetActorId: GOBLIN_ID
+} as const
 
 let runtime: RulesRuntimeService
 beforeAll(async () => {
@@ -320,6 +324,30 @@ describe('prepareEncounterTurnEffects', () => {
     expect(execution?.applications.map(({ kind }) => kind)).toEqual(['DAMAGE', 'CONDITION_REMOVE'])
     expect(execution?.targetTransition.after.conditionIds).not.toContain(invisible)
     expect(execution?.targetTransition.after.currentHitPoints).toBe(5)
+  })
+
+  it('expires a later recurring effect that the damage ends, releasing its condition (SPELLS-27.T4b)', async () => {
+    const invisible = SRD_CONDITION_TYPES.find(({ code }) => code === 'INVISIBLE')!.id
+    const ticking = await effect(1, { damage: 2 })
+    const sleeping = await effect(2, {
+      damage: 1,
+      currentEffects: [ticking],
+      conditionOwnership: [{ conditionId: invisible, baselinePresent: false }],
+      endOnTriggers: [{ event: 'DAMAGE_TAKEN', by: 'ANYONE', damageTypeIds: null }]
+    })
+    const unseen = srdCreatureActor({ id: GOBLIN_ID, creature: GOBLIN, conditionIds: [invisible] })
+
+    const result = await complete(
+      prepare({ actor: unseen, effects: [ticking, sleeping], faces: [10, 10] })
+    )
+
+    const executions = result.plan?.executions ?? []
+    expect(executions.map(({ lifecycle }) => lifecycle.kind)).toEqual(['UPDATE', 'EXPIRE'])
+    expect(executions[0]?.applications.map(({ kind }) => kind)).toEqual([
+      'DAMAGE',
+      'CONDITION_REMOVE'
+    ])
+    expect(executions[1]?.targetTransition.after.conditionIds).not.toContain(invisible)
   })
 
   it('auto-rolls each failed save in createdOrdinal order and chains the damage through both effects', async () => {

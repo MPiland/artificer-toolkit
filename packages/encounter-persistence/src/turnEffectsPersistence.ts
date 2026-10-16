@@ -110,9 +110,8 @@ export async function persistEncounterTurnEffects(
     store.findMaintainedStateById({ encounterId: state.id, stateId })
   )
   const expired = new Set<string>()
-  // The candidates keep their lifecycle; an effect an earlier execution's damage ended is gone.
-  const damageExcluded = new Set(candidates.map(({ id }) => id))
-  const damageEnded: ActiveRuleEffectRecord[] = []
+  // Effects an earlier execution's damage ended; a candidate among them expires at its own turn.
+  const damageEnded = new Map<string, ActiveRuleEffectRecord>()
   const dispositions = new Map(
     executions.some(({ applications }) => applications.some(({ kind }) => kind === 'DAMAGE'))
       ? (await readRunActors(ctx, state)).map(({ id, disposition }) => [id, disposition] as const)
@@ -204,7 +203,10 @@ export async function persistEncounterTurnEffects(
       effect,
       holderActorId: actor.id,
       held: effects,
-      excluded: damageExcluded,
+      excluded: new Set([
+        ...damageEnded.keys(),
+        ...candidates.slice(0, ordinal + 1).map(({ id }) => id)
+      ]),
       applications: execution.applications.map((application) => ({
         ...application,
         targetActorId: actor.id
@@ -225,10 +227,9 @@ export async function persistEncounterTurnEffects(
       )
     )
       throw new Error('Staged turn effect damage release is stale.')
-    for (const endedEffect of ended.endedEffects) {
-      damageExcluded.add(endedEffect.id)
-      damageEnded.push(endedEffect)
-    }
+    if (damageEnded.has(effect.id) && lifecycle.kind !== 'EXPIRE')
+      throw new Error('Staged turn effect damage expiry is stale.')
+    for (const endedEffect of ended.endedEffects) damageEnded.set(endedEffect.id, endedEffect)
     priorAfter = transition.after
     applications.push(
       ...execution.applications.map(({ ordinal: _ordinal, ...application }) => ({
@@ -309,12 +310,15 @@ export async function persistEncounterTurnEffects(
         }
       })
   }
+  // A candidate the damage ended has already expired with its own execution.
+  const candidateIds = new Set(candidates.map(({ id }) => id))
+  const damageDeleted = [...damageEnded.values()].filter(({ id }) => !candidateIds.has(id))
   const endedMaintainedStates = await requireTurnMaintainedStates(
     state.id,
-    damageEnded,
+    damageDeleted,
     (stateId) => store.findMaintainedStateById({ encounterId: state.id, stateId })
   )
-  for (const endedEffect of damageEnded) {
+  for (const endedEffect of damageDeleted) {
     if (endedEffect.maintainedEffectStateId !== null)
       terminalMaintainedStateIds.add(endedEffect.maintainedEffectStateId)
     await store.deleteCas({ id: endedEffect.id, owner, expectedVersion: endedEffect.version })

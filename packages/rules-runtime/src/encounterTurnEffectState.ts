@@ -134,14 +134,14 @@ export async function requireTurnMaintainedStates(
 
 /**
  * What the damage a turn effect deals ends on its holder (SPELLS-27.T4b): the holder's other
- * effects that end on damage, with the conditions only they held. The turn's own effects keep their
- * lifecycle, and effects an earlier effect of the turn ended are gone.
+ * effects that end on damage, with the conditions only they held. A later effect of the same turn
+ * ends too (it expires when its own execution comes); `excluded` holds the effects already settled.
  */
 export function turnEffectDamageEnded(input: {
   effect: ActiveRuleEffectRecord
   holderActorId: string
   held: readonly ActiveRuleEffectRecord[]
-  /** The turn's candidates and the effects its earlier executions ended. */
+  /** The turn's executed candidates and the effects its earlier executions ended. */
   excluded: ReadonlySet<string>
   applications: readonly CharacterRuleActionApplication[]
   dispositions: ReadonlyMap<string, EncounterActorDispositionDto>

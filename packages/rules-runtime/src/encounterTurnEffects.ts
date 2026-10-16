@@ -342,8 +342,8 @@ async function evaluateEncounterTurnEffects(input: {
   const executions: TurnExecution[] = []
   const applications: CharacterRuleActionApplication[] = []
   const expired = new Set<string>()
-  // The candidates keep their lifecycle; an effect an earlier execution's damage ended is gone.
-  const damageExcluded = new Set(input.candidates.map(({ id }) => id))
+  // Effects an earlier execution's damage ended; a candidate among them expires at its own turn.
+  const damageEnded = new Set<string>()
   const dispositions = new Map(input.actors.map(({ id, disposition }) => [id, disposition]))
   let state = executionState(input.target)
   for (const [ordinal, effect] of input.candidates.entries()) {
@@ -503,16 +503,23 @@ async function evaluateEncounterTurnEffects(input: {
         })
       }
     }
-    const damageEnded = turnEffectDamageEnded({
+    const ended = turnEffectDamageEnded({
       effect,
       holderActorId: input.target.actor.id,
       held: input.effects,
-      excluded: damageExcluded,
+      excluded: new Set([
+        ...damageEnded,
+        ...input.candidates.slice(0, ordinal + 1).map(({ id }) => id)
+      ]),
       applications: result.applications,
       dispositions
     })
-    for (const { id } of damageEnded.endedEffects) damageExcluded.add(id)
-    const settled = { ...result, applications: [...result.applications, ...damageEnded.releases] }
+    const settled = {
+      ...result,
+      terminal: result.terminal || damageEnded.has(effect.id),
+      applications: [...result.applications, ...ended.releases]
+    }
+    for (const { id } of ended.endedEffects) damageEnded.add(id)
     const { execution, ownConditions } = completeExecution({
       ordinal,
       boundary: input.boundary,
