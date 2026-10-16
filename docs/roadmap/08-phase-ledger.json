@@ -8313,7 +8313,7 @@
         {
           "id": "SPELLS-28",
           "title": "Movement, summon and link outcomes cast in an Encounter",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "journeyTests": [],
           "journeyStatus": "none",
           "origin": [],
@@ -8322,7 +8322,11 @@
               "id": "SPELLS-28.1",
               "text": "SRD spells whose outcome is TELEPORT (Word of Recall, the travel half of Plane Shift), MANIFEST (Giant Insect) or TELEPATHIC_LINK (Telepathic Bond) cast in an Encounter through outcome executors authored from core options, each with a test against the real compiler and one journey.",
               "status": "TODO",
-              "proof": [],
+              "proof": [
+                "T1 TELEPORT departure (D128): apps/session-worker/test/nativeRoomDepartAction.test.ts, packages/rules-runtime/src/__tests__/encounterMechanicsBatchPlan.test.ts, apps/apis/convex/encounters/actorAbsenceMigration.test.ts",
+                "T3 TELEPATHIC_LINK (D129): apps/session-worker/test/nativeRoomActorLink.test.ts (cast bonds every chosen creature, undo removes all, a low-Intelligence creature warns overridably), encounterAreaActionCompilation.test.ts, encounterActionEffectBaseline.test.ts, encounterActionRuleWarnings.test.ts",
+                "Green: CI Tests 38884319135 and Live backend 38884319001 on 9e63fde0b"
+              ],
               "origin": [],
               "note": "Registered 2026-10-16 from the SPELLS-26 survey: no PBI owned these outcome families, so these chosen-creature spells fail as single-target casts too."
             },
@@ -8344,15 +8348,14 @@
             {
               "id": "SPELLS-28.T1",
               "text": "TELEPORT outcome executor (Word of Recall; Plane Shift travel).",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-28.1"],
               "wsjf": {
                 "bv": 3,
                 "tc": 2,
                 "rr": 3,
                 "size": 3
-              },
-              "activeWorkbook": "docs/handoffs/slice-spells-28.md"
+              }
             },
             {
               "id": "SPELLS-28.T1b",
@@ -8371,7 +8374,7 @@
             {
               "id": "SPELLS-28.T2",
               "text": "MANIFEST outcome executor (Giant Insect).",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-28.1"],
               "wsjf": {
                 "bv": 3,
@@ -8384,15 +8387,14 @@
             {
               "id": "SPELLS-28.T3",
               "text": "TELEPATHIC_LINK outcome executor (Telepathic Bond).",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-28.1"],
               "wsjf": {
                 "bv": 3,
                 "tc": 2,
                 "rr": 3,
                 "size": 2
-              },
-              "activeWorkbook": "docs/handoffs/slice-spells-28.md"
+              }
             },
             {
               "id": "SPELLS-28.T4",

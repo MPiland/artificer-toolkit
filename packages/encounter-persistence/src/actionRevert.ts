@@ -371,7 +371,7 @@ export async function revertLastEncounterAction(
           : []
       )
     )
-    // A departure puts the target back unless the table already returned or removed it (D125).
+    // A departure puts the target back unless the table already returned or removed it (D128).
     if (
       action.applications.some(
         (application) => application.kind === 'DEPART' && application.applied

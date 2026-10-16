@@ -318,7 +318,7 @@ describe('Creature mechanics batch plan', () => {
     expect(plan.stateChanged).toBe(false)
   })
 
-  it('marks the actor departed and leaves its hit points, conditions and place in the Run alone (D125)', () => {
+  it('marks the actor departed and leaves its hit points, conditions and place in the Run alone (D128)', () => {
     const actor = creature({ current: 11, temporary: 0, max: 11, conditions: [POISONED] })
     const plan = planEncounterMechanicsBatch({
       batch: batch([depart]),
@@ -680,7 +680,7 @@ describe('Character mechanics batch plan', () => {
     })
   })
 
-  it('marks a departing Character absent in the Run without touching its Sheet (D125)', () => {
+  it('marks a departing Character absent in the Run without touching its Sheet (D128)', () => {
     const plan = planEncounterMechanicsBatch({
       batch: batch([depart], {
         expectedCharacterStreamVersion: STREAM_VERSION,

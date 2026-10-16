@@ -255,7 +255,7 @@ export interface CharacterStabilizeOutcomeApplication {
   targetActorId: string
 }
 
-/** A System-authorized departure: the target leaves the Run's play (D125). */
+/** A System-authorized departure: the target leaves the Run's play (D128). */
 export interface CharacterDepartOutcomeApplication {
   sourceNodeId: string
   sourceOperationKey: string

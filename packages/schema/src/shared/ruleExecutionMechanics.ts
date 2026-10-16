@@ -113,7 +113,7 @@ export const characterMechanicsApplicationDtoSchema = lazySchema(() =>
     z.strictObject({
       ordinal: receiptOrdinalSchema,
       kind: z.literal('DEPART'),
-      /** True when the target was present and left the Run's play (D125); false when it was already absent. */
+      /** True when the target was present and left the Run's play (D128); false when it was already absent. */
       applied: z.boolean(),
       ...characterMechanicsApplicationTraceDtoSchema.shape
     }),

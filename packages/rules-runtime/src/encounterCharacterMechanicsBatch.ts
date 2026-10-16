@@ -115,7 +115,7 @@ export function foldCharacterMechanicsApplications<
   applications: readonly CharacterRuleActionApplication[]
   /** A dying Character's turn-start death save (D96), applied after the applications. */
   deathSaveRoll?: { rawDie: number }
-  /** The actor's absence from the Run's play (D125); only a Run actor can depart, so others omit it. */
+  /** The actor's absence from the Run's play (D128); only a Run actor can depart, so others omit it. */
   absence?: EncounterActorAbsenceDto | null
 }): {
   before: TargetState<TDeathSaves>

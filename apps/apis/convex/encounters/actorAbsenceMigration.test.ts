@@ -32,7 +32,7 @@ it('rewrites the retired outOfInitiative flag to absence and re-checksums stored
   const current = await readRows()
   const currentById = new Map(current.map((row) => [row.id, row]))
 
-  // Rows written before D125 carry the flag, no `absence` and a checksum over that shape.
+  // Rows written before D128 carry the flag, no `absence` and a checksum over that shape.
   await base.t.run(async (ctx) => {
     for (const [id, outOfInitiative] of [
       [removedId, true],

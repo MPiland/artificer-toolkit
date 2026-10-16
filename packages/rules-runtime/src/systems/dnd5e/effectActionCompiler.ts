@@ -2737,7 +2737,7 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
   }
   if (outcome.effectKind === 'STABILIZE') return { kind: 'STABILIZE' }
   // The targets leave the Scene for a place the table does not model; the commit marks each as
-  // departed (D125) and a Scene-bound destination waits for the movement service.
+  // departed (D128) and a Scene-bound destination waits for the movement service.
   if (
     outcome.effectKind === 'TELEPORT' &&
     outcome.targetKind === 'CHOSEN_CREATURES' &&

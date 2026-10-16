@@ -499,7 +499,7 @@ export function CampaignVttStage({
       : mapLoadStatus === 'ERROR'
         ? 'Map artwork could not be loaded.'
         : null
-  // The token of an actor that left the Encounter is not on the field (D125); editing still shows it.
+  // The token of an actor that left the Encounter is not on the field (D128); editing still shows it.
   const presentScene = useMemo(() => {
     if (!scene || effectiveMode === 'EDIT' || !activeEncounter) return scene
     const absentActorIds = new Set(

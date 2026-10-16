@@ -88,7 +88,7 @@ export function defeatedEncounterActorIds(
 }
 
 /**
- * The actors whose turns initiative skips: the defeated (D63, D96) and the absent (D82, D125). All
+ * The actors whose turns initiative skips: the defeated (D63, D96) and the absent (D82, D128). All
  * keep their place in the round.
  */
 export function skippedEncounterActorIds(

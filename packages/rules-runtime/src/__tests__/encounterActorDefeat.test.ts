@@ -48,7 +48,7 @@ describe('a dead Character is defeated like a Creature (D96)', () => {
   })
 
   it.each(['GM_REMOVED', 'DEPARTED'] as const)(
-    'skips a %s actor without calling it defeated (D125)',
+    'skips a %s actor without calling it defeated (D128)',
     (absence) => {
       const absent = { ...other, absence }
       expect(isEncounterActorDefeated(absent, new Set())).toBe(false)

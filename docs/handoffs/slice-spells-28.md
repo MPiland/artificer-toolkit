@@ -26,7 +26,7 @@ Workbook rules: [slice-workbook-rules.md](slice-workbook-rules.md).
 
 ## Rulings (main session)
 
-- **T1 TELEPORT, option A (D125).** One `absence` field on every Run actor kind replaces D82's `outOfInitiative`;
+- **T1 TELEPORT, option A (D128).** One `absence` field on every Run actor kind replaces D82's `outOfInitiative`;
   a `DEPART` application sets `DEPARTED` in the action commit, revert restores it by before-state, the stage hides the
   bound token (derived), initiative skips through the existing skip set, GM `returnToInitiative` clears it. D81 is
   Campaign departure only; the actor's own Run effects run their course.
@@ -56,7 +56,7 @@ Workbook rules: [slice-workbook-rules.md](slice-workbook-rules.md).
 - Cast undo is refused once the move landed. Undo order is the move first, then the cast (state in the D-entry).
 - In-Scene teleports run through the spatial movement service as `movementKind: TELEPORT`.
 
-## T3 proof (D126)
+## T3 proof (D129)
 
 - Compile: `encounterAreaActionCompilation.test.ts` (Telepathic Bond: ACTORS target of 8, 600-turn plan, Intelligence floor 2).
 - Plan: `encounterActionEffectBaseline.test.ts` (members sorted per target; fewer than two reached yields none).

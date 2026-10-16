@@ -54,7 +54,7 @@ const commit = (answer: { type: string }) =>
   expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
 
 describe.each([{ spell: wordOfRecall }, { spell: planeShift }])(
-  '$spell.label departs the chosen creatures from the Encounter (D125)',
+  '$spell.label departs the chosen creatures from the Encounter (D128)',
   ({ spell }) => {
     it('sets every chosen actor departed, undoes to present, and lets the GM return one', async () => {
       const room = await travelRoom(spell)

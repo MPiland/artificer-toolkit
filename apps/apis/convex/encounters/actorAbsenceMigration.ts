@@ -7,9 +7,9 @@ import schema from '../schema'
 import { internalMutation } from '../lib/mutations'
 
 /**
- * D125 backfill: a stored Run actor's `outOfInitiative` flag becomes `absence`. D82's flag was
+ * D128 backfill: a stored Run actor's `outOfInitiative` flag becomes `absence`. D82's flag was
  * written only by the GM's removal command, so a set flag is always a GM removal; Plane Shift
- * departures (D125) never existed in stored data. Idempotent: a migrated row has no flag.
+ * departures (D128) never existed in stored data. Idempotent: a migrated row has no flag.
  */
 const migrations = new Migrations(components.migrations, { schema, internalMutation })
 

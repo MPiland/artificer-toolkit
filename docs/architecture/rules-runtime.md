@@ -1082,7 +1082,7 @@ absent (`absence`) actor's turn still ticks both boundaries in the turn commit t
 Character removed from an active Run, which only leaves initiative (D82), has its SOURCE grants end
 through its skipped turns.
 
-**Departure (D125, SPELLS-28.T1).** A TELEPORT outcome with an off-Scene destination (`LINKED_LOCATION` or
+**Departure (D128, SPELLS-28.T1).** A TELEPORT outcome with an off-Scene destination (`LINKED_LOCATION` or
 `SPECIAL`) compiles to a target-only `dnd5e.depart-proposal`. Its `DEPART` application sets the chosen actor's
 `absence` to `DEPARTED` (any Run actor kind) in the action commit; revert restores it by the before-state. The
 skip set and the Tabletop stage read `absence`, so initiative skips the actor and its bound token is hidden
@@ -1131,7 +1131,7 @@ reaches that path (a critical hit reaches both). A TEST/OUTCOME action accepts g
 (`encounterActiveGrantCapabilitySuppressions`, read by `resolveEncounterRuleCapabilityStates` beside
 relationship suppressions), so its holder is offered no movement reaction while the grant lasts.
 
-**Actor links (D126, SPELLS-28.T3).** A `TELEPATHIC_LINK` outcome compiles to `dnd5e.actor-link-proposal`
+**Actor links (D129, SPELLS-28.T3).** A `TELEPATHIC_LINK` outcome compiles to `dnd5e.actor-link-proposal`
 and an `actorLinkContribution` on the active-effect plan (link kind, outcome id, Intelligence floor, duration
 counted at the end of the target's turn). The plan has no members of its own: the chosen-creature commit
 (`completeAreaCommit`) supplies the creatures the cast reached, and `prepareEncounterActionEffectPlans` writes
