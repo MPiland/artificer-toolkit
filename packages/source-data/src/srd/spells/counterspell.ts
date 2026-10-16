@@ -6,6 +6,7 @@ import {
   EFFECT_KIND,
   MEASUREMENT_UNIT_CODE,
   RANGE_KIND,
+  SPELLCASTING_ABILITY_REFERENCE,
   SUBJECT,
   TARGET_SELECTION_KIND,
   TARGET_DISPOSITION_KIND,
@@ -37,7 +38,10 @@ export const counterspell: SpellAuthored = {
           code: ACTIVATION_CODE.REACTION,
           amount: 1
         },
-        reactionTrigger: { kind: 'SPELL_CAST' as const },
+        reactionTrigger: {
+          kind: 'SPELL_CAST' as const,
+          higherLevelCheck: { ability: SPELLCASTING_ABILITY_REFERENCE, baseDc: 10 }
+        },
         range: {
           id: spellChildId(SPELL_IDS.COUNTERSPELL, 0x211, 1),
           rangeKind: RANGE_KIND.DISTANCE,

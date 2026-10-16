@@ -418,6 +418,39 @@ describe('effect schema parsing', () => {
     ).toBe(false)
   })
 
+  it('accepts a SPELL_CAST reaction that gates a higher-level cast behind an ability check', () => {
+    const withCheck = (higherLevelCheck: unknown) =>
+      effectDtoSchema.safeParse({
+        id: '00000000-0000-4000-8000-0000000000ed',
+        order: 1,
+        invocation: {
+          kind: 'ACTION',
+          triggerCode: 'ACTIVATED',
+          activation: { code: 'REACTION', amount: 1 },
+          range: { id: 'gate-range', rangeKind: 'DISTANCE', amount: 60, unit: 'FEET' },
+          reactionTrigger: { kind: 'SPELL_CAST', higherLevelCheck }
+        },
+        paths: [
+          fixedPath(
+            'gate-path',
+            1,
+            'ON_USE',
+            singleResultBlock('gate-result', {
+              id: 'gate-outcome',
+              effectKind: 'CANCEL_TRIGGERING_EVENT'
+            })
+          )
+        ]
+      })
+
+    expect(withCheck({ ability: 'SPELLCASTING', baseDc: 10 }).success).toBe(true)
+    expect(withCheck({ ability: 'WISDOM', baseDc: 0 }).success).toBe(true)
+    expect(withCheck({ ability: 'NONE', baseDc: 10 }).success).toBe(false)
+    expect(withCheck({ ability: 'SPELLCASTING', baseDc: -1 }).success).toBe(false)
+    expect(withCheck({ ability: 'SPELLCASTING', baseDc: 10.5 }).success).toBe(false)
+    expect(withCheck({ ability: 'SPELLCASTING' }).success).toBe(false)
+  })
+
   it('accepts a DAMAGE_TAKEN reaction trigger naming at least one damage type', () => {
     const fire = '00000000-0000-4000-8000-0000000000f1'
     const cold = '00000000-0000-4000-8000-0000000000f2'
