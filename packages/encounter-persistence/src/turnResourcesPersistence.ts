@@ -374,7 +374,6 @@ export async function persistEncounterTurnResources(
         capability.data.gameSystemId !== state.gameSystemId ||
         !capability.data.usage ||
         capability.data.usage.refreshBoundary !== 'START_OF_TURN' ||
-        refresh.beforeUsed > capability.data.usage.maximum ||
         encounterRuleUsageUsed(actor, definition.id) !== refresh.beforeUsed
       )
         throw new Error('Live Session action-economy refresh is stale.')

@@ -200,7 +200,6 @@ describe('grant and facet schema parsing', () => {
           ['SPELLS_PREPARED', 'BONUS', {}, { valueKind: 'FIXED', amount: 1 }],
           ['SPELLS_PREPARED', 'SET_VALUE', {}, { amount: 4 }],
           ['ACTION_COUNT', 'BONUS', {}, { valueKind: 'FIXED', amount: 1 }],
-          ['ACTION_COUNT', 'SET_VALUE', {}, { amount: 2 }],
           ['BONUS_ACTION_COUNT', 'BONUS', {}, { valueKind: 'FIXED', amount: 1 }],
           ['BONUS_ACTION_COUNT', 'SET_VALUE', {}, { amount: 0 }],
           ['REACTION_COUNT', 'BONUS', {}, { valueKind: 'FIXED', amount: 1 }]
@@ -264,6 +263,16 @@ describe('grant and facet schema parsing', () => {
         modifierKind: 'SET_VALUE',
         domain: {},
         payload: { amount: 0 }
+      }).success
+    ).toBe(true)
+    // SRD Fighter Action Surge: the holder has two Actions for the turn (applied by a granted effect).
+    expect(
+      modifierGrantDtoSchema.safeParse({
+        ...base,
+        valueDomainCode: 'ACTION_COUNT',
+        modifierKind: 'SET_VALUE',
+        domain: {},
+        payload: { amount: 2 }
       }).success
     ).toBe(true)
     // An armor class formula names the ability modifiers it adds (Unarmored Defense).
