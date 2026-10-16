@@ -27,6 +27,8 @@ type NativeCharacterActionMechanic = Omit<
   spellCastLevel?: number
   /** The Character's level in each class, which selects class-level scaling rows of its outcomes. */
   classLevels?: Readonly<Record<string, number>>
+  /** The optional on-hit riders the player chose (D123), whose merged outcomes then resolve. */
+  selectedOptionalRiderIds?: readonly string[]
 }
 
 type ActionIdentity = Pick<

@@ -1216,6 +1216,27 @@ function createFacetPredicateNodeMap(
         )
       )
       .set(
+        'creatureTypeIds',
+        selectMulti(
+          ['creatureTypeIds'],
+          'Creature Types',
+          {
+            kind: 'DATA',
+            relationship: table('creature_types', {
+              selectColumns: ['id', 'label', 'description']
+            })
+          },
+          {
+            order: 3,
+            requiredIf: true,
+            showIf: and([
+              local.field(['predicateCode']).eq('CREATURE_TYPE'),
+              local.field(['authoringModeKind']).eq('SELECTED')
+            ])
+          }
+        )
+      )
+      .set(
         'rangeKind',
         selectMulti(
           ['rangeKind'],

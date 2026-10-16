@@ -3896,7 +3896,8 @@ function exactDiceConfiguration(
   outcomes: readonly Record<string, unknown>[],
   facts: Dnd5eEffectScalingFacts,
   selectedPath: SpecializedPath,
-  outcomeId: string
+  outcomeId: string,
+  optionalRider: boolean
 ): string {
   const outcome = outcomes[0]
   if (!outcome) unsupported('D&D selected outcome has no authored dice value.')
@@ -3928,9 +3929,11 @@ function exactDiceConfiguration(
     outcome.scalingKind === 'NONE' && typeof outcome.halfHitPointsDice === 'string'
       ? outcome.halfHitPointsDice
       : null
+  // The path's one resolved expression is the weapon's own; an optional rider is not part of the action's
+  // listed outcomes, so it rolls its authored dice rather than the weapon's.
   const resolved =
     facts.resolvedDamageOutcomeExpressions?.[outcomeId] ??
-    facts.resolvedDamageExpressions?.[selectedPath]
+    (optionalRider ? undefined : facts.resolvedDamageExpressions?.[selectedPath])
   if (!resolved) {
     if ((Array.isArray(outcome.bonuses) && outcome.bonuses.length > 0) || halfHitPointsDice)
       unsupported('D&D resolved damage expression is unavailable.')
@@ -4840,7 +4843,8 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
         [primaryDamageEntry.outcome as unknown as Record<string, unknown>],
         input.facts,
         input.selectedPath,
-        compiledOutcomeIdentity(primaryDamageEntry)
+        compiledOutcomeIdentity(primaryDamageEntry),
+        false
       )
       return diceGraphDefinition({
         action: input.action,
@@ -4925,7 +4929,8 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
                   ),
                   input.facts,
                   input.selectedPath,
-                  compiledOutcomeIdentity(entry)
+                  compiledOutcomeIdentity(entry),
+                  'optionalRider' in entry && entry.optionalRider !== undefined
                 )
               : outcome.kind === 'DICE_SCALAR_REDUCTION'
                 ? outcome.diceConfig

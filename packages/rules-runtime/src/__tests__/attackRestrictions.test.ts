@@ -14,6 +14,8 @@ const ADVANTAGE = { predicateCode: 'ATTACK_ROLL_MODE', rollMode: 'ADVANTAGE' } a
 const NOT_DISADVANTAGE = { predicateCode: 'ATTACK_ROLL_MODE', rollMode: 'NOT_DISADVANTAGE' } as const
 const FINESSE = { predicateCode: 'EQUIPMENT_PROPERTY', properties: ['FINESSE'] } as const
 
+type FacetContext = FacetAuthored['groups'][number]['contexts'][number]
+
 const rapier: Dnd5eAttackingItem = {
   equipmentIds: [],
   category: 'WEAPON',
@@ -233,6 +235,24 @@ describe('target creature-type checks of reduced restrictions', () => {
   const FIEND = testUuid(0xf02)
   const BEAST = testUuid(0xf03)
 
+  const weaponContext = (check: typeof FINESSE): FacetContext => ({
+    id: testUuid(0xf14),
+    order: 1,
+    subject: 'EQUIPMENT',
+    authoringModeKind: 'ALL',
+    conditions: [
+      {
+        id: testUuid(0xf15),
+        order: 0,
+        kind: 'PREDICATE',
+        constraint: 'INCLUDE',
+        predicateCode: check.predicateCode,
+        properties: [...check.properties],
+        authoringModeKind: 'SELECTED'
+      }
+    ]
+  })
+
   /** A group holding a creature-type check on the target and, optionally, a check on the weapon. */
   const creatureTypeGate = (
     constraint: 'INCLUDE' | 'EXCLUDE',
@@ -261,27 +281,7 @@ describe('target creature-type checks of reduced restrictions', () => {
               }
             ]
           },
-          ...(weaponCheck
-            ? ([
-                {
-                  id: testUuid(0xf14),
-                  order: 1,
-                  subject: 'EQUIPMENT',
-                  authoringModeKind: 'ALL',
-                  conditions: [
-                    {
-                      id: testUuid(0xf15),
-                      order: 0,
-                      kind: 'PREDICATE',
-                      constraint: 'INCLUDE',
-                      ...weaponCheck,
-                      properties: [...weaponCheck.properties],
-                      authoringModeKind: 'SELECTED'
-                    }
-                  ]
-                }
-              ] as const)
-            : [])
+          ...(weaponCheck ? [weaponContext(weaponCheck)] : [])
         ]
       }
     ]
