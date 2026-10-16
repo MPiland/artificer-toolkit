@@ -8487,7 +8487,8 @@
               "text": "An effect authored to end on an event ends when its holder triggers it, through one generic end-event consumer: Invisibility ends when the invisible creature makes an attack roll or casts a spell, and GM undo of that attack or cast restores it.",
               "status": "TODO",
               "proof": [
-                "T2a (D125): packages/rules-runtime/src/__tests__/encounterEndedEffectRelease.test.ts; CI Tests 38882320928 and Live backend 38882320295 on e5b309425"
+                "T2a (D125): packages/rules-runtime/src/__tests__/encounterEndedEffectRelease.test.ts; CI Tests 38882320928 and Live backend 38882320295 on e5b309425",
+                "T2b (Legendary window, movement opportunity attack and Disarm release the condition with its grant; the three ownsCondition fences removed): apps/session-worker/test/nativeRoomLegendary.test.ts, nativeRoomGrantEnds.test.ts, nativeRoomDisarm.test.ts, packages/rules-runtime/src/__tests__/encounterEndedEffectRelease.test.ts and encounterDisarmSettlement.test.ts, packages/schema/src/__tests__/contested-action-application-output.test.ts; red: Tests 38887125785 on 2ff927eeb fails the new release cases; green: CI Tests 38889745325 and Live backend 38889745343 on 018e58dfc"
               ],
               "origin": [],
               "note": "Registered 2026-10-15 from the ATTACK-10.T1 (Hide) design review: only ON_HIT_POINTS_REGAINED has an end-event consumer (mechanicsBatchPersistence.ts); the compiler rejects other grant end events, and Invisibility authors endOnEvents ON_ATTACK_ROLL and ON_CAST_SPELL that nothing reads."
@@ -8535,7 +8536,7 @@
             },
             {
               "id": "SPELLS-27.T2b",
-              "text": "The Legendary window, movement opportunity attack and Disarm roots release a consumed condition-owning effect the same way; the three !ownsCondition fences come out (proof: nativeRoomLegendary, nativeRoomGrantEnds and nativeRoomDisarm release the Invisible holder's condition with its grant; attackRollEndedEffects unit tests; Disarm sourceApplications schema tests; a Creature source moves no Character stream).",
+              "text": "The Legendary window, movement opportunity attack and Disarm roots release a consumed condition-owning effect the same way; the three !ownsCondition fences come out.",
               "status": "DONE",
               "closes": ["SPELLS-27.1"],
               "wsjf": {
@@ -8544,13 +8545,12 @@
                 "rr": 3,
                 "size": 2,
                 "after": ["SPELLS-27.T2a"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-spells-27.md"
+              }
             },
             {
               "id": "SPELLS-27.T3",
               "text": "ON_CAST_SPELL fact on cast commits feeds the consumer; Invisibility ends on a cast; authoring parity through the real form.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-27.1"],
               "wsjf": {
                 "bv": 3,
@@ -8558,7 +8558,8 @@
                 "rr": 3,
                 "size": 3,
                 "after": ["SPELLS-27.T2a"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-27-t3.md"
             },
             {
               "id": "SPELLS-27.T4",
