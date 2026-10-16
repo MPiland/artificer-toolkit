@@ -20,7 +20,11 @@ import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runt
 import { readLiveEncounterActionAdmission } from './liveActionAdmission.js'
 import { insertActionEvidenceReceipt } from './actionEvidenceReceipt.js'
 import { readRunActors } from './documents.js'
-import { sourceSpendMutation, settleActionSourceSpend } from './actionSourceSpend.js'
+import {
+  combineSpendMutations,
+  sourceSpendMutation,
+  settleActionSourceSpend
+} from './actionSourceSpend.js'
 import { applyFailedCounterSpends, failedCounterSpends } from './failedCounterSpend.js'
 import { completeActionOccurrence, recordActionRoot } from './actionCommitRecords.js'
 import { endEffects, receiptConsumedGrants } from './consumedGrantPersistence.js'
@@ -232,6 +236,12 @@ export async function persistEncounterActionCommit(
   const targetFailed = failedSpends.find(({ reactor }) => reactor.id === target.id)
   if (targetFailed && reaction)
     throw new Error('Live Session failed counter and reaction spend the same reaction.')
+  // The source's counter to a Counterspell against its cast spends its slot in the source's one
+  // mechanics call, after the cast's, so the Character advances once.
+  const sourceFailed =
+    source.id === target.id
+      ? undefined
+      : failedSpends.find(({ reactor }) => reactor.id === source.id)
   const common = {
     encounterId: state.id,
     expectedEncounterVersion: state.version,
@@ -268,7 +278,7 @@ export async function persistEncounterActionCommit(
                   )
                 ),
           forceVersionAdvance: false,
-          ...sourceMutation
+          ...combineSpendMutations(sourceMutation, sourceFailed?.mutation ?? {})
         })
       : null
   const mechanics = await callbacks.applyMechanics({
@@ -282,10 +292,20 @@ export async function persistEncounterActionCommit(
     effectiveMaximumHitPoints: batch.targetTransition.before.maximumHitPoints,
     effectiveScalarValues: batch.targetTransition.before.scalarValues,
     forceVersionAdvance: target.kind === 'CHARACTER' && input.createdEffects.length > 0,
-    ...(source.id === target.id ? sourceMutation : {}),
-    ...reactionSpend.mutation,
-    ...targetFailed?.mutation
+    ...combineSpendMutations(
+      source.id === target.id ? sourceMutation : {},
+      reactionSpend.mutation,
+      targetFailed?.mutation ?? {}
+    )
   })
+  if (
+    (sourceFailed &&
+      sourceFailed.failed.receipt.characterStreamVersion !==
+        sourceMechanics?.characterStreamVersion) ||
+    (targetFailed &&
+      targetFailed.failed.receipt.characterStreamVersion !== mechanics.characterStreamVersion)
+  )
+    throw new Error('Live Session failed counter Character receipt mismatch.')
   if (
     checksumCanonicalJson(mechanics.receiptApplications) !==
       checksumCanonicalJson(batch.applications) ||
@@ -325,20 +345,32 @@ export async function persistEncounterActionCommit(
       : mechanics.updatedActor
   const beforeSource =
     sourceMechanics?.updatedActor ?? (source.id === target.id ? settledTarget : source)
-  const settledSource = await settleActionSourceSpend(ctx, {
+  const castSettledSource = await settleActionSourceSpend(ctx, {
     encounterId: state.id,
     source: beforeSource,
     spend: batch,
     economyOverridden: overridesActionEconomy(input.ruleOverrides),
     engages: attackedHostileCreature({ d20s: [batch.d20, batch.nestedD20], source, target })
   })
+  const settledSource = sourceFailed
+    ? await settleActionSourceSpend(ctx, {
+        encounterId: state.id,
+        source: castSettledSource,
+        spend: {
+          featureResourceConsumption: null,
+          actionEconomyTransition: sourceFailed.failed.receipt.actionEconomyTransition,
+          attackActionTransition: undefined
+        },
+        economyOverridden: false
+      })
+    : castSettledSource
   const settledFailed = await applyFailedCounterSpends(ctx, {
     state,
     occurrenceId: execution.occurrenceId,
     sourceCommandId: command.commandId,
     occurredAt: input.occurredAt,
     spends: failedSpends,
-    exceptActorId: target.id,
+    exceptActorIds: [source.id, target.id],
     applyMechanics: callbacks.applyMechanics,
     currentCharacterMaximumHitPoints: callbacks.currentCharacterMaximumHitPoints
   })

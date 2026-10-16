@@ -12,6 +12,7 @@ import {
   activationCodeSchema,
   pathLifecycleConsumeEventSchema,
   pathLifecycleEndEventSchema,
+  pathLifecycleEndTriggerAgainstSchema,
   pathLifecycleEndTriggerBySchema,
   pathLifecycleGrantConsumeEventSchema,
   pathLifecycleGrantEndEventSchema
@@ -119,6 +120,7 @@ export const activeEffectEndEventsSchema = lazySchema(() =>
  * touches. It shares the reaction trigger's filter types, and each arm needs a consumer before an
  * effect may carry it. `DAMAGE_TAKEN` ends the effect when its holder takes damage: `by` limits whose
  * damage counts (the effect source's side, for Charm Person) and `damageTypeIds` which types do.
+ * `ATTACK_ROLL` and `SPELL_CAST` end it when its holder attacks or casts at an enemy (Sanctuary).
  */
 export const activeEffectEndTriggerSchema = lazySchema(() =>
   z.discriminatedUnion('event', [
@@ -126,6 +128,10 @@ export const activeEffectEndTriggerSchema = lazySchema(() =>
       event: z.literal('DAMAGE_TAKEN'),
       by: pathLifecycleEndTriggerBySchema,
       damageTypeIds: z.nullable(damageTypeFilterDtoSchema)
+    }),
+    z.strictObject({
+      event: z.enum(['ATTACK_ROLL', 'SPELL_CAST']),
+      against: pathLifecycleEndTriggerAgainstSchema
     })
   ])
 )
@@ -329,6 +335,20 @@ const activeRuleEffectActorLinkContributionDtoSchema = lazySchema(() =>
 )
 
 /**
+ * The holder wears another Creature's form while the effect lasts (D130): the Creature's snapshot
+ * and hit points replace the holder's, and the effect ending restores them. The actor's own
+ * `form` records the origin; this contribution is the rule that put the holder in the form.
+ */
+const activeRuleEffectCreatureFormContributionDtoSchema = lazySchema(() =>
+  z.strictObject({
+    kind: z.literal('CREATURE_FORM'),
+    formOutcomeId: identifierSchema,
+    creatureId: uuidSchema,
+    excessDamageCarriesOver: z.boolean()
+  })
+)
+
+/**
  * Version one is retained byte-faithfully for existing rows and receipts.
  * Version two adds a bounded, immutable aggregate-state contribution list.
  */
@@ -349,7 +369,8 @@ export const activeRuleEffectDefinitionDtoSchema = lazySchema(() =>
               activeRuleEffectActorRelationshipContributionDtoSchema,
               activeRuleEffectModifierGrantContributionDtoSchema,
               activeRuleEffectLocationConcealmentContributionDtoSchema,
-              activeRuleEffectActorLinkContributionDtoSchema
+              activeRuleEffectActorLinkContributionDtoSchema,
+              activeRuleEffectCreatureFormContributionDtoSchema
             ])
           )
           .check(z.minLength(1))
@@ -401,7 +422,9 @@ export const activeRuleEffectDefinitionDtoSchema = lazySchema(() =>
           })
         }
         if (
-          definition.recurrence.endOnTriggers.some(({ by }) => by === 'SOURCE_SIDE') &&
+          definition.recurrence.endOnTriggers.some(
+            (trigger) => 'by' in trigger && trigger.by === 'SOURCE_SIDE'
+          ) &&
           (definition.origin.kind !== 'ENCOUNTER' || definition.origin.sourceActorId === null)
         ) {
           context.addIssue({

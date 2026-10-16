@@ -124,6 +124,8 @@ export const resolveEncounterActionTargetDtoSchema = lazySchema(() =>
       kind: z.literal('ACTORS'),
       /** One entry per creature, or per dart for an action that allows repeated targets. */
       actorIds: z.array(uuidSchema).check(z.minLength(1)).check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
+      /** The form the creatures take, for an action that authors forms (Giant Insect); absent otherwise. */
+      formId: z.optional(postgresUuidSchema),
       scene: z.nullable(
         z.strictObject({
           sceneId: uuidSchema,

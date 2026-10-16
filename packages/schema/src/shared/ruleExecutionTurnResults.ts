@@ -6,7 +6,10 @@ import {
   MAX_MAINTENANCE_CLEANUP_REMOVED_EFFECTS,
   MAX_MAINTENANCE_CLEANUP_TERMINATED_STATES
 } from './activeRuleEffects.js'
-import { characterMechanicsTargetStateDtoSchema } from './ruleExecutionMechanics.js'
+import {
+  characterMechanicsTargetStateDtoSchema,
+  ENDED_EFFECT_CONDITION_OPERATION_KEY
+} from './ruleExecutionMechanics.js'
 import { serverRuleExecutionApplicationOutputsDtoSchema } from './ruleExecutionApplicationOutputs.js'
 import {
   ruleExecutionAggregateVersionSchema as aggregateVersionSchema,
@@ -602,6 +605,17 @@ export const encounterTurnActiveEffectsBatchRuleExecutionResultDtoSchema = lazyS
           let priorTraceIndex = -1
           for (const application of execution.applications) {
             if (repeatedSaveTerminal) continue
+            if (application.sourceOperationKey === ENDED_EFFECT_CONDITION_OPERATION_KEY) {
+              // A condition an effect that the damage ended released from its holder follows from
+              // the effect's end, not from a trace of this execution (SPELLS-27.T4b).
+              if (application.kind !== 'CONDITION_REMOVE')
+                context.addIssue({
+                  code: 'custom',
+                  path: ['executions', index, 'applications'],
+                  message: 'Turn-effect application trace binding is invalid.'
+                })
+              continue
+            }
             if (application.sourceNodeId !== execution.definition.frozenGraphNodeId)
               context.addIssue({
                 code: 'custom',

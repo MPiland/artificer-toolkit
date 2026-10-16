@@ -22,6 +22,11 @@ import type {
 } from './character/characterNativeActionResources.js'
 import { unequipCharacterItem, updateSpellSlotUsage } from './character/sheetCommandReducer.js'
 import { nextEncounterActorDefeated } from './encounterActorDefeat.js'
+import {
+  enterActorForm,
+  revertActorForm,
+  type EncounterActorFormCreature
+} from './encounterActorForm.js'
 import { characterZeroHitPointsConditionId } from './characterZeroHitPoints.js'
 
 type EncounterActor = EncounterRunActorState
@@ -50,12 +55,21 @@ export type EncounterMechanicsBatchInput = {
   characterResourceConsumption?: NativeCharacterActionResourceConsumption
   /** A single-use item this Assisted action used up; recorded as play usage, never as a structure edit. */
   characterItemConsumption?: NativeCharacterItemConsumption
-  /** The slot a cast spent, recorded on the Character in the same version as the outcome. */
-  characterSpellConsumption?: NativeCharacterSpellConsumption
+  /**
+   * The slots one actor's casts spent in this terminal commit (a cast, then a counter to a Counterspell
+   * against it), applied in order and recorded on the Character in the same version as the outcome.
+   */
+  characterSpellConsumptions?: readonly NativeCharacterSpellConsumption[]
   /** An accepted wield conflict: unequip this item in the same Character version. */
   stowEquippedItemInstanceId?: string
   /** A dying Character's turn-start death save die (D96); Characters only. */
   deathSave?: { rawDie: number }
+  /** The Creature form this outcome swaps the actor into, held by `effectId` (D130); Creature and custom actors only. */
+  enterForm?: {
+    effectId: string
+    excessDamageCarriesOver: boolean
+    creature: EncounterActorFormCreature
+  }
 }
 
 export type EncounterMechanicsBatchPlan = {
@@ -91,12 +105,14 @@ export function planEncounterMechanicsBatch(input: {
       throw new Error('Encounter non-Character actors cannot use Character resources.')
     if (batch.characterItemConsumption !== undefined)
       throw new Error('Encounter non-Character actors cannot use up Character items.')
-    if (batch.characterSpellConsumption !== undefined)
+    if (batch.characterSpellConsumptions !== undefined)
       throw new Error('Encounter non-Character actors cannot spend Character spell slots.')
     if (batch.stowEquippedItemInstanceId !== undefined)
       throw new Error('Encounter non-Character actors cannot stow Character equipment.')
     if (batch.deathSave !== undefined)
       throw new Error('Encounter non-Character actors make no death saves.')
+    if (batch.enterForm !== undefined && actor.form !== null)
+      throw new Error('The actor already has a form.')
     const conditions = readEncounterActorConditionState(actor.conditions ?? [])
     const folded = foldCharacterMechanicsApplications({
       targetActorId: actor.id,
@@ -124,21 +140,41 @@ export function planEncounterMechanicsBatch(input: {
         .filter((id) => !conditions.ids.includes(id))
         .map((conditionTypeId) => ({ conditionTypeId }))
     ]
+    const updated = encounterRunActorStateSchema.parse({
+      ...actor,
+      currentHitPoints: folded.after.currentHitPoints,
+      tempHitPoints: folded.after.temporaryHitPoints,
+      maxHitPoints: folded.after.maximumHitPoints,
+      conditions: nextConditions,
+      defeated: nextEncounterActorDefeated(actor, folded.after.currentHitPoints),
+      absence: folded.afterAbsence
+    })
+    // A form at 0 hit points ends instead of defeating the actor (D130); its excess damage is what
+    // the damage dealt past the form's temporary and current hit points.
+    const excessDamage = folded.applications.reduce(
+      (sum, application) =>
+        application.kind === 'DAMAGE'
+          ? sum + application.resolvedAmount - application.appliedAmount
+          : sum,
+      0
+    )
+    const settled =
+      updated.kind !== 'CHARACTER' && updated.form !== null && updated.currentHitPoints === 0
+        ? revertActorForm(updated, excessDamage)
+        : updated
     return {
-      updatedActor: encounterRunActorStateSchema.parse({
-        ...actor,
-        currentHitPoints: folded.after.currentHitPoints,
-        tempHitPoints: folded.after.temporaryHitPoints,
-        maxHitPoints: folded.after.maximumHitPoints,
-        conditions: nextConditions,
-        defeated: nextEncounterActorDefeated(actor, folded.after.currentHitPoints),
-        absence: folded.afterAbsence
-      }),
+      updatedActor:
+        batch.enterForm !== undefined && settled.kind !== 'CHARACTER'
+          ? enterActorForm(settled, batch.enterForm)
+          : settled,
       receiptApplications: folded.applications,
       targetTransition: transition(actor.id, folded.before, folded.after),
       characterStreamVersion: null,
       itemUseStateTransition: null,
-      stateChanged: folded.stateChanged || folded.afterAbsence !== actor.absence,
+      stateChanged:
+        folded.stateChanged ||
+        folded.afterAbsence !== actor.absence ||
+        batch.enterForm !== undefined,
       shouldAdvance: false,
       characterUpdate: null
     }
@@ -237,12 +273,12 @@ export function planEncounterMechanicsBatch(input: {
     ]
   }
 
-  const spellConsumption = batch.characterSpellConsumption
-  let nextSpellSlots: CharacterAuthored['state']['spellSlots']
-  if (spellConsumption !== undefined) {
-    const currentSlots = loaded.character.state.spellSlots ?? []
+  let slotsCharacter = loaded.character
+  for (const spellConsumption of batch.characterSpellConsumptions ?? []) {
     const currentUsed =
-      currentSlots.find((slot) => slot.slotKey === spellConsumption.slotKey)?.used ?? 0
+      (slotsCharacter.state.spellSlots ?? []).find(
+        (slot) => slot.slotKey === spellConsumption.slotKey
+      )?.used ?? 0
     if (
       spellConsumption.characterId !== loaded.active.id ||
       spellConsumption.expectedStreamVersion !== loaded.active.play.streamVersion ||
@@ -250,12 +286,15 @@ export function planEncounterMechanicsBatch(input: {
       currentUsed !== spellConsumption.beforeUsed
     )
       throw new Error('Encounter Character spell slot consumption is stale.')
-    nextSpellSlots = updateSpellSlotUsage(
-      loaded.character,
+    slotsCharacter = updateSpellSlotUsage(
+      slotsCharacter,
       spellConsumption.slotKey,
       () => spellConsumption.afterUsed
-    ).state.spellSlots
+    )
   }
+  const nextSpellSlots = batch.characterSpellConsumptions?.length
+    ? slotsCharacter.state.spellSlots
+    : undefined
 
   const stowItemId = batch.stowEquippedItemInstanceId
   if (

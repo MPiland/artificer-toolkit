@@ -339,7 +339,11 @@ export async function evaluateEncounterMovementActionResponse<
       reactionTimeline: context.reactionTimeline
     }
   } else if (context.phase.kind === 'SPATIAL_EVIDENCE') {
-    if (resolution.kind !== 'ENTER_DICE' && resolution.kind !== 'SYSTEM_ROLL')
+    if (
+      resolution.kind !== 'ENTER_DICE' &&
+      resolution.kind !== 'ENTER_INTEGER' &&
+      resolution.kind !== 'SYSTEM_ROLL'
+    )
       throw new Error('Movement response does not match the issued spatial evidence.')
     // The spatial evaluator verifies this command against the issued request and history.
     resolutionCommands = [...root.resolutionCommands, responseCommand]
@@ -619,7 +623,9 @@ export async function evaluateEncounterMovementActionResponse<
     maintenanceProjection,
     remainder,
     ...(context.phase.kind === 'SPATIAL_EVIDENCE' &&
-    (resolution.kind === 'ENTER_DICE' || resolution.kind === 'SYSTEM_ROLL')
+    (resolution.kind === 'ENTER_DICE' ||
+      resolution.kind === 'ENTER_INTEGER' ||
+      resolution.kind === 'SYSTEM_ROLL')
       ? {
           evidence: {
             pendingSnapshot: snapshot,

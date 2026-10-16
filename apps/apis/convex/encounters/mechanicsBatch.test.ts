@@ -255,15 +255,17 @@ describe('applyEncounterMechanicsBatch', () => {
       base.owner.caller.run((ctx) =>
         applyEncounterMechanicsBatch(ctx, {
           ...base.input,
-          characterSpellConsumption: {
-            characterId: crypto.randomUUID(),
-            spellId: crypto.randomUUID(),
-            candidateId: 'candidate',
-            slotKey: 'STANDARD:1',
-            beforeUsed: 0,
-            afterUsed: 1,
-            expectedStreamVersion: 1
-          }
+          characterSpellConsumptions: [
+            {
+              characterId: crypto.randomUUID(),
+              spellId: crypto.randomUUID(),
+              candidateId: 'candidate',
+              slotKey: 'STANDARD:1',
+              beforeUsed: 0,
+              afterUsed: 1,
+              expectedStreamVersion: 1
+            }
+          ]
         })
       )
     ).rejects.toThrow('cannot spend Character spell slots')

@@ -30,6 +30,8 @@ export type RoomCharacterInputs = {
   parts: readonly LiveRoomCharacterPart[]
   system: Extract<LiveRoomInputsResponse, { kind: 'SYSTEM' }>
   run: Extract<LiveRoomInputsResponse, { kind: 'RUN' }>
+  /** The published content the Campaign plays with; absent serves none. */
+  contentSnapshots?: Extract<LiveRoomInputsResponse, { kind: 'CAMPAIGN_PLAY' }>['contentSnapshots']
 }
 
 /**
@@ -154,10 +156,7 @@ export function roomInputsResponse(
           { scope: 'CAMPAIGN', id: campaignId, revision: null },
           { scope: 'PLAY', id: campaignId, revision: null }
         ],
-        // The Campaign serves the content head its Characters' pages pin, so an Encounter source
-        // read finds the same published Equipment and Creatures.
-        contentSnapshots: characterInputs?.parts.find((part) => part.status === 'ASSIGNED')
-          ?.contentSnapshots ?? {
+        contentSnapshots: characterInputs?.contentSnapshots ?? {
           systemId,
           sources: [],
           campaign: {

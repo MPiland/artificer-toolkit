@@ -1074,6 +1074,21 @@ describe('CampaignTabletopActionDrawer chosen creatures (SPELLS-8, D118)', () =>
     }
   })
 
+  const giantInsect = validatedChoice({
+    ...healingWord,
+    id: 'spell-giant-insect:cast',
+    label: 'Giant Insect',
+    target: {
+      kind: 'ACTORS' as const,
+      maxTargets: 2,
+      area: null,
+      forms: [
+        { id: '00000000-0000-4000-8000-0000000000f1', label: 'Centipedes', maxTargets: 2 },
+        { id: '00000000-0000-4000-8000-0000000000f2', label: 'Scorpion', maxTargets: 1 }
+      ]
+    }
+  })
+
   async function chooseTargets(user: ReturnType<typeof userEvent.setup>) {
     await user.click(await screen.findByRole('combobox', { name: 'Action' }))
     await user.keyboard('{ArrowDown}{Enter}')
@@ -1109,6 +1124,27 @@ describe('CampaignTabletopActionDrawer chosen creatures (SPELLS-8, D118)', () =>
             point: null
           }
         }
+      })
+    )
+  })
+
+  it('sends the chosen creature form, which caps the creatures it reaches (D130)', async () => {
+    const user = userEvent.setup()
+    const onResolve = vi.fn<(command: ResolveEncounterActionInputDto) => Promise<unknown>>()
+    renderDrawer(onResolve, { choices: [giantInsect] })
+
+    await chooseTargets(user)
+    await user.click(screen.getByText('Scorpion'))
+    expect(screen.getByRole('combobox', { name: 'Targets (up to 1)' })).toBeVisible()
+    await user.click(screen.getByRole('button', { name: 'Resolve action' }))
+    expect(onResolve).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actionId: giantInsect.id,
+        target: expect.objectContaining({
+          kind: 'ACTORS',
+          actorIds: [first.id],
+          formId: '00000000-0000-4000-8000-0000000000f2'
+        })
       })
     )
   })
@@ -1195,8 +1231,8 @@ describe('CampaignTabletopActionDrawer directed area (SPELLS-13)', () => {
   const breathArea = { kind: 'CONE' as const, length: { amount: 15, unit: 'FEET' as const } }
   const breath = validatedChoice({
     ...actions[0]!,
-    id: 'creature-dragon:breath',
-    label: 'Breath',
+    id: 'creature-wolf:cone',
+    label: 'Cone',
     sourceLabel: 'Creature',
     rangeLabel: 'Self',
     attackBonus: undefined,
@@ -1298,7 +1334,7 @@ describe('CampaignTabletopActionDrawer directed area (SPELLS-13)', () => {
     const onResolve = vi.fn<(command: ResolveEncounterActionInputDto) => Promise<unknown>>()
     const burst = validatedChoice({
       ...breath,
-      id: 'creature-dragon:burst',
+      id: 'creature-wolf:burst',
       label: 'Burst',
       target: {
         kind: 'CASTER_CENTERED' as const,

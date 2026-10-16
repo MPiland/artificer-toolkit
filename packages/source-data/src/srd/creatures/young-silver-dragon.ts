@@ -273,7 +273,7 @@ export const youngSilverDragon: CreatureAuthored = {
               originKind: 'SOURCE' as const,
               selectionKind: 'FIXED' as const,
               resultBlock: {
-                id: S.actionId(309, 20) + '__result',
+                id: S.actionId(309, 26),
                 resultKind: 'SEQUENCE' as const,
                 duration: {
                   id: S.actionId(309, 21),

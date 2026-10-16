@@ -57,6 +57,50 @@ const encounterCharacterFrozenStateSchema = lazySchema(() =>
   )
 )
 
+/**
+ * The creature an actor was before a shape-changing effect swapped in another Creature's snapshot
+ * and hit points (D130), or null while it has its own form. The form's own hit points live in the
+ * actor's `currentHitPoints`. The effect ending, the form dropping to 0 hit points, a dismissal and
+ * a cast undo all restore the origin through the one revert (`revertActorForm`).
+ */
+const encounterActorFormShape = lazySchemaParts(() => ({
+  /** The active effect that holds the form; it ending ends the form. */
+  effectId: postgresUuidSchema,
+  /** Whether damage past the form's last hit point reduces the origin's (Polymorph) or is lost (Giant Insect). */
+  excessDamageCarriesOver: z.boolean()
+}))
+
+const encounterActorFormOriginShape = lazySchemaParts(() => ({
+  sourceId: z.nullable(postgresUuidSchema),
+  sourceRevision: z.nullable(z.number().check(z.int()).check(z.positive())),
+  currentHitPoints: z.number().check(z.int()).check(z.nonnegative()),
+  maxHitPoints: z.number().check(z.int()).check(z.nonnegative()),
+  tempHitPoints: z.number().check(z.int()).check(z.nonnegative())
+}))
+
+/** A stored actor names its origin snapshot by checksum, like its own (`snapshotChecksum`). */
+const encounterStoredActorFormSchema = lazySchema(() =>
+  z.nullable(
+    z.strictObject({
+      ...encounterActorFormShape(),
+      origin: z.strictObject({
+        ...encounterActorFormOriginShape(),
+        snapshotChecksum: projectionChecksumSchema
+      })
+    })
+  )
+)
+
+/** The composed actor carries its origin snapshot, read only while the actor is in a form. */
+const encounterRunActorFormSchema = lazySchema(() =>
+  z.nullable(
+    z.strictObject({
+      ...encounterActorFormShape(),
+      origin: z.strictObject({ ...encounterActorFormOriginShape(), snapshot: jsonValueSchema })
+    })
+  )
+)
+
 /** Creature and custom actors own their health in the Run. */
 const encounterRunActorHealthShape = lazySchemaParts(() => ({
   currentHitPoints: z.number().check(z.int()).check(z.nonnegative()),
@@ -83,7 +127,8 @@ export const encounterRunActorStateSchema = lazySchema(() =>
       kind: z.enum(['CREATURE', 'CUSTOM']),
       sourceId: z.nullable(postgresUuidSchema),
       sourceRevision: z.nullable(z.number().check(z.int()).check(z.positive())),
-      ...encounterRunActorHealthShape()
+      ...encounterRunActorHealthShape(),
+      form: encounterRunActorFormSchema
     })
   ])
 )
@@ -131,6 +176,7 @@ export const encounterActorProjectionFactsSchema = lazySchema(() =>
       sourceId: z.nullable(postgresUuidSchema),
       sourceRevision: z.nullable(z.number().check(z.int()).check(z.positive())),
       ...encounterRunActorHealthShape(),
+      form: encounterStoredActorFormSchema,
       ...encounterActorFeatureFactsShape()
     })
   ])
@@ -162,6 +208,7 @@ export const encounterStoredRunActorStateSchema = lazySchema(() =>
       sourceId: z.nullable(postgresUuidSchema),
       sourceRevision: z.nullable(z.number().check(z.int()).check(z.positive())),
       ...encounterRunActorHealthShape(),
+      form: encounterStoredActorFormSchema,
       ...encounterActorFeatureFactsShape()
     })
   ])
@@ -172,6 +219,7 @@ export const encounterSourceProjectionFactsSchema = lazySchema(() =>
   z.pick(encounterGmActorDtoSchema, { statBlock: true, features: true })
 )
 
+export type EncounterActorForm = NonNullable<z.infer<typeof encounterRunActorFormSchema>>
 export type EncounterActorProjectionFacts = z.infer<typeof encounterActorProjectionFactsSchema>
 export type EncounterStoredRunActorState = z.infer<typeof encounterStoredRunActorStateSchema>
 export type EncounterSourceProjectionFacts = z.infer<typeof encounterSourceProjectionFactsSchema>

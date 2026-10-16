@@ -59,7 +59,8 @@ export function damageTakenEndedEffects(input: {
   held: readonly ActiveRuleEffectRecord[]
   /** The outcome applications this action settles on the holder. */
   applications: readonly CharacterRuleActionApplication[]
-  damagerActorId: string
+  /** Who dealt the damage; null when nobody did, so only `ANYONE` triggers meet it. */
+  damagerActorId: string | null
   /** Every Encounter actor's disposition, to tell the effect source's side from the rest. */
   dispositions: ReadonlyMap<string, EncounterActorDispositionDto>
 }) {
@@ -71,6 +72,7 @@ export function damageTakenEndedEffects(input: {
   )
   const onSourceSide = (sourceActorId: string | null) =>
     sourceActorId !== null &&
+    input.damagerActorId !== null &&
     (input.damagerActorId === sourceActorId ||
       encounterActorRelationship(
         input.dispositions.get(input.damagerActorId) ?? 'NEUTRAL',
@@ -82,12 +84,14 @@ export function damageTakenEndedEffects(input: {
         const sourceActorId =
           definition.origin.kind === 'ENCOUNTER' ? definition.origin.sourceActorId : null
         return definition.recurrence.endOnTriggers.some(
-          ({ by, damageTypeIds }) =>
-            (by === 'ANYONE' || onSourceSide(sourceActorId)) &&
+          (trigger) =>
+            trigger.event === 'DAMAGE_TAKEN' &&
+            (trigger.by === 'ANYONE' || onSourceSide(sourceActorId)) &&
             dealt.some(
               (application) =>
-                damageTypeIds === null ||
-                (application.kind === 'DAMAGE' && damageTypeIds.includes(application.damageTypeId))
+                trigger.damageTypeIds === null ||
+                (application.kind === 'DAMAGE' &&
+                  trigger.damageTypeIds.includes(application.damageTypeId))
             )
         )
       })
@@ -102,21 +106,55 @@ export function damageTakenEndedEffects(input: {
   }
 }
 
+/** Whether any of an action's targets is an enemy of its actor: hostile dispositions, never neutral. */
+export function actsAgainstEnemy(input: {
+  actorId: string
+  targetActorIds: readonly string[]
+  dispositions: ReadonlyMap<string, EncounterActorDispositionDto>
+}) {
+  const actorDisposition = input.dispositions.get(input.actorId) ?? 'NEUTRAL'
+  return input.targetActorIds.some(
+    (targetActorId) =>
+      encounterActorRelationship(
+        actorDisposition,
+        input.dispositions.get(targetActorId) ?? 'NEUTRAL'
+      ) === 'HOSTILE'
+  )
+}
+
 /**
- * What an action ends on its holder: the effects that last until an attack roll or a spell cast,
- * and the conditions only they held. An action that is neither ends nothing.
+ * What an action ends on its holder: the effects that last until an attack roll or a spell cast, and
+ * those that end when it is aimed at an enemy (Sanctuary), with the conditions only they held. An
+ * action that is neither ends nothing.
  */
 export function actionEndedEffects(input: {
   holderActorId: string
   held: readonly ActiveRuleEffectRecord[]
   makesAttackRoll: boolean
   castsSpell?: boolean
+  /** Whether the action is aimed at an enemy of the holder (see `actsAgainstEnemy`). */
+  againstEnemy: boolean
 }) {
-  const consumedGrants = effectsEndedBy(
-    input.held,
-    ...(input.makesAttackRoll ? (['ON_ATTACK_ROLL'] as const) : []),
-    ...(input.castsSpell ? (['ON_CAST_SPELL'] as const) : [])
+  const ended = new Set(
+    effectsEndedBy(
+      input.held,
+      ...(input.makesAttackRoll ? (['ON_ATTACK_ROLL'] as const) : []),
+      ...(input.castsSpell ? (['ON_CAST_SPELL'] as const) : [])
+    ).map(({ id }) => id)
   )
+  const endsOn = [
+    ...(input.makesAttackRoll && input.againstEnemy ? (['ATTACK_ROLL'] as const) : []),
+    ...(input.castsSpell && input.againstEnemy ? (['SPELL_CAST'] as const) : [])
+  ]
+  for (const { id, definition } of input.held)
+    if (
+      definition.schemaVersion === 2 &&
+      definition.recurrence.endOnTriggers.some(
+        (trigger) => trigger.event !== 'DAMAGE_TAKEN' && endsOn.includes(trigger.event)
+      )
+    )
+      ended.add(id)
+  const consumedGrants = input.held.filter(({ id }) => ended.has(id))
   return {
     consumedGrants,
     sourceReleases: endedEffectConditionReleases({

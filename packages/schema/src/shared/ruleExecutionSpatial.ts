@@ -70,7 +70,14 @@ export const spatialPendingCandidateDtoSchema = lazySchema(() =>
       candidate: spatialMovementCandidateDtoSchema,
       effect: spatialEffectCurrentnessPinDtoSchema,
       target: spatialTargetCurrentnessPinDtoSchema,
-      d20Policy: z.nullable(z.lazy(() => serverRuleExecutionD20PolicyDtoSchema))
+      d20Policy: z.nullable(z.lazy(() => serverRuleExecutionD20PolicyDtoSchema)),
+      /** The resolved d20 of a candidate now answering its damage dice (a placed zone's failed entry save). */
+      diceStage: z.nullable(
+        z.strictObject({
+          rollMode: z.enum(['ADVANTAGE', 'DISADVANTAGE', 'NORMAL']),
+          rawFaces: z.array(pendingD20FaceSchema).check(z.minLength(1)).check(z.maxLength(2))
+        })
+      )
     })
     .check(
       z.superRefine((value, context) => {

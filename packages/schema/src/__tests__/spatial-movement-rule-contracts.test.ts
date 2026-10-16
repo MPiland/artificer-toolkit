@@ -109,7 +109,8 @@ function pendingCandidate(
       mechanicalContextChecksum: checksum('1'),
       targetStateChecksum: checksum('2')
     },
-    d20Policy: null
+    d20Policy: null,
+    diceStage: null
   }
 }
 

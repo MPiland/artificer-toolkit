@@ -220,6 +220,8 @@ export interface MovementRoomConfig {
   characterPlay?: CharacterPlayOverrides
   /** The mover Character's Class casts these spells, preparing the listed ones. */
   characterSpellcasting?: Parameters<typeof characterRoomInputs>[0]['spellcasting']
+  /** Creatures the Campaign's content publishes, such as the forms a spell offers. */
+  formCreatures?: Parameters<typeof characterRoomInputs>[0]['creatures']
   /** An assigned Character the Run does not hold, owned by the room's player (SPELLS-5.11, Q1). */
   outsideCasterCharacterId?: string
   /** A second Character of the Run (a CHARACTER actor with this `characterId`), owned by the room's second player. */
@@ -363,7 +365,8 @@ export async function movementRoom(config: MovementRoomConfig) {
         classFeatures: config.characterClassFeatures,
         equipment: config.characterEquipment,
         play: config.characterPlay,
-        spellcasting: config.characterSpellcasting
+        spellcasting: config.characterSpellcasting,
+        creatures: config.formCreatures
       })
     : null
   const outsideCasterPage = config.outsideCasterCharacterId
@@ -562,6 +565,7 @@ export async function movementRoom(config: MovementRoomConfig) {
       }
     }),
     system: characterPage?.system ?? srdSystemRoomInputs(campaignId),
+    contentSnapshots: characterPage?.contentSnapshots,
     run
   }
   const definitions = [
@@ -682,7 +686,12 @@ export async function movementRoom(config: MovementRoomConfig) {
             (message.type === 'COMMAND_COMMITTED' || message.type === 'COMMAND_REJECTED') &&
             message.commandId === commandId
         )
-      if (!answer) throw new Error('The room has not answered the command.')
+      if (!answer)
+        throw new Error(
+          `The room has not answered the command. It sent: ${JSON.stringify(
+            base.messages.slice(first).map((message) => message.type)
+          )}`
+        )
       return answer
     }, ROOM_REPLY_WAIT)
   }

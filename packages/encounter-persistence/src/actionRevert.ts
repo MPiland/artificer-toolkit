@@ -41,6 +41,7 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { restoreConsumedGrants, restoreEndedMaintainedStates } from './consumedGrantPersistence.js'
 import { deletePlacedSpatialEffect } from './placedSpatialEffects.js'
 import { rejectDomain } from './domainRejections.js'
+import { holdsActorForm } from './actorFormPersistence.js'
 import { createActiveRuleEffectStore } from './effectStore.js'
 import { readRunActors, readRunState, replaceRunActor } from './documents.js'
 import {
@@ -72,7 +73,8 @@ type CharacterInverse = {
   resource: ActionBatch['resourceConsumption']
   stow: ActionBatch['sourceItemUseStateTransition']
   item: ActionBatch['sourceItemConsumption']
-  spell: ActionBatch['spellCastConsumption']
+  /** Slot spends in the order they committed; one batch can carry several (the cast, then its counter). */
+  spells: NonNullable<ActionBatch['spellCastConsumption']>[]
   expectedStreamVersion: number
 }
 
@@ -322,6 +324,25 @@ export async function revertLastEncounterAction(
   if (unsupported.size || !spend)
     unavailable(`Undo can't restore ${[...unsupported].join(', ')}; adjust manually.`)
 
+  const store = createActiveRuleEffectStore(ctx)
+  // A cast's creature form ends first: ending its effect restores the origin the cast swapped out
+  // (D130), so the inverses below read the actor as it stood before the cast.
+  const endedFormEffectIds = new Set<string>()
+  for (const action of targetBatches) {
+    if (action.kind !== 'ENCOUNTER_ACTOR_MECHANICS_BATCH') continue
+    const owner = {
+      kind: 'ENCOUNTER_ACTOR' as const,
+      encounterId: state.id,
+      targetActorId: action.targetActorId
+    }
+    for (const transition of action.activeEffectTransitions) {
+      const effect = await store.findById(owner, transition.activeEffectId)
+      if (!effect || !holdsActorForm(effect.definition)) continue
+      await store.deleteCas({ id: effect.id, owner, expectedVersion: transition.afterVersion })
+      endedFormEffectIds.add(effect.id)
+    }
+  }
+
   const actors = await readRunActors(ctx, state)
   const actorsById = new Map(actors.map((actor) => [actor.id, actor]))
   const source = actorsById.get(spend.sourceActorId)
@@ -373,13 +394,12 @@ export async function revertLastEncounterAction(
           resource: null,
           stow: null,
           item: null,
-          spell: null,
+          spells: [],
           expectedStreamVersion: streamVersion
         }
     characterInverses.set(characterId, next)
     return next
   }
-  const store = createActiveRuleEffectStore(ctx)
   const createdStates = new Map<
     string,
     NonNullable<ActionBatch['maintenanceTransition']>['createdState']
@@ -463,7 +483,7 @@ export async function revertLastEncounterAction(
             ? [zeroHitPointsConditionId]
             : [])
         ])
-        inverse.spell = reaction?.spellCastConsumption ?? null
+        if (reaction?.spellCastConsumption) inverse.spells.push(reaction.spellCastConsumption)
       }
     } else {
       if (target.kind === 'CHARACTER') throw new Error('Stored Encounter actor target is invalid.')
@@ -519,7 +539,7 @@ export async function revertLastEncounterAction(
     for (const effect of [
       ...action.activeEffectTransitions,
       ...(reaction?.activeEffectTransitions ?? [])
-    ])
+    ].filter(({ activeEffectId }) => !endedFormEffectIds.has(activeEffectId)))
       await store.deleteCas({
         id: effect.activeEffectId,
         owner: characterOwnerId
@@ -562,7 +582,7 @@ export async function revertLastEncounterAction(
     inverse.resource = spend.resourceConsumption
     inverse.stow = spend.sourceItemUseStateTransition
     inverse.item = spend.sourceItemConsumption
-    inverse.spell = spend.spellCastConsumption
+    if (spend.spellCastConsumption) inverse.spells.push(spend.spellCastConsumption)
   }
   // The conditions the source's ended effects released (Invisibility) come back with the effects.
   restoreReleasedConditions(
@@ -617,8 +637,9 @@ export async function revertLastEncounterAction(
     if (spend.spellCastConsumption) {
       if (spend.characterStreamVersion === null)
         throw new Error('Stored reactor Character version is missing.')
-      characterInverse(reactor.sourceId, spend.characterStreamVersion).spell =
+      characterInverse(reactor.sourceId, spend.characterStreamVersion).spells.push(
         spend.spellCastConsumption
+      )
     }
     restoreReleasedConditions(
       reactor,
@@ -826,7 +847,7 @@ async function revertCheckAction(
         resource: null,
         stow: null,
         item: null,
-        spell: null,
+        spells: [],
         expectedStreamVersion: stabilized.targetTransition.afterStreamVersion
       },
       userId: input.userId,
@@ -1051,8 +1072,8 @@ async function restoreCharacter(
         ...[...inverse.restoredConditionIds].map((conditionTypeId) => ({ conditionTypeId }))
       ]
     }
-  const spell = inverse.spell
-  if (spell)
+  // Latest spend first: two spends of one slot restore to the earlier one's before-state last.
+  for (const spell of inverse.spells.toReversed())
     state = updateSpellSlotUsage(
       { ...character, state },
       spell.slotKey,
