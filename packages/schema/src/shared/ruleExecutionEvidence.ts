@@ -74,6 +74,16 @@ export const canonicalConcentrationContributorsDtoSchema = lazySchema(() =>
     )
 )
 
+/** The d20 a single-roll check freezes before it is rolled: the roller's mode, contributors and modifier. */
+export const frozenCheckD20DtoSchema = lazySchema(() =>
+  z.strictObject({
+    rollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
+    contributors: canonicalConcentrationContributorsDtoSchema,
+    contributorChecksum: checksumSchema,
+    modifier: integerSchema
+  })
+)
+
 /** Server-only policy for one frozen d20 evidence node. */
 export const serverRuleExecutionD20PolicyDtoSchema = lazySchema(() =>
   z

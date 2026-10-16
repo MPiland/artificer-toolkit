@@ -102,6 +102,11 @@ describe('effect node maps', () => {
       'SPELL_CAST',
       'DAMAGE_TAKEN'
     ])
+    const higherLevelCheckNode = reactionMap.nodes.higherLevelCheck
+    if (higherLevelCheckNode?.kind !== 'GROUP')
+      throw new Error('Expected the higher-level check to be a group node')
+    expect(higherLevelCheckNode.presentation).toBe('inline')
+    expect(higherLevelCheckNode.showIf).toBeDefined()
     const damageTypesNode = reactionMap.nodes.damageTypeIds
     if (damageTypesNode?.kind !== 'INPUT' || damageTypesNode.type !== 'SELECT_MULTI')
       throw new Error('Expected the damage types to be a multi select')

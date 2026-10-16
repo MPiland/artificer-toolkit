@@ -219,6 +219,10 @@ D107 tracks what each hand holds, but spellcasting ignores it: a caster with a s
 
 Weapon swaps and stowing are free and unlimited (D107, `encounterWieldConflict`). Candidate: track the SRD's one free object interaction per turn, so a second draw or stow costs the Use an Object action. Raised 2026-10-10 during ATTACK-7 design; post-launch.
 
+### Level-gated check on an effect (Dispel Magic)
+
+REACTION-4.T3c authors the level-gated check as `higherLevelCheck` on a `SPELL_CAST` reaction binding (roll only when the triggering level exceeds the level the reaction is cast at; DC = base DC + the triggering level). Dispel Magic is not a reaction: it ends an effect of a given level on a target, and an effect above the slot owes the same check. Its gate needs the same shape authored on the effect side, with the check resolved by the same rules-runtime requirement, before Dispel Magic can reuse it. Raised by Phase 8 on 2026-10-16; post-launch.
+
 ### Metric Campaigns
 
 Rules data is imperial: authored lengths use inches, feet, yards or miles, and the D&D System measures in feet. An unused Imperial/Metric measurement-system vocabulary was deleted on 2026-10-13 (the user's call: wire one when feedback warrants it). Candidate attach point: the System declares its measurement system (D&D 5e: Imperial), and the Campaign display setting converts from it. Only a Scene's grid can be calibrated in meters, converted at the exact 0.3048 m per foot. Candidate: a Campaign setting that shows every length in meters at presentation, using the tabletop convention of 1.5 m per 5 ft (30 ft reads 9 m), so authored content is not rewritten. It needs one decision: Scene meter grids switch to the same 0.3 m per foot, so a metric table measures exactly as an imperial one. Raised by the user on 2026-10-13; post-launch.

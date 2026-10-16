@@ -164,7 +164,7 @@ const checkRollMatchesRollMode = (
 }
 
 /** The settled d20 of a pinned check (a Concentration save, a basic action's check). */
-const ruleCheckD20EvidenceDtoSchema = lazySchema(() =>
+export const ruleCheckD20EvidenceDtoSchema = lazySchema(() =>
   z
     .strictObject({ ...ruleCheckRollFields(), dc: positiveIntegerSchema })
     .check(z.superRefine(checkRollMatchesRollMode))

@@ -19,7 +19,7 @@ import { requireAttackSquarePendingRoot } from './attackSquarePending.js'
 import { writePendingSnapshot } from './pendingSnapshots.js'
 import { readLiveEncounterActionAdmission } from './liveActionAdmission.js'
 import { insertActionEvidenceReceipt } from './actionEvidenceReceipt.js'
-import { castReactionAnswerContinues } from './actionPending.js'
+import { castPendingContinues } from './actionPending.js'
 import { nativeActionPendingResult } from './actionPendingResult.js'
 import { changedFields, readRunActors } from './documents.js'
 import { presentEncounterResultForMember } from './resultPresentation.js'
@@ -158,7 +158,7 @@ export async function persistEncounterActionPending(
         (snapshot.occurrenceId !== resume.occurrence.id ||
           snapshot.applicationContext.currentnessChecksum !==
             resume.pending.context.currentnessChecksum ||
-          !castReactionAnswerContinues(
+          !castPendingContinues(
             resume.pending.context,
             input.response,
             snapshot.applicationContext
