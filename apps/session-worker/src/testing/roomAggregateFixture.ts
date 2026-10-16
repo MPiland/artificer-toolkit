@@ -51,6 +51,7 @@ export function aggregate(actorCount: number) {
       stateJson: JSON.stringify({ hitPoints: 10 + actor, padding: 'a'.repeat(1_500) }),
       stateChecksum: checksum(`actor:${actor}`),
       snapshotChecksum: checksum(`snapshot:${actor % sources}`),
+      formOriginSnapshotChecksum: null,
       sourceFactsChecksum: checksum(`source:${actor % sources}`)
     })
   const records: RoomRecord[] = Array.from({ length: Math.min(actorCount, 6) }, (_, index) => ({

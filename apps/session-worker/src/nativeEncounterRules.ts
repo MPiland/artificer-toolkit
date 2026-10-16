@@ -394,7 +394,8 @@ export async function planNativeLiveEncounterAction(
       runtime: executionOptions.runtime,
       random: executionOptions.random,
       requireAutoRoll,
-      autoRollByActorId
+      autoRollByActorId,
+      readFormCreature: executionOptions.captures.readFormCreature
     }
     if (removalCommand) {
       if (!areaSnapshot) throw new Error('The pending area action is unavailable.')

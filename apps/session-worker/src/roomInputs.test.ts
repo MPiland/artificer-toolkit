@@ -266,6 +266,7 @@ function runDocuments(actors: readonly ActorSpec[], padding: number) {
         stateChecksum: checksum(`actor:${index}`),
         // A creature names its source facts; a Character's row carries none.
         snapshotChecksum: checksum(`snapshot:${index}`),
+        formOriginSnapshotChecksum: null,
         sourceFactsChecksum: actor === null ? checksum(`facts:${index}`) : null
       })
     )

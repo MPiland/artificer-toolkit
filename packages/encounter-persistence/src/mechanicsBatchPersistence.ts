@@ -136,6 +136,11 @@ export async function persistEncounterMechanicsBatchPlan<CharacterSources>(
     throw new Error('Encounter mechanics target belongs to another transaction.')
   const { input, actor, actorRow, campaign } = target
   const { plan, character } = prepared
+  // Entering or leaving a Creature form (D130) swaps the actor's source; nothing else may.
+  const formChanged =
+    actor.kind !== 'CHARACTER' &&
+    plan.updatedActor.kind !== 'CHARACTER' &&
+    actor.form?.effectId !== plan.updatedActor.form?.effectId
   const { before, after } = plan.targetTransition
   // Damage engages an actor armed for an idle-bound grant (SRD Rage); every other actor is untouched.
   const updatedActor =
@@ -162,7 +167,7 @@ export async function persistEncounterMechanicsBatchPlan<CharacterSources>(
     plan.updatedActor.encounterId !== actor.encounterId ||
     plan.updatedActor.systemId !== actor.systemId ||
     plan.updatedActor.kind !== actor.kind ||
-    plan.updatedActor.sourceId !== actor.sourceId
+    (!formChanged && plan.updatedActor.sourceId !== actor.sourceId)
   )
     throw new Error('Encounter mechanics target changed before settlement.')
   if (actor.kind !== 'CHARACTER') {

@@ -1,4 +1,5 @@
 import type { LiveSessionCharacterRulesInput } from '@artificer-toolkit/schema/api/liveSessionCharacterRules'
+import type { EncounterActorFormCreature } from '@artificer-toolkit/rules-runtime/encounterActorForm'
 import {
   liveSessionEncounterRulesInputSchema,
   type LiveSessionEncounterRulesInput,
@@ -15,6 +16,8 @@ import type { PreparedLiveCharacterSheet } from './nativeCharacterRules.js'
 export interface LiveCaptureReads {
   encounterRules(input: LiveSessionEncounterRulesInput): Promise<LiveSessionEncounterRulesResponse>
   prepareCharacter(scope: LiveSessionCharacterRulesInput): Promise<PreparedLiveCharacterSheet>
+  /** Reads the Creature an action's creature form swaps in (D130); absent where no action casts one. */
+  readFormCreature?(gameSystemId: string, creatureId: string): Promise<EncounterActorFormCreature>
 }
 
 /**

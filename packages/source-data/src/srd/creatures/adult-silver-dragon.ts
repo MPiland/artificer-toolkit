@@ -481,7 +481,7 @@ export const adultSilverDragon: CreatureAuthored = {
               originKind: 'SOURCE' as const,
               selectionKind: 'FIXED' as const,
               resultBlock: {
-                id: S.actionId(11, 39) + '__result',
+                id: S.actionId(11, 617),
                 resultKind: 'SEQUENCE' as const,
                 duration: {
                   id: S.actionId(11, 611),
@@ -507,11 +507,6 @@ export const adultSilverDragon: CreatureAuthored = {
                     attempts: { kind: 'ONCE', repeatOnFailure: true },
                     onSuccess: { kind: 'END' },
                     onFailure: { kind: 'CONTINUE' }
-                  },
-                  {
-                    id: S.actionId(11, 39),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.DRAGON_PARALYZING_BREATH
                   }
                 ]
               }

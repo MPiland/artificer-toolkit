@@ -230,7 +230,14 @@ export async function readEncounterActionChoices(
             : null,
           wieldConflict: wieldConflict?.kind === 'STOW_SHIELD' ? wieldConflict : null,
           attackSlot: economy.attackSlot,
-          target: encounterActionChoiceTarget(targetPolicy),
+          target: encounterActionChoiceTarget(
+            targetPolicy,
+            entry?.kind === 'CHARACTER_ACTION' &&
+              entry.schemaVersion !== 1 &&
+              entry.compilation.kind === 'COMPILED'
+              ? entry.compilation.activeEffectPlan?.creatureFormContribution?.forms
+              : undefined
+          ),
           warnings: [
             ...economy.warnings,
             ...(reasonCode === 'SOURCE_NOT_EQUIPPED'

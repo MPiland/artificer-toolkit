@@ -6,7 +6,11 @@ import {
   type ContentSnapshotListSource
 } from '@artificer-toolkit/rules-runtime/contentSnapshots'
 import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
-import type { EquipmentAuthored, SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
+import type {
+  CreatureAuthored,
+  EquipmentAuthored,
+  SpellAuthored
+} from '@artificer-toolkit/shared/subjects/authored'
 import { resolveEquipmentAuthored } from '@artificer-toolkit/shared/subjects/compilers'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
@@ -45,7 +49,8 @@ function buildRoots(
   secondWind: SecondWind,
   extraClassFeatures: readonly ClassFeature[],
   extraEquipment: readonly EquipmentAuthored[],
-  spells: ClassSpells | undefined
+  spells: ClassSpells | undefined,
+  creatures: readonly CreatureAuthored[] | undefined
 ) {
   if (fighter.category !== 'BASE') throw new Error('The SRD Fighter is a base Class.')
   const background = {
@@ -154,7 +159,8 @@ function buildRoots(
     ...(spells ?? []).map((spell) => ({
       subjectKind: 'SPELL' as const,
       document: { ...spell, classIds: [...(spell.classIds ?? []), fighter.id] }
-    }))
+    })),
+    ...(creatures ?? []).map((document) => ({ subjectKind: 'CREATURE' as const, document }))
   ]
 }
 
@@ -212,21 +218,24 @@ function listSource(root: ReturnType<typeof buildRoots>[number]): ContentSnapsho
 /**
  * The SRD source's snapshot builds, one per kind, as the content snapshot build writes them.
  * `darkvision` gives the Race its Darkvision Feature; `secondWind` gives the Fighter its Second Wind Feature, the Resource pool the stripped Class otherwise lacks; `classFeatures` are further Features the Fighter carries; `spells` make the Fighter a spellcaster
- * (with the Wizard's spellcasting rules) whose Class spell list they join, and add the SPELL kind.
+ * (with the Wizard's spellcasting rules) whose Class spell list they join, and add the SPELL kind;
+ * `creatures` add the CREATURE kind.
  */
 export function buildSrdSourceKinds(
   darkvision: boolean,
   secondWind: SecondWind = false,
   classFeatures: readonly ClassFeature[] = [],
   equipment: readonly EquipmentAuthored[] = [],
-  spells?: ClassSpells
+  spells?: ClassSpells,
+  creatures?: readonly CreatureAuthored[]
 ) {
   const kinds = [
     'RACE',
     'CLASS',
     'BACKGROUND',
     'EQUIPMENT',
-    ...(spells ? ['SPELL' as const] : [])
+    ...(spells ? ['SPELL' as const] : []),
+    ...(creatures ? ['CREATURE' as const] : [])
   ] as const
   return kinds.map((kind) => {
     const header = {
@@ -237,7 +246,7 @@ export function buildSrdSourceKinds(
     }
     const built = buildContentSnapshotKind(
       header,
-      buildRoots(secondWind, classFeatures, equipment, spells)
+      buildRoots(secondWind, classFeatures, equipment, spells, creatures)
         .filter((root) => root.subjectKind === kind)
         .map((root) =>
           darkvision && root.subjectKind === 'RACE'

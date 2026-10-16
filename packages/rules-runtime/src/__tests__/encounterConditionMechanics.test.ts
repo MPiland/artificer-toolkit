@@ -101,6 +101,7 @@ function target(conditions: readonly string[], initialConditionRows: unknown[] |
     maxHitPoints: 10,
     tempHitPoints: 0,
     defeated: false,
+    form: null,
     absence: null,
     resources: {},
     gmNotes: null,

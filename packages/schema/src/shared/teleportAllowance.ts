@@ -1,3 +1,4 @@
+import { TELEPORT_ALLOWANCE_DESTINATION_KINDS } from '@artificer-toolkit/shared/vtt/teleportAllowanceDestinationKind'
 import { z, lazySchema } from '../zod.js'
 import { postgresUuidSchema } from './postgresUuid.js'
 
@@ -6,7 +7,7 @@ export const MAX_TURN_TELEPORT_ALLOWANCES = 4
 
 /** Whether a teleport's destination must be seen (Misty Step) or may be any point in range (Dimension Door). */
 export const teleportDestinationKindSchema = lazySchema(() =>
-  z.enum(['VISIBLE', 'SPECIFIED_POINT'])
+  z.enum(TELEPORT_ALLOWANCE_DESTINATION_KINDS)
 )
 
 /** A one-shot teleport a cast granted the caster this turn: the cast, its range in feet and its destination rule. */
