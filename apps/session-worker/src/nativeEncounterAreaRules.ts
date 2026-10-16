@@ -9,6 +9,7 @@ import {
 import type { EncounterRuleWarningDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
 import type { ServerAggregateChoicePendingSnapshotDto } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import type { ScenePoint } from '@artificer-toolkit/shared/vtt'
 import type { EncounterEvidenceAnswer } from '@artificer-toolkit/rules-runtime/encounterEvidenceAnswer'
 import { restoreEncounterActionPending } from '@artificer-toolkit/rules-runtime/encounterActionPendingSnapshot'
 import {
@@ -118,6 +119,7 @@ import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runti
 import type { LiveCaptureReads } from './nativeEncounterReads.js'
 import {
   readNativeLiveAttackPerception,
+  readNativeLivePointPerception,
   readNativeLivePointSight
 } from './nativeAttackPerception.js'
 import { evaluateNativeLiveActionEconomy } from './nativeEncounterActionEconomy.js'
@@ -392,7 +394,15 @@ export async function prepareAreaTarget(
       caster: base.caster,
       target: actor,
       movementTargets: base.movementTargets,
-      sceneContext
+      sceneContext,
+      origin:
+        base.scene && base.area
+          ? {
+              point: base.area.origin,
+              sceneId: base.scene.sceneId,
+              sceneVersion: base.scene.sceneVersion
+            }
+          : undefined
     })
   }
 }
@@ -402,7 +412,10 @@ export async function prepareAreaTarget(
  * and a list of chosen creatures prepares them for each one named.
  */
 export function prepareCasterActionOnTarget(
-  input: Pick<AreaPlanBase, 'state' | 'system' | 'actors' | 'activeEffectsByActorId'> & {
+  input: Pick<
+    AreaPlanBase,
+    'state' | 'system' | 'actors' | 'activeEffectsByActorId' | 'capture'
+  > & {
     command: Pick<ResolveEncounterActionInputDto, 'actionId' | 'acceptedWieldConflict'>
   },
   action: {
@@ -410,8 +423,11 @@ export function prepareCasterActionOnTarget(
     target: EncounterRunActorState
     movementTargets: Awaited<ReturnType<typeof prepareAreaScene>>['movementTargets']
     sceneContext: Parameters<typeof prepareEncounterActionMechanics>[0]['sceneContext']
+    /** Where an area starts: its saves are made against what each creature sees of this point. */
+    origin?: { point: ScenePoint; sceneId: string; sceneVersion: number }
   }
 ) {
+  const { origin, sceneContext } = action
   return prepareEncounterActionMechanics({
     state: input.state,
     actor: action.caster,
@@ -424,7 +440,23 @@ export function prepareCasterActionOnTarget(
     },
     overridable: true,
     movementTargets: action.movementTargets,
-    sceneContext: action.sceneContext,
+    sceneContext,
+    loadAttackPerception:
+      origin && sceneContext
+        ? ({ targetFacts }) =>
+            readNativeLivePointPerception({
+              state: input.state,
+              system: input.system,
+              observer: targetFacts,
+              point: origin.point,
+              sceneContext: {
+                sceneId: origin.sceneId,
+                sceneVersion: origin.sceneVersion,
+                grid: sceneContext.grid
+              },
+              capture: input.capture
+            })
+        : undefined,
     loadSource: async (source) => resolveEncounterActionSource({ ...source, system: input.system }),
     loadRelationshipFacts: nativeLiveRelationshipFacts({
       activeEffectsByActorId: input.activeEffectsByActorId
@@ -488,6 +520,7 @@ export async function planNativeLiveEncounterAreaAction(input: AreaPlanInput) {
             system: input.system,
             attacker: casterFacts,
             target,
+            roller: 'ATTACKER',
             sceneContext: {
               sceneId: scene.sceneId,
               sceneVersion: scene.sceneVersion,
@@ -583,6 +616,7 @@ export async function sealReachSaves(
     targets: reached.map(({ prepared }) => ({
       actorId: prepared.target.id,
       binding: prepared.binding,
+      attackSight: prepared.attackSight,
       autoRoll: { SOURCE: false, TARGET: false },
       discoverLegendaryResistance: discoverNativeLegendaryResistance(input, prepared)
     }))
@@ -946,6 +980,7 @@ async function replayAreaTargetSave(
     target: {
       actorId: actor.id,
       binding: target.prepared.binding,
+      attackSight: target.prepared.attackSight,
       autoRoll: { SOURCE: false, TARGET: false },
       discoverLegendaryResistance: discoverNativeLegendaryResistance(input, target.prepared)
     },
@@ -1215,6 +1250,7 @@ export async function planNativeLiveEncounterAreaCommit(
     targets: kept.map(({ target }) => ({
       actorId: target.prepared.target.id,
       binding: target.prepared.binding,
+      attackSight: target.prepared.attackSight,
       autoRoll: { SOURCE: false, TARGET: false },
       discoverLegendaryResistance: discoverNativeLegendaryResistance(input, target.prepared)
     })),

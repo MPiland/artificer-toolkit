@@ -513,12 +513,13 @@ export async function planNativeLiveEncounterAction(
       overridable: true,
       movementTargets: targets,
       sceneContext,
-      loadAttackPerception: ({ sourceFacts, targetFacts }) =>
+      loadAttackPerception: ({ sourceFacts, targetFacts, roller }) =>
         readNativeLiveAttackPerception({
           state,
           system,
           attacker: sourceFacts,
           target: targetFacts,
+          roller,
           sceneContext,
           capture
         }),

@@ -162,6 +162,7 @@ describe('ATTACKS_AGAINST on a Character holder', () => {
       conditionImmunityIds: [],
       characterCurrentness: null,
       attackAgainstContributors: [],
+      sourceSightSaves: [],
       conditionDefinitions: [],
       conditionMechanics: []
     }

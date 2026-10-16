@@ -5,6 +5,7 @@ import type {
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 import {
+  type EncounterPerceptionRoller,
   resolveEncounterAttackPerception,
   resolveEncounterBelievedAttackPerception,
   resolveEncounterObserversSeeing,
@@ -30,6 +31,7 @@ export async function readNativeLiveAttackPerception(input: {
   system: SystemAuthoredDto
   attacker: MovementTarget
   target: MovementTarget
+  roller: EncounterPerceptionRoller
   /** The action's locked Scene; null for an action without Scene positions. */
   sceneContext: { sceneId: string; sceneVersion: number; grid: SceneGrid } | null
   capture: (request: LiveSessionEncounterRulesRequest) => Promise<LiveSessionEncounterRulesResponse>
@@ -84,7 +86,8 @@ export async function readNativeLiveAttackPerception(input: {
     resolveEncounterBelievedAttackPerception({
       ...loaders,
       attacker: input.attacker,
-      target: input.target
+      target: input.target,
+      roller: input.roller
     })
   ])
   return { actual, believed }
@@ -195,4 +198,34 @@ export async function readNativeLivePointSight(input: {
       })
     }
   })
+}
+
+/**
+ * What a saver sees of an area's origin, shaped as the perception a save's sight-gated contributors
+ * read: the saver's own `targetSeesAttacker`. The believed sight is the saver's own facts on the
+ * neutral environment, as for a creature source.
+ */
+export async function readNativeLivePointPerception(
+  input: Parameters<typeof readNativeLivePointSight>[0]
+) {
+  const { state, capture } = input
+  const [actual, believed] = await Promise.all([
+    readNativeLivePointSight(input),
+    resolveEncounterPointSight({
+      gameSystemId: state.gameSystemId,
+      loadDefinition: (definitionId) =>
+        readNativeLiveDefinition({ gameSystemId: state.gameSystemId, definitionId, capture }),
+      loadSystem: async () => input.system,
+      observer: input.observer,
+      point: input.point,
+      placement: null
+    })
+  ])
+  const perceptionOf = (sight: Awaited<typeof actual>) => ({
+    targetSeesAttacker: sight,
+    attackerSeesTarget: 'SEES' as const,
+    targetSenseLabels: [],
+    attackerSenseLabels: []
+  })
+  return { actual: perceptionOf(actual), believed: perceptionOf(believed) }
 }

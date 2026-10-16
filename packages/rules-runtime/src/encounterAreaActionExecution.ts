@@ -39,6 +39,8 @@ type AreaActionSource = Pick<NativeActionInput, 'runtime' | 'adapter' | 'plan' |
 export type EncounterAreaTarget = {
   actorId: string
   binding: NativeActionInput['binding']
+  /** What the creature's save has of the origin's sight, when its roller is shown a belief of it. */
+  attackSight?: NativeActionInput['attackSight']
   autoRoll: EncounterActionAutoRoll
   /** The creature's Legendary Resistance on its current pool, asked for only once its save has failed. */
   discoverLegendaryResistance: () => Promise<EncounterLegendaryResistanceCandidate | null>
@@ -103,6 +105,7 @@ async function testTarget(
     ...source,
     occurrenceId: encounterAreaTargetOccurrenceId(source.occurrenceId, target.actorId),
     binding: target.binding,
+    attackSight: target.attackSight,
     autoRoll: target.autoRoll,
     // Runs after any completed TEST, whether it was answered or rolled for the creature.
     afterTest: async (execution) => {
