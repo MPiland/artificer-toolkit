@@ -115,6 +115,13 @@ flowchart LR
      (container-only) from the Convex container and leaves them running. The local deployment must
      set `MAIL_DELIVERY_MODE=local` and `LOCAL_EMAIL_SINK_URL=http://127.0.0.1:8025/email`; see the
      [API README](../../apps/apis/README.md).
+     The local deployment must also set `LIVE_SESSION_WORKER_URL=http://host.docker.internal:8787` (the container reaches the host Worker only through that name, never `127.0.0.1`), and the evidence folder name must stay short: the Worker's durable-object state path exceeds the Windows path limit in a worktree otherwise and the Session room upgrade fails with a 500.
+   - A slice that adds one browser journey runs it outside the lifecycle with `node
+     scripts/runLocalBrowserProof.mjs --name=<unique> --proof=<proof> [--deploy]` (in a heavy
+     batch). It reuses the runner's environment checks, admin-key generation, fixtures and
+     Worker/web start, optionally deploys the current source to the local container, never resets
+     or reseeds it, and stops only the services it started. Evidence goes to
+     `local-validation/browser-proof/<name>/` and the proof's usual packet.
 
 5. Record the exact source identity, command order, environment identity, native exit codes, collector
    completion, thresholds, and artifact paths in one release manifest. Inspect proof artifacts only
