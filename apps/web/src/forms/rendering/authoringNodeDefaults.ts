@@ -387,6 +387,12 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
         creatureId: '',
         maxTargets: 1
       }
+    case 'manifestCreatureFormFilter':
+      return {
+        id: crypto.randomUUID(),
+        challengeRatingCapKind: 'TARGET',
+        excludedSpeedIds: []
+      }
     case 'manifestDestructionCriterion':
       return {
         id: crypto.randomUUID(),

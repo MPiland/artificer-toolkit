@@ -7161,7 +7161,10 @@ function testOutcomeTemplateIdentities(action: Dnd5eCompiledEffectActionSource) 
       }
     })
   }
-  if (outcomes.length === 0) unsupported('D&D test action has no specialized outcome path.')
+  // A TEST whose every outcome its active-effect plan carries (a creature form after a failed save)
+  // selects no OUTCOME graph: the plan runs from the TEST's result path.
+  if (outcomes.length === 0 && creatureFormPlan(action) === null)
+    unsupported('D&D test action has no specialized outcome path.')
   return outcomes
 }
 

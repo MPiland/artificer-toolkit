@@ -110054,6 +110054,7 @@ export declare const api: {
                       unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                     };
                   } | null;
+                  choosesCreatureForm?: true;
                   forms?: Array<{
                     id: string;
                     label: string;
@@ -110782,6 +110783,7 @@ export declare const api: {
                       unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                     };
                   } | null;
+                  choosesCreatureForm?: true;
                   forms?: Array<{
                     id: string;
                     label: string;

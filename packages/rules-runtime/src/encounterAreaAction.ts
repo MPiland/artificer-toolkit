@@ -191,8 +191,8 @@ export function encounterActionChoiceTarget(
   formContribution?: {
     forms: readonly { id: string; label: string; maxTargets: number }[]
     filter: unknown
-  }
-): EncounterActionChoiceDto['target'] {
+  } | null
+):EncounterActionChoiceDto['target'] {
   const forms = formContribution?.forms
   const area = policy ? authoredPointArea(policy) : null
   const targeting = policy?.targeting
