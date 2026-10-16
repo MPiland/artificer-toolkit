@@ -12,6 +12,8 @@ import type {
   ServerRuleExecutionResultDto
 } from '@artificer-toolkit/schema/shared/rulesExecution'
 import type {
+  ActiveEffectConsumeEvent,
+  ActiveEffectEndEvent,
   ActiveGrantHolderEnd,
   GrantConsumeEvent,
   GrantEndEvent
@@ -59,7 +61,13 @@ export interface CharacterRuleActionActiveEffectPlan {
    * pre-existing baseline when it creates the active-effect row; adapters do
    * not infer condition ownership from labels or later mutable state.
    */
-  conditionContribution?: null | { conditionId: string }
+  conditionContribution?: null | {
+    conditionId: string
+    /** The events whose first occurrence uses the condition up, sorted and unique. */
+    consumeOnFirstEvents?: readonly ActiveEffectConsumeEvent[]
+    /** The events whose first occurrence ends the condition, sorted and unique. */
+    endOnEvents?: readonly ActiveEffectEndEvent[]
+  }
   /** The timed APPLY_GRANT modifiers this effect owns, folded into the holder while it lasts. */
   modifierGrantContribution?: null | {
     applyGrantOutcomeId: string

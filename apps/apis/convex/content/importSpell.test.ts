@@ -44,7 +44,7 @@ it('compiles every canonical Spell, audits it, and backfills only exact missing 
         contentSourceId: SRD_CONTENT_SOURCE.id,
         subjects: batch
       })
-    ).toEqual({ inserted: batch.length, reused: 0 })
+    ).toEqual({ inserted: batch.length, reused: 0, replaced: 0 })
   }
   for (const subject of subjects) {
     const stored = await t.run(async (ctx) => {
@@ -106,7 +106,8 @@ it('compiles every canonical Spell, audits it, and backfills only exact missing 
   const input = { contentSourceId: SRD_CONTENT_SOURCE.id, subjects: selected }
   expect(await t.mutation(internal.content.import.importSubjects, input)).toEqual({
     inserted: 0,
-    reused: 2
+    reused: 2,
+    replaced: 0
   })
   await t.run(async (ctx) => {
     await setVersionCompilation(ctx, first.version, undefined)
@@ -125,7 +126,8 @@ it('compiles every canonical Spell, audits it, and backfills only exact missing 
   await t.run((ctx) => setVersionCompilation(ctx, second.version, second.compilation))
   expect(await t.mutation(internal.content.import.importSubjects, input)).toEqual({
     inserted: 0,
-    reused: 2
+    reused: 2,
+    replaced: 0
   })
   for (const stored of before) {
     expect(await t.run((ctx) => ctx.db.get(stored.root._id))).toEqual(stored.root)

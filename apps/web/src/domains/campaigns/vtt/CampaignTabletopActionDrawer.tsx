@@ -33,7 +33,11 @@ import type {
 import type { EncounterSessionStateDto } from '@artificer-toolkit/schema/api/encounterData'
 import type { CampaignSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
 import type { EncounterRuleWarningDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
-import { EQUIPMENT_GRIP_REGISTRY, formatLengthMeasurement } from '@artificer-toolkit/shared/core'
+import {
+  ACTIVATION_REGISTRY,
+  EQUIPMENT_GRIP_REGISTRY,
+  formatLengthMeasurement
+} from '@artificer-toolkit/shared/core'
 import {
   directedAreaSizeInSceneCoordinates,
   pointAreaInSceneCoordinates,
@@ -572,7 +576,13 @@ export function CampaignTabletopActionDrawer({
                 comboboxProps={{ withinPortal: false }}
                 data={[
                   ...[...actionGroups].map(([key, { lead }]) => ({
-                    label: lead.sourceLabel ? `${lead.label} · ${lead.sourceLabel}` : lead.label,
+                    label: [
+                      lead.label,
+                      lead.sourceLabel,
+                      lead.actionCost && ACTIVATION_REGISTRY[lead.actionCost].label
+                    ]
+                      .filter(Boolean)
+                      .join(' · '),
                     value: key
                   })),
                   // An action whose authored mechanics cannot run is listed, never selectable.

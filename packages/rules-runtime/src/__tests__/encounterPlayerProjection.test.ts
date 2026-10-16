@@ -426,4 +426,23 @@ describe('unseenEncounterActorIds (D121)', () => {
       expect(!convexListed || roomListed).toBe(true)
     }
   })
+
+  it('gives the GM a concealment with its observers and gives no viewer but the GM any trace of it (D116)', () => {
+    const concealment = {
+      effectId: '00000000-0000-4000-8000-0000000000a1',
+      concealmentTotal: 17,
+      observerActorIds: [HIDDEN_ACTOR_ID, CHARACTER_ACTOR_ID]
+    }
+    const gm = gmEncounter([{ ...gmActor(PUBLIC_ACTOR_ID, true), concealment }])
+
+    expect(gm.actors[0]?.concealment).toEqual(concealment)
+    for (const viewer of [{ userId: PLAYER_ID, characters: new Map() }, noCharacters]) {
+      const projection = projectPlayerEncounterProjection(gm, viewer)
+      expect(projection.actors[0]).not.toHaveProperty('concealment')
+      const serialized = JSON.stringify(projection)
+      expect(serialized).not.toContain(concealment.effectId)
+      expect(serialized).not.toContain(HIDDEN_ACTOR_ID)
+      expect(serialized).not.toContain('observerActorIds')
+    }
+  })
 })

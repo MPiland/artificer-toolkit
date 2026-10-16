@@ -29,6 +29,13 @@ function isModifierGrant(effect: ActiveRuleEffectRecord) {
   )
 }
 
+function ownsCondition(effect: ActiveRuleEffectRecord) {
+  return (
+    effect.definition.schemaVersion === 2 &&
+    effect.definition.stateContributions.some(({ kind }) => kind === 'CONDITION_OWNERSHIP')
+  )
+}
+
 /** Grants and concealments the first occurrence of the event, by their holder, uses up. */
 export function consumableGrants(
   effects: readonly ActiveRuleEffectRecord[],
@@ -163,12 +170,12 @@ export function planEncounterGrantTicks(input: {
 }
 
 /**
- * D99: a completed Run hands its Characters' timed grants to the Campaign clock, 6 seconds per
- * remaining round rounded up to whole minutes from the clock's minute at completion. Without a
- * clock they stop counting and last until the GM ends them. A detached Concentration grant keeps its
- * caster stamp.
+ * D99, SPELLS-5.14: a completed Run hands its Characters' timed grants and condition-owning effects
+ * to the Campaign clock, 6 seconds per remaining round rounded up to whole minutes from the clock's
+ * minute at completion. Without a clock they stop counting and last until the GM ends them. A
+ * detached Concentration effect keeps its caster stamp.
  */
-export function planCarriedOverGrants(input: {
+export function planCarriedOverEffects(input: {
   effects: readonly ActiveRuleEffectRecord[]
   clockMinute: number | null
 }) {
@@ -176,7 +183,7 @@ export function planCarriedOverGrants(input: {
     const remaining = effect.lifecycle.remainingTicks
     if (
       remaining === null ||
-      !isModifierGrant(effect) ||
+      !(isModifierGrant(effect) || ownsCondition(effect)) ||
       effect.definition.recurrence.expiration.kind !== 'TICKS'
     )
       return []
@@ -207,7 +214,7 @@ export function planConcentrationCarriedGrantEnds<Effect extends ActiveRuleEffec
   )
 }
 
-/** Carried-over grants whose Campaign-clock expiry the clock has reached. */
+/** Carried-over effects whose Campaign-clock expiry the clock has reached. */
 export function expiredCarriedOverGrants<Effect extends ActiveRuleEffectRecord>(
   effects: readonly Effect[],
   clockMinute: number

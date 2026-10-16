@@ -67,6 +67,7 @@ import {
 } from '#core'
 import {
   AUTHORED_LIMITS,
+  AUTHORING_ACTION_PRESENTATIONS,
   buildNodeMap,
   type BuildNodeMap,
   type NodeEntry,
@@ -76,6 +77,7 @@ import {
 import type { AllUnionFields } from 'type-fest'
 import {
   DURATION_NODE_MAP,
+  FACET_NODE_MAP,
   NUMERIC_EXPR_NODE_MAP,
   RANGE_NODE_MAP,
   SAVING_THROW_NODE_MAP,
@@ -2912,6 +2914,21 @@ export const PATH_NODE_MAP: NodeMap<EffectPathAuthored> = effectPath.define(
         })
       )
       .set(
+        'restrictions',
+        groupObject(['restrictions'], 'Restrictions', () => FACET_NODE_MAP, {
+          presentation: 'inline',
+          authoring: {
+            actions: [
+              {
+                type: 'collection.add',
+                label: 'Add',
+                presentation: AUTHORING_ACTION_PRESENTATIONS.button
+              }
+            ]
+          }
+        })
+      )
+      .set(
         'rangeOverride',
         groupObject(['rangeOverride'], 'Range Override', () => RANGE_NODE_MAP, {
           presentation: 'inline'
@@ -3037,6 +3054,21 @@ export const MANIFEST_BEHAVIOR_PATH_NODE_MAP: NodeMap<
         selectSingle(['originKind'], 'Starts From', {
           kind: 'INLINE_OPTIONS',
           options: PATH_ORIGIN_KIND_OPTIONS
+        })
+      )
+      .set(
+        'restrictions',
+        groupObject(['restrictions'], 'Restrictions', () => FACET_NODE_MAP, {
+          presentation: 'inline',
+          authoring: {
+            actions: [
+              {
+                type: 'collection.add',
+                label: 'Add',
+                presentation: AUTHORING_ACTION_PRESENTATIONS.button
+              }
+            ]
+          }
         })
       )
       .set(

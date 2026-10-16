@@ -171,6 +171,22 @@ describe('node map inventory', () => {
     expect(skillRelationship).not.toContain('proficiency_grant_languages')
   })
 
+  it('offers the attack roll mode check on facet conditions and gates effect paths with a facet', () => {
+    const registry = collectNodeMaps([EFFECT_NODE_MAP, FACET_NODE_MAP])
+
+    expect(registry.get('facetCondition')?.nodes.predicateRollMode).toMatchObject({
+      type: 'SELECT_SINGLE',
+      hiddenBehavior: 'CLEAR'
+    })
+    expect(JSON.stringify(registry.get('facetCondition')?.nodes.predicateRollMode)).toContain(
+      'NOT_DISADVANTAGE'
+    )
+    for (const mapId of ['effectPath', 'manifestBehaviorPath']) {
+      const pathMap = registry.get(mapId)
+      expect(pathMap?.nodes.restrictions, mapId).toMatchObject({ kind: 'GROUP', groupKind: 'OBJECT' })
+    }
+  })
+
   it('keeps both facet condition branches and generic subject selection reachable', () => {
     expect(FACET_SCOPED_NODE_MAP.mapId).toBe('facetScoped')
 
