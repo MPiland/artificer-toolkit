@@ -313,7 +313,7 @@ exports[`Encounter store conformance: Convex and the in-memory store > corrects 
               "resultChecksum": null,
             },
             "initiativeScore": null,
-            "round": 1,
+            "round": 99,
             "sideId": "<uuid:20>",
             "status": "ACTED",
             "tie": {
