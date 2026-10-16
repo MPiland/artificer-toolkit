@@ -6,6 +6,8 @@ import {
 import { readCharacterPlay } from '@artificer-toolkit/schema/projections/characterStoredState'
 import type { SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { fireball } from '@artificer-toolkit/source-data/srd/spells/fireball.js'
+import { holdPerson } from '@artificer-toolkit/source-data/srd/spells/hold-person.js'
+import { SRD_CREATURE_TYPES } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { RoomEncounterStore } from '../src/roomEncounterStore.js'
@@ -322,4 +324,49 @@ describe('room Fireball cast by a Character wizard (SPELLS-8.4)', () => {
     },
     120000
   )
+})
+
+describe('room Hold Person cast by a Character at a creature type it does not affect (SPELLS-8.5)', () => {
+  const TARGET_ID = CAUGHT_IDS[0]!
+  const TYPE_WARNING = 'TARGET_CREATURE_TYPE_EXCLUDED'
+  // No Scene places the tokens, so the range is never measured.
+  const RANGE_WARNING = 'TARGET_RANGE_UNCHECKED'
+  const humanoidWolf = {
+    ...plainWolf,
+    creatureTypeId: SRD_CREATURE_TYPES.find(({ code }) => code === 'HUMANOID')!.id
+  }
+
+  const holdPersonRoom = (creature: typeof plainWolf) =>
+    actionRoom({
+      actors: [
+        characterActor({ id: CHARACTER_ACTOR_ID, characterId: CHARACTER_ID }),
+        srdCreatureActor({ id: TARGET_ID, creature })
+      ],
+      characterSpellcasting: { spells: [holdPerson], prepared: [holdPerson.id] },
+      characterAction: (action) => action.label === 'Hold Person (2nd level)'
+    })
+
+  it('warns, overridably, for a Wolf and spends no slot until the warning is overridden', async () => {
+    const room = await holdPersonRoom(plainWolf)
+
+    const { answer } = await room.startAction(TARGET_ID, [RANGE_WARNING])
+    expect(answer).toMatchObject({
+      type: 'COMMAND_REJECTED',
+      reason: 'RULE_WARNINGS',
+      warnings: [{ code: TYPE_WARNING }, { code: RANGE_WARNING }]
+    })
+    expect(await readSpellSlots(room)).toEqual([])
+
+    const overridden = await room.startAction(TARGET_ID, [RANGE_WARNING, TYPE_WARNING])
+    expect(overridden.answer.type, JSON.stringify(overridden.answer)).toBe('COMMAND_COMMITTED')
+    expect((await room.pendingDecision()).pending.kind).toBe('D20_EVIDENCE')
+  })
+
+  it('raises no creature type warning for a Humanoid', async () => {
+    const room = await holdPersonRoom(humanoidWolf)
+
+    const { answer } = await room.startAction(TARGET_ID, [RANGE_WARNING])
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    expect((await room.pendingDecision()).pending.kind).toBe('D20_EVIDENCE')
+  })
 })

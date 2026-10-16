@@ -496,6 +496,7 @@ function isSupportedTestArea(
     !shape ||
     targeting?.selectionKind !== 'AREA_CONTENTS' ||
     targeting.dispositionKind !== 'ANY' ||
+    targeting.allowedCreatureTypeIds?.length ||
     targeting.excludedCreatureTypeIds?.length ||
     invocation.triggerCode !== 'SAVING_THROW' ||
     invocation.activation.code !== 'ACTION' ||
@@ -626,11 +627,13 @@ function pinnedSaveDc(
 ): Pick<CharacterRuleActionActiveEffectPlan, 'adapterFacts' | 'castSaveDcFactKey'> | null {
   if (savingThrow?.dcMethod === 'SOURCE_SAVE_DC')
     return { adapterFacts: {}, castSaveDcFactKey: DND5E_SAVE_DC_FACT_KEY }
-  if (savingThrow?.dcMethod === 'FIXED_DC' && Number.isSafeInteger(savingThrow.baseDc))
-    return {
-      adapterFacts: { [DND5E_SAVE_DC_FACT_KEY]: savingThrow.baseDc! },
-      castSaveDcFactKey: null
-    }
+  const baseDc = savingThrow?.baseDc
+  if (
+    savingThrow?.dcMethod === 'FIXED_DC' &&
+    typeof baseDc === 'number' &&
+    Number.isSafeInteger(baseDc)
+  )
+    return { adapterFacts: { [DND5E_SAVE_DC_FACT_KEY]: baseDc }, castSaveDcFactKey: null }
   return null
 }
 
@@ -1331,6 +1334,52 @@ function timedImmediateConditionPlan(
     adapterFacts: { [DND5E_ACTIVE_EFFECT_TIMED_CONDITION_FACT_KEY]: condition.conditionId },
     perceptionContributions: [],
     maintenance: maintenancePlan(action, resolved.saveEntry)
+  }
+}
+
+/**
+ * A condition applied with no save and a duration (Invisibility, "1 hour"): the target holds it
+ * through an Encounter active effect that counts the target's turns, carries the authored events
+ * that use it up or end it, and removes the condition when it ends. Any other lifecycle stays manual.
+ */
+function timedConditionPlan(
+  action: Dnd5eCompiledEffectActionSource
+): Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'> | null {
+  const { entries } = action.compiledEffect
+  const entry = entries[0]
+  if (
+    entries.length !== 1 ||
+    !entry ||
+    !('outcome' in entry) ||
+    entry.outcome.effectKind !== 'CONDITION' ||
+    !entry.duration
+  )
+    return null
+  const { consumeOnFirstEvents = [], endOnEvents = [], ...otherLifecycle } = entry.lifecycle ?? {}
+  const initialRemaining = conditionDurationTurns(entry.duration)
+  const { conditionId } = entry.outcome
+  if (
+    initialRemaining === null ||
+    Object.values(otherLifecycle).some((value) => value !== undefined) ||
+    !(action.conditionDefinitionIds ?? []).includes(conditionId) ||
+    !UUID.test(entry.entryId)
+  )
+    return null
+  return {
+    authoredEffectId: action.effectId,
+    compiledEntryId: entry.entryId,
+    frozenGraphNodeId: 'condition-duration',
+    capabilityContractVersion: DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
+    recurrenceStage: 'END_OF_TURN',
+    initialRemaining,
+    conditionContribution: {
+      conditionId,
+      consumeOnFirstEvents: [...new Set(consumeOnFirstEvents)].sort(),
+      endOnEvents: [...new Set(endOnEvents)].sort()
+    },
+    adapterFacts: { [DND5E_ACTIVE_EFFECT_TIMED_CONDITION_FACT_KEY]: conditionId },
+    perceptionContributions: [],
+    maintenance: maintenancePlan(action, entry)
   }
 }
 
@@ -2396,6 +2445,7 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
   const effect = action.compiledEffect
   const invocation = effect.invocation
   const grantPlan = modifierGrantPlan(action)
+  const conditionPlan = timedConditionPlan(action)
   // A CHECK action rolls its authored check against a fixed DC, each observer's passive score or
   // the concealments that hide creatures from the checker; a contest waits for ATTACK-7.
   const checkAction = invocation.triggerCode === 'CHECK'
@@ -2414,10 +2464,11 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
   const supportsSingleTarget =
     supportsTargetRange &&
     invocation.targeting?.selectionKind === 'SINGLE_TARGET' &&
-    // A grant (Help) or a check (First Aid) may ask for a willing target: an unwilling one only warns,
-    // and the table can override it.
+    // A grant (Help), a timed condition (Invisibility) or a check (First Aid) may ask for a willing
+    // target: an unwilling one only warns, and the table can override it.
     (invocation.targeting.dispositionKind === 'ANY' ||
-      (invocation.targeting.dispositionKind === 'WILLING' && (grantPlan !== null || checkAction)))
+      (invocation.targeting.dispositionKind === 'WILLING' &&
+        (grantPlan !== null || conditionPlan !== null || checkAction)))
   // A bounded list of chosen creatures (Mass Healing Word), inside a round area when it names one
   // (Mass Cure Wounds), resolves the one outcome on each; only a heal is supported, checked below
   // once the outcome is read.
@@ -2459,10 +2510,14 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
     entry.resolutionKind !== 'DIRECT' ||
     entry.groupKind !== 'SINGLE' ||
     entry.pathCode !== (checkAction ? 'ON_CHECK_SUCCESS' : 'ON_USE') ||
-    (entry.maintenanceDefinitionId && !supportedRecurringPlan(action) && !grantPlan) ||
+    (entry.maintenanceDefinitionId &&
+      !supportedRecurringPlan(action) &&
+      !grantPlan &&
+      !conditionPlan) ||
     ((entry.duration || entry.lifecycle) &&
       !supportedRecurringPlan(action) &&
       !grantPlan &&
+      !conditionPlan &&
       !concealmentPlan(action)) ||
     entry.rangeOverride ||
     entry.targetingOverride
@@ -4985,6 +5040,7 @@ function startsMaintainedEffect(action: Dnd5eCompiledEffectActionSource): boolea
     repeatingDirectFollowUpSavePlan(action) ??
     repeatingImmediateFollowUpSavePlan(action) ??
     timedImmediateConditionPlan(action) ??
+    timedConditionPlan(action) ??
     modifierGrantPlan(action) ??
     relationshipPlan(action) ??
     supportedRecurringPlan(action)
@@ -6753,7 +6809,9 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       repeatingDirectFollowUpSavePlan(action) ?? repeatingImmediateFollowUpSavePlan(action)
     const timedPlan = repeatPlan
       ? null
-      : (timedImmediateConditionPlan(action) ?? modifierGrantPlan(action))
+      : (timedImmediateConditionPlan(action) ??
+        timedConditionPlan(action) ??
+        modifierGrantPlan(action))
     const relationship = relationshipPlan(action)
     const plan =
       repeatPlan ??
