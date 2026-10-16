@@ -9,7 +9,7 @@ import { RoomEncounterStore } from '../src/roomEncounterStore.js'
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { actionRoom } from './actionRoomFixture.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
-import { mend, unlimitedCureWounds } from './mendSpell.js'
+import { levelledMend, mend, unlimitedCureWounds } from './mendSpell.js'
 import {
   readPendingActionContext,
   readPendingActionDecision,
@@ -255,7 +255,7 @@ describe('room Counterspell against a Character’s spell cast (REACTION-4.3)', 
   describe('a counter below the cast’s level owes a spellcasting check (D125)', () => {
     /** A 4th-level cast; the holder's 3rd-level slot, the first offered, owes a check against DC 14. */
     const highCast = (options: Parameters<typeof counterspellRoom>[0] = {}) =>
-      counterspellRoom({ spell: unlimitedCureWounds, castLevel: '4th', ...options })
+      counterspellRoom({ spell: levelledMend, castLevel: '4th', ...options })
 
     /** Counters with the holder's lowest slot and returns the room's answer. */
     async function counterWithLowestSlot(room: Room) {
@@ -263,15 +263,20 @@ describe('room Counterspell against a Character’s spell cast (REACTION-4.3)', 
       return room.resolve(decision, { kind: 'OPTION', optionId: pending.options[0].optionId })
     }
 
-    /** The roll the holder owes, answered with the rigged dice. */
-    async function rollTheCheck(room: Room) {
+    /** The roll the holder owes, answered with one natural d20 face. */
+    async function rollTheCheck(room: Room, face: number) {
       const decision = await room.pendingDecision()
-      expect(decision.pending.kind).toBe('D20_EVIDENCE')
-      return room.rollDice(decision)
+      if (decision.pending.kind !== 'D20_EVIDENCE') throw new Error('Expected the counter check.')
+      return room.resolve(decision, {
+        kind: 'ENTER_DICE',
+        requestId: decision.pending.request.requestId,
+        rawFaces: [face],
+        rollMode: decision.pending.request.rollMode
+      })
     }
 
     it('pauses for the holder’s roll, spending and applying nothing', async () => {
-      const room = await highCast({ rolls: [19] })
+      const room = await highCast()
       await cast(room)
       expect((await counterWithLowestSlot(room)).type).toBe('COMMAND_COMMITTED')
 
@@ -287,12 +292,12 @@ describe('room Counterspell against a Character’s spell cast (REACTION-4.3)', 
     })
 
     it('counters the cast on a passing roll, and one undo restores both slots', async () => {
-      const room = await highCast({ rolls: [19] })
+      const room = await highCast()
       const before = await readRoomHistory(room.room.base.stub)
       await cast(room)
       await counterWithLowestSlot(room)
 
-      const rolled = await rollTheCheck(room)
+      const rolled = await rollTheCheck(room, 20)
       expect(rolled.type, JSON.stringify(rolled)).toBe('COMMAND_COMMITTED')
       expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
       expect(await hitPointsOf(room)).toBe(1)
@@ -306,19 +311,16 @@ describe('room Counterspell against a Character’s spell cast (REACTION-4.3)', 
     })
 
     it('lets the cast resolve on a failing roll, spending the holder’s slot with it; one undo restores all', async () => {
-      const room = await highCast({ rolls: [0] })
+      const room = await highCast()
       const before = await readRoomHistory(room.room.base.stub)
       await cast(room)
       await counterWithLowestSlot(room)
 
-      expect((await rollTheCheck(room)).type).toBe('COMMAND_COMMITTED')
-      // The failed attempt is not offered again; the cast went on to its own healing dice.
-      const healing = await room.pendingDecision()
-      expect(healing.pending.kind).not.toBe('REACTION_CHOICE')
-      expect(await slotsOf(room, REACTOR_ID)).toEqual([])
-      expect((await room.rollDice(healing)).type).toBe('COMMAND_COMMITTED')
+      const rolled = await rollTheCheck(room, 1)
+      expect(rolled.type, JSON.stringify(rolled)).toBe('COMMAND_COMMITTED')
+      // The failed attempt is not offered again: the cast resolved and healed 4.
       expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
-      expect(await hitPointsOf(room)).toBeGreaterThan(1)
+      expect(await hitPointsOf(room)).toBe(5)
       expect(await slotsOf(room, CASTER_ID)).toEqual(SLOT_SPENT(4))
       expect(await slotsOf(room, REACTOR_ID)).toEqual(SLOT_SPENT(3))
 
@@ -340,7 +342,7 @@ describe('room Counterspell against a Character’s spell cast (REACTION-4.3)', 
       await cast(failing)
       expect((await counterWithLowestSlot(failing)).type).toBe('COMMAND_COMMITTED')
       expect(await readPendingActionDecision(failing.room.base.stub)).toBeNull()
-      expect(await hitPointsOf(failing)).toBeGreaterThan(1)
+      expect(await hitPointsOf(failing)).toBe(5)
       expect(await slotsOf(failing, REACTOR_ID)).toEqual(SLOT_SPENT(3))
     })
 
@@ -360,7 +362,7 @@ describe('room Counterspell against a Character’s spell cast (REACTION-4.3)', 
     })
 
     it('refuses a decline or a choice in place of the roll, leaving the check held', async () => {
-      const room = await highCast({ rolls: [19] })
+      const room = await highCast()
       await cast(room)
       await counterWithLowestSlot(room)
       const decision = await room.pendingDecision()

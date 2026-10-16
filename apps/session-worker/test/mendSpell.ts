@@ -25,3 +25,18 @@ export const mend: SpellAuthored = (() => {
     delete (outcome as Record<string, unknown>)[key]
   return { ...spell, id: testUuid(0x7c5), label: 'Mend', level: 1 }
 })()
+
+/** Cure Wounds with no Scene geometry, healing a fixed amount equal to the level it is cast at, so no dice are rolled. */
+export const levelledMend: SpellAuthored = (() => {
+  const spell = structuredClone(unlimitedCureWounds)
+  const path = spell.effects?.[0]?.paths?.[0]
+  const outcome = path && 'resultBlock' in path ? path.resultBlock.outcomes?.[0] : undefined
+  if (outcome?.effectKind !== 'HEAL' || outcome.scalingKind !== 'PER_LEVEL')
+    throw new Error('Cure Wounds heals per level.')
+  Object.assign(outcome, { valueKind: 'FIXED' })
+  for (const step of outcome.levels) {
+    Object.assign(step, { amount: step.level })
+    delete (step as Record<string, unknown>).diceConfig
+  }
+  return { ...spell, id: testUuid(0x7c6), label: 'Levelled Mend' }
+})()
