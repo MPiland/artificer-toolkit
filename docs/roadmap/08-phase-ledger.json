@@ -8294,18 +8294,20 @@
         {
           "id": "SPELLS-26",
           "title": "Spells that target several chosen creatures",
-          "status": "IN_PROGRESS",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": ["apps/session-worker/test/nativeRoomChosenActorsSpell.test.ts"],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
               "id": "SPELLS-26.1",
               "text": "Every SRD spell that targets chosen creatures (CHOSEN_CREATURES with maxTargets) compiles and resolves per target through core options, including split projectiles (a repeated target entry is one Magic Missile dart, Scorching Ray ray or Eldritch Blast beam, each its own damage instance, the count scaled by cast or character level) and per-creature saves; a corpus test derived from the real compiler fails on any such spell that does not compile, unless it fails for the same reason as a SINGLE_TARGET cast (its outcome is owned elsewhere: SPELLS-8.T4, SPELLS-4.T2, SPELLS-28, or ADR 0018 manual adjudication).",
-              "status": "TODO",
+              "status": "DONE",
               "proof": [
                 "T1 (Magic Missile darts): apps/session-worker/test/nativeRoomChosenActorsSpell.test.ts (room cast of projectiles on chosen creatures), packages/rules-runtime/src/__tests__/spellCastLevels.test.ts; CI Tests 38858767374 and Live backend 38858767391 on 8baeda488",
-                "T2 (per-creature saves for a chosen list: Acid Splash, Chain Lightning): compile tests and apps/session-worker/test/nativeRoomChosenActorsSpell.test.ts; CI Tests 38877818014 and Live backend 38877818009 on 132bf12de"
+                "T2 (per-creature saves for a chosen list: Acid Splash, Chain Lightning): compile tests and apps/session-worker/test/nativeRoomChosenActorsSpell.test.ts; CI Tests 38877818014 and Live backend 38877818009 on 132bf12de",
+                "T3 (one attack roll per ray or beam: Scorching Ray by slot level, Eldritch Blast by Character level): compile, entry and removal unit tests and apps/session-worker/test/nativeRoomChosenActorsSpell.test.ts; CI Tests 38889382383 and Live backend 38889382488 on ae3a4554e",
+                "T4 (corpus derived from the real compiler, no allowlist): packages/rules-runtime/src/__tests__/encounterAreaActionCompilation.test.ts \"chosen-creature spells in the SRD corpus\"; CI Tests 38889382383 and Live backend 38889382488 on ae3a4554e"
               ],
               "origin": [],
               "note": "Registered 2026-10-15 from the REACTION-4 design review: the compiler accepts only SINGLE_TARGET or AREA_CONTENTS (effectActionCompiler.ts), so 31 SRD spells authoring CHOSEN_CREATURES, Magic Missile among them, are not castable. Amended 2026-10-16 after the SPELLS-26 survey (docs/handoffs/slice-spells-26.md): projectiles use allowRepeatedTargets and maxTargetsScaling, not a new target-count contract; outcome gaps go to their owning PBIs."
@@ -8346,7 +8348,7 @@
             {
               "id": "SPELLS-26.T3",
               "text": "An attack roll per ray or beam (Scorching Ray, Eldritch Blast): one attack and, on a hit, one damage instance per entry; Eldritch Blast re-authored with beam count via maxTargetsScaling; resolutionCount and resolutionCountScaling deleted.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-26.1"],
               "wsjf": {
                 "bv": 8,
@@ -8354,13 +8356,12 @@
                 "rr": 5,
                 "size": 3,
                 "after": ["SPELLS-26.T1"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-spells-26.md"
+              }
             },
             {
               "id": "SPELLS-26.T4",
               "text": "Corpus test derived from the real compiler (no allowlist): every CHOSEN_CREATURES+maxTargets SRD spell compiles or fails for the same reason as a SINGLE_TARGET cast; architecture-doc update.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-26.1"],
               "wsjf": {
                 "bv": 8,
@@ -8368,8 +8369,7 @@
                 "rr": 5,
                 "size": 2,
                 "after": ["SPELLS-26.T2", "SPELLS-26.T3"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-spells-26.md"
+              }
             }
           ]
         },
