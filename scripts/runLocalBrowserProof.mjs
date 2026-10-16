@@ -45,7 +45,12 @@ if (process.argv.includes('--deploy'))
       '--codegen',
       'disable'
     ],
-    { logPath: resolve(artifactDirectory, 'convex-deploy.log') }
+    {
+      // The injected application environment sets CONVEX_DEPLOYMENT, which the CLI refuses beside
+      // the self-hosted URL and admin key; spawn drops the undefined value.
+      environment: { YARN_INJECT_ENVIRONMENT_FILES: undefined },
+      logPath: resolve(artifactDirectory, 'convex-deploy.log')
+    }
   )
 await ensureLocalConvexFixtures(artifactDirectory)
 
