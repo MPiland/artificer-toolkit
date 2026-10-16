@@ -74,6 +74,20 @@ export function chosenCreaturesMaxTargets(targeting: ChosenCreaturesTargeting): 
 }
 
 /**
+ * Whether a chosen-creatures targeting bounds its list at every cast level: a fixed cap, or one
+ * that scales only with the spell's cast level, which each cast resolves ({@link
+ * resolveChosenCreaturesTargeting}). The execution plan is compiled before any cast level is known,
+ * so this is what it can check.
+ */
+export function chosenCreaturesCapIsAuthored(targeting: ChosenCreaturesTargeting): boolean {
+  if (targeting.resolutionCount !== undefined || targeting.resolutionCountScaling !== undefined)
+    return false
+  return targeting.maxTargetsScaling
+    ? targeting.maxTargetsScaling.scalingSource === 'SPELL_CAST_LEVEL'
+    : targeting.maxTargets !== undefined
+}
+
+/**
  * A chosen-creatures targeting whose cap scales with the spell's cast level, with that cap resolved
  * to the number it is at `spellCastLevel` (Magic Missile's darts). Any other scaling, or no cast
  * level, is left as authored, so the cap stays unresolved and the action is refused.

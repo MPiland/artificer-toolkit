@@ -295,10 +295,10 @@ the viewer sees inside; the room still decides who is caught.
 ### A list of chosen creatures (current, SPELLS-8.T12, D118)
 
 An action whose targeting is `CHOSEN_CREATURES` with an authored `maxTargets` (Mass Healing Word, Prayer of
-Healing, Mass Cure Wounds, Magic Missile) takes the fifth target, `{ kind: 'ACTORS', actorIds, scene }`, built from
+Healing, Mass Cure Wounds, Magic Missile, Acid Splash, Chain Lightning) takes the fifth target, `{ kind: 'ACTORS', actorIds, scene }`, built from
 `encounterActionTargetKind` and offered as `{ kind: 'ACTORS', maxTargets, area, allowRepeatedTargets? }` (`area` is the `RADIUS` the
 spell names, or null). It is a reusable target kind, not a spell field: any chosen-creatures policy the compiler
-accepts uses it. The compiler accepts one only when the outcome is a heal or unscaled dice damage, the cap is authored (fixed, or
+accepts uses it. The compiler accepts one only when the outcome is a heal, unscaled dice damage or a per-creature save (an `ANY` disposition, a `SAVING_THROW` trigger and no repeated targets), the cap is authored (fixed, or
 scaled by the cast level and resolved first by `resolveChosenCreaturesTargeting`; no `resolutionCount`), and the shape is absent or a sphere, cylinder or circle
 whose range is a distance. One `RESOLVE_ACTION` carries the whole list (D118: one cast, one commit, one slot
 spend, one undo; one action per creature is rejected because it breaks undo atomicity).
@@ -318,8 +318,17 @@ and deduplicated (`evaluateEncounterActorsRuleWarnings`); a creature in a shaped
 itself, because the picked point carries the range. The commit reuses the `ENCOUNTER_AREA_ACTION` root and
 children with a null `area`; `encounterChosenActorsChecksum(actorIds)` is the root's caught checksum, so the
 persistence side (`areaCommitPersistence.ts`) checks every id belongs to the Encounter and commits each as
-perceived by the caster. A list has no pending path, so `executeEncounterActorsAction` refuses an outcome
-that asks for evidence (a save or roll card). A spell that takes a list is refused when sent at one creature
+perceived by the caster. **Saves (current, SPELLS-26):** a list whose plan is not `SINGLE_GRAPH` (Acid Splash,
+Chain Lightning) is not executed in place: `planNativeLiveEncounterActorsAction` hands it to `sealReachSaves`, the
+point area's own open path, so the list pends on one sealed save per distinct creature and resumes through the
+area's Answer, Legendary Resistance, GM removal and Commit planners. Damage is rolled once for the cast and
+replayed per creature on one frozen tape (`createFrozenRollTape`), so a failed and a successful save share the
+dice they have in common. The pending context (`EncounterAreaActionPendingContextDto`) seals a null `scene`
+and `area` for a list read against no Scene or naming no area, and a null `token` for a creature with no token
+on the Scene read; `requireAreaActionPendingRoot` then checks the sealed creatures plus the GM's removals equal
+the named ones, and, when the list names an area, that each is still inside it (a point area instead requires
+the caught set to equal the sealed one). An immediate list (heals, projectiles) still commits whole in the
+room; `executeEncounterActorsAction` refuses an outcome that asks for evidence. A spell that takes a list is refused when sent at one creature
 (`TARGET_UNAVAILABLE`).
 
 ### An attack aimed at a square (current, ATTACK-17.T4a; empty squares are T4b)

@@ -84,8 +84,6 @@ export async function persistEncounterActionPending(
   let evidence:
     | Extract<typeof snapshot, { snapshotKind: 'KERNEL_EVIDENCE' }>['applicationContext']
     | null = null
-  // A cast on chosen creatures never waits for anyone: it commits whole or not at all.
-  if (target.kind === 'ACTORS') throw new Error('Live Session pending action root mismatch.')
   // An attack on a square waits for the GM to name who stands there, and is never itself resumed.
   if (target.kind === 'SQUARE') {
     if (input.command.optionalCombatIntent != null || resume)
