@@ -1524,6 +1524,7 @@ function ownsTimedSaveCondition(
   return (
     testPhaseKindOrNull(action) === 'SAVE' &&
     entry.pathCode === 'ON_SAVE_FAIL' &&
+    'outcome' in entry &&
     (entry.lifecycle?.endOnTriggers?.length ?? 0) > 0 &&
     timedConditionPlan(action)?.compiledEntryId === entry.entryId
   )
