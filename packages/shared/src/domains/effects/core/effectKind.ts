@@ -25,6 +25,7 @@ export const EFFECT_KIND = {
   ACTOR_RELATIONSHIP: 'ACTOR_RELATIONSHIP',
   CONCEAL_FROM_OBSERVERS: 'CONCEAL_FROM_OBSERVERS',
   DETECT_CONCEALED: 'DETECT_CONCEALED',
+  CANCEL_TRIGGERING_EVENT: 'CANCEL_TRIGGERING_EVENT',
   CLOSED_RULE: 'CLOSED_RULE',
   MANUAL_ADJUDICATION: 'MANUAL_ADJUDICATION'
 } as const
@@ -154,6 +155,12 @@ export const EFFECT_KIND_REGISTRY: Record<EffectKind, EffectKindOption> = {
     code: EFFECT_KIND.DETECT_CONCEALED,
     label: 'Detect Concealed',
     description: 'Ends the checking creature’s ignorance of every concealment its check beats.'
+  },
+  [EFFECT_KIND.CANCEL_TRIGGERING_EVENT]: {
+    code: EFFECT_KIND.CANCEL_TRIGGERING_EVENT,
+    label: 'Cancel Triggering Event',
+    description:
+      'Cancels the event that triggered this reaction, such as a spell being cast, so it has no effect.'
   },
   [EFFECT_KIND.CLOSED_RULE]: {
     code: EFFECT_KIND.CLOSED_RULE,

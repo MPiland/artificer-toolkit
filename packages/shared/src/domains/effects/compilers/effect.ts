@@ -202,6 +202,7 @@ export type CompiledEffectOutcome =
   | ActorRelationshipAuthored
   | import('#authored').ConcealFromObserversAuthored
   | import('#authored').DetectConcealedAuthored
+  | import('#authored').CancelTriggeringEventAuthored
   | ClosedRuleAuthored
   | import('#authored').TeleportAuthored
   | import('#authored').ManualAdjudicationAuthored
@@ -314,6 +315,7 @@ function compileOutcomePayload(
     case EFFECT_KIND.ACTOR_RELATIONSHIP:
     case EFFECT_KIND.CONCEAL_FROM_OBSERVERS:
     case EFFECT_KIND.DETECT_CONCEALED:
+    case EFFECT_KIND.CANCEL_TRIGGERING_EVENT:
     case EFFECT_KIND.CLOSED_RULE:
     case EFFECT_KIND.MANUAL_ADJUDICATION:
       return [outcome]
