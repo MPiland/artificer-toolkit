@@ -17,6 +17,8 @@ import type {
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { writeRunActor } from '@artificer-toolkit/encounter-persistence/documents'
+import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
+import { plannedModifierGrant } from '@artificer-toolkit/rules-runtime/testing/modifierGrantFixture'
 import { fixture } from '../../tests/fixtures/characters'
 import {
   applyEncounterMechanicsBatch,
@@ -119,6 +121,58 @@ describe('applyEncounterMechanicsBatch', () => {
       ...readStoredRunActor(before),
       currentHitPoints: 1
     })
+  })
+
+  it('ends a grant that lasts until healed only when hit points rise (SPELLS-17.6)', async () => {
+    const base = await mechanicsFixture()
+    const grantId = crypto.randomUUID()
+    await base.t.run(async (ctx) => {
+      const planned = plannedModifierGrant({
+        encounterId: base.run.id,
+        sourceActorId: base.actor.id,
+        holderActorId: base.actor.id,
+        lifecycle: { endOnEvents: ['ON_HIT_POINTS_REGAINED'] },
+        rounds: 10,
+        lifetimeScope: 'OWNER'
+      })
+      await createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) }).create({
+        id: grantId,
+        owner: { kind: 'ENCOUNTER_ACTOR', encounterId: base.run.id, targetActorId: base.actor.id },
+        definition: planned.definition,
+        lifecycle: planned.lifecycle
+      })
+    })
+    const damaged = await base.owner.caller.run((ctx) =>
+      applyEncounterMechanicsBatch(ctx, base.input)
+    )
+    expect(damaged.endedGrants).toEqual([])
+    const healed = await base.owner.caller.run((ctx) =>
+      applyEncounterMechanicsBatch(ctx, {
+        ...base.input,
+        occurrenceId: crypto.randomUUID(),
+        sourceCommandId: crypto.randomUUID(),
+        commandId: crypto.randomUUID(),
+        applications: [
+          {
+            sourceNodeId: 'native-test',
+            sourceOperationKey: 'heal',
+            authoredPath: null,
+            resolvedPath: 'TEST',
+            kind: 'HEAL',
+            targetActorId: base.actor.id,
+            requestedAmount: 1,
+            resolvedAmount: 1,
+            appliedAmount: 1,
+            beforeCurrentHitPoints: 1,
+            afterCurrentHitPoints: 2,
+            beforeTemporaryHitPoints: 0,
+            afterTemporaryHitPoints: 0,
+            maximumHitPoints: 3
+          }
+        ]
+      })
+    )
+    expect(healed.endedGrants.map(({ id }) => id)).toEqual([grantId])
   })
 
   it('rejects a stale Run before writing', async () => {

@@ -1,4 +1,5 @@
 import { prepareEncounterActionEffectPlans } from './encounterActionEffectPlans.js'
+import type { CharacterRuleActionActiveEffectPlan } from './characterRuleActionSystemAdapter.js'
 import { toCharacterInitiativeActorFacts } from './character/characterInitiativeFacts.js'
 import { prepareEncounterActionMechanics } from './encounterActionMechanicsPreparation.js'
 import { advanceNativeActionGraphs } from './encounterActionExecution.js'
@@ -67,9 +68,13 @@ export function prepareNativeActionEffectsPlan<
   occurrenceId: string
   commandId: string
   activeEffectsByActorId: ReadonlyMap<string, readonly ActiveRuleEffectRecord[]>
+  concealment?: Parameters<typeof prepareEncounterActionEffectPlans>[0]['concealment']
 }) {
   const { prepared, execution } = input
-  const plan = encounterActiveEffectPlan(prepared, execution.published)
+  const plan: CharacterRuleActionActiveEffectPlan | null = encounterActiveEffectPlan(
+    prepared,
+    execution.published
+  )
   const target = prepared.movementTargets.get(prepared.target.id)
   if (!target || checksumCanonicalJson(target.actor) !== checksumCanonicalJson(prepared.target))
     throw new Error('Encounter action effect target is stale.')
@@ -94,6 +99,7 @@ export function prepareNativeActionEffectsPlan<
     },
     activeEffectsByActorId: input.activeEffectsByActorId,
     activeEffectPlan: plan,
+    concealment: input.concealment,
     published: execution.published,
     execution: execution.execution,
     d20: execution.d20,
@@ -121,8 +127,9 @@ export function prepareNativeActionEffectsPlan<
           application.kind === 'DAMAGE' ||
           application.kind === 'TEMPORARY_HIT_POINTS')
     )
-  // A grant applies no stored state, so its effect exists exactly when its plan does.
-  const grant = Boolean(plan?.modifierGrantContribution)
+  // A grant or a concealment applies no stored state, so its effect exists exactly when its plan
+  // does (a concealment plan yields none when its check beats no observer).
+  const grant = Boolean(plan?.modifierGrantContribution || plan?.concealmentContribution)
   const recurringEffect =
     relationship || grant || appliedCondition || appliedRecurringOutcome
       ? effects.recurringEffect

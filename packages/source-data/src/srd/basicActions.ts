@@ -18,7 +18,13 @@ import { basicActionReusableDefinitionDocumentDtoSchema } from '@artificer-toolk
 import { BASIC_ACTION_DEFINITION_FAMILY_KEY } from '@artificer-toolkit/schema/shared/reusableDefinitionIdentity'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
-import { SRD_MEDICINE_SKILL_ID, SRD_SYSTEM_ID } from './vocabulary.js'
+import {
+  SRD_MEDICINE_SKILL_ID,
+  SRD_PASSIVE_PERCEPTION_ID,
+  SRD_PERCEPTION_SKILL_ID,
+  SRD_STEALTH_SKILL_ID,
+  SRD_SYSTEM_ID
+} from './vocabulary.js'
 
 /** Stable catalogue identities of the SRD basic combat actions (Q11). */
 export const SRD_BASIC_ACTION_IDS = {
@@ -334,8 +340,48 @@ function firstAidEffect(actionId: string) {
 }
 
 /**
+ * A check the actor makes on itself: success applies the one outcome. Its DC is a per-subject
+ * contest (observers' passive scores, or the concealments hiding creatures from the actor).
+ */
+function selfCheckEffect(
+  actionId: string,
+  check: Record<string, unknown>,
+  outcome: Record<string, unknown>,
+  resultBlockExtras: Record<string, unknown> = {}
+) {
+  return {
+    id: basicActionChildId(actionId, 0x210, 1),
+    order: 1,
+    invocation: {
+      kind: 'ACTION' as const,
+      triggerCode: TRIGGER.CHECK,
+      check,
+      activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
+      range: { id: basicActionChildId(actionId, 0x211, 1), rangeKind: RANGE_KIND.SELF },
+      targeting: { selectionKind: 'SELF' as const }
+    },
+    paths: [
+      {
+        id: basicActionChildId(actionId, 0x212, 1),
+        order: 1,
+        pathCode: PATH_CODE.ON_CHECK_SUCCESS,
+        groupType: PATH_GROUP_TYPE.SINGLE,
+        originKind: 'SOURCE' as const,
+        selectionKind: 'FIXED' as const,
+        resultBlock: {
+          id: basicActionChildId(actionId, 0x212, 2),
+          resultKind: 'SINGLE' as const,
+          ...resultBlockExtras,
+          outcomes: [outcome]
+        }
+      }
+    ]
+  }
+}
+
+/**
  * The SRD System's basic combat actions. Names and rules text are authored System data. Dash,
- * Disengage, Dodge, Help and First Aid are authored effects; Hide, Ready, Search and Use an Object
+ * Disengage, Dodge, Help, Hide, Search and First Aid are authored effects; Ready and Use an Object
  * spend the Action and leave the result to the GM.
  */
 export const SRD_BASIC_ACTION_DEFINITIONS = [
@@ -378,10 +424,24 @@ export const SRD_BASIC_ACTION_DEFINITIONS = [
     rulesText:
       'You make a Dexterity (Stealth) check to hide, following the rules for hiding. If you succeed, you gain the benefits of being unseen.',
     effects: [
-      manualActionEffect(
+      selfCheckEffect(
         SRD_BASIC_ACTION_IDS.HIDE,
-        'Adjudicate Hide',
-        'Resolve the Dexterity (Stealth) check to hide and rule whether the actor becomes unseen.'
+        {
+          checks: { skillIds: [SRD_STEALTH_SKILL_ID], abilityDefinitionIds: [] },
+          dc: { kind: 'PASSIVE' as const, passiveDefinitionId: SRD_PASSIVE_PERCEPTION_ID }
+        },
+        {
+          id: basicActionChildId(SRD_BASIC_ACTION_IDS.HIDE, 0x213, 1),
+          effectKind: EFFECT_KIND.CONCEAL_FROM_OBSERVERS,
+          observers: 'NON_ALLIES' as const
+        },
+        {
+          duration: {
+            id: basicActionChildId(SRD_BASIC_ACTION_IDS.HIDE, 0x215, 1),
+            durationKind: 'UNTIL_DISPELLED'
+          },
+          lifecycle: { consumeOnFirstEvents: ['ON_ATTACK_ROLL'] }
+        }
       )
     ]
   }),
@@ -404,10 +464,16 @@ export const SRD_BASIC_ACTION_DEFINITIONS = [
     rulesText:
       'You devote your attention to finding something. The GM might have you make a Wisdom (Perception) or Intelligence (Investigation) check.',
     effects: [
-      manualActionEffect(
+      selfCheckEffect(
         SRD_BASIC_ACTION_IDS.SEARCH,
-        'Adjudicate Search',
-        'Call for the Wisdom (Perception) or Intelligence (Investigation) check and rule what is found.'
+        {
+          checks: { skillIds: [SRD_PERCEPTION_SKILL_ID], abilityDefinitionIds: [] },
+          dc: { kind: 'CONCEALMENT' as const }
+        },
+        {
+          id: basicActionChildId(SRD_BASIC_ACTION_IDS.SEARCH, 0x213, 1),
+          effectKind: EFFECT_KIND.DETECT_CONCEALED
+        }
       )
     ]
   }),

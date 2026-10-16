@@ -43,9 +43,9 @@ describe('SPEED and SENSE_RANGE modifier values are lengths (RELIABILITY-5.1)', 
   )
 
   it('parses a sense range bonus carrying an amount and a unit', () => {
-    expect(
-      modifierGrantDtoSchema.parse(senseBonus({ amount: 12, unit: 'YARDS' })).payload
-    ).toEqual({ amount: 12, unit: 'YARDS' })
+    expect(modifierGrantDtoSchema.parse(senseBonus({ amount: 12, unit: 'YARDS' })).payload).toEqual(
+      { amount: 12, unit: 'YARDS' }
+    )
   })
 
   it.each([
@@ -72,8 +72,8 @@ describe('SPEED and SENSE_RANGE modifier values are lengths (RELIABILITY-5.1)', 
   })
 
   it('refuses a payload that names more than the amount and unit', () => {
-    expect(
-      accepts(speedModifier('BONUS', { amount: 10, unit: 'FEET', valueKind: 'FIXED' }))
-    ).toBe(false)
+    expect(accepts(speedModifier('BONUS', { amount: 10, unit: 'FEET', valueKind: 'FIXED' }))).toBe(
+      false
+    )
   })
 })

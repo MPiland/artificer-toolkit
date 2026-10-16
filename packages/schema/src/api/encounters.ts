@@ -18,6 +18,7 @@ import {
   resolveRuleOccurrenceInputDtoSchema,
   revertLastEncounterActionInputDtoSchema,
   rollRuleEvidenceInputDtoSchema,
+  setConcealmentObserversInputDtoSchema,
   voidRuleOccurrenceInputDtoSchema
 } from './encounterRuleCommands.js'
 
@@ -32,6 +33,7 @@ export {
   resolveEncounterActionInputDtoSchema,
   resolveRuleOccurrenceInputDtoSchema,
   revertLastEncounterActionInputDtoSchema,
+  setConcealmentObserversInputDtoSchema,
   voidRuleOccurrenceInputDtoSchema
 } from './encounterRuleCommands.js'
 export type {
@@ -45,6 +47,7 @@ export type {
   ResolveEncounterActionInputDto,
   ResolveRuleOccurrenceInputDto,
   RevertLastEncounterActionInputDto,
+  SetConcealmentObserversInputDto,
   VoidRuleOccurrenceInputDto
 } from './encounterRuleCommands.js'
 
@@ -309,6 +312,7 @@ export const encounterCommandInputDtoSchema = lazySchema(() =>
     resolveRuleOccurrenceInputDtoSchema,
     voidRuleOccurrenceInputDtoSchema,
     removeAreaTargetInputDtoSchema,
+    setConcealmentObserversInputDtoSchema,
     revertLastEncounterActionInputDtoSchema,
     rollRuleEvidenceInputDtoSchema
   ])

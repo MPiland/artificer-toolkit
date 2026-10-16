@@ -32,13 +32,7 @@ import type { prepareNativeLiveMovementTarget } from './nativeEncounterTargets.j
 
 type CheckTarget = Awaited<ReturnType<typeof prepareNativeLiveMovementTarget>>['target']
 
-/**
- * Plans a CHECK action: the actor spends the action's allowance and makes its one authored check
- * against the authored DC; the outcome (a stabilize) runs only when the check reaches the DC. The
- * check pends on the actor's d20, or settles here when the roller's preference rolls for them
- * (ADR 0034 decision 3). Convex records the plan; it evaluates none of it.
- */
-export async function planNativeLiveCheckAction(input: {
+export type NativeLiveCheckActionInput = {
   scope: Omit<LiveSessionEncounterRulesInput, 'request'>
   command: ResolveEncounterActionInputDto
   fingerprint: string
@@ -47,6 +41,7 @@ export async function planNativeLiveCheckAction(input: {
     id: string
     version: number
     gameSystemId: string
+    currentActorId: string | null
     optionalCombatSnapshotChecksum: string | null
   }
   system: SystemAuthoredDto
@@ -59,17 +54,37 @@ export async function planNativeLiveCheckAction(input: {
   autoRoll: ((maximum: number) => number) | null
   runtime: RulesRuntimeService
   revisions: LiveSessionRulesRevisions
-}) {
-  const { capability, command, state, actor, target } = input
+}
+
+/** The one authored check of a CHECK action: the skill (else ability) it rolls and its DC. */
+export function authoredCheckOf(capability: EncounterBasicActionCapabilityDescriptor) {
   const invocation = capability.compiledEffect.invocation
-  // The compiler admits exactly one check against a fixed DC; its types cannot say so.
-  if (invocation.triggerCode !== 'CHECK' || invocation.check.dc.kind !== 'FIXED')
-    throw new EncounterValidationError('The selected action makes no fixed-DC check.')
+  // The compiler admits exactly one check; its types cannot say so.
+  if (invocation.triggerCode !== 'CHECK')
+    throw new EncounterValidationError('The selected action makes no check.')
   const { skillIds, abilityDefinitionIds } = invocation.check.checks
   const skillId = skillIds[0]
   const checkDefinitionId = skillId ?? abilityDefinitionIds[0]
   if (!checkDefinitionId) throw new EncounterValidationError('A check action lists one check.')
-  const checkKind = skillId ? 'SKILL' : 'ABILITY'
+  return {
+    checkKind: skillId ? ('SKILL' as const) : ('ABILITY' as const),
+    checkDefinitionId,
+    dc: invocation.check.dc
+  }
+}
+
+/**
+ * The commit input of a CHECK action: the actor spends the action's allowance, and `check` is the
+ * pending or settled check the caller planned. Convex records the plan; it evaluates none of it.
+ */
+export function nativeLiveCheckCommitInput(
+  input: NativeLiveCheckActionInput,
+  planned: {
+    check: LiveSessionEncounterBasicActionCommitInput['check']
+    consumedGrants: LiveSessionEncounterBasicActionCommitInput['consumedGrants']
+  }
+) {
+  const { capability, command, state, actor } = input
   const settled = input.actionEconomy
     ? consumeEncounterActionEconomy({
         actor: actor.actor,
@@ -81,6 +96,44 @@ export async function planNativeLiveCheckAction(input: {
   const nextFacts = buildEncounterActorRuleFacts({
     actors: input.actors.map((entry) => (entry.id === settled.id ? settled : entry))
   })
+  return liveSessionEncounterBasicActionCommitInputSchema.parse({
+    ...input.scope,
+    command,
+    revisions: input.revisions,
+    occurredAt: new Date().toISOString(),
+    definition: {
+      id: capability.definitionId,
+      version: capability.definitionVersion,
+      checksum: capability.definitionChecksum
+    },
+    actionEconomy: input.actionEconomy,
+    ruleOverrides: input.overrides,
+    consumedGrants: planned.consumedGrants,
+    check: planned.check,
+    rules: reconcileEncounterActorRuleOutput(
+      evaluateInstalledEncounterActors({ gameSystemId: state.gameSystemId, facts: nextFacts }),
+      nextFacts,
+      {
+        output: reconcileEncounterActorRuleOutput(
+          evaluateInstalledEncounterActors({ gameSystemId: state.gameSystemId, facts }),
+          facts
+        )
+      }
+    )
+  })
+}
+
+/**
+ * Plans a fixed-DC CHECK action (First Aid): the actor makes its one authored check against the
+ * authored DC; the outcome (a stabilize) runs only when the check reaches the DC. The check pends
+ * on the actor's d20, or settles here when the roller's preference rolls for them (ADR 0034
+ * decision 3).
+ */
+export async function planNativeLiveCheckAction(input: NativeLiveCheckActionInput) {
+  const { capability, command, state, actor, target } = input
+  const { checkKind, checkDefinitionId, dc } = authoredCheckOf(capability)
+  if (dc.kind !== 'FIXED')
+    throw new EncounterValidationError('The selected action makes no fixed-DC check.')
   const prepared = prepareEncounterBasicActionCheck({
     gameSystemId: state.gameSystemId,
     commandId: command.commandId,
@@ -92,7 +145,7 @@ export async function planNativeLiveCheckAction(input: {
       label: capability.label
     },
     system: input.system,
-    check: { checkKind, checkDefinitionId, dc: invocation.check.dc.value },
+    check: { checkKind, checkDefinitionId, dc: dc.value },
     checkLabel: encounterBasicActionCheckLabel(input.system, checkDefinitionId),
     helper: actor,
     target
@@ -168,35 +221,17 @@ export async function planNativeLiveCheckAction(input: {
         occurrenceVersion: 0,
         initialFactsChecksum: checksumRuleDocument(continuation.facts)
       })
-      check = { kind: 'SETTLED', settlement: { context, execution: result, appRollId: null } }
+      check = {
+        kind: 'SETTLED',
+        settlement: { context, execution: result, appRollId: null }
+      }
     }
   }
   return {
     kind: 'CHECK' as const,
-    input: liveSessionEncounterBasicActionCommitInputSchema.parse({
-      ...input.scope,
-      command,
-      revisions: input.revisions,
-      occurredAt: new Date().toISOString(),
-      definition: {
-        id: capability.definitionId,
-        version: capability.definitionVersion,
-        checksum: capability.definitionChecksum
-      },
-      actionEconomy: input.actionEconomy,
-      ruleOverrides: input.overrides,
-      consumedGrants: prepared?.context.consumedGrants ?? [],
+    input: nativeLiveCheckCommitInput(input, {
       check,
-      rules: reconcileEncounterActorRuleOutput(
-        evaluateInstalledEncounterActors({ gameSystemId: state.gameSystemId, facts: nextFacts }),
-        nextFacts,
-        {
-          output: reconcileEncounterActorRuleOutput(
-            evaluateInstalledEncounterActors({ gameSystemId: state.gameSystemId, facts }),
-            facts
-          )
-        }
-      )
+      consumedGrants: prepared?.context.consumedGrants ?? []
     })
   }
 }

@@ -372,7 +372,9 @@ Encounter mechanics batch (a heal, or a death save's natural 20, keyed on the ta
 a Character's Sheet command that raises hit points (Convex `executeCharacterSheetCommand` and the room's Sheet command path), and
 a GM `UPDATE_ACTOR` edit that raises a creature's hit points. A batch run by an action or area command hands the ended
 records to the root's `consumedGrants` receipt, so GM undo restores them with the same id and version; the Sheet, death
-save and GM edit paths have no undoable root, so their endings are not undone. Not yet: hidden or unnoticed zones (MOVE-3.3 to 3.5).
+save and GM edit paths have no undoable root, so their endings are not undone. The other mechanics-batch callers need no
+receipt: basic action check settlement applies only `STABILIZE` and Cleaving only `DAMAGE`, neither of which raises hit points,
+and movement reactions and spatial effects run under `MOVE_SCENE_TOKEN`, which is not an undoable root: `REVERT_LAST_ACTION` refuses it, and the Scene undo (`UNDO_LAST_SCENE_MOVE`) refuses a move that recorded rule receipts, because it restores only the token's position. Not yet: hidden or unnoticed zones (MOVE-3.3 to 3.5).
 
 Each choice also carries `range` when its compiled target policy has a measurable one, the range the evaluator that
 handles the policy measures. A single-target policy that `singleTargetMeasure` accepts advertises `SELF`, `WITHIN` (Touch
@@ -516,6 +518,49 @@ saves, restores the consumed grants and keeps the roll on the record; it is refu
 (`packages/encounter-persistence/src/basicActionCheck*.ts`, `packages/rules-runtime/src/encounterBasicActionCheck.ts`).
 Spare the Dying and Sheet tracking of death saves are not built (target).
 
+Hide and Search (ATTACK-10.T1, current) are authored `SELF` check actions with per-observer outcomes, built from generic
+options (ADR 0038); nothing in code names Hide.
+
+- **Authored shape.** Hide checks Dexterity (Stealth) against `dc: { kind: 'PASSIVE', passiveDefinitionId }` (the System passive,
+  for example Passive Perception, whose skill is the passive's authored `skillDefinitionId` in the System) and applies `CONCEAL_FROM_OBSERVERS
+  { observers: 'NON_ALLIES' }` for an `UNTIL_DISPELLED` duration that is consumed by `ON_ATTACK_ROLL`. Search checks Wisdom
+  (Perception) against `dc: { kind: 'CONCEALMENT' }` and applies `DETECT_CONCEALED`. Both compile to the existing check
+  pipeline with a `resolution` discriminant on `BASIC_ACTION_CHECK` (`CONCEAL` or `DETECT`); Escape keeps its own command.
+- **Per-observer DCs freeze at creation.** The pending check context holds each observer's passive score, or each concealment the
+  actor can search, so the settle needs no further loads and the player's pending read keeps `dc: null`.
+- **State.** The stored effect is a `schemaVersion 2` active rule effect whose immutable definition carries
+  `LOCATION_CONCEALMENT { concealmentTotal }`; the observers it still hides the holder from live in the mutable lifecycle
+  (`concealedFromActorIds`, sorted, unique). Search, the GM command and the movement prune change that set through
+  `updateLifecycleCas`. A set that would become empty ends the effect in that same write (`deleteCas`), whichever of Search, the
+  movement prune or the GM command emptied it, and the receipt (root `consumedGrants`, the prune entry, the observer receipt's
+  `endedEffect`) keeps the record so undo re-creates it exactly. A settled Hide replaces the roller's existing concealment the
+  same way: the old effect is deleted in the settlement and recorded in the root receipt, so undoing the Hide restores it.
+- **Ties go to the observer.** An observer notices when its score (passive, or Search total) is at least the Stealth total; the
+  hider is hidden from observers whose score is strictly lower. One rule for both (`encounterConcealment.ts`).
+- **Scene gating.** On a Scene an observer that really sees the hider has noticed it, so a Hide never freezes such an observer
+  into the set (`resolveEncounterObserversSeeing`, read by the Worker per observer on the action's locked Scene) and the Scene's
+  sight decides at attack time. Without a Scene (the neutral environment, where everyone sees everyone, D94) the GM decides the
+  circumstances: the persisted observer set is authoritative.
+- **Attacks.** Off a Scene, `resolveAttackSight` treats a subject as `UNSEEN` by an observer its concealment still hides it from,
+  whatever the observer's Senses (D100); on a Scene the Scene decides. The attack-roll caption and advantage follow the existing
+  unseen-attacker path. The believed
+  mode must not reveal which observers failed, so it treats the hider as hidden from any non-allied target while a concealment
+  exists; the true mode uses the set and may cancel it ("Advantage cancelled: the target can sense you"). The first attack
+  roll consumes the concealment for everyone (`consumableGrants`: modifier grants and concealments only, so the Invisibility
+  condition path is unchanged).
+- **Redaction.** The observer ids are GM knowledge. They live only in the stored effect and receipt; no player projection,
+  timeline line, pending read or roll card carries them, so the hider's and other players' views never name the observers.
+- **Movement prune.** Committing an Encounter-bound token move on a Scene drops from each concealment the observers that now
+  see the hider, when the hider's or an observer's token moved (`planConcealmentPrune` plans it from the predicted Scene and the
+  movement plan's targets; `applyConcealmentPrune` writes it through `updateLifecycleCas`). The dropped ids are recorded in the
+  room's `sceneConcealmentPrunes` evidence row keyed by the move command, and the GM's `UNDO_LAST_SCENE_MOVE` of that move
+  gives them back (`restoreConcealmentPrune`) to a concealment that still exists, and re-creates one the prune ended unless the holder has a newer concealment.
+  A standalone move (no Encounter version) cannot move a token bound to an active Run, so it has no prune. Automation MANUAL
+  plans no movement targets, so it prunes nothing; the GM command is the override there.
+- **GM command.** `SET_CONCEALMENT_OBSERVERS` adds or removes observer ids on an existing concealment (GM only, recorded in the
+  receipt, undone by `REVERT_LAST_ACTION`). It is the override for lighting and other circumstances the engine does not
+  derive.
+
 ### Condition mechanics (D94, current)
 
 A System's condition-rule-state definition authors what a condition does as data, in its `mechanics`
@@ -549,7 +594,7 @@ speed mechanics before Dash. A condition contributor's derived-mode reason names
 generic for players when the holder is hidden.
 
 Not modeled (registered in the phase ledger): the source of fear (Frightened applies while present),
-Hide-action hidden state (Stealth check, ends on attack), Unconscious falling Prone, Petrified damage
+Unconscious falling Prone, Petrified damage
 resistance, Exhaustion 4 and 6, concentration saves under conditions, and conditions on Convex-side
 action preparation reads (the room owns resolution).
 
@@ -907,7 +952,7 @@ batch's own active-effect CREATE receipt (`frozenGraphNodeId`) and the TEST's re
 kernel trace.
 
 **Escape against a fixed DC (D105, ATTACK-7.3).** A holder whose own Encounter effect carries an
-`ESCAPE_CHECK` module (`dc.kind === 'FIXED'`, `actorKinds` including `TARGET`) can spend the module's
+`ESCAPE_CHECK` module (`dc.kind === 'FIXED'`, `actorKinds` including `TARGET`; the authoring schema and node map offer an Escape only `FIXED` and `CONTEST`) can spend the module's
 authored `activation` to try to break the hold (`findEncounterHolderEscape`). `prepareEncounterEscapeCheck`
 freezes the check for one allowed `skillIds` or `abilityDefinitionIds` entry: a Creature holder's total
 comes from its `checkTotals` or, for an ability check, its score through the shared `abilityModifier`

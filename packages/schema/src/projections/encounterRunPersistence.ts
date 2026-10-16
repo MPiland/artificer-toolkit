@@ -322,6 +322,21 @@ export const encounterStoredRunCommandSchema = lazySchema(() =>
       })
     }),
     z.extend(encounterStoredRunCommandResultSchema, {
+      commandType: z.literal('SET_CONCEALMENT_OBSERVERS'),
+      /** The observers the GM changed, so the GM's undo restores them while the effect is as this left it. */
+      receipt: z.strictObject({
+        activeEffectId: postgresUuidSchema,
+        holderActorId: postgresUuidSchema,
+        beforeObserverActorIds: z
+          .array(postgresUuidSchema)
+          .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
+        afterObserverActorIds: z.array(postgresUuidSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
+        afterVersion: z.number().check(z.int()).check(z.positive()),
+        /** The concealment as it was when this change left it no observers and ended it; undo gives it back. */
+        endedEffect: z.nullable(activeRuleEffectRecordSchema)
+      })
+    }),
+    z.extend(encounterStoredRunCommandResultSchema, {
       commandType: z.literal('END_HELD_GRANT'),
       /** The timeline label: plain "End effect", which never names a source a player cannot see. */
       label: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)),

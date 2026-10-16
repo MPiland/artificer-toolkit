@@ -8,12 +8,12 @@
 
 The acceptance criteria of ACCOUNTS-1, ACCOUNTS-5 and ACCOUNTS-8 are already DONE. What keeps each PBI open is its ledger `journeyGap`: no end-to-end journey proves the user-visible flow. RELEASE-6 needs one observed live run. All four use the browser and local-backend harnesses, so they run in one session, against the local Docker Convex backend only (never a cloud deployment, ADR 0035).
 
-| PBI | Journey gap to close (ledger `journeyGap`) |
-|---|---|
-| ACCOUNTS-1 (sign in on web and native) | Browser SSR sign-in, hydration and reload keep the session. An HTTP-level native bearer call (the native client's token on a Convex HTTP route or function call) succeeds, and a missing or forged bearer is refused. |
-| ACCOUNTS-5 (log in) | A successful email login and a successful username login each return to the requested path (deep link → sign in → back to that path). |
-| ACCOUNTS-8 (control who sees my profile) | Two accounts. For each profile privacy setting, the second account sees exactly what the setting allows: the profile page or read, and Social eligibility. |
-| RELEASE-6.1 | A live-backend run of `apps/web/tests/live-backend/campaignMembership.ts` and `sceneLiveDiagnostics.ts` observes the deployed console shape of the typed `CAMPAIGN_NOT_FOUND` rejection, and the regexes match it. If they do not match, fix the regexes to the observed shape and record the observed text. |
+| PBI                                      | Journey gap to close (ledger `journeyGap`)                                                                                                                                                                                                                                                                   |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| ACCOUNTS-1 (sign in on web and native)   | Browser SSR sign-in, hydration and reload keep the session. An HTTP-level native bearer call (the native client's token on a Convex HTTP route or function call) succeeds, and a missing or forged bearer is refused.                                                                                        |
+| ACCOUNTS-5 (log in)                      | A successful email login and a successful username login each return to the requested path (deep link → sign in → back to that path).                                                                                                                                                                        |
+| ACCOUNTS-8 (control who sees my profile) | Two accounts. For each profile privacy setting, the second account sees exactly what the setting allows: the profile page or read, and Social eligibility.                                                                                                                                                   |
+| RELEASE-6.1                              | A live-backend run of `apps/web/tests/live-backend/campaignMembership.ts` and `sceneLiveDiagnostics.ts` observes the deployed console shape of the typed `CAMPAIGN_NOT_FOUND` rejection, and the regexes match it. If they do not match, fix the regexes to the observed shape and record the observed text. |
 
 Use the existing harnesses. Do not build new ones:
 

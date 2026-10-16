@@ -7,6 +7,7 @@ import {
 } from '@artificer-toolkit/schema/shared/rulesExecution'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import { compileRuleGraph, createRuleOperationRegistry } from '@artificer-toolkit/shared/rules'
+import { normalizeObserverActorIds } from './encounterConcealment.js'
 import {
   installedGameSystemRuleOperations,
   requireInstalledGameSystemRuleCapability
@@ -76,6 +77,11 @@ export function prepareEncounterActionEffectPlans(input: {
   }
   activeEffectsByActorId: ReadonlyMap<string, readonly ActiveRuleEffectRecord[]>
   activeEffectPlan: CharacterRuleActionActiveEffectPlan | null
+  /**
+   * What a settled concealment check decided: the total it froze and the observers it beats, or
+   * null when it beats none. Omitted for every action that plans no concealment.
+   */
+  concealment?: { concealmentTotal: number; observerActorIds: readonly string[] } | null
   published: ServerPublishedRuleDefinitionDto
   execution: ServerCompletedRuleExecutionDto
   d20: ServerRuleExecutionD20EvidenceDto | null
@@ -140,8 +146,42 @@ function reachesAuthoredHitPath(
   return resultPath === 'ON_CRIT' || (authoredPath === 'ON_HIT' && resultPath === 'ON_HIT')
 }
 
+/**
+ * The concealment a settled Hide freezes on its roller, or null when its total beats no observer.
+ * The roller is the effect's holder and source; nothing else about the action reaches it.
+ */
+export function prepareEncounterConcealmentEffect(
+  input: Pick<
+    Parameters<typeof prepareEncounterActionEffectPlans>[0],
+    | 'encounterId'
+    | 'occurrenceId'
+    | 'commandId'
+    | 'sourceActorId'
+    | 'sourceLabel'
+    | 'sourceHidden'
+    | 'currentActorId'
+    | 'activeEffectPlan'
+    | 'published'
+  > & {
+    concealment: NonNullable<Parameters<typeof prepareEncounterActionEffectPlans>[0]['concealment']>
+  }
+): EffectPlan | null {
+  return prepareRecurringActiveEffect({
+    ...input,
+    target: {
+      actorId: input.sourceActorId,
+      conditionIds: [],
+      effectiveSize: null,
+      lifetimeScope: 'ENCOUNTER',
+      activeEffects: []
+    },
+    activeEffectsByActorId: new Map(),
+    d20: null
+  })
+}
+
 function prepareRecurringActiveEffect(
-  input: Parameters<typeof prepareEncounterActionEffectPlans>[0]
+  input: Omit<Parameters<typeof prepareEncounterActionEffectPlans>[0], 'execution' | 'applications'>
 ): EffectPlan | null {
   const plan = input.activeEffectPlan
   if (!plan) return null
@@ -158,6 +198,10 @@ function prepareRecurringActiveEffect(
   const conditionContribution = plan.conditionContribution ?? null
   const relationshipContribution = plan.actorRelationshipContribution ?? null
   const grantContribution = plan.modifierGrantContribution ?? null
+  if (plan.concealmentContribution && input.concealment === undefined)
+    throw new EncounterActionEffectPlanError('A concealment plan requires its settled check.')
+  const concealment = plan.concealmentContribution ? (input.concealment ?? null) : null
+  if (plan.concealmentContribution && !concealment?.observerActorIds.length) return null
   const grantLabel = input.sourceLabel?.trim() ?? ''
   if (grantContribution && !grantLabel)
     throw new EncounterActionEffectPlanError('A modifier grant requires a source label.')
@@ -278,7 +322,8 @@ function prepareRecurringActiveEffect(
       ? plan.initialRemaining + 1
       : plan.initialRemaining
   const definition = activeRuleEffectDefinitionDtoSchema.parse({
-    schemaVersion: conditionContribution || relationshipContribution || grantContribution ? 2 : 1,
+    schemaVersion:
+      conditionContribution || relationshipContribution || grantContribution || concealment ? 2 : 1,
     origin: {
       kind: 'ENCOUNTER',
       sourceAggregateId: input.encounterId,
@@ -297,7 +342,10 @@ function prepareRecurringActiveEffect(
     recurrence: {
       // The grant tick planner counts a grant, so the turn-effect kernel never selects it.
       recurrenceStage: grantContribution ? 'NONE' : plan.recurrenceStage,
-      consumeOnFirstEvents: grantContribution?.consumeOnFirstEvents ?? [],
+      consumeOnFirstEvents:
+        grantContribution?.consumeOnFirstEvents ??
+        plan.concealmentContribution?.consumeOnFirstEvents ??
+        [],
       endOnEvents: grantContribution?.endOnEvents ?? [],
       endOnConditionIds: grantContribution?.endOnConditionIds ?? [],
       holderEnd: grantContribution?.holderEnd ?? null,
@@ -314,9 +362,17 @@ function prepareRecurringActiveEffect(
               anchor: tickAnchor
             }
     },
-    ...(conditionContribution || relationshipContribution || grantContribution
+    ...(conditionContribution || relationshipContribution || grantContribution || concealment
       ? {
           stateContributions: [
+            ...(concealment
+              ? [
+                  {
+                    kind: 'LOCATION_CONCEALMENT' as const,
+                    concealmentTotal: concealment.concealmentTotal
+                  }
+                ]
+              : []),
             ...(grantContribution
               ? [
                   {
@@ -376,7 +432,10 @@ function prepareRecurringActiveEffect(
     definition,
     lifecycle: activeRuleEffectLifecycleDtoSchema.parse({
       schemaVersion: 1,
-      remainingTicks: initialRemaining
+      remainingTicks: initialRemaining,
+      ...(concealment
+        ? { concealedFromActorIds: normalizeObserverActorIds(concealment.observerActorIds) }
+        : {})
     })
   }
 }

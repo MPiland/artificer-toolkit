@@ -79,6 +79,10 @@ export interface SystemCheckSeedRecord extends VocabularySeedRecord {
   governingAbilityDefinitionId: string | null
 }
 
+interface SystemPassiveSeedRecord extends VocabularySeedRecord {
+  skillDefinitionId: string | null
+}
+
 interface SystemSeedRecordBase {
   id: string
   label: string
@@ -123,10 +127,11 @@ interface SystemSeedRecordV3 extends SystemSeedRecordBase {
   initiativePolicy: { defaultDefinitionId: string }
 }
 
-interface SystemSeedRecordV4 extends Omit<SystemSeedRecordBase, 'skills'> {
+interface SystemSeedRecordV4 extends Omit<SystemSeedRecordBase, 'skills' | 'passives'> {
   schemaVersion: 4
   abilities: VocabularySeedRecord[]
   skills: SystemCheckSeedRecord[]
+  passives: SystemPassiveSeedRecord[]
   initiativePolicy?: { defaultDefinitionId: string }
 }
 

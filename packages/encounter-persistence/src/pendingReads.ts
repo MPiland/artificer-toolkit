@@ -116,9 +116,13 @@ export async function readPendingRunDecision(
         )
       : null
   }
-  if (context.kind === 'ENCOUNTER_BASIC_ACTION_CHECK' || context.kind === 'ENCOUNTER_ESCAPE_CHECK')
+  if (
+    context.kind === 'ENCOUNTER_BASIC_ACTION_CHECK' ||
+    context.kind === 'ENCOUNTER_CONCEALMENT_CHECK' ||
+    context.kind === 'ENCOUNTER_ESCAPE_CHECK'
+  )
     return controlledActorIds.has(
-      context.kind === 'ENCOUNTER_ESCAPE_CHECK' ? context.actorId : context.helperActorId
+      context.kind === 'ENCOUNTER_BASIC_ACTION_CHECK' ? context.helperActorId : context.actorId
     )
       ? withEncounterRollModeReasons(
           ctx,

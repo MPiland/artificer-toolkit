@@ -1,6 +1,8 @@
 import { z, lazySchema, lazySchemaParts } from '../zod.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { projectionChecksumSchema } from './identity.js'
+import { activeRuleEffectRecordSchema } from './activeRuleEffectPersistence.js'
+import { MAX_ENCOUNTER_ACTORS } from '../shared/authoredLimits.js'
 import {
   sceneLiveEntityChangeSchema,
   sceneStoredLiveEntityValueSchema,
@@ -91,6 +93,33 @@ export const sceneStoredUndoCommandSchema = lazySchema(() =>
     encoding: z.literal('UNDO'),
     input: sceneUndoExecuteInputSchema.shape.input,
     result: sceneUndoCommandResultSchema
+  })
+)
+/**
+ * The observers a committed token move dropped from concealments that came to see their holder, so
+ * the GM's undo of that move gives them back. Keyed by the move's Scene command.
+ */
+export const sceneStoredConcealmentPruneSchema = lazySchema(() =>
+  z.strictObject({
+    sceneId: postgresUuidSchema,
+    commandId: postgresUuidSchema,
+    entries: z
+      .array(
+        z.strictObject({
+          activeEffectId: postgresUuidSchema,
+          holderActorId: postgresUuidSchema,
+          beforeObserverActorIds: z
+            .array(postgresUuidSchema)
+            .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
+          afterObserverActorIds: z
+            .array(postgresUuidSchema)
+            .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
+          /** The concealment as it was when the prune left it no observers and ended it; undo gives it back. */
+          endedEffect: z.nullable(activeRuleEffectRecordSchema)
+        })
+      )
+      .check(z.minLength(1))
+      .check(z.maxLength(MAX_ENCOUNTER_ACTORS))
   })
 )
 export const sceneStoredLiveCommandSchema = lazySchema(() =>

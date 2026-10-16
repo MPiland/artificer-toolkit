@@ -12,6 +12,7 @@ RELIABILITY-5.T2 (merged `17daa954e`) found that a zod intersection in a Convex-
 2. The rule-evaluation `movement.speeds` (`packages/schema/src/api/characterRules.ts`, or wherever the evaluation output is defined).
 
 Make both flat discriminated unions, following T2's pattern, so `apps/apis/convex/_generated/api.d.ts` carries their real types. Find any other `Array<any>` or `any` in `api.d.ts` that comes from the same intersection pattern: grep `api.d.ts` for `any`, then trace each to its schema.
+
 - Fix the ones that are this defect.
 - List the others in the status log, with their cause.
 

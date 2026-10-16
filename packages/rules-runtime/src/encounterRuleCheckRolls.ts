@@ -243,12 +243,13 @@ export function initiativeRollRecord(input: {
 }
 
 /**
- * The roll-log record of a basic action's check (First Aid's Wisdom (Medicine)), from its recorded
- * faces and the helper's modifier. The card is the helper's own.
+ * The roll-log record of a basic action's check (First Aid's Wisdom (Medicine), Hide's Dexterity
+ * (Stealth)), from its recorded faces and the roller's modifier. The card is the roller's own and
+ * names no DC.
  */
 export function basicActionCheckRollRecord(input: {
   occurrenceId: string
-  d20: ReturnType<typeof basicActionCheckApplicationOutputDtoSchema.parse>['d20']
+  d20: Omit<ReturnType<typeof basicActionCheckApplicationOutputDtoSchema.parse>['d20'], 'dc'>
   actionLabel: string
   checkLabel: string
   rollerLabel: string

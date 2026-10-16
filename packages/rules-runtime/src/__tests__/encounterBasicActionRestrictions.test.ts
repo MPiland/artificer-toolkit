@@ -138,9 +138,9 @@ async function fighterHolder(equipped: { equipmentId: string; slot: 'MAIN_HAND' 
 describe('FREE_HAND reads the hand occupancy of a Creature loadout', () => {
   it('holds with no loadout and with one one-handed weapon', async () => {
     expect(await stateOf(creatureHolder([]))).toMatchObject({ freeHand: true })
-    expect(
-      await stateOf(creatureHolder([loadoutEntry(1, club.id, 'MAIN_HAND')]))
-    ).toMatchObject({ freeHand: true })
+    expect(await stateOf(creatureHolder([loadoutEntry(1, club.id, 'MAIN_HAND')]))).toMatchObject({
+      freeHand: true
+    })
   })
 
   it('fails once a weapon and a shield fill both hands', async () => {
@@ -185,10 +185,7 @@ describe('FREE_HAND reads the hand occupancy of a Character', () => {
 })
 
 describe('basic action restrictions', () => {
-  const full = [
-    loadoutEntry(1, club.id, 'MAIN_HAND'),
-    loadoutEntry(2, shieldWood.id, 'OFF_HAND')
-  ]
+  const full = [loadoutEntry(1, club.id, 'MAIN_HAND'), loadoutEntry(2, shieldWood.id, 'OFF_HAND')]
 
   it('offers an unrestricted action to every actor, hands full or not', async () => {
     for (const restrictions of [null, undefined]) {
@@ -222,24 +219,22 @@ describe('basic action restrictions', () => {
     expect(
       encounterBasicActionRestrictionsHold(handsFull, await stateOf(creatureHolder(full)))
     ).toBe(true)
-    expect(
-      encounterBasicActionRestrictionsHold(handsFull, await stateOf(creatureHolder([])))
-    ).toBe(false)
+    expect(encounterBasicActionRestrictionsHold(handsFull, await stateOf(creatureHolder([])))).toBe(
+      false
+    )
   })
 
   it('evaluates a restriction on another facet through the same check', async () => {
     const canAct = restrictedTo({ predicateCode: 'CAN_ACT' })
     const open = await stateOf(creatureHolder([]))
-    const incapacitated = await stateOf(
-      creatureHolder([], [srdCondition('Incapacitated')])
-    )
+    const incapacitated = await stateOf(creatureHolder([], [srdCondition('Incapacitated')]))
     expect(encounterBasicActionRestrictionsHold(canAct, open)).toBe(true)
     expect(encounterBasicActionRestrictionsHold(canAct, incapacitated)).toBe(false)
     const both = restrictedTo({ predicateCode: 'CAN_ACT' }, { predicateCode: 'FREE_HAND' })
     expect(encounterBasicActionRestrictionsHold(both, incapacitated)).toBe(false)
-    expect(
-      encounterBasicActionRestrictionsHold(both, await stateOf(creatureHolder(full)))
-    ).toBe(false)
+    expect(encounterBasicActionRestrictionsHold(both, await stateOf(creatureHolder(full)))).toBe(
+      false
+    )
     expect(encounterBasicActionRestrictionsHold(both, open)).toBe(true)
   })
 

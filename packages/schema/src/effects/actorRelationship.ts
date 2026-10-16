@@ -1,6 +1,6 @@
 import { z, lazySchema, lazySchemaParts } from '../zod.js'
 import { activationDtoSchema } from './activation.js'
-import { checkChoiceDtoSchema, checkDcDtoSchema } from './check.js'
+import { checkChoiceDtoSchema, escapeDcDtoSchema } from './check.js'
 import { damageDtoSchema } from './damage.js'
 import { conditionDtoSchema } from './condition.js'
 import {
@@ -49,7 +49,7 @@ export const actorRelationshipModuleDtoSchema = lazySchema(() =>
       kind: z.literal('ESCAPE_CHECK'),
       activation: activationDtoSchema,
       checks: checkChoiceDtoSchema,
-      dc: checkDcDtoSchema,
+      dc: escapeDcDtoSchema,
       actorKinds: authoredNestedCollectionSchema(z.enum(['TARGET', 'CREATURE_WITHIN_REACH'])).check(
         z.minLength(1)
       )

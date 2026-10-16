@@ -421,6 +421,57 @@ describe('subject schema parsing', () => {
     ).toMatchObject({ schemaVersion: 4 })
   })
 
+  it('requires a v4 passive to name a skill of the same System, or none', () => {
+    const skillId = '00000000-0000-0000-000b-000100000000'
+    const v4 = {
+      id: 'dnd-5e-srd',
+      label: 'D&D 5e SRD',
+      rulesetCode: 'dnd5e',
+      rulesetVersion: '2014',
+      alignments: [],
+      abilities: [],
+      challengeRatings: [],
+      conditionTypes: [],
+      creatureTypes: [],
+      currencies: [],
+      damageTypes: [],
+      heritages: [],
+      languages: [],
+      lifestyles: [],
+      magicSchools: [],
+      passives: [
+        {
+          id: '00000000-0000-0000-000d-000100000000',
+          code: 'PASSIVE_ATHLETICS',
+          label: 'Passive Athletics',
+          skillDefinitionId: skillId
+        }
+      ],
+      rarities: [],
+      senses: [],
+      skills: [
+        { id: skillId, code: 'ATHLETICS', label: 'Athletics', governingAbilityDefinitionId: null }
+      ],
+      speeds: [],
+      terrains: [],
+      userId: 'master',
+      schemaVersion: 4 as const
+    }
+    expect(systemAuthoredDtoSchema.parse(v4)).toMatchObject({ schemaVersion: 4 })
+    expect(() =>
+      systemAuthoredDtoSchema.parse({
+        ...v4,
+        passives: [{ ...v4.passives[0], skillDefinitionId: '00000000-0000-0000-000b-000200000000' }]
+      })
+    ).toThrow()
+    expect(
+      systemAuthoredDtoSchema.parse({
+        ...v4,
+        passives: [{ ...v4.passives[0], skillDefinitionId: null }]
+      })
+    ).toMatchObject({ schemaVersion: 4 })
+  })
+
   it('parses feat prerequisites authored on CHARACTER facets', () => {
     const feat = featAuthoredDtoSchema.parse({
       id: 'feat-elven-accuracy',

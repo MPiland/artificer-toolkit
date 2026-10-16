@@ -92,7 +92,8 @@ import {
   liveSessionEncounterActionPendingInputSchema,
   liveSessionEncounterActionCommitInputSchema
 } from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
-import { planNativeLiveCheckAction } from './nativeCheckAction.js'
+import { authoredCheckOf, planNativeLiveCheckAction } from './nativeCheckAction.js'
+import { planNativeLiveConcealmentCheckAction } from './nativeConcealmentCheck.js'
 import { planNativeLiveEncounterSettlement } from './nativeEncounterSettlement.js'
 import {
   discoverNativeLegendaryResistance,
@@ -525,25 +526,48 @@ export async function planNativeLiveEncounterAction(
     const target = movementTargets.get(prepared.target.id)
     if (prepared.source.kind !== 'BASIC_ACTION' || responseCommand || !actor || !target)
       throw new Error('Only a basic action can make a check.')
+    const { capability } = prepared.source
+    // A concealment check compares its roller with every actor in the Run; load them all before the
+    // revisions the plan depends on are read.
+    const concealmentTargets =
+      authoredCheckOf(capability).dc.kind === 'FIXED'
+        ? null
+        : new Map(
+            await Promise.all(
+              actors.map(
+                async (entry) =>
+                  [entry.id, movementTargets.get(entry.id) ?? (await loadTarget(entry))] as const
+              )
+            )
+          )
+    const checkInput = {
+      scope,
+      command,
+      fingerprint: admission.fingerprint,
+      capability,
+      state,
+      system,
+      actors,
+      actor,
+      target,
+      overrides: ruleWarnings.overrides,
+      actionEconomy,
+      autoRoll: requireAutoRoll(prepared.actor.id)
+        ? (executionOptions.random ?? nextRollInt)
+        : null,
+      runtime: executionOptions.runtime,
+      revisions
+    }
     return {
-      ...(await planNativeLiveCheckAction({
-        scope,
-        command,
-        fingerprint: admission.fingerprint,
-        capability: prepared.source.capability,
-        state,
-        system,
-        actors,
-        actor,
-        target,
-        overrides: ruleWarnings.overrides,
-        actionEconomy,
-        autoRoll: requireAutoRoll(prepared.actor.id)
-          ? (executionOptions.random ?? nextRollInt)
-          : null,
-        runtime: executionOptions.runtime,
-        revisions
-      })),
+      ...(concealmentTargets
+        ? await planNativeLiveConcealmentCheckAction({
+            ...checkInput,
+            targets: concealmentTargets,
+            activeEffectsByActorId,
+            sceneContext,
+            capture
+          })
+        : await planNativeLiveCheckAction(checkInput)),
       dependencies,
       revisions
     }

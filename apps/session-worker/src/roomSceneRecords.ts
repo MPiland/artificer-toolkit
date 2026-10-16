@@ -3,7 +3,10 @@ import {
   liveSessionCheckpointSceneSchemas,
   type LiveSessionCheckpointSceneTable
 } from '@artificer-toolkit/schema/api/liveSessionCheckpointScenes'
-import { sceneStoredLiveCommandSchema } from '@artificer-toolkit/schema/projections/sceneLivePersistence'
+import {
+  sceneStoredConcealmentPruneSchema,
+  sceneStoredLiveCommandSchema
+} from '@artificer-toolkit/schema/projections/sceneLivePersistence'
 import { sceneStoredGeometrySaveSchema } from '@artificer-toolkit/schema/projections/sceneGeometryPersistence'
 import { parseGeometrySave } from '@artificer-toolkit/encounter-persistence/sceneGeometryDocuments'
 import { deriveOnce } from '@artificer-toolkit/encounter-persistence/transactionReads'
@@ -12,18 +15,21 @@ import { canonicalizeJson } from '@artificer-toolkit/shared/canonicalJson'
 import { SCENE_EVIDENCE_ROW, type RoomTransaction } from './roomEncounterStore.js'
 
 /**
- * Scene command receipts and geometry saves back replay by command ID and owner undo. They live
- * only in the room, across epochs, and are dropped once older than this (ADR 0035 Amendment 26).
+ * Scene command receipts, geometry saves and concealment prunes back replay by command ID and owner
+ * undo. They live only in the room, across epochs, and are dropped once older than this (ADR 0035
+ * Amendment 26).
  */
 export const SCENE_COMMAND_RETENTION_MS = 30 * 86_400_000
 
 const evidenceSchemas = {
   sceneLiveCommands: sceneStoredLiveCommandSchema,
-  sceneGeometrySaves: sceneStoredGeometrySaveSchema
+  sceneGeometrySaves: sceneStoredGeometrySaveSchema,
+  sceneConcealmentPrunes: sceneStoredConcealmentPruneSchema
 }
 const evidenceKeys = {
   sceneLiveCommands: ['sceneId', 'commandId'],
-  sceneGeometrySaves: ['id']
+  sceneGeometrySaves: ['id'],
+  sceneConcealmentPrunes: ['sceneId', 'commandId']
 } as const
 type SceneEvidenceTable = keyof typeof evidenceSchemas
 type SceneRowTable = LiveSessionCheckpointSceneTable | SceneEvidenceTable

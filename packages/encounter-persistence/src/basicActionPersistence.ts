@@ -16,6 +16,7 @@ import {
   encounterStoredRuleReceiptSchema,
   encounterStoredRunCommandSchema
 } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
+import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { ReusableDefinitionCurrentDto } from '@artificer-toolkit/schema/shared/reusableDefinitions'
 import type { StoredRuleExecutionResultDto } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import { serverRuleExecutionReceiptCommandMetadataDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionReceiptCommandMetadata'
@@ -30,10 +31,14 @@ import {
   readEncounterBasicActionEffect
 } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
 import { requireEncounterBasicActionDefinition } from '@artificer-toolkit/rules-runtime/encounterBasicActions'
-import { deleteGrants } from './consumedGrantPersistence.js'
+import { deleteGrants, receiptConsumedGrants } from './consumedGrantPersistence.js'
 import { readBasicActionAdmission } from './basicActionAdmission.js'
 import { projectNativeBasicActionCheckPending } from './basicActionCheckPending.js'
 import { settleEncounterBasicActionCheck } from './basicActionCheckSettlement.js'
+import {
+  isConcealmentCheckSettlement,
+  settleEncounterConcealmentCheck
+} from './concealmentCheckSettlement.js'
 import { readRunActors, replaceRunActor } from './documents.js'
 import { projectNativeGm } from './nativeProjection.js'
 import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.js'
@@ -101,14 +106,19 @@ export async function persistEncounterBasicAction(
   const pendingContext = check?.kind === 'PENDING' ? check.snapshot.applicationContext : null
   if (
     check?.kind === 'PENDING' &&
-    (pendingContext?.kind !== 'ENCOUNTER_BASIC_ACTION_CHECK' ||
+    ((pendingContext?.kind !== 'ENCOUNTER_BASIC_ACTION_CHECK' &&
+      pendingContext?.kind !== 'ENCOUNTER_CONCEALMENT_CHECK') ||
       pendingContext.commandId !== command.commandId ||
       pendingContext.commandFingerprint !== fingerprint ||
       pendingContext.definition.id !== definition.id ||
       pendingContext.definition.version !== definition.version ||
       pendingContext.definition.checksum !== definition.checksum ||
-      pendingContext.helperActorId !== actor.id ||
-      pendingContext.targetActorId !== targetActorId ||
+      (pendingContext.kind === 'ENCOUNTER_BASIC_ACTION_CHECK'
+        ? pendingContext.helperActorId !== actor.id ||
+          pendingContext.targetActorId !== targetActorId
+        : pendingContext.actorId !== actor.id ||
+          pendingContext.actionId !== command.actionId ||
+          targetActorId !== actor.id) ||
       check.snapshot.optionalCombatSnapshotChecksum !== state.optionalCombatSnapshotChecksum ||
       check.snapshot.graph.source.gameSystemId !== state.gameSystemId)
   )
@@ -124,26 +134,36 @@ export async function persistEncounterBasicAction(
   // A Help the check used is consumed with the action, so a pending check keeps its advantage.
   await deleteGrants(ctx, input.consumedGrants)
   let nextActors = actors.map((entry) => (entry.id === spent.id ? spent : entry))
+  let endedEffects: ActiveRuleEffectRecord[] = []
   const nextState = encounterRunStateSchema.parse({
     ...state,
     version: state.version + 1,
     updatedAt: input.occurredAt
   })
-  const settlement =
-    check?.kind === 'SETTLED'
-      ? await settleEncounterBasicActionCheck(ctx, {
-          campaign,
-          state,
-          actors: nextActors,
-          settlement: check.settlement,
-          rootCommandId: command.commandId,
-          initiatorUserId: input.expectedUserId,
-          occurredAt: input.occurredAt,
-          occurrenceVersion: 0,
-          applyMechanics: callbacks.applyMechanics
-        })
-      : null
-  if (settlement) nextActors = settlement.actors
+  if (check?.kind === 'SETTLED') {
+    const settleInput = {
+      campaign,
+      state,
+      actors: nextActors,
+      rootCommandId: command.commandId,
+      initiatorUserId: input.expectedUserId,
+      occurredAt: input.occurredAt,
+      occurrenceVersion: 0
+    }
+    const { settlement } = check
+    if (isConcealmentCheckSettlement(settlement)) {
+      const settled = await settleEncounterConcealmentCheck(ctx, { ...settleInput, settlement })
+      nextActors = settled.actors
+      endedEffects = settled.endedEffects
+    } else {
+      const settled = await settleEncounterBasicActionCheck(ctx, {
+        ...settleInput,
+        settlement,
+        applyMechanics: callbacks.applyMechanics
+      })
+      nextActors = settled.actors
+    }
+  }
   const storedOccurrence = check
     ? await insertCheckOccurrence(ctx, {
         campaignId: campaign.id,
@@ -208,7 +228,10 @@ export async function persistEncounterBasicAction(
         }
       },
       ruleOverrides: input.ruleOverrides,
-      consumedGrants: input.consumedGrants,
+      consumedGrants: receiptConsumedGrants({
+        consumedGrants: input.consumedGrants,
+        endedGrants: endedEffects
+      }),
       addedConcentrationCasterId: null,
       speedBonusTurn: null,
       commandFingerprint: fingerprint,

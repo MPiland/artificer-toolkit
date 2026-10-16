@@ -769,7 +769,7 @@ describe('native Campaign play settings', () => {
         .withIndex('by_publicId', (q) => q.eq('id', srdSystemRecord.id))
         .unique()
       if (!system) throw new Error('Missing System.')
-      const document = jsonValueSchema.parse({ ...srdSystemRecord, skills: [] })
+      const document = jsonValueSchema.parse({ ...srdSystemRecord, skills: [], passives: [] })
       await ctx.db.patch(system._id, { document, checksum: checksumRuleDocument(document) })
     })
     await expect(owner.caller.mutation(save, input(saved))).rejects.toThrow(

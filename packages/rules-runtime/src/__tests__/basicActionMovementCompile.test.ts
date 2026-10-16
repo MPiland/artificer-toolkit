@@ -16,8 +16,7 @@ const ADD_SPEED_OPERATION_KEY = 'dnd5e.add-speed-to-movement-proposal'
 
 /** The graph the real dnd5e compiler publishes for one SRD basic action's authored effect. */
 function publishedGraphOf(actionId: string): string {
-  const effect = SRD_BASIC_ACTION_DEFINITIONS.find(({ id }) => id === actionId)?.document
-    .effects[0]
+  const effect = SRD_BASIC_ACTION_DEFINITIONS.find(({ id }) => id === actionId)?.document.effects[0]
   if (!effect) throw new Error('The SRD basic action has no authored effect.')
   const action = characterActionDescriptor(compileEffect({ ...effect, id: ACTION_EFFECT_ID }))
   return JSON.stringify(dnd5eCharacterRuleActionSystemAdapter.compile({ action }))

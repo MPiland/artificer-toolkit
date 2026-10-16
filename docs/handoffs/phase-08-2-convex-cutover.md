@@ -263,15 +263,16 @@ Area path file map:
 
 **Parallel lanes (approved by the product owner 2026-10-12).** This session is lane 1 and the integration owner.
 
-| Lane | Scope | Notes |
-|---|---|---|
-| 1. Rules core (this session) | ATTACK-18 → ATTACK-7 C–G → ATTACK-19, then ATTACK-10, ATTACK-17, SPELLS-5, ENCOUNTER-8 | Dependency chain; stays serial. Owns the local Docker Convex backend. |
-| 2. Platform and accounts closeout | PLATFORM-1, 4 and ACCOUNTS-1, 2, 3, 5, 8 (0 open ACs: likely missing journey proofs); PLATFORM-6–10, 12, 14 (1 open AC each) | Small jobs, high WSJF; disjoint from the rules files. |
-| 3. VTT UI | VTT_UI-1 to 4 | Mostly `apps/web`; may need design direction. |
+| Lane                              | Scope                                                                                                                        | Notes                                                                 |
+| --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| 1. Rules core (this session)      | ATTACK-18 → ATTACK-7 C–G → ATTACK-19, then ATTACK-10, ATTACK-17, SPELLS-5, ENCOUNTER-8                                       | Dependency chain; stays serial. Owns the local Docker Convex backend. |
+| 2. Platform and accounts closeout | PLATFORM-1, 4 and ACCOUNTS-1, 2, 3, 5, 8 (0 open ACs: likely missing journey proofs); PLATFORM-6–10, 12, 14 (1 open AC each) | Small jobs, high WSJF; disjoint from the rules files.                 |
+| 3. VTT UI                         | VTT_UI-1 to 4                                                                                                                | Mostly `apps/web`; may need design direction.                         |
 
 Hold SPELLS-13 to 17 and 19 (area actions) until ATTACK-18 lands; they share commit code with lane 1.
 
 Lane rules:
+
 - Each lane edits only its own PBIs in the ledger and its own handoff, and rebases before committing.
 - Lanes 2 and 3 test with in-memory convex-test. Codegen, deploy and any reset or reseed of the local backend need lane 1 to be idle; ask lane 1 first.
 - Every compile, test, codegen and Wrangler run goes through `scripts/withValidationLock.ps1` (AGENTS.md): scoped test files in the light lane, everything else in the heavy lane.

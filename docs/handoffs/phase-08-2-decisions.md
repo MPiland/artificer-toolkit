@@ -716,6 +716,12 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - **D26 amended:** the room holds the Scene for any pending reaction decision ("Waiting on a reaction decision."), not only movement decisions.
   - **D99 fix:** the action economy honours `REACTION_COUNT 0` grant suppressions through the one shared `activeEffectCapabilitySuppressions`.
   - **Follow-ups:** REACTION-4.T5 (merge-review hardening), plus the slice's registered gaps: opportunity-attack and area callers, Creature reactors, more than one eligible reaction, dice-bearing reactions.
+* **D116** (2026-10-15) Hide and Search concealment (ATTACK-10.T1, design option A). Decided by the main session; workbook [slice-attack-10-t1.md](slice-attack-10-t1.md).
+  - **Model:** the observer set lives in the concealment effect's mutable lifecycle (`concealedFromActorIds`), because active-effect definitions are immutable. An actor holds at most one concealment: a newly settled Hide replaces the old one. A concealment left with no observers ends; undo gives the exact record back.
+  - **No metagaming (D100):** the hider sees their own total, never which observers failed. The GM sees everything.
+  - **Believed-mode attacks:** treat the hider as hidden from any non-allied target while it holds a concealment. True mode uses the set.
+  - **Sees-clearly end:** a token move by the hider or a set member prunes the set, in the room's MOVEMENT commit, plus a read-time guard. Lighting and other Scene edits go through the GM command `SET_CONCEALMENT_OBSERVERS`, which is GM only and undoable. Under MANUAL automation nothing is pruned; the GM command is the override.
+  - **Prune undo:** the move's receipt records each prune entry (effect, holder, observers before and after). Undoing the move adds `before - after` back to an effect that still exists, so it composes with later GM edits. It never re-creates an ended effect. Derive-only was rejected.
 * **D117** (2026-10-15) Username moderation runs the Q22 tiers (ACCOUNTS-7.T1). Decided by the main session at merge; workbook [slice-accounts-7-t1.md](slice-accounts-7-t1.md).
   - **When:** only at sign-up and rename (Better Auth `before` hook on `/sign-up/email` and `/update-user`, both `username` and `displayUsername`). Sign-in checks format only, so tightening the list never locks an existing account out.
   - **Compound rule (server):** a name is refused when it reads as a blocked term plus dictionary words and no reading as non-blocked dictionary words uses fewer pieces. A tie refuses (`asslicker`). Accepted cost: contrived ties such as `titangel` or `cuminside` are refused; the user picks another name.
@@ -735,6 +741,18 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - **(d) Roll mode:** a facet predicate on the attack's net roll mode (`ADVANTAGE`, `NOT_DISADVANTAGE`). Sneak Attack's gate is "advantage, or an enemy of the target within 5 ft and no disadvantage", which needs any-of composition of predicates. If the facet model has none, add one generic any-of, not a Sneak Attack shape.
   - **(e) Position:** a predicate "another creature hostile to the target, not incapacitated, within N ft of the target", fed by scene positions. The room plans with it; persistence re-verifies from stored positions and refuses a mismatch, like other planned facts.
   - **(f) Once per turn:** a usage limit `ONCE_PER_TURN`, where "turn" is any creature's turn (Sneak Attack can land on a reaction). It is backed by one per-turn record keyed by (Encounter, round, turn actor, actor). Unlike D38's movement record it is enforced, so the commit transaction reads and writes it, replay derives the same entry, and GM undo restores it. ATTACK-9.T6 reads the same record for its attacked-hostile and took-damage flags.
+* **D120** (2026-10-15) Re-publishing a changed canonical corpus (PLATFORM-18.T1; survey in [slice-platform-18-t1.md](slice-platform-18-t1.md)). Decided by the main session.
+  - **Ruling (design A):** when a seeded subject's checksum changes, it is replaced in place, through the same steps as homebrew publish (`commitPublication`):
+    1. insert the next version;
+    2. replace the root;
+    3. delete the previous version, with its chunks and compilation;
+    4. resync catalogue metadata and families.
+       The two share one function. An identical corpus takes the existing reuse path, so seeding twice is idempotent.
+  - **No version history:** play data reads the current version (ADR 0024, which supersedes ADR 0022), so earlier versions are not kept.
+  - **Rejected:** append-only history, which contradicts ADR 0024 and grows storage nothing reads; and a new content source per corpus, which breaks stable subject ids.
+  - **Removed subject:** the seed fails loudly and lists the ids. Real removal is deferred (future-enhancements, Deferred edge cases).
+  - **Downgrade:** no guard. The seed is declarative, so seeding an earlier corpus is just another replace.
+  - **Dependents:** a canonical replace runs the same unresolved-dependent check as publish (ADR 0024) and refuses on a hit. The seed has no bypass.
 
 ## Approved implementation decisions
 

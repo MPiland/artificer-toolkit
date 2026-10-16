@@ -148,7 +148,9 @@ shared history. On account deletion the Character state and private receipt head
 (D71). Receipt pages validate summed distinct-ledger bytes against the 4 MiB read budget before hydrating.
 
 **Scene command evidence (ADR 0035 Amendment 26).** Scene command receipts and geometry saves live only in
-the room's SQLite, as opaque `SCENE_EVIDENCE_ROW` records (`sceneLiveCommands`, `sceneGeometrySaves`) stamped
+the room's SQLite, as opaque `SCENE_EVIDENCE_ROW` records (`sceneLiveCommands`, `sceneGeometrySaves`,
+`sceneConcealmentPrunes`, the observers a bound token move dropped from concealments, keyed by Scene and move command so the GM's
+undo of that move restores them) stamped
 with their write time in `revision`. They survive reloads, release and new epochs: `RoomInputs.hydrate` carries
 them across like the held Encounter history, across every Scene. Undo and replay by command ID read only this
 copy. The room enforces the 30 day retention (`SCENE_COMMAND_RETENTION_MS`) without an alarm: a hydrate drops

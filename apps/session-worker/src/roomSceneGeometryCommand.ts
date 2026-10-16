@@ -25,6 +25,7 @@ import {
   readLiveCharacterStreamVersion,
   readLiveMovementTargetState
 } from '@artificer-toolkit/encounter-persistence/liveMovementTargetState'
+import { applyConcealmentPrune } from '@artificer-toolkit/encounter-persistence/concealmentPrune'
 import { applyLiveConcentrationCleanup } from '@artificer-toolkit/encounter-persistence/concentrationCleanupPersistence'
 import {
   postMovementDecisionSkipped,
@@ -421,6 +422,18 @@ export async function executeRoomSceneGeometry(input: {
     current
   )
   assertPrediction(scene)
+  // Observers the move left seeing a hidden creature stop being hidden from; undo gives them back.
+  const concealmentPrunes = await applyConcealmentPrune(ctx, {
+    state: admission.state,
+    actors,
+    prunes: prepared.concealmentPrunes
+  })
+  if (concealmentPrunes.length)
+    writeRoomSceneRow(transaction, 'sceneConcealmentPrunes', {
+      sceneId: scene.sceneId,
+      commandId: scene.commandId,
+      entries: concealmentPrunes
+    })
   let encounter = resolution ? await readMovementResponseResult(ctx, resolution.command) : null
   if (plan.voidCommand) {
     await postMovementDecisionSkipped(ctx, {

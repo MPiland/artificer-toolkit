@@ -87,8 +87,8 @@ function storedFields(row: Record<string, unknown>) {
   )
 }
 
-// Canonicalizes the original once; that string proves schema-parse parity and the checksum,
-// and callers store it.
+// Canonicalizes the original once; that string proves schema-parse parity and the checksum.
+// Returns it so a caller that inserts the document can store it.
 function validateDocument(original: unknown, parsed: unknown, checksum: string) {
   const canonical = canonicalizeRuleDocument(original)
   if (canonicalizeRuleDocument(parsed) !== canonical) throw new Error('Canonical content conflict.')
@@ -235,11 +235,6 @@ export const importSubjects: RegisteredMutation<
       if (parsed.document.systemId !== subject.systemId || parsed.document.label !== subject.label)
         throw new Error('Canonical subject metadata mismatch.')
       const { document, ...metadata } = subject
-      // Exact current root/version comparison below already proves an unchanged replay payload.
-      const documentJson =
-        current && !changed
-          ? canonicalizeRuleDocument(document)
-          : validateDocument(document, parsed.document, subject.checksum)
       if (parsed.subjectKind === 'CLASS' && parsed.document.category === 'SUBCLASS')
         await requireClassParent(ctx, parsed.document, null)
       const version = {
@@ -310,7 +305,7 @@ export const importSubjects: RegisteredMutation<
           root: current,
           previous,
           version: { ...version, version: previous.version + 1 },
-          documentJson,
+          documentJson: validateDocument(document, parsed.document, subject.checksum),
           compilation: compilation ?? equipment?.compilation ?? race?.compilation,
           current: {
             ...root,
@@ -457,7 +452,7 @@ export const importSubjects: RegisteredMutation<
         const currentVersionId = await insertAuthoredVersion(
           ctx,
           version,
-          documentJson,
+          validateDocument(document, parsed.document, subject.checksum),
           compilation
         )
         const rootId = await ctx.db.insert('authoredRoots', {

@@ -10,7 +10,11 @@ export async function withResolvedScopes(
 ): Promise<NodeRuntimeResolveResponseDto> {
   const scopes = await resolveNestedRuntimeScopes(
     createSrdNodeRuntimeReader(),
-    { mapId: model.mapId, values: Object.fromEntries(Object.entries(values)), systemId: srdSystemRecord.id },
+    {
+      mapId: model.mapId,
+      values: Object.fromEntries(Object.entries(values)),
+      systemId: srdSystemRecord.id
+    },
     model.steps
   )
   return { ...model, scopes }

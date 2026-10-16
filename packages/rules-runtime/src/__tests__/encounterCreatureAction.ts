@@ -369,6 +369,7 @@ export async function prepareCreatureAction(input: {
   featureId: string
   overridable: boolean
   targetActiveEffects?: readonly ActiveRuleEffectRecord[]
+  actorActiveEffects?: readonly ActiveRuleEffectRecord[]
   /** Resolves sight between the actors on the real perception rules (no Scene), as the room does. */
   attackPerception?: boolean
   /** Gives the target unlimited Blindsight, so it senses an unseen attacker. */
@@ -380,7 +381,10 @@ export async function prepareCreatureAction(input: {
   const encounter = creatureEncounter(
     actors,
     'ASSISTED',
-    new Map([[input.target.id, input.targetActiveEffects ?? []]])
+    new Map([
+      [input.actor.id, input.actorActiveEffects ?? []],
+      [input.target.id, input.targetActiveEffects ?? []]
+    ])
   )
   const { state } = encounter
   const movementTargets = new Map(

@@ -8,6 +8,7 @@ import {
   encounterActorSpellCastPendingContextDtoSchema,
   encounterBasicActionCheckPendingContextDtoSchema,
   encounterCharacterRuleActionPendingContextDtoSchema,
+  encounterConcealmentCheckPendingContextDtoSchema,
   encounterConcentrationDamageCheckPendingContextDtoSchema,
   encounterCreatureRuleActionPendingContextDtoSchema,
   encounterEscapeCheckPendingContextDtoSchema
@@ -49,6 +50,7 @@ export type ServerRuleExecutionPendingApplicationContextDto =
   | z.infer<typeof encounterConcentrationDamageCheckPendingContextDtoSchema>
   | z.infer<typeof encounterBasicActionCheckPendingContextDtoSchema>
   | z.infer<typeof encounterEscapeCheckPendingContextDtoSchema>
+  | z.infer<typeof encounterConcealmentCheckPendingContextDtoSchema>
 
 const serverRuleExecutionPendingApplicationContextDtoSchemaImpl: z.ZodMiniType<ServerRuleExecutionPendingApplicationContextDto> =
   lazySchema(() =>
@@ -70,7 +72,8 @@ const serverRuleExecutionPendingApplicationContextDtoSchemaImpl: z.ZodMiniType<S
         encounterCreatureRuleActionPendingContextDtoSchema,
         encounterConcentrationDamageCheckPendingContextDtoSchema,
         encounterBasicActionCheckPendingContextDtoSchema,
-        encounterEscapeCheckPendingContextDtoSchema
+        encounterEscapeCheckPendingContextDtoSchema,
+        encounterConcealmentCheckPendingContextDtoSchema
       ])
       .check(
         z.superRefine((value, context) => {
