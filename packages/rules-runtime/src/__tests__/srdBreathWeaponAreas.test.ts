@@ -52,13 +52,13 @@ const everyAction = createEncounterFeatureActionCapabilityDiscoveryRegistry([
   dnd5eEncounterFeatureActionCapabilityAdapter
 ])
 
-/** Whether the System can execute the action; any other compile failure is a real error. */
-function compilesToPlan(capability: Parameters<typeof compileEncounterFeatureActionPlan>[1]) {
+/** Why the System cannot execute the action, or null when it can; any other compile failure is a real error. */
+function compileRefusal(capability: Parameters<typeof compileEncounterFeatureActionPlan>[1]) {
   try {
     compileEncounterFeatureActionPlan(dnd5eCharacterRuleActionSystemAdapter, capability)
-    return true
+    return null
   } catch (error) {
-    if (error instanceof CharacterRuleActionUnsupportedCompilationError) return false
+    if (error instanceof CharacterRuleActionUnsupportedCompilationError) return error.message
     throw error
   }
 }
@@ -84,6 +84,7 @@ const breathRows = srdBaselineContent.subjects.creatures.flatMap((creature, crea
           (candidate) => candidate.ownerFeatureId === feature.id && candidate.effectId === effect.id
         )
         if (!capability) throw new Error(`${creature.label} ${feature.label} is not an action.`)
+        const refusal = compileRefusal(capability)
         return {
           name: `${creature.label} ${feature.label} #${index + 1}`,
           creatureLabel: creature.label,
@@ -98,7 +99,8 @@ const breathRows = srdBaselineContent.subjects.creatures.flatMap((creature, crea
               : false
           ),
           capability,
-          compiles: compilesToPlan(capability),
+          refusal,
+          compiles: refusal === null,
           offered: offered.available.some(({ actionId }) => actionId === capability.actionId),
           listedUnavailable: offered.unavailable.some(
             ({ actionId, ownerFeatureId }) =>
@@ -190,6 +192,13 @@ describe('SRD breath weapons breathe areas', () => {
       expect(row.listedUnavailable).toBe(false)
     }
   )
+
+  // SPELLS-19.AC2: the list of breaths the System cannot execute is empty.
+  it('leaves no breath its System cannot execute', () => {
+    expect(
+      breathRows.filter(({ compiles }) => !compiles).map(({ name, refusal }) => ({ name, refusal }))
+    ).toEqual([])
+  })
 
   // The sizes below are read from the SRD stat blocks, not from the authored rows or the parser.
   it.each([

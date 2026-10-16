@@ -276,7 +276,9 @@ export async function prepareNativeLiveActionMaintenance(input: {
 
 /** The maintained state a completed action's Concentration creates, once its policy still matches the prepared one. */
 export function prepareNativeLiveMaintainedState(input: {
-  completedPolicy: object
+  completedPolicy: NonNullable<
+    Awaited<ReturnType<typeof prepareNativeLiveActionMaintenance>>
+  >['policy']
   maintenance: Awaited<ReturnType<typeof prepareNativeLiveActionMaintenance>>
   encounterId: string
   ownerActorId: string
