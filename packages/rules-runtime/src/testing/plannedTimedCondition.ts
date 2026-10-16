@@ -44,6 +44,7 @@ export function plannedTimedCondition(input: {
     spellCastCandidates: [cast],
     castableCandidateIds: new Set([cast.candidateId]),
     policyOutput: {
+      resources: [],
       spellCastDecisions: [
         {
           candidateId: cast.candidateId,
@@ -90,7 +91,7 @@ export function plannedTimedCondition(input: {
       }
     } satisfies Pick<
       CharacterRulePolicyOutput,
-      'spellCastDecisions' | 'spellCastMechanics' | 'spellSlots'
+      'resources' | 'spellCastDecisions' | 'spellCastMechanics' | 'spellSlots'
     >,
     spellDocumentsById: new Map([[spell.id, spell]]),
     firstSequence: 10

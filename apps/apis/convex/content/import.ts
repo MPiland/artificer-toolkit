@@ -14,12 +14,10 @@ import {
   sourceImportReadBootstrapInputSchema,
   sourceImportSubjectDtoSchema,
   sourceImportSubjectsInputSchema,
-  sourceImportSubjectsResultDtoSchema,
   sourceImportSystemDtoSchema,
   type SourceImportBootstrapResultDto,
   type SourceImportBootstrapInput,
   type SourceImportSubjectsInput,
-  type SourceImportSubjectsResultDto,
   type SourceImportDefinitionsInput,
   type SourceImportBatchResultDto
 } from '@artificer-toolkit/schema/api/sourceImport'
@@ -41,6 +39,7 @@ import type { QueryCtx } from '../_generated/server'
 import { internalQuery } from '../lib/queries'
 import { internalMutation } from '../lib/mutations'
 import { ensureAuthoredRouteId } from './routeIds'
+import { readSystem } from './systemDocuments'
 import { decodeDefinitionDocument, encodeDefinitionDocument } from './definitionDocumentJson'
 import { equipmentOptionFacts } from '@artificer-toolkit/rules-runtime/character/equipmentOptionFacts'
 import { authoredSourceFacts } from '@artificer-toolkit/authoring/nodeRuntime/authoredSourceFacts'
@@ -69,7 +68,11 @@ import {
   readStoredAuthoredVersionDocument
 } from './documents'
 import { backfillCatalogueFamily, readCatalogueParent } from './catalogueFamilies'
-import { ensureSystemVocabularySnapshot } from './systemVocabulary'
+import {
+  advanceSystemVocabularySnapshot,
+  ensureSystemVocabularySnapshot,
+  removedVocabularyIds
+} from './systemVocabulary'
 
 function exact(actual: unknown, expected: unknown) {
   if (
@@ -84,6 +87,26 @@ function storedFields(row: Record<string, unknown>) {
   return Object.fromEntries(
     Object.entries(row).filter(([key]) => key !== '_id' && key !== '_creationTime')
   )
+}
+
+// A stored canonical row whose identity fields are unchanged is replaced in place: returns the new
+// values of the `mutable` fields, or null when they already match. A changed identity field is a conflict.
+function mutableChanges(
+  stored: Record<string, unknown>,
+  record: Record<string, unknown>,
+  mutable: readonly string[]
+) {
+  const split = (row: Record<string, unknown>) => ({
+    identity: Object.fromEntries(Object.entries(row).filter(([key]) => !mutable.includes(key))),
+    values: Object.fromEntries(mutable.map((key) => [key, row[key]]))
+  })
+  const current = split(storedFields(stored))
+  const next = split(record)
+  exact(current.identity, next.identity)
+  return checksumRuleDocument(jsonValueSchema.parse(current.values)) ===
+    checksumRuleDocument(jsonValueSchema.parse(next.values))
+    ? null
+    : next.values
 }
 
 // Canonicalizes the original once; that string proves schema-parse parity and the checksum.
@@ -140,6 +163,7 @@ export const bootstrap: RegisteredMutation<
     }
     let inserted = 0
     let reused = 0
+    let replaced = 0
     for (const system of systems) {
       const parsed = systemAuthoredDtoSchema.parse(system.document)
       if (parsed.id !== system.id) throw new Error('Canonical System identity mismatch.')
@@ -149,8 +173,17 @@ export const bootstrap: RegisteredMutation<
         .withIndex('by_publicId', (q) => q.eq('id', system.id))
         .unique()
       if (current) {
-        exact(storedFields(current), system)
-        reused++
+        const changes = mutableChanges(current, system, ['document', 'checksum'])
+        if (changes) {
+          const removed = removedVocabularyIds(readSystem(current), parsed)
+          if (removed.length)
+            throw new Error(
+              `Canonical System replacement removes vocabulary entries stored data may name: ${removed.join(', ')}.`
+            )
+          await ctx.db.patch(current._id, changes)
+          await advanceSystemVocabularySnapshot(ctx, parsed)
+          replaced++
+        } else reused++
       } else {
         await ctx.db.insert('systems', system)
         inserted++
@@ -162,8 +195,11 @@ export const bootstrap: RegisteredMutation<
       .withIndex('by_publicId', (q) => q.eq('id', contentSource.id))
       .unique()
     if (currentSource) {
-      exact(storedFields(currentSource), contentSource)
-      reused++
+      const changes = mutableChanges(currentSource, contentSource, ['label', 'description'])
+      if (changes) {
+        await ctx.db.patch(currentSource._id, changes)
+        replaced++
+      } else reused++
     } else {
       await ctx.db.insert('contentSources', contentSource)
       inserted++
@@ -174,23 +210,26 @@ export const bootstrap: RegisteredMutation<
       .withIndex('by_publicId', (q) => q.eq('id', catalogue.id))
       .unique()
     if (currentCatalogue) {
-      exact(storedFields(currentCatalogue), record)
-      reused++
+      const changes = mutableChanges(currentCatalogue, record, ['label', 'description'])
+      if (changes) {
+        await ctx.db.patch(currentCatalogue._id, changes)
+        replaced++
+      } else reused++
     } else {
       await ctx.db.insert('rulesCatalogues', record)
       inserted++
     }
-    return { inserted, reused }
+    return { inserted, reused, replaced }
   }
 })
 
 export const importSubjects: RegisteredMutation<
   'internal',
   SourceImportSubjectsInput,
-  Promise<SourceImportSubjectsResultDto>
+  Promise<SourceImportBatchResultDto>
 > = internalMutation({
   args: zodToConvexFields(sourceImportSubjectsInputSchema.shape),
-  returns: zodToConvex(sourceImportSubjectsResultDtoSchema),
+  returns: zodToConvex(sourceImportBatchResultDtoSchema),
   handler: async (ctx, args) => {
     const { contentSourceId, subjects } = sourceImportSubjectsInputSchema.parse(args)
     uniqueIds(subjects)
@@ -494,6 +533,7 @@ export const importDefinitions: RegisteredMutation<
     const source = await requireSource(ctx, contentSourceId)
     let inserted = 0
     let reused = 0
+    let replaced = 0
     for (const definition of definitions) {
       const parsed = reusableDefinitionDocumentDtoSchema.parse(definition.document)
       if (
@@ -516,14 +556,22 @@ export const importDefinitions: RegisteredMutation<
         .withIndex('by_publicId', (q) => q.eq('id', definition.id))
         .unique()
       if (current) {
-        exact(storedFields(current), record)
-        reused++
+        const changes = mutableChanges(current, record, [
+          'label',
+          'description',
+          'checksum',
+          'documentJson'
+        ])
+        if (changes) {
+          await ctx.db.patch(current._id, changes)
+          replaced++
+        } else reused++
       } else {
         await ctx.db.insert('reusableDefinitions', record)
         inserted++
       }
     }
-    return { inserted, reused }
+    return { inserted, reused, replaced }
   }
 })
 
@@ -582,6 +630,28 @@ export const readSubjectChecksums = internalQuery({
       .paginate(args.paginationOpts)
     return {
       page: result.page.map(({ id, checksum }) => ({ id, checksum })),
+      isDone: result.isDone,
+      continueCursor: result.continueCursor
+    }
+  }
+})
+
+// Stored id and checksum only, so the seed can refuse a removed definition before it writes.
+export const readDefinitionChecksums = internalQuery({
+  args: pageArgs,
+  returns: zodToConvex(sourceImportAuditPageDtoSchema),
+  handler: async (ctx, args) => {
+    checkPageSize(args.paginationOpts.numItems)
+    const source = await requireSource(ctx, args.contentSourceId)
+    const result = await ctx.db
+      .query('reusableDefinitions')
+      .withIndex('by_contentSourceId', (q) => q.eq('contentSourceId', source.id))
+      .paginate(args.paginationOpts)
+    return {
+      page: result.page.map(({ id, checksum }) => {
+        if (checksum === undefined) throw new Error('Invalid canonical definition metadata.')
+        return { id, checksum }
+      }),
       isDone: result.isDone,
       continueCursor: result.continueCursor
     }

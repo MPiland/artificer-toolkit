@@ -82,16 +82,11 @@ export const authoredContentSourceDtoSchema = lazySchema(() =>
   ])
 )
 
+// A stored record whose content changed is replaced in place; `replaced` counts those.
 export const sourceImportBatchResultDtoSchema = lazySchema(() =>
   z.strictObject({
     inserted: z.number().check(z.int()).check(z.nonnegative()),
-    reused: z.number().check(z.int()).check(z.nonnegative())
-  })
-)
-
-// A subject whose checksum changed is replaced in place; `replaced` counts those.
-export const sourceImportSubjectsResultDtoSchema = lazySchema(() =>
-  z.extend(sourceImportBatchResultDtoSchema, {
+    reused: z.number().check(z.int()).check(z.nonnegative()),
     replaced: z.number().check(z.int()).check(z.nonnegative())
   })
 )
@@ -105,7 +100,7 @@ export const sourceImportAuditDtoSchema = lazySchema(() =>
   })
 )
 export const sourceImportSeedResultDtoSchema = lazySchema(() =>
-  z.extend(sourceImportAuditDtoSchema, sourceImportSubjectsResultDtoSchema.shape)
+  z.extend(sourceImportAuditDtoSchema, sourceImportBatchResultDtoSchema.shape)
 )
 
 export type SourceImportSubjectDto = z.infer<typeof sourceImportSubjectDtoSchema>
@@ -172,4 +167,3 @@ export type SourceImportBootstrapInput = z.infer<typeof sourceImportBootstrapInp
 export type SourceImportSubjectsInput = z.infer<typeof sourceImportSubjectsInputSchema>
 export type SourceImportDefinitionsInput = z.infer<typeof sourceImportDefinitionsInputSchema>
 export type SourceImportBatchResultDto = z.infer<typeof sourceImportBatchResultDtoSchema>
-export type SourceImportSubjectsResultDto = z.infer<typeof sourceImportSubjectsResultDtoSchema>

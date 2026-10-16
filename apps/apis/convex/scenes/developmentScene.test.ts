@@ -327,6 +327,52 @@ it.each([false, true])('removes exact presentation history ending cleared=%s', a
   })
 })
 
+// The lifecycle proof presents Scenes five times and a sixth when its racing presentation lands after
+// the binding, so cleanup must hold the whole history either way (RELIABILITY-13.T1).
+it.each([6, 16])('removes a presentation history of %s changes', async (changes) => {
+  const base = await setup()
+  const { initial } = await seedOwnerScene(base)
+  const sceneId = initial.liveSceneId!
+  await seedPresentation(
+    base,
+    sceneId,
+    false,
+    Array.from({ length: changes }, (_, index) => (index % 2 === 0 ? sceneId : null))
+  )
+  await base.t.mutation(removeFixtureState, {
+    ownerUserId: base.owner.userId,
+    campaignId: base.campaign.id
+  })
+  expect(await state(base)).toEqual({
+    saves: [],
+    entities: [],
+    definitions: [],
+    liveScenes: [],
+    presentations: [],
+    receipts: []
+  })
+})
+
+it('rejects a presentation history beyond sixteen changes without partial deletion', async () => {
+  const base = await setup()
+  const { initial } = await seedOwnerScene(base)
+  const sceneId = initial.liveSceneId!
+  await seedPresentation(
+    base,
+    sceneId,
+    false,
+    Array.from({ length: 17 }, (_, index) => (index % 2 === 0 ? sceneId : null))
+  )
+  const before = await state(base)
+  await expect(
+    base.t.mutation(removeFixtureState, {
+      ownerUserId: base.owner.userId,
+      campaignId: base.campaign.id
+    })
+  ).rejects.toThrow('bounds or ownership mismatch')
+  expect(await state(base)).toEqual(before)
+})
+
 it.each(['duplicate-version', 'foreign-scene', 'wrong-fingerprint'])(
   'rejects %s presentation history before deletion',
   async (kind) => {

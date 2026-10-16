@@ -4,7 +4,9 @@ import { describe, expect, it } from 'vitest'
 
 import {
   attackRestrictionsMet,
-  reduceEffectRestrictions
+  effectReadsEnemyProximity,
+  reduceEffectRestrictions,
+  type Dnd5eAttackCircumstances
 } from '../systems/dnd5e/attackRestrictions.js'
 import type { Dnd5eAttackingItem } from '../systems/dnd5e/modifierApplicability.js'
 import { testUuid } from '../testing/dnd5eSrdEncounter.js'
@@ -12,7 +14,13 @@ import { riderGate, type RiderGateCondition } from '../testing/unconditionalSnea
 
 const ADVANTAGE = { predicateCode: 'ATTACK_ROLL_MODE', rollMode: 'ADVANTAGE' } as const
 const NOT_DISADVANTAGE = { predicateCode: 'ATTACK_ROLL_MODE', rollMode: 'NOT_DISADVANTAGE' } as const
+const ENEMY_WITHIN_5 = { predicateCode: 'ENEMY_NEAR_TARGET', feet: 5 } as const
 const FINESSE = { predicateCode: 'EQUIPMENT_PROPERTY', properties: ['FINESSE'] } as const
+
+const circumstances = (
+  rollMode: Dnd5eAttackCircumstances['rollMode'],
+  enemyProximity: Dnd5eAttackCircumstances['enemyProximity'] = null
+): Dnd5eAttackCircumstances => ({ rollMode, enemyProximity })
 
 const rapier: Dnd5eAttackingItem = {
   equipmentIds: [],
@@ -178,7 +186,7 @@ describe('path restrictions on a compiled attack Effect', () => {
   })
 })
 
-describe('roll-mode checks of reduced restrictions', () => {
+describe('circumstance checks of reduced restrictions', () => {
   const reducedOf = (...groups: (readonly RiderGateCondition[])[]) => {
     const [restrictions] = restrictionsOf(
       reduceEffectRestrictions(restrictedEffect(riderGate(...groups)), rapier)
@@ -192,7 +200,7 @@ describe('roll-mode checks of reduced restrictions', () => {
     ['NORMAL', false],
     ['DISADVANTAGE', false]
   ] as const)('requires advantage: %s -> %s', (rollMode, expected) => {
-    expect(attackRestrictionsMet(reducedOf([ADVANTAGE]), rollMode)).toBe(expected)
+    expect(attackRestrictionsMet(reducedOf([ADVANTAGE]), circumstances(rollMode))).toBe(expected)
   })
 
   it.each([
@@ -200,30 +208,85 @@ describe('roll-mode checks of reduced restrictions', () => {
     ['NORMAL', true],
     ['DISADVANTAGE', false]
   ] as const)('requires no disadvantage: %s -> %s', (rollMode, expected) => {
-    expect(attackRestrictionsMet(reducedOf([NOT_DISADVANTAGE]), rollMode)).toBe(expected)
+    expect(attackRestrictionsMet(reducedOf([NOT_DISADVANTAGE]), circumstances(rollMode))).toBe(expected)
   })
 
   it('needs every check of a group, not any', () => {
     const restrictions = reducedOf([ADVANTAGE, NOT_DISADVANTAGE])
-    expect(attackRestrictionsMet(restrictions, 'NORMAL')).toBe(false)
-    expect(attackRestrictionsMet(restrictions, 'ADVANTAGE')).toBe(true)
+    expect(attackRestrictionsMet(restrictions, circumstances('NORMAL'))).toBe(false)
+    expect(attackRestrictionsMet(restrictions, circumstances('ADVANTAGE'))).toBe(true)
   })
 
   it('inverts an excluded check', () => {
     const restrictions = reducedOf([{ ...ADVANTAGE, constraint: 'EXCLUDE' }])
-    expect(attackRestrictionsMet(restrictions, 'ADVANTAGE')).toBe(false)
-    expect(attackRestrictionsMet(restrictions, 'NORMAL')).toBe(true)
+    expect(attackRestrictionsMet(restrictions, circumstances('ADVANTAGE'))).toBe(false)
+    expect(attackRestrictionsMet(restrictions, circumstances('NORMAL'))).toBe(true)
   })
 
   it('holds when any group holds, each with all of its checks', () => {
     const restrictions = reducedOf([ADVANTAGE, NOT_DISADVANTAGE], [NOT_DISADVANTAGE])
-    expect(attackRestrictionsMet(restrictions, 'DISADVANTAGE')).toBe(false)
-    expect(attackRestrictionsMet(restrictions, 'NORMAL')).toBe(true)
+    expect(attackRestrictionsMet(restrictions, circumstances('DISADVANTAGE'))).toBe(false)
+    expect(attackRestrictionsMet(restrictions, circumstances('NORMAL'))).toBe(true)
+  })
+
+  describe('an enemy near the target', () => {
+    it.each([
+      [0, true],
+      [5, true],
+      [5.5, false],
+      [30, false]
+    ])('requires an able enemy within 5 ft: nearest at %s ft -> %s', (nearestFeet, expected) => {
+      expect(
+        attackRestrictionsMet(
+          reducedOf([ENEMY_WITHIN_5]),
+          circumstances('NORMAL', { nearestFeet })
+        )
+      ).toBe(expected)
+    })
+
+    it('is not met when no able enemy stands anywhere', () => {
+      expect(
+        attackRestrictionsMet(
+          reducedOf([ENEMY_WITHIN_5]),
+          circumstances('NORMAL', { nearestFeet: null })
+        )
+      ).toBe(false)
+    })
+
+    it('has no answer without a Scene, whatever its constraint', () => {
+      for (const check of [ENEMY_WITHIN_5, { ...ENEMY_WITHIN_5, constraint: 'EXCLUDE' } as const])
+        expect(attackRestrictionsMet(reducedOf([check]), circumstances('NORMAL'))).toBe(false)
+    })
+
+    it('inverts an excluded check once the Scene measured', () => {
+      const restrictions = reducedOf([{ ...ENEMY_WITHIN_5, constraint: 'EXCLUDE' }])
+      expect(
+        attackRestrictionsMet(restrictions, circumstances('NORMAL', { nearestFeet: 5 }))
+      ).toBe(false)
+      expect(
+        attackRestrictionsMet(restrictions, circumstances('NORMAL', { nearestFeet: null }))
+      ).toBe(true)
+    })
+
+    it('composes with roll mode through OR-ed groups (Sneak Attack’s two ways in)', () => {
+      const restrictions = reducedOf([ADVANTAGE], [ENEMY_WITHIN_5, NOT_DISADVANTAGE])
+      const near = { nearestFeet: 5 }
+      expect(attackRestrictionsMet(restrictions, circumstances('ADVANTAGE'))).toBe(true)
+      expect(attackRestrictionsMet(restrictions, circumstances('NORMAL', near))).toBe(true)
+      expect(attackRestrictionsMet(restrictions, circumstances('DISADVANTAGE', near))).toBe(false)
+      expect(attackRestrictionsMet(restrictions, circumstances('NORMAL'))).toBe(false)
+    })
+
+    it('reports whether an Effect asks about nearby enemies, for the planner to load them', () => {
+      expect(effectReadsEnemyProximity(restrictedEffect(riderGate([ENEMY_WITHIN_5])))).toBe(true)
+      expect(effectReadsEnemyProximity(restrictedEffect(riderGate([ADVANTAGE])))).toBe(false)
+      expect(effectReadsEnemyProximity(restrictedEffect(undefined))).toBe(false)
+    })
   })
 
   it('refuses restrictions that still hold weapon checks', () => {
-    expect(() => attackRestrictionsMet(riderGate([FINESSE]), 'NORMAL')).toThrow(
-      'Attack restrictions must be reduced to roll-mode checks.'
+    expect(() => attackRestrictionsMet(riderGate([FINESSE]), circumstances('NORMAL'))).toThrow(
+      'Attack restrictions must be reduced to circumstance checks.'
     )
   })
 })
