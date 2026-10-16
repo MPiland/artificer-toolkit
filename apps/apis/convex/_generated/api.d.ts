@@ -123017,6 +123017,26 @@ export declare const internal: {
           page: Array<{ checksum: string; id: string }>;
         }
       >;
+      readSubjectChecksums: FunctionReference<
+        "query",
+        "internal",
+        {
+          contentSourceId: string;
+          paginationOpts: {
+            cursor: string | null;
+            endCursor?: string | null;
+            id?: number;
+            maximumBytesRead?: number;
+            maximumRowsRead?: number;
+            numItems: number;
+          };
+        },
+        {
+          continueCursor: string;
+          isDone: boolean;
+          page: Array<{ checksum: string; id: string }>;
+        }
+      >;
       readSubjects: FunctionReference<
         "query",
         "internal",

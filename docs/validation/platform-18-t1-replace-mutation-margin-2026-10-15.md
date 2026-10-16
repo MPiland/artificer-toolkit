@@ -24,7 +24,7 @@ The following seed step then replaced the left-changed Background (`"replaced": 
 
 A replace of a small record costs about 100-150 ms, against about 28 ms for the insert model (25 + 3 KiB). The per-KiB fit under-prices replaces by roughly 4-5x, so three small replaces packed into one batch (budget 100) could cost 300-450 ms idle and exceed 1 s on a loaded host (3-6x).
 
-No limit is raised and nothing is retried. Instead the seed reads the stored checksums before writing (`changedSubjectIds` in `seed.ts`) and `sourceImportBatches` gives every subject that will be replaced a batch alone. A replace batch then costs at most the figures above, the same shape as the Class floor that PLATFORM-5.T1 already accepts. A first seed or an unchanged reseed has no replaced subjects, so its batching is exactly as before. Corpus changes are rare and small, so the extra mutations are negligible.
+No limit is raised and nothing is retried. Instead the seed reads the stored checksums (`readSubjectChecksums`) before writing (`changedSubjectIds` in `seed.ts`) and `sourceImportBatches` gives every subject that will be replaced a batch alone. A replace batch then costs at most the figures above, the same shape as the Class floor that PLATFORM-5.T1 already accepts. A first seed or an unchanged reseed has no replaced subjects, so its batching is exactly as before. Corpus changes are rare and small, so the extra mutations are negligible.
 
 ## Residual risk
 

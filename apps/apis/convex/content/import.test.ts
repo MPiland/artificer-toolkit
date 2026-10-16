@@ -758,7 +758,7 @@ describe('internal canonical source import', () => {
       replaced: 1
     })
     expect(await state()).toEqual({ ...first, versions: [[3, original.checksum]] })
-    expect((await t.query(internal.content.import.readSubjects, page)).page).toEqual([
+    expect((await t.query(internal.content.import.readSubjectChecksums, page)).page).toEqual([
       { id: acolyte.id, checksum: original.checksum }
     ])
   })

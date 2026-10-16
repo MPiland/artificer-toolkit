@@ -203,7 +203,7 @@ async function changedSubjectIds(ctx: ActionCtx, manifest: SrdImportManifest) {
   let cursor: string | null = null
   do {
     const page: SourceImportAuditPageDto = await ctx.runQuery(
-      internal.content.import.readSubjects,
+      internal.content.import.readSubjectChecksums,
       { contentSourceId: manifest.contentSource.id, paginationOpts: { numItems: 10, cursor } }
     )
     for (const stored of page.page) {

@@ -70,6 +70,8 @@ describe('source import CPU-budgeted batches', () => {
       [records[2]],
       [records[3]]
     ])
-    expect([...sourceImportBatches(records, () => false)]).toEqual([records])
+    expect([...sourceImportBatches(records, () => false)]).toEqual([
+      ...sourceImportBatches(records)
+    ])
   })
 })

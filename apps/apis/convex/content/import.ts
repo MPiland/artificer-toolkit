@@ -568,6 +568,26 @@ function checkPageSize(size: number) {
     throw new Error('Import page size must be 1..10.')
 }
 
+// Stored id and subject checksum only (readSubjects is the full read-back audit). The seed compares
+// them with the corpus to refuse a removal and to batch each replaced subject alone.
+export const readSubjectChecksums = internalQuery({
+  args: pageArgs,
+  returns: zodToConvex(sourceImportAuditPageDtoSchema),
+  handler: async (ctx, args) => {
+    checkPageSize(args.paginationOpts.numItems)
+    const source = await requireSource(ctx, args.contentSourceId)
+    const result = await ctx.db
+      .query('authoredRoots')
+      .withIndex('by_contentSourceId', (q) => q.eq('contentSourceId', source.id))
+      .paginate(args.paginationOpts)
+    return {
+      page: result.page.map(({ id, checksum }) => ({ id, checksum })),
+      isDone: result.isDone,
+      continueCursor: result.continueCursor
+    }
+  }
+})
+
 export const readSubjects = internalQuery({
   args: pageArgs,
   returns: zodToConvex(sourceImportAuditPageDtoSchema),
