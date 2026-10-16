@@ -36,6 +36,7 @@ import {
   type PureRuleOperationContract,
   type CompiledRuleGraph,
   type RuleGraphDefinition,
+  type RuleInputBinding,
   type RuleValue
 } from '@artificer-toolkit/shared/rules'
 import { parseRollExpression, type ParsedRollExpression } from '@artificer-toolkit/shared/rolls'
@@ -113,6 +114,11 @@ import {
   DND5E_SAVE_TEST_OPERATION_KEY
 } from './dnd5eTestOperationKeys.js'
 import { DND5E_ADD_SPEED_TO_MOVEMENT_PROPOSAL_OPERATION_KEY } from './addSpeedToMovement.js'
+import {
+  DND5E_TELEPORT_ALLOWANCE_PROPOSAL_OPERATION_KEY,
+  isTeleportDestinationKind,
+  type TeleportDestinationKind
+} from './teleportAllowance.js'
 import { DND5E_CANCEL_TRIGGERING_EVENT_PROPOSAL_OPERATION_KEY } from './cancelTriggeringEvent.js'
 
 export const DND5E_EFFECT_ACTION_FAMILY_KEY = 'effect-action'
@@ -258,6 +264,7 @@ type Outcome =
   | { kind: 'CONCEAL' }
   | { kind: 'DETECT_CONCEALED' }
   | { kind: 'ADD_SPEED_TO_MOVEMENT' }
+  | { kind: 'TELEPORT_ALLOWANCE'; maxFeet: number; destinationKind: TeleportDestinationKind }
   | { kind: 'CANCEL_TRIGGERING_EVENT' }
   | {
       kind: 'SCALAR_REDUCTION'
@@ -277,12 +284,24 @@ const TARGET_ONLY_OUTCOME_OPERATION_KEYS = {
   CONCEAL: DND5E_CONCEAL_PROPOSAL_OPERATION_KEY,
   DETECT_CONCEALED: DND5E_DETECT_CONCEALED_PROPOSAL_OPERATION_KEY,
   ADD_SPEED_TO_MOVEMENT: DND5E_ADD_SPEED_TO_MOVEMENT_PROPOSAL_OPERATION_KEY,
+  TELEPORT_ALLOWANCE: DND5E_TELEPORT_ALLOWANCE_PROPOSAL_OPERATION_KEY,
   CANCEL_TRIGGERING_EVENT: DND5E_CANCEL_TRIGGERING_EVENT_PROPOSAL_OPERATION_KEY
 } as const
 function isTargetOnlyOutcome(
   outcome: Outcome
 ): outcome is Extract<Outcome, { kind: keyof typeof TARGET_ONLY_OUTCOME_OPERATION_KEYS }> {
   return Object.hasOwn(TARGET_ONLY_OUTCOME_OPERATION_KEYS, outcome.kind)
+}
+/** The literal inputs a target-only outcome's proposal reads beyond the target: a teleport's range and destination rule. */
+function targetOnlyOutcomeInputs(
+  outcome: Extract<Outcome, { kind: keyof typeof TARGET_ONLY_OUTCOME_OPERATION_KEYS }>
+): Readonly<Record<string, RuleInputBinding>> {
+  return outcome.kind === 'TELEPORT_ALLOWANCE'
+    ? {
+        maxFeet: { kind: 'LITERAL' as const, value: outcome.maxFeet },
+        destinationKind: { kind: 'LITERAL' as const, value: outcome.destinationKind }
+      }
+    : {}
 }
 type SpecializedOutcome =
   | Outcome
@@ -2689,6 +2708,27 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
   const checkAction = invocation.triggerCode === 'CHECK'
   const supportsSelf =
     invocation.range.rangeKind === 'SELF' && invocation.targeting?.selectionKind === 'SELF'
+  // A teleport spell (Misty Step) names its reach as a distance range on a self-targeted action:
+  // the range bounds the teleport, not a target.
+  const teleportReachFeet =
+    invocation.range.rangeKind === 'DISTANCE' &&
+    invocation.targeting?.selectionKind === 'SELF' &&
+    invocation.range.unit === 'FEET' &&
+    Number.isSafeInteger(invocation.range.amount) &&
+    invocation.range.amount > 0 &&
+    invocation.range.longAmount === undefined
+      ? invocation.range.amount
+      : null
+  const firstEntry = effect.entries[0]
+  const firstOutcome = firstEntry && 'outcome' in firstEntry ? firstEntry.outcome : undefined
+  const selfTeleport =
+    teleportReachFeet !== null &&
+    firstOutcome?.effectKind === 'TELEPORT' &&
+    firstOutcome.targetKind === 'SELF' &&
+    (firstOutcome.destinationKind === 'VISIBLE' ||
+      firstOutcome.destinationKind === 'SPECIFIED_POINT')
+      ? { maxFeet: teleportReachFeet, destinationKind: firstOutcome.destinationKind }
+      : null
   // A DISTANCE or Touch range only warns when the target is out of range (D11).
   const supportsTargetRange =
     invocation.range.rangeKind === 'UNLIMITED' ||
@@ -2741,7 +2781,7 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
     (invocation.triggerCode !== 'ACTIVATED' &&
       !(invocation.triggerCode === 'CHECK' && invocation.check.dc.kind !== 'CONTEST')) ||
     !supportedActivation ||
-    (!supportsSelf && !supportsSingleTarget && !supportsChosenCreatures) ||
+    (!supportsSelf && !selfTeleport && !supportsSingleTarget && !supportsChosenCreatures) ||
     (invocation.shape && !supportsChosenCreatures)
   )
     unsupported('D&D Effect action is not the supported activated self action shape.')
@@ -2841,6 +2881,10 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
     (outcome.destinationKind === 'LINKED_LOCATION' || outcome.destinationKind === 'SPECIAL')
   )
     return { kind: 'DEPART' }
+  // The caster moves its own token inside the Scene: the commit records a one-shot allowance the
+  // following TELEPORT move spends, bounded by the spell's range.
+  if (outcome.effectKind === 'TELEPORT' && selfTeleport)
+    return notOnAList({ kind: 'TELEPORT_ALLOWANCE', ...selfTeleport })
   if (outcome.effectKind === 'CONCEAL_FROM_OBSERVERS') return notOnAList({ kind: 'CONCEAL' })
   if (outcome.effectKind === 'DETECT_CONCEALED') return notOnAList({ kind: 'DETECT_CONCEALED' })
   // The reaction cancels the event it answered: nothing is stored on its target, the cast.
@@ -3019,6 +3063,47 @@ export const dnd5eAddSpeedToMovementProposalOperation = targetOnlyProposalOperat
   'add speed to movement',
   false
 )
+/** A teleport spell's proposal: it stores nothing on the caster and records its range for the commit to grant. */
+export const dnd5eTeleportAllowanceProposalOperation: ProposalRuleOperationContract = {
+  key: DND5E_TELEPORT_ALLOWANCE_PROPOSAL_OPERATION_KEY,
+  contractVersion: 1,
+  executionKind: 'PROPOSAL',
+  inputs: {
+    targetActorId: RULE_VALUE_KIND.TEXT,
+    targetStateChecksum: RULE_VALUE_KIND.TEXT,
+    maxFeet: RULE_VALUE_KIND.NUMBER,
+    destinationKind: RULE_VALUE_KIND.TEXT
+  },
+  outputs: {
+    targetActorId: RULE_VALUE_KIND.TEXT,
+    applicationCandidate: RULE_VALUE_KIND.BOOLEAN,
+    authorized: RULE_VALUE_KIND.BOOLEAN,
+    targetStateChecksum: RULE_VALUE_KIND.TEXT,
+    changesTargetState: RULE_VALUE_KIND.BOOLEAN,
+    maxFeet: RULE_VALUE_KIND.NUMBER,
+    destinationKind: RULE_VALUE_KIND.TEXT
+  },
+  execute(inputs) {
+    const { targetActorId, targetStateChecksum, maxFeet, destinationKind } = inputs
+    if (typeof targetActorId !== 'string' || !UUID.test(targetActorId))
+      throw new Error('D&D teleport allowance proposal requires a canonical target actor UUID.')
+    if (typeof targetStateChecksum !== 'string' || !/^[a-f0-9]{64}$/.test(targetStateChecksum))
+      throw new Error('D&D teleport allowance proposal requires target state checksum.')
+    if (typeof maxFeet !== 'number' || !Number.isSafeInteger(maxFeet) || maxFeet <= 0)
+      throw new Error('D&D teleport allowance proposal requires a positive integer range.')
+    if (!isTeleportDestinationKind(destinationKind))
+      throw new Error('D&D teleport allowance proposal requires a destination kind.')
+    return {
+      targetActorId,
+      applicationCandidate: true,
+      authorized: true,
+      targetStateChecksum,
+      changesTargetState: false,
+      maxFeet,
+      destinationKind
+    }
+  }
+}
 export const dnd5eCancelTriggeringEventProposalOperation = targetOnlyProposalOperation(
   DND5E_CANCEL_TRIGGERING_EVENT_PROPOSAL_OPERATION_KEY,
   'cancel triggering event',
@@ -3762,6 +3847,7 @@ export const dnd5eEffectActionCapability: GameSystemRuleCapabilityContract = {
     DND5E_CONCEAL_PROPOSAL_OPERATION_KEY,
     DND5E_DETECT_CONCEALED_PROPOSAL_OPERATION_KEY,
     DND5E_ADD_SPEED_TO_MOVEMENT_PROPOSAL_OPERATION_KEY,
+    DND5E_TELEPORT_ALLOWANCE_PROPOSAL_OPERATION_KEY,
     DND5E_CANCEL_TRIGGERING_EVENT_PROPOSAL_OPERATION_KEY,
     DND5E_DAMAGE_PROPOSAL_OPERATION_KEY,
     DND5E_HIT_POINT_MAXIMUM_REDUCTION_PROPOSAL_OPERATION_KEY,
@@ -3825,6 +3911,8 @@ function proposalNode(pathCode: string, outcome: Outcome) {
     unsupported('D&D concealment outcomes cannot follow an attack or saving throw.')
   if (outcome.kind === 'ADD_SPEED_TO_MOVEMENT')
     unsupported('D&D speed-to-movement outcomes cannot follow an attack or saving throw.')
+  if (outcome.kind === 'TELEPORT_ALLOWANCE')
+    unsupported('D&D teleport outcomes cannot follow an attack or saving throw.')
   if (outcome.kind === 'CANCEL_TRIGGERING_EVENT')
     unsupported('D&D cancel outcomes cannot follow an attack or saving throw.')
   const id = `proposal-${pathCode.toLowerCase()}`
@@ -4869,7 +4957,7 @@ function fixedOutcomeGraphDefinition(input: {
       factKey: DND5E_TARGET_STATE_CHECKSUM_FACT_KEY
     },
     ...(isTargetOnlyOutcome(input.outcome)
-      ? {}
+      ? targetOnlyOutcomeInputs(input.outcome)
       : input.outcome.kind === 'CONDITION_APPLY'
         ? {
             conditionId: {
@@ -5471,7 +5559,7 @@ function compileDnd5eEffectAction({
             factKey: DND5E_TARGET_STATE_CHECKSUM_FACT_KEY
           },
           ...(isTargetOnlyOutcome(outcome)
-            ? {}
+            ? targetOnlyOutcomeInputs(outcome)
             : outcome.kind === 'CONDITION_APPLY'
               ? {
                   conditionId: { kind: 'LITERAL', value: outcome.conditionId },
@@ -6085,6 +6173,7 @@ function interpretDirectProposal(
     trace.operation.key === DND5E_CONCEAL_PROPOSAL_OPERATION_KEY ||
     trace.operation.key === DND5E_DETECT_CONCEALED_PROPOSAL_OPERATION_KEY ||
     trace.operation.key === DND5E_ADD_SPEED_TO_MOVEMENT_PROPOSAL_OPERATION_KEY ||
+    trace.operation.key === DND5E_TELEPORT_ALLOWANCE_PROPOSAL_OPERATION_KEY ||
     trace.operation.key === DND5E_CANCEL_TRIGGERING_EVENT_PROPOSAL_OPERATION_KEY
   )
     return []
@@ -6343,6 +6432,7 @@ function interpretDirect(
     DND5E_CONCEAL_PROPOSAL_OPERATION_KEY,
     DND5E_DETECT_CONCEALED_PROPOSAL_OPERATION_KEY,
     DND5E_ADD_SPEED_TO_MOVEMENT_PROPOSAL_OPERATION_KEY,
+    DND5E_TELEPORT_ALLOWANCE_PROPOSAL_OPERATION_KEY,
     DND5E_CANCEL_TRIGGERING_EVENT_PROPOSAL_OPERATION_KEY,
     DND5E_DAMAGE_PROPOSAL_OPERATION_KEY,
     DND5E_SCALAR_REDUCTION_PROPOSAL_OPERATION_KEY,

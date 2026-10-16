@@ -794,16 +794,18 @@ export async function planNativeLiveEncounterAction(
         triggerLevel: level,
         scene: castScene.context,
         loadTarget,
-        prepareReaction: (reactor, reactorTarget, actionId) =>
+        prepareReaction: async (reactor, reactorTarget, actionId, against) =>
           prepareEncounterActionMechanics({
             state,
             actor: reactor,
-            target: prepared.actor,
+            target: against,
             actors,
             actionId,
             wieldConflictAcceptance: { kind: 'UNPROMPTED' },
             overridable: false,
-            movementTargets: new Map(movementTargets).set(reactor.id, reactorTarget),
+            movementTargets: new Map(movementTargets)
+              .set(reactor.id, reactorTarget)
+              .set(against.id, movementTargets.get(against.id) ?? (await loadTarget(against))),
             sceneContext: null,
             ...actionSources
           }),
@@ -839,6 +841,7 @@ export async function planNativeLiveEncounterAction(
       occurrenceId,
       gameSystemId: state.gameSystemId,
       system,
+      casterActorId: prepared.actor.id,
       triggerLevel,
       answer: castAnswer,
       failedCounters,

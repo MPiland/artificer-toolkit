@@ -111904,6 +111904,11 @@ export declare const api: {
               speedId: string;
             }>;
             speedId: string | null;
+            teleport: Array<{
+              castCommandId: string;
+              destinationKind: "VISIBLE" | "SPECIFIED_POINT";
+              maxFeet: number;
+            }>;
             used: number;
           }>;
           waitingOn: "GM" | "PLAYER" | null;

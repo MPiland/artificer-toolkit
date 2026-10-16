@@ -232,6 +232,7 @@ export function evaluateDnd5e2014CharacterGrantFold(
       case 'ITEM_PROPERTY':
       case 'ITEM_SOLE_WEAPON':
       case 'ITEM_ATTACK_ABILITY':
+      case 'ITEM_ACTIVATION':
       case 'CAN_ACT':
       case 'SPEED_ABOVE_ZERO':
       case 'FREE_HAND':

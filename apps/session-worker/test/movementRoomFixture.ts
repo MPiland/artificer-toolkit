@@ -161,6 +161,12 @@ function rigDice(rolls: readonly number[], fallback: number) {
   return () => drawn
 }
 
+interface SeatedCharacter {
+  characterId: string
+  spellcasting?: Parameters<typeof characterRoomInputs>[0]['spellcasting']
+  play?: CharacterPlayOverrides
+}
+
 export interface MovementRoomConfig {
   /** The Run's actors; the mover is the current actor. */
   actors: readonly EncounterRunActorState[]
@@ -219,11 +225,9 @@ export interface MovementRoomConfig {
   /** An assigned Character the Run does not hold, owned by the room's player (SPELLS-5.11, Q1). */
   outsideCasterCharacterId?: string
   /** A second Character of the Run (a CHARACTER actor with this `characterId`), owned by the room's second player. */
-  secondCharacter?: {
-    characterId: string
-    spellcasting?: Parameters<typeof characterRoomInputs>[0]['spellcasting']
-    play?: CharacterPlayOverrides
-  }
+  secondCharacter?: SeatedCharacter
+  /** A third Character of the Run, owned by a third player (two creatures react to one cast). */
+  thirdCharacter?: SeatedCharacter
   /** The next dice results (see `rigDice`); `fallbackRoll` serves every roll after them. */
   rolls?: readonly number[]
   fallbackRoll?: number
@@ -324,12 +328,21 @@ export async function movementRoom(config: MovementRoomConfig) {
   const seatsOtherPlayer =
     config.otherPlayerControlledActorIds ||
     config.secondCharacter ||
+    config.thirdCharacter ||
     config.outsideCasterCharacterId
   if (seatsOtherPlayer)
     base.authorization.members.push({
       membershipEpoch: base.capture.origin.membershipEpoch,
       role: 'PLAYER',
       userId: base.otherPlayerId
+    })
+  // The third player's Character shares no owner with the second's, as a player holds one.
+  const thirdPlayerId = crypto.randomUUID()
+  if (config.thirdCharacter)
+    base.authorization.members.push({
+      membershipEpoch: base.capture.origin.membershipEpoch,
+      role: 'PLAYER',
+      userId: thirdPlayerId
     })
   actors = actors.map((actor) =>
     config.playerControlledActorIds?.includes(actor.id)
@@ -363,15 +376,18 @@ export async function movementRoom(config: MovementRoomConfig) {
         ownerUserId: base.playerId
       })
     : null
-  const secondCharacterPage = config.secondCharacter
-    ? await characterRoomInputs({
-        campaignId,
-        characterId: config.secondCharacter.characterId,
-        ownerUserId: base.otherPlayerId,
-        play: config.secondCharacter.play,
-        spellcasting: config.secondCharacter.spellcasting
-      })
-    : null
+  const seatedPage = (seated: SeatedCharacter | undefined, ownerUserId: string) =>
+    seated
+      ? characterRoomInputs({
+          campaignId,
+          characterId: seated.characterId,
+          ownerUserId,
+          play: seated.play,
+          spellcasting: seated.spellcasting
+        })
+      : null
+  const secondCharacterPage = await seatedPage(config.secondCharacter, base.otherPlayerId)
+  const thirdCharacterPage = await seatedPage(config.thirdCharacter, thirdPlayerId)
   const assignments = [
     ...(characterId ? [{ characterId, userId: runCharacterOwnerId }] : []),
     ...(config.outsideCasterCharacterId
@@ -379,6 +395,9 @@ export async function movementRoom(config: MovementRoomConfig) {
       : []),
     ...(config.secondCharacter
       ? [{ characterId: config.secondCharacter.characterId, userId: base.otherPlayerId }]
+      : []),
+    ...(config.thirdCharacter
+      ? [{ characterId: config.thirdCharacter.characterId, userId: thirdPlayerId }]
       : [])
   ]
 
@@ -495,6 +514,10 @@ export async function movementRoom(config: MovementRoomConfig) {
       ...(secondCharacterPage?.parts ?? []).map((part) => ({
         part: withOwnRowIds(part, 'second'),
         holdsDependents: false
+      })),
+      ...(thirdCharacterPage?.parts ?? []).map((part) => ({
+        part: withOwnRowIds(part, 'third'),
+        holdsDependents: false
       }))
     ].map(({ part, holdsDependents }) => {
       if (part.status !== 'ASSIGNED') throw new Error('The Character fixture part is not assigned.')
@@ -544,7 +567,7 @@ export async function movementRoom(config: MovementRoomConfig) {
         : config.autoRoll === 'BOTH'
           ? [base.userId, base.playerId]
           : config.autoRoll === 'EVERYONE'
-            ? [base.userId, base.playerId, base.otherPlayerId]
+            ? [base.userId, base.playerId, base.otherPlayerId, thirdPlayerId]
             : []
   /** Set it where a test changes the room's members, as Convex bumps it on every such change. */
   const campaignRevision: { current: string | null } = { current: null }
@@ -572,6 +595,14 @@ export async function movementRoom(config: MovementRoomConfig) {
                   {
                     characterId: config.secondCharacter!.characterId,
                     revision: secondCharacterPage.characterRevision
+                  }
+                ]
+              : []),
+            ...(thirdCharacterPage
+              ? [
+                  {
+                    characterId: config.thirdCharacter!.characterId,
+                    revision: thirdCharacterPage.characterRevision
                   }
                 ]
               : [])
@@ -671,6 +702,31 @@ export async function movementRoom(config: MovementRoomConfig) {
   const commandsOn = (channel: RoomChannel) => {
     const send = (commandId: string, command: Record<string, unknown>) =>
       sendOn(channel, commandId, command)
+    const moveToken = (
+      movementKind: 'VOLUNTARY' | 'TELEPORT',
+      path: readonly ScenePoint[],
+      expectedEncounterVersion: number,
+      expectedSceneVersion: number,
+      tokenId: string,
+      carefully = false
+    ) => {
+      const commandId = crypto.randomUUID()
+      return send(commandId, {
+        scope: 'SCENE',
+        command: {
+          type: 'MOVE_SCENE_TOKEN',
+          commandId,
+          correlationId: null,
+          expectedEncounterVersion,
+          expectedSceneVersion,
+          movementKind,
+          path,
+          sceneId: scene.id,
+          tokenId,
+          ...(carefully ? { carefully } : {})
+        }
+      })
+    }
     return {
       send,
       /** The mover (or the Token `tokenId` names) walks `path`, a voluntary move through the room's Scene command. */
@@ -681,22 +737,23 @@ export async function movementRoom(config: MovementRoomConfig) {
         tokenId: string = moverTokenId,
         carefully = false
       ) {
-        const commandId = crypto.randomUUID()
-        return send(commandId, {
-          scope: 'SCENE',
-          command: {
-            type: 'MOVE_SCENE_TOKEN',
-            commandId,
-            correlationId: null,
-            expectedEncounterVersion,
-            expectedSceneVersion,
-            movementKind: 'VOLUNTARY',
-            path,
-            sceneId: scene.id,
-            tokenId,
-            ...(carefully ? { carefully } : {})
-          }
-        })
+        return moveToken(
+          'VOLUNTARY',
+          path,
+          expectedEncounterVersion,
+          expectedSceneVersion,
+          tokenId,
+          carefully
+        )
+      },
+      /** The mover (or the Token `tokenId` names) teleports from the path's origin to its destination. */
+      teleport(
+        path: readonly [ScenePoint, ScenePoint],
+        expectedEncounterVersion: number = state.version,
+        expectedSceneVersion: number = scene.version,
+        tokenId: string = moverTokenId
+      ) {
+        return moveToken('TELEPORT', path, expectedEncounterVersion, expectedSceneVersion, tokenId)
       },
       /** Answers the PENDING movement decision with `resolution`. */
       async respond(resolution: Record<string, unknown>, expectedOccurrenceVersion?: number) {

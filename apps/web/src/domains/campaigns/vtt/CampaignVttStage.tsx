@@ -157,6 +157,8 @@ export function CampaignVttStage({
     actorId: string
     speedId: string
   } | null>(null)
+  // The cast whose teleport the member turned off, so their drags walk instead.
+  const [declinedTeleportCastId, setDeclinedTeleportCastId] = useState<string | null>(null)
   // A dragged path waiting for its mover to cross a half-speed field carefully or normally.
   const [carefulChoice, setCarefulChoice] = useState<{
     tokenId: string
@@ -967,8 +969,22 @@ export function CampaignVttStage({
   }
 
   /**
-   * Sends a voluntary move. A path that enters a field allowing passage at half speed waits for the
-   * mover's choice to move carefully or normally, which re-enters with `carefully` set.
+   * Whether a drag of this token teleports: it is the active turn's actor the member controls, and it
+   * holds a cast's allowance the member kept on (the readout's switch shows for that actor only).
+   */
+  function teleportsOnDrop(tokenId: string): boolean {
+    const [allowance] = currentTurnMovement?.teleport ?? []
+    return (
+      allowance !== undefined &&
+      currentTurnMovement?.actorId === actorIdByTokenId.get(tokenId) &&
+      allowance.castCommandId !== declinedTeleportCastId
+    )
+  }
+
+  /**
+   * Sends a move: a teleport from the origin to the drop while the mover holds a cast's allowance,
+   * otherwise a voluntary walk. A walked path that enters a field allowing passage at half speed waits
+   * for the mover's choice to move carefully or normally, which re-enters with `carefully` set.
    */
   function commitTokenMove(tokenId: string, path: ScenePoint[], carefully?: boolean): void {
     const current = sceneRef.current
@@ -984,9 +1000,10 @@ export function CampaignVttStage({
       return
     const mechanicsEncounter =
       activeEncounterSceneBinding && actorIdByTokenId.has(tokenId) ? activeEncounter : null
+    const teleporting = mechanicsEncounter !== null && teleportsOnDrop(tokenId)
     const mover = current.tokens.find((token) => token.id === tokenId)
     const fields =
-      mechanicsEncounter && mover && carefully === undefined
+      mechanicsEncounter && mover && !teleporting && carefully === undefined
         ? halfSpeedFieldsEntered({
             fields: encounterSessionState?.halfSpeedFields ?? [],
             path,
@@ -1003,10 +1020,10 @@ export function CampaignVttStage({
       correlationId: null,
       expectedEncounterVersion: mechanicsEncounter?.version ?? null,
       expectedSceneVersion: current.version,
-      movementKind: 'VOLUNTARY',
-      path,
+      movementKind: teleporting ? 'TELEPORT' : 'VOLUNTARY',
+      path: teleporting ? [path[0]!, path.at(-1)!] : path,
       sceneId: current.id,
-      speedId: mechanicsEncounter ? movingSpeedId(tokenId) : null,
+      speedId: mechanicsEncounter && !teleporting ? movingSpeedId(tokenId) : null,
       tokenId,
       type: 'MOVE_SCENE_TOKEN'
     }
@@ -1339,8 +1356,18 @@ export function CampaignVttStage({
                   : null
               }
               movement={currentTurnMovement}
+              teleportOn={
+                currentTurnMovement.teleport[0]
+                  ? currentTurnMovement.teleport[0].castCommandId !== declinedTeleportCastId
+                  : null
+              }
               onChooseSpeed={(speedId) =>
                 setMovementSpeedChoice({ actorId: currentTurnMovement.actorId, speedId })
+              }
+              onTeleportChange={(on) =>
+                setDeclinedTeleportCastId(
+                  on ? null : currentTurnMovement.teleport[0]!.castCommandId
+                )
               }
             />
           ) : null}

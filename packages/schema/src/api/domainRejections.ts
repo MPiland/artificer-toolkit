@@ -24,6 +24,7 @@ const reasonsWithoutPayload = [
   'SCENE_NOT_PRESENTED',
   'SOURCE_REQUIREMENTS_NOT_MET',
   'TARGET_UNAVAILABLE',
+  'TELEPORT_UNAVAILABLE',
   'VERSION_STALE'
 ] as const
 
@@ -51,6 +52,7 @@ export const DOMAIN_REJECTION_MESSAGES: Record<(typeof reasonsWithoutPayload)[nu
   SCENE_NOT_PRESENTED: 'Present this Scene to move Encounter tokens.',
   SOURCE_REQUIREMENTS_NOT_MET: "This actor doesn't meet the requirements to take that action.",
   TARGET_UNAVAILABLE: 'The target is unavailable.',
+  TELEPORT_UNAVAILABLE: 'A teleport spell must be cast first, and it must be unspent.',
   VERSION_STALE: 'Encounter version is stale.'
 }
 

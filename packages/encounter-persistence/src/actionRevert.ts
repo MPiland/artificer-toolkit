@@ -44,7 +44,11 @@ import { rejectDomain } from './domainRejections.js'
 import { holdsActorForm } from './actorFormPersistence.js'
 import { createActiveRuleEffectStore } from './effectStore.js'
 import { readRunActors, readRunState, replaceRunActor } from './documents.js'
-import { removeTurnSpeedBonus, restoreTurnUses } from './turnMovement.js'
+import {
+  removeTurnSpeedBonus,
+  removeTurnTeleportAllowance,
+  restoreTurnUses
+} from './turnMovement.js'
 import { projectNativeGm } from './nativeProjection.js'
 import { encounterReplayReceipt, replayEncounterCommandResult } from './replayReceipts.js'
 import { insertRunCommand, presentTimelineEntry } from './timelineEntries.js'
@@ -656,6 +660,14 @@ export async function revertLastEncounterAction(
       encounterId: state.id,
       ...root.speedBonusTurn,
       actorId: source.id
+    })
+  // A teleport cast's allowance leaves the record unless a move already spent it (undo that move first).
+  if (root.teleportAllowanceTurn)
+    await removeTurnTeleportAllowance(ctx, {
+      encounterId: state.id,
+      ...root.teleportAllowanceTurn,
+      actorId: source.id,
+      castCommandId: root.commandId
     })
   // The once-per-turn uses the attack spent return to the attacker's turn record.
   if (root.turnUses)

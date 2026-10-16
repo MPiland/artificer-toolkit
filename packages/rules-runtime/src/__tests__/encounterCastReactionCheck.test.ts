@@ -2,7 +2,12 @@ import { describe, expect, it } from 'vitest'
 import { compileEffect } from '@artificer-toolkit/shared/compilers'
 import { counterspell } from '@artificer-toolkit/source-data/srd/spells/counterspell.js'
 
-import { castReactionCheckRequirement } from '../encounterCastReactionCheck.js'
+import {
+  castReactionCheckAbility,
+  castReactionCheckRequirement
+} from '../encounterCastReactionCheck.js'
+import { srdCreatureActor, srdCreatureTarget, testUuid } from '../testing/dnd5eSrdEncounter.js'
+import { GOBLIN } from './encounterActiveEffectFixtures.js'
 
 const effect = counterspell.effects?.[0]
 if (!effect) throw new Error('Counterspell has no authored effect.')
@@ -47,6 +52,12 @@ describe('the check a counter owes for a higher-level cast', () => {
         triggerLevel: 9
       })
     ).toBeNull()
+  })
+
+  it('names no ability for a reactor that has no Character sheet to roll with', () => {
+    const goblin = srdCreatureTarget(srdCreatureActor({ id: testUuid(1), creature: GOBLIN }))
+    for (const ability of ['SPELLCASTING', 'WISDOM'] as const)
+      expect(castReactionCheckAbility({ ability, dc: 15 }, goblin)).toBeUndefined()
   })
 
   it('takes the authored ability and base DC, not a fixed one', () => {

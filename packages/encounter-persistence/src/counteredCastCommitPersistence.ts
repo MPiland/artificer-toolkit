@@ -14,13 +14,14 @@ import { readLiveEncounterActionAdmission } from './liveActionAdmission.js'
 import { insertActionEvidenceReceipt } from './actionEvidenceReceipt.js'
 import { completeActionOccurrence, recordActionRoot } from './actionCommitRecords.js'
 import { castCounteredCarriesFailedCounters } from './actionPending.js'
+import { recordCounterCheckRollCards } from './actionRollCards.js'
 import { applyFailedCounterSpends, failedCounterSpends } from './failedCounterSpend.js'
 import { settleActionSourceSpend, sourceSpendMutation } from './actionSourceSpend.js'
 import { endEffects } from './consumedGrantPersistence.js'
 import { readRunActors } from './documents.js'
 import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.js'
 import { projectNativeGm } from './nativeProjection.js'
-import type { EncounterCharacterWriteTransaction } from './ports.js'
+import type { EncounterCharacterWriteTransaction, EncounterWritePorts } from './ports.js'
 import { presentEncounterResultForMember } from './resultPresentation.js'
 
 /**
@@ -29,7 +30,9 @@ import { presentEncounterResultForMember } from './resultPresentation.js'
  * and nothing of the spell. The sealed offer the answer resumed must be the one the counter used.
  */
 export async function persistEncounterCounteredCastCommit(
-  ctx: EncounterCharacterWriteTransaction,
+  ctx: EncounterCharacterWriteTransaction & {
+    readonly ports: Pick<EncounterWritePorts, 'insertTableRoll' | 'retainPrivateRoll'>
+  },
   input: LiveSessionEncounterCounteredCastCommitInput,
   callbacks: {
     validateReadFence(
@@ -74,22 +77,32 @@ export async function persistEncounterCounteredCastCommit(
   const root = rootExecution.applicationOutputs
   const { counter } = root
   const offered = resume.pending.context.castReaction
+  const standing = offered?.chain?.counters[0]
+  const sameCounter = (left: unknown, right: unknown) =>
+    checksumCanonicalJson(left) === checksumCanonicalJson(right)
   if (
     !offered ||
-    // The counter was chosen at the offer, or its check was rolled at the pause that chose it.
-    (offered.check
-      ? (response.resolution.kind !== 'ENTER_DICE' && response.resolution.kind !== 'SYSTEM_ROLL') ||
-        counter.check === null ||
-        checksumCanonicalJson(offered.check.choiceExecution) !==
-          checksumCanonicalJson(counter.choiceExecution)
-      : response.resolution.kind !== 'OPTION' ||
-        response.resolution.optionId !== counter.reaction.useOptionId) ||
-    !offered.reactions.some(
-      (pin) => checksumCanonicalJson(pin) === checksumCanonicalJson(counter.reaction)
+    // The first counter of a chain stands: it was chosen at an earlier pause and nobody countered it.
+    // Otherwise the counter was chosen at this offer, or its check was rolled at the pause that chose it.
+    (standing
+      ? !sameCounter(standing.reaction, counter.reaction) ||
+        !sameCounter(standing.choiceExecution, counter.choiceExecution) ||
+        !sameCounter(standing.check, counter.check) ||
+        standing.triggerLevel !== counter.triggerLevel
+      : (offered.check
+          ? (response.resolution.kind !== 'ENTER_DICE' &&
+              response.resolution.kind !== 'SYSTEM_ROLL') ||
+            counter.check === null ||
+            !sameCounter(offered.check.choiceExecution, counter.choiceExecution)
+          : response.resolution.kind !== 'OPTION' ||
+            response.resolution.optionId !== counter.reaction.useOptionId) ||
+        !offered.reactions.some((pin) => sameCounter(pin, counter.reaction))) ||
+    !castCounteredCarriesFailedCounters(
+      resume.pending.context,
+      response,
+      counter.reaction.reactorActorId,
+      { failedCounters: input.failedCounters.map(({ receipt }) => receipt) }
     ) ||
-    !castCounteredCarriesFailedCounters(resume.pending.context, {
-      failedCounters: input.failedCounters.map(({ receipt }) => receipt)
-    }) ||
     input.ruleOverrides.some((warning) => !command.acknowledgedWarnings.includes(warning.code))
   )
     throw new Error('Live Session countered cast offer mismatch.')
@@ -259,6 +272,23 @@ export async function persistEncounterCounteredCastCommit(
     occurredAt: input.occurredAt
   })
   const projection = await projectNativeGm(ctx, nextState, nextActors, input.rules)
+  await recordCounterCheckRollCards(ctx, {
+    campaign,
+    encounterId: state.id,
+    gameSystemId: state.gameSystemId,
+    occurrenceId: root.occurrenceId,
+    checks: [
+      ...failedSpends.flatMap(({ failed, reactor: failedReactor }) =>
+        failed.receipt.check ? [{ reactor: failedReactor, check: failed.receipt.check }] : []
+      ),
+      ...(counter.check ? [{ reactor, check: counter.check }] : [])
+    ],
+    response,
+    responderUserId: userId,
+    initiatorUserId,
+    visibility: command.visibility,
+    createdAt: input.occurredAt
+  })
   const result = encounterCommandResultDtoSchema.parse({
     projection,
     roll: null,
@@ -288,6 +318,7 @@ export async function persistEncounterCounteredCastCommit(
       endedMaintainedStates,
       addedConcentrationCasterId: null,
       speedBonusTurn: null,
+      teleportAllowanceTurn: null,
       turnUses: null,
       failedCounters: input.failedCounters.map(({ receipt }) => receipt)
     },

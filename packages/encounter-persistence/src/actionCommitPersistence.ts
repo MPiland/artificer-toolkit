@@ -26,7 +26,8 @@ import { completeActionOccurrence, recordActionRoot } from './actionCommitRecord
 import { endEffects, receiptConsumedGrants } from './consumedGrantPersistence.js'
 import { listActiveRuleEffects } from './effectStore.js'
 import { projectNativeGm } from './nativeProjection.js'
-import { recordTurnSpeedBonus, spendTurnUses } from './turnMovement.js'
+import { executionTeleportAllowance } from '@artificer-toolkit/rules-runtime/systems/dnd5e/teleportAllowance'
+import { recordTurnSpeedBonus, recordTurnTeleportAllowance, spendTurnUses } from './turnMovement.js'
 import { presentEncounterResultForMember } from './resultPresentation.js'
 import {
   readMaintenanceOwnerRequests,
@@ -42,7 +43,11 @@ import type { EncounterCharacterWriteTransaction, EncounterWritePorts } from './
 import { castPendingContinues } from './actionPending.js'
 import { idleTurnMarkChanges } from './idleTurnMark.js'
 import { actionSystemRollAnswers, readAppCardedDice } from './appCardedDice.js'
-import { recordActionRollCards, settledD20s } from './actionRollCards.js'
+import {
+  recordActionRollCards,
+  recordCounterCheckRollCards,
+  settledD20s
+} from './actionRollCards.js'
 
 /** Validates the admitted completed root and applies its native writes in the owning transaction. */
 export async function persistEncounterActionCommit(
@@ -408,6 +413,20 @@ export async function persistEncounterActionCommit(
       dice: settledD20s(batch)
     })
   })
+  await recordCounterCheckRollCards(ctx, {
+    campaign,
+    encounterId: state.id,
+    gameSystemId: state.gameSystemId,
+    occurrenceId: execution.occurrenceId,
+    checks: failedSpends.flatMap(({ failed, reactor }) =>
+      failed.receipt.check ? [{ reactor, check: failed.receipt.check }] : []
+    ),
+    response: input.response,
+    responderUserId: userId,
+    initiatorUserId,
+    visibility: command.visibility,
+    createdAt: input.occurredAt
+  })
   const result = encounterCommandResultDtoSchema.parse({
     projection,
     roll: null,
@@ -421,6 +440,16 @@ export async function persistEncounterActionCommit(
   // A Dash adds the actor's speed to this turn's movement; the stored execution proves it resolved.
   const addsSpeed = executionAddsSpeedToMovement(execution)
   if (addsSpeed) await recordTurnSpeedBonus(ctx, { state, actorId: source.id })
+  // A teleport spell (Misty Step) grants a one-shot allowance keyed by this cast; the move consumes it.
+  const teleport = executionTeleportAllowance(execution)
+  const teleportAllowanceTurn = teleport
+    ? await recordTurnTeleportAllowance(ctx, {
+        state,
+        actorId: source.id,
+        castCommandId: command.commandId,
+        ...teleport
+      })
+    : null
   // A once-per-turn use (Sneak Attack) the attack dealt is spent from the attacker's turn record.
   const turnUses = await spendTurnUses(ctx, { state, actorId: source.id, keys: input.turnUses })
   await recordActionRoot(ctx, {
@@ -444,6 +473,7 @@ export async function persistEncounterActionCommit(
       endedMaintainedStates,
       addedConcentrationCasterId: maintenance?.addedConcentrationCasterId ?? null,
       speedBonusTurn: addsSpeed ? { round: state.round, turnActorId: source.id } : null,
+      teleportAllowanceTurn,
       turnUses,
       failedCounters: input.failedCounters.map(({ receipt }) => receipt),
       idleTurnMarkChanges: idleTurnMarkChanges(actors, nextActors)

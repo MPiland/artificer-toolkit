@@ -81,7 +81,8 @@ export async function command(room: RoomEncounterStore, ordinal: number) {
       usedFeet: ordinal,
       speedBonuses: 0,
       speedId: null,
-      usedOncePerTurn: []
+      usedOncePerTurn: [],
+      teleportAllowances: []
     })
     if (ordinal % 3 === 0) {
       const [oldest] = await room.store.query('encounterTurnMovements').collect()
