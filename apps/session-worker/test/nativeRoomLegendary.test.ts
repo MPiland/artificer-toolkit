@@ -16,7 +16,11 @@ import {
   SRD_BONUS_ACTION_ALLOWANCE_DEFINITION_ID,
   SRD_REACTION_ALLOWANCE_DEFINITION_ID
 } from '@artificer-toolkit/source-data/srd/ruleState.js'
-import { SRD_DAMAGE_TYPES, srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import {
+  SRD_CONDITION_TYPES,
+  SRD_DAMAGE_TYPES,
+  srdSystemRecord
+} from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { RoomEncounterStore } from '../src/roomEncounterStore.js'
@@ -28,6 +32,7 @@ import { closeTrackedSockets } from './liveRoomFixture.js'
 import { movementRoom } from './movementRoomFixture.js'
 import { parseReceiptExecution, readRoomHistory, readRoomRollCards } from './roomHistoryReads.js'
 
+const INVISIBLE_ID = SRD_CONDITION_TYPES.find(({ code }) => code === 'INVISIBLE')!.id
 const WOLF_ID = testUuid(0x730)
 const CHARACTER_ACTOR_ID = testUuid(0x736)
 const CHARACTER_ID = testUuid(0x737)
@@ -372,6 +377,7 @@ describe('a room ADVANCE_TURN with Legendary Action windows', () => {
       targetActorId: CHARACTER_ACTOR_ID,
       application: {
         kind: 'CHARACTER_MECHANICS_BATCH',
+        sourceApplications: [],
         sourceActorId: FIRST_DRAGON_ID,
         targetActorId: CHARACTER_ACTOR_ID,
         d20: { selectedNatural: 19, resultPath: 'ON_HIT' },
@@ -478,7 +484,7 @@ describe('a unicorn using Shimmering Shield at another creature’s turn end', (
 })
 
 describe('a Legendary Action uses up the owner’s one-roll grants (SPELLS-5.4)', () => {
-  async function legendaryTurnEnd(creature: CreatureAuthored) {
+  async function legendaryTurnEnd(creature: CreatureAuthored, ownedConditionId?: string) {
     const room = await movementRoom({
       actors: [
         srdCreatureActor({ id: WOLF_ID, creature: plainWolf }),
@@ -491,7 +497,8 @@ describe('a Legendary Action uses up the owner’s one-roll grants (SPELLS-5.4)'
       seed: seedModifierGrant({
         sourceActorId: WOLF_ID,
         holderActorId: FIRST_DRAGON_ID,
-        lifecycle: { consumeOnFirstEvents: ['ON_ATTACK_ROLL'] }
+        lifecycle: { consumeOnFirstEvents: ['ON_ATTACK_ROLL'] },
+        ownedConditionId
       })
     })
     expect((await readRoomHistory(room.base.stub)).activeEffects).toHaveLength(1)
@@ -524,6 +531,11 @@ describe('a Legendary Action uses up the owner’s one-roll grants (SPELLS-5.4)'
 
   it('keeps the grant through an action that rolls no attack', async () => {
     expect(await legendaryTurnEnd(dragon)).toHaveLength(1)
+  })
+
+  // A Legendary window releases no condition yet (SPELLS-27.T2b), so it must not strand one.
+  it('keeps a grant that owns a condition, which this window cannot release', async () => {
+    expect(await legendaryTurnEnd(attackDragon, INVISIBLE_ID)).toHaveLength(1)
   })
 })
 

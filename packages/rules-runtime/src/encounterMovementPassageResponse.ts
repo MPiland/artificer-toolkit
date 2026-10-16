@@ -11,7 +11,7 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { SceneToken } from '@artificer-toolkit/shared/vtt/scene'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import { withEncounterRuleUsageUsed } from './encounterActorState.js'
-import { consumableGrants } from './encounterGrantLifetimes.js'
+import { effectsEndedBy } from './encounterGrantLifetimes.js'
 import type { EncounterActionEconomyConsumption } from './encounterActionEconomyConsumption.js'
 import { evaluateEncounterMovementPassageContest } from './encounterMovementPassageExecution.js'
 import { stopSceneMovementResult } from './encounterMovementContinuation.js'
@@ -192,7 +192,7 @@ export async function evaluateEncounterMovementPassageResponse<
   const consumedGrants =
     evaluated.kind === 'COMPLETE'
       ? [evaluated.pending.initiator, evaluated.pending.defender].flatMap(({ actorId }) =>
-          consumableGrants(targets.get(actorId)?.activeEffects ?? [], 'ON_ABILITY_CHECK')
+          effectsEndedBy(targets.get(actorId)?.activeEffects ?? [], 'ON_ABILITY_CHECK')
         )
       : []
   if (evaluated.kind === 'COMPLETE') {

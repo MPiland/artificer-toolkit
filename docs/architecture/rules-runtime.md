@@ -410,7 +410,7 @@ movement's origin onto that creature (`planSpatialEntryGrant`, built from the gr
 authored zone entry). The grant's frozen graph is provenance only (`actionEffectPersistence.ts`,
 `encounterActionEffectReceipts.ts` read its source identity and checksums), so it reuses the zone's. A grant
 whose `recurrence.endOnEvents` names `ON_HIT_POINTS_REGAINED` ends in `persistEncounterMechanicsBatchPlan` when any
-application heals at least 1 hit point (`grantsEndedBy`). A zone whose component authors `bypassAtHalfSpeed`
+application heals at least 1 hit point (`effectsEndedBy`). A zone whose component authors `bypassAtHalfSpeed`
 (SRD "through the area at half speed") can be crossed carefully (decision Q2): the voluntary `MOVE_SCENE_TOKEN`
 command carries an optional `carefully` flag, the movement cost doubles for the path's footprint share inside that
 zone (`spatialSegmentShareInside` through `preparedMovementCost`), and the flag reaches candidate evaluation so that
@@ -620,8 +620,8 @@ options (ADR 0038); nothing in code names Hide.
   unseen-attacker path. The believed
   mode must not reveal which observers failed, so it treats the hider as hidden from any non-allied target while a concealment
   exists; the true mode uses the set and may cancel it ("Advantage cancelled: the target can sense you"). The first attack
-  roll consumes the concealment for everyone (`consumableGrants`: modifier grants and concealments only, so the Invisibility
-  condition path is unchanged).
+  roll consumes the concealment for everyone (`effectsEndedBy`, SPELLS-27: any v2 effect that lists the event in `consumeOnFirstEvents` or
+  `endOnEvents`, so Invisibility ends the same way).
 - **Redaction.** The observer ids are GM knowledge. They live only in the stored effect and receipt; no player projection,
   timeline line, pending read or roll card carries them, so the hider's and other players' views never name the observers.
 - **Movement prune.** Committing an Encounter-bound token move on a Scene drops from each concealment the observers that now
@@ -1067,12 +1067,13 @@ never selects them; `planEncounterGrantTicks` (`encounterGrantLifetimes`) counts
 anchored to the boundary actor, whoever holds it, and `persistEncounterGrantTicks` writes it in the turn
 commit's transaction. A grant's `consumeOnFirstEvents` (`ON_ATTACK_ROLL`, `ON_ABILITY_CHECK`) lists the events that use it up: it is deleted by its holder's next
 attack-roll action (not a save action) or ability check and stored on the command as `consumedGrants`, which GM undo
-restores (`consumableGrants` in `encounterGrantLifetimes`, `consumedGrantPersistence` in encounter-persistence). Help is the
+restores (`effectsEndedBy` in `encounterGrantLifetimes`, `consumedGrantPersistence` in encounter-persistence). Help is the
 grant that carries both events. First Aid and Escape consume at the first commit, so their pending check context freezes the used grants as `consumedGrants` and the pending read names them from it. A Creature's check grants resolve the check's governing ability from the System skill (`checkAbilityCode`). Every
 attack path consumes: ordinary actions, movement reaction attacks and Disarm record `consumedGrants` on
 their command, and a Legendary Action window deletes its owner's grants at the turn commit when the option
 rolled an attack (`attackRoll` on the EXECUTED evidence); only ordinary actions have GM undo. A
 grant made at another creature's turn end has no extra tick and ends at the end of the holder's next turn.
+An event that ends a condition-owning effect (Invisibility on its holder's attack roll, SPELLS-27.T2, D125) also releases the condition: the planner adds `CONDITION_REMOVE` to the action's source batch (`sourceApplications`, required on both mechanics batch receipts; `endedEffectConditionReleases`), and the root receipt's `endedMaintainedStates` and `restoredConditionIds` give the Concentration and the condition back on GM undo, fenced by the source stream version. The Legendary window, movement opportunity attack and Disarm skip condition-owning effects until SPELLS-27.T2b; `NON_RELEASING_EFFECT_EVENTS` keeps authoring from listing an event whose consumer does not release.
 An `ARMOR_CLASS` grant on a Creature raises its AC through `withCreatureActiveGrantArmorClass`, applied
 where movement targets and Cleaving facts are built. A
 SOURCE-anchored grant ends when its source is removed from the Run (`planDepartedSourceGrantRemovals`,

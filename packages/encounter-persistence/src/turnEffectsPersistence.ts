@@ -24,7 +24,7 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
 import { readRunActor } from './documents.js'
-import { createActiveRuleEffectStore } from './effectStore.js'
+import { createActiveRuleEffectStore, maintainedStateTerminatesWhenEmpty } from './effectStore.js'
 import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.js'
 import type { EncounterCharacterWriteTransaction } from './ports.js'
 
@@ -270,11 +270,8 @@ export async function persistEncounterTurnEffects(
   for (const stateId of [...terminalMaintainedStateIds].sort()) {
     const maintained = maintainedStates.get(stateId)
     if (!maintained) throw new Error('Maintained turn effect source binding is stale.')
-    const terminatesWhenEmpty =
-      maintained.descriptor.schemaVersion === 1 ||
-      maintained.descriptor.emptyDependentPolicy === 'TERMINATE_WHEN_EMPTY'
     if (
-      !terminatesWhenEmpty ||
+      !maintainedStateTerminatesWhenEmpty(maintained) ||
       (await store.listDependentEffects({ encounterId: state.id, stateId })).length !== 0
     )
       continue

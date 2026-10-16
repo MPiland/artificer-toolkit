@@ -94,6 +94,7 @@ describe('a Character action whose only outcome is fixed', () => {
     if (execution.status !== 'COMPLETE') throw new Error('The root action did not complete.')
     expect(execution.applicationOutputs).toMatchObject({
       kind: 'CHARACTER_MECHANICS_BATCH',
+      sourceApplications: [],
       sourceCharacterId: FIGHTER_ID,
       targetTransition: {
         before: { currentHitPoints: WOUNDED_HIT_POINTS },

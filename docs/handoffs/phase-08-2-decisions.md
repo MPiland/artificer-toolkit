@@ -785,6 +785,11 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - **Sight:** a sight-governed d20 (a Blinded or unseen target) settles in the true mode whatever the roller chose (D100), so the check follows the true mode. The evidence `rollMode` already holds it.
   - **Seal:** the OUTCOME template checksum is unchanged (it hashes the authored groups, restricted or not). Only the published graph depends on the TEST result, and `resolveEncounterActionPhaseExecution` is the sole place that reads it.
   - **Removed:** the `dnd5e.attack-roll-mode` bound fact. Nothing else read it.
+* **D125** (2026-10-16) Releasing a condition when its effect ends (SPELLS-27.T2; design in [slice-spells-27.md](slice-spells-27.md#7-spells-27t2-effects-ended-by-an-event-release-what-they-owned)). Decided by the main session.
+  - **Where:** the source side of the action's mechanics batch. The planner emits `CONDITION_REMOVE` for conditions the ended effects alone owned (`endedMaintenanceConditions`), for Character and Creature holders, in the same transaction as the event.
+  - **Contract:** `sourceApplications` is required (no default) on `CHARACTER_MECHANICS_BATCH` and `ENCOUNTER_ACTOR_MECHANICS_BATCH` receipts and settled DTOs. It holds only contiguous `CONDITION_REMOVE` applications, and the source stream version moves exactly when one applied. Local development receipts that fail validation take the approved local reset.
+  - **Undo:** the RESOLVE_ACTION root receipt requires `endedMaintainedStates`. Undo restores a maintained state (Concentration) an event ended, for any maintained-state termination, by receipt, before the effects. A removed condition comes back through a `restoredConditionIds` inverse fenced by the source stream version.
+  - **Authoring fence:** a condition-owning v2 effect cannot list an end event whose consumer does not release the condition yet (`ON_ABILITY_CHECK`, `ON_HIT_POINTS_REGAINED`, `ON_INCAPACITATED`). Until SPELLS-27.T2b migrates the Legendary window, movement opportunity attack and Disarm, those roots skip condition-owning effects.
 
 ## Approved implementation decisions
 

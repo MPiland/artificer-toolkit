@@ -34,7 +34,7 @@ import { SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from '@artificer-to
 import { prepareActiveRuleEffectRecord } from '../activeRuleEffectRecords.js'
 import { prepareEncounterActionEffectPlans } from '../encounterActionEffectPlans.js'
 import {
-  consumableGrants,
+  effectsEndedBy,
   expiredCarriedOverGrants,
   grantsEndedByHolderState,
   planCarriedOverEffects,
@@ -676,7 +676,7 @@ describe('a grant that ends on incapacitation', () => {
   })
 })
 
-describe('consumableGrants', () => {
+describe('effectsEndedBy', () => {
   const held = (id: number, events: ('ON_ATTACK_ROLL' | 'ON_ABILITY_CHECK')[]) =>
     grantRecord(
       storedGrant({ lifecycle: { consumeOnFirstEvents: events }, currentActorId: null }),
@@ -692,7 +692,7 @@ describe('consumableGrants', () => {
 
   it('lists only the grants an attack roll uses up', () => {
     const consumable = held(0xc340, ['ON_ATTACK_ROLL'])
-    expect(consumableGrants([plain, consumable], 'ON_ATTACK_ROLL').map(({ id }) => id)).toEqual([
+    expect(effectsEndedBy([plain, consumable], 'ON_ATTACK_ROLL').map(({ id }) => id)).toEqual([
       consumable.id
     ])
   })
@@ -702,8 +702,46 @@ describe('consumableGrants', () => {
     const both = held(0xc343, ['ON_ABILITY_CHECK', 'ON_ATTACK_ROLL'])
     const attackOnly = held(0xc344, ['ON_ATTACK_ROLL'])
     expect(
-      consumableGrants([plain, check, both, attackOnly], 'ON_ABILITY_CHECK').map(({ id }) => id)
+      effectsEndedBy([plain, check, both, attackOnly], 'ON_ABILITY_CHECK').map(({ id }) => id)
     ).toEqual([check.id, both.id])
+  })
+})
+
+describe('effectsEndedBy on an end event', () => {
+  const ending = (id: number, endOnEvents: ('ON_HIT_POINTS_REGAINED' | 'ON_INCAPACITATED')[]) =>
+    grantRecord(storedGrant({ lifecycle: { endOnEvents }, currentActorId: null }), {
+      id,
+      holderId: TARGET_ID
+    })
+
+  it('lists the effects that end on the event and nothing else', () => {
+    const regained = ending(0xc350, ['ON_HIT_POINTS_REGAINED'])
+    const incapacitated = ending(0xc351, ['ON_INCAPACITATED'])
+    expect(
+      effectsEndedBy([regained, incapacitated], 'ON_HIT_POINTS_REGAINED').map(({ id }) => id)
+    ).toEqual([regained.id])
+    expect(
+      effectsEndedBy([regained, incapacitated], 'ON_INCAPACITATED').map(({ id }) => id)
+    ).toEqual([incapacitated.id])
+    expect(effectsEndedBy([regained, incapacitated], 'ON_ABILITY_CHECK')).toEqual([])
+  })
+
+  it('lists an effect once when it consumes and ends on the same event', () => {
+    const consuming = grantRecord(
+      storedGrant({
+        lifecycle: { consumeOnFirstEvents: ['ON_ATTACK_ROLL'] },
+        currentActorId: null
+      }),
+      { id: 0xc352, holderId: TARGET_ID }
+    )
+    const both = {
+      ...consuming,
+      definition: {
+        ...consuming.definition,
+        recurrence: { ...consuming.definition.recurrence, endOnEvents: ['ON_ATTACK_ROLL' as const] }
+      }
+    }
+    expect(effectsEndedBy([both], 'ON_ATTACK_ROLL')).toEqual([both])
   })
 })
 
@@ -818,26 +856,28 @@ describe('planCarriedOverEffects', () => {
     }
     const stamped = stampedGrant(0xc36a, CHARACTER_ID)
     const creatureCast = stampedGrant(0xc36b, null)
-    expect(planCarriedOverEffects({ effects: [stamped, creatureCast], clockMinute: 2000 })).toEqual([
-      {
-        effect: stamped,
-        lifecycle: {
-          schemaVersion: 1,
-          remainingTicks: null,
-          concentrationCasterCharacterId: CHARACTER_ID,
-          expiresAtCampaignMinute: 2001
+    expect(planCarriedOverEffects({ effects: [stamped, creatureCast], clockMinute: 2000 })).toEqual(
+      [
+        {
+          effect: stamped,
+          lifecycle: {
+            schemaVersion: 1,
+            remainingTicks: null,
+            concentrationCasterCharacterId: CHARACTER_ID,
+            expiresAtCampaignMinute: 2001
+          }
+        },
+        {
+          effect: creatureCast,
+          lifecycle: {
+            schemaVersion: 1,
+            remainingTicks: null,
+            concentrationCasterCharacterId: null,
+            expiresAtCampaignMinute: 2001
+          }
         }
-      },
-      {
-        effect: creatureCast,
-        lifecycle: {
-          schemaVersion: 1,
-          remainingTicks: null,
-          concentrationCasterCharacterId: null,
-          expiresAtCampaignMinute: 2001
-        }
-      }
-    ])
+      ]
+    )
   })
 
   it('leaves an untimed grant alone', () => {
@@ -874,7 +914,9 @@ describe('a timed condition effect on a Character outlasting its Run (SPELLS-5.1
     ['Hold Person', holdPerson]
   ])('outlasts the Encounter on a Character target: %s', (_label, spell) => {
     expect(storedCondition(spell, 'OWNER').definition.recurrence.lifetimeScope).toBe('OWNER')
-    expect(storedCondition(spell, 'ENCOUNTER').definition.recurrence.lifetimeScope).toBe('ENCOUNTER')
+    expect(storedCondition(spell, 'ENCOUNTER').definition.recurrence.lifetimeScope).toBe(
+      'ENCOUNTER'
+    )
   })
 
   it('moves to the Campaign clock with its remaining rounds, as a grant does', () => {
@@ -901,7 +943,9 @@ describe('a timed condition effect on a Character outlasting its Run (SPELLS-5.1
   it('releases the condition the ended effect alone owns', () => {
     const held = characterRecord(storedCondition(holdPerson, 'OWNER'), 7)
     expect(endedMaintenanceConditions([held], [])).toEqual(new Set([PARALYZED_ID]))
-    expect(endedMaintenanceConditions([held], [{ ...held, id: testUuid(0xc381) }])).toEqual(new Set())
+    expect(endedMaintenanceConditions([held], [{ ...held, id: testUuid(0xc381) }])).toEqual(
+      new Set()
+    )
   })
 })
 

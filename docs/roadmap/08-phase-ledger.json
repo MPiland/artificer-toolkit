@@ -8455,7 +8455,7 @@
             },
             {
               "id": "SPELLS-27.T2a",
-              "text": "One effectsEndedBy consumer over both event lists for any v2 effect; release planned on the source batch (required sourceApplications, D124); action and reaction attack-roll roots; Concentration and the condition restored on GM undo by receipt; authoring fence for non-releasing events on condition-owning effects (journey: cast Invisibility, attack with advantage, effect and condition gone, undo restores both).",
+              "text": "One effectsEndedBy consumer over both event lists for any v2 effect; release planned on the source batch (required sourceApplications, D125); action and reaction attack-roll roots; Concentration and the condition restored on GM undo by receipt; authoring fence for non-releasing events on condition-owning effects (journey: cast Invisibility, attack with advantage, effect and condition gone, undo restores both).",
               "status": "IN_PROGRESS",
               "closes": ["SPELLS-27.1"],
               "wsjf": {

@@ -20,6 +20,8 @@ import {
   encounterFeatureResourceReceiptDtoSchema,
   maintainedEffectTransitionDtoSchema,
   resolveDispositionDamage,
+  sourceApplicationsChangeState,
+  sourceApplicationsDtoSchema,
   stateEffectCreateReceiptDtoSchema,
   validateMaintainedEffectCreation,
   validateStateEffectTransitions
@@ -108,7 +110,9 @@ const characterMechanicsBatchApplicationOutputDtoSchema = lazySchema(() =>
       }),
       applications: z
         .array(characterMechanicsApplicationDtoSchema)
-        .check(z.maxLength(RULE_GRAPH_LIMITS.NODES))
+        .check(z.maxLength(RULE_GRAPH_LIMITS.NODES)),
+      /** The source's own conditions released by effects its action ended; empty when none. */
+      sourceApplications: sourceApplicationsDtoSchema
     })
     .check(
       z.superRefine((value, context) => {
@@ -413,7 +417,8 @@ const characterMechanicsBatchApplicationOutputDtoSchema = lazySchema(() =>
           value.resourceConsumption !== null ||
           stow !== null ||
           consumption !== null ||
-          spell !== null
+          spell !== null ||
+          sourceApplicationsChangeState(value.sourceApplications)
         if (
           spell &&
           (value.sourceCharacterId === null || spell.characterId !== value.sourceCharacterId)

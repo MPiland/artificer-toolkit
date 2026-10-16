@@ -585,6 +585,7 @@ export async function persistEncounterAreaCommit(
         ...input,
         endedGrants: [...input.endedGrants, ...healEndedGrants]
       }),
+      endedMaintainedStates: [],
       addedConcentrationCasterId: null,
       speedBonusTurn: null,
       turnUses: null,

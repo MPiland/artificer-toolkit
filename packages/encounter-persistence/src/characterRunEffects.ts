@@ -2,7 +2,7 @@ import { planConcentrationCarriedGrantEnds } from '@artificer-toolkit/rules-runt
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { readRunActors } from './documents.js'
-import { createActiveRuleEffectStore } from './effectStore.js'
+import { createActiveRuleEffectStore, maintainedStateTerminatesWhenEmpty } from './effectStore.js'
 import { reconcileNativeMaintenanceOwners } from './maintenanceOwnerPersistence.js'
 import type { EncounterCharacterWriteTransaction } from './ports.js'
 
@@ -48,11 +48,8 @@ export async function endCharacterRunEffects(
     // The room may have ended a state whose departed dependents it stopped counting.
     const state = await store.findMaintainedStateById({ encounterId, stateId })
     if (!state) continue
-    const terminalWhenEmpty =
-      state.descriptor.schemaVersion === 1 ||
-      state.descriptor.emptyDependentPolicy === 'TERMINATE_WHEN_EMPTY'
     if (
-      terminalWhenEmpty &&
+      maintainedStateTerminatesWhenEmpty(state) &&
       (await store.listDependentEffects({ encounterId, stateId })).length === 0
     )
       await store.deleteMaintainedStateCas({

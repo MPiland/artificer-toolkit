@@ -112,6 +112,7 @@ describe('receipt persistence headers', () => {
       label: 'First Aid',
       ruleOverrides: [],
       consumedGrants: [],
+      endedMaintainedStates: [],
       addedConcentrationCasterId: null,
       speedBonusTurn: null,
       turnUses: null
