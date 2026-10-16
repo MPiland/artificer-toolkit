@@ -496,8 +496,8 @@ export async function revertLastEncounterAction(
     application.kind === 'CONDITION_REMOVE' && application.applied ? [application.conditionId] : []
   )
   if (releasedConditionIds.length) {
-    if (source.kind === 'CHARACTER' && sourceCharacterId) {
-      if (spend.sourceCharacterStreamVersion === null)
+    if (source.kind === 'CHARACTER') {
+      if (sourceCharacterId === null || spend.sourceCharacterStreamVersion === null)
         throw new Error('Stored source Character version is missing.')
       characterInverse(sourceCharacterId, spend.sourceCharacterStreamVersion).restoredConditionIds =
         new Set(releasedConditionIds)
