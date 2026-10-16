@@ -112393,6 +112393,7 @@ export declare const api: {
               | { kind: "SELF" }
               | { kind: "ACTOR"; self: "ALLOWED" | "WARN" | "REFUSED" }
               | {
+                  allowRepeatedTargets?: true;
                   area: {
                     kind: "RADIUS";
                     radius: {
@@ -113114,6 +113115,7 @@ export declare const api: {
               | { kind: "SELF" }
               | { kind: "ACTOR"; self: "ALLOWED" | "WARN" | "REFUSED" }
               | {
+                  allowRepeatedTargets?: true;
                   area: {
                     kind: "RADIUS";
                     radius: {
