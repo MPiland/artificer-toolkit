@@ -279,9 +279,6 @@ export function assertLocalLifecycleTarget(environment = process.env) {
   ) {
     throw new Error('CONVEX_DEPLOYMENT may select only an explicit local deployment.')
   }
-  if (!environment.CONVEX_SELF_HOSTED_ADMIN_KEY) {
-    throw new Error('CONVEX_SELF_HOSTED_ADMIN_KEY is required for the local lifecycle.')
-  }
   if (new URL(environment.CONVEX_URL).href !== new URL(environment.CONVEX_SELF_HOSTED_URL).href) {
     throw new Error('CONVEX_URL and CONVEX_SELF_HOSTED_URL must identify the same local backend.')
   }
