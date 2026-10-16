@@ -294,7 +294,8 @@ export function sceneTokenMovementFailure(
   state: Pick<CampaignSceneState, 'map' | 'tokens' | 'barriers' | 'doorStates'>,
   tokenId: string,
   position: ScenePoint,
-  path: readonly ScenePoint[]
+  path: readonly ScenePoint[],
+  movementKind: 'VOLUNTARY' | 'FORCED' | 'TELEPORT' = 'VOLUNTARY'
 ): string | null {
   const token = state.tokens.find((candidate) => candidate.id === tokenId)
   if (!token || token.locked) return 'The token is missing or locked.'
@@ -313,6 +314,8 @@ export function sceneTokenMovementFailure(
     if (point.x < 0 || point.y < 0 || point.x > state.map.width || point.y > state.map.height)
       return 'Token movement must remain within the map bounds.'
   }
+  // A teleport crosses nothing between its endpoints.
+  if (movementKind === 'TELEPORT') return null
   const index = new SceneBarrierIndex(state.barriers)
   for (let pathIndex = 1; pathIndex < path.length; pathIndex += 1) {
     if (!canMoveBetween(state, path[pathIndex - 1]!, path[pathIndex]!, index))

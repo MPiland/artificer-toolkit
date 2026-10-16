@@ -424,6 +424,9 @@ export const adultBrassDragon: CreatureAuthored = {
                   durationKind: DURATION_KIND.MINUTE,
                   amount: 10
                 },
+                lifecycle: {
+                  endOnTriggers: [{ event: 'DAMAGE_TAKEN' as const, by: 'ANYONE' as const }]
+                },
                 outcomes: [
                   {
                     id: S.actionId(5, 38),

@@ -180,6 +180,7 @@ it('atomically resolves a failed native Concentration save, retains the private 
     tempHitPoints: 0,
     conditions: [],
     defeated: false,
+    form: null,
     absence: null
   })
   const optionalCombatSnapshot = { schemaVersion: 1, gameSystemId: system.id, definitions: [] }

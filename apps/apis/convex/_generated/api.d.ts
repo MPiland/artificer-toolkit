@@ -110054,6 +110054,11 @@ export declare const api: {
                       unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                     };
                   } | null;
+                  forms?: Array<{
+                    id: string;
+                    label: string;
+                    maxTargets: number;
+                  }>;
                   kind: "ACTORS";
                   maxTargets: number;
                 }
@@ -110777,6 +110782,11 @@ export declare const api: {
                       unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                     };
                   } | null;
+                  forms?: Array<{
+                    id: string;
+                    label: string;
+                    maxTargets: number;
+                  }>;
                   kind: "ACTORS";
                   maxTargets: number;
                 }
@@ -111894,6 +111904,11 @@ export declare const api: {
               speedId: string;
             }>;
             speedId: string | null;
+            teleport: Array<{
+              castCommandId: string;
+              destinationKind: "VISIBLE" | "SPECIFIED_POINT";
+              maxFeet: number;
+            }>;
             used: number;
           }>;
           waitingOn: "GM" | "PLAYER" | null;
@@ -121670,6 +121685,36 @@ export declare const internal: {
         any
       >;
       runActorAbsence: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          batchSize?: number;
+          cursor?: string | null;
+          dryRun?: boolean;
+          fn?: string;
+          next?: Array<string>;
+          oneBatchOnly?: boolean;
+          reset?: boolean;
+        },
+        any
+      >;
+    };
+    actorFormMigration: {
+      run: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          batchSize?: number;
+          cursor?: string | null;
+          dryRun?: boolean;
+          fn?: string;
+          next?: Array<string>;
+          oneBatchOnly?: boolean;
+          reset?: boolean;
+        },
+        any
+      >;
+      runActorForm: FunctionReference<
         "mutation",
         "internal",
         {

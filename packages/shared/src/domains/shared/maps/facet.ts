@@ -13,6 +13,7 @@ import {
 } from '#authored'
 import {
   ABILITY_OPTIONS,
+  ACTIVATION_OPTIONS,
   ATTACK_ROLL_MODE_OPTIONS,
   AUTHORING_CONSTRAINT_OPTIONS,
   AUTHORING_MODE_KIND_OPTIONS,
@@ -1815,6 +1816,19 @@ function createFacetPredicateNodeMap(
             order: 3,
             showIf: local.field(['predicateCode']).eq('ATTACK_ABILITY'),
             requiredIf: local.field(['predicateCode']).eq('ATTACK_ABILITY')
+          }
+        )
+      )
+      .set(
+        'activation',
+        selectSingle(
+          ['activation'],
+          'Attack Activation',
+          { kind: 'INLINE_OPTIONS', options: ACTIVATION_OPTIONS },
+          {
+            order: 3,
+            showIf: local.field(['predicateCode']).eq('ATTACK_ACTIVATION'),
+            requiredIf: local.field(['predicateCode']).eq('ATTACK_ACTIVATION')
           }
         )
       )

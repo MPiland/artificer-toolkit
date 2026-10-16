@@ -41,9 +41,14 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { restoreConsumedGrants, restoreEndedMaintainedStates } from './consumedGrantPersistence.js'
 import { deletePlacedSpatialEffect } from './placedSpatialEffects.js'
 import { rejectDomain } from './domainRejections.js'
+import { holdsActorForm } from './actorFormPersistence.js'
 import { createActiveRuleEffectStore } from './effectStore.js'
 import { readRunActors, readRunState, replaceRunActor } from './documents.js'
-import { removeTurnSpeedBonus, restoreTurnUses } from './turnMovement.js'
+import {
+  removeTurnSpeedBonus,
+  removeTurnTeleportAllowance,
+  restoreTurnUses
+} from './turnMovement.js'
 import { projectNativeGm } from './nativeProjection.js'
 import { encounterReplayReceipt, replayEncounterCommandResult } from './replayReceipts.js'
 import { insertRunCommand, presentTimelineEntry } from './timelineEntries.js'
@@ -318,6 +323,25 @@ export async function revertLastEncounterAction(
   if (unsupported.size || !spend)
     unavailable(`Undo can't restore ${[...unsupported].join(', ')}; adjust manually.`)
 
+  const store = createActiveRuleEffectStore(ctx)
+  // A cast's creature form ends first: ending its effect restores the origin the cast swapped out
+  // (D130), so the inverses below read the actor as it stood before the cast.
+  const endedFormEffectIds = new Set<string>()
+  for (const action of targetBatches) {
+    if (action.kind !== 'ENCOUNTER_ACTOR_MECHANICS_BATCH') continue
+    const owner = {
+      kind: 'ENCOUNTER_ACTOR' as const,
+      encounterId: state.id,
+      targetActorId: action.targetActorId
+    }
+    for (const transition of action.activeEffectTransitions) {
+      const effect = await store.findById(owner, transition.activeEffectId)
+      if (!effect || !holdsActorForm(effect.definition)) continue
+      await store.deleteCas({ id: effect.id, owner, expectedVersion: transition.afterVersion })
+      endedFormEffectIds.add(effect.id)
+    }
+  }
+
   const actors = await readRunActors(ctx, state)
   const actorsById = new Map(actors.map((actor) => [actor.id, actor]))
   const source = actorsById.get(spend.sourceActorId)
@@ -375,7 +399,6 @@ export async function revertLastEncounterAction(
     characterInverses.set(characterId, next)
     return next
   }
-  const store = createActiveRuleEffectStore(ctx)
   const createdStates = new Map<
     string,
     NonNullable<ActionBatch['maintenanceTransition']>['createdState']
@@ -515,7 +538,7 @@ export async function revertLastEncounterAction(
     for (const effect of [
       ...action.activeEffectTransitions,
       ...(reaction?.activeEffectTransitions ?? [])
-    ])
+    ].filter(({ activeEffectId }) => !endedFormEffectIds.has(activeEffectId)))
       await store.deleteCas({
         id: effect.activeEffectId,
         owner: characterOwnerId
@@ -637,6 +660,14 @@ export async function revertLastEncounterAction(
       encounterId: state.id,
       ...root.speedBonusTurn,
       actorId: source.id
+    })
+  // A teleport cast's allowance leaves the record unless a move already spent it (undo that move first).
+  if (root.teleportAllowanceTurn)
+    await removeTurnTeleportAllowance(ctx, {
+      encounterId: state.id,
+      ...root.teleportAllowanceTurn,
+      actorId: source.id,
+      castCommandId: root.commandId
     })
   // The once-per-turn uses the attack spent return to the attacker's turn record.
   if (root.turnUses)

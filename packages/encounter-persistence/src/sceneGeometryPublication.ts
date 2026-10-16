@@ -33,7 +33,7 @@ import {
 import { geometryTarget, normalizeSceneGeometryEntity } from './sceneGeometryValues.js'
 import { advanceLiveState } from './sceneLiveState.js'
 import { requireBoundTokenMoveControl } from './actorController.js'
-import { recordTurnMovement } from './turnMovement.js'
+import { consumeTurnTeleportAllowance, recordTurnMovement } from './turnMovement.js'
 import type { EncounterCharacterWriteTransaction } from './ports.js'
 import type { EncounterDocument } from './store.js'
 
@@ -358,6 +358,21 @@ export async function publishSceneGeometry<TGeometry extends SpatialSceneGeometr
           feet: sceneLengthInFeet(input.movementCost, header.grid),
           speedId
         })
+    }
+    // A player's teleport spends the allowance the room admitted it with (SPELLS-28.2).
+    if (
+      save.input.type === 'MOVE_SCENE_TOKEN' &&
+      !save.movementResolution &&
+      input.teleportCastCommandId
+    ) {
+      const actorId = geometry.actorIdByTokenId.get(save.input.tokenId)
+      if (!actorId) throw new Error('The teleporting token is not bound to an Encounter actor.')
+      await consumeTurnTeleportAllowance(ctx, {
+        state: geometry.encounter,
+        actorId,
+        castCommandId: input.teleportCastCommandId,
+        commandId: save.commandId
+      })
     }
   }
   const reduced = applySceneGeometryDelta(

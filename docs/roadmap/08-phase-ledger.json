@@ -3862,8 +3862,11 @@
             },
             {
               "text": "Maintenance has multi-Character and detached-Character variants, plus the CHARACTER-owner maintenance producer test.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/session-worker/test/nativeRoomMaintenanceVariants.test.ts",
+                "apps/session-worker/test/nativeRoomCharacterSources.test.ts"
+              ],
               "origin": [],
               "id": "ROOM-6.3"
             },
@@ -3876,15 +3879,15 @@
             },
             {
               "text": "Empty-prior maintenance (RETAIN_UNTIL_TERMINAL) is proved room-side.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": ["apps/session-worker/test/nativeRoomMaintenanceVariants.test.ts"],
               "origin": [],
               "id": "ROOM-6.5"
             },
             {
               "text": "Assisted maintenance pauses and stale refusals are proved, using a room seed route.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": ["apps/session-worker/test/nativeRoomMaintenanceVariants.test.ts"],
               "origin": [],
               "id": "ROOM-6.6"
             },
@@ -3977,21 +3980,20 @@
             },
             {
               "id": "ROOM-6.T2",
-              "text": "Maintenance variants proved room-side: multi-Character, detached, empty-prior and Assisted pauses.",
-              "status": "IN_PROGRESS",
+              "text": "Maintenance variants proved room-side: multi-Character, detached, empty-prior and Assisted pauses. (Proof only, no product change; the ROOM-6.5 room errors were a fixture source-occurrence bug. A detached owner that is not a Run actor is deferred under Deferred edge cases (fixture limit; production shares the GM-removed load path). Green: ci/room-6-t2 Tests 38935190197 and Live backend 38935190347 on 894ddca5b.)",
+              "status": "DONE",
               "closes": ["ROOM-6.3", "ROOM-6.5", "ROOM-6.6"],
               "wsjf": {
                 "bv": 1,
                 "tc": 1,
                 "rr": 5,
                 "size": 5
-              },
-              "activeWorkbook": "docs/handoffs/slice-room-6.md"
+              }
             },
             {
               "id": "ROOM-6.T3",
               "text": "Remaining room-side proofs: spatial save hazard, movement receipts, Disarm, Longsword and R2 equipment seeding, movement coverage and initiative receipts.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": [
                 "ROOM-6.2",
                 "ROOM-6.4",
@@ -4006,7 +4008,8 @@
                 "tc": 1,
                 "rr": 5,
                 "size": 8
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-room-6.md"
             },
             {
               "id": "ROOM-6.T4",
@@ -5952,8 +5955,8 @@
             },
             {
               "id": "ATTACK-9.T5b",
-              "text": "Off-hand damage omits a positive ability modifier but keeps a negative one (negative-only modifier mode); the Two-Weapon Fighting style grant restores the positive modifier.",
-              "status": "IN_PROGRESS",
+              "text": "Off-hand damage omits a positive ability modifier but keeps a negative one (negative-only modifier mode); the Two-Weapon Fighting style grant restores the positive modifier. (Red: ci/attack-9-t5b-red Tests 38923270291 on 7f52b3fae failed on 5 twoWeaponFightingDamage tests and the off-hand activation typecheck. Green: ci/attack-9-t5 Tests 38927082342 and Live backend 38927082404 on 864f57a1f.)",
+              "status": "DONE",
               "closes": ["ATTACK-9.5"],
               "wsjf": {
                 "bv": 5,
@@ -5961,13 +5964,12 @@
                 "rr": 3,
                 "size": 2,
                 "after": ["ATTACK-9.T5a"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-attack-9-t5.md"
+              }
             },
             {
               "id": "ATTACK-9.T5c",
               "text": "Builder data for two-weapon fighting and the Two-Weapon Fighting style, the end-to-end journey, and the authoring-parity proof from core options.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["ATTACK-9.5"],
               "wsjf": {
                 "bv": 5,
@@ -5975,7 +5977,8 @@
                 "rr": 3,
                 "size": 2,
                 "after": ["ATTACK-9.T5b"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-attack-9-t5.md"
             },
             {
               "id": "ATTACK-9.T6",
@@ -8170,8 +8173,8 @@
             },
             {
               "id": "SPELLS-19.T3",
-              "text": "Timed and repeat-save condition breaths compile in the dnd5e System compiler and resolve through the area executor: Silver (5), Dust Mephit, Brass Sleep (4), Copper Slowing (4), Gold Weakening (4), and Gorgon Petrifying Breath with its repeat save authored; the corpus test pins each row red first.",
-              "status": "IN_PROGRESS",
+              "text": "Timed and repeat-save condition breaths compile in the dnd5e System compiler and resolve through the area executor: Silver (4), Dust Mephit and Brass Sleep (4, ends on damage taken; waking with an action is a deferred gap). Copper, Gold and the Gorgon split to T3b and T3c. (Red: ci/spells-19-t3-red Tests 38923733569 on 91d2552c7 failed on the corpus pin \"leaves no breath its System cannot execute\". Green: ci/spells-19-t3 Tests 38936308942 and Live backend 38936308878 on 11aa2a122.)",
+              "status": "DONE",
               "closes": ["SPELLS-19.2"],
               "wsjf": {
                 "bv": 8,
@@ -8179,8 +8182,34 @@
                 "rr": 3,
                 "size": 8,
                 "after": ["SPELLS-19.T1"]
+              }
+            },
+            {
+              "id": "SPELLS-19.T3b",
+              "text": "Copper Slowing (4) and Gold Weakening (4) breaths re-authored from core options as a grant plus repeat save, the grant gated on the failed save, no closed rule; corpus pin updated row by row.",
+              "status": "IN_PROGRESS",
+              "closes": ["SPELLS-19.2"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 3,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-19.T3"]
               },
               "activeWorkbook": "docs/handoffs/slice-spells-19.md"
+            },
+            {
+              "id": "SPELLS-19.T3c",
+              "text": "Gorgon Petrifying Breath: 30 ft cone shaped, the printed repeat save and the petrify stage authored from core options.",
+              "status": "TODO",
+              "closes": ["SPELLS-19.2"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 3,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-19.T3b"]
+              }
             },
             {
               "id": "SPELLS-19.T4",
@@ -8380,7 +8409,7 @@
         {
           "id": "SPELLS-23",
           "title": "Aiming a directed area on the map",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "journeyTests": [],
           "journeyStatus": "none",
           "origin": [],
@@ -8407,7 +8436,21 @@
             "tc": 2,
             "rr": 3,
             "size": 3
-          }
+          },
+          "tasks": [
+            {
+              "id": "SPELLS-23.T1",
+              "text": "Directed-area aiming on the map: press, drag and release aims a cone, line or Self cube and commits exactly the drawn origin and direction; a point for a directed area, or a direction for a point area, is refused room-side with its own message; a Self cube snaps to the grid on the caster's chosen side, centered along it, for every side and size. Proved through the renderer gesture and the room refusals.",
+              "status": "IN_PROGRESS",
+              "closes": ["SPELLS-23.1", "SPELLS-23.2"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 3
+              }
+            }
+          ]
         },
         {
           "id": "SPELLS-24",
@@ -8571,8 +8614,14 @@
             {
               "id": "SPELLS-28.2",
               "text": "A Character casts Misty Step or Dimension Door in an Encounter and moves its token to a chosen unoccupied point within the spell range with no path and no opportunity attacks; the cast grants a bounded teleport allowance that the move consumes, a teleport by a player without one is refused, and GM undo restores the position.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/session-worker/test/nativeRoomTeleportAction.test.ts",
+                "apps/web/src/domains/campaigns/vtt/CampaignVttStage.teleport.test.tsx",
+                "packages/encounter-persistence/src/__tests__/turnTeleportAllowance.test.ts",
+                "packages/rules-runtime/src/__tests__/encounterTeleportAllowance.test.ts",
+                "packages/shared/src/__tests__/vtt-teleport-destination.test.ts"
+              ],
               "origin": []
             }
           ],
@@ -8597,10 +8646,9 @@
             },
             {
               "id": "SPELLS-28.T1b",
-              "text": "In-Scene TELEPORT (Misty Step, Dimension Door): the cast commits a bounded one-shot teleport allowance (on the existing movement-economy pattern, expiring at the end of the caster turn) that a following MOVE_SCENE_TOKEN TELEPORT consumes; player TELEPORT without an allowance is refused; range, occupancy and visibility enforced at consumption; authored from core options.",
-              "status": "IN_PROGRESS",
+              "text": "In-Scene TELEPORT (Misty Step, Dimension Door): the cast commits a bounded one-shot teleport allowance (on the existing movement-economy pattern, expiring at the end of the caster turn) that a following MOVE_SCENE_TOKEN TELEPORT consumes; player TELEPORT without an allowance is refused; range, occupancy and visibility enforced at consumption; authored from core options. (Red: ci/spells-28-t1b-red Tests 38923039027 on 2be9ea48f failed on the vtt-teleport-destination typecheck (selectTeleportAllowance missing). Green: ci/spells-28-t1b Tests 38932220927 and Live backend 38932220847 on c3eff99c8.)",
+              "status": "DONE",
               "closes": ["SPELLS-28.2"],
-              "activeWorkbook": "docs/handoffs/slice-spells-28-t1b.md",
               "wsjf": {
                 "bv": 8,
                 "tc": 3,
@@ -8611,16 +8659,15 @@
             },
             {
               "id": "SPELLS-28.T2",
-              "text": "MANIFEST outcome executor (Giant Insect).",
-              "status": "IN_PROGRESS",
+              "text": "MANIFEST outcome executor (Giant Insect). (Red: ci/spells-28-t2-red Tests 38933377505 on ef76e64c8 failed on the 3 nativeRoomGiantInsect tests. Green: ci/spells-28-t2 Tests 38936922027 and Live backend 38936922444 on bd5f01d7e.)",
+              "status": "DONE",
               "closes": ["SPELLS-28.1"],
               "wsjf": {
                 "bv": 3,
                 "tc": 2,
                 "rr": 3,
                 "size": 3
-              },
-              "activeWorkbook": "docs/handoffs/slice-spells-28.md"
+              }
             },
             {
               "id": "SPELLS-28.T3",
@@ -8637,7 +8684,7 @@
             {
               "id": "SPELLS-28.T4",
               "text": "Polymorph, True Polymorph, Shapechange and Wild Shape authored from core options on the CREATURE_FORM grant SPELLS-28.T2 builds (separate form HP, revert at 0 with carry-over, revert at duration end), with a corpus proof against the real compiler and one journey.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-28.1"],
               "wsjf": {
                 "bv": 5,
@@ -8645,7 +8692,8 @@
                 "rr": 3,
                 "size": 3,
                 "after": ["SPELLS-28.T2"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-28.md"
             }
           ]
         },
@@ -8851,8 +8899,21 @@
               }
             },
             {
+              "id": "SPELLS-29.T1a",
+              "text": "Fear's out-of-sight repeat save, so real SRD Fear compiles faithfully: a generic perception gate on FOLLOW_UP_SAVE (the attempt is allowed only when the target cannot see its source, beside the existing repeatRollInfluence PERCEPTION), authored on SRD Fear, which then compiles through the existing repeating-save plan (area, Concentration, source recorded per T1, including the Worker room journey). No new timed-save compile rule: SPELLS-19.T3's authored-endOnTriggers rule stays the single rule, and Charm Person, Dominate Person/Beast/Monster and Hold Monster stay refused through what is authored. Authoring parity from core options. Same branch as T1; T1 and T1a merge together.",
+              "status": "IN_PROGRESS",
+              "closes": ["SPELLS-29.1", "SPELLS-29.2"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-29.T1"]
+              }
+            },
+            {
               "id": "SPELLS-29.T2",
-              "text": "Flee-from-source rider: a generic turn-start \"must Dash away from the source\" requirement, soft-enforced on actions and moves; a turn-end save when the creature has no line of sight to the source; authored for SRD Fear and Eyebite Panicked; authoring parity from core options.",
+              "text": "Flee-from-source rider: a generic turn-start \"must Dash away from the source\" requirement, soft-enforced on actions and moves; authored for SRD Fear and Eyebite Panicked; authoring parity from core options. (The turn-end out-of-sight save moved to T1a.)",
               "status": "TODO",
               "closes": ["SPELLS-29.2"],
               "wsjf": {
@@ -8860,7 +8921,7 @@
                 "tc": 3,
                 "rr": 3,
                 "size": 3,
-                "after": ["SPELLS-29.T1"]
+                "after": ["SPELLS-29.T1a"]
               }
             }
           ]
@@ -9165,8 +9226,8 @@
             },
             {
               "id": "REACTION-4.T3d",
-              "text": "Counterspell chain: nested cast-reaction offers resolved innermost first, one occurrence per cast.",
-              "status": "IN_PROGRESS",
+              "text": "Counterspell chain: nested cast-reaction offers resolved innermost first, one occurrence per cast. A standing counter enters the offer's chain and the other holders are offered a counter to it; parity settles a level with nobody left to ask. castCounteredCarriesFailedCounters now owns the whole countered-commit check, so an empty pending is false (no cast to counter). (Red: ci/reaction-4-t3d-red Tests 38924869450 on 18edbb3f8 failed on 9 actionPendingOffers tests and the chain contract typecheck. Green: ci/reaction-4-t3d Tests 38925941960 and Live backend 38925941994 on 1f69bf272.)",
+              "status": "DONE",
               "closes": ["REACTION-4.3"],
               "wsjf": {
                 "bv": 8,
@@ -9174,6 +9235,19 @@
                 "rr": 5,
                 "size": 3,
                 "after": ["REACTION-4.T3b", "REACTION-4.T3c", "REACTION-4.T3f"]
+              }
+            },
+            {
+              "id": "REACTION-4.T3g",
+              "text": "The original caster is offered a counter to a Counterspell cast against their own spell: failedCounterSpends lets the cast's source spend against a counter in the chain (never against their own cast). Record the chain model as a dated D127 amendment and remove the gap from future-enhancements. Ruling W: one actor's spell spends in one terminal commit are one ordered mechanics batch (cast, then counter) with one stream bump; discovery projects the pending cast's spend before offering its source a counter; covers the source-is-target fold.",
+              "status": "IN_PROGRESS",
+              "closes": ["REACTION-4.3"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 3,
+                "size": 5,
+                "after": ["REACTION-4.T3d"]
               },
               "activeWorkbook": "docs/handoffs/slice-reaction-4.md"
             },
