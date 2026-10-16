@@ -562,6 +562,12 @@ function isActiveEffectPlanOutcome(entry: CompiledEffectGroup['entries'][number]
   )
 }
 
+/** An attack with a weapon or without one (an off-hand attack, a Martial Arts strike), not a spell attack. */
+function isWeaponOrUnarmedAttack(triggerCode: string): boolean {
+  const kind = dnd5eAttackKind(triggerCode)
+  return kind === 'MELEE' || kind === 'RANGED' || kind === 'UNARMED'
+}
+
 function isSupportedTestActivation(
   invocation: Dnd5eCompiledEffectActionSource['compiledEffect']['invocation']
 ): boolean {
@@ -569,6 +575,8 @@ function isSupportedTestActivation(
   if (invocation.activation.code === 'FREE') return false
   if (invocation.activation.amount !== 1) return false
   if (invocation.activation.code === 'ACTION') return true
+  if (invocation.activation.code === 'BONUS_ACTION')
+    return isWeaponOrUnarmedAttack(invocation.triggerCode)
   return (
     invocation.activation.code === 'REACTION' &&
     'reactionTrigger' in invocation &&
@@ -668,7 +676,7 @@ function isSupportedTestTargetPolicy(
     (attackKind !== 'RANGED' || !Number.isSafeInteger(invocation.range.longAmount))
   )
     return false
-  if (invocation.activation.code === 'ACTION') {
+  if (invocation.activation.code === 'ACTION' || invocation.activation.code === 'BONUS_ACTION') {
     // A melee attack may reach 0 ft.: a swarm's "one target in the swarm's space".
     const minimumDistance = isDnd5eMeleeAttackKind(attackKind) ? 0 : 1
     return (

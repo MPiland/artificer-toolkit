@@ -35,8 +35,15 @@ export interface CostAuthored {
   currencyId: string
 }
 
-/** An item effect; weapon attack effects name the grip they are made with. */
-export type EquipmentEffectAuthored = EffectAuthored & { grip: EquipmentGrip | null }
+/**
+ * An item effect; weapon attack effects name the grip they are made with. `requirements` gate when
+ * the action is offered, decided from the actor's state this turn (the other-weapon Attack action
+ * of an off-hand attack).
+ */
+export type EquipmentEffectAuthored = EffectAuthored & {
+  grip: EquipmentGrip | null
+  requirements?: FacetAuthored<Extract<NodeSubjectCode, 'CHARACTER'>>
+}
 
 /** Nested item container or bundle definition */
 export interface ContainsAuthored {

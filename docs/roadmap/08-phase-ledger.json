@@ -5939,8 +5939,8 @@
             },
             {
               "id": "ATTACK-9.T5a",
-              "text": "Two-weapon fighting off-hand attack: the compiler grants a BONUS_ACTION off-hand attack after the Attack action; the turn records the ATTACK_ACTION weapon and the ATTACK_ACTION_OTHER_WEAPON predicate requires a different light weapon.",
-              "status": "IN_PROGRESS",
+              "text": "Two-weapon fighting off-hand attack: the compiler grants a BONUS_ACTION off-hand attack after the Attack action; the turn records the ATTACK_ACTION weapon and the ATTACK_ACTION_OTHER_WEAPON predicate requires a different light weapon. (Red: ci/attack-9-t5a-red Tests 38905082156 on 07affe3dc, 3 intended failures. Green: ci/attack-9-t5 Tests 38918177360 and Live backend 38918177250 on bd973edd4.)",
+              "status": "DONE",
               "closes": ["ATTACK-9.5"],
               "wsjf": {
                 "bv": 5,
@@ -5948,13 +5948,12 @@
                 "rr": 3,
                 "size": 2,
                 "after": ["ATTACK-9.T3"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-attack-9-t5.md"
+              }
             },
             {
               "id": "ATTACK-9.T5b",
               "text": "Off-hand damage omits a positive ability modifier but keeps a negative one (negative-only modifier mode); the Two-Weapon Fighting style grant restores the positive modifier.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["ATTACK-9.5"],
               "wsjf": {
                 "bv": 5,
@@ -5962,7 +5961,8 @@
                 "rr": 3,
                 "size": 2,
                 "after": ["ATTACK-9.T5a"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-attack-9-t5.md"
             },
             {
               "id": "ATTACK-9.T5c",
@@ -8221,7 +8221,88 @@
             "size": 5,
             "after": ["SPELLS-17", "SPELLS-25"]
           },
-          "activeWorkbook": "docs/handoffs/slice-spells-20.md"
+          "activeWorkbook": "docs/handoffs/slice-spells-20.md",
+          "tasks": [
+            {
+              "id": "SPELLS-20.T1",
+              "text": "Spirit Guardians as a SOURCE zone authored from core options: a 15 ft aura on the caster's token that moves with the caster; a creature it catches on entry, or when the caster moves onto it, makes the save against the caster's spell DC and takes the damage; GM undo removes it.",
+              "status": "IN_PROGRESS",
+              "closes": ["SPELLS-20.1"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 3,
+                "rr": 5,
+                "size": 8,
+                "after": ["SPELLS-17", "SPELLS-25"]
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-20.md"
+            },
+            {
+              "id": "SPELLS-20.T2",
+              "text": "Ending, dropping or replacing Concentration removes the zone the spell placed (Concentration-maintained spatial effects, serving every lasting zone).",
+              "status": "TODO",
+              "closes": ["SPELLS-20.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 5,
+                "size": 3,
+                "after": ["SPELLS-20.T1"]
+              }
+            },
+            {
+              "id": "SPELLS-20.T3",
+              "text": "Encounter session state carries each aura's label, radius and source token only to viewers allowed to see the source (Convex and room parity); unblocks VTT_UI-3.1.",
+              "status": "TODO",
+              "closes": ["SPELLS-20.1"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 5,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-20.T1"]
+              }
+            },
+            {
+              "id": "SPELLS-20.T4",
+              "text": "A start-of-turn and first-entry-per-turn zone trigger consumer shared by all zones: half damage on a made save, slot scaling, designated unaffected creatures, and half speed in the area if a seam exists (otherwise reported for registration).",
+              "status": "TODO",
+              "closes": ["SPELLS-20.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-20.T1"]
+              }
+            },
+            {
+              "id": "SPELLS-20.T5",
+              "text": "Paladin Aura of Protection as an authored source aura: allies in range add the paladin's Charisma modifier to saves while the paladin is conscious (30 ft at level 18).",
+              "status": "TODO",
+              "closes": ["SPELLS-20.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-20.T1"]
+              }
+            },
+            {
+              "id": "SPELLS-20.T6",
+              "text": "A creature's damaging aura (the Balor's Fire Aura first) through the same options, with an authoring-parity proof; closes SPELLS-20.1.",
+              "status": "TODO",
+              "closes": ["SPELLS-20.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-20.T4"]
+              }
+            }
+          ]
         },
         {
           "id": "SPELLS-21",
@@ -8712,7 +8793,7 @@
         {
           "id": "SPELLS-29",
           "title": "Frightened follows its source",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "journeyTests": [],
           "journeyStatus": "none",
           "origin": [
@@ -8746,7 +8827,7 @@
             {
               "id": "SPELLS-29.T1",
               "text": "A condition application carries an optional source actor; Frightened's check and attack contributors read line of sight to it; the movement planner warns on a move that ends closer; SRD Fear and every SRD action that frightens authors the source; authoring parity from core options.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-29.1"],
               "wsjf": {
                 "bv": 5,
@@ -9058,8 +9139,8 @@
             },
             {
               "id": "REACTION-4.T3f",
-              "text": "Counterspell check hardening: a failed or passed spellcasting check posts its chat roll card like any other check; a below-level slot is not offered to a reactor with no spellcasting ability (no throw); the check pause evidence receipt records pending D20_EVIDENCE; room tests for two reactors failing in sequence, a failure followed by another reactor successful counter, and undo after an auto-roll failure.",
-              "status": "IN_PROGRESS",
+              "text": "Counterspell check hardening: a failed or passed spellcasting check posts its chat roll card like any other check; a below-level slot is not offered to a reactor with no spellcasting ability (no throw); the check pause evidence receipt records pending D20_EVIDENCE; room tests for two reactors failing in sequence, a failure followed by another reactor successful counter, and undo after an auto-roll failure. (Red: ci/reaction-4-t3f-red Tests 38919882836 on d93fa13b6, the two-holder counter test fails without the failed-counter economy fix. Green: ci/reaction-4-t3c Tests 38917616069 and Live backend 38917616671 on 2dbaf27c1.)",
+              "status": "DONE",
               "closes": ["REACTION-4.3"],
               "wsjf": {
                 "bv": 5,
@@ -9067,13 +9148,12 @@
                 "rr": 5,
                 "size": 2,
                 "after": ["REACTION-4.T3c"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-reaction-4.md"
+              }
             },
             {
               "id": "REACTION-4.T3d",
               "text": "Counterspell chain: nested cast-reaction offers resolved innermost first, one occurrence per cast.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["REACTION-4.3"],
               "wsjf": {
                 "bv": 8,
@@ -9081,7 +9161,8 @@
                 "rr": 5,
                 "size": 3,
                 "after": ["REACTION-4.T3b", "REACTION-4.T3c", "REACTION-4.T3f"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-reaction-4.md"
             },
             {
               "id": "REACTION-4.T3e",
