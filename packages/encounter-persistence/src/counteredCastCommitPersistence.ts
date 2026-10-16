@@ -67,7 +67,6 @@ export async function persistEncounterCounteredCastCommit(
   const { response } = input
   if (
     command.type !== 'RESOLVE_ACTION' ||
-    command.target.kind !== 'ACTOR' ||
     command.optionalCombatIntent != null ||
     // The counter is always the answer to the pause that offered it.
     !resume ||

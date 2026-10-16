@@ -49,9 +49,19 @@ import {
 } from './maintenanceCapture.js'
 import { endEffects, receiptConsumedGrants } from './consumedGrantPersistence.js'
 import { completeActionOccurrence, recordActionRoot } from './actionCommitRecords.js'
-import { settleActionSourceSpend, sourceSpendMutation } from './actionSourceSpend.js'
+import {
+  combineSpendMutations,
+  settleActionSourceSpend,
+  sourceSpendMutation
+} from './actionSourceSpend.js'
+import { castPendingContinues } from './actionPending.js'
+import { applyFailedCounterSpends, failedCounterSpends } from './failedCounterSpend.js'
 import { actionSystemRollAnswers, readAppCardedDice } from './appCardedDice.js'
-import { recordActionRollCards, settledD20s } from './actionRollCards.js'
+import {
+  recordActionRollCards,
+  recordCounterCheckRollCards,
+  settledD20s
+} from './actionRollCards.js'
 import { rollerAsPerceivedByCaster } from './ruleRollCards.js'
 import type {
   bindEncounterConcentrationApplications,
@@ -201,13 +211,21 @@ export async function persistEncounterAreaCommit(
   const areaOccurrenceId = rootExecution.occurrenceId
   const { target } = command
   let scope: CommitScope
+  const failedReceipts = input.failedCounters.map(({ receipt }) => receipt)
   if (input.area === null) {
-    // A chosen list that asked for no save waits on no one, so nothing resumes or is removed.
+    // A chosen list that asked for no save waits on no one, so nothing is removed. Only a counter
+    // offered before it did anything can pause it, and its answer resumes the cast (D127).
     if (
       target.kind !== 'ACTORS' ||
-      pendingOccurrence ||
-      input.response ||
+      removal ||
       input.removal ||
+      (resume
+        ? resume.area ||
+          !input.response ||
+          !castPendingContinues(resume.pending.context, input.response, {
+            failedCounters: failedReceipts
+          })
+        : input.response || failedReceipts.length > 0) ||
       target.actorIds.some((actorId) => !state.actorIds.includes(actorId))
     )
       throw new Error('Live Session chosen creatures scope mismatch.')
@@ -231,8 +249,7 @@ export async function persistEncounterAreaCommit(
         actorId: removal.input.actorId
       })
     }
-    if (resume) {
-      if (!resume.area) throw new Error('Live Session pending area answer mismatch.')
+    if (resume?.area) {
       if (input.response?.resolution.kind === 'AREA_LEGENDARY_RESISTANCE')
         requireAreaActionLegendaryResistance({
           stored: resume.area.snapshot,
@@ -245,6 +262,16 @@ export async function persistEncounterAreaCommit(
           next: area,
           requestId: resume.pending.snapshot.request.requestId
         })
+    } else if (resume) {
+      // The counter's last answer ended the pause and the area caught nobody, so it settled without a
+      // stored area: the cast's own pending is what it continues.
+      if (
+        !input.response ||
+        !castPendingContinues(resume.pending.context, input.response, {
+          failedCounters: failedReceipts
+        })
+      )
+        throw new Error('Live Session pending area answer mismatch.')
     }
     const context = await requireAreaActionPendingRoot(
       {
@@ -265,6 +292,23 @@ export async function persistEncounterAreaCommit(
       )
     )
       throw new Error('Live Session area has an unanswered save or undecided choice.')
+    // The counters that failed against the cast were sealed with its area and are spent with it.
+    if (
+      checksumCanonicalJson(context.failedCounters ?? []) !==
+      checksumCanonicalJson(
+        // The receipt is the sealed counter plus what its reactor spent, which the commit adds.
+        failedReceipts.map(
+          ({
+            spellCastConsumption: _spell,
+            applications: _applications,
+            characterStreamVersion: _version,
+            actionEconomyTransition: _economy,
+            ...sealed
+          }) => sealed
+        )
+      )
+    )
+      throw new Error('Live Session area failed counters mismatch.')
     scope = {
       targets: context.targets,
       caughtChecksum: context.caughtChecksum,
@@ -396,6 +440,17 @@ export async function persistEncounterAreaCommit(
     spell: input.spellConsumption,
     receipts: root
   })
+  // Every counter that failed against this cast spends its reactor's slot and reaction with the cast (D127).
+  const failedSpends = failedCounterSpends({
+    failedCounters: input.failedCounters,
+    actors,
+    source
+  })
+  // The caster's counter to a counter cast against its cast spends its slot in the caster's one
+  // mechanics call, after the cast's, so the Character advances once.
+  const casterFailed = failedSpends.find(({ reactor }) => reactor.id === source.id)
+  const casterMutation = combineSpendMutations(sourceMutation, casterFailed?.mutation ?? {})
+  const casterSpends = spends || Boolean(casterFailed?.spends)
   const current = new Map(actors.map((actor) => [actor.id, actor] as const))
   const live = (actorId: string) => {
     const actor = current.get(actorId)
@@ -406,7 +461,7 @@ export async function persistEncounterAreaCommit(
   // Sheet write; a caster caught by their own area makes it with their outcome (the release leads
   // that batch), any other Character caster makes it alone.
   const sourceMechanics =
-    (spends || root.sourceApplications.length) && casterIsCharacter && !mergedSpend
+    (casterSpends || root.sourceApplications.length) && casterIsCharacter && !mergedSpend
       ? await callbacks.applyMechanics({
           encounterId: state.id,
           expectedEncounterVersion: state.version,
@@ -430,13 +485,16 @@ export async function persistEncounterAreaCommit(
             source.sourceId
           ),
           forceVersionAdvance: false,
-          ...sourceMutation
+          ...casterMutation
         })
       : null
   if (sourceMechanics) {
     current.set(source.id, sourceMechanics.updatedActor)
     if (
       root.sourceCharacterStreamVersion !== sourceMechanics.characterStreamVersion ||
+      (casterFailed &&
+        casterFailed.failed.receipt.characterStreamVersion !==
+          sourceMechanics.characterStreamVersion) ||
       checksumCanonicalJson(sourceMechanics.receiptApplications) !==
         checksumCanonicalJson(root.sourceApplications) ||
       checksumCanonicalJson(sourceMechanics.itemUseStateTransition ?? null) !==
@@ -444,7 +502,7 @@ export async function persistEncounterAreaCommit(
     )
       throw new Error('Live Session source Character receipt mismatch.')
   } else if (
-    (!(mergedSpend && spends) && root.sourceCharacterStreamVersion !== null) ||
+    (!(mergedSpend && casterSpends) && root.sourceCharacterStreamVersion !== null) ||
     root.sourceApplications.length
   )
     throw new Error('Live Session source Character receipt mismatch.')
@@ -454,6 +512,11 @@ export async function persistEncounterAreaCommit(
   const formCreatures = new Map<string, Promise<EncounterActorFormCreature>>()
   for (const [index, { actor, batch, occurrenceId, createdEffects }] of children.entries()) {
     const merged = index === mergedChildIndex
+    // A creature that countered the cast pays its slot in its first outcome's Character write.
+    const childFailed =
+      actor.id !== source.id && index === children.findIndex((child) => child.actor.id === actor.id)
+        ? failedSpends.find(({ reactor }) => reactor.id === actor.id)
+        : undefined
     const [formEffect] = createdEffects
     const creatureId = formEffect ? createdFormCreatureId(formEffect) : null
     if (creatureId !== null && !formCreatures.has(creatureId))
@@ -486,7 +549,7 @@ export async function persistEncounterAreaCommit(
       effectiveScalarValues: batch.targetTransition.before.scalarValues,
       forceVersionAdvance: false,
       ...(enterForm ? { enterForm } : {}),
-      ...(merged ? sourceMutation : {})
+      ...(merged ? casterMutation : (childFailed?.mutation ?? {}))
     })
     if (
       checksumCanonicalJson(mechanics.receiptApplications) !==
@@ -496,12 +559,20 @@ export async function persistEncounterAreaCommit(
       (batch.kind === 'CHARACTER_MECHANICS_BATCH' &&
         batch.targetCharacterStreamVersion !== mechanics.characterStreamVersion) ||
       (merged &&
-        spends &&
+        casterSpends &&
         (root.sourceCharacterStreamVersion !== mechanics.characterStreamVersion ||
           checksumCanonicalJson(mechanics.itemUseStateTransition ?? null) !==
             checksumCanonicalJson(root.sourceItemUseStateTransition)))
     )
       throw new Error('Live Session mechanics receipt mismatch.')
+    if (
+      (casterFailed &&
+        merged &&
+        casterFailed.failed.receipt.characterStreamVersion !== mechanics.characterStreamVersion) ||
+      (childFailed &&
+        childFailed.failed.receipt.characterStreamVersion !== mechanics.characterStreamVersion)
+    )
+      throw new Error('Live Session failed counter Character receipt mismatch.')
     current.set(actor.id, mechanics.updatedActor)
     healEndedGrants.push(...mechanics.endedGrants)
     // A Legendary Resistance the creature used spends one of its own charges.
@@ -509,9 +580,10 @@ export async function persistEncounterAreaCommit(
       batch.kind === 'ENCOUNTER_ACTOR_MECHANICS_BATCH'
         ? batch.targetFeatureResourceConsumption
         : null
-    if (charge) {
-      if (charge.ownerActorId !== actor.id)
-        throw new Error('Live Session area charge scope mismatch.')
+    if (charge && charge.ownerActorId !== actor.id)
+      throw new Error('Live Session area charge scope mismatch.')
+    const reactionEconomy = childFailed?.failed.receipt.actionEconomyTransition ?? null
+    if (charge || reactionEconomy)
       current.set(
         actor.id,
         await settleActionSourceSpend(ctx, {
@@ -519,13 +591,12 @@ export async function persistEncounterAreaCommit(
           source: mechanics.updatedActor,
           spend: {
             featureResourceConsumption: charge,
-            actionEconomyTransition: null,
+            actionEconomyTransition: reactionEconomy,
             attackActionTransition: undefined
           },
           economyOverridden: false
         })
       )
-    }
   }
   // The grants the cast used up (Invisibility) end with it; an undo gives them back.
   const endedMaintainedStates = await endEffects(ctx, input.consumedGrants)
@@ -538,6 +609,33 @@ export async function persistEncounterAreaCommit(
       economyOverridden: overridesActionEconomy(input.ruleOverrides)
     })
   )
+  if (casterFailed)
+    current.set(
+      source.id,
+      await settleActionSourceSpend(ctx, {
+        encounterId: state.id,
+        source: live(source.id),
+        spend: {
+          featureResourceConsumption: null,
+          actionEconomyTransition: casterFailed.failed.receipt.actionEconomyTransition,
+          attackActionTransition: undefined
+        },
+        economyOverridden: false
+      })
+    )
+  // Any other creature that failed to counter the cast pays in a call of its own; the caster and the
+  // kept creatures paid with their outcomes.
+  for (const [actorId, settled] of await applyFailedCounterSpends(ctx, {
+    state,
+    occurrenceId: areaOccurrenceId,
+    sourceCommandId: command.commandId,
+    occurredAt: input.occurredAt,
+    spends: failedSpends,
+    exceptActorIds: [source.id, ...children.map(({ actor }) => actor.id)],
+    applyMechanics: callbacks.applyMechanics,
+    currentCharacterMaximumHitPoints: callbacks.currentCharacterMaximumHitPoints
+  }))
+    current.set(actorId, settled)
   let nextActors: EncounterRunActorState[] = actors.map((actor) => live(actor.id))
   const nextState = encounterRunStateSchema.parse({
     ...state,
@@ -670,6 +768,20 @@ export async function persistEncounterAreaCommit(
         dice: settledD20s(batch)
       })
     })
+  await recordCounterCheckRollCards(ctx, {
+    campaign,
+    encounterId: state.id,
+    gameSystemId: state.gameSystemId,
+    occurrenceId: areaOccurrenceId,
+    checks: failedSpends.flatMap(({ failed, reactor }) =>
+      failed.receipt.check ? [{ reactor, check: failed.receipt.check }] : []
+    ),
+    response: input.response,
+    responderUserId: userId,
+    initiatorUserId,
+    visibility: command.visibility,
+    createdAt: input.occurredAt
+  })
   const result = encounterCommandResultDtoSchema.parse({
     projection,
     roll: null,
@@ -700,6 +812,7 @@ export async function persistEncounterAreaCommit(
       }),
       endedMaintainedStates,
       addedConcentrationCasterId: maintenance?.addedConcentrationCasterId ?? null,
+      failedCounters: failedReceipts,
       speedBonusTurn: null,
       teleportAllowanceTurn: null,
       turnUses: null,
