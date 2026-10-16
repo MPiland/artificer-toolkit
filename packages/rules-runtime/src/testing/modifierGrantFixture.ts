@@ -86,14 +86,16 @@ export function sourceSightSaveAuthoredEffect(): EffectAuthored {
                       ...outcome,
                       grants: {
                         ...outcome.grants,
-                        modifiers: outcome.grants.modifiers
-                          ?.filter(
-                            ({ valueDomainCode }) => valueDomainCode === 'SAVING_THROW_MODIFIER'
-                          )
-                          .map((modifier) => ({
-                            ...modifier,
-                            domain: { ...modifier.domain, requiresHolderSeesSource: true }
-                          }))
+                        modifiers: outcome.grants.modifiers?.flatMap((modifier) =>
+                          modifier.valueDomainCode === 'SAVING_THROW_MODIFIER'
+                            ? [
+                                {
+                                  ...modifier,
+                                  domain: { ...modifier.domain, requiresHolderSeesSource: true }
+                                }
+                              ]
+                            : []
+                        )
                       }
                     }
                   : outcome
