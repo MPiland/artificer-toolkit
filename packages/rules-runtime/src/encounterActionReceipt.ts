@@ -312,7 +312,7 @@ export function buildEncounterCounteredCastStoredExecution(input: {
   })
 }
 
-/** A failed counter with what its reactor spends for the attempt, as the cast's terminal commit applies it (D125). */
+/** A failed counter with what its reactor spends for the attempt, as the cast's terminal commit applies it (D127). */
 export function buildEncounterFailedCounterReceipt(input: {
   failed: EncounterFailedCounterDto
   spellConsumption: Parameters<typeof characterSpellConsumptionReceipt>[0]

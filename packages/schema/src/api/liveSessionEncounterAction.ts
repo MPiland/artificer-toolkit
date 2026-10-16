@@ -100,7 +100,7 @@ export const liveSessionCharacterSpellConsumptionSchema = lazySchema(() =>
   })
 )
 
-/** A failed counter's settled receipt with the reactor slot request the commit spends (D125). */
+/** A failed counter's settled receipt with the reactor slot request the commit spends (D127). */
 export type LiveSessionFailedCounter = {
   receipt: EncounterFailedCounterReceiptDto
   spellConsumption: z.infer<typeof liveSessionCharacterSpellConsumptionSchema> | null
@@ -140,7 +140,7 @@ export type LiveSessionEncounterActionCommitInput = Omit<
   spellConsumption: z.infer<typeof liveSessionCharacterSpellConsumptionSchema> | null
   /** The spell slot the attacked Character's reaction spent, with the Character version it was planned at. */
   reactionSpellConsumption: z.infer<typeof liveSessionCharacterSpellConsumptionSchema> | null
-  /** The counters reactors attempted and failed against this cast, each spent with this commit (D125). */
+  /** The counters reactors attempted and failed against this cast, each spent with this commit (D127). */
   failedCounters: LiveSessionFailedCounter[]
   /** The resolved action's display name; the stored command and the timeline carry it. */
   label: string | null

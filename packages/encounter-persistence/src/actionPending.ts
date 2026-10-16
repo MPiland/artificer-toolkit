@@ -96,7 +96,7 @@ const sameIds = (left: readonly string[], right: readonly string[]) =>
   left.length === right.length && left.every((id, index) => id === right[index])
 
 /**
- * How a cast's pending may continue (D125). A held cast leaves its pause by a decline, or by choosing a
+ * How a cast's pending may continue (D127). A held cast leaves its pause by a decline, or by choosing a
  * counter that owes a check, which pauses on that roll; a failed roll then leaves it like a decline.
  * A choice whose check the app rolls inside the answer leaves the cast the same way a failed roll does.
  * Using a counter that owes no check, and passing the check, commit a countered cast instead.
@@ -145,7 +145,7 @@ export function castPendingContinues(
   )
 }
 
-/** Whether a cast countered at its pause carries exactly the failed counters that pause held (D125). */
+/** Whether a cast countered at its pause carries exactly the failed counters that pause held (D127). */
 export function castCounteredCarriesFailedCounters(
   previous: CastPendingContext,
   next: CastPendingContext

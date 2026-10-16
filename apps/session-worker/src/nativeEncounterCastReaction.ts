@@ -222,7 +222,7 @@ export type NativeCastReactionAnswer =
  * Where the offers to counter a cast stand once an answer, if any, is taken in: the counter a creature
  * used, the roll its counter waits on, the next creature to ask, or nobody left to ask. A decline hands
  * the cast to the next creature in turn; so does a failed check, which also keeps the failed attempt for
- * the cast's terminal commit (D125). The cast itself is never held; it replays from its command with the
+ * the cast's terminal commit (D127). The cast itself is never held; it replays from its command with the
  * declines recorded.
  */
 export async function advanceNativeCastReactions(input: {

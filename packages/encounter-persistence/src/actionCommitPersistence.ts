@@ -95,6 +95,8 @@ export async function persistEncounterActionCommit(
     execution.status !== 'COMPLETE' ||
     execution.occurrenceVersion !== occurrenceVersion ||
     (resume && execution.occurrenceId !== resume.occurrence.id) ||
+    // Failed counters come from a cast's earlier pauses, so a commit with none behind it carries none.
+    (!resume && input.failedCounters.length > 0) ||
     (resume &&
       !castPendingContinues(resume.pending.context, input.response, {
         failedCounters: input.failedCounters.map(({ receipt }) => receipt)
@@ -212,7 +214,7 @@ export async function persistEncounterActionCommit(
       spellCastConsumption: reaction?.spellCastConsumption ?? null
     }
   })
-  // Every counter that failed against this cast spends its reactor's slot and reaction with the cast (D125).
+  // Every counter that failed against this cast spends its reactor's slot and reaction with the cast (D127).
   const failedSpends = failedCounterSpends({
     failedCounters: input.failedCounters,
     actors,

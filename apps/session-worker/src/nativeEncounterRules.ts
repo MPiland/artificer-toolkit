@@ -777,12 +777,9 @@ export async function planNativeLiveEncounterAction(
     dependencies,
     revisions
   })
-  // Before a Character's spell does anything, another Character in range may counter it. A cast that
-  // already offered itself replays past this point once answered: a decline moves to the next creature,
-  // and an answer to a later decision (dice, a Legendary Resistance) was made after every offer.
   const triggerLevel = preparedSpellCastLevel(prepared)
   if (castAnswer && triggerLevel === null) throw new Error('Reaction evidence is stale.')
-  /** The counters that failed against this cast so far; the cast's terminal commit spends them (D125). */
+  /** The counters that failed against this cast so far; the cast's terminal commit spends them (D127). */
   let failedCounters: readonly EncounterFailedCounterDto[] =
     snapshot?.applicationContext.kind === 'ENCOUNTER_ACTION'
       ? (snapshot.applicationContext.failedCounters ?? [])

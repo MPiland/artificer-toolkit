@@ -252,7 +252,7 @@ describe('room Counterspell against a Character’s spell cast (REACTION-4.3)', 
     expect(await slotsOf(room, REACTOR_ID)).toEqual(SLOT_SPENT(3))
   })
 
-  describe('a counter below the cast’s level owes a spellcasting check (D125)', () => {
+  describe('a counter below the cast’s level owes a spellcasting check (D127)', () => {
     /** A 4th-level cast; the holder's 3rd-level slot, the first offered, owes a check against DC 14. */
     const highCast = (options: Parameters<typeof counterspellRoom>[0] = {}) =>
       counterspellRoom({ spell: unlimitedCureWounds, castLevel: '4th', ...options })

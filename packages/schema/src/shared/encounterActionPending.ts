@@ -87,7 +87,7 @@ export const encounterActionPendingContextDtoSchema = lazySchema(() =>
       castReaction: z.optional(encounterCastReactionOfferDtoSchema),
       /**
        * The counters reactors attempted and failed against this cast, carried by every pending of the
-       * cast to its terminal commit, which spends them with the cast (D125).
+       * cast to its terminal commit, which spends them with the cast (D127).
        */
       failedCounters: z.optional(
         z.array(encounterFailedCounterDtoSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS))

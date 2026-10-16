@@ -61,7 +61,7 @@ export type ReactionHigherLevelCheckAuthored = {
 
 /**
  * A creature within the reaction's range begins casting a spell; the reaction pauses the cast before
- * it takes effect. Without `higherLevelCheck` it counters a cast of any level.
+ * it takes effect. Without `higherLevelCheck` it counters a cast only at or below the level it is cast at.
  */
 export type ReactionSpellCastTriggerBindingAuthored = {
   kind: 'SPELL_CAST'

@@ -316,7 +316,7 @@ export const encounterStoredRunCommandSchema = lazySchema(() =>
         ),
         null
       ),
-      /** The counters reactors failed against this cast and the reactor spend each cost; its undo gives them back (D125). */
+      /** The counters reactors failed against this cast and the reactor spend each cost; its undo gives them back (D127). */
       failedCounters: z._default(
         z.array(encounterFailedCounterReceiptDtoSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
         []

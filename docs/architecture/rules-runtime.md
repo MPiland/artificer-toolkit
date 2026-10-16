@@ -506,7 +506,7 @@ caster's slot and action and the reactor's slot and reaction are spent, nothing 
 Concentration starts. Undo restores both creatures. Creature-capability, ACTORS-target and area casts, and casts
 made without the Scene offer no reaction. The chain is T3d.
 
-**Higher-level check (current, REACTION-4.T3c; D125).** `reactionTrigger.higherLevelCheck` (`{ ability, baseDc }`)
+**Higher-level check (current, REACTION-4.T3c; D127).** `reactionTrigger.higherLevelCheck` (`{ ability, baseDc }`)
 makes a reaction cast below the triggering cast's level owe an ability check at DC `baseDc` + the cast's level
 (`castReactionCheckRequirement`). The offer carries `check` (the sealed choice, trigger level, check definition, DC
 and the reactor's d20 context) while the cast waits on the reactor's roll; the roll settles through the held-die rules

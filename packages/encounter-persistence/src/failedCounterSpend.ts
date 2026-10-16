@@ -52,7 +52,7 @@ export function failedCounterSpends(input: {
 export type FailedCounterSpend = ReturnType<typeof failedCounterSpends>[number]
 
 /**
- * Spends each failed reactor's slot and reaction with the cast's terminal commit (D125) and returns the
+ * Spends each failed reactor's slot and reaction with the cast's terminal commit (D127) and returns the
  * reactors as settled. The reactor named by `exceptActorId` is the cast's target: its spend rides in the
  * target's own mechanics, and the caller settles it there.
  */
