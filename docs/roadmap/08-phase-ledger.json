@@ -10153,7 +10153,7 @@
           "title": "Snapshot drift is regenerated in CI",
           "status": "DONE",
           "journeyTests": [".github/workflows/tests.yml", "scripts/watchCi.ps1"],
-          "journeyStatus": "passing",
+          "journeyStatus": "verified",
           "origin": [],
           "wsjf": {
             "bv": 5,
