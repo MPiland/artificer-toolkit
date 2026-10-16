@@ -9956,6 +9956,45 @@
               }
             }
           ]
+        },
+        {
+          "id": "RELIABILITY-14",
+          "title": "Campaign custody deletion test is deterministic",
+          "status": "IN_PROGRESS",
+          "journeyTests": ["apps/apis/convex/campaigns/deletionCustody.test.ts"],
+          "journeyStatus": "none",
+          "origin": [],
+          "wsjf": {
+            "bv": 3,
+            "tc": 8,
+            "rr": 8,
+            "size": 2
+          },
+          "acs": [
+            {
+              "id": "RELIABILITY-14.1",
+              "text": "deletionCustody.test.ts \"runs the real public custody producers before deleting a ACTIVE Campaign\" passes deterministically: no contentSnapshotObjects remain after deletion, and a test reproduces the failing order or state before the fix.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Failed on ledger-only merge batch h (e2d6dc33d, run 38858694893, Convex 3/4) whose code was green on batch g: contentSnapshotObjects expected [] but held 3."
+            }
+          ],
+          "tasks": [
+            {
+              "id": "RELIABILITY-14.T1",
+              "text": "Find the nondeterminism behind leftover contentSnapshotObjects after an ACTIVE Campaign custody deletion, reproduce it red, fix the root cause (no retry, no loosened assertion).",
+              "status": "IN_PROGRESS",
+              "closes": ["RELIABILITY-14.1"],
+              "activeWorkbook": "docs/handoffs/slice-reliability-14.md",
+              "wsjf": {
+                "bv": 3,
+                "tc": 8,
+                "rr": 8,
+                "size": 2
+              }
+            }
+          ]
         }
       ]
     },
