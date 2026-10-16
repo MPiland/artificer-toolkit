@@ -636,7 +636,16 @@ describe('a Legendary Action that damages the holder of a damage-triggered effec
     })
     expect(answer.type, JSON.stringify(answer).slice(0, 800)).toBe('COMMAND_COMMITTED')
     const history = await readRoomHistory(room.base.stub)
+    const receipt = history.receipts.find((candidate) => candidate.commandId === commandId)
+    const settled = receipt ? parseReceiptExecution(receipt) : null
+    const strike =
+      settled?.status === 'INITIATIVE_COMPLETE' ? settled.legendaryActions?.at(0) : undefined
     return {
+      window:
+        strike?.resolution.kind === 'EXECUTED' &&
+        strike.resolution.application.kind === 'ENCOUNTER_ACTOR_MECHANICS_BATCH'
+          ? strike.resolution.application.d20?.resultPath
+          : (strike?.resolution.kind ?? settled?.status),
       effectIds: history.activeEffects.map(({ id }) => id),
       invisible: readActorConditionIds(history, WOLF_ID).includes(INVISIBLE_ID),
       hitPoints: readActorHitPoints(history, WOLF_ID)
@@ -645,6 +654,7 @@ describe('a Legendary Action that damages the holder of a damage-triggered effec
 
   it('ends the effect, and releases its condition, when the attack damages its holder', async () => {
     expect(await strikeInvisibleWolf(20)).toEqual({
+      window: 'ON_HIT',
       effectIds: [],
       invisible: false,
       hitPoints: plainWolf.hitPoints - 10
@@ -653,6 +663,7 @@ describe('a Legendary Action that damages the holder of a damage-triggered effec
 
   it('keeps the effect when the attack misses', async () => {
     expect(await strikeInvisibleWolf(1)).toEqual({
+      window: 'ON_MISS',
       effectIds: [EFFECT_ID],
       invisible: true,
       hitPoints: plainWolf.hitPoints
