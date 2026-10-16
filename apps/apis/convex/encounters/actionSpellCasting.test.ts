@@ -1005,7 +1005,7 @@ describe('Character spell casting in an Encounter', () => {
       expect(await activeEffects(fixture)).toHaveLength(1)
 
       // A natural 20 (raw die 19) on the next end-of-turn save ends the condition, and Concentration with it.
-      await queueRoomRolls(fixture.campaign.id, { rolls: [19], repeat: 19 })
+      await queueRoomRolls(fixture.campaign.id, { rolls: [14, 14], repeat: 9 })
       const targetAgain = await advanceToTurnOf(fixture, failedRepeat, wolf.id)
       const saved = await advanceTurn(fixture, targetAgain.projection.version)
       expect(saved.occurrence?.status).toBe('COMPLETE')
@@ -1087,8 +1087,8 @@ describe('Character spell casting in an Encounter', () => {
       expect(pending.request.derivedRollModeReasons).toContain('Unseen attacker')
       expect(await characterActiveEffects(fixture)).toHaveLength(1)
 
-      // The caster rolls each pending die with the app and settles it; the hit leaves its damage dice
-      // to roll too, and the effect ends when the action completes.
+      // The caster rolls each pending die with the app and settles it; a hit leaves its damage dice to
+      // roll too, and the effect ends when the action completes. Queued values are zero-based die indices.
       await queueRoomRolls(fixture.campaign.id, { rolls: [19], repeat: 19 })
       let rolled = attacked
       for (let step = 0; step < 3 && rolled.occurrence?.status === 'PENDING'; step += 1) {

@@ -152,7 +152,6 @@ export async function callLiveSessionRoute<R extends LiveSessionRoute>(
       }
     )
     if (!response.ok) {
-      console.error('DIAG-BODY', route, response.status, (await response.clone().text().catch(() => '')).slice(0, 1500))
       const rejection = domainRejectionErrorDataSchema.safeParse(
         await response.json().catch(() => null)
       )
@@ -163,7 +162,6 @@ export async function callLiveSessionRoute<R extends LiveSessionRoute>(
     // Correlated generic: the parser selected by `route` produces exactly RouteOutput<R>.
     return output.parse(await response.json()) as RouteOutput<R>
   } catch (error) {
-    console.error('DIAG-ROUTE', route, response?.status, error instanceof Error ? error.message.slice(0, 1500) : error)
     if (error instanceof LiveSessionRouteError) throw error
     throw new LiveSessionRouteError(response?.status ?? 0)
   } finally {
