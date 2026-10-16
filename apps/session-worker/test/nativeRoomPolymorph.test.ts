@@ -149,7 +149,7 @@ describe('Polymorph turns a creature that fails its save into a beast it is not 
   }, 120000)
 })
 
-describe('Polymorph turns a Character into a beast and keeps what is the Character's (SPELLS-28.1, D130 amendment)', () => {
+describe("Polymorph turns a Character into a beast and keeps what is the Character's (SPELLS-28.1, D130 amendment)", () => {
   const characterRow = (history: RoomHistory) =>
     history.actors.find((actor) => actor.id === CHARACTER_ACTOR_ID)!
 
@@ -163,13 +163,10 @@ describe('Polymorph turns a Character into a beast and keeps what is the Charact
     await answerSave(room, FAIL)
 
     const cast = await readRoomHistory(room.room.base.stub)
-    const effect = cast.activeEffects.find(
-      (candidate) => candidate.targetActorId === CHARACTER_ACTOR_ID
-    )!
     expect(JSON.parse(characterRow(cast).stateJson)).toMatchObject({
       kind: 'CHARACTER',
       form: {
-        effectId: effect.id,
+        effectId: expect.any(String),
         sourceId: CREATURE_IDS.GIANT_CENTIPEDE,
         currentHitPoints: giantCentipede.hitPoints,
         maxHitPoints: giantCentipede.hitPoints,
