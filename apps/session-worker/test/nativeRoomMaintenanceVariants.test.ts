@@ -90,6 +90,15 @@ function priorMaintenance(input: {
   }
 }
 
+/** A Character actor whose snapshot names its Character, so the turn can pass to it. */
+function seatedCharacter(actorId: string, characterId: string) {
+  const actor = characterActor({ id: actorId, characterId })
+  return {
+    ...actor,
+    snapshot: { kind: 'CHARACTER', id: characterId, label: actor.label, systemId: actor.systemId }
+  }
+}
+
 /** The Fighter and the Cleric (a second player's Character) beside the Wolf the Surge targets. */
 function maintenanceRoom(
   config: Pick<ActionRoomConfig, 'automationMode' | 'seed' | 'rolls' | 'definitions'>
@@ -102,8 +111,8 @@ function maintenanceRoom(
     rolls: config.rolls ?? [0, 0],
     characterPlay: { currentHitPoints: 5 },
     actors: [
-      characterActor({ id: FIGHTER_ACTOR_ID, characterId: FIGHTER_ID }),
-      characterActor({ id: CLERIC_ACTOR_ID, characterId: CLERIC_ID }),
+      seatedCharacter(FIGHTER_ACTOR_ID, FIGHTER_ID),
+      seatedCharacter(CLERIC_ACTOR_ID, CLERIC_ID),
       wolf
     ],
     secondCharacter: { characterId: CLERIC_ID },
