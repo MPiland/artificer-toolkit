@@ -63,6 +63,9 @@ function counterspellRoom(
     casterConditions?: { conditionTypeId: string; label: string }[]
     /** Sheet conditions the Counterspell holder already carries. */
     reactorConditions?: { conditionTypeId: string; label: string }[]
+    /** The Caster also holds Counterspell, so it can answer a counter to its own cast. */
+    casterCounterspell?: boolean
+    casterSlotsSpent?: readonly { slotKey: string; used: number }[]
   } = {}
 ) {
   const {
@@ -70,6 +73,8 @@ function counterspellRoom(
     castLevel = '1st',
     reactorSpells = true,
     secondReactor = false,
+    casterCounterspell = false,
+    casterSlotsSpent,
     reactorSlotsSpent,
     casterConditions,
     reactorConditions,
@@ -99,9 +104,12 @@ function counterspellRoom(
         spellcasting: { spells: [counterspell], prepared: [counterspell.id] }
       }
     }),
-    characterSpellcasting: { spells: [spell], prepared: [spell.id] },
+    characterSpellcasting: casterCounterspell
+      ? { spells: [spell, counterspell], prepared: [spell.id, counterspell.id] }
+      : { spells: [spell], prepared: [spell.id] },
     characterPlay: {
       currentHitPoints: 1,
+      spellSlots: casterSlotsSpent,
       ...(casterConditions && { conditions: casterConditions })
     },
     secondCharacter: {
@@ -880,6 +888,97 @@ describe('room Counterspell against a Character’s spell cast (REACTION-4.3)', 
         await undoLastAction(room)
         expect((await readRoomHistory(room.room.base.stub)).actors).toEqual(before.actors)
       })
+    })
+  })
+
+  describe('the cast’s own caster can counter a Counterspell cast against it (REACTION-4.3)', () => {
+    async function answer(room: Room, holderActorId: string, index = 0) {
+      const { decision, pending } = await offered(room)
+      expect(pending.targetActorId).toBe(holderActorId)
+      const answered = await room.resolve(decision, {
+        kind: 'OPTION',
+        optionId: pending.options[index]!.optionId
+      })
+      expect(answered.type, JSON.stringify(answered)).toBe('COMMAND_COMMITTED')
+    }
+
+    it('lets the cast resolve when the caster counters the counter; every slot and the caster’s reaction are spent, and one undo restores all', async () => {
+      const room = await counterspellRoom({ casterCounterspell: true })
+      const before = await readRoomHistory(room.room.base.stub)
+      await cast(room)
+      await answer(room, REACTOR_ACTOR_ID)
+
+      const { pending } = await offered(room)
+      expect(pending.targetActorId).toBe(CASTER_ACTOR_ID)
+      expect(await slotsOf(room, CASTER_ID)).toEqual([])
+
+      await answer(room, CASTER_ACTOR_ID)
+      expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
+      expect(await hitPointsOf(room)).toBe(3)
+      expect(await slotsOf(room, CASTER_ID)).toEqual([...SLOT_SPENT(1), ...SLOT_SPENT(3)])
+      expect(await slotsOf(room, REACTOR_ID)).toEqual(SLOT_SPENT(3))
+
+      await undoLastAction(room)
+      expect((await readRoomHistory(room.room.base.stub)).actors).toEqual(before.actors)
+      expect(await slotsOf(room, CASTER_ID)).toEqual([])
+    })
+
+    it('keeps the cast countered when the caster declines the counter', async () => {
+      const room = await counterspellRoom({ casterCounterspell: true })
+      await cast(room)
+      await answer(room, REACTOR_ACTOR_ID)
+
+      const { decision } = await offered(room)
+      const declined = await room.resolve(decision, { kind: 'DECLINE' })
+      expect(declined.type, JSON.stringify(declined)).toBe('COMMAND_COMMITTED')
+      expect(await hitPointsOf(room)).toBe(1)
+      expect(await slotsOf(room, CASTER_ID)).toEqual(SLOT_SPENT(1))
+      expect(await slotsOf(room, REACTOR_ID)).toEqual(SLOT_SPENT(3))
+    })
+
+    it('keeps the cast countered when the caster counters the second holder’s counter of a counter (an odd chain)', async () => {
+      const room = await counterspellRoom({ casterCounterspell: true, secondReactor: true })
+      const before = await readRoomHistory(room.room.base.stub)
+      await cast(room)
+      await answer(room, REACTOR_ACTOR_ID)
+      // The caster and the second holder are both offered the first counter; each answers in turn.
+      const answeredBy: string[] = []
+      for (let turn = 0; turn < 2; turn += 1) {
+        const { decision, pending } = await offered(room)
+        answeredBy.push(pending.targetActorId)
+        const answered = await room.resolve(decision, {
+          kind: 'OPTION',
+          optionId: pending.options[0]!.optionId
+        })
+        expect(answered.type, JSON.stringify(answered)).toBe('COMMAND_COMMITTED')
+      }
+      expect([...answeredBy].sort()).toEqual([CASTER_ACTOR_ID, SECOND_REACTOR_ACTOR_ID].sort())
+
+      expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
+      expect(await hitPointsOf(room)).toBe(1)
+      expect(await slotsOf(room, CASTER_ID)).toEqual([...SLOT_SPENT(1), ...SLOT_SPENT(3)])
+      expect(await slotsOf(room, REACTOR_ID)).toEqual(SLOT_SPENT(3))
+      expect(await slotsOf(room, SECOND_REACTOR_ID)).toEqual(SLOT_SPENT(3))
+
+      await undoLastAction(room)
+      expect((await readRoomHistory(room.room.base.stub)).actors).toEqual(before.actors)
+    })
+
+    it('offers the caster no counter when the cast itself takes its last slot able to counter', async () => {
+      const room = await counterspellRoom({
+        casterCounterspell: true,
+        spell: unlimitedCureWounds,
+        castLevel: '4th',
+        casterSlotsSpent: [3, 5].map((level) => ({ slotKey: `STANDARD:${level}`, used: 1 }))
+      })
+      await cast(room)
+      await answer(room, REACTOR_ACTOR_ID, 1)
+
+      expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
+      expect(await hitPointsOf(room)).toBe(1)
+      expect(await slotsOf(room, CASTER_ID)).toEqual(
+        [3, 4, 5].map((level) => ({ slotKey: `STANDARD:${level}`, used: 1 }))
+      )
     })
   })
 

@@ -458,15 +458,17 @@ describe('Creature mechanics batch plan', () => {
     {
       name: 'a spell slot consumption',
       overrides: {
-        characterSpellConsumption: {
-          characterId: CHARACTER_ID,
-          spellId: SPELL_ID,
-          candidateId: 'candidate',
-          slotKey: 'STANDARD:1',
-          beforeUsed: 0,
-          afterUsed: 1,
-          expectedStreamVersion: STREAM_VERSION
-        }
+        characterSpellConsumptions: [
+          {
+            characterId: CHARACTER_ID,
+            spellId: SPELL_ID,
+            candidateId: 'candidate',
+            slotKey: 'STANDARD:1',
+            beforeUsed: 0,
+            afterUsed: 1,
+            expectedStreamVersion: STREAM_VERSION
+          }
+        ]
       },
       message: 'Encounter non-Character actors cannot spend Character spell slots.'
     },
@@ -597,17 +599,49 @@ describe('Character mechanics batch plan', () => {
       ...characterFacts,
       character: { ...document, state: { ...document.state, spellSlots } }
     })
-    const planFor = (spend: typeof consumption, facts: ReturnType<typeof withSlots>) =>
+    const planForAll = (spends: (typeof consumption)[], facts: ReturnType<typeof withSlots>) =>
       planEncounterMechanicsBatch({
         batch: batch([], {
           expectedCharacterStreamVersion: STREAM_VERSION,
           effectiveMaximumHitPoints: 12,
-          characterSpellConsumption: spend
+          characterSpellConsumptions: spends
         }),
         actor,
         userId: USER_ID,
         characterFacts: facts
       })
+    const planFor = (spend: typeof consumption, facts: ReturnType<typeof withSlots>) =>
+      planForAll([spend], facts)
+
+    it('spends a cast and a counter of the same Character in one batch and one stream version', () => {
+      const counter = { ...consumption, beforeUsed: 2, afterUsed: 3 }
+      const plan = planForAll(
+        [consumption, counter],
+        withSlots([{ slotKey: 'STANDARD:1', used: 1 }])
+      )
+      expect(plan.characterStreamVersion).toBe(STREAM_VERSION + 1)
+      expect(plan.characterUpdate?.character.state.spellSlots).toEqual([
+        { slotKey: 'STANDARD:1', used: 3 }
+      ])
+    })
+
+    it('spends two different slots of one Character in the order given', () => {
+      const counter = { ...consumption, slotKey: 'STANDARD:3', beforeUsed: 0, afterUsed: 1 }
+      const plan = planForAll(
+        [consumption, counter],
+        withSlots([{ slotKey: 'STANDARD:1', used: 1 }])
+      )
+      expect(plan.characterUpdate?.character.state.spellSlots).toEqual([
+        { slotKey: 'STANDARD:1', used: 2 },
+        { slotKey: 'STANDARD:3', used: 1 }
+      ])
+    })
+
+    it('refuses a second spend of the same slot that does not follow the first', () => {
+      expect(() =>
+        planForAll([consumption, consumption], withSlots([{ slotKey: 'STANDARD:1', used: 1 }]))
+      ).toThrow('Encounter Character spell slot consumption is stale.')
+    })
 
     it('spends the slot in the Character version the outcome writes, leaving other slots alone', () => {
       const plan = planFor(
