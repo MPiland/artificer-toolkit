@@ -144,7 +144,6 @@ These are rare paths, roughly under 5% of sessions, whose failure is visible and
 - **Each cast loads the other Characters (REACTION-4.T3b-2):** discovering Counterspell reads every other Character in the room per cast. Cheap for a table; revisit if a room's Character count grows.
 - **A reactor with no token on the Scene is not offered Counterspell (REACTION-4.T3b-2):** range cannot be read, so the offer fails closed.
 - **A countered concentration spell and one-roll grants (REACTION-4.T3b-2):** a countered cast starts and ends no Concentration and consumes none of the caster's one-roll grants.
-- **Counterspell for creature-capability, ACTORS-target and area casts (REACTION-4.T3e):** only Character single-target casts are offered a reaction in T3b-2.
 - **Eight offered reactions cap a cast (REACTION-4.T3b-2):** each eligible slot level is a separate option and a cast pause holds at most eight, so a reactor with slots 3 to 9 plus a second `SPELL_CAST` reaction makes the pause fail to build and the cast cannot be made. Needs a level 17 or higher Character with two such reactions.
 - **A user-authored `SPELL_CAST` reaction that rolls or cancels conditionally is offered, then refused on use (REACTION-4.T3b-2):** discovery checks only that a cancel outcome exists. Declining still works. T3c's authored check removes the roll case.
 - **The drawer names no cast for a nested counter offer (REACTION-4.T3d):** a holder offered a counter to a Counterspell sees the same menu as for the original cast; which cast it answers is not shown.

@@ -489,8 +489,12 @@ reaches the caster on the Scene and that the reactor can afford, and
 holds the cast in a `castReaction` pending offer (`REACTION_CHOICE` to the reactor). Declining records the reactor
 and the cast proceeds; using the reaction commits a countered cast (`persistEncounterCounteredCastCommit`): the
 caster's slot and action and the reactor's slot and reaction are spent, nothing else is applied, and no
-Concentration starts. Undo restores both creatures. Creature-capability, ACTORS-target and area casts, and casts
-made without the Scene offer no reaction. The chain is described below (T3d).
+Concentration starts. Undo restores both creatures. Character ACTORS-target and area casts hold the same
+`CAST_REACTION` pause (REACTION-4.T3e-a): the pause is a KERNEL_EVIDENCE `ENCOUNTER_ACTION` occurrence on the area root,
+each answer replays the root command, and the next transition (area pending, area commit or countered cast) continues
+that occurrence; the area commit input carries `failedCounters` and spends them like the single-target commit.
+Creature-capability casts (REACTION-4.T3h) and casts made without the Scene offer no reaction. The chain is described
+below (T3d).
 
 **Higher-level check (current, REACTION-4.T3c; D127).** `reactionTrigger.higherLevelCheck` (`{ ability, baseDc }`)
 makes a reaction cast below the triggering cast's level owe an ability check at DC `baseDc` + the cast's level

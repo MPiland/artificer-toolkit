@@ -7,6 +7,7 @@ import {
   type ResolveRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import type { EncounterRuleWarningDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
+import type { EncounterFailedCounterDto } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
 import type { ServerAggregateChoicePendingSnapshotDto } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { ScenePoint } from '@artificer-toolkit/shared/vtt'
@@ -145,6 +146,11 @@ import {
 } from './nativeEncounterMaintenance.js'
 import type { prepareNativeLiveMovementTarget } from './nativeEncounterTargets.js'
 import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
+import {
+  counterConsumptionsOf,
+  type NativeCastReactionAnswer
+} from './nativeEncounterCastReaction.js'
+import { createNativeCastPause } from './nativeEncounterCastPause.js'
 
 type AreaCommand = Omit<ResolveEncounterActionInputDto, 'target'> & {
   target: AreaActionTargetDto
@@ -158,8 +164,20 @@ type ReachCommand = Omit<ResolveEncounterActionInputDto, 'target'> & {
 }
 type MovementTargets = Awaited<ReturnType<typeof prepareNativeLiveMovementTarget>>['target']
 
+/** The paused counter window an answer to a multi-creature cast resumes by replaying the cast. */
+export type ReachCastResume = {
+  response: ResolveRuleOccurrenceInputDto
+  answer: NativeCastReactionAnswer
+  initiatorUserId: string
+  currentnessChecksum: string
+  /** The counters that failed against the cast before this answer (D127). */
+  failedCounters: readonly EncounterFailedCounterDto[]
+}
+
 /** What every multi-creature plan (a point area, a list of chosen creatures) reads from the room. */
 export type AreaPlanBase = {
+  /** Set when the plan replays a cast that paused for another Character's counter. */
+  castResume?: ReachCastResume
   initial: LiveSessionEncounterRulesInput
   fingerprint: string
   state: EncounterRunState
@@ -494,6 +512,132 @@ function prepareAreaCaster(input: ReachPlanInput, base: AreaReach) {
   })
 }
 
+/** The counter window of a multi-creature cast, held over the caster's lead preparation of the action. */
+function reachCastPause(
+  input: ReachPlanInput,
+  cast: {
+    reach: Pick<AreaReach, 'scene' | 'movementTargets'>
+    lead: AreaPrepared
+    occurrenceId: string
+    occurredAt: string
+    answer: NativeCastReactionAnswer | null
+    failedCounters: readonly EncounterFailedCounterDto[]
+  }
+) {
+  const { scene } = cast.reach
+  return createNativeCastPause({
+    runtime: input.runtime,
+    random: input.random,
+    state: input.state,
+    system: input.system,
+    actors: input.actors,
+    activeEffectsByActorId: input.activeEffectsByActorId,
+    loadTarget: input.loadTarget,
+    capture: input.capture,
+    requireAutoRoll: input.requireAutoRoll,
+    command: input.command,
+    prepared: cast.lead,
+    movementTargets: cast.reach.movementTargets,
+    reactionSources: {
+      loadSource: async (source) =>
+        resolveEncounterActionSource({ ...source, system: input.system }),
+      loadRelationshipFacts: nativeLiveRelationshipFacts({
+        activeEffectsByActorId: input.activeEffectsByActorId
+      })
+    },
+    // Range is read from the Scene, so a cast aimed at none offers no reaction.
+    readScene: scene ? async () => scene : null,
+    occurrenceId: cast.occurrenceId,
+    occurredAt: cast.occurredAt,
+    userId: input.initial.expectedUserId,
+    answer: cast.answer,
+    resumed: input.castResume !== undefined,
+    failedCounters: cast.failedCounters
+  })
+}
+
+/** What a multi-creature cast carries out of its counter window into its saves or its commit. */
+export type ReachCastWindow = {
+  occurrenceId: string
+  occurrenceVersion: number
+  occurredAt: string
+  /** The answer that resumed the cast; null when it opened just now. */
+  response: ResolveRuleOccurrenceInputDto | null
+  initiatorUserId: string
+  failedCounters: readonly EncounterFailedCounterDto[]
+  pause: ReturnType<typeof reachCastPause>
+}
+
+/**
+ * Opens a multi-creature cast to the counters of other Characters before any creature is touched
+ * (D127). The cast is either ended or held for a counter, which is the plan to return, or goes on under
+ * the occurrence it runs under, with the counters that failed against it so far.
+ */
+export async function openReachCastWindow(
+  input: ReachPlanInput,
+  cast: {
+    reach: AreaReach
+    lead: AreaPrepared
+    evaluation: Awaited<ReturnType<typeof evaluateNativeLiveActionEconomy>>
+    ruleOverrides: ReturnType<typeof reachRuleOverrides>
+  }
+) {
+  const { castResume } = input
+  const { lead, ruleOverrides } = cast
+  const occurrenceId = castResume ? castResume.response.occurrenceId : crypto.randomUUID()
+  const occurrenceVersion = castResume ? castResume.response.expectedOccurrenceVersion + 1 : 0
+  const occurredAt = new Date().toISOString()
+  const initiatorUserId = castResume?.initiatorUserId ?? input.initial.expectedUserId
+  const actionEconomy = cast.evaluation.economy?.consumption ?? null
+  const currentnessChecksum = encounterActionCurrentnessChecksum({
+    prepared: lead,
+    actionEconomy,
+    attackAction: cast.evaluation.attackAction,
+    maintenance: null,
+    sceneContext: null
+  })
+  if (castResume && castResume.currentnessChecksum !== currentnessChecksum)
+    throw new Error('The pending action source or target changed.')
+  const pause = reachCastPause(input, {
+    reach: cast.reach,
+    lead,
+    occurrenceId,
+    occurredAt,
+    answer: castResume?.answer ?? null,
+    failedCounters: castResume?.failedCounters ?? []
+  })
+  const advanced = await pause.advance({ actionEconomy, ruleOverrides, occurrenceVersion })
+  if (advanced.kind !== 'NONE')
+    return {
+      kind: 'PLAN' as const,
+      plan: {
+        ...advanced,
+        command: input.command,
+        response: castResume?.response ?? null,
+        initiatorUserId,
+        fingerprint: input.fingerprint,
+        occurrenceId,
+        occurrenceVersion,
+        occurredAt,
+        prepared: lead,
+        ruleOverrides,
+        currentnessChecksum
+      }
+    }
+  return {
+    kind: 'OPEN' as const,
+    window: {
+      occurrenceId,
+      occurrenceVersion,
+      occurredAt,
+      response: castResume?.response ?? null,
+      initiatorUserId,
+      failedCounters: advanced.failedCounters,
+      pause
+    } satisfies ReachCastWindow
+  }
+}
+
 /**
  * Plans a point-area action up to its pending saves. Whom the area catches is decided here, from the
  * Scene the caster saw (fenced by its version); every caught creature, allies and the caster
@@ -579,12 +723,20 @@ export async function planNativeLiveEncounterAreaAction(input: AreaPlanInput) {
     targets: reached,
     movementTargets
   })
+  const opened = await openReachCastWindow(input, {
+    reach: base,
+    lead: lead.prepared,
+    evaluation,
+    ruleOverrides
+  })
+  if (opened.kind === 'PLAN') return opened.plan
   return sealReachSaves(input, {
     reach: base,
     lead: lead.prepared,
     targets: reached,
     evaluation,
-    ruleOverrides
+    ruleOverrides,
+    window: opened.window
   })
 }
 
@@ -608,10 +760,11 @@ export async function sealReachSaves(
     targets: readonly ReachTarget[]
     evaluation: Awaited<ReturnType<typeof evaluateNativeLiveActionEconomy>>
     ruleOverrides: ReturnType<typeof reachRuleOverrides>
+    window: ReachCastWindow
   }
 ) {
   const { command, state, actors, capture } = input
-  const { reach, lead, targets: reached, evaluation, ruleOverrides } = sealed
+  const { reach, lead, targets: reached, evaluation, ruleOverrides, window } = sealed
   const { economy, attackAction } = evaluation
   const actionEconomy = economy?.consumption ?? null
   const maintenance = await prepareNativeLiveActionMaintenance({
@@ -622,7 +775,7 @@ export async function sealReachSaves(
       reach.movementTargets.get(actor.id) ?? input.loadTarget(actor)
   })
 
-  const occurrenceId = crypto.randomUUID()
+  const { occurrenceId } = window
   const entries = encounterChosenActorEntries(
     occurrenceId,
     reached.map(({ prepared }) => prepared.target.id)
@@ -643,7 +796,7 @@ export async function sealReachSaves(
     }))
   })
   const commandJson = JSON.stringify(command)
-  const initiatorUserId = input.initial.expectedUserId
+  const { initiatorUserId } = window
   const targets = reached.map(({ prepared, token, sceneContext, perceivedByCaster }, index) => {
     const test = tests.find((candidate) => candidate.occurrenceId === entries[index]!.occurrenceId)
     if (test?.kind !== 'PENDING') throw new Error('An area roll must wait for its roller.')
@@ -687,6 +840,7 @@ export async function sealReachSaves(
     placesZone: reach.placement !== null,
     scene: reach.scene && { sceneId: reach.scene.sceneId, sceneVersion: reach.scene.sceneVersion },
     area: reach.area && { origin: reach.area.origin, shape: reach.area.shape },
+    ...(window.failedCounters.length > 0 ? { failedCounters: window.failedCounters } : {}),
     targets
   })
   // An entry whose roller auto-rolls has its roll made now, so an auto-rolled failed save opens its
@@ -725,13 +879,13 @@ export async function sealReachSaves(
   if (encounterAreaSettled(snapshot))
     return planNativeLiveEncounterAreaCommit({
       ...input,
-      response: null,
+      response: window.response,
       areaSnapshot: snapshot
     })
   return {
     kind: 'AREA_PENDING' as const,
     command,
-    response: null,
+    response: window.response,
     snapshot,
     prepared: { actors },
     ruleOverrides,
@@ -1188,7 +1342,7 @@ export async function planNativeLiveEncounterAreaCommit(
     removal?: RemoveAreaTargetInputDto
   }
 ) {
-  const { command, state, actors, areaSnapshot } = input
+  const { command, areaSnapshot } = input
   const context = areaSnapshot.applicationContext
   if (context.kind !== 'ENCOUNTER_AREA_ACTION')
     throw new Error('The pending area action is unavailable.')
@@ -1251,10 +1405,21 @@ export async function planNativeLiveEncounterAreaCommit(
   })
 
   const resumed = input.response ?? input.removal
+  const occurredAt = new Date().toISOString()
+  const sealedFailedCounters = context.failedCounters ?? []
   return completeAreaCommit({
     input,
     command,
     caster,
+    occurredAt,
+    failedCounters: await reachCastPause(input, {
+      reach: base,
+      lead,
+      occurrenceId: areaOccurrenceId,
+      occurredAt,
+      answer: null,
+      failedCounters: sealedFailedCounters
+    }).planFailedCounters(sealedFailedCounters),
     movementTargets: base.movementTargets,
     kept,
     lead,
@@ -1316,6 +1481,9 @@ export async function completeAreaCommit(args: {
   input: AreaPlanBase
   command: ResolveEncounterActionInputDto
   caster: EncounterRunActorState
+  occurredAt: string
+  /** What each counter that failed against the cast spends with this commit (D127). */
+  failedCounters: Awaited<ReturnType<ReachCastWindow['pause']['planFailedCounters']>>
   movementTargets: ReadonlyMap<string, MovementTargets>
   kept: readonly { actor: EncounterRunActorState; target: { prepared: AreaPrepared } }[]
   lead: AreaPrepared
@@ -1349,6 +1517,8 @@ export async function completeAreaCommit(args: {
     input,
     command,
     caster,
+    occurredAt,
+    failedCounters,
     movementTargets,
     kept,
     lead,
@@ -1370,8 +1540,15 @@ export async function completeAreaCommit(args: {
     formCreature
   } = args
   const { state, actors } = input
-  const occurredAt = new Date().toISOString()
   const userId = input.initial.expectedUserId
+  // The caster's counters to a counter cast against its cast spend in the caster's one batch with the cast;
+  // a kept creature that countered pays its slot in its own first outcome.
+  const casterCounterConsumptions = counterConsumptionsOf(failedCounters, caster.id)
+  const failedReactorSlots = new Set(
+    failedCounters.flatMap(({ receipt, spellConsumption }) =>
+      spellConsumption ? [receipt.reaction.reactorActorId] : []
+    )
+  )
   const children = []
   const createdEffects = new Map<string, ActiveRuleEffectRecord[]>()
   // The cast ends the caster's effects that end on a cast (Invisibility), and releases the condition
@@ -1481,6 +1658,10 @@ export async function completeAreaCommit(args: {
     // A Character caster caught by their own area spends in the same Sheet write as their first outcome.
     const carriesSpend =
       caster.kind === 'CHARACTER' && actor.id === caster.id && !advanced.has(actor.id)
+    const carriesFailedCounterSpend =
+      actor.id !== caster.id &&
+      failedReactorSlots.has(actor.id) &&
+      children.every((child) => child.actorId !== actor.id)
     const enterForm =
       recurringEffect && formCreature ? actorFormEntry(recurringEffect, formCreature) : undefined
     const mechanics = planNativeEncounterActionMechanics(
@@ -1494,8 +1675,11 @@ export async function completeAreaCommit(args: {
         occurredAt,
         applications: [...complete.applications, ...effects.relationshipConditionApplications],
         sourceSpend: carriesSpend ? 'WITH_OUTCOME' : 'NONE',
-        forceTargetVersionAdvance: prepared.target.kind === 'CHARACTER' && created.length > 0,
-        ...(carriesSpend ? { sourceReleases } : {}),
+        forceTargetVersionAdvance:
+          prepared.target.kind === 'CHARACTER' && (created.length > 0 || carriesFailedCounterSpend),
+        ...(carriesSpend
+          ? { sourceReleases, counterSpellConsumptions: casterCounterConsumptions }
+          : {}),
         ...(enterForm ? { enterForm } : {})
       },
       userId
@@ -1543,7 +1727,8 @@ export async function completeAreaCommit(args: {
         actionEconomy: null,
         attackAction: null,
         area: { parentOccurrenceId: areaOccurrenceId },
-        resistance
+        resistance,
+        targetFailedCounterSpend: carriesFailedCounterSpend
       })
     })
   }
@@ -1554,7 +1739,8 @@ export async function completeAreaCommit(args: {
     resourceState?.resourceConsumption ||
     resourceState?.itemConsumption ||
     resourceState?.spellConsumption ||
-    lead.acceptedWieldConflict
+    lead.acceptedWieldConflict ||
+    casterCounterConsumptions.length > 0
   )
   const sourceSpend = merged
     ? null
@@ -1567,7 +1753,8 @@ export async function completeAreaCommit(args: {
           sourceCommandId: command.commandId,
           commandId: command.commandId,
           occurredAt,
-          sourceReleases
+          sourceReleases,
+          counterSpellConsumptions: casterCounterConsumptions
         },
         userId
       )
@@ -1635,6 +1822,20 @@ export async function completeAreaCommit(args: {
           })
         : updated
     )
+  }
+  // A creature that failed to counter the cast has spent its reaction. A kept creature pays it in its
+  // own outcome; the caster's and any other creature's are paid by persistence.
+  for (const { receipt, economy } of failedCounters) {
+    const reactor = settledActors.get(receipt.reaction.reactorActorId)
+    if (
+      reactor &&
+      reactor.id !== caster.id &&
+      children.some((child) => child.actorId === reactor.id)
+    )
+      settledActors.set(
+        reactor.id,
+        consumeEncounterActionEconomy({ actor: reactor, consumption: economy, overridden: false })
+      )
   }
   let settledCaster = settledActors.get(caster.id)!
   if (spend.featureResourceReceipt)
@@ -1759,6 +1960,7 @@ export async function completeAreaCommit(args: {
     resourceConsumption: resourceState?.resourceConsumption ?? null,
     itemConsumption: resourceState?.itemConsumption ?? null,
     spellConsumption: resourceState?.spellConsumption ?? null,
+    failedCounters,
     consumedGrants,
     label: sourceLabel,
     ruleOverrides,
@@ -1801,6 +2003,10 @@ export function buildNativeLiveEncounterAreaCommitInput(
     resourceConsumption: plan.resourceConsumption,
     itemConsumption: plan.itemConsumption,
     spellConsumption: plan.spellConsumption,
+    failedCounters: plan.failedCounters.map(({ receipt, spellConsumption }) => ({
+      receipt,
+      spellConsumption
+    })),
     consumedGrants: plan.consumedGrants,
     label: plan.label,
     ruleOverrides: plan.ruleOverrides,

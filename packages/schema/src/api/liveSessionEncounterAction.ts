@@ -288,12 +288,7 @@ export const liveSessionPlacedSpatialEffectSchema: z.ZodMiniType<LiveSessionPlac
  */
 export type LiveSessionEncounterAreaCommitInput = Omit<
   LiveSessionEncounterActionCommitInput,
-  | 'execution'
-  | 'createdEffects'
-  | 'cleaving'
-  | 'turnUses'
-  | 'reactionSpellConsumption'
-  | 'failedCounters'
+  'execution' | 'createdEffects' | 'cleaving' | 'turnUses' | 'reactionSpellConsumption'
 > & {
   execution: z.infer<typeof storedRuleExecutionResultDtoSchema>
   targets: {
@@ -342,6 +337,7 @@ export const liveSessionEncounterAreaCommitInputSchema: z.ZodMiniType<LiveSessio
       resourceConsumption: z.nullable(liveSessionCharacterResourceConsumptionSchema),
       itemConsumption: z.nullable(liveSessionCharacterItemConsumptionSchema),
       spellConsumption: z.nullable(liveSessionCharacterSpellConsumptionSchema),
+      failedCounters: liveSessionFailedCountersSchema,
       label: z.nullable(z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160))),
       ruleOverrides: encounterRuleWarningsDtoSchema,
       consumedGrants: z

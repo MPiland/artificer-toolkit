@@ -16,6 +16,10 @@ import {
 } from './ruleExecutionDirectActionPendingContexts.js'
 import { serverRuleExecutionD20PolicyDtoSchema } from './ruleExecutionEvidence.js'
 import {
+  encounterFailedCounterDtoSchema,
+  type EncounterFailedCounterDto
+} from './ruleExecutionReactionChoice.js'
+import {
   movementReactionPendingContextDtoSchema,
   spatialPendingContextDtoSchema
 } from './ruleExecutionSpatialPendingContexts.js'
@@ -510,6 +514,8 @@ export type EncounterAreaActionPendingContextDto = {
   caughtChecksum: string
   /** Creatures the GM took out of the area while the saves were pending. */
   removedActorIds: string[]
+  /** The counters reactors attempted and failed against this cast, which the area's commit spends (D127). */
+  failedCounters?: EncounterFailedCounterDto[]
   targets: {
     actorId: string
     /** The footprint of the creature's token when the area caught it; null when it has none on the Scene read. */
@@ -579,6 +585,9 @@ const encounterAreaActionPendingContextDtoSchema = lazySchema(() =>
       ),
       caughtChecksum: checksumSchema,
       removedActorIds: z.array(uuidSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
+      failedCounters: z.optional(
+        z.array(encounterFailedCounterDtoSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS))
+      ),
       targets: z
         .array(
           z.strictObject({
