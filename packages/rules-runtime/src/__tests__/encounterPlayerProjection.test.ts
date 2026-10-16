@@ -4,6 +4,7 @@ import type { HealthDisplayLevelDto } from '@artificer-toolkit/schema/api/health
 
 import {
   healthDescriptiveState,
+  invisibleConditionTypeIds,
   playerActorHealth,
   projectPlayerEncounterProjection,
   unseenEncounterActorIds
@@ -72,7 +73,8 @@ function gmEncounter(actors: unknown[], healthDisplayDefault: HealthDisplayLevel
 const noCharacters = {
   userId: OTHER_PLAYER_ID,
   characters: new Map(),
-  unseenActorIds: new Set<string>()
+  unseenActorIds: new Set<string>(),
+  invisibleConditionTypeIds: new Set<string>()
 }
 
 describe('player encounter projection', () => {
@@ -235,7 +237,8 @@ describe('player encounter projection', () => {
     const viewerWith = (unseen: string[], userId = OTHER_PLAYER_ID) => ({
       userId,
       characters: new Map(),
-      unseenActorIds: new Set(unseen)
+      unseenActorIds: new Set(unseen),
+      invisibleConditionTypeIds: new Set<string>()
     })
 
     it('omits a public actor the viewer cannot see, and keeps it for the GM', () => {
@@ -272,7 +275,8 @@ describe('player encounter projection', () => {
         projectPlayerEncounterProjection(gmEncounter([character]), {
           userId: PLAYER_ID,
           characters,
-          unseenActorIds: new Set([UNSEEN_ACTOR_ID])
+          unseenActorIds: new Set([UNSEEN_ACTOR_ID]),
+          invisibleConditionTypeIds: new Set<string>()
         }).actors
       ).toMatchObject([{ id: UNSEEN_ACTOR_ID, label: 'Aria' }])
     })
@@ -302,6 +306,99 @@ describe('player encounter projection', () => {
       const [listed] = projectPlayerEncounterProjection(gm, viewerWith([UNSEEN_ACTOR_ID])).actors
 
       expect(listed).toMatchObject({ id: UNSEEN_ACTOR_ID, label: 'Cave troll' })
+    })
+
+    // D131: a revealed creature the player cannot see says why, so the target list can mark it.
+    describe('why a listed creature is unseen (D131)', () => {
+      const INVISIBLE_TYPE_ID = '00000000-0000-4000-8000-0000000000d1'
+      const invisibleViewer = (unseen: string[], userId = OTHER_PLAYER_ID) => ({
+        ...viewerWith(unseen, userId),
+        invisibleConditionTypeIds: new Set([INVISIBLE_TYPE_ID])
+      })
+      const invisible = { conditionTypeId: INVISIBLE_TYPE_ID, label: 'Invisible' }
+
+      it.each([
+        {
+          name: 'a seen actor',
+          actor: seenActor,
+          unseen: [] as string[],
+          reveal: null,
+          expected: null
+        },
+        {
+          name: 'an unseen actor the viewer controls',
+          actor: { ...unseenActor, controllerUserIds: [PLAYER_ID] },
+          unseen: [UNSEEN_ACTOR_ID],
+          reveal: null,
+          expected: null
+        },
+        {
+          name: 'a revealed creature the map hides',
+          actor: unseenActor,
+          unseen: [UNSEEN_ACTOR_ID],
+          reveal: 'NAMED' as const,
+          expected: 'HIDDEN'
+        },
+        {
+          name: 'a revealed creature carrying other conditions',
+          actor: { ...unseenActor, conditions: [{ conditionTypeId: 'prone', label: 'Prone' }] },
+          unseen: [UNSEEN_ACTOR_ID],
+          reveal: 'UNNAMED' as const,
+          expected: 'HIDDEN'
+        },
+        {
+          name: 'a revealed creature carrying the Invisible condition',
+          actor: { ...unseenActor, conditions: [invisible] },
+          unseen: [UNSEEN_ACTOR_ID],
+          reveal: 'NAMED' as const,
+          expected: 'INVISIBLE'
+        },
+        {
+          name: 'an Invisible creature revealed unnamed',
+          actor: { ...unseenActor, conditions: [invisible] },
+          unseen: [UNSEEN_ACTOR_ID],
+          reveal: 'UNNAMED' as const,
+          expected: 'INVISIBLE'
+        },
+        {
+          name: 'an Invisible creature the map draws',
+          actor: { ...seenActor, conditions: [invisible] },
+          unseen: [] as string[],
+          reveal: null,
+          expected: null
+        }
+      ])('marks $name as $expected', ({ actor, unseen, reveal, expected }) => {
+        const gm = gmEncounter([{ ...actor, ...(reveal ? { reveal } : {}) }])
+        const viewer = invisibleViewer(unseen, actor.controllerUserIds[0] ?? OTHER_PLAYER_ID)
+
+        expect(projectPlayerEncounterProjection(gm, viewer).actors[0]?.unseenReason).toBe(expected)
+      })
+
+      it('exposes only the Invisible fact of an unnamed reveal, never another condition', () => {
+        const gm = gmEncounter([
+          {
+            ...unseenActor,
+            reveal: 'UNNAMED',
+            conditions: [invisible, { conditionTypeId: 'prone', label: 'Prone' }]
+          }
+        ])
+        const [listed] = projectPlayerEncounterProjection(
+          gm,
+          invisibleViewer([UNSEEN_ACTOR_ID])
+        ).actors
+
+        expect(listed).toMatchObject({ conditions: [], unseenReason: 'INVISIBLE' })
+        expect(JSON.stringify(listed)).not.toContain('Prone')
+      })
+
+      it('finds the Invisible condition types of a System by their code', () => {
+        expect(
+          invisibleConditionTypeIds([
+            { id: 'a', code: 'BLINDED', label: 'Blinded' },
+            { id: INVISIBLE_TYPE_ID, code: 'INVISIBLE', label: 'Invisible' }
+          ])
+        ).toEqual(new Set([INVISIBLE_TYPE_ID]))
+      })
     })
 
     it('shows no turn for an unlisted actor, and the turn of one revealed unnamed', () => {
