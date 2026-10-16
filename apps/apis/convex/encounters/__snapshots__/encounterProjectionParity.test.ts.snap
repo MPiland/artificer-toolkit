@@ -553,6 +553,7 @@ exports[`Encounter projections built on read > applies an action mechanics batch
             "public": true,
             "sourceId": null,
             "sourceRevision": null,
+            "unseenReason": null,
           },
           {
             "absence": null,
@@ -572,6 +573,7 @@ exports[`Encounter projections built on read > applies an action mechanics batch
             "public": true,
             "sourceId": "<uuid:50>",
             "sourceRevision": null,
+            "unseenReason": null,
           },
           {
             "absence": null,
@@ -591,6 +593,7 @@ exports[`Encounter projections built on read > applies an action mechanics batch
             "public": true,
             "sourceId": null,
             "sourceRevision": null,
+            "unseenReason": null,
           },
           {
             "absence": null,
@@ -610,6 +613,7 @@ exports[`Encounter projections built on read > applies an action mechanics batch
             "public": true,
             "sourceId": null,
             "sourceRevision": null,
+            "unseenReason": null,
           },
         ],
         "automationMode": "ASSISTED",
@@ -652,6 +656,7 @@ exports[`Encounter projections built on read > applies an action mechanics batch
             "public": true,
             "sourceId": null,
             "sourceRevision": null,
+            "unseenReason": null,
           },
           {
             "absence": null,
@@ -675,6 +680,7 @@ exports[`Encounter projections built on read > applies an action mechanics batch
             "public": true,
             "sourceId": "<uuid:50>",
             "sourceRevision": null,
+            "unseenReason": null,
           },
           {
             "absence": null,
@@ -694,6 +700,7 @@ exports[`Encounter projections built on read > applies an action mechanics batch
             "public": true,
             "sourceId": null,
             "sourceRevision": null,
+            "unseenReason": null,
           },
           {
             "absence": null,
@@ -713,6 +720,7 @@ exports[`Encounter projections built on read > applies an action mechanics batch
             "public": true,
             "sourceId": null,
             "sourceRevision": null,
+            "unseenReason": null,
           },
         ],
         "automationMode": "ASSISTED",
@@ -1290,6 +1298,7 @@ exports[`Encounter projections built on read > corrects the current turn 1`] = `
             "public": true,
             "sourceId": null,
             "sourceRevision": null,
+            "unseenReason": null,
           },
           {
             "absence": null,
@@ -1309,6 +1318,7 @@ exports[`Encounter projections built on read > corrects the current turn 1`] = `
             "public": true,
             "sourceId": "<uuid:11>",
             "sourceRevision": null,
+            "unseenReason": null,
           },
           {
             "absence": null,
@@ -1328,6 +1338,7 @@ exports[`Encounter projections built on read > corrects the current turn 1`] = `
             "public": true,
             "sourceId": null,
             "sourceRevision": null,
+            "unseenReason": null,
           },
           {
             "absence": null,
@@ -1347,6 +1358,7 @@ exports[`Encounter projections built on read > corrects the current turn 1`] = `
             "public": true,
             "sourceId": null,
             "sourceRevision": null,
+            "unseenReason": null,
           },
         ],
         "automationMode": "ASSISTED",
@@ -1389,6 +1401,7 @@ exports[`Encounter projections built on read > corrects the current turn 1`] = `
             "public": true,
             "sourceId": null,
             "sourceRevision": null,
+            "unseenReason": null,
           },
           {
             "absence": null,
@@ -1412,6 +1425,7 @@ exports[`Encounter projections built on read > corrects the current turn 1`] = `
             "public": true,
             "sourceId": "<uuid:11>",
             "sourceRevision": null,
+            "unseenReason": null,
           },
           {
             "absence": null,
@@ -1431,6 +1445,7 @@ exports[`Encounter projections built on read > corrects the current turn 1`] = `
             "public": true,
             "sourceId": null,
             "sourceRevision": null,
+            "unseenReason": null,
           },
           {
             "absence": null,
@@ -1450,6 +1465,7 @@ exports[`Encounter projections built on read > corrects the current turn 1`] = `
             "public": true,
             "sourceId": null,
             "sourceRevision": null,
+            "unseenReason": null,
           },
         ],
         "automationMode": "ASSISTED",
@@ -1763,6 +1779,7 @@ exports[`Encounter projections built on read > records turn movement 1`] = `
             "public": true,
             "sourceId": null,
             "sourceRevision": null,
+            "unseenReason": null,
           },
           {
             "absence": null,
@@ -1782,6 +1799,7 @@ exports[`Encounter projections built on read > records turn movement 1`] = `
             "public": true,
             "sourceId": "<uuid:11>",
             "sourceRevision": null,
+            "unseenReason": null,
           },
           {
             "absence": null,
@@ -1801,6 +1819,7 @@ exports[`Encounter projections built on read > records turn movement 1`] = `
             "public": true,
             "sourceId": null,
             "sourceRevision": null,
+            "unseenReason": null,
           },
           {
             "absence": null,
@@ -1820,6 +1839,7 @@ exports[`Encounter projections built on read > records turn movement 1`] = `
             "public": true,
             "sourceId": null,
             "sourceRevision": null,
+            "unseenReason": null,
           },
         ],
         "automationMode": "ASSISTED",
@@ -1862,6 +1882,7 @@ exports[`Encounter projections built on read > records turn movement 1`] = `
             "public": true,
             "sourceId": null,
             "sourceRevision": null,
+            "unseenReason": null,
           },
           {
             "absence": null,
@@ -1885,6 +1906,7 @@ exports[`Encounter projections built on read > records turn movement 1`] = `
             "public": true,
             "sourceId": "<uuid:11>",
             "sourceRevision": null,
+            "unseenReason": null,
           },
           {
             "absence": null,
@@ -1904,6 +1926,7 @@ exports[`Encounter projections built on read > records turn movement 1`] = `
             "public": true,
             "sourceId": null,
             "sourceRevision": null,
+            "unseenReason": null,
           },
           {
             "absence": null,
@@ -1923,6 +1946,7 @@ exports[`Encounter projections built on read > records turn movement 1`] = `
             "public": true,
             "sourceId": null,
             "sourceRevision": null,
+            "unseenReason": null,
           },
         ],
         "automationMode": "ASSISTED",
@@ -2438,6 +2462,7 @@ exports[`Encounter projections built on read > removes an actor 1`] = `
             "public": true,
             "sourceId": null,
             "sourceRevision": null,
+            "unseenReason": null,
           },
           {
             "absence": null,
@@ -2457,6 +2482,7 @@ exports[`Encounter projections built on read > removes an actor 1`] = `
             "public": true,
             "sourceId": "<uuid:11>",
             "sourceRevision": null,
+            "unseenReason": null,
           },
           {
             "absence": null,
@@ -2476,6 +2502,7 @@ exports[`Encounter projections built on read > removes an actor 1`] = `
             "public": true,
             "sourceId": null,
             "sourceRevision": null,
+            "unseenReason": null,
           },
         ],
         "automationMode": "ASSISTED",
@@ -2518,6 +2545,7 @@ exports[`Encounter projections built on read > removes an actor 1`] = `
             "public": true,
             "sourceId": null,
             "sourceRevision": null,
+            "unseenReason": null,
           },
           {
             "absence": null,
@@ -2541,6 +2569,7 @@ exports[`Encounter projections built on read > removes an actor 1`] = `
             "public": true,
             "sourceId": "<uuid:11>",
             "sourceRevision": null,
+            "unseenReason": null,
           },
           {
             "absence": null,
@@ -2560,6 +2589,7 @@ exports[`Encounter projections built on read > removes an actor 1`] = `
             "public": true,
             "sourceId": null,
             "sourceRevision": null,
+            "unseenReason": null,
           },
         ],
         "automationMode": "ASSISTED",
@@ -3145,6 +3175,7 @@ exports[`Encounter projections built on read > voids a paused action 1`] = `
             "public": true,
             "sourceId": null,
             "sourceRevision": null,
+            "unseenReason": null,
           },
           {
             "absence": null,
@@ -3164,6 +3195,7 @@ exports[`Encounter projections built on read > voids a paused action 1`] = `
             "public": true,
             "sourceId": "<uuid:12>",
             "sourceRevision": null,
+            "unseenReason": null,
           },
           {
             "absence": null,
@@ -3183,6 +3215,7 @@ exports[`Encounter projections built on read > voids a paused action 1`] = `
             "public": true,
             "sourceId": null,
             "sourceRevision": null,
+            "unseenReason": null,
           },
           {
             "absence": null,
@@ -3202,6 +3235,7 @@ exports[`Encounter projections built on read > voids a paused action 1`] = `
             "public": true,
             "sourceId": null,
             "sourceRevision": null,
+            "unseenReason": null,
           },
         ],
         "automationMode": "ASSISTED",
@@ -3244,6 +3278,7 @@ exports[`Encounter projections built on read > voids a paused action 1`] = `
             "public": true,
             "sourceId": null,
             "sourceRevision": null,
+            "unseenReason": null,
           },
           {
             "absence": null,
@@ -3267,6 +3302,7 @@ exports[`Encounter projections built on read > voids a paused action 1`] = `
             "public": true,
             "sourceId": "<uuid:12>",
             "sourceRevision": null,
+            "unseenReason": null,
           },
           {
             "absence": null,
@@ -3286,6 +3322,7 @@ exports[`Encounter projections built on read > voids a paused action 1`] = `
             "public": true,
             "sourceId": null,
             "sourceRevision": null,
+            "unseenReason": null,
           },
           {
             "absence": null,
@@ -3305,6 +3342,7 @@ exports[`Encounter projections built on read > voids a paused action 1`] = `
             "public": true,
             "sourceId": null,
             "sourceRevision": null,
+            "unseenReason": null,
           },
         ],
         "automationMode": "ASSISTED",

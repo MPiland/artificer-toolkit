@@ -9,19 +9,19 @@ import {
 import { encounterRunStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import {
   encounterStoredDecisionSkipSchema,
+  encounterStoredRuleOccurrenceSchema,
   encounterStoredRunCommandSchema
 } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import { type ServerRuleExecutionPendingSnapshotDto } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { rejectDomain } from './domainRejections.js'
-import { readRunState } from './documents.js'
+import { changedFields, readRunState } from './documents.js'
 import { encounterReplayReceipt, replayEncounterCommandResult } from './replayReceipts.js'
 import { readEncounterGmProjection } from './nativeProjection.js'
 import { readPendingRunDecision } from './pendingReads.js'
 import { insertRunCommand } from './timelineEntries.js'
 import { MOVEMENT_DECISION_SKIPPED_MESSAGE } from '@artificer-toolkit/schema/api/campaignCommunication'
-import { closePendingOccurrence } from './occurrenceClosing.js'
-import { readPendingSnapshot } from './pendingSnapshots.js'
+import { readPendingSnapshot, writePendingSnapshot } from './pendingSnapshots.js'
 import type { EncounterDocument } from './store.js'
 import type { EncounterPersistenceTransaction, EncounterWritePorts } from './ports.js'
 
@@ -57,7 +57,6 @@ export function classifyRuleOccurrenceVoid(context: RuleOccurrenceVoidFacts): Ru
   switch (context.kind) {
     case 'ENCOUNTER_ACTION':
     case 'ENCOUNTER_AREA_ACTION':
-    case 'ENCOUNTER_ATTACK_SQUARE':
     case 'ENCOUNTER_CHARACTER_RULE_ACTION':
     case 'ENCOUNTER_ACTOR_RULE_ACTION':
     case 'ENCOUNTER_ACTOR_SPELL_CAST':
@@ -311,7 +310,17 @@ export async function prepareRuleOccurrenceVoid(
   const { admission } = plan
   const { occurrence } = admission
   // Paused actions stage nothing on the Run, so cancelling only closes the occurrence.
-  const voided = await closePendingOccurrence(ctx, occurrence, 'VOIDED')
+  const updatedAt = new Date().toISOString()
+  const { _id, _creationTime, ...stored } = occurrence
+  const voided = encounterStoredRuleOccurrenceSchema.parse({
+    ...stored,
+    state: 'VOIDED',
+    version: occurrence.version + 1,
+    pendingSnapshotChecksum: await writePendingSnapshot(ctx, occurrence, null),
+    completedAt: updatedAt,
+    updatedAt
+  })
+  await ctx.db.patch(_id, changedFields(occurrence, voided))
   return {
     kind: 'COMPLETE',
     result: await recordVoid(

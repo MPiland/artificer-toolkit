@@ -204,6 +204,8 @@ const SUMMON_VISIBILITY_OPTIONS = valuesOf(
 const pathLifecycle = buildNodeMap<PathLifecycleAuthored>()
 const pathLifecycleTurnAnchor = buildNodeMap<NonNullable<PathLifecycleAuthored['turnAnchor']>>()
 const pathLifecycleHolderEnd = buildNodeMap<NonNullable<PathLifecycleAuthored['holderEnd']>>()
+const pathLifecycleEndTrigger =
+  buildNodeMap<NonNullable<PathLifecycleAuthored['endOnTriggers']>[number]>()
 const applyGrants = buildNodeMap<ApplyGrantsNode>()
 const summonAbilityScores = buildNodeMap<SummonAbilityScoresNode>()
 const summonStatBlock = buildNodeMap<SummonStatBlockAuthored>()
@@ -317,10 +319,53 @@ const PATH_LIFECYCLE_HOLDER_END_NODE_MAP: NodeMap<NonNullable<PathLifecycleAutho
     )
   })
 
+const PATH_LIFECYCLE_END_TRIGGER_NODE_MAP: NodeMap<
+  NonNullable<PathLifecycleAuthored['endOnTriggers']>[number]
+> = pathLifecycleEndTrigger.define('pathLifecycleEndTrigger', ({ map, nodes, data }) => {
+  const { selectSingle, selectMulti } = nodes
+  const { table } = data
+
+  map
+    .set(
+      'event',
+      selectSingle(
+        ['event'],
+        'Ends When',
+        {
+          kind: 'INLINE_OPTIONS',
+          options: [{ code: 'DAMAGE_TAKEN', label: 'The holder takes damage' }]
+        },
+        { requiredIf: true }
+      )
+    )
+    .set(
+      'by',
+      selectSingle(
+        ['by'],
+        'Damage From',
+        {
+          kind: 'INLINE_OPTIONS',
+          options: [
+            { code: 'ANYONE', label: 'Anyone' },
+            { code: 'SOURCE_SIDE', label: 'The effect source or its allies' }
+          ]
+        },
+        { requiredIf: true }
+      )
+    )
+    .set(
+      'damageTypeIds',
+      selectMulti(['damageTypeIds'], 'Damage Types (any when empty)', {
+        kind: 'DATA',
+        relationship: table('damage_types', { selectColumns: ['id', 'label', 'description'] })
+      })
+    )
+})
+
 const PATH_LIFECYCLE_NODE_MAP: NodeMap<PathLifecycleAuthored> = pathLifecycle.define(
   'pathLifecycle',
   ({ map, nodes, data }) => {
-    const { selectSingle, selectMulti, groupObject } = nodes
+    const { selectSingle, selectMulti, groupObject, groupArray } = nodes
     const { table } = data
 
     map
@@ -349,6 +394,12 @@ const PATH_LIFECYCLE_NODE_MAP: NodeMap<PathLifecycleAuthored> = pathLifecycle.de
         selectMulti(['endOnEvents'], 'End On Events', {
           kind: 'INLINE_OPTIONS',
           options: PATH_LIFECYCLE_END_EVENT_OPTIONS
+        })
+      )
+      .set(
+        'endOnTriggers',
+        groupArray(['endOnTriggers'], 'End On', () => PATH_LIFECYCLE_END_TRIGGER_NODE_MAP, {
+          presentation: 'inline'
         })
       )
       .set(

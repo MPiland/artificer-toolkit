@@ -87,6 +87,8 @@ The user wants a Kickstarter campaign with realistic goals to fund finishing the
 
 ### Deferred edge cases (watch for in real use)
 
+- **Invisible Characters in the target list (ATTACK-17.T4b, D131).** `unseenReason` reads `INVISIBLE` only for creature actors: a Character's conditions live on its Sheet and are `[]` in the player projection, so an unseen Invisible Character is marked `HIDDEN`. Rare (needs the GM to reveal an unseen Character the player does not control); fix by projecting the Sheet's Invisible fact when it arises.
+
 These are rare paths, roughly under 5% of sessions, whose failure is visible and recoverable (user direction, 2026-10-15). Fix one when real use shows it happening.
 
 - **Undo of a damage action that auto-reverted a creature form (SPELLS-28.T2, D130):** the revert restores the form's hit points, which `restoreHitPoints` refuses once the actor is out of its form. The GM corrects the hit points by hand; a form-aware undo can follow if it shows up in play.
@@ -103,6 +105,9 @@ These are rare paths, roughly under 5% of sessions, whose failure is visible and
 - **Live-backend script spawn failure:** if `yarn` can't start, `scripts/liveBackendValidation.mjs` throws an unhandled rejection instead of a step error. This is dev tooling; the run still fails, just with a noisier log.
 - **`--fresh` guard:** `liveBackendValidation.mjs --fresh` checks the container by name only. A different container given the same name would be reset.
 - **A creature named twice by a projectile list that leaves a condition (SPELLS-19.T1):** `advanceAreaPrepared` does not add the effect an earlier entry created to the creature's `activeEffects`, so a repeated-target action whose outcome applies a condition reads the condition as already present when it records the second entry's baseline. No SRD projectile action applies a condition; it needs an authored list action that does.
+- **Concentration area over the per-actor dependent cap (SPELLS-19.T2):** one maintained state holds an effect per failed creature, and `MAX_MAINTAINED_RULE_EFFECT_DEPENDENTS_PER_ACTOR` (64) caps them. An area that fails more than 64 creatures at once (a Scene of 65+ tokens inside one sphere) fails the commit with a generic store error instead of a domain rejection.
+- **Concentration area where every creature saves (SPELLS-19.T2):** no effect is created, so the caster's earlier Concentration is not replaced. This mirrors the single-target path, where a made save also leaves the earlier Concentration running.
+- **Concentration cast on a creature named twice (SPELLS-19.T2):** the chosen-creatures variant shares the area maintenance path but has no test that names one creature twice under a Concentration outcome.
 - **Chosen-creature list and a moved Scene (SPELLS-8.T12):** the list commit (`areaCommitPersistence.ts`, `input.area === null`) does not re-read the Scene, so a token moved between planning and commit (the sphere membership or range was checked at plan time) is not re-checked. Single-target commits re-read it. Only a Scene edit landing inside one command's await gap triggers it, and the GM can undo the cast.
 - **Range outline of a shaped chosen-creature list (SPELLS-8.T12):** Mass Cure Wounds draws no range outline from the caster (`enforcedRange` reports UNLIMITED for the creatures; the picked point carries the 60 ft range), yet the room warns for a point beyond it.
 - **Replay of a completed chosen-creature cast:** `actionAdmission.ts`'s replay branch expects a mechanics-batch output, so a retried command id after the room journal has forgotten it may raise "Stored Encounter action receipt mismatch." Unverified; point-area roots may share it.

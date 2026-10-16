@@ -574,14 +574,17 @@ describe('encounter contracts', () => {
       createdAt: '2026-08-07T00:00:00.000Z',
       updatedAt: '2026-08-07T00:00:00.000Z'
     }
-    const withHealth = (health: unknown) => ({ ...base, actors: [{ ...base.actors[0], health }] })
+    const withHealth = (health: unknown) => ({
+      ...base,
+      actors: [{ ...base.actors[0], health, unseenReason: null }]
+    })
     expect(encounterPlayerProjectionDtoSchema.parse(withHealth(null)).actors[0]).not.toHaveProperty(
       'currentHitPoints'
     )
     expect(
       encounterPlayerProjectionDtoSchema.safeParse({
         ...base,
-        actors: [{ ...base.actors[0], health: null, healthBand: 'WOUNDED' }]
+        actors: [{ ...base.actors[0], health: null, unseenReason: null, healthBand: 'WOUNDED' }]
       }).success
     ).toBe(false)
     // Each health display level carries only its own fields, and a bar only a coarse ratio.

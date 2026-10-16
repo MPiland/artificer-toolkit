@@ -12,10 +12,12 @@ import {
   activationCodeSchema,
   pathLifecycleConsumeEventSchema,
   pathLifecycleEndEventSchema,
+  pathLifecycleEndTriggerBySchema,
   pathLifecycleGrantConsumeEventSchema,
   pathLifecycleGrantEndEventSchema
 } from './enums.js'
 import { postgresUuidSchema } from './postgresUuid.js'
+import { damageTypeFilterDtoSchema } from './reaction.js'
 import { compiledRuleGraphDtoSchema } from './ruleExecutionCore.js'
 
 export {
@@ -112,6 +114,44 @@ export const activeEffectEndEventsSchema = lazySchema(() =>
   sortedUniqueEventsSchema(pathLifecycleEndEventSchema, 'end events')
 )
 
+/**
+ * A structured end trigger: an event that ends the effect, narrowed by who causes it and what it
+ * touches. It shares the reaction trigger's filter types, and each arm needs a consumer before an
+ * effect may carry it. `DAMAGE_TAKEN` ends the effect when its holder takes damage: `by` limits whose
+ * damage counts (the effect source's side, for Charm Person) and `damageTypeIds` which types do.
+ */
+export const activeEffectEndTriggerSchema = lazySchema(() =>
+  z.discriminatedUnion('event', [
+    z.strictObject({
+      event: z.literal('DAMAGE_TAKEN'),
+      by: pathLifecycleEndTriggerBySchema,
+      damageTypeIds: z.nullable(damageTypeFilterDtoSchema)
+    })
+  ])
+)
+
+/** The structured end triggers of one effect: unique, in canonical order. */
+export const activeEffectEndTriggersSchema = lazySchema(() =>
+  z
+    .array(activeEffectEndTriggerSchema)
+    .check(z.maxLength(16))
+    .check(
+      z.superRefine((triggers, context) => {
+        const keys = triggers.map((trigger) => JSON.stringify(trigger))
+        if (new Set(keys).size !== keys.length)
+          context.addIssue({
+            code: 'custom',
+            message: 'Active-effect end triggers must be unique.'
+          })
+        if (keys.some((key, index) => index > 0 && keys[index - 1]! > key))
+          context.addIssue({
+            code: 'custom',
+            message: 'Active-effect end triggers must be sorted.'
+          })
+      })
+    )
+)
+
 /** The events whose first occurrence uses a grant up: sorted and unique. */
 export const activeEffectConsumeEventsSchema = lazySchema(() =>
   sortedUniqueEventsSchema(pathLifecycleConsumeEventSchema, 'consume events')
@@ -154,6 +194,7 @@ const activeRuleEffectDefinitionBaseDtoSchema = lazySchema(() =>
       recurrenceStage: z.enum(['NONE', 'START_OF_TURN', 'END_OF_TURN']),
       consumeOnFirstEvents: activeEffectConsumeEventsSchema,
       endOnEvents: activeEffectEndEventsSchema,
+      endOnTriggers: z._default(activeEffectEndTriggersSchema, []),
       endOnConditionIds: activeGrantEndConditionIdsSchema,
       holderEnd: z.nullable(activeGrantHolderEndSchema),
       lifetimeScope: z.enum(['OWNER', 'ENCOUNTER']),
@@ -375,6 +416,16 @@ export const activeRuleEffectDefinitionDtoSchema = lazySchema(() =>
           })
         }
         if (
+          definition.recurrence.endOnTriggers.some(({ by }) => by === 'SOURCE_SIDE') &&
+          (definition.origin.kind !== 'ENCOUNTER' || definition.origin.sourceActorId === null)
+        ) {
+          context.addIssue({
+            code: 'custom',
+            path: ['recurrence', 'endOnTriggers'],
+            message: 'A source-side end trigger requires an Encounter origin with a source actor.'
+          })
+        }
+        if (
           definition.schemaVersion === 2 &&
           definition.stateContributions.some(({ kind }) => kind === 'CONDITION_OWNERSHIP')
         ) {
@@ -499,6 +550,9 @@ export type ActiveEffectConsumeEvent = z.infer<typeof pathLifecycleConsumeEventS
 
 /** The events whose first occurrence ends an active effect. */
 export type ActiveEffectEndEvent = z.infer<typeof pathLifecycleEndEventSchema>
+
+/** A structured event that ends an active effect early. */
+export type ActiveEffectEndTrigger = z.infer<typeof activeEffectEndTriggerSchema>
 
 /** The events that end an Encounter grant early. */
 export type GrantEndEvent = z.infer<typeof pathLifecycleGrantEndEventSchema>

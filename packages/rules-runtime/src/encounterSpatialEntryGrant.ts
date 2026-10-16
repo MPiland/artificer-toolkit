@@ -78,6 +78,7 @@ export function planSpatialEntryGrant(input: {
         recurrenceStage: 'NONE',
         consumeOnFirstEvents: [],
         endOnEvents,
+        endOnTriggers: [],
         endOnConditionIds: [],
         holderEnd: null,
         lifetimeScope: 'ENCOUNTER',

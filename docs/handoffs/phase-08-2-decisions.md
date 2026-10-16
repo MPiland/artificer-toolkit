@@ -841,6 +841,11 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
     - The player's prompt shows only what their Character believes, and the roll settles in the true mode.
     - Player captions never name a Sense; the GM sees the specific reason.
   - **Hide (D116):** a settled Hide conceals the hider from the observers whose checks failed. The hider never learns which observers failed. The concealment ends for an observer who comes to see the hider clearly, and the GM can edit the observer set.
+* **D132** (2026-10-16) A structured end trigger ends an effect when its holder takes damage (SPELLS-27.T4; plan in [slice-spells-27.md](slice-spells-27.md) §8). Decided by the main session.
+  - **Shape:** `definition.recurrence.endOnTriggers` lists `{ event: 'DAMAGE_TAKEN', by: 'ANYONE' | 'SOURCE_SIDE', damageTypeIds }`. The type filter is the `DAMAGE_TAKEN` reaction trigger's schema, shared so the two never drift. `SOURCE_SIDE` is the effect's source actor or an actor allied to it, and the schema refuses it on an effect with no Encounter source. The flat `consumeOnFirstEvents` and `endOnEvents` lists are unchanged until SPELLS-27.T6 unifies them (D122).
+  - **Rule:** damage counts after resistance and immunity (`resolvedAmount > 0`). The holder's batch applies the condition releases after the outcome, and the action commit deletes the ended effects; GM undo restores both.
+  - **Authoring:** `lifecycle.endOnTriggers` on a result block, accepted only by the timed-condition plan, so authoring cannot name a trigger no plan consumes.
+  - **Scope:** the single-action damage root. The other damage roots and the Sanctuary and spell-cast arms are SPELLS-27.T4b; T5 authors no damage-ended effect whose damage arrives through an unwired root.
 
 ## Approved implementation decisions
 

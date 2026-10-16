@@ -195,10 +195,6 @@ the GM (`NOT_ACTOR_CONTROLLER` otherwise).
   The last answer, the last decision, a settling removal, or the open when every save auto-rolls commits the
   area in one transaction: a root receipt with the source spend plus one child receipt per kept creature
   (current, D103).
-- A `RESOLVE_ACTION` with a `SQUARE` target (an attack aimed at a map square, ATTACK-17.T4a) pends a GM-only
-  `ATTACK_SQUARE_RESOLUTION` that lists the creatures standing there, hidden ones included. A player's session
-  frame carries no such pending, only `waitingOn: 'GM'`. The GM's `ATTACK_SQUARE_OCCUPANT` answer runs an
-  ordinary attack on the named creature (see `rules-runtime.md`, "An attack aimed at a square").
 - The GM tools and dice commands run `recordEncounterCommand`. A GM `UPDATE_ACTOR` with a
   `characterCommand` commits that Sheet command on the Run's held Character; the same command on a
   Character the room does not hold is refused ("Make this change from the Character Sheet.").
@@ -248,6 +244,14 @@ and the GM see and answer it. Results returned to a non-owner pass through
 `presentEncounterResultForMember`; the room refuses to hand a PLAYER anything that does not parse as a
 player projection. Health display follows ADR 0034 decision 5 (Hidden, Descriptive, Bar, Exact), applied
 by `projectPlayerEncounterProjection`.
+
+**Why a listed creature is unseen (D131).** Each player actor carries `unseenReason: 'HIDDEN' | 'INVISIBLE' | null`,
+set only by `projectPlayerEncounterProjection`: null when the viewer controls the actor or sees it, `INVISIBLE` when
+it carries one of the System's Invisible condition types (`invisibleConditionTypeIds`, matched by code), else
+`HIDDEN`. An UNNAMED reveal exposes this one fact and nothing else of its conditions. Hosts build the viewer with
+`readEncounterProjectionViewer` (encounter-persistence `playerViewer.ts`), so the room and the Convex fallback share
+one pure function. Character actors' conditions live on the Sheet and are not in the projection, so an Invisible
+Character reads `HIDDEN` (deferred in `future-enhancements.md`).
 
 **Which creatures a player sees (ATTACK-17.3, D121).** `projectPlayerEncounterProjection` lists a public
 actor for a player only when the viewer controls it, the map draws its token, the GM revealed it, or it
@@ -390,8 +394,10 @@ Choosing an action whose target is one creature lets the caster pick it on the m
 "Pick on map" button, the map and the Encounter drawer all read and write that one pick.
 
 - `vttTargeting.model.ts` is the pure model: it lists the creatures the action can name, measures each one's
-  footprint distance and reach band from the caster's token on the Scene, sorts nearest first (a creature with no
-  token sorts last as "distance unknown") and flags exactly the listed tokens in normal or long range as
+  footprint distance and reach band from the caster's token on the Scene, and sorts the list (D131): creatures
+  the GM revealed but the player cannot see lead, marked "Invisible" (it carries the Invisible condition) or "Hidden" (otherwise) with "Distance unknown", and are
+  never measured or offered on the map; visible creatures follow nearest first, a visible creature with no
+  token last. It flags exactly the listed visible tokens in normal or long range as
   targetable. The renderer draws the flag as a ring, shows a pointer cursor and turns a click into
   `onTokenPick`; Escape calls `onTargetingCancel`.
 - While targeting, the Encounter drawer is the target list: non-modal beside the map, ordered by the model,

@@ -28,7 +28,10 @@ import { listActiveRuleEffects } from './effectStore.js'
 import { projectNativeGm } from './nativeProjection.js'
 import { recordTurnSpeedBonus, spendTurnUses } from './turnMovement.js'
 import { presentEncounterResultForMember } from './resultPresentation.js'
-import type { readEncounterMaintenanceCapture } from './maintenanceCapture.js'
+import {
+  readMaintenanceOwnerRequests,
+  type readEncounterMaintenanceCapture
+} from './maintenanceCapture.js'
 import type {
   prepareEncounterActionMaintenance,
   persistEncounterActionEffects
@@ -151,15 +154,12 @@ export async function persistEncounterActionCommit(
   const characterIds = new Set(
     actors.flatMap((actor) => (actor.kind === 'CHARACTER' ? [actor.sourceId] : []))
   )
-  const ownerRequests = new Set<string>()
-  for (const request of input.maintenanceOwners) {
-    const key = checksumCanonicalJson(request)
-    if ((request.actorId !== source.id && request.actorId !== target.id) || ownerRequests.has(key))
-      throw new Error('Live Session maintenance owner scope mismatch.')
-    ownerRequests.add(key)
-    await callbacks.readMaintenanceCapture(state, request)
-    if (request.owner.kind === 'CHARACTER') characterIds.add(request.owner.characterId)
-  }
+  await readMaintenanceOwnerRequests({
+    requests: input.maintenanceOwners,
+    actorIds: [source.id, target.id],
+    characterIds,
+    read: (request) => callbacks.readMaintenanceCapture(state, request)
+  })
   await callbacks.readActionSceneInputs(
     state,
     {

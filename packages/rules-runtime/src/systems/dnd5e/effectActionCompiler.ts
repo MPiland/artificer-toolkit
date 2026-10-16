@@ -25,7 +25,8 @@ import { abilityModifier } from './abilityModifier.js'
 import type {
   ActorRelationshipAuthored,
   HitPointMaximumReductionAuthored,
-  OptionalOnHitAuthored
+  OptionalOnHitAuthored,
+  PathLifecycleAuthored
 } from '@artificer-toolkit/shared/authored'
 import {
   RULE_VALUE_KIND,
@@ -56,6 +57,7 @@ import type {
   CharacterRuleActionSpatialDirective
 } from '../../characterRuleActionSystemAdapter.js'
 import type {
+  ActiveEffectEndTrigger,
   GrantConsumeEvent,
   GrantEndEvent
 } from '@artificer-toolkit/schema/shared/activeRuleEffects'
@@ -563,6 +565,12 @@ function isActiveEffectPlanOutcome(entry: CompiledEffectGroup['entries'][number]
   )
 }
 
+/** An attack with a weapon or without one (an off-hand attack, a Martial Arts strike), not a spell attack. */
+function isWeaponOrUnarmedAttack(triggerCode: string): boolean {
+  const kind = dnd5eAttackKind(triggerCode)
+  return kind === 'MELEE' || kind === 'RANGED' || kind === 'UNARMED'
+}
+
 function isSupportedTestActivation(
   invocation: Dnd5eCompiledEffectActionSource['compiledEffect']['invocation']
 ): boolean {
@@ -570,6 +578,8 @@ function isSupportedTestActivation(
   if (invocation.activation.code === 'FREE') return false
   if (invocation.activation.amount !== 1) return false
   if (invocation.activation.code === 'ACTION') return true
+  if (invocation.activation.code === 'BONUS_ACTION')
+    return isWeaponOrUnarmedAttack(invocation.triggerCode)
   return (
     invocation.activation.code === 'REACTION' &&
     'reactionTrigger' in invocation &&
@@ -669,7 +679,7 @@ function isSupportedTestTargetPolicy(
     (attackKind !== 'RANGED' || !Number.isSafeInteger(invocation.range.longAmount))
   )
     return false
-  if (invocation.activation.code === 'ACTION') {
+  if (invocation.activation.code === 'ACTION' || invocation.activation.code === 'BONUS_ACTION') {
     // A melee attack may reach 0 ft.: a swarm's "one target in the swarm's space".
     const minimumDistance = isDnd5eMeleeAttackKind(attackKind) ? 0 : 1
     return (
@@ -775,6 +785,7 @@ function supportedRecurringPlan(
     recurringStage !== null &&
     (lifecycle.consumeOnFirstEvents?.length ?? 0) === 0 &&
     (lifecycle.endOnEvents?.length ?? 0) === 0 &&
+    (lifecycle.endOnTriggers?.length ?? 0) === 0 &&
     (lifecycle.endOnConditionIds?.length ?? 0) === 0
   const maintenance = maintenancePlan(action, entry)
   if (
@@ -1467,7 +1478,12 @@ function timedConditionPlan(
     !entry.duration
   )
     return null
-  const { consumeOnFirstEvents = [], endOnEvents = [], ...otherLifecycle } = entry.lifecycle ?? {}
+  const {
+    consumeOnFirstEvents = [],
+    endOnEvents = [],
+    endOnTriggers = [],
+    ...otherLifecycle
+  } = entry.lifecycle ?? {}
   const initialRemaining = conditionDurationTurns(entry.duration)
   const { conditionId } = entry.outcome
   if (
@@ -1487,12 +1503,26 @@ function timedConditionPlan(
     conditionContribution: {
       conditionId,
       consumeOnFirstEvents: [...new Set(consumeOnFirstEvents)].sort(),
-      endOnEvents: [...new Set(endOnEvents)].sort()
+      endOnEvents: [...new Set(endOnEvents)].sort(),
+      endOnTriggers: canonicalEndTriggers(endOnTriggers)
     },
     adapterFacts: { [DND5E_ACTIVE_EFFECT_TIMED_CONDITION_FACT_KEY]: conditionId },
     perceptionContributions: [],
     maintenance: maintenancePlan(action, entry)
   }
+}
+
+/** The authored end triggers as the stored effect carries them: filters explicit, in canonical order. */
+function canonicalEndTriggers(
+  triggers: NonNullable<PathLifecycleAuthored['endOnTriggers']>
+): ActiveEffectEndTrigger[] {
+  const compiled = triggers.map(({ event, by, damageTypeIds }) => ({
+    event,
+    by,
+    damageTypeIds: damageTypeIds?.length ? [...new Set(damageTypeIds)].sort() : null
+  }))
+  const keyed = new Map(compiled.map((trigger) => [JSON.stringify(trigger), trigger]))
+  return [...keyed.entries()].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)).map(([, t]) => t)
 }
 
 function isGrantConsumeEvent(event: string): event is GrantConsumeEvent {

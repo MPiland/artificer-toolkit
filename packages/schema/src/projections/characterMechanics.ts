@@ -33,6 +33,7 @@ import {
 import {
   activeEffectConsumeEventsSchema,
   activeEffectEndEventsSchema,
+  activeEffectEndTriggersSchema,
   activeGrantConsumeEventsSchema,
   activeGrantEndConditionIdsSchema,
   activeGrantEndEventsSchema,
@@ -158,7 +159,8 @@ const compiledActionActiveEffectPlanSchema = lazySchema(() =>
         z.strictObject({
           conditionId: serverUuidIdentityDtoSchema,
           consumeOnFirstEvents: z._default(activeEffectConsumeEventsSchema, []),
-          endOnEvents: z._default(activeEffectEndEventsSchema, [])
+          endOnEvents: z._default(activeEffectEndEventsSchema, []),
+          endOnTriggers: z._default(activeEffectEndTriggersSchema, [])
         })
       ),
       null

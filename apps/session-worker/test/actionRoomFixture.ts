@@ -525,10 +525,6 @@ export async function actionRoom(config: ActionRoomConfig) {
     ) {
       return this.startAreaCommand({ kind: 'POINT', point }, acknowledgedWarnings, sender)
     },
-    /** The acting actor's attack aimed at the Scene square at `point`; the room's answer, not yet checked. */
-    startSquareAction(point: { x: number; y: number }, sender: 'GM' | 'PLAYER' = 'GM') {
-      return this.startAreaCommand({ kind: 'SQUARE', point }, [], sender)
-    },
     /** The acting actor's directed area action from `origin` toward `toward`; not yet checked. */
     startDirectedAreaAction(
       origin: { x: number; y: number },
@@ -554,8 +550,7 @@ export async function actionRoom(config: ActionRoomConfig) {
       target:
         | { kind: 'POINT'; point: { x: number; y: number } }
         | { kind: 'DIRECTED'; origin: { x: number; y: number }; toward: { x: number; y: number } }
-        | { kind: 'CASTER_CENTERED' }
-        | { kind: 'SQUARE'; point: { x: number; y: number } },
+        | { kind: 'CASTER_CENTERED' },
       acknowledgedWarnings: ResolveEncounterActionInputDto['acknowledgedWarnings'],
       sender: 'GM' | 'PLAYER'
     ) {

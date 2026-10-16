@@ -34,6 +34,7 @@ import {
   pathGroupTypeSchema,
   pathLifecycleConsumeEventSchema,
   pathLifecycleEndEventSchema,
+  pathLifecycleEndTriggerBySchema,
   pathLifecycleRecurringKindSchema,
   pathLifecycleTurnActorSchema,
   pathLifecycleTurnBoundarySchema,
@@ -44,6 +45,7 @@ import {
 import { facetDtoSchema } from '../shared/facet.js'
 import { rangeDtoSchema } from '../shared/range.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
+import { damageTypeFilterDtoSchema } from '../shared/reaction.js'
 import {
   authoredIdentifierSchema,
   authoredNestedCollectionSchema,
@@ -131,6 +133,16 @@ export const pathLifecycleDtoSchema = lazySchema(() =>
       authoredReferenceCollectionSchema(pathLifecycleConsumeEventSchema)
     ),
     endOnEvents: z.optional(authoredReferenceCollectionSchema(pathLifecycleEndEventSchema)),
+    /** Structured events that end the effect early, each with a filter on whose damage and which types. */
+    endOnTriggers: z.optional(
+      authoredReferenceCollectionSchema(
+        z.strictObject({
+          event: z.literal('DAMAGE_TAKEN'),
+          by: pathLifecycleEndTriggerBySchema,
+          damageTypeIds: z.optional(damageTypeFilterDtoSchema)
+        })
+      )
+    ),
     /** Condition type ids; the effect ends early while its holder has any of them. */
     endOnConditionIds: z.optional(authoredReferenceCollectionSchema(postgresUuidSchema)),
     /** The holder may end the effect themselves, at the cost of this activation. */

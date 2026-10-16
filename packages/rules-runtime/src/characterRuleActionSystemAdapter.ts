@@ -14,6 +14,7 @@ import type {
 import type {
   ActiveEffectConsumeEvent,
   ActiveEffectEndEvent,
+  ActiveEffectEndTrigger,
   ActiveGrantHolderEnd,
   GrantConsumeEvent,
   GrantEndEvent
@@ -70,6 +71,8 @@ export interface CharacterRuleActionActiveEffectPlan {
     consumeOnFirstEvents?: readonly ActiveEffectConsumeEvent[]
     /** The events whose first occurrence ends the condition, sorted and unique. */
     endOnEvents?: readonly ActiveEffectEndEvent[]
+    /** The structured events that end the condition's effect, unique and in canonical order. */
+    endOnTriggers?: readonly ActiveEffectEndTrigger[]
   }
   /** The timed APPLY_GRANT modifiers this effect owns, folded into the holder while it lasts. */
   modifierGrantContribution?: null | {

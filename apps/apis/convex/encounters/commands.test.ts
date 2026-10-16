@@ -1294,7 +1294,8 @@ describe('native Encounter Run commands', () => {
       projectPlayerEncounterProjection(encounterGmProjectionDtoSchema.parse(settled.projection), {
         userId: other.userId,
         characters: new Map(),
-        unseenActorIds: new Set<string>()
+        unseenActorIds: new Set<string>(),
+        invisibleConditionTypeIds: new Set<string>()
       })
     )
     expect(settledRows.rounds).toMatchObject([{ status: 'ACTIVE', version: 1 }])
@@ -1442,7 +1443,12 @@ describe('native Encounter Run commands', () => {
         encounterGmProjectionDtoSchema.parse(
           await owner.caller.query(getEncounter, { encounterId: run.id })
         ),
-        { userId: other.userId, characters: new Map(), unseenActorIds: new Set<string>() }
+        {
+          userId: other.userId,
+          characters: new Map(),
+          unseenActorIds: new Set<string>(),
+          invisibleConditionTypeIds: new Set<string>()
+        }
       )
     )
     // The room alone holds the command rows and receipts (D85, D88). The ADVANCE_TURN row's player

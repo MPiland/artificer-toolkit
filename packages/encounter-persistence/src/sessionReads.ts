@@ -15,7 +15,7 @@ import { readCampaignRunState } from './documents.js'
 import { readHalfSpeedFields } from './halfSpeedFields.js'
 import { projectEncounterFacts } from './nativeProjection.js'
 import { readEncounterWaitingOn, readPendingRunDecision } from './pendingReads.js'
-import { readEncounterPlayerViewer } from './playerViewer.js'
+import { readEncounterProjectionViewer } from './playerViewer.js'
 import type { EncounterReadTransaction } from './ports.js'
 import type { EncounterDocument } from './store.js'
 import { readTurnMovementView } from './turnMovement.js'
@@ -98,7 +98,7 @@ export async function presentEncounterRun(
   if (role === 'OWNER') return current
   return projectPlayerEncounterProjection(
     current,
-    await readEncounterPlayerViewer(ctx, current, viewer)
+    await readEncounterProjectionViewer(ctx, current, viewer)
   )
 }
 

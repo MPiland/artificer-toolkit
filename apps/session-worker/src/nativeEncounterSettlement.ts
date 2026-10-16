@@ -11,10 +11,7 @@ import { consumeEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/
 import type { planNativeEncounterActionMechanics } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPlan'
 import type { prepareNativeActionEffectsPlan } from '@artificer-toolkit/rules-runtime/encounterActionEffects'
 import { projectNativeActionEffectTransitions } from '@artificer-toolkit/rules-runtime/encounterActionEffectReceipts'
-import {
-  prepareActiveRuleEffectRecord,
-  prepareMaintainedEffectStateRecord
-} from '@artificer-toolkit/rules-runtime/activeRuleEffectRecords'
+import { prepareActiveRuleEffectRecord } from '@artificer-toolkit/rules-runtime/activeRuleEffectRecords'
 import {
   buildEncounterMaintenanceTransition,
   planEncounterMaintenanceOwner
@@ -26,7 +23,10 @@ import type { MovementTarget } from '@artificer-toolkit/rules-runtime/encounterM
 import type { EncounterMechanicsBatchPlan } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { PreparedLiveCharacterSheet } from './nativeCharacterRules.js'
-import type { prepareNativeLiveActionMaintenance } from './nativeEncounterMaintenance.js'
+import {
+  prepareNativeLiveMaintainedState,
+  type prepareNativeLiveActionMaintenance
+} from './nativeEncounterMaintenance.js'
 
 type CharacterFacts = PreparedLiveCharacterSheet
 type Maintenance = NonNullable<Awaited<ReturnType<typeof prepareNativeLiveActionMaintenance>>>
@@ -109,28 +109,15 @@ export function planNativeLiveEncounterSettlement(input: {
 }) {
   const { prepared, mechanics, effects } = input
   const maintenance = effects.maintenance ? input.maintenance : null
-  if (
-    effects.maintenance &&
-    (!maintenance ||
-      checksumCanonicalJson(effects.maintenance) !== checksumCanonicalJson(maintenance.policy))
-  )
-    throw new Error('The completed action maintenance policy changed.')
-  const maintainedState = maintenance
-    ? prepareMaintainedEffectStateRecord({
-        id: crypto.randomUUID(),
+  const maintainedState = effects.maintenance
+    ? prepareNativeLiveMaintainedState({
+        completedPolicy: effects.maintenance,
+        maintenance,
         encounterId: prepared.state.id,
         ownerActorId: prepared.actor.id,
-        occurredAt: input.occurredAt,
-        descriptor: {
-          schemaVersion: 2,
-          maintenanceDefinitionId: maintenance.policy.definitionId,
-          definitionChecksum: maintenance.definitionChecksum,
-          sourceActionId: input.command.actionId,
-          sourceOccurrenceId: input.occurrenceId,
-          sourceActorId: prepared.actor.id,
-          replacementPolicy: maintenance.policy.replacementPolicy,
-          emptyDependentPolicy: maintenance.policy.emptyDependentPolicy
-        }
+        actionId: input.command.actionId,
+        sourceOccurrenceId: input.occurrenceId,
+        occurredAt: input.occurredAt
       })
     : null
   const owner = nativeEffectOwner(prepared.target, prepared.state.id)

@@ -622,7 +622,8 @@ describe('CampaignTabletopEncounterDrawer', () => {
       distance,
       distanceLabel: `${distance} ft`,
       label,
-      tokenId: null
+      tokenId: null,
+      unseenReason: null
     })
     // The Warden is nearer than the hero, so targeting lists it first.
     const entries = [entry(warden.id, 'Vault Warden', 5), entry(hero.id, "Ember's Wake", 15)]

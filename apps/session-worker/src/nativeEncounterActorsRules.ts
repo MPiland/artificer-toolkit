@@ -15,7 +15,6 @@ import {
   prepareCasterSource,
   prepareChosenActorsReach,
   reachRuleOverrides,
-  refuseAreaMaintainedEffect,
   sealReachSaves,
   type AreaPlanBase
 } from './nativeEncounterAreaRules.js'
@@ -131,7 +130,6 @@ export async function planNativeLiveEncounterActorsAction(
   const lead = prepared[0]!.prepared
   if (command.optionalCombatIntent != null) throw new Error('The action is not an ordinary action.')
   refuseActionOutsideItsWindow(lead)
-  for (const entry of prepared) refuseAreaMaintainedEffect(entry.prepared)
   const formCreature = await readChosenFormCreature(input, lead, chosen)
 
   const evaluation = await evaluateNativeLiveActionEconomy({

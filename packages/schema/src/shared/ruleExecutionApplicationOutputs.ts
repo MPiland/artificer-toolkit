@@ -125,7 +125,7 @@ const characterMechanicsBatchApplicationOutputDtoSchema = lazySchema(() =>
           context
         })
         validateMaintainedEffectCreation({
-          occurrenceId: value.occurrenceId,
+          occurrenceId: value.parentOccurrenceId ?? value.occurrenceId,
           sourceActorId: value.sourceActorId,
           activeEffectTransitions: value.activeEffectTransitions,
           maintenanceTransition: value.maintenanceTransition,

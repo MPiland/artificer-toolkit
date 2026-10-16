@@ -5,11 +5,6 @@ import {
   projectNativeAreaActionPending,
   readNativeAreaActionPending
 } from './actionAreaPending.js'
-import {
-  attackSquarePendingContext,
-  projectNativeAttackSquarePending,
-  readNativeAttackSquarePending
-} from './attackSquarePending.js'
 import { readRunActors, readRunState } from './documents.js'
 import { readEncounterGmProjection } from './nativeProjection.js'
 import { readPendingSnapshot } from './pendingSnapshots.js'
@@ -28,8 +23,6 @@ export async function readNativePendingRoot(
 ) {
   const snapshot =
     occurrence.state === 'PENDING' ? await readPendingSnapshot(ctx, occurrence) : null
-  if (snapshot && attackSquarePendingContext(snapshot))
-    return readNativeAttackSquarePending(ctx, occurrence)
   return snapshot && areaActionPendingContext(snapshot)
     ? readNativeAreaActionPending(ctx, occurrence)
     : readNativeActionPending(ctx, occurrence)
@@ -66,15 +59,6 @@ async function projectGmPending(
 ) {
   const snapshot =
     occurrence.state === 'PENDING' ? await readPendingSnapshot(ctx, occurrence) : null
-  if (snapshot && attackSquarePendingContext(snapshot)) {
-    const pending = projectNativeAttackSquarePending(
-      occurrence,
-      await readNativeAttackSquarePending(ctx, occurrence),
-      true
-    )
-    if (!pending) throw new Error('Stored Encounter square attack has no pending decision.')
-    return pending
-  }
   if (!snapshot || !areaActionPendingContext(snapshot))
     return projectNativeActionPending(
       occurrence,

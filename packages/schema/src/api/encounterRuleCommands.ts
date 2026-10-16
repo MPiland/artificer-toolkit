@@ -151,13 +151,6 @@ export const resolveEncounterActionTargetDtoSchema = lazySchema(() =>
       kind: z.literal('CASTER_CENTERED'),
       sceneId: uuidSchema,
       expectedSceneVersion: versionSchema
-    }),
-    /** An attack aimed at a square rather than a creature; the GM decides who, if anyone, stands there. */
-    z.strictObject({
-      kind: z.literal('SQUARE'),
-      sceneId: uuidSchema,
-      expectedSceneVersion: versionSchema,
-      point: spatialPointDtoSchema
     })
   ])
 )
@@ -166,7 +159,7 @@ export type ResolveEncounterActionTargetDto = z.infer<typeof resolveEncounterAct
 /** A target that aims an area rather than names a creature. */
 export type AreaActionTargetDto = Exclude<
   ResolveEncounterActionTargetDto,
-  { kind: 'ACTOR' | 'ACTORS' | 'SQUARE' }
+  { kind: 'ACTOR' | 'ACTORS' }
 >
 
 /** The creature a single-target action aims at; an area or a creature list names none. */
@@ -355,8 +348,6 @@ export const resolveRuleOccurrenceInputDtoSchema = lazySchema(() =>
           z.strictObject({ kind: z.literal('DECLINE') })
         ])
       }),
-      /** The GM's ruling on an attack aimed at a square: the creature that stands there. */
-      z.strictObject({ kind: z.literal('ATTACK_SQUARE_OCCUPANT'), actorId: uuidSchema }),
       z.strictObject({ kind: z.literal('PASSAGE_DECLINE') }),
       z.strictObject({ kind: z.literal('PASSAGE_OPTION'), optionId: checksumSchema }),
       /** A Legendary Action option and the actor it targets, from the option's targets. */

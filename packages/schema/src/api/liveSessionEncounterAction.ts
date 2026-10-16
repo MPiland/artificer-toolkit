@@ -282,15 +282,14 @@ export const liveSessionPlacedSpatialEffectSchema: z.ZodMiniType<LiveSessionPlac
  * The terminal outcome of a point-area action or of a cast on a list of chosen creatures: the root
  * with the caster's one spend, one settled outcome per kept creature, and, for an area, its final
  * snapshot the last answer produced (a chosen list that asked for no save never pends, so it has none).
- * It creates no maintained state or cleaving choice, so those fields do not exist here; each creature
- * may be left one lasting effect, and the action may place one spatial effect in the Scene.
+ * It creates no cleaving choice, so that field does not exist here; each creature may be left one
+ * lasting effect (all held by the one maintained state when the action needs Concentration), and the
+ * action may place one spatial effect in the Scene.
  */
 export type LiveSessionEncounterAreaCommitInput = Omit<
   LiveSessionEncounterActionCommitInput,
   | 'execution'
-  | 'maintenanceOwners'
   | 'createdEffects'
-  | 'maintainedState'
   | 'cleaving'
   | 'turnUses'
   | 'reactionSpellConsumption'
@@ -317,38 +316,37 @@ export type LiveSessionEncounterAreaCommitInput = Omit<
 
 export const liveSessionEncounterAreaCommitInputSchema: z.ZodMiniType<LiveSessionEncounterAreaCommitInput> =
   lazySchema(() =>
-    z.extend(
-      z.omit(liveSessionEncounterActionPendingInputSchema, {
-        snapshot: true,
-        maintenanceOwners: true
-      }),
-      {
-        occurredAt: z.iso.datetime(),
-        initialDefinitionId: postgresUuidSchema,
-        execution: storedRuleExecutionResultDtoSchema,
-        targets: z
-          .array(
-            z.strictObject({
-              actorId: postgresUuidSchema,
-              execution: storedRuleExecutionResultDtoSchema,
-              createdEffects: z.array(activeRuleEffectRecordSchema).check(z.maxLength(1))
-            })
-          )
-          .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
-        rollsPerTarget: z.boolean(),
-        area: z.nullable(serverRuleExecutionPendingSnapshotDtoSchema),
-        removal: z.nullable(removeAreaTargetInputDtoSchema),
-        placedZone: z.nullable(liveSessionPlacedSpatialEffectSchema),
-        rules: encounterActorRuleOutputSchema,
-        resourceConsumption: z.nullable(liveSessionCharacterResourceConsumptionSchema),
-        itemConsumption: z.nullable(liveSessionCharacterItemConsumptionSchema),
-        spellConsumption: z.nullable(liveSessionCharacterSpellConsumptionSchema),
-        label: z.nullable(z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160))),
-        ruleOverrides: encounterRuleWarningsDtoSchema,
-        consumedGrants: z
-          .array(activeRuleEffectRecordSchema)
-          .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER)),
-        ...liveSessionEncounterConcentrationFields()
-      }
-    )
+    z.extend(z.omit(liveSessionEncounterActionPendingInputSchema, { snapshot: true }), {
+      occurredAt: z.iso.datetime(),
+      maintenanceOwners: z
+        .array(liveSessionEncounterMaintenanceOwnerRequestSchema)
+        .check(z.maxLength(MAX_MAINTAINED_RULE_EFFECT_DEPENDENTS_PER_ACTOR * 2)),
+      /** The one Concentration state every creature's maintained effect belongs to; null for none. */
+      maintainedState: z.nullable(encounterMaintainedEffectStateRecordSchema),
+      initialDefinitionId: postgresUuidSchema,
+      execution: storedRuleExecutionResultDtoSchema,
+      targets: z
+        .array(
+          z.strictObject({
+            actorId: postgresUuidSchema,
+            execution: storedRuleExecutionResultDtoSchema,
+            createdEffects: z.array(activeRuleEffectRecordSchema).check(z.maxLength(1))
+          })
+        )
+        .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
+      rollsPerTarget: z.boolean(),
+      area: z.nullable(serverRuleExecutionPendingSnapshotDtoSchema),
+      removal: z.nullable(removeAreaTargetInputDtoSchema),
+      placedZone: z.nullable(liveSessionPlacedSpatialEffectSchema),
+      rules: encounterActorRuleOutputSchema,
+      resourceConsumption: z.nullable(liveSessionCharacterResourceConsumptionSchema),
+      itemConsumption: z.nullable(liveSessionCharacterItemConsumptionSchema),
+      spellConsumption: z.nullable(liveSessionCharacterSpellConsumptionSchema),
+      label: z.nullable(z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160))),
+      ruleOverrides: encounterRuleWarningsDtoSchema,
+      consumedGrants: z
+        .array(activeRuleEffectRecordSchema)
+        .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER)),
+      ...liveSessionEncounterConcentrationFields()
+    })
   )
