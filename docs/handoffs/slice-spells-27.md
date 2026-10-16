@@ -40,7 +40,7 @@
 - Authored (`spells/invisibility.ts:68-78`): result block `duration` 1 hour, `lifecycle.endOnEvents ['ON_ATTACK_ROLL','ON_CAST_SPELL']`, one `CONDITION` outcome (`INVISIBLE`, which carries `EMISSION_SUPPRESS` / `bypass INVISIBILITY` in `ruleState.ts:141-149`). A concentration spell.
 - Compile: a bare `CONDITION` outcome with no save compiles to `CONDITION_APPLY` (`effectActionCompiler.ts:2387`). **No active-effect plan covers it.** The plans that own a timed condition all hang off a save: `repeatingDirectFollowUpSavePlan`, `repeatingImmediateFollowUpSavePlan`, `timedImmediateConditionPlan` (needs a "condition on failure" save). So the 1-hour duration and the `endOnEvents` are dropped. This is the first gap and is separate from the missing consumer. (Verify with a red test in T1 before relying on it.)
 - Condition ownership already exists: an active effect with a `CONDITION_OWNERSHIP` contribution (`conditionId`, `baselinePresent`) owns a condition. When it expires, the turn-effect kernel removes the condition unless a baseline or another owning effect retains it (`turnEffectRetainedConditions`, `turnEffectsPersistence.ts:202`, `retainedConditionIds` on the mechanics batch).
-- `planEncounterGrantTicks`, `planCarriedOverGrants` (D99) and `planDepartedSourceGrantRemovals` are gated by `isModifierGrant`, so a condition-owning effect counts down through the turn-effect kernel (`recurrenceStage END_OF_TURN`), not the grant tick planner. After a Run completes, a condition-owning effect is not carried to the Campaign clock (D99 covers modifier grants only). One hour is 600 turns, below `MAX_ACTIVE_EFFECT_TURNS` (10,000).
+- `planEncounterGrantTicks` and `planDepartedSourceGrantRemovals` are gated by `isModifierGrant`, so a condition-owning effect counts down through the turn-effect kernel (`recurrenceStage END_OF_TURN`), not the grant tick planner. After a Run completes, a condition-owning effect was not carried to the Campaign clock (D99 covered modifier grants only; SPELLS-5.T9 fixes it, below). One hour is 600 turns, below `MAX_ACTIVE_EFFECT_TURNS` (10,000).
 
 ### Node map
 
@@ -132,4 +132,28 @@ Dependency order. Each task is a vertical slice with red-first tests; checkpoint
 - The turn-effect kernel refused any effect with a non-empty event list (`encounterTurnEffects.ts`, `turnEffectsPersistence.ts`). Both guards are removed in T1; grants never reach the kernel (recurrence stage `NONE`).
 - A no-save `CONDITION` compiled to a bare `CONDITION_APPLY` with no active-effect plan. T1 adds `timedConditionPlan` (compiler) and `conditionContribution.{consumeOnFirstEvents,endOnEvents}` (plan type, persisted plan schema, `recurrence`).
 - **Undo gap (T2):** `actionRevert.ts` restores effect records exactly (`restoreConsumedGrants`) but a Character inverse only removes added conditions (`removedConditionIds`); it refuses to restore a removed one. T2 adds a restored-condition inverse fenced by the stream version.
-- **D99 answer:** WRONG today. `planCarriedOverGrants` carries modifier grants only, so a Character-held timed condition effect from an Encounter never counts down or ends after the Run completes and its stored condition sticks.
+- **D99 answer:** WRONG before SPELLS-5.T9. `planCarriedOverGrants` carried modifier grants only, so a Character-held timed condition effect from an Encounter never counts down or ends after the Run completes and its stored condition sticks.
+
+## 6. SPELLS-5.T9 (AC SPELLS-5.14): a Character's timed condition effect outlives its Run
+
+Own commit range on `ci/spells-5-t9`, mergeable apart from SPELLS-27 beyond T1.
+
+- **Ruling (Phase 8):** carry the effect over, don't release it. A Character's timed condition-owning
+  effect moves to the Campaign clock exactly as its grants do, keeping its condition until it ends there.
+  A Creature's effect ends with the Run and releases its condition. Extend the existing carry-over; no
+  parallel path.
+- **Root cause:** a condition plan was always `ENCOUNTER`-scoped, so COMPLETE deleted the effect row but
+  the condition stayed on the Character's Sheet (nothing released it), and `planCarriedOverGrants` skipped
+  it.
+- **Change:** `prepareEncounterActionEffectPlans` gives a condition effect the target's `lifetimeScope` (Character `OWNER`, Creature
+  `ENCOUNTER`); `planCarriedOverGrants` becomes `planCarriedOverEffects` and selects condition-owning
+  effects too; `isTurnEffectEligible` skips an effect that carries a Campaign-clock expiry;
+  `executeCharacterSheetCommand` strips the conditions only the ended effects held on
+  `END_ACTIVE_EFFECT` / `END_CONCENTRATION` (reusing `endedMaintenanceConditions`, which the
+  Concentration-caster end paths already reach through `reconcileNativeMaintenanceOwners`). The clock's
+  expiry pass already ends a carried effect through `END_ACTIVE_EFFECT`.
+- **Proof:** `grantLifetimes.test.ts` (carry plan, kernel skip, condition release) and the
+  `finishedRun.test.ts` journey (Hold Person on a Character: still live after COMPLETE, gone with its
+  Paralyzed condition when the Campaign clock reaches the expiry).
+- **Note for T2:** Invisibility's plan now takes the same scope, so a one-hour Invisibility on a
+  Character outlasts a three-round fight.

@@ -272,7 +272,7 @@ it('carries a Character’s timed condition effect out of the Run and releases i
       id: crypto.randomUUID(),
       owner: { kind: 'CHARACTER', characterId: character.id },
       definition: planned.definition,
-      lifecycle: { schemaVersion: 1, remainingTicks: 25 }
+      lifecycle: { schemaVersion: 1, remainingTicks: 5 }
     })
   })
   const readHeld = () =>
@@ -315,13 +315,17 @@ it('carries a Character’s timed condition effect out of the Run and releases i
   })
   await checkpointLiveRoom(campaign.id)
 
-  // 25 rounds left: 150 seconds, rounded up to 3 minutes after day 2, 08:00.
+  // 5 rounds left: 30 seconds, rounded up to 1 minute after day 2, 08:00.
   expect(await readHeld()).toMatchObject({
     conditionIds: [paralyzed.id],
     effects: [
       {
         id: held.id,
-        lifecycle: { schemaVersion: 1, remainingTicks: null, expiresAtCampaignMinute: 1440 + 480 + 3 }
+        lifecycle: {
+          schemaVersion: 1,
+          remainingTicks: null,
+          expiresAtCampaignMinute: 1440 + 480 + 1
+        }
       }
     ]
   })
@@ -329,7 +333,7 @@ it('carries a Character’s timed condition effect out of the Run and releases i
     campaignId: campaign.id,
     commandId: crypto.randomUUID(),
     expectedVersion: clock.version,
-    minutes: 3
+    minutes: 1
   })
   expect(await readHeld()).toMatchObject({ conditionIds: [], effects: [] })
 }, 60_000)
