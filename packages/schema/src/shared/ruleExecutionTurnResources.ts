@@ -329,6 +329,8 @@ export const turnLegendaryActionEvidenceDtoSchema = lazySchema(() =>
           targetActorId: uuidSchema,
           /** Whether the owner rolled an attack, which uses up its one-roll grants at commit. */
           attackRoll: z.boolean(),
+          /** Whether the owner cast a spell (a spell attack), which ends its cast-ended effects at commit. */
+          castsSpell: z.boolean(),
           execution: z.lazy(() => serverCompletedRuleExecutionDtoSchema),
           initialFactsChecksum: checksumSchema,
           phaseReceipts: z.optional(z.lazy(() => ruleExecutionPhaseReceiptsDtoSchema)),

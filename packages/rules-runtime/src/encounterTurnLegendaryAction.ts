@@ -310,6 +310,7 @@ export async function prepareTurnLegendaryActions<
       throw new Error('Legendary Action effects cannot start a maintained effect.')
     // An attack roll or a spell cast uses up the owner's grants; an ending effect releases its condition.
     const makesAttackRoll = typeof prepared.binding.actionMechanic.attackBonus === 'number'
+    const castsSpell = preparedCastsSpell(prepared)
     const plan = planNativeEncounterActionMechanics(
       {
         prepared,
@@ -324,7 +325,7 @@ export async function prepareTurnLegendaryActions<
           holderActorId: actor.id,
           held: prepared.movementTargets.get(actor.id)?.activeEffects ?? [],
           makesAttackRoll,
-          castsSpell: preparedCastsSpell(prepared)
+          castsSpell
         }).sourceReleases,
         eventPhases: { resource: 'LEGENDARY_ACTION_RESOURCE', outcome: 'LEGENDARY_ACTION_OUTCOME' },
         ordinal,
@@ -398,6 +399,7 @@ export async function prepareTurnLegendaryActions<
         selectedOptionId: selection.optionId,
         targetActorId: target.id,
         attackRoll: makesAttackRoll,
+        castsSpell,
         execution: result.execution,
         initialFactsChecksum: result.initialFactsChecksum,
         ...(result.phaseReceipts ? { phaseReceipts: result.phaseReceipts } : {}),

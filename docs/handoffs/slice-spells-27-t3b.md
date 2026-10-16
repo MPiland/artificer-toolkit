@@ -25,6 +25,10 @@ Branch: `ci/spells-27-t3b`, based on `ci/merge-batch-ae`. Parent: [slice-spells-
 - Schema contract change: `counter.applications` is required on the countered-cast receipt. Pre-launch, no shim.
 - Not handled: a reactor cast that starts Concentration and replaces an existing one; the Disarm and turn-resource paths are not casts.
 
+- Reviewer finding fixed: the Legendary commit recomputed the owner's ended effects without the cast fact, so a cast-only grant would have been released by the plan and rejected as stale. The Legendary evidence gains a required `castsSpell` beside `attackRoll`, and `turnResourcesPersistence.ts` reads it.
+- Reviewer finding deferred (`future-enhancements.md` "Deferred edge cases"): a cast that ends the caster's Concentration in the same command that damages that Concentration (Shield while hit, or the caster in its own damaging area; the latter dates from T3) fails the commit. Rare and recoverable.
+- Reviewer finding, stands: a Creature's non-attack spellcasting (save-based or activated triggers) does not raise the fact; there is no authored spell marker to read.
+
 ## Log
 
 - Red run on `ci/spells-27-t3b-red` (`a41282184`): Tests 38905397540, Live backend 38905397838.
