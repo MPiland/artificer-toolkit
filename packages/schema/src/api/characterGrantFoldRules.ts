@@ -70,6 +70,8 @@ const restrictionConditionSchema = lazySchema(() =>
       'CAN_ACT',
       'SPEED_ABOVE_ZERO',
       'FREE_HAND',
+      /** An Attack-action weapon attack with `requiredProperties` was made this turn (Encounter state). */
+      'ATTACK_ACTION_OTHER_WEAPON',
       'PROFICIENCY',
       'EQUIPMENT_EQUIPPED',
       'SOURCE_STATE',

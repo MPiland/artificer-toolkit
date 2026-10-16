@@ -132,7 +132,8 @@ import {
   nativeLiveRelationshipFacts,
   refuseActionOutsideItsWindow,
   refuseSpatialInterpretation,
-  refuseUnmetBasicActionRestrictions
+  refuseUnmetBasicActionRestrictions,
+  refuseUnmetItemActionRequirements
 } from './nativeEncounterActionInputs.js'
 import { planNativeLiveConcentration } from './nativeEncounterConcentration.js'
 import {
@@ -553,6 +554,7 @@ export async function planNativeLiveEncounterAction(
     definitions,
     speedDefinitions: system.speeds
   })
+  refuseUnmetItemActionRequirements(prepared, state)
   // Only an attack roll uses the attacker's one-roll grants (Vicious Mockery's disadvantage, Help);
   // a saving-throw action leaves them for the next attack. An effect that ends with the roll
   // (Invisibility) releases the condition it alone held in the source's own batch.

@@ -320,7 +320,7 @@ function appendActions(params: {
   label: string
   mechanicsOwner: CharacterActionMechanicsOwner
   activationSourceKind: ActionCandidate['activationSourceKind']
-  equipment: Omit<NonNullable<ActionCandidate['equipment']>, 'grip'> | null
+  equipment: Omit<NonNullable<ActionCandidate['equipment']>, 'grip' | 'requirements'> | null
   resourcePoolCandidates: readonly ResourcePoolCandidate[]
   /** Passive Feature damage that rides on the attacks of this source. */
   onHitRiders?: readonly OnHitRider[]
@@ -330,7 +330,10 @@ function appendActions(params: {
     // Only an item's own effects carry a grip; features granted by an item have none.
     const equipment = params.equipment && {
       ...params.equipment,
-      grip: 'grip' in authoredEffect ? authoredEffect.grip : null
+      grip: 'grip' in authoredEffect ? authoredEffect.grip : null,
+      ...('requirements' in authoredEffect && authoredEffect.requirements
+        ? { requirements: authoredEffect.requirements }
+        : {})
     }
     const effect = reduceEffectRestrictions(
       mergeOnHitRiders(authoredEffect, params.onHitRiders ?? []),
