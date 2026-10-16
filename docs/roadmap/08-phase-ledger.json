@@ -5770,9 +5770,8 @@
                 "after": ["ATTACK-9.T1"]
               },
               "id": "ATTACK-9.T2c",
-              "status": "TODO",
-              "text": "D119 (e): hostile-of-target-within-N-ft predicate from scene positions, planned by the room and re-verified by persistence.",
-              "activeWorkbook": "docs/handoffs/slice-attack-9-t2.md"
+              "status": "DONE",
+              "text": "D119 (e): hostile-of-target-within-N-ft predicate from scene positions, planned by the room and re-verified by persistence."
             },
             {
               "closes": ["ATTACK-9.2"],
@@ -5784,8 +5783,9 @@
                 "after": ["ATTACK-9.T1"]
               },
               "id": "ATTACK-9.T2d",
-              "status": "TODO",
-              "text": "D119 (f): ONCE_PER_TURN usage limit backed by the enforced per-turn record (Encounter, round, turn actor, actor), replay-safe and undoable; finishes AC 9.2 with the full Sneak Attack proof."
+              "status": "IN_PROGRESS",
+              "text": "D119 (f): ONCE_PER_TURN usage limit backed by the enforced per-turn record (Encounter, round, turn actor, actor), replay-safe and undoable; finishes AC 9.2 with the full Sneak Attack proof. Includes enemy proximity for opportunity attacks and reactions (Sneak Attack on an opportunity attack).",
+              "activeWorkbook": "docs/handoffs/slice-attack-9-t2.md"
             },
             {
               "id": "ATTACK-9.T3",
