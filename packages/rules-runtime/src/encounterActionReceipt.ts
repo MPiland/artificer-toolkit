@@ -280,7 +280,9 @@ export function buildEncounterCounteredCastStoredExecution(input: {
     /** The check that earned the counter; null when the cast was not above the counter's level. */
     check: EncounterCounterCheckEvidenceDto | null
     spellConsumption: Parameters<typeof characterSpellConsumptionReceipt>[0]
-    /** The reactor's Character version once its slot was spent; null when none was. */
+    /** The reactor's conditions released by effects its cast ended. */
+    applications: ReturnType<typeof planNativeEncounterAreaSourceSpend>['sourceApplications']
+    /** The reactor's Character version once its slot was spent or a condition released; null when neither. */
     characterStreamVersion: number | null
     economy: EncounterActionEconomyConsumption
   }
@@ -312,6 +314,7 @@ export function buildEncounterCounteredCastStoredExecution(input: {
         triggerLevel: counter.triggerLevel,
         check: counter.check,
         spellCastConsumption: characterSpellConsumptionReceipt(counter.spellConsumption),
+        applications: counter.applications,
         characterStreamVersion: counter.characterStreamVersion,
         actionEconomyTransition: actionEconomyReceipt(counter.economy)
       }
@@ -330,6 +333,8 @@ export function buildEncounterFailedCounterReceipt(input: {
   return encounterFailedCounterReceiptDtoSchema.parse({
     ...input.failed,
     spellCastConsumption: characterSpellConsumptionReceipt(input.spellConsumption),
+    // A failed counter does not yet end its reactor's cast-ended effects (future-enhancements: Deferred edge cases).
+    applications: [],
     characterStreamVersion: input.characterStreamVersion,
     actionEconomyTransition: actionEconomyReceipt(input.economy)
   })

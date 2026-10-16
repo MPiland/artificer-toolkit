@@ -91,7 +91,7 @@ import {
   buildEncounterAreaStoredExecution
 } from '@artificer-toolkit/rules-runtime/encounterActionReceipt'
 import { encounterActionSourceLabel } from '@artificer-toolkit/rules-runtime/encounterActionSources'
-import { preparedSpellCastLevel } from '@artificer-toolkit/rules-runtime/encounterCastReactionDiscovery'
+import { preparedCastsSpell } from '@artificer-toolkit/rules-runtime/encounterCastReactionDiscovery'
 import { actionEndedEffects } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
 import { planEncounterPlacedZone } from '@artificer-toolkit/rules-runtime/encounterPlacedZone'
 import { consumeEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomyConsumption'
@@ -1382,7 +1382,7 @@ export async function completeAreaCommit(args: {
     holderActorId: caster.id,
     held: input.activeEffectsByActorId.get(caster.id) ?? [],
     makesAttackRoll: false,
-    castsSpell: preparedSpellCastLevel(lead) !== null
+    castsSpell: preparedCastsSpell(lead)
   })
   const entries = encounterChosenActorEntries(
     areaOccurrenceId,

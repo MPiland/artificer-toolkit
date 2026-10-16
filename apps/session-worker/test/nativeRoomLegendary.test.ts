@@ -181,6 +181,26 @@ const attackDragon: CreatureAuthored = {
   features: [...(plainWolf.features ?? []), attackTail, legendary]
 }
 
+/** The same Medium dragon whose Tail is a melee spell attack: a cast. */
+const spellDragon: CreatureAuthored = {
+  ...attackDragon,
+  id: testUuid(0x73a),
+  features: attackDragon.features?.map((feature) =>
+    feature.id !== attackTail.id
+      ? feature
+      : {
+          ...feature,
+          effects: feature.effects?.map((effect) => {
+            if (effect.invocation.kind !== 'ACTION') throw new Error('Expected an action effect.')
+            return {
+              ...effect,
+              invocation: { ...effect.invocation, triggerCode: 'MELEE_SPELL_ATTACK' as const }
+            }
+          })
+        }
+  )
+}
+
 const sourceUnicornLegendary = creatureFeature(srdUnicorn, 'Legendary Actions')
 /** The real SRD unicorn Legendary Actions, narrowed to Shimmering Shield (cost 2 of a pool of 3). */
 const shimmeringShield: typeof sourceUnicornLegendary = {
@@ -489,7 +509,11 @@ describe('a unicorn using Shimmering Shield at another creature’s turn end', (
 })
 
 describe('a Legendary Action uses up the owner’s one-roll grants (SPELLS-5.4)', () => {
-  async function legendaryTurnEnd(creature: CreatureAuthored, ownedConditionId?: string) {
+  async function legendaryTurnEnd(
+    creature: CreatureAuthored,
+    ownedConditionId?: string,
+    endsOn: 'ATTACK_ROLL' | 'CAST' = 'ATTACK_ROLL'
+  ) {
     const room = await movementRoom({
       actors: [
         srdCreatureActor({ id: WOLF_ID, creature: plainWolf }),
@@ -506,8 +530,9 @@ describe('a Legendary Action uses up the owner’s one-roll grants (SPELLS-5.4)'
       seed: seedModifierGrant({
         sourceActorId: WOLF_ID,
         holderActorId: FIRST_DRAGON_ID,
-        lifecycle: { consumeOnFirstEvents: ['ON_ATTACK_ROLL'] },
-        ownedConditionId
+        lifecycle: endsOn === 'CAST' ? {} : { consumeOnFirstEvents: ['ON_ATTACK_ROLL'] },
+        ownedConditionId,
+        ...(endsOn === 'CAST' && { endsOnCast: true as const })
       })
     })
     expect((await readRoomHistory(room.base.stub)).activeEffects).toHaveLength(1)
@@ -550,6 +575,18 @@ describe('a Legendary Action uses up the owner’s one-roll grants (SPELLS-5.4)'
 
   it('keeps the condition when the action rolls no attack', async () => {
     const settled = await legendaryTurnEnd(dragon, INVISIBLE_ID)
+    expect(settled.activeEffects).toHaveLength(1)
+    expect(readActorConditionIds(settled, FIRST_DRAGON_ID)).toContain(INVISIBLE_ID)
+  })
+
+  it('ends the grant that ends on a cast, and releases its condition, when the option is a spell attack (SPELLS-27.T3b)', async () => {
+    const settled = await legendaryTurnEnd(spellDragon, INVISIBLE_ID, 'CAST')
+    expect(settled.activeEffects).toEqual([])
+    expect(readActorConditionIds(settled, FIRST_DRAGON_ID)).not.toContain(INVISIBLE_ID)
+  })
+
+  it('keeps the grant that ends on a cast through a weapon attack', async () => {
+    const settled = await legendaryTurnEnd(attackDragon, INVISIBLE_ID, 'CAST')
     expect(settled.activeEffects).toHaveLength(1)
     expect(readActorConditionIds(settled, FIRST_DRAGON_ID)).toContain(INVISIBLE_ID)
   })

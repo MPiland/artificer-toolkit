@@ -594,7 +594,11 @@ export async function revertLastEncounterAction(
   const invertReactorSpend = (
     spend: Pick<
       CounteredRoot['counter'],
-      'reaction' | 'spellCastConsumption' | 'characterStreamVersion' | 'actionEconomyTransition'
+      | 'reaction'
+      | 'spellCastConsumption'
+      | 'applications'
+      | 'characterStreamVersion'
+      | 'actionEconomyTransition'
     >
   ) => {
     const reactor = actorsById.get(spend.reaction.reactorActorId)
@@ -606,6 +610,11 @@ export async function revertLastEncounterAction(
       characterInverse(reactor.sourceId, spend.characterStreamVersion).spell =
         spend.spellCastConsumption
     }
+    restoreReleasedConditions(
+      reactor,
+      endedConditionReleases(spend.applications),
+      spend.characterStreamVersion
+    )
     const reaction = spend.actionEconomyTransition
     if (encounterRuleUsageUsed(reactor, reaction.definitionId) !== reaction.afterUsed)
       unavailable("The reacting creature's reactions changed after this action; adjust manually.")

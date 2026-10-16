@@ -41,6 +41,11 @@ export type NativeEncounterActionMechanicsInput = {
    * so the condition it releases is gone before the outcome adds its own.
    */
   sourceReleases?: readonly CharacterConditionRemoveOutcomeApplication[]
+  /**
+   * The conditions released for a reacting Character that is this action's target (a Shield cast
+   * against the attack on its caster), applied first on the target's batch.
+   */
+  targetReleases?: readonly CharacterConditionRemoveOutcomeApplication[]
   forceTargetVersionAdvance?: boolean
   eventPhases?: {
     resource: EncounterCharacterMechanicsEventPhase
@@ -143,7 +148,11 @@ function prepareNativeActionMechanicsBatches(
           })
         : input.commandId,
     occurredAt: input.occurredAt,
-    applications: onTargetBatch ? [...sourceReleases, ...input.applications] : input.applications,
+    applications: [
+      ...(onTargetBatch ? sourceReleases : []),
+      ...(input.targetReleases ?? []),
+      ...input.applications
+    ],
     expectedCharacterStreamVersion: targetFacts.characterFacts?.active.play.streamVersion ?? null,
     effectiveMaximumHitPoints: targetFacts.effectiveMaximumHitPoints,
     effectiveScalarValues: targetFacts.effectiveScalarValues,
