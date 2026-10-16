@@ -44,6 +44,7 @@ const HEALING_WORD = spell('Healing Word')
 const SHIELD = spell('Shield')
 const SHIELD_OF_FAITH = spell('Shield of Faith')
 const INVISIBILITY = spell('Invisibility')
+const CHARM_PERSON = spell('Charm Person')
 const MEND = { ...fixedHealSpell(), id: '00000000-0000-4000-8000-00000000c0de', label: 'Mend' }
 
 /** The cast candidate of a spell at a level, the way the policy lists it. */
@@ -191,6 +192,7 @@ const authoredById = new Map(
     SHIELD,
     SHIELD_OF_FAITH,
     INVISIBILITY,
+    CHARM_PERSON,
     GAPPED_HEAL,
     LATE_HEAL
   ].map((entry) => [entry.id, entry])
@@ -636,7 +638,7 @@ describe('the timed condition a cast owns with no save', () => {
 describe('the timed condition a save cast owns (SPELLS-27.T5)', () => {
   it('owns Charm Person’s one-hour charmed condition and ends it on damage from the caster’s side', () => {
     const charmedId = SRD_CONDITION_TYPES.find(({ code }) => code === 'CHARMED')?.id
-    expect(compiledCast(spell('Charm Person'))?.activeEffectPlan).toMatchObject({
+    expect(compiledCast(CHARM_PERSON)?.activeEffectPlan).toMatchObject({
       initialRemaining: 600,
       conditionContribution: {
         conditionId: charmedId,
