@@ -653,8 +653,8 @@ export async function planNativeLiveEncounterAction(
    * The target's reaction as it is now. A used reaction also carries what it does to the attack it
    * answered: its effect plan and the attack's binding once that effect holds.
    */
-  const currentReaction = async (used: boolean, answering: string) => {
-    const found = await discoverReaction(answering)
+  const currentReaction = async (used: boolean, answering: string, critical: boolean) => {
+    const [found] = await discoverReaction({ answering, critical })
     if (!found) throw new Error('Reaction evidence is stale.')
     const applied = used
       ? await applyNativeAttackReaction({
@@ -686,7 +686,8 @@ export async function planNativeLiveEncounterAction(
   const answeredReaction = reactionAnswer
     ? await currentReaction(
         reactionAnswer.selection.kind === 'OPTION',
-        chosenEncounterReaction(reactionAnswer.offer, reactionAnswer.selection).actionId
+        chosenEncounterReaction(reactionAnswer.offer, reactionAnswer.selection).actionId,
+        reactionAnswer.offer.originalD20.resultPath === 'ON_CRIT'
       )
     : null
   const reactionAnswered =
@@ -709,7 +710,8 @@ export async function planNativeLiveEncounterAction(
       ...(resume ? { resume } : {}),
       legendaryResistance: { discover: discoverResistance, targetStateChecksum },
       reaction: {
-        discover: async () => (await discoverReaction())?.candidate ?? null,
+        discover: async (critical) =>
+          (await discoverReaction({ critical })).map(({ candidate }) => candidate),
         targetStateChecksum
       }
     }))
@@ -733,7 +735,8 @@ export async function planNativeLiveEncounterAction(
   const replayedReaction = retainedReaction
     ? await currentReaction(
         retainedReaction.reaction!.selection === 'USE',
-        retainedReaction.reaction!.reaction.actionId
+        retainedReaction.reaction!.reaction.actionId,
+        retainedReaction.testExecution.outputs.resultPath === 'ON_CRIT'
       )
     : null
   const reaction =

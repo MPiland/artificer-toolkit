@@ -169,6 +169,8 @@ const DND5E_RESOLVED_DAMAGE_OUTCOME_EXPRESSIONS_FACT_KEY =
 const DND5E_RESOLVED_HEAL_MODIFIER_FACT_KEY = 'dnd5e.resolved-heal-modifier'
 /** The level a spell is cast at, which selects its authored per-level scaling. */
 export const DND5E_SPELL_CAST_LEVEL_FACT_KEY = 'dnd5e.spell-cast-level'
+/** The actor's level in each class (a JSON object by class id), which selects CLASS_LEVEL rows. */
+const DND5E_CLASS_LEVELS_FACT_KEY = 'dnd5e.class-levels'
 export const DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY =
   'dnd5e.active-effect-save-ability-definition-id'
 export const DND5E_ACTIVE_EFFECT_SAVE_REQUEST_NODE_FACT_KEY =
@@ -286,6 +288,7 @@ function dndScalingFactsFromRuleValues(
     characterLevel: positiveInteger(facts.characterLevel),
     parentClassLevel: positiveInteger(facts.parentClassLevel),
     spellCastLevel: positiveInteger(facts[DND5E_SPELL_CAST_LEVEL_FACT_KEY]),
+    classLevels: parseClassLevels(facts[DND5E_CLASS_LEVELS_FACT_KEY]),
     resolvedDamageExpressions: Object.fromEntries(
       Object.entries(DND5E_RESOLVED_DAMAGE_EXPRESSION_FACT_KEYS).flatMap(([path, key]) => {
         const expression = facts[key]
@@ -296,6 +299,35 @@ function dndScalingFactsFromRuleValues(
       facts[DND5E_RESOLVED_DAMAGE_OUTCOME_EXPRESSIONS_FACT_KEY]
     )
   }
+}
+
+function parseClassLevels(value: RuleValue | undefined): Record<string, number> {
+  if (value === undefined) return {}
+  if (typeof value !== 'string') unsupported('D&D class levels are malformed.')
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(value)
+  } catch {
+    unsupported('D&D class levels are malformed.')
+  }
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    unsupported('D&D class levels are malformed.')
+  }
+  const entries = Object.entries(parsed)
+  if (
+    entries.length > 40 ||
+    entries.some(
+      ([classId, level]) =>
+        classId.length === 0 ||
+        classId.length > 240 ||
+        typeof level !== 'number' ||
+        !Number.isSafeInteger(level) ||
+        level < 1
+    )
+  ) {
+    unsupported('D&D class levels are malformed.')
+  }
+  return Object.fromEntries(entries)
 }
 
 function parseResolvedOutcomeExpressions(value: RuleValue | undefined): Record<string, string> {
@@ -522,9 +554,18 @@ function isSupportedTestTargetPolicy(
     invocation.range.amount > 0
   )
 }
-function uuid(value: string, label: string) {
-  if (!UUID.test(value))
-    throw new Dnd5eEffectActionCompilerError(`${label} must be a canonical UUID.`)
+/** A damage type left unresolved (the triggering weapon's, never merged) is not a UUID. */
+function isUuid(value: string | undefined): value is string {
+  return value !== undefined && UUID.test(value)
+}
+
+function uuid(value: string | undefined, label: string): asserts value is string {
+  if (!isUuid(value)) throw new Dnd5eEffectActionCompilerError(`${label} must be a canonical UUID.`)
+}
+
+function damageTypeIdentity(damageTypeId: string | undefined): string {
+  uuid(damageTypeId, 'D&D damage type identity')
+  return damageTypeId
 }
 
 function unsupported(message: string): never {
@@ -735,7 +776,7 @@ function relationshipPlan(action: Dnd5eCompiledEffectActionSource):
       recurrence.damage.scalingKind !== 'NONE' ||
       recurrence.damage.bonuses?.length ||
       !UUID.test(recurrence.damage.id) ||
-      !UUID.test(recurrence.damage.damageTypeId) ||
+      !isUuid(recurrence.damage.damageTypeId) ||
       typeof recurrence.damage.diceConfig !== 'string')
   ) {
     unsupported('D&D relationship recurrence must be one exact start-of-turn damage outcome.')
@@ -915,7 +956,7 @@ function relationshipRecurrenceGraph(input: {
           amount,
           damageTypeId: {
             kind: 'LITERAL',
-            value: input.recurrenceDamage.damageTypeId
+            value: damageTypeIdentity(input.recurrenceDamage.damageTypeId)
           }
         }
       }
@@ -1125,7 +1166,7 @@ function immediateFollowUpSaveEntries(entries: readonly CompiledEffectGroup['ent
       outcome.effectKind !== 'DAMAGE' ||
       primaryDamageDiceCount(outcome) === null ||
       !UUID.test(entry.entryId) ||
-      !UUID.test(outcome.damageTypeId)
+      !isUuid(outcome.damageTypeId)
     ) {
       return null
     }
@@ -1358,7 +1399,7 @@ function modifierGrantEntryPlan(input: {
   if (
     (grants.modifiers?.length ?? 0) + senses.length === 0 ||
     grantedSenses.length !== senses.length ||
-    // A slot-scaled amount (Aid) resolves at cast time, which grants do not carry yet.
+    // A slot-scaled amount (Aid) is fixed by the cast level, so a cast resolves it before this plan.
     grants.modifiers?.some(
       ({ payload }) => payload && 'valueKind' in payload && payload.valueKind === 'SPELL_SLOT_LEVEL'
     ) ||
@@ -1821,7 +1862,7 @@ function exactImmediateFollowUpSaveShape(
         repeatingDamage.scalingKind === 'NONE' &&
         typeof repeatingDamage.dice === 'string' &&
         repeatingDamageDiceCount !== null &&
-        UUID.test(repeatingDamage.damageTypeId) &&
+        isUuid(repeatingDamage.damageTypeId) &&
         damageMultiplier(repeatingDamage) === 1 &&
         !repeatingDamage.bonuses?.length &&
         primaryDiceCount !== null &&
@@ -1843,7 +1884,7 @@ function exactImmediateFollowUpSaveShape(
     failure.valueKind === 'DICE' &&
     failure.scalingKind === 'NONE' &&
     failureDiceCount !== null &&
-    UUID.test(failure.damageTypeId) &&
+    isUuid(failure.damageTypeId) &&
     damageMultiplier(failure) === 1 &&
     !failure.bonuses?.length &&
     commonBoundedSave &&
@@ -1914,7 +1955,7 @@ function exactImmediateFollowUpSaveShape(
     typeof failure.dice === 'string' &&
     failure.dice === success.dice &&
     nestedDiceCount !== null &&
-    UUID.test(failure.damageTypeId) &&
+    isUuid(failure.damageTypeId) &&
     failure.damageTypeId === success.damageTypeId &&
     damageMultiplier(failure) === 1 &&
     damageMultiplier(success) === 0.5 &&
@@ -2158,6 +2199,7 @@ function validateDiceOutcomeRow(outcome: CompiledDiceDamageEffect): void {
     unsupported('D&D dice outcomes require NONE or PER_LEVEL scaling.')
   if (
     outcome.scalingSource !== 'CHARACTER_LEVEL' &&
+    outcome.scalingSource !== 'CLASS_LEVEL' &&
     outcome.scalingSource !== 'PARENT_CLASS_LEVEL' &&
     outcome.scalingSource !== 'SPELL_CAST_LEVEL'
   ) {
@@ -3248,6 +3290,7 @@ export const dnd5eEffectActionCapability: GameSystemRuleCapabilityContract = {
       key: DND5E_SPELL_CAST_LEVEL_FACT_KEY,
       valueKind: RULE_VALUE_KIND.NUMBER
     },
+    { key: DND5E_CLASS_LEVELS_FACT_KEY, valueKind: RULE_VALUE_KIND.TEXT },
     {
       key: REACTION_CHOICE_MIN_FACT_KEY,
       valueKind: RULE_VALUE_KIND.NUMBER
@@ -3770,7 +3813,8 @@ function diceGraphDefinition(input: {
   const outcome = input.entry.outcome
   const scalar = outcome.effectKind === 'SCALAR_REDUCTION'
   if (!scalar && outcome.valueKind !== 'DICE') unsupported('D&D outcome is not dice-backed.')
-  if (outcome.effectKind === 'DAMAGE') uuid(outcome.damageTypeId, 'D&D damage type identity')
+  const damageTypeId =
+    outcome.effectKind === 'DAMAGE' ? damageTypeIdentity(outcome.damageTypeId) : null
   const parsed = parseBoundedDiceConfiguration(input.diceConfig)
   const authoredTerm = parsed.terms[0]
   if (!authoredTerm) unsupported('D&D dice configuration exceeds the bounded exact-dice contract.')
@@ -3908,14 +3952,9 @@ function diceGraphDefinition(input: {
             factKey: DND5E_TARGET_STATE_CHECKSUM_FACT_KEY
           },
           amount,
-          ...(outcome.effectKind === 'DAMAGE'
-            ? {
-                damageTypeId: {
-                  kind: 'LITERAL' as const,
-                  value: outcome.damageTypeId
-                }
-              }
-            : {}),
+          ...(damageTypeId === null
+            ? {}
+            : { damageTypeId: { kind: 'LITERAL' as const, value: damageTypeId } }),
           ...(scalar
             ? {
                 valueDefinitionId: { kind: 'LITERAL' as const, value: outcome.valueDefinitionId },
@@ -4160,7 +4199,7 @@ function immediateFollowUpSaveDamageGraphDefinition(input: {
                   : {}),
                 damageTypeId: {
                   kind: 'LITERAL' as const,
-                  value: nestedDamage.damageTypeId
+                  value: damageTypeIdentity(nestedDamage.damageTypeId)
                 }
               }
             }
@@ -6773,7 +6812,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
         [DND5E_RESOLVED_HEAL_MODIFIER_FACT_KEY]: parsed.modifier
       }
     }
-    const { spellCastLevel } = actionMechanic
+    const { spellCastLevel, classLevels } = actionMechanic
     const baseFacts = {
       [DND5E_TARGET_ACTOR_FACT_KEY]: targetActorId,
       [DND5E_TARGET_STATE_CHECKSUM_FACT_KEY]: checksumRuleDocument({
@@ -6798,7 +6837,18 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
           }
         : {}),
       ...resolvedHealModifierFacts,
-      ...(spellCastLevel === undefined ? {} : { [DND5E_SPELL_CAST_LEVEL_FACT_KEY]: spellCastLevel })
+      ...(spellCastLevel === undefined
+        ? {}
+        : { [DND5E_SPELL_CAST_LEVEL_FACT_KEY]: spellCastLevel }),
+      ...(classLevels === undefined || Object.keys(classLevels).length === 0
+        ? {}
+        : {
+            [DND5E_CLASS_LEVELS_FACT_KEY]: JSON.stringify(
+              Object.fromEntries(
+                Object.entries(classLevels).sort(([left], [right]) => left.localeCompare(right))
+              )
+            )
+          })
     }
     const action = actionMechanic as {
       attackBonus?: unknown

@@ -303,8 +303,26 @@ export function CampaignTabletopDecisionDrawer({
                 Decline passage
               </Button>
             </Stack>
-          ) : pending.kind === 'LEGENDARY_RESISTANCE_CHOICE' ||
-            pending.kind === 'REACTION_CHOICE' ? (
+          ) : pending.kind === 'REACTION_CHOICE' ? (
+            <Stack gap='xs'>
+              {pending.options.map((option) => (
+                <Button
+                  disabled={disabled}
+                  key={option.optionId}
+                  onClick={() => void resolve({ kind: 'OPTION', optionId: option.optionId })}
+                >
+                  {pending.options.length === 1 ? 'Use reaction' : `Use ${option.actionId}`}
+                </Button>
+              ))}
+              <Button
+                disabled={disabled}
+                variant='default'
+                onClick={() => void resolve({ kind: 'DECLINE' })}
+              >
+                Decline
+              </Button>
+            </Stack>
+          ) : pending.kind === 'LEGENDARY_RESISTANCE_CHOICE' ? (
             <Group>
               <Button
                 disabled={disabled}
@@ -312,7 +330,7 @@ export function CampaignTabletopDecisionDrawer({
                   void resolve({ kind: 'OPTION', optionId: pending.options[0].optionId })
                 }
               >
-                {pending.kind === 'REACTION_CHOICE' ? 'Use reaction' : 'Use resistance'}
+                Use resistance
               </Button>
               <Button
                 disabled={disabled}

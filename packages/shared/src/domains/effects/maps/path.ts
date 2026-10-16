@@ -1271,6 +1271,12 @@ function registerOutcomeFields(
       })
     )
     .set(
+      'usesTriggeringWeaponDamageType',
+      toggle(['usesTriggeringWeaponDamageType'], "Use the triggering weapon's damage type", {
+        showIf: local.field(['effectKind']).eq(EFFECT_KIND.DAMAGE)
+      })
+    )
+    .set(
       'damageTypeId',
       selectSingle(
         ['damageTypeId'],
@@ -1282,8 +1288,14 @@ function registerOutcomeFields(
           })
         },
         {
-          requiredIf: true,
-          showIf: local.field(['effectKind']).eq(EFFECT_KIND.DAMAGE)
+          requiredIf: and([
+            local.field(['effectKind']).eq(EFFECT_KIND.DAMAGE),
+            not(local.field(['usesTriggeringWeaponDamageType']).eq(true))
+          ]),
+          showIf: and([
+            local.field(['effectKind']).eq(EFFECT_KIND.DAMAGE),
+            not(local.field(['usesTriggeringWeaponDamageType']).eq(true))
+          ])
         }
       )
     )

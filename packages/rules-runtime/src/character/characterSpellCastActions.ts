@@ -149,17 +149,68 @@ function activeSpellEffects(spell: SpellAuthored): readonly CompiledEffectGroup[
   return groups
 }
 
+type GrantOutcome = Extract<
+  Extract<CompiledEffectGroup['entries'][number], { outcome: unknown }>['outcome'],
+  { effectKind: 'APPLY_GRANT' }
+>
+
+type SlotLevelAmount = {
+  valueKind: 'SPELL_SLOT_LEVEL'
+  multiplier?: number
+  subtractLevels?: number
+}
+
+function isSlotLevelAmount(payload: unknown): payload is SlotLevelAmount {
+  return (
+    typeof payload === 'object' &&
+    payload !== null &&
+    'valueKind' in payload &&
+    payload.valueKind === 'SPELL_SLOT_LEVEL'
+  )
+}
+
+/** A granted amount that scales by slot level is the fixed amount the cast level gives. */
+function amountAtCastLevel<M extends { payload?: unknown }>(modifier: M, castLevel: number): M {
+  const { payload } = modifier
+  if (!isSlotLevelAmount(payload)) return modifier
+  return {
+    ...modifier,
+    payload: {
+      valueKind: 'FIXED',
+      amount: (payload.multiplier ?? 1) * Math.max(0, castLevel - (payload.subtractLevels ?? 0))
+    }
+  }
+}
+
+function grantAtCastLevel(outcome: GrantOutcome, castLevel: number): GrantOutcome {
+  const { modifiers } = outcome.grants
+  if (!modifiers) return outcome
+  return {
+    ...outcome,
+    grants: {
+      ...outcome.grants,
+      modifiers: modifiers.map((modifier) => amountAtCastLevel(modifier, castLevel))
+    }
+  }
+}
+
 /**
  * The Effect as one cast at `castLevel` runs it. A dice heal that scales by cast level rolls a
  * fixed number of dice, so it becomes the row the cast level selects (the highest level at or below
- * it, as a damage spell's scaling is selected); every other outcome is left as authored.
+ * it, as a damage spell's scaling is selected); a granted amount that scales by slot level becomes
+ * the fixed amount that level gives; every other outcome is left as authored.
  */
-function effectAtCastLevel(group: CompiledEffectGroup, castLevel: number): CompiledEffectGroup {
+export function effectAtCastLevel(
+  group: CompiledEffectGroup,
+  castLevel: number
+): CompiledEffectGroup {
   return {
     ...group,
     entries: group.entries.map((entry) => {
       if (!('outcome' in entry)) return entry
       const { outcome } = entry
+      if (outcome.effectKind === 'APPLY_GRANT')
+        return { ...entry, outcome: grantAtCastLevel(outcome, castLevel) }
       if (
         outcome.effectKind !== 'HEAL' ||
         outcome.valueKind !== 'DICE' ||

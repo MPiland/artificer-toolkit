@@ -141,6 +141,7 @@ async function setup(self = true, rolls: FixtureRolls = 'AUTO_ROLL', options: Se
           : {}),
         outcomes: path.resultBlock.outcomes.map((outcome) => {
           if (outcome.effectKind !== 'DAMAGE') return outcome
+          if (outcome.damageTypeId === undefined) throw new Error('Expected named damage.')
           return {
             id: outcome.id,
             scalingKind: 'NONE' as const,

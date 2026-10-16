@@ -611,8 +611,11 @@
             {
               "id": "PLATFORM-13.10",
               "text": "Convex test runs log no errors from scheduled jobs the test environment leaves unconfigured (MEDIA_STORAGE_MODE, MAIL_DELIVERY_MODE, LIVE_SESSION_WORKER_URL): the convex-test setup configures the same test modes the product supports, so a CI failure log shows only the real failure.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/apis/vitest.config.ts env + apps/apis/tests/localServices.ts",
+                "CI 38837544815 at 3cdb69780: Convex shard logs 0 \"must be configured\" and 0 \"is required for live-room\" lines (baseline run 38792840212: 45 and 20); merged 2026-10-15"
+              ],
               "origin": [],
               "note": "Registered 2026-10-15: every Convex shard log carries \"Error when running scheduled function … must be configured\" lines (for example runs 38792840212, 38789989223) that fail nothing but bury real failures. Use the product's own test or disabled modes; do not silence logging."
             },
@@ -739,15 +742,14 @@
             {
               "id": "PLATFORM-13.T8",
               "text": "Configure the convex-test environment so scheduled content-snapshot, email and live-session control jobs run in their supported test modes instead of throwing \"must be configured\".",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["PLATFORM-13.10"],
               "wsjf": {
                 "bv": 1,
                 "tc": 2,
                 "rr": 3,
                 "size": 1
-              },
-              "activeWorkbook": "docs/handoffs/slice-platform-13-t8.md"
+              }
             },
             {
               "id": "PLATFORM-13.T9",
@@ -5648,7 +5650,9 @@
               "id": "ATTACK-9.2",
               "text": "Sneak Attack adds its level-scaled dice once per turn to a hit with a finesse or ranged weapon when the attack has advantage or an enemy of the target is within 5 feet of it and the attacker has no disadvantage; critical hits double the dice. The feature is authored only from core authoring options (no CLOSED_RULE, no feature-specific kind or executor); an author-built equivalent made through the real authoring form publishes to the same structure and resolves identically.",
               "status": "TODO",
-              "proof": [],
+              "proof": [
+                "partial: T2a (CI 38838173590 at 56db035bd, merged 2026-10-15) merges PASSIVE ON_HIT riders, CLASS_LEVEL dice and the triggering weapon damage type: packages/rules-runtime/src/__tests__/characterOnHitRiders.test.ts, characterOnHitRiderMerge.test.ts; closes after T2b-T2d"
+              ],
               "origin": [],
               "note": "D58: extra-dice riders are CLOSED_RULE until this AC."
             },
@@ -5714,9 +5718,8 @@
                 "after": ["ATTACK-9.T1"]
               },
               "id": "ATTACK-9.T2a",
-              "status": "TODO",
-              "text": "Sneak Attack shapes (a)-(c) per D119: PASSIVE Feature ON_HIT damage merged into the weapon outcome, class-level dice through the shared row selector, triggering-weapon damage type; an unconditional Rogue rider proved end to end including a critical hit.",
-              "activeWorkbook": "docs/handoffs/slice-attack-9-t2.md"
+              "status": "DONE",
+              "text": "Sneak Attack shapes (a)-(c) per D119: PASSIVE Feature ON_HIT damage merged into the weapon outcome, class-level dice through the shared row selector, triggering-weapon damage type; an unconditional Rogue rider proved end to end including a critical hit."
             },
             {
               "closes": ["ATTACK-9.2"],
@@ -5729,7 +5732,8 @@
               },
               "id": "ATTACK-9.T2b",
               "status": "TODO",
-              "text": "D119 (d): net roll-mode facet predicate (ADVANTAGE, NOT_DISADVANTAGE) and any-of composition if missing."
+              "text": "D119 (d): net roll-mode facet predicate (ADVANTAGE, NOT_DISADVANTAGE) and any-of composition if missing.",
+              "activeWorkbook": "docs/handoffs/slice-attack-9-t2.md"
             },
             {
               "closes": ["ATTACK-9.2"],
@@ -5953,7 +5957,8 @@
                 "tc": 2,
                 "rr": 2,
                 "size": 2
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-attack-10-t1.md"
             }
           ]
         },
@@ -6991,6 +6996,11 @@
               "origin": [],
               "note": "Found 2026-10-09 from the user's review: planCarriedOverGrants sets remainingTicks null, so a later Run never ticks a carried grant (a 1-minute Fly lasts a 20-round fight), and nothing advances the manual Campaign clock by a Run's elapsed time (rules-runtime.md Encounter-scoped grants paragraph).",
               "id": "SPELLS-5.13"
+            },
+            {
+              "id": "SPELLS-5.14",
+              "status": "TODO",
+              "text": "When a Run completes, a Character's timed condition-owning effects carry over to the Campaign clock like its grants (D99) and end on it, releasing the condition they own; a Creature's end with the Run. Bug found 2026-10-15 in the SPELLS-27 survey: planCarriedOverGrants carries modifier grants only, so the stored condition stays on the Character forever. Proved by a regression test that fails before the fix."
             }
           ],
           "wsjf": {
@@ -6998,7 +7008,22 @@
             "tc": 2,
             "rr": 1,
             "size": 3
-          }
+          },
+          "tasks": [
+            {
+              "id": "SPELLS-5.T9",
+              "text": "Fix D99 carry-over for condition-owning timed effects (runGrantCarryOver.ts): carry them to the Campaign clock or release their condition at Run completion; red regression test first.",
+              "status": "TODO",
+              "closes": ["SPELLS-5.14"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 5,
+                "rr": 5,
+                "size": 2
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-27.md"
+            }
+          ]
         },
         {
           "id": "SPELLS-6",
@@ -7256,7 +7281,8 @@
                 "rr": 3,
                 "size": 3,
                 "after": ["SPELLS-8.T1"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-8-t1.md"
             },
             {
               "id": "SPELLS-8.T10",
@@ -8031,7 +8057,7 @@
         {
           "id": "SPELLS-27",
           "title": "Effects end on their authored end events",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "journeyTests": [],
           "journeyStatus": "none",
           "origin": [],
@@ -8058,7 +8084,87 @@
             "tc": 2,
             "rr": 3,
             "size": 3
-          }
+          },
+          "tasks": [
+            {
+              "id": "SPELLS-27.T1",
+              "text": "Spike how a holder condition ends (stored vs derived), and plan a bare timed CONDITION as a condition-owning active effect so its duration and end events survive (D122).",
+              "status": "IN_PROGRESS",
+              "closes": ["SPELLS-27.1"],
+              "activeWorkbook": "docs/handoffs/slice-spells-27.md",
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 3,
+                "size": 2
+              }
+            },
+            {
+              "id": "SPELLS-27.T2",
+              "text": "One consumer effectsEndedBy over both event lists for any v2 effect; Invisibility ends on its holder's attack roll after granting advantage; GM undo restores it (journey).",
+              "status": "TODO",
+              "closes": ["SPELLS-27.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-27.T1"]
+              }
+            },
+            {
+              "id": "SPELLS-27.T3",
+              "text": "ON_CAST_SPELL fact on cast commits feeds the consumer; Invisibility ends on a cast; authoring parity through the real form.",
+              "status": "TODO",
+              "closes": ["SPELLS-27.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-27.T2"]
+              }
+            },
+            {
+              "id": "SPELLS-27.T4",
+              "text": "Structured end trigger (event, by, against) sharing the reactionTrigger filter types; damage-taken and harm-by-source events.",
+              "status": "TODO",
+              "closes": ["SPELLS-27.2"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-27.T2"]
+              }
+            },
+            {
+              "id": "SPELLS-27.T5",
+              "text": "Author SRD end events (spells, class features, items, creature traits) from core options; corpus test lists any effect left with end-event text and no authored end, except a typed allow-list of other mechanisms.",
+              "status": "TODO",
+              "closes": ["SPELLS-27.2"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-27.T4"]
+              }
+            },
+            {
+              "id": "SPELLS-27.T6",
+              "text": "Unify consumeOnFirstEvents and endOnEvents into one structured shape with explicit timing; delete the old enum, migrate data, no shim (D122). After REACTION-4.T3.",
+              "status": "TODO",
+              "closes": ["SPELLS-27.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-27.T3", "REACTION-4.T3"]
+              }
+            }
+          ]
         }
       ]
     },
@@ -8224,9 +8330,10 @@
             },
             {
               "text": "A user can author a reaction spell such as Absorb Elements: triggered when its caster takes damage of chosen types, it applies before that damage (resistance to the triggering type) and grants a follow-up benefit; it resolves through the same trigger model as the SRD reactions.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "proof": [
-                "partial: merge of c9cda1489 (REACTION-4.T2) adds the DAMAGE_TAKEN trigger with damageTypeIds and the user-authored Absorb Elements fixture (packages/rules-runtime/src/testing/absorbElementsSpell.ts); resistance currently covers every named type until the caster's next turn, so \"resistance to the triggering type\" waits for the trigger fact bound in REACTION-4.T3"
+                "partial: merge of c9cda1489 (REACTION-4.T2) adds the DAMAGE_TAKEN trigger with damageTypeIds and the user-authored Absorb Elements fixture (packages/rules-runtime/src/testing/absorbElementsSpell.ts); resistance currently covers every named type until the caster's next turn, so \"resistance to the triggering type\" waits for the trigger fact bound in REACTION-4.T3",
+                "partial: T3 increment A1 (CI 38837833587 at 1409a6e1a, merged 2026-10-15) binds resistance to the triggering type and the slot-scaled follow-up: packages/rules-runtime/src/__tests__/plannedAbsorbElements.test.ts, apps/session-worker/test/nativeRoomReaction.test.ts; waits on the authoring parity proof for damageTypeSource TRIGGER"
               ],
               "origin": [],
               "note": "Added 2026-10-08 at the user's request: non-SRD reactions must be user-authorable. Prove it with a user-authored Absorb Elements in a test fixture, not seeded content.",
@@ -8305,7 +8412,7 @@
             {
               "id": "REACTION-4.T3",
               "text": "SPELL_CAST trigger, TRIGGER_FACT expressions, CANCEL_TRIGGERING_EVENT and the SPENT_NO_EFFECT settlement; Counterspell converted to core options (COUNTERSPELL closed-rule kind deleted), including the counter-chain. Also finishes AC 4.2: bind the triggering damage type as a TRIGGER_FACT so Absorb Elements resists only that type; offer every eligible reaction (not the first by actionId) so Shield and Absorb Elements both appear on one elemental hit; exclude ON_CRIT damage types on a normal hit (encounterAttackReactionDiscovery.ts attackHitDamageTypeIds); scale the follow-up melee damage by slot level and limit it to one hit. Sequence before the user UI review.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["REACTION-4.3", "REACTION-4.2"],
               "wsjf": {
                 "bv": 8,

@@ -1,9 +1,5 @@
-import type { ServerCompletedRuleExecutionDto } from '@artificer-toolkit/schema/shared/rulesExecution'
-import { compileEffect } from '@artificer-toolkit/shared/compilers'
 import { describe, expect, it } from 'vitest'
 
-import { prepareEncounterActionEffectPlans } from '../encounterActionEffectPlans.js'
-import { buildCompiledActionCompilerSource } from '../encounterActionEntryPointCompiler.js'
 import { ASSISTED_REACTION_CHOICE_DEFINITION_ID } from '../encounterMovementReactionDecision.js'
 import {
   encounterReactionEffectId,
@@ -11,13 +7,9 @@ import {
   type EncounterAttackReactionCandidate
 } from '../encounterReactionChoice.js'
 import { createReactionChoiceDefinition } from '../reactionChoiceDefinition.js'
-import { dnd5eCharacterRuleActionSystemAdapter as adapter } from '../systems/dnd5e/effectActionCompiler.js'
-import { absorbElementsSpell } from '../testing/absorbElementsSpell.js'
-import {
-  ACTION_EFFECT_ID,
-  characterActionDescriptor
-} from '../testing/characterActionDescriptor.js'
+import { ACTION_EFFECT_ID } from '../testing/characterActionDescriptor.js'
 import { SRD_SYSTEM_ID, testUuid } from '../testing/dnd5eSrdEncounter.js'
+import { plannedAbsorbElements } from '../testing/plannedAbsorbElements.js'
 
 /**
  * REACTION-4.5: a reaction's plan is rebuilt from the stored command and occurrence ids when its answer
@@ -29,61 +21,7 @@ const REACTOR_ID = testUuid(0x7c1)
 const COMMAND_ID = testUuid(0x7c2)
 const OCCURRENCE_ID = testUuid(0x7c3)
 
-const action = (() => {
-  const [effect] = absorbElementsSpell(['FIRE']).effects ?? []
-  if (!effect) throw new Error('The reaction fixture has no authored effect.')
-  return characterActionDescriptor(compileEffect({ ...effect, id: ACTION_EFFECT_ID }))
-})()
-
-const executionPlan = adapter.compileExecutionPlan?.({
-  action,
-  compilerSource: buildCompiledActionCompilerSource(action)
-})
-
-/** The effect plan the room builds for the reaction, from the ids the command and occurrence store. */
-function planReaction(ids: { commandId: string; occurrenceId: string }) {
-  if (executionPlan?.kind !== 'SINGLE_GRAPH') throw new Error('The reaction is one graph.')
-  const { published } = executionPlan
-  const execution = {
-    status: 'COMPLETE',
-    outputs: {},
-    evidence: {
-      source: {
-        definitionId: published.id,
-        gameSystemId: SRD_SYSTEM_ID,
-        definitionFamilyKey: published.definitionFamilyKey,
-        checksum: published.checksum
-      },
-      capabilityContractVersion: 1,
-      facts: {},
-      trace: [],
-      outputs: {}
-    }
-  } satisfies ServerCompletedRuleExecutionDto
-  const { recurringEffect } = prepareEncounterActionEffectPlans({
-    encounterId: ENCOUNTER_ID,
-    ...ids,
-    sourceActorId: REACTOR_ID,
-    sourceLabel: 'Absorb Elements',
-    sourceHidden: false,
-    currentActorId: REACTOR_ID,
-    target: {
-      actorId: REACTOR_ID,
-      conditionIds: [],
-      effectiveSize: 'MEDIUM',
-      lifetimeScope: 'ENCOUNTER',
-      activeEffects: []
-    },
-    activeEffectsByActorId: new Map(),
-    activeEffectPlan: adapter.activeEffectPlans?.({ action, published })[0] ?? null,
-    published,
-    execution,
-    d20: null,
-    applications: []
-  })
-  if (!recurringEffect) throw new Error('The reaction planned no effect.')
-  return recurringEffect
-}
+const planReaction = plannedAbsorbElements
 
 /** The reaction the reactor holds, discovered afresh each time. */
 const candidate = (): EncounterAttackReactionCandidate => ({

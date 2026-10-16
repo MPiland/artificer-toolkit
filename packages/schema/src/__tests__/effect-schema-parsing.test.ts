@@ -527,6 +527,88 @@ describe('effect schema parsing', () => {
     })
   })
 
+  it('accepts a DAMAGE outcome that takes the triggering weapon damage type, but only in place of a damage type', () => {
+    const damage = {
+      id: 'weapon-type-damage',
+      effectKind: 'DAMAGE',
+      valueKind: 'DICE',
+      scalingKind: 'NONE',
+      diceConfig: '1d6'
+    }
+    const parse = (outcome: Record<string, unknown>) =>
+      pathDtoSchema.safeParse(
+        fixedPath('weapon-type-path', 1, 'ON_HIT', singleResultBlock('weapon-type-result', outcome))
+      )
+
+    expect(parse({ ...damage, usesTriggeringWeaponDamageType: true }).success).toBe(true)
+    expect(parse({ ...damage, damageTypeId: 'fire' }).success).toBe(true)
+    expect(
+      parse({ ...damage, damageTypeId: 'fire', usesTriggeringWeaponDamageType: false }).success
+    ).toBe(true)
+    expect(parse(damage).success).toBe(false)
+    expect(
+      parse({ ...damage, usesTriggeringWeaponDamageType: true, damageTypeId: 'fire' }).success
+    ).toBe(false)
+    expect(parse({ ...damage, usesTriggeringWeaponDamageType: false }).success).toBe(false)
+  })
+
+  it("lets only a passive Effect's fixed ON_HIT damage take the triggering weapon damage type", () => {
+    const riderDamage = {
+      id: 'rider-damage',
+      effectKind: 'DAMAGE',
+      usesTriggeringWeaponDamageType: true,
+      valueKind: 'DICE',
+      scalingKind: 'NONE',
+      diceConfig: '1d6'
+    }
+    const passive = {
+      kind: 'PASSIVE',
+      triggerCode: 'MELEE_WEAPON_ATTACK',
+      range: { id: 'rider-range', rangeKind: 'SPECIAL' }
+    }
+    const activated = {
+      triggerCode: 'MELEE_WEAPON_ATTACK',
+      activation: { code: 'ACTION', amount: 1 },
+      range: { id: 'rider-range', rangeKind: 'SELF' }
+    }
+    const effect = (invocation: Record<string, unknown>, path: Record<string, unknown>) =>
+      effectDtoSchema.safeParse({
+        id: '00000000-0000-4000-8000-0000000000f1',
+        order: 1,
+        invocation,
+        paths: [path]
+      }).success
+    const placed = (damage: Record<string, unknown>) => ({
+      fixed: (pathCode: string) =>
+        fixedPath('rider-path', 1, pathCode, singleResultBlock('rider-result', damage)),
+      choice: choicePath('rider-path', 1, 'ON_HIT', [
+        {
+          id: 'rider-option',
+          order: 1,
+          label: 'Rider option',
+          description: 'One damage option.',
+          resultBlock: singleResultBlock('rider-result', damage)
+        }
+      ])
+    })
+    const rider = placed(riderDamage)
+    const named = placed({
+      ...riderDamage,
+      usesTriggeringWeaponDamageType: false,
+      damageTypeId: 'fire'
+    })
+
+    // The same placements are valid for damage that names its type.
+    expect(effect(passive, named.fixed('ON_CRIT'))).toBe(true)
+    expect(effect(activated, named.fixed('ON_HIT'))).toBe(true)
+    expect(effect(passive, named.choice)).toBe(true)
+
+    expect(effect(passive, rider.fixed('ON_HIT'))).toBe(true)
+    expect(effect(passive, rider.fixed('ON_CRIT'))).toBe(false)
+    expect(effect(activated, rider.fixed('ON_HIT'))).toBe(false)
+    expect(effect(passive, rider.choice)).toBe(false)
+  })
+
   it('accepts repeat roll influence only on a target-turn-end repeated follow-up save', () => {
     const followUpSave = {
       id: '00000000-0000-4000-8000-0000000000e4',

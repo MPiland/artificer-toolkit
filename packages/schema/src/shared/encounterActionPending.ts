@@ -99,7 +99,9 @@ export const encounterActionPendingContextDtoSchema = lazySchema(() =>
           if (
             value.legendaryResistance ||
             value.twoPhase?.phase !== 'TEST' ||
-            value.rollerActorId !== value.reactionChoice.reactions[0]?.reactorActorId ||
+            value.reactionChoice.reactions.some(
+              ({ reactorActorId }) => reactorActorId !== value.rollerActorId
+            ) ||
             value.d20Policy !== null ||
             value.contest ||
             value.heldD20
