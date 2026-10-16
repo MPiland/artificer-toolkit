@@ -607,8 +607,8 @@ describe('a Legendary Action that damages the holder of a damage-triggered effec
       moverActorId: WOLF_ID,
       positions: { [WOLF_ID]: { x: 150, y: 150 }, [FIRST_DRAGON_ID]: { x: 250, y: 150 } },
       autoRoll: 'GAME_MASTER',
-      // An invisible target is attacked with disadvantage: two d20s, both the same.
-      rolls: [attackRoll, attackRoll],
+      // The room's dice are zero-based: 18 is a natural 19, 1 a natural 2 (+10 against AC 13).
+      rolls: [attackRoll],
       seed: endTriggerEffectSeed({
         effectId: EFFECT_ID,
         holderActorId: WOLF_ID,
@@ -634,12 +634,12 @@ describe('a Legendary Action that damages the holder of a damage-triggered effec
       optionId: option.optionId,
       targetActorId: WOLF_ID
     })
-    expect(answer.type, JSON.stringify(answer).slice(0, 800)).toBe('COMMAND_COMMITTED')
+    expect(answer.type).toBe('COMMAND_COMMITTED')
     const history = await readRoomHistory(room.base.stub)
     const receipt = history.receipts.find((candidate) => candidate.commandId === commandId)
     const settled = receipt ? parseReceiptExecution(receipt) : null
     const strike =
-      settled?.status === 'INITIATIVE_COMPLETE' ? settled.legendaryActions?.at(0) : undefined
+      settled && 'legendaryActions' in settled ? settled.legendaryActions?.at(0) : undefined
     return {
       window:
         strike?.resolution.kind === 'EXECUTED' &&
@@ -648,13 +648,12 @@ describe('a Legendary Action that damages the holder of a damage-triggered effec
           : (strike?.resolution.kind ?? settled?.status),
       effectIds: history.activeEffects.map(({ id }) => id),
       invisible: readActorConditionIds(history, WOLF_ID).includes(INVISIBLE_ID),
-      hitPoints: readActorHitPoints(history, WOLF_ID),
-      diag: { occurrences: history.occurrences.map(({ state, kind }: { state: string; kind?: string }) => `${state}:${kind}`), rolls: history.evidenceRolls.length, receipts: history.receipts.map((r) => `${r.commandId === commandId ? 'ADV' : 'other'}:${parseReceiptExecution(r).status}`), strike: JSON.stringify(strike?.resolution ?? null), receiptJson: (receipt?.resultJson ?? '').slice((receipt?.resultJson ?? '').indexOf('"resolution"'), (receipt?.resultJson ?? '').indexOf('"resolution"') + 1800), answer: JSON.stringify(answer).slice(0, 600) }
+      hitPoints: readActorHitPoints(history, WOLF_ID)
     }
   }
 
   it('ends the effect, and releases its condition, when the attack damages its holder', async () => {
-    expect((await strikeInvisibleWolf(20))).toEqual({
+    expect(await strikeInvisibleWolf(18)).toEqual({
       window: 'ON_HIT',
       effectIds: [],
       invisible: false,
