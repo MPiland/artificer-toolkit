@@ -150,7 +150,8 @@ describe('Giant Insect swaps the chosen creatures into the chosen form (SPELLS-2
     )
     expect(beastRows(await readRoomHistory(room.room.base.stub))).not.toEqual(before)
 
-    await room.advanceTurn()
+    // The form counts the beast's own turns: a round later each has ended one.
+    for (let turn = 0; turn <= BEAST_IDS.length; turn++) await room.advanceTurn()
     const expired = await readRoomHistory(room.room.base.stub)
     expect(expired.activeEffects).toHaveLength(0)
     expect(beastRows(expired)).toEqual(before)

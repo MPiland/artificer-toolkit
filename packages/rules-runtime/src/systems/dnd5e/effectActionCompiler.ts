@@ -7866,6 +7866,14 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
           }
         : { applications: [], terminal: false, emptyApplicationAllowed: true }
     }
+    // A link or a creature form holds state for its duration: each counted turn applies nothing,
+    // and the turn pass expires the effect after the last one.
+    if (
+      definition.stateContributions.some(
+        ({ kind }) => kind === 'ACTOR_LINK' || kind === 'CREATURE_FORM'
+      )
+    )
+      return { applications: [], terminal: false, emptyApplicationAllowed: true }
     const published = publishedDefinitionForFrozenGraph(graph)
     const repeatedSavePath = repeatedFollowUpSaveResultPath({
       execution,
