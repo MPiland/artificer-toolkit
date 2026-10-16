@@ -20,7 +20,7 @@ import { insertActionEvidenceReceipt } from './actionEvidenceReceipt.js'
 import { readRunActors } from './documents.js'
 import { sourceSpendMutation, settleActionSourceSpend } from './actionSourceSpend.js'
 import { completeActionOccurrence, recordActionRoot } from './actionCommitRecords.js'
-import { deleteConsumedGrants, receiptConsumedGrants } from './consumedGrantPersistence.js'
+import { deleteGrants, receiptConsumedGrants } from './consumedGrantPersistence.js'
 import { projectNativeGm } from './nativeProjection.js'
 import { recordTurnSpeedBonus } from './turnMovement.js'
 import { presentEncounterResultForMember } from './resultPresentation.js'
@@ -295,7 +295,7 @@ export async function persistEncounterActionCommit(
     occurredAt: input.occurredAt
   })
   // The one-roll grants the rolls used up (Vicious Mockery's disadvantage, Help) end with the roll.
-  await deleteConsumedGrants(ctx, input.consumedGrants)
+  await deleteGrants(ctx, input.consumedGrants)
   const sourceVersion =
     sourceMechanics?.characterStreamVersion ??
     (source.kind === 'CHARACTER' && source.id !== target.id

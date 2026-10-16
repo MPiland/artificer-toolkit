@@ -274,3 +274,31 @@ describe('area action compilation refusals', () => {
     )
   })
 })
+
+describe('excluded creature types in a compiled save', () => {
+  const UNDEAD = '00000000-0000-4000-8000-00000000d0d0'
+  const singleTarget = { selectionKind: 'SINGLE_TARGET', dispositionKind: 'ANY' } as const
+
+  it('compiles a single-target save that excludes a creature type, which the room warns about', () => {
+    const plain = { range: { rangeKind: 'TOUCH' }, shape: undefined, targeting: singleTarget }
+    expect(compile(plain as Partial<Invocation>).plan?.kind).toBe('TEST_OUTCOME')
+    expect(
+      compile({
+        ...plain,
+        targeting: { ...singleTarget, excludedCreatureTypeIds: [UNDEAD] }
+      } as Partial<Invocation>).plan?.kind
+    ).toBe('TEST_OUTCOME')
+  })
+
+  it('still refuses an area that excludes a creature type', () => {
+    expect(() =>
+      compile({
+        targeting: {
+          selectionKind: 'AREA_CONTENTS',
+          dispositionKind: 'ANY',
+          excludedCreatureTypeIds: [UNDEAD]
+        }
+      } as Partial<Invocation>)
+    ).toThrow(CharacterRuleActionUnsupportedCompilationError)
+  })
+})

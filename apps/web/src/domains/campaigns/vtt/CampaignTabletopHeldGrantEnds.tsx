@@ -84,7 +84,7 @@ function HeldGrantEndList({
               ) : null}
             </Stack>
             <Button
-              aria-label={`End ${choice.label}`}
+              aria-label={choice.label}
               disabled={disabled || submittingId !== null}
               loading={submittingId === choice.activeEffectId}
               size='xs'

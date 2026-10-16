@@ -73,11 +73,13 @@ export function grantsEndedByHolderState<Effect extends ActiveRuleEffectRecord>(
   }
 ) {
   const incapacitated = state.reason === 'INCAPACITATED' || state.reason === 'DEFEATED'
+  // A defeated holder's conditions are not read (readHolderEndState), so none can end a grant.
+  const conditionIds = state.reason === 'DEFEATED' ? [] : state.conditionIds
   return stateBoundGrants(effects).filter(({ definition }) => {
     const { endOnEvents, endOnConditionIds } = definition.recurrence
     return (
       (incapacitated && endOnEvents.includes('ON_INCAPACITATED')) ||
-      endOnConditionIds.some((conditionId) => state.conditionIds.includes(conditionId))
+      endOnConditionIds.some((conditionId) => conditionIds.includes(conditionId))
     )
   })
 }

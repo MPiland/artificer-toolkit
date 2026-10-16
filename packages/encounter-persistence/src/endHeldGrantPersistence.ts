@@ -13,7 +13,7 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { consumeEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomyConsumption'
 import { overridesActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionRuleWarnings'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
-import { deleteConsumedGrants } from './consumedGrantPersistence.js'
+import { deleteGrants } from './consumedGrantPersistence.js'
 import { readEndHeldGrantAdmission } from './basicActionAdmission.js'
 import { readRunActors, replaceRunActor } from './documents.js'
 import { createActiveRuleEffectStore } from './effectStore.js'
@@ -83,7 +83,7 @@ export async function persistEncounterEndHeldGrant(
       })
     : actor
   await replaceRunActor(ctx, actor, spent)
-  await deleteConsumedGrants(ctx, [grant])
+  await deleteGrants(ctx, [grant])
   const nextActors = actors.map((entry) => (entry.id === spent.id ? spent : entry))
   const nextState = encounterRunStateSchema.parse({
     ...state,

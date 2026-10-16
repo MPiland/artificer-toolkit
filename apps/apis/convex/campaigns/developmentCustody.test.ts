@@ -1,7 +1,11 @@
 // @vitest-environment node
 import { createFunctionHandle, makeFunctionReference } from 'convex/server'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { verifyCampaignCustody } from '../../tests/developmentCampaignCustody'
+import {
+  verifyCampaignCustody,
+  type CampaignCustodyCohort
+} from '../../tests/developmentCampaignCustody'
+import { verifyCampaignInventory } from '../../tests/developmentCampaignInventory'
 import { verifyCampaignAuthoredCustodyDeletion } from '../../tests/developmentCampaignAuthoredCustodyDeletion'
 import { verifyCampaignCurrencyLifecycle } from '../../tests/developmentCampaignCurrencyLifecycle'
 import { verifyCampaignAssignmentLifecycle } from '../../tests/developmentCampaignAssignmentLifecycle'
@@ -272,6 +276,95 @@ async function readScoped(base: Awaited<ReturnType<typeof setup>>) {
       .withIndex('by_publicId', (q) => q.eq('id', base.campaign.id))
       .unique()
   }))
+}
+
+/** One Campaign with two Players, both Characters assigned, and the cart and backpack imported. */
+async function mixedCohort() {
+  const base = await setup()
+  const second = await addSecondPlayer(base)
+  await base.t.mutation(admit, {
+    ownerUserId: base.other.userId,
+    playerUserIds: [base.owner.userId, second.userId],
+    campaignId: base.campaign.id
+  })
+  await second.caller.mutation(api.campaigns.assignments.assign, {
+    campaignId: base.campaign.id,
+    characterId: second.characterId
+  })
+  await base.t.mutation(internal.content.import.importSubjects, {
+    contentSourceId: SRD_CONTENT_SOURCE.id,
+    subjects: [
+      importedSubject({ subjectKind: 'VEHICLE', ...cart, document: cart }),
+      importedSubject({
+        subjectKind: 'EQUIPMENT',
+        ...backpack,
+        document: backpack
+      })
+    ]
+  })
+  const client = convexDevelopmentClient
+  const cohort: CampaignCustodyCohort = {
+    owner: client(base.other.caller),
+    ownerUserId: base.other.userId,
+    players: [
+      {
+        client: { ...client(base.owner.caller), setAuth: () => {} },
+        fetchToken: async () => ''
+      },
+      {
+        client: { ...client(second.caller), setAuth: () => {} },
+        fetchToken: async () => ''
+      }
+    ],
+    playerUserIds: [base.owner.userId, second.userId],
+    characterIds: [base.character.id, second.characterId],
+    campaignId: base.campaign.id
+  }
+  return { base, second, cohort, anonymous: client(base.t) }
+}
+
+/** The unshare evacuation event of the given kind, for tampering. */
+function evacuationEvent(
+  events: Awaited<ReturnType<typeof readScoped>>['events'],
+  kind: 'immediate' | 'durable'
+) {
+  const found = events.find((event) => {
+    if (event.type !== 'CAMPAIGN_VEHICLE_EVACUATED') return false
+    const payload: unknown = JSON.parse(event.payloadJson)
+    return (
+      payload !== null &&
+      typeof payload === 'object' &&
+      (kind === 'durable' ? 'jobId' in payload : 'formerCampaignVehicleId' in payload)
+    )
+  })
+  if (!found) throw new Error(`Public driver ${kind} evacuation receipt is missing.`)
+  return found
+}
+
+/** Tamper the event's payload with a fresh removal identity, prove removal refuses, restore it. */
+async function expectTamperedEvacuationRefused(
+  base: Awaited<ReturnType<typeof setup>>,
+  second: Awaited<ReturnType<typeof addSecondPlayer>>,
+  evacuation: ReturnType<typeof evacuationEvent>,
+  refusal: string,
+  before: Awaited<ReturnType<typeof readScoped>>
+) {
+  const payload: unknown = JSON.parse(evacuation.payloadJson)
+  if (payload === null || typeof payload !== 'object' || Array.isArray(payload))
+    throw new Error('Public driver evacuation payload is invalid.')
+  await base.t.run((ctx) =>
+    ctx.db.patch(evacuation._id, {
+      payloadJson: JSON.stringify({
+        ...payload,
+        removalEventId: crypto.randomUUID()
+      })
+    })
+  )
+  const tampered = await readScoped(base)
+  await expect(base.t.mutation(remove, input(base, second))).rejects.toThrow(refusal)
+  expect(await readScoped(base)).toEqual(tampered)
+  await base.t.run((ctx) => ctx.db.patch(evacuation._id, { payloadJson: evacuation.payloadJson }))
+  expect(await readScoped(base)).toEqual(before)
 }
 
 describe('development custody fixture cleanup', () => {
@@ -595,50 +688,8 @@ describe('development custody fixture cleanup', () => {
   }, 30000)
 
   it('runs the public mixed Character custody driver and validates historical Vehicle removal before cleanup', async () => {
-    const base = await setup()
-    const second = await addSecondPlayer(base)
-    await base.t.mutation(admit, {
-      ownerUserId: base.other.userId,
-      playerUserIds: [base.owner.userId, second.userId],
-      campaignId: base.campaign.id
-    })
-    await second.caller.mutation(api.campaigns.assignments.assign, {
-      campaignId: base.campaign.id,
-      characterId: second.characterId
-    })
-    await base.t.mutation(internal.content.import.importSubjects, {
-      contentSourceId: SRD_CONTENT_SOURCE.id,
-      subjects: [
-        importedSubject({ subjectKind: 'VEHICLE', ...cart, document: cart }),
-        importedSubject({
-          subjectKind: 'EQUIPMENT',
-          ...backpack,
-          document: backpack
-        })
-      ]
-    })
-    const client = convexDevelopmentClient
-    const anonymous = convexDevelopmentClient(base.t)
-    await verifyCampaignCustody(
-      {
-        owner: client(base.other.caller),
-        ownerUserId: base.other.userId,
-        players: [
-          {
-            client: { ...client(base.owner.caller), setAuth: () => {} },
-            fetchToken: async () => ''
-          },
-          {
-            client: { ...client(second.caller), setAuth: () => {} },
-            fetchToken: async () => ''
-          }
-        ],
-        playerUserIds: [base.owner.userId, second.userId],
-        characterIds: [base.character.id, second.characterId],
-        campaignId: base.campaign.id
-      },
-      anonymous
-    )
+    const { base, second, cohort, anonymous } = await mixedCohort()
+    await verifyCampaignCustody(cohort, anonymous)
     const before = await readScoped(base)
     const lifecycle = before.events.find((event) => event.type === 'VEHICLE_LIFECYCLE')
     if (!lifecycle) throw new Error('Public driver lifecycle receipt is missing.')
@@ -650,26 +701,39 @@ describe('development custody fixture cleanup', () => {
     expect(await readScoped(base)).toEqual(tamperedLifecycle)
     await base.t.run((ctx) => ctx.db.patch(lifecycle._id, { actorUserId: lifecycle.actorUserId }))
     expect(await readScoped(base)).toEqual(before)
-    const evacuation = before.events.find((event) => event.type === 'CAMPAIGN_VEHICLE_EVACUATED')
-    if (!evacuation) throw new Error('Public driver evacuation receipt is missing.')
-    const payload: unknown = JSON.parse(evacuation.payloadJson)
-    if (payload === null || typeof payload !== 'object' || Array.isArray(payload))
-      throw new Error('Public driver evacuation payload is invalid.')
-    await base.t.run((ctx) =>
-      ctx.db.patch(evacuation._id, {
-        payloadJson: JSON.stringify({
-          ...payload,
-          removalEventId: crypto.randomUUID()
-        })
-      })
+    await expectTamperedEvacuationRefused(
+      base,
+      second,
+      evacuationEvent(before.events, 'immediate'),
+      'Vehicle evacuation identity mismatch',
+      before
     )
-    const tampered = await readScoped(base)
-    await expect(base.t.mutation(remove, input(base, second))).rejects.toThrow(
-      'durable Vehicle evacuation receipt mismatch'
+    await expect(base.t.mutation(remove, input(base, second))).resolves.toBeNull()
+    const after = await readScoped(base)
+    expect(after.items).toEqual([])
+    expect(after.events).toEqual([])
+    expect(after.vehicles).toEqual([])
+    expect(after.balances).toEqual([])
+    expect(after.inventories).toEqual([])
+    expect(after.assignments.map((row) => row.characterId)).toEqual([base.character.id])
+  }, 30000)
+
+  it('validates a durable bounded Vehicle cleanup receipt before removing the cohort', async () => {
+    const { base, second, cohort, anonymous } = await mixedCohort()
+    await verifyCampaignInventory({
+      owner: cohort.owner,
+      player: cohort.players[0].client,
+      anonymous,
+      campaignId: cohort.campaignId
+    })
+    const before = await readScoped(base)
+    await expectTamperedEvacuationRefused(
+      base,
+      second,
+      evacuationEvent(before.events, 'durable'),
+      'durable Vehicle evacuation receipt mismatch',
+      before
     )
-    expect(await readScoped(base)).toEqual(tampered)
-    await base.t.run((ctx) => ctx.db.patch(evacuation._id, { payloadJson: evacuation.payloadJson }))
-    expect(await readScoped(base)).toEqual(before)
     await expect(base.t.mutation(remove, input(base, second))).resolves.toBeNull()
     const after = await readScoped(base)
     expect(after.items).toEqual([])

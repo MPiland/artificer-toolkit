@@ -13,8 +13,12 @@ import {
   applyLiveConcentrationCleanup,
   deriveLiveConcentrationCleanup
 } from './concentrationCleanupPersistence.js'
-import { postConcentrationEndMessage, readHolderEndState } from './concentrationEnd.js'
-import { deleteConsumedGrants } from './consumedGrantPersistence.js'
+import {
+  postConcentrationEndMessage,
+  postGrantEndMessages,
+  readHolderEndState
+} from './concentrationEnd.js'
+import { deleteGrants } from './consumedGrantPersistence.js'
 import { createActiveRuleEffectStore } from './effectStore.js'
 import type { EncounterCharacterWriteTransaction, EncounterWritePorts } from './ports.js'
 
@@ -58,7 +62,15 @@ export async function endConcentrationAfterEdit(
     actor: holder,
     userId: input.userId
   })
-  await deleteConsumedGrants(ctx, grantsEndedByHolderState(stateBound, holderState))
+  const endedGrants = grantsEndedByHolderState(stateBound, holderState)
+  await deleteGrants(ctx, endedGrants)
+  await postGrantEndMessages(ctx, {
+    state,
+    actor: holder,
+    grants: endedGrants,
+    occurrenceId: input.editCommandId,
+    userId: input.userId
+  })
   const { reason } = holderState
   if (!slot || !reason) return
   const authorizedCharacterIds = new Set(

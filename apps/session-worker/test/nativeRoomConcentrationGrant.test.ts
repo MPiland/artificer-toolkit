@@ -308,6 +308,19 @@ describe('a grant that needs Concentration (SPELLS-5.7)', () => {
     expect(afterLock.characterEffects).toHaveLength(1)
     expect(afterLock.characterEffects[0]!.maintainedEffectStateId).toBeNull()
 
+    // The receipt keeps no copy of the Concentration it ended, so the GM is told why undo can't restore it.
+    const undone = await room.send({
+      type: 'REVERT_LAST_ACTION',
+      encounterId: room.room.encounterId,
+      commandId: crypto.randomUUID(),
+      expectedVersion: await room.version()
+    })
+    expect(undone).toMatchObject({
+      type: 'COMMAND_REJECTED',
+      reason: 'REVERT_UNAVAILABLE',
+      message: expect.stringContaining('lost Concentration to a spellcasting lock')
+    })
+
     const refused = await room.startAction(FIGHTER_ACTOR_ID, ['ACTION_ECONOMY_UNAVAILABLE'])
     expect(refused.answer).toMatchObject({
       type: 'COMMAND_REJECTED',

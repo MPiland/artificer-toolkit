@@ -26,6 +26,10 @@ export function concentrationEndOccurrenceId(
     concentrationNamespace
   )
 }
+/** The chat entry that tells the table a holder's state ended this grant; a replay reuses it. */
+export function grantEndNoticeId(occurrenceId: string, grantId: string) {
+  return uuidv5(`${occurrenceId}:${grantId}:grant-end-notice`, concentrationNamespace)
+}
 export function concentrationCommandId(occurrenceId: string) {
   return uuidv5(`${occurrenceId}:command`, concentrationNamespace)
 }
