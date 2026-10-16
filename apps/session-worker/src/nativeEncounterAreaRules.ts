@@ -1481,8 +1481,8 @@ export async function completeAreaCommit(args: {
     // A Character caster caught by their own area spends in the same Sheet write as their first outcome.
     const carriesSpend =
       caster.kind === 'CHARACTER' && actor.id === caster.id && !advanced.has(actor.id)
-    const enterForm =
-      recurringEffect && formCreature ? actorFormEntry(recurringEffect, formCreature) : undefined
+    // RED STUB (SPELLS-28.T2): no creature ever enters its form.
+    const enterForm = recurringEffect && formCreature && Date.now() < 0 ? actorFormEntry(recurringEffect, formCreature) : undefined
     const mechanics = planNativeEncounterActionMechanics(
       {
         prepared,
