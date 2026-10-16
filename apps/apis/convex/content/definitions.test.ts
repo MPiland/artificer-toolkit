@@ -439,7 +439,7 @@ describe('native reusable definitions', () => {
         contentSourceId: SRD_CONTENT_SOURCE.id,
         definitions: [definition]
       })
-    ).toEqual({ inserted: 0, reused: 1 })
+    ).toEqual({ inserted: 0, reused: 1, replaced: 0 })
     expect(
       await t.run((ctx) =>
         ctx.db
