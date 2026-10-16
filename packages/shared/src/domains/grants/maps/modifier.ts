@@ -320,11 +320,33 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
           {
             showIf: or([
               parent.field(['modifierKind']).eq('REPLACE_DAMAGE_TYPE'),
-              parent.field(['valueDomainCode']).eq('DAMAGE_RESISTANCE'),
+              and([
+                parent.field(['valueDomainCode']).eq('DAMAGE_RESISTANCE'),
+                not(local.field(['damageTypeSource']).eq('TRIGGER'))
+              ]),
               parent.field(['valueDomainCode']).eq('DAMAGE_IMMUNITY'),
               parent.field(['valueDomainCode']).eq('DAMAGE_VULNERABILITY')
-            ])
+            ]),
+            hiddenBehavior: 'CLEAR'
           }
+        )
+      )
+      .set(
+        'damageTypeSource',
+        selectSingle(
+          ['damageTypeSource'],
+          'Damage Type From',
+          {
+            kind: 'INLINE_OPTIONS',
+            options: [
+              {
+                code: 'TRIGGER',
+                label: 'The triggering damage',
+                description: 'Resists the damage type that triggered this reaction.'
+              }
+            ]
+          },
+          { showIf: parent.field(['valueDomainCode']).eq('DAMAGE_RESISTANCE') }
         )
       )
       .set(

@@ -150,35 +150,6 @@ function activeSpellEffects(spell: SpellAuthored): readonly CompiledEffectGroup[
 }
 
 /**
- * The Effect as one cast at `castLevel` runs it. A dice heal that scales by cast level rolls a
- * fixed number of dice, so it becomes the row the cast level selects (the highest level at or below
- * it, as a damage spell's scaling is selected); every other outcome is left as authored.
- */
-function effectAtCastLevel(group: CompiledEffectGroup, castLevel: number): CompiledEffectGroup {
-  return {
-    ...group,
-    entries: group.entries.map((entry) => {
-      if (!('outcome' in entry)) return entry
-      const { outcome } = entry
-      if (
-        outcome.effectKind !== 'HEAL' ||
-        outcome.valueKind !== 'DICE' ||
-        outcome.scalingKind !== 'PER_LEVEL' ||
-        outcome.scalingSource !== 'SPELL_CAST_LEVEL'
-      )
-        return entry
-      const { levels, scalingSource: _scalingSource, ...heal } = outcome
-      const row = levels
-        .filter((candidate) => candidate.level <= castLevel)
-        .sort((left, right) => right.level - left.level || left.order - right.order)[0]
-      return row
-        ? { ...entry, outcome: { ...heal, scalingKind: 'NONE', diceConfig: row.diceConfig } }
-        : entry
-    })
-  }
-}
-
-/**
  * The Encounter's action candidates, entry points and decisions for the spells a Character may cast:
  * one per offered `spellCastCandidates` entry, built from the same candidate the Sheet reads. They
  * are never part of the Sheet's own actions, so they exist only where an Encounter asks for them.
@@ -247,7 +218,8 @@ export function buildCharacterSpellCastActions(input: {
       source,
       mechanicsOwner,
       activationSourceKind: 'ACTIVE_SOURCE',
-      compiledEffect: effectAtCastLevel(group, cast.castLevel)
+      compiledEffect: group,
+      spellCastLevel: cast.castLevel
     })
     decisions.push({
       sequence,

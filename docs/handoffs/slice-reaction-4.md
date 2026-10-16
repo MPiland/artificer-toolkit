@@ -177,3 +177,46 @@ All items done on branch `claude/frosty-grothendieck-0a7840`; CI on `ci/reaction
 ## REACTION-4.T3 notes (carried from T5)
 
 - The pending summary `REACTION_CHOICE.options` (`packages/schema/src/shared/encounterRuleOccurrence.ts`) is a single-element tuple and `CampaignTabletopDecisionDrawer.tsx` reads `pending.options[0]`. Resume admission already accepts any offered reaction (`offeredDecisionOptionIds`), so T3 widens the summary contract to every offered option and the drawer to list them, when a chain can hold more than one reaction.
+
+## REACTION-4.T3: plan and increments
+
+Closes AC REACTION-4.3 and the rest of AC REACTION-4.2. Built in increments, each its own commit and CI run on `ci/reaction-4-t3`.
+
+- **Increment 1 (A2/A3, T6 items a and b): the reaction menu.**
+  - **Decision (a): menu, not stack.** A Character has one reaction a round, so one hit offers a menu of every eligible reaction (sorted by `actionId`); choosing an option uses that reaction and declining declines them all. `chosenEncounterReaction` already matches this (a decline settles against the first pin, which only names the audit). The cross-reactor Counterspell chain is a separate mechanism (nested pauses, increment 3), not this array.
+  - **Decision (b): one reactor per offer.** The pending-context refinement (`encounterActionPending.ts`) and the persistence root check (`actionPendingPersistence.ts`) require every pin's `reactorActorId` to be the roller.
+  - `discoverNativeAttackReaction` returns every eligible reaction (`{ critical }` for a fresh offer, `{ answering }` to find the chosen one again, where the hit's severity is read from the sealed TEST evidence, `originalD20.resultPath`, or from the retained TEST on replay). `attackHitDamageTypeIds(facts, critical)` counts ON_CRIT types only on a critical hit.
+  - The pending summary `REACTION_CHOICE.options` is a 1..8 array of `{ optionId, actionId }`; the drawer lists a button per option ("Use reaction" when there is one, "Use {actionId}" otherwise).
+  - Proofs: `nativeRoomReaction.test.ts` "room reaction menu for one hit" (Shield and Absorb Elements both offered; each can be used; decline declines both; a forged pin for another creature fails the context schema), `encounterAttackReactionDiscovery.test.ts` (ON_CRIT filter).
+- **Increment 2 (A1, finishes AC REACTION-4.2): resistance to only the triggering type and a slot-scaled follow-up.**
+  - **Result:** CI green on 1409a6e1a (run 38837833587). The independent review found the answer path read the hit's severity from a policy with no `resultPath` (fixed: `originalD20.resultPath`, and the retained TEST on replay), an unexported plan error, and a duplicated damage-type lookup. Deferred to future-enhancements: upcast levels for a grant-only slot scaling, resistance outliving the SRD's start-of-turn end, the ON_ATTACK_ROLL approximation. The Worker has no crit-only-type journey (the fixture cannot author one); ON_CRIT filtering is proved in `encounterAttackReactionDiscovery.test.ts`. `apps/apis/convex/_generated/api.d.ts` still needs a codegen regeneration (live-backend CI).
+  - **Authored shape:** a `DAMAGE_RESISTANCE` grant payload is `{ damageTypeId } | { damageTypeSource: 'TRIGGER' }` (shared type, schema, node map). Nothing is spell-specific.
+  - **Binding:** discovery (`discoverAttackReactionActions`) returns `triggerDamageTypeIds`, the authored `DAMAGE_TAKEN` types the hit dealt. The Worker passes them as `trigger` to `prepareNativeActionEffectsPlan`, and `bindTriggerDamageTypes` (in `prepareEncounterActionEffectPlans`) turns the one trigger-sourced resistance into one resistance per type (grant id `<id>:<damageTypeId>`). A trigger-sourced resistance planned with no trigger type throws `EncounterActionEffectPlanError`. Ids derive from the authored id and the damage type id, so replaying an answer mints the same plan.
+  - **Slot scaling:** `effectAtCastLevel` (now exported) also fixes an `APPLY_GRANT` modifier amount of `SPELL_SLOT_LEVEL` kind to `multiplier × (castLevel − subtractLevels)` before the entry point is built, so the `modifierGrantEntryPlan` guard (a leftover `SPELL_SLOT_LEVEL` stays manual) no longer blocks the spell. The Absorb Elements fixture adds `2 × slot level` melee damage, consumed by the first attack roll (`consumeOnFirstEvents: ['ON_ATTACK_ROLL']`).
+  - **Proofs:** `plannedAbsorbElements.test.ts` (rules-runtime; new shared helper `testing/plannedAbsorbElements.ts` plans the real compiler's effect for a cast level and trigger types): resists only the triggering type though two are named, resists each type a hit dealt, refuses a trigger resistance with no trigger type, follow-up amount at cast levels 1 and 3, follow-up consumed by `ON_ATTACK_ROLL`. `nativeRoomReaction.test.ts`: the Worker effect holds two modifiers (one fire-only resistance, the `FIXED` 2 melee bonus), and a cold hit leaves a cold-only resistance. `encounterReactionRebuild.test.ts` uses the same helper.
+  - **Honest limit:** the `ON_ATTACK_ROLL` consume event is the only attack-roll event the model has, so a miss or a non-melee attack roll also spends the melee bonus. Registered in `future-enhancements.md` "Deferred edge cases".
+  - **Not run locally:** typecheck, the Worker suite and the Convex suites (CI only). The local `characterSpellCastActions.test.ts` has four Concentration failures that also fail with the original file (stale local dist); CI is the proof.
+
+## REACTION-4.T3 Part B: SPELL_CAST and the Counterspell chain (design packet, awaiting the architect)
+
+Surveyed 2026-10-15 after increment 2 closed AC REACTION-4.2. AC REACTION-4.3 needs four things the codebase does not have, and three of them are new persisted or authored contracts, so this is escalated rather than decided in the slice (AGENTS.md "Architect Escalation").
+
+**What exists.** The `COUNTERSPELL` closed-rule kind is a marker with no resolver (`closedRuleKind.ts`, `counterspell.ts`; creature stat blocks only cite the spell id), so "delete the kind" is a source-data and shared-enum change. The only reaction pause is `reactionChoice`, which sits after an attack TEST (`advanceNativeActionGraphs`, `encounterActionExecution.ts`) and is a graph continuation. Only Character casts (`characterSpellCast`) are planned in an Encounter. No authored ability-check test exists in the effect model (`triggerCode CHECK` is basic actions only). A reaction that needs a roll is refused today (`REACTION_UNSUPPORTED`).
+
+**What AC 4.3 needs, in dependency order.**
+
+1. **`SPELL_CAST` in the `reactionTrigger` union** (additive). Range comes from the reaction's own invocation range, measured from the reactor to the caster. Filters: none beyond range in v1 (the SRD level rule is an outcome, not a trigger filter).
+2. **A pre-execution pause for a cast.** A cast has no TEST to hang a pause on, and its graph has not run when a Counterspell must be offered. Proposal: a new pending-context phase `CAST_REACTION` on the `ENCOUNTER_ACTION` occurrence, held before `advanceNativeActionGraphs` runs, carrying a stack of nested offers (innermost first) where each offer names its own reactor. This is a new persisted pending shape (`encounterActionPending.ts`, `actionPendingPersistence.ts`, the `REACTION_CHOICE` summary, the Convex pending mirror).
+3. **`CANCEL_TRIGGERING_EVENT` outcome and the `SPENT_NO_EFFECT` settlement.** A countered cast spends its slot and action and applies nothing, so it settles as a stored execution that has no graph outcome (a new terminal status in `ruleExecutionResults.ts` and the batch receipt), with undo restoring slot and action.
+4. **The Counterspell check.** A cast of a higher level than the Counterspell slot needs an ability check (spellcasting ability, DC 10 + the cast's level) by the reactor. Options: (A) author a real ability-check test in the effect model (new path/test kind, dnd5e compiler support, a d20 prompt for the reactor, `TRIGGER_FACT` for the triggering level) and run Counterspell through the same graph machinery; (B) a server-rolled check inside the cancel outcome (smaller, but a second dice path outside the d20 evidence model, so it cannot be entered with physical dice). Recommendation: A, because B would violate the d20 evidence rules every other roll follows.
+5. **The chain.** Each used Counterspell is itself a cast offered to other eligible reactors (including the original caster); nested offers resolve innermost first inside the one occurrence.
+
+**Recommended split of the remaining work (each independently shippable and CI-green).**
+
+| Slice | Delivers | Depends on |
+|---|---|---|
+| T3b | `SPELL_CAST` trigger, `CAST_REACTION` pause, `CANCEL_TRIGGERING_EVENT`, `SPENT_NO_EFFECT`; a Counterspell on a level ≤ its slot cast (automatic success, no roll); `COUNTERSPELL` closed-rule kind deleted; Counterspell converted to core options | T3 increments 1 and 2 |
+| T3c | The ability-check test kind (option A) and the higher-level check path | T3b |
+| T3d | The chain: nested offers, innermost first, one occurrence | T3b, T3c |
+
+AC 4.3 closes with T3d. Questions for the architect: (1) approve the split; (2) option A versus B for the check; (3) confirm the `CAST_REACTION` pending phase and `SPENT_NO_EFFECT` terminal status as the new persisted contracts.

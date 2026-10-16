@@ -1,6 +1,6 @@
 # Workbook: ATTACK-9.T2 Sneak Attack (AC ATTACK-9.2)
 
-**Status:** blocked on architect approval of the shapes below (2026-10-15). No code written.
+**Status:** D119 ruled shapes 1-3 (T2a) on 2026-10-15; T2a in progress on `claude/attack-9-t7`, pushed to `ci/attack-9-t2a`. T2b-T2d wait their turn.
 **Base:** `912f2780d` (phase branch `codex/phase-08-2-convex-cutover` merged into `claude/attack-9-t7`).
 
 ## Brief
@@ -44,3 +44,40 @@ ATTACK-9.T6 (Rage early end) reads a per-turn attack/damage record that (f) is m
 ## Status log
 
 - 2026-10-15: survey done; no code. Waiting on the architect's ruling on shapes 1-6 and the split.
+- 2026-10-15: D119 rules shapes 1-3 and splits T2 into T2a-T2d. T2a built.
+
+## T2a (shapes 1-3, D119)
+
+Built:
+
+- (a) `characterOnHitRiders.ts` collects the trigger-matched `PASSIVE` Feature `ON_HIT` `DAMAGE` outcomes and merges them into the weapon action's compiled effect when `buildCharacterActionRuleFacts` builds the action. Downstream sees one multi-part `ON_HIT` damage effect, so resistance and critical doubling apply with no new code. Riders come from class, subclass, race and feat Features and their options; a rider matches by equal `triggerCode`, so one effect per trigger until T2b adds the generic any-of.
+- (b) `bindFacts` emits the `dnd5e.class-levels` fact from `actionMechanic.classLevels`; `validateDiceOutcomeRow` accepts `CLASS_LEVEL`; `exactDiceConfiguration` is the shared row selector (highest row with `level <= class level`). T12 reuses or extracts it.
+- (c) `usesTriggeringWeaponDamageType: true` replaces `damageTypeId` on a DAMAGE outcome (`DamageTypeAuthored` union; schema, compiler and node map). The merge resolves it to the weapon's first `ON_HIT` damage type; an unresolved one fails closed at every consumer.
+- The SRD Rogue's Sneak Attack stays `CLOSED_RULE` (inert) until T2d.
+
+Proof (real code, `characterOnHitRiders.test.ts`): a Rogue's unconditional Sneak Attack rider hits, selects its dice row by class level (1, 3, 4, 5), doubles its dice on a critical, resists like the weapon's damage, and leaves a rider-free Longsword and the shipped Sneak Attack unchanged. `characterOnHitRiderMerge.test.ts` covers trigger mismatch, passive skip, no `ON_HIT` weapon damage, and the multi-damage pick. Schema, compiler and node-map tests cover the new option.
+
+Placement rule (reviewer finding): the flag is valid only on a `PASSIVE` Effect's fixed `ON_HIT` path (`checkWeaponDamageTypeChoices` in the Effect DTO schemas), so an unmerged flag cannot reach `normalizeCharacterActionMechanicFacts`, whose throw is now only an invariant. A rider acquired twice merges once (dedupe by outcome id), and the class rows are chosen from the Rogue levels alone (Fighter 5 / Rogue 1 rolls 1d6).
+
+### T2a checklist and proof logs
+
+Logs under `local-validation/attack-9-t2a/` (not committed).
+
+- [x] (a) merge: `characterOnHitRiders.test.ts` (journey), `characterOnHitRiderMerge.test.ts` (unit); green `b8-tests.log` (14 files, 190 tests).
+- [x] (b) class-level dice: journey rows at Rogue 1/3/4/5, Fighter 5 / Rogue 1 rolls 1d6; `b8-tests.log`.
+- [x] (c) weapon type: schema (`effect-schema-parsing`), compile (`effect-compiler`), node map (`authoring-node-map-visibility`); `b8-tests.log`.
+- [x] Critical doubling and resistance, SRD Sneak Attack still inert: journey test.
+- [x] Placement rule red then green: `red-placement.log` (1 failed) then `b8-tests.log`. The exclusive-union schema bug was red in `light-schema-shared.log` (overwritten by the green rerun).
+- [x] Typecheck: rules-runtime, apis, web (`b8-tc-*.log`, all 0). Builds shared/schema/rules-runtime (`b8-build-*.log`). apis tests (`b8-apis-tests.log`), web parity (`b8-web.log`), local `convex codegen` (`b8-codegen.log`).
+- Earlier red-to-green: `b3-rr-tests.log` (stale `dist` made two Hold Person tests fail; green after the rebuild in `b4-tests.log`).
+
+### T2a reviewer triage (independent opus read-only review)
+
+- Fixed: `actionCharacterResources.test.ts` and the conformance snapshot lacked `classLevels` / the `dnd5e.class-levels` contract; the flag was authorable outside a rider placement (now a schema rule, runtime throw kept as an invariant); duplicate rider acquisition (dedupe by outcome id); multiclass row selection (test); result-block id fixture.
+- Deferred (Deferred edge cases in `docs/roadmap/future-enhancements.md`): riders reach equipment attacks only; riders from equipment-granted Features; "first authored" weapon-type pick; a passive CHOICE path's `ON_HIT` damage is collected.
+- Stands: the visibility test widens `VisibilityNode` but evaluates the real `PATH_NODE_MAP`; `exactDiceConfiguration` fails closed when the Character lacks the rider's class, while the sheet's `selectValue` falls back to the first row (a Feature without its class is not a supported grant).
+
+### Proposed ledger edits
+
+ATTACK-9.T2a done (shapes a-c); ATTACK-9.2 stays open for T2b-T2d.
+

@@ -59,8 +59,13 @@ import type {
   GrantEndEvent
 } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import { CharacterRuleActionUnsupportedCompilationError } from '../../characterRuleActionSystemAdapter.js'
-import { encounterAreaTargetKind } from '../../encounterAreaAction.js'
+import {
+  chosenCreaturesAreaSupported,
+  chosenCreaturesMaxTargets,
+  encounterAreaTargetKind
+} from '../../encounterAreaAction.js'
 import { placedSpaceZone, zoneTriggerModes } from '../../encounterZonePlacement.js'
+import { selectScalingRow } from '../../scalingRowSelection.js'
 import {
   BASIC_ACTION_DEFINITION_FAMILY_KEY,
   CONDITION_RULE_STATE_DEFINITION_FAMILY_KEY,
@@ -169,6 +174,8 @@ const DND5E_RESOLVED_DAMAGE_OUTCOME_EXPRESSIONS_FACT_KEY =
 const DND5E_RESOLVED_HEAL_MODIFIER_FACT_KEY = 'dnd5e.resolved-heal-modifier'
 /** The level a spell is cast at, which selects its authored per-level scaling. */
 export const DND5E_SPELL_CAST_LEVEL_FACT_KEY = 'dnd5e.spell-cast-level'
+/** The actor's level in each class (a JSON object by class id), which selects CLASS_LEVEL rows. */
+const DND5E_CLASS_LEVELS_FACT_KEY = 'dnd5e.class-levels'
 export const DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY =
   'dnd5e.active-effect-save-ability-definition-id'
 export const DND5E_ACTIVE_EFFECT_SAVE_REQUEST_NODE_FACT_KEY =
@@ -286,6 +293,7 @@ function dndScalingFactsFromRuleValues(
     characterLevel: positiveInteger(facts.characterLevel),
     parentClassLevel: positiveInteger(facts.parentClassLevel),
     spellCastLevel: positiveInteger(facts[DND5E_SPELL_CAST_LEVEL_FACT_KEY]),
+    classLevels: parseClassLevels(facts[DND5E_CLASS_LEVELS_FACT_KEY]),
     resolvedDamageExpressions: Object.fromEntries(
       Object.entries(DND5E_RESOLVED_DAMAGE_EXPRESSION_FACT_KEYS).flatMap(([path, key]) => {
         const expression = facts[key]
@@ -296,6 +304,35 @@ function dndScalingFactsFromRuleValues(
       facts[DND5E_RESOLVED_DAMAGE_OUTCOME_EXPRESSIONS_FACT_KEY]
     )
   }
+}
+
+function parseClassLevels(value: RuleValue | undefined): Record<string, number> {
+  if (value === undefined) return {}
+  if (typeof value !== 'string') unsupported('D&D class levels are malformed.')
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(value)
+  } catch {
+    unsupported('D&D class levels are malformed.')
+  }
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    unsupported('D&D class levels are malformed.')
+  }
+  const entries = Object.entries(parsed)
+  if (
+    entries.length > 40 ||
+    entries.some(
+      ([classId, level]) =>
+        classId.length === 0 ||
+        classId.length > 240 ||
+        typeof level !== 'number' ||
+        !Number.isSafeInteger(level) ||
+        level < 1
+    )
+  ) {
+    unsupported('D&D class levels are malformed.')
+  }
+  return Object.fromEntries(entries)
 }
 
 function parseResolvedOutcomeExpressions(value: RuleValue | undefined): Record<string, string> {
@@ -389,6 +426,7 @@ type Dnd5eCompiledEffectActionSource = Pick<
   | 'conditionDefinitionIds'
   | 'savingThrowAbilityDefinitionId'
   | 'compiledEffect'
+  | 'spellCastLevel'
 >
 interface TestPlan {
   kind: TestKind
@@ -522,9 +560,18 @@ function isSupportedTestTargetPolicy(
     invocation.range.amount > 0
   )
 }
-function uuid(value: string, label: string) {
-  if (!UUID.test(value))
-    throw new Dnd5eEffectActionCompilerError(`${label} must be a canonical UUID.`)
+/** A damage type left unresolved (the triggering weapon's, never merged) is not a UUID. */
+function isUuid(value: string | undefined): value is string {
+  return value !== undefined && UUID.test(value)
+}
+
+function uuid(value: string | undefined, label: string): asserts value is string {
+  if (!isUuid(value)) throw new Dnd5eEffectActionCompilerError(`${label} must be a canonical UUID.`)
+}
+
+function damageTypeIdentity(damageTypeId: string | undefined): string {
+  uuid(damageTypeId, 'D&D damage type identity')
+  return damageTypeId
 }
 
 function unsupported(message: string): never {
@@ -735,7 +782,7 @@ function relationshipPlan(action: Dnd5eCompiledEffectActionSource):
       recurrence.damage.scalingKind !== 'NONE' ||
       recurrence.damage.bonuses?.length ||
       !UUID.test(recurrence.damage.id) ||
-      !UUID.test(recurrence.damage.damageTypeId) ||
+      !isUuid(recurrence.damage.damageTypeId) ||
       typeof recurrence.damage.diceConfig !== 'string')
   ) {
     unsupported('D&D relationship recurrence must be one exact start-of-turn damage outcome.')
@@ -915,7 +962,7 @@ function relationshipRecurrenceGraph(input: {
           amount,
           damageTypeId: {
             kind: 'LITERAL',
-            value: input.recurrenceDamage.damageTypeId
+            value: damageTypeIdentity(input.recurrenceDamage.damageTypeId)
           }
         }
       }
@@ -1125,7 +1172,7 @@ function immediateFollowUpSaveEntries(entries: readonly CompiledEffectGroup['ent
       outcome.effectKind !== 'DAMAGE' ||
       primaryDamageDiceCount(outcome) === null ||
       !UUID.test(entry.entryId) ||
-      !UUID.test(outcome.damageTypeId)
+      !isUuid(outcome.damageTypeId)
     ) {
       return null
     }
@@ -1313,6 +1360,34 @@ function modifierGrantPlan(
   return entry ? modifierGrantEntryPlan({ action, entry, attack, untilEndEvent: false }) : null
 }
 
+type SlotLevelAmount = {
+  valueKind: 'SPELL_SLOT_LEVEL'
+  multiplier?: number
+  subtractLevels?: number
+}
+
+function isSlotLevelAmount(payload: unknown): payload is SlotLevelAmount {
+  return (
+    typeof payload === 'object' &&
+    payload !== null &&
+    'valueKind' in payload &&
+    payload.valueKind === 'SPELL_SLOT_LEVEL'
+  )
+}
+
+/** A granted amount that scales by slot level (Aid, Absorb Elements) is the fixed amount a cast level gives. */
+function amountAtCastLevel<M extends { payload?: unknown }>(modifier: M, castLevel: number): M {
+  const { payload } = modifier
+  if (!isSlotLevelAmount(payload)) return modifier
+  return {
+    ...modifier,
+    payload: {
+      valueKind: 'FIXED',
+      amount: (payload.multiplier ?? 1) * Math.max(0, castLevel - (payload.subtractLevels ?? 0))
+    }
+  }
+}
+
 /**
  * The plan of one APPLY_GRANT entry. With `untilEndEvent` the grant has no counted duration and
  * lasts until one of its authored end events (a speed penalty that lasts until the creature
@@ -1328,6 +1403,11 @@ function modifierGrantEntryPlan(input: {
   const { action, entry, attack, untilEndEvent } = input
   if (!('outcome' in entry) || entry.outcome.effectKind !== 'APPLY_GRANT') return null
   const { grants } = entry.outcome
+  const { spellCastLevel } = action
+  // As a scaled heal is the row the cast level selects, a slot-scaled amount is fixed by it here.
+  const modifiers = (grants.modifiers ?? []).map((modifier) =>
+    spellCastLevel === undefined ? modifier : amountAtCastLevel(modifier, spellCastLevel)
+  )
   const initialRemaining = entry.duration ? conditionDurationTurns(entry.duration) : null
   const {
     turnAnchor,
@@ -1356,12 +1436,9 @@ function modifierGrantEntryPlan(input: {
       : []
   )
   if (
-    (grants.modifiers?.length ?? 0) + senses.length === 0 ||
+    modifiers.length + senses.length === 0 ||
     grantedSenses.length !== senses.length ||
-    // A slot-scaled amount (Aid) resolves at cast time, which grants do not carry yet.
-    grants.modifiers?.some(
-      ({ payload }) => payload && 'valueKind' in payload && payload.valueKind === 'SPELL_SLOT_LEVEL'
-    ) ||
+    modifiers.some(({ payload }) => isSlotLevelAmount(payload)) ||
     grants.proficiencies?.length ||
     (untilEndEvent
       ? entry.duration !== undefined || endEvents.length === 0 || turnAnchor !== undefined
@@ -1383,9 +1460,7 @@ function modifierGrantEntryPlan(input: {
     initialRemaining,
     modifierGrantContribution: {
       applyGrantOutcomeId: entry.outcome.id,
-      modifiers: buildCharacterGrantFoldModifierFacts(
-        (grants.modifiers ?? []).map(compileModifierGrant)
-      ),
+      modifiers: buildCharacterGrantFoldModifierFacts(modifiers.map(compileModifierGrant)),
       senses: grantedSenses,
       tickAnchor: turnAnchor?.actor === 'SOURCE' ? 'SOURCE' : 'HOLDER',
       includesCurrentTurn: entry.duration?.durationKind === 'TURN',
@@ -1821,7 +1896,7 @@ function exactImmediateFollowUpSaveShape(
         repeatingDamage.scalingKind === 'NONE' &&
         typeof repeatingDamage.dice === 'string' &&
         repeatingDamageDiceCount !== null &&
-        UUID.test(repeatingDamage.damageTypeId) &&
+        isUuid(repeatingDamage.damageTypeId) &&
         damageMultiplier(repeatingDamage) === 1 &&
         !repeatingDamage.bonuses?.length &&
         primaryDiceCount !== null &&
@@ -1843,7 +1918,7 @@ function exactImmediateFollowUpSaveShape(
     failure.valueKind === 'DICE' &&
     failure.scalingKind === 'NONE' &&
     failureDiceCount !== null &&
-    UUID.test(failure.damageTypeId) &&
+    isUuid(failure.damageTypeId) &&
     damageMultiplier(failure) === 1 &&
     !failure.bonuses?.length &&
     commonBoundedSave &&
@@ -1914,7 +1989,7 @@ function exactImmediateFollowUpSaveShape(
     typeof failure.dice === 'string' &&
     failure.dice === success.dice &&
     nestedDiceCount !== null &&
-    UUID.test(failure.damageTypeId) &&
+    isUuid(failure.damageTypeId) &&
     failure.damageTypeId === success.damageTypeId &&
     damageMultiplier(failure) === 1 &&
     damageMultiplier(success) === 0.5 &&
@@ -2118,6 +2193,29 @@ function validateDamageBonuses(value: unknown): void {
   }
 }
 
+/**
+ * The dice a heal rolls: its one authored value, or the row the spell's cast level reaches. A
+ * heal's dice count shapes its graph, so the cast level is a compile input rather than a runtime fact.
+ */
+function healDiceConfiguration(
+  outcome: Record<string, unknown>,
+  spellCastLevel: number | undefined
+): string {
+  if (outcome.scalingKind === 'NONE' && typeof outcome.diceConfig === 'string')
+    return outcome.diceConfig
+  if (
+    outcome.scalingKind !== 'PER_LEVEL' ||
+    outcome.scalingSource !== 'SPELL_CAST_LEVEL' ||
+    !Array.isArray(outcome.levels)
+  )
+    unsupported('D&D dice healing requires one authored dice value or spell cast level rows.')
+  if (spellCastLevel === undefined) unsupported('D&D dice healing scaling facts are unavailable.')
+  const row = selectScalingRow(outcome.levels as readonly Record<string, unknown>[], spellCastLevel)
+  if (!row || typeof row.diceConfig !== 'string')
+    unsupported('D&D dice healing scaling does not select an authored value.')
+  return row.diceConfig
+}
+
 function validateHealBonuses(value: unknown): void {
   if (value === undefined) return
   if (!Array.isArray(value) || value.length > 100)
@@ -2158,6 +2256,7 @@ function validateDiceOutcomeRow(outcome: CompiledDiceDamageEffect): void {
     unsupported('D&D dice outcomes require NONE or PER_LEVEL scaling.')
   if (
     outcome.scalingSource !== 'CHARACTER_LEVEL' &&
+    outcome.scalingSource !== 'CLASS_LEVEL' &&
     outcome.scalingSource !== 'PARENT_CLASS_LEVEL' &&
     outcome.scalingSource !== 'SPELL_CAST_LEVEL'
   ) {
@@ -2289,20 +2388,32 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
   const supportsSelf =
     invocation.range.rangeKind === 'SELF' && invocation.targeting?.selectionKind === 'SELF'
   // A DISTANCE or Touch range only warns when the target is out of range (D11).
+  const supportsTargetRange =
+    invocation.range.rangeKind === 'UNLIMITED' ||
+    invocation.range.rangeKind === 'TOUCH' ||
+    (invocation.range.rangeKind === 'DISTANCE' &&
+      Number.isSafeInteger(invocation.range.amount) &&
+      invocation.range.amount > 0 &&
+      invocation.range.longAmount === undefined)
+  // Excluded creature types stay on the invocation: the room warns for an excluded target and the
+  // table can override it, so they never make an action unsupported.
   const supportsSingleTarget =
-    (invocation.range.rangeKind === 'UNLIMITED' ||
-      invocation.range.rangeKind === 'TOUCH' ||
-      (invocation.range.rangeKind === 'DISTANCE' &&
-        Number.isSafeInteger(invocation.range.amount) &&
-        invocation.range.amount > 0 &&
-        invocation.range.longAmount === undefined)) &&
-    // Excluded creature types stay on the invocation: the room warns for an excluded target and the
-    // table can override it, so they never make an action unsupported.
+    supportsTargetRange &&
     invocation.targeting?.selectionKind === 'SINGLE_TARGET' &&
     // A grant (Help) or a check (First Aid) may ask for a willing target: an unwilling one only warns,
     // and the table can override it.
     (invocation.targeting.dispositionKind === 'ANY' ||
       (invocation.targeting.dispositionKind === 'WILLING' && (grantPlan !== null || checkAction)))
+  // A bounded list of chosen creatures (Mass Healing Word), inside a round area when it names one
+  // (Mass Cure Wounds), resolves the one outcome on each; only a heal is supported, checked below
+  // once the outcome is read.
+  const supportsChosenCreatures =
+    supportsTargetRange &&
+    invocation.targeting?.selectionKind === 'CHOSEN_CREATURES' &&
+    invocation.targeting.dispositionKind === 'ANY' &&
+    chosenCreaturesMaxTargets(invocation.targeting) !== null &&
+    (!invocation.shape ||
+      chosenCreaturesAreaSupported(invocation.range.rangeKind, invocation.shape.shapeKind))
   // A Legendary Action option is free; the Feature charge it spends is its cost.
   const supportedActivation =
     invocation.kind === 'ACTION' &&
@@ -2321,8 +2432,8 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
     (invocation.triggerCode !== 'ACTIVATED' &&
       !(invocation.triggerCode === 'CHECK' && invocation.check.dc.kind !== 'CONTEST')) ||
     !supportedActivation ||
-    (!supportsSelf && !supportsSingleTarget) ||
-    invocation.shape
+    (!supportsSelf && !supportsSingleTarget && !supportsChosenCreatures) ||
+    (invocation.shape && !supportsChosenCreatures)
   )
     unsupported('D&D Effect action is not the supported activated self action shape.')
   const entry = effect.entries[0]
@@ -2359,6 +2470,8 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
     outcome.effectKind !== 'DETECT_CONCEALED'
   )
     unsupported('D&D check action outcome is not supported yet.')
+  if (supportsChosenCreatures && outcome.effectKind !== 'HEAL')
+    unsupported('D&D chosen-creature action outcome must be a heal.')
   if (
     !checkAction &&
     (outcome.effectKind === 'CONCEAL_FROM_OBSERVERS' || outcome.effectKind === 'DETECT_CONCEALED')
@@ -2402,14 +2515,9 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
   if (outcome.effectKind !== 'HEAL' && outcome.effectKind !== 'DAMAGE')
     unsupported('D&D Effect action outcome is not a supported hit-point or condition outcome.')
   if (outcome.effectKind === 'HEAL' && outcome.valueKind === 'DICE') {
-    if (
-      outcome.scalingKind !== 'NONE' ||
-      !('diceConfig' in outcome) ||
-      typeof outcome.diceConfig !== 'string'
-    ) {
-      unsupported('D&D dice healing requires one unscaled authored dice value.')
-    }
-    parseBoundedDiceConfiguration(outcome.diceConfig)
+    parseBoundedDiceConfiguration(
+      healDiceConfiguration(outcome as unknown as Record<string, unknown>, action.spellCastLevel)
+    )
     validateHealBonuses(outcome.bonuses)
     return { kind: 'DICE_HEAL', temporary: outcome.temporary ?? false }
   }
@@ -3248,6 +3356,7 @@ export const dnd5eEffectActionCapability: GameSystemRuleCapabilityContract = {
       key: DND5E_SPELL_CAST_LEVEL_FACT_KEY,
       valueKind: RULE_VALUE_KIND.NUMBER
     },
+    { key: DND5E_CLASS_LEVELS_FACT_KEY, valueKind: RULE_VALUE_KIND.TEXT },
     {
       key: REACTION_CHOICE_MIN_FACT_KEY,
       valueKind: RULE_VALUE_KIND.NUMBER
@@ -3690,19 +3799,10 @@ function exactDiceConfiguration(
         unsupported('D&D class dice scaling facts are unavailable.')
       level = value
     }
-    const candidates = outcomes
-      .filter(
-        (candidate) =>
-          typeof candidate.level === 'number' &&
-          Number.isSafeInteger(candidate.level) &&
-          candidate.level <= level &&
-          typeof candidate.dice === 'string'
-      )
-      .sort(
-        (left, right) =>
-          Number(right.level) - Number(left.level) || Number(left.order) - Number(right.order)
-      )
-    const selected = candidates[0]
+    const selected = selectScalingRow(
+      outcomes.filter((candidate) => typeof candidate.dice === 'string'),
+      level
+    )
     if (!selected || typeof selected.dice !== 'string')
       unsupported('D&D dice scaling does not select an authored value.')
     authored = selected.dice
@@ -3770,7 +3870,8 @@ function diceGraphDefinition(input: {
   const outcome = input.entry.outcome
   const scalar = outcome.effectKind === 'SCALAR_REDUCTION'
   if (!scalar && outcome.valueKind !== 'DICE') unsupported('D&D outcome is not dice-backed.')
-  if (outcome.effectKind === 'DAMAGE') uuid(outcome.damageTypeId, 'D&D damage type identity')
+  const damageTypeId =
+    outcome.effectKind === 'DAMAGE' ? damageTypeIdentity(outcome.damageTypeId) : null
   const parsed = parseBoundedDiceConfiguration(input.diceConfig)
   const authoredTerm = parsed.terms[0]
   if (!authoredTerm) unsupported('D&D dice configuration exceeds the bounded exact-dice contract.')
@@ -3908,14 +4009,9 @@ function diceGraphDefinition(input: {
             factKey: DND5E_TARGET_STATE_CHECKSUM_FACT_KEY
           },
           amount,
-          ...(outcome.effectKind === 'DAMAGE'
-            ? {
-                damageTypeId: {
-                  kind: 'LITERAL' as const,
-                  value: outcome.damageTypeId
-                }
-              }
-            : {}),
+          ...(damageTypeId === null
+            ? {}
+            : { damageTypeId: { kind: 'LITERAL' as const, value: damageTypeId } }),
           ...(scalar
             ? {
                 valueDefinitionId: { kind: 'LITERAL' as const, value: outcome.valueDefinitionId },
@@ -4160,7 +4256,7 @@ function immediateFollowUpSaveDamageGraphDefinition(input: {
                   : {}),
                 damageTypeId: {
                   kind: 'LITERAL' as const,
-                  value: nestedDamage.damageTypeId
+                  value: damageTypeIdentity(nestedDamage.damageTypeId)
                 }
               }
             }
@@ -4887,7 +4983,10 @@ function compileDnd5eEffectAction({
     const definition = diceGraphDefinition({
       action,
       entry,
-      diceConfig: compiledDiceConfiguration(entry),
+      diceConfig: healDiceConfiguration(
+        entry.outcome as unknown as Record<string, unknown>,
+        action.spellCastLevel
+      ),
       modifierFactKey: DND5E_RESOLVED_HEAL_MODIFIER_FACT_KEY,
       ...(recurringPlan ? { recurring: recurringPlan } : {})
     })
@@ -6773,7 +6872,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
         [DND5E_RESOLVED_HEAL_MODIFIER_FACT_KEY]: parsed.modifier
       }
     }
-    const { spellCastLevel } = actionMechanic
+    const { spellCastLevel, classLevels } = actionMechanic
     const baseFacts = {
       [DND5E_TARGET_ACTOR_FACT_KEY]: targetActorId,
       [DND5E_TARGET_STATE_CHECKSUM_FACT_KEY]: checksumRuleDocument({
@@ -6798,7 +6897,18 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
           }
         : {}),
       ...resolvedHealModifierFacts,
-      ...(spellCastLevel === undefined ? {} : { [DND5E_SPELL_CAST_LEVEL_FACT_KEY]: spellCastLevel })
+      ...(spellCastLevel === undefined
+        ? {}
+        : { [DND5E_SPELL_CAST_LEVEL_FACT_KEY]: spellCastLevel }),
+      ...(classLevels === undefined || Object.keys(classLevels).length === 0
+        ? {}
+        : {
+            [DND5E_CLASS_LEVELS_FACT_KEY]: JSON.stringify(
+              Object.fromEntries(
+                Object.entries(classLevels).sort(([left], [right]) => left.localeCompare(right))
+              )
+            )
+          })
     }
     const action = actionMechanic as {
       attackBonus?: unknown

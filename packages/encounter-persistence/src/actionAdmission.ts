@@ -35,7 +35,16 @@ export async function readNativeEncounterActionAdmission(
     target:
       target.kind === 'ACTOR'
         ? { ...target, actorId: target.actorId.toLowerCase() }
-        : { ...target, sceneId: target.sceneId.toLowerCase() },
+        : target.kind === 'ACTORS'
+          ? {
+              ...target,
+              actorIds: target.actorIds.map((actorId) => actorId.toLowerCase()),
+              scene: target.scene && {
+                ...target.scene,
+                sceneId: target.scene.sceneId.toLowerCase()
+              }
+            }
+          : { ...target, sceneId: target.sceneId.toLowerCase() },
     sceneContext: command.sceneContext
       ? {
           ...command.sceneContext,
@@ -181,8 +190,14 @@ export async function readNativeEncounterActionAdmission(
     if (await readEncounterActorDefeated(ctx, actor)) rejectDomain('ACTOR_DEFEATED')
     // An area names no creature: the Scene decides whom it catches. A player's own save still
     // shows only the creatures their projection holds.
-    if (input.target.kind === 'ACTOR') {
-      const target = await readRunActor(ctx, state, input.target.actorId)
+    const namedActorIds =
+      input.target.kind === 'ACTOR'
+        ? [input.target.actorId]
+        : input.target.kind === 'ACTORS'
+          ? input.target.actorIds
+          : []
+    for (const targetActorId of namedActorIds) {
+      const target = await readRunActor(ctx, state, targetActorId)
       // Players target only actors in their projection; a hidden actor reads as unavailable.
       if (membership.role !== 'OWNER' && !target.public) rejectDomain('TARGET_UNAVAILABLE')
     }

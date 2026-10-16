@@ -1,0 +1,142 @@
+import type { EffectAuthored } from '@artificer-toolkit/shared/authored'
+import { compileEffect, type CompiledEffectGroup } from '@artificer-toolkit/shared/compilers'
+import { describe, expect, it } from 'vitest'
+
+import { collectOnHitRiders, mergeOnHitRiders } from '../character/characterOnHitRiders.js'
+import { testUuid } from '../testing/dnd5eSrdEncounter.js'
+import { unconditionalSneakAttack } from '../testing/unconditionalSneakAttack.js'
+
+const SLASHING = testUuid(0xb01)
+const PIERCING = testUuid(0xb02)
+
+type Damage = { pathCode?: 'ON_HIT' | 'ON_CRIT'; damageTypeId: string }
+
+/** An activated weapon attack of the given trigger, with one fixed 1-point damage outcome per entry. */
+function attack(
+  triggerCode: 'MELEE_WEAPON_ATTACK' | 'RANGED_WEAPON_ATTACK',
+  damage: readonly Damage[]
+): CompiledEffectGroup {
+  const effect: EffectAuthored = {
+    id: testUuid(0xb10),
+    order: 1,
+    invocation: {
+      triggerCode,
+      activation: { code: 'ACTION', amount: 1 },
+      range: { id: testUuid(0xb11), rangeKind: 'SELF' }
+    },
+    paths: damage.map((entry, index) => ({
+      id: testUuid(0xb20 + index),
+      order: index + 1,
+      pathCode: entry.pathCode ?? 'ON_HIT',
+      groupType: 'SINGLE',
+      originKind: 'SOURCE',
+      selectionKind: 'FIXED',
+      resultBlock: {
+        id: testUuid(0xb30 + index),
+        resultKind: 'SINGLE',
+        outcomes: [
+          {
+            id: testUuid(0xb40 + index),
+            effectKind: 'DAMAGE',
+            damageTypeId: entry.damageTypeId,
+            valueKind: 'FIXED',
+            scalingKind: 'NONE',
+            amount: 1
+          }
+        ]
+      }
+    }))
+  }
+  return compileEffect(effect)
+}
+
+function riderOf(triggerCode: 'MELEE_WEAPON_ATTACK' | 'RANGED_WEAPON_ATTACK') {
+  const [effect] = unconditionalSneakAttack(testUuid(0xb50)).effects ?? []
+  if (!effect) throw new Error('The rider Feature has no effect.')
+  return compileEffect({
+    ...effect,
+    invocation: { ...effect.invocation, triggerCode }
+  })
+}
+
+function damageEntries(effect: CompiledEffectGroup) {
+  return effect.entries.flatMap((entry) =>
+    'outcome' in entry && entry.outcome.effectKind === 'DAMAGE'
+      ? [
+          {
+            pathCode: entry.pathCode,
+            pathOrder: entry.pathOrder,
+            entryOrder: entry.entryOrder,
+            pathGroupId: entry.pathGroupId,
+            damageTypeId: entry.outcome.damageTypeId,
+            usesTriggeringWeaponDamageType: entry.outcome.usesTriggeringWeaponDamageType
+          }
+        ]
+      : []
+  )
+}
+
+describe('collecting and merging ON_HIT riders (D119)', () => {
+  it('collects only passive Effects’ ON_HIT damage', () => {
+    expect(collectOnHitRiders(undefined)).toEqual([])
+    expect(
+      collectOnHitRiders([attack('MELEE_WEAPON_ATTACK', [{ damageTypeId: SLASHING }])])
+    ).toEqual([])
+    const [rider] = collectOnHitRiders([riderOf('MELEE_WEAPON_ATTACK')])
+    expect(rider).toMatchObject({ triggerCode: 'MELEE_WEAPON_ATTACK' })
+    // The rider's three dice rows (Rogue levels 1, 3, 5) are three entries.
+    expect(rider?.entries).toHaveLength(3)
+  })
+
+  it('appends the rider to the attack’s own ON_HIT damage, of the weapon’s damage type', () => {
+    const weapon = attack('MELEE_WEAPON_ATTACK', [{ damageTypeId: SLASHING }])
+    const merged = mergeOnHitRiders(weapon, collectOnHitRiders([riderOf('MELEE_WEAPON_ATTACK')]))
+    const [own, ...ridden] = damageEntries(merged)
+    expect(ridden).toHaveLength(3)
+    for (const entry of ridden) {
+      expect(entry).toMatchObject({
+        pathCode: 'ON_HIT',
+        pathOrder: own?.pathOrder,
+        pathGroupId: own?.pathGroupId,
+        damageTypeId: SLASHING
+      })
+      expect(entry.usesTriggeringWeaponDamageType).toBeUndefined()
+      expect(entry.entryOrder).toBeGreaterThan(own?.entryOrder ?? Infinity)
+    }
+  })
+
+  it('applies a rider once when its Feature is acquired twice', () => {
+    const weapon = attack('MELEE_WEAPON_ATTACK', [{ damageTypeId: SLASHING }])
+    const rider = riderOf('MELEE_WEAPON_ATTACK')
+    const merged = mergeOnHitRiders(weapon, collectOnHitRiders([rider, rider]))
+    expect(damageEntries(merged)).toHaveLength(1 + 3)
+  })
+
+  it('takes the type of the weapon’s first ON_HIT damage when it deals several', () => {
+    const weapon = attack('MELEE_WEAPON_ATTACK', [
+      { damageTypeId: PIERCING },
+      { damageTypeId: SLASHING }
+    ])
+    const merged = mergeOnHitRiders(weapon, collectOnHitRiders([riderOf('MELEE_WEAPON_ATTACK')]))
+    expect(damageEntries(merged).at(-1)).toMatchObject({ damageTypeId: PIERCING })
+  })
+
+  it('leaves an attack alone when no rider names its trigger', () => {
+    const weapon = attack('RANGED_WEAPON_ATTACK', [{ damageTypeId: PIERCING }])
+    expect(mergeOnHitRiders(weapon, collectOnHitRiders([riderOf('MELEE_WEAPON_ATTACK')]))).toBe(
+      weapon
+    )
+  })
+
+  it('leaves an attack with no ON_HIT damage alone', () => {
+    const weapon = attack('MELEE_WEAPON_ATTACK', [{ pathCode: 'ON_CRIT', damageTypeId: SLASHING }])
+    expect(mergeOnHitRiders(weapon, collectOnHitRiders([riderOf('MELEE_WEAPON_ATTACK')]))).toBe(
+      weapon
+    )
+  })
+
+  it('does not merge into a passive Effect', () => {
+    const passive = riderOf('MELEE_WEAPON_ATTACK')
+    expect(mergeOnHitRiders(passive, collectOnHitRiders([passive]))).toBe(passive)
+  })
+})

@@ -319,6 +319,7 @@ describe('what a leveled cast carries into the Encounter action', () => {
       itemUsage: [],
       characterId: CHARACTER_ID,
       expectedStreamVersion: STREAM_VERSION,
+      classLevels: character.facts.grantFoldFacts.base.classes,
       automationMode,
       overridable: true
     })
@@ -457,6 +458,18 @@ describe('the scaling heal a cast carries', () => {
       expect(rolledDice(GAPPED_HEAL, castLevel)).toEqual(d4s(dice))
     }
   )
+
+  it('hands the compiler the authored rows and the cast level, not one flattened row', () => {
+    const [entryPoint] = build([candidate(GAPPED_HEAL, 3)]).entryPoints
+    const entry = entryPoint?.compiledEffect.entries[0]
+    const outcome = entry && 'outcome' in entry ? entry.outcome : undefined
+    expect(entryPoint?.spellCastLevel).toBe(3)
+    expect(outcome).toMatchObject({
+      effectKind: 'HEAL',
+      scalingKind: 'PER_LEVEL',
+      scalingSource: 'SPELL_CAST_LEVEL'
+    })
+  })
 
   it('is not offered for a cast no row applies to', () => {
     expect(compiledCast(LATE_HEAL, 1)).toBeNull()

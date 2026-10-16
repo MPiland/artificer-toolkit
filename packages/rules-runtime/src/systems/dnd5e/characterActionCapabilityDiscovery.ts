@@ -58,7 +58,10 @@ export const dnd5eCharacterActionCapabilityAdapter: CharacterActionCapabilityAda
         mechanicFacts: candidate.mechanicFacts,
         conditionDefinitionIds,
         savingThrowAbilityDefinitionId,
-        compiledEffect: entryPoint.compiledEffect
+        compiledEffect: entryPoint.compiledEffect,
+        ...(entryPoint.spellCastLevel === undefined
+          ? {}
+          : { spellCastLevel: entryPoint.spellCastLevel })
       }
     })
 }
