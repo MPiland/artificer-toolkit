@@ -19,7 +19,9 @@ import { conditionTypeId } from '@artificer-toolkit/source-data/srd/equipment/sh
 import { aid } from '@artificer-toolkit/source-data/srd/spells/aid.js'
 import { darkvision } from '@artificer-toolkit/source-data/srd/spells/darkvision.js'
 import { fly } from '@artificer-toolkit/source-data/srd/spells/fly.js'
+import { holdPerson } from '@artificer-toolkit/source-data/srd/spells/hold-person.js'
 import { heroism } from '@artificer-toolkit/source-data/srd/spells/heroism.js'
+import { invisibility } from '@artificer-toolkit/source-data/srd/spells/invisibility.js'
 import { protectionFromEnergy } from '@artificer-toolkit/source-data/srd/spells/protection-from-energy.js'
 import { rayOfFrost } from '@artificer-toolkit/source-data/srd/spells/ray-of-frost.js'
 import { shield } from '@artificer-toolkit/source-data/srd/spells/shield.js'
@@ -35,12 +37,13 @@ import {
   consumableGrants,
   expiredCarriedOverGrants,
   grantsEndedByHolderState,
-  planCarriedOverGrants,
+  planCarriedOverEffects,
   planConcentrationCarriedGrantEnds,
   planDepartedSourceGrantRemovals,
   planEncounterGrantTicks,
   stateBoundGrants
 } from '../encounterGrantLifetimes.js'
+import { endedMaintenanceConditions } from '../encounterActionMaintenance.js'
 import { isTurnEffectEligible } from '../encounterTurnEffectState.js'
 import { dnd5eCharacterRuleActionSystemAdapter } from '../systems/dnd5e/effectActionCompiler.js'
 import { DND5E_UNCONSCIOUS_CONDITION_DEFINITION_ID } from '../systems/dnd5e/identity.js'
@@ -56,6 +59,7 @@ import {
   characterActionDescriptor
 } from '../testing/characterActionDescriptor.js'
 import { grantPublishedIdentity } from '../testing/modifierGrantFixture.js'
+import { plannedTimedCondition } from '../testing/plannedTimedCondition.js'
 import { grantOnly, protectionFromEnergyChoice } from './antitoxinEffectFixture.js'
 
 const SOURCE_ID = testUuid(0xc301)
@@ -772,7 +776,7 @@ describe('planDepartedSourceGrantRemovals', () => {
   })
 })
 
-describe('planCarriedOverGrants', () => {
+describe('planCarriedOverEffects', () => {
   const grant = (id: number, remainingTicks: number) =>
     grantRecord(storedGrant({ lifecycle: {}, currentActorId: null }), {
       id,
@@ -782,7 +786,7 @@ describe('planCarriedOverGrants', () => {
 
   it('expires a timed grant 6 seconds per remaining round after the clock, in whole minutes', () => {
     const [ten, eleven] = [grant(0xc360, 10), grant(0xc361, 11)]
-    expect(planCarriedOverGrants({ effects: [ten, eleven], clockMinute: 2000 })).toEqual([
+    expect(planCarriedOverEffects({ effects: [ten, eleven], clockMinute: 2000 })).toEqual([
       {
         effect: ten,
         lifecycle: { schemaVersion: 1, remainingTicks: null, expiresAtCampaignMinute: 2001 }
@@ -796,7 +800,7 @@ describe('planCarriedOverGrants', () => {
 
   it('stops a timed grant counting without a clock, so it lasts until the GM ends it', () => {
     const effect = grant(0xc362, 4)
-    expect(planCarriedOverGrants({ effects: [effect], clockMinute: null })).toEqual([
+    expect(planCarriedOverEffects({ effects: [effect], clockMinute: null })).toEqual([
       {
         effect,
         lifecycle: { schemaVersion: 1, remainingTicks: null, expiresAtCampaignMinute: null }
@@ -814,7 +818,7 @@ describe('planCarriedOverGrants', () => {
     }
     const stamped = stampedGrant(0xc36a, CHARACTER_ID)
     const creatureCast = stampedGrant(0xc36b, null)
-    expect(planCarriedOverGrants({ effects: [stamped, creatureCast], clockMinute: 2000 })).toEqual([
+    expect(planCarriedOverEffects({ effects: [stamped, creatureCast], clockMinute: 2000 })).toEqual([
       {
         effect: stamped,
         lifecycle: {
@@ -839,7 +843,65 @@ describe('planCarriedOverGrants', () => {
   it('leaves an untimed grant alone', () => {
     const effect = grant(0xc363, 4)
     const untimed = { ...effect, lifecycle: { schemaVersion: 1 as const, remainingTicks: null } }
-    expect(planCarriedOverGrants({ effects: [untimed], clockMinute: 2000 })).toEqual([])
+    expect(planCarriedOverEffects({ effects: [untimed], clockMinute: 2000 })).toEqual([])
+  })
+})
+
+describe('a timed condition effect on a Character outlasting its Run (SPELLS-5.14)', () => {
+  const PARALYZED_ID = conditionTypeId('PARALYZED')
+
+  const storedCondition = (spell: SpellAuthored, lifetimeScope: 'OWNER' | 'ENCOUNTER') =>
+    plannedTimedCondition({
+      encounterId: ENCOUNTER_ID,
+      sourceActorId: SOURCE_ID,
+      holderActorId: TARGET_ID,
+      spell,
+      lifetimeScope
+    })
+
+  const characterRecord = (stored: ReturnType<typeof storedCondition>, remainingTicks: number) =>
+    prepareActiveRuleEffectRecord({
+      id: testUuid(0xc380),
+      owner: { kind: 'CHARACTER', characterId: CHARACTER_ID },
+      definition: stored.definition,
+      lifecycle: { schemaVersion: 1, remainingTicks },
+      currentEffects: [],
+      occurredAt: TIMESTAMP
+    })
+
+  it.each([
+    ['Invisibility', invisibility],
+    ['Hold Person', holdPerson]
+  ])('outlasts the Encounter on a Character target: %s', (_label, spell) => {
+    expect(storedCondition(spell, 'OWNER').definition.recurrence.lifetimeScope).toBe('OWNER')
+    expect(storedCondition(spell, 'ENCOUNTER').definition.recurrence.lifetimeScope).toBe('ENCOUNTER')
+  })
+
+  it('moves to the Campaign clock with its remaining rounds, as a grant does', () => {
+    const effect = characterRecord(storedCondition(holdPerson, 'OWNER'), 7)
+    expect(planCarriedOverEffects({ effects: [effect], clockMinute: 2000 })).toEqual([
+      {
+        effect,
+        lifecycle: { schemaVersion: 1, remainingTicks: null, expiresAtCampaignMinute: 2001 }
+      }
+    ])
+  })
+
+  it('leaves no turn boundary to count it down once carried', () => {
+    const effect = characterRecord(storedCondition(holdPerson, 'OWNER'), 7)
+    const [{ lifecycle }] = planCarriedOverEffects({ effects: [effect], clockMinute: 2000 })
+    const state = { id: ENCOUNTER_ID } as Parameters<typeof isTurnEffectEligible>[2]
+    const actor = characterActor({ id: TARGET_ID, characterId: CHARACTER_ID })
+    const stage = effect.definition.recurrence.recurrenceStage
+    if (stage === 'NONE') throw new Error('Hold Person counts down at a turn boundary.')
+    expect(isTurnEffectEligible(effect, actor, state, stage)).toBe(true)
+    expect(isTurnEffectEligible({ ...effect, lifecycle }, actor, state, stage)).toBe(false)
+  })
+
+  it('releases the condition the ended effect alone owns', () => {
+    const held = characterRecord(storedCondition(holdPerson, 'OWNER'), 7)
+    expect(endedMaintenanceConditions([held], [])).toEqual(new Set([PARALYZED_ID]))
+    expect(endedMaintenanceConditions([held], [{ ...held, id: testUuid(0xc381) }])).toEqual(new Set())
   })
 })
 

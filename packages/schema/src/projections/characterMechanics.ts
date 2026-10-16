@@ -31,6 +31,7 @@ import {
   ruleGraphSourceIdentityDtoSchema
 } from '../shared/ruleExecutionCore.js'
 import {
+  activeEffectConsumeEventsSchema,
   activeEffectEndEventsSchema,
   activeGrantConsumeEventsSchema,
   activeGrantEndConditionIdsSchema,
@@ -153,7 +154,13 @@ const compiledActionActiveEffectPlanSchema = lazySchema(() =>
     ),
     perceptionContributions: combatPerceptionContributionsDtoSchema,
     conditionContribution: z._default(
-      z.nullable(z.strictObject({ conditionId: serverUuidIdentityDtoSchema })),
+      z.nullable(
+        z.strictObject({
+          conditionId: serverUuidIdentityDtoSchema,
+          consumeOnFirstEvents: z._default(activeEffectConsumeEventsSchema, []),
+          endOnEvents: z._default(activeEffectEndEventsSchema, [])
+        })
+      ),
       null
     ),
     modifierGrantContribution: z._default(

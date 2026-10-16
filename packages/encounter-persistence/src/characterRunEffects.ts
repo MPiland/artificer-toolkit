@@ -139,9 +139,10 @@ export async function endCarriedGrantsOfConcentratingCasters(
 
 /**
  * A completing Run ends what it put on its Characters for the Encounter only (the effects it
- * sources); grants that outlast the Encounter stay (D99). A Concentration grant is one of them: it
- * is detached from the Run's maintained state and stamped with the Character that cast it (null for
- * a Creature), so the Campaign clock carries it on (SPELLS-5.7).
+ * sources); grants and conditions that outlast the Encounter stay (D99, SPELLS-5.14). A
+ * Concentration effect is one of them: it is detached from the Run's maintained state and stamped
+ * with the Character that cast it (null for a Creature), so the Campaign clock carries it on
+ * (SPELLS-5.7).
  */
 export async function endCompletedRunCharacterEffects(
   ctx: EncounterCharacterWriteTransaction,
@@ -157,11 +158,11 @@ export async function endCompletedRunCharacterEffects(
     const sourced = (await store.list(owner)).filter(
       ({ sourceEncounterId }) => sourceEncounterId === input.state.id
     )
-    const isConcentrationGrant = ({ definition }: ActiveRuleEffectRecord) =>
+    const outlastsRun = ({ definition }: ActiveRuleEffectRecord) =>
       definition.recurrence.lifetimeScope === 'OWNER'
-    for (const effect of sourced.filter(isConcentrationGrant)) {
+    for (const effect of sourced.filter(outlastsRun)) {
       if (!effect.maintainedEffectStateId)
-        throw new Error('A Run-sourced grant that outlasts its Run needs a maintained state.')
+        throw new Error('A Run-sourced effect that outlasts its Run needs a maintained state.')
       const maintained = await store.findMaintainedStateById({
         encounterId: input.state.id,
         stateId: effect.maintainedEffectStateId
@@ -178,7 +179,7 @@ export async function endCompletedRunCharacterEffects(
         }
       })
     }
-    const ended = sourced.filter((effect) => !isConcentrationGrant(effect))
+    const ended = sourced.filter((effect) => !outlastsRun(effect))
     if (ended.length === 0) continue
     const row = await ctx.ports.readCharacterRow(actor.sourceId)
     if (!row) throw new Error('Run Character is unavailable.')
