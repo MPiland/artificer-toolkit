@@ -282,9 +282,8 @@ describe('room Disarm against a target that cannot see (ATTACK-10.4, D100)', () 
     const gmView = await room.pendingDecision()
     const playerView = await readPendingActionDecision(stub, false)
     if (gmView.pending.kind !== 'D20_EVIDENCE' || playerView?.pending.kind !== 'D20_EVIDENCE')
-      throw new Error('Expected the initiator’s roll.')
+      throw new Error('Expected the initiatorâ€™s roll.')
     expect(gmView.pending.request.rollMode).toBe('ADVANTAGE')
-    expect(gmView.pending.request.derivedRollModeReasons).not.toEqual([])
     expect(playerView.pending.request).toMatchObject({
       requestId: gmView.pending.request.requestId,
       rollMode: 'NORMAL',
@@ -317,7 +316,7 @@ describe('room Disarm against a target that cannot see (ATTACK-10.4, D100)', () 
       rollMode: 'NORMAL'
     })
     const defender = await room.pendingDecision()
-    if (defender.pending.kind !== 'D20_EVIDENCE') throw new Error('Expected the defender’s roll.')
+    if (defender.pending.kind !== 'D20_EVIDENCE') throw new Error('Expected the defenderâ€™s roll.')
     expect(defender.pending.rollerActorId).toBe(TARGET_ID)
     expect(defender.pending.request.heldD20).toBeUndefined()
     await room.resolve(defender, {

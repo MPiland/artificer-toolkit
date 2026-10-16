@@ -240,7 +240,7 @@ export async function planNativeLiveDisarm(
   const resumed =
     response && pending && priorContext
       ? (() => {
-          const participant =
+          const participant: 'INITIATOR' | 'DEFENDER' =
             pending.request.nodeId === contest.initiator.requestNodeId ? 'INITIATOR' : 'DEFENDER'
           // An app roll settles with the faces Convex recorded for it, never client-supplied values.
           const answer = withEncounterAppRoll(response.resolution, ready.appRoll)
