@@ -5773,8 +5773,14 @@
             {
               "id": "ATTACK-9.6",
               "text": "Rage ends early when the Barbarian's turn ends and they have neither attacked a hostile creature nor taken damage since their previous turn (SRD 5.1), tracked on the Rage grant by a generic ON_IDLE_TURN end event; authored only from core options with an author-built parity proof.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "Rage ends at the end of the Barbarian turn with no attack roll against a hostile creature and no damage taken since their previous turn, via a generic ON_IDLE_TURN end event authored from core options; the idleTurnMark (ARMED/ENGAGED) actor flag is engaged at every attack-roll and damage site and restored by undo.",
+                "Tests: apps/apis/convex/encounters/rageJourney.test.ts (SRD and homebrew), rageLegendary.test.ts, packages/rules-runtime grantLifetimes.test.ts and idleTurnMark.test.ts, AuthoredDomainFieldParity.test.tsx.",
+                "Red: ci/attack-9-t6b-red Tests 38885826020 on d8df7c13f (rageLegendary idle-turn Legendary Action, rageJourney Sheet damage).",
+                "Green: ci/attack-9-t6b Tests 38895923164 (attempt 3) and Live 38895923207 on 92843f8be; merged in batch ad.",
+                "Recorded deviation (lenient): a grant created on its holder own turn arrives ENGAGED, so the first idle check is at the end of the holder next turn on every activation path. Deferred edge cases: a stale mark is reconciled at the next END_OF_TURN; a second idle-bound grant created on own turn while ARMED is not exempted; a carried-over idle-bound grant at Run completion."
+              ],
               "origin": [],
               "note": "Deferred from ATTACK-9.T1 on 2026-10-14: no per-turn attack/damage record existed."
             }
@@ -5866,7 +5872,7 @@
             {
               "id": "ATTACK-9.T3",
               "text": "Second Wind proof and Action Surge action-allowance grant.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["ATTACK-9.3"],
               "wsjf": {
                 "bv": 5,
@@ -5906,7 +5912,7 @@
             {
               "id": "ATTACK-9.T6",
               "text": "Rage early end from the per-turn attack and damage record. Also narrow endHolderGrants in movementSettlementPersistence.ts to the actors the pass damaged (one effect-list read per damaged actor, not per Run actor; free-tier cost).",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["ATTACK-9.6"],
               "wsjf": {
                 "bv": 3,
@@ -5914,13 +5920,12 @@
                 "rr": 2,
                 "size": 1,
                 "after": ["ATTACK-9.T1", "ATTACK-9.T2d"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-attack-9-t3-t6.md"
+              }
             },
             {
               "id": "ATTACK-9.T6b",
               "text": "Complete the Rage engaged mark: one shared helper sets it at every attack-roll site (opportunity attacks, Disarm, Grapple, Shove, spell and area attack rolls, reaction attacks) and every damage site (including Sheet and GM HP decreases), and every undo clears what it set; an armed marker on the actor (set where an idle-bound grant is created, cleared where it ends) keeps damage paths from reading effects for actors without one; legendary-action damage at the holder END_OF_TURN counts before the idle check; skipped-turn ticks never idle-check an actor that had no turn; the activation-turn exemption applies on every activation path. Red-first per site.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["ATTACK-9.6"],
               "wsjf": {
                 "bv": 8,
@@ -5928,8 +5933,7 @@
                 "rr": 5,
                 "size": 3,
                 "after": ["ATTACK-9.T6"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-attack-9-t3-t6.md"
+              }
             },
             {
               "id": "ATTACK-9.T7",
@@ -9529,8 +9533,12 @@
           "acs": [
             {
               "text": "A short-rest hit-die roll is recognised by its source kind (HIT_DIE), not its display label, so changing the label cannot break hit-die resolution; proved by a test that fails before the fix.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/apis/convex/rolls.test.ts (hit-die roll through the Convex roll mutation).",
+                "Red: ci/reliability-6-red Tests 38889565004 on 9cac04cf8 (tests only).",
+                "Green: ci/reliability-6-t1a Tests 38897281806 and Live 38897281700 on 82f5a4adb; merged in batch ad."
+              ],
               "origin": [],
               "note": "sheetRoll.ts:108 gates on label !== 'Short rest hit dice'; the same literal is built at :132.",
               "id": "RELIABILITY-6.1"
@@ -9545,8 +9553,12 @@
             },
             {
               "text": "A skill's governing ability and an ability's identity resolve from the System's authored vocabulary by id; a missing mapping is an error, never a silent DEXTERITY; proved by tests that fail before the fix.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/rules-runtime/src/__tests__/sheetSkillAbility.test.ts (Sheet projection, both error cases).",
+                "Red: ci/reliability-6-red Tests 38889565004 on 9cac04cf8 (tests only).",
+                "Green: ci/reliability-6-t1a Tests 38897281806 and Live 38897281700 on 82f5a4adb; merged in batch ad."
+              ],
               "origin": [],
               "note": "characterSheetVocabulary.ts:104/119, sheetProjection.ts:1078 (SKILL_ABILITY_MAP ?? 'DEXTERITY'), characterArmorClassRuleFacts.ts:37.",
               "id": "RELIABILITY-6.3"
@@ -9641,8 +9653,11 @@
             },
             {
               "text": "An actor's initiative roll (policy, modifier, expression, roll mode) is read by one shared function that switches on the actor's source kind (Character, Creature, custom), used by both the Worker and Convex.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/rules-runtime/src/__tests__/encounterInitiativeRoll.test.ts (new shared initiative roll module; the AC has no fail-before clause).",
+                "Green: ci/reliability-6-t1a Tests 38897281806 and Live 38897281700 on 82f5a4adb; merged in batch ad."
+              ],
               "origin": [],
               "note": "Three copies: session-worker roomEncounterReadPorts.ts:255 area, apps/apis/convex/encounters/initiativeSources.ts:38-62, rules-runtime systems/dnd5e/initiativeFactAdapter.ts:271-325; the `?? 'NORMAL'` conflates a creature with a Character.",
               "id": "RELIABILITY-6.15"
@@ -9690,9 +9705,8 @@
             {
               "id": "RELIABILITY-6.T1a",
               "text": "Typed identities for hit dice by kind, skill abilities from System vocabulary (no silent DEXTERITY) and one initiative-roll reader switching on source kind, replacing the Convex, Worker and dnd5e adapter copies.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["RELIABILITY-6.1", "RELIABILITY-6.3", "RELIABILITY-6.15"],
-              "activeWorkbook": "docs/handoffs/slice-reliability-6.md",
               "wsjf": {
                 "bv": 3,
                 "tc": 3,
@@ -9724,7 +9738,8 @@
                 "rr": 8,
                 "size": 8,
                 "after": ["RELIABILITY-6.T1b"]
-              }
+              },
+              "note": "AC 6.9 red already pushed: ci/reliability-6-red-69 Tests 38891936885 on 7264b2819."
             },
             {
               "id": "RELIABILITY-6.T2",
