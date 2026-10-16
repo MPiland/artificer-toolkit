@@ -24,7 +24,8 @@ import { buildCharacterGrantFoldModifierFacts } from '../../character/characterG
 import { abilityModifier } from './abilityModifier.js'
 import type {
   ActorRelationshipAuthored,
-  HitPointMaximumReductionAuthored
+  HitPointMaximumReductionAuthored,
+  OptionalOnHitAuthored
 } from '@artificer-toolkit/shared/authored'
 import {
   RULE_VALUE_KIND,
@@ -182,10 +183,17 @@ const DND5E_RESOLVED_DAMAGE_OUTCOME_EXPRESSIONS_FACT_KEY =
 const DND5E_RESOLVED_HEAL_MODIFIER_FACT_KEY = 'dnd5e.resolved-heal-modifier'
 /** The level a spell is cast at, which selects its authored per-level scaling. */
 export const DND5E_SPELL_CAST_LEVEL_FACT_KEY = 'dnd5e.spell-cast-level'
+/**
+ * The optional on-hit riders the player chose for this attack (a JSON array of sorted rider effect
+ * ids): an optional rider's merged entries resolve only when their rider is listed (D123).
+ */
+export const DND5E_SELECTED_OPTIONAL_RIDERS_FACT_KEY = 'dnd5e.selected-optional-riders'
 /** The actor's level in each class (a JSON object by class id), which selects CLASS_LEVEL rows. */
 const DND5E_CLASS_LEVELS_FACT_KEY = 'dnd5e.class-levels'
 /** The attack's net d20 roll mode, which a path restriction reads when its outcome specializes. */
 const DND5E_ATTACK_ROLL_MODE_FACT_KEY = 'dnd5e.attack-roll-mode'
+/** The attacked creature's type, which a path restriction reads when its outcome specializes. */
+const DND5E_TARGET_CREATURE_TYPE_FACT_KEY = 'dnd5e.target-creature-type'
 /** The nearest able enemy of the attack's target (a JSON object); absent when no Scene measured it. */
 const DND5E_ATTACK_ENEMY_PROXIMITY_FACT_KEY = 'dnd5e.attack-enemy-proximity'
 export const DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY =
@@ -278,7 +286,9 @@ type Dnd5eEffectScalingFacts = Readonly<{
   parentClassLevel?: number
   spellCastLevel?: number
   classLevels?: Readonly<Record<string, number>>
+  selectedOptionalRiderIds?: readonly string[]
   attackRollMode?: Dnd5eAttackRollMode
+  targetCreatureTypeId?: string
   attackEnemyProximity?: Dnd5eEnemyProximity
   resolvedDamageExpressions?: Readonly<Partial<Record<SpecializedPath, string>>>
   resolvedDamageOutcomeExpressions?: Readonly<Record<string, string>>
@@ -309,7 +319,14 @@ function dndScalingFactsFromRuleValues(
     parentClassLevel: positiveInteger(facts.parentClassLevel),
     spellCastLevel: positiveInteger(facts[DND5E_SPELL_CAST_LEVEL_FACT_KEY]),
     classLevels: parseClassLevels(facts[DND5E_CLASS_LEVELS_FACT_KEY]),
+    selectedOptionalRiderIds: parseSelectedOptionalRiderIds(
+      facts[DND5E_SELECTED_OPTIONAL_RIDERS_FACT_KEY]
+    ),
     attackRollMode: parseAttackRollMode(facts[DND5E_ATTACK_ROLL_MODE_FACT_KEY]),
+    targetCreatureTypeId:
+      typeof facts[DND5E_TARGET_CREATURE_TYPE_FACT_KEY] === 'string'
+        ? facts[DND5E_TARGET_CREATURE_TYPE_FACT_KEY]
+        : undefined,
     attackEnemyProximity: parseEnemyProximity(facts[DND5E_ATTACK_ENEMY_PROXIMITY_FACT_KEY]),
     resolvedDamageExpressions: Object.fromEntries(
       Object.entries(DND5E_RESOLVED_DAMAGE_EXPRESSION_FACT_KEYS).flatMap(([path, key]) => {
@@ -321,6 +338,19 @@ function dndScalingFactsFromRuleValues(
       facts[DND5E_RESOLVED_DAMAGE_OUTCOME_EXPRESSIONS_FACT_KEY]
     )
   }
+}
+
+function parseSelectedOptionalRiderIds(value: RuleValue | undefined): readonly string[] {
+  if (value === undefined) return []
+  let parsed: unknown
+  try {
+    parsed = typeof value === 'string' ? JSON.parse(value) : undefined
+  } catch {
+    parsed = undefined
+  }
+  if (!Array.isArray(parsed) || !parsed.every((id) => typeof id === 'string'))
+    unsupported('D&D selected optional riders are malformed.')
+  return parsed
 }
 
 function parseAttackRollMode(value: RuleValue | undefined): Dnd5eAttackRollMode | undefined {
@@ -3490,7 +3520,9 @@ export const dnd5eEffectActionCapability: GameSystemRuleCapabilityContract = {
       valueKind: RULE_VALUE_KIND.NUMBER
     },
     { key: DND5E_CLASS_LEVELS_FACT_KEY, valueKind: RULE_VALUE_KIND.TEXT },
+    { key: DND5E_SELECTED_OPTIONAL_RIDERS_FACT_KEY, valueKind: RULE_VALUE_KIND.TEXT },
     { key: DND5E_ATTACK_ROLL_MODE_FACT_KEY, valueKind: RULE_VALUE_KIND.TEXT },
+    { key: DND5E_TARGET_CREATURE_TYPE_FACT_KEY, valueKind: RULE_VALUE_KIND.TEXT },
     { key: DND5E_ATTACK_ENEMY_PROXIMITY_FACT_KEY, valueKind: RULE_VALUE_KIND.TEXT },
     {
       key: REACTION_CHOICE_MIN_FACT_KEY,
@@ -3918,7 +3950,8 @@ function exactDiceConfiguration(
   outcomes: readonly Record<string, unknown>[],
   facts: Dnd5eEffectScalingFacts,
   selectedPath: SpecializedPath,
-  outcomeId: string
+  outcomeId: string,
+  optionalRider: boolean
 ): string {
   const outcome = outcomes[0]
   if (!outcome) unsupported('D&D selected outcome has no authored dice value.')
@@ -3950,9 +3983,11 @@ function exactDiceConfiguration(
     outcome.scalingKind === 'NONE' && typeof outcome.halfHitPointsDice === 'string'
       ? outcome.halfHitPointsDice
       : null
+  // The path's one resolved expression is the weapon's own; an optional rider is not part of the action's
+  // listed outcomes, so it rolls its authored dice rather than the weapon's.
   const resolved =
     facts.resolvedDamageOutcomeExpressions?.[outcomeId] ??
-    facts.resolvedDamageExpressions?.[selectedPath]
+    (optionalRider ? undefined : facts.resolvedDamageExpressions?.[selectedPath])
   if (!resolved) {
     if ((Array.isArray(outcome.bonuses) && outcome.bonuses.length > 0) || halfHitPointsDice)
       unsupported('D&D resolved damage expression is unavailable.')
@@ -4759,6 +4794,15 @@ function selectedOutcomeGroups(
   return [...authoredOutcomeGroups(action, 'ON_HIT'), ...authoredOutcomeGroups(action, 'ON_CRIT')]
 }
 
+/** An optional rider's entry resolves only when the player chose its rider; every other entry always does. */
+function isChosenEntry(
+  entry: CompiledEffectGroup['entries'][number] | undefined,
+  facts: Dnd5eEffectScalingFacts
+): boolean {
+  const optionalRider = entry && 'optionalRider' in entry ? entry.optionalRider : undefined
+  return !optionalRider || (facts.selectedOptionalRiderIds ?? []).includes(optionalRider.riderId)
+}
+
 function assertKnownTestResultPath(
   action: Dnd5eCompiledEffectActionSource,
   selectedPath: SpecializedPath
@@ -4815,7 +4859,8 @@ function pathRestrictionsMet(
     unsupported('D&D path restrictions need the roll mode of an attack.')
   return attackRestrictionsMet(entry.restrictions, {
     rollMode: facts.attackRollMode,
-    enemyProximity: facts.attackEnemyProximity ?? null
+    enemyProximity: facts.attackEnemyProximity ?? null,
+    targetCreatureTypeId: facts.targetCreatureTypeId ?? null
   })
 }
 
@@ -4852,7 +4897,8 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
         [primaryDamageEntry.outcome as unknown as Record<string, unknown>],
         input.facts,
         input.selectedPath,
-        compiledOutcomeIdentity(primaryDamageEntry)
+        compiledOutcomeIdentity(primaryDamageEntry),
+        false
       )
       return diceGraphDefinition({
         action: input.action,
@@ -4911,7 +4957,9 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
   }
   const authoredGroups = selectedOutcomeGroups(input.action, input.selectedPath)
   const groups = authoredGroups.filter((entries) =>
-    entries.every((entry) => pathRestrictionsMet(entry, input.facts))
+    entries.every(
+      (entry) => isChosenEntry(entry, input.facts) && pathRestrictionsMet(entry, input.facts)
+    )
   )
   if (groups.length === 0) return null
   const definitions = groups.map((entries, groupIndex) => {
@@ -4935,7 +4983,8 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
                   ),
                   input.facts,
                   input.selectedPath,
-                  compiledOutcomeIdentity(entry)
+                  compiledOutcomeIdentity(entry),
+                  'optionalRider' in entry && entry.optionalRider !== undefined
                 )
               : outcome.kind === 'DICE_SCALAR_REDUCTION'
                 ? outcome.diceConfig
@@ -4977,9 +5026,9 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
   return {
     phase: 'OUTCOME',
     published,
-    // The selected authored result groups, restricted or not, are the immutable OUTCOME
-    // template; the published checksum above identifies the groups owed to this attack and
-    // their locked dice specialization.
+    // The selected authored result groups, chosen optional riders included or not and restricted or
+    // not, are the immutable OUTCOME template; the published checksum above identifies the groups
+    // owed to this attack and their locked dice and rider specialization.
     templateChecksum: checksumRuleDocument(authoredGroups)
   }
 }
@@ -6799,6 +6848,13 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       outcomes: testOutcomeTemplateIdentities(source)
     }
   },
+  optionalOnHitRiders: ({ compilerSource }) => {
+    const riders = new Map<string, OptionalOnHitAuthored>()
+    for (const entry of dndSourceFromCompilerSource(compilerSource).compiledEffect.entries)
+      if ('optionalRider' in entry && entry.optionalRider)
+        riders.set(entry.optionalRider.riderId, entry.optionalRider.cost)
+    return [...riders].map(([riderId, cost]) => ({ riderId, cost }))
+  },
   compileTestTemplate: ({ compilerSource }) => {
     const test = compileDnd5eEffectActionTestTemplate({
       action: dndSourceFromCompilerSource(compilerSource)
@@ -7062,7 +7118,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
         [DND5E_RESOLVED_HEAL_MODIFIER_FACT_KEY]: parsed.modifier
       }
     }
-    const { spellCastLevel, classLevels } = actionMechanic
+    const { spellCastLevel, classLevels, selectedOptionalRiderIds } = actionMechanic
     const baseFacts = {
       [DND5E_TARGET_ACTOR_FACT_KEY]: targetActorId,
       [DND5E_TARGET_STATE_CHECKSUM_FACT_KEY]: checksumRuleDocument({
@@ -7090,6 +7146,13 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       ...(spellCastLevel === undefined
         ? {}
         : { [DND5E_SPELL_CAST_LEVEL_FACT_KEY]: spellCastLevel }),
+      ...(selectedOptionalRiderIds === undefined || selectedOptionalRiderIds.length === 0
+        ? {}
+        : {
+            [DND5E_SELECTED_OPTIONAL_RIDERS_FACT_KEY]: JSON.stringify(
+              [...selectedOptionalRiderIds].sort()
+            )
+          }),
       ...(classLevels === undefined || Object.keys(classLevels).length === 0
         ? {}
         : {
@@ -7266,6 +7329,9 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
           [DND5E_ATTACK_MODIFIER_FACT_KEY]: action.attackBonus,
           [DND5E_TARGET_DEFENSE_FACT_KEY]: armorClass,
           [DND5E_ATTACK_ROLL_MODE_FACT_KEY]: rollMode,
+          ...(typeof targetDerivedFacts.creatureTypeId === 'string'
+            ? { [DND5E_TARGET_CREATURE_TYPE_FACT_KEY]: targetDerivedFacts.creatureTypeId }
+            : {}),
           ...(enemyProximity
             ? { [DND5E_ATTACK_ENEMY_PROXIMITY_FACT_KEY]: JSON.stringify(enemyProximity) }
             : {}),

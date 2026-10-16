@@ -132,6 +132,8 @@ export async function persistEncounterActionPending(
         snapshot.applicationContext.reactionChoice.reactions.some(
           ({ reactorActorId }) => reactorActorId !== target.actorId
         )) ||
+      (snapshot.applicationContext.onHitChoice !== undefined &&
+        snapshot.applicationContext.rollerActorId !== admission.input.actorId) ||
       (resume &&
         (snapshot.occurrenceId !== resume.occurrence.id ||
           snapshot.applicationContext.currentnessChecksum !==
