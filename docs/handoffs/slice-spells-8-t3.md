@@ -18,3 +18,4 @@ Reuse the Encounter cast path SPELLS-8.T1 built. Author anything that's missing 
 - An Undead target warns in the shared order `TARGET_NOT_DYING`, `TARGET_CREATURE_TYPE_EXCLUDED`, then the touch range warning; the table can override all three and the cast then applies nothing (`STABILIZE applied: false`).
 - Known limit: a Character target's creature type is not readable, so the type exclusion warns for Creatures only.
 - Validation: `nativeRoomStabilizeAction.test.ts` green in the heavy lane (`local-validation/spells-8-t3/green-worker.log`).
+- Reviewer (opus, independent): no blockers. Fixed: the Undead test now also asserts the target is unchanged (`after` equals `before`), and the Undead type id is read with a throwing guard instead of `!`. Skipped as low: a Construct example (the exclusion is data, one type proves the gate) and a non-excluded negative case (the shared warning has its own unit tests).

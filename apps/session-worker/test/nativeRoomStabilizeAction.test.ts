@@ -14,6 +14,8 @@ import { actionRoom } from './actionRoomFixture.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
 import { parseReceiptExecution, readRoomHistory } from './roomHistoryReads.js'
 
+const undeadTypeId = SRD_CREATURE_TYPES.find(({ code }) => code === 'UNDEAD')?.id
+if (!undeadTypeId) throw new Error('The SRD has an Undead creature type.')
 const FIGHTER_ACTOR_ID = testUuid(0xe00)
 const FIGHTER_ID = testUuid(0xe01)
 const WOLF_ID = testUuid(0xe02)
@@ -107,10 +109,7 @@ describe('a stabilize action (the Healer’s Kit) in the room', () => {
 describe('Spare the Dying cast by a Character (SPELLS-8.2)', () => {
   const TYPE_EXCLUDED: EncounterRuleWarningCodeDto = 'TARGET_CREATURE_TYPE_EXCLUDED'
   const TOUCH_UNCHECKED: EncounterRuleWarningCodeDto = 'TARGET_RANGE_UNCHECKED'
-  const undeadWolf = {
-    ...plainWolf,
-    creatureTypeId: SRD_CREATURE_TYPES.find(({ code }) => code === 'UNDEAD')!.id
-  }
+  const undeadWolf = { ...plainWolf, creatureTypeId: undeadTypeId }
 
   const spareTheDyingRoom = (currentHitPoints?: number) =>
     actionRoom({
@@ -159,11 +158,14 @@ describe('Spare the Dying cast by a Character (SPELLS-8.2)', () => {
     ])
     expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
     // A Creature is never dying, so the stabilize applies to nothing and only the action is spent.
-    expect(await settledApplicationOutputs(room, command.commandId)).toMatchObject({
-      kind: 'ENCOUNTER_ACTOR_MECHANICS_BATCH',
+    const outputs = await settledApplicationOutputs(room, command.commandId)
+    if (outputs?.kind !== 'ENCOUNTER_ACTOR_MECHANICS_BATCH')
+      throw new Error('Expected an Encounter actor batch.')
+    expect(outputs).toMatchObject({
       targetActorId: WOLF_ID,
       spellCastConsumption: null,
       applications: [{ kind: 'STABILIZE', applied: false }]
     })
+    expect(outputs.targetTransition.after).toEqual(outputs.targetTransition.before)
   })
 })
