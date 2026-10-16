@@ -72,7 +72,8 @@ export function readSpellCastSlot(
 /**
  * The cast candidates the Sheet lists as castable: a spell from each of its active sources (per
  * class, always prepared or granted) at its own level and at every higher level the Character
- * owns a slot for. Read through the Sheet's own source and cast-level logic.
+ * owns a slot for; a spell whose effects do not read their cast level lists only its own level. Read
+ * through the Sheet's own source and cast-level logic.
  */
 export function listCastableSpellCandidateIds(input: {
   character: CharacterAuthored

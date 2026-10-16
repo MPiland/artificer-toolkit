@@ -746,7 +746,7 @@ granted spells included) and the candidate must be one of the cast levels the Sh
 (`getSpellCastLevels`): the spell's own level, plus every higher level for which the Character owns a slot
 (standard or Pact Magic) when the spell reads its cast level. A spell reads it when its authored effects scale by
 it (damage or healing `SPELL_CAST_LEVEL` scaling, a `SPELL_CAST_LEVEL` target count, a granted amount of
-`SPELL_SLOT_LEVEL`) or compare with it (`CANCEL_TRIGGERING_EVENT`, Counterspell's slot-versus-spell check).
+`SPELL_SLOT_LEVEL`) anywhere in the Effect, including follow-up save/check branches and manifest behaviors, components and proximity rules or compare with it (`CANCEL_TRIGGERING_EVENT`, Counterspell's slot-versus-spell check).
 `effectReadsSpellCastLevel` derives that flag from the compiled Effects into `readsCastLevel` on the spell's
 action facts and reference mechanics; nothing names a spell. Any other spell is cast at its own level only.
 A Warlock's pact slot also pays a cast at the spell's own level and is spent whatever its level. A candidate is

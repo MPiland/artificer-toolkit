@@ -445,7 +445,9 @@ export function buildCharacterActionRuleFacts(params: {
       })
     }
     if (feature.source.kind === 'FEAT' && folded.featDefinition) {
-      onHitRiders.push(...collectOnHitRiders(registry.feats[feature.source.featId]?.effects, feature.source.featId))
+      onHitRiders.push(
+        ...collectOnHitRiders(registry.feats[feature.source.featId]?.effects, feature.source.featId)
+      )
       appendActions({
         candidates: actionCandidates,
         entryPoints,
@@ -527,36 +529,72 @@ export function buildCharacterActionRuleFacts(params: {
   return { actionCandidates, entryPoints }
 }
 
+type CompiledOutcome = CompiledEffectEntry['outcome']
+type Targeting = NonNullable<CompiledEffectGroup['invocation']['targeting']>
+
+function targetingReadsSpellCastLevel(targeting: Targeting | undefined): boolean {
+  return (
+    targeting?.selectionKind === 'CHOSEN_CREATURES' &&
+    (targeting.maxTargetsScaling?.scalingSource === 'SPELL_CAST_LEVEL' ||
+      targeting.resolutionCountScaling?.scalingSource === 'SPELL_CAST_LEVEL')
+  )
+}
+
+function branchReadsSpellCastLevel(
+  branch: Extract<CompiledOutcome, { effectKind: 'FOLLOW_UP_SAVE' }>['onFailure'] | undefined
+): boolean {
+  return branch?.kind === 'OUTCOMES' && branch.outcomes.some(outcomeReadsSpellCastLevel)
+}
+
+function outcomeReadsSpellCastLevel(outcome: CompiledOutcome): boolean {
+  switch (outcome.effectKind) {
+    case 'DAMAGE':
+    case 'HEAL':
+      return 'scalingSource' in outcome && outcome.scalingSource === 'SPELL_CAST_LEVEL'
+    case 'APPLY_GRANT':
+      return (outcome.grants.modifiers ?? []).some(
+        (modifier) =>
+          typeof modifier.payload === 'object' &&
+          modifier.payload !== null &&
+          'valueKind' in modifier.payload &&
+          modifier.payload.valueKind === 'SPELL_SLOT_LEVEL'
+      )
+    case 'CANCEL_TRIGGERING_EVENT':
+      return true
+    case 'FOLLOW_UP_SAVE':
+      return [outcome.onSuccess, outcome.onFailure, outcome.onDurationComplete].some(
+        branchReadsSpellCastLevel
+      )
+    case 'FOLLOW_UP_CHECK':
+      return [outcome.onSuccess, outcome.onFailure].some(branchReadsSpellCastLevel)
+    case 'MANIFEST':
+      return [
+        ...('behaviors' in outcome ? (outcome.behaviors ?? []) : []),
+        ...('components' in outcome ? (outcome.components ?? []) : []).flatMap(
+          (component) => component.behaviors ?? []
+        ),
+        ...('proximityRule' in outcome && outcome.proximityRule
+          ? [outcome.proximityRule.behavior]
+          : [])
+      ].some(effectReadsSpellCastLevel)
+    default:
+      return false
+  }
+}
+
 /**
  * Whether casting the Effect at a higher level changes it: a result scaled by the cast level (damage,
- * healing, targets, a granted amount) or one compared with it (Counterspell's slot-versus-spell check).
+ * healing, targets, a granted amount, in a follow-up save branch or a manifest's behaviors too) or one
+ * compared with it (Counterspell's slot-versus-spell check).
  */
 export function effectReadsSpellCastLevel(effect: CompiledEffectGroup): boolean {
-  const { targeting } = effect.invocation
-  if (
-    targeting?.selectionKind === 'CHOSEN_CREATURES' &&
-    targeting.maxTargetsScaling?.scalingSource === 'SPELL_CAST_LEVEL'
+  return (
+    targetingReadsSpellCastLevel(effect.invocation.targeting) ||
+    effect.entries.some(
+      (entry) =>
+        'outcome' in entry &&
+        (targetingReadsSpellCastLevel(entry.targetingOverride) ||
+          outcomeReadsSpellCastLevel(entry.outcome))
+    )
   )
-    return true
-  return effect.entries.some((entry) => {
-    if (!('outcome' in entry)) return false
-    const { outcome } = entry
-    switch (outcome.effectKind) {
-      case 'DAMAGE':
-      case 'HEAL':
-        return 'scalingSource' in outcome && outcome.scalingSource === 'SPELL_CAST_LEVEL'
-      case 'APPLY_GRANT':
-        return (outcome.grants.modifiers ?? []).some(
-          (modifier) =>
-            typeof modifier.payload === 'object' &&
-            modifier.payload !== null &&
-            'valueKind' in modifier.payload &&
-            modifier.payload.valueKind === 'SPELL_SLOT_LEVEL'
-        )
-      case 'CANCEL_TRIGGERING_EVENT':
-        return true
-      default:
-        return false
-    }
-  })
 }

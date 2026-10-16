@@ -72,6 +72,8 @@ describe('the spells whose authored effects read their cast level', () => {
     ['scales its damage by it', srdSpell('Fireball')],
     ['scales its targets by it', srdSpell('Magic Missile')],
     ['scales a granted amount by its slot level', absorbElementsSpell(['FIRE'])],
+    ['scales the damage of its follow-up save by it', srdSpell('Phantasmal Killer')],
+    ['scales the damage of its manifest behavior by it', srdSpell('Spiritual Weapon')],
     ['compares the slot with the cast spell’s level', srdSpell('Counterspell')]
   ])('%s', (_reason, spell) => {
     expect(readsCastLevel(spell)).toBe(true)
