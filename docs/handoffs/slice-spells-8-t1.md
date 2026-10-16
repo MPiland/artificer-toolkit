@@ -1,6 +1,6 @@
 # Slice workbook: SPELLS-8.T1 (Encounter spell casting: choices, slot spend, undo, upcasting)
 
-**Status:** T1, T5 and T6a merged (6bafbd6ed, e8ebfb687). Next: T2 review, then T12 (T6b, D118) and T13 (allowed creature types). Previous status: SECOND FIX ROUND DONE, READY FOR REVIEW (started 2026-10-13; split by the Phase 8 review 2026-10-14)
+**Status:** T1, T5 and T6a merged (6bafbd6ed, e8ebfb687). T2 and T12 merged; T13 (allowed creature types) built, on `ci/spells-8-t13`. Previous status: SECOND FIX ROUND DONE, READY FOR REVIEW (started 2026-10-13; split by the Phase 8 review 2026-10-14)
 **Base:** `codex/phase-08-2-convex-cutover`.
 **Rules:** [slice-workbook-rules.md](slice-workbook-rules.md).
 
@@ -110,6 +110,18 @@ Closes SPELLS-8.1. Supersedes T6a's "needs an architect ruling" note: D118 ruled
 - **Fixture change.** The session-worker Fighter-with-Wizard-rules Character gets a 5th-level slot (`srdCharacterSource.ts`) so Mass Cure Wounds is offered.
 - **Proof.** Worker `nativeRoomChosenActorsSpell.test.ts` (11 tests): Mass Healing Word, Prayer of Healing and Mass Cure Wounds heal the chosen creatures from one roll in one commit with one slot spend and undo; an over-cap list is refused, an excluded type, an out-of-range creature and a point beyond range warn, and a creature outside the sphere or a missing point is refused, all spending nothing. Schema: `encounterRuleCommands.test.ts` (ACTORS list bounds and uniqueness). Rules-runtime unit tests: `encounterAreaAction` (kind and choice target), `encounterAreaActionCompilation` (SRD Mass Cure Wounds and Mass Healing Word compile; a cube or a non-heal list is refused), `encounterActionTargetPolicy`, `encounterActionRuleWarnings`, `encounterAreaPending` (checksum). Web `CampaignTabletopActionDrawer.test.tsx`.
 - **Known limits.** Prayer of Healing's 10 minute casting time is ignored like every cast action's (T9). Undoing a heal from 0 HP for a Character with a zero-HP condition is refused by `invertTarget` (`actionRevert.ts`), as for any heal. The local Convex run could not load `packages/shared/dist` (`obscenity` package missing from `node_modules`; unrelated stale install), so Convex tests are verified by CI.
+
+## T13: allowed creature types (SPELLS-8.5)
+
+Closes SPELLS-8.5.
+
+- **Contract.** `allowedCreatureTypeIds` sits beside `excludedCreatureTypeIds` on SINGLE_TARGET, CHOSEN_CREATURES and AREA_CONTENTS targeting (shared authored type, schema, node map `Allowed Creature Types` multi-select). Both lists name rows of the System's `creature_types`.
+- **One warning.** `targetingExcludesCreatureType` (`encounterActionTargetPolicy.ts`) is true for an excluded type, or for any type outside a non-empty allowed list. The room's `TARGET_CREATURE_TYPE_EXCLUDED` warning reads it, so allowed and excluded types share the code, message and override. `withoutCreatureTypeRestrictions` clears both lists before the single-target measure; `singleTargetMeasure`, area saves and movement reactions refuse a policy with either list, as they refused excluded types.
+- **Authored spells.** Hold Person, Charm Person and Dominate Person allow Humanoid; Dominate Beast and Animal Friendship allow Beast; Hold Monster and Command exclude Undead. Heal and Mass Heal exclude Construct and Undead, Awaken allows Beast and Plant, Animal Messenger allows Beast (its Tiny size is not modeled) and Planar Binding allows Celestial, Elemental, Fey and Fiend. Calm Emotions (Humanoid) and Sleep (not Undead) are area spells, and the compiler refuses an area restriction, so they carry none; Hold Person's upcast "additional humanoid" is not type-gated either.
+- **`pinnedSaveDc`.** `savingThrow.baseDc!` is a `typeof` narrow.
+- **Convex test.** Hold Person targets the SRD Wolf (a Beast), so `actionSpellCasting.test.ts` now acknowledges `TARGET_CREATURE_TYPE_EXCLUDED` on that cast. No assertion changed.
+- **Proof.** Worker `nativeRoomSpellCasting.test.ts` journey (Hold Person at a Wolf warns, spends no slot until overridden; a Humanoid raises no type warning), red first against the pre-T13 dists; rules-runtime warning, target policy and compilation tests; schema parsing; `srdSpellCreatureTypeRestrictions.test.ts`; web `AuthoredDomainFieldParity.test.tsx` (Hold Person keeps its allowed type through normalization and submits as the SRD effect).
+- **Known limit.** A Character target carries no readable creature type, so it never warns (deferred edge case).
 
 ## Evidence
 

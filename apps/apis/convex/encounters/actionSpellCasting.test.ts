@@ -976,6 +976,10 @@ describe('Character spell casting in an Encounter', () => {
       { spellLevel: 2, slotCount: 2 },
       { spellLevel: 3, slotCount: 2 }
     ]
+    // Hold Person affects only a Humanoid and the SRD Wolf is a Beast, so the GM overrides the warning.
+    const NOT_A_HUMANOID: ResolveEncounterActionInputDto['acknowledgedWarnings'] = [
+      'TARGET_CREATURE_TYPE_EXCLUDED'
+    ]
 
     async function castFlyThenHoldPerson() {
       const flight = concentrationSpell(fly)
@@ -1000,7 +1004,14 @@ describe('Character spell casting in an Encounter', () => {
       await resetActionAllowance(fixture)
       const holdId = await choiceId(fixture, 'Hold Person (2nd level)', flying.projection.version)
       const held = await executeInRoom(fixture.gm.caller, {
-        command: castCommand(fixture, holdId, flying.projection.version, undefined, wolf.id)
+        command: castCommand(
+          fixture,
+          holdId,
+          flying.projection.version,
+          undefined,
+          wolf.id,
+          NOT_A_HUMANOID
+        )
       })
       return { fixture, wolf, flyId, flyConcentration, held }
     }

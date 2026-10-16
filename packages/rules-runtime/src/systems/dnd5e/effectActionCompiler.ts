@@ -100,6 +100,7 @@ import {
   DND5E_SAVE_TEST_OPERATION_KEY
 } from './dnd5eTestOperationKeys.js'
 import { DND5E_ADD_SPEED_TO_MOVEMENT_PROPOSAL_OPERATION_KEY } from './addSpeedToMovement.js'
+import { DND5E_CANCEL_TRIGGERING_EVENT_PROPOSAL_OPERATION_KEY } from './cancelTriggeringEvent.js'
 
 export const DND5E_EFFECT_ACTION_FAMILY_KEY = 'effect-action'
 const DND5E_HEAL_PROPOSAL_OPERATION_KEY = 'dnd5e.heal-proposal'
@@ -229,6 +230,7 @@ type Outcome =
   | { kind: 'CONCEAL' }
   | { kind: 'DETECT_CONCEALED' }
   | { kind: 'ADD_SPEED_TO_MOVEMENT' }
+  | { kind: 'CANCEL_TRIGGERING_EVENT' }
   | {
       kind: 'SCALAR_REDUCTION'
       amount: number
@@ -494,6 +496,7 @@ function isSupportedTestArea(
     !shape ||
     targeting?.selectionKind !== 'AREA_CONTENTS' ||
     targeting.dispositionKind !== 'ANY' ||
+    targeting.allowedCreatureTypeIds?.length ||
     targeting.excludedCreatureTypeIds?.length ||
     invocation.triggerCode !== 'SAVING_THROW' ||
     invocation.activation.code !== 'ACTION' ||
@@ -624,11 +627,13 @@ function pinnedSaveDc(
 ): Pick<CharacterRuleActionActiveEffectPlan, 'adapterFacts' | 'castSaveDcFactKey'> | null {
   if (savingThrow?.dcMethod === 'SOURCE_SAVE_DC')
     return { adapterFacts: {}, castSaveDcFactKey: DND5E_SAVE_DC_FACT_KEY }
-  if (savingThrow?.dcMethod === 'FIXED_DC' && Number.isSafeInteger(savingThrow.baseDc))
-    return {
-      adapterFacts: { [DND5E_SAVE_DC_FACT_KEY]: savingThrow.baseDc! },
-      castSaveDcFactKey: null
-    }
+  const baseDc = savingThrow?.baseDc
+  if (
+    savingThrow?.dcMethod === 'FIXED_DC' &&
+    typeof baseDc === 'number' &&
+    Number.isSafeInteger(baseDc)
+  )
+    return { adapterFacts: { [DND5E_SAVE_DC_FACT_KEY]: baseDc }, castSaveDcFactKey: null }
   return null
 }
 
@@ -1329,6 +1334,52 @@ function timedImmediateConditionPlan(
     adapterFacts: { [DND5E_ACTIVE_EFFECT_TIMED_CONDITION_FACT_KEY]: condition.conditionId },
     perceptionContributions: [],
     maintenance: maintenancePlan(action, resolved.saveEntry)
+  }
+}
+
+/**
+ * A condition applied with no save and a duration (Invisibility, "1 hour"): the target holds it
+ * through an Encounter active effect that counts the target's turns, carries the authored events
+ * that use it up or end it, and removes the condition when it ends. Any other lifecycle stays manual.
+ */
+function timedConditionPlan(
+  action: Dnd5eCompiledEffectActionSource
+): Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'> | null {
+  const { entries } = action.compiledEffect
+  const entry = entries[0]
+  if (
+    entries.length !== 1 ||
+    !entry ||
+    !('outcome' in entry) ||
+    entry.outcome.effectKind !== 'CONDITION' ||
+    !entry.duration
+  )
+    return null
+  const { consumeOnFirstEvents = [], endOnEvents = [], ...otherLifecycle } = entry.lifecycle ?? {}
+  const initialRemaining = conditionDurationTurns(entry.duration)
+  const { conditionId } = entry.outcome
+  if (
+    initialRemaining === null ||
+    Object.values(otherLifecycle).some((value) => value !== undefined) ||
+    !(action.conditionDefinitionIds ?? []).includes(conditionId) ||
+    !UUID.test(entry.entryId)
+  )
+    return null
+  return {
+    authoredEffectId: action.effectId,
+    compiledEntryId: entry.entryId,
+    frozenGraphNodeId: 'condition-duration',
+    capabilityContractVersion: DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
+    recurrenceStage: 'END_OF_TURN',
+    initialRemaining,
+    conditionContribution: {
+      conditionId,
+      consumeOnFirstEvents: [...new Set(consumeOnFirstEvents)].sort(),
+      endOnEvents: [...new Set(endOnEvents)].sort()
+    },
+    adapterFacts: { [DND5E_ACTIVE_EFFECT_TIMED_CONDITION_FACT_KEY]: conditionId },
+    perceptionContributions: [],
+    maintenance: maintenancePlan(action, entry)
   }
 }
 
@@ -2394,6 +2445,7 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
   const effect = action.compiledEffect
   const invocation = effect.invocation
   const grantPlan = modifierGrantPlan(action)
+  const conditionPlan = timedConditionPlan(action)
   // A CHECK action rolls its authored check against a fixed DC, each observer's passive score or
   // the concealments that hide creatures from the checker; a contest waits for ATTACK-7.
   const checkAction = invocation.triggerCode === 'CHECK'
@@ -2412,10 +2464,11 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
   const supportsSingleTarget =
     supportsTargetRange &&
     invocation.targeting?.selectionKind === 'SINGLE_TARGET' &&
-    // A grant (Help) or a check (First Aid) may ask for a willing target: an unwilling one only warns,
-    // and the table can override it.
+    // A grant (Help), a timed condition (Invisibility) or a check (First Aid) may ask for a willing
+    // target: an unwilling one only warns, and the table can override it.
     (invocation.targeting.dispositionKind === 'ANY' ||
-      (invocation.targeting.dispositionKind === 'WILLING' && (grantPlan !== null || checkAction)))
+      (invocation.targeting.dispositionKind === 'WILLING' &&
+        (grantPlan !== null || conditionPlan !== null || checkAction)))
   // A bounded list of chosen creatures (Mass Healing Word), inside a round area when it names one
   // (Mass Cure Wounds), resolves the one outcome on each; only a heal is supported, checked below
   // once the outcome is read.
@@ -2433,11 +2486,13 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
       ? invocation.resourceUse !== undefined
       : (invocation.activation.code === 'ACTION' ||
           invocation.activation.code === 'BONUS_ACTION' ||
-          // A reaction to being attacked or to taking damage; the attack's pending decision offers it (never a direct action).
+          // A reaction to being attacked, to taking damage or to a spell being cast; the triggering
+          // event's pending decision offers it (never a direct action).
           (invocation.activation.code === 'REACTION' &&
             'reactionTrigger' in invocation &&
             (invocation.reactionTrigger?.kind === 'ATTACKED_SELF' ||
-              invocation.reactionTrigger?.kind === 'DAMAGE_TAKEN'))) &&
+              invocation.reactionTrigger?.kind === 'DAMAGE_TAKEN' ||
+              invocation.reactionTrigger?.kind === 'SPELL_CAST'))) &&
         invocation.activation.amount === 1)
   if (
     invocation.kind !== 'ACTION' ||
@@ -2455,10 +2510,14 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
     entry.resolutionKind !== 'DIRECT' ||
     entry.groupKind !== 'SINGLE' ||
     entry.pathCode !== (checkAction ? 'ON_CHECK_SUCCESS' : 'ON_USE') ||
-    (entry.maintenanceDefinitionId && !supportedRecurringPlan(action) && !grantPlan) ||
+    (entry.maintenanceDefinitionId &&
+      !supportedRecurringPlan(action) &&
+      !grantPlan &&
+      !conditionPlan) ||
     ((entry.duration || entry.lifecycle) &&
       !supportedRecurringPlan(action) &&
       !grantPlan &&
+      !conditionPlan &&
       !concealmentPlan(action)) ||
     entry.rangeOverride ||
     entry.targetingOverride
@@ -2489,6 +2548,11 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
     (outcome.effectKind === 'CONCEAL_FROM_OBSERVERS' || outcome.effectKind === 'DETECT_CONCEALED')
   )
     unsupported('D&D conceal and detect outcomes belong to a check action.')
+  if (
+    outcome.effectKind === 'CANCEL_TRIGGERING_EVENT' &&
+    !('reactionTrigger' in invocation && invocation.reactionTrigger?.kind === 'SPELL_CAST')
+  )
+    unsupported('D&D cancel-triggering-event outcome belongs to a spell-cast reaction.')
   // A concealment check is decided against scores the roller never sees: a passive DC only conceals
   // and a concealment DC only detects, and neither pairs with any other outcome.
   if (
@@ -2518,6 +2582,8 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
   if (outcome.effectKind === 'STABILIZE') return { kind: 'STABILIZE' }
   if (outcome.effectKind === 'CONCEAL_FROM_OBSERVERS') return { kind: 'CONCEAL' }
   if (outcome.effectKind === 'DETECT_CONCEALED') return { kind: 'DETECT_CONCEALED' }
+  // The reaction cancels the event it answered: nothing is stored on its target, the cast.
+  if (outcome.effectKind === 'CANCEL_TRIGGERING_EVENT') return { kind: 'CANCEL_TRIGGERING_EVENT' }
   if (outcome.effectKind === 'APPLY_GRANT' && grantPlan) return { kind: 'MODIFIER_GRANT' }
   // The Action is spent and the GM rules the result: nothing is stored on the target.
   if (outcome.effectKind === 'MANUAL_ADJUDICATION') return { kind: 'MANUAL_ADJUDICATION' }
@@ -2662,6 +2728,11 @@ export const dnd5eDetectConcealedProposalOperation = targetOnlyProposalOperation
 export const dnd5eAddSpeedToMovementProposalOperation = targetOnlyProposalOperation(
   DND5E_ADD_SPEED_TO_MOVEMENT_PROPOSAL_OPERATION_KEY,
   'add speed to movement',
+  false
+)
+export const dnd5eCancelTriggeringEventProposalOperation = targetOnlyProposalOperation(
+  DND5E_CANCEL_TRIGGERING_EVENT_PROPOSAL_OPERATION_KEY,
+  'cancel triggering event',
   false
 )
 export const dnd5eTemporaryHitPointsProposalOperation = simpleOperation(
@@ -3396,6 +3467,7 @@ export const dnd5eEffectActionCapability: GameSystemRuleCapabilityContract = {
     DND5E_CONCEAL_PROPOSAL_OPERATION_KEY,
     DND5E_DETECT_CONCEALED_PROPOSAL_OPERATION_KEY,
     DND5E_ADD_SPEED_TO_MOVEMENT_PROPOSAL_OPERATION_KEY,
+    DND5E_CANCEL_TRIGGERING_EVENT_PROPOSAL_OPERATION_KEY,
     DND5E_DAMAGE_PROPOSAL_OPERATION_KEY,
     DND5E_HIT_POINT_MAXIMUM_REDUCTION_PROPOSAL_OPERATION_KEY,
     DND5E_SCALAR_REDUCTION_PROPOSAL_OPERATION_KEY,
@@ -3452,7 +3524,9 @@ function proposalNode(pathCode: string, outcome: Outcome) {
     unsupported('D&D concealment outcomes cannot follow an attack or saving throw.')
   if (outcome.kind === 'ADD_SPEED_TO_MOVEMENT')
     unsupported('D&D speed-to-movement outcomes cannot follow an attack or saving throw.')
-  const id = `proposal-${pathCode.toLowerCase()}`
+  if (outcome.kind === 'CANCEL_TRIGGERING_EVENT')
+    unsupported('D&D cancel outcomes cannot follow an attack or saving throw.')
+  const id =`proposal-${pathCode.toLowerCase()}`
   return {
     id,
     operation: { key: testProposalOperationKey(outcome), contractVersion: 1 },
@@ -4490,7 +4564,9 @@ function fixedOutcomeGraphDefinition(input: {
                     ? DND5E_DETECT_CONCEALED_PROPOSAL_OPERATION_KEY
                     : input.outcome.kind === 'ADD_SPEED_TO_MOVEMENT'
                       ? DND5E_ADD_SPEED_TO_MOVEMENT_PROPOSAL_OPERATION_KEY
-                      : DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY
+                      : input.outcome.kind === 'CANCEL_TRIGGERING_EVENT'
+                        ? DND5E_CANCEL_TRIGGERING_EVENT_PROPOSAL_OPERATION_KEY
+                        : DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY
   const inputs = {
     targetActorId: {
       kind: 'FACT' as const,
@@ -4505,7 +4581,8 @@ function fixedOutcomeGraphDefinition(input: {
     input.outcome.kind === 'MANUAL_ADJUDICATION' ||
     input.outcome.kind === 'CONCEAL' ||
     input.outcome.kind === 'DETECT_CONCEALED' ||
-    input.outcome.kind === 'ADD_SPEED_TO_MOVEMENT'
+    input.outcome.kind === 'ADD_SPEED_TO_MOVEMENT' ||
+    input.outcome.kind === 'CANCEL_TRIGGERING_EVENT'
       ? {}
       : input.outcome.kind === 'CONDITION_APPLY'
         ? {
@@ -4543,7 +4620,8 @@ function fixedOutcomeGraphDefinition(input: {
     input.outcome.kind === 'MANUAL_ADJUDICATION' ||
     input.outcome.kind === 'CONCEAL' ||
     input.outcome.kind === 'DETECT_CONCEALED' ||
-    input.outcome.kind === 'ADD_SPEED_TO_MOVEMENT'
+    input.outcome.kind === 'ADD_SPEED_TO_MOVEMENT' ||
+    input.outcome.kind === 'CANCEL_TRIGGERING_EVENT'
       ? {}
       : input.outcome.kind === 'CONDITION_APPLY'
         ? {
@@ -4962,6 +5040,7 @@ function startsMaintainedEffect(action: Dnd5eCompiledEffectActionSource): boolea
     repeatingDirectFollowUpSavePlan(action) ??
     repeatingImmediateFollowUpSavePlan(action) ??
     timedImmediateConditionPlan(action) ??
+    timedConditionPlan(action) ??
     modifierGrantPlan(action) ??
     relationshipPlan(action) ??
     supportedRecurringPlan(action)
@@ -5052,7 +5131,9 @@ function compileDnd5eEffectAction({
                     ? DND5E_DETECT_CONCEALED_PROPOSAL_OPERATION_KEY
                     : outcome.kind === 'ADD_SPEED_TO_MOVEMENT'
                       ? DND5E_ADD_SPEED_TO_MOVEMENT_PROPOSAL_OPERATION_KEY
-                      : DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY
+                      : outcome.kind === 'CANCEL_TRIGGERING_EVENT'
+                        ? DND5E_CANCEL_TRIGGERING_EVENT_PROPOSAL_OPERATION_KEY
+                        : DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY
   const nodeId = recurringPlan ? recurringPlan.frozenGraphNodeId : outcome.kind.toLowerCase()
   const definition: RuleGraphDefinition = {
     schemaVersion: 1,
@@ -5074,7 +5155,8 @@ function compileDnd5eEffectAction({
           outcome.kind === 'MANUAL_ADJUDICATION' ||
           outcome.kind === 'CONCEAL' ||
           outcome.kind === 'DETECT_CONCEALED' ||
-          outcome.kind === 'ADD_SPEED_TO_MOVEMENT'
+          outcome.kind === 'ADD_SPEED_TO_MOVEMENT' ||
+          outcome.kind === 'CANCEL_TRIGGERING_EVENT'
             ? {}
             : outcome.kind === 'CONDITION_APPLY'
               ? {
@@ -5105,7 +5187,8 @@ function compileDnd5eEffectAction({
       outcome.kind === 'MANUAL_ADJUDICATION' ||
       outcome.kind === 'CONCEAL' ||
       outcome.kind === 'DETECT_CONCEALED' ||
-      outcome.kind === 'ADD_SPEED_TO_MOVEMENT'
+      outcome.kind === 'ADD_SPEED_TO_MOVEMENT' ||
+      outcome.kind === 'CANCEL_TRIGGERING_EVENT'
         ? {}
         : outcome.kind === 'CONDITION_APPLY'
           ? { conditionId: { kind: 'NODE_OUTPUT', nodeId, port: 'conditionId' } }
@@ -5690,7 +5773,8 @@ function interpretDirectProposal(
     trace.operation.key === DND5E_MANUAL_ADJUDICATION_PROPOSAL_OPERATION_KEY ||
     trace.operation.key === DND5E_CONCEAL_PROPOSAL_OPERATION_KEY ||
     trace.operation.key === DND5E_DETECT_CONCEALED_PROPOSAL_OPERATION_KEY ||
-    trace.operation.key === DND5E_ADD_SPEED_TO_MOVEMENT_PROPOSAL_OPERATION_KEY
+    trace.operation.key === DND5E_ADD_SPEED_TO_MOVEMENT_PROPOSAL_OPERATION_KEY ||
+    trace.operation.key === DND5E_CANCEL_TRIGGERING_EVENT_PROPOSAL_OPERATION_KEY
   )
     return []
   if (trace.operation.key === DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY) {
@@ -5939,6 +6023,7 @@ function interpretDirect(
     DND5E_CONCEAL_PROPOSAL_OPERATION_KEY,
     DND5E_DETECT_CONCEALED_PROPOSAL_OPERATION_KEY,
     DND5E_ADD_SPEED_TO_MOVEMENT_PROPOSAL_OPERATION_KEY,
+    DND5E_CANCEL_TRIGGERING_EVENT_PROPOSAL_OPERATION_KEY,
     DND5E_DAMAGE_PROPOSAL_OPERATION_KEY,
     DND5E_SCALAR_REDUCTION_PROPOSAL_OPERATION_KEY,
     DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY,
@@ -6724,7 +6809,9 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       repeatingDirectFollowUpSavePlan(action) ?? repeatingImmediateFollowUpSavePlan(action)
     const timedPlan = repeatPlan
       ? null
-      : (timedImmediateConditionPlan(action) ?? modifierGrantPlan(action))
+      : (timedImmediateConditionPlan(action) ??
+        timedConditionPlan(action) ??
+        modifierGrantPlan(action))
     const relationship = relationshipPlan(action)
     const plan =
       repeatPlan ??

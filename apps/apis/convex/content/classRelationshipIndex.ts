@@ -15,12 +15,16 @@ export async function assertClassRelationshipsIndexed(ctx: QueryCtx, systemId: s
 
 export async function assertNoClassChildren(ctx: QueryCtx, systemId: string, classId: string) {
   await assertClassRelationshipsIndexed(ctx, systemId)
+  const dependents: string[] = []
   for await (const root of ctx.db
     .query('authoredRoots')
     .withIndex('by_system_kind_parentClassId', (q) =>
       q.eq('systemId', systemId).eq('subjectKind', 'CLASS').eq('parentClassId', classId)
     )) {
-    if (await isImportRowVisible(ctx, root.importJobId))
-      throw new Error('A class with published subclasses cannot be deleted or made a subclass.')
+    if (await isImportRowVisible(ctx, root.importJobId)) dependents.push(root.id)
   }
+  if (dependents.length > 0)
+    throw new Error(
+      `A class with published subclasses cannot be deleted or made a subclass. Subclasses: ${dependents.join(', ')}.`
+    )
 }

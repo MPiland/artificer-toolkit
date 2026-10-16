@@ -2,7 +2,7 @@ import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/act
 import { endCarriedGrantsOfConcentratingCasters } from '@artificer-toolkit/encounter-persistence/characterRunEffects'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 import { absoluteMinute, deriveClock } from '@artificer-toolkit/rules-runtime/campaignClock'
-import { planCarriedOverGrants } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
+import { planCarriedOverEffects } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
 import { campaignClockDtoSchema } from '@artificer-toolkit/schema/api/campaignSessions'
 import type { MutationCtx } from '../_generated/server'
 import { readFightingCharacters } from '../liveSessions/characterHolds'
@@ -58,7 +58,8 @@ export async function endOutsideCarriedGrants(
 }
 
 /**
- * D99: a completed Run's Characters keep their timed grants on the Campaign clock. Runs in the
+ * D99, SPELLS-5.14: a completed Run's Characters keep their timed grants and condition effects on
+ * the Campaign clock. Runs in the
  * checkpoint that completes the Run, after the room released the Characters; returns the
  * Characters whose grants changed, so the room reloads them instead of adopting the revision.
  */
@@ -86,7 +87,7 @@ export async function carryOverRunGrants(
     const actor = readStoredRunActor(row)
     if (actor.kind !== 'CHARACTER') continue
     const owner = { kind: 'CHARACTER', characterId: actor.sourceId } as const
-    const carried = planCarriedOverGrants({ effects: await store.list(owner), clockMinute })
+    const carried = planCarriedOverEffects({ effects: await store.list(owner), clockMinute })
     for (const { effect, lifecycle } of carried)
       await store.updateLifecycleCas({
         id: effect.id,
