@@ -4,6 +4,9 @@ import { expect, it } from 'vitest'
 import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 import { plannedModifierGrant } from '@artificer-toolkit/rules-runtime/testing/modifierGrantFixture'
+import { plannedTimedCondition } from '@artificer-toolkit/rules-runtime/testing/plannedTimedCondition'
+import { holdPerson } from '@artificer-toolkit/source-data/srd/spells/hold-person.js'
+import { SRD_CONDITION_TYPES } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { createConvexEncounterStore } from '../lib/convexEncounterStore'
 import { createConcentrationState, setupConcentration } from '../../tests/fixtures/concentration'
 import {
@@ -14,6 +17,7 @@ import {
 } from '../../tests/fixtures/localRoomWorker'
 import { api, components, internal } from '../_generated/api'
 import { endCarriedConcentration } from '../characters/sheetConcentration'
+import { readCharacterRecord, readCharacterRow } from '../characters/stateDocuments'
 
 useLocalRoomWorker()
 
@@ -241,6 +245,94 @@ it.each([
   },
   60_000
 )
+
+it('carries a Character’s timed condition effect out of the Run and releases its condition when the clock reaches it (SPELLS-5.14)', async () => {
+  const fixture = await setupConcentration('PROMPT')
+  const { owner, player, run, actor, target, character, campaign, t } = fixture
+  const paralyzed = SRD_CONDITION_TYPES.find(({ code }) => code === 'PARALYZED')
+  if (!paralyzed) throw new Error('The SRD Paralyzed condition is unavailable.')
+  const clock = await owner.caller.mutation(api.campaigns.clock.initialize, {
+    campaignId: campaign.id,
+    commandId: crypto.randomUUID(),
+    expectedVersion: 0,
+    day: 2,
+    minuteOfDay: 480,
+    dawnMinute: 360,
+    duskMinute: 1080
+  })
+  const held = await t.run(async (ctx) => {
+    const planned = plannedTimedCondition({
+      encounterId: run.id,
+      sourceActorId: actor.id,
+      holderActorId: target.id,
+      spell: holdPerson,
+      lifetimeScope: 'OWNER'
+    })
+    return createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) }).create({
+      id: crypto.randomUUID(),
+      owner: { kind: 'CHARACTER', characterId: character.id },
+      definition: planned.definition,
+      lifecycle: { schemaVersion: 1, remainingTicks: 25 }
+    })
+  })
+  const readHeld = () =>
+    t.run(async (ctx) => {
+      const row = await readCharacterRow(ctx, character.id)
+      if (!row) throw new Error('Character is unavailable.')
+      return {
+        streamVersion: row.play.streamVersion,
+        conditionIds: (readCharacterRecord(row).state?.conditions ?? []).map(
+          (condition) => condition.conditionTypeId
+        ),
+        effects: (
+          await ctx.db
+            .query('characterActiveRuleEffects')
+            .withIndex('by_characterId_id', (q) => q.eq('characterId', character.id))
+            .collect()
+        ).map(({ id, lifecycle }) => ({ id, lifecycle }))
+      }
+    })
+  await player.caller.mutation(api.characters.sheetCommands.execute, {
+    id: character.id,
+    command: {
+      type: 'ADD_CONDITION',
+      commandId: crypto.randomUUID(),
+      expectedVersion: (await readHeld()).streamVersion,
+      conditionTypeId: paralyzed.id
+    }
+  })
+  await attachFixtureRoom(t, campaign.id)
+  const live = await owner.caller.query(api.encounters.projectionReads.get, {
+    encounterId: run.id
+  })
+  await executeInRoom(owner.caller, {
+    command: {
+      type: 'COMPLETE',
+      encounterId: run.id,
+      commandId: crypto.randomUUID(),
+      expectedVersion: live.version
+    }
+  })
+  await checkpointLiveRoom(campaign.id)
+
+  // 25 rounds left: 150 seconds, rounded up to 3 minutes after day 2, 08:00.
+  expect(await readHeld()).toMatchObject({
+    conditionIds: [paralyzed.id],
+    effects: [
+      {
+        id: held.id,
+        lifecycle: { schemaVersion: 1, remainingTicks: null, expiresAtCampaignMinute: 1440 + 480 + 3 }
+      }
+    ]
+  })
+  await owner.caller.mutation(api.campaigns.clock.advance, {
+    campaignId: campaign.id,
+    commandId: crypto.randomUUID(),
+    expectedVersion: clock.version,
+    minutes: 3
+  })
+  expect(await readHeld()).toMatchObject({ conditionIds: [], effects: [] })
+}, 60_000)
 
 /** Completes a Run whose Concentration grant sits on the Character, carrying it to the Campaign clock. */
 async function carryConcentrationGrantOut(casterIsCharacter: boolean) {
