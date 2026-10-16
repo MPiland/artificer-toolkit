@@ -9,7 +9,10 @@ import { encounterActionEconomyTransitionDtoSchema } from '../shared/ruleExecuti
 import { encounterRuleOccurrenceSummaryDtoSchema } from '../shared/encounterRuleOccurrence.js'
 import { rollRecordDtoSchema } from '../api/rolls.js'
 import { MAX_ACTIVE_RULE_EFFECTS_PER_OWNER } from '../shared/activeRuleEffects.js'
-import { activeRuleEffectRecordSchema } from './activeRuleEffectPersistence.js'
+import {
+  activeRuleEffectRecordSchema,
+  encounterMaintainedEffectStateRecordSchema
+} from './activeRuleEffectPersistence.js'
 
 // Keep the Convex table schema independent of recursive authored snapshots. Projections are built
 // on read from the Run state and its actors (ADR 0035 Amendment 12), so the Run stores neither.
@@ -287,6 +290,10 @@ export const encounterStoredRunCommandSchema = lazySchema(() =>
       /** The grants (Vicious Mockery, Help) this action's rolls used up and the grants its incapacitations ended; its undo gives them back. */
       consumedGrants: z
         .array(activeRuleEffectRecordSchema)
+        .check(z.maxLength(MAX_ENCOUNTER_ACTORS * MAX_ACTIVE_RULE_EFFECTS_PER_OWNER)),
+      /** The maintained states the grants it ended left with no dependent, exactly as they were; its undo gives them back before the grants. */
+      endedMaintainedStates: z
+        .array(encounterMaintainedEffectStateRecordSchema)
         .check(z.maxLength(MAX_ENCOUNTER_ACTORS * MAX_ACTIVE_RULE_EFFECTS_PER_OWNER)),
       /** The Character this action newly added to the Run's `concentrationCasterCharacterIds`; its undo removes it. */
       addedConcentrationCasterId: z.nullable(postgresUuidSchema),

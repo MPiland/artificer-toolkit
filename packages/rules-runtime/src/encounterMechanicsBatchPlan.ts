@@ -107,7 +107,8 @@ export function planEncounterMechanicsBatch(input: {
       conditionIds: conditions.ids,
       scalarValues: batch.effectiveScalarValues,
       retainedConditionIds: batch.retainedConditionIds,
-      applications: batch.applications
+      applications: batch.applications,
+      absence: actor.absence
     })
     const nextConditions = [
       ...conditions.values.filter((value) => {
@@ -130,13 +131,14 @@ export function planEncounterMechanicsBatch(input: {
         tempHitPoints: folded.after.temporaryHitPoints,
         maxHitPoints: folded.after.maximumHitPoints,
         conditions: nextConditions,
-        defeated: nextEncounterActorDefeated(actor, folded.after.currentHitPoints)
+        defeated: nextEncounterActorDefeated(actor, folded.after.currentHitPoints),
+        absence: folded.afterAbsence
       }),
       receiptApplications: folded.applications,
       targetTransition: transition(actor.id, folded.before, folded.after),
       characterStreamVersion: null,
       itemUseStateTransition: null,
-      stateChanged: folded.stateChanged,
+      stateChanged: folded.stateChanged || folded.afterAbsence !== actor.absence,
       shouldAdvance: false,
       characterUpdate: null
     }
@@ -279,7 +281,8 @@ export function planEncounterMechanicsBatch(input: {
     retainedConditionIds: batch.retainedConditionIds,
     layers: { ownConditionIds, campaignConditionIds },
     applications: batch.applications,
-    deathSaveRoll: batch.deathSave
+    deathSaveRoll: batch.deathSave,
+    absence: actor.absence
   })
   const existingConditionIds = new Set(ownConditionIds)
   const nextConditionIds = new Set(folded.afterOwnConditionIds)
@@ -338,8 +341,9 @@ export function planEncounterMechanicsBatch(input: {
       })
     : null
   return {
-    // A Character actor holds no Character state, so the batch leaves it unchanged.
-    updatedActor: actor,
+    // A Character actor holds no Character state; the batch changes only whether it is absent.
+    updatedActor:
+      folded.afterAbsence === actor.absence ? actor : { ...actor, absence: folded.afterAbsence },
     receiptApplications: folded.applications,
     targetTransition: transition(actor.id, folded.before, folded.after),
     characterStreamVersion: shouldAdvance ? loaded.active.play.streamVersion + 1 : null,

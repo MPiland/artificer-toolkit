@@ -254,9 +254,9 @@ export const liveSessionPlacedSpatialEffectSchema: z.ZodMiniType<LiveSessionPlac
 /**
  * The terminal outcome of a point-area action or of a cast on a list of chosen creatures: the root
  * with the caster's one spend, one settled outcome per kept creature, and, for an area, its final
- * snapshot the last answer produced (a chosen list that asked for no save never pends, so it has none). It creates no
- * maintained state, cleaving choice or effect on a creature, so those fields do not exist here; it
- * may place one spatial effect in the Scene.
+ * snapshot the last answer produced (a chosen list that asked for no save never pends, so it has none).
+ * It creates no maintained state or cleaving choice, so those fields do not exist here; each creature
+ * may be left one lasting effect, and the action may place one spatial effect in the Scene.
  */
 export type LiveSessionEncounterAreaCommitInput = Omit<
   LiveSessionEncounterActionCommitInput,
@@ -273,6 +273,8 @@ export type LiveSessionEncounterAreaCommitInput = Omit<
   targets: {
     actorId: string
     execution: z.infer<typeof storedRuleExecutionResultDtoSchema>
+    /** The lasting effect the action left on this creature, if any. */
+    createdEffects: z.infer<typeof activeRuleEffectRecordSchema>[]
   }[]
   /**
    * Whether every entry of `targets` rolled its own dice (a projectile list names a creature once
@@ -301,7 +303,8 @@ export const liveSessionEncounterAreaCommitInputSchema: z.ZodMiniType<LiveSessio
           .array(
             z.strictObject({
               actorId: postgresUuidSchema,
-              execution: storedRuleExecutionResultDtoSchema
+              execution: storedRuleExecutionResultDtoSchema,
+              createdEffects: z.array(activeRuleEffectRecordSchema).check(z.maxLength(1))
             })
           )
           .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),

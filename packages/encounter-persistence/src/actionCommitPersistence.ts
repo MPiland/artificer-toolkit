@@ -14,6 +14,7 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { deriveEncounterCharacterMechanicsEventCommandId } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
 import { attackedHostileCreature } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
 import { overridesActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionRuleWarnings'
+import { effectiveHitPointMaximum } from '@artificer-toolkit/rules-runtime/character/activeEffectGrantTotals'
 import { executionAddsSpeedToMovement } from '@artificer-toolkit/rules-runtime/systems/dnd5e/addSpeedToMovement'
 import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
 import { readLiveEncounterActionAdmission } from './liveActionAdmission.js'
@@ -21,7 +22,8 @@ import { insertActionEvidenceReceipt } from './actionEvidenceReceipt.js'
 import { readRunActors } from './documents.js'
 import { sourceSpendMutation, settleActionSourceSpend } from './actionSourceSpend.js'
 import { completeActionOccurrence, recordActionRoot } from './actionCommitRecords.js'
-import { deleteGrants, receiptConsumedGrants } from './consumedGrantPersistence.js'
+import { endEffects, receiptConsumedGrants } from './consumedGrantPersistence.js'
+import { listActiveRuleEffects } from './effectStore.js'
 import { projectNativeGm } from './nativeProjection.js'
 import { recordTurnSpeedBonus, spendTurnUses } from './turnMovement.js'
 import { presentEncounterResultForMember } from './resultPresentation.js'
@@ -215,8 +217,9 @@ export async function persistEncounterActionCommit(
     sourceCommandId: command.commandId,
     occurredAt: input.occurredAt
   }
+  // The source's own batch carries its spend and the conditions its ended effects released.
   const sourceMechanics =
-    spends && source.id !== target.id && source.kind === 'CHARACTER'
+    (spends || batch.sourceApplications.length) && source.id !== target.id
       ? await callbacks.applyMechanics({
           ...common,
           targetActorId: source.id,
@@ -225,13 +228,23 @@ export async function persistEncounterActionCommit(
             sourceCommandId: command.commandId,
             phase: 'DIRECT_ACTION_RESOURCE',
             ordinal: 0,
-            targetCharacterId: source.sourceId
+            targetCharacterId: source.kind === 'CHARACTER' ? source.sourceId : source.id
           }),
-          applications: [],
-          effectiveMaximumHitPoints: await callbacks.currentCharacterMaximumHitPoints(
-            state,
-            source.sourceId
-          ),
+          applications: batch.sourceApplications.map((application) => ({
+            ...application,
+            targetActorId: source.id
+          })),
+          effectiveMaximumHitPoints:
+            source.kind === 'CHARACTER'
+              ? await callbacks.currentCharacterMaximumHitPoints(state, source.sourceId)
+              : effectiveHitPointMaximum(
+                  source.maxHitPoints,
+                  await listActiveRuleEffects(
+                    ctx,
+                    { kind: 'ENCOUNTER_ACTOR', encounterId: state.id, targetActorId: source.id },
+                    { ownerVerified: true }
+                  )
+                ),
           forceVersionAdvance: false,
           ...sourceMutation
         })
@@ -255,6 +268,8 @@ export async function persistEncounterActionCommit(
       checksumCanonicalJson(batch.applications) ||
     checksumCanonicalJson(mechanics.targetTransition) !==
       checksumCanonicalJson(batch.targetTransition) ||
+    checksumCanonicalJson(sourceMechanics?.receiptApplications ?? []) !==
+      checksumCanonicalJson(batch.sourceApplications) ||
     (batch.kind === 'CHARACTER_MECHANICS_BATCH' &&
       batch.targetCharacterStreamVersion !== mechanics.characterStreamVersion) ||
     // The accepted stow must be exactly the one the room planned and this commit applied.
@@ -300,7 +315,7 @@ export async function persistEncounterActionCommit(
     occurredAt: input.occurredAt
   })
   // The one-roll grants the rolls used up (Vicious Mockery's disadvantage, Help) end with the roll.
-  await deleteGrants(ctx, input.consumedGrants)
+  const endedMaintainedStates = await endEffects(ctx, input.consumedGrants)
   const sourceVersion =
     sourceMechanics?.characterStreamVersion ??
     (source.kind === 'CHARACTER' && source.id !== target.id
@@ -390,6 +405,7 @@ export async function persistEncounterActionCommit(
         consumedGrants: input.consumedGrants,
         endedGrants: [...input.endedGrants, ...mechanics.endedGrants]
       }),
+      endedMaintainedStates,
       addedConcentrationCasterId: maintenance?.addedConcentrationCasterId ?? null,
       speedBonusTurn: addsSpeed ? { round: state.round, turnActorId: source.id } : null,
       turnUses,

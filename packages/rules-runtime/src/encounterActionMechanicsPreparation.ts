@@ -13,12 +13,16 @@ import {
   buildCompiledActionTargetPolicy,
   compileEncounterFeatureActionPlan
 } from './encounterActionEntryPointCompiler.js'
-import { creatureActiveGrantAttackContributors } from './encounterActiveGrants.js'
+import {
+  creatureActiveGrantAttackContributors,
+  withSourceSightSave
+} from './encounterActiveGrants.js'
 import type { EncounterPreparedAttackSight } from './encounterAttackBelief.js'
 import { StaleCharacterActionError } from './encounterErrors.js'
 import {
   encounterAttackSightContributors,
-  type EncounterAttackPerception
+  type EncounterAttackPerception,
+  type EncounterPerceptionRoller
 } from './encounterAttackPerception.js'
 import { buildEncounterActorRuleFacts } from './encounterActorRuleFacts.js'
 import {
@@ -200,12 +204,15 @@ export async function prepareEncounterActionMechanics<
   /** The locked Scene positions of a RESOLVE_ACTION, for range-derived roll modes. */
   sceneContext?: EncounterActionSceneContext | null
   /**
-   * Whether each side of an attack sees the other (SRD unseen attacker/target). Called only for an
-   * attack roll; omitted by flows that do not read perception, which leave sight out of the roll.
+   * Whether each side of an attack sees the other (SRD unseen attacker/target), or whether a saver
+   * sees the effect's source (`roller` TARGET, D100). Called only for an attack roll or a save with
+   * a source-sight grant; omitted by flows that do not read perception, which leave sight out of
+   * the roll.
    */
   loadAttackPerception?: (input: {
     sourceFacts: MovementTarget<TCharacterFacts>
     targetFacts: MovementTarget<TCharacterFacts>
+    roller: EncounterPerceptionRoller
   }) => Promise<{ actual: EncounterAttackPerception; believed: EncounterAttackPerception }>
   /**
    * How near an enemy stands to the target on the Scene, for an attack with a path that asks
@@ -366,13 +373,25 @@ export async function prepareEncounterActionMechanics<
     targetPolicy,
     sceneContext: input.sceneContext ?? null
   })
+  const dndSource =
+    plan.kind === 'TEST_OUTCOME' ? dndSourceFromCompilerSource(plan.compilerSource) : null
+  const compiledEffect = dndSource?.compiledEffect ?? null
+  // A target's grants that hold only while it sees the effect's source (Danger Sense) decide a save
+  // by sight, as an attack's unseen attacker does; a save riding on an attack keeps its rows.
+  const sourceSightSaves =
+    attackKind === null && dndSource?.savingThrowAbilityDefinitionId
+      ? targetFacts.sourceSightSaves.filter(
+          ({ abilityDefinitionId }) =>
+            abilityDefinitionId === dndSource.savingThrowAbilityDefinitionId
+        )
+      : []
   const perception =
-    attackKind !== null && input.loadAttackPerception
-      ? await input.loadAttackPerception({ sourceFacts, targetFacts })
-      : null
-  const compiledEffect =
-    plan.kind === 'TEST_OUTCOME'
-      ? dndSourceFromCompilerSource(plan.compilerSource).compiledEffect
+    (attackKind !== null || sourceSightSaves.length > 0) && input.loadAttackPerception
+      ? await input.loadAttackPerception({
+          sourceFacts,
+          targetFacts,
+          roller: attackKind === null ? 'TARGET' : 'ATTACKER'
+        })
       : null
   const enemyProximity =
     attackKind !== null &&
@@ -388,16 +407,17 @@ export async function prepareEncounterActionMechanics<
     effectReadsTurnUses(compiledEffect)
       ? await input.loadTurnUses()
       : null
+  const sightContributors = (seen: EncounterAttackPerception) =>
+    attackKind === null
+      ? seen.targetSeesAttacker === 'SEES'
+        ? sourceSightSaves.map(({ contributor }) => contributor)
+        : []
+      : encounterAttackSightContributors({ perception: seen, attacksAgainst })
   const attackSight: EncounterPreparedAttackSight | null = perception && {
     ...perception,
-    trueSight: encounterAttackSightContributors({
-      perception: perception.actual,
-      attacksAgainst
-    }),
-    believedSight: encounterAttackSightContributors({
-      perception: perception.believed,
-      attacksAgainst
-    }),
+    subject: attackKind === null ? 'SAVE' : 'ATTACK',
+    trueSight: sightContributors(perception.actual),
+    believedSight: sightContributors(perception.believed),
     attackerLabel: actor.label,
     targetLabel: target.label
   }
@@ -417,7 +437,9 @@ export async function prepareEncounterActionMechanics<
       actionEffectId:
         source.kind === 'CHARACTER_ACTION' ? source.candidate.effectId : source.capability.effectId
     }),
-    attackSight ? attackSight.trueSight : attacksAgainst.map(({ contributor }) => contributor),
+    attackSight && attackKind !== null
+      ? attackSight.trueSight
+      : attacksAgainst.map(({ contributor }) => contributor),
     longRange ? [longRange] : [],
     attackKind === null
       ? []
@@ -491,7 +513,14 @@ export async function prepareEncounterActionMechanics<
         maximum: sourceFacts.effectiveMaximumHitPoints
       },
       targetActorId: target.id,
-      targetDerivedFacts: targetFacts.targetDerivedFacts,
+      targetDerivedFacts:
+        attackSight && attackKind === null && dndSource?.savingThrowAbilityDefinitionId
+          ? withSourceSightSave(
+              targetFacts.targetDerivedFacts,
+              dndSource.savingThrowAbilityDefinitionId,
+              attackSight.trueSight
+            )
+          : targetFacts.targetDerivedFacts,
       targetConditionIds: targetFacts.state.conditions,
       conditionOutcomeRules: {
         hitIsCritical:

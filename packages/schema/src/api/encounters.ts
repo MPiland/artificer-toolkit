@@ -125,7 +125,7 @@ export const updateEncounterActorInputDtoSchema = lazySchema(() =>
     healthDisplay: z.optional(z.nullable(healthDisplayLevelDtoSchema)),
     /** GM-only: lists a public actor the players cannot see as an Unseen creature or by name (ATTACK-17.3); null hides it again. */
     reveal: z.optional(z.nullable(encounterActorRevealDtoSchema)),
-    /** GM-only: returns a Character taken out of initiative (D82) to its place in the round. */
+    /** GM-only: returns an absent actor (D82, D128) to its place in the round and its Scene token. */
     returnToInitiative: z.optional(z.literal(true)),
     /** GM-only: ends a grant (D99) this Creature or custom actor holds; a Character's ends on its Sheet. */
     endActiveEffectId: z.optional(uuidSchema),

@@ -702,6 +702,7 @@ describe('Legendary Action turn window', () => {
       targetActorId: WOLF_ID,
       application: {
         kind: 'ENCOUNTER_ACTOR_MECHANICS_BATCH',
+        sourceApplications: [],
         sourceActorId: DRAGON_ID,
         targetActorId: WOLF_ID,
         d20: { selectedNatural: 15, resultPath: 'ON_HIT' },

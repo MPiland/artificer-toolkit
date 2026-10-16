@@ -1,4 +1,3 @@
-import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import {
   ACTIVATION_CODE,
   ABILITY_CODE,
@@ -17,7 +16,6 @@ import {
   PATH_GROUP_TYPE,
   PROFICIENCY_KIND,
   RANGE_KIND,
-  SAVING_THROW_DC_METHOD,
   SCALING,
   SCALING_AMOUNT_KIND,
   STARTING_EQUIPMENT_KIND,
@@ -108,50 +106,35 @@ function selfClassRuleEffect(
   })
 }
 
-function dangerSenseEffect(): EffectAuthored {
-  const effect = closedRuleEffect({
-    id: classRowId(B, 0x60, 5),
-    ruleKind: CLOSED_RULE_KIND.CLASS_BARBARIAN_DANGER_SENSE,
-    pathCode: PATH_CODE.ON_SAVE_FAIL,
-    invocation: {
-      kind: 'PASSIVE',
-      triggerCode: TRIGGER.SAVING_THROW,
-      savingThrow: {
-        id: classRowId(B, 0x6e, 5),
-        abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.DEXTERITY,
-        dcMethod: SAVING_THROW_DC_METHOD.SOURCE_SAVE_DC
-      },
-      range: { id: classRowId(B, 0x69, 5), rangeKind: RANGE_KIND.SELF },
-      targeting: { selectionKind: TARGET_SELECTION_KIND.SELF }
-    }
-  })
-  const failedSavePath = effect.paths[0]
-  if (!failedSavePath || failedSavePath.selectionKind !== 'FIXED') {
-    throw new Error('Danger Sense requires a fixed saving-throw path')
-  }
-
+/**
+ * Danger Sense: advantage on Dexterity saves against effects the holder can see, lost while the
+ * holder can't act. The Scene decides the sight (`requiresHolderSeesSource` on the grant); this is
+ * the holder-state restriction.
+ */
+function dangerSenseRestriction(): FacetAuthored {
+  const id = (entry: number) => classRowId(B, 0x88, entry)
   return {
-    ...effect,
-    paths: [
-      failedSavePath,
+    id: id(0),
+    groups: [
       {
-        id: classRowId(B, 0x70, 5),
-        order: 2,
-        pathCode: PATH_CODE.ON_SAVE_SUCCESS,
-        groupType: PATH_GROUP_TYPE.SINGLE,
-        originKind: 'SOURCE',
-        selectionKind: 'FIXED',
-        resultBlock: {
-          id: classRowId(B, 0x71, 5),
-          resultKind: 'SINGLE',
-          outcomes: [
-            {
-              id: classRowId(B, 0x72, 5),
-              effectKind: EFFECT_KIND.CLOSED_RULE,
-              ruleKind: CLOSED_RULE_KIND.CLASS_BARBARIAN_DANGER_SENSE
-            }
-          ]
-        }
+        id: id(1),
+        order: 0,
+        contexts: [
+          {
+            id: id(2),
+            order: 0,
+            subject: 'CHARACTER',
+            conditions: [
+              {
+                id: id(3),
+                order: 0,
+                kind: 'PREDICATE',
+                constraint: 'INCLUDE',
+                predicateCode: 'CAN_ACT'
+              }
+            ]
+          }
+        ]
       }
     ]
   }
@@ -739,7 +722,21 @@ export const barbarian: ClassAuthored = {
       label: 'Danger Sense',
       description:
         "At 2nd level, you gain an uncanny sense of when things nearby aren't as they should be, giving you an edge when you dodge away from danger. You have advantage on Dexterity saving throws against effects that you can see, such as traps and spells. To gain this benefit, you can't be blinded, deafened, or incapacitated.",
-      effects: [dangerSenseEffect()],
+      grants: {
+        modifiers: [
+          {
+            id: classRowId(B, 0x87, 1),
+            grantKind: GRANT_KIND.MODIFIER_GRANT,
+            valueDomainCode: VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER,
+            domain: { ability: ABILITY_CODE.DEXTERITY, requiresHolderSeesSource: true },
+            modifierKind: MODIFIER_KIND.ADVANTAGE,
+            scope: MODIFIER_SCOPE_KIND.GLOBAL,
+            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+            order: 0,
+            restrictions: dangerSenseRestriction()
+          }
+        ]
+      },
       availableAtLevel: 2,
       order: 3
     },

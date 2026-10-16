@@ -64,20 +64,13 @@ export const planeShift: SpellAuthored = {
           selectionKind: 'FIXED' as const,
           resultBlock: {
             id: spellChildId(SPELL_IDS.PLANE_SHIFT, 0x212, 1) + '__result',
-            resultKind: 'SEQUENCE' as const,
+            resultKind: 'SINGLE' as const,
             outcomes: [
               {
-                id: spellChildId(SPELL_IDS.PLANE_SHIFT, 0x2f0, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'PLANE_SHIFT' as const
-              },
-              {
                 id: spellChildId(SPELL_IDS.PLANE_SHIFT, 0x212, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
-                label: 'Choose a Destination',
-                reasonCode: 'PLAYER_DECLARATION' as const,
-                instructions:
-                  'You can specify a target destination in general terms, such as the City of Brass on the Elemental Plane of Fire or the palace of Dispater on the second level of the Nine Hells, and you appear in or near that destination.'
+                effectKind: EFFECT_KIND.TELEPORT,
+                targetKind: 'CHOSEN_CREATURES',
+                destinationKind: 'SPECIAL'
               }
             ]
           }

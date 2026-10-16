@@ -37,7 +37,7 @@ import { createCharacterResourceOwnerKey } from '@artificer-toolkit/shared/chara
 import { EQUIPPED_SLOT_CODES } from '@artificer-toolkit/shared/core'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
-import { restoreConsumedGrants } from './consumedGrantPersistence.js'
+import { restoreConsumedGrants, restoreEndedMaintainedStates } from './consumedGrantPersistence.js'
 import { deletePlacedSpatialEffect } from './placedSpatialEffects.js'
 import { rejectDomain } from './domainRejections.js'
 import { createActiveRuleEffectStore } from './effectStore.js'
@@ -62,6 +62,8 @@ type CleavingDamage = Extract<ServerRuleExecutionApplicationOutputsDto, { kind: 
 type CharacterInverse = {
   hitPoints: ActionBatch['targetTransition']['before'] | null
   removedConditionIds: Set<string>
+  /** Conditions the action released from the Character, given back by the undo. */
+  restoredConditionIds: Set<string>
   resource: ActionBatch['resourceConsumption']
   stow: ActionBatch['sourceItemUseStateTransition']
   item: ActionBatch['sourceItemConsumption']
@@ -347,6 +349,7 @@ export async function revertLastEncounterAction(
       : {
           hitPoints: null,
           removedConditionIds: new Set(),
+          restoredConditionIds: new Set(),
           resource: null,
           stow: null,
           item: null,
@@ -369,6 +372,16 @@ export async function revertLastEncounterAction(
           : []
       )
     )
+    // A departure puts the target back unless the table already returned or removed it (D128).
+    if (
+      action.applications.some(
+        (application) => application.kind === 'DEPART' && application.applied
+      )
+    ) {
+      if (target.absence !== 'DEPARTED')
+        unavailable(`${target.label} was returned to the Scene after this action; adjust manually.`)
+      updateActor(target.id, { absence: null })
+    }
     // A reaction the target used spent its slot and allowance and created its effect with this outcome.
     const reaction = action.kind === 'CHARACTER_MECHANICS_BATCH' ? action.reaction : null
     if (action.kind === 'CHARACTER_MECHANICS_BATCH') {
@@ -496,6 +509,28 @@ export async function revertLastEncounterAction(
     inverse.item = spend.sourceItemConsumption
     inverse.spell = spend.spellCastConsumption
   }
+  // The conditions the source's ended effects released (Invisibility) come back with the effects.
+  const releasedConditionIds = (batch?.sourceApplications ?? []).flatMap((application) =>
+    application.kind === 'CONDITION_REMOVE' && application.applied ? [application.conditionId] : []
+  )
+  if (releasedConditionIds.length) {
+    if (source.kind === 'CHARACTER') {
+      if (sourceCharacterId === null || spend.sourceCharacterStreamVersion === null)
+        throw new Error('Stored source Character version is missing.')
+      characterInverse(sourceCharacterId, spend.sourceCharacterStreamVersion).restoredConditionIds =
+        new Set(releasedConditionIds)
+    } else {
+      const conditions = readEncounterActorConditionState(source.conditions ?? [])
+      if (releasedConditionIds.some((conditionId) => conditions.ids.includes(conditionId)))
+        unavailable(`${source.label}'s conditions changed after this action; adjust manually.`)
+      updateActor(source.id, {
+        conditions: [
+          ...conditions.values,
+          ...releasedConditionIds.map((conditionTypeId) => ({ conditionTypeId }))
+        ]
+      })
+    }
+  }
   const feature = spend.featureResourceConsumption
   if (feature) {
     const owner = actorsById.get(feature.ownerActorId)
@@ -570,6 +605,7 @@ export async function revertLastEncounterAction(
       )
     })
   // The grants the action used up or ended (rolls, an incapacitation, a heal) come back with their remaining count.
+  await restoreEndedMaintainedStates(ctx, root.endedMaintainedStates)
   await restoreConsumedGrants(ctx, root.consumedGrants)
   // The zone an area action placed leaves the Scene with it.
   if (areaRoot?.placedSpatialEffectId)
@@ -724,6 +760,7 @@ async function revertCheckAction(
       inverse: {
         hitPoints: stabilized.targetTransition.before,
         removedConditionIds: new Set(),
+        restoredConditionIds: new Set(),
         resource: null,
         stow: null,
         item: null,
@@ -943,6 +980,14 @@ async function restoreCharacter(
       conditions: (state.conditions ?? []).filter(
         (condition) => !inverse.removedConditionIds.has(condition.conditionTypeId)
       )
+    }
+  if (inverse.restoredConditionIds.size)
+    state = {
+      ...state,
+      conditions: [
+        ...(state.conditions ?? []),
+        ...[...inverse.restoredConditionIds].map((conditionTypeId) => ({ conditionTypeId }))
+      ]
     }
   const spell = inverse.spell
   if (spell)

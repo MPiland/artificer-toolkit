@@ -31,11 +31,16 @@ type D20Policy = Pick<
 /** What the roller's own facts imply for an attack's d20, shown at the roll prompt. */
 export type EncounterAttackD20Belief = ServerRuleExecutionD20BeliefDto
 
-/** The true and believed sight of one attack, prepared with its mechanics (ATTACK-10.1). */
+/**
+ * The true and believed sight of one attack, or of one save against its source, prepared with its
+ * mechanics (ATTACK-10.1, ATTACK-10.5). For a save the attacker is the effect's source and the
+ * target the saver.
+ */
 export type EncounterPreparedAttackSight = {
+  subject: 'ATTACK' | 'SAVE'
   actual: EncounterAttackPerception
   believed: EncounterAttackPerception
-  /** The contributors true sight decides (Dodge and unseen attacker/target). */
+  /** The contributors true sight decides (Dodge and unseen attacker/target; a save's source-sight grants). */
   trueSight: readonly EncounterRelationshipD20Contributor[]
   believedSight: readonly EncounterRelationshipD20Contributor[]
   attackerLabel: string
@@ -128,6 +133,46 @@ export function encounterAttackSightCaptions(input: {
       gm: sensing(attackerLabel, targetLabel, actual.attackerSenseLabels)
     })
 
+  if (parts.length === 0) return null
+  return {
+    playerCaption: bounded(parts.map((part) => part.player).join(' · ')),
+    gmReason: bounded(parts.map((part) => part.gm).join(' · '))
+  }
+}
+
+/**
+ * Why a save's mode changed after the roll prompt, from the source-sight grants true sight gained
+ * or lost against what the saver believed. The player caption names neither a Sense nor the
+ * source; the GM reason names the Senses. Null when sight did not change.
+ */
+export function encounterSaveSightCaptions(
+  sight: Pick<
+    EncounterPreparedAttackSight,
+    'actual' | 'trueSight' | 'believedSight' | 'attackerLabel' | 'targetLabel'
+  >
+): { playerCaption: string; gmReason: string } | null {
+  const held = (from: readonly EncounterRelationshipD20Contributor[]) =>
+    from.map(({ influence }) => (influence === 'ADVANTAGE' ? 'Advantage' : 'Disadvantage'))
+  const missing = (
+    side: readonly EncounterRelationshipD20Contributor[],
+    other: readonly EncounterRelationshipD20Contributor[]
+  ) => side.filter((entry) => !other.some((o) => compareCanonicalD20Contributors(o, entry) === 0))
+  const gained = held(missing(sight.trueSight, sight.believedSight))
+  const lost = held(missing(sight.believedSight, sight.trueSight))
+  const parts = [
+    ...gained.map((influence) => ({
+      player: `${influence} applies to this save`,
+      gm: `${sight.targetLabel} senses ${sight.attackerLabel}${
+        sight.actual.targetSenseLabels.length
+          ? ` with ${sight.actual.targetSenseLabels.join(', ')}`
+          : ''
+      }`
+    })),
+    ...lost.map((influence) => ({
+      player: `${influence} no longer applies to this save`,
+      gm: `${sight.targetLabel} can't see ${sight.attackerLabel}`
+    }))
+  ]
   if (parts.length === 0) return null
   return {
     playerCaption: bounded(parts.map((part) => part.player).join(' · ')),

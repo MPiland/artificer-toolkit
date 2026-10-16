@@ -80,6 +80,7 @@ export async function recordActionRoot(
       | 'label'
       | 'ruleOverrides'
       | 'consumedGrants'
+      | 'endedMaintainedStates'
       | 'addedConcentrationCasterId'
       | 'speedBonusTurn'
       | 'turnUses'

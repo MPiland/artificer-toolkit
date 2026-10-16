@@ -51,6 +51,18 @@ export function snapshotCreatureTypeId(actor: Pick<ActorRead, 'kind' | 'snapshot
   return typeof payload?.creatureTypeId === 'string' ? payload.creatureTypeId : null
 }
 
+/** A Creature's ability score from its snapshot; null for Characters, whose scores are not in their facts. */
+export function snapshotAbilityScore(
+  actor: Pick<ActorRead, 'kind' | 'snapshot'>,
+  abilityCode: string
+): number | null {
+  if (actor.kind !== 'CREATURE') return null
+  const snapshot = isRecord(actor.snapshot) ? actor.snapshot : null
+  const payload = isRecord(snapshot?.payload) ? snapshot.payload : null
+  const scores = isRecord(payload?.abilityScores) ? payload.abilityScores : null
+  return typeof scores?.[abilityCode] === 'number' ? scores[abilityCode] : null
+}
+
 export function snapshotFeatureDefinitions(
   actor: Pick<ActorRead, 'kind' | 'snapshot'>
 ): FeatureDto[] {
