@@ -7869,6 +7869,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
     // A link or a creature form holds state for its duration: each counted turn applies nothing,
     // and the turn pass expires the effect after the last one.
     if (
+      definition.schemaVersion === 2 &&
       definition.stateContributions.some(
         ({ kind }) => kind === 'ACTOR_LINK' || kind === 'CREATURE_FORM'
       )
