@@ -170,6 +170,7 @@ describe('a Character action source in the room', () => {
     expect(created!.maintainedEffectStateId).toBe(state!.id)
     expect(execution.applicationOutputs).toMatchObject({
       kind: 'CHARACTER_MECHANICS_BATCH',
+      sourceApplications: [],
       sourceActorId: FIGHTER_ACTOR_ID,
       sourceCharacterId: FIGHTER_ID,
       targetActorId: FIGHTER_ACTOR_ID,
@@ -224,6 +225,7 @@ describe('a Character action source in the room', () => {
     expect(wolfEffect!.maintainedEffectStateId).toBe(replacementState!.id)
     expect(execution.applicationOutputs).toMatchObject({
       kind: 'ENCOUNTER_ACTOR_MECHANICS_BATCH',
+      sourceApplications: [],
       sourceActorId: FIGHTER_ACTOR_ID,
       sourceCharacterId: FIGHTER_ID,
       targetActorId: WOLF_ID,

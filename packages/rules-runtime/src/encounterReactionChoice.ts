@@ -2,6 +2,8 @@ import type { ServerPublishedRuleDefinitionDto } from '@artificer-toolkit/schema
 import {
   encounterReactionSelectionIdentity,
   encounterReactionUseOptionId,
+  type EncounterCastReactionOfferDto,
+  type EncounterCastReactionPinDto,
   type EncounterReactionOfferDto,
   type EncounterReactionPinDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
@@ -19,9 +21,9 @@ import { startReactionChoice } from './reactionChoiceDefinition.js'
 /** What the reacting creature's controller answers: declining, or the one option that uses the reaction. */
 export type EncounterReactionSelection = { kind: 'DECLINE' } | { kind: 'OPTION'; optionId: string }
 
-/** The reaction a hit attack could offer its target, as it stands now. */
-export interface EncounterAttackReactionCandidate {
-  trigger: EncounterReactionPinDto['trigger']
+/** The reaction a creature could be offered for what is happening to it or near it, as it stands now. */
+export interface EncounterReactionCandidate<Trigger extends string> {
+  trigger: Trigger
   reactorActorId: string
   characterId: string
   characterStreamVersion: number
@@ -31,10 +33,20 @@ export interface EncounterAttackReactionCandidate {
   choiceGraph: ServerPublishedRuleDefinitionDto
 }
 
-/** The exact reaction, allowance and choice identity offered for one hit. */
-export function encounterReactionPin(
-  candidate: EncounterAttackReactionCandidate
-): EncounterReactionPinDto {
+/** A hit attack's reaction candidate. */
+export type EncounterAttackReactionCandidate = EncounterReactionCandidate<
+  EncounterReactionPinDto['trigger']
+>
+
+/** A reaction to a cast. */
+export type EncounterCastReactionCandidate = EncounterReactionCandidate<
+  EncounterCastReactionPinDto['trigger']
+>
+
+/** The exact reaction, allowance and choice identity offered for one trigger. */
+export function encounterReactionPin<Trigger extends string>(
+  candidate: EncounterReactionCandidate<Trigger>
+) {
   const identity = {
     trigger: candidate.trigger,
     reactorActorId: candidate.reactorActorId,
@@ -58,8 +70,11 @@ export function encounterReactionPin(
 
 /** Whether the freshly discovered candidate is still the one the pin was sealed against. */
 export function sameEncounterReactionCandidate(
-  reaction: EncounterReactionPinDto,
-  candidate: EncounterAttackReactionCandidate
+  reaction: Pick<
+    EncounterReactionPinDto,
+    'selectionChecksum' | 'useOptionId' | 'allowanceBeforeUsed' | 'allowanceMaximum'
+  >,
+  candidate: EncounterReactionCandidate<string>
 ) {
   const current = encounterReactionPin(candidate)
   return (
@@ -107,7 +122,7 @@ export function encounterReactionAudit(input: {
 export async function openEncounterReactionChoice(input: {
   runtime: RulesRuntimeService
   occurrenceId: string
-  candidate: EncounterAttackReactionCandidate
+  candidate: EncounterReactionCandidate<string>
 }): Promise<ServerRuleExecutionContinuationDto> {
   return startReactionChoice({
     runtime: input.runtime,
@@ -121,8 +136,8 @@ export async function openEncounterReactionChoice(input: {
  * The reaction a decision answers: the one whose use option was chosen, or the innermost for a decline.
  * An option the offer never issued is refused.
  */
-export function chosenEncounterReaction(
-  offer: Pick<EncounterReactionOfferDto, 'reactions'>,
+export function chosenEncounterReaction<Pin extends { useOptionId: string }>(
+  offer: { reactions: readonly Pin[] },
   selection: EncounterReactionSelection
 ) {
   const chosen =
@@ -168,6 +183,19 @@ export async function settleEncounterReactionChoice(input: {
   )
     throw new Error('A reaction to an attack requires sealed hit evidence.')
   const use = input.selection.kind === 'OPTION'
+  const choice = await settleSealedReactionChoice({ ...input, reaction, use })
+  return { use, reaction, choice }
+}
+
+/** Opens the sealed two-option choice a pin names and answers it, refusing anything but that exact pin. */
+async function settleSealedReactionChoice(input: {
+  runtime: RulesRuntimeService
+  occurrenceId: string
+  candidate: EncounterReactionCandidate<string>
+  reaction: Pick<EncounterReactionPinDto, 'choiceDefinitionId' | 'choiceDefinitionChecksum'>
+  use: boolean
+}) {
+  const { reaction, use } = input
   const continuation = await openEncounterReactionChoice(input)
   if (
     continuation.graph.source.definitionId !== reaction.choiceDefinitionId ||
@@ -185,5 +213,27 @@ export async function settleEncounterReactionChoice(input: {
     choice.outputs.selectedIndex !== (use ? 1 : 0)
   )
     throw new Error('Reaction choice did not settle its exact pin.')
-  return { use, reaction, choice }
+  return choice
+}
+
+/**
+ * Settles the sealed choice of a creature that uses its reaction to counter a cast. The offer and the
+ * creature's facts must still be the ones it was made against; using the reaction spends nothing here,
+ * the caller's commit does. Declining needs no kernel work: the cast goes on to the next creature.
+ */
+export async function settleEncounterCastReactionUse(input: {
+  runtime: RulesRuntimeService
+  occurrenceId: string
+  offer: Pick<EncounterCastReactionOfferDto, 'reactions'>
+  candidate: EncounterCastReactionCandidate
+  optionId: string
+}) {
+  const reaction = chosenEncounterReaction(input.offer, {
+    kind: 'OPTION',
+    optionId: input.optionId
+  })
+  if (!sameEncounterReactionCandidate(reaction, input.candidate))
+    throw new Error('Reaction evidence is stale.')
+  const choice = await settleSealedReactionChoice({ ...input, reaction, use: true })
+  return { reaction, choice }
 }

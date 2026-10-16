@@ -388,6 +388,23 @@ export function CampaignTabletopDecisionDrawer({
                 Decline cleaving
               </Button>
             </Stack>
+          ) : pending.kind === 'ATTACK_SQUARE_RESOLUTION' ? (
+            <Stack gap='xs'>
+              <Text size='sm'>
+                {encounter.actors.find((actor) => actor.id === pending.attackerActorId)?.label ??
+                  'A combatant'}{' '}
+                attacked a square. Who stands there?
+              </Text>
+              {pending.candidateActorIds.map((actorId) => (
+                <Button
+                  disabled={disabled}
+                  key={actorId}
+                  onClick={() => void resolve({ kind: 'ATTACK_SQUARE_OCCUPANT', actorId })}
+                >
+                  {encounter.actors.find((actor) => actor.id === actorId)?.label ?? actorId}
+                </Button>
+              ))}
+            </Stack>
           ) : pending.kind === 'INITIATIVE_ORDER' ? (
             <Stack gap='xs'>
               {pending.optionIds.map((optionId) => (

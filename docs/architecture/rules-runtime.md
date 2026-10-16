@@ -295,10 +295,10 @@ the viewer sees inside; the room still decides who is caught.
 ### A list of chosen creatures (current, SPELLS-8.T12, D118)
 
 An action whose targeting is `CHOSEN_CREATURES` with an authored `maxTargets` (Mass Healing Word, Prayer of
-Healing, Mass Cure Wounds, Magic Missile) takes the fifth target, `{ kind: 'ACTORS', actorIds, scene }`, built from
+Healing, Mass Cure Wounds, Magic Missile, Acid Splash, Chain Lightning) takes the fifth target, `{ kind: 'ACTORS', actorIds, scene }`, built from
 `encounterActionTargetKind` and offered as `{ kind: 'ACTORS', maxTargets, area, allowRepeatedTargets? }` (`area` is the `RADIUS` the
 spell names, or null). It is a reusable target kind, not a spell field: any chosen-creatures policy the compiler
-accepts uses it. The compiler accepts one only when the outcome is a heal or unscaled dice damage, the cap is authored (fixed, or
+accepts uses it. The compiler accepts one only when the outcome is a heal, unscaled dice damage or a per-creature save (an `ANY` disposition, a `SAVING_THROW` trigger and no repeated targets), the cap is authored (fixed, or
 scaled by the cast level and resolved first by `resolveChosenCreaturesTargeting`; no `resolutionCount`), and the shape is absent or a sphere, cylinder or circle
 whose range is a distance. One `RESOLVE_ACTION` carries the whole list (D118: one cast, one commit, one slot
 spend, one undo; one action per creature is rejected because it breaks undo atomicity).
@@ -318,9 +318,32 @@ and deduplicated (`evaluateEncounterActorsRuleWarnings`); a creature in a shaped
 itself, because the picked point carries the range. The commit reuses the `ENCOUNTER_AREA_ACTION` root and
 children with a null `area`; `encounterChosenActorsChecksum(actorIds)` is the root's caught checksum, so the
 persistence side (`areaCommitPersistence.ts`) checks every id belongs to the Encounter and commits each as
-perceived by the caster. A list has no pending path, so `executeEncounterActorsAction` refuses an outcome
-that asks for evidence (a save or roll card). A spell that takes a list is refused when sent at one creature
+perceived by the caster. **Saves (current, SPELLS-26):** a list whose plan is not `SINGLE_GRAPH` (Acid Splash,
+Chain Lightning) is not executed in place: `planNativeLiveEncounterActorsAction` hands it to `sealReachSaves`, the
+point area's own open path, so the list pends on one sealed save per distinct creature and resumes through the
+area's Answer, Legendary Resistance, GM removal and Commit planners. Damage is rolled once for the cast and
+replayed per creature on one frozen tape (`createFrozenRollTape`), so a failed and a successful save share the
+dice they have in common. The pending context (`EncounterAreaActionPendingContextDto`) seals a null `scene`
+and `area` for a list read against no Scene or naming no area, and a null `token` for a creature with no token
+on the Scene read; `requireAreaActionPendingRoot` then checks the sealed creatures plus the GM's removals equal
+the named ones, and, when the list names an area, that each is still inside it (a point area instead requires
+the caught set to equal the sealed one). An immediate list (heals, projectiles) still commits whole in the
+room; `executeEncounterActorsAction` refuses an outcome that asks for evidence. A spell that takes a list is refused when sent at one creature
 (`TARGET_UNAVAILABLE`).
+
+### An attack aimed at a square (current, ATTACK-17.T4a; empty squares are T4b)
+
+A player can aim a creature-targeted attack at a map square with the sixth target, `{ kind: 'SQUARE', sceneId,
+expectedSceneVersion, point }`. Only the GM knows who stands there, so the room does not roll: `planNativeLiveEncounterAttackSquare`
+finds the candidates (`attackSquareCandidates`: actors other than the attacker, not defeated, whose token footprint contains the point,
+hidden tokens included) and seals an `ENCOUNTER_ATTACK_SQUARE` aggregate-choice pending (owner `ATTACK_SQUARE`). The GM sees
+`ATTACK_SQUARE_RESOLUTION` with the candidate ids; the attacker and every other player see only that the GM is deciding
+(`waitingOn: 'GM'`, no pending). The GM answers `ATTACK_SQUARE_OCCUPANT { actorId }` through `RESOLVE_RULE_OCCURRENCE`. The answer closes the square
+occurrence as COMPLETED (`occurrenceClosing.ts`) and runs an ordinary ACTOR-target `RESOLVE_ACTION` on the named creature under the derived
+command id `attackSquareChildCommandId(occurrenceId)`, so the attack, its roll card and its action economy are the actor path's and a retried
+answer replays. An answer outside the sealed candidates is rejected and the decision stays pending; a GM attacker answers their own decision;
+`VOID_RULE_OCCURRENCE` cancels it with no attack. A square with nobody on it is refused (`TARGET_UNAVAILABLE`) until T4b adds the guaranteed-miss
+root, which must show the player exactly what an occupant miss shows.
 
 ### Caster-centered radius areas (current, SPELLS-22)
 
@@ -387,7 +410,7 @@ movement's origin onto that creature (`planSpatialEntryGrant`, built from the gr
 authored zone entry). The grant's frozen graph is provenance only (`actionEffectPersistence.ts`,
 `encounterActionEffectReceipts.ts` read its source identity and checksums), so it reuses the zone's. A grant
 whose `recurrence.endOnEvents` names `ON_HIT_POINTS_REGAINED` ends in `persistEncounterMechanicsBatchPlan` when any
-application heals at least 1 hit point (`grantsEndedBy`). A zone whose component authors `bypassAtHalfSpeed`
+application heals at least 1 hit point (`effectsEndedBy`). A zone whose component authors `bypassAtHalfSpeed`
 (SRD "through the area at half speed") can be crossed carefully (decision Q2): the voluntary `MOVE_SCENE_TOKEN`
 command carries an optional `carefully` flag, the movement cost doubles for the path's footprint share inside that
 zone (`spatialSegmentShareInside` through `preparedMovementCost`), and the flag reaches candidate evaluation so that
@@ -467,15 +490,21 @@ button for each; every pin names the same reactor. The reaction's effect id is d
 create exactly one effect on its reactor is refused as `REACTION_UNSUPPORTED`.
 Decision: D26 is extended to hold the Scene for a pending reaction decision.
 
-#### `SPELL_CAST` (transitional, REACTION-4.T3b-1)
+#### `SPELL_CAST` (current, REACTION-4.T3b-2; D126)
 
 `reactionTrigger: { kind: 'SPELL_CAST' }` binds a reaction to a creature casting a spell (Counterspell). The
 `CANCEL_TRIGGERING_EVENT` outcome compiles to `dnd5e.cancel-triggering-event-proposal`, a target-only proposal
 that stores nothing; `executionCancelsTriggeringEvent` reads it from the committed trace, as
-`executionAddsSpeedToMovement` does. `discoverCastReactionActions` lists the reactions a Character holds for a
-cast; the caller keeps those whose own invocation range reaches the caster, and the sealed pin accepts the
-`SPELL_CAST` trigger. **Not yet reachable in play:** the Worker pause before a cast and the `SPENT_NO_EFFECT`
-settlement (T3b-2) are not built, so a cast offers no Counterspell yet.
+`executionAddsSpeedToMovement` does.
+
+Before a Character's single-target spell cast runs its graph, the Worker (`nativeEncounterCastReaction.ts`) asks
+`discoverCastReactionActions` which other Characters hold a reaction for it, keeps those whose own invocation range
+reaches the caster on the Scene and whose slot level is at least the cast's (Counterspell's rule until T3c), and
+holds the cast in a `castReaction` pending offer (`REACTION_CHOICE` to the reactor). Declining records the reactor
+and the cast proceeds; using the reaction commits a countered cast (`persistEncounterCounteredCastCommit`): the
+caster's slot and action and the reactor's slot and reaction are spent, nothing else is applied, and no
+Concentration starts. Undo restores both creatures. Creature-capability, ACTORS-target and area casts, and casts
+made without the Scene offer no reaction. The chain is T3d; the higher-level ability check is T3c.
 
 #### `DAMAGE_TAKEN` (current, REACTION-4.T2)
 
@@ -591,8 +620,8 @@ options (ADR 0038); nothing in code names Hide.
   unseen-attacker path. The believed
   mode must not reveal which observers failed, so it treats the hider as hidden from any non-allied target while a concealment
   exists; the true mode uses the set and may cancel it ("Advantage cancelled: the target can sense you"). The first attack
-  roll consumes the concealment for everyone (`consumableGrants`: modifier grants and concealments only, so the Invisibility
-  condition path is unchanged).
+  roll consumes the concealment for everyone (`effectsEndedBy`, SPELLS-27: any v2 effect that lists the event in `consumeOnFirstEvents` or
+  `endOnEvents`, so Invisibility ends the same way).
 - **Redaction.** The observer ids are GM knowledge. They live only in the stored effect and receipt; no player projection,
   timeline line, pending read or roll card carries them, so the hider's and other players' views never name the observers.
 - **Movement prune.** Committing an Encounter-bound token move on a Scene drops from each concealment the observers that now
@@ -737,10 +766,14 @@ activation and an attack or damage trigger is offered like a Feature reaction).
 A candidate is offered through the Sheet's own logic, not a copy of it: the spell must come from an active
 source (`isActiveSpellSource`: prepared per preparing class, learned for the others, always prepared and
 granted spells included) and the candidate must be one of the cast levels the Sheet lists
-(`getExplicitSpellCastLevels`): the spell's own level plus every higher level its authored damage or heal
-scaling reaches for which the Character owns a standard slot. A Warlock's pact slot is offered for the spell's
-own level and spent whatever its level. A candidate is dropped when its decision is not `AVAILABLE` or it is a
-ritual. A leveled cast paid from a spell-source pool (`LIMITED_USE`, or a `FIXED_LEVEL` grant with `charges`,
+(`getSpellCastLevels`): the spell's own level, plus every higher level for which the Character owns a slot
+(standard or Pact Magic) when the spell reads its cast level. A spell reads it when its authored effects scale by
+it (damage or healing `SPELL_CAST_LEVEL` scaling, a `SPELL_CAST_LEVEL` target count, a granted amount of
+`SPELL_SLOT_LEVEL`) anywhere in the Effect, including follow-up save/check branches and manifest behaviors, components and proximity rules or compare with it (`CANCEL_TRIGGERING_EVENT`, Counterspell's slot-versus-spell check).
+`effectReadsSpellCastLevel` derives that flag from the compiled Effects into `readsCastLevel` on the spell's
+action facts and reference mechanics; nothing names a spell. Any other spell is cast at its own level only.
+A Warlock's pact slot also pays a cast at the spell's own level and is spent whatever its level. A candidate is
+dropped when its decision is not `AVAILABLE` or it is a ritual. A leveled cast paid from a spell-source pool (`LIMITED_USE`, or a `FIXED_LEVEL` grant with `charges`,
 SPELLS-8.T8) carries a `resourceUse` of one use of that pool and spends no slot, as on the Sheet
 (`sheetResourceUsage.ts`); a cantrip is free, and so is a `FIXED_LEVEL` grant without charges. The pool spend
 is the ordinary `resourceBinding` of the compiled entry and GM undo restores it by the pool's owner key. A
@@ -1034,12 +1067,13 @@ never selects them; `planEncounterGrantTicks` (`encounterGrantLifetimes`) counts
 anchored to the boundary actor, whoever holds it, and `persistEncounterGrantTicks` writes it in the turn
 commit's transaction. A grant's `consumeOnFirstEvents` (`ON_ATTACK_ROLL`, `ON_ABILITY_CHECK`) lists the events that use it up: it is deleted by its holder's next
 attack-roll action (not a save action) or ability check and stored on the command as `consumedGrants`, which GM undo
-restores (`consumableGrants` in `encounterGrantLifetimes`, `consumedGrantPersistence` in encounter-persistence). Help is the
+restores (`effectsEndedBy` in `encounterGrantLifetimes`, `consumedGrantPersistence` in encounter-persistence). Help is the
 grant that carries both events. First Aid and Escape consume at the first commit, so their pending check context freezes the used grants as `consumedGrants` and the pending read names them from it. A Creature's check grants resolve the check's governing ability from the System skill (`checkAbilityCode`). Every
 attack path consumes: ordinary actions, movement reaction attacks and Disarm record `consumedGrants` on
 their command, and a Legendary Action window deletes its owner's grants at the turn commit when the option
 rolled an attack (`attackRoll` on the EXECUTED evidence); only ordinary actions have GM undo. A
 grant made at another creature's turn end has no extra tick and ends at the end of the holder's next turn.
+An event that ends a condition-owning effect (Invisibility on its holder's attack roll, SPELLS-27.T2, D125) also releases the condition: the planner adds `CONDITION_REMOVE` to the action's source batch (`sourceApplications`, required on both mechanics batch receipts; `endedEffectConditionReleases`), and the root receipt's `endedMaintainedStates` and `restoredConditionIds` give the Concentration and the condition back on GM undo, fenced by the source stream version. The Legendary window, movement opportunity attack and Disarm skip condition-owning effects until SPELLS-27.T2b; `NON_RELEASING_EFFECT_EVENTS` keeps authoring from listing an event whose consumer does not release.
 An `ARMOR_CLASS` grant on a Creature raises its AC through `withCreatureActiveGrantArmorClass`, applied
 where movement targets and Cleaving facts are built. A
 SOURCE-anchored grant ends when its source is removed from the Run (`planDepartedSourceGrantRemovals`,

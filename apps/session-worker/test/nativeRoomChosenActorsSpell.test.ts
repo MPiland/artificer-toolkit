@@ -6,6 +6,8 @@ import {
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import type { SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
+import { acidSplash } from '@artificer-toolkit/source-data/srd/spells/acid-splash.js'
+import { chainLightning } from '@artificer-toolkit/source-data/srd/spells/chain-lightning.js'
 import { magicMissile } from '@artificer-toolkit/source-data/srd/spells/magic-missile.js'
 import { massCureWounds } from '@artificer-toolkit/source-data/srd/spells/mass-cure-wounds.js'
 import { massHealingWord } from '@artificer-toolkit/source-data/srd/spells/mass-healing-word.js'
@@ -48,6 +50,7 @@ function healerRoom(config: {
   wolfIds?: readonly string[]
   wolfHitPoints?: number
   characterHitPoints?: number
+  autoRoll?: 'BOTH'
 }) {
   const wolfIds = config.wolfIds ?? WOLF_IDS.slice(0, 3)
   return actionRoom({
@@ -56,7 +59,11 @@ function healerRoom(config: {
       ...wolfIds.map((id) =>
         srdCreatureActor({
           id,
-          creature: plainWolf,
+          // A Wolf given hit points has them as its maximum too, else it is at 1.
+          creature:
+            config.wolfHitPoints === undefined
+              ? plainWolf
+              : { ...plainWolf, hitPoints: config.wolfHitPoints },
           currentHitPoints: config.wolfHitPoints ?? 1
         })
       ),
@@ -67,7 +74,8 @@ function healerRoom(config: {
     characterPlay: { currentHitPoints: config.characterHitPoints ?? 1 },
     characterAction: (action) => action.label === config.label,
     rolls: config.rolls,
-    fallbackRoll: 5
+    fallbackRoll: 5,
+    ...(config.autoRoll && { autoRoll: config.autoRoll })
   })
 }
 
@@ -450,6 +458,160 @@ describe('room cast of projectiles on chosen creatures (Magic Missile, SPELLS-26
     const { answer } = await room.startActorsAction([first, first], RANGE_UNCHECKED, false)
     expect(answer.type).not.toBe('COMMAND_COMMITTED')
     expect(JSON.stringify(answer)).toContain('names each creature once')
+    expect(await hitPointsOf(room)).toEqual(before)
+    expect((await readCharacterPlayState(room)).spellSlots ?? []).toEqual([])
+  }, 120000)
+})
+
+describe('room cast on chosen creatures that each save (Acid Splash, Chain Lightning, SPELLS-26)', () => {
+  const [first, second, third] = WOLF_IDS as [string, string, string]
+  const FAIL = 1
+  const SAVE = 20
+  const pendingSaves = async (room: HealerRoom) => {
+    const decision = await room.pendingDecision()
+    if (decision.pending.kind !== 'AREA_SAVES') throw new Error('Expected the area saves.')
+    return { decision, saves: decision.pending.saves }
+  }
+  /** `actorId`'s own save answered with one natural d20 face; the answer must commit. */
+  async function answerSave(room: HealerRoom, actorId: string, face: number) {
+    const { decision, saves } = await pendingSaves(room)
+    const save = saves.find((entry) => entry.actorId === actorId)
+    if (!save) throw new Error('The creature has no pending save.')
+    const answer = await room.send(
+      room.resolveCommand(decision, {
+        kind: 'ENTER_DICE',
+        requestId: save.request.requestId,
+        rawFaces: [face],
+        rollMode: save.request.rollMode
+      })
+    )
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+  }
+  const splash = (config: { rolls?: readonly number[]; autoRoll?: 'BOTH' } = {}) =>
+    healerRoom({
+      spell: acidSplash,
+      label: 'Acid Splash',
+      rolls: config.rolls ?? [],
+      autoRoll: config.autoRoll,
+      wolfHitPoints: 20
+    })
+  const lightning = () =>
+    healerRoom({
+      spell: chainLightning,
+      label: 'Chain Lightning (6th level)',
+      rolls: [],
+      wolfHitPoints: 100
+    })
+
+  it('waits for each creature’s own save, then burns only those that fail, from one roll', async () => {
+    // The 1d6 acid: the raw 2 is a 3, rolled once for the whole cast.
+    const room = await splash({ rolls: [2] })
+    const before = await hitPointsOf(room)
+
+    const { answer } = await room.startActorsAction([first, second], [], true)
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    const { saves } = await pendingSaves(room)
+    expect(saves.map((save) => save.actorId).sort()).toEqual([first, second].sort())
+    expect(await hitPointsOf(room)).toEqual(before)
+
+    await answerSave(room, first, FAIL)
+    expect(await hitPointsOf(room)).toEqual(before)
+    await answerSave(room, second, SAVE)
+
+    expect(await hitPointsOf(room)).toEqual({ ...before, [first]: 20 - 3 })
+    const { roots, children } = areaReceipts(await readRoomHistory(room.room.base.stub))
+    expect(roots).toHaveLength(1)
+    expect(children.map(({ outputs }) => outputs.targetActorId).sort()).toEqual(
+      [first, second].sort()
+    )
+
+    await undoLastAction(room)
+    expect(await hitPointsOf(room)).toEqual(before)
+  }, 120000)
+
+  it('waits for the saves and burns the creatures that fail, though the Scene was not read', async () => {
+    const room = await splash({ rolls: [2] })
+    const before = await hitPointsOf(room)
+
+    const { answer } = await room.startActorsAction([first, second], RANGE_UNCHECKED, false)
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    expect((await pendingSaves(room)).saves).toHaveLength(2)
+
+    await answerSave(room, first, SAVE)
+    await answerSave(room, second, FAIL)
+    expect(await hitPointsOf(room)).toEqual({ ...before, [second]: 20 - 3 })
+  }, 120000)
+
+  it('settles at once when every roller rolls for itself', async () => {
+    // The saves roll first (a raw 0 is a 1, a raw 19 is a 20), then the 1d6 acid: the raw 4 is a 5.
+    const room = await splash({ rolls: [0, 19, 4], autoRoll: 'BOTH' })
+    const before = await hitPointsOf(room)
+
+    const { answer } = await room.startActorsAction([first, second], [], true)
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    expect(await hitPointsOf(room)).toEqual({ ...before, [first]: 20 - 5 })
+    expect(areaReceipts(await readRoomHistory(room.room.base.stub)).roots).toHaveLength(1)
+  }, 120000)
+
+  it('settles the creatures left when the GM takes one out, which is not tested or burned', async () => {
+    const room = await splash({ rolls: [2] })
+    const before = await hitPointsOf(room)
+    expect((await room.startActorsAction([first, second], [], true)).answer.type).toBe(
+      'COMMAND_COMMITTED'
+    )
+    await answerSave(room, first, FAIL)
+
+    const removal = await room.send(
+      room.removeAreaTargetCommand(await room.pendingDecision(), second)
+    )
+    expect(removal.type, JSON.stringify(removal)).toBe('COMMAND_COMMITTED')
+
+    expect(await hitPointsOf(room)).toEqual({ ...before, [first]: 20 - 3 })
+  }, 120000)
+
+  it('burns the creatures that fail with the full dice and the ones that save with the lesser, spending one slot', async () => {
+    // Every die is a 6 (the fallback): the failing creature takes the 10d8, the saving one the 5d8.
+    const room = await lightning()
+    const before = await hitPointsOf(room)
+
+    const { answer } = await room.startActorsAction([first, second, third], [], true)
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    expect((await readCharacterPlayState(room)).spellSlots ?? []).toEqual([])
+
+    await answerSave(room, first, FAIL)
+    await answerSave(room, second, SAVE)
+    await answerSave(room, third, FAIL)
+
+    expect(await hitPointsOf(room)).toEqual({
+      ...before,
+      [first]: 100 - 60,
+      [second]: 100 - 30,
+      [third]: 100 - 60
+    })
+    const { roots, children } = areaReceipts(await readRoomHistory(room.room.base.stub))
+    expect(roots).toHaveLength(1)
+    expect(children).toHaveLength(3)
+    expect((await readCharacterPlayState(room)).spellSlots).toEqual([
+      { slotKey: 'STANDARD:6', used: 1 }
+    ])
+
+    await undoLastAction(room)
+    expect(await hitPointsOf(room)).toEqual(before)
+    expect((await readCharacterPlayState(room)).spellSlots ?? []).toEqual([])
+  }, 120000)
+
+  it('refuses more creatures than the cast level allows, and spends nothing', async () => {
+    const room = await healerRoom({
+      spell: chainLightning,
+      label: 'Chain Lightning (6th level)',
+      rolls: [],
+      wolfIds: WOLF_IDS.slice(0, 5)
+    })
+    const before = await hitPointsOf(room)
+
+    const { answer } = await room.startActorsAction(WOLF_IDS.slice(0, 5), [], true)
+    expect(answer.type).not.toBe('COMMAND_COMMITTED')
+    expect(JSON.stringify(answer)).toContain('at most 4')
     expect(await hitPointsOf(room)).toEqual(before)
     expect((await readCharacterPlayState(room)).spellSlots ?? []).toEqual([])
   }, 120000)

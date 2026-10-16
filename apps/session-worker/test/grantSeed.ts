@@ -13,13 +13,31 @@ export function seedModifierGrant(input: {
   lifecycle: PathLifecycleAuthored
   effect?: EffectAuthored
   sourceLabel?: string
+  /** A condition the effect also owns on its holder, as Invisibility owns INVISIBLE. */
+  ownedConditionId?: string
 }): NonNullable<MovementRoomConfig['seed']> {
   return async ({ effects, encounterId, occurredAt }) => {
-    const planned = plannedModifierGrant({ encounterId, ...input })
+    const { ownedConditionId, ...grant } = input
+    const planned = plannedModifierGrant({ encounterId, ...grant })
+    if (ownedConditionId && planned.definition.schemaVersion !== 2)
+      throw new Error('Only a version 2 effect can own a condition.')
     await effects.create({
       id: crypto.randomUUID(),
       owner: { kind: 'ENCOUNTER_ACTOR', encounterId, targetActorId: input.holderActorId },
-      definition: planned.definition,
+      definition:
+        ownedConditionId && planned.definition.schemaVersion === 2
+          ? {
+              ...planned.definition,
+              stateContributions: [
+                ...planned.definition.stateContributions,
+                {
+                  kind: 'CONDITION_OWNERSHIP',
+                  conditionId: ownedConditionId,
+                  baselinePresent: false
+                }
+              ]
+            }
+          : planned.definition,
       lifecycle: planned.lifecycle,
       occurredAt
     })

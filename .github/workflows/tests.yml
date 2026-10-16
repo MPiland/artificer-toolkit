@@ -55,14 +55,22 @@ jobs:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
       - name: Convex tests
+        id: tests
         env:
           CONVEX_WORKERS: ${{ inputs.convex_workers || '1' }}
+          REPORT: --reporter=default --reporter=json --outputFile.json=local-validation/vitest-convex.json
         run: |
           if [ "$CONVEX_WORKERS" = "1" ]; then
-            yarn workspace @artificer-toolkit/apis test:convex --shard=${{ matrix.shard }}/4
+            yarn workspace @artificer-toolkit/apis test:convex --shard=${{ matrix.shard }}/4 $REPORT
           else
-            yarn workspace @artificer-toolkit/apis test:convex --shard=${{ matrix.shard }}/4 --fileParallelism --maxWorkers=$CONVEX_WORKERS
+            yarn workspace @artificer-toolkit/apis test:convex --shard=${{ matrix.shard }}/4 --fileParallelism --maxWorkers=$CONVEX_WORKERS $REPORT
           fi
+      - uses: ./.github/actions/regenerate-snapshots
+        if: failure() && steps.tests.outcome == 'failure'
+        with:
+          name: convex-${{ matrix.shard }}
+          config: apps/apis/vitest.config.ts
+          reports: local-validation/vitest-convex.json
 
   packages-worker:
     name: Packages and Worker
@@ -73,12 +81,17 @@ jobs:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
       - name: Package tests
+        id: tests
         run: |
-          yarn workspace @artificer-toolkit/schema test
-          yarn workspace @artificer-toolkit/shared test
-          yarn workspace @artificer-toolkit/source-data test
-          yarn workspace @artificer-toolkit/rules-runtime test
-          yarn workspace @artificer-toolkit/encounter-persistence test
+          for package in schema shared source-data rules-runtime encounter-persistence; do
+            yarn workspace @artificer-toolkit/$package test --reporter=default --reporter=json --outputFile.json=local-validation/vitest-$package.json
+          done
+      - uses: ./.github/actions/regenerate-snapshots
+        if: failure() && steps.tests.outcome == 'failure'
+        with:
+          name: packages
+          config: vitest.config.ts
+          reports: local-validation/vitest-*.json
       - name: Worker tests
         run: |
           yarn workspace @artificer-toolkit/session-worker types
@@ -136,3 +149,27 @@ jobs:
       - name: Stories
         if: success() || failure()
         run: yarn turbo run typecheck:stories --filter=@artificer-toolkit/web --only --env-mode=loose
+
+  # A Tests run that failed on snapshot mismatches leaves the corrected files as one `updated-snapshots`
+  # artifact (scripts/watchCi.ps1 prints the download command). The failing job stays failed, so snapshot
+  # drift never goes green silently.
+  updated-snapshots:
+    name: Updated snapshots
+    needs: [convex, packages-worker]
+    if: always() && (needs.convex.result == 'failure' || needs.packages-worker.result == 'failure')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          pattern: updated-snapshots-*
+          merge-multiple: true
+          path: updated-snapshots
+      - uses: actions/upload-artifact@v4
+        with:
+          name: updated-snapshots
+          path: updated-snapshots/
+          retention-days: 7
+          if-no-files-found: ignore
+

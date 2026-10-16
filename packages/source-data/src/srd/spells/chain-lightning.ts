@@ -7,7 +7,9 @@ import {
   EFFECT_KIND,
   MEASUREMENT_UNIT_CODE,
   RANGE_KIND,
+  SCALABLE_SCALING_KIND,
   SCALING,
+  SCALING_SOURCE,
   SUBJECT,
   TARGET_SELECTION_KIND,
   TARGET_DISPOSITION_KIND,
@@ -55,7 +57,17 @@ export const chainLightning: SpellAuthored = {
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.CHOSEN_CREATURES,
           dispositionKind: TARGET_DISPOSITION_KIND.ANY,
-          maxTargets: 4
+          // The first target, three more, and a further bolt for each slot level above 6th.
+          maxTargetsScaling: {
+            scalingKind: SCALABLE_SCALING_KIND.BREAKPOINTS,
+            scalingSource: SCALING_SOURCE.SPELL_CAST_LEVEL,
+            breakpoints: Array.from({ length: 4 }, (_, index) => ({
+              id: spellChildId(SPELL_IDS.CHAIN_LIGHTNING, 0x215, index + 1),
+              level: index + 6,
+              order: index + 1,
+              value: { amount: index + 4 }
+            }))
+          }
         }
       },
       paths: [

@@ -243,6 +243,35 @@ export const encounterActorActiveEffectCreateReceiptDtoSchema = lazySchema(() =>
   })
 )
 /** Immutable receipt for a target-owned state contribution created by an immediate outcome. */
+/**
+ * What the acting source's own state changed with its action, apart from the target's outcome: the
+ * conditions an effect that ended on the event held alone (SPELLS-27.T2, D125). Only releases are
+ * receipted, because undo restores exactly those.
+ */
+export const sourceApplicationsDtoSchema = lazySchema(() =>
+  z.array(characterMechanicsApplicationDtoSchema).check(
+    z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER),
+    z.superRefine((applications, context) => {
+      for (const [index, application] of applications.entries())
+        if (application.kind !== 'CONDITION_REMOVE' || application.ordinal !== index)
+          context.addIssue({
+            code: 'custom',
+            path: [index],
+            message: 'Source applications are contiguous condition releases.'
+          })
+    })
+  )
+)
+
+/** Whether a source's applications changed its own state, so its Character stream version moved. */
+export function sourceApplicationsChangeState(
+  applications: readonly z.infer<typeof characterMechanicsApplicationDtoSchema>[]
+) {
+  return applications.some(
+    (application) => application.kind === 'CONDITION_REMOVE' && application.applied
+  )
+}
+
 export const stateEffectCreateReceiptDtoSchema = lazySchema(() =>
   z.strictObject({
     kind: z.literal('CREATE'),

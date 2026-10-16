@@ -5,7 +5,7 @@ import { areaMatchesTarget } from '../actionAreaPending.js'
 
 const SCENE = { sceneId: '00000000-0000-4000-8000-000000000001', expectedSceneVersion: 3 }
 
-const sealed = (shape: EncounterAreaActionPendingContextDto['area']['shape']) => ({
+const sealed = (shape: NonNullable<EncounterAreaActionPendingContextDto['area']>['shape']) => ({
   origin: { x: 200, y: 150 },
   shape
 })

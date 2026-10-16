@@ -60,6 +60,17 @@ const activeEffectFactsSchema = lazySchema(() =>
     )
 )
 
+/**
+ * Events whose consumer deletes the effect without releasing the condition it owns. A
+ * condition-owning effect may not list one; a consumer leaves this set once it plans the release
+ * (`endedEffectConditionReleases`).
+ */
+const NON_RELEASING_EFFECT_EVENTS: ReadonlySet<string> = new Set([
+  'ON_ABILITY_CHECK',
+  'ON_HIT_POINTS_REGAINED',
+  'ON_INCAPACITATED'
+])
+
 const activeEffectOriginDtoSchema = lazySchema(() =>
   z.discriminatedUnion('kind', [
     z.strictObject({
@@ -329,6 +340,21 @@ export const activeRuleEffectDefinitionDtoSchema = lazySchema(() =>
             path: ['recurrence', 'expiration', 'anchor'],
             message: 'Source-anchored expiration requires an Encounter origin with a source actor.'
           })
+        }
+        if (
+          definition.schemaVersion === 2 &&
+          definition.stateContributions.some(({ kind }) => kind === 'CONDITION_OWNERSHIP')
+        ) {
+          const unreleasing = [
+            ...definition.recurrence.consumeOnFirstEvents,
+            ...definition.recurrence.endOnEvents
+          ].filter((event) => NON_RELEASING_EFFECT_EVENTS.has(event))
+          if (unreleasing.length)
+            context.addIssue({
+              code: 'custom',
+              path: ['recurrence'],
+              message: `Condition-owning effects cannot end on ${unreleasing.join(', ')}: its consumer does not release the condition.`
+            })
         }
         for (const [index, contribution] of definition.perceptionContributions.entries()) {
           if (

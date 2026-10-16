@@ -641,6 +641,28 @@ export function spatialTokensInsideArea(input: {
 }
 
 /**
+ * The tokens whose footprint holds `point`, sorted by id: the creatures standing on a picked square.
+ * A point on a footprint's edge is held by neither neighbor (the D103 rule that touching never counts),
+ * and an invalid token holds nothing (fails closed).
+ */
+export function spatialTokensAtPoint(
+  point: ScenePoint,
+  tokens: readonly SpatialSceneToken[]
+): string[] {
+  return tokens
+    .filter((token) => {
+      if (!validSpatialToken(token)) return false
+      const space = footprint(token)
+      return (
+        Math.abs(point.x - space.center.x) < space.halfWidth - EPSILON &&
+        Math.abs(point.y - space.center.y) < space.halfHeight - EPSILON
+      )
+    })
+    .map((token) => token.id)
+    .sort()
+}
+
+/**
  * The tokens within `radius` of the caster's space, sorted by id, never the caster's own: "within N
  * feet of you" is measured from the edge of the space, not its center (D114). A footprint is caught
  * when it shares area with the space grown by `radius`, a rounded rectangle, which is the D103 rule
