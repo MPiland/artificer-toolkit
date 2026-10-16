@@ -93,6 +93,10 @@ The user wants a Kickstarter campaign with realistic goals to fund finishing the
 - **Teleport undo after the turn ended (SPELLS-28.T1b).** The GM's scene undo restores a spent teleport allowance only on the current turn's record. Undoing a teleport move after its turn ended restores the position but leaves the allowance spent, so the cast's own undo is then refused. Rare (needs an undo across a turn boundary); fix by finding the record by the spending command's id regardless of turn.
 - **Stale teleport allowance at commit (SPELLS-28.T1b).** If the cast is undone between the room planning a teleport and its commit, the commit fails with a generic error instead of `TELEPORT_UNAVAILABLE`. The rollback is correct and a retry reports the refusal.
 - **Teleport sight is "explored", not line of sight (SPELLS-28.T1b).** A `VISIBLE` destination (Misty Step) must be an explored point for the mover; with fog off every point counts, and a previously explored point behind a wall still counts. Replace with a line-of-sight test when the Scene gains one.
+- **Spell attacks count as casts for ON_CAST_SPELL (REACTION-4.T3h, D136).** `castsSpell` is true for a Creature spell-attack action, so ON_CAST_SPELL effects fire for it, but it is not counterable (only `spellCast` actions are offered a counter). Left unchanged by D136; revisit if a rules effect keyed to real casts misfires.
+- **A spell link on a Creature capability (REACTION-4.T3h, D136).** `spellCast` carries only `castLevel`. Linking the System spell for display, with a save-time check that `castLevel` is at least that spell's level, is a nice-to-have.
+- **Undoing a hit that ended a Character's form (SPELLS-28.T4c, D130).** The form ends and any carried-over damage lands on the Sheet in the same batch; a scene undo of that damage action restores the Sheet but does not put the form back. Undo the cast instead, or recast.
+- **A hit-point-maximum effect applied or ended while a Character wears a form (SPELLS-28.T4c).** The effective maximum is the form's plus its effects; the form's hit points are not re-clamped when a maximum effect ends mid-form.
 
 These are rare paths, roughly under 5% of sessions, whose failure is visible and recoverable (user direction, 2026-10-15). Fix one when real use shows it happening.
 
@@ -304,4 +308,5 @@ lifecycle and Encounter Blueprint model are accepted.
 - “View as player” and deliberate co-GM/assistant-GM roles with a separate permission model rather than treating every helper as the owner.
 - Ambience libraries, playlists, scene audio, and player presentation controls after the VTT/media usage model is known.
 - Optional session recording, transcription, recap drafting, and continuity extraction only after consent, privacy, retention, and cost policy are approved.
+- **Creature forms, later pieces (SPELLS-28):** T4d (the form's actions replace the Character's, plus the form's defenses, speeds, senses and proficiency merge), T4b (a form outliving the Run), a per-form authorable retained-ability set (Polymorph replaces mental scores), object forms, True Polymorph permanence and Shapechange re-form.
 - Home-base, settlement, bastion, faction-reputation, and downtime trackers after Campaign and Vehicle ownership seams are stable.

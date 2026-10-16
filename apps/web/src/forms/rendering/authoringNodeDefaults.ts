@@ -73,6 +73,8 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
       return { skillIds: [], abilityDefinitionIds: [] }
     case 'checkDc':
       return { kind: 'FIXED', value: 10 }
+    case 'spellCast':
+      return { castLevel: 1 }
     case 'chargeBonus':
       return createChargeBonus(order)
     case 'chargeLevelScaling':

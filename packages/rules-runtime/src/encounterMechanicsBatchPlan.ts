@@ -11,10 +11,14 @@ import {
   type TargetState
 } from './encounterCharacterMechanicsBatch.js'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
-import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
+import type {
+  EncounterRunActorState,
+  EncounterRunCharacterActorState
+} from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { CharacterSheetState } from '@artificer-toolkit/schema/projections/characterSheetState'
 import type { CharacterItemUseStateTransitionDto } from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
 import type { CharacterRuleActionApplication } from './characterRuleActionSystemAdapter.js'
+import type { CharacterDeathSaves } from '@artificer-toolkit/schema/shared/characterDeathSaves'
 import type {
   NativeCharacterActionResourceConsumption,
   NativeCharacterItemConsumption,
@@ -24,6 +28,7 @@ import { unequipCharacterItem, updateSpellSlotUsage } from './character/sheetCom
 import { nextEncounterActorDefeated } from './encounterActorDefeat.js'
 import {
   enterActorForm,
+  enterCharacterForm,
   revertActorForm,
   type EncounterActorFormCreature
 } from './encounterActorForm.js'
@@ -48,7 +53,10 @@ export type EncounterMechanicsBatchInput = {
   applications: readonly CharacterRuleActionApplication[]
   /** The Character stream version the applications were planned against; null for other actors. */
   expectedCharacterStreamVersion: number | null
+  /** The maximum of the hit points the applications change: a Character in a form takes the form's. */
   effectiveMaximumHitPoints: number
+  /** A Character's own effective maximum while it is in a form; its excess damage lands on the Sheet. */
+  sheetMaximumHitPoints?: number | undefined
   forceVersionAdvance: boolean
   retainedConditionIds?: readonly string[]
   effectiveScalarValues?: Readonly<Record<string, number>>
@@ -64,7 +72,7 @@ export type EncounterMechanicsBatchInput = {
   stowEquippedItemInstanceId?: string
   /** A dying Character's turn-start death save die (D96); Characters only. */
   deathSave?: { rawDie: number }
-  /** The Creature form this outcome swaps the actor into, held by `effectId` (D130); Creature and custom actors only. */
+  /** The Creature form this outcome swaps the actor into, held by `effectId` (D130). */
   enterForm?: {
     effectId: string
     excessDamageCarriesOver: boolean
@@ -309,19 +317,17 @@ export function planEncounterMechanicsBatch(input: {
     (condition) => condition.conditionTypeId
   )
   const ownConditionIds = rawConditions.map((condition) => condition.conditionTypeId)
-  const folded = foldCharacterMechanicsApplications({
-    targetActorId: actor.id,
-    currentHitPoints: loaded.character.state.hitpoints.current,
-    temporaryHitPoints: loaded.character.state.hitpoints.temp ?? 0,
-    maximumHitPoints: batch.effectiveMaximumHitPoints,
-    deathSaves: loaded.character.state.hitpoints.deathSaves,
-    conditionIds: [...new Set([...ownConditionIds, ...campaignConditionIds])],
-    scalarValues: batch.effectiveScalarValues,
-    retainedConditionIds: batch.retainedConditionIds,
-    layers: { ownConditionIds, campaignConditionIds },
-    applications: batch.applications,
-    deathSaveRoll: batch.deathSave,
-    absence: actor.absence
+  const sheetHitPoints = loaded.character.state.hitpoints
+  const folded = foldCharacterBatch({
+    actor,
+    batch,
+    sheet: {
+      currentHitPoints: sheetHitPoints.current,
+      temporaryHitPoints: sheetHitPoints.temp ?? 0,
+      deathSaves: sheetHitPoints.deathSaves
+    },
+    ownConditionIds,
+    campaignConditionIds
   })
   const existingConditionIds = new Set(ownConditionIds)
   const nextConditionIds = new Set(folded.afterOwnConditionIds)
@@ -329,11 +335,11 @@ export function planEncounterMechanicsBatch(input: {
   // follows from the hit point transition, which the receipt records, so the applications don't list it.
   const zeroHitPointsConditionId = characterZeroHitPointsConditionId(loaded.character.systemId)
   if (zeroHitPointsConditionId !== undefined) {
-    if (folded.before.currentHitPoints > 0 && folded.after.currentHitPoints === 0)
+    if (sheetHitPoints.current > 0 && folded.sheet.currentHitPoints === 0)
       nextConditionIds.add(zeroHitPointsConditionId)
     else if (
-      folded.before.currentHitPoints === 0 &&
-      folded.after.currentHitPoints > 0 &&
+      sheetHitPoints.current === 0 &&
+      folded.sheet.currentHitPoints > 0 &&
       !batch.retainedConditionIds?.includes(zeroHitPointsConditionId)
     )
       nextConditionIds.delete(zeroHitPointsConditionId)
@@ -351,8 +357,12 @@ export function planEncounterMechanicsBatch(input: {
     nextSpellSlots !== undefined &&
     JSON.stringify(nextSpellSlots) !== JSON.stringify(loaded.character.state.spellSlots ?? [])
   const sheetStateChanged = resourceConsumption !== undefined || itemConsumption !== undefined
+  const sheetHitPointsChanged =
+    sheetHitPoints.current !== folded.sheet.currentHitPoints ||
+    (sheetHitPoints.temp ?? 0) !== folded.sheet.temporaryHitPoints ||
+    JSON.stringify(sheetHitPoints.deathSaves) !== JSON.stringify(folded.sheet.deathSaves)
   const shouldAdvance =
-    folded.stateChanged ||
+    sheetHitPointsChanged ||
     conditionStateChanged ||
     spellSlotsChanged ||
     sheetStateChanged ||
@@ -363,10 +373,10 @@ export function planEncounterMechanicsBatch(input: {
     state: {
       ...equippedCharacter.state,
       hitpoints: {
-        ...loaded.character.state.hitpoints,
-        current: folded.after.currentHitPoints,
-        temp: folded.after.temporaryHitPoints,
-        deathSaves: folded.after.deathSaves
+        ...sheetHitPoints,
+        current: folded.sheet.currentHitPoints,
+        temp: folded.sheet.temporaryHitPoints,
+        deathSaves: folded.sheet.deathSaves
       },
       conditions: nextConditions,
       ...(spellSlotsChanged ? { spellSlots: nextSpellSlots } : {})
@@ -379,10 +389,17 @@ export function planEncounterMechanicsBatch(input: {
         itemUsage: nextItemUsage
       })
     : null
+  // The form is the actor's own state: it changes with its hit points and ends with them (D130).
+  const settledActor =
+    folded.form === actor.form && folded.afterAbsence === actor.absence
+      ? actor
+      : { ...actor, form: folded.form, absence: folded.afterAbsence }
+  const updatedActor =
+    batch.enterForm === undefined
+      ? settledActor
+      : enterCharacterForm(settledActor, batch.enterForm, batch.effectiveScalarValues ?? {})
   return {
-    // A Character actor holds no Character state; the batch changes only whether it is absent.
-    updatedActor:
-      folded.afterAbsence === actor.absence ? actor : { ...actor, absence: folded.afterAbsence },
+    updatedActor,
     receiptApplications: folded.applications,
     targetTransition: transition(actor.id, folded.before, folded.after),
     characterStreamVersion: shouldAdvance ? loaded.active.play.streamVersion + 1 : null,
@@ -400,11 +417,144 @@ export function planEncounterMechanicsBatch(input: {
             beforeStateChecksum: checksumRuleDocument(loaded.character.state.equipment),
             afterStateChecksum: checksumRuleDocument(equippedCharacter.state.equipment)
           },
-    stateChanged: folded.stateChanged || conditionStateChanged,
+    stateChanged:
+      folded.stateChanged ||
+      conditionStateChanged ||
+      folded.form?.effectId !== actor.form?.effectId ||
+      batch.enterForm !== undefined,
     shouldAdvance,
     characterUpdate: shouldAdvance
       ? { character: characterAuthoredDtoSchema.parse(character), sheetState: nextSheetState }
       : null
+  }
+}
+
+/**
+ * Folds a Character's applications. While the Character is in a form they change the form's hit
+ * points and never the Sheet's; the form ends at 0 and, when it carries excess damage over, the
+ * damage past its last hit point is one more `DAMAGE` application on the Sheet (D130 amendment).
+ */
+function foldCharacterBatch(input: {
+  actor: EncounterRunCharacterActorState
+  batch: EncounterMechanicsBatchInput
+  sheet: { currentHitPoints: number; temporaryHitPoints: number; deathSaves: CharacterDeathSaves }
+  ownConditionIds: readonly string[]
+  campaignConditionIds: readonly string[]
+}) {
+  const { actor, batch, sheet } = input
+  const { form } = actor
+  const shared = {
+    targetActorId: actor.id,
+    conditionIds: [...new Set([...input.ownConditionIds, ...input.campaignConditionIds])],
+    scalarValues: batch.effectiveScalarValues,
+    retainedConditionIds: batch.retainedConditionIds,
+    layers: {
+      ownConditionIds: input.ownConditionIds,
+      campaignConditionIds: input.campaignConditionIds
+    },
+    absence: actor.absence
+  }
+  if (form === null) {
+    const folded = foldCharacterMechanicsApplications({
+      ...shared,
+      ...sheet,
+      maximumHitPoints: batch.effectiveMaximumHitPoints,
+      applications: batch.applications,
+      deathSaveRoll: batch.deathSave
+    })
+    return {
+      ...folded,
+      form: null,
+      sheet: {
+        currentHitPoints: folded.after.currentHitPoints,
+        temporaryHitPoints: folded.after.temporaryHitPoints,
+        deathSaves: folded.after.deathSaves
+      }
+    }
+  }
+  if (batch.sheetMaximumHitPoints === undefined)
+    throw new Error('A Character in a form needs its Sheet maximum hit points.')
+  const inForm = foldCharacterMechanicsApplications({
+    ...shared,
+    currentHitPoints: form.currentHitPoints,
+    temporaryHitPoints: form.tempHitPoints,
+    maximumHitPoints: batch.effectiveMaximumHitPoints,
+    deathSaves: null,
+    applications: batch.applications
+  })
+  if (inForm.after.currentHitPoints > 0)
+    return {
+      ...inForm,
+      form: {
+        ...form,
+        currentHitPoints: inForm.after.currentHitPoints,
+        tempHitPoints: inForm.after.temporaryHitPoints,
+        maxHitPoints: inForm.after.maximumHitPoints
+      },
+      sheet
+    }
+  // The form's last damage names where the carried-over damage came from.
+  let excessDamage = 0
+  let lastDamageIndex = -1
+  for (const [index, application] of inForm.applications.entries()) {
+    if (application.kind !== 'DAMAGE') continue
+    excessDamage += application.resolvedAmount - application.appliedAmount
+    lastDamageIndex = index
+  }
+  const lastDamage = batch.applications[lastDamageIndex]
+  const temporaryLost = Math.min(sheet.temporaryHitPoints, excessDamage)
+  const currentLost = Math.min(sheet.currentHitPoints, excessDamage - temporaryLost)
+  const carriedOver: CharacterRuleActionApplication[] =
+    form.excessDamageCarriesOver && excessDamage > 0 && lastDamage?.kind === 'DAMAGE'
+      ? [
+          {
+            ...lastDamage,
+            damageDisposition: 'NORMAL',
+            critical: false,
+            requestedAmount: excessDamage,
+            resolvedAmount: excessDamage,
+            appliedAmount: temporaryLost + currentLost,
+            beforeCurrentHitPoints: sheet.currentHitPoints,
+            afterCurrentHitPoints: sheet.currentHitPoints - currentLost,
+            beforeTemporaryHitPoints: sheet.temporaryHitPoints,
+            afterTemporaryHitPoints: sheet.temporaryHitPoints - temporaryLost,
+            maximumHitPoints: batch.sheetMaximumHitPoints
+          }
+        ]
+      : []
+  const onSheet = foldCharacterMechanicsApplications({
+    ...shared,
+    conditionIds: inForm.after.conditionIds,
+    layers: {
+      ownConditionIds: inForm.afterOwnConditionIds,
+      campaignConditionIds: input.campaignConditionIds
+    },
+    scalarValues: inForm.after.scalarValues,
+    retainedConditionIds: undefined,
+    absence: inForm.afterAbsence,
+    ...sheet,
+    maximumHitPoints: batch.sheetMaximumHitPoints,
+    applications: carriedOver
+  })
+  return {
+    before: inForm.before,
+    after: onSheet.after,
+    applications: [
+      ...inForm.applications,
+      ...onSheet.applications.map((application) => ({
+        ...application,
+        ordinal: application.ordinal + inForm.applications.length
+      }))
+    ],
+    afterOwnConditionIds: onSheet.afterOwnConditionIds,
+    afterAbsence: onSheet.afterAbsence,
+    stateChanged: true,
+    form: null,
+    sheet: {
+      currentHitPoints: onSheet.after.currentHitPoints,
+      temporaryHitPoints: onSheet.after.temporaryHitPoints,
+      deathSaves: onSheet.after.deathSaves
+    }
   }
 }
 

@@ -1326,6 +1326,7 @@ describe('spatial movement rule contracts', () => {
       id: ids.effect,
       encounterId: ids.encounter,
       sceneId: ids.scene,
+      maintainedEffectStateId: null,
       createdOrdinal: 1,
       version: 2,
       definition,

@@ -32697,6 +32697,7 @@ export declare const api: {
                         };
                     order: number;
                     paths: Array<any>;
+                    spellCast?: { castLevel: number };
                   }>;
                   gameSystemId: string;
                   id: string;
@@ -42508,6 +42509,7 @@ export declare const api: {
                         };
                     order: number;
                     paths: Array<any>;
+                    spellCast?: { castLevel: number };
                   }>;
                   gameSystemId: string;
                   id: string;
@@ -52328,6 +52330,7 @@ export declare const api: {
                         };
                     order: number;
                     paths: Array<any>;
+                    spellCast?: { castLevel: number };
                   }>;
                   gameSystemId: string;
                   id: string;
@@ -62139,6 +62142,7 @@ export declare const api: {
                         };
                     order: number;
                     paths: Array<any>;
+                    spellCast?: { castLevel: number };
                   }>;
                   gameSystemId: string;
                   id: string;
@@ -71985,6 +71989,7 @@ export declare const api: {
                         };
                     order: number;
                     paths: Array<any>;
+                    spellCast?: { castLevel: number };
                   }>;
                   gameSystemId: string;
                   id: string;
@@ -81796,6 +81801,7 @@ export declare const api: {
                         };
                     order: number;
                     paths: Array<any>;
+                    spellCast?: { castLevel: number };
                   }>;
                   gameSystemId: string;
                   id: string;
@@ -91484,6 +91490,7 @@ export declare const api: {
                       };
                   order: number;
                   paths: Array<any>;
+                  spellCast?: { castLevel: number };
                 }>;
                 gameSystemId: string;
                 id: string;
@@ -101290,6 +101297,7 @@ export declare const api: {
                         };
                     order: number;
                     paths: Array<any>;
+                    spellCast?: { castLevel: number };
                   }>;
                   gameSystemId: string;
                   id: string;
@@ -111101,6 +111109,7 @@ export declare const api: {
                         };
                     order: number;
                     paths: Array<any>;
+                    spellCast?: { castLevel: number };
                   }>;
                   gameSystemId: string;
                   id: string;

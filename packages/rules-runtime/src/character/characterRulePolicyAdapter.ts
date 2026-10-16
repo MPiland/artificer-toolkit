@@ -11,12 +11,9 @@ type Evaluation = Pick<CharacterRuleEvaluationResult, 'snapshot' | 'registry' | 
 type NumericCalculation = Evaluation['output']['derivedStats']['proficiencyBonus']
 
 function calculation(value: NumericCalculation): CharacterCalculation<number> {
+  // A System override (an Encounter scalar reduction or a creature form's score) is already in
+  // `effective`; only a manual adjustment is reported as an override.
   const override = value.override
-  if (override && override.source.kind !== 'MANUAL_ADJUSTMENT') {
-    throw new Error(
-      `Character rule policy override must be a manual adjustment: ${override.sourceId}`
-    )
-  }
   const adjustmentId =
     override?.source.kind === 'MANUAL_ADJUSTMENT' ? override.source.adjustmentId : null
   return {
@@ -35,12 +32,9 @@ function calculation(value: NumericCalculation): CharacterCalculation<number> {
 function proficiencyCalculation(
   value: Evaluation['output']['derivedStats']['savingThrows'][number]['proficiency']
 ): CharacterCalculation<'NONE' | 'HALF' | 'FULL' | 'DOUBLE'> {
+  // A System override (an Encounter scalar reduction or a creature form's score) is already in
+  // `effective`; only a manual adjustment is reported as an override.
   const override = value.override
-  if (override && override.source.kind !== 'MANUAL_ADJUSTMENT') {
-    throw new Error(
-      `Character rule policy override must be a manual adjustment: ${override.sourceId}`
-    )
-  }
   const adjustmentId =
     override?.source.kind === 'MANUAL_ADJUSTMENT' ? override.source.adjustmentId : null
   return {
@@ -65,16 +59,11 @@ function selectionCalculation<T extends string>(value: {
     source?: Evaluation['output']['defenses'][number]['source']
   } | null
 }): CharacterCalculation<T> {
-  if (value.override?.source && value.override.source.kind !== 'MANUAL_ADJUSTMENT') {
-    throw new Error(
-      `Character rule policy override must be a manual adjustment: ${value.override.sourceId}`
-    )
-  }
   return {
     base: value.base,
     effective: value.effective,
     contributions: [],
-    ...(value.override
+    ...(value.override && (value.override.source?.kind ?? 'MANUAL_ADJUSTMENT') === 'MANUAL_ADJUSTMENT'
       ? {
           override: {
             adjustmentId:

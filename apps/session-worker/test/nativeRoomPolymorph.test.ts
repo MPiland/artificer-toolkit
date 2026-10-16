@@ -132,7 +132,8 @@ describe('Polymorph turns a creature that fails its save into a beast it is not 
     expect(wolfRow(saved)).toEqual(before)
   }, 120000)
 
-  it('refuses a form too powerful, not a beast, no form, a Character, and more than one creature', async () => {
+  // A Character took no form before the D130 amendment (T4c); it now takes one, so it is no longer refused.
+  it('refuses a form too powerful, not a beast, no form, and more than one creature', async () => {
     const room = await polymorphRoom()
     const refusedWith = async (actorIds: readonly string[], creatureId?: string) => {
       const { answer } = await castAt(room, actorIds, creatureId)
@@ -143,10 +144,52 @@ describe('Polymorph turns a creature that fails its save into a beast it is not 
     expect(await refusedWith([WOLF_ID], CREATURE_IDS.GIANT_SPIDER)).toContain('too powerful')
     expect(await refusedWith([WOLF_ID], CREATURE_IDS.SKELETON)).toContain('not a type')
     expect(await refusedWith([WOLF_ID])).toContain('needs one of its creature forms')
-    expect(await refusedWith([CHARACTER_ACTOR_ID], CREATURE_IDS.GIANT_CENTIPEDE)).toContain(
-      'cannot take a creature form'
-    )
     expect(await refusedWith(WOLF_IDS, CREATURE_IDS.GIANT_CENTIPEDE)).toContain('at most 1')
     expect((await readRoomHistory(room.room.base.stub)).activeEffects).toHaveLength(0)
+  }, 120000)
+})
+
+describe("Polymorph turns a Character into a beast and keeps what is the Character's (SPELLS-28.1, D130 amendment)", () => {
+  const characterRow = (history: RoomHistory) =>
+    history.actors.find((actor) => actor.id === CHARACTER_ACTOR_ID)!
+
+  it('gives the Character the form on a failed save, refuses casting in it, and undoes the cast byte for byte', async () => {
+    const room = await polymorphRoom()
+    const before = await readRoomHistory(room.room.base.stub)
+    const sheetBefore = before.characterEffects
+
+    const { answer } = await castAt(room, [CHARACTER_ACTOR_ID], CREATURE_IDS.GIANT_CENTIPEDE)
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    await answerSave(room, FAIL)
+
+    const cast = await readRoomHistory(room.room.base.stub)
+    expect(JSON.parse(characterRow(cast).stateJson)).toMatchObject({
+      kind: 'CHARACTER',
+      form: {
+        effectId: expect.any(String),
+        sourceId: CREATURE_IDS.GIANT_CENTIPEDE,
+        currentHitPoints: giantCentipede.hitPoints,
+        maxHitPoints: giantCentipede.hitPoints,
+        excessDamageCarriesOver: true
+      }
+    })
+    // The caster concentrates on the form; Concentration stays while the form is worn.
+    expect(cast.maintainedStates.length).toBeGreaterThan(0)
+
+    // In the form the Character can cast nothing.
+    const offered = await room.actionChoices()
+    expect(offered.actions.some((action) => action.label.startsWith(polymorph.label))).toBe(false)
+
+    const undone = await room.send({
+      type: 'REVERT_LAST_ACTION',
+      encounterId: room.room.encounterId,
+      commandId: crypto.randomUUID(),
+      expectedVersion: await room.version()
+    })
+    expect(undone.type, JSON.stringify(undone)).toBe('COMMAND_COMMITTED')
+    const reverted = await readRoomHistory(room.room.base.stub)
+    expect(reverted.activeEffects).toHaveLength(0)
+    expect(JSON.parse(characterRow(reverted).stateJson).form).toBeNull()
+    expect(reverted.characterEffects).toEqual(sheetBefore)
   }, 120000)
 })

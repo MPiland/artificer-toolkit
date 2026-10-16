@@ -401,7 +401,10 @@ action opens no area occurrence (`placesZone` on the pending root): it commits t
 `liveSessionPlacedSpatialEffect` in the same transaction as every other area commit. The zone is
 built by `planEncounterPlacedZone` (FIXED, `SCENE_ABSOLUTE`, a cube as a polygon via `pointCubeOutline`), stored
 through `createPlacedSpatialEffect` (refused with `TARGET_UNAVAILABLE` at `MAX_SPATIAL_RULE_EFFECTS_PER_SCENE`), named
-on the area root as `placedSpatialEffectId`, and deleted by GM undo (`actionRevert.ts`) like a D99 grant. When a
+on the area root as `placedSpatialEffectId`, and deleted by GM undo (`actionRevert.ts`) like a D99 grant. A concentration
+zone compiles `zonePlacement.maintenance` (the same policy shape as `activeEffectPlan.maintenance`);
+`prepareEncounterActionMaintenance` selects it, so a zone-only cast opens Concentration and the zone depends on that
+state (`maintainedEffectStateId`, D135). When a
 creature fails the zone's entry save, `persistLiveMovementSpatial` copies the zone's grant template under the
 movement's origin onto that creature (`planSpatialEntryGrant`, built from the grant entry; it does not stack per
 authored zone entry). The grant's frozen graph is provenance only (`actionEffectPersistence.ts`,
@@ -532,7 +535,7 @@ Concentration starts. Undo restores both creatures. Character ACTORS-target and 
 `CAST_REACTION` pause (REACTION-4.T3e-a): the pause is a KERNEL_EVIDENCE `ENCOUNTER_ACTION` occurrence on the area root,
 each answer replays the root command, and the next transition (area pending, area commit or countered cast) continues
 that occurrence; the area commit input carries `failedCounters` and spends them like the single-target commit.
-Creature-capability casts (REACTION-4.T3h) and casts made without the Scene offer no reaction. The chain is described
+A Creature capability is offered a counter only when its Feature action effect sets `spellCast` (D136); a spell attack without it is never counterable. Casts made without the Scene offer no reaction. The chain is described
 below (T3d).
 
 **Higher-level check (current, REACTION-4.T3c; D127).** `reactionTrigger.higherLevelCheck` (`{ ability, baseDc }`)

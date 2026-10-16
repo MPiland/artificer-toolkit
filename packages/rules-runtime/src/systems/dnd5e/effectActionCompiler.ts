@@ -2118,7 +2118,8 @@ function zonePlacementPlan(
           senses: [...lingering.senses],
           endOnEvents: [...lingering.endOnEvents]
         }
-      : null
+      : null,
+    maintenance: maintenancePlan(action, damage)
   }
 }
 

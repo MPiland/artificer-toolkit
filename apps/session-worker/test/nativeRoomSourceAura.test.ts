@@ -11,7 +11,13 @@ import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { plainWolf } from '../src/testing/movementPlannerFixture.js'
 import { actionRoom } from './actionRoomFixture.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
-import { hitPointsOf, readZones, revertLastAction, walkerMoves } from './placedZoneRoomReads.js'
+import {
+  hitPointsOf,
+  readMaintainedStates,
+  readZones,
+  revertLastAction,
+  walkerMoves
+} from './placedZoneRoomReads.js'
 
 /**
  * SPELLS-20 T1b: the SRD Spirit Guardians, authored as a SOURCE zone from core options, leaves a 15 ft
@@ -138,5 +144,32 @@ describe('Spirit Guardians as a source aura (SPELLS-20 T1b)', () => {
     await room.advanceTurn()
     const walk = await walkerMoves(room, [OUTSIDE_THE_AURA, INSIDE_THE_AURA])
     expect(walk.executions).toEqual([])
+  })
+
+  it('opens the caster’s Concentration for the aura, which the aura depends on (D135)', async () => {
+    const room = await auraRoom(OUTSIDE_THE_AURA)
+
+    await castAura(room)
+
+    const [state, ...otherStates] = await readMaintainedStates(room)
+    expect(otherStates).toEqual([])
+    expect(state).toMatchObject({ ownerActorId: CASTER_ACTOR_ID })
+    expect(JSON.parse(String(state?.descriptorJson))).toMatchObject({
+      sourceActorId: CASTER_ACTOR_ID,
+      sourceActionId: expect.any(String)
+    })
+    const [zone] = await readZones(room)
+    expect(zone?.maintainedEffectStateId).toBe(state!.id)
+  })
+
+  it('removes the Concentration with the aura when the GM takes the cast back', async () => {
+    const room = await auraRoom(OUTSIDE_THE_AURA)
+    await castAura(room)
+    expect(await readMaintainedStates(room)).toHaveLength(1)
+
+    await revertLastAction(room)
+
+    expect(await readMaintainedStates(room)).toEqual([])
+    expect(await readZones(room)).toEqual([])
   })
 })
