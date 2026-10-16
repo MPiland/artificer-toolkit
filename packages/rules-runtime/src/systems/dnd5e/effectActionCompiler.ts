@@ -314,11 +314,14 @@ function dndScalingFactsFromRuleValues(
 ): Dnd5eEffectScalingFacts {
   const positiveInteger = (value: RuleValue | undefined): number | undefined =>
     typeof value === 'number' && Number.isSafeInteger(value) && value > 0 ? value : undefined
+  const classLevels = parseClassLevels(facts[DND5E_CLASS_LEVELS_FACT_KEY])
+  const totalLevel = Object.values(classLevels).reduce((sum, level) => sum + level, 0)
   return {
-    characterLevel: positiveInteger(facts.characterLevel),
+    // A Character's level is the sum of its class levels; a Creature has none.
+    characterLevel: totalLevel > 0 ? totalLevel : undefined,
     parentClassLevel: positiveInteger(facts.parentClassLevel),
     spellCastLevel: positiveInteger(facts[DND5E_SPELL_CAST_LEVEL_FACT_KEY]),
-    classLevels: parseClassLevels(facts[DND5E_CLASS_LEVELS_FACT_KEY]),
+    classLevels,
     selectedOptionalRiderIds: parseSelectedOptionalRiderIds(
       facts[DND5E_SELECTED_OPTIONAL_RIDERS_FACT_KEY]
     ),

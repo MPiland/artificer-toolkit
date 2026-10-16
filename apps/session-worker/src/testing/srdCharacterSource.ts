@@ -134,14 +134,11 @@ function buildRoots(
             spellLimits: [
               {
                 classLevel: 1,
-                slots: [
-                  { spellLevel: 1, slotCount: 2 },
-                  { spellLevel: 2, slotCount: 1 },
-                  { spellLevel: 3, slotCount: 1 },
-                  { spellLevel: 4, slotCount: 1 },
-                  { spellLevel: 5, slotCount: 1 },
-                  { spellLevel: 6, slotCount: 1 }
-                ],
+                // One slot of each level up to the highest the spells need, at least 5th.
+                slots: Array.from(
+                  { length: Math.max(5, ...spells.map(({ level }) => level)) },
+                  (_, index) => ({ spellLevel: index + 1, slotCount: index === 0 ? 2 : 1 })
+                ),
                 cantripsLimit: 0
               }
             ]

@@ -59,7 +59,11 @@ function healerRoom(config: {
       ...wolfIds.map((id) =>
         srdCreatureActor({
           id,
-          creature: plainWolf,
+          // A Wolf given hit points has them as its maximum too, else it is at 1.
+          creature:
+            config.wolfHitPoints === undefined
+              ? plainWolf
+              : { ...plainWolf, hitPoints: config.wolfHitPoints },
           currentHitPoints: config.wolfHitPoints ?? 1
         })
       ),
