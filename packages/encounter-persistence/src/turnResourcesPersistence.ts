@@ -29,7 +29,7 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules/checksum'
 import type { ReusableDefinitionCurrentDto } from '@artificer-toolkit/schema/shared/reusableDefinitions'
 import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
 import { effectiveHitPointMaximum } from '@artificer-toolkit/rules-runtime/character/activeEffectGrantTotals'
-import { attackRollEndedEffects } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
+import { actionEndedEffects } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import { deleteGrants } from './consumedGrantPersistence.js'
 import { createActiveRuleEffectStore } from './effectStore.js'
@@ -158,7 +158,8 @@ export async function persistEncounterTurnResources(
       throw new Error('Live Session Legendary Action owner is stale.')
     seenOwners.add(ownerId)
     if (evidence.resolution.kind === 'DECLINED') continue
-    const { selectedOptionId, targetActorId, application, attackRoll } = evidence.resolution
+    const { selectedOptionId, targetActorId, application, attackRoll, castsSpell } =
+      evidence.resolution
     const option = evidence.choice.options.find((entry) => entry.optionId === selectedOptionId)
     const target = await readActor(targetActorId)
     if (
@@ -185,15 +186,16 @@ export async function persistEncounterTurnResources(
     const owner = await readActor(ownerId)
     if (owner.kind !== 'CREATURE')
       throw new Error('Live Session Legendary Action owner is unavailable.')
-    // An attack roll uses up the owner's one-roll grants read now (no per-grant versions were
+    // An attack roll or spell cast uses up the owner's grants read now (no per-grant versions were
     // planned) and releases the conditions only they held, in the owner's own batch.
     const ownerEffects = await createActiveRuleEffectStore(ctx).list(
       turnEffectOwner(owner, state.id)
     )
-    const { consumedGrants, sourceReleases } = attackRollEndedEffects({
+    const { consumedGrants, sourceReleases } = actionEndedEffects({
       holderActorId: ownerId,
       held: ownerEffects,
-      makesAttackRoll: attackRoll
+      makesAttackRoll: attackRoll,
+      castsSpell
     })
     const ownerMechanics = sourceReleases.length
       ? await callbacks.applyMechanics({
@@ -415,7 +417,6 @@ export async function persistEncounterTurnResources(
         capability.data.gameSystemId !== state.gameSystemId ||
         !capability.data.usage ||
         capability.data.usage.refreshBoundary !== 'START_OF_TURN' ||
-        refresh.beforeUsed > capability.data.usage.maximum ||
         encounterRuleUsageUsed(actor, definition.id) !== refresh.beforeUsed
       )
         throw new Error('Live Session action-economy refresh is stale.')

@@ -681,10 +681,12 @@ export const fighter: ClassAuthored = {
           { id: classRowId(F, 0x67, 2), level: 17, amount: 2 }
         ]
       },
+      // One additional Action this turn: the grant sets the Action count to 2, so a second Surge on
+      // the same turn adds no third Action.
       effects: [
-        closedRuleEffect({
+        {
           id: classRowId(F, 0x60, 3),
-          ruleKind: CLOSED_RULE_KIND.CLASS_FIGHTER_ACTION_SURGE,
+          order: 1,
           invocation: {
             kind: 'ACTION',
             triggerCode: TRIGGER.ACTIVATED,
@@ -692,8 +694,45 @@ export const fighter: ClassAuthored = {
             activation: { code: ACTIVATION_CODE.FREE },
             range: { id: classRowId(F, 0x69, 3), rangeKind: RANGE_KIND.SELF },
             targeting: { selectionKind: TARGET_SELECTION_KIND.SELF }
-          }
-        })
+          },
+          paths: [
+            {
+              id: classRowId(F, 0x80, 3),
+              order: 1,
+              pathCode: PATH_CODE.ON_USE,
+              groupType: PATH_GROUP_TYPE.SINGLE,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: classRowId(F, 0x81, 3),
+                resultKind: 'SINGLE',
+                duration: { id: classRowId(F, 0x83, 3), durationKind: 'TURN', amount: 1 },
+                lifecycle: { turnAnchor: { actor: 'TARGET', boundary: 'END_OF_TURN' } },
+                outcomes: [
+                  {
+                    id: classRowId(F, 0x82, 3),
+                    effectKind: EFFECT_KIND.APPLY_GRANT,
+                    grants: {
+                      modifiers: [
+                        {
+                          id: classRowId(F, 0x84, 3),
+                          grantKind: GRANT_KIND.MODIFIER_GRANT,
+                          valueDomainCode: VALUE_DOMAIN_CODE.ACTION_COUNT,
+                          domain: {},
+                          modifierKind: MODIFIER_KIND.SET_VALUE,
+                          scope: MODIFIER_SCOPE_KIND.GLOBAL,
+                          selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                          payload: { amount: 2 },
+                          order: 1
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
       ]
     },
     {

@@ -26,7 +26,8 @@ import { advanceNativeActionGraphs } from './encounterActionExecution.js'
 import { prepareNativeActionEffectsPlan } from './encounterActionEffects.js'
 import { projectNativeActionEffectTransitions } from './encounterActionEffectReceipts.js'
 import { planNativeEncounterActionMechanics } from './encounterActionMechanicsPlan.js'
-import { attackRollEndedEffects } from './encounterEndedEffectRelease.js'
+import { preparedCastsSpell } from './encounterCastReactionDiscovery.js'
+import { actionEndedEffects } from './encounterEndedEffectRelease.js'
 import type { prepareEncounterActionMechanics } from './encounterActionMechanicsPreparation.js'
 import {
   projectEncounterActionTarget,
@@ -307,8 +308,9 @@ export async function prepareTurnLegendaryActions<
     })
     if (effects.maintenance)
       throw new Error('Legendary Action effects cannot start a maintained effect.')
-    // An attack roll uses up the owner's one-roll grants; an ending effect releases its condition.
+    // An attack roll or a spell cast uses up the owner's grants; an ending effect releases its condition.
     const makesAttackRoll = typeof prepared.binding.actionMechanic.attackBonus === 'number'
+    const castsSpell = preparedCastsSpell(prepared)
     const plan = planNativeEncounterActionMechanics(
       {
         prepared,
@@ -319,10 +321,11 @@ export async function prepareTurnLegendaryActions<
         commandId: root.rootCommandId,
         occurredAt: input.updatedAt,
         applications: result.applications,
-        sourceReleases: attackRollEndedEffects({
+        sourceReleases: actionEndedEffects({
           holderActorId: actor.id,
           held: prepared.movementTargets.get(actor.id)?.activeEffects ?? [],
-          makesAttackRoll
+          makesAttackRoll,
+          castsSpell
         }).sourceReleases,
         eventPhases: { resource: 'LEGENDARY_ACTION_RESOURCE', outcome: 'LEGENDARY_ACTION_OUTCOME' },
         ordinal,
@@ -396,6 +399,7 @@ export async function prepareTurnLegendaryActions<
         selectedOptionId: selection.optionId,
         targetActorId: target.id,
         attackRoll: makesAttackRoll,
+        castsSpell,
         execution: result.execution,
         initialFactsChecksum: result.initialFactsChecksum,
         ...(result.phaseReceipts ? { phaseReceipts: result.phaseReceipts } : {}),

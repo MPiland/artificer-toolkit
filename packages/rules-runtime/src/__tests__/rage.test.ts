@@ -78,10 +78,10 @@ function attackDamage(character: SrdCharacter, label: string, attackKind: string
 }
 
 describe('the Rage active effect', () => {
-  it('is a valid persisted grant that ends while its holder is Unconscious, or by its holder', () => {
+  it('is a valid persisted grant that ends on an idle turn, while Unconscious, or by its holder', () => {
     const { definition } = rage()
     expect(activeRuleEffectDefinitionDtoSchema.parse(definition)).toEqual(definition)
-    expect(definition.recurrence.endOnEvents).toEqual([])
+    expect(definition.recurrence.endOnEvents).toEqual(['ON_IDLE_TURN'])
     expect(definition.recurrence.endOnConditionIds).toEqual([conditionTypeId('UNCONSCIOUS')])
     expect(definition.recurrence.holderEnd).toEqual({ activation: 'BONUS_ACTION' })
   })

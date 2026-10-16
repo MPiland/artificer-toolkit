@@ -250,6 +250,9 @@ export const encounterActorActiveEffectCreateReceiptDtoSchema = lazySchema(() =>
   })
 )
 /** Immutable receipt for a target-owned state contribution created by an immediate outcome. */
+/** Names a condition an ended effect released, in the receipt (there is no graph node to cite). */
+export const ENDED_EFFECT_CONDITION_OPERATION_KEY = 'active-effect.ended'
+
 /**
  * What the acting source's own state changed with its action, apart from the target's outcome: the
  * conditions an effect that ended on the event held alone (SPELLS-27.T2, D125). Only releases are

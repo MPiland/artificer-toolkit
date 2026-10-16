@@ -105,7 +105,7 @@ function structuredRolls(sheet: CharacterSheetResponseDto): ResolvedRoll[] {
 }
 
 function resolveHitDieRoll(input: ExecuteRollInputDto, sheet: CharacterSheetResponseDto) {
-  if (input.source.label !== 'Short rest hit dice' || input.rollMode !== undefined) return undefined
+  if (input.rollMode !== undefined) return undefined
   const parsed = parseRollExpression(input.expression)
   if (parsed.transform.kind !== 'NONE') return undefined
 

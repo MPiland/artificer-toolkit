@@ -499,12 +499,23 @@ that stores nothing; `executionCancelsTriggeringEvent` reads it from the committ
 
 Before a Character's single-target spell cast runs its graph, the Worker (`nativeEncounterCastReaction.ts`) asks
 `discoverCastReactionActions` which other Characters hold a reaction for it, keeps those whose own invocation range
-reaches the caster on the Scene and whose slot level is at least the cast's (Counterspell's rule until T3c), and
+reaches the caster on the Scene and that the reactor can afford, and
 holds the cast in a `castReaction` pending offer (`REACTION_CHOICE` to the reactor). Declining records the reactor
 and the cast proceeds; using the reaction commits a countered cast (`persistEncounterCounteredCastCommit`): the
 caster's slot and action and the reactor's slot and reaction are spent, nothing else is applied, and no
 Concentration starts. Undo restores both creatures. Creature-capability, ACTORS-target and area casts, and casts
-made without the Scene offer no reaction. The chain is T3d; the higher-level ability check is T3c.
+made without the Scene offer no reaction. The chain is T3d.
+
+**Higher-level check (current, REACTION-4.T3c; D127).** `reactionTrigger.higherLevelCheck` (`{ ability, baseDc }`)
+makes a reaction cast below the triggering cast's level owe an ability check at DC `baseDc` + the cast's level
+(`castReactionCheckRequirement`). The offer carries `check` (the sealed choice, trigger level, check definition, DC
+and the reactor's d20 context) while the cast waits on the reactor's roll; the roll settles through the held-die rules
+(`ENTER_DICE`/`SYSTEM_ROLL`, or the app roll for an auto-rolling player). A pass is a countered cast whose
+`counter.check` seals the d20. A fail is a _failed counter_ (`failedCounters` on the pending context): the reactor
+joins the declined set and is not offered again, and the cast's terminal commit (normal or countered) spends every
+failed reactor's slot and reaction atomically with the cast (`failedCounterSpend.ts`), so one undo reverses them all.
+Spend receipts are planned at the terminal against the reactor as it stands, not when the check fails. A reactor that
+is the cast's target spends through the target's own mechanics call.
 
 #### `DAMAGE_TAKEN` (current, REACTION-4.T2)
 
@@ -729,6 +740,22 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   `EQUIPMENT_EQUIPPED` condition (category `ARMOR`, property `HEAVY`) on each Rage benefit's facets, the same predicate Monk's Unarmored
   Movement uses. A Rage that ends Concentration (`SPELLCASTING_LOCKED`) adds a Concentration-end child that undo cannot restore, so GM
   undo of that action is refused with that reason (a full restore is a proposed follow-up).
+  **Idle turns (ATTACK-9.T6b, SRD Rage "ends early").** The end event `ON_IDLE_TURN` ends a grant at the end of its holder's turn
+  unless the holder was engaged since their previous turn. The mark is `idleTurnMark` in the actor's free-form `resources`
+  (`encounterActorIdleTurnMark` / `withEncounterActorIdleTurnMark`), hashed in the actor state checksum so it replays with the Run.
+  It is tri-state: absent for an actor that holds no idle-bound grant, `ARMED` while it holds one and has not engaged, `ENGAGED` once
+  it has. The armed marker is what keeps the damage path free of reads: only a marked actor ever has its effects listed. A grant
+  created by an action effect (`persistEncounterActionEffects` through `armIdleTurnActor`) arms its holder, or marks it `ENGAGED` when
+  the holder is the current turn actor, so the first check is the end of its next turn (a lenient, recorded deviation from SRD 5.1 on
+  every activation path). Engaged means an attack roll (d20 result `ON_HIT`/`ON_MISS`/`ON_CRIT`) against a hostile creature
+  (`attackedHostileCreature`) or damage after reductions, and every such site marks through the one `engageIdleTurnActor`:
+  action commits, opportunity attacks, Disarm, Grapple and Shove, spell and area attack rolls, reaction attacks, the damage choke
+  point, Sheet HP decreases and GM HP edits. `planIdleTurnCheck`, run by `persistEncounterIdleTurnCheck` at the end of the turn commit,
+  after the outgoing turn's Legendary Action damage so that damage counts, ends the idle-bound grants of an `ARMED` holder and clears
+  its mark, and arms an `ENGAGED` one again. Skipped-turn ticks run no check for an actor that had no turn. GM undo restores the marks
+  an action changed (`idleTurnMarkChanges` on the `RESOLVE_ACTION` root, diffed before and after the commit); Disarm, GM HP edits,
+  Sheet HP changes and movement reactions are not undoable. A mark left by a grant that ended another way is reconciled at the next
+  END_OF_TURN.
 - **Gone with slice B:** the mechanic codes `SPEED_MOVEMENT_BONUS` and `NO_OPPORTUNITY_ATTACKS`, `suppressesEncounterOpportunityAttacks`,
   the `speedMovementBonus` DTO field and `speedBonusTurn` on `USE_BASIC_ACTION`.
 - **Gone with slice D:** `USE_BASIC_ACTION`, `UseEncounterBasicActionInputDto`, the catalogue `check` and `mechanics`
@@ -1073,7 +1100,7 @@ attack path consumes: ordinary actions, movement reaction attacks and Disarm rec
 their command, and a Legendary Action window deletes its owner's grants at the turn commit when the option
 rolled an attack (`attackRoll` on the EXECUTED evidence); only ordinary actions have GM undo. A
 grant made at another creature's turn end has no extra tick and ends at the end of the holder's next turn.
-An event that ends a condition-owning effect (Invisibility on its holder's attack roll, SPELLS-27.T2, D125) also releases the condition: the planner adds `CONDITION_REMOVE` to the action's source batch (`sourceApplications`, required on both mechanics batch receipts; `endedEffectConditionReleases`), and the root receipt's `endedMaintainedStates` and `restoredConditionIds` give the Concentration and the condition back on GM undo, fenced by the source stream version. Every attack-roll root calls `attackRollEndedEffects`: the action, the movement opportunity attack (applied in `liveMovementReactionPersistence`), the Legendary window (applied in `persistEncounterTurnResources` from the attack roll's evidence) and Disarm (a required `sourceApplications` on the `CONTESTED_ACTION` output, applied before settlement from the initiator's held effects); only the action has GM undo. `NON_RELEASING_EFFECT_EVENTS` keeps authoring from listing an event whose consumer does not release.
+An event that ends a condition-owning effect (Invisibility on its holder's attack roll, SPELLS-27.T2, D125) also releases the condition: the planner adds `CONDITION_REMOVE` to the action's source batch (`sourceApplications`, required on both mechanics batch receipts; `endedEffectConditionReleases`), and the root receipt's `endedMaintainedStates` and `restoredConditionIds` give the Concentration and the condition back on GM undo, fenced by the source stream version. Every attack-roll or cast root calls `actionEndedEffects` (`makesAttackRoll`, `castsSpell`; `effectsEndedBy` takes several events and ends an effect once): the action, the movement opportunity attack (applied in `liveMovementReactionPersistence`), the Legendary window (applied in `persistEncounterTurnResources` from the evidence's `attackRoll` and `castsSpell`) and Disarm (a required `sourceApplications` on the `CONTESTED_ACTION` output, applied before settlement from the initiator's held effects); only the action has GM undo. **Cast (SPELLS-27.T3):** `ON_CAST_SPELL` is raised when the source's prepared action casts a spell (`preparedCastsSpell`: a Character's spell or cantrip, or a Creature or Legendary action triggered by a spell attack; only Character casts have a counter level, `preparedSpellCastLevel`). The release rides the batch that carries the caster's own spend: the target batch when the caster is the target (the releases come first), else the source batch (`sourceApplications`). An area or chosen-creature cast carries it on the area root's `sourceApplications` (or on the caster's child batch when the caster is caught), and a countered cast on its root; both roots and their commit inputs also carry `consumedGrants`, so the effects end in the same transaction and GM undo gives them back (`restoreReleasedConditions`). **Reactor casts (SPELLS-27.T3b):** a reaction that casts a spell ends the reactor's own cast-ended effects too. A Shield-style reaction (the reactor is the host action's target) puts its releases on the host's target batch (`targetReleases`) and its grants in the host's `consumedGrants`; a Counterspell puts them on the reactor's spend and records them in the countered root's required `counter.applications`, restored by GM undo with the reactor's slot. `NON_RELEASING_EFFECT_EVENTS` keeps authoring from listing an event whose consumer does not release.
 An `ARMOR_CLASS` grant on a Creature raises its AC through `withCreatureActiveGrantArmorClass`, applied
 where movement targets and Cleaving facts are built. A
 SOURCE-anchored grant ends when its source is removed from the Run (`planDepartedSourceGrantRemovals`,
@@ -1130,6 +1157,14 @@ reaches that path (a critical hit reaches both). A TEST/OUTCOME action accepts g
 `REACTION_COUNT SET_VALUE 0` grant suppresses the reaction-allowance capability
 (`encounterActiveGrantCapabilitySuppressions`, read by `resolveEncounterRuleCapabilityStates` beside
 relationship suppressions), so its holder is offered no movement reaction while the grant lasts.
+
+**Granted extra Actions (ATTACK-9.3).** Action Surge is a core-authored free self action that spends its
+charge and applies a `TURN` / `END_OF_TURN` `ACTION_COUNT SET_VALUE {amount: 2}` grant. The System's ACTION
+binding names `grantedCountDomain: 'ACTION_COUNT'`, and `resolveActionAllowance` takes
+`max(allowance usage.maximum, activeSetValueGrantMaximum(holder effects, 'ACTION_COUNT'))`, so the economy
+offers exactly one more Action while the grant lasts. `SET_VALUE` is idempotent: a second Surge on the same
+turn adds no third Action. The next turn's refresh may reset a `used` above the base maximum
+(`turnResourcesPersistence` validates the equality of `encounterRuleUsageUsed`, not an upper bound).
 
 **Actor links (D129, SPELLS-28.T3).** A `TELEPATHIC_LINK` outcome compiles to `dnd5e.actor-link-proposal`
 and an `actorLinkContribution` on the active-effect plan (link kind, outcome id, Intelligence floor, duration

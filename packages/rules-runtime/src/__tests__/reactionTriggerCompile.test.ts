@@ -109,7 +109,10 @@ describe('a reaction authored with the SPELL_CAST trigger compiles through the d
   it('carries the real SRD Counterspell trigger onto its compiled invocation', () => {
     expect(compileEffect(counterspellEffect()).invocation).toMatchObject({
       activation: { code: 'REACTION', amount: 1 },
-      reactionTrigger: { kind: 'SPELL_CAST' }
+      reactionTrigger: {
+        kind: 'SPELL_CAST',
+        higherLevelCheck: { ability: 'SPELLCASTING', baseDc: 10 }
+      }
     })
   })
 

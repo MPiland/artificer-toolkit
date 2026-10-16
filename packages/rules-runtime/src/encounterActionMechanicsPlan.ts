@@ -37,9 +37,15 @@ export type NativeEncounterActionMechanicsInput = {
   /**
    * The conditions the source's effects that ended on this action's event held alone
    * (`endedEffectConditionReleases`), applied to the source in the same transaction as the
-   * effects' deletion. An action that targets its own source cannot release this way.
+   * effects' deletion. An action that targets its own source applies them first on that one batch,
+   * so the condition it releases is gone before the outcome adds its own.
    */
   sourceReleases?: readonly CharacterConditionRemoveOutcomeApplication[]
+  /**
+   * The conditions released for a reacting Character that is this action's target (a Shield cast
+   * against the attack on its caster), applied first on the target's batch.
+   */
+  targetReleases?: readonly CharacterConditionRemoveOutcomeApplication[]
   forceTargetVersionAdvance?: boolean
   /** The form the target takes with this outcome (D130), when the action created the effect holding it. */
   enterForm?: EncounterMechanicsBatchInput['enterForm']
@@ -98,13 +104,12 @@ function prepareNativeActionMechanicsBatches(
     ...(stow ? { stowEquippedItemInstanceId: stow.shieldItemInstanceId } : {})
   }
   const sourceReleases = input.sourceReleases ?? []
-  if (sourceReleases.length && actor.id === target.id)
-    throw new Error('An action cannot release its source conditions while targeting the source.')
+  const onTargetBatch = actor.id === target.id && spend !== 'ONLY'
   const sourceResourceBatch: EncounterMechanicsBatchInput | null =
     (source.kind === 'CHARACTER_ACTION' &&
       (resourceConsumption || itemConsumption || spellConsumption || stow) &&
-      (spend === 'ONLY' || actor.id !== target.id)) ||
-    sourceReleases.length
+      !onTargetBatch) ||
+    (sourceReleases.length && !onTargetBatch)
       ? {
           encounterId: input.encounterId,
           targetActorId: actor.id,
@@ -145,15 +150,17 @@ function prepareNativeActionMechanicsBatches(
           })
         : input.commandId,
     occurredAt: input.occurredAt,
-    applications: input.applications,
+    applications: [
+      ...(onTargetBatch ? sourceReleases : []),
+      ...(input.targetReleases ?? []),
+      ...input.applications
+    ],
     expectedCharacterStreamVersion: targetFacts.characterFacts?.active.play.streamVersion ?? null,
     effectiveMaximumHitPoints: targetFacts.effectiveMaximumHitPoints,
     effectiveScalarValues: targetFacts.effectiveScalarValues,
     forceVersionAdvance: input.forceTargetVersionAdvance ?? false,
     ...(input.enterForm ? { enterForm: input.enterForm } : {}),
-    ...(source.kind === 'CHARACTER_ACTION' && actor.id === target.id && spend !== 'ONLY'
-      ? sourceMutation
-      : {})
+    ...(source.kind === 'CHARACTER_ACTION' && onTargetBatch ? sourceMutation : {})
   }
   return { sourceResourceBatch, targetBatch }
 }
@@ -335,7 +342,8 @@ export function planNativeEncounterActionMechanics(
 /**
  * The source's one spend of an area action, settled alone: the Character's resource, item or stow
  * through its own batch, and a Creature's feature charge. A Disarm uses it for the conditions its
- * initiator's attack roll releases, which it carries without any spend. Each creature the area catches then plans
+ * initiator's attack roll releases and an area cast the conditions its caster's cast ends, which it
+ * carries without any spend. Each creature the area catches then plans
  * its outcome with no spend of its own, so the spend lands exactly once even when the source is caught.
  */
 export function planNativeEncounterAreaSourceSpend(
@@ -367,6 +375,7 @@ export function planNativeEncounterAreaSourceSpend(
     ),
     sourceCharacterStreamVersion: sourceResourcePlan?.characterStreamVersion ?? null,
     sourceItemUseStateTransition: sourceResourcePlan?.itemUseStateTransition ?? null,
+    sourceApplications: sourceResourcePlan?.receiptApplications ?? [],
     ...nativeSourceSpendReceipts(prepared)
   }
 }

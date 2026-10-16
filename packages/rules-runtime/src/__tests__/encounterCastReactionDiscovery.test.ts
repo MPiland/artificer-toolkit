@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   discoverCastReactionActions,
+  preparedCastsSpell,
   preparedSpellCastLevel
 } from '../encounterCastReactionDiscovery.js'
 
@@ -94,5 +95,50 @@ describe('prepared spell cast level', () => {
         prepared({ kind: 'CHARACTER_ACTION', candidate: { mechanicsOwner: { kind: 'SPELL' } } })
       )
     ).toBeNull()
+  })
+})
+
+describe('prepared action casts a spell', () => {
+  const creature = (triggerCode: string) =>
+    ({
+      source: { kind: 'CREATURE', capability: { mechanicFacts: { invocation: { triggerCode } } } },
+      characterActionState: null
+    }) as unknown as Parameters<typeof preparedCastsSpell>[0]
+
+  it('is true for a Character spell cast, a cantrip included', () => {
+    const spell = { kind: 'CHARACTER_ACTION', candidate: { mechanicsOwner: { kind: 'SPELL' } } }
+    for (const spellCastLevel of [0, 3])
+      expect(
+        preparedCastsSpell({
+          source: spell,
+          characterActionState: { actionMechanic: { spellCastLevel } }
+        } as unknown as Parameters<typeof preparedCastsSpell>[0])
+      ).toBe(true)
+  })
+
+  it.each(['MELEE_SPELL_ATTACK', 'RANGED_SPELL_ATTACK'])(
+    'is true for a Creature action triggered by a %s',
+    (triggerCode) => {
+      expect(preparedCastsSpell(creature(triggerCode))).toBe(true)
+    }
+  )
+
+  it.each([
+    'MELEE_WEAPON_ATTACK',
+    'RANGED_WEAPON_ATTACK',
+    'UNARMED_ATTACK',
+    'SAVING_THROW',
+    'ACTIVATED'
+  ])('is false for a Creature action triggered by %s', (triggerCode) => {
+    expect(preparedCastsSpell(creature(triggerCode))).toBe(false)
+  })
+
+  it('is false for a Character action that is not a spell', () => {
+    expect(
+      preparedCastsSpell({
+        source: { kind: 'CHARACTER_ACTION', candidate: { mechanicsOwner: { kind: 'ITEM' } } },
+        characterActionState: { actionMechanic: { spellCastLevel: 1 } }
+      } as unknown as Parameters<typeof preparedCastsSpell>[0])
+    ).toBe(false)
   })
 })

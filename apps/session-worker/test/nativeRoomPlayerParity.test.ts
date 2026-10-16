@@ -271,9 +271,7 @@ const PARITY: Record<CommandType, Entry> = {
   },
   REMOVE_ACTOR: {
     access: 'TABLE',
-    rule: table(
-      'D82: the GM removes an actor (GM_REMOVED) and returns a Character to initiative'
-    ),
+    rule: table('D82: the GM removes an actor (GM_REMOVED) and returns a Character to initiative'),
     actorScoped: true,
     build: (probe) => ({ ...base(probe), type: 'REMOVE_ACTOR', actorId: probe.actorId })
   },
@@ -436,9 +434,7 @@ async function outcome(room: Room, sender: Sender, command: Command) {
     sender === 'GM'
       ? await room.send(command)
       : await room.sendAsPlayer(command, sender === 'CONTROLLER' ? 'PLAYER' : 'OTHER_PLAYER')
-  if (answer.type === 'COMMAND_COMMITTED') return 'ACCEPTED'
-  if (answer.type !== 'COMMAND_REJECTED') throw new Error(`Unexpected answer ${answer.type}.`)
-  return answer.reason
+  return answer.type === 'COMMAND_COMMITTED' ? 'ACCEPTED' : answer.reason
 }
 
 /** The Character's Sheet play-state stream version in the live room. */

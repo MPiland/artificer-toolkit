@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
+import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { ServerCompletedRuleExecutionDto } from '@artificer-toolkit/schema/shared/rulesExecution'
 import type {
   EffectAuthored,
@@ -33,7 +34,14 @@ import { SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from '@artificer-to
 
 import { prepareActiveRuleEffectRecord } from '../activeRuleEffectRecords.js'
 import { prepareEncounterActionEffectPlans } from '../encounterActionEffectPlans.js'
+import { checksumRunActorPlayState } from '../encounterActorStorage.js'
 import {
+  encounterActorIdleTurnMark,
+  withEncounterActorIdleTurnMark,
+  withFeatureChargeUsed
+} from '../encounterActorState.js'
+import {
+  attackedHostileCreature,
   effectsEndedBy,
   expiredCarriedOverGrants,
   grantsEndedByHolderState,
@@ -41,6 +49,7 @@ import {
   planConcentrationCarriedGrantEnds,
   planDepartedSourceGrantRemovals,
   planEncounterGrantTicks,
+  planIdleTurnCheck,
   stateBoundGrants
 } from '../encounterGrantLifetimes.js'
 import { endedMaintenanceConditions } from '../encounterActionMaintenance.js'
@@ -585,19 +594,19 @@ describe('a Rage made on the Barbarian’s own turn', () => {
       holders: [{ actor: holder(TARGET_ID).actor, effects }]
     })
 
-  it('compiles to a one-minute holder-counted grant ended by Unconscious or its holder', () => {
+  it('compiles to a one-minute holder-counted grant ended by an idle turn, Unconscious or its holder', () => {
     expect(srdPlan(rage, {})).toMatchObject({
       recurrenceStage: 'END_OF_TURN',
       initialRemaining: 10,
       modifierGrantContribution: {
         tickAnchor: 'HOLDER',
-        endOnEvents: [],
+        endOnEvents: ['ON_IDLE_TURN'],
         endOnConditionIds: [DND5E_UNCONSCIOUS_CONDITION_DEFINITION_ID],
         holderEnd: { activation: 'BONUS_ACTION' }
       }
     })
     expect(stored(TARGET_ID).definition.recurrence).toMatchObject({
-      endOnEvents: [],
+      endOnEvents: ['ON_IDLE_TURN'],
       endOnConditionIds: [DND5E_UNCONSCIOUS_CONDITION_DEFINITION_ID],
       holderEnd: { activation: 'BONUS_ACTION' }
     })
@@ -648,6 +657,101 @@ describe('a Rage made on the Barbarian’s own turn', () => {
         conditionIds: [DND5E_UNCONSCIOUS_CONDITION_DEFINITION_ID]
       })
     ).toEqual([])
+  })
+})
+
+describe('a grant that ends on an idle turn (SRD Rage)', () => {
+  const idle = grantRecord(
+    storedGrant({ lifecycle: { endOnEvents: ['ON_IDLE_TURN'] }, currentActorId: null }),
+    { id: 0xc374, holderId: TARGET_ID }
+  )
+  const antitoxinRecord = grantRecord(storedGrant({ lifecycle: {}, currentActorId: null }), {
+    id: 0xc375,
+    holderId: TARGET_ID
+  })
+  const actor = creatureActor({ id: TARGET_ID, snapshot: {} })
+  const marked = (target: typeof actor, mark: 'ARMED' | 'ENGAGED' | null) =>
+    encounterRunActorStateSchema.parse({
+      ...target,
+      resources: withEncounterActorIdleTurnMark(target, mark)
+    })
+  const armed = marked(actor, 'ARMED')
+  const engaged = marked(actor, 'ENGAGED')
+
+  it('reads and ends nothing for an actor that holds no idle-bound grant', () => {
+    expect(
+      planIdleTurnCheck({ encounterId: ENCOUNTER_ID, actor, effects: [antitoxinRecord, idle] })
+    ).toEqual({ ended: [], nextMark: null })
+  })
+
+  it('ends only the idle-bound grants of an armed holder and clears the mark', () => {
+    expect(
+      planIdleTurnCheck({
+        encounterId: ENCOUNTER_ID,
+        actor: armed,
+        effects: [antitoxinRecord, idle]
+      })
+    ).toEqual({ ended: [idle], nextMark: null })
+  })
+
+  it('keeps the grant of an engaged holder and arms it again', () => {
+    expect(
+      planIdleTurnCheck({ encounterId: ENCOUNTER_ID, actor: engaged, effects: [idle] })
+    ).toEqual({ ended: [], nextMark: 'ARMED' })
+  })
+
+  it('stays armed while an idle-bound grant outside this encounter remains', () => {
+    expect(
+      planIdleTurnCheck({ encounterId: testUuid(0xc377), actor: armed, effects: [idle] })
+    ).toEqual({ ended: [], nextMark: 'ARMED' })
+  })
+
+  it('sets and clears the mark without touching the other resources', () => {
+    const used = encounterRunActorStateSchema.parse({
+      ...actor,
+      resources: withFeatureChargeUsed(actor, testUuid(0xc376), 1)
+    })
+    expect(encounterActorIdleTurnMark(used)).toBeNull()
+    expect(encounterActorIdleTurnMark(marked(used, 'ARMED'))).toBe('ARMED')
+    expect(encounterActorIdleTurnMark(marked(used, 'ENGAGED'))).toBe('ENGAGED')
+    expect(withEncounterActorIdleTurnMark(marked(used, 'ENGAGED'), null)).toEqual(used.resources)
+  })
+
+  it('hashes the mark into the actor state checksum', () => {
+    expect(checksumRunActorPlayState(armed)).not.toBe(checksumRunActorPlayState(actor))
+    expect(checksumRunActorPlayState(engaged)).not.toBe(checksumRunActorPlayState(armed))
+    expect(checksumRunActorPlayState(marked(engaged, null))).toBe(checksumRunActorPlayState(actor))
+  })
+
+  describe('attacking a hostile creature', () => {
+    const attacker = { disposition: 'FRIENDLY' as const }
+    const hit = { resultPath: 'ON_HIT' }
+
+    it.each(['ON_HIT', 'ON_MISS', 'ON_CRIT'])('counts an attack roll that resolves %s', (resultPath) => {
+      expect(
+        attackedHostileCreature({
+          d20s: [{ resultPath }, null],
+          source: attacker,
+          target: { disposition: 'HOSTILE' }
+        })
+      ).toBe(true)
+    })
+
+    it('does not count a saving throw the target made', () => {
+      expect(
+        attackedHostileCreature({
+          d20s: [{ resultPath: 'ON_SAVE_FAIL' }, undefined],
+          source: attacker,
+          target: { disposition: 'HOSTILE' }
+        })
+      ).toBe(false)
+    })
+
+    it.each(['FRIENDLY', 'NEUTRAL'] as const)('does not count an attack on a %s creature', (disposition) => {
+      expect(
+        attackedHostileCreature({ d20s: [hit], source: attacker, target: { disposition } })
+      ).toBe(false)
+    })
   })
 })
 
@@ -742,6 +846,23 @@ describe('effectsEndedBy on an end event', () => {
       }
     }
     expect(effectsEndedBy([both], 'ON_ATTACK_ROLL')).toEqual([both])
+  })
+
+  it('lists an effect once when it ends on several of the events an action is', () => {
+    const attacking = ending(0xc353, ['ON_INCAPACITATED'])
+    const both = {
+      ...attacking,
+      definition: {
+        ...attacking.definition,
+        recurrence: {
+          ...attacking.definition.recurrence,
+          endOnEvents: ['ON_ATTACK_ROLL' as const, 'ON_CAST_SPELL' as const]
+        }
+      }
+    }
+    expect(effectsEndedBy([both], 'ON_ATTACK_ROLL', 'ON_CAST_SPELL')).toEqual([both])
+    expect(effectsEndedBy([both], 'ON_CAST_SPELL')).toEqual([both])
+    expect(effectsEndedBy([both], 'ON_ABILITY_CHECK', 'ON_INCAPACITATED')).toEqual([])
   })
 })
 

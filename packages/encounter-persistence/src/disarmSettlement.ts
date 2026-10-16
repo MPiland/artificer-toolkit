@@ -10,9 +10,11 @@ import {
   planEncounterDisarmSuccess
 } from '@artificer-toolkit/rules-runtime/encounterDisarmPreparation'
 import { checksumRunActorPlayState } from '@artificer-toolkit/rules-runtime/encounterActorStorage'
+import { encounterActorRelationship } from '@artificer-toolkit/rules-runtime/encounterActionTargetPolicy'
 import type { EncounterCharacterWriteTransaction } from './ports.js'
 import { consumeNativeActionEconomy } from './actionEconomyPersistence.js'
-import { writeRunActor } from './documents.js'
+import { replaceRunActor, writeRunActor } from './documents.js'
+import { engageIdleTurnActor } from './idleTurnMark.js'
 
 type DisarmSettlementInput = Parameters<typeof disarmApplicationOutputs>[0]
 
@@ -71,15 +73,22 @@ export async function settleDisarm(
       await writeRunActor(ctx, targetRow._id, target)
     }
   }
-  const actor = input.actionEconomy
+  const spent = input.actionEconomy
     ? await consumeNativeActionEconomy(ctx, {
         actor: input.actor,
         consumption: input.actionEconomy,
         overridden: false
       })
     : input.actor
+  // The contest is the Disarmer's attack roll against the target: against a hostile creature it
+  // engages an actor armed for an idle-bound grant (SRD Rage).
+  const engaged =
+    encounterActorRelationship(input.actor.disposition, target.disposition) === 'HOSTILE'
+      ? engageIdleTurnActor(spent)
+      : spent
+  if (engaged !== spent) await replaceRunActor(ctx, spent, engaged)
   return {
-    actor,
+    actor: engaged,
     target,
     applicationOutputs: disarmApplicationOutputs({ ...input, stateTransition })
   }

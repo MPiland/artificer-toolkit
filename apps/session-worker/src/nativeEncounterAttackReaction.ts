@@ -53,6 +53,8 @@ export function discoverNativeAttackReaction(input: {
   state: EncounterRunState
   attack: Pick<Prepared, 'actor' | 'target' | 'movementTargets' | 'source'>
   prepareReaction(actionId: string): Promise<Prepared>
+  /** Creatures whose reaction this action already spent (a failed counter), though the run still shows it unspent. */
+  reactionSpentActorIds: readonly string[]
   capture: (
     request: LiveSessionEncounterRulesRequest
   ) => ReturnType<LiveCaptureReads['encounterRules']>
@@ -66,6 +68,7 @@ export function discoverNativeAttackReaction(input: {
     if (
       target.kind !== 'CHARACTER' ||
       target.id === actor.id ||
+      input.reactionSpentActorIds.includes(target.id) ||
       !reactor ||
       isEncounterActorDefeated(target, deadCharacterIdsOfTargets(movementTargets.values()))
     )

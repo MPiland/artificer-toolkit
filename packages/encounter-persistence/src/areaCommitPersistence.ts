@@ -40,7 +40,7 @@ import {
 } from './actionAreaPending.js'
 import { persistCompletedChild } from './actionChildPersistence.js'
 import { persistEncounterActionEffects } from './actionEffectPersistence.js'
-import { receiptConsumedGrants } from './consumedGrantPersistence.js'
+import { endEffects, receiptConsumedGrants } from './consumedGrantPersistence.js'
 import { completeActionOccurrence, recordActionRoot } from './actionCommitRecords.js'
 import { settleActionSourceSpend, sourceSpendMutation } from './actionSourceSpend.js'
 import { actionSystemRollAnswers, readAppCardedDice } from './appCardedDice.js'
@@ -51,6 +51,7 @@ import type {
   persistEncounterConcentrationChildren
 } from './concentrationChildrenPersistence.js'
 import { readRunActors } from './documents.js'
+import { idleTurnMarkChanges } from './idleTurnMark.js'
 import { createPlacedSpatialEffect } from './placedSpatialEffects.js'
 import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.js'
 import { projectNativeGm } from './nativeProjection.js'
@@ -305,8 +306,8 @@ export async function persistEncounterAreaCommit(
       batch.parentOccurrenceId !== areaOccurrenceId ||
       batch.sourceActorId !== source.id ||
       batch.targetActorId !== actor.id ||
-      batch.activeEffectTransitions.length !== createdEffects.length ||
-      batch.stateEffectTransitions.length > 0 ||
+      batch.activeEffectTransitions.length + batch.stateEffectTransitions.length !==
+        createdEffects.length ||
       batch.maintenanceTransition !== undefined ||
       (batch.kind === 'CHARACTER_MECHANICS_BATCH' &&
         batch.targetFeatureResourceConsumption !== null) ||
@@ -362,10 +363,11 @@ export async function persistEncounterAreaCommit(
     if (!actor) throw new Error('Live Session area actor scope mismatch.')
     return actor
   }
-  // The caster's resource, item and stow are one Sheet write; a caster caught by their own area
-  // makes it with their outcome, any other Character caster makes it alone.
+  // The caster's resource, item and stow, and the conditions their ended effects released, are one
+  // Sheet write; a caster caught by their own area makes it with their outcome (the release leads
+  // that batch), any other Character caster makes it alone.
   const sourceMechanics =
-    spends && casterIsCharacter && !mergedSpend
+    (spends || root.sourceApplications.length) && casterIsCharacter && !mergedSpend
       ? await callbacks.applyMechanics({
           encounterId: state.id,
           expectedEncounterVersion: state.version,
@@ -380,7 +382,10 @@ export async function persistEncounterAreaCommit(
             ordinal: 0,
             targetCharacterId: source.sourceId
           }),
-          applications: [],
+          applications: root.sourceApplications.map((application) => ({
+            ...application,
+            targetActorId: source.id
+          })),
           effectiveMaximumHitPoints: await callbacks.currentCharacterMaximumHitPoints(
             state,
             source.sourceId
@@ -393,11 +398,16 @@ export async function persistEncounterAreaCommit(
     current.set(source.id, sourceMechanics.updatedActor)
     if (
       root.sourceCharacterStreamVersion !== sourceMechanics.characterStreamVersion ||
+      checksumCanonicalJson(sourceMechanics.receiptApplications) !==
+        checksumCanonicalJson(root.sourceApplications) ||
       checksumCanonicalJson(sourceMechanics.itemUseStateTransition ?? null) !==
         checksumCanonicalJson(root.sourceItemUseStateTransition)
     )
       throw new Error('Live Session source Character receipt mismatch.')
-  } else if (!(mergedSpend && spends) && root.sourceCharacterStreamVersion !== null)
+  } else if (
+    (!(mergedSpend && spends) && root.sourceCharacterStreamVersion !== null) ||
+    root.sourceApplications.length
+  )
     throw new Error('Live Session source Character receipt mismatch.')
 
   const healEndedGrants: ActiveRuleEffectRecord[] = []
@@ -478,6 +488,8 @@ export async function persistEncounterAreaCommit(
       )
     }
   }
+  // The grants the cast used up (Invisibility) end with it; an undo gives them back.
+  const endedMaintainedStates = await endEffects(ctx, input.consumedGrants)
   current.set(
     source.id,
     await settleActionSourceSpend(ctx, {
@@ -637,10 +649,11 @@ export async function persistEncounterAreaCommit(
         ...input,
         endedGrants: [...input.endedGrants, ...healEndedGrants]
       }),
-      endedMaintainedStates: [],
+      endedMaintainedStates,
       addedConcentrationCasterId: null,
       speedBonusTurn: null,
       turnUses: null,
+      idleTurnMarkChanges: idleTurnMarkChanges(actors, nextActors),
       issuerLines: children.flatMap(({ actor, batch }) => {
         // A cast on chosen creatures asks no save, so it has nothing to report per creature.
         if (!batch.d20) return []

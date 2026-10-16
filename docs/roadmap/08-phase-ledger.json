@@ -3835,15 +3835,20 @@
         {
           "id": "ROOM-6",
           "title": "Room tests cover multi-Character and multi-controller scenarios",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "journeyTests": [],
           "journeyStatus": "none",
           "origin": [],
           "acs": [
             {
               "text": "movementRoomFixture offers a player-socket (asPlayer) reactor, proved by a room test that a player socket drives its own Character.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "A player moves their own Character from their own socket (movementRoom asPlayer) and the receipt records the player; the same player answering the GM-controlled Wolf decision is refused, the GM accepted.",
+                "Tests: apps/session-worker/test/nativeMovementPlayerSocket.test.ts.",
+                "Red: by construction (asPlayer absent at base), no run.",
+                "Green: ci/room-6 Tests 38902492246 on 4def19dbe and Live 38901811451 on a9babd153 (4def19dbe touched only Worker tests); merged in batch ae."
+              ],
               "origin": [],
               "note": "Depends on ROOM-5 (real Session Worker room tests).",
               "id": "ROOM-6.1"
@@ -3899,8 +3904,13 @@
             },
             {
               "text": "turnConcentration is proved with two Characters.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "Already proved with two Characters of different owners and per-Character outcomes including the other owner refusal.",
+                "Tests: apps/apis/tests/fixtures/turnConcentration.ts, apps/apis/convex/encounters/turnConcentration.test.ts.",
+                "No red: existing coverage.",
+                "Green: ci/room-6 Tests 38902492246 on 4def19dbe and Live 38901811451 on a9babd153 (4def19dbe touched only Worker tests); merged in batch ae."
+              ],
               "origin": [],
               "id": "ROOM-6.9"
             },
@@ -3913,8 +3923,13 @@
             },
             {
               "text": "The srdLegendaryAction player-controller and GM-override cases are proved with a two-controller fixture.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "The dragon controller is a second player separate from the Character owner: the controller sees and answers the Legendary choice, the Character owner neither sees it nor may answer, and the GM override answers.",
+                "Tests: apps/apis/convex/encounters/srdLegendaryAction.test.ts, apps/session-worker/test/nativeRoomPlayerParity.test.ts.",
+                "No red: coverage gap over working behaviour.",
+                "Green: ci/room-6 Tests 38902492246 on 4def19dbe and Live 38901811451 on a9babd153 (4def19dbe touched only Worker tests); merged in batch ae."
+              ],
               "origin": [],
               "id": "ROOM-6.11"
             },
@@ -3931,6 +3946,14 @@
               "proof": [],
               "origin": [],
               "id": "ROOM-6.13"
+            },
+            {
+              "id": "ROOM-6.14",
+              "text": "A player cannot move an Encounter-bound token their user does not control, in the Worker room and on Convex: the move is refused and nothing is written, proved room-side and on Convex.",
+              "status": "TODO",
+              "origin": [
+                "ROOM-6.T1 report 2026-10-16: Worker movement planning skips the controller check for Encounter-bound tokens"
+              ]
             }
           ],
           "wsjf": {
@@ -3943,7 +3966,7 @@
             {
               "id": "ROOM-6.T1",
               "text": "Player-socket and two-controller room fixtures: a player drives their own Character, two-Character Concentration and the Legendary Action controller cases.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["ROOM-6.1", "ROOM-6.9", "ROOM-6.11"],
               "wsjf": {
                 "bv": 2,
@@ -3955,14 +3978,15 @@
             {
               "id": "ROOM-6.T2",
               "text": "Maintenance variants proved room-side: multi-Character, detached, empty-prior and Assisted pauses.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["ROOM-6.3", "ROOM-6.5", "ROOM-6.6"],
               "wsjf": {
                 "bv": 1,
                 "tc": 1,
                 "rr": 5,
                 "size": 5
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-room-6.md"
             },
             {
               "id": "ROOM-6.T3",
@@ -3982,6 +4006,19 @@
                 "tc": 1,
                 "rr": 5,
                 "size": 8
+              }
+            },
+            {
+              "id": "ROOM-6.T4",
+              "text": "Enforce and prove the controller check on Encounter-bound token moves (room and Convex): a non-controlling player move is refused with no write. (The refusal already existed; proof only. Red: ci/room-6-t4-red Tests 38905531310 on 16088dba7, green as expected. Green: ci/room-6-t4 Tests 38911103026 and Live 38911102929 on bb6def86a.)",
+              "status": "DONE",
+              "closes": ["ROOM-6.14"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 8,
+                "rr": 8,
+                "size": 2,
+                "after": ["ROOM-6.T1"]
               }
             }
           ]
@@ -5126,7 +5163,7 @@
             {
               "id": "ATTACK-2.T2",
               "text": "Player parity journey (browser, player client): on their own Character a player casts an area spell, takes a death save, uses a non-movement reaction and targets from the map, with no GM step.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["ATTACK-2.5"],
               "wsjf": {
                 "bv": 8,
@@ -5741,8 +5778,14 @@
             {
               "id": "ATTACK-9.3",
               "text": "Second Wind (bonus action, 1d10 + Fighter level healing, one use per short rest) and Action Surge (one additional action this turn, uses per short rest by level) resolve in an Encounter through the generic feature-action path, with spend, refresh and GM undo. The feature is authored only from core authoring options (no CLOSED_RULE, no feature-specific kind or executor); an author-built equivalent made through the real authoring form publishes to the same structure and resolves identically.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "Second Wind heals 1d10 + Fighter level as a bonus action once per rest, and Action Surge grants one extra action on the turn through a generic action-allowance grant, both authored from core options; the homebrew copy behaves the same. Movement settlement ends holder-state grants only for the holder, not bystanders.",
+                "Tests: apps/apis/convex/encounters/fighterJourney.test.ts (SRD and homebrew), packages/rules-runtime actionSurge.test.ts, packages/encounter-persistence movementSettlementPersistence.test.ts.",
+                "Red: ci/attack-9-t3-red Tests 38899648786 on cf02e98ab (actionSurge, fighterJourney); ci/attack-9-t3-red2 Tests 38902708627 on 1a24f3310 (endHolderGrants holder-only).",
+                "Green: batch ad Tests 38900587934 and Live 38900587800 on c718dedeb.",
+                "Deferred edge case: a second Action Surge in one turn (future-enhancements)."
+              ],
               "origin": [],
               "note": "Second Wind likely compiles today (DICE_HEAL, CLASS_LEVEL bonus) but no test proves it; Action Surge needs an action-allowance grant (encounterActionEconomy.ts)."
             },
@@ -5772,8 +5815,14 @@
             {
               "id": "ATTACK-9.6",
               "text": "Rage ends early when the Barbarian's turn ends and they have neither attacked a hostile creature nor taken damage since their previous turn (SRD 5.1), tracked on the Rage grant by a generic ON_IDLE_TURN end event; authored only from core options with an author-built parity proof.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "Rage ends at the end of the Barbarian turn with no attack roll against a hostile creature and no damage taken since their previous turn, via a generic ON_IDLE_TURN end event authored from core options; the idleTurnMark (ARMED/ENGAGED) actor flag is engaged at every attack-roll and damage site and restored by undo.",
+                "Tests: apps/apis/convex/encounters/rageJourney.test.ts (SRD and homebrew), rageLegendary.test.ts, packages/rules-runtime grantLifetimes.test.ts and idleTurnMark.test.ts, AuthoredDomainFieldParity.test.tsx.",
+                "Red: ci/attack-9-t6b-red Tests 38885826020 on d8df7c13f (rageLegendary idle-turn Legendary Action, rageJourney Sheet damage).",
+                "Green: ci/attack-9-t6b Tests 38895923164 (attempt 3) and Live 38895923207 on 92843f8be; merged in batch ad.",
+                "Recorded deviation (lenient): a grant created on its holder own turn arrives ENGAGED, so the first idle check is at the end of the holder next turn on every activation path. Deferred edge cases: a stale mark is reconciled at the next END_OF_TURN; a second idle-bound grant created on own turn while ARMED is not exempted; a carried-over idle-bound grant at Run completion."
+              ],
               "origin": [],
               "note": "Deferred from ATTACK-9.T1 on 2026-10-14: no per-turn attack/damage record existed."
             }
@@ -5865,7 +5914,7 @@
             {
               "id": "ATTACK-9.T3",
               "text": "Second Wind proof and Action Surge action-allowance grant.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["ATTACK-9.3"],
               "wsjf": {
                 "bv": 5,
@@ -5873,8 +5922,7 @@
                 "rr": 3,
                 "size": 2,
                 "after": ["ATTACK-9.T2d"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-attack-9-t3-t6.md"
+              }
             },
             {
               "id": "ATTACK-9.T4",
@@ -5890,22 +5938,49 @@
               }
             },
             {
-              "id": "ATTACK-9.T5",
-              "text": "Two-weapon fighting off-hand bonus attack and the Fighting Style.",
+              "id": "ATTACK-9.T5a",
+              "text": "Two-weapon fighting off-hand attack: the compiler grants a BONUS_ACTION off-hand attack after the Attack action; the turn records the ATTACK_ACTION weapon and the ATTACK_ACTION_OTHER_WEAPON predicate requires a different light weapon.",
+              "status": "IN_PROGRESS",
+              "closes": ["ATTACK-9.5"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 3,
+                "size": 2,
+                "after": ["ATTACK-9.T3"]
+              },
+              "activeWorkbook": "docs/handoffs/slice-attack-9-t5.md"
+            },
+            {
+              "id": "ATTACK-9.T5b",
+              "text": "Off-hand damage omits a positive ability modifier but keeps a negative one (negative-only modifier mode); the Two-Weapon Fighting style grant restores the positive modifier.",
               "status": "TODO",
               "closes": ["ATTACK-9.5"],
               "wsjf": {
                 "bv": 5,
                 "tc": 3,
                 "rr": 3,
-                "size": 3,
-                "after": ["ATTACK-9.T3"]
+                "size": 2,
+                "after": ["ATTACK-9.T5a"]
+              }
+            },
+            {
+              "id": "ATTACK-9.T5c",
+              "text": "Builder data for two-weapon fighting and the Two-Weapon Fighting style, the end-to-end journey, and the authoring-parity proof from core options.",
+              "status": "TODO",
+              "closes": ["ATTACK-9.5"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 3,
+                "size": 2,
+                "after": ["ATTACK-9.T5b"]
               }
             },
             {
               "id": "ATTACK-9.T6",
               "text": "Rage early end from the per-turn attack and damage record. Also narrow endHolderGrants in movementSettlementPersistence.ts to the actors the pass damaged (one effect-list read per damaged actor, not per Run actor; free-tier cost).",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["ATTACK-9.6"],
               "wsjf": {
                 "bv": 3,
@@ -5913,13 +5988,12 @@
                 "rr": 2,
                 "size": 1,
                 "after": ["ATTACK-9.T1", "ATTACK-9.T2d"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-attack-9-t3-t6.md"
+              }
             },
             {
               "id": "ATTACK-9.T6b",
               "text": "Complete the Rage engaged mark: one shared helper sets it at every attack-roll site (opportunity attacks, Disarm, Grapple, Shove, spell and area attack rolls, reaction attacks) and every damage site (including Sheet and GM HP decreases), and every undo clears what it set; an armed marker on the actor (set where an idle-bound grant is created, cleared where it ends) keeps damage paths from reading effects for actors without one; legendary-action damage at the holder END_OF_TURN counts before the idle check; skipped-turn ticks never idle-check an actor that had no turn; the activation-turn exemption applies on every activation path. Red-first per site.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["ATTACK-9.6"],
               "wsjf": {
                 "bv": 8,
@@ -5927,8 +6001,7 @@
                 "rr": 5,
                 "size": 3,
                 "after": ["ATTACK-9.T6"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-attack-9-t3-t6.md"
+              }
             },
             {
               "id": "ATTACK-9.T7",
@@ -6396,7 +6469,7 @@
               "id": "ATTACK-17.3"
             },
             {
-              "text": "A player can attack an empty square in range; the GM sees which creature, if any, is there and resolves it, a wrong square is a miss, and the player learns only the outcome.",
+              "text": "Players target only tokens or the target list; there is no square attack. In targeting mode, creatures the GM has revealed but the player cannot see are listed first, marked hidden or invisible with an unknown distance, and the visible creatures follow, nearest first.",
               "status": "TODO",
               "proof": [
                 "T4a (occupied square): packages/schema/src/__tests__/encounter-attack-square-contracts.test.ts, packages/rules-runtime/src/__tests__/encounterAttackSquare.test.ts, apps/session-worker/test/nativeRoomAttackSquare.test.ts, CampaignTabletopDecisionDrawer.test.tsx; CI Tests 38875764975 and Live backend 38875765093 on acf721dec"
@@ -6478,7 +6551,7 @@
             },
             {
               "id": "ATTACK-17.T4a",
-              "text": "Attack a square: a SQUARE target on RESOLVE_ACTION for single-target attack-roll actions; the server computes the candidates (token overlap, hidden tokens included) and opens a GM-only ATTACK_SQUARE_RESOLUTION decision; a chosen occupant continues through the existing ACTOR attack flow; the attacker sees only that the GM is deciding.",
+              "text": "Attack a square: a SQUARE target on RESOLVE_ACTION for single-target attack-roll actions; the server computes the candidates (token overlap, hidden tokens included) and opens a GM-only ATTACK_SQUARE_RESOLUTION decision; a chosen occupant continues through the existing ACTOR attack flow; the attacker sees only that the GM is deciding. (Superseded 2026-10-16: the user ruled out square attacks; ATTACK-17.T4b removes this code.)",
               "status": "DONE",
               "closes": ["ATTACK-17.4"],
               "wsjf": {
@@ -6491,7 +6564,7 @@
             },
             {
               "id": "ATTACK-17.T4b",
-              "text": "Empty square: the GM answers nobody and the attacker still rolls through a dedicated miss path composed from the shared d20, card and economy primitives; the controller view of an empty-square miss equals an occupant miss except for the roll values; the map offers \"pick an empty square\".",
+              "text": "Remove the square attack (the SQUARE target, the ATTACK_SQUARE_RESOLUTION decision and their tests, stories and docs) with no shim, and order the target list with revealed unseen creatures first, marked hidden or invisible with an unknown distance, then visible creatures nearest first.",
               "status": "IN_PROGRESS",
               "closes": ["ATTACK-17.4"],
               "wsjf": {
@@ -8040,10 +8113,12 @@
           "origin": [],
           "acs": [
             {
-              "text": "A point-area action whose per-creature outcome applies a condition, a lasting or recurring effect, a relationship condition, or a maintained (Concentration) effect commits that outcome on each caught creature it selects, and GM undo removes it from every one.",
+              "text": "A point-area action whose per-creature outcome applies a condition, a lasting or recurring effect, or a maintained (Concentration) effect commits that outcome on each caught creature it selects, and GM undo removes it from every one.",
               "status": "TODO",
               "proof": [],
-              "origin": [],
+              "origin": [
+                "2026-10-16 main ruling on the SPELLS-19.T2 escalation: relationship conditions dropped from this AC. An area resolves by saves, and a relationship (Grappled, D105) comes only from a hit, so no area can author one. Frightened of the caster moved to SPELLS-29."
+              ],
               "note": "Registered 2026-10-10 from SPELLS-7 slice 5d, which refuses these at open and commit (refuseAreaEffectOutcomes in apps/session-worker/src/nativeEncounterAreaRules.ts: stateEffect, recurringEffect, relationshipConditionApplications, maintenance). One maintained effect must span every caught creature under one Concentration. Depends on SPELLS-7.",
               "id": "SPELLS-19.1"
             },
@@ -8065,10 +8140,9 @@
           "tasks": [
             {
               "id": "SPELLS-19.T1",
-              "text": "A point-area outcome commits conditions, lasting or recurring effects and relationship conditions on each caught creature through the single-target settlement path; GM undo removes them from every one.",
-              "status": "IN_PROGRESS",
+              "text": "A point-area outcome commits conditions, lasting or recurring effects and relationship conditions on each caught creature through the single-target settlement path; GM undo removes them from every one. (Red: Tests 38889036054. Green: ci/spells-19 Tests 38905377874 and Live 38905377876 on 89c0628df.)",
+              "status": "DONE",
               "closes": ["SPELLS-19.1"],
-              "activeWorkbook": "docs/handoffs/slice-spells-19.md",
               "wsjf": {
                 "bv": 8,
                 "tc": 3,
@@ -8078,8 +8152,8 @@
             },
             {
               "id": "SPELLS-19.T2",
-              "text": "One maintained (Concentration) effect spans every caught creature of a point-area action; ending Concentration or GM undo removes it from all of them.",
-              "status": "TODO",
+              "text": "One maintained (Concentration) effect spans every caught creature of a point-area action; ending Concentration or GM undo removes it from all of them. Fear proves it end to end: each creature that fails is Frightened, maintained by the caster's Concentration.",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-19.1"],
               "wsjf": {
                 "bv": 8,
@@ -8087,7 +8161,8 @@
                 "rr": 5,
                 "size": 3,
                 "after": ["SPELLS-19.T1"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-19.md"
             },
             {
               "id": "SPELLS-19.T3",
@@ -8120,7 +8195,7 @@
         {
           "id": "SPELLS-20",
           "title": "Auras that move with their source",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "journeyTests": [],
           "journeyStatus": "none",
           "origin": [],
@@ -8140,7 +8215,8 @@
             "rr": 3,
             "size": 5,
             "after": ["SPELLS-17", "SPELLS-25"]
-          }
+          },
+          "activeWorkbook": "docs/handoffs/slice-spells-20.md"
         },
         {
           "id": "SPELLS-21",
@@ -8550,7 +8626,7 @@
             {
               "id": "SPELLS-27.T3",
               "text": "ON_CAST_SPELL fact on cast commits feeds the consumer; Invisibility ends on a cast; authoring parity through the real form.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-27.1"],
               "wsjf": {
                 "bv": 3,
@@ -8558,8 +8634,20 @@
                 "rr": 3,
                 "size": 3,
                 "after": ["SPELLS-27.T2a"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-spells-27-t3.md"
+              }
+            },
+            {
+              "id": "SPELLS-27.T3b",
+              "text": "Every cast raises ON_CAST_SPELL: a Character reactor cast (Shield, Counterspell as reactor) and Creature and Legendary casts end the caster’s own cast-ended effects; proofs for an area cast catching its own invisible caster, replay after a declined Counterspell offer, and a cantrip whose only Sheet change is the release; the authoring-parity test asserts an invalid end event is cleared. (Red: ci/spells-27-t3b-red Tests 38905397540 on a41282184. Green: ci/spells-27-t3b Tests 38912896138 and Live 38912895972 on 5b2438198.)",
+              "status": "DONE",
+              "closes": ["SPELLS-27.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 3,
+                "size": 2,
+                "after": ["SPELLS-27.T3"]
+              }
             },
             {
               "id": "SPELLS-27.T4",
@@ -8576,8 +8664,8 @@
               "activeWorkbook": "docs/handoffs/slice-spells-27.md"
             },
             {
-              "id": "SPELLS-27.T5",
-              "text": "Author SRD end events (spells, class features, items, creature traits) from core options; corpus test lists any effect left with end-event text and no authored end, except a typed allow-list of other mechanisms.",
+              "id": "SPELLS-27.T4b",
+              "text": "Every damage root ends damage-triggered effects through damageTakenEndedEffects: the area commit, the Legendary window, the movement reaction, turn effects (ongoing damage) and death-save damage, each proved with GM undo; plus the ATTACK_ROLL-against-an-enemy end arm (Sanctuary) and the SPELL_CAST arm on the T3 cast fact. T5 authors no damage-ended SRD effect whose damage arrives through an unwired root.",
               "status": "TODO",
               "closes": ["SPELLS-27.2"],
               "wsjf": {
@@ -8589,8 +8677,21 @@
               }
             },
             {
+              "id": "SPELLS-27.T5",
+              "text": "Author SRD end events (spells, class features, items, creature traits) from core options; corpus test lists any effect left with end-event text and no authored end, except a typed allow-list of other mechanisms.",
+              "status": "TODO",
+              "closes": ["SPELLS-27.2"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-27.T4", "SPELLS-27.T4b"]
+              }
+            },
+            {
               "id": "SPELLS-27.T6",
-              "text": "Unify consumeOnFirstEvents and endOnEvents into one structured shape with explicit timing; delete the old enum, migrate data, no shim (D122). After REACTION-4.T3.",
+              "text": "Unify consumeOnFirstEvents and endOnEvents into one structured shape with explicit timing; delete the old enum, migrate data, no shim (D122). After REACTION-4.T3. The unified shape also absorbs endOnTriggers (T4) and drops its read default of [], migrating stored effects instead.",
               "status": "TODO",
               "closes": ["SPELLS-27.1"],
               "wsjf": {
@@ -8599,6 +8700,68 @@
                 "rr": 3,
                 "size": 3,
                 "after": ["SPELLS-27.T3", "REACTION-4.T3"]
+              }
+            }
+          ]
+        },
+        {
+          "id": "SPELLS-29",
+          "title": "Frightened follows its source",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": [
+            "SPELLS-19.T2 escalation 2026-10-16: Frightened applies while present and its source is not tracked (D-limits at SPELLS-2)"
+          ],
+          "wsjf": {
+            "bv": 5,
+            "tc": 3,
+            "rr": 3,
+            "size": 3
+          },
+          "acs": [
+            {
+              "id": "SPELLS-29.1",
+              "text": "A Frightened condition applied by an action records the creature that frightened it, authored from core options (no Fear-specific kind). The frightened creature has disadvantage on ability checks and attack rolls only while that source is within its line of sight, and a move that ends closer to the source is a soft-enforcement warning the GM can override (ADR 0034). A Frightened with no recorded source keeps its present always-on disadvantage. Proved for Fear, including GM undo.",
+              "status": "TODO",
+              "origin": [
+                "SPELLS-19.T2 escalation 2026-10-16; confirmed by the user 2026-10-16 (a move that ends closer warns, the GM can override)"
+              ]
+            },
+            {
+              "id": "SPELLS-29.2",
+              "text": "An effect can make a frightened creature flee its source (SRD Fear; Eyebite Panicked). It is authored from core options, not as a Fear-specific kind. At the start of the creature's turn its controller is told it must take the Dash action and move away from the source by the safest route. An action or move that does otherwise is a soft-enforcement warning with \"Do it anyway\", logged for the GM (ADR 0034). When the creature ends its turn without line of sight to the source, the app offers the authored saving throw (Wisdom for Fear). Success ends the effect for that creature only. Proved for Fear, with GM undo.",
+              "status": "TODO",
+              "origin": [
+                "Confirmed by the user 2026-10-16 (prompt plus warning with Do it anyway; automatic out-of-sight save)"
+              ]
+            }
+          ],
+          "tasks": [
+            {
+              "id": "SPELLS-29.T1",
+              "text": "A condition application carries an optional source actor; Frightened's check and attack contributors read line of sight to it; the movement planner warns on a move that ends closer; SRD Fear and every SRD action that frightens authors the source; authoring parity from core options.",
+              "status": "TODO",
+              "closes": ["SPELLS-29.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-19.T2"]
+              }
+            },
+            {
+              "id": "SPELLS-29.T2",
+              "text": "Flee-from-source rider: a generic turn-start \"must Dash away from the source\" requirement, soft-enforced on actions and moves; a turn-end save when the creature has no line of sight to the source; authored for SRD Fear and Eyebite Panicked; authoring parity from core options.",
+              "status": "TODO",
+              "closes": ["SPELLS-29.2"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-29.T1"]
               }
             }
           ]
@@ -8877,8 +9040,8 @@
             },
             {
               "id": "REACTION-4.T3c",
-              "text": "Counterspell level gate: TRIGGER_FACT cast level plus the ability-check test kind (option A), so a higher-level cast needs a successful check.",
-              "status": "IN_PROGRESS",
+              "text": "Counterspell level gate: TRIGGER_FACT cast level plus the ability-check test kind (option A), so a higher-level cast needs a successful check. (D127. Red: ci/reaction-4-t3c-red Tests 38899327892 on 6f63de4bd. Green: ci/reaction-4-t3c Tests 38906239337 and Live 38906239309 on 68fb01dc0.)",
+              "status": "DONE",
               "closes": ["REACTION-4.3"],
               "wsjf": {
                 "bv": 8,
@@ -8886,6 +9049,19 @@
                 "rr": 5,
                 "size": 3,
                 "after": ["REACTION-4.T3b"]
+              }
+            },
+            {
+              "id": "REACTION-4.T3f",
+              "text": "Counterspell check hardening: a failed or passed spellcasting check posts its chat roll card like any other check; a below-level slot is not offered to a reactor with no spellcasting ability (no throw); the check pause evidence receipt records pending D20_EVIDENCE; room tests for two reactors failing in sequence, a failure followed by another reactor successful counter, and undo after an auto-roll failure.",
+              "status": "IN_PROGRESS",
+              "closes": ["REACTION-4.3"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 5,
+                "size": 2,
+                "after": ["REACTION-4.T3c"]
               },
               "activeWorkbook": "docs/handoffs/slice-reaction-4.md"
             },
@@ -8899,7 +9075,7 @@
                 "tc": 3,
                 "rr": 5,
                 "size": 3,
-                "after": ["REACTION-4.T3b", "REACTION-4.T3c"]
+                "after": ["REACTION-4.T3b", "REACTION-4.T3c", "REACTION-4.T3f"]
               }
             },
             {
@@ -9527,8 +9703,12 @@
           "acs": [
             {
               "text": "A short-rest hit-die roll is recognised by its source kind (HIT_DIE), not its display label, so changing the label cannot break hit-die resolution; proved by a test that fails before the fix.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/apis/convex/rolls.test.ts (hit-die roll through the Convex roll mutation).",
+                "Red: ci/reliability-6-red Tests 38889565004 on 9cac04cf8 (tests only).",
+                "Green: ci/reliability-6-t1a Tests 38897281806 and Live 38897281700 on 82f5a4adb; merged in batch ad."
+              ],
               "origin": [],
               "note": "sheetRoll.ts:108 gates on label !== 'Short rest hit dice'; the same literal is built at :132.",
               "id": "RELIABILITY-6.1"
@@ -9543,8 +9723,12 @@
             },
             {
               "text": "A skill's governing ability and an ability's identity resolve from the System's authored vocabulary by id; a missing mapping is an error, never a silent DEXTERITY; proved by tests that fail before the fix.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/rules-runtime/src/__tests__/sheetSkillAbility.test.ts (Sheet projection, both error cases).",
+                "Red: ci/reliability-6-red Tests 38889565004 on 9cac04cf8 (tests only).",
+                "Green: ci/reliability-6-t1a Tests 38897281806 and Live 38897281700 on 82f5a4adb; merged in batch ad."
+              ],
               "origin": [],
               "note": "characterSheetVocabulary.ts:104/119, sheetProjection.ts:1078 (SKILL_ABILITY_MAP ?? 'DEXTERITY'), characterArmorClassRuleFacts.ts:37.",
               "id": "RELIABILITY-6.3"
@@ -9639,8 +9823,11 @@
             },
             {
               "text": "An actor's initiative roll (policy, modifier, expression, roll mode) is read by one shared function that switches on the actor's source kind (Character, Creature, custom), used by both the Worker and Convex.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/rules-runtime/src/__tests__/encounterInitiativeRoll.test.ts (new shared initiative roll module; the AC has no fail-before clause).",
+                "Green: ci/reliability-6-t1a Tests 38897281806 and Live 38897281700 on 82f5a4adb; merged in batch ad."
+              ],
               "origin": [],
               "note": "Three copies: session-worker roomEncounterReadPorts.ts:255 area, apps/apis/convex/encounters/initiativeSources.ts:38-62, rules-runtime systems/dnd5e/initiativeFactAdapter.ts:271-325; the `?? 'NORMAL'` conflates a creature with a Character.",
               "id": "RELIABILITY-6.15"
@@ -9688,9 +9875,8 @@
             {
               "id": "RELIABILITY-6.T1a",
               "text": "Typed identities for hit dice by kind, skill abilities from System vocabulary (no silent DEXTERITY) and one initiative-roll reader switching on source kind, replacing the Convex, Worker and dnd5e adapter copies.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["RELIABILITY-6.1", "RELIABILITY-6.3", "RELIABILITY-6.15"],
-              "activeWorkbook": "docs/handoffs/slice-reliability-6.md",
               "wsjf": {
                 "bv": 3,
                 "tc": 3,
@@ -9722,7 +9908,8 @@
                 "rr": 8,
                 "size": 8,
                 "after": ["RELIABILITY-6.T1b"]
-              }
+              },
+              "note": "AC 6.9 red already pushed: ci/reliability-6-red-69 Tests 38891936885 on 7264b2819."
             },
             {
               "id": "RELIABILITY-6.T2",

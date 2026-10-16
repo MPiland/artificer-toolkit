@@ -234,7 +234,7 @@ function findRuleProjectionSkillKey(
   resolution: CharacterBuilderResolution,
   skillId: string
 ): string {
-  return resolveCharacterSheetSkillKey(resolution.registry.system?.skills, skillId)
+  return resolveCharacterSheetSkillKey(resolution.registry.system, skillId)
 }
 
 function findPassiveSkill(

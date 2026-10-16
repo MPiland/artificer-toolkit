@@ -48,8 +48,11 @@ export async function evaluateNativeLiveActionEconomy(input: {
       ? prepared.source.candidate.mechanicFacts.invocation
       : prepared.source.capability.mechanicFacts.invocation
   const { activation } = invocation
-  if (!activation || activation.amount === null)
-    throw new Error('The selected action activation is not normalized.')
+  if (!activation) throw new Error('The selected action activation is not normalized.')
+  // A free action (Action Surge, a Legendary Action) spends no allowance; its charge is its cost.
+  if (activation.code === 'FREE')
+    return { activationCode: activation.code, economy: null, suppressed: false, attackAction: null }
+  if (activation.amount === null) throw new Error('The selected action activation is not normalized.')
   const {
     economy,
     attackAction: openedAttackAction,

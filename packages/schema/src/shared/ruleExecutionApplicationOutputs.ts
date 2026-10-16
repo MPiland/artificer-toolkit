@@ -93,6 +93,8 @@ const characterMechanicsBatchApplicationOutputDtoSchema = lazySchema(() =>
       attackActionTransition: z.optional(encounterAttackActionTransitionDtoSchema),
       /** The target's reaction decision on this attack; its spend belongs to the target, not the source. */
       reaction: z._default(z.nullable(encounterActionReactionReceiptDtoSchema), null),
+      /** The target also failed a counter against this cast (D127): its slot spend rides in this batch's Character write. */
+      targetFailedCounterSpend: z._default(z.boolean(), false),
       activeEffectTransitions: z
         .array(characterActiveEffectCreateReceiptDtoSchema)
         .check(z.maxLength(1)),
@@ -440,7 +442,8 @@ const characterMechanicsBatchApplicationOutputDtoSchema = lazySchema(() =>
           })
         const hasActiveEffectCreation = value.activeEffectTransitions.length > 0
         const reaction = value.reaction
-        const hasReactionMutation = reaction?.spellCastConsumption != null
+        const hasReactionMutation =
+          reaction?.spellCastConsumption != null || value.targetFailedCounterSpend
         if (
           reaction &&
           (reaction.reaction.reactorActorId !== value.targetActorId ||

@@ -212,6 +212,7 @@ export async function persistMovementSettlements(
       ? responseCommand.passageContest
       : undefined
   let passageSettled = false
+  const damagedActorIds = new Set<string>()
   const mechanicsChanged = input.settlements.some(
     (step) =>
       step.kind !== 'CONCENTRATION' || step.execution.result.applicationOutputs.cleanup !== null
@@ -280,6 +281,7 @@ export async function persistMovementSettlements(
         const nextDistance = execution.candidate.candidate.pathDistance
         if (nextDistance + 1e-8 < distance) throw new Error('Movement contacts are out of order.')
         distance = nextDistance
+        damagedActorIds.add(execution.candidate.candidate.targetActorId)
       }
       const committed = await callbacks.persistSpatial({
         ...common,
@@ -301,6 +303,7 @@ export async function persistMovementSettlements(
       const nextDistance = expected.option.candidate.pathDistance
       if (nextDistance + 1e-8 < distance) throw new Error('Movement contacts are out of order.')
       distance = nextDistance
+      damagedActorIds.add(expected.option.candidate.movingActorId)
       actors = await callbacks.persistReaction({
         ...common,
         actors,
@@ -376,10 +379,10 @@ export async function persistMovementSettlements(
     Boolean(passage) !== passageSettled
   )
     throw new Error('Movement settlement is incomplete.')
-  // The planner does not see a mover knocked unconscious mid-pass, so its grants end once the pass
-  // has settled, from each holder's committed state.
+  // The planner does not see a mover knocked unconscious mid-pass, so the grants of each actor the
+  // pass damaged end once it has settled, from that holder's committed state.
   if (mechanicsChanged && input.state.automationMode !== 'MANUAL')
-    for (const actor of actors)
+    for (const actor of actors.filter(({ id }) => damagedActorIds.has(id)))
       await callbacks.endHolderGrants({
         state: input.state,
         actor,

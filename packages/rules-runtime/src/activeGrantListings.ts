@@ -44,6 +44,7 @@ const SET_VALUE_DOMAIN_POLARITY: Readonly<
   Partial<Record<ValueDomainCode, { zero?: GrantPolarity; positive?: GrantPolarity }>>
 > = {
   SPEED: { zero: 'HARMFUL', positive: 'BENEFICIAL' },
+  ACTION_COUNT: { positive: 'BENEFICIAL' },
   REACTION_COUNT: { zero: 'HARMFUL' }
 }
 
@@ -110,7 +111,8 @@ function modifierPolarity(modifier: CharacterGrantFoldModifier): GrantPolarity {
  * - Enabling something is read by the domains in `ENABLE_DOMAIN_POLARITY` (opportunity attack
  *   immunity helps, the spellcasting lock harms); any other enabled domain is neutral.
  * - Setting a value is read by domain and value (D110): speed above zero helps (Fly); speed or
- *   reactions set to zero harms (Shocking Grasp); every other set value is neutral.
+ *   reactions set to zero harms (Shocking Grasp); the Action count set above zero helps (Action
+ *   Surge); every other set value is neutral.
  * - Adding an option follows `OPTION_DOMAIN_POLARITY`; removing one inverts it.
  * - Senses help.
  */

@@ -92,6 +92,32 @@ export function activeSpeedGrantFeet(
 }
 
 /**
+ * The highest amount a holder's active global `SET_VALUE` grants set one value domain to, or null
+ * when none do. Several grants setting the same value do not add (a second Action Surge on one turn
+ * adds no third Action).
+ */
+export function activeSetValueGrantMaximum(
+  effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[],
+  valueDomainCode: string
+): number | null {
+  let best: number | null = null
+  for (const { modifiers } of listActiveEffectGrants(effects)) {
+    for (const modifier of modifiers) {
+      const grant = record(modifier.grant)
+      const amount = record(grant?.payload)?.amount
+      if (
+        modifier.valueDomainCode === valueDomainCode &&
+        modifier.modifierKind === 'SET_VALUE' &&
+        grant?.scope === 'GLOBAL' &&
+        typeof amount === 'number'
+      )
+        best = best === null ? amount : Math.max(best, amount)
+    }
+  }
+  return best
+}
+
+/**
  * The effective maximum hit points the Sheet and the Encounter read, for any holder: a maximum
  * raised or lowered by its active fixed `HIT_POINTS_MAX` grants (Aid), less every active reduction,
  * never below 0. A Character passes its grant-free policy maximum, so its grants count once.
