@@ -1,9 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { srdBaselineContent } from '@artificer-toolkit/source-data/srd/index.js'
-import {
-  SRD_CONDITION_TYPES,
-  srdSystemRecord
-} from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { CharacterRuleActionUnsupportedCompilationError } from '../characterRuleActionSystemAdapter.js'
 import {
@@ -149,54 +146,14 @@ describe('SRD breath weapons breathe areas', () => {
     expect(gorgonRow.listedUnavailable).toBe(true)
   })
 
-  // A Brass Dragon's Sleep Breath is a lone on-fail Unconscious for minutes that ends when the
-  // sleeper takes damage: a timed condition its System owns, so the save runs it (SPELLS-29.T1a).
-  const brassSleepBreaths = breathRows.filter(
-    ({ creatureLabel, leavesLastingEffect }) =>
-      leavesLastingEffect && creatureLabel.includes('Brass')
-  )
-  const unconsciousId = SRD_CONDITION_TYPES.find(({ code }) => code === 'UNCONSCIOUS')?.id
-
-  it('finds the Sleep Breath of every age of Brass Dragon', () => {
-    expect(brassSleepBreaths).toHaveLength(4)
-  })
-
-  it.each(brassSleepBreaths)(
-    '$name runs its Unconscious as a timed condition that ends on damage',
-    (row) => {
-      const plan = compileEncounterFeatureActionPlan(
-        dnd5eCharacterRuleActionSystemAdapter,
-        row.capability
-      )
-      expect(plan.kind).toBe('TEST_OUTCOME')
-      if (plan.kind !== 'TEST_OUTCOME') return
-      expect(plan.outcomes.map(({ pathCode }) => pathCode)).toEqual(['ON_SAVE_FAIL'])
-      const [activeEffectPlan, ...rest] =
-        dnd5eCharacterRuleActionSystemAdapter.activeEffectPlans?.({
-          action: row.capability,
-          published: plan.test.published
-        }) ?? []
-      expect(rest).toEqual([])
-      expect(activeEffectPlan?.conditionContribution).toMatchObject({
-        conditionId: unconsciousId,
-        endOnTriggers: [{ event: 'DAMAGE_TAKEN', by: 'ANYONE' }]
-      })
-      expect(row.offered).toBe(true)
-    }
-  )
-
   const shapedLeavingMoreThanDamage = breathRows.filter(
-    (row) =>
-      row.leavesLastingEffect &&
-      row.creatureLabel !== 'Gorgon' &&
-      !brassSleepBreaths.includes(row)
+    ({ creatureLabel, leavesLastingEffect }) => leavesLastingEffect && creatureLabel !== 'Gorgon'
   )
 
-  // The System compiles a damage-only breath to a test outcome. One that also leaves a condition
-  // with a repeat save, a push, slowed or weakened targets has a shape it cannot execute, so
-  // discovery never offers it.
+  // The System compiles a damage-only breath to a test outcome. One that also leaves a condition, a
+  // push, slowed or weakened targets has a shape it cannot execute, so discovery never offers it.
   it('cannot execute exactly the shaped breaths that leave more than damage, and the unshaped Gorgon’s', () => {
-    expect(shapedLeavingMoreThanDamage).toHaveLength(17)
+    expect(shapedLeavingMoreThanDamage).toHaveLength(21)
     expect(
       breathRows
         .filter(({ compiles }) => !compiles)

@@ -211,9 +211,6 @@ export const brassDragonWyrmling: CreatureAuthored = {
                   durationKind: DURATION_KIND.MINUTE,
                   amount: 1
                 },
-                lifecycle: {
-                  endOnTriggers: [{ event: 'DAMAGE_TAKEN' as const, by: 'ANYONE' as const }]
-                },
                 outcomes: [
                   {
                     id: S.actionId(53, 13),

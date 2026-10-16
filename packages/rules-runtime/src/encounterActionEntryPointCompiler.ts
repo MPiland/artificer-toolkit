@@ -247,8 +247,8 @@ export function compileCharacterActionEntryPoints(
           )
         }
         // A grant freezes its own graph and reads only the TEST's hit path, and a condition's
-        // repeated save or duration is its own graph that owns the condition OUTCOME applied, so
-        // only those join the two-phase execution.
+        // repeated save is its own graph that reads only the cast's save DC, so only those join the
+        // two-phase execution.
         if (
           executionPlan.kind === 'TEST_OUTCOME' &&
           activeEffectPlans.some(
@@ -256,7 +256,7 @@ export function compileCharacterActionEntryPoints(
           )
         ) {
           throw new CharacterRuleActionUnsupportedCompilationError(
-            'TEST/OUTCOME actions combine only with grant or condition active-effect plans.'
+            'TEST/OUTCOME actions combine only with grant or repeated-save active-effect plans.'
           )
         }
         return {

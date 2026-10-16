@@ -162,12 +162,12 @@ export const dustMephit: CreatureAuthored = {
               id: S.actionId(92, 6),
               order: 1,
               pathCode: S.PATH_CODE.ON_SAVE_FAIL,
-              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
+              groupType: S.PATH_GROUP_TYPE.SINGLE,
               originKind: 'SOURCE' as const,
               selectionKind: 'FIXED' as const,
               resultBlock: {
                 id: S.actionId(92, 6) + '__result',
-                resultKind: 'SEQUENCE' as const,
+                resultKind: 'SINGLE' as const,
                 duration: {
                   id: S.actionId(92, 8),
                   durationKind: DURATION_KIND.MINUTE,
@@ -178,20 +178,6 @@ export const dustMephit: CreatureAuthored = {
                     id: S.actionId(92, 6),
                     effectKind: S.EFFECT_KIND.CONDITION,
                     conditionId: conditionTypeId('BLINDED')
-                  },
-                  {
-                    id: S.actionId(92, 9),
-                    effectKind: S.EFFECT_KIND.FOLLOW_UP_SAVE,
-                    timing: 'TARGET_TURN_END',
-                    savingThrow: {
-                      id: S.actionId(92, 10),
-                      dcMethod: 'FIXED_DC',
-                      abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.DEXTERITY,
-                      baseDc: 10
-                    },
-                    attempts: { kind: 'ONCE', repeatOnFailure: true },
-                    onSuccess: { kind: 'END' },
-                    onFailure: { kind: 'CONTINUE' }
                   }
                 ]
               }

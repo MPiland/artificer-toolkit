@@ -4023,9 +4023,6 @@ function supportedTestPhaseKind(action: Dnd5eCompiledEffectActionSource): TestKi
   }
   const paths = new Set<string>()
   const conditionCounts = new Map<string, number>()
-  // A save's timed condition with no repeat save (Fear, Charm Person): OUTCOME applies it and the
-  // timed-condition active effect owns it for its duration, so only that entry may carry one.
-  const timedEntryId = kind === 'SAVE' ? timedConditionPlan(action)?.compiledEntryId : undefined
   for (const entry of action.compiledEffect.entries) {
     if (isActiveEffectPlanOutcome(entry)) continue
     // A SEQUENCE result block applies each of its outcomes in order; OUTCOME
@@ -4033,8 +4030,9 @@ function supportedTestPhaseKind(action: Dnd5eCompiledEffectActionSource): TestKi
     if (
       entry.resolutionKind !== 'DIRECT' ||
       (entry.groupKind !== 'SINGLE' && entry.groupKind !== 'SEQUENTIAL') ||
-      ((entry.duration || entry.lifecycle || entry.maintenanceDefinitionId) &&
-        entry.entryId !== timedEntryId) ||
+      entry.duration ||
+      entry.lifecycle ||
+      entry.maintenanceDefinitionId ||
       entry.rangeOverride ||
       entry.targetingOverride ||
       !allowedPaths.includes(entry.pathCode) ||
