@@ -8097,7 +8097,22 @@
             "tc": 3,
             "rr": 5,
             "size": 5
-          }
+          },
+          "tasks": [
+            {
+              "id": "SPELLS-26.T1",
+              "text": "Spells that target several chosen creatures cast in an Encounter: survey, then build to the ACs (split at the survey if larger than one increment).",
+              "status": "IN_PROGRESS",
+              "closes": ["SPELLS-26.1"],
+              "activeWorkbook": "docs/handoffs/slice-spells-8-t1.md",
+              "wsjf": {
+                "bv": 8,
+                "tc": 3,
+                "rr": 5,
+                "size": 5
+              }
+            }
+          ]
         },
         {
           "id": "SPELLS-27",
