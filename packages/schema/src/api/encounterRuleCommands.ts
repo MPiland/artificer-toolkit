@@ -1,4 +1,5 @@
 import { z, lazySchema } from '../zod.js'
+import { MAX_ENCOUNTER_ACTORS } from '../shared/authoredLimits.js'
 
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { rollVisibilityDtoSchema } from './rolls.js'
@@ -7,7 +8,6 @@ import { serverRuleExecutionCorrelationIdDtoSchema } from '../shared/ruleExecuti
 import { sizeCodeSchema } from '../shared/enums.js'
 import { spatialPointDtoSchema, type SpatialPointDto } from '../shared/spatialFacts.js'
 import { encounterAcknowledgedRuleWarningsDtoSchema } from '../shared/encounterRuleWarnings.js'
-import { MAX_ENCOUNTER_ACTORS } from '../shared/authoredLimits.js'
 
 const uuidSchema = lazySchema(() => z.string().check(z.uuid()))
 const versionSchema = lazySchema(() => z.number().check(z.int()).check(z.nonnegative()))
@@ -109,7 +109,9 @@ export type EncounterAcceptedWieldConflictDto = z.infer<
 >
 
 /**
- * What a RESOLVE_ACTION aims at: one creature, the origin of a point-area action (AREA_CONTENTS
+ * What a RESOLVE_ACTION aims at: one creature, the creatures a chosen-creature spell names (Mass
+ * Healing Word; `scene` is the Scene version the caster saw, null when the action reads no
+ * positions, and the point a shaped list is centered on), the origin of a point-area action (AREA_CONTENTS
  * targeting), or the origin and direction of a directed area (a cone, a line, or a cube from the
  * caster's own side), in the coordinates of the Scene version the caster saw. A directed
  * area's origin must lie on the caster's token footprint. A caster-centered area (a Self sphere,
@@ -118,6 +120,26 @@ export type EncounterAcceptedWieldConflictDto = z.infer<
 export const resolveEncounterActionTargetDtoSchema = lazySchema(() =>
   z.discriminatedUnion('kind', [
     z.strictObject({ kind: z.literal('ACTOR'), actorId: uuidSchema }),
+    z.strictObject({
+      kind: z.literal('ACTORS'),
+      actorIds: z
+        .array(uuidSchema)
+        .check(z.minLength(1))
+        .check(z.maxLength(MAX_ENCOUNTER_ACTORS))
+        .check(
+          z.refine(
+            (ids) => new Set(ids.map((id) => id.toLowerCase())).size === ids.length,
+            'Each chosen creature is named once.'
+          )
+        ),
+      scene: z.nullable(
+        z.strictObject({
+          sceneId: uuidSchema,
+          expectedSceneVersion: versionSchema,
+          point: z.nullable(spatialPointDtoSchema)
+        })
+      )
+    }),
     z.strictObject({
       kind: z.literal('POINT'),
       sceneId: uuidSchema,
@@ -141,11 +163,14 @@ export const resolveEncounterActionTargetDtoSchema = lazySchema(() =>
 export type ResolveEncounterActionTargetDto = z.infer<typeof resolveEncounterActionTargetDtoSchema>
 
 /** A target that aims an area rather than names a creature. */
-export type AreaActionTargetDto = Exclude<ResolveEncounterActionTargetDto, { kind: 'ACTOR' }>
+export type AreaActionTargetDto = Exclude<
+  ResolveEncounterActionTargetDto,
+  { kind: 'ACTOR' | 'ACTORS' }
+>
 
-/** The creature a single-target action aims at; an area names none. */
+/** The creature a single-target action aims at; an area or a creature list names none. */
 export function actionTargetActorId(target: ResolveEncounterActionTargetDto): string {
-  if (target.kind !== 'ACTOR') throw new Error('An area action names no creature.')
+  if (target.kind !== 'ACTOR') throw new Error('Only a single-target action names one creature.')
   return target.actorId
 }
 

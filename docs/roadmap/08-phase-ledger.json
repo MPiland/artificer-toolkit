@@ -6996,6 +6996,11 @@
               "origin": [],
               "note": "Found 2026-10-09 from the user's review: planCarriedOverGrants sets remainingTicks null, so a later Run never ticks a carried grant (a 1-minute Fly lasts a 20-round fight), and nothing advances the manual Campaign clock by a Run's elapsed time (rules-runtime.md Encounter-scoped grants paragraph).",
               "id": "SPELLS-5.13"
+            },
+            {
+              "id": "SPELLS-5.14",
+              "status": "TODO",
+              "text": "When a Run completes, a Character's timed condition-owning effects carry over to the Campaign clock like its grants (D99) and end on it, releasing the condition they own; a Creature's end with the Run. Bug found 2026-10-15 in the SPELLS-27 survey: planCarriedOverGrants carries modifier grants only, so the stored condition stays on the Character forever. Proved by a regression test that fails before the fix."
             }
           ],
           "wsjf": {
@@ -7003,7 +7008,22 @@
             "tc": 2,
             "rr": 1,
             "size": 3
-          }
+          },
+          "tasks": [
+            {
+              "id": "SPELLS-5.T9",
+              "text": "Fix D99 carry-over for condition-owning timed effects (runGrantCarryOver.ts): carry them to the Campaign clock or release their condition at Run completion; red regression test first.",
+              "status": "TODO",
+              "closes": ["SPELLS-5.14"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 5,
+                "rr": 5,
+                "size": 2
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-27.md"
+            }
+          ]
         },
         {
           "id": "SPELLS-6",
@@ -7094,7 +7114,8 @@
               "status": "TODO",
               "proof": [
                 "apps/apis/convex/encounters/actionSpellCasting.test.ts (choices, slot spend and undo, upcast levels, ritual, Sheet and Encounter list the same cast levels)",
-                "packages/rules-runtime/src/__tests__/encounterSpellCastLevelFacts.test.ts (cast level selects the authored scaling row)"
+                "packages/rules-runtime/src/__tests__/encounterSpellCastLevelFacts.test.ts (cast level selects the authored scaling row)",
+                "partial: T12 (CI 38841168163 at 9b39d86d4, merged 2026-10-15) Mass Cure Wounds, Mass Healing Word and Prayer of Healing in one RESOLVE_ACTION with the ACTORS target kind: apps/session-worker/test/nativeRoomChosenActorsSpell.test.ts, apps/web/src/domains/campaigns/vtt/CampaignTabletopActionDrawer.test.tsx, packages/rules-runtime/src/__tests__/scalingRowSelection.test.ts"
               ],
               "origin": [],
               "note": "rul-9-rules-audit.md slice 5 (depends on area actions). Found in SPELLS-7 slice 5d (2026-10-10): action receipts never spend a slot today (encounterActionReceipt.ts sets spellCastConsumption to null; only movement reactions spend one), and GM undo refuses any action root that carries one (actionRevert.ts). Slot spend on cast needs its inverse in the revert path in the same change, for single-target and area roots. T1 merged 6bafbd6ed: core Encounter casting for single-Effect spells; multi-Effect spells are not offered until the compiler executes multi-entry groups. T5-T11 remain.",
@@ -7293,7 +7314,7 @@
             {
               "id": "SPELLS-8.T12",
               "text": "T6b: Mass Cure Wounds, Mass Healing Word and Prayer of Healing cast in an Encounter through one RESOLVE_ACTION with a reusable list-of-actors target kind and authored maxTargets (D118: one cast = one commit, one slot spend, one undo). Heals scale in the compiler from the bound spellCastLevel fact like damage, through one shared row selector used by the compiler and the Sheet selectValue; remove the effectAtCastLevel pre-flattening.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-8.1"],
               "wsjf": {
                 "bv": 8,
@@ -7301,8 +7322,7 @@
                 "rr": 5,
                 "size": 3,
                 "after": ["SPELLS-8.T6"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-spells-8-t1.md"
+              }
             },
             {
               "id": "SPELLS-8.T13",
@@ -7315,7 +7335,8 @@
                 "rr": 3,
                 "size": 2,
                 "after": ["SPELLS-8.T5"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-8-t1.md"
             }
           ]
         },
@@ -8068,10 +8089,81 @@
           "tasks": [
             {
               "id": "SPELLS-27.T1",
-              "text": "Survey end-event mechanics and propose one generic end-event consumer and the authored event vocabulary; ruling recorded as a D-number before build.",
+              "text": "Spike how a holder condition ends (stored vs derived), and plan a bare timed CONDITION as a condition-owning active effect so its duration and end events survive (D122).",
               "status": "IN_PROGRESS",
-              "closes": ["SPELLS-27.1", "SPELLS-27.2"],
-              "activeWorkbook": "docs/handoffs/slice-spells-27.md"
+              "closes": ["SPELLS-27.1"],
+              "activeWorkbook": "docs/handoffs/slice-spells-27.md",
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 3,
+                "size": 2
+              }
+            },
+            {
+              "id": "SPELLS-27.T2",
+              "text": "One consumer effectsEndedBy over both event lists for any v2 effect; Invisibility ends on its holder's attack roll after granting advantage; GM undo restores it (journey).",
+              "status": "TODO",
+              "closes": ["SPELLS-27.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-27.T1"]
+              }
+            },
+            {
+              "id": "SPELLS-27.T3",
+              "text": "ON_CAST_SPELL fact on cast commits feeds the consumer; Invisibility ends on a cast; authoring parity through the real form.",
+              "status": "TODO",
+              "closes": ["SPELLS-27.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-27.T2"]
+              }
+            },
+            {
+              "id": "SPELLS-27.T4",
+              "text": "Structured end trigger (event, by, against) sharing the reactionTrigger filter types; damage-taken and harm-by-source events.",
+              "status": "TODO",
+              "closes": ["SPELLS-27.2"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-27.T2"]
+              }
+            },
+            {
+              "id": "SPELLS-27.T5",
+              "text": "Author SRD end events (spells, class features, items, creature traits) from core options; corpus test lists any effect left with end-event text and no authored end, except a typed allow-list of other mechanisms.",
+              "status": "TODO",
+              "closes": ["SPELLS-27.2"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-27.T4"]
+              }
+            },
+            {
+              "id": "SPELLS-27.T6",
+              "text": "Unify consumeOnFirstEvents and endOnEvents into one structured shape with explicit timing; delete the old enum, migrate data, no shim (D122). After REACTION-4.T3.",
+              "status": "TODO",
+              "closes": ["SPELLS-27.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-27.T3", "REACTION-4.T3"]
+              }
             }
           ]
         }
@@ -8239,10 +8331,11 @@
             },
             {
               "text": "A user can author a reaction spell such as Absorb Elements: triggered when its caster takes damage of chosen types, it applies before that damage (resistance to the triggering type) and grants a follow-up benefit; it resolves through the same trigger model as the SRD reactions.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "proof": [
                 "partial: merge of c9cda1489 (REACTION-4.T2) adds the DAMAGE_TAKEN trigger with damageTypeIds and the user-authored Absorb Elements fixture (packages/rules-runtime/src/testing/absorbElementsSpell.ts); resistance currently covers every named type until the caster's next turn, so \"resistance to the triggering type\" waits for the trigger fact bound in REACTION-4.T3",
-                "partial: T3 increment A1 (CI 38837833587 at 1409a6e1a, merged 2026-10-15) binds resistance to the triggering type and the slot-scaled follow-up: packages/rules-runtime/src/__tests__/plannedAbsorbElements.test.ts, apps/session-worker/test/nativeRoomReaction.test.ts; waits on the authoring parity proof for damageTypeSource TRIGGER"
+                "partial: T3 increment A1 (CI 38837833587 at 1409a6e1a, merged 2026-10-15) binds resistance to the triggering type and the slot-scaled follow-up: packages/rules-runtime/src/__tests__/plannedAbsorbElements.test.ts, apps/session-worker/test/nativeRoomReaction.test.ts; waits on the authoring parity proof for damageTypeSource TRIGGER",
+                "apps/web/src/forms/tests/AuthoredDomainFieldParity.test.tsx (Absorb Elements built through the real node map, node-runtime resolver and form adapter matches testing/absorbElementsSpell.ts; choosing TRIGGER clears the fixed damage type), CI 38841723366 at 4c96ce0cd; merged 2026-10-15"
               ],
               "origin": [],
               "note": "Added 2026-10-08 at the user's request: non-SRD reactions must be user-authorable. Prove it with a user-authored Absorb Elements in a test fixture, not seeded content.",

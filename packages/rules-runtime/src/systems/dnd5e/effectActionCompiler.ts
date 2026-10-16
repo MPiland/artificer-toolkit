@@ -59,8 +59,13 @@ import type {
   GrantEndEvent
 } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import { CharacterRuleActionUnsupportedCompilationError } from '../../characterRuleActionSystemAdapter.js'
-import { encounterAreaTargetKind } from '../../encounterAreaAction.js'
+import {
+  chosenCreaturesAreaSupported,
+  chosenCreaturesMaxTargets,
+  encounterAreaTargetKind
+} from '../../encounterAreaAction.js'
 import { placedSpaceZone, zoneTriggerModes } from '../../encounterZonePlacement.js'
+import { selectScalingRow } from '../../scalingRowSelection.js'
 import {
   BASIC_ACTION_DEFINITION_FAMILY_KEY,
   CONDITION_RULE_STATE_DEFINITION_FAMILY_KEY,
@@ -433,6 +438,7 @@ type Dnd5eCompiledEffectActionSource = Pick<
   | 'conditionDefinitionIds'
   | 'savingThrowAbilityDefinitionId'
   | 'compiledEffect'
+  | 'spellCastLevel'
 >
 interface TestPlan {
   kind: TestKind
@@ -1366,6 +1372,34 @@ function modifierGrantPlan(
   return entry ? modifierGrantEntryPlan({ action, entry, attack, untilEndEvent: false }) : null
 }
 
+type SlotLevelAmount = {
+  valueKind: 'SPELL_SLOT_LEVEL'
+  multiplier?: number
+  subtractLevels?: number
+}
+
+function isSlotLevelAmount(payload: unknown): payload is SlotLevelAmount {
+  return (
+    typeof payload === 'object' &&
+    payload !== null &&
+    'valueKind' in payload &&
+    payload.valueKind === 'SPELL_SLOT_LEVEL'
+  )
+}
+
+/** A granted amount that scales by slot level (Aid, Absorb Elements) is the fixed amount a cast level gives. */
+function amountAtCastLevel<M extends { payload?: unknown }>(modifier: M, castLevel: number): M {
+  const { payload } = modifier
+  if (!isSlotLevelAmount(payload)) return modifier
+  return {
+    ...modifier,
+    payload: {
+      valueKind: 'FIXED',
+      amount: (payload.multiplier ?? 1) * Math.max(0, castLevel - (payload.subtractLevels ?? 0))
+    }
+  }
+}
+
 /**
  * The plan of one APPLY_GRANT entry. With `untilEndEvent` the grant has no counted duration and
  * lasts until one of its authored end events (a speed penalty that lasts until the creature
@@ -1381,6 +1415,11 @@ function modifierGrantEntryPlan(input: {
   const { action, entry, attack, untilEndEvent } = input
   if (!('outcome' in entry) || entry.outcome.effectKind !== 'APPLY_GRANT') return null
   const { grants } = entry.outcome
+  const { spellCastLevel } = action
+  // As a scaled heal is the row the cast level selects, a slot-scaled amount is fixed by it here.
+  const modifiers = (grants.modifiers ?? []).map((modifier) =>
+    spellCastLevel === undefined ? modifier : amountAtCastLevel(modifier, spellCastLevel)
+  )
   const initialRemaining = entry.duration ? conditionDurationTurns(entry.duration) : null
   const {
     turnAnchor,
@@ -1409,12 +1448,9 @@ function modifierGrantEntryPlan(input: {
       : []
   )
   if (
-    (grants.modifiers?.length ?? 0) + senses.length === 0 ||
+    modifiers.length + senses.length === 0 ||
     grantedSenses.length !== senses.length ||
-    // A slot-scaled amount (Aid) is fixed by the cast level, so a cast resolves it before this plan.
-    grants.modifiers?.some(
-      ({ payload }) => payload && 'valueKind' in payload && payload.valueKind === 'SPELL_SLOT_LEVEL'
-    ) ||
+    modifiers.some(({ payload }) => isSlotLevelAmount(payload)) ||
     grants.proficiencies?.length ||
     (untilEndEvent
       ? entry.duration !== undefined || endEvents.length === 0 || turnAnchor !== undefined
@@ -1436,9 +1472,7 @@ function modifierGrantEntryPlan(input: {
     initialRemaining,
     modifierGrantContribution: {
       applyGrantOutcomeId: entry.outcome.id,
-      modifiers: buildCharacterGrantFoldModifierFacts(
-        (grants.modifiers ?? []).map(compileModifierGrant)
-      ),
+      modifiers: buildCharacterGrantFoldModifierFacts(modifiers.map(compileModifierGrant)),
       senses: grantedSenses,
       tickAnchor: turnAnchor?.actor === 'SOURCE' ? 'SOURCE' : 'HOLDER',
       includesCurrentTurn: entry.duration?.durationKind === 'TURN',
@@ -2171,6 +2205,29 @@ function validateDamageBonuses(value: unknown): void {
   }
 }
 
+/**
+ * The dice a heal rolls: its one authored value, or the row the spell's cast level reaches. A
+ * heal's dice count shapes its graph, so the cast level is a compile input rather than a runtime fact.
+ */
+function healDiceConfiguration(
+  outcome: Record<string, unknown>,
+  spellCastLevel: number | undefined
+): string {
+  if (outcome.scalingKind === 'NONE' && typeof outcome.diceConfig === 'string')
+    return outcome.diceConfig
+  if (
+    outcome.scalingKind !== 'PER_LEVEL' ||
+    outcome.scalingSource !== 'SPELL_CAST_LEVEL' ||
+    !Array.isArray(outcome.levels)
+  )
+    unsupported('D&D dice healing requires one authored dice value or spell cast level rows.')
+  if (spellCastLevel === undefined) unsupported('D&D dice healing scaling facts are unavailable.')
+  const row = selectScalingRow(outcome.levels as readonly Record<string, unknown>[], spellCastLevel)
+  if (!row || typeof row.diceConfig !== 'string')
+    unsupported('D&D dice healing scaling does not select an authored value.')
+  return row.diceConfig
+}
+
 function validateHealBonuses(value: unknown): void {
   if (value === undefined) return
   if (!Array.isArray(value) || value.length > 100)
@@ -2343,20 +2400,32 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
   const supportsSelf =
     invocation.range.rangeKind === 'SELF' && invocation.targeting?.selectionKind === 'SELF'
   // A DISTANCE or Touch range only warns when the target is out of range (D11).
+  const supportsTargetRange =
+    invocation.range.rangeKind === 'UNLIMITED' ||
+    invocation.range.rangeKind === 'TOUCH' ||
+    (invocation.range.rangeKind === 'DISTANCE' &&
+      Number.isSafeInteger(invocation.range.amount) &&
+      invocation.range.amount > 0 &&
+      invocation.range.longAmount === undefined)
+  // Excluded creature types stay on the invocation: the room warns for an excluded target and the
+  // table can override it, so they never make an action unsupported.
   const supportsSingleTarget =
-    (invocation.range.rangeKind === 'UNLIMITED' ||
-      invocation.range.rangeKind === 'TOUCH' ||
-      (invocation.range.rangeKind === 'DISTANCE' &&
-        Number.isSafeInteger(invocation.range.amount) &&
-        invocation.range.amount > 0 &&
-        invocation.range.longAmount === undefined)) &&
-    // Excluded creature types stay on the invocation: the room warns for an excluded target and the
-    // table can override it, so they never make an action unsupported.
+    supportsTargetRange &&
     invocation.targeting?.selectionKind === 'SINGLE_TARGET' &&
     // A grant (Help) or a check (First Aid) may ask for a willing target: an unwilling one only warns,
     // and the table can override it.
     (invocation.targeting.dispositionKind === 'ANY' ||
       (invocation.targeting.dispositionKind === 'WILLING' && (grantPlan !== null || checkAction)))
+  // A bounded list of chosen creatures (Mass Healing Word), inside a round area when it names one
+  // (Mass Cure Wounds), resolves the one outcome on each; only a heal is supported, checked below
+  // once the outcome is read.
+  const supportsChosenCreatures =
+    supportsTargetRange &&
+    invocation.targeting?.selectionKind === 'CHOSEN_CREATURES' &&
+    invocation.targeting.dispositionKind === 'ANY' &&
+    chosenCreaturesMaxTargets(invocation.targeting) !== null &&
+    (!invocation.shape ||
+      chosenCreaturesAreaSupported(invocation.range.rangeKind, invocation.shape.shapeKind))
   // A Legendary Action option is free; the Feature charge it spends is its cost.
   const supportedActivation =
     invocation.kind === 'ACTION' &&
@@ -2375,8 +2444,8 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
     (invocation.triggerCode !== 'ACTIVATED' &&
       !(invocation.triggerCode === 'CHECK' && invocation.check.dc.kind !== 'CONTEST')) ||
     !supportedActivation ||
-    (!supportsSelf && !supportsSingleTarget) ||
-    invocation.shape
+    (!supportsSelf && !supportsSingleTarget && !supportsChosenCreatures) ||
+    (invocation.shape && !supportsChosenCreatures)
   )
     unsupported('D&D Effect action is not the supported activated self action shape.')
   const entry = effect.entries[0]
@@ -2413,6 +2482,8 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
     outcome.effectKind !== 'DETECT_CONCEALED'
   )
     unsupported('D&D check action outcome is not supported yet.')
+  if (supportsChosenCreatures && outcome.effectKind !== 'HEAL')
+    unsupported('D&D chosen-creature action outcome must be a heal.')
   if (
     !checkAction &&
     (outcome.effectKind === 'CONCEAL_FROM_OBSERVERS' || outcome.effectKind === 'DETECT_CONCEALED')
@@ -2456,14 +2527,9 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
   if (outcome.effectKind !== 'HEAL' && outcome.effectKind !== 'DAMAGE')
     unsupported('D&D Effect action outcome is not a supported hit-point or condition outcome.')
   if (outcome.effectKind === 'HEAL' && outcome.valueKind === 'DICE') {
-    if (
-      outcome.scalingKind !== 'NONE' ||
-      !('diceConfig' in outcome) ||
-      typeof outcome.diceConfig !== 'string'
-    ) {
-      unsupported('D&D dice healing requires one unscaled authored dice value.')
-    }
-    parseBoundedDiceConfiguration(outcome.diceConfig)
+    parseBoundedDiceConfiguration(
+      healDiceConfiguration(outcome as unknown as Record<string, unknown>, action.spellCastLevel)
+    )
     validateHealBonuses(outcome.bonuses)
     return { kind: 'DICE_HEAL', temporary: outcome.temporary ?? false }
   }
@@ -3746,19 +3812,10 @@ function exactDiceConfiguration(
         unsupported('D&D class dice scaling facts are unavailable.')
       level = value
     }
-    const candidates = outcomes
-      .filter(
-        (candidate) =>
-          typeof candidate.level === 'number' &&
-          Number.isSafeInteger(candidate.level) &&
-          candidate.level <= level &&
-          typeof candidate.dice === 'string'
-      )
-      .sort(
-        (left, right) =>
-          Number(right.level) - Number(left.level) || Number(left.order) - Number(right.order)
-      )
-    const selected = candidates[0]
+    const selected = selectScalingRow(
+      outcomes.filter((candidate) => typeof candidate.dice === 'string'),
+      level
+    )
     if (!selected || typeof selected.dice !== 'string')
       unsupported('D&D dice scaling does not select an authored value.')
     authored = selected.dice
@@ -4954,7 +5011,10 @@ function compileDnd5eEffectAction({
     const definition = diceGraphDefinition({
       action,
       entry,
-      diceConfig: compiledDiceConfiguration(entry),
+      diceConfig: healDiceConfiguration(
+        entry.outcome as unknown as Record<string, unknown>,
+        action.spellCastLevel
+      ),
       modifierFactKey: DND5E_RESOLVED_HEAL_MODIFIER_FACT_KEY,
       ...(recurringPlan ? { recurring: recurringPlan } : {})
     })
