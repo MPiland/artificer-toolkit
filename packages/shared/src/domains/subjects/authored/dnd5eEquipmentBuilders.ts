@@ -977,8 +977,11 @@ export function withOffHandAttack(
       ...copy,
       order: Math.max(...effects.map(({ order }) => order)) + 1,
       invocation: {
-        ...copy.invocation,
-        activation: { code: ACTIVATION_CODE.BONUS_ACTION, amount: 1 }
+        kind: 'ACTION' as const,
+        triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
+        activation: { code: ACTIVATION_CODE.BONUS_ACTION, amount: 1 },
+        range: copy.invocation.range,
+        targeting: copy.invocation.targeting
       },
       requirements: {
         id: childId(0x250, 1),
@@ -1007,7 +1010,7 @@ export function withOffHandAttack(
           }
         ]
       }
-    } as EquipmentEffectAuthored
+    }
   ]
 }
 
