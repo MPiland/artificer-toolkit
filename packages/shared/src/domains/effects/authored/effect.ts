@@ -43,6 +43,12 @@ export type ReactionMovementTriggerBindingAuthored = {
 export type ReactionAttackedSelfTriggerBindingAuthored = { kind: 'ATTACKED_SELF' }
 
 /**
+ * A creature within the reaction's range begins casting a spell; the reaction pauses the cast before
+ * it takes effect.
+ */
+export type ReactionSpellCastTriggerBindingAuthored = { kind: 'SPELL_CAST' }
+
+/**
  * The reactor takes damage of one of the named damage types from an attack that hit; the reaction
  * pauses the attack's outcome so what it grants applies to that damage.
  */
@@ -54,6 +60,7 @@ export type ReactionDamageTakenTriggerBindingAuthored = {
 export type ReactionTriggerBindingAuthored =
   | ReactionMovementTriggerBindingAuthored
   | ReactionAttackedSelfTriggerBindingAuthored
+  | ReactionSpellCastTriggerBindingAuthored
   | ReactionDamageTakenTriggerBindingAuthored
 
 type ReactionActivationAuthored = {

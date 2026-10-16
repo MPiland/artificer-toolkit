@@ -37,6 +37,7 @@ export const counterspell: SpellAuthored = {
           code: ACTIVATION_CODE.REACTION,
           amount: 1
         },
+        reactionTrigger: { kind: 'SPELL_CAST' as const },
         range: {
           id: spellChildId(SPELL_IDS.COUNTERSPELL, 0x211, 1),
           rangeKind: RANGE_KIND.DISTANCE,
@@ -62,8 +63,7 @@ export const counterspell: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.COUNTERSPELL, 0x212, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'COUNTERSPELL' as const
+                effectKind: EFFECT_KIND.CANCEL_TRIGGERING_EVENT
               }
             ]
           }

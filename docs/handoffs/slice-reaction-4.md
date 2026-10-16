@@ -197,7 +197,7 @@ Closes AC REACTION-4.3 and the rest of AC REACTION-4.2. Built in increments, eac
   - **Honest limit:** the `ON_ATTACK_ROLL` consume event is the only attack-roll event the model has, so a miss or a non-melee attack roll also spends the melee bonus. Registered in `future-enhancements.md` "Deferred edge cases".
   - **Not run locally:** typecheck, the Worker suite and the Convex suites (CI only). The local `characterSpellCastActions.test.ts` has four Concentration failures that also fail with the original file (stale local dist); CI is the proof.
 
-## REACTION-4.T3 Part B: SPELL_CAST and the Counterspell chain (design packet, awaiting the architect)
+## REACTION-4.T3 Part B: SPELL_CAST and the Counterspell chain (design packet; the split, option A and the new contracts taken as approved by Phase 8's "continue" of 2026-10-15)
 
 Surveyed 2026-10-15 after increment 2 closed AC REACTION-4.2. AC REACTION-4.3 needs four things the codebase does not have, and three of them are new persisted or authored contracts, so this is escalated rather than decided in the slice (AGENTS.md "Architect Escalation").
 
@@ -220,3 +220,10 @@ Surveyed 2026-10-15 after increment 2 closed AC REACTION-4.2. AC REACTION-4.3 ne
 | T3d | The chain: nested offers, innermost first, one occurrence | T3b, T3c |
 
 AC 4.3 closes with T3d. Questions for the architect: (1) approve the split; (2) option A versus B for the check; (3) confirm the `CAST_REACTION` pending phase and `SPENT_NO_EFFECT` terminal status as the new persisted contracts.
+
+### T3b-1 results (SPELL_CAST trigger and Counterspell from core options)
+
+- **Delivered (CI run 38846684453 green on 5001d1d66):** `SPELL_CAST` in the `reactionTrigger` union and the pin trigger enum (not `consumeOnFirstEvents`/`endOnEvents`); the `CANCEL_TRIGGERING_EVENT` outcome compiling to the stored-state-free `dnd5e.cancel-triggering-event-proposal` (read from the trace by `executionCancelsTriggeringEvent`); `discoverCastReactionActions`; Counterspell authored from core options; the `COUNTERSPELL` closed-rule kind deleted; Convex `api.d.ts` and SRD manifest regenerated.
+- **Review fix:** the compiler refuses `CANCEL_TRIGGERING_EVENT` on anything but a `SPELL_CAST` reaction (regression test in `reactionTriggerCompile.test.ts`).
+- **Known, scheduled:** Counterspell is an unconditional cancel until T3c authors the level gate (a `TRIGGER_FACT` level plus the ability-check test); the `SPELL_CAST` trigger has no perception requirement yet; `discoverCastReactionActions` and `executionCancelsTriggeringEvent` have no production caller until T3b-2; the attack-path types still admit `SPELL_CAST` through the shared pin enum (narrow when T3b-2 adds the cast path); the web authoring-parity proof for a `SPELL_CAST` reaction lands before AC 4.3 closes.
+- **Not built:** the `CAST_REACTION` pause, the `SPENT_NO_EFFECT` terminal and the cast apply path (T3b-2).

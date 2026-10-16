@@ -56,6 +56,7 @@ export const reactionTriggerBindingDtoSchema = lazySchema(() =>
   z.discriminatedUnion('kind', [
     reactionMovementTriggerBindingDtoSchema,
     z.strictObject({ kind: z.literal('ATTACKED_SELF') }),
+    z.strictObject({ kind: z.literal('SPELL_CAST') }),
     z.strictObject({
       kind: z.literal('DAMAGE_TAKEN'),
       damageTypeIds: z

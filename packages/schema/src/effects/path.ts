@@ -24,6 +24,7 @@ import { closedRuleDtoSchema } from './closedRule.js'
 import { actorRelationshipDtoSchema } from './actorRelationship.js'
 import { concealFromObserversDtoSchema } from './concealFromObservers.js'
 import { detectConcealedDtoSchema } from './detectConcealed.js'
+import { cancelTriggeringEventDtoSchema } from './cancelTriggeringEvent.js'
 import { targetingDtoSchema } from './targeting.js'
 import { teleportDtoSchema } from './teleport.js'
 import { durationDtoSchema } from '../shared/duration.js'
@@ -80,7 +81,8 @@ const createOutcomePayloadDtoSchema = ({ includeManifest }: { includeManifest: b
             treeStrideDtoSchema,
             actorRelationshipDtoSchema,
             concealFromObserversDtoSchema,
-            detectConcealedDtoSchema
+            detectConcealedDtoSchema,
+            cancelTriggeringEventDtoSchema
           ]
         : [
             closedRuleDtoSchema,
@@ -106,7 +108,8 @@ const createOutcomePayloadDtoSchema = ({ includeManifest }: { includeManifest: b
             treeStrideDtoSchema,
             actorRelationshipDtoSchema,
             concealFromObserversDtoSchema,
-            detectConcealedDtoSchema
+            detectConcealedDtoSchema,
+            cancelTriggeringEventDtoSchema
           ]
     )
   )
