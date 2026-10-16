@@ -163,6 +163,7 @@ export async function persistEncounterAreaCommit(
   if (
     command.type !== 'RESOLVE_ACTION' ||
     command.target.kind === 'ACTOR' ||
+    command.target.kind === 'SQUARE' ||
     command.optionalCombatIntent != null ||
     rootExecution.status !== 'AGGREGATE_CHOICE_COMPLETE' ||
     rootExecution.applicationOutputs.kind !== 'ENCOUNTER_AREA_ACTION' ||
