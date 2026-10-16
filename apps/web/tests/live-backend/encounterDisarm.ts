@@ -104,7 +104,43 @@ export async function verifyEncounterDisarmBrowser(
             ? input.action.label + ' · ' + input.action.sourceLabel
             : input.action.label
         )
-        await select(ownerPage, 'Target', input.targetLabel)
+        stage = 'pick the Disarm target on the map'
+        const map = ownerPage.locator('canvas[aria-description]')
+        const targetingTitle = ownerPage.getByText('Pick a target', { exact: true })
+        const targetButton = ownerPage.getByRole('button', {
+          name: 'Target ' + input.targetLabel,
+          exact: true
+        })
+        // Escape leaves targeting with nothing picked: the action drawer returns.
+        await ownerPage.getByRole('button', { name: 'Pick on map', exact: true }).click()
+        await expect(targetingTitle).toBeVisible()
+        await expect(targetButton).toHaveAttribute('aria-pressed', 'false')
+        await map.press('Escape')
+        await expect(targetingTitle).toBeHidden()
+        await expect(ownerPage.getByRole('combobox', { name: 'Target', exact: true })).toHaveValue(
+          ''
+        )
+        // The renderer fits the map deterministically, so the defender's screen point is computed.
+        await ownerPage.getByRole('button', { name: 'Pick on map', exact: true }).click()
+        await expect(targetingTitle).toBeVisible()
+        const box = await map.boundingBox()
+        if (!box) throw new Error('The scene canvas has no bounds.')
+        const { map: size, targetPosition } = input.scene
+        const scale = Math.min(box.width / size.width, box.height / size.height) * 0.94
+        const point = {
+          x: box.x + (box.width - size.width * scale) / 2 + targetPosition.x * scale,
+          y: box.y + (box.height - size.height * scale) / 2 + targetPosition.y * scale
+        }
+        // Hovering shows the distance, the reach and what the Character believes about the roll.
+        await ownerPage.mouse.move(point.x, point.y)
+        await expect(
+          ownerPage.getByRole('status').filter({ hasText: input.targetLabel + ': ' })
+        ).toContainText(/\d+(\.\d)? ft · In range/)
+        await ownerPage.mouse.click(point.x, point.y)
+        await expect(targetingTitle).toBeHidden()
+        await expect(ownerPage.getByRole('combobox', { name: 'Target', exact: true })).toHaveValue(
+          input.targetLabel
+        )
         await select(ownerPage, 'Optional rule', input.optionalChoices.label)
         for (const field of input.optionalChoices.fields) {
           const selected = input.command.optionalCombatIntent?.selections.find(
@@ -122,6 +158,8 @@ export async function verifyEncounterDisarmBrowser(
         const result = await waitForCommand(ownerCommands, count)
         if (result.command.type !== 'RESOLVE_ACTION')
           throw new Error('Action drawer did not submit RESOLVE_ACTION.')
+        // The creature picked on the map is the one the action resolved against.
+        expect(result.command.target).toEqual(input.command.target)
         submitted.push({ actor: 'OWNER', command: result.command })
         await expect(
           ownerPage.getByText('Action paused for a required decision.', { exact: true })

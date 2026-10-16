@@ -13,6 +13,7 @@ import type {
   GetEncounterActionChoicesInputDto,
   GetEncounterOptionalActionChoicesInputDto
 } from '@artificer-toolkit/schema/api/encounterActionChoices'
+import type { GetEncounterActionTargetModifiersInputDto } from '@artificer-toolkit/schema/api/encounterActionTargetModifiers'
 import {
   encounterExecuteInputSchema,
   type EncounterCommandInputDto,
@@ -1063,6 +1064,10 @@ export class DevelopmentHttpClient extends ConvexHttpClient {
       const { expectedVersion: _expectedVersion, ...input } =
         args as GetEncounterOptionalActionChoicesInputDto
       read = { kind: 'OPTIONAL_ACTION_CHOICES', input }
+    } else if (name === getFunctionName(api.encounters.actionTargetModifiers.get)) {
+      const { expectedVersion: _expectedVersion, ...input } =
+        args as GetEncounterActionTargetModifiersInputDto
+      read = { kind: 'ACTION_TARGET_MODIFIERS', input }
     } else return undefined
     const room = this.#room(await this.#encounterCampaign(read.input.encounterId))
     try {
