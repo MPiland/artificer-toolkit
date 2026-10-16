@@ -35,7 +35,11 @@ import { encounterBlueprintMetadataDtoSchema } from '../shared/encounterBlueprin
 import { encounterRuleWarningsDtoSchema } from '../shared/encounterRuleWarnings.js'
 import { rollRecordDtoSchema } from './rolls.js'
 import { healthDisplayLevelDtoSchema, playerActorHealthDtoSchema } from './healthDisplay.js'
-import { MAX_SPATIAL_RULE_EFFECTS_PER_SCENE, spatialGeometryDtoSchema } from '../shared/spatial.js'
+import {
+  MAX_SPATIAL_RULE_EFFECTS_PER_SCENE,
+  spatialGeometryDtoSchema,
+  spatialPositiveDistanceDtoSchema
+} from '../shared/spatial.js'
 
 const uuidSchema = lazySchema(() => z.string().check(z.uuid()))
 const versionSchema = lazySchema(() => z.number().check(z.int()).check(z.nonnegative()))
@@ -579,6 +583,22 @@ export const encounterSessionStateDtoSchema = lazySchema(() =>
             z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(240))
           ),
           shape: spatialGeometryDtoSchema
+        })
+      )
+      .check(z.maxLength(MAX_SPATIAL_RULE_EFFECTS_PER_SCENE)),
+    /**
+     * The auras the member's map draws: a circle of `radius` around the source token that moves
+     * with it. Only an aura whose source the member's projection lists is carried.
+     */
+    auras: z
+      .array(
+        z.strictObject({
+          id: postgresUuidSchema,
+          label: z.nullable(
+            z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(240))
+          ),
+          radius: spatialPositiveDistanceDtoSchema,
+          sourceTokenId: postgresUuidSchema
         })
       )
       .check(z.maxLength(MAX_SPATIAL_RULE_EFFECTS_PER_SCENE))

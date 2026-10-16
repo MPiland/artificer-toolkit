@@ -354,6 +354,12 @@ carry `halfSpeedFields` (`encounterSessionStateDtoSchema`: `id`, `label`, `shape
 re-derives which zones `carefully` applies to with the same visibility predicate, so a client cannot bypass a
 hidden zone.
 
+Auras (SPELLS-20): the same frame and `encounters/activeReads:active` carry `auras` (`id`, `label`, `radius`,
+`sourceTokenId`): the visible circle zones centered on a token, so the map draws them around the moving source.
+`readSessionAuras` lists an aura only when its source actor is in the member's own presented projection
+(`encounter.actors`), the one visibility rule (D121) the GM, a Convex read and the room share; Convex reads
+(no fog) therefore list only sources the projection lists, and the room, which reads fog, lists more.
+
 Ordinary Scene editing uses the owning Convex functions. While a Session authority epoch is active,
 live Door commands and standalone token move/undo travel through the Session Durable Object; direct
 overlapping Convex writes are fenced. The browser supplies the exact expected versions and command ID.

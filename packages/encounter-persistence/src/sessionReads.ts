@@ -13,6 +13,7 @@ import { readRunProjectionFacts } from './actorProjectionFacts.js'
 import { readEncounterCharacterStates } from './characterStates.js'
 import { readCampaignRunState } from './documents.js'
 import { readHalfSpeedFields } from './halfSpeedFields.js'
+import { readSessionAuras } from './sessionAuras.js'
 import { projectEncounterFacts } from './nativeProjection.js'
 import { readEncounterWaitingOn, readPendingRunDecision } from './pendingReads.js'
 import { readEncounterProjectionViewer } from './playerViewer.js'
@@ -117,15 +118,21 @@ export async function readEncounterSessionState(
       pending: null,
       waitingOn: null,
       turnMovement: [],
-      halfSpeedFields: []
+      halfSpeedFields: [],
+      auras: []
     }
   const pending = await readPendingRunDecision(ctx, row, campaign, membership)
+  const encounter = await presentEncounterRun(ctx, row, campaign, membership)
   return {
-    encounter: await presentEncounterRun(ctx, row, campaign, membership),
+    encounter,
     pending,
     waitingOn: pending ? null : await readEncounterWaitingOn(ctx, row, campaign),
     turnMovement: await readTurnMovementView(ctx, { row, campaign, membership }),
-    halfSpeedFields: await readHalfSpeedFields(ctx, row.id)
+    halfSpeedFields: await readHalfSpeedFields(ctx, row.id),
+    auras: await readSessionAuras(ctx, {
+      encounterId: row.id,
+      seenActorIds: new Set(encounter.actors.map((actor) => actor.id))
+    })
   }
 }
 
