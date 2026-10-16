@@ -1023,3 +1023,45 @@ describe('CampaignTabletopDecisionDrawer area saves', () => {
     expect(screen.queryByRole('button', { name: 'Submit roll' })).not.toBeInTheDocument()
   })
 })
+
+describe('CampaignTabletopDecisionDrawer attack on a square', () => {
+  const [attacker, occupant] = tabletopGmEncounter.actors
+  const squarePending = validated(pendingEncounterRuleOccurrenceSummaryDtoSchema)({
+    kind: 'ATTACK_SQUARE_RESOLUTION',
+    occurrenceId,
+    occurrenceVersion: 0,
+    encounterVersion: tabletopGmEncounter.version,
+    attackerActorId: attacker!.id,
+    candidateActorIds: [occupant!.id],
+    allowedResponses: ['ATTACK_SQUARE_OCCUPANT']
+  })
+
+  it('names the creature the GM says stands on the square', async () => {
+    const user = userEvent.setup()
+    const onResolve = vi.fn(async () => resolved())
+    renderWithAppProviders(
+      <CampaignTabletopDecisionDrawer
+        skipped={null}
+        canVoid
+        connected
+        encounter={tabletopGmEncounter}
+        latestRoll={null}
+        pending={squarePending}
+        submitting={false}
+        onResolve={onResolve}
+      />
+    )
+    await user.click(screen.getByRole('button', { name: 'Open pending decision' }))
+    expect(screen.getByText('Attack on a square')).toBeVisible()
+
+    await user.click(screen.getByRole('button', { name: occupant!.label }))
+    expect(onResolve).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'RESOLVE_RULE_OCCURRENCE',
+        occurrenceId,
+        expectedOccurrenceVersion: 0,
+        resolution: { kind: 'ATTACK_SQUARE_OCCUPANT', actorId: occupant!.id }
+      })
+    )
+  })
+})

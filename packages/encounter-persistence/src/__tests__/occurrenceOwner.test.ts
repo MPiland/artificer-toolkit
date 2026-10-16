@@ -25,6 +25,7 @@ describe('classifyNativeEncounterOccurrence', () => {
       [facts({ kind: 'ENCOUNTER_ACTION' }), 'ACTION'],
       [facts({ kind: 'ENCOUNTER_ACTION', contest: { actionKind: 'DISARM' } }), 'DISARM'],
       [facts({ kind: 'ENCOUNTER_ACTION', contest: { actionKind: 'SHOVE' } }), 'ACTION'],
+      [facts({ kind: 'ENCOUNTER_ATTACK_SQUARE' }), 'ATTACK_SQUARE'],
       [facts({ kind: 'ENCOUNTER_OPTIONAL_COMBAT_CLEAVING' }), 'CLEAVING'],
       [facts({ kind: 'ENCOUNTER_BASIC_ACTION_CHECK' }), 'BASIC_ACTION'],
       [facts({ kind: 'ENCOUNTER_CONCEALMENT_CHECK' }), 'BASIC_ACTION'],
