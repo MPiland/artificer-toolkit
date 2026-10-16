@@ -23,6 +23,7 @@ import {
   movementRoom,
   type MovementRoomConfig
 } from './movementRoomFixture.js'
+import { readRoomHistory } from './roomHistoryReads.js'
 
 /**
  * The movement evidence a room holds and Convex never sees (D88): receipts, evidence rolls and
@@ -268,6 +269,35 @@ describe('used automatic reactions of a Creature walking east', () => {
       sceneVersionTransition: 'ADVANCED'
     })
   }, 60_000)
+
+  it.each([
+    {
+      label: 'a spatial prefix applied',
+      spatialEffects: [{ center: { x: 275, y: 150 }, radius: 5 }]
+    },
+    { label: 'no spatial effect crossed', spatialEffects: [] }
+  ])(
+    'commits one movement receipt for a pause with $label, advancing the Run only for the prefix (D88)',
+    async ({ spatialEffects }) => {
+      const room = await reactionRoom([{ x: 150, y: 150 }], spatialEffects)
+      const runVersion = async () => (await readRoomHistory(room.base.stub)).runs[0]!.version
+      const receiptsBefore = (await room.receipts()).length
+      const versionBefore = await runVersion()
+      const advances = spatialEffects.length > 0
+
+      await room.move([start, { x: 600, y: 150 }])
+
+      const pending = await room.pending()
+      expect(pending?.context.kind).toBe('ENCOUNTER_MOVEMENT_REACTION')
+      expect((await room.receipts()).length).toBe(receiptsBefore + 1)
+      const receipt = await receiptOf(room, 'MOVE_SCENE_TOKEN')
+      expect(receipt.metadata).toMatchObject({
+        encounterVersionTransition: advances ? 'ADVANCED' : 'UNCHANGED'
+      })
+      expect(await runVersion()).toBe(versionBefore + (advances ? 1 : 0))
+    },
+    60_000
+  )
 
   it('settles a crossed spatial prefix before its reactions and a suffix after them', async () => {
     const room = await reactionRoom(

@@ -107,3 +107,32 @@ Independent opus review of the first T2 diff.
 - Deferred: a detached owner that is not a Run actor (fixture limit; Deferred edge cases).
 - Stands: Character dependents without a `maintainedEffectStateId` are skipped when listing owners; they are valid non-maintained effects, not orphans.
 - Stands: a Character that left the Campaign (D81) is skipped by design in `roomEncounterTurnCapture.ts`; its dependents are Convex's to end, so the room test covers GM-removed (D82) and outside-the-Run instead.
+
+# Slice ROOM-6.T3: movement receipts, Character Disarm and R2 equipment room proofs
+
+## Scope
+
+- ROOM-6.2, 6.12, 6.13: already proved room-side; cite the proofs, no new product code.
+- ROOM-6.4: receipts +1 for a pause, asserted room-side (new test).
+- ROOM-6.7 and 6.8: a Character-initiator Disarm with a Longsword EQUIPMENT root (new test beside the Ogre Disarm).
+- ROOM-6.10: `REPLACE_CREATURE_EQUIPMENT` against R2-seeded Equipment (new file).
+- No product change expected; CI (`ci/room-6-t3`) iterates fixtures. T1b, T1c and SPELLS-8.T4 stay held.
+
+## Acceptance proof
+
+| AC                            | Proof                                                                                                                                                                                                                                                                                                                                                            |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ROOM-6.2 (existing behavior)  | `nativeMovementEvidence.test.ts` "keeps the exact queued faces of a suffix spatial save rolled after the reaction": a real `save: true` spatial effect settles after the reaction in the room, with the queued d20 (15 vs DC 30) and the dice count held. No new test.                                                                                           |
+| ROOM-6.4                      | Same file, "commits one movement receipt for a pause with $label": a pause with a crossed spatial prefix commits exactly one `MOVE_SCENE_TOKEN` receipt (`encounterVersionTransition: ADVANCED`, Run +1); the no-effect control commits one (`UNCHANGED`, Run +0).                                                                                               |
+| ROOM-6.7 and ROOM-6.8         | `nativeRoomDisarm.test.ts` "a Character's room Disarm with a Longsword": a player's Fighter wielding the R2-published Longsword (not the default Club) Disarms an Ogre's Club. The player answers the initiator d20; the player's answer to the GM-controlled defender is `COMMAND_REJECTED`; the GM answers; `SOURCE_WIN`, MAIN_HAND to CARRIED, ACTION 0 to 1. |
+| ROOM-6.10                     | `nativeRoomEquipmentReplacement.test.ts`: the Ogre's Greatclub is replaced by a Greatclub variant published to R2 through `characterEquipment`; the Run advances once, the pinned source and loadout show the replacement, and a replay writes nothing. Refusals (unpublished id, a Club the Feature action does not fit, a Character actor) write nothing.      |
+| ROOM-6.12 (existing behavior) | `nativeMovementEvidence.test.ts`: the Concentration-advantage save (first describe, `concentrationAdvantageFeature`) and "a moving spatial effect shared by a Concentration Character and a later target" (one effect applied to both targets, Concentration checked only for the Character). No new test.                                                       |
+| ROOM-6.13 (existing behavior) | `roomEncounterInitiativeResponse.test.ts`: the terminal initiative receipt's `resolutionCommands` has one entry per answer and echoes them. No new test.                                                                                                                                                                                                         |
+
+## Log
+
+- Branch from `origin/ci/merge-batch-ao`. Tests written; first CI run pending.
+
+## Review triage
+
+Pending.

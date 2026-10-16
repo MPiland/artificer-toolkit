@@ -1,11 +1,13 @@
 import { snapshotCreatureEquipmentLoadout } from '@artificer-toolkit/rules-runtime/encounterCreatureEquipmentSources'
 import {
+  characterActor,
   creatureFeature,
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import { encounterRunStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { encounterOptionalCombatSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/optionalCombat'
 import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
+import { longsword } from '@artificer-toolkit/source-data/srd/equipment/longsword.js'
 import { SRD_ACTION_ALLOWANCE_DEFINITION_ID } from '@artificer-toolkit/source-data/srd/ruleState.js'
 import {
   SRD_ATHLETICS_SKILL_ID,
@@ -27,6 +29,7 @@ import { seededSrdCreature } from './seededSrdCreature.js'
 
 const SOURCE_ID = testUuid(0xa00)
 const TARGET_ID = testUuid(0xa01)
+const FIGHTER_ID = testUuid(0xa02)
 const BLINDED_ID = srdSystemRecord.conditionTypes.find(({ code }) => code === 'BLINDED')?.id
 const INVISIBLE_ID = srdSystemRecord.conditionTypes.find(({ code }) => code === 'INVISIBLE')!.id
 
@@ -36,10 +39,12 @@ afterEach(() => {
 })
 
 /**
- * Two seeded SRD Ogres: the first Disarms the item the second holds, a one-handed Club unless
- * `heldItem` is the Ogre's own two-handed Greatclub.
+ * The first actor Disarms the item a seeded SRD Ogre holds, a one-handed Club unless `heldItem` is
+ * the Ogre's own two-handed Greatclub. The initiator is another Ogre, or with `initiator` a player's
+ * Fighter wielding a Longsword the room's R2 content publishes.
  */
 async function disarmRoom(options: {
+  initiator?: 'CHARACTER'
   autoRoll?: 'GAME_MASTER'
   rolls?: readonly number[]
   heldItem?: 'GREATCLUB'
@@ -58,21 +63,31 @@ async function disarmRoom(options: {
           )
         }
   const [source, target] = [
-    srdCreatureActor({
-      id: SOURCE_ID,
-      creature: ogre,
-      conditionIds: options.sourceInvisible ? [INVISIBLE_ID] : []
-    }),
+    options.initiator === 'CHARACTER'
+      ? characterActor({ id: SOURCE_ID, characterId: FIGHTER_ID })
+      : srdCreatureActor({
+          id: SOURCE_ID,
+          creature: ogre,
+          conditionIds: options.sourceInvisible ? [INVISIBLE_ID] : []
+        }),
     srdCreatureActor({
       id: TARGET_ID,
       creature: holder,
       conditionIds: options.targetBlinded && BLINDED_ID ? [BLINDED_ID] : []
     })
   ]
+  const initiatorSource: Partial<ActionRoomConfig> =
+    options.initiator === 'CHARACTER'
+      ? {
+          playerControlledActorIds: [SOURCE_ID],
+          characterEquipment: [longsword],
+          characterAction: (action) => action.label.includes('Longsword')
+        }
+      : { ownerFeatureId: creatureFeature(ogre, 'Greatclub').id }
   const room = await actionRoom({
     ...options,
     actors: [source!, target!],
-    ownerFeatureId: creatureFeature(ogre, 'Greatclub').id,
+    ...initiatorSource,
     optionalCombatKinds: ['DISARM']
   })
   const heldEntryId = snapshotCreatureEquipmentLoadout(target!).find(
@@ -283,6 +298,66 @@ describe('room Disarm contests', () => {
     expect(commands.filter((command) => command.commandType === 'RESOLVE_ACTION')).toEqual([
       expect.objectContaining({ label: 'Disarm', speedBonusTurn: null })
     ])
+  })
+})
+
+describe('a Character’s room Disarm with a Longsword (ROOM-6.7, ROOM-6.8)', () => {
+  it('asks the controlling player for the initiator’s roll and the GM for the Creature defender’s', async () => {
+    const disarming = await disarmRoom({ initiator: 'CHARACTER' })
+    const { room } = disarming
+    const stub = room.room.base.stub
+    await startDisarm(disarming)
+
+    const initiator = await room.pendingDecision()
+    if (initiator.pending.kind !== 'D20_EVIDENCE') throw new Error('Expected the initiator’s roll.')
+    expect(initiator.pending.rollerActorId).toBe(SOURCE_ID)
+    const first = await room.sendAsPlayer(
+      room.resolveCommand(initiator, {
+        kind: 'ENTER_DICE',
+        requestId: initiator.pending.request.requestId,
+        rawFaces: initiator.pending.request.rollMode === 'NORMAL' ? [20] : [20, 20],
+        rollMode: initiator.pending.request.rollMode
+      })
+    )
+    expect(first.type, JSON.stringify(first)).toBe('COMMAND_COMMITTED')
+
+    const defender = await room.pendingDecision()
+    if (defender.pending.kind !== 'D20_EVIDENCE') throw new Error('Expected the defender’s roll.')
+    expect(defender.pending.rollerActorId).toBe(TARGET_ID)
+    const defenderRoll = {
+      kind: 'ENTER_DICE',
+      requestId: defender.pending.request.requestId,
+      rawFaces: defender.pending.request.rollMode === 'NORMAL' ? [1] : [1, 1],
+      rollMode: defender.pending.request.rollMode
+    }
+    // The player holds only the Fighter: the Ogre's roll is the GM's.
+    const refused = await room.sendAsPlayer(room.resolveCommand(defender, defenderRoll))
+    expect(refused.type).toBe('COMMAND_REJECTED')
+    expect(await readPendingActionDecision(stub)).not.toBeNull()
+    const second = await room.resolve(defender, defenderRoll)
+    expect(second.type, JSON.stringify(second)).toBe('COMMAND_COMMITTED')
+    expect(await readPendingActionDecision(stub)).toBeNull()
+
+    const output = await contestedOutput(disarming)
+    expect(output).toMatchObject({
+      sourceActorId: SOURCE_ID,
+      targetActorId: TARGET_ID,
+      sourceRoll: { actorId: SOURCE_ID, rawFaces: [20] },
+      targetRoll: { actorId: TARGET_ID, rawFaces: [1] },
+      outcome: 'SOURCE_WIN',
+      actionEconomyTransition: {
+        definitionId: SRD_ACTION_ALLOWANCE_DEFINITION_ID,
+        beforeUsed: 0,
+        afterUsed: 1
+      }
+    })
+    expect(output.stateTransition).toMatchObject({
+      kind: 'ENCOUNTER_ACTOR_ITEM_USE_STATE',
+      actorId: TARGET_ID,
+      loadoutEntryId: disarming.heldEntryId,
+      fromState: 'MAIN_HAND',
+      toState: 'CARRIED'
+    })
   })
 })
 
