@@ -36,6 +36,7 @@ import {
   type PureRuleOperationContract,
   type CompiledRuleGraph,
   type RuleGraphDefinition,
+  type RuleInputBinding,
   type RuleValue
 } from '@artificer-toolkit/shared/rules'
 import { parseRollExpression, type ParsedRollExpression } from '@artificer-toolkit/shared/rolls'
@@ -291,7 +292,7 @@ function isTargetOnlyOutcome(
 /** The literal inputs a target-only outcome's proposal reads beyond the target: a teleport's range and destination rule. */
 function targetOnlyOutcomeInputs(
   outcome: Extract<Outcome, { kind: keyof typeof TARGET_ONLY_OUTCOME_OPERATION_KEYS }>
-) {
+): Readonly<Record<string, RuleInputBinding>> {
   return outcome.kind === 'TELEPORT_ALLOWANCE'
     ? {
         maxFeet: { kind: 'LITERAL' as const, value: outcome.maxFeet },
