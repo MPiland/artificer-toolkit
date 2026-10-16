@@ -737,8 +737,8 @@ activation and an attack or damage trigger is offered like a Feature reaction).
 A candidate is offered through the Sheet's own logic, not a copy of it: the spell must come from an active
 source (`isActiveSpellSource`: prepared per preparing class, learned for the others, always prepared and
 granted spells included) and the candidate must be one of the cast levels the Sheet lists
-(`getExplicitSpellCastLevels`): the spell's own level plus every higher level its authored damage or heal
-scaling reaches for which the Character owns a standard slot. A Warlock's pact slot is offered for the spell's
+(`getSpellCastLevels`): the spell's own level plus every higher level for which the Character owns a
+standard slot (any leveled spell can be cast with a higher slot; the authored effects say what that changes). A Warlock's pact slot is offered for the spell's
 own level and spent whatever its level. A candidate is dropped when its decision is not `AVAILABLE` or it is a
 ritual. A leveled cast paid from a spell-source pool (`LIMITED_USE`, or a `FIXED_LEVEL` grant with `charges`,
 SPELLS-8.T8) carries a `resourceUse` of one use of that pool and spends no slot, as on the Sheet

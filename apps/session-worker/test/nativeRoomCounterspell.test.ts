@@ -38,9 +38,20 @@ function counterspellRoom(
   options: Omit<
     Parameters<typeof actionRoom>[0],
     'actors' | 'characterSpellcasting' | 'secondCharacter' | 'characterAction' | 'characterPlay'
-  > & { spell?: typeof mend; castLevel?: string; reactorSpells?: boolean } = {}
+  > & {
+    spell?: typeof mend
+    castLevel?: string
+    reactorSpells?: boolean
+    reactorSlotsSpent?: readonly { slotKey: string; used: number }[]
+  } = {}
 ) {
-  const { spell = mend, castLevel = '1st', reactorSpells = true, ...rest } = options
+  const {
+    spell = mend,
+    castLevel = '1st',
+    reactorSpells = true,
+    reactorSlotsSpent,
+    ...rest
+  } = options
   return actionRoom({
     sceneGrid: {
       kind: 'SQUARE',
@@ -59,6 +70,7 @@ function counterspellRoom(
     characterPlay: { currentHitPoints: 1 },
     secondCharacter: {
       characterId: REACTOR_ID,
+      play: { spellSlots: reactorSlotsSpent },
       spellcasting: reactorSpells
         ? { spells: [counterspell], prepared: [counterspell.id] }
         : undefined
@@ -187,16 +199,34 @@ describe('room Counterspell against a Character’s spell cast (REACTION-4.3)', 
     expect(await slotsOf(room, REACTOR_ID)).toEqual([])
   })
 
-  it('offers Counterspell for a cast at its own slot level but not above it', async () => {
-    const atLevel = await counterspellRoom({ spell: unlimitedCureWounds, castLevel: '3rd' })
-    await cast(atLevel)
-    expect((await offered(atLevel)).pending.options).toHaveLength(1)
+  it('offers only the slots at least as high as the cast', async () => {
+    const low = await counterspellRoom({ spell: unlimitedCureWounds })
+    await cast(low)
+    const lowOptions = (await offered(low)).pending.options.length
 
-    // Counterspell has one cast level; a higher cast is not answered until its ability check exists.
-    const above = await counterspellRoom({ spell: unlimitedCureWounds, castLevel: '4th' })
-    await cast(above)
-    expect((await above.pendingDecision()).pending.kind).not.toBe('REACTION_CHOICE')
-    expect(await slotsOf(above, REACTOR_ID)).toEqual([])
+    const high = await counterspellRoom({ spell: unlimitedCureWounds, castLevel: '4th' })
+    await cast(high)
+    const highOptions = (await offered(high)).pending.options.length
+
+    // Slots 3 to 5 answer a 1st-level cast; only slots 4 and 5 answer a 4th-level one.
+    expect([lowOptions, highOptions]).toEqual([3, 2])
+  })
+
+  it('offers nothing when no slot the holder has left reaches the cast level', async () => {
+    const room = await counterspellRoom({
+      spell: unlimitedCureWounds,
+      castLevel: '4th',
+      reactorSlotsSpent: [
+        { slotKey: 'STANDARD:4', used: 1 },
+        { slotKey: 'STANDARD:5', used: 1 }
+      ]
+    })
+    await cast(room)
+    expect((await room.pendingDecision()).pending.kind).not.toBe('REACTION_CHOICE')
+    expect(await slotsOf(room, REACTOR_ID)).toEqual([
+      { slotKey: 'STANDARD:4', used: 1 },
+      { slotKey: 'STANDARD:5', used: 1 }
+    ])
   })
 
   it('refuses an option the pause never offered, leaving the cast held', async () => {

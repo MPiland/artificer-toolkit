@@ -17,8 +17,8 @@ import { normalizeCharacterActionMechanicFacts } from './characterActionRuleFact
 import { projectCharacterSpellAccess } from './characterRulePolicyAdapter.js'
 import { createCharacterSpellCastCandidateId } from './characterSpellCastRuleFacts.js'
 import {
-  getExplicitSpellCastLevels,
   getOwnedSpellSlotLevels,
+  getSpellCastLevels,
   getSpellSourcesBySpellId,
   isActiveSpellSource
 } from './sheetProjection.js'
@@ -70,8 +70,8 @@ export function readSpellCastSlot(
 
 /**
  * The cast candidates the Sheet lists as castable: a spell from each of its active sources (per
- * class, always prepared or granted) at its own level and at every level it scales at that the
- * Character owns a slot for. Read through the Sheet's own source and cast-level logic.
+ * class, always prepared or granted) at its own level and at every higher level the Character
+ * owns a slot for. Read through the Sheet's own source and cast-level logic.
  */
 export function listCastableSpellCandidateIds(input: {
   character: CharacterAuthored
@@ -92,16 +92,9 @@ export function listCastableSpellCandidateIds(input: {
   for (const [spellId, sources] of sourcesBySpellId) {
     const level = spellLevelById.get(spellId)
     if (level === undefined) continue
-    const mechanics = output.spellReferenceMechanics
-      .filter((entry) => entry.spellId === spellId)
-      .flatMap((entry) => entry.mechanics)
     for (const source of sources) {
       if (!isActiveSpellSource(level, source)) continue
-      for (const castLevel of getExplicitSpellCastLevels(
-        { level, mechanics },
-        source,
-        ownedSlotLevels
-      ))
+      for (const castLevel of getSpellCastLevels({ level }, source, ownedSlotLevels))
         candidateIds.add(createCharacterSpellCastCandidateId(source.source, castLevel))
     }
   }

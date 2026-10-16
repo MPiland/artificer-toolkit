@@ -663,7 +663,7 @@ describe('Character spell casting in an Encounter', () => {
     const mend = healSpell('Mend', (spell) => fixHeal(spell, 1))
     const grantedRite = healSpell('Granted Rite', (spell) => fixHeal(spell, 1))
     const unprepared = healSpell('Unprepared', (spell) => fixHeal(spell, 1))
-    // Its heal scales per cast level: it is offered once for each slot level the Character can cast it at.
+    // Any leveled spell is offered once for each slot level the Character can cast it at.
     const scaling = srdSpell(cureWounds)
     const fixture = await setup({
       known: [mend, unprepared, scaling],
@@ -676,7 +676,13 @@ describe('Character spell casting in an Encounter', () => {
     const choices = await spellChoices(fixture, 0)
     // A spell granted as a ritual is not offered; an unprepared spell is refused as the Sheet refuses it.
     expect(choices.map(({ label }) => label).sort()).toEqual(
-      ['Cure Wounds (1st level)', 'Cure Wounds (2nd level)', 'Fire Bolt', 'Mend (1st level)'].sort()
+      [
+        'Cure Wounds (1st level)',
+        'Cure Wounds (2nd level)',
+        'Fire Bolt',
+        'Mend (1st level)',
+        'Mend (2nd level)'
+      ].sort()
     )
     expect(new Set(choices.map(({ id }) => id)).size).toBe(choices.length)
   }, 60000)
@@ -788,8 +794,11 @@ describe('Character spell casting in an Encounter', () => {
     })
     expect((await spellChoices(fixture, 0)).map(({ label }) => label).sort()).toEqual([
       'Always (1st level)',
+      'Always (2nd level)',
       'Granted (1st level)',
-      'Prepared (1st level)'
+      'Granted (2nd level)',
+      'Prepared (1st level)',
+      'Prepared (2nd level)'
     ])
   }, 60000)
 
