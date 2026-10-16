@@ -707,7 +707,7 @@ describe('internal canonical source import', () => {
     }))
     const document = jsonValueSchema.parse({
       ...acolyte,
-      details: acolyte.details.map((detail, index) =>
+      details: acolyte.details?.map((detail, index) =>
         index === 0 ? { ...detail, description: `${detail.description} Changed.` } : detail
       )
     })
