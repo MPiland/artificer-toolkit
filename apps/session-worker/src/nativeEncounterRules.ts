@@ -821,7 +821,7 @@ export async function planNativeLiveEncounterAction(
           actors,
           prepared,
           casterEffects: activeEffectsByActorId.get(prepared.actor.id) ?? [],
-          reactorEffects: activeEffectsByActorId.get(cast.reactor.id) ?? [],
+          reactorEffects: activeEffectsByActorId.get(cast.found.prepared.actor.id) ?? [],
           triggerLevel,
           actionEconomy,
           ruleOverrides: ruleWarnings.overrides,

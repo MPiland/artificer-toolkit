@@ -1329,6 +1329,7 @@ describe('Character spell casting in an Encounter', () => {
 
       // An end event the System does not list is cleared by the same map; the valid one stays.
       const invalid = castOnlyVariant()
+      const validEffects = structuredClone(invalid.effects)
       const invalidPath = invalid.effects?.[0]?.paths?.[0]
       if (!invalidPath || !('resultBlock' in invalidPath))
         throw new Error('Expected a result block.')
@@ -1345,7 +1346,7 @@ describe('Character spell casting in an Encounter', () => {
         values: { ...invalid, classIds: [fixture.baseClass.id] }
       })
       expect(JSON.stringify(cleaned.values)).not.toContain('ON_NOT_A_LISTED_EVENT')
-      expect(cleaned.values).toHaveProperty('effects', variant.effects)
+      expect(cleaned.values).toHaveProperty('effects', validEffects)
     }, 240000)
 
     // The cast alone ends the effect: a cantrip spends no slot, and the variant ignores the attack roll,
