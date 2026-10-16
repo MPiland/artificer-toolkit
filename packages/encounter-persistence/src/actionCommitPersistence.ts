@@ -417,7 +417,9 @@ export async function persistEncounterActionCommit(
     encounterId: state.id,
     gameSystemId: state.gameSystemId,
     occurrenceId: execution.occurrenceId,
-    checks: failedSpends.map(({ failed, reactor }) => ({ reactor, check: failed.receipt.check })),
+    checks: failedSpends.flatMap(({ failed, reactor }) =>
+      failed.receipt.check ? [{ reactor, check: failed.receipt.check }] : []
+    ),
     response: input.response,
     responderUserId: userId,
     initiatorUserId,

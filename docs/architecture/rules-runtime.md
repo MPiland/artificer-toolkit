@@ -490,7 +490,7 @@ holds the cast in a `castReaction` pending offer (`REACTION_CHOICE` to the react
 and the cast proceeds; using the reaction commits a countered cast (`persistEncounterCounteredCastCommit`): the
 caster's slot and action and the reactor's slot and reaction are spent, nothing else is applied, and no
 Concentration starts. Undo restores both creatures. Creature-capability, ACTORS-target and area casts, and casts
-made without the Scene offer no reaction. The chain is T3d.
+made without the Scene offer no reaction. The chain is described below (T3d).
 
 **Higher-level check (current, REACTION-4.T3c; D127).** `reactionTrigger.higherLevelCheck` (`{ ability, baseDc }`)
 makes a reaction cast below the triggering cast's level owe an ability check at DC `baseDc` + the cast's level
@@ -502,6 +502,18 @@ joins the declined set and is not offered again, and the cast's terminal commit 
 failed reactor's slot and reaction atomically with the cast (`failedCounterSpend.ts`), so one undo reverses them all.
 Spend receipts are planned at the terminal against the reactor as it stands, not when the check fails. A reactor that
 is the cast's target spends through the target's own mechanics call.
+
+**Counterspell chain (current, REACTION-4.T3d).** A counter that stands (its check passed or none was owed) is
+itself a cast: the offer's `chain` (`counters`, `castDeclinedReactorActorIds`, `castLevel`) holds the standing counters
+in order, and the next level offers the other Characters, except the original caster and any reactor that already used
+a counter in this cast, a counter to the last one. Range, check level and target are measured against that counter's
+caster (`discoverNativeCastReactions` `against`). Each answer adds one counter, so depth needs no cap in code. When a
+level has nobody left to ask the chain resolves by parity (`advanceNativeCastReactions`): odd, the first counter stands
+and the cast is countered; even, the chain is spent without effect and the cast is offered again at its own level with
+its declines restored. `failedCounters` holds every counter used that did not counter the cast (a failed check, or
+itself countered; `againstActorId` records the cast it answered), all spent with the cast's terminal commit. The
+persistence validators (`actionPending.ts`) check this bookkeeping by set equality. Open: the original caster is never
+offered a counter to a Counterspell cast against their own spell (`future-enhancements.md`).
 
 #### `DAMAGE_TAKEN` (current, REACTION-4.T2)
 
