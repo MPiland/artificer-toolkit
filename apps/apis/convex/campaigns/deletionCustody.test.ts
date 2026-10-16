@@ -616,7 +616,7 @@ describe('native Campaign custody deletion', () => {
         await base.t.finishInProgressScheduledFunctions()
       }
       const before = await snapshot(base.t)
-      const campaignObjects = (rows: readonly unknown[] | undefined) =>
+      const campaignObjects = <Row>(rows: readonly Row[] | undefined) =>
         rows?.filter((row) => rowString(row, 'scope') !== 'SOURCE')
       expect(
         campaignObjects(before.tables.contentSnapshotObjects)?.length,
