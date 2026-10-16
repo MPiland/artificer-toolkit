@@ -14,6 +14,7 @@ import {
   assertLoopbackUrl,
   convexCliArguments,
   convexCliEnvironment,
+  convexDeployArguments,
   generateAdminKey,
   localConvex,
   yarnSpawn
@@ -952,18 +953,12 @@ const stages = [
     '@artificer-toolkit/web',
     'test:storybook'
   ]),
-  stage('convex-local-deploy', 'Deploy final source to the isolated Convex backend', 'yarn', [
-    'workspace',
-    '@artificer-toolkit/apis',
-    'exec',
-    'convex',
-    'deploy',
-    '--yes',
-    '--typecheck',
-    'disable',
-    '--codegen',
-    'disable'
-  ]),
+  stage(
+    'convex-local-deploy',
+    'Deploy final source to the isolated Convex backend',
+    'yarn',
+    convexDeployArguments
+  ),
   stage('convex-seed', 'Seed canonical source into the isolated Convex deployment', 'yarn', [
     'workspace',
     '@artificer-toolkit/apis',

@@ -7,6 +7,7 @@
 //   node scripts/runLocalBrowserProof.mjs --name=<unique-evidence-name> --proof=<proof> [--deploy]
 import { mkdir } from 'node:fs/promises'
 import { resolve } from 'node:path'
+import { convexCliArguments, convexDeployArguments } from './convexSelfHosted.mjs'
 import {
   assertLocalLifecycleTarget,
   ensureLocalConvexFixtures,
@@ -31,27 +32,13 @@ const artifactDirectory = resolve(import.meta.dirname, '..', 'local-validation/b
 await mkdir(artifactDirectory, { recursive: true })
 
 if (process.argv.includes('--deploy'))
-  await run(
-    'yarn',
-    [
-      'workspace',
-      '@artificer-toolkit/apis',
-      'exec',
-      'convex',
-      'deploy',
-      '--yes',
-      '--typecheck',
-      'disable',
-      '--codegen',
-      'disable'
-    ],
-    {
-      // The injected application environment sets CONVEX_DEPLOYMENT, which the CLI refuses beside
-      // the self-hosted URL and admin key; spawn drops the undefined value.
-      environment: { YARN_INJECT_ENVIRONMENT_FILES: undefined },
-      logPath: resolve(artifactDirectory, 'convex-deploy.log')
-    }
-  )
+  await run('yarn', convexDeployArguments, {
+    logPath: resolve(artifactDirectory, 'convex-deploy.log'),
+    sensitiveArgs: convexCliArguments(
+      process.env.CONVEX_SELF_HOSTED_URL,
+      process.env.CONVEX_SELF_HOSTED_ADMIN_KEY
+    )
+  })
 await ensureLocalConvexFixtures(artifactDirectory)
 
 const services = []
