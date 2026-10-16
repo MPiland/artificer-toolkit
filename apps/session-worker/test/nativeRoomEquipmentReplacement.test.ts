@@ -9,7 +9,7 @@ import {
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
-import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
+import { dagger } from '@artificer-toolkit/source-data/srd/equipment/dagger.js'
 import { greatclub } from '@artificer-toolkit/source-data/srd/equipment/greatclub.js'
 import { runInDurableObject } from 'cloudflare:test'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -39,7 +39,8 @@ afterEach(() => {
 
 /**
  * A Fighter and a seeded SRD Ogre. The Fighter carries `compatibleGreatclub`, which publishes it
- * (with the Club every room publishes) into the room's R2 content: the source a replacement reads.
+ * and a Dagger (with the Club every room publishes) into the room's R2 content: the sources a
+ * replacement reads.
  */
 async function equipmentRoom() {
   const ogre = srdCreatureActor({ id: OGRE_ID, creature: seededSrdCreature('Ogre') })
@@ -47,7 +48,7 @@ async function equipmentRoom() {
     actors: [characterActor({ id: FIGHTER_ACTOR_ID, characterId: FIGHTER_ID }), ogre],
     moverActorId: FIGHTER_ACTOR_ID,
     positions: { [FIGHTER_ACTOR_ID]: { x: 150, y: 150 }, [OGRE_ID]: { x: 250, y: 150 } },
-    characterEquipment: [compatibleGreatclub]
+    characterEquipment: [compatibleGreatclub, dagger]
   })
   const heldEntryId = snapshotCreatureEquipmentLoadout(ogre).find(
     (entry) => entry.useState === 'MAIN_HAND'
@@ -106,10 +107,15 @@ describe('REPLACE_CREATURE_EQUIPMENT in the room with R2-seeded Equipment (ROOM-
     expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
     expect(await room.runVersion()).toBe(versionBefore + 1)
     const after = await room.storedOgre()
-    expect(snapshotCreatureEquipmentLoadout(after)).toMatchObject([
-      { id: room.heldEntryId, equipmentId: compatibleGreatclub.id, useState: 'MAIN_HAND' }
-    ])
-    const [source] = snapshotCreatureEquipmentSources(after)
+    const loadoutBefore = snapshotCreatureEquipmentLoadout(before)
+    expect(snapshotCreatureEquipmentLoadout(after)).toEqual(
+      loadoutBefore.map((entry) =>
+        entry.id === room.heldEntryId ? { ...entry, equipmentId: compatibleGreatclub.id } : entry
+      )
+    )
+    const source = snapshotCreatureEquipmentSources(after).find(
+      ({ loadoutEntryId }) => loadoutEntryId === room.heldEntryId
+    )
     expect(source).toMatchObject({
       loadoutEntryId: room.heldEntryId,
       equipmentId: compatibleGreatclub.id,
@@ -127,7 +133,7 @@ describe('REPLACE_CREATURE_EQUIPMENT in the room with R2-seeded Equipment (ROOM-
     { label: 'an Equipment the content does not publish', equipmentId: testUuid(0xd99) },
     {
       label: 'a published Equipment the Feature action does not fit',
-      equipmentId: club.id
+      equipmentId: dagger.id
     }
   ])('refuses $label without a write', async ({ equipmentId }) => {
     const room = await equipmentRoom()
