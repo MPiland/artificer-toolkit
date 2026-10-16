@@ -174,6 +174,14 @@ export class CharacterRuleActionUnsupportedCompilationError extends Error {
   }
 }
 
+/** A System adapter throws this when an attack's target has no defense value to roll against. */
+export class CharacterRuleActionTargetDefenseUnavailableError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'CharacterRuleActionTargetDefenseUnavailableError'
+  }
+}
+
 interface CharacterHitPointOutcomeApplicationBase {
   sourceNodeId: string
   sourceOperationKey: string

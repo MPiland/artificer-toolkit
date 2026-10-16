@@ -1,3 +1,4 @@
+import { CharacterRuleActionTargetDefenseUnavailableError } from '@artificer-toolkit/rules-runtime/characterRuleActionSystemAdapter'
 import { resolveEncounterBelievedAttackPerception } from '@artificer-toolkit/rules-runtime/encounterAttackPerception'
 import { playerSeesActor } from '@artificer-toolkit/rules-runtime/encounterPlayerProjection'
 import {
@@ -110,9 +111,10 @@ export async function readEncounterActionTargetModifiers(
       if (attack.makesAttackRoll) {
         try {
           bound = attack.adapter.bindFacts({ ...attack.binding, published })
-        } catch {
-          // A creature the attack cannot bind to (a custom creature with no defense) shows no
-          // modifiers here; naming it in the command still refuses it.
+        } catch (error) {
+          // A creature with no defense (a custom creature) shows no modifiers here; naming it in
+          // the command still refuses it. Any other bind failure is a real error.
+          if (!(error instanceof CharacterRuleActionTargetDefenseUnavailableError)) throw error
         }
       }
       return {
