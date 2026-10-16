@@ -71,14 +71,12 @@ async function setup(source: typeof srdFighter) {
         entryPoints: facts.ruleEvaluation.actionEntryPoints
       })
     })
-    const describeAction = (action: { actionId: string }) => ({
+    const describeAction = (action: (typeof actionCandidates)[number]) => ({
       actionId: action.actionId,
       entry: entries.find(
         (value) => value.kind === 'CHARACTER_ACTION' && value.actionId === action.actionId
       ),
-      activation: facts.ruleEvaluation.output.actionDecisions.find(
-        (decision) => decision.actionId === action.actionId
-      )?.mechanic.activation
+      activation: action.mechanicFacts.invocation.activation
     })
     return {
       secondWind: describeAction(secondWind),
@@ -152,11 +150,11 @@ const ACTION_ECONOMY_UNAVAILABLE = {
 describe.each(FIGHTERS)('$name uses class features in an Encounter (ATTACK-9.T3)', ({ source }) => {
   it('compiles Second Wind as a bonus action and Action Surge as a free action, each spending a charge', async () => {
     const { actions, chargeIds } = await setup(source)
-    expect(actions.secondWind.activation).toMatchObject({ kind: 'BONUS_ACTION' })
+    expect(actions.secondWind.activation).toMatchObject({ code: 'BONUS_ACTION' })
     expect(actions.secondWind.entry).toMatchObject({
       compilation: { kind: 'COMPILED', resourceBinding: { chargeId: chargeIds.secondWind, cost: 1 } }
     })
-    expect(actions.actionSurge.activation).toMatchObject({ kind: 'FREE' })
+    expect(actions.actionSurge.activation).toMatchObject({ code: 'FREE' })
     expect(actions.actionSurge.entry).toMatchObject({
       compilation: { kind: 'COMPILED', resourceBinding: { chargeId: chargeIds.actionSurge, cost: 1 } }
     })

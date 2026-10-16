@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
+import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { ServerCompletedRuleExecutionDto } from '@artificer-toolkit/schema/shared/rulesExecution'
 import type {
   EffectAuthored,
@@ -669,7 +670,12 @@ describe('a grant that ends on an idle turn (SRD Rage)', () => {
     holderId: TARGET_ID
   })
   const actor = creatureActor({ id: TARGET_ID, snapshot: {} })
-  const engagedActor = { ...actor, resources: withEncounterActorEngaged(actor, true) }
+  const withEngaged = (target: typeof actor, engaged: boolean) =>
+    encounterRunActorStateSchema.parse({
+      ...target,
+      resources: withEncounterActorEngaged(target, engaged)
+    })
+  const engagedActor = withEngaged(actor, true)
 
   it('ends only the idle-bound grants of a holder that neither attacked nor was hurt', () => {
     expect(
@@ -688,8 +694,11 @@ describe('a grant that ends on an idle turn (SRD Rage)', () => {
   })
 
   it('marks and clears the engaged state without touching the other resources', () => {
-    const used = { ...actor, resources: withFeatureChargeUsed(actor, testUuid(0xc376), 1) }
-    const marked = { ...used, resources: withEncounterActorEngaged(used, true) }
+    const used = encounterRunActorStateSchema.parse({
+      ...actor,
+      resources: withFeatureChargeUsed(actor, testUuid(0xc376), 1)
+    })
+    const marked = withEngaged(used, true)
     expect(encounterActorEngaged(used)).toBe(false)
     expect(encounterActorEngaged(marked)).toBe(true)
     expect(withEncounterActorEngaged(marked, false)).toEqual(used.resources)
@@ -697,12 +706,9 @@ describe('a grant that ends on an idle turn (SRD Rage)', () => {
 
   it('hashes the engaged mark into the actor state checksum', () => {
     expect(checksumRunActorPlayState(engagedActor)).not.toBe(checksumRunActorPlayState(actor))
-    expect(
-      checksumRunActorPlayState({
-        ...engagedActor,
-        resources: withEncounterActorEngaged(engagedActor, false)
-      })
-    ).toBe(checksumRunActorPlayState(actor))
+    expect(checksumRunActorPlayState(withEngaged(engagedActor, false))).toBe(
+      checksumRunActorPlayState(actor)
+    )
   })
 
   describe('attacking a hostile creature', () => {
