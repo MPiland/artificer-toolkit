@@ -5953,7 +5953,8 @@
                 "tc": 2,
                 "rr": 2,
                 "size": 2
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-attack-10-t1.md"
             }
           ]
         },
@@ -7256,7 +7257,8 @@
                 "rr": 3,
                 "size": 3,
                 "after": ["SPELLS-8.T1"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-8-t1.md"
             },
             {
               "id": "SPELLS-8.T10",
