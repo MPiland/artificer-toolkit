@@ -881,8 +881,8 @@ describe('CampaignTabletopDecisionDrawer area saves', () => {
     caughtChecksum: 'e'.repeat(64),
     caught: ['Ember', 'Vault Warden', 'Phantom Wolf'],
     saves: [
-      { actorId: ember!.id, request: saveRequest('save-ember') },
-      { actorId: warden!.id, request: saveRequest('save-warden') }
+      { actorId: ember!.id, targetActorId: ember!.id, request: saveRequest('save-ember') },
+      { actorId: warden!.id, targetActorId: warden!.id, request: saveRequest('save-warden') }
     ]
   })
 
@@ -951,7 +951,9 @@ describe('CampaignTabletopDecisionDrawer area saves', () => {
     const user = await openArea(
       {
         ...areaBase,
-        saves: [{ actorId: warden!.id, request: saveRequest('save-warden') }]
+        saves: [
+          { actorId: warden!.id, targetActorId: warden!.id, request: saveRequest('save-warden') }
+        ]
       },
       { canVoid: false, onResolve }
     )

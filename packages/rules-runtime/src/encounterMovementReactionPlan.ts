@@ -36,6 +36,7 @@ import {
   type NativeEncounterActionMechanicsInput
 } from './encounterActionMechanicsPlan.js'
 import { planEncounterMovementReactionEffects } from './encounterMovementReactionEffects.js'
+import { attackRollEndedEffects } from './encounterEndedEffectRelease.js'
 
 type PreparedMechanics<TFacts extends ProjectableCharacterFacts> = Awaited<
   ReturnType<typeof prepareEncounterActionMechanics<TFacts>>
@@ -197,6 +198,19 @@ function requireCompletedMovementReaction<
   return input.execution
 }
 
+/** The reactor's one-roll grants the reaction's attack roll uses up, and the conditions that frees. */
+function reactionAttackRollEnd<
+  TFacts extends ProjectableCharacterFacts,
+  TRow extends MovementCharacterRow
+>(input: MovementReactionSettlementInput<TFacts, TRow>) {
+  const { prepared } = input.prepared
+  return attackRollEndedEffects({
+    holderActorId: prepared.actor.id,
+    held: prepared.movementTargets.get(prepared.actor.id)?.activeEffects ?? [],
+    makesAttackRoll: typeof prepared.binding.actionMechanic.attackBonus === 'number'
+  })
+}
+
 function reactionMechanicsInput<
   TFacts extends ProjectableCharacterFacts,
   TRow extends MovementCharacterRow
@@ -219,6 +233,7 @@ function reactionMechanicsInput<
     applications: [...execution.applications, ...effects.effects.relationshipConditionApplications],
     forceTargetVersionAdvance:
       prepared.prepared.target.kind === 'CHARACTER' && effects.createdEffects.length > 0,
+    sourceReleases: reactionAttackRollEnd(input).sourceReleases,
     eventPhases: {
       resource: 'MOVEMENT_REACTION_RESOURCE',
       outcome: 'MOVEMENT_REACTION_OUTCOME'
@@ -482,6 +497,7 @@ export function planEncounterMovementReactionAction<
   return {
     ...result,
     effects,
+    consumedGrants: reactionAttackRollEnd(input).consumedGrants,
     sourceResourcePlan: settled.sourceResourcePlan,
     targetPlan: settled.targetPlan,
     projectedTargets: maintenance?.targets ?? projectedTargets,

@@ -28,6 +28,7 @@ import {
 } from './encounterActorOptionalContestContext.js'
 import type { prepareEncounterActionEconomy } from './encounterActionEconomy.js'
 import type { prepareEncounterActionMechanics } from './encounterActionMechanicsPreparation.js'
+import type { ReceiptApplications } from './encounterCharacterMechanicsBatch.js'
 import { evaluateEncounterActionTargetPolicy } from './encounterActionTargetPolicy.js'
 import {
   creatureActiveGrantAttackContributors,
@@ -622,6 +623,8 @@ export function disarmApplicationOutputs(input: {
   rolls: DisarmRolls
   stateTransition: DisarmStateTransition
   actionEconomy: Awaited<ReturnType<typeof prepareEncounterActionEconomy>>
+  /** What the initiator's ended effects released from the initiator; receipted with the contest. */
+  sourceApplications: ReceiptApplications
 }) {
   const { contest, rolls } = input
   const { definitionId, definitionVersion, definitionChecksum, moduleKey, moduleContractVersion } =
@@ -645,7 +648,8 @@ export function disarmApplicationOutputs(input: {
     targetRoll: rolls.defender,
     outcome: disarmSourceWins(rolls) ? 'SOURCE_WIN' : 'TARGET_WIN_OR_TIE',
     stateTransition: input.stateTransition,
-    actionEconomyTransition: input.actionEconomy
+    actionEconomyTransition: input.actionEconomy,
+    sourceApplications: input.sourceApplications
   })
 }
 

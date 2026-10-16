@@ -31,7 +31,6 @@ import { projectNativeGm } from './nativeProjection.js'
 import { correctInitiativeCursor } from './initiativeCorrection.js'
 import { completeNativeInitiativeOccurrence } from './initiativeTerminalCompletion.js'
 import { readLiveEncounterTurnAdmission } from './turnCommandAdmission.js'
-import { deleteHeldAttackRollGrants } from './consumedGrantPersistence.js'
 import { persistEncounterGrantTicks } from './grantTickPersistence.js'
 import { persistEncounterInitiativeRollCards } from './initiativeRollCards.js'
 import { persistEncounterTurnEffects } from './turnEffectsPersistence.js'
@@ -183,16 +182,6 @@ export async function persistEncounterTurnCommit(
     stage: 'END_OF_TURN',
     turnActorId: state.currentActorId,
     occurredAt: input.occurredAt
-  })
-  // A Legendary Action that rolled an attack uses up its owner's one-roll grants. These windows have
-  // no GM undo, so nothing records what was deleted.
-  await deleteHeldAttackRollGrants(ctx, {
-    state,
-    actorIds: new Set(
-      (root.completedLegendaryActions ?? []).flatMap(({ choice, resolution }) =>
-        resolution.kind === 'EXECUTED' && resolution.attackRoll ? [choice.ownerActorId] : []
-      )
-    )
   })
   await persistEncounterTurnResources(
     ctx,

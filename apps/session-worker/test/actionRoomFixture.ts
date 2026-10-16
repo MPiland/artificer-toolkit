@@ -14,7 +14,7 @@ import { vi } from 'vitest'
 
 import { RoomEncounterStore } from '../src/roomEncounterStore.js'
 import { plainWolf } from '../src/testing/movementPlannerFixture.js'
-import { connectPlayer } from './liveRoomFixture.js'
+import { connectPlayer, ROOM_REPLY_WAIT } from './liveRoomFixture.js'
 import { movementRoom, type MovementRoomConfig } from './movementRoomFixture.js'
 import { readPendingActionDecision } from './roomHistoryReads.js'
 
@@ -393,7 +393,7 @@ export async function actionRoom(config: ActionRoomConfig) {
       if (found?.type !== 'ENCOUNTER_READ_RESULT')
         throw new Error('The room has not answered the read.')
       return found
-    })
+    }, ROOM_REPLY_WAIT)
     if (answer.result.kind !== read.kind) throw new Error(`Expected the ${read.kind} answer.`)
     return answer.result.result as Extract<EncounterReadResultDto, { kind: Kind }>['result']
   }
@@ -659,7 +659,7 @@ export async function actionRoom(config: ActionRoomConfig) {
           )
         if (!answer) throw new Error('The room has not answered the player.')
         return answer
-      })
+      }, ROOM_REPLY_WAIT)
     },
     /** The room's own Optional Rule choice for the acting actor's action at `targetActorId`. */
     async optionalActionChoices(

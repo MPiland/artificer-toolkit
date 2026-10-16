@@ -38,8 +38,7 @@ import {
   readEncounterBasicActionEntries
 } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
 import { encounterActionTargetKind } from '@artificer-toolkit/rules-runtime/encounterAreaAction'
-import { endedEffectConditionReleases } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
-import { effectsEndedBy } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
+import { attackRollEndedEffects } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
 import { encounterSceneGridPolicyRegistry } from '@artificer-toolkit/rules-runtime/sceneGridPolicyRegistry'
 import {
   snapshotCreatureTypeId,
@@ -557,15 +556,10 @@ export async function planNativeLiveEncounterAction(
   // Only an attack roll uses the attacker's one-roll grants (Vicious Mockery's disadvantage, Help);
   // a saving-throw action leaves them for the next attack. An effect that ends with the roll
   // (Invisibility) releases the condition it alone held in the source's own batch.
-  const heldEffects = activeEffectsByActorId.get(prepared.actor.id) ?? []
-  const consumedGrants =
-    typeof prepared.binding.actionMechanic.attackBonus === 'number'
-      ? effectsEndedBy(heldEffects, 'ON_ATTACK_ROLL')
-      : []
-  const sourceReleases = endedEffectConditionReleases({
+  const { consumedGrants, sourceReleases } = attackRollEndedEffects({
     holderActorId: prepared.actor.id,
-    held: heldEffects,
-    ended: consumedGrants
+    held: activeEffectsByActorId.get(prepared.actor.id) ?? [],
+    makesAttackRoll: typeof prepared.binding.actionMechanic.attackBonus === 'number'
   })
   // An optional-combat intent routes to the Disarm planner.
   if (command.optionalCombatIntent != null) throw new Error('The action is not an ordinary action.')

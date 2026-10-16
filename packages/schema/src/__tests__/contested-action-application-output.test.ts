@@ -12,7 +12,9 @@ const ids = {
   item: '00000000-0000-4000-8000-000000000005',
   definition: '00000000-0000-4000-8000-000000000006',
   graph: '00000000-0000-4000-8000-000000000007',
-  loadout: '00000000-0000-4000-8000-000000000008'
+  loadout: '00000000-0000-4000-8000-000000000008',
+  condition: '00000000-0000-4000-8000-000000000009',
+  effect: '00000000-0000-4000-8000-00000000000a'
 } as const
 const checksum = (character: string) => character.repeat(64)
 
@@ -72,7 +74,8 @@ function receipt() {
       maximum: 1,
       beforeUsed: 0,
       afterUsed: 1
-    }
+    },
+    sourceApplications: []
   }
 }
 
@@ -139,5 +142,41 @@ describe('contested-action application output', () => {
     ]
     for (const value of invalid)
       expect(serverRuleExecutionApplicationOutputsDtoSchema.safeParse(value).success).toBe(false)
+  })
+
+  describe('conditions the initiator’s ended effects released (SPELLS-27.T2b)', () => {
+    const release = (ordinal: number) => ({
+      ordinal,
+      kind: 'CONDITION_REMOVE' as const,
+      conditionId: ids.condition,
+      sourceActiveEffectId: ids.effect,
+      beforePresent: true,
+      afterPresent: false,
+      applied: true,
+      sourceNodeId: 'effect-node',
+      sourceOperationKey: 'active-effect.ended',
+      authoredPath: null,
+      resolvedPath: null
+    })
+
+    it('requires the field, empty when nothing was released', () => {
+      const { sourceApplications: _omitted, ...missing } = receipt()
+      expect(serverRuleExecutionApplicationOutputsDtoSchema.safeParse(missing).success).toBe(false)
+    })
+
+    it('accepts contiguous condition releases and rejects any other application', () => {
+      expect(
+        serverRuleExecutionApplicationOutputsDtoSchema.parse({
+          ...receipt(),
+          sourceApplications: [release(0)]
+        })
+      ).toMatchObject({ sourceApplications: [{ kind: 'CONDITION_REMOVE', applied: true }] })
+      expect(
+        serverRuleExecutionApplicationOutputsDtoSchema.safeParse({
+          ...receipt(),
+          sourceApplications: [release(1)]
+        }).success
+      ).toBe(false)
+    })
   })
 })
