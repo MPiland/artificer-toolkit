@@ -177,11 +177,15 @@ describe('an unmodified SRD Gold Dragon Wyrmling leaves its grants with Weakenin
 
   // Zero-based dice: 0 is a natural 1 and 19 a natural 20. The Wolves' Strength saves are DC 13.
   describe("at the end of its holder's turn, the grant rolls its repeating Strength save", () => {
-    /** The breath, its three area saves auto-rolled (the first and third Wolves fail), then two turns end. */
+    /**
+     * The breath, its three area saves auto-rolled (the first and third Wolves fail), then two turns end.
+     * The grant gives its holder disadvantage on Strength saves, repeat save included, so that save
+     * takes two dice: both are the scripted one.
+     */
     async function breatheThenEndTwoTurns(turnSaveDie: number) {
       const room = await breathRoom(creature, {
         autoRoll: 'GAME_MASTER',
-        rolls: [0, 19, 0, turnSaveDie]
+        rolls: [0, 19, 0, turnSaveDie, turnSaveDie]
       })
       const started = await room.startDirectedAreaAction(EAST.origin, EAST.toward)
       expect(started.answer.type, JSON.stringify(started.answer)).toBe('COMMAND_COMMITTED')
