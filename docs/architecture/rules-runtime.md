@@ -415,6 +415,21 @@ save and GM edit paths have no undoable root, so their endings are not undone. T
 receipt: basic action check settlement applies only `STABILIZE` and Cleaving only `DAMAGE`, neither of which raises hit points,
 and movement reactions and spatial effects run under `MOVE_SCENE_TOKEN`, which is not an undoable root: `REVERT_LAST_ACTION` refuses it, and the Scene undo (`UNDO_LAST_SCENE_MOVE`) refuses a move that recorded rule receipts, because it restores only the token's position. Not yet: hidden or unnoticed zones (MOVE-3.3 to 3.5).
 
+**Placed-zone damage dice (SPELLS-20 T1, D133, current).** A zone whose failed entry save deals authored dice
+(`valueKind: 'DICE'`, a plain `NdM`) compiles those dice into the zone's one frozen entry graph: `damage-enabled`
+(the movement-interruption authorization) gates one `evidence.optional-integer-range` node per die, sum nodes add
+them, and `proposal-on_save_fail` takes the last sum as its amount. A die is therefore an ordinary roll request
+(`isDamageDieRequest`), not a second graph. A flat modifier, bonus, scaling or half damage on a zone is refused
+(`unsupported`; half damage is SPELLS-20 T4). Each spatial candidate runs the d20 stage and then its die stages: the
+pending candidate carries `diceStage` (the resolved d20) while the dice are answered, and every answer is one
+`resolutionCommands` entry (`ENTER_INTEGER` or `SYSTEM_ROLL` for a die). The d20 belongs to the contacted creature;
+the dice belong to the zone source's controller (`spatialPendingRollerActorId`: the source actor, the target when the
+zone has no source), honoring that controller's auto-roll, and the GM may answer for anyone. The recorded dice stay in
+the stored execution trace, which settlement reconstructs from (`reconstructTargetBoundActiveRuleEffectCompletion`), so a
+settled entry never rerolls. `retainedSpatialReplayFaces` also replays the dice, but no caller passes `retained`
+today. The movement that triggers an entry is not an undoable root (above); GM undo of a dice zone
+removes the zone with its spreading Action, as for every placed zone.
+
 Each choice also carries `range` when its compiled target policy has a measurable one, the range the evaluator that
 handles the policy measures. A single-target policy that `singleTargetMeasure` accepts advertises `SELF`, `WITHIN` (Touch
 is 5 ft; a distance without a long range, including the 0 ft swarm space), `RANGED` (normal and long) or `UNLIMITED`. A
