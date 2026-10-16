@@ -493,7 +493,9 @@ describe('encounter action rule warning gate', () => {
       code: 'TARGET_OUT_OF_SIGHT',
       message: 'The area origin is out of sight.'
     }
-    const chosenPolicy = (shape: CompiledActionTargetPolicy['shape']) => ({
+    const chosenPolicy = (
+      shape: CompiledActionTargetPolicy['shape']
+    ): CompiledActionTargetPolicy => ({
       range: { id: 'range', rangeKind: 'DISTANCE' as const, amount: 30, unit: 'FEET' as const },
       targeting: {
         selectionKind: 'CHOSEN_CREATURES' as const,
