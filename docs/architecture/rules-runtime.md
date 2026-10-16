@@ -715,15 +715,21 @@ one action choice per offered candidate, so upcasting is choosing the higher-lev
 has no cast-level field. The action id is `spell-cast:<uuid v5 of the candidate id>`, a fixed length however
 long the candidate id grows. The choices travel beside the Character's other actions as
 `characterSpellCast` on the Encounter source facts (`encounterMovementTargets.ts`), so the Sheet's own
-actions and the movement reactions never see spells.
+actions and the movement reactions never see spells. Attack reactions do read them (a spell with a REACTION
+activation and an attack or damage trigger is offered like a Feature reaction).
 
 A candidate is offered through the Sheet's own logic, not a copy of it: the spell must come from an active
 source (`isActiveSpellSource`: prepared per preparing class, learned for the others, always prepared and
 granted spells included) and the candidate must be one of the cast levels the Sheet lists
 (`getExplicitSpellCastLevels`): the spell's own level plus every higher level its authored damage or heal
 scaling reaches for which the Character owns a standard slot. A Warlock's pact slot is offered for the spell's
-own level and spent whatever its level. A candidate is dropped when its decision is not `AVAILABLE`, or it is a
-ritual, a limited-use cast or a pool-backed fixed-level cast. A spell is offered only with exactly one active
+own level and spent whatever its level. A candidate is dropped when its decision is not `AVAILABLE` or it is a
+ritual. A leveled cast paid from a spell-source pool (`LIMITED_USE`, or a `FIXED_LEVEL` grant with `charges`,
+SPELLS-8.T8) carries a `resourceUse` of one use of that pool and spends no slot, as on the Sheet
+(`sheetResourceUsage.ts`); a cantrip is free, and so is a `FIXED_LEVEL` grant without charges. The pool spend
+is the ordinary `resourceBinding` of the compiled entry and GM undo restores it by the pool's owner key. A
+`CAST_AT_LEVEL` grant casts at its `castAtLevel` even when it is also `LIMITED_USE`. The Worker does not offer
+an attack reaction whose prepared state spends a pool, because the reaction receipt carries no pool spend. A spell is offered only with exactly one active
 Effect (a PASSIVE Effect is ignored): one cast is one action and the compiler executes one Effect group per
 action. A cast is offered only when the System adapter compiles its entry (`COMPILED`), since choosing one that
 stays `MANUAL` could only be refused as stale. The dnd5e Effect-action compiler does not yet execute a group that

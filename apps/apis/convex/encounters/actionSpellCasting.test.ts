@@ -1131,18 +1131,24 @@ describe('Character spell casting in an Encounter', () => {
 
   describe('a spell granted for limited uses (SPELLS-8.T8)', () => {
     const grants = [
-      { attribute: 'LIMITED_USE', castAtLevel: undefined, label: 'Mend (1st level)' },
-      { attribute: 'CAST_AT_LEVEL', castAtLevel: 2, label: 'Mend (2nd level)' }
+      { attributes: ['LIMITED_USE'], castAtLevel: undefined, label: 'Mend (1st level)' },
+      { attributes: ['CAST_AT_LEVEL'], castAtLevel: 2, label: 'Mend (2nd level)' },
+      // The SRD's Infernal Legacy shape: a limited-use grant cast at a fixed higher level.
+      { attributes: ['LIMITED_USE', 'CAST_AT_LEVEL'], castAtLevel: 2, label: 'Mend (2nd level)' }
     ] as const
 
-    function grantedMend(attribute: (typeof grants)[number]['attribute'], castAtLevel?: number) {
+    function grantedMend(
+      attributes: (typeof grants)[number]['attributes'],
+      castAtLevel?: number,
+      uses?: number
+    ) {
       return setup({
         known: [],
         granted: [
           {
             spell: healSpell('Mend', (spell) => fixHeal(spell, 1)),
-            attributes: [attribute],
-            uses: 2,
+            attributes,
+            ...(uses === undefined ? {} : { uses }),
             ...(castAtLevel === undefined ? {} : { castAtLevel })
           }
         ]
@@ -1150,9 +1156,9 @@ describe('Character spell casting in an Encounter', () => {
     }
 
     it.each(grants)(
-      'journey: a $attribute grant is cast from its use and not a slot, and GM undo restores the use',
-      async ({ attribute, castAtLevel, label }) => {
-        const fixture = await grantedMend(attribute, castAtLevel)
+      'journey: a $attributes grant is cast from its use and not a slot, and GM undo restores the use',
+      async ({ attributes, castAtLevel, label }) => {
+        const fixture = await grantedMend(attributes, castAtLevel, 2)
         expect((await spellChoices(fixture, 0)).map((choice) => choice.label)).toEqual([label])
         expect(await mendUses(fixture)).toMatchObject({ used: 0, remaining: 2 })
         const actionId = await choiceId(fixture, label, 0, fixture.player)
@@ -1171,8 +1177,22 @@ describe('Character spell casting in an Encounter', () => {
       120000
     )
 
+    it('casts a CAST_AT_LEVEL grant without charges for free, spending neither a use nor a slot', async () => {
+      const fixture = await grantedMend(['CAST_AT_LEVEL'], 2)
+      const actionId = await choiceId(fixture, 'Mend (2nd level)', 0)
+      const cast = await executeInRoom(fixture.gm.caller, {
+        command: castCommand(fixture, actionId, 0)
+      })
+      expect(cast.occurrence?.status).toBe('COMPLETE')
+      expect((await storedCharacter(fixture)).record.state.spellSlots).toBeUndefined()
+      await resetActionAllowance(fixture)
+      expect(
+        (await spellChoices(fixture, cast.projection.version)).map(({ label }) => label)
+      ).toEqual(['Mend (2nd level)'])
+    }, 120000)
+
     it('stops offering the cast once its last use is spent, and refuses the exhausted cast', async () => {
-      const fixture = await grantedMend('LIMITED_USE')
+      const fixture = await grantedMend(['LIMITED_USE'], undefined, 2)
       const actionId = await choiceId(fixture, 'Mend (1st level)', 0)
       const first = await executeInRoom(fixture.gm.caller, {
         command: castCommand(fixture, actionId, 0)

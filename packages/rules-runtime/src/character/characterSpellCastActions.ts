@@ -44,7 +44,7 @@ export function spellCastActionId(candidateId: string): string {
 
 /**
  * The spells a Character may cast in an Encounter, as actions of their own: movement reactions never
- * read them, and the Sheet's actions never include them.
+ * read them, attack reactions do, and the Sheet's actions never include them.
  */
 export type CharacterSpellCastActions = {
   candidates: readonly CharacterActionCandidate[]
