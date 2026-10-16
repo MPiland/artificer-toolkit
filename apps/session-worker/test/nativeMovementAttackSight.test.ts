@@ -72,6 +72,70 @@ describe('an opportunity attack against a mover that cannot see its reactor', ()
   it('rolls one die when the mover sees its reactor', async () => {
     const room = await reactionRoom([])
     const d20 = await reactionAttackD20(room)
-    expect(d20).toMatchObject({ rollMode: 'NORMAL', rawFaces: [1], selectedNatural: 1 })
+    expect(d20).toMatchObject({
+      rollMode: 'NORMAL',
+      rawFaces: [1],
+      selectedNatural: 1
+    })
+  }, 60_000)
+})
+
+describe('a player rolling an opportunity attack against a mover that cannot see its reactor', () => {
+  it('is shown a normal roll, holds the die and asks for a second', async () => {
+    const room = await movementRoom({
+      actors: [
+        srdCreatureActor({
+          id: REACTOR_ID,
+          creature: reactionWolf,
+          disposition: 'FRIENDLY'
+        }),
+        srdCreatureActor({
+          id: MOVER_ID,
+          creature: plainWolf,
+          conditionIds: BLINDED_ID ? [BLINDED_ID] : []
+        })
+      ],
+      moverActorId: MOVER_ID,
+      positions: { [REACTOR_ID]: { x: 50, y: 150 }, [MOVER_ID]: MOVER_START }
+    })
+    await room.move([MOVER_START, { x: 450, y: 150 }])
+    const pending = await room.pending()
+    if (pending?.context.kind !== 'ENCOUNTER_MOVEMENT_REACTION')
+      throw new Error(`Expected a reaction decision, got ${pending?.context.kind}.`)
+    const option = pending.context.reactionTimeline[0]?.group.options[0]
+    if (!option) throw new Error('The reaction decision offers no option.')
+    await room.respond({ kind: 'OPTION', optionId: option.optionId })
+
+    const gmView = await room.pendingFor(true)
+    const playerView = await room.pendingFor(false)
+    if (gmView?.kind !== 'D20_EVIDENCE' || playerView?.kind !== 'D20_EVIDENCE')
+      throw new Error('Expected the reaction attack roll.')
+    expect(gmView.request).toMatchObject({
+      rollMode: 'ADVANTAGE',
+      derivedRollModeReasons: ['Unseen attacker']
+    })
+    expect(playerView.request).toMatchObject({
+      rollMode: 'NORMAL',
+      derivedRollModeReasons: []
+    })
+
+    // The one die the player's prompt asked for does not settle the true advantage.
+    await room.respond({
+      kind: 'ENTER_DICE',
+      requestId: playerView.request.requestId,
+      rawFaces: [9],
+      rollMode: 'NORMAL'
+    })
+    const gmHeld = await room.pendingFor(true)
+    const playerHeld = await room.pendingFor(false)
+    if (gmHeld?.kind !== 'D20_EVIDENCE' || playerHeld?.kind !== 'D20_EVIDENCE')
+      throw new Error('Expected the held reaction attack roll.')
+    expect(playerHeld.request).toMatchObject({
+      rollMode: 'NORMAL',
+      heldD20: { faces: [9], caption: "Advantage: the target can't see you" }
+    })
+    expect(gmHeld.request.heldD20?.caption).toEqual(expect.stringContaining("can't see"))
+    expect(gmHeld.request.heldD20?.caption).not.toBe(playerHeld.request.heldD20?.caption)
+    expect(JSON.stringify(playerHeld)).not.toContain(gmHeld.request.heldD20!.caption!)
   }, 60_000)
 })

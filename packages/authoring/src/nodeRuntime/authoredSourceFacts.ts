@@ -132,7 +132,10 @@ export function authoredSourceFacts(subject: Subject): AuthoredNodeRuntimeSource
           condition_type_id: value(outcome, 'conditionId')
         })
       if (outcome.effectKind === 'DAMAGE')
-        add('damages', { id: value(outcome, 'id'), damage_type_id: value(outcome, 'damageTypeId') })
+        add('damages', {
+          id: value(outcome, 'id'),
+          damage_type_id: optionalValue(outcome, 'damageTypeId')
+        })
     }
   }
 
