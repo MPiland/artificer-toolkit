@@ -60,7 +60,7 @@ What exists:
   - marks out-of-range entries;
   - goes back to initiative order when targeting ends.
 
-  Order (D131): creatures the GM revealed but the player cannot see lead, marked Hidden or Invisible with "distance unknown" (`unseenReason` on the player actor DTO); visible creatures follow nearest first, a visible creature with no token last. The map and the list share one selection. The list is the keyboard, screen-reader and no-map path, so it needs real buttons and labels.
+  Order (D131, supersedes "a revealed actor with no drawn token sorts last"): creatures the GM revealed but the player cannot see lead, marked Hidden or Invisible with "distance unknown" (`unseenReason` on the player actor DTO); visible creatures follow nearest first, a visible creature with no token last. The map and the list share one selection. The list is the keyboard, screen-reader and no-map path, so it needs real buttons and labels.
 
 - **Out of scope:** the per-user roll card (ATTACK-17.T1). Attacking a square (ATTACK-17.4) is not built: D131 ruled there is no square attack.
 

@@ -395,8 +395,8 @@ Choosing an action whose target is one creature lets the caster pick it on the m
 
 - `vttTargeting.model.ts` is the pure model: it lists the creatures the action can name, measures each one's
   footprint distance and reach band from the caster's token on the Scene, and sorts the list (D131): creatures
-  the GM revealed but the player cannot see lead, marked "Hidden" or "Invisible" with "distance unknown" and
-  never drawn or targetable on the map; visible creatures follow nearest first, a visible creature with no
+  the GM revealed but the player cannot see lead, marked "Invisible" (it carries the Invisible condition) or "Hidden" (otherwise) with "Distance unknown", and are
+  never measured or offered on the map; visible creatures follow nearest first, a visible creature with no
   token last. It flags exactly the listed visible tokens in normal or long range as
   targetable. The renderer draws the flag as a ring, shows a pointer cursor and turns a click into
   `onTokenPick`; Escape calls `onTargetingCancel`.
