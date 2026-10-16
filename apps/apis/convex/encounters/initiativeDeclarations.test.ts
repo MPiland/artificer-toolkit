@@ -755,6 +755,9 @@ describe('native initiative declarations', () => {
         expect(
           await base.t.run((ctx) => ctx.db.query('encounterRuleOccurrences').collect())
         ).toEqual(beforeStale)
+        // closeRoom dropped the queue. Equal random faces would tie, and the Run would stay
+        // PREPARED, so the scores are set apart again for the declaration that settles it.
+        await queueRoomRolls(base.campaign.id, { rolls: [4, 9] })
         result = await executeInRoom(base.player.caller, response)
         expect(encounterPlayerProjectionDtoSchema.safeParse(result.projection).success).toBe(true)
         expect(result.occurrence?.pending).toBeNull()
