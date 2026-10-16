@@ -31,15 +31,16 @@ export type EncounterActionHeldD20Dto = {
   gmReason: string | null
 }
 
-export const encounterActionHeldD20DtoSchema: z.ZodMiniType<EncounterActionHeldD20Dto> = lazySchema(() =>
-  z.strictObject({
-    rolledMode: z.literal('NORMAL'),
-    faces: z.tuple([ruleExecutionReceiptD20FaceSchema]),
-    playerCaption: z.nullable(
-      z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160))
-    ),
-    gmReason: z.nullable(z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)))
-  })
+export const encounterActionHeldD20DtoSchema: z.ZodMiniType<EncounterActionHeldD20Dto> = lazySchema(
+  () =>
+    z.strictObject({
+      rolledMode: z.literal('NORMAL'),
+      faces: z.tuple([ruleExecutionReceiptD20FaceSchema]),
+      playerCaption: z.nullable(
+        z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160))
+      ),
+      gmReason: z.nullable(z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)))
+    })
 )
 
 /** Native action ownership; the command JSON is parsed by its owning command schema on every read. */
@@ -124,12 +125,11 @@ export const encounterActionPendingContextDtoSchema = lazySchema(() =>
         }
         if (value.onHitChoice) {
           for (const [index, option] of value.onHitChoice.options.entries())
-            validateEncounterOnHitOption(
-              option,
-              value.onHitChoice.testExecutionChecksum,
-              context,
-              ['onHitChoice', 'options', index]
-            )
+            validateEncounterOnHitOption(option, value.onHitChoice.testExecutionChecksum, context, [
+              'onHitChoice',
+              'options',
+              index
+            ])
           if (
             value.legendaryResistance ||
             value.reactionChoice ||
@@ -144,7 +144,7 @@ export const encounterActionPendingContextDtoSchema = lazySchema(() =>
               message: 'An on-hit offer belongs to a TEST held for the attacker.'
             })
         }
-        if (value.heldD20 && value.d20Policy === null)
+        if (value.heldD20 && value.d20Policy === null && !value.contest)
           context.addIssue({
             code: 'custom',
             path: ['heldD20'],
