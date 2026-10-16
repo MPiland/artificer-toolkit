@@ -104,7 +104,7 @@ function prepareNativeActionMechanicsBatches(
   const sourceMutation = {
     ...(resourceConsumption ? { characterResourceConsumption: resourceConsumption } : {}),
     ...(itemConsumption ? { characterItemConsumption: itemConsumption } : {}),
-    ...(spellConsumption ? { characterSpellConsumption: spellConsumption } : {}),
+    ...(spellConsumption ? { characterSpellConsumptions: [spellConsumption] } : {}),
     ...(stow ? { stowEquippedItemInstanceId: stow.shieldItemInstanceId } : {})
   }
   const sourceReleases = input.sourceReleases ?? []

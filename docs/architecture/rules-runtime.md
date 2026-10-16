@@ -505,15 +505,21 @@ is the cast's target spends through the target's own mechanics call.
 
 **Counterspell chain (current, REACTION-4.T3d).** A counter that stands (its check passed or none was owed) is
 itself a cast: the offer's `chain` (`counters`, `castDeclinedReactorActorIds`, `castLevel`) holds the standing counters
-in order, and the next level offers the other Characters, except the original caster and any reactor that already used
-a counter in this cast, a counter to the last one. Range, check level and target are measured against that counter's
+in order, and the next level offers the other Characters, except the creature whose cast it answers and any reactor that
+already used a counter in this cast, a counter to the last one. The original caster is therefore offered a counter to a
+Counterspell cast against its spell (never to its own cast), planned against the slots its cast leaves. Range, check level and target are measured against that counter's
 caster (`discoverNativeCastReactions` `against`). Each answer adds one counter, so depth needs no cap in code. When a
 level has nobody left to ask the chain resolves by parity (`advanceNativeCastReactions`): odd, the first counter stands
 and the cast is countered; even, the chain is spent without effect and the cast is offered again at its own level with
 its declines restored. `failedCounters` holds every counter used that did not counter the cast (a failed check, or
 itself countered; `againstActorId` records the cast it answered), all spent with the cast's terminal commit. The
-persistence validators (`actionPending.ts`) check this bookkeeping by set equality. Open: the original caster is never
-offered a counter to a Counterspell cast against their own spell (`future-enhancements.md`).
+persistence validators (`actionPending.ts`) check this bookkeeping by set equality.
+
+A creature that makes several spell spends in one terminal commit (the cast's caster: the cast, then its counter)
+commits them as one mechanics batch: `EncounterMechanicsBatchInput.characterSpellConsumptions` is an ordered list, each
+entry fenced by the same `expectedStreamVersion`, its own `beforeUsed` and `afterUsed = beforeUsed + 1`, applied in order
+with one stream bump (`planEncounterMechanicsBatch`). Discovery prepares the caster's counter against a target with the
+cast's slot already spent (`projectSpellSlotSpend`), on the same Character version, so the offer matches what commits.
 
 #### `DAMAGE_TAKEN` (current, REACTION-4.T2)
 
