@@ -112,7 +112,7 @@ export const encounterActionPendingContextDtoSchema = lazySchema(() =>
               message: 'A reaction offer belongs to a TEST held for the reacting creature.'
             })
         }
-        if (value.heldD20 && value.d20Policy === null)
+        if (value.heldD20 && value.d20Policy === null && !value.contest)
           context.addIssue({
             code: 'custom',
             path: ['heldD20'],

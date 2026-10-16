@@ -14,19 +14,21 @@ import {
 } from './encounterMovementReactionActionExecution.js'
 import {
   encounterAttackD20Belief,
-  encounterAttackSightCaptions,
-  isEncounterSightGovernedD20,
-  reconcileEncounterD20Faces,
   type EncounterAttackD20Belief,
   type EncounterPreparedAttackSight
 } from './encounterAttackBelief.js'
+import {
+  heldStageD20,
+  settleSightGovernedD20,
+  sightGovernedStageD20,
+  type SightGovernedD20
+} from './encounterSightGovernedD20.js'
 import {
   resolveEncounterD20Answer,
   resolveEncounterIntegerAnswer,
   type EncounterD20RollMode,
   type EncounterEvidenceAnswer
 } from './encounterEvidenceAnswer.js'
-import { EncounterValidationError } from './encounterErrors.js'
 import {
   ruleExecutionPhaseReceiptsDtoSchema,
   type ServerCompletedRuleExecutionDto,
@@ -367,72 +369,6 @@ function actionRequestRoller(input: {
   return input.bound.d20Roller
 }
 
-/** A stage d20 that sight decides: the server settles it in the true mode (ATTACK-10.1). */
-type SightGovernedD20 = {
-  held: EncounterActionHeldD20Dto | null
-  captions: { playerCaption: string; gmReason: string } | null
-}
-
-/**
- * How sight governs one stage d20 against its stored prompt state, or null when it does not: the
- * held die and the captions that explain a settled mode change.
- */
-function sightGovernedStageD20(input: {
-  attackSight: EncounterPreparedAttackSight | null
-  policy: ServerRuleExecutionD20PolicyDto
-  stored: {
-    d20Belief: EncounterAttackD20Belief | null
-    heldD20: EncounterActionHeldD20Dto | null
-  }
-}): SightGovernedD20 | null {
-  const { attackSight, policy, stored } = input
-  if (!isEncounterSightGovernedD20({ policy, belief: stored.d20Belief })) return null
-  if (stored.d20Belief && !attackSight) throw new Error('The action d20 belief is stale.')
-  return {
-    held: stored.heldD20,
-    captions:
-      stored.d20Belief && attackSight
-        ? encounterAttackSightCaptions({
-            believed: attackSight.believed,
-            actual: attackSight.actual,
-            attackerLabel: attackSight.attackerLabel,
-            targetLabel: attackSight.targetLabel
-          })
-        : null
-  }
-}
-
-/** The d20 a roller already entered, held while one more is needed to settle the true mode. */
-function heldStageD20(
-  heldFace: number,
-  sight: SightGovernedD20 | null
-): EncounterActionHeldD20Dto {
-  return {
-    rolledMode: 'NORMAL',
-    faces: [heldFace],
-    playerCaption: sight?.captions?.playerCaption ?? null,
-    gmReason: sight?.captions?.gmReason ?? null
-  }
-}
-
-/** The one die that completes a held d20: entered, from an app roll, or rolled for an auto-roller. */
-function heldD20Completion(resolution: EncounterEvidenceAnswer, rollD20: () => number): number {
-  const face =
-    resolution.kind === 'AUTO_ROLL'
-      ? rollD20()
-      : resolution.kind === 'ENTER_DICE'
-        ? resolution.rollMode === 'NORMAL'
-          ? resolution.rawFaces[0]
-          : undefined
-        : resolution.kind === 'SYSTEM_ROLL' &&
-            resolution.rollMode === 'NORMAL' &&
-            resolution.faces.length === 1
-          ? resolution.faces[0]
-          : undefined
-  if (face === undefined) throw new EncounterValidationError('One more d20 completes the roll.')
-  return face
-}
-
 type SettledActionResponse = {
   kind: 'SETTLED'
   value: number
@@ -463,43 +399,13 @@ function actionResponse(
     throw new Error('The action evidence request is stale.')
   const rollD20 = () => input.random(20) + 1
   const { policy, resolution, sightGoverned } = input
-  if (policy !== null && sightGoverned) {
-    // The roller's dice settle in the true mode: dice are kept, cancelled, or added to fit it.
-    const { held } = sightGoverned
-    const rolled = held
-      ? { faces: [...held.faces], rollMode: held.rolledMode }
-      : resolveEncounterD20Answer({ derivedRollMode: policy.rollMode, answer: resolution, rollD20 })
-    // The app rolls a missing die for an app roll or an auto-roll; entered dice supply their own.
-    const completion = held ? heldD20Completion(resolution, rollD20) : null
-    const settled = reconcileEncounterD20Faces({
+  if (policy !== null && sightGoverned)
+    return settleSightGovernedD20({
       appliedMode: policy.rollMode,
-      rolledMode: rolled.rollMode,
-      rolledFaces: rolled.faces,
-      extraFace:
-        completion !== null ? () => completion : resolution.kind === 'ENTER_DICE' ? null : rollD20
+      sightGoverned,
+      resolution,
+      rollD20
     })
-    if (settled.kind === 'NEEDS_EXTRA_D20')
-      return { kind: 'NEEDS_EXTRA_D20', heldFace: rolled.faces[0]! }
-    return {
-      kind: 'SETTLED',
-      value: settled.natural,
-      faces: settled.faces,
-      rollMode: policy.rollMode,
-      ...(settled.adjustment
-        ? {
-            modeAdjustment: {
-              rolledMode: settled.adjustment.rolledMode,
-              rolledFaces: [...settled.adjustment.rolledFaces],
-              addedFaces: [...settled.adjustment.addedFaces],
-              cancelledRollIndexes: [...settled.adjustment.cancelledRollIndexes],
-              addedRollIndexes: [...settled.adjustment.addedRollIndexes],
-              playerCaption: sightGoverned.captions?.playerCaption ?? null,
-              gmReason: sightGoverned.captions?.gmReason ?? null
-            }
-          }
-        : {})
-    }
-  }
   if (policy !== null) {
     const d20 = resolveEncounterD20Answer({
       derivedRollMode: policy.rollMode,
