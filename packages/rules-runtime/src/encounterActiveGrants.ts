@@ -137,7 +137,11 @@ export function withCreatureActiveGrantSaves(
         const entry = scoped.get(key) ?? { abilityDefinitionId, conditionTypeId, contributors: [] }
         entry.contributors.push(contributor)
         scoped.set(key, entry)
-      } else if (domain?.ruleDefinitionId === undefined) {
+      } else if (
+        domain?.ruleDefinitionId === undefined &&
+        !hasHolderStateRestriction(modifier.restrictions) &&
+        !dnd5eSaveRequiresSourceSight(modifier)
+      ) {
         plain.set(abilityDefinitionId, [...(plain.get(abilityDefinitionId) ?? []), contributor])
       }
     }
@@ -168,21 +172,7 @@ export function withCreatureActiveGrantSaves(
       ]
     })
   ]
-  return plain.size === 0
-    ? rows
-    : rows.map((definition) => {
-        const row = record(definition)
-        const added = plain.get(String(row?.abilityDefinitionId))
-        return row && added && Array.isArray(row.contributors)
-          ? {
-              ...row,
-              ...mergedRollContributors(
-                row.contributors as EncounterRelationshipD20Contributor[],
-                added
-              )
-            }
-          : definition
-      })
+  return plain.size === 0 ? rows : withSaveRowContributors(rows, plain)
 }
 
 const CREATURE_DEFENSE_KIND_BY_DOMAIN: Readonly<
