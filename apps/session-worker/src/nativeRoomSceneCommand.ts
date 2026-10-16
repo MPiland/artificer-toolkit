@@ -162,7 +162,13 @@ export function planLiveSceneCommand(input: {
   )
     return reject('FORBIDDEN', 'The current user does not control this Scene token.', false)
   const position = command.path.at(-1)!
-  const failure = sceneTokenMovementFailure(scene, command.tokenId, position, command.path)
+  const failure = sceneTokenMovementFailure(
+    scene,
+    command.tokenId,
+    position,
+    command.path,
+    command.movementKind
+  )
   if (failure) return reject('INVALID_COMMAND', failure, true)
   if (staged) return { kind: 'STAGED' }
   return { kind: 'ACCEPTED', delta: { kind: 'TOKEN_MOVED', position, tokenId: command.tokenId } }

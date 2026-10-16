@@ -141,7 +141,12 @@ export const sceneGeometryFinishInputSchema = lazySchema(() =>
      * caller that holds the whole Scene (the room or the geometry action). Publication requires it for
      * a voluntary move and records it as the actor's turn movement (D38).
      */
-    movementCost: z.optional(z.number().check(z.nonnegative()))
+    movementCost: z.optional(z.number().check(z.nonnegative())),
+    /**
+     * The cast whose teleport allowance a player's Encounter-bound TELEPORT spends, chosen by the
+     * room when it admitted the move; publication spends it. Absent for the GM's ungated teleport.
+     */
+    teleportCastCommandId: z.optional(postgresUuidSchema)
   })
 )
 

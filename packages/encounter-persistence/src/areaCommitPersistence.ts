@@ -620,6 +620,7 @@ export async function persistEncounterAreaCommit(
       endedMaintainedStates,
       addedConcentrationCasterId: null,
       speedBonusTurn: null,
+      teleportAllowanceTurn: null,
       turnUses: null,
       idleTurnMarkChanges: idleTurnMarkChanges(actors, nextActors),
       issuerLines: children.flatMap(({ actor, batch }) => {

@@ -288,6 +288,7 @@ export async function persistEncounterCounteredCastCommit(
       endedMaintainedStates,
       addedConcentrationCasterId: null,
       speedBonusTurn: null,
+      teleportAllowanceTurn: null,
       turnUses: null,
       failedCounters: input.failedCounters.map(({ receipt }) => receipt)
     },

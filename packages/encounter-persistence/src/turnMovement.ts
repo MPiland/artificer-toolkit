@@ -2,7 +2,10 @@ import {
   MAX_ENCOUNTER_ACTORS,
   type EncounterSessionStateDto
 } from '@artificer-toolkit/schema/api/encounterData'
-import { encounterStoredTurnMovementSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
+import {
+  encounterStoredTurnMovementSchema,
+  type EncounterTeleportAllowance
+} from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { readEncounterActorConditionState } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
 import {
@@ -18,6 +21,7 @@ import { resolveSpeedsFeet } from '@artificer-toolkit/rules-runtime/walkingSpeed
 import { readEncounterCharacterPlay } from './characterPlay.js'
 import { isDepartedCharacterActor } from './characterStates.js'
 import { readEncounterControlledActorIds } from './actorController.js'
+import { rejectDomain } from './domainRejections.js'
 import { readRunActors, readRunState } from './documents.js'
 import { listActiveRuleEffects } from './effectStore.js'
 import type { EncounterDocument, EncounterReadContext, EncounterWriteContext } from './store.js'
@@ -118,6 +122,147 @@ export async function removeTurnSpeedBonus(
   await ctx.db.patch(row._id, { speedBonuses: row.speedBonuses - 1 })
 }
 
+/** The teleport allowances an actor's casts granted in the current turn; none between turns. */
+export async function readTurnTeleportAllowances(
+  ctx: EncounterReadContext,
+  input: { state: RunTurnState; actorId: string }
+): Promise<EncounterTeleportAllowance[]> {
+  const turn = currentTurn(input.state)
+  const row = turn ? await readTurnRow(ctx, turn, input.actorId) : null
+  return row?.teleportAllowances ?? []
+}
+
+/**
+ * Records the one-shot teleport a cast granted (Misty Step, SPELLS-28.2) on the actor's record for
+ * the current turn. Returns the turn it was recorded in for the command record's undo, or null
+ * between turns.
+ */
+export async function recordTurnTeleportAllowance(
+  ctx: EncounterWriteContext,
+  input: {
+    state: RunTurnState
+    actorId: string
+    castCommandId: string
+    maxFeet: number
+    destinationKind: EncounterTeleportAllowance['destinationKind']
+  }
+) {
+  const turn = currentTurn(input.state)
+  if (!turn) return null
+  const allowance: EncounterTeleportAllowance = {
+    castCommandId: input.castCommandId,
+    maxFeet: input.maxFeet,
+    destinationKind: input.destinationKind,
+    consumedByCommandId: null
+  }
+  const row = await readTurnRow(ctx, turn, input.actorId)
+  if (row)
+    await ctx.db.patch(row._id, { teleportAllowances: [...row.teleportAllowances, allowance] })
+  else
+    await ctx.db.insert(
+      'encounterTurnMovements',
+      encounterStoredTurnMovementSchema.parse({
+        ...turn,
+        actorId: input.actorId,
+        usedFeet: 0,
+        speedId: null,
+        speedBonuses: 0,
+        teleportAllowances: [allowance]
+      })
+    )
+  return { round: turn.round, turnActorId: turn.turnActorId }
+}
+
+/**
+ * Spends a teleport allowance for the move `commandId`. A named cast must still hold an unspent
+ * allowance, or the plan read a stale record and the commit fails. With no cast named (a GM move)
+ * it spends any unspent allowance, or none. Returns the cast spent, or null when none was.
+ */
+export async function consumeTurnTeleportAllowance(
+  ctx: EncounterWriteContext,
+  input: {
+    state: RunTurnState
+    actorId: string
+    castCommandId: string | null
+    commandId: string
+  }
+) {
+  const turn = currentTurn(input.state)
+  const row = turn ? await readTurnRow(ctx, turn, input.actorId) : null
+  const allowance = row?.teleportAllowances.find(
+    (candidate) =>
+      candidate.consumedByCommandId === null &&
+      (input.castCommandId === null || candidate.castCommandId === input.castCommandId)
+  )
+  if (!row || !allowance) {
+    if (input.castCommandId !== null) throw new Error('The teleport allowance is unavailable.')
+    return null
+  }
+  await ctx.db.patch(row._id, {
+    teleportAllowances: row.teleportAllowances.map((candidate) =>
+      candidate === allowance ? { ...candidate, consumedByCommandId: input.commandId } : candidate
+    )
+  })
+  return { castCommandId: allowance.castCommandId }
+}
+
+/**
+ * Gives back the allowance the move `commandId` spent (the GM's undo of that move). The allowance
+ * expires with the turn, so only the current turn's records are searched.
+ */
+export async function restoreTurnTeleportAllowance(
+  ctx: EncounterWriteContext,
+  input: { state: RunTurnState; commandId: string }
+) {
+  const turn = currentTurn(input.state)
+  if (!turn) return
+  const rows = await ctx.db
+    .query('encounterTurnMovements')
+    .withIndex('by_encounterId_round_turnActorId_actorId', (q) =>
+      q
+        .eq('encounterId', turn.encounterId)
+        .eq('round', turn.round)
+        .eq('turnActorId', turn.turnActorId)
+    )
+    .take(MAX_ENCOUNTER_ACTORS)
+  const row = rows.find((candidate) =>
+    candidate.teleportAllowances.some((entry) => entry.consumedByCommandId === input.commandId)
+  )
+  if (!row) return
+  await ctx.db.patch(row._id, {
+    teleportAllowances: row.teleportAllowances.map((entry) =>
+      entry.consumedByCommandId === input.commandId
+        ? { ...entry, consumedByCommandId: null }
+        : entry
+    )
+  })
+}
+
+/** Takes back an unspent teleport allowance (the undo of its cast); refused once a move spent it. */
+export async function removeTurnTeleportAllowance(
+  ctx: EncounterWriteContext,
+  input: {
+    encounterId: string
+    round: number
+    turnActorId: string
+    actorId: string
+    castCommandId: string
+  }
+) {
+  const row = await readTurnRow(ctx, input, input.actorId)
+  const allowance = row?.teleportAllowances.find(
+    (candidate) => candidate.castCommandId === input.castCommandId
+  )
+  if (!row || !allowance || allowance.consumedByCommandId !== null)
+    rejectDomain(
+      'REVERT_UNAVAILABLE',
+      'The teleport this cast granted is unavailable; undo the move first.'
+    )
+  await ctx.db.patch(row._id, {
+    teleportAllowances: row.teleportAllowances.filter((candidate) => candidate !== allowance)
+  })
+}
+
 /** The once-per-turn usage keys an actor has spent in the current turn (D119); none between turns. */
 export async function readTurnUses(
   ctx: EncounterReadContext,
@@ -183,7 +328,15 @@ async function readTurnMovementByActorId(
   ctx: EncounterReadTransaction,
   state: RunTurnState
 ): Promise<
-  ReadonlyMap<string, { usedFeet: number; speedId: string | null; speedBonuses: number }>
+  ReadonlyMap<
+    string,
+    {
+      usedFeet: number
+      speedId: string | null
+      speedBonuses: number
+      teleportAllowances: readonly EncounterTeleportAllowance[]
+    }
+  >
 > {
   const turn = currentTurn(state)
   if (!turn) return new Map()
@@ -306,7 +459,14 @@ export async function readTurnMovementView(
                 }
               ]
             : []
-        })
+        }),
+        teleport: (record?.teleportAllowances ?? [])
+          .filter(({ consumedByCommandId }) => consumedByCommandId === null)
+          .map(({ castCommandId, maxFeet, destinationKind }) => ({
+            castCommandId,
+            maxFeet,
+            destinationKind
+          }))
       }
     })
   )

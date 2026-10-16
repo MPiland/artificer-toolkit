@@ -255,7 +255,14 @@ export async function prepareStagedSceneCommit(input: {
     fogChanged: layers.length > 0,
     commit: {
       ...movement.prepareInput,
-      finish: { ...finish, tokenOrdinals: context.baseOrdinals.tokens, movementCost },
+      finish: {
+        ...finish,
+        tokenOrdinals: context.baseOrdinals.tokens,
+        movementCost,
+        ...(movement.planned.teleportCastCommandId
+          ? { teleportCastCommandId: movement.planned.teleportCastCommandId }
+          : {})
+      },
       rules: movement.planned.rules,
       settlements: movement.planned.settlementInputs,
       fogLayers: layers,

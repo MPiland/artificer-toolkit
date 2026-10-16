@@ -59,13 +59,13 @@ const misty = {
   castCommandId: ids.mistyStep,
   maxFeet: 30,
   destinationKind: 'VISIBLE' as const,
-  consumedByCommandId: null
+  consumedByCommandId: null as string | null
 }
 const door = {
   castCommandId: ids.dimensionDoor,
   maxFeet: 500,
   destinationKind: 'SPECIFIED_POINT' as const,
-  consumedByCommandId: null
+  consumedByCommandId: null as string | null
 }
 
 const select = (
