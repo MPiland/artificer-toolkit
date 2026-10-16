@@ -43,7 +43,7 @@ import { deletePlacedSpatialEffect } from './placedSpatialEffects.js'
 import { rejectDomain } from './domainRejections.js'
 import { holdsActorForm } from './actorFormPersistence.js'
 import { createActiveRuleEffectStore } from './effectStore.js'
-import { readRunActors, readRunState, replaceRunActor } from './documents.js'
+import { readRunActors, readRunActorWithRow, readRunState, replaceRunActor } from './documents.js'
 import {
   removeTurnSpeedBonus,
   removeTurnTeleportAllowance,
@@ -329,12 +329,21 @@ export async function revertLastEncounterAction(
   // (D130), so the inverses below read the actor as it stood before the cast.
   const endedFormEffectIds = new Set<string>()
   for (const action of targetBatches) {
-    if (action.kind !== 'ENCOUNTER_ACTOR_MECHANICS_BATCH') continue
-    const owner = {
-      kind: 'ENCOUNTER_ACTOR' as const,
-      encounterId: state.id,
-      targetActorId: action.targetActorId
-    }
+    // A Character's form is held by an effect on the Character, found through its Run actor.
+    const wearer =
+      action.kind === 'CHARACTER_MECHANICS_BATCH'
+        ? (await readRunActorWithRow(ctx, state, action.targetActorId)).actor
+        : null
+    if (wearer && wearer.kind !== 'CHARACTER')
+      throw new Error('Stored Character action target is invalid.')
+    const owner =
+      wearer?.kind === 'CHARACTER'
+        ? { kind: 'CHARACTER' as const, characterId: wearer.sourceId }
+        : {
+            kind: 'ENCOUNTER_ACTOR' as const,
+            encounterId: state.id,
+            targetActorId: action.targetActorId
+          }
     for (const transition of action.activeEffectTransitions) {
       const effect = await store.findById(owner, transition.activeEffectId)
       if (!effect || !holdsActorForm(effect.definition)) continue

@@ -262,6 +262,16 @@ export async function writeRunActor(
         )
         .unique()
       if (effect) await ctx.db.delete(effect._id)
+      // A Character's form is held by an effect on the Character.
+      if (before.kind === 'CHARACTER') {
+        const characterEffect = await ctx.db
+          .query('characterActiveRuleEffects')
+          .withIndex('by_characterId_id', (q) =>
+            q.eq('characterId', before.sourceId).eq('id', effectId)
+          )
+          .unique()
+        if (characterEffect) await ctx.db.delete(characterEffect._id)
+      }
     }
   }
 }
