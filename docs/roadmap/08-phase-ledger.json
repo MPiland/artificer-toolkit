@@ -8256,6 +8256,20 @@
               "activeWorkbook": "docs/handoffs/slice-spells-28.md"
             },
             {
+              "id": "SPELLS-28.T1b",
+              "text": "In-Scene TELEPORT (Misty Step, Dimension Door): the token moves to the chosen destination through the spatial movement service as movementKind TELEPORT (no opportunity attacks, no path), one commit with the cast, GM undo restores the position; authored from core options.",
+              "status": "TODO",
+              "closes": ["SPELLS-28.1"],
+              "activeWorkbook": "docs/handoffs/slice-spells-28.md",
+              "wsjf": {
+                "bv": 8,
+                "tc": 3,
+                "rr": 3,
+                "size": 2,
+                "after": ["SPELLS-28.T1"]
+              }
+            },
+            {
               "id": "SPELLS-28.T2",
               "text": "MANIFEST outcome executor (Giant Insect).",
               "status": "TODO",
