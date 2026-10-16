@@ -195,3 +195,24 @@ Decided as D132.
 
 - SPELLS-27.T4 DONE for T4a; register SPELLS-27.T4b with the roots above, WSJF the same as T4.
 - AC 27.2 stays open: the consumer is pending on the roots listed under T4b.
+
+## 9. SPELLS-27.T4b: the other damage roots and the against-enemy arms
+
+Decided as `D-pending-spells-27-t4b`.
+
+- **Trigger shape.** `endOnTriggers` gains `{ event: 'ATTACK_ROLL' | 'SPELL_CAST', against: 'ENEMY' }` (runtime schema, authored schema, `PathLifecycleAuthored`, node map: `by` and `damageTypeIds` show only for `DAMAGE_TAKEN`, `against` only for the other two). `against` is explicit so a later `ALLY` or `ANY` value is a schema widening, not a reinterpretation. The compiler passes the new members through unchanged; `DAMAGE_TAKEN` members are normalized as before.
+- **Enemy.** `actsAgainstEnemy`: any target in a `HOSTILE` relationship to the actor (`encounterActorRelationship`); a neutral target is not an enemy. `actionEndedEffects` takes a required `againstEnemy` and every call site computes it (single action, Shield and Counterspell reactors, area caster, Disarm, Legendary, movement reaction).
+- **Roots wired.** Area commit (per target, deduped), Legendary window (planner plus persistence recomputation), movement reaction (mover's ended effects on the REACTION step's `consumedGrants`, limit doubled), turn effects (`turnEffectDamageEnded`; the releases are on the damaging execution, validated by the turn result schema and recomputed by `turnEffectsPersistence`). Death-save damage needs no wiring: it is a `DAMAGE` application inside the roots above.
+- **GM undo.** Only the single-action and area roots have it, and both are proved with it. Legendary, movement reaction and turn effects have no undo, so they are proved without it.
+- **Proof.** `encounterEndedEffectRelease.test.ts`, `rules-runtime-contracts.test.ts`, `characterSpellCastActions.test.ts`, `nativeRoomAreaDamageEndsEffect.test.ts`, `nativeMovementDamageEndsEffect.test.ts`, `nativeRoomLegendary.test.ts`, `nativeRoomTurnEffects.test.ts`, `nativeRoomAttackEndsEffect.test.ts`, `nativeRoomDamageEndsEffect.test.ts`.
+
+### Deferred edge cases
+
+- Cleaving and zone-entry damage roots do not call `damageTakenEndedEffects`; T5 authors no effect whose damage arrives through them.
+- The countered-cast path (`planNativeCounteredCast`) computes `againstEnemy` from the lead target, so an area spell countered after the lead is an ally and the rest are enemies does not end a `SPELL_CAST` effect.
+- A turn effect that is itself a candidate at its boundary and also ends on damage keeps its lifecycle path; the damage does not end it. A candidate that owns the same condition as a damage-ended effect keeps the condition from the release only if it is not a candidate (the release is computed against non-candidates).
+- Turn effects planned for the second boundary of an `ADVANCE_TURN` do not see an effect the first boundary's damage ended (matters only when both boundaries belong to one actor).
+
+### Proposed ledger edits (the main session applies them)
+
+- SPELLS-27.T4b DONE; AC 27.2 can close once T5 and T6 land.

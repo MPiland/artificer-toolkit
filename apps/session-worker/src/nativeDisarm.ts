@@ -29,7 +29,10 @@ import {
   requireEncounterDisarmDefinition
 } from '@artificer-toolkit/rules-runtime/encounterDisarmPreparation'
 import { planNativeEncounterAreaSourceSpend } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPlan'
-import { actionEndedEffects } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
+import {
+  actionEndedEffects,
+  actsAgainstEnemy
+} from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
 import { effectsEndedBy } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
 import { withEncounterAppRoll } from '@artificer-toolkit/rules-runtime/encounterEvidenceAnswer'
 import { executeEncounterOptionalContestAction } from '@artificer-toolkit/rules-runtime/encounterOptionalContestActionExecution'
@@ -390,7 +393,12 @@ export async function planNativeLiveDisarm(
   const { consumedGrants: initiatorGrants, sourceReleases } = actionEndedEffects({
     holderActorId: actor.id,
     held: activeEffectsByActorId.get(actor.id) ?? [],
-    makesAttackRoll: true
+    makesAttackRoll: true,
+    againstEnemy: actsAgainstEnemy({
+      actorId: actor.id,
+      targetActorIds: [target.id],
+      dispositions: new Map(actors.map(({ id, disposition }) => [id, disposition]))
+    })
   })
   const occurredAt = new Date().toISOString()
   const sourceRelease = sourceReleases.length

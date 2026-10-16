@@ -3,21 +3,13 @@ import {
   characterActor,
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
-import { DND5E_OPPORTUNITY_REACTION_ELIGIBILITY_DEFINITION_ID } from '@artificer-toolkit/rules-runtime/systems/dnd5e/reactionEligibilityPolicy'
 import {
   oncePerTurnSneakAttack,
   riderGate,
   UNCONDITIONAL_SNEAK_ATTACK_ID,
   withFixedRiderDice
 } from '@artificer-toolkit/rules-runtime/testing/unconditionalSneakAttack'
-import type { EquipmentAuthored } from '@artificer-toolkit/shared/authored'
 import type { ScenePoint } from '@artificer-toolkit/shared/vtt'
-import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
-import {
-  EQUIPMENT_GRIP,
-  meleeWeaponAbilityModifiers,
-  meleeWeaponEffects
-} from '@artificer-toolkit/source-data/srd/equipment/shared.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { RoomEncounterStore } from '../src/roomEncounterStore.js'
@@ -27,6 +19,7 @@ import type { ClassFeature } from '../src/testing/srdCharacterSource.js'
 import { vitalsOf } from './areaRoomReads.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
 import { movementRoom } from './movementRoomFixture.js'
+import { reactionClub } from './reactionClubFixture.js'
 import { readRoomHistory } from './roomHistoryReads.js'
 
 /**
@@ -42,47 +35,12 @@ const ALLY_ID = testUuid(0xe03)
 /** The 1d6 the rider adds, rolling its minimum. */
 const RIDER_DAMAGE = 1
 
-const REACTION_CLUB_ID = testUuid(0xe120)
-
 const WOLF_START: ScenePoint = { x: 150, y: 150 }
 
 afterEach(() => {
   closeTrackedSockets()
   vi.restoreAllMocks()
 })
-
-/** A Club the Fighter attacks with as an opportunity attack, taken as a Reaction when a creature leaves its reach. */
-const reactionClub: EquipmentAuthored = (() => {
-  const [attack] = meleeWeaponEffects(REACTION_CLUB_ID, 'BLUDGEONING', '1d4', EQUIPMENT_GRIP.ONE_HANDED)
-  if (
-    !attack ||
-    attack.invocation.kind !== 'ACTION' ||
-    attack.invocation.triggerCode === 'CHECK'
-  )
-    throw new Error('The melee attack is missing.')
-  return {
-    ...club,
-    id: REACTION_CLUB_ID,
-    label: 'Reaction Club',
-    modifiers: meleeWeaponAbilityModifiers(REACTION_CLUB_ID),
-    effects: [
-      {
-        ...attack,
-        invocation: {
-          ...attack.invocation,
-          activation: { code: 'REACTION' as const, amount: 1 },
-          reactionTrigger: {
-            kind: 'MOVEMENT' as const,
-            stage: 'BEFORE_LEAVE_REACH' as const,
-            perceptionRequirement: null,
-            eligibilityDefinitionId: DND5E_OPPORTUNITY_REACTION_ELIGIBILITY_DEFINITION_ID,
-            movementInterruption: null
-          }
-        }
-      }
-    ]
-  }
-})()
 
 /** A once-per-turn 1d6 rider on a melee attack against a target an able enemy of it stands within 5 ft of. */
 const nearbyEnemyOncePerTurnRider = (): ClassFeature =>
@@ -140,7 +98,9 @@ async function wolfHitPointsLostToOpportunityAttack(allyPosition: ScenePoint) {
   )
   return {
     lost: before - (await hitPoints()),
-    spentUses: records.filter(({ actorId }) => actorId === FIGHTER_ACTOR_ID).flatMap((record) => record.usedOncePerTurn)
+    spentUses: records
+      .filter(({ actorId }) => actorId === FIGHTER_ACTOR_ID)
+      .flatMap((record) => record.usedOncePerTurn)
   }
 }
 

@@ -1,4 +1,11 @@
-import { parseReceiptExecution, type RoomHistory } from './roomHistoryReads.js'
+import { expect } from 'vitest'
+
+import type { actionRoom } from './actionRoomFixture.js'
+import {
+  parseReceiptExecution,
+  readPendingActionDecision,
+  type RoomHistory
+} from './roomHistoryReads.js'
 
 /** The settled receipts of the area root and of each target under it, in commit order. */
 export function areaReceipts(history: RoomHistory) {
@@ -43,3 +50,25 @@ export const vitalsOf = (history: RoomHistory) =>
       spent: Object.entries(state.resources.ruleUsage ?? {})
     }
   })
+
+/** Answers every save the area still waits on with `faces[actorId]` (a failing 1 unless named). */
+export async function answerAllSaves(
+  room: Awaited<ReturnType<typeof actionRoom>>,
+  faces: Record<string, number> = {}
+) {
+  for (;;) {
+    const decision = await readPendingActionDecision(room.room.base.stub)
+    if (decision?.pending.kind !== 'AREA_SAVES') return
+    const [save] = decision.pending.saves
+    if (!save) return
+    const answer = await room.send(
+      room.resolveCommand(decision, {
+        kind: 'ENTER_DICE',
+        requestId: save.request.requestId,
+        rawFaces: [faces[save.actorId] ?? 1],
+        rollMode: save.request.rollMode
+      })
+    )
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+  }
+}

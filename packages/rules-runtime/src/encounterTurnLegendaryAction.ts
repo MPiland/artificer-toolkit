@@ -27,7 +27,11 @@ import { prepareNativeActionEffectsPlan } from './encounterActionEffects.js'
 import { projectNativeActionEffectTransitions } from './encounterActionEffectReceipts.js'
 import { planNativeEncounterActionMechanics } from './encounterActionMechanicsPlan.js'
 import { preparedCastsSpell } from './encounterCastReactionDiscovery.js'
-import { actionEndedEffects } from './encounterEndedEffectRelease.js'
+import {
+  actionEndedEffects,
+  actsAgainstEnemy,
+  damageTakenEndedEffects
+} from './encounterEndedEffectRelease.js'
 import type { prepareEncounterActionMechanics } from './encounterActionMechanicsPreparation.js'
 import {
   projectEncounterActionTarget,
@@ -309,8 +313,30 @@ export async function prepareTurnLegendaryActions<
     if (effects.maintenance)
       throw new Error('Legendary Action effects cannot start a maintained effect.')
     // An attack roll or a spell cast uses up the owner's grants; an ending effect releases its condition.
+    // Damage the target takes ends the effects it holds that end on damage, with their conditions.
     const makesAttackRoll = typeof prepared.binding.actionMechanic.attackBonus === 'number'
     const castsSpell = preparedCastsSpell(prepared)
+    const dispositions = new Map(actors.map((entry) => [entry.id, entry.disposition]))
+    const ownerEnded = actionEndedEffects({
+      holderActorId: actor.id,
+      held: prepared.movementTargets.get(actor.id)?.activeEffects ?? [],
+      makesAttackRoll,
+      castsSpell,
+      againstEnemy: actsAgainstEnemy({
+        actorId: actor.id,
+        targetActorIds: [target.id],
+        dispositions
+      })
+    })
+    const damageEnded = damageTakenEndedEffects({
+      holderActorId: target.id,
+      held: prepared.targetFacts.activeEffects.filter(
+        ({ id }) => !ownerEnded.consumedGrants.some((ended) => ended.id === id)
+      ),
+      applications: result.applications,
+      damagerActorId: actor.id,
+      dispositions
+    })
     const plan = planNativeEncounterActionMechanics(
       {
         prepared,
@@ -321,12 +347,8 @@ export async function prepareTurnLegendaryActions<
         commandId: root.rootCommandId,
         occurredAt: input.updatedAt,
         applications: result.applications,
-        sourceReleases: actionEndedEffects({
-          holderActorId: actor.id,
-          held: prepared.movementTargets.get(actor.id)?.activeEffects ?? [],
-          makesAttackRoll,
-          castsSpell
-        }).sourceReleases,
+        sourceReleases: ownerEnded.sourceReleases,
+        damageReleases: damageEnded.releases,
         eventPhases: { resource: 'LEGENDARY_ACTION_RESOURCE', outcome: 'LEGENDARY_ACTION_OUTCOME' },
         ordinal,
         forceTargetVersionAdvance:
