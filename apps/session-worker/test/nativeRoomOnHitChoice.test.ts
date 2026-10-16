@@ -8,8 +8,7 @@ import type { FeatureAuthored } from '@artificer-toolkit/shared/authored'
 import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { readCharacterPlay } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { paladin } from '@artificer-toolkit/source-data/srd/classes/paladin.js'
-import { srdCreatureRecords } from '@artificer-toolkit/source-data/srd/creatures/index.js'
-import { ghoul } from '@artificer-toolkit/source-data/srd/creatures/ghoul.js'
+import { srdBaselineContent } from '@artificer-toolkit/source-data/srd/index.js'
 import { shield } from '@artificer-toolkit/source-data/srd/spells/shield.js'
 import { SRD_DAMAGE_TYPES } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -48,9 +47,9 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-/** The SRD Ghoul, an undead, as the corpus seeds it. */
+/** The SRD Ghoul, an undead, as the corpus seeds it (damage defenses resolved to the System's types). */
 const srdGhoul = (() => {
-  const record = srdCreatureRecords.find((candidate) => candidate.id === ghoul.id)
+  const record = srdBaselineContent.subjects.creatures.find(({ label }) => label === 'Ghoul')
   if (!record) throw new Error('The SRD Ghoul is missing.')
   return record
 })()
@@ -135,7 +134,8 @@ describe('room optional on-hit rider paid with a spell slot (ATTACK-9.4)', () =>
 
     expect(pending.attackerActorId).toBe(FIGHTER_ACTOR_ID)
     expect(pending.allowedResponses).toEqual(['DECLINE', 'OPTION'])
-    expect(pending.options.map(({ slotLevel }) => slotLevel)).toEqual([1, SECOND_LEVEL])
+    // One option for each slot level the room's Character holds.
+    expect(pending.options.map(({ slotLevel }) => slotLevel)).toEqual([1, SECOND_LEVEL, 3, 4, 5])
     const history = await readRoomHistory(room.room.base.stub)
     expect(history.receipts.filter(({ commandType }) => commandType === 'RESOLVE_ACTION')).toEqual(
       []
