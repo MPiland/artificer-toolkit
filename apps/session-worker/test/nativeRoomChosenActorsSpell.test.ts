@@ -1,6 +1,9 @@
 import { runInDurableObject } from 'cloudflare:test'
 import { readPendingSnapshot } from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
-import { serverKernelRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
+import {
+  type EncounterAreaActionPendingContextDto,
+  serverKernelRuleExecutionPendingSnapshotDtoSchema
+} from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import type { EncounterRuleWarningCodeDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
 import { readCharacterPlay } from '@artificer-toolkit/schema/projections/characterStoredState'
 import {
@@ -724,7 +727,9 @@ describe('room cast of rays on chosen creatures (Scorching Ray, Eldritch Blast, 
       const snapshot = await readPendingSnapshot({ db: store.store }, occurrence)
       if (snapshot?.applicationContext.kind !== 'ENCOUNTER_AREA_ACTION')
         throw new Error('Expected the pending area action.')
-      const accepts = (mutate: (targets: typeof snapshot.applicationContext.targets) => void) => {
+      const accepts = (
+        mutate: (targets: EncounterAreaActionPendingContextDto['targets']) => void
+      ) => {
         const copy = structuredClone(snapshot)
         if (copy.applicationContext.kind !== 'ENCOUNTER_AREA_ACTION')
           throw new Error('Expected the pending area action.')

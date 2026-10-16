@@ -227,7 +227,7 @@ export async function settleEncounterAreaAction(
     input.tests.length !== input.targets.length ||
     input.tests.some((test) => test.kind !== 'TESTED')
   )
-    throw new Error('Every entry must answer its roll before the action settles.')
+    throw new Error('Every entry must answer its roll before the area settles.')
   if (
     input.tests.some(
       (test) =>

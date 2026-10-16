@@ -512,7 +512,7 @@ describe('chosen-creature spells in the SRD corpus (SPELLS-26.1)', () => {
   it.each(capped.map((entry) => [entry.label, entry] as const))(
     '%s compiles, or is refused for the reason a single-target cast is',
     (_label, { level, effect, targeting }) => {
-      const cast = (invocationTargeting: typeof targeting) =>
+      const cast = (invocationTargeting: Invocation['targeting']) =>
         outcomeOf(() => compile({ targeting: invocationTargeting }, effect, level, 20).plan)
       const authored = cast(targeting)
       const single = cast({
