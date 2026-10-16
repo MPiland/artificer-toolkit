@@ -9,7 +9,7 @@ import { RoomEncounterStore } from '../src/roomEncounterStore.js'
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { actionRoom } from './actionRoomFixture.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
-import { mend } from './mendSpell.js'
+import { mend, unlimitedCureWounds } from './mendSpell.js'
 import {
   readPendingActionContext,
   readPendingActionDecision,
@@ -38,9 +38,9 @@ function counterspellRoom(
   options: Omit<
     Parameters<typeof actionRoom>[0],
     'actors' | 'characterSpellcasting' | 'secondCharacter' | 'characterAction' | 'characterPlay'
-  > & { castLevel?: string; reactorSpells?: boolean } = {}
+  > & { spell?: typeof mend; castLevel?: string; reactorSpells?: boolean } = {}
 ) {
-  const { castLevel = '1st', reactorSpells = true, ...rest } = options
+  const { spell = mend, castLevel = '1st', reactorSpells = true, ...rest } = options
   return actionRoom({
     sceneGrid: {
       kind: 'SQUARE',
@@ -55,7 +55,7 @@ function counterspellRoom(
       characterActor({ id: CASTER_ACTOR_ID, characterId: CASTER_ID }),
       characterActor({ id: REACTOR_ACTOR_ID, characterId: REACTOR_ID })
     ],
-    characterSpellcasting: { spells: [mend], prepared: [mend.id] },
+    characterSpellcasting: { spells: [spell], prepared: [spell.id] },
     characterPlay: { currentHitPoints: 1 },
     secondCharacter: {
       characterId: REACTOR_ID,
@@ -63,7 +63,7 @@ function counterspellRoom(
         ? { spells: [counterspell], prepared: [counterspell.id] }
         : undefined
     },
-    characterAction: (action) => action.label === `Mend (${castLevel} level)`
+    characterAction: (action) => action.label === `${spell.label} (${castLevel} level)`
   })
 }
 type Room = Awaited<ReturnType<typeof counterspellRoom>>
@@ -188,11 +188,11 @@ describe('room Counterspell against a Character’s spell cast (REACTION-4.3)', 
   })
 
   it('offers only the slots at least as high as the cast', async () => {
-    const low = await counterspellRoom()
+    const low = await counterspellRoom({ spell: unlimitedCureWounds })
     await cast(low)
     const lowOptions = (await offered(low)).pending.options.length
 
-    const high = await counterspellRoom({ castLevel: '4th' })
+    const high = await counterspellRoom({ spell: unlimitedCureWounds, castLevel: '4th' })
     await cast(high)
     const highOptions = (await offered(high)).pending.options.length
 

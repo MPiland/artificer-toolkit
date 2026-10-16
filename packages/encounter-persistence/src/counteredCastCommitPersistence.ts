@@ -226,7 +226,8 @@ export async function persistEncounterCounteredCastCommit(
     initiatorUserId,
     execution: rootExecution,
     definitionId: input.initialDefinitionId,
-    factsChecksum: undefined,
+    // No graph ran: the receipt names the facts the held cast was prepared against.
+    factsChecksum: resume.pending.context.currentnessChecksum,
     result,
     commandFields: {
       label: input.label,

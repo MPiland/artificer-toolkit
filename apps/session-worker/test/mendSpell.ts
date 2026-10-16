@@ -3,14 +3,20 @@ import { cureWounds } from '@artificer-toolkit/source-data/srd/spells/cure-wound
 
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
 
-/** Cure Wounds with no Scene geometry, healing a fixed 2. */
-export const mend: SpellAuthored = (() => {
+/** Cure Wounds with no Scene geometry, so it upcasts at every slot the caster has. */
+export const unlimitedCureWounds: SpellAuthored = (() => {
   const spell = structuredClone(cureWounds)
   for (const effect of spell.effects ?? []) {
     if (effect.invocation.kind !== 'ACTION') continue
     effect.invocation.range = { id: effect.invocation.range.id, rangeKind: 'UNLIMITED' }
     effect.invocation.targeting = { selectionKind: 'SINGLE_TARGET', dispositionKind: 'ANY' }
   }
+  return spell
+})()
+
+/** Cure Wounds with no Scene geometry, healing a fixed 2. */
+export const mend: SpellAuthored = (() => {
+  const spell = structuredClone(unlimitedCureWounds)
   const path = spell.effects?.[0]?.paths?.[0]
   const outcome = path && 'resultBlock' in path ? path.resultBlock.outcomes?.[0] : undefined
   if (outcome?.effectKind !== 'HEAL') throw new Error('Cure Wounds heals.')
