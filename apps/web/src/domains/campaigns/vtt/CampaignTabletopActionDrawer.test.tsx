@@ -1083,8 +1083,8 @@ describe('CampaignTabletopActionDrawer chosen creatures (SPELLS-8, D118)', () =>
       maxTargets: 2,
       area: null,
       forms: [
-        { id: 'form-centipedes', label: 'Centipedes', maxTargets: 2 },
-        { id: 'form-scorpion', label: 'Scorpion', maxTargets: 1 }
+        { id: '00000000-0000-4000-8000-0000000000f1', label: 'Centipedes', maxTargets: 2 },
+        { id: '00000000-0000-4000-8000-0000000000f2', label: 'Scorpion', maxTargets: 1 }
       ]
     }
   })
@@ -1143,7 +1143,7 @@ describe('CampaignTabletopActionDrawer chosen creatures (SPELLS-8, D118)', () =>
         target: expect.objectContaining({
           kind: 'ACTORS',
           actorIds: [first.id],
-          formId: 'form-scorpion'
+          formId: '00000000-0000-4000-8000-0000000000f2'
         })
       })
     )

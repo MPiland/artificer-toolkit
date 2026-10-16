@@ -50,6 +50,7 @@ describe('checkpoint record decoding', () => {
     })
     expect(Object.keys(decoded)).toEqual([
       'encounterId',
+      'formOriginSnapshotChecksum',
       'id',
       'snapshotChecksum',
       'sourceFactsChecksum',

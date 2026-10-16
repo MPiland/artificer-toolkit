@@ -20,10 +20,16 @@ const CHARACTER_ACTOR_ID = testUuid(0x8c0)
 const CHARACTER_ID = testUuid(0x8c1)
 const BEAST_IDS = [0x8c2, 0x8c3].map(testUuid)
 const RANGE_UNCHECKED: EncounterRuleWarningCodeDto[] = ['TARGET_RANGE_UNCHECKED']
-const FORMS = giantInsect.effects[0]!.paths[0]!.resultBlock!.outcomes.flatMap((outcome) =>
-  outcome.effectKind === 'MANIFEST' && outcome.manifestKind === 'CREATURE'
-    ? (outcome.forms ?? [])
-    : []
+const FORMS = (giantInsect.effects ?? []).flatMap((effect) =>
+  effect.paths.flatMap((path) =>
+    path.selectionKind === 'FIXED'
+      ? path.resultBlock.outcomes.flatMap((outcome) =>
+          outcome.effectKind === 'MANIFEST' && outcome.manifestKind === 'CREATURE'
+            ? (outcome.forms ?? [])
+            : []
+        )
+      : []
+  )
 )
 const formOf = (creatureId: string) => FORMS.find((form) => form.creatureId === creatureId)!
 const CENTIPEDES = formOf(CREATURE_IDS.GIANT_CENTIPEDE)
