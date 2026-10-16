@@ -10013,6 +10013,45 @@
               }
             }
           ]
+        },
+        {
+          "id": "RELIABILITY-15",
+          "title": "Initiative declaration settlement test is deterministic",
+          "status": "TODO",
+          "journeyTests": ["apps/apis/convex/encounters/initiativeDeclarations.test.ts"],
+          "journeyStatus": "none",
+          "origin": [],
+          "wsjf": {
+            "bv": 3,
+            "tc": 8,
+            "rr": 8,
+            "size": 1
+          },
+          "acs": [
+            {
+              "id": "RELIABILITY-15.1",
+              "text": "initiativeDeclarations.test.ts \"collects each automatic declaration, then settles exactly one Run, round, and order\" passes deterministically: its automatic initiative rolls cannot tie into an unhandled INITIATIVE_ORDER decision (seeded rolls or explicit tie handling), and a test reproduces the tie red before the fix.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Flaked on aeb08c947 (Tests 38857606244): equal random auto-rolls with initiativeTieDefinitionId null left the Run on an INITIATIVE_ORDER decision; passed on rerun with no code change."
+            }
+          ],
+          "tasks": [
+            {
+              "id": "RELIABILITY-15.T1",
+              "text": "Make the initiative declaration settlement test deterministic: control the auto-rolls through the platform random seam (never product logic) or resolve the tie decision; reproduce the tie red first; no retry, no loosened assertion.",
+              "status": "TODO",
+              "closes": ["RELIABILITY-15.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 8,
+                "rr": 8,
+                "size": 1
+              },
+              "activeWorkbook": "docs/handoffs/slice-reliability-15.md"
+            }
+          ]
         }
       ]
     },

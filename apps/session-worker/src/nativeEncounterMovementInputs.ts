@@ -277,7 +277,6 @@ export async function readNativeLiveMovementInputs(input: {
       ? null
       : await createEncounterMovementReactionPerception({
           state,
-          actors,
           targets,
           movingTokenId: token.id,
           actorIdByTokenId,

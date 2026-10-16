@@ -377,6 +377,48 @@ type SightGovernedD20 = {
   captions: { playerCaption: string; gmReason: string } | null
 }
 
+/**
+ * How sight governs one stage d20 against its stored prompt state, or null when it does not: the
+ * held die and the captions that explain a settled mode change.
+ */
+function sightGovernedStageD20(input: {
+  attackSight: EncounterPreparedAttackSight | null
+  policy: ServerRuleExecutionD20PolicyDto
+  stored: {
+    d20Belief: EncounterAttackD20Belief | null
+    heldD20: EncounterActionHeldD20Dto | null
+  }
+}): SightGovernedD20 | null {
+  const { attackSight, policy, stored } = input
+  if (!isEncounterSightGovernedD20({ policy, belief: stored.d20Belief })) return null
+  if (stored.d20Belief && !attackSight) throw new Error('The action d20 belief is stale.')
+  return {
+    held: stored.heldD20,
+    captions:
+      stored.d20Belief && attackSight
+        ? encounterAttackSightCaptions({
+            believed: attackSight.believed,
+            actual: attackSight.actual,
+            attackerLabel: attackSight.attackerLabel,
+            targetLabel: attackSight.targetLabel
+          })
+        : null
+  }
+}
+
+/** The d20 a roller already entered, held while one more is needed to settle the true mode. */
+function heldStageD20(
+  heldFace: number,
+  sight: SightGovernedD20 | null
+): EncounterActionHeldD20Dto {
+  return {
+    rolledMode: 'NORMAL',
+    faces: [heldFace],
+    playerCaption: sight?.captions?.playerCaption ?? null,
+    gmReason: sight?.captions?.gmReason ?? null
+  }
+}
+
 /** The one die that completes a held d20: entered, from an app roll, or rolled for an auto-roller. */
 function heldD20Completion(resolution: EncounterEvidenceAnswer, rollD20: () => number): number {
   const face =
@@ -560,7 +602,8 @@ async function requireNativeTestBoundary(input: {
     policy: boundary.d20Policy,
     requestId: boundary.d20.requestId,
     faces: boundary.d20.rawFaces,
-    rollMode: boundary.d20.rollMode
+    rollMode: boundary.d20.rollMode,
+    modeAdjustment: boundary.d20.modeAdjustment
   })
   if (checksumRuleDocument(evidence) !== checksumRuleDocument(boundary.d20))
     throw new Error('The native action TEST evidence is stale.')
@@ -580,13 +623,17 @@ async function requireNativeTestBoundary(input: {
 export async function prepareNativeActionTest(
   input: NativeActionBaseInput & {
     resume?: { pending: ResumedNativeActionGraphs; resolution: EncounterEvidenceAnswer }
+    /** The true and believed sight of the attack roll, as in `advanceNativeActionGraphs`. */
+    attackSight?: EncounterPreparedAttackSight | null
   }
 ): Promise<PendingNativeActionGraphs | NativeActionTestBoundary> {
   const current = nativeTestIdentity(input)
   const random = input.random ?? nextRollInt
+  const attackSight = input.attackSight ?? null
   let continuation: ServerRuleExecutionContinuationDto | null = null
   let faces: number[] | null = null
   let rollMode: EncounterD20RollMode | null = null
+  let modeAdjustment: ServerRuleExecutionD20EvidenceDto['modeAdjustment']
   let policy: ServerRuleExecutionD20PolicyDto | null = null
   let result: Awaited<ReturnType<RulesRuntimeService['executeResolved']>>
 
@@ -624,15 +671,37 @@ export async function prepareNativeActionTest(
     })
     if (!policy || checksumRuleDocument(policy) !== checksumRuleDocument(pending.d20Policy))
       throw new Error('The native action TEST policy is stale.')
+    const sight = sightGovernedStageD20({
+      attackSight,
+      policy,
+      stored: { d20Belief: pending.d20Belief ?? null, heldD20: pending.heldD20 ?? null }
+    })
     const response = actionResponse({
       continuation: pending.continuation,
       policy,
       resolution: input.resume.resolution,
-      random
+      random,
+      sightGoverned: sight
     })
+    if (response.kind === 'NEEDS_EXTRA_D20')
+      return {
+        kind: 'PENDING',
+        continuation: pending.continuation,
+        d20Policy: policy,
+        twoPhase: pending.twoPhase,
+        roller: actionRequestRoller({
+          continuation: pending.continuation,
+          policy,
+          bound: current.bound,
+          twoPhase: null
+        }),
+        ...(pending.d20Belief ? { d20Belief: pending.d20Belief } : {}),
+        heldD20: heldStageD20(response.heldFace, sight)
+      }
     continuation = pending.continuation
     faces = response.faces
     rollMode = response.rollMode
+    modeAdjustment = response.modeAdjustment
     result = await input.runtime.resume({
       continuation: pending.continuation,
       response: { requestId: pending.continuation.request.requestId, value: response.value }
@@ -658,7 +727,14 @@ export async function prepareNativeActionTest(
       bound: current.bound,
       twoPhase: null
     })
-    if (!input.autoRoll[roller])
+    if (!input.autoRoll[roller]) {
+      const d20Belief = attackSight
+        ? encounterAttackD20Belief({
+            policy: pendingPolicy,
+            trueSight: attackSight.trueSight,
+            believedSight: attackSight.believedSight
+          })
+        : null
       return {
         kind: 'PENDING',
         continuation: result.continuation,
@@ -669,8 +745,10 @@ export async function prepareNativeActionTest(
           compilerSourceChecksum: current.plan.compilerSource.compilerSourceChecksum,
           testTemplateChecksum: current.plan.test.template.checksum,
           boundFactsChecksum: current.factsChecksum
-        }
+        },
+        ...(d20Belief ? { d20Belief } : {})
       }
+    }
     const automatic = actionResponse({
       continuation: result.continuation,
       policy: pendingPolicy,
@@ -693,7 +771,8 @@ export async function prepareNativeActionTest(
     policy,
     requestId: continuation.request.requestId,
     faces,
-    rollMode
+    rollMode,
+    modeAdjustment
   })
   const boundary: NativeActionTestBoundary = {
     kind: 'TEST_BOUNDARY',
@@ -737,7 +816,7 @@ export async function reconstructNativeActionTest(
     execution?: ServerCompletedRuleExecutionDto
     d20: Pick<
       ServerRuleExecutionD20EvidenceDto,
-      'requestId' | 'rawFaces' | 'rollMode' | 'selectedNatural'
+      'requestId' | 'rawFaces' | 'rollMode' | 'selectedNatural' | 'modeAdjustment'
     >
   }
 ) {
@@ -776,7 +855,10 @@ export async function reconstructNativeActionTest(
       checksumRuleDocument(boundary.execution) !== checksumRuleDocument(input.execution))
   )
     throw new Error('The retained TEST execution is stale.')
-  return boundary
+  // The recorded faces are already settled, so replaying them cannot rediscover a sight adjustment.
+  return input.d20.modeAdjustment
+    ? { ...boundary, d20: { ...boundary.d20, modeAdjustment: input.d20.modeAdjustment } }
+    : boundary
 }
 
 type NativeActionLegendaryResistanceAudit = NonNullable<
@@ -885,7 +967,10 @@ export async function continueNativeActionAfterTest(
       rollMode: input.boundary.d20.rollMode,
       derivedRollMode: input.boundary.d20.derivedRollMode,
       rawFaces: input.boundary.d20.rawFaces,
-      selectedNatural: input.boundary.d20.selectedNatural
+      selectedNatural: input.boundary.d20.selectedNatural,
+      ...(input.boundary.d20.modeAdjustment
+        ? { modeAdjustment: input.boundary.d20.modeAdjustment }
+        : {})
     }
   }
   let nestedD20: ServerRuleExecutionNestedD20EvidenceDto | null = null
@@ -1117,26 +1202,16 @@ export async function advanceNativeActionGraphs(input: {
       heldD20: EncounterActionHeldD20Dto | null
     }
   ) {
-    const governed =
-      policy !== null &&
-      isStageD20(policy) &&
-      isEncounterSightGovernedD20({ policy, belief: stored.d20Belief })
-    if (stored.d20Belief && !attackSight) throw new Error('The action d20 belief is stale.')
-    const captions =
-      governed && stored.d20Belief && attackSight
-        ? encounterAttackSightCaptions({
-            believed: attackSight.believed,
-            actual: attackSight.actual,
-            attackerLabel: attackSight.attackerLabel,
-            targetLabel: attackSight.targetLabel
-          })
+    const sight =
+      policy !== null && isStageD20(policy)
+        ? sightGovernedStageD20({ attackSight, policy, stored })
         : null
     const response = actionResponse({
       continuation,
       policy,
       resolution,
       random,
-      sightGoverned: governed ? { held: stored.heldD20, captions } : null
+      sightGoverned: sight
     })
     if (response.kind === 'NEEDS_EXTRA_D20') {
       const roller = actionRequestRoller({ continuation, policy, bound, twoPhase })
@@ -1147,12 +1222,7 @@ export async function advanceNativeActionGraphs(input: {
         twoPhase,
         roller,
         ...(stored.d20Belief ? { d20Belief: stored.d20Belief } : {}),
-        heldD20: {
-          rolledMode: 'NORMAL' as const,
-          faces: [response.heldFace] as [number],
-          playerCaption: captions?.playerCaption ?? null,
-          gmReason: captions?.gmReason ?? null
-        }
+        heldD20: heldStageD20(response.heldFace, sight)
       }
     }
     const resumed = await input.runtime.resume({
