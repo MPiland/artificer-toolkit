@@ -1087,14 +1087,15 @@ describe('Character spell casting in an Encounter', () => {
       expect(pending.request.derivedRollModeReasons).toContain('Unseen attacker')
       expect(await characterActiveEffects(fixture)).toHaveLength(1)
 
-      // The hit leaves its damage dice to roll by hand too; the effect ends when the action completes.
+      // The caster rolls each pending die with the app and settles it; the hit leaves its damage dice
+      // to roll too, and the effect ends when the action completes.
       await queueRoomRolls(fixture.campaign.id, { rolls: [19], repeat: 19 })
       let rolled = attacked
-      for (let step = 0; step < 2 && rolled.occurrence?.status === 'PENDING'; step += 1) {
+      for (let step = 0; step < 3 && rolled.occurrence?.status === 'PENDING'; step += 1) {
         const awaiting = rolled.occurrence.pending
         if (awaiting?.kind !== 'D20_EVIDENCE' && awaiting?.kind !== 'ACTION_OUTCOME_EVIDENCE')
           throw new Error('Expected a roll for the caster.')
-        rolled = await executeInRoom(fixture.gm.caller, {
+        const dice = await executeInRoom(fixture.gm.caller, {
           command: {
             type: 'ROLL_RULE_EVIDENCE',
             encounterId: fixture.run.id,
@@ -1104,6 +1105,23 @@ describe('Character spell casting in an Encounter', () => {
             expectedOccurrenceVersion: awaiting.occurrenceVersion,
             requestId: awaiting.request.requestId,
             rollMode: null
+          }
+        })
+        if (!dice.evidenceRoll) throw new Error('Expected an app roll.')
+        rolled = await executeInRoom(fixture.gm.caller, {
+          command: {
+            type: 'RESOLVE_RULE_OCCURRENCE',
+            encounterId: fixture.run.id,
+            commandId: crypto.randomUUID(),
+            expectedVersion: awaiting.encounterVersion,
+            correlationId: null,
+            occurrenceId: awaiting.occurrenceId,
+            expectedOccurrenceVersion: awaiting.occurrenceVersion,
+            resolution: {
+              kind: 'SYSTEM_ROLL',
+              requestId: awaiting.request.requestId,
+              rollId: dice.evidenceRoll.rollId
+            }
           }
         })
       }
