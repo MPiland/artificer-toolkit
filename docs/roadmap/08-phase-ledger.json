@@ -8331,10 +8331,11 @@
             },
             {
               "text": "A user can author a reaction spell such as Absorb Elements: triggered when its caster takes damage of chosen types, it applies before that damage (resistance to the triggering type) and grants a follow-up benefit; it resolves through the same trigger model as the SRD reactions.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "proof": [
                 "partial: merge of c9cda1489 (REACTION-4.T2) adds the DAMAGE_TAKEN trigger with damageTypeIds and the user-authored Absorb Elements fixture (packages/rules-runtime/src/testing/absorbElementsSpell.ts); resistance currently covers every named type until the caster's next turn, so \"resistance to the triggering type\" waits for the trigger fact bound in REACTION-4.T3",
-                "partial: T3 increment A1 (CI 38837833587 at 1409a6e1a, merged 2026-10-15) binds resistance to the triggering type and the slot-scaled follow-up: packages/rules-runtime/src/__tests__/plannedAbsorbElements.test.ts, apps/session-worker/test/nativeRoomReaction.test.ts; waits on the authoring parity proof for damageTypeSource TRIGGER"
+                "partial: T3 increment A1 (CI 38837833587 at 1409a6e1a, merged 2026-10-15) binds resistance to the triggering type and the slot-scaled follow-up: packages/rules-runtime/src/__tests__/plannedAbsorbElements.test.ts, apps/session-worker/test/nativeRoomReaction.test.ts; waits on the authoring parity proof for damageTypeSource TRIGGER",
+                "apps/web/src/forms/tests/AuthoredDomainFieldParity.test.tsx (Absorb Elements built through the real node map, node-runtime resolver and form adapter matches testing/absorbElementsSpell.ts; choosing TRIGGER clears the fixed damage type), CI 38841723366 at 4c96ce0cd; merged 2026-10-15"
               ],
               "origin": [],
               "note": "Added 2026-10-08 at the user's request: non-SRD reactions must be user-authorable. Prove it with a user-authored Absorb Elements in a test fixture, not seeded content.",

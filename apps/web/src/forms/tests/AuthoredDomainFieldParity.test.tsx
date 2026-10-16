@@ -9,6 +9,10 @@ import { creatureAuthoringInputDtoSchema } from '@artificer-toolkit/schema/subje
 import { equipmentAuthoringInputDtoSchema } from '@artificer-toolkit/schema/subjects/equipment'
 import { featAuthoringInputDtoSchema } from '@artificer-toolkit/schema/subjects/feat'
 import { raceAuthoringInputDtoSchema } from '@artificer-toolkit/schema/subjects/race'
+import {
+  absorbElementsSpell,
+  srdDamageTypeId
+} from '@artificer-toolkit/rules-runtime/testing/absorbElementsSpell'
 import { spellAuthoringInputDtoSchema } from '@artificer-toolkit/schema/subjects/spell'
 import { vehicleAuthoringInputDtoSchema } from '@artificer-toolkit/schema/subjects/vehicle'
 import { barbarian } from '@artificer-toolkit/source-data/srd/classes/barbarian.js'
@@ -38,7 +42,9 @@ type BranchScenario = {
 }
 
 type ResolvedContext = {
+  ancestors: readonly Record<string, unknown>[]
   model: NodeRuntimeResolveResponseDto
+  parentValues: Record<string, unknown> | undefined
   values: Record<string, unknown>
 }
 
@@ -57,6 +63,7 @@ const DISPLAY_COPY_KEYS = new Set(['description', 'label'])
 const NON_STRUCTURAL_KEYS = new Set([...DISPLAY_COPY_KEYS, 'id'])
 const RAGE_SCENARIO_LABEL = 'class SRD Rage feature'
 const HOLD_PERSON_SCENARIO_LABEL = 'spell SRD Hold Person'
+const ABSORB_SCENARIO_LABEL = 'spell user-authored Absorb Elements'
 
 const scenarios = createBranchScenarios()
 // One case per resolved context: rendering a whole scenario in a single test made the
@@ -88,6 +95,12 @@ const holdPersonCases = registrationCases.filter(
 const holdPersonScenario = scenarios.find(({ label }) => label === HOLD_PERSON_SCENARIO_LABEL)
 if (!holdPersonScenario) throw new Error('Expected the SRD Hold Person spell scenario.')
 const holdPersonFormValues = toActualFormValues('spell', parseScenarioRecord(holdPersonScenario))
+const absorbCases = registrationCases.filter(
+  ({ scenarioLabel }) => scenarioLabel === ABSORB_SCENARIO_LABEL
+)
+const absorbScenario = scenarios.find(({ label }) => label === ABSORB_SCENARIO_LABEL)
+if (!absorbScenario) throw new Error('Expected the Absorb Elements spell scenario.')
+const absorbFormValues = toActualFormValues('spell', parseScenarioRecord(absorbScenario))
 const RegistrationRenderer = FormRenderer<Record<string, unknown>>({ defaultValues: {} })
 
 afterEach(cleanup)
@@ -218,6 +231,95 @@ describe('SRD Hold Person creature type restriction authoring parity', () => {
     )
   })
 })
+
+describe('user-authored Absorb Elements reaction authoring parity (ADR 0038)', () => {
+  const absorbEffects = absorbElementsSpell(['FIRE', 'COLD']).effects
+  const resistanceContext = absorbCases
+    .map(({ context }) => context)
+    .find(({ values }) => isTriggerPayload(values))
+
+  it('authors the reaction shapes this parity gate is meant to prove', () => {
+    const authored = JSON.stringify(absorbEffects)
+    for (const shape of [
+      'DAMAGE_TAKEN',
+      'damageTypeSource',
+      'SPELL_SLOT_LEVEL',
+      'ON_ATTACK_ROLL'
+    ]) {
+      expect(authored).toContain(shape)
+    }
+  })
+
+  it('keeps every Absorb Elements value through node-runtime normalization', async () => {
+    const normalized = await normalizeFixtureNodeRuntimeValues({
+      mapId: 'spell',
+      values: absorbFormValues
+    })
+
+    expect(normalized.clearedPaths).toEqual([])
+    expect(normalized.values).toEqual(absorbFormValues)
+  })
+
+  it('shows the triggering-damage option and hides the fixed damage type for the resistance', () => {
+    if (!resistanceContext) throw new Error('Expected the resolved resistance modifier context.')
+    const fields = getDirectRenderableFieldNames(resistanceContext.model)
+
+    expect(fields).toContain('damageTypeSource')
+    expect(fields).not.toContain('damageTypeId')
+  })
+
+  it('offers a fixed damage type for a resistance that is not from the trigger', async () => {
+    if (!resistanceContext) throw new Error('Expected the resolved resistance modifier context.')
+    const model = await resolveFixtureNodeRuntime({
+      ancestors: [...resistanceContext.ancestors],
+      mapId: resistanceContext.model.mapId,
+      parentValues: resistanceContext.parentValues,
+      values: { damageTypeId: srdDamageTypeId('FIRE') }
+    })
+
+    expect(getDirectRenderableFieldNames(model)).toContain('damageTypeId')
+  })
+
+  it('clears a fixed damage type chosen before the triggering damage was', async () => {
+    const withBoth = structuredClone(absorbFormValues)
+    findRecord(withBoth, isTriggerPayload).damageTypeId = srdDamageTypeId('FIRE')
+
+    const normalized = await normalizeFixtureNodeRuntimeValues({ mapId: 'spell', values: withBoth })
+    const kept = findRecord(normalized.values, isTriggerPayload)
+
+    expect(normalized.clearedPaths.length).toBeGreaterThan(0)
+    expect(kept.damageTypeSource).toBe('TRIGGER')
+    expect(kept.damageTypeId).toBeUndefined()
+  })
+
+  for (const [index, { context }] of absorbCases.entries()) {
+    it(`keeps the values of ${context.model.mapId} Absorb Elements context ${index} once its field controls mount`, async () => {
+      await renderUntilRegistered(context.model, context.values)
+
+      expect(stripKeys(readOutput('form-values'), DISPLAY_COPY_KEYS)).toEqual(
+        stripKeys(context.values, DISPLAY_COPY_KEYS)
+      )
+    })
+  }
+
+  it('submits the form values of the spell as the Absorb Elements effect', async () => {
+    const rootContext = absorbCases[0]?.context
+    if (!rootContext) throw new Error('Expected the resolved Absorb Elements spell root context.')
+    await renderUntilRegistered(rootContext.model, absorbFormValues)
+
+    const session = createScenarioSession('spell', parseScenarioRecord(absorbScenario))
+    const submitted = spellAuthoringInputDtoSchema.parse(
+      session.normalizeForSubmit(readOutput('form-values'))
+    )
+
+    expect(stripKeys(submitted.effects, NON_STRUCTURAL_KEYS)).toEqual(
+      stripKeys(absorbEffects, NON_STRUCTURAL_KEYS)
+    )
+  })
+})
+
+const isTriggerPayload = ({ damageTypeSource }: Record<string, unknown>) =>
+  damageTypeSource === 'TRIGGER'
 
 async function renderUntilRegistered(
   model: NodeRuntimeResolveResponseDto,
@@ -494,6 +596,16 @@ function createBranchScenarios(): BranchScenario[] {
     },
     {
       domain: 'spell',
+      label: ABSORB_SCENARIO_LABEL,
+      record: {
+        ...fireball,
+        id: 'story-absorb-elements',
+        label: 'Test Absorb Elements',
+        effects: absorbElementsSpell(['FIRE', 'COLD']).effects
+      }
+    },
+    {
+      domain: 'spell',
       label: 'spell without material',
       record: {
         ...fireball,
@@ -599,7 +711,7 @@ async function collectResolvedContext({
     values
   })
 
-  contexts.push({ model, values })
+  contexts.push({ ancestors, model, parentValues, values })
 
   for (const node of model.steps.flatMap((step) =>
     step.sections.flatMap((section) => section.nodes)
@@ -673,6 +785,36 @@ function getDirectRenderableFieldNames(model: NodeRuntimeResolveResponseDto) {
     .flatMap((step) => step.sections.flatMap((section) => section.nodes))
     .filter(isRenderableNode)
     .map((node) => node.path.join('.'))
+}
+
+/** The first record anywhere under `value` that satisfies `matches`. */
+function findRecord(
+  value: unknown,
+  matches: (record: Record<string, unknown>) => boolean
+): Record<string, unknown> {
+  const found = searchRecord(value, matches)
+  if (!found) throw new Error('Expected a matching record in the form values.')
+  return found
+}
+
+function searchRecord(
+  value: unknown,
+  matches: (record: Record<string, unknown>) => boolean
+): Record<string, unknown> | undefined {
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const found = searchRecord(item, matches)
+      if (found) return found
+    }
+    return undefined
+  }
+  if (!isRecord(value)) return undefined
+  if (matches(value)) return value
+  for (const child of Object.values(value)) {
+    const found = searchRecord(child, matches)
+    if (found) return found
+  }
+  return undefined
 }
 
 function readPath(values: Record<string, unknown>, path: readonly (string | number)[]) {
