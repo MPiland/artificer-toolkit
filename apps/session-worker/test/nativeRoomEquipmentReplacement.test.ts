@@ -73,30 +73,46 @@ async function equipmentRoom() {
   }
   const runVersion = async () => (await readRoomHistory(stub)).runs[0]!.version
 
+  async function replace(input: {
+    equipmentId: string
+    actorId?: string
+    commandId?: string
+    expectedVersion?: number
+  }) {
+    const commandId = input.commandId ?? crypto.randomUUID()
+    return room.send(commandId, {
+      scope: 'ENCOUNTER',
+      command: {
+        type: 'REPLACE_CREATURE_EQUIPMENT',
+        encounterId: room.encounterId,
+        commandId,
+        expectedVersion: input.expectedVersion ?? (await runVersion()),
+        actorId: input.actorId ?? OGRE_ID,
+        loadoutEntryId: heldEntryId,
+        equipmentId: input.equipmentId
+      }
+    })
+  }
+
   return {
     heldEntryId,
     storedOgre,
     runVersion,
-    async replace(input: {
-      equipmentId: string
-      actorId?: string
-      commandId?: string
-      expectedVersion?: number
-    }) {
-      const commandId = input.commandId ?? crypto.randomUUID()
-      return room.send(commandId, {
-        scope: 'ENCOUNTER',
-        command: {
-          type: 'REPLACE_CREATURE_EQUIPMENT',
-          encounterId: room.encounterId,
-          commandId,
-          expectedVersion: input.expectedVersion ?? (await runVersion()),
-          actorId: input.actorId ?? OGRE_ID,
-          loadoutEntryId: heldEntryId,
-          equipmentId: input.equipmentId
-        }
-      })
-    }
+    /**
+     * A replacement the rules refuse: the member is told only that the command could not be
+     * completed, so the cause is read off what the room logged.
+     */
+    async refusedReplace(input: { equipmentId: string; actorId?: string }) {
+      const logged = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+      const answer = await replace(input)
+      return {
+        answer,
+        causes: logged.mock.calls.map(([, error]) =>
+          error instanceof Error ? error.message : error
+        )
+      }
+    },
+    replace
   }
 }
 
@@ -140,22 +156,29 @@ describe('REPLACE_CREATURE_EQUIPMENT in the room with R2-seeded Equipment (ROOM-
     })
     expect(replay.type, JSON.stringify(replay)).toBe('COMMAND_COMMITTED')
     expect(await room.runVersion()).toBe(versionBefore + 1)
+    expect(await room.storedOgre()).toEqual(after)
   })
 
   it.each([
-    { label: 'an Equipment the content does not publish', equipmentId: testUuid(0xd99) },
+    {
+      label: 'an Equipment the content does not publish',
+      equipmentId: testUuid(0xd99),
+      cause: 'Encounter source is unavailable in the selected Game System.'
+    },
     {
       label: 'a published Equipment the Feature action does not fit',
-      equipmentId: dagger.id
+      equipmentId: dagger.id,
+      cause: 'Replacement Equipment is incompatible with the Creature Feature actions.'
     }
-  ])('refuses $label without a write', async ({ equipmentId }) => {
+  ])('refuses $label without a write', async ({ equipmentId, cause }) => {
     const room = await equipmentRoom()
     const before = await room.storedOgre()
     const versionBefore = await room.runVersion()
 
-    const answer = await room.replace({ equipmentId })
+    const { answer, causes } = await room.refusedReplace({ equipmentId })
 
     expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_REJECTED')
+    expect(causes).toEqual([cause])
     expect(await room.runVersion()).toBe(versionBefore)
     expect(await room.storedOgre()).toEqual(before)
   })
@@ -164,12 +187,13 @@ describe('REPLACE_CREATURE_EQUIPMENT in the room with R2-seeded Equipment (ROOM-
     const room = await equipmentRoom()
     const versionBefore = await room.runVersion()
 
-    const answer = await room.replace({
+    const { answer, causes } = await room.refusedReplace({
       actorId: FIGHTER_ACTOR_ID,
       equipmentId: compatibleGreatclub.id
     })
 
     expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_REJECTED')
+    expect(causes).toEqual(['Only a Creature with a frozen source can replace Equipment.'])
     expect(await room.runVersion()).toBe(versionBefore)
   })
 })

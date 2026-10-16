@@ -281,8 +281,10 @@ describe('used automatic reactions of a Creature walking east', () => {
     async ({ spatialEffects }) => {
       const room = await reactionRoom([{ x: 150, y: 150 }], spatialEffects)
       const runVersion = async () => (await readRoomHistory(room.base.stub)).runs[0]!.version
+      const runCommands = async () => (await readRoomHistory(room.base.stub)).commands.length
       const receiptsBefore = (await room.receipts()).length
       const versionBefore = await runVersion()
+      const commandsBefore = await runCommands()
       const advances = spatialEffects.length > 0
 
       await room.move([start, { x: 600, y: 150 }])
@@ -295,9 +297,36 @@ describe('used automatic reactions of a Creature walking east', () => {
         encounterVersionTransition: advances ? 'ADVANCED' : 'UNCHANGED'
       })
       expect(await runVersion()).toBe(versionBefore + (advances ? 1 : 0))
+      expect(await runCommands()).toBe(commandsBefore + (advances ? 1 : 0))
     },
     60_000
   )
+
+  it('commits one movement receipt for an assisted spatial save pause, leaving the Run and its commands unchanged (D88)', async () => {
+    const room = await movementRoom({
+      actors: [srdCreatureActor({ id: MOVER_ID, creature: plainWolf })],
+      moverActorId: MOVER_ID,
+      positions: { [MOVER_ID]: start },
+      spatialEffects: [{ center: { x: 275, y: 150 }, radius: 5, save: true }]
+    })
+    const history = async () => readRoomHistory(room.base.stub)
+    const before = await history()
+    const receiptsBefore = (await room.receipts()).length
+
+    await room.move([start, { x: 600, y: 150 }])
+
+    const pending = await room.pending()
+    expect(pending?.context).toMatchObject({
+      kind: 'ENCOUNTER_MOVEMENT_REACTION',
+      phase: { kind: 'SPATIAL_EVIDENCE' }
+    })
+    expect((await room.receipts()).length).toBe(receiptsBefore + 1)
+    const receipt = await receiptOf(room, 'MOVE_SCENE_TOKEN')
+    expect(receipt.metadata).toMatchObject({ encounterVersionTransition: 'UNCHANGED' })
+    const after = await history()
+    expect(after.runs[0]!.version).toBe(before.runs[0]!.version)
+    expect(after.commands).toHaveLength(before.commands.length)
+  }, 60_000)
 
   it('settles a crossed spatial prefix before its reactions and a suffix after them', async () => {
     const room = await reactionRoom(
@@ -629,6 +658,7 @@ describe('a moving spatial effect shared by a Concentration Character and a late
           }
         }
       ])
+      expect(laterExecution).toBeDefined()
       expect(laterExecution?.concentrationChecks).toBeUndefined()
     },
     60_000

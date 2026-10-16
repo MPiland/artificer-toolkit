@@ -99,7 +99,7 @@ async function disarmRoom(options: {
 
 type Disarming = Awaited<ReturnType<typeof disarmRoom>>
 
-/** The public Disarm choice for the first Ogre's action at the second: its held item and Athletics. */
+/** The public Disarm choice for the source's action at the target: its held item and Athletics. */
 async function disarmIntent({ room, heldEntryId }: Disarming) {
   const [run] = (await readRoomHistory(room.room.base.stub)).runs
   const state = encounterRunStateSchema.parse(JSON.parse(run!.stateJson))
@@ -334,7 +334,10 @@ describe('a Character’s room Disarm with a Longsword (ROOM-6.7, ROOM-6.8)', ()
     }
     // The player holds only the Fighter: the Ogre's roll is the GM's.
     const refused = await room.sendAsPlayer(room.resolveCommand(defender, defenderRoll))
-    expect(refused.type).toBe('COMMAND_REJECTED')
+    expect(refused).toMatchObject({
+      type: 'COMMAND_REJECTED',
+      reason: 'NOT_ACTOR_CONTROLLER'
+    })
     expect(await readPendingActionDecision(stub)).not.toBeNull()
     const second = await room.resolve(defender, defenderRoll)
     expect(second.type, JSON.stringify(second)).toBe('COMMAND_COMMITTED')
