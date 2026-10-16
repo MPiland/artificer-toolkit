@@ -10186,6 +10186,44 @@
               "activeWorkbook": "docs/handoffs/slice-reliability-16.md"
             }
           ]
+        },
+        {
+          "id": "RELIABILITY-17",
+          "title": "Unseen-target Worker test is deterministic",
+          "status": "TODO",
+          "journeyTests": ["apps/session-worker/test/nativeRoomUnseenTarget.test.ts"],
+          "journeyStatus": "none",
+          "origin": [],
+          "wsjf": {
+            "bv": 3,
+            "tc": 8,
+            "rr": 8,
+            "size": 1
+          },
+          "acs": [
+            {
+              "id": "RELIABILITY-17.1",
+              "text": "nativeRoomUnseenTarget.test.ts \"takes a creature the map draws, with nothing revealed\" (ATTACK-17.3) passes deterministically: the cause of its intermittent empty target list is found in the test setup or the product, fixed at the cause (no retry, no weakened assertion), and a forced reproduction fails red before the fix.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Found 2026-10-16: failed with \"expected [] to deep equally contain ObjectContaining{…}\" on ci/reaction-4-t3b Tests 38877353496 attempt 1 (3fcee9574) and passed on attempt 2; the branch does not touch targeting."
+            }
+          ],
+          "tasks": [
+            {
+              "id": "RELIABILITY-17.T1",
+              "text": "Find why the unseen-target journey intermittently lists no targets (Scene token write timing, vision read or fog order), fix the cause, and prove it with a forced red on a ci/ -red branch.",
+              "status": "TODO",
+              "closes": ["RELIABILITY-17.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 8,
+                "rr": 8,
+                "size": 1
+              }
+            }
+          ]
         }
       ]
     },
