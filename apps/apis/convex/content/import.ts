@@ -13,11 +13,14 @@ import {
   sourceImportDefinitionsInputSchema,
   sourceImportReadBootstrapInputSchema,
   sourceImportSubjectDtoSchema,
+  sourceImportSubjectIdPageDtoSchema,
   sourceImportSubjectsInputSchema,
+  sourceImportSubjectsResultDtoSchema,
   sourceImportSystemDtoSchema,
   type SourceImportBootstrapResultDto,
   type SourceImportBootstrapInput,
   type SourceImportSubjectsInput,
+  type SourceImportSubjectsResultDto,
   type SourceImportDefinitionsInput,
   type SourceImportBatchResultDto
 } from '@artificer-toolkit/schema/api/sourceImport'
@@ -43,10 +46,15 @@ import { decodeDefinitionDocument, encodeDefinitionDocument } from './definition
 import { equipmentOptionFacts } from '@artificer-toolkit/rules-runtime/character/equipmentOptionFacts'
 import { authoredSourceFacts } from '@artificer-toolkit/authoring/nodeRuntime/authoredSourceFacts'
 import { compilePublicationDocument } from './publicationDocument'
-import { requireClassParent } from './classRelationships'
-import { compileCurrentRace } from './raceRelationships'
+import { assertNoClassChildren, requireClassParent } from './classRelationships'
+import {
+  assertNoRaceChildren,
+  compileCurrentRace,
+  recompileRaceChildren
+} from './raceRelationships'
 import { raceAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/race'
-import { compileCurrentEquipment } from './equipmentRelationships'
+import { compileCurrentEquipment, recompileEquipmentChildren } from './equipmentRelationships'
+import { replaceCurrentAuthoredVersion } from './authoredReplacement'
 import { catalogueMetadata, syncCatalogueMetadata } from './catalogueMetadata'
 import {
   authoredCatalogueMetadataSchema,
@@ -180,22 +188,33 @@ export const bootstrap: RegisteredMutation<
 export const importSubjects: RegisteredMutation<
   'internal',
   SourceImportSubjectsInput,
-  Promise<SourceImportBatchResultDto>
+  Promise<SourceImportSubjectsResultDto>
 > = internalMutation({
   args: zodToConvexFields(sourceImportSubjectsInputSchema.shape),
-  returns: zodToConvex(sourceImportBatchResultDtoSchema),
+  returns: zodToConvex(sourceImportSubjectsResultDtoSchema),
   handler: async (ctx, args) => {
     const { contentSourceId, subjects } = sourceImportSubjectsInputSchema.parse(args)
     uniqueIds(subjects)
     const source = await requireSource(ctx, contentSourceId)
     let inserted = 0
     let reused = 0
+    let replaced = 0
     for (const subject of subjects) {
       if (subject.systemId !== source.gameSystemId) throw new Error('Canonical System mismatch.')
       const current = await ctx.db
         .query('authoredRoots')
         .withIndex('by_publicId', (q) => q.eq('id', subject.id))
         .unique()
+      // A different checksum is a corpus change: the stored subject is replaced in place.
+      const changed = current !== null && current.checksum !== subject.checksum
+      if (
+        current &&
+        changed &&
+        (current.subjectKind !== subject.subjectKind ||
+          current.systemId !== subject.systemId ||
+          current.contentSourceId !== contentSourceId)
+      )
+        throw new Error('Canonical content conflict.')
       const versionId = uuidV5(
         canonicalizeRuleDocument({
           id: subject.id,
@@ -217,9 +236,10 @@ export const importSubjects: RegisteredMutation<
         throw new Error('Canonical subject metadata mismatch.')
       const { document, ...metadata } = subject
       // Exact current root/version comparison below already proves an unchanged replay payload.
-      const documentJson = current
-        ? canonicalizeRuleDocument(document)
-        : validateDocument(document, parsed.document, subject.checksum)
+      const documentJson =
+        current && !changed
+          ? canonicalizeRuleDocument(document)
+          : validateDocument(document, parsed.document, subject.checksum)
       if (parsed.subjectKind === 'CLASS' && parsed.document.category === 'SUBCLASS')
         await requireClassParent(ctx, parsed.document, null)
       const version = {
@@ -270,7 +290,46 @@ export const importSubjects: RegisteredMutation<
             : null
           : undefined
       const publicId = await ensureAuthoredRouteId(ctx, subject.subjectKind, subject.id, true)
-      if (current) {
+      if (current && changed) {
+        const previous = await ctx.db.get(current.currentVersionId)
+        if (!previous) throw new Error('Missing canonical version.')
+        // The same dependent checks and child recompilation as publishing a changed document.
+        if (parsed.subjectKind === 'CLASS' && parsed.document.category === 'SUBCLASS')
+          await assertNoClassChildren(ctx, current.systemId, current.id)
+        if (parsed.subjectKind === 'RACE' && parsed.document.category === 'SUBRACE')
+          await assertNoRaceChildren(ctx, current.systemId, current.id)
+        const equipment =
+          parsed.subjectKind === 'EQUIPMENT'
+            ? await compileCurrentEquipment(ctx, parsed.document, null)
+            : undefined
+        const race =
+          parsed.subjectKind === 'RACE'
+            ? await compileCurrentRace(ctx, parsed.document, null)
+            : undefined
+        await replaceCurrentAuthoredVersion(ctx, {
+          root: current,
+          previous,
+          version: { ...version, version: previous.version + 1 },
+          documentJson,
+          compilation: compilation ?? equipment?.compilation ?? race?.compilation,
+          current: {
+            ...root,
+            authoringSources,
+            equipmentOptions: equipment
+              ? equipmentOptionFacts(parsed.document, parsed.checksum, equipment.effective)
+              : equipmentOptions,
+            parentClassId,
+            parentEquipmentId,
+            parentRaceId
+          },
+          document: parsed.document,
+          publicId
+        })
+        if (equipment) await recompileEquipmentChildren(ctx, equipment.effective, null)
+        if (race?.effective.category === 'BASE')
+          await recompileRaceChildren(ctx, race.effective, null)
+        replaced++
+      } else if (current) {
         const {
           equipmentOptions: storedOptions,
           authoringSources: storedAuthoringSources,
@@ -307,7 +366,7 @@ export const importSubjects: RegisteredMutation<
         delete storedVersionFields.documentJson
         delete storedVersionFields.documentChunkCount
         delete storedVersionFields.documentByteLength
-        exact(storedVersionFields, version)
+        exact(storedVersionFields, { ...version, version: storedVersion.version })
         exact(await readStoredAuthoredVersionDocument(ctx, storedVersion), parsed.document)
         const existingEquipmentOptions =
           parsed.subjectKind === 'EQUIPMENT' && storedOptions !== undefined
@@ -423,7 +482,7 @@ export const importSubjects: RegisteredMutation<
         inserted++
       }
     }
-    return { inserted, reused }
+    return { inserted, reused, replaced }
   }
 })
 
@@ -514,6 +573,25 @@ function checkPageSize(size: number) {
     throw new Error('Import page size must be 1..10.')
 }
 
+// The seed refuses a corpus that drops a stored subject, so it needs the stored ids up front.
+export const readSubjectIds = internalQuery({
+  args: pageArgs,
+  returns: zodToConvex(sourceImportSubjectIdPageDtoSchema),
+  handler: async (ctx, args) => {
+    checkPageSize(args.paginationOpts.numItems)
+    const source = await requireSource(ctx, args.contentSourceId)
+    const result = await ctx.db
+      .query('authoredRoots')
+      .withIndex('by_contentSourceId', (q) => q.eq('contentSourceId', source.id))
+      .paginate(args.paginationOpts)
+    return {
+      page: result.page.map((root) => root.id),
+      isDone: result.isDone,
+      continueCursor: result.continueCursor
+    }
+  }
+})
+
 export const readSubjects = internalQuery({
   args: pageArgs,
   returns: zodToConvex(sourceImportAuditPageDtoSchema),
@@ -532,7 +610,7 @@ export const readSubjects = internalQuery({
           version.id !== root.id ||
           version.contentSourceId !== source.id ||
           version.systemId !== source.gameSystemId ||
-          version.version !== 1 ||
+          version.version < 1 ||
           version.documentSchemaVersion !== 1
         )
           throw new Error('Invalid canonical version pointer.')

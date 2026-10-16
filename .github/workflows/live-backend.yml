@@ -5,7 +5,7 @@
 # not this container, which is discarded with the runner. No pull_request trigger (so never for forks),
 # no repository secrets: the admin key is generated inside the container and only masked in memory.
 #   git push origin HEAD:ci/merge-<slice>
-#   gh workflow run live-backend.yml --ref ci/<slice> [-f steps=manifest,codegen,deploy,seed,audit]
+#   gh workflow run live-backend.yml --ref ci/<slice> [-f steps=manifest,codegen,deploy,seed,replace,reseed,audit]
 # The run then fails if the regenerated SRD manifest or Convex `_generated` files differ from the commit.
 name: Live backend
 

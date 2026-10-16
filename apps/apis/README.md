@@ -658,8 +658,22 @@ mutation CPU limit, and a count-and-size bound still let a loaded host push `imp
 1 s (PLATFORM-5.T1: [measurements](../../docs/validation/platform-5-t1-seed-mutation-margin-2026-10-15.md)),
 so batches are budgeted by measured cost without reducing domain validation or checksum checks. Exact repeats reuse content and may backfill
 missing server-derived Equipment option facts after verifying the unchanged root and version.
-Different stored content or existing option facts are an error, never an overwrite. Interrupted provisioning resumes by rerunning the
+Existing option facts that differ from an unchanged subject are an error. Interrupted provisioning resumes by rerunning the
 seed. Complete read-back audit is required before the import is accepted.
+
+A corpus change is applied in place (PLATFORM-18.T1, ADR 0024, D120). The seed is declarative: a
+subject whose checksum differs from the stored root is replaced through
+`replaceCurrentAuthoredVersion` (`authoredReplacement.ts`), the same step publishing a changed
+homebrew document uses: insert the next version, replace the root, delete the previous version with its
+chunks and compilation, then sync catalogue metadata and families. Variants, subraces and Equipment
+children are recompiled against the replaced parent. Play data keeps working because it reads the
+current document and frozen occurrences keep their own facts. Seeding an older corpus is another
+replace. A subject changing kind, System or content source is a conflict. Demoting a Class or Race that
+still has subclasses or subraces is refused with their ids. `importSubjects` and `seed` report
+`replaced`. A subject removed from the corpus fails the seed before any write, naming its ids
+(removal is a deferred edge case). Definitions, Systems, content sources and catalogue records are
+still insert-or-identical, so changing those needs a backend reset. `liveBackendValidation.mjs`
+proves replacement on an ephemeral backend (`replace`/`reseed` steps) and times each mutation.
 
 Master ownership comes from the PLATFORM content source with a null owner, not the canonical
 payload's placeholder `userId`. Public/authored UUIDs remain distinct from Convex `_id` values.

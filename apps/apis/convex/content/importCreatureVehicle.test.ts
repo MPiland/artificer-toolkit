@@ -134,7 +134,8 @@ describe.each([
     await t.run((ctx) => setVersionCompilation(ctx, second.version, second.compilation))
     expect(await t.mutation(internal.content.import.importSubjects, input)).toEqual({
       inserted: 0,
-      reused: 2
+      reused: 2,
+      replaced: 0
     })
     expect(
       await t.run(async (ctx) => versionWithCompilation(ctx, await ctx.db.get(first.version._id)))

@@ -89,6 +89,13 @@ export const sourceImportBatchResultDtoSchema = lazySchema(() =>
   })
 )
 
+// A subject whose checksum changed is replaced in place; `replaced` counts those.
+export const sourceImportSubjectsResultDtoSchema = lazySchema(() =>
+  z.extend(sourceImportBatchResultDtoSchema, {
+    replaced: z.number().check(z.int()).check(z.nonnegative())
+  })
+)
+
 export const sourceImportAuditDtoSchema = lazySchema(() =>
   z.strictObject({
     systems: z.number().check(z.int()).check(z.nonnegative()),
@@ -98,7 +105,7 @@ export const sourceImportAuditDtoSchema = lazySchema(() =>
   })
 )
 export const sourceImportSeedResultDtoSchema = lazySchema(() =>
-  z.extend(sourceImportAuditDtoSchema, sourceImportBatchResultDtoSchema.shape)
+  z.extend(sourceImportAuditDtoSchema, sourceImportSubjectsResultDtoSchema.shape)
 )
 
 export type SourceImportSubjectDto = z.infer<typeof sourceImportSubjectDtoSchema>
@@ -157,6 +164,14 @@ export const sourceImportAuditPageDtoSchema = lazySchema(() =>
     continueCursor: z.string()
   })
 )
+export const sourceImportSubjectIdPageDtoSchema = lazySchema(() =>
+  z.strictObject({
+    page: z.array(canonicalUuidSchema),
+    isDone: z.boolean(),
+    continueCursor: z.string()
+  })
+)
+export type SourceImportSubjectIdPageDto = z.infer<typeof sourceImportSubjectIdPageDtoSchema>
 export type SourceImportBootstrapResultDto = z.infer<typeof sourceImportBootstrapResultDtoSchema>
 export type SourceImportAuditPageDto = z.infer<typeof sourceImportAuditPageDtoSchema>
 export type SourceImportAuditDto = z.infer<typeof sourceImportAuditDtoSchema>
@@ -165,3 +180,4 @@ export type SourceImportBootstrapInput = z.infer<typeof sourceImportBootstrapInp
 export type SourceImportSubjectsInput = z.infer<typeof sourceImportSubjectsInputSchema>
 export type SourceImportDefinitionsInput = z.infer<typeof sourceImportDefinitionsInputSchema>
 export type SourceImportBatchResultDto = z.infer<typeof sourceImportBatchResultDtoSchema>
+export type SourceImportSubjectsResultDto = z.infer<typeof sourceImportSubjectsResultDtoSchema>

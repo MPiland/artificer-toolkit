@@ -17,6 +17,7 @@ import {
   type SourceImportBootstrapInput,
   type SourceImportDefinitionsInput,
   type SourceImportSeedResultDto,
+  type SourceImportSubjectIdPageDto,
   type SourceImportSubjectsInput
 } from '@artificer-toolkit/schema/api/sourceImport'
 import { jsonValueSchema } from '@artificer-toolkit/schema/projections/identity'
@@ -37,12 +38,13 @@ type SrdImportManifest = {
   manifestChecksum: string
 }
 
-let cachedManifest: SrdImportManifest | undefined
+let cachedManifest: { encoded: string; manifest: SrdImportManifest } | undefined
 
 function prepared(): SrdImportManifest {
-  if (cachedManifest) return cachedManifest
+  const encoded = srdManifestBrotliBase64
+  if (cachedManifest?.encoded === encoded) return cachedManifest.manifest
   const parsed = JSON.parse(
-    brotliDecompressSync(Buffer.from(srdManifestBrotliBase64, 'base64')).toString('utf8')
+    brotliDecompressSync(Buffer.from(encoded, 'base64')).toString('utf8')
   ) as unknown
   if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed))
     throw new Error('Generated SRD manifest is invalid.')
@@ -71,8 +73,8 @@ function prepared(): SrdImportManifest {
   )
   if (checksum !== result.manifestChecksum)
     throw new Error('Generated SRD manifest checksum differs.')
-  cachedManifest = result
-  return cachedManifest
+  cachedManifest = { encoded, manifest: result }
+  return result
 }
 
 function exact(actual: unknown, expected: unknown) {
@@ -193,18 +195,42 @@ async function auditPrepared(
   }
 }
 
+// Removal is not supported: fail before writing anything rather than leave a stale subject.
+async function assertNoRemovedSubjects(ctx: ActionCtx, manifest: SrdImportManifest) {
+  const expected = new Set(manifest.subjects.map((subject) => subject.id))
+  const removed: string[] = []
+  let cursor: string | null = null
+  do {
+    const page: SourceImportSubjectIdPageDto = await ctx.runQuery(
+      internal.content.import.readSubjectIds,
+      { contentSourceId: manifest.contentSource.id, paginationOpts: { numItems: 10, cursor } }
+    )
+    removed.push(...page.page.filter((id) => !expected.has(id)))
+    cursor = page.isDone ? null : page.continueCursor
+  } while (cursor !== null)
+  if (removed.length)
+    throw new Error(
+      `Canonical subjects were removed from the corpus, which the seed cannot apply: ${removed.join(', ')}.`
+    )
+}
+
 // CLI-only internal action. Batches commit independently; exact repeats make interrupted
-// provisioning resumable. No existing source is overwritten, even when its checksum differs.
+// provisioning resumable. A subject whose checksum changed is replaced in place (ADR 0024); a
+// subject missing from the corpus fails the seed before it writes.
 export const seed = internalAction({
   args: {},
   returns: zodToConvex(sourceImportSeedResultDtoSchema),
   handler: async (ctx): Promise<SourceImportSeedResultDto> => {
     const manifest = prepared()
-    const counts = await ctx.runMutation(internal.content.import.bootstrap, {
-      systems: manifest.systems,
-      contentSource: manifest.contentSource,
-      catalogue: manifest.catalogue
-    })
+    const counts = {
+      ...(await ctx.runMutation(internal.content.import.bootstrap, {
+        systems: manifest.systems,
+        contentSource: manifest.contentSource,
+        catalogue: manifest.catalogue
+      })),
+      replaced: 0
+    }
+    await assertNoRemovedSubjects(ctx, manifest)
     for (const subjects of sourceImportBatches(manifest.subjects)) {
       const batch = await ctx.runMutation(internal.content.import.importSubjects, {
         contentSourceId: manifest.contentSource.id,
@@ -212,6 +238,7 @@ export const seed = internalAction({
       })
       counts.inserted += batch.inserted
       counts.reused += batch.reused
+      counts.replaced += batch.replaced
     }
     for (const subject of manifest.subjects) {
       if (subject.subjectKind === 'CLASS')

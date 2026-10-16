@@ -39,3 +39,29 @@ Don't edit code in this step. The main session rules on the design and records i
   - Never use Convex Cloud.
 
 ## Status log
+
+### Step 1 survey (2026-10-15)
+
+Pins: ADR 0022 is superseded by ADR 0024 (current-version reads, no consumer-selectable pins; frozen occurrences keep their own facts). Homebrew publish already replaces in place (`content/publicationPersistence.ts` `commitPublication`). Canonical import throws on any changed checksum (`content/import.ts` `exact(currentFields, …)`).
+
+### Rulings (main session; to be recorded as D120)
+
+1. Design A: in-place replace per changed subject, reusing `commitPublication`'s steps (insert the next version, replace the root, delete the previous version with its chunks and compilation, sync catalogue metadata, patch the families). Extract the shared part into one function if needed; don't copy. Relax the `version: 1` assumptions in `importSubjects`, `readSubjects` and the audit. Re-fit the batch cost for replaces and record the measurement.
+2. A removed subject fails loudly, naming the ids. Real removal is deferred (`docs/roadmap/future-enhancements.md` Deferred edge cases, with the `deletion.ts` reuse pointers).
+3. Downgrade: no guard. The seed is declarative, so seeding N after N+1 is another replace.
+4. Dependents follow ADR 0024: a canonical replace goes through the same unresolved-dependent check publish uses and refuses, listing the dependents. No seed bypass.
+5. AC 18.1 is reworded to ADR 0024's current-version reads: play data created on N keeps working after N+1.
+
+### Step 2 build (2026-10-15)
+
+Built to the rulings.
+
+- `content/authoredReplacement.ts` `replaceCurrentAuthoredVersion` is the shared replace step; `commitPublication` and canonical `importSubjects` both call it. `importSubjects` and `seed` return `replaced`; `readSubjects` accepts any version >= 1; new `readSubjectIds` feeds the seed's removed-subject preflight (`assertNoRemovedSubjects`).
+- Children are recompiled at replace time (Equipment variants, subraces) because the derived syncs are exact-or-insert. Class compilation stays with `syncClassDerived`, as on first import.
+- Red: `corpusReplaceJourney.test.ts` (readied Character, Acolyte renamed, reimport) failed with `Canonical content conflict.` on the pre-fix code. Green after the fix. Fast tests: `import.test.ts` (Background replace and downgrade, Race parent replace and demotion refusal, Equipment variant recompile), `seedReplace.test.ts` (mocked manifest: N, N+1, back to N, removed subject).
+- Changed expectations: only additive `replaced: 0` on existing `importSubjects` and `seed` results (`import.test.ts`, `importSpell.test.ts`, `importCreatureVehicle.test.ts`, `featPublication.test.ts`, `seed.test.ts`). In the new journey test the Sheet is expected to show the new Background label (ADR 0024 current-version reads), not to equal corpus N.
+- Ruling 4 note: publish has no Character-level dependents blocker; the dependents check it shares with a canonical replace is the structural one (`assertNoClassChildren`, `assertNoRaceChildren`, now listing the dependent ids in the error) plus child recompilation.
+- Live proof: `liveBackendValidation.mjs` gains `replace` (apps/apis/scripts/liveBackendReplaceProbe.ts: relabels and restores the largest Class and Subclass, the Race with most subraces, the Equipment with most variants, and leaves a Background changed) and `reseed` steps before the audit. The probe times each mutation; results go in `docs/validation/platform-18-t1-replace-mutation-margin-2026-10-15.md`.
+- Hook false positive: the "Node API without use node" hook blocked writes of test files importing `node:zlib` (`seed.test.ts`, `seedReplace.test.ts`); they are vitest-only, like the existing `seed.test.ts`.
+
+Proposed ledger edits (main session): reword AC 18.1 per ruling 5; add PLATFORM-18.T2 for canonical definitions, Systems, sources and catalogues (still insert-or-identical).
