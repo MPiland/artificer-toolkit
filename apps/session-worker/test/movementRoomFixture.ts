@@ -206,6 +206,12 @@ export interface MovementRoomConfig {
   characterSpellcasting?: Parameters<typeof characterRoomInputs>[0]['spellcasting']
   /** An assigned Character the Run does not hold, owned by the room's player (SPELLS-5.11, Q1). */
   outsideCasterCharacterId?: string
+  /** A second Character of the Run (a CHARACTER actor with this `characterId`), owned by the room's player. */
+  secondCharacter?: {
+    characterId: string
+    spellcasting?: Parameters<typeof characterRoomInputs>[0]['spellcasting']
+    play?: CharacterPlayOverrides
+  }
   /** The next dice results (see `rigDice`); `fallbackRoll` serves every roll after them. */
   rolls?: readonly number[]
   fallbackRoll?: number
@@ -217,6 +223,25 @@ export interface MovementRoomConfig {
     encounterId: string
     occurredAt: string
   }) => Promise<void>
+}
+
+/** The page fixture gives every Character the same row ids; a further Character needs its own. */
+function withOwnRowIds<
+  Part extends Awaited<ReturnType<typeof characterRoomInputs>>['parts'][number]
+>(part: Part, suffix: string): Part {
+  if (part.status !== 'ASSIGNED' || !part.inputs) return part
+  return {
+    ...part,
+    inputs: {
+      ...part.inputs,
+      owner: {
+        ...part.inputs.owner,
+        _id: `${part.inputs.owner._id}:${suffix}`,
+        play: { ...part.inputs.owner.play, _id: `${part.inputs.owner.play._id}:${suffix}` }
+      }
+    },
+    documents: part.documents.map((document) => ({ ...document, id: `${document.id}:${suffix}` }))
+  }
 }
 
 /**
@@ -313,10 +338,22 @@ export async function movementRoom(config: MovementRoomConfig) {
         ownerUserId: base.playerId
       })
     : null
+  const secondCharacterPage = config.secondCharacter
+    ? await characterRoomInputs({
+        campaignId,
+        characterId: config.secondCharacter.characterId,
+        ownerUserId: base.playerId,
+        play: config.secondCharacter.play,
+        spellcasting: config.secondCharacter.spellcasting
+      })
+    : null
   const assignments = [
     ...(characterId ? [{ characterId, userId: base.playerId }] : []),
     ...(config.outsideCasterCharacterId
       ? [{ characterId: config.outsideCasterCharacterId, userId: base.playerId }]
+      : []),
+    ...(config.secondCharacter
+      ? [{ characterId: config.secondCharacter.characterId, userId: base.playerId }]
       : [])
   ]
 
@@ -426,29 +463,12 @@ export async function movementRoom(config: MovementRoomConfig) {
   const characterInputs = {
     parts: [
       ...(characterPage?.parts ?? []).map((part) => ({ part, holdsDependents: true })),
-      // The page fixture gives every Character the same row ids; the second one needs its own.
       ...(outsideCasterPage?.parts ?? []).map((part) => ({
-        part:
-          part.status === 'ASSIGNED' && part.inputs
-            ? {
-                ...part,
-                inputs: {
-                  ...part.inputs,
-                  owner: {
-                    ...part.inputs.owner,
-                    _id: `${part.inputs.owner._id}:outside`,
-                    play: {
-                      ...part.inputs.owner.play,
-                      _id: `${part.inputs.owner.play._id}:outside`
-                    }
-                  }
-                },
-                documents: part.documents.map((document) => ({
-                  ...document,
-                  id: `${document.id}:outside`
-                }))
-              }
-            : part,
+        part: withOwnRowIds(part, 'outside'),
+        holdsDependents: false
+      })),
+      ...(secondCharacterPage?.parts ?? []).map((part) => ({
+        part: withOwnRowIds(part, 'second'),
         holdsDependents: false
       }))
     ].map(({ part, holdsDependents }) => {
@@ -516,6 +536,14 @@ export async function movementRoom(config: MovementRoomConfig) {
                   {
                     characterId: config.outsideCasterCharacterId!,
                     revision: outsideCasterPage.characterRevision
+                  }
+                ]
+              : []),
+            ...(secondCharacterPage
+              ? [
+                  {
+                    characterId: config.secondCharacter!.characterId,
+                    revision: secondCharacterPage.characterRevision
                   }
                 ]
               : [])

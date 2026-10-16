@@ -10,6 +10,14 @@ describe('offeredDecisionOptionIds', () => {
     ).toEqual(['inner', 'outer'])
   })
 
+  it('offers every reaction a cast waits on as a menu', () => {
+    expect(
+      offeredDecisionOptionIds({
+        castReaction: { reactions: [{ useOptionId: 'low' }, { useOptionId: 'high' }] }
+      })
+    ).toEqual(['low', 'high'])
+  })
+
   it('offers a Legendary Resistance option alone', () => {
     expect(
       offeredDecisionOptionIds({ legendaryResistance: { resistance: { useOptionId: 'resist' } } })

@@ -17,31 +17,29 @@ import { advanceNativeActionGraphs } from '@artificer-toolkit/rules-runtime/enco
 import { prepareNativeActionEffectsPlan } from '@artificer-toolkit/rules-runtime/encounterActionEffects'
 import type { prepareEncounterActionMechanics } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
 import { StaleCharacterActionError } from '@artificer-toolkit/rules-runtime/encounterErrors'
-import { ASSISTED_REACTION_CHOICE_DEFINITION_ID } from '@artificer-toolkit/rules-runtime/encounterMovementReactionDecision'
 import {
   encounterReactionEffectId,
   type EncounterAttackReactionCandidate
 } from '@artificer-toolkit/rules-runtime/encounterReactionChoice'
-import { createReactionChoiceDefinition } from '@artificer-toolkit/rules-runtime/reactionChoiceDefinition'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 
-import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
 import { evaluateNativeLiveActionEconomy } from './nativeEncounterActionEconomy.js'
 import type { LiveCaptureReads } from './nativeEncounterReads.js'
 import { nativeEffectOwner } from './nativeEncounterSettlement.js'
+import {
+  nativeReactionCandidate,
+  unsupportedReaction,
+  type NativeReaction
+} from './nativeEncounterReactionCandidate.js'
 import type { prepareNativeLiveMovementTarget } from './nativeEncounterTargets.js'
 
 type Prepared = Awaited<ReturnType<typeof prepareEncounterActionMechanics>>
 type MovementTargets = Prepared['movementTargets']
 
 /** A reaction its holder could use against the attack being resolved, prepared as it stands now. */
-export type NativeAttackReaction = {
-  candidate: EncounterAttackReactionCandidate
+export type NativeAttackReaction = NativeReaction<EncounterAttackReactionCandidate> & {
   /** The damage types that triggered it, which its effect may bind (none for an attack reaction). */
   triggerDamageTypeIds: readonly string[]
-  /** The reaction action prepared against its reactor's own facts. */
-  prepared: Prepared
-  economy: NonNullable<Awaited<ReturnType<typeof evaluateNativeLiveActionEconomy>>['economy']>
 }
 
 /**
@@ -104,35 +102,19 @@ export function discoverNativeAttackReaction(input: {
         prepared,
         economy,
         triggerDamageTypeIds,
-        candidate: {
+        candidate: nativeReactionCandidate({
           trigger,
           reactorActorId: target.id,
-          characterId: prepared.source.characterId,
-          characterStreamVersion: prepared.source.characterStreamVersion,
+          source: prepared.source,
           actionId,
-          effectId: prepared.source.candidate.effectId,
-          allowance: {
-            definitionId: economy.consumption.definitionId,
-            beforeUsed: economy.consumption.beforeUsed,
-            maximum: economy.consumption.maximum
-          },
-          choiceGraph: createReactionChoiceDefinition({
-            definitionId: ASSISTED_REACTION_CHOICE_DEFINITION_ID,
-            gameSystemId: input.state.gameSystemId
-          })
-        }
+          consumption: economy.consumption,
+          gameSystemId: input.state.gameSystemId
+        })
       })
     }
     return reactions
   }
 }
-
-const unsupportedReaction = (message: string) =>
-  new LiveSessionDomainRejectionError(422, {
-    code: 'DOMAIN_REJECTED',
-    reason: 'REACTION_UNSUPPORTED',
-    message
-  })
 
 /**
  * Runs a used reaction and works out the attack it answered once the reaction's effect holds: the

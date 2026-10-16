@@ -461,15 +461,21 @@ button for each; every pin names the same reactor. The reaction's effect id is d
 create exactly one effect on its reactor is refused as `REACTION_UNSUPPORTED`.
 Decision: D26 is extended to hold the Scene for a pending reaction decision.
 
-#### `SPELL_CAST` (transitional, REACTION-4.T3b-1)
+#### `SPELL_CAST` (current, REACTION-4.T3b-2; D124)
 
 `reactionTrigger: { kind: 'SPELL_CAST' }` binds a reaction to a creature casting a spell (Counterspell). The
 `CANCEL_TRIGGERING_EVENT` outcome compiles to `dnd5e.cancel-triggering-event-proposal`, a target-only proposal
 that stores nothing; `executionCancelsTriggeringEvent` reads it from the committed trace, as
-`executionAddsSpeedToMovement` does. `discoverCastReactionActions` lists the reactions a Character holds for a
-cast; the caller keeps those whose own invocation range reaches the caster, and the sealed pin accepts the
-`SPELL_CAST` trigger. **Not yet reachable in play:** the Worker pause before a cast and the `SPENT_NO_EFFECT`
-settlement (T3b-2) are not built, so a cast offers no Counterspell yet.
+`executionAddsSpeedToMovement` does.
+
+Before a Character's single-target spell cast runs its graph, the Worker (`nativeEncounterCastReaction.ts`) asks
+`discoverCastReactionActions` which other Characters hold a reaction for it, keeps those whose own invocation range
+reaches the caster on the Scene and whose slot level is at least the cast's (Counterspell's rule until T3c), and
+holds the cast in a `castReaction` pending offer (`REACTION_CHOICE` to the reactor). Declining records the reactor
+and the cast proceeds; using the reaction commits a countered cast (`persistEncounterCounteredCastCommit`): the
+caster's slot and action and the reactor's slot and reaction are spent, nothing else is applied, and no
+Concentration starts. Undo restores both creatures. Creature-capability, ACTORS-target and area casts, and casts
+made without the Scene offer no reaction. The chain is T3d; the higher-level ability check is T3c.
 
 #### `DAMAGE_TAKEN` (current, REACTION-4.T2)
 

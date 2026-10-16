@@ -87,9 +87,14 @@ type NativeActionPending = Awaited<ReturnType<typeof readNativeActionPending>>
 export function offeredDecisionOptionIds(context: {
   legendaryResistance?: { resistance: { useOptionId: string } } | null
   reactionChoice?: { reactions: readonly { useOptionId: string }[] } | null
+  castReaction?: { reactions: readonly { useOptionId: string }[] } | null
 }): string[] {
   if (context.legendaryResistance) return [context.legendaryResistance.resistance.useOptionId]
-  return context.reactionChoice?.reactions.map((reaction) => reaction.useOptionId) ?? []
+  return (
+    (context.reactionChoice ?? context.castReaction)?.reactions.map(
+      (reaction) => reaction.useOptionId
+    ) ?? []
+  )
 }
 
 /**
@@ -113,14 +118,15 @@ export function projectNativeActionPending(
       options: [{ optionId: context.legendaryResistance.resistance.useOptionId }],
       allowedResponses: ['DECLINE', 'OPTION']
     }
-  if (context.reactionChoice)
+  const reactionOffer = context.reactionChoice ?? context.castReaction
+  if (reactionOffer)
     return {
       kind: 'REACTION_CHOICE',
       occurrenceId: occurrence.id,
       occurrenceVersion: occurrence.version,
       encounterVersion: occurrence.expectedEncounterVersion,
       targetActorId: context.rollerActorId,
-      options: context.reactionChoice.reactions.map(({ useOptionId, actionId }) => ({
+      options: reactionOffer.reactions.map(({ useOptionId, actionId }) => ({
         optionId: useOptionId,
         actionId
       })),

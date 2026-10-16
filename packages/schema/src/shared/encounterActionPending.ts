@@ -9,6 +9,7 @@ import {
   serverRuleExecutionD20PolicyDtoSchema
 } from './ruleExecutionEvidence.js'
 import {
+  encounterCastReactionOfferDtoSchema,
   encounterReactionOfferDtoSchema,
   validateEncounterReactionPin
 } from './ruleExecutionReactionChoice.js'
@@ -70,7 +71,13 @@ export const encounterActionPendingContextDtoSchema = lazySchema(() =>
        * Set while a hit attack waits on its target's reaction decision. The snapshot's continuation is
        * that choice; the TEST stays unsettled until the answer.
        */
-      reactionChoice: z.optional(encounterReactionOfferDtoSchema)
+      reactionChoice: z.optional(encounterReactionOfferDtoSchema),
+      /**
+       * Set while a cast waits, before it executes, on a creature's chance to counter it. The roller is
+       * that creature; the snapshot's continuation is its sealed reaction choice. No cast state is held:
+       * the cast replays from the command, and the declined reactors keep the replay deterministic.
+       */
+      castReaction: z.optional(encounterCastReactionOfferDtoSchema)
     })
     .check(
       z.superRefine((value, context) => {
@@ -110,6 +117,27 @@ export const encounterActionPendingContextDtoSchema = lazySchema(() =>
               code: 'custom',
               path: ['reactionChoice'],
               message: 'A reaction offer belongs to a TEST held for the reacting creature.'
+            })
+        }
+        if (value.castReaction) {
+          for (const [index, reaction] of value.castReaction.reactions.entries())
+            validateEncounterReactionPin(reaction, context, ['castReaction', 'reactions', index])
+          if (
+            value.legendaryResistance ||
+            value.reactionChoice ||
+            value.twoPhase !== null ||
+            value.d20Policy !== null ||
+            value.contest ||
+            value.heldD20 ||
+            value.castReaction.reactions.some(
+              ({ reactorActorId }) => reactorActorId !== value.rollerActorId
+            ) ||
+            value.castReaction.declinedReactorActorIds.includes(value.rollerActorId)
+          )
+            context.addIssue({
+              code: 'custom',
+              path: ['castReaction'],
+              message: 'A cast reaction offer belongs to a cast held before it executes.'
             })
         }
         if (value.heldD20 && value.d20Policy === null)

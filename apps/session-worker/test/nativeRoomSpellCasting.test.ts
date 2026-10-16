@@ -5,7 +5,6 @@ import {
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import { readCharacterPlay } from '@artificer-toolkit/schema/projections/characterStoredState'
 import type { SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
-import { cureWounds } from '@artificer-toolkit/source-data/srd/spells/cure-wounds.js'
 import { fireball } from '@artificer-toolkit/source-data/srd/spells/fireball.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
@@ -15,6 +14,7 @@ import { plainWolf } from '../src/testing/movementPlannerFixture.js'
 import { actionRoom } from './actionRoomFixture.js'
 import { areaReceipts, vitalsOf } from './areaRoomReads.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
+import { mend } from './mendSpell.js'
 import { readPendingActionDecision, readRoomHistory } from './roomHistoryReads.js'
 
 const CHARACTER_ACTOR_ID = testUuid(0x7c0)
@@ -217,23 +217,6 @@ describe('room upcast point-area spell cast by a Character', () => {
   })
 })
 
-/** Cure Wounds with no Scene geometry, healing a fixed 2. */
-const mend: SpellAuthored = (() => {
-  const spell = structuredClone(cureWounds)
-  for (const effect of spell.effects ?? []) {
-    if (effect.invocation.kind !== 'ACTION') continue
-    effect.invocation.range = { id: effect.invocation.range.id, rangeKind: 'UNLIMITED' }
-    effect.invocation.targeting = { selectionKind: 'SINGLE_TARGET', dispositionKind: 'ANY' }
-  }
-  const path = spell.effects?.[0]?.paths?.[0]
-  const outcome = path && 'resultBlock' in path ? path.resultBlock.outcomes?.[0] : undefined
-  if (outcome?.effectKind !== 'HEAL') throw new Error('Cure Wounds heals.')
-  Object.assign(outcome, { valueKind: 'FIXED', scalingKind: 'NONE', amount: 2 })
-  for (const key of ['diceConfig', 'levels', 'scalingSource', 'bonuses'])
-    delete (outcome as Record<string, unknown>)[key]
-  return { ...spell, id: testUuid(0x7c5), label: 'Mend', level: 1 }
-})()
-
 describe('room single-target spell cast by a Character', () => {
   it('spends the slot with the heal in one Character version, and one undo restores both', async () => {
     const room = await actionRoom({
@@ -282,8 +265,18 @@ describe('room Fireball cast by a Character wizard (SPELLS-8.4)', () => {
 
   it.each([
     // A raw die is its face less one: 8d6 faces 2 3 4 5 6 1 2 3 and 9d6 faces 2 3 4 5 6 1 2 3 4.
-    { label: 'Fireball (3rd level)', slotKey: 'STANDARD:3', rolls: [1, 2, 3, 4, 5, 0, 1, 2], damage: 26 },
-    { label: 'Fireball (4th level)', slotKey: 'STANDARD:4', rolls: [1, 2, 3, 4, 5, 0, 1, 2, 3], damage: 30 }
+    {
+      label: 'Fireball (3rd level)',
+      slotKey: 'STANDARD:3',
+      rolls: [1, 2, 3, 4, 5, 0, 1, 2],
+      damage: 26
+    },
+    {
+      label: 'Fireball (4th level)',
+      slotKey: 'STANDARD:4',
+      rolls: [1, 2, 3, 4, 5, 0, 1, 2, 3],
+      damage: 30
+    }
   ])(
     'rolls the $label dice once for the whole area, saves against the wizard’s DC, and one undo restores the slot and every creature',
     async ({ label, slotKey, rolls, damage }) => {
@@ -302,7 +295,11 @@ describe('room Fireball cast by a Character wizard (SPELLS-8.4)', () => {
 
       const { roots, children } = areaReceipts(await readRoomHistory(room.room.base.stub))
       expect(roots).toHaveLength(1)
-      expect(roots[0]?.outputs.spellCastConsumption).toMatchObject({ slotKey, beforeUsed: 0, afterUsed: 1 })
+      expect(roots[0]?.outputs.spellCastConsumption).toMatchObject({
+        slotKey,
+        beforeUsed: 0,
+        afterUsed: 1
+      })
       expect(children).toHaveLength(CAUGHT_IDS.length + 1)
       expect(children.map(({ outputs }) => outputs.d20?.defenseOrDc)).toEqual(
         children.map(() => WIZARD_SAVE_DC)

@@ -186,6 +186,46 @@ export const liveSessionEncounterActionCommitInputSchema: z.ZodMiniType<LiveSess
     })
   )
 
+/**
+ * The terminal outcome of a cast that another creature countered: the caster's one spend and the
+ * reactor's, recorded on one root. Nothing of the spell applies, so it creates no effect, damage or
+ * Concentration and consumes no grant.
+ */
+export type LiveSessionEncounterCounteredCastCommitInput = Omit<
+  LiveSessionEncounterActionCommitInput,
+  | 'maintenanceOwners'
+  | 'createdEffects'
+  | 'maintainedState'
+  | 'concentration'
+  | 'pendingConcentration'
+  | 'concentrationEnds'
+  | 'endedGrants'
+  | 'cleaving'
+  | 'consumedGrants'
+>
+
+export const liveSessionEncounterCounteredCastCommitInputSchema: z.ZodMiniType<LiveSessionEncounterCounteredCastCommitInput> =
+  lazySchema(() =>
+    z.extend(
+      z.omit(liveSessionEncounterActionPendingInputSchema, {
+        snapshot: true,
+        maintenanceOwners: true
+      }),
+      {
+        occurredAt: z.iso.datetime(),
+        initialDefinitionId: postgresUuidSchema,
+        execution: storedRuleExecutionResultDtoSchema,
+        rules: encounterActorRuleOutputSchema,
+        resourceConsumption: z.nullable(liveSessionCharacterResourceConsumptionSchema),
+        itemConsumption: z.nullable(liveSessionCharacterItemConsumptionSchema),
+        spellConsumption: z.nullable(liveSessionCharacterSpellConsumptionSchema),
+        reactionSpellConsumption: z.nullable(liveSessionCharacterSpellConsumptionSchema),
+        label: z.nullable(z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160))),
+        ruleOverrides: encounterRuleWarningsDtoSchema
+      }
+    )
+  )
+
 /** The Scene spatial effect an action places, as the planner built it; persistence stores it as is. */
 export type LiveSessionPlacedSpatialEffect = {
   id: string

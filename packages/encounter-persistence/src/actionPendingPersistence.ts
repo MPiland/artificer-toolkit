@@ -120,7 +120,9 @@ export async function persistEncounterActionPending(
       snapshot.applicationContext.kind !== 'ENCOUNTER_ACTION' ||
       snapshot.applicationContext.initiatorUserId !== initiatorUserId ||
       (snapshot.applicationContext.rollerActorId !== admission.input.actorId &&
-        snapshot.applicationContext.rollerActorId !== target.actorId) ||
+        snapshot.applicationContext.rollerActorId !== target.actorId &&
+        // A creature offered the chance to counter the cast is the roller of that decision.
+        snapshot.applicationContext.castReaction === undefined) ||
       snapshot.applicationContext.commandFingerprint !== fingerprint ||
       checksumCanonicalJson(JSON.parse(snapshot.applicationContext.commandJson)) !== fingerprint ||
       snapshot.optionalCombatSnapshotChecksum !== state.optionalCombatSnapshotChecksum ||
@@ -142,6 +144,20 @@ export async function persistEncounterActionPending(
     )
       throw new Error('Live Session pending action root mismatch.')
     evidence = snapshot.applicationContext
+    const { castReaction } = evidence
+    if (
+      castReaction &&
+      !castReaction.reactions.every((reaction) =>
+        actors.some(
+          (actor) =>
+            actor.id === reaction.reactorActorId &&
+            actor.id !== admission.input.actorId &&
+            actor.kind === 'CHARACTER' &&
+            actor.sourceId === reaction.characterId
+        )
+      )
+    )
+      throw new Error('Live Session pending cast reaction mismatch.')
     if (!actors.some((actor) => actor.id === target.actorId))
       throw new Error('Encounter action target was not found.')
     await callbacks.readActionSceneInputs(

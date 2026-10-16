@@ -1,4 +1,6 @@
 import type { ServerKernelRuleExecutionPendingSnapshotDto } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
+import type { EncounterCastReactionOfferDto } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
+import type { ServerRuleExecutionContinuationDto } from '@artificer-toolkit/schema/shared/rulesExecution'
 import type {
   PendingNativeActionGraphs,
   ResumedNativeActionGraphs
@@ -68,5 +70,39 @@ export function buildEncounterActionPendingSnapshot(input: {
       ...(execution.reactionChoice ? { reactionChoice: execution.reactionChoice } : {})
     },
     ...(execution.phaseReceipts ? { phaseReceipts: execution.phaseReceipts } : {})
+  }
+}
+
+/**
+ * The sealed pending snapshot of a cast held before it executes, for the creature offered the chance
+ * to counter it. The continuation is that creature's reaction choice; the cast itself is not held, it
+ * replays from the command once the offer is answered.
+ */
+export function buildEncounterCastReactionPendingSnapshot(input: {
+  continuation: ServerRuleExecutionContinuationDto
+  castReaction: EncounterCastReactionOfferDto
+  rollerActorId: string
+  optionalCombatSnapshotChecksum: string | null | undefined
+  commandJson: string
+  commandFingerprint: string
+  initiatorUserId: string
+  currentnessChecksum: string
+}): ServerKernelRuleExecutionPendingSnapshotDto {
+  return {
+    ...input.continuation,
+    snapshotKind: 'KERNEL_EVIDENCE',
+    optionalCombatSnapshotChecksum: input.optionalCombatSnapshotChecksum,
+    applicationContext: {
+      kind: 'ENCOUNTER_ACTION',
+      schemaVersion: 1,
+      commandJson: input.commandJson,
+      commandFingerprint: input.commandFingerprint,
+      initiatorUserId: input.initiatorUserId,
+      rollerActorId: input.rollerActorId,
+      currentnessChecksum: input.currentnessChecksum,
+      d20Policy: null,
+      twoPhase: null,
+      castReaction: input.castReaction
+    }
   }
 }
