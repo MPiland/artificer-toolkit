@@ -490,15 +490,21 @@ button for each; every pin names the same reactor. The reaction's effect id is d
 create exactly one effect on its reactor is refused as `REACTION_UNSUPPORTED`.
 Decision: D26 is extended to hold the Scene for a pending reaction decision.
 
-#### `SPELL_CAST` (transitional, REACTION-4.T3b-1)
+#### `SPELL_CAST` (current, REACTION-4.T3b-2; D124)
 
 `reactionTrigger: { kind: 'SPELL_CAST' }` binds a reaction to a creature casting a spell (Counterspell). The
 `CANCEL_TRIGGERING_EVENT` outcome compiles to `dnd5e.cancel-triggering-event-proposal`, a target-only proposal
 that stores nothing; `executionCancelsTriggeringEvent` reads it from the committed trace, as
-`executionAddsSpeedToMovement` does. `discoverCastReactionActions` lists the reactions a Character holds for a
-cast; the caller keeps those whose own invocation range reaches the caster, and the sealed pin accepts the
-`SPELL_CAST` trigger. **Not yet reachable in play:** the Worker pause before a cast and the `SPENT_NO_EFFECT`
-settlement (T3b-2) are not built, so a cast offers no Counterspell yet.
+`executionAddsSpeedToMovement` does.
+
+Before a Character's single-target spell cast runs its graph, the Worker (`nativeEncounterCastReaction.ts`) asks
+`discoverCastReactionActions` which other Characters hold a reaction for it, keeps those whose own invocation range
+reaches the caster on the Scene and whose slot level is at least the cast's (Counterspell's rule until T3c), and
+holds the cast in a `castReaction` pending offer (`REACTION_CHOICE` to the reactor). Declining records the reactor
+and the cast proceeds; using the reaction commits a countered cast (`persistEncounterCounteredCastCommit`): the
+caster's slot and action and the reactor's slot and reaction are spent, nothing else is applied, and no
+Concentration starts. Undo restores both creatures. Creature-capability, ACTORS-target and area casts, and casts
+made without the Scene offer no reaction. The chain is T3d; the higher-level ability check is T3c.
 
 #### `DAMAGE_TAKEN` (current, REACTION-4.T2)
 
@@ -760,10 +766,14 @@ activation and an attack or damage trigger is offered like a Feature reaction).
 A candidate is offered through the Sheet's own logic, not a copy of it: the spell must come from an active
 source (`isActiveSpellSource`: prepared per preparing class, learned for the others, always prepared and
 granted spells included) and the candidate must be one of the cast levels the Sheet lists
-(`getExplicitSpellCastLevels`): the spell's own level plus every higher level its authored damage or heal
-scaling reaches for which the Character owns a standard slot. A Warlock's pact slot is offered for the spell's
-own level and spent whatever its level. A candidate is dropped when its decision is not `AVAILABLE` or it is a
-ritual. A leveled cast paid from a spell-source pool (`LIMITED_USE`, or a `FIXED_LEVEL` grant with `charges`,
+(`getSpellCastLevels`): the spell's own level, plus every higher level for which the Character owns a slot
+(standard or Pact Magic) when the spell reads its cast level. A spell reads it when its authored effects scale by
+it (damage or healing `SPELL_CAST_LEVEL` scaling, a `SPELL_CAST_LEVEL` target count, a granted amount of
+`SPELL_SLOT_LEVEL`) anywhere in the Effect, including follow-up save/check branches and manifest behaviors, components and proximity rules or compare with it (`CANCEL_TRIGGERING_EVENT`, Counterspell's slot-versus-spell check).
+`effectReadsSpellCastLevel` derives that flag from the compiled Effects into `readsCastLevel` on the spell's
+action facts and reference mechanics; nothing names a spell. Any other spell is cast at its own level only.
+A Warlock's pact slot also pays a cast at the spell's own level and is spent whatever its level. A candidate is
+dropped when its decision is not `AVAILABLE` or it is a ritual. A leveled cast paid from a spell-source pool (`LIMITED_USE`, or a `FIXED_LEVEL` grant with `charges`,
 SPELLS-8.T8) carries a `resourceUse` of one use of that pool and spends no slot, as on the Sheet
 (`sheetResourceUsage.ts`); a cantrip is free, and so is a `FIXED_LEVEL` grant without charges. The pool spend
 is the ordinary `resourceBinding` of the compiled entry and GM undo restores it by the pool's owner key. A

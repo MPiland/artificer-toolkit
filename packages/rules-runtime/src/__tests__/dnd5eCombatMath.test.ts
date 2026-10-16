@@ -875,6 +875,7 @@ describe('D&D 5e restrictions and spell-scoped damage', () => {
   it('a spell-scoped damage modifier (Agonizing Blast) adds only to that spell', () => {
     const effect = (spellId: string) => ({
       spellId,
+      readsCastLevel: false,
       effects: [
         {
           effectId: spellId === 'eldritch-blast' ? EB_EFFECT : FB_EFFECT,
@@ -972,6 +973,7 @@ describe('D&D 5e healing', () => {
       spellEffects: [
         {
           spellId: 'mending-touch',
+          readsCastLevel: false,
           effects: [
             {
               effectId: FB_EFFECT,

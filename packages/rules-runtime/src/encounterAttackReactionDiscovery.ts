@@ -36,12 +36,13 @@ export function discoverAttackReactionActions(
   target: Pick<MovementTarget, 'characterReactionSource' | 'characterSpellCast'>,
   hitDamageTypeIds: ReadonlySet<string>
 ): readonly AttackReactionAction[] {
+  // In the Character's own listing order, so a spell's casts run from its lowest level up.
   const candidates: readonly CharacterActionCandidate[] = [
     ...(target.characterReactionSource?.mechanics.rulePolicyInput.actionCandidates ?? []),
     ...(target.characterSpellCast?.candidates ?? [])
-  ]
-  return candidates
-    .flatMap<AttackReactionAction>(({ actionId, effectId, mechanicFacts: { invocation } }) => {
+  ].sort((left, right) => left.sequence - right.sequence)
+  return candidates.flatMap<AttackReactionAction>(
+    ({ actionId, effectId, mechanicFacts: { invocation } }) => {
       const trigger = invocation.reactionTrigger
       if (invocation.activation?.code !== 'REACTION' || !trigger) return []
       if (trigger.kind === 'ATTACKED_SELF')
@@ -53,6 +54,6 @@ export function discoverAttackReactionActions(
       return triggerDamageTypeIds.length > 0
         ? [{ actionId, effectId, trigger: trigger.kind, triggerDamageTypeIds }]
         : []
-    })
-    .sort((left, right) => left.actionId.localeCompare(right.actionId))
+    }
+  )
 }
