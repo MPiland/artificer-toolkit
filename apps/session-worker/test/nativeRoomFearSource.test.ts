@@ -112,7 +112,9 @@ async function frightenedWolfBiteMode(room: FearRoom) {
   )
   expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
   const decision = await room.pendingDecision()
-  if (!('request' in decision.pending)) throw new Error('The Bite asks for its attack roll.')
+  if (!('request' in decision.pending) || !('rollMode' in decision.pending.request)) {
+    throw new Error('The Bite asks for its attack roll.')
+  }
   return decision.pending.request.rollMode
 }
 

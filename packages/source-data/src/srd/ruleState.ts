@@ -160,7 +160,11 @@ const BEYOND_5_FEET = { kind: 'BEYOND', distance: { amount: 5, unit: 'FEET' } } 
 const SPEED_ZERO = { kind: 'SPEED', numerator: 0, denominator: 1 } as const
 const disadvantageOn = (
   roll: Extract<ConditionMechanicRule, { kind: 'D20_ROLL_MODE' }>['roll']
-): ConditionMechanicRule => ({ kind: 'D20_ROLL_MODE', influence: 'DISADVANTAGE', roll })
+): Extract<ConditionMechanicRule, { kind: 'D20_ROLL_MODE' }> => ({
+  kind: 'D20_ROLL_MODE',
+  influence: 'DISADVANTAGE',
+  roll
+})
 const advantageOn = (
   roll: Extract<ConditionMechanicRule, { kind: 'D20_ROLL_MODE' }>['roll']
 ): ConditionMechanicRule => ({ kind: 'D20_ROLL_MODE', influence: 'ADVANTAGE', roll })
