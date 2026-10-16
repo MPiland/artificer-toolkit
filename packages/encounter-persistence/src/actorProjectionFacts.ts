@@ -92,17 +92,24 @@ export function serializeStoredRunActor(stored: EncounterStoredRunActorState) {
   return JSON.stringify(creature)
 }
 
-function parseStoredActor(row: EncounterDocument<'encounterRunActors'>) {
-  const state: unknown = JSON.parse(row.stateJson)
+/** The inverse of `serializeStoredRunActor`: a stored state with its row's identity restored. */
+export function restoreStoredRunActor(
+  row: EncounterDocument<'encounterRunActors'>,
+  state: unknown
+) {
   const isCharacter =
     typeof state === 'object' && state !== null && 'kind' in state && state.kind === 'CHARACTER'
-  const stored = encounterStoredRunActorStateSchema.parse({
+  return encounterStoredRunActorStateSchema.parse({
     ...(typeof state === 'object' ? state : null),
     id: row.id,
     encounterId: row.encounterId,
     snapshotChecksum: row.snapshotChecksum,
     ...(isCharacter ? {} : { sourceFactsChecksum: row.sourceFactsChecksum })
   })
+}
+
+function parseStoredActor(row: EncounterDocument<'encounterRunActors'>) {
+  const stored = restoreStoredRunActor(row, JSON.parse(row.stateJson))
   if (checksumCanonicalJson(runActorPlayState(stored)) !== row.stateChecksum)
     throw new Error('Encounter actor state checksum mismatch.')
   return stored

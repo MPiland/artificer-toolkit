@@ -1,6 +1,9 @@
 import { Migrations } from '@convex-dev/migrations'
 import { runActorPlayState } from '@artificer-toolkit/rules-runtime/encounterActorStorage'
-import { encounterStoredRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
+import {
+  restoreStoredRunActor,
+  serializeStoredRunActor
+} from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { components, internal } from '../_generated/api'
 import schema from '../schema'
@@ -23,11 +26,9 @@ export const runActorForm = migrations.define({
     // A Character is never in a form, so its stored state is unchanged.
     const lacksForm = !('form' in stored) && !('kind' in stored && stored.kind === 'CHARACTER')
     if (row.formOriginSnapshotChecksum !== undefined && !lacksForm) return
-    const actor = encounterStoredRunActorStateSchema.parse(
-      lacksForm ? { ...stored, form: null } : stored
-    )
+    const actor = restoreStoredRunActor(row, lacksForm ? { ...stored, form: null } : stored)
     await ctx.db.patch(row._id, {
-      stateJson: JSON.stringify(actor),
+      stateJson: serializeStoredRunActor(actor),
       stateChecksum: checksumCanonicalJson(runActorPlayState(actor)),
       formOriginSnapshotChecksum: row.formOriginSnapshotChecksum ?? null
     })
