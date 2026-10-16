@@ -430,6 +430,19 @@ settled entry never rerolls. `retainedSpatialReplayFaces` also replays the dice,
 today. The movement that triggers an entry is not an undoable root (above); GM undo of a dice zone
 removes the zone with its spreading Action, as for every placed zone.
 
+**Source zones (SPELLS-20 T1b, current).** An authored `MANIFEST` `ZONE` with `attachmentKind: 'SOURCE'` compiles
+through the same `zonePlacementPlan` as a placed space (`PlacedSpaceZone.attachment` becomes
+`zonePlacement.attachment`); no aura-specific zone logic exists. It must be centered on its user (range `SELF` with a
+sphere, so `CASTER_CENTERED`). `planEncounterPlacedZone` anchors it to the user's token (`anchorKind: 'TOKEN'`,
+`TOKEN_LOCAL` circle at the token center), so `collectSpatialMovementCandidates` already handles the caster moving onto a
+creature (`sourceMoved`) and a creature entering the aura. The circle's radius is the authored radius plus half the
+token's width, which equals "from the edge of the caster's space" on-axis and is smaller on diagonals for a square
+token (approximation, recorded in the SPELLS-20 handoff). The caster's spell save DC is known only at the cast and a
+zone cast has no cast d20, so the zone's entering save is exposed in the action facts (`zoneEntrySavingThrow`), the
+sheet resolves `actionMechanic.save.dc`, and the Worker pins it on the zone's `adapterFacts` under
+`DND5E_SAVE_DC_FACT_KEY` when the zone is placed (`castSaveDcFactKey` on the zone entry). Zone limits are refused, never
+partly honored: half damage, bonuses, scaling, per-turn caps and turn-based interactions stay SPELLS-20 T4.
+
 Each choice also carries `range` when its compiled target policy has a measurable one, the range the evaluator that
 handles the policy measures. A single-target policy that `singleTargetMeasure` accepts advertises `SELF`, `WITHIN` (Touch
 is 5 ft; a distance without a long range, including the 0 ft swarm space), `RANGED` (normal and long) or `UNLIMITED`. A

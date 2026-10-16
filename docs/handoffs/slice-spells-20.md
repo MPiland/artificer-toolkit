@@ -47,4 +47,16 @@ Registered by Phase 8 (commits 287f7d0c2 and a97894a8d, ruling D133 in 81d760bdf
 - Deferred edge cases registered in `docs/roadmap/future-enhancements.md`: the 256-command cap versus prompts x dice, and a departed source actor leaving an unanswerable prompt.
 - T4 must report whether a half-speed seam exists: none found so far (`movementCostMultiplier` is used only by terrain).
 
+### T1b (Spirit Guardians source aura)
+
+- Red: Tests 38947417012, Live backend 38947417027 on 7ea6348fd (`ci/spells-20-t1b-red`). Tests: `apps/session-worker/test/nativeRoomSourceAura.test.ts` (cast leaves a token-anchored zone with the pinned caster DC; entry damage; caster walking onto a creature; GM undo) and `packages/authoring/src/nodeRuntime/sourceZoneAuthoringParity.test.ts` (ADR 0038 parity).
+- Authoring: `spirit-guardians.ts` is a SOURCE `ZONE` (15 ft sphere, 10 minutes, `ENTER_SPACE`, Wisdom save against `SOURCE_SAVE_DC`, 3d8 radiant on a failed save). The closed `SPIRIT_GUARDIANS` rule kind is deleted.
+- Seams: `zonePlacement.attachment`, `zoneEntrySavingThrow` (zone save in the action facts), token-anchored `planEncounterPlacedZone` with `sourceToken` and `saveDc`.
+- `D-pending-spells-20` (T1b decisions, Phase 8 assigns the number):
+  5. A SOURCE zone reuses the placed-zone compile and creator; the caster's save DC is pinned at placement from the resolved action mechanic, not rolled.
+  6. Radius is the authored radius plus half the token width (circle, not the rounded rectangle of the SRD wording): smaller than the rule on diagonals for a square token.
+  7. Until T4 a higher-slot cast deals the base 3d8, a made save deals 0 (no half damage), and there is no half-speed or start-of-turn damage. Each is a refused or absent zone feature, not partly honored.
+  8. Spirit Guardians' necrotic-or-radiant alignment choice has no generic option; the zone is radiant.
+- Follow-up: the aura's alignment-damage choice (generic authoring option).
+
 Docs updated by the tasks that change them: `rules-runtime.md` (zone seam), `persistence.md` / `transport.md` (aura projection), ADR 0038 note (SOURCE zones).
