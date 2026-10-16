@@ -1054,6 +1054,14 @@ reaches that path (a critical hit reaches both). A TEST/OUTCOME action accepts g
 (`encounterActiveGrantCapabilitySuppressions`, read by `resolveEncounterRuleCapabilityStates` beside
 relationship suppressions), so its holder is offered no movement reaction while the grant lasts.
 
+**Actor links (D126, SPELLS-28.T3).** A `TELEPATHIC_LINK` outcome compiles to `dnd5e.actor-link-proposal`
+and an `actorLinkContribution` on the active-effect plan (link kind, outcome id, Intelligence floor, duration
+counted at the end of the target's turn). The plan has no members of its own: the chosen-creature commit
+(`completeAreaCommit`) supplies the creatures the cast reached, and `prepareEncounterActionEffectPlans` writes
+one `ACTOR_LINK` state contribution (members sorted) per target, or none when fewer than two were reached. The
+effects are persisted per child in `areaCommitPersistence.ts` and deleted with it on revert. The contribution
+has no gameplay effect; it is provenance that ends at the duration.
+
 **Grappled outcomes (D105).** An `ACTOR_RELATIONSHIP` outcome carries a required `heldAtOnce` and optional
 `ESCAPE_CHECK` (allowed skill or ability checks; a `FIXED` or `CONTEST` DC) and `TARGET_SIZE_MAXIMUM`
 modules. Holds are counted per `relationshipOutcomeId`: planning refuses a new hold when the source already

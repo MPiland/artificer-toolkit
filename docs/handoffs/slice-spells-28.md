@@ -1,7 +1,7 @@
 # SPELLS-28: outcome executors for TELEPORT, MANIFEST and TELEPATHIC_LINK
 
-Closes AC SPELLS-28.1 (tasks T1 TELEPORT, T2 MANIFEST, T3 TELEPATHIC_LINK). Status: rulings received; T1 (TELEPORT, off-Scene) built and on CI.
-Build order: **T1 → T1b (in-Scene teleport) → T3 (TELEPATHIC_LINK) → T2 (MANIFEST/CREATURE_FORM)**. T4 (Polymorph family) is out of scope.
+Closes AC SPELLS-28.1 (tasks T1 TELEPORT, T2 MANIFEST, T3 TELEPATHIC_LINK). Status: rulings received; T1 (TELEPORT, off-Scene) on CI; T3 (TELEPATHIC_LINK) built, awaiting T1 green before push.
+Build order: **T1 → T3 (TELEPATHIC_LINK) → T2 (MANIFEST/CREATURE_FORM) → T1b (in-Scene teleport, AC SPELLS-28.2)**, each green before the next. T4 (Polymorph family) is out of scope.
 
 ## Survey (what exists, verified in source)
 
@@ -46,3 +46,18 @@ Build order: **T1 → T1b (in-Scene teleport) → T3 (TELEPATHIC_LINK) → T2 (M
   `encounterAreaActionCompilation.test.ts`); fold/plan (`encounterMechanicsBatchPlan.test.ts`); skip set
   (`encounterActorDefeat.test.ts`).
 - Journey: `apps/session-worker/test/nativeRoomDepartAction.test.ts` (cast, undo, GM return).
+
+## T1b conditions (approved)
+
+- Model the allowance on the movement-economy pattern: extend the existing per-turn/one-shot movement grant with `maxFeet`, kind `TELEPORT` and an expiry, not a new contribution kind. It expires at the end of the caster's turn.
+- Close ungated `MOVE_SCENE_TOKEN` TELEPORT for player/actor moves; GM moves stay ungated. On web the player picks the destination right after the cast as one flow.
+- Cast undo is refused once the move landed. Undo order is the move first, then the cast (state in the D-entry).
+- In-Scene teleports run through the spatial movement service as `movementKind: TELEPORT`.
+
+## T3 proof (D126)
+
+- Compile: `encounterAreaActionCompilation.test.ts` (Telepathic Bond: ACTORS target of 8, 600-turn plan, Intelligence floor 2).
+- Plan: `encounterActionEffectBaseline.test.ts` (members sorted per target; fewer than two reached yields none).
+- Warning: `encounterActionRuleWarnings.test.ts` (`TARGET_INTELLIGENCE_EXCLUDED`).
+- Journey: `apps/session-worker/test/nativeRoomActorLink.test.ts` (cast bonds every chosen creature, undo removes all; a dull creature warns, overridably).
+- Deferred (registered in `future-enhancements.md`): web bond badge, Character Intelligence.

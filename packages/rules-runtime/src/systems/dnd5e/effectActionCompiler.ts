@@ -112,6 +112,7 @@ const DND5E_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY = 'dnd5e.temporary-hit-p
 export const DND5E_STABILIZE_PROPOSAL_OPERATION_KEY = 'dnd5e.stabilize-proposal'
 export const DND5E_DEPART_PROPOSAL_OPERATION_KEY = 'dnd5e.depart-proposal'
 const DND5E_MODIFIER_GRANT_PROPOSAL_OPERATION_KEY = 'dnd5e.modifier-grant-proposal'
+const DND5E_ACTOR_LINK_PROPOSAL_OPERATION_KEY = 'dnd5e.actor-link-proposal'
 const DND5E_MANUAL_ADJUDICATION_PROPOSAL_OPERATION_KEY = 'dnd5e.manual-adjudication-proposal'
 export const DND5E_CONCEAL_PROPOSAL_OPERATION_KEY = 'dnd5e.conceal-proposal'
 export const DND5E_DETECT_CONCEALED_PROPOSAL_OPERATION_KEY = 'dnd5e.detect-concealed-proposal'
@@ -234,6 +235,7 @@ type Outcome =
   | { kind: 'STABILIZE' }
   | { kind: 'DEPART' }
   | { kind: 'MODIFIER_GRANT' }
+  | { kind: 'ACTOR_LINK' }
   | { kind: 'MANUAL_ADJUDICATION' }
   | { kind: 'CONCEAL' }
   | { kind: 'DETECT_CONCEALED' }
@@ -251,6 +253,7 @@ const TARGET_ONLY_OUTCOME_OPERATION_KEYS = {
   STABILIZE: DND5E_STABILIZE_PROPOSAL_OPERATION_KEY,
   DEPART: DND5E_DEPART_PROPOSAL_OPERATION_KEY,
   MODIFIER_GRANT: DND5E_MODIFIER_GRANT_PROPOSAL_OPERATION_KEY,
+  ACTOR_LINK: DND5E_ACTOR_LINK_PROPOSAL_OPERATION_KEY,
   MANUAL_ADJUDICATION: DND5E_MANUAL_ADJUDICATION_PROPOSAL_OPERATION_KEY,
   CONCEAL: DND5E_CONCEAL_PROPOSAL_OPERATION_KEY,
   DETECT_CONCEALED: DND5E_DETECT_CONCEALED_PROPOSAL_OPERATION_KEY,
@@ -1583,6 +1586,43 @@ function modifierGrantEntryPlan(input: {
 }
 
 /**
+ * A timed TELEPATHIC_LINK (Telepathic Bond): each creature the cast reached holds an Encounter
+ * active effect naming the whole bond. It counts the holder's turns and ends with the duration;
+ * the bond carries provenance and a badge, no further rule. Any lifecycle stays manual.
+ */
+function actorLinkPlan(
+  action: Dnd5eCompiledEffectActionSource
+): Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'> | null {
+  const { entries } = action.compiledEffect
+  const entry = entries[0]
+  if (entries.length !== 1 || !entry || !('outcome' in entry)) return null
+  if (entry.outcome.effectKind !== 'TELEPATHIC_LINK' || !entry.duration) return null
+  const initialRemaining = conditionDurationTurns(entry.duration)
+  if (
+    initialRemaining === null ||
+    Object.values(entry.lifecycle ?? {}).some((value) => value !== undefined) ||
+    !UUID.test(entry.entryId)
+  )
+    return null
+  return {
+    authoredEffectId: action.effectId,
+    compiledEntryId: entry.entryId,
+    frozenGraphNodeId: 'actor-link',
+    capabilityContractVersion: DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
+    recurrenceStage: 'END_OF_TURN',
+    initialRemaining,
+    actorLinkContribution: {
+      linkOutcomeId: entry.outcome.id,
+      linkKind: 'TELEPATHIC',
+      excludesIntelligenceAtOrBelow: entry.outcome.excludesIntelligenceAtOrBelow
+    },
+    adapterFacts: {},
+    perceptionContributions: [],
+    maintenance: maintenancePlan(action, entry)
+  }
+}
+
+/**
  * Hide: a successful check conceals the actor from the observers its total beats. It lasts until
  * dispelled and the events its lifecycle authors consume it (Hide: the first attack roll); any
  * other lifecycle stays unsupported.
@@ -1629,7 +1669,7 @@ function durationPublishedGraph(input: {
   action: Dnd5eCompiledEffectActionSource
   plan: Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'>
 }): ServerPublishedRuleDefinitionDto {
-  const { conditionContribution, modifierGrantContribution } = input.plan
+  const { conditionContribution, modifierGrantContribution, actorLinkContribution } = input.plan
   const definition: RuleGraphDefinition = {
     schemaVersion: 1,
     id: input.action.effectId,
@@ -1651,7 +1691,9 @@ function durationPublishedGraph(input: {
               value: modifierGrantContribution.applyGrantOutcomeId
             }
           }
-        : {},
+        : actorLinkContribution
+          ? { linkOutcomeId: { kind: 'LITERAL', value: actorLinkContribution.linkOutcomeId } }
+          : {},
     sourceEntryBindings: [
       { sourceEntryId: input.plan.compiledEntryId, nodeId: input.plan.frozenGraphNodeId }
     ]
@@ -2490,6 +2532,7 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
   const invocation = effect.invocation
   const grantPlan = modifierGrantPlan(action)
   const conditionPlan = timedConditionPlan(action)
+  const linkPlan = actorLinkPlan(action)
   // A CHECK action rolls its authored check against a fixed DC, each observer's passive score or
   // the concealments that hide creatures from the checker; a contest waits for ATTACK-7.
   const checkAction = invocation.triggerCode === 'CHECK'
@@ -2557,11 +2600,13 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
     (entry.maintenanceDefinitionId &&
       !supportedRecurringPlan(action) &&
       !grantPlan &&
-      !conditionPlan) ||
+      !conditionPlan &&
+      !linkPlan) ||
     ((entry.duration || entry.lifecycle) &&
       !supportedRecurringPlan(action) &&
       !grantPlan &&
       !conditionPlan &&
+      !linkPlan &&
       !concealmentPlan(action)) ||
     entry.rangeOverride ||
     entry.targetingOverride
@@ -2637,6 +2682,7 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
   // The reaction cancels the event it answered: nothing is stored on its target, the cast.
   if (outcome.effectKind === 'CANCEL_TRIGGERING_EVENT') return { kind: 'CANCEL_TRIGGERING_EVENT' }
   if (outcome.effectKind === 'APPLY_GRANT' && grantPlan) return { kind: 'MODIFIER_GRANT' }
+  if (outcome.effectKind === 'TELEPATHIC_LINK' && linkPlan) return { kind: 'ACTOR_LINK' }
   // The Action is spent and the GM rules the result: nothing is stored on the target.
   if (outcome.effectKind === 'MANUAL_ADJUDICATION') return { kind: 'MANUAL_ADJUDICATION' }
   // Dash: the committed action adds the actor's speed to this turn's movement; the commit records it.
@@ -2764,6 +2810,11 @@ export const dnd5eDepartProposalOperation = targetOnlyProposalOperation(
 export const dnd5eModifierGrantProposalOperation = targetOnlyProposalOperation(
   DND5E_MODIFIER_GRANT_PROPOSAL_OPERATION_KEY,
   'modifier grant',
+  false
+)
+export const dnd5eActorLinkProposalOperation = targetOnlyProposalOperation(
+  DND5E_ACTOR_LINK_PROPOSAL_OPERATION_KEY,
+  'actor link',
   false
 )
 export const dnd5eManualAdjudicationProposalOperation = targetOnlyProposalOperation(
@@ -3521,6 +3572,7 @@ export const dnd5eEffectActionCapability: GameSystemRuleCapabilityContract = {
     DND5E_STABILIZE_PROPOSAL_OPERATION_KEY,
     DND5E_DEPART_PROPOSAL_OPERATION_KEY,
     DND5E_MODIFIER_GRANT_PROPOSAL_OPERATION_KEY,
+    DND5E_ACTOR_LINK_PROPOSAL_OPERATION_KEY,
     DND5E_MANUAL_ADJUDICATION_PROPOSAL_OPERATION_KEY,
     DND5E_CONCEAL_PROPOSAL_OPERATION_KEY,
     DND5E_DETECT_CONCEALED_PROPOSAL_OPERATION_KEY,
@@ -3578,6 +3630,8 @@ function proposalNode(pathCode: string, outcome: Outcome) {
     unsupported('D&D depart outcomes cannot follow an attack or saving throw.')
   if (outcome.kind === 'MODIFIER_GRANT')
     unsupported('D&D modifier grants cannot follow an attack or saving throw.')
+  if (outcome.kind === 'ACTOR_LINK')
+    unsupported('D&D actor links cannot follow an attack or saving throw.')
   if (outcome.kind === 'MANUAL_ADJUDICATION')
     unsupported('D&D manual adjudications cannot follow an attack or saving throw.')
   if (outcome.kind === 'CONCEAL' || outcome.kind === 'DETECT_CONCEALED')
@@ -5081,6 +5135,7 @@ function startsMaintainedEffect(action: Dnd5eCompiledEffectActionSource): boolea
     timedImmediateConditionPlan(action) ??
     timedConditionPlan(action) ??
     modifierGrantPlan(action) ??
+    actorLinkPlan(action) ??
     relationshipPlan(action) ??
     supportedRecurringPlan(action)
   return plan?.maintenance != null
@@ -5786,6 +5841,7 @@ function interpretDirectProposal(
   // A grant changes no stored target state; its active effect owns the modifiers.
   if (
     trace.operation.key === DND5E_MODIFIER_GRANT_PROPOSAL_OPERATION_KEY ||
+    trace.operation.key === DND5E_ACTOR_LINK_PROPOSAL_OPERATION_KEY ||
     trace.operation.key === DND5E_MANUAL_ADJUDICATION_PROPOSAL_OPERATION_KEY ||
     trace.operation.key === DND5E_CONCEAL_PROPOSAL_OPERATION_KEY ||
     trace.operation.key === DND5E_DETECT_CONCEALED_PROPOSAL_OPERATION_KEY ||
@@ -6042,6 +6098,7 @@ function interpretDirect(
     DND5E_STABILIZE_PROPOSAL_OPERATION_KEY,
     DND5E_DEPART_PROPOSAL_OPERATION_KEY,
     DND5E_MODIFIER_GRANT_PROPOSAL_OPERATION_KEY,
+    DND5E_ACTOR_LINK_PROPOSAL_OPERATION_KEY,
     DND5E_MANUAL_ADJUDICATION_PROPOSAL_OPERATION_KEY,
     DND5E_CONCEAL_PROPOSAL_OPERATION_KEY,
     DND5E_DETECT_CONCEALED_PROPOSAL_OPERATION_KEY,
@@ -6835,7 +6892,8 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       ? null
       : (timedImmediateConditionPlan(action) ??
         timedConditionPlan(action) ??
-        modifierGrantPlan(action))
+        modifierGrantPlan(action) ??
+        actorLinkPlan(action))
     const relationship = relationshipPlan(action)
     const plan =
       repeatPlan ??

@@ -784,6 +784,12 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - **Effects:** initiative skips the actor through the existing skip set; the projection hides the actor's bound token (derived in the Tabletop stage, no Scene row write). GM `UPDATE_ACTOR returnToInitiative` clears the field for either value. Undo restores it by the before-state and refuses, naming the actor, when the table already returned it.
   - **Not D81:** D81 is Campaign departure only. A departed actor's own Run effects (Concentration, timed grants) run their course.
   - **Not modeled:** an absent token still occupies its cell for server-side movement and targeting, as a defeated token does today. Plane Shift is a single TELEPORT outcome; its "Choose a Destination" step and the unwilling-banish half (melee spell attack plus Charisma save) are GM adjudication, and the `PLANE_SHIFT` closed-rule marker is deleted.
+* **D126** (2026-10-16) A bonding outcome leaves an actor link on each bonded creature (SPELLS-28.T3; plan in [slice-spells-28.md](slice-spells-28.md)). Decided by the main session.
+  - **Rule:** a `TELEPATHIC_LINK` outcome over a list of chosen creatures gives each reached creature one timed active effect carrying an `ACTOR_LINK` contribution: a link kind (`TELEPATHIC`), the outcome id and every bonded creature, itself included. The contribution is generic (a kind, members and a duration), not telepathy-only, and changes no rule: it is provenance, ends at the duration, and is undone with the cast.
+  - **Intelligence:** the outcome's `excludesIntelligenceAtOrBelow` is an overridable `TARGET_INTELLIGENCE_EXCLUDED` warning at cast, read from a Creature's snapshot. A Character's facts carry no Intelligence, so none is raised for one.
+  - **Persistence:** the chosen-creature commit now persists each child's created effect (`targets[].createdEffects`, at most one) through the same path as a single-target cast, so revert deletes the effects with the children. The area open/commit paths still refuse every other lasting outcome.
+  - **Deferred:** the web bond badge (no active-effect client projection exists for any kind) and Character Intelligence; both are in `future-enhancements.md`.
+
 ## Approved implementation decisions
 
 - **D70 (2026-09-29): packed history with indexed receipt headers. Decision maker: Codex.**

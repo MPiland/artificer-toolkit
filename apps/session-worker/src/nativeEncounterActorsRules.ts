@@ -11,7 +11,11 @@ import {
   deadCharacterIdsOfTargets,
   isEncounterActorDefeated
 } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
-import { snapshotCreatureTypeId } from '@artificer-toolkit/rules-runtime/encounterActorState'
+import {
+  snapshotAbilityScore,
+  snapshotCreatureTypeId
+} from '@artificer-toolkit/rules-runtime/encounterActorState'
+import { encounterActiveEffectPlan } from '@artificer-toolkit/rules-runtime/encounterActionEffects'
 import { chosenCreaturesMaxTargets } from '@artificer-toolkit/rules-runtime/encounterAreaAction'
 import { catchEncounterAreaActorIds } from '@artificer-toolkit/rules-runtime/encounterAreaActionExecution'
 import { encounterChosenActorsChecksum } from '@artificer-toolkit/rules-runtime/encounterAreaPending'
@@ -154,6 +158,7 @@ export async function planNativeLiveEncounterActorsAction(
   for (const entry of prepared) refuseAreaEffectOutcomes(entry.prepared)
   if (lead.plan.kind !== 'SINGLE_GRAPH') throw refusal('This action does not take that target.')
 
+  const linkPlan = encounterActiveEffectPlan(lead, lead.plan.published)
   const evaluation = await evaluateNativeLiveActionEconomy({
     prepared: lead,
     state,
@@ -177,8 +182,10 @@ export async function planNativeLiveEncounterActorsAction(
         sceneContext
       },
       targetDefeated: isEncounterActorDefeated(entry.target, deadCharacterIds),
-      targetCreatureTypeId: snapshotCreatureTypeId(entry.target)
+      targetCreatureTypeId: snapshotCreatureTypeId(entry.target),
+      targetIntelligence: snapshotAbilityScore(entry.target, 'INTELLIGENCE')
     })),
+    linkIntelligenceFloor: linkPlan?.actorLinkContribution?.excludesIntelligenceAtOrBelow ?? null,
     areaWarnings: area?.area.warnings ?? [],
     actionEconomy: economy,
     activationCode,

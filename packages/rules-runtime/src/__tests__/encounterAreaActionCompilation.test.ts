@@ -278,6 +278,28 @@ describe('chosen-creature heal compilation from the SRD (D118)', () => {
     })
   })
 
+  it('plans Telepathic Bond as a one-hour bond that Intelligence 2 or less cannot join (SPELLS-28)', () => {
+    const { action } = compile({}, spellEffect('Telepathic Bond'), 5)
+    expect(targetOf(spellEffect('Telepathic Bond'), 5)).toEqual({
+      kind: 'ACTORS',
+      maxTargets: 8,
+      area: null
+    })
+    const [plan, ...rest] =
+      dnd5eCharacterRuleActionSystemAdapter.activeEffectPlans?.({
+        action,
+        published: dnd5eCharacterRuleActionSystemAdapter.compile({ action })
+      }) ?? []
+    expect(rest).toEqual([])
+    expect(plan).toMatchObject({
+      recurrenceStage: 'END_OF_TURN',
+      initialRemaining: 600,
+      actorLinkContribution: { linkKind: 'TELEPATHIC', excludesIntelligenceAtOrBelow: 2 }
+    })
+    expect(plan?.conditionContribution ?? null).toBeNull()
+    expect(plan?.modifierGrantContribution ?? null).toBeNull()
+  })
+
   it('refuses an area it cannot aim at a point, or a list that is not a heal', () => {
     expect(() =>
       compile({ shape: { id: 's', shapeKind: 'CUBE', edgeLength: feet(15) } }, MASS_CURE_WOUNDS, 5)
