@@ -194,7 +194,7 @@ export async function readPendingRunDecision(
             pendingSnapshot
           },
           row.version,
-          { controlledActorIds },
+          { controlledActorIds, isOwner: membership.role === 'OWNER' },
           reasons
         ).pending
     )

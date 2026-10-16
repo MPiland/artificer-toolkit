@@ -27,7 +27,7 @@ export type EncounterActionHeldD20Dto = {
   gmReason: string | null
 }
 
-const heldD20Schema: z.ZodMiniType<EncounterActionHeldD20Dto> = lazySchema(() =>
+export const encounterActionHeldD20DtoSchema: z.ZodMiniType<EncounterActionHeldD20Dto> = lazySchema(() =>
   z.strictObject({
     rolledMode: z.literal('NORMAL'),
     faces: z.tuple([ruleExecutionReceiptD20FaceSchema]),
@@ -60,7 +60,7 @@ export const encounterActionPendingContextDtoSchema = lazySchema(() =>
       /** The mode the roller's own facts imply, shown at the roll prompt (ATTACK-10.1). */
       d20Belief: z.optional(serverRuleExecutionD20BeliefDtoSchema),
       /** The d20 a roller already entered while the server waits for one more to settle the true mode. */
-      heldD20: z.optional(heldD20Schema),
+      heldD20: z.optional(encounterActionHeldD20DtoSchema),
       /**
        * Set while the target's failed save waits on its Legendary Resistance choice. The snapshot's
        * continuation is that choice; the TEST stays unsettled until the answer.

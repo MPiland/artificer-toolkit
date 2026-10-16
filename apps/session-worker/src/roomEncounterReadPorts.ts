@@ -21,6 +21,9 @@ import type { RoomEncounterStore, RoomTransaction } from './roomEncounterStore.j
 import type { RoomInputs } from './roomInputs.js'
 import { prepareRoomLiveCharacterSheet } from './roomCharacterRules.js'
 
+/** The Scene tokens the room draws for a member (ATTACK-17.3); null when the room cannot tell. */
+export type RoomSceneTokens = EncounterReadPorts['readViewerSceneTokens']
+
 /** The caller owns admission and the enclosing room transaction. */
 export async function roomEncounterReadTransaction(input: {
   store: RoomEncounterStore
@@ -31,6 +34,11 @@ export async function roomEncounterReadTransaction(input: {
   epoch: string
   userId: string
   observed: LiveSessionRulesRevisions
+  /**
+   * The tokens the room's Scene draws for a member. Every path that presents a Run to a player
+   * passes it; without it the host cannot tell and a player's list fails closed (ATTACK-17.3).
+   */
+  sceneTokens?: RoomSceneTokens
 }): Promise<EncounterPersistenceTransaction> {
   const { store, transaction, inputs, authorization, campaignId, epoch, userId, observed } = input
   if (transaction) await inputs.authority(observed, transaction)
@@ -204,6 +212,7 @@ export async function roomEncounterReadTransaction(input: {
     readAutoRollDice: async (id) => readRoomPreference(authorization, id).autoRollDice,
     readGmRollVisibility: async (id) => readRoomPreference(authorization, id).gmRollVisibility,
     isRoomHeldRun: async () => true,
+    readViewerSceneTokens: input.sceneTokens ?? (async () => null),
     hasAccountProfile: async (id) => inputs.hasAccountProfile(id, transaction),
     readActorInitiativeRoll: async (state, campaign, actorId) => {
       if (campaign.id !== campaignId || state.campaignId !== campaignId)
