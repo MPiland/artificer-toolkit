@@ -44,6 +44,7 @@ export function plannedTimedCondition(input: {
     spellCastCandidates: [cast],
     castableCandidateIds: new Set([cast.candidateId]),
     policyOutput: {
+      resources: [],
       spellCastDecisions: [
         {
           candidateId: cast.candidateId,
