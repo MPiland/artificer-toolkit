@@ -12,6 +12,7 @@ import { plainWolf } from '../src/testing/movementPlannerFixture.js'
 import { actionRoom } from './actionRoomFixture.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
 import { hitPointsOf, readZones, revertLastAction, walkerMoves } from './placedZoneRoomReads.js'
+import { readRoomHistory } from './roomHistoryReads.js'
 
 /**
  * SPELLS-20 T1 (D133): a placed zone whose failed entry save deals dice damage rolls those dice
@@ -247,7 +248,14 @@ describe('a placed zone whose damage dice the source controller rolls (SPELLS-20
       }
     })
     expect(rolled.type, JSON.stringify(rolled)).toBe('COMMAND_COMMITTED')
-    await player.respond({ kind: 'SYSTEM_ROLL', requestId: prompt.request.requestId })
+    const [held] = (await readRoomHistory(room.room.base.stub)).evidenceRolls
+    if (!held) throw new Error('The app recorded no roll.')
+    const answered = await player.respond({
+      kind: 'SYSTEM_ROLL',
+      requestId: prompt.request.requestId,
+      rollId: held.id
+    })
+    expect(answered.type, JSON.stringify(answered)).toBe('COMMAND_COMMITTED')
 
     expect(await hitPointsOf(room, WALKER_ID)).toBe((hitPointsBefore ?? 0) - ROLLED_DAMAGE)
     expect(room.room.diceDrawn()).toBe(2)
