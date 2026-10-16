@@ -218,7 +218,9 @@ export async function readEncounterActionChoices(
           attackSlot: economy.attackSlot,
           target: encounterActionChoiceTarget(
             targetPolicy,
-            entry?.kind === 'CHARACTER_ACTION' && entry.compilation.kind === 'COMPILED'
+            entry?.kind === 'CHARACTER_ACTION' &&
+              entry.schemaVersion !== 1 &&
+              entry.compilation.kind === 'COMPILED'
               ? entry.compilation.activeEffectPlan?.creatureFormContribution?.forms
               : undefined
           ),
