@@ -24,6 +24,13 @@ export function encounterAreaTargetCommandId(targetOccurrenceId: string) {
 type AreaContext = EncounterAreaActionPendingContextDto
 type AreaTarget = AreaContext['targets'][number]
 
+/** Seals the creatures a chosen-creature action named, whatever order they were named in. */
+export function encounterChosenActorsChecksum(actorIds: readonly string[]) {
+  return checksumRuleDocument({
+    chosen: [...actorIds].sort((left, right) => left.localeCompare(right))
+  })
+}
+
 /**
  * Seals the Scene facts that decided who the area caught: the Scene version, the picked origin and
  * shape, and each creature still caught with its token footprint. A later change to any of them, or

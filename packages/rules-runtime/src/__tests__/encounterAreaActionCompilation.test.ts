@@ -43,14 +43,19 @@ const feet = (amount: number) => ({ amount, unit: 'FEET' as const })
 type Invocation = typeof FIREBALL.invocation
 
 /** Compiles the effect the way an Encounter Action does: descriptor, then the system plan. */
-function compile(invocation: Partial<Invocation>) {
-  const action = characterActionDescriptor(
+function compile(
+  invocation: Partial<Invocation>,
+  effect: typeof FIREBALL = FIREBALL,
+  spellCastLevel?: number
+) {
+  const descriptor = characterActionDescriptor(
     compileEffect({
-      ...FIREBALL,
+      ...effect,
       id: ACTION_EFFECT_ID,
-      invocation: JSON.parse(JSON.stringify({ ...FIREBALL.invocation, ...invocation }))
+      invocation: JSON.parse(JSON.stringify({ ...effect.invocation, ...invocation }))
     })
   )
+  const action = spellCastLevel === undefined ? descriptor : { ...descriptor, spellCastLevel }
   const plan = dnd5eCharacterRuleActionSystemAdapter.compileExecutionPlan?.({
     action,
     compilerSource: buildCompiledActionCompilerSource(action)
@@ -235,6 +240,41 @@ describe('caster-centered area action compilation', () => {
       kind: 'RADIUS',
       radius: (area.radius.amount / 5) * FEET_GRID.cellSize
     })
+  })
+})
+
+describe('chosen-creature heal compilation from the SRD (D118)', () => {
+  const MASS_CURE_WOUNDS = spellEffect('Mass Cure Wounds')
+  const MASS_HEALING_WORD = spellEffect('Mass Healing Word')
+  const targetOf = (effect: typeof FIREBALL, castLevel: number) =>
+    encounterActionChoiceTarget(
+      buildCompiledActionTargetPolicy(compile({}, effect, castLevel).action)
+    )
+
+  it('takes a list of up to the authored cap, inside the sphere the spell names', () => {
+    expect(compile({}, MASS_CURE_WOUNDS, 5).plan).toBeDefined()
+    expect(targetOf(MASS_CURE_WOUNDS, 5)).toEqual({
+      kind: 'ACTORS',
+      maxTargets: 6,
+      area: { kind: 'RADIUS', radius: feet(30) }
+    })
+  })
+
+  it('takes a list with no area when the spell names none', () => {
+    expect(compile({}, MASS_HEALING_WORD, 3).plan).toBeDefined()
+    expect(targetOf(MASS_HEALING_WORD, 3)).toEqual({ kind: 'ACTORS', maxTargets: 6, area: null })
+  })
+
+  it('refuses an area it cannot aim at a point, or a list that is not a heal', () => {
+    expect(() =>
+      compile({ shape: { id: 's', shapeKind: 'CUBE', edgeLength: feet(15) } }, MASS_CURE_WOUNDS, 5)
+    ).toThrow(CharacterRuleActionUnsupportedCompilationError)
+    expect(() =>
+      compile({
+        shape: undefined,
+        targeting: { selectionKind: 'CHOSEN_CREATURES', dispositionKind: 'ANY', maxTargets: 3 }
+      })
+    ).toThrow(CharacterRuleActionUnsupportedCompilationError)
   })
 })
 

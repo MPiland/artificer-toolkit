@@ -5,6 +5,7 @@ import {
   type ResolveEncounterActionInputDto,
   type ResolveRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounterRuleCommands'
+import type { ScenePoint, SpatialAreaShape } from '@artificer-toolkit/shared/vtt'
 import type { ServerAggregateChoicePendingSnapshotDto } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { EncounterEvidenceAnswer } from '@artificer-toolkit/rules-runtime/encounterEvidenceAnswer'
@@ -122,9 +123,9 @@ type AreaCommand = Omit<ResolveEncounterActionInputDto, 'target'> & {
 }
 type MovementTargets = Awaited<ReturnType<typeof prepareNativeLiveMovementTarget>>['target']
 
-type AreaPlanInput = {
+/** What every multi-creature plan (a point area, a list of chosen creatures) reads from the room. */
+export type AreaPlanBase = {
   initial: LiveSessionEncounterRulesInput
-  command: AreaCommand
   fingerprint: string
   state: EncounterRunState
   system: Extract<LiveSessionEncounterRulesResponse, { kind: 'INPUTS' }>['system']
@@ -142,6 +143,8 @@ type AreaPlanInput = {
   autoRollByActorId: Readonly<Record<string, boolean>>
 }
 
+type AreaPlanInput = AreaPlanBase & { command: AreaCommand }
+
 /** Why a directed area is refused, as the player is told. */
 const DIRECTED_AREA_REFUSALS = {
   UNSUPPORTED_AREA: "This action's area size is not supported.",
@@ -149,9 +152,16 @@ const DIRECTED_AREA_REFUSALS = {
   ORIGIN_OFF_CASTER: 'This area cannot extend from there.'
 } as const
 
-/** What every creature of one area shares: the caster, the Scene the point was picked in, and the area. */
-async function prepareAreaScene(input: AreaPlanInput) {
-  const { command, state, actors, capture } = input
+/**
+ * The caster and the compiled source of a multi-creature action. The action takes the target its
+ * policy names (a point, a direction from the caster, a list of chosen creatures); a command that
+ * names another kind is refused.
+ */
+export async function prepareCasterSource(
+  input: AreaPlanBase & { command: Pick<ResolveEncounterActionInputDto, 'actorId' | 'actionId'> },
+  targetKind: ReturnType<typeof encounterActionTargetKind>
+) {
+  const { command, state, actors } = input
   const caster = actors.find((actor) => actor.id === command.actorId)
   if (!caster) throw new Error('Encounter rules input binding mismatch.')
   const casterFacts = await input.loadTarget(caster)
@@ -163,14 +173,26 @@ async function prepareAreaScene(input: AreaPlanInput) {
     sourceFacts: casterFacts,
     loadSource: async (source) => resolveEncounterActionSource({ ...source, system: input.system })
   }).catch(refuseStaleCharacterAction)
-  // An area action takes the target its policy names (a point or a direction from the caster); any
-  // other action names a creature instead.
-  if (encounterActionTargetKind(targetPolicy) !== command.target.kind)
+  if (encounterActionTargetKind(targetPolicy) !== targetKind)
     throw new LiveSessionDomainRejectionError(422, {
       code: 'DOMAIN_REJECTED',
       reason: 'TARGET_UNAVAILABLE',
       message: 'This action does not take that target.'
     })
+  return { caster, casterFacts, movementTargets, source, targetPolicy }
+}
+
+/**
+ * What every creature of one area shares: the caster, the Scene the point was picked in, and the
+ * area. A list of chosen creatures inside an area passes the caster source it already prepared.
+ */
+export async function prepareAreaScene(
+  input: AreaPlanInput,
+  prepared?: Awaited<ReturnType<typeof prepareCasterSource>>
+) {
+  const { command, state, capture } = input
+  const { caster, casterFacts, movementTargets, source, targetPolicy } =
+    prepared ?? (await prepareCasterSource(input, command.target.kind))
   const captured = await capture({
     kind: 'ACTION_AREA_SCENE',
     command: {
@@ -242,7 +264,7 @@ async function prepareAreaTarget(
     token: Awaited<ReturnType<typeof prepareAreaScene>>['scene']['tokens'][number]
   }
 ) {
-  const { base, actor, token, command, state, actors } = input
+  const { base, actor, token } = input
   const sceneContext = {
     sceneId: base.scene.sceneId,
     sceneVersion: base.scene.sceneVersion,
@@ -253,26 +275,48 @@ async function prepareAreaTarget(
   return {
     token,
     sceneContext,
-    prepared: await prepareEncounterActionMechanics({
-      state,
-      actor: base.caster,
+    prepared: await prepareCasterActionOnTarget(input, {
+      caster: base.caster,
       target: actor,
-      actors,
-      actionId: command.actionId,
-      wieldConflictAcceptance: {
-        kind: 'PROMPTED',
-        accepted: command.acceptedWieldConflict
-      },
-      overridable: true,
       movementTargets: base.movementTargets,
-      sceneContext,
-      loadSource: async (source) =>
-        resolveEncounterActionSource({ ...source, system: input.system }),
-      loadRelationshipFacts: nativeLiveRelationshipFacts({
-        activeEffectsByActorId: input.activeEffectsByActorId
-      })
-    }).catch(refuseStaleCharacterAction)
+      sceneContext
+    })
   }
+}
+
+/**
+ * The caster's action mechanics against one creature, as a point area seals them per caught creature
+ * and a list of chosen creatures prepares them for each one named.
+ */
+export function prepareCasterActionOnTarget(
+  input: Pick<AreaPlanBase, 'state' | 'system' | 'actors' | 'activeEffectsByActorId'> & {
+    command: Pick<ResolveEncounterActionInputDto, 'actionId' | 'acceptedWieldConflict'>
+  },
+  action: {
+    caster: EncounterRunActorState
+    target: EncounterRunActorState
+    movementTargets: Awaited<ReturnType<typeof prepareAreaScene>>['movementTargets']
+    sceneContext: Parameters<typeof prepareEncounterActionMechanics>[0]['sceneContext']
+  }
+) {
+  return prepareEncounterActionMechanics({
+    state: input.state,
+    actor: action.caster,
+    target: action.target,
+    actors: input.actors,
+    actionId: input.command.actionId,
+    wieldConflictAcceptance: {
+      kind: 'PROMPTED',
+      accepted: input.command.acceptedWieldConflict
+    },
+    overridable: true,
+    movementTargets: action.movementTargets,
+    sceneContext: action.sceneContext,
+    loadSource: async (source) => resolveEncounterActionSource({ ...source, system: input.system }),
+    loadRelationshipFacts: nativeLiveRelationshipFacts({
+      activeEffectsByActorId: input.activeEffectsByActorId
+    })
+  }).catch(refuseStaleCharacterAction)
 }
 
 /**
@@ -797,7 +841,7 @@ type AreaPrepared = Awaited<ReturnType<typeof prepareAreaTarget>>['prepared']
  * yet. Without `effects` it checks the action's effect plan (at open); with them, what the settled
  * outcome actually produced (at commit).
  */
-function refuseAreaEffectOutcomes(
+export function refuseAreaEffectOutcomes(
   prepared: AreaPrepared,
   effects?: {
     stateEffect: unknown
@@ -967,14 +1011,100 @@ export async function planNativeLiveEncounterAreaCommit(
     legendaryResistance: audits
   })
 
+  const resumed = input.response ?? input.removal
+  return completeAreaCommit({
+    input,
+    command,
+    caster,
+    movementTargets: base.movementTargets,
+    kept,
+    lead,
+    ruleOverrides,
+    actionEconomy,
+    attackAction,
+    settled,
+    tests,
+    audits,
+    areaOccurrenceId,
+    areaSnapshot,
+    caughtChecksum: context.caughtChecksum,
+    removedActorIds: context.removedActorIds,
+    placement: base.zone ? { zone: base.zone, origin: base.origin, shape: base.area.shape } : null,
+    occurrenceVersion: resumed ? resumed.expectedOccurrenceVersion + 1 : 0,
+    response: input.response,
+    removal: input.removal ?? null
+  })
+}
+
+/**
+ * The commit every multi-creature root shares, whether a point area settled its saves or a list of
+ * chosen creatures was resolved at once: each creature's outcome, the caster's single spend (merged
+ * into their own outcome when they are also a target), the concentration it breaks, the rules as
+ * they stand after it, and the root and child contracts the room persists in one transaction.
+ */
+export async function completeAreaCommit(args: {
+  input: AreaPlanBase
+  command: ResolveEncounterActionInputDto
+  caster: EncounterRunActorState
+  movementTargets: ReadonlyMap<string, MovementTargets>
+  kept: readonly { actor: EncounterRunActorState; target: { prepared: AreaPrepared } }[]
+  lead: AreaPrepared
+  ruleOverrides: ReturnType<typeof areaRuleOverrides>
+  actionEconomy:
+    | NonNullable<
+        Awaited<ReturnType<typeof evaluateNativeLiveActionEconomy>>['economy']
+      >['consumption']
+    | null
+  attackAction: Awaited<ReturnType<typeof evaluateNativeLiveActionEconomy>>['attackAction']
+  settled: Awaited<ReturnType<typeof settleEncounterAreaAction>>
+  /** The settled saves; only a Legendary Resistance audit reads one. */
+  tests: readonly Pick<Awaited<ReturnType<typeof replayAreaTargetSave>>, 'actorId' | 'boundary'>[]
+  audits: ReturnType<typeof encounterAreaLegendaryResistanceAudits>
+  areaOccurrenceId: string
+  /** The pending area this commit settles; null for a list of chosen creatures, which never pends. */
+  areaSnapshot: ServerAggregateChoicePendingSnapshotDto | null
+  caughtChecksum: string
+  removedActorIds: readonly string[]
+  /** The zone an action leaves at the picked point, with the area it fills. */
+  placement: {
+    zone: NonNullable<Awaited<ReturnType<typeof prepareAreaScene>>['zone']>
+    origin: ScenePoint
+    shape: SpatialAreaShape
+  } | null
+  occurrenceVersion: number
+  response: ResolveRuleOccurrenceInputDto | null
+  removal: RemoveAreaTargetInputDto | null
+}) {
+  const {
+    input,
+    command,
+    caster,
+    movementTargets,
+    kept,
+    lead,
+    ruleOverrides,
+    actionEconomy,
+    attackAction,
+    settled,
+    tests,
+    audits,
+    areaOccurrenceId,
+    areaSnapshot,
+    caughtChecksum,
+    removedActorIds,
+    placement,
+    occurrenceVersion,
+    response,
+    removal
+  } = args
+  const { state, actors } = input
   const occurredAt = new Date().toISOString()
   const userId = input.initial.expectedUserId
   const children = []
   for (const { actor, target } of kept) {
     const { prepared } = target
     const complete = settled.find((entry) => entry.actorId === actor.id)?.complete
-    const test = tests.find((entry) => entry.actorId === actor.id)
-    if (!complete || !test) throw new Error('The area outcome is unavailable.')
+    if (!complete) throw new Error('The area outcome is unavailable.')
     const occurrenceId = encounterAreaTargetOccurrenceId(areaOccurrenceId, actor.id)
     const commandId = encounterAreaTargetCommandId(occurrenceId)
     const effects = prepareNativeActionEffectsPlan({
@@ -1010,6 +1140,8 @@ export async function planNativeLiveEncounterAreaCommit(
     const audit = audits.get(actor.id)
     let resistance: ReturnType<typeof encounterTargetLegendaryResistance> | null = null
     if (audit) {
+      const test = tests.find((entry) => entry.actorId === actor.id)
+      if (!test) throw new Error('The area outcome is unavailable.')
       const candidate = await discoverNativeLegendaryResistance(input, prepared)()
       const resource =
         candidate &&
@@ -1095,26 +1227,25 @@ export async function planNativeLiveEncounterAreaCommit(
     sourceLabel
   }))
   const damage = nativeConcentrationDamageApplications(damageSources, false)
-  const resumed = input.response ?? input.removal
-  const placedZone = base.zone
+  const placedZone = placement
     ? planEncounterPlacedZone({
-        zone: base.zone,
+        zone: placement.zone,
         id: crypto.randomUUID(),
         encounterId: state.id,
         occurrenceId: areaOccurrenceId,
         rootCommandId: command.commandId,
         sourceActorId: caster.id,
-        point: base.origin,
-        area: base.area.shape
+        point: placement.origin,
+        area: placement.shape
       })
     : null
   const execution = buildEncounterAreaStoredExecution({
     occurrenceId: areaOccurrenceId,
-    occurrenceVersion: resumed ? resumed.expectedOccurrenceVersion + 1 : 0,
+    occurrenceVersion,
     actorId: caster.id,
     sourceCharacterId: caster.kind === 'CHARACTER' ? caster.sourceId : null,
-    caughtChecksum: context.caughtChecksum,
-    removedActorIds: context.removedActorIds,
+    caughtChecksum,
+    removedActorIds,
     targetOccurrenceIds: children.map((child) => child.occurrenceId),
     placedSpatialEffectId: placedZone?.id ?? null,
     damage,
@@ -1166,7 +1297,7 @@ export async function planNativeLiveEncounterAreaCommit(
   >(children.map((child) => [child.actorId, child.mechanics.targetPlan] as const))
   if (sourceSpend && !plans.has(caster.id)) plans.set(caster.id, sourceSpend.sourceResourcePlan)
   const projectedTargets = new Map(
-    [...base.movementTargets].map(([actorId, target]) => {
+    [...movementTargets].map(([actorId, target]) => {
       const actor = settledActors.get(actorId)
       if (!actor) throw new Error('Encounter settlement actor is unavailable.')
       return [
@@ -1224,8 +1355,8 @@ export async function planNativeLiveEncounterAreaCommit(
   return {
     kind: 'AREA_COMMIT' as const,
     command,
-    response: input.response,
-    removal: input.removal ?? null,
+    response,
+    removal,
     area: areaSnapshot,
     prepared: { actors },
     occurredAt,

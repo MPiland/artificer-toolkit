@@ -326,7 +326,8 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
               ]),
               parent.field(['valueDomainCode']).eq('DAMAGE_IMMUNITY'),
               parent.field(['valueDomainCode']).eq('DAMAGE_VULNERABILITY')
-            ])
+            ]),
+            hiddenBehavior: 'CLEAR'
           }
         )
       )

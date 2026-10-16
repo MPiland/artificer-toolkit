@@ -152,7 +152,7 @@ export async function answerEncounterAreaTest(
  * Damage is rolled once for the whole area: the first creature to need die n rolls it and every
  * later creature replays it. A creature whose outcome would roll a different die there is refused.
  */
-function createFrozenRollTape(random: (maximum: number) => number) {
+export function createFrozenRollTape(random: (maximum: number) => number) {
   const rolls: { maximum: number; value: number }[] = []
   return () => {
     let index = 0

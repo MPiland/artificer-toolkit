@@ -14,13 +14,7 @@ export const TARGET_NOT_DYING_WARNING: EncounterRuleWarningDto = {
   message: 'The target is not dying.'
 }
 
-/**
- * The one Assisted-mode soft-check gate for RESOLVE_ACTION, shared by the Session DO planner and the
- * Convex fallback (ADR 0034 decision 2). Preparation, targeting and the action allowance each report
- * their overridable warnings here; the command proceeds only when it acknowledges every current code,
- * and the accepted warnings become the action's recorded overrides.
- */
-export function evaluateEncounterActionRuleWarnings(input: {
+type EncounterActionWarningInput = {
   preparedWarnings: readonly EncounterRuleWarningDto[]
   target: Parameters<typeof evaluateEncounterActionTargetPolicy>[0]
   /** A defeated target (D63) is left out of target lists; naming one anyway only warns. */
@@ -38,10 +32,10 @@ export function evaluateEncounterActionRuleWarnings(input: {
   actionEconomy: Awaited<ReturnType<typeof evaluateEncounterActionEconomy>>
   activationCode: string
   acknowledged: readonly EncounterRuleWarningCodeDto[]
-}):
-  | { kind: 'UNSUPPORTED_TARGET' }
-  | { kind: 'UNACKNOWLEDGED'; warnings: EncounterRuleWarningDto[] }
-  | { kind: 'ACCEPTED'; overrides: EncounterRuleWarningDto[] } {
+}
+
+/** Every warning one target raises, or null when the target policy refuses the target outright. */
+function encounterActionWarnings(input: EncounterActionWarningInput) {
   const { targeting } = input.target.targetPolicy
   const excludedTypeIds =
     (targeting?.selectionKind !== 'SELF' && targeting?.excludedCreatureTypeIds) || []
@@ -49,8 +43,8 @@ export function evaluateEncounterActionRuleWarnings(input: {
     ...input.target,
     targetPolicy: withoutCreatureTypeExclusions(input.target.targetPolicy)
   })
-  if (targetWarnings === null) return { kind: 'UNSUPPORTED_TARGET' }
-  const warnings: EncounterRuleWarningDto[] = [
+  if (targetWarnings === null) return null
+  return [
     ...encounterActionEconomyWarnings(input.actionEconomy, input.activationCode),
     ...input.preparedWarnings,
     ...(input.stabilize
@@ -70,7 +64,57 @@ export function evaluateEncounterActionRuleWarnings(input: {
       : []),
     ...targetWarnings
   ]
-  return acknowledgeEncounterActionWarnings(warnings, input.acknowledged)
+}
+
+/**
+ * The one Assisted-mode soft-check gate for RESOLVE_ACTION, shared by the Session DO planner and the
+ * Convex fallback (ADR 0034 decision 2). Preparation, targeting and the action allowance each report
+ * their overridable warnings here; the command proceeds only when it acknowledges every current code,
+ * and the accepted warnings become the action's recorded overrides.
+ */
+export function evaluateEncounterActionRuleWarnings(
+  input: EncounterActionWarningInput
+):
+  | { kind: 'UNSUPPORTED_TARGET' }
+  | { kind: 'UNACKNOWLEDGED'; warnings: EncounterRuleWarningDto[] }
+  | { kind: 'ACCEPTED'; overrides: EncounterRuleWarningDto[] } {
+  const warnings = encounterActionWarnings(input)
+  return warnings === null
+    ? { kind: 'UNSUPPORTED_TARGET' }
+    : acknowledgeEncounterActionWarnings(warnings, input.acknowledged)
+}
+
+/**
+ * The same gate for a list of chosen creatures: each target is held to the single-target rules, and
+ * a warning that applies to more than one of them (a spent allowance, an unprepared spell) is
+ * reported once. A list inside an area adds the area's own range and sight warnings for its point.
+ */
+export function evaluateEncounterActorsRuleWarnings(
+  input: Omit<
+    EncounterActionWarningInput,
+    'target' | 'targetDefeated' | 'targetCreatureTypeId' | 'stabilize'
+  > & {
+    targets: readonly Pick<
+      EncounterActionWarningInput,
+      'target' | 'targetDefeated' | 'targetCreatureTypeId'
+    >[]
+    areaWarnings: readonly EncounterRuleWarningDto[]
+  }
+):
+  | { kind: 'UNSUPPORTED_TARGET' }
+  | { kind: 'UNACKNOWLEDGED'; warnings: EncounterRuleWarningDto[] }
+  | { kind: 'ACCEPTED'; overrides: EncounterRuleWarningDto[] } {
+  const { targets, areaWarnings, ...shared } = input
+  const warnings = new Map<string, EncounterRuleWarningDto>(
+    areaWarnings.map((warning) => [JSON.stringify([warning.code, warning.message]), warning])
+  )
+  for (const target of targets) {
+    const targetWarnings = encounterActionWarnings({ ...shared, ...target, stabilize: null })
+    if (targetWarnings === null) return { kind: 'UNSUPPORTED_TARGET' }
+    for (const warning of targetWarnings)
+      warnings.set(JSON.stringify([warning.code, warning.message]), warning)
+  }
+  return acknowledgeEncounterActionWarnings([...warnings.values()], input.acknowledged)
 }
 
 function acknowledgeEncounterActionWarnings(

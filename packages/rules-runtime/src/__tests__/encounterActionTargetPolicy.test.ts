@@ -532,6 +532,45 @@ describe('encounter action target range', () => {
     expect(contributorAt(13)).toBeNull()
   })
 
+  describe('a list of chosen creatures', () => {
+    const sphere = {
+      id: 'sphere',
+      shapeKind: 'SPHERE' as const,
+      radius: { amount: 30, unit: 'FEET' as const }
+    }
+    const chosen = { selectionKind: 'CHOSEN_CREATURES' as const, dispositionKind: 'ANY' as const }
+
+    it('measures each creature like a single target, and may include its user', () => {
+      expect(
+        rangeWarnings({
+          targeting: chosen,
+          targetId: 'source',
+          scene: { source: token(0, 0), target: token(0, 0) }
+        })
+      ).toEqual([])
+      expect(
+        rangeWarnings({ targeting: chosen, scene: { source: token(0, 0), target: token(40, 0) } })
+      ).toEqual([{ code: 'TARGET_OUT_OF_RANGE', message: 'The target is out of range.' }])
+    })
+
+    it('leaves the range to the area it is chosen inside, whose picked point carries it', () => {
+      expect(
+        rangeWarnings({
+          targeting: chosen,
+          shape: sphere,
+          scene: { source: token(0, 0), target: token(40, 0) }
+        })
+      ).toEqual([])
+      expect(rangeWarnings({ targeting: chosen, shape: sphere })).toEqual([])
+      expect(
+        rangeWarnings({
+          targeting: { selectionKind: 'SINGLE_TARGET', dispositionKind: 'ANY' },
+          shape: sphere
+        })
+      ).toBeNull()
+    })
+  })
+
   it('refuses policies the single-target path cannot resolve', () => {
     const cone = {
       id: 'cone',
@@ -557,7 +596,13 @@ describe('encounter action target range', () => {
     expect(rangeWarnings({ range: { id: 'range', rangeKind: 'SPECIAL' } })).toBeNull()
     expect(rangeWarnings({ targeting: null })).toBeNull()
     expect(
-      rangeWarnings({ targeting: { selectionKind: 'CHOSEN_CREATURES', dispositionKind: 'ANY' } })
+      rangeWarnings({
+        targeting: {
+          selectionKind: 'CHOSEN_CREATURES',
+          dispositionKind: 'ANY',
+          excludedCreatureTypeIds: ['00000000-0000-4000-8000-0000000000aa']
+        }
+      })
     ).toBeNull()
     expect(rangeWarnings({ targeting: { selectionKind: 'SINGLE_TARGET' } })).toBeNull()
     expect(

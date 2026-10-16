@@ -207,8 +207,9 @@ export const liveSessionPlacedSpatialEffectSchema: z.ZodMiniType<LiveSessionPlac
   )
 
 /**
- * The terminal outcome of a point-area action: the root with the caster's one spend, one settled
- * outcome per kept creature, and the area's final snapshot the last answer produced. It creates no
+ * The terminal outcome of a point-area action or of a cast on a list of chosen creatures: the root
+ * with the caster's one spend, one settled outcome per kept creature, and, for an area, its final
+ * snapshot the last answer produced (a chosen list never pends, so it has none). It creates no
  * maintained state, cleaving choice or effect on a creature, so those fields do not exist here; it
  * may place one spatial effect in the Scene.
  */
@@ -227,7 +228,7 @@ export type LiveSessionEncounterAreaCommitInput = Omit<
     actorId: string
     execution: z.infer<typeof storedRuleExecutionResultDtoSchema>
   }[]
-  area: z.infer<typeof serverRuleExecutionPendingSnapshotDtoSchema>
+  area: z.infer<typeof serverRuleExecutionPendingSnapshotDtoSchema> | null
   /** The GM removal that left the area settled, when it rather than an answer committed it. */
   removal: RemoveAreaTargetInputDto | null
   /** The zone this action places at the picked point, which its undo deletes; null for none. */
@@ -253,7 +254,7 @@ export const liveSessionEncounterAreaCommitInputSchema: z.ZodMiniType<LiveSessio
             })
           )
           .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
-        area: serverRuleExecutionPendingSnapshotDtoSchema,
+        area: z.nullable(serverRuleExecutionPendingSnapshotDtoSchema),
         removal: z.nullable(removeAreaTargetInputDtoSchema),
         placedZone: z.nullable(liveSessionPlacedSpatialEffectSchema),
         rules: encounterActorRuleOutputSchema,
