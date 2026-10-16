@@ -1162,30 +1162,79 @@ describe('room area commit with Legendary Resistance', () => {
   })
 })
 
-describe('room area action that leaves an effect behind', () => {
-  it('is refused whole when it opens, spending and changing nothing', async () => {
+describe('room area action that leaves a condition behind (SPELLS-19.1)', () => {
+  const frightenedId = () => {
+    const condition = srdSystemRecord.conditionTypes.find(({ code }) => code === 'FRIGHTENED')
+    if (!condition) throw new Error('The SRD vocabulary has no Frightened condition.')
+    return condition.id
+  }
+  const conditionsOf = (history: RoomHistory, id: string) =>
+    vitalsOf(history).find((vitals) => vitals.id === id)?.conditions
+
+  it('leaves Frightened and its lasting effect on each creature that fails, and one undo takes them from every one', async () => {
     const creature = frightenOnFailedSave(fireballWolf())
     const room = await actionRoom({
       actors: [
         srdCreatureActor({ id: CASTER_ID, creature }),
-        srdCreatureActor({ id: CAUGHT_IDS[0]!, creature: plainWolf })
+        srdCreatureActor({ id: CAUGHT_IDS[0]!, creature: plainWolf }),
+        srdCreatureActor({ id: CAUGHT_IDS[1]!, creature: plainWolf })
       ],
       ownerFeatureId: creature.features?.find((feature) => feature.label === 'Bite')?.id
     })
     const before = await readRoomHistory(room.room.base.stub)
     const { answer } = await room.startAreaAction({ x: 50, y: 150 })
-    expect(answer).toMatchObject({
-      type: 'COMMAND_REJECTED',
-      reason: 'TARGET_UNAVAILABLE'
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    // The caster and the first Wolf fail their save; the second Wolf passes.
+    await answerAllSaves(room, { [CAUGHT_IDS[1]!]: 20 })
+
+    const committed = await readRoomHistory(room.room.base.stub)
+    expect(conditionsOf(committed, CASTER_ID)).toContain(frightenedId())
+    expect(conditionsOf(committed, CAUGHT_IDS[0]!)).toContain(frightenedId())
+    expect(conditionsOf(committed, CAUGHT_IDS[1]!)).not.toContain(frightenedId())
+    expect(committed.activeEffects.map((effect) => effect.targetActorId).sort()).toEqual(
+      [CASTER_ID, CAUGHT_IDS[0]!].sort()
+    )
+
+    const undone = await room.send({
+      type: 'REVERT_LAST_ACTION',
+      encounterId: room.room.encounterId,
+      commandId: crypto.randomUUID(),
+      expectedVersion: await room.version()
     })
-    expect(await readRoomHistory(room.room.base.stub)).toEqual(before)
-    expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
+    expect(undone.type, JSON.stringify(undone)).toBe('COMMAND_COMMITTED')
+    const reverted = await readRoomHistory(room.room.base.stub)
+    expect(vitalsOf(reverted)).toEqual(vitalsOf(before))
+    expect(reverted.activeEffects).toEqual([])
+  })
+
+  it('leaves a caught Character the same lasting effect, and the undo takes it from them too', async () => {
+    const creature = frightenOnFailedSave(fireballWolf())
+    const room = await actionRoom({
+      actors: [
+        srdCreatureActor({ id: CASTER_ID, creature }),
+        characterActor({ id: CHARACTER_ACTOR_ID, characterId: CHARACTER_ID }),
+        srdCreatureActor({ id: CAUGHT_IDS[0]!, creature: plainWolf })
+      ],
+      ownerFeatureId: BITE_ID
+    })
+    expect((await room.startAreaAction({ x: 50, y: 150 })).answer.type).toBe('COMMAND_COMMITTED')
+    await answerAllSaves(room)
+    expect((await readRoomHistory(room.room.base.stub)).characterEffects).toHaveLength(1)
+
+    const undone = await room.send({
+      type: 'REVERT_LAST_ACTION',
+      encounterId: room.room.encounterId,
+      commandId: crypto.randomUUID(),
+      expectedVersion: await room.version()
+    })
+    expect(undone.type, JSON.stringify(undone)).toBe('COMMAND_COMMITTED')
+    expect((await readRoomHistory(room.room.base.stub)).characterEffects).toEqual([])
   })
 })
 
 /**
  * A Fireball whose failed save also drains 1d4 Strength. Nothing in the action's effect plan shows
- * it, so the area opens; only the settled outcome carries the reduction a creature would keep.
+ * it; only the settled outcome carries the reduction a creature keeps.
  */
 function drainFireballWolf() {
   const base = fireballWolf()
@@ -1230,8 +1279,8 @@ function drainFireballWolf() {
   })
 }
 
-describe('room area action whose outcome leaves an effect only once settled', () => {
-  it('is refused whole when it commits, persisting nothing', async () => {
+describe('room area action whose outcome leaves a lasting effect only once settled (SPELLS-19.1)', () => {
+  it('keeps the Strength reduction on each creature that fails, and one undo takes it from every one', async () => {
     const creature = drainFireballWolf()
     const room = await actionRoom({
       actors: [
@@ -1240,32 +1289,26 @@ describe('room area action whose outcome leaves an effect only once settled', ()
       ],
       ownerFeatureId: creature.features?.find((feature) => feature.label === 'Bite')?.id
     })
-    const { answer } = await room.startAreaAction({ x: 50, y: 150 })
-    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    expect((await room.startAreaAction({ x: 50, y: 150 })).answer.type).toBe('COMMAND_COMMITTED')
+    await answerAllSaves(room)
 
-    // The caster's save settles the area's first answer; the second one is the last it waits on.
-    const answerNext = async () => {
-      const decision = await room.pendingDecision()
-      if (decision.pending.kind !== 'AREA_SAVES') throw new Error('Expected the area saves.')
-      const [save] = decision.pending.saves
-      return room.send(
-        room.resolveCommand(decision, {
-          kind: 'ENTER_DICE',
-          requestId: save!.request.requestId,
-          rawFaces: [1],
-          rollMode: save!.request.rollMode
-        })
-      )
-    }
-    expect((await answerNext()).type).toBe('COMMAND_COMMITTED')
-    const before = await readRoomHistory(room.room.base.stub)
-    expect(await answerNext()).toMatchObject({
-      type: 'COMMAND_REJECTED',
-      reason: 'TARGET_UNAVAILABLE',
-      message: 'Area actions that apply conditions or lasting effects are not supported yet.'
+    const committed = await readRoomHistory(room.room.base.stub)
+    expect(committed.activeEffects.map((effect) => effect.targetActorId).sort()).toEqual(
+      [CASTER_ID, CAUGHT_IDS[0]!].sort()
+    )
+    for (const effect of committed.activeEffects)
+      expect(JSON.parse(effect.definitionJson).stateContributions).toEqual([
+        expect.objectContaining({ kind: 'SCALAR_REDUCTION' })
+      ])
+
+    const undone = await room.send({
+      type: 'REVERT_LAST_ACTION',
+      encounterId: room.room.encounterId,
+      commandId: crypto.randomUUID(),
+      expectedVersion: await room.version()
     })
-    expect(await readRoomHistory(room.room.base.stub)).toEqual(before)
-    expect(areaReceipts(before).roots).toEqual([])
+    expect(undone.type, JSON.stringify(undone)).toBe('COMMAND_COMMITTED')
+    expect((await readRoomHistory(room.room.base.stub)).activeEffects).toEqual([])
   })
 })
 
