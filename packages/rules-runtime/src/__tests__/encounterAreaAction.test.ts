@@ -178,11 +178,7 @@ describe('chosen creatures target', () => {
       scalingSource: 'CHARACTER_LEVEL' as const,
       breakpoints: [{ id: 'breakpoint', level: 5, order: 0, value: { amount: 8 } }]
     }
-    for (const targeting of [
-      {},
-      { maxTargets: 6, resolutionCount: 2 },
-      { maxTargets: 6, maxTargetsScaling: scaling }
-    ])
+    for (const targeting of [{}, { maxTargets: 6, maxTargetsScaling: scaling }])
       expect(encounterActionTargetKind(chosen(targeting)), JSON.stringify(targeting)).toBeNull()
   })
 })

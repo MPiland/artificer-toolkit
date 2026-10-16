@@ -94,7 +94,7 @@ export async function readNativeEncounterActionResponseAdmission(
           run,
           campaign,
           membership,
-          rollerActorId: areaSave.actorId
+          rollerActorId: areaSave.context.rollerActorId
         })
       : await canAnswerNativeActionEvidence(ctx, { run, campaign, membership, occurrence }))
   )

@@ -878,10 +878,18 @@ export async function continueNativeActionAfterTest(
     onHitCandidates?: readonly EncounterOnHitCandidate[]
     /** The attacker's decision about those riders, once made. */
     onHit?: NativeActionOnHitAudit | null
+    /**
+     * The binding the TEST was sealed against, when the OUTCOME runs on a later one: a second ray at
+     * a creature lands on the hit points the first left it, but its roll was sealed before that.
+     */
+    testBinding?: NativeActionBaseInput['binding']
     resume?: { pending: ResumedNativeActionGraphs; resolution: EncounterEvidenceAnswer }
   }
 ): Promise<PendingNativeActionGraphs | CompleteNativeActionGraphs> {
-  const current = await requireNativeTestBoundary({ source: input, boundary: input.boundary })
+  const current = await requireNativeTestBoundary({
+    source: { ...input, binding: input.testBinding ?? input.binding },
+    boundary: input.boundary
+  })
   const audit = input.legendaryResistance ?? null
   const reaction = input.reaction ?? null
   if (
@@ -1549,7 +1557,11 @@ export async function advanceNativeActionGraphs(input: {
         }
       }
     }
-    if (input.onHitCandidates?.length && isHitPath(testD20.resultPath) && twoPhase?.phase === 'TEST')
+    if (
+      input.onHitCandidates?.length &&
+      isHitPath(testD20.resultPath) &&
+      twoPhase?.phase === 'TEST'
+    )
       return holdForOnHitChoice({
         runtime: input.runtime,
         occurrenceId: input.occurrenceId,

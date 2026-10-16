@@ -71,8 +71,8 @@ export function encounterAreaCaughtChecksum(input: {
 }
 
 /**
- * The GM takes one creature out of a pending area. Only a creature whose save is still unanswered can
- * go; the checksum is sealed again over those still caught.
+ * The GM takes one creature out of a pending area, with every ray aimed at it. Only a creature whose
+ * rolls are all unanswered can go; the checksum is sealed again over those still caught.
  */
 export function removeEncounterAreaTarget<
   Target extends Pick<AreaContext['targets'][number], 'actorId' | 'token'> & {
@@ -91,14 +91,14 @@ export function removeEncounterAreaTarget<
       removedActorIds: string[]
       caughtChecksum: string
     } {
-  const removed = context.targets.find((target) => target.actorId === actorId)
-  if (!removed) return { kind: 'NOT_CAUGHT' }
-  if (removed.testedJson !== undefined) return { kind: 'ANSWERED' }
-  const targets = context.targets.filter((target) => target !== removed)
+  const removed = context.targets.filter((target) => target.actorId === actorId)
+  if (removed.length === 0) return { kind: 'NOT_CAUGHT' }
+  if (removed.some((target) => target.testedJson !== undefined)) return { kind: 'ANSWERED' }
+  const targets = context.targets.filter((target) => target.actorId !== actorId)
   return {
     kind: 'REMOVED',
     targets,
-    removedActorIds: [...context.removedActorIds, actorId],
+    removedActorIds: [...context.removedActorIds, ...removed.map(() => actorId)],
     caughtChecksum: encounterAreaCaughtChecksum({
       scene: context.scene,
       area: context.area,

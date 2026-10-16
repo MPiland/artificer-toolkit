@@ -6,7 +6,9 @@ import {
   EFFECT_KIND,
   MEASUREMENT_UNIT_CODE,
   RANGE_KIND,
+  SCALABLE_SCALING_KIND,
   SCALING,
+  SCALING_SOURCE,
   TARGET_SELECTION_KIND,
   TARGET_DISPOSITION_KIND,
   SUBJECT,
@@ -47,7 +49,17 @@ export const scorchingRay: SpellAuthored = {
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.CHOSEN_CREATURES,
           dispositionKind: TARGET_DISPOSITION_KIND.ANY,
-          maxTargets: 3
+          maxTargetsScaling: {
+            scalingKind: SCALABLE_SCALING_KIND.BREAKPOINTS,
+            scalingSource: SCALING_SOURCE.SPELL_CAST_LEVEL,
+            breakpoints: Array.from({ length: 8 }, (_, index) => ({
+              id: spellChildId(SPELL_IDS.SCORCHING_RAY, 0x214, index + 1),
+              level: index + 2,
+              order: index + 1,
+              value: { amount: index + 3 }
+            }))
+          },
+          allowRepeatedTargets: true
         }
       },
       paths: [
