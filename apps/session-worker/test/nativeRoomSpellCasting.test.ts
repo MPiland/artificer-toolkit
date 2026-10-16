@@ -7,7 +7,10 @@ import { readCharacterPlay } from '@artificer-toolkit/schema/projections/charact
 import type { SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { fireball } from '@artificer-toolkit/source-data/srd/spells/fireball.js'
 import { holdPerson } from '@artificer-toolkit/source-data/srd/spells/hold-person.js'
-import { SRD_CREATURE_TYPES } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import {
+  SRD_CREATURE_TYPES,
+  srdSystemRecord
+} from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { RoomEncounterStore } from '../src/roomEncounterStore.js'
@@ -15,6 +18,7 @@ import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { plainWolf } from '../src/testing/movementPlannerFixture.js'
 import { actionRoom } from './actionRoomFixture.js'
 import { areaReceipts, vitalsOf } from './areaRoomReads.js'
+import { seedModifierGrant } from './grantSeed.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
 import { mend } from './mendSpell.js'
 import { readPendingActionDecision, readRoomHistory } from './roomHistoryReads.js'
@@ -51,8 +55,13 @@ const emberBurst: SpellAuthored = (() => {
 })()
 
 /** A Character knowing and preparing the burst, with two Wolves in reach of a 20 ft sphere at x = 50. */
-function spellCasterRoom(spell: SpellAuthored = emberBurst, label = 'Ember Burst (1st level)') {
+function spellCasterRoom(
+  spell: SpellAuthored = emberBurst,
+  label = 'Ember Burst (1st level)',
+  held: Pick<Parameters<typeof actionRoom>[0], 'characterPlay' | 'seed'> = {}
+) {
   return actionRoom({
+    ...held,
     actors: [
       characterActor({ id: CHARACTER_ACTOR_ID, characterId: CHARACTER_ID }),
       srdCreatureActor({ id: CAUGHT_IDS[0]!, creature: plainWolf }),
@@ -187,6 +196,50 @@ describe('room point-area spell cast by a Character', () => {
     expect(await readSpellSlots(room)).toEqual(SLOT_SPENT)
 
     await undoLastAction(room)
+    expect(await readSpellSlots(room)).toEqual([])
+  })
+})
+
+describe('room point-area spell cast by an invisible Character caught in its own area (SPELLS-27.1)', () => {
+  it('ends the caster’s effect that ends on a cast, and its condition, with the area’s outcome on the caster; one undo gives all back', async () => {
+    const invisible = srdSystemRecord.conditionTypes.find(({ code }) => code === 'INVISIBLE')
+    if (!invisible) throw new Error('The SRD names the Invisible condition.')
+    const room = await spellCasterRoom(emberBurst, 'Ember Burst (1st level)', {
+      characterPlay: { conditions: [{ conditionTypeId: invisible.id, label: 'Invisible' }] },
+      seed: seedModifierGrant({
+        sourceActorId: CHARACTER_ACTOR_ID,
+        holderActorId: CHARACTER_ACTOR_ID,
+        lifecycle: {},
+        endsOnCast: true,
+        ownedConditionId: invisible.id
+      })
+    })
+    const effectIds = async () =>
+      (await readRoomHistory(room.room.base.stub)).characterEffects.map(({ id }) => id)
+    const conditionIds = () =>
+      runInDurableObject(room.room.base.stub, (_instance, context) => {
+        const row = new RoomEncounterStore(context.storage)
+          .documents('characterPlayStates')
+          .find((candidate) => candidate.characterId === CHARACTER_ID)
+        if (!row) throw new Error('Missing room Character play state.')
+        return (readCharacterPlay(row).conditions ?? []).map(
+          ({ conditionTypeId }) => conditionTypeId
+        )
+      })
+    const held = await effectIds()
+    expect(held).toHaveLength(1)
+
+    const { answer } = await room.startAreaAction({ x: 50, y: 150 })
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    await answerAllSaves(room)
+    expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
+    expect(await effectIds()).toEqual([])
+    expect(await conditionIds()).toEqual([])
+    expect(await readSpellSlots(room)).toEqual(SLOT_SPENT)
+
+    await undoLastAction(room)
+    expect(await effectIds()).toEqual(held)
+    expect(await conditionIds()).toEqual([invisible.id])
     expect(await readSpellSlots(room)).toEqual([])
   })
 })

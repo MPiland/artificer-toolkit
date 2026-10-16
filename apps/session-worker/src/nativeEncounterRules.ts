@@ -96,7 +96,10 @@ import {
   planNativeFailedCounters,
   type NativeCastReactionAnswer
 } from './nativeEncounterCastReaction.js'
-import { preparedSpellCastLevel } from '@artificer-toolkit/rules-runtime/encounterCastReactionDiscovery'
+import {
+  preparedCastsSpell,
+  preparedSpellCastLevel
+} from '@artificer-toolkit/rules-runtime/encounterCastReactionDiscovery'
 import {
   buildEncounterActionPendingSnapshot,
   buildEncounterCastReactionPendingSnapshot
@@ -706,7 +709,7 @@ export async function planNativeLiveEncounterAction(
       (effect) => !maintenance?.removed.some((removed) => removed.id === effect.id)
     ),
     makesAttackRoll: typeof prepared.binding.actionMechanic.attackBonus === 'number',
-    castsSpell: triggerLevel !== null
+    castsSpell: preparedCastsSpell(prepared)
   })
   const currentnessChecksum = encounterActionCurrentnessChecksum({
     prepared,
@@ -876,6 +879,7 @@ export async function planNativeLiveEncounterAction(
           actors,
           prepared,
           casterEffects: activeEffectsByActorId.get(prepared.actor.id) ?? [],
+          reactorEffects: activeEffectsByActorId.get(cast.found.prepared.actor.id) ?? [],
           triggerLevel,
           actionEconomy,
           ruleOverrides: ruleWarnings.overrides,
@@ -1097,6 +1101,19 @@ export async function planNativeLiveEncounterAction(
           economy: reaction.found.economy.consumption
         }
       : null
+  // A reaction that casts a spell (Shield) ends the reactor's own cast-ended effects too, with the
+  // reactor's one batch: the hit target's, since the reaction answers an attack on its caster.
+  const reactionEnded =
+    reactionUse && preparedCastsSpell(reactionUse.prepared)
+      ? actionEndedEffects({
+          holderActorId: reactionUse.prepared.actor.id,
+          held: (activeEffectsByActorId.get(reactionUse.prepared.actor.id) ?? []).filter(
+            (effect) => !consumedGrants.some((ended) => ended.id === effect.id)
+          ),
+          makesAttackRoll: false,
+          castsSpell: true
+        })
+      : null
   const failedSpends = await plannedFailedCounters(failedCounters)
   // A creature that failed to counter the cast has spent its reaction, so it answers nothing else; the
   // cast's target pays that reaction in its own mechanics, beside the reaction a Shield-like answer uses.
@@ -1119,7 +1136,9 @@ export async function planNativeLiveEncounterAction(
   // conditions only they held in the target's own batch.
   const damageEnded = damageTakenEndedEffects({
     holderActorId: prepared.target.id,
-    held: activeEffectsByActorId.get(prepared.target.id) ?? [],
+    held: (activeEffectsByActorId.get(prepared.target.id) ?? []).filter(
+      ({ id }) => !(reactionEnded?.consumedGrants ?? []).some((ended) => ended.id === id)
+    ),
     applications,
     damagerActorId: prepared.actor.id,
     dispositions: new Map(actors.map(({ id, disposition }) => [id, disposition]))
@@ -1135,7 +1154,8 @@ export async function planNativeLiveEncounterAction(
       occurredAt,
       applications,
       sourceReleases,
-      targetReleases: damageEnded.releases,
+      targetReleases: reactionEnded?.sourceReleases,
+      damageReleases: damageEnded.releases,
       forceTargetVersionAdvance:
         prepared.target.kind === 'CHARACTER' &&
         (preparedEffects.stateEffect !== null ||
@@ -1306,6 +1326,7 @@ export async function planNativeLiveEncounterAction(
         : [],
     cleaving,
     reactionUse,
+    reactionConsumedGrants: reactionEnded?.consumedGrants ?? [],
     failedSpends,
     revisions,
     // The attacker's one-roll grants and the target's effects the damage ended, one receipt.
@@ -1395,7 +1416,7 @@ export function buildNativeLiveEncounterActionCommitInput(
     concentrationEnds: plan.concentration.concentrationEnds,
     endedGrants: plan.concentration.endedGrants,
     cleaving: plan.cleaving,
-    consumedGrants: plan.consumedGrants,
+    consumedGrants: [...plan.consumedGrants, ...plan.reactionConsumedGrants],
     turnUses: plan.turnUses
   })
 }

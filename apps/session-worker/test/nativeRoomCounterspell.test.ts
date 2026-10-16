@@ -49,6 +49,8 @@ function counterspellRoom(
     reactorSlotsSpent?: readonly { slotKey: string; used: number }[]
     /** Sheet conditions the Caster already carries. */
     casterConditions?: { conditionTypeId: string; label: string }[]
+    /** Sheet conditions the Counterspell holder already carries. */
+    reactorConditions?: { conditionTypeId: string; label: string }[]
   } = {}
 ) {
   const {
@@ -57,6 +59,7 @@ function counterspellRoom(
     reactorSpells = true,
     reactorSlotsSpent,
     casterConditions,
+    reactorConditions,
     ...rest
   } = options
   return actionRoom({
@@ -80,7 +83,10 @@ function counterspellRoom(
     },
     secondCharacter: {
       characterId: REACTOR_ID,
-      play: { spellSlots: reactorSlotsSpent },
+      play: {
+        spellSlots: reactorSlotsSpent,
+        ...(reactorConditions && { conditions: reactorConditions })
+      },
       spellcasting: reactorSpells
         ? { spells: [counterspell], prepared: [counterspell.id] }
         : undefined
@@ -261,6 +267,68 @@ describe('room Counterspell against a Character’s spell cast (REACTION-4.3)', 
 
     await undoLastAction(room)
     expect(await grantIds()).toEqual(held)
+  })
+
+  it('replays a declined offer without ending the grant a second time or changing the Run', async () => {
+    const room = await counterspellRoom({
+      casterConditions: [{ conditionTypeId: invisible.id, label: 'Invisible' }],
+      seed: seedModifierGrant({
+        sourceActorId: CASTER_ACTOR_ID,
+        holderActorId: CASTER_ACTOR_ID,
+        lifecycle: {},
+        endsOnCast: true,
+        ownedConditionId: invisible.id
+      })
+    })
+    await cast(room)
+    const { decision } = await offered(room)
+    const decline = room.resolveCommand(decision, { kind: 'DECLINE' })
+    expect((await room.send(decline)).type).toBe('COMMAND_COMMITTED')
+    const version = await room.version()
+    const settled = await readRoomHistory(room.room.base.stub)
+    expect(settled.characterEffects).toEqual([])
+
+    expect((await room.send(decline)).type).toBe('COMMAND_COMMITTED')
+    expect(await room.version()).toBe(version)
+    expect(await readRoomHistory(room.room.base.stub)).toEqual(settled)
+    expect(await slotsOf(room, CASTER_ID)).toEqual(SLOT_SPENT(1))
+  })
+
+  it('uses up the Counterspell holder’s own grant that ends on a cast, and releases its condition, when it counters; one undo gives both back (SPELLS-27.1)', async () => {
+    const room = await counterspellRoom({
+      reactorConditions: [{ conditionTypeId: invisible.id, label: 'Invisible' }],
+      seed: seedModifierGrant({
+        sourceActorId: REACTOR_ACTOR_ID,
+        holderActorId: REACTOR_ACTOR_ID,
+        lifecycle: {},
+        endsOnCast: true,
+        ownedConditionId: invisible.id
+      })
+    })
+    const grantIds = async () =>
+      (await readRoomHistory(room.room.base.stub)).characterEffects.map(({ id }) => id)
+    const conditionIds = async () =>
+      ((await readPlay(room, REACTOR_ID)).conditions ?? []).map(
+        ({ conditionTypeId }) => conditionTypeId
+      )
+    const held = await grantIds()
+    expect(held).toHaveLength(1)
+    await cast(room)
+    const { decision, pending } = await offered(room)
+    expect(await grantIds()).toEqual(held)
+
+    const used = await room.resolve(decision, {
+      kind: 'OPTION',
+      optionId: pending.options[0].optionId
+    })
+    expect(used.type, JSON.stringify(used)).toBe('COMMAND_COMMITTED')
+    expect(await slotsOf(room, REACTOR_ID)).toEqual(SLOT_SPENT(3))
+    expect(await grantIds()).toEqual([])
+    expect(await conditionIds()).toEqual([])
+
+    await undoLastAction(room)
+    expect(await grantIds()).toEqual(held)
+    expect(await conditionIds()).toEqual([invisible.id])
   })
 
   it('lets the cast resolve when declined, spending nothing of the reactor', async () => {

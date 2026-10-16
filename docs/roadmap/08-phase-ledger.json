@@ -3978,14 +3978,15 @@
             {
               "id": "ROOM-6.T2",
               "text": "Maintenance variants proved room-side: multi-Character, detached, empty-prior and Assisted pauses.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["ROOM-6.3", "ROOM-6.5", "ROOM-6.6"],
               "wsjf": {
                 "bv": 1,
                 "tc": 1,
                 "rr": 5,
                 "size": 5
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-room-6.md"
             },
             {
               "id": "ROOM-6.T3",
@@ -4009,10 +4010,9 @@
             },
             {
               "id": "ROOM-6.T4",
-              "text": "Enforce and prove the controller check on Encounter-bound token moves (room and Convex): a non-controlling player move is refused with no write.",
-              "status": "IN_PROGRESS",
+              "text": "Enforce and prove the controller check on Encounter-bound token moves (room and Convex): a non-controlling player move is refused with no write. (The refusal already existed; proof only. Red: ci/room-6-t4-red Tests 38905531310 on 16088dba7, green as expected. Green: ci/room-6-t4 Tests 38911103026 and Live 38911102929 on bb6def86a.)",
+              "status": "DONE",
               "closes": ["ROOM-6.14"],
-              "activeWorkbook": "docs/handoffs/slice-room-6.md",
               "wsjf": {
                 "bv": 8,
                 "tc": 8,
@@ -5163,7 +5163,7 @@
             {
               "id": "ATTACK-2.T2",
               "text": "Player parity journey (browser, player client): on their own Character a player casts an area spell, takes a death save, uses a non-movement reaction and targets from the map, with no GM step.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["ATTACK-2.5"],
               "wsjf": {
                 "bv": 8,
@@ -8638,8 +8638,8 @@
             },
             {
               "id": "SPELLS-27.T3b",
-              "text": "Every cast raises ON_CAST_SPELL: a Character reactor cast (Shield, Counterspell as reactor) and Creature and Legendary casts end the caster’s own cast-ended effects; proofs for an area cast catching its own invisible caster, replay after a declined Counterspell offer, and a cantrip whose only Sheet change is the release; the authoring-parity test asserts an invalid end event is cleared.",
-              "status": "IN_PROGRESS",
+              "text": "Every cast raises ON_CAST_SPELL: a Character reactor cast (Shield, Counterspell as reactor) and Creature and Legendary casts end the caster’s own cast-ended effects; proofs for an area cast catching its own invisible caster, replay after a declined Counterspell offer, and a cantrip whose only Sheet change is the release; the authoring-parity test asserts an invalid end event is cleared. (Red: ci/spells-27-t3b-red Tests 38905397540 on a41282184. Green: ci/spells-27-t3b Tests 38912896138 and Live 38912895972 on 5b2438198.)",
+              "status": "DONE",
               "closes": ["SPELLS-27.1"],
               "wsjf": {
                 "bv": 3,
@@ -8647,8 +8647,7 @@
                 "rr": 3,
                 "size": 2,
                 "after": ["SPELLS-27.T3"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-spells-27-t3b.md"
+              }
             },
             {
               "id": "SPELLS-27.T4",

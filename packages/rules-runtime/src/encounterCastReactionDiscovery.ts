@@ -2,6 +2,7 @@ import type { CharacterActionCandidate } from '@artificer-toolkit/schema/api/cha
 
 import type { prepareEncounterActionMechanics } from './encounterActionMechanicsPreparation.js'
 import type { MovementTarget } from './encounterMovementTargets.js'
+import { dnd5eAttackKind, isDnd5eSpellAttackKind } from './systems/dnd5e/attackKind.js'
 
 type CastReactionAction = Pick<CharacterActionCandidate, 'actionId' | 'effectId'> & {
   range: CharacterActionCandidate['mechanicFacts']['invocation']['range']
@@ -48,4 +49,23 @@ export function preparedSpellCastLevel(
   )
     return null
   return prepared.characterActionState?.actionMechanic.spellCastLevel ?? null
+}
+
+/**
+ * Whether the prepared action is a spell cast, the fact `ON_CAST_SPELL` ends effects on. A Character
+ * casts a spell; a Creature casts one when its action is triggered by a spell attack.
+ */
+export function preparedCastsSpell(
+  prepared: Pick<
+    Awaited<ReturnType<typeof prepareEncounterActionMechanics>>,
+    'source' | 'characterActionState'
+  >
+): boolean {
+  if (preparedSpellCastLevel(prepared) !== null) return true
+  return (
+    prepared.source.kind === 'CREATURE' &&
+    isDnd5eSpellAttackKind(
+      dnd5eAttackKind(prepared.source.capability.mechanicFacts.invocation.triggerCode)
+    )
+  )
 }
