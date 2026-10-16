@@ -266,6 +266,9 @@ Each caught creature carries its own sealed single-target save under
 `encounterAreaTargetOccurrenceId(area, actor)`; `prepareEncounterAreaTests` opens them all without rolling
 damage and `answerEncounterAreaTest` answers one whatever the others have done. `removeEncounterAreaTarget`
 (the GM's removal, SPELLS-7.1) refuses a creature that has answered and seals the caught set again.
+An area's maintained state is bound to the area's occurrence, while each creature's effect is bound to its
+own save occurrence. `requireTurnMaintainedStates` therefore accepts either, derived for the creature whose
+turn it is.
 
 Legendary Resistance on an area save is per creature and interstitial. After a failed Creature save
 `afterTest` asks the creature's `discoverLegendaryResistance`, and `offerEncounterAreaLegendaryResistance`
@@ -437,6 +440,19 @@ the stored execution trace, which settlement reconstructs from (`reconstructTarg
 settled entry never rerolls. `retainedSpatialReplayFaces` also replays the dice, but no caller passes `retained`
 today. The movement that triggers an entry is not an undoable root (above); GM undo of a dice zone
 removes the zone with its spreading Action, as for every placed zone.
+
+**Source zones (SPELLS-20 T1b, current).** An authored `MANIFEST` `ZONE` with `attachmentKind: 'SOURCE'` compiles
+through the same `zonePlacementPlan` as a placed space (`PlacedSpaceZone.attachment` becomes
+`zonePlacement.attachment`); no aura-specific zone logic exists. It must be centered on its user (range `SELF` with a
+sphere, so `CASTER_CENTERED`). `planEncounterPlacedZone` anchors it to the user's token (`anchorKind: 'TOKEN'`,
+`TOKEN_LOCAL` circle at the token center), so `collectSpatialMovementCandidates` already handles the caster moving onto a
+creature (`sourceMoved`) and a creature entering the aura. The circle's radius is the authored radius plus half the
+token's width, which equals "from the edge of the caster's space" on-axis and is smaller on diagonals for a square
+token (approximation, recorded in the SPELLS-20 handoff). The caster's spell save DC is known only at the cast and a
+zone cast has no cast d20, so the zone's entering save is exposed in the action facts (`zoneEntrySavingThrow`), the
+sheet resolves `actionMechanic.save.dc`, and the Worker pins it on the zone's `adapterFacts` under
+`DND5E_SAVE_DC_FACT_KEY` when the zone is placed (`castSaveDcFactKey` on the zone entry). Zone limits are refused, never
+partly honored: half damage, bonuses, scaling, per-turn caps and turn-based interactions stay SPELLS-20 T4.
 
 Each choice also carries `range` when its compiled target policy has a measurable one, the range the evaluator that
 handles the policy measures. A single-target policy that `singleTargetMeasure` accepts advertises `SELF`, `WITHIN` (Touch
@@ -696,7 +712,40 @@ is no condition-specific code. Each mechanic is one of:
   beyond a distance), its saving throws (some abilities or all) or its ability checks;
 - `SAVE_AUTO_FAIL`: the holder fails saves of the listed abilities;
 - `SPEED`: the holder's speed times `numerator / denominator`, rounded down (0 sets it to 0);
-- `HITS_AGAINST_CRITICAL`: a hit against the holder within a distance is a critical hit.
+- `HITS_AGAINST_CRITICAL`: a hit against the holder within a distance is a critical hit;
+- `APPROACH_SOURCE_FORBIDDEN`: a willing move of the holder that ends closer to the condition's source
+  is a rule warning (ADR 0034 soft enforcement).
+
+A `D20_ROLL_MODE` on attacks or checks may set `requiresHolderSeesSource`: it then applies only while the
+holder sees one of the condition's recorded sources (a save mode cannot, since saves fold in at load).
+
+**Condition sources (SPELLS-29, D134).** A condition outcome authored with `recordsSource`
+(the authoring toggle "The Acting Creature Is Its Source", a core option) records the acting creature on
+the `CONDITION_OWNERSHIP` contribution of the effect that owns it (`sourceActorId`). The SRD Fear spell and
+every SRD Creature action that frightens author it. `encounterConditionSources` reads a held condition's
+sources; a condition held before its effect, applied by hand, or owned by any effect without a source is
+unsourced, and an unsourced condition's sight-gated modes always apply. Action preparation
+(`prepareEncounterActionMechanics`) filters the attacker's and target's mechanics by sight through the
+injected `loadSourcesSeen` (the Worker's `readNativeLiveSourcesSeen`, the attack-perception rules). Any
+Encounter actor can be a source, not only the action's actor and target; a source no longer in the
+Encounter, or with no token beside the holder's on the Scene, is unseen. A flow that injects none keeps
+the modes always on. The room's initial voluntary or teleport move (`prepareNativeLiveMovement`; forced
+moves never warn) refuses an unacknowledged approach with `RULE_WARNINGS` (`CONDITION_SOURCE_APPROACH`),
+which `MOVE_SCENE_TOKEN.acknowledgedWarnings` overrides; the tabletop shows "Do it anyway". The move
+receipt records no override yet. Undoing the action that applied the condition removes its effect and so
+its source.
+
+**Repeat attempt gate (SPELLS-29.T1a, D134).** A `FOLLOW_UP_SAVE` repeated at the end of the
+target's turn may author `repeatAttemptGate` (`allow: WHEN_MET | WHEN_UNMET` over the same target→source
+`PERCEPTION` as `repeatRollInfluence`; the schema refuses the two together). The compiler pins it as adapter
+facts and makes the frozen graph's `repeat-save-d20` an `evidence.optional-integer-range` enabled by the
+bound fact `dnd5e.repeat-save-attempt-allowed`. When the gate refuses the attempt, the binding requests no
+roll and the effect continues unchanged, or expires on its last tick; the save-test node still runs on
+the settled minimum, so a refused attempt's graph outputs are not a save result and only the interpreted
+`ATTEMPT_REFUSED` counts. Perception the room cannot resolve (no Scene, or a source with no token) is
+unmet, as for `repeatRollInfluence`. SRD Fear authors `WHEN_UNMET` `SEE` (the save is made only out of the
+caster's sight). The schema accepts a gate only on a save first made at the end of the target's turn, since
+the plan for a save made at once on application carries none.
 
 A mechanic with `minimumLevel` applies from that level of a leveled condition: a Character's exhaustion
 level is a level of the System's Exhaustion condition, a Creature's condition row may record a level, and
@@ -717,8 +766,7 @@ suspended at condition speed 0 (the `SPEED_ABOVE_ZERO` predicate), and the table
 speed mechanics before Dash. A condition contributor's derived-mode reason names the condition, and is
 generic for players when the holder is hidden.
 
-Not modeled (registered in the phase ledger): the source of fear (Frightened applies while present),
-Unconscious falling Prone, Petrified damage
+Not modeled (registered in the phase ledger): Unconscious falling Prone, Petrified damage
 resistance, Exhaustion 4 and 6, concentration saves under conditions, and conditions on Convex-side
 action preparation reads (the room owns resolution).
 
@@ -763,6 +811,10 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   `ITEM_ACTIVATION`, read from `Dnd5eModifierTarget.activation`) lets one weapon's damage grant differ between its Action and bonus-action
   attacks. The Two-Weapon Fighting style (Fighter, Ranger, Champion) is a pair of GLOBAL melee-damage `min: 0` grants, one per ability,
   gated on a Light weapon, the bonus action and that attack ability (`twoWeaponFightingGrants`); there is no closed rule.
+  ATTACK-9.T5c authors the weapons: `withOffHandAttack` and `withOffHandDamage` (shared equipment builders) give each SRD Light melee
+  weapon a `BONUS_ACTION` melee attack gated by the `ATTACK_ACTION_OTHER_WEAPON` requirement and split its melee damage ability
+  modifier into an Action grant (`ATTACK_ACTIVATION` EXCLUDE) and a `max: 0` bonus-action grant (INCLUDE). Item attack choices carry
+  `actionCost`, so the offer names which activation each attack uses.
 - **Rage (ATTACK-9.T1, D113)** is authored data on the compiled path, with no Barbarian executor: a bonus action that spends the
   `rageCharge` binding and applies a 1-minute SELF grant. Four generic shapes carry it. (1) An attack records the ability it used
   (`usedAttackAbility`: the highest ability modifier of the attacking item's own `SOURCE`-scoped modifiers, so a finesse weapon records

@@ -180,8 +180,9 @@ export type CompiledFollowUpSave = Omit<
   FollowUpSaveAuthored,
   'onSuccess' | 'onFailure' | 'onDurationComplete'
 > & {
-  /** Preserved immutable policy for a recurring d20; evaluation stays System-owned. */
+  /** Preserved immutable policies for a recurring d20; evaluation stays System-owned. */
   repeatRollInfluence?: FollowUpSaveAuthored['repeatRollInfluence']
+  repeatAttemptGate?: FollowUpSaveAuthored['repeatAttemptGate']
   onSuccess: CompiledFollowUpBranch
   onFailure: CompiledFollowUpBranch
   onDurationComplete?: CompiledFollowUpBranch

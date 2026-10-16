@@ -10,11 +10,11 @@ import { evaluateNativeLiveActionEconomy } from './nativeEncounterActionEconomy.
 import { refuseActionOutsideItsWindow } from './nativeEncounterActionInputs.js'
 import {
   completeAreaCommit,
-  leadActiveEffectPlan,
   openReachCastWindow,
   prepareAreaTarget,
   prepareCasterSource,
   prepareChosenActorsReach,
+  readChosenFormCreature,
   reachRuleOverrides,
   sealReachSaves,
   type AreaPlanBase
@@ -30,31 +30,6 @@ const refusal = (message: string) =>
     reason: 'TARGET_UNAVAILABLE',
     message
   })
-
-/**
- * The Creature the caster's chosen form swaps the targets into (D130), or null for an action that
- * holds no form. The form is the caster's one choice for the whole cast, capped by its own targets.
- */
-async function readChosenFormCreature(
-  input: AreaPlanBase & { command: ActorsCommand },
-  lead: Parameters<typeof leadActiveEffectPlan>[0],
-  targets: readonly AreaPlanBase['actors'][number][]
-) {
-  const { formId } = input.command.target
-  const contribution = leadActiveEffectPlan(lead)?.creatureFormContribution
-  if (!contribution) {
-    if (formId !== undefined) throw refusal('This action takes no creature form.')
-    return null
-  }
-  const form = contribution.forms.find((candidate) => candidate.id === formId)
-  if (!form) throw refusal('This action needs one of its creature forms.')
-  if (targets.length > form.maxTargets)
-    throw refusal(`That form takes at most ${form.maxTargets} creatures.`)
-  if (targets.some((actor) => actor.kind === 'CHARACTER' || actor.form !== null))
-    throw refusal('A chosen creature cannot take a creature form.')
-  if (!input.readFormCreature) throw new Error('The creature form cannot be read.')
-  return input.readFormCreature(input.state.gameSystemId, form.creatureId)
-}
 
 /**
  * Plans a cast on a list of chosen creatures (Mass Healing Word, Mass Cure Wounds) as one commit:

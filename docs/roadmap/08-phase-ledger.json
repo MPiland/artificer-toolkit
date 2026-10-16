@@ -5747,9 +5747,13 @@
         {
           "id": "ATTACK-9",
           "title": "Class-feature resolvers",
-          "status": "IN_PROGRESS",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": [
+            "apps/session-worker/test/nativeRoomOncePerTurn.test.ts",
+            "apps/session-worker/test/nativeRoomOnHitChoice.test.ts",
+            "apps/session-worker/test/nativeRoomTwoWeaponFighting.test.ts"
+          ],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
@@ -5810,8 +5814,13 @@
             {
               "id": "ATTACK-9.5",
               "text": "Two-weapon fighting: after an Attack action with a light melee weapon, the actor is offered the off-hand light weapon attack as a bonus action (D107), which adds no positive ability modifier to damage unless the actor has the Two-Weapon Fighting style. The feature is authored only from core authoring options (no CLOSED_RULE, no feature-specific kind or executor); an author-built equivalent made through the real authoring form publishes to the same structure and resolves identically.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/source-data/src/srd/offHandAttack.test.ts",
+                "packages/rules-runtime/src/__tests__/twoWeaponFightingDamage.test.ts",
+                "packages/authoring/src/nodeRuntime/offHandAttackAuthoringParity.test.ts",
+                "apps/session-worker/test/nativeRoomTwoWeaponFighting.test.ts"
+              ],
               "origin": [],
               "note": "D107."
             },
@@ -5968,8 +5977,8 @@
             },
             {
               "id": "ATTACK-9.T5c",
-              "text": "Builder data for two-weapon fighting and the Two-Weapon Fighting style, the end-to-end journey, and the authoring-parity proof from core options.",
-              "status": "IN_PROGRESS",
+              "text": "Builder data for two-weapon fighting and the Two-Weapon Fighting style, the end-to-end journey, and the authoring-parity proof from core options. (Red: ci/attack-9-t5c-red Tests 38931895848 on 2a6d99876 failed on the off-hand light weapon tests. Green: ci/attack-9-t5 Tests 38948782259 and Live backend 38948782326 on 1e80ebb09.)",
+              "status": "DONE",
               "closes": ["ATTACK-9.5"],
               "wsjf": {
                 "bv": 5,
@@ -5977,8 +5986,7 @@
                 "rr": 3,
                 "size": 2,
                 "after": ["ATTACK-9.T5b"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-attack-9-t5.md"
+              }
             },
             {
               "id": "ATTACK-9.T6",
@@ -8280,8 +8288,8 @@
             },
             {
               "id": "SPELLS-20.T1b",
-              "text": "Spirit Guardians as a SOURCE zone authored from core options: a 15 ft aura on the caster's token that moves with the caster; a creature it catches on entry, or when the caster moves onto it, makes the save against the caster's spell DC and takes the damage; GM undo removes it.",
-              "status": "IN_PROGRESS",
+              "text": "Spirit Guardians as a SOURCE zone authored from core options: a 15 ft aura on the caster's token that moves with the caster; a creature it catches on entry, or when the caster moves onto it, makes the save against the caster's spell DC and takes the damage; GM undo removes it. (Red: ci/spells-20-t1b-red Tests 38947417012 and Live 38947417027 on 7ea6348fd failed on nativeRoomSourceAura.test.ts and sourceZoneAuthoringParity.test.ts. Green: ci/spells-20-t1b Tests 38960499458 and Live 38962770319 on f0ae7dce6.)",
+              "status": "DONE",
               "closes": ["SPELLS-20.1"],
               "wsjf": {
                 "bv": 8,
@@ -8289,8 +8297,7 @@
                 "rr": 5,
                 "size": 8,
                 "after": ["SPELLS-20.T1"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-spells-20.md"
+              }
             },
             {
               "id": "SPELLS-20.T2",
@@ -8708,8 +8715,8 @@
             },
             {
               "id": "SPELLS-28.T4",
-              "text": "Polymorph, True Polymorph (creature to creature), Shapechange (creature form) and Wild Shape authored from core options on the CREATURE_FORM grant, which also applies to CHARACTER Run actors (D130 amendment: one form shape and one revert path; form HP on the actor, carry-over through the Sheet damage batch). A rule-filtered form choice beside the fixed list (creature type, CR cap from target CR/level, caster level or fixed, excluded speed modes), validated at cast against the System creature corpus. Wild Shape and Shapechange keep the origin's Intelligence, Wisdom and Charisma and its save and skill proficiencies (higher bonus wins); casting is refused in a form that cannot cast. Corpus proof against the real compiler and one journey.",
-              "status": "IN_PROGRESS",
+              "text": "Polymorph and True Polymorph (creature to creature) authored from core options on the CREATURE_FORM grant, with a rule-filtered form choice beside the fixed list (creature type, CR cap from target CR/level, caster level or fixed, excluded speed modes), validated at cast against the System creature corpus. (Split 2026-10-16: the Character half moved to T4c.) (Red: ci/spells-28-t4-red Tests 38944606546 on a13f8cf76. Green: ci/spells-28-t4 Tests 38957200514 and Live backend 38957200558 on 2b10ea73f.)",
+              "status": "DONE",
               "closes": ["SPELLS-28.1"],
               "wsjf": {
                 "bv": 5,
@@ -8717,8 +8724,34 @@
                 "rr": 3,
                 "size": 3,
                 "after": ["SPELLS-28.T2"]
+              }
+            },
+            {
+              "id": "SPELLS-28.T4c",
+              "text": "Shapechange (creature form) and Wild Shape authored from core options on the CREATURE_FORM grant applied to CHARACTER Run actors (D130 amendment: one form shape and one revert path; form HP on the actor, carry-over through the Sheet damage batch). Wild Shape and Shapechange keep the origin's Intelligence, Wisdom and Charisma and its save and skill proficiencies (higher bonus wins); casting is refused in a form that cannot cast. Corpus proof against the real compiler and one journey.",
+              "status": "IN_PROGRESS",
+              "closes": ["SPELLS-28.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-28.T4"]
               },
               "activeWorkbook": "docs/handoffs/slice-spells-28.md"
+            },
+            {
+              "id": "SPELLS-28.T4d",
+              "text": "While a Character is in a creature form, its action list is the form stat block's actions (attacks and features) instead of the Sheet's, through a Character action-source change; reverting restores the Sheet actions. Authored from core options; one journey (Wild Shape attack in form).",
+              "status": "TODO",
+              "closes": ["SPELLS-28.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 2,
+                "size": 3,
+                "after": ["SPELLS-28.T4c"]
+              }
             },
             {
               "id": "SPELLS-28.T4b",
@@ -8730,7 +8763,7 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 3,
-                "after": ["SPELLS-28.T4"]
+                "after": ["SPELLS-28.T4c"]
               }
             }
           ]
@@ -8875,6 +8908,71 @@
               "activeWorkbook": "docs/handoffs/slice-spells-27.md"
             },
             {
+              "id": "SPELLS-27.T7",
+              "text": "Sanctuary from core options: a ward that makes a creature targeting the warded creature with an attack or harmful spell make a Wisdom save first (on a fail it picks a new target or loses the attack or spell), and the ward ends when the warded creature attacks, casts a spell on an enemy or deals damage to another creature (D132 against-enemy arms). Converts the closed-rule Sanctuary into a real v2 effect, with GM undo (D122 amendment of 2026-10-16). Closes AC 27.2 with T5.",
+              "status": "TODO",
+              "closes": ["SPELLS-27.2"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-27.T5"]
+              }
+            },
+            {
+              "id": "SPELLS-27.T8",
+              "text": "Sleep from core options: roll the hit-point pool, put creatures in the area to sleep from lowest current HP up, and the unconscious condition ends when the sleeper takes damage or a creature uses an action to wake it. GM undo restores both (D122 amendment of 2026-10-16).",
+              "status": "TODO",
+              "closes": ["SPELLS-27.2"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-27.T5"]
+              }
+            },
+            {
+              "id": "SPELLS-27.T9",
+              "text": "Hypnotic Pattern from core options: one timed condition plan can own several conditions (charmed and incapacitated, speed 0), ending on damage taken or a creature using an action to shake it, with GM undo. Generic for any effect that owns several conditions.",
+              "status": "TODO",
+              "closes": ["SPELLS-27.2"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-27.T5"]
+              }
+            },
+            {
+              "id": "SPELLS-27.T10",
+              "text": "Indefinite invisibility that ends on attack or cast: a creature trait (Imp, Quasit, Green Hag, Sprite, Will-o'-Wisp) creates an effect with no duration that ends on ON_ATTACK_ROLL or ON_CAST_SPELL, or when its Concentration ends, from core options with GM undo.",
+              "status": "TODO",
+              "closes": ["SPELLS-27.2"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 3,
+                "size": 2,
+                "after": ["SPELLS-27.T5"]
+              }
+            },
+            {
+              "id": "SPELLS-27.T11",
+              "text": "Margin-of-failure riders from core options: a save that fails by 5 or more applies an extra condition (Drow poison, Pseudodragon and Sprite stings: unconscious until it takes damage or is woken), generic for any save outcome, with GM undo.",
+              "status": "TODO",
+              "closes": ["SPELLS-27.2"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-27.T5"]
+              }
+            },
+            {
               "id": "SPELLS-27.T6",
               "text": "Unify consumeOnFirstEvents and endOnEvents into one structured shape with explicit timing; delete the old enum, migrate data, no shim (D122). After REACTION-4.T3. The unified shape also absorbs endOnTriggers (T4) and drops its read default of [], migrating stored effects instead.",
               "status": "TODO",
@@ -8908,9 +9006,15 @@
             {
               "id": "SPELLS-29.1",
               "text": "A Frightened condition applied by an action records the creature that frightened it, authored from core options (no Fear-specific kind). The frightened creature has disadvantage on ability checks and attack rolls only while that source is within its line of sight, and a move that ends closer to the source is a soft-enforcement warning the GM can override (ADR 0034). A Frightened with no recorded source keeps its present always-on disadvantage. Proved for Fear, including GM undo.",
-              "status": "TODO",
+              "status": "DONE",
               "origin": [
                 "SPELLS-19.T2 escalation 2026-10-16; confirmed by the user 2026-10-16 (a move that ends closer warns, the GM can override)"
+              ],
+              "proof": [
+                "apps/session-worker/test/nativeRoomFearSource.test.ts",
+                "apps/web/src/domains/campaigns/vtt/CampaignVttStage.moveWarning.test.tsx",
+                "packages/rules-runtime/src/__tests__/encounterAreaActionCompilation.test.ts",
+                "packages/rules-runtime/src/__tests__/encounterConditionMechanics.test.ts"
               ]
             },
             {
@@ -8925,8 +9029,8 @@
           "tasks": [
             {
               "id": "SPELLS-29.T1",
-              "text": "A condition application carries an optional source actor; Frightened's check and attack contributors read line of sight to it; the movement planner warns on a move that ends closer; SRD Fear and every SRD action that frightens authors the source; authoring parity from core options.",
-              "status": "IN_PROGRESS",
+              "text": "A condition application carries an optional source actor; Frightened's check and attack contributors read line of sight to it; the movement planner warns on a move that ends closer; SRD Fear and every SRD action that frightens authors the source; authoring parity from core options. (Red: ci/spells-29-t1-red Tests 38924777168. Green: ci/spells-29-t1 Tests 38956790464 and Live backend 38956790334 on df9d20bb5.)",
+              "status": "DONE",
               "closes": ["SPELLS-29.1"],
               "wsjf": {
                 "bv": 5,
@@ -8938,8 +9042,8 @@
             },
             {
               "id": "SPELLS-29.T1a",
-              "text": "Fear's out-of-sight repeat save, so real SRD Fear compiles faithfully: a generic perception gate on FOLLOW_UP_SAVE (the attempt is allowed only when the target cannot see its source, beside the existing repeatRollInfluence PERCEPTION), authored on SRD Fear, which then compiles through the existing repeating-save plan (area, Concentration, source recorded per T1, including the Worker room journey). No new timed-save compile rule: SPELLS-19.T3's authored-endOnTriggers rule stays the single rule, and Charm Person, Dominate Person/Beast/Monster and Hold Monster stay refused through what is authored. Authoring parity from core options. Same branch as T1; T1 and T1a merge together.",
-              "status": "IN_PROGRESS",
+              "text": "Fear's out-of-sight repeat save, so real SRD Fear compiles faithfully: a generic perception gate on FOLLOW_UP_SAVE (the attempt is allowed only when the target cannot see its source, beside the existing repeatRollInfluence PERCEPTION), authored on SRD Fear, which then compiles through the existing repeating-save plan (area, Concentration, source recorded per T1, including the Worker room journey). No new timed-save compile rule: SPELLS-19.T3's authored-endOnTriggers rule stays the single rule, and Charm Person, Dominate Person/Beast/Monster and Hold Monster stay refused through what is authored. Authoring parity from core options. Same branch as T1; T1 and T1a merge together. (Red: ci/spells-29-t1a-red on c5e34a53d; merge red Tests 38951912964 on 27de27fde (d20 gate read as a damage die). Green: ci/spells-29-t1 Tests 38956790464 and Live backend 38956790334 on df9d20bb5.)",
+              "status": "DONE",
               "closes": ["SPELLS-29.1", "SPELLS-29.2"],
               "wsjf": {
                 "bv": 5,
@@ -8952,7 +9056,7 @@
             {
               "id": "SPELLS-29.T2",
               "text": "Flee-from-source rider: a generic turn-start \"must Dash away from the source\" requirement, soft-enforced on actions and moves; authored for SRD Fear and Eyebite Panicked; authoring parity from core options. (The turn-end out-of-sight save moved to T1a.)",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-29.2"],
               "wsjf": {
                 "bv": 5,
@@ -8960,7 +9064,8 @@
                 "rr": 3,
                 "size": 3,
                 "after": ["SPELLS-29.T1a"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-29.md"
             }
           ]
         }

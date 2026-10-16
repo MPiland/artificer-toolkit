@@ -1,3 +1,4 @@
+import type { EncounterRuleWarningDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
 import type {
   ConditionMechanicAttackRangeDto,
   ConditionMechanicDto,
@@ -5,6 +6,7 @@ import type {
 } from '@artificer-toolkit/schema/shared/ruleState'
 import { resolveD20Contributors } from '@artificer-toolkit/shared/rolls'
 import { compareCanonicalD20Contributors } from '@artificer-toolkit/shared/rules'
+import { measureSceneTokenFootprintDistance, type SceneGrid } from '@artificer-toolkit/shared/vtt'
 
 import {
   measuredDistance,
@@ -316,6 +318,87 @@ export function withEncounterConditionCheckContributors(input: {
     return { contributors: [...input.roll.contributors], rollMode: input.roll.rollMode }
   const contributors = uniqueContributors([...input.roll.contributors, ...conditionContributors])
   return { contributors, rollMode: resolveD20Contributors(contributors).rollMode }
+}
+
+/**
+ * The recorded sources of each condition the holder has, sorted and unique. A condition is sourced
+ * only when every effect that owns it recorded the creature that applied it; one held before its
+ * effect, applied by hand, or owned by an effect that records no source has none (SPELLS-29).
+ */
+export function encounterConditionSources(
+  target: Pick<MovementTarget, 'state' | 'activeEffects'>
+): Map<string, string[]> {
+  const held = new Set(target.state.conditions)
+  const holdings = new Map<string, (string | null)[]>()
+  for (const { definition } of target.activeEffects)
+    for (const contribution of definition.schemaVersion === 2 ? definition.stateContributions : [])
+      if (contribution.kind === 'CONDITION_OWNERSHIP' && held.has(contribution.conditionId))
+        holdings.set(contribution.conditionId, [
+          ...(holdings.get(contribution.conditionId) ?? []),
+          contribution.baselinePresent ? null : (contribution.sourceActorId ?? null)
+        ])
+  return new Map(
+    [...holdings].flatMap(([conditionId, sources]) =>
+      sources.every((source): source is string => source !== null)
+        ? [[conditionId, [...new Set(sources)].sort()] as const]
+        : []
+    )
+  )
+}
+
+/**
+ * The mechanics that apply while the holder sees what it sees: a sight-gated roll mode of a sourced
+ * condition applies only while the holder sees one of its sources; unsourced, it always applies.
+ */
+export function encounterConditionMechanicsInSourceSight(input: {
+  mechanics: readonly EncounterConditionMechanic[]
+  sources: ReadonlyMap<string, readonly string[]>
+  seenActorIds: ReadonlySet<string>
+}): EncounterConditionMechanic[] {
+  return input.mechanics.filter(({ conditionDefinitionId, mechanic }) => {
+    const sources = input.sources.get(conditionDefinitionId)
+    return !(
+      mechanic.kind === 'D20_ROLL_MODE' &&
+      mechanic.requiresHolderSeesSource &&
+      sources &&
+      !sources.some((sourceId) => input.seenActorIds.has(sourceId))
+    )
+  })
+}
+
+/**
+ * The rule warning a move raises when it ends closer to a recorded source of a condition that
+ * forbids approaching it (ADR 0034 soft enforcement). A source without a token on the Scene cannot
+ * be approached.
+ */
+export function encounterConditionApproachWarnings(input: {
+  mechanics: readonly EncounterConditionMechanic[]
+  sources: ReadonlyMap<string, readonly string[]>
+  grid: SceneGrid
+  start: EncounterActionSceneContext['sourceToken']
+  end: EncounterActionSceneContext['sourceToken']
+  sourceTokens: ReadonlyMap<string, EncounterActionSceneContext['targetToken']>
+}): EncounterRuleWarningDto[] {
+  const approaches = input.mechanics.some(
+    ({ conditionDefinitionId, mechanic }) =>
+      mechanic.kind === 'APPROACH_SOURCE_FORBIDDEN' &&
+      (input.sources.get(conditionDefinitionId) ?? []).some((sourceId) => {
+        const source = input.sourceTokens.get(sourceId)
+        return (
+          source &&
+          measureSceneTokenFootprintDistance(input.grid, input.end, source) <
+            measureSceneTokenFootprintDistance(input.grid, input.start, source)
+        )
+      })
+  )
+  return approaches
+    ? [
+        {
+          code: 'CONDITION_SOURCE_APPROACH',
+          message: 'This move ends closer to the source of a condition that forbids it.'
+        }
+      ]
+    : []
 }
 
 /** A speed after every speed mechanic of the actor's conditions, rounded down. */
