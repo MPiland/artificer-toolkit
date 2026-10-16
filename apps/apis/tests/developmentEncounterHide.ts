@@ -25,10 +25,6 @@ const actionChoices = makeFunctionReference<
 export type EncounterHideBrowserFixture = {
   scene: { id: string; name: string }
   hiderLabel: string
-  /** The creatures the Hide hid the creature from, by the label their rows carry. */
-  hiddenFromLabels: string[]
-  /** The creature the GM stops hiding the hider from. */
-  revealLabel: string
 }
 
 export type EncounterHideBrowserControls = {
@@ -39,11 +35,7 @@ export type EncounterHideBrowserControls = {
     result: EncounterCommandResultDto
   }>
   /** The player's turn order shows no observer list, and the room's frames to the player carry none. */
-  assertPlayerSeesNoObservers: (input: {
-    commandId: string
-    observerActorIds: string[]
-    effectId: string
-  }) => Promise<void>
+  assertPlayerSeesNoObservers: (input: { commandId: string; effectId: string }) => Promise<void>
 }
 
 export type EncounterHideBrowserRunner = (
@@ -205,7 +197,7 @@ export async function verifyEncounterHide({
 
   const { createEncounterLifecycleScene } = await import('./developmentEncounterScenes')
   const name = 'Hide browser scene'
-  // The tabletop opens on the live Scene; the hide is an Encounter matter, so no token is bound.
+  // The tabletop opens on the live Scene; the hide is an Encounter matter, so its markers bind to no actor.
   const preparedScene = await createEncounterLifecycleScene({
     owner,
     campaignId,
@@ -221,7 +213,36 @@ export async function verifyEncounterHide({
         diagonalPolicy: 'EQUAL',
         unit: 'FEET'
       },
-      tokens: []
+      tokens: [
+        {
+          id: crypto.randomUUID(),
+          assetId: null,
+          controlledByUserIds: [],
+          height: 50,
+          hidden: false,
+          label: 'Scenery marker one',
+          locked: false,
+          position: { x: 100, y: 100 },
+          rotationDegrees: 0,
+          senses: [],
+          vision: null,
+          width: 50
+        },
+        {
+          id: crypto.randomUUID(),
+          assetId: null,
+          controlledByUserIds: [],
+          height: 50,
+          hidden: false,
+          label: 'Scenery marker two',
+          locked: false,
+          position: { x: 250, y: 100 },
+          rotationDegrees: 0,
+          senses: [],
+          vision: null,
+          width: 50
+        }
+      ]
     }
   })
   const presentation = await owner.query(api.scenes.presentations.get, { campaignId })
@@ -297,9 +318,7 @@ export async function verifyEncounterHide({
   await browser(
     {
       scene: { id: preparedScene.liveSceneId, name },
-      hiderLabel: hider.label,
-      hiddenFromLabels: concealment.observerActorIds.map(labelOf),
-      revealLabel: reveal.label
+      hiderLabel: hider.label
     },
     async (controls) => {
       // 1. The GM's turn order lists who the hider is hidden from.
@@ -325,7 +344,7 @@ export async function verifyEncounterHide({
         noticed: [reveal.label]
       })
 
-      // 3. The GM's stored projection holds the edit; the player's holds no concealment at all.
+      // 3. The GM's projection read holds the edit; the player's holds no concealment at all.
       await checkpoint()
       const [gmRun, playerRun] = await Promise.all([
         owner.query(api.encounters.projectionReads.get, { encounterId: run.id }),
@@ -345,7 +364,6 @@ export async function verifyEncounterHide({
       // 4. The player's table updates for the edit and shows nothing of who the hider is hidden from.
       await controls.assertPlayerSeesNoObservers({
         commandId: revealed.command.commandId,
-        observerActorIds: concealment.observerActorIds,
         effectId: concealment.effectId
       })
     }

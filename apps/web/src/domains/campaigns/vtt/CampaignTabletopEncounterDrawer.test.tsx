@@ -570,7 +570,7 @@ describe('CampaignTabletopEncounterDrawer', () => {
       renderDrawer(gmEncounter, 'OWNER')
       await user.click(screen.getByRole('button', { name: 'Open turn order' }))
 
-      const section = screen.getByRole('region', { name: `Hidden creature ${hider!.label}` })
+      const section = screen.getByRole('list', { name: `Hidden creature ${hider!.label}` })
       expect(within(section).getByText(`Hidden from ${watcher!.label}`)).toBeVisible()
       expect(within(section).getByText(`Noticed by ${bystander.label}`)).toBeVisible()
       expect(within(section).queryByText(`Hidden from ${bystander.label}`)).toBeNull()

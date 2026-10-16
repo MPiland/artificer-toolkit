@@ -107,7 +107,7 @@ export async function verifyEncounterHideBrowser(
       await expect(turnOrder(page)).toBeVisible()
     }
     const hiddenSection = (page: Page) =>
-      turnOrder(page).getByRole('region', { name: 'Hidden creature ' + input.hiderLabel })
+      turnOrder(page).getByRole('list', { name: 'Hidden creature ' + input.hiderLabel })
 
     await verify({
       assertGmObservers: async ({ hidden, noticed }) => {
@@ -156,7 +156,7 @@ export async function verifyEncounterHideBrowser(
           throw new Error('Turn order did not submit SET_CONCEALMENT_OBSERVERS.')
         return { command: result.command, result: result.result }
       },
-      assertPlayerSeesNoObservers: async ({ commandId, observerActorIds, effectId }) => {
+      assertPlayerSeesNoObservers: async ({ commandId, effectId }) => {
         stage = 'verify the player sees no observer list'
         // The room sent the player the edit's commit, and it carries nothing of the concealment.
         await expect.poll(() => playerCommittedCommandIds.includes(commandId)).toBe(true)
@@ -168,7 +168,8 @@ export async function verifyEncounterHideBrowser(
           turnOrder(playerPage).getByRole('button', { name: /^(Stop hiding|Hide) .* from / })
         ).toHaveCount(0)
         const everything = playerFrames.join('\n')
-        for (const secret of ['concealment', 'observerActorIds', effectId, ...observerActorIds])
+        // Actor ids are public to the table; only the concealment's keys and effect id are secret.
+        for (const secret of ['"concealment"', '"observerActorIds"', effectId])
           expect(everything).not.toContain(secret)
         await playerPage.screenshot({
           caret: 'initial',

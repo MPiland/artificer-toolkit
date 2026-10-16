@@ -21,36 +21,34 @@ export function CampaignTabletopConcealmentObservers({
 }) {
   const others = actors.filter(({ id }) => id !== holder.id)
   return (
-    <section aria-label={`Hidden creature ${holder.label}`}>
-      <ul className={styles.list}>
-        {others.map((actor) => {
-          const hiddenFrom = concealment.observerActorIds.includes(actor.id)
-          return (
-            <li className={styles.item} key={actor.id}>
-              <Text size='xs'>
-                {hiddenFrom ? 'Hidden from' : 'Noticed by'} {actor.label}
-              </Text>
-              <Button
-                aria-label={
-                  hiddenFrom
-                    ? `Stop hiding ${holder.label} from ${actor.label}`
-                    : `Hide ${holder.label} from ${actor.label}`
-                }
-                disabled={disabled}
-                size='compact-xs'
-                variant='default'
-                onClick={() =>
-                  onChange(
-                    hiddenFrom ? { add: [], remove: [actor.id] } : { add: [actor.id], remove: [] }
-                  )
-                }
-              >
-                {hiddenFrom ? 'Reveal' : 'Hide'}
-              </Button>
-            </li>
-          )
-        })}
-      </ul>
-    </section>
+    <ul aria-label={`Hidden creature ${holder.label}`} className={styles.list}>
+      {others.map((actor) => {
+        const hiddenFrom = concealment.observerActorIds.includes(actor.id)
+        return (
+          <li className={styles.item} key={actor.id}>
+            <Text size='xs'>
+              {hiddenFrom ? 'Hidden from' : 'Noticed by'} {actor.label}
+            </Text>
+            <Button
+              aria-label={
+                hiddenFrom
+                  ? `Stop hiding ${holder.label} from ${actor.label}`
+                  : `Hide ${holder.label} from ${actor.label}`
+              }
+              disabled={disabled}
+              size='compact-xs'
+              variant='default'
+              onClick={() =>
+                onChange(
+                  hiddenFrom ? { add: [], remove: [actor.id] } : { add: [actor.id], remove: [] }
+                )
+              }
+            >
+              {hiddenFrom ? 'Stop hiding' : 'Hide'}
+            </Button>
+          </li>
+        )
+      })}
+    </ul>
   )
 }
