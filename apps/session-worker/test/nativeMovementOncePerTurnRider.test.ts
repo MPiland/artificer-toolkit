@@ -54,7 +54,12 @@ afterEach(() => {
 /** A Club the Fighter attacks with as an opportunity attack, taken as a Reaction when a creature leaves its reach. */
 const reactionClub: EquipmentAuthored = (() => {
   const [attack] = meleeWeaponEffects(REACTION_CLUB_ID, 'BLUDGEONING', '1d4', EQUIPMENT_GRIP.ONE_HANDED)
-  if (!attack || attack.invocation.kind !== 'ACTION') throw new Error('The melee attack is missing.')
+  if (
+    !attack ||
+    attack.invocation.kind !== 'ACTION' ||
+    attack.invocation.triggerCode === 'CHECK'
+  )
+    throw new Error('The melee attack is missing.')
   return {
     ...club,
     id: REACTION_CLUB_ID,
