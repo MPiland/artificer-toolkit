@@ -113609,6 +113609,7 @@ export declare const api: {
                     | null
                     | Array<any>
                     | Record<string, any>;
+                  reveal?: "UNNAMED" | "NAMED" | null;
                   sourceId: string | null;
                   sourceRevision: number | null;
                   stableTieKey: string;
@@ -114411,6 +114412,7 @@ export declare const api: {
                     | null
                     | Array<any>
                     | Record<string, any>;
+                  reveal?: "UNNAMED" | "NAMED" | null;
                   sourceId: string | null;
                   sourceRevision: number | null;
                   stableTieKey: string;
@@ -115229,6 +115231,7 @@ export declare const api: {
                 | null
                 | Array<any>
                 | Record<string, any>;
+              reveal?: "UNNAMED" | "NAMED" | null;
               sourceId: string | null;
               sourceRevision: number | null;
               stableTieKey: string;
@@ -115522,6 +115525,7 @@ export declare const api: {
                     | null
                     | Array<any>
                     | Record<string, any>;
+                  reveal?: "UNNAMED" | "NAMED" | null;
                   sourceId: string | null;
                   sourceRevision: number | null;
                   stableTieKey: string;
@@ -116018,6 +116022,7 @@ export declare const api: {
               | null
               | Array<any>
               | Record<string, any>;
+            reveal?: "UNNAMED" | "NAMED" | null;
             sourceId: string | null;
             sourceRevision: number | null;
             stableTieKey: string;
