@@ -13,14 +13,14 @@ Today the SRD Rogue authors two inert `CLASS_ROGUE_SNEAK_ATTACK` closed rules (`
 
 Only three parts of the rule exist today: the finesse/ranged weapon gate (for modifier grants only), the Rogue `CLASS_LEVEL` gate (Rage precedent), and critical doubling of any `ON_HIT` damage entry inside an action's own compiled effect (`effectActionCompiler.ts` ~3650-3700, 31-dice cap; 10d6 doubled is 20).
 
-| Gap | Evidence | Needs |
-| --- | --- | --- |
-| a. A Feature's PASSIVE `ON_HIT` dice cannot join a weapon attack | `characterActionRuleFacts.ts:314` skips PASSIVE effects; extra damage is numeric modifiers on the first outcome only (`characterActionMechanics.ts:316-319`); `ADD_BONUS_DIE` is schema-rejected (`schema/src/grants/modifier.ts:760-818`) | New shape |
-| b. Dice count cannot scale by class level | `validateDiceOutcomeRow` rejects `CLASS_LEVEL` (`effectActionCompiler.ts:2108-2124`); no code binds `characterLevel`/`parentClassLevel`/class-level facts | New shape |
-| c. No "the weapon's damage type" | `damageTypeId` is a required uuid (`authored/damage.ts:117-124`) | New shape |
-| d. Roll mode not visible to outcome selection | `d20RollMode` is returned beside, not inside, the bound facts (`effectActionCompiler.ts:6804-6866`); no predicate | New shape |
-| e. No "enemy of the target within N feet" | no distance/adjacency predicate; `positionalFacts` has no production supplier (`encounterActionMechanicsPreparation.ts:415-476`) | New shape and wiring |
-| f. No once-per-turn limit or per-turn record | no TURN charge reset; the nearest keyed-by-turn row is `encounterTurnMovements` (D38) | New persisted record |
+| Gap                                                              | Evidence                                                                                                                                                                                                                                   | Needs                |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------- |
+| a. A Feature's PASSIVE `ON_HIT` dice cannot join a weapon attack | `characterActionRuleFacts.ts:314` skips PASSIVE effects; extra damage is numeric modifiers on the first outcome only (`characterActionMechanics.ts:316-319`); `ADD_BONUS_DIE` is schema-rejected (`schema/src/grants/modifier.ts:760-818`) | New shape            |
+| b. Dice count cannot scale by class level                        | `validateDiceOutcomeRow` rejects `CLASS_LEVEL` (`effectActionCompiler.ts:2108-2124`); no code binds `characterLevel`/`parentClassLevel`/class-level facts                                                                                  | New shape            |
+| c. No "the weapon's damage type"                                 | `damageTypeId` is a required uuid (`authored/damage.ts:117-124`)                                                                                                                                                                           | New shape            |
+| d. Roll mode not visible to outcome selection                    | `d20RollMode` is returned beside, not inside, the bound facts (`effectActionCompiler.ts:6804-6866`); no predicate                                                                                                                          | New shape            |
+| e. No "enemy of the target within N feet"                        | no distance/adjacency predicate; `positionalFacts` has no production supplier (`encounterActionMechanicsPreparation.ts:415-476`)                                                                                                           | New shape and wiring |
+| f. No once-per-turn limit or per-turn record                     | no TURN charge reset; the nearest keyed-by-turn row is `encounterTurnMovements` (D38)                                                                                                                                                      | New persisted record |
 
 ATTACK-9.T6 (Rage early end) reads a per-turn attack/damage record that (f) is meant to build.
 
