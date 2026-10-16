@@ -7,6 +7,7 @@ import type {
 import { characterPolicyRecord } from './characterPolicyValues.js'
 
 type ItemCondition = CharacterGrantFoldRestriction[number]['conditions'][number]
+type AttackFacts = Pick<Dnd5eModifierTarget, 'item' | 'attackAbility' | 'activation'>
 
 /** The conditions read from the attacking item; any other deferred condition is the encounter's. */
 export const DND5E_ITEM_CONDITION_KINDS: ReadonlySet<ItemCondition['kind']> = new Set([
@@ -14,7 +15,8 @@ export const DND5E_ITEM_CONDITION_KINDS: ReadonlySet<ItemCondition['kind']> = ne
   'ITEM_CATEGORY',
   'ITEM_PROPERTY',
   'ITEM_SOLE_WEAPON',
-  'ITEM_ATTACK_ABILITY'
+  'ITEM_ATTACK_ABILITY',
+  'ITEM_ACTIVATION'
 ])
 
 /**
@@ -31,13 +33,14 @@ export type Dnd5eAttackingItem = {
 
 /**
  * What a modifier consumer evaluates: the sources whose own (SOURCE-scoped) modifiers apply, the
- * attacking item for item facets, the ability the attack uses for attack-ability facets and the
- * spell for spell facets.
+ * attacking item for item facets, the ability the attack uses for attack-ability facets, the
+ * activation it is made with and the spell for spell facets.
  */
 export type Dnd5eModifierTarget = {
   readonly sourceIds: readonly string[]
   readonly item: Dnd5eAttackingItem | null
   readonly attackAbility: string | null
+  readonly activation: string | null
   readonly spellId: string | null
 }
 
@@ -46,6 +49,7 @@ export const DND5E_CHARACTER_WIDE_TARGET: Dnd5eModifierTarget = {
   sourceIds: [],
   item: null,
   attackAbility: null,
+  activation: null,
   spellId: null
 }
 
@@ -62,14 +66,15 @@ function dnd5eModifierScope(grant: unknown): 'GLOBAL' | 'SOURCE' {
   return characterPolicyRecord(grant).scope === 'GLOBAL' ? 'GLOBAL' : 'SOURCE'
 }
 
-/** An attack-ability condition needs no item, so an unarmed strike can meet it. */
+/** An attack-ability or activation condition needs no item, so an unarmed strike can meet it. */
 function itemConditionMatches(
   condition: ItemCondition,
-  item: Dnd5eAttackingItem | null,
-  attackAbility: string | null
+  { item, attackAbility, activation }: AttackFacts
 ): boolean {
   if (condition.kind === 'ITEM_ATTACK_ABILITY')
     return attackAbility !== null && condition.abilityId === attackAbility
+  if (condition.kind === 'ITEM_ACTIVATION')
+    return activation !== null && condition.requiredIds.includes(activation)
   if (item === null) return false
   switch (condition.kind) {
     case 'ITEM_IDENTITY':
@@ -97,22 +102,26 @@ function itemConditionMatches(
 
 /**
  * OR-of-AND item groups; a Character-wide value (no item) meets only an empty requirement, or a
- * group of attack-ability conditions alone.
+ * group of attack-ability and activation conditions alone.
  */
 export function dnd5eItemRequirementsMet(
   requirements: CharacterGrantFoldRestriction,
-  item: Dnd5eAttackingItem | null,
-  attackAbility: string | null
+  target: AttackFacts
 ): boolean {
   if (requirements.length === 0) return true
   return requirements.some(
     (group) =>
-      (item !== null || group.conditions.length > 0) &&
+      (target.item !== null || group.conditions.length > 0) &&
       group.conditions.every((condition) => {
         // A holder-state condition is decided where the holder's state is known, never here.
         if (!DND5E_ITEM_CONDITION_KINDS.has(condition.kind)) return false
-        if (item === null && condition.kind !== 'ITEM_ATTACK_ABILITY') return false
-        const matches = itemConditionMatches(condition, item, attackAbility)
+        if (
+          target.item === null &&
+          condition.kind !== 'ITEM_ATTACK_ABILITY' &&
+          condition.kind !== 'ITEM_ACTIVATION'
+        )
+          return false
+        const matches = itemConditionMatches(condition, target)
         return condition.constraint === 'INCLUDE' ? matches : !matches
       })
   )
@@ -145,7 +154,7 @@ export function dnd5eModifierApplies(
 ): boolean {
   return (
     (modifier.scope === 'GLOBAL' || target.sourceIds.includes(modifier.sourceId)) &&
-    dnd5eItemRequirementsMet(modifier.deferredRequirements, target.item, target.attackAbility) &&
+    dnd5eItemRequirementsMet(modifier.deferredRequirements, target) &&
     (modifier.scopeSpellIds.length === 0 ||
       (target.spellId !== null && modifier.scopeSpellIds.includes(target.spellId)))
   )
@@ -177,12 +186,16 @@ export function dnd5eFoldedModifierApplicability(
 
 /** A Character action evaluates its own source and, for an item action, the item it attacks with. */
 export function dnd5eCharacterActionTarget(
-  candidate: Pick<CharacterActionCandidate, 'sourceId' | 'equipment' | 'mechanicsOwner'>
+  candidate: Pick<
+    CharacterActionCandidate,
+    'sourceId' | 'equipment' | 'mechanicsOwner' | 'mechanicFacts'
+  >
 ): Dnd5eModifierTarget {
   return {
     sourceIds: [candidate.sourceId],
     item: dnd5eAttackingItem(candidate.equipment),
     attackAbility: null,
+    activation: candidate.mechanicFacts.invocation.activation?.code ?? null,
     spellId: candidate.mechanicsOwner.kind === 'SPELL' ? candidate.mechanicsOwner.id : null
   }
 }

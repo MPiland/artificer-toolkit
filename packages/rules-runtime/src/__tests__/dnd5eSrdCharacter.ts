@@ -246,7 +246,7 @@ export function evaluateSrdCharacter(input: SrdCharacterInput): SrdCharacter {
 export function itemAction(
   character: SrdCharacter,
   label: string,
-  select: { attackKind: string; grip?: 'ONE_HANDED' | 'TWO_HANDED' }
+  select: { attackKind: string; grip?: 'ONE_HANDED' | 'TWO_HANDED'; activation?: string }
 ) {
   const itemInstanceId = character.itemInstanceId(label)
   const matches = character.facts.actionCandidates.flatMap((candidate) => {
@@ -255,7 +255,9 @@ export function itemAction(
     )
     return candidate.equipment?.itemInstanceId === itemInstanceId &&
       decision?.mechanic.attackKind === select.attackKind &&
-      (select.grip === undefined || candidate.equipment.grip === select.grip)
+      (select.grip === undefined || candidate.equipment.grip === select.grip) &&
+      (select.activation === undefined ||
+        candidate.mechanicFacts.invocation.activation?.code === select.activation)
       ? [{ candidate, decision }]
       : []
   })

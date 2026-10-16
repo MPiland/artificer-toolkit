@@ -123,6 +123,14 @@ const abilityModifierBonusPayloadDtoSchema = lazySchema(() =>
   })
 )
 
+const optionalAbilityModifierBonusPayloadDtoSchema = lazySchema(() =>
+  z.object({
+    abilities: authoredReferenceCollectionSchema(abilityCodeSchema),
+    min: z.optional(z.number()),
+    max: z.optional(z.number())
+  })
+)
+
 const chargeLimitLevelDtoSchema = lazySchema(() =>
   z.object({
     id: authoredIdentifierSchema,
@@ -299,9 +307,7 @@ const buildModifierGrantVariants = () => {
       'ARMOR_CLASS',
       'OPTIONAL_ABILITY_MODIFIER_BONUS',
       emptyDomainDtoSchema,
-      z.object({
-        abilities: authoredReferenceCollectionSchema(abilityCodeSchema)
-      })
+      optionalAbilityModifierBonusPayloadDtoSchema
     ),
     buildModifierGrantVariant(
       'INITIATIVE',
@@ -373,9 +379,7 @@ const buildModifierGrantVariants = () => {
       'ATTACK_ROLL',
       'OPTIONAL_ABILITY_MODIFIER_BONUS',
       attackDomainParamDtoSchema,
-      z.object({
-        abilities: authoredReferenceCollectionSchema(abilityCodeSchema)
-      })
+      optionalAbilityModifierBonusPayloadDtoSchema
     ),
     buildModifierGrantVariant('ATTACK_ROLL', 'ADVANTAGE', attackDomainParamDtoSchema),
     buildModifierGrantVariant('ATTACK_ROLL', 'DISADVANTAGE', attackDomainParamDtoSchema),
@@ -449,9 +453,7 @@ const buildModifierGrantVariants = () => {
       'DAMAGE',
       'OPTIONAL_ABILITY_MODIFIER_BONUS',
       attackDomainParamDtoSchema,
-      z.object({
-        abilities: authoredReferenceCollectionSchema(abilityCodeSchema)
-      })
+      optionalAbilityModifierBonusPayloadDtoSchema
     ),
     buildModifierGrantVariant(
       'DAMAGE',

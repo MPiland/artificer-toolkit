@@ -797,13 +797,13 @@ describe('D&D 5e modifier scope', () => {
     expect(
       dnd5eModifierApplies(
         { ...modifier, scope: 'SOURCE' },
-        { sourceIds: ['item'], item: sword, spellId: null, attackAbility: null }
+        { sourceIds: ['item'], item: sword, spellId: null, attackAbility: null, activation: null }
       )
     ).toBe(true)
     expect(
       dnd5eModifierApplies(
         { ...modifier, scope: 'SOURCE' },
-        { sourceIds: ['other'], item: sword, spellId: null, attackAbility: null }
+        { sourceIds: ['other'], item: sword, spellId: null, attackAbility: null, activation: null }
       )
     ).toBe(false)
   })
@@ -821,7 +821,8 @@ describe('D&D 5e modifier scope', () => {
         sourceIds: [],
         item: sword,
         spellId: null,
-        attackAbility: null
+        attackAbility: null,
+        activation: null
       })
     ).toBe(true)
     expect(
@@ -829,7 +830,8 @@ describe('D&D 5e modifier scope', () => {
         sourceIds: [],
         item: { ...sword, grip: 'TWO_HANDED' },
         spellId: null,
-        attackAbility: null
+        attackAbility: null,
+        activation: null
       })
     ).toBe(false)
   })
@@ -847,7 +849,8 @@ describe('D&D 5e modifier scope', () => {
         sourceIds: [],
         item: null,
         spellId: 'eldritch-blast',
-        attackAbility: null
+        attackAbility: null,
+        activation: null
       })
     ).toBe(true)
     expect(
@@ -855,7 +858,8 @@ describe('D&D 5e modifier scope', () => {
         sourceIds: [],
         item: null,
         spellId: 'fire-bolt',
-        attackAbility: null
+        attackAbility: null,
+        activation: null
       })
     ).toBe(false)
   })
@@ -998,7 +1002,8 @@ describe('D&D 5e restrictions and spell-scoped damage', () => {
       sourceIds: [],
       item: { ...item, otherWeaponEquipped },
       spellId: null,
-      attackAbility: null
+      attackAbility: null,
+      activation: null
     })
     expect(group!.conditions.map((condition) => condition.kind)).toEqual(['ITEM_SOLE_WEAPON'])
     expect(dnd5eModifierApplies(modifier, target(false))).toBe(true)
