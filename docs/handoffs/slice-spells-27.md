@@ -228,9 +228,9 @@ A plain allow-list of the closed-rule spells was rejected: a `CLOSED_RULE` creat
 The test walks every SRD subject record and splits its description into sentences. A sentence is a hit when it prints an end (ends, wakes, disappears, until) beside a holder event: takes damage, is harmed, is attacked, attacks or casts a spell. "Until the spell ends, your attacks…", repeat-save-on-damage text (Hideous Laughter, Contagion) and grapple ends are not hits. Result: 30 records print such an end (17 spells, 1 class feature, 12 creature records; Sprite has two).
 
 - **Authored (7):** Invisibility, the four Brass Dragon breaths (already), Charm Person (`DAMAGE_TAKEN` by `SOURCE_SIDE`) and Duergar Invisibility (`endOnEvents` `ON_ATTACK_ROLL` / `ON_CAST_SPELL`; its duration was 1 minute against "up to 1 hour" in the text and is now 1 hour).
-- **`GM_ADJUDICATED` (12):** Animal Friendship, Awaken, Calm Emotions, Eyebite, Mass Suggestion, Mislead, Modify Memory, Produce Flame, Project Image, Sequester, Suggestion, Oath of Devotion's Turn the Unholy. Each is a closed rule or manual adjudication with no effect. One future-enhancements line covers them.
-- **`REGISTERED_FOLLOW_UP` (11), each needs a mechanic the forms do not carry:** Sleep (hit point pool targeting); Hypnotic Pattern (charmed, incapacitated and speed 0 from one timed effect; the timed condition plan takes exactly one condition); Phantom Steed (the end is damage to the manifested steed); Sanctuary (SPELLS-27.T7); Imp, Quasit, Green Hag, Sprite and Will-o'-Wisp invisibility (no duration, kept by concentration, so there is no timed effect to carry `endOnEvents`); the Drow, Pseudodragon and Sprite stings (unconscious on failing the save by 5 or more).
-- **Categories unused:** `CONCENTRATION`, `DISMISSAL`, `DISTANCE`, `DURATION` name ends that are not holder events (a dismissal, a range, the duration), which the detector does not match, so no entry needs them.
+- **`GM_ADJUDICATED` (13, per both D122 amendments):** Animal Friendship, Awaken, Calm Emotions, Eyebite, Mass Suggestion, Mislead, Modify Memory, Phantom Steed, Produce Flame, Project Image, Sequester, Suggestion, Oath of Devotion's Turn the Unholy. One future-enhancements line covers them.
+- **`REGISTERED_FOLLOW_UP` (10), each names its task:** Sanctuary (T7); Sleep (T8: hit point pool targeting; also waking with an action); Hypnotic Pattern (T9: charmed, incapacitated and speed 0 from one timed effect, but the timed condition plan takes exactly one condition); Imp, Quasit, Green Hag, Sprite and Will-o'-Wisp invisibility (T10: no duration, kept by concentration); the Drow, Pseudodragon and Sprite stings (T11: unconscious on failing the save by 5 or more). Sleep and Hypnotic Pattern do not compile from existing plans, so they stay with T8 and T9.
+- **Categories `CONCENTRATION`, `DISMISSAL`, `DISTANCE`, `DURATION`** are in the type; no current hit needs them.
 - Charm Person's "advantage on the saving throw if you or your companions are fighting it" is not authored (no conditional save advantage exists); noted for a follow-up.
 
 ### Proof
@@ -239,4 +239,4 @@ The test walks every SRD subject record and splits its description into sentence
 
 ### Proposed ledger edits (the main session applies them)
 
-- SPELLS-27.T5 DONE once green; register the REGISTERED_FOLLOW_UP mechanics as tasks (Sleep, Hypnotic Pattern, concentration-bound creature invisibility, the 5-point-margin stings, Phantom Steed's steed damage).
+- SPELLS-27.T5 DONE once green; T7 to T11 are already registered; AC 27.2 closes when `REGISTERED_FOLLOW_UP` is empty.

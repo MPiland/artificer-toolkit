@@ -2,91 +2,80 @@ import { describe, expect, it } from 'vitest'
 import { srdBaselineContent } from './index.js'
 
 /**
- * SPELLS-27.T5. Printed text that ends an effect when its holder is harmed, damaged, attacks or casts
- * a spell must be authored as an end event on the record's effects (`endOnTriggers` / `endOnEvents`),
- * or the record must be listed here with the mechanism that covers it. A listing never excuses a
- * record that authors the event: that would let the authoring and the list drift apart.
+ * SPELLS-27.T5 (D122 amendments of 2026-10-16). Printed text that ends an effect when its holder is
+ * harmed, damaged, attacks or casts a spell must be authored as an end event on the record's effects
+ * (`endOnTriggers` / `endOnEvents`), or the record must be listed here under the category that covers
+ * it. A listing never excuses a record that authors the event: that would let the authoring and the
+ * list drift apart. A closed rule creates no effect, so it is `GM_ADJUDICATED`, never "covered".
+ * AC 27.2 closes when no entry is `REGISTERED_FOLLOW_UP`.
  */
 type EndEventCover =
   | {
-      /** The record has no engine effect, or ends in a way the GM applies at the table. */
+      /** A closed rule or manual adjudication with no effect; the GM applies the end at the table. */
       mechanism: 'GM_ADJUDICATED'
-      reason: string
     }
   | {
-      /** Needs a mechanic the effect forms do not carry yet; the follow-up is tracked in the roadmap. */
+      /** An effect that ends with its Concentration, so no holder event is needed. */
+      mechanism: 'CONCENTRATION'
+    }
+  | {
+      /** An effect the holder or caster dismisses. */
+      mechanism: 'DISMISSAL'
+    }
+  | {
+      /** An effect that ends by distance. */
+      mechanism: 'DISTANCE'
+    }
+  | {
+      /** An effect that ends by its timed duration. */
+      mechanism: 'DURATION'
+    }
+  | {
+      /** Needs a mechanic the effect forms do not carry yet; the named task adds it. */
       mechanism: 'REGISTERED_FOLLOW_UP'
-      reason: string
+      task:
+        | 'T7 Sanctuary'
+        | 'T8 Sleep'
+        | 'T9 Hypnotic Pattern'
+        | 'T10 indefinite invisibility'
+        | 'T11 margin-of-failure riders'
     }
 
-const NO_ENGINE_EFFECT =
-  'a closed rule or manual adjudication: it creates no effect to carry the end'
+const GM_ADJUDICATED: EndEventCover = { mechanism: 'GM_ADJUDICATED' }
+const T10: EndEventCover = {
+  mechanism: 'REGISTERED_FOLLOW_UP',
+  task: 'T10 indefinite invisibility'
+}
+const T11: EndEventCover = {
+  mechanism: 'REGISTERED_FOLLOW_UP',
+  task: 'T11 margin-of-failure riders'
+}
 
 const COVERED_END_EVENTS: Record<string, EndEventCover> = {
-  'spells/Animal Friendship': { mechanism: 'GM_ADJUDICATED', reason: NO_ENGINE_EFFECT },
-  'spells/Awaken': { mechanism: 'GM_ADJUDICATED', reason: NO_ENGINE_EFFECT },
-  'spells/Calm Emotions': { mechanism: 'GM_ADJUDICATED', reason: NO_ENGINE_EFFECT },
-  'spells/Eyebite': { mechanism: 'GM_ADJUDICATED', reason: NO_ENGINE_EFFECT },
-  'spells/Mass Suggestion': { mechanism: 'GM_ADJUDICATED', reason: NO_ENGINE_EFFECT },
-  'spells/Mislead': { mechanism: 'GM_ADJUDICATED', reason: NO_ENGINE_EFFECT },
-  'spells/Modify Memory': { mechanism: 'GM_ADJUDICATED', reason: NO_ENGINE_EFFECT },
-  'spells/Produce Flame': { mechanism: 'GM_ADJUDICATED', reason: NO_ENGINE_EFFECT },
-  'spells/Project Image': { mechanism: 'GM_ADJUDICATED', reason: NO_ENGINE_EFFECT },
-  'spells/Sequester': { mechanism: 'GM_ADJUDICATED', reason: NO_ENGINE_EFFECT },
-  'spells/Suggestion': { mechanism: 'GM_ADJUDICATED', reason: NO_ENGINE_EFFECT },
-  'classes/Oath of Devotion > Channel Divinity: Turn the Unholy': {
-    mechanism: 'GM_ADJUDICATED',
-    reason: NO_ENGINE_EFFECT
-  },
-  'spells/Hypnotic Pattern': {
-    mechanism: 'REGISTERED_FOLLOW_UP',
-    reason:
-      'charmed, incapacitated and speed 0 from one timed effect, which has one condition today'
-  },
-  'spells/Phantom Steed': {
-    mechanism: 'REGISTERED_FOLLOW_UP',
-    reason: 'the end is damage to the manifested steed, not to the spell holder'
-  },
-  'spells/Sanctuary': {
-    mechanism: 'REGISTERED_FOLLOW_UP',
-    reason: 'SPELLS-27.T7: a Wisdom-save targeting ward that ends when its holder attacks an enemy'
-  },
-  'spells/Sleep': {
-    mechanism: 'REGISTERED_FOLLOW_UP',
-    reason: 'targets by a hit point pool, lowest first'
-  },
-  'creatures/Drow > Hand Crossbow': {
-    mechanism: 'REGISTERED_FOLLOW_UP',
-    reason: 'unconscious on failing by 5 or more, ending on damage'
-  },
-  'creatures/Pseudodragon > Sting': {
-    mechanism: 'REGISTERED_FOLLOW_UP',
-    reason: 'unconscious on failing by 5 or more, ending on damage'
-  },
-  'creatures/Sprite > Shortbow': {
-    mechanism: 'REGISTERED_FOLLOW_UP',
-    reason: 'unconscious on failing by 5 or more, ending on damage'
-  },
-  'creatures/Green Hag > Invisible Passage': {
-    mechanism: 'REGISTERED_FOLLOW_UP',
-    reason: 'invisibility with no duration, kept by concentration, ending on an attack or a cast'
-  },
-  'creatures/Imp > Invisibility': {
-    mechanism: 'REGISTERED_FOLLOW_UP',
-    reason: 'invisibility with no duration, kept by concentration, ending on an attack or a cast'
-  },
-  'creatures/Quasit > Invisibility': {
-    mechanism: 'REGISTERED_FOLLOW_UP',
-    reason: 'invisibility with no duration, kept by concentration, ending on an attack or a cast'
-  },
-  'creatures/Sprite > Invisibility': {
-    mechanism: 'REGISTERED_FOLLOW_UP',
-    reason: 'invisibility with no duration, kept by concentration, ending on an attack or a cast'
-  },
-  "creatures/Will-o'-Wisp > Invisibility": {
-    mechanism: 'REGISTERED_FOLLOW_UP',
-    reason: 'invisibility with no duration, kept by concentration, ending on an attack or a cast'
-  }
+  'spells/Animal Friendship': GM_ADJUDICATED,
+  'spells/Awaken': GM_ADJUDICATED,
+  'spells/Calm Emotions': GM_ADJUDICATED,
+  'spells/Eyebite': GM_ADJUDICATED,
+  'spells/Mass Suggestion': GM_ADJUDICATED,
+  'spells/Mislead': GM_ADJUDICATED,
+  'spells/Modify Memory': GM_ADJUDICATED,
+  'spells/Phantom Steed': GM_ADJUDICATED,
+  'spells/Produce Flame': GM_ADJUDICATED,
+  'spells/Project Image': GM_ADJUDICATED,
+  'spells/Sequester': GM_ADJUDICATED,
+  'spells/Suggestion': GM_ADJUDICATED,
+  'classes/Oath of Devotion > Channel Divinity: Turn the Unholy': GM_ADJUDICATED,
+  'spells/Hypnotic Pattern': { mechanism: 'REGISTERED_FOLLOW_UP', task: 'T9 Hypnotic Pattern' },
+  'spells/Sanctuary': { mechanism: 'REGISTERED_FOLLOW_UP', task: 'T7 Sanctuary' },
+  'spells/Sleep': { mechanism: 'REGISTERED_FOLLOW_UP', task: 'T8 Sleep' },
+  'creatures/Drow > Hand Crossbow': T11,
+  'creatures/Pseudodragon > Sting': T11,
+  'creatures/Sprite > Shortbow': T11,
+  'creatures/Green Hag > Invisible Passage': T10,
+  'creatures/Imp > Invisibility': T10,
+  'creatures/Quasit > Invisibility': T10,
+  'creatures/Sprite > Invisibility': T10,
+  "creatures/Will-o'-Wisp > Invisibility": T10
 }
 
 const END_WORD = /\b(?:ends|wakes|disappears)\b|\bend\b(?! of)|\buntil\b(?! the (?:end|start))/i
