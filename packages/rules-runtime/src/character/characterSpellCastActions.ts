@@ -154,7 +154,34 @@ type GrantOutcome = Extract<
   { effectKind: 'APPLY_GRANT' }
 >
 
+type SlotLevelAmount = {
+  valueKind: 'SPELL_SLOT_LEVEL'
+  multiplier?: number
+  subtractLevels?: number
+}
+
+function isSlotLevelAmount(payload: unknown): payload is SlotLevelAmount {
+  return (
+    typeof payload === 'object' &&
+    payload !== null &&
+    'valueKind' in payload &&
+    payload.valueKind === 'SPELL_SLOT_LEVEL'
+  )
+}
+
 /** A granted amount that scales by slot level is the fixed amount the cast level gives. */
+function amountAtCastLevel<M extends { payload?: unknown }>(modifier: M, castLevel: number): M {
+  const { payload } = modifier
+  if (!isSlotLevelAmount(payload)) return modifier
+  return {
+    ...modifier,
+    payload: {
+      valueKind: 'FIXED',
+      amount: (payload.multiplier ?? 1) * Math.max(0, castLevel - (payload.subtractLevels ?? 0))
+    }
+  }
+}
+
 function grantAtCastLevel(outcome: GrantOutcome, castLevel: number): GrantOutcome {
   const { modifiers } = outcome.grants
   if (!modifiers) return outcome
@@ -162,19 +189,7 @@ function grantAtCastLevel(outcome: GrantOutcome, castLevel: number): GrantOutcom
     ...outcome,
     grants: {
       ...outcome.grants,
-      modifiers: modifiers.map((modifier) => {
-        const { payload } = modifier
-        if (!payload || !('valueKind' in payload) || payload.valueKind !== 'SPELL_SLOT_LEVEL')
-          return modifier
-        return {
-          ...modifier,
-          payload: {
-            valueKind: 'FIXED' as const,
-            amount:
-              (payload.multiplier ?? 1) * Math.max(0, castLevel - (payload.subtractLevels ?? 0))
-          }
-        }
-      })
+      modifiers: modifiers.map((modifier) => amountAtCastLevel(modifier, castLevel))
     }
   }
 }
