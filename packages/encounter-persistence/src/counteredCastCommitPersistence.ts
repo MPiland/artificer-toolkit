@@ -14,6 +14,7 @@ import { readLiveEncounterActionAdmission } from './liveActionAdmission.js'
 import { insertActionEvidenceReceipt } from './actionEvidenceReceipt.js'
 import { completeActionOccurrence, recordActionRoot } from './actionCommitRecords.js'
 import { castCounteredCarriesFailedCounters } from './actionPending.js'
+import { recordCounterCheckRollCards } from './actionRollCards.js'
 import { applyFailedCounterSpends, failedCounterSpends } from './failedCounterSpend.js'
 import { settleActionSourceSpend, sourceSpendMutation } from './actionSourceSpend.js'
 import { endEffects } from './consumedGrantPersistence.js'
@@ -252,6 +253,24 @@ export async function persistEncounterCounteredCastCommit(
     occurredAt: input.occurredAt
   })
   const projection = await projectNativeGm(ctx, nextState, nextActors, input.rules)
+  await recordCounterCheckRollCards(ctx, {
+    campaign,
+    encounterId: state.id,
+    gameSystemId: state.gameSystemId,
+    occurrenceId: root.occurrenceId,
+    checks: [
+      ...failedSpends.map(({ failed, reactor: failedReactor }) => ({
+        reactor: failedReactor,
+        check: failed.receipt.check
+      })),
+      ...(counter.check ? [{ reactor, check: counter.check }] : [])
+    ],
+    response,
+    responderUserId: userId,
+    initiatorUserId,
+    visibility: command.visibility,
+    createdAt: input.occurredAt
+  })
   const result = encounterCommandResultDtoSchema.parse({
     projection,
     roll: null,

@@ -324,6 +324,7 @@ export interface ActionRoomConfig extends Pick<
   | 'characterPlay'
   | 'characterSpellcasting'
   | 'secondCharacter'
+  | 'thirdCharacter'
   | 'hiddenActorIds'
   | 'definitions'
   | 'seed'

@@ -39,7 +39,11 @@ import type { EncounterCharacterWriteTransaction, EncounterWritePorts } from './
 import { castPendingContinues } from './actionPending.js'
 import { idleTurnMarkChanges } from './idleTurnMark.js'
 import { actionSystemRollAnswers, readAppCardedDice } from './appCardedDice.js'
-import { recordActionRollCards, settledD20s } from './actionRollCards.js'
+import {
+  recordActionRollCards,
+  recordCounterCheckRollCards,
+  settledD20s
+} from './actionRollCards.js'
 
 /** Validates the admitted completed root and applies its native writes in the owning transaction. */
 export async function persistEncounterActionCommit(
@@ -407,6 +411,18 @@ export async function persistEncounterActionCommit(
       }),
       dice: settledD20s(batch)
     })
+  })
+  await recordCounterCheckRollCards(ctx, {
+    campaign,
+    encounterId: state.id,
+    gameSystemId: state.gameSystemId,
+    occurrenceId: execution.occurrenceId,
+    checks: failedSpends.map(({ failed, reactor }) => ({ reactor, check: failed.receipt.check })),
+    response: input.response,
+    responderUserId: userId,
+    initiatorUserId,
+    visibility: command.visibility,
+    createdAt: input.occurredAt
   })
   const result = encounterCommandResultDtoSchema.parse({
     projection,
