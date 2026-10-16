@@ -15,6 +15,7 @@ import {
 import { fixedHealSpell } from '../testing/fixedHealSpell.js'
 
 const FIREBALL = srdSpells.find((spell) => spell.label === 'Fireball')!
+const FIRE_BOLT = srdSpells.find((spell) => spell.label === 'Fire Bolt')!
 const MEND = fixedHealSpell()
 
 const spellAction = (spell: SpellAuthored) => {
@@ -30,7 +31,10 @@ const TARGET_ID = '00000000-0000-4000-8000-0000000c0001'
 function bind(spell: SpellAuthored, actionMechanic: Record<string, unknown>) {
   const { action, compilerSource } = spellAction(spell)
   // A spell with an attack or save is bound at its TEST phase; one without (a heal) as a single graph.
-  const test = spell === FIREBALL ? adapter.compileTestTemplate?.({ compilerSource }) : null
+  const test =
+    spell === FIREBALL || spell === FIRE_BOLT
+      ? adapter.compileTestTemplate?.({ compilerSource })
+      : null
   const published = test ? test.published : adapter.compile({ action })
   return adapter.bindFacts({
     actionMechanic,
@@ -55,6 +59,15 @@ describe('the spell cast level the action binds (M2)', () => {
     expect(bind(spell, { outcomes: [], spellCastLevel: 5 })[DND5E_SPELL_CAST_LEVEL_FACT_KEY]).toBe(
       5
     )
+  })
+
+  it('binds the Character level, the sum of its class levels, for a level-scaled cantrip', () => {
+    expect(bind(FIRE_BOLT, { outcomes: [], classLevels: { fighter: 3, wizard: 2 } })).toMatchObject(
+      {
+        characterLevel: 5
+      }
+    )
+    expect(bind(FIRE_BOLT, { outcomes: [] })).not.toHaveProperty('characterLevel')
   })
 
   it('binds no cast level for an action that is not a leveled cast', () => {
@@ -83,5 +96,30 @@ describe('scaling a spell by the cast level fact (M2)', () => {
 
   it('selects the same outcome for the same cast level', () => {
     expect(specialize(5)?.published.checksum).toBe(specialize(5)?.published.checksum)
+  })
+})
+
+describe('scaling a cantrip by the Character level fact', () => {
+  const specialize = (facts: Record<string, number>) => {
+    const { compilerSource } = spellAction(FIRE_BOLT)
+    const testTemplate = adapter.compileTestTemplate?.({ compilerSource })
+    if (!testTemplate) throw new Error('Fire Bolt has no TEST template.')
+    return adapter.specializeOutcomeTemplate?.({
+      compilerSource,
+      testTemplate,
+      selectedPath: 'ON_HIT',
+      facts
+    })
+  }
+
+  it('selects the damage row of the Character level', () => {
+    const [first, fifth, eleventh] = [1, 5, 11].map(
+      (characterLevel) => specialize({ characterLevel })?.published.checksum
+    )
+    expect(new Set([first, fifth, eleventh]).size).toBe(3)
+  })
+
+  it('refuses a Character level it was not given', () => {
+    expect(() => specialize({})).toThrow('D&D dice scaling facts are unavailable.')
   })
 })

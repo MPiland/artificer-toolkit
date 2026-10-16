@@ -3526,7 +3526,7 @@ function proposalNode(pathCode: string, outcome: Outcome) {
     unsupported('D&D speed-to-movement outcomes cannot follow an attack or saving throw.')
   if (outcome.kind === 'CANCEL_TRIGGERING_EVENT')
     unsupported('D&D cancel outcomes cannot follow an attack or saving throw.')
-  const id =`proposal-${pathCode.toLowerCase()}`
+  const id = `proposal-${pathCode.toLowerCase()}`
   return {
     id,
     operation: { key: testProposalOperationKey(outcome), contractVersion: 1 },
@@ -6988,6 +6988,8 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       }
     }
     const { spellCastLevel, classLevels } = actionMechanic
+    // A Character's level is the sum of its class levels; a level-scaled cantrip selects its row by it.
+    const characterLevel = Object.values(classLevels ?? {}).reduce((sum, level) => sum + level, 0)
     const baseFacts = {
       [DND5E_TARGET_ACTOR_FACT_KEY]: targetActorId,
       [DND5E_TARGET_STATE_CHECKSUM_FACT_KEY]: checksumRuleDocument({
@@ -7015,6 +7017,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       ...(spellCastLevel === undefined
         ? {}
         : { [DND5E_SPELL_CAST_LEVEL_FACT_KEY]: spellCastLevel }),
+      ...(characterLevel > 0 ? { characterLevel } : {}),
       ...(classLevels === undefined || Object.keys(classLevels).length === 0
         ? {}
         : {

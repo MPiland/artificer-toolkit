@@ -71,7 +71,6 @@ import {
   checkpointLiveRoom,
   closeRoom,
   executeInRoom,
-  roomErrorLogs,
   invalidateRoomInputs,
   queueRoomRolls,
   executeSheetInRoom,
@@ -1045,7 +1044,6 @@ describe('Character spell casting in an Encounter', () => {
     }
 
     it('grants advantage on the roll, then ends the effect, its condition and its Concentration; a GM undo gives all three back', async () => {
-try {
       const unseen = concentrationSpell(invisibility)
       const bolt = srdSpell(fireBolt)
       targetAnyCreatureAtAnyRange(bolt)
@@ -1138,7 +1136,6 @@ try {
         { maintainedEffectStateId: concentration?.id }
       ])
       expect(await conditionIds(fixture)).toContain(invisibleId)
-} catch (e) { throw new Error(String(e instanceof Error ? e.message : e) + ' DIAG ' + roomErrorLogs().join(' || ').slice(0, 3000)) }
     }, 240000)
   })
 
