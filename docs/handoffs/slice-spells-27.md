@@ -1,6 +1,6 @@
 # Slice workbook: SPELLS-27 (effects end on their authored end events)
 
-**Status:** SURVEY DONE (2026-10-15), waiting for the main session's ruling. No product code or `packages/source-data` edited.
+**Status:** T1 in progress (2026-10-15): D122 ruled; spike done; bare timed-condition plan implemented and awaiting CI on `ci/spells-27`. `packages/source-data` not edited.
 **Base:** `codex/phase-08-2-convex-cutover` (a51dfa81f).
 **Rules:** [slice-workbook-rules.md](slice-workbook-rules.md). Decisions: [ADR 0038](../adr/0038-rules-authored-from-core-options.md), D95, D113, D115, D116 in [phase-08-2-decisions.md](phase-08-2-decisions.md).
 
@@ -109,7 +109,8 @@ Dependency order. Each task is a vertical slice with red-first tests; checkpoint
 | **T2** | 27.1 (attack roll) | `effectsEndedBy` replaces `consumableGrants` + `grantsEndedBy` for these lists; condition release on delete; attack-roll sites. Journey: cast Invisibility, attack, effect and condition gone, GM undo restores both. |
 | **T3** | 27.1 (cast) | Spell-cast occurrence fact; same consumer at the cast commit (action, area, reaction-cast). Journey: cast a spell while invisible, effect ends, GM undo restores. Authoring-parity test for the Invisibility variant. |
 | **T4** | 27.2 vocabulary | The qualifier shape (per the ruling), `ON_DAMAGE_TAKEN`-style events, their emission at the damage commit and consumer. Node map, authored-parity proof, no feature-named kinds. |
-| **T5** | 27.2 corpus | Author Sanctuary, Charm Person, Mislead, Hypnotic Pattern, Sleep, Sequester, Modify Memory, Project Image, Calm Emotions (**edits to `packages/source-data`, protected**). Corpus test over spell, feature and item descriptions with a typed allow-list (event not a holder event, with the covering mechanism) and a failing list for any phrase match with neither an authored end event nor an allow-list entry. |
+| **T5** | 27.2 corpus | Author Sanctuary, Charm Person, Mislead, Hypnotic Pattern, Sleep, Sequester, Modify Memory, Project Image, Calm Emotions, plus the non-spell effects the corpus pass finds (**edits to `packages/source-data`, protected**). Corpus test over every SRD effect (spells, features, items, creature traits) with a typed allow-list (covering mechanism named) and a failing list for any phrase match with neither an authored end event nor an allow-list entry. Closes 27.2 only when no "consumer pending" entry remains. |
+| **T6** | cleanup | Unify `consumeOnFirstEvents` and `endOnEvents` into one structured shape with an explicit timing field; delete the old enum, migrate data, no shim. After REACTION-4.T3 merges. |
 
 ### `packages/source-data` edit plan (not executed)
 
@@ -117,10 +118,18 @@ Dependency order. Each task is a vertical slice with red-first tests; checkpoint
 - `invisibility.ts` changes only if the ruling moves its events onto `consumeOnFirstEvents` or the structured trigger.
 - The corpus test lives beside `import.test.ts` and reads the authored records, not copies of the rule.
 
-## 5. Questions for the main session
+## 5. Rulings (D122) and spike result
 
-1. **Consumer shape:** Option 2 (one consumer over both lists) as recommended, with Option 3 as a later cleanup slice?
-2. **Qualifier shape:** structured trigger (recommended) or flat enum growth?
-3. **Authoring before consumer:** may T5 author an end event only when its consumer exists (T2-T4), keeping the rest on the corpus test's "authored, consumer pending" list? The alternative is to author all of 27.2 and accept events nothing reads, which is the state this slice exists to remove.
-4. **Corpus scope:** spells only, or spells plus class features, magic items and creature traits (Rage early-end belongs to ATTACK-9.T6)? The first scan is spells; features and items need their own pass in T5.
-5. **D99 carry-over of condition-owning effects:** in or out of scope?
+1. **Consumer:** Option 2 now. One `effectsEndedBy(effects, event)` over `consumeOnFirstEvents` and `endOnEvents` for any v2 effect. "Consume" applies to the event, then ends; "end" ends without applying (Invisibility's own attack still gets advantage, then ends; prove it). Unification is **T6**, the last task, after REACTION-4.T3 (Absorb Elements uses `consumeOnFirstEvents`): one structured shape with an explicit timing field, old enum deleted, data migrated, no shim.
+2. **Qualifier:** the structured trigger, reusing or extracting the `reactionTrigger` filter types (no parallel look-alike); core options only (ADR 0038).
+3. **Authoring before consumers:** T5 may author an end event whose consumer is pending, but 27.2 closes only when the "consumer pending" list is empty. At close the only entries allowed are the typed allow-list of texts another named mechanism covers.
+4. **Corpus scope:** every SRD effect (spells, class features, items, creature traits). Non-spell authoring that turns up is sized, added as a task here, and reported.
+5. **D99 carry-over:** out of scope. Follow-up registered by the main session (see below).
+
+### Spike result (T1)
+
+- Conditions are stored on the holder, so deleting the effect alone never removes `INVISIBLE`. The end consumer must emit `CONDITION_REMOVE` (with `sourceActiveEffectId` and `retainedConditionIds`) through the mechanics batch in the same transaction. The action commit's source-Character write (`DIRECT_ACTION_RESOURCE`, no applications) can carry it.
+- The turn-effect kernel refused any effect with a non-empty event list (`encounterTurnEffects.ts`, `turnEffectsPersistence.ts`). Both guards are removed in T1; grants never reach the kernel (recurrence stage `NONE`).
+- A no-save `CONDITION` compiled to a bare `CONDITION_APPLY` with no active-effect plan. T1 adds `timedConditionPlan` (compiler) and `conditionContribution.{consumeOnFirstEvents,endOnEvents}` (plan type, persisted plan schema, `recurrence`).
+- **Undo gap (T2):** `actionRevert.ts` restores effect records exactly (`restoreConsumedGrants`) but a Character inverse only removes added conditions (`removedConditionIds`); it refuses to restore a removed one. T2 adds a restored-condition inverse fenced by the stream version.
+- **D99 answer:** WRONG today. `planCarriedOverGrants` carries modifier grants only, so a Character-held timed condition effect from an Encounter never counts down or ends after the Run completes and its stored condition sticks.
