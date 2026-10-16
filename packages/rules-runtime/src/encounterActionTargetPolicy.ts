@@ -27,16 +27,35 @@ export type EncounterActionSceneContext = {
 export const TOUCH_RANGE = { amount: 5, unit: 'FEET' } as const
 
 /**
- * The policy an action's own targeting is checked against: its excluded creature types are a
+ * Whether the action has no effect on a creature of this type: the type is excluded, or the action
+ * names the types it affects and this is not one of them.
+ */
+export function targetingExcludesCreatureType(
+  targeting: CompiledActionTargetPolicy['targeting'],
+  creatureTypeId: string
+): boolean {
+  if (!targeting || targeting.selectionKind === 'SELF') return false
+  const { allowedCreatureTypeIds, excludedCreatureTypeIds } = targeting
+  return (
+    (excludedCreatureTypeIds?.includes(creatureTypeId) ?? false) ||
+    (allowedCreatureTypeIds?.length ? !allowedCreatureTypeIds.includes(creatureTypeId) : false)
+  )
+}
+
+/**
+ * The policy an action's own targeting is checked against: its creature type restrictions are a
  * warning of their own (TARGET_CREATURE_TYPE_EXCLUDED), not an unsupported target.
  */
-export function withoutCreatureTypeExclusions(
+export function withoutCreatureTypeRestrictions(
   policy: CompiledActionTargetPolicy
 ): CompiledActionTargetPolicy {
   const { targeting } = policy
   return targeting?.selectionKind === 'SELF' || !targeting
     ? policy
-    : { ...policy, targeting: { ...targeting, excludedCreatureTypeIds: [] } }
+    : {
+        ...policy,
+        targeting: { ...targeting, allowedCreatureTypeIds: [], excludedCreatureTypeIds: [] }
+      }
 }
 
 type PolicyRange = CompiledActionTargetPolicy['range']
@@ -52,7 +71,7 @@ const isMeasuredRange = (range: PolicyRange): range is MeasuredRange =>
  * range with the disposition it checks. Null is a policy it refuses: a shaped or path-overridden
  * policy (an area or movement action), a range it cannot measure (sight, special), or targeting
  * that is not a single target or a list of chosen creatures (each measured on its own) with a
- * disposition and no excluded creature types.
+ * disposition and no creature type restriction.
  */
 export function singleTargetMeasure(policy: CompiledActionTargetPolicy):
   | { kind: 'SELF' }
@@ -83,6 +102,7 @@ export function singleTargetMeasure(policy: CompiledActionTargetPolicy):
     (targeting?.selectionKind !== 'SINGLE_TARGET' &&
       targeting?.selectionKind !== 'CHOSEN_CREATURES') ||
     targeting.dispositionKind === undefined ||
+    targeting.allowedCreatureTypeIds?.length ||
     targeting.excludedCreatureTypeIds?.length
   )
     return null

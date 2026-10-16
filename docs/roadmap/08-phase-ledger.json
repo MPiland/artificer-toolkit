@@ -7190,8 +7190,16 @@
             {
               "id": "SPELLS-8.5",
               "text": "A spell restricted to creature types (SRD Hold Person: a Humanoid) is authored with core targeting options (allowed creature types, beside the existing excluded types); a target outside them raises the same overridable creature-type warning in an Encounter; an author-built equivalent made through the real authoring form resolves identically.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/session-worker/test/nativeRoomSpellCasting.test.ts (journey: Hold Person at a Wolf warns and spends no slot until overridden; a Humanoid raises no type warning)",
+                "packages/rules-runtime/src/__tests__/encounterActionRuleWarnings.test.ts",
+                "packages/rules-runtime/src/__tests__/encounterActionTargetPolicy.test.ts",
+                "packages/rules-runtime/src/__tests__/encounterAreaActionCompilation.test.ts",
+                "srdSpellCreatureTypeRestrictions.test.ts",
+                "apps/web/src/forms/tests/AuthoredDomainFieldParity.test.tsx (author-built Hold Person resolves identically)",
+                "CI ci/spells-8-t13 84d997f84: Tests 38849399113, Live backend 38849399041"
+              ],
               "origin": [],
               "note": "Registered 2026-10-15 from the SPELLS-8.T6a merge review: hold-person.ts declares ANY targeting and the targeting schema has no allowed-types field, so a Character can paralyze a Wolf (the T5 journey does)."
             }
@@ -7364,7 +7372,7 @@
             {
               "id": "SPELLS-8.T13",
               "text": "Allowed creature types in the targeting schema and node map; Hold Person (and other SRD type-restricted spells) authored with it; room warning shared with excluded types; red-first journey: Hold Person on a Wolf warns. Also replace savingThrow.baseDc! in pinnedSaveDc with a typeof narrow.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-8.5"],
               "wsjf": {
                 "bv": 5,
@@ -7372,8 +7380,7 @@
                 "rr": 3,
                 "size": 2,
                 "after": ["SPELLS-8.T5"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-spells-8-t1.md"
+              }
             }
           ]
         },
@@ -8078,11 +8085,11 @@
           "acs": [
             {
               "id": "SPELLS-26.1",
-              "text": "Every SRD spell that targets chosen creatures (CHOSEN_CREATURES with maxTargets) compiles and resolves per target through core options, including split attacks or projectiles (Magic Missile darts divided among targets, each a separate damage instance); a corpus test fails on any such spell that does not compile.",
+              "text": "Every SRD spell that targets chosen creatures (CHOSEN_CREATURES with maxTargets) compiles and resolves per target through core options, including split projectiles (a repeated target entry is one Magic Missile dart, Scorching Ray ray or Eldritch Blast beam, each its own damage instance, the count scaled by cast or character level) and per-creature saves; a corpus test derived from the real compiler fails on any such spell that does not compile, unless it fails for the same reason as a SINGLE_TARGET cast (its outcome is owned elsewhere: SPELLS-8.T4, SPELLS-4.T2, SPELLS-28, or ADR 0018 manual adjudication).",
               "status": "TODO",
               "proof": [],
               "origin": [],
-              "note": "Registered 2026-10-15 from the REACTION-4 design review: the compiler accepts only SINGLE_TARGET or AREA_CONTENTS (effectActionCompiler.ts), so 31 SRD spells authoring CHOSEN_CREATURES, Magic Missile among them, are not castable."
+              "note": "Registered 2026-10-15 from the REACTION-4 design review: the compiler accepts only SINGLE_TARGET or AREA_CONTENTS (effectActionCompiler.ts), so 31 SRD spells authoring CHOSEN_CREATURES, Magic Missile among them, are not castable. Amended 2026-10-16 after the SPELLS-26 survey (docs/handoffs/slice-spells-26.md): projectiles use allowRepeatedTargets and maxTargetsScaling, not a new target-count contract; outcome gaps go to their owning PBIs."
             }
           ],
           "wsjf": {
@@ -8090,7 +8097,123 @@
             "tc": 3,
             "rr": 5,
             "size": 5
-          }
+          },
+          "tasks": [
+            {
+              "id": "SPELLS-26.T1",
+              "text": "Magic Missile: a repeated chosen-creature entry is one dart (allowRepeatedTargets; projectile count = maxTargets scaled by cast level), one 1d4+1 force damage instance per dart, one commit, slot spend and undo; Magic Missile re-authored per dart (journey: three darts split 2+1 between two goblins).",
+              "status": "IN_PROGRESS",
+              "closes": ["SPELLS-26.1"],
+              "activeWorkbook": "docs/handoffs/slice-spells-8-t1.md",
+              "wsjf": {
+                "bv": 8,
+                "tc": 3,
+                "rr": 5,
+                "size": 3
+              }
+            },
+            {
+              "id": "SPELLS-26.T2",
+              "text": "Per-creature saves for a chosen list (Acid Splash, Chain Lightning) through the area save-and-commit flow: one sealed save per distinct creature, damage rolled once.",
+              "status": "TODO",
+              "closes": ["SPELLS-26.1"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 3,
+                "rr": 5,
+                "size": 3,
+                "after": ["SPELLS-26.T1"]
+              }
+            },
+            {
+              "id": "SPELLS-26.T3",
+              "text": "An attack roll per ray or beam (Scorching Ray, Eldritch Blast): one attack and, on a hit, one damage instance per entry; Eldritch Blast re-authored with beam count via maxTargetsScaling; resolutionCount and resolutionCountScaling deleted.",
+              "status": "TODO",
+              "closes": ["SPELLS-26.1"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 3,
+                "rr": 5,
+                "size": 3,
+                "after": ["SPELLS-26.T1"]
+              }
+            },
+            {
+              "id": "SPELLS-26.T4",
+              "text": "Corpus test derived from the real compiler (no allowlist): every CHOSEN_CREATURES+maxTargets SRD spell compiles or fails for the same reason as a SINGLE_TARGET cast; architecture-doc update.",
+              "status": "TODO",
+              "closes": ["SPELLS-26.1"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 3,
+                "rr": 5,
+                "size": 2,
+                "after": ["SPELLS-26.T2", "SPELLS-26.T3"]
+              }
+            }
+          ]
+        },
+        {
+          "id": "SPELLS-28",
+          "title": "Movement, summon and link outcomes cast in an Encounter",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": [],
+          "acs": [
+            {
+              "id": "SPELLS-28.1",
+              "text": "SRD spells whose outcome is TELEPORT (Word of Recall, the travel half of Plane Shift), MANIFEST (Giant Insect) or TELEPATHIC_LINK (Telepathic Bond) cast in an Encounter through outcome executors authored from core options, each with a test against the real compiler and one journey.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Registered 2026-10-16 from the SPELLS-26 survey: no PBI owned these outcome families, so these chosen-creature spells fail as single-target casts too."
+            }
+          ],
+          "wsjf": {
+            "bv": 3,
+            "tc": 2,
+            "rr": 3,
+            "size": 5
+          },
+          "tasks": [
+            {
+              "id": "SPELLS-28.T1",
+              "text": "TELEPORT outcome executor (Word of Recall; Plane Shift travel).",
+              "status": "TODO",
+              "closes": ["SPELLS-28.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 3
+              }
+            },
+            {
+              "id": "SPELLS-28.T2",
+              "text": "MANIFEST outcome executor (Giant Insect).",
+              "status": "TODO",
+              "closes": ["SPELLS-28.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 3
+              }
+            },
+            {
+              "id": "SPELLS-28.T3",
+              "text": "TELEPATHIC_LINK outcome executor (Telepathic Bond).",
+              "status": "TODO",
+              "closes": ["SPELLS-28.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 2
+              }
+            }
+          ]
         },
         {
           "id": "SPELLS-27",
@@ -8511,7 +8634,7 @@
                 "tc": 2,
                 "rr": 2,
                 "size": 2,
-                "after": ["REACTION-4.T3d", "SPELLS-26"]
+                "after": ["REACTION-4.T3d", "SPELLS-26.T1"]
               }
             },
             {

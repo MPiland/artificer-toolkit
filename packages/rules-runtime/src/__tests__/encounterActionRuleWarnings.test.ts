@@ -734,58 +734,86 @@ describe('encounter action rule warning gate', () => {
     })
   })
 
-  it('warns, overridably, when the target creature type is excluded by the action', () => {
+  describe('an action restricted by creature type', () => {
     const creatureTypeId = (code: string) =>
       SRD_CREATURE_TYPES.find((type) => type.code === code)!.id
     const undead = creatureTypeId('UNDEAD')
     const construct = creatureTypeId('CONSTRUCT')
     const humanoid = creatureTypeId('HUMANOID')
-    const gate = (
-      targetCreatureTypeId: string | null,
-      acknowledged: EncounterRuleWarningDto['code'][]
-    ) =>
-      evaluateEncounterActionRuleWarnings({
-        preparedWarnings: [],
-        target: {
-          actor: { id: ACTOR_ID, disposition: 'FRIENDLY' },
-          target: { id: TARGET_ID, disposition: 'FRIENDLY' },
-          targetPolicy: {
-            range: { id: 'range', rangeKind: 'TOUCH' },
-            targeting: {
-              selectionKind: 'SINGLE_TARGET',
-              dispositionKind: 'ANY',
-              excludedCreatureTypeIds: [undead, construct]
+    const beast = creatureTypeId('BEAST')
+    const gateFor =
+      (restriction: { allowedCreatureTypeIds?: string[]; excludedCreatureTypeIds?: string[] }) =>
+      (targetCreatureTypeId: string | null, acknowledged: EncounterRuleWarningDto['code'][]) =>
+        evaluateEncounterActionRuleWarnings({
+          preparedWarnings: [],
+          target: {
+            actor: { id: ACTOR_ID, disposition: 'FRIENDLY' },
+            target: { id: TARGET_ID, disposition: 'FRIENDLY' },
+            targetPolicy: {
+              range: { id: 'range', rangeKind: 'TOUCH' },
+              targeting: {
+                selectionKind: 'SINGLE_TARGET',
+                dispositionKind: 'ANY',
+                ...restriction
+              },
+              shape: null,
+              pathOverrides: []
             },
-            shape: null,
-            pathOverrides: []
+            makesAttackRoll: false,
+            sceneContext: null
           },
-          makesAttackRoll: false,
-          sceneContext: null
-        },
-        targetCreatureTypeId,
-        targetDefeated: false,
-        stabilize: null,
-        actionEconomy: null,
-        activationCode: 'ACTION',
-        acknowledged
-      })
+          targetCreatureTypeId,
+          targetDefeated: false,
+          stabilize: null,
+          actionEconomy: null,
+          activationCode: 'ACTION',
+          acknowledged
+        })
     const excluded = {
       code: 'TARGET_CREATURE_TYPE_EXCLUDED',
       message: 'This action has no effect on this creature type.'
     }
-    expect(gate(undead, [])).toEqual({
-      kind: 'UNACKNOWLEDGED',
-      warnings: [excluded, expect.objectContaining({ code: 'TARGET_RANGE_UNCHECKED' })]
+
+    it('warns, overridably, when the target creature type is excluded by the action', () => {
+      const gate = gateFor({ excludedCreatureTypeIds: [undead, construct] })
+      expect(gate(undead, [])).toEqual({
+        kind: 'UNACKNOWLEDGED',
+        warnings: [excluded, expect.objectContaining({ code: 'TARGET_RANGE_UNCHECKED' })]
+      })
+      expect(gate(construct, [])).toMatchObject({ kind: 'UNACKNOWLEDGED' })
+      expect(gate(humanoid, ['TARGET_RANGE_UNCHECKED'])).toEqual({
+        kind: 'ACCEPTED',
+        overrides: [expect.objectContaining({ code: 'TARGET_RANGE_UNCHECKED' })]
+      })
+      expect(gate(null, ['TARGET_RANGE_UNCHECKED'])).toMatchObject({ kind: 'ACCEPTED' })
+      expect(gate(undead, ['TARGET_CREATURE_TYPE_EXCLUDED', 'TARGET_RANGE_UNCHECKED'])).toEqual({
+        kind: 'ACCEPTED',
+        overrides: [excluded, expect.objectContaining({ code: 'TARGET_RANGE_UNCHECKED' })]
+      })
     })
-    expect(gate(construct, [])).toMatchObject({ kind: 'UNACKNOWLEDGED' })
-    expect(gate(humanoid, ['TARGET_RANGE_UNCHECKED'])).toEqual({
-      kind: 'ACCEPTED',
-      overrides: [expect.objectContaining({ code: 'TARGET_RANGE_UNCHECKED' })]
+
+    it('warns, overridably, when the target creature type is not one the action affects', () => {
+      const gate = gateFor({ allowedCreatureTypeIds: [humanoid] })
+      expect(gate(beast, [])).toEqual({
+        kind: 'UNACKNOWLEDGED',
+        warnings: [excluded, expect.objectContaining({ code: 'TARGET_RANGE_UNCHECKED' })]
+      })
+      expect(gate(humanoid, ['TARGET_RANGE_UNCHECKED'])).toMatchObject({ kind: 'ACCEPTED' })
+      expect(gate(null, ['TARGET_RANGE_UNCHECKED'])).toMatchObject({ kind: 'ACCEPTED' })
+      expect(gate(beast, ['TARGET_CREATURE_TYPE_EXCLUDED', 'TARGET_RANGE_UNCHECKED'])).toEqual({
+        kind: 'ACCEPTED',
+        overrides: [excluded, expect.objectContaining({ code: 'TARGET_RANGE_UNCHECKED' })]
+      })
     })
-    expect(gate(null, ['TARGET_RANGE_UNCHECKED'])).toMatchObject({ kind: 'ACCEPTED' })
-    expect(gate(undead, ['TARGET_CREATURE_TYPE_EXCLUDED', 'TARGET_RANGE_UNCHECKED'])).toEqual({
-      kind: 'ACCEPTED',
-      overrides: [excluded, expect.objectContaining({ code: 'TARGET_RANGE_UNCHECKED' })]
+
+    it('shares the one warning between the allowed and the excluded types', () => {
+      const gate = gateFor({
+        allowedCreatureTypeIds: [humanoid, beast],
+        excludedCreatureTypeIds: [beast]
+      })
+      expect(gate(beast, ['TARGET_RANGE_UNCHECKED'])).toMatchObject({ kind: 'UNACKNOWLEDGED' })
+      expect(gate(undead, ['TARGET_RANGE_UNCHECKED'])).toMatchObject({ kind: 'UNACKNOWLEDGED' })
+      expect(gate(humanoid, ['TARGET_RANGE_UNCHECKED'])).toMatchObject({ kind: 'ACCEPTED' })
     })
   })
 
