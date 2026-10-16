@@ -24,7 +24,7 @@ import { completeActionOccurrence, recordActionRoot } from './actionCommitRecord
 import { endEffects, receiptConsumedGrants } from './consumedGrantPersistence.js'
 import { listActiveRuleEffects } from './effectStore.js'
 import { projectNativeGm } from './nativeProjection.js'
-import { recordTurnSpeedBonus } from './turnMovement.js'
+import { recordTurnSpeedBonus, spendTurnUses } from './turnMovement.js'
 import { presentEncounterResultForMember } from './resultPresentation.js'
 import type { readEncounterMaintenanceCapture } from './maintenanceCapture.js'
 import type {
@@ -380,6 +380,8 @@ export async function persistEncounterActionCommit(
   // A Dash adds the actor's speed to this turn's movement; the stored execution proves it resolved.
   const addsSpeed = executionAddsSpeedToMovement(execution)
   if (addsSpeed) await recordTurnSpeedBonus(ctx, { state, actorId: source.id })
+  // A once-per-turn use (Sneak Attack) the attack dealt is spent from the attacker's turn record.
+  const turnUses = await spendTurnUses(ctx, { state, actorId: source.id, keys: input.turnUses })
   await recordActionRoot(ctx, {
     run,
     state,
@@ -400,7 +402,8 @@ export async function persistEncounterActionCommit(
       }),
       endedMaintainedStates,
       addedConcentrationCasterId: maintenance?.addedConcentrationCasterId ?? null,
-      speedBonusTurn: addsSpeed ? { round: state.round, turnActorId: source.id } : null
+      speedBonusTurn: addsSpeed ? { round: state.round, turnActorId: source.id } : null,
+      turnUses
     },
     occurredAt: input.occurredAt
   })

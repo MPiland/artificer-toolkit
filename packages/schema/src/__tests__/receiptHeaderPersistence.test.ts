@@ -114,7 +114,8 @@ describe('receipt persistence headers', () => {
       consumedGrants: [],
       endedMaintainedStates: [],
       addedConcentrationCasterId: null,
-      speedBonusTurn: null
+      speedBonusTurn: null,
+      turnUses: null
     }
     const parses = (rooted: object) =>
       encounterStoredRunCommandSchema.safeParse({ ...root, root: rooted }).success

@@ -7,7 +7,7 @@
 
 AC ATTACK-9.2: Sneak Attack adds its level-scaled dice once per turn to a hit with a finesse or ranged weapon when the attack has advantage, or an enemy of the target is within 5 feet of it and the attacker has no disadvantage; critical hits double the dice. Authored only from core authoring options (no `CLOSED_RULE`, no feature-specific kind or executor); an author-built equivalent made through the real authoring form publishes to the same structure and resolves identically.
 
-Today the SRD Rogue authors two inert `CLASS_ROGUE_SNEAK_ATTACK` closed rules (`packages/source-data/src/srd/classes/rogue.ts` ~496-533). D58 requires extra-dice riders to become `ON_HIT` damage doubled by the existing critical code.
+Before T2d the SRD Rogue authored two inert closed rules for Sneak Attack; T2d replaces them with a real `ON_HIT` rider (`packages/source-data/src/srd/classes/rogue.ts`, doubled by the existing critical code as D58 requires).
 
 ## Findings (read-only survey, 2026-10-15)
 
@@ -54,7 +54,7 @@ Built:
 - (a) `characterOnHitRiders.ts` collects the trigger-matched `PASSIVE` Feature `ON_HIT` `DAMAGE` outcomes and merges them into the weapon action's compiled effect when `buildCharacterActionRuleFacts` builds the action. Downstream sees one multi-part `ON_HIT` damage effect, so resistance and critical doubling apply with no new code. Riders come from class, subclass, race and feat Features and their options; a rider matches by equal `triggerCode`, so one effect per trigger until T2b adds the generic any-of.
 - (b) `bindFacts` emits the `dnd5e.class-levels` fact from `actionMechanic.classLevels`; `validateDiceOutcomeRow` accepts `CLASS_LEVEL`; `exactDiceConfiguration` is the shared row selector (highest row with `level <= class level`). T12 reuses or extracts it.
 - (c) `usesTriggeringWeaponDamageType: true` replaces `damageTypeId` on a DAMAGE outcome (`DamageTypeAuthored` union; schema, compiler and node map). The merge resolves it to the weapon's first `ON_HIT` damage type; an unresolved one fails closed at every consumer.
-- The SRD Rogue's Sneak Attack stays `CLOSED_RULE` (inert) until T2d.
+- The SRD Rogue's Sneak Attack was `CLOSED_RULE` (inert) until T2d; it is real now.
 
 Proof (real code, `characterOnHitRiders.test.ts`): a Rogue's unconditional Sneak Attack rider hits, selects its dice row by class level (1, 3, 4, 5), doubles its dice on a critical, resists like the weapon's damage, and leaves a rider-free Longsword and the shipped Sneak Attack unchanged. `characterOnHitRiderMerge.test.ts` covers trigger mismatch, passive skip, no `ON_HIT` weapon damage, and the multi-damage pick. Schema, compiler and node-map tests cover the new option.
 
@@ -124,7 +124,39 @@ Logs under `local-validation/attack-9-t2c/` (not committed).
 - [x] Typecheck shared, schema, rules-runtime, session-worker (`*-tc.log`, `summary2.txt`).
 - [ ] CI Tests and Live backend green on `ci/attack-9-t2c`.
 
+## T2d (shape f, once per turn, D119) and the real SRD Sneak Attack
+
+Built (generic, no feature-specific kind or executor; the closed-rule kind is deleted):
+
+- `usage: ONCE_PER_TURN` (`PATH_USAGE`) on an effect path (schema, shared compiler, node map, authoring form). A limited entry is owed only while its usage key is unspent.
+- One per-turn record, no new table: D38's `encounterTurnMovements` row (Encounter, round, turn actor, actor) gains `usedOncePerTurn`. `readTurnUses` / `spendTurnUses` / `restoreTurnUses` in `turnMovement.ts`. T6 reads the same row.
+- Fact `dnd5e.attack-turn-uses`; `loadTurnUses` reads the row only for an attack whose Effect reads it. Usage key: compiled effect id, or the Feature id for a passive Feature rider merged onto the attack. `spentTurnUses` derives the spent keys from the final evidence `sourceEntryBindings`, deduplicated (a compiled Effect has one entry per scaling row).
+- Commit paths: an ordinary action spends in the commit transaction and keeps `turnUses {round, turnActorId, keys}` on the command record, which `REVERT_LAST_ACTION` restores; a movement opportunity attack spends for the reactor from its settlement; disarm, area and basic action pass `turnUses: null`. The planner computes `plan.turnUses` only for a COMPLETE evidence.
+- Opportunity attacks supply the enemy proximity (mover at the contact point of its planned path, `measureNativeEnemyProximity`) and the once-per-turn record. Single unavailable token and NEUTRAL target stay deferred.
+- SRD Rogue: `sneakAttackEffect('MELEE' | 'RANGED')`; gate = advantage OR (`ENEMY_NEAR_TARGET` 5 ft AND `ATTACK_ROLL_MODE` NOT_DISADVANTAGE), plus finesse for melee; `ON_HIT`, `ONCE_PER_TURN`, dice by class level (shared row selector).
+- Boundary kept: Character on-hit riders merge only onto equipment-sourced attacks, so a Feature-sourced attack gets no rider. Movement opportunity attacks have no GM undo (Deferred edge cases).
+
+### T2d checklist and proof logs
+
+Logs under `local-validation/attack-9-t2d/` (not committed).
+
+- [x] Unit: `turnUses` (persistence store), `attackRestrictions`, `characterOnHitRiders`, `characterOnHitRiderMerge`, `srdSneakAttack` (real SRD Rogue: melee needs finesse, ranged any, advantage vs adjacent enemy vs disadvantage), schema parse, node-map inventory.
+- [x] Room journeys: `nativeRoomOncePerTurn` (rider on the first hit only, a later hit's undo keeps the use spent, undoing the spending hit gives it back), `nativeMovementOncePerTurnRider` (opportunity attack with an ally beside the mover gets the dice and spends the use; ally far off gets none), `nativeRoomEnemyProximity`.
+- [x] Authored parity: `AuthoredDomainFieldParity.test.tsx` SRD Sneak Attack describe (real form, node-runtime resolver, form adapter, submit equals the SRD effects).
+- [ ] CI Tests and Live backend green on `ci/attack-9-t2d`.
+- Seed fix found by the live-backend job: `authoredSourceFacts` required a `damageTypeId` on every DAMAGE outcome; the SRD Sneak Attack damage uses the weapon's type, so `damages.damage_type_id` is now null for it (`authoredSourceFacts.test.ts`, the web parity test).
+
+## T2e (roll-mode gate reads the settled d20, D124)
+
+Option B of the former architect packet, approved. Closes AC ATTACK-9.2.
+
+- `resolveEncounterActionPhaseExecution` takes `testRollMode` (the TEST d20 evidence `rollMode`) and passes it to `CharacterRuleActionSystemAdapter.specializeOutcomeTemplate`, which supplies it to the D&D specializer as `attackRollMode`. `requireTestRollMode` reads it from the completed TEST on the first-run, continuation and movement-reaction paths.
+- The `dnd5e.attack-roll-mode` bound fact and its parser are deleted; nothing else read it. The sealed OUTCOME template checksum is unchanged.
+- A sight-governed d20 settles in the true mode (D100), so a Blinded target's advantage cannot be flattened by the roller; the gate follows the true mode.
+- Proof: `apps/session-worker/test/nativeRoomSettledRollMode.test.ts` (room journeys: hand-rolled advantage on a target with none derived gets the rider dice; a roller who flattens a Prone target's derived advantage gets none; keeping the derived advantage gets them; a Blinded target's sight-governed advantage gets them whatever the roller rolled).
+- Closes the open entry in Future enhancements (the gate read the derived mode).
+
 ### Proposed ledger edits
 
-ATTACK-9.T2a done (shapes a-c); ATTACK-9.T2b (shape d) built; ATTACK-9.T2c (shape e) built; ATTACK-9.2 stays open for T2d.
+ATTACK-9.T2a done (shapes a-c); ATTACK-9.T2b (shape d) built; ATTACK-9.T2c (shape e) built; ATTACK-9.T2d (shape f, real SRD Sneak Attack) built; ATTACK-9.T2e (settled-mode gate, D124) built; ATTACK-9.2 closes with T2e.
 

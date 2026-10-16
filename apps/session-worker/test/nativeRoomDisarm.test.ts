@@ -9,7 +9,7 @@ import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
 import { SRD_ACTION_ALLOWANCE_DEFINITION_ID } from '@artificer-toolkit/source-data/srd/ruleState.js'
 import {
   SRD_ATHLETICS_SKILL_ID,
-  SRD_CONDITION_TYPES
+  srdSystemRecord
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
@@ -26,6 +26,7 @@ import { seededSrdCreature } from './seededSrdCreature.js'
 
 const SOURCE_ID = testUuid(0xa00)
 const TARGET_ID = testUuid(0xa01)
+const BLINDED_ID = srdSystemRecord.conditionTypes.find(({ code }) => code === 'BLINDED')?.id
 
 afterEach(() => {
   closeTrackedSockets()
@@ -40,6 +41,7 @@ async function disarmRoom(options: {
   autoRoll?: 'GAME_MASTER'
   rolls?: readonly number[]
   heldItem?: 'GREATCLUB'
+  targetBlinded?: true
   seed?: ActionRoomConfig['seed']
 }) {
   const ogre = seededSrdCreature('Ogre')
@@ -54,7 +56,11 @@ async function disarmRoom(options: {
         }
   const [source, target] = [
     srdCreatureActor({ id: SOURCE_ID, creature: ogre }),
-    srdCreatureActor({ id: TARGET_ID, creature: holder })
+    srdCreatureActor({
+      id: TARGET_ID,
+      creature: holder,
+      conditionIds: options.targetBlinded && BLINDED_ID ? [BLINDED_ID] : []
+    })
   ]
   const room = await actionRoom({
     ...options,
@@ -209,7 +215,8 @@ describe('room Disarm contests', () => {
         sourceActorId: TARGET_ID,
         holderActorId: SOURCE_ID,
         lifecycle: { consumeOnFirstEvents: ['ON_ATTACK_ROLL'] },
-        ownedConditionId: SRD_CONDITION_TYPES.find(({ code }) => code === 'INVISIBLE')!.id
+        ownedConditionId: srdSystemRecord.conditionTypes.find(({ code }) => code === 'INVISIBLE')!
+          .id
       })
     })
 
@@ -266,5 +273,82 @@ describe('room Disarm contests', () => {
     expect(commands.filter((command) => command.commandType === 'RESOLVE_ACTION')).toEqual([
       expect.objectContaining({ label: 'Disarm', speedBonusTurn: null })
     ])
+  })
+})
+
+describe('room Disarm against a target that cannot see (ATTACK-10.4, D100)', () => {
+  it('auto-rolls the initiator in the true mode: advantage against a Blinded target', async () => {
+    // The initiator's two d20s (1 then 15), then the defender's one.
+    const disarming = await disarmRoom({
+      autoRoll: 'GAME_MASTER',
+      rolls: [0, 14, 5],
+      targetBlinded: true
+    })
+    await startDisarm(disarming)
+    expect(disarming.room.room.diceDrawn()).toBe(3)
+    expect(await contestedOutput(disarming)).toMatchObject({
+      sourceRoll: { rawFaces: [1, 15], selectedNatural: 15 },
+      targetRoll: { rawFaces: [6], selectedNatural: 6 }
+    })
+  })
+
+  it('shows the player a normal roll, holds one die and settles in the true mode', async () => {
+    const disarming = await disarmRoom({ targetBlinded: true })
+    const { room } = disarming
+    await startDisarm(disarming)
+
+    const stub = room.room.base.stub
+    const gmView = await room.pendingDecision()
+    const playerView = await readPendingActionDecision(stub, false)
+    if (gmView.pending.kind !== 'D20_EVIDENCE' || playerView?.pending.kind !== 'D20_EVIDENCE')
+      throw new Error('Expected the initiator’s roll.')
+    expect(gmView.pending.request.rollMode).toBe('ADVANTAGE')
+    expect(playerView.pending.request).toMatchObject({
+      requestId: gmView.pending.request.requestId,
+      rollMode: 'NORMAL',
+      derivedRollModeReasons: []
+    })
+
+    // The player enters the one die their prompt asked for; the true mode needs a second.
+    const held = await room.resolve(playerView, {
+      kind: 'ENTER_DICE',
+      requestId: playerView.pending.request.requestId,
+      rawFaces: [9],
+      rollMode: 'NORMAL'
+    })
+    expect(held.type).toBe('COMMAND_COMMITTED')
+    const gmHeld = await room.pendingDecision()
+    const playerHeld = await readPendingActionDecision(stub, false)
+    if (gmHeld.pending.kind !== 'D20_EVIDENCE' || playerHeld?.pending.kind !== 'D20_EVIDENCE')
+      throw new Error('Expected the held initiator roll.')
+    const gmCaption = gmHeld.pending.request.heldD20?.caption
+    const playerCaption = playerHeld.pending.request.heldD20?.caption
+    expect(gmHeld.pending.request.heldD20?.faces).toEqual([9])
+    expect(gmCaption).toBeTruthy()
+    expect(playerCaption).toBeTruthy()
+    expect(playerCaption).not.toBe(gmCaption)
+
+    await room.resolve(gmHeld, {
+      kind: 'ENTER_DICE',
+      requestId: gmHeld.pending.request.requestId,
+      rawFaces: [15],
+      rollMode: 'NORMAL'
+    })
+    const defender = await room.pendingDecision()
+    if (defender.pending.kind !== 'D20_EVIDENCE') throw new Error('Expected the defender’s roll.')
+    expect(defender.pending.rollerActorId).toBe(TARGET_ID)
+    expect(defender.pending.request.heldD20).toBeUndefined()
+    await room.resolve(defender, {
+      kind: 'ENTER_DICE',
+      requestId: defender.pending.request.requestId,
+      rawFaces: [1],
+      rollMode: 'NORMAL'
+    })
+
+    expect(await contestedOutput(disarming)).toMatchObject({
+      outcome: 'SOURCE_WIN',
+      sourceRoll: { rawFaces: [9, 15], selectedNatural: 15 },
+      targetRoll: { rawFaces: [1] }
+    })
   })
 })

@@ -177,6 +177,36 @@ export function attackRestrictionsMet(
   )
 }
 
+type CompiledEntry = CompiledEffectGroup['entries'][number]
+
+/**
+ * What a once-per-turn entry spends: the use of the Feature that grants it when it rides on an
+ * attack as a rider, the use of its own Effect otherwise. Null for an entry without a usage limit.
+ */
+export function oncePerTurnUsageKey(entry: CompiledEntry, effectId: string): string | null {
+  return 'usage' in entry && entry.usage ? (entry.usageKey ?? effectId) : null
+}
+
+/** Every use an attack spends: its once-per-turn entries that were dealt, by sorted usage key. */
+export function spentTurnUses(
+  effect: Pick<CompiledEffectGroup, 'id' | 'entries'>,
+  dealtEntryIds: ReadonlySet<string>
+): string[] {
+  return [
+    ...new Set(
+      effect.entries.flatMap((entry) => {
+        const key = oncePerTurnUsageKey(entry, effect.id)
+        return key !== null && dealtEntryIds.has(entry.entryId) ? [key] : []
+      })
+    )
+  ].sort()
+}
+
+/** Whether any path of a compiled attack Effect is limited to one use each turn. */
+export function effectReadsTurnUses(effect: Pick<CompiledEffectGroup, 'entries'>): boolean {
+  return effect.entries.some((entry) => 'usage' in entry && entry.usage !== undefined)
+}
+
 /** Whether any path of a compiled attack Effect asks how near an enemy stands to the target. */
 export function effectReadsEnemyProximity(effect: Pick<CompiledEffectGroup, 'entries'>): boolean {
   return effect.entries.some(

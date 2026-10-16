@@ -41,7 +41,7 @@ import { deletePlacedSpatialEffect } from './placedSpatialEffects.js'
 import { rejectDomain } from './domainRejections.js'
 import { createActiveRuleEffectStore } from './effectStore.js'
 import { readRunActors, readRunState, replaceRunActor } from './documents.js'
-import { removeTurnSpeedBonus } from './turnMovement.js'
+import { removeTurnSpeedBonus, restoreTurnUses } from './turnMovement.js'
 import { projectNativeGm } from './nativeProjection.js'
 import { encounterReplayReceipt, replayEncounterCommandResult } from './replayReceipts.js'
 import { insertRunCommand, presentTimelineEntry } from './timelineEntries.js'
@@ -545,6 +545,15 @@ export async function revertLastEncounterAction(
       encounterId: state.id,
       ...root.speedBonusTurn,
       actorId: source.id
+    })
+  // The once-per-turn uses the attack spent return to the attacker's turn record.
+  if (root.turnUses)
+    await restoreTurnUses(ctx, {
+      encounterId: state.id,
+      round: root.turnUses.round,
+      turnActorId: root.turnUses.turnActorId,
+      actorId: source.id,
+      keys: root.turnUses.keys
     })
   // D99: only the command that added the Character to the Run's Concentration casters removes it.
   if (root.addedConcentrationCasterId)

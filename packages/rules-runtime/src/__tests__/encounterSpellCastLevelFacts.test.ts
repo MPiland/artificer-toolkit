@@ -85,7 +85,8 @@ describe('scaling a spell by the cast level fact (M2)', () => {
       compilerSource,
       testTemplate,
       selectedPath: 'ON_SAVE_FAIL',
-      facts: { [DND5E_SPELL_CAST_LEVEL_FACT_KEY]: castLevel }
+      facts: { [DND5E_SPELL_CAST_LEVEL_FACT_KEY]: castLevel },
+      testRollMode: 'NORMAL'
     })
   }
 

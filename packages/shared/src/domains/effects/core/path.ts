@@ -218,6 +218,24 @@ export const PATH_ORIGIN_KIND_OPTIONS = valuesOf(
   PATH_ORIGIN_KIND_REGISTRY
 ) as readonly PathOriginKindOption[]
 
+export const PATH_USAGE = {
+  ONCE_PER_TURN: 'ONCE_PER_TURN'
+} as const
+
+export type PathUsage = keyof typeof PATH_USAGE
+
+export type PathUsageOption = CoreMeta<PathUsage>
+
+export const PATH_USAGE_REGISTRY: Record<PathUsage, PathUsageOption> = {
+  [PATH_USAGE.ONCE_PER_TURN]: {
+    code: PATH_USAGE.ONCE_PER_TURN,
+    label: 'Once per Turn',
+    description: 'Owed to one attack each turn, the first that qualifies.'
+  }
+} as const
+
+export const PATH_USAGE_OPTIONS = valuesOf(PATH_USAGE_REGISTRY) as readonly PathUsageOption[]
+
 export const PATH_CODES_BY_TRIGGER: Record<Trigger, readonly PathCode[]> = {
   [TRIGGER.ACTIVATED]: [PATH_CODE.ON_USE],
   [TRIGGER.MELEE_WEAPON_ATTACK]: [

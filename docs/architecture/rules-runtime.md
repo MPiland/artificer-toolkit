@@ -953,12 +953,15 @@ conditions) that gates whether its result is owed. The compiler copies it onto e
 `buildCharacterActionRuleFacts` resolves the weapon checks (`EQUIPMENT` contexts: `EQUIPMENT_PROPERTY`, item
 identity, through the same `dnd5eItemRequirementsMet` the Rage restrictions use) against the attacking item and
 leaves only circumstance checks, `ATTACK_ROLL_MODE`, `ENEMY_NEAR_TARGET` and (against a `CREATURE` context) `CREATURE_TYPE` (`reduceEffectRestrictions`, `systems/dnd5e/attackRestrictions`); an entry
-that can never be owed is dropped, one whose group has nothing left to decide is unrestricted. The attack's net
-roll mode (`bindFacts`, `dnd5e.attack-roll-mode`; advantage and disadvantage cancel) is known only after the
-d20, so `specializeDnd5eEffectActionOutcomeBody` filters the remaining restricted groups then
-(`attackRestrictionsMet`); a `CREATURE_TYPE` check reads the target's creature type from
-`dnd5e.target-creature-type`, which the attack TEST binds from the target's derived facts (a `CREATURE` context
-is `authoringModeKind: ALL` or `SELECTED` over `creatureTypeIds`). The sealed OUTCOME template checksum hashes the authored groups, restricted or not,
+that can never be owed is dropped, one whose group has nothing left to decide is unrestricted. The attack's roll
+mode is known only after the d20, so `specializeDnd5eEffectActionOutcomeBody` filters the remaining
+restricted groups then (`attackRestrictionsMet`). It reads the mode the TEST d20 was settled in (D124): the
+evidence `rollMode`, which `resolveEncounterActionPhaseExecution` passes to the adapter as `testRollMode`, not
+the mode the rules derived from roll contributors. A hand-rolled advantage unlocks the rider, a flattened
+derived advantage forgoes it, and a sight-governed d20 (D100) settles in the true mode, so the check follows that.
+A `CREATURE_TYPE` check reads the target's creature type from `dnd5e.target-creature-type`, which the attack
+TEST binds from the target's derived facts (a `CREATURE` context is `authoringModeKind: ALL` or `SELECTED` over
+`creatureTypeIds`). The sealed OUTCOME template checksum hashes the authored groups, restricted or not,
 so it is the same whichever the roll owes; the published graph is what differs. Only `EQUIPMENT`- and `CREATURE`-context
 checks are evaluated; any other subject fails its group. A path whose every group is restricted away
 produces no OUTCOME graph, which the phase resolver rejects for a template that exists (see Deferred
@@ -972,7 +975,7 @@ a NEUTRAL actor is never hostile. `prepareEncounterActionMechanics` asks its opt
 supplier only for an attack whose compiled Effect reads the predicate (`effectReadsEnemyProximity`), and puts
 the answer in the binding's `sourceDerivedFacts.attackEnemyProximity`; `bindFacts` emits it as the TEXT fact
 `dnd5e.attack-enemy-proximity` (`{"nearestFeet": number | null}`). An attack without the fact (no Scene
-context, or a path that supplies no loader: opportunity attacks, reactions) leaves the check unanswerable, so
+context, or a path that supplies no loader) leaves the check unanswerable, so
 the group fails whether the constraint is INCLUDE or EXCLUDE. The Session Worker's supplier
 (`nativeAttackEnemyProximity`) re-reads the locked Scene through `ACTION_AREA_SCENE` and loads every actor it
 consults through `loadTarget`, so the room's existing fences are what refuse a mismatch: the capture refuses a
@@ -980,7 +983,25 @@ moved Scene version (`Action Scene context is stale.`) while planning, the commi
 consulted actors' revisions and the Encounter version, and the currentness and bound-facts checksums over the
 binding refuse a resumed paused attack whose fact changed. The capture reads every bound actor's token, so an
 unavailable token refuses the attack, as for an area action. Persistence never
-re-runs rules (ADR 0035); this is the room-authoritative reading of "persistence re-verifies".
+re-runs rules (ADR 0035); this is the room-authoritative reading of "persistence re-verifies". A movement
+opportunity attack supplies the same fact: the Session Worker places the mover at the contact point of its
+planned path and measures the Scene with the same helper (`measureNativeEnemyProximity`).
+
+**Once per turn (D119 f).** `usage: ONCE_PER_TURN` on a path limits it to one hit per turn of any creature
+(Sneak Attack can land on a reaction). The usage key is the compiled effect id for a path in the attack's own
+Effect and the Feature id for a passive Feature rider merged onto the attack (`oncePerTurnUsageKey`; a
+compiled Effect has one entry per scaling row, so keys are deduplicated). The record is the D38 row
+`encounterTurnMovements`, keyed (Encounter, round, turn actor, actor), extended with `usedOncePerTurn`
+(sorted key ids); there is no second table. `loadTurnUses` (`encounterActionMechanicsPreparation`) reads it
+only for an attack whose Effect reads it (`effectReadsTurnUses`), and `bindFacts` emits it as the
+`dnd5e.attack-turn-uses` TEXT fact; `pathOwed` refuses a limited entry whose key is spent. After the roll
+`spentTurnUses` derives the spent keys from the final evidence `sourceEntryBindings`. The commit writes
+them in the same transaction (`spendTurnUses`; spending an already spent key throws), the command record keeps
+`turnUses {round, turnActorId, keys}`, a replayed command returns the stored result before any spend (so it
+never spends twice), and `REVERT_LAST_ACTION` gives them back (`restoreTurnUses`). A movement opportunity attack carries `turnUses` on
+its reaction settlement and spends them for the reactor. ATTACK-9.T6 reads the same row. Character on-hit
+riders merge only onto equipment-sourced attacks (`collectOnHitRiders`), so a Feature-sourced attack, such as
+a creature-style Bite Feature, gets no rider.
 
 The immediate follow-up save shapes the
 adapter supports, ranged long range (`longAmount`, `encounterActionLongRangeContributor`), reach 0 swarm
@@ -1019,7 +1040,7 @@ attack path consumes: ordinary actions, movement reaction attacks and Disarm rec
 their command, and a Legendary Action window deletes its owner's grants at the turn commit when the option
 rolled an attack (`attackRoll` on the EXECUTED evidence); only ordinary actions have GM undo. A
 grant made at another creature's turn end has no extra tick and ends at the end of the holder's next turn.
-An event that ends a condition-owning effect (Invisibility on its holder's attack roll, SPELLS-27.T2, D124) also releases the condition: the planner adds `CONDITION_REMOVE` to the action's source batch (`sourceApplications`, required on both mechanics batch receipts; `endedEffectConditionReleases`), and the root receipt's `endedMaintainedStates` and `restoredConditionIds` give the Concentration and the condition back on GM undo, fenced by the source stream version. The Legendary window, movement opportunity attack and Disarm skip condition-owning effects until SPELLS-27.T2b; `NON_RELEASING_EFFECT_EVENTS` keeps authoring from listing an event whose consumer does not release.
+An event that ends a condition-owning effect (Invisibility on its holder's attack roll, SPELLS-27.T2, D125) also releases the condition: the planner adds `CONDITION_REMOVE` to the action's source batch (`sourceApplications`, required on both mechanics batch receipts; `endedEffectConditionReleases`), and the root receipt's `endedMaintainedStates` and `restoredConditionIds` give the Concentration and the condition back on GM undo, fenced by the source stream version. The Legendary window, movement opportunity attack and Disarm skip condition-owning effects until SPELLS-27.T2b; `NON_RELEASING_EFFECT_EVENTS` keeps authoring from listing an event whose consumer does not release.
 An `ARMOR_CLASS` grant on a Creature raises its AC through `withCreatureActiveGrantArmorClass`, applied
 where movement targets and Cleaving facts are built. A
 SOURCE-anchored grant ends when its source is removed from the Run (`planDepartedSourceGrantRemovals`,

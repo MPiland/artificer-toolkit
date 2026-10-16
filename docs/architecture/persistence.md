@@ -226,7 +226,7 @@ drift; Convex keeps authorization, receipt-ledger loading and read budgets.
 `encounterRuns`, `encounterRunActors` (one document per actor with its validated snapshot and `kind`-discriminated
 state), `encounterSceneBindings`, `encounterActorTokenBindings`, `encounterInitiativeRounds`,
 `encounterInitiativeParticipants`, `encounterInitiativeSides`, `encounterRuleOccurrences`,
-`encounterTurnMovements`, `encounterDecisionSkips`, `encounterRunCommands`, `encounterRuleReceipts`
+`encounterTurnMovements` (also the once-per-turn record, `usedOncePerTurn`, D119 f), `encounterDecisionSkips`, `encounterRunCommands`, `encounterRuleReceipts`
 and `encounterReplayIndex` carry Run state and history in Convex. The Convex `encounterEvidenceRolls`
 table is removed (current): evidence rolls are room-only since D88, written and read only in the room's
 store.

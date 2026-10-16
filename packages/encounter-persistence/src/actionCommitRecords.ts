@@ -83,6 +83,7 @@ export async function recordActionRoot(
       | 'endedMaintainedStates'
       | 'addedConcentrationCasterId'
       | 'speedBonusTurn'
+      | 'turnUses'
     > &
       Partial<
         Pick<

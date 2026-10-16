@@ -118,3 +118,55 @@ export function gatedSneakAttack(rogueClassId: string, gate: FacetAuthored): Fea
     }))
   }
 }
+
+/** The rider limited to one use each turn, behind the given gate when there is one. */
+export function oncePerTurnSneakAttack(rogueClassId: string, gate?: FacetAuthored): FeatureAuthored {
+  const feature = unconditionalSneakAttack(rogueClassId)
+  return {
+    ...feature,
+    effects: feature.effects?.map((effect) => ({
+      ...effect,
+      paths: effect.paths.map((path) => ({
+        ...path,
+        ...(gate ? { restrictions: gate } : {}),
+        usage: 'ONCE_PER_TURN' as const
+      }))
+    }))
+  }
+}
+
+/**
+ * The rider with a fixed amount of dice in place of its class-level scaling, for a Character
+ * who holds no levels of the Rogue class the scaling reads.
+ */
+export function withFixedRiderDice(
+  feature: FeatureAuthored,
+  outcomeId: string,
+  diceConfig: string
+): FeatureAuthored {
+  return {
+    ...feature,
+    effects: feature.effects?.map((effect) => ({
+      ...effect,
+      paths: effect.paths.map((path) => {
+        if (!('resultBlock' in path)) return path
+        return {
+          ...path,
+          resultBlock: {
+            ...path.resultBlock,
+            outcomes: [
+              {
+                id: outcomeId,
+                effectKind: 'DAMAGE' as const,
+                usesTriggeringWeaponDamageType: true as const,
+                valueKind: 'DICE' as const,
+                scalingKind: 'NONE' as const,
+                diceConfig
+              }
+            ]
+          }
+        }
+      })
+    }))
+  }
+}

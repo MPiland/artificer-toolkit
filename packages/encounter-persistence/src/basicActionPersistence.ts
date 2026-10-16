@@ -235,6 +235,7 @@ export async function persistEncounterBasicAction(
       endedMaintainedStates: [],
       addedConcentrationCasterId: null,
       speedBonusTurn: null,
+      turnUses: null,
       commandFingerprint: fingerprint,
       actorUserId: input.expectedUserId,
       version: nextState.version,

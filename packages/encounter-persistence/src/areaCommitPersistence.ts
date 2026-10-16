@@ -586,6 +586,7 @@ export async function persistEncounterAreaCommit(
       endedMaintainedStates: [],
       addedConcentrationCasterId: null,
       speedBonusTurn: null,
+      turnUses: null,
       issuerLines: children.flatMap(({ actor, batch }) => {
         // A cast on chosen creatures asks no save, so it has nothing to report per creature.
         if (!batch.d20) return []

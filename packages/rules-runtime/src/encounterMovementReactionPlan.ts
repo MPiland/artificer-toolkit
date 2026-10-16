@@ -4,7 +4,10 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { serverRuleExecutionApplicationOutputsDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionApplicationOutputs'
 import { movementReactionActionExecutionDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionMovementReactionReceipts'
-import { resolveEncounterActionPhaseExecution } from './encounterActionPhaseExecution.js'
+import {
+  requireTestRollMode,
+  resolveEncounterActionPhaseExecution
+} from './encounterActionPhaseExecution.js'
 import {
   encounterRuleUsageUsed,
   withEncounterRuleUsageUsed,
@@ -126,6 +129,7 @@ function verifyCompletedMovementReactionPlan<
     execution: test.execution,
     adapter: input.prepared.prepared.adapter,
     facts: bound.facts,
+    testRollMode: requireTestRollMode(input.execution.d20),
     ...(input.execution.resistance
       ? { effectivePath: input.execution.resistance.effectivePath }
       : {})

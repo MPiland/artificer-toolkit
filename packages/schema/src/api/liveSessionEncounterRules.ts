@@ -17,6 +17,7 @@ import {
   encounterRunStateSchema
 } from '../projections/encounterRunState.js'
 import { projectionChecksumSchema } from '../projections/identity.js'
+import { encounterTurnUseKeysSchema } from '../projections/encounterRunPersistence.js'
 import { systemAuthoredDtoSchema } from '../vocabulary/system.js'
 import { systemVocabularySnapshotSchema } from '../projections/systemVocabulary.js'
 import { liveSessionBootstrapInputSchema } from './liveSessionState.js'
@@ -128,6 +129,7 @@ export const liveSessionEncounterRulesRequestSchema = lazySchema(() =>
     }),
     z.strictObject({ kind: z.literal('INPUTS') }),
     z.strictObject({ kind: z.literal('INITIATIVE_ROUND') }),
+    z.strictObject({ kind: z.literal('TURN_USES'), actorId: postgresUuidSchema }),
     z.strictObject({ kind: z.literal('CLEAVING_BINDINGS') }),
     z.strictObject({ kind: z.literal('SYSTEM_VOCABULARY') }),
     z.strictObject({
@@ -292,6 +294,11 @@ export const liveSessionEncounterRulesResponseSchema = lazySchema(() =>
       kind: z.literal('INITIATIVE_ROUND'),
       revisions: liveSessionRulesRevisionsSchema,
       state: z.nullable(encounterInitiativeRoundStateDtoSchema)
+    }),
+    z.strictObject({
+      kind: z.literal('TURN_USES'),
+      revisions: liveSessionRulesRevisionsSchema,
+      keys: encounterTurnUseKeysSchema
     }),
     z.strictObject({
       kind: z.literal('SYSTEM_VOCABULARY'),

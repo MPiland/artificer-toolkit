@@ -160,7 +160,7 @@ Own commit range on `ci/spells-5-t9`, mergeable apart from SPELLS-27 beyond T1.
 
 ## 7. SPELLS-27.T2: effects ended by an event release what they owned
 
-Decided as D124.
+Decided as D125.
 
 - **One consumer.** `effectsEndedBy(effects, event)` reads `consumeOnFirstEvents` and `endOnEvents`; `consumableGrants` and `grantsEndedBy` are deleted. Invisibility ends on its holder's attack roll after granting advantage on that roll.
 - **Release.** `planNativeEncounterActionMechanics` plans `CONDITION_REMOVE` on the source batch (`sourceReleases` from `endedEffectConditionReleases`, which wraps `endedMaintenanceConditions`) for Character and Creature sources. A self-targeted action cannot release (the planner throws); the holder's own batch already carries its applications.

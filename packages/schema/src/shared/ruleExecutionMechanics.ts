@@ -245,7 +245,7 @@ export const encounterActorActiveEffectCreateReceiptDtoSchema = lazySchema(() =>
 /** Immutable receipt for a target-owned state contribution created by an immediate outcome. */
 /**
  * What the acting source's own state changed with its action, apart from the target's outcome: the
- * conditions an effect that ended on the event held alone (SPELLS-27.T2, D124). Only releases are
+ * conditions an effect that ended on the event held alone (SPELLS-27.T2, D125). Only releases are
  * receipted, because undo restores exactly those.
  */
 export const sourceApplicationsDtoSchema = lazySchema(() =>
