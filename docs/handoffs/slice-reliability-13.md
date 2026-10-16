@@ -40,6 +40,8 @@ The events read now takes 17 and refuses more than 16 (one receipt per presentat
   - Stands: the bound counts every Campaign event type, not only receipts. The proof writes no other type (cleanup of the Campaign refuses any other), so it cannot cause this failure.
 - Cannot reproduce the race itself in convex-test, so the proof seeds the receipt history directly through `seedPresentation`, the same rows the race leaves.
 
+- CI on `99cf4b438` failed in "Build packages": `rules-runtime` `src/testing/plannedTimedCondition.ts(46,5)` TS2741, `resources` missing from `SpellPolicyOutput`. Cause is a base interaction, not this slice: SPELLS-8.T8 added `resources` to `SpellPolicyOutput` and the SPELLS-5.T9 helper (merged separately) builds that output without it. `origin/codex/phase-08-2-convex-cutover` (8cfb36601) does not yet carry T8's `SpellPolicyOutput` change, so the same break appears wherever T8 and the helper meet. Fixed in the helper (`resources: []` and the `satisfies` Pick), so this branch's build can pass.
+
 ## Proposed ledger edits (main session applies)
 
 - RELIABILITY-13.T1: status DONE, `note`: "Fixture cleanup bound raised from 5 to 16 presentation receipts; the lifecycle proof presents five or six times depending on the racing setLive."
