@@ -753,6 +753,12 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - **Removed subject:** the seed fails loudly and lists the ids. Real removal is deferred (future-enhancements, Deferred edge cases).
   - **Downgrade:** no guard. The seed is declarative, so seeding an earlier corpus is just another replace.
   - **Dependents:** a canonical replace runs the same unresolved-dependent check as publish (ADR 0024) and refuses on a hit. The seed has no bypass.
+* **D121** (2026-10-15) Which creatures a player's Encounter view lists (ATTACK-17.T2; brief [slice-attack-17-t2-t3.md](slice-attack-17-t2-t3.md)). Decided by the main session.
+  - **Room:** the room computes exact per-viewer visibility, including fog, through `projectSceneForViewer`.
+  - **Convex stored-session reads and admission** (`activeReads`, `projectionReads`, `healthDisplay`) fail closed and never read fog. For a non-GM, a creature with a token on the Encounter's Scene is listed only if the player controls it or the GM revealed it. This takes one bounded, indexed read of the Run's bindings. It may over-hide until the room connects, and it never leaks.
+  - **One shared predicate:** both paths use the same pure function to decide what is listed. The room only narrows that list further, with fog. The tests run one table of cases against both paths, including the over-hide-then-reveal case.
+  - **No token on the Scene:** when the Encounter has a Scene, a non-player creature without a token is hidden from players unless revealed, so the GM can stage creatures off-map. When the Encounter has no Scene, everything is listed.
+  - **Rejected:** exact fog evaluation inside reactive Convex queries. It would re-read fog on every Encounter change, breaking the read budget and the free-tier constraint (ADR 0035).
 
 ## Approved implementation decisions
 
