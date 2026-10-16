@@ -101,6 +101,26 @@ const encounterRunActorFormSchema = lazySchema(() =>
   )
 )
 
+/**
+ * The Creature form a Character actor has taken (D130 amendment, SPELLS-28.T4c), or null. The
+ * Character's own state stays on the Sheet, untouched while the form lasts, so there is no origin:
+ * the form's snapshot and hit points are the actor's own while `form` is set. Rare and at most one
+ * per Character, so the snapshot is kept inline instead of shared by checksum.
+ */
+const encounterCharacterFormSchema = lazySchema(() =>
+  z.nullable(
+    z.strictObject({
+      ...encounterActorFormShape(),
+      sourceId: postgresUuidSchema,
+      sourceRevision: z.number().check(z.int()).check(z.positive()),
+      snapshot: jsonValueSchema,
+      currentHitPoints: z.number().check(z.int()).check(z.nonnegative()),
+      maxHitPoints: z.number().check(z.int()).check(z.nonnegative()),
+      tempHitPoints: z.number().check(z.int()).check(z.nonnegative())
+    })
+  )
+)
+
 /** Creature and custom actors own their health in the Run. */
 const encounterRunActorHealthShape = lazySchemaParts(() => ({
   currentHitPoints: z.number().check(z.int()).check(z.nonnegative()),
@@ -121,7 +141,8 @@ export const encounterRunActorStateSchema = lazySchema(() =>
     z.extend(encounterRunActorStateBaseSchema, {
       kind: z.literal('CHARACTER'),
       sourceId: postgresUuidSchema,
-      frozenState: encounterCharacterFrozenStateSchema
+      frozenState: encounterCharacterFrozenStateSchema,
+      form: encounterCharacterFormSchema
     }),
     z.extend(encounterRunActorStateBaseSchema, {
       kind: z.enum(['CREATURE', 'CUSTOM']),
@@ -169,7 +190,8 @@ export const encounterActorProjectionFactsSchema = lazySchema(() =>
     z.extend(encounterActorProjectionFactsBaseSchema, {
       kind: z.literal('CHARACTER'),
       sourceId: postgresUuidSchema,
-      frozenState: encounterCharacterFrozenStateSchema
+      frozenState: encounterCharacterFrozenStateSchema,
+      form: encounterCharacterFormSchema
     }),
     z.extend(encounterActorProjectionFactsBaseSchema, {
       kind: z.enum(['CREATURE', 'CUSTOM']),
@@ -201,7 +223,8 @@ export const encounterStoredRunActorStateSchema = lazySchema(() =>
     z.extend(encounterStoredRunActorStateBaseSchema, {
       kind: z.literal('CHARACTER'),
       sourceId: postgresUuidSchema,
-      frozenState: encounterCharacterFrozenStateSchema
+      frozenState: encounterCharacterFrozenStateSchema,
+      form: encounterCharacterFormSchema
     }),
     z.extend(encounterStoredRunActorStateBaseSchema, {
       kind: z.enum(['CREATURE', 'CUSTOM']),
@@ -220,6 +243,7 @@ export const encounterSourceProjectionFactsSchema = lazySchema(() =>
 )
 
 export type EncounterActorForm = NonNullable<z.infer<typeof encounterRunActorFormSchema>>
+export type EncounterCharacterForm = NonNullable<z.infer<typeof encounterCharacterFormSchema>>
 export type EncounterActorProjectionFacts = z.infer<typeof encounterActorProjectionFactsSchema>
 export type EncounterStoredRunActorState = z.infer<typeof encounterStoredRunActorStateSchema>
 export type EncounterSourceProjectionFacts = z.infer<typeof encounterSourceProjectionFactsSchema>

@@ -205,7 +205,7 @@ describe('Giant Insect swaps the chosen creatures into the chosen form (SPELLS-2
     expect(after.activeEffects.map((effect) => effect.targetActorId)).toEqual([bitten])
   }, 120000)
 
-  it('refuses more creatures than the chosen form allows, a Character, and a cast with no form', async () => {
+  it('refuses more creatures than the chosen form allows and a cast with no form', async () => {
     const room = await insectRoom()
     const refusedWith = async (actorIds: readonly string[], formId?: string) => {
       const { answer } = await room.startActorsAction(
@@ -221,9 +221,6 @@ describe('Giant Insect swaps the chosen creatures into the chosen form (SPELLS-2
 
     expect(await refusedWith(BEAST_IDS, formOf(CREATURE_IDS.GIANT_SCORPION).id)).toContain(
       'at most 1'
-    )
-    expect(await refusedWith([CHARACTER_ACTOR_ID], CENTIPEDES.id)).toContain(
-      'cannot take a creature form'
     )
     expect(await refusedWith(BEAST_IDS)).toContain('needs one of its creature forms')
     expect((await readRoomHistory(room.room.base.stub)).activeEffects).toHaveLength(0)
