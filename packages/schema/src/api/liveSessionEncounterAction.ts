@@ -210,6 +210,7 @@ export type LiveSessionEncounterCounteredCastCommitInput = Omit<
   | 'cleaving'
   | 'consumedGrants'
   | 'turnUses'
+  | 'engagesSource'
 >
 
 export const liveSessionEncounterCounteredCastCommitInputSchema: z.ZodMiniType<LiveSessionEncounterCounteredCastCommitInput> =
