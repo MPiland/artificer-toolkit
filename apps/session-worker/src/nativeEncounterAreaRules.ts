@@ -844,7 +844,7 @@ export async function sealReachSaves(
     placesZone: reach.placement !== null,
     scene: reach.scene && { sceneId: reach.scene.sceneId, sceneVersion: reach.scene.sceneVersion },
     area: reach.area && { origin: reach.area.origin, shape: reach.area.shape },
-    ...(window.failedCounters.length > 0 ? { failedCounters: window.failedCounters } : {}),
+    ...(window.failedCounters.length > 0 ? { failedCounters: [...window.failedCounters] } : {}),
     targets
   })
   // An entry whose roller auto-rolls has its roll made now, so an auto-rolled failed save opens its
@@ -1665,7 +1665,7 @@ export async function completeAreaCommit(args: {
     const carriesFailedCounterSpend =
       actor.id !== caster.id &&
       failedReactorSlots.has(actor.id) &&
-      children.every((child) => child.actorId !== actor.id)
+      kept.findIndex((entry) => entry.actor.id === actor.id) === index
     const enterForm =
       recurringEffect && formCreature ? actorFormEntry(recurringEffect, formCreature) : undefined
     const mechanics = planNativeEncounterActionMechanics(

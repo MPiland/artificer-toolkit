@@ -7,6 +7,7 @@ import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projectio
 import type { EncounterFailedCounterDto } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 import { prepareEncounterActionMechanics } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
+import type { NativeEncounterActionMechanicsInput } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPlan'
 import { preparedSpellCastLevel } from '@artificer-toolkit/rules-runtime/encounterCastReactionDiscovery'
 import { projectSpellSlotSpend } from '@artificer-toolkit/rules-runtime/encounterActionProjection'
 import { nextRollInt } from '@artificer-toolkit/rules-runtime/random'
@@ -20,7 +21,7 @@ import {
 } from './nativeEncounterCastReaction.js'
 import type { prepareNativeLiveMovementTarget } from './nativeEncounterTargets.js'
 
-type Prepared = Awaited<ReturnType<typeof prepareEncounterActionMechanics>>
+type Prepared = NativeEncounterActionMechanicsInput['prepared']
 type MovementTargets = Awaited<ReturnType<typeof prepareNativeLiveMovementTarget>>['target']
 
 /**
