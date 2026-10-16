@@ -5977,16 +5977,39 @@
               }
             },
             {
-              "id": "ATTACK-10.T3",
-              "text": "Opportunity attacks and Disarm apply attack-roll sight; movement-reaction perception applies condition contributions.",
+              "id": "ATTACK-10.T3a",
+              "text": "Movement-reaction perception applies condition contributions (Blinded, Invisible).",
+              "status": "DONE",
+              "wsjf": {
+                "bv": 3,
+                "tc": 1,
+                "rr": 2,
+                "size": 1
+              }
+            },
+            {
+              "id": "ATTACK-10.T3b",
+              "text": "Opportunity attacks apply attack-roll sight: a believed prompt, a true settlement, a held die and a mode adjustment, retained and replayed.",
+              "status": "DONE",
+              "wsjf": {
+                "bv": 3,
+                "tc": 1,
+                "rr": 2,
+                "size": 2
+              }
+            },
+            {
+              "id": "ATTACK-10.T3c",
+              "text": "Disarm applies attack-roll sight like RESOLVE_ACTION (believed prompt, true settlement).",
               "status": "TODO",
               "closes": ["ATTACK-10.4"],
               "wsjf": {
                 "bv": 3,
                 "tc": 1,
                 "rr": 2,
-                "size": 3
-              }
+                "size": 2
+              },
+              "activeWorkbook": "docs/handoffs/slice-attack-10-t3.md"
             },
             {
               "id": "ATTACK-10.T4",
