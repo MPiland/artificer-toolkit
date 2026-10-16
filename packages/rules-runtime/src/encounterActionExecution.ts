@@ -36,7 +36,11 @@ import {
   type ServerRuleExecutionD20PolicyDto,
   type ServerRuleExecutionNestedD20EvidenceDto
 } from '@artificer-toolkit/schema/shared/rulesExecution'
-import { checksumRuleDocument, RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules'
+import {
+  checksumRuleDocument,
+  RULE_GRAPH_LIMITS,
+  type RuleValue
+} from '@artificer-toolkit/shared/rules'
 import {
   directActionTwoPhaseDtoSchema,
   type EncounterLegendaryResistanceOfferDto
@@ -816,6 +820,25 @@ export function onHitOutcomeBinding(
     : binding
 }
 
+/**
+ * The facts that select and specialize the OUTCOME graph. A rider chosen at the held hit changes which
+ * optional entries the OUTCOME contains, so they are bound to the choice, not to the unchosen TEST.
+ */
+function outcomeSelectionFacts(input: {
+  adapter: NativeActionBaseInput['adapter']
+  binding: NativeActionBaseInput['binding']
+  published: ServerPublishedRuleDefinitionDto
+  testFacts: Readonly<Record<string, RuleValue>>
+  onHit: NativeActionOnHitAudit | null
+}) {
+  return input.onHit?.option
+    ? input.adapter.bindFacts({
+        ...onHitOutcomeBinding(input.binding, input.onHit),
+        published: input.published
+      }).facts
+    : input.testFacts
+}
+
 /** Holds a hit before its OUTCOME so the attacker may add an optional on-hit rider to it. */
 async function holdForOnHitChoice(input: {
   runtime: RulesRuntimeService
@@ -908,7 +931,13 @@ export async function continueNativeActionAfterTest(
     phase: 'TEST',
     execution: input.boundary.execution,
     adapter: input.adapter,
-    facts: current.bound.facts,
+    facts: outcomeSelectionFacts({
+      adapter: input.adapter,
+      binding: input.binding,
+      published: current.published,
+      testFacts: current.bound.facts,
+      onHit: input.onHit ?? null
+    }),
     ...(effectivePath === undefined ? {} : { effectivePath })
   })
   if (outcome.kind === 'TEST_ONLY')
@@ -1359,7 +1388,13 @@ export async function advanceNativeActionGraphs(input: {
         phase: 'TEST',
         execution: pending.twoPhase.testExecution,
         adapter: input.adapter,
-        facts: initialBound.facts,
+        facts: outcomeSelectionFacts({
+          adapter: input.adapter,
+          binding: input.binding,
+          published: initialPublished,
+          testFacts: initialBound.facts,
+          onHit: pending.twoPhase.onHit
+        }),
         ...(pending.twoPhase.legendaryResistance === null
           ? {}
           : {

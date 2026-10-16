@@ -6,7 +6,6 @@ import { resolveNativeActionOnHit } from '../encounterActionOnHit.js'
 import type { EncounterOnHitCandidate, EncounterOnHitSelection } from '../encounterOnHitChoice.js'
 import { dnd5eCharacterRuleActionSystemAdapter } from '../systems/dnd5e/effectActionCompiler.js'
 import { OPTIONAL_SMITE_EFFECT_ID } from '../testing/optionalSmite.js'
-import { evaluateSrdCharacter } from './dnd5eSrdCharacter.js'
 import { outcomeDice, srdDamageTypeId } from './encounterCreatureAction.js'
 import {
   HIT,
@@ -180,23 +179,32 @@ describe('a hit is held for the attacker to add an optional on-hit rider (D123)'
 
 describe('which optional on-hit riders a Character can pay for (D123)', () => {
   it('finds the rider on a melee weapon attack and none on a ranged one', () => {
-    const riders = (weapon: string, attackKind: string) =>
+    const riders = (weapon: string, select: Parameters<typeof smiterWeaponAttack>[1]) =>
       dnd5eCharacterRuleActionSystemAdapter.optionalOnHitRiders({
-        compilerSource: smiterWeaponAttack(weapon, { attackKind }).compilerSource
+        compilerSource: smiterWeaponAttack(weapon, select).compilerSource
       })
 
-    expect(riders('Longsword', 'MELEE')).toEqual([
+    expect(riders('Longsword', { attackKind: 'MELEE', grip: 'ONE_HANDED' })).toEqual([
       { riderId: OPTIONAL_SMITE_EFFECT_ID, cost: { kind: 'SPELL_SLOT' } }
     ])
-    expect(riders('Shortbow', 'RANGED')).toEqual([])
+    expect(riders('Shortbow', { attackKind: 'RANGED' })).toEqual([])
   })
 
   it('offers each slot level the Character still holds', () => {
-    const paladin = evaluateSrdCharacter({
-      abilities: { STRENGTH: 16, CHARISMA: 14 },
-      classes: [{ label: 'Paladin', level: 5 }]
-    })
-    const { spellSlots } = paladin.output
+    const spellSlots = {
+      calculationId: 'slots',
+      sourceClassIds: [],
+      maxByLevel: [1, 2].map((spellLevel) => ({
+        spellLevel,
+        slotCount: 2,
+        sourceIds: [],
+        rawUsed: 0,
+        effectiveUsed: 0,
+        remaining: 2
+      })),
+      pactMagic: null,
+      fusionStrategy: 'NONE' as const
+    }
 
     expect(onHitSlotChoices(spellSlots).map(({ level }) => level)).toEqual([1, 2])
     expect(
