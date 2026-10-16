@@ -8849,8 +8849,8 @@
             },
             {
               "id": "SPELLS-27.T4b",
-              "text": "Every damage root ends damage-triggered effects through damageTakenEndedEffects: the area commit, the Legendary window, the movement reaction, turn effects (ongoing damage) and death-save damage, each proved with GM undo; plus the ATTACK_ROLL-against-an-enemy end arm (Sanctuary) and the SPELL_CAST arm on the T3 cast fact. T5 authors no damage-ended SRD effect whose damage arrives through an unwired root.",
-              "status": "IN_PROGRESS",
+              "text": "Every damage root ends damage-triggered effects through damageTakenEndedEffects: the area commit, the Legendary window, the movement reaction, turn effects (ongoing damage) and death-save damage, each proved with GM undo; plus the ATTACK_ROLL-against-an-enemy end arm (Sanctuary) and the SPELL_CAST arm on the T3 cast fact. T5 authors no damage-ended SRD effect whose damage arrives through an unwired root. (Red: ci/spells-27-t4b-red Tests 38923276647 on 8257e8b6f failed on the new damage-root and against-enemy tests. Green: ci/spells-27-t4b Tests 38946927455 and Live backend 38946927449 on f8aa3b8cf.)",
+              "status": "DONE",
               "closes": ["SPELLS-27.2"],
               "wsjf": {
                 "bv": 3,
@@ -8858,13 +8858,12 @@
                 "rr": 3,
                 "size": 3,
                 "after": ["SPELLS-27.T4"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-spells-27.md"
+              }
             },
             {
               "id": "SPELLS-27.T5",
               "text": "Author SRD end events (spells, class features, items, creature traits) from core options; corpus test lists any effect left with end-event text and no authored end, except a typed allow-list of other mechanisms.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-27.2"],
               "wsjf": {
                 "bv": 3,
@@ -8872,7 +8871,8 @@
                 "rr": 3,
                 "size": 3,
                 "after": ["SPELLS-27.T4", "SPELLS-27.T4b"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-27.md"
             },
             {
               "id": "SPELLS-27.T6",

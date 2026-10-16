@@ -198,7 +198,7 @@ Decided as D132.
 
 ## 9. SPELLS-27.T4b: the other damage roots and the against-enemy arms
 
-Decided as `D-pending-spells-27-t4b`.
+Decided as the [D132 amendment](phase-08-2-decisions.md) of 2026-10-16.
 
 - **Trigger shape.** `endOnTriggers` gains `{ event: 'ATTACK_ROLL' | 'SPELL_CAST', against: 'ENEMY' }` (runtime schema, authored schema, `PathLifecycleAuthored`, node map: `by` and `damageTypeIds` show only for `DAMAGE_TAKEN`, `against` only for the other two). `against` is explicit so a later `ALLY` or `ANY` value is a schema widening, not a reinterpretation. The compiler passes the new members through unchanged; `DAMAGE_TAKEN` members are normalized as before.
 - **Enemy.** `actsAgainstEnemy`: any target in a `HOSTILE` relationship to the actor (`encounterActorRelationship`); a neutral target is not an enemy. `actionEndedEffects` takes a required `againstEnemy` and every call site computes it (single action, Shield and Counterspell reactors, area caster, Disarm, Legendary, movement reaction).
