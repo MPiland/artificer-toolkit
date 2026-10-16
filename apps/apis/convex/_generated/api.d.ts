@@ -24514,6 +24514,7 @@ export declare const api: {
                     invocation:
                       | {
                           kind: "PASSIVE";
+                          optionalOnHit?: never;
                           range:
                             | {
                                 id: string;
@@ -25683,6 +25684,13 @@ export declare const api: {
                         }
                       | {
                           kind: "PASSIVE";
+                          optionalOnHit?:
+                            | { kind: "SPELL_SLOT" }
+                            | {
+                                chargeId: string;
+                                cost: number;
+                                kind: "RESOURCE_POOL";
+                              };
                           range:
                             | {
                                 id: string;
@@ -26815,6 +26823,7 @@ export declare const api: {
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
                           kind?: "ACTION";
+                          optionalOnHit?: never;
                           range:
                             | {
                                 id: string;
@@ -27985,6 +27994,7 @@ export declare const api: {
                       | {
                           activation: { amount: number; code: "REACTION" };
                           kind?: "ACTION";
+                          optionalOnHit?: never;
                           range:
                             | {
                                 id: string;
@@ -29210,6 +29220,7 @@ export declare const api: {
                               | { kind: "CONCEALMENT" };
                           };
                           kind?: "ACTION";
+                          optionalOnHit?: never;
                           range:
                             | {
                                 id: string;
@@ -30334,6 +30345,7 @@ export declare const api: {
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
                           kind?: "ACTION";
+                          optionalOnHit?: never;
                           range:
                             | {
                                 id: string;
@@ -31462,6 +31474,7 @@ export declare const api: {
                       | {
                           activation: { amount: number; code: "REACTION" };
                           kind?: "ACTION";
+                          optionalOnHit?: never;
                           range:
                             | {
                                 id: string;
@@ -34262,6 +34275,7 @@ export declare const api: {
                     invocation:
                       | {
                           kind: "PASSIVE";
+                          optionalOnHit?: never;
                           range:
                             | {
                                 id: string;
@@ -35431,6 +35445,13 @@ export declare const api: {
                         }
                       | {
                           kind: "PASSIVE";
+                          optionalOnHit?:
+                            | { kind: "SPELL_SLOT" }
+                            | {
+                                chargeId: string;
+                                cost: number;
+                                kind: "RESOURCE_POOL";
+                              };
                           range:
                             | {
                                 id: string;
@@ -36563,6 +36584,7 @@ export declare const api: {
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
                           kind?: "ACTION";
+                          optionalOnHit?: never;
                           range:
                             | {
                                 id: string;
@@ -37733,6 +37755,7 @@ export declare const api: {
                       | {
                           activation: { amount: number; code: "REACTION" };
                           kind?: "ACTION";
+                          optionalOnHit?: never;
                           range:
                             | {
                                 id: string;
@@ -38958,6 +38981,7 @@ export declare const api: {
                               | { kind: "CONCEALMENT" };
                           };
                           kind?: "ACTION";
+                          optionalOnHit?: never;
                           range:
                             | {
                                 id: string;
@@ -40082,6 +40106,7 @@ export declare const api: {
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
                           kind?: "ACTION";
+                          optionalOnHit?: never;
                           range:
                             | {
                                 id: string;
@@ -41210,6 +41235,7 @@ export declare const api: {
                       | {
                           activation: { amount: number; code: "REACTION" };
                           kind?: "ACTION";
+                          optionalOnHit?: never;
                           range:
                             | {
                                 id: string;
@@ -44019,6 +44045,7 @@ export declare const api: {
                     invocation:
                       | {
                           kind: "PASSIVE";
+                          optionalOnHit?: never;
                           range:
                             | {
                                 id: string;
@@ -45188,6 +45215,13 @@ export declare const api: {
                         }
                       | {
                           kind: "PASSIVE";
+                          optionalOnHit?:
+                            | { kind: "SPELL_SLOT" }
+                            | {
+                                chargeId: string;
+                                cost: number;
+                                kind: "RESOURCE_POOL";
+                              };
                           range:
                             | {
                                 id: string;
@@ -46320,6 +46354,7 @@ export declare const api: {
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
                           kind?: "ACTION";
+                          optionalOnHit?: never;
                           range:
                             | {
                                 id: string;
@@ -47490,6 +47525,7 @@ export declare const api: {
                       | {
                           activation: { amount: number; code: "REACTION" };
                           kind?: "ACTION";
+                          optionalOnHit?: never;
                           range:
                             | {
                                 id: string;
@@ -48715,6 +48751,7 @@ export declare const api: {
                               | { kind: "CONCEALMENT" };
                           };
                           kind?: "ACTION";
+                          optionalOnHit?: never;
                           range:
                             | {
                                 id: string;
@@ -49839,6 +49876,7 @@ export declare const api: {
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
                           kind?: "ACTION";
+                          optionalOnHit?: never;
                           range:
                             | {
                                 id: string;
@@ -50967,6 +51005,7 @@ export declare const api: {
                       | {
                           activation: { amount: number; code: "REACTION" };
                           kind?: "ACTION";
+                          optionalOnHit?: never;
                           range:
                             | {
                                 id: string;
@@ -53767,6 +53806,7 @@ export declare const api: {
                     invocation:
                       | {
                           kind: "PASSIVE";
+                          optionalOnHit?: never;
                           range:
                             | {
                                 id: string;
@@ -54936,6 +54976,13 @@ export declare const api: {
                         }
                       | {
                           kind: "PASSIVE";
+                          optionalOnHit?:
+                            | { kind: "SPELL_SLOT" }
+                            | {
+                                chargeId: string;
+                                cost: number;
+                                kind: "RESOURCE_POOL";
+                              };
                           range:
                             | {
                                 id: string;
@@ -56068,6 +56115,7 @@ export declare const api: {
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
                           kind?: "ACTION";
+                          optionalOnHit?: never;
                           range:
                             | {
                                 id: string;
@@ -57238,6 +57286,7 @@ export declare const api: {
                       | {
                           activation: { amount: number; code: "REACTION" };
                           kind?: "ACTION";
+                          optionalOnHit?: never;
                           range:
                             | {
                                 id: string;
@@ -58463,6 +58512,7 @@ export declare const api: {
                               | { kind: "CONCEALMENT" };
                           };
                           kind?: "ACTION";
+                          optionalOnHit?: never;
                           range:
                             | {
                                 id: string;
@@ -59587,6 +59637,7 @@ export declare const api: {
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
                           kind?: "ACTION";
+                          optionalOnHit?: never;
                           range:
                             | {
                                 id: string;
@@ -60715,6 +60766,7 @@ export declare const api: {
                       | {
                           activation: { amount: number; code: "REACTION" };
                           kind?: "ACTION";
+                          optionalOnHit?: never;
                           range:
                             | {
                                 id: string;
@@ -63550,6 +63602,7 @@ export declare const api: {
                     invocation:
                       | {
                           kind: "PASSIVE";
+                          optionalOnHit?: never;
                           range:
                             | {
                                 id: string;
@@ -64719,6 +64772,13 @@ export declare const api: {
                         }
                       | {
                           kind: "PASSIVE";
+                          optionalOnHit?:
+                            | { kind: "SPELL_SLOT" }
+                            | {
+                                chargeId: string;
+                                cost: number;
+                                kind: "RESOURCE_POOL";
+                              };
                           range:
                             | {
                                 id: string;
@@ -65851,6 +65911,7 @@ export declare const api: {
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
                           kind?: "ACTION";
+                          optionalOnHit?: never;
                           range:
                             | {
                                 id: string;
@@ -67021,6 +67082,7 @@ export declare const api: {
                       | {
                           activation: { amount: number; code: "REACTION" };
                           kind?: "ACTION";
+                          optionalOnHit?: never;
                           range:
                             | {
                                 id: string;
@@ -68246,6 +68308,7 @@ export declare const api: {
                               | { kind: "CONCEALMENT" };
                           };
                           kind?: "ACTION";
+                          optionalOnHit?: never;
                           range:
                             | {
                                 id: string;
@@ -69370,6 +69433,7 @@ export declare const api: {
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
                           kind?: "ACTION";
+                          optionalOnHit?: never;
                           range:
                             | {
                                 id: string;
@@ -70498,6 +70562,7 @@ export declare const api: {
                       | {
                           activation: { amount: number; code: "REACTION" };
                           kind?: "ACTION";
+                          optionalOnHit?: never;
                           range:
                             | {
                                 id: string;
@@ -73298,6 +73363,7 @@ export declare const api: {
                     invocation:
                       | {
                           kind: "PASSIVE";
+                          optionalOnHit?: never;
                           range:
                             | {
                                 id: string;
@@ -74467,6 +74533,13 @@ export declare const api: {
                         }
                       | {
                           kind: "PASSIVE";
+                          optionalOnHit?:
+                            | { kind: "SPELL_SLOT" }
+                            | {
+                                chargeId: string;
+                                cost: number;
+                                kind: "RESOURCE_POOL";
+                              };
                           range:
                             | {
                                 id: string;
@@ -75599,6 +75672,7 @@ export declare const api: {
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
                           kind?: "ACTION";
+                          optionalOnHit?: never;
                           range:
                             | {
                                 id: string;
@@ -76769,6 +76843,7 @@ export declare const api: {
                       | {
                           activation: { amount: number; code: "REACTION" };
                           kind?: "ACTION";
+                          optionalOnHit?: never;
                           range:
                             | {
                                 id: string;
@@ -77994,6 +78069,7 @@ export declare const api: {
                               | { kind: "CONCEALMENT" };
                           };
                           kind?: "ACTION";
+                          optionalOnHit?: never;
                           range:
                             | {
                                 id: string;
@@ -79118,6 +79194,7 @@ export declare const api: {
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
                           kind?: "ACTION";
+                          optionalOnHit?: never;
                           range:
                             | {
                                 id: string;
@@ -80246,6 +80323,7 @@ export declare const api: {
                       | {
                           activation: { amount: number; code: "REACTION" };
                           kind?: "ACTION";
+                          optionalOnHit?: never;
                           range:
                             | {
                                 id: string;
@@ -83033,6 +83111,7 @@ export declare const api: {
                   invocation:
                     | {
                         kind: "PASSIVE";
+                        optionalOnHit?: never;
                         range:
                           | {
                               id: string;
@@ -84184,6 +84263,13 @@ export declare const api: {
                       }
                     | {
                         kind: "PASSIVE";
+                        optionalOnHit?:
+                          | { kind: "SPELL_SLOT" }
+                          | {
+                              chargeId: string;
+                              cost: number;
+                              kind: "RESOURCE_POOL";
+                            };
                         range:
                           | {
                               id: string;
@@ -85304,6 +85390,7 @@ export declare const api: {
                           | { amount: number; code: "BONUS_ACTION" }
                           | { amount: number; code: "REACTION" };
                         kind?: "ACTION";
+                        optionalOnHit?: never;
                         range:
                           | {
                               id: string;
@@ -86456,6 +86543,7 @@ export declare const api: {
                     | {
                         activation: { amount: number; code: "REACTION" };
                         kind?: "ACTION";
+                        optionalOnHit?: never;
                         range:
                           | {
                               id: string;
@@ -87659,6 +87747,7 @@ export declare const api: {
                             | { kind: "CONCEALMENT" };
                         };
                         kind?: "ACTION";
+                        optionalOnHit?: never;
                         range:
                           | {
                               id: string;
@@ -88771,6 +88860,7 @@ export declare const api: {
                           | { amount: number; code: "BONUS_ACTION" }
                           | { amount: number; code: "REACTION" };
                         kind?: "ACTION";
+                        optionalOnHit?: never;
                         range:
                           | {
                               id: string;
@@ -89887,6 +89977,7 @@ export declare const api: {
                     | {
                         activation: { amount: number; code: "REACTION" };
                         kind?: "ACTION";
+                        optionalOnHit?: never;
                         range:
                           | {
                               id: string;
@@ -92666,6 +92757,7 @@ export declare const api: {
                     invocation:
                       | {
                           kind: "PASSIVE";
+                          optionalOnHit?: never;
                           range:
                             | {
                                 id: string;
@@ -93835,6 +93927,13 @@ export declare const api: {
                         }
                       | {
                           kind: "PASSIVE";
+                          optionalOnHit?:
+                            | { kind: "SPELL_SLOT" }
+                            | {
+                                chargeId: string;
+                                cost: number;
+                                kind: "RESOURCE_POOL";
+                              };
                           range:
                             | {
                                 id: string;
@@ -94967,6 +95066,7 @@ export declare const api: {
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
                           kind?: "ACTION";
+                          optionalOnHit?: never;
                           range:
                             | {
                                 id: string;
@@ -96137,6 +96237,7 @@ export declare const api: {
                       | {
                           activation: { amount: number; code: "REACTION" };
                           kind?: "ACTION";
+                          optionalOnHit?: never;
                           range:
                             | {
                                 id: string;
@@ -97362,6 +97463,7 @@ export declare const api: {
                               | { kind: "CONCEALMENT" };
                           };
                           kind?: "ACTION";
+                          optionalOnHit?: never;
                           range:
                             | {
                                 id: string;
@@ -98486,6 +98588,7 @@ export declare const api: {
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
                           kind?: "ACTION";
+                          optionalOnHit?: never;
                           range:
                             | {
                                 id: string;
@@ -99614,6 +99717,7 @@ export declare const api: {
                       | {
                           activation: { amount: number; code: "REACTION" };
                           kind?: "ACTION";
+                          optionalOnHit?: never;
                           range:
                             | {
                                 id: string;
@@ -102414,6 +102518,7 @@ export declare const api: {
                     invocation:
                       | {
                           kind: "PASSIVE";
+                          optionalOnHit?: never;
                           range:
                             | {
                                 id: string;
@@ -103583,6 +103688,13 @@ export declare const api: {
                         }
                       | {
                           kind: "PASSIVE";
+                          optionalOnHit?:
+                            | { kind: "SPELL_SLOT" }
+                            | {
+                                chargeId: string;
+                                cost: number;
+                                kind: "RESOURCE_POOL";
+                              };
                           range:
                             | {
                                 id: string;
@@ -104715,6 +104827,7 @@ export declare const api: {
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
                           kind?: "ACTION";
+                          optionalOnHit?: never;
                           range:
                             | {
                                 id: string;
@@ -105885,6 +105998,7 @@ export declare const api: {
                       | {
                           activation: { amount: number; code: "REACTION" };
                           kind?: "ACTION";
+                          optionalOnHit?: never;
                           range:
                             | {
                                 id: string;
@@ -107110,6 +107224,7 @@ export declare const api: {
                               | { kind: "CONCEALMENT" };
                           };
                           kind?: "ACTION";
+                          optionalOnHit?: never;
                           range:
                             | {
                                 id: string;
@@ -108234,6 +108349,7 @@ export declare const api: {
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
                           kind?: "ACTION";
+                          optionalOnHit?: never;
                           range:
                             | {
                                 id: string;
@@ -109362,6 +109478,7 @@ export declare const api: {
                       | {
                           activation: { amount: number; code: "REACTION" };
                           kind?: "ACTION";
+                          optionalOnHit?: never;
                           range:
                             | {
                                 id: string;
