@@ -6375,7 +6375,9 @@
             {
               "text": "A player can attack an empty square in range; the GM sees which creature, if any, is there and resolves it, a wrong square is a miss, and the player learns only the outcome.",
               "status": "TODO",
-              "proof": [],
+              "proof": [
+                "T4a (occupied square): packages/schema/src/__tests__/encounter-attack-square-contracts.test.ts, packages/rules-runtime/src/__tests__/encounterAttackSquare.test.ts, apps/session-worker/test/nativeRoomAttackSquare.test.ts, CampaignTabletopDecisionDrawer.test.tsx; CI Tests 38875764975 and Live backend 38875765093 on acf721dec"
+              ],
               "origin": [],
               "note": "SRD: attacking an unseen creature means guessing its location. Depends on ATTACK-10 (attack-roll sight) and ATTACK-10.2 (Hide).",
               "id": "ATTACK-17.4"
@@ -6454,7 +6456,7 @@
             {
               "id": "ATTACK-17.T4a",
               "text": "Attack a square: a SQUARE target on RESOLVE_ACTION for single-target attack-roll actions; the server computes the candidates (token overlap, hidden tokens included) and opens a GM-only ATTACK_SQUARE_RESOLUTION decision; a chosen occupant continues through the existing ACTOR attack flow; the attacker sees only that the GM is deciding.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["ATTACK-17.4"],
               "wsjf": {
                 "bv": 8,
@@ -6462,13 +6464,12 @@
                 "rr": 2,
                 "size": 2,
                 "after": ["ATTACK-17.T3", "ATTACK-10.T1"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-attack-17-t2-t3.md"
+              }
             },
             {
               "id": "ATTACK-17.T4b",
               "text": "Empty square: the GM answers nobody and the attacker still rolls through a dedicated miss path composed from the shared d20, card and economy primitives; the controller view of an empty-square miss equals an occupant miss except for the roll values; the map offers \"pick an empty square\".",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["ATTACK-17.4"],
               "wsjf": {
                 "bv": 8,
