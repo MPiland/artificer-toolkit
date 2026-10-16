@@ -8258,7 +8258,8 @@
                 "rr": 3,
                 "size": 3,
                 "after": ["SPELLS-19.T3"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-19.md"
             },
             {
               "id": "SPELLS-19.T3d",
