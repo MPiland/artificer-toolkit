@@ -55,6 +55,7 @@ import { readRunActors } from './documents.js'
 import { idleTurnMarkChanges } from './idleTurnMark.js'
 import { createPlacedSpatialEffect } from './placedSpatialEffects.js'
 import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.js'
+import { reconcileNativeMaintenanceOwners } from './maintenanceOwnerPersistence.js'
 import { projectNativeGm } from './nativeProjection.js'
 import type { EncounterCharacterWriteTransaction, EncounterWritePorts } from './ports.js'
 import { presentEncounterResultForMember } from './resultPresentation.js'
@@ -566,12 +567,21 @@ export async function persistEncounterAreaCommit(
         execution,
         maintainedState: child.batch.maintenanceTransition ? input.maintainedState : null,
         maintenance: child === carrier ? maintenance : null,
+        deferOwnerReconcile: true,
         createdEffects: [...createdEffects],
         actors: nextActors,
         authorizedCharacterIds: characterIds,
         occurredAt: input.occurredAt
       })
   }
+  // The replaced Concentration's owners settle once every creature holds its new effect.
+  if (maintenance)
+    nextActors = await reconcileNativeMaintenanceOwners(ctx, {
+      encounterId: state.id,
+      maintenance,
+      actors: nextActors,
+      occurredAt: input.occurredAt
+    })
   // One Concentration check per damaged creature, against the damage the root recorded.
   const damage = nativeConcentrationDamageApplications(
     children.map(({ actor, batch }) => ({

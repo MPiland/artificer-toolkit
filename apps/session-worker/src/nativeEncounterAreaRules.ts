@@ -81,7 +81,6 @@ import {
   prepareNativeActionEffectsPlan
 } from '@artificer-toolkit/rules-runtime/encounterActionEffects'
 import { projectNativeActionEffectTransitions } from '@artificer-toolkit/rules-runtime/encounterActionEffectReceipts'
-import { prepareMaintainedEffectStateRecord } from '@artificer-toolkit/rules-runtime/activeRuleEffectRecords'
 import {
   buildEncounterJoinedMaintenanceTransition,
   buildEncounterMaintenanceTransition
@@ -138,7 +137,10 @@ import {
   refuseSpatialInterpretation
 } from './nativeEncounterActionInputs.js'
 import { planNativeLiveConcentration } from './nativeEncounterConcentration.js'
-import { prepareNativeLiveActionMaintenance } from './nativeEncounterMaintenance.js'
+import {
+  prepareNativeLiveActionMaintenance,
+  prepareNativeLiveMaintainedState
+} from './nativeEncounterMaintenance.js'
 import type { prepareNativeLiveMovementTarget } from './nativeEncounterTargets.js'
 import type { planNativeLiveEncounterAttackSquare } from './nativeEncounterAttackSquare.js'
 import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
@@ -1390,7 +1392,7 @@ export async function completeAreaCommit(args: {
       movementTargets.get(carrier.id) ?? input.loadTarget(carrier)
   })
   const removedIds = new Set(maintenance?.removed.map((effect) => effect.id))
-  let maintainedState: ReturnType<typeof prepareMaintainedEffectStateRecord> | null = null
+  let maintainedState: ReturnType<typeof prepareNativeLiveMaintainedState> | null = null
   let maintenanceCarried = false
   // A creature named again meets the hit points and Character record its earlier entries left it.
   const advanced = new Map<string, AreaPrepared>()
@@ -1408,29 +1410,16 @@ export async function completeAreaCommit(args: {
       activeEffectsByActorId: input.activeEffectsByActorId,
       link: { memberActorIds: [...new Set(kept.map((entry) => entry.actor.id))] }
     })
-    if (effects.maintenance) {
-      if (
-        !maintenance ||
-        checksumCanonicalJson(effects.maintenance) !== checksumCanonicalJson(maintenance.policy)
-      )
-        throw new Error('The completed action maintenance policy changed.')
-      maintainedState ??= prepareMaintainedEffectStateRecord({
-        id: crypto.randomUUID(),
+    if (effects.maintenance)
+      maintainedState ??= prepareNativeLiveMaintainedState({
+        completedPolicy: effects.maintenance,
+        maintenance,
         encounterId: state.id,
         ownerActorId: caster.id,
-        occurredAt,
-        descriptor: {
-          schemaVersion: 2,
-          maintenanceDefinitionId: maintenance.policy.definitionId,
-          definitionChecksum: maintenance.definitionChecksum,
-          sourceActionId: command.actionId,
-          sourceOccurrenceId: areaOccurrenceId,
-          sourceActorId: caster.id,
-          replacementPolicy: maintenance.policy.replacementPolicy,
-          emptyDependentPolicy: maintenance.policy.emptyDependentPolicy
-        }
+        actionId: command.actionId,
+        sourceOccurrenceId: areaOccurrenceId,
+        occurredAt
       })
-    }
     const joined = effects.maintenance ? maintainedState : null
     // A creature named again meets the effects its earlier entries left it.
     const earlier = createdEffects.get(actor.id) ?? []

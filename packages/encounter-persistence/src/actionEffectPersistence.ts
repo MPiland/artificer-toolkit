@@ -230,6 +230,11 @@ export async function persistEncounterActionEffects(
   ctx: EncounterCharacterWriteTransaction,
   input: EffectCommitInput & {
     maintenance: PreparedMaintenance | null
+    /**
+     * Leaves the replaced Concentration's owners for the caller to reconcile once every effect the
+     * action creates exists (an area creates one per creature).
+     */
+    deferOwnerReconcile?: boolean
     actors: EncounterRunActorState[]
     occurredAt: string
   }
@@ -381,7 +386,7 @@ export async function persistEncounterActionEffects(
   })
   if (armed !== target) await replaceRunActor(ctx, target, armed)
   const actors = input.actors.map((actor) => (actor.id === armed.id ? armed : actor))
-  return input.maintenance
+  return input.maintenance && !input.deferOwnerReconcile
     ? reconcileNativeMaintenanceOwners(ctx, {
         encounterId: input.state.id,
         maintenance: input.maintenance,
