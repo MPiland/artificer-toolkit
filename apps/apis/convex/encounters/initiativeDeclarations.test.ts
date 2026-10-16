@@ -757,7 +757,7 @@ describe('native initiative declarations', () => {
         ).toEqual(beforeStale)
         // closeRoom dropped the queue. Equal random faces would tie, and the Run would stay
         // PREPARED, so the scores are set apart again for the declaration that settles it.
-        await queueRoomRolls(base.campaign.id, { rolls: [4, 9] })
+        await queueRoomRolls(base.campaign.id, { rolls: [2, 12] })
         result = await executeInRoom(base.player.caller, response)
         expect(encounterPlayerProjectionDtoSchema.safeParse(result.projection).success).toBe(true)
         expect(result.occurrence?.pending).toBeNull()
@@ -794,6 +794,16 @@ describe('native initiative declarations', () => {
         )
       }
     }
+    throw new Error(
+      'PROBE ' +
+        JSON.stringify(
+          (await storedInitiative(base)).participants.map((row) => [
+            row.actorId === characterActor.id ? 'CHARACTER' : 'ENEMY',
+            row.initiativeScore
+          ])
+        ) +
+        ' status ' + result.projection.status
+    )
     expect(result.projection.status).toBe('ACTIVE')
     await checkpointLiveRoom(base.campaign.id)
     expect(
