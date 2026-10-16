@@ -686,6 +686,15 @@ which `MOVE_SCENE_TOKEN.acknowledgedWarnings` overrides; the tabletop shows "Do 
 receipt records no override yet. Undoing the action that applied the condition removes its effect and so
 its source.
 
+**Repeat attempt gate (SPELLS-29.T1a, D-pending-spells-29).** A `FOLLOW_UP_SAVE` repeated at the end of the
+target's turn may author `repeatAttemptGate` (`allow: WHEN_MET | WHEN_UNMET` over the same target→source
+`PERCEPTION` as `repeatRollInfluence`; the schema refuses the two together). The compiler pins it as adapter
+facts and makes the frozen graph's `repeat-save-d20` an `evidence.optional-integer-range` enabled by the
+bound fact `dnd5e.repeat-save-attempt-allowed`. When the gate refuses the attempt, the binding requests no
+roll and the effect continues unchanged, or expires on its last tick. SRD Fear authors `WHEN_UNMET` `SEE`
+(the save is made only out of the caster's sight). A repeated save made at once on application refuses a
+gate rather than drop it.
+
 A mechanic with `minimumLevel` applies from that level of a leveled condition: a Character's exhaustion
 level is a level of the System's Exhaustion condition, a Creature's condition row may record a level, and
 any other held condition is at level 1.

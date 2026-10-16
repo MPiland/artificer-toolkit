@@ -8,14 +8,20 @@ Base: `3ce5883f1` (SPELLS-19.T2, merged locally), branch `claude/bold-chaplygin-
 
 - **AC 29.1** (user-confirmed): a Frightened condition applied by an action records the creature that frightened it, authored from core options (no Fear-specific kind). The frightened creature has disadvantage on ability checks and attack rolls only while that source is within its line of sight, and a move that ends closer to the source is a soft-enforcement warning the GM can override (ADR 0034). A Frightened with no recorded source keeps its present always-on disadvantage. Proved for Fear, including GM undo.
 - Ledger task text: "A condition application carries an optional source actor; Frightened's check and attack contributors read line of sight to it; the movement planner warns on a move that ends closer; SRD Fear and every SRD action that frightens authors the source; authoring parity from core options."
-- Out of scope: the flee-from-source rider (Dash away, turn-end save) is SPELLS-29.T2.
+- Out of scope: the flee-from-source rider (Dash away) is SPELLS-29.T2; the out-of-sight turn-end save moved to T1a.
 
-## Scope (T1a, closes AC 29.1 with T1)
+## Scope (T1a: Fear's out-of-sight repeat save; closes AC 29.1 with T1, plus the out-of-sight save half of AC 29.2)
 
-- Ruling (orchestrator, 2026-10-16, ledger `1c8a06c65`): task SPELLS-29.T1a on this branch; T1 and T1a merge together once `ci/spells-29-t1` is green. Red on `ci/spells-29-t1a-red`, failing on the compile assertions.
-- A save whose `ON_SAVE_FAIL` applies a condition with a duration (under Concentration or not), with no repeat save, compiles in the dnd5e System compiler as the save TEST/OUTCOME plus an active-effect plan that owns the condition for its duration, single-target and area. Generic, authorable from core options: no Fear- or Gorgon-specific kind.
-- Proof: real SRD Fear (area, Concentration, source recorded, Worker room journey `nativeRoomFearSource.test.ts`), Dominate Person (single target, Concentration), Charm Person (single target, 1 hour, no Concentration) and a homebrew Fear-shaped spell (Poisoned, no Concentration) on the real cast compile path.
-- **Gorgon substitution (proposed to the orchestrator):** the ruling named the Gorgon's `ON_SAVE_FAIL` Restrained. As authored it has no duration and no Concentration, so T1a's shape excludes it. Its SRD rule is a repeat save then Petrified, which SPELLS-19.T3 owns ("repeat save authored, 30 ft cone"), and `srdBreathWeaponAreas.test.ts` pins it non-compiling until then. Dominate Person and Charm Person are the real single-target rows instead.
+- Ruling (orchestrator, 2026-10-16, ledger successor of `7d0df8a5e`): ruling A. T1a is Fear's out-of-sight repeat save. Add a generic perception gate on `FOLLOW_UP_SAVE`: the attempt is allowed only when the target can't see its source. Model it on `repeatRollInfluence` `PERCEPTION`, authorable from core options with a parity proof, and author it on SRD Fear, which then compiles through the existing repeating-save plan. T2 keeps only the flee/Dash rider and follows T1a. Red on `ci/spells-29-t1a-red`, failing on the Fear compile and perception-gate assertions.
+- Withdrawn by the ruling: the first T1a approach (a timed save condition joining TEST/OUTCOME through `supportedTestPhaseKind`), reverted in `d42974a57`; Ray of Sickness (not SRD 5.1); the Gorgon row; this branch's Brass/Dust Mephit authoring and corpus edits, superseded by SPELLS-19.T3 (merged through `ci/merge-batch-aq`). T3's authored-`endOnTriggers` rule stays the single rule and every T3 pin is unchanged (Charm, Dominate ×3 and Hold Monster stay refused).
+- Proof: real SRD Fear in the Worker room journey `nativeRoomFearSource.test.ts` (in sight: no save is requested and the effect continues; out of sight: the save is rolled and a success ends Frightened for that creature only; GM undo), the compiler on the real cast path, schema refusals, and authoring parity.
+
+## Design (T1a)
+
+- **Authored (core option, ADR 0038):** `FOLLOW_UP_SAVE.repeatAttemptGate?: { allow: 'WHEN_MET' | 'WHEN_UNMET', when: PERCEPTION }`, sharing the `when` shape (`kind`, `observer: TARGET`, `subject: SOURCE`, `requirement`) with `repeatRollInfluence`. The schema requires a repeated save at the end of the target's turn and refuses a gate combined with `repeatRollInfluence`. The effect node map gains a `Repeat Attempt Gate` group (`Attempt`: Only When Met / Only When Unmet) beside the influence group; both use one shared perception map. SRD Fear authors `allow: 'WHEN_UNMET'`, `requirement: 'SEE'`.
+- **Compiled:** `repeatingDirectFollowUpSavePlan` pins the gate as adapter facts (`dnd5e.active-effect-repeat-save-attempt-gate` plus the existing perception requirement). A gated graph's `repeat-save-d20` node is `evidence.optional-integer-range`, enabled by the bound fact `dnd5e.repeat-save-attempt-allowed`; the kernel settles a disabled node with no roll request. `repeatingImmediateFollowUpSavePlan` refuses a gated save rather than dropping the gate.
+- **Bound:** the repeat-save binding resolves the same holder→source perception as `repeatRollInfluence`. The attempt is allowed when `satisfied === (allow === 'WHEN_MET')`; a refused attempt binds no evidence policy, so nobody is asked to roll.
+- **Interpreted:** a refused attempt is `ATTEMPT_REFUSED`: the effect continues unchanged, or, on its last tick, expires with null paths. The turn-result schema accepts exactly these refused-attempt shapes (`refusedRepeatSave`, its continuation and its terminal expiry).
 
 ## Findings
 
@@ -38,9 +44,11 @@ Base: `3ce5883f1` (SPELLS-19.T2, merged locally), branch `claude/bold-chaplygin-
 - [x] Runtime gate + room wiring: `prepareEncounterActionMechanics` filters both sides' mechanics through the injected `loadSourcesSeen` (Worker `readNativeLiveSourcesSeen`), wired for RESOLVE_ACTION attacks and Disarm.
 - [x] Movement warning (schema, room `prepareNativeLiveMovement` initial branch, web `CampaignVttStage` "Do it anyway"). Forced moves never warn; teleports do (a willing move).
 - [x] Docs: rules-runtime.md condition mechanics; D94 limits note; ADR 0034 movement line; `D-pending-spells-29`; Deferred edge cases.
-- [ ] Red CI run, green Tests + Live backend, opus review, triage.
-- [ ] T1a red: `characterSpellCastActions.test.ts` "the timed condition a failed save leaves with no repeat save (SPELLS-29.T1a)" on `ci/spells-29-t1a-red`.
-- [ ] T1a compiler: timed direct-save condition plan joins the save's TEST/OUTCOME (`effectActionCompiler.ts`).
+- [x] T1 red CI run; T1 opus review, triaged (see Log). Green runs are shared with T1a below.
+- [x] T1a red (`c5e34a53d`) on `ci/spells-29-t1a-red`: Worker Fear journey (in-sight no save, out-of-sight save ends it), compiler (Fear and a homebrew gated plan on the optional d20 node; Hold Person ungated), schema (gate accepted; refused without a turn-end repeat or with influence), shared compiler (gate preserved), authoring parity (Fear's gate; a homebrew `WHEN_MET` `DETECT` gate).
+- [x] T1a gate (`68d01628f`): schema, shared types and node map, compiler, binding, interpretation, turn-result schema, SRD Fear authoring.
+- [x] Merged `ci/merge-batch-aq` (includes SPELLS-19.T3).
+- [ ] Generated files via the CI artifact; green Tests + Live backend; opus review, triage.
 
 ## Log
 
@@ -87,3 +95,6 @@ Base: `3ce5883f1` (SPELLS-19.T2, merged locally), branch `claude/bold-chaplygin-
   - The Worker room journey, which casts real SRD Fear, has not run yet: every Packages failure stopped the job before the Worker step. It will fail the same way.
   - Escalated to the orchestrator: closing the gap means a new compiler shape, a timed-condition plan joining a save's TEST/OUTCOME execution, single-target and area.
 - 2026-10-16: ruling A, task SPELLS-29.T1a (see Scope T1a). Options B (a separate slice) and C (narrowing the AC) were rejected. T1a red tests written in `characterSpellCastActions.test.ts`; pushed to `ci/spells-29-t1a-red`.
+- 2026-10-16: first T1a approach (timed save condition joining TEST/OUTCOME) in `79855ebd9`; merged `ci/merge-batch-an` (`1e94a69a9`). Its red runs ([38936167659](https://github.com/MPiland/artificer-toolkit/actions/runs/38936167659), Live 38936167769) belong to the withdrawn approach.
+- 2026-10-16: ruling A replaced T1a with the repeat attempt gate (see Scope T1a). Reverted `79855ebd9` in `d42974a57`; new red tests in `c5e34a53d`, pushed to `ci/spells-29-t1a-red`; gate implemented in `68d01628f`; merged `ci/merge-batch-aq` (SPELLS-19.T3) cleanly and pushed to `ci/spells-29-t1`.
+- Red Live backend [38939462297](https://github.com/MPiland/artificer-toolkit/actions/runs/38939462297) failed only on generated-file drift (the SRD manifest and `_generated`), which the green tip regenerates.
