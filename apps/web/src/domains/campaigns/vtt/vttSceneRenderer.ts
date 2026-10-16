@@ -8,7 +8,6 @@ import {
   applySceneDelta,
   createSceneFogAreaPatch,
   extendSceneMovementPath,
-  isDirectedAreaShape,
   isSceneMovementPathValid,
   resolveSceneIlluminationAt,
   SceneBarrierIndex,
@@ -38,7 +37,6 @@ import {
   clampPolygonToRadius,
   darknessZoneStyle,
   dashedPolygonSegments,
-  directedAreaAim,
   dimOverlayAlpha,
   ellipseArcPoints,
   describeSceneLighting,
@@ -66,13 +64,13 @@ import {
   statusOverflowColour,
   shouldReloadVttMap,
   visibleGridLinePositions,
-  type VttAreaAim,
   type VttAreaSize,
   type VttScenePresentationOverlay,
   type VttSenseEffect,
   type VttSenseReach,
   type VttTokenPresentation
 } from './vttSceneRenderer.model'
+import { createVttAreaAimGesture } from './vttAreaAimGesture'
 import { createVttPingPress, isVttPingKey, vttPingRingFrame } from './vttPing'
 
 export type CampaignVttMode = 'PLAY' | 'EDIT'
@@ -474,8 +472,21 @@ export async function createVttSceneRenderer(
   let gestureStart: ScenePoint | null = null
   let gesturePath: ScenePoint[] = []
   let wallChainStart: ScenePoint | null = null
-  /** Where the press that began a directed area's aim landed; its origin snaps to the caster's edge. */
-  let areaPress: ScenePoint | null = null
+  const areaAimGesture = createVttAreaAimGesture(
+    () =>
+      current?.areaAim
+        ? {
+            caster:
+              current.scene.tokens.find((token) => token.id === current?.areaAim?.casterTokenId) ??
+              null,
+            size: current.areaAim.size
+          }
+        : null,
+    {
+      onPoint: (point) => callbacks.onAreaPoint?.(point),
+      onDirection: (aim) => callbacks.onAreaDirection?.(aim)
+    }
+  )
   let drag: {
     appearanceKey: string
     last: ScenePoint
@@ -2088,11 +2099,7 @@ export async function createVttSceneRenderer(
     if (!current) return
     const point = worldPoint(event)
     if (current.targeting && event.button === 0) return
-    if (current.areaAim && event.button === 0) {
-      if (isDirectedAreaShape(current.areaAim.size)) areaPress = point
-      else callbacks.onAreaPoint?.(point)
-      return
-    }
+    if (event.button === 0 && areaAimGesture.press(point)) return
     if (current.tool === 'PAN' || event.button === 1) {
       panStart = {
         pointer: { x: event.global.x, y: event.global.y },
@@ -2156,7 +2163,7 @@ export async function createVttSceneRenderer(
     if (current?.areaAim && !panStart) {
       destroyChildren(measurementLayer)
       const { casterTokenId, size } = current.areaAim
-      const aim = aimedArea(worldPoint(event))
+      const aim = areaAimGesture.aimAt(worldPoint(event))
       const caster = current.scene.tokens.find((token) => token.id === casterTokenId) ?? null
       const overlay = aim ? areaOverlay(size, aim, caster) : null
       if (overlay) measurementLayer.addChild(overlayGraphic(overlay))
@@ -2201,12 +2208,7 @@ export async function createVttSceneRenderer(
     requestRender()
     pingPress.end()
     panStart = null
-    if (areaPress) {
-      const aimed = aimedDirection(worldPoint(event))
-      areaPress = null
-      if (aimed) callbacks.onAreaDirection?.(aimed)
-      return
-    }
+    if (areaAimGesture.release(worldPoint(event))) return
     if (drag) {
       const completed = drag
       drag = null
@@ -2257,6 +2259,7 @@ export async function createVttSceneRenderer(
     }
     if (current?.areaAim && event.key === 'Escape') {
       event.preventDefault()
+      areaAimGesture.cancel()
       callbacks.onAreaAimCancel?.()
       return
     }
@@ -2672,28 +2675,11 @@ export async function createVttSceneRenderer(
     requestRender()
   }
 
-  /** The directed area the pointer aims at `pointer`; null when the area is not directed or the aim is not valid there. */
-  function aimedDirection(pointer: ScenePoint): { origin: ScenePoint; toward: ScenePoint } | null {
-    const aim = current?.areaAim
-    if (!current || !aim || !isDirectedAreaShape(aim.size)) return null
-    const caster = current.scene.tokens.find((token) => token.id === aim.casterTokenId)
-    return caster
-      ? directedAreaAim({ caster, pointer, pressedAt: areaPress, size: aim.size })
-      : null
-  }
-
-  /** What the pointer aims at: a point area's center, or the directed area's aim when it is valid there. */
-  function aimedArea(pointer: ScenePoint): VttAreaAim | null {
-    return current?.areaAim && !isDirectedAreaShape(current.areaAim.size)
-      ? { origin: pointer, toward: null }
-      : aimedDirection(pointer)
-  }
-
   function cancelActiveInteraction(): void {
     requestRender()
     pingPress.end()
     panStart = null
-    areaPress = null
+    areaAimGesture.cancel()
     gestureStart = null
     wallChainStart = null
     gesturePath = []

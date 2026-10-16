@@ -8267,8 +8267,8 @@
           "tasks": [
             {
               "id": "SPELLS-20.T1",
-              "text": "Rolled damage dice on zone entry, generic to every zone: a DICE roll request through the executor and spatial pending path, owned by the zone source's controller (ADR 0034 roll prompts, auto-roll preference or entered dice), recorded in the receipt so undo and replay stay deterministic. Proved on an existing damaging placed zone (such as Cloud of Daggers on entry) with GM undo.",
-              "status": "IN_PROGRESS",
+              "text": "Rolled damage dice on zone entry, generic to every zone: a DICE roll request through the executor and spatial pending path, owned by the zone source's controller (ADR 0034 roll prompts, auto-roll preference or entered dice), recorded in the receipt so undo and replay stay deterministic. Proved on an existing damaging placed zone (such as Cloud of Daggers on entry) with GM undo. (Red: ci/spells-20-t1-red Tests 38925137863 on 818017194 failed on nativeRoomPlacedZoneDice.test.ts. Green: ci/spells-20-t1 Tests 38942143027 and Live backend 38942143041 on bfbabbb39.)",
+              "status": "DONE",
               "closes": ["SPELLS-20.1"],
               "wsjf": {
                 "bv": 8,
@@ -8276,13 +8276,12 @@
                 "rr": 5,
                 "size": 5,
                 "after": ["SPELLS-17", "SPELLS-25"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-spells-20.md"
+              }
             },
             {
               "id": "SPELLS-20.T1b",
               "text": "Spirit Guardians as a SOURCE zone authored from core options: a 15 ft aura on the caster's token that moves with the caster; a creature it catches on entry, or when the caster moves onto it, makes the save against the caster's spell DC and takes the damage; GM undo removes it.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-20.1"],
               "wsjf": {
                 "bv": 8,
@@ -8290,7 +8289,8 @@
                 "rr": 5,
                 "size": 8,
                 "after": ["SPELLS-20.T1"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-20.md"
             },
             {
               "id": "SPELLS-20.T2",
@@ -8422,23 +8422,35 @@
         {
           "id": "SPELLS-23",
           "title": "Aiming a directed area on the map",
-          "status": "IN_PROGRESS",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": [
+            "apps/web/src/domains/campaigns/vtt/CampaignVttStage.areaAim.test.tsx",
+            "apps/session-worker/test/nativeRoomDirectedAreaAction.test.ts"
+          ],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
               "text": "Pressing, dragging and releasing on the map aims a cone, line or Self cube and commits exactly the drawn origin and direction; a point picked for a directed area, or a direction for a point area, is refused with its own message; proved through the renderer gesture and the room refusals.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/web/src/domains/campaigns/vtt/vttAreaAimGesture.test.ts",
+                "apps/web/src/domains/campaigns/vtt/CampaignVttStage.areaAim.test.tsx",
+                "apps/session-worker/test/nativeRoomDirectedAreaAction.test.ts",
+                "packages/encounter-persistence/src/__tests__/requireAreaActionPendingRoot.test.ts"
+              ],
               "origin": [],
               "note": "Found in the SPELLS-13 review 2026-10-14: the renderer aim gesture (vttSceneRenderer.ts press/drag/release) has no test; point-for-directed and direction-for-point share one message and room tests never assert messages; NO_CASTER_TOKEN is unreachable in the room; areaMatchesTarget is unproven in the guard path.",
               "id": "SPELLS-23.1"
             },
             {
               "text": "A Self cube snaps to the grid on the side the caster picks, centered evenly along that side, wherever the caster stands; proved for every side and size.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/shared/src/__tests__/vtt-directed-area.test.ts",
+                "packages/rules-runtime/src/__tests__/encounterAreaAction.test.ts",
+                "apps/session-worker/test/nativeRoomDirectedAreaAction.test.ts"
+              ],
               "origin": [],
               "note": "SPELLS-13 review 2026-10-14: Math.round gives an uneven 25/50/25 split and snaps to the caster's side rather than the grid. Also tighten the diagonal 60-ft cone test from spot checks to the exact caught set, and fix the test nits (dragon wording in actionRoomFixture, drawer fixture creature-dragon:breath, \"touches\" in titles).",
               "id": "SPELLS-23.2"
@@ -8453,8 +8465,8 @@
           "tasks": [
             {
               "id": "SPELLS-23.T1",
-              "text": "Directed-area aiming on the map: press, drag and release aims a cone, line or Self cube and commits exactly the drawn origin and direction; a point for a directed area, or a direction for a point area, is refused room-side with its own message; a Self cube snaps to the grid on the caster's chosen side, centered along it, for every side and size. Proved through the renderer gesture and the room refusals.",
-              "status": "IN_PROGRESS",
+              "text": "Directed-area aiming on the map: press, drag and release aims a cone, line or Self cube and commits exactly the drawn origin and direction; a point for a directed area, or a direction for a point area, is refused room-side with its own message; a Self cube snaps to the grid on the caster's chosen side, centered along it, for every side and size. Proved through the renderer gesture and the room refusals. (Red: ci/spells-23-t1-red Tests 38940045467 on 52214ffeb failed on Build packages (gridOrigin missing from the cube shape, createVttAreaAimGesture absent). Green: ci/spells-23-t1 Tests 38944267968 and Live backend 38944268027 on a9c88a15b.)",
+              "status": "DONE",
               "closes": ["SPELLS-23.1", "SPELLS-23.2"],
               "wsjf": {
                 "bv": 3,
@@ -9283,7 +9295,7 @@
             },
             {
               "id": "REACTION-4.T3e",
-              "text": "Cast reactions for creature-capability casts, chosen-creature (ACTORS) casts and area casts: the same CAST_REACTION pause and countered-cast terminal as a Character single-target cast.",
+              "text": "Cast reactions for a Character's chosen-creature (ACTORS) and area casts: the cast-reaction advance runs before the target-kind dispatch, reusing the ENCOUNTER_ACTION cast pause and the COUNTERED root with the ACTOR-only guards accepting any target kind (a countered cast spends slot and action only), resume replays into the area/ACTORS planner, and the area commit input carries failedCounters (additive).",
               "status": "IN_PROGRESS",
               "closes": ["REACTION-4.1"],
               "wsjf": {
@@ -9294,6 +9306,19 @@
                 "after": ["REACTION-4.T3b"]
               },
               "activeWorkbook": "docs/handoffs/slice-reaction-4.md"
+            },
+            {
+              "id": "REACTION-4.T3h",
+              "text": "Cast reactions for Creature capability casts: a capability that casts a spell gets its cast level from the referenced System spell, or from an authored cast level on the capability (additive core option, SRD data filled) where no spell is referenced, so Counterspell's higher-level check has its input; a capability that is not a spell is never offered a counter.",
+              "status": "TODO",
+              "closes": ["REACTION-4.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["REACTION-4.T3e"]
+              }
             },
             {
               "id": "REACTION-4.T4",

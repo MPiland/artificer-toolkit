@@ -8,8 +8,8 @@ import type {
   StoredRuleExecutionResultDto
 } from '@artificer-toolkit/schema/shared/rulesExecution'
 import {
+  movementReactionActionEvidenceCommandDtoSchema,
   movementRuleResolutionCommandDtoSchema,
-  spatialResolutionCommandDtoSchema,
   serverKernelRuleExecutionPendingSnapshotDtoSchema,
   storedRuleExecutionResultDtoSchema
 } from '@artificer-toolkit/schema/shared/rulesExecution'
@@ -29,6 +29,7 @@ import { characterRuleActionSystemAdapterRegistry } from './characterRuleActionS
 import type { CharacterRuleActionApplication } from './characterRuleActionSystemAdapter.js'
 import {
   executeTargetBoundActiveRuleEffectWithPause,
+  isDamageDieRequest,
   reconstructTargetBoundActiveRuleEffectCompletion,
   resumeTargetBoundActiveRuleEffectWithPause,
   type TargetBoundActiveRuleEffectExecutionPaused,
@@ -40,9 +41,12 @@ import { foldCharacterMechanicsApplications } from './encounterCharacterMechanic
 import { EncounterConflictError, EncounterValidationError } from './encounterErrors.js'
 import { checksumSpatialCurrentness } from './encounterSpatialMovementCurrentness.js'
 import { isVisibleHalfSpeedField } from './halfSpeedField.js'
+import { spatialPendingRollerActorId } from './encounterSpatialPendingRoller.js'
 import type { EncounterAutoRollByActorId } from './encounterEvidenceMode.js'
 import {
   resolveEncounterD20Answer,
+  resolveEncounterIntegerAnswer,
+  type EncounterD20RollMode,
   type EncounterEvidenceAnswer
 } from './encounterEvidenceAnswer.js'
 export { checksumSpatialCurrentness } from './encounterSpatialMovementCurrentness.js'
@@ -111,12 +115,17 @@ export type SpatialMovementRuleRoot = {
   } | null
 }
 
-/** A d20 answer to the pending spatial contact: entered dice or the roller's app roll. */
+/**
+ * An answer to the pending spatial contact: d20 faces (entered dice or the roller's app roll) for
+ * its save, or one integer for a die of the zone's damage.
+ */
 type SpatialMovementRuleResolution = Extract<
   EncounterEvidenceAnswer,
-  { kind: 'ENTER_DICE' | 'SYSTEM_ROLL' }
+  { kind: 'ENTER_DICE' | 'ENTER_INTEGER' | 'SYSTEM_ROLL' }
 >
-type SpatialResolutionCommand = z.infer<typeof spatialResolutionCommandDtoSchema>
+type SpatialResolutionCommand = z.infer<typeof movementReactionActionEvidenceCommandDtoSchema>
+/** The resolved d20 of a candidate whose damage dice are being answered. */
+type SpatialD20Roll = { rollMode: EncounterD20RollMode; rawFaces: number[] }
 type MovementRuleResolutionCommand = z.infer<typeof movementRuleResolutionCommandDtoSchema>
 type MovementReactionPendingContext = Extract<
   ServerKernelRuleExecutionPendingSnapshotDto['applicationContext'],
@@ -232,7 +241,8 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
   > & { resumeRoot?: FrozenMovementReactionRemainder['root'] }
   resolution?: SpatialMovementRuleResolution
   resolutionCommand?: SpatialResolutionCommand
-  rollD20: () => number
+  /** Zero-based random integer below `maxExclusive`, for every die the server rolls. */
+  random: (maxExclusive: number) => number
   /**
    * The voluntary mover chose to move carefully: a field that allows passage at half speed raises no
    * contact, so it asks for no save. Every call for one move supplies its saved command's choice.
@@ -542,7 +552,8 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
         effect,
         target,
         state: target.state,
-        d20Policy: null
+        d20Policy: null,
+        diceStage: null
       })
     })
   })
@@ -584,17 +595,19 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
     if (!effect || !target)
       throw new EncounterConflictError('A spatial contact changed before execution.')
     const state = states.get(candidate.targetActorId)!
+    const sealed =
+      completedPrefix[candidateIndex]?.candidate ??
+      (pendingSpatialCandidate && ordinal === pendingSpatialCandidate.ordinal
+        ? pendingSpatialCandidate
+        : null)
     const currentCandidate = pendingCandidate({
       ordinal,
       candidate,
       effect,
       target,
       state,
-      d20Policy:
-        completedPrefix[candidateIndex]?.candidate.d20Policy ??
-        (pendingSpatialCandidate && ordinal === pendingSpatialCandidate.ordinal
-          ? pendingSpatialCandidate.d20Policy
-          : null)
+      d20Policy: sealed?.d20Policy ?? null,
+      diceStage: sealed?.diceStage ?? null
     })
     const effectInput = executionInput({
       effect,
@@ -649,33 +662,41 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
     } else if (input.frozenTerminal) {
       throw new EncounterConflictError('The frozen terminal spatial execution is stale.')
     }
-    let result =
-      pendingSpatialCandidate && ordinal === pendingSpatialCandidate.ordinal
-        ? await resumeSpatial({
-            effectInput,
-            pendingSnapshot: input.pendingSnapshot!,
-            pending: pendingSpatialCandidate,
-            resolution: input.resolution!,
-            rollD20: input.rollD20
-          })
-        : await executeTargetBoundActiveRuleEffectWithPause(effectInput)
+    let d20: SpatialD20Roll | null = null
+    let result:
+      | TargetBoundActiveRuleEffectExecutionResult
+      | TargetBoundActiveRuleEffectExecutionPaused
+    if (pendingSpatialCandidate && ordinal === pendingSpatialCandidate.ordinal) {
+      const resumed = await resumeSpatial({
+        effectInput,
+        pendingSnapshot: input.pendingSnapshot!,
+        pending: pendingSpatialCandidate,
+        resolution: input.resolution!,
+        random: input.random
+      })
+      result = resumed.result
+      d20 = resumed.d20
+    } else {
+      result = await executeTargetBoundActiveRuleEffectWithPause(effectInput)
+    }
     // A spatial save belongs to the contacted actor, so its roller's preference applies.
-    if ('continuation' in result && input.autoRoll[candidate.targetActorId] === true) {
+    if ('continuation' in result && !d20 && input.autoRoll[candidate.targetActorId] === true) {
       const automatic = await resolveAutomatic({
         effectInput,
         paused: result,
-        rollD20: input.rollD20
+        random: input.random
       })
-      if ('continuation' in automatic)
-        throw new EncounterConflictError('A spatial candidate may request only one evidence stage.')
-      result = automatic
+      result = automatic.result
+      d20 = automatic.d20
     }
-    if (
+    // Its damage dice belong to the zone source's controller, who may auto-roll them.
+    while (
       'continuation' in result &&
-      pendingSpatialCandidate &&
-      ordinal === pendingSpatialCandidate.ordinal
+      d20 &&
+      isDamageDieRequest(result.continuation) &&
+      input.autoRoll[spatialPendingRollerActorId({ candidate, diceStage: d20 })] === true
     )
-      throw new EncounterConflictError('A spatial candidate may request only one evidence stage.')
+      result = await resolveAutomaticDie({ effectInput, paused: result, d20, random: input.random })
     if ('continuation' in result) {
       requireSupportedD20Policy(result.evidencePolicy)
       const contactPosition = pathPointAtDistance(root.originalPath, candidate.pathDistance)
@@ -687,7 +708,8 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
         effect,
         target,
         state,
-        d20Policy: result.evidencePolicy
+        d20Policy: result.evidencePolicy,
+        diceStage: d20
       })
       const pendingRemaining = candidates.slice(candidateIndex + 1).map((remaining, offset) => {
         const remainingEffect = lockedEffects.get(remaining.effectId)!
@@ -698,7 +720,8 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
           effect: remainingEffect,
           target: remainingTarget,
           state: states.get(remaining.targetActorId)!,
-          d20Policy: null
+          d20Policy: null,
+          diceStage: null
         })
       })
       const currentSceneVersion =
@@ -800,7 +823,8 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
           effect: remainingEffect,
           target: remainingTarget,
           state: states.get(remaining.targetActorId)!,
-          d20Policy: null
+          d20Policy: null,
+          diceStage: null
         })
       }),
       resolutionCommands,
@@ -1022,6 +1046,7 @@ function pendingCandidate(input: {
   target: LockedTarget
   state: TargetState
   d20Policy: TargetBoundActiveRuleEffectExecutionPaused['evidencePolicy']
+  diceStage: SpatialD20Roll | null
 }) {
   const targetStateChecksum = checksumRuleDocument({
     targetActorId: input.target.actor.id,
@@ -1060,7 +1085,8 @@ function pendingCandidate(input: {
           targetStateChecksum
         }
       : { kind: 'ENCOUNTER_ACTOR' as const, targetStateChecksum },
-    d20Policy: input.d20Policy
+    d20Policy: input.d20Policy,
+    diceStage: input.diceStage
   }
 }
 
@@ -1121,7 +1147,7 @@ function stageExecution(input: {
 async function resolveAutomatic(input: {
   effectInput: TargetBoundActiveRuleEffectExecutionInput
   paused: TargetBoundActiveRuleEffectExecutionPaused
-  rollD20: () => number
+  random: (maxExclusive: number) => number
 }) {
   const paused = input.paused
   if (!paused.evidencePolicy)
@@ -1130,13 +1156,39 @@ async function resolveAutomatic(input: {
   const { faces, rollMode } = resolveEncounterD20Answer({
     derivedRollMode: paused.evidencePolicy.rollMode,
     answer: { kind: 'AUTO_ROLL', requestId },
-    rollD20: input.rollD20
+    rollD20: () => input.random(20) + 1
+  })
+  return {
+    d20: { rollMode, rawFaces: faces },
+    result: await resumeTargetBoundActiveRuleEffectWithPause({
+      ...input.effectInput,
+      continuation: paused.continuation,
+      resolution: { requestId, rawFaces: faces, rollMode },
+      expectedEvidencePolicy: paused.evidencePolicy
+    })
+  }
+}
+
+function resolveAutomaticDie(input: {
+  effectInput: TargetBoundActiveRuleEffectExecutionInput
+  paused: TargetBoundActiveRuleEffectExecutionPaused
+  d20: SpatialD20Roll
+  random: (maxExclusive: number) => number
+}) {
+  const { request } = input.paused.continuation
+  if (request.kind !== 'INTEGER_RANGE')
+    throw new EncounterConflictError('Automatic spatial execution requested unsupported evidence.')
+  const value = resolveEncounterIntegerAnswer({
+    min: request.min,
+    max: request.max,
+    answer: { kind: 'AUTO_ROLL', requestId: request.requestId },
+    random: input.random
   })
   return resumeTargetBoundActiveRuleEffectWithPause({
     ...input.effectInput,
-    continuation: paused.continuation,
-    resolution: { requestId, rawFaces: faces, rollMode },
-    expectedEvidencePolicy: paused.evidencePolicy
+    continuation: input.paused.continuation,
+    resolution: { requestId: request.requestId, value, d20: input.d20 },
+    expectedEvidencePolicy: input.paused.evidencePolicy
   })
 }
 
@@ -1154,7 +1206,7 @@ function appendResolutionCommand(input: {
   actorUserId: string
   proposedOccurrenceVersion: number | undefined
 }): MovementRuleResolutionCommand[] {
-  const command = spatialResolutionCommandDtoSchema.parse(input.command)
+  const command = movementReactionActionEvidenceCommandDtoSchema.parse(input.command)
   const proposedOccurrenceVersion = input.proposedOccurrenceVersion
   if (
     typeof proposedOccurrenceVersion !== 'number' ||
@@ -1177,36 +1229,62 @@ async function resumeSpatial(input: {
   pendingSnapshot: ServerKernelRuleExecutionPendingSnapshotDto
   pending: PendingContext['currentCandidate']
   resolution: SpatialMovementRuleResolution
-  rollD20: () => number
-}) {
+  random: (maxExclusive: number) => number
+}): Promise<{
+  result: TargetBoundActiveRuleEffectExecutionResult | TargetBoundActiveRuleEffectExecutionPaused
+  d20: SpatialD20Roll
+}> {
   const resolution = input.resolution
   const policy = requireSupportedD20Policy(input.pending.d20Policy)
-  const continuationRequest = input.pendingSnapshot.request
-  if (
-    continuationRequest.requestId !== resolution.requestId ||
-    continuationRequest.kind !== 'INTEGER_RANGE' ||
-    continuationRequest.min !== 1 ||
-    continuationRequest.max !== 20 ||
-    continuationRequest.nodeId !== policy.requestNodeId
-  )
-    throw new EncounterConflictError('The spatial evidence request is stale.')
-  const { faces, rollMode } = resolveEncounterD20Answer({
-    derivedRollMode: policy.rollMode,
-    answer: resolution,
-    rollD20: input.rollD20
-  })
+  const request = input.pendingSnapshot.request
   const {
     optionalCombatSnapshotChecksum: _optionalCombatSnapshotChecksum,
     applicationContext: _applicationContext,
     snapshotKind: _snapshotKind,
     ...continuation
   } = input.pendingSnapshot
-  return resumeTargetBoundActiveRuleEffectWithPause({
-    ...input.effectInput,
-    continuation,
-    resolution: { requestId: resolution.requestId, rawFaces: faces, rollMode },
-    expectedEvidencePolicy: policy
+  if (request.requestId !== resolution.requestId || request.kind !== 'INTEGER_RANGE')
+    throw new EncounterConflictError('The spatial evidence request is stale.')
+  if (isDamageDieRequest(continuation)) {
+    const d20 = input.pending.diceStage
+    if (!d20) throw new EncounterConflictError('The spatial evidence request is stale.')
+    const value = resolveEncounterIntegerAnswer({
+      min: request.min,
+      max: request.max,
+      answer: resolution,
+      random: input.random
+    })
+    return {
+      d20: { rollMode: d20.rollMode, rawFaces: [...d20.rawFaces] },
+      result: await resumeTargetBoundActiveRuleEffectWithPause({
+        ...input.effectInput,
+        continuation,
+        resolution: { requestId: resolution.requestId, value, d20 },
+        expectedEvidencePolicy: policy
+      })
+    }
+  }
+  if (
+    input.pending.diceStage ||
+    request.min !== 1 ||
+    request.max !== 20 ||
+    request.nodeId !== policy.requestNodeId
+  )
+    throw new EncounterConflictError('The spatial evidence request is stale.')
+  const { faces, rollMode } = resolveEncounterD20Answer({
+    derivedRollMode: policy.rollMode,
+    answer: resolution,
+    rollD20: () => input.random(20) + 1
   })
+  return {
+    d20: { rollMode, rawFaces: faces },
+    result: await resumeTargetBoundActiveRuleEffectWithPause({
+      ...input.effectInput,
+      continuation,
+      resolution: { requestId: resolution.requestId, rawFaces: faces, rollMode },
+      expectedEvidencePolicy: policy
+    })
+  }
 }
 
 function pendingSnapshot(input: {

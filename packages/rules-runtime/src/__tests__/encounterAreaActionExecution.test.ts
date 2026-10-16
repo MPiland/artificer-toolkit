@@ -395,6 +395,7 @@ describe('catching the creatures in a directed area', () => {
       kind: 'CUBE_FROM_SIDE',
       edgeLength: 10,
       cellSize: 2,
+      gridOrigin: { x: 0, y: 0 },
       toward: { x: 20, y: 0 }
     } as const
     expect(
