@@ -5731,7 +5731,8 @@
               "proof": [
                 "partial: T2a (CI 38838173590 at 56db035bd, merged 2026-10-15) merges PASSIVE ON_HIT riders, CLASS_LEVEL dice and the triggering weapon damage type: packages/rules-runtime/src/__tests__/characterOnHitRiders.test.ts, characterOnHitRiderMerge.test.ts",
                 "T2d: ONCE_PER_TURN and the real SRD Rogue Sneak Attack: packages/source-data srdSneakAttack.test.ts, packages/encounter-persistence turnUses.test.ts, apps/session-worker nativeRoomOncePerTurn.test.ts, nativeMovementOncePerTurnRider.test.ts, nativeRoomEnemyProximity.test.ts; authored parity: apps/web src/forms/tests/AuthoredDomainFieldParity.test.tsx",
-                "T2e (D124): the roll-mode gate reads the settled d20: apps/session-worker/test/nativeRoomSettledRollMode.test.ts"
+                "T2e (D124): the roll-mode gate reads the settled d20: apps/session-worker/test/nativeRoomSettledRollMode.test.ts",
+                "T2d/T2e green: CI Tests 38869134710 and Live backend 38869134783 on 6649d84da"
               ],
               "origin": [],
               "note": "D58: extra-dice riders are CLOSED_RULE until this AC."
@@ -5871,7 +5872,8 @@
                 "rr": 3,
                 "size": 2,
                 "after": ["ATTACK-9.T2d"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-attack-9-t3-t6.md"
             },
             {
               "id": "ATTACK-9.T4",
@@ -5902,7 +5904,7 @@
             {
               "id": "ATTACK-9.T6",
               "text": "Rage early end from the per-turn attack and damage record. Also narrow endHolderGrants in movementSettlementPersistence.ts to the actors the pass damaged (one effect-list read per damaged actor, not per Run actor; free-tier cost).",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["ATTACK-9.6"],
               "wsjf": {
                 "bv": 3,
@@ -5910,7 +5912,8 @@
                 "rr": 2,
                 "size": 1,
                 "after": ["ATTACK-9.T1", "ATTACK-9.T2d"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-attack-9-t3-t6.md"
             },
             {
               "id": "ATTACK-9.T7",
