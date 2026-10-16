@@ -159,10 +159,16 @@ describe('a Creature trait that turns it invisible with no duration (SPELLS-27.T
         held,
         againstEnemy: false,
         ...input
-      }).map(({ id }) => id)
-    expect(ended({ makesAttackRoll: true })).toEqual([testUuid(0x2003)])
-    expect(ended({ makesAttackRoll: false, castsSpell: true })).toEqual([testUuid(0x2003)])
-    expect(ended({ makesAttackRoll: false })).toEqual([])
+      })
+    const endedIds = (input: Parameters<typeof ended>[0]) =>
+      ended(input).consumedGrants.map(({ id }) => id)
+    expect(endedIds({ makesAttackRoll: true })).toEqual([testUuid(0x2003)])
+    expect(endedIds({ makesAttackRoll: false, castsSpell: true })).toEqual([testUuid(0x2003)])
+    expect(endedIds({ makesAttackRoll: false })).toEqual([])
+    // The attack also releases the Invisible condition the trait alone held.
+    expect(
+      ended({ makesAttackRoll: true }).sourceReleases.map(({ conditionId }) => conditionId)
+    ).toEqual([INVISIBLE])
   })
 
   // Parity: a trait written out in core options alone, with no SRD helper, compiles to the same plan.
