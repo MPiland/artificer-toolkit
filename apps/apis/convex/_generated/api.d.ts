@@ -111650,7 +111650,9 @@ export declare const api: {
                 requestId: string;
               }
             | {
-                allowedResponses: Array<"ATTACK_SQUARE_OCCUPANT">;
+                allowedResponses: Array<
+                  "ATTACK_SQUARE_OCCUPANT" | "ATTACK_SQUARE_EMPTY"
+                >;
                 attackerActorId: string;
                 candidateActorIds: Array<string>;
                 encounterVersion: number;
@@ -111966,7 +111968,9 @@ export declare const api: {
                   requestId: string;
                 }
               | {
-                  allowedResponses: Array<"ATTACK_SQUARE_OCCUPANT">;
+                  allowedResponses: Array<
+                    "ATTACK_SQUARE_OCCUPANT" | "ATTACK_SQUARE_EMPTY"
+                  >;
                   attackerActorId: string;
                   candidateActorIds: Array<string>;
                   encounterVersion: number;
@@ -112803,7 +112807,9 @@ export declare const api: {
             requestId: string;
           }
         | {
-            allowedResponses: Array<"ATTACK_SQUARE_OCCUPANT">;
+            allowedResponses: Array<
+              "ATTACK_SQUARE_OCCUPANT" | "ATTACK_SQUARE_EMPTY"
+            >;
             attackerActorId: string;
             candidateActorIds: Array<string>;
             encounterVersion: number;
@@ -113638,7 +113644,9 @@ export declare const api: {
                 requestId: string;
               }
             | {
-                allowedResponses: Array<"ATTACK_SQUARE_OCCUPANT">;
+                allowedResponses: Array<
+                  "ATTACK_SQUARE_OCCUPANT" | "ATTACK_SQUARE_EMPTY"
+                >;
                 attackerActorId: string;
                 candidateActorIds: Array<string>;
                 encounterVersion: number;
