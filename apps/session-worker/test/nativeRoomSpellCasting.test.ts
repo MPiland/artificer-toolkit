@@ -367,8 +367,11 @@ describe('room Hold Person cast by a Character at a creature type it does not af
     const room = await holdPersonRoom(plainWolf)
 
     const { answer } = await room.startAction(TARGET_ID, [RANGE_WARNING])
-    expect(answer.type).toBe('COMMAND_REJECTED')
-    expect(JSON.stringify(answer)).toContain(TYPE_WARNING)
+    expect(answer).toMatchObject({
+      type: 'COMMAND_REJECTED',
+      reason: 'RULE_WARNINGS',
+      warnings: [{ code: TYPE_WARNING }, { code: RANGE_WARNING }]
+    })
     expect(await readSpellSlots(room)).toEqual([])
 
     const overridden = await room.startAction(TARGET_ID, [RANGE_WARNING, TYPE_WARNING])
