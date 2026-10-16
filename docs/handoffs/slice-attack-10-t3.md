@@ -1,7 +1,7 @@
 # Slice workbook: ATTACK-10.T3 (opportunity attacks and Disarm apply attack-roll sight)
 
-**Status:** T3a and T3b DONE (CI green on both workflows); T3c (Disarm) in progress.
-**Closes:** AC ATTACK-10.4 (when T3c lands). **Decision:** D100 (see [phase-08-2-decisions.md](phase-08-2-decisions.md)).
+**Status:** T3a, T3b and T3c DONE (CI ids below).
+**Closes:** AC ATTACK-10.4. **Decision:** D100 (see [phase-08-2-decisions.md](phase-08-2-decisions.md)).
 **Split (2026-10-16):** T3a movement-reaction condition contributions, T3b opportunity-attack roll sight, T3c Disarm.
 
 ## What changed (T3a, T3b)
@@ -13,15 +13,34 @@
 - **T3b, Worker.** `prepareReaction` (`nativeEncounterMovement.ts`) supplies `loadAttackPerception` at the contact point.
 - **T3b, redaction.** `projectEncounterSpatialOccurrenceSummary` takes `viewer.isOwner` (all callers updated).
 
+## What changed (T3c, Disarm)
+
+- **Shared helpers.** `encounterSightGovernedD20.ts` (new) holds `sightGovernedStageD20`, `heldStageD20` and `settleSightGovernedD20`, extracted verbatim from `encounterActionExecution.ts`; RESOLVE_ACTION, opportunity attacks and Disarm all use them.
+- **Contest executor.** `executeEncounterOptionalContestAction` takes `initiatorSight`; the initiator's answer settles through `settleSightGovernedD20` and a missing die returns PENDING with a `held` die on the same continuation.
+- **Pending contract.** `encounterActionPending.ts`: a `heldD20` is valid with a contest as well as a d20 policy.
+- **Worker.** `nativeDisarm.ts` passes `sceneContext` and `loadAttackPerception` to `prepareEncounterActionMechanics`, so the contest's initiator policy carries the true sight; it stores `d20Belief` and `heldD20` in the pending context and records only the answered participant's roll evidence. `projectNativeActionPending` already redacts a contest's belief and held die for non-owners.
+- **Side effect.** Disarm now also gets the melee/long-range and condition attack contributors (intended: it is an attack roll).
+
 ## Proof paths
 
 | Criterion | Proof |
 | --- | --- |
 | The reaction's perception applies Blinded and Invisible | `packages/rules-runtime/src/__tests__/encounterMovementReactionPerception.test.ts` |
 | An opportunity attack against a mover that can't see its reactor rolls with advantage and keeps the higher die | `apps/session-worker/test/nativeMovementAttackSight.test.ts` |
+| A player rolling an opportunity attack against a mover that can't see them is shown a normal roll, holds the die, and the GM sees the full reason | `nativeMovementAttackSight.test.ts` (player-view test; `movementRoomFixture.ts` `pendingFor`) |
+| Disarm against a Blinded target auto-rolls in the true mode, and a prompted initiator holds one die and settles in the true mode | `apps/session-worker/test/nativeRoomDisarm.test.ts` |
+| A player's Disarm prompt hides the hidden fact (normal roll, generic held-die caption); the GM sees the full reason | `apps/apis/convex/encounters/actionDisarm.test.ts` |
 
 ## Open
 
-- T3c Disarm: `nativeDisarm.ts` needs `loadAttackPerception` (its `sceneContext` is computed after the prepare call) and belief storage in the Disarm contest pending.
-- Not covered: the player-side believed prompt and held die of an opportunity attack have no room test yet (the room fixture has no player-rolled reaction). Registered for T3c's pass.
-- Movement reactions post no settled roll card, so a sight-adjusted opportunity attack shows no `D20_MODE_ADJUSTED` card.
+- No direct unit test of the rules-runtime contest executor with `initiatorSight`; it is proved through the Worker and Convex Disarm tests.
+- Deferred (future-enhancements, Deferred edge cases): movement reactions and Disarm post no `D20_MODE_ADJUSTED` card, and Disarm stores no `modeAdjustment`.
+
+## Status log
+
+- The opportunity-attack player-view test asserts the GM view's exact reasons (`['Unseen attacker']`). The `pendingFor` fixture projects through the same pure label step the pending read uses (`labelEncounterRollModeReasons`); it had passed no labels, so reasons read `[]`. That was a harness gap, not a product bug: rules-owned reasons need no authored source. The player view stays `[]` because its believed mode is Normal.
+
+## Proposed ledger edit (the main session owns the ledger)
+
+- `ATTACK-10.T3c`: `status` DONE; remove `activeWorkbook` at merge.
+- `ATTACK-10.4`: `status` DONE; append to `proof`: `T3c: apps/session-worker/test/nativeRoomDisarm.test.ts (auto-rolled and prompted Disarm against a Blinded target, held die), apps/session-worker/test/nativeMovementAttackSight.test.ts (player-side opportunity-attack believed prompt, GM reasons), apps/apis/convex/encounters/actionDisarm.test.ts (Convex Disarm redaction and true settlement); CI run ids in the merge report`.

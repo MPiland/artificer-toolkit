@@ -1,3 +1,4 @@
+import type { EncounterActionHeldD20Dto } from '@artificer-toolkit/schema/shared/encounterActionPending'
 import type {
   ServerCompletedRuleExecutionDto,
   ServerRuleExecutionContinuationDto
@@ -16,6 +17,11 @@ import {
   selectEncounterActionD20Natural,
   type EncounterEvidenceAnswer
 } from './encounterEvidenceAnswer.js'
+import {
+  heldStageD20,
+  settleSightGovernedD20,
+  type SightGovernedD20
+} from './encounterSightGovernedD20.js'
 
 type OptionalContestD20Policy = {
   actorId: string
@@ -41,6 +47,8 @@ type EncounterOptionalContestActionExecution =
       participant: 'INITIATOR' | 'DEFENDER'
       /** Faces settled so far, including an auto-rolled initiator before a prompted defender. */
       rolls: ReadonlyMap<'INITIATOR' | 'DEFENDER', readonly number[]>
+      /** The initiator's entered die, held while one more settles the true mode (ATTACK-10.1). */
+      held: EncounterActionHeldD20Dto | null
     }
   | {
       kind: 'COMPLETE'
@@ -91,6 +99,27 @@ function resolveFaces(input: {
   return faces
 }
 
+/** One participant's answer: its faces, or the held die when sight needs one more from the roller. */
+function settleFaces(input: {
+  policy: OptionalContestD20Policy
+  /** Set for the initiator's attack d20 when sight decides its mode. */
+  sight: SightGovernedD20 | null
+  resolution: OptionalContestResolution
+  requestId: string
+  rollD20: () => number
+}): { kind: 'SETTLED'; faces: readonly number[] } | { kind: 'NEEDS_EXTRA_D20'; heldFace: number } {
+  if (!input.sight) return { kind: 'SETTLED', faces: resolveFaces(input) }
+  if (input.resolution.requestId !== input.requestId)
+    throw new EncounterConflictError('Optional combat contest evidence request is stale.')
+  const settled = settleSightGovernedD20({
+    appliedMode: input.policy.rollMode,
+    sightGoverned: input.sight,
+    resolution: input.resolution,
+    rollD20: input.rollD20
+  })
+  return settled.kind === 'SETTLED' ? { kind: 'SETTLED', faces: settled.faces } : settled
+}
+
 function completeEncounterOptionalContestActionExecution(input: {
   execution: ServerCompletedRuleExecutionDto
   initiator: OptionalContestD20Policy
@@ -137,6 +166,8 @@ export async function executeEncounterOptionalContestAction(input: {
   graph: Dnd5eOptionalCombatContestGraph
   initiator: OptionalContestD20Policy
   defender: OptionalContestD20Policy
+  /** How sight governs the initiator's attack d20, or null when it does not. */
+  initiatorSight?: SightGovernedD20 | null
   occurrenceId: string
   resolution?: OptionalContestResolution
   rollD20: () => number
@@ -144,38 +175,49 @@ export async function executeEncounterOptionalContestAction(input: {
   priorRolls?: ReadonlyMap<'INITIATOR' | 'DEFENDER', readonly number[]>
 }): Promise<EncounterOptionalContestActionExecution> {
   const rolls = new Map(input.priorRolls)
-  let execution = input.continuation
-    ? await input.runtime.resume({
+  let execution: Awaited<ReturnType<RulesRuntimeService['resume']>>
+  if (input.continuation) {
+    if (!input.resolution)
+      throw new EncounterValidationError('Optional combat contest evidence is required.')
+    const participant = requireRequest(input.continuation)
+    const policy = participant === 'INITIATOR' ? input.initiator : input.defender
+    const sight = participant === 'INITIATOR' ? (input.initiatorSight ?? null) : null
+    const settled = settleFaces({
+      policy,
+      sight,
+      resolution: input.resolution,
+      requestId: input.continuation.request.requestId,
+      rollD20: input.rollD20
+    })
+    if (settled.kind === 'NEEDS_EXTRA_D20')
+      return {
+        kind: 'PENDING',
         continuation: input.continuation,
-        response: (() => {
-          if (!input.resolution)
-            throw new EncounterValidationError('Optional combat contest evidence is required.')
-          const participant = requireRequest(input.continuation)
-          const policy = participant === 'INITIATOR' ? input.initiator : input.defender
-          const faces = resolveFaces({
-            policy,
-            resolution: input.resolution,
-            requestId: input.continuation.request.requestId,
-            rollD20: input.rollD20
-          })
-          rolls.set(participant, faces)
-          return {
-            requestId: input.continuation.request.requestId,
-            value: selectEncounterActionD20Natural(policy.rollMode, faces)
-          }
-        })()
-      })
-    : await input.runtime.executeResolved({
-        command: {
-          definitionId: input.graph.published.id,
-          occurrenceId: input.occurrenceId,
-          facts: {
-            [DND5E_OPTIONAL_COMBAT_CONTEST_INITIATOR_MODIFIER_FACT_KEY]: input.initiator.modifier,
-            [DND5E_OPTIONAL_COMBAT_CONTEST_TARGET_MODIFIER_FACT_KEY]: input.defender.modifier
-          }
-        },
-        published: input.graph.published
-      })
+        participant,
+        rolls,
+        held: heldStageD20(settled.heldFace, sight)
+      }
+    rolls.set(participant, settled.faces)
+    execution = await input.runtime.resume({
+      continuation: input.continuation,
+      response: {
+        requestId: input.continuation.request.requestId,
+        value: selectEncounterActionD20Natural(policy.rollMode, settled.faces)
+      }
+    })
+  } else {
+    execution = await input.runtime.executeResolved({
+      command: {
+        definitionId: input.graph.published.id,
+        occurrenceId: input.occurrenceId,
+        facts: {
+          [DND5E_OPTIONAL_COMBAT_CONTEST_INITIATOR_MODIFIER_FACT_KEY]: input.initiator.modifier,
+          [DND5E_OPTIONAL_COMBAT_CONTEST_TARGET_MODIFIER_FACT_KEY]: input.defender.modifier
+        }
+      },
+      published: input.graph.published
+    })
+  }
   while (execution.status === 'PAUSED') {
     const participant = requireRequest(execution.continuation)
     const policy = participant === 'INITIATOR' ? input.initiator : input.defender
@@ -201,7 +243,8 @@ export async function executeEncounterOptionalContestAction(input: {
       kind: 'PENDING',
       continuation: execution.continuation,
       participant: requireRequest(execution.continuation),
-      rolls
+      rolls,
+      held: null
     }
   }
   return completeEncounterOptionalContestActionExecution({
