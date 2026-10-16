@@ -80,7 +80,7 @@ describe('room cube from the side of the caster’s space', () => {
 })
 
 describe('room cone and line', () => {
-  it('catches the Wolves a 15 ft cone touches and not the one off its row', async () => {
+  it('catches the Wolves on a 15 ft cone’s row and not the one off it', async () => {
     const room = await directedRoom(directedAreaWolf({ shapeKind: 'CONE', length: feet(15) }))
     expect((await room.startDirectedAreaAction(EAST.origin, EAST.toward)).answer.type).toBe(
       'COMMAND_COMMITTED'
@@ -88,7 +88,7 @@ describe('room cone and line', () => {
     expect(await pendingSaves(room)).toEqual([FIRST_ID, SECOND_ID, THIRD_ID].sort())
   })
 
-  it('catches only the Wolves a 10 ft line touches', async () => {
+  it('catches only the two Wolves within a 10 ft line', async () => {
     const room = await directedRoom(
       directedAreaWolf({ shapeKind: 'LINE', length: feet(10), width: feet(5) })
     )
@@ -125,10 +125,16 @@ describe('room cone and line', () => {
 })
 
 describe('room refusals of the wrong target for an area', () => {
-  const refused = (answer: { type: string }) =>
-    expect(answer).toMatchObject({ type: 'COMMAND_REJECTED', reason: 'TARGET_UNAVAILABLE' })
+  const refused = (answer: { type: string }, message: string) =>
+    expect(answer).toMatchObject({
+      type: 'COMMAND_REJECTED',
+      reason: 'TARGET_UNAVAILABLE',
+      message
+    })
+  const NEEDS_A_POINT = 'This action must be aimed at a point on the map.'
+  const NEEDS_A_DIRECTION = 'This action must be aimed in a direction from the caster.'
 
-  it('refuses a direction for a point area', async () => {
+  it('refuses a direction for a point area, saying it needs a point', async () => {
     const room = await actionRoom({
       actors: [
         srdCreatureActor({ id: CASTER_ID, creature: fireballWolf() }),
@@ -136,7 +142,7 @@ describe('room refusals of the wrong target for an area', () => {
       ],
       ownerFeatureId: fireballWolf().features?.find((feature) => feature.label === 'Bite')?.id
     })
-    refused((await room.startDirectedAreaAction(EAST.origin, EAST.toward)).answer)
+    refused((await room.startDirectedAreaAction(EAST.origin, EAST.toward)).answer, NEEDS_A_POINT)
     expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
   })
 
@@ -144,9 +150,9 @@ describe('room refusals of the wrong target for an area', () => {
     ['a cone', { shapeKind: 'CONE', length: feet(15) }],
     ['a line', { shapeKind: 'LINE', length: feet(30), width: feet(5) }],
     ['a Self cube', { shapeKind: 'CUBE', edgeLength: feet(15) }]
-  ] as const)('refuses a point for %s', async (_name, shape) => {
+  ] as const)('refuses a point for %s, saying it needs a direction', async (_name, shape) => {
     const room = await directedRoom(directedAreaWolf(shape))
-    refused((await room.startAreaAction({ x: 350, y: 150 })).answer)
+    refused((await room.startAreaAction({ x: 350, y: 150 })).answer, NEEDS_A_DIRECTION)
     expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
   })
 
@@ -156,13 +162,19 @@ describe('room refusals of the wrong target for an area', () => {
     ['inside the token', { x: 150, y: 150 }]
   ])('refuses an origin %s', async (_name, origin) => {
     const room = await directedRoom(directedAreaWolf({ shapeKind: 'CONE', length: feet(15) }))
-    refused((await room.startDirectedAreaAction(origin, { x: 500, y: 150 })).answer)
+    refused(
+      (await room.startDirectedAreaAction(origin, { x: 500, y: 150 })).answer,
+      'This area cannot extend from there.'
+    )
     expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
   })
 
   it('refuses a direction that points nowhere', async () => {
     const room = await directedRoom(directedAreaWolf({ shapeKind: 'CONE', length: feet(15) }))
-    refused((await room.startDirectedAreaAction(EAST.origin, EAST.origin)).answer)
+    refused(
+      (await room.startDirectedAreaAction(EAST.origin, EAST.origin)).answer,
+      'This area cannot extend from there.'
+    )
   })
 
   it('refuses a creature target for a directed area', async () => {

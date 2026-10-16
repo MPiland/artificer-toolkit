@@ -161,7 +161,7 @@ export function fireballWolf(): CreatureAuthored {
 
 /**
  * The SRD Wolf with its Bite made a save over an area that extends from the Wolf (a Self range): a
- * dragon's cone of breath, a line, or the cube of Thunderwave. Every creature in it makes a
+ * cone, a line, or a cube from the Wolf's side (as Thunderwave's). Every creature in it makes a
  * Dexterity save (DC 10) against 1 damage, as the point-area Wolf of `fireballWolf` does.
  */
 export function directedAreaWolf(

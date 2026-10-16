@@ -76,6 +76,30 @@ describe('a cone from the caster’s edge', () => {
     ).toEqual(squares('1,1', '2,1', '1,2', '3,1', '1,3', '2,2', '3,2', '2,3', '3,3', '4,2', '2,4'))
   })
 
+  it('catches exactly the squares its template shares area with diagonally (60 ft)', () => {
+    // Rows 1 to 13 south of the caster's row, each as the first and last column the cone reaches,
+    // from an independent clip of the template triangle against every square. The cone is symmetric
+    // about the diagonal, so the columns read the same turned.
+    const reach = [
+      [1, 3],
+      [1, 6],
+      [1, 9],
+      [2, 12],
+      [2, 13],
+      [2, 12],
+      [3, 11],
+      [3, 10],
+      [3, 9],
+      [4, 8],
+      [4, 7],
+      [4, 6],
+      [5, 5]
+    ] as const
+    expect(
+      caught({ x: 600, y: 600 }, { kind: 'CONE', length: 1200, toward: { x: 700, y: 700 } })
+    ).toEqual(squares(...reach.flatMap(([from, to], index) => row(index + 1, range(from, to)))))
+  })
+
   it('catches the same squares pointing west, north and south as east, turned', () => {
     expect(
       caught({ x: 500, y: 550 }, { kind: 'CONE', length: 300, toward: { x: 400, y: 550 } })
@@ -216,6 +240,7 @@ describe('a cube from the caster’s side', () => {
     kind: 'CUBE_FROM_SIDE',
     edgeLength: 300,
     cellSize: 100,
+    gridOrigin: { x: 0, y: 0 },
     toward: { x, y }
   })
 
@@ -260,6 +285,120 @@ describe('a cube from the caster’s side', () => {
   })
 })
 
+describe('a cube from the caster’s side snaps to the grid', () => {
+  /** The grid positions from `first` to `last`, one cell apart. */
+  const places = (first: number, last: number) =>
+    range(0, (last - first) / 100).map((step) => first + step * 100)
+  /**
+   * Casters on and off the grid, each with the places a cube's face may start along their side for
+   * each edge length: every grid position whose cube shares the side with the caster, worked out by
+   * hand from the side's two ends.
+   */
+  const casters = [
+    {
+      name: 'a 1 square caster on the grid',
+      token: { id: 'caster', position: { x: 550, y: 550 }, width: 100, height: 100 },
+      gridOrigin: { x: 0, y: 0 },
+      starts: {
+        100: places(500, 500),
+        200: places(400, 500),
+        300: places(300, 500),
+        400: places(200, 500),
+        600: places(0, 500)
+      }
+    },
+    {
+      name: 'a 1 square caster between grid lines',
+      token: { id: 'caster', position: { x: 580, y: 580 }, width: 100, height: 100 },
+      gridOrigin: { x: 0, y: 0 },
+      starts: {
+        100: places(500, 600),
+        200: places(400, 600),
+        300: places(300, 600),
+        400: places(200, 600),
+        600: places(0, 600)
+      }
+    },
+    {
+      name: 'a 2 square caster on the grid',
+      token: { id: 'caster', position: { x: 600, y: 600 }, width: 200, height: 200 },
+      gridOrigin: { x: 0, y: 0 },
+      starts: {
+        100: places(500, 600),
+        200: places(400, 600),
+        300: places(300, 600),
+        400: places(200, 600),
+        600: places(0, 600)
+      }
+    },
+    {
+      name: 'a 1 square caster on a grid that starts at 30',
+      token: { id: 'caster', position: { x: 580, y: 580 }, width: 100, height: 100 },
+      gridOrigin: { x: 30, y: 30 },
+      starts: {
+        100: places(530, 530),
+        200: places(430, 530),
+        300: places(330, 530),
+        400: places(230, 530),
+        600: places(30, 530)
+      }
+    }
+  ] as const
+  /** A side of the caster's space: where the pointer presses along it and what the cube covers. */
+  const sides = [
+    { name: 'east', along: 'y', out: 1, depth: 'x' },
+    { name: 'west', along: 'y', out: -1, depth: 'x' },
+    { name: 'south', along: 'x', out: 1, depth: 'y' },
+    { name: 'north', along: 'x', out: -1, depth: 'y' }
+  ] as const
+  /** Presses per place across the side: each press falls inside one place, never on a boundary. */
+  const PRESSES_PER_PLACE = 12
+
+  const cases = casters.flatMap((entry) =>
+    sides.flatMap((side) =>
+      ([100, 200, 300, 400, 600] as const).map((edgeLength) => ({ entry, side, edgeLength }))
+    )
+  )
+
+  it.each(cases)(
+    'puts the $edgeLength px cube of $entry.name flush on its $side side, on grid lines, sharing the side, each place equally',
+    ({ entry, side, edgeLength }) => {
+      const { token, gridOrigin, starts } = entry
+      const half = { x: token.width / 2, y: token.height / 2 }
+      const sideStart = token.position[side.along] - half[side.along]
+      const sideLength = half[side.along] * 2
+      const faceAt = token.position[side.depth] + side.out * half[side.depth]
+      const expected = starts[edgeLength]
+      const pressCount = expected.length * PRESSES_PER_PLACE
+      const placed = range(0, pressCount - 1).map((press) => {
+        const pressedAt = sideStart + ((press + 0.5) / pressCount) * sideLength
+        const origin = { [side.depth]: faceAt, [side.along]: pressedAt } as { x: number; y: number }
+        const toward = { ...origin, [side.depth]: faceAt + side.out * 100 }
+        const outline = directedAreaOutline(
+          origin,
+          { kind: 'CUBE_FROM_SIDE', edgeLength, cellSize: 100, gridOrigin, toward },
+          token
+        )
+        if (!outline) throw new Error('The cube has no outline.')
+        const depths = outline.map((point) => point[side.depth])
+        const slides = outline.map((point) => point[side.along])
+        // Flush against the side and one full edge out from it.
+        expect([Math.min(...depths), Math.max(...depths)]).toEqual(
+          side.out > 0 ? [faceAt, faceAt + edgeLength] : [faceAt - edgeLength, faceAt]
+        )
+        expect(Math.max(...slides) - Math.min(...slides)).toBe(edgeLength)
+        return Math.min(...slides)
+      })
+      // On grid lines: the face starts on a line of the Scene's grid, not at the caster's own edge.
+      expect([...new Set(placed)]).toEqual(expected)
+      // Equal shares: the places run in order across the side and each holds the same presses.
+      expect(placed).toEqual(
+        expected.flatMap((place) => Array.from({ length: PRESSES_PER_PLACE }, () => place))
+      )
+    }
+  )
+})
+
 describe('a cube from a point', () => {
   // User ruling 2026-10-14, D103: an area catches a footprint only when it shares area with it.
   it('on grid lines catches exactly the 9 squares it covers, not the ones it touches', () => {
@@ -299,7 +438,13 @@ describe('directedAreaOutline', () => {
     expect(
       directedAreaOutline(
         { x: 600, y: 505 },
-        { kind: 'CUBE_FROM_SIDE', edgeLength: 300, cellSize: 100, toward: { x: 700, y: 505 } },
+        {
+          kind: 'CUBE_FROM_SIDE',
+          edgeLength: 300,
+          cellSize: 100,
+          gridOrigin: { x: 0, y: 0 },
+          toward: { x: 700, y: 505 }
+        },
         caster
       )
     ).toEqual([
@@ -324,7 +469,28 @@ describe('directedAreaInSceneCoordinates', () => {
     })
     expect(
       directedAreaInSceneCoordinates({ kind: 'CUBE_FROM_SIDE', edgeLength: feet(15) }, toward, grid)
-    ).toEqual({ kind: 'CUBE_FROM_SIDE', edgeLength: 300, cellSize: 100, toward })
+    ).toEqual({
+      kind: 'CUBE_FROM_SIDE',
+      edgeLength: 300,
+      cellSize: 100,
+      gridOrigin: { x: 0, y: 0 },
+      toward
+    })
+  })
+
+  it('snaps a cube to the lines of a grid that does not start at the Scene’s corner', () => {
+    expect(
+      directedAreaInSceneCoordinates({ kind: 'CUBE_FROM_SIDE', edgeLength: feet(15) }, toward, {
+        ...grid,
+        origin: { x: 30, y: 45 }
+      })
+    ).toEqual({
+      kind: 'CUBE_FROM_SIDE',
+      edgeLength: 300,
+      cellSize: 100,
+      gridOrigin: { x: 30, y: 45 },
+      toward
+    })
   })
 
   it('snaps a cube on a gridless Scene to 5 ft squares', () => {
@@ -335,7 +501,13 @@ describe('directedAreaInSceneCoordinates', () => {
         toward,
         gridless
       )
-    ).toEqual({ kind: 'CUBE_FROM_SIDE', edgeLength: 300, cellSize: 100, toward })
+    ).toEqual({
+      kind: 'CUBE_FROM_SIDE',
+      edgeLength: 300,
+      cellSize: 100,
+      gridOrigin: { x: 0, y: 0 },
+      toward
+    })
   })
 
   it('gives a line the authored width, or 5 ft when none is authored', () => {
@@ -372,6 +544,7 @@ describe('isDirectedAreaOriginOnToken', () => {
     kind: 'CUBE_FROM_SIDE',
     edgeLength: 300,
     cellSize: 100,
+    gridOrigin: { x: 0, y: 0 },
     toward
   })
 

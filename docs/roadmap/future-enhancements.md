@@ -95,6 +95,9 @@ The user wants a Kickstarter campaign with realistic goals to fund finishing the
 
 These are rare paths, roughly under 5% of sessions, whose failure is visible and recoverable (user direction, 2026-10-15). Fix one when real use shows it happening.
 
+- **A Self cube smaller than a grid cell beside a token smaller than the leftover (SPELLS-23.T1):** when the cube's edge plus the caster's side is no more than one cell, no grid line gives the face a shared length with the side, and `cubeFromSideOutline` places the cube on the nearest line, touching the caster at most at a corner. No SRD Self cube is that small; the fix is to place the face flush at the side's start when no grid line qualifies.
+- **A Self cube's face can miss the press on an off-grid caster (SPELLS-23.T1):** each grid-line place owns an equal share of the side, so for a caster whose side does not sit on grid lines the picked place may not contain the pressed point. Nothing reads the origin for cover; the aim is still the side and the place the caster chose.
+
 - **Waking a Brass Dragon's Sleep Breath target with an action (SPELLS-19.T3):** the unconscious condition ends on damage taken, but "someone uses an action to wake it" is not a commit event; the GM ends the condition by hand.
 - **A projectile aimed again at a creature whose form its earlier dart ended (SPELLS-28.T2, D130):** the dice settle each entry against the hit points the earlier entry left, which are the form's, so the commit finds the actor back at its origin's hit points and refuses the second dart as stale. The caster re-aims; the fix is a settle that follows the revert (carry-over included).
 - **Undo of a damage action that auto-reverted a creature form (SPELLS-28.T2, D130):** the revert restores the form's hit points, which `restoreHitPoints` refuses once the actor is out of its form. The GM corrects the hit points by hand; a form-aware undo can follow if it shows up in play.
