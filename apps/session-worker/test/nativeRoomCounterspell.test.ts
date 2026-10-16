@@ -531,6 +531,8 @@ describe('room Counterspell against a Character’s spell cast (REACTION-4.3)', 
         await cast(room)
         await counterWithLowestSlot(room)
         expect((await rollTheCheck(room, face)).type).toBe('COMMAND_COMMITTED')
+        // A failing check is carded with the cast's own commit, after its healing dice.
+        await healWithLowestDice(room)
 
         const cards = (await readRoomRollCards(room.room.base.stub)).filter(
           ({ roll }) => roll.source.kind === 'SKILL_CHECK'
@@ -581,8 +583,10 @@ describe('room Counterspell against a Character’s spell cast (REACTION-4.3)', 
           SECOND_REACTOR_ACTOR_ID
         ].entries()) {
           expect((await offered(room)).pending.targetActorId).toBe(holderActorId)
-          expect((await counterWithLowestSlot(room)).type).toBe('COMMAND_COMMITTED')
-          expect((await rollTheCheck(room, faces[index]!)).type).toBe('COMMAND_COMMITTED')
+          const chosen = await counterWithLowestSlot(room)
+          expect(chosen.type, JSON.stringify(chosen)).toBe('COMMAND_COMMITTED')
+          const rolled = await rollTheCheck(room, faces[index]!)
+          expect(rolled.type, JSON.stringify(rolled)).toBe('COMMAND_COMMITTED')
           if (faces[index]! === 20) return
         }
       }
