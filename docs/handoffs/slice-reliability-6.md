@@ -32,6 +32,13 @@ Typed identities replace label and string parsing for hit dice, skill abilities,
 - 6.3: `resolveSystemSkillAbilities` (shared) is the single v4 skill-id and governing-ability source for rule facts and the Sheet projection; `createSkillReference`/`resolveCharacterSheetSkillKey` take the System; silent DEXTERITY fallbacks removed; unused `dexterityAbilityId` removed from armor-class facts. Schema versions 1-3 keep `SKILL_ABILITY_MAP` until RELIABILITY-6.T4 (6.8).
 - 6.15: `readInitiativeSourceRoll` (rules-runtime `encounterInitiativeRoll.ts`) is one pure function; it replaces three copies (Convex `readActorInitiativeRoll`, Worker `readActorInitiativeRoll`, D&D adapter `bindActor`/`bindDeclaredActor`). Convex and the Worker call it through their existing read ports.
 
+### Review triage
+
+- Fixed: 6.3 error side now proved (`sheetSkillAbility.test.ts`: unknown governing ability id; ability outside the Sheet's six); `resolveAbilityCode` is no longer exported.
+- Stands: the callers destructure the reader result to the read-port contract (`characterId`, `expression`, `rollMode`); returning `modifier` too would widen the port output.
+- Defer to RELIABILITY-6.T4 (removes the schema v1-3 `SKILL_ABILITY_MAP` branches): collapse the v4 alias set in `createSkillReference` into `buildSkillSubjectAliasMap`, and the three skill-name normalisers into one.
+- Defer: take the initiative die size from the System instead of the d20 constant in `encounterInitiativeRoll.ts` (ADR 0023); the removed copies and `encounterRuleCheckRolls.ts` carry the same constant.
+
 ## T1b: System-owned Concentration and melee classification (6.16)
 
 Held until the overlapping slices merge (SPELLS-26.T3, SPELLS-27.T2b, SPELLS-28.T2, ATTACK-9.T6b, ATTACK-17.T4b, REACTION-4.T3c). Work is committed on local branch `r6-t1b`.

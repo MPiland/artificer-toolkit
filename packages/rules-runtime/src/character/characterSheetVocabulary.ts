@@ -32,7 +32,7 @@ export function isAbilityCode(value: string): value is keyof typeof ABILITIES {
   return value in ABILITIES
 }
 
-export function resolveAbilityCode(subjectId: string): keyof typeof ABILITIES | undefined {
+function resolveAbilityCode(subjectId: string): keyof typeof ABILITIES | undefined {
   const direct = ABILITY_CANONICAL_BY_ALIAS.get(subjectId)
   if (direct && isAbilityCode(direct)) return direct
 
