@@ -13,7 +13,7 @@ import {
   concentrationCommandId,
   concentrationOccurrenceId
 } from '@artificer-toolkit/rules-runtime/encounterConcentrationIdentity'
-import { DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from '@artificer-toolkit/rules-runtime/systems/dnd5e/concentrationIdentity'
+import { requireInstalledConcentrationMaintenanceDefinitionId } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import {
@@ -53,7 +53,9 @@ export async function bindEncounterConcentrationApplications(
     const slot = await store.findMaintainedState({
       encounterId: state.id,
       ownerActorId: targetActorId,
-      maintenanceDefinitionId: DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID
+      maintenanceDefinitionId: requireInstalledConcentrationMaintenanceDefinitionId(
+        state.gameSystemId
+      )
     })
     if (slot) bindings.set(targetActorId, slot.id)
   }
@@ -138,7 +140,8 @@ export async function persistEncounterConcentrationChildren(
       (previousOwnerId !== null && end.ownerActorId.localeCompare(previousOwnerId) <= 0) ||
       !slot ||
       slot.ownerActorId !== end.ownerActorId ||
-      slot.maintenanceDefinitionId !== DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID ||
+      slot.maintenanceDefinitionId !==
+        requireInstalledConcentrationMaintenanceDefinitionId(state.gameSystemId) ||
       !holder ||
       (await readHolderEndState(ctx, { state, actor: holder, userId: args.userId })).reason !==
         end.reason
@@ -263,7 +266,8 @@ export async function persistEncounterConcentrationChildren(
     if (
       !slot ||
       slot.ownerActorId !== application.targetActorId ||
-      slot.maintenanceDefinitionId !== DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID ||
+      slot.maintenanceDefinitionId !==
+        requireInstalledConcentrationMaintenanceDefinitionId(state.gameSystemId) ||
       !target ||
       (await concentrationTargetPinChanged(target, output.targetCharacter, (characterId) =>
         callbacks.currentCharacterStreamVersion(characterId)

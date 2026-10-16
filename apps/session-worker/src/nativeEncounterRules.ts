@@ -17,10 +17,6 @@ import {
   prepareEncounterActionMechanics
 } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
 import {
-  dnd5eAttackKind,
-  isDnd5eMeleeAttackKind
-} from '@artificer-toolkit/rules-runtime/systems/dnd5e/attackKind'
-import {
   encounterActionSourceLabel,
   resolveEncounterActionSource,
   type EncounterActionSourceRequest
@@ -147,7 +143,10 @@ import {
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { buildEncounterActorRuleFacts } from '@artificer-toolkit/rules-runtime/encounterActorRuleFacts'
 import { reconcileEncounterActorRuleOutput } from '@artificer-toolkit/rules-runtime/encounterActorRuleOutput'
-import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
+import {
+  evaluateInstalledEncounterActors,
+  isInstalledMeleeAttackTrigger
+} from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import { buildEncounterActionStoredExecution } from '@artificer-toolkit/rules-runtime/encounterActionReceipt'
 import { planNativeLiveCleaving } from './nativeEncounterCleaving.js'
 import { rangeDtoSchema } from '@artificer-toolkit/schema/shared/range'
@@ -1174,12 +1173,11 @@ export async function planNativeLiveEncounterAction(
             actionId: command.actionId,
             publishedDefinitionId: execution.published.id,
             publishedDefinitionChecksum: execution.published.checksum,
-            attackKind: isDnd5eMeleeAttackKind(
-              dnd5eAttackKind(
-                prepared.source.kind === 'CHARACTER_ACTION'
-                  ? prepared.source.candidate.mechanicFacts.invocation.triggerCode
-                  : prepared.source.capability.mechanicFacts.invocation.triggerCode
-              )
+            attackKind: isInstalledMeleeAttackTrigger(
+              state.gameSystemId,
+              prepared.source.kind === 'CHARACTER_ACTION'
+                ? prepared.source.candidate.mechanicFacts.invocation.triggerCode
+                : prepared.source.capability.mechanicFacts.invocation.triggerCode
             )
               ? 'MELEE'
               : 'OTHER',

@@ -1,7 +1,10 @@
 import type { ConcentrationListingDto } from '@artificer-toolkit/schema/shared/activeGrantListing'
-import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
+import type {
+  EncounterRunActorState,
+  EncounterRunState
+} from '@artificer-toolkit/schema/projections/encounterRunState'
 import { heldConcentration } from '@artificer-toolkit/rules-runtime/activeGrantListings'
-import { DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from '@artificer-toolkit/rules-runtime/systems/dnd5e/concentrationIdentity'
+import { requireInstalledConcentrationMaintenanceDefinitionId } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import {
   listCarriedActiveRuleEffects,
   readDependentEffects,
@@ -16,16 +19,21 @@ import type { EncounterReadContext } from './store.js'
  */
 export async function readActorConcentration(
   ctx: EncounterReadContext,
-  input: { encounterId: string; actor: Pick<EncounterRunActorState, 'id' | 'kind' | 'sourceId'> }
+  input: {
+    state: Pick<EncounterRunState, 'id' | 'gameSystemId'>
+    actor: Pick<EncounterRunActorState, 'id' | 'kind' | 'sourceId'>
+  }
 ): Promise<ConcentrationListingDto | null> {
-  const { actor, encounterId } = input
+  const { actor, state } = input
   const slot = await readMaintainedStateByDefinition(ctx, {
-    encounterId,
+    encounterId: state.id,
     ownerActorId: actor.id,
-    maintenanceDefinitionId: DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID
+    maintenanceDefinitionId: requireInstalledConcentrationMaintenanceDefinitionId(
+      state.gameSystemId
+    )
   })
   if (slot) {
-    const { characters, actors } = await readDependentEffects(ctx, encounterId, slot.id)
+    const { characters, actors } = await readDependentEffects(ctx, state.id, slot.id)
     return heldConcentration([...characters, ...actors])
   }
   if (actor.kind !== 'CHARACTER' || !actor.sourceId) return null

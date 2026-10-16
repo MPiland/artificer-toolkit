@@ -58,7 +58,7 @@ async function withActiveGrants<Projection extends { actors: readonly { id: stri
           actor.id,
           {
             activeGrants: listActiveGrantListings(effects),
-            concentration: await readActorConcentration(ctx, { encounterId: state.id, actor }),
+            concentration: await readActorConcentration(ctx, { state, actor }),
             concealment: listConcealment(effects)
           }
         ] as const

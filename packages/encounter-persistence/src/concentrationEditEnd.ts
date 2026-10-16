@@ -7,7 +7,7 @@ import {
   stateBoundGrants
 } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
-import { DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from '@artificer-toolkit/rules-runtime/systems/dnd5e/concentrationIdentity'
+import { requireInstalledConcentrationMaintenanceDefinitionId } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import { persistNativeConcentrationEnd } from './actionChildPersistence.js'
 import {
   applyLiveConcentrationCleanup,
@@ -53,7 +53,9 @@ export async function endConcentrationAfterEdit(
   const slot = await store.findMaintainedState({
     encounterId: state.id,
     ownerActorId: holder.id,
-    maintenanceDefinitionId: DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID
+    maintenanceDefinitionId: requireInstalledConcentrationMaintenanceDefinitionId(
+      state.gameSystemId
+    )
   })
   const stateBound = stateBoundGrants(await store.list(turnEffectOwner(holder, state.id)))
   if (!slot && !stateBound.length) return
