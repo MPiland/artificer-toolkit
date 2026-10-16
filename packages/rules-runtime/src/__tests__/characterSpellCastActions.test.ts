@@ -622,6 +622,15 @@ describe('the Concentration a cast starts', () => {
     })
   })
 
+  it('plans the Frightened of SRD Fear as fleeing its caster; Hold Person flees none (SPELLS-29.T2)', () => {
+    expect(compiledCast(FEAR)?.activeEffectPlan?.conditionContribution).toMatchObject({
+      fleesSource: true
+    })
+    expect(compiledCast(HOLD_PERSON)?.activeEffectPlan?.conditionContribution).toMatchObject({
+      fleesSource: false
+    })
+  })
+
   it('starts no Concentration for a spell that is not a Concentration spell', () => {
     const plan = compiledCast(PLAIN_HOLD)?.activeEffectPlan
     expect(plan).toBeDefined()
