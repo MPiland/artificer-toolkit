@@ -1,6 +1,10 @@
 import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
+import type {
+  EncounterGmProjectionDto,
+  EncounterPlayerProjectionDto
+} from '@artificer-toolkit/schema/api/encounters'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { CampaignTabletopEncounterDrawer } from './CampaignTabletopEncounterDrawer'
 import {
@@ -519,6 +523,112 @@ describe('CampaignTabletopEncounterDrawer', () => {
       expect(
         screen.queryByRole('button', { name: 'End Concentration for Vault Warden' })
       ).not.toBeInTheDocument()
+    })
+  })
+
+  describe('concealment observers (D116)', () => {
+    const [watcher, hider] = tabletopGmEncounter.actors
+    const bystander = {
+      ...watcher!,
+      id: 'e5c2b6f8-6a5e-4c0e-9b8a-2f5d3a9c7b11',
+      label: 'Torchbearer'
+    }
+    const concealment = {
+      effectId: '9d1f7a52-3b0c-4c4e-8f6a-7a1b2c3d4e5f',
+      concealmentTotal: 17,
+      observerActorIds: [watcher!.id]
+    }
+    const gmEncounter = {
+      ...tabletopGmEncounter,
+      actors: [watcher!, { ...hider!, concealment }, bystander]
+    }
+
+    function renderDrawer(
+      encounter: EncounterGmProjectionDto | EncounterPlayerProjectionDto,
+      role: 'OWNER' | 'PLAYER',
+      onCommand = vi.fn()
+    ) {
+      renderWithAppProviders(
+        <CampaignTabletopEncounterDrawer
+          actorIdByTokenId={new Map()}
+          connected
+          currentActorMine
+          encounter={encounter}
+          memberships={createTabletopCampaign(role).memberships}
+          pending={false}
+          role={role}
+          scene={tabletopLiveScene}
+          onCommand={onCommand}
+          onEndCharacterConcentration={() => undefined}
+        />
+      )
+      return onCommand
+    }
+
+    it('lists to the GM who a hidden creature is hidden from and who noticed it', async () => {
+      const user = userEvent.setup()
+      renderDrawer(gmEncounter, 'OWNER')
+      await user.click(screen.getByRole('button', { name: 'Open turn order' }))
+
+      const section = screen.getByRole('region', { name: `Hidden creature ${hider!.label}` })
+      expect(within(section).getByText(`Hidden from ${watcher!.label}`)).toBeVisible()
+      expect(within(section).getByText(`Noticed by ${bystander.label}`)).toBeVisible()
+      expect(within(section).queryByText(`Hidden from ${bystander.label}`)).toBeNull()
+    })
+
+    it('removes an observer through SET_CONCEALMENT_OBSERVERS', async () => {
+      const user = userEvent.setup()
+      const onCommand = renderDrawer(gmEncounter, 'OWNER')
+      await user.click(screen.getByRole('button', { name: 'Open turn order' }))
+      await user.click(
+        screen.getByRole('button', { name: `Stop hiding ${hider!.label} from ${watcher!.label}` })
+      )
+
+      expect(onCommand).toHaveBeenCalledWith({
+        activeEffectId: concealment.effectId,
+        add: [],
+        commandId: expect.any(String),
+        encounterId: tabletopGmEncounter.id,
+        expectedVersion: tabletopGmEncounter.version,
+        remove: [watcher!.id],
+        type: 'SET_CONCEALMENT_OBSERVERS'
+      })
+    })
+
+    it('adds an observer through SET_CONCEALMENT_OBSERVERS', async () => {
+      const user = userEvent.setup()
+      const onCommand = renderDrawer(gmEncounter, 'OWNER')
+      await user.click(screen.getByRole('button', { name: 'Open turn order' }))
+      await user.click(
+        screen.getByRole('button', { name: `Hide ${hider!.label} from ${bystander.label}` })
+      )
+
+      expect(onCommand).toHaveBeenCalledWith({
+        activeEffectId: concealment.effectId,
+        add: [bystander.id],
+        commandId: expect.any(String),
+        encounterId: tabletopGmEncounter.id,
+        expectedVersion: tabletopGmEncounter.version,
+        remove: [],
+        type: 'SET_CONCEALMENT_OBSERVERS'
+      })
+    })
+
+    it('shows a creature that is not hidden no observer list', async () => {
+      const user = userEvent.setup()
+      renderDrawer(tabletopGmEncounter, 'OWNER')
+      await user.click(screen.getByRole('button', { name: 'Open turn order' }))
+
+      expect(screen.queryByText(/Hidden from/)).toBeNull()
+    })
+
+    it('offers a player no observer list or control', async () => {
+      const user = userEvent.setup()
+      renderDrawer(tabletopPlayerEncounter, 'PLAYER')
+      await user.click(screen.getByRole('button', { name: 'Open turn order' }))
+
+      expect(screen.queryByText(/Hidden from|Noticed by/)).toBeNull()
+      expect(screen.queryByRole('button', { name: /Stop hiding|Hide .* from/ })).toBeNull()
     })
   })
 })
