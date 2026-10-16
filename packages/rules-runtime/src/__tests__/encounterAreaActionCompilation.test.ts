@@ -46,16 +46,18 @@ type Invocation = typeof FIREBALL.invocation
 function compile(
   invocation: Partial<Invocation>,
   effect: typeof FIREBALL = FIREBALL,
-  spellCastLevel?: number
+  spellCastLevel?: number,
+  characterLevel?: number
 ) {
-  const descriptor = characterActionDescriptor(
+  const action = characterActionDescriptor(
     compileEffect({
       ...effect,
       id: ACTION_EFFECT_ID,
       invocation: JSON.parse(JSON.stringify({ ...effect.invocation, ...invocation }))
-    })
+    }),
+    spellCastLevel,
+    characterLevel
   )
-  const action = spellCastLevel === undefined ? descriptor : { ...descriptor, spellCastLevel }
   const plan = dnd5eCharacterRuleActionSystemAdapter.compileExecutionPlan?.({
     action,
     compilerSource: buildCompiledActionCompilerSource(action)
@@ -413,6 +415,61 @@ describe('chosen-creature projectile compilation from the SRD (SPELLS-26)', () =
   })
 })
 
+describe('chosen-creature attack compilation from the SRD (SPELLS-26)', () => {
+  const SCORCHING_RAY = spellEffect('Scorching Ray')
+  const ELDRITCH_BLAST = spellEffect('Eldritch Blast')
+  const targetOf = (action: ReturnType<typeof compile>['action']) =>
+    encounterActionChoiceTarget(buildCompiledActionTargetPolicy(action))
+
+  it.each([
+    [2, 3],
+    [3, 4],
+    [9, 10]
+  ])('takes one ray per cap at slot level %i, several at one creature', (level, rays) => {
+    const { action, plan } = compile({}, SCORCHING_RAY, level)
+    expect(plan?.kind).toBe('TEST_OUTCOME')
+    expect(encounterActionTargetKind(buildCompiledActionTargetPolicy(action))).toBe('ACTORS')
+    expect(targetOf(action)).toEqual({
+      kind: 'ACTORS',
+      maxTargets: rays,
+      area: null,
+      allowRepeatedTargets: true
+    })
+  })
+
+  it.each([
+    [1, 1],
+    [4, 1],
+    [5, 2],
+    [10, 2],
+    [11, 3],
+    [16, 3],
+    [17, 4],
+    [20, 4]
+  ])('takes one beam per cap at Character level %i (%i beams)', (level, beams) => {
+    const { action, plan } = compile({}, ELDRITCH_BLAST, 0, level)
+    expect(plan?.kind).toBe('TEST_OUTCOME')
+    expect(targetOf(action)).toEqual({
+      kind: 'ACTORS',
+      maxTargets: beams,
+      area: null,
+      allowRepeatedTargets: true
+    })
+  })
+
+  it('refuses a beam cap when the Character has no level, as it refuses a single-target cast', () => {
+    const { action } = compile({}, ELDRITCH_BLAST, 0)
+    expect(encounterActionTargetKind(buildCompiledActionTargetPolicy(action))).toBeNull()
+  })
+
+  it('refuses an attack list that names an area', () => {
+    const area = FIREBALL.invocation.shape
+    expect(() => compile({ shape: area }, SCORCHING_RAY, 2)).toThrow(
+      CharacterRuleActionUnsupportedCompilationError
+    )
+  })
+})
+
 describe('area action compilation refusals', () => {
   const refused: Array<[string, Partial<Invocation>]> = [
     ['a cone', { shape: { id: 's', shapeKind: 'CONE', length: feet(15) } }],
@@ -498,4 +555,45 @@ describe('excluded creature types in a compiled save', () => {
       } as Partial<Invocation>)
     ).toThrow(CharacterRuleActionUnsupportedCompilationError)
   })
+})
+
+describe('chosen-creature spells in the SRD corpus (SPELLS-26.1)', () => {
+  /** Whether the effect compiles, and the reason it does not. */
+  const outcomeOf = (run: () => unknown) => {
+    try {
+      run()
+      return { compiled: true as const }
+    } catch (error) {
+      if (!(error instanceof CharacterRuleActionUnsupportedCompilationError)) throw error
+      return { compiled: false as const, reason: error.message }
+    }
+  }
+  const capped = srdSpells.flatMap((spell) =>
+    (spell.effects ?? []).flatMap((effect) => {
+      const { targeting } = effect.invocation
+      return targeting?.selectionKind === 'CHOSEN_CREATURES' &&
+        (targeting.maxTargets !== undefined || targeting.maxTargetsScaling !== undefined)
+        ? [{ label: `${spell.label} (${effect.id})`, level: spell.level, effect, targeting }]
+        : []
+    })
+  )
+
+  it('finds the capped chosen-creature spells', () => {
+    expect(capped.length).toBeGreaterThan(0)
+  })
+
+  it.each(capped.map((entry) => [entry.label, entry] as const))(
+    '%s compiles, or is refused for the reason a single-target cast is',
+    (_label, { level, effect, targeting }) => {
+      const cast = (invocationTargeting: Invocation['targeting']) =>
+        outcomeOf(() => compile({ targeting: invocationTargeting }, effect, level, 20).plan)
+      const authored = cast(targeting)
+      const single = cast({
+        selectionKind: 'SINGLE_TARGET',
+        dispositionKind: targeting.dispositionKind
+      })
+      if (!authored.compiled)
+        expect(single, 'the list is refused, though a single target is not').toEqual(authored)
+    }
+  )
 })

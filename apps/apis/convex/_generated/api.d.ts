@@ -25643,49 +25643,6 @@ export declare const api: {
                                       scalingKind: "BREAKPOINTS";
                                       scalingSource: "SPELL_CAST_LEVEL";
                                     };
-                                resolutionCount?: number;
-                                resolutionCountScaling?:
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CHARACTER_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      classId: string;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "PARENT_CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "SPELL_CAST_LEVEL";
-                                    };
                                 selectionKind: "CHOSEN_CREATURES";
                               }
                             | {
@@ -26725,49 +26682,6 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
                                 maxTargetsScaling?:
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CHARACTER_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      classId: string;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "PARENT_CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "SPELL_CAST_LEVEL";
-                                    };
-                                resolutionCount?: number;
-                                resolutionCountScaling?:
                                   | {
                                       breakpoints: Array<{
                                         id: string;
@@ -27952,49 +27866,6 @@ export declare const api: {
                                       scalingKind: "BREAKPOINTS";
                                       scalingSource: "SPELL_CAST_LEVEL";
                                     };
-                                resolutionCount?: number;
-                                resolutionCountScaling?:
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CHARACTER_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      classId: string;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "PARENT_CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "SPELL_CAST_LEVEL";
-                                    };
                                 selectionKind: "CHOSEN_CREATURES";
                               }
                             | {
@@ -29120,49 +28991,6 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
                                 maxTargetsScaling?:
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CHARACTER_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      classId: string;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "PARENT_CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "SPELL_CAST_LEVEL";
-                                    };
-                                resolutionCount?: number;
-                                resolutionCountScaling?:
                                   | {
                                       breakpoints: Array<{
                                         id: string;
@@ -30306,49 +30134,6 @@ export declare const api: {
                                       scalingKind: "BREAKPOINTS";
                                       scalingSource: "SPELL_CAST_LEVEL";
                                     };
-                                resolutionCount?: number;
-                                resolutionCountScaling?:
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CHARACTER_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      classId: string;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "PARENT_CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "SPELL_CAST_LEVEL";
-                                    };
                                 selectionKind: "CHOSEN_CREATURES";
                               }
                             | {
@@ -31393,49 +31178,6 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
                                 maxTargetsScaling?:
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CHARACTER_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      classId: string;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "PARENT_CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "SPELL_CAST_LEVEL";
-                                    };
-                                resolutionCount?: number;
-                                resolutionCountScaling?:
                                   | {
                                       breakpoints: Array<{
                                         id: string;
@@ -32560,49 +32302,6 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
                                 maxTargetsScaling?:
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CHARACTER_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      classId: string;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "PARENT_CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "SPELL_CAST_LEVEL";
-                                    };
-                                resolutionCount?: number;
-                                resolutionCountScaling?:
                                   | {
                                       breakpoints: Array<{
                                         id: string;
@@ -35421,49 +35120,6 @@ export declare const api: {
                                       scalingKind: "BREAKPOINTS";
                                       scalingSource: "SPELL_CAST_LEVEL";
                                     };
-                                resolutionCount?: number;
-                                resolutionCountScaling?:
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CHARACTER_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      classId: string;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "PARENT_CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "SPELL_CAST_LEVEL";
-                                    };
                                 selectionKind: "CHOSEN_CREATURES";
                               }
                             | {
@@ -36503,49 +36159,6 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
                                 maxTargetsScaling?:
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CHARACTER_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      classId: string;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "PARENT_CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "SPELL_CAST_LEVEL";
-                                    };
-                                resolutionCount?: number;
-                                resolutionCountScaling?:
                                   | {
                                       breakpoints: Array<{
                                         id: string;
@@ -37730,49 +37343,6 @@ export declare const api: {
                                       scalingKind: "BREAKPOINTS";
                                       scalingSource: "SPELL_CAST_LEVEL";
                                     };
-                                resolutionCount?: number;
-                                resolutionCountScaling?:
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CHARACTER_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      classId: string;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "PARENT_CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "SPELL_CAST_LEVEL";
-                                    };
                                 selectionKind: "CHOSEN_CREATURES";
                               }
                             | {
@@ -38898,49 +38468,6 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
                                 maxTargetsScaling?:
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CHARACTER_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      classId: string;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "PARENT_CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "SPELL_CAST_LEVEL";
-                                    };
-                                resolutionCount?: number;
-                                resolutionCountScaling?:
                                   | {
                                       breakpoints: Array<{
                                         id: string;
@@ -40084,49 +39611,6 @@ export declare const api: {
                                       scalingKind: "BREAKPOINTS";
                                       scalingSource: "SPELL_CAST_LEVEL";
                                     };
-                                resolutionCount?: number;
-                                resolutionCountScaling?:
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CHARACTER_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      classId: string;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "PARENT_CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "SPELL_CAST_LEVEL";
-                                    };
                                 selectionKind: "CHOSEN_CREATURES";
                               }
                             | {
@@ -41171,49 +40655,6 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
                                 maxTargetsScaling?:
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CHARACTER_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      classId: string;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "PARENT_CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "SPELL_CAST_LEVEL";
-                                    };
-                                resolutionCount?: number;
-                                resolutionCountScaling?:
                                   | {
                                       breakpoints: Array<{
                                         id: string;
@@ -42338,49 +41779,6 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
                                 maxTargetsScaling?:
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CHARACTER_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      classId: string;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "PARENT_CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "SPELL_CAST_LEVEL";
-                                    };
-                                resolutionCount?: number;
-                                resolutionCountScaling?:
                                   | {
                                       breakpoints: Array<{
                                         id: string;
@@ -45208,49 +44606,6 @@ export declare const api: {
                                       scalingKind: "BREAKPOINTS";
                                       scalingSource: "SPELL_CAST_LEVEL";
                                     };
-                                resolutionCount?: number;
-                                resolutionCountScaling?:
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CHARACTER_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      classId: string;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "PARENT_CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "SPELL_CAST_LEVEL";
-                                    };
                                 selectionKind: "CHOSEN_CREATURES";
                               }
                             | {
@@ -46290,49 +45645,6 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
                                 maxTargetsScaling?:
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CHARACTER_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      classId: string;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "PARENT_CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "SPELL_CAST_LEVEL";
-                                    };
-                                resolutionCount?: number;
-                                resolutionCountScaling?:
                                   | {
                                       breakpoints: Array<{
                                         id: string;
@@ -47517,49 +46829,6 @@ export declare const api: {
                                       scalingKind: "BREAKPOINTS";
                                       scalingSource: "SPELL_CAST_LEVEL";
                                     };
-                                resolutionCount?: number;
-                                resolutionCountScaling?:
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CHARACTER_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      classId: string;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "PARENT_CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "SPELL_CAST_LEVEL";
-                                    };
                                 selectionKind: "CHOSEN_CREATURES";
                               }
                             | {
@@ -48685,49 +47954,6 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
                                 maxTargetsScaling?:
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CHARACTER_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      classId: string;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "PARENT_CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "SPELL_CAST_LEVEL";
-                                    };
-                                resolutionCount?: number;
-                                resolutionCountScaling?:
                                   | {
                                       breakpoints: Array<{
                                         id: string;
@@ -49871,49 +49097,6 @@ export declare const api: {
                                       scalingKind: "BREAKPOINTS";
                                       scalingSource: "SPELL_CAST_LEVEL";
                                     };
-                                resolutionCount?: number;
-                                resolutionCountScaling?:
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CHARACTER_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      classId: string;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "PARENT_CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "SPELL_CAST_LEVEL";
-                                    };
                                 selectionKind: "CHOSEN_CREATURES";
                               }
                             | {
@@ -50958,49 +50141,6 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
                                 maxTargetsScaling?:
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CHARACTER_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      classId: string;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "PARENT_CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "SPELL_CAST_LEVEL";
-                                    };
-                                resolutionCount?: number;
-                                resolutionCountScaling?:
                                   | {
                                       breakpoints: Array<{
                                         id: string;
@@ -52125,49 +51265,6 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
                                 maxTargetsScaling?:
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CHARACTER_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      classId: string;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "PARENT_CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "SPELL_CAST_LEVEL";
-                                    };
-                                resolutionCount?: number;
-                                resolutionCountScaling?:
                                   | {
                                       breakpoints: Array<{
                                         id: string;
@@ -54986,49 +54083,6 @@ export declare const api: {
                                       scalingKind: "BREAKPOINTS";
                                       scalingSource: "SPELL_CAST_LEVEL";
                                     };
-                                resolutionCount?: number;
-                                resolutionCountScaling?:
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CHARACTER_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      classId: string;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "PARENT_CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "SPELL_CAST_LEVEL";
-                                    };
                                 selectionKind: "CHOSEN_CREATURES";
                               }
                             | {
@@ -56068,49 +55122,6 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
                                 maxTargetsScaling?:
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CHARACTER_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      classId: string;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "PARENT_CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "SPELL_CAST_LEVEL";
-                                    };
-                                resolutionCount?: number;
-                                resolutionCountScaling?:
                                   | {
                                       breakpoints: Array<{
                                         id: string;
@@ -57295,49 +56306,6 @@ export declare const api: {
                                       scalingKind: "BREAKPOINTS";
                                       scalingSource: "SPELL_CAST_LEVEL";
                                     };
-                                resolutionCount?: number;
-                                resolutionCountScaling?:
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CHARACTER_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      classId: string;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "PARENT_CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "SPELL_CAST_LEVEL";
-                                    };
                                 selectionKind: "CHOSEN_CREATURES";
                               }
                             | {
@@ -58463,49 +57431,6 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
                                 maxTargetsScaling?:
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CHARACTER_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      classId: string;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "PARENT_CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "SPELL_CAST_LEVEL";
-                                    };
-                                resolutionCount?: number;
-                                resolutionCountScaling?:
                                   | {
                                       breakpoints: Array<{
                                         id: string;
@@ -59649,49 +58574,6 @@ export declare const api: {
                                       scalingKind: "BREAKPOINTS";
                                       scalingSource: "SPELL_CAST_LEVEL";
                                     };
-                                resolutionCount?: number;
-                                resolutionCountScaling?:
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CHARACTER_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      classId: string;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "PARENT_CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "SPELL_CAST_LEVEL";
-                                    };
                                 selectionKind: "CHOSEN_CREATURES";
                               }
                             | {
@@ -60736,49 +59618,6 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
                                 maxTargetsScaling?:
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CHARACTER_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      classId: string;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "PARENT_CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "SPELL_CAST_LEVEL";
-                                    };
-                                resolutionCount?: number;
-                                resolutionCountScaling?:
                                   | {
                                       breakpoints: Array<{
                                         id: string;
@@ -61903,49 +60742,6 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
                                 maxTargetsScaling?:
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CHARACTER_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      classId: string;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "PARENT_CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "SPELL_CAST_LEVEL";
-                                    };
-                                resolutionCount?: number;
-                                resolutionCountScaling?:
                                   | {
                                       breakpoints: Array<{
                                         id: string;
@@ -64799,49 +63595,6 @@ export declare const api: {
                                       scalingKind: "BREAKPOINTS";
                                       scalingSource: "SPELL_CAST_LEVEL";
                                     };
-                                resolutionCount?: number;
-                                resolutionCountScaling?:
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CHARACTER_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      classId: string;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "PARENT_CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "SPELL_CAST_LEVEL";
-                                    };
                                 selectionKind: "CHOSEN_CREATURES";
                               }
                             | {
@@ -65881,49 +64634,6 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
                                 maxTargetsScaling?:
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CHARACTER_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      classId: string;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "PARENT_CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "SPELL_CAST_LEVEL";
-                                    };
-                                resolutionCount?: number;
-                                resolutionCountScaling?:
                                   | {
                                       breakpoints: Array<{
                                         id: string;
@@ -67108,49 +65818,6 @@ export declare const api: {
                                       scalingKind: "BREAKPOINTS";
                                       scalingSource: "SPELL_CAST_LEVEL";
                                     };
-                                resolutionCount?: number;
-                                resolutionCountScaling?:
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CHARACTER_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      classId: string;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "PARENT_CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "SPELL_CAST_LEVEL";
-                                    };
                                 selectionKind: "CHOSEN_CREATURES";
                               }
                             | {
@@ -68276,49 +66943,6 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
                                 maxTargetsScaling?:
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CHARACTER_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      classId: string;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "PARENT_CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "SPELL_CAST_LEVEL";
-                                    };
-                                resolutionCount?: number;
-                                resolutionCountScaling?:
                                   | {
                                       breakpoints: Array<{
                                         id: string;
@@ -69462,49 +68086,6 @@ export declare const api: {
                                       scalingKind: "BREAKPOINTS";
                                       scalingSource: "SPELL_CAST_LEVEL";
                                     };
-                                resolutionCount?: number;
-                                resolutionCountScaling?:
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CHARACTER_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      classId: string;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "PARENT_CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "SPELL_CAST_LEVEL";
-                                    };
                                 selectionKind: "CHOSEN_CREATURES";
                               }
                             | {
@@ -70549,49 +69130,6 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
                                 maxTargetsScaling?:
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CHARACTER_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      classId: string;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "PARENT_CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "SPELL_CAST_LEVEL";
-                                    };
-                                resolutionCount?: number;
-                                resolutionCountScaling?:
                                   | {
                                       breakpoints: Array<{
                                         id: string;
@@ -71716,49 +70254,6 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
                                 maxTargetsScaling?:
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CHARACTER_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      classId: string;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "PARENT_CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "SPELL_CAST_LEVEL";
-                                    };
-                                resolutionCount?: number;
-                                resolutionCountScaling?:
                                   | {
                                       breakpoints: Array<{
                                         id: string;
@@ -74577,49 +73072,6 @@ export declare const api: {
                                       scalingKind: "BREAKPOINTS";
                                       scalingSource: "SPELL_CAST_LEVEL";
                                     };
-                                resolutionCount?: number;
-                                resolutionCountScaling?:
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CHARACTER_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      classId: string;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "PARENT_CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "SPELL_CAST_LEVEL";
-                                    };
                                 selectionKind: "CHOSEN_CREATURES";
                               }
                             | {
@@ -75659,49 +74111,6 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
                                 maxTargetsScaling?:
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CHARACTER_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      classId: string;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "PARENT_CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "SPELL_CAST_LEVEL";
-                                    };
-                                resolutionCount?: number;
-                                resolutionCountScaling?:
                                   | {
                                       breakpoints: Array<{
                                         id: string;
@@ -76886,49 +75295,6 @@ export declare const api: {
                                       scalingKind: "BREAKPOINTS";
                                       scalingSource: "SPELL_CAST_LEVEL";
                                     };
-                                resolutionCount?: number;
-                                resolutionCountScaling?:
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CHARACTER_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      classId: string;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "PARENT_CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "SPELL_CAST_LEVEL";
-                                    };
                                 selectionKind: "CHOSEN_CREATURES";
                               }
                             | {
@@ -78054,49 +76420,6 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
                                 maxTargetsScaling?:
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CHARACTER_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      classId: string;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "PARENT_CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "SPELL_CAST_LEVEL";
-                                    };
-                                resolutionCount?: number;
-                                resolutionCountScaling?:
                                   | {
                                       breakpoints: Array<{
                                         id: string;
@@ -79240,49 +77563,6 @@ export declare const api: {
                                       scalingKind: "BREAKPOINTS";
                                       scalingSource: "SPELL_CAST_LEVEL";
                                     };
-                                resolutionCount?: number;
-                                resolutionCountScaling?:
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CHARACTER_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      classId: string;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "PARENT_CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "SPELL_CAST_LEVEL";
-                                    };
                                 selectionKind: "CHOSEN_CREATURES";
                               }
                             | {
@@ -80327,49 +78607,6 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
                                 maxTargetsScaling?:
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CHARACTER_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      classId: string;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "PARENT_CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "SPELL_CAST_LEVEL";
-                                    };
-                                resolutionCount?: number;
-                                resolutionCountScaling?:
                                   | {
                                       breakpoints: Array<{
                                         id: string;
@@ -81494,49 +79731,6 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
                                 maxTargetsScaling?:
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CHARACTER_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      classId: string;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "PARENT_CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "SPELL_CAST_LEVEL";
-                                    };
-                                resolutionCount?: number;
-                                resolutionCountScaling?:
                                   | {
                                       breakpoints: Array<{
                                         id: string;
@@ -84324,49 +82518,6 @@ export declare const api: {
                                     scalingKind: "BREAKPOINTS";
                                     scalingSource: "SPELL_CAST_LEVEL";
                                   };
-                              resolutionCount?: number;
-                              resolutionCountScaling?:
-                                | {
-                                    breakpoints: Array<{
-                                      id: string;
-                                      level: number;
-                                      order: number;
-                                      value: { amount: number };
-                                    }>;
-                                    scalingKind: "BREAKPOINTS";
-                                    scalingSource: "CHARACTER_LEVEL";
-                                  }
-                                | {
-                                    breakpoints: Array<{
-                                      id: string;
-                                      level: number;
-                                      order: number;
-                                      value: { amount: number };
-                                    }>;
-                                    classId: string;
-                                    scalingKind: "BREAKPOINTS";
-                                    scalingSource: "CLASS_LEVEL";
-                                  }
-                                | {
-                                    breakpoints: Array<{
-                                      id: string;
-                                      level: number;
-                                      order: number;
-                                      value: { amount: number };
-                                    }>;
-                                    scalingKind: "BREAKPOINTS";
-                                    scalingSource: "PARENT_CLASS_LEVEL";
-                                  }
-                                | {
-                                    breakpoints: Array<{
-                                      id: string;
-                                      level: number;
-                                      order: number;
-                                      value: { amount: number };
-                                    }>;
-                                    scalingKind: "BREAKPOINTS";
-                                    scalingSource: "SPELL_CAST_LEVEL";
-                                  };
                               selectionKind: "CHOSEN_CREATURES";
                             }
                           | {
@@ -85394,49 +83545,6 @@ export declare const api: {
                               excludedCreatureTypeIds?: Array<string>;
                               maxTargets?: number;
                               maxTargetsScaling?:
-                                | {
-                                    breakpoints: Array<{
-                                      id: string;
-                                      level: number;
-                                      order: number;
-                                      value: { amount: number };
-                                    }>;
-                                    scalingKind: "BREAKPOINTS";
-                                    scalingSource: "CHARACTER_LEVEL";
-                                  }
-                                | {
-                                    breakpoints: Array<{
-                                      id: string;
-                                      level: number;
-                                      order: number;
-                                      value: { amount: number };
-                                    }>;
-                                    classId: string;
-                                    scalingKind: "BREAKPOINTS";
-                                    scalingSource: "CLASS_LEVEL";
-                                  }
-                                | {
-                                    breakpoints: Array<{
-                                      id: string;
-                                      level: number;
-                                      order: number;
-                                      value: { amount: number };
-                                    }>;
-                                    scalingKind: "BREAKPOINTS";
-                                    scalingSource: "PARENT_CLASS_LEVEL";
-                                  }
-                                | {
-                                    breakpoints: Array<{
-                                      id: string;
-                                      level: number;
-                                      order: number;
-                                      value: { amount: number };
-                                    }>;
-                                    scalingKind: "BREAKPOINTS";
-                                    scalingSource: "SPELL_CAST_LEVEL";
-                                  };
-                              resolutionCount?: number;
-                              resolutionCountScaling?:
                                 | {
                                     breakpoints: Array<{
                                       id: string;
@@ -86603,49 +84711,6 @@ export declare const api: {
                                     scalingKind: "BREAKPOINTS";
                                     scalingSource: "SPELL_CAST_LEVEL";
                                   };
-                              resolutionCount?: number;
-                              resolutionCountScaling?:
-                                | {
-                                    breakpoints: Array<{
-                                      id: string;
-                                      level: number;
-                                      order: number;
-                                      value: { amount: number };
-                                    }>;
-                                    scalingKind: "BREAKPOINTS";
-                                    scalingSource: "CHARACTER_LEVEL";
-                                  }
-                                | {
-                                    breakpoints: Array<{
-                                      id: string;
-                                      level: number;
-                                      order: number;
-                                      value: { amount: number };
-                                    }>;
-                                    classId: string;
-                                    scalingKind: "BREAKPOINTS";
-                                    scalingSource: "CLASS_LEVEL";
-                                  }
-                                | {
-                                    breakpoints: Array<{
-                                      id: string;
-                                      level: number;
-                                      order: number;
-                                      value: { amount: number };
-                                    }>;
-                                    scalingKind: "BREAKPOINTS";
-                                    scalingSource: "PARENT_CLASS_LEVEL";
-                                  }
-                                | {
-                                    breakpoints: Array<{
-                                      id: string;
-                                      level: number;
-                                      order: number;
-                                      value: { amount: number };
-                                    }>;
-                                    scalingKind: "BREAKPOINTS";
-                                    scalingSource: "SPELL_CAST_LEVEL";
-                                  };
                               selectionKind: "CHOSEN_CREATURES";
                             }
                           | {
@@ -87749,49 +85814,6 @@ export declare const api: {
                               excludedCreatureTypeIds?: Array<string>;
                               maxTargets?: number;
                               maxTargetsScaling?:
-                                | {
-                                    breakpoints: Array<{
-                                      id: string;
-                                      level: number;
-                                      order: number;
-                                      value: { amount: number };
-                                    }>;
-                                    scalingKind: "BREAKPOINTS";
-                                    scalingSource: "CHARACTER_LEVEL";
-                                  }
-                                | {
-                                    breakpoints: Array<{
-                                      id: string;
-                                      level: number;
-                                      order: number;
-                                      value: { amount: number };
-                                    }>;
-                                    classId: string;
-                                    scalingKind: "BREAKPOINTS";
-                                    scalingSource: "CLASS_LEVEL";
-                                  }
-                                | {
-                                    breakpoints: Array<{
-                                      id: string;
-                                      level: number;
-                                      order: number;
-                                      value: { amount: number };
-                                    }>;
-                                    scalingKind: "BREAKPOINTS";
-                                    scalingSource: "PARENT_CLASS_LEVEL";
-                                  }
-                                | {
-                                    breakpoints: Array<{
-                                      id: string;
-                                      level: number;
-                                      order: number;
-                                      value: { amount: number };
-                                    }>;
-                                    scalingKind: "BREAKPOINTS";
-                                    scalingSource: "SPELL_CAST_LEVEL";
-                                  };
-                              resolutionCount?: number;
-                              resolutionCountScaling?:
                                 | {
                                     breakpoints: Array<{
                                       id: string;
@@ -88923,49 +86945,6 @@ export declare const api: {
                                     scalingKind: "BREAKPOINTS";
                                     scalingSource: "SPELL_CAST_LEVEL";
                                   };
-                              resolutionCount?: number;
-                              resolutionCountScaling?:
-                                | {
-                                    breakpoints: Array<{
-                                      id: string;
-                                      level: number;
-                                      order: number;
-                                      value: { amount: number };
-                                    }>;
-                                    scalingKind: "BREAKPOINTS";
-                                    scalingSource: "CHARACTER_LEVEL";
-                                  }
-                                | {
-                                    breakpoints: Array<{
-                                      id: string;
-                                      level: number;
-                                      order: number;
-                                      value: { amount: number };
-                                    }>;
-                                    classId: string;
-                                    scalingKind: "BREAKPOINTS";
-                                    scalingSource: "CLASS_LEVEL";
-                                  }
-                                | {
-                                    breakpoints: Array<{
-                                      id: string;
-                                      level: number;
-                                      order: number;
-                                      value: { amount: number };
-                                    }>;
-                                    scalingKind: "BREAKPOINTS";
-                                    scalingSource: "PARENT_CLASS_LEVEL";
-                                  }
-                                | {
-                                    breakpoints: Array<{
-                                      id: string;
-                                      level: number;
-                                      order: number;
-                                      value: { amount: number };
-                                    }>;
-                                    scalingKind: "BREAKPOINTS";
-                                    scalingSource: "SPELL_CAST_LEVEL";
-                                  };
                               selectionKind: "CHOSEN_CREATURES";
                             }
                           | {
@@ -89998,49 +87977,6 @@ export declare const api: {
                               excludedCreatureTypeIds?: Array<string>;
                               maxTargets?: number;
                               maxTargetsScaling?:
-                                | {
-                                    breakpoints: Array<{
-                                      id: string;
-                                      level: number;
-                                      order: number;
-                                      value: { amount: number };
-                                    }>;
-                                    scalingKind: "BREAKPOINTS";
-                                    scalingSource: "CHARACTER_LEVEL";
-                                  }
-                                | {
-                                    breakpoints: Array<{
-                                      id: string;
-                                      level: number;
-                                      order: number;
-                                      value: { amount: number };
-                                    }>;
-                                    classId: string;
-                                    scalingKind: "BREAKPOINTS";
-                                    scalingSource: "CLASS_LEVEL";
-                                  }
-                                | {
-                                    breakpoints: Array<{
-                                      id: string;
-                                      level: number;
-                                      order: number;
-                                      value: { amount: number };
-                                    }>;
-                                    scalingKind: "BREAKPOINTS";
-                                    scalingSource: "PARENT_CLASS_LEVEL";
-                                  }
-                                | {
-                                    breakpoints: Array<{
-                                      id: string;
-                                      level: number;
-                                      order: number;
-                                      value: { amount: number };
-                                    }>;
-                                    scalingKind: "BREAKPOINTS";
-                                    scalingSource: "SPELL_CAST_LEVEL";
-                                  };
-                              resolutionCount?: number;
-                              resolutionCountScaling?:
                                 | {
                                     breakpoints: Array<{
                                       id: string;
@@ -91149,49 +89085,6 @@ export declare const api: {
                               excludedCreatureTypeIds?: Array<string>;
                               maxTargets?: number;
                               maxTargetsScaling?:
-                                | {
-                                    breakpoints: Array<{
-                                      id: string;
-                                      level: number;
-                                      order: number;
-                                      value: { amount: number };
-                                    }>;
-                                    scalingKind: "BREAKPOINTS";
-                                    scalingSource: "CHARACTER_LEVEL";
-                                  }
-                                | {
-                                    breakpoints: Array<{
-                                      id: string;
-                                      level: number;
-                                      order: number;
-                                      value: { amount: number };
-                                    }>;
-                                    classId: string;
-                                    scalingKind: "BREAKPOINTS";
-                                    scalingSource: "CLASS_LEVEL";
-                                  }
-                                | {
-                                    breakpoints: Array<{
-                                      id: string;
-                                      level: number;
-                                      order: number;
-                                      value: { amount: number };
-                                    }>;
-                                    scalingKind: "BREAKPOINTS";
-                                    scalingSource: "PARENT_CLASS_LEVEL";
-                                  }
-                                | {
-                                    breakpoints: Array<{
-                                      id: string;
-                                      level: number;
-                                      order: number;
-                                      value: { amount: number };
-                                    }>;
-                                    scalingKind: "BREAKPOINTS";
-                                    scalingSource: "SPELL_CAST_LEVEL";
-                                  };
-                              resolutionCount?: number;
-                              resolutionCountScaling?:
                                 | {
                                     breakpoints: Array<{
                                       id: string;
@@ -94005,49 +91898,6 @@ export declare const api: {
                                       scalingKind: "BREAKPOINTS";
                                       scalingSource: "SPELL_CAST_LEVEL";
                                     };
-                                resolutionCount?: number;
-                                resolutionCountScaling?:
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CHARACTER_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      classId: string;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "PARENT_CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "SPELL_CAST_LEVEL";
-                                    };
                                 selectionKind: "CHOSEN_CREATURES";
                               }
                             | {
@@ -95087,49 +92937,6 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
                                 maxTargetsScaling?:
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CHARACTER_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      classId: string;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "PARENT_CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "SPELL_CAST_LEVEL";
-                                    };
-                                resolutionCount?: number;
-                                resolutionCountScaling?:
                                   | {
                                       breakpoints: Array<{
                                         id: string;
@@ -96314,49 +94121,6 @@ export declare const api: {
                                       scalingKind: "BREAKPOINTS";
                                       scalingSource: "SPELL_CAST_LEVEL";
                                     };
-                                resolutionCount?: number;
-                                resolutionCountScaling?:
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CHARACTER_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      classId: string;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "PARENT_CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "SPELL_CAST_LEVEL";
-                                    };
                                 selectionKind: "CHOSEN_CREATURES";
                               }
                             | {
@@ -97482,49 +95246,6 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
                                 maxTargetsScaling?:
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CHARACTER_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      classId: string;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "PARENT_CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "SPELL_CAST_LEVEL";
-                                    };
-                                resolutionCount?: number;
-                                resolutionCountScaling?:
                                   | {
                                       breakpoints: Array<{
                                         id: string;
@@ -98668,49 +96389,6 @@ export declare const api: {
                                       scalingKind: "BREAKPOINTS";
                                       scalingSource: "SPELL_CAST_LEVEL";
                                     };
-                                resolutionCount?: number;
-                                resolutionCountScaling?:
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CHARACTER_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      classId: string;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "PARENT_CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "SPELL_CAST_LEVEL";
-                                    };
                                 selectionKind: "CHOSEN_CREATURES";
                               }
                             | {
@@ -99755,49 +97433,6 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
                                 maxTargetsScaling?:
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CHARACTER_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      classId: string;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "PARENT_CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "SPELL_CAST_LEVEL";
-                                    };
-                                resolutionCount?: number;
-                                resolutionCountScaling?:
                                   | {
                                       breakpoints: Array<{
                                         id: string;
@@ -100922,49 +98557,6 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
                                 maxTargetsScaling?:
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CHARACTER_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      classId: string;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "PARENT_CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "SPELL_CAST_LEVEL";
-                                    };
-                                resolutionCount?: number;
-                                resolutionCountScaling?:
                                   | {
                                       breakpoints: Array<{
                                         id: string;
@@ -103783,49 +101375,6 @@ export declare const api: {
                                       scalingKind: "BREAKPOINTS";
                                       scalingSource: "SPELL_CAST_LEVEL";
                                     };
-                                resolutionCount?: number;
-                                resolutionCountScaling?:
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CHARACTER_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      classId: string;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "PARENT_CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "SPELL_CAST_LEVEL";
-                                    };
                                 selectionKind: "CHOSEN_CREATURES";
                               }
                             | {
@@ -104865,49 +102414,6 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
                                 maxTargetsScaling?:
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CHARACTER_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      classId: string;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "PARENT_CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "SPELL_CAST_LEVEL";
-                                    };
-                                resolutionCount?: number;
-                                resolutionCountScaling?:
                                   | {
                                       breakpoints: Array<{
                                         id: string;
@@ -106092,49 +103598,6 @@ export declare const api: {
                                       scalingKind: "BREAKPOINTS";
                                       scalingSource: "SPELL_CAST_LEVEL";
                                     };
-                                resolutionCount?: number;
-                                resolutionCountScaling?:
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CHARACTER_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      classId: string;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "PARENT_CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "SPELL_CAST_LEVEL";
-                                    };
                                 selectionKind: "CHOSEN_CREATURES";
                               }
                             | {
@@ -107260,49 +104723,6 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
                                 maxTargetsScaling?:
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CHARACTER_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      classId: string;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "PARENT_CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "SPELL_CAST_LEVEL";
-                                    };
-                                resolutionCount?: number;
-                                resolutionCountScaling?:
                                   | {
                                       breakpoints: Array<{
                                         id: string;
@@ -108446,49 +105866,6 @@ export declare const api: {
                                       scalingKind: "BREAKPOINTS";
                                       scalingSource: "SPELL_CAST_LEVEL";
                                     };
-                                resolutionCount?: number;
-                                resolutionCountScaling?:
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CHARACTER_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      classId: string;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "PARENT_CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "SPELL_CAST_LEVEL";
-                                    };
                                 selectionKind: "CHOSEN_CREATURES";
                               }
                             | {
@@ -109533,49 +106910,6 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
                                 maxTargetsScaling?:
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CHARACTER_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      classId: string;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "PARENT_CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "SPELL_CAST_LEVEL";
-                                    };
-                                resolutionCount?: number;
-                                resolutionCountScaling?:
                                   | {
                                       breakpoints: Array<{
                                         id: string;
@@ -110700,49 +108034,6 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
                                 maxTargetsScaling?:
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CHARACTER_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      classId: string;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "PARENT_CLASS_LEVEL";
-                                    }
-                                  | {
-                                      breakpoints: Array<{
-                                        id: string;
-                                        level: number;
-                                        order: number;
-                                        value: { amount: number };
-                                      }>;
-                                      scalingKind: "BREAKPOINTS";
-                                      scalingSource: "SPELL_CAST_LEVEL";
-                                    };
-                                resolutionCount?: number;
-                                resolutionCountScaling?:
                                   | {
                                       breakpoints: Array<{
                                         id: string;
@@ -114190,6 +111481,7 @@ export declare const api: {
                     requestId: string;
                     rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                   };
+                  targetActorId: string;
                 }>;
               }
             | {
@@ -114504,6 +111796,7 @@ export declare const api: {
                       requestId: string;
                       rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                     };
+                    targetActorId: string;
                   }>;
                 }
               | {
@@ -115341,6 +112634,7 @@ export declare const api: {
                 requestId: string;
                 rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
               };
+              targetActorId: string;
             }>;
           }
         | {
@@ -116175,6 +113469,7 @@ export declare const api: {
                     requestId: string;
                     rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                   };
+                  targetActorId: string;
                 }>;
               }
             | {

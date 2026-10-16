@@ -334,7 +334,8 @@ export function planNativeEncounterActionMechanics(
 
 /**
  * The source's one spend of an area action, settled alone: the Character's resource, item or stow
- * through its own batch, and a Creature's feature charge. Each creature the area catches then plans
+ * through its own batch, and a Creature's feature charge. A Disarm uses it for the conditions its
+ * initiator's attack roll releases, which it carries without any spend. Each creature the area catches then plans
  * its outcome with no spend of its own, so the spend lands exactly once even when the source is caught.
  */
 export function planNativeEncounterAreaSourceSpend(

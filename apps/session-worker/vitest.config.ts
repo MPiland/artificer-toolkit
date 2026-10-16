@@ -22,6 +22,8 @@ export default defineConfig({
   ],
   test: {
     include: ['test/native*.test.ts'],
+    // Building a room takes a loaded runner more than the 5 s default; a room that hangs still fails.
+    testTimeout: 30_000,
     // obscenity ships a CommonJS build behind an ESM wrapper that workerd cannot link.
     deps: { optimizer: { ssr: { enabled: true, include: ['obscenity'] } } }
   }

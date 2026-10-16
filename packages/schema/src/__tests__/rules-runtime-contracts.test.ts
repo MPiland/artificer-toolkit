@@ -2264,6 +2264,19 @@ describe('rules runtime contracts', () => {
       ).toBe(false)
     })
 
+    it('leaves a Creature source’s stream version null, which has no Character stream', () => {
+      const creatureReleasing = (sourceCharacterStreamVersion: number | null) => ({
+        ...releasing([release(0)], sourceCharacterStreamVersion),
+        sourceCharacterId: null
+      })
+      expect(
+        serverRuleExecutionApplicationOutputsDtoSchema.parse(creatureReleasing(null))
+      ).toMatchObject({ sourceCharacterStreamVersion: null })
+      expect(
+        serverRuleExecutionApplicationOutputsDtoSchema.safeParse(creatureReleasing(4)).success
+      ).toBe(false)
+    })
+
     it('holds only contiguous condition releases', () => {
       expect(
         serverRuleExecutionApplicationOutputsDtoSchema.safeParse(releasing([release(1)], 4)).success

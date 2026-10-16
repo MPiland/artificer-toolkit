@@ -142,26 +142,6 @@ export const TARGETING_NODE_MAP: NodeMap<TargetingAuthored> = targeting.define(
         )
       )
       .set(
-        'resolutionCount',
-        number(['resolutionCount'], 'Resolution Count', {
-          order: 5,
-          showIf: local.field(['selectionKind']).eq('CHOSEN_CREATURES')
-        })
-      )
-      .set(
-        'resolutionCountScaling',
-        groupObject(
-          ['resolutionCountScaling'],
-          'Resolution Count Scaling',
-          () => TARGET_COUNT_SCALING_NODE_MAP,
-          {
-            presentation: 'inline',
-            order: 6,
-            showIf: local.field(['selectionKind']).eq('CHOSEN_CREATURES')
-          }
-        )
-      )
-      .set(
         'allowRepeatedTargets',
         nodes.toggle(['allowRepeatedTargets'], 'Allow Repeated Targets', {
           order: 7,

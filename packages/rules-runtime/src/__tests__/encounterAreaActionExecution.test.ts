@@ -30,6 +30,7 @@ import {
   encounterTargetLegendaryResistance,
   offerEncounterAreaLegendaryResistance
 } from '../encounterAreaLegendaryResistance.js'
+import { encounterChosenActorEntries } from '../encounterAreaPending.js'
 import { findEncounterFeatureResource } from '../encounterActorRuleOutput.js'
 import { decideEncounterLegendaryResistance } from '../encounterLegendaryResistanceChoice.js'
 import { discoverEncounterLegendaryResistanceCandidate } from '../encounterLegendaryResistanceDiscovery.js'
@@ -234,6 +235,10 @@ async function areaSource(
   )
   const [first] = prepared
   if (!first) throw new Error('The area needs a caught creature.')
+  const entries = encounterChosenActorEntries(
+    OCCURRENCE_ID,
+    caught.map(({ id }) => id)
+  )
   return {
     runtime,
     adapter: first.adapter,
@@ -241,6 +246,7 @@ async function areaSource(
     occurrenceId: OCCURRENCE_ID,
     targets: prepared.map((value, index) => ({
       actorId: caught[index]!.id,
+      occurrenceId: entries[index]!.occurrenceId,
       binding: value.binding,
       // Each creature rolls its own save; the caster's dice are the app's.
       autoRoll: { SOURCE: true, TARGET: false },

@@ -6,6 +6,7 @@ import type {
 
 import {
   encounterAttackSightCaptions,
+  encounterSaveSightCaptions,
   isEncounterSightGovernedD20,
   reconcileEncounterD20Faces,
   type EncounterAttackD20Belief,
@@ -43,12 +44,9 @@ export function sightGovernedStageD20(input: {
     held: stored.heldD20,
     captions:
       stored.d20Belief && attackSight
-        ? encounterAttackSightCaptions({
-            believed: attackSight.believed,
-            actual: attackSight.actual,
-            attackerLabel: attackSight.attackerLabel,
-            targetLabel: attackSight.targetLabel
-          })
+        ? attackSight.subject === 'SAVE'
+          ? encounterSaveSightCaptions(attackSight)
+          : encounterAttackSightCaptions(attackSight)
         : null
   }
 }

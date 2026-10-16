@@ -118,6 +118,18 @@ const MODIFIER_GRANT_DOMAIN_NODE_MAP = modifierGrantDomain.define(
         })
       )
       .set(
+        'requiresHolderSeesSource',
+        toggle(['requiresHolderSeesSource'], 'Only Effects Whose Source The Holder Can See', {
+          showIf: and([
+            parent.field(['valueDomainCode']).eq('SAVING_THROW_MODIFIER'),
+            or([
+              parent.field(['modifierKind']).eq('ADVANTAGE'),
+              parent.field(['modifierKind']).eq('DISADVANTAGE')
+            ])
+          ])
+        })
+      )
+      .set(
         'senseDefinitionId',
         selectSingle(
           ['senseDefinitionId'],

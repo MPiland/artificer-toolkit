@@ -25,7 +25,15 @@ import { serverRuleExecutionReceiptCommandMetadataDtoSchema } from '@artificer-t
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import { deriveEncounterCharacterMechanicsEventCommandId } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
+import { attackRollEndedEffects } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
+import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
+import { effectiveHitPointMaximum } from '@artificer-toolkit/rules-runtime/character/activeEffectGrantTotals'
+import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import { deleteGrants } from './consumedGrantPersistence.js'
+import { createActiveRuleEffectStore } from './effectStore.js'
+import { readLiveCharacterMaximumHitPoints } from './liveMovementTargetState.js'
+import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.js'
 import { writePendingSnapshot } from './pendingSnapshots.js'
 import { insertActionEvidenceReceipt } from './actionEvidenceReceipt.js'
 import { readNativeDisarmPending } from './actionDisarmPending.js'
@@ -41,6 +49,9 @@ import type { EncounterCharacterWriteTransaction } from './ports.js'
 import type { EncounterDocument } from './store.js'
 
 type DisarmCallbacks = {
+  applyMechanics(
+    batch: Omit<EncounterMechanicsBatchInput, 'expectedCharacterStreamVersion'>
+  ): Promise<EncounterMechanicsBatchResult>
   readActionSceneInputs(
     state: EncounterRunState,
     command: ActionSceneRequestDto,
@@ -208,10 +219,46 @@ export async function persistEncounterDisarmCommit(
   )
     throw new Error('Live Session Disarm actor scope mismatch.')
   if (!occurrence) await requireUnusedOccurrenceId(ctx, execution.occurrenceId)
+  // The initiator's attack roll ends effects it held (Invisibility); the conditions only they held
+  // are released in the initiator's own batch, which the receipt must match.
+  const sourceEffects = await createActiveRuleEffectStore(ctx).list(
+    turnEffectOwner(source, state.id)
+  )
+  const { consumedGrants: endedGrants, sourceReleases } = attackRollEndedEffects({
+    holderActorId: source.id,
+    held: sourceEffects,
+    makesAttackRoll: true
+  })
+  if (endedGrants.some((grant) => !input.consumedGrants.some(({ id }) => id === grant.id)))
+    throw new Error('Live Session Disarm initiator grants changed before settlement.')
+  const sourceMechanics = sourceReleases.length
+    ? await callbacks.applyMechanics({
+        encounterId: state.id,
+        targetActorId: source.id,
+        expectedEncounterVersion: state.version,
+        occurrenceId: execution.occurrenceId,
+        sourceCommandId: root.commandId,
+        commandId: deriveEncounterCharacterMechanicsEventCommandId({
+          occurrenceId: execution.occurrenceId,
+          sourceCommandId: root.commandId,
+          phase: 'DIRECT_ACTION_RESOURCE',
+          ordinal: 0,
+          targetCharacterId: source.kind === 'CHARACTER' ? source.sourceId : source.id
+        }),
+        occurredAt,
+        applications: sourceReleases,
+        effectiveMaximumHitPoints:
+          source.kind === 'CHARACTER'
+            ? await readLiveCharacterMaximumHitPoints(ctx, state, source.sourceId)
+            : effectiveHitPointMaximum(source.maxHitPoints, sourceEffects),
+        forceVersionAdvance: false
+      })
+    : null
   const settled = await settleDisarm(ctx, {
     state,
-    actor: source,
+    actor: sourceMechanics?.updatedActor ?? source,
     target,
+    sourceApplications: sourceMechanics?.receiptApplications ?? [],
     contest,
     rolls: { initiator: outputs.sourceRoll, defender: outputs.targetRoll },
     actionEconomy: outputs.actionEconomyTransition,

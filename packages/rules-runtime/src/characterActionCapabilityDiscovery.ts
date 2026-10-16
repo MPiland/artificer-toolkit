@@ -24,6 +24,8 @@ export interface EffectActionCapabilityDescriptor {
   compiledEffect: CharacterActionRuleEntryPoint['compiledEffect']
   /** The level a spell cast is made at, which selects the scaling row the compiler rolls. */
   spellCastLevel?: number
+  /** The Character's level, which selects a cap scaled by it (Eldritch Blast's beams). */
+  characterLevel?: number
 }
 
 export interface CharacterActionCapabilityDescriptor extends EffectActionCapabilityDescriptor {
@@ -106,6 +108,7 @@ function assertExactCandidateMapping(input: {
       entryPoint.compiledEffect.id !== entryPointDefinitionId ||
       descriptor.compiledEffect !== entryPoint.compiledEffect ||
       descriptor.spellCastLevel !== entryPoint.spellCastLevel ||
+      descriptor.characterLevel !== entryPoint.characterLevel ||
       JSON.stringify(descriptor.source) !== JSON.stringify(candidate.source) ||
       JSON.stringify(descriptor.mechanicsOwner) !== JSON.stringify(candidate.mechanicsOwner)
     ) {

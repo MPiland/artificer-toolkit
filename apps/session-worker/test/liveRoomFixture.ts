@@ -326,6 +326,7 @@ export async function fixture(
       }
       if (pathname === '/live-sessions/checkpoint') {
         const body = liveSessionCheckpointRequestSchema.parse(await request.json())
+        expect(body).toMatchObject({ campaignId })
         persisted = { sequence: body.sequence, checksum: body.checksum }
         return Response.json(checkpointResponse(body))
       }
@@ -467,6 +468,13 @@ export async function fixture(
 
 export type LiveRoomFixture = Awaited<ReturnType<typeof fixture>>
 
+/**
+ * How long a fixture waits for the room to answer a frame. The room builds its inputs and Scene inside
+ * the Durable Object, which a loaded runner takes well over `vi.waitFor`'s 1 s default to do; the
+ * wait is bounded by the test timeout, so a room that never answers still fails the test.
+ */
+export const ROOM_REPLY_WAIT = { timeout: 20_000 } as const
+
 /** A socket for the room's player, or for its second player where a test added them as a member. */
 export async function connectPlayer(
   base: LiveRoomFixture,
@@ -495,8 +503,9 @@ export async function connectPlayer(
       accessToken: who === 'PLAYER' ? base.playerAccessToken : base.otherPlayerAccessToken
     })
   )
-  await vi.waitFor(() =>
-    expect(messages.some((message) => message.type === 'TRANSIENT_READY')).toBe(true)
+  await vi.waitFor(
+    () => expect(messages.some((message) => message.type === 'TRANSIENT_READY')).toBe(true),
+    ROOM_REPLY_WAIT
   )
   return { messages, socket }
 }
@@ -504,13 +513,15 @@ export async function connectPlayer(
 /** Admits the owner socket; the room builds the presented Scene before it sends the first STATE_SYNC. */
 export async function synchronizeScene(base: LiveRoomFixture, scene: CampaignSceneStateDto) {
   base.socket.send(JSON.stringify({ type: 'AUTHENTICATE', accessToken: base.accessToken }))
-  await vi.waitFor(() =>
-    expect(base.messages).toContainEqual(
-      expect.objectContaining({
-        state: expect.objectContaining({ scene: expect.objectContaining({ id: scene.id }) }),
-        type: 'STATE_SYNC'
-      })
-    )
+  await vi.waitFor(
+    () =>
+      expect(base.messages).toContainEqual(
+        expect.objectContaining({
+          state: expect.objectContaining({ scene: expect.objectContaining({ id: scene.id }) }),
+          type: 'STATE_SYNC'
+        })
+      ),
+    ROOM_REPLY_WAIT
   )
 }
 

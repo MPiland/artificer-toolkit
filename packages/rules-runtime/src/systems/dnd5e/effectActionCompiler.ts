@@ -537,6 +537,7 @@ export type Dnd5eCompiledEffectActionSource = Pick<
   | 'savingThrowAbilityDefinitionId'
   | 'compiledEffect'
   | 'spellCastLevel'
+  | 'characterLevel'
 >
 interface TestPlan {
   kind: TestKind
@@ -638,16 +639,20 @@ function isSupportedTestTargetPolicy(
   if (invocation.kind !== 'ACTION') return false
   const { targeting } = invocation
   if (targeting?.selectionKind === 'AREA_CONTENTS') return isSupportedTestArea(invocation)
-  // A bounded list of chosen creatures (Acid Splash) runs the same per-creature save on each, once
-  // per creature: a creature named again would save twice, so a repeating list is refused.
+  // A bounded list of chosen creatures runs the same test on each. A save list (Acid Splash) tests
+  // each creature once: a creature named again would save twice, so a repeating save list is
+  // refused. An attack list (Scorching Ray) is one roll per ray, so it may aim several rays at one
+  // creature, and it has no area.
   if (targeting?.selectionKind === 'CHOSEN_CREATURES') {
+    const attacks = dnd5eAttackKind(invocation.triggerCode) !== null
     if (
       targeting.dispositionKind !== 'ANY' ||
-      targeting.allowRepeatedTargets === true ||
-      invocation.triggerCode !== 'SAVING_THROW' ||
+      (!attacks &&
+        (targeting.allowRepeatedTargets === true || invocation.triggerCode !== 'SAVING_THROW')) ||
       !chosenCreaturesCapIsAuthored(targeting) ||
       (invocation.shape !== undefined &&
-        !chosenCreaturesAreaSupported(invocation.range.rangeKind, invocation.shape.shapeKind))
+        (attacks ||
+          !chosenCreaturesAreaSupported(invocation.range.rangeKind, invocation.shape.shapeKind)))
     )
       return false
   } else if (
@@ -2682,9 +2687,8 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
     (invocation.targeting.dispositionKind === 'ANY' ||
       (invocation.targeting.dispositionKind === 'WILLING' &&
         (linkPlan !== null || formPlan !== null))) &&
-    chosenCreaturesMaxTargets(
-      resolveChosenCreaturesTargeting(invocation.targeting, action.spellCastLevel)
-    ) !== null &&
+    chosenCreaturesMaxTargets(resolveChosenCreaturesTargeting(invocation.targeting, action)) !==
+      null &&
     (!invocation.shape ||
       chosenCreaturesAreaSupported(invocation.range.rangeKind, invocation.shape.shapeKind))
   // A Legendary Action option is free; the Feature charge it spends is its cost.
@@ -2753,17 +2757,15 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
     outcome.effectKind !== 'DETECT_CONCEALED'
   )
     unsupported('D&D check action outcome is not supported yet.')
-  if (
-    supportsChosenCreatures &&
-    outcome.effectKind !== 'HEAL' &&
-    outcome.effectKind !== 'DAMAGE' &&
-    outcome.effectKind !== 'TELEPORT' &&
-    outcome.effectKind !== 'TELEPATHIC_LINK' &&
-    outcome.effectKind !== 'MANIFEST'
-  )
-    unsupported(
-      'D&D chosen-creature action outcome must be a heal, damage, teleport, link or creature form.'
-    )
+  // A list runs only a hit-point, teleport, link or creature form outcome, but an outcome no cast can run keeps the
+  // reason a single target gets, so each other plan below is refused here rather than up front.
+  const notOnAList = <Plan extends SpecializedOutcome>(plan: Plan): Plan => {
+    if (supportsChosenCreatures)
+      unsupported(
+        'D&D chosen-creature action outcome must be a heal, damage, teleport, link or creature form.'
+      )
+    return plan
+  }
   if (
     !checkAction &&
     (outcome.effectKind === 'CONCEAL_FROM_OBSERVERS' || outcome.effectKind === 'DETECT_CONCEALED')
@@ -2798,9 +2800,9 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
     uuid(outcome.conditionId, 'D&D condition definition identity')
     if (!(action.conditionDefinitionIds ?? []).includes(outcome.conditionId))
       unsupported('D&D Effect action condition is not in the pinned System vocabulary.')
-    return { kind: 'CONDITION_APPLY', conditionId: outcome.conditionId }
+    return notOnAList({ kind: 'CONDITION_APPLY', conditionId: outcome.conditionId })
   }
-  if (outcome.effectKind === 'STABILIZE') return { kind: 'STABILIZE' }
+  if (outcome.effectKind === 'STABILIZE') return notOnAList({ kind: 'STABILIZE' })
   // The targets leave the Scene for a place the table does not model; the commit marks each as
   // departed (D128) and a Scene-bound destination waits for the movement service.
   if (
@@ -2809,18 +2811,21 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
     (outcome.destinationKind === 'LINKED_LOCATION' || outcome.destinationKind === 'SPECIAL')
   )
     return { kind: 'DEPART' }
-  if (outcome.effectKind === 'CONCEAL_FROM_OBSERVERS') return { kind: 'CONCEAL' }
-  if (outcome.effectKind === 'DETECT_CONCEALED') return { kind: 'DETECT_CONCEALED' }
+  if (outcome.effectKind === 'CONCEAL_FROM_OBSERVERS') return notOnAList({ kind: 'CONCEAL' })
+  if (outcome.effectKind === 'DETECT_CONCEALED') return notOnAList({ kind: 'DETECT_CONCEALED' })
   // The reaction cancels the event it answered: nothing is stored on its target, the cast.
-  if (outcome.effectKind === 'CANCEL_TRIGGERING_EVENT') return { kind: 'CANCEL_TRIGGERING_EVENT' }
-  if (outcome.effectKind === 'APPLY_GRANT' && grantPlan) return { kind: 'MODIFIER_GRANT' }
+  if (outcome.effectKind === 'CANCEL_TRIGGERING_EVENT')
+    return notOnAList({ kind: 'CANCEL_TRIGGERING_EVENT' })
+  if (outcome.effectKind === 'APPLY_GRANT' && grantPlan)
+    return notOnAList({ kind: 'MODIFIER_GRANT' })
   if (outcome.effectKind === 'TELEPATHIC_LINK' && linkPlan) return { kind: 'ACTOR_LINK' }
   if (outcome.effectKind === 'MANIFEST' && formPlan) return { kind: 'CREATURE_FORM' }
   // The Action is spent and the GM rules the result: nothing is stored on the target.
-  if (outcome.effectKind === 'MANUAL_ADJUDICATION') return { kind: 'MANUAL_ADJUDICATION' }
+  if (outcome.effectKind === 'MANUAL_ADJUDICATION')
+    return notOnAList({ kind: 'MANUAL_ADJUDICATION' })
   // Dash: the committed action adds the actor's speed to this turn's movement; the commit records it.
   if (outcome.effectKind === 'MOVEMENT_RULE' && outcome.ruleKind === 'ADD_SPEED_TO_MOVEMENT')
-    return { kind: 'ADD_SPEED_TO_MOVEMENT' }
+    return notOnAList({ kind: 'ADD_SPEED_TO_MOVEMENT' })
   if (outcome.effectKind !== 'HEAL' && outcome.effectKind !== 'DAMAGE')
     unsupported('D&D Effect action outcome is not a supported hit-point or condition outcome.')
   if (outcome.effectKind === 'HEAL' && outcome.valueKind === 'DICE') {
