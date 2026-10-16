@@ -18,6 +18,7 @@ type NativeEncounterOccurrenceOwner =
   | 'CLEAVING'
   | 'BASIC_ACTION'
   | 'ESCAPE'
+  | 'ATTACK_SQUARE'
   | 'ACTION'
   | 'TURN'
   | 'MOVEMENT'
@@ -109,6 +110,7 @@ export function classifyNativeEncounterOccurrence({
     return 'BASIC_ACTION'
   if (context?.kind === 'ENCOUNTER_ESCAPE_CHECK' || rootCommandType === 'ESCAPE_RELATIONSHIP')
     return 'ESCAPE'
+  if (context?.kind === 'ENCOUNTER_ATTACK_SQUARE') return 'ATTACK_SQUARE'
   if (isNativeActionOccurrence({ context, rootCommandType })) return 'ACTION'
   if (
     context?.kind === 'ENCOUNTER_TURN_RECHARGE' ||

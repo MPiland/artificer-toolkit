@@ -42,6 +42,7 @@ export async function readRoomEncounterResponseRoute(
     owner === 'CLEAVING' ||
     owner === 'BASIC_ACTION' ||
     owner === 'ESCAPE' ||
+    owner === 'ATTACK_SQUARE' ||
     owner === 'ACTION' ||
     owner === 'DISARM' ||
     owner === 'MOVEMENT'

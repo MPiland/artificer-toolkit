@@ -111645,6 +111645,15 @@ export declare const api: {
                 optionIds: Array<string>;
                 requestId: string;
               }
+            | {
+                allowedResponses: Array<"ATTACK_SQUARE_OCCUPANT">;
+                attackerActorId: string;
+                candidateActorIds: Array<string>;
+                encounterVersion: number;
+                kind: "ATTACK_SQUARE_RESOLUTION";
+                occurrenceId: string;
+                occurrenceVersion: number;
+              }
             | null;
           turnMovement: Array<{
             actorId: string;
@@ -111951,6 +111960,15 @@ export declare const api: {
                   occurrenceVersion: number;
                   optionIds: Array<string>;
                   requestId: string;
+                }
+              | {
+                  allowedResponses: Array<"ATTACK_SQUARE_OCCUPANT">;
+                  attackerActorId: string;
+                  candidateActorIds: Array<string>;
+                  encounterVersion: number;
+                  kind: "ATTACK_SQUARE_RESOLUTION";
+                  occurrenceId: string;
+                  occurrenceVersion: number;
                 }
               | null;
             status: "PENDING" | "COMPLETE" | "VOIDED";
@@ -112780,6 +112798,15 @@ export declare const api: {
             optionIds: Array<string>;
             requestId: string;
           }
+        | {
+            allowedResponses: Array<"ATTACK_SQUARE_OCCUPANT">;
+            attackerActorId: string;
+            candidateActorIds: Array<string>;
+            encounterVersion: number;
+            kind: "ATTACK_SQUARE_RESOLUTION";
+            occurrenceId: string;
+            occurrenceVersion: number;
+          }
         | null
       >;
     };
@@ -113605,6 +113632,15 @@ export declare const api: {
                 occurrenceVersion: number;
                 optionIds: Array<string>;
                 requestId: string;
+              }
+            | {
+                allowedResponses: Array<"ATTACK_SQUARE_OCCUPANT">;
+                attackerActorId: string;
+                candidateActorIds: Array<string>;
+                encounterVersion: number;
+                kind: "ATTACK_SQUARE_RESOLUTION";
+                occurrenceId: string;
+                occurrenceVersion: number;
               };
         }>
       >;

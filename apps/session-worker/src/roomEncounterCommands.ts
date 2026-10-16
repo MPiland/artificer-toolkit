@@ -46,6 +46,7 @@ import {
   executeRoomEncounterEndHeldGrant,
   executeRoomEncounterEscapeResponse
 } from './roomEncounterBasicActions.js'
+import { answerAttackSquare } from '@artificer-toolkit/encounter-persistence/attackSquarePending'
 import { removeAreaActionTarget } from '@artificer-toolkit/encounter-persistence/areaTargetRemoval'
 import {
   prepareRuleOccurrenceVoid,
@@ -437,6 +438,9 @@ export async function executeRoomEncounterCommand(input: {
       throw new Error('Room response execution is unavailable.')
     if (route === 'TURN') return executeTurn(command)
     if (route === 'ACTION') return executeAction(command)
+    // The GM names who stands on the square; the attack then runs as an ordinary one on them.
+    if (route === 'ATTACK_SQUARE')
+      return executeAction(await answerAttackSquare(context, command, userId))
     if (route === 'DISARM') return executeDisarm(command)
     const { membership } = await context.ports.requireCampaignAuthority(campaignId, userId)
     const execute =

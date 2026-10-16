@@ -125,6 +125,7 @@ import {
 import { planNativeLiveConcentration } from './nativeEncounterConcentration.js'
 import { prepareNativeLiveActionMaintenance } from './nativeEncounterMaintenance.js'
 import type { prepareNativeLiveMovementTarget } from './nativeEncounterTargets.js'
+import type { planNativeLiveEncounterAttackSquare } from './nativeEncounterAttackSquare.js'
 import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
 
 type AreaCommand = Omit<ResolveEncounterActionInputDto, 'target'> & {
@@ -974,15 +975,19 @@ async function replayAreaTargetSave(
   return tested
 }
 
-/** The sealed pending contract the room persists for a point-area action: every caught creature's save. */
+/**
+ * The sealed pending contract the room persists for an aggregate action: a point area's saves, or
+ * the GM's decision on a picked square.
+ */
 export function buildNativeLiveEncounterAreaActionPendingInput(
   scope: Omit<LiveSessionEncounterRulesInput, 'request'>,
   plan: Pick<
     Extract<
       | Awaited<ReturnType<typeof planNativeLiveEncounterAreaAction>>
       | Awaited<ReturnType<typeof planNativeLiveEncounterAreaAnswer>>
-      | Awaited<ReturnType<typeof planNativeLiveEncounterAreaLegendaryResistance>>,
-      { kind: 'AREA_PENDING' }
+      | Awaited<ReturnType<typeof planNativeLiveEncounterAreaLegendaryResistance>>
+      | Awaited<ReturnType<typeof planNativeLiveEncounterAttackSquare>>,
+      { kind: 'AREA_PENDING' | 'SQUARE_PENDING' }
     >,
     'command' | 'response' | 'snapshot'
   > & {

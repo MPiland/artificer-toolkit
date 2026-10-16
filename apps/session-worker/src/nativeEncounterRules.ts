@@ -107,6 +107,7 @@ import { authoredCheckOf, planNativeLiveCheckAction } from './nativeCheckAction.
 import { planNativeLiveConcealmentCheckAction } from './nativeConcealmentCheck.js'
 import { planNativeLiveEncounterSettlement } from './nativeEncounterSettlement.js'
 import { planNativeLiveEncounterActorsAction } from './nativeEncounterActorsRules.js'
+import { planNativeLiveEncounterAttackSquare } from './nativeEncounterAttackSquare.js'
 import {
   discoverNativeLegendaryResistance,
   planNativeLiveEncounterAreaAction,
@@ -298,10 +299,12 @@ export async function planNativeLiveEncounterAction(
       message: DOMAIN_REJECTION_MESSAGES.ASSISTED_ONLY
     })
 
-  const { actors, activeEffectsByActorId } = await readNativeLiveActorsAndEffects({
-    state,
-    capture
-  })
+  const { actors, activeEffectsByActorId, deadCharacterIds } = await readNativeLiveActorsAndEffects(
+    {
+      state,
+      capture
+    }
+  )
 
   async function loadTarget(
     actor: EncounterRunActorState,
@@ -327,6 +330,29 @@ export async function planNativeLiveEncounterAction(
       reason: 'TARGET_UNAVAILABLE',
       message: TARGET_NOT_PERMITTED_MESSAGE
     })
+  if (command.target.kind === 'SQUARE') {
+    if (removalCommand || responseCommand) throw new Error('A square attack is answered by the GM.')
+    return {
+      ...(await planNativeLiveEncounterAttackSquare({
+        initial,
+        command: { ...command, target: command.target },
+        fingerprint: admission.fingerprint,
+        state,
+        system,
+        actors,
+        activeEffectsByActorId,
+        loadTarget,
+        capture,
+        runtime: executionOptions.runtime,
+        random: executionOptions.random,
+        requireAutoRoll,
+        autoRollByActorId,
+        deadCharacterIds
+      })),
+      dependencies,
+      revisions
+    }
+  }
   if (command.target.kind !== 'ACTOR') {
     const target = command.target
     const areaInput = {
@@ -817,8 +843,7 @@ export async function planNativeLiveEncounterAction(
       : null)
   const retainedReaction =
     execution.kind !== 'PENDING' && !reactionAnswered
-      ? (heldReaction ??
-        (retained?.phase === 'OUTCOME' && retained.reaction ? retained : null))
+      ? (heldReaction ?? (retained?.phase === 'OUTCOME' && retained.reaction ? retained : null))
       : null
   const replayedReaction =
     heldReactionNow ??

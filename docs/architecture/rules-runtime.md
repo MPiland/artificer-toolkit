@@ -331,6 +331,20 @@ the caught set to equal the sealed one). An immediate list (heals, projectiles) 
 room; `executeEncounterActorsAction` refuses an outcome that asks for evidence. A spell that takes a list is refused when sent at one creature
 (`TARGET_UNAVAILABLE`).
 
+### An attack aimed at a square (current, ATTACK-17.T4a; empty squares are T4b)
+
+A player can aim a creature-targeted attack at a map square with the sixth target, `{ kind: 'SQUARE', sceneId,
+expectedSceneVersion, point }`. Only the GM knows who stands there, so the room does not roll: `planNativeLiveEncounterAttackSquare`
+finds the candidates (`attackSquareCandidates`: actors other than the attacker, not defeated, whose token footprint contains the point,
+hidden tokens included) and seals an `ENCOUNTER_ATTACK_SQUARE` aggregate-choice pending (owner `ATTACK_SQUARE`). The GM sees
+`ATTACK_SQUARE_RESOLUTION` with the candidate ids; the attacker and every other player see only that the GM is deciding
+(`waitingOn: 'GM'`, no pending). The GM answers `ATTACK_SQUARE_OCCUPANT { actorId }` through `RESOLVE_RULE_OCCURRENCE`. The answer closes the square
+occurrence as COMPLETED (`occurrenceClosing.ts`) and runs an ordinary ACTOR-target `RESOLVE_ACTION` on the named creature under the derived
+command id `attackSquareChildCommandId(occurrenceId)`, so the attack, its roll card and its action economy are the actor path's and a retried
+answer replays. An answer outside the sealed candidates is rejected and the decision stays pending; a GM attacker answers their own decision;
+`VOID_RULE_OCCURRENCE` cancels it with no attack. A square with nobody on it is refused (`TARGET_UNAVAILABLE`) until T4b adds the guaranteed-miss
+root, which must show the player exactly what an occupant miss shows.
+
 ### Caster-centered radius areas (current, SPELLS-22)
 
 An `AREA_CONTENTS` action whose range is Self and whose shape is a sphere, cylinder or circle takes the fourth
