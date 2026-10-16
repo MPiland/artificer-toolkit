@@ -42,7 +42,7 @@ The brief proposed comparing a replayed subject by stored checksum instead of th
 - Baseline (before): `local-validation/platform-5-t2/base-replay-idle.summary.txt`, `base-replay-loaded12.summary.txt`.
 - Final (after): `final-replay-idle.summary.txt`, `final-replay-loaded12.summary.txt`, `final-fresh.summary.txt`; audit exit 0 in `final-audit.log`; `final-measure.summary.log` lists the exits. Scoped tests: `green-final.log` (`import.test.ts`, `importBatches.test.ts`: 24 pass).
 - Variant evidence: `fix-*.summary.txt`, `red-import.log`, `green-import.log`.
-- CI: `ci/platform-5-t2`, see the workbook status log.
+- CI: `ci/platform-5-t2` run 38835861992 (commit 4e1ec51b0) green.
 
 ## Observed, outside this slice
 
