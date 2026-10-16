@@ -1243,7 +1243,7 @@ describe('room area action that leaves a condition behind (SPELLS-19.1)', () => 
 function frighteningSplash(): SpellAuthored {
   return {
     ...acidSplash,
-    effects: acidSplash.effects.map((effect) => ({
+    effects: acidSplash.effects?.map((effect) => ({
       ...effect,
       paths: effect.paths.map((path) =>
         !('resultBlock' in path)
@@ -1263,6 +1263,21 @@ function frighteningSplash(): SpellAuthored {
                     id: '00000000-0000-4000-8000-0000000000c3',
                     effectKind: 'CONDITION' as const,
                     conditionId: frightenedId()
+                  },
+                  {
+                    id: '00000000-0000-4000-8000-0000000000c4',
+                    effectKind: 'FOLLOW_UP_SAVE' as const,
+                    timing: 'TARGET_TURN_END' as const,
+                    savingThrow: {
+                      id: '00000000-0000-4000-8000-0000000000c5',
+                      dcMethod: 'FIXED_DC' as const,
+                      abilityDefinitionId: SRD_ABILITY_DEFINITION_IDS.DEXTERITY,
+                      baseDc: 10
+                    },
+                    attempts: { kind: 'ONCE' as const, repeatOnFailure: true },
+                    onSuccess: { kind: 'END' as const },
+                    onFailure: { kind: 'CONTINUE' as const },
+                    onDurationComplete: { kind: 'END' as const }
                   }
                 ]
               }
