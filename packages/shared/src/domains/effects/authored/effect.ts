@@ -31,6 +31,15 @@ export type ResourceUseAuthored = {
   cost: number
 }
 
+/**
+ * Makes a passive on-hit rider the attacker's choice: after a hit the player may pay this cost to
+ * add the rider's damage to it. A spell slot lets the player pick the slot level, which keys the
+ * rider's `SPELL_CAST_LEVEL` rows (D118, D123).
+ */
+export type OptionalOnHitAuthored =
+  | { kind: 'SPELL_SLOT' }
+  | ({ kind: 'RESOURCE_POOL' } & ResourceUseAuthored)
+
 export type ReactionMovementTriggerBindingAuthored = {
   kind: 'MOVEMENT'
   stage: 'BEFORE_LEAVE_REACH' | 'ENTER_REACH'
@@ -118,6 +127,7 @@ export type PassiveEffectInvocationAuthored<TTrigger extends Trigger = Trigger> 
       range: RangeAuthored
       shape?: ShapeAuthored
       targeting?: TargetingAuthored
+      optionalOnHit?: OptionalOnHitAuthored
     }
 
 export type EffectInvocationAuthored<TTrigger extends Trigger = Trigger> =

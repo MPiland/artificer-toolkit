@@ -42,12 +42,24 @@ const resourceUseDtoSchema = lazySchema(() =>
   })
 )
 
+const optionalOnHitDtoSchema = lazySchema(() =>
+  z.union([
+    z.object({ kind: z.literal('SPELL_SLOT') }),
+    z.object({
+      kind: z.literal('RESOURCE_POOL'),
+      chargeId: authoredIdentifierSchema,
+      cost: z.number().check(z.int()).check(z.positive())
+    })
+  ])
+)
+
 const actionInvocationShape = lazySchemaParts(() => ({
   kind: z.optional(z.literal(invocationKindSchema._zod.def.entries.ACTION)),
   range: rangeDtoSchema,
   shape: z.optional(shapeDtoSchema),
   targeting: z.optional(targetingDtoSchema),
-  resourceUse: z.optional(resourceUseDtoSchema)
+  resourceUse: z.optional(resourceUseDtoSchema),
+  optionalOnHit: z.optional(z.never())
 }))
 
 const nonSavingThrowTriggerDtoSchema = lazySchema(() =>
@@ -73,7 +85,8 @@ export const invocationDtoSchema: z.ZodMiniType<EffectInvocationAuthored> = lazy
       shape: z.optional(shapeDtoSchema),
       targeting: z.optional(targetingDtoSchema),
       resourceUse: z.optional(z.never()),
-      reactionTrigger: z.optional(z.never())
+      reactionTrigger: z.optional(z.never()),
+      optionalOnHit: z.optional(z.never())
     }),
     z.object({
       kind: z.literal(invocationKindSchema._zod.def.entries.PASSIVE),
@@ -91,7 +104,8 @@ export const invocationDtoSchema: z.ZodMiniType<EffectInvocationAuthored> = lazy
       shape: z.optional(shapeDtoSchema),
       targeting: z.optional(targetingDtoSchema),
       resourceUse: z.optional(z.never()),
-      reactionTrigger: z.optional(z.never())
+      reactionTrigger: z.optional(z.never()),
+      optionalOnHit: z.optional(optionalOnHitDtoSchema)
     }),
     z.object({
       ...actionInvocationShape(),

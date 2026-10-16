@@ -174,6 +174,11 @@ const DND5E_RESOLVED_DAMAGE_OUTCOME_EXPRESSIONS_FACT_KEY =
 const DND5E_RESOLVED_HEAL_MODIFIER_FACT_KEY = 'dnd5e.resolved-heal-modifier'
 /** The level a spell is cast at, which selects its authored per-level scaling. */
 export const DND5E_SPELL_CAST_LEVEL_FACT_KEY = 'dnd5e.spell-cast-level'
+/**
+ * The optional on-hit riders the player chose for this attack (a JSON array of sorted rider effect
+ * ids): an optional rider's merged entries resolve only when their rider is listed (D123).
+ */
+export const DND5E_SELECTED_OPTIONAL_RIDERS_FACT_KEY = 'dnd5e.selected-optional-riders'
 /** The actor's level in each class (a JSON object by class id), which selects CLASS_LEVEL rows. */
 const DND5E_CLASS_LEVELS_FACT_KEY = 'dnd5e.class-levels'
 export const DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY =
@@ -265,6 +270,7 @@ type Dnd5eEffectScalingFacts = Readonly<{
   parentClassLevel?: number
   spellCastLevel?: number
   classLevels?: Readonly<Record<string, number>>
+  selectedOptionalRiderIds?: readonly string[]
   resolvedDamageExpressions?: Readonly<Partial<Record<SpecializedPath, string>>>
   resolvedDamageOutcomeExpressions?: Readonly<Record<string, string>>
 }>
@@ -294,6 +300,9 @@ function dndScalingFactsFromRuleValues(
     parentClassLevel: positiveInteger(facts.parentClassLevel),
     spellCastLevel: positiveInteger(facts[DND5E_SPELL_CAST_LEVEL_FACT_KEY]),
     classLevels: parseClassLevels(facts[DND5E_CLASS_LEVELS_FACT_KEY]),
+    selectedOptionalRiderIds: parseSelectedOptionalRiderIds(
+      facts[DND5E_SELECTED_OPTIONAL_RIDERS_FACT_KEY]
+    ),
     resolvedDamageExpressions: Object.fromEntries(
       Object.entries(DND5E_RESOLVED_DAMAGE_EXPRESSION_FACT_KEYS).flatMap(([path, key]) => {
         const expression = facts[key]
@@ -304,6 +313,19 @@ function dndScalingFactsFromRuleValues(
       facts[DND5E_RESOLVED_DAMAGE_OUTCOME_EXPRESSIONS_FACT_KEY]
     )
   }
+}
+
+function parseSelectedOptionalRiderIds(value: RuleValue | undefined): readonly string[] {
+  if (value === undefined) return []
+  let parsed: unknown
+  try {
+    parsed = typeof value === 'string' ? JSON.parse(value) : undefined
+  } catch {
+    parsed = undefined
+  }
+  if (!Array.isArray(parsed) || !parsed.every((id) => typeof id === 'string'))
+    unsupported('D&D selected optional riders are malformed.')
+  return parsed
 }
 
 function parseClassLevels(value: RuleValue | undefined): Record<string, number> {
@@ -4617,6 +4639,15 @@ function selectedOutcomeGroups(
   return [...authoredOutcomeGroups(action, 'ON_HIT'), ...authoredOutcomeGroups(action, 'ON_CRIT')]
 }
 
+/** An optional rider's entry resolves only when the player chose its rider; every other entry always does. */
+function isChosenEntry(
+  entry: CompiledEffectGroup['entries'][number] | undefined,
+  facts: Dnd5eEffectScalingFacts
+): boolean {
+  const optionalRider = entry && 'optionalRider' in entry ? entry.optionalRider : undefined
+  return !optionalRider || (facts.selectedOptionalRiderIds ?? []).includes(optionalRider.riderId)
+}
+
 function assertKnownTestResultPath(
   action: Dnd5eCompiledEffectActionSource,
   selectedPath: SpecializedPath
@@ -4753,7 +4784,8 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
       templateChecksum: checksumRuleDocument([entry])
     }
   }
-  const groups = selectedOutcomeGroups(input.action, input.selectedPath)
+  const authoredGroups = selectedOutcomeGroups(input.action, input.selectedPath)
+  const groups = authoredGroups.filter(([entry]) => isChosenEntry(entry, input.facts))
   if (groups.length === 0) return null
   const definitions = groups.map((entries, groupIndex) => {
     const entry = entries[0]
@@ -4818,9 +4850,10 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
   return {
     phase: 'OUTCOME',
     published,
-    // The selected authored result groups are the immutable OUTCOME template;
-    // the published checksum above identifies its locked dice specialization.
-    templateChecksum: checksumRuleDocument(groups)
+    // The selected authored result groups, chosen optional riders included or not, are the
+    // immutable OUTCOME template; the published checksum above identifies its locked dice
+    // and rider specialization.
+    templateChecksum: checksumRuleDocument(authoredGroups)
   }
 }
 
@@ -6872,7 +6905,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
         [DND5E_RESOLVED_HEAL_MODIFIER_FACT_KEY]: parsed.modifier
       }
     }
-    const { spellCastLevel, classLevels } = actionMechanic
+    const { spellCastLevel, classLevels, selectedOptionalRiderIds } = actionMechanic
     const baseFacts = {
       [DND5E_TARGET_ACTOR_FACT_KEY]: targetActorId,
       [DND5E_TARGET_STATE_CHECKSUM_FACT_KEY]: checksumRuleDocument({
@@ -6900,6 +6933,13 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       ...(spellCastLevel === undefined
         ? {}
         : { [DND5E_SPELL_CAST_LEVEL_FACT_KEY]: spellCastLevel }),
+      ...(selectedOptionalRiderIds === undefined || selectedOptionalRiderIds.length === 0
+        ? {}
+        : {
+            [DND5E_SELECTED_OPTIONAL_RIDERS_FACT_KEY]: JSON.stringify(
+              [...selectedOptionalRiderIds].sort()
+            )
+          }),
       ...(classLevels === undefined || Object.keys(classLevels).length === 0
         ? {}
         : {

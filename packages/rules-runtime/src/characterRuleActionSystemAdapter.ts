@@ -396,6 +396,8 @@ export interface CharacterRuleActionSystemAdapter {
       spellCastLevel?: number
       /** The actor's level in each class, which selects class-level scaling rows of its outcomes. */
       classLevels?: Readonly<Record<string, number>>
+      /** The optional on-hit riders the player chose (D123), whose merged outcomes then resolve. */
+      selectedOptionalRiderIds?: readonly string[]
     }
     /** Exact published graph selected under the aggregate lock. */
     published: ServerPublishedRuleDefinitionDto
