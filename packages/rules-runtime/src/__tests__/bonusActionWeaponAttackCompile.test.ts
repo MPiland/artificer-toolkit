@@ -5,6 +5,7 @@ import type { EffectAuthored } from '@artificer-toolkit/shared/authored'
 import { ACTIVATION_CODE } from '@artificer-toolkit/shared/core'
 import { shortsword } from '@artificer-toolkit/source-data/srd/equipment/shortsword.js'
 
+import { buildCompiledActionCompilerSource } from '../encounterActionEntryPointCompiler.js'
 import { dnd5eCharacterRuleActionSystemAdapter } from '../systems/dnd5e/effectActionCompiler.js'
 import {
   ACTION_EFFECT_ID,
@@ -23,10 +24,14 @@ function shortswordAttack(activationCode: string): EffectAuthored {
   } as EffectAuthored
 }
 
-const compile = (effect: EffectAuthored) =>
-  dnd5eCharacterRuleActionSystemAdapter.compile({
-    action: characterActionDescriptor(compileEffect(effect))
+/** The execution plan an Encounter compiles for the attack, as a Character's item action does. */
+const compile = (effect: EffectAuthored) => {
+  const action = characterActionDescriptor(compileEffect(effect))
+  return dnd5eCharacterRuleActionSystemAdapter.compileExecutionPlan?.({
+    action,
+    compilerSource: buildCompiledActionCompilerSource(action)
   })
+}
 
 describe('a weapon attack authored as a bonus action (two-weapon fighting)', () => {
   it('compiles, as the same attack authored as an Action does', () => {
