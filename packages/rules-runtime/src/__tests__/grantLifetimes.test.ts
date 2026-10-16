@@ -34,6 +34,7 @@ import { SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from '@artificer-to
 
 import { prepareActiveRuleEffectRecord } from '../activeRuleEffectRecords.js'
 import { prepareEncounterActionEffectPlans } from '../encounterActionEffectPlans.js'
+import { resumeCharacterForm } from '../encounterActorForm.js'
 import { checksumRunActorPlayState } from '../encounterActorStorage.js'
 import {
   encounterActorIdleTurnMark,
@@ -727,15 +728,18 @@ describe('a grant that ends on an idle turn (SRD Rage)', () => {
     const attacker = { disposition: 'FRIENDLY' as const }
     const hit = { resultPath: 'ON_HIT' }
 
-    it.each(['ON_HIT', 'ON_MISS', 'ON_CRIT'])('counts an attack roll that resolves %s', (resultPath) => {
-      expect(
-        attackedHostileCreature({
-          d20s: [{ resultPath }, null],
-          source: attacker,
-          target: { disposition: 'HOSTILE' }
-        })
-      ).toBe(true)
-    })
+    it.each(['ON_HIT', 'ON_MISS', 'ON_CRIT'])(
+      'counts an attack roll that resolves %s',
+      (resultPath) => {
+        expect(
+          attackedHostileCreature({
+            d20s: [{ resultPath }, null],
+            source: attacker,
+            target: { disposition: 'HOSTILE' }
+          })
+        ).toBe(true)
+      }
+    )
 
     it('does not count a saving throw the target made', () => {
       expect(
@@ -747,11 +751,14 @@ describe('a grant that ends on an idle turn (SRD Rage)', () => {
       ).toBe(false)
     })
 
-    it.each(['FRIENDLY', 'NEUTRAL'] as const)('does not count an attack on a %s creature', (disposition) => {
-      expect(
-        attackedHostileCreature({ d20s: [hit], source: attacker, target: { disposition } })
-      ).toBe(false)
-    })
+    it.each(['FRIENDLY', 'NEUTRAL'] as const)(
+      'does not count an attack on a %s creature',
+      (disposition) => {
+        expect(
+          attackedHostileCreature({ d20s: [hit], source: attacker, target: { disposition } })
+        ).toBe(false)
+      }
+    )
   })
 })
 
@@ -942,6 +949,99 @@ describe('planCarriedOverEffects', () => {
       holderId: TARGET_ID,
       remainingTicks
     })
+  const formEffect = (id: number, remainingTicks: number | null) => {
+    const effect = grant(id, remainingTicks ?? 1)
+    if (effect.definition.schemaVersion !== 2) throw new Error('Expected a version two grant.')
+    return {
+      ...effect,
+      lifecycle: { ...effect.lifecycle, remainingTicks },
+      definition: {
+        ...effect.definition,
+        stateContributions: [
+          {
+            kind: 'CREATURE_FORM' as const,
+            formOutcomeId: 'form',
+            creatureId: testUuid(0xc370),
+            excessDamageCarriesOver: true
+          }
+        ]
+      }
+    }
+  }
+  const wornForm = (effectId: string) => ({
+    effectId,
+    excessDamageCarriesOver: true,
+    sourceId: testUuid(0xc371),
+    sourceRevision: 1,
+    snapshot: { label: 'Giant Ape' },
+    currentHitPoints: 40,
+    maxHitPoints: 157,
+    tempHitPoints: 0
+  })
+  const carriedForm = {
+    sourceId: testUuid(0xc371),
+    sourceRevision: 1,
+    snapshot: { label: 'Giant Ape' },
+    currentHitPoints: 40,
+    maxHitPoints: 157,
+    tempHitPoints: 0
+  }
+
+  it('carries the creature form a Character wears with its hit points (SPELLS-28.T4b)', () => {
+    const effect = formEffect(0xc372, 25)
+    expect(
+      planCarriedOverEffects({ effects: [effect], clockMinute: 2000, form: wornForm(effect.id) })
+    ).toEqual([
+      {
+        effect,
+        lifecycle: {
+          schemaVersion: 1,
+          remainingTicks: null,
+          expiresAtCampaignMinute: 2003,
+          carriedCreatureForm: carriedForm
+        }
+      }
+    ])
+  })
+
+  it('refreshes the hit points of a form effect that was already carried, keeping its expiry', () => {
+    const effect = {
+      ...formEffect(0xc373, null),
+      lifecycle: { schemaVersion: 1 as const, remainingTicks: null, expiresAtCampaignMinute: 2003 }
+    }
+    expect(
+      planCarriedOverEffects({ effects: [effect], clockMinute: 2100, form: wornForm(effect.id) })
+    ).toEqual([
+      {
+        effect,
+        lifecycle: { ...effect.lifecycle, carriedCreatureForm: carriedForm }
+      }
+    ])
+  })
+
+  it('carries no form for an effect the Character does not wear', () => {
+    const effect = formEffect(0xc374, null)
+    expect(planCarriedOverEffects({ effects: [effect], clockMinute: 2000, form: null })).toEqual([])
+  })
+
+  it('has the next Run’s Character actor resume the form its carried effect holds', () => {
+    const effect = formEffect(0xc375, null)
+    const carried = {
+      ...effect,
+      lifecycle: {
+        schemaVersion: 1 as const,
+        remainingTicks: null,
+        carriedCreatureForm: carriedForm
+      }
+    }
+    const actor = characterActor({ id: testUuid(0xc376), characterId: CHARACTER_ID })
+    expect(resumeCharacterForm(actor, [carried]).form).toEqual({
+      effectId: effect.id,
+      excessDamageCarriesOver: true,
+      ...carriedForm
+    })
+    expect(resumeCharacterForm(actor, [effect])).toBe(actor)
+  })
 
   it('expires a timed grant 6 seconds per remaining round after the clock, in whole minutes', () => {
     const [ten, eleven] = [grant(0xc360, 10), grant(0xc361, 11)]

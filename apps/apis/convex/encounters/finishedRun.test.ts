@@ -2,6 +2,12 @@
 import { createFunctionHandle } from 'convex/server'
 import { expect, it } from 'vitest'
 import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
+import {
+  readRunActors,
+  readRunActorWithRow,
+  readRunState,
+  writeRunActor
+} from '@artificer-toolkit/encounter-persistence/documents'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 import { plannedModifierGrant } from '@artificer-toolkit/rules-runtime/testing/modifierGrantFixture'
 import { plannedTimedCondition } from '@artificer-toolkit/rules-runtime/testing/plannedTimedCondition'
@@ -657,4 +663,137 @@ it('refuses a carried grant whose caster column disagrees with its lifecycle (SP
       )
     )
   ).rejects.toThrow()
+}, 60_000)
+
+const wornForm = (effectId: string, currentHitPoints: number) => ({
+  effectId,
+  excessDamageCarriesOver: true,
+  sourceId: crypto.randomUUID(),
+  sourceRevision: 1,
+  snapshot: { kind: 'CREATURE', label: 'Giant Ape' },
+  currentHitPoints,
+  maxHitPoints: 157,
+  tempHitPoints: 0
+})
+
+it('carries a Character’s creature form out of the Run with its hit points, and the next Run’s actor wears it again (D99, SPELLS-28.T4b)', async () => {
+  const fixture = await setupConcentration('PROMPT')
+  const { owner, run, actor, target, character, t } = fixture
+  await owner.caller.mutation(api.campaigns.clock.initialize, {
+    campaignId: fixture.campaign.id,
+    commandId: crypto.randomUUID(),
+    expectedVersion: 0,
+    day: 2,
+    minuteOfDay: 480,
+    dawnMinute: 360,
+    duskMinute: 1080
+  })
+  const characterOwner = { kind: 'CHARACTER', characterId: character.id } as const
+  const effect = await t.run(async (ctx) => {
+    const { definition } = plannedModifierGrant({
+      encounterId: run.id,
+      sourceActorId: actor.id,
+      holderActorId: target.id,
+      lifecycle: {},
+      rounds: 30,
+      lifetimeScope: 'OWNER'
+    })
+    const creatureForm = {
+      kind: 'CREATURE_FORM' as const,
+      formOutcomeId: 'form',
+      creatureId: crypto.randomUUID(),
+      excessDamageCarriesOver: true
+    }
+    if (definition.schemaVersion !== 2) throw new Error('Expected a version two definition.')
+    const created = await createActiveRuleEffectStore({
+      db: createConvexEncounterStore(ctx)
+    }).create({
+      id: crypto.randomUUID(),
+      owner: characterOwner,
+      definition: { ...definition, stateContributions: [creatureForm] },
+      lifecycle: { schemaVersion: 1, remainingTicks: 25 }
+    })
+    const store = { db: createConvexEncounterStore(ctx) }
+    const runRow = await ctx.db
+      .query('encounterRuns')
+      .withIndex('by_publicId', (q) => q.eq('id', run.id))
+      .unique()
+    if (!runRow) throw new Error('Missing Run.')
+    const { row, actor: stored } = await readRunActorWithRow(store, readRunState(runRow), target.id)
+    if (stored.kind !== 'CHARACTER') throw new Error('Expected the Character actor.')
+    await writeRunActor(store, row._id, { ...stored, form: wornForm(created.id, 40) })
+    return created
+  })
+  await attachFixtureRoom(t, fixture.campaign.id)
+  const live = await owner.caller.query(api.encounters.projectionReads.get, { encounterId: run.id })
+  await executeInRoom(owner.caller, {
+    command: {
+      type: 'COMPLETE',
+      encounterId: run.id,
+      commandId: crypto.randomUUID(),
+      expectedVersion: live.version
+    }
+  })
+  await checkpointLiveRoom(fixture.campaign.id)
+
+  const carried = await t.run(async (ctx) =>
+    createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) }).list(characterOwner)
+  )
+  expect(carried.map(({ id, lifecycle }) => ({ id, lifecycle }))).toEqual([
+    {
+      id: effect.id,
+      lifecycle: {
+        schemaVersion: 1,
+        remainingTicks: null,
+        expiresAtCampaignMinute: 1440 + 480 + 3,
+        carriedCreatureForm: expect.objectContaining({ currentHitPoints: 40, maxHitPoints: 157 })
+      }
+    }
+  ])
+
+  const blueprintId = await t.run(async (ctx) => {
+    const runRow = await ctx.db
+      .query('encounterRuns')
+      .withIndex('by_publicId', (q) => q.eq('id', run.id))
+      .unique()
+    if (!runRow) throw new Error('Missing Run.')
+    return readRunState(runRow).blueprintId
+  })
+  const next = await owner.caller.mutation(api.encounters.runs.create, {
+    campaignId: fixture.campaign.id,
+    blueprintId,
+    commandId: crypto.randomUUID()
+  })
+  const resumed = await t.run(async (ctx) => {
+    const nextRow = await ctx.db
+      .query('encounterRuns')
+      .withIndex('by_publicId', (q) => q.eq('id', next.id))
+      .unique()
+    if (!nextRow) throw new Error('Missing next Run.')
+    const state = readRunState(nextRow)
+    const actors = await readRunActors({ db: createConvexEncounterStore(ctx) }, state)
+    return actors.find((candidate) => candidate.kind === 'CHARACTER')
+  })
+  expect(resumed?.form).toMatchObject({
+    effectId: effect.id,
+    excessDamageCarriesOver: true,
+    currentHitPoints: 40,
+    maxHitPoints: 157
+  })
+
+  // Ending the form on the Sheet removes it with no carry-over left behind.
+  await t.run(async (ctx) => {
+    const store = createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) })
+    const [current] = await store.list(characterOwner)
+    if (!current) throw new Error('Missing carried form effect.')
+    await store.deleteCas({
+      id: current.id,
+      owner: characterOwner,
+      expectedVersion: current.version
+    })
+  })
+  const afterSheetEnd = await t.run(async (ctx) =>
+    createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) }).list(characterOwner)
+  )
+  expect(afterSheetEnd).toEqual([])
 }, 60_000)
