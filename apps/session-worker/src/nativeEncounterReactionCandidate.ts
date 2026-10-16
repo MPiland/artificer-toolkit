@@ -9,9 +9,9 @@ import type { evaluateNativeLiveActionEconomy } from './nativeEncounterActionEco
 type Prepared = Awaited<ReturnType<typeof prepareEncounterActionMechanics>>
 
 /** A reaction its holder could use now, prepared against its reactor's own facts. */
-export type NativeReaction<Candidate> = {
+export type NativeReaction<Candidate, Spend = Prepared> = {
   candidate: Candidate
-  prepared: Prepared
+  prepared: Spend
   economy: NonNullable<Awaited<ReturnType<typeof evaluateNativeLiveActionEconomy>>['economy']>
 }
 

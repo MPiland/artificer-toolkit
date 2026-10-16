@@ -18,6 +18,7 @@ import {
 import { writePendingSnapshot } from './pendingSnapshots.js'
 import { readLiveEncounterActionAdmission } from './liveActionAdmission.js'
 import { insertActionEvidenceReceipt } from './actionEvidenceReceipt.js'
+import { castReactionAnswerContinues } from './actionPending.js'
 import { nativeActionPendingResult } from './actionPendingResult.js'
 import { changedFields, readRunActors } from './documents.js'
 import { presentEncounterResultForMember } from './resultPresentation.js'
@@ -139,7 +140,12 @@ export async function persistEncounterActionPending(
       (resume &&
         (snapshot.occurrenceId !== resume.occurrence.id ||
           snapshot.applicationContext.currentnessChecksum !==
-            resume.pending.context.currentnessChecksum)) ||
+            resume.pending.context.currentnessChecksum ||
+          !castReactionAnswerContinues(
+            resume.pending.context,
+            input.response,
+            snapshot.applicationContext
+          ))) ||
       input.command.optionalCombatIntent != null
     )
       throw new Error('Live Session pending action root mismatch.')

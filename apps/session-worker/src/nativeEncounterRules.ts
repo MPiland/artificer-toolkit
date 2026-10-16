@@ -717,19 +717,19 @@ export async function planNativeLiveEncounterAction(
   if (
     triggerLevel !== null &&
     (!snapshot || castAnswer) &&
+    // Range is read from the Scene, so a cast made without one offers no reaction.
+    command.sceneContext &&
     actors.some((actor) => actor.kind === 'CHARACTER' && actor.id !== prepared.actor.id)
   ) {
-    const castScene = command.sceneContext
-      ? await capture({
-          kind: 'ACTION_AREA_SCENE',
-          command: {
-            actorId: command.actorId,
-            sceneId: command.sceneContext.sceneId,
-            expectedSceneVersion: command.sceneContext.expectedSceneVersion
-          }
-        })
-      : null
-    if (castScene && castScene.kind !== 'ACTION_AREA_SCENE')
+    const castScene = await capture({
+      kind: 'ACTION_AREA_SCENE',
+      command: {
+        actorId: command.actorId,
+        sceneId: command.sceneContext.sceneId,
+        expectedSceneVersion: command.sceneContext.expectedSceneVersion
+      }
+    })
+    if (castScene.kind !== 'ACTION_AREA_SCENE')
       throw new Error('Action Scene context is unavailable.')
     const cast = await advanceNativeCastReactions({
       runtime: executionOptions.runtime,
@@ -740,7 +740,7 @@ export async function planNativeLiveEncounterAction(
         actors,
         caster: prepared.actor,
         triggerLevel,
-        scene: castScene?.context ?? null,
+        scene: castScene.context,
         loadTarget,
         prepareReaction: (reactor, reactorTarget, actionId) =>
           prepareEncounterActionMechanics({

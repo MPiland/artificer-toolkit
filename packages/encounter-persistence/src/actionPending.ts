@@ -83,6 +83,28 @@ export async function canControlEvidenceRoller(
 
 type NativeActionPending = Awaited<ReturnType<typeof readNativeActionPending>>
 
+type CastReactionOffer = { declinedReactorActorIds: readonly string[] } | null
+
+/**
+ * A held cast leaves its pause only by a decline; using the reaction commits a countered cast instead.
+ * When another reactor is offered next, the declined list is exactly the earlier declines plus the answerer.
+ */
+export function castReactionAnswerContinues(
+  previous: { rollerActorId?: string; castReaction?: CastReactionOffer },
+  response: { resolution: { kind: string } } | null | undefined,
+  next: { castReaction?: CastReactionOffer }
+): boolean {
+  if (!previous.castReaction) return true
+  if (response?.resolution.kind !== 'DECLINE') return false
+  if (!next.castReaction) return true
+  const expected = new Set([
+    ...previous.castReaction.declinedReactorActorIds,
+    ...(previous.rollerActorId ? [previous.rollerActorId] : [])
+  ])
+  const declined = next.castReaction.declinedReactorActorIds
+  return declined.length === expected.size && declined.every((actorId) => expected.has(actorId))
+}
+
 /** The use options a paused action offers its decider: a Legendary Resistance, or every reaction (innermost first). */
 export function offeredDecisionOptionIds(context: {
   legendaryResistance?: { resistance: { useOptionId: string } } | null

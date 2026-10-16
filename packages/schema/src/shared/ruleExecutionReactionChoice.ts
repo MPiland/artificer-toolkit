@@ -205,6 +205,17 @@ export const encounterCounteredCastReceiptDtoSchema: z.ZodMiniType<EncounterCoun
               path: ['spellCastConsumption'],
               message: 'The reactor slot receipt must match its Character and stream version.'
             })
+          const economy = value.actionEconomyTransition
+          if (
+            economy.definitionId !== value.reaction.allowanceDefinitionId ||
+            economy.beforeUsed !== value.reaction.allowanceBeforeUsed ||
+            economy.maximum !== value.reaction.allowanceMaximum
+          )
+            context.addIssue({
+              code: 'custom',
+              path: ['actionEconomyTransition'],
+              message: 'The reactor allowance spend must be the one the reaction pinned.'
+            })
         })
       )
   )

@@ -124,7 +124,7 @@ export function roomInputsResponse(
           ...assignments.map((assignment) =>
             document(
               'campaignCharacterAssignments',
-              `fixture:assignment:${assignment.userId}`,
+              `fixture:assignment:${assignment.characterId}`,
               campaignStoredAssignmentSchema.parse({
                 campaignId,
                 ...assignment,

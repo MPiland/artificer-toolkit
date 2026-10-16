@@ -20,8 +20,10 @@ import {
   isEncounterActorDefeated
 } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import { advanceNativeActionGraphs } from '@artificer-toolkit/rules-runtime/encounterActionExecution'
-import type { prepareEncounterActionMechanics } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
-import { planNativeEncounterAreaSourceSpend } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPlan'
+import {
+  planNativeEncounterAreaSourceSpend,
+  type NativeEncounterActionMechanicsInput
+} from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPlan'
 import { buildEncounterCounteredCastStoredExecution } from '@artificer-toolkit/rules-runtime/encounterActionReceipt'
 import { overridesActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionRuleWarnings'
 import { encounterActionSourceLabel } from '@artificer-toolkit/rules-runtime/encounterActionSources'
@@ -55,7 +57,8 @@ import {
 } from './nativeEncounterReactionCandidate.js'
 import type { prepareNativeLiveMovementTarget } from './nativeEncounterTargets.js'
 
-type Prepared = Awaited<ReturnType<typeof prepareEncounterActionMechanics>>
+/** The preparation shape the source spend plans against. */
+type Prepared = NativeEncounterActionMechanicsInput['prepared']
 type ReactorTarget = Awaited<ReturnType<typeof prepareNativeLiveMovementTarget>>['target']
 type CastScene = Extract<
   LiveSessionEncounterRulesResponse,
@@ -63,7 +66,7 @@ type CastScene = Extract<
 >['context']
 
 /** A reaction its holder could use to counter the cast being resolved, prepared as it stands now. */
-export type NativeCastReaction = NativeReaction<EncounterCastReactionCandidate>
+export type NativeCastReaction = NativeReaction<EncounterCastReactionCandidate, Prepared>
 
 /**
  * The first creature, by actor id, that holds a reaction able to counter this cast, with its menu
@@ -79,8 +82,8 @@ export function discoverNativeCastReactions(input: {
   caster: EncounterRunActorState
   /** The level the cast is cast at; a counter must be cast at least that high. */
   triggerLevel: number
-  /** The Scene the cast is made in; null when the action carries none, leaving range unchecked. */
-  scene: CastScene | null
+  /** The Scene the cast is made in; range is measured on it. */
+  scene: CastScene
   loadTarget(actor: EncounterRunActorState): Promise<ReactorTarget>
   prepareReaction(
     reactor: EncounterRunActorState,
@@ -92,12 +95,10 @@ export function discoverNativeCastReactions(input: {
   ) => ReturnType<LiveCaptureReads['encounterRules']>
 }) {
   const { state, caster, scene } = input
-  const grid =
-    scene &&
-    encounterSceneGridPolicyRegistry.resolveEffectiveGrid({
-      encounter: state,
-      sceneGrid: scene.sceneGrid
-    })
+  const grid = encounterSceneGridPolicyRegistry.resolveEffectiveGrid({
+    encounter: state,
+    sceneGrid: scene.sceneGrid
+  })
   return async (filter: {
     declinedReactorActorIds: readonly string[]
     /** Only this reaction of this creature: the offer that is being answered. */
@@ -113,8 +114,8 @@ export function discoverNativeCastReactions(input: {
       )
       .sort((left, right) => left.id.localeCompare(right.id))
     for (const reactor of reactors) {
-      const reactorToken = scene?.tokens.find((token) => token.actorId === reactor.id)
-      if (scene && !reactorToken) continue
+      const reactorToken = scene.tokens.find((token) => token.actorId === reactor.id)
+      if (!reactorToken) continue
       const reactorTarget = await input.loadTarget(reactor)
       if (isEncounterActorDefeated(reactor, deadCharacterIdsOfTargets([reactorTarget]))) continue
       const reactions: NativeCastReaction[] = []
@@ -134,10 +135,7 @@ export function discoverNativeCastReactions(input: {
           actor: prepared.actor,
           target: prepared.target,
           targetPolicy: prepared.targetPolicy,
-          sceneContext:
-            scene && grid && reactorToken
-              ? { grid, sourceToken: reactorToken, targetToken: scene.sourceToken }
-              : null,
+          sceneContext: { grid, sourceToken: reactorToken, targetToken: scene.sourceToken },
           makesAttackRoll: prepared.makesAttackRoll
         })
         if (!warnings || warnings.some(({ code }) => code === 'TARGET_OUT_OF_RANGE')) continue
