@@ -319,46 +319,70 @@ const PATH_LIFECYCLE_HOLDER_END_NODE_MAP: NodeMap<NonNullable<PathLifecycleAutho
 
 const PATH_LIFECYCLE_END_TRIGGER_NODE_MAP: NodeMap<
   NonNullable<PathLifecycleAuthored['endOnTriggers']>[number]
-> = pathLifecycleEndTrigger.define('pathLifecycleEndTrigger', ({ map, nodes, data }) => {
-  const { selectSingle, selectMulti } = nodes
-  const { table } = data
+> = pathLifecycleEndTrigger.define(
+  'pathLifecycleEndTrigger',
+  ({ map, nodes, data, cond, logic }) => {
+    const { selectSingle, selectMulti } = nodes
+    const { table } = data
+    const event = cond.local().field(['event'])
+    const isDamageTaken = event.eq('DAMAGE_TAKEN')
+    const isAgainstEnemy = logic.or([event.eq('ATTACK_ROLL'), event.eq('SPELL_CAST')])
 
-  map
-    .set(
-      'event',
-      selectSingle(
-        ['event'],
-        'Ends When',
-        {
-          kind: 'INLINE_OPTIONS',
-          options: [{ code: 'DAMAGE_TAKEN', label: 'The holder takes damage' }]
-        },
-        { requiredIf: true }
+    map
+      .set(
+        'event',
+        selectSingle(
+          ['event'],
+          'Ends When',
+          {
+            kind: 'INLINE_OPTIONS',
+            options: [
+              { code: 'DAMAGE_TAKEN', label: 'The holder takes damage' },
+              { code: 'ATTACK_ROLL', label: 'The holder attacks an enemy' },
+              { code: 'SPELL_CAST', label: 'The holder casts a spell at an enemy' }
+            ]
+          },
+          { requiredIf: true }
+        )
       )
-    )
-    .set(
-      'by',
-      selectSingle(
-        ['by'],
-        'Damage From',
-        {
-          kind: 'INLINE_OPTIONS',
-          options: [
-            { code: 'ANYONE', label: 'Anyone' },
-            { code: 'SOURCE_SIDE', label: 'The effect source or its allies' }
-          ]
-        },
-        { requiredIf: true }
+      .set(
+        'by',
+        selectSingle(
+          ['by'],
+          'Damage From',
+          {
+            kind: 'INLINE_OPTIONS',
+            options: [
+              { code: 'ANYONE', label: 'Anyone' },
+              { code: 'SOURCE_SIDE', label: 'The effect source or its allies' }
+            ]
+          },
+          { requiredIf: isDamageTaken, showIf: isDamageTaken }
+        )
       )
-    )
-    .set(
-      'damageTypeIds',
-      selectMulti(['damageTypeIds'], 'Damage Types (any when empty)', {
-        kind: 'DATA',
-        relationship: table('damage_types', { selectColumns: ['id', 'label', 'description'] })
-      })
-    )
-})
+      .set(
+        'damageTypeIds',
+        selectMulti(
+          ['damageTypeIds'],
+          'Damage Types (any when empty)',
+          {
+            kind: 'DATA',
+            relationship: table('damage_types', { selectColumns: ['id', 'label', 'description'] })
+          },
+          { showIf: isDamageTaken }
+        )
+      )
+      .set(
+        'against',
+        selectSingle(
+          ['against'],
+          'Against',
+          { kind: 'INLINE_OPTIONS', options: [{ code: 'ENEMY', label: 'An enemy of the holder' }] },
+          { requiredIf: isAgainstEnemy, showIf: isAgainstEnemy }
+        )
+      )
+  }
+)
 
 const PATH_LIFECYCLE_NODE_MAP: NodeMap<PathLifecycleAuthored> = pathLifecycle.define(
   'pathLifecycle',

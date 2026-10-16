@@ -1505,11 +1505,15 @@ function timedConditionPlan(
 function canonicalEndTriggers(
   triggers: NonNullable<PathLifecycleAuthored['endOnTriggers']>
 ): ActiveEffectEndTrigger[] {
-  const compiled = triggers.map(({ event, by, damageTypeIds }) => ({
-    event,
-    by,
-    damageTypeIds: damageTypeIds?.length ? [...new Set(damageTypeIds)].sort() : null
-  }))
+  const compiled = triggers.map((trigger): ActiveEffectEndTrigger => {
+    if (trigger.event !== 'DAMAGE_TAKEN') return trigger
+    const { event, by, damageTypeIds } = trigger
+    return {
+      event,
+      by,
+      damageTypeIds: damageTypeIds?.length ? [...new Set(damageTypeIds)].sort() : null
+    }
+  })
   const keyed = new Map(compiled.map((trigger) => [JSON.stringify(trigger), trigger]))
   return [...keyed.entries()].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)).map(([, t]) => t)
 }

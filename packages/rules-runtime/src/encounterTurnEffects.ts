@@ -49,6 +49,7 @@ import type { RulesRuntimeService } from './rulesRuntimeService.js'
 import {
   isTurnEffectEligible,
   requireTurnMaintainedStates,
+  turnEffectDamageEnded,
   turnEffectOwner,
   turnEffectRetainedConditions,
   turnEffectSelectionChecksum,
@@ -341,6 +342,9 @@ async function evaluateEncounterTurnEffects(input: {
   const executions: TurnExecution[] = []
   const applications: CharacterRuleActionApplication[] = []
   const expired = new Set<string>()
+  // The candidates keep their lifecycle; an effect an earlier execution's damage ended is gone.
+  const damageExcluded = new Set(input.candidates.map(({ id }) => id))
+  const dispositions = new Map(input.actors.map(({ id, disposition }) => [id, disposition]))
   let state = executionState(input.target)
   for (const [ordinal, effect] of input.candidates.entries()) {
     if (effect.definition.frozenGraph.source.gameSystemId !== input.state.gameSystemId)
@@ -499,6 +503,16 @@ async function evaluateEncounterTurnEffects(input: {
         })
       }
     }
+    const damageEnded = turnEffectDamageEnded({
+      effect,
+      holderActorId: input.target.actor.id,
+      held: input.effects,
+      excluded: damageExcluded,
+      applications: result.applications,
+      dispositions
+    })
+    for (const { id } of damageEnded.endedEffects) damageExcluded.add(id)
+    const settled = { ...result, applications: [...result.applications, ...damageEnded.releases] }
     const { execution, ownConditions } = completeExecution({
       ordinal,
       boundary: input.boundary,
@@ -506,12 +520,12 @@ async function evaluateEncounterTurnEffects(input: {
       effect,
       state,
       retainedConditionIds: turnEffectRetainedConditions(effect, input.effects, expired),
-      result
+      result: settled
     })
     if (existing && !same(existing, execution))
       throw new Error('Retained turn effect execution is stale.')
     executions.push(execution)
-    applications.push(...result.applications)
+    applications.push(...settled.applications)
     const after = execution.targetTransition.after
     state = {
       current: after.currentHitPoints,
