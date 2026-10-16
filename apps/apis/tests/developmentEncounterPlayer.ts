@@ -304,6 +304,24 @@ export async function verifyEncounterPlayer({
     campaignId,
     title: 'Player journey session'
   })
+  // Snapshot builds run a moment after each publish; the room refuses to activate on a stale head.
+  const snapshotDeadline = Date.now() + 60_000
+  for (;;) {
+    const { sources, campaign: campaignHead } = await player.query(
+      api.contentSnapshots.manifest.manifest,
+      { systemId: campaign.gameSystemId, characterId }
+    )
+    const heads = [...sources.map((source) => source.head), campaignHead?.head]
+    // A scope with no content has no head; the room reads it as empty.
+    if (heads.every((head) => !head || head.builtRevision === head.revision)) break
+    assert.ok(
+      Date.now() < snapshotDeadline,
+      `Content snapshot heads did not finish building: ${JSON.stringify(
+        heads.map((head) => head && { revision: head.revision, built: head.builtRevision })
+      )}`
+    )
+    await new Promise((resolve) => setTimeout(resolve, 500))
+  }
   await checkpoint()
 
   const execute = (command: EncounterExecuteInput['command']) =>
@@ -349,6 +367,9 @@ export async function verifyEncounterPlayer({
     const bite = choices?.actions.find((action) => action.label.startsWith('Bite'))
     if (!bite) throw new Error('The Wolf has no Bite action choice.')
     const { gmRollVisibility } = await owner.query(api.account.rollPreferences, {})
+    const header = await owner.query(api.scenes.recipientReads.header, {
+      sceneId: preparedScene.liveSceneId
+    })
     const issued = await execute(
       resolveEncounterActionInputDtoSchema.parse({
         type: 'RESOLVE_ACTION',
@@ -358,7 +379,12 @@ export async function verifyEncounterPlayer({
         actorId: wolf.id,
         target: { kind: 'ACTOR', actorId: hero.id },
         actionId: bite.id,
-        sceneContext: null,
+        sceneContext: {
+          sceneId: preparedScene.liveSceneId,
+          expectedSceneVersion: header.version,
+          sourceTokenId: wolfPlacement.tokenId,
+          targetTokenId: heroPlacement.tokenId
+        },
         visibility: gmRollVisibility,
         acknowledgedWarnings: [],
         acceptedWieldConflict: null,

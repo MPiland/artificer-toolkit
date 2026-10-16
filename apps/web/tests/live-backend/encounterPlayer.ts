@@ -129,10 +129,19 @@ export async function verifyEncounterPlayerBrowser(
         await page.getByRole('button', { name: 'Pick on map', exact: true }).click()
         await expect(page.getByRole('dialog', { name: 'Pick a target' })).toBeVisible()
         const wolf = await pointOnMap(input.wolf.x + 12, input.wolf.y + 12)
-        await page.mouse.click(wolf.x, wolf.y)
+        // Hovering first lets the renderer hit-test the token; it then names the Wolf and its distance.
+        await page.mouse.move(wolf.x, wolf.y)
         await expect(
-          page.getByRole('button', { name: 'Target ' + input.wolf.label })
-        ).toHaveAttribute('aria-pressed', 'true')
+          page.getByRole('status').filter({ hasText: input.wolf.label + ': ' })
+        ).toContainText(/\d+(\.\d)? ft/)
+        // The Actions drawer's overlay lingers while it closes, and a press on it would dismiss the drawer.
+        await expect(page.getByRole('dialog', { name: 'Actions', exact: true })).toBeHidden()
+        await page.mouse.click(wolf.x, wolf.y)
+        // A map pick closes the targeting drawer and fills the action's Target.
+        await expect(page.getByRole('dialog', { name: 'Pick a target' })).toBeHidden()
+        await expect(page.getByRole('combobox', { name: 'Target', exact: true })).toHaveValue(
+          input.wolf.label
+        )
         await page.screenshot({
           caret: 'initial',
           path: input.evidenceDirectory + '/player-wolf-picked-from-map.png',
@@ -175,8 +184,9 @@ export async function verifyEncounterPlayerBrowser(
         await expect(page.getByText('Area direction', { exact: true })).toBeVisible()
         await page.getByRole('button', { name: 'Aim on map', exact: true }).click()
         await expect(page.getByText('Area direction', { exact: true })).toBeHidden()
-        // Press on the caster and drag toward the Wolf: the renderer snaps the origin to the caster's edge.
-        const from = await pointOnMap(input.hero.x + 10, input.hero.y + 12)
+        // Press on the caster's side facing the Wolf and drag toward it: the renderer snaps the origin
+        // to the caster's nearest edge, and the aim is only valid when it points away from the token.
+        const from = await pointOnMap(input.hero.x + 40, input.hero.y + 25)
         const toward = await pointOnMap(input.wolf.x + 12, input.wolf.y + 12)
         await page.mouse.move(from.x, from.y)
         await page.mouse.down()
