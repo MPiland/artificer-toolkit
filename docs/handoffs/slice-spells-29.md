@@ -10,6 +10,13 @@ Base: `3ce5883f1` (SPELLS-19.T2, merged locally), branch `claude/bold-chaplygin-
 - Ledger task text: "A condition application carries an optional source actor; Frightened's check and attack contributors read line of sight to it; the movement planner warns on a move that ends closer; SRD Fear and every SRD action that frightens authors the source; authoring parity from core options."
 - Out of scope: the flee-from-source rider (Dash away, turn-end save) is SPELLS-29.T2.
 
+## Scope (T1a, closes AC 29.1 with T1)
+
+- Ruling (orchestrator, 2026-10-16, ledger `1c8a06c65`): task SPELLS-29.T1a on this branch; T1 and T1a merge together once `ci/spells-29-t1` is green. Red on `ci/spells-29-t1a-red`, failing on the compile assertions.
+- A save whose `ON_SAVE_FAIL` applies a condition with a duration (under Concentration or not), with no repeat save, compiles in the dnd5e System compiler as the save TEST/OUTCOME plus an active-effect plan that owns the condition for its duration, single-target and area. Generic, authorable from core options: no Fear- or Gorgon-specific kind.
+- Proof: real SRD Fear (area, Concentration, source recorded, Worker room journey `nativeRoomFearSource.test.ts`), Dominate Person (single target, Concentration), Charm Person (single target, 1 hour, no Concentration) and a homebrew Fear-shaped spell (Poisoned, no Concentration) on the real cast compile path.
+- **Gorgon substitution (proposed to the orchestrator):** the ruling named the Gorgon's `ON_SAVE_FAIL` Restrained. As authored it has no duration and no Concentration, so T1a's shape excludes it. Its SRD rule is a repeat save then Petrified, which SPELLS-19.T3 owns ("repeat save authored, 30 ft cone"), and `srdBreathWeaponAreas.test.ts` pins it non-compiling until then. Dominate Person and Charm Person are the real single-target rows instead.
+
 ## Findings
 
 - A CONDITION outcome has no optional fields today (`packages/schema/src/effects/condition.ts`); the compiler's four condition plans (`effectActionCompiler.ts` `repeatingImmediateFollowUpSavePlan`, `timedImmediateConditionPlan`, `timedConditionPlan`, `repeatingDirectFollowUpSavePlan`) build `conditionContribution`, and `prepareRecurringActiveEffect` turns it into a `CONDITION_OWNERSHIP` contribution. The active effect's origin already carries the acting actor (`origin.sourceActorId`).
@@ -32,6 +39,8 @@ Base: `3ce5883f1` (SPELLS-19.T2, merged locally), branch `claude/bold-chaplygin-
 - [x] Movement warning (schema, room `prepareNativeLiveMovement` initial branch, web `CampaignVttStage` "Do it anyway"). Forced moves never warn; teleports do (a willing move).
 - [x] Docs: rules-runtime.md condition mechanics; D94 limits note; ADR 0034 movement line; `D-pending-spells-29`; Deferred edge cases.
 - [ ] Red CI run, green Tests + Live backend, opus review, triage.
+- [ ] T1a red: `characterSpellCastActions.test.ts` "the timed condition a failed save leaves with no repeat save (SPELLS-29.T1a)" on `ci/spells-29-t1a-red`.
+- [ ] T1a compiler: timed direct-save condition plan joins the save's TEST/OUTCOME (`effectActionCompiler.ts`).
 
 ## Log
 
@@ -77,3 +86,4 @@ Base: `3ce5883f1` (SPELLS-19.T2, merged locally), branch `claude/bold-chaplygin-
   - SPELLS-19.T2 proved the area Concentration with a "Fright Sphere" fixture that has a repeating save, not real Fear. The Gorgon's lone `ON_SAVE_FAIL` Restrained is the same unsupported shape (slice-spells-19.md).
   - The Worker room journey, which casts real SRD Fear, has not run yet: every Packages failure stopped the job before the Worker step. It will fail the same way.
   - Escalated to the orchestrator: closing the gap means a new compiler shape, a timed-condition plan joining a save's TEST/OUTCOME execution, single-target and area.
+- 2026-10-16: ruling A, task SPELLS-29.T1a (see Scope T1a). Options B (a separate slice) and C (narrowing the AC) were rejected. T1a red tests written in `characterSpellCastActions.test.ts`; pushed to `ci/spells-29-t1a-red`.

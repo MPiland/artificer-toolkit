@@ -45,6 +45,8 @@ const SHIELD = spell('Shield')
 const SHIELD_OF_FAITH = spell('Shield of Faith')
 const INVISIBILITY = spell('Invisibility')
 const FEAR = spell('Fear')
+const CHARM_PERSON = spell('Charm Person')
+const DOMINATE_PERSON = spell('Dominate Person')
 const MEND = { ...fixedHealSpell(), id: '00000000-0000-4000-8000-00000000c0de', label: 'Mend' }
 
 /** The cast candidate of a spell at a level, the way the policy lists it. */
@@ -175,6 +177,21 @@ const SCORCHED_INVISIBILITY = (() => {
   ]
   return { ...authored, id: '00000000-0000-4000-8000-00000000c003', label: 'Scorched Invisibility' }
 })()
+const POISONED_ID = SRD_CONDITION_TYPES.find(({ code }) => code === 'POISONED')!.id
+/** A homebrew spell built from Fear's core options: Poisoned for 1 minute, recording its caster, no Concentration. */
+const DREAD_MIASMA: SpellAuthored = (() => {
+  const authored = structuredClone(FEAR)
+  const path = authored.effects?.[0]?.paths?.[0]
+  const outcome = path && 'resultBlock' in path ? path.resultBlock.outcomes?.[0] : undefined
+  if (outcome?.effectKind !== 'CONDITION') throw new Error('Fear fails into a condition.')
+  outcome.conditionId = POISONED_ID
+  return {
+    ...authored,
+    id: '00000000-0000-4000-8000-00000000c004',
+    label: 'Dread Miasma',
+    attributes: []
+  }
+})()
 const authoredById = new Map(
   [
     SCORCHED_INVISIBILITY,
@@ -190,6 +207,9 @@ const authoredById = new Map(
     SHIELD_OF_FAITH,
     INVISIBILITY,
     FEAR,
+    CHARM_PERSON,
+    DOMINATE_PERSON,
+    DREAD_MIASMA,
     GAPPED_HEAL,
     LATE_HEAL
   ].map((entry) => [entry.id, entry])
@@ -637,6 +657,58 @@ describe('the timed condition a cast owns with no save', () => {
       { event: 'DAMAGE_TAKEN', by: 'SOURCE_SIDE', damageTypeIds: [FIRE_TYPE_ID] }
     ])
   })
+})
+
+describe('the timed condition a failed save leaves with no repeat save (SPELLS-29.T1a)', () => {
+  const conditionId = (code: string) => SRD_CONDITION_TYPES.find((entry) => entry.code === code)?.id
+
+  it.each([
+    {
+      authored: FEAR,
+      condition: 'FRIGHTENED',
+      turns: 10,
+      recordsSource: true,
+      concentration: true
+    },
+    {
+      authored: DOMINATE_PERSON,
+      condition: 'CHARMED',
+      turns: 10,
+      recordsSource: false,
+      concentration: true
+    },
+    {
+      authored: CHARM_PERSON,
+      condition: 'CHARMED',
+      turns: 600,
+      recordsSource: false,
+      concentration: false
+    },
+    {
+      authored: DREAD_MIASMA,
+      condition: 'POISONED',
+      turns: 10,
+      recordsSource: true,
+      concentration: false
+    }
+  ])(
+    'runs $authored.label as a save whose failure applies $condition, owned for $turns turns',
+    ({ authored, condition, turns, recordsSource, concentration }) => {
+      const compiled = compiledCast(authored)
+      const plan = compiled?.executionPlan
+      expect(plan?.kind).toBe('TEST_OUTCOME')
+      if (plan?.kind !== 'TEST_OUTCOME') return
+      expect(plan.outcomes.map((outcome) => outcome.pathCode)).toEqual(['ON_SAVE_FAIL'])
+      expect(compiled?.activeEffectPlan).toMatchObject({
+        recurrenceStage: 'END_OF_TURN',
+        initialRemaining: turns,
+        conditionContribution: { conditionId: conditionId(condition), recordsSource }
+      })
+      expect(compiled?.activeEffectPlan?.maintenance?.definitionId ?? null).toBe(
+        concentration ? SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID : null
+      )
+    }
+  )
 })
 
 describe('the scaling heal a cast carries', () => {
