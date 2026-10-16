@@ -2,6 +2,7 @@ import {
   encounterRunActorStateSchema,
   type EncounterRunActorState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
+import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import { reusableDefinitionCurrentDtoSchema } from '@artificer-toolkit/schema/shared/reusableDefinitions'
 import {
   SRD_ACTION_ALLOWANCE_DEFINITION_ID,
@@ -22,6 +23,7 @@ import {
   revertEncounterAttackActionTransition
 } from '../encounterAttackAction.js'
 import type { CurrentReusableDefinitionSource } from '../ruleCapabilityStateService.js'
+import { copperSlowingEffect } from './antitoxinEffectFixture.js'
 import { evaluateSrdCharacter, srdFeature } from './dnd5eSrdCharacter.js'
 import { creatureActor, creatureEncounter, srdConditionId } from './encounterCreatureAction.js'
 
@@ -100,13 +102,18 @@ function evaluate(input: {
   automationMode?: 'ASSISTED' | 'MANUAL'
   /** `false` evaluates the actor as a Creature, which has no Character policy output. */
   character?: boolean
+  activeEffects?: ActiveRuleEffectRecord[]
 }) {
   const { state, movementTargets } = creatureEncounter([input.actor], input.automationMode)
   const creatureTarget = movementTargets.get(input.actor.id)
-  const target =
+  const withPolicy =
     creatureTarget && (input.character ?? true)
       ? { ...creatureTarget, effectiveRulePolicyOutput: fighterOutput }
       : creatureTarget
+  const target =
+    withPolicy && input.activeEffects
+      ? { ...withPolicy, activeEffects: input.activeEffects }
+      : withPolicy
   return evaluateEncounterAttackAction({
     actor: input.actor,
     state,
@@ -181,6 +188,34 @@ describe('an attack in the Attack action', () => {
     const result = await evaluate({ actor: actorWith({}), automationMode: 'MANUAL' })
     expect(result.attackAction).toBeNull()
     expect(result.slot).toBeNull()
+  })
+})
+
+describe('an attack under a cap on attacks per Attack action (Slowing Breath)', () => {
+  const slowed = () => [copperSlowingEffect({ id: WOLF_ID, holderActorId: ACTOR_ID })]
+
+  it('lowers the Extra Attack total to the cap', async () => {
+    const result = await evaluate({ actor: actorWith({}), activeEffects: slowed() })
+    expect(result.attackAction).toMatchObject({ total: 1 })
+    expect(result.slot).toEqual({ number: 1, total: 1 })
+  })
+
+  it('treats an Attack action opened for more attacks as full once the cap is reached', async () => {
+    const result = await evaluate({
+      actor: actorWith({ attacks: 1, actionUsed: 1 }),
+      activeEffects: slowed()
+    })
+    expect(result.economy).toMatchObject({ available: false, consumption: { beforeUsed: 1 } })
+    expect(result.slot).toBeNull()
+  })
+
+  it('never raises a Creature that has fewer attacks than the cap', async () => {
+    const result = await evaluate({
+      actor: actorWith({}),
+      character: false,
+      activeEffects: slowed()
+    })
+    expect(result.attackAction).toMatchObject({ total: 1 })
   })
 })
 

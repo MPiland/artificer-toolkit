@@ -70,3 +70,17 @@ describe('the modifier payload node map for SPEED and SENSE_RANGE (RELIABILITY-5
     expect(unit.source?.options?.map((option) => option.code)).toEqual([...LENGTH_UNIT_CODES])
   })
 })
+
+describe('the action-economy limits the Slowing Breath grants (SPELLS-19.T3d)', () => {
+  it('lets an author cap attacks per Attack action and make the Action and Bonus Action exclusive', () => {
+    expect(MODIFIER_KINDS_BY_DOMAIN.ATTACKS_PER_ATTACK_ACTION).toEqual(['SET_VALUE', 'CAP_VALUE'])
+    expect(MODIFIER_KINDS_BY_DOMAIN.ACTION_BONUS_ACTION_EXCLUSIVITY).toEqual(['ENABLE'])
+  })
+
+  it('asks for an amount on a cap and for none on the exclusivity switch', () => {
+    const cap = { valueDomainCode: 'ATTACKS_PER_ATTACK_ACTION', modifierKind: 'CAP_VALUE' }
+    const exclusive = { valueDomainCode: 'ACTION_BONUS_ACTION_EXCLUSIVITY', modifierKind: 'ENABLE' }
+    expect(shown('amount', cap)).toBe(true)
+    expect(shown('amount', exclusive)).toBe(false)
+  })
+})
