@@ -759,6 +759,7 @@ const browserProofModes = [
   'effects-browser',
   'area-browser',
   'hide-browser',
+  'player-browser',
   'account-deletion-browser',
   'builder-browser',
   'character-sheet-browser',
