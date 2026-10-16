@@ -466,8 +466,9 @@ export async function persistEncounterAreaCommit(
           creatureId
         })
       )
+    // RED STUB (SPELLS-28.T2): no creature ever enters its form.
     const enterForm =
-      formEffect && creatureId !== null
+      formEffect && creatureId !== null && Date.now() < 0
         ? actorFormEntry(formEffect, await formCreatures.get(creatureId)!)
         : undefined
     const mechanics = await callbacks.applyMechanics({
