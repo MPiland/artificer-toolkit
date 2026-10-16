@@ -119,7 +119,6 @@ import { authoredCheckOf, planNativeLiveCheckAction } from './nativeCheckAction.
 import { planNativeLiveConcealmentCheckAction } from './nativeConcealmentCheck.js'
 import { planNativeLiveEncounterSettlement } from './nativeEncounterSettlement.js'
 import { planNativeLiveEncounterActorsAction } from './nativeEncounterActorsRules.js'
-import { planNativeLiveEncounterAttackSquare } from './nativeEncounterAttackSquare.js'
 import {
   discoverNativeLegendaryResistance,
   planNativeLiveEncounterAreaAction,
@@ -319,12 +318,10 @@ export async function planNativeLiveEncounterAction(
       message: DOMAIN_REJECTION_MESSAGES.ASSISTED_ONLY
     })
 
-  const { actors, activeEffectsByActorId, deadCharacterIds } = await readNativeLiveActorsAndEffects(
-    {
-      state,
-      capture
-    }
-  )
+  const { actors, activeEffectsByActorId } = await readNativeLiveActorsAndEffects({
+    state,
+    capture
+  })
 
   async function loadTarget(
     actor: EncounterRunActorState,
@@ -350,10 +347,10 @@ export async function planNativeLiveEncounterAction(
       reason: 'TARGET_UNAVAILABLE',
       message: TARGET_NOT_PERMITTED_MESSAGE
     })
-  if (command.target.kind === 'SQUARE') {
-    if (removalCommand || responseCommand) throw new Error('A square attack is answered by the GM.')
+  if (command.target.kind === 'ACTORS') {
+    if (removalCommand || responseCommand) throw new Error('A chosen-creature action never pends.')
     return {
-      ...(await planNativeLiveEncounterAttackSquare({
+      ...(await planNativeLiveEncounterActorsAction({
         initial,
         command: { ...command, target: command.target },
         fingerprint: admission.fingerprint,
@@ -366,8 +363,7 @@ export async function planNativeLiveEncounterAction(
         runtime: executionOptions.runtime,
         random: executionOptions.random,
         requireAutoRoll,
-        autoRollByActorId,
-        deadCharacterIds
+        autoRollByActorId
       })),
       dependencies,
       revisions
@@ -974,7 +970,8 @@ export async function planNativeLiveEncounterAction(
       : null)
   const retainedReaction =
     execution.kind !== 'PENDING' && !reactionAnswered
-      ? (heldReaction ?? (retained?.phase === 'OUTCOME' && retained.reaction ? retained : null))
+      ? (heldReaction ??
+        (retained?.phase === 'OUTCOME' && retained.reaction ? retained : null))
       : null
   const replayedReaction =
     heldReactionNow ??
