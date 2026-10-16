@@ -22,6 +22,7 @@ import type {
   EncounterActorTokenBindingCommandInputDto
 } from '@artificer-toolkit/schema/api/vttScenes'
 import { ActiveGrantList } from '../../../components/activeGrants/ActiveGrantList'
+import { CampaignTabletopConcealmentObservers } from './CampaignTabletopConcealmentObservers'
 import { EncounterActorControlFields } from '../components/EncounterActorControlFields'
 import { EncounterActorHealth } from './EncounterActorHealth'
 import * as styles from './CampaignTabletopEncounterDrawer.css'
@@ -239,6 +240,25 @@ export function CampaignTabletopEncounterDrawer({
                             expectedVersion: encounter.version,
                             reveal: level === 'UNNAMED' || level === 'NAMED' ? level : null,
                             type: 'UPDATE_ACTOR'
+                          })
+                        }
+                      />
+                    ) : null}
+                    {'concealment' in actor && actor.concealment ? (
+                      <CampaignTabletopConcealmentObservers
+                        actors={encounter.actors}
+                        concealment={actor.concealment}
+                        disabled={controlsDisabled}
+                        holder={actor}
+                        onChange={(change) =>
+                          actor.concealment &&
+                          onCommand({
+                            ...change,
+                            activeEffectId: actor.concealment.effectId,
+                            commandId: crypto.randomUUID(),
+                            encounterId: encounter.id,
+                            expectedVersion: encounter.version,
+                            type: 'SET_CONCEALMENT_OBSERVERS'
                           })
                         }
                       />

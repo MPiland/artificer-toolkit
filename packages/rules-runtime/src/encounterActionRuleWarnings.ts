@@ -5,7 +5,8 @@ import type {
 import type { evaluateEncounterActionEconomy } from './encounterActionEconomy.js'
 import {
   evaluateEncounterActionTargetPolicy,
-  withoutCreatureTypeExclusions
+  targetingExcludesCreatureType,
+  withoutCreatureTypeRestrictions
 } from './encounterActionTargetPolicy.js'
 
 /** The overridable warning for a stabilize (the Healer's Kit, First Aid) aimed at a creature that is not dying. */
@@ -21,7 +22,8 @@ type EncounterActionWarningInput = {
   targetDefeated: boolean
   /**
    * The target's creature type when readable (a Creature's snapshot carries one; a Character's
-   * facts do not). An action that excludes the type still proceeds, but only as an override.
+   * facts do not). An action that excludes the type, or names other types it affects, still
+   * proceeds, but only as an override.
    */
   targetCreatureTypeId?: string | null
   /**
@@ -36,12 +38,9 @@ type EncounterActionWarningInput = {
 
 /** Every warning one target raises, or null when the target policy refuses the target outright. */
 function encounterActionWarnings(input: EncounterActionWarningInput) {
-  const { targeting } = input.target.targetPolicy
-  const excludedTypeIds =
-    (targeting?.selectionKind !== 'SELF' && targeting?.excludedCreatureTypeIds) || []
   const targetWarnings = evaluateEncounterActionTargetPolicy({
     ...input.target,
-    targetPolicy: withoutCreatureTypeExclusions(input.target.targetPolicy)
+    targetPolicy: withoutCreatureTypeRestrictions(input.target.targetPolicy)
   })
   if (targetWarnings === null) return null
   return [
@@ -54,7 +53,8 @@ function encounterActionWarnings(input: EncounterActionWarningInput) {
       : input.targetDefeated
         ? [{ code: 'TARGET_DEFEATED' as const, message: 'The target is defeated.' }]
         : []),
-    ...(input.targetCreatureTypeId && excludedTypeIds.includes(input.targetCreatureTypeId)
+    ...(input.targetCreatureTypeId &&
+    targetingExcludesCreatureType(input.target.targetPolicy.targeting, input.targetCreatureTypeId)
       ? [
           {
             code: 'TARGET_CREATURE_TYPE_EXCLUDED' as const,

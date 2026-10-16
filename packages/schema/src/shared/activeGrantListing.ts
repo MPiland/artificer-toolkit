@@ -35,3 +35,19 @@ export const concentrationListingDtoSchema = lazySchema(() =>
 )
 
 export type ConcentrationListingDto = z.infer<typeof concentrationListingDtoSchema>
+
+/**
+ * A hidden creature's concealment as only the GM sees it (D116): the Stealth total it froze and the
+ * observers it is still hidden from. Players never receive it, so no player projection carries it.
+ */
+export const concealmentListingDtoSchema = lazySchema(() =>
+  z.strictObject({
+    /** The active effect the GM edits through SET_CONCEALMENT_OBSERVERS. */
+    effectId: z.guid(),
+    concealmentTotal: z.number().check(z.int()),
+    /** The actors it is hidden from, unique and sorted; every other actor noticed it. */
+    observerActorIds: z.array(z.guid())
+  })
+)
+
+export type ConcealmentListingDto = z.infer<typeof concealmentListingDtoSchema>

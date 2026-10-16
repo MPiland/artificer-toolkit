@@ -52,6 +52,7 @@ import {
   assertCampaignGmSheetCommandAllowed
 } from '@artificer-toolkit/rules-runtime/character/sheetCommandValidation'
 import { characterSheetAdjustmentMatchesPanelTarget } from '@artificer-toolkit/rules-runtime/character/sheetPanelTarget'
+import { endedMaintenanceConditions } from '@artificer-toolkit/rules-runtime/encounterActionMaintenance'
 import { projectCharacterSheetForViewer } from '@artificer-toolkit/rules-runtime/character/campaignCharacterSheet'
 import { type MutationCtx } from '../_generated/server'
 import { retainCharacterEquipmentRules } from './acquiredEquipment'
@@ -468,6 +469,23 @@ export async function executeCharacterSheetCommand(
       campaignId: initial.campaignContext.campaignId,
       occurredAt
     })
+
+  if (command.type === 'END_ACTIVE_EFFECT' || command.type === 'END_CONCENTRATION') {
+    const remaining = await createActiveRuleEffectStore({
+      db: createConvexEncounterStore(ctx)
+    }).list({ kind: 'CHARACTER', characterId: initial.active.id })
+    // The conditions only the ended effects held end with them (SPELLS-5.14).
+    const ended = endedMaintenanceConditions(
+      initial.activeEffects.filter(({ id }) => !remaining.some((effect) => effect.id === id)),
+      remaining
+    )
+    if (ended.size > 0) {
+      const conditions = (updated.state.conditions ?? []).filter(
+        ({ conditionTypeId }) => !ended.has(conditionTypeId)
+      )
+      updated.state.conditions = conditions.length > 0 ? conditions : undefined
+    }
+  }
 
   if (command.type === 'COMPLETE_REST' && completedRest) {
     const owner = { kind: 'CHARACTER' as const, characterId: initial.active.id }

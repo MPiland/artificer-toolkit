@@ -377,6 +377,47 @@ describe('effect schema parsing', () => {
     ).toBe(false)
   })
 
+  it('accepts a SPELL_CAST reaction that cancels the triggering event, only on a REACTION action', () => {
+    const spellCast = {
+      id: '00000000-0000-4000-8000-0000000000ec',
+      order: 1,
+      invocation: {
+        kind: 'ACTION',
+        triggerCode: 'ACTIVATED',
+        activation: { code: 'REACTION', amount: 1 },
+        range: { id: 'spell-cast-range', rangeKind: 'DISTANCE', amount: 60, unit: 'FEET' },
+        reactionTrigger: { kind: 'SPELL_CAST' }
+      },
+      paths: [
+        fixedPath(
+          'spell-cast-path',
+          1,
+          'ON_USE',
+          singleResultBlock('spell-cast-result', {
+            id: 'spell-cast-outcome',
+            effectKind: 'CANCEL_TRIGGERING_EVENT'
+          })
+        )
+      ]
+    }
+
+    expect(effectDtoSchema.parse(spellCast).invocation).toMatchObject({
+      reactionTrigger: { kind: 'SPELL_CAST' }
+    })
+    expect(
+      effectDtoSchema.safeParse({
+        ...spellCast,
+        invocation: { ...spellCast.invocation, activation: { code: 'ACTION', amount: 1 } }
+      }).success
+    ).toBe(false)
+    expect(
+      effectDtoSchema.safeParse({
+        ...spellCast,
+        invocation: { ...spellCast.invocation, reactionTrigger: { kind: 'SPELL_CAST', stage: 'X' } }
+      }).success
+    ).toBe(false)
+  })
+
   it('accepts a DAMAGE_TAKEN reaction trigger naming at least one damage type', () => {
     const fire = '00000000-0000-4000-8000-0000000000f1'
     const cold = '00000000-0000-4000-8000-0000000000f2'
@@ -607,6 +648,115 @@ describe('effect schema parsing', () => {
     expect(effect(passive, rider.fixed('ON_CRIT'))).toBe(false)
     expect(effect(activated, rider.fixed('ON_HIT'))).toBe(false)
     expect(effect(passive, rider.choice)).toBe(false)
+  })
+
+  it('accepts a path gated on the attack roll mode, and rejects an unknown mode', () => {
+    const gate = (condition: Record<string, unknown>) => ({
+      id: 'gate',
+      groups: [
+        {
+          id: 'gate-group',
+          order: 0,
+          contexts: [
+            {
+              id: 'gate-context',
+              order: 0,
+              subject: 'EQUIPMENT',
+              authoringModeKind: 'ALL',
+              conditions: [
+                { id: 'gate-condition', order: 0, kind: 'PREDICATE', constraint: 'INCLUDE', ...condition }
+              ]
+            }
+          ]
+        }
+      ]
+    })
+    const parse = (restrictions: Record<string, unknown>) =>
+      pathDtoSchema.safeParse(
+        fixedPath(
+          'gated-path',
+          1,
+          'ON_HIT',
+          singleResultBlock('gated-result', {
+            id: 'gated-damage',
+            effectKind: 'DAMAGE',
+            damageTypeId: 'fire',
+            valueKind: 'DICE',
+            scalingKind: 'NONE',
+            diceConfig: '1d6'
+          }),
+          { restrictions }
+        )
+      )
+
+    for (const rollMode of ['ADVANTAGE', 'NOT_DISADVANTAGE']) {
+      expect(parse(gate({ predicateCode: 'ATTACK_ROLL_MODE', rollMode })).success).toBe(true)
+    }
+    expect(parse(gate({ predicateCode: 'ATTACK_ROLL_MODE', rollMode: 'DISADVANTAGE' })).success).toBe(
+      false
+    )
+    expect(parse(gate({ predicateCode: 'ATTACK_ROLL_MODE' })).success).toBe(false)
+  })
+
+  it('lets only an ON_HIT or ON_CRIT path carry restrictions', () => {
+    const restrictions = {
+      id: 'gate',
+      groups: [
+        {
+          id: 'gate-group',
+          order: 0,
+          contexts: [
+            {
+              id: 'gate-context',
+              order: 0,
+              subject: 'EQUIPMENT',
+              authoringModeKind: 'ALL',
+              conditions: [
+                {
+                  id: 'gate-condition',
+                  order: 0,
+                  kind: 'PREDICATE',
+                  constraint: 'INCLUDE',
+                  predicateCode: 'ATTACK_ROLL_MODE',
+                  rollMode: 'ADVANTAGE'
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+    const effect = (pathCode: string) =>
+      effectDtoSchema.safeParse({
+        id: '00000000-0000-4000-8000-0000000000f2',
+        order: 1,
+        invocation: {
+          kind: 'PASSIVE',
+          triggerCode: 'MELEE_WEAPON_ATTACK',
+          range: { id: 'gate-range', rangeKind: 'SPECIAL' }
+        },
+        paths: [
+          fixedPath(
+            'gated-path',
+            1,
+            pathCode,
+            singleResultBlock('gated-result', {
+              id: 'gated-damage',
+              effectKind: 'DAMAGE',
+              damageTypeId: 'fire',
+              valueKind: 'DICE',
+              scalingKind: 'NONE',
+              diceConfig: '1d6'
+            }),
+            { restrictions }
+          )
+        ]
+      }).success
+
+    expect(effect('ON_HIT')).toBe(true)
+    expect(effect('ON_CRIT')).toBe(true)
+    expect(effect('ON_SAVE_FAIL')).toBe(false)
+    expect(effect('ON_MISS')).toBe(false)
   })
 
   it('accepts repeat roll influence only on a target-turn-end repeated follow-up save', () => {

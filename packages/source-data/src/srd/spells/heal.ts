@@ -14,7 +14,7 @@ import {
   SPELL_COMPONENT
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
-import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
+import { creatureTypeId, schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
 export const heal: SpellAuthored = {
   kind: SUBJECT.SPELL,
   id: SPELL_IDS.HEAL,
@@ -45,7 +45,8 @@ export const heal: SpellAuthored = {
         },
         targeting: {
           selectionKind: 'SINGLE_TARGET',
-          dispositionKind: TARGET_DISPOSITION_KIND.ANY
+          dispositionKind: TARGET_DISPOSITION_KIND.ANY,
+          excludedCreatureTypeIds: [creatureTypeId('CONSTRUCT'), creatureTypeId('UNDEAD')]
         }
       },
       paths: [

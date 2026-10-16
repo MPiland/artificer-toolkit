@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { compileEffect } from '@artificer-toolkit/shared/compilers'
 import type { EffectAuthored } from '@artificer-toolkit/shared/authored'
+import { counterspell } from '@artificer-toolkit/source-data/srd/spells/counterspell.js'
 import { shield } from '@artificer-toolkit/source-data/srd/spells/shield.js'
 
 import { CharacterRuleActionUnsupportedCompilationError } from '../characterRuleActionSystemAdapter.js'
@@ -13,6 +14,7 @@ import {
 } from '../testing/characterActionDescriptor.js'
 
 const MODIFIER_GRANT_OPERATION_KEY = 'dnd5e.modifier-grant-proposal'
+const CANCEL_TRIGGERING_EVENT_OPERATION_KEY = 'dnd5e.cancel-triggering-event-proposal'
 
 /** Every operation key the compiled output names, wherever it nests. */
 function operationKeys(value: unknown): string[] {
@@ -94,5 +96,36 @@ describe('a reaction authored with the DAMAGE_TAKEN trigger compiles through the
     expect(() => compile(absorbElementsEffect())).toThrow(
       CharacterRuleActionUnsupportedCompilationError
     )
+  })
+})
+
+describe('a reaction authored with the SPELL_CAST trigger compiles through the dnd5e adapter', () => {
+  function counterspellEffect(): EffectAuthored {
+    const effect = counterspell.effects?.[0]
+    if (!effect) throw new Error('Counterspell has no authored effect.')
+    return { ...effect, id: ACTION_EFFECT_ID }
+  }
+
+  it('carries the real SRD Counterspell trigger onto its compiled invocation', () => {
+    expect(compileEffect(counterspellEffect()).invocation).toMatchObject({
+      activation: { code: 'REACTION', amount: 1 },
+      reactionTrigger: { kind: 'SPELL_CAST' }
+    })
+  })
+
+  it('compiles the real SRD Counterspell to the cancel-triggering-event proposal', () => {
+    expect(operationKeys(compile(counterspellEffect()))).toContain(
+      CANCEL_TRIGGERING_EVENT_OPERATION_KEY
+    )
+  })
+
+  it('refuses the cancel outcome on a reaction to any other trigger', () => {
+    const effect = counterspellEffect()
+    expect(() =>
+      compile({
+        ...effect,
+        invocation: { ...effect.invocation, reactionTrigger: { kind: 'ATTACKED_SELF' } }
+      } as EffectAuthored)
+    ).toThrow(CharacterRuleActionUnsupportedCompilationError)
   })
 })
