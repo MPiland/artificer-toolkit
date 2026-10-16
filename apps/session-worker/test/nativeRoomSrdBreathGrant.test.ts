@@ -190,7 +190,9 @@ describe('an unmodified SRD Gold Dragon Wyrmling leaves its grants with Weakenin
       expect(started.answer.type, JSON.stringify(started.answer)).toBe('COMMAND_COMMITTED')
       expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
       // The breather's turn ends, then the first Wolf's: its grant's save rolls.
+      console.log('DIAGSTEP afterBreath', JSON.stringify((await readRoomHistory(room.room.base.stub)).activeEffects.map((e) => e.targetActorId)))
       await room.advanceTurn()
+      console.log('DIAGSTEP afterTurn1', JSON.stringify((await readRoomHistory(room.room.base.stub)).activeEffects.map((e) => e.targetActorId)))
       await room.advanceTurn()
       return readRoomHistory(room.room.base.stub)
     }

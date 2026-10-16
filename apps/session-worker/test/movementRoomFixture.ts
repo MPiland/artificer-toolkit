@@ -156,6 +156,8 @@ function rigDice(rolls: readonly number[], fallback: number) {
     if (!(array instanceof Uint32Array) || array.length !== 1) return platform.call(crypto, array)
     drawn += 1
     array[0] = pending.shift() ?? fallback
+    console.log('DIAGDRAW', drawn, array[0], (new Error().stack ?? '').split('
+').slice(2, 7).map((l) => l.trim().slice(0, 90)).join(' | '))
     return array
   })
   return () => drawn
