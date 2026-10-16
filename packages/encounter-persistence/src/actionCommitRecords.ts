@@ -83,7 +83,6 @@ export async function recordActionRoot(
       | 'addedConcentrationCasterId'
       | 'speedBonusTurn'
       | 'turnUses'
-      | 'engagedActorIds'
     > &
       Partial<
         Pick<
@@ -91,7 +90,7 @@ export async function recordActionRoot(
             z.infer<typeof encounterStoredRunCommandSchema>,
             { commandType: 'RESOLVE_ACTION' }
           >,
-          'issuerLines' | 'gmLines'
+          'issuerLines' | 'gmLines' | 'engagedActorIds'
         >
       >
     occurredAt: string
