@@ -927,9 +927,9 @@
         {
           "id": "PLATFORM-18",
           "title": "SRD corpus updates reach a live deployment without a reset",
-          "status": "TODO",
+          "status": "DONE",
           "journeyTests": ["apps/apis/convex/content/corpusReplaceJourney.test.ts"],
-          "journeyStatus": "partial",
+          "journeyStatus": "verified",
           "origin": [],
           "wsjf": {
             "bv": 8,
@@ -955,8 +955,14 @@
             {
               "id": "PLATFORM-18.2",
               "text": "Changed SRD definitions, Systems, content sources and catalogues also reach a live deployment without a reset: seeding corpus N+1 updates them in place, or refuses with a named reason, and play data created on N keeps working. Proved by real-code tests plus a live-backend seed N, then seed N+1, run.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/apis/convex/content/corpusReplaceJourney.test.ts (journey: readied Character, System, source, catalogue and definition changed and reseeded, Sheet unchanged)",
+                "apps/apis/convex/content/import.test.ts (System, source, catalogue and definition replace; vocabulary-removal refusal; identity-change conflict)",
+                "apps/apis/convex/content/seedReplace.test.ts (seed N to N+1 replace; removed definition refused before any write)",
+                "live backend replace/restore probe (scripts/liveBackendValidation.mjs): bootstrap 91/87 ms, one definition 41/35 ms",
+                "CI 38854089851/38854090002 at ba1c3c074"
+              ],
               "origin": [],
               "note": "Registered 2026-10-16 from the PLATFORM-18.T1 report: bootstrap and definitions are still insert-or-identical, so a definition change still needs a reset that production cannot take after launch."
             }
@@ -977,15 +983,14 @@
             {
               "id": "PLATFORM-18.T2",
               "text": "Extend D120 in-place replacement to definitions, Systems, content sources and catalogues in content/import bootstrap and definitions import, red-first against the current conflict; update the runbook reset list.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["PLATFORM-18.2"],
               "wsjf": {
                 "bv": 5,
                 "tc": 3,
                 "rr": 5,
                 "size": 3
-              },
-              "activeWorkbook": "docs/handoffs/slice-platform-18-t1.md"
+              }
             }
           ]
         }
