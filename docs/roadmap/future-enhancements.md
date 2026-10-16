@@ -87,6 +87,8 @@ The user wants a Kickstarter campaign with realistic goals to fund finishing the
 
 ### Deferred edge cases (watch for in real use)
 
+- **Invisible Characters in the target list (ATTACK-17.T4b, D131).** `unseenReason` reads `INVISIBLE` only for creature actors: a Character's conditions live on its Sheet and are `[]` in the player projection, so an unseen Invisible Character is marked `HIDDEN`. Rare (needs the GM to reveal an unseen Character the player does not control); fix by projecting the Sheet's Invisible fact when it arises.
+
 These are rare paths, roughly under 5% of sessions, whose failure is visible and recoverable (user direction, 2026-10-15). Fix one when real use shows it happening.
 
 - **A second Action Surge in one turn (ATTACK-9.T3):** SRD Action Surge is once per turn, but the feature-action path has no per-turn use cap, so a level-17 Fighter with two uses can spend both in one turn. The second one sets the same action count and wastes a charge; the GM can undo it. The fix is a per-turn use cap on feature actions, authored in data for Action Surge.

@@ -14,6 +14,7 @@ import type {
 import { encounterActorTokenBindingSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import { sceneStoredDefinitionSaveSchema } from '@artificer-toolkit/schema/projections/sceneDefinitionPersistence'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { activateFixtureRun, updateFixtureRunActors } from '../../tests/fixtures/activeInitiative'
 import {
   bindPresentedScene,
@@ -324,7 +325,7 @@ describe('the Encounter a player reads on a bound Scene, where Convex cannot rea
     caller: typeof base.owner.caller
   ) =>
     (await caller.query(getEncounter, { encounterId: base.run.id })).actors
-      .map(({ id, label }) => ({ id, label }))
+      .map(({ id, label, unseenReason }) => ({ id, label, unseenReason }))
       .sort((a, b) => (a.id < b.id ? -1 : 1))
 
   it('lists a creature only once the GM reveals it, whether or not it has a token', async () => {
@@ -351,8 +352,32 @@ describe('the Encounter a player reads on a bound Scene, where Convex cannot rea
     await reveal(bound?.id, 'NAMED')
     expect(await listed(base, base.owner.caller)).toEqual(
       [
-        { id: staged!.id, label: 'Unseen creature' },
-        { id: bound!.id, label: bound!.label }
+        { id: staged!.id, label: 'Unseen creature', unseenReason: 'HIDDEN' },
+        { id: bound!.id, label: bound!.label, unseenReason: 'HIDDEN' }
+      ].sort((a, b) => (a.id < b.id ? -1 : 1))
+    )
+  }, 60000)
+
+  it('says an unseen listed creature is Invisible when it carries the System condition (D131)', async () => {
+    const base = await prepare()
+    const invisible = srdSystemRecord.conditionTypes.find((value) => value.code === 'INVISIBLE')
+    if (!invisible) throw new Error('Missing Invisible condition fixture.')
+    const [staged, bound] = base.run.actors
+    await bindActorToken(base, 1, 0)
+    await base.t.run((ctx) =>
+      updateFixtureRunActors(ctx, base.run.id, (actor) =>
+        actor.id === staged?.id
+          ? { ...actor, public: true, reveal: 'UNNAMED', conditions: [invisible.id] }
+          : actor.id === bound?.id
+            ? { ...actor, public: true, reveal: 'NAMED' }
+            : actor
+      )
+    )
+
+    expect(await listed(base, base.owner.caller)).toEqual(
+      [
+        { id: staged!.id, label: 'Unseen creature', unseenReason: 'INVISIBLE' },
+        { id: bound!.id, label: bound!.label, unseenReason: 'HIDDEN' }
       ].sort((a, b) => (a.id < b.id ? -1 : 1))
     )
   }, 60000)

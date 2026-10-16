@@ -6139,16 +6139,23 @@ it('lists a creature whose token the map hides only as far as the GM reveals it 
         ? [message.session.state.encounter?.actors ?? []]
         : []
     )
-    return frames.at(-1)?.map(({ id, label }) => ({ id, label }))
+    return frames.at(-1)?.map(({ id, label, unseenReason }) => ({ id, label, unseenReason }))
   }
+  const visible = { id: actors[0]!.id, label: actors[0]!.label, unseenReason: null }
   player.socket.send(JSON.stringify({ type: 'SUBSCRIBE_ENCOUNTER_SESSION', timeline: false }))
   await vi.waitFor(() => expect(seen()).toBeDefined())
   // The hidden-token creature (actors[1]) and the unlisted one (actors[2]) are not in the list.
-  expect(seen()).toEqual([{ id: actors[0]!.id, label: actors[0]!.label }])
+  expect(seen()).toEqual([visible])
 
   for (const [index, { reveal, expected }] of [
-    { reveal: 'UNNAMED', expected: { id: actors[1]!.id, label: 'Unseen creature' } },
-    { reveal: 'NAMED', expected: { id: actors[1]!.id, label: actors[1]!.label } },
+    {
+      reveal: 'UNNAMED',
+      expected: { id: actors[1]!.id, label: 'Unseen creature', unseenReason: 'HIDDEN' }
+    },
+    {
+      reveal: 'NAMED',
+      expected: { id: actors[1]!.id, label: actors[1]!.label, unseenReason: 'HIDDEN' }
+    },
     { reveal: null, expected: null }
   ].entries()) {
     const commandId = crypto.randomUUID()
@@ -6169,13 +6176,7 @@ it('lists a creature whose token the map hides only as far as the GM reveals it 
         }
       })
     )
-    await vi.waitFor(() =>
-      expect(seen()).toEqual(
-        expected
-          ? [{ id: actors[0]!.id, label: actors[0]!.label }, expected]
-          : [{ id: actors[0]!.id, label: actors[0]!.label }]
-      )
-    )
+    await vi.waitFor(() => expect(seen()).toEqual(expected ? [visible, expected] : [visible]))
   }
   expect(JSON.stringify(player.messages)).not.toContain('Ambusher')
 })

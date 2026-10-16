@@ -1,7 +1,9 @@
 import type { EncounterGmProjectionDto } from '@artificer-toolkit/schema/api/encounterData'
 import {
+  invisibleConditionTypeIds,
   unseenEncounterActorIds,
-  type EncounterPlayerViewer
+  type EncounterPlayerViewer,
+  type EncounterProjectionViewer
 } from '@artificer-toolkit/rules-runtime/encounterPlayerProjection'
 import { readEncounterCharacterPlay } from './characterPlay.js'
 import type { EncounterReadTransaction } from './ports.js'
@@ -85,4 +87,17 @@ export async function readEncounterPlayerViewer(
       )
     )
   }
+}
+
+/** The viewer a player projection is built for: what the member sees, and the System Invisible condition types (D131). */
+export async function readEncounterProjectionViewer(
+  ctx: EncounterReadTransaction,
+  projection: Parameters<typeof readEncounterPlayerViewer>[1] & { gameSystemId: string },
+  viewer: Parameters<typeof readEncounterPlayerViewer>[2]
+): Promise<EncounterProjectionViewer> {
+  const [sight, system] = await Promise.all([
+    readEncounterPlayerViewer(ctx, projection, viewer),
+    ctx.ports.requireSystem(projection.gameSystemId)
+  ])
+  return { ...sight, invisibleConditionTypeIds: invisibleConditionTypeIds(system.conditionTypes) }
 }

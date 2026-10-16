@@ -60,9 +60,9 @@ What exists:
   - marks out-of-range entries;
   - goes back to initiative order when targeting ends.
 
-  A revealed actor with no drawn token sorts last as "distance unknown". The map and the list share one selection. The list is the keyboard, screen-reader and no-map path, so it needs real buttons and labels.
+  Order (D131): creatures the GM revealed but the player cannot see lead, marked Hidden or Invisible with "distance unknown" (`unseenReason` on the player actor DTO); visible creatures follow nearest first, a visible creature with no token last. The map and the list share one selection. The list is the keyboard, screen-reader and no-map path, so it needs real buttons and labels.
 
-- **Out of scope:** attacking an empty square (ATTACK-17.4) and the per-user roll card (ATTACK-17.T1).
+- **Out of scope:** the per-user roll card (ATTACK-17.T1). Attacking a square (ATTACK-17.4) is not built: D131 ruled there is no square attack.
 
 Escalate (`SendMessage` to the main session) only for the AGENTS.md triggers. In particular:
 
@@ -132,3 +132,4 @@ T3:
 
 - ATTACK-17.1: close with proofs `apps/web/src/domains/campaigns/vtt/vttTargeting.model.test.ts` (targetable flag, distance, bands), `apps/web/tests/live-backend/encounterDisarm.ts` (Pick on map, Escape, hover readout, token click, resolve against the picked creature) and the Storybook `Domains/Campaigns/VTT/Tabletop Turn Order` `Targeting` story.
 - ATTACK-17.2: close with proofs `apps/apis/convex/encounters/actionCommands.test.ts` (believed-mode read equals the roll prompt, unseen targets unlisted, Convex fallback matches the room, long range disadvantage), `packages/schema/src/__tests__/live-session-contracts.test.ts` (read contract), `vttTargeting.model.test.ts` (nearest-first order, distance-unknown last, initiative order restored) and `CampaignTabletopEncounterDrawer.test.tsx` (target list buttons, cancel, order restored).
+- 2026-10-16: T4b rescoped by D131 (no square attack). Reverted T4a with no shim (SQUARE target, ATTACK_SQUARE_RESOLUTION, candidate computation and their tests, stories, contracts and docs). Added `unseenReason` to the player actor DTO (server-side in `projectPlayerEncounterProjection`, System-driven `invisibleConditionTypeIds`) and the new target-list order. Red proofs `dda334baf`; green on `ci/attack-17-t4b`. Proofs: `encounterPlayerProjection.test.ts` (predicate table), `vttTargeting.model.test.ts` (order), `recipientBindings.test.ts` and `nativeLiveSessionRoom.test.ts` (Convex and room parity), Storybook `Domains/Campaigns/VTT/Tabletop Turn Order` `Targeting`. ATTACK-17.4 is not built; the ledger status is for Phase 8 to settle.
