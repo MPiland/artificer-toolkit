@@ -161,7 +161,7 @@ export function fireballWolf(): CreatureAuthored {
 
 /**
  * The SRD Wolf with its Bite made a save over an area that extends from the Wolf (a Self range): a
- * dragon's cone of breath, a line, or the cube of Thunderwave. Every creature in it makes a
+ * cone, a line, or a cube from the Wolf's side (as Thunderwave's). Every creature in it makes a
  * Dexterity save (DC 10) against 1 damage, as the point-area Wolf of `fireballWolf` does.
  */
 export function directedAreaWolf(
@@ -323,6 +323,7 @@ export interface ActionRoomConfig extends Pick<
   | 'characterEquipment'
   | 'characterPlay'
   | 'characterSpellcasting'
+  | 'formCreatures'
   | 'secondCharacter'
   | 'thirdCharacter'
   | 'hiddenActorIds'
@@ -333,6 +334,8 @@ export interface ActionRoomConfig extends Pick<
   actors: readonly EncounterRunActorState[]
   /** The Creature feature the acting actor's action comes from. */
   ownerFeatureId?: string
+  /** The one Effect of that feature to act with, when it holds several actions (a breath weapon's two breaths). */
+  effectId?: string
   /** Scene positions that replace an actor's default (150 + 100 x its index, 150). */
   positions?: Readonly<Record<string, { x: number; y: number }>>
   /** For a Character actor, the one of its offered actions the room acts with. */
@@ -352,7 +355,8 @@ export async function actionRoom(config: ActionRoomConfig) {
   const featureActionId = (
     actor: EncounterRunActorState,
     ownerFeatureId: string,
-    grip: ActionRoomConfig['grip'] | null = null
+    grip: ActionRoomConfig['grip'] | null = null,
+    effectId: string | undefined = undefined
   ) => {
     const discovery = discoverEncounterFeatureActions({
       actor,
@@ -361,7 +365,10 @@ export async function actionRoom(config: ActionRoomConfig) {
     })
     const found =
       discovery.available.find(
-        (candidate) => candidate.ownerFeatureId === ownerFeatureId && candidate.grip === grip
+        (candidate) =>
+          candidate.ownerFeatureId === ownerFeatureId &&
+          candidate.grip === grip &&
+          (effectId === undefined || candidate.effectId === effectId)
       ) ?? discovery.unavailable.find((candidate) => candidate.ownerFeatureId === ownerFeatureId)
     if (!found) throw new Error('The feature has no discovered action.')
     return found.actionId
@@ -409,7 +416,7 @@ export async function actionRoom(config: ActionRoomConfig) {
   }
   const actionId = await (async () => {
     if (config.ownerFeatureId)
-      return featureActionId(source, config.ownerFeatureId, config.grip ?? null)
+      return featureActionId(source, config.ownerFeatureId, config.grip ?? null, config.effectId)
     if (!config.characterAction) throw new Error('The room needs an action source.')
     const choices = await actionChoices()
     const action = choices.actions.find(config.characterAction)
@@ -578,13 +585,15 @@ export async function actionRoom(config: ActionRoomConfig) {
     },
     /**
      * The acting actor's action on the chosen creatures `actorIds`, read against the Scene or not;
-     * `point` is the Scene point an action that names an area is aimed at.
+     * `point` is the Scene point an action that names an area is aimed at; `formId` is the
+     * creature form the cast takes.
      */
     async startActorsAction(
       actorIds: readonly string[],
       acknowledgedWarnings: ResolveEncounterActionInputDto['acknowledgedWarnings'] = [],
       withScene = true,
-      point: { x: number; y: number } | null = null
+      point: { x: number; y: number } | null = null,
+      formId?: string
     ) {
       const command: ResolveEncounterActionInputDto = {
         type: 'RESOLVE_ACTION',
@@ -597,6 +606,7 @@ export async function actionRoom(config: ActionRoomConfig) {
         target: {
           kind: 'ACTORS',
           actorIds: [...actorIds],
+          ...(formId && { formId }),
           scene: withScene
             ? { sceneId: room.scene.id, expectedSceneVersion: room.scene.version, point }
             : null

@@ -36,6 +36,7 @@ import {
   type PureRuleOperationContract,
   type CompiledRuleGraph,
   type RuleGraphDefinition,
+  type RuleInputBinding,
   type RuleValue
 } from '@artificer-toolkit/shared/rules'
 import { parseRollExpression, type ParsedRollExpression } from '@artificer-toolkit/shared/rolls'
@@ -113,6 +114,11 @@ import {
   DND5E_SAVE_TEST_OPERATION_KEY
 } from './dnd5eTestOperationKeys.js'
 import { DND5E_ADD_SPEED_TO_MOVEMENT_PROPOSAL_OPERATION_KEY } from './addSpeedToMovement.js'
+import { DND5E_TELEPORT_ALLOWANCE_PROPOSAL_OPERATION_KEY } from './teleportAllowance.js'
+import {
+  isTeleportAllowanceDestinationKind,
+  type TeleportAllowanceDestinationKind
+} from '@artificer-toolkit/shared/vtt/teleportAllowanceDestinationKind'
 import { DND5E_CANCEL_TRIGGERING_EVENT_PROPOSAL_OPERATION_KEY } from './cancelTriggeringEvent.js'
 
 export const DND5E_EFFECT_ACTION_FAMILY_KEY = 'effect-action'
@@ -122,6 +128,7 @@ export const DND5E_STABILIZE_PROPOSAL_OPERATION_KEY = 'dnd5e.stabilize-proposal'
 export const DND5E_DEPART_PROPOSAL_OPERATION_KEY = 'dnd5e.depart-proposal'
 const DND5E_MODIFIER_GRANT_PROPOSAL_OPERATION_KEY = 'dnd5e.modifier-grant-proposal'
 const DND5E_ACTOR_LINK_PROPOSAL_OPERATION_KEY = 'dnd5e.actor-link-proposal'
+const DND5E_CREATURE_FORM_PROPOSAL_OPERATION_KEY = 'dnd5e.creature-form-proposal'
 const DND5E_MANUAL_ADJUDICATION_PROPOSAL_OPERATION_KEY = 'dnd5e.manual-adjudication-proposal'
 export const DND5E_CONCEAL_PROPOSAL_OPERATION_KEY = 'dnd5e.conceal-proposal'
 export const DND5E_DETECT_CONCEALED_PROPOSAL_OPERATION_KEY = 'dnd5e.detect-concealed-proposal'
@@ -252,10 +259,16 @@ type Outcome =
   | { kind: 'DEPART' }
   | { kind: 'MODIFIER_GRANT' }
   | { kind: 'ACTOR_LINK' }
+  | { kind: 'CREATURE_FORM' }
   | { kind: 'MANUAL_ADJUDICATION' }
   | { kind: 'CONCEAL' }
   | { kind: 'DETECT_CONCEALED' }
   | { kind: 'ADD_SPEED_TO_MOVEMENT' }
+  | {
+      kind: 'TELEPORT_ALLOWANCE'
+      maxFeet: number
+      destinationKind: TeleportAllowanceDestinationKind
+    }
   | { kind: 'CANCEL_TRIGGERING_EVENT' }
   | {
       kind: 'SCALAR_REDUCTION'
@@ -264,22 +277,47 @@ type Outcome =
       recoveryTriggers: readonly ('SHORT_REST' | 'LONG_REST')[]
       terminalConsequence: 'TARGET_DIED'
     }
+/**
+ * Damage whose dice the test graph itself rolls, only when the test resolves to the authored path
+ * (a placed zone's failed entry save). The dice are evidence requests of the one frozen graph.
+ */
+type EntryDiceDamageOutcome = {
+  kind: 'ENTRY_DICE_DAMAGE'
+  diceConfig: string
+  damageTypeId: string
+}
+/** The ids of the entry dice damage nodes: the executor reads the dice as these graph nodes. */
+const ENTRY_DAMAGE_NODE_PREFIX = 'damage-'
+const ENTRY_DAMAGE_ENABLED_NODE_ID = `${ENTRY_DAMAGE_NODE_PREFIX}enabled`
 /** The outcomes that carry no amount: their proposal takes only the target and its state checksum. */
 const TARGET_ONLY_OUTCOME_OPERATION_KEYS = {
   STABILIZE: DND5E_STABILIZE_PROPOSAL_OPERATION_KEY,
   DEPART: DND5E_DEPART_PROPOSAL_OPERATION_KEY,
   MODIFIER_GRANT: DND5E_MODIFIER_GRANT_PROPOSAL_OPERATION_KEY,
   ACTOR_LINK: DND5E_ACTOR_LINK_PROPOSAL_OPERATION_KEY,
+  CREATURE_FORM: DND5E_CREATURE_FORM_PROPOSAL_OPERATION_KEY,
   MANUAL_ADJUDICATION: DND5E_MANUAL_ADJUDICATION_PROPOSAL_OPERATION_KEY,
   CONCEAL: DND5E_CONCEAL_PROPOSAL_OPERATION_KEY,
   DETECT_CONCEALED: DND5E_DETECT_CONCEALED_PROPOSAL_OPERATION_KEY,
   ADD_SPEED_TO_MOVEMENT: DND5E_ADD_SPEED_TO_MOVEMENT_PROPOSAL_OPERATION_KEY,
+  TELEPORT_ALLOWANCE: DND5E_TELEPORT_ALLOWANCE_PROPOSAL_OPERATION_KEY,
   CANCEL_TRIGGERING_EVENT: DND5E_CANCEL_TRIGGERING_EVENT_PROPOSAL_OPERATION_KEY
 } as const
 function isTargetOnlyOutcome(
   outcome: Outcome
 ): outcome is Extract<Outcome, { kind: keyof typeof TARGET_ONLY_OUTCOME_OPERATION_KEYS }> {
   return Object.hasOwn(TARGET_ONLY_OUTCOME_OPERATION_KEYS, outcome.kind)
+}
+/** The literal inputs a target-only outcome's proposal reads beyond the target: a teleport's range and destination rule. */
+function targetOnlyOutcomeInputs(
+  outcome: Extract<Outcome, { kind: keyof typeof TARGET_ONLY_OUTCOME_OPERATION_KEYS }>
+): Readonly<Record<string, RuleInputBinding>> {
+  return outcome.kind === 'TELEPORT_ALLOWANCE'
+    ? {
+        maxFeet: { kind: 'LITERAL' as const, value: outcome.maxFeet },
+        destinationKind: { kind: 'LITERAL' as const, value: outcome.destinationKind }
+      }
+    : {}
 }
 type SpecializedOutcome =
   | Outcome
@@ -540,7 +578,7 @@ export type Dnd5eCompiledEffectActionSource = Pick<
 >
 interface TestPlan {
   kind: TestKind
-  branches: ReadonlyMap<string, Outcome>
+  branches: ReadonlyMap<string, Outcome | EntryDiceDamageOutcome>
 }
 
 function testPhaseKindOrNull(action: Dnd5eCompiledEffectActionSource): TestKind | null {
@@ -1202,6 +1240,30 @@ function boundedTestOutcome(entry: CompiledEffectGroup['entries'][number]): Outc
 }
 
 /**
+ * A placed zone's damage on a failed entry save: fixed, or one unscaled, unmodified full-damage dice
+ * roll that the entry graph rolls itself (D133). Half damage and bonuses belong to the zone turn trigger.
+ */
+function zoneDamageOutcome(
+  entry: CompiledEffectGroup['entries'][number]
+): Outcome | EntryDiceDamageOutcome {
+  if (!('outcome' in entry)) unsupported('D&D test actions require direct authored outcomes.')
+  const { outcome } = entry
+  if (outcome.effectKind !== 'DAMAGE' || outcome.valueKind !== 'DICE')
+    return boundedTestOutcome(entry)
+  const authored = specializedTestOutcome(entry)
+  if (authored.kind === 'DAMAGE') return authored
+  if (
+    outcome.scalingKind !== 'NONE' ||
+    outcome.bonuses?.length ||
+    damageMultiplier(outcome) !== 1 ||
+    boundedDiceTerm(outcome.dice).modifier !== 0
+  )
+    unsupported('A placed zone dice damage is one unscaled, unmodified full-damage roll.')
+  uuid(outcome.damageTypeId, 'D&D damage type identity')
+  return { kind: 'ENTRY_DICE_DAMAGE', diceConfig: outcome.dice, damageTypeId: outcome.damageTypeId }
+}
+
+/**
  * TEST/OUTCOME actions select exactly one authored result group.  The TEST
  * phase must therefore reject every reachable result that the bounded
  * OUTCOME compiler cannot construct, rather than quietly retaining the old
@@ -1458,7 +1520,8 @@ function timedImmediateConditionPlan(
 }
 
 /**
- * A condition applied with no save and a duration (Invisibility, "1 hour"): the target holds it
+ * A condition applied with a duration, with no save (Invisibility, "1 hour") or as a save's one
+ * failure outcome (Sleep Breath, see `ownsTimedSaveCondition`): the target holds it
  * through an Encounter active effect that counts the target's turns, carries the authored events
  * that use it up or end it, and removes the condition when it ends. Any other lifecycle stays manual.
  */
@@ -1507,6 +1570,26 @@ function timedConditionPlan(
     perceptionContributions: [],
     maintenance: maintenancePlan(action, entry)
   }
+}
+
+/**
+ * Whether a save's one failure condition is the timed condition its active effect owns (Sleep
+ * Breath, "unconscious for 1 minute, ending if the creature takes damage"): the effect, not the
+ * save's outcome, carries the duration and the triggers that end it early. A timed condition that
+ * authors no early end stays refused, for the spells that print a repeat save or an end event this
+ * form does not yet carry (Hold Monster, Dominate, Charm Person).
+ */
+function ownsTimedSaveCondition(
+  action: Dnd5eCompiledEffectActionSource,
+  entry: CompiledEffectGroup['entries'][number]
+): boolean {
+  return (
+    testPhaseKindOrNull(action) === 'SAVE' &&
+    entry.pathCode === 'ON_SAVE_FAIL' &&
+    'outcome' in entry &&
+    (entry.lifecycle?.endOnTriggers?.length ?? 0) > 0 &&
+    timedConditionPlan(action)?.compiledEntryId === entry.entryId
+  )
 }
 
 /** The authored end triggers as the stored effect carries them: filters explicit, in canonical order. */
@@ -1719,6 +1802,54 @@ function actorLinkPlan(
 }
 
 /**
+ * A timed MANIFEST creature (Giant Insect): each creature the cast reached swaps into one of the
+ * authored forms for the duration (D130). Which form is the caster's choice at cast time; the plan
+ * carries every form and the Encounter effect records the chosen Creature.
+ */
+function creatureFormPlan(
+  action: Dnd5eCompiledEffectActionSource
+): Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'> | null {
+  const { entries } = action.compiledEffect
+  const entry = entries[0]
+  if (entries.length !== 1 || !entry || !('outcome' in entry)) return null
+  const { outcome } = entry
+  if (
+    outcome.effectKind !== 'MANIFEST' ||
+    outcome.manifestKind !== 'CREATURE' ||
+    !outcome.forms?.length ||
+    !entry.duration
+  )
+    return null
+  const initialRemaining = conditionDurationTurns(entry.duration)
+  if (
+    initialRemaining === null ||
+    Object.values(entry.lifecycle ?? {}).some((value) => value !== undefined) ||
+    !UUID.test(entry.entryId) ||
+    !UUID.test(outcome.id) ||
+    outcome.forms.some(({ id, creatureId }) => !UUID.test(id) || !UUID.test(creatureId))
+  )
+    return null
+  return {
+    authoredEffectId: action.effectId,
+    compiledEntryId: entry.entryId,
+    frozenGraphNodeId: 'creature-form',
+    capabilityContractVersion: DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
+    recurrenceStage: 'END_OF_TURN',
+    initialRemaining,
+    creatureFormContribution: {
+      formOutcomeId: outcome.id,
+      excessDamageCarriesOver: outcome.excessDamageCarriesOver ?? false,
+      forms: [...outcome.forms]
+        .sort((a, b) => a.order - b.order)
+        .map(({ id, label, creatureId, maxTargets }) => ({ id, label, creatureId, maxTargets }))
+    },
+    adapterFacts: {},
+    perceptionContributions: [],
+    maintenance: maintenancePlan(action, entry)
+  }
+}
+
+/**
  * Hide: a successful check conceals the actor from the observers its total beats. It lasts until
  * dispelled and the events its lifecycle authors consume it (Hide: the first attack roll); any
  * other lifecycle stays unsupported.
@@ -1765,7 +1896,12 @@ function durationPublishedGraph(input: {
   action: Dnd5eCompiledEffectActionSource
   plan: Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'>
 }): ServerPublishedRuleDefinitionDto {
-  const { conditionContribution, modifierGrantContribution, actorLinkContribution } = input.plan
+  const {
+    conditionContribution,
+    modifierGrantContribution,
+    actorLinkContribution,
+    creatureFormContribution
+  } = input.plan
   const definition: RuleGraphDefinition = {
     schemaVersion: 1,
     id: input.action.effectId,
@@ -1789,7 +1925,9 @@ function durationPublishedGraph(input: {
           }
         : actorLinkContribution
           ? { linkOutcomeId: { kind: 'LITERAL', value: actorLinkContribution.linkOutcomeId } }
-          : {},
+          : creatureFormContribution
+            ? { formOutcomeId: { kind: 'LITERAL', value: creatureFormContribution.formOutcomeId } }
+            : {},
     sourceEntryBindings: [
       { sourceEntryId: input.plan.compiledEntryId, nodeId: input.plan.frozenGraphNodeId }
     ]
@@ -1875,7 +2013,7 @@ function zonePlacementPlan(
   }
   const saveGraph = compileTestDefinition(
     action,
-    { kind: 'SAVE', branches: new Map([['ON_SAVE_FAIL', boundedTestOutcome(damage)]]) },
+    { kind: 'SAVE', branches: new Map([['ON_SAVE_FAIL', zoneDamageOutcome(damage)]]) },
     entryPlan
   )
   const lingeringPlan = grant
@@ -2597,6 +2735,7 @@ function testPlan(action: Dnd5eCompiledEffectActionSource): TestPlan | null {
       (entry.groupKind !== 'SINGLE' &&
         !(relationshipEntries.length === 1 && entry.groupKind === 'SEQUENTIAL')) ||
       ((entry.duration || entry.lifecycle) &&
+        !ownsTimedSaveCondition(action, entry) &&
         (recurringPlan?.compiledEntryId !== entry.resultBlockId || kind !== 'SAVE')) ||
       entry.rangeOverride ||
       entry.targetingOverride ||
@@ -2629,11 +2768,33 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
   const grantPlan = modifierGrantPlan(action)
   const conditionPlan = timedConditionPlan(action)
   const linkPlan = actorLinkPlan(action)
+  const formPlan = creatureFormPlan(action)
   // A CHECK action rolls its authored check against a fixed DC, each observer's passive score or
   // the concealments that hide creatures from the checker; a contest waits for ATTACK-7.
   const checkAction = invocation.triggerCode === 'CHECK'
   const supportsSelf =
     invocation.range.rangeKind === 'SELF' && invocation.targeting?.selectionKind === 'SELF'
+  // A teleport spell (Misty Step) names its reach as a distance range on a self-targeted action:
+  // the range bounds the teleport, not a target.
+  const teleportReachFeet =
+    invocation.range.rangeKind === 'DISTANCE' &&
+    invocation.targeting?.selectionKind === 'SELF' &&
+    invocation.range.unit === 'FEET' &&
+    Number.isSafeInteger(invocation.range.amount) &&
+    invocation.range.amount > 0 &&
+    invocation.range.longAmount === undefined
+      ? invocation.range.amount
+      : null
+  const firstEntry = effect.entries[0]
+  const firstOutcome = firstEntry && 'outcome' in firstEntry ? firstEntry.outcome : undefined
+  const selfTeleport =
+    teleportReachFeet !== null &&
+    firstOutcome?.effectKind === 'TELEPORT' &&
+    firstOutcome.targetKind === 'SELF' &&
+    (firstOutcome.destinationKind === 'VISIBLE' ||
+      firstOutcome.destinationKind === 'SPECIFIED_POINT')
+      ? { maxFeet: teleportReachFeet, destinationKind: firstOutcome.destinationKind }
+      : null
   // A DISTANCE or Touch range only warns when the target is out of range (D11).
   const supportsTargetRange =
     invocation.range.rangeKind === 'UNLIMITED' ||
@@ -2660,7 +2821,8 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
     invocation.targeting?.selectionKind === 'CHOSEN_CREATURES' &&
     // A bond (Telepathic Bond) asks for willing creatures: an unwilling one only warns.
     (invocation.targeting.dispositionKind === 'ANY' ||
-      (invocation.targeting.dispositionKind === 'WILLING' && linkPlan !== null)) &&
+      (invocation.targeting.dispositionKind === 'WILLING' &&
+        (linkPlan !== null || formPlan !== null))) &&
     chosenCreaturesMaxTargets(resolveChosenCreaturesTargeting(invocation.targeting, action)) !==
       null &&
     (!invocation.shape ||
@@ -2685,7 +2847,7 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
     (invocation.triggerCode !== 'ACTIVATED' &&
       !(invocation.triggerCode === 'CHECK' && invocation.check.dc.kind !== 'CONTEST')) ||
     !supportedActivation ||
-    (!supportsSelf && !supportsSingleTarget && !supportsChosenCreatures) ||
+    (!supportsSelf && !selfTeleport && !supportsSingleTarget && !supportsChosenCreatures) ||
     (invocation.shape && !supportsChosenCreatures)
   )
     unsupported('D&D Effect action is not the supported activated self action shape.')
@@ -2700,12 +2862,14 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
       !supportedRecurringPlan(action) &&
       !grantPlan &&
       !conditionPlan &&
-      !linkPlan) ||
+      !linkPlan &&
+      !formPlan) ||
     ((entry.duration || entry.lifecycle) &&
       !supportedRecurringPlan(action) &&
       !grantPlan &&
       !conditionPlan &&
       !linkPlan &&
+      !formPlan &&
       !concealmentPlan(action)) ||
     entry.rangeOverride ||
     entry.targetingOverride
@@ -2729,11 +2893,13 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
     outcome.effectKind !== 'DETECT_CONCEALED'
   )
     unsupported('D&D check action outcome is not supported yet.')
-  // A list runs only a hit-point, teleport or link outcome, but an outcome no cast can run keeps the
+  // A list runs only a hit-point, teleport, link or creature form outcome, but an outcome no cast can run keeps the
   // reason a single target gets, so each other plan below is refused here rather than up front.
   const notOnAList = <Plan extends SpecializedOutcome>(plan: Plan): Plan => {
     if (supportsChosenCreatures)
-      unsupported('D&D chosen-creature action outcome must be a heal, damage, teleport or link.')
+      unsupported(
+        'D&D chosen-creature action outcome must be a heal, damage, teleport, link or creature form.'
+      )
     return plan
   }
   if (
@@ -2781,6 +2947,10 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
     (outcome.destinationKind === 'LINKED_LOCATION' || outcome.destinationKind === 'SPECIAL')
   )
     return { kind: 'DEPART' }
+  // The caster moves its own token inside the Scene: the commit records a one-shot allowance the
+  // following TELEPORT move spends, bounded by the spell's range.
+  if (outcome.effectKind === 'TELEPORT' && selfTeleport)
+    return notOnAList({ kind: 'TELEPORT_ALLOWANCE', ...selfTeleport })
   if (outcome.effectKind === 'CONCEAL_FROM_OBSERVERS') return notOnAList({ kind: 'CONCEAL' })
   if (outcome.effectKind === 'DETECT_CONCEALED') return notOnAList({ kind: 'DETECT_CONCEALED' })
   // The reaction cancels the event it answered: nothing is stored on its target, the cast.
@@ -2789,6 +2959,7 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
   if (outcome.effectKind === 'APPLY_GRANT' && grantPlan)
     return notOnAList({ kind: 'MODIFIER_GRANT' })
   if (outcome.effectKind === 'TELEPATHIC_LINK' && linkPlan) return { kind: 'ACTOR_LINK' }
+  if (outcome.effectKind === 'MANIFEST' && formPlan) return { kind: 'CREATURE_FORM' }
   // The Action is spent and the GM rules the result: nothing is stored on the target.
   if (outcome.effectKind === 'MANUAL_ADJUDICATION')
     return notOnAList({ kind: 'MANUAL_ADJUDICATION' })
@@ -2933,6 +3104,11 @@ export const dnd5eActorLinkProposalOperation = targetOnlyProposalOperation(
   'actor link',
   false
 )
+export const dnd5eCreatureFormProposalOperation = targetOnlyProposalOperation(
+  DND5E_CREATURE_FORM_PROPOSAL_OPERATION_KEY,
+  'creature form',
+  false
+)
 export const dnd5eManualAdjudicationProposalOperation = targetOnlyProposalOperation(
   DND5E_MANUAL_ADJUDICATION_PROPOSAL_OPERATION_KEY,
   'manual adjudication',
@@ -2953,6 +3129,47 @@ export const dnd5eAddSpeedToMovementProposalOperation = targetOnlyProposalOperat
   'add speed to movement',
   false
 )
+/** A teleport spell's proposal: it stores nothing on the caster and records its range for the commit to grant. */
+export const dnd5eTeleportAllowanceProposalOperation: ProposalRuleOperationContract = {
+  key: DND5E_TELEPORT_ALLOWANCE_PROPOSAL_OPERATION_KEY,
+  contractVersion: 1,
+  executionKind: 'PROPOSAL',
+  inputs: {
+    targetActorId: RULE_VALUE_KIND.TEXT,
+    targetStateChecksum: RULE_VALUE_KIND.TEXT,
+    maxFeet: RULE_VALUE_KIND.NUMBER,
+    destinationKind: RULE_VALUE_KIND.TEXT
+  },
+  outputs: {
+    targetActorId: RULE_VALUE_KIND.TEXT,
+    applicationCandidate: RULE_VALUE_KIND.BOOLEAN,
+    authorized: RULE_VALUE_KIND.BOOLEAN,
+    targetStateChecksum: RULE_VALUE_KIND.TEXT,
+    changesTargetState: RULE_VALUE_KIND.BOOLEAN,
+    maxFeet: RULE_VALUE_KIND.NUMBER,
+    destinationKind: RULE_VALUE_KIND.TEXT
+  },
+  execute(inputs) {
+    const { targetActorId, targetStateChecksum, maxFeet, destinationKind } = inputs
+    if (typeof targetActorId !== 'string' || !UUID.test(targetActorId))
+      throw new Error('D&D teleport allowance proposal requires a canonical target actor UUID.')
+    if (typeof targetStateChecksum !== 'string' || !/^[a-f0-9]{64}$/.test(targetStateChecksum))
+      throw new Error('D&D teleport allowance proposal requires target state checksum.')
+    if (typeof maxFeet !== 'number' || !Number.isSafeInteger(maxFeet) || maxFeet <= 0)
+      throw new Error('D&D teleport allowance proposal requires a positive integer range.')
+    if (!isTeleportAllowanceDestinationKind(destinationKind))
+      throw new Error('D&D teleport allowance proposal requires a destination kind.')
+    return {
+      targetActorId,
+      applicationCandidate: true,
+      authorized: true,
+      targetStateChecksum,
+      changesTargetState: false,
+      maxFeet,
+      destinationKind
+    }
+  }
+}
 export const dnd5eCancelTriggeringEventProposalOperation = targetOnlyProposalOperation(
   DND5E_CANCEL_TRIGGERING_EVENT_PROPOSAL_OPERATION_KEY,
   'cancel triggering event',
@@ -3691,10 +3908,12 @@ export const dnd5eEffectActionCapability: GameSystemRuleCapabilityContract = {
     DND5E_DEPART_PROPOSAL_OPERATION_KEY,
     DND5E_MODIFIER_GRANT_PROPOSAL_OPERATION_KEY,
     DND5E_ACTOR_LINK_PROPOSAL_OPERATION_KEY,
+    DND5E_CREATURE_FORM_PROPOSAL_OPERATION_KEY,
     DND5E_MANUAL_ADJUDICATION_PROPOSAL_OPERATION_KEY,
     DND5E_CONCEAL_PROPOSAL_OPERATION_KEY,
     DND5E_DETECT_CONCEALED_PROPOSAL_OPERATION_KEY,
     DND5E_ADD_SPEED_TO_MOVEMENT_PROPOSAL_OPERATION_KEY,
+    DND5E_TELEPORT_ALLOWANCE_PROPOSAL_OPERATION_KEY,
     DND5E_CANCEL_TRIGGERING_EVENT_PROPOSAL_OPERATION_KEY,
     DND5E_DAMAGE_PROPOSAL_OPERATION_KEY,
     DND5E_HIT_POINT_MAXIMUM_REDUCTION_PROPOSAL_OPERATION_KEY,
@@ -3729,19 +3948,19 @@ export const dnd5eEffectActionCapability: GameSystemRuleCapabilityContract = {
     )
 }
 
-function testProposalOperationKey(outcome: Outcome): string {
+function testProposalOperationKey(outcome: Outcome | EntryDiceDamageOutcome): string {
   return outcome.kind === 'HEAL'
     ? DND5E_TEST_HEAL_PROPOSAL_OPERATION_KEY
     : outcome.kind === 'TEMPORARY_HIT_POINTS'
       ? DND5E_TEST_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY
-      : outcome.kind === 'DAMAGE'
+      : outcome.kind === 'DAMAGE' || outcome.kind === 'ENTRY_DICE_DAMAGE'
         ? DND5E_TEST_DAMAGE_PROPOSAL_OPERATION_KEY
         : outcome.kind === 'SCALAR_REDUCTION'
           ? DND5E_TEST_SCALAR_REDUCTION_PROPOSAL_OPERATION_KEY
           : DND5E_TEST_CONDITION_PROPOSAL_OPERATION_KEY
 }
 
-function proposalNode(pathCode: string, outcome: Outcome) {
+function proposalNode(pathCode: string, outcome: Outcome | EntryDiceDamageOutcome) {
   if (outcome.kind === 'STABILIZE')
     unsupported('D&D stabilize outcomes cannot follow an attack or saving throw.')
   if (outcome.kind === 'DEPART')
@@ -3750,12 +3969,16 @@ function proposalNode(pathCode: string, outcome: Outcome) {
     unsupported('D&D modifier grants cannot follow an attack or saving throw.')
   if (outcome.kind === 'ACTOR_LINK')
     unsupported('D&D actor links cannot follow an attack or saving throw.')
+  if (outcome.kind === 'CREATURE_FORM')
+    unsupported('D&D creature forms cannot follow an attack or saving throw.')
   if (outcome.kind === 'MANUAL_ADJUDICATION')
     unsupported('D&D manual adjudications cannot follow an attack or saving throw.')
   if (outcome.kind === 'CONCEAL' || outcome.kind === 'DETECT_CONCEALED')
     unsupported('D&D concealment outcomes cannot follow an attack or saving throw.')
   if (outcome.kind === 'ADD_SPEED_TO_MOVEMENT')
     unsupported('D&D speed-to-movement outcomes cannot follow an attack or saving throw.')
+  if (outcome.kind === 'TELEPORT_ALLOWANCE')
+    unsupported('D&D teleport outcomes cannot follow an attack or saving throw.')
   if (outcome.kind === 'CANCEL_TRIGGERING_EVENT')
     unsupported('D&D cancel outcomes cannot follow an attack or saving throw.')
   const id = `proposal-${pathCode.toLowerCase()}`
@@ -3805,8 +4028,11 @@ function proposalNode(pathCode: string, outcome: Outcome) {
               }
             }
           : {
-              amount: { kind: 'LITERAL' as const, value: outcome.amount },
-              ...(outcome.kind === 'DAMAGE'
+              amount:
+                outcome.kind === 'ENTRY_DICE_DAMAGE'
+                  ? entryDiceDamageDice(outcome).subtotal
+                  : { kind: 'LITERAL' as const, value: outcome.amount },
+              ...(outcome.kind === 'DAMAGE' || outcome.kind === 'ENTRY_DICE_DAMAGE'
                 ? {
                     damageTypeId: {
                       kind: 'LITERAL' as const,
@@ -3817,6 +4043,33 @@ function proposalNode(pathCode: string, outcome: Outcome) {
             })
     }
   }
+}
+
+/** The dice nodes of an entry dice damage outcome: asked for only when the test resolves to its path. */
+function entryDiceDamageDice(outcome: EntryDiceDamageOutcome) {
+  return rolledDiceNodes(boundedDiceTerm(outcome.diceConfig).term, ENTRY_DAMAGE_NODE_PREFIX, {
+    kind: 'NODE_OUTPUT',
+    nodeId: ENTRY_DAMAGE_ENABLED_NODE_ID,
+    port: 'authorized'
+  })
+}
+
+function entryDiceDamageNodes(pathCode: string, outcome: EntryDiceDamageOutcome) {
+  return [
+    {
+      id: ENTRY_DAMAGE_ENABLED_NODE_ID,
+      operation: {
+        key: DND5E_MOVEMENT_INTERRUPTION_AUTHORIZATION_OPERATION_KEY,
+        contractVersion: 1
+      },
+      inputs: {
+        resultPath: { kind: 'NODE_OUTPUT' as const, nodeId: 'test', port: 'resultPath' },
+        authoredPath: { kind: 'LITERAL' as const, value: pathCode }
+      }
+    },
+    ...entryDiceDamageDice(outcome).nodes,
+    proposalNode(pathCode, outcome)
+  ]
 }
 
 function compileTestDefinition(
@@ -3830,8 +4083,10 @@ function compileTestDefinition(
     plan.kind === 'ATTACK' ? DND5E_TARGET_DEFENSE_FACT_KEY : DND5E_SAVE_DC_FACT_KEY
   const testOperation =
     plan.kind === 'ATTACK' ? DND5E_ATTACK_TEST_OPERATION_KEY : DND5E_SAVE_TEST_OPERATION_KEY
-  const proposalNodes = [...plan.branches].map(([pathCode, outcome]) =>
-    proposalNode(pathCode, outcome)
+  const proposalNodes = [...plan.branches].flatMap(([pathCode, outcome]) =>
+    outcome.kind === 'ENTRY_DICE_DAMAGE'
+      ? entryDiceDamageNodes(pathCode, outcome)
+      : [proposalNode(pathCode, outcome)]
   )
   const definition: RuleGraphDefinition = {
     schemaVersion: 1,
@@ -3936,9 +4191,8 @@ function supportedTestPhaseKind(action: Dnd5eCompiledEffectActionSource): TestKi
     if (
       entry.resolutionKind !== 'DIRECT' ||
       (entry.groupKind !== 'SINGLE' && entry.groupKind !== 'SEQUENTIAL') ||
-      entry.duration ||
-      entry.lifecycle ||
-      entry.maintenanceDefinitionId ||
+      (!ownsTimedSaveCondition(action, entry) &&
+        (entry.duration || entry.lifecycle || entry.maintenanceDefinitionId)) ||
       entry.rangeOverride ||
       entry.targetingOverride ||
       !allowedPaths.includes(entry.pathCode) ||
@@ -4172,32 +4426,14 @@ function isCriticalHitDamage(
   )
 }
 
-function diceGraphDefinition(input: {
-  action: Dnd5eCompiledEffectActionSource
-  entry: CompiledEffectGroup['entries'][number]
-  diceConfig: string
-  /** Roll the dice twice for a critical hit; the modifier is still added once. */
-  critical?: boolean
-  modifierFactKey?: string
-  nodePrefix?: string
-  recurring?: Pick<CharacterRuleActionActiveEffectPlan, 'compiledEntryId' | 'frozenGraphNodeId'>
-}): RuleGraphDefinition {
-  if (
-    !('outcome' in input.entry) ||
-    (input.entry.outcome.effectKind !== 'DAMAGE' &&
-      input.entry.outcome.effectKind !== 'HEAL' &&
-      input.entry.outcome.effectKind !== 'SCALAR_REDUCTION')
-  )
-    unsupported('Only direct D&D dice outcomes are currently specialized.')
-  const outcome = input.entry.outcome
-  const scalar = outcome.effectKind === 'SCALAR_REDUCTION'
-  if (!scalar && outcome.valueKind !== 'DICE') unsupported('D&D outcome is not dice-backed.')
-  const damageTypeId =
-    outcome.effectKind === 'DAMAGE' ? damageTypeIdentity(outcome.damageTypeId) : null
-  const parsed = parseBoundedDiceConfiguration(input.diceConfig)
+type BoundedDiceTerm = ReturnType<typeof parseBoundedDiceConfiguration>['terms'][number]
+
+/** The one exact dice term a graph can roll, doubled for a critical hit, with the flat modifier it carries. */
+function boundedDiceTerm(diceConfig: string, critical?: boolean) {
+  const parsed = parseBoundedDiceConfiguration(diceConfig)
   const authoredTerm = parsed.terms[0]
   if (!authoredTerm) unsupported('D&D dice configuration exceeds the bounded exact-dice contract.')
-  const term = input.critical ? { ...authoredTerm, count: authoredTerm.count * 2 } : authoredTerm
+  const term = critical ? { ...authoredTerm, count: authoredTerm.count * 2 } : authoredTerm
   if (
     term.reroll ||
     term.selection ||
@@ -4207,15 +4443,30 @@ function diceGraphDefinition(input: {
     term.die > 1000
   )
     unsupported('D&D dice configuration exceeds the bounded exact-dice contract.')
-  const prefix = input.nodePrefix ?? ''
+  return { modifier: parsed.modifier, term }
+}
+
+/**
+ * One evidence node per die plus the running sums, and the output that holds the rolled subtotal.
+ * With `enabled` the dice ask for no request (and settle at 1) unless that output is true.
+ */
+function rolledDiceNodes(
+  term: BoundedDiceTerm,
+  prefix: string,
+  enabled?: { kind: 'NODE_OUTPUT'; nodeId: string; port: string }
+) {
   const dieNodeId = (index: number) => `${prefix}die-${index + 1}`
   const sumNodeId = (index: number) => `${prefix}sum-${index + 1}`
   const diceNodes = Array.from({ length: term.count }, (_, index) => ({
     id: dieNodeId(index),
-    operation: { key: 'evidence.integer-range', contractVersion: 1 },
+    operation: {
+      key: enabled ? 'evidence.optional-integer-range' : 'evidence.integer-range',
+      contractVersion: 1
+    },
     inputs: {
       min: { kind: 'LITERAL' as const, value: 1 },
-      max: { kind: 'LITERAL' as const, value: term.die }
+      max: { kind: 'LITERAL' as const, value: term.die },
+      ...(enabled ? { enabled } : {})
     }
   }))
   const sumNodes = Array.from({ length: Math.max(0, term.count - 1) }, (_, index) => ({
@@ -4244,7 +4495,7 @@ function diceGraphDefinition(input: {
       }
     }
   }))
-  const rolledSubtotal =
+  const subtotal =
     term.count === 1
       ? { kind: 'NODE_OUTPUT' as const, nodeId: dieNodeId(0), port: 'value' }
       : {
@@ -4252,10 +4503,38 @@ function diceGraphDefinition(input: {
           nodeId: sumNodeId(term.count - 2),
           port: 'value'
         }
+  return { nodes: [...diceNodes, ...sumNodes], subtotal }
+}
+
+function diceGraphDefinition(input: {
+  action: Dnd5eCompiledEffectActionSource
+  entry: CompiledEffectGroup['entries'][number]
+  diceConfig: string
+  /** Roll the dice twice for a critical hit; the modifier is still added once. */
+  critical?: boolean
+  modifierFactKey?: string
+  nodePrefix?: string
+  recurring?: Pick<CharacterRuleActionActiveEffectPlan, 'compiledEntryId' | 'frozenGraphNodeId'>
+}): RuleGraphDefinition {
+  if (
+    !('outcome' in input.entry) ||
+    (input.entry.outcome.effectKind !== 'DAMAGE' &&
+      input.entry.outcome.effectKind !== 'HEAL' &&
+      input.entry.outcome.effectKind !== 'SCALAR_REDUCTION')
+  )
+    unsupported('Only direct D&D dice outcomes are currently specialized.')
+  const outcome = input.entry.outcome
+  const scalar = outcome.effectKind === 'SCALAR_REDUCTION'
+  if (!scalar && outcome.valueKind !== 'DICE') unsupported('D&D outcome is not dice-backed.')
+  const damageTypeId =
+    outcome.effectKind === 'DAMAGE' ? damageTypeIdentity(outcome.damageTypeId) : null
+  const prefix = input.nodePrefix ?? ''
+  const { modifier: authoredModifier, term } = boundedDiceTerm(input.diceConfig, input.critical)
+  const { nodes: rolledNodes, subtotal: rolledSubtotal } = rolledDiceNodes(term, prefix)
   const modifier = input.modifierFactKey
     ? { kind: 'FACT' as const, factKey: input.modifierFactKey }
-    : { kind: 'LITERAL' as const, value: parsed.modifier }
-  const needsTotal = input.modifierFactKey !== undefined || parsed.modifier !== 0
+    : { kind: 'LITERAL' as const, value: authoredModifier }
+  const needsTotal = input.modifierFactKey !== undefined || authoredModifier !== 0
   const totalNodeId = `${prefix}${outcome.effectKind === 'DAMAGE' ? 'damage' : scalar ? 'scalar' : 'heal'}-total`
   const totalNode = !needsTotal
     ? []
@@ -4317,8 +4596,7 @@ function diceGraphDefinition(input: {
     gameSystemId: DND5E_SYSTEM_ID,
     definitionFamilyKey: DND5E_EFFECT_ACTION_FAMILY_KEY,
     nodes: [
-      ...diceNodes,
-      ...sumNodes,
+      ...rolledNodes,
       ...totalNode,
       ...multiplierNode,
       {
@@ -4800,7 +5078,7 @@ function fixedOutcomeGraphDefinition(input: {
       factKey: DND5E_TARGET_STATE_CHECKSUM_FACT_KEY
     },
     ...(isTargetOnlyOutcome(input.outcome)
-      ? {}
+      ? targetOnlyOutcomeInputs(input.outcome)
       : input.outcome.kind === 'CONDITION_APPLY'
         ? {
             conditionId: {
@@ -5283,6 +5561,7 @@ function startsMaintainedEffect(action: Dnd5eCompiledEffectActionSource): boolea
     timedConditionPlan(action) ??
     modifierGrantPlan(action) ??
     actorLinkPlan(action) ??
+    creatureFormPlan(action) ??
     relationshipPlan(action) ??
     supportedRecurringPlan(action)
   return plan?.maintenance != null
@@ -5401,7 +5680,7 @@ function compileDnd5eEffectAction({
             factKey: DND5E_TARGET_STATE_CHECKSUM_FACT_KEY
           },
           ...(isTargetOnlyOutcome(outcome)
-            ? {}
+            ? targetOnlyOutcomeInputs(outcome)
             : outcome.kind === 'CONDITION_APPLY'
               ? {
                   conditionId: { kind: 'LITERAL', value: outcome.conditionId },
@@ -5483,6 +5762,68 @@ function hitPointStateIsValid(input: {
     input.temporaryHitPoints >= 0 &&
     input.currentHitPoints <= input.maximumHitPoints
   )
+}
+
+/**
+ * The dice a zone's entry graph rolls for its damage: the enabling node follows the test result, and
+ * each die either carries the one answered request (the path was authored) or settles at its minimum.
+ */
+function requireEntryDamageTraces(input: {
+  traces: Parameters<
+    CharacterRuleActionSystemAdapter['interpret']
+  >[0]['execution']['evidence']['trace']
+  published: ServerPublishedRuleDefinitionDto
+  occurrenceId: string
+  resultPath: string
+}): void {
+  const { traces, published, occurrenceId, resultPath } = input
+  if (traces.length === 0) return
+  const invalid = () =>
+    new Dnd5eEffectActionCompilerError('The committed D&D zone damage dice topology is invalid.')
+  const nodeIds = published.definition.nodes.map((node) => node.id)
+  const enabledTrace = traces.find((trace) => trace.nodeId === ENTRY_DAMAGE_ENABLED_NODE_ID)
+  const enabledNode = published.definition.nodes.find(
+    (node) => node.id === ENTRY_DAMAGE_ENABLED_NODE_ID
+  )
+  const authoredPath = enabledNode?.inputs.authoredPath
+  if (
+    !enabledTrace ||
+    enabledNode?.operation.key !== DND5E_MOVEMENT_INTERRUPTION_AUTHORIZATION_OPERATION_KEY ||
+    enabledTrace.operation.key !== enabledNode.operation.key ||
+    authoredPath?.kind !== 'LITERAL' ||
+    typeof authoredPath.value !== 'string' ||
+    !isSpecializedPath(authoredPath.value) ||
+    !isSpecializedPath(resultPath) ||
+    enabledTrace.inputs.resultPath !== resultPath ||
+    enabledTrace.inputs.authoredPath !== authoredPath.value ||
+    enabledTrace.outputs.authorized !==
+      dnd5eMovementInterruptionAuthorizationOperation.execute({
+        resultPath,
+        authoredPath: authoredPath.value
+      }).authorized
+  )
+    throw invalid()
+  for (const trace of traces) {
+    if (trace.operation.key !== 'evidence.optional-integer-range') continue
+    const { min, max, enabled } = trace.inputs
+    const value = trace.outputs.value
+    const answered = trace.evidence
+    if (
+      enabled !== enabledTrace.outputs.authorized ||
+      typeof min !== 'number' ||
+      typeof max !== 'number' ||
+      typeof value !== 'number' ||
+      (enabled === true
+        ? answered?.kind !== 'INTEGER_RANGE' ||
+          answered.value !== value ||
+          answered.requestId !==
+            `${occurrenceId}:${nodeIds.indexOf(trace.nodeId)}:${trace.nodeId}` ||
+          value < min ||
+          value > max
+        : answered !== undefined || value !== min)
+    )
+      throw invalid()
+  }
 }
 
 function testApplications(
@@ -5591,7 +5932,12 @@ function testApplications(
         'The committed D&D test movement interruption topology is invalid.'
       )
   }
-  const proposalTraces = remainingTraces.filter((trace) => trace.nodeId !== 'movement-interruption')
+  const entryDamageTraces = remainingTraces.filter((trace) =>
+    trace.nodeId.startsWith(ENTRY_DAMAGE_NODE_PREFIX)
+  )
+  const proposalTraces = remainingTraces.filter(
+    (trace) => trace.nodeId !== 'movement-interruption' && !entryDamageTraces.includes(trace)
+  )
   const naturalD20 = testTrace.outputs.naturalD20
   const modifier = testTrace.inputs.modifier
   const threshold = testTrace.inputs.threshold
@@ -5660,6 +6006,12 @@ function testApplications(
       : attack && resultPath === 'ON_CRIT'
         ? ['ON_HIT', 'ON_CRIT']
         : [resultPath]
+  requireEntryDamageTraces({
+    traces: entryDamageTraces,
+    published,
+    occurrenceId: input.occurrenceId,
+    resultPath
+  })
   const directOperationByTestOperation = new Map<string, string>([
     [DND5E_TEST_HEAL_PROPOSAL_OPERATION_KEY, DND5E_HEAL_PROPOSAL_OPERATION_KEY],
     [
@@ -5713,6 +6065,19 @@ function testApplications(
       if (
         expected !== undefined &&
         (proposal.inputs[port] !== expected || proposal.outputs[port] !== expected)
+      )
+        throw new Dnd5eEffectActionCompilerError(
+          'The committed D&D test proposal payload is invalid.'
+        )
+    }
+    // An amount rolled by the graph's own dice is the traced output it is bound to.
+    const amountBinding = publishedNode.inputs.amount
+    if (amountBinding?.kind === 'NODE_OUTPUT') {
+      const source = entryDamageTraces.find((trace) => trace.nodeId === amountBinding.nodeId)
+      if (
+        !source ||
+        proposal.inputs.amount !== source.outputs[amountBinding.port] ||
+        proposal.outputs.amount !== proposal.inputs.amount
       )
         throw new Dnd5eEffectActionCompilerError(
           'The committed D&D test proposal payload is invalid.'
@@ -6010,10 +6375,12 @@ function interpretDirectProposal(
   if (
     trace.operation.key === DND5E_MODIFIER_GRANT_PROPOSAL_OPERATION_KEY ||
     trace.operation.key === DND5E_ACTOR_LINK_PROPOSAL_OPERATION_KEY ||
+    trace.operation.key === DND5E_CREATURE_FORM_PROPOSAL_OPERATION_KEY ||
     trace.operation.key === DND5E_MANUAL_ADJUDICATION_PROPOSAL_OPERATION_KEY ||
     trace.operation.key === DND5E_CONCEAL_PROPOSAL_OPERATION_KEY ||
     trace.operation.key === DND5E_DETECT_CONCEALED_PROPOSAL_OPERATION_KEY ||
     trace.operation.key === DND5E_ADD_SPEED_TO_MOVEMENT_PROPOSAL_OPERATION_KEY ||
+    trace.operation.key === DND5E_TELEPORT_ALLOWANCE_PROPOSAL_OPERATION_KEY ||
     trace.operation.key === DND5E_CANCEL_TRIGGERING_EVENT_PROPOSAL_OPERATION_KEY
   )
     return []
@@ -6267,10 +6634,12 @@ function interpretDirect(
     DND5E_DEPART_PROPOSAL_OPERATION_KEY,
     DND5E_MODIFIER_GRANT_PROPOSAL_OPERATION_KEY,
     DND5E_ACTOR_LINK_PROPOSAL_OPERATION_KEY,
+    DND5E_CREATURE_FORM_PROPOSAL_OPERATION_KEY,
     DND5E_MANUAL_ADJUDICATION_PROPOSAL_OPERATION_KEY,
     DND5E_CONCEAL_PROPOSAL_OPERATION_KEY,
     DND5E_DETECT_CONCEALED_PROPOSAL_OPERATION_KEY,
     DND5E_ADD_SPEED_TO_MOVEMENT_PROPOSAL_OPERATION_KEY,
+    DND5E_TELEPORT_ALLOWANCE_PROPOSAL_OPERATION_KEY,
     DND5E_CANCEL_TRIGGERING_EVENT_PROPOSAL_OPERATION_KEY,
     DND5E_DAMAGE_PROPOSAL_OPERATION_KEY,
     DND5E_SCALAR_REDUCTION_PROPOSAL_OPERATION_KEY,
@@ -7075,7 +7444,8 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       : (timedImmediateConditionPlan(action) ??
         timedConditionPlan(action) ??
         modifierGrantPlan(action) ??
-        actorLinkPlan(action))
+        actorLinkPlan(action) ??
+        creatureFormPlan(action))
     const relationship = relationshipPlan(action)
     const plan =
       repeatPlan ??
@@ -7823,6 +8193,15 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
           }
         : { applications: [], terminal: false, emptyApplicationAllowed: true }
     }
+    // A link or a creature form holds state for its duration: each counted turn applies nothing,
+    // and the turn pass expires the effect after the last one.
+    if (
+      definition.schemaVersion === 2 &&
+      definition.stateContributions.some(
+        ({ kind }) => kind === 'ACTOR_LINK' || kind === 'CREATURE_FORM'
+      )
+    )
+      return { applications: [], terminal: false, emptyApplicationAllowed: true }
     const published = publishedDefinitionForFrozenGraph(graph)
     const repeatedSavePath = repeatedFollowUpSaveResultPath({
       execution,

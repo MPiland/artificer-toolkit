@@ -9,6 +9,7 @@ import type {
   FollowUpSaveRepeatRollInfluenceAuthored,
   HitPointMaximumReductionAuthored,
   ManifestComponentAuthored,
+  ManifestCreatureFormAuthored,
   ManifestDestructionCriterionAuthored,
   ManifestLightAuthored,
   ManifestProximityRuleAuthored,
@@ -215,6 +216,7 @@ const outcomeBreakpointValue = buildNodeMap<OutcomeBreakpointValueNode>()
 const followUpSaveBranch = buildNodeMap<FollowUpSaveBranchNode>()
 const followUpSaveAttempts = buildNodeMap<FollowUpSaveAttemptsNode>()
 const manifestComponent = buildNodeMap<ManifestComponentAuthored>()
+const manifestCreatureForm = buildNodeMap<ManifestCreatureFormAuthored>()
 const manifestDestructionCriterion = buildNodeMap<ManifestDestructionCriterionNode>()
 const manifestLight = buildNodeMap<ManifestLightAuthored>()
 const manifestProximityRule = buildNodeMap<ManifestProximityRuleNode>()
@@ -622,6 +624,36 @@ const SUMMON_STAT_BLOCK_NODE_MAP: NodeMap<SummonStatBlockAuthored> = summonStatB
       )
   }
 )
+
+const MANIFEST_CREATURE_FORM_NODE_MAP: NodeMap<ManifestCreatureFormAuthored> =
+  manifestCreatureForm.define('manifestCreatureForm', ({ map, nodes, data }) => {
+    const { text, number, selectSingle } = nodes
+    const { table } = data
+
+    map
+      .set('id', text(['id'], 'ID'))
+      .set('order', number(['order'], 'Order', { requiredIf: true }))
+      .set('label', text(['label'], 'Label', { requiredIf: true }))
+      .set(
+        'creatureId',
+        selectSingle(
+          ['creatureId'],
+          'Creature',
+          {
+            kind: 'DATA',
+            relationship: table('creatures', { selectColumns: ['id', 'label'] })
+          },
+          { requiredIf: true }
+        )
+      )
+      .set(
+        'maxTargets',
+        number(['maxTargets'], 'Maximum Creatures', {
+          constraints: { minimum: 1 },
+          requiredIf: true
+        })
+      )
+  })
 
 const MANIFEST_DESTRUCTION_CRITERION_NODE_MAP: NodeMap<ManifestDestructionCriterionNode> =
   manifestDestructionCriterion.define(
@@ -1843,23 +1875,23 @@ function registerOutcomeFields(
       )
     )
     .set(
-      'creatureId',
-      selectSingle(
-        ['creatureId'],
-        'Creature',
-        {
-          kind: 'DATA',
-          relationship: table('creatures', {
-            selectColumns: ['id', 'label']
-          })
-        },
-        {
-          showIf: and([
-            local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST),
-            local.field(['manifestKind']).eq(MANIFEST_KIND.CREATURE)
-          ])
-        }
-      )
+      'forms',
+      groupArray(['forms'], 'Forms', () => MANIFEST_CREATURE_FORM_NODE_MAP, {
+        presentation: 'summary',
+        showIf: and([
+          local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST),
+          local.field(['manifestKind']).eq(MANIFEST_KIND.CREATURE)
+        ])
+      })
+    )
+    .set(
+      'excessDamageCarriesOver',
+      toggle(['excessDamageCarriesOver'], 'Excess Damage Carries Over', {
+        showIf: and([
+          local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST),
+          local.field(['manifestKind']).eq(MANIFEST_KIND.CREATURE)
+        ])
+      })
     )
     .set(
       'shape',

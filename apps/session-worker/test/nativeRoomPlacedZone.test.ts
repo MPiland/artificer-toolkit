@@ -15,6 +15,7 @@ import { plainWolf } from '../src/testing/movementPlannerFixture.js'
 import { actionRoom } from './actionRoomFixture.js'
 import { vitalsOf } from './areaRoomReads.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
+import { hitPointsOf, readZones, revertLastAction, walkerMoves } from './placedZoneRoomReads.js'
 import { readRoomHistory } from './roomHistoryReads.js'
 
 /**
@@ -123,52 +124,6 @@ async function spreadCaltrops(room: Room) {
   expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
 }
 
-function readZones(room: Room) {
-  return runInDurableObject(room.room.base.stub, async (_instance, context) =>
-    new RoomEncounterStore(context.storage).documents('encounterSpatialRuleEffects')
-  )
-}
-
-/** The Scene version each room has reached: a walk that triggers nothing leaves no receipt to read it from. */
-const sceneVersions = new WeakMap<Room, number>()
-
-/**
- * The Wolf's turn: it walks `path` through the room's Scene command. A walk that triggers nothing
- * leaves no receipt, so it reports no executions.
- */
-async function walkerMoves(
-  room: Room,
-  path: readonly { x: number; y: number }[],
-  carefully = false
-) {
-  const receiptsBefore = (await room.room.receipts()).length
-  const answer = await room.room.move(
-    path,
-    await room.version(),
-    sceneVersions.get(room) ?? room.room.scene.version,
-    room.room.scene.tokens[1]!.id,
-    carefully
-  )
-  const committed = answer.type === 'COMMAND_COMMITTED' ? answer.delta : null
-  if (committed?.scope !== 'SCENE')
-    throw new Error(`The walk was not committed: ${JSON.stringify(answer)}`)
-  sceneVersions.set(room, committed.result.version)
-  const [move] = (await room.room.receipts())
-    .slice(receiptsBefore)
-    .filter(({ commandType }) => commandType === 'MOVE_SCENE_TOKEN')
-  const walked = move?.result as
-    | {
-        terminalPosition: { x: number; y: number }
-        executions: { execution: { movementInterruption: unknown }; applications: unknown[] }[]
-      }
-    | undefined
-  const { delta } = committed.result
-  const terminalPosition =
-    walked?.terminalPosition ?? (delta?.kind === 'TOKEN_MOVED' ? delta.position : null)
-  if (!terminalPosition) throw new Error('The walk moved no token.')
-  return { terminalPosition, executions: walked?.executions ?? [] }
-}
-
 /** The feet the Wolf's moves have cost it this Encounter: what the turn's movement readout shows. */
 async function walkerFeetMoved(room: Room) {
   const movements = await runInDurableObject(room.room.base.stub, async (_instance, context) =>
@@ -179,9 +134,8 @@ async function walkerFeetMoved(room: Room) {
     .reduce((total, { usedFeet }) => total + usedFeet, 0)
 }
 
-async function walkerHitPoints(room: Room) {
-  return vitalsOf(await readRoomHistory(room.room.base.stub)).find(({ id }) => id === WALKER_ID)
-    ?.currentHitPoints
+function walkerHitPoints(room: Room) {
+  return hitPointsOf(room, WALKER_ID)
 }
 
 /** The stored effect without its row identity or JSON key order, which a restore may rewrite. */
@@ -234,13 +188,7 @@ describe('spreading Caltrops (SPELLS-17)', () => {
     await spreadCaltrops(room)
     expect(await readZones(room)).toHaveLength(1)
 
-    const undone = await room.send({
-      type: 'REVERT_LAST_ACTION',
-      encounterId: room.room.encounterId,
-      commandId: crypto.randomUUID(),
-      expectedVersion: await room.version()
-    })
-    expect(undone.type, JSON.stringify(undone)).toBe('COMMAND_COMMITTED')
+    await revertLastAction(room)
     expect(await readZones(room)).toEqual([])
     expect(vitalsOf(await readRoomHistory(room.room.base.stub))).toEqual(vitalsOf(before))
 
@@ -461,13 +409,7 @@ describe('the Caltrops journey (SPELLS-17.1)', () => {
     // The GM takes the first spread back and the field goes with it.
     await spreadCaltrops(room)
     expect(await readZones(room)).toHaveLength(1)
-    const undone = await room.send({
-      type: 'REVERT_LAST_ACTION',
-      encounterId: room.room.encounterId,
-      commandId: crypto.randomUUID(),
-      expectedVersion: await room.version()
-    })
-    expect(undone.type, JSON.stringify(undone)).toBe('COMMAND_COMMITTED')
+    await revertLastAction(room)
     expect(await readZones(room)).toEqual([])
 
     // Spread again: the Wolf walks in, fails the save, stops, is hurt and slowed.
@@ -579,13 +521,7 @@ describe('ending a caltrop slow (SPELLS-17)', () => {
     expect(await walkerHitPoints(room)).toBe(hitPointsBefore)
     expect(await walkerEffects(room)).toEqual([])
 
-    const undone = await room.send({
-      type: 'REVERT_LAST_ACTION',
-      encounterId: room.room.encounterId,
-      commandId: crypto.randomUUID(),
-      expectedVersion: await room.version()
-    })
-    expect(undone.type, JSON.stringify(undone)).toBe('COMMAND_COMMITTED')
+    await revertLastAction(room)
 
     expect(await walkerHitPoints(room)).toBe(hitPointsHurt)
     expect((await walkerEffects(room)).map(storedContent)).toEqual([slow].map(storedContent))

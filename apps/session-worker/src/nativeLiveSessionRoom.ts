@@ -115,7 +115,7 @@ import {
   SceneMoveSettledMechanicsError,
   publishRoomSceneUndo
 } from './roomSceneUndo.js'
-import { restoreRoomConcealmentPrune } from './roomConcealmentPrune.js'
+import { restoreRoomMoveUndo } from './roomMoveUndoRestore.js'
 import {
   publishRoomSceneFog,
   publishRoomSceneInline,
@@ -1973,7 +1973,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
               scene,
               request: { input: command, presentation },
               onUndone: (undoneCommandId) =>
-                restoreRoomConcealmentPrune({
+                restoreRoomMoveUndo({
                   store: this.#roomStore,
                   transaction,
                   inputs: this.#roomInputs,

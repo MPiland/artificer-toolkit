@@ -1,5 +1,6 @@
 import type {
   AbilityCode,
+  ActivationCode,
   ChargeLimitKind,
   ChargeResetKind,
   CoreMeta,
@@ -91,6 +92,10 @@ export type PredicatePayloadByCode = {
   SOLE_WIELDED_WEAPON: EmptyObject
   ATTACK_ABILITY: {
     ability: AbilityCode
+  }
+  /** The attack is made with this activation: the bonus action of an off-hand attack. */
+  ATTACK_ACTIVATION: {
+    activation: ActivationCode
   }
   /** The attack's net roll mode: `NOT_DISADVANTAGE` is advantage or a normal roll. */
   ATTACK_ROLL_MODE: {
@@ -329,6 +334,13 @@ export const PREDICATE_REGISTRY = {
     code: 'ATTACK_ABILITY',
     label: 'Attack Ability',
     description: 'Requires the attack to use the ability.',
+    subjects: ['EQUIPMENT']
+  },
+
+  ATTACK_ACTIVATION: {
+    code: 'ATTACK_ACTIVATION',
+    label: 'Attack Activation',
+    description: 'Requires the attack to be made with the activation, such as a bonus action.',
     subjects: ['EQUIPMENT']
   },
 

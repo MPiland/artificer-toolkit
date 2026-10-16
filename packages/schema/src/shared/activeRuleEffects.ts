@@ -335,6 +335,20 @@ const activeRuleEffectActorLinkContributionDtoSchema = lazySchema(() =>
 )
 
 /**
+ * The holder wears another Creature's form while the effect lasts (D130): the Creature's snapshot
+ * and hit points replace the holder's, and the effect ending restores them. The actor's own
+ * `form` records the origin; this contribution is the rule that put the holder in the form.
+ */
+const activeRuleEffectCreatureFormContributionDtoSchema = lazySchema(() =>
+  z.strictObject({
+    kind: z.literal('CREATURE_FORM'),
+    formOutcomeId: identifierSchema,
+    creatureId: uuidSchema,
+    excessDamageCarriesOver: z.boolean()
+  })
+)
+
+/**
  * Version one is retained byte-faithfully for existing rows and receipts.
  * Version two adds a bounded, immutable aggregate-state contribution list.
  */
@@ -355,7 +369,8 @@ export const activeRuleEffectDefinitionDtoSchema = lazySchema(() =>
               activeRuleEffectActorRelationshipContributionDtoSchema,
               activeRuleEffectModifierGrantContributionDtoSchema,
               activeRuleEffectLocationConcealmentContributionDtoSchema,
-              activeRuleEffectActorLinkContributionDtoSchema
+              activeRuleEffectActorLinkContributionDtoSchema,
+              activeRuleEffectCreatureFormContributionDtoSchema
             ])
           )
           .check(z.minLength(1))

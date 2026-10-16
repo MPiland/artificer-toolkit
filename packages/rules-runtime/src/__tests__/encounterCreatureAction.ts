@@ -240,6 +240,7 @@ export function creatureActor(input: {
     maxHitPoints: hitPoints,
     tempHitPoints: 0,
     defeated: false,
+    form: null,
     absence: null,
     conditions: [...(input.conditionIds ?? [])],
     resources: Object.entries(input.featureChargesUsed ?? {}).reduce<Record<string, unknown>>(

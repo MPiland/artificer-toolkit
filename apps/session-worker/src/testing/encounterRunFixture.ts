@@ -88,6 +88,7 @@ export async function encounterRunFixture({
         maxHitPoints: statBlock.hitPoints,
         tempHitPoints: 0,
         defeated: false,
+        form: null,
         absence: null,
         conditions: [],
         resources: {},

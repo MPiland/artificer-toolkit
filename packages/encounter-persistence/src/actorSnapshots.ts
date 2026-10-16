@@ -51,18 +51,25 @@ export async function ensureActorSnapshot(
   })
 }
 
-/** Deletes a snapshot once no actor of the Run names it. */
+/** Deletes a snapshot once no actor of the Run names it, as its own or as a form's origin. */
 export async function releaseActorSnapshot(
   ctx: EncounterWriteContext,
   encounterId: string,
   checksum: string
 ) {
-  const named = await ctx.db
-    .query('encounterRunActors')
-    .withIndex('by_encounterId_snapshotChecksum', (q) =>
-      q.eq('encounterId', encounterId).eq('snapshotChecksum', checksum)
-    )
-    .first()
+  const named =
+    (await ctx.db
+      .query('encounterRunActors')
+      .withIndex('by_encounterId_snapshotChecksum', (q) =>
+        q.eq('encounterId', encounterId).eq('snapshotChecksum', checksum)
+      )
+      .first()) ??
+    (await ctx.db
+      .query('encounterRunActors')
+      .withIndex('by_encounterId_formOriginSnapshotChecksum', (q) =>
+        q.eq('encounterId', encounterId).eq('formOriginSnapshotChecksum', checksum)
+      )
+      .first())
   if (named) return
   const row = await readSnapshotRow(ctx, encounterId, checksum)
   if (row) await ctx.db.delete(row._id)

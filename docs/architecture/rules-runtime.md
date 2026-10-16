@@ -335,8 +335,8 @@ room; `executeEncounterActorsAction` refuses an outcome that asks for evidence. 
 
 An `AREA_CONTENTS` action whose range is Self and whose shape is a sphere, cylinder or circle takes the fourth
 target, `{ kind: 'CASTER_CENTERED', sceneId, expectedSceneVersion }`: it names no origin or direction. The
-origin is the caster's own token (`evaluateEncounterCasterCenteredAreaTarget` returns the `RADIUS` shape and
-refuses `NO_CASTER_TOKEN` without one; the room seals the token's position), and the sealed area is the same `RADIUS` shape a point area seals, so no persisted shape changes;
+origin is the caster's own token (`evaluateEncounterCasterCenteredAreaTarget` returns the `RADIUS` shape; the room
+reads the caster's token with the Scene and seals its position), and the sealed area is the same `RADIUS` shape a point area seals, so no persisted shape changes;
 the caster-centered meaning lives in the persisted command's target kind. "Within N feet of you" is measured
 from the edge of the caster's space (D114): `spatialTokensWithinSpaceRadius` catches a token whose footprint
 shares positive area with the caster's footprint grown by the radius (a rounded rectangle, so a Large or
@@ -353,22 +353,30 @@ An `AREA_CONTENTS` action whose range is Self and whose shape is a cone, line or
 `{ kind: 'DIRECTED', origin, toward, sceneId, expectedSceneVersion }`. The origin must lie on the caster's token
 footprint (`isDirectedAreaOriginOnToken`) and `toward` is the point the area is aimed at. `encounterAreaTargetKind`
 is the one range × shape table (point, directed, caster-centered or unsupported) that the compiler, the choice target and the
-evaluators share; a target of the wrong kind is `TARGET_UNAVAILABLE`, as is an origin off the footprint, and each
-refusal has its own message (`UNSUPPORTED_AREA`, `NO_CASTER_TOKEN`, `ORIGIN_OFF_CASTER`).
+evaluators share; a target of the wrong kind is `TARGET_UNAVAILABLE` (a direction for a point action, a point for a
+directed action and anything else for a caster-centered one each say what the action takes), as is an origin off the
+footprint, and each refusal has its own message (`UNSUPPORTED_AREA`, `ORIGIN_OFF_CASTER`). The caster's token is
+read with the Scene, so the evaluators take it as given; a Scene without it makes the read throw
+`Action Scene token context is stale.`, which the room answers as a generic `UNAVAILABLE` (not a
+`TARGET_UNAVAILABLE` refusal).
 `evaluateEncounterDirectedAreaTarget` returns the Scene-unit shape, and everything after it is the point-area
 pipeline above: the same `ENCOUNTER_AREA_ACTION` occurrence, sealed saves, frozen damage, GM removal, commit and
 undo. The pending guard (`requireAreaActionPendingRoot`) checks the sealed origin and direction against the command.
 Catching (`spatialTokensInsideArea`, for every area) is strict positive-area overlap, so a creature the area
 only touches along an edge or at a corner is not caught (D103, user ruling 2026-10-14). Lasting and moving zones use the same rule through the same predicate (`footprintOverlapsSpatialGeometry`): entry, start-of-turn effects (`encounterTurnEffectPerception`) and movement-reaction perception (`encounterMovementReactionPerception`) see a zone only when the footprint shares area with it, so touching its edge or a corner never catches (SPELLS-24); a directed shape needs the
-caster's token among the Scene's tokens, which it excludes (it throws without it: the room has already refused `NO_CASTER_TOKEN`, so a missing caster here is an invariant failure). A cone is the triangle from the origin to a
+caster's token among the Scene's tokens, which it excludes (it throws without it: the Scene read has already failed without the caster's token, so a missing caster here is an invariant failure). A cone is the triangle from the origin to a
 far edge as wide as it is long; a line is a rectangle, 5 ft wide unless authored (a scaled or non-positive
-authored width is refused at compile). A Self cube follows the 5e rule that its origin lies anywhere on a face
-of the cube (`cubeFromSideOutline`): the side faced is the dominant axis of `toward`, the face is flush against
-that side and slides along it, snapped to the grid, according to where the origin lies along the side, so a
-corner origin catches exactly the cube's squares (9 for a 15 ft cube). The sealed shape carries `cellSize` for
-that snap. Token rotation is ignored: the footprint is axis-aligned. The stage aims the area with one
+authored width is refused at compile). A Self cube follows the 5e rule that its origin lies on a face of the
+cube (`cubeFromSideOutline`; for a caster whose side is off the grid lines the picked place may not contain the pressed
+point, a deferred edge case): the side faced is the dominant axis of `toward`, the face is flush against
+that side and slides along it, snapped to the Scene's grid lines, according to where the origin lies along the
+side, so a corner origin catches exactly the cube's squares (9 for a 15 ft cube). The places are the grid lines
+whose cube shares positive length with the caster's side, and each place owns an equal share of the side, wherever
+the caster stands on or off the grid. The sealed shape carries `cellSize` and `gridOrigin` (the Scene grid's origin;
+a gridless Scene snaps to 5 ft squares from the Scene origin) for that snap. Token rotation is ignored: the footprint is axis-aligned. The stage aims the area with one
 `VttAreaAim { origin, toward }` (`vttSceneRenderer.model.ts`): the player presses on their token's edge
-(`nearestFootprintEdgePoint`) and drags the direction, and the outline drawn is `directedAreaOutline` (a point cube
+(`nearestFootprintEdgePoint`) and drags the direction (the press, drag, release and cancel are
+`createVttAreaAimGesture`, `vttAreaAimGesture.ts`, which the renderer's pointer handlers call), and the outline drawn is `directedAreaOutline` (a point cube
 uses `pointCubeOutline`), the same geometry the room catches with.
 
 **Placed zones (SPELLS-17, current).** An authored `MANIFEST` `ZONE` `PLACED_SPACE` outcome is a point-area action
@@ -414,6 +422,21 @@ records to the root's `consumedGrants` receipt, so GM undo restores them with th
 save and GM edit paths have no undoable root, so their endings are not undone. The other mechanics-batch callers need no
 receipt: basic action check settlement applies only `STABILIZE` and Cleaving only `DAMAGE`, neither of which raises hit points,
 and movement reactions and spatial effects run under `MOVE_SCENE_TOKEN`, which is not an undoable root: `REVERT_LAST_ACTION` refuses it, and the Scene undo (`UNDO_LAST_SCENE_MOVE`) refuses a move that recorded rule receipts, because it restores only the token's position. Not yet: hidden or unnoticed zones (MOVE-3.3 to 3.5).
+
+**Placed-zone damage dice (SPELLS-20 T1, D133, current).** A zone whose failed entry save deals authored dice
+(`valueKind: 'DICE'`, a plain `NdM`) compiles those dice into the zone's one frozen entry graph: `damage-enabled`
+(the movement-interruption authorization) gates one `evidence.optional-integer-range` node per die, sum nodes add
+them, and `proposal-on_save_fail` takes the last sum as its amount. A die is therefore an ordinary roll request
+(`isDamageDieRequest`), not a second graph. A flat modifier, bonus, scaling or half damage on a zone is refused
+(`unsupported`; half damage is SPELLS-20 T4). Each spatial candidate runs the d20 stage and then its die stages: the
+pending candidate carries `diceStage` (the resolved d20) while the dice are answered, and every answer is one
+`resolutionCommands` entry (`ENTER_INTEGER` or `SYSTEM_ROLL` for a die). The d20 belongs to the contacted creature;
+the dice belong to the zone source's controller (`spatialPendingRollerActorId`: the source actor, the target when the
+zone has no source), honoring that controller's auto-roll, and the GM may answer for anyone. The recorded dice stay in
+the stored execution trace, which settlement reconstructs from (`reconstructTargetBoundActiveRuleEffectCompletion`), so a
+settled entry never rerolls. `retainedSpatialReplayFaces` also replays the dice, but no caller passes `retained`
+today. The movement that triggers an entry is not an undoable root (above); GM undo of a dice zone
+removes the zone with its spreading Action, as for every placed zone.
 
 Each choice also carries `range` when its compiled target policy has a measurable one, the range the evaluator that
 handles the policy measures. A single-target policy that `singleTargetMeasure` accepts advertises `SELF`, `WITHIN` (Touch
@@ -490,7 +513,7 @@ holds the cast in a `castReaction` pending offer (`REACTION_CHOICE` to the react
 and the cast proceeds; using the reaction commits a countered cast (`persistEncounterCounteredCastCommit`): the
 caster's slot and action and the reactor's slot and reaction are spent, nothing else is applied, and no
 Concentration starts. Undo restores both creatures. Creature-capability, ACTORS-target and area casts, and casts
-made without the Scene offer no reaction. The chain is T3d.
+made without the Scene offer no reaction. The chain is described below (T3d).
 
 **Higher-level check (current, REACTION-4.T3c; D127).** `reactionTrigger.higherLevelCheck` (`{ ability, baseDc }`)
 makes a reaction cast below the triggering cast's level owe an ability check at DC `baseDc` + the cast's level
@@ -502,6 +525,24 @@ joins the declined set and is not offered again, and the cast's terminal commit 
 failed reactor's slot and reaction atomically with the cast (`failedCounterSpend.ts`), so one undo reverses them all.
 Spend receipts are planned at the terminal against the reactor as it stands, not when the check fails. A reactor that
 is the cast's target spends through the target's own mechanics call.
+
+**Counterspell chain (current, REACTION-4.T3d).** A counter that stands (its check passed or none was owed) is
+itself a cast: the offer's `chain` (`counters`, `castDeclinedReactorActorIds`, `castLevel`) holds the standing counters
+in order, and the next level offers the other Characters, except the creature whose cast it answers and any reactor that
+already used a counter in this cast, a counter to the last one. The original caster is therefore offered a counter to a
+Counterspell cast against its spell (never to its own cast), planned against the slots its cast leaves. Range, check level and target are measured against that counter's
+caster (`discoverNativeCastReactions` `against`). Each answer adds one counter, so depth needs no cap in code. When a
+level has nobody left to ask the chain resolves by parity (`advanceNativeCastReactions`): odd, the first counter stands
+and the cast is countered; even, the chain is spent without effect and the cast is offered again at its own level with
+its declines restored. `failedCounters` holds every counter used that did not counter the cast (a failed check, or
+itself countered; `againstActorId` records the cast it answered), all spent with the cast's terminal commit. The
+persistence validators (`actionPending.ts`) check this bookkeeping by set equality.
+
+A creature that makes several spell spends in one terminal commit (the cast's caster: the cast, then its counter)
+commits them as one mechanics batch: `EncounterMechanicsBatchInput.characterSpellConsumptions` is an ordered list, each
+entry fenced by the same `expectedStreamVersion`, its own `beforeUsed` and `afterUsed = beforeUsed + 1`, applied in order
+with one stream bump (`planEncounterMechanicsBatch`). Discovery prepares the caster's counter against a target with the
+cast's slot already spent (`projectSpellSlotSpend`), on the same Character version, so the offer matches what commits.
 
 #### `DAMAGE_TAKEN` (current, REACTION-4.T2)
 
@@ -698,10 +739,26 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
 - **Dash** carries the `MOVEMENT_RULE` kind `ADD_SPEED_TO_MOVEMENT`, compiled to `dnd5e.add-speed-to-movement-proposal`. The
   `RESOLVE_ACTION` commit reads it from the execution trace (`executionAddsSpeedToMovement`), calls `recordTurnSpeedBonus` and stores
   `speedBonusTurn` on the command; GM undo calls `removeTurnSpeedBonus`. The movement budget stays condition-adjusted speed × (1 + bonuses).
+- **In-Scene teleport (SPELLS-28.2, Misty Step, Dimension Door).** A SELF `TELEPORT` outcome with a `VISIBLE` or `SPECIFIED_POINT`
+  destination and a positive DISTANCE invocation range compiles to `dnd5e.teleport-allowance-proposal` (Dash pattern: no applications,
+  the commit reads the stored trace via `executionTeleportAllowance`). The commit records a one-shot allowance (`castCommandId`, `maxFeet`,
+  `destinationKind`, `consumedByCommandId`) in `encounterTurnMovements.teleportAllowances` and stores `teleportAllowanceTurn` on the command.
+  It expires with the caster's turn row. A `MOVE_SCENE_TOKEN` `TELEPORT` spends it: the room selects the allowance
+  (`selectTeleportAllowance`: smallest range that covers the distance, free footprint, `VISIBLE` needs an explored destination) and
+  refuses a player's teleport that none admits (`TELEPORT_UNAVAILABLE`, or `MOVEMENT_BLOCKED` for range, occupancy or sight), while the GM's
+  stays ungated and spends any unspent allowance. Publication marks it spent (`finish.teleportCastCommandId`). Undo order is the move first
+  (`UNDO_LAST_SCENE_MOVE` restores the allowance in the same transaction), then the cast (`REVERT_LAST_ACTION` removes an unspent allowance
+  and is refused once a move spent it). This is the one enforced movement exception in ADR 0034: the spell grants the move.
 - **Disengage** is an `APPLY_GRANT` on SELF for one `TURN` with an `OPPORTUNITY_ATTACK_IMMUNITY` modifier of the flag kind `ENABLE`
   (empty domain, no payload), anchored to the holder's `END_OF_TURN`. The room reads it with `encounterGrantsEnabledDomain(effects, 'OPPORTUNITY_ATTACK_IMMUNITY')`.
   A `TURN` duration counts the turn in progress (`includesCurrentTurn`, no own-turn +1); `ROUND` and longer keep the +1. Like every
   grant it ends only at a real turn end (START or ADVANCE_TURN); GM cursor corrections do not tick grants (product-owner ruling, ATTACK-18.2).
+- **Two-weapon fighting damage (ATTACK-9.T5b, D-pending-attack-9-t5)** adds no feature-specific kind. The damage ability modifier of an
+  off-hand bonus attack is the existing `min`/`max` clamp on `resolveAbilityModifierBonus` (`max: 0` keeps a modifier only while negative,
+  `min: 0` only while positive; the optional finesse kind accepts the same fields), and the `ATTACK_ACTIVATION` facet predicate (folded to
+  `ITEM_ACTIVATION`, read from `Dnd5eModifierTarget.activation`) lets one weapon's damage grant differ between its Action and bonus-action
+  attacks. The Two-Weapon Fighting style (Fighter, Ranger, Champion) is a pair of GLOBAL melee-damage `min: 0` grants, one per ability,
+  gated on a Light weapon, the bonus action and that attack ability (`twoWeaponFightingGrants`); there is no closed rule.
 - **Rage (ATTACK-9.T1, D113)** is authored data on the compiled path, with no Barbarian executor: a bonus action that spends the
   `rageCharge` binding and applies a 1-minute SELF grant. Four generic shapes carry it. (1) An attack records the ability it used
   (`usedAttackAbility`: the highest ability modifier of the attacking item's own `SOURCE`-scoped modifiers, so a finesse weapon records
@@ -1163,6 +1220,20 @@ counted at the end of the target's turn). The plan has no members of its own: th
 one `ACTOR_LINK` state contribution (members sorted) per target, or none when fewer than two were reached. The
 effects are persisted per child in `areaCommitPersistence.ts` and deleted with it on revert. The contribution
 has no gameplay effect; it is provenance that ends at the duration.
+
+**Creature forms (D130, SPELLS-28.T2).** A `MANIFEST` / `CREATURE` outcome with `forms` compiles to
+`dnd5e.creature-form-proposal` and a `creatureFormContribution` on the active-effect plan (forms with a per-form
+`maxTargets`, the duration, `excessDamageCarriesOver`). The chosen target is `{ kind: 'ACTORS', actorIds, formId }`;
+the room (`readChosenFormCreature`) refuses a missing form, a Character and more creatures than the form allows, and
+reads the form Creature (the Worker through `LiveCaptureReads.readFormCreature`, persistence re-reading the created
+effect's `creatureId`, both via `actorFormEntry`). `enterActorForm` swaps the form's snapshot, `sourceId`,
+`sourceRevision` and hit points into the actor and keeps the origin in `form`; `revertActorForm` is the one,
+idempotent way back. A form ends when its hit points reach 0 (the pure plan in `planEncounterMechanicsBatch`, the
+excess carried per `excessDamageCarriesOver`), when its effect is deleted (the `effectStore` delete hook reverts the
+actor: duration end, dismissal), and on cast undo (`actionRevert` deletes the form effect before it restores hit
+points). `writeRunActor` deletes the form effect of an actor that has left its form. The origin snapshot is kept by
+checksum (`formOriginSnapshotChecksum`); `form` is required and nullable, and `actorFormMigration` migrates dev rows.
+A Concentration that deletes the effect directly must route through the same delete (T4).
 
 **Grappled outcomes (D105).** An `ACTOR_RELATIONSHIP` outcome carries a required `heldAtOnce` and optional
 `ESCAPE_CHECK` (allowed skill or ability checks; a `FIXED` or `CONTEST` DC) and `TARGET_SIZE_MAXIMUM`

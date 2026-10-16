@@ -123,6 +123,7 @@ import {
   restoreEncounterActionPending
 } from '@artificer-toolkit/rules-runtime/encounterActionPendingSnapshot'
 import { planNativeEncounterActionMechanics } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPlan'
+import { projectSpellSlotSpend } from '@artificer-toolkit/rules-runtime/encounterActionProjection'
 import {
   liveSessionEncounterActionPendingInputSchema,
   liveSessionEncounterActionCommitInputSchema
@@ -392,7 +393,8 @@ export async function planNativeLiveEncounterAction(
       runtime: executionOptions.runtime,
       random: executionOptions.random,
       requireAutoRoll,
-      autoRollByActorId
+      autoRollByActorId,
+      readFormCreature: executionOptions.captures.readFormCreature
     }
     if (removalCommand) {
       if (!areaSnapshot) throw new Error('The pending area action is unavailable.')
@@ -779,6 +781,24 @@ export async function planNativeLiveEncounterAction(
       ? (snapshot.applicationContext.failedCounters ?? [])
       : []
   let castDiscovery: Promise<ReturnType<typeof discoverNativeCastReactions>> | undefined
+  const castConsumption = prepared.characterActionState?.spellConsumption
+  /**
+   * A reactor counters against the slots it has left. The cast's own caster counters a counter cast
+   * against its cast with the cast's slot already spent, on the Character version both spends commit in.
+   */
+  const castSpentTarget = (
+    reactorActorId: string,
+    reactorTarget: Awaited<ReturnType<typeof loadTarget>>
+  ) =>
+    castConsumption && reactorActorId === prepared.actor.id
+      ? projectSpellSlotSpend({
+          target: reactorTarget,
+          consumption: castConsumption,
+          campaignId: state.campaignId,
+          gameSystemId: state.gameSystemId,
+          occurredAt
+        })
+      : reactorTarget
   /** The creatures that may counter this cast, read once from the Scene the cast names. */
   const discoverCast = (level: number) =>
     (castDiscovery ??= (async () => {
@@ -800,16 +820,18 @@ export async function planNativeLiveEncounterAction(
         triggerLevel: level,
         scene: castScene.context,
         loadTarget,
-        prepareReaction: (reactor, reactorTarget, actionId) =>
+        prepareReaction: async (reactor, reactorTarget, actionId, against) =>
           prepareEncounterActionMechanics({
             state,
             actor: reactor,
-            target: prepared.actor,
+            target: against,
             actors,
             actionId,
             wieldConflictAcceptance: { kind: 'UNPROMPTED' },
             overridable: false,
-            movementTargets: new Map(movementTargets).set(reactor.id, reactorTarget),
+            movementTargets: new Map(movementTargets)
+              .set(reactor.id, castSpentTarget(reactor.id, reactorTarget))
+              .set(against.id, movementTargets.get(against.id) ?? (await loadTarget(against))),
             sceneContext: null,
             ...actionSources
           }),
@@ -845,6 +867,7 @@ export async function planNativeLiveEncounterAction(
       occurrenceId,
       gameSystemId: state.gameSystemId,
       system,
+      casterActorId: prepared.actor.id,
       triggerLevel,
       answer: castAnswer,
       failedCounters,

@@ -12,6 +12,7 @@ import {
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import type { CharacterRuleActionApplication } from '../characterRuleActionSystemAdapter.js'
+import { enterActorForm, revertActorForm } from '../encounterActorForm.js'
 import {
   planEncounterMechanicsBatch,
   type EncounterMechanicsBatchInput
@@ -458,15 +459,17 @@ describe('Creature mechanics batch plan', () => {
     {
       name: 'a spell slot consumption',
       overrides: {
-        characterSpellConsumption: {
-          characterId: CHARACTER_ID,
-          spellId: SPELL_ID,
-          candidateId: 'candidate',
-          slotKey: 'STANDARD:1',
-          beforeUsed: 0,
-          afterUsed: 1,
-          expectedStreamVersion: STREAM_VERSION
-        }
+        characterSpellConsumptions: [
+          {
+            characterId: CHARACTER_ID,
+            spellId: SPELL_ID,
+            candidateId: 'candidate',
+            slotKey: 'STANDARD:1',
+            beforeUsed: 0,
+            afterUsed: 1,
+            expectedStreamVersion: STREAM_VERSION
+          }
+        ]
       },
       message: 'Encounter non-Character actors cannot spend Character spell slots.'
     },
@@ -483,6 +486,134 @@ describe('Creature mechanics batch plan', () => {
         userId: USER_ID
       })
     ).toThrow(message)
+  })
+})
+
+describe('Creature forms (D130)', () => {
+  const FORM_EFFECT_ID = '00000000-0000-4000-8000-00000000e1f0'
+  const FORM_SOURCE_ID = '00000000-0000-4000-8000-00000000e1f1'
+  const formCreature = {
+    sourceId: FORM_SOURCE_ID,
+    sourceRevision: 7,
+    snapshot: { label: 'Giant Centipede' },
+    maxHitPoints: 4
+  }
+  const plain = () => creature({ current: 11, temporary: 2, max: 11, conditions: [POISONED] })
+  const inForm = (excessDamageCarriesOver: boolean) => {
+    const actor = plain()
+    if (actor.kind === 'CHARACTER') throw new Error('The fixture actor is a Creature.')
+    return enterActorForm(actor, {
+      effectId: FORM_EFFECT_ID,
+      excessDamageCarriesOver,
+      creature: formCreature
+    })
+  }
+  const hitForm = (
+    actor: ReturnType<typeof inForm>,
+    requested: number,
+    before: number,
+    after: number
+  ) =>
+    planEncounterMechanicsBatch({
+      batch: batch(
+        [
+          damage({
+            requested,
+            before: { current: before, temporary: 0 },
+            after: { current: after, temporary: 0 },
+            maximum: 4
+          })
+        ],
+        { effectiveMaximumHitPoints: 4 }
+      ),
+      actor,
+      userId: USER_ID
+    })
+
+  it("swaps the form in, keeping the origin whole and the actor's conditions", () => {
+    const plan = planEncounterMechanicsBatch({
+      batch: batch([], {
+        enterForm: {
+          effectId: FORM_EFFECT_ID,
+          excessDamageCarriesOver: false,
+          creature: formCreature
+        }
+      }),
+      actor: plain(),
+      userId: USER_ID
+    })
+    expect(plan.updatedActor).toMatchObject({
+      sourceId: FORM_SOURCE_ID,
+      sourceRevision: 7,
+      currentHitPoints: 4,
+      maxHitPoints: 4,
+      tempHitPoints: 0,
+      conditions: [POISONED],
+      form: {
+        effectId: FORM_EFFECT_ID,
+        excessDamageCarriesOver: false,
+        origin: { currentHitPoints: 11, maxHitPoints: 11, tempHitPoints: 2 }
+      }
+    })
+    expect(plan.stateChanged).toBe(true)
+  })
+
+  it('refuses to enter a form while in one', () => {
+    expect(() =>
+      planEncounterMechanicsBatch({
+        batch: batch([], {
+          enterForm: {
+            effectId: FORM_EFFECT_ID,
+            excessDamageCarriesOver: false,
+            creature: formCreature
+          }
+        }),
+        actor: inForm(false),
+        userId: USER_ID
+      })
+    ).toThrow('The actor already has a form.')
+  })
+
+  it('keeps the form while it has hit points, damaging only the form', () => {
+    const plan = hitForm(inForm(false), 3, 4, 1)
+    expect(plan.updatedActor).toMatchObject({
+      sourceId: FORM_SOURCE_ID,
+      currentHitPoints: 1,
+      form: { origin: { currentHitPoints: 11, tempHitPoints: 2 } }
+    })
+  })
+
+  it('reverts at 0 hit points and loses the excess when the form does not carry it over (Giant Insect)', () => {
+    const plan = hitForm(inForm(false), 9, 4, 0)
+    expect(plan.updatedActor).toEqual(plain())
+  })
+
+  it('reverts at 0 hit points and spends the excess on the origin when the form carries it over (Polymorph)', () => {
+    // 9 damage: 4 end the form, 5 spend the origin's 2 temporary then 3 of its 11 current.
+    const plan = hitForm(inForm(true), 9, 4, 0)
+    expect(plan.updatedActor).toMatchObject({
+      sourceId: null,
+      currentHitPoints: 8,
+      tempHitPoints: 0,
+      defeated: false,
+      form: null
+    })
+  })
+
+  it('defeats the origin when carried excess damage takes it to 0', () => {
+    const plan = hitForm(inForm(true), 30, 4, 0)
+    expect(plan.updatedActor).toMatchObject({
+      currentHitPoints: 0,
+      tempHitPoints: 0,
+      defeated: true,
+      form: null
+    })
+  })
+
+  it('ends a form once through the one revert, however the form ends', () => {
+    const reverted = revertActorForm(inForm(false))
+    expect(reverted).toEqual(plain())
+    expect(revertActorForm(reverted)).toBe(reverted)
   })
 })
 
@@ -597,17 +728,49 @@ describe('Character mechanics batch plan', () => {
       ...characterFacts,
       character: { ...document, state: { ...document.state, spellSlots } }
     })
-    const planFor = (spend: typeof consumption, facts: ReturnType<typeof withSlots>) =>
+    const planForAll = (spends: (typeof consumption)[], facts: ReturnType<typeof withSlots>) =>
       planEncounterMechanicsBatch({
         batch: batch([], {
           expectedCharacterStreamVersion: STREAM_VERSION,
           effectiveMaximumHitPoints: 12,
-          characterSpellConsumption: spend
+          characterSpellConsumptions: spends
         }),
         actor,
         userId: USER_ID,
         characterFacts: facts
       })
+    const planFor = (spend: typeof consumption, facts: ReturnType<typeof withSlots>) =>
+      planForAll([spend], facts)
+
+    it('spends a cast and a counter of the same Character in one batch and one stream version', () => {
+      const counter = { ...consumption, beforeUsed: 2, afterUsed: 3 }
+      const plan = planForAll(
+        [consumption, counter],
+        withSlots([{ slotKey: 'STANDARD:1', used: 1 }])
+      )
+      expect(plan.characterStreamVersion).toBe(STREAM_VERSION + 1)
+      expect(plan.characterUpdate?.character.state.spellSlots).toEqual([
+        { slotKey: 'STANDARD:1', used: 3 }
+      ])
+    })
+
+    it('spends two different slots of one Character in the order given', () => {
+      const counter = { ...consumption, slotKey: 'STANDARD:3', beforeUsed: 0, afterUsed: 1 }
+      const plan = planForAll(
+        [consumption, counter],
+        withSlots([{ slotKey: 'STANDARD:1', used: 1 }])
+      )
+      expect(plan.characterUpdate?.character.state.spellSlots).toEqual([
+        { slotKey: 'STANDARD:1', used: 2 },
+        { slotKey: 'STANDARD:3', used: 1 }
+      ])
+    })
+
+    it('refuses a second spend of the same slot that does not follow the first', () => {
+      expect(() =>
+        planForAll([consumption, consumption], withSlots([{ slotKey: 'STANDARD:1', used: 1 }]))
+      ).toThrow('Encounter Character spell slot consumption is stale.')
+    })
 
     it('spends the slot in the Character version the outcome writes, leaving other slots alone', () => {
       const plan = planFor(

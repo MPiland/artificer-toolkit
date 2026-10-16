@@ -302,6 +302,44 @@ describe('chosen-creature heal compilation from the SRD (D118)', () => {
     expect(plan?.modifierGrantContribution ?? null).toBeNull()
   })
 
+  describe('creature forms (D130)', () => {
+    const GIANT_INSECT = spellEffect('Giant Insect')
+    const formPlan = (effect: typeof FIREBALL) => {
+      const { action } = compile({}, effect, 4)
+      const [plan, ...rest] =
+        dnd5eCharacterRuleActionSystemAdapter.activeEffectPlans?.({
+          action,
+          published: dnd5eCharacterRuleActionSystemAdapter.compile({ action })
+        }) ?? []
+      expect(rest).toEqual([])
+      return plan
+    }
+
+    it('plans Giant Insect as a one-hour swap into the chosen form, with no carry-over', () => {
+      expect(targetOf(GIANT_INSECT, 4)).toEqual({ kind: 'ACTORS', maxTargets: 10, area: null })
+      expect(formPlan(GIANT_INSECT)).toMatchObject({
+        recurrenceStage: 'END_OF_TURN',
+        initialRemaining: 600,
+        creatureFormContribution: {
+          excessDamageCarriesOver: false,
+          forms: [{ maxTargets: 10 }, { maxTargets: 3 }, { maxTargets: 5 }, { maxTargets: 1 }]
+        }
+      })
+    })
+
+    it('compiles a Polymorph-shaped authoring (excess damage carries over) on the same executor', () => {
+      const polymorphShaped = JSON.parse(JSON.stringify(GIANT_INSECT)) as typeof GIANT_INSECT
+      for (const path of polymorphShaped.paths ?? [])
+        if (path.selectionKind === 'FIXED')
+          for (const outcome of path.resultBlock.outcomes)
+            if (outcome.effectKind === 'MANIFEST' && outcome.manifestKind === 'CREATURE')
+              outcome.excessDamageCarriesOver = true
+      expect(formPlan(polymorphShaped)).toMatchObject({
+        creatureFormContribution: { excessDamageCarriesOver: true }
+      })
+    })
+  })
+
   it('refuses an area it cannot aim at a point, or a list that repeats a creature through a save', () => {
     expect(() =>
       compile({ shape: { id: 's', shapeKind: 'CUBE', edgeLength: feet(15) } }, MASS_CURE_WOUNDS, 5)
@@ -558,4 +596,20 @@ describe('chosen-creature spells in the SRD corpus (SPELLS-26.1)', () => {
         expect(single, 'the list is refused, though a single target is not').toEqual(authored)
     }
   )
+})
+
+describe('a timed save condition with no authored way to end early (SPELLS-19.T3)', () => {
+  // These spells print a repeat save or an early end that is not authored on their effect; compiling
+  // them would run the condition to its full duration and drop that rule.
+  it.each([
+    'Hold Monster',
+    'Dominate Beast',
+    'Dominate Person',
+    'Dominate Monster',
+    'Charm Person'
+  ])('refuses %s rather than run its condition without the rider the spell prints', (label) => {
+    expect(() => compile({}, spellEffect(label), 9, 20)).toThrow(
+      CharacterRuleActionUnsupportedCompilationError
+    )
+  })
 })

@@ -61,12 +61,32 @@ const saveSettings = makeFunctionReference<
   CampaignPlaySettingsDto
 >('campaigns/playSettings:save')
 /** A creature's turn movement entry: one walking allowance, no move yet naming a speed type. */
-const walking = (actorId: string | undefined, used: number, budget: number) => ({
+const walking = (
+  actorId: string | undefined,
+  used: number,
+  budget: number,
+  teleport: readonly unknown[] = []
+) => ({
   actorId,
   used,
   speedId: null,
-  allowances: [expect.objectContaining({ code: 'WALK', budget })]
+  allowances: [expect.objectContaining({ code: 'WALK', budget })],
+  teleport
 })
+
+/** A Misty Step cast this turn, not yet spent by a move; and a Dimension Door a move already spent. */
+const unspentMistyStep = {
+  castCommandId: '00000000-0000-4000-8000-0000000000a1',
+  maxFeet: 30,
+  destinationKind: 'VISIBLE' as const,
+  consumedByCommandId: null
+}
+const spentDimensionDoor = {
+  castCommandId: '00000000-0000-4000-8000-0000000000a2',
+  maxFeet: 500,
+  destinationKind: 'SPECIFIED_POINT' as const,
+  consumedByCommandId: '00000000-0000-4000-8000-0000000000b1'
+}
 
 const pending = makeFunctionReference<
   'query',
@@ -217,7 +237,8 @@ it('reads the active projection and pending decision together with existing visi
       usedFeet: 15,
       speedId: null,
       // One Dash this turn adds the walking speed to the budget once (D38).
-      speedBonuses: 1
+      speedBonuses: 1,
+      teleportAllowances: [unspentMistyStep, spentDimensionDoor]
     })
   })
 
@@ -230,7 +251,10 @@ it('reads the active projection and pending decision together with existing visi
     // The GM sees every actor's movement this turn against its stat block's walking speed.
     turnMovement: expect.arrayContaining([
       walking(visible?.id, 0, 40),
-      walking(hidden?.id, 15, 80)
+      // Only the unspent allowance is offered; the spent one is a move's to give back.
+      walking(hidden?.id, 15, 80, [
+        { castCommandId: unspentMistyStep.castCommandId, maxFeet: 30, destinationKind: 'VISIBLE' }
+      ])
     ]),
     halfSpeedFields: []
   })

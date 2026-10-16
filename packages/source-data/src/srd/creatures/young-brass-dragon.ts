@@ -235,6 +235,9 @@ export const youngBrassDragon: CreatureAuthored = {
                   durationKind: DURATION_KIND.MINUTE,
                   amount: 5
                 },
+                lifecycle: {
+                  endOnTriggers: [{ event: 'DAMAGE_TAKEN' as const, by: 'ANYONE' as const }]
+                },
                 outcomes: [
                   {
                     id: S.actionId(303, 20),

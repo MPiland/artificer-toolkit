@@ -29,6 +29,13 @@ describe('a list of chosen creatures as a RESOLVE_ACTION target (D118)', () => {
     expect(parse(actors([actorId(1), actorId(1), actorId(2)]))).toBe(true)
   })
 
+  it('takes the form of an authored creature form, whose id is any hexadecimal UUID shape', () => {
+    // The SRD derives its authored child ids (Giant Insect's forms), which carry no version nibble.
+    const srdFormId = '00000f4f-0000-0214-0b0e-000000000001'
+    expect(parse({ ...actors([actorId(1)]), formId: srdFormId })).toBe(true)
+    expect(parse({ ...actors([actorId(1)]), formId: 'not-a-form' })).toBe(false)
+  })
+
   it('refuses an empty list and a list past the Encounter’s size', () => {
     expect(parse(actors([]))).toBe(false)
     const tooMany = Array.from({ length: MAX_ENCOUNTER_ACTORS + 1 }, (_, index) =>

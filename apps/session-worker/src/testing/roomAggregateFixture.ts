@@ -51,6 +51,7 @@ export function aggregate(actorCount: number) {
       stateJson: JSON.stringify({ hitPoints: 10 + actor, padding: 'a'.repeat(1_500) }),
       stateChecksum: checksum(`actor:${actor}`),
       snapshotChecksum: checksum(`snapshot:${actor % sources}`),
+      formOriginSnapshotChecksum: null,
       sourceFactsChecksum: checksum(`source:${actor % sources}`)
     })
   const records: RoomRecord[] = Array.from({ length: Math.min(actorCount, 6) }, (_, index) => ({
@@ -80,7 +81,8 @@ export async function command(room: RoomEncounterStore, ordinal: number) {
       usedFeet: ordinal,
       speedBonuses: 0,
       speedId: null,
-      usedOncePerTurn: []
+      usedOncePerTurn: [],
+      teleportAllowances: []
     })
     if (ordinal % 3 === 0) {
       const [oldest] = await room.store.query('encounterTurnMovements').collect()

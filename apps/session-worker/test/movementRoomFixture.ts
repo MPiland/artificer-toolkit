@@ -220,6 +220,8 @@ export interface MovementRoomConfig {
   characterPlay?: CharacterPlayOverrides
   /** The mover Character's Class casts these spells, preparing the listed ones. */
   characterSpellcasting?: Parameters<typeof characterRoomInputs>[0]['spellcasting']
+  /** Creatures the Campaign's content publishes, such as the forms a spell offers. */
+  formCreatures?: Parameters<typeof characterRoomInputs>[0]['creatures']
   /** An assigned Character the Run does not hold, owned by the room's player (SPELLS-5.11, Q1). */
   outsideCasterCharacterId?: string
   /** A second Character of the Run (a CHARACTER actor with this `characterId`), owned by the room's second player. */
@@ -363,7 +365,8 @@ export async function movementRoom(config: MovementRoomConfig) {
         classFeatures: config.characterClassFeatures,
         equipment: config.characterEquipment,
         play: config.characterPlay,
-        spellcasting: config.characterSpellcasting
+        spellcasting: config.characterSpellcasting,
+        creatures: config.formCreatures
       })
     : null
   const outsideCasterPage = config.outsideCasterCharacterId
@@ -482,10 +485,23 @@ export async function movementRoom(config: MovementRoomConfig) {
     kind: 'RUN',
     encounterVersion: state.version,
     activeEncounterId: null,
-    maintenanceCharacterOwners: characterDependents.map((row) => ({
-      maintainedStateId: CONCENTRATION_STATE_ID,
-      characterId: characterOfActor.get(row.targetActorId)!
-    })),
+    maintenanceCharacterOwners: [
+      ...new Map(
+        characterDependents.flatMap((row) =>
+          row.maintainedEffectStateId
+            ? [
+                [
+                  `${row.maintainedEffectStateId}:${characterOfActor.get(row.targetActorId)}`,
+                  {
+                    maintainedStateId: row.maintainedEffectStateId,
+                    characterId: characterOfActor.get(row.targetActorId)!
+                  }
+                ] as const
+              ]
+            : []
+        )
+      ).values()
+    ],
     documents: memoryRoomDocuments(memory, [
       'encounterRuns',
       'encounterRunActors',
@@ -503,49 +519,53 @@ export async function movementRoom(config: MovementRoomConfig) {
   }
   const characterInputs = {
     parts: [
-      ...(characterPage?.parts ?? []).map((part) => ({ part, holdsDependents: true })),
+      ...(characterPage?.parts ?? []).map((part) => ({ part, partCharacterId: characterId })),
       ...(outsideCasterPage?.parts ?? []).map((part) => ({
         part: withOwnRowIds(part, 'outside'),
-        holdsDependents: false
+        partCharacterId: config.outsideCasterCharacterId
       })),
       ...(secondCharacterPage?.parts ?? []).map((part) => ({
         part: withOwnRowIds(part, 'second'),
-        holdsDependents: false
+        partCharacterId: config.secondCharacter?.characterId
       })),
       ...(thirdCharacterPage?.parts ?? []).map((part) => ({
         part: withOwnRowIds(part, 'third'),
-        holdsDependents: false
+        partCharacterId: config.thirdCharacter?.characterId
       }))
-    ].map(({ part, holdsDependents }) => {
+    ].map(({ part, partCharacterId }) => {
       if (part.status !== 'ASSIGNED') throw new Error('The Character fixture part is not assigned.')
       return {
         ...part,
         documents: [
           ...part.documents,
-          ...(holdsDependents ? characterDependents : []).map((row) => ({
-            table: 'characterActiveRuleEffects' as const,
-            id: row._id,
-            creationTime: row._creationTime,
-            fields: characterActiveRuleEffectStoredSchema.parse({
-              id: row.id,
-              characterId: characterOfActor.get(row.targetActorId),
-              concentrationCasterCharacterId: row.lifecycle.concentrationCasterCharacterId ?? null,
-              sourceEncounterId: encounterId,
-              maintainedEffectStateId: row.maintainedEffectStateId,
-              createdOrdinal: row.createdOrdinal,
-              version: row.version,
-              definitionJson: row.definitionJson,
-              definitionChecksum: row.definitionChecksum,
-              lifecycle: row.lifecycle,
-              lifecycleChecksum: row.lifecycleChecksum,
-              createdAt: row.createdAt,
-              updatedAt: row.updatedAt
-            })
-          }))
+          ...characterDependents
+            .filter((row) => characterOfActor.get(row.targetActorId) === partCharacterId)
+            .map((row) => ({
+              table: 'characterActiveRuleEffects' as const,
+              id: row._id,
+              creationTime: row._creationTime,
+              fields: characterActiveRuleEffectStoredSchema.parse({
+                id: row.id,
+                characterId: characterOfActor.get(row.targetActorId),
+                concentrationCasterCharacterId:
+                  row.lifecycle.concentrationCasterCharacterId ?? null,
+                sourceEncounterId: encounterId,
+                maintainedEffectStateId: row.maintainedEffectStateId,
+                createdOrdinal: row.createdOrdinal,
+                version: row.version,
+                definitionJson: row.definitionJson,
+                definitionChecksum: row.definitionChecksum,
+                lifecycle: row.lifecycle,
+                lifecycleChecksum: row.lifecycleChecksum,
+                createdAt: row.createdAt,
+                updatedAt: row.updatedAt
+              })
+            }))
         ]
       }
     }),
     system: characterPage?.system ?? srdSystemRoomInputs(campaignId),
+    contentSnapshots: characterPage?.contentSnapshots,
     run
   }
   const definitions = [
@@ -666,7 +686,12 @@ export async function movementRoom(config: MovementRoomConfig) {
             (message.type === 'COMMAND_COMMITTED' || message.type === 'COMMAND_REJECTED') &&
             message.commandId === commandId
         )
-      if (!answer) throw new Error('The room has not answered the command.')
+      if (!answer)
+        throw new Error(
+          `The room has not answered the command. It sent: ${JSON.stringify(
+            base.messages.slice(first).map((message) => message.type)
+          )}`
+        )
       return answer
     }, ROOM_REPLY_WAIT)
   }
@@ -693,6 +718,31 @@ export async function movementRoom(config: MovementRoomConfig) {
   const commandsOn = (channel: RoomChannel) => {
     const send = (commandId: string, command: Record<string, unknown>) =>
       sendOn(channel, commandId, command)
+    const moveToken = (
+      movementKind: 'VOLUNTARY' | 'TELEPORT',
+      path: readonly ScenePoint[],
+      expectedEncounterVersion: number,
+      expectedSceneVersion: number,
+      tokenId: string,
+      carefully = false
+    ) => {
+      const commandId = crypto.randomUUID()
+      return send(commandId, {
+        scope: 'SCENE',
+        command: {
+          type: 'MOVE_SCENE_TOKEN',
+          commandId,
+          correlationId: null,
+          expectedEncounterVersion,
+          expectedSceneVersion,
+          movementKind,
+          path,
+          sceneId: scene.id,
+          tokenId,
+          ...(carefully ? { carefully } : {})
+        }
+      })
+    }
     return {
       send,
       /** The mover (or the Token `tokenId` names) walks `path`, a voluntary move through the room's Scene command. */
@@ -703,22 +753,23 @@ export async function movementRoom(config: MovementRoomConfig) {
         tokenId: string = moverTokenId,
         carefully = false
       ) {
-        const commandId = crypto.randomUUID()
-        return send(commandId, {
-          scope: 'SCENE',
-          command: {
-            type: 'MOVE_SCENE_TOKEN',
-            commandId,
-            correlationId: null,
-            expectedEncounterVersion,
-            expectedSceneVersion,
-            movementKind: 'VOLUNTARY',
-            path,
-            sceneId: scene.id,
-            tokenId,
-            ...(carefully ? { carefully } : {})
-          }
-        })
+        return moveToken(
+          'VOLUNTARY',
+          path,
+          expectedEncounterVersion,
+          expectedSceneVersion,
+          tokenId,
+          carefully
+        )
+      },
+      /** The mover (or the Token `tokenId` names) teleports from the path's origin to its destination. */
+      teleport(
+        path: readonly [ScenePoint, ScenePoint],
+        expectedEncounterVersion: number = state.version,
+        expectedSceneVersion: number = scene.version,
+        tokenId: string = moverTokenId
+      ) {
+        return moveToken('TELEPORT', path, expectedEncounterVersion, expectedSceneVersion, tokenId)
       },
       /** Answers the PENDING movement decision with `resolution`. */
       async respond(resolution: Record<string, unknown>, expectedOccurrenceVersion?: number) {

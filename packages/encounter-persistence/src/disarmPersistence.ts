@@ -378,6 +378,7 @@ export async function persistEncounterDisarmCommit(
       endedMaintainedStates: [],
       addedConcentrationCasterId: null,
       speedBonusTurn: null,
+      teleportAllowanceTurn: null,
       turnUses: null,
       commandFingerprint: fingerprint,
       actorUserId: admission.initiatorUserId,
