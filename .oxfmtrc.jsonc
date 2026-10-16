@@ -16,6 +16,7 @@
     "test-results/**",
     "playwright-report/**",
     "**/*.d.ts",
+    "**/_generated/**",
     "**/routeTree.gen.ts"
   ],
   "printWidth": 100,
