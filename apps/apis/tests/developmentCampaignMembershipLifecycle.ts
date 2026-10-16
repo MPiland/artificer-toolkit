@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import assert from 'node:assert/strict'
-import { validateUsername } from '@artificer-toolkit/shared/account/username'
 import type { DevelopmentClient } from './developmentClient'
+import { generateValidUsername } from './fixtures/generatedUsername'
 import { api } from '../convex/_generated/api.js'
 import type { CampaignCustodyCohort } from './developmentCampaignCustody'
 import {
@@ -90,11 +90,11 @@ async function collectAuditPages(cohort: CampaignCustodyCohort): Promise<unknown
 
 function usernameFor(prefix: string, userId: string) {
   const identity = userId.replaceAll('-', '')
-  for (let end = identity.length; end >= 12; end--) {
-    const candidate = `${prefix}${identity.slice(end - 12, end)}`
-    if (validateUsername(candidate).message === null) return candidate
-  }
-  throw new Error('Fixture identity has no allowed username suffix.')
+  let end = identity.length
+  return generateValidUsername(prefix, () => {
+    if (end < 12) throw new Error('Fixture identity has no allowed username suffix.')
+    return identity.slice(end - 12, end--)
+  }).username
 }
 
 /**

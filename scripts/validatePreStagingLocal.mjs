@@ -5,11 +5,15 @@ import { basename, dirname, isAbsolute, relative, resolve } from 'node:path'
 import { spawn, spawnSync } from 'node:child_process'
 import { createConnection } from 'node:net'
 import { finished } from 'node:stream/promises'
+import { pathToFileURL } from 'node:url'
 import { verifyBuilderBudgets } from './builderBudgets.mjs'
 import { verifyV15Budgets } from './v15Budgets.mjs'
+import { generatedStatus } from './generatedDrift.mjs'
 import {
   assertConvexInstance,
   assertLoopbackUrl,
+  convexCliArguments,
+  convexCliEnvironment,
   generateAdminKey,
   localConvex,
   yarnSpawn
@@ -91,6 +95,12 @@ const generatedFiles = [
   'apps/apis/convex/_generated/dataModel.d.ts',
   'apps/apis/convex/_generated/server.d.ts',
   'apps/apis/convex/_generated/server.js',
+  'apps/apis/convex/betterAuth/schema.ts',
+  'apps/apis/convex/content/srdManifest.generated.ts'
+]
+// Where codegen writes: a file it newly adds there is untracked, so only the status of these roots sees it.
+const generatedRoots = [
+  'apps/apis/convex/_generated',
   'apps/apis/convex/betterAuth/schema.ts',
   'apps/apis/convex/content/srdManifest.generated.ts'
 ]
@@ -283,8 +293,13 @@ async function useGeneratedLocalAdminKey() {
   process.env.CONVEX_SELF_HOSTED_ADMIN_KEY = generateAdminKey(localConvex.container)
 }
 
-function localChildEnvironment(overrides = {}) {
-  const environment = { ...process.env, YARN_ENABLE_NETWORK: '0', ...overrides, GOMAXPROCS: '2' }
+export function localChildEnvironment(overrides = {}) {
+  const environment = {
+    ...convexCliEnvironment(),
+    YARN_ENABLE_NETWORK: '0',
+    ...overrides,
+    GOMAXPROCS: '2'
+  }
   const remoteNames = Object.keys(environment).filter(isRemoteOnlyEnvironmentName).sort()
   if (remoteNames.length > 0) {
     throw new Error(
@@ -361,10 +376,10 @@ function localConvexEnvironmentValue(name) {
     'env',
     'get',
     name,
-    '--url',
-    process.env.CONVEX_SELF_HOSTED_URL,
-    '--admin-key',
-    process.env.CONVEX_SELF_HOSTED_ADMIN_KEY
+    ...convexCliArguments(
+      process.env.CONVEX_SELF_HOSTED_URL,
+      process.env.CONVEX_SELF_HOSTED_ADMIN_KEY
+    )
   ])
   const result = spawnSync(executable, args, {
     cwd: root,
@@ -465,7 +480,7 @@ async function startLocalSessionWorker(artifactDirectory) {
   // Wrangler binds these from process.env; the empty env file keeps the ignored .dev.vars out.
   const environmentFile = resolve(artifactDirectory, 'local-session-worker.env')
   await writeFile(environmentFile, '')
-  const environment = { ...process.env }
+  const environment = convexCliEnvironment()
   for (const name of loadedEnvironmentNames) delete environment[name]
   delete environment.CONVEX_SELF_HOSTED_ADMIN_KEY
   environment.YARN_INJECT_ENVIRONMENT_FILES = environmentFile
@@ -1112,6 +1127,7 @@ async function main() {
   await mkdir(artifactDirectory, { recursive: true })
   const manifestPath = resolve(artifactDirectory, 'manifest.json')
   const generatedBaseline = await fileChecksums(generatedFiles)
+  const generatedStatusBaseline = generatedStatus(root, generatedRoots)
   for (const path of generatedFiles) {
     const beforePath = resolve(artifactDirectory, 'generated-before', path)
     await mkdir(dirname(beforePath), { recursive: true })
@@ -1242,16 +1258,22 @@ async function main() {
     try {
       if (current.name === 'generated-parity') {
         const generatedCurrent = await fileChecksums(generatedFiles)
+        const generatedStatusCurrent = generatedStatus(root, generatedRoots)
+        const matches =
+          JSON.stringify(generatedBaseline) === JSON.stringify(generatedCurrent) &&
+          generatedStatusBaseline === generatedStatusCurrent
         await writeFile(
           logPath,
           `${JSON.stringify({
             files: generatedFiles,
             generatedBaseline,
             generatedCurrent,
-            matches: JSON.stringify(generatedBaseline) === JSON.stringify(generatedCurrent)
+            generatedStatusBaseline,
+            generatedStatusCurrent,
+            matches
           })}\n`
         )
-        if (JSON.stringify(generatedBaseline) !== JSON.stringify(generatedCurrent)) {
+        if (!matches) {
           throw new Error('Generated artifacts changed after canonical regeneration.')
         }
       } else if (current.name === 'format-check') {
@@ -1279,12 +1301,10 @@ async function main() {
           logPath,
           environment: current.environment,
           sensitiveArgs: localConvexStageNames.has(current.name)
-            ? [
-                '--url',
+            ? convexCliArguments(
                 process.env.CONVEX_SELF_HOSTED_URL,
-                '--admin-key',
                 process.env.CONVEX_SELF_HOSTED_ADMIN_KEY
-              ]
+              )
             : []
         })
         if (current.name === 'convex-local-deploy') await verifySourceEnd()
@@ -1604,7 +1624,9 @@ async function main() {
   }
 }
 
-main().catch((error) => {
-  console.error(error instanceof Error ? error.message : error)
-  process.exitCode = 1
-})
+if (import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch((error) => {
+    console.error(error instanceof Error ? error.message : error)
+    process.exitCode = 1
+  })
+}
