@@ -1,10 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import { activeRuleEffectDefinitionDtoSchema } from '@artificer-toolkit/schema/shared/activeRuleEffects'
-import { SRD_CONDITION_TYPES } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import {
+  SRD_CONDITION_TYPES,
+  SRD_DAMAGE_TYPES
+} from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
+import type { CharacterRuleActionApplication } from '../characterRuleActionSystemAdapter.js'
 import {
   ENDED_EFFECT_CONDITION_OPERATION_KEY,
   attackRollEndedEffects,
+  damageTakenEndedEffects,
   endedEffectConditionReleases
 } from '../encounterEndedEffectRelease.js'
 import { ENCOUNTER_ID } from '../testing/dnd5eSrdEncounter.js'
@@ -163,6 +168,118 @@ describe('what an attack roll ends for its roller', () => {
         makesAttackRoll: true
       })
     ).toEqual({ consumedGrants: [], sourceReleases: [] })
+  })
+})
+
+describe('what damage ends on its target', () => {
+  const FIRE = SRD_DAMAGE_TYPES.find((entry) => entry.code === 'FIRE')!.id
+  const COLD = SRD_DAMAGE_TYPES.find((entry) => entry.code === 'COLD')!.id
+  const SOURCE_ID = '00000000-0000-4000-8000-00000000f301'
+  const SOURCE_ALLY_ID = '00000000-0000-4000-8000-00000000f302'
+  const STRANGER_ID = '00000000-0000-4000-8000-00000000f303'
+  const dispositions = new Map<string, 'FRIENDLY' | 'HOSTILE' | 'NEUTRAL'>([
+    [HOLDER_ID, 'HOSTILE'],
+    [SOURCE_ID, 'FRIENDLY'],
+    [SOURCE_ALLY_ID, 'FRIENDLY'],
+    [STRANGER_ID, 'HOSTILE']
+  ])
+
+  const damage = (damageTypeId: string, resolvedAmount = 4): CharacterRuleActionApplication => ({
+    kind: 'DAMAGE',
+    damageTypeId,
+    damageDisposition: 'NORMAL',
+    critical: false,
+    sourceNodeId: 'damage',
+    sourceOperationKey: 'damage',
+    authoredPath: null,
+    resolvedPath: null,
+    requestedAmount: 4,
+    resolvedAmount,
+    appliedAmount: resolvedAmount,
+    beforeCurrentHitPoints: 20,
+    afterCurrentHitPoints: 20 - resolvedAmount,
+    beforeTemporaryHitPoints: 0,
+    afterTemporaryHitPoints: 0,
+    maximumHitPoints: 20,
+    targetActorId: HOLDER_ID
+  })
+
+  const sleeper = (
+    id: string,
+    endOnTriggers: Parameters<typeof activeEffect>[0]['endOnTriggers'],
+    createdOrdinal = 1
+  ) =>
+    activeEffect({
+      id,
+      owner,
+      createdOrdinal,
+      endOnTriggers,
+      sourceActorId: SOURCE_ID,
+      stateContributions: [
+        { kind: 'CONDITION_OWNERSHIP', conditionId: INVISIBLE, baselinePresent: false }
+      ]
+    })
+  const anyDamage = [{ event: 'DAMAGE_TAKEN', by: 'ANYONE', damageTypeIds: null }] as const
+  const sourceSideDamage = [
+    { event: 'DAMAGE_TAKEN', by: 'SOURCE_SIDE', damageTypeIds: null }
+  ] as const
+
+  const taken = (
+    held: ReturnType<typeof sleeper>[],
+    applications: CharacterRuleActionApplication[],
+    damagerActorId = STRANGER_ID
+  ) =>
+    damageTakenEndedEffects({
+      holderActorId: HOLDER_ID,
+      held,
+      applications,
+      damagerActorId,
+      dispositions
+    })
+
+  it('ends the effect when anyone damages its holder, and releases the condition it owned', () => {
+    const held = sleeper(FIRST_ID, anyDamage)
+    const { endedEffects, releases } = taken([held], [damage(FIRE)])
+    expect(endedEffects).toEqual([held])
+    expect(releases).toEqual(
+      endedEffectConditionReleases({ holderActorId: HOLDER_ID, held: [held], ended: [held] })
+    )
+    expect(releases).toHaveLength(1)
+  })
+
+  it('ends nothing when no damage is dealt or all of it is resisted away', () => {
+    const held = sleeper(FIRST_ID, anyDamage)
+    expect(taken([held], [])).toEqual({ endedEffects: [], releases: [] })
+    expect(taken([held], [damage(FIRE, 0)])).toEqual({ endedEffects: [], releases: [] })
+  })
+
+  it('ignores damage dealt to another actor', () => {
+    const held = sleeper(FIRST_ID, anyDamage)
+    expect(taken([held], [{ ...damage(FIRE), targetActorId: STRANGER_ID }])).toEqual({
+      endedEffects: [],
+      releases: []
+    })
+  })
+
+  it('ends only on the damage types the trigger names', () => {
+    const held = sleeper(FIRST_ID, [{ event: 'DAMAGE_TAKEN', by: 'ANYONE', damageTypeIds: [FIRE] }])
+    expect(taken([held], [damage(COLD)]).endedEffects).toEqual([])
+    expect(taken([held], [damage(COLD), damage(FIRE)]).endedEffects).toEqual([held])
+  })
+
+  it('counts the source and its allies as the source side, and no one else', () => {
+    const held = sleeper(FIRST_ID, sourceSideDamage)
+    expect(taken([held], [damage(FIRE)], SOURCE_ID).endedEffects).toEqual([held])
+    expect(taken([held], [damage(FIRE)], SOURCE_ALLY_ID).endedEffects).toEqual([held])
+    expect(taken([held], [damage(FIRE)], STRANGER_ID).endedEffects).toEqual([])
+  })
+
+  it('leaves an effect with no damage trigger and keeps a condition another effect owns', () => {
+    const ended = sleeper(FIRST_ID, anyDamage)
+    const untriggered = sleeper(SECOND_ID, [], 2)
+    const { endedEffects, releases } = taken([ended, untriggered], [damage(FIRE)])
+    expect(endedEffects).toEqual([ended])
+    expect(releases).toEqual([])
   })
 })
 

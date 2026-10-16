@@ -345,6 +345,8 @@ export const pathLifecycleConsumeEventSchema = lazySchema(() =>
 export const pathLifecycleEndEventSchema = lazySchema(() =>
   z.enum(['ON_ATTACK_ROLL', 'ON_CAST_SPELL', 'ON_HIT_POINTS_REGAINED', 'ON_INCAPACITATED'])
 )
+/** Whose damage ends an effect: anyone's, or only that of the effect source and its allies. */
+export const pathLifecycleEndTriggerBySchema = lazySchema(() => z.enum(['ANYONE', 'SOURCE_SIDE']))
 /** The consume events a timed grant can carry (a cast does not use a grant up). */
 export const pathLifecycleGrantConsumeEventSchema = lazySchema(() =>
   z.enum(['ON_ATTACK_ROLL', 'ON_ABILITY_CHECK'] satisfies z.infer<

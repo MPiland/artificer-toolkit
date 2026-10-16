@@ -40,6 +40,12 @@ export type NativeEncounterActionMechanicsInput = {
    * effects' deletion. An action that targets its own source cannot release this way.
    */
   sourceReleases?: readonly CharacterConditionRemoveOutcomeApplication[]
+  /**
+   * The conditions the target's effects that this action's damage ended held alone
+   * (`damageTakenEndedEffects`), applied to the target after the outcome in the same transaction as
+   * the effects' deletion.
+   */
+  targetReleases?: readonly CharacterConditionRemoveOutcomeApplication[]
   forceTargetVersionAdvance?: boolean
   eventPhases?: {
     resource: EncounterCharacterMechanicsEventPhase
@@ -143,7 +149,7 @@ function prepareNativeActionMechanicsBatches(
           })
         : input.commandId,
     occurredAt: input.occurredAt,
-    applications: input.applications,
+    applications: [...input.applications, ...(input.targetReleases ?? [])],
     expectedCharacterStreamVersion: targetFacts.characterFacts?.active.play.streamVersion ?? null,
     effectiveMaximumHitPoints: targetFacts.effectiveMaximumHitPoints,
     effectiveScalarValues: targetFacts.effectiveScalarValues,

@@ -51,6 +51,17 @@ export const reactionMovementTriggerBindingDtoSchema = lazySchema(() =>
   })
 )
 
+/**
+ * The damage types a damage-taken trigger filters on: a non-empty set of damage-type ids. A
+ * reaction (`DAMAGE_TAKEN`) and an end trigger (`endOnTriggers`) share it.
+ */
+export const damageTypeFilterDtoSchema = lazySchema(() =>
+  z
+    .array(postgresUuidSchema)
+    .check(z.minLength(1))
+    .check(z.maxLength(AUTHORED_LIMITS.nestedCollectionItems))
+)
+
 /** An authored reaction can bind to any supported factual event; each arm is one event kind. */
 export const reactionTriggerBindingDtoSchema = lazySchema(() =>
   z.discriminatedUnion('kind', [
@@ -59,10 +70,7 @@ export const reactionTriggerBindingDtoSchema = lazySchema(() =>
     z.strictObject({ kind: z.literal('SPELL_CAST') }),
     z.strictObject({
       kind: z.literal('DAMAGE_TAKEN'),
-      damageTypeIds: z
-        .array(postgresUuidSchema)
-        .check(z.minLength(1))
-        .check(z.maxLength(AUTHORED_LIMITS.nestedCollectionItems))
+      damageTypeIds: damageTypeFilterDtoSchema
     })
   ])
 )

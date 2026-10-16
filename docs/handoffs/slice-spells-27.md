@@ -15,10 +15,10 @@
 
 `packages/schema/src/shared/enums.ts:339-356`, node map `packages/shared/src/domains/effects/maps/path.ts:335-348`:
 
-| Field | Authored values | A timed grant may carry |
-| --- | --- | --- |
-| `consumeOnFirstEvents` | `ON_ATTACK_ROLL`, `ON_ABILITY_CHECK`, `ON_CAST_SPELL` | `ON_ATTACK_ROLL`, `ON_ABILITY_CHECK` |
-| `endOnEvents` | `ON_ATTACK_ROLL`, `ON_CAST_SPELL`, `ON_HIT_POINTS_REGAINED`, `ON_INCAPACITATED` | `ON_HIT_POINTS_REGAINED`, `ON_INCAPACITATED` |
+| Field                  | Authored values                                                                 | A timed grant may carry                      |
+| ---------------------- | ------------------------------------------------------------------------------- | -------------------------------------------- |
+| `consumeOnFirstEvents` | `ON_ATTACK_ROLL`, `ON_ABILITY_CHECK`, `ON_CAST_SPELL`                           | `ON_ATTACK_ROLL`, `ON_ABILITY_CHECK`         |
+| `endOnEvents`          | `ON_ATTACK_ROLL`, `ON_CAST_SPELL`, `ON_HIT_POINTS_REGAINED`, `ON_INCAPACITATED` | `ON_HIT_POINTS_REGAINED`, `ON_INCAPACITATED` |
 
 `ON_ATTACK_ROLL` and `ON_CAST_SPELL` are authorable in both fields, but the compiler rejects them on a grant's end list (`isGrantEndEvent`, `effectActionCompiler.ts:1280`), and nothing reads them anywhere else.
 
@@ -75,16 +75,16 @@ For an attack roll, "consumed by the first attack roll" (Hide, Absorb Elements, 
 
 Corpus scan (spell descriptions in `packages/source-data/src/srd/spells`, two passes with regexes; not exhaustive, see T5 for the scan that backs the test):
 
-| Event the text names | SRD spells found | Authorable today? |
-| --- | --- | --- |
-| Holder makes an attack roll | Invisibility, Mislead ("invisibility ends if you attack") | yes, `ON_ATTACK_ROLL` |
-| Holder casts a spell | Invisibility, Mislead | yes, `ON_CAST_SPELL` (no emission) |
-| Holder attacks or casts a spell that affects an **enemy** | Sanctuary | no: needs an enemy qualifier |
-| Holder takes damage | Hypnotic Pattern, Sleep ("sleeper takes damage"), Sequester, Modify Memory, Project Image (the illusion) | no: `ON_DAMAGE_TAKEN` |
-| Source or its companions harm the holder | Charm Person | no: damage taken **from the source side** |
-| Holder is attacked or harmed; witnesses friends harmed | Calm Emotions | partly: attacked/harmed = damage taken; "witnesses" has no event |
-| Holder's creature takes damage (a bound creature) | Phantom Steed (the steed) | no, depends on a bound creature; leave on the allow-list |
-| Holder regains HP / is incapacitated | caltrops-style penalties, Rage | yes, already consumed |
+| Event the text names                                      | SRD spells found                                                                                         | Authorable today?                                                |
+| --------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| Holder makes an attack roll                               | Invisibility, Mislead ("invisibility ends if you attack")                                                | yes, `ON_ATTACK_ROLL`                                            |
+| Holder casts a spell                                      | Invisibility, Mislead                                                                                    | yes, `ON_CAST_SPELL` (no emission)                               |
+| Holder attacks or casts a spell that affects an **enemy** | Sanctuary                                                                                                | no: needs an enemy qualifier                                     |
+| Holder takes damage                                       | Hypnotic Pattern, Sleep ("sleeper takes damage"), Sequester, Modify Memory, Project Image (the illusion) | no: `ON_DAMAGE_TAKEN`                                            |
+| Source or its companions harm the holder                  | Charm Person                                                                                             | no: damage taken **from the source side**                        |
+| Holder is attacked or harmed; witnesses friends harmed    | Calm Emotions                                                                                            | partly: attacked/harmed = damage taken; "witnesses" has no event |
+| Holder's creature takes damage (a bound creature)         | Phantom Steed (the steed)                                                                                | no, depends on a bound creature; leave on the allow-list         |
+| Holder regains HP / is incapacitated                      | caltrops-style penalties, Rage                                                                           | yes, already consumed                                            |
 
 Not events of the holder, so not in scope for the consumer; the test lists them with the mechanism that covers each:
 
@@ -103,14 +103,14 @@ Not events of the holder, so not in scope for the consumer; the test lists them 
 
 Dependency order. Each task is a vertical slice with red-first tests; checkpoints on `ci/spells-27`.
 
-| Task | Closes | Content |
-| --- | --- | --- |
-| **T1** | spike + groundwork for 27.1 | Spike on risk 1 (condition write/derive, undo). Bare timed-condition plan (Invisibility becomes an active effect with duration and event lists). Red tests: compile plan; target holds the effect; concentration drop and 1-hour expiry end it. |
-| **T2** | 27.1 (attack roll) | `effectsEndedBy` replaces `consumableGrants` + `grantsEndedBy` for these lists; condition release on delete; attack-roll sites. Journey: cast Invisibility, attack, effect and condition gone, GM undo restores both. |
-| **T3** | 27.1 (cast) | Spell-cast occurrence fact; same consumer at the cast commit (action, area, reaction-cast). Journey: cast a spell while invisible, effect ends, GM undo restores. Authoring-parity test for the Invisibility variant. |
-| **T4** | 27.2 vocabulary | The qualifier shape (per the ruling), `ON_DAMAGE_TAKEN`-style events, their emission at the damage commit and consumer. Node map, authored-parity proof, no feature-named kinds. |
-| **T5** | 27.2 corpus | Author Sanctuary, Charm Person, Mislead, Hypnotic Pattern, Sleep, Sequester, Modify Memory, Project Image, Calm Emotions, plus the non-spell effects the corpus pass finds (**edits to `packages/source-data`, protected**). Corpus test over every SRD effect (spells, features, items, creature traits) with a typed allow-list (covering mechanism named) and a failing list for any phrase match with neither an authored end event nor an allow-list entry. Closes 27.2 only when no "consumer pending" entry remains. |
-| **T6** | cleanup | Unify `consumeOnFirstEvents` and `endOnEvents` into one structured shape with an explicit timing field; delete the old enum, migrate data, no shim. After REACTION-4.T3 merges. |
+| Task   | Closes                      | Content                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| ------ | --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **T1** | spike + groundwork for 27.1 | Spike on risk 1 (condition write/derive, undo). Bare timed-condition plan (Invisibility becomes an active effect with duration and event lists). Red tests: compile plan; target holds the effect; concentration drop and 1-hour expiry end it.                                                                                                                                                                                                                                                                             |
+| **T2** | 27.1 (attack roll)          | `effectsEndedBy` replaces `consumableGrants` + `grantsEndedBy` for these lists; condition release on delete; attack-roll sites. Journey: cast Invisibility, attack, effect and condition gone, GM undo restores both.                                                                                                                                                                                                                                                                                                       |
+| **T3** | 27.1 (cast)                 | Spell-cast occurrence fact; same consumer at the cast commit (action, area, reaction-cast). Journey: cast a spell while invisible, effect ends, GM undo restores. Authoring-parity test for the Invisibility variant.                                                                                                                                                                                                                                                                                                       |
+| **T4** | 27.2 vocabulary             | The qualifier shape (per the ruling), `ON_DAMAGE_TAKEN`-style events, their emission at the damage commit and consumer. Node map, authored-parity proof, no feature-named kinds.                                                                                                                                                                                                                                                                                                                                            |
+| **T5** | 27.2 corpus                 | Author Sanctuary, Charm Person, Mislead, Hypnotic Pattern, Sleep, Sequester, Modify Memory, Project Image, Calm Emotions, plus the non-spell effects the corpus pass finds (**edits to `packages/source-data`, protected**). Corpus test over every SRD effect (spells, features, items, creature traits) with a typed allow-list (covering mechanism named) and a failing list for any phrase match with neither an authored end event nor an allow-list entry. Closes 27.2 only when no "consumer pending" entry remains. |
+| **T6** | cleanup                     | Unify `consumeOnFirstEvents` and `endOnEvents` into one structured shape with an explicit timing field; delete the old enum, migrate data, no shim. After REACTION-4.T3 merges.                                                                                                                                                                                                                                                                                                                                             |
 
 ### `packages/source-data` edit plan (not executed)
 
@@ -174,3 +174,23 @@ Decided as D125.
 - **T2a (done):** action and reaction attack rolls, schema, persistence and undo. The Legendary window, movement opportunity attack and Disarm skipped condition-owning effects meanwhile, so no intermediate merge stranded a condition.
 - **T2b (done):** the Legendary window, movement opportunity attack and Disarm release their conditions through the same source batch (`attackRollEndedEffects` is the one helper every attack-roll root calls); the three fences are gone. The Disarm receipt carries the release in a required `sourceApplications` on `CONTESTED_ACTION`; the Legendary window applies it in `persistEncounterTurnResources`; the movement reaction applies it in `liveMovementReactionPersistence`. Disarm and the Legendary window have no GM undo, so nothing restores these.
 - AC 27.1 closes only when T3 (the cast half) is in.
+
+## 8. SPELLS-27.T4: a structured end trigger and the damage-taken event
+
+Decision number pending (`D-pending-spells-27-t4`; the main session assigns the Dnnn).
+
+- **Shape.** `definition.recurrence.endOnTriggers` is a list of `{ event: 'DAMAGE_TAKEN', by: 'ANYONE' | 'SOURCE_SIDE', damageTypeIds: string[] | null }`, unique and in `JSON.stringify` order. `damageTypeIds` is the same `damageTypeFilterDtoSchema` the `DAMAGE_TAKEN` reaction trigger uses (extracted into `shared/reaction.ts`), so the two never drift. The flat `consumeOnFirstEvents` / `endOnEvents` lists are untouched (T6 unifies them after REACTION-4.T3). `endOnTriggers` defaults to `[]` on read.
+- **Source side.** `SOURCE_SIDE` is the effect's `origin.sourceActorId` or an actor `encounterActorRelationship` calls `ALLIED` to it (Charm Person). The schema rejects a `SOURCE_SIDE` trigger on an effect with no Encounter source actor.
+- **Damage taken.** A `DAMAGE` application on the holder with `resolvedAmount > 0` (after resistance and immunity) matching the type filter. `damageTakenEndedEffects` returns the ended effects and their condition releases; the holder's own batch applies the releases (`targetReleases` on `planNativeEncounterActionMechanics`) and the action commit deletes the effects through `consumedGrants`. GM undo restores both through the existing receipt.
+- **Authoring.** `lifecycle.endOnTriggers` on a result block (schema, `PathLifecycleAuthored`, node map `pathLifecycleEndTrigger`). Only the timed-condition plan carries it; the grant, concealment and recurring-save plans reject a lifecycle that lists it, so authoring cannot name a trigger no plan consumes.
+- **Proof.** `encounterEndedEffectRelease.test.ts` (consumer), `rules-runtime-contracts.test.ts` (schema), `characterSpellCastActions.test.ts` (compiler), `nativeRoomDamageEndsEffect.test.ts` (Worker journey with GM undo).
+
+### Split
+
+- **T4a (this slice):** the trigger shape, the damage-taken consumer on the single-action root, authoring for the timed-condition plan.
+- **T4b (to register, blocks AC 27.2):** the other damage roots. The area commit, Legendary window, movement reaction, turn effects (ongoing damage) and death-save damage do not call `damageTakenEndedEffects` yet, so an effect with a damage trigger survives damage from them. Also the `ATTACK_ROLL`-against-enemy arm (Sanctuary) and the `SPELL_CAST` arm once T3's cast fact lands. T5 must not author a damage-ending spell whose damage arrives through an unwired root.
+
+### Proposed ledger edits (the main session applies them)
+
+- SPELLS-27.T4 DONE for T4a; register SPELLS-27.T4b with the roots above, WSJF the same as T4.
+- AC 27.2 stays open: the consumer is pending on the roots listed under T4b.

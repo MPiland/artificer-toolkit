@@ -200,6 +200,7 @@ export async function turnSaveDamageEffect(
       recurrenceStage: stage,
       consumeOnFirstEvents: [],
       endOnEvents: [...(input.endOnEvents ?? [])],
+      endOnTriggers: [],
       endOnConditionIds: [],
       holderEnd: null,
       lifetimeScope: input.lifetimeScope ?? 'ENCOUNTER',
@@ -244,8 +245,11 @@ export function activeEffect(input: {
   version?: number
   consumeOnFirstEvents?: readonly GrantConsumeEvent[]
   endOnEvents?: readonly GrantEndEvent[]
+  endOnTriggers?: readonly ActiveRuleEffectDefinitionDto['recurrence']['endOnTriggers'][number][]
   endOnConditionIds?: readonly string[]
   holderEnd?: ActiveRuleEffectDefinitionDto['recurrence']['holderEnd']
+  /** The Encounter actor that applied the effect; none by default. */
+  sourceActorId?: string | null
   stateContributions: [StateContribution, ...StateContribution[]]
 }): ActiveRuleEffectRecord {
   const authoredEffectId = '00000000-0000-4000-8000-00000000b004'
@@ -257,7 +261,7 @@ export function activeEffect(input: {
       sourceAggregateId: ENCOUNTER_ID,
       sourceOccurrenceId: '00000000-0000-4000-8000-00000000b006',
       rootCommandId: '00000000-0000-4000-8000-00000000b007',
-      sourceActorId: null
+      sourceActorId: input.sourceActorId ?? null
     },
     authoredEffectId,
     compiledEntryId,
@@ -282,6 +286,7 @@ export function activeEffect(input: {
       recurrenceStage: 'NONE',
       consumeOnFirstEvents: [...(input.consumeOnFirstEvents ?? [])],
       endOnEvents: [...(input.endOnEvents ?? [])],
+      endOnTriggers: [...(input.endOnTriggers ?? [])],
       endOnConditionIds: [...(input.endOnConditionIds ?? [])],
       holderEnd: input.holderEnd ?? null,
       lifetimeScope: 'OWNER',

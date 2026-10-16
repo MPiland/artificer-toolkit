@@ -1041,6 +1041,7 @@ describe('rules runtime contracts', () => {
           recurrenceStage: 'START_OF_TURN',
           consumeOnFirstEvents: [],
           endOnEvents: ['ON_ATTACK_ROLL'],
+          endOnTriggers: [],
           endOnConditionIds: [],
           holderEnd: null,
           expiration: {
@@ -1185,6 +1186,49 @@ describe('rules runtime contracts', () => {
         })
       ).definition.recurrence.expiration
     ).toMatchObject({ kind: 'TICKS', anchor: 'SOURCE' })
+
+    const withTriggers = (
+      endOnTriggers: unknown,
+      origin: unknown = activeState.definition.origin
+    ) => ({
+      ...activeState,
+      definition: {
+        ...activeState.definition,
+        origin,
+        recurrence: { ...activeState.definition.recurrence, endOnTriggers }
+      }
+    })
+    const encounterOrigin = {
+      kind: 'ENCOUNTER',
+      sourceAggregateId: '00000000-0000-4000-8000-000000000013',
+      sourceOccurrenceId: '00000000-0000-4000-8000-000000000014',
+      rootCommandId: '00000000-0000-4000-8000-000000000015',
+      sourceActorId: '00000000-0000-4000-8000-000000000020'
+    }
+    const anyone = { event: 'DAMAGE_TAKEN', by: 'ANYONE', damageTypeIds: null }
+    const sourceSide = {
+      event: 'DAMAGE_TAKEN',
+      by: 'SOURCE_SIDE',
+      damageTypeIds: ['00000000-0000-4000-8000-000000000031']
+    }
+    expect(
+      activeRuleEffectStateDtoSchema.parse(withTriggers([anyone, sourceSide], encounterOrigin))
+        .definition.recurrence.endOnTriggers
+    ).toEqual([anyone, sourceSide])
+    expect(() => activeRuleEffectStateDtoSchema.parse(withTriggers([anyone, anyone]))).toThrow(
+      'Active-effect end triggers must be unique.'
+    )
+    expect(() =>
+      activeRuleEffectStateDtoSchema.parse(withTriggers([sourceSide, anyone], encounterOrigin))
+    ).toThrow('Active-effect end triggers must be sorted.')
+    expect(() => activeRuleEffectStateDtoSchema.parse(withTriggers([sourceSide]))).toThrow(
+      'A source-side end trigger requires an Encounter origin with a source actor.'
+    )
+    expect(() =>
+      activeRuleEffectStateDtoSchema.parse(
+        withTriggers([{ ...anyone, damageTypeIds: [] }], encounterOrigin)
+      )
+    ).toThrow()
   })
   it('accepts a bounded UUID-backed definition and System capability', () => {
     expect(
