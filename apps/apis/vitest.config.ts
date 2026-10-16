@@ -12,7 +12,6 @@ export default defineConfig({
       // The product's local modes (ADR 0035): scheduled jobs find a configured provider, not a throw.
       MEDIA_STORAGE_MODE: 'local',
       CONVEX_SITE_URL: 'http://127.0.0.1:3221',
-      LOCAL_R2_ENDPOINT: 'http://127.0.0.1:8026',
       MAIL_DELIVERY_MODE: 'local',
       LOCAL_EMAIL_SINK_URL: 'http://127.0.0.1:8025/messages',
       LIVE_SESSION_WORKER_URL: 'http://127.0.0.1:8787',
