@@ -633,6 +633,19 @@ describe('the timed condition a cast owns with no save', () => {
   })
 })
 
+describe('the timed condition a save cast owns (SPELLS-27.T5)', () => {
+  it('owns Charm Person’s one-hour charmed condition and ends it on damage from the caster’s side', () => {
+    const charmedId = SRD_CONDITION_TYPES.find(({ code }) => code === 'CHARMED')?.id
+    expect(compiledCast(spell('Charm Person'))?.activeEffectPlan).toMatchObject({
+      initialRemaining: 600,
+      conditionContribution: {
+        conditionId: charmedId,
+        endOnTriggers: [{ event: 'DAMAGE_TAKEN', by: 'SOURCE_SIDE', damageTypeIds: null }]
+      }
+    })
+  })
+})
+
 describe('the scaling heal a cast carries', () => {
   /** The dice the spell's authored scaling row names for a cast level, read from the SRD data. */
   function authoredDice(authored: SpellAuthored, castLevel: number) {

@@ -598,24 +598,6 @@ describe('chosen-creature spells in the SRD corpus (SPELLS-26.1)', () => {
   )
 })
 
-describe('Charm Person ends when the caster or their allies harm the target (SPELLS-27.T5)', () => {
-  it('owns the one-hour charmed condition and ends it on damage from the effect source side', () => {
-    const effect = spellEffect('Charm Person')
-    const { action } = compile({}, effect, 1, 20)
-    const [plan] =
-      dnd5eCharacterRuleActionSystemAdapter.activeEffectPlans?.({
-        action,
-        published: dnd5eCharacterRuleActionSystemAdapter.compile({ action })
-      }) ?? []
-    expect(plan).toMatchObject({
-      initialRemaining: 600,
-      conditionContribution: {
-        endOnTriggers: [{ event: 'DAMAGE_TAKEN', by: 'SOURCE_SIDE', damageTypeIds: null }]
-      }
-    })
-  })
-})
-
 describe('a timed save condition with no authored way to end early (SPELLS-19.T3)', () => {
   // These spells print a repeat save or an early end that is not authored on their effect; compiling
   // them would run the condition to its full duration and drop that rule.
