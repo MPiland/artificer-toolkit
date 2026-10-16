@@ -445,6 +445,14 @@ export const encounterTurnActiveEffectsBatchRuleExecutionResultDtoSchema = lazyS
             execution.lifecycle.kind === 'UPDATE' &&
             JSON.stringify(execution.targetTransition.before) ===
               JSON.stringify(execution.targetTransition.after)
+          // A grant that passes its repeating save ends itself: nothing is removed from the target.
+          const repeatedSaveGrantEnd =
+            repeatedSaveTrace &&
+            execution.applications.length === 0 &&
+            execution.d20?.resultPath === 'ON_SAVE_SUCCESS' &&
+            execution.lifecycle.kind === 'EXPIRE' &&
+            JSON.stringify(execution.targetTransition.before) ===
+              JSON.stringify(execution.targetTransition.after)
           // A timed condition's or grant's counted turn only moves its tick count.
           const durationTick =
             execution.applications.length === 0 &&
@@ -474,6 +482,7 @@ export const encounterTurnActiveEffectsBatchRuleExecutionResultDtoSchema = lazyS
           if (
             (!unauthorizedSourceOutcome &&
               !repeatedSaveContinuation &&
+              !repeatedSaveGrantEnd &&
               !durationTick &&
               execution.applications.length === 0) ||
             JSON.stringify(execution.execution.outputs) !==
