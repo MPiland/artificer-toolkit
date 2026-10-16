@@ -5938,18 +5938,44 @@
               }
             },
             {
-              "id": "ATTACK-9.T5",
-              "text": "Two-weapon fighting off-hand bonus attack and the Fighting Style.",
+              "id": "ATTACK-9.T5a",
+              "text": "Two-weapon fighting off-hand attack: the compiler grants a BONUS_ACTION off-hand attack after the Attack action; the turn records the ATTACK_ACTION weapon and the ATTACK_ACTION_OTHER_WEAPON predicate requires a different light weapon.",
               "status": "IN_PROGRESS",
               "closes": ["ATTACK-9.5"],
               "wsjf": {
                 "bv": 5,
                 "tc": 3,
                 "rr": 3,
-                "size": 3,
+                "size": 2,
                 "after": ["ATTACK-9.T3"]
               },
               "activeWorkbook": "docs/handoffs/slice-attack-9-t5.md"
+            },
+            {
+              "id": "ATTACK-9.T5b",
+              "text": "Off-hand damage omits a positive ability modifier but keeps a negative one (negative-only modifier mode); the Two-Weapon Fighting style grant restores the positive modifier.",
+              "status": "TODO",
+              "closes": ["ATTACK-9.5"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 3,
+                "size": 2,
+                "after": ["ATTACK-9.T5a"]
+              }
+            },
+            {
+              "id": "ATTACK-9.T5c",
+              "text": "Builder data for two-weapon fighting and the Two-Weapon Fighting style, the end-to-end journey, and the authoring-parity proof from core options.",
+              "status": "TODO",
+              "closes": ["ATTACK-9.5"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 3,
+                "size": 2,
+                "after": ["ATTACK-9.T5b"]
+              }
             },
             {
               "id": "ATTACK-9.T6",
@@ -8125,7 +8151,7 @@
             },
             {
               "id": "SPELLS-19.T2",
-              "text": "One maintained (Concentration) effect spans every caught creature of a point-area action; ending Concentration or GM undo removes it from all of them.",
+              "text": "One maintained (Concentration) effect spans every caught creature of a point-area action; ending Concentration or GM undo removes it from all of them. Proves a relationship condition end to end with Fear (frightened of the caster on each creature that fails), authoring it from core options if save outcomes cannot yet carry one.",
               "status": "TODO",
               "closes": ["SPELLS-19.1"],
               "wsjf": {
@@ -8951,6 +8977,19 @@
               "activeWorkbook": "docs/handoffs/slice-reaction-4.md"
             },
             {
+              "id": "REACTION-4.T3f",
+              "text": "Counterspell check hardening: a failed or passed spellcasting check posts its chat roll card like any other check; a below-level slot is not offered to a reactor with no spellcasting ability (no throw); the check pause evidence receipt records pending D20_EVIDENCE; room tests for two reactors failing in sequence, a failure followed by another reactor successful counter, and undo after an auto-roll failure.",
+              "status": "TODO",
+              "closes": ["REACTION-4.3"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 5,
+                "size": 2,
+                "after": ["REACTION-4.T3c"]
+              }
+            },
+            {
               "id": "REACTION-4.T3d",
               "text": "Counterspell chain: nested cast-reaction offers resolved innermost first, one occurrence per cast.",
               "status": "TODO",
@@ -8960,7 +8999,7 @@
                 "tc": 3,
                 "rr": 5,
                 "size": 3,
-                "after": ["REACTION-4.T3b", "REACTION-4.T3c"]
+                "after": ["REACTION-4.T3b", "REACTION-4.T3c", "REACTION-4.T3f"]
               }
             },
             {
