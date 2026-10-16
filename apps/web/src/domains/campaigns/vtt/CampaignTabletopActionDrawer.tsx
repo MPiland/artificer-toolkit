@@ -57,6 +57,7 @@ import {
   type VttAreaAim,
   type VttAreaSize
 } from './vttSceneRenderer.model'
+import { targetableEncounterActors, type VttTargetingRequest } from './vttTargeting.model'
 
 const NO_TOKENS: CampaignSceneStateDto['tokens'] = []
 
@@ -89,6 +90,9 @@ export function CampaignTabletopActionDrawer({
   onAreaSizeChange,
   onActionPreviewChange,
   onPickAreaOrigin,
+  pickedTargetActorId,
+  onPickTargetOnMap,
+  onTargetPick,
   onResolve,
   onEscape,
   onEndHeldGrant,
@@ -131,6 +135,15 @@ export function CampaignTabletopActionDrawer({
   onActionPreviewChange: (preview: VttActionPreview | null) => void
   /** Asks the stage to let the caster aim the area on the map: click its center, or drag from their token's edge. */
   onPickAreaOrigin: () => void
+  /**
+   * The creature the caster chose; the stage owns it so a pick on the map or in the turn-order
+   * list lands here. `undefined` is untouched (the open Attack action's last target applies);
+   * `null` is cleared.
+   */
+  pickedTargetActorId: string | null | undefined
+  /** Asks the stage to let the caster pick this action's target on the map or in the turn-order list. */
+  onPickTargetOnMap: (request: VttTargetingRequest) => void
+  onTargetPick: (actorId: string | null | undefined) => void
   onResolve: (command: ResolveEncounterActionInputDto) => Promise<EncounterCommandResultDto>
   onEscape: (command: EscapeRelationshipInputDto) => Promise<EncounterCommandResultDto>
   onEndHeldGrant: (command: EndHeldGrantInputDto) => Promise<EncounterCommandResultDto>
@@ -140,9 +153,6 @@ export function CampaignTabletopActionDrawer({
 }) {
   // `undefined` is untouched (the open Attack action's last weapon and target apply); `null` is cleared.
   const [pickedActionId, setPickedActionId] = useState<string | null | undefined>(undefined)
-  const [pickedTargetActorId, setPickedTargetActorId] = useState<string | null | undefined>(
-    undefined
-  )
   const [pickedActorIds, setPickedActorIds] = useState<string[]>([])
   const [pickedOptionalRuleId, setOptionalRuleId] = useState<string | null>(null)
   const [optionalChoices, setOptionalChoices] = useState<{
@@ -183,15 +193,8 @@ export function CampaignTabletopActionDrawer({
   const choiceTarget = selectedAction?.target
   // A defeated creature isn't a target (D63; the server still warns if one is named), and neither is
   // the acting creature when the action refuses itself (Help, First Aid).
-  const targetableActors = encounter.actors.filter(
-    (actor) =>
-      !actor.defeated &&
-      !(
-        choiceTarget?.kind === 'ACTOR' &&
-        choiceTarget.self === 'REFUSED' &&
-        actor.id === currentActorId
-      )
-  )
+  const selfRefused = choiceTarget?.kind === 'ACTOR' && choiceTarget.self === 'REFUSED'
+  const targetableActors = targetableEncounterActors(encounter.actors, currentActorId, selfRefused)
   const pickedOrPreselectedTargetActorId =
     pickedTargetActorId === undefined ? preselectedTargetActorId : pickedTargetActorId
   const targetActorId = targetableActors.some(
@@ -360,12 +363,12 @@ export function CampaignTabletopActionDrawer({
 
   useEffect(() => {
     setPickedActionId(undefined)
-    setPickedTargetActorId(undefined)
+    onTargetPick(undefined)
     setPickedActorIds([])
     setOptionalRuleId(null)
     setFeedback(null)
     setError(null)
-  }, [encounter.currentActorId])
+  }, [encounter.currentActorId, onTargetPick])
 
   useEffect(() => {
     const sequence = ++choiceRequestSequence.current
@@ -733,15 +736,31 @@ export function CampaignTabletopActionDrawer({
                     : `Centered on you: creatures within ${formatLengthMeasurement(centeredTarget.area.radius)} of your space are caught.`}
                 </Text>
               ) : actorsTarget ? null : (
-                <Select
-                  comboboxProps={{ withinPortal: false }}
-                  data={targetableActors.map((actor) => ({ label: actor.label, value: actor.id }))}
-                  disabled={selectionControlsDisabled}
-                  label='Target'
-                  searchable
-                  value={targetActorId}
-                  onChange={setPickedTargetActorId}
-                />
+                <Group align='flex-end' wrap='nowrap'>
+                  <Select
+                    comboboxProps={{ withinPortal: false }}
+                    data={targetableActors.map((actor) => ({
+                      label: actor.label,
+                      value: actor.id
+                    }))}
+                    disabled={selectionControlsDisabled}
+                    label='Target'
+                    searchable
+                    value={targetActorId}
+                    onChange={onTargetPick}
+                  />
+                  {selectedAction?.target.kind === 'ACTOR' ? (
+                    <Button
+                      disabled={selectionControlsDisabled}
+                      variant='default'
+                      onClick={() =>
+                        onPickTargetOnMap({ actionId: selectedAction.id, selfRefused })
+                      }
+                    >
+                      Pick on map
+                    </Button>
+                  ) : null}
+                </Group>
               )}
               {selectedAction?.attackSlot ? (
                 <Text fw={600} size='sm'>
