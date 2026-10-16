@@ -1,10 +1,15 @@
+import { encounterBasicActionCheckLabel } from '@artificer-toolkit/rules-runtime/encounterBasicActionCheck'
 import {
   actionD20RollRecord,
-  actionDamageRollRecord
+  actionDamageRollRecord,
+  basicActionCheckRollRecord,
+  ruleCheckRollId
 } from '@artificer-toolkit/rules-runtime/encounterRuleCheckRolls'
+import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounters'
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { LiveSessionEncounterActionCommitInput } from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
-import type { SettledDie } from './appCardedDice.js'
+import type { EncounterCounterCheckEvidenceDto } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
+import { actionSystemRollAnswers, readAppCardedDice, type SettledDie } from './appCardedDice.js'
 import type {
   CampaignAuthority,
   EncounterCharacterWriteTransaction,
@@ -27,6 +32,68 @@ export function settledD20s(
   return [batch.d20, batch.nestedD20].map((d20) =>
     d20 ? { requestId: d20.requestId, value: d20.selectedNatural } : null
   )
+}
+
+/**
+ * Cards the d20 of each spellcasting check a reactor rolled to counter a higher-level cast (D127), one
+ * card per check, from the reactor. A die the app rolled for a `SYSTEM_ROLL` answer was carded as its
+ * app attempt; an entered or auto-rolled die is carded here.
+ */
+export async function recordCounterCheckRollCards(
+  ctx: EncounterCharacterWriteTransaction & {
+    readonly ports: Pick<EncounterWritePorts, 'insertTableRoll' | 'retainPrivateRoll'>
+  },
+  input: {
+    campaign: CampaignAuthority['campaign']
+    encounterId: string
+    gameSystemId: string
+    /** The cast's occurrence, which seeds the card ids and holds the answers that rolled the dice. */
+    occurrenceId: string
+    checks: readonly { reactor: EncounterRunActorState; check: EncounterCounterCheckEvidenceDto }[]
+    response: ResolveRuleOccurrenceInputDto | null | undefined
+    responderUserId: string
+    initiatorUserId: string
+    visibility: Parameters<typeof recordRuleRollCard>[1]['visibility']
+    createdAt: string
+  }
+): Promise<void> {
+  if (input.checks.length === 0) return
+  const system = await ctx.ports.requireSystem(input.gameSystemId)
+  const ruleset = { systemId: system.id, code: system.rulesetCode, version: system.rulesetVersion }
+  const appCarded = await readAppCardedDice(ctx, {
+    occurrenceId: input.occurrenceId,
+    answers: await actionSystemRollAnswers(ctx, {
+      occurrenceId: input.occurrenceId,
+      response: input.response,
+      responderUserId: input.responderUserId
+    }),
+    dice: input.checks.map(({ check }) => ({
+      requestId: check.d20.requestId,
+      value: check.d20.selectedNatural
+    }))
+  })
+  for (const [index, { reactor, check }] of input.checks.entries()) {
+    if (appCarded.has(index)) continue
+    const roll = basicActionCheckRollRecord({
+      occurrenceId: input.occurrenceId,
+      rollId: ruleCheckRollId(input.occurrenceId, index, 'counter-check'),
+      d20: check.d20,
+      actionLabel: 'Counter',
+      checkLabel: encounterBasicActionCheckLabel(system, check.checkDefinitionId),
+      rollerLabel: reactor.label,
+      ruleset,
+      createdAt: input.createdAt
+    })
+    await recordRuleRollCard(ctx, {
+      campaign: input.campaign,
+      encounterId: input.encounterId,
+      roller: reactor,
+      initiatorUserId: input.initiatorUserId,
+      visibility: input.visibility,
+      clientNonce: roll.id,
+      roll
+    })
+  }
 }
 
 /**

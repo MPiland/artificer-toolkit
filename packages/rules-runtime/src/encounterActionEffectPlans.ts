@@ -393,6 +393,7 @@ function prepareRecurringActiveEffect(
         conditionContribution?.consumeOnFirstEvents ??
         [],
       endOnEvents: grantContribution?.endOnEvents ?? conditionContribution?.endOnEvents ?? [],
+      endOnTriggers: conditionContribution?.endOnTriggers ?? [],
       endOnConditionIds: grantContribution?.endOnConditionIds ?? [],
       holderEnd: grantContribution?.holderEnd ?? null,
       // A grant or condition outlasts the Encounter when the target's lifetime scope says so. A
@@ -571,6 +572,7 @@ function prepareTargetStateEffect(
       recurrenceStage: 'NONE',
       consumeOnFirstEvents: [],
       endOnEvents: [],
+      endOnTriggers: [],
       endOnConditionIds: [],
       holderEnd: null,
       lifetimeScope: input.target.lifetimeScope,

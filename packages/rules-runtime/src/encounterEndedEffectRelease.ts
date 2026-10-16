@@ -1,7 +1,12 @@
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
+import type { EncounterActorDispositionDto } from '@artificer-toolkit/schema/api/encounterData'
 import { ENDED_EFFECT_CONDITION_OPERATION_KEY } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
-import type { CharacterConditionRemoveOutcomeApplication } from './characterRuleActionSystemAdapter.js'
+import type {
+  CharacterConditionRemoveOutcomeApplication,
+  CharacterRuleActionApplication
+} from './characterRuleActionSystemAdapter.js'
 import { endedMaintenanceConditions } from './encounterActionMaintenance.js'
+import { encounterActorRelationship } from './encounterActionTargetPolicy.js'
 import { effectsEndedBy } from './encounterGrantLifetimes.js'
 
 /**
@@ -41,6 +46,60 @@ export function endedEffectConditionReleases(input: {
       resolvedPath: null
     }
   })
+}
+
+/**
+ * What damage ends on its holder: the effects whose `DAMAGE_TAKEN` end trigger the outcome meets
+ * (damage that survives the holder's defenses, of a type the trigger names, by someone the trigger
+ * allows), and the conditions only they held. The holder's own mechanics batch applies the
+ * releases in the same transaction as the effects' deletion.
+ */
+export function damageTakenEndedEffects(input: {
+  holderActorId: string
+  held: readonly ActiveRuleEffectRecord[]
+  /** The outcome applications this action settles on the holder. */
+  applications: readonly CharacterRuleActionApplication[]
+  damagerActorId: string
+  /** Every Encounter actor's disposition, to tell the effect source's side from the rest. */
+  dispositions: ReadonlyMap<string, EncounterActorDispositionDto>
+}) {
+  const dealt = input.applications.filter(
+    (application) =>
+      application.kind === 'DAMAGE' &&
+      application.targetActorId === input.holderActorId &&
+      application.resolvedAmount > 0
+  )
+  const onSourceSide = (sourceActorId: string | null) =>
+    sourceActorId !== null &&
+    (input.damagerActorId === sourceActorId ||
+      encounterActorRelationship(
+        input.dispositions.get(input.damagerActorId) ?? 'NEUTRAL',
+        input.dispositions.get(sourceActorId) ?? 'NEUTRAL'
+      ) === 'ALLIED')
+  const endedEffects = dealt.length
+    ? input.held.filter(({ definition }) => {
+        if (definition.schemaVersion !== 2) return false
+        const sourceActorId =
+          definition.origin.kind === 'ENCOUNTER' ? definition.origin.sourceActorId : null
+        return definition.recurrence.endOnTriggers.some(
+          ({ by, damageTypeIds }) =>
+            (by === 'ANYONE' || onSourceSide(sourceActorId)) &&
+            dealt.some(
+              (application) =>
+                damageTypeIds === null ||
+                (application.kind === 'DAMAGE' && damageTypeIds.includes(application.damageTypeId))
+            )
+        )
+      })
+    : []
+  return {
+    endedEffects,
+    releases: endedEffectConditionReleases({
+      holderActorId: input.holderActorId,
+      held: input.held,
+      ended: endedEffects
+    })
+  }
 }
 
 /**

@@ -1,3 +1,4 @@
+import { prepareMaintainedEffectStateRecord } from '@artificer-toolkit/rules-runtime/activeRuleEffectRecords'
 import { prepareEncounterActionMaintenance } from '@artificer-toolkit/rules-runtime/encounterActionMaintenance'
 import { SpellcastingLockedError } from '@artificer-toolkit/rules-runtime/encounterErrors'
 import { DOMAIN_REJECTION_MESSAGES } from '@artificer-toolkit/schema/api/domainRejections'
@@ -270,5 +271,39 @@ export async function prepareNativeLiveActionMaintenance(input: {
         message: DOMAIN_REJECTION_MESSAGES.SOURCE_REQUIREMENTS_NOT_MET
       })
     throw error
+  })
+}
+
+/** The maintained state a completed action's Concentration creates, once its policy still matches the prepared one. */
+export function prepareNativeLiveMaintainedState(input: {
+  completedPolicy: object
+  maintenance: Awaited<ReturnType<typeof prepareNativeLiveActionMaintenance>>
+  encounterId: string
+  ownerActorId: string
+  actionId: string
+  sourceOccurrenceId: string
+  occurredAt: string
+}) {
+  const { maintenance } = input
+  if (
+    !maintenance ||
+    checksumCanonicalJson(input.completedPolicy) !== checksumCanonicalJson(maintenance.policy)
+  )
+    throw new Error('The completed action maintenance policy changed.')
+  return prepareMaintainedEffectStateRecord({
+    id: crypto.randomUUID(),
+    encounterId: input.encounterId,
+    ownerActorId: input.ownerActorId,
+    occurredAt: input.occurredAt,
+    descriptor: {
+      schemaVersion: 2,
+      maintenanceDefinitionId: maintenance.policy.definitionId,
+      definitionChecksum: maintenance.definitionChecksum,
+      sourceActionId: input.actionId,
+      sourceOccurrenceId: input.sourceOccurrenceId,
+      sourceActorId: input.ownerActorId,
+      replacementPolicy: maintenance.policy.replacementPolicy,
+      emptyDependentPolicy: maintenance.policy.emptyDependentPolicy
+    }
   })
 }
