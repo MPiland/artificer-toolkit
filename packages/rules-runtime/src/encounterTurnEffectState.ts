@@ -39,6 +39,7 @@ export function isEffectLiveInEncounter(
         effect.definition.origin.sourceAggregateId === encounterId
 }
 
+/** A carried-over effect counts on the Campaign clock, so no turn boundary selects it (D99). */
 export function isTurnEffectEligible(
   effect: ActiveRuleEffectRecord,
   actor: EncounterRunActorState,
@@ -46,6 +47,7 @@ export function isTurnEffectEligible(
   stage: TurnEffectBoundary['stage']
 ) {
   return (
+    effect.lifecycle.expiresAtCampaignMinute === undefined &&
     effect.definition.recurrence.recurrenceStage === stage &&
     isEffectLiveInEncounter(effect, actor, state.id)
   )
