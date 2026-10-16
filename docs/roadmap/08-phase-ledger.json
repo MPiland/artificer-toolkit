@@ -7190,8 +7190,16 @@
             {
               "id": "SPELLS-8.5",
               "text": "A spell restricted to creature types (SRD Hold Person: a Humanoid) is authored with core targeting options (allowed creature types, beside the existing excluded types); a target outside them raises the same overridable creature-type warning in an Encounter; an author-built equivalent made through the real authoring form resolves identically.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/session-worker/test/nativeRoomSpellCasting.test.ts (journey: Hold Person at a Wolf warns and spends no slot until overridden; a Humanoid raises no type warning)",
+                "packages/rules-runtime/src/__tests__/encounterActionRuleWarnings.test.ts",
+                "packages/rules-runtime/src/__tests__/encounterActionTargetPolicy.test.ts",
+                "packages/rules-runtime/src/__tests__/encounterAreaActionCompilation.test.ts",
+                "srdSpellCreatureTypeRestrictions.test.ts",
+                "apps/web/src/forms/tests/AuthoredDomainFieldParity.test.tsx (author-built Hold Person resolves identically)",
+                "CI ci/spells-8-t13 84d997f84: Tests 38849399113, Live backend 38849399041"
+              ],
               "origin": [],
               "note": "Registered 2026-10-15 from the SPELLS-8.T6a merge review: hold-person.ts declares ANY targeting and the targeting schema has no allowed-types field, so a Character can paralyze a Wolf (the T5 journey does)."
             }
@@ -7364,7 +7372,7 @@
             {
               "id": "SPELLS-8.T13",
               "text": "Allowed creature types in the targeting schema and node map; Hold Person (and other SRD type-restricted spells) authored with it; room warning shared with excluded types; red-first journey: Hold Person on a Wolf warns. Also replace savingThrow.baseDc! in pinnedSaveDc with a typeof narrow.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-8.5"],
               "wsjf": {
                 "bv": 5,
@@ -7372,8 +7380,7 @@
                 "rr": 3,
                 "size": 2,
                 "after": ["SPELLS-8.T5"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-spells-8-t1.md"
+              }
             }
           ]
         },
