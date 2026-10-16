@@ -236,7 +236,7 @@ export async function readEncounterActionChoices(
             entry?.kind === 'CHARACTER_ACTION' &&
               entry.schemaVersion !== 1 &&
               entry.compilation.kind === 'COMPILED'
-              ? entry.compilation.activeEffectPlan?.creatureFormContribution?.forms
+              ? entry.compilation.activeEffectPlan?.creatureFormContribution
               : undefined
           ),
           warnings: [

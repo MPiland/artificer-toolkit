@@ -321,7 +321,8 @@ export const ancientRedDragon: CreatureAuthored = {
                   {
                     id: S.actionId(21, 28),
                     effectKind: S.EFFECT_KIND.CONDITION,
-                    conditionId: conditionTypeId('FRIGHTENED')
+                    conditionId: conditionTypeId('FRIGHTENED'),
+                    recordsSource: true
                   }
                 ]
               }

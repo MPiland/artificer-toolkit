@@ -338,6 +338,36 @@ describe('chosen-creature heal compilation from the SRD (D118)', () => {
         creatureFormContribution: { excessDamageCarriesOver: true }
       })
     })
+
+    it('plans Polymorph as a save whose failure enters any beast, with the excess carried over', () => {
+      const POLYMORPH = spellEffect('Polymorph')
+      const { action, plan } = compile({}, POLYMORPH, 4)
+      expect(plan?.kind).toBe('TEST_OUTCOME')
+      expect(
+        encounterActionChoiceTarget(
+          buildCompiledActionTargetPolicy(action),
+          formPlan(POLYMORPH)?.creatureFormContribution
+        )
+      ).toEqual({ kind: 'ACTORS', maxTargets: 1, area: null, choosesCreatureForm: true })
+      expect(formPlan(POLYMORPH)).toMatchObject({
+        initialRemaining: 600,
+        adapterFacts: { 'dnd5e.form-authored-path': 'ON_SAVE_FAIL' },
+        creatureFormContribution: {
+          excessDamageCarriesOver: true,
+          forms: [],
+          filter: { challengeRatingCapKind: 'TARGET', maxChallengeRatingId: null }
+        }
+      })
+    })
+
+    it('refuses a creature form after a save that no bounded timed form can carry', () => {
+      const untimed = JSON.parse(JSON.stringify(spellEffect('Polymorph'))) as typeof GIANT_INSECT
+      for (const path of untimed.paths ?? [])
+        if (path.selectionKind === 'FIXED') path.resultBlock.duration = undefined
+      expect(() => compile({}, untimed, 4)).toThrow(
+        CharacterRuleActionUnsupportedCompilationError
+      )
+    })
   })
 
   it('refuses an area it cannot aim at a point, or a list that repeats a creature through a save', () => {

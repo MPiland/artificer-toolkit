@@ -328,7 +328,8 @@ export const adultGreenDragon: CreatureAuthored = {
                   {
                     id: S.actionId(9, 28),
                     effectKind: S.EFFECT_KIND.CONDITION,
-                    conditionId: conditionTypeId('FRIGHTENED')
+                    conditionId: conditionTypeId('FRIGHTENED'),
+                    recordsSource: true
                   }
                 ]
               }

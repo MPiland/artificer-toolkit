@@ -2,7 +2,10 @@ import type {
   LiveSessionEncounterRulesRequest,
   LiveSessionEncounterRulesResponse
 } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
-import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
+import type {
+  EncounterRunActorState,
+  EncounterRunState
+} from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 import {
   type EncounterPerceptionRoller,
@@ -91,6 +94,88 @@ export async function readNativeLiveAttackPerception(input: {
     })
   ])
   return { actual, believed }
+}
+
+/**
+ * The sources the holder of a sourced condition sees now (Frightened, SPELLS-29), by the same
+ * perception rules and live Scene reads as `readNativeLiveAttackPerception`. Any Encounter actor can
+ * be a source; one no longer in the Encounter is unseen, and so, on a Scene, is one without a token
+ * beside the holder's.
+ */
+export async function readNativeLiveSourcesSeen(input: {
+  state: EncounterRunState
+  system: SystemAuthoredDto
+  holder: MovementTarget
+  sourceActorIds: readonly string[]
+  actors: readonly EncounterRunActorState[]
+  loadTarget: (actor: EncounterRunActorState) => Promise<MovementTarget>
+  sceneContext: { sceneId: string; sceneVersion: number; grid: SceneGrid } | null
+  capture: (request: LiveSessionEncounterRulesRequest) => Promise<LiveSessionEncounterRulesResponse>
+}): Promise<ReadonlySet<string>> {
+  const { state, capture, sceneContext } = input
+  if (input.system.id !== state.gameSystemId)
+    throw new Error('Attack perception System binding mismatch.')
+  const sources = await Promise.all(
+    input.actors
+      .filter((actor) => input.sourceActorIds.includes(actor.id))
+      .map((actor) => input.loadTarget(actor))
+  )
+  const spatialEffects = sceneContext
+    ? await readNativeLiveSpatialEffects({
+        encounterId: state.id,
+        sceneId: sceneContext.sceneId,
+        sceneVersion: sceneContext.sceneVersion,
+        capture
+      })
+    : []
+  const loaders = {
+    gameSystemId: state.gameSystemId,
+    loadDefinition: (definitionId: string) =>
+      readNativeLiveDefinition({ gameSystemId: state.gameSystemId, definitionId, capture }),
+    loadSystem: async () => input.system
+  }
+  const seen = await Promise.all(
+    sources.map(async (source) => {
+      if (!sceneContext)
+        return resolveEncounterAttackPerception({
+          ...loaders,
+          attacker: source,
+          target: input.holder,
+          placement: null
+        })
+      const loaded = await readNativeLivePerceptionScene({
+        campaignId: state.campaignId,
+        observerActorId: input.holder.actor.id,
+        subjectActorId: source.actor.id,
+        capture
+      })
+      if (
+        loaded &&
+        (loaded.id !== sceneContext.sceneId || loaded.version !== sceneContext.sceneVersion)
+      )
+        throw new Error('Encounter action facts are stale.')
+      const holderToken = loaded?.scene.tokens.find((token) => token.id === loaded.observerTokenId)
+      const sourceToken = loaded?.scene.tokens.find((token) => token.id === loaded.subjectTokenId)
+      if (!loaded || !holderToken || !sourceToken) return null
+      return resolveEncounterAttackPerception({
+        ...loaders,
+        attacker: source,
+        target: input.holder,
+        placement: {
+          scene: loaded.scene,
+          sceneGrid: sceneContext.grid,
+          attackerToken: sourceToken,
+          targetToken: holderToken,
+          spatialEffects
+        }
+      })
+    })
+  )
+  return new Set(
+    sources.flatMap((source, index) =>
+      seen[index]?.targetSeesAttacker === 'SEES' ? [source.actor.id] : []
+    )
+  )
 }
 
 /**

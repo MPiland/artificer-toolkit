@@ -62,14 +62,16 @@ type AuthoringDefaultKind =
   | 'featGrantProgression'
   | 'followUpSaveAttempts'
   | 'followUpSaveBranch'
+  | 'followUpSaveRepeatAttemptGate'
+  | 'followUpSaveRepeatPerception'
   | 'followUpSaveRepeatRollInfluence'
-  | 'followUpSaveRepeatRollInfluenceWhen'
   | 'higherLevelCheck'
   | 'hitPointMaximumReductionAmountSource'
   | 'invocation'
   | 'manifestBehavior'
   | 'manifestComponent'
   | 'manifestCreatureForm'
+  | 'manifestCreatureFormFilter'
   | 'manifestDestructionCriterion'
   | 'manifestLight'
   | 'manifestProximityRule'
@@ -196,14 +198,16 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   featGrantProgression: ['featGrantProgression'],
   followUpSaveAttempts: ['followUpSaveAttempts'],
   followUpSaveBranch: ['followUpSaveBranch'],
+  followUpSaveRepeatAttemptGate: ['followUpSaveRepeatAttemptGate'],
+  followUpSaveRepeatPerception: ['followUpSaveRepeatPerception'],
   followUpSaveRepeatRollInfluence: ['followUpSaveRepeatRollInfluence'],
-  followUpSaveRepeatRollInfluenceWhen: ['followUpSaveRepeatRollInfluenceWhen'],
   higherLevelCheck: ['higherLevelCheck'],
   hitPointMaximumReductionAmountSource: ['hitPointMaximumReductionAmountSource'],
   invocation: ['invocation'],
   manifestBehavior: ['manifestBehavior'],
   manifestComponent: ['manifestComponent'],
   manifestCreatureForm: ['manifestCreatureForm'],
+  manifestCreatureFormFilter: ['manifestCreatureFormFilter'],
   manifestDestructionCriterion: ['manifestDestructionCriterion'],
   manifestLight: ['manifestLight'],
   manifestProximityRule: ['manifestProximityRule'],
