@@ -205,7 +205,10 @@ export async function persistEncounterTurnEffects(
       holderActorId: actor.id,
       held: effects,
       excluded: damageExcluded,
-      applications: execution.applications,
+      applications: execution.applications.map((application) => ({
+        ...application,
+        targetActorId: actor.id
+      })),
       dispositions
     })
     const releaseKey = (application: { sourceActiveEffectId: string; conditionId: string }) =>

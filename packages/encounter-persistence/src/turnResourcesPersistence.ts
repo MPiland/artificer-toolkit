@@ -243,7 +243,10 @@ export async function persistEncounterTurnResources(
       held: (await createActiveRuleEffectStore(ctx).list(turnEffectOwner(target, state.id))).filter(
         ({ id }) => !consumedGrants.some((ended) => ended.id === id)
       ),
-      applications: application.applications,
+      applications: application.applications.map((planned) => ({
+        ...planned,
+        targetActorId
+      })),
       damagerActorId: ownerId,
       dispositions
     })
@@ -251,8 +254,11 @@ export async function persistEncounterTurnResources(
       damageEnded.releases.some(
         (release) =>
           !application.applications.some(
-            ({ ordinal: _ordinal, ...planned }) =>
-              checksumCanonicalJson(planned) === checksumCanonicalJson(release)
+            (planned) =>
+              planned.kind === 'CONDITION_REMOVE' &&
+              planned.sourceOperationKey === release.sourceOperationKey &&
+              planned.sourceActiveEffectId === release.sourceActiveEffectId &&
+              planned.conditionId === release.conditionId
           )
       )
     )
