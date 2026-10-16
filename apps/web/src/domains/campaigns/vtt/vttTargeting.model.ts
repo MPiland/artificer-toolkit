@@ -1,4 +1,5 @@
 import type { EncounterActionTargetModifiersDto } from '@artificer-toolkit/schema/api/encounterActionTargetModifiers'
+import type { EncounterPlayerProjectionDto } from '@artificer-toolkit/schema/api/encounterData'
 import type { CampaignSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
 import {
   measureSceneTokenFootprintDistance,
@@ -15,6 +16,8 @@ interface TargetingActor {
   defeated: boolean
   id: string
   label: string
+  /** Why the player cannot see this listed creature; absent for the GM, who sees every creature. */
+  unseenReason?: EncounterPlayerProjectionDto['actors'][number]['unseenReason']
 }
 
 /** The action the caster is picking a target for. */
@@ -36,6 +39,8 @@ export interface VttTargetEntry {
   /** What the Character believes about attacking this creature; null while unread or for no attack roll. */
   attack: NonNullable<EncounterActionTargetModifiersDto['targets'][number]['attack']> | null
   tokenId: string | null
+  /** Set for a creature the GM revealed but the player cannot see: it has no distance and no token to pick. */
+  unseenReason: NonNullable<TargetingActor['unseenReason']> | null
 }
 
 /**
@@ -51,8 +56,9 @@ export function targetableEncounterActors<Actors extends readonly TargetingActor
 }
 
 /**
- * The target list while the caster targets, nearest first: a creature with no token on the Scene
- * has no distance and sorts last, and creatures at the same distance keep initiative order.
+ * The target list while the caster targets: creatures the GM revealed but the player cannot see lead,
+ * marked Hidden or Invisible with no distance (D131), then visible creatures nearest first. A visible
+ * creature with no token on the Scene sorts last, and creatures at the same distance keep initiative order.
  */
 export function buildTargetEntries({
   actorIdByTokenId,
@@ -84,7 +90,8 @@ export function buildTargetEntries({
   const measurable = normal !== undefined && [normal, long].every((length) => !length?.scaling)
   return targetableEncounterActors(actors, currentActorId, selfRefused)
     .map((actor): VttTargetEntry => {
-      const token = tokenByActorId.get(actor.id) ?? null
+      const unseenReason = actor.unseenReason ?? null
+      const token = unseenReason ? null : (tokenByActorId.get(actor.id) ?? null)
       const measured = scene && source && token ? { grid: scene.grid, source, token } : null
       const distance = measured
         ? measureSceneTokenFootprintDistance(measured.grid, measured.source, measured.token)
@@ -100,11 +107,13 @@ export function buildTargetEntries({
         distanceLabel:
           measured && distance !== null ? formatSceneDistance(measured.grid, distance) : null,
         label: actor.label,
-        tokenId: token?.id ?? null
+        tokenId: token?.id ?? null,
+        unseenReason
       }
     })
     .sort(
       (left, right) =>
+        Number(right.unseenReason !== null) - Number(left.unseenReason !== null) ||
         Number(left.distance === null) - Number(right.distance === null) ||
         (left.distance ?? 0) - (right.distance ?? 0)
     )
@@ -135,6 +144,11 @@ const bandLabels = {
   OUT: 'Out of range'
 } as const satisfies Record<SceneRangeBand, string>
 
+const unseenReasonLabels = {
+  HIDDEN: 'Hidden',
+  INVISIBLE: 'Invisible'
+} as const satisfies Record<NonNullable<VttTargetEntry['unseenReason']>, string>
+
 const rollModeLabels = {
   ADVANTAGE: 'Advantage',
   DISADVANTAGE: 'Disadvantage',
@@ -144,6 +158,7 @@ const rollModeLabels = {
 /** What the list and the hover readout say about one creature: its distance, its reach and what the Character believes. */
 export function describeTargetEntry(entry: VttTargetEntry): string {
   return [
+    entry.unseenReason ? unseenReasonLabels[entry.unseenReason] : null,
     entry.distanceLabel ?? 'Distance unknown',
     entry.band ? bandLabels[entry.band] : null,
     entry.attack

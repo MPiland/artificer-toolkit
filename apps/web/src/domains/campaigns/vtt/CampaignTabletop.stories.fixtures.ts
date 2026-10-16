@@ -257,12 +257,12 @@ const actorBases = [
     sourceId: null,
     sourceRevision: null
   }
-] satisfies Omit<EncounterPlayerProjectionDto['actors'][number], 'health'>[]
+] satisfies Omit<EncounterPlayerProjectionDto['actors'][number], 'health' | 'unseenReason'>[]
 
 // The player controls their own Character (exact health); the enemy's level here is Descriptive.
 const playerActors = [
-  { ...actorBases[0], health: { level: 'EXACT', current: 36, maximum: 36 } },
-  { ...actorBases[1], health: { level: 'DESCRIPTIVE', state: 'HURT' } }
+  { ...actorBases[0], health: { level: 'EXACT', current: 36, maximum: 36 }, unseenReason: null },
+  { ...actorBases[1], health: { level: 'DESCRIPTIVE', state: 'HURT' }, unseenReason: null }
 ] satisfies EncounterPlayerProjectionDto['actors']
 
 const encounterBase = {

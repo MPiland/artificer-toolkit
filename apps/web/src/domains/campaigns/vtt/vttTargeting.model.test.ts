@@ -23,6 +23,10 @@ const tokenAt = (id: string, cells: number) => ({
   position: { x: sourceToken.position.x + cells * cell, y: sourceToken.position.y }
 })
 const actor = (id: string, defeated = false) => ({ defeated, id, label: `Creature ${id}` })
+const unseen = (id: string, unseenReason: 'HIDDEN' | 'INVISIBLE') => ({
+  ...actor(id),
+  unseenReason
+})
 
 const near = tokenAt('near-token', 2)
 const mirrorNear = tokenAt('mirror-token', -2)
@@ -63,7 +67,7 @@ const build = (overrides: Partial<Parameters<typeof buildTargetEntries>[0]> = {}
   })
 
 describe('target entries', () => {
-  it('sorts nearest first, keeps initiative order at equal distance and puts a creature with no token last', () => {
+  it('sorts nearest first, keeps initiative order at equal distance and puts a visible creature with no token last', () => {
     const entries = build()
     expect(entries.map(({ actorId }) => actorId)).toEqual([
       'caster',
@@ -80,6 +84,55 @@ describe('target entries', () => {
       tokenId: null
     })
     expect(describeTargetEntry(entries.at(-1)!)).toBe('Distance unknown')
+  })
+
+  // D131 replaces the shipped rule that sorted every creature without a distance last: a creature
+  // the GM revealed but the player cannot see leads the list, marked and with no distance.
+  it('lists revealed creatures the player cannot see first, marked Hidden or Invisible, then visible creatures nearest first (D131)', () => {
+    const entries = build({
+      actors: [
+        actor('far'),
+        unseen('ghost', 'INVISIBLE'),
+        actor('caster'),
+        actor('middle'),
+        unseen('lurker', 'HIDDEN'),
+        actor('mirror'),
+        actor('near'),
+        actor('hidden-far')
+      ]
+    })
+
+    expect(entries.map(({ actorId }) => actorId)).toEqual([
+      'ghost',
+      'lurker',
+      'caster',
+      'mirror',
+      'near',
+      'middle',
+      'far',
+      'hidden-far'
+    ])
+    expect(entries.slice(0, 2)).toMatchObject([
+      { band: null, distance: null, distanceLabel: null, tokenId: null, unseenReason: 'INVISIBLE' },
+      { band: null, distance: null, distanceLabel: null, tokenId: null, unseenReason: 'HIDDEN' }
+    ])
+    expect(entries.slice(0, 2).map(describeTargetEntry)).toEqual([
+      'Invisible · Distance unknown',
+      'Hidden · Distance unknown'
+    ])
+    expect(entries.slice(2).every(({ unseenReason }) => unseenReason === null)).toBe(true)
+  })
+
+  it('never measures or offers on the map a creature the player cannot see', () => {
+    const ghostToken = tokenAt('ghost-token', 1)
+    const entries = build({
+      actorIdByTokenId: new Map([...actorIdByTokenId, [ghostToken.id, 'ghost']]),
+      actors: [unseen('ghost', 'INVISIBLE'), actor('near')],
+      scene: { ...scene, tokens: [...scene.tokens, ghostToken] }
+    })
+
+    expect(entries[0]).toMatchObject({ actorId: 'ghost', distance: null, tokenId: null })
+    expect(targetableTokenIds(entries).has(ghostToken.id)).toBe(false)
   })
 
   it('lists creatures in initiative order when there is no Scene to measure on', () => {

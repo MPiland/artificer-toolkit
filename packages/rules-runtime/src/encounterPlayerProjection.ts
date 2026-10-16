@@ -66,6 +66,32 @@ export type EncounterPlayerViewer = {
   unseenActorIds: ReadonlySet<string>
 }
 
+/** The viewer a projection is built for: what they see, plus the Invisible condition types (D131). */
+export type EncounterProjectionViewer = EncounterPlayerViewer & {
+  invisibleConditionTypeIds: ReadonlySet<string>
+}
+
+/** The ids of the System's Invisible condition types: the one condition fact a player's list carries (D131). */
+export function invisibleConditionTypeIds(
+  conditionTypes: readonly { id: string; code: string }[]
+): ReadonlySet<string> {
+  return new Set(conditionTypes.flatMap((type) => (type.code === 'INVISIBLE' ? [type.id] : [])))
+}
+
+/** Whether an actor's stored conditions (a type id, or a record holding one) include any of `typeIds`. */
+function carriesConditionType(conditions: unknown, typeIds: ReadonlySet<string>): boolean {
+  return (
+    Array.isArray(conditions) &&
+    conditions.some((condition) => {
+      const typeId =
+        typeof condition === 'object' && condition !== null && 'conditionTypeId' in condition
+          ? condition.conditionTypeId
+          : condition
+      return typeof typeId === 'string' && typeIds.has(typeId)
+    })
+  )
+}
+
 /** The only label a creature revealed unnamed carries to a player. */
 export const UNSEEN_CREATURE_LABEL = 'Unseen creature'
 
@@ -140,7 +166,7 @@ export function playerSeesActor(actor: ViewedActor, viewer: EncounterPlayerViewe
  */
 export function projectPlayerEncounterProjection(
   encounter: EncounterGmProjectionDto,
-  viewer: EncounterPlayerViewer
+  viewer: EncounterProjectionViewer
 ): EncounterPlayerProjectionDto {
   const listedCurrentActor = encounter.actors.find(
     (actor) => actor.id === encounter.currentActorId && playerSeesActor(actor, viewer)
@@ -168,6 +194,12 @@ export function projectPlayerEncounterProjection(
             ? viewer.characters.get(actor.sourceId)
             : undefined
         const controlled = playerControlsActor(actor, viewer)
+        const unseenReason =
+          controlled || !viewer.unseenActorIds.has(actor.id)
+            ? null
+            : carriesConditionType(actor.conditions, viewer.invisibleConditionTypeIds)
+              ? ('INVISIBLE' as const)
+              : ('HIDDEN' as const)
         if (!controlled && actor.reveal === 'UNNAMED' && viewer.unseenActorIds.has(actor.id))
           return {
             id: actor.id,
@@ -186,7 +218,8 @@ export function projectPlayerEncounterProjection(
             concentration: null,
             defeated: false,
             absence: null,
-            health: null
+            health: null,
+            unseenReason
           }
         const level: HealthDisplayLevelDto = controlled
           ? 'EXACT'
@@ -211,7 +244,8 @@ export function projectPlayerEncounterProjection(
           concentration: controlled ? hideConcentrationSource(actor.concentration) : null,
           defeated: actor.defeated,
           absence: actor.absence,
-          health: playerActorHealth(level, actor.currentHitPoints, actor.maxHitPoints)
+          health: playerActorHealth(level, actor.currentHitPoints, actor.maxHitPoints),
+          unseenReason
         }
       }),
     createdAt: encounter.createdAt,

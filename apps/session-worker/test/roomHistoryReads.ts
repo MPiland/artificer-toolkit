@@ -7,10 +7,6 @@ import {
   projectNativeAreaActionPending,
   readNativeAreaActionPending
 } from '@artificer-toolkit/encounter-persistence/actionAreaPending'
-import {
-  projectNativeAttackSquarePending,
-  readNativeAttackSquarePending
-} from '@artificer-toolkit/encounter-persistence/attackSquarePending'
 import { projectNativeBasicActionCheckPending } from '@artificer-toolkit/encounter-persistence/basicActionCheckPending'
 import { projectNativeCleavingPending } from '@artificer-toolkit/encounter-persistence/cleavingPending'
 import { projectNativeConcentrationPending } from '@artificer-toolkit/encounter-persistence/concentrationPending'
@@ -94,27 +90,21 @@ export function readPendingActionDecision(stub: RoomStub, isOwner = true) {
                 controlledActorIds: actorIds,
                 visibleActorIds: actorIds
               })
-            : kind === 'ENCOUNTER_ATTACK_SQUARE'
-              ? projectNativeAttackSquarePending(
+            : kind === 'ENCOUNTER_AREA_ACTION'
+              ? projectNativeAreaActionPending(
                   occurrence,
-                  await readNativeAttackSquarePending({ db: room.store }, occurrence),
+                  await readNativeAreaActionPending({ db: room.store }, occurrence),
+                  {
+                    isOwner,
+                    controlledActorIds: isOwner ? actorIds : new Set(),
+                    actors: room.documents('encounterRunActors').map(readStoredRunActor)
+                  }
+                )
+              : projectNativeActionPending(
+                  occurrence,
+                  await readNativeActionPending({ db: room.store }, occurrence),
                   isOwner
                 )
-              : kind === 'ENCOUNTER_AREA_ACTION'
-                ? projectNativeAreaActionPending(
-                    occurrence,
-                    await readNativeAreaActionPending({ db: room.store }, occurrence),
-                    {
-                      isOwner,
-                      controlledActorIds: isOwner ? actorIds : new Set(),
-                      actors: room.documents('encounterRunActors').map(readStoredRunActor)
-                    }
-                  )
-                : projectNativeActionPending(
-                    occurrence,
-                    await readNativeActionPending({ db: room.store }, occurrence),
-                    isOwner
-                  )
     if (!pending) throw new Error('The pending decision is not shown to the GM.')
     return {
       occurrence,

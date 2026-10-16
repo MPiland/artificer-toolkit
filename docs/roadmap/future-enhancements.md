@@ -87,6 +87,8 @@ The user wants a Kickstarter campaign with realistic goals to fund finishing the
 
 ### Deferred edge cases (watch for in real use)
 
+- **Invisible Characters in the target list (ATTACK-17.T4b, D131).** `unseenReason` reads `INVISIBLE` only for creature actors: a Character's conditions live on its Sheet and are `[]` in the player projection, so an unseen Invisible Character is marked `HIDDEN`. Rare (needs the GM to reveal an unseen Character the player does not control); fix by projecting the Sheet's Invisible fact when it arises.
+
 These are rare paths, roughly under 5% of sessions, whose failure is visible and recoverable (user direction, 2026-10-15). Fix one when real use shows it happening.
 
 - **Failed-counter binding is by reactor id only (REACTION-4.T3c):** persistence binds a failed Counterspell spend to the held pause by the reactor's id, without comparing the pin, the sealed choice or the d20. Similarly, the reactor-is-target merge doesn't compare the failed receipt's Character version. Both inputs come from the room's own planner, so a mismatch needs a room bug, and the GM can undo the action.

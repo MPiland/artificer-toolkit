@@ -6472,7 +6472,10 @@
               "text": "Players target only tokens or the target list; there is no square attack. In targeting mode, creatures the GM has revealed but the player cannot see are listed first, marked hidden or invisible with an unknown distance, and the visible creatures follow, nearest first.",
               "status": "TODO",
               "proof": [
-                "T4a (occupied square): packages/schema/src/__tests__/encounter-attack-square-contracts.test.ts, packages/rules-runtime/src/__tests__/encounterAttackSquare.test.ts, apps/session-worker/test/nativeRoomAttackSquare.test.ts, CampaignTabletopDecisionDrawer.test.tsx; CI Tests 38875764975 and Live backend 38875765093 on acf721dec"
+                "apps/web/src/domains/campaigns/vtt/vttTargeting.model.test.ts (D131 list order: unseen creatures first, marked Hidden or Invisible, visible nearest first, never measured or targetable on the map)",
+                "packages/rules-runtime/src/__tests__/encounterPlayerProjection.test.ts (unseenReason predicate table, Invisible fact of an unnamed reveal)",
+                "apps/apis/convex/encounters/recipientBindings.test.ts and apps/session-worker/test/nativeLiveSessionRoom.test.ts (Convex and room agree on unseenReason)",
+                "Storybook Domains/Campaigns/VTT/Tabletop Turn Order, Targeting story"
               ],
               "origin": [],
               "note": "SRD: attacking an unseen creature means guessing its location. Depends on ATTACK-10 (attack-roll sight) and ATTACK-10.2 (Hide).",
