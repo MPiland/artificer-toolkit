@@ -123,6 +123,10 @@ Synced to the lane first. One helper now ends "until healed" grants: `endGrantsO
 - **Proof:** Convex `mechanicsBatch.test.ts` "ends a grant that lasts until healed only when hit points rise": a damage batch on a creature holding the grant ends nothing; a heal batch ends it. Existing `actionCommands.test.ts` ("refuses after the turn advanced, so a turn commit that ended grants needs no undo receipt") is the same refusal for a non-action command.
 - **Suggested AC wording:** no remaining mechanics-batch caller can end a grant outside an undoable root.
 
+**Bug found and fixed (Scene undo).** `UNDO_LAST_SCENE_MOVE` (`roomSceneUndo.ts`) targets the latest geometry `MOVE_SCENE_TOKEN` and restores the token only. After an Encounter move that crossed a damaging spatial effect it committed `TOKEN_MOVE_UNDONE` while the damage and the used-up effect stayed. `publishRoomSceneUndo` now takes `settledEncounterMechanics`, which the room answers from `encounterRuleReceipts` by the move's command id, and refuses with `SceneMoveSettledMechanicsError` (`INVALID_COMMAND`, "This move settled Encounter mechanics and cannot be undone as a Scene move."). A move with no receipts is still undone.
+
+- **Proof:** worker `nativeMovementSceneUndo.test.ts`: a plain Encounter move is undone; a hazard move is refused and leaves its receipt; `REVERT_LAST_ACTION` after the hazard move is `REVERT_UNAVAILABLE`. Red before the fix: the hazard move's Scene undo committed.
+
 ## SPELLS-17.T3 (AC 17.4): the board drag across a half-speed field
 
 **Status:** done on the branch; no production change. Closes AC 17.4 (Phase 8 owns the ledger).

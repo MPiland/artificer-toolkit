@@ -374,7 +374,7 @@ a GM `UPDATE_ACTOR` edit that raises a creature's hit points. A batch run by an 
 records to the root's `consumedGrants` receipt, so GM undo restores them with the same id and version; the Sheet, death
 save and GM edit paths have no undoable root, so their endings are not undone. The other mechanics-batch callers need no
 receipt: basic action check settlement applies only `STABILIZE` and Cleaving only `DAMAGE`, neither of which raises hit points,
-and movement reactions and spatial effects run under `MOVE_SCENE_TOKEN`, which is not an undoable root. Not yet: hidden or unnoticed zones (MOVE-3.3 to 3.5).
+and movement reactions and spatial effects run under `MOVE_SCENE_TOKEN`, which is not an undoable root: `REVERT_LAST_ACTION` refuses it, and the Scene undo (`UNDO_LAST_SCENE_MOVE`) refuses a move that recorded rule receipts, because it restores only the token's position. Not yet: hidden or unnoticed zones (MOVE-3.3 to 3.5).
 
 Each choice also carries `range` when its compiled target policy has a measurable one, the range the evaluator that
 handles the policy measures. A single-target policy that `singleTargetMeasure` accepts advertises `SELF`, `WITHIN` (Touch

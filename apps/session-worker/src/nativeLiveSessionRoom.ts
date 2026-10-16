@@ -110,7 +110,11 @@ import { executeRoomSceneGeometry } from './roomSceneGeometryCommand.js'
 import { readRoomSceneHeader, readRoomSceneState } from './roomSceneRead.js'
 import { composeRoomSceneVision } from './roomSceneVision.js'
 import { executeRoomSceneBinding } from './roomSceneBinding.js'
-import { NoSceneMoveToUndoError, publishRoomSceneUndo } from './roomSceneUndo.js'
+import {
+  NoSceneMoveToUndoError,
+  SceneMoveSettledMechanicsError,
+  publishRoomSceneUndo
+} from './roomSceneUndo.js'
 import {
   publishRoomSceneFog,
   publishRoomSceneInline,
@@ -1956,11 +1960,21 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
               transaction,
               userId: admission.userId,
               scene,
-              request: { input: command, presentation }
+              request: { input: command, presentation },
+              settledEncounterMechanics: async (moveCommandId) =>
+                (await this.#roomStore.store
+                  .query('encounterRuleReceipts')
+                  .withIndex('by_campaignId_commandId', (q) =>
+                    q.eq('campaignId', value.campaignId).eq('commandId', moveCommandId)
+                  )
+                  .first()) !== null
             })
         )
       } catch (error) {
-        if (error instanceof NoSceneMoveToUndoError)
+        if (
+          error instanceof NoSceneMoveToUndoError ||
+          error instanceof SceneMoveSettledMechanicsError
+        )
           this.#rejectCommand(socket, commandId, 'INVALID_COMMAND', error.message)
         else this.#rejectSceneCommand(socket, commandId, error, correction())
       }
@@ -2189,7 +2203,8 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
             userId: admission.userId,
             replayed: { kind: 'RECORDED', result: replay.delta.result }
           })
-          for (const sceneReceipt of messages.slice(0, -1)) send(socket, replayMessage(sceneReceipt))
+          for (const sceneReceipt of messages.slice(0, -1))
+            send(socket, replayMessage(sceneReceipt))
           send(socket, {
             ...replay,
             sequence:
@@ -3270,7 +3285,8 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
           )
           // Only a movement decision commits an Encounter result; a Scene command's retry replays one message.
           if (
-            (command.type === 'RESOLVE_RULE_OCCURRENCE' || command.type === 'VOID_RULE_OCCURRENCE') !==
+            (command.type === 'RESOLVE_RULE_OCCURRENCE' ||
+              command.type === 'VOID_RULE_OCCURRENCE') !==
             (result.encounter !== null)
           )
             throw new Error('Only a movement decision commits an Encounter result.')

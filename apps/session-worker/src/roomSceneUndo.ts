@@ -39,12 +39,21 @@ export class NoSceneMoveToUndoError extends Error {
   }
 }
 
+/** The latest move settled Encounter mechanics, which a Scene undo restores no part of. */
+export class SceneMoveSettledMechanicsError extends Error {
+  constructor() {
+    super('This move settled Encounter mechanics and cannot be undone as a Scene move.')
+  }
+}
+
 /** The caller admits the GM and commits these writes with the room journal in one transaction. */
 export async function publishRoomSceneUndo(input: {
   transaction: RoomTransaction
   userId: string
   scene: CampaignSceneStateDto
   request: SceneUndoExecuteInput
+  /** Whether the Encounter recorded rule receipts for the move; those effects outlive the token's position. */
+  settledEncounterMechanics: (commandId: string) => Promise<boolean>
 }) {
   const { transaction, scene, userId } = input
   const request = sceneUndoExecuteInputSchema.parse({
@@ -118,6 +127,8 @@ export async function publishRoomSceneUndo(input: {
       return true
     })?.commandId
   if (!targetCommandId) throw new NoSceneMoveToUndoError()
+  if (await input.settledEncounterMechanics(targetCommandId))
+    throw new SceneMoveSettledMechanicsError()
   const callbacks: SceneUndoPublicationCallbacks = {
     readSceneCommand: async (sceneId, commandId) => {
       const value = readRoomSceneRow(transaction, 'sceneLiveCommands', [sceneId, commandId])

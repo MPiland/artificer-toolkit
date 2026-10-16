@@ -244,7 +244,8 @@ function fixture(overrides = true) {
         transaction,
         userId: input.actorUserId,
         scene: undoScene,
-        request: { input: command, presentation: { expectedPresentationVersion: 4 } }
+        request: { input: command, presentation: { expectedPresentationVersion: 4 } },
+        settledEncounterMechanics: async () => false
       })
       const state = sceneStoredLiveStateSchema.parse(
         readRoomSceneRow(transaction, 'sceneLiveStates', [sceneId])
