@@ -101,10 +101,10 @@ export type NativeCastReaction = NativeReaction<EncounterCastReactionCandidate, 
  * (a Character has one reaction a round, so its reactions are offered together). A reaction is
  * offered when its holder can afford it now, is not suppressed (D99), reaches the creature whose cast it
  * answers with its own range, and is cast at a level at least the cast's, or authors a check for a
- * higher-level cast. A defeated Character (D63), the original caster, and a creature already
- * unavailable (declined, used a counter) offer nothing. In a Scene a creature with no token on it
- * cannot reach the cast. The cast answered is the original caster's unless `against` names a counter
- * cast, itself a cast another creature may counter.
+ * higher-level cast. A defeated Character (D63), the creature whose cast is answered, and a creature
+ * already unavailable (declined, used a counter) offer nothing. In a Scene a creature with no token on
+ * it cannot reach the cast. The cast answered is the original caster's unless `against` names a counter
+ * cast, itself a cast another creature may counter, the original caster included.
  */
 export function discoverNativeCastReactions(input: {
   state: EncounterRunState
@@ -145,22 +145,23 @@ export function discoverNativeCastReactions(input: {
     const againstActorId = filter.against?.actorId ?? caster.id
     const triggerLevel = filter.against?.level ?? input.triggerLevel
     const against = input.actors.find((actor) => actor.id === againstActorId)
-    const againstToken =
-      againstActorId === caster.id
+    const tokenOf = (actorId: string) =>
+      actorId === caster.id
         ? scene.sourceToken
-        : scene.tokens.find((token) => token.actorId === againstActorId)
+        : scene.tokens.find((token) => token.actorId === actorId)
+    const againstToken = tokenOf(againstActorId)
     if (!against || !againstToken) return null
     const reactors = input.actors
       .filter(
         (actor) =>
           actor.kind === 'CHARACTER' &&
-          actor.id !== caster.id &&
+          actor.id !== againstActorId &&
           !filter.declinedReactorActorIds.includes(actor.id) &&
           (filter.answering === undefined || actor.id === filter.answering.reactorActorId)
       )
       .sort((left, right) => left.id.localeCompare(right.id))
     for (const reactor of reactors) {
-      const reactorToken = scene.tokens.find((token) => token.actorId === reactor.id)
+      const reactorToken = tokenOf(reactor.id)
       if (!reactorToken) continue
       const reactorTarget = await input.loadTarget(reactor)
       if (isEncounterActorDefeated(reactor, deadCharacterIdsOfTargets([reactorTarget]))) continue
@@ -529,6 +530,16 @@ export async function planNativeFailedCounters(input: {
   return planned
 }
 
+/** The slots the failed counters of one actor spend, for the batch its own cast spends in. */
+export function counterConsumptionsOf(
+  planned: Awaited<ReturnType<typeof planNativeFailedCounters>>,
+  actorId: string
+) {
+  return planned.flatMap(({ receipt, spellConsumption }) =>
+    receipt.reaction.reactorActorId === actorId && spellConsumption ? [spellConsumption] : []
+  )
+}
+
 /**
  * The countered cast: the caster spends its slot and action and nothing the spell would have done
  * happens, while the creature that countered it spends its own slot and reaction. Nothing is stored;
@@ -569,7 +580,11 @@ export function planNativeCounteredCast(input: {
     makesAttackRoll: false,
     castsSpell: true
   })
-  const spendOf = (spending: Prepared, releases: typeof sourceReleases) =>
+  const spendOf = (
+    spending: Prepared,
+    releases: typeof sourceReleases,
+    counterSpellConsumptions: ReturnType<typeof counterConsumptionsOf> = []
+  ) =>
     planNativeEncounterAreaSourceSpend(
       {
         prepared: spending,
@@ -579,11 +594,17 @@ export function planNativeCounteredCast(input: {
         sourceCommandId: input.commandId,
         commandId: input.commandId,
         occurredAt: input.occurredAt,
-        sourceReleases: releases
+        sourceReleases: releases,
+        counterSpellConsumptions
       },
       input.userId
     )
-  const casterSpend = spendOf(prepared, sourceReleases)
+  // The caster's counter to a counter cast against its cast spends in the caster's one batch with the cast.
+  const casterSpend = spendOf(
+    prepared,
+    sourceReleases,
+    counterConsumptionsOf(input.failedCounters, prepared.actor.id)
+  )
   const reactorSpend = spendOf(found.prepared, reactorEnded.sourceReleases)
   const settled = new Map([
     [

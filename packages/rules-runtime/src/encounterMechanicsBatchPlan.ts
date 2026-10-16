@@ -55,8 +55,11 @@ export type EncounterMechanicsBatchInput = {
   characterResourceConsumption?: NativeCharacterActionResourceConsumption
   /** A single-use item this Assisted action used up; recorded as play usage, never as a structure edit. */
   characterItemConsumption?: NativeCharacterItemConsumption
-  /** The slot a cast spent, recorded on the Character in the same version as the outcome. */
-  characterSpellConsumption?: NativeCharacterSpellConsumption
+  /**
+   * The slots one actor's casts spent in this terminal commit (a cast, then a counter to a Counterspell
+   * against it), applied in order and recorded on the Character in the same version as the outcome.
+   */
+  characterSpellConsumptions?: readonly NativeCharacterSpellConsumption[]
   /** An accepted wield conflict: unequip this item in the same Character version. */
   stowEquippedItemInstanceId?: string
   /** A dying Character's turn-start death save die (D96); Characters only. */
@@ -102,7 +105,7 @@ export function planEncounterMechanicsBatch(input: {
       throw new Error('Encounter non-Character actors cannot use Character resources.')
     if (batch.characterItemConsumption !== undefined)
       throw new Error('Encounter non-Character actors cannot use up Character items.')
-    if (batch.characterSpellConsumption !== undefined)
+    if (batch.characterSpellConsumptions !== undefined)
       throw new Error('Encounter non-Character actors cannot spend Character spell slots.')
     if (batch.stowEquippedItemInstanceId !== undefined)
       throw new Error('Encounter non-Character actors cannot stow Character equipment.')
@@ -270,12 +273,12 @@ export function planEncounterMechanicsBatch(input: {
     ]
   }
 
-  const spellConsumption = batch.characterSpellConsumption
-  let nextSpellSlots: CharacterAuthored['state']['spellSlots']
-  if (spellConsumption !== undefined) {
-    const currentSlots = loaded.character.state.spellSlots ?? []
+  let slotsCharacter = loaded.character
+  for (const spellConsumption of batch.characterSpellConsumptions ?? []) {
     const currentUsed =
-      currentSlots.find((slot) => slot.slotKey === spellConsumption.slotKey)?.used ?? 0
+      (slotsCharacter.state.spellSlots ?? []).find(
+        (slot) => slot.slotKey === spellConsumption.slotKey
+      )?.used ?? 0
     if (
       spellConsumption.characterId !== loaded.active.id ||
       spellConsumption.expectedStreamVersion !== loaded.active.play.streamVersion ||
@@ -283,12 +286,15 @@ export function planEncounterMechanicsBatch(input: {
       currentUsed !== spellConsumption.beforeUsed
     )
       throw new Error('Encounter Character spell slot consumption is stale.')
-    nextSpellSlots = updateSpellSlotUsage(
-      loaded.character,
+    slotsCharacter = updateSpellSlotUsage(
+      slotsCharacter,
       spellConsumption.slotKey,
       () => spellConsumption.afterUsed
-    ).state.spellSlots
+    )
   }
+  const nextSpellSlots = batch.characterSpellConsumptions?.length
+    ? slotsCharacter.state.spellSlots
+    : undefined
 
   const stowItemId = batch.stowEquippedItemInstanceId
   if (

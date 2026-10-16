@@ -347,7 +347,7 @@ describe('applyEncounterMechanicsBatch Character persistence', () => {
     }
     const slots = [{ slotKey: 'STANDARD:1', used: 1 }]
     const result = await fixture.owner.caller.run((ctx) =>
-      applyEncounterMechanicsBatch(ctx, { ...input, characterSpellConsumption: spend })
+      applyEncounterMechanicsBatch(ctx, { ...input, characterSpellConsumptions: [spend] })
     )
     expect(result.characterStreamVersion).toBe(fixture.characterStreamVersion + 1)
     const after = await read()
@@ -368,10 +368,9 @@ describe('applyEncounterMechanicsBatch Character persistence', () => {
         applyEncounterMechanicsBatch(ctx, {
           ...command(fixture.run, fixture.actor, fixture.characterStreamVersion + 1),
           applications: [],
-          characterSpellConsumption: {
-            ...spend,
-            expectedStreamVersion: fixture.characterStreamVersion + 1
-          }
+          characterSpellConsumptions: [
+            { ...spend, expectedStreamVersion: fixture.characterStreamVersion + 1 }
+          ]
         })
       )
     ).rejects.toThrow('Encounter Character spell slot consumption is stale.')
