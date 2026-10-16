@@ -18,7 +18,6 @@ import {
 } from '@artificer-toolkit/source-data/srd/ruleState.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { encounterRuleUsageUsed } from '@artificer-toolkit/rules-runtime/encounterActorState'
-import { validateUsername } from '@artificer-toolkit/shared/account/username'
 import type { SceneFogChunksPage, SceneFogLayersPage } from '@artificer-toolkit/schema/api/sceneFog'
 import type { SceneFogLayer } from '@artificer-toolkit/shared/vtt/scene'
 import {
@@ -49,6 +48,7 @@ import {
   type CampaignCustodyCohort
 } from './developmentCampaignCustody'
 import type { createEncounterLifecyclePolicyFixture } from './fixtures/encounterInitiative'
+import { generateValidUsername } from './fixtures/generatedUsername'
 import type { CharacterListPage } from '@artificer-toolkit/schema/api/characterList'
 import type { CharacterDraftListPage } from '@artificer-toolkit/schema/api/characterDrafts'
 import type { DevelopmentCampaignInspection } from '@artificer-toolkit/schema/api/developmentCampaignLifecycle'
@@ -394,8 +394,7 @@ async function authToken(session: string | undefined) {
 }
 
 async function createAuthor() {
-  let username = `Draft_${randomBytes(6).toString('hex')}`
-  while (validateUsername(username).message) username = `Draft_${randomBytes(6).toString('hex')}`
+  const { username } = generateValidUsername('Draft_')
   const email = `${username.toLowerCase()}@example.invalid`
   const fixture: (typeof accounts)[number] = { email }
   accounts.push(fixture)

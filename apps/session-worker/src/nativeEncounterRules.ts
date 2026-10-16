@@ -63,7 +63,10 @@ import {
   replayNativeActionReaction,
   resolveNativeActionReaction
 } from '@artificer-toolkit/rules-runtime/encounterActionReaction'
-import type { EncounterReactionSelection } from '@artificer-toolkit/rules-runtime/encounterReactionChoice'
+import {
+  chosenEncounterReaction,
+  type EncounterReactionSelection
+} from '@artificer-toolkit/rules-runtime/encounterReactionChoice'
 import type { EncounterReactionOfferDto } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
 import {
   applyNativeAttackReaction,
@@ -626,8 +629,8 @@ export async function planNativeLiveEncounterAction(
    * The target's reaction as it is now. A used reaction also carries what it does to the attack it
    * answered: its effect plan and the attack's binding once that effect holds.
    */
-  const currentReaction = async (used: boolean) => {
-    const found = await discoverReaction()
+  const currentReaction = async (used: boolean, answering: string) => {
+    const found = await discoverReaction(answering)
     if (!found) throw new Error('Reaction evidence is stale.')
     const applied = used
       ? await applyNativeAttackReaction({
@@ -657,7 +660,10 @@ export async function planNativeLiveEncounterAction(
       })
     : null
   const answeredReaction = reactionAnswer
-    ? await currentReaction(reactionAnswer.selection.kind === 'OPTION')
+    ? await currentReaction(
+        reactionAnswer.selection.kind === 'OPTION',
+        chosenEncounterReaction(reactionAnswer.offer, reactionAnswer.selection).actionId
+      )
     : null
   const reactionAnswered =
     reactionAnswer && answeredReaction
@@ -701,7 +707,10 @@ export async function planNativeLiveEncounterAction(
       ? retained
       : null
   const replayedReaction = retainedReaction
-    ? await currentReaction(retainedReaction.reaction!.selection === 'USE')
+    ? await currentReaction(
+        retainedReaction.reaction!.selection === 'USE',
+        retainedReaction.reaction!.reaction.actionId
+      )
     : null
   const reaction =
     execution.kind === 'PENDING'
