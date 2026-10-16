@@ -111356,6 +111356,7 @@ export declare const api: {
                   public: boolean;
                   sourceId: string | null;
                   sourceRevision: number | null;
+                  unseenReason: "HIDDEN" | "INVISIBLE" | null;
                 }>;
                 automationMode: "ASSISTED" | "MANUAL";
                 blueprintChecksum: string;
@@ -112192,6 +112193,7 @@ export declare const api: {
                   public: boolean;
                   sourceId: string | null;
                   sourceRevision: number | null;
+                  unseenReason: "HIDDEN" | "INVISIBLE" | null;
                 }>;
                 automationMode: "ASSISTED" | "MANUAL";
                 blueprintChecksum: string;
@@ -113029,6 +113031,7 @@ export declare const api: {
               public: boolean;
               sourceId: string | null;
               sourceRevision: number | null;
+              unseenReason: "HIDDEN" | "INVISIBLE" | null;
             }>;
             automationMode: "ASSISTED" | "MANUAL";
             blueprintChecksum: string;
@@ -113329,6 +113332,7 @@ export declare const api: {
                   public: boolean;
                   sourceId: string | null;
                   sourceRevision: number | null;
+                  unseenReason: "HIDDEN" | "INVISIBLE" | null;
                 }>;
                 automationMode: "ASSISTED" | "MANUAL";
                 blueprintChecksum: string;
