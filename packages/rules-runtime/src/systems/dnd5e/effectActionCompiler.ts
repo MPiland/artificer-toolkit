@@ -564,18 +564,31 @@ function isSupportedTestArea(
 }
 
 function isSupportedTestTargetPolicy(
-  invocation: Dnd5eCompiledEffectActionSource['compiledEffect']['invocation']
+  invocation: Dnd5eCompiledEffectActionSource['compiledEffect']['invocation'],
+  spellCastLevel: number | undefined
 ): boolean {
   if (invocation.kind !== 'ACTION') return false
-  if (invocation.targeting?.selectionKind === 'AREA_CONTENTS')
-    return isSupportedTestArea(invocation)
-  if (invocation.shape) return false
-  if (
-    invocation.targeting?.selectionKind !== 'SINGLE_TARGET' ||
-    invocation.targeting.dispositionKind !== 'ANY'
-  ) {
+  const { targeting } = invocation
+  if (targeting?.selectionKind === 'AREA_CONTENTS') return isSupportedTestArea(invocation)
+  // A bounded list of chosen creatures (Acid Splash) runs the same per-creature save on each, once
+  // per creature: a creature named again would save twice, so a repeating list is refused.
+  if (targeting?.selectionKind === 'CHOSEN_CREATURES') {
+    if (
+      targeting.dispositionKind !== 'ANY' ||
+      targeting.allowRepeatedTargets === true ||
+      invocation.triggerCode !== 'SAVING_THROW' ||
+      chosenCreaturesMaxTargets(resolveChosenCreaturesTargeting(targeting, spellCastLevel)) ===
+        null ||
+      (invocation.shape !== undefined &&
+        !chosenCreaturesAreaSupported(invocation.range.rangeKind, invocation.shape.shapeKind))
+    )
+      return false
+  } else if (
+    invocation.shape ||
+    targeting?.selectionKind !== 'SINGLE_TARGET' ||
+    targeting.dispositionKind !== 'ANY'
+  )
     return false
-  }
   const attackKind = dnd5eAttackKind(invocation.triggerCode)
   // Only a ranged weapon attack has a long range ("range 80/320 ft.").
   if (
@@ -2421,7 +2434,7 @@ function testPlan(action: Dnd5eCompiledEffectActionSource): TestPlan | null {
   if (
     invocation.kind !== 'ACTION' ||
     !isSupportedTestActivation(invocation) ||
-    !isSupportedTestTargetPolicy(invocation) ||
+    !isSupportedTestTargetPolicy(invocation, action.spellCastLevel) ||
     entries.length < 1
   )
     unsupported(
@@ -3715,7 +3728,7 @@ function supportedTestPhaseKind(action: Dnd5eCompiledEffectActionSource): TestKi
   if (
     invocation.kind !== 'ACTION' ||
     !isSupportedTestActivation(invocation) ||
-    !isSupportedTestTargetPolicy(invocation) ||
+    !isSupportedTestTargetPolicy(invocation, action.spellCastLevel) ||
     action.compiledEffect.entries.length < 1
   ) {
     unsupported('D&D test action has an unsupported bounded shape.')

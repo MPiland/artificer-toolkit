@@ -310,32 +310,11 @@ export async function planNativeLiveEncounterAction(
       reason: 'TARGET_UNAVAILABLE',
       message: TARGET_NOT_PERMITTED_MESSAGE
     })
-  if (command.target.kind === 'ACTORS') {
-    if (removalCommand || responseCommand) throw new Error('A chosen-creature action never pends.')
-    return {
-      ...(await planNativeLiveEncounterActorsAction({
-        initial,
-        command: { ...command, target: command.target },
-        fingerprint: admission.fingerprint,
-        state,
-        system,
-        actors,
-        activeEffectsByActorId,
-        loadTarget,
-        capture,
-        runtime: executionOptions.runtime,
-        random: executionOptions.random,
-        requireAutoRoll,
-        autoRollByActorId
-      })),
-      dependencies,
-      revisions
-    }
-  }
   if (command.target.kind !== 'ACTOR') {
+    const { target } = command
     const areaInput = {
       initial,
-      command: { ...command, target: command.target },
+      command: { ...command, target },
       fingerprint: admission.fingerprint,
       state,
       system,
@@ -386,7 +365,15 @@ export async function planNativeLiveEncounterAction(
       }
     }
     return {
-      ...(await planNativeLiveEncounterAreaAction(areaInput)),
+      ...(target.kind === 'ACTORS'
+        ? await planNativeLiveEncounterActorsAction({
+            ...areaInput,
+            command: { ...command, target }
+          })
+        : await planNativeLiveEncounterAreaAction({
+            ...areaInput,
+            command: { ...command, target }
+          })),
       dependencies,
       revisions
     }

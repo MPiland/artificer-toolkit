@@ -2,29 +2,20 @@ import type {
   ResolveEncounterActionInputDto,
   ResolveEncounterActionTargetDto
 } from '@artificer-toolkit/schema/api/encounterRuleCommands'
-import {
-  encounterActionSuppressedWarning,
-  evaluateEncounterActorsRuleWarnings,
-  RULE_WARNINGS_MESSAGE
-} from '@artificer-toolkit/rules-runtime/encounterActionRuleWarnings'
-import {
-  deadCharacterIdsOfTargets,
-  isEncounterActorDefeated
-} from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
-import { snapshotCreatureTypeId } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import { chosenCreaturesMaxTargets } from '@artificer-toolkit/rules-runtime/encounterAreaAction'
 import { catchEncounterAreaActorIds } from '@artificer-toolkit/rules-runtime/encounterAreaActionExecution'
 import { encounterChosenActorsChecksum } from '@artificer-toolkit/rules-runtime/encounterAreaPending'
 import { executeEncounterActorsAction } from '@artificer-toolkit/rules-runtime/encounterActorsActionExecution'
-import { encounterSceneGridPolicyRegistry } from '@artificer-toolkit/rules-runtime/sceneGridPolicyRegistry'
 import { evaluateNativeLiveActionEconomy } from './nativeEncounterActionEconomy.js'
 import { refuseActionOutsideItsWindow } from './nativeEncounterActionInputs.js'
 import {
   completeAreaCommit,
-  prepareAreaScene,
-  prepareCasterActionOnTarget,
+  prepareAreaTarget,
   prepareCasterSource,
+  prepareChosenActorsReach,
+  reachRuleOverrides,
   refuseAreaEffectOutcomes,
+  sealReachSaves,
   type AreaPlanBase
 } from './nativeEncounterAreaRules.js'
 import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
@@ -44,7 +35,9 @@ const refusal = (message: string) =>
  * the creatures are checked against the action's authored cap, the area it names (a point picked
  * within range, every chosen creature inside it) and the single-target rules one by one, the
  * action's outcome runs on each from dice rolled once, and the caster spends once. Nothing waits
- * for anyone, so the root and every creature's child commit together (D118).
+ * for anyone, so the root and every creature's child commit together (D118). An action that asks
+ * each creature for a save (Acid Splash, Chain Lightning) instead seals one save per creature and
+ * pends on its rollers like a point area.
  */
 export async function planNativeLiveEncounterActorsAction(
   input: AreaPlanBase & { command: ActorsCommand }
@@ -74,55 +67,19 @@ export async function planNativeLiveEncounterActorsAction(
       shaped ? 'This action needs a point on the Scene.' : 'This action takes no point.'
     )
 
-  // Positions are read only when the caster saw the Scene; without them range is unchecked.
-  let scene = null
-  let area = null
-  if (shaped && sceneRequest?.point) {
-    area = await prepareAreaScene(
-      {
-        ...input,
-        command: {
-          ...command,
-          target: {
-            kind: 'POINT',
-            sceneId: sceneRequest.sceneId,
-            expectedSceneVersion: sceneRequest.expectedSceneVersion,
-            point: sceneRequest.point
-          }
-        }
-      },
-      sourced
-    )
-    scene = { ...area.scene, grid: area.grid }
+  const reach = await prepareChosenActorsReach(input, sourced)
+  if (reach.scene && reach.area) {
     const caught = new Set(
       catchEncounterAreaActorIds({
-        origin: area.origin,
-        shape: area.area.shape,
+        origin: reach.area.origin,
+        shape: reach.area.shape,
         casterActorId: caster.id,
-        tokens: scene.tokens.map((token) => ({ ...token, id: token.tokenId })),
+        tokens: reach.scene.tokens.map((token) => ({ ...token, id: token.tokenId })),
         fromCasterSpace: false
       })
     )
     if (actorIds.some((actorId) => !caught.has(actorId)))
       throw refusal('A chosen creature is not inside the area.')
-  } else if (sceneRequest) {
-    const captured = await capture({
-      kind: 'ACTION_AREA_SCENE',
-      command: {
-        actorId: command.actorId,
-        sceneId: sceneRequest.sceneId,
-        expectedSceneVersion: sceneRequest.expectedSceneVersion
-      }
-    })
-    if (captured.kind !== 'ACTION_AREA_SCENE')
-      throw new Error('Action Scene context is unavailable.')
-    scene = {
-      ...captured.context,
-      grid: encounterSceneGridPolicyRegistry.resolveEffectiveGrid({
-        encounter: state,
-        sceneGrid: captured.context.sceneGrid
-      })
-    }
   }
 
   const chosen = actorIds.map((actorId) => {
@@ -133,34 +90,22 @@ export async function planNativeLiveEncounterActorsAction(
   for (const actor of chosen)
     if (!movementTargets.has(actor.id)) movementTargets.set(actor.id, await input.loadTarget(actor))
   const prepared = []
-  for (const actor of chosen) {
-    const token = scene?.tokens.find((candidate) => candidate.actorId === actor.id)
-    const sceneContext =
-      scene && token
-        ? {
-            sceneId: scene.sceneId,
-            sceneVersion: scene.sceneVersion,
-            sourceToken: scene.sourceToken,
-            targetToken: token,
-            grid: scene.grid
-          }
-        : null
+  for (const actor of chosen)
     prepared.push({
       actor,
-      sceneContext,
-      prepared: await prepareCasterActionOnTarget(input, {
-        caster,
-        target: actor,
-        movementTargets,
-        sceneContext
-      })
+      // The caster named each creature, so none is hidden from them.
+      perceivedByCaster: true,
+      ...(await prepareAreaTarget({
+        ...input,
+        base: reach,
+        actor,
+        token: reach.scene?.tokens.find((candidate) => candidate.actorId === actor.id) ?? null
+      }))
     })
-  }
   const lead = prepared[0]!.prepared
   if (command.optionalCombatIntent != null) throw new Error('The action is not an ordinary action.')
   refuseActionOutsideItsWindow(lead)
   for (const entry of prepared) refuseAreaEffectOutcomes(entry.prepared)
-  if (lead.plan.kind !== 'SINGLE_GRAPH') throw refusal('This action does not take that target.')
 
   const evaluation = await evaluateNativeLiveActionEconomy({
     prepared: lead,
@@ -170,37 +115,18 @@ export async function planNativeLiveEncounterActorsAction(
     targetIds: actorIds,
     capture
   })
-  const { activationCode, economy, suppressed, attackAction } = evaluation
-  const deadCharacterIds = deadCharacterIdsOfTargets(movementTargets.values())
-  const ruleWarnings = evaluateEncounterActorsRuleWarnings({
-    preparedWarnings: suppressed
-      ? [...lead.ruleWarnings, encounterActionSuppressedWarning(activationCode)]
-      : lead.ruleWarnings,
-    targets: prepared.map(({ prepared: entry, sceneContext }) => ({
-      target: {
-        actor: entry.actor,
-        target: entry.target,
-        targetPolicy: entry.targetPolicy,
-        makesAttackRoll: entry.makesAttackRoll,
-        sceneContext
-      },
-      targetDefeated: isEncounterActorDefeated(entry.target, deadCharacterIds),
-      targetCreatureTypeId: snapshotCreatureTypeId(entry.target)
-    })),
-    areaWarnings: area?.area.warnings ?? [],
-    actionEconomy: economy,
-    activationCode,
-    acknowledged: command.acknowledgedWarnings
+  const ruleOverrides = reachRuleOverrides({
+    command,
+    lead,
+    evaluation,
+    areaWarnings: reach.area?.warnings ?? [],
+    targets: prepared,
+    movementTargets
   })
-  if (ruleWarnings.kind === 'UNSUPPORTED_TARGET')
-    throw refusal('The selected action does not permit this target.')
-  if (ruleWarnings.kind === 'UNACKNOWLEDGED')
-    throw new LiveSessionDomainRejectionError(422, {
-      code: 'DOMAIN_REJECTED',
-      reason: 'RULE_WARNINGS',
-      message: RULE_WARNINGS_MESSAGE,
-      warnings: ruleWarnings.warnings
-    })
+  // An action that asks each creature for a save waits for the rollers it names.
+  if (lead.plan.kind !== 'SINGLE_GRAPH')
+    return sealReachSaves(input, { reach, lead, targets: prepared, evaluation, ruleOverrides })
+  const { economy, attackAction } = evaluation
 
   const occurrenceId = crypto.randomUUID()
   const settled = await executeEncounterActorsAction({
@@ -222,7 +148,7 @@ export async function planNativeLiveEncounterActorsAction(
     movementTargets,
     kept: prepared.map(({ actor, prepared: entry }) => ({ actor, target: { prepared: entry } })),
     lead,
-    ruleOverrides: ruleWarnings.overrides,
+    ruleOverrides,
     actionEconomy: economy?.consumption ?? null,
     attackAction,
     settled,

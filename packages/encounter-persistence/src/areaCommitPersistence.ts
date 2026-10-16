@@ -108,11 +108,12 @@ type CommitScope = {
 
 /**
  * Commits a point-area action in the transaction of the answer that settled it, or a cast on a list
- * of chosen creatures (D118) in the one transaction that ran it: the root with the caster's one
+ * of chosen creatures (D118) that asked for no save in the one transaction that ran it: the root with the caster's one
  * spend, each kept creature's outcome as its own child receipt, and the Concentration checks the
  * damage asks for. A pending area's final snapshot is validated against the stored area, so a
- * planner can neither skip a creature's save nor settle an undecided Legendary Resistance; a chosen
- * list never pends, so its creatures are the ones the command named, in order.
+ * planner can neither skip a creature's save nor settle an undecided Legendary Resistance. A chosen
+ * list that asked for no save has no pending area, so its creatures are the ones the command named, in
+ * order; one that asked for saves pends and settles like a point area.
  */
 export async function persistEncounterAreaCommit(
   ctx: EncounterCharacterWriteTransaction & {
@@ -175,7 +176,7 @@ export async function persistEncounterAreaCommit(
   const { target } = command
   let scope: CommitScope
   if (input.area === null) {
-    // A chosen list never waits on anyone, so nothing resumes or is removed.
+    // A chosen list that asked for no save waits on no one, so nothing resumes or is removed.
     if (
       target.kind !== 'ACTORS' ||
       pendingOccurrence ||
@@ -192,7 +193,7 @@ export async function persistEncounterAreaCommit(
     }
   } else {
     const { area } = input
-    if (target.kind === 'ACTORS' || rootExecution.occurrenceId !== area.occurrenceId)
+    if (rootExecution.occurrenceId !== area.occurrenceId)
       throw new Error('Live Session terminal action is not an ordinary completed area.')
     // The area's final snapshot is the stored one with exactly the answer or removal that settled it.
     if (removal) {
@@ -242,7 +243,7 @@ export async function persistEncounterAreaCommit(
       targets: context.targets,
       caughtChecksum: context.caughtChecksum,
       removedActorIds: context.removedActorIds,
-      zoneSceneId: context.placesZone ? context.scene.sceneId : null
+      zoneSceneId: context.placesZone ? (context.scene?.sceneId ?? null) : null
     }
   }
   const kept = encounterChosenActorEntries(
