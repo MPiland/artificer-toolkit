@@ -22,6 +22,8 @@ export default defineConfig({
   ],
   test: {
     include: ['test/native*.test.ts'],
+    // Cancels leaked rooms' alarms after each test so a finished test's room cannot fail inside a later one.
+    setupFiles: ['./test/setupRoomTeardown.ts'],
     // Building a room takes a loaded runner more than the 5 s default; a room that hangs still fails.
     testTimeout: 30_000,
     // obscenity ships a CommonJS build behind an ESM wrapper that workerd cannot link.
