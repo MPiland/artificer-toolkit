@@ -304,6 +304,8 @@ export async function fixture(
         if (inputs.scope.kind === 'SCENE' || inputs.scope.kind === 'SCENE_DEFINITION') {
           const served = rawScene.current
           if (!capture.sceneHeader || !served) throw new Error('Missing raw Scene fixture.')
+          // FORCED RED (throwaway): a loaded runner's slow Scene read.
+          await new Promise((resolve) => setTimeout(resolve, 1500))
           const sceneFixture = {
             scene: served,
             header: capture.sceneHeader,
