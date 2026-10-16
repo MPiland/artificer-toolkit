@@ -9,6 +9,28 @@ import { senseGrantDtoSchema } from '../grants/sense.js'
 import { spellGrantDtoSchema } from '../grants/spell.js'
 
 describe('grant and facet schema parsing', () => {
+  it('refuses a damage resistance that names both a damage type and the triggering damage', () => {
+    const resistance = {
+      grantKind: 'MODIFIER_GRANT',
+      id: 'resist-trigger',
+      order: 1,
+      selectionKind: 'GRANTED',
+      scope: 'GLOBAL',
+      valueDomainCode: 'DAMAGE_RESISTANCE',
+      domain: {},
+      modifierKind: 'ADD_OPTION'
+    }
+    expect(
+      modifierGrantDtoSchema.parse({ ...resistance, payload: { damageTypeSource: 'TRIGGER' } })
+    ).toMatchObject({ payload: { damageTypeSource: 'TRIGGER' } })
+    expect(
+      modifierGrantDtoSchema.safeParse({
+        ...resistance,
+        payload: { damageTypeId: 'fire', damageTypeSource: 'TRIGGER' }
+      }).success
+    ).toBe(false)
+  })
+
   it('selects only the matching modifier domain and kind before validating its fields', () => {
     let scopeReads = 0
     const grant = {
