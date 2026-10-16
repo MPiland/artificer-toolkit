@@ -8502,9 +8502,9 @@
             {
               "id": "SPELLS-28.T1b",
               "text": "In-Scene TELEPORT (Misty Step, Dimension Door): the cast commits a bounded one-shot teleport allowance (on the existing movement-economy pattern, expiring at the end of the caster turn) that a following MOVE_SCENE_TOKEN TELEPORT consumes; player TELEPORT without an allowance is refused; range, occupancy and visibility enforced at consumption; authored from core options.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-28.2"],
-              "activeWorkbook": "docs/handoffs/slice-spells-28.md",
+              "activeWorkbook": "docs/handoffs/slice-spells-28-t1b.md",
               "wsjf": {
                 "bv": 8,
                 "tc": 3,
