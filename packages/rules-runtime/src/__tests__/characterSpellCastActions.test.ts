@@ -39,6 +39,7 @@ const FLY = spell('Fly')
 const HOLD_PERSON = spell('Hold Person')
 const CURE_WOUNDS = spell('Cure Wounds')
 const HEALING_WORD = spell('Healing Word')
+const INVISIBILITY = spell('Invisibility')
 const MEND = { ...fixedHealSpell(), id: '00000000-0000-4000-8000-00000000c0de', label: 'Mend' }
 
 /** The cast candidate of a spell at a level, the way the policy lists it. */
@@ -165,6 +166,7 @@ const authoredById = new Map(
     PLAIN_HOLD,
     CURE_WOUNDS,
     HEALING_WORD,
+    INVISIBILITY,
     GAPPED_HEAL,
     LATE_HEAL
   ].map((entry) => [entry.id, entry])
@@ -406,6 +408,24 @@ describe('the Concentration a cast starts', () => {
     const plan = compiledCast(PLAIN_HOLD)?.activeEffectPlan
     expect(plan).toBeDefined()
     expect(plan?.maintenance).toBeNull()
+  })
+})
+
+describe('the timed condition a cast owns with no save', () => {
+  const invisibleId = SRD_CONDITION_TYPES.find(({ code }) => code === 'INVISIBLE')?.id
+
+  it('owns Invisibility’s condition for 600 turns and carries its authored end events', () => {
+    const plan = compiledCast(INVISIBILITY)?.activeEffectPlan
+    expect(plan).toMatchObject({
+      recurrenceStage: 'END_OF_TURN',
+      initialRemaining: 600,
+      conditionContribution: {
+        conditionId: invisibleId,
+        consumeOnFirstEvents: [],
+        endOnEvents: ['ON_ATTACK_ROLL', 'ON_CAST_SPELL']
+      }
+    })
+    expect(plan?.maintenance?.definitionId).toBe(SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID)
   })
 })
 
