@@ -42,11 +42,11 @@ export interface VttTargetEntry {
  * The creatures the chosen action can name: a defeated creature is never a target (D63), and the
  * acting creature is not one when the action refuses itself (Help, First Aid).
  */
-export function targetableEncounterActors<Actor extends TargetingActor>(
-  actors: readonly Actor[],
+export function targetableEncounterActors<Actors extends readonly TargetingActor[]>(
+  actors: Actors,
   currentActorId: string | null,
   selfRefused: boolean
-): Actor[] {
+): Actors[number][] {
   return actors.filter((actor) => !actor.defeated && !(selfRefused && actor.id === currentActorId))
 }
 
@@ -111,10 +111,10 @@ export function buildTargetEntries({
 }
 
 /** The turn-order list while the caster targets: listed creatures in target order, the rest after them in turn order. */
-export function orderActorsForTargeting<Actor extends { id: string }>(
-  actors: readonly Actor[],
+export function orderActorsForTargeting<Actors extends readonly { id: string }[]>(
+  actors: Actors,
   entries: readonly VttTargetEntry[]
-): Actor[] {
+): Actors[number][] {
   const listed = entries.flatMap(({ actorId }) => actors.filter((actor) => actor.id === actorId))
   return [
     ...listed,

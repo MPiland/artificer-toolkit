@@ -2338,15 +2338,20 @@ describe('Assisted soft enforcement', () => {
       sceneId: base.sceneId,
       expectedSceneVersion: 1
     })
+    // The Encounter's custom creature has no defense to attack, so it lists with no modifiers.
+    const custom = base.run.actors.find((candidate) => candidate.kind === 'CUSTOM')
+    if (!custom) throw new Error('Missing custom creature fixture.')
     expect(onScene.targets).toEqual([
       {
         actorId: base.target.id,
         attack: { rollMode: 'DISADVANTAGE', reasons: ['Long range'] }
-      }
+      },
+      { actorId: custom.id, attack: null }
     ])
     const offScene = await targetModifiersFor(base, base.owner.caller, base.run.version, null)
     expect(offScene.targets).toEqual([
-      { actorId: base.target.id, attack: { rollMode: 'NORMAL', reasons: [] } }
+      { actorId: base.target.id, attack: { rollMode: 'NORMAL', reasons: [] } },
+      { actorId: custom.id, attack: null }
     ])
     await expect(
       targetModifiersFor(base, base.owner.caller, base.run.version, {

@@ -106,9 +106,15 @@ export async function readEncounterActionTargetModifiers(
       })
       const published =
         attack.plan.kind === 'SINGLE_GRAPH' ? attack.plan.published : attack.plan.test.published
-      const bound = attack.makesAttackRoll
-        ? attack.adapter.bindFacts({ ...attack.binding, published })
-        : null
+      let bound: ReturnType<typeof attack.adapter.bindFacts> | null = null
+      if (attack.makesAttackRoll) {
+        try {
+          bound = attack.adapter.bindFacts({ ...attack.binding, published })
+        } catch {
+          // A creature the attack cannot bind to (a custom creature with no defense) shows no
+          // modifiers here; naming it in the command still refuses it.
+        }
+      }
       return {
         actorId: target.id,
         d20:
