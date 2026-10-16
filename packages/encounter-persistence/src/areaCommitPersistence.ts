@@ -294,8 +294,8 @@ export async function persistEncounterAreaCommit(
       batch.parentOccurrenceId !== areaOccurrenceId ||
       batch.sourceActorId !== source.id ||
       batch.targetActorId !== actor.id ||
-      batch.activeEffectTransitions.length !== createdEffects.length ||
-      batch.stateEffectTransitions.length > 0 ||
+      batch.activeEffectTransitions.length + batch.stateEffectTransitions.length !==
+        createdEffects.length ||
       batch.maintenanceTransition !== undefined ||
       (batch.kind === 'CHARACTER_MECHANICS_BATCH' &&
         batch.targetFeatureResourceConsumption !== null) ||
