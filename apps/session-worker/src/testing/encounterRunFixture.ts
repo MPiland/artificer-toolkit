@@ -121,6 +121,7 @@ export async function encounterRunFixture({
           sourceId: characterId,
           frozenState: null,
           absence: null,
+          form: null,
           label,
           systemId,
           stableTieKey: crypto.randomUUID(),

@@ -235,6 +235,7 @@ const actorBases = [
     label: "Ember's Wake",
     manualOrder: null,
     absence: null,
+    form: null,
     public: true,
     sourceId: assignedCharacter.id,
     sourceRevision: null

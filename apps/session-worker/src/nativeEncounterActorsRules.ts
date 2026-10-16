@@ -105,7 +105,7 @@ export async function planNativeLiveEncounterActorsAction(
   const lead = prepared[0]!.prepared
   if (command.optionalCombatIntent != null) throw new Error('The action is not an ordinary action.')
   refuseActionOutsideItsWindow(lead)
-  const formCreature = await readChosenFormCreature(input, lead, chosen)
+  const formCreature = await readChosenFormCreature(input, lead, chosen, movementTargets)
 
   const evaluation = await evaluateNativeLiveActionEconomy({
     prepared: lead,

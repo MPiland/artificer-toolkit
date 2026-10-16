@@ -93,7 +93,11 @@ function stringValues(value: unknown): string[] {
     : []
 }
 
-export function snapshotStatBlock(actor: EncounterProjectionActorInput) {
+export function snapshotStatBlock(actor: {
+  kind: string
+  systemId: string | null
+  snapshot: unknown
+}) {
   if (actor.kind !== 'CREATURE' || !isRecord(actor.snapshot)) return null
   const payload = actor.snapshot.payload
   if (!isRecord(payload)) return null
@@ -177,6 +181,15 @@ function currentActorIdForProjection(
     : null
 }
 
+/** The stat block a Character in a Creature form presents: the form's, with retained abilities baked in. */
+export function characterFormStatBlock(
+  actor: Pick<Extract<EncounterProjectionActorInput, { kind: 'CHARACTER' }>, 'systemId' | 'form'>
+) {
+  return actor.form === null
+    ? null
+    : snapshotStatBlock({ kind: 'CREATURE', systemId: actor.systemId, snapshot: actor.form.snapshot })
+}
+
 /** The form as a stored actor holds it: the origin snapshot named by checksum, not carried. */
 export function storedActorForm(form: EncounterActorForm | null) {
   if (form === null) return null
@@ -216,6 +229,7 @@ export function projectEncounterActorFacts(
         kind: actor.kind,
         sourceId: actor.sourceId,
         frozenState: actor.frozenState,
+        form: actor.form,
         absence: actor.absence
       }),
       source: null
@@ -329,9 +343,20 @@ function projectGmFacts(
     round: encounter.round,
     currentActorId: currentActorIdForProjection(encounter),
     actors: stableActors(encounter).flatMap((actor) => {
+      const sheet = actor.kind === 'CHARACTER' ? characterStates.get(actor.sourceId) : undefined
+      // A Character in a form shows the form's hit points; its conditions stay the Sheet's (D130).
       const current =
         actor.kind === 'CHARACTER'
-          ? characterStates.get(actor.sourceId)
+          ? sheet &&
+            (actor.form === null
+              ? sheet
+              : {
+                  ...sheet,
+                  current: actor.form.currentHitPoints,
+                  temporary: actor.form.tempHitPoints,
+                  maximum: actor.form.maxHitPoints,
+                  dead: false
+                })
           : {
               current: actor.currentHitPoints,
               temporary: actor.tempHitPoints,
@@ -373,7 +398,7 @@ function projectGmFacts(
         absence: actor.absence,
         resources: actor.resources,
         gmNotes: actor.gmNotes,
-        statBlock: source?.statBlock ?? null,
+        statBlock: (actor.kind === 'CHARACTER' ? characterFormStatBlock(actor) : source?.statBlock) ?? null,
         features: (source?.features ?? []).map((feature) => ({
           ...feature,
           resource: resources.get(feature.id) ?? null

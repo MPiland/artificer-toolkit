@@ -251,9 +251,9 @@ export async function writeRunActor(
     await releaseActorSnapshot(ctx, row.encounterId, row.formOriginSnapshotChecksum)
   if (row.sourceFactsChecksum !== null && row.sourceFactsChecksum !== split.sourceFactsChecksum)
     await releaseSourceFacts(ctx, row.encounterId, row.sourceFactsChecksum)
-  if (row.formOriginSnapshotChecksum !== null && split.originSnapshotChecksum === null) {
+  if (actor.form === null) {
     const before = readStoredRunActor(row)
-    if (before.kind !== 'CHARACTER' && before.form !== null) {
+    if (before.form !== null) {
       const effectId = before.form.effectId
       const effect = await ctx.db
         .query('encounterActiveRuleEffects')

@@ -7,7 +7,7 @@ import schema from '../schema'
 import { internalMutation } from '../lib/mutations'
 
 /**
- * D130 backfill: a stored Creature or custom Run actor gains `form: null` (it has never been in a
+ * D130 backfill: a stored Run actor, Character included, gains `form: null` (it has never been in a
  * creature form) and every actor row without one gains `formOriginSnapshotChecksum: null`.
  * Idempotent: a migrated row, possibly in a form by now, has both and is left alone.
  */
@@ -20,8 +20,7 @@ export const runActorForm = migrations.define({
   migrateOne: async (ctx, row) => {
     const stored: unknown = JSON.parse(row.stateJson)
     if (typeof stored !== 'object' || stored === null) return
-    // A Character is never in a form, so its stored state is unchanged.
-    const lacksForm = !('form' in stored) && !('kind' in stored && stored.kind === 'CHARACTER')
+    const lacksForm = !('form' in stored)
     if (row.formOriginSnapshotChecksum !== undefined && !lacksForm) return
     const actor = encounterStoredRunActorStateSchema.parse(
       lacksForm ? { ...stored, form: null } : stored

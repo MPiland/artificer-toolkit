@@ -83,6 +83,6 @@ export async function endActorFormHeldBy(
     .unique()
   if (!run) throw new Error('Encounter is unavailable.')
   const { row, actor } = await readRunActorWithRow(ctx, readRunState(run), input.actorId)
-  if (actor.kind === 'CHARACTER' || actor.form?.effectId !== input.effectId) return
+  if (actor.form?.effectId !== input.effectId) return
   await writeRunActor(ctx, row._id, revertActorForm(actor))
 }
