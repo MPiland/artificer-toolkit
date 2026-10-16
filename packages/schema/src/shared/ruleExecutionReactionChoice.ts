@@ -4,18 +4,24 @@ import { MAX_ENCOUNTER_ACTORS, MAX_ENCOUNTER_REACTION_OPTIONS } from './authored
 import {
   characterSpellSlotConsumptionReceiptDtoSchema,
   encounterActionEconomyTransitionDtoSchema,
+  ruleCheckD20EvidenceDtoSchema,
   sourceSpendReceiptShape,
   validateSourceSpendReceipts,
   type CharacterSpellSlotConsumptionReceiptDto,
   type SourceSpendReceipts
 } from './ruleExecutionEncounterApplications.js'
 import {
+  frozenCheckD20DtoSchema,
   serverRuleExecutionD20EvidenceDtoSchema,
   serverRuleExecutionD20PolicyDtoSchema,
   type ServerRuleExecutionD20EvidenceDto,
   type ServerRuleExecutionD20PolicyDto
 } from './ruleExecutionEvidence.js'
-import { characterActiveEffectCreateReceiptDtoSchema } from './ruleExecutionMechanics.js'
+import {
+  characterActiveEffectCreateReceiptDtoSchema,
+  sourceApplicationsChangeState,
+  sourceApplicationsDtoSchema
+} from './ruleExecutionMechanics.js'
 import {
   serverCompletedRuleExecutionDtoSchema,
   type ServerCompletedRuleExecutionDto
@@ -147,13 +153,39 @@ export const encounterReactionOfferDtoSchema: z.ZodMiniType<EncounterReactionOff
     })
 )
 /**
+ * The check a reactor owes to counter a cast above the level it counters at: its ability check against
+ * a DC set by the cast's level, frozen before it is rolled. The pending waits on that one d20.
+ */
+export type EncounterCastReactionCheckDto = {
+  choiceExecution: ServerCompletedRuleExecutionDto
+  triggerLevel: number
+  checkDefinitionId: string
+  dc: number
+  d20: z.infer<typeof frozenCheckD20DtoSchema>
+}
+
+export const encounterCastReactionCheckDtoSchema: z.ZodMiniType<EncounterCastReactionCheckDto> =
+  lazySchema(() =>
+    z.strictObject({
+      choiceExecution: z.lazy(() => serverCompletedRuleExecutionDtoSchema),
+      triggerLevel: nonNegativeIntegerSchema,
+      checkDefinitionId: uuidSchema,
+      dc: positiveIntegerSchema,
+      d20: frozenCheckD20DtoSchema
+    })
+  )
+
+/**
  * A cast held before it executes for one creature's chance to counter it. The reactions are that
- * reactor's menu (one reaction a round); the reactors that already declined are recorded so that a
- * replay of the cast offers the next reactor rather than the same one.
+ * reactor's menu (one reaction a round); the reactors that already declined or failed their check are
+ * recorded so that a replay of the cast offers the next reactor rather than the same one. Once the
+ * reactor has chosen a counter that owes a check, `reactions` holds that one counter and `check` the
+ * roll the pause now waits on.
  */
 export type EncounterCastReactionOfferDto = {
   reactions: EncounterCastReactionPinDto[]
   declinedReactorActorIds: string[]
+  check?: EncounterCastReactionCheckDto
 }
 
 export const encounterCastReactionOfferDtoSchema: z.ZodMiniType<EncounterCastReactionOfferDto> =
@@ -163,23 +195,106 @@ export const encounterCastReactionOfferDtoSchema: z.ZodMiniType<EncounterCastRea
         .array(encounterCastReactionPinDtoSchema)
         .check(z.minLength(1))
         .check(z.maxLength(MAX_ENCOUNTER_REACTION_OPTIONS)),
-      declinedReactorActorIds: z.array(uuidSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS))
+      declinedReactorActorIds: z.array(uuidSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
+      check: z.optional(encounterCastReactionCheckDtoSchema)
     })
   )
 
+/** What a failed counter checked: the reactor's settled d20 against the cast level's DC. */
+export type EncounterCounterCheckEvidenceDto = {
+  checkDefinitionId: string
+  d20: z.infer<typeof ruleCheckD20EvidenceDtoSchema>
+}
+
+const encounterCounterCheckEvidenceDtoSchema: z.ZodMiniType<EncounterCounterCheckEvidenceDto> =
+  lazySchema(() =>
+    z.strictObject({ checkDefinitionId: uuidSchema, d20: ruleCheckD20EvidenceDtoSchema })
+  )
+
+/**
+ * A counter the reactor attempted and failed. It is part of the cast's own occurrence: carried by every
+ * pending of the cast, it is spent with whatever terminal commit the cast reaches.
+ */
+export type EncounterFailedCounterDto = {
+  reaction: EncounterCastReactionPinDto
+  choiceExecution: ServerCompletedRuleExecutionDto
+  triggerLevel: number
+  check: EncounterCounterCheckEvidenceDto
+}
+
+const failedCounterShape = () => ({
+  reaction: encounterCastReactionPinDtoSchema,
+  choiceExecution: z.lazy(() => serverCompletedRuleExecutionDtoSchema),
+  triggerLevel: nonNegativeIntegerSchema,
+  check: encounterCounterCheckEvidenceDtoSchema
+})
+
+export const encounterFailedCounterDtoSchema: z.ZodMiniType<EncounterFailedCounterDto> = lazySchema(
+  () =>
+    z.strictObject(failedCounterShape()).check(
+      z.superRefine((value, context) => {
+        validateEncounterReactionPin(value.reaction, context, ['reaction'])
+      })
+    )
+)
+
+/** What a reactor spent for a counter, countered or failed: its slot and its reaction allowance. */
+type CounterSpendDto = {
+  reaction: EncounterCastReactionPinDto
+  spellCastConsumption: CharacterSpellSlotConsumptionReceiptDto | null
+  /** The reactor's own conditions released by effects its cast ended; empty when none. */
+  applications: z.infer<typeof sourceApplicationsDtoSchema>
+  /** The reactor's Character version once its slot was spent or a condition released; null when neither. */
+  characterStreamVersion: number | null
+  actionEconomyTransition: z.infer<typeof encounterActionEconomyTransitionDtoSchema>
+}
+
+const counterSpendShape = () => ({
+  spellCastConsumption: z.nullable(characterSpellSlotConsumptionReceiptDtoSchema),
+  applications: sourceApplicationsDtoSchema,
+  characterStreamVersion: z.nullable(aggregateVersionSchema),
+  actionEconomyTransition: encounterActionEconomyTransitionDtoSchema
+})
+
+function validateCounterSpend(value: CounterSpendDto, context: z.core.$RefinementCtx) {
+  validateEncounterReactionPin(value.reaction, context, ['reaction'])
+  if (
+    (value.characterStreamVersion === null) !==
+      !(
+        value.spellCastConsumption !== null ||
+        sourceApplicationsChangeState(value.applications, value.reaction.characterId)
+      ) ||
+    (value.spellCastConsumption &&
+      value.spellCastConsumption.characterId !== value.reaction.characterId)
+  )
+    context.addIssue({
+      code: 'custom',
+      path: ['spellCastConsumption'],
+      message: 'The reactor slot receipt must match its Character and stream version.'
+    })
+  const economy = value.actionEconomyTransition
+  if (
+    economy.definitionId !== value.reaction.allowanceDefinitionId ||
+    economy.beforeUsed !== value.reaction.allowanceBeforeUsed ||
+    economy.maximum !== value.reaction.allowanceMaximum
+  )
+    context.addIssue({
+      code: 'custom',
+      path: ['actionEconomyTransition'],
+      message: 'The reactor allowance spend must be the one the reaction pinned.'
+    })
+}
+
 /**
  * What a countered cast sealed: the reactor's settled choice, the reaction's own execution (whose trace
- * cancels the triggering event), the level of the cast it countered, and what the reactor spent.
+ * cancels the triggering event), the level of the cast it countered, the check that earned the counter
+ * when the cast was above the counter's level, and what the reactor spent.
  */
-export type EncounterCounteredCastReceiptDto = {
-  reaction: EncounterCastReactionPinDto
+export type EncounterCounteredCastReceiptDto = CounterSpendDto & {
   choiceExecution: ServerCompletedRuleExecutionDto
   counterExecution: ServerCompletedRuleExecutionDto
   triggerLevel: number
-  spellCastConsumption: CharacterSpellSlotConsumptionReceiptDto | null
-  /** The reactor's Character version once its slot was spent; null exactly when none was. */
-  characterStreamVersion: number | null
-  actionEconomyTransition: z.infer<typeof encounterActionEconomyTransitionDtoSchema>
+  check: EncounterCounterCheckEvidenceDto | null
 }
 
 // Named so the output union that embeds it stays under the compiler's declaration size limit (TS7056).
@@ -191,36 +306,20 @@ export const encounterCounteredCastReceiptDtoSchema: z.ZodMiniType<EncounterCoun
         choiceExecution: z.lazy(() => serverCompletedRuleExecutionDtoSchema),
         counterExecution: z.lazy(() => serverCompletedRuleExecutionDtoSchema),
         triggerLevel: nonNegativeIntegerSchema,
-        spellCastConsumption: z.nullable(characterSpellSlotConsumptionReceiptDtoSchema),
-        characterStreamVersion: z.nullable(aggregateVersionSchema),
-        actionEconomyTransition: encounterActionEconomyTransitionDtoSchema
+        check: z.nullable(encounterCounterCheckEvidenceDtoSchema),
+        ...counterSpendShape()
       })
-      .check(
-        z.superRefine((value, context) => {
-          validateEncounterReactionPin(value.reaction, context, ['reaction'])
-          if (
-            (value.spellCastConsumption === null) !== (value.characterStreamVersion === null) ||
-            (value.spellCastConsumption &&
-              value.spellCastConsumption.characterId !== value.reaction.characterId)
-          )
-            context.addIssue({
-              code: 'custom',
-              path: ['spellCastConsumption'],
-              message: 'The reactor slot receipt must match its Character and stream version.'
-            })
-          const economy = value.actionEconomyTransition
-          if (
-            economy.definitionId !== value.reaction.allowanceDefinitionId ||
-            economy.beforeUsed !== value.reaction.allowanceBeforeUsed ||
-            economy.maximum !== value.reaction.allowanceMaximum
-          )
-            context.addIssue({
-              code: 'custom',
-              path: ['actionEconomyTransition'],
-              message: 'The reactor allowance spend must be the one the reaction pinned.'
-            })
-        })
-      )
+      .check(z.superRefine(validateCounterSpend))
+  )
+
+/** A failed counter once its spend is settled with the cast's terminal commit. */
+export type EncounterFailedCounterReceiptDto = EncounterFailedCounterDto & CounterSpendDto
+
+export const encounterFailedCounterReceiptDtoSchema: z.ZodMiniType<EncounterFailedCounterReceiptDto> =
+  lazySchema(() =>
+    z
+      .strictObject({ ...failedCounterShape(), ...counterSpendShape() })
+      .check(z.superRefine(validateCounterSpend))
   )
 
 /**

@@ -2,6 +2,7 @@ import {
   characterActor,
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
+import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import {
   SRD_CONDITION_TYPES,
   srdSystemRecord
@@ -61,13 +62,34 @@ async function moveIntoReaction(room: Room) {
   await room.respond({ kind: 'OPTION', optionId: option.optionId })
 }
 
-function reactionRoom(options: { reactorInvisible?: true } = {}) {
+/** The `reactionWolf` whose Bite opportunity attack is a melee spell attack: its reaction is a cast. */
+const spellReactionWolf: CreatureAuthored = {
+  ...reactionWolf,
+  features: reactionWolf.features?.map((feature) =>
+    feature.label !== 'Bite'
+      ? feature
+      : {
+          ...feature,
+          effects: feature.effects?.map((effect) => {
+            if (effect.invocation.kind !== 'ACTION') throw new Error('Expected an action effect.')
+            return {
+              ...effect,
+              invocation: { ...effect.invocation, triggerCode: 'MELEE_SPELL_ATTACK' as const }
+            }
+          })
+        }
+  )
+}
+
+function reactionRoom(
+  options: { reactorInvisible?: true; reactor?: CreatureAuthored; endsOn?: 'CAST' } = {}
+) {
   return movementRoom({
     actors: [
       characterActor({ id: MOVER_ID, characterId: CHARACTER_ID }),
       srdCreatureActor({
         id: REACTOR_ID,
-        creature: reactionWolf,
+        creature: options.reactor ?? reactionWolf,
         conditionIds: options.reactorInvisible ? [INVISIBLE_ID] : []
       })
     ],
@@ -80,8 +102,9 @@ function reactionRoom(options: { reactorInvisible?: true } = {}) {
     seed: seedModifierGrant({
       sourceActorId: MOVER_ID,
       holderActorId: REACTOR_ID,
-      lifecycle: { consumeOnFirstEvents: ['ON_ATTACK_ROLL'] },
-      ownedConditionId: options.reactorInvisible ? INVISIBLE_ID : undefined
+      lifecycle: options.endsOn === 'CAST' ? {} : { consumeOnFirstEvents: ['ON_ATTACK_ROLL'] },
+      ownedConditionId: options.reactorInvisible ? INVISIBLE_ID : undefined,
+      ...(options.endsOn === 'CAST' && { endsOnCast: true as const })
     })
   })
 }
@@ -107,6 +130,31 @@ describe('a reaction attack uses up the attacker’s one-roll grants (SPELLS-5.4
     const settled = await readRoomHistory(room.base.stub)
     expect(settled.activeEffects).toEqual([])
     expect(readActorConditionIds(settled, REACTOR_ID)).not.toContain(INVISIBLE_ID)
+  })
+
+  it('ends a grant that ends on a cast, and releases its condition, when the opportunity attack is a spell attack (SPELLS-27.T3b)', async () => {
+    const room = await reactionRoom({
+      reactorInvisible: true,
+      reactor: spellReactionWolf,
+      endsOn: 'CAST'
+    })
+    expect(await activeEffects(room)).toHaveLength(1)
+
+    await moveIntoReaction(room)
+
+    const settled = await readRoomHistory(room.base.stub)
+    expect(settled.activeEffects).toEqual([])
+    expect(readActorConditionIds(settled, REACTOR_ID)).not.toContain(INVISIBLE_ID)
+  })
+
+  it('keeps a grant that ends on a cast through a weapon opportunity attack', async () => {
+    const room = await reactionRoom({ reactorInvisible: true, endsOn: 'CAST' })
+
+    await moveIntoReaction(room)
+
+    const settled = await readRoomHistory(room.base.stub)
+    expect(settled.activeEffects).toHaveLength(1)
+    expect(readActorConditionIds(settled, REACTOR_ID)).toContain(INVISIBLE_ID)
   })
 })
 

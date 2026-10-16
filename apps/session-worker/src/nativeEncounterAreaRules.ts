@@ -81,8 +81,7 @@ import {
   prepareNativeActionEffectsPlan
 } from '@artificer-toolkit/rules-runtime/encounterActionEffects'
 import { projectNativeActionEffectTransitions } from '@artificer-toolkit/rules-runtime/encounterActionEffectReceipts'
-import { prepareActiveRuleEffectRecord } from '@artificer-toolkit/rules-runtime/activeRuleEffectRecords'
-import { nativeEffectOwner } from './nativeEncounterSettlement.js'
+import { createNativeActiveEffect, nativeEffectOwner } from './nativeEncounterSettlement.js'
 import {
   planNativeEncounterActionMechanics,
   planNativeEncounterAreaSourceSpend
@@ -92,6 +91,8 @@ import {
   buildEncounterAreaStoredExecution
 } from '@artificer-toolkit/rules-runtime/encounterActionReceipt'
 import { encounterActionSourceLabel } from '@artificer-toolkit/rules-runtime/encounterActionSources'
+import { preparedCastsSpell } from '@artificer-toolkit/rules-runtime/encounterCastReactionDiscovery'
+import { actionEndedEffects } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
 import { planEncounterPlacedZone } from '@artificer-toolkit/rules-runtime/encounterPlacedZone'
 import { consumeEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomyConsumption'
 import { projectEncounterActionTarget } from '@artificer-toolkit/rules-runtime/encounterActionProjection'
@@ -543,7 +544,7 @@ export async function planNativeLiveEncounterAreaAction(input: AreaPlanInput) {
   // preparation of it.
   const lead = reached[0] ?? (await prepareAreaCaster(input, base))
   refuseActionOutsideItsWindow(lead.prepared)
-  refuseAreaEffectOutcomes(lead.prepared)
+  refuseAreaMaintainedEffect(lead.prepared)
   if (command.optionalCombatIntent != null) throw new Error('The action is not an ordinary action.')
 
   const evaluation = await evaluateNativeLiveActionEconomy({
@@ -1055,40 +1056,19 @@ function leadActiveEffectPlan(prepared: AreaPrepared) {
 }
 
 /**
- * Refuses an area outcome that would leave anything behind on a creature other than an actor link:
- * a condition, a recurring effect, or a maintained effect. An area commits each creature's damage
- * and its link yet. Without `effects` it checks the action's effect plan (at open); with them, what
- * the settled outcome actually produced (at commit).
+ * Refuses an area outcome that a Concentration maintains: one maintained state would have to span
+ * every creature the area caught, which an area does not commit yet. By default it checks the
+ * action's effect plan (at open); at commit the caller passes what the settled outcome produced.
  */
-export function refuseAreaEffectOutcomes(
+export function refuseAreaMaintainedEffect(
   prepared: AreaPrepared,
-  effects?: {
-    stateEffect: unknown
-    recurringEffect: Pick<ActiveRuleEffectRecord, 'definition'> | null
-    relationshipConditionApplications: readonly unknown[]
-    maintenance: unknown
-  }
+  maintenance: object | null | undefined = leadActiveEffectPlan(prepared)?.maintenance
 ) {
-  const leavesEffect = effects
-    ? effects.stateEffect !== null ||
-      (effects.recurringEffect !== null &&
-        !(
-          effects.recurringEffect.definition.schemaVersion === 2 &&
-          effects.recurringEffect.definition.stateContributions.every(
-            ({ kind }) => kind === 'ACTOR_LINK'
-          )
-        )) ||
-      effects.relationshipConditionApplications.length > 0 ||
-      effects.maintenance !== null
-    : (() => {
-        const plan = leadActiveEffectPlan(prepared)
-        return plan !== null && !plan.actorLinkContribution
-      })()
-  if (leavesEffect)
+  if (maintenance)
     throw new LiveSessionDomainRejectionError(422, {
       code: 'DOMAIN_REJECTED',
       reason: 'TARGET_UNAVAILABLE',
-      message: 'Area actions that apply conditions or lasting effects are not supported yet.'
+      message: 'Area actions that maintain an effect with Concentration are not supported yet.'
     })
 }
 
@@ -1395,7 +1375,15 @@ export async function completeAreaCommit(args: {
   const occurredAt = new Date().toISOString()
   const userId = input.initial.expectedUserId
   const children = []
-  const createdEffects = new Map<string, ActiveRuleEffectRecord>()
+  const createdEffects = new Map<string, ActiveRuleEffectRecord[]>()
+  // The cast ends the caster's effects that end on a cast (Invisibility), and releases the condition
+  // each held alone: in the caster's spend batch, or on their first outcome when the area catches them.
+  const { consumedGrants, sourceReleases } = actionEndedEffects({
+    holderActorId: caster.id,
+    held: input.activeEffectsByActorId.get(caster.id) ?? [],
+    makesAttackRoll: false,
+    castsSpell: preparedCastsSpell(lead)
+  })
   const entries = encounterChosenActorEntries(
     areaOccurrenceId,
     kept.map(({ actor }) => actor.id)
@@ -1416,18 +1404,21 @@ export async function completeAreaCommit(args: {
       activeEffectsByActorId: input.activeEffectsByActorId,
       link: { memberActorIds: [...new Set(kept.map((entry) => entry.actor.id))] }
     })
-    refuseAreaEffectOutcomes(prepared, effects)
-    const linked = effects.recurringEffect
-      ? prepareActiveRuleEffectRecord({
-          id: crypto.randomUUID(),
-          owner: nativeEffectOwner(prepared.target, state.id),
-          definition: effects.recurringEffect.definition,
-          lifecycle: effects.recurringEffect.lifecycle,
-          currentEffects: input.activeEffectsByActorId.get(actor.id) ?? [],
-          occurredAt
-        })
-      : null
-    if (linked) createdEffects.set(actor.id, linked)
+    refuseAreaMaintainedEffect(prepared, effects.maintenance)
+    // A creature named again meets the effects its earlier entries left it.
+    const earlier = createdEffects.get(actor.id) ?? []
+    const targetEffects = [...(input.activeEffectsByActorId.get(actor.id) ?? []), ...earlier]
+    const effectInput = {
+      owner: nativeEffectOwner(prepared.target, state.id),
+      currentEffects: targetEffects,
+      occurredAt
+    }
+    const stateEffect =
+      effects.stateEffect && createNativeActiveEffect(effects.stateEffect, effectInput)
+    const recurringEffect =
+      effects.recurringEffect && createNativeActiveEffect(effects.recurringEffect, effectInput)
+    const created = [stateEffect, recurringEffect].flatMap((effect) => (effect ? [effect] : []))
+    createdEffects.set(actor.id, [...earlier, ...created])
     refuseSpatialInterpretation(prepared, {
       execution: complete.execution,
       occurrenceId,
@@ -1446,8 +1437,10 @@ export async function completeAreaCommit(args: {
         sourceCommandId: command.commandId,
         commandId,
         occurredAt,
-        applications: complete.applications,
-        sourceSpend: carriesSpend ? 'WITH_OUTCOME' : 'NONE'
+        applications: [...complete.applications, ...effects.relationshipConditionApplications],
+        sourceSpend: carriesSpend ? 'WITH_OUTCOME' : 'NONE',
+        forceTargetVersionAdvance: prepared.target.kind === 'CHARACTER' && created.length > 0,
+        ...(carriesSpend ? { sourceReleases } : {})
       },
       userId
     )
@@ -1480,7 +1473,7 @@ export async function completeAreaCommit(args: {
       carriesSpend,
       complete,
       mechanics,
-      createdEffects: linked ? [linked] : [],
+      createdEffects: created,
       resistance,
       execution: buildEncounterActionStoredExecution({
         prepared,
@@ -1489,8 +1482,8 @@ export async function completeAreaCommit(args: {
         occurrenceVersion: 0,
         settled: mechanics,
         effects: projectNativeActionEffectTransitions({
-          state: null,
-          recurring: linked,
+          state: stateEffect,
+          recurring: recurringEffect,
           targetActorId: actor.id
         }),
         maintainedState: null,
@@ -1521,12 +1514,14 @@ export async function completeAreaCommit(args: {
           occurrenceId: areaOccurrenceId,
           sourceCommandId: command.commandId,
           commandId: command.commandId,
-          occurredAt
+          occurredAt,
+          sourceReleases
         },
         userId
       )
   const spend = merged
     ? {
+        sourceApplications: [],
         sourceCharacterStreamVersion: spends
           ? merged.mechanics.mechanics.characterStreamVersion
           : null,
@@ -1614,10 +1609,10 @@ export async function completeAreaCommit(args: {
   >(children.map((child) => [child.actorId, child.mechanics.targetPlan] as const))
   if (sourceSpend && !plans.has(caster.id)) plans.set(caster.id, sourceSpend.sourceResourcePlan)
   const activeEffectsByActorId = new Map(input.activeEffectsByActorId)
-  for (const [actorId, effect] of createdEffects)
+  for (const [actorId, records] of createdEffects)
     activeEffectsByActorId.set(actorId, [
       ...(input.activeEffectsByActorId.get(actorId) ?? []),
-      effect
+      ...records
     ])
   const projectedTargets = new Map(
     [...movementTargets].map(([actorId, target]) => {
@@ -1658,7 +1653,7 @@ export async function completeAreaCommit(args: {
       activeEffectsByActorId,
       maintenanceOwners: [],
       maintainedState: null,
-      createdEffects: [...createdEffects.values()]
+      createdEffects: [...createdEffects.values()].flat()
     },
     capture: input.capture,
     runtime: input.runtime,
@@ -1697,6 +1692,7 @@ export async function completeAreaCommit(args: {
     resourceConsumption: resourceState?.resourceConsumption ?? null,
     itemConsumption: resourceState?.itemConsumption ?? null,
     spellConsumption: resourceState?.spellConsumption ?? null,
+    consumedGrants,
     label: sourceLabel,
     ruleOverrides,
     concentration,
@@ -1728,6 +1724,7 @@ export function buildNativeLiveEncounterAreaCommitInput(
     resourceConsumption: plan.resourceConsumption,
     itemConsumption: plan.itemConsumption,
     spellConsumption: plan.spellConsumption,
+    consumedGrants: plan.consumedGrants,
     label: plan.label,
     ruleOverrides: plan.ruleOverrides,
     concentration: plan.concentration.completed,

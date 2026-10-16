@@ -499,12 +499,23 @@ that stores nothing; `executionCancelsTriggeringEvent` reads it from the committ
 
 Before a Character's single-target spell cast runs its graph, the Worker (`nativeEncounterCastReaction.ts`) asks
 `discoverCastReactionActions` which other Characters hold a reaction for it, keeps those whose own invocation range
-reaches the caster on the Scene and whose slot level is at least the cast's (Counterspell's rule until T3c), and
+reaches the caster on the Scene and that the reactor can afford, and
 holds the cast in a `castReaction` pending offer (`REACTION_CHOICE` to the reactor). Declining records the reactor
 and the cast proceeds; using the reaction commits a countered cast (`persistEncounterCounteredCastCommit`): the
 caster's slot and action and the reactor's slot and reaction are spent, nothing else is applied, and no
 Concentration starts. Undo restores both creatures. Creature-capability, ACTORS-target and area casts, and casts
-made without the Scene offer no reaction. The chain is T3d; the higher-level ability check is T3c.
+made without the Scene offer no reaction. The chain is T3d.
+
+**Higher-level check (current, REACTION-4.T3c; D127).** `reactionTrigger.higherLevelCheck` (`{ ability, baseDc }`)
+makes a reaction cast below the triggering cast's level owe an ability check at DC `baseDc` + the cast's level
+(`castReactionCheckRequirement`). The offer carries `check` (the sealed choice, trigger level, check definition, DC
+and the reactor's d20 context) while the cast waits on the reactor's roll; the roll settles through the held-die rules
+(`ENTER_DICE`/`SYSTEM_ROLL`, or the app roll for an auto-rolling player). A pass is a countered cast whose
+`counter.check` seals the d20. A fail is a _failed counter_ (`failedCounters` on the pending context): the reactor
+joins the declined set and is not offered again, and the cast's terminal commit (normal or countered) spends every
+failed reactor's slot and reaction atomically with the cast (`failedCounterSpend.ts`), so one undo reverses them all.
+Spend receipts are planned at the terminal against the reactor as it stands, not when the check fails. A reactor that
+is the cast's target spends through the target's own mechanics call.
 
 #### `DAMAGE_TAKEN` (current, REACTION-4.T2)
 
@@ -1089,7 +1100,7 @@ attack path consumes: ordinary actions, movement reaction attacks and Disarm rec
 their command, and a Legendary Action window deletes its owner's grants at the turn commit when the option
 rolled an attack (`attackRoll` on the EXECUTED evidence); only ordinary actions have GM undo. A
 grant made at another creature's turn end has no extra tick and ends at the end of the holder's next turn.
-An event that ends a condition-owning effect (Invisibility on its holder's attack roll, SPELLS-27.T2, D125) also releases the condition: the planner adds `CONDITION_REMOVE` to the action's source batch (`sourceApplications`, required on both mechanics batch receipts; `endedEffectConditionReleases`), and the root receipt's `endedMaintainedStates` and `restoredConditionIds` give the Concentration and the condition back on GM undo, fenced by the source stream version. Every attack-roll root calls `attackRollEndedEffects`: the action, the movement opportunity attack (applied in `liveMovementReactionPersistence`), the Legendary window (applied in `persistEncounterTurnResources` from the attack roll's evidence) and Disarm (a required `sourceApplications` on the `CONTESTED_ACTION` output, applied before settlement from the initiator's held effects); only the action has GM undo. `NON_RELEASING_EFFECT_EVENTS` keeps authoring from listing an event whose consumer does not release.
+An event that ends a condition-owning effect (Invisibility on its holder's attack roll, SPELLS-27.T2, D125) also releases the condition: the planner adds `CONDITION_REMOVE` to the action's source batch (`sourceApplications`, required on both mechanics batch receipts; `endedEffectConditionReleases`), and the root receipt's `endedMaintainedStates` and `restoredConditionIds` give the Concentration and the condition back on GM undo, fenced by the source stream version. Every attack-roll or cast root calls `actionEndedEffects` (`makesAttackRoll`, `castsSpell`; `effectsEndedBy` takes several events and ends an effect once): the action, the movement opportunity attack (applied in `liveMovementReactionPersistence`), the Legendary window (applied in `persistEncounterTurnResources` from the evidence's `attackRoll` and `castsSpell`) and Disarm (a required `sourceApplications` on the `CONTESTED_ACTION` output, applied before settlement from the initiator's held effects); only the action has GM undo. **Cast (SPELLS-27.T3):** `ON_CAST_SPELL` is raised when the source's prepared action casts a spell (`preparedCastsSpell`: a Character's spell or cantrip, or a Creature or Legendary action triggered by a spell attack; only Character casts have a counter level, `preparedSpellCastLevel`). The release rides the batch that carries the caster's own spend: the target batch when the caster is the target (the releases come first), else the source batch (`sourceApplications`). An area or chosen-creature cast carries it on the area root's `sourceApplications` (or on the caster's child batch when the caster is caught), and a countered cast on its root; both roots and their commit inputs also carry `consumedGrants`, so the effects end in the same transaction and GM undo gives them back (`restoreReleasedConditions`). **Reactor casts (SPELLS-27.T3b):** a reaction that casts a spell ends the reactor's own cast-ended effects too. A Shield-style reaction (the reactor is the host action's target) puts its releases on the host's target batch (`targetReleases`) and its grants in the host's `consumedGrants`; a Counterspell puts them on the reactor's spend and records them in the countered root's required `counter.applications`, restored by GM undo with the reactor's slot. `NON_RELEASING_EFFECT_EVENTS` keeps authoring from listing an event whose consumer does not release.
 An `ARMOR_CLASS` grant on a Creature raises its AC through `withCreatureActiveGrantArmorClass`, applied
 where movement targets and Cleaving facts are built. A
 SOURCE-anchored grant ends when its source is removed from the Run (`planDepartedSourceGrantRemovals`,

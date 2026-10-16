@@ -35,6 +35,10 @@ import {
 import { characterMechanicsResourceReceiptDtoSchema } from '../shared/ruleExecutionMechanics.js'
 import { storedRuleExecutionResultDtoSchema } from '../shared/ruleExecutionResults.js'
 import {
+  encounterFailedCounterReceiptDtoSchema,
+  type EncounterFailedCounterReceiptDto
+} from '../shared/ruleExecutionReactionChoice.js'
+import {
   characterItemConsumptionFieldsSchema,
   characterSpellSlotConsumptionFieldsSchema,
   concentrationEndDtoSchema
@@ -96,6 +100,23 @@ export const liveSessionCharacterSpellConsumptionSchema = lazySchema(() =>
   })
 )
 
+/** A failed counter's settled receipt with the reactor slot request the commit spends (D127). */
+export type LiveSessionFailedCounter = {
+  receipt: EncounterFailedCounterReceiptDto
+  spellConsumption: z.infer<typeof liveSessionCharacterSpellConsumptionSchema> | null
+}
+
+const liveSessionFailedCountersSchema = lazySchema(() =>
+  z
+    .array(
+      z.strictObject({
+        receipt: encounterFailedCounterReceiptDtoSchema,
+        spellConsumption: z.nullable(liveSessionCharacterSpellConsumptionSchema)
+      })
+    )
+    .check(z.maxLength(MAX_ENCOUNTER_ACTORS))
+)
+
 /** Bounded domain outcomes from the private DO; no Character or Run document patches. */
 export type LiveSessionEncounterActionCommitInput = Omit<
   LiveSessionEncounterActionPendingInput,
@@ -119,6 +140,8 @@ export type LiveSessionEncounterActionCommitInput = Omit<
   spellConsumption: z.infer<typeof liveSessionCharacterSpellConsumptionSchema> | null
   /** The spell slot the attacked Character's reaction spent, with the Character version it was planned at. */
   reactionSpellConsumption: z.infer<typeof liveSessionCharacterSpellConsumptionSchema> | null
+  /** The counters reactors attempted and failed against this cast, each spent with this commit (D127). */
+  failedCounters: LiveSessionFailedCounter[]
   /** The resolved action's display name; the stored command and the timeline carry it. */
   label: string | null
   /** Warnings the command acknowledged and the planner found; recorded as overrides. */
@@ -176,6 +199,7 @@ export const liveSessionEncounterActionCommitInputSchema: z.ZodMiniType<LiveSess
       itemConsumption: z.nullable(liveSessionCharacterItemConsumptionSchema),
       spellConsumption: z.nullable(liveSessionCharacterSpellConsumptionSchema),
       reactionSpellConsumption: z.nullable(liveSessionCharacterSpellConsumptionSchema),
+      failedCounters: liveSessionFailedCountersSchema,
       label: z.nullable(z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160))),
       ruleOverrides: encounterRuleWarningsDtoSchema,
       // The action's state and recurring effects, and the effect of a reaction its target used.
@@ -193,7 +217,7 @@ export const liveSessionEncounterActionCommitInputSchema: z.ZodMiniType<LiveSess
 /**
  * The terminal outcome of a cast that another creature countered: the caster's one spend and the
  * reactor's, recorded on one root. Nothing of the spell applies, so it creates no effect, damage or
- * Concentration and consumes no grant.
+ * Concentration. Casting it still uses up the caster's grants that end on a cast.
  */
 export type LiveSessionEncounterCounteredCastCommitInput = Omit<
   LiveSessionEncounterActionCommitInput,
@@ -205,7 +229,6 @@ export type LiveSessionEncounterCounteredCastCommitInput = Omit<
   | 'concentrationEnds'
   | 'endedGrants'
   | 'cleaving'
-  | 'consumedGrants'
   | 'turnUses'
 >
 
@@ -225,8 +248,12 @@ export const liveSessionEncounterCounteredCastCommitInputSchema: z.ZodMiniType<L
         itemConsumption: z.nullable(liveSessionCharacterItemConsumptionSchema),
         spellConsumption: z.nullable(liveSessionCharacterSpellConsumptionSchema),
         reactionSpellConsumption: z.nullable(liveSessionCharacterSpellConsumptionSchema),
+        failedCounters: liveSessionFailedCountersSchema,
         label: z.nullable(z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160))),
-        ruleOverrides: encounterRuleWarningsDtoSchema
+        ruleOverrides: encounterRuleWarningsDtoSchema,
+        consumedGrants: z
+          .array(activeRuleEffectRecordSchema)
+          .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER))
       }
     )
   )
@@ -265,9 +292,9 @@ export type LiveSessionEncounterAreaCommitInput = Omit<
   | 'createdEffects'
   | 'maintainedState'
   | 'cleaving'
-  | 'consumedGrants'
   | 'turnUses'
   | 'reactionSpellConsumption'
+  | 'failedCounters'
 > & {
   execution: z.infer<typeof storedRuleExecutionResultDtoSchema>
   targets: {
@@ -318,6 +345,9 @@ export const liveSessionEncounterAreaCommitInputSchema: z.ZodMiniType<LiveSessio
         spellConsumption: z.nullable(liveSessionCharacterSpellConsumptionSchema),
         label: z.nullable(z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160))),
         ruleOverrides: encounterRuleWarningsDtoSchema,
+        consumedGrants: z
+          .array(activeRuleEffectRecordSchema)
+          .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER)),
         ...liveSessionEncounterConcentrationFields()
       }
     )

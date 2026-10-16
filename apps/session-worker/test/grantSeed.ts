@@ -15,29 +15,42 @@ export function seedModifierGrant(input: {
   sourceLabel?: string
   /** A condition the effect also owns on its holder, as Invisibility owns INVISIBLE. */
   ownedConditionId?: string
+  /** The effect also ends on its holder's spell cast, as Invisibility does; a timed grant cannot author it. */
+  endsOnCast?: true
 }): NonNullable<MovementRoomConfig['seed']> {
   return async ({ effects, encounterId, occurredAt }) => {
-    const { ownedConditionId, ...grant } = input
+    const { ownedConditionId, endsOnCast, ...grant } = input
     const planned = plannedModifierGrant({ encounterId, ...grant })
-    if (ownedConditionId && planned.definition.schemaVersion !== 2)
-      throw new Error('Only a version 2 effect can own a condition.')
+    const { definition } = planned
+    if ((ownedConditionId || endsOnCast) && definition.schemaVersion !== 2)
+      throw new Error('Only a version 2 effect can own a condition or end on a cast.')
     await effects.create({
       id: crypto.randomUUID(),
       owner: { kind: 'ENCOUNTER_ACTOR', encounterId, targetActorId: input.holderActorId },
       definition:
-        ownedConditionId && planned.definition.schemaVersion === 2
+        definition.schemaVersion === 2
           ? {
-              ...planned.definition,
-              stateContributions: [
-                ...planned.definition.stateContributions,
-                {
-                  kind: 'CONDITION_OWNERSHIP',
-                  conditionId: ownedConditionId,
-                  baselinePresent: false
-                }
-              ]
+              ...definition,
+              recurrence: endsOnCast
+                ? {
+                    ...definition.recurrence,
+                    endOnEvents: [
+                      ...new Set([...definition.recurrence.endOnEvents, 'ON_CAST_SPELL' as const])
+                    ].sort()
+                  }
+                : definition.recurrence,
+              stateContributions: ownedConditionId
+                ? [
+                    ...definition.stateContributions,
+                    {
+                      kind: 'CONDITION_OWNERSHIP',
+                      conditionId: ownedConditionId,
+                      baselinePresent: false
+                    }
+                  ]
+                : definition.stateContributions
             }
-          : planned.definition,
+          : definition,
       lifecycle: planned.lifecycle,
       occurredAt
     })

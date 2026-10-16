@@ -1,5 +1,7 @@
 # Slice ATTACK-9.T5: Two-weapon fighting
 
+Status: IN_PROGRESS (workbook session ATTACK-9.T1). Branch: `ci/attack-9-t5`, based on `ci/merge-batch-ad` (c718dedeb).
+
 Workbook rules: [slice-workbook-rules.md](slice-workbook-rules.md).
 
 ## Scope

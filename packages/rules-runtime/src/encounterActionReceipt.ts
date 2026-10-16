@@ -1,6 +1,11 @@
 import type { EncounterMaintainedEffectStateRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { EncounterAttackActionTransitionDto } from '@artificer-toolkit/schema/projections/encounterAttackAction'
-import type { EncounterCastReactionPinDto } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
+import {
+  encounterFailedCounterReceiptDtoSchema,
+  type EncounterCastReactionPinDto,
+  type EncounterCounterCheckEvidenceDto,
+  type EncounterFailedCounterDto
+} from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
 import type { ServerCompletedRuleExecutionDto } from '@artificer-toolkit/schema/shared/rulesExecution'
 import type { maintainedEffectTransitionDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
@@ -61,6 +66,8 @@ export function buildEncounterActionStoredExecution(input: {
       >['activeEffectTransitions']
     } | null
   } | null
+  /** The target also failed a counter against this cast, so its slot spend rides in this batch (D127). */
+  targetFailedCounterSpend?: boolean
 }) {
   const { prepared, execution, occurrenceId, occurrenceVersion, settled, effects } = input
   const { state, source, actor, target } = prepared
@@ -137,6 +144,7 @@ export function buildEncounterActionStoredExecution(input: {
                   ).map((transition) => characterEffectReceipt(transition, null))
                 }
               : null,
+            targetFailedCounterSpend: input.targetFailedCounterSpend ?? false,
             ...(input.maintenanceTransition
               ? { maintenanceTransition: input.maintenanceTransition }
               : {}),
@@ -209,6 +217,7 @@ export function buildEncounterAreaStoredExecution(input: {
     | 'sourceItemUseStateTransition'
     | 'itemConsumptionReceipt'
     | 'spellConsumptionReceipt'
+    | 'sourceApplications'
   >
   actionEconomy: EncounterActionEconomyConsumption | null
   attackAction: EncounterAttackActionTransitionDto | null
@@ -236,6 +245,7 @@ export function buildEncounterAreaStoredExecution(input: {
       sourceItemUseStateTransition: spend.sourceItemUseStateTransition,
       sourceItemConsumption: spend.itemConsumptionReceipt,
       spellCastConsumption: spend.spellConsumptionReceipt,
+      sourceApplications: spend.sourceApplications,
       actionEconomyTransition: actionEconomyReceipt(input.actionEconomy),
       ...(input.attackAction ? { attackActionTransition: input.attackAction } : {})
     }
@@ -259,6 +269,7 @@ export function buildEncounterCounteredCastStoredExecution(input: {
     | 'sourceItemUseStateTransition'
     | 'itemConsumptionReceipt'
     | 'spellConsumptionReceipt'
+    | 'sourceApplications'
   >
   actionEconomy: EncounterActionEconomyConsumption | null
   counter: {
@@ -266,8 +277,12 @@ export function buildEncounterCounteredCastStoredExecution(input: {
     choiceExecution: ServerCompletedRuleExecutionDto
     counterExecution: ServerCompletedRuleExecutionDto
     triggerLevel: number
+    /** The check that earned the counter; null when the cast was not above the counter's level. */
+    check: EncounterCounterCheckEvidenceDto | null
     spellConsumption: Parameters<typeof characterSpellConsumptionReceipt>[0]
-    /** The reactor's Character version once its slot was spent; null when none was. */
+    /** The reactor's conditions released by effects its cast ended. */
+    applications: ReturnType<typeof planNativeEncounterAreaSourceSpend>['sourceApplications']
+    /** The reactor's Character version once its slot was spent or a condition released; null when neither. */
     characterStreamVersion: number | null
     economy: EncounterActionEconomyConsumption
   }
@@ -290,16 +305,37 @@ export function buildEncounterCounteredCastStoredExecution(input: {
       sourceItemUseStateTransition: spend.sourceItemUseStateTransition,
       sourceItemConsumption: spend.itemConsumptionReceipt,
       spellCastConsumption: spend.spellConsumptionReceipt,
+      sourceApplications: spend.sourceApplications,
       actionEconomyTransition: actionEconomyReceipt(input.actionEconomy),
       counter: {
         reaction: counter.reaction,
         choiceExecution: counter.choiceExecution,
         counterExecution: counter.counterExecution,
         triggerLevel: counter.triggerLevel,
+        check: counter.check,
         spellCastConsumption: characterSpellConsumptionReceipt(counter.spellConsumption),
+        applications: counter.applications,
         characterStreamVersion: counter.characterStreamVersion,
         actionEconomyTransition: actionEconomyReceipt(counter.economy)
       }
     }
+  })
+}
+
+/** A failed counter with what its reactor spends for the attempt, as the cast's terminal commit applies it (D127). */
+export function buildEncounterFailedCounterReceipt(input: {
+  failed: EncounterFailedCounterDto
+  spellConsumption: Parameters<typeof characterSpellConsumptionReceipt>[0]
+  /** The reactor's Character version once its slot was spent; null when none was. */
+  characterStreamVersion: number | null
+  economy: EncounterActionEconomyConsumption
+}) {
+  return encounterFailedCounterReceiptDtoSchema.parse({
+    ...input.failed,
+    spellCastConsumption: characterSpellConsumptionReceipt(input.spellConsumption),
+    // A failed counter does not yet end its reactor's cast-ended effects (future-enhancements: Deferred edge cases).
+    applications: [],
+    characterStreamVersion: input.characterStreamVersion,
+    actionEconomyTransition: actionEconomyReceipt(input.economy)
   })
 }

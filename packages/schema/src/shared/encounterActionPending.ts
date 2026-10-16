@@ -14,6 +14,7 @@ import {
 } from './ruleExecutionOnHitChoice.js'
 import {
   encounterCastReactionOfferDtoSchema,
+  encounterFailedCounterDtoSchema,
   encounterReactionOfferDtoSchema,
   validateEncounterReactionPin
 } from './ruleExecutionReactionChoice.js'
@@ -23,6 +24,7 @@ import {
   ruleExecutionUuidSchema
 } from './ruleExecutionPrimitives.js'
 import { serverOptionalCombatContestPendingContextDtoSchema } from './ruleExecutionOptionalCombatPending.js'
+import { MAX_ENCOUNTER_ACTORS } from './authoredLimits.js'
 
 // Explicitly typed so the pending-context declaration stays within the compiler's size limit (TS7056).
 export type EncounterActionHeldD20Dto = {
@@ -84,6 +86,13 @@ export const encounterActionPendingContextDtoSchema = lazySchema(() =>
        */
       castReaction: z.optional(encounterCastReactionOfferDtoSchema),
       /**
+       * The counters reactors attempted and failed against this cast, carried by every pending of the
+       * cast to its terminal commit, which spends them with the cast (D127).
+       */
+      failedCounters: z.optional(
+        z.array(encounterFailedCounterDtoSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS))
+      ),
+      /**
        * Set while a hit waits on its attacker's choice to add an optional on-hit rider, after any
        * reaction to the hit has settled. The snapshot's continuation is that choice; the TEST stays
        * unsettled until the answer.
@@ -144,12 +153,29 @@ export const encounterActionPendingContextDtoSchema = lazySchema(() =>
             value.castReaction.reactions.some(
               ({ reactorActorId }) => reactorActorId !== value.rollerActorId
             ) ||
-            value.castReaction.declinedReactorActorIds.includes(value.rollerActorId)
+            value.castReaction.declinedReactorActorIds.includes(value.rollerActorId) ||
+            (value.castReaction.check !== undefined && value.castReaction.reactions.length !== 1)
           )
             context.addIssue({
               code: 'custom',
               path: ['castReaction'],
               message: 'A cast reaction offer belongs to a cast held before it executes.'
+            })
+        }
+        if (value.failedCounters) {
+          const failedReactors = value.failedCounters.map(({ reaction }) => reaction.reactorActorId)
+          if (
+            new Set(failedReactors).size !== failedReactors.length ||
+            (value.castReaction &&
+              !failedReactors.every((actorId) =>
+                value.castReaction?.declinedReactorActorIds.includes(actorId)
+              ))
+          )
+            context.addIssue({
+              code: 'custom',
+              path: ['failedCounters'],
+              message:
+                'Each reactor fails one counter against a cast and is not offered the cast again.'
             })
         }
         if (value.onHitChoice) {

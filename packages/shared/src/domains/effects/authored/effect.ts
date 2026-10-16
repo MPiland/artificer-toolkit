@@ -7,7 +7,7 @@ import type {
   ShapeAuthored,
   TargetingAuthored
 } from '#authored'
-import type { ACTIVATION_CODE, ActivationCode, Trigger } from '#core'
+import type { ACTIVATION_CODE, AbilityModifierReference, ActivationCode, Trigger } from '#core'
 import type { PathCode } from '../core/path.js'
 
 export const EFFECT_INVOCATION_KIND = {
@@ -50,10 +50,23 @@ export type ReactionMovementTriggerBindingAuthored = {
 export type ReactionAttackedSelfTriggerBindingAuthored = { kind: 'ATTACKED_SELF' }
 
 /**
- * A creature within the reaction's range begins casting a spell; the reaction pauses the cast before
- * it takes effect.
+ * A cast of a spell level above the reaction's own cast level takes effect unless the reactor's
+ * ability check beats a DC of `baseDc` plus the triggering cast's level; a cast at or below the
+ * reaction's own level needs no check. The check is the reactor's, made with `ability` as its modifier.
  */
-export type ReactionSpellCastTriggerBindingAuthored = { kind: 'SPELL_CAST' }
+export type ReactionHigherLevelCheckAuthored = {
+  ability: AbilityModifierReference
+  baseDc: number // int
+}
+
+/**
+ * A creature within the reaction's range begins casting a spell; the reaction pauses the cast before
+ * it takes effect. Without `higherLevelCheck` it counters a cast only at or below the level it is cast at.
+ */
+export type ReactionSpellCastTriggerBindingAuthored = {
+  kind: 'SPELL_CAST'
+  higherLevelCheck?: ReactionHigherLevelCheckAuthored
+}
 
 /**
  * The reactor takes damage of one of the named damage types from an attack that hit; the reaction
