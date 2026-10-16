@@ -3,6 +3,7 @@ import type {
   EncounterRunActorState,
   EncounterRunCharacterActorState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
+import type { JsonValue } from '@artificer-toolkit/schema/projections/identity'
 import { nextEncounterActorDefeated } from './encounterActorDefeat.js'
 import { DND5E_ABILITY_DEFINITION_ID_BY_CODE, DND5E_SYSTEM_ID } from './systems/dnd5e/identity.js'
 
@@ -22,10 +23,10 @@ const retainedFormAbilityIdsBySystemId: ReadonlyMap<string, Readonly<Record<stri
     ]
   ])
 
-function jsonRecord(value: unknown): Record<string, unknown> {
+function jsonRecord(value: unknown): Record<string, JsonValue> {
   if (typeof value !== 'object' || value === null || Array.isArray(value))
     throw new Error('The creature form snapshot is malformed.')
-  return value as Record<string, unknown>
+  return value as Record<string, JsonValue>
 }
 
 /**
@@ -34,10 +35,12 @@ function jsonRecord(value: unknown): Record<string, unknown> {
  */
 function withRetainedAbilities(
   snapshot: EncounterRunActorState['snapshot'],
-  systemId: string,
+  systemId: string | null,
   scores: Readonly<Record<string, number>>
 ): EncounterRunActorState['snapshot'] {
-  const retained = Object.entries(retainedFormAbilityIdsBySystemId.get(systemId) ?? {})
+  const retained = Object.entries(
+    (systemId === null ? undefined : retainedFormAbilityIdsBySystemId.get(systemId)) ?? {}
+  )
   if (retained.length === 0) return snapshot
   const root = jsonRecord(snapshot)
   const payload = jsonRecord(root.payload)
