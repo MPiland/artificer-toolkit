@@ -480,7 +480,7 @@ export const ancientSilverDragon: CreatureAuthored = {
               originKind: 'SOURCE' as const,
               selectionKind: 'FIXED' as const,
               resultBlock: {
-                id: S.actionId(22, 39) + '__result',
+                id: S.actionId(22, 617),
                 resultKind: 'SEQUENCE' as const,
                 duration: {
                   id: S.actionId(22, 611),

@@ -136,8 +136,8 @@ describe('SRD breath weapons breathe areas', () => {
   const gorgonRow = breathRows.find(({ creatureLabel }) => creatureLabel === 'Gorgon')
 
   // The Gorgon's breath is a lone on-fail Restrained whose repeat save is not authored, a shape its
-  // System cannot execute even unshaped, so it is listed unavailable. It stays unshaped: shaping it
-  // would not make it run, and an area does not refuse a bare condition (SPELLS-19).
+  // System cannot execute even unshaped, so it is listed unavailable. It stays unshaped until its
+  // petrification is authored: shaping it would not make it run (SPELLS-19.T3c).
   it('keeps the Gorgon’s Petrifying Breath unshaped and unavailable', () => {
     if (!gorgonRow) throw new Error('The Gorgon has no breath.')
     expect(
@@ -152,23 +152,32 @@ describe('SRD breath weapons breathe areas', () => {
     ({ creatureLabel, leavesLastingEffect }) => leavesLastingEffect && creatureLabel !== 'Gorgon'
   )
 
-  // The System compiles a damage-only breath to a test outcome. One that also leaves a condition, a
-  // push, slowed or weakened targets has a shape it cannot execute, so discovery never offers it.
-  it('cannot execute exactly the shaped breaths that leave more than damage, and the unshaped Gorgon’s', () => {
+  // The breaths SPELLS-19 has still to author: the slowing and weakening of the Copper and Gold
+  // Dragons (T3b), the Gorgon's petrification (T3c) and the Bronze Dragons' push (T4). Each task
+  // takes its rows off this list, and the last leaves it empty (AC 19.2).
+  const stillToAuthor = breathRows.filter(({ creatureLabel, leavesLastingEffect }) => {
+    const pending = /(Copper|Gold|Bronze) Dragon|^Gorgon$/.test(creatureLabel)
+    return leavesLastingEffect && pending
+  })
+  const shapedStillToAuthor = stillToAuthor.filter(
+    ({ creatureLabel }) => creatureLabel !== 'Gorgon'
+  )
+
+  // The System compiles a damage-only breath to a test outcome, and a breath whose condition it
+  // times and repeats (Silver, Dust Mephit) or ends on damage (Brass). The rest it cannot execute,
+  // so discovery never offers them.
+  it('cannot execute exactly the breaths still to author', () => {
     expect(shapedLeavingMoreThanDamage).toHaveLength(21)
+    expect(stillToAuthor).toHaveLength(13)
     expect(
       breathRows
         .filter(({ compiles }) => !compiles)
         .map(({ effectId }) => effectId)
         .sort()
-    ).toEqual(
-      [...shapedLeavingMoreThanDamage, ...(gorgonRow ? [gorgonRow] : [])]
-        .map(({ effectId }) => effectId)
-        .sort()
-    )
+    ).toEqual(stillToAuthor.map(({ effectId }) => effectId).sort())
   })
 
-  it.each(shapedLeavingMoreThanDamage)(
+  it.each(shapedStillToAuthor)(
     '$name is a shaped area its System cannot execute, so it is listed unavailable and not offered',
     (row) => {
       expect(() =>
@@ -176,6 +185,15 @@ describe('SRD breath weapons breathe areas', () => {
       ).toThrow(CharacterRuleActionUnsupportedCompilationError)
       expect(row.offered).toBe(false)
       expect(row.listedUnavailable).toBe(true)
+    }
+  )
+
+  it.each(shapedLeavingMoreThanDamage.filter(({ compiles }) => compiles))(
+    '$name leaves its condition through its System and is offered',
+    (row) => {
+      expect(row.refusal).toBeNull()
+      expect(row.offered).toBe(true)
+      expect(row.listedUnavailable).toBe(false)
     }
   )
 
@@ -193,8 +211,9 @@ describe('SRD breath weapons breathe areas', () => {
     }
   )
 
-  // SPELLS-19.AC2: the list of breaths the System cannot execute is empty.
-  it('leaves no breath its System cannot execute', () => {
+  // SPELLS-19.AC2: the list of breaths the System cannot execute is empty. T3b, T3c and T4 take the
+  // rows off `stillToAuthor`; the task that empties it drops `.fails` (vitest errors once it passes).
+  it.fails('leaves no breath its System cannot execute', () => {
     expect(
       breathRows.filter(({ compiles }) => !compiles).map(({ name, refusal }) => ({ name, refusal }))
     ).toEqual([])

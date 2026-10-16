@@ -1501,6 +1501,22 @@ function timedConditionPlan(
   }
 }
 
+/**
+ * Whether a save's one failure condition is the timed condition its active effect owns (Sleep
+ * Breath, "unconscious for 1 minute"): the effect, not the save's outcome, carries the duration
+ * and the events that end it early.
+ */
+function ownsTimedSaveCondition(
+  action: Dnd5eCompiledEffectActionSource,
+  entry: CompiledEffectGroup['entries'][number]
+): boolean {
+  return (
+    testPhaseKindOrNull(action) === 'SAVE' &&
+    entry.pathCode === 'ON_SAVE_FAIL' &&
+    timedConditionPlan(action)?.compiledEntryId === entry.entryId
+  )
+}
+
 /** The authored end triggers as the stored effect carries them: filters explicit, in canonical order. */
 function canonicalEndTriggers(
   triggers: NonNullable<PathLifecycleAuthored['endOnTriggers']>
@@ -2585,6 +2601,7 @@ function testPlan(action: Dnd5eCompiledEffectActionSource): TestPlan | null {
       (entry.groupKind !== 'SINGLE' &&
         !(relationshipEntries.length === 1 && entry.groupKind === 'SEQUENTIAL')) ||
       ((entry.duration || entry.lifecycle) &&
+        !ownsTimedSaveCondition(action, entry) &&
         (recurringPlan?.compiledEntryId !== entry.resultBlockId || kind !== 'SAVE')) ||
       entry.rangeOverride ||
       entry.targetingOverride ||
@@ -3924,9 +3941,8 @@ function supportedTestPhaseKind(action: Dnd5eCompiledEffectActionSource): TestKi
     if (
       entry.resolutionKind !== 'DIRECT' ||
       (entry.groupKind !== 'SINGLE' && entry.groupKind !== 'SEQUENTIAL') ||
-      entry.duration ||
-      entry.lifecycle ||
-      entry.maintenanceDefinitionId ||
+      (!ownsTimedSaveCondition(action, entry) &&
+        (entry.duration || entry.lifecycle || entry.maintenanceDefinitionId)) ||
       entry.rangeOverride ||
       entry.targetingOverride ||
       !allowedPaths.includes(entry.pathCode) ||
