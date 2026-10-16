@@ -4,6 +4,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import type { EncounterRuleWarningCodeDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
 import { CREATURE_IDS } from '@artificer-toolkit/source-data/srd/ids.js'
+import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { applyCreatureAttackRolls } from '@artificer-toolkit/source-data/srd/creatures/attack-rolls.js'
 import { giantCentipede } from '@artificer-toolkit/source-data/srd/creatures/giant-centipede.js'
 import { magicMissile } from '@artificer-toolkit/source-data/srd/spells/magic-missile.js'
@@ -61,7 +62,11 @@ const insectRoom = (
   const spells = [spell, ...(config.extraSpells ?? [])]
   return actionRoom({
     actors: [
-      characterActor({ id: CHARACTER_ACTOR_ID, characterId: CHARACTER_ID }),
+      {
+        ...characterActor({ id: CHARACTER_ACTOR_ID, characterId: CHARACTER_ID }),
+        // Initiative reads the Character's frozen identity, which a turn change checks.
+        snapshot: { kind: 'CHARACTER', id: CHARACTER_ID, systemId: srdSystemRecord.id }
+      },
       ...BEAST_IDS.map((id) =>
         srdCreatureActor({ id, creature: plainWolf, disposition: 'FRIENDLY' })
       )
@@ -160,6 +165,8 @@ describe('Giant Insect swaps the chosen creatures into the chosen form (SPELLS-2
       (await room.startActorsAction(BEAST_IDS, RANGE_UNCHECKED, false, null, CENTIPEDES.id)).answer
     )
 
+    // Giant Insect spent the caster's Action: a round later it is theirs again.
+    for (let turn = 0; turn <= BEAST_IDS.length; turn++) await room.advanceTurn()
     const missiles = (await room.actionChoices()).actions.find(
       ({ label }) => label === 'Magic Missile (1st level)'
     )
