@@ -52,6 +52,7 @@ import {
 import { characterRoomInputs } from './characterSheetInputsFixture.js'
 import { srdSystemRoomInputs } from './srdSenseInputsFixture.js'
 import {
+  connectPlayer,
   doorScene,
   fixture,
   ROOM_REPLY_WAIT,
@@ -232,6 +233,9 @@ export interface MovementRoomConfig {
     occurredAt: string
   }) => Promise<void>
 }
+
+/** A connected socket and the frames the room sent on it: the GM's or a player's. */
+type RoomChannel = Pick<Awaited<ReturnType<typeof connectPlayer>>, 'messages' | 'socket'>
 
 /** The page fixture gives every Character the same row ids; a further Character needs its own. */
 function withOwnRowIds<
@@ -605,10 +609,10 @@ export async function movementRoom(config: MovementRoomConfig) {
   const diceDrawn = rigDice(config.rolls ?? [], config.fallbackRoll ?? 8)
   await synchronizeScene(base, scene)
 
-  /** Sends one frame on the GM's socket and waits for the room's answer to `commandId`. */
-  async function send(commandId: string, command: Record<string, unknown>) {
-    const first = base.messages.length
-    base.socket.send(
+  /** Sends one frame on `channel` and waits for the room's answer to `commandId`. */
+  async function sendOn(channel: RoomChannel, commandId: string, command: Record<string, unknown>) {
+    const first = channel.messages.length
+    channel.socket.send(
       JSON.stringify({
         type: 'COMMAND',
         expectedSessionSequence: 0,
@@ -616,7 +620,7 @@ export async function movementRoom(config: MovementRoomConfig) {
       })
     )
     return vi.waitFor(() => {
-      const answer = base.messages
+      const answer = channel.messages
         .slice(first)
         .find(
           (
@@ -631,6 +635,77 @@ export async function movementRoom(config: MovementRoomConfig) {
       if (!answer) throw new Error('The room has not answered the command.')
       return answer
     }, ROOM_REPLY_WAIT)
+  }
+
+  /** The Encounter's one PENDING movement decision, as the room stored it; null when none waits. */
+  function pending() {
+    return runInDurableObject(base.stub, async (_instance, context) => {
+      const room = new RoomEncounterStore(context.storage)
+      const occurrence = room
+        .documents('encounterRuleOccurrences')
+        .find((candidate) => candidate.state === 'PENDING')
+      if (!occurrence) return null
+      const snapshot = await readPendingSnapshot({ db: room.store }, occurrence)
+      if (!snapshot) throw new Error('The pending occurrence holds no snapshot.')
+      return {
+        occurrence,
+        encounterVersion: room.documents('encounterRuns')[0]!.version,
+        ...readEncounterMovementPendingContext(snapshot)
+      }
+    })
+  }
+
+  /** The room's commands, sent on one socket: the GM's or a player's. */
+  function commandsOn(channel: RoomChannel) {
+    const send = (commandId: string, command: Record<string, unknown>) =>
+      sendOn(channel, commandId, command)
+    return {
+      send,
+      /** The mover (or the Token `tokenId` names) walks `path`, a voluntary move through the room's Scene command. */
+      move(
+        path: readonly ScenePoint[],
+        expectedEncounterVersion: number = state.version,
+        expectedSceneVersion: number = scene.version,
+        tokenId: string = moverTokenId,
+        carefully = false
+      ) {
+        const commandId = crypto.randomUUID()
+        return send(commandId, {
+          scope: 'SCENE',
+          command: {
+            type: 'MOVE_SCENE_TOKEN',
+            commandId,
+            correlationId: null,
+            expectedEncounterVersion,
+            expectedSceneVersion,
+            movementKind: 'VOLUNTARY',
+            path,
+            sceneId: scene.id,
+            tokenId,
+            ...(carefully ? { carefully } : {})
+          }
+        })
+      },
+      /** Answers the PENDING movement decision with `resolution`. */
+      async respond(resolution: Record<string, unknown>, expectedOccurrenceVersion?: number) {
+        const decision = await pending()
+        if (!decision) throw new Error('No movement decision is pending.')
+        const commandId = crypto.randomUUID()
+        return send(commandId, {
+          scope: 'ENCOUNTER',
+          command: {
+            type: 'RESOLVE_RULE_OCCURRENCE',
+            encounterId,
+            commandId,
+            expectedVersion: decision.encounterVersion,
+            occurrenceId: decision.occurrence.id,
+            expectedOccurrenceVersion: expectedOccurrenceVersion ?? decision.occurrence.version,
+            correlationId: null,
+            resolution
+          }
+        })
+      }
+    }
   }
 
   return {
@@ -649,49 +724,15 @@ export async function movementRoom(config: MovementRoomConfig) {
     diceDrawn,
     scene,
     moverTokenId,
-    send,
-    /** The mover (or the Token `tokenId` names) walks `path`, a voluntary move through the room's Scene command. */
-    move(
-      path: readonly ScenePoint[],
-      expectedEncounterVersion: number = state.version,
-      expectedSceneVersion: number = scene.version,
-      tokenId: string = moverTokenId,
-      carefully = false
-    ) {
-      const commandId = crypto.randomUUID()
-      return send(commandId, {
-        scope: 'SCENE',
-        command: {
-          type: 'MOVE_SCENE_TOKEN',
-          commandId,
-          correlationId: null,
-          expectedEncounterVersion,
-          expectedSceneVersion,
-          movementKind: 'VOLUNTARY',
-          path,
-          sceneId: scene.id,
-          tokenId,
-          ...(carefully ? { carefully } : {})
-        }
-      })
+    ...commandsOn(base),
+    /**
+     * The same commands sent on the socket of the room's player (`PLAYER`) or its second player
+     * (`OTHER_PLAYER`), whom the room's admission and actor control judge as any other player.
+     */
+    async asPlayer(who: 'PLAYER' | 'OTHER_PLAYER' = 'PLAYER') {
+      return commandsOn(await connectPlayer(base, who))
     },
-    /** The Encounter's one PENDING movement decision, as the room stored it; null when none waits. */
-    pending() {
-      return runInDurableObject(base.stub, async (_instance, context) => {
-        const room = new RoomEncounterStore(context.storage)
-        const occurrence = room
-          .documents('encounterRuleOccurrences')
-          .find((candidate) => candidate.state === 'PENDING')
-        if (!occurrence) return null
-        const snapshot = await readPendingSnapshot({ db: room.store }, occurrence)
-        if (!snapshot) throw new Error('The pending occurrence holds no snapshot.')
-        return {
-          occurrence,
-          encounterVersion: room.documents('encounterRuns')[0]!.version,
-          ...readEncounterMovementPendingContext(snapshot)
-        }
-      })
-    },
+    pending,
     /**
      * The PENDING movement decision as a viewer reads it: the GM (`isOwner`) or a player who controls
      * every actor, with the rules-owned reason labels the pending read adds.
@@ -734,25 +775,6 @@ export async function movementRoom(config: MovementRoomConfig) {
             result: JSON.parse(resultJson) as unknown
           }))
       )
-    },
-    /** Answers the PENDING movement decision with `resolution`. */
-    async respond(resolution: Record<string, unknown>, expectedOccurrenceVersion?: number) {
-      const pending = await this.pending()
-      if (!pending) throw new Error('No movement decision is pending.')
-      const commandId = crypto.randomUUID()
-      return send(commandId, {
-        scope: 'ENCOUNTER',
-        command: {
-          type: 'RESOLVE_RULE_OCCURRENCE',
-          encounterId,
-          commandId,
-          expectedVersion: pending.encounterVersion,
-          occurrenceId: pending.occurrence.id,
-          expectedOccurrenceVersion: expectedOccurrenceVersion ?? pending.occurrence.version,
-          correlationId: null,
-          resolution
-        }
-      })
     }
   }
 }
