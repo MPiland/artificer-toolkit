@@ -61,6 +61,7 @@ import type {
 import { CharacterRuleActionUnsupportedCompilationError } from '../../characterRuleActionSystemAdapter.js'
 import {
   chosenCreaturesAreaSupported,
+  chosenCreaturesCapIsAuthored,
   chosenCreaturesMaxTargets,
   resolveChosenCreaturesTargeting,
   encounterAreaTargetKind
@@ -564,8 +565,7 @@ function isSupportedTestArea(
 }
 
 function isSupportedTestTargetPolicy(
-  invocation: Dnd5eCompiledEffectActionSource['compiledEffect']['invocation'],
-  spellCastLevel: number | undefined
+  invocation: Dnd5eCompiledEffectActionSource['compiledEffect']['invocation']
 ): boolean {
   if (invocation.kind !== 'ACTION') return false
   const { targeting } = invocation
@@ -577,8 +577,7 @@ function isSupportedTestTargetPolicy(
       targeting.dispositionKind !== 'ANY' ||
       targeting.allowRepeatedTargets === true ||
       invocation.triggerCode !== 'SAVING_THROW' ||
-      chosenCreaturesMaxTargets(resolveChosenCreaturesTargeting(targeting, spellCastLevel)) ===
-        null ||
+      !chosenCreaturesCapIsAuthored(targeting) ||
       (invocation.shape !== undefined &&
         !chosenCreaturesAreaSupported(invocation.range.rangeKind, invocation.shape.shapeKind))
     )
@@ -2434,7 +2433,7 @@ function testPlan(action: Dnd5eCompiledEffectActionSource): TestPlan | null {
   if (
     invocation.kind !== 'ACTION' ||
     !isSupportedTestActivation(invocation) ||
-    !isSupportedTestTargetPolicy(invocation, action.spellCastLevel) ||
+    !isSupportedTestTargetPolicy(invocation) ||
     entries.length < 1
   )
     unsupported(
@@ -3728,7 +3727,7 @@ function supportedTestPhaseKind(action: Dnd5eCompiledEffectActionSource): TestKi
   if (
     invocation.kind !== 'ACTION' ||
     !isSupportedTestActivation(invocation) ||
-    !isSupportedTestTargetPolicy(invocation, action.spellCastLevel) ||
+    !isSupportedTestTargetPolicy(invocation) ||
     action.compiledEffect.entries.length < 1
   ) {
     unsupported('D&D test action has an unsupported bounded shape.')

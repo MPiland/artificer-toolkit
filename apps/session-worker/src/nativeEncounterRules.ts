@@ -311,7 +311,7 @@ export async function planNativeLiveEncounterAction(
       message: TARGET_NOT_PERMITTED_MESSAGE
     })
   if (command.target.kind !== 'ACTOR') {
-    const { target } = command
+    const target = command.target
     const areaInput = {
       initial,
       command: { ...command, target },
