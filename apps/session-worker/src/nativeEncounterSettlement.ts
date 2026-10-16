@@ -57,6 +57,35 @@ export function nativeEffectOwner(
       }
 }
 
+/**
+ * The Active Rule Effect record a planned action effect becomes on `owner`, stacked after
+ * `currentEffects` (which it joins). A single action and each creature of an area create theirs here.
+ */
+export function createNativeActiveEffect(
+  plan: NonNullable<
+    ReturnType<typeof prepareNativeActionEffectsPlan<CharacterFacts>>['stateEffect']
+  >,
+  input: {
+    owner: ReturnType<typeof nativeEffectOwner>
+    currentEffects: ActiveRuleEffectRecord[]
+    occurredAt: string
+    maintainedEffectStateId?: string
+    id?: string
+  }
+) {
+  const record = prepareActiveRuleEffectRecord({
+    id: input.id ?? crypto.randomUUID(),
+    owner: input.owner,
+    definition: plan.definition,
+    lifecycle: plan.lifecycle,
+    maintainedEffectStateId: input.maintainedEffectStateId,
+    currentEffects: input.currentEffects,
+    occurredAt: input.occurredAt
+  })
+  input.currentEffects.push(record)
+  return record
+}
+
 /** Projects the exact state after mechanics, effects and maintenance, before concentration runs. */
 export function planNativeLiveEncounterSettlement(input: {
   command: ResolveEncounterActionInputDto
@@ -113,19 +142,16 @@ export function planNativeLiveEncounterSettlement(input: {
   const create = (
     plan: typeof effects.stateEffect,
     maintainedEffectStateId?: string,
-    id = crypto.randomUUID()
+    id?: string
   ) => {
     if (!plan) return null
-    const record = prepareActiveRuleEffectRecord({
-      id,
+    const record = createNativeActiveEffect(plan, {
       owner,
-      definition: plan.definition,
-      lifecycle: plan.lifecycle,
-      maintainedEffectStateId,
       currentEffects: targetEffects,
-      occurredAt: input.occurredAt
+      occurredAt: input.occurredAt,
+      maintainedEffectStateId,
+      id
     })
-    targetEffects.push(record)
     createdEffects.push(record)
     return record
   }

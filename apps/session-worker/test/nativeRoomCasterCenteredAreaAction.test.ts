@@ -185,7 +185,6 @@ describe('room refusals of the wrong target for a radius centered on the caster'
     refused((await room.startCasterCenteredAreaAction()).answer)
     expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
   })
-
 })
 
 describe('room radius centered on the caster that leaves a condition (SPELLS-19.1)', () => {
