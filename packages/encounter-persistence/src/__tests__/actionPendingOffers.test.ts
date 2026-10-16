@@ -94,6 +94,24 @@ describe('castPendingContinues', () => {
     ).toBe(false)
   })
 
+  it('lets a choice whose check the app rolled leave the cast as a failed roll does', () => {
+    const settled = (overrides: object) => ({
+      castReaction: { declinedReactorActorIds: ['first', 'second'] },
+      failedCounters: [failedBy('second')],
+      ...overrides
+    })
+    expect(castPendingContinues(held, option, settled({}))).toBe(true)
+    expect(castPendingContinues(held, option, settled({ failedCounters: [] }))).toBe(false)
+    expect(
+      castPendingContinues(
+        held,
+        option,
+        settled({ castReaction: { declinedReactorActorIds: ['first'] } })
+      )
+    ).toBe(false)
+    expect(castPendingContinues(checking, option, settled({}))).toBe(false)
+  })
+
   it('records a failed check as a failed counter and a decline of the reactor', () => {
     const failedBoth = [failedBy('first'), failedBy('second')]
     expect(castPendingContinues(checking, dice, { failedCounters: failedBoth })).toBe(true)

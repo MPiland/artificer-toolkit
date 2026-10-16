@@ -98,6 +98,7 @@ const sameIds = (left: readonly string[], right: readonly string[]) =>
 /**
  * How a cast's pending may continue (D125). A held cast leaves its pause by a decline, or by choosing a
  * counter that owes a check, which pauses on that roll; a failed roll then leaves it like a decline.
+ * A choice whose check the app rolls inside the answer leaves the cast the same way a failed roll does.
  * Using a counter that owes no check, and passing the check, commit a countered cast instead.
  * When another reactor is offered next, the declined list is exactly the earlier declines plus the
  * answerer, and the failed counters carried to any next pause or terminal commit are exactly the
@@ -119,15 +120,22 @@ export function castPendingContinues(
     const expectedSet = new Set(expected)
     return declined.length === expectedSet.size && declined.every((id) => expectedSet.has(id))
   }
-  if (answered === 'OPTION')
+  if (answered === 'OPTION') {
+    if (castReaction.check) return false
     // The counter owes a check: the cast stays held for the same reactor, now on that roll.
+    if (next.castReaction?.check !== undefined)
+      return (
+        next.rollerActorId === previous.rollerActorId &&
+        sameIds(failedReactorIds(next), failed) &&
+        declinedMatches(castReaction.declinedReactorActorIds)
+      )
+    // The reactor's player has the app roll, so the check failed inside the choice: it leaves the cast
+    // like a failed roll.
     return (
-      !castReaction.check &&
-      next.castReaction?.check !== undefined &&
-      next.rollerActorId === previous.rollerActorId &&
-      sameIds(failedReactorIds(next), failed) &&
-      declinedMatches(castReaction.declinedReactorActorIds)
+      sameIds(failedReactorIds(next), [...failed, ...roller]) &&
+      declinedMatches([...castReaction.declinedReactorActorIds, ...roller])
     )
+  }
   const declined = answered === 'DECLINE' && !castReaction.check
   const failedCheck = answered !== undefined && answered !== 'DECLINE' && !!castReaction.check
   return (
