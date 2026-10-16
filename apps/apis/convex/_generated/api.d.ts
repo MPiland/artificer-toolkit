@@ -112186,6 +112186,71 @@ export declare const api: {
               | { kind: "SELF" }
               | { kind: "ACTOR"; self: "ALLOWED" | "WARN" | "REFUSED" }
               | {
+                  area: {
+                    kind: "RADIUS";
+                    radius: {
+                      amount: number;
+                      scaling?:
+                        | {
+                            breakpoints: Array<{
+                              id: string;
+                              level: number;
+                              order: number;
+                              value: {
+                                amount: number;
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                              };
+                            }>;
+                            scalingKind: "BREAKPOINTS";
+                            scalingSource: "CHARACTER_LEVEL";
+                          }
+                        | {
+                            breakpoints: Array<{
+                              id: string;
+                              level: number;
+                              order: number;
+                              value: {
+                                amount: number;
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                              };
+                            }>;
+                            classId: string;
+                            scalingKind: "BREAKPOINTS";
+                            scalingSource: "CLASS_LEVEL";
+                          }
+                        | {
+                            breakpoints: Array<{
+                              id: string;
+                              level: number;
+                              order: number;
+                              value: {
+                                amount: number;
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                              };
+                            }>;
+                            scalingKind: "BREAKPOINTS";
+                            scalingSource: "PARENT_CLASS_LEVEL";
+                          }
+                        | {
+                            breakpoints: Array<{
+                              id: string;
+                              level: number;
+                              order: number;
+                              value: {
+                                amount: number;
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                              };
+                            }>;
+                            scalingKind: "BREAKPOINTS";
+                            scalingSource: "SPELL_CAST_LEVEL";
+                          };
+                      unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                    };
+                  } | null;
+                  kind: "ACTORS";
+                  maxTargets: number;
+                }
+              | {
                   area:
                     | {
                         kind: "RADIUS";
@@ -112841,6 +112906,71 @@ export declare const api: {
             target:
               | { kind: "SELF" }
               | { kind: "ACTOR"; self: "ALLOWED" | "WARN" | "REFUSED" }
+              | {
+                  area: {
+                    kind: "RADIUS";
+                    radius: {
+                      amount: number;
+                      scaling?:
+                        | {
+                            breakpoints: Array<{
+                              id: string;
+                              level: number;
+                              order: number;
+                              value: {
+                                amount: number;
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                              };
+                            }>;
+                            scalingKind: "BREAKPOINTS";
+                            scalingSource: "CHARACTER_LEVEL";
+                          }
+                        | {
+                            breakpoints: Array<{
+                              id: string;
+                              level: number;
+                              order: number;
+                              value: {
+                                amount: number;
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                              };
+                            }>;
+                            classId: string;
+                            scalingKind: "BREAKPOINTS";
+                            scalingSource: "CLASS_LEVEL";
+                          }
+                        | {
+                            breakpoints: Array<{
+                              id: string;
+                              level: number;
+                              order: number;
+                              value: {
+                                amount: number;
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                              };
+                            }>;
+                            scalingKind: "BREAKPOINTS";
+                            scalingSource: "PARENT_CLASS_LEVEL";
+                          }
+                        | {
+                            breakpoints: Array<{
+                              id: string;
+                              level: number;
+                              order: number;
+                              value: {
+                                amount: number;
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                              };
+                            }>;
+                            scalingKind: "BREAKPOINTS";
+                            scalingSource: "SPELL_CAST_LEVEL";
+                          };
+                      unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                    };
+                  } | null;
+                  kind: "ACTORS";
+                  maxTargets: number;
+                }
               | {
                   area:
                     | {
