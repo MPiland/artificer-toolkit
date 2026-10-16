@@ -39,6 +39,8 @@ const FLY = spell('Fly')
 const HOLD_PERSON = spell('Hold Person')
 const CURE_WOUNDS = spell('Cure Wounds')
 const HEALING_WORD = spell('Healing Word')
+const SHIELD = spell('Shield')
+const SHIELD_OF_FAITH = spell('Shield of Faith')
 const MEND = { ...fixedHealSpell(), id: '00000000-0000-4000-8000-00000000c0de', label: 'Mend' }
 
 /** The cast candidate of a spell at a level, the way the policy lists it. */
@@ -406,6 +408,22 @@ describe('the Concentration a cast starts', () => {
     expect(plan).toBeDefined()
     expect(plan?.maintenance).toBeNull()
   })
+})
+
+describe('the activation a cast carries', () => {
+  it.each([
+    { authored: CURE_WOUNDS, activation: 'ACTION' },
+    { authored: HEALING_WORD, activation: 'BONUS_ACTION' },
+    { authored: SHIELD_OF_FAITH, activation: 'BONUS_ACTION' },
+    { authored: SHIELD, activation: 'REACTION' }
+  ])(
+    'offers $authored.label with the $activation its Effect authors, ready to run',
+    ({ authored, activation }) => {
+      const [offered] = build([candidate(authored)]).candidates
+      expect(offered?.mechanicFacts.invocation.activation).toEqual({ code: activation, amount: 1 })
+      expect(compiledCast(authored)).not.toBeNull()
+    }
+  )
 })
 
 describe('the scaling heal a cast carries', () => {

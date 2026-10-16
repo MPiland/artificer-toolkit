@@ -23,7 +23,10 @@ import type {
   NodeRuntimeResolveRequestDto
 } from '@artificer-toolkit/schema/api/nodeRuntime'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
-import { withEncounterRuleUsageUsed } from '@artificer-toolkit/rules-runtime/encounterActorState'
+import {
+  encounterRuleUsageUsed,
+  withEncounterRuleUsageUsed
+} from '@artificer-toolkit/rules-runtime/encounterActorState'
 import {
   fixHeal,
   targetAnyCreatureAtAnyRange
@@ -35,6 +38,7 @@ import {
 } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import {
   SRD_ACTION_ALLOWANCE_DEFINITION_ID,
+  SRD_BONUS_ACTION_ALLOWANCE_DEFINITION_ID,
   SRD_RULE_STATE_DEFINITIONS
 } from '@artificer-toolkit/source-data/srd/ruleState.js'
 import {
@@ -46,6 +50,7 @@ import { cureWounds } from '@artificer-toolkit/source-data/srd/spells/cure-wound
 import { fireball } from '@artificer-toolkit/source-data/srd/spells/fireball.js'
 import { fireBolt } from '@artificer-toolkit/source-data/srd/spells/fire-bolt.js'
 import { healingWord } from '@artificer-toolkit/source-data/srd/spells/healing-word.js'
+import { shield } from '@artificer-toolkit/source-data/srd/spells/shield.js'
 import { fly } from '@artificer-toolkit/source-data/srd/spells/fly.js'
 import { holdPerson } from '@artificer-toolkit/source-data/srd/spells/hold-person.js'
 import { wizard } from '@artificer-toolkit/source-data/srd/classes/wizard.js'
@@ -576,6 +581,21 @@ async function wound(fixture: Fixture, actorId: string, currentHitPoints: number
       row._id,
       encounterRunActorStateSchema.parse({ ...actor, currentHitPoints })
     )
+  })
+}
+
+/** How much of an allowance (Action, Bonus Action, Reaction) the Character actor has spent this turn. */
+async function allowanceUsed(fixture: Fixture, definitionId: string) {
+  await checkpointLiveRoom(fixture.campaign.id)
+  return fixture.t.run(async (ctx) => {
+    const row = await ctx.db
+      .query('encounterRunActors')
+      .withIndex('by_encounterId_id', (q) =>
+        q.eq('encounterId', fixture.run.id).eq('id', fixture.actor.id)
+      )
+      .unique()
+    if (!row) throw new Error('Character actor is unavailable.')
+    return encounterRuleUsageUsed(await readTestActor(ctx, row), definitionId)
   })
 }
 
@@ -1136,6 +1156,42 @@ describe('Character spell casting in an Encounter', () => {
       })
       expect(healed.occurrence?.status).toBe('COMPLETE')
       expect(await creatureHitPoints(fixture, wolf.id)).toBe(1 + 3 + 1)
+    }, 120000)
+
+    it('journey: Healing Word is cast as a bonus action, spends the bonus action and not the action, and undo restores it', async () => {
+      const fixture = await setup({ known: [srdSpell(healingWord)], withOthers: true })
+      const wolf = fixture.wolf
+      if (!wolf) throw new Error('Missing the Wolf.')
+      await wound(fixture, wolf.id, 1)
+      const actionId = await choiceId(fixture, 'Healing Word (1st level)', 0)
+      const offered = (await spellChoices(fixture, 0)).find(({ id }) => id === actionId)
+      expect(offered?.actionCost).toBe('BONUS_ACTION')
+      expect(await allowanceUsed(fixture, SRD_ACTION_ALLOWANCE_DEFINITION_ID)).toBe(0)
+      expect(await allowanceUsed(fixture, SRD_BONUS_ACTION_ALLOWANCE_DEFINITION_ID)).toBe(0)
+
+      await queueRoomRolls(fixture.campaign.id, { rolls: [2], repeat: 0 })
+      const healed = await executeInRoom(fixture.player.caller, {
+        command: castCommand(fixture, actionId, 0, undefined, wolf.id, RANGE_UNCHECKED)
+      })
+      expect(healed.occurrence?.status).toBe('COMPLETE')
+      expect(await allowanceUsed(fixture, SRD_BONUS_ACTION_ALLOWANCE_DEFINITION_ID)).toBe(1)
+      expect(await allowanceUsed(fixture, SRD_ACTION_ALLOWANCE_DEFINITION_ID)).toBe(0)
+
+      await revert(fixture, healed.projection.version)
+      expect(await allowanceUsed(fixture, SRD_BONUS_ACTION_ALLOWANCE_DEFINITION_ID)).toBe(0)
+      expect(await allowanceUsed(fixture, SRD_ACTION_ALLOWANCE_DEFINITION_ID)).toBe(0)
+    }, 120000)
+
+    it('offers an Action spell as an Action and keeps a reaction spell out of the turn choices', async () => {
+      const fixture = await setup({
+        known: [srdSpell(cureWounds), srdSpell(shield)],
+        withOthers: true
+      })
+      const choices = await spellChoices(fixture, 0)
+      expect(choices.find(({ label }) => label === 'Cure Wounds (1st level)')?.actionCost).toBe(
+        'ACTION'
+      )
+      expect(choices.some(({ label }) => label.startsWith('Shield'))).toBe(false)
     }, 120000)
 
     it('warns, overridably, when a heal targets an excluded creature type, and heals once overridden', async () => {
