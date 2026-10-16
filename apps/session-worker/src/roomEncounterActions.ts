@@ -91,7 +91,7 @@ export async function executeRoomEncounterAction(input: {
       planned: plan.input
     })
   const captured =
-    plan.kind === 'AREA_PENDING' || plan.kind === 'SQUARE_PENDING'
+    plan.kind === 'AREA_PENDING'
       ? buildNativeLiveEncounterAreaActionPendingInput(scope, plan)
       : plan.kind === 'AREA_COMMIT'
         ? buildNativeLiveEncounterAreaCommitInput(scope, plan)
@@ -144,7 +144,7 @@ export async function executeRoomEncounterAction(input: {
         persistConcentrationChildren: (children) => persistRoomConcentrationChildren(ctx, children)
       })
   }
-  if (plan.kind === 'AREA_PENDING' || plan.kind === 'SQUARE_PENDING')
+  if (plan.kind === 'AREA_PENDING')
     return persistEncounterActionPending(
       ctx,
       {

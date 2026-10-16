@@ -111590,6 +111590,7 @@ export declare const api: {
                   public: boolean;
                   sourceId: string | null;
                   sourceRevision: number | null;
+                  unseenReason: "HIDDEN" | "INVISIBLE" | null;
                 }>;
                 automationMode: "ASSISTED" | "MANUAL";
                 blueprintChecksum: string;
@@ -111882,15 +111883,6 @@ export declare const api: {
                 occurrenceVersion: number;
                 optionIds: Array<string>;
                 requestId: string;
-              }
-            | {
-                allowedResponses: Array<"ATTACK_SQUARE_OCCUPANT">;
-                attackerActorId: string;
-                candidateActorIds: Array<string>;
-                encounterVersion: number;
-                kind: "ATTACK_SQUARE_RESOLUTION";
-                occurrenceId: string;
-                occurrenceVersion: number;
               }
             | null;
           turnMovement: Array<{
@@ -112199,15 +112191,6 @@ export declare const api: {
                   optionIds: Array<string>;
                   requestId: string;
                 }
-              | {
-                  allowedResponses: Array<"ATTACK_SQUARE_OCCUPANT">;
-                  attackerActorId: string;
-                  candidateActorIds: Array<string>;
-                  encounterVersion: number;
-                  kind: "ATTACK_SQUARE_RESOLUTION";
-                  occurrenceId: string;
-                  occurrenceVersion: number;
-                }
               | null;
             status: "PENDING" | "COMPLETE" | "VOIDED";
           } | null;
@@ -112444,6 +112427,7 @@ export declare const api: {
                   public: boolean;
                   sourceId: string | null;
                   sourceRevision: number | null;
+                  unseenReason: "HIDDEN" | "INVISIBLE" | null;
                 }>;
                 automationMode: "ASSISTED" | "MANUAL";
                 blueprintChecksum: string;
@@ -113036,15 +113020,6 @@ export declare const api: {
             optionIds: Array<string>;
             requestId: string;
           }
-        | {
-            allowedResponses: Array<"ATTACK_SQUARE_OCCUPANT">;
-            attackerActorId: string;
-            candidateActorIds: Array<string>;
-            encounterVersion: number;
-            kind: "ATTACK_SQUARE_RESOLUTION";
-            occurrenceId: string;
-            occurrenceVersion: number;
-          }
         | null
       >;
     };
@@ -113290,6 +113265,7 @@ export declare const api: {
               public: boolean;
               sourceId: string | null;
               sourceRevision: number | null;
+              unseenReason: "HIDDEN" | "INVISIBLE" | null;
             }>;
             automationMode: "ASSISTED" | "MANUAL";
             blueprintChecksum: string;
@@ -113590,6 +113566,7 @@ export declare const api: {
                   public: boolean;
                   sourceId: string | null;
                   sourceRevision: number | null;
+                  unseenReason: "HIDDEN" | "INVISIBLE" | null;
                 }>;
                 automationMode: "ASSISTED" | "MANUAL";
                 blueprintChecksum: string;
@@ -113870,15 +113847,6 @@ export declare const api: {
                 occurrenceVersion: number;
                 optionIds: Array<string>;
                 requestId: string;
-              }
-            | {
-                allowedResponses: Array<"ATTACK_SQUARE_OCCUPANT">;
-                attackerActorId: string;
-                candidateActorIds: Array<string>;
-                encounterVersion: number;
-                kind: "ATTACK_SQUARE_RESOLUTION";
-                occurrenceId: string;
-                occurrenceVersion: number;
               };
         }>
       >;
