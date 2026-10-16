@@ -326,6 +326,7 @@ export async function fixture(
       }
       if (pathname === '/live-sessions/checkpoint') {
         const body = liveSessionCheckpointRequestSchema.parse(await request.json())
+        expect(body).toMatchObject({ campaignId })
         persisted = { sequence: body.sequence, checksum: body.checksum }
         return Response.json(checkpointResponse(body))
       }
