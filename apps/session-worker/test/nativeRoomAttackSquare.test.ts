@@ -211,11 +211,11 @@ async function answerEmpty(room: Room) {
   return room.send(room.resolveCommand(decision, { kind: 'ATTACK_SQUARE_EMPTY' }))
 }
 
-/** The roll the attacker's player sends for the d20 the room holds for them. */
-async function heldPlayerRoll(room: Room) {
+/** The attacker's player rolls the held d20 and settles the attack with that roll. */
+async function playerRollsHeldD20(room: Room) {
   const held = await readPendingActionDecision(room.room.base.stub, false)
   if (!held || !('request' in held.pending)) throw new Error('The player holds no d20 to roll.')
-  return {
+  const roll = {
     type: 'ROLL_RULE_EVIDENCE',
     encounterId: room.room.encounterId,
     commandId: crypto.randomUUID(),
@@ -225,6 +225,19 @@ async function heldPlayerRoll(room: Room) {
     requestId: held.pending.request.requestId,
     rollMode: null
   }
+  const rolled = await room.sendAsPlayer(roll)
+  expect(rolled.type, JSON.stringify(rolled)).toBe('COMMAND_COMMITTED')
+  const rollRow = (await rulesHistory(room)).evidenceRolls.at(-1)
+  const decision = await readPendingActionDecision(room.room.base.stub, false)
+  if (!rollRow || !decision) throw new Error('The player holds no rolled d20 to settle.')
+  const answer = room.resolveCommand(decision, {
+    kind: 'SYSTEM_ROLL',
+    requestId: roll.requestId,
+    rollId: rollRow.id
+  })
+  const settled = await room.sendAsPlayer(answer)
+  expect(settled.type, JSON.stringify(settled)).toBe('COMMAND_COMMITTED')
+  return { roll, answer }
 }
 
 /** The settled empty-square roots in the room's receipts. */
@@ -274,25 +287,9 @@ describe('an attack aimed at an empty square (ATTACK-17.4)', () => {
     ).toMatchObject([{ state: 'PENDING' }])
     expect(await emptySquareRoots(room)).toEqual([])
 
-    const rolled = await room.sendAsPlayer(await heldPlayerRoll(room))
-    expect(rolled.type, JSON.stringify(rolled)).toBe('COMMAND_COMMITTED')
+    await playerRollsHeldD20(room)
     const roots = await emptySquareRoots(room)
-    const summary = await rulesHistory(room)
-    expect(
-      roots,
-      JSON.stringify({
-        rolled,
-        receipts: summary.receipts.map((receipt) => {
-          const execution = parseReceiptExecution(receipt)
-          return [
-            receipt.commandType,
-            execution.status,
-            'applicationOutputs' in execution ? execution.applicationOutputs.kind : null
-          ]
-        }),
-        occurrences: summary.occurrences.map((o) => [o.rootCommandId, o.state, o.version])
-      })
-    ).toHaveLength(1)
+    expect(roots).toHaveLength(1)
     expect(roots[0]).toMatchObject({
       sourceActorId: ATTACKER_ID,
       d20: { resultPath: 'ON_MISS' }
@@ -311,7 +308,8 @@ describe('an attack aimed at an empty square (ATTACK-17.4)', () => {
     const room = await squareRoom([3], true)
     await room.startSquareAction(emptySquare, 'GM')
 
-    expect((await answerEmpty(room)).type).toBe('COMMAND_COMMITTED')
+    const answered = await answerEmpty(room)
+    expect(answered.type, JSON.stringify(answered)).toBe('COMMAND_COMMITTED')
     expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
     expect(await emptySquareRoots(room)).toHaveLength(1)
   })
@@ -332,10 +330,10 @@ describe('an attack aimed at an empty square (ATTACK-17.4)', () => {
     )
     expect(second.type).toBe('COMMAND_REJECTED')
 
-    const roll = await heldPlayerRoll(room)
-    expect((await room.sendAsPlayer(roll)).type).toBe('COMMAND_COMMITTED')
+    const { roll, answer } = await playerRollsHeldD20(room)
     const settled = await rulesHistory(room)
     expect((await room.sendAsPlayer(roll)).type).toBe('COMMAND_COMMITTED')
+    expect((await room.sendAsPlayer(answer)).type).toBe('COMMAND_COMMITTED')
     expect(await rulesHistory(room)).toEqual(settled)
     expect(await emptySquareRoots(room)).toHaveLength(1)
   })
@@ -345,7 +343,7 @@ describe('an attack aimed at an empty square (ATTACK-17.4)', () => {
     const before = await rulesHistory(room)
     await room.startSquareAction(emptySquare, 'PLAYER')
     await answerEmpty(room)
-    await room.sendAsPlayer(await heldPlayerRoll(room))
+    await playerRollsHeldD20(room)
     expect(await emptySquareRoots(room)).toHaveLength(1)
 
     const undone = await room.send({
@@ -380,7 +378,7 @@ describe('what the attacker’s player can tell about an empty square (ATTACK-17
     const prompt = await readPendingActionDecision(room.room.base.stub, false)
     const sessionBefore = await playerSession(room, player)
     const cardsBefore = await readRoomRollCards(room.room.base.stub)
-    await room.sendAsPlayer(await heldPlayerRoll(room))
+    await playerRollsHeldD20(room)
     const sessionAfter = await playerSession(room, player)
     return withoutIdentity({
       prompt: prompt?.pending,
