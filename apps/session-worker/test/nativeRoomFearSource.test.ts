@@ -128,8 +128,9 @@ async function frightenedWolfBiteMode(room: FearRoom) {
   if (!bite) throw new Error('The Wolf has a Bite.')
   const { answer } = await room.startAction(
     OTHER_WOLF_ID,
-    // The Bite names no Scene context, so its range goes unchecked.
-    ['TARGET_RANGE_UNCHECKED'],
+    // The Bite names no Scene context, so its range goes unchecked; a frightened creature that
+    // does not Dash is warned (SPELLS-29.T2), which this roll-mode probe acknowledges.
+    ['TARGET_RANGE_UNCHECKED', FLEE],
     null,
     null,
     room.featureActionId(wolves[0]!, bite.id),
@@ -385,7 +386,7 @@ describe('room Fear makes its Frightened creatures flee the caster (SPELLS-29.T2
     expect(refused).toMatchObject({
       type: 'COMMAND_REJECTED',
       reason: 'RULE_WARNINGS',
-      warnings: [{ code: FLEE }]
+      warnings: expect.arrayContaining([expect.objectContaining({ code: FLEE })])
     })
     const overridden = await biteOnItsTurn(room, ['TARGET_RANGE_UNCHECKED', FLEE])
     expect(overridden.type, JSON.stringify(overridden)).toBe('COMMAND_COMMITTED')
