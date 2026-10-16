@@ -5979,9 +5979,10 @@
             },
             {
               "text": "Opportunity attacks and Disarm apply attack-roll sight like RESOLVE_ACTION, and movement-reaction perception applies condition contributions.",
-              "status": "TODO",
+              "status": "DONE",
               "proof": [
-                "T3a and T3b: packages/rules-runtime/src/__tests__/encounterMovementReactionPerception.test.ts (condition contributions), apps/session-worker/test/nativeMovementAttackSight.test.ts (opportunity-attack believed prompt, true settlement, held die); CI Tests 38860508666 on 6c42d11b2, Live backend 38858966792 on 663fff011"
+                "T3a and T3b: packages/rules-runtime/src/__tests__/encounterMovementReactionPerception.test.ts (condition contributions), apps/session-worker/test/nativeMovementAttackSight.test.ts (opportunity-attack believed prompt, true settlement, held die); CI Tests 38860508666 on 6c42d11b2, Live backend 38858966792 on 663fff011",
+                "T3c: apps/session-worker/test/nativeRoomDisarm.test.ts (auto-rolled and prompted Disarm against a Blinded target, held die), apps/session-worker/test/nativeMovementAttackSight.test.ts (player-side opportunity-attack believed prompt), apps/apis/convex/encounters/actionDisarm.test.ts (Convex Disarm redaction and true settlement); CI Tests 38867014436 and Live backend 38867014459 at ef97b2530"
               ],
               "origin": [],
               "note": "D100 not-wired paths; movement-owned code.",
