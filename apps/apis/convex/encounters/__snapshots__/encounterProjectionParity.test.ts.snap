@@ -47,6 +47,7 @@ exports[`Encounter projections built on read > applies an action mechanics batch
       "checksum": "<sha:56>",
     },
     "updatedActor": {
+      "absence": null,
       "conditions": [],
       "controllerUserIds": [],
       "createdAt": "<time>",
