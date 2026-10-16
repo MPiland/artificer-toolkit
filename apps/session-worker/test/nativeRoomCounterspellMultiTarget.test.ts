@@ -40,7 +40,12 @@ afterEach(() => {
  * A Character caster and a Character holding Counterspell 100 px apart (10 ft), then two Wolves.
  * A 20 ft sphere at x = 400 catches both Wolves and the holder, but not the caster.
  */
-function counterRoom(spell: SpellAuthored, label: string, reactorAt?: { x: number; y: number }) {
+function counterRoom(
+  spell: SpellAuthored,
+  label: string,
+  reactorAt?: { x: number; y: number },
+  reactorHurt = false
+) {
   return actionRoom({
     sceneGrid: {
       kind: 'SQUARE',
@@ -60,7 +65,7 @@ function counterRoom(spell: SpellAuthored, label: string, reactorAt?: { x: numbe
     characterPlay: { currentHitPoints: 1 },
     secondCharacter: {
       characterId: REACTOR_ID,
-      play: {},
+      play: reactorHurt ? { currentHitPoints: 1 } : {},
       spellcasting: { spells: [counterspell], prepared: [counterspell.id] }
     },
     characterAction: (action) => action.label === label
@@ -167,8 +172,8 @@ const castFireball = async (room: Room) => {
 }
 
 describe('room Counterspell against a Character’s cast on chosen creatures (REACTION-4.T3e)', () => {
-  const healRoom = (level: '3rd' | '4th' = '3rd') =>
-    counterRoom(massHealingWord, `Mass Healing Word (${level} level)`)
+  const healRoom = (level: '3rd' | '4th' = '3rd', reactorHurt = false) =>
+    counterRoom(massHealingWord, `Mass Healing Word (${level} level)`, undefined, reactorHurt)
 
   it('holds the cast for the holder’s choice, applying and spending nothing', async () => {
     const room = await healRoom()
@@ -251,7 +256,7 @@ describe('room Counterspell against a Character’s cast on chosen creatures (RE
   })
 
   it('spends a failing holder’s slot through its own write when the holder is also a chosen creature', async () => {
-    const room = await healRoom('4th')
+    const room = await healRoom('4th', true)
     const before = await readRoomHistory(room.room.base.stub)
     const holderHitPoints = await hitPointsOf(room, REACTOR_ID)
     await castOnWolves(room, [WOLF_IDS[0]!, REACTOR_ACTOR_ID])
@@ -293,13 +298,14 @@ describe('room Counterspell against a Character’s area cast (REACTION-4.T3e)',
     const room = await fireballRoom()
     const before = await readRoomHistory(room.room.base.stub)
     const holderHitPoints = await hitPointsOf(room, REACTOR_ID)
+    const vitals = await creatureVitals(room)
     await castFireball(room)
     await counterWithLowestSlot(room)
 
     expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
     expect(await slotsOf(room, CASTER_ID)).toEqual(SLOT_SPENT(3))
     expect(await slotsOf(room, REACTOR_ID)).toEqual(SLOT_SPENT(3))
-    expect(vitalsOf(await readRoomHistory(room.room.base.stub))).toEqual(vitalsOf(before))
+    expect(await creatureVitals(room)).toEqual(vitals)
     expect(await hitPointsOf(room, REACTOR_ID)).toBe(holderHitPoints)
 
     await undoLastAction(room)
@@ -374,7 +380,7 @@ describe('room Counterspell against a Character’s area cast (REACTION-4.T3e)',
 
   it('spends a failing holder’s slot when the area catches nobody', async () => {
     const room = await fireballRoom('4th')
-    const { answer } = await room.startAreaAction({ x: 150, y: 2000 })
+    const { answer } = await room.startAreaAction({ x: 150, y: 1400 })
     expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
     await counterWithLowestSlot(room)
     await rollTheCheck(room, 1)

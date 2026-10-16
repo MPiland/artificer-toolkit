@@ -285,7 +285,19 @@ export async function persistEncounterAreaCommit(
       throw new Error('Live Session area has an unanswered save or undecided choice.')
     // The counters that failed against the cast were sealed with its area and are spent with it.
     if (
-      checksumCanonicalJson(context.failedCounters ?? []) !== checksumCanonicalJson(failedReceipts)
+      checksumCanonicalJson(context.failedCounters ?? []) !==
+      checksumCanonicalJson(
+        // The receipt is the sealed counter plus what its reactor spent, which the commit adds.
+        failedReceipts.map(
+          ({
+            spellCastConsumption: _spell,
+            applications: _applications,
+            characterStreamVersion: _version,
+            actionEconomyTransition: _economy,
+            ...sealed
+          }) => sealed
+        )
+      )
     )
       throw new Error('Live Session area failed counters mismatch.')
     scope = {
