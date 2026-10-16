@@ -2817,11 +2817,13 @@ try {
       lifecyclePolicyFixtures.push(policies.cleanup)
       assert.deepEqual(await cli('content/import:bootstrap', policies.bootstrap, false), {
         inserted: 2,
-        reused: 1
+        reused: 1,
+        replaced: 0
       })
       assert.deepEqual(await cli('content/import:importDefinitions', policies.imported, false), {
         inserted: policies.imported.definitions.length,
-        reused: 0
+        reused: 0,
+        replaced: 0
       })
       if (disarm) {
         for (const subjectKind of ['EQUIPMENT', 'CREATURE'] as const) {

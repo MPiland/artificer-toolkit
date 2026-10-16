@@ -78,13 +78,13 @@ flowchart LR
    - Day-to-day deploy, seed and audit checks of a slice or merge run in CI on an ephemeral container
      (`.github/workflows/live-backend.yml`, ADR 0035 amendment 2026-10-15). This lifecycle stays local
      because it uses the user's local data, the Session Worker and the browser proofs.
-- A change to an authored subject in the SRD corpus (for example a Class, Race, Equipment, Feat or
-  Background) needs no backend reset: reseeding replaces the changed subjects in place and reports
-  them as `replaced` (PLATFORM-18.T1, D120). The same holds in staging and production. A subject
-  removed from the corpus, and any change to a reusable definition, System, content source or
-  catalogue record, is not applied by the seed and still needs a reset (removal and definitions are
-  deferred, see `docs/roadmap/future-enhancements.md`). The seed fails before writing when a
-  subject was removed.
+- A change to the SRD corpus needs no backend reset: reseeding replaces a changed subject (for
+  example a Class, Race, Equipment, Feat or Background), reusable definition, System, content source
+  or catalogue in place and reports it as `replaced` (PLATFORM-18.T1 and T2, D120). The same holds in
+  staging and production. Two corpus changes still need a reset, and the seed refuses both with a
+  named reason before writing: a subject or definition removed from the corpus (removal is deferred,
+  see `docs/roadmap/future-enhancements.md`), and a System change that drops a vocabulary entry id
+  stored data may name.
    - Convex codegen, deploy, seed and audit pass the self-hosted URL and generated key as explicit
      `--url`/`--admin-key` arguments. They never use the CLI's `--deployment local` backend.
    - The lifecycle manifest and stage logs go to `local-validation/pre-staging/<timestamp>/`
@@ -115,6 +115,13 @@ flowchart LR
      (container-only) from the Convex container and leaves them running. The local deployment must
      set `MAIL_DELIVERY_MODE=local` and `LOCAL_EMAIL_SINK_URL=http://127.0.0.1:8025/email`; see the
      [API README](../../apps/apis/README.md).
+     The local deployment must also set `LIVE_SESSION_WORKER_URL=http://host.docker.internal:8787` (the container reaches the host Worker only through that name, never `127.0.0.1`), and the evidence folder name must stay short: the Worker's durable-object state path exceeds the Windows path limit in a worktree otherwise and the Session room upgrade fails with a 500.
+   - A slice that adds one browser journey runs it outside the lifecycle with `node
+     scripts/runLocalBrowserProof.mjs --name=<unique> --proof=<proof> [--deploy]` (in a heavy
+     batch). It reuses the runner's environment checks, admin-key generation, fixtures and
+     Worker/web start, optionally deploys the current source to the local container, never resets
+     or reseeds it, and stops only the services it started. Evidence goes to
+     `local-validation/browser-proof/<name>/` and the proof's usual packet.
 
 5. Record the exact source identity, command order, environment identity, native exit codes, collector
    completion, thresholds, and artifact paths in one release manifest. Inspect proof artifacts only

@@ -754,6 +754,11 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - **Removed subject:** the seed fails loudly and lists the ids. Real removal is deferred (future-enhancements, Deferred edge cases).
   - **Downgrade:** no guard. The seed is declarative, so seeding an earlier corpus is just another replace.
   - **Dependents:** a canonical replace runs the same unresolved-dependent check as publish (ADR 0024) and refuses on a hit. The seed has no bypass.
+  - **Extension to definitions, Systems, sources and catalogues (PLATFORM-18.T2):** `bootstrap` and `importDefinitions` replace them in place, with the same identity-or-conflict rule (a changed code, kind, System, family key or content source is a conflict).
+    - **Definition:** patches `label`, `description`, `checksum` and `documentJson` and keeps `version` 1, so the checksum is the revision identity. Homebrew publish bumps `version`; a canonical row does not.
+    - **System:** patches `document` and `checksum` and appends the next `systemVocabularySnapshots` version. Earlier snapshot versions are kept, because nothing resolves them and the append keeps `readSystemVocabularySnapshot` matching the current System.
+    - **Refused, named reason:** a System replace that drops any vocabulary entry `id` of the stored System (stored data may name it), and a Definition removed from the corpus (the seed fails before writing any subject or definition, naming the ids).
+    - **Deferred:** homebrew pins of a replaced canonical definition (future-enhancements, Deferred edge cases).
 * **D121** (2026-10-15) Which creatures a player's Encounter view lists (ATTACK-17.T2; brief [slice-attack-17-t2-t3.md](slice-attack-17-t2-t3.md)). Decided by the main session.
   - **Room:** the room computes exact per-viewer visibility, including fog, through `projectSceneForViewer`.
   - **Convex stored-session reads and admission** (`activeReads`, `projectionReads`, `healthDisplay`) fail closed and never read fog. For a non-GM, a creature with a token on the Encounter's Scene is listed only if the player controls it or the GM revealed it. This takes one bounded, indexed read of the Run's bindings. It may over-hide until the room connects, and it never leaks.

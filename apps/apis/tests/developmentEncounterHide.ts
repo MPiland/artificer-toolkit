@@ -260,7 +260,7 @@ export async function verifyEncounterHide({
     expectedVersion: run.version,
     actorId: hider.id
   })
-  const hide = choices?.actions.find((action) => action.label === 'Hide')
+  const hide = choices?.basicActionChoices.find((choice) => choice.label === 'Hide')
   if (!hide) throw new Error('The Wolf has no Hide action choice.')
   const { gmRollVisibility } = await owner.query(api.account.rollPreferences, {})
   const hiding = await execute(

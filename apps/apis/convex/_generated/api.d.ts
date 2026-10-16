@@ -123245,7 +123245,7 @@ export declare const internal: {
             id: string;
           }>;
         },
-        { inserted: number; reused: number }
+        { inserted: number; replaced: number; reused: number }
       >;
       importDefinitions: FunctionReference<
         "mutation",
@@ -123267,7 +123267,7 @@ export declare const internal: {
             label: string;
           }>;
         },
-        { inserted: number; reused: number }
+        { inserted: number; replaced: number; reused: number }
       >;
       importSubjects: FunctionReference<
         "mutation",
@@ -123357,6 +123357,26 @@ export declare const internal: {
             projectionSchemaVersion: 1;
           };
           parentClassId: string | null;
+        }
+      >;
+      readDefinitionChecksums: FunctionReference<
+        "query",
+        "internal",
+        {
+          contentSourceId: string;
+          paginationOpts: {
+            cursor: string | null;
+            endCursor?: string | null;
+            id?: number;
+            maximumBytesRead?: number;
+            maximumRowsRead?: number;
+            numItems: number;
+          };
+        },
+        {
+          continueCursor: string;
+          isDone: boolean;
+          page: Array<{ checksum: string; id: string }>;
         }
       >;
       readDefinitions: FunctionReference<
