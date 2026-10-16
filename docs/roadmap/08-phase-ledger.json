@@ -8535,8 +8535,8 @@
             },
             {
               "id": "SPELLS-27.T2b",
-              "text": "The Legendary window, movement opportunity attack and Disarm roots release a consumed condition-owning effect the same way; the three !ownsCondition fences come out.",
-              "status": "IN_PROGRESS",
+              "text": "The Legendary window, movement opportunity attack and Disarm roots release a consumed condition-owning effect the same way; the three !ownsCondition fences come out (proof: nativeRoomLegendary, nativeRoomGrantEnds and nativeRoomDisarm release the Invisible holder's condition with its grant; attackRollEndedEffects unit tests; Disarm sourceApplications schema tests; a Creature source moves no Character stream).",
+              "status": "DONE",
               "closes": ["SPELLS-27.1"],
               "wsjf": {
                 "bv": 3,

@@ -4,6 +4,7 @@ import { SRD_CONDITION_TYPES } from '@artificer-toolkit/source-data/srd/vocabula
 
 import {
   ENDED_EFFECT_CONDITION_OPERATION_KEY,
+  attackRollEndedEffects,
   endedEffectConditionReleases
 } from '../encounterEndedEffectRelease.js'
 import { ENCOUNTER_ID } from '../testing/dnd5eSrdEncounter.js'
@@ -112,6 +113,56 @@ describe('conditions released with the effects an event ended', () => {
     expect(
       endedEffectConditionReleases({ holderActorId: HOLDER_ID, held: [plain], ended: [plain] })
     ).toEqual([])
+  })
+})
+
+describe('what an attack roll ends for its roller', () => {
+  const rollerEffect = (
+    id: string,
+    consumeOnFirstEvents: readonly 'ON_ATTACK_ROLL'[] | undefined
+  ) =>
+    activeEffect({
+      id,
+      owner,
+      createdOrdinal: 1,
+      consumeOnFirstEvents,
+      stateContributions: [
+        { kind: 'CONDITION_OWNERSHIP', conditionId: INVISIBLE, baselinePresent: false }
+      ]
+    })
+
+  it('ends the one-roll effect and releases the condition it owned', () => {
+    const held = rollerEffect(FIRST_ID, ['ON_ATTACK_ROLL'])
+    const { consumedGrants, sourceReleases } = attackRollEndedEffects({
+      holderActorId: HOLDER_ID,
+      held: [held],
+      makesAttackRoll: true
+    })
+    expect(consumedGrants).toEqual([held])
+    expect(sourceReleases).toEqual(
+      endedEffectConditionReleases({ holderActorId: HOLDER_ID, held: [held], ended: [held] })
+    )
+    expect(sourceReleases).toHaveLength(1)
+  })
+
+  it('ends and releases nothing when the action rolls no attack', () => {
+    expect(
+      attackRollEndedEffects({
+        holderActorId: HOLDER_ID,
+        held: [rollerEffect(FIRST_ID, ['ON_ATTACK_ROLL'])],
+        makesAttackRoll: false
+      })
+    ).toEqual({ consumedGrants: [], sourceReleases: [] })
+  })
+
+  it('leaves an effect that does not end on an attack roll', () => {
+    expect(
+      attackRollEndedEffects({
+        holderActorId: HOLDER_ID,
+        held: [rollerEffect(FIRST_ID, undefined)],
+        makesAttackRoll: true
+      })
+    ).toEqual({ consumedGrants: [], sourceReleases: [] })
   })
 })
 

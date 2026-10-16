@@ -30,7 +30,12 @@ import { actionRoom, biteWolf } from './actionRoomFixture.js'
 import { seedModifierGrant } from './grantSeed.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
 import { movementRoom } from './movementRoomFixture.js'
-import { parseReceiptExecution, readRoomHistory, readRoomRollCards } from './roomHistoryReads.js'
+import {
+  parseReceiptExecution,
+  readActorConditionIds,
+  readRoomHistory,
+  readRoomRollCards
+} from './roomHistoryReads.js'
 
 const INVISIBLE_ID = SRD_CONDITION_TYPES.find(({ code }) => code === 'INVISIBLE')!.id
 const WOLF_ID = testUuid(0x730)
@@ -488,7 +493,11 @@ describe('a Legendary Action uses up the owner’s one-roll grants (SPELLS-5.4)'
     const room = await movementRoom({
       actors: [
         srdCreatureActor({ id: WOLF_ID, creature: plainWolf }),
-        srdCreatureActor({ id: FIRST_DRAGON_ID, creature })
+        srdCreatureActor({
+          id: FIRST_DRAGON_ID,
+          creature,
+          conditionIds: ownedConditionId ? [ownedConditionId] : []
+        })
       ],
       moverActorId: WOLF_ID,
       positions: { [WOLF_ID]: { x: 150, y: 150 }, [FIRST_DRAGON_ID]: { x: 250, y: 150 } },
@@ -522,20 +531,27 @@ describe('a Legendary Action uses up the owner’s one-roll grants (SPELLS-5.4)'
       // The self Tail targets its owner; the attack Tail strikes the Wolf.
       targetActorId: creature === dragon ? FIRST_DRAGON_ID : WOLF_ID
     })
-    return (await readRoomHistory(room.base.stub)).activeEffects
+    return readRoomHistory(room.base.stub)
   }
 
   it('deletes the grant its attack rolled against', async () => {
-    expect(await legendaryTurnEnd(attackDragon)).toEqual([])
+    expect((await legendaryTurnEnd(attackDragon)).activeEffects).toEqual([])
   })
 
   it('keeps the grant through an action that rolls no attack', async () => {
-    expect(await legendaryTurnEnd(dragon)).toHaveLength(1)
+    expect((await legendaryTurnEnd(dragon)).activeEffects).toHaveLength(1)
   })
 
-  // A Legendary window releases no condition yet (SPELLS-27.T2b), so it must not strand one.
-  it('keeps a grant that owns a condition, which this window cannot release', async () => {
-    expect(await legendaryTurnEnd(attackDragon, INVISIBLE_ID)).toHaveLength(1)
+  it('releases the condition the ended grant owned, with the grant', async () => {
+    const settled = await legendaryTurnEnd(attackDragon, INVISIBLE_ID)
+    expect(settled.activeEffects).toEqual([])
+    expect(readActorConditionIds(settled, FIRST_DRAGON_ID)).not.toContain(INVISIBLE_ID)
+  })
+
+  it('keeps the condition when the action rolls no attack', async () => {
+    const settled = await legendaryTurnEnd(dragon, INVISIBLE_ID)
+    expect(settled.activeEffects).toHaveLength(1)
+    expect(readActorConditionIds(settled, FIRST_DRAGON_ID)).toContain(INVISIBLE_ID)
   })
 })
 
