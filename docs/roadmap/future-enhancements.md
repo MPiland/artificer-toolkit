@@ -105,6 +105,9 @@ These are rare paths, roughly under 5% of sessions, whose failure is visible and
 - **Repeated short terms split by punctuation are partly unmasked (ACCOUNTS-7.T2):** in Standard campaign text, `ASS. Ass! (ass)` masks only the first `ass`. The matcher skips punctuation, so the next short whole-word term fails its word boundary. The text stays visible and the GM can switch the Campaign to Mature or edit it.
 - **`damageTypeIds` accepts duplicates (REACTION-4.T2):** authoring the same damage type twice in a `DAMAGE_TAKEN` trigger is accepted and harmless; a uniqueness check on the schema would reject it.
 - **A resistance-only reaction seals no change in its audit (REACTION-4.T2):** `adjustment.defenseBefore === defenseAfter` and the bound-facts checksum are unchanged, so replay does not cross-check the defenses the reaction added. Sealing the defenses checksum in the adjustment would make the audit self-evident.
+- **Other `.public`-keyed player reads still ignore an unseen creature (ATTACK-17.T2):** the player projection, turn, targets and result recipients follow `playerSeesActor`, but `pendingReads.ts`, `rollReveals.ts`, `rollModeReasons.ts`, `ruleRollCards.ts`, `turnResponseAuthority.ts`, `cleavingResponseAdmission.ts` and `actionAreaPending.ts` test `actor.public` alone. A player could read a roll or prompt that names an unseen creature the GM has not revealed. It needs a hidden creature caught in a live prompt.
+- **Summary feed pushes only on fog changes (ATTACK-17.T2):** a player's Campaign summary re-reads the visible-creature list when the Encounter changes, not on every fog change, so a creature stepping out of sight can stay in the count until the next Encounter update.
+- **Room Scene id mismatch fails closed (ATTACK-17.T2):** if the room's composed Scene is not the Encounter's bound Scene, the player lists no bound creature until the room catches up, as the Convex reads do.
 
 ### Shared live cursors (Q19)
 

@@ -172,10 +172,26 @@ export function CampaignTabletopActionDrawer({
       encounter.actors.some((actor) => actor.id === id && !actor.defeated)
     ) ?? null
   const actionId = pickedActionId === undefined ? preselectedActionId : pickedActionId
-  const targetActorId =
-    pickedTargetActorId === undefined ? preselectedTargetActorId : pickedTargetActorId
   const selectedAction = actions.find((action) => action.id === actionId) ?? null
   const choiceTarget = selectedAction?.target
+  // A defeated creature isn't a target (D63; the server still warns if one is named), and neither is
+  // the acting creature when the action refuses itself (Help, First Aid).
+  const targetableActors = encounter.actors.filter(
+    (actor) =>
+      !actor.defeated &&
+      !(
+        choiceTarget?.kind === 'ACTOR' &&
+        choiceTarget.self === 'REFUSED' &&
+        actor.id === currentActorId
+      )
+  )
+  const pickedOrPreselectedTargetActorId =
+    pickedTargetActorId === undefined ? preselectedTargetActorId : pickedTargetActorId
+  const targetActorId = targetableActors.some(
+    (actor) => actor.id === pickedOrPreselectedTargetActorId
+  )
+    ? pickedOrPreselectedTargetActorId
+    : null
   const areaTarget =
     choiceTarget?.kind === 'POINT' || choiceTarget?.kind === 'DIRECTED' ? choiceTarget : null
   // A caster-centered area takes no aim, so it has no target to pick.
@@ -659,10 +675,7 @@ export function CampaignTabletopActionDrawer({
               ) : (
                 <Select
                   comboboxProps={{ withinPortal: false }}
-                  // A defeated creature isn't a target (D63); the server still warns if one is named.
-                  data={encounter.actors
-                    .filter((actor) => !actor.defeated)
-                    .map((actor) => ({ label: actor.label, value: actor.id }))}
+                  data={targetableActors.map((actor) => ({ label: actor.label, value: actor.id }))}
                   disabled={selectionControlsDisabled}
                   label='Target'
                   searchable

@@ -26,6 +26,13 @@ import { EncounterActorControlFields } from '../components/EncounterActorControl
 import { EncounterActorHealth } from './EncounterActorHealth'
 import * as styles from './CampaignTabletopEncounterDrawer.css'
 
+/** A creature the map hides stays unlisted for players until the GM reveals it (ATTACK-17.3). */
+const REVEAL_OPTIONS = [
+  { label: 'Seen by the map', value: 'HIDDEN' },
+  { label: 'Reveal unnamed', value: 'UNNAMED' },
+  { label: 'Reveal named', value: 'NAMED' }
+]
+
 type LiveEncounterCommand = EncounterCommandInputDto | EncounterActorTokenBindingCommandInputDto
 
 export function CampaignTabletopEncounterDrawer({
@@ -214,6 +221,27 @@ export function CampaignTabletopEncounterDrawer({
                           End Concentration
                         </Button>
                       </Group>
+                    ) : null}
+                    {role === 'OWNER' && 'reveal' in actor && actor.public ? (
+                      <Select
+                        allowDeselect={false}
+                        aria-label={`Reveal ${actor.label} to players`}
+                        comboboxProps={{ withinPortal: false }}
+                        data={REVEAL_OPTIONS}
+                        disabled={controlsDisabled}
+                        size='xs'
+                        value={actor.reveal ?? 'HIDDEN'}
+                        onChange={(level) =>
+                          onCommand({
+                            actorId: actor.id,
+                            commandId: crypto.randomUUID(),
+                            encounterId: encounter.id,
+                            expectedVersion: encounter.version,
+                            reveal: level === 'UNNAMED' || level === 'NAMED' ? level : null,
+                            type: 'UPDATE_ACTOR'
+                          })
+                        }
+                      />
                     ) : null}
                   </div>
                   {/* Players see health only at each actor's display level; the GM always sees exact. */}

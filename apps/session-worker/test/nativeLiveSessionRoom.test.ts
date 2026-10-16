@@ -3929,6 +3929,8 @@ async function localEncounterFixture(
       sourceId,
       sourceRevision: 1,
       public: ordinal !== 2,
+      // The second creature has no token on the map; the GM has shown it to the table (D121).
+      reveal: ordinal === 1 && !options.hiddenBoundToken ? 'NAMED' : null,
       controllerUserIds: ordinal === 0 ? [base.playerId] : [],
       disposition: 'HOSTILE',
       initiative: 20 - ordinal,
@@ -5099,7 +5101,10 @@ it('commits a warm native REORDER before fan-out, redacts players, and replays w
 it.each([true, false])(
   'commits warm CUSTOM reinforcement before acknowledgement and replays once (public: %s)',
   async (isPublic) => {
-    const { base, player, state, actors } = await localEncounterFixture()
+    const { base, player, state, actors } = await localEncounterFixture([], {
+      // A Scene-bound Encounter lists a creature with no token only once revealed (D121).
+      unboundEncounterScene: true
+    })
     const commandId = crypto.randomUUID()
     const frame = JSON.stringify({
       type: 'COMMAND',

@@ -423,6 +423,33 @@ describe('CampaignTabletopActionDrawer basic actions', () => {
     )
   })
 
+  it('leaves the acting creature out of the Target list when the action refuses itself', async () => {
+    const user = userEvent.setup()
+    const [staff] = actions
+    const helping = validatedChoice({
+      ...staff,
+      id: 'equipment-staff:help',
+      label: 'Lend aid',
+      target: { kind: 'ACTOR', self: 'REFUSED' }
+    })
+    const actor = tabletopGmEncounter.actors.find(
+      (candidate) => candidate.id === tabletopGmEncounter.currentActorId
+    )!
+    const other = tabletopGmEncounter.actors.find((candidate) => candidate.id !== actor.id)!
+    renderDrawer(vi.fn(), { choices: [helping, staff!] })
+
+    await user.click(await screen.findByRole('combobox', { name: 'Action' }))
+    await user.click(await screen.findByRole('option', { name: 'Lend aid' }))
+    await user.click(screen.getByRole('combobox', { name: 'Target' }))
+    expect(await screen.findByRole('option', { name: other.label })).toBeVisible()
+    expect(screen.queryByRole('option', { name: actor.label })).toBeNull()
+
+    await user.click(await screen.findByRole('combobox', { name: 'Action' }))
+    await user.click(await screen.findByRole('option', { name: 'Quarterstaff' }))
+    await user.click(screen.getByRole('combobox', { name: 'Target' }))
+    expect(await screen.findByRole('option', { name: actor.label })).toBeVisible()
+  })
+
   it('asks for the creature First Aid stabilizes before it can be used', async () => {
     const user = userEvent.setup()
     const onResolve = vi.fn().mockResolvedValue(resolved)
