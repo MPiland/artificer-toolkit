@@ -6,6 +6,7 @@ import {
   type SpatialSceneToken
 } from '@artificer-toolkit/shared/vtt'
 
+import type { CharacterHitPointOutcomeApplication } from './characterRuleActionSystemAdapter.js'
 import {
   continueNativeActionAfterTest,
   prepareNativeActionTest,
@@ -15,7 +16,6 @@ import {
 } from './encounterActionExecution.js'
 import type { EncounterEvidenceAnswer } from './encounterEvidenceAnswer.js'
 import type { EncounterLegendaryResistanceCandidate } from './encounterLegendaryResistanceDiscovery.js'
-import { encounterAreaTargetOccurrenceId } from './encounterAreaPending.js'
 import { nextRollInt } from './random.js'
 
 type NativeActionInput = Parameters<typeof prepareNativeActionTest>[0]
@@ -35,9 +35,15 @@ type AreaActionSource = Pick<NativeActionInput, 'runtime' | 'adapter' | 'plan' |
   random?: (maximum: number) => number
 }
 
-/** A caught creature: its own facts and the preference of the roller who answers its save. */
+/**
+ * One entry the action reaches: a caught creature, or one ray aimed at a creature a further ray is
+ * aimed at too. It has its own facts, its own occurrence and the preference of the roller who answers
+ * its roll (the creature for a save, the caster for an attack).
+ */
 export type EncounterAreaTarget = {
   actorId: string
+  /** The occurrence the entry's sealed roll and outcome run under (`encounterChosenActorEntries`). */
+  occurrenceId: string
   binding: NativeActionInput['binding']
   autoRoll: EncounterActionAutoRoll
   /** The creature's Legendary Resistance on its current pool, asked for only once its save has failed. */
@@ -45,13 +51,14 @@ export type EncounterAreaTarget = {
 }
 
 /**
- * One caught creature's save: awaiting its roller, or answered and sealed. A failed save carries the
+ * One entry's roll: awaiting its roller, or answered and sealed. A failed save carries the
  * Legendary Resistance its creature may use, which must be decided before the area settles.
  */
 export type EncounterAreaTargetTest =
-  | { actorId: string; kind: 'PENDING'; pending: PendingNativeActionGraphs }
+  | { actorId: string; occurrenceId: string; kind: 'PENDING'; pending: PendingNativeActionGraphs }
   | {
       actorId: string
+      occurrenceId: string
       kind: 'TESTED'
       boundary: TestBoundary
       legendaryResistance: EncounterLegendaryResistanceCandidate | null
@@ -86,9 +93,9 @@ export function catchEncounterAreaActorIds(input: {
   return [...caught]
 }
 
-function requireDistinctTargets(targets: readonly EncounterAreaTarget[]) {
-  if (new Set(targets.map((target) => target.actorId)).size !== targets.length)
-    throw new Error('An area action catches each creature once.')
+function requireDistinctEntries(targets: readonly EncounterAreaTarget[]) {
+  if (new Set(targets.map((target) => target.occurrenceId)).size !== targets.length)
+    throw new Error('An area action reaches each entry once.')
 }
 
 async function testTarget(
@@ -101,7 +108,7 @@ async function testTarget(
   }
   const result = await prepareNativeActionTest({
     ...source,
-    occurrenceId: encounterAreaTargetOccurrenceId(source.occurrenceId, target.actorId),
+    occurrenceId: target.occurrenceId,
     binding: target.binding,
     autoRoll: target.autoRoll,
     // Runs after any completed TEST, whether it was answered or rolled for the creature.
@@ -112,26 +119,32 @@ async function testTarget(
     ...(resume ? { resume } : {})
   })
   return result.kind === 'PENDING'
-    ? { actorId: target.actorId, kind: 'PENDING', pending: result }
+    ? {
+        actorId: target.actorId,
+        occurrenceId: target.occurrenceId,
+        kind: 'PENDING',
+        pending: result
+      }
     : {
         actorId: target.actorId,
+        occurrenceId: target.occurrenceId,
         kind: 'TESTED',
         boundary: result,
         legendaryResistance: resistance.candidate
       }
 }
 
-/** Opens every caught creature's save at once; none is rolled for it and no damage is rolled. */
+/** Opens every entry's roll at once; none is rolled for it and no damage is rolled. */
 export async function prepareEncounterAreaTests(
   source: AreaActionSource & { targets: readonly EncounterAreaTarget[] }
 ): Promise<EncounterAreaTargetTest[]> {
-  requireDistinctTargets(source.targets)
+  requireDistinctEntries(source.targets)
   const tests: EncounterAreaTargetTest[] = []
   for (const target of source.targets) tests.push(await testTarget(source, target))
   return tests
 }
 
-/** Answers one creature's save, whatever the others have answered; the rest are left as they were. */
+/** Answers one entry's roll, whatever the others have answered; the rest are left as they were. */
 export async function answerEncounterAreaTest(
   input: AreaActionSource & {
     target: EncounterAreaTarget
@@ -139,8 +152,8 @@ export async function answerEncounterAreaTest(
     resolution: EncounterEvidenceAnswer
   }
 ): Promise<EncounterAreaTargetTest[]> {
-  const current = input.tests.find((test) => test.actorId === input.target.actorId)
-  if (current?.kind !== 'PENDING') throw new Error('This area save is not awaiting an answer.')
+  const current = input.tests.find((test) => test.occurrenceId === input.target.occurrenceId)
+  if (current?.kind !== 'PENDING') throw new Error('This area roll is not awaiting an answer.')
   const answered = await testTarget(input, input.target, {
     pending: current.pending,
     resolution: input.resolution
@@ -172,23 +185,49 @@ export function createFrozenRollTape(random: (maximum: number) => number) {
 }
 
 /**
- * Settles the whole area once every save is answered: each creature takes the outcome its own save
- * selected, with its own resistance, immunity and vulnerability, from damage frozen across them.
- * A creature may carry a Legendary Resistance decision sealed against its own failed save.
+ * The binding a creature's next entry finds it with: the hit points its latest hit point outcome
+ * left it, or the binding it had when it has none.
+ */
+export function bindingAfterHitPoints<Binding extends object>(
+  binding: Binding,
+  applications: readonly object[]
+): Binding {
+  const last = applications
+    .filter(
+      (application): application is CharacterHitPointOutcomeApplication =>
+        'afterCurrentHitPoints' in application
+    )
+    .pop()
+  return last
+    ? {
+        ...binding,
+        currentHitPoints: last.afterCurrentHitPoints,
+        temporaryHitPoints: last.afterTemporaryHitPoints
+      }
+    : binding
+}
+
+/**
+ * Settles the whole action once every roll is answered: each entry takes the outcome its own roll
+ * selected, with its own resistance, immunity and vulnerability. A point area (`rollsPerTarget`
+ * false) rolls its damage once and freezes it across the creatures; a list of rays rolls each ray's
+ * damage on its own, and a creature a further ray is aimed at meets the hit points its earlier rays
+ * left it. A creature may carry a Legendary Resistance decision sealed against its own failed save.
  */
 export async function settleEncounterAreaAction(
   input: AreaActionSource & {
     targets: readonly EncounterAreaTarget[]
     tests: readonly EncounterAreaTargetTest[]
     legendaryResistance?: ReadonlyMap<string, EncounterAreaLegendaryResistanceAudit>
+    rollsPerTarget?: boolean
   }
 ) {
-  requireDistinctTargets(input.targets)
+  requireDistinctEntries(input.targets)
   if (
     input.tests.length !== input.targets.length ||
     input.tests.some((test) => test.kind !== 'TESTED')
   )
-    throw new Error('Every caught creature must answer its save before the area settles.')
+    throw new Error('Every entry must answer its roll before the action settles.')
   if (
     input.tests.some(
       (test) =>
@@ -198,26 +237,29 @@ export async function settleEncounterAreaAction(
     )
   )
     throw new Error('A Legendary Resistance choice is undecided; the area cannot settle.')
-  const frozenRolls = createFrozenRollTape(input.random ?? nextRollInt)
+  const random = input.random ?? nextRollInt
+  const sharedRolls = createFrozenRollTape(random)
+  const bindings = new Map<string, EncounterAreaTarget['binding']>()
   const settled = []
   for (const target of input.targets) {
-    const test = input.tests.find((entry) => entry.actorId === target.actorId)
-    if (test?.kind !== 'TESTED') throw new Error('The area save is unavailable.')
-    const occurrenceId = encounterAreaTargetOccurrenceId(input.occurrenceId, target.actorId)
+    const test = input.tests.find((entry) => entry.occurrenceId === target.occurrenceId)
+    if (test?.kind !== 'TESTED') throw new Error('The area roll is unavailable.')
+    const binding = bindings.get(target.actorId) ?? target.binding
     const result = await continueNativeActionAfterTest({
       ...input,
-      occurrenceId,
-      binding: target.binding,
-      // The roller of a nested save would pause here: only the frozen damage may be rolled.
+      occurrenceId: target.occurrenceId,
+      binding,
+      // The roller of a nested save would pause here: only the damage may be rolled.
       autoRoll: { SOURCE: true, TARGET: false },
       afterTest: async () => undefined,
-      random: frozenRolls(),
+      random: input.rollsPerTarget ? createFrozenRollTape(random)() : sharedRolls(),
       boundary: test.boundary,
       legendaryResistance: input.legendaryResistance?.get(target.actorId) ?? null
     })
     if (result.kind !== 'COMPLETE')
-      throw new Error('An area outcome cannot ask for evidence beyond its frozen damage.')
-    settled.push({ actorId: target.actorId, occurrenceId, complete: result })
+      throw new Error('An area outcome cannot ask for evidence beyond its damage.')
+    bindings.set(target.actorId, bindingAfterHitPoints(binding, result.applications))
+    settled.push({ actorId: target.actorId, occurrenceId: target.occurrenceId, complete: result })
   }
   return settled
 }

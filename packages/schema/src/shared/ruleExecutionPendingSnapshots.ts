@@ -607,6 +607,7 @@ const encounterAreaActionPendingContextDtoSchema = lazySchema(() =>
             message: 'A placed zone fills an area.'
           })
         const seen = new Set<string>()
+        const seenOccurrences = new Set<string>()
         for (const [index, target] of value.targets.entries()) {
           const inner = target.snapshot.applicationContext
           if (target.token !== null && value.scene === null)
@@ -615,21 +616,27 @@ const encounterAreaActionPendingContextDtoSchema = lazySchema(() =>
               path: ['targets', index, 'token'],
               message: 'A token footprint is sealed only against a Scene that was read.'
             })
+          // A creature's own save is rolled by the creature, once. An attack ray is rolled by the
+          // caster, and a creature several rays are aimed at has an entry for each.
+          const casterRolls =
+            inner.kind === 'ENCOUNTER_ACTION' && inner.rollerActorId === value.casterActorId
           if (
-            seen.has(target.actorId) ||
-            value.removedActorIds.includes(target.actorId) ||
             inner.kind !== 'ENCOUNTER_ACTION' ||
+            seenOccurrences.has(target.snapshot.occurrenceId) ||
+            (seen.has(target.actorId) && !casterRolls) ||
+            value.removedActorIds.includes(target.actorId) ||
             inner.commandFingerprint !== value.commandFingerprint ||
             inner.initiatorUserId !== value.initiatorUserId ||
-            inner.rollerActorId !== target.actorId
+            (inner.rollerActorId !== target.actorId && !casterRolls)
           )
             context.addIssue({
               code: 'custom',
               path: ['targets', index],
               message:
-                'Each area save must be a unique, kept creature whose sealed continuation shares the area root.'
+                'Each area roll must be a distinct, kept creature whose sealed continuation shares the area root and is rolled by the creature or the caster.'
             })
           seen.add(target.actorId)
+          seenOccurrences.add(target.snapshot.occurrenceId)
           if (target.legendaryResistance) {
             if (
               target.testedJson === undefined ||

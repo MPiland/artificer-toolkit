@@ -513,6 +513,7 @@ export type Dnd5eCompiledEffectActionSource = Pick<
   | 'savingThrowAbilityDefinitionId'
   | 'compiledEffect'
   | 'spellCastLevel'
+  | 'characterLevel'
 >
 interface TestPlan {
   kind: TestKind
@@ -614,16 +615,20 @@ function isSupportedTestTargetPolicy(
   if (invocation.kind !== 'ACTION') return false
   const { targeting } = invocation
   if (targeting?.selectionKind === 'AREA_CONTENTS') return isSupportedTestArea(invocation)
-  // A bounded list of chosen creatures (Acid Splash) runs the same per-creature save on each, once
-  // per creature: a creature named again would save twice, so a repeating list is refused.
+  // A bounded list of chosen creatures runs the same test on each. A save list (Acid Splash) tests
+  // each creature once: a creature named again would save twice, so a repeating save list is
+  // refused. An attack list (Scorching Ray) is one roll per ray, so it may aim several rays at one
+  // creature, and it has no area.
   if (targeting?.selectionKind === 'CHOSEN_CREATURES') {
+    const attacks = dnd5eAttackKind(invocation.triggerCode) !== null
     if (
       targeting.dispositionKind !== 'ANY' ||
-      targeting.allowRepeatedTargets === true ||
-      invocation.triggerCode !== 'SAVING_THROW' ||
+      (!attacks &&
+        (targeting.allowRepeatedTargets === true || invocation.triggerCode !== 'SAVING_THROW')) ||
       !chosenCreaturesCapIsAuthored(targeting) ||
       (invocation.shape !== undefined &&
-        !chosenCreaturesAreaSupported(invocation.range.rangeKind, invocation.shape.shapeKind))
+        (attacks ||
+          !chosenCreaturesAreaSupported(invocation.range.rangeKind, invocation.shape.shapeKind)))
     )
       return false
   } else if (
@@ -2559,9 +2564,8 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
     supportsTargetRange &&
     invocation.targeting?.selectionKind === 'CHOSEN_CREATURES' &&
     invocation.targeting.dispositionKind === 'ANY' &&
-    chosenCreaturesMaxTargets(
-      resolveChosenCreaturesTargeting(invocation.targeting, action.spellCastLevel)
-    ) !== null &&
+    chosenCreaturesMaxTargets(resolveChosenCreaturesTargeting(invocation.targeting, action)) !==
+      null &&
     (!invocation.shape ||
       chosenCreaturesAreaSupported(invocation.range.rangeKind, invocation.shape.shapeKind))
   // A Legendary Action option is free; the Feature charge it spends is its cost.

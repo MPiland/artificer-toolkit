@@ -488,14 +488,14 @@ function AreaSavesControls({
       ) : null}
       {pending.saves.map((save) => (
         <Stack
-          aria-label={labelOf(save.actorId)}
+          aria-label={labelOf(save.targetActorId)}
           gap='xs'
           key={save.request.requestId}
           role='group'
         >
           <Group justify='space-between'>
             <Text fw={600} size='sm'>
-              {labelOf(save.actorId)}
+              {labelOf(save.targetActorId)}
             </Text>
             {canRemove ? (
               <Button
@@ -503,7 +503,7 @@ function AreaSavesControls({
                 disabled={disabled}
                 size='compact-sm'
                 variant='subtle'
-                onClick={() => onRemove(save.actorId)}
+                onClick={() => onRemove(save.targetActorId)}
               >
                 Remove from area
               </Button>

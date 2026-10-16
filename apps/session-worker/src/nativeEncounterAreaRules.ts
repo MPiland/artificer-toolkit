@@ -66,7 +66,6 @@ import {
   buildEncounterAreaPendingSnapshot,
   encounterAreaTargetCommandId,
   encounterAreaSettled,
-  encounterAreaTargetOccurrenceId,
   encounterChosenActorEntries,
   markEncounterAreaLegendaryResistanceDecided,
   markEncounterAreaSaveTested,
@@ -570,14 +569,19 @@ export async function sealReachSaves(
   })
 
   const occurrenceId = crypto.randomUUID()
+  const entries = encounterChosenActorEntries(
+    occurrenceId,
+    reached.map(({ prepared }) => prepared.target.id)
+  )
   const tests = await prepareEncounterAreaTests({
     runtime: input.runtime,
     random: input.random,
     adapter: lead.adapter,
     plan: lead.plan,
     occurrenceId,
-    targets: reached.map(({ prepared }) => ({
+    targets: reached.map(({ prepared }, index) => ({
       actorId: prepared.target.id,
+      occurrenceId: entries[index]!.occurrenceId,
       binding: prepared.binding,
       autoRoll: { SOURCE: false, TARGET: false },
       discoverLegendaryResistance: discoverNativeLegendaryResistance(input, prepared)
@@ -585,9 +589,9 @@ export async function sealReachSaves(
   })
   const commandJson = JSON.stringify(command)
   const initiatorUserId = input.initial.expectedUserId
-  const targets = reached.map(({ prepared, token, sceneContext, perceivedByCaster }) => {
-    const test = tests.find((candidate) => candidate.actorId === prepared.target.id)
-    if (test?.kind !== 'PENDING') throw new Error('An area save must wait for its roller.')
+  const targets = reached.map(({ prepared, token, sceneContext, perceivedByCaster }, index) => {
+    const test = tests.find((candidate) => candidate.occurrenceId === entries[index]!.occurrenceId)
+    if (test?.kind !== 'PENDING') throw new Error('An area roll must wait for its roller.')
     return {
       actorId: prepared.target.id,
       perceivedByCaster,
@@ -630,10 +634,14 @@ export async function sealReachSaves(
     area: reach.area && { origin: reach.area.origin, shape: reach.area.shape },
     targets
   })
-  // A creature whose roller auto-rolls has its save rolled now, so an auto-rolled failure opens its
+  // An entry whose roller auto-rolls has its roll made now, so an auto-rolled failed save opens its
   // Legendary Resistance choice. It is kept as the dice it rolled, which replay without rolling again.
   for (const [index, target] of targets.entries()) {
-    if (!input.requireAutoRoll(target.actorId)) continue
+    if (
+      target.snapshot.applicationContext.kind !== 'ENCOUNTER_ACTION' ||
+      !input.requireAutoRoll(target.snapshot.applicationContext.rollerActorId)
+    )
+      continue
     const entry = reached[index]!
     const requestId = target.snapshot.request.requestId
     const tested = await replayAreaTargetSave(
@@ -703,7 +711,10 @@ export async function planNativeLiveEncounterAreaAnswer(
     answered.snapshot.applicationContext.kind !== 'ENCOUNTER_ACTION' ||
     areaSnapshot.occurrenceId !== input.response.occurrenceId ||
     answered.snapshot.occurrenceId !==
-      encounterAreaTargetOccurrenceId(areaSnapshot.occurrenceId, answered.actorId) ||
+      encounterChosenActorEntries(
+        areaSnapshot.occurrenceId,
+        context.targets.map(({ actorId }) => actorId)
+      )[context.targets.indexOf(answered)]?.occurrenceId ||
     context.commandFingerprint !== input.fingerprint ||
     command.optionalCombatIntent != null
   )
@@ -925,7 +936,7 @@ async function revalidateAreaTarget(
   return { actor, target, evaluation }
 }
 
-/** Runs one creature's sealed save with its answer; an area save is always its target's own roll. */
+/** Runs one entry's sealed roll with its answer: a creature's own save, or the caster's roll for a ray. */
 async function replayAreaTargetSave(
   input: ReachPlanInput,
   { actor, target }: Pick<Awaited<ReturnType<typeof revalidateAreaTarget>>, 'actor' | 'target'>,
@@ -941,6 +952,7 @@ async function replayAreaTargetSave(
     occurrenceId: areaOccurrenceId,
     target: {
       actorId: actor.id,
+      occurrenceId: sealed.snapshot.occurrenceId,
       binding: target.prepared.binding,
       autoRoll: { SOURCE: false, TARGET: false },
       discoverLegendaryResistance: discoverNativeLegendaryResistance(input, target.prepared)
@@ -948,6 +960,7 @@ async function replayAreaTargetSave(
     tests: [
       {
         actorId: actor.id,
+        occurrenceId: sealed.snapshot.occurrenceId,
         kind: 'PENDING',
         pending: {
           ...restoreEncounterActionPending(sealed.snapshot),
@@ -1170,9 +1183,11 @@ export async function planNativeLiveEncounterAreaCommit(
   const { economy, attackAction } = first.evaluation
   const actionEconomy = economy?.consumption ?? null
 
+  // Each ray of an attack list rolls its own damage; a point area or a save list shares one roll.
+  const rollsPerTarget = lead.makesAttackRoll
   const tests = []
   for (const entry of kept) {
-    if (entry.sealed.testedJson === undefined) throw new Error('The area save is unanswered.')
+    if (entry.sealed.testedJson === undefined) throw new Error('The area roll is unanswered.')
     const resolution: EncounterEvidenceAnswer = JSON.parse(entry.sealed.testedJson)
     tests.push(await replayAreaTargetSave(input, entry, entry.sealed, areaOccurrenceId, resolution))
   }
@@ -1189,14 +1204,16 @@ export async function planNativeLiveEncounterAreaCommit(
     adapter: lead.adapter,
     plan: lead.plan,
     occurrenceId: areaOccurrenceId,
-    targets: kept.map(({ target }) => ({
+    targets: kept.map(({ target, sealed }) => ({
       actorId: target.prepared.target.id,
+      occurrenceId: sealed.snapshot.occurrenceId,
       binding: target.prepared.binding,
       autoRoll: { SOURCE: false, TARGET: false },
       discoverLegendaryResistance: discoverNativeLegendaryResistance(input, target.prepared)
     })),
     tests,
-    legendaryResistance: audits
+    legendaryResistance: audits,
+    rollsPerTarget
   })
 
   const resumed = input.response ?? input.removal
@@ -1211,7 +1228,7 @@ export async function planNativeLiveEncounterAreaCommit(
     actionEconomy,
     attackAction,
     settled,
-    rollsPerTarget: false,
+    rollsPerTarget,
     tests,
     audits,
     areaOccurrenceId,

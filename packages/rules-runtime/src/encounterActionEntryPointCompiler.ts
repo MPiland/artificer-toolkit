@@ -38,7 +38,7 @@ export function buildCompiledActionTargetPolicy(
     // A spell's cap scaled by its cast level is the number it is at this cast (Magic Missile's darts).
     targeting:
       targeting?.selectionKind === 'CHOSEN_CREATURES'
-        ? resolveChosenCreaturesTargeting(targeting, descriptor.spellCastLevel)
+        ? resolveChosenCreaturesTargeting(targeting, descriptor)
         : (targeting ?? null),
     // A zone an action places is the area it takes a point for, when the invocation names none.
     shape:

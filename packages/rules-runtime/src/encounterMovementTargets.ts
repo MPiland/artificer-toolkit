@@ -239,6 +239,10 @@ export function buildMovementTarget<
           }),
           policyOutput: effectiveRulePolicyOutput,
           spellDocumentsById: characterFacts.prepared.context.spellDocumentsById,
+          characterLevel: characterFacts.ruleEvaluation.facts.grantFoldFacts.base.classes.reduce(
+            (sum, { level }) => sum + level,
+            0
+          ),
           firstSequence: characterFacts.ruleEvaluation.facts.actionCandidates.length
         })
       : null

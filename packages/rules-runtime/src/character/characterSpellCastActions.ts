@@ -158,6 +158,8 @@ export function buildCharacterSpellCastActions(input: {
   castableCandidateIds: ReadonlySet<string>
   policyOutput: SpellPolicyOutput
   spellDocumentsById: ReadonlyMap<string, SpellAuthored> | undefined
+  /** The Character's level, the sum of its class levels. */
+  characterLevel: number
   firstSequence: number
 }): {
   candidates: CharacterActionCandidate[]
@@ -231,7 +233,8 @@ export function buildCharacterSpellCastActions(input: {
       mechanicsOwner,
       activationSourceKind: 'ACTIVE_SOURCE',
       compiledEffect: group,
-      spellCastLevel: cast.castLevel
+      spellCastLevel: cast.castLevel,
+      characterLevel: input.characterLevel
     })
     decisions.push({
       sequence,
