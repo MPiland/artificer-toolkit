@@ -7,7 +7,7 @@ import {
   withEncounterRuleUsageUsed
 } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
-import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
+import { club as srdClub } from '@artificer-toolkit/source-data/srd/equipment/club.js'
 import { fighter } from '@artificer-toolkit/source-data/srd/classes/fighter.js'
 import { SRD_ACTION_ALLOWANCE_DEFINITION_ID } from '@artificer-toolkit/source-data/srd/ruleState.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
@@ -110,7 +110,7 @@ describe('a Fighter’s Attack action in the room', () => {
             actionId: room.actionId,
             targetIds: [WOLF_ID],
             // The record names the Club it was made with, for the off-hand requirement.
-            item: { itemInstanceId: expect.any(String), properties: club.properties }
+            item: { itemInstanceId: expect.any(String), properties: srdClub.properties }
           }
         ]
       }
