@@ -5731,9 +5731,8 @@
                 "after": ["ATTACK-9.T1"]
               },
               "id": "ATTACK-9.T2b",
-              "status": "TODO",
-              "text": "D119 (d): net roll-mode facet predicate (ADVANTAGE, NOT_DISADVANTAGE) and any-of composition if missing.",
-              "activeWorkbook": "docs/handoffs/slice-attack-9-t2.md"
+              "status": "DONE",
+              "text": "D119 (d): net roll-mode facet predicate (ADVANTAGE, NOT_DISADVANTAGE) and any-of composition if missing."
             },
             {
               "closes": ["ATTACK-9.2"],
@@ -5746,7 +5745,8 @@
               },
               "id": "ATTACK-9.T2c",
               "status": "TODO",
-              "text": "D119 (e): hostile-of-target-within-N-ft predicate from scene positions, planned by the room and re-verified by persistence."
+              "text": "D119 (e): hostile-of-target-within-N-ft predicate from scene positions, planned by the room and re-verified by persistence.",
+              "activeWorkbook": "docs/handoffs/slice-attack-9-t2.md"
             },
             {
               "closes": ["ATTACK-9.2"],
@@ -7275,12 +7275,13 @@
                 "rr": 3,
                 "size": 3,
                 "after": ["SPELLS-8.T1"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-8-t1.md"
             },
             {
               "id": "SPELLS-8.T9",
               "text": "Spells with a bonus action, reaction, mixed or no activation casting time are offered with the right activation.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-8.1"],
               "wsjf": {
                 "bv": 5,
@@ -7288,8 +7289,7 @@
                 "rr": 3,
                 "size": 3,
                 "after": ["SPELLS-8.T1"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-spells-8-t1.md"
+              }
             },
             {
               "id": "SPELLS-8.T10",
