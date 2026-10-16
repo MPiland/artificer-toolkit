@@ -7,7 +7,10 @@ import { encounterRunStateSchema } from '@artificer-toolkit/schema/projections/e
 import { encounterOptionalCombatSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/optionalCombat'
 import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
 import { SRD_ACTION_ALLOWANCE_DEFINITION_ID } from '@artificer-toolkit/source-data/srd/ruleState.js'
-import { SRD_ATHLETICS_SKILL_ID } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import {
+  SRD_ATHLETICS_SKILL_ID,
+  SRD_CONDITION_TYPES
+} from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
@@ -195,6 +198,24 @@ describe('room Disarm contests', () => {
     await startDisarm(disarming)
 
     expect((await readRoomHistory(disarming.room.room.base.stub)).activeEffects).toEqual([])
+  })
+
+  // A Disarm releases no condition yet (SPELLS-27.T2b), so it must not strand one.
+  it('keeps an initiator’s grant that owns a condition, which a Disarm cannot release', async () => {
+    const disarming = await disarmRoom({
+      autoRoll: 'GAME_MASTER',
+      rolls: [9, 9],
+      seed: seedModifierGrant({
+        sourceActorId: TARGET_ID,
+        holderActorId: SOURCE_ID,
+        lifecycle: { consumeOnFirstEvents: ['ON_ATTACK_ROLL'] },
+        ownedConditionId: SRD_CONDITION_TYPES.find(({ code }) => code === 'INVISIBLE')!.id
+      })
+    })
+
+    await startDisarm(disarming)
+
+    expect((await readRoomHistory(disarming.room.room.base.stub)).activeEffects).toHaveLength(1)
   })
 
   it('starts a Disarm of a two-handed holder', async () => {

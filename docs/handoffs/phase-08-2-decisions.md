@@ -772,6 +772,11 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - **Cost:** `optionalOnHit` is generic over the existing spend kinds. A spell slot with a level choice binds `spellCastLevel` for the shared row selector (D118). A resource-pool use lets Stunning Strike (ki) reuse it. It is not slot-only.
   - **Creature type:** a predicate kind in D119's rider predicate union, owned by ATTACK-9.T2b. It is not a condition on a damage row. It reuses the creature-type ids from SPELLS-8.T13's `allowedCreatureTypeIds`. It is added after T2b merges, and the offer phase is built in the meantime.
   - **Improved Divine Smite:** a mandatory D119(a) rider with no offer.
+* **D124** (2026-10-16) Releasing a condition when its effect ends (SPELLS-27.T2; design in [slice-spells-27.md](slice-spells-27.md#7-spells-27t2-effects-ended-by-an-event-release-what-they-owned)). Decided by the main session.
+  - **Where:** the source side of the action's mechanics batch. The planner emits `CONDITION_REMOVE` for conditions the ended effects alone owned (`endedMaintenanceConditions`), for Character and Creature holders, in the same transaction as the event.
+  - **Contract:** `sourceApplications` is required (no default) on `CHARACTER_MECHANICS_BATCH` and `ENCOUNTER_ACTOR_MECHANICS_BATCH` receipts and settled DTOs. It holds only contiguous `CONDITION_REMOVE` applications, and the source stream version moves exactly when one applied. Local development receipts that fail validation take the approved local reset.
+  - **Undo:** the RESOLVE_ACTION root receipt requires `endedMaintainedStates`. Undo restores a maintained state (Concentration) an event ended, for any maintained-state termination, by receipt, before the effects. A removed condition comes back through a `restoredConditionIds` inverse fenced by the source stream version.
+  - **Authoring fence:** a condition-owning v2 effect cannot list an end event whose consumer does not release the condition yet (`ON_ABILITY_CHECK`, `ON_HIT_POINTS_REGAINED`, `ON_INCAPACITATED`). Until SPELLS-27.T2b migrates the Legendary window, movement opportunity attack and Disarm, those roots skip condition-owning effects.
 
 ## Approved implementation decisions
 

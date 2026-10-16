@@ -3,7 +3,7 @@ import { maintenanceCompleteRuleExecutionResultDtoSchema } from '@artificer-tool
 import { planDepartedSourceGrantRemovals } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import { readRunActors } from './documents.js'
-import { createActiveRuleEffectStore } from './effectStore.js'
+import { createActiveRuleEffectStore, maintainedStateTerminatesWhenEmpty } from './effectStore.js'
 import { reconcileNativeMaintenanceOwners } from './maintenanceOwnerPersistence.js'
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { readEncounterCharacterPlay, type EncounterCharacterRow } from './characterPlay.js'
@@ -137,10 +137,11 @@ export async function cleanupRemovedActorEffects(
       stateId: state.id
     })
     const ownedByRemovedActor = state.ownerActorId === input.actorId
-    const terminalWhenEmpty =
-      state.descriptor.schemaVersion === 1 ||
-      state.descriptor.emptyDependentPolicy === 'TERMINATE_WHEN_EMPTY'
-    if (remaining.length !== 0 || (!ownedByRemovedActor && !terminalWhenEmpty)) continue
+    if (
+      remaining.length !== 0 ||
+      (!ownedByRemovedActor && !maintainedStateTerminatesWhenEmpty(state))
+    )
+      continue
     await effects.deleteMaintainedStateCas({
       id: state.id,
       encounterId: input.state.id,

@@ -578,6 +578,7 @@ export async function persistEncounterAreaCommit(
         ...input,
         endedGrants: [...input.endedGrants, ...healEndedGrants]
       }),
+      endedMaintainedStates: [],
       addedConcentrationCasterId: null,
       speedBonusTurn: null,
       issuerLines: children.flatMap(({ actor, batch }) => {

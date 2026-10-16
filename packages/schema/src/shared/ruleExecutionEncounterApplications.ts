@@ -33,6 +33,8 @@ import {
   encounterFeatureResourceReceiptDtoSchema,
   maintainedEffectTransitionDtoSchema,
   resolveDispositionDamage,
+  sourceApplicationsChangeState,
+  sourceApplicationsDtoSchema,
   stateEffectCreateReceiptDtoSchema,
   validateMaintainedEffectCreation,
   validateStateEffectTransitions
@@ -460,7 +462,9 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = lazySchema
       }),
       applications: z
         .array(characterMechanicsApplicationDtoSchema)
-        .check(z.maxLength(RULE_GRAPH_LIMITS.NODES))
+        .check(z.maxLength(RULE_GRAPH_LIMITS.NODES)),
+      /** The source's own conditions released by effects its action ended; empty when none. */
+      sourceApplications: sourceApplicationsDtoSchema
     })
     .check(
       z.superRefine((value, context) => {
@@ -749,7 +753,8 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = lazySchema
             stow !== null ||
             consumption !== null ||
             spell !== null ||
-            sourceMaintenanceMutation
+            sourceMaintenanceMutation ||
+            sourceApplicationsChangeState(value.sourceApplications)
           )
         )
           context.addIssue({

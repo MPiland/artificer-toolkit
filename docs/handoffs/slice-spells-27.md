@@ -157,3 +157,20 @@ Own commit range on `ci/spells-5-t9`, mergeable apart from SPELLS-27 beyond T1.
   Paralyzed condition when the Campaign clock reaches the expiry).
 - **Note for T2:** Invisibility's plan now takes the same scope, so a one-hour Invisibility on a
   Character outlasts a three-round fight.
+
+## 7. SPELLS-27.T2: effects ended by an event release what they owned
+
+Decided as D124.
+
+- **One consumer.** `effectsEndedBy(effects, event)` reads `consumeOnFirstEvents` and `endOnEvents`; `consumableGrants` and `grantsEndedBy` are deleted. Invisibility ends on its holder's attack roll after granting advantage on that roll.
+- **Release.** `planNativeEncounterActionMechanics` plans `CONDITION_REMOVE` on the source batch (`sourceReleases` from `endedEffectConditionReleases`, which wraps `endedMaintenanceConditions`) for Character and Creature sources. A self-targeted action cannot release (the planner throws); the holder's own batch already carries its applications.
+- **Contract.** `sourceApplications` is required on both batch kinds and on settled DTOs. Stream version: the Character source uses `characterStreamVersion`; a Creature source passes `null`.
+- **Undo.** The root receipt carries `endedMaintainedStates`; `actionRevert.ts` restores them (`restoreMaintainedState`) before `restoreConsumedGrants`, then restores the condition through a `restoredConditionIds` inverse fenced by the source stream version. Actor-held effect rows store `sourceEncounterId: null`, so the Run id comes from `owner.encounterId`.
+- **Authoring fence.** `NON_RELEASING_EFFECT_EVENTS` rejects condition-owning v2 definitions that list an event whose consumer does not release.
+- **Local data.** Development receipts that fail the new required fields take the approved local reset.
+
+### Split
+
+- **T2a (this slice):** action and reaction attack rolls, schema, persistence and undo. The Legendary window, movement opportunity attack and Disarm skip condition-owning effects (`!ownsCondition` fences in `deleteHeldAttackRollGrants`, `nativeDisarm.ts`, `nativeEncounterMovement.ts`), so no intermediate merge strands a condition.
+- **T2b:** the Legendary window, movement opportunity attack and Disarm release their conditions through the same source batch; the three fences are removed.
+- AC 27.1 closes only when T3 (the cast half) is in.

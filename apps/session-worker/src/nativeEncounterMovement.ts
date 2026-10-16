@@ -52,7 +52,10 @@ import { prepareEncounterActionMechanics } from '@artificer-toolkit/rules-runtim
 import { resolveEncounterActionSource } from '@artificer-toolkit/rules-runtime/encounterActionSources'
 import { lockedRelationshipActionFacts } from '@artificer-toolkit/rules-runtime/encounterRelationshipActionFacts'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
-import { effectsEndedBy } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
+import {
+  effectsEndedBy,
+  ownsCondition
+} from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
 import { prepareEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomy'
 import {
   discoverEncounterMovementPassage,
@@ -237,12 +240,14 @@ export async function prepareNativeLiveMovement(
     reactionSettlements.set(plan, {
       kind: 'REACTION',
       // The same attack roll uses up the reactor's one-roll grants (Vicious Mockery's disadvantage).
+      // The reaction has no source release yet (SPELLS-27.T2b), so an effect that owns a condition
+      // outlasts the roll.
       consumedGrants:
         typeof prepared.binding.actionMechanic.attackBonus === 'number'
           ? effectsEndedBy(
               prepared.movementTargets.get(prepared.actor.id)?.activeEffects ?? [],
               'ON_ATTACK_ROLL'
-            )
+            ).filter((effect) => !ownsCondition(effect))
           : [],
       execution: result.reactionExecution,
       resourceConsumption: plan.prepared.prepared.characterActionState?.resourceConsumption ?? null,

@@ -37,6 +37,7 @@ import {
   readEncounterBasicActionEntries
 } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
 import { encounterActionTargetKind } from '@artificer-toolkit/rules-runtime/encounterAreaAction'
+import { endedEffectConditionReleases } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
 import { effectsEndedBy } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
 import { encounterSceneGridPolicyRegistry } from '@artificer-toolkit/rules-runtime/sceneGridPolicyRegistry'
 import {
@@ -490,11 +491,18 @@ export async function planNativeLiveEncounterAction(
     speedDefinitions: system.speeds
   })
   // Only an attack roll uses the attacker's one-roll grants (Vicious Mockery's disadvantage, Help);
-  // a saving-throw action leaves them for the next attack.
+  // a saving-throw action leaves them for the next attack. An effect that ends with the roll
+  // (Invisibility) releases the condition it alone held in the source's own batch.
+  const heldEffects = activeEffectsByActorId.get(prepared.actor.id) ?? []
   const consumedGrants =
     typeof prepared.binding.actionMechanic.attackBonus === 'number'
-      ? effectsEndedBy(activeEffectsByActorId.get(prepared.actor.id) ?? [], 'ON_ATTACK_ROLL')
+      ? effectsEndedBy(heldEffects, 'ON_ATTACK_ROLL')
       : []
+  const sourceReleases = endedEffectConditionReleases({
+    holderActorId: prepared.actor.id,
+    held: heldEffects,
+    ended: consumedGrants
+  })
   // An optional-combat intent routes to the Disarm planner.
   if (command.optionalCombatIntent != null) throw new Error('The action is not an ordinary action.')
   const { activationCode, economy, suppressed, attackAction } =
@@ -845,6 +853,7 @@ export async function planNativeLiveEncounterAction(
         ...execution.applications,
         ...preparedEffects.relationshipConditionApplications
       ],
+      sourceReleases,
       forceTargetVersionAdvance:
         prepared.target.kind === 'CHARACTER' &&
         (preparedEffects.stateEffect !== null ||

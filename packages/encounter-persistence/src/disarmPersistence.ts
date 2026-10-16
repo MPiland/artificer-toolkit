@@ -320,6 +320,7 @@ export async function persistEncounterDisarmCommit(
       // Disarm has no "Do it anyway"; its checks stay hard.
       ruleOverrides: [],
       consumedGrants: input.consumedGrants,
+      endedMaintainedStates: [],
       addedConcentrationCasterId: null,
       speedBonusTurn: null,
       commandFingerprint: fingerprint,

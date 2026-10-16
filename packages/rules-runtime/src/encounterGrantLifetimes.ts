@@ -28,7 +28,7 @@ function isModifierGrant(effect: ActiveRuleEffectRecord) {
   )
 }
 
-function ownsCondition(effect: ActiveRuleEffectRecord) {
+export function ownsCondition(effect: ActiveRuleEffectRecord) {
   return (
     effect.definition.schemaVersion === 2 &&
     effect.definition.stateContributions.some(({ kind }) => kind === 'CONDITION_OWNERSHIP')
@@ -48,9 +48,10 @@ export function effectsEndedBy(
   return effects.filter(
     ({ definition }) =>
       definition.schemaVersion === 2 &&
-      [...definition.recurrence.consumeOnFirstEvents, ...definition.recurrence.endOnEvents].includes(
-        event
-      )
+      [
+        ...definition.recurrence.consumeOnFirstEvents,
+        ...definition.recurrence.endOnEvents
+      ].includes(event)
   )
 }
 

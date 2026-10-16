@@ -66,6 +66,7 @@ describe('a stabilize action (the Healer’s Kit) in the room', () => {
 
     expect(await settledApplicationOutputs(room, command.commandId)).toMatchObject({
       kind: 'CHARACTER_MECHANICS_BATCH',
+      sourceApplications: [],
       sourceCharacterId: FIGHTER_ID,
       resourceConsumption: {
         chargeId: healersKit.charges?.id,

@@ -130,9 +130,9 @@ export function buildEncounterActionStoredExecution(input: {
                   actionEconomyTransition: actionEconomyReceipt(
                     input.reaction.spent?.economy ?? null
                   ),
-                  activeEffectTransitions: (input.reaction.spent?.activeEffectTransitions ?? []).map(
-                    (transition) => characterEffectReceipt(transition, null)
-                  )
+                  activeEffectTransitions: (
+                    input.reaction.spent?.activeEffectTransitions ?? []
+                  ).map((transition) => characterEffectReceipt(transition, null))
                 }
               : null,
             ...(input.maintenanceTransition
@@ -141,7 +141,8 @@ export function buildEncounterActionStoredExecution(input: {
             d20: execution.d20,
             nestedD20: execution.nestedD20,
             targetTransition: mechanics.targetTransition,
-            applications: mechanics.receiptApplications
+            applications: mechanics.receiptApplications,
+            sourceApplications: settled.sourceApplications
           }
         : {
             kind: 'ENCOUNTER_ACTOR_MECHANICS_BATCH',
@@ -153,7 +154,8 @@ export function buildEncounterActionStoredExecution(input: {
             ...(input.maintenanceTransition ||
             settled.sourceItemUseStateTransition ||
             settled.itemConsumptionReceipt ||
-            settled.spellConsumptionReceipt
+            settled.spellConsumptionReceipt ||
+            settled.sourceApplications.length
               ? {
                   sourceCharacterId: actor.kind === 'CHARACTER' ? actor.sourceId : null
                 }
@@ -176,7 +178,8 @@ export function buildEncounterActionStoredExecution(input: {
             d20: execution.d20,
             nestedD20: execution.nestedD20,
             targetTransition: mechanics.targetTransition,
-            applications: mechanics.receiptApplications
+            applications: mechanics.receiptApplications,
+            sourceApplications: settled.sourceApplications
           }
   })
 }

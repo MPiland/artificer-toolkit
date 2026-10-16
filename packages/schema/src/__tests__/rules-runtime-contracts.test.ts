@@ -381,6 +381,7 @@ function maintainedCharacterReceipt() {
   const maintenanceDefinitionId = '00000000-0000-4000-8000-000000000303'
   return {
     kind: 'CHARACTER_MECHANICS_BATCH' as const,
+    sourceApplications: [],
     actionEconomyTransition: null,
     schemaVersion: 1 as const,
     occurrenceId: turnBatchIds.occurrence,
@@ -449,6 +450,7 @@ function encounterActorActiveEffectReceipt() {
   }
   return {
     kind: 'ENCOUNTER_ACTOR_MECHANICS_BATCH' as const,
+    sourceApplications: [],
     actionEconomyTransition: null,
     schemaVersion: 1 as const,
     occurrenceId: turnBatchIds.occurrence,
@@ -1835,6 +1837,7 @@ describe('rules runtime contracts', () => {
     }
     const envelope = (application: Record<string, unknown>, after: typeof before) => ({
       kind: 'CHARACTER_MECHANICS_BATCH' as const,
+      sourceApplications: [],
       actionEconomyTransition: null,
       schemaVersion: 1 as const,
       occurrenceId: turnBatchIds.occurrence,
@@ -1930,6 +1933,7 @@ describe('rules runtime contracts', () => {
     const stableAfter = { ...dyingBefore, deathSaves: { successes: 0, failures: 0, stable: true } }
     const envelope = (applied: boolean, before: typeof dyingBefore, after: typeof dyingBefore) => ({
       kind: 'CHARACTER_MECHANICS_BATCH' as const,
+      sourceApplications: [],
       actionEconomyTransition: null,
       schemaVersion: 1 as const,
       occurrenceId: turnBatchIds.occurrence,
@@ -2208,6 +2212,83 @@ describe('rules runtime contracts', () => {
     ).toMatchObject({ sourceCharacterStreamVersion: 4 })
   })
 
+  describe('conditions an action’s ended effects released from its source (SPELLS-27.T2)', () => {
+    const release = (ordinal: number, applied = true) => ({
+      ordinal,
+      kind: 'CONDITION_REMOVE' as const,
+      conditionId: turnBatchIds.condition,
+      sourceActiveEffectId: turnBatchIds.effect,
+      beforePresent: true,
+      afterPresent: !applied,
+      applied,
+      sourceNodeId: 'effect-node',
+      sourceOperationKey: 'active-effect.ended',
+      authoredPath: null,
+      resolvedPath: null
+    })
+    const releasing = (
+      sourceApplications: unknown[],
+      sourceCharacterStreamVersion: number | null
+    ) => ({
+      ...encounterActorActiveEffectReceipt(),
+      sourceCharacterId: turnBatchIds.character,
+      sourceApplications,
+      sourceCharacterStreamVersion
+    })
+
+    it('requires the field on both batch kinds, empty when nothing was released', () => {
+      const { sourceApplications: _omitted, ...missing } = encounterActorActiveEffectReceipt()
+      expect(serverRuleExecutionApplicationOutputsDtoSchema.safeParse(missing).success).toBe(false)
+      const { sourceApplications: _omittedCharacter, ...missingCharacter } =
+        maintainedCharacterReceipt()
+      expect(
+        serverRuleExecutionApplicationOutputsDtoSchema.safeParse(missingCharacter).success
+      ).toBe(false)
+    })
+
+    it('moves the source Character stream version exactly when a release applied', () => {
+      expect(
+        serverRuleExecutionApplicationOutputsDtoSchema.parse(releasing([release(0)], 4))
+      ).toMatchObject({ sourceApplications: [{ kind: 'CONDITION_REMOVE', applied: true }] })
+      expect(
+        serverRuleExecutionApplicationOutputsDtoSchema.safeParse(releasing([release(0)], null))
+          .success
+      ).toBe(false)
+      // A release that changed nothing leaves the stream where it was.
+      expect(
+        serverRuleExecutionApplicationOutputsDtoSchema.parse(releasing([release(0, false)], null))
+      ).toMatchObject({ sourceCharacterStreamVersion: null })
+      expect(
+        serverRuleExecutionApplicationOutputsDtoSchema.safeParse(releasing([release(0, false)], 4))
+          .success
+      ).toBe(false)
+    })
+
+    it('holds only contiguous condition releases', () => {
+      expect(
+        serverRuleExecutionApplicationOutputsDtoSchema.safeParse(releasing([release(1)], 4)).success
+      ).toBe(false)
+      expect(
+        serverRuleExecutionApplicationOutputsDtoSchema.safeParse(
+          releasing(
+            [
+              {
+                ordinal: 0,
+                kind: 'STABILIZE',
+                applied: true,
+                sourceNodeId: 'effect-node',
+                sourceOperationKey: 'active-effect.ended',
+                authoredPath: null,
+                resolvedPath: null
+              }
+            ],
+            4
+          )
+        ).success
+      ).toBe(false)
+    })
+  })
+
   it('records one action allowance use, including an overridden use past its maximum', () => {
     const transition = {
       definitionId: turnBatchIds.source,
@@ -2387,6 +2468,7 @@ describe('rules runtime contracts', () => {
 
     expect(serverRuleExecutionApplicationOutputsDtoSchema.parse(receipt)).toMatchObject({
       kind: 'CHARACTER_MECHANICS_BATCH',
+      sourceApplications: [],
       actionEconomyTransition: null,
       maintenanceTransition: {
         characterOwnerTransitions: [
@@ -2441,6 +2523,7 @@ describe('rules runtime contracts', () => {
   it('records only exact, non-overlapping Encounter Feature resource consumption', () => {
     const receipt = {
       kind: 'ENCOUNTER_ACTOR_MECHANICS_BATCH' as const,
+      sourceApplications: [],
       actionEconomyTransition: null,
       schemaVersion: 1 as const,
       occurrenceId: turnBatchIds.occurrence,
@@ -2533,6 +2616,7 @@ describe('rules runtime contracts', () => {
     }
     const receipt = {
       kind: 'ENCOUNTER_ACTOR_MECHANICS_BATCH' as const,
+      sourceApplications: [],
       actionEconomyTransition: null,
       schemaVersion: 1 as const,
       occurrenceId: turnBatchIds.occurrence,
