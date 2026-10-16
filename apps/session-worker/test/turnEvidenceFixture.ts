@@ -40,6 +40,8 @@ export async function seedTurnSaveEffect(input: {
   ticks: number
   damage: number
   occurredAt: string
+  /** The maintained state this effect depends on, so it is a dependent of that state. */
+  maintainedEffectStateId?: string
 }) {
   const { actor } = input
   if (actor.kind === 'CHARACTER') throw new Error('Turn save effects target creature actors.')
@@ -124,6 +126,7 @@ export async function seedTurnSaveEffect(input: {
     id: crypto.randomUUID(),
     owner: { kind: 'ENCOUNTER_ACTOR', encounterId: input.encounterId, targetActorId: actor.id },
     occurredAt: input.occurredAt,
+    maintainedEffectStateId: input.maintainedEffectStateId,
     definition: activeRuleEffectDefinitionDtoSchema.parse({
       schemaVersion: 1,
       origin: {

@@ -215,6 +215,8 @@ export interface MovementRoomConfig {
   characterSpellcasting?: Parameters<typeof characterRoomInputs>[0]['spellcasting']
   /** An assigned Character the Run does not hold, owned by the room's player (SPELLS-5.11, Q1). */
   outsideCasterCharacterId?: string
+  /** The actor id a seeded dependent targets to sit on the outside Character (it is not a Run actor). */
+  outsideCasterActorId?: string
   /** A second Character of the Run (a CHARACTER actor with this `characterId`), owned by the room's second player. */
   secondCharacter?: {
     characterId: string
@@ -454,6 +456,8 @@ export async function movementRoom(config: MovementRoomConfig) {
   const characterOfActor = new Map(
     actors.flatMap((actor) => (actor.kind === 'CHARACTER' ? [[actor.id, actor.sourceId]] : []))
   )
+  if (config.outsideCasterActorId && config.outsideCasterCharacterId)
+    characterOfActor.set(config.outsideCasterActorId, config.outsideCasterCharacterId)
   const characterDependents = memory
     .documents('encounterActiveRuleEffects')
     .filter((row) => characterOfActor.has(row.targetActorId))
@@ -462,16 +466,23 @@ export async function movementRoom(config: MovementRoomConfig) {
     kind: 'RUN',
     encounterVersion: state.version,
     activeEncounterId: null,
-    maintenanceCharacterOwners: characterDependents.flatMap((row) =>
-      row.maintainedEffectStateId
-        ? [
-            {
-              maintainedStateId: row.maintainedEffectStateId,
-              characterId: characterOfActor.get(row.targetActorId)!
-            }
-          ]
-        : []
-    ),
+    maintenanceCharacterOwners: [
+      ...new Map(
+        characterDependents.flatMap((row) =>
+          row.maintainedEffectStateId
+            ? [
+                [
+                  `${row.maintainedEffectStateId}:${characterOfActor.get(row.targetActorId)}`,
+                  {
+                    maintainedStateId: row.maintainedEffectStateId,
+                    characterId: characterOfActor.get(row.targetActorId)!
+                  }
+                ] as const
+              ]
+            : []
+        )
+      ).values()
+    ],
     documents: memoryRoomDocuments(memory, [
       'encounterRuns',
       'encounterRunActors',

@@ -17,10 +17,12 @@ import {
   readPendingActionDecision,
   readRoomHistory
 } from './roomHistoryReads.js'
+import { seedTurnSaveEffect } from './turnEvidenceFixture.js'
 
 /**
  * ROOM-6.3, 6.5, 6.6: the maintenance variants the real room settles. A Fighter's Targeted Surge
- * replaces the prior maintained state the Fighter already owns, whose dependents sit on Characters.
+ * replaces the prior maintained state the Fighter already owns; the prior state's dependents sit on
+ * Characters of the Run, on a Character outside the Run, or on a Creature that expires first.
  */
 
 const FIGHTER_ACTOR_ID = testUuid(0xe00)
@@ -29,6 +31,7 @@ const CLERIC_ACTOR_ID = testUuid(0xe02)
 const CLERIC_ID = testUuid(0xe03)
 const WOLF_ID = testUuid(0xe04)
 const PRIOR_STATE_ID = testUuid(0xe10)
+const wolf = srdCreatureActor({ id: WOLF_ID, creature: plainWolf })
 /** The captured Character page starts at Character stream version 1 (see `characterPageFixture`). */
 const CAPTURED_STREAM_VERSION = 1
 
@@ -39,31 +42,42 @@ afterEach(() => {
 
 const targetedSurge = surgeFeature({ seed: 0xe100, label: 'Targeted Surge', self: false })
 
-/**
- * The Fighter already maintains a state under `emptyDependentPolicy`; each of `dependentActorIds`
- * (Character actors) holds one effect it maintains.
- */
+type EffectStore = Parameters<NonNullable<ActionRoomConfig['seed']>>[0]['effects']
+type EmptyDependentPolicy = 'TERMINATE_WHEN_EMPTY' | 'RETAIN_UNTIL_TERMINAL'
+
+/** The Fighter's maintained state under `emptyDependentPolicy`, before any dependent joins it. */
+function createPriorState(input: {
+  effects: EffectStore
+  encounterId: string
+  occurredAt: string
+  emptyDependentPolicy: EmptyDependentPolicy
+}) {
+  const { effects, encounterId, occurredAt } = input
+  return effects.createMaintainedState({
+    id: PRIOR_STATE_ID,
+    encounterId,
+    ownerActorId: FIGHTER_ACTOR_ID,
+    descriptor: {
+      schemaVersion: 2,
+      maintenanceDefinitionId: maintenanceDefinition.id,
+      definitionChecksum: maintenanceDefinition.checksum,
+      sourceActionId: testUuid(0xe30),
+      sourceOccurrenceId: testUuid(0xe31),
+      sourceActorId: FIGHTER_ACTOR_ID,
+      replacementPolicy: 'REPLACE_SAME_DEFINITION',
+      emptyDependentPolicy: input.emptyDependentPolicy
+    },
+    occurredAt
+  })
+}
+
+/** The Fighter already maintains a state; each of `dependentActorIds` holds one effect it maintains. */
 function priorMaintenance(input: {
-  emptyDependentPolicy: 'TERMINATE_WHEN_EMPTY' | 'RETAIN_UNTIL_TERMINAL'
+  emptyDependentPolicy: EmptyDependentPolicy
   dependentActorIds: readonly string[]
 }): NonNullable<ActionRoomConfig['seed']> {
   return async ({ effects, encounterId, occurredAt }) => {
-    await effects.createMaintainedState({
-      id: PRIOR_STATE_ID,
-      encounterId,
-      ownerActorId: FIGHTER_ACTOR_ID,
-      descriptor: {
-        schemaVersion: 2,
-        maintenanceDefinitionId: maintenanceDefinition.id,
-        definitionChecksum: maintenanceDefinition.checksum,
-        sourceActionId: testUuid(0xe30),
-        sourceOccurrenceId: testUuid(0xe31),
-        sourceActorId: FIGHTER_ACTOR_ID,
-        replacementPolicy: 'REPLACE_SAME_DEFINITION',
-        emptyDependentPolicy: input.emptyDependentPolicy
-      },
-      occurredAt
-    })
+    await createPriorState({ effects, encounterId, occurredAt, ...input })
     for (const [index, targetActorId] of input.dependentActorIds.entries())
       await effects.create({
         id: testUuid(0xe40 + index),
@@ -76,23 +90,36 @@ function priorMaintenance(input: {
   }
 }
 
-/** The Fighter and the Cleric (a second player's Character) beside the Wolf the Surge targets. */
-function maintenanceRoom(config: Pick<ActionRoomConfig, 'automationMode' | 'seed'>) {
+/**
+ * The Fighter beside the Wolf the Surge targets, and the Cleric: a second player's Character in the
+ * Run, or with `clericSeat: 'OUTSIDE'` one the Run does not hold.
+ */
+function maintenanceRoom(
+  config: Pick<ActionRoomConfig, 'automationMode' | 'seed' | 'rolls' | 'definitions'> & {
+    clericSeat?: 'OUTSIDE'
+  }
+) {
+  const { clericSeat, ...roomConfig } = config
+  const fighter = characterActor({ id: FIGHTER_ACTOR_ID, characterId: FIGHTER_ID })
   return actionRoom({
-    ...config,
+    ...roomConfig,
     // Assisted rooms wait for the player's roll; the others roll for the player or the GM.
     ...(config.automationMode !== 'ASSISTED' && { autoRoll: 'BOTH' as const }),
     // Each action's one d4 shows 1.
-    rolls: [0, 0],
+    rolls: config.rolls ?? [0, 0],
     characterPlay: { currentHitPoints: 5 },
-    actors: [
-      characterActor({ id: FIGHTER_ACTOR_ID, characterId: FIGHTER_ID }),
-      characterActor({ id: CLERIC_ACTOR_ID, characterId: CLERIC_ID }),
-      srdCreatureActor({ id: WOLF_ID, creature: plainWolf })
-    ],
-    secondCharacter: { characterId: CLERIC_ID },
+    ...(clericSeat === 'OUTSIDE'
+      ? {
+          actors: [fighter, wolf],
+          outsideCasterCharacterId: CLERIC_ID,
+          outsideCasterActorId: CLERIC_ACTOR_ID
+        }
+      : {
+          actors: [fighter, characterActor({ id: CLERIC_ACTOR_ID, characterId: CLERIC_ID }), wolf],
+          secondCharacter: { characterId: CLERIC_ID }
+        }),
     characterClassFeatures: [targetedSurge],
-    definitions: [maintenanceDefinition],
+    definitions: config.definitions ?? [maintenanceDefinition],
     characterAction: (action) => action.label.includes(targetedSurge.label)
   })
 }
@@ -125,6 +152,10 @@ async function maintained(room: Room) {
     states: history.maintainedStates.map(({ id }) => id),
     characterEffects: history.characterEffects.map(({ id }) => id).sort(),
     activeEffects: history.activeEffects.map(({ id }) => id).sort(),
+    wolfEffects: history.activeEffects
+      .filter(({ targetActorId }) => targetActorId === WOLF_ID)
+      .map(({ id }) => id)
+      .sort(),
     streams: {
       fighter: await streamVersionOf(room, FIGHTER_ID),
       cleric: await streamVersionOf(room, CLERIC_ID)
@@ -203,7 +234,29 @@ describe('a replaced maintained state whose dependents sit on several Characters
     })
   })
 
-  it('still ends the dependent of a Character the GM removed from the Run (detached owner)', async () => {
+  it('ends the dependent of a Character the Run does not hold and advances that Character (detached owner)', async () => {
+    const room = await maintenanceRoom({
+      clericSeat: 'OUTSIDE',
+      seed: priorMaintenance({
+        emptyDependentPolicy: 'TERMINATE_WHEN_EMPTY',
+        dependentActorIds: bothCharacters
+      })
+    })
+    expect((await maintained(room)).characterEffects).toHaveLength(2)
+
+    const { command, answer } = await room.startAction(WOLF_ID)
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+
+    const { history, execution } = await settledBy(room, command.commandId)
+    expect(history.characterEffects).toEqual([])
+    expect(history.maintainedStates).toHaveLength(1)
+    expect(history.maintainedStates[0]!.id).not.toBe(PRIOR_STATE_ID)
+    expect(execution.applicationOutputs).toMatchObject({
+      maintenanceTransition: { characterOwnerTransitions: bothOwnersAdvanced }
+    })
+  })
+
+  it('still ends the dependent of a Character the GM removed from the Run (D82, not departed)', async () => {
     const room = await maintenanceRoom({ seed })
     await room.commit({
       type: 'REMOVE_ACTOR',
@@ -228,19 +281,41 @@ describe('a replaced maintained state whose dependents sit on several Characters
   })
 })
 
-describe('an empty prior state retained until terminal (ROOM-6.5)', () => {
-  it('is replaced by the next action: no dependent ends and no Character is written for it', async () => {
+describe('a prior state whose last dependent expired before the next action (ROOM-6.5)', () => {
+  /**
+   * The Wolf's only dependent expires at the start of its turn (Fighter, Cleric, Wolf), so the
+   * state is empty by the time the Fighter acts again.
+   */
+  async function emptiedPriorRoom(emptyDependentPolicy: EmptyDependentPolicy) {
+    const definitions = [maintenanceDefinition]
     const room = await maintenanceRoom({
-      seed: priorMaintenance({
-        emptyDependentPolicy: 'RETAIN_UNTIL_TERMINAL',
-        dependentActorIds: []
-      })
+      definitions,
+      // The expiring effect's failed save, then the Surge's d4.
+      rolls: [0, 0, 0, 0],
+      seed: async ({ effects, encounterId, occurredAt }) => {
+        await createPriorState({ effects, encounterId, occurredAt, emptyDependentPolicy })
+        const dependent = await seedTurnSaveEffect({
+          effects,
+          encounterId,
+          actor: wolf,
+          stage: 'START_OF_TURN',
+          ticks: 1,
+          damage: 1,
+          occurredAt,
+          maintainedEffectStateId: PRIOR_STATE_ID
+        })
+        definitions.push(dependent.definition)
+      }
     })
-    expect(await maintained(room)).toMatchObject({
-      states: [PRIOR_STATE_ID],
-      characterEffects: [],
-      activeEffects: []
-    })
+    expect((await maintained(room)).wolfEffects).toHaveLength(1)
+    for (let turn = 0; turn < 3; turn += 1) await room.advanceTurn()
+    expect((await maintained(room)).wolfEffects).toEqual([])
+    return room
+  }
+
+  it('keeps a RETAIN_UNTIL_TERMINAL state without dependents, then replaces it', async () => {
+    const room = await emptiedPriorRoom('RETAIN_UNTIL_TERMINAL')
+    expect((await maintained(room)).states).toEqual([PRIOR_STATE_ID])
 
     const { command, answer } = await room.startAction(WOLF_ID)
     expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
@@ -262,6 +337,19 @@ describe('an empty prior state retained until terminal (ROOM-6.5)', () => {
     expect(history.activeEffects).toEqual([
       expect.objectContaining({ maintainedEffectStateId: replacement!.id })
     ])
+  })
+
+  it('ends a TERMINATE_WHEN_EMPTY state with its last dependent, so the next action has no prior', async () => {
+    const room = await emptiedPriorRoom('TERMINATE_WHEN_EMPTY')
+    expect((await maintained(room)).states).toEqual([])
+
+    const { command, answer } = await room.startAction(WOLF_ID)
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+
+    const { execution } = await settledBy(room, command.commandId)
+    expect(execution.applicationOutputs).toMatchObject({
+      maintenanceTransition: { priorState: null }
+    })
   })
 })
 
@@ -288,27 +376,30 @@ describe('an Assisted action that replaces maintenance (ROOM-6.6)', () => {
     expect(settled.type, JSON.stringify(settled)).toBe('COMMAND_COMMITTED')
 
     const { history, execution } = await settledBy(room, answerCommand.commandId)
-    expect(history.maintainedStates.map(({ id }) => id)).not.toContain(PRIOR_STATE_ID)
+    const [replacement] = history.maintainedStates
+    expect(history.maintainedStates).toHaveLength(1)
+    expect(replacement!.id).not.toBe(PRIOR_STATE_ID)
     expect(history.characterEffects).toEqual([])
+    expect(history.activeEffects).toEqual([
+      expect.objectContaining({
+        targetActorId: WOLF_ID,
+        maintainedEffectStateId: replacement!.id
+      })
+    ])
     expect(execution.applicationOutputs).toMatchObject({
       maintenanceTransition: {
         priorState: { id: PRIOR_STATE_ID },
-        characterOwnerTransitions: bothOwnersAdvanced
+        characterOwnerTransitions: bothOwnersAdvanced,
+        createdState: { id: replacement!.id, sourceActorId: FIGHTER_ACTOR_ID }
       }
     })
   })
 
-  it('refuses the answer when an owner Character changed while it waited, writing nothing', async () => {
-    const room = await maintenanceRoom({ automationMode: 'ASSISTED', seed })
-    const seeded = await maintained(room)
-    const started = await room.startAction(WOLF_ID)
-    expect(started.answer.type, JSON.stringify(started.answer)).toBe('COMMAND_COMMITTED')
-    const rollId = await holdRoll(room, await room.pendingDecision())
-
-    // The Cleric's owner plays its Sheet, moving the stream the paused action's maintenance read.
-    const sheetCommandId = crypto.randomUUID()
+  /** The Cleric's owner plays its Sheet, moving the Character stream the paused action may have read. */
+  async function clericOwnerTakesDamage(room: Room, expectedVersion: number) {
+    const commandId = crypto.randomUUID()
     const clericOwner = await room.room.asPlayer('OTHER_PLAYER')
-    const sheet = await clericOwner.send(sheetCommandId, {
+    const sheet = await clericOwner.send(commandId, {
       scope: 'CHARACTER_SHEET',
       characterId: CLERIC_ID,
       encounterId: room.room.encounterId,
@@ -316,20 +407,53 @@ describe('an Assisted action that replaces maintenance (ROOM-6.6)', () => {
         type: 'ADJUST_HIT_POINTS',
         mode: 'DAMAGE',
         amount: 1,
-        commandId: sheetCommandId,
-        expectedVersion: seeded.streams.cleric
+        commandId,
+        expectedVersion
       }
     })
     expect(sheet.type, JSON.stringify(sheet)).toBe('COMMAND_COMMITTED')
+  }
+
+  it('refuses the answer when an owner Character changed while it waited, leaving it pending and writing nothing', async () => {
+    const room = await maintenanceRoom({ automationMode: 'ASSISTED', seed })
+    const seeded = await maintained(room)
+    const started = await room.startAction(WOLF_ID)
+    expect(started.answer.type, JSON.stringify(started.answer)).toBe('COMMAND_COMMITTED')
+    const decision = await room.pendingDecision()
+    const rollId = await holdRoll(room, decision)
+
+    await clericOwnerTakesDamage(room, seeded.streams.cleric)
     const changed = await maintained(room)
     expect(changed.streams.cleric).toBe(seeded.streams.cleric + 1)
 
-    const refused = await room.send(answerWithRoll(room, await room.pendingDecision(), rollId))
+    const refused = await room.send(answerWithRoll(room, decision, rollId))
     expect(refused.type, JSON.stringify(refused)).toBe('COMMAND_REJECTED')
     expect(await maintained(room)).toEqual(changed)
     expect(changed).toMatchObject({
       states: [PRIOR_STATE_ID],
       characterEffects: seeded.characterEffects
     })
+    expect((await room.pendingDecision()).pending).toEqual(decision.pending)
+  })
+
+  it('settles the answer when the changed Character owns none of the maintenance', async () => {
+    const room = await maintenanceRoom({
+      automationMode: 'ASSISTED',
+      seed: priorMaintenance({
+        emptyDependentPolicy: 'TERMINATE_WHEN_EMPTY',
+        dependentActorIds: [FIGHTER_ACTOR_ID]
+      })
+    })
+    const seeded = await maintained(room)
+    const started = await room.startAction(WOLF_ID)
+    expect(started.answer.type, JSON.stringify(started.answer)).toBe('COMMAND_COMMITTED')
+    const decision = await room.pendingDecision()
+    const rollId = await holdRoll(room, decision)
+
+    await clericOwnerTakesDamage(room, seeded.streams.cleric)
+
+    const settled = await room.send(answerWithRoll(room, decision, rollId))
+    expect(settled.type, JSON.stringify(settled)).toBe('COMMAND_COMMITTED')
+    expect((await maintained(room)).states).not.toContain(PRIOR_STATE_ID)
   })
 })
