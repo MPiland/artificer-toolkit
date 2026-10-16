@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { activeRuleEffectDefinitionDtoSchema } from '@artificer-toolkit/schema/shared/activeRuleEffects'
+import { ENDED_EFFECT_CONDITION_OPERATION_KEY } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
 import {
   SRD_CONDITION_TYPES,
   SRD_DAMAGE_TYPES
@@ -7,8 +8,7 @@ import {
 
 import type { CharacterRuleActionApplication } from '../characterRuleActionSystemAdapter.js'
 import {
-  ENDED_EFFECT_CONDITION_OPERATION_KEY,
-  attackRollEndedEffects,
+  actionEndedEffects,
   damageTakenEndedEffects,
   endedEffectConditionReleases
 } from '../encounterEndedEffectRelease.js'
@@ -138,7 +138,7 @@ describe('what an attack roll ends for its roller', () => {
 
   it('ends the one-roll effect and releases the condition it owned', () => {
     const held = rollerEffect(FIRST_ID, ['ON_ATTACK_ROLL'])
-    const { consumedGrants, sourceReleases } = attackRollEndedEffects({
+    const { consumedGrants, sourceReleases } = actionEndedEffects({
       holderActorId: HOLDER_ID,
       held: [held],
       makesAttackRoll: true
@@ -152,7 +152,7 @@ describe('what an attack roll ends for its roller', () => {
 
   it('ends and releases nothing when the action rolls no attack', () => {
     expect(
-      attackRollEndedEffects({
+      actionEndedEffects({
         holderActorId: HOLDER_ID,
         held: [rollerEffect(FIRST_ID, ['ON_ATTACK_ROLL'])],
         makesAttackRoll: false
@@ -162,7 +162,7 @@ describe('what an attack roll ends for its roller', () => {
 
   it('leaves an effect that does not end on an attack roll', () => {
     expect(
-      attackRollEndedEffects({
+      actionEndedEffects({
         holderActorId: HOLDER_ID,
         held: [rollerEffect(FIRST_ID, undefined)],
         makesAttackRoll: true
@@ -280,6 +280,75 @@ describe('what damage ends on its target', () => {
     const { endedEffects, releases } = taken([ended, untriggered], [damage(FIRE)])
     expect(endedEffects).toEqual([ended])
     expect(releases).toEqual([])
+  })
+})
+
+describe('what a spell cast ends for its caster (SPELLS-27.T3)', () => {
+  const invisibility = (id: string) =>
+    activeEffect({
+      id,
+      owner,
+      createdOrdinal: 1,
+      endOnEvents: ['ON_ATTACK_ROLL', 'ON_CAST_SPELL'],
+      stateContributions: [
+        { kind: 'CONDITION_OWNERSHIP', conditionId: INVISIBLE, baselinePresent: false }
+      ]
+    })
+
+  it('ends an effect that lasts until a cast, and releases the condition it owned', () => {
+    const held = invisibility(FIRST_ID)
+    const { consumedGrants, sourceReleases } = actionEndedEffects({
+      holderActorId: HOLDER_ID,
+      held: [held],
+      makesAttackRoll: false,
+      castsSpell: true
+    })
+    expect(consumedGrants).toEqual([held])
+    expect(sourceReleases).toEqual(
+      endedEffectConditionReleases({ holderActorId: HOLDER_ID, held: [held], ended: [held] })
+    )
+  })
+
+  it('ends an effect once when the cast is also an attack roll', () => {
+    const held = invisibility(FIRST_ID)
+    const { consumedGrants, sourceReleases } = actionEndedEffects({
+      holderActorId: HOLDER_ID,
+      held: [held],
+      makesAttackRoll: true,
+      castsSpell: true
+    })
+    expect(consumedGrants).toEqual([held])
+    expect(sourceReleases).toHaveLength(1)
+  })
+
+  it('leaves an effect that ends only on an attack roll when a spell is cast without one', () => {
+    const rollOnly = activeEffect({
+      id: FIRST_ID,
+      owner,
+      createdOrdinal: 1,
+      consumeOnFirstEvents: ['ON_ATTACK_ROLL'],
+      stateContributions: [
+        { kind: 'CONDITION_OWNERSHIP', conditionId: INVISIBLE, baselinePresent: false }
+      ]
+    })
+    expect(
+      actionEndedEffects({
+        holderActorId: HOLDER_ID,
+        held: [rollOnly],
+        makesAttackRoll: false,
+        castsSpell: true
+      })
+    ).toEqual({ consumedGrants: [], sourceReleases: [] })
+  })
+
+  it('ends nothing when the action is no cast', () => {
+    expect(
+      actionEndedEffects({
+        holderActorId: HOLDER_ID,
+        held: [invisibility(FIRST_ID)],
+        makesAttackRoll: false
+      })
+    ).toEqual({ consumedGrants: [], sourceReleases: [] })
   })
 })
 

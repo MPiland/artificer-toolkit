@@ -29,7 +29,7 @@ import {
   requireEncounterDisarmDefinition
 } from '@artificer-toolkit/rules-runtime/encounterDisarmPreparation'
 import { planNativeEncounterAreaSourceSpend } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPlan'
-import { attackRollEndedEffects } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
+import { actionEndedEffects } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
 import { effectsEndedBy } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
 import { withEncounterAppRoll } from '@artificer-toolkit/rules-runtime/encounterEvidenceAnswer'
 import { executeEncounterOptionalContestAction } from '@artificer-toolkit/rules-runtime/encounterOptionalContestActionExecution'
@@ -387,7 +387,7 @@ export async function planNativeLiveDisarm(
   const settledTarget = success?.kind === 'CREATURE' ? success.actor : target
   // The initiator's attack roll uses up its one-roll grants (Vicious Mockery's disadvantage) and
   // releases the condition an ending effect alone held (Invisibility).
-  const { consumedGrants: initiatorGrants, sourceReleases } = attackRollEndedEffects({
+  const { consumedGrants: initiatorGrants, sourceReleases } = actionEndedEffects({
     holderActorId: actor.id,
     held: activeEffectsByActorId.get(actor.id) ?? [],
     makesAttackRoll: true

@@ -14,6 +14,7 @@ import {
 import { encounterStoredRunCommandSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import type { ConcentrationEndReason } from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
 import type { ServerRuleExecutionApplicationOutputsDto } from '@artificer-toolkit/schema/shared/ruleExecutionApplicationOutputs'
+import { ENDED_EFFECT_CONDITION_OPERATION_KEY } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import type { EncounterActionEconomyConsumption } from '@artificer-toolkit/rules-runtime/encounterActionEconomyConsumption'
 import { buildEncounterActorRuleFacts } from '@artificer-toolkit/rules-runtime/encounterActorRuleFacts'
@@ -21,6 +22,7 @@ import { reconcileEncounterActorRuleOutput } from '@artificer-toolkit/rules-runt
 import {
   featureChargeUsed,
   encounterRuleUsageUsed,
+  withEncounterActorIdleTurnMark,
   withEncounterRuleUsageUsed,
   withFeatureChargeUsed
 } from '@artificer-toolkit/rules-runtime/encounterActorState'
@@ -68,6 +70,17 @@ type CharacterInverse = {
   item: ActionBatch['sourceItemConsumption']
   spell: ActionBatch['spellCastConsumption']
   expectedStreamVersion: number
+}
+
+/** The conditions an action's ended effects released, which its undo gives back with the effects. */
+function endedConditionReleases(applications: ActionBatch['applications']) {
+  return applications.flatMap((application) =>
+    application.kind === 'CONDITION_REMOVE' &&
+    application.applied &&
+    application.sourceOperationKey === ENDED_EFFECT_CONDITION_OPERATION_KEY
+      ? [application.conditionId]
+      : []
+  )
 }
 
 // Commands between the action and now; a longer tail cannot be only that action's children.
@@ -265,23 +278,13 @@ export async function revertLastEncounterAction(
       : []
   if (areaRoot && areaTargetBatches.size !== targetBatches.length)
     throw new Error('Stored Encounter area target receipt is invalid.')
-  // A condition an effect ended in this action released comes back with the effect (damage ending Invisibility).
-  const endedEffectIds = new Set(root.consumedGrants.map(({ id }) => id))
-  const releasedConditionIds = (action: ActionBatch) =>
-    action.applications.flatMap((application) =>
-      application.kind === 'CONDITION_REMOVE' &&
-      application.applied &&
-      endedEffectIds.has(application.sourceActiveEffectId)
-        ? [application.conditionId]
-        : []
-    )
   for (const action of targetBatches) {
     if (
       action.applications.some(
         (application) =>
           application.kind === 'CONDITION_REMOVE' &&
           application.applied &&
-          !endedEffectIds.has(application.sourceActiveEffectId)
+          application.sourceOperationKey !== ENDED_EFFECT_CONDITION_OPERATION_KEY
       )
     )
       unsupported.add('a removed condition')
@@ -299,6 +302,7 @@ export async function revertLastEncounterAction(
     counteredRoot ??
     (batch && {
       sourceActorId: batch.sourceActorId,
+      sourceApplications: batch.sourceApplications,
       resourceConsumption: batch.resourceConsumption,
       sourceItemUseStateTransition: batch.sourceItemUseStateTransition,
       sourceItemConsumption: batch.sourceItemConsumption,
@@ -372,6 +376,29 @@ export async function revertLastEncounterAction(
     return next
   }
   const store = createActiveRuleEffectStore(ctx)
+  /** Gives back what an ended effect released from `actor`: on the Sheet for a Character, in the Run otherwise. */
+  const restoreReleasedConditions = (
+    actor: NonNullable<typeof source>,
+    conditionIds: readonly string[],
+    streamVersion: number | null
+  ) => {
+    if (!conditionIds.length) return
+    if (actor.kind === 'CHARACTER') {
+      if (actor.sourceId === null || streamVersion === null)
+        throw new Error('Stored source Character version is missing.')
+      characterInverse(actor.sourceId, streamVersion).restoredConditionIds = new Set(conditionIds)
+      return
+    }
+    const conditions = readEncounterActorConditionState(actor.conditions ?? [])
+    if (conditionIds.some((conditionId) => conditions.ids.includes(conditionId)))
+      unavailable(`${actor.label}'s conditions changed after this action; adjust manually.`)
+    updateActor(actor.id, {
+      conditions: [
+        ...conditions.values,
+        ...conditionIds.map((conditionTypeId) => ({ conditionTypeId }))
+      ]
+    })
+  }
 
   /** One creature's outcome: its hit points, conditions, charges, effects and maintenance. */
   const invertTarget = async (action: ActionBatch) => {
@@ -428,23 +455,24 @@ export async function revertLastEncounterAction(
             ? [zeroHitPointsConditionId]
             : [])
         ])
-        inverse.restoredConditionIds = new Set(releasedConditionIds(action))
         inverse.spell = reaction?.spellCastConsumption ?? null
       }
     } else {
       if (target.kind === 'CHARACTER') throw new Error('Stored Encounter actor target is invalid.')
       restoreHitPoints(target.id, action.targetTransition)
       const conditions = readEncounterActorConditionState(target.conditions ?? [])
-      const released = releasedConditionIds(action)
-      if (released.some((conditionId) => conditions.ids.includes(conditionId)))
-        unavailable(`${target.label}'s conditions changed after this action; adjust manually.`)
       updateActor(target.id, {
-        conditions: [
-          ...conditions.values.filter((_, index) => !addedConditionIds.has(conditions.ids[index]!)),
-          ...released.map((conditionTypeId) => ({ conditionTypeId }))
-        ]
+        conditions: conditions.values.filter(
+          (_, index) => !addedConditionIds.has(conditions.ids[index]!)
+        )
       })
     }
+    // A creature that ended its own effects (it cast, or was caught by its own area) gets them back.
+    restoreReleasedConditions(
+      actorsById.get(target.id)!,
+      endedConditionReleases(action.applications),
+      action.kind === 'CHARACTER_MECHANICS_BATCH' ? action.targetCharacterStreamVersion : null
+    )
     for (const owner of action.maintenanceTransition?.characterOwnerTransitions ?? [])
       characterInverse(owner.characterId, owner.afterStreamVersion)
     const targetFeature = action.targetFeatureResourceConsumption
@@ -527,27 +555,11 @@ export async function revertLastEncounterAction(
     inverse.spell = spend.spellCastConsumption
   }
   // The conditions the source's ended effects released (Invisibility) come back with the effects.
-  const sourceReleasedConditionIds = (batch?.sourceApplications ?? []).flatMap((application) =>
-    application.kind === 'CONDITION_REMOVE' && application.applied ? [application.conditionId] : []
+  restoreReleasedConditions(
+    source,
+    endedConditionReleases(spend.sourceApplications),
+    spend.sourceCharacterStreamVersion
   )
-  if (sourceReleasedConditionIds.length) {
-    if (source.kind === 'CHARACTER') {
-      if (sourceCharacterId === null || spend.sourceCharacterStreamVersion === null)
-        throw new Error('Stored source Character version is missing.')
-      characterInverse(sourceCharacterId, spend.sourceCharacterStreamVersion).restoredConditionIds =
-        new Set(sourceReleasedConditionIds)
-    } else {
-      const conditions = readEncounterActorConditionState(source.conditions ?? [])
-      if (sourceReleasedConditionIds.some((conditionId) => conditions.ids.includes(conditionId)))
-        unavailable(`${source.label}'s conditions changed after this action; adjust manually.`)
-      updateActor(source.id, {
-        conditions: [
-          ...conditions.values,
-          ...sourceReleasedConditionIds.map((conditionTypeId) => ({ conditionTypeId }))
-        ]
-      })
-    }
-  }
   const feature = spend.featureResourceConsumption
   if (feature) {
     const owner = actorsById.get(feature.ownerActorId)
@@ -572,6 +584,11 @@ export async function revertLastEncounterAction(
     if (!restored)
       unavailable("The actor's Attack action changed after this action; adjust manually.")
     updateActor(source.id, { resources: restored.resources })
+  }
+  // Each mark this action armed or engaged goes back to what it was; an actor engaged earlier stays so.
+  for (const { actorId, before } of root.idleTurnMarkChanges) {
+    const marked = actorsById.get(actorId)
+    if (marked) updateActor(actorId, { resources: withEncounterActorIdleTurnMark(marked, before) })
   }
   // The creature that countered the cast spent its own slot and reaction.
   const counter = counteredRoot?.counter

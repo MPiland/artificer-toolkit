@@ -163,7 +163,7 @@ Own commit range on `ci/spells-5-t9`, mergeable apart from SPELLS-27 beyond T1.
 Decided as D125.
 
 - **One consumer.** `effectsEndedBy(effects, event)` reads `consumeOnFirstEvents` and `endOnEvents`; `consumableGrants` and `grantsEndedBy` are deleted. Invisibility ends on its holder's attack roll after granting advantage on that roll.
-- **Release.** `planNativeEncounterActionMechanics` plans `CONDITION_REMOVE` on the source batch (`sourceReleases` from `endedEffectConditionReleases`, which wraps `endedMaintenanceConditions`) for Character and Creature sources. A self-targeted action cannot release (the planner throws); the holder's own batch already carries its applications.
+- **Release.** `planNativeEncounterActionMechanics` plans `CONDITION_REMOVE` on the source batch (`sourceReleases` from `endedEffectConditionReleases`, which wraps `endedMaintenanceConditions`) for Character and Creature sources. A self-targeted action puts the releases first on the holder's own batch (T3), since that batch is the source batch.
 - **Contract.** `sourceApplications` is required on both batch kinds and on settled DTOs. Stream version: the Character source uses `characterStreamVersion`; a Creature source passes `null`.
 - **Undo.** The root receipt carries `endedMaintainedStates`; `actionRevert.ts` restores them (`restoreMaintainedState`) before `restoreConsumedGrants`, then restores the condition through a `restoredConditionIds` inverse fenced by the source stream version. Actor-held effect rows store `sourceEncounterId: null`, so the Run id comes from `owner.encounterId`.
 - **Authoring fence.** `NON_RELEASING_EFFECT_EVENTS` rejects condition-owning v2 definitions that list an event whose consumer does not release.
@@ -173,7 +173,7 @@ Decided as D125.
 
 - **T2a (done):** action and reaction attack rolls, schema, persistence and undo. The Legendary window, movement opportunity attack and Disarm skipped condition-owning effects meanwhile, so no intermediate merge stranded a condition.
 - **T2b (done):** the Legendary window, movement opportunity attack and Disarm release their conditions through the same source batch (`attackRollEndedEffects` is the one helper every attack-roll root calls); the three fences are gone. The Disarm receipt carries the release in a required `sourceApplications` on `CONTESTED_ACTION`; the Legendary window applies it in `persistEncounterTurnResources`; the movement reaction applies it in `liveMovementReactionPersistence`. Disarm and the Legendary window have no GM undo, so nothing restores these.
-- AC 27.1 closes only when T3 (the cast half) is in.
+- **T3 (done, see [slice-spells-27-t3.md](slice-spells-27-t3.md)):** a Character's spell cast ends effects listing `ON_CAST_SPELL`, from the one cast-commit path of each kind (action and reaction, area and chosen-creature list, countered). `actionEndedEffects` replaces `attackRollEndedEffects`. AC 27.1 is closed.
 
 ## 8. SPELLS-27.T4: a structured end trigger and the damage-taken event
 

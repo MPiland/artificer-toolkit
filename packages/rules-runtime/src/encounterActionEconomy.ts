@@ -8,6 +8,7 @@ import { ruleCapabilityReusableDefinitionDocumentDtoSchema } from '@artificer-to
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { actionEconomyCapabilityRegistry } from './actionEconomyCapabilityRegistry.default.js'
+import { activeSetValueGrantMaximum } from './character/activeEffectGrantTotals.js'
 import { encounterActiveGrantCapabilitySuppressions } from './encounterActiveGrants.js'
 import { encounterRuleUsageUsed, withEncounterRuleUsageUsed } from './encounterActorState.js'
 import type { MovementTarget } from './encounterMovementTargets.js'
@@ -138,10 +139,13 @@ async function resolveActionAllowance(input: ActionEconomyInput) {
   const usage = capability?.capability.document.usage
   if (!capability || !usage || usage.refreshBoundary !== 'START_OF_TURN')
     throw new Error('The selected action allowance is unavailable.')
+  const granted = binding.grantedCountDomain
+    ? activeSetValueGrantMaximum(target.activeEffects, binding.grantedCountDomain)
+    : null
   return {
     definitionId: binding.capabilityDefinitionId,
     capability,
-    usage,
+    maximum: Math.max(usage.maximum, granted ?? 0),
     beforeUsed: encounterRuleUsageUsed(input.actor, binding.capabilityDefinitionId)
   }
 }
@@ -155,17 +159,17 @@ export async function evaluateEncounterActionEconomy(
 ): Promise<{ consumption: EncounterActionEconomyConsumption; available: boolean } | null> {
   const allowance = await resolveActionAllowance(input)
   if (!allowance) return null
-  const { capability, usage, beforeUsed } = allowance
+  const { capability, maximum, beforeUsed } = allowance
   return {
     consumption: {
       definitionId: allowance.definitionId,
       definitionVersion: capability.capability.definitionVersion,
       definitionChecksum: capability.capability.definitionChecksum,
-      maximum: usage.maximum,
+      maximum,
       beforeUsed,
       afterUsed: beforeUsed + 1
     },
-    available: capability.available && beforeUsed < usage.maximum
+    available: capability.available && beforeUsed < maximum
   }
 }
 

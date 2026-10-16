@@ -209,6 +209,7 @@ export function buildEncounterAreaStoredExecution(input: {
     | 'sourceItemUseStateTransition'
     | 'itemConsumptionReceipt'
     | 'spellConsumptionReceipt'
+    | 'sourceApplications'
   >
   actionEconomy: EncounterActionEconomyConsumption | null
   attackAction: EncounterAttackActionTransitionDto | null
@@ -236,6 +237,7 @@ export function buildEncounterAreaStoredExecution(input: {
       sourceItemUseStateTransition: spend.sourceItemUseStateTransition,
       sourceItemConsumption: spend.itemConsumptionReceipt,
       spellCastConsumption: spend.spellConsumptionReceipt,
+      sourceApplications: spend.sourceApplications,
       actionEconomyTransition: actionEconomyReceipt(input.actionEconomy),
       ...(input.attackAction ? { attackActionTransition: input.attackAction } : {})
     }
@@ -259,6 +261,7 @@ export function buildEncounterCounteredCastStoredExecution(input: {
     | 'sourceItemUseStateTransition'
     | 'itemConsumptionReceipt'
     | 'spellConsumptionReceipt'
+    | 'sourceApplications'
   >
   actionEconomy: EncounterActionEconomyConsumption | null
   counter: {
@@ -290,6 +293,7 @@ export function buildEncounterCounteredCastStoredExecution(input: {
       sourceItemUseStateTransition: spend.sourceItemUseStateTransition,
       sourceItemConsumption: spend.itemConsumptionReceipt,
       spellCastConsumption: spend.spellConsumptionReceipt,
+      sourceApplications: spend.sourceApplications,
       actionEconomyTransition: actionEconomyReceipt(input.actionEconomy),
       counter: {
         reaction: counter.reaction,

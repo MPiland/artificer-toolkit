@@ -5,6 +5,7 @@ import {
   SRD_BASIC_ACTION_IDS
 } from '@artificer-toolkit/source-data/srd/basicActions.js'
 import { barbarian } from '@artificer-toolkit/source-data/srd/classes/barbarian.js'
+import { fighter } from '@artificer-toolkit/source-data/srd/classes/fighter.js'
 import { antitoxinVial } from '@artificer-toolkit/source-data/srd/equipment/antitoxin-vial.js'
 import { unicorn } from '@artificer-toolkit/source-data/srd/creatures/unicorn.js'
 import { darkvision } from '@artificer-toolkit/source-data/srd/spells/darkvision.js'
@@ -136,6 +137,15 @@ export function rageEffect(input: { id: string; holderActorId: string }) {
     ...input,
     effect: barbarian.features?.find(({ label }) => label === 'Rage')?.effects?.[0],
     sourceLabel: 'Rage'
+  })
+}
+
+/** The active effect the real compiler plans for the SRD Fighter's Action Surge, held by the Fighter. */
+export function actionSurgeEffect(input: { id: string; holderActorId: string }) {
+  return plannedGrantEffect({
+    ...input,
+    effect: fighter.features?.find(({ label }) => label === 'Action Surge')?.effects?.[0],
+    sourceLabel: 'Action Surge'
   })
 }
 

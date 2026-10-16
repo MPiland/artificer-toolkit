@@ -36,7 +36,7 @@ import {
   type NativeEncounterActionMechanicsInput
 } from './encounterActionMechanicsPlan.js'
 import { planEncounterMovementReactionEffects } from './encounterMovementReactionEffects.js'
-import { attackRollEndedEffects } from './encounterEndedEffectRelease.js'
+import { actionEndedEffects } from './encounterEndedEffectRelease.js'
 
 type PreparedMechanics<TFacts extends ProjectableCharacterFacts> = Awaited<
   ReturnType<typeof prepareEncounterActionMechanics<TFacts>>
@@ -204,7 +204,7 @@ function reactionAttackRollEnd<
   TRow extends MovementCharacterRow
 >(input: MovementReactionSettlementInput<TFacts, TRow>) {
   const { prepared } = input.prepared
-  return attackRollEndedEffects({
+  return actionEndedEffects({
     holderActorId: prepared.actor.id,
     held: prepared.movementTargets.get(prepared.actor.id)?.activeEffects ?? [],
     makesAttackRoll: typeof prepared.binding.actionMechanic.attackBonus === 'number'

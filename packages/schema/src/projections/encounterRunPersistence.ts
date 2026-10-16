@@ -315,6 +315,18 @@ export const encounterStoredRunCommandSchema = lazySchema(() =>
         ),
         null
       ),
+      /** Each actor this action armed or engaged for an idle-bound grant, with the mark it held before; its undo restores them. */
+      idleTurnMarkChanges: z._default(
+        z
+          .array(
+            z.strictObject({
+              actorId: postgresUuidSchema,
+              before: z.nullable(z.enum(['ARMED', 'ENGAGED']))
+            })
+          )
+          .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
+        []
+      ),
       /** History lines for the user who issued the command, such as an area's outcomes for its caster; the GM sees them too. */
       issuerLines: z._default(
         z

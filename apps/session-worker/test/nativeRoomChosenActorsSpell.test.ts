@@ -19,7 +19,10 @@ import { massCureWounds } from '@artificer-toolkit/source-data/srd/spells/mass-c
 import { massHealingWord } from '@artificer-toolkit/source-data/srd/spells/mass-healing-word.js'
 import { prayerOfHealing } from '@artificer-toolkit/source-data/srd/spells/prayer-of-healing.js'
 import { scorchingRay as scorchingRaySpell } from '@artificer-toolkit/source-data/srd/spells/scorching-ray.js'
-import { SRD_CREATURE_TYPES } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import {
+  SRD_CREATURE_TYPES,
+  srdSystemRecord
+} from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { RoomEncounterStore } from '../src/roomEncounterStore.js'
@@ -27,6 +30,7 @@ import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { plainWolf } from '../src/testing/movementPlannerFixture.js'
 import { actionRoom } from './actionRoomFixture.js'
 import { areaReceipts, vitalsOf } from './areaRoomReads.js'
+import { seedModifierGrant } from './grantSeed.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
 import { readRoomHistory, readRoomRollCards } from './roomHistoryReads.js'
 
@@ -45,6 +49,8 @@ afterEach(() => {
 
 const undead = SRD_CREATURE_TYPES.find((type) => type.code === 'UNDEAD')
 if (!undead) throw new Error('The SRD names the undead creature type.')
+const invisible = srdSystemRecord.conditionTypes.find(({ code }) => code === 'INVISIBLE')
+if (!invisible) throw new Error('The SRD names the Invisible condition.')
 
 /**
  * A Character who knows `spell` and a Wolf at 1 hit point for each of `wolfIds`, `rolls` as the dice
@@ -59,7 +65,10 @@ function healerRoom(config: {
   characterHitPoints?: number
   /** The Character's level; it is 1 when unset. */
   characterLevel?: number
+  /** Sheet conditions the Character already carries. */
+  characterConditions?: { conditionTypeId: string; label: string }[]
   autoRoll?: 'BOTH'
+  seed?: Parameters<typeof actionRoom>[0]['seed']
 }) {
   const wolfIds = config.wolfIds ?? WOLF_IDS.slice(0, 3)
   return actionRoom({
@@ -82,12 +91,14 @@ function healerRoom(config: {
     characterSpellcasting: { spells: [config.spell], prepared: [config.spell.id] },
     characterPlay: {
       currentHitPoints: config.characterHitPoints ?? 1,
-      ...(config.characterLevel && { fighterLevel: config.characterLevel })
+      ...(config.characterLevel && { fighterLevel: config.characterLevel }),
+      ...(config.characterConditions && { conditions: config.characterConditions })
     },
     characterAction: (action) => action.label === config.label,
     rolls: config.rolls,
     fallbackRoll: 5,
-    ...(config.autoRoll && { autoRoll: config.autoRoll })
+    ...(config.autoRoll && { autoRoll: config.autoRoll }),
+    ...(config.seed && { seed: config.seed })
   })
 }
 
@@ -154,6 +165,80 @@ describe('room cast on chosen creatures (D118)', () => {
     await undoLastAction(room)
     expect(await hitPointsOf(room)).toEqual(before)
     expect((await readCharacterPlayState(room)).spellSlots ?? []).toEqual([])
+  }, 120000)
+
+  it('ends the caster’s grant that ends on a spell cast, releases the condition it owned, and one undo gives both back (SPELLS-27.1)', async () => {
+    const castEnds = await healerRoom({
+      spell: massHealingWord,
+      label: 'Mass Healing Word (3rd level)',
+      rolls: [2],
+      characterConditions: [{ conditionTypeId: invisible.id, label: 'Invisible' }],
+      seed: seedModifierGrant({
+        sourceActorId: CHARACTER_ACTOR_ID,
+        holderActorId: CHARACTER_ACTOR_ID,
+        lifecycle: {},
+        endsOnCast: true,
+        ownedConditionId: invisible.id
+      })
+    })
+    const grantIds = async () =>
+      (await readRoomHistory(castEnds.room.base.stub)).characterEffects.map(({ id }) => id)
+    const conditionIds = async () =>
+      ((await readCharacterPlayState(castEnds)).conditions ?? []).map(
+        ({ conditionTypeId }) => conditionTypeId
+      )
+    const held = await grantIds()
+    expect(held).toHaveLength(1)
+    expect(await conditionIds()).toEqual([invisible.id])
+
+    const { answer } = await castEnds.startActorsAction(
+      WOLF_IDS.slice(0, 3),
+      RANGE_UNCHECKED,
+      false
+    )
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    expect(await grantIds()).toEqual([])
+    expect(await conditionIds()).toEqual([])
+
+    await undoLastAction(castEnds)
+    expect(await grantIds()).toEqual(held)
+    expect(await conditionIds()).toEqual([invisible.id])
+  }, 120000)
+
+  it('ends the grant and releases its condition when the caster is among the chosen creatures', async () => {
+    const castEnds = await healerRoom({
+      spell: massHealingWord,
+      label: 'Mass Healing Word (3rd level)',
+      rolls: [2],
+      characterConditions: [{ conditionTypeId: invisible.id, label: 'Invisible' }],
+      seed: seedModifierGrant({
+        sourceActorId: CHARACTER_ACTOR_ID,
+        holderActorId: CHARACTER_ACTOR_ID,
+        lifecycle: {},
+        endsOnCast: true,
+        ownedConditionId: invisible.id
+      })
+    })
+    const grantIds = async () =>
+      (await readRoomHistory(castEnds.room.base.stub)).characterEffects.map(({ id }) => id)
+    const conditionIds = async () =>
+      ((await readCharacterPlayState(castEnds)).conditions ?? []).map(
+        ({ conditionTypeId }) => conditionTypeId
+      )
+    const held = await grantIds()
+
+    const { answer } = await castEnds.startActorsAction(
+      [CHARACTER_ACTOR_ID, WOLF_IDS[0]!],
+      RANGE_UNCHECKED,
+      false
+    )
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    expect(await grantIds()).toEqual([])
+    expect(await conditionIds()).toEqual([])
+
+    await undoLastAction(castEnds)
+    expect(await grantIds()).toEqual(held)
+    expect(await conditionIds()).toEqual([invisible.id])
   }, 120000)
 
   it('rolls the scaled dice once when cast with a higher slot', async () => {

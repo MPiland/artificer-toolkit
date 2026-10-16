@@ -7,6 +7,7 @@ import {
 import { endConcentrationAfterEdit } from '@artificer-toolkit/encounter-persistence/concentrationEditEnd'
 import { readRunActors, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { listActiveRuleEffects } from '@artificer-toolkit/encounter-persistence/effectStore'
+import { engageStoredIdleTurnActor } from '@artificer-toolkit/encounter-persistence/idleTurnMark'
 import { recordRuleRollCard } from '@artificer-toolkit/encounter-persistence/ruleRollCards'
 import {
   readCharacterCommandReplay,
@@ -297,6 +298,12 @@ export async function executeRoomCharacterSheetCommand(input: {
     occurredAt,
     advancedCharacterIds: new Set([characterId])
   })
+  // Hit points the player lowers at the Sheet are damage taken: they engage a Rage (SRD).
+  if (
+    updated.state.hitpoints.current < initial.character.state.hitpoints.current ||
+    (updated.state.hitpoints.temp ?? 0) < (initial.character.state.hitpoints.temp ?? 0)
+  )
+    await engageStoredIdleTurnActor(ctx, state, holder.id)
   if (deathSaveDie !== undefined) {
     const system = await ctx.ports.requireSystem(campaign.gameSystemId)
     const roll = deathSaveRollRecord({

@@ -27,7 +27,7 @@ import {
   readEscapeCheckResponseAdmission
 } from './basicActionCheckAdmission.js'
 import { settleEncounterBasicActionCheck } from './basicActionCheckSettlement.js'
-import { addEndedGrantsToRoot } from './consumedGrantPersistence.js'
+import { addResponseChangesToRoot } from './consumedGrantPersistence.js'
 import {
   isConcealmentCheckSettlement,
   settleEncounterConcealmentCheck
@@ -182,7 +182,7 @@ async function persistCheckResponse<TInput extends CheckResponseCommitInput>(
     occurrenceVersion
   })
   // The effects the check ended come back with the action's undo.
-  await addEndedGrantsToRoot(ctx, {
+  await addResponseChangesToRoot(ctx, {
     campaignId: campaign.id,
     actionOccurrenceId: occurrence.id,
     endedGrants: settled.endedEffects ?? []

@@ -92,6 +92,8 @@ import {
   buildEncounterAreaStoredExecution
 } from '@artificer-toolkit/rules-runtime/encounterActionReceipt'
 import { encounterActionSourceLabel } from '@artificer-toolkit/rules-runtime/encounterActionSources'
+import { preparedSpellCastLevel } from '@artificer-toolkit/rules-runtime/encounterCastReactionDiscovery'
+import { actionEndedEffects } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
 import { planEncounterPlacedZone } from '@artificer-toolkit/rules-runtime/encounterPlacedZone'
 import { consumeEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomyConsumption'
 import { projectEncounterActionTarget } from '@artificer-toolkit/rules-runtime/encounterActionProjection'
@@ -1396,6 +1398,14 @@ export async function completeAreaCommit(args: {
   const userId = input.initial.expectedUserId
   const children = []
   const createdEffects = new Map<string, ActiveRuleEffectRecord>()
+  // The cast ends the caster's effects that end on a cast (Invisibility), and releases the condition
+  // each held alone: in the caster's spend batch, or on their first outcome when the area catches them.
+  const { consumedGrants, sourceReleases } = actionEndedEffects({
+    holderActorId: caster.id,
+    held: input.activeEffectsByActorId.get(caster.id) ?? [],
+    makesAttackRoll: false,
+    castsSpell: preparedSpellCastLevel(lead) !== null
+  })
   const entries = encounterChosenActorEntries(
     areaOccurrenceId,
     kept.map(({ actor }) => actor.id)
@@ -1447,7 +1457,8 @@ export async function completeAreaCommit(args: {
         commandId,
         occurredAt,
         applications: complete.applications,
-        sourceSpend: carriesSpend ? 'WITH_OUTCOME' : 'NONE'
+        sourceSpend: carriesSpend ? 'WITH_OUTCOME' : 'NONE',
+        ...(carriesSpend ? { sourceReleases } : {})
       },
       userId
     )
@@ -1521,12 +1532,14 @@ export async function completeAreaCommit(args: {
           occurrenceId: areaOccurrenceId,
           sourceCommandId: command.commandId,
           commandId: command.commandId,
-          occurredAt
+          occurredAt,
+          sourceReleases
         },
         userId
       )
   const spend = merged
     ? {
+        sourceApplications: [],
         sourceCharacterStreamVersion: spends
           ? merged.mechanics.mechanics.characterStreamVersion
           : null,
@@ -1697,6 +1710,7 @@ export async function completeAreaCommit(args: {
     resourceConsumption: resourceState?.resourceConsumption ?? null,
     itemConsumption: resourceState?.itemConsumption ?? null,
     spellConsumption: resourceState?.spellConsumption ?? null,
+    consumedGrants,
     label: sourceLabel,
     ruleOverrides,
     concentration,
@@ -1728,6 +1742,7 @@ export function buildNativeLiveEncounterAreaCommitInput(
     resourceConsumption: plan.resourceConsumption,
     itemConsumption: plan.itemConsumption,
     spellConsumption: plan.spellConsumption,
+    consumedGrants: plan.consumedGrants,
     label: plan.label,
     ruleOverrides: plan.ruleOverrides,
     concentration: plan.concentration.completed,

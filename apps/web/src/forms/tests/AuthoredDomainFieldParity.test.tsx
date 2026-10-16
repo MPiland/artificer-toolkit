@@ -17,6 +17,7 @@ import { spellAuthoringInputDtoSchema } from '@artificer-toolkit/schema/subjects
 import { vehicleAuthoringInputDtoSchema } from '@artificer-toolkit/schema/subjects/vehicle'
 import { barbarian } from '@artificer-toolkit/source-data/srd/classes/barbarian.js'
 import { rogue } from '@artificer-toolkit/source-data/srd/classes/rogue.js'
+import { fighter } from '@artificer-toolkit/source-data/srd/classes/fighter.js'
 import { paladin } from '@artificer-toolkit/source-data/srd/classes/paladin.js'
 import { counterspell } from '@artificer-toolkit/source-data/srd/spells/counterspell.js'
 import { holdPerson } from '@artificer-toolkit/source-data/srd/spells/hold-person.js'
@@ -72,6 +73,11 @@ const smiteFeatures = paladin.features?.filter(({ label }) =>
   ['Divine Smite', 'Improved Divine Smite'].includes(label)
 )
 const smiteEffects = smiteFeatures?.map(({ effects }) => effects)
+const FIGHTER_SCENARIO_LABEL = 'class SRD Second Wind and Action Surge features'
+const fighterFeatures = fighter.features?.filter(({ label }) =>
+  ['Second Wind', 'Action Surge'].includes(label)
+)
+const fighterEffects = fighterFeatures?.map(({ effects }) => effects)
 const HOLD_PERSON_SCENARIO_LABEL = 'spell SRD Hold Person'
 const ABSORB_SCENARIO_LABEL = 'spell user-authored Absorb Elements'
 const COUNTERSPELL_SCENARIO_LABEL = 'spell user-authored Counterspell'
@@ -112,6 +118,12 @@ const smiteCases = registrationCases.filter(
 const smiteScenario = scenarios.find(({ label }) => label === SMITE_SCENARIO_LABEL)
 if (!smiteScenario) throw new Error('Expected the SRD Divine Smite class scenario.')
 const smiteFormValues = toActualFormValues('class', parseScenarioRecord(smiteScenario))
+const fighterCases = registrationCases.filter(
+  ({ scenarioLabel }) => scenarioLabel === FIGHTER_SCENARIO_LABEL
+)
+const fighterScenario = scenarios.find(({ label }) => label === FIGHTER_SCENARIO_LABEL)
+if (!fighterScenario) throw new Error('Expected the SRD Fighter class scenario.')
+const fighterFormValues = toActualFormValues('class', parseScenarioRecord(fighterScenario))
 const dangerSenseCases = registrationCases.filter(
   ({ scenarioLabel }) => scenarioLabel === DANGER_SENSE_SCENARIO_LABEL
 )
@@ -196,7 +208,13 @@ describe('SRD Rage feature effect authoring parity', () => {
 
   it('authors the Rage shapes this parity gate is meant to prove', () => {
     const authored = JSON.stringify(rageEffects)
-    for (const shape of ['ATTACK_ABILITY', 'SPELLCASTING_LOCK', 'endOnConditionIds', 'holderEnd']) {
+    for (const shape of [
+      'ATTACK_ABILITY',
+      'SPELLCASTING_LOCK',
+      'ON_IDLE_TURN',
+      'endOnConditionIds',
+      'holderEnd'
+    ]) {
       expect(authored).toContain(shape)
     }
   })
@@ -386,6 +404,54 @@ describe('SRD Divine Smite feature effect authoring parity (ADR 0038)', () => {
         NON_STRUCTURAL_KEYS
       )
     ).toEqual(stripKeys(smiteEffects, NON_STRUCTURAL_KEYS))
+  })
+})
+
+describe('SRD Second Wind and Action Surge feature effect authoring parity (ATTACK-9.3)', () => {
+  it('authors the shapes this parity gate is meant to prove, with no closed rule', () => {
+    const authored = JSON.stringify(fighterEffects)
+    for (const shape of ['HEAL', 'CLASS_LEVEL', 'ACTION_COUNT', 'SET_VALUE', 'END_OF_TURN']) {
+      expect(authored).toContain(shape)
+    }
+    expect(authored).not.toContain('CLOSED_RULE')
+  })
+
+  it('keeps every Fighter value through node-runtime normalization', async () => {
+    const normalized = await normalizeFixtureNodeRuntimeValues({
+      mapId: 'class',
+      values: fighterFormValues
+    })
+
+    expect(normalized.clearedPaths).toEqual([])
+    expect(normalized.values).toEqual(fighterFormValues)
+  })
+
+  for (const [index, { context }] of fighterCases.entries()) {
+    it(`keeps the values of ${context.model.mapId} Fighter context ${index} once its field controls mount`, async () => {
+      await renderUntilRegistered(context.model, context.values)
+
+      expect(stripKeys(readOutput('form-values'), DISPLAY_COPY_KEYS)).toEqual(
+        stripKeys(context.values, DISPLAY_COPY_KEYS)
+      )
+    })
+  }
+
+  it('submits the form values of the class as the SRD Second Wind and Action Surge effects', async () => {
+    const rootContext = fighterCases[0]?.context
+    if (!rootContext) throw new Error('Expected the resolved Fighter class root context.')
+    await renderUntilRegistered(rootContext.model, fighterFormValues)
+
+    const session = createScenarioSession('class', parseScenarioRecord(fighterScenario))
+    const submitted = classAuthoringInputDtoSchema.parse(
+      session.normalizeForSubmit(readOutput('form-values'))
+    )
+
+    expect(
+      stripKeys(
+        submitted.features?.map(({ effects }) => effects),
+        NON_STRUCTURAL_KEYS
+      )
+    ).toEqual(stripKeys(fighterEffects, NON_STRUCTURAL_KEYS))
   })
 })
 
@@ -686,6 +752,17 @@ function createBranchScenarios(): BranchScenario[] {
         label: 'Smite Test Class',
         attributes: [],
         features: smiteFeatures
+      }
+    },
+    {
+      domain: 'class',
+      label: FIGHTER_SCENARIO_LABEL,
+      record: {
+        ...wizard,
+        id: 'story-fighter-class',
+        label: 'Fighter Test Class',
+        attributes: [],
+        features: fighterFeatures
       }
     },
     {
