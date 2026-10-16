@@ -52,10 +52,13 @@ export const liveSessionMovementSettlementSchema = lazySchema(() =>
       resourceConsumption: z.nullable(liveSessionCharacterResourceConsumptionSchema),
       createdEffects: z.array(activeRuleEffectRecordSchema).check(z.maxLength(2)),
       maintainedState: z.nullable(encounterMaintainedEffectStateRecordSchema),
-      /** The reactor's one-roll grants the attack roll used up; the commit deletes them. */
+      /**
+       * The reactor's one-roll grants the attack roll used up and the mover's effects the damage
+       * ended; the commit deletes them.
+       */
       consumedGrants: z
         .array(activeRuleEffectRecordSchema)
-        .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER)),
+        .check(z.maxLength(2 * MAX_ACTIVE_RULE_EFFECTS_PER_OWNER)),
       /** The once-per-turn uses the reaction attack spent from the reactor's turn record (D119). */
       turnUses: encounterTurnUseKeysSchema
     }),

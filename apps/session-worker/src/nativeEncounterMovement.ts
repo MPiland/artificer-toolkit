@@ -356,7 +356,7 @@ export async function prepareNativeLiveMovement(
           state,
           userId,
           runtime: state.automationMode === 'MANUAL' ? undefined : runtime,
-          rollD20: () => random(20) + 1,
+          random,
           spatialScope: {
             list: async () => spatialEffects,
             get: async (id) => spatialEffects.find((effect) => effect.id === id) ?? null
@@ -693,7 +693,11 @@ export async function prepareNativeLiveMovement(
     }
   } else {
     const resolution = response.answer
-    if (resolution.kind !== 'ENTER_DICE' && resolution.kind !== 'SYSTEM_ROLL')
+    if (
+      resolution.kind !== 'ENTER_DICE' &&
+      resolution.kind !== 'ENTER_INTEGER' &&
+      resolution.kind !== 'SYSTEM_ROLL'
+    )
       throw new Error('Movement response does not match the issued spatial evidence.')
     if (captured.reactions.firstBoundaryDistance !== null)
       throw new Error('Spatial movement reaction selection changed before response.')

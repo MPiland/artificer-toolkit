@@ -49,6 +49,7 @@ import type { RulesRuntimeService } from './rulesRuntimeService.js'
 import {
   isTurnEffectEligible,
   requireTurnMaintainedStates,
+  turnEffectDamageEnded,
   turnEffectOwner,
   turnEffectRetainedConditions,
   turnEffectSelectionChecksum,
@@ -341,6 +342,9 @@ async function evaluateEncounterTurnEffects(input: {
   const executions: TurnExecution[] = []
   const applications: CharacterRuleActionApplication[] = []
   const expired = new Set<string>()
+  // Effects an earlier execution's damage ended; a candidate among them expires at its own turn.
+  const damageEnded = new Set<string>()
+  const dispositions = new Map(input.actors.map(({ id, disposition }) => [id, disposition]))
   let state = executionState(input.target)
   for (const [ordinal, effect] of input.candidates.entries()) {
     if (effect.definition.frozenGraph.source.gameSystemId !== input.state.gameSystemId)
@@ -499,6 +503,23 @@ async function evaluateEncounterTurnEffects(input: {
         })
       }
     }
+    const ended = turnEffectDamageEnded({
+      effect,
+      holderActorId: input.target.actor.id,
+      held: input.effects,
+      excluded: new Set([
+        ...damageEnded,
+        ...input.candidates.slice(0, ordinal + 1).map(({ id }) => id)
+      ]),
+      applications: result.applications,
+      dispositions
+    })
+    const settled = {
+      ...result,
+      terminal: result.terminal || damageEnded.has(effect.id),
+      applications: [...result.applications, ...ended.releases]
+    }
+    for (const { id } of ended.endedEffects) damageEnded.add(id)
     const { execution, ownConditions } = completeExecution({
       ordinal,
       boundary: input.boundary,
@@ -506,12 +527,12 @@ async function evaluateEncounterTurnEffects(input: {
       effect,
       state,
       retainedConditionIds: turnEffectRetainedConditions(effect, input.effects, expired),
-      result
+      result: settled
     })
     if (existing && !same(existing, execution))
       throw new Error('Retained turn effect execution is stale.')
     executions.push(execution)
-    applications.push(...result.applications)
+    applications.push(...settled.applications)
     const after = execution.targetTransition.after
     state = {
       current: after.currentHitPoints,

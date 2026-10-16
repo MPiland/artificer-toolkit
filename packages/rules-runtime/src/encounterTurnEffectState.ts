@@ -6,9 +6,12 @@ import type {
   ActiveRuleEffectRecord,
   EncounterMaintainedEffectStateRecord
 } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
+import type { EncounterActorDispositionDto } from '@artificer-toolkit/schema/api/encounterData'
 import type { TurnCoordinatorRootDto } from '@artificer-toolkit/schema/shared/ruleExecutionTurnPending'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import type { CharacterRuleActionApplication } from './characterRuleActionSystemAdapter.js'
 import { encounterAreaTargetOccurrenceId } from './encounterAreaPending.js'
+import { damageTakenEndedEffects } from './encounterEndedEffectRelease.js'
 
 export type TurnEffectBoundary = {
   ordinal: 0 | 1
@@ -136,4 +139,28 @@ export async function requireTurnMaintainedStates(
     states.set(stateId, state)
   }
   return states
+}
+
+/**
+ * What the damage a turn effect deals ends on its holder (SPELLS-27.T4b): the holder's other
+ * effects that end on damage, with the conditions only they held. A later effect of the same turn
+ * ends too (it expires when its own execution comes); `excluded` holds the effects already settled.
+ */
+export function turnEffectDamageEnded(input: {
+  effect: ActiveRuleEffectRecord
+  holderActorId: string
+  held: readonly ActiveRuleEffectRecord[]
+  /** The turn's executed candidates and the effects its earlier executions ended. */
+  excluded: ReadonlySet<string>
+  applications: readonly CharacterRuleActionApplication[]
+  dispositions: ReadonlyMap<string, EncounterActorDispositionDto>
+}) {
+  const { origin } = input.effect.definition
+  return damageTakenEndedEffects({
+    holderActorId: input.holderActorId,
+    held: input.held.filter(({ id }) => !input.excluded.has(id)),
+    applications: input.applications,
+    damagerActorId: origin.kind === 'ENCOUNTER' ? origin.sourceActorId : null,
+    dispositions: input.dispositions
+  })
 }

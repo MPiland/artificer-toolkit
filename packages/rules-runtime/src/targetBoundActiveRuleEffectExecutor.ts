@@ -363,6 +363,27 @@ function prepare(input: TargetBoundActiveRuleEffectExecutionInput) {
   }
 }
 
+/** The d20 faces a roller produced and the mode they were rolled with. */
+type D20Roll = { rawFaces: readonly number[]; rollMode: EncounterD20RollMode }
+
+/**
+ * Whether the pause asks for one die of the frozen graph's own damage: an optional integer range
+ * from 1 that the graph enables only for the authored result (a placed zone's failed entry save).
+ */
+export function isDamageDieRequest(continuation: ServerRuleExecutionContinuationDto): boolean {
+  const { request, graph } = continuation
+  const node = graph.nodes.find((candidate) => candidate.id === request.nodeId)
+  return (
+    request.kind === 'INTEGER_RANGE' &&
+    request.min === 1 &&
+    node?.operation.key === 'evidence.optional-integer-range' &&
+    node.inputs.min?.kind === 'LITERAL' &&
+    node.inputs.min.value === 1 &&
+    node.inputs.max?.kind === 'LITERAL' &&
+    node.inputs.max.value === request.max
+  )
+}
+
 function requirePolicyContinuationMatch(input: {
   policy: ServerRuleExecutionD20PolicyDto | null
   continuation: ServerRuleExecutionContinuationDto
@@ -370,10 +391,11 @@ function requirePolicyContinuationMatch(input: {
   const { policy, continuation } = input
   if (!policy) return
   if (
-    continuation.request.kind !== 'INTEGER_RANGE' ||
-    continuation.request.nodeId !== policy.requestNodeId ||
-    continuation.request.min !== 1 ||
-    continuation.request.max !== 20
+    !isDamageDieRequest(continuation) &&
+    (continuation.request.kind !== 'INTEGER_RANGE' ||
+      continuation.request.nodeId !== policy.requestNodeId ||
+      continuation.request.min !== 1 ||
+      continuation.request.max !== 20)
   ) {
     throw new CharacterActiveRuleEffectExecutionError(
       'The active-effect d20 evidence request does not match its frozen policy.'
@@ -390,7 +412,7 @@ function d20EvidenceForCompletion(input: {
   policy: ServerRuleExecutionD20PolicyDto | null
   execution: Extract<ServerRuleExecutionResultDto, { status: 'COMPLETE' }>
   occurrenceId: string
-  roll?: { rawFaces: readonly number[]; rollMode: EncounterD20RollMode }
+  roll?: D20Roll
 }): ServerRuleExecutionD20EvidenceDto | null {
   const { policy, execution, occurrenceId, roll } = input
   if (!policy && roll === undefined) return null
@@ -456,7 +478,7 @@ function complete(input: {
   prepared: ReturnType<typeof prepare>
   execution: Extract<ServerRuleExecutionResultDto, { status: 'COMPLETE' }>
   graph: CompiledRuleGraph
-  roll?: { rawFaces: readonly number[]; rollMode: EncounterD20RollMode }
+  roll?: D20Roll
 }): TargetBoundActiveRuleEffectExecutionResult {
   const { prepared, execution, graph } = input
   requireTraceBinding({ execution, definition: prepared.definition })
@@ -608,8 +630,13 @@ export async function executeTargetBoundActiveRuleEffectWithPause(
 export async function resumeTargetBoundActiveRuleEffectWithPause(
   input: TargetBoundActiveRuleEffectExecutionInput & {
     continuation: ServerRuleExecutionContinuationDto
-    /** The d20 faces and the mode the roller rolled them with. */
-    resolution: { requestId: string; rawFaces: readonly number[]; rollMode: EncounterD20RollMode }
+    /**
+     * The d20 faces and the mode the roller rolled them with, or one die of the graph's damage with
+     * the d20 roll already resolved (the completed evidence needs it).
+     */
+    resolution:
+      | { requestId: string; rawFaces: readonly number[]; rollMode: EncounterD20RollMode }
+      | { requestId: string; value: number; d20: D20Roll }
     expectedEvidencePolicy?: ServerRuleExecutionD20PolicyDto | null
   }
 ): Promise<
@@ -625,22 +652,31 @@ export async function resumeTargetBoundActiveRuleEffectWithPause(
     throw new CharacterActiveRuleEffectExecutionError(
       'The Rules runtime cannot resume an active-effect graph with its frozen source.'
     )
-  const rawFaces = [...input.resolution.rawFaces]
-  const { rollMode } = input.resolution
+  const { resolution } = input
+  const die = 'value' in resolution
   if (
-    input.resolution.requestId !== input.continuation.request.requestId ||
-    rawFaces.length !== (rollMode === 'NORMAL' ? 1 : 2) ||
-    rawFaces.some((face) => !Number.isSafeInteger(face) || face < 1 || face > 20)
+    resolution.requestId !== input.continuation.request.requestId ||
+    die !== isDamageDieRequest(input.continuation)
   )
     throw new CharacterActiveRuleEffectExecutionError(
-      'The active-effect d20 resolution is invalid.'
+      'The active-effect resolution does not answer its pending request.'
     )
-  const selectedNatural = selectEncounterActionD20Natural(rollMode, rawFaces)
+  const roll = die
+    ? resolution.d20
+    : { rawFaces: [...resolution.rawFaces], rollMode: resolution.rollMode }
+  if (
+    roll.rawFaces.length !== (roll.rollMode === 'NORMAL' ? 1 : 2) ||
+    roll.rawFaces.some((face) => !Number.isSafeInteger(face) || face < 1 || face > 20) ||
+    (die && !Number.isSafeInteger(resolution.value))
+  )
+    throw new CharacterActiveRuleEffectExecutionError(
+      `The active-effect ${die ? 'die' : 'd20'} resolution is invalid.`
+    )
   const resumed = await input.runtime.resumeWithGraph({
     continuation: input.continuation,
     response: serverRuleEvidenceResponseDtoSchema.parse({
-      requestId: input.resolution.requestId,
-      value: selectedNatural
+      requestId: resolution.requestId,
+      value: die ? resolution.value : selectEncounterActionD20Natural(roll.rollMode, roll.rawFaces)
     })
   })
   if (resumed.result.status !== 'COMPLETE') {
@@ -655,6 +691,6 @@ export async function resumeTargetBoundActiveRuleEffectWithPause(
     prepared,
     execution: resumed.result,
     graph: resumed.graph,
-    roll: { rawFaces, rollMode }
+    roll
   })
 }

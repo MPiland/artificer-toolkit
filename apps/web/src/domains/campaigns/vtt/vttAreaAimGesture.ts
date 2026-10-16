@@ -1,0 +1,61 @@
+import {
+  isDirectedAreaShape,
+  type ScenePoint,
+  type SpatialTokenFootprint
+} from '@artificer-toolkit/shared/vtt'
+import { directedAreaAim, type VttAreaAim, type VttAreaSize } from './vttSceneRenderer.model'
+
+interface VttAreaAimGesture {
+  /** A primary press on the map; true when the aim consumed it. */
+  press: (point: ScenePoint) => boolean
+  /** A release; true when it ended a press that began a directed aim, even if the rules refuse it. */
+  release: (point: ScenePoint) => boolean
+  /** What the pointer aims at now, for the preview; null when the rules would refuse that aim. */
+  aimAt: (pointer: ScenePoint) => VttAreaAim | null
+  /** Drops a press without committing, such as on Escape. */
+  cancel: () => void
+}
+
+/**
+ * The press, drag and release that aim an area on the map. A point area is picked on the press. A
+ * directed area starts at the edge of the caster's footprint nearest the press and extends toward
+ * the release, and is committed only when the rules would accept that origin and direction.
+ */
+export function createVttAreaAimGesture(
+  /** The area being aimed and its caster's footprint (null when the caster is not on the map). */
+  aiming: () => { caster: SpatialTokenFootprint | null; size: VttAreaSize } | null,
+  callbacks: {
+    onPoint?: (point: ScenePoint) => void
+    onDirection?: (aim: { origin: ScenePoint; toward: ScenePoint }) => void
+  }
+): VttAreaAimGesture {
+  let pressedAt: ScenePoint | null = null
+  const aimAt: VttAreaAimGesture['aimAt'] = (pointer) => {
+    const aim = aiming()
+    if (!aim) return null
+    if (!isDirectedAreaShape(aim.size)) return { origin: pointer, toward: null }
+    return aim.caster
+      ? directedAreaAim({ caster: aim.caster, pointer, pressedAt, size: aim.size })
+      : null
+  }
+  return {
+    press(point) {
+      const aim = aiming()
+      if (!aim) return false
+      if (isDirectedAreaShape(aim.size)) pressedAt = point
+      else callbacks.onPoint?.(point)
+      return true
+    },
+    release(point) {
+      if (!pressedAt) return false
+      const aimed = aimAt(point)
+      pressedAt = null
+      if (aimed?.toward) callbacks.onDirection?.({ origin: aimed.origin, toward: aimed.toward })
+      return true
+    },
+    aimAt,
+    cancel() {
+      pressedAt = null
+    }
+  }
+}

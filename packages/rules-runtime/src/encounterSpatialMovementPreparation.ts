@@ -29,7 +29,7 @@ export type SpatialMovementPreparationInput = Omit<
   | 'loadTargets'
   | 'applyTerminal'
   | 'runtime'
-  | 'rollD20'
+  | 'random'
 > & {
   occurredAt: string
   retainedExecutions?: readonly SpatialExecution[]
@@ -80,7 +80,15 @@ function retainedSpatialReplayFaces(input: SpatialMovementPreparationInput): num
       (boundary !== undefined && execution.candidate.candidate.pathDistance > boundary + 1e-8)
     )
       return []
-    return execution.d20?.rawFaces ?? []
+    return [
+      ...(execution.d20?.rawFaces ?? []),
+      ...execution.execution.evidence.trace.flatMap((entry) =>
+        entry.operation.key === 'evidence.optional-integer-range' &&
+        entry.evidence?.kind === 'INTEGER_RANGE'
+          ? [entry.evidence.value]
+          : []
+      )
+    ]
   })
 }
 
@@ -145,7 +153,7 @@ export async function prepareEncounterSpatialMovement<
   state: EncounterRunState
   userId: string
   runtime?: RulesRuntimeService
-  rollD20: () => number
+  random: (maxExclusive: number) => number
   spatialScope: {
     list(): Promise<EncounterSpatialRuleEffectRecord[]>
     get(id: string): Promise<EncounterSpatialRuleEffectRecord | null>
@@ -208,14 +216,14 @@ export async function prepareEncounterSpatialMovement<
     actorUserId: userId,
     encounter: { ...state, actors: state.actorIds.map((id) => ({ id })) },
     runtime: args.runtime,
-    rollD20: () => {
+    random: (maxExclusive) => {
       if (input.retainedExecutions) {
         const face = replayFaces.shift()
         if (face === undefined)
-          throw new Error('Retained spatial replay evidence is missing a d20 face.')
-        return face
+          throw new Error('Retained spatial replay evidence is missing a recorded die.')
+        return face - 1
       }
-      return args.rollD20()
+      return args.random(maxExclusive)
     },
     spatialScope: {
       snapshot: async () => {
@@ -292,7 +300,7 @@ export async function prepareEncounterSpatialMovement<
       evaluated.concentrationExecutionOrdinal !== undefined
     )
   )
-    throw new Error('Retained spatial replay evidence contains unused d20 faces.')
+    throw new Error('Retained spatial replay evidence contains unused dice.')
   if (evaluated.kind !== 'REACTION_BOUNDARY' || !evaluated.completedExecutions.length)
     return evaluated
   const previouslyApplied =

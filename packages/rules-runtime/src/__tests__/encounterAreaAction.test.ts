@@ -330,9 +330,6 @@ describe('area target policy', () => {
     expect(evaluate({ point: at(31), pointSeen: false })?.warnings.map(({ code }) => code)).toEqual(
       ['TARGET_OUT_OF_RANGE', 'TARGET_OUT_OF_SIGHT']
     )
-    expect(
-      evaluate({ sourceToken: null, pointSeen: false })?.warnings.map(({ code }) => code)
-    ).toEqual(['TARGET_RANGE_UNCHECKED', 'TARGET_OUT_OF_SIGHT'])
   })
 
   it('still checks sight for an unlimited range', () => {
@@ -342,18 +339,6 @@ describe('area target policy', () => {
         pointSeen: false
       })?.warnings.map(({ code }) => code)
     ).toEqual(['TARGET_OUT_OF_SIGHT'])
-  })
-
-  it('warns the range is unchecked without the caster token, and still returns the area', () => {
-    expect(evaluate({ sourceToken: null })).toEqual({
-      shape: { kind: 'RADIUS', radius: 400 },
-      warnings: [
-        {
-          code: 'TARGET_RANGE_UNCHECKED',
-          message: "Range can't be checked without both tokens on the map."
-        }
-      ]
-    })
   })
 
   it('has no range limit for an unlimited range', () => {
@@ -454,7 +439,7 @@ describe('directed area', () => {
     ).toBeCloseTo(304.8, 6)
   })
 
-  it('carries the grid’s cell size on a cube, so it can sit on the grid beside the caster', () => {
+  it('carries the grid’s cell size and origin on a cube, so it can sit on the grid beside the caster', () => {
     expect(
       evaluateEncounterDirectedAreaTarget({
         targetPolicy: directed(SHAPES.CUBE),
@@ -463,12 +448,27 @@ describe('directed area', () => {
         sourceToken: SOURCE_TOKEN
       })
     ).toEqual({
-      shape: { kind: 'CUBE_FROM_SIDE', edgeLength: 300, cellSize: 100, toward: east.toward },
+      shape: {
+        kind: 'CUBE_FROM_SIDE',
+        edgeLength: 300,
+        cellSize: 100,
+        gridOrigin: { x: 0, y: 0 },
+        toward: east.toward
+      },
       warnings: []
     })
+    const offset = { ...FEET_GRID, origin: { x: 30, y: 45 } }
+    expect(
+      evaluateEncounterDirectedAreaTarget({
+        targetPolicy: directed(SHAPES.CUBE),
+        ...east,
+        grid: offset,
+        sourceToken: SOURCE_TOKEN
+      })
+    ).toMatchObject({ shape: { gridOrigin: { x: 30, y: 45 } } })
   })
 
-  it('refuses with the reason: a size or policy it cannot draw, no caster token, or an origin off the caster', () => {
+  it('refuses with the reason: a size or policy it cannot draw, or an origin off the caster', () => {
     const base = { grid: FEET_GRID, sourceToken: SOURCE_TOKEN, ...east }
     const refusal = (input: Partial<Parameters<typeof evaluateEncounterDirectedAreaTarget>[0]>) =>
       evaluateEncounterDirectedAreaTarget({
@@ -481,7 +481,6 @@ describe('directed area', () => {
     expect(refusal({ targetPolicy: policy({ shape: SHAPES.CUBE }) })).toEqual({
       refusal: 'UNSUPPORTED_AREA'
     })
-    expect(refusal({ sourceToken: null })).toEqual({ refusal: 'NO_CASTER_TOKEN' })
   })
 })
 
@@ -512,23 +511,20 @@ describe('caster-centered area', () => {
     expect(
       evaluateEncounterCasterCenteredAreaTarget({
         targetPolicy: centered(SHAPES.SPHERE),
-        grid: FEET_GRID,
-        sourceToken: SOURCE_TOKEN
+        grid: FEET_GRID
       })
     ).toEqual({ shape: { kind: 'RADIUS', radius: 400 }, warnings: [] })
   })
 
-  it('refuses with the reason: a size or policy it cannot draw, or no caster token', () => {
+  it('refuses with the reason: a size or policy it cannot draw', () => {
     const refusal = (
       input: Partial<Parameters<typeof evaluateEncounterCasterCenteredAreaTarget>[0]>
     ) =>
       evaluateEncounterCasterCenteredAreaTarget({
         targetPolicy: centered(SHAPES.SPHERE),
         grid: FEET_GRID,
-        sourceToken: SOURCE_TOKEN,
         ...input
       })
-    expect(refusal({ sourceToken: null })).toEqual({ refusal: 'NO_CASTER_TOKEN' })
     expect(refusal({ targetPolicy: policy({ shape: SHAPES.SPHERE }) })).toEqual({
       refusal: 'UNSUPPORTED_AREA'
     })

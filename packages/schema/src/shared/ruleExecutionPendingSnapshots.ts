@@ -544,6 +544,7 @@ const encounterAreaShapeDtoSchema = lazySchema(() =>
       kind: z.literal('CUBE_FROM_SIDE'),
       edgeLength: z.number().check(z.positive()),
       cellSize: z.number().check(z.positive()),
+      gridOrigin: spatialPointDtoSchema,
       toward: spatialPointDtoSchema
     })
   ])
