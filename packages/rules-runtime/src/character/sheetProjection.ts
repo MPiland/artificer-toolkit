@@ -509,16 +509,31 @@ export function getOwnedSpellSlotLevels(
   ])
 }
 
-/** The levels a spell is cast at from one source: its own, and every higher level whose standard slot is owned. */
+/** The spells whose authored effects read the level they are cast at. */
+export function getCastLevelReaderSpellIds(
+  spellReferenceMechanics: readonly { spellId: string; readsCastLevel: boolean }[]
+): Set<string> {
+  return new Set(
+    spellReferenceMechanics.filter((spell) => spell.readsCastLevel).map((spell) => spell.spellId)
+  )
+}
+
+/**
+ * The levels a spell is cast at from one source: its own, and, when a higher level changes what it
+ * does, every higher level whose slot is owned.
+ */
 export function getSpellCastLevels(
-  spell: { level: number },
+  spell: { level: number; readsCastLevel: boolean },
   source: SheetSpellSource,
   ownedSlotLevels: ReadonlySet<number>
 ): number[] {
   const baseLevel = source.fixedLevel ?? spell.level
-  if ((source.castMode ?? 'SPELL_SLOT') !== 'SPELL_SLOT' || spell.level === 0) return [baseLevel]
-
-  // Any leveled spell can be cast with a higher slot; the spell's authored effects say what that changes.
+  if (
+    (source.castMode ?? 'SPELL_SLOT') !== 'SPELL_SLOT' ||
+    spell.level === 0 ||
+    !spell.readsCastLevel
+  )
+    return [baseLevel]
   return [baseLevel, ...[...ownedSlotLevels].filter((level) => level > baseLevel)].sort(
     (left, right) => left - right
   )
@@ -577,9 +592,10 @@ function buildActiveSpellGroups(params: {
   spellCastDecisions: CharacterRuleEvaluationResult['output']['spellCastDecisions']
   spellCastMechanics: CharacterRuleEvaluationResult['output']['spellCastMechanics']
   ownedSlotLevels: ReadonlySet<number>
+  castLevelReaderSpellIds: ReadonlySet<string>
   actionReferences: CharacterRuleActionPresentationReferences
 }): CharacterSheetResponseDto['spells']['activeGroups'] {
-  const { ownedSlotLevels } = params
+  const { ownedSlotLevels, castLevelReaderSpellIds } = params
   const spellCastDecisionsByCandidateId = new Map(
     params.spellCastDecisions.map((decision) => [decision.candidateId, decision])
   )
@@ -595,7 +611,11 @@ function buildActiveSpellGroups(params: {
   const rows = params.spells.flatMap((spell) =>
     (spell.sources ?? []).flatMap((source) => {
       if (!isActiveSpellSource(spell.level, source)) return []
-      const castLevels = getSpellCastLevels(spell, source, ownedSlotLevels)
+      const castLevels = getSpellCastLevels(
+        { level: spell.level, readsCastLevel: castLevelReaderSpellIds.has(spell.id) },
+        source,
+        ownedSlotLevels
+      )
       return castLevels.map((castLevel) => {
         const candidateId = createCharacterSpellCastCandidateId(source.source, castLevel)
         const decision = spellCastDecisionsByCandidateId.get(candidateId)
@@ -1357,6 +1377,9 @@ export function projectCharacterSheetBundle(
     spellCastDecisions: ruleEvaluation.output.spellCastDecisions,
     spellCastMechanics: ruleEvaluation.output.spellCastMechanics,
     ownedSlotLevels: getOwnedSpellSlotLevels(ruleEvaluation.output.spellSlots),
+    castLevelReaderSpellIds: getCastLevelReaderSpellIds(
+      ruleEvaluation.output.spellReferenceMechanics
+    ),
     actionReferences: mechanicPresentation.actionReferences
   })
   const displayedProficiencyKeys = new Set<string>()

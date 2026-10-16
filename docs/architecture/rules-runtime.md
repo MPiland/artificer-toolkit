@@ -743,10 +743,14 @@ activation and an attack or damage trigger is offered like a Feature reaction).
 A candidate is offered through the Sheet's own logic, not a copy of it: the spell must come from an active
 source (`isActiveSpellSource`: prepared per preparing class, learned for the others, always prepared and
 granted spells included) and the candidate must be one of the cast levels the Sheet lists
-(`getSpellCastLevels`): the spell's own level plus every higher level for which the Character owns a
-owned slot, standard or Pact Magic (any leveled spell can be cast with a higher slot; the authored effects say what that changes). A Warlock's pact slot also pays
-a cast at the spell's own level and is spent whatever its level. A candidate is dropped when its decision is not `AVAILABLE` or it is a
-ritual. A leveled cast paid from a spell-source pool (`LIMITED_USE`, or a `FIXED_LEVEL` grant with `charges`,
+(`getSpellCastLevels`): the spell's own level, plus every higher level for which the Character owns a slot
+(standard or Pact Magic) when the spell reads its cast level. A spell reads it when its authored effects scale by
+it (damage or healing `SPELL_CAST_LEVEL` scaling, a `SPELL_CAST_LEVEL` target count, a granted amount of
+`SPELL_SLOT_LEVEL`) or compare with it (`CANCEL_TRIGGERING_EVENT`, Counterspell's slot-versus-spell check).
+`effectReadsSpellCastLevel` derives that flag from the compiled Effects into `readsCastLevel` on the spell's
+action facts and reference mechanics; nothing names a spell. Any other spell is cast at its own level only.
+A Warlock's pact slot also pays a cast at the spell's own level and is spent whatever its level. A candidate is
+dropped when its decision is not `AVAILABLE` or it is a ritual. A leveled cast paid from a spell-source pool (`LIMITED_USE`, or a `FIXED_LEVEL` grant with `charges`,
 SPELLS-8.T8) carries a `resourceUse` of one use of that pool and spends no slot, as on the Sheet
 (`sheetResourceUsage.ts`); a cantrip is free, and so is a `FIXED_LEVEL` grant without charges. The pool spend
 is the ordinary `resourceBinding` of the compiled entry and GM undo restores it by the pool's owner key. A

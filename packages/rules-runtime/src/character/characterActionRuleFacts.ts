@@ -526,3 +526,37 @@ export function buildCharacterActionRuleFacts(params: {
 
   return { actionCandidates, entryPoints }
 }
+
+/**
+ * Whether casting the Effect at a higher level changes it: a result scaled by the cast level (damage,
+ * healing, targets, a granted amount) or one compared with it (Counterspell's slot-versus-spell check).
+ */
+export function effectReadsSpellCastLevel(effect: CompiledEffectGroup): boolean {
+  const { targeting } = effect.invocation
+  if (
+    targeting?.selectionKind === 'CHOSEN_CREATURES' &&
+    targeting.maxTargetsScaling?.scalingSource === 'SPELL_CAST_LEVEL'
+  )
+    return true
+  return effect.entries.some((entry) => {
+    if (!('outcome' in entry)) return false
+    const { outcome } = entry
+    switch (outcome.effectKind) {
+      case 'DAMAGE':
+      case 'HEAL':
+        return 'scalingSource' in outcome && outcome.scalingSource === 'SPELL_CAST_LEVEL'
+      case 'APPLY_GRANT':
+        return (outcome.grants.modifiers ?? []).some(
+          (modifier) =>
+            typeof modifier.payload === 'object' &&
+            modifier.payload !== null &&
+            'valueKind' in modifier.payload &&
+            modifier.payload.valueKind === 'SPELL_SLOT_LEVEL'
+        )
+      case 'CANCEL_TRIGGERING_EVENT':
+        return true
+      default:
+        return false
+    }
+  })
+}

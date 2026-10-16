@@ -17,6 +17,7 @@ import { normalizeCharacterActionMechanicFacts } from './characterActionRuleFact
 import { projectCharacterSpellAccess } from './characterRulePolicyAdapter.js'
 import { createCharacterSpellCastCandidateId } from './characterSpellCastRuleFacts.js'
 import {
+  getCastLevelReaderSpellIds,
   getOwnedSpellSlotLevels,
   getSpellCastLevels,
   getSpellSourcesBySpellId,
@@ -85,6 +86,7 @@ export function listCastableSpellCandidateIds(input: {
     projectCharacterSpellAccess(input.ruleEvaluation)
   )
   const ownedSlotLevels = getOwnedSpellSlotLevels(output.spellSlots)
+  const castLevelReaderSpellIds = getCastLevelReaderSpellIds(output.spellReferenceMechanics)
   const spellLevelById = new Map(
     facts.spellCastCandidates.map((cast) => [cast.spellId, cast.spellLevel])
   )
@@ -94,7 +96,8 @@ export function listCastableSpellCandidateIds(input: {
     if (level === undefined) continue
     for (const source of sources) {
       if (!isActiveSpellSource(level, source)) continue
-      for (const castLevel of getSpellCastLevels({ level }, source, ownedSlotLevels))
+      const spell = { level, readsCastLevel: castLevelReaderSpellIds.has(spellId) }
+      for (const castLevel of getSpellCastLevels(spell, source, ownedSlotLevels))
         candidateIds.add(createCharacterSpellCastCandidateId(source.source, castLevel))
     }
   }
