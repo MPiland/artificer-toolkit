@@ -10085,6 +10085,44 @@
               "activeWorkbook": "docs/handoffs/slice-reliability-15.md"
             }
           ]
+        },
+        {
+          "id": "RELIABILITY-16",
+          "title": "Snapshot drift is regenerated in CI",
+          "status": "TODO",
+          "journeyTests": [".github/workflows/tests.yml", "scripts/watchCi.ps1"],
+          "journeyStatus": "none",
+          "origin": [],
+          "wsjf": {
+            "bv": 5,
+            "tc": 8,
+            "rr": 8,
+            "size": 2
+          },
+          "acs": [
+            {
+              "id": "RELIABILITY-16.1",
+              "text": "When a ci/** Tests run fails only on Vitest snapshot mismatches, the workflow reruns the failing test files with snapshot update and uploads the changed __snapshots__ files as an `updated-snapshots` artifact; scripts/watchCi.ps1 prints the download command, and slice-workbook-rules.md tells sessions to commit the artifact instead of regenerating snapshots locally. A deliberately stale snapshot on a ci/ branch proves it red then green.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Snapshot conflicts after merging a batch need a light-lane -u run, and the light lane is starved while many sessions run (AvailableMBytes ~490 on 2026-10-16 against a 1 GB gate). Mirrors the live-backend generated-files artifact."
+            }
+          ],
+          "tasks": [
+            {
+              "id": "RELIABILITY-16.T1",
+              "text": "Add the snapshot-regeneration step and `updated-snapshots` artifact to tests.yml for the Convex shards and package tests, teach watchCi.ps1 to print its download command, and update slice-workbook-rules.md and AGENTS.md Validation; prove with a deliberately stale snapshot on a ci/ branch.",
+              "status": "TODO",
+              "closes": ["RELIABILITY-16.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 8,
+                "rr": 8,
+                "size": 2
+              }
+            }
+          ]
         }
       ]
     },
