@@ -39,6 +39,7 @@ import {
   pathOriginKindSchema,
   pathRollTableKindSchema
 } from '../shared/enums.js'
+import { facetDtoSchema } from '../shared/facet.js'
 import { rangeDtoSchema } from '../shared/range.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import {
@@ -208,6 +209,7 @@ const createPathDtoSchema = (outcomePayloadDtoSchema: z.ZodMiniType) => {
       pathCode: pathCodeSchema,
       groupType: pathGroupTypeSchema,
       originKind: z.optional(pathOriginKindSchema),
+      restrictions: z.optional(facetDtoSchema),
       rangeOverride: z.optional(rangeDtoSchema),
       targetingOverride: z.optional(targetingDtoSchema)
     }),

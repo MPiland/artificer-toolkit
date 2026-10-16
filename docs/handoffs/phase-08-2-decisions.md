@@ -766,6 +766,12 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - **Qualifiers:** a structured trigger (event, by, against) that reuses or shares the `reactionTrigger` filter types (ADR 0038). No flat enum growth.
   - **AC 27.2:** may be authored before its consumer exists, but closes only when nothing is left waiting on a consumer. The only entries left at close are a typed allow-list of texts covered by another named mechanism. The corpus test covers every SRD effect: spells, class features, items and creature traits.
   - **Out of scope:** D99 Campaign-clock carry-over of condition-owning effects, registered separately.
+* **D123** (2026-10-16) Attacker choices after a hit (ATTACK-9.T4 Divine Smite; plan in [slice-attack-9-t4.md](slice-attack-9-t4.md)). Decided by the main session.
+  - **Pause:** a third sibling optional offer, `onHitChoice`, on `encounterActionPendingContextDtoSchema`, beside `legendaryResistance` and `reactionChoice`. It follows their pattern: superRefine validation, held for the attacker, and mutually exclusive with the other offers, so there is one pause at a time. It opens only after any `reactionChoice` has resolved, because Shield can turn a hit into a miss before Smite is offered. It is named and shaped for any attacker on-hit option, not for Smite.
+  - **Not now:** generalizing `reactionChoice` into one interstitial offer. REACTION-4.T3 is changing that surface. Revisit only if a fourth offer appears.
+  - **Cost:** `optionalOnHit` is generic over the existing spend kinds. A spell slot with a level choice binds `spellCastLevel` for the shared row selector (D118). A resource-pool use lets Stunning Strike (ki) reuse it. It is not slot-only.
+  - **Creature type:** a predicate kind in D119's rider predicate union, owned by ATTACK-9.T2b. It is not a condition on a damage row. It reuses the creature-type ids from SPELLS-8.T13's `allowedCreatureTypeIds`. It is added after T2b merges, and the offer phase is built in the meantime.
+  - **Improved Divine Smite:** a mandatory D119(a) rider with no offer.
 
 ## Approved implementation decisions
 

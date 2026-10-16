@@ -4,7 +4,7 @@ import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { characterSheetActionDtoSchema } from './characterSheetData.js'
 import { resolveEncounterActionInputDtoSchema } from './encounters.js'
 import { encounterAcceptedWieldConflictDtoSchema } from './encounterRuleCommands.js'
-import { equipmentGripSchema } from '../shared/enums.js'
+import { activationCodeSchema, equipmentGripSchema } from '../shared/enums.js'
 import { encounterRuleWarningsDtoSchema } from '../shared/encounterRuleWarnings.js'
 import { shapeMeasurementDtoSchema } from '../shared/shape.js'
 import { basicActionReusableDefinitionDocumentDtoSchema } from '../shared/basicActions.js'
@@ -29,8 +29,8 @@ export const encounterActionChoiceDtoSchema = lazySchema(() =>
     sourceLabel: characterSheetActionDtoSchema.shape.sourceLabel,
     /** What the action does, for a System-authored basic action's tooltip. */
     rulesText: z.optional(basicActionReusableDefinitionDocumentDtoSchema.shape.rulesText),
-    /** What a System-authored basic action costs to use, shown beside its name. */
-    actionCost: z.optional(basicActionReusableDefinitionDocumentDtoSchema.shape.actionCost),
+    /** What the action costs to use, shown beside its name: a System basic action's cost, or a spell cast's authored activation. */
+    actionCost: z.optional(activationCodeSchema),
     /** The numeric range geometry the compiled target policy enforces; `rangeLabel` words the authored range instead. */
     range: z.optional(
       z.discriminatedUnion('kind', [
@@ -154,7 +154,7 @@ export const encounterEscapeChoiceDtoSchema = lazySchema(() =>
     /** "Escape from <grappler>", or "Escape a grapple" when the grappler is hidden from the requester. */
     label: labelSchema,
     dc: z.number().check(z.int()).check(z.positive()),
-    actionCost: z.enum(['ACTION', 'BONUS_ACTION', 'REACTION', 'FREE']),
+    actionCost: activationCodeSchema,
     /** The ability or skill checks the escape allows; the first is the default. */
     checks: z
       .array(z.strictObject({ checkDefinitionId: postgresUuidSchema, label: labelSchema }))
@@ -174,7 +174,7 @@ export const encounterHeldGrantEndChoiceDtoSchema = lazySchema(() =>
     activeEffectId: postgresUuidSchema,
     /** "End <grant source>", or "End effect" when the source is hidden from the requester. */
     label: labelSchema,
-    actionCost: z.enum(['ACTION', 'BONUS_ACTION', 'REACTION', 'FREE']),
+    actionCost: activationCodeSchema,
     /** Soft-rule warnings that already apply, as for `actions`. */
     warnings: encounterRuleWarningsDtoSchema
   })

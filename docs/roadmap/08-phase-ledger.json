@@ -5731,9 +5731,8 @@
                 "after": ["ATTACK-9.T1"]
               },
               "id": "ATTACK-9.T2b",
-              "status": "TODO",
-              "text": "D119 (d): net roll-mode facet predicate (ADVANTAGE, NOT_DISADVANTAGE) and any-of composition if missing.",
-              "activeWorkbook": "docs/handoffs/slice-attack-9-t2.md"
+              "status": "DONE",
+              "text": "D119 (d): net roll-mode facet predicate (ADVANTAGE, NOT_DISADVANTAGE) and any-of composition if missing."
             },
             {
               "closes": ["ATTACK-9.2"],
@@ -5746,7 +5745,8 @@
               },
               "id": "ATTACK-9.T2c",
               "status": "TODO",
-              "text": "D119 (e): hostile-of-target-within-N-ft predicate from scene positions, planned by the room and re-verified by persistence."
+              "text": "D119 (e): hostile-of-target-within-N-ft predicate from scene positions, planned by the room and re-verified by persistence.",
+              "activeWorkbook": "docs/handoffs/slice-attack-9-t2.md"
             },
             {
               "closes": ["ATTACK-9.2"],
@@ -5785,7 +5785,8 @@
                 "rr": 3,
                 "size": 3,
                 "after": ["ATTACK-9.T2a"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-attack-9-t4.md"
             },
             {
               "id": "ATTACK-9.T5",
@@ -5899,9 +5900,14 @@
               "id": "ATTACK-10.6",
               "text": "The GM sees, for each hidden creature, which observers it is hidden from and which failed to notice it (D100), and can add or remove observers from the live table UI through SET_CONCEALMENT_OBSERVERS; players never see that list.",
               "status": "TODO",
-              "proof": [],
+              "proof": [
+                "packages/rules-runtime/src/__tests__/encounterPlayerProjection.test.ts",
+                "apps/session-worker/test/nativeRoomHideAction.test.ts",
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopEncounterDrawer.test.tsx",
+                "CI 38842195604 at a05549a24"
+              ],
               "origin": [],
-              "note": "Registered 2026-10-15 from the ATTACK-10.T1 merge review: the GM half of D100 is stored but not projected, and the GM command has no UI."
+              "note": "Registered 2026-10-15 from the ATTACK-10.T1 merge review: the GM half of D100 is stored but not projected, and the GM command has no UI. Built 2026-10-15 (ATTACK-10.T5, slice-attack-10-t5.md): GM-only concealment projection, drawer editor and room/projection redaction proofs are green. Stays TODO until the live journey (apps/web/tests/live-backend/encounterHide.ts, runLocalConvexProof.ps1 -Proof hide-browser) has run; it is written and registered but was not run in the workbook."
             }
           ],
           "wsjf": {
@@ -7269,12 +7275,13 @@
                 "rr": 3,
                 "size": 3,
                 "after": ["SPELLS-8.T1"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-8-t1.md"
             },
             {
               "id": "SPELLS-8.T9",
               "text": "Spells with a bonus action, reaction, mixed or no activation casting time are offered with the right activation.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-8.1"],
               "wsjf": {
                 "bv": 5,
@@ -7282,8 +7289,7 @@
                 "rr": 3,
                 "size": 3,
                 "after": ["SPELLS-8.T1"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-spells-8-t1.md"
+              }
             },
             {
               "id": "SPELLS-8.T10",

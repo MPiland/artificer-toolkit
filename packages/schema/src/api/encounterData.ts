@@ -23,6 +23,7 @@ import {
 } from '../shared/authoredLimits.js'
 import {
   activeGrantListingDtoSchema,
+  concealmentListingDtoSchema,
   concentrationListingDtoSchema
 } from '../shared/activeGrantListing.js'
 import { jsonValueSchema } from '../projections/identity.js'
@@ -172,7 +173,12 @@ export const encounterGmActorDtoSchema = lazySchema(() =>
         conditionImmunities: z.array(z.string())
       })
     ),
-    features: z._default(z.array(encounterFeatureReferenceDtoSchema), [])
+    features: z._default(z.array(encounterFeatureReferenceDtoSchema), []),
+    /**
+     * The concealment this actor holds and who it is hidden from (D116); GM-only, so the player
+     * actor contract has no such field. Null when the actor is not hidden.
+     */
+    concealment: z._default(z.nullable(concealmentListingDtoSchema), null)
   })
 )
 

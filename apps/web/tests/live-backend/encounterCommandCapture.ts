@@ -8,19 +8,26 @@ import type {
   EncounterCommandResultDto,
   RemoveAreaTargetInputDto,
   ResolveEncounterActionInputDto,
-  ResolveRuleOccurrenceInputDto
+  ResolveRuleOccurrenceInputDto,
+  SetConcealmentObserversInputDto
 } from '@artificer-toolkit/schema/api/encounters'
 
 const expect = playwrightExpect.configure({ timeout: 90_000 })
 
+type CapturedEncounterCommandInput =
+  | ResolveEncounterActionInputDto
+  | ResolveRuleOccurrenceInputDto
+  | RemoveAreaTargetInputDto
+  | SetConcealmentObserversInputDto
+
 type CapturedEncounterCommand = {
-  command: ResolveEncounterActionInputDto | ResolveRuleOccurrenceInputDto | RemoveAreaTargetInputDto
+  command: CapturedEncounterCommandInput
   result?: EncounterCommandResultDto
   error?: string
 }
 
 /**
- * Records the Encounter actions and decision answers a page sends through its Session room socket
+ * Records the Encounter actions, decision answers and GM concealment edits a page sends through its Session room socket
  * (the only door for Encounter commands), with the room's result or refusal, and Convex query
  * failures from its sync socket.
  */
@@ -47,7 +54,8 @@ export function captureEncounterCommands(
         if (
           command.type !== 'RESOLVE_ACTION' &&
           command.type !== 'RESOLVE_RULE_OCCURRENCE' &&
-          command.type !== 'REMOVE_AREA_TARGET'
+          command.type !== 'REMOVE_AREA_TARGET' &&
+          command.type !== 'SET_CONCEALMENT_OBSERVERS'
         )
           return
         if (!commands.has(command.commandId)) commands.set(command.commandId, { command })
@@ -103,7 +111,7 @@ export async function waitForCommand(
   commands: Map<string, CapturedEncounterCommand>,
   priorCount: number
 ): Promise<{
-  command: ResolveEncounterActionInputDto | ResolveRuleOccurrenceInputDto | RemoveAreaTargetInputDto
+  command: CapturedEncounterCommandInput
   result: EncounterCommandResultDto
 }> {
   await expect.poll(() => commands.size).toBe(priorCount + 1)
