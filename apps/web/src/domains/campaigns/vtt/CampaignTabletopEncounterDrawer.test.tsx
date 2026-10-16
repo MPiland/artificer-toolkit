@@ -322,7 +322,12 @@ describe('CampaignTabletopEncounterDrawer', () => {
 
       await user.click(screen.getByRole('button', { name: 'Open turn order' }))
       await user.click(screen.getByRole('combobox', { name: 'Reveal Vault Warden to players' }))
-      await user.click(await screen.findByRole('option', { hidden: true, name: 'Reveal named' }))
+      // Every actor row carries its own reveal list, so the option is read from this actor's.
+      const levels = await screen.findByRole('listbox', {
+        hidden: true,
+        name: 'Reveal Vault Warden to players'
+      })
+      await user.click(within(levels).getByRole('option', { hidden: true, name: 'Reveal named' }))
 
       expect(onCommand).toHaveBeenCalledWith({
         actorId: warden.id,
