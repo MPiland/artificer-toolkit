@@ -278,6 +278,30 @@ describe('chosen-creature heal compilation from the SRD (D118)', () => {
   })
 })
 
+describe('chosen-creature projectile compilation from the SRD (SPELLS-26)', () => {
+  const MAGIC_MISSILE = spellEffect('Magic Missile')
+  const targetOf = (effect: typeof FIREBALL, castLevel: number) =>
+    encounterActionChoiceTarget(
+      buildCompiledActionTargetPolicy(compile({}, effect, castLevel).action)
+    )
+
+  it.each([
+    [1, 3],
+    [3, 5],
+    [9, 11]
+  ])('takes one dart per cap at level %i, a creature named once per dart', (level, darts) => {
+    const { action, plan } = compile({}, MAGIC_MISSILE, level)
+    expect(plan?.kind).toBe('SINGLE_GRAPH')
+    expect(encounterActionTargetKind(buildCompiledActionTargetPolicy(action))).toBe('ACTORS')
+    expect(targetOf(MAGIC_MISSILE, level)).toEqual({
+      kind: 'ACTORS',
+      maxTargets: darts,
+      area: null,
+      allowRepeatedTargets: true
+    })
+  })
+})
+
 describe('area action compilation refusals', () => {
   const refused: Array<[string, Partial<Invocation>]> = [
     ['a cone', { shape: { id: 's', shapeKind: 'CONE', length: feet(15) } }],

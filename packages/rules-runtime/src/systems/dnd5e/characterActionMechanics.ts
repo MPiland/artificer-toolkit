@@ -447,6 +447,7 @@ export function resolveDnd5eActionMechanic(
     attackBonus: resolveAttackBonus(),
     attackRollMode: resolveAttackRollMode(),
     save: resolveSave(),
+    ...(invocation.targetCountLevels ? { targetCountLevels: invocation.targetCountLevels } : {}),
     outcomes: outcomes.map(resolveOutcome)
   }
 }

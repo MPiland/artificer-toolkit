@@ -133,6 +133,7 @@ import {
 } from './roomRateLimits.js'
 import { readRoomActorDepartures, reconcileRoomActorDepartures } from './roomActorReconcile.js'
 import { RoomCharacterSheetFeed, type FeedScope } from './roomCharacterSheetFeed.js'
+import type { RoomSceneTokens } from './roomEncounterReadPorts.js'
 import { RoomEncounterReads } from './roomEncounterReads.js'
 import { lookupRoomEncounterReplay } from './roomEncounterReplayIndex.js'
 import { RoomCampaignSummaryFeed } from './roomCampaignSummaryFeed.js'
@@ -503,6 +504,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
             }
           : null
       },
+      sceneTokens: (scope: FeedScope) => this.#sceneTokens(scope.authorityEpoch),
       send,
       remember: (socket: WebSocket) => this.#rememberFeeds(socket)
     }
@@ -512,21 +514,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     this.#encounterReads = new RoomEncounterReads({
       ...feedDependencies,
       authorization: (scope) => this.#authorization.currentPlay(scope.authorityEpoch),
-      presentedSceneId: () => this.#cache?.scene?.id ?? null,
-      visibleTokenIds: (socket, sceneId) => {
-        const admission = this.#liveAdmission(socket)
-        const epoch = attachment(socket)?.authorityEpoch
-        const scene = this.#cache?.scene
-        return admission && epoch && scene?.id === sceneId
-          ? new Set(
-              projectSceneForViewer(
-                scene,
-                viewer(admission),
-                this.#boundTokenControl(scene, admission, epoch)
-              ).tokens.map(({ id }) => id)
-            )
-          : null
-      }
+      presentedSceneId: () => this.#cache?.scene?.id ?? null
     })
     ctx.blockConcurrencyWhile(async () => {
       storage.sql.exec(`
@@ -1700,6 +1688,28 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     return new Map(control.map(({ tokenId, controlled }) => [tokenId, controlled]))
   }
 
+  /**
+   * The tokens the presented Scene draws for a member, by the same projection as their map, so the
+   * Encounter list and the map cannot disagree on who is seen (ATTACK-17.3). Null while the room holds
+   * no Scene.
+   */
+  #sceneTokens(authorityEpoch: string): RoomSceneTokens {
+    return async (member) => {
+      const scene = this.#cache?.scene
+      if (!scene) return null
+      return {
+        sceneId: scene.id,
+        visibleTokenIds: new Set(
+          projectSceneForViewer(
+            scene,
+            viewer(member),
+            this.#boundTokenControl(scene, member, authorityEpoch)
+          ).tokens.map(({ id }) => id)
+        )
+      }
+    }
+  }
+
   #sendStateSync(socket: WebSocket, admission: Admission): void {
     const value = attachment(socket)
     const current = this.#journal.readCurrent()
@@ -2214,6 +2224,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
             inputs: this.#roomInputs,
             authorization,
             userId: admission.userId,
+            sceneTokens: this.#sceneTokens(value.authorityEpoch),
             replayed: { kind: 'RECORDED', result: replay.delta.result }
           })
           for (const sceneReceipt of messages.slice(0, -1))
@@ -2275,6 +2286,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
           inputs: this.#roomInputs,
           authorization,
           userId: admission.userId,
+          sceneTokens: this.#sceneTokens(value.authorityEpoch),
           replayed: indexed
         })
         send(socket, {
@@ -2819,6 +2831,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
               }),
               command,
               presentedSceneId: sceneCache?.scene?.id ?? null,
+              sceneTokens: this.#sceneTokens(value.authorityEpoch),
               random,
               ...(command.type === 'START' ||
               command.type === 'ADVANCE_TURN' ||
@@ -3256,6 +3269,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
             userId: admission.userId,
             command,
             context,
+            sceneTokens: this.#sceneTokens(value.authorityEpoch),
             runtime: await this.#liveRulesRuntime(),
             random
           })

@@ -637,7 +637,7 @@ describe('native Encounter turn Recharge', () => {
     expect(replay.projection).toEqual(
       projectPlayerEncounterProjection(
         encounterGmProjectionDtoSchema.parse(await projectionFor(base, base.owner.caller)),
-        { userId: base.other.userId, characters: new Map() }
+        { userId: base.other.userId, characters: new Map(), unseenActorIds: new Set<string>() }
       )
     )
     for (const hidden of ['healthBand', 'gmNotes', 'statBlock'])

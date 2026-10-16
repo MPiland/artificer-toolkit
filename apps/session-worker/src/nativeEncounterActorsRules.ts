@@ -59,6 +59,14 @@ export async function planNativeLiveEncounterActorsAction(
   const { actorIds, scene: sceneRequest } = command.target
   if (actorIds.length > maxTargets)
     throw refusal(`This action takes at most ${maxTargets} creatures.`)
+  // Each entry of a projectile list is one projectile; any other action names each creature once.
+  const allowRepeatedTargets =
+    targeting?.selectionKind === 'CHOSEN_CREATURES' && targeting.allowRepeatedTargets === true
+  if (
+    !allowRepeatedTargets &&
+    new Set(actorIds.map((actorId) => actorId.toLowerCase())).size !== actorIds.length
+  )
+    throw refusal('This action names each creature once.')
   // An action that names an area is aimed at a point on the Scene; any other takes none.
   const shaped = targetPolicy.shape !== null
   if (shaped !== (sceneRequest?.point != null))
@@ -201,6 +209,7 @@ export async function planNativeLiveEncounterActorsAction(
     adapter: lead.adapter,
     plan: lead.plan,
     occurrenceId,
+    rollsPerTarget: allowRepeatedTargets,
     targets: prepared.map(({ actor, prepared: entry }) => ({
       actorId: actor.id,
       binding: entry.binding
@@ -217,6 +226,7 @@ export async function planNativeLiveEncounterActorsAction(
     actionEconomy: economy?.consumption ?? null,
     attackAction,
     settled,
+    rollsPerTarget: allowRepeatedTargets,
     tests: [],
     audits: new Map(),
     areaOccurrenceId: occurrenceId,

@@ -87,6 +87,8 @@ function readPorts(ctx: QueryCtx): EncounterReadPorts {
     readAutoRollDice: (userId) => readAutoRollDice(ctx, userId),
     readGmRollVisibility: (userId) => readGmRollVisibility(ctx, userId),
     isRoomHeldRun: (run) => isRoomHeldRun(ctx, run),
+    // Fog is read only in paged actions, so a query cannot tell what a player's map draws (ATTACK-17.3).
+    readViewerSceneTokens: async () => null,
     hasAccountProfile: async (userId) =>
       (await ctx.db
         .query('userProfiles')

@@ -781,15 +781,19 @@
         {
           "id": "PLATFORM-14",
           "title": "Fast, reliable web tests and tooling",
-          "status": "IN_PROGRESS",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": [".github/workflows/tests.yml"],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
               "text": "Web tests reliable: test workers capped to physical cores; 3 full runs, 0 failures",
-              "status": "IN_PROGRESS",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/web/vitest.config.ts (maxWorkers 50%: logical CPUs halved stand in for physical cores, rationale in place)",
+                "docs/handoffs/slice-platform-14.md (flake survey)",
+                "Three consecutive green full CI web runs on the merge batches: Web tests jobs 116826454007 (run 38855518184, 1dfa8a6d8), 116827337630 (run 38855774749, 8c3671f53), 116829367364 (run 38856437824, 1855512ce)"
+              ],
               "note": "Audit: cap built (020e60aae, maxWorkers 50%); the three clean full runs are not recorded.",
               "origin": ["TST-7"],
               "id": "PLATFORM-14.1"
@@ -821,15 +825,14 @@
             {
               "id": "PLATFORM-14.T1",
               "text": "Cap web test workers to physical cores; three full CI web runs with 0 failures; root-cause any flake.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["PLATFORM-14.1"],
               "wsjf": {
                 "bv": 1,
                 "tc": 3,
                 "rr": 5,
                 "size": 2
-              },
-              "activeWorkbook": "docs/handoffs/slice-platform-14.md"
+              }
             }
           ]
         },
@@ -5104,7 +5107,34 @@
             "tc": 5,
             "rr": 3,
             "size": 5
-          }
+          },
+          "tasks": [
+            {
+              "id": "ATTACK-2.T1",
+              "text": "Player parity matrix: a test derived from the real Encounter command registry proves every command the GM can issue for a Character is accepted from that Character's controlling player (own actor, own turn or a reaction window) and refused for others; each GM-only gap found is fixed through the player path, not by widening authorization.",
+              "status": "TODO",
+              "closes": ["ATTACK-2.5"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 5,
+                "rr": 5,
+                "size": 3
+              }
+            },
+            {
+              "id": "ATTACK-2.T2",
+              "text": "Player parity journey (browser, player client): on their own Character a player casts an area spell, takes a death save, uses a non-movement reaction and targets from the map, with no GM step.",
+              "status": "TODO",
+              "closes": ["ATTACK-2.5"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 5,
+                "rr": 3,
+                "size": 3,
+                "after": ["ATTACK-2.T1", "ATTACK-17.T3", "REACTION-4.T3b"]
+              }
+            }
+          ]
         },
         {
           "id": "ATTACK-3",
@@ -6258,7 +6288,7 @@
         {
           "id": "ATTACK-17",
           "title": "Target creatures from the map or the Encounter list",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "journeyTests": [],
           "journeyStatus": "none",
           "origin": [],
@@ -6281,8 +6311,14 @@
             },
             {
               "text": "A player's map and target list show only creatures that player can see; an unseen or hidden creature is neither drawn nor listed unless the GM reveals it to players (as an unnamed unseen creature or by name), and a creature the GM keeps hidden is never listed even when it is public in initiative.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/rules-runtime/src/__tests__/encounterPlayerProjection.test.ts (unseenEncounterActorIds, D121 predicate table)",
+                "apps/session-worker/test/nativeRoomUnseenTarget.test.ts (an unseen target is refused as unavailable)",
+                "apps/apis/convex/encounters/recipientBindings.test.ts and apps/session-worker/test/nativeLiveSessionRoom.test.ts (per-viewer lists, Convex and room)",
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopEncounterDrawer.test.tsx (GM unnamed or named reveal control)",
+                "CI Tests 38859125052 and Live backend 38859125065 on 40cdc77aa"
+              ],
               "origin": [],
               "note": "User decision 2026-10-09: unseen creatures are not shown unless the GM marks them shown, so the list never gives away the encounter. Fixes today's leak where a public actor with a hidden or fogged token is still in the target dropdown.",
               "id": "ATTACK-17.3"
@@ -6343,7 +6379,7 @@
             {
               "id": "ATTACK-17.T2",
               "text": "Per-viewer player Encounter projection: only creatures the player can see, plus the GM's unnamed or named reveal.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["ATTACK-17.3"],
               "wsjf": {
                 "bv": 8,
@@ -6351,13 +6387,12 @@
                 "rr": 2,
                 "size": 3,
                 "after": ["ATTACK-9.T1", "SPELLS-22"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-attack-17-t2-t3.md"
+              }
             },
             {
               "id": "ATTACK-17.T3",
               "text": "Map targeting mode and the distance-sorted target list with one shared selection.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["ATTACK-17.1", "ATTACK-17.2"],
               "wsjf": {
                 "bv": 8,
@@ -7198,8 +7233,10 @@
             },
             {
               "text": "Spare the Dying is castable in an Encounter and stabilizes a dying target through the STABILIZE executor; its undead and construct exclusion applies to targets.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/session-worker/test/nativeRoomStabilizeAction.test.ts › Spare the Dying cast by a Character (stabilizes through the STABILIZE executor, no slot; an Undead target warns TARGET_CREATURE_TYPE_EXCLUDED in the shared order and an override applies nothing); CI Tests 38858490124 on cce167033, Live backend 38858347236 on c76399218"
+              ],
               "origin": [],
               "note": "Moved from SPELLS-3.5 on 2026-10-08 (D96). Since SPELLS-8.T6a (e8ebfb687) excluded creature types raise an overridable warning instead of a compile refusal.",
               "id": "SPELLS-8.2"
@@ -7277,7 +7314,7 @@
             {
               "id": "SPELLS-8.T3",
               "text": "Spare the Dying stabilizes through the STABILIZE executor.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-8.2"],
               "wsjf": {
                 "bv": 3,
@@ -7298,7 +7335,8 @@
                 "rr": 2,
                 "size": 5,
                 "after": ["SPELLS-8.T1"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-8-t3.md"
             },
             {
               "id": "SPELLS-8.T5",
@@ -8115,7 +8153,7 @@
         {
           "id": "SPELLS-26",
           "title": "Spells that target several chosen creatures",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "journeyTests": [],
           "journeyStatus": "none",
           "origin": [],
@@ -8124,7 +8162,9 @@
               "id": "SPELLS-26.1",
               "text": "Every SRD spell that targets chosen creatures (CHOSEN_CREATURES with maxTargets) compiles and resolves per target through core options, including split projectiles (a repeated target entry is one Magic Missile dart, Scorching Ray ray or Eldritch Blast beam, each its own damage instance, the count scaled by cast or character level) and per-creature saves; a corpus test derived from the real compiler fails on any such spell that does not compile, unless it fails for the same reason as a SINGLE_TARGET cast (its outcome is owned elsewhere: SPELLS-8.T4, SPELLS-4.T2, SPELLS-28, or ADR 0018 manual adjudication).",
               "status": "TODO",
-              "proof": [],
+              "proof": [
+                "T1 (Magic Missile darts): apps/session-worker/test/nativeRoomChosenActorsSpell.test.ts (room cast of projectiles on chosen creatures), packages/rules-runtime/src/__tests__/spellCastLevels.test.ts; CI Tests 38858767374 and Live backend 38858767391 on 8baeda488"
+              ],
               "origin": [],
               "note": "Registered 2026-10-15 from the REACTION-4 design review: the compiler accepts only SINGLE_TARGET or AREA_CONTENTS (effectActionCompiler.ts), so 31 SRD spells authoring CHOSEN_CREATURES, Magic Missile among them, are not castable. Amended 2026-10-16 after the SPELLS-26 survey (docs/handoffs/slice-spells-26.md): projectiles use allowRepeatedTargets and maxTargetsScaling, not a new target-count contract; outcome gaps go to their owning PBIs."
             }
@@ -8139,9 +8179,8 @@
             {
               "id": "SPELLS-26.T1",
               "text": "Magic Missile: a repeated chosen-creature entry is one dart (allowRepeatedTargets; projectile count = maxTargets scaled by cast level), one 1d4+1 force damage instance per dart, one commit, slot spend and undo; Magic Missile re-authored per dart (journey: three darts split 2+1 between two goblins).",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-26.1"],
-              "activeWorkbook": "docs/handoffs/slice-spells-8-t1.md",
               "wsjf": {
                 "bv": 8,
                 "tc": 3,
@@ -8152,7 +8191,7 @@
             {
               "id": "SPELLS-26.T2",
               "text": "Per-creature saves for a chosen list (Acid Splash, Chain Lightning) through the area save-and-commit flow: one sealed save per distinct creature, damage rolled once.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-26.1"],
               "wsjf": {
                 "bv": 8,
@@ -8160,7 +8199,8 @@
                 "rr": 5,
                 "size": 3,
                 "after": ["SPELLS-26.T1"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-26.md"
             },
             {
               "id": "SPELLS-26.T3",
@@ -8173,7 +8213,8 @@
                 "rr": 5,
                 "size": 3,
                 "after": ["SPELLS-26.T1"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-26.md"
             },
             {
               "id": "SPELLS-26.T4",
@@ -8186,7 +8227,8 @@
                 "rr": 5,
                 "size": 2,
                 "after": ["SPELLS-26.T2", "SPELLS-26.T3"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-26.md"
             }
           ]
         },
@@ -8205,6 +8247,13 @@
               "proof": [],
               "origin": [],
               "note": "Registered 2026-10-16 from the SPELLS-26 survey: no PBI owned these outcome families, so these chosen-creature spells fail as single-target casts too."
+            },
+            {
+              "id": "SPELLS-28.2",
+              "text": "A Character casts Misty Step or Dimension Door in an Encounter and moves its token to a chosen unoccupied point within the spell range with no path and no opportunity attacks; the cast grants a bounded teleport allowance that the move consumes, a teleport by a player without one is refused, and GM undo restores the position.",
+              "status": "TODO",
+              "proof": [],
+              "origin": []
             }
           ],
           "wsjf": {
@@ -8226,6 +8275,20 @@
                 "size": 3
               },
               "activeWorkbook": "docs/handoffs/slice-spells-28.md"
+            },
+            {
+              "id": "SPELLS-28.T1b",
+              "text": "In-Scene TELEPORT (Misty Step, Dimension Door): the cast commits a bounded one-shot teleport allowance (on the existing movement-economy pattern, expiring at the end of the caster turn) that a following MOVE_SCENE_TOKEN TELEPORT consumes; player TELEPORT without an allowance is refused; range, occupancy and visibility enforced at consumption; authored from core options.",
+              "status": "TODO",
+              "closes": ["SPELLS-28.2"],
+              "activeWorkbook": "docs/handoffs/slice-spells-28.md",
+              "wsjf": {
+                "bv": 8,
+                "tc": 3,
+                "rr": 3,
+                "size": 2,
+                "after": ["SPELLS-28.T1"]
+              }
             },
             {
               "id": "SPELLS-28.T2",
@@ -9907,6 +9970,45 @@
                 "bv": 3,
                 "tc": 3,
                 "rr": 5,
+                "size": 2
+              }
+            }
+          ]
+        },
+        {
+          "id": "RELIABILITY-14",
+          "title": "Campaign custody deletion test is deterministic",
+          "status": "IN_PROGRESS",
+          "journeyTests": ["apps/apis/convex/campaigns/deletionCustody.test.ts"],
+          "journeyStatus": "none",
+          "origin": [],
+          "wsjf": {
+            "bv": 3,
+            "tc": 8,
+            "rr": 8,
+            "size": 2
+          },
+          "acs": [
+            {
+              "id": "RELIABILITY-14.1",
+              "text": "deletionCustody.test.ts \"runs the real public custody producers before deleting a ACTIVE Campaign\" passes deterministically: no contentSnapshotObjects remain after deletion, and a test reproduces the failing order or state before the fix.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Failed on ledger-only merge batch h (e2d6dc33d, run 38858694893, Convex 3/4) whose code was green on batch g: contentSnapshotObjects expected [] but held 3."
+            }
+          ],
+          "tasks": [
+            {
+              "id": "RELIABILITY-14.T1",
+              "text": "Find the nondeterminism behind leftover contentSnapshotObjects after an ACTIVE Campaign custody deletion, reproduce it red, fix the root cause (no retry, no loosened assertion).",
+              "status": "IN_PROGRESS",
+              "closes": ["RELIABILITY-14.1"],
+              "activeWorkbook": "docs/handoffs/slice-reliability-14.md",
+              "wsjf": {
+                "bv": 3,
+                "tc": 8,
+                "rr": 8,
                 "size": 2
               }
             }

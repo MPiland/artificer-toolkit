@@ -19,7 +19,7 @@ import {
 } from '@artificer-toolkit/schema/api/liveSessionRoomAuthorization'
 import type { RoomEncounterStore, RoomTransaction } from './roomEncounterStore.js'
 import type { RoomInputs } from './roomInputs.js'
-import { roomEncounterReadTransaction } from './roomEncounterReadPorts.js'
+import { roomEncounterReadTransaction, type RoomSceneTokens } from './roomEncounterReadPorts.js'
 import { roomEncounterWriteTransaction } from './roomEncounterWritePorts.js'
 import { prepareRoomLiveCharacterSheet } from './roomCharacterRules.js'
 import { readRunActors, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
@@ -82,6 +82,7 @@ export async function executeRoomEncounterCommand(input: {
   command: RoomNativeEncounterCommand
   /** The room's presented Scene; actor-token bindings change only its tokens. */
   presentedSceneId?: string | null
+  sceneTokens: RoomSceneTokens
   random(maximum: number): number
   turnExecution?: { runtime: RulesRuntimeService }
 }) {
@@ -96,7 +97,8 @@ export async function executeRoomEncounterCommand(input: {
     campaignId,
     epoch,
     userId,
-    observed
+    observed,
+    sceneTokens: input.sceneTokens
   })
   const context: EncounterWriteTransaction = {
     ...written,
@@ -250,9 +252,9 @@ export async function executeRoomEncounterCommand(input: {
                 : command.type === 'END_HELD_GRANT'
                   ? await executeEndHeldGrant(command)
                   : command.type === 'SET_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING' ||
-                    command.type === 'REMOVE_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING'
-                  ? await executeTokenBinding(command)
-                  : await recordEncounterCommand(context, command, userId, input.random)
+                      command.type === 'REMOVE_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING'
+                    ? await executeTokenBinding(command)
+                    : await recordEncounterCommand(context, command, userId, input.random)
   const parsedGm = encounterGmProjectionDtoSchema.safeParse(rawResult.projection)
   const currentRun = await context.db
     .query('encounterRuns')
@@ -583,6 +585,7 @@ export async function replayRoomEncounterCommand(input: {
   inputs: RoomInputs
   authorization: LiveSessionRoomAuthorization
   userId: string
+  sceneTokens: RoomSceneTokens
   replayed:
     | { kind: 'RECORDED'; result: EncounterCommandResultDto }
     | {
@@ -636,7 +639,8 @@ export async function replayRoomEncounterCommand(input: {
     campaignId: row.campaignId,
     epoch,
     userId,
-    observed: inputs.revisions(row.campaignId, authorization.revisions)
+    observed: inputs.revisions(row.campaignId, authorization.revisions),
+    sceneTokens: input.sceneTokens
   })
   const { campaign, membership } = await ctx.ports.requireCampaignAuthority(row.campaignId, userId)
   return presentEncounterResultForMember(ctx, {
