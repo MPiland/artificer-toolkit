@@ -144,17 +144,19 @@ Logs under `local-validation/attack-9-t2d/` (not committed).
 - [x] Room journeys: `nativeRoomOncePerTurn` (rider on the first hit only, a later hit's undo keeps the use spent, undoing the spending hit gives it back), `nativeMovementOncePerTurnRider` (opportunity attack with an ally beside the mover gets the dice and spends the use; ally far off gets none), `nativeRoomEnemyProximity`.
 - [x] Authored parity: `AuthoredDomainFieldParity.test.tsx` SRD Sneak Attack describe (real form, node-runtime resolver, form adapter, submit equals the SRD effects).
 - [ ] CI Tests and Live backend green on `ci/attack-9-t2d`.
+- Seed fix found by the live-backend job: `authoredSourceFacts` required a `damageTypeId` on every DAMAGE outcome; the SRD Sneak Attack damage uses the weapon's type, so `damages.damage_type_id` is now null for it (`authoredSourceFacts.test.ts`, the web parity test).
 
-## Architect packet: derived vs rolled roll mode (open since T2b; does not block T2d)
+## T2e (roll-mode gate reads the settled d20, D124)
 
-`dnd5e.attack-roll-mode` (the fact a path's `ATTACK_ROLL_MODE` check reads) is the rules-derived mode from roll contributors, computed in `bindFacts`. `resolveEncounterD20Answer` (`encounterEvidenceAnswer.ts:53`) uses that derived mode only for an auto-roll; entered dice and app rolls keep the mode the roller chose (`answer.rollMode`).
+Option B of the former architect packet, approved. Closes AC ATTACK-9.2.
 
-- **Option A (today): gate on the derived mode.** One mode drives both the d20 and the rider; nothing new to thread; the OUTCOME template stays sealed at TEST. Differs from the table only when the roller overrides the derived mode: advantage the app has no contributor for (an adjudicated Help or flanking) does not unlock Sneak Attack, and a roller who drops derived advantage keeps the dice.
-- **Option B: gate on the settled mode.** The TEST evidence already holds `rolledMode`; OUTCOME specialization would read it. RAW-exact (the rider follows the roll actually made), but it threads the TEST evidence into the OUTCOME bound facts and the sealed template then depends on a TEST result.
-- **SRD cases that differ:** none under auto-roll. Under entered or app rolls: Sneak Attack with GM-adjudicated advantage (the common table case), and a deliberately flat roll while a contributor grants advantage.
-- **Recommendation: B**, before Sneak Attack is relied on at tables that roll by hand. Sneak Attack's eligibility is not blocked meanwhile: derived advantage (conditions, hidden, prone) and the adjacent-enemy case work under A.
+- `resolveEncounterActionPhaseExecution` takes `testRollMode` (the TEST d20 evidence `rollMode`) and passes it to `CharacterRuleActionSystemAdapter.specializeOutcomeTemplate`, which supplies it to the D&D specializer as `attackRollMode`. `requireTestRollMode` reads it from the completed TEST on the first-run, continuation and movement-reaction paths.
+- The `dnd5e.attack-roll-mode` bound fact and its parser are deleted; nothing else read it. The sealed OUTCOME template checksum is unchanged.
+- A sight-governed d20 settles in the true mode (D100), so a Blinded target's advantage cannot be flattened by the roller; the gate follows the true mode.
+- Proof: `apps/session-worker/test/nativeRoomSettledRollMode.test.ts` (room journeys: hand-rolled advantage on a target with none derived gets the rider dice; a roller who flattens a Prone target's derived advantage gets none; keeping the derived advantage gets them; a Blinded target's sight-governed advantage gets them whatever the roller rolled).
+- Closes the open entry in Future enhancements (the gate read the derived mode).
 
 ### Proposed ledger edits
 
-ATTACK-9.T2a done (shapes a-c); ATTACK-9.T2b (shape d) built; ATTACK-9.T2c (shape e) built; ATTACK-9.T2d (shape f, real SRD Sneak Attack) built; ATTACK-9.2 stays open for T2e.
+ATTACK-9.T2a done (shapes a-c); ATTACK-9.T2b (shape d) built; ATTACK-9.T2c (shape e) built; ATTACK-9.T2d (shape f, real SRD Sneak Attack) built; ATTACK-9.T2e (settled-mode gate, D124) built; ATTACK-9.2 closes with T2e.
 

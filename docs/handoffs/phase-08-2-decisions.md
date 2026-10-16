@@ -778,6 +778,11 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - **Cost:** `optionalOnHit` is generic over the existing spend kinds. A spell slot with a level choice binds `spellCastLevel` for the shared row selector (D118). A resource-pool use lets Stunning Strike (ki) reuse it. It is not slot-only.
   - **Creature type:** a predicate kind in D119's rider predicate union, owned by ATTACK-9.T2b. It is not a condition on a damage row. It reuses the creature-type ids from SPELLS-8.T13's `allowedCreatureTypeIds`. It is added after T2b merges, and the offer phase is built in the meantime.
   - **Improved Divine Smite:** a mandatory D119(a) rider with no offer.
+* **D124** (2026-10-16) A path's `ATTACK_ROLL_MODE` check reads the settled d20 (ATTACK-9.T2e; packet in [slice-attack-9-t2.md](slice-attack-9-t2.md)). Decided by the main session (option B). Refines D119(d).
+  - **Rule:** the check gates on the mode the TEST d20 was settled in (the evidence `rollMode`), not on the mode the rules derived from roll contributors. A GM-adjudicated advantage the app has no contributor for unlocks the rider; a roller who flattens a derived advantage forgoes it, as at the table.
+  - **Sight:** a sight-governed d20 (a Blinded or unseen target) settles in the true mode whatever the roller chose (D100), so the check follows the true mode. The evidence `rollMode` already holds it.
+  - **Seal:** the OUTCOME template checksum is unchanged (it hashes the authored groups, restricted or not). Only the published graph depends on the TEST result, and `resolveEncounterActionPhaseExecution` is the sole place that reads it.
+  - **Removed:** the `dnd5e.attack-roll-mode` bound fact. Nothing else read it.
 
 ## Approved implementation decisions
 

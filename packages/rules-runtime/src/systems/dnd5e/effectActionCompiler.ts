@@ -183,8 +183,6 @@ const DND5E_RESOLVED_HEAL_MODIFIER_FACT_KEY = 'dnd5e.resolved-heal-modifier'
 export const DND5E_SPELL_CAST_LEVEL_FACT_KEY = 'dnd5e.spell-cast-level'
 /** The actor's level in each class (a JSON object by class id), which selects CLASS_LEVEL rows. */
 const DND5E_CLASS_LEVELS_FACT_KEY = 'dnd5e.class-levels'
-/** The attack's net d20 roll mode, which a path restriction reads when its outcome specializes. */
-const DND5E_ATTACK_ROLL_MODE_FACT_KEY = 'dnd5e.attack-roll-mode'
 /** The nearest able enemy of the attack's target (a JSON object); absent when no Scene measured it. */
 const DND5E_ATTACK_ENEMY_PROXIMITY_FACT_KEY = 'dnd5e.attack-enemy-proximity'
 /** The once-per-turn uses already spent this turn (a JSON array of usage keys); absent when no record was read. */
@@ -311,7 +309,6 @@ function dndScalingFactsFromRuleValues(
     parentClassLevel: positiveInteger(facts.parentClassLevel),
     spellCastLevel: positiveInteger(facts[DND5E_SPELL_CAST_LEVEL_FACT_KEY]),
     classLevels: parseClassLevels(facts[DND5E_CLASS_LEVELS_FACT_KEY]),
-    attackRollMode: parseAttackRollMode(facts[DND5E_ATTACK_ROLL_MODE_FACT_KEY]),
     attackEnemyProximity: parseEnemyProximity(facts[DND5E_ATTACK_ENEMY_PROXIMITY_FACT_KEY]),
     attackTurnUses: parseTurnUses(facts[DND5E_ATTACK_TURN_USES_FACT_KEY]),
     resolvedDamageExpressions: Object.fromEntries(
@@ -324,13 +321,6 @@ function dndScalingFactsFromRuleValues(
       facts[DND5E_RESOLVED_DAMAGE_OUTCOME_EXPRESSIONS_FACT_KEY]
     )
   }
-}
-
-function parseAttackRollMode(value: RuleValue | undefined): Dnd5eAttackRollMode | undefined {
-  if (value === undefined) return undefined
-  if (value !== 'NORMAL' && value !== 'ADVANTAGE' && value !== 'DISADVANTAGE')
-    unsupported('D&D attack roll mode is malformed.')
-  return value
 }
 
 function parseEnemyProximity(value: RuleValue | undefined): Dnd5eEnemyProximity | undefined {
@@ -3484,7 +3474,6 @@ export const dnd5eEffectActionCapability: GameSystemRuleCapabilityContract = {
       valueKind: RULE_VALUE_KIND.NUMBER
     },
     { key: DND5E_CLASS_LEVELS_FACT_KEY, valueKind: RULE_VALUE_KIND.TEXT },
-    { key: DND5E_ATTACK_ROLL_MODE_FACT_KEY, valueKind: RULE_VALUE_KIND.TEXT },
     { key: DND5E_ATTACK_ENEMY_PROXIMITY_FACT_KEY, valueKind: RULE_VALUE_KIND.TEXT },
     { key: DND5E_ATTACK_TURN_USES_FACT_KEY, valueKind: RULE_VALUE_KIND.TEXT },
     {
@@ -6790,7 +6779,13 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
     })
     return { published: test.published, template: templateIdentity(test) }
   },
-  specializeOutcomeTemplate: ({ compilerSource, testTemplate, selectedPath, facts }) => {
+  specializeOutcomeTemplate: ({
+    compilerSource,
+    testTemplate,
+    selectedPath,
+    facts,
+    testRollMode
+  }) => {
     if (!isSpecializedPath(selectedPath))
       throw new Dnd5eEffectActionCompilerError('D&D selected outcome path is unavailable.')
     const action = dndSourceFromCompilerSource(compilerSource)
@@ -6813,7 +6808,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
     const outcome = specializeDnd5eEffectActionOutcomeBody({
       action,
       selectedPath,
-      facts: dndScalingFactsFromRuleValues(facts)
+      facts: { ...dndScalingFactsFromRuleValues(facts), attackRollMode: testRollMode }
     })
     return outcome
       ? {
@@ -7251,7 +7246,6 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
           ...baseFacts,
           [DND5E_ATTACK_MODIFIER_FACT_KEY]: action.attackBonus,
           [DND5E_TARGET_DEFENSE_FACT_KEY]: armorClass,
-          [DND5E_ATTACK_ROLL_MODE_FACT_KEY]: rollMode,
           ...(enemyProximity
             ? { [DND5E_ATTACK_ENEMY_PROXIMITY_FACT_KEY]: JSON.stringify(enemyProximity) }
             : {}),

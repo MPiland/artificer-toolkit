@@ -933,10 +933,12 @@ conditions) that gates whether its result is owed. The compiler copies it onto e
 `buildCharacterActionRuleFacts` resolves the weapon checks (`EQUIPMENT` contexts: `EQUIPMENT_PROPERTY`, item
 identity, through the same `dnd5eItemRequirementsMet` the Rage restrictions use) against the attacking item and
 leaves only circumstance checks, `ATTACK_ROLL_MODE` and `ENEMY_NEAR_TARGET` (`reduceEffectRestrictions`, `systems/dnd5e/attackRestrictions`); an entry
-that can never be owed is dropped, one whose group has nothing left to decide is unrestricted. The attack's net
-roll mode (`bindFacts`, `dnd5e.attack-roll-mode`; advantage and disadvantage cancel) is known only after the
-d20, so `specializeDnd5eEffectActionOutcomeBody` filters the remaining restricted groups then
-(`attackRestrictionsMet`). The sealed OUTCOME template checksum hashes the authored groups, restricted or not,
+that can never be owed is dropped, one whose group has nothing left to decide is unrestricted. The attack's roll
+mode is known only after the d20, so `specializeDnd5eEffectActionOutcomeBody` filters the remaining
+restricted groups then (`attackRestrictionsMet`). It reads the mode the TEST d20 was settled in (D124): the
+evidence `rollMode`, which `resolveEncounterActionPhaseExecution` passes to the adapter as `testRollMode`, not
+the mode the rules derived from roll contributors. A hand-rolled advantage unlocks the rider, a flattened
+derived advantage forgoes it, and a sight-governed d20 (D100) settles in the true mode, so the check follows that. The sealed OUTCOME template checksum hashes the authored groups, restricted or not,
 so it is the same whichever the roll owes; the published graph is what differs. Only `EQUIPMENT`-context
 checks are evaluated; any other subject fails its group. A path whose every group is restricted away
 produces no OUTCOME graph, which the phase resolver rejects for a template that exists (see Deferred

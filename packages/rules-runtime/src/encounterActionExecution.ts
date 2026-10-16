@@ -4,7 +4,10 @@ import type {
   CharacterRuleActionSystemAdapter
 } from './characterRuleActionSystemAdapter.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
-import { resolveEncounterActionPhaseExecution } from './encounterActionPhaseExecution.js'
+import {
+  requireTestRollMode,
+  resolveEncounterActionPhaseExecution
+} from './encounterActionPhaseExecution.js'
 import {
   buildEncounterActionD20Evidence,
   buildEncounterSaveD20Evidence,
@@ -189,7 +192,8 @@ export async function executeNativeActionGraphs(input: {
       phase: 'TEST',
       execution: first.execution,
       adapter: input.adapter,
-      facts: first.bound.facts
+      facts: first.bound.facts,
+      testRollMode: requireTestRollMode(d20)
     })
     if (resolution.kind === 'OUTCOME') {
       terminal = await executePhase(resolution.outcome.published, 'OUTCOME')
@@ -836,6 +840,7 @@ export async function continueNativeActionAfterTest(
     execution: input.boundary.execution,
     adapter: input.adapter,
     facts: current.bound.facts,
+    testRollMode: input.boundary.d20.rollMode,
     ...(effectivePath === undefined ? {} : { effectivePath })
   })
   if (outcome.kind === 'TEST_ONLY')
@@ -1262,6 +1267,7 @@ export async function advanceNativeActionGraphs(input: {
         execution: pending.twoPhase.testExecution,
         adapter: input.adapter,
         facts: initialBound.facts,
+        testRollMode: pending.twoPhase.testRollEvidence.rollMode,
         ...(pending.twoPhase.legendaryResistance === null
           ? {}
           : {
@@ -1436,7 +1442,8 @@ export async function advanceNativeActionGraphs(input: {
       phase: 'TEST',
       execution: result,
       adapter: input.adapter,
-      facts: initialBound.facts
+      facts: initialBound.facts,
+      testRollMode: requireTestRollMode(testD20)
     })
     if (outcome.kind === 'TEST_ONLY')
       return actionComplete({
