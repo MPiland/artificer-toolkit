@@ -3538,7 +3538,7 @@ function proposalNode(pathCode: string, outcome: Outcome) {
     unsupported('D&D speed-to-movement outcomes cannot follow an attack or saving throw.')
   if (outcome.kind === 'CANCEL_TRIGGERING_EVENT')
     unsupported('D&D cancel outcomes cannot follow an attack or saving throw.')
-  const id =`proposal-${pathCode.toLowerCase()}`
+  const id = `proposal-${pathCode.toLowerCase()}`
   return {
     id,
     operation: { key: testProposalOperationKey(outcome), contractVersion: 1 },
