@@ -8,13 +8,13 @@ import type { ServerRuleExecutionApplicationOutputsDto } from '@artificer-toolki
 import { checksumRunActorPlayState } from '@artificer-toolkit/rules-runtime/encounterActorStorage'
 import {
   featureChargeUsed,
-  withEncounterActorEngaged,
   withFeatureChargeUsed
 } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import { consumeEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomyConsumption'
 import { applyEncounterAttackActionTransition } from '@artificer-toolkit/rules-runtime/encounterAttackAction'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { writeRunActor } from './documents.js'
+import { engageIdleTurnActor } from './idleTurnMark.js'
 import type { EncounterWriteContext } from './store.js'
 
 type SourceSpendReceipts = Pick<
@@ -112,7 +112,7 @@ export async function settleActionSourceSpend(
       'featureResourceConsumption' | 'actionEconomyTransition' | 'attackActionTransition'
     >
     economyOverridden: boolean
-    /** The source attacked a hostile creature while holding an idle-bound grant: it is marked engaged. */
+    /** The source attacked a hostile creature: an actor armed for an idle-bound grant is marked engaged. */
     engages?: boolean
   }
 ) {
@@ -144,11 +144,7 @@ export async function settleActionSourceSpend(
       settledSource,
       spend.attackActionTransition
     )
-  if (input.engages)
-    settledSource = encounterRunActorStateSchema.parse({
-      ...settledSource,
-      resources: withEncounterActorEngaged(settledSource, true)
-    })
+  if (input.engages) settledSource = engageIdleTurnActor(settledSource)
   if (checksumCanonicalJson(settledSource) !== checksumCanonicalJson(source)) {
     const row = await ctx.db
       .query('encounterRunActors')

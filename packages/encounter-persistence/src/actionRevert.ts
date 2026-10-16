@@ -21,7 +21,7 @@ import { reconcileEncounterActorRuleOutput } from '@artificer-toolkit/rules-runt
 import {
   featureChargeUsed,
   encounterRuleUsageUsed,
-  withEncounterActorEngaged,
+  withEncounterActorIdleTurnMark,
   withEncounterRuleUsageUsed,
   withFeatureChargeUsed
 } from '@artificer-toolkit/rules-runtime/encounterActorState'
@@ -521,10 +521,10 @@ export async function revertLastEncounterAction(
       unavailable("The actor's Attack action changed after this action; adjust manually.")
     updateActor(source.id, { resources: restored.resources })
   }
-  // Only the marks this action set go: an actor engaged earlier in the turn stays engaged.
-  for (const actorId of root.engagedActorIds) {
-    const engaged = actorsById.get(actorId)
-    if (engaged) updateActor(actorId, { resources: withEncounterActorEngaged(engaged, false) })
+  // Each mark this action armed or engaged goes back to what it was; an actor engaged earlier stays so.
+  for (const { actorId, before } of root.idleTurnMarkChanges) {
+    const marked = actorsById.get(actorId)
+    if (marked) updateActor(actorId, { resources: withEncounterActorIdleTurnMark(marked, before) })
   }
   // The creature that countered the cast spent its own slot and reaction.
   const counter = counteredRoot?.counter

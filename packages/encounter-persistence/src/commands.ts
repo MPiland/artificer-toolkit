@@ -35,6 +35,7 @@ import { endCompletedRunCharacterEffects } from './characterRunEffects.js'
 import { freezeEncounterCharacterStates } from './characterStates.js'
 import { encounterReplayReceipt } from './replayReceipts.js'
 import { readRunActors, readRunActorWithRow, readRunState, writeRunActor } from './documents.js'
+import { engageIdleTurnActor } from './idleTurnMark.js'
 import { endChosenConcentration } from './concentrationChosenEnd.js'
 import { endConcentrationAfterEdit } from './concentrationEditEnd.js'
 import { endGrantsOnHitPointsRegained } from './consumedGrantPersistence.js'
@@ -427,6 +428,7 @@ async function recordEncounterToolCommand(
       })
     }
     const previousHitPoints = actor.kind === 'CHARACTER' ? 0 : actor.currentHitPoints
+    const previousTempHitPoints = actor.tempHitPoints
     actor = encounterRunActorStateSchema.parse(
       input.type === 'SET_INITIATIVE' || input.type === 'ROLL_ACTOR_INITIATIVE'
         ? {
@@ -462,6 +464,12 @@ async function recordEncounterToolCommand(
             updatedAt
           }
     )
+    // A GM edit that lowers a creature's hit points is damage taken (SRD Rage); like the edit, the mark is not undoable.
+    if (
+      actor.kind !== 'CHARACTER' &&
+      (actor.currentHitPoints < previousHitPoints || actor.tempHitPoints < previousTempHitPoints)
+    )
+      actor = engageIdleTurnActor(actor)
     await writeRunActor(ctx, actorRow._id, actor)
     // A GM edit that raises a creature's hit points ends its "until healed" grants (D63's revive
     // edit included). Like the edit itself, the ending is not undoable.

@@ -12,11 +12,13 @@ import {
   featureChargeUsed,
   withFeatureChargeUsed
 } from '@artificer-toolkit/rules-runtime/encounterActorState'
+import { attackedHostileCreature } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
 import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.js'
 import type { EncounterCharacterWriteTransaction } from './ports.js'
 import { deleteGrants } from './consumedGrantPersistence.js'
+import { engageIdleTurnActor } from './idleTurnMark.js'
 import { spendTurnUses } from './turnMovement.js'
 import { writeRunActor } from './documents.js'
 import {
@@ -235,6 +237,8 @@ export async function persistLiveMovementReaction(
     ...nextSource,
     resources: withEncounterRuleUsageUsed(nextSource, allowance.definitionId, allowance.afterUsed)
   })
+  if (attackedHostileCreature({ d20s: [batch.d20, batch.nestedD20], source, target }))
+    nextSource = engageIdleTurnActor(nextSource)
   for (const [before, after] of [
     [beforeSource, nextSource],
     [mechanics.updatedActor, nextTarget]

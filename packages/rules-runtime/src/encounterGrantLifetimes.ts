@@ -5,7 +5,7 @@ import type {
   GrantConsumeEvent
 } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import type { ConcentrationEndReason } from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
-import { encounterActorEngaged } from './encounterActorState.js'
+import { encounterActorIdleTurnMark } from './encounterActorState.js'
 import { encounterActorRelationship } from './encounterActionTargetPolicy.js'
 import { encounterConcealmentOf } from './encounterConcealment.js'
 import {
@@ -186,25 +186,25 @@ export function attackedHostileCreature(input: {
 }
 
 /**
- * What the end of the turn actor's turn does to its idle-bound grants (SRD Rage). An actor that
- * neither attacked a hostile creature nor took damage since its last turn ended loses the grants
- * that end on `ON_IDLE_TURN`; the engaged mark resets either way. A grant created on the actor's own
- * turn arrives with the mark set, so its first check is at the end of the actor's next turn.
+ * What the end of the turn actor's turn does to its idle-bound grants (SRD Rage). An armed actor,
+ * one that neither attacked a hostile creature nor took damage since its last turn ended, loses the
+ * grants that end on `ON_IDLE_TURN`; an engaged one keeps them and is armed again. `effects` need
+ * only be read for an armed actor. A grant created on the actor's own turn arrives engaged, so its
+ * first check is at the end of the actor's next turn.
  */
-export function planIdleTurnGrantEnds<Effect extends ActiveRuleEffectRecord>(input: {
+export function planIdleTurnCheck<Effect extends ActiveRuleEffectRecord>(input: {
   encounterId: string
   actor: Pick<EncounterRunActorState, 'kind' | 'resources'>
   effects: readonly Effect[]
 }) {
-  const engaged = encounterActorEngaged(input.actor)
-  return {
-    clearEngaged: engaged,
-    ended: engaged
-      ? []
-      : grantsEndedBy(input.effects, 'ON_IDLE_TURN').filter((effect) =>
-          isEffectLiveInEncounter(effect, input.actor, input.encounterId)
-        )
-  }
+  const mark = encounterActorIdleTurnMark(input.actor)
+  if (mark === null) return { ended: [], nextMark: null }
+  if (mark === 'ENGAGED') return { ended: [], nextMark: 'ARMED' as const }
+  const ended = grantsEndedBy(input.effects, 'ON_IDLE_TURN').filter((effect) =>
+    isEffectLiveInEncounter(effect, input.actor, input.encounterId)
+  )
+  const holdsOthers = grantsEndedBy(input.effects, 'ON_IDLE_TURN').length > ended.length
+  return { ended, nextMark: holdsOthers ? ('ARMED' as const) : null }
 }
 
 /**

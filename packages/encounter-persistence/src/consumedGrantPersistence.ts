@@ -2,14 +2,10 @@ import {
   consumableGrants,
   grantsEndedBy
 } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
-import { encounterActorEngaged } from '@artificer-toolkit/rules-runtime/encounterActorState'
-import type { TargetState } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
+import type { EncounterIdleTurnMark } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
-import type {
-  EncounterRunActorState,
-  EncounterRunState
-} from '@artificer-toolkit/schema/projections/encounterRunState'
+import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { readRunActors } from './documents.js'
 import { createActiveRuleEffectStore } from './effectStore.js'
 import type {
@@ -64,30 +60,6 @@ export async function endGrantsOnHitPointsRegained(
 }
 
 /**
- * Whether damage newly marks the owner engaged (SRD Rage): the change lowered its hit points or
- * temporary hit points, it holds a grant that ends on an idle turn and it is not marked already.
- * Reads the owner's effects only for a damaged actor.
- */
-export async function damageEngagesGrantHolder(
-  ctx: EncounterWriteContext,
-  input: {
-    actor: Pick<EncounterRunActorState, 'resources'>
-    owner: ActiveRuleEffectRecord['owner']
-    before: Pick<TargetState, 'currentHitPoints' | 'temporaryHitPoints'>
-    after: Pick<TargetState, 'currentHitPoints' | 'temporaryHitPoints'>
-  }
-) {
-  const { actor, before, after } = input
-  return (
-    (after.currentHitPoints < before.currentHitPoints ||
-      after.temporaryHitPoints < before.temporaryHitPoints) &&
-    !encounterActorEngaged(actor) &&
-    grantsEndedBy(await createActiveRuleEffectStore(ctx).list(input.owner), 'ON_IDLE_TURN').length >
-      0
-  )
-}
-
-/**
  * What an action's undo gives back: the grants its rolls used up and the effects it ended, such as
  * the grants an incapacitation it caused ended (D113) or the concealments a Hide replaced and a
  * Search emptied. Every commit that roots an action builds its receipt through this.
@@ -101,18 +73,21 @@ export function receiptConsumedGrants(input: {
 
 /**
  * A response committed after its action's root (a Cleaving choice, answering the action's
- * occurrence) can end grants too: the root's receipt takes them, so the action's undo gives them
- * back with everything else.
+ * occurrence) can end grants and change idle-turn marks too: the root's receipt takes them, so the
+ * action's undo gives them back with everything else. A mark the root already changed keeps the
+ * value it held before the action.
  */
-export async function addEndedGrantsToRoot(
+export async function addResponseChangesToRoot(
   ctx: EncounterPersistenceTransaction,
   input: {
     campaignId: string
     actionOccurrenceId: string
     endedGrants: readonly ActiveRuleEffectRecord[]
+    idleTurnMarkChanges?: readonly { actorId: string; before: EncounterIdleTurnMark | null }[]
   }
 ) {
-  if (!input.endedGrants.length) return
+  const markChanges = input.idleTurnMarkChanges ?? []
+  if (!input.endedGrants.length && !markChanges.length) return
   const occurrence = await ctx.db
     .query('encounterRuleOccurrences')
     .withIndex('by_publicId', (q) => q.eq('id', input.actionOccurrenceId))
@@ -129,7 +104,13 @@ export async function addEndedGrantsToRoot(
     consumedGrants: receiptConsumedGrants({
       consumedGrants: root.consumedGrants,
       endedGrants: input.endedGrants
-    })
+    }),
+    idleTurnMarkChanges: [
+      ...root.idleTurnMarkChanges,
+      ...markChanges.filter(
+        ({ actorId }) => !root.idleTurnMarkChanges.some((change) => change.actorId === actorId)
+      )
+    ]
   })
 }
 

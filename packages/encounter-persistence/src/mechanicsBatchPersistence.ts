@@ -1,6 +1,4 @@
-import { withEncounterActorEngaged } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import { checksumRunActorPlayState } from '@artificer-toolkit/rules-runtime/encounterActorStorage'
-import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import { effectiveHitPointMaximum } from '@artificer-toolkit/rules-runtime/character/activeEffectGrantTotals'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
@@ -17,10 +15,8 @@ import type {
   EncounterMechanicsBatchPlan
 } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
 import { rejectDomain } from './domainRejections.js'
-import {
-  damageEngagesGrantHolder,
-  endGrantsOnHitPointsRegained
-} from './consumedGrantPersistence.js'
+import { engageIdleTurnActor } from './idleTurnMark.js'
+import { endGrantsOnHitPointsRegained } from './consumedGrantPersistence.js'
 import { listActiveRuleEffects } from './effectStore.js'
 import type { EncounterCharacterRow } from './characterPlay.js'
 import type { EncounterCharacterWriteTransaction } from './ports.js'
@@ -37,8 +33,6 @@ export type EncounterMechanicsBatchResult = {
   itemUseStateTransition: EncounterMechanicsBatchPlan['itemUseStateTransition']
   /** The "until healed" grants a heal in this batch ended: the action's undo gives them back. */
   endedGrants: ActiveRuleEffectRecord[]
-  /** Whether this batch's damage newly marked the target engaged: the action's undo clears the mark. */
-  engaged: boolean
 }
 
 function validateInput(input: EncounterMechanicsBatchInput): EncounterMechanicsBatchInput {
@@ -142,17 +136,13 @@ export async function persistEncounterMechanicsBatchPlan<CharacterSources>(
     throw new Error('Encounter mechanics target belongs to another transaction.')
   const { input, actor, actorRow, campaign } = target
   const { plan, character } = prepared
-  const engaged = await damageEngagesGrantHolder(ctx, {
-    actor: plan.updatedActor,
-    owner: turnEffectOwner(actor, target.state.id),
-    ...plan.targetTransition
-  })
-  const updatedActor = engaged
-    ? encounterRunActorStateSchema.parse({
-        ...plan.updatedActor,
-        resources: withEncounterActorEngaged(plan.updatedActor, true)
-      })
-    : plan.updatedActor
+  const { before, after } = plan.targetTransition
+  // Damage engages an actor armed for an idle-bound grant (SRD Rage); every other actor is untouched.
+  const updatedActor =
+    after.currentHitPoints < before.currentHitPoints ||
+    after.temporaryHitPoints < before.temporaryHitPoints
+      ? engageIdleTurnActor(plan.updatedActor)
+      : plan.updatedActor
   const [currentRun, currentActor] = await Promise.all([
     ctx.db.get(target.runRow._id),
     ctx.db.get(actorRow._id)
@@ -183,15 +173,15 @@ export async function persistEncounterMechanicsBatchPlan<CharacterSources>(
       plan.itemUseStateTransition
     )
       throw new Error('Encounter non-Character plan contains Character state.')
-    if (plan.stateChanged || engaged) await writeRunActor(ctx, actorRow._id, updatedActor)
+    if (plan.stateChanged || updatedActor !== plan.updatedActor)
+      await writeRunActor(ctx, actorRow._id, updatedActor)
     return {
       updatedActor,
       receiptApplications: plan.receiptApplications,
       targetTransition: plan.targetTransition,
       characterStreamVersion: null,
       itemUseStateTransition: null,
-      endedGrants: await endGrantsOnRegain(ctx, target, plan.targetTransition),
-      engaged
+      endedGrants: await endGrantsOnRegain(ctx, target, plan.targetTransition)
     }
   }
   if (
@@ -248,7 +238,6 @@ export async function persistEncounterMechanicsBatchPlan<CharacterSources>(
     targetTransition: plan.targetTransition,
     characterStreamVersion: plan.characterStreamVersion,
     itemUseStateTransition: plan.itemUseStateTransition,
-    endedGrants: await endGrantsOnRegain(ctx, target, plan.targetTransition),
-    engaged
+    endedGrants: await endGrantsOnRegain(ctx, target, plan.targetTransition)
   }
 }

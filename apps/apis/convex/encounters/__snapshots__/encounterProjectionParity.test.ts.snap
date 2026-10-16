@@ -5,7 +5,6 @@ exports[`Encounter projections built on read > applies an action mechanics batch
   "result": {
     "characterStreamVersion": null,
     "endedGrants": [],
-    "engaged": false,
     "itemUseStateTransition": null,
     "receiptApplications": [
       {

@@ -32,7 +32,7 @@ import { correctInitiativeCursor } from './initiativeCorrection.js'
 import { completeNativeInitiativeOccurrence } from './initiativeTerminalCompletion.js'
 import { readLiveEncounterTurnAdmission } from './turnCommandAdmission.js'
 import { deleteHeldAttackRollGrants } from './consumedGrantPersistence.js'
-import { persistEncounterGrantTicks } from './grantTickPersistence.js'
+import { persistEncounterGrantTicks, persistEncounterIdleTurnCheck } from './grantTickPersistence.js'
 import { persistEncounterInitiativeRollCards } from './initiativeRollCards.js'
 import { persistEncounterTurnEffects } from './turnEffectsPersistence.js'
 import {
@@ -209,6 +209,12 @@ export async function persistEncounterTurnCommit(
       applyMechanics: callbacks.applyMechanics
     }
   )
+  // After the Legendary Actions: the damage they deal at this turn's end counts as taken.
+  await persistEncounterIdleTurnCheck(ctx, {
+    state,
+    turnActorId: state.currentActorId,
+    occurredAt: input.occurredAt
+  })
   await persistEncounterInitiativeRollCards(ctx, {
     state,
     campaign,

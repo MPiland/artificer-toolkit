@@ -295,7 +295,7 @@ store.
   the same Run after COMPLETE. Run deletion and Campaign deletion delete the remaining rows too.
 - **Ended grants and undo (D113):** state-bound grants the engine ends (incapacitation or defeat for `ON_INCAPACITATED` grants, a named Condition for `endOnConditionIds`) are deleted in
   the same commit. A `RESOLVE_ACTION`, area or cleaving root keeps them in `consumedGrants` (`receiptConsumedGrants`,
-  `addEndedGrantsToRoot`), so `REVERT_LAST_ACTION` restores them with the consumed grants. The commit validates every
+  `addResponseChangesToRoot`), so `REVERT_LAST_ACTION` restores them with the consumed grants. The commit validates every
   `endedGrants` record against the stored effect and the holder's state, not the client's claim
   (`concentrationChildrenPersistence.ts`: `damagedActorIds` names the holders the commit damaged, and a commit that omits a grant such a
   holder's state ends is refused). A grant ended by a movement pass or an actor or Sheet edit is deleted without a receipt

@@ -1,7 +1,10 @@
-import { withEncounterActorEngaged } from '@artificer-toolkit/rules-runtime/encounterActorState'
+import {
+  encounterActorIdleTurnMark,
+  withEncounterActorIdleTurnMark
+} from '@artificer-toolkit/rules-runtime/encounterActorState'
 import {
   planEncounterGrantTicks,
-  planIdleTurnGrantEnds
+  planIdleTurnCheck
 } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
 import {
   turnEffectOwner,
@@ -10,6 +13,7 @@ import {
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import {
   encounterRunActorStateSchema,
+  type EncounterRunActorState,
   type EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { readRunActors, replaceRunActor } from './documents.js'
@@ -34,7 +38,7 @@ export async function persistEncounterGrantTicks(
   if (input.turnActorId === null) return
   const { state, stage, turnActorId } = input
   const store = createActiveRuleEffectStore(ctx)
-  let actors = await readRunActors(ctx, state)
+  const actors = await readRunActors(ctx, state)
   const holders = await Promise.all(
     actors.map(async (actor) => ({
       actor,
@@ -42,29 +46,6 @@ export async function persistEncounterGrantTicks(
     }))
   )
   const expired: ActiveRuleEffectRecord[] = []
-  const turnHolder =
-    stage === 'END_OF_TURN' ? holders.find(({ actor }) => actor.id === turnActorId) : undefined
-  if (turnHolder) {
-    // An idle turn ends the holder's idle-bound grants; the engaged mark resets either way.
-    const idle = planIdleTurnGrantEnds({ encounterId: state.id, ...turnHolder })
-    for (const effect of idle.ended) {
-      await store.deleteCas({
-        id: effect.id,
-        owner: turnEffectOwner(turnHolder.actor, state.id),
-        expectedVersion: effect.version
-      })
-      expired.push(effect)
-    }
-    turnHolder.effects = turnHolder.effects.filter((effect) => !idle.ended.includes(effect))
-    if (idle.clearEngaged) {
-      const cleared = encounterRunActorStateSchema.parse({
-        ...turnHolder.actor,
-        resources: withEncounterActorEngaged(turnHolder.actor, false)
-      })
-      await replaceRunActor(ctx, turnHolder.actor, cleared)
-      actors = actors.map((actor) => (actor.id === cleared.id ? cleared : actor))
-    }
-  }
   for (const tick of planEncounterGrantTicks({
     encounterId: state.id,
     stage,
@@ -83,6 +64,57 @@ export async function persistEncounterGrantTicks(
         lifecycle: { schemaVersion: 1, remainingTicks: tick.remainingTicks }
       })
   }
+  await reconcileExpiredGrants(ctx, { state, expired, actors, occurredAt: input.occurredAt })
+}
+
+/**
+ * Ends the idle-bound grants of the outgoing turn actor when its turn passed with no attack roll
+ * against a hostile creature and no damage (SRD Rage), and resets its mark. Runs after everything
+ * else the turn's end commits, such as a Legendary Action's damage, so that damage counts. An actor
+ * with no mark holds no such grant, so its effects are never read.
+ */
+export async function persistEncounterIdleTurnCheck(
+  ctx: EncounterCharacterWriteTransaction,
+  input: { state: EncounterRunState; turnActorId: string | null; occurredAt: string }
+) {
+  if (input.turnActorId === null) return
+  const { state } = input
+  const actors = await readRunActors(ctx, state)
+  const actor = actors.find(({ id }) => id === input.turnActorId)
+  if (!actor || encounterActorIdleTurnMark(actor) === null) return
+  const owner = turnEffectOwner(actor, state.id)
+  const store = createActiveRuleEffectStore(ctx)
+  const { ended, nextMark } = planIdleTurnCheck({
+    encounterId: state.id,
+    actor,
+    effects: await store.list(owner)
+  })
+  for (const effect of ended)
+    await store.deleteCas({ id: effect.id, owner, expectedVersion: effect.version })
+  const marked = encounterRunActorStateSchema.parse({
+    ...actor,
+    resources: withEncounterActorIdleTurnMark(actor, nextMark)
+  })
+  await replaceRunActor(ctx, actor, marked)
+  await reconcileExpiredGrants(ctx, {
+    state,
+    expired: ended,
+    actors: actors.map((current) => (current.id === marked.id ? marked : current)),
+    occurredAt: input.occurredAt
+  })
+}
+
+/** Reconciles the holders of grants that just ended like any ended effect's (Aid ending lowers current HP). */
+async function reconcileExpiredGrants(
+  ctx: EncounterCharacterWriteTransaction,
+  input: {
+    state: EncounterRunState
+    expired: ActiveRuleEffectRecord[]
+    actors: EncounterRunActorState[]
+    occurredAt: string
+  }
+) {
+  const { expired } = input
   if (expired.length === 0) return
   const characterIds = new Set(
     expired.flatMap(({ owner }) => (owner.kind === 'CHARACTER' ? [owner.characterId] : []))
@@ -95,9 +127,9 @@ export async function persistEncounterGrantTicks(
     })
   )
   await reconcileNativeMaintenanceOwners(ctx, {
-    encounterId: state.id,
+    encounterId: input.state.id,
     maintenance: { removed: expired, characterVersions },
-    actors,
+    actors: input.actors,
     occurredAt: input.occurredAt
   })
 }

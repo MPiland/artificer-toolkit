@@ -36,8 +36,8 @@ import { prepareActiveRuleEffectRecord } from '../activeRuleEffectRecords.js'
 import { prepareEncounterActionEffectPlans } from '../encounterActionEffectPlans.js'
 import { checksumRunActorPlayState } from '../encounterActorStorage.js'
 import {
-  encounterActorEngaged,
-  withEncounterActorEngaged,
+  encounterActorIdleTurnMark,
+  withEncounterActorIdleTurnMark,
   withFeatureChargeUsed
 } from '../encounterActorState.js'
 import {
@@ -49,7 +49,7 @@ import {
   planConcentrationCarriedGrantEnds,
   planDepartedSourceGrantRemovals,
   planEncounterGrantTicks,
-  planIdleTurnGrantEnds,
+  planIdleTurnCheck,
   stateBoundGrants
 } from '../encounterGrantLifetimes.js'
 import { endedMaintenanceConditions } from '../encounterActionMaintenance.js'
@@ -670,45 +670,57 @@ describe('a grant that ends on an idle turn (SRD Rage)', () => {
     holderId: TARGET_ID
   })
   const actor = creatureActor({ id: TARGET_ID, snapshot: {} })
-  const withEngaged = (target: typeof actor, engaged: boolean) =>
+  const marked = (target: typeof actor, mark: 'ARMED' | 'ENGAGED' | null) =>
     encounterRunActorStateSchema.parse({
       ...target,
-      resources: withEncounterActorEngaged(target, engaged)
+      resources: withEncounterActorIdleTurnMark(target, mark)
     })
-  const engagedActor = withEngaged(actor, true)
+  const armed = marked(actor, 'ARMED')
+  const engaged = marked(actor, 'ENGAGED')
 
-  it('ends only the idle-bound grants of a holder that neither attacked nor was hurt', () => {
+  it('reads and ends nothing for an actor that holds no idle-bound grant', () => {
     expect(
-      planIdleTurnGrantEnds({
+      planIdleTurnCheck({ encounterId: ENCOUNTER_ID, actor, effects: [antitoxinRecord, idle] })
+    ).toEqual({ ended: [], nextMark: null })
+  })
+
+  it('ends only the idle-bound grants of an armed holder and clears the mark', () => {
+    expect(
+      planIdleTurnCheck({
         encounterId: ENCOUNTER_ID,
-        actor,
+        actor: armed,
         effects: [antitoxinRecord, idle]
       })
-    ).toEqual({ clearEngaged: false, ended: [idle] })
+    ).toEqual({ ended: [idle], nextMark: null })
   })
 
-  it('keeps the grant of an engaged holder and clears the mark', () => {
+  it('keeps the grant of an engaged holder and arms it again', () => {
     expect(
-      planIdleTurnGrantEnds({ encounterId: ENCOUNTER_ID, actor: engagedActor, effects: [idle] })
-    ).toEqual({ clearEngaged: true, ended: [] })
+      planIdleTurnCheck({ encounterId: ENCOUNTER_ID, actor: engaged, effects: [idle] })
+    ).toEqual({ ended: [], nextMark: 'ARMED' })
   })
 
-  it('marks and clears the engaged state without touching the other resources', () => {
+  it('stays armed while an idle-bound grant outside this encounter remains', () => {
+    expect(
+      planIdleTurnCheck({ encounterId: testUuid(0xc377), actor: armed, effects: [idle] })
+    ).toEqual({ ended: [], nextMark: 'ARMED' })
+  })
+
+  it('sets and clears the mark without touching the other resources', () => {
     const used = encounterRunActorStateSchema.parse({
       ...actor,
       resources: withFeatureChargeUsed(actor, testUuid(0xc376), 1)
     })
-    const marked = withEngaged(used, true)
-    expect(encounterActorEngaged(used)).toBe(false)
-    expect(encounterActorEngaged(marked)).toBe(true)
-    expect(withEncounterActorEngaged(marked, false)).toEqual(used.resources)
+    expect(encounterActorIdleTurnMark(used)).toBeNull()
+    expect(encounterActorIdleTurnMark(marked(used, 'ARMED'))).toBe('ARMED')
+    expect(encounterActorIdleTurnMark(marked(used, 'ENGAGED'))).toBe('ENGAGED')
+    expect(withEncounterActorIdleTurnMark(marked(used, 'ENGAGED'), null)).toEqual(used.resources)
   })
 
-  it('hashes the engaged mark into the actor state checksum', () => {
-    expect(checksumRunActorPlayState(engagedActor)).not.toBe(checksumRunActorPlayState(actor))
-    expect(checksumRunActorPlayState(withEngaged(engagedActor, false))).toBe(
-      checksumRunActorPlayState(actor)
-    )
+  it('hashes the mark into the actor state checksum', () => {
+    expect(checksumRunActorPlayState(armed)).not.toBe(checksumRunActorPlayState(actor))
+    expect(checksumRunActorPlayState(engaged)).not.toBe(checksumRunActorPlayState(armed))
+    expect(checksumRunActorPlayState(marked(engaged, null))).toBe(checksumRunActorPlayState(actor))
   })
 
   describe('attacking a hostile creature', () => {

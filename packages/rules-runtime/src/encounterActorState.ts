@@ -84,22 +84,26 @@ export function withFeatureChargeUsed(
   return { ...resources, featureCharges: { ...featureCharges, [featureId]: used } }
 }
 
+export type EncounterIdleTurnMark = 'ARMED' | 'ENGAGED'
+
 /**
- * Whether the actor has attacked a hostile creature or taken damage since its last turn ended
- * (SRD Rage). Only an actor holding a grant that ends on `ON_IDLE_TURN` is ever marked.
+ * Where an actor stands on an idle-bound grant (SRD Rage): `ARMED` while it holds one and has
+ * neither attacked a hostile creature nor taken damage since its last turn ended, `ENGAGED` once it
+ * has. Absent for an actor that never held one, so damage reads no effects for it.
  */
-export function encounterActorEngaged(actor: Pick<ActorRead, 'resources'>): boolean {
-  return isRecord(actor.resources) && actor.resources.engagedSinceTurn === true
+export function encounterActorIdleTurnMark(
+  actor: Pick<ActorRead, 'resources'>
+): EncounterIdleTurnMark | null {
+  const mark = isRecord(actor.resources) ? actor.resources.idleTurnMark : undefined
+  return mark === 'ARMED' || mark === 'ENGAGED' ? mark : null
 }
 
-export function withEncounterActorEngaged(
+export function withEncounterActorIdleTurnMark(
   actor: Pick<ActorRead, 'resources'>,
-  engaged: boolean
+  mark: EncounterIdleTurnMark | null
 ): Record<string, unknown> {
-  const { engagedSinceTurn: _engaged, ...resources } = isRecord(actor.resources)
-    ? actor.resources
-    : {}
-  return engaged ? { ...resources, engagedSinceTurn: true } : resources
+  const { idleTurnMark: _mark, ...resources } = isRecord(actor.resources) ? actor.resources : {}
+  return mark === null ? resources : { ...resources, idleTurnMark: mark }
 }
 
 export function encounterRuleUsageUsed(
