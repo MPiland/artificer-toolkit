@@ -123,7 +123,13 @@ function offHandWeapon(
     },
     requirements: otherLightMeleeAttack
   } as EquipmentEffectAuthored
-  const damage = (modifiers ?? []).find((modifier) => modifier.valueDomainCode === 'DAMAGE')
+  // Narrowed to the damage variants: spreading the whole modifier union is too complex to type.
+  const damage = (modifiers ?? []).find(
+    (
+      modifier
+    ): modifier is Extract<NonNullable<typeof modifiers>[number], { valueDomainCode: 'DAMAGE' }> =>
+      modifier.valueDomainCode === 'DAMAGE'
+  )
   if (!damage?.restrictions) throw new Error('The weapon builder authors no damage modifier.')
   return {
     ...base,

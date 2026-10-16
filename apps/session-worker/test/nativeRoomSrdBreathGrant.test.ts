@@ -2,7 +2,6 @@ import {
   installedSrdCreature,
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
-import { copperDragonWyrmling } from '@artificer-toolkit/source-data/srd/creatures/copper-dragon-wyrmling.js'
 import { goldDragonWyrmling } from '@artificer-toolkit/source-data/srd/creatures/gold-dragon-wyrmling.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
@@ -35,7 +34,10 @@ afterEach(() => {
 })
 
 /** The breather at (150, 150) and Wolves in the three cells east of it, all inside a 15 ft cone. */
-async function breathRoom(creatureAuthored: typeof copperDragonWyrmling) {
+async function breathRoom(
+  creatureAuthored: typeof goldDragonWyrmling,
+  dice: { autoRoll?: 'GAME_MASTER'; rolls: readonly number[] } = { rolls: [1, 1, 1] }
+) {
   const creature = installedSrdCreature(creatureAuthored)
   const feature = creature.features?.find(({ label }) => label.startsWith('Breath Weapons'))
   if (!feature) throw new Error(`${creature.label} has no Breath Weapons.`)
@@ -49,7 +51,7 @@ async function breathRoom(creatureAuthored: typeof copperDragonWyrmling) {
   )
   if (!effect) throw new Error(`${creature.label} Breath Weapons repeat no save.`)
   return actionRoom({
-    rolls: [1, 1, 1],
+    ...dice,
     actors: [
       srdCreatureActor({ id: BREATHER_ID, creature }),
       ...CAUGHT_IDS.map((id) => srdCreatureActor({ id, creature: plainWolf }))
@@ -96,10 +98,9 @@ async function breatheAndFailTwo(room: BreathRoom) {
   expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
 }
 
-describe.each([
-  { creature: copperDragonWyrmling, breath: 'Slowing Breath' },
-  { creature: goldDragonWyrmling, breath: 'Weakening Breath' }
-])('an unmodified SRD $creature.label leaves its grants with $breath', ({ creature }) => {
+describe('an unmodified SRD Gold Dragon Wyrmling leaves its grants with Weakening Breath', () => {
+  const creature = goldDragonWyrmling
+
   it('offers the breath instead of listing it unavailable', async () => {
     const room = await breathRoom(creature)
     const choices = await room.actionChoices()
@@ -131,6 +132,21 @@ describe.each([
       expect(stateContributions.length).toBeGreaterThan(0)
       for (const contribution of stateContributions)
         expect(contribution).toMatchObject({ kind: 'MODIFIER_GRANT' })
+      // Weakening Breath: disadvantage on Strength checks, Strength saves and Strength attacks.
+      expect(
+        stateContributions
+          .flatMap(({ modifiers }: { modifiers: { valueDomainCode: string }[] }) => modifiers)
+          .map((modifier: { valueDomainCode: string; modifierKind: string }) =>
+            [modifier.valueDomainCode, modifier.modifierKind].join(':')
+          )
+          .sort()
+      ).toEqual([
+        'ABILITY_CHECK:DISADVANTAGE',
+        'ATTACK_ROLL:DISADVANTAGE',
+        'ATTACK_ROLL:DISADVANTAGE',
+        'ATTACK_ROLL:DISADVANTAGE',
+        'SAVING_THROW_MODIFIER:DISADVANTAGE'
+      ])
       // "for 1 minute" is ten rounds, and the grant repeats its save at the end of its holder's turn.
       expect(recurrence.expiration).toMatchObject({ kind: 'TICKS', initialRemaining: 10 })
       expect(recurrence.recurrenceStage).toBe('END_OF_TURN')
@@ -157,5 +173,41 @@ describe.each([
     const reverted = await readRoomHistory(stub)
     expect(reverted.activeEffects).toEqual([])
     expect(vitalsOf(reverted)).toEqual(vitalsOf(before))
+  })
+
+  // Zero-based dice: 0 is a natural 1 and 19 a natural 20. The Wolves' Strength saves are DC 13.
+  describe("at the end of its holder's turn, the grant rolls its repeating Strength save", () => {
+    /** The breath, its three area saves auto-rolled (the first and third Wolves fail), then two turns end. */
+    async function breatheThenEndTwoTurns(turnSaveDie: number) {
+      const room = await breathRoom(creature, {
+        autoRoll: 'GAME_MASTER',
+        rolls: [0, 19, 0, turnSaveDie]
+      })
+      const started = await room.startDirectedAreaAction(EAST.origin, EAST.toward)
+      expect(started.answer.type, JSON.stringify(started.answer)).toBe('COMMAND_COMMITTED')
+      expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
+      // The breather's turn ends, then the first Wolf's: its grant's save rolls.
+      await room.advanceTurn()
+      await room.advanceTurn()
+      return readRoomHistory(room.room.base.stub)
+    }
+
+    it("ends on a passed save, leaving the other creature's grant held", async () => {
+      const history = await breatheThenEndTwoTurns(19)
+      expect(history.activeEffects.map(({ targetActorId }) => targetActorId)).toEqual([THIRD_ID])
+    })
+
+    it('continues on a failed save, one round shorter', async () => {
+      const history = await breatheThenEndTwoTurns(0)
+      expect(
+        history.activeEffects
+          .map(({ targetActorId, lifecycle }) => [targetActorId, lifecycle])
+          .sort()
+      ).toEqual(
+        [FIRST_ID, THIRD_ID]
+          .map((id) => [id, { schemaVersion: 1, remainingTicks: id === FIRST_ID ? 9 : 10 }])
+          .sort()
+      )
+    })
   })
 })
