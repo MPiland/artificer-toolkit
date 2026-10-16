@@ -245,7 +245,7 @@ export async function advanceNativeCastReactions(input: {
   let declinedReactorActorIds = answer?.offer.declinedReactorActorIds ?? []
   const countered = async (
     found: NativeCastReaction,
-    pin: ReturnType<typeof encounterReactionPin>,
+    pin: EncounterFailedCounterDto['reaction'],
     choice: EncounterFailedCounterDto['choiceExecution'],
     check: EncounterCounterCheckEvidenceDto | null
   ) => ({
@@ -270,7 +270,7 @@ export async function advanceNativeCastReactions(input: {
   }
   let rolling: {
     found: NativeCastReaction
-    pin: ReturnType<typeof encounterReactionPin>
+    pin: EncounterFailedCounterDto['reaction']
     check: NonNullable<EncounterCastReactionOfferDto['check']>
     continuation: ServerRuleExecutionContinuationDto
     evidence: EncounterEvidenceAnswer

@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { castPendingContinues, offeredDecisionOptionIds } from '../actionPending.js'
+import {
+  castCounteredCarriesFailedCounters,
+  castPendingContinues,
+  offeredDecisionOptionIds
+} from '../actionPending.js'
 
 describe('offeredDecisionOptionIds', () => {
   it('offers every reaction the pause carries as a menu', () => {
@@ -16,6 +20,12 @@ describe('offeredDecisionOptionIds', () => {
         castReaction: { reactions: [{ useOptionId: 'low' }, { useOptionId: 'high' }] }
       })
     ).toEqual(['low', 'high'])
+  })
+
+  it('offers no option while a cast waits on the roll of the check its counter owes', () => {
+    expect(
+      offeredDecisionOptionIds({ castReaction: { reactions: [{ useOptionId: 'low' }], check: {} } })
+    ).toEqual([])
   })
 
   it('offers a Legendary Resistance option alone', () => {
@@ -104,5 +114,23 @@ describe('castPendingContinues', () => {
     const carrying = { failedCounters: [failedBy('first')] }
     expect(castPendingContinues(carrying, dice, { failedCounters: [failedBy('first')] })).toBe(true)
     expect(castPendingContinues(carrying, dice, {})).toBe(false)
+  })
+})
+
+describe('castCounteredCarriesFailedCounters', () => {
+  const failedBy = (reactorActorId: string) => ({ reaction: { reactorActorId } })
+
+  it('holds a countered cast to exactly the failed counters its pause carried', () => {
+    const paused = { failedCounters: [failedBy('first')] }
+    expect(
+      castCounteredCarriesFailedCounters(paused, { failedCounters: [failedBy('first')] })
+    ).toBe(true)
+    expect(castCounteredCarriesFailedCounters({}, {})).toBe(true)
+    expect(castCounteredCarriesFailedCounters(paused, {})).toBe(false)
+    expect(
+      castCounteredCarriesFailedCounters(paused, {
+        failedCounters: [failedBy('first'), failedBy('second')]
+      })
+    ).toBe(false)
   })
 })

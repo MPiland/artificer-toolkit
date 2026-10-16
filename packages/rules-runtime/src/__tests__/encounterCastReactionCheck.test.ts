@@ -6,7 +6,8 @@ import { castReactionCheckRequirement } from '../encounterCastReactionCheck.js'
 
 const effect = counterspell.effects?.[0]
 if (!effect) throw new Error('Counterspell has no authored effect.')
-const { reactionTrigger } = compileEffect(effect).invocation
+const { invocation } = compileEffect(effect)
+const reactionTrigger = 'reactionTrigger' in invocation ? invocation.reactionTrigger : undefined
 const higherLevelCheck =
   reactionTrigger?.kind === 'SPELL_CAST' ? reactionTrigger.higherLevelCheck : null
 
