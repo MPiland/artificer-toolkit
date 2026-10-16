@@ -13,6 +13,13 @@ const followUpSaveTimings = Object.values(FOLLOW_UP_SAVE_TIMING) as [
   ...FollowUpSaveTiming[]
 ]
 
+const repeatPerceptionDtoSchema = z.object({
+  kind: z.literal('PERCEPTION'),
+  observer: z.literal('TARGET'),
+  subject: z.literal('SOURCE'),
+  requirement: combatPerceptionRequirementDtoSchema
+})
+
 export function createFollowUpSaveDtoSchema(outcomeDtoSchema: z.ZodMiniType) {
   const branchDtoSchema = z.discriminatedUnion('kind', [
     z.object({ kind: z.literal('END') }),
@@ -34,12 +41,13 @@ export function createFollowUpSaveDtoSchema(outcomeDtoSchema: z.ZodMiniType) {
       repeatRollInfluence: z.optional(
         z.object({
           influence: z.enum(['ADVANTAGE', 'DISADVANTAGE']),
-          when: z.object({
-            kind: z.literal('PERCEPTION'),
-            observer: z.literal('TARGET'),
-            subject: z.literal('SOURCE'),
-            requirement: combatPerceptionRequirementDtoSchema
-          })
+          when: repeatPerceptionDtoSchema
+        })
+      ),
+      repeatAttemptGate: z.optional(
+        z.object({
+          allow: z.enum(['WHEN_MET', 'WHEN_UNMET']),
+          when: repeatPerceptionDtoSchema
         })
       ),
       savingThrow: savingThrowDtoSchema,
@@ -80,19 +88,31 @@ export function createFollowUpSaveDtoSchema(outcomeDtoSchema: z.ZodMiniType) {
             message: 'Repeat timing requires a repeated one-time saving throw.'
           })
         }
-        if (
-          value.repeatRollInfluence !== undefined &&
-          !(
-            value.attempts.kind === 'ONCE' &&
-            value.attempts.repeatOnFailure === true &&
-            (value.timing === 'TARGET_TURN_END' ||
-              (value.timing === 'IMMEDIATE' && value.repeatTiming === 'TARGET_TURN_END'))
-          )
-        ) {
+        const repeatsAtTargetTurnEnd =
+          value.attempts.kind === 'ONCE' &&
+          value.attempts.repeatOnFailure === true &&
+          (value.timing === 'TARGET_TURN_END' ||
+            (value.timing === 'IMMEDIATE' && value.repeatTiming === 'TARGET_TURN_END'))
+        if (value.repeatRollInfluence !== undefined && !repeatsAtTargetTurnEnd) {
           context.addIssue({
             code: 'custom',
             path: ['repeatRollInfluence'],
             message: 'Repeat roll influence requires a repeated save at the end of the target turn.'
+          })
+        }
+        if (value.repeatAttemptGate !== undefined && !repeatsAtTargetTurnEnd) {
+          context.addIssue({
+            code: 'custom',
+            path: ['repeatAttemptGate'],
+            message: 'A repeat attempt gate requires a repeated save at the end of the target turn.'
+          })
+        }
+        // A turn reads one perception result, so one save gates or influences its repeat, not both.
+        if (value.repeatAttemptGate !== undefined && value.repeatRollInfluence !== undefined) {
+          context.addIssue({
+            code: 'custom',
+            path: ['repeatAttemptGate'],
+            message: 'A repeat attempt gate cannot be combined with repeat roll influence.'
           })
         }
       })

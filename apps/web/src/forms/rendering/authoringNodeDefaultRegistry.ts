@@ -62,8 +62,9 @@ type AuthoringDefaultKind =
   | 'featGrantProgression'
   | 'followUpSaveAttempts'
   | 'followUpSaveBranch'
+  | 'followUpSaveRepeatAttemptGate'
+  | 'followUpSaveRepeatPerception'
   | 'followUpSaveRepeatRollInfluence'
-  | 'followUpSaveRepeatRollInfluenceWhen'
   | 'higherLevelCheck'
   | 'hitPointMaximumReductionAmountSource'
   | 'invocation'
@@ -195,8 +196,9 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   featGrantProgression: ['featGrantProgression'],
   followUpSaveAttempts: ['followUpSaveAttempts'],
   followUpSaveBranch: ['followUpSaveBranch'],
+  followUpSaveRepeatAttemptGate: ['followUpSaveRepeatAttemptGate'],
+  followUpSaveRepeatPerception: ['followUpSaveRepeatPerception'],
   followUpSaveRepeatRollInfluence: ['followUpSaveRepeatRollInfluence'],
-  followUpSaveRepeatRollInfluenceWhen: ['followUpSaveRepeatRollInfluenceWhen'],
   higherLevelCheck: ['higherLevelCheck'],
   hitPointMaximumReductionAmountSource: ['hitPointMaximumReductionAmountSource'],
   invocation: ['invocation'],

@@ -221,6 +221,11 @@ const DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ROLL_INFLUENCE_FACT_KEY =
   'dnd5e.active-effect-repeat-save-roll-influence'
 const DND5E_ACTIVE_EFFECT_REPEAT_SAVE_PERCEPTION_REQUIREMENT_FACT_KEY =
   'dnd5e.active-effect-repeat-save-perception-requirement'
+/** Whether a repeat save is attempted when its perception requirement is met or unmet. */
+const DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ATTEMPT_GATE_FACT_KEY =
+  'dnd5e.active-effect-repeat-save-attempt-gate'
+/** Whether this turn's repeat save is attempted; false settles the gated d20 without a request. */
+const DND5E_REPEAT_SAVE_ATTEMPT_ALLOWED_FACT_KEY = 'dnd5e.repeat-save-attempt-allowed'
 export { DND5E_SAVE_TEST_OPERATION_KEY }
 const DND5E_TEST_HEAL_PROPOSAL_OPERATION_KEY = 'dnd5e.test-heal-proposal'
 const DND5E_TEST_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY =
@@ -1362,7 +1367,9 @@ function repeatingImmediateFollowUpSavePlan(
     !UUID.test(save.savingThrow.abilityDefinitionId) ||
     save.onSuccess.kind !== 'END' ||
     save.onFailure.kind !== 'OUTCOMES' ||
-    (save.onDurationComplete !== undefined && save.onDurationComplete.kind !== 'END')
+    (save.onDurationComplete !== undefined && save.onDurationComplete.kind !== 'END') ||
+    // A gate left uncompiled would let the target repeat a save the author forbade.
+    save.repeatAttemptGate
   ) {
     return null
   }
@@ -1984,7 +1991,8 @@ function repeatingDirectFollowUpSavePlan(
     !UUID.test(save.savingThrow.abilityDefinitionId) ||
     save.onSuccess.kind !== 'END' ||
     save.onFailure.kind !== 'CONTINUE' ||
-    (save.onDurationComplete !== undefined && save.onDurationComplete.kind !== 'END')
+    (save.onDurationComplete !== undefined && save.onDurationComplete.kind !== 'END') ||
+    (save.repeatAttemptGate && save.repeatRollInfluence)
   ) {
     return null
   }
@@ -2011,6 +2019,13 @@ function repeatingDirectFollowUpSavePlan(
             [DND5E_ACTIVE_EFFECT_REPEAT_SAVE_PERCEPTION_REQUIREMENT_FACT_KEY]:
               save.repeatRollInfluence.when.requirement
           }
+        : {}),
+      ...(save.repeatAttemptGate
+        ? {
+            [DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ATTEMPT_GATE_FACT_KEY]: save.repeatAttemptGate.allow,
+            [DND5E_ACTIVE_EFFECT_REPEAT_SAVE_PERCEPTION_REQUIREMENT_FACT_KEY]:
+              save.repeatAttemptGate.when.requirement
+          }
         : {})
     },
     castSaveDcFactKey: pinnedDc.castSaveDcFactKey,
@@ -2034,6 +2049,8 @@ function repeatFollowUpSavePublishedGraph(input: {
   if (typeof abilityDefinitionId !== 'string' || !UUID.test(abilityDefinitionId)) {
     throw new Dnd5eEffectActionCompilerError('D&D repeat-save facts are unavailable.')
   }
+  // A gated repeat settles its d20 without a request on a turn the gate refuses the attempt.
+  const gated = DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ATTEMPT_GATE_FACT_KEY in input.plan.adapterFacts
   const definition: RuleGraphDefinition = {
     schemaVersion: 1,
     id: input.action.effectId,
@@ -2042,10 +2059,18 @@ function repeatFollowUpSavePublishedGraph(input: {
     nodes: [
       {
         id: 'repeat-save-d20',
-        operation: { key: 'evidence.integer-range', contractVersion: 1 },
+        operation: {
+          key: gated ? 'evidence.optional-integer-range' : 'evidence.integer-range',
+          contractVersion: 1
+        },
         inputs: {
           min: { kind: 'LITERAL', value: 1 },
-          max: { kind: 'LITERAL', value: 20 }
+          max: { kind: 'LITERAL', value: 20 },
+          ...(gated
+            ? {
+                enabled: { kind: 'FACT' as const, factKey: DND5E_REPEAT_SAVE_ATTEMPT_ALLOWED_FACT_KEY }
+              }
+            : {})
         }
       },
       {
@@ -3758,6 +3783,7 @@ export const dnd5eEffectActionCapability: GameSystemRuleCapabilityContract = {
     { key: DND5E_TARGET_CREATURE_TYPE_FACT_KEY, valueKind: RULE_VALUE_KIND.TEXT },
     { key: DND5E_ATTACK_ENEMY_PROXIMITY_FACT_KEY, valueKind: RULE_VALUE_KIND.TEXT },
     { key: DND5E_ATTACK_TURN_USES_FACT_KEY, valueKind: RULE_VALUE_KIND.TEXT },
+    { key: DND5E_REPEAT_SAVE_ATTEMPT_ALLOWED_FACT_KEY, valueKind: RULE_VALUE_KIND.BOOLEAN },
     {
       key: REACTION_CHOICE_MIN_FACT_KEY,
       valueKind: RULE_VALUE_KIND.NUMBER
@@ -3774,6 +3800,7 @@ export const dnd5eEffectActionCapability: GameSystemRuleCapabilityContract = {
   ],
   operationContracts: [
     'evidence.integer-range',
+    'evidence.optional-integer-range',
     addNumbersRuleOperation.key,
     REACTION_CHOICE_OPERATION_KEY,
     DND5E_HEAL_PROPOSAL_OPERATION_KEY,
@@ -5917,7 +5944,7 @@ function repeatedFollowUpSaveResultPath(input: {
   >[0]['definition']
   graph: CompiledRuleGraph
   targetActorId: string
-}): 'ON_SAVE_FAIL' | 'ON_SAVE_SUCCESS' | null {
+}): 'ON_SAVE_FAIL' | 'ON_SAVE_SUCCESS' | 'ATTEMPT_REFUSED' | null {
   const conditionId =
     input.definition.adapterFacts[DND5E_ACTIVE_EFFECT_REPEAT_SAVE_CONDITION_FACT_KEY]
   if (typeof conditionId !== 'string') return null
@@ -5926,21 +5953,38 @@ function repeatedFollowUpSaveResultPath(input: {
   }
   const [d20Trace, saveTrace] = input.execution.evidence.trace
   const d20NodeId = input.definition.adapterFacts[DND5E_ACTIVE_EFFECT_SAVE_REQUEST_NODE_FACT_KEY]
-  const naturalD20 = d20Trace?.evidence?.kind === 'INTEGER_RANGE' ? d20Trace.evidence.value : null
-  const modifier = saveTrace?.inputs.modifier
-  const threshold = saveTrace?.inputs.threshold
+  const gated = DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ATTEMPT_GATE_FACT_KEY in input.definition.adapterFacts
+  const d20OperationKey = gated ? 'evidence.optional-integer-range' : 'evidence.integer-range'
+  const attemptAllowed = gated
+    ? input.execution.evidence.facts[DND5E_REPEAT_SAVE_ATTEMPT_ALLOWED_FACT_KEY]
+    : true
   if (
     d20NodeId !== 'repeat-save-d20' ||
     input.graph.nodes.length !== 2 ||
     input.graph.nodes[0]?.id !== d20NodeId ||
-    input.graph.nodes[0]?.operation.key !== 'evidence.integer-range' ||
+    input.graph.nodes[0]?.operation.key !== d20OperationKey ||
     input.graph.nodes[1]?.id !== input.definition.frozenGraphNodeId ||
     input.graph.nodes[1]?.operation.key !== DND5E_SAVE_TEST_OPERATION_KEY ||
     input.execution.evidence.trace.length !== 2 ||
     d20Trace?.nodeId !== d20NodeId ||
-    d20Trace.operation.key !== 'evidence.integer-range' ||
+    d20Trace.operation.key !== d20OperationKey ||
     d20Trace.inputs.min !== 1 ||
     d20Trace.inputs.max !== 20 ||
+    typeof attemptAllowed !== 'boolean' ||
+    (gated && d20Trace.inputs.enabled !== attemptAllowed)
+  ) {
+    throw new Dnd5eEffectActionCompilerError('The committed D&D repeat-save graph is invalid.')
+  }
+  // The gate refused this turn's attempt: its d20 settled without a request, so no save was made.
+  if (!attemptAllowed) {
+    if (d20Trace.evidence !== undefined)
+      throw new Dnd5eEffectActionCompilerError('A refused D&D repeat save carries d20 evidence.')
+    return 'ATTEMPT_REFUSED'
+  }
+  const naturalD20 = d20Trace.evidence?.kind === 'INTEGER_RANGE' ? d20Trace.evidence.value : null
+  const modifier = saveTrace?.inputs.modifier
+  const threshold = saveTrace?.inputs.threshold
+  if (
     d20Trace.evidence?.kind !== 'INTEGER_RANGE' ||
     d20Trace.evidence.requestId !== `${input.occurrenceId}:0:${d20NodeId}` ||
     saveTrace?.nodeId !== input.definition.frozenGraphNodeId ||
@@ -7145,21 +7189,19 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
   activeEffectPerceptionRequirement: ({ definition }) => {
     const influence =
       definition.adapterFacts[DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ROLL_INFLUENCE_FACT_KEY]
+    const allow = definition.adapterFacts[DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ATTEMPT_GATE_FACT_KEY]
     const requirement =
       definition.adapterFacts[DND5E_ACTIVE_EFFECT_REPEAT_SAVE_PERCEPTION_REQUIREMENT_FACT_KEY]
-    if (influence === undefined && requirement === undefined) return null
-    if (
-      (influence !== 'ADVANTAGE' && influence !== 'DISADVANTAGE') ||
-      !['DETECT', 'LOCATE', 'PRECISE', 'SEE'].includes(String(requirement))
-    ) {
-      throw new Dnd5eEffectActionCompilerError(
-        'D&D recurring perception influence is not fully pinned.'
-      )
+    if (influence === undefined && allow === undefined && requirement === undefined) return null
+    if (!['DETECT', 'LOCATE', 'PRECISE', 'SEE'].includes(String(requirement))) {
+      throw new Dnd5eEffectActionCompilerError('D&D recurring perception is not fully pinned.')
     }
-    return {
-      influence,
-      requirement: requirement as 'DETECT' | 'LOCATE' | 'PRECISE' | 'SEE'
-    }
+    const pinned = requirement as 'DETECT' | 'LOCATE' | 'PRECISE' | 'SEE'
+    if (allow === undefined && (influence === 'ADVANTAGE' || influence === 'DISADVANTAGE'))
+      return { kind: 'ROLL_INFLUENCE', influence, requirement: pinned }
+    if (influence === undefined && (allow === 'WHEN_MET' || allow === 'WHEN_UNMET'))
+      return { kind: 'ATTEMPT_GATE', allow, requirement: pinned }
+    throw new Dnd5eEffectActionCompilerError('D&D recurring perception is not fully pinned.')
   },
   activeEffectPlans: ({ action, published }) => {
     if (published.id !== action.effectId || published.checksum.length !== 64)
@@ -7766,7 +7808,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
           'D&D recurring perception facts are unavailable or stale.'
         )
       }
-      if (perception.satisfied) {
+      if (perceptionRequirement.kind === 'ROLL_INFLUENCE' && perception.satisfied) {
         contributors.push({
           sourceId: `active-effect-perception:${activeEffectId}`,
           grantId: null,
@@ -7782,26 +7824,33 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
     }
     const resolvedContributors = resolveD20Contributors(contributors)
     const contributorChecksum = checksumRuleDocument(resolvedContributors.contributors)
+    const gate = perceptionRequirement?.kind === 'ATTEMPT_GATE' ? perceptionRequirement : null
     if (
       definition.frozenGraph.nodes.filter(
         (node) =>
           node.id === requestNodeId &&
-          node.operation.key === 'evidence.integer-range' &&
+          node.operation.key ===
+            (gate ? 'evidence.optional-integer-range' : 'evidence.integer-range') &&
           node.operation.contractVersion === 1
       ).length !== 1
     ) {
       throw new Dnd5eEffectActionCompilerError('D&D recurring save request binding is invalid.')
     }
+    const attemptAllowed = !gate || perception?.satisfied === (gate.allow === 'WHEN_MET')
+    const facts = {
+      ...baseFacts,
+      [DND5E_SAVE_MODIFIER_FACT_KEY]: matches[0]!.modifier,
+      [DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY]: contributorChecksum,
+      [DND5E_TEST_OUTCOME_RULE_FACT_KEY]: dnd5eSaveOutcomeRule(
+        conditionOutcomeRules,
+        abilityDefinitionId
+      ),
+      ...(gate ? { [DND5E_REPEAT_SAVE_ATTEMPT_ALLOWED_FACT_KEY]: attemptAllowed } : {})
+    }
+    // A refused attempt settles its d20 without a request, so no roll is asked for.
+    if (!attemptAllowed) return { facts, evidencePolicy: null }
     return {
-      facts: {
-        ...baseFacts,
-        [DND5E_SAVE_MODIFIER_FACT_KEY]: matches[0]!.modifier,
-        [DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY]: contributorChecksum,
-        [DND5E_TEST_OUTCOME_RULE_FACT_KEY]: dnd5eSaveOutcomeRule(
-          conditionOutcomeRules,
-          abilityDefinitionId
-        )
-      },
+      facts,
       evidencePolicy: {
         requestNodeId,
         rollMode: resolvedContributors.rollMode,
@@ -7935,9 +7984,9 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
           'D&D repeat-save condition identity is unavailable.'
         )
       }
-      const terminal =
-        repeatedSavePath === 'ON_SAVE_SUCCESS' ||
-        (repeatedSavePath === 'ON_SAVE_FAIL' && lifecycle.remainingTicks === 1)
+      // A failed or refused attempt on the last counted turn ends the condition with its duration.
+      const terminal = repeatedSavePath === 'ON_SAVE_SUCCESS' || lifecycle.remainingTicks === 1
+      const path = repeatedSavePath === 'ATTEMPT_REFUSED' ? null : repeatedSavePath
       return terminal
         ? {
             applications: [
@@ -7948,8 +7997,8 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
                 targetActorId: target.targetActorId,
                 sourceNodeId: definition.frozenGraphNodeId,
                 sourceOperationKey: DND5E_SAVE_TEST_OPERATION_KEY,
-                authoredPath: repeatedSavePath,
-                resolvedPath: repeatedSavePath
+                authoredPath: path,
+                resolvedPath: path
               }
             ],
             terminal: true

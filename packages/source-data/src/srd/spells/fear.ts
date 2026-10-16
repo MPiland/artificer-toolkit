@@ -74,8 +74,8 @@ export const fear: SpellAuthored = {
           originKind: 'SOURCE' as const,
           selectionKind: 'FIXED' as const,
           resultBlock: {
-            id: spellChildId(SPELL_IDS.FEAR, 0x213, 1) + '__result',
-            resultKind: 'SINGLE' as const,
+            id: spellChildId(SPELL_IDS.FEAR, 0x217, 1),
+            resultKind: 'SEQUENCE' as const,
             duration: {
               id: spellChildId(SPELL_IDS.FEAR, 0x214, 1),
               durationKind: DURATION_KIND.MINUTE,
@@ -87,6 +87,29 @@ export const fear: SpellAuthored = {
                 effectKind: EFFECT_KIND.CONDITION,
                 conditionId: conditionTypeId('FRIGHTENED'),
                 recordsSource: true
+              },
+              {
+                id: spellChildId(SPELL_IDS.FEAR, 0x215, 1),
+                effectKind: EFFECT_KIND.FOLLOW_UP_SAVE,
+                timing: 'TARGET_TURN_END' as const,
+                savingThrow: {
+                  id: spellChildId(SPELL_IDS.FEAR, 0x216, 1),
+                  dcMethod: 'SOURCE_SAVE_DC' as const,
+                  abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.WISDOM
+                },
+                attempts: { kind: 'ONCE' as const, repeatOnFailure: true },
+                onSuccess: { kind: 'END' as const },
+                onFailure: { kind: 'CONTINUE' as const },
+                // The save is made only at the end of a turn the Frightened creature can't see the caster.
+                repeatAttemptGate: {
+                  allow: 'WHEN_UNMET' as const,
+                  when: {
+                    kind: 'PERCEPTION' as const,
+                    observer: 'TARGET' as const,
+                    subject: 'SOURCE' as const,
+                    requirement: 'SEE' as const
+                  }
+                }
               }
             ]
           }

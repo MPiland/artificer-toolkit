@@ -401,7 +401,8 @@ function d20EvidenceForCompletion(input: {
   const trace = execution.evidence.trace.filter(
     (entry) =>
       entry.nodeId === policy.requestNodeId &&
-      entry.operation.key === 'evidence.integer-range' &&
+      (entry.operation.key === 'evidence.integer-range' ||
+        entry.operation.key === 'evidence.optional-integer-range') &&
       entry.operation.contractVersion === 1
   )
   const entry = trace[0]
