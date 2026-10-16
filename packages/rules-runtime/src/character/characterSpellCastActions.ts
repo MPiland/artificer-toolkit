@@ -28,7 +28,7 @@ type SpellCastCandidate = CharacterRulePolicyInput['spellCastCandidates'][number
 type ActionDecision = CharacterRulePolicyOutput['actionDecisions'][number]
 type SpellPolicyOutput = Pick<
   CharacterRulePolicyOutput,
-  'spellCastDecisions' | 'spellCastMechanics' | 'spellSlots'
+  'resources' | 'spellCastDecisions' | 'spellCastMechanics' | 'spellSlots'
 >
 
 const SPELL_CAST_ACTION_NAMESPACE = 'b7a2f1d6-3c4e-5a89-9d10-6e2f4c8a1b35'
@@ -44,7 +44,7 @@ export function spellCastActionId(candidateId: string): string {
 
 /**
  * The spells a Character may cast in an Encounter, as actions of their own: movement reactions never
- * read them, and the Sheet's actions never include them.
+ * read them, attack reactions do, and the Sheet's actions never include them.
  */
 export type CharacterSpellCastActions = {
   candidates: readonly CharacterActionCandidate[]
@@ -110,9 +110,10 @@ export function listCastableSpellCandidateIds(input: {
 
 /**
  * Whether an Encounter offers this cast: only a decision that is AVAILABLE, never a ritual (a ritual
- * takes ten minutes longer, SRD 5.1), never a cast paid from a limited-use pool, and only a cast the
- * Sheet lists as castable. As on the Sheet, the decision names the slot it spends: the cast level's
- * own, or a higher one (a Warlock's Pact Magic slot) when that is all the Character has.
+ * takes ten minutes longer, SRD 5.1), and only a cast the Sheet lists as castable. As on the Sheet,
+ * the decision names what the cast spends: the slot of the cast level's own, or a higher one (a
+ * Warlock's Pact Magic slot) when that is all the Character has; or, for a limited-use or fixed-level
+ * cast, a use of its pool.
  */
 function isCastOffered(
   candidate: SpellCastCandidate,
@@ -122,8 +123,6 @@ function isCastOffered(
   return (
     decision?.status === 'AVAILABLE' &&
     candidate.castMode !== 'RITUAL' &&
-    candidate.castMode !== 'LIMITED_USE' &&
-    !(candidate.castMode === 'FIXED_LEVEL' && candidate.resourceOwnerKey !== null) &&
     castableCandidateIds.has(candidate.candidateId)
   )
 }
@@ -197,6 +196,19 @@ export function buildCharacterSpellCastActions(input: {
       sourceInstanceId: cast.candidateId
     }
     const mechanicsOwner = { kind: 'SPELL' as const, id: cast.spellId }
+    // As on the Sheet, a leveled cast paid from a pool spends one of its uses, and a cantrip is free.
+    const poolId =
+      cast.spellLevel > 0 && (cast.castMode === 'LIMITED_USE' || cast.castMode === 'FIXED_LEVEL')
+        ? cast.resourceOwnerKey
+        : null
+    const pool =
+      poolId === null
+        ? null
+        : policyOutput.resources.find(
+            (resource) => resource.poolId === poolId && resource.state === 'RESOLVED'
+          )
+    if (pool === undefined) continue
+    const resourceUse = pool && { poolId: pool.poolId, chargeId: pool.chargeId, cost: 1 }
     const sequence = input.firstSequence + candidates.length
     candidates.push({
       sequence,
@@ -208,7 +220,7 @@ export function buildCharacterSpellCastActions(input: {
       mechanicsOwner,
       activationSourceKind: 'ACTIVE_SOURCE',
       equipment: null,
-      resourceUse: null,
+      resourceUse,
       mechanicFacts
     })
     entryPoints.push({
@@ -230,8 +242,8 @@ export function buildCharacterSpellCastActions(input: {
       mechanicsOwner,
       status: 'AVAILABLE',
       reasonCode: null,
-      resourcePoolId: null,
-      resourceCost: null,
+      resourcePoolId: resourceUse?.poolId ?? null,
+      resourceCost: resourceUse?.cost ?? null,
       mechanic
     })
   }

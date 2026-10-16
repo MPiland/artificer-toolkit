@@ -89,6 +89,8 @@ export function discoverNativeAttackReaction(input: {
         throw error
       })
       if (!prepared || prepared.source.kind !== 'CHARACTER_ACTION') continue
+      // A reaction's receipt carries no pool spend, so one paid from a pool would never use it up.
+      if (prepared.characterActionState?.resourceConsumption) continue
       const { economy, suppressed } = await evaluateNativeLiveActionEconomy({
         prepared,
         state: input.state,

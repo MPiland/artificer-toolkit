@@ -53,6 +53,7 @@ import {
   prepareNativeLiveMovementTarget,
   readNativeLiveActorsAndEffects
 } from './nativeEncounterTargets.js'
+import { readNativeLiveEnemyProximity } from './nativeAttackEnemyProximity.js'
 import { readNativeLiveAttackPerception } from './nativeAttackPerception.js'
 import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
 import type { LiveCaptureReads } from './nativeEncounterReads.js'
@@ -488,6 +489,17 @@ export async function planNativeLiveEncounterAction(
           attacker: sourceFacts,
           target: targetFacts,
           sceneContext,
+          capture
+        }),
+      loadEnemyProximity: ({ sourceFacts, targetFacts }) =>
+        readNativeLiveEnemyProximity({
+          state,
+          actors,
+          attacker: sourceFacts,
+          target: targetFacts,
+          sceneContext,
+          loadTarget,
+          definitions,
           capture
         }),
       ...actionSources

@@ -73,6 +73,7 @@ export function unconditionalSneakAttack(rogueClassId: string): FeatureAuthored 
 export type RiderGateCondition =
   | { constraint?: 'EXCLUDE'; predicateCode: 'EQUIPMENT_PROPERTY'; properties: readonly ['FINESSE'] }
   | { constraint?: 'EXCLUDE'; predicateCode: 'ATTACK_ROLL_MODE'; rollMode: 'ADVANTAGE' | 'NOT_DISADVANTAGE' }
+  | { constraint?: 'EXCLUDE'; predicateCode: 'ENEMY_NEAR_TARGET'; feet: number }
 
 /** A gate of the given OR-ed groups, each an AND of checks on the attacking weapon. */
 export function riderGate(...groups: readonly (readonly RiderGateCondition[])[]): FacetAuthored {

@@ -5770,9 +5770,8 @@
                 "after": ["ATTACK-9.T1"]
               },
               "id": "ATTACK-9.T2c",
-              "status": "TODO",
-              "text": "D119 (e): hostile-of-target-within-N-ft predicate from scene positions, planned by the room and re-verified by persistence.",
-              "activeWorkbook": "docs/handoffs/slice-attack-9-t2.md"
+              "status": "DONE",
+              "text": "D119 (e): hostile-of-target-within-N-ft predicate from scene positions, planned by the room and re-verified by persistence."
             },
             {
               "closes": ["ATTACK-9.2"],
@@ -5784,8 +5783,22 @@
                 "after": ["ATTACK-9.T1"]
               },
               "id": "ATTACK-9.T2d",
+              "status": "IN_PROGRESS",
+              "text": "D119 (f): ONCE_PER_TURN usage limit backed by the enforced per-turn record (Encounter, round, turn actor, actor), replay-safe and undoable; finishes AC 9.2 with the full Sneak Attack proof. Includes enemy proximity for opportunity attacks and reactions (Sneak Attack on an opportunity attack).",
+              "activeWorkbook": "docs/handoffs/slice-attack-9-t2.md"
+            },
+            {
+              "id": "ATTACK-9.T2e",
+              "text": "Sneak Attack and other roll-mode-gated paths gate on the settled roll mode (TEST evidence rolledMode), not the derived mode, so hand-rolled and GM-adjudicated advantage count (architect ruling: option B; D-entry and rules-runtime guide).",
               "status": "TODO",
-              "text": "D119 (f): ONCE_PER_TURN usage limit backed by the enforced per-turn record (Encounter, round, turn actor, actor), replay-safe and undoable; finishes AC 9.2 with the full Sneak Attack proof."
+              "closes": ["ATTACK-9.2"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 3,
+                "size": 2,
+                "after": ["ATTACK-9.T2d"]
+              }
             },
             {
               "id": "ATTACK-9.T3",
@@ -7152,7 +7165,8 @@
               "proof": [
                 "apps/apis/convex/encounters/actionSpellCasting.test.ts (choices, slot spend and undo, upcast levels, ritual, Sheet and Encounter list the same cast levels)",
                 "packages/rules-runtime/src/__tests__/encounterSpellCastLevelFacts.test.ts (cast level selects the authored scaling row)",
-                "partial: T12 (CI 38841168163 at 9b39d86d4, merged 2026-10-15) Mass Cure Wounds, Mass Healing Word and Prayer of Healing in one RESOLVE_ACTION with the ACTORS target kind: apps/session-worker/test/nativeRoomChosenActorsSpell.test.ts, apps/web/src/domains/campaigns/vtt/CampaignTabletopActionDrawer.test.tsx, packages/rules-runtime/src/__tests__/scalingRowSelection.test.ts"
+                "partial: T12 (CI 38841168163 at 9b39d86d4, merged 2026-10-15) Mass Cure Wounds, Mass Healing Word and Prayer of Healing in one RESOLVE_ACTION with the ACTORS target kind: apps/session-worker/test/nativeRoomChosenActorsSpell.test.ts, apps/web/src/domains/campaigns/vtt/CampaignTabletopActionDrawer.test.tsx, packages/rules-runtime/src/__tests__/scalingRowSelection.test.ts",
+                "SPELLS-8.T8 (pool-paid casts): apps/apis/convex/encounters/actionSpellCasting.test.ts journey \"a $attribute grant is cast from its use and not a slot, and GM undo restores the use\" (LIMITED_USE, CAST_AT_LEVEL) and exhaustion refusal; packages/rules-runtime characterSpellCastActions.test.ts pool binding, Assisted spend, Manual and cantrip no-spend; session-worker nativeRoomReaction.test.ts pool-paid reaction not offered (deferred edge case in future-enhancements.md); CI 38852613485/38852613448."
               ],
               "origin": [],
               "note": "rul-9-rules-audit.md slice 5 (depends on area actions). Found in SPELLS-7 slice 5d (2026-10-10): action receipts never spend a slot today (encounterActionReceipt.ts sets spellCastConsumption to null; only movement reactions spend one), and GM undo refuses any action root that carries one (actionRevert.ts). Slot spend on cast needs its inverse in the revert path in the same change, for single-target and area roots. T1 merged 6bafbd6ed: core Encounter casting for single-Effect spells; multi-Effect spells are not offered until the compiler executes multi-entry groups. T5-T11 remain.",
@@ -7306,7 +7320,7 @@
             {
               "id": "SPELLS-8.T8",
               "text": "Spells cast from LIMITED_USE features and resource pools (FIXED_LEVEL casts) spend and restore that use, not a slot.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-8.1"],
               "wsjf": {
                 "bv": 5,
@@ -7314,8 +7328,7 @@
                 "rr": 3,
                 "size": 3,
                 "after": ["SPELLS-8.T1"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-spells-8-t1.md"
+              }
             },
             {
               "id": "SPELLS-8.T9",
@@ -8260,8 +8273,8 @@
               }
             },
             {
-              "id": "SPELLS-27.T2",
-              "text": "One consumer effectsEndedBy over both event lists for any v2 effect; Invisibility ends on its holder's attack roll after granting advantage; GM undo restores it (journey).",
+              "id": "SPELLS-27.T2a",
+              "text": "One effectsEndedBy consumer over both event lists for any v2 effect; release planned on the source batch (required sourceApplications, D124); action and reaction attack-roll roots; Concentration and the condition restored on GM undo by receipt; authoring fence for non-releasing events on condition-owning effects (journey: cast Invisibility, attack with advantage, effect and condition gone, undo restores both).",
               "status": "IN_PROGRESS",
               "closes": ["SPELLS-27.1"],
               "wsjf": {
@@ -8274,6 +8287,19 @@
               "activeWorkbook": "docs/handoffs/slice-spells-27.md"
             },
             {
+              "id": "SPELLS-27.T2b",
+              "text": "The Legendary window, movement opportunity attack and Disarm roots release a consumed condition-owning effect the same way; the three !ownsCondition fences come out.",
+              "status": "TODO",
+              "closes": ["SPELLS-27.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 3,
+                "size": 2,
+                "after": ["SPELLS-27.T2a"]
+              }
+            },
+            {
               "id": "SPELLS-27.T3",
               "text": "ON_CAST_SPELL fact on cast commits feeds the consumer; Invisibility ends on a cast; authoring parity through the real form.",
               "status": "TODO",
@@ -8283,7 +8309,7 @@
                 "tc": 3,
                 "rr": 3,
                 "size": 3,
-                "after": ["SPELLS-27.T2"]
+                "after": ["SPELLS-27.T2a"]
               }
             },
             {
@@ -8296,7 +8322,7 @@
                 "tc": 3,
                 "rr": 3,
                 "size": 3,
-                "after": ["SPELLS-27.T2"]
+                "after": ["SPELLS-27.T2a"]
               }
             },
             {
@@ -9805,6 +9831,45 @@
             "rr": 5,
             "size": 5
           }
+        },
+        {
+          "id": "RELIABILITY-13",
+          "title": "Development fixture cleanup is deterministic",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": [],
+          "acs": [
+            {
+              "id": "RELIABILITY-13.1",
+              "text": "developmentLifecycleProof.test.ts passes deterministically: scenes/developmentScene:removeFixtureState never throws \"Fixture Scene bounds or ownership mismatch\" for a fixture the test created, and a test reproduces the failing order or state before the fix.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Registered 2026-10-16: intermittent failure in Convex suite shard 3/4 (run 38848532122 on ci/attack-17-t2 at 3c20a8a0d), passing on the next run with only an error-message change; ATTACK-17.T2 session found it pre-existing (error raised only in post-test cleanup). The cleanup error now names the failing bound counts."
+            }
+          ],
+          "wsjf": {
+            "bv": 3,
+            "tc": 3,
+            "rr": 5,
+            "size": 2
+          },
+          "tasks": [
+            {
+              "id": "RELIABILITY-13.T1",
+              "text": "Find the nondeterminism in fixture Scene cleanup (bound counts in the error), reproduce it deterministically, fix the root cause.",
+              "status": "IN_PROGRESS",
+              "closes": ["RELIABILITY-13.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 5,
+                "size": 2
+              },
+              "activeWorkbook": "docs/handoffs/slice-reliability-13.md"
+            }
+          ]
         }
       ]
     },
