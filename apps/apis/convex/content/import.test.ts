@@ -693,6 +693,46 @@ describe('internal canonical source import', () => {
     ])
   })
 
+  it('refuses a replayed subject whose document changed, under its old or a new checksum', async () => {
+    const t = convexTest(schema, modules)
+    await t.mutation(internal.content.import.bootstrap, bootstrap)
+    const original = subject()
+    await t.mutation(internal.content.import.importSubjects, {
+      contentSourceId: sourceId,
+      subjects: [original]
+    })
+    const before = await t.run(async (ctx) => ({
+      roots: await ctx.db.query('authoredRoots').take(10),
+      versions: await ctx.db.query('authoredVersions').take(10)
+    }))
+    const document = jsonValueSchema.parse({
+      ...acolyte,
+      details: acolyte.details.map((detail, index) =>
+        index === 0 ? { ...detail, description: `${detail.description} Changed.` } : detail
+      )
+    })
+    const staleChecksum = { ...original, document }
+    const newChecksum = { ...original, document, checksum: checksumRuleDocument(document) }
+    await expect(
+      t.mutation(internal.content.import.importSubjects, {
+        contentSourceId: sourceId,
+        subjects: [staleChecksum]
+      })
+    ).rejects.toThrow('Canonical content conflict.')
+    await expect(
+      t.mutation(internal.content.import.importSubjects, {
+        contentSourceId: sourceId,
+        subjects: [newChecksum]
+      })
+    ).rejects.toThrow('Canonical content conflict.')
+    expect(
+      await t.run(async (ctx) => ({
+        roots: await ctx.db.query('authoredRoots').take(10),
+        versions: await ctx.db.query('authoredVersions').take(10)
+      }))
+    ).toEqual(before)
+  })
+
   it('rejects conflicting bootstrap metadata and leaves the original untouched', async () => {
     const t = convexTest(schema, modules)
     await t.mutation(internal.content.import.bootstrap, bootstrap)
