@@ -265,10 +265,23 @@ export async function revertLastEncounterAction(
       : []
   if (areaRoot && areaTargetBatches.size !== targetBatches.length)
     throw new Error('Stored Encounter area target receipt is invalid.')
+  // A condition an effect ended in this action released comes back with the effect (damage ending Invisibility).
+  const endedEffectIds = new Set(root.consumedGrants.map(({ id }) => id))
+  const releasedConditionIds = (action: ActionBatch) =>
+    action.applications.flatMap((application) =>
+      application.kind === 'CONDITION_REMOVE' &&
+      application.applied &&
+      endedEffectIds.has(application.sourceActiveEffectId)
+        ? [application.conditionId]
+        : []
+    )
   for (const action of targetBatches) {
     if (
       action.applications.some(
-        (application) => application.kind === 'CONDITION_REMOVE' && application.applied
+        (application) =>
+          application.kind === 'CONDITION_REMOVE' &&
+          application.applied &&
+          !endedEffectIds.has(application.sourceActiveEffectId)
       )
     )
       unsupported.add('a removed condition')
@@ -415,16 +428,21 @@ export async function revertLastEncounterAction(
             ? [zeroHitPointsConditionId]
             : [])
         ])
+        inverse.restoredConditionIds = new Set(releasedConditionIds(action))
         inverse.spell = reaction?.spellCastConsumption ?? null
       }
     } else {
       if (target.kind === 'CHARACTER') throw new Error('Stored Encounter actor target is invalid.')
       restoreHitPoints(target.id, action.targetTransition)
       const conditions = readEncounterActorConditionState(target.conditions ?? [])
+      const released = releasedConditionIds(action)
+      if (released.some((conditionId) => conditions.ids.includes(conditionId)))
+        unavailable(`${target.label}'s conditions changed after this action; adjust manually.`)
       updateActor(target.id, {
-        conditions: conditions.values.filter(
-          (_, index) => !addedConditionIds.has(conditions.ids[index]!)
-        )
+        conditions: [
+          ...conditions.values.filter((_, index) => !addedConditionIds.has(conditions.ids[index]!)),
+          ...released.map((conditionTypeId) => ({ conditionTypeId }))
+        ]
       })
     }
     for (const owner of action.maintenanceTransition?.characterOwnerTransitions ?? [])
@@ -509,23 +527,23 @@ export async function revertLastEncounterAction(
     inverse.spell = spend.spellCastConsumption
   }
   // The conditions the source's ended effects released (Invisibility) come back with the effects.
-  const releasedConditionIds = (batch?.sourceApplications ?? []).flatMap((application) =>
+  const sourceReleasedConditionIds = (batch?.sourceApplications ?? []).flatMap((application) =>
     application.kind === 'CONDITION_REMOVE' && application.applied ? [application.conditionId] : []
   )
-  if (releasedConditionIds.length) {
+  if (sourceReleasedConditionIds.length) {
     if (source.kind === 'CHARACTER') {
       if (sourceCharacterId === null || spend.sourceCharacterStreamVersion === null)
         throw new Error('Stored source Character version is missing.')
       characterInverse(sourceCharacterId, spend.sourceCharacterStreamVersion).restoredConditionIds =
-        new Set(releasedConditionIds)
+        new Set(sourceReleasedConditionIds)
     } else {
       const conditions = readEncounterActorConditionState(source.conditions ?? [])
-      if (releasedConditionIds.some((conditionId) => conditions.ids.includes(conditionId)))
+      if (sourceReleasedConditionIds.some((conditionId) => conditions.ids.includes(conditionId)))
         unavailable(`${source.label}'s conditions changed after this action; adjust manually.`)
       updateActor(source.id, {
         conditions: [
           ...conditions.values,
-          ...releasedConditionIds.map((conditionTypeId) => ({ conditionTypeId }))
+          ...sourceReleasedConditionIds.map((conditionTypeId) => ({ conditionTypeId }))
         ]
       })
     }
