@@ -38,6 +38,7 @@ const actor = (): RoomDocument => ({
     }),
     stateChecksum: sha256Hex('actor'),
     snapshotChecksum: sha256Hex('snapshot'),
+    formOriginSnapshotChecksum: null,
     sourceFactsChecksum: null
   }
 })

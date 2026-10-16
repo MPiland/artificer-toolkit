@@ -3,12 +3,13 @@ import { measureSceneDistance } from './geometry.js'
 import type { ScenePoint } from './scene.js'
 import { sceneTokenFootprintsOverlap } from './sceneCombatPerception.js'
 import { sceneLengthInFeet } from './sceneReducer.js'
+import type { TeleportAllowanceDestinationKind } from './teleportAllowanceDestinationKind.js'
 
 /** A teleport a cast granted: its range, its destination rule and the move that spent it, if any. */
 export interface TeleportAllowanceChoice {
   castCommandId: string
   maxFeet: number
-  destinationKind: 'VISIBLE' | 'SPECIFIED_POINT'
+  destinationKind: TeleportAllowanceDestinationKind
   consumedByCommandId: string | null
 }
 

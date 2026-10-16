@@ -1196,6 +1196,20 @@ one `ACTOR_LINK` state contribution (members sorted) per target, or none when fe
 effects are persisted per child in `areaCommitPersistence.ts` and deleted with it on revert. The contribution
 has no gameplay effect; it is provenance that ends at the duration.
 
+**Creature forms (D130, SPELLS-28.T2).** A `MANIFEST` / `CREATURE` outcome with `forms` compiles to
+`dnd5e.creature-form-proposal` and a `creatureFormContribution` on the active-effect plan (forms with a per-form
+`maxTargets`, the duration, `excessDamageCarriesOver`). The chosen target is `{ kind: 'ACTORS', actorIds, formId }`;
+the room (`readChosenFormCreature`) refuses a missing form, a Character and more creatures than the form allows, and
+reads the form Creature (the Worker through `LiveCaptureReads.readFormCreature`, persistence re-reading the created
+effect's `creatureId`, both via `actorFormEntry`). `enterActorForm` swaps the form's snapshot, `sourceId`,
+`sourceRevision` and hit points into the actor and keeps the origin in `form`; `revertActorForm` is the one,
+idempotent way back. A form ends when its hit points reach 0 (the pure plan in `planEncounterMechanicsBatch`, the
+excess carried per `excessDamageCarriesOver`), when its effect is deleted (the `effectStore` delete hook reverts the
+actor: duration end, dismissal), and on cast undo (`actionRevert` deletes the form effect before it restores hit
+points). `writeRunActor` deletes the form effect of an actor that has left its form. The origin snapshot is kept by
+checksum (`formOriginSnapshotChecksum`); `form` is required and nullable, and `actorFormMigration` migrates dev rows.
+A Concentration that deletes the effect directly must route through the same delete (T4).
+
 **Grappled outcomes (D105).** An `ACTOR_RELATIONSHIP` outcome carries a required `heldAtOnce` and optional
 `ESCAPE_CHECK` (allowed skill or ability checks; a `FIXED` or `CONTEST` DC) and `TARGET_SIZE_MAXIMUM`
 modules. Holds are counted per `relationshipOutcomeId`: planning refuses a new hold when the source already

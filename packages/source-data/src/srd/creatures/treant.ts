@@ -121,8 +121,7 @@ export const treant: CreatureAuthored = {
                   {
                     id: S.actionId(271, 210),
                     effectKind: S.EFFECT_KIND.MANIFEST,
-                    manifestKind: 'CREATURE',
-                    creatureId: S.CREATURE_IDS.TREANT
+                    manifestKind: 'CREATURE'
                   },
                   {
                     id: S.actionId(271, 211),

@@ -8173,8 +8173,8 @@
             },
             {
               "id": "SPELLS-19.T3",
-              "text": "Timed and repeat-save condition breaths compile in the dnd5e System compiler and resolve through the area executor: Silver (5), Dust Mephit, Brass Sleep (4), Copper Slowing (4), Gold Weakening (4), and Gorgon Petrifying Breath with its repeat save authored; the corpus test pins each row red first.",
-              "status": "IN_PROGRESS",
+              "text": "Timed and repeat-save condition breaths compile in the dnd5e System compiler and resolve through the area executor: Silver (4), Dust Mephit and Brass Sleep (4, ends on damage taken; waking with an action is a deferred gap). Copper, Gold and the Gorgon split to T3b and T3c. (Red: ci/spells-19-t3-red Tests 38923733569 on 91d2552c7 failed on the corpus pin \"leaves no breath its System cannot execute\". Green: ci/spells-19-t3 Tests 38936308942 and Live backend 38936308878 on 11aa2a122.)",
+              "status": "DONE",
               "closes": ["SPELLS-19.2"],
               "wsjf": {
                 "bv": 8,
@@ -8182,8 +8182,34 @@
                 "rr": 3,
                 "size": 8,
                 "after": ["SPELLS-19.T1"]
+              }
+            },
+            {
+              "id": "SPELLS-19.T3b",
+              "text": "Copper Slowing (4) and Gold Weakening (4) breaths re-authored from core options as a grant plus repeat save, the grant gated on the failed save, no closed rule; corpus pin updated row by row.",
+              "status": "IN_PROGRESS",
+              "closes": ["SPELLS-19.2"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 3,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-19.T3"]
               },
               "activeWorkbook": "docs/handoffs/slice-spells-19.md"
+            },
+            {
+              "id": "SPELLS-19.T3c",
+              "text": "Gorgon Petrifying Breath: 30 ft cone shaped, the printed repeat save and the petrify stage authored from core options.",
+              "status": "TODO",
+              "closes": ["SPELLS-19.2"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 3,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-19.T3b"]
+              }
             },
             {
               "id": "SPELLS-19.T4",
@@ -8383,7 +8409,7 @@
         {
           "id": "SPELLS-23",
           "title": "Aiming a directed area on the map",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "journeyTests": [],
           "journeyStatus": "none",
           "origin": [],
@@ -8410,7 +8436,21 @@
             "tc": 2,
             "rr": 3,
             "size": 3
-          }
+          },
+          "tasks": [
+            {
+              "id": "SPELLS-23.T1",
+              "text": "Directed-area aiming on the map: press, drag and release aims a cone, line or Self cube and commits exactly the drawn origin and direction; a point for a directed area, or a direction for a point area, is refused room-side with its own message; a Self cube snaps to the grid on the caster's chosen side, centered along it, for every side and size. Proved through the renderer gesture and the room refusals.",
+              "status": "IN_PROGRESS",
+              "closes": ["SPELLS-23.1", "SPELLS-23.2"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 3
+              }
+            }
+          ]
         },
         {
           "id": "SPELLS-24",
@@ -8619,16 +8659,15 @@
             },
             {
               "id": "SPELLS-28.T2",
-              "text": "MANIFEST outcome executor (Giant Insect).",
-              "status": "IN_PROGRESS",
+              "text": "MANIFEST outcome executor (Giant Insect). (Red: ci/spells-28-t2-red Tests 38933377505 on ef76e64c8 failed on the 3 nativeRoomGiantInsect tests. Green: ci/spells-28-t2 Tests 38936922027 and Live backend 38936922444 on bd5f01d7e.)",
+              "status": "DONE",
               "closes": ["SPELLS-28.1"],
               "wsjf": {
                 "bv": 3,
                 "tc": 2,
                 "rr": 3,
                 "size": 3
-              },
-              "activeWorkbook": "docs/handoffs/slice-spells-28.md"
+              }
             },
             {
               "id": "SPELLS-28.T3",
@@ -8645,7 +8684,7 @@
             {
               "id": "SPELLS-28.T4",
               "text": "Polymorph, True Polymorph, Shapechange and Wild Shape authored from core options on the CREATURE_FORM grant SPELLS-28.T2 builds (separate form HP, revert at 0 with carry-over, revert at duration end), with a corpus proof against the real compiler and one journey.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-28.1"],
               "wsjf": {
                 "bv": 5,
@@ -8653,7 +8692,8 @@
                 "rr": 3,
                 "size": 3,
                 "after": ["SPELLS-28.T2"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-28.md"
             }
           ]
         },

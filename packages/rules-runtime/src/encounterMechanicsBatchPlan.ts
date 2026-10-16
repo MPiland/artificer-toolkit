@@ -22,6 +22,11 @@ import type {
 } from './character/characterNativeActionResources.js'
 import { unequipCharacterItem, updateSpellSlotUsage } from './character/sheetCommandReducer.js'
 import { nextEncounterActorDefeated } from './encounterActorDefeat.js'
+import {
+  enterActorForm,
+  revertActorForm,
+  type EncounterActorFormCreature
+} from './encounterActorForm.js'
 import { characterZeroHitPointsConditionId } from './characterZeroHitPoints.js'
 
 type EncounterActor = EncounterRunActorState
@@ -56,6 +61,12 @@ export type EncounterMechanicsBatchInput = {
   stowEquippedItemInstanceId?: string
   /** A dying Character's turn-start death save die (D96); Characters only. */
   deathSave?: { rawDie: number }
+  /** The Creature form this outcome swaps the actor into, held by `effectId` (D130); Creature and custom actors only. */
+  enterForm?: {
+    effectId: string
+    excessDamageCarriesOver: boolean
+    creature: EncounterActorFormCreature
+  }
 }
 
 export type EncounterMechanicsBatchPlan = {
@@ -97,6 +108,8 @@ export function planEncounterMechanicsBatch(input: {
       throw new Error('Encounter non-Character actors cannot stow Character equipment.')
     if (batch.deathSave !== undefined)
       throw new Error('Encounter non-Character actors make no death saves.')
+    if (batch.enterForm !== undefined && actor.form !== null)
+      throw new Error('The actor already has a form.')
     const conditions = readEncounterActorConditionState(actor.conditions ?? [])
     const folded = foldCharacterMechanicsApplications({
       targetActorId: actor.id,
@@ -124,21 +137,41 @@ export function planEncounterMechanicsBatch(input: {
         .filter((id) => !conditions.ids.includes(id))
         .map((conditionTypeId) => ({ conditionTypeId }))
     ]
+    const updated = encounterRunActorStateSchema.parse({
+      ...actor,
+      currentHitPoints: folded.after.currentHitPoints,
+      tempHitPoints: folded.after.temporaryHitPoints,
+      maxHitPoints: folded.after.maximumHitPoints,
+      conditions: nextConditions,
+      defeated: nextEncounterActorDefeated(actor, folded.after.currentHitPoints),
+      absence: folded.afterAbsence
+    })
+    // A form at 0 hit points ends instead of defeating the actor (D130); its excess damage is what
+    // the damage dealt past the form's temporary and current hit points.
+    const excessDamage = folded.applications.reduce(
+      (sum, application) =>
+        application.kind === 'DAMAGE'
+          ? sum + application.resolvedAmount - application.appliedAmount
+          : sum,
+      0
+    )
+    const settled =
+      updated.kind !== 'CHARACTER' && updated.form !== null && updated.currentHitPoints === 0
+        ? revertActorForm(updated, excessDamage)
+        : updated
     return {
-      updatedActor: encounterRunActorStateSchema.parse({
-        ...actor,
-        currentHitPoints: folded.after.currentHitPoints,
-        tempHitPoints: folded.after.temporaryHitPoints,
-        maxHitPoints: folded.after.maximumHitPoints,
-        conditions: nextConditions,
-        defeated: nextEncounterActorDefeated(actor, folded.after.currentHitPoints),
-        absence: folded.afterAbsence
-      }),
+      updatedActor:
+        batch.enterForm !== undefined && settled.kind !== 'CHARACTER'
+          ? enterActorForm(settled, batch.enterForm)
+          : settled,
       receiptApplications: folded.applications,
       targetTransition: transition(actor.id, folded.before, folded.after),
       characterStreamVersion: null,
       itemUseStateTransition: null,
-      stateChanged: folded.stateChanged || folded.afterAbsence !== actor.absence,
+      stateChanged:
+        folded.stateChanged ||
+        folded.afterAbsence !== actor.absence ||
+        batch.enterForm !== undefined,
       shouldAdvance: false,
       characterUpdate: null
     }

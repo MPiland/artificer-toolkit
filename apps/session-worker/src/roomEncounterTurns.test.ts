@@ -69,6 +69,7 @@ it('starts and advances a native manual Creature Run atomically, recovers, and r
       tempHitPoints: 0,
       conditions: [],
       defeated: false,
+      form: null,
       absence: null,
       resources: {},
       gmNotes: `Private notes ${ordinal}`,

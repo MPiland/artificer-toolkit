@@ -187,8 +187,7 @@ export const wraith: CreatureAuthored = {
                   {
                     id: S.actionId(298, 214),
                     effectKind: S.EFFECT_KIND.MANIFEST,
-                    manifestKind: 'CREATURE',
-                    creatureId: S.CREATURE_IDS.SPECTER
+                    manifestKind: 'CREATURE'
                   },
                   {
                     id: S.actionId(298, 215),
