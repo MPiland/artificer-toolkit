@@ -11,7 +11,7 @@ const movement = (
   used: number,
   allowances: TurnMovementEntry['allowances'],
   speedId: string | null = null
-): TurnMovementEntry => ({ actorId: 'actor', used, speedId, allowances })
+): TurnMovementEntry => ({ actorId: 'actor', used, speedId, allowances, teleport: [] })
 
 const walking = (budget: number) => ({ ...walk, budget })
 const flying = (budget: number) => ({ ...fly, budget })
@@ -25,7 +25,9 @@ function renderReadout(
     <CampaignTabletopMovementReadout
       automationMode='ASSISTED'
       chosenSpeedId={null}
+      teleportOn={null}
       onChooseSpeed={() => undefined}
+      onTeleportChange={() => undefined}
       {...props}
     />
   )

@@ -142,7 +142,8 @@ it('settles a bound move, its answer and a GM skip through the room, naming who 
     actorId: value.geometry.actorIdByTokenId.get(value.moverTokenId),
     used: 15,
     speedId: null,
-    allowances: [expect.objectContaining({ code: 'WALK', budget: 40 })]
+    allowances: [expect.objectContaining({ code: 'WALK', budget: 40 })],
+    teleport: []
   })
 }, 120_000)
 
@@ -286,7 +287,8 @@ it('counts voluntary bound movement toward the turn, outside the Run version (D3
     actorId: moverId,
     used: 10,
     speedId: null,
-    allowances: [expect.objectContaining({ code: 'WALK', budget: 40 })]
+    allowances: [expect.objectContaining({ code: 'WALK', budget: 40 })],
+    teleport: []
   })
   // Moves in one turn accumulate.
   const second = await move(

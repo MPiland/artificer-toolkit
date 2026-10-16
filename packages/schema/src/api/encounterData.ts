@@ -7,6 +7,10 @@ import {
   creatureSenseDtoSchema
 } from '../subjects/creature.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
+import {
+  MAX_TURN_TELEPORT_ALLOWANCES,
+  teleportAllowanceDtoSchema
+} from '../shared/teleportAllowance.js'
 import { encounterInitiativePolicySummaryDtoSchema } from '../shared/initiativePolicySnapshot.js'
 import { encounterOptionalCombatSummaryDtoSchema } from '../shared/optionalCombat.js'
 import {
@@ -554,7 +558,11 @@ export const encounterSessionStateDtoSchema = lazySchema(() =>
                 budget: z.number().check(z.nonnegative())
               })
             )
-            .check(z.maxLength(AUTHORED_LIMITS.nestedCollectionItems))
+            .check(z.maxLength(AUTHORED_LIMITS.nestedCollectionItems)),
+          /** The unspent one-shot teleports this turn's casts granted (Misty Step); a TELEPORT move spends one. */
+          teleport: z
+            .array(teleportAllowanceDtoSchema)
+            .check(z.maxLength(MAX_TURN_TELEPORT_ALLOWANCES))
         })
       )
       .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
