@@ -113774,7 +113774,7 @@ export declare const api: {
                 kind: "REACTION_CHOICE";
                 occurrenceId: string;
                 occurrenceVersion: number;
-                options: Array<{ optionId: string }>;
+                options: Array<{ actionId: string; optionId: string }>;
                 targetActorId: string;
               }
             | {
@@ -114067,7 +114067,7 @@ export declare const api: {
                   kind: "REACTION_CHOICE";
                   occurrenceId: string;
                   occurrenceVersion: number;
-                  options: Array<{ optionId: string }>;
+                  options: Array<{ actionId: string; optionId: string }>;
                   targetActorId: string;
                 }
               | {
@@ -114875,7 +114875,7 @@ export declare const api: {
             kind: "REACTION_CHOICE";
             occurrenceId: string;
             occurrenceVersion: number;
-            options: Array<{ optionId: string }>;
+            options: Array<{ actionId: string; optionId: string }>;
             targetActorId: string;
           }
         | {
@@ -115675,7 +115675,7 @@ export declare const api: {
                 kind: "REACTION_CHOICE";
                 occurrenceId: string;
                 occurrenceVersion: number;
-                options: Array<{ optionId: string }>;
+                options: Array<{ actionId: string; optionId: string }>;
                 targetActorId: string;
               }
             | {
