@@ -1,3 +1,4 @@
+import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import {
   ACTIVATION_CODE,
   PATH_CODE,
@@ -5,6 +6,7 @@ import {
   CASTING_TIME_UNIT_CODE,
   DURATION_KIND,
   EFFECT_KIND,
+  MANIFEST_KIND,
   MEASUREMENT_UNIT_CODE,
   RANGE_KIND,
   SPELL_ATTRIBUTE,
@@ -36,7 +38,12 @@ export const truePolymorph: SpellAuthored = {
       order: 1,
       invocation: {
         kind: 'ACTION' as const,
-        triggerCode: TRIGGER.ACTIVATED,
+        triggerCode: TRIGGER.SAVING_THROW,
+        savingThrow: {
+          id: spellChildId(SPELL_IDS.TRUE_POLYMORPH, 0x214, 1),
+          dcMethod: 'SOURCE_SAVE_DC',
+          abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.WISDOM
+        },
         activation: {
           code: ACTIVATION_CODE.ACTION,
           amount: 1
@@ -48,21 +55,22 @@ export const truePolymorph: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          dispositionKind: TARGET_DISPOSITION_KIND.ANY
+          selectionKind: TARGET_SELECTION_KIND.CHOSEN_CREATURES,
+          dispositionKind: TARGET_DISPOSITION_KIND.ANY,
+          maxTargets: 1
         }
       },
       paths: [
         {
           id: spellChildId(SPELL_IDS.TRUE_POLYMORPH, 0x212, 1),
           order: 1,
-          pathCode: PATH_CODE.ON_USE,
+          pathCode: PATH_CODE.ON_SAVE_FAIL,
           groupType: PATH_GROUP_TYPE.SINGLE,
           originKind: 'SOURCE' as const,
           selectionKind: 'FIXED' as const,
           resultBlock: {
             id: spellChildId(SPELL_IDS.TRUE_POLYMORPH, 0x212, 1) + '__result',
-            resultKind: 'SEQUENCE' as const,
+            resultKind: 'SINGLE' as const,
             duration: {
               id: spellChildId(SPELL_IDS.TRUE_POLYMORPH, 0x213, 1),
               durationKind: DURATION_KIND.HOUR,
@@ -70,17 +78,14 @@ export const truePolymorph: SpellAuthored = {
             },
             outcomes: [
               {
-                id: spellChildId(SPELL_IDS.TRUE_POLYMORPH, 0x2f0, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'TRUE_POLYMORPH' as const
-              },
-              {
                 id: spellChildId(SPELL_IDS.TRUE_POLYMORPH, 0x212, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
-                label: 'Control the New Creature',
-                reasonCode: 'GM_CHOICE' as const,
-                instructions:
-                  "The GM has the creature's statistics and resolves all of its actions and movement."
+                effectKind: EFFECT_KIND.MANIFEST,
+                manifestKind: MANIFEST_KIND.CREATURE,
+                excessDamageCarriesOver: true,
+                formFilter: {
+                  id: spellChildId(SPELL_IDS.TRUE_POLYMORPH, 0x215, 1),
+                  challengeRatingCapKind: 'TARGET'
+                }
               }
             ]
           }

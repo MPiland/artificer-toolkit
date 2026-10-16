@@ -323,7 +323,8 @@ export const ancientBrassDragon: CreatureAuthored = {
                   {
                     id: S.actionId(16, 24),
                     effectKind: S.EFFECT_KIND.CONDITION,
-                    conditionId: conditionTypeId('FRIGHTENED')
+                    conditionId: conditionTypeId('FRIGHTENED'),
+                    recordsSource: true
                   }
                 ]
               }

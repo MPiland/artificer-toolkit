@@ -279,7 +279,8 @@ export const mummyLord: CreatureAuthored = {
                   {
                     id: S.actionId(202, 950),
                     effectKind: S.EFFECT_KIND.CONDITION,
-                    conditionId: conditionTypeId('FRIGHTENED')
+                    conditionId: conditionTypeId('FRIGHTENED'),
+                    recordsSource: true
                   },
                   {
                     id: S.actionId(202, 958),

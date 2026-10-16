@@ -78,6 +78,7 @@ import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rules
 import { actorFormEntry } from '@artificer-toolkit/encounter-persistence/actorFormPersistence'
 import { refuseStaleCharacterAction } from '@artificer-toolkit/encounter-persistence/staleCharacterAction'
 import type { EncounterActorFormCreature } from '@artificer-toolkit/rules-runtime/encounterActorForm'
+import { creatureFormFilterRefusal } from '@artificer-toolkit/rules-runtime/encounterFormChoice'
 import {
   encounterActiveEffectPlan,
   prepareNativeActionEffectsPlan
@@ -309,7 +310,9 @@ export async function prepareAreaScene(
     movementTargets,
     scene: { ...scene, grid },
     area: { ...area, origin },
-    placement: zone ? { zone, origin, shape: area.shape } : null
+    placement: zone
+      ? { zone, origin, shape: area.shape, sourceToken: scene.sourceToken ?? null }
+      : null
   }
 }
 
@@ -1075,6 +1078,58 @@ export function leadActiveEffectPlan(prepared: AreaPrepared) {
   )
 }
 
+const formRefusal = (message: string) =>
+  new LiveSessionDomainRejectionError(422, {
+    code: 'DOMAIN_REJECTED',
+    reason: 'TARGET_UNAVAILABLE',
+    message
+  })
+
+/**
+ * The Creature the caster's chosen form swaps the targets into (D130), or null for an action that
+ * holds no form. The form is the caster's one choice for the whole cast: one of the action's fixed
+ * forms (capped by its own targets), or a Creature that meets the action's form filter, checked
+ * here against the System creature corpus. A save that pends re-reads it from the sealed command.
+ */
+export async function readChosenFormCreature(
+  input: AreaPlanBase & { command: ReachCommand },
+  lead: AreaPrepared,
+  targets: readonly EncounterRunActorState[]
+) {
+  const chosen = input.command.target.kind === 'ACTORS' ? input.command.target : null
+  const formId = chosen?.formId
+  const creatureId = chosen?.creatureId
+  const contribution = leadActiveEffectPlan(lead)?.creatureFormContribution
+  if (!contribution) {
+    if (formId !== undefined || creatureId !== undefined)
+      throw formRefusal('This action takes no creature form.')
+    return null
+  }
+  const form = contribution.forms.find((candidate) => candidate.id === formId)
+  const sourceId = form?.creatureId ?? creatureId
+  if (sourceId === undefined || (formId !== undefined && creatureId !== undefined))
+    throw formRefusal('This action needs one of its creature forms.')
+  if (creatureId !== undefined && !contribution.filter)
+    throw formRefusal('This action takes only its own creature forms.')
+  if (form && targets.length > form.maxTargets)
+    throw formRefusal(`That form takes at most ${form.maxTargets} creatures.`)
+  if (targets.some((actor) => actor.kind === 'CHARACTER' || actor.form !== null))
+    throw formRefusal('A chosen creature cannot take a creature form.')
+  if (!input.readFormCreature) throw new Error('The creature form cannot be read.')
+  const creature = await input.readFormCreature(input.state.gameSystemId, sourceId)
+  if (contribution.filter && creatureId !== undefined)
+    for (const actor of targets) {
+      const refused = creatureFormFilterRefusal({
+        filter: contribution.filter,
+        form: creature,
+        target: { snapshot: actor.snapshot, level: null },
+        system: input.system
+      })
+      if (refused) throw formRefusal(refused)
+    }
+  return creature
+}
+
 /**
  * The warnings a multi-creature action raises, refused unless the caster acknowledged them. A point
  * area catches everyone in it, so no per-target rule applies; a list of chosen creatures checks each
@@ -1213,6 +1268,11 @@ export async function planNativeLiveEncounterAreaCommit(
   // the caster's spend alone, against the caster's own preparation of the action.
   const first = kept[0] ?? (await prepareAreaCasterLead(input, base, context.removedActorIds))
   const lead = first.target.prepared
+  const formCreature = await readChosenFormCreature(
+    input,
+    lead,
+    kept.map(({ target }) => target.prepared.target)
+  )
   const ruleOverrides = reachRuleOverrides({
     command,
     lead,
@@ -1267,6 +1327,7 @@ export async function planNativeLiveEncounterAreaCommit(
     kept,
     lead,
     ruleOverrides,
+    formCreature,
     actionEconomy,
     attackAction,
     settled,
@@ -1629,7 +1690,9 @@ export async function completeAreaCommit(args: {
         rootCommandId: command.commandId,
         sourceActorId: caster.id,
         point: placement.origin,
-        area: placement.shape
+        area: placement.shape,
+        sourceToken: placement.sourceToken,
+        saveDc: lead.characterActionState?.actionMechanic.save?.dc ?? null
       })
     : null
   const execution = buildEncounterAreaStoredExecution({

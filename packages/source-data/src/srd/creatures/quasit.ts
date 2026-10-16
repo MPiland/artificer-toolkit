@@ -237,7 +237,8 @@ export const quasit: CreatureAuthored = {
                   {
                     id: S.actionId(228, 940),
                     effectKind: S.EFFECT_KIND.CONDITION,
-                    conditionId: conditionTypeId('FRIGHTENED')
+                    conditionId: conditionTypeId('FRIGHTENED'),
+                    recordsSource: true
                   },
                   {
                     id: S.actionId(228, 948),

@@ -154,7 +154,8 @@ describe('D&D 5e weapon attacks', () => {
       itemAction(character, 'Greatsword', { attackKind: 'MELEE' }).decision.mechanic.attackRollMode
     ).toBe('DISADVANTAGE')
     expect(
-      itemAction(character, 'Dagger', { attackKind: 'MELEE' }).decision.mechanic.attackRollMode
+      itemAction(character, 'Dagger', { attackKind: 'MELEE', activation: 'ACTION' }).decision
+        .mechanic.attackRollMode
     ).toBe('NORMAL')
     const longbow = itemAction(character, 'Longbow', { attackKind: 'RANGED' })
     expect(longbow.decision.mechanic.attackRollMode).toBe('DISADVANTAGE')

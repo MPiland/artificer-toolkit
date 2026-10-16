@@ -209,9 +209,27 @@ export type ManifestCreatureFormAuthored = {
   maxTargets: number
 }
 
+/**
+ * The rule a caster-chosen Creature must meet to be a form (Polymorph: a beast whose challenge
+ * rating does not exceed the target's), checked at cast against the System creature corpus.
+ */
+export type ManifestCreatureFormFilterAuthored = {
+  id: string
+  /** The Creature Type the form must have; omitted allows any. */
+  creatureTypeId?: string
+  /** The cap on the form's challenge rating: the target's own (its level when it has none) or a fixed one. */
+  challengeRatingCapKind: 'TARGET' | 'FIXED'
+  /** The fixed cap, for `FIXED`. */
+  maxChallengeRatingId?: string
+  /** Speeds the form may not have. */
+  excludedSpeedIds?: string[]
+}
+
 type CreatureManifestAuthored = ManifestAuthoredBase & {
   manifestKind: typeof MANIFEST_KIND.CREATURE
   forms?: ManifestCreatureFormAuthored[]
+  /** A rule-filtered choice beside the fixed `forms`; the cast names the Creature on the command. */
+  formFilter?: ManifestCreatureFormFilterAuthored
   excessDamageCarriesOver?: boolean
   statBlock?: never
   behaviors?: never
@@ -220,6 +238,7 @@ type CreatureManifestAuthored = ManifestAuthoredBase & {
 type SummonManifestAuthored = ManifestAuthoredBase & {
   manifestKind: typeof MANIFEST_KIND.SUMMON
   forms?: never
+  formFilter?: never
   excessDamageCarriesOver?: never
   statBlock?: SummonStatBlockAuthored
   behaviors?: ManifestBehaviorAuthored[]
@@ -228,6 +247,7 @@ type SummonManifestAuthored = ManifestAuthoredBase & {
 type NonCreatureManifestAuthored<TKind extends ManifestKind> = ManifestAuthoredBase & {
   manifestKind: TKind
   forms?: never
+  formFilter?: never
   excessDamageCarriesOver?: never
   statBlock?: never
   behaviors?: ManifestBehaviorAuthored[]
