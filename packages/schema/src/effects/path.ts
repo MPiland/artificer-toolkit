@@ -38,7 +38,8 @@ import {
   pathLifecycleTurnActorSchema,
   pathLifecycleTurnBoundarySchema,
   pathOriginKindSchema,
-  pathRollTableKindSchema
+  pathRollTableKindSchema,
+  pathUsageSchema
 } from '../shared/enums.js'
 import { facetDtoSchema } from '../shared/facet.js'
 import { rangeDtoSchema } from '../shared/range.js'
@@ -213,6 +214,7 @@ const createPathDtoSchema = (outcomePayloadDtoSchema: z.ZodMiniType) => {
       groupType: pathGroupTypeSchema,
       originKind: z.optional(pathOriginKindSchema),
       restrictions: z.optional(facetDtoSchema),
+      usage: z.optional(pathUsageSchema),
       rangeOverride: z.optional(rangeDtoSchema),
       targetingOverride: z.optional(targetingDtoSchema)
     }),

@@ -4,7 +4,8 @@ import {
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import {
   gatedSneakAttack,
-  riderGate
+  riderGate,
+  withFixedRiderDice
 } from '@artificer-toolkit/rules-runtime/testing/unconditionalSneakAttack'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -34,37 +35,15 @@ afterEach(() => {
 })
 
 /** A homebrew Feature adding 1d6 of the weapon's type to a melee hit while an able enemy of the target is within 5 ft. */
-function nearbyEnemyRider(): ClassFeature {
-  const feature = gatedSneakAttack(
-    testUuid(0xe10),
-    riderGate([{ predicateCode: 'ENEMY_NEAR_TARGET', feet: 5 }])
+const nearbyEnemyRider = (): ClassFeature =>
+  withFixedRiderDice(
+    gatedSneakAttack(
+      testUuid(0xe10),
+      riderGate([{ predicateCode: 'ENEMY_NEAR_TARGET', feet: 5 }])
+    ),
+    testUuid(0xe11),
+    '1d6'
   )
-  return {
-    ...feature,
-    effects: feature.effects?.map((effect) => ({
-      ...effect,
-      paths: effect.paths.map((path) => {
-        if (!('resultBlock' in path)) return path
-        return {
-          ...path,
-          resultBlock: {
-            ...path.resultBlock,
-            outcomes: [
-              {
-                id: testUuid(0xe11),
-                effectKind: 'DAMAGE' as const,
-                usesTriggeringWeaponDamageType: true as const,
-                valueKind: 'DICE' as const,
-                scalingKind: 'NONE' as const,
-                diceConfig: '1d6'
-              }
-            ]
-          }
-        }
-      })
-    }))
-  }
-}
 
 /**
  * The Fighter's Club hit on the Wolf, with the Fighter's own Scene-measured rider. The Fighter's

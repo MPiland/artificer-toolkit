@@ -918,6 +918,59 @@ async function pendingFor(base: Awaited<ReturnType<typeof setup>>, caller: RoomC
   })
 }
 
+/** What `caller` reads of the believed attack modifiers on each creature they can target (ATTACK-17.1). */
+async function targetModifiersFor(
+  base: DistanceSetup,
+  caller: RoomCaller,
+  expectedVersion: number,
+  scene: { sceneId: string; expectedSceneVersion: number } | null
+) {
+  await checkpointLiveRoom(base.campaign.id)
+  return caller.query(api.encounters.actionTargetModifiers.get, {
+    encounterId: base.run.id,
+    expectedVersion,
+    actorId: base.actor.id,
+    actionId: base.actionId,
+    scene
+  })
+}
+
+/** Seats a second member who controls the acting actor, with the target Blinded (and revealed to them when asked). */
+async function seatPlayerControllingActor(base: DistanceSetup, options: { reveal: boolean }) {
+  await base.t.run((ctx) =>
+    ctx.db.insert('campaignMemberships', {
+      campaignId: base.campaign.id,
+      userId: base.other.userId,
+      role: 'PLAYER',
+      status: 'ACTIVE',
+      accessStartedAt: base.campaign.createdAt,
+      joinedAt: base.campaign.createdAt,
+      leftAt: null
+    })
+  )
+  await setAutoRollDice(base.t, base.other.userId, false)
+  const blinded = srdSystemRecord.conditionTypes.find((value) => value.code === 'BLINDED')
+  if (!blinded) throw new Error('Missing Blinded condition fixture.')
+  let version = base.run.version
+  for (const update of [
+    ...(options.reveal ? [{ actorId: base.target.id, reveal: 'NAMED' as const }] : []),
+    { actorId: base.target.id, conditions: [blinded.id] },
+    { actorId: base.actor.id, controllerUserIds: [base.other.userId] }
+  ]) {
+    const result = await executeInRoom(base.owner.caller, {
+      command: {
+        type: 'UPDATE_ACTOR',
+        encounterId: base.run.id,
+        commandId: crypto.randomUUID(),
+        expectedVersion: version,
+        ...update
+      }
+    })
+    version = result.projection.version
+  }
+  return version
+}
+
 /** How many commands the room has committed past the Run's setup version, as it sends them to the GM (D85). */
 async function committedCount(base: Awaited<ReturnType<typeof setup>>) {
   return (await readRoomTimeline(base.owner.caller, base.campaign.id)).filter(
@@ -2209,6 +2262,105 @@ describe('Assisted soft enforcement', () => {
     expect(gm!.gmCampaignRoll?.revealedAt).toEqual(expect.any(String))
     expect(JSON.stringify(table)).not.toContain(gmReason!)
   }, 90000)
+
+  it("shows a player the modifiers their Character believes, which are the roll prompt's own, never the true mode (ATTACK-17.1, ATTACK-10.1)", async () => {
+    const base = await distanceSetup({ rolls: 'PROMPT' })
+    const version = await seatPlayerControllingActor(base, { reveal: true })
+    const scene = { sceneId: base.sceneId, expectedSceneVersion: 0 }
+    const read = await targetModifiersFor(base, base.other.caller, version, scene)
+    // The Blinded target makes the true roll Advantage ("Unseen attacker"); the player believes Normal.
+    expect(read.targets).toEqual([
+      { actorId: base.target.id, attack: { rollMode: 'NORMAL', reasons: [] } }
+    ])
+    const issued = await executeInRoom(base.other.caller, {
+      command: command({
+        encounterId: base.run.id,
+        expectedVersion: version,
+        actorId: base.actor.id,
+        targetActorId: base.target.id,
+        actionId: base.actionId,
+        sceneContext: {
+          ...scene,
+          sourceTokenId: base.tokens[0]!.id,
+          targetTokenId: base.tokens[1]!.id
+        }
+      })
+    })
+    expect(issued.occurrence?.pending).toMatchObject({
+      kind: 'D20_EVIDENCE',
+      request: {
+        rollMode: read.targets[0]!.attack!.rollMode,
+        derivedRollModeReasons: read.targets[0]!.attack!.reasons
+      }
+    })
+  }, 60000)
+
+  it('lists no creature a player cannot see and answers the same from Convex once the room lets go (ATTACK-17.3)', async () => {
+    const base = await distanceSetup({ rolls: 'PROMPT' })
+    const version = await seatPlayerControllingActor(base, { reveal: false })
+    const scene = { sceneId: base.sceneId, expectedSceneVersion: 0 }
+    // The player's map does not draw the target, so it is not theirs to read about.
+    expect((await targetModifiersFor(base, base.other.caller, version, scene)).targets).toEqual([])
+    const revealed = await executeInRoom(base.owner.caller, {
+      command: {
+        type: 'UPDATE_ACTOR',
+        encounterId: base.run.id,
+        commandId: crypto.randomUUID(),
+        expectedVersion: version,
+        actorId: base.target.id,
+        reveal: 'NAMED'
+      }
+    })
+    const held = await targetModifiersFor(
+      base,
+      base.other.caller,
+      revealed.projection.version,
+      scene
+    )
+    expect(held.targets.map(({ actorId }) => actorId)).toEqual([base.target.id])
+    await closeRoom(base.campaign.id)
+    expect(
+      await base.other.caller.query(api.encounters.actionTargetModifiers.get, {
+        encounterId: base.run.id,
+        expectedVersion: revealed.projection.version,
+        actorId: base.actor.id,
+        actionId: base.actionId,
+        scene
+      })
+    ).toEqual(held)
+  }, 60000)
+
+  it('reads a ranged attack beyond its normal range as Disadvantage for "Long range", and not without a Scene (ATTACK-17.1, D62)', async () => {
+    // The seeded Ape's Rock: range 25/50 ft. The target stands 7 squares (35 ft.) away.
+    const base = await distanceSetup({ ranged: true, rolls: 'PROMPT' })
+    await replaceTargetToken(base, { x: 750, y: 50 })
+    const onScene = await targetModifiersFor(base, base.owner.caller, base.run.version, {
+      sceneId: base.sceneId,
+      expectedSceneVersion: 1
+    })
+    // The Encounter's custom creature has no defense to attack, so it lists with no modifiers.
+    const custom = base.run.actors.find((candidate) => candidate.kind === 'CUSTOM')
+    if (!custom) throw new Error('Missing custom creature fixture.')
+    expect(onScene.targets).toHaveLength(2)
+    expect(onScene.targets).toContainEqual({
+      actorId: base.target.id,
+      attack: { rollMode: 'DISADVANTAGE', reasons: ['Long range'] }
+    })
+    expect(onScene.targets).toContainEqual({ actorId: custom.id, attack: null })
+    const offScene = await targetModifiersFor(base, base.owner.caller, base.run.version, null)
+    expect(offScene.targets).toHaveLength(2)
+    expect(offScene.targets).toContainEqual({
+      actorId: base.target.id,
+      attack: { rollMode: 'NORMAL', reasons: [] }
+    })
+    expect(offScene.targets).toContainEqual({ actorId: custom.id, attack: null })
+    await expect(
+      targetModifiersFor(base, base.owner.caller, base.run.version, {
+        sceneId: base.sceneId,
+        expectedSceneVersion: 0
+      })
+    ).rejects.toThrow()
+  }, 60000)
 
   it('a Paralyzed target makes an adjacent Bite roll with advantage and hit critically (D94)', async () => {
     // The seeded Wolf's Bite (+4, 2d4 + 2) at the adjacent seeded Wolf (AC 13).

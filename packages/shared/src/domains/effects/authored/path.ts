@@ -17,6 +17,7 @@ import type {
   PathLifecycleTurnBoundary,
   PathOriginKind,
   PathRollTableKind,
+  PathUsage,
   Trigger
 } from '#core'
 
@@ -83,6 +84,8 @@ export type EffectPathBaseAuthored<TTrigger extends Trigger = Trigger> = {
    * Effect's `ON_HIT` damage). Groups are OR-ed, each group's conditions AND-ed.
    */
   restrictions?: FacetAuthored
+  /** The result is owed to at most one attack in a turn, whichever qualifies first. */
+  usage?: PathUsage
   rangeOverride?: RangeAuthored
   targetingOverride?: TargetingAuthored
 }

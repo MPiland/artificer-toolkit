@@ -22,6 +22,8 @@ import { characterActiveRuleEffectStoredSchema } from '@artificer-toolkit/schema
 import { activeRuleEffectDefinitionDtoSchema } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import type { Dnd5eOptionalCombatRuleKindDto } from '@artificer-toolkit/schema/shared/optionalCombat'
 import { readEncounterMovementPendingContext } from '@artificer-toolkit/rules-runtime/encounterMovementPendingContext'
+import { labelEncounterRollModeReasons } from '@artificer-toolkit/rules-runtime/encounterRollModeReasons'
+import { projectEncounterSpatialOccurrenceSummary } from '@artificer-toolkit/rules-runtime/encounterSpatialOccurrenceSummary'
 import {
   currentSrdDefinition,
   srdEncounterState,
@@ -682,6 +684,35 @@ export async function movementRoom(config: MovementRoomConfig) {
           encounterVersion: room.documents('encounterRuns')[0]!.version,
           ...readEncounterMovementPendingContext(snapshot)
         }
+      })
+    },
+    /**
+     * The PENDING movement decision as a viewer reads it: the GM (`isOwner`) or a player who controls
+     * every actor, with the rules-owned reason labels the pending read adds.
+     */
+    pendingFor(isOwner: boolean) {
+      return runInDurableObject(base.stub, async (_instance, context) => {
+        const room = new RoomEncounterStore(context.storage)
+        const occurrence = room
+          .documents('encounterRuleOccurrences')
+          .find((candidate) => candidate.state === 'PENDING')
+        if (!occurrence) return null
+        const pendingSnapshot = await readPendingSnapshot({ db: room.store }, occurrence)
+        if (!pendingSnapshot) throw new Error('The pending occurrence holds no snapshot.')
+        return projectEncounterSpatialOccurrenceSummary(
+          {
+            id: occurrence.id,
+            version: occurrence.version,
+            state: occurrence.state,
+            pendingSnapshot
+          },
+          room.documents('encounterRuns')[0]!.version,
+          {
+            controlledActorIds: new Set(room.documents('encounterRunActors').map(({ id }) => id)),
+            isOwner
+          },
+          labelEncounterRollModeReasons(new Map())
+        ).pending
       })
     },
     /** The room's committed rule receipts in commit order, parsed. */

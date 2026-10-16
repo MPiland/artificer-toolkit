@@ -329,6 +329,7 @@ export const pathGroupTypeSchema = lazySchema(() => z.enum(['SINGLE', 'CHOICE', 
 export const pathOriginKindSchema = lazySchema(() =>
   z.enum(['SOURCE', 'PRIMARY_TARGET', 'PREVIOUS_ENTRY_TARGET'])
 )
+export const pathUsageSchema = lazySchema(() => z.enum(['ONCE_PER_TURN']))
 export const pathResolutionKindSchema = lazySchema(() => z.enum(['DIRECT', 'ROLL_TABLE']))
 export const pathRollTableKindSchema = lazySchema(() => z.enum(['RANGE', 'EXACT']))
 export const pathLifecycleRecurringKindSchema = lazySchema(() =>
