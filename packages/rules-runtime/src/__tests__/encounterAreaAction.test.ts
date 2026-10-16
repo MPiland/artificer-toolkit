@@ -330,9 +330,6 @@ describe('area target policy', () => {
     expect(evaluate({ point: at(31), pointSeen: false })?.warnings.map(({ code }) => code)).toEqual(
       ['TARGET_OUT_OF_RANGE', 'TARGET_OUT_OF_SIGHT']
     )
-    expect(
-      evaluate({ sourceToken: null, pointSeen: false })?.warnings.map(({ code }) => code)
-    ).toEqual(['TARGET_RANGE_UNCHECKED', 'TARGET_OUT_OF_SIGHT'])
   })
 
   it('still checks sight for an unlimited range', () => {
@@ -342,18 +339,6 @@ describe('area target policy', () => {
         pointSeen: false
       })?.warnings.map(({ code }) => code)
     ).toEqual(['TARGET_OUT_OF_SIGHT'])
-  })
-
-  it('warns the range is unchecked without the caster token, and still returns the area', () => {
-    expect(evaluate({ sourceToken: null })).toEqual({
-      shape: { kind: 'RADIUS', radius: 400 },
-      warnings: [
-        {
-          code: 'TARGET_RANGE_UNCHECKED',
-          message: "Range can't be checked without both tokens on the map."
-        }
-      ]
-    })
   })
 
   it('has no range limit for an unlimited range', () => {

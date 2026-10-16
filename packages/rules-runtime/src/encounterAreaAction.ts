@@ -20,11 +20,6 @@ import {
 import { TOUCH_RANGE } from './encounterActionTargetPolicy.js'
 import { selectScalingRow } from './scalingRowSelection.js'
 
-const RANGE_UNCHECKED: EncounterRuleWarningDto = {
-  code: 'TARGET_RANGE_UNCHECKED',
-  message: "Range can't be checked without both tokens on the map."
-}
-
 const OUT_OF_SIGHT: EncounterRuleWarningDto = {
   code: 'TARGET_OUT_OF_SIGHT',
   message: 'The area origin is out of sight.'
@@ -285,8 +280,8 @@ export function evaluateEncounterAreaTargetPolicy(input: {
   targetPolicy: CompiledActionTargetPolicy
   point: ScenePoint
   grid: SceneGrid
-  /** The caster's token; null when it is not on the map. */
-  sourceToken: Pick<SceneToken, 'position' | 'height' | 'width' | 'rotationDegrees'> | null
+  /** The caster's token. */
+  sourceToken: Pick<SceneToken, 'position' | 'height' | 'width' | 'rotationDegrees'>
   /** Whether the caster can see the point. */
   pointSeen: boolean
 }): { shape: SpatialPointAreaShape; warnings: EncounterRuleWarningDto[] } | null {
@@ -332,7 +327,6 @@ function evaluateRangeWarnings(
     { amount: range.amount, unit: range.unit },
     input.grid
   )
-  if (input.sourceToken === null) return [RANGE_UNCHECKED]
   const { position, width, height } = input.sourceToken
   const halfWidth = sceneFootprintMeasureHalfExtent(input.grid, width)
   const halfHeight = sceneFootprintMeasureHalfExtent(input.grid, height)

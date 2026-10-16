@@ -356,17 +356,19 @@ is the one range × shape table (point, directed, caster-centered or unsupported
 evaluators share; a target of the wrong kind is `TARGET_UNAVAILABLE` (a direction for a point action, a point for a
 directed action and anything else for a caster-centered one each say what the action takes), as is an origin off the
 footprint, and each refusal has its own message (`UNSUPPORTED_AREA`, `ORIGIN_OFF_CASTER`). The caster's token is
-read with the Scene (a missing token is a stale Scene context, refused before the evaluators run), so the
-evaluators take it as given.
+read with the Scene, so the evaluators take it as given; a Scene without it makes the read throw
+`Action Scene token context is stale.`, which the room answers as a generic `UNAVAILABLE` (not a
+`TARGET_UNAVAILABLE` refusal).
 `evaluateEncounterDirectedAreaTarget` returns the Scene-unit shape, and everything after it is the point-area
 pipeline above: the same `ENCOUNTER_AREA_ACTION` occurrence, sealed saves, frozen damage, GM removal, commit and
 undo. The pending guard (`requireAreaActionPendingRoot`) checks the sealed origin and direction against the command.
 Catching (`spatialTokensInsideArea`, for every area) is strict positive-area overlap, so a creature the area
 only touches along an edge or at a corner is not caught (D103, user ruling 2026-10-14). Lasting and moving zones use the same rule through the same predicate (`footprintOverlapsSpatialGeometry`): entry, start-of-turn effects (`encounterTurnEffectPerception`) and movement-reaction perception (`encounterMovementReactionPerception`) see a zone only when the footprint shares area with it, so touching its edge or a corner never catches (SPELLS-24); a directed shape needs the
-caster's token among the Scene's tokens, which it excludes (it throws without it: the room has already refused a Scene without the caster's token as stale, so a missing caster here is an invariant failure). A cone is the triangle from the origin to a
+caster's token among the Scene's tokens, which it excludes (it throws without it: the Scene read has already failed without the caster's token, so a missing caster here is an invariant failure). A cone is the triangle from the origin to a
 far edge as wide as it is long; a line is a rectangle, 5 ft wide unless authored (a scaled or non-positive
-authored width is refused at compile). A Self cube follows the 5e rule that its origin lies anywhere on a face
-of the cube (`cubeFromSideOutline`): the side faced is the dominant axis of `toward`, the face is flush against
+authored width is refused at compile). A Self cube follows the 5e rule that its origin lies on a face of the
+cube (`cubeFromSideOutline`; for a caster whose side is off the grid lines the picked place may not contain the pressed
+point, a deferred edge case): the side faced is the dominant axis of `toward`, the face is flush against
 that side and slides along it, snapped to the Scene's grid lines, according to where the origin lies along the
 side, so a corner origin catches exactly the cube's squares (9 for a 15 ft cube). The places are the grid lines
 whose cube shares positive length with the caster's side, and each place owns an equal share of the side, wherever

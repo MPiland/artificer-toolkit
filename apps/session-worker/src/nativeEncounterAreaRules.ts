@@ -187,7 +187,7 @@ type AreaPlanInput = AreaPlanBase & { command: AreaCommand }
 type ReachPlanInput = AreaPlanBase & { command: ReachCommand }
 
 /** Why an area is refused, as the player is told. */
-const DIRECTED_AREA_REFUSALS = {
+const AREA_REFUSALS = {
   UNSUPPORTED_AREA: "This action's area size is not supported.",
   ORIGIN_OFF_CASTER: 'This area cannot extend from there.'
 } as const
@@ -290,7 +290,7 @@ export async function prepareAreaScene(
     throw new LiveSessionDomainRejectionError(422, {
       code: 'DOMAIN_REJECTED',
       reason: 'TARGET_UNAVAILABLE',
-      message: DIRECTED_AREA_REFUSALS[area.refusal]
+      message: AREA_REFUSALS[area.refusal]
     })
   const origin =
     target.kind === 'CASTER_CENTERED' ? scene.sourceToken.position : areaActionTargetOrigin(target)
