@@ -123,8 +123,9 @@ export async function verifyEncounterPlayer({
   await player.mutation(api.campaigns.assignments.assign, { campaignId, characterId })
 
   // Sheet commands go through Convex, so they come before the room holds the Character.
-  let streamVersion = (await player.query(api.characters.sheet.get, { id: characterId })).meta
-    .streamVersion
+  const sheet = await player.query(api.characters.sheet.get, { id: characterId })
+  assert.ok(sheet, 'The player Character sheet must be readable.')
+  let streamVersion = sheet.meta.streamVersion
   for (const command of [
     { type: 'SET_KNOWN_SPELLS' as const, classId, spellIds: [...spellSubjectIds] },
     { type: 'SET_PREPARED_SPELLS' as const, classId, spellIds: [...spellSubjectIds] },
@@ -196,6 +197,7 @@ export async function verifyEncounterPlayer({
     (actor) => actor.kind === 'CHARACTER' && actor.sourceId === characterId
   )
   if (!wolf || !hero) throw new Error('Player journey actors are absent from the Run.')
+  const wolfId = wolf.id
   if (run.currentActorId !== hero.id)
     run = encounterGmProjectionDtoSchema.parse(
       (
@@ -212,10 +214,37 @@ export async function verifyEncounterPlayer({
     )
 
   // The Wolf stands next to the Character, inside reach and inside Thunderwave's cube.
-  const placed = [
-    { id: hero.id, label: hero.label, x: 600, y: 300, controlledByUserIds: [playerUserId] },
-    { id: wolf.id, label: wolf.label, x: 650, y: 300, controlledByUserIds: [] }
-  ].map((creature) => ({ ...creature, tokenId: crypto.randomUUID() }))
+  const heroPlacement = {
+    id: hero.id,
+    label: hero.label,
+    x: 600,
+    y: 300,
+    controlledByUserIds: [playerUserId],
+    tokenId: crypto.randomUUID()
+  }
+  const wolfPlacement = {
+    id: wolf.id,
+    label: wolf.label,
+    x: 650,
+    y: 300,
+    controlledByUserIds: [],
+    tokenId: crypto.randomUUID()
+  }
+  const placed = [heroPlacement, wolfPlacement]
+  const sceneToken = (creature: typeof heroPlacement) => ({
+    id: creature.tokenId,
+    assetId: null,
+    controlledByUserIds: creature.controlledByUserIds,
+    height: 50,
+    hidden: false as const,
+    label: creature.label,
+    locked: false as const,
+    position: { x: creature.x, y: creature.y },
+    rotationDegrees: 0,
+    senses: [],
+    vision: null,
+    width: 50
+  })
   const { createEncounterLifecycleScene } = await import('./developmentEncounterScenes')
   const { bindScene, bindToken } = await import('./developmentEncounterLifecycle')
   const name = 'Player journey browser scene'
@@ -235,20 +264,7 @@ export async function verifyEncounterPlayer({
         diagonalPolicy: 'EQUAL',
         unit: 'FEET'
       },
-      tokens: placed.map((creature) => ({
-        id: creature.tokenId,
-        assetId: null,
-        controlledByUserIds: creature.controlledByUserIds,
-        height: 50,
-        hidden: false,
-        label: creature.label,
-        locked: false,
-        position: { x: creature.x, y: creature.y },
-        rotationDegrees: 0,
-        senses: [],
-        vision: null,
-        width: 50
-      }))
+      tokens: [sceneToken(heroPlacement), sceneToken(wolfPlacement)]
     }
   })
   const presentation = await owner.query(api.scenes.presentations.get, { campaignId })
@@ -364,8 +380,8 @@ export async function verifyEncounterPlayer({
       scene: { id: preparedScene.liveSceneId, name },
       sessionNumber: session.sessionNumber,
       map: { width: 1200, height: 600 },
-      hero: { label: hero.label, x: placed[0]!.x, y: placed[0]!.y },
-      wolf: { label: wolf.label, x: placed[1]!.x, y: placed[1]!.y }
+      hero: { label: hero.label, x: heroPlacement.x, y: heroPlacement.y },
+      wolf: { label: wolf.label, x: wolfPlacement.x, y: wolfPlacement.y }
     },
     async (controls) => {
       const start = await readRun()
@@ -445,21 +461,21 @@ export async function verifyEncounterPlayer({
       const { occurrence } = current
       const pending = occurrence.pending
       let resolution: Resolution
-      if (pending?.kind === 'D20_EVIDENCE' && pending.rollerActorId === wolf.id) {
+      if (pending?.kind === 'D20_EVIDENCE' && pending.rollerActorId === wolfId) {
         resolution = {
           kind: 'ENTER_DICE',
           requestId: pending.request.requestId,
           rawFaces: pending.request.rollMode === 'NORMAL' ? [d20] : [d20, d20],
           rollMode: pending.request.rollMode
         }
-      } else if (pending?.kind === 'ACTION_OUTCOME_EVIDENCE' && pending.rollerActorId === wolf.id) {
+      } else if (pending?.kind === 'ACTION_OUTCOME_EVIDENCE' && pending.rollerActorId === wolfId) {
         resolution = {
           kind: 'ENTER_INTEGER',
           requestId: pending.request.requestId,
           value: pending.request.min
         }
       } else if (pending?.kind === 'AREA_SAVES') {
-        const save = pending.saves.find((entry) => entry.actorId === wolf.id)
+        const save = pending.saves.find((entry) => entry.actorId === wolfId)
         if (!save) return current
         resolution = {
           kind: 'ENTER_DICE',
