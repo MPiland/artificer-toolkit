@@ -456,7 +456,8 @@ export type ValueDomainParam<V extends ValueDomainCode> = V extends keyof ValueD
 export type ValueDomainOptionPayloadByDomain = {
   /** A reaction's resistance may name the damage type that triggered it instead of a fixed one. */
   DAMAGE_RESISTANCE: { damageTypeId: string } | { damageTypeSource: 'TRIGGER' }
-  DAMAGE_IMMUNITY: { damageTypeId: string }
+  /** `sourceEffectIds` limits the immunity to damage from actions owned by that authored content. */
+  DAMAGE_IMMUNITY: { damageTypeId: string; sourceEffectIds?: string[] }
   DAMAGE_VULNERABILITY: { damageTypeId: string }
 
   // Your CONDITION domain is “applied conditions on character”.
