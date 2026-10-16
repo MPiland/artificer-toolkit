@@ -5899,7 +5899,7 @@
             {
               "id": "ATTACK-9.T5",
               "text": "Two-weapon fighting off-hand bonus attack and the Fighting Style.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["ATTACK-9.5"],
               "wsjf": {
                 "bv": 5,
@@ -5907,7 +5907,8 @@
                 "rr": 3,
                 "size": 3,
                 "after": ["ATTACK-9.T3"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-attack-9-t5.md"
             },
             {
               "id": "ATTACK-9.T6",
