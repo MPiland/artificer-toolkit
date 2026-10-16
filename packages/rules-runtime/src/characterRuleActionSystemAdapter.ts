@@ -120,6 +120,16 @@ export interface CharacterRuleActionActiveEffectPlan {
     /** Whether damage past the form's last hit point reduces the origin's (Polymorph) or is lost. */
     excessDamageCarriesOver: boolean
     forms: readonly { id: string; label: string; creatureId: string; maxTargets: number }[]
+    /**
+     * A rule-filtered choice beside the fixed forms: the cast names the Creature on the command and
+     * it must meet this (Polymorph: a beast no higher than the target's challenge rating).
+     */
+    filter: null | {
+      creatureTypeId: string | null
+      challengeRatingCapKind: 'TARGET' | 'FIXED'
+      maxChallengeRatingId: string | null
+      excludedSpeedIds: readonly string[]
+    }
   }
   /** Target-owned relationship state selected by the System from the exact action outcome. */
   actorRelationshipContribution?: null | {

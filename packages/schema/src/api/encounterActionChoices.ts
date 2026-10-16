@@ -108,7 +108,12 @@ export const encounterActionChoiceDtoSchema = lazySchema(() =>
               })
             )
             .check(z.minLength(1))
-        )
+        ),
+        /**
+         * The action lets the user name any Creature as the form (Polymorph); the Worker checks it
+         * against the action's filter at cast.
+         */
+        choosesCreatureForm: z.optional(z.literal(true))
       }),
       z.strictObject({
         kind: z.literal('POINT'),

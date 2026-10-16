@@ -48,6 +48,7 @@ import { useGmRollVisibilityPreference } from '#app/settings/useGmRollVisibility
 import { CampaignTabletopActionConfirmation } from './CampaignTabletopActionConfirmation'
 import { CampaignTabletopBasicActions } from './CampaignTabletopBasicActions'
 import { CampaignTabletopEscapes } from './CampaignTabletopEscapes'
+import { CampaignTabletopFormCreaturePicker } from './CampaignTabletopFormCreaturePicker'
 import { CampaignTabletopHeldGrantEnds } from './CampaignTabletopHeldGrantEnds'
 import { CampaignTabletopProjectileTargets } from './CampaignTabletopProjectileTargets'
 import { LiveSessionCommandRejectedError } from './liveSessionClient'
@@ -155,6 +156,7 @@ export function CampaignTabletopActionDrawer({
   const [pickedActionId, setPickedActionId] = useState<string | null | undefined>(undefined)
   const [pickedActorIds, setPickedActorIds] = useState<string[]>([])
   const [pickedFormId, setPickedFormId] = useState<string | null>(null)
+  const [pickedFormCreatureId, setPickedFormCreatureId] = useState<string | null>(null)
   const [pickedOptionalRuleId, setOptionalRuleId] = useState<string | null>(null)
   const [optionalChoices, setOptionalChoices] = useState<{
     requestIdentity: string
@@ -272,11 +274,16 @@ export function CampaignTabletopActionDrawer({
           : null
   const actorsPoint = actorsTarget?.area ? (areaAim?.origin ?? null) : null
   const target: ResolveEncounterActionInputDto['target'] | null = actorsTarget
-    ? pickedActorIds.length && (!actorsTarget.area || (areaSize && actorsPoint))
+    ? pickedActorIds.length &&
+      (!actorsTarget.area || (areaSize && actorsPoint)) &&
+      (!actorsTarget.choosesCreatureForm || pickedFormCreatureId)
       ? {
           kind: 'ACTORS',
           actorIds: pickedActorIds,
           ...(chosenForm ? { formId: chosenForm.id } : {}),
+          ...(actorsTarget.choosesCreatureForm && pickedFormCreatureId
+            ? { creatureId: pickedFormCreatureId }
+            : {}),
           scene: scene
             ? { sceneId: scene.id, expectedSceneVersion: scene.version, point: actorsPoint }
             : null
@@ -669,6 +676,14 @@ export function CampaignTabletopActionDrawer({
                     )?.maxTargets
                     if (cap !== undefined) setPickedActorIds((ids) => ids.slice(0, cap))
                   }}
+                />
+              ) : null}
+              {choiceActorsTarget?.choosesCreatureForm ? (
+                <CampaignTabletopFormCreaturePicker
+                  disabled={selectionControlsDisabled}
+                  systemId={encounter.gameSystemId}
+                  value={pickedFormCreatureId}
+                  onChange={setPickedFormCreatureId}
                 />
               ) : null}
               {actorsTarget?.allowRepeatedTargets ? (

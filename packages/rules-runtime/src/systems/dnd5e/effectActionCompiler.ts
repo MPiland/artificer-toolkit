@@ -584,7 +584,10 @@ function isActiveEffectPlanOutcome(entry: CompiledEffectGroup['entries'][number]
   return (
     entry.outcome.effectKind === 'ACTOR_RELATIONSHIP' ||
     (entry.outcome.effectKind === 'APPLY_GRANT' &&
-      (entry.pathCode === 'ON_HIT' || entry.pathCode === 'ON_CRIT'))
+      (entry.pathCode === 'ON_HIT' || entry.pathCode === 'ON_CRIT')) ||
+    (entry.outcome.effectKind === 'MANIFEST' &&
+      entry.outcome.manifestKind === 'CREATURE' &&
+      entry.pathCode === 'ON_SAVE_FAIL')
   )
 }
 
@@ -1764,7 +1767,9 @@ function actorLinkPlan(
 /**
  * A timed MANIFEST creature (Giant Insect): each creature the cast reached swaps into one of the
  * authored forms for the duration (D130). Which form is the caster's choice at cast time; the plan
- * carries every form and the Encounter effect records the chosen Creature.
+ * carries every form and the Encounter effect records the chosen Creature. Polymorph authors it on
+ * the failed-save path with a filter instead of fixed forms: the effect exists only for a creature
+ * that failed, and the caster names any Creature that meets the filter.
  */
 function creatureFormPlan(
   action: Dnd5eCompiledEffectActionSource
@@ -1776,17 +1781,28 @@ function creatureFormPlan(
   if (
     outcome.effectKind !== 'MANIFEST' ||
     outcome.manifestKind !== 'CREATURE' ||
-    !outcome.forms?.length ||
+    (!outcome.forms?.length && !outcome.formFilter) ||
     !entry.duration
   )
     return null
   const initialRemaining = conditionDurationTurns(entry.duration)
+  const forms = outcome.forms ?? []
+  const { formFilter } = outcome
+  const savePath = entry.pathCode === 'ON_SAVE_FAIL'
   if (
     initialRemaining === null ||
     Object.values(entry.lifecycle ?? {}).some((value) => value !== undefined) ||
     !UUID.test(entry.entryId) ||
     !UUID.test(outcome.id) ||
-    outcome.forms.some(({ id, creatureId }) => !UUID.test(id) || !UUID.test(creatureId))
+    forms.some(({ id, creatureId }) => !UUID.test(id) || !UUID.test(creatureId)) ||
+    (savePath && action.compiledEffect.invocation.triggerCode !== 'SAVING_THROW') ||
+    (formFilter !== undefined &&
+      ((formFilter.creatureTypeId !== undefined && !UUID.test(formFilter.creatureTypeId)) ||
+        (formFilter.challengeRatingCapKind === 'FIXED') !==
+          (formFilter.maxChallengeRatingId !== undefined) ||
+        (formFilter.maxChallengeRatingId !== undefined &&
+          !UUID.test(formFilter.maxChallengeRatingId)) ||
+        (formFilter.excludedSpeedIds ?? []).some((speedId) => !UUID.test(speedId))))
   )
     return null
   return {
@@ -1799,11 +1815,19 @@ function creatureFormPlan(
     creatureFormContribution: {
       formOutcomeId: outcome.id,
       excessDamageCarriesOver: outcome.excessDamageCarriesOver ?? false,
-      forms: [...outcome.forms]
+      forms: [...forms]
         .sort((a, b) => a.order - b.order)
-        .map(({ id, label, creatureId, maxTargets }) => ({ id, label, creatureId, maxTargets }))
+        .map(({ id, label, creatureId, maxTargets }) => ({ id, label, creatureId, maxTargets })),
+      filter: formFilter
+        ? {
+            creatureTypeId: formFilter.creatureTypeId ?? null,
+            challengeRatingCapKind: formFilter.challengeRatingCapKind,
+            maxChallengeRatingId: formFilter.maxChallengeRatingId ?? null,
+            excludedSpeedIds: [...new Set(formFilter.excludedSpeedIds ?? [])].sort()
+          }
+        : null
     },
-    adapterFacts: {},
+    adapterFacts: savePath ? { 'dnd5e.form-authored-path': 'ON_SAVE_FAIL' } : {},
     perceptionContributions: [],
     maintenance: maintenancePlan(action, entry)
   }
@@ -2686,6 +2710,19 @@ function testPlan(action: Dnd5eCompiledEffectActionSource): TestPlan | null {
   const executableEntries = entries.filter((entry) => !isActiveEffectPlanOutcome(entry))
   if (relationshipEntries.length > 1)
     unsupported('D&D action has more than one relationship outcome.')
+  // A failed save's creature form is left to its active-effect plan; one the plan cannot carry
+  // must not silently vanish.
+  if (
+    kind === 'SAVE' &&
+    entries.some(
+      (entry) =>
+        'outcome' in entry &&
+        entry.outcome.effectKind === 'MANIFEST' &&
+        entry.outcome.manifestKind === 'CREATURE'
+    ) &&
+    creatureFormPlan(action) === null
+  )
+    unsupported('D&D creature form after a saving throw must be one bounded timed form.')
   const branches = new Map<string, Outcome>()
   const branchResultBlocks = new Map<string, string>()
   const recurringPlan = supportedRecurringPlan(action)

@@ -1,7 +1,7 @@
 # SPELLS-28: outcome executors for TELEPORT, MANIFEST and TELEPATHIC_LINK
 
 Closes AC SPELLS-28.1 (tasks T1 TELEPORT, T2 MANIFEST, T3 TELEPATHIC_LINK). Status: rulings received; T1 (TELEPORT, off-Scene) on CI; T3 (TELEPATHIC_LINK) built, awaiting T1 green before push.
-Build order: **T1 → T3 (TELEPATHIC_LINK) → T2 (MANIFEST/CREATURE_FORM) → T1b (in-Scene teleport, AC SPELLS-28.2)**, each green before the next. T4 (Polymorph family) is out of scope.
+Build order: **T1 → T3 (TELEPATHIC_LINK) → T2 (MANIFEST/CREATURE_FORM) → T1b (in-Scene teleport, AC SPELLS-28.2)**, each green before the next. T4 (Polymorph family, below) follows T2; T4b (form outlasts the Run, D99 carry-over) follows T4.
 
 Workbook rules: [slice-workbook-rules.md](slice-workbook-rules.md).
 
@@ -74,3 +74,11 @@ Workbook rules: [slice-workbook-rules.md](slice-workbook-rules.md).
 - Warning: `encounterActionRuleWarnings.test.ts` (`TARGET_INTELLIGENCE_EXCLUDED`).
 - Journey: `apps/session-worker/test/nativeRoomActorLink.test.ts` (cast bonds every chosen creature, undo removes all; a dull creature warns, overridably).
 - Deferred (registered in `future-enhancements.md`): web bond badge, Character Intelligence.
+
+## T4 plan (D130 amendment, rulings Q1 A, Q2, Q3)
+
+Closes AC SPELLS-28.1. Two stages, each red on `ci/spells-28-t4-red` then green on `ci/spells-28-t4`.
+
+- **Stage 1, creature targets.** A rule-filtered form choice beside the fixed list (core option: creature type, CR cap from target CR/level, caster level or a fixed value, excluded speed modes), validated at cast against the System creature corpus; the command carries the chosen `creatureId`. Form-after-save compile plan (Polymorph, True Polymorph creature to creature). Corpus proof against the real compiler; one journey.
+- **Stage 2, Characters.** `form` on CHARACTER Run actors with the same shape and one revert path; form HP and temp HP live on the actor while the Sheet HP row is untouched; in-Encounter damage and healing route to the form; revert carry-over goes through the normal Sheet damage batch. Shapechange (creature form, self), Wild Shape re-authored as a core option (level-scaled duration and CR cap, no swim below druid level 4, no fly below 8), retained INT/WIS/CHA and save/skill proficiencies (higher bonus wins) as an authored form option, casting refused while in a form that cannot cast (Wild Shape, Polymorph; Concentration kept).
+- **Not in T4:** the form outliving the Run (T4b); known forms, object forms, True Polymorph permanence, Shapechange re-forming (`future-enhancements.md`).

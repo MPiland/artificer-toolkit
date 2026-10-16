@@ -243,10 +243,18 @@ function prepareRecurringActiveEffect(
   const linkMemberActorIds = linkContribution ? (input.link?.memberActorIds ?? []) : []
   if (linkContribution && linkMemberActorIds.length < 2) return null
   const formContribution = plan.creatureFormContribution ?? null
+  // A form after a saving throw (Polymorph) is entered only by a creature that failed it.
+  if (formContribution && plan.adapterFacts['dnd5e.form-authored-path'] === 'ON_SAVE_FAIL') {
+    if (input.d20?.resultPath !== 'ON_SAVE_FAIL') return null
+  }
   if (formContribution) {
     if (!input.form)
       throw new EncounterActionEffectPlanError('A form plan requires its chosen form.')
-    if (!formContribution.forms.some(({ creatureId }) => creatureId === input.form?.creatureId))
+    // A filtered choice is checked against the System creature corpus where the cast is read.
+    if (
+      formContribution.filter === null &&
+      !formContribution.forms.some(({ creatureId }) => creatureId === input.form?.creatureId)
+    )
       throw new EncounterActionEffectPlanError('The chosen form is not one the action authors.')
     // Only Creature and custom actors take a form (Characters wait for Polymorph), and an actor
     // already in a form keeps it: the new form does not stack on it.
