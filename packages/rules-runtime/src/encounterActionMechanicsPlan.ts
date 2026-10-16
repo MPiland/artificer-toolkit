@@ -46,6 +46,12 @@ export type NativeEncounterActionMechanicsInput = {
    * against the attack on its caster), applied first on the target's batch.
    */
   targetReleases?: readonly CharacterConditionRemoveOutcomeApplication[]
+  /**
+   * The conditions the target's effects that this action's damage ended held alone
+   * (`damageTakenEndedEffects`), applied to the target after the outcome in the same transaction as
+   * the effects' deletion.
+   */
+  damageReleases?: readonly CharacterConditionRemoveOutcomeApplication[]
   forceTargetVersionAdvance?: boolean
   eventPhases?: {
     resource: EncounterCharacterMechanicsEventPhase
@@ -151,7 +157,8 @@ function prepareNativeActionMechanicsBatches(
     applications: [
       ...(onTargetBatch ? sourceReleases : []),
       ...(input.targetReleases ?? []),
-      ...input.applications
+      ...input.applications,
+      ...(input.damageReleases ?? [])
     ],
     expectedCharacterStreamVersion: targetFacts.characterFacts?.active.play.streamVersion ?? null,
     effectiveMaximumHitPoints: targetFacts.effectiveMaximumHitPoints,

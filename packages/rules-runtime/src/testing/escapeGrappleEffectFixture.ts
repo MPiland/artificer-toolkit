@@ -67,6 +67,7 @@ export function escapeGrappleEffectDefinition(input: {
       recurrenceStage: 'NONE',
       consumeOnFirstEvents: [],
       endOnEvents: [],
+      endOnTriggers: [],
       endOnConditionIds: [],
       holderEnd: null,
       lifetimeScope: 'ENCOUNTER',

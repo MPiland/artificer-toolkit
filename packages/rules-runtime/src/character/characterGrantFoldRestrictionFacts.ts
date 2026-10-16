@@ -109,6 +109,12 @@ function normalizeCondition(
       return baseCondition(condition, 'SPEED_ABOVE_ZERO')
     case 'FREE_HAND':
       return baseCondition(condition, 'FREE_HAND')
+    case 'ATTACK_ACTION_OTHER_WEAPON':
+      return {
+        ...baseCondition(condition, 'ATTACK_ACTION_OTHER_WEAPON'),
+        requiredProperties:
+          condition.authoringModeKind === 'SELECTED' ? [...condition.properties] : []
+      }
     case 'EQUIPMENT_PROFICIENCY':
       return {
         ...baseCondition(condition, 'PROFICIENCY'),

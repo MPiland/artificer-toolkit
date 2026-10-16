@@ -249,6 +249,16 @@ describe('an attack change to the Attack action', () => {
     expect(reverted && encounterAttackActionState(reverted)).toBeNull()
   })
 
+  it('records the item an attack was made with and its property codes', () => {
+    const item = {
+      itemInstanceId: '00000000-0000-4000-8000-0000000b0020',
+      properties: ['LIGHT', 'MELEE']
+    }
+    const transition = encounterAttackActionTransition(planned, { ...attack(), item })
+    const applied = applyEncounterAttackActionTransition(actorWith({ attacks: 1 }), transition)
+    expect(encounterAttackActionState(applied)?.attacks[1]).toEqual({ ...attack(), item })
+  })
+
   it('refuses to apply to an Attack action other than the one it was planned on', () => {
     const transition = encounterAttackActionTransition(planned, attack())
     expect(() => applyEncounterAttackActionTransition(actorWith({}), transition)).toThrow(
