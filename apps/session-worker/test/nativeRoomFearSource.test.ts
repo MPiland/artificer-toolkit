@@ -14,7 +14,11 @@ import { actionRoom } from './actionRoomFixture.js'
 import { frightenedId } from './areaConditionFixture.js'
 import { vitalsOf } from './areaRoomReads.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
-import { readPendingActionDecision, readRoomHistory } from './roomHistoryReads.js'
+import {
+  parseReceiptExecution,
+  readPendingActionDecision,
+  readRoomHistory
+} from './roomHistoryReads.js'
 
 /**
  * SPELLS-29.T1 (AC 29.1): SRD Fear records its caster as the source of the Frightened it leaves.
@@ -45,9 +49,16 @@ const wolves = [FRIGHTENED_WOLF_ID, OTHER_WOLF_ID].map((id) =>
   srdCreatureActor({ id, creature: plainWolf })
 )
 
-/** A Character who knows Fear, unseen by everyone when `casterInvisible`, and two Wolves. */
-function fearRoom(casterInvisible = false) {
+/**
+ * A Character who knows Fear, unseen by everyone when `casterInvisible`, and two Wolves. With
+ * `rolls`, the GM's dice roll themselves: zero-based, so 0 is a natural 1.
+ */
+function fearRoom({
+  casterInvisible = false,
+  rolls
+}: { casterInvisible?: boolean; rolls?: readonly number[] } = {}) {
   return actionRoom({
+    ...(rolls && { autoRoll: 'GAME_MASTER' as const, rolls }),
     actors: [characterActor({ id: CASTER_ID, characterId: CHARACTER_ID }), ...wolves],
     positions: { [FRIGHTENED_WOLF_ID]: WOLF_START, [OTHER_WOLF_ID]: { x: 550, y: 150 } },
     characterSpellcasting: { spells: [fear], prepared: [fear.id] },
@@ -118,6 +129,22 @@ async function frightenedWolfBiteMode(room: FearRoom) {
   return decision.pending.request.rollMode
 }
 
+/**
+ * Ends the caster's turn, then the frightened Wolf's, and returns what Fear did at the end of the
+ * Wolf's turn as the ADVANCE_TURN receipt journals it.
+ */
+async function endFrightenedWolfTurn(room: FearRoom) {
+  await room.advanceTurn()
+  await room.advanceTurn()
+  const { receipts } = await readRoomHistory(room.room.base.stub)
+  const receipt = receipts.filter(({ commandType }) => commandType === 'ADVANCE_TURN').at(-1)
+  if (!receipt) throw new Error('The Wolf’s turn end journals a receipt.')
+  const result = parseReceiptExecution(receipt)
+  if (result.status !== 'TURN_LIFECYCLE_COMPLETE' || result.outgoingTurn.kind !== 'EXECUTED')
+    throw new Error(`Expected the Wolf’s END_OF_TURN effects, got ${JSON.stringify(result)}.`)
+  return result.outgoingTurn.executions
+}
+
 /** The frightened Wolf's token moves along `path` on the GM's socket, acknowledging `acknowledged`. */
 async function moveFrightenedWolf(
   room: FearRoom,
@@ -169,7 +196,7 @@ describe('room Fear follows its caster (SPELLS-29.T1)', () => {
   })
 
   it('lifts the disadvantage while the caster is out of the Wolf’s sight', async () => {
-    const room = await fearRoom(true)
+    const room = await fearRoom({ casterInvisible: true })
     await castFear(room)
     expect(await frightenedWolfBiteMode(room)).toBe('NORMAL')
   })
@@ -223,6 +250,48 @@ describe('room Fear follows its caster (SPELLS-29.T1)', () => {
     })
     const forced = await moveFrightenedWolf(room, [WOLF_START, { x: 350, y: 150 }], [], 'FORCED')
     expect(forced.type, JSON.stringify(forced)).toBe('COMMAND_COMMITTED')
+  })
+
+  it('makes no repeat save at the end of the Wolf’s turn while it sees the caster (SPELLS-29.T1a)', async () => {
+    const room = await fearRoom({ rolls: [0, 0] })
+    await castFear(room)
+    expect(room.room.diceDrawn()).toBe(2)
+    const { activeEffects } = await readRoomHistory(room.room.base.stub)
+    const fearOnWolf = activeEffects.find(({ targetActorId }) => targetActorId === FRIGHTENED_WOLF_ID)
+
+    expect(await endFrightenedWolfTurn(room)).toEqual([
+      expect.objectContaining({
+        activeEffectId: fearOnWolf?.id,
+        stage: 'END_OF_TURN',
+        d20: null,
+        lifecycle: expect.objectContaining({
+          kind: 'UPDATE',
+          beforeRemainingTicks: 10,
+          afterRemainingTicks: 9
+        })
+      })
+    ])
+    expect(room.room.diceDrawn()).toBe(2)
+    expect(await frightenedActorIds(room)).toEqual([FRIGHTENED_WOLF_ID, OTHER_WOLF_ID].sort())
+  })
+
+  it('lets the Wolf repeat the save out of the caster’s sight, and a success ends its Frightened (SPELLS-29.T1a)', async () => {
+    // Natural 1s fail both Wolves' saves; the repeat save rolls a natural 20.
+    const room = await fearRoom({ casterInvisible: true, rolls: [0, 0, 19] })
+    await castFear(room)
+    const { activeEffects } = await readRoomHistory(room.room.base.stub)
+    const fearOnWolf = activeEffects.find(({ targetActorId }) => targetActorId === FRIGHTENED_WOLF_ID)
+
+    expect(await endFrightenedWolfTurn(room)).toEqual([
+      expect.objectContaining({
+        activeEffectId: fearOnWolf?.id,
+        stage: 'END_OF_TURN',
+        d20: expect.objectContaining({ rawFaces: [20] }),
+        lifecycle: expect.objectContaining({ kind: 'EXPIRE', beforeRemainingTicks: 10 })
+      })
+    ])
+    expect(room.room.diceDrawn()).toBe(3)
+    expect(await frightenedActorIds(room)).toEqual([OTHER_WOLF_ID])
   })
 
   it('takes the source with the cast when the GM undoes Fear: the move no longer warns', async () => {

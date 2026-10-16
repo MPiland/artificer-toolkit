@@ -45,8 +45,6 @@ const SHIELD = spell('Shield')
 const SHIELD_OF_FAITH = spell('Shield of Faith')
 const INVISIBILITY = spell('Invisibility')
 const FEAR = spell('Fear')
-const CHARM_PERSON = spell('Charm Person')
-const DOMINATE_PERSON = spell('Dominate Person')
 const MEND = { ...fixedHealSpell(), id: '00000000-0000-4000-8000-00000000c0de', label: 'Mend' }
 
 /** The cast candidate of a spell at a level, the way the policy lists it. */
@@ -177,18 +175,26 @@ const SCORCHED_INVISIBILITY = (() => {
   ]
   return { ...authored, id: '00000000-0000-4000-8000-00000000c003', label: 'Scorched Invisibility' }
 })()
-const POISONED_ID = SRD_CONDITION_TYPES.find(({ code }) => code === 'POISONED')!.id
-/** A homebrew spell built from Fear's core options: Poisoned for 1 minute, recording its caster, no Concentration. */
-const DREAD_MIASMA: SpellAuthored = (() => {
-  const authored = structuredClone(FEAR)
+const conditionId = (code: string) => SRD_CONDITION_TYPES.find((entry) => entry.code === code)?.id
+/**
+ * A homebrew spell built from Hold Person's core options: Poisoned for 1 minute, re-saved only
+ * while the target can see its caster, no Concentration. Nothing in it is Fear-specific.
+ */
+const WATCHFUL_MIASMA: SpellAuthored = (() => {
+  const authored = structuredClone(HOLD_PERSON)
   const path = authored.effects?.[0]?.paths?.[0]
-  const outcome = path && 'resultBlock' in path ? path.resultBlock.outcomes?.[0] : undefined
-  if (outcome?.effectKind !== 'CONDITION') throw new Error('Fear fails into a condition.')
-  outcome.conditionId = POISONED_ID
+  const [condition, save] = path && 'resultBlock' in path ? (path.resultBlock.outcomes ?? []) : []
+  if (condition?.effectKind !== 'CONDITION' || save?.effectKind !== 'FOLLOW_UP_SAVE')
+    throw new Error('Hold Person fails into a condition and a repeat save.')
+  condition.conditionId = conditionId('POISONED')!
+  save.repeatAttemptGate = {
+    allow: 'WHEN_MET',
+    when: { kind: 'PERCEPTION', observer: 'TARGET', subject: 'SOURCE', requirement: 'SEE' }
+  }
   return {
     ...authored,
     id: '00000000-0000-4000-8000-00000000c004',
-    label: 'Dread Miasma',
+    label: 'Watchful Miasma',
     attributes: []
   }
 })()
@@ -207,9 +213,7 @@ const authoredById = new Map(
     SHIELD_OF_FAITH,
     INVISIBILITY,
     FEAR,
-    CHARM_PERSON,
-    DOMINATE_PERSON,
-    DREAD_MIASMA,
+    WATCHFUL_MIASMA,
     GAPPED_HEAL,
     LATE_HEAL
   ].map((entry) => [entry.id, entry])
@@ -659,56 +663,66 @@ describe('the timed condition a cast owns with no save', () => {
   })
 })
 
-describe('the timed condition a failed save leaves with no repeat save (SPELLS-29.T1a)', () => {
-  const conditionId = (code: string) => SRD_CONDITION_TYPES.find((entry) => entry.code === code)?.id
+describe('a repeat save attempted only by what the target perceives (SPELLS-29.T1a)', () => {
+  /** The d20 node of the frozen repeat-save graph, and the fact that enables it if it is gated. */
+  function repeatD20(authored: SpellAuthored) {
+    const plan = compiledCast(authored)?.activeEffectPlan
+    const node = plan?.frozenGraph.definition.nodes.find(({ id }) => id === 'repeat-save-d20')
+    return { plan, node }
+  }
 
   it.each([
     {
       authored: FEAR,
       condition: 'FRIGHTENED',
-      turns: 10,
       recordsSource: true,
-      concentration: true
+      concentration: true,
+      allow: 'WHEN_UNMET'
     },
     {
-      authored: DOMINATE_PERSON,
-      condition: 'CHARMED',
-      turns: 10,
-      recordsSource: false,
-      concentration: true
-    },
-    {
-      authored: CHARM_PERSON,
-      condition: 'CHARMED',
-      turns: 600,
-      recordsSource: false,
-      concentration: false
-    },
-    {
-      authored: DREAD_MIASMA,
+      authored: WATCHFUL_MIASMA,
       condition: 'POISONED',
-      turns: 10,
-      recordsSource: true,
-      concentration: false
+      recordsSource: false,
+      concentration: false,
+      allow: 'WHEN_MET'
     }
   ])(
-    'runs $authored.label as a save whose failure applies $condition, owned for $turns turns',
-    ({ authored, condition, turns, recordsSource, concentration }) => {
-      const compiled = compiledCast(authored)
-      const plan = compiled?.executionPlan
-      expect(plan?.kind).toBe('TEST_OUTCOME')
-      if (plan?.kind !== 'TEST_OUTCOME') return
-      expect(plan.outcomes.map((outcome) => outcome.pathCode)).toEqual(['ON_SAVE_FAIL'])
-      expect(compiled?.activeEffectPlan).toMatchObject({
+    'runs $authored.label as a turn-end repeat save on $condition, attempted $allow the target sees its caster',
+    ({ authored, condition, recordsSource, concentration, allow }) => {
+      const { plan, node } = repeatD20(authored)
+      expect(plan).toMatchObject({
+        frozenGraphNodeId: 'repeat-save-test',
         recurrenceStage: 'END_OF_TURN',
-        initialRemaining: turns,
-        conditionContribution: { conditionId: conditionId(condition), recordsSource }
+        initialRemaining: 10,
+        conditionContribution: { conditionId: conditionId(condition), recordsSource },
+        adapterFacts: expect.objectContaining({
+          'dnd5e.active-effect-repeat-save-attempt-gate': allow,
+          'dnd5e.active-effect-repeat-save-perception-requirement': 'SEE'
+        })
       })
-      expect(compiled?.activeEffectPlan?.maintenance?.definitionId ?? null).toBe(
+      expect(plan?.maintenance?.definitionId ?? null).toBe(
         concentration ? SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID : null
       )
+      // The die is asked for only while the perception gate allows the attempt.
+      expect(node).toMatchObject({
+        operation: { key: 'evidence.optional-integer-range', contractVersion: 1 },
+        inputs: {
+          min: { kind: 'LITERAL', value: 1 },
+          max: { kind: 'LITERAL', value: 20 },
+          enabled: { kind: 'FACT', factKey: 'dnd5e.repeat-save-attempt-allowed' }
+        }
+      })
     }
   )
+
+  it('keeps an ungated repeat save on its plain d20: Hold Person', () => {
+    const { plan, node } = repeatD20(HOLD_PERSON)
+    expect(plan?.frozenGraphNodeId).toBe('repeat-save-test')
+    expect(Object.keys(plan?.adapterFacts ?? {})).not.toContain(
+      'dnd5e.active-effect-repeat-save-attempt-gate'
+    )
+    expect(node?.operation).toEqual({ key: 'evidence.integer-range', contractVersion: 1 })
+  })
 })
 
 describe('the scaling heal a cast carries', () => {

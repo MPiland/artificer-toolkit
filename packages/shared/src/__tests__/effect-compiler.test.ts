@@ -35,7 +35,17 @@ function expectNoUndefined(value: unknown): void {
 }
 
 describe('effect compiler', () => {
-  it('preserves repeat roll influence in compiled follow-up saves', () => {
+  const seeSource = {
+    kind: 'PERCEPTION',
+    observer: 'TARGET',
+    subject: 'SOURCE',
+    requirement: 'SEE'
+  } as const
+  it.each([
+    { name: 'repeatRollInfluence', policy: { influence: 'DISADVANTAGE', when: seeSource } },
+    // SPELLS-29.T1a: Fear's repeat save is attempted only while the target can't see its source.
+    { name: 'repeatAttemptGate', policy: { allow: 'WHEN_UNMET', when: seeSource } }
+  ] as const)('preserves $name in compiled follow-up saves', ({ name, policy }) => {
     const result = compileEffectResult({
       id: 'repeat-roll-influence-effect',
       order: 1,
@@ -66,15 +76,7 @@ describe('effect compiler', () => {
                 id: 'repeat-roll-influence-follow-up',
                 effectKind: EFFECT_KIND.FOLLOW_UP_SAVE,
                 timing: 'TARGET_TURN_END',
-                repeatRollInfluence: {
-                  influence: 'DISADVANTAGE',
-                  when: {
-                    kind: 'PERCEPTION',
-                    observer: 'TARGET',
-                    subject: 'SOURCE',
-                    requirement: 'SEE'
-                  }
-                },
+                [name]: policy,
                 savingThrow: {
                   id: 'repeat-roll-influence-follow-up-save',
                   dcMethod: 'FIXED_DC',
@@ -97,10 +99,7 @@ describe('effect compiler', () => {
     if (!entry || !('outcome' in entry)) throw new Error('Expected compiled follow-up-save entry.')
     expect(entry.outcome).toMatchObject({
       effectKind: EFFECT_KIND.FOLLOW_UP_SAVE,
-      repeatRollInfluence: {
-        influence: 'DISADVANTAGE',
-        when: { kind: 'PERCEPTION', observer: 'TARGET', subject: 'SOURCE', requirement: 'SEE' }
-      }
+      [name]: policy
     })
   })
 
