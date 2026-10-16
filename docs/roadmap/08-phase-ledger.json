@@ -5163,7 +5163,7 @@
             {
               "id": "ATTACK-2.T2",
               "text": "Player parity journey (browser, player client): on their own Character a player casts an area spell, takes a death save, uses a non-movement reaction and targets from the map, with no GM step.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["ATTACK-2.5"],
               "wsjf": {
                 "bv": 8,
