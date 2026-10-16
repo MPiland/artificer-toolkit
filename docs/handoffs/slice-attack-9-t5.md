@@ -45,3 +45,4 @@ SRD: "...attack with a different light melee weapon that you're holding in the o
 - T5a green: Tests 38918177360 and Live backend 38918177250 on `ci/attack-9-t5` @bd973edd4 (merged with `ci/merge-batch-ai`).
 - T5b started (base 2e1b67be5). Red tests first: `twoWeaponFightingDamage.test.ts`.
 - T5b red: Tests 38923270291 on `ci/attack-9-t5b-red` @7f52b3fae failed on the new file (five damage assertions, plus two typing errors in the test's own authoring that the implementation commit fixes).
+- T5b green: Tests 38927082342 and Live backend 38927082404 on `ci/attack-9-t5` @864f57a1f (SRD manifest regenerated from the Live `generated-files` artifact). T5b DONE; T5c next.
