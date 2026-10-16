@@ -36,7 +36,9 @@ afterEach(() => {
 /** The breather at (150, 150) and Wolves in the three cells east of it, all inside a 15 ft cone. */
 async function breathRoom(
   creatureAuthored: typeof goldDragonWyrmling,
-  dice: { autoRoll?: 'GAME_MASTER'; rolls: readonly number[] } = { rolls: [1, 1, 1] }
+  dice: { autoRoll?: 'GAME_MASTER'; rolls: readonly number[]; fallbackRoll?: number } = {
+    rolls: [1, 1, 1]
+  }
 ) {
   const creature = installedSrdCreature(creatureAuthored)
   const feature = creature.features?.find(({ label }) => label.startsWith('Breath Weapons'))
@@ -177,15 +179,12 @@ describe('an unmodified SRD Gold Dragon Wyrmling leaves its grants with Weakenin
 
   // Zero-based dice: 0 is a natural 1 and 19 a natural 20. The Wolves' Strength saves are DC 13.
   describe("at the end of its holder's turn, the grant rolls its repeating Strength save", () => {
-    /**
-     * The breath, its three area saves auto-rolled (the first and third Wolves fail), then two turns end.
-     * The grant gives its holder disadvantage on Strength saves, repeat save included, so that save
-     * takes two dice: both are the scripted one.
-     */
+    /** The breath, its three area saves auto-rolled (the first and third Wolves fail), then two turns end; every later die is `turnSaveDie`. */
     async function breatheThenEndTwoTurns(turnSaveDie: number) {
       const room = await breathRoom(creature, {
         autoRoll: 'GAME_MASTER',
-        rolls: [0, 19, 0, turnSaveDie, turnSaveDie]
+        rolls: [0, 19, 0],
+        fallbackRoll: turnSaveDie
       })
       const started = await room.startDirectedAreaAction(EAST.origin, EAST.toward)
       expect(started.answer.type, JSON.stringify(started.answer)).toBe('COMMAND_COMMITTED')
