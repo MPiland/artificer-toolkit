@@ -5650,7 +5650,9 @@
               "id": "ATTACK-9.2",
               "text": "Sneak Attack adds its level-scaled dice once per turn to a hit with a finesse or ranged weapon when the attack has advantage or an enemy of the target is within 5 feet of it and the attacker has no disadvantage; critical hits double the dice. The feature is authored only from core authoring options (no CLOSED_RULE, no feature-specific kind or executor); an author-built equivalent made through the real authoring form publishes to the same structure and resolves identically.",
               "status": "TODO",
-              "proof": [],
+              "proof": [
+                "partial: T2a (CI 38838173590 at 56db035bd, merged 2026-10-15) merges PASSIVE ON_HIT riders, CLASS_LEVEL dice and the triggering weapon damage type: packages/rules-runtime/src/__tests__/characterOnHitRiders.test.ts, characterOnHitRiderMerge.test.ts; closes after T2b-T2d"
+              ],
               "origin": [],
               "note": "D58: extra-dice riders are CLOSED_RULE until this AC."
             },
@@ -5716,9 +5718,8 @@
                 "after": ["ATTACK-9.T1"]
               },
               "id": "ATTACK-9.T2a",
-              "status": "TODO",
-              "text": "Sneak Attack shapes (a)-(c) per D119: PASSIVE Feature ON_HIT damage merged into the weapon outcome, class-level dice through the shared row selector, triggering-weapon damage type; an unconditional Rogue rider proved end to end including a critical hit.",
-              "activeWorkbook": "docs/handoffs/slice-attack-9-t2.md"
+              "status": "DONE",
+              "text": "Sneak Attack shapes (a)-(c) per D119: PASSIVE Feature ON_HIT damage merged into the weapon outcome, class-level dice through the shared row selector, triggering-weapon damage type; an unconditional Rogue rider proved end to end including a critical hit."
             },
             {
               "closes": ["ATTACK-9.2"],
@@ -5731,7 +5732,8 @@
               },
               "id": "ATTACK-9.T2b",
               "status": "TODO",
-              "text": "D119 (d): net roll-mode facet predicate (ADVANTAGE, NOT_DISADVANTAGE) and any-of composition if missing."
+              "text": "D119 (d): net roll-mode facet predicate (ADVANTAGE, NOT_DISADVANTAGE) and any-of composition if missing.",
+              "activeWorkbook": "docs/handoffs/slice-attack-9-t2.md"
             },
             {
               "closes": ["ATTACK-9.2"],
