@@ -4,7 +4,8 @@ import {
   resolveEncounterActionInputDtoSchema,
   type ActionAreaSceneRequestDto,
   type AreaActionTargetDto,
-  type ResolveEncounterActionInputDto
+  type ResolveEncounterActionInputDto,
+  type ResolveEncounterActionTargetDto
 } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import type { LiveSessionEncounterRulesResponse } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import type { PendingEncounterRuleOccurrenceSummaryDto } from '@artificer-toolkit/schema/api/encounterData'
@@ -38,11 +39,12 @@ type AreaSceneContext = Extract<
   LiveSessionEncounterRulesResponse,
   { kind: 'ACTION_AREA_SCENE' }
 >['context']
+/** A command that reaches several creatures: a point area, or a list of chosen creatures. */
 type AreaCommand = Omit<
   Extract<ResolveEncounterActionInputDto, { type: 'RESOLVE_ACTION' }>,
   'target'
 > & {
-  target: AreaActionTargetDto
+  target: AreaActionTargetDto | Extract<ResolveEncounterActionTargetDto, { kind: 'ACTORS' }>
 }
 
 /** The area occurrence's own snapshot narrowed to its aggregate context. */
@@ -58,7 +60,7 @@ export function areaActionPendingContext(snapshot: ServerRuleExecutionPendingSna
  * A caster-centered command aims nothing; its origin is the caster's token, checked against the Scene.
  */
 export function areaMatchesTarget(
-  area: EncounterAreaActionPendingContextDto['area'],
+  area: NonNullable<EncounterAreaActionPendingContextDto['area']>,
   target: AreaActionTargetDto
 ) {
   if (target.kind === 'CASTER_CENTERED') return area.shape.kind === 'RADIUS'
@@ -136,7 +138,8 @@ export async function readNativeAreaActionPending(
 /**
  * Verifies a freshly planned area root before it is stored: the root belongs to the admitted
  * command, every save's sealed continuation shares it, and the Scene still catches exactly the
- * creatures it was sealed with.
+ * creatures it was sealed with. A list of chosen creatures seals exactly the creatures it names, each
+ * one standing where the Scene says, and inside the area if it names one.
  */
 export async function requireAreaActionPendingRoot(
   input: {
@@ -152,77 +155,104 @@ export async function requireAreaActionPendingRoot(
   ) => Promise<AreaSceneContext>
 ) {
   const { snapshot, command, state } = input
+  const { target } = command
   const context = areaActionPendingContext(snapshot)
+  // The Scene the command was aimed in, and the point it picked there, if any.
+  const aimed = target.kind === 'ACTORS' ? target.scene : target
+  const pointed =
+    target.kind === 'ACTORS'
+      ? target.scene?.point
+        ? ({ kind: 'POINT', ...target.scene, point: target.scene.point } as const)
+        : null
+      : target
   if (
     !context ||
     context.initiatorUserId !== input.initiatorUserId ||
     context.commandFingerprint !== input.fingerprint ||
     checksumCanonicalJson(JSON.parse(context.commandJson)) !== input.fingerprint ||
     context.casterActorId !== command.actorId ||
-    context.scene.sceneId !== command.target.sceneId ||
-    context.scene.sceneVersion !== command.target.expectedSceneVersion ||
-    !areaMatchesTarget(context.area, command.target) ||
+    context.scene?.sceneId !== aimed?.sceneId ||
+    context.scene?.sceneVersion !== aimed?.expectedSceneVersion ||
+    (pointed === null
+      ? context.area !== null
+      : context.area === null || !areaMatchesTarget(context.area, pointed)) ||
     snapshot.optionalCombatSnapshotChecksum !== state.optionalCombatSnapshotChecksum ||
     !state.actorIds.includes(context.casterActorId)
   )
     throw new Error('Live Session pending area action root mismatch.')
   const targets = areaTargets(context)
-  for (const target of targets)
+  for (const sealedTarget of targets)
     if (
-      !state.actorIds.includes(target.actorId) ||
-      target.context.commandJson !== context.commandJson ||
-      target.snapshot.graph.source.gameSystemId !== state.gameSystemId ||
-      target.snapshot.deferredCleaving !== undefined ||
-      target.context.contest !== undefined
+      !state.actorIds.includes(sealedTarget.actorId) ||
+      sealedTarget.context.commandJson !== context.commandJson ||
+      sealedTarget.snapshot.graph.source.gameSystemId !== state.gameSystemId ||
+      sealedTarget.snapshot.deferredCleaving !== undefined ||
+      sealedTarget.context.contest !== undefined
     )
       throw new Error('Live Session pending area action root mismatch.')
-  const scene = await readAreaSceneInputs(
-    state,
-    actionAreaSceneRequestDtoSchema.parse({
-      actorId: command.actorId,
-      sceneId: command.target.sceneId,
-      expectedSceneVersion: command.target.expectedSceneVersion
-    })
+  // A creature the GM removed is still reached by the command; it is simply no longer tested.
+  const sealed = [
+    ...targets.map((sealedTarget) => sealedTarget.actorId),
+    ...context.removedActorIds
+  ]
+  if (
+    target.kind === 'ACTORS' &&
+    (sealed.length !== target.actorIds.length ||
+      !target.actorIds.every((actorId) => sealed.includes(actorId)))
   )
-  const centered = command.target.kind === 'CASTER_CENTERED'
-  const casterToken = scene.tokens.find((token) => token.actorId === context.casterActorId)
+    throw new Error('Live Session pending area action root mismatch.')
+  const scene = aimed
+    ? await readAreaSceneInputs(
+        state,
+        actionAreaSceneRequestDtoSchema.parse({
+          actorId: command.actorId,
+          sceneId: aimed.sceneId,
+          expectedSceneVersion: aimed.expectedSceneVersion
+        })
+      )
+    : null
+  const centered = target.kind === 'CASTER_CENTERED'
+  const casterToken = scene?.tokens.find((token) => token.actorId === context.casterActorId)
   if (
     centered &&
-    (casterToken?.position.x !== context.area.origin.x ||
-      casterToken.position.y !== context.area.origin.y)
+    (casterToken?.position.x !== context.area?.origin.x ||
+      casterToken?.position.y !== context.area?.origin.y)
   )
     throw new Error('Live Session pending area action Scene mismatch.')
-  // A zone catches nobody: a creature in it is tested on entering.
-  const caught = context.placesZone
-    ? []
-    : catchEncounterAreaActorIds({
-        origin: context.area.origin,
-        shape: context.area.shape,
-        casterActorId: context.casterActorId,
-        tokens: scene.tokens.map((token) => ({ ...token, id: token.tokenId })),
-        fromCasterSpace: centered
-      })
-  // A creature the GM removed is still caught by the Scene; it is simply no longer tested.
-  const sealed = [...targets.map((target) => target.actorId), ...context.removedActorIds]
-  const footprintsMatch = targets.every((target) => {
-    const token = scene.tokens.find((candidate) => candidate.actorId === target.actorId)
-    return (
-      token !== undefined &&
-      checksumCanonicalJson({
-        tokenId: token.tokenId,
-        position: token.position,
-        width: token.width,
-        height: token.height,
-        rotationDegrees: token.rotationDegrees
-      }) === checksumCanonicalJson(target.token)
-    )
+  // A point area catches everyone in it (a zone catches nobody: a creature in it is tested on
+  // entering), where a list of chosen creatures only needs each of them inside it.
+  const caught = new Set(
+    scene && context.area && !context.placesZone
+      ? catchEncounterAreaActorIds({
+          origin: context.area.origin,
+          shape: context.area.shape,
+          casterActorId: context.casterActorId,
+          tokens: scene.tokens.map((token) => ({ ...token, id: token.tokenId })),
+          fromCasterSpace: centered
+        })
+      : []
+  )
+  const reachesCaught =
+    target.kind === 'ACTORS'
+      ? context.area === null || sealed.every((actorId) => caught.has(actorId))
+      : caught.size === sealed.length && sealed.every((actorId) => caught.has(actorId))
+  const footprintsMatch = targets.every((sealedTarget) => {
+    const token = scene?.tokens.find((candidate) => candidate.actorId === sealedTarget.actorId)
+    return token === undefined
+      ? sealedTarget.token === null
+      : checksumCanonicalJson({
+          tokenId: token.tokenId,
+          position: token.position,
+          width: token.width,
+          height: token.height,
+          rotationDegrees: token.rotationDegrees
+        }) === checksumCanonicalJson(sealedTarget.token)
   })
   if (
-    scene.sceneId !== context.scene.sceneId ||
-    scene.sceneVersion !== context.scene.sceneVersion ||
+    scene?.sceneId !== context.scene?.sceneId ||
+    scene?.sceneVersion !== context.scene?.sceneVersion ||
     !footprintsMatch ||
-    caught.length !== sealed.length ||
-    !caught.every((actorId) => sealed.includes(actorId)) ||
+    !reachesCaught ||
     encounterAreaCaughtChecksum({
       scene: context.scene,
       area: context.area,

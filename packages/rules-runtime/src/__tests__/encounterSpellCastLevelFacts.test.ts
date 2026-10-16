@@ -5,7 +5,6 @@ import { srdSpells } from '@artificer-toolkit/source-data/srd/spells/index.js'
 
 import { buildCompiledActionCompilerSource } from '../encounterActionEntryPointCompiler.js'
 import {
-  DND5E_CHARACTER_LEVEL_FACT_KEY,
   DND5E_SPELL_CAST_LEVEL_FACT_KEY,
   dnd5eCharacterRuleActionSystemAdapter as adapter
 } from '../systems/dnd5e/effectActionCompiler.js'
@@ -16,7 +15,7 @@ import {
 import { fixedHealSpell } from '../testing/fixedHealSpell.js'
 
 const FIREBALL = srdSpells.find((spell) => spell.label === 'Fireball')!
-const FIRE_BOLT = srdSpells.find((spell) => spell.label === 'Fire Bolt')!
+const ACID_SPLASH = srdSpells.find((spell) => spell.label === 'Acid Splash')!
 const MEND = fixedHealSpell()
 
 const spellAction = (spell: SpellAuthored) => {
@@ -33,7 +32,7 @@ function bind(spell: SpellAuthored, actionMechanic: Record<string, unknown>) {
   const { action, compilerSource } = spellAction(spell)
   // A spell with an attack or save is bound at its TEST phase; one without (a heal) as a single graph.
   const test =
-    spell === FIREBALL || spell === FIRE_BOLT
+    spell === FIREBALL || spell === ACID_SPLASH
       ? adapter.compileTestTemplate?.({ compilerSource })
       : null
   const published = test ? test.published : adapter.compile({ action })
@@ -60,15 +59,6 @@ describe('the spell cast level the action binds (M2)', () => {
     expect(bind(spell, { outcomes: [], spellCastLevel: 5 })[DND5E_SPELL_CAST_LEVEL_FACT_KEY]).toBe(
       5
     )
-  })
-
-  it('binds the Character level, the sum of its class levels, for a level-scaled cantrip', () => {
-    expect(bind(FIRE_BOLT, { outcomes: [], classLevels: { fighter: 3, wizard: 2 } })).toMatchObject(
-      {
-        [DND5E_CHARACTER_LEVEL_FACT_KEY]: 5
-      }
-    )
-    expect(bind(FIRE_BOLT, { outcomes: [] })).not.toHaveProperty(DND5E_CHARACTER_LEVEL_FACT_KEY)
   })
 
   it('binds no cast level for an action that is not a leveled cast', () => {
@@ -101,28 +91,30 @@ describe('scaling a spell by the cast level fact (M2)', () => {
   })
 })
 
-describe('scaling a cantrip by the Character level fact', () => {
-  const specialize = (facts: Record<string, number>) => {
-    const { compilerSource } = spellAction(FIRE_BOLT)
+describe('scaling a cantrip by the Character level the action binds', () => {
+  const FIGHTER_ID = '00000000-0000-4000-8000-0000000c0002'
+  const damageChecksum = (classLevels: Record<string, number>) => {
+    const { compilerSource } = spellAction(ACID_SPLASH)
     const testTemplate = adapter.compileTestTemplate?.({ compilerSource })
-    if (!testTemplate) throw new Error('Fire Bolt has no TEST template.')
+    if (!testTemplate) throw new Error('Acid Splash has no TEST template.')
     return adapter.specializeOutcomeTemplate?.({
       compilerSource,
       testTemplate,
-      selectedPath: 'ON_HIT',
-      facts
-    })
+      selectedPath: 'ON_SAVE_FAIL',
+      facts: bind(ACID_SPLASH, { outcomes: [], classLevels }),
+      testRollMode: 'NORMAL'
+    })?.published.checksum
   }
 
-  it('selects the damage row of the Character level', () => {
-    const [first, fifth, eleventh] = [1, 5, 11].map(
-      (characterLevel) =>
-        specialize({ [DND5E_CHARACTER_LEVEL_FACT_KEY]: characterLevel })?.published.checksum
-    )
-    expect(new Set([first, fifth, eleventh]).size).toBe(3)
+  it('reads the Character level as the sum of the class levels the action binds', () => {
+    const checksums = [1, 5, 11].map((level) => damageChecksum({ [FIGHTER_ID]: level }))
+    expect(checksums.every((checksum) => typeof checksum === 'string')).toBe(true)
+    expect(new Set(checksums).size).toBe(3)
   })
 
-  it('refuses a Character level it was not given', () => {
-    expect(() => specialize({})).toThrow('D&D dice scaling facts are unavailable.')
+  it('reads the same level from a Character of several classes as from one class', () => {
+    expect(damageChecksum({ [FIGHTER_ID]: 3, '00000000-0000-4000-8000-0000000c0003': 2 })).toBe(
+      damageChecksum({ [FIGHTER_ID]: 5 })
+    )
   })
 })

@@ -99,6 +99,7 @@ export function evaluateDnd5e2014CharacterActions(
   const spellReferenceMechanics = parsedInput.spellEffects.map((spell, sequence) => ({
     sequence,
     spellId: spell.spellId,
+    readsCastLevel: spell.readsCastLevel,
     mechanics: spell.effects.map((effect) =>
       resolveDnd5eActionMechanic(parsedInput, effect, {
         spellcasting: parsedInput.spellcasting,

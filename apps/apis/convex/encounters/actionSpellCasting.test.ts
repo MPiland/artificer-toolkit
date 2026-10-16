@@ -46,6 +46,7 @@ import {
   SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID
 } from '@artificer-toolkit/source-data/srd/concentration.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import { counterspell } from '@artificer-toolkit/source-data/srd/spells/counterspell.js'
 import { cureWounds } from '@artificer-toolkit/source-data/srd/spells/cure-wounds.js'
 import { fireball } from '@artificer-toolkit/source-data/srd/spells/fireball.js'
 import { fireBolt } from '@artificer-toolkit/source-data/srd/spells/fire-bolt.js'
@@ -681,6 +682,26 @@ describe('Character spell casting in an Encounter', () => {
       ['Cure Wounds (1st level)', 'Cure Wounds (2nd level)', 'Fire Bolt', 'Mend (1st level)'].sort()
     )
     expect(new Set(choices.map(({ id }) => id)).size).toBe(choices.length)
+  }, 60000)
+
+  it('offers a spell that does not read its cast level at its own level only, beside one that does at each owned higher level', async () => {
+    const mend = healSpell('Mend', (spell) => fixHeal(spell, 1))
+    // Counterspell compares its slot with the cast spell's level, so it is cast with any slot of 3rd level or more.
+    const counter = srdSpell(counterspell)
+    const fixture = await setup({
+      known: [mend, counter],
+      prepared: [mend, counter],
+      slots: [
+        { spellLevel: 1, slotCount: 1 },
+        { spellLevel: 3, slotCount: 1 },
+        { spellLevel: 4, slotCount: 1 }
+      ]
+    })
+    expect((await spellChoices(fixture, 0)).map(({ label }) => label).sort()).toEqual([
+      'Counterspell (3rd level)',
+      'Counterspell (4th level)',
+      'Mend (1st level)'
+    ])
   }, 60000)
 
   it('spends the slot with the outcome in one Character version and GM undo restores both', async () => {

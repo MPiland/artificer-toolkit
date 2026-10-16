@@ -65,6 +65,7 @@ import {
 } from '../../characterRuleActionSystemAdapter.js'
 import {
   chosenCreaturesAreaSupported,
+  chosenCreaturesCapIsAuthored,
   chosenCreaturesMaxTargets,
   resolveChosenCreaturesTargeting,
   encounterAreaTargetKind
@@ -185,7 +186,6 @@ const DND5E_RESOLVED_DAMAGE_OUTCOME_EXPRESSIONS_FACT_KEY =
   'dnd5e.resolved-damage-outcome-expressions'
 const DND5E_RESOLVED_HEAL_MODIFIER_FACT_KEY = 'dnd5e.resolved-heal-modifier'
 /** The level a spell is cast at, which selects its authored per-level scaling. */
-export const DND5E_CHARACTER_LEVEL_FACT_KEY = 'dnd5e.character-level'
 export const DND5E_SPELL_CAST_LEVEL_FACT_KEY = 'dnd5e.spell-cast-level'
 /**
  * The optional on-hit riders the player chose for this attack (a JSON array of sorted rider effect
@@ -319,11 +319,14 @@ function dndScalingFactsFromRuleValues(
 ): Dnd5eEffectScalingFacts {
   const positiveInteger = (value: RuleValue | undefined): number | undefined =>
     typeof value === 'number' && Number.isSafeInteger(value) && value > 0 ? value : undefined
+  const classLevels = parseClassLevels(facts[DND5E_CLASS_LEVELS_FACT_KEY])
+  const totalLevel = Object.values(classLevels).reduce((sum, level) => sum + level, 0)
   return {
-    characterLevel: positiveInteger(facts[DND5E_CHARACTER_LEVEL_FACT_KEY]),
+    // A Character's level is the sum of its class levels; a Creature has none.
+    characterLevel: totalLevel > 0 ? totalLevel : undefined,
     parentClassLevel: positiveInteger(facts.parentClassLevel),
     spellCastLevel: positiveInteger(facts[DND5E_SPELL_CAST_LEVEL_FACT_KEY]),
-    classLevels: parseClassLevels(facts[DND5E_CLASS_LEVELS_FACT_KEY]),
+    classLevels,
     selectedOptionalRiderIds: parseSelectedOptionalRiderIds(
       facts[DND5E_SELECTED_OPTIONAL_RIDERS_FACT_KEY]
     ),
@@ -609,15 +612,26 @@ function isSupportedTestTargetPolicy(
   invocation: Dnd5eCompiledEffectActionSource['compiledEffect']['invocation']
 ): boolean {
   if (invocation.kind !== 'ACTION') return false
-  if (invocation.targeting?.selectionKind === 'AREA_CONTENTS')
-    return isSupportedTestArea(invocation)
-  if (invocation.shape) return false
-  if (
-    invocation.targeting?.selectionKind !== 'SINGLE_TARGET' ||
-    invocation.targeting.dispositionKind !== 'ANY'
-  ) {
+  const { targeting } = invocation
+  if (targeting?.selectionKind === 'AREA_CONTENTS') return isSupportedTestArea(invocation)
+  // A bounded list of chosen creatures (Acid Splash) runs the same per-creature save on each, once
+  // per creature: a creature named again would save twice, so a repeating list is refused.
+  if (targeting?.selectionKind === 'CHOSEN_CREATURES') {
+    if (
+      targeting.dispositionKind !== 'ANY' ||
+      targeting.allowRepeatedTargets === true ||
+      invocation.triggerCode !== 'SAVING_THROW' ||
+      !chosenCreaturesCapIsAuthored(targeting) ||
+      (invocation.shape !== undefined &&
+        !chosenCreaturesAreaSupported(invocation.range.rangeKind, invocation.shape.shapeKind))
+    )
+      return false
+  } else if (
+    invocation.shape ||
+    targeting?.selectionKind !== 'SINGLE_TARGET' ||
+    targeting.dispositionKind !== 'ANY'
+  )
     return false
-  }
   const attackKind = dnd5eAttackKind(invocation.triggerCode)
   // Only a ranged weapon attack has a long range ("range 80/320 ft.").
   if (
@@ -3519,7 +3533,6 @@ export const dnd5eEffectActionCapability: GameSystemRuleCapabilityContract = {
       key: DND5E_SPELL_CAST_LEVEL_FACT_KEY,
       valueKind: RULE_VALUE_KIND.NUMBER
     },
-    { key: DND5E_CHARACTER_LEVEL_FACT_KEY, valueKind: RULE_VALUE_KIND.NUMBER },
     { key: DND5E_CLASS_LEVELS_FACT_KEY, valueKind: RULE_VALUE_KIND.TEXT },
     { key: DND5E_SELECTED_OPTIONAL_RIDERS_FACT_KEY, valueKind: RULE_VALUE_KIND.TEXT },
     { key: DND5E_TARGET_CREATURE_TYPE_FACT_KEY, valueKind: RULE_VALUE_KIND.TEXT },
@@ -7139,8 +7152,6 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       }
     }
     const { spellCastLevel, classLevels, selectedOptionalRiderIds } = actionMechanic
-    // A Character's level is the sum of its class levels; a level-scaled cantrip selects its row by it.
-    const characterLevel = Object.values(classLevels ?? {}).reduce((sum, level) => sum + level, 0)
     const baseFacts = {
       [DND5E_TARGET_ACTOR_FACT_KEY]: targetActorId,
       [DND5E_TARGET_STATE_CHECKSUM_FACT_KEY]: checksumRuleDocument({
@@ -7168,7 +7179,6 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       ...(spellCastLevel === undefined
         ? {}
         : { [DND5E_SPELL_CAST_LEVEL_FACT_KEY]: spellCastLevel }),
-      ...(characterLevel > 0 ? { [DND5E_CHARACTER_LEVEL_FACT_KEY]: characterLevel } : {}),
       ...(selectedOptionalRiderIds === undefined || selectedOptionalRiderIds.length === 0
         ? {}
         : {
