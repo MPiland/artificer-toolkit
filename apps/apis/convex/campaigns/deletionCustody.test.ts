@@ -663,9 +663,13 @@ describe('native Campaign custody deletion', () => {
         backgroundId: character.backgroundId,
         fenceTimeMs: nativeTimeMs
       })
-      // Removed shares mark the Campaign's content snapshot; builds need R2 and have their own tests.
+      // Removed shares mark the Campaign's content snapshot; the build commits its head and uploads
+      // its objects against the local R2 fixture, and has its own tests.
       for (const name of tableNames.filter(
-        (name) => name !== 'campaignDeletionJobs' && name !== 'contentSnapshotHeads'
+        (name) =>
+          name !== 'campaignDeletionJobs' &&
+          name !== 'contentSnapshotHeads' &&
+          name !== 'contentSnapshotObjects'
       ))
         expect(after.tables[name], name).toEqual(expected[name])
       // Archive always schedules the room close; its run state is the only scheduler change.
