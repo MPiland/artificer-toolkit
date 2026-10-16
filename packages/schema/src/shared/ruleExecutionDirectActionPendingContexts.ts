@@ -1,7 +1,10 @@
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules/checksum'
 import { RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules/contracts'
 import { z, lazySchema } from '../zod.js'
-import { activeRuleEffectRecordSchema } from '../projections/activeRuleEffectPersistence.js'
+import {
+  type ActiveRuleEffectRecord,
+  activeRuleEffectRecordSchema
+} from '../projections/activeRuleEffectPersistence.js'
 import { MAX_ACTIVE_RULE_EFFECTS_PER_OWNER } from './activeRuleEffects.js'
 import {
   MAX_CONCENTRATION_DAMAGE_APPLICATIONS,
@@ -12,7 +15,7 @@ import {
   concentrationMaintainedDamageApplicationDtoSchema
 } from './ruleExecutionConcentration.js'
 
-import { authoredIdentifierSchema } from './authoredLimits.js'
+import { MAX_ENCOUNTER_ACTORS, authoredIdentifierSchema } from './authoredLimits.js'
 import { rangeDtoSchema } from './range.js'
 import {
   canonicalConcentrationContributorsDtoSchema,
@@ -566,6 +569,103 @@ export const encounterEscapeCheckPendingContextDtoSchema = lazySchema(() =>
       contributorChecksum: checksumSchema,
       modifier: integerSchema
     }),
+    /** The one-roll grants this check used up (a Help); their rows are gone, so the pending read names them from these. */
+    consumedGrants: z
+      .array(activeRuleEffectRecordSchema)
+      .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER))
+  })
+)
+
+// Explicitly typed so the settlement that embeds it stays within the compiler's size limit (TS7056).
+export type EncounterConcealmentCheckPendingContextDto = {
+  kind: 'ENCOUNTER_CONCEALMENT_CHECK'
+  schemaVersion: 1
+  commandId: z.infer<typeof uuidSchema>
+  commandFingerprint: z.infer<typeof checksumSchema>
+  definition: {
+    id: z.infer<typeof uuidSchema>
+    version: z.infer<typeof positiveIntegerSchema>
+    checksum: z.infer<typeof checksumSchema>
+  }
+  actionLabel: z.infer<typeof identifierSchema>
+  actionId: string
+  actorId: z.infer<typeof uuidSchema>
+  check: { checkDefinitionId: z.infer<typeof uuidSchema>; label: z.infer<typeof identifierSchema> }
+  d20: {
+    rollMode: 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE'
+    contributors: z.infer<typeof canonicalConcentrationContributorsDtoSchema>
+    contributorChecksum: z.infer<typeof checksumSchema>
+    modifier: z.infer<typeof integerSchema>
+  }
+  resolution:
+    | {
+        kind: 'CONCEAL'
+        observers: {
+          actorId: z.infer<typeof uuidSchema>
+          passiveScore: z.infer<typeof integerSchema>
+        }[]
+      }
+    | {
+        kind: 'DETECT'
+        concealments: {
+          effectId: z.infer<typeof uuidSchema>
+          holderActorId: z.infer<typeof uuidSchema>
+          concealmentTotal: z.infer<typeof integerSchema>
+        }[]
+      }
+  consumedGrants: ActiveRuleEffectRecord[]
+}
+
+/**
+ * A concealment check's pending d20 (Hide, Search). The Action is already spent. The roller's total
+ * is compared with per-observer scores the roller never sees, so the context carries no DC: it
+ * freezes the observers and their passive scores (Hide) or the concealments in reach (Search).
+ */
+export const encounterConcealmentCheckPendingContextDtoSchema = lazySchema(() =>
+  z.strictObject({
+    kind: z.literal('ENCOUNTER_CONCEALMENT_CHECK'),
+    schemaVersion: z.literal(1),
+    commandId: uuidSchema,
+    commandFingerprint: checksumSchema,
+    definition: z.strictObject({
+      id: uuidSchema,
+      version: positiveIntegerSchema,
+      checksum: checksumSchema
+    }),
+    actionLabel: identifierSchema,
+    /** The basic action id, so the settling roll re-reads the action's effect plan. */
+    actionId: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(240)),
+    actorId: uuidSchema,
+    check: z.strictObject({
+      checkDefinitionId: uuidSchema,
+      label: identifierSchema
+    }),
+    d20: z.strictObject({
+      rollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
+      contributors: canonicalConcentrationContributorsDtoSchema,
+      contributorChecksum: checksumSchema,
+      modifier: integerSchema
+    }),
+    resolution: z.discriminatedUnion('kind', [
+      z.strictObject({
+        kind: z.literal('CONCEAL'),
+        observers: z
+          .array(z.strictObject({ actorId: uuidSchema, passiveScore: integerSchema }))
+          .check(z.maxLength(MAX_ENCOUNTER_ACTORS))
+      }),
+      z.strictObject({
+        kind: z.literal('DETECT'),
+        concealments: z
+          .array(
+            z.strictObject({
+              effectId: uuidSchema,
+              holderActorId: uuidSchema,
+              concealmentTotal: integerSchema
+            })
+          )
+          .check(z.maxLength(MAX_ENCOUNTER_ACTORS))
+      })
+    ]),
     /** The one-roll grants this check used up (a Help); their rows are gone, so the pending read names them from these. */
     consumedGrants: z
       .array(activeRuleEffectRecordSchema)

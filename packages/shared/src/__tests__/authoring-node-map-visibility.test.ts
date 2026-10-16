@@ -204,6 +204,17 @@ describe('authoring node map visibility', () => {
     expectNumberMinimum(dcNode('value'), 1)
     expect(isVisible(dcNode('checks'), { kind: 'CONTEST' })).toBe(true)
     expect(isVisible(dcNode('checks'), { kind: 'FIXED' })).toBe(false)
+
+    // An escape rolls against a fixed or contested DC alone; it has no observer or concealment total.
+    const dcKindNode = dcNode('kind')
+    if (dcKindNode.kind !== 'INPUT' || dcKindNode.source?.kind !== 'INLINE_OPTIONS') {
+      throw new Error('Expected the escape DC kind to be an inline select')
+    }
+    expect(dcKindNode.source.options?.map((option) => option.code)).toEqual(['FIXED', 'CONTEST'])
+    const escapeDcNode = moduleNode('dc')
+    const escapeDcMap =
+      typeof escapeDcNode.nodes === 'function' ? escapeDcNode.nodes() : escapeDcNode.nodes
+    expect(Object.keys(escapeDcMap?.nodes ?? {})).toEqual(['kind', 'value', 'checks'])
   })
 
   it('mirrors nonnegative bonus controls without constraining penalties', () => {

@@ -59,8 +59,9 @@ export async function endGrantsOnHitPointsRegained(
 }
 
 /**
- * What an action's undo gives back: the grants its rolls used up and the grants an incapacitation
- * it caused ended (D113). Every commit that roots an action builds its receipt through this.
+ * What an action's undo gives back: the grants its rolls used up and the effects it ended, such as
+ * the grants an incapacitation it caused ended (D113) or the concealments a Hide replaced and a
+ * Search emptied. Every commit that roots an action builds its receipt through this.
  */
 export function receiptConsumedGrants(input: {
   consumedGrants?: readonly ActiveRuleEffectRecord[]
@@ -105,7 +106,7 @@ export async function addEndedGrantsToRoot(
 
 /** Gives back the exact records an undone roll had used up: same ordinal, version and timestamps. */
 export async function restoreConsumedGrants(
-  ctx: EncounterPersistenceTransaction,
+  ctx: EncounterWriteContext,
   grants: readonly ActiveRuleEffectRecord[]
 ) {
   const store = createActiveRuleEffectStore(ctx)

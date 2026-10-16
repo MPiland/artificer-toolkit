@@ -2,6 +2,7 @@ import type { ServerRuleExecutionApplicationOutputsDto } from '@artificer-toolki
 import { basicActionCheckApplicationOutputDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
 import {
   encounterBasicActionCheckPendingContextDtoSchema,
+  type EncounterConcealmentCheckPendingContextDto,
   type encounterEscapeCheckPendingContextDtoSchema
 } from '@artificer-toolkit/schema/shared/ruleExecutionDirectActionPendingContexts'
 import type { characterMechanicsTargetStateDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
@@ -182,7 +183,10 @@ export async function startEncounterBasicActionCheck(input: {
 /** The pending snapshot a prompted check waits on. */
 export function encounterBasicActionCheckPendingSnapshot(input: {
   continuation: ServerRuleExecutionContinuationDto
-  context: EncounterBasicActionCheckPendingContextDto | EncounterEscapeCheckPendingContextDto
+  context:
+    | EncounterBasicActionCheckPendingContextDto
+    | EncounterEscapeCheckPendingContextDto
+    | EncounterConcealmentCheckPendingContextDto
   optionalCombatSnapshotChecksum: string | null
 }): ServerKernelRuleExecutionPendingSnapshotDto {
   return serverKernelRuleExecutionPendingSnapshotDtoSchema.parse({
@@ -193,10 +197,10 @@ export function encounterBasicActionCheckPendingSnapshot(input: {
   })
 }
 
-/** Rolls the frozen check against its DC: the natural d20 plus the helper's modifier. */
-export async function evaluateEncounterBasicActionCheck(input: {
+/** Rolls a frozen check's one d20: the natural die plus the roller's modifier, against no DC yet. */
+export async function rollEncounterCheck(input: {
   runtime: RulesRuntimeService
-  context: EncounterD20CheckContext
+  context: Pick<EncounterD20CheckContext, 'd20'>
   continuation: ServerRuleExecutionContinuationDto
   answer: EncounterEvidenceAnswer
   rollD20: () => number
@@ -220,7 +224,6 @@ export async function evaluateEncounterBasicActionCheck(input: {
   })
   if (execution.status !== 'COMPLETE' || execution.outputs.rawDie !== resolved.natural)
     throw new EncounterValidationError('The basic action check requested more than one die.')
-  const total = resolved.natural + context.d20.modifier
   return {
     execution,
     d20: {
@@ -230,12 +233,22 @@ export async function evaluateEncounterBasicActionCheck(input: {
       rawFaces: resolved.faces,
       selectedNatural: resolved.natural,
       modifier: context.d20.modifier,
-      total,
-      dc: context.check.dc,
+      total: resolved.natural + context.d20.modifier,
       contributors: context.d20.contributors,
       contributorChecksum: context.d20.contributorChecksum
-    },
-    reachesDc: total >= context.check.dc
+    }
+  }
+}
+
+/** Rolls the frozen check against its DC: the natural d20 plus the helper's modifier. */
+export async function evaluateEncounterBasicActionCheck(
+  input: Parameters<typeof rollEncounterCheck>[0] & { context: EncounterD20CheckContext }
+) {
+  const { execution, d20 } = await rollEncounterCheck(input)
+  return {
+    execution,
+    d20: { ...d20, dc: input.context.check.dc },
+    reachesDc: d20.total >= input.context.check.dc
   }
 }
 
@@ -290,7 +303,7 @@ export function completeEncounterBasicActionCheckResult(input: {
 
 /** The stored COMPLETE result of a settled single-d20 check, around its application outputs. */
 export function storedCheckResult(input: {
-  evaluated: Awaited<ReturnType<typeof evaluateEncounterBasicActionCheck>>
+  evaluated: Pick<Awaited<ReturnType<typeof rollEncounterCheck>>, 'execution'>
   continuation: ServerRuleExecutionContinuationDto
   occurrenceVersion: number
   initialFactsChecksum: string

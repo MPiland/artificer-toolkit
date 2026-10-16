@@ -45,6 +45,8 @@ export async function publishRoomSceneUndo(input: {
   userId: string
   scene: CampaignSceneStateDto
   request: SceneUndoExecuteInput
+  /** Runs once for the move this undo reverses, in the same transaction; never on a replay. */
+  onUndone?(undoneCommandId: string): Promise<void>
 }) {
   const { transaction, scene, userId } = input
   const request = sceneUndoExecuteInputSchema.parse({
@@ -178,6 +180,7 @@ export async function publishRoomSceneUndo(input: {
     { header, live, userId, input: request, targetCommandId },
     callbacks
   )
+  await input.onUndone?.(targetCommandId)
   const restoredOwners = new Set(restoredFogOwners)
   const fogLayers = scene.fogLayers.filter((layer) => !restoredOwners.has(layer.ownerUserId))
   for (const owner of restoredFogOwners) {

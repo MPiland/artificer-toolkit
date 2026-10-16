@@ -589,29 +589,6 @@ export const SRD_MAGIC_SCHOOLS = [
   }
 ]
 
-// ─── Passives ─────────────────────────────────────────────────────────────────
-
-const SRD_PASSIVES = [
-  {
-    id: vocabId(D.passive, 1),
-    code: 'PASSIVE_PERCEPTION',
-    label: 'Passive Perception',
-    description: '10 + Perception modifier.'
-  },
-  {
-    id: vocabId(D.passive, 2),
-    code: 'PASSIVE_INVESTIGATION',
-    label: 'Passive Investigation',
-    description: '10 + Investigation modifier.'
-  },
-  {
-    id: vocabId(D.passive, 3),
-    code: 'PASSIVE_INSIGHT',
-    label: 'Passive Insight',
-    description: '10 + Insight modifier.'
-  }
-]
-
 // ─── Rarities ─────────────────────────────────────────────────────────────────
 
 const SRD_RARITIES = [
@@ -667,7 +644,11 @@ export const SRD_TRUESIGHT_SENSE_ID = SRD_SENSES[3]!.id
 
 export const SRD_ACROBATICS_SKILL_ID = vocabId(D.skill, 1)
 export const SRD_ATHLETICS_SKILL_ID = vocabId(D.skill, 4)
+const SRD_INSIGHT_SKILL_ID = vocabId(D.skill, 7)
+const SRD_INVESTIGATION_SKILL_ID = vocabId(D.skill, 9)
 export const SRD_MEDICINE_SKILL_ID = vocabId(D.skill, 10)
+export const SRD_PERCEPTION_SKILL_ID = vocabId(D.skill, 12)
+export const SRD_STEALTH_SKILL_ID = vocabId(D.skill, 17)
 
 export const SRD_SKILLS = [
   {
@@ -719,7 +700,7 @@ export const SRD_SKILLS = [
       'Your Intelligence (History) check measures your ability to recall lore about historical events, legendary people, ancient kingdoms, past disputes, recent wars, and lost civilizations.'
   },
   {
-    id: vocabId(D.skill, 7),
+    id: SRD_INSIGHT_SKILL_ID,
     code: 'INSIGHT',
     label: 'Insight',
     governingAbilityDefinitionId: SRD_ABILITY_DEFINITION_IDS.WISDOM,
@@ -735,7 +716,7 @@ export const SRD_SKILLS = [
       'When you attempt to influence someone through overt threats, hostile actions, and physical violence, the GM might ask you to make a Charisma (Intimidation) check.'
   },
   {
-    id: vocabId(D.skill, 9),
+    id: SRD_INVESTIGATION_SKILL_ID,
     code: 'INVESTIGATION',
     label: 'Investigation',
     governingAbilityDefinitionId: SRD_ABILITY_DEFINITION_IDS.INTELLIGENCE,
@@ -813,6 +794,34 @@ export const SRD_SKILLS = [
     governingAbilityDefinitionId: SRD_ABILITY_DEFINITION_IDS.WISDOM,
     description:
       'The GM might ask you to make a Wisdom (Survival) check to follow tracks, hunt wild game, guide your group through frozen wastelands, identify signs that owlbears live nearby, predict the weather, or avoid quicksand and other natural hazards.'
+  }
+]
+
+// ─── Passives ─────────────────────────────────────────────────────────────────
+
+export const SRD_PASSIVE_PERCEPTION_ID = vocabId(D.passive, 1)
+
+const SRD_PASSIVES = [
+  {
+    id: SRD_PASSIVE_PERCEPTION_ID,
+    code: 'PASSIVE_PERCEPTION',
+    label: 'Passive Perception',
+    description: '10 + Perception modifier.',
+    skillDefinitionId: SRD_PERCEPTION_SKILL_ID
+  },
+  {
+    id: vocabId(D.passive, 2),
+    code: 'PASSIVE_INVESTIGATION',
+    label: 'Passive Investigation',
+    description: '10 + Investigation modifier.',
+    skillDefinitionId: SRD_INVESTIGATION_SKILL_ID
+  },
+  {
+    id: vocabId(D.passive, 3),
+    code: 'PASSIVE_INSIGHT',
+    label: 'Passive Insight',
+    description: '10 + Insight modifier.',
+    skillDefinitionId: SRD_INSIGHT_SKILL_ID
   }
 ]
 

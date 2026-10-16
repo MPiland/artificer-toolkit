@@ -5851,8 +5851,12 @@
             },
             {
               "text": "A successful Hide (Dexterity (Stealth) check) makes its actor hidden from the creatures that fail to notice it, an attack from hiding has advantage, and attacking or being noticed ends it.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/session-worker/test/nativeRoomConcealmentPrune.test.ts",
+                "apps/apis/convex/encounters/basicActions.test.ts",
+                "CI 38831417677 at 587da5c12; merged 2026-10-15, D116"
+              ],
               "origin": [],
               "note": "Split from ATTACK-10.1 (D100); Hide is logged, not automated, today.",
               "id": "ATTACK-10.2"
@@ -5904,15 +5908,14 @@
             {
               "id": "ATTACK-10.T1",
               "text": "Hide: a successful Stealth check hides its actor from the creatures that fail to notice it; attacking from hiding has advantage; attacking or being noticed ends it.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["ATTACK-10.2"],
               "wsjf": {
                 "bv": 5,
                 "tc": 3,
                 "rr": 5,
                 "size": 3
-              },
-              "activeWorkbook": "docs/handoffs/slice-attack-10-t1.md"
+              }
             },
             {
               "id": "ATTACK-10.T3",

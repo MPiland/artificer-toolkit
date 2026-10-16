@@ -83,7 +83,7 @@ Only item 1 has a captured red log (`oracle-red.log`, taken before the migration
 | 3   | Scene DTO senses: GM and controller, not others | not captured     | `vtt-scene.test.ts` in `green-touched.log`                                                                              |
 | 4   | one function for Character and Creature         | not captured     | `actorSenses.test.ts` in `green-touched.log`, `green-worker-vision.log` (Creature), `green-worker-pool.log` (Character) |
 | 5   | publication refuses malformed entries           | not captured     | `creaturePublication.test.ts` in `green-touched.log`                                                                    |
-| 6   | editor adds an entry and it reaches publication | not captured     | `AuthoredDomainAuthoringLayout.test.tsx` in `g10-web.log` (not `green-touched.log`: that config excludes apps/web)                                                         |
+| 6   | editor adds an entry and it reaches publication | not captured     | `AuthoredDomainAuthoringLayout.test.tsx` in `g10-web.log` (not `green-touched.log`: that config excludes apps/web)      |
 
 ## Proposed ledger edits (filled by the slice session)
 

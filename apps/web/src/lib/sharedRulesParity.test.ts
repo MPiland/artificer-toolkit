@@ -242,4 +242,3 @@ describe('creature detail matches the shared ability modifier', () => {
     )
   })
 })
-

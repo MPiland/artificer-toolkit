@@ -28,9 +28,9 @@ describe('select option helpers', () => {
   it('carries option descriptions through normalization and ignores blank ones', () => {
     const option = { value: 'walk', label: 'Walking Speed' }
 
-    expect(
-      toComboboxData([{ ...option, description: 'Base movement on foot.' }])
-    ).toEqual([{ ...option, description: 'Base movement on foot.' }])
+    expect(toComboboxData([{ ...option, description: 'Base movement on foot.' }])).toEqual([
+      { ...option, description: 'Base movement on foot.' }
+    ])
     expect(getOptionDescription({ ...option, description: 'Base movement on foot.' })).toBe(
       'Base movement on foot.'
     )

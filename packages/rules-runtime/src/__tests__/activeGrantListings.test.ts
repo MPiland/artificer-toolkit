@@ -220,9 +220,7 @@ describe('grant polarity (VTT_UI-1.2)', () => {
 
   it('reads a speed length bonus as beneficial, a penalty as harmful and a zero length as neutral', () => {
     const length = (amount: number) => ({ amount, unit: 'FEET' })
-    expect(polarityOf([{ domain: 'SPEED', kind: 'BONUS', payload: length(10) }])).toBe(
-      'BENEFICIAL'
-    )
+    expect(polarityOf([{ domain: 'SPEED', kind: 'BONUS', payload: length(10) }])).toBe('BENEFICIAL')
     expect(polarityOf([{ domain: 'SPEED', kind: 'PENALTY', payload: length(10) }])).toBe('HARMFUL')
     expect(polarityOf([{ domain: 'SPEED', kind: 'BONUS', payload: length(0) }])).toBe('NEUTRAL')
     expect(polarityOf([{ domain: 'SPEED', kind: 'PENALTY', payload: length(0) }])).toBe('NEUTRAL')

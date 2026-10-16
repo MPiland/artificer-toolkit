@@ -75,6 +75,8 @@ export function classifyRuleOccurrenceVoid(context: RuleOccurrenceVoidFacts): Ru
       return answerRequired('A Concentration save')
     case 'ENCOUNTER_BASIC_ACTION_CHECK':
       return answerRequired('A basic action check')
+    case 'ENCOUNTER_CONCEALMENT_CHECK':
+      return answerRequired('A concealment check')
     case 'ENCOUNTER_ESCAPE_CHECK':
       return answerRequired('An escape check')
     case 'ENCOUNTER_INITIATIVE':

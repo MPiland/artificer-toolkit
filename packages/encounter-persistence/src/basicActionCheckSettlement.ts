@@ -1,4 +1,4 @@
-import type { LiveSessionEncounterBasicActionResponseCommitInput } from '@artificer-toolkit/schema/api/liveSessionEncounterBasicAction'
+import type { StabilizeCheckSettlement } from '@artificer-toolkit/schema/api/liveSessionEncounterBasicAction'
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { ServerRuleExecutionApplicationOutputsDto } from '@artificer-toolkit/schema/shared/ruleExecutionApplicationOutputs'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
@@ -11,7 +11,6 @@ import { recordRuleRollCard } from './ruleRollCards.js'
 import type { EncounterWriteTransaction } from './ports.js'
 import type { EncounterDocument } from './store.js'
 
-type BasicActionCheckSettlement = LiveSessionEncounterBasicActionResponseCommitInput['settlement']
 export type BasicActionCheckOutput = Extract<
   ServerRuleExecutionApplicationOutputsDto,
   { kind: 'BASIC_ACTION_CHECK' }
@@ -29,7 +28,7 @@ export async function settleEncounterBasicActionCheck(
     campaign: EncounterDocument<'campaigns'>
     state: { id: string; version: number; gameSystemId: string }
     actors: readonly EncounterRunActorState[]
-    settlement: BasicActionCheckSettlement
+    settlement: StabilizeCheckSettlement
     rootCommandId: string
     initiatorUserId: string
     occurredAt: string

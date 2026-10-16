@@ -2,7 +2,10 @@ import { QueryClient } from '@tanstack/react-query'
 import { describe, expect, it } from 'vitest'
 import { expandNodeRuntimeResponse } from '@artificer-toolkit/schema/api/nodeRuntimeTransport'
 import { getNodeRuntimeResolve } from '#app/data/nodeRuntime/queries'
-import { authoredRouteStoryRecords, authoredRouteStorySystem } from '#domains/authoredRouteStory.fixtures'
+import {
+  authoredRouteStoryRecords,
+  authoredRouteStorySystem
+} from '#domains/authoredRouteStory.fixtures'
 import { configureAuthoredRouteStoryQueries } from './authoredRouteStory.utils'
 import { resolveFixtureNodeRuntime } from './nodeRuntimeResolver'
 
@@ -19,7 +22,11 @@ describe('authored route story node-runtime resolution', () => {
       )
 
       expect(expandNodeRuntimeResponse(response)).toEqual(
-        await resolveFixtureNodeRuntime({ mapId: domain, systemId: authoredRouteStorySystem.id, values })
+        await resolveFixtureNodeRuntime({
+          mapId: domain,
+          systemId: authoredRouteStorySystem.id,
+          values
+        })
       )
     }
   )

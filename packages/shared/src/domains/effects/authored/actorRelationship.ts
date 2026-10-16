@@ -1,7 +1,7 @@
 import type { DamageAuthored } from './damage.js'
 import type { ConditionAuthored } from './condition.js'
 import type { ActivationAuthored } from './effect.js'
-import type { CheckChoiceAuthored, CheckDcAuthored } from './check.js'
+import type { CheckChoiceAuthored, EscapeDcAuthored } from './check.js'
 import { EFFECT_KIND, type LengthUnitCode } from '#core'
 
 export type ActorRelationshipModuleAuthored =
@@ -33,7 +33,7 @@ export type ActorRelationshipModuleAuthored =
       kind: 'ESCAPE_CHECK'
       activation: ActivationAuthored
       checks: CheckChoiceAuthored
-      dc: CheckDcAuthored
+      dc: EscapeDcAuthored
       actorKinds: Array<'TARGET' | 'CREATURE_WITHIN_REACH'>
     }
   | {

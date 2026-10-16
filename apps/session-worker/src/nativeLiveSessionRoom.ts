@@ -111,6 +111,7 @@ import { readRoomSceneHeader, readRoomSceneState } from './roomSceneRead.js'
 import { composeRoomSceneVision } from './roomSceneVision.js'
 import { executeRoomSceneBinding } from './roomSceneBinding.js'
 import { NoSceneMoveToUndoError, publishRoomSceneUndo } from './roomSceneUndo.js'
+import { restoreRoomConcealmentPrune } from './roomConcealmentPrune.js'
 import {
   publishRoomSceneFog,
   publishRoomSceneInline,
@@ -1951,12 +1952,24 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
           value,
           command,
           fingerprint,
-          ({ transaction, scene, presentation }) =>
+          ({ transaction, authorization, scene, presentation }) =>
             publishRoomSceneUndo({
               transaction,
               userId: admission.userId,
               scene,
-              request: { input: command, presentation }
+              request: { input: command, presentation },
+              onUndone: (undoneCommandId) =>
+                restoreRoomConcealmentPrune({
+                  store: this.#roomStore,
+                  transaction,
+                  inputs: this.#roomInputs,
+                  authorization,
+                  campaignId: value.campaignId,
+                  epoch: value.authorityEpoch,
+                  userId: admission.userId,
+                  sceneId: command.sceneId.toLowerCase(),
+                  undoneCommandId
+                })
             })
         )
       } catch (error) {
@@ -2189,7 +2202,8 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
             userId: admission.userId,
             replayed: { kind: 'RECORDED', result: replay.delta.result }
           })
-          for (const sceneReceipt of messages.slice(0, -1)) send(socket, replayMessage(sceneReceipt))
+          for (const sceneReceipt of messages.slice(0, -1))
+            send(socket, replayMessage(sceneReceipt))
           send(socket, {
             ...replay,
             sequence:
@@ -3096,6 +3110,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
         async (transaction) => {
           const edited = await edit({
             transaction,
+            authorization: prepared,
             scene: cache.uncomposedScene!,
             presentation: cache.presentation!
           })
@@ -3270,7 +3285,8 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
           )
           // Only a movement decision commits an Encounter result; a Scene command's retry replays one message.
           if (
-            (command.type === 'RESOLVE_RULE_OCCURRENCE' || command.type === 'VOID_RULE_OCCURRENCE') !==
+            (command.type === 'RESOLVE_RULE_OCCURRENCE' ||
+              command.type === 'VOID_RULE_OCCURRENCE') !==
             (result.encounter !== null)
           )
             throw new Error('Only a movement decision commits an Encounter result.')

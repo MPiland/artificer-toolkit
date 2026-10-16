@@ -5,10 +5,13 @@ import {
   liveSessionEncounterRulesInputSchema,
   type LiveSessionEncounterRulesInput
 } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
+import { resolveEncounterActionSource } from '@artificer-toolkit/rules-runtime/encounterActionSources'
+import { readEncounterBasicActionEntries } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
 import {
   completeEncounterBasicActionCheckResult,
   encounterBasicActionStabilizeApplication,
-  evaluateEncounterBasicActionCheck
+  evaluateEncounterBasicActionCheck,
+  rollEncounterCheck
 } from '@artificer-toolkit/rules-runtime/encounterBasicActionCheck'
 import { buildEncounterActorRuleFacts } from '@artificer-toolkit/rules-runtime/encounterActorRuleFacts'
 import { reconcileEncounterActorRuleOutput } from '@artificer-toolkit/rules-runtime/encounterActorRuleOutput'
@@ -19,6 +22,7 @@ import { planEncounterMechanicsBatch } from '@artificer-toolkit/rules-runtime/en
 import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import { settleNativeConcealmentCheck } from './nativeConcealmentCheck.js'
 import { liveEncounterCaptures, type LiveCaptureReads } from './nativeEncounterReads.js'
 import {
   prepareNativeLiveMovementTarget,
@@ -26,9 +30,10 @@ import {
 } from './nativeEncounterTargets.js'
 
 /**
- * Plans the helper's d20 for a pending basic action check (First Aid) in the room: the die settles
- * the frozen check, and a roll that reaches the DC stabilizes the target if it is still dying.
- * Convex re-applies the stabilize and records the result; it never rolls.
+ * Plans the roller's d20 for a pending basic action check in the room. First Aid's die settles the
+ * frozen check, and a roll that reaches the DC stabilizes the target if it is still dying; a
+ * concealment check (Hide, Search) is decided per observer from its total. Convex re-applies the
+ * change and records the result; it never rolls.
  */
 export async function planNativeLiveBasicActionResponse(
   scope: Omit<LiveSessionEncounterRulesInput, 'request'>,
@@ -59,13 +64,83 @@ export async function planNativeLiveBasicActionResponse(
   if (!ready || ready.command.type !== 'RESOLVE_RULE_OCCURRENCE' || !ready.snapshot)
     throw new Error('The basic action check is unavailable.')
   const { context, continuation, snapshot } = readBasicActionCheckSnapshot(ready.snapshot)
-  const { state } = await capture({ kind: 'INPUTS' })
+  const { state, system } = await capture({ kind: 'INPUTS' })
   if (state.id !== initial.encounterId || state.version !== initial.expectedVersion)
     throw new Error('Basic action check Run inputs changed during capture.')
   const { actors, activeEffectsByActorId } = await readNativeLiveActorsAndEffects({
     state,
     capture
   })
+  if (context.kind === 'ENCOUNTER_CONCEALMENT_CHECK') {
+    const roller = actors.find((entry) => entry.id === context.actorId)
+    if (!roller) throw new Error('Basic action check actors are unavailable.')
+    const rollerTarget = await prepareNativeLiveMovementTarget({
+      scope: initial,
+      state,
+      actor: roller,
+      activeEffectsByActorId,
+      captures: executionOptions.captures
+    })
+    reads.observe(rollerTarget.revisions)
+    const source = resolveEncounterActionSource({
+      actor: roller,
+      actionId: context.actionId,
+      gameSystemId: state.gameSystemId,
+      system,
+      basicActions: await readEncounterBasicActionEntries({
+        actorId: roller.id,
+        actionId: context.actionId,
+        gameSystemId: state.gameSystemId,
+        definitions: {
+          requireCurrent: async (definitionId) => {
+            const response = await capture({ kind: 'DEFINITION', definitionId })
+            if (response.kind !== 'DEFINITION' || !response.definition)
+              throw new Error('The concealment check capability is unavailable.')
+            return response.definition
+          }
+        }
+      })
+    })
+    if (source.kind !== 'BASIC_ACTION') throw new Error('The concealment check action is stale.')
+    const answer = withEncounterAppRoll(ready.command.resolution, ready.appRoll)
+    if (answer.kind !== 'ENTER_DICE' && answer.kind !== 'SYSTEM_ROLL')
+      throw new Error('A concealment check requires d20 evidence.')
+    const occurredAt = new Date().toISOString()
+    const settlement = settleNativeConcealmentCheck({
+      context,
+      continuation,
+      evaluated: await rollEncounterCheck({
+        runtime: executionOptions.runtime,
+        context,
+        continuation,
+        answer,
+        rollD20: () => executionOptions.random(20) + 1,
+        expectedOccurrenceId: snapshot.occurrenceId
+      }),
+      appRollId: ready.appRoll?.rollId ?? null,
+      state,
+      actors,
+      activeEffectsByActorId,
+      capability: source.capability,
+      occurredAt,
+      occurrenceVersion: response.expectedOccurrenceVersion + 1
+    })
+    const facts = buildEncounterActorRuleFacts({ actors })
+    return {
+      kind: 'PLANNED' as const,
+      input: liveSessionEncounterBasicActionResponseCommitInputSchema.parse({
+        ...scope,
+        command: ready.command,
+        revisions: reads.revisions(),
+        occurredAt,
+        settlement,
+        rules: reconcileEncounterActorRuleOutput(
+          evaluateInstalledEncounterActors({ gameSystemId: state.gameSystemId, facts }),
+          facts
+        )
+      })
+    }
+  }
   const targetActor = actors.find((entry) => entry.id === context.targetActorId)
   if (!targetActor) throw new Error('Basic action check actors are unavailable.')
   const prepared = await prepareNativeLiveMovementTarget({

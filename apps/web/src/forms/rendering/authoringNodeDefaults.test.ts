@@ -27,8 +27,10 @@ describe('check default factories', () => {
       'Name at least one allowed check.'
     ])
     expect(
-      checkDtoSchema.safeParse({ ...check, checks: { skillIds: [skill.id], abilityDefinitionIds: [] } })
-        .success
+      checkDtoSchema.safeParse({
+        ...check,
+        checks: { skillIds: [skill.id], abilityDefinitionIds: [] }
+      }).success
     ).toBe(true)
   })
 

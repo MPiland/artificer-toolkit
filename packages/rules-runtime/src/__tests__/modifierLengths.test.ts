@@ -1,5 +1,8 @@
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
-import { SRD_DARKVISION_SENSE_ID, SRD_SPEEDS } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import {
+  SRD_DARKVISION_SENSE_ID,
+  SRD_SPEEDS
+} from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { describe, expect, it } from 'vitest'
 
 import { record } from '../character/activeEffectGrantTotals.js'
@@ -195,21 +198,27 @@ describe('a Character holder reads authored speed and sense grants as lengths', 
   const baseWalk = walk([])?.amount ?? 0
 
   it('adds a bonus authored in another unit through the shared conversion', () => {
-    expect(walk([lengthEffect([speedModifier('BONUS', { amount: 5, unit: 'YARDS' })])])).toMatchObject({
+    expect(
+      walk([lengthEffect([speedModifier('BONUS', { amount: 5, unit: 'YARDS' })])])
+    ).toMatchObject({
       amount: baseWalk + 15,
       unit: 'FEET'
     })
   })
 
   it('subtracts a penalty authored in another unit through the shared conversion', () => {
-    expect(walk([lengthEffect([speedModifier('PENALTY', { amount: 5, unit: 'YARDS' })])])).toMatchObject({
+    expect(
+      walk([lengthEffect([speedModifier('PENALTY', { amount: 5, unit: 'YARDS' })])])
+    ).toMatchObject({
       amount: baseWalk - 15,
       unit: 'FEET'
     })
   })
 
   it('replaces the speed with a set value authored in another unit, in the speed own unit', () => {
-    expect(walk([lengthEffect([speedModifier('SET_VALUE', { amount: 20, unit: 'YARDS' })])])).toMatchObject({
+    expect(
+      walk([lengthEffect([speedModifier('SET_VALUE', { amount: 20, unit: 'YARDS' })])])
+    ).toMatchObject({
       amount: 60,
       unit: 'FEET'
     })
@@ -241,10 +250,10 @@ describe('a Character holder reads authored speed and sense grants as lengths', 
 
   it('adds a sense range bonus authored in another unit to the granted range', () => {
     expect(
-      darkvisionRanges(
-        darkvisionEffect({ id: EFFECT_ID, holderActorId: HOLDER_ID }),
-        { amount: 10, unit: 'YARDS' }
-      )
+      darkvisionRanges(darkvisionEffect({ id: EFFECT_ID, holderActorId: HOLDER_ID }), {
+        amount: 10,
+        unit: 'YARDS'
+      })
     ).toMatchObject([{ amount: 90, unit: 'FEET' }])
   })
 

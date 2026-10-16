@@ -7,6 +7,7 @@ import type {
   LiveSessionEncounterEscapeResponseCommitInput
 } from '@artificer-toolkit/schema/api/liveSessionEncounterBasicAction'
 import type { LiveSessionRulesRevisions } from '@artificer-toolkit/schema/api/liveSessionRulesRevisions'
+import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import {
   encounterRunStateSchema,
   type EncounterRunActorState,
@@ -26,6 +27,11 @@ import {
   readEscapeCheckResponseAdmission
 } from './basicActionCheckAdmission.js'
 import { settleEncounterBasicActionCheck } from './basicActionCheckSettlement.js'
+import { addEndedGrantsToRoot } from './consumedGrantPersistence.js'
+import {
+  isConcealmentCheckSettlement,
+  settleEncounterConcealmentCheck
+} from './concealmentCheckSettlement.js'
 import { changedFields, readRunActors } from './documents.js'
 import { settleEncounterEscapeCheck } from './escapeCheckSettlement.js'
 import { projectNativeGm } from './nativeProjection.js'
@@ -60,7 +66,7 @@ type CheckPersistenceSpec<TInput extends CheckResponseCommitInput> = {
       occurredAt: string
       occurrenceVersion: number
     }
-  ): Promise<{ actors: EncounterRunActorState[] }>
+  ): Promise<{ actors: EncounterRunActorState[]; endedEffects?: ActiveRuleEffectRecord[] }>
   validateReadFence(
     state: EncounterRunState,
     characterIds: readonly string[],
@@ -69,9 +75,9 @@ type CheckPersistenceSpec<TInput extends CheckResponseCommitInput> = {
 }
 
 /**
- * Commits the helper's d20 for a pending basic action check (First Aid): the stabilize it earned,
- * the occurrence's completion and the receipts, atomically. The root command already spent the
- * Action, so a failed check changes only the occurrence.
+ * Commits the roller's d20 for a pending basic action check: First Aid's stabilize or Hide's and
+ * Search's concealment change, the occurrence's completion and the receipts, atomically. The root
+ * command already spent the Action, so a failed check changes only the occurrence.
  */
 export function persistEncounterBasicActionResponse(
   ctx: EncounterWriteTransaction,
@@ -87,14 +93,22 @@ export function persistEncounterBasicActionResponse(
     admit: (transaction, scope) =>
       readBasicActionCheckResponseAdmission(transaction, { ...scope, response: scope.command }),
     selectedNatural: (execution) =>
-      execution.status === 'COMPLETE' && execution.applicationOutputs.kind === 'BASIC_ACTION_CHECK'
+      execution.status === 'COMPLETE' &&
+      (execution.applicationOutputs.kind === 'BASIC_ACTION_CHECK' ||
+        execution.applicationOutputs.kind === 'CONCEALMENT_CHECK')
         ? execution.applicationOutputs.d20.selectedNatural
         : null,
     settle: (transaction, settleInput) =>
-      settleEncounterBasicActionCheck(transaction, {
-        ...settleInput,
-        applyMechanics: callbacks.applyMechanics
-      }),
+      isConcealmentCheckSettlement(settleInput.settlement)
+        ? settleEncounterConcealmentCheck(transaction, {
+            ...settleInput,
+            settlement: settleInput.settlement
+          })
+        : settleEncounterBasicActionCheck(transaction, {
+            ...settleInput,
+            settlement: settleInput.settlement,
+            applyMechanics: callbacks.applyMechanics
+          }),
     validateReadFence: callbacks.validateReadFence
   })
 }
@@ -166,6 +180,12 @@ async function persistCheckResponse<TInput extends CheckResponseCommitInput>(
     initiatorUserId: admission.initiatorUserId,
     occurredAt: input.occurredAt,
     occurrenceVersion
+  })
+  // The effects the check ended come back with the action's undo.
+  await addEndedGrantsToRoot(ctx, {
+    campaignId: campaign.id,
+    actionOccurrenceId: occurrence.id,
+    endedGrants: settled.endedEffects ?? []
   })
   const nextState = encounterRunStateSchema.parse({
     ...state,
