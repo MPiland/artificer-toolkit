@@ -185,6 +185,8 @@ export const DND5E_SELECTED_OPTIONAL_RIDERS_FACT_KEY = 'dnd5e.selected-optional-
 const DND5E_CLASS_LEVELS_FACT_KEY = 'dnd5e.class-levels'
 /** The attack's net d20 roll mode, which a path restriction reads when its outcome specializes. */
 const DND5E_ATTACK_ROLL_MODE_FACT_KEY = 'dnd5e.attack-roll-mode'
+/** The attacked creature's type, which a path restriction reads when its outcome specializes. */
+const DND5E_TARGET_CREATURE_TYPE_FACT_KEY = 'dnd5e.target-creature-type'
 export const DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY =
   'dnd5e.active-effect-save-ability-definition-id'
 export const DND5E_ACTIVE_EFFECT_SAVE_REQUEST_NODE_FACT_KEY =
@@ -276,6 +278,7 @@ type Dnd5eEffectScalingFacts = Readonly<{
   classLevels?: Readonly<Record<string, number>>
   selectedOptionalRiderIds?: readonly string[]
   attackRollMode?: Dnd5eAttackRollMode
+  targetCreatureTypeId?: string
   resolvedDamageExpressions?: Readonly<Partial<Record<SpecializedPath, string>>>
   resolvedDamageOutcomeExpressions?: Readonly<Record<string, string>>
 }>
@@ -309,6 +312,10 @@ function dndScalingFactsFromRuleValues(
       facts[DND5E_SELECTED_OPTIONAL_RIDERS_FACT_KEY]
     ),
     attackRollMode: parseAttackRollMode(facts[DND5E_ATTACK_ROLL_MODE_FACT_KEY]),
+    targetCreatureTypeId:
+      typeof facts[DND5E_TARGET_CREATURE_TYPE_FACT_KEY] === 'string'
+        ? facts[DND5E_TARGET_CREATURE_TYPE_FACT_KEY]
+        : undefined,
     resolvedDamageExpressions: Object.fromEntries(
       Object.entries(DND5E_RESOLVED_DAMAGE_EXPRESSION_FACT_KEYS).flatMap(([path, key]) => {
         const expression = facts[key]
@@ -3394,6 +3401,7 @@ export const dnd5eEffectActionCapability: GameSystemRuleCapabilityContract = {
     { key: DND5E_CLASS_LEVELS_FACT_KEY, valueKind: RULE_VALUE_KIND.TEXT },
     { key: DND5E_SELECTED_OPTIONAL_RIDERS_FACT_KEY, valueKind: RULE_VALUE_KIND.TEXT },
     { key: DND5E_ATTACK_ROLL_MODE_FACT_KEY, valueKind: RULE_VALUE_KIND.TEXT },
+    { key: DND5E_TARGET_CREATURE_TYPE_FACT_KEY, valueKind: RULE_VALUE_KIND.TEXT },
     {
       key: REACTION_CHOICE_MIN_FACT_KEY,
       valueKind: RULE_VALUE_KIND.NUMBER
@@ -4709,7 +4717,7 @@ function mergedOutcomeGraphDefinition(input: {
   }
 }
 
-/** An entry reduced to roll-mode checks is owed only to an attack whose net roll mode meets them. */
+/** An entry reduced to roll-time checks is owed only to an attack whose roll mode and target meet them. */
 function pathRestrictionsMet(
   entry: CompiledEffectGroup['entries'][number],
   facts: Dnd5eEffectScalingFacts
@@ -4717,7 +4725,11 @@ function pathRestrictionsMet(
   if (!('restrictions' in entry) || !entry.restrictions) return true
   if (facts.attackRollMode === undefined)
     unsupported('D&D path restrictions need the roll mode of an attack.')
-  return attackRestrictionsMet(entry.restrictions, facts.attackRollMode)
+  return attackRestrictionsMet(
+    entry.restrictions,
+    facts.attackRollMode,
+    facts.targetCreatureTypeId ?? null
+  )
 }
 
 function specializeDnd5eEffectActionOutcomeBody(input: {
@@ -7150,6 +7162,9 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
           [DND5E_ATTACK_MODIFIER_FACT_KEY]: action.attackBonus,
           [DND5E_TARGET_DEFENSE_FACT_KEY]: armorClass,
           [DND5E_ATTACK_ROLL_MODE_FACT_KEY]: rollMode,
+          ...(typeof targetDerivedFacts.creatureTypeId === 'string'
+            ? { [DND5E_TARGET_CREATURE_TYPE_FACT_KEY]: targetDerivedFacts.creatureTypeId }
+            : {}),
           [DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY]: contributorChecksum,
           [DND5E_TEST_OUTCOME_RULE_FACT_KEY]: conditionOutcomeRules?.hitIsCritical
             ? 'HIT_IS_CRITICAL'

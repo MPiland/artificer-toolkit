@@ -223,7 +223,96 @@ describe('roll-mode checks of reduced restrictions', () => {
 
   it('refuses restrictions that still hold weapon checks', () => {
     expect(() => attackRestrictionsMet(riderGate([FINESSE]), 'NORMAL')).toThrow(
-      'Attack restrictions must be reduced to roll-mode checks.'
+      'Attack restrictions must be reduced to roll-time checks.'
     )
+  })
+})
+
+describe('target creature-type checks of reduced restrictions', () => {
+  const UNDEAD = testUuid(0xf01)
+  const FIEND = testUuid(0xf02)
+  const BEAST = testUuid(0xf03)
+
+  /** A group holding a creature-type check on the target and, optionally, a check on the weapon. */
+  const creatureTypeGate = (
+    constraint: 'INCLUDE' | 'EXCLUDE',
+    weaponCheck?: typeof FINESSE
+  ): FacetAuthored => ({
+    id: testUuid(0xf10),
+    groups: [
+      {
+        id: testUuid(0xf11),
+        order: 0,
+        contexts: [
+          {
+            id: testUuid(0xf12),
+            order: 0,
+            subject: 'CREATURE',
+            authoringModeKind: 'ALL',
+            conditions: [
+              {
+                id: testUuid(0xf13),
+                order: 0,
+                kind: 'PREDICATE',
+                constraint,
+                predicateCode: 'CREATURE_TYPE',
+                authoringModeKind: 'SELECTED',
+                creatureTypeIds: [UNDEAD, FIEND]
+              }
+            ]
+          },
+          ...(weaponCheck
+            ? ([
+                {
+                  id: testUuid(0xf14),
+                  order: 1,
+                  subject: 'EQUIPMENT',
+                  authoringModeKind: 'ALL',
+                  conditions: [
+                    {
+                      id: testUuid(0xf15),
+                      order: 0,
+                      kind: 'PREDICATE',
+                      constraint: 'INCLUDE',
+                      ...weaponCheck,
+                      properties: [...weaponCheck.properties],
+                      authoringModeKind: 'SELECTED'
+                    }
+                  ]
+                }
+              ] as const)
+            : [])
+        ]
+      }
+    ]
+  })
+
+  const reducedOf = (gate: FacetAuthored, item: Dnd5eAttackingItem = rapier) => {
+    const [restrictions] = restrictionsOf(reduceEffectRestrictions(restrictedEffect(gate), item))
+    if (!restrictions) throw new Error('Expected a remaining creature-type check.')
+    return restrictions
+  }
+
+  it.each([
+    [UNDEAD, true],
+    [FIEND, true],
+    [BEAST, false],
+    [null, false]
+  ] as const)('owes a type-gated entry to a %s target: %s', (typeId, expected) => {
+    expect(attackRestrictionsMet(reducedOf(creatureTypeGate('INCLUDE')), 'NORMAL', typeId)).toBe(
+      expected
+    )
+  })
+
+  it('inverts an excluded creature type', () => {
+    const restrictions = reducedOf(creatureTypeGate('EXCLUDE'))
+    expect(attackRestrictionsMet(restrictions, 'NORMAL', UNDEAD)).toBe(false)
+    expect(attackRestrictionsMet(restrictions, 'NORMAL', BEAST)).toBe(true)
+  })
+
+  it('settles the weapon check first and leaves only the target check', () => {
+    const gate = creatureTypeGate('INCLUDE', FINESSE)
+    expect(restrictionsOf(reduceEffectRestrictions(restrictedEffect(gate), longsword))).toEqual([])
+    expect(attackRestrictionsMet(reducedOf(gate, rapier), 'NORMAL', FIEND)).toBe(true)
   })
 })
