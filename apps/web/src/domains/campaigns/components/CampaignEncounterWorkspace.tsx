@@ -368,11 +368,13 @@ export function CampaignEncounterWorkspace({
                     ) : null}
                   </Group>
                   <Text c='dimmed' size='sm'>
-                    {actor.outOfInitiative
-                      ? 'Out of initiative'
-                      : actor.initiative === null
-                        ? 'Initiative not set'
-                        : `Initiative ${actor.initiative}`}{' '}
+                    {actor.absence === 'DEPARTED'
+                      ? 'Departed'
+                      : actor.absence === 'GM_REMOVED'
+                        ? 'Out of initiative'
+                        : actor.initiative === null
+                          ? 'Initiative not set'
+                          : `Initiative ${actor.initiative}`}{' '}
                     · {actor.kind === 'CHARACTER' ? 'Character' : 'Enemy'}
                   </Text>
                 </Group>
@@ -441,7 +443,7 @@ export function CampaignEncounterWorkspace({
                   </ActionIcon>
                 </Tooltip>
               ) : null}
-              {actor.outOfInitiative && !readOnly ? (
+              {actor.absence !== null && !readOnly ? (
                 <Button
                   disabled={commandBlocked}
                   mr='sm'

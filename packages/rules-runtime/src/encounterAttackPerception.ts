@@ -35,6 +35,9 @@ export type EncounterAttackPerception = {
   attackerSenseLabels: readonly string[]
 }
 
+/** Who rolls the d20 the perception is believed for: an attack's attacker or a save's target. */
+export type EncounterPerceptionRoller = 'ATTACKER' | 'TARGET'
+
 type AttackPerceptionActor = EncounterPerceptionActor & Pick<MovementTarget, 'conditionDefinitions'>
 
 type AttackPerceptionLoaders = Pick<
@@ -222,18 +225,21 @@ const strippedAttackActor = (actor: AttackPerceptionActor): AttackPerceptionActo
  * the attacker as it is, the target as a stranger, on the neutral environment. The target sees the
  * attacker through System baseline sight alone; the attacker sees the target through its own Senses,
  * conditions and effects. Scene lighting, the target's Senses and the target's conditions are not
- * inputs, and the answer is never undecided.
+ * inputs, and the answer is never undecided. A save is rolled by the target, who knows its own
+ * conditions and Senses (ATTACK-10.5), so there the target sees the attacker as it is.
  */
 export async function resolveEncounterBelievedAttackPerception(
   input: AttackPerceptionLoaders & {
     attacker: AttackPerceptionActor
     target: AttackPerceptionActor
+    /** Who rolls the d20; the attacker unless omitted. */
+    roller?: EncounterPerceptionRoller
   }
 ): Promise<EncounterAttackPerception> {
   const [target, attacker] = await Promise.all([
     resolveAttackSight({
       ...input,
-      observer: strippedAttackActor(input.target),
+      observer: input.roller === 'TARGET' ? input.target : strippedAttackActor(input.target),
       subject: input.attacker,
       placement: null,
       believed: true

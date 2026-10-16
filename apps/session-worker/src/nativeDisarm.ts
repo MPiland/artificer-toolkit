@@ -28,7 +28,10 @@ import {
   readEncounterDisarmSelection,
   requireEncounterDisarmDefinition
 } from '@artificer-toolkit/rules-runtime/encounterDisarmPreparation'
-import { consumableGrants } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
+import {
+  effectsEndedBy,
+  ownsCondition
+} from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
 import { withEncounterAppRoll } from '@artificer-toolkit/rules-runtime/encounterEvidenceAnswer'
 import { executeEncounterOptionalContestAction } from '@artificer-toolkit/rules-runtime/encounterOptionalContestActionExecution'
 import { lockedRelationshipActionFacts } from '@artificer-toolkit/rules-runtime/encounterRelationshipActionFacts'
@@ -171,12 +174,13 @@ export async function planNativeLiveDisarm(
     overridable: false,
     movementTargets,
     sceneContext,
-    loadAttackPerception: ({ sourceFacts, targetFacts }) =>
+    loadAttackPerception: ({ sourceFacts, targetFacts, roller }) =>
       readNativeLiveAttackPerception({
         state,
         system,
         attacker: sourceFacts,
         target: targetFacts,
+        roller,
         sceneContext,
         capture
       }),
@@ -400,10 +404,13 @@ export async function planNativeLiveDisarm(
       occurredAt: new Date().toISOString(),
       contest,
       // The initiator's attack roll and the defender's check use up their one-roll grants
-      // (Vicious Mockery's disadvantage, a Help's advantage).
+      // (Vicious Mockery's disadvantage, a Help's advantage). A Disarm has no source batch to release
+      // a condition in yet (SPELLS-27.T2b), so an effect that owns one outlasts the roll.
       consumedGrants: [
-        ...consumableGrants(activeEffectsByActorId.get(actor.id) ?? [], 'ON_ATTACK_ROLL'),
-        ...consumableGrants(activeEffectsByActorId.get(target.id) ?? [], 'ON_ABILITY_CHECK')
+        ...effectsEndedBy(activeEffectsByActorId.get(actor.id) ?? [], 'ON_ATTACK_ROLL').filter(
+          (effect) => !ownsCondition(effect)
+        ),
+        ...effectsEndedBy(activeEffectsByActorId.get(target.id) ?? [], 'ON_ABILITY_CHECK')
       ],
       execution: storedRuleExecutionResultDtoSchema.parse({
         status: 'COMPLETE',

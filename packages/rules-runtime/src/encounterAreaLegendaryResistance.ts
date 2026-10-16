@@ -5,7 +5,6 @@ import type {
   EncounterAreaLegendaryResistanceAudit,
   EncounterAreaTargetTest
 } from './encounterAreaActionExecution.js'
-import { encounterAreaTargetOccurrenceId } from './encounterAreaPending.js'
 import {
   decideEncounterLegendaryResistance,
   encounterLegendaryResistanceAudit,
@@ -56,7 +55,7 @@ export async function decideEncounterAreaLegendaryResistance(input: {
   if (input.offer.decision) throw new Error('Legendary Resistance evidence is stale.')
   const decided = await decideEncounterLegendaryResistance({
     ...input,
-    occurrenceId: encounterAreaTargetOccurrenceId(input.areaOccurrenceId, input.test.actorId),
+    occurrenceId: input.test.occurrenceId,
     boundary: input.test.boundary
   })
   return {

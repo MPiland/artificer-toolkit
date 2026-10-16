@@ -43,6 +43,7 @@ const areaPending = validated(pendingEncounterRuleOccurrenceSummaryDtoSchema)({
   caught: ['Ember', 'Vault Warden'],
   saves: tabletopGmEncounter.actors.map((actor) => ({
     actorId: actor.id,
+    targetActorId: actor.id,
     request: {
       requestId: `save-${actor.id}`,
       min: 1 as const,

@@ -400,6 +400,7 @@ describe('a half-damage success authored as an amount kind', () => {
         spellEffects: [
           {
             spellId: SPELL_ID,
+            readsCastLevel: false,
             effects: [
               {
                 effectId: SPELL_EFFECT_ID,

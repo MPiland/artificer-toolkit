@@ -46,6 +46,7 @@ import {
   SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID
 } from '@artificer-toolkit/source-data/srd/concentration.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import { counterspell } from '@artificer-toolkit/source-data/srd/spells/counterspell.js'
 import { cureWounds } from '@artificer-toolkit/source-data/srd/spells/cure-wounds.js'
 import { fireball } from '@artificer-toolkit/source-data/srd/spells/fireball.js'
 import { fireBolt } from '@artificer-toolkit/source-data/srd/spells/fire-bolt.js'
@@ -53,6 +54,7 @@ import { healingWord } from '@artificer-toolkit/source-data/srd/spells/healing-w
 import { shield } from '@artificer-toolkit/source-data/srd/spells/shield.js'
 import { fly } from '@artificer-toolkit/source-data/srd/spells/fly.js'
 import { holdPerson } from '@artificer-toolkit/source-data/srd/spells/hold-person.js'
+import { invisibility } from '@artificer-toolkit/source-data/srd/spells/invisibility.js'
 import { wizard } from '@artificer-toolkit/source-data/srd/classes/wizard.js'
 import { warlock } from '@artificer-toolkit/source-data/srd/classes/warlock.js'
 import { writeRunActor } from '@artificer-toolkit/encounter-persistence/documents'
@@ -70,6 +72,7 @@ import {
   checkpointLiveRoom,
   closeRoom,
   executeInRoom,
+  invalidateRoomInputs,
   queueRoomRolls,
   executeSheetInRoom,
   useLocalRoomWorker
@@ -681,6 +684,26 @@ describe('Character spell casting in an Encounter', () => {
     expect(new Set(choices.map(({ id }) => id)).size).toBe(choices.length)
   }, 60000)
 
+  it('offers a spell that does not read its cast level at its own level only, beside one that does at each owned higher level', async () => {
+    const mend = healSpell('Mend', (spell) => fixHeal(spell, 1))
+    // Counterspell compares its slot with the cast spell's level, so it is cast with any slot of 3rd level or more.
+    const counter = srdSpell(counterspell)
+    const fixture = await setup({
+      known: [mend, counter],
+      prepared: [mend, counter],
+      slots: [
+        { spellLevel: 1, slotCount: 1 },
+        { spellLevel: 3, slotCount: 1 },
+        { spellLevel: 4, slotCount: 1 }
+      ]
+    })
+    expect((await spellChoices(fixture, 0)).map(({ label }) => label).sort()).toEqual([
+      'Counterspell (3rd level)',
+      'Counterspell (4th level)',
+      'Mend (1st level)'
+    ])
+  }, 60000)
+
   it('spends the slot with the outcome in one Character version and GM undo restores both', async () => {
     const mend = healSpell('Mend', (spell) => fixHeal(spell, 1))
     const fixture = await setup({ known: [mend] })
@@ -1036,7 +1059,7 @@ describe('Character spell casting in an Encounter', () => {
       expect(await activeEffects(fixture)).toHaveLength(1)
 
       // A natural 20 (raw die 19) on the next end-of-turn save ends the condition, and Concentration with it.
-      await queueRoomRolls(fixture.campaign.id, { rolls: [19], repeat: 19 })
+      await queueRoomRolls(fixture.campaign.id, { rolls: [14, 14], repeat: 9 })
       const targetAgain = await advanceToTurnOf(fixture, failedRepeat, wolf.id)
       const saved = await advanceTurn(fixture, targetAgain.projection.version)
       expect(saved.occurrence?.status).toBe('COMPLETE')
@@ -1062,6 +1085,112 @@ describe('Character spell casting in an Encounter', () => {
         { maintainedEffectStateId: flight?.id }
       ])
     }, 180000)
+  })
+
+  describe('Invisibility ends on its holder’s attack roll (SPELLS-27.1)', () => {
+    const invisibleId = srdSystemRecord.conditionTypes.find(
+      (condition) => condition.code === 'INVISIBLE'
+    )?.id
+
+    async function conditionIds(fixture: Fixture) {
+      const { record } = await storedCharacter(fixture)
+      return (record.state.conditions ?? []).map((entry) => entry.conditionTypeId)
+    }
+
+    it('grants advantage on the roll, then ends the effect, its condition and its Concentration; a GM undo gives all three back', async () => {
+      const unseen = concentrationSpell(invisibility)
+      const bolt = srdSpell(fireBolt)
+      targetAnyCreatureAtAnyRange(bolt)
+      const fixture = await setup({
+        known: [unseen],
+        granted: [{ spell: bolt, attributes: ['CAST_AT_WILL'] }],
+        withOthers: true
+      })
+      const wolf = fixture.wolf
+      if (!wolf || !invisibleId) throw new Error('Missing the Wolf or the Invisible condition.')
+
+      const invisibleCast = await executeInRoom(fixture.gm.caller, {
+        command: castCommand(fixture, await choiceId(fixture, 'Invisibility (2nd level)', 0), 0)
+      })
+      expect(invisibleCast.occurrence?.status).toBe('COMPLETE')
+      const [concentration, ...others] = await maintainedEffects(fixture)
+      expect(others).toEqual([])
+      expect(await characterActiveEffects(fixture)).toEqual([
+        { maintainedEffectStateId: concentration?.id }
+      ])
+      expect(await conditionIds(fixture)).toContain(invisibleId)
+
+      // The caster rolls by hand, so the attack shows as a pending d20 while the effect still holds.
+      for (const user of [fixture.owner, fixture.other])
+        await setAutoRollDice(fixture.t, user.userId, false)
+      await invalidateRoomInputs(fixture.campaign.id, ['PREFERENCES'])
+      await resetActionAllowance(fixture)
+      const attacked = await executeInRoom(fixture.gm.caller, {
+        command: castCommand(
+          fixture,
+          await choiceId(fixture, 'Fire Bolt', invisibleCast.projection.version),
+          invisibleCast.projection.version,
+          undefined,
+          wolf.id
+        )
+      })
+      const pending = attacked.occurrence?.pending
+      if (attacked.occurrence?.status !== 'PENDING' || pending?.kind !== 'D20_EVIDENCE')
+        throw new Error('Expected the caster’s attack roll.')
+      expect(pending.request).toMatchObject({ rollMode: 'ADVANTAGE' })
+      expect(pending.request.derivedRollModeReasons).toContain('Unseen attacker')
+      expect(await characterActiveEffects(fixture)).toHaveLength(1)
+
+      // The caster rolls each pending die with the app and settles it; a hit leaves its damage dice to
+      // roll too, and the effect ends when the action completes. Queued values are zero-based die indices: 19 is a natural 20, 9 the top of a d10.
+      await queueRoomRolls(fixture.campaign.id, { rolls: [19], repeat: 9 })
+      let rolled = attacked
+      for (let step = 0; step < 3 && rolled.occurrence?.status === 'PENDING'; step += 1) {
+        const awaiting = rolled.occurrence.pending
+        if (awaiting?.kind !== 'D20_EVIDENCE' && awaiting?.kind !== 'ACTION_OUTCOME_EVIDENCE')
+          throw new Error('Expected a roll for the caster.')
+        const dice = await executeInRoom(fixture.gm.caller, {
+          command: {
+            type: 'ROLL_RULE_EVIDENCE',
+            encounterId: fixture.run.id,
+            commandId: crypto.randomUUID(),
+            expectedVersion: awaiting.encounterVersion,
+            occurrenceId: awaiting.occurrenceId,
+            expectedOccurrenceVersion: awaiting.occurrenceVersion,
+            requestId: awaiting.request.requestId,
+            rollMode: null
+          }
+        })
+        if (!dice.evidenceRoll) throw new Error('Expected an app roll.')
+        rolled = await executeInRoom(fixture.gm.caller, {
+          command: {
+            type: 'RESOLVE_RULE_OCCURRENCE',
+            encounterId: fixture.run.id,
+            commandId: crypto.randomUUID(),
+            expectedVersion: awaiting.encounterVersion,
+            correlationId: null,
+            occurrenceId: awaiting.occurrenceId,
+            expectedOccurrenceVersion: awaiting.occurrenceVersion,
+            resolution: {
+              kind: 'SYSTEM_ROLL',
+              requestId: awaiting.request.requestId,
+              rollId: dice.evidenceRoll.rollId
+            }
+          }
+        })
+      }
+      expect(rolled.occurrence?.status).toBe('COMPLETE')
+      expect(await characterActiveEffects(fixture)).toEqual([])
+      expect(await maintainedEffects(fixture)).toEqual([])
+      expect(await conditionIds(fixture)).not.toContain(invisibleId)
+
+      await revert(fixture, rolled.projection.version)
+      expect(await maintainedEffects(fixture)).toEqual([concentration])
+      expect(await characterActiveEffects(fixture)).toEqual([
+        { maintainedEffectStateId: concentration?.id }
+      ])
+      expect(await conditionIds(fixture)).toContain(invisibleId)
+    }, 240000)
   })
 
   it('does not offer a multi-Effect spell the Encounter cannot execute as one action', async () => {

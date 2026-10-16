@@ -187,7 +187,7 @@ export function runActor(input: { id: string; characterId?: string }): Encounter
           kind: 'CHARACTER',
           sourceId: input.characterId,
           frozenState: null,
-          outOfInitiative: false,
+          absence: null,
           disposition: 'FRIENDLY'
         }
       : {
@@ -200,6 +200,7 @@ export function runActor(input: { id: string; characterId?: string }): Encounter
           tempHitPoints: 0,
           conditions: [],
           defeated: false,
+          absence: null,
           disposition: 'HOSTILE'
         }
   )

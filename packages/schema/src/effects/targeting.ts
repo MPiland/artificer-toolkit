@@ -35,14 +35,6 @@ export const targetingDtoSchema = lazySchema(() =>
           })
         )
       ),
-      resolutionCount: z.optional(z.number().check(z.int()).check(z.positive())),
-      resolutionCountScaling: z.optional(
-        createBreakpointScalingDtoSchema(
-          z.object({
-            amount: z.number().check(z.int()).check(z.positive())
-          })
-        )
-      ),
       allowRepeatedTargets: z.optional(z.boolean()),
       allowedCreatureTypeIds: z.optional(
         authoredReferenceCollectionSchema(authoredIdentifierSchema)

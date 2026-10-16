@@ -55,7 +55,7 @@ export function isEncounterMovementContext(
 
 /**
  * The decision the Encounter waits on that holds its Scene's moves and doors (D26): a movement
- * decision, or a reaction decision inside an attack.
+ * decision, or a reaction decision inside an attack or before a cast.
  */
 export async function readSceneHoldingDecision(
   ctx: EncounterReadContext,
@@ -70,7 +70,9 @@ export async function readSceneHoldingDecision(
   const snapshot = pending ? await readPendingSnapshot(ctx, pending) : null
   const context = snapshot?.applicationContext
   if (context && isEncounterMovementContext(context)) return 'MOVEMENT'
-  return context?.kind === 'ENCOUNTER_ACTION' && context.reactionChoice ? 'REACTION' : null
+  return context?.kind === 'ENCOUNTER_ACTION' && (context.reactionChoice ?? context.castReaction)
+    ? 'REACTION'
+    : null
 }
 
 /** Structural facts only, so the precedence stays one pure decision. */

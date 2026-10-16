@@ -94,7 +94,8 @@ export function plannedTimedCondition(input: {
       'resources' | 'spellCastDecisions' | 'spellCastMechanics' | 'spellSlots'
     >,
     spellDocumentsById: new Map([[spell.id, spell]]),
-    firstSequence: 10
+    firstSequence: 10,
+    characterLevel: 1
   })
   const [entry] = compileCharacterActionEntryPoints({
     gameSystemId: SRD_SYSTEM_ID,

@@ -2,7 +2,8 @@
 # exits on the first failure, so a slice never waits on one run while another has already failed.
 # One `gh run list` call per poll, every 120 seconds, to stay inside the shared API rate limit.
 #   pwsh -NoProfile -File scripts/watchCi.ps1 [-Ref HEAD]
-# Exit 0: all green. Exit 1: a run failed (its failed steps are printed). Exit 2: the latest run was cancelled.
+# Exit 0: all green. Exit 1: a run failed (its failed steps are printed, with the download command for
+# generated-file drift or updated snapshots). Exit 2: the latest run was cancelled.
 param([string]$Ref = 'HEAD')
 
 $sha = git rev-parse $Ref
@@ -22,6 +23,12 @@ while ($true) {
     if ($steps -match 'Generated files match the commit') {
       "Fix: gh run download $($run.databaseId) -n generated-files -D local-validation/generated-$($run.databaseId)"
       "     Copy-Item -Recurse -Force local-validation/generated-$($run.databaseId)/* apps/apis/convex; git diff --stat; commit; push"
+    }
+    # Snapshot mismatches: the Tests workflow reran the failing files with -u and kept the corrected files.
+    $artifacts = gh api "repos/{owner}/{repo}/actions/runs/$($run.databaseId)/artifacts" --jq '.artifacts[].name'
+    if ($artifacts -contains 'updated-snapshots') {
+      "Fix: gh run download $($run.databaseId) -n updated-snapshots -D local-validation/snapshots-$($run.databaseId)"
+      "     Copy-Item -Recurse -Force local-validation/snapshots-$($run.databaseId)/* .; git diff --stat; review each snapshot diff (a changed snapshot may be the bug); commit; push"
     }
   }
   if ($failed) { exit 1 }
