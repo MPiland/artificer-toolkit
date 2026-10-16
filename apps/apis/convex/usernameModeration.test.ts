@@ -62,7 +62,11 @@ async function backend() {
         input: {
           model: 'user',
           where: [{ field: 'email', value: email }],
-          update: { emailVerified: true, username: username.toLowerCase(), displayUsername: username }
+          update: {
+            emailVerified: true,
+            username: username.toLowerCase(),
+            displayUsername: username
+          }
         }
       })
     )

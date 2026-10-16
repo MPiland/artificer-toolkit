@@ -42,9 +42,19 @@ export type ReactionMovementTriggerBindingAuthored = {
 /** The reactor is the target of an attack that hit; the reaction pauses the attack's outcome. */
 export type ReactionAttackedSelfTriggerBindingAuthored = { kind: 'ATTACKED_SELF' }
 
+/**
+ * The reactor takes damage of one of the named damage types from an attack that hit; the reaction
+ * pauses the attack's outcome so what it grants applies to that damage.
+ */
+export type ReactionDamageTakenTriggerBindingAuthored = {
+  kind: 'DAMAGE_TAKEN'
+  damageTypeIds: string[]
+}
+
 export type ReactionTriggerBindingAuthored =
   | ReactionMovementTriggerBindingAuthored
   | ReactionAttackedSelfTriggerBindingAuthored
+  | ReactionDamageTakenTriggerBindingAuthored
 
 type ReactionActivationAuthored = {
   code: typeof ACTIVATION_CODE.REACTION

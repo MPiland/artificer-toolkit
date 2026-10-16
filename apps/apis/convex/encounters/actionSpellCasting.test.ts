@@ -18,6 +18,10 @@ import type {
   ResolveEncounterActionInputDto
 } from '@artificer-toolkit/schema/api/encounters'
 import type { CharacterSheetExecuteInput } from '@artificer-toolkit/schema/api/characterSheetCommands'
+import type {
+  NodeRuntimeNormalizeValuesResponseDto,
+  NodeRuntimeResolveRequestDto
+} from '@artificer-toolkit/schema/api/nodeRuntime'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { withEncounterRuleUsageUsed } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import {
@@ -41,6 +45,9 @@ import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.j
 import { cureWounds } from '@artificer-toolkit/source-data/srd/spells/cure-wounds.js'
 import { fireball } from '@artificer-toolkit/source-data/srd/spells/fireball.js'
 import { fireBolt } from '@artificer-toolkit/source-data/srd/spells/fire-bolt.js'
+import { healingWord } from '@artificer-toolkit/source-data/srd/spells/healing-word.js'
+import { fly } from '@artificer-toolkit/source-data/srd/spells/fly.js'
+import { holdPerson } from '@artificer-toolkit/source-data/srd/spells/hold-person.js'
 import { wizard } from '@artificer-toolkit/source-data/srd/classes/wizard.js'
 import { warlock } from '@artificer-toolkit/source-data/srd/classes/warlock.js'
 import { writeRunActor } from '@artificer-toolkit/encounter-persistence/documents'
@@ -58,6 +65,7 @@ import {
   checkpointLiveRoom,
   closeRoom,
   executeInRoom,
+  queueRoomRolls,
   executeSheetInRoom,
   useLocalRoomWorker
 } from '../../tests/fixtures/localRoomWorker'
@@ -80,6 +88,11 @@ const actionChoices = makeFunctionReference<
   GetEncounterActionChoicesInputDto,
   EncounterActionChoicesResponseDto
 >('encounters/actionChoices:get')
+const normalizeValues = makeFunctionReference<
+  'query',
+  NodeRuntimeResolveRequestDto,
+  NodeRuntimeNormalizeValuesResponseDto
+>('authoring/nodeRuntime:normalizeValues')
 const executeSheet = makeFunctionReference<'mutation', CharacterSheetExecuteInput, unknown>(
   'characters/sheetCommands:execute'
 )
@@ -97,37 +110,18 @@ function rekeyed<T>(document: T): T {
   })
 }
 
-/** The dice healing outcome of the spell's Effect. */
-function healOutcome(spell: SpellAuthored) {
-  const path = spell.effects?.[0]?.paths?.[0]
-  const found = path && 'resultBlock' in path ? path.resultBlock.outcomes[0] : undefined
-  if (!found || found.effectKind !== 'HEAL' || found.valueKind !== 'DICE')
-    throw new Error('Expected a dice healing outcome.')
-  return found
+/** An SRD spell on its own ids, exactly as authored: its range and heal are the SRD's. */
+function srdSpell(source: SpellAuthored): SpellAuthored {
+  const spell = rekeyed(source)
+  spell.id = crypto.randomUUID()
+  return spell
 }
 
-/**
- * A Cure Wounds variant that needs no Scene geometry. Its heal scales per cast level, which the
- * dnd5e Effect-action compiler cannot execute yet; `edit` reshapes the copy, and `fixHeal` makes the
- * heal an exact unscaled amount, which it can.
- */
-function healSpell(
-  label: string,
-  edit: (spell: SpellAuthored) => void = () => undefined
-): SpellAuthored {
-  const spell = rekeyed(cureWounds)
-  spell.id = crypto.randomUUID()
+/** A Cure Wounds variant that needs no Scene geometry; `edit` reshapes the copy (`fixHeal` fixes its heal). */
+function healSpell(label: string, edit: (spell: SpellAuthored) => void): SpellAuthored {
+  const spell = srdSpell(cureWounds)
   spell.label = label
   targetAnyCreatureAtAnyRange(spell)
-  const healing = healOutcome(spell)
-  if (healing.scalingKind !== 'PER_LEVEL') throw new Error('Expected a scaling heal.')
-  healing.levels = Array.from({ length: 9 }, (_, index) => ({
-    id: crypto.randomUUID(),
-    level: index + 1,
-    order: index + 1,
-    diceConfig: index === 0 ? '1d2' : `${(index + 1) * 2}d2`
-  }))
-  delete healing.bonuses
   edit(spell)
   return spell
 }
@@ -149,6 +143,8 @@ type SetupOptions = {
   }[]
   /** Seats an SRD Wolf and a second player's Character beside the target. */
   withOthers?: boolean
+  /** Replaces the seated Wolf's creature type, by its System code. */
+  wolfTypeCode?: string
 }
 
 async function setup(options: SetupOptions) {
@@ -330,9 +326,14 @@ async function setup(options: SetupOptions) {
         temp: 0
       }
     })
+    const wolfTypeId = options.wolfTypeCode
+      ? srdSystemRecord.creatureTypes?.find((type) => type.code === options.wolfTypeCode)?.id
+      : srdWolf.creatureTypeId
+    if (!wolfTypeId) throw new Error('Missing creature type.')
+    const seatedWolf = { ...srdWolf, creatureTypeId: wolfTypeId }
     await base.t.mutation(internal.content.import.importSubjects, {
       contentSourceId: SRD_CONTENT_SOURCE.id,
-      subjects: [importedSubject({ ...srdWolf, subjectKind: 'CREATURE', document: srdWolf })]
+      subjects: [importedSubject({ ...seatedWolf, subjectKind: 'CREATURE', document: seatedWolf })]
     })
     allyCharacterId = ally.id
   }
@@ -405,12 +406,13 @@ function castCommand(
   actionId: string,
   expectedVersion: number,
   commandId = crypto.randomUUID(),
-  targetActorId = fixture.actor.id
+  targetActorId = fixture.actor.id,
+  acknowledgedWarnings: ResolveEncounterActionInputDto['acknowledgedWarnings'] = []
 ) {
   return {
     type: 'RESOLVE_ACTION' as const,
     acceptedWieldConflict: null,
-    acknowledgedWarnings: [],
+    acknowledgedWarnings,
     encounterId: fixture.run.id,
     commandId,
     expectedVersion,
@@ -481,6 +483,69 @@ async function concentrationCasterIds(fixture: Fixture) {
   return run?.concentrationCasterCharacterIds
 }
 
+/** The Character's own active-effect rows (a Character holder keeps its grants there), by maintained effect. */
+async function characterActiveEffects(fixture: Fixture) {
+  await checkpointLiveRoom(fixture.campaign.id)
+  const rows = await fixture.t.run((ctx) =>
+    ctx.db
+      .query('characterActiveRuleEffects')
+      .withIndex('by_characterId_createdOrdinal_id', (q) =>
+        q.eq('characterId', fixture.character.id)
+      )
+      .take(16)
+  )
+  return rows.map(({ maintainedEffectStateId }) => ({ maintainedEffectStateId }))
+}
+
+/** The Run's active-effect rows, as the target and maintained effect they are held under. */
+async function activeEffects(fixture: Fixture) {
+  await checkpointLiveRoom(fixture.campaign.id)
+  const rows = await fixture.t.run((ctx) =>
+    ctx.db
+      .query('encounterActiveRuleEffects')
+      .withIndex('by_encounterId_targetActorId_createdOrdinal_id', (q) =>
+        q.eq('encounterId', fixture.run.id)
+      )
+      .take(16)
+  )
+  return rows.map(({ targetActorId, maintainedEffectStateId }) => ({
+    targetActorId,
+    maintainedEffectStateId
+  }))
+}
+
+/** An SRD Concentration spell on its own ids, aimed at one creature at any distance (no Scene geometry). */
+function concentrationSpell(source: SpellAuthored): SpellAuthored {
+  const spell = srdSpell(source)
+  targetAnyCreatureAtAnyRange(spell)
+  return spell
+}
+
+/** Advances turns until `actorId` is the current actor, as the Run's turn order has it. */
+async function advanceToTurnOf(
+  fixture: Fixture,
+  from: Awaited<ReturnType<typeof advanceTurn>>,
+  actorId: string
+) {
+  let result = from
+  for (let turns = 0; result.projection.currentActorId !== actorId; turns += 1) {
+    if (turns > fixture.run.actors.length) throw new Error('The actor never takes a turn.')
+    result = await advanceTurn(fixture, result.projection.version)
+  }
+  return result
+}
+
+function advanceTurn(fixture: Fixture, expectedVersion: number) {
+  return executeInRoom(fixture.gm.caller, {
+    command: {
+      type: 'ADVANCE_TURN',
+      encounterId: fixture.run.id,
+      commandId: crypto.randomUUID(),
+      expectedVersion
+    }
+  })
+}
+
 /** A Creature's current hit points, after the room publishes what it holds. */
 async function creatureHitPoints(fixture: Fixture, actorId: string) {
   await checkpointLiveRoom(fixture.campaign.id)
@@ -541,12 +606,12 @@ const SHEET_CHANGED = /'s Sheet changed after this action; adjust manually\./
 describe('Character spell casting in an Encounter', () => {
   useLocalRoomWorker()
 
-  it('offers a cast once per spell it can execute, never a granted ritual, an unprepared spell or a scaling heal', async () => {
+  it('offers a cast once per spell it can execute, never a granted ritual or an unprepared spell', async () => {
     const mend = healSpell('Mend', (spell) => fixHeal(spell, 1))
     const grantedRite = healSpell('Granted Rite', (spell) => fixHeal(spell, 1))
     const unprepared = healSpell('Unprepared', (spell) => fixHeal(spell, 1))
-    // Its heal scales per cast level, which the Encounter cannot execute: choosing it could only be refused.
-    const scaling = healSpell('Scaling Mend')
+    // Its heal scales per cast level: it is offered once for each slot level the Character can cast it at.
+    const scaling = srdSpell(cureWounds)
     const fixture = await setup({
       known: [mend, unprepared, scaling],
       prepared: [mend, scaling],
@@ -558,7 +623,7 @@ describe('Character spell casting in an Encounter', () => {
     const choices = await spellChoices(fixture, 0)
     // A spell granted as a ritual is not offered; an unprepared spell is refused as the Sheet refuses it.
     expect(choices.map(({ label }) => label).sort()).toEqual(
-      ['Fire Bolt', 'Mend (1st level)'].sort()
+      ['Cure Wounds (1st level)', 'Cure Wounds (2nd level)', 'Fire Bolt', 'Mend (1st level)'].sort()
     )
     expect(new Set(choices.map(({ id }) => id)).size).toBe(choices.length)
   }, 60000)
@@ -805,6 +870,136 @@ describe('Character spell casting in an Encounter', () => {
     )
   }, 120000)
 
+  it('derives Concentration from the CONCENTRATION attribute alone, and not for a spell without it', async () => {
+    const author = (label: string, attributes: SpellAuthored['attributes']) =>
+      healSpell(label, (spell) => {
+        fixHeal(spell, 1)
+        spell.attributes = attributes
+        const path = spell.effects?.[0]?.paths?.[0]
+        if (!path || !('resultBlock' in path)) throw new Error('Expected a result block.')
+        path.resultBlock = {
+          ...path.resultBlock,
+          duration: { id: crypto.randomUUID(), durationKind: 'ROUND', amount: 3 },
+          lifecycle: { recurringKind: 'START_OF_TURN' }
+        }
+      })
+    const focus = author('Focus', ['CONCENTRATION'])
+    const plain = author('Plain', [])
+    const fixture = await setup({ known: [focus, plain] })
+    // The Spell node map accepts the author's document as written: it clears nothing and adds no maintenance.
+    const normalized = await fixture.gm.caller.query(normalizeValues, {
+      mapId: 'spell',
+      systemId: focus.systemId,
+      values: { ...focus, classIds: [fixture.baseClass.id] }
+    })
+    expect(normalized.clearedPaths).toEqual([])
+    expect(JSON.stringify(normalized.values)).not.toContain('maintenanceDefinitionId')
+
+    const plainId = await choiceId(fixture, 'Plain (1st level)', 0)
+    const cast = await executeInRoom(fixture.gm.caller, {
+      command: castCommand(fixture, plainId, 0)
+    })
+    expect(cast.occurrence?.status).toBe('COMPLETE')
+    expect(await maintainedEffects(fixture)).toEqual([])
+    expect(await concentrationCasterIds(fixture)).toEqual([])
+
+    await resetActionAllowance(fixture)
+    const focusId = await choiceId(fixture, 'Focus (1st level)', cast.projection.version)
+    await executeInRoom(fixture.gm.caller, {
+      command: castCommand(fixture, focusId, cast.projection.version)
+    })
+    expect(await concentrationCasterIds(fixture)).toEqual([fixture.character.id])
+    expect(await maintainedEffects(fixture)).toEqual([
+      {
+        id: expect.any(String),
+        ownerActorId: fixture.actor.id,
+        maintenanceDefinitionId: SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID
+      }
+    ])
+  }, 120000)
+
+  describe('Hold Person', () => {
+    const SLOTS = [
+      { spellLevel: 2, slotCount: 2 },
+      { spellLevel: 3, slotCount: 2 }
+    ]
+
+    async function castFlyThenHoldPerson() {
+      const flight = concentrationSpell(fly)
+      const hold = concentrationSpell(holdPerson)
+      // A Custom actor has no saving throws; the SRD Wolf is the target that rolls the Wisdom save.
+      const fixture = await setup({ known: [flight, hold], slots: SLOTS, withOthers: true })
+      const wolf = fixture.wolf
+      if (!wolf) throw new Error('Missing the Wolf.')
+      const flyId = await choiceId(fixture, 'Fly (3rd level)', 0)
+      const flying = await executeInRoom(fixture.gm.caller, {
+        command: castCommand(fixture, flyId, 0)
+      })
+      expect(flying.occurrence?.status).toBe('COMPLETE')
+      expect(await characterActiveEffects(fixture)).toHaveLength(1)
+      const [flyConcentration] = await maintainedEffects(fixture)
+      expect(flyConcentration?.maintenanceDefinitionId).toBe(
+        SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID
+      )
+
+      // Every d20 lands on 1: the target fails its Wisdom save against the caster's DC.
+      await queueRoomRolls(fixture.campaign.id, { rolls: [], repeat: 1 })
+      await resetActionAllowance(fixture)
+      const holdId = await choiceId(fixture, 'Hold Person (2nd level)', flying.projection.version)
+      const held = await executeInRoom(fixture.gm.caller, {
+        command: castCommand(fixture, holdId, flying.projection.version, undefined, wolf.id)
+      })
+      return { fixture, wolf, flyId, flyConcentration, held }
+    }
+
+    it('replaces Fly, leaves the target Paralyzed, and ends the condition on a successful repeat save', async () => {
+      const { fixture, wolf, flyConcentration, held } = await castFlyThenHoldPerson()
+      expect(held.occurrence?.status).toBe('COMPLETE')
+      expect(await concentrationCasterIds(fixture)).toEqual([fixture.character.id])
+      const [replacement, ...others] = await maintainedEffects(fixture)
+      expect(others).toEqual([])
+      expect(replacement?.id).not.toBe(flyConcentration?.id)
+      // Fly's grant ended with its Concentration; the Paralyzed condition is the only effect left.
+      expect(await characterActiveEffects(fixture)).toEqual([])
+      expect(await activeEffects(fixture)).toEqual([
+        { targetActorId: wolf.id, maintainedEffectStateId: replacement?.id }
+      ])
+
+      // The Wolf's turn ends while its save keeps failing: the condition holds.
+      const targetTurn = await advanceToTurnOf(fixture, held, wolf.id)
+      const failedRepeat = await advanceTurn(fixture, targetTurn.projection.version)
+      expect(failedRepeat.occurrence?.status).toBe('COMPLETE')
+      expect(await activeEffects(fixture)).toHaveLength(1)
+
+      // A natural 20 (raw die 19) on the next end-of-turn save ends the condition, and Concentration with it.
+      await queueRoomRolls(fixture.campaign.id, { rolls: [19], repeat: 19 })
+      const targetAgain = await advanceToTurnOf(fixture, failedRepeat, wolf.id)
+      const saved = await advanceTurn(fixture, targetAgain.projection.version)
+      expect(saved.occurrence?.status).toBe('COMPLETE')
+      expect(await activeEffects(fixture)).toEqual([])
+      expect(await characterActiveEffects(fixture)).toEqual([])
+      expect(await maintainedEffects(fixture)).toEqual([])
+    }, 180000)
+
+    it('is dropped with its condition when the next Concentration spell is cast', async () => {
+      const { fixture, flyId, held } = await castFlyThenHoldPerson()
+      expect(await activeEffects(fixture)).toHaveLength(1)
+      await resetActionAllowance(fixture)
+      const recast = await executeInRoom(fixture.gm.caller, {
+        command: castCommand(fixture, flyId, held.projection.version)
+      })
+      expect(recast.occurrence?.status).toBe('COMPLETE')
+      expect(await concentrationCasterIds(fixture)).toEqual([fixture.character.id])
+      const [flight, ...others] = await maintainedEffects(fixture)
+      expect(others).toEqual([])
+      // The Paralyzed condition ended with the Hold Person Concentration; only Fly's grant remains.
+      expect(await activeEffects(fixture)).toEqual([])
+      expect(await characterActiveEffects(fixture)).toEqual([
+        { maintainedEffectStateId: flight?.id }
+      ])
+    }, 180000)
+  })
+
   it('does not offer a multi-Effect spell the Encounter cannot execute as one action', async () => {
     const twin = healSpell('Twin Mend', (spell) => {
       fixHeal(spell, 1)
@@ -880,4 +1075,101 @@ describe('Character spell casting in an Encounter', () => {
       { slotKey: 'STANDARD:2', used: 0, max: 1 }
     ])
   }, 60000)
+
+  describe('a scaling heal (SPELLS-8.1)', () => {
+    const RANGE_UNCHECKED: NonNullable<ResolveEncounterActionInputDto['acknowledgedWarnings']> = [
+      'TARGET_RANGE_UNCHECKED'
+    ]
+    const EXCLUDED_TYPE = 'TARGET_CREATURE_TYPE_EXCLUDED'
+
+    it('heals the dice of the cast level the Character chose, on the SRD Cure Wounds as authored', async () => {
+      const fixture = await setup({ known: [srdSpell(cureWounds)] })
+      expect((await spellChoices(fixture, 0)).map(({ label }) => label).sort()).toEqual([
+        'Cure Wounds (1st level)',
+        'Cure Wounds (2nd level)'
+      ])
+      const first = await choiceId(fixture, 'Cure Wounds (1st level)', 0)
+      const second = await choiceId(fixture, 'Cure Wounds (2nd level)', 0)
+
+      // One die, then two; a raw roll is the face less one, and the Wizard's spellcasting modifier is +1.
+      await queueRoomRolls(fixture.campaign.id, { rolls: [2, 0, 2], repeat: 0 })
+      const oneDie = await executeInRoom(fixture.player.caller, {
+        command: castCommand(fixture, first, 0, undefined, undefined, RANGE_UNCHECKED)
+      })
+      expect(oneDie.occurrence?.status).toBe('COMPLETE')
+      const afterOne = await storedCharacter(fixture)
+      expect(afterOne.record.state.spellSlots).toEqual([{ slotKey: 'STANDARD:1', used: 1 }])
+      expect(afterOne.record.state.hitpoints.current - 1).toBe(3 + 1)
+
+      await resetActionAllowance(fixture)
+      const twoDice = await executeInRoom(fixture.player.caller, {
+        command: castCommand(
+          fixture,
+          second,
+          oneDie.projection.version,
+          undefined,
+          undefined,
+          RANGE_UNCHECKED
+        )
+      })
+      expect(twoDice.occurrence?.status).toBe('COMPLETE')
+      const afterTwo = await storedCharacter(fixture)
+      expect(afterTwo.record.state.spellSlots).toEqual([
+        { slotKey: 'STANDARD:1', used: 1 },
+        { slotKey: 'STANDARD:2', used: 1 }
+      ])
+      expect(
+        afterTwo.record.state.hitpoints.current - afterOne.record.state.hitpoints.current
+      ).toBe(1 + 3 + 1)
+    }, 120000)
+
+    it('heals an ally with Healing Word as authored, at a Creature of a permitted type', async () => {
+      const fixture = await setup({ known: [srdSpell(healingWord)], withOthers: true })
+      const wolf = fixture.wolf
+      if (!wolf) throw new Error('Missing the Wolf.')
+      await wound(fixture, wolf.id, 1)
+      const actionId = await choiceId(fixture, 'Healing Word (1st level)', 0)
+      await queueRoomRolls(fixture.campaign.id, { rolls: [2], repeat: 0 })
+      // A Beast raises no creature-type warning: the range, which this Scene-less Run cannot measure, is the only one.
+      const healed = await executeInRoom(fixture.player.caller, {
+        command: castCommand(fixture, actionId, 0, undefined, wolf.id, RANGE_UNCHECKED)
+      })
+      expect(healed.occurrence?.status).toBe('COMPLETE')
+      expect(await creatureHitPoints(fixture, wolf.id)).toBe(1 + 3 + 1)
+    }, 120000)
+
+    it('warns, overridably, when a heal targets an excluded creature type, and heals once overridden', async () => {
+      const fixture = await setup({
+        known: [srdSpell(cureWounds)],
+        withOthers: true,
+        wolfTypeCode: 'UNDEAD'
+      })
+      const wolf = fixture.wolf
+      if (!wolf) throw new Error('Missing the Wolf.')
+      await wound(fixture, wolf.id, 1)
+      const actionId = await choiceId(fixture, 'Cure Wounds (1st level)', 0)
+      const refused = await executeInRoom(fixture.player.caller, {
+        command: castCommand(fixture, actionId, 0, undefined, wolf.id, RANGE_UNCHECKED)
+      }).then(
+        () => null,
+        (caught: unknown) => caught
+      )
+      expect(`${String(refused)} ${JSON.stringify(refused)}`).toContain(EXCLUDED_TYPE)
+      expect(await creatureHitPoints(fixture, wolf.id)).toBe(1)
+      expect((await storedCharacter(fixture)).record.state.spellSlots).toBeUndefined()
+
+      await queueRoomRolls(fixture.campaign.id, { rolls: [2], repeat: 0 })
+      const healed = await executeInRoom(fixture.player.caller, {
+        command: castCommand(fixture, actionId, 0, undefined, wolf.id, [
+          ...RANGE_UNCHECKED,
+          EXCLUDED_TYPE
+        ])
+      })
+      expect(healed.occurrence?.status).toBe('COMPLETE')
+      expect(await creatureHitPoints(fixture, wolf.id)).toBe(1 + 3 + 1)
+      expect((await storedCharacter(fixture)).record.state.spellSlots).toEqual([
+        { slotKey: 'STANDARD:1', used: 1 }
+      ])
+    }, 120000)
+  })
 })

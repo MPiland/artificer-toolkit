@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
-import { USERNAME_NOT_ALLOWED_MESSAGE, validateUsername } from '../domains/account/usernamePolicy.js'
+import {
+  USERNAME_NOT_ALLOWED_MESSAGE,
+  validateUsername
+} from '../domains/account/usernamePolicy.js'
 import { validateUsernameOnServer } from '../domains/account/usernameServerPolicy.js'
 
 describe('validateUsernameOnServer', () => {

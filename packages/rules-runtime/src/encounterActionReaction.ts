@@ -1,6 +1,5 @@
-import type {
-  EncounterReactionOfferDto
-} from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
+import type { EncounterReactionOfferDto } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
+import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
 import {
   continueNativeActionAfterTest,
@@ -56,7 +55,13 @@ export async function resolveNativeActionReaction(
         d20: input.offer.originalD20
       })
     : null
-  if (adjusted && adjusted.twoPhase.boundFactsChecksum === original.twoPhase.boundFactsChecksum)
+  // A reaction changes the attack by the defense it is rolled against or by what the target resists.
+  if (
+    adjusted &&
+    adjusted.twoPhase.boundFactsChecksum === original.twoPhase.boundFactsChecksum &&
+    checksumRuleDocument(input.adjustedBinding.defenses) ===
+      checksumRuleDocument(input.binding.defenses)
+  )
     throw new Error('The reaction did not change the attack it answered.')
   const audit = encounterReactionAudit({
     offer: input.offer,

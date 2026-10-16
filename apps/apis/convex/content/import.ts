@@ -30,7 +30,11 @@ import {
 } from '@artificer-toolkit/schema/shared/reusableDefinitions'
 import { systemAuthoredDtoSchema } from '@artificer-toolkit/schema/vocabulary/system'
 import { equipmentAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/equipment'
-import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import {
+  canonicalizeRuleDocument,
+  checksumCanonicalRuleDocument,
+  checksumRuleDocument
+} from '@artificer-toolkit/shared/rules'
 import type { QueryCtx } from '../_generated/server'
 import { internalQuery } from '../lib/queries'
 import { internalMutation } from '../lib/mutations'
@@ -75,10 +79,14 @@ function storedFields(row: Record<string, unknown>) {
   )
 }
 
+// Canonicalizes the original once; that string proves schema-parse parity and the checksum,
+// and callers store it.
 function validateDocument(original: unknown, parsed: unknown, checksum: string) {
-  const document = jsonValueSchema.parse(JSON.parse(JSON.stringify(parsed)))
-  exact(original, document)
-  if (checksumRuleDocument(document) !== checksum) throw new Error('Canonical checksum mismatch.')
+  const canonical = canonicalizeRuleDocument(original)
+  if (canonicalizeRuleDocument(parsed) !== canonical) throw new Error('Canonical content conflict.')
+  if (checksumCanonicalRuleDocument(canonical) !== checksum)
+    throw new Error('Canonical checksum mismatch.')
+  return canonical
 }
 
 function uniqueIds(items: readonly { id: string }[]) {
@@ -207,12 +215,13 @@ export const importSubjects: RegisteredMutation<
       })
       if (parsed.document.systemId !== subject.systemId || parsed.document.label !== subject.label)
         throw new Error('Canonical subject metadata mismatch.')
+      const { document, ...metadata } = subject
       // Exact current root/version comparison below already proves an unchanged replay payload.
-      if (!current) validateDocument(subject.document, parsed.document, subject.checksum)
+      const documentJson = current
+        ? canonicalizeRuleDocument(document)
+        : validateDocument(document, parsed.document, subject.checksum)
       if (parsed.subjectKind === 'CLASS' && parsed.document.category === 'SUBCLASS')
         await requireClassParent(ctx, parsed.document, null)
-      const { document, ...metadata } = subject
-      const documentJson = canonicalizeRuleDocument(document)
       const version = {
         ...metadata,
         contentSourceId,

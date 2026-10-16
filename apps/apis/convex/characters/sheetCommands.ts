@@ -455,8 +455,9 @@ export async function executeCharacterSheetCommand(
       {
         characterId: initial.active.id,
         effectId: command.effectId,
-        isCampaignOwner: initial.sourceContext.context.sourceAccess.campaign?.ownerUserId === userId,
-        inEncounter: false
+        isCampaignOwner:
+          initial.sourceContext.context.sourceAccess.campaign?.ownerUserId === userId,
+        economyEnforced: false
       }
     )
 

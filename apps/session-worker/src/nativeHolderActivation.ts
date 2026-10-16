@@ -30,8 +30,7 @@ type HolderActivationCommand = EndHeldGrantInputDto | EscapeRelationshipInputDto
 export async function admitNativeLiveHolderCommand(
   scope: Omit<LiveSessionEncounterRulesInput, 'request'>,
   command: HolderActivationCommand,
-  captures: LiveCaptureReads,
-  label: string
+  captures: LiveCaptureReads
 ) {
   const request = { kind: 'BASIC_ACTION' as const, command }
   const initial = liveSessionEncounterRulesInputSchema.parse({
@@ -44,15 +43,15 @@ export async function admitNativeLiveHolderCommand(
     command.encounterId.toLowerCase() !== initial.encounterId ||
     command.expectedVersion !== initial.expectedVersion
   )
-    throw new Error(`Live ${label} scope mismatch.`)
+    throw new Error('Live holder command scope mismatch.')
   const reads = liveEncounterCaptures(initial, captures)
   const { capture } = reads
   const admission = await capture(request)
   if (admission.result) return { kind: 'REPLAY' as const, result: admission.result }
-  if (!admission.ready) throw new Error(`The ${label} is unavailable.`)
+  if (!admission.ready) throw new Error('The holder command is unavailable.')
   const { state, system } = await capture({ kind: 'INPUTS' })
   if (state.id !== initial.encounterId || state.version !== initial.expectedVersion)
-    throw new Error(`${label} Run inputs changed during capture.`)
+    throw new Error('Holder command Run inputs changed during capture.')
   return { kind: 'ADMITTED' as const, initial, reads, ready: admission.ready, state, system }
 }
 
@@ -69,17 +68,16 @@ export async function spendNativeHolderActivation(input: {
   capture: ReturnType<typeof liveEncounterCaptures>['capture']
 }) {
   const { actor, state, holder, activation, acknowledgedWarnings, capture } = input
-  const economy =
-    activation.code === 'FREE' || !('amount' in activation)
-      ? null
-      : await evaluateEncounterActionEconomy({
-          actor,
-          state,
-          activation,
-          target: holder,
-          loadTarget: async () => holder,
-          definitions: captureActionEconomyDefinitions(capture)
-        })
+  const economy = !('amount' in activation)
+    ? null
+    : await evaluateEncounterActionEconomy({
+        actor,
+        state,
+        activation,
+        target: holder,
+        loadTarget: async () => holder,
+        definitions: captureActionEconomyDefinitions(capture)
+      })
   const warnings = encounterActionEconomyWarnings(economy, activation.code)
   if (!warnings.every((warning) => acknowledgedWarnings.includes(warning.code)))
     throw new LiveSessionDomainRejectionError(422, {

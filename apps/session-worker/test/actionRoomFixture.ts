@@ -35,7 +35,7 @@ export function biteWolf(
     damage?: number
     reachFeet?: number
     /** The ability the SAVE Bite rolls and, when set, the damage type it deals instead of the SRD's. */
-    save?: { ability: 'DEXTERITY' | 'CONSTITUTION'; damageTypeCode?: 'POISON' }
+    save?: { ability: 'DEXTERITY' | 'CONSTITUTION'; damageTypeCode?: 'POISON' | 'FIRE' | 'COLD' }
   } = {}
 ): CreatureAuthored {
   const saveAbilityId = srdSystemRecord.abilities?.find(

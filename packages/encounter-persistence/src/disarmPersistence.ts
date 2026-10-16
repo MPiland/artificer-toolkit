@@ -25,7 +25,7 @@ import { serverRuleExecutionReceiptCommandMetadataDtoSchema } from '@artificer-t
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
-import { deleteConsumedGrants } from './consumedGrantPersistence.js'
+import { deleteGrants } from './consumedGrantPersistence.js'
 import { writePendingSnapshot } from './pendingSnapshots.js'
 import { insertActionEvidenceReceipt } from './actionEvidenceReceipt.js'
 import { readNativeDisarmPending } from './actionDisarmPending.js'
@@ -230,7 +230,7 @@ export async function persistEncounterDisarmCommit(
         ? settled.target
         : actor
   )
-  await deleteConsumedGrants(ctx, input.consumedGrants)
+  await deleteGrants(ctx, input.consumedGrants)
   const nextState = encounterRunStateSchema.parse({
     ...state,
     version: state.version + 1,

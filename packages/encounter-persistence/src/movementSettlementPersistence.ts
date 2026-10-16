@@ -24,7 +24,8 @@ import { readEncounterMovementPendingContext } from '@artificer-toolkit/rules-ru
 import { createSpatialRuleEffectStore } from './spatialEffectStore.js'
 import { readMovementResolution } from './sceneGeometryDocuments.js'
 import { consumeNativeActionEconomy } from './actionEconomyPersistence.js'
-import { deleteConsumedGrants } from './consumedGrantPersistence.js'
+import type { endHolderStateGrants } from './concentrationEnd.js'
+import { deleteGrants } from './consumedGrantPersistence.js'
 import type { EncounterPersistenceTransaction } from './ports.js'
 import type { persistLiveMovementSpatial } from './liveMovementSpatialPersistence.js'
 import type { persistLiveMovementReaction } from './liveMovementReactionPersistence.js'
@@ -154,6 +155,7 @@ export async function persistMovementSettlements(
     persistConcentrationEnd: (
       input: Parameters<typeof persistLiveMovementConcentrationEnd>[1]
     ) => ReturnType<typeof persistLiveMovementConcentrationEnd>
+    endHolderGrants: (input: Parameters<typeof endHolderStateGrants>[1]) => Promise<void>
   }
 ) {
   const { save, preparation, userId } = input
@@ -327,7 +329,7 @@ export async function persistMovementSettlements(
         consumption: step.consumption,
         overridden: false
       })
-      await deleteConsumedGrants(ctx, step.consumedGrants)
+      await deleteGrants(ctx, step.consumedGrants)
       actors = actors.map((entry) => (entry.id === next.id ? next : entry))
       passageSettled = true
     } else if (step.kind === 'CONCENTRATION_END') {
@@ -374,6 +376,16 @@ export async function persistMovementSettlements(
     Boolean(passage) !== passageSettled
   )
     throw new Error('Movement settlement is incomplete.')
+  // The planner does not see a mover knocked unconscious mid-pass, so its grants end once the pass
+  // has settled, from each holder's committed state.
+  if (mechanicsChanged && input.state.automationMode !== 'MANUAL')
+    for (const actor of actors)
+      await callbacks.endHolderGrants({
+        state: input.state,
+        actor,
+        occurrenceId: preparation.occurrenceId,
+        userId
+      })
   return {
     mechanicsChanged,
     characterTransitions: movementCommandCharacterAggregateVersions(transitions).map((span) => ({

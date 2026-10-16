@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
-import { playerControlFixture } from '../../tests/fixtures/playerControl'
+import { playerControlFixture, storeRunAutomationMode } from '../../tests/fixtures/playerControl'
 import {
   checkpointLiveRoom,
   executeSheetInRoom,
@@ -338,11 +338,13 @@ describe('Sheet play on a held Character', () => {
 
   describe('ending a grant its holder may end (D113)', () => {
     /** Aid granted twice, one end costing a bonus action and one free, each with its `holderEnd`. */
-    async function holdingEndableGrants() {
+    async function holdingEndableGrants(automationMode: 'ASSISTED' | 'MANUAL' = 'ASSISTED') {
+      // A Manual Run is stored before the room claims it, as START freezes the mode.
       const ids = { costed: '', free: '' }
       const base = await heldCharacter(async ({ t, run, character }) => {
         const characterId = character.sourceId
         if (!characterId) throw new Error('Missing held Character source.')
+        if (automationMode === 'MANUAL') await storeRunAutomationMode(t, run.id, automationMode)
         for (const [kind, activation] of [
           ['costed', 'BONUS_ACTION'],
           ['free', 'FREE']
@@ -407,6 +409,15 @@ describe('Sheet play on a held Character', () => {
       const ended = await end(player.caller, ids.free, streamVersion)
       expect(await effectIds()).toEqual([ids.costed])
       expect(ended.streamVersion).toBe(streamVersion + 1)
+    }, 120000)
+
+    it('lets the player end a costed grant at the Sheet in a Manual Run, which resolves no Encounter commands', async () => {
+      const held = await holdingEndableGrants('MANUAL')
+      const { ids, player, effectIds, end } = held
+      const { streamVersion } = await held.play()
+
+      await end(player.caller, ids.costed, streamVersion)
+      expect(await effectIds()).toEqual([ids.free])
     }, 120000)
 
     it('refuses an effect that has already ended, and a member who does not own the Character', async () => {

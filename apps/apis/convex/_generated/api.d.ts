@@ -28102,7 +28102,11 @@ export declare const api: {
                                   | null;
                                 stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                               }
-                            | { kind: "ATTACKED_SELF" };
+                            | { kind: "ATTACKED_SELF" }
+                            | {
+                                damageTypeIds: Array<string>;
+                                kind: "DAMAGE_TAKEN";
+                              };
                           resourceUse?: { chargeId: string; cost: number };
                           savingThrow:
                             | {
@@ -31573,7 +31577,11 @@ export declare const api: {
                                   | null;
                                 stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                               }
-                            | { kind: "ATTACKED_SELF" };
+                            | { kind: "ATTACKED_SELF" }
+                            | {
+                                damageTypeIds: Array<string>;
+                                kind: "DAMAGE_TAKEN";
+                              };
                           resourceUse?: { chargeId: string; cost: number };
                           shape?:
                             | {
@@ -37840,7 +37848,11 @@ export declare const api: {
                                   | null;
                                 stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                               }
-                            | { kind: "ATTACKED_SELF" };
+                            | { kind: "ATTACKED_SELF" }
+                            | {
+                                damageTypeIds: Array<string>;
+                                kind: "DAMAGE_TAKEN";
+                              };
                           resourceUse?: { chargeId: string; cost: number };
                           savingThrow:
                             | {
@@ -41311,7 +41323,11 @@ export declare const api: {
                                   | null;
                                 stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                               }
-                            | { kind: "ATTACKED_SELF" };
+                            | { kind: "ATTACKED_SELF" }
+                            | {
+                                damageTypeIds: Array<string>;
+                                kind: "DAMAGE_TAKEN";
+                              };
                           resourceUse?: { chargeId: string; cost: number };
                           shape?:
                             | {
@@ -47587,7 +47603,11 @@ export declare const api: {
                                   | null;
                                 stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                               }
-                            | { kind: "ATTACKED_SELF" };
+                            | { kind: "ATTACKED_SELF" }
+                            | {
+                                damageTypeIds: Array<string>;
+                                kind: "DAMAGE_TAKEN";
+                              };
                           resourceUse?: { chargeId: string; cost: number };
                           savingThrow:
                             | {
@@ -51058,7 +51078,11 @@ export declare const api: {
                                   | null;
                                 stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                               }
-                            | { kind: "ATTACKED_SELF" };
+                            | { kind: "ATTACKED_SELF" }
+                            | {
+                                damageTypeIds: Array<string>;
+                                kind: "DAMAGE_TAKEN";
+                              };
                           resourceUse?: { chargeId: string; cost: number };
                           shape?:
                             | {
@@ -57325,7 +57349,11 @@ export declare const api: {
                                   | null;
                                 stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                               }
-                            | { kind: "ATTACKED_SELF" };
+                            | { kind: "ATTACKED_SELF" }
+                            | {
+                                damageTypeIds: Array<string>;
+                                kind: "DAMAGE_TAKEN";
+                              };
                           resourceUse?: { chargeId: string; cost: number };
                           savingThrow:
                             | {
@@ -60796,7 +60824,11 @@ export declare const api: {
                                   | null;
                                 stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                               }
-                            | { kind: "ATTACKED_SELF" };
+                            | { kind: "ATTACKED_SELF" }
+                            | {
+                                damageTypeIds: Array<string>;
+                                kind: "DAMAGE_TAKEN";
+                              };
                           resourceUse?: { chargeId: string; cost: number };
                           shape?:
                             | {
@@ -67098,7 +67130,11 @@ export declare const api: {
                                   | null;
                                 stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                               }
-                            | { kind: "ATTACKED_SELF" };
+                            | { kind: "ATTACKED_SELF" }
+                            | {
+                                damageTypeIds: Array<string>;
+                                kind: "DAMAGE_TAKEN";
+                              };
                           resourceUse?: { chargeId: string; cost: number };
                           savingThrow:
                             | {
@@ -70569,7 +70605,11 @@ export declare const api: {
                                   | null;
                                 stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                               }
-                            | { kind: "ATTACKED_SELF" };
+                            | { kind: "ATTACKED_SELF" }
+                            | {
+                                damageTypeIds: Array<string>;
+                                kind: "DAMAGE_TAKEN";
+                              };
                           resourceUse?: { chargeId: string; cost: number };
                           shape?:
                             | {
@@ -76836,7 +76876,11 @@ export declare const api: {
                                   | null;
                                 stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                               }
-                            | { kind: "ATTACKED_SELF" };
+                            | { kind: "ATTACKED_SELF" }
+                            | {
+                                damageTypeIds: Array<string>;
+                                kind: "DAMAGE_TAKEN";
+                              };
                           resourceUse?: { chargeId: string; cost: number };
                           savingThrow:
                             | {
@@ -80307,7 +80351,11 @@ export declare const api: {
                                   | null;
                                 stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                               }
-                            | { kind: "ATTACKED_SELF" };
+                            | { kind: "ATTACKED_SELF" }
+                            | {
+                                damageTypeIds: Array<string>;
+                                kind: "DAMAGE_TAKEN";
+                              };
                           resourceUse?: { chargeId: string; cost: number };
                           shape?:
                             | {
@@ -86497,7 +86545,11 @@ export declare const api: {
                                 "DETECT" | "LOCATE" | "PRECISE" | "SEE" | null;
                               stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                             }
-                          | { kind: "ATTACKED_SELF" };
+                          | { kind: "ATTACKED_SELF" }
+                          | {
+                              damageTypeIds: Array<string>;
+                              kind: "DAMAGE_TAKEN";
+                            };
                         resourceUse?: { chargeId: string; cost: number };
                         savingThrow:
                           | {
@@ -89922,7 +89974,11 @@ export declare const api: {
                                 "DETECT" | "LOCATE" | "PRECISE" | "SEE" | null;
                               stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                             }
-                          | { kind: "ATTACKED_SELF" };
+                          | { kind: "ATTACKED_SELF" }
+                          | {
+                              damageTypeIds: Array<string>;
+                              kind: "DAMAGE_TAKEN";
+                            };
                         resourceUse?: { chargeId: string; cost: number };
                         shape?:
                           | {
@@ -96184,7 +96240,11 @@ export declare const api: {
                                   | null;
                                 stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                               }
-                            | { kind: "ATTACKED_SELF" };
+                            | { kind: "ATTACKED_SELF" }
+                            | {
+                                damageTypeIds: Array<string>;
+                                kind: "DAMAGE_TAKEN";
+                              };
                           resourceUse?: { chargeId: string; cost: number };
                           savingThrow:
                             | {
@@ -99655,7 +99715,11 @@ export declare const api: {
                                   | null;
                                 stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                               }
-                            | { kind: "ATTACKED_SELF" };
+                            | { kind: "ATTACKED_SELF" }
+                            | {
+                                damageTypeIds: Array<string>;
+                                kind: "DAMAGE_TAKEN";
+                              };
                           resourceUse?: { chargeId: string; cost: number };
                           shape?:
                             | {
@@ -105922,7 +105986,11 @@ export declare const api: {
                                   | null;
                                 stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                               }
-                            | { kind: "ATTACKED_SELF" };
+                            | { kind: "ATTACKED_SELF" }
+                            | {
+                                damageTypeIds: Array<string>;
+                                kind: "DAMAGE_TAKEN";
+                              };
                           resourceUse?: { chargeId: string; cost: number };
                           savingThrow:
                             | {
@@ -109393,7 +109461,11 @@ export declare const api: {
                                   | null;
                                 stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                               }
-                            | { kind: "ATTACKED_SELF" };
+                            | { kind: "ATTACKED_SELF" }
+                            | {
+                                damageTypeIds: Array<string>;
+                                kind: "DAMAGE_TAKEN";
+                              };
                           resourceUse?: { chargeId: string; cost: number };
                           shape?:
                             | {

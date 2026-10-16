@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { activeRuleEffectDefinitionDtoSchema } from '@artificer-toolkit/schema/shared/activeRuleEffects'
-import { conditionTypeId } from '@artificer-toolkit/source-data/srd/equipment/shared.js'
+import type { EquipmentAuthored } from '@artificer-toolkit/shared/subjects/authored'
+import {
+  conditionTypeId,
+  equipId,
+  meleeWeaponAbilityModifiers
+} from '@artificer-toolkit/source-data/srd/equipment/shared.js'
+import { signetRing } from '@artificer-toolkit/source-data/srd/equipment/signet-ring.js'
 import {
   SRD_ABILITY_DEFINITION_IDS,
   SRD_DAMAGE_TYPES
@@ -26,6 +32,20 @@ const HOLDER_ID = '00000000-0000-4000-8000-00000000b901'
 const EFFECT_ID = '00000000-0000-4000-8000-00000000b902'
 const rage = () => rageEffect({ id: EFFECT_ID, holderActorId: HOLDER_ID })
 const damageTypeId = (code: string) => SRD_DAMAGE_TYPES.find((type) => type.code === code)?.id
+
+/** A worn charm whose Character-wide Charisma bonus on melee attack rolls is not a weapon's own. */
+const charismaCharm: EquipmentAuthored = {
+  ...signetRing,
+  id: equipId(900),
+  label: 'Charisma Charm',
+  modifiers: meleeWeaponAbilityModifiers(equipId(900))
+    .slice(0, 1)
+    .map((modifier) => ({
+      ...modifier,
+      scope: 'GLOBAL' as const,
+      payload: { ability: 'CHARISMA' as const }
+    }))
+}
 
 const barbarian = (input: {
   level: number
@@ -158,6 +178,25 @@ describe('the Rage damage bonus', () => {
     }
   )
 
+  it('keys on the weapon’s own ability, not a larger ability bonus another source adds', () => {
+    const calm = barbarian({
+      level: 9,
+      abilities: { CHARISMA: 20 },
+      items: [{ label: 'Greataxe' }]
+    })
+    const withCharm = evaluateSrdCharacter({
+      classes: [{ label: 'Barbarian', level: 9 }],
+      abilities: { STRENGTH: 16, CHARISMA: 20 },
+      items: [{ label: 'Greataxe' }, { label: charismaCharm.label, equipped: true }],
+      extraEquipment: [charismaCharm]
+    })
+    const attackBonus = (character: SrdCharacter) =>
+      itemAction(character, 'Greataxe', { attackKind: 'MELEE' }).decision.mechanic.attackBonus
+    // The charm's Charisma modifier (+5) outweighs Strength (+3) and adds to the attack roll.
+    expect(attackBonus(withCharm)).toBe(attackBonus(calm)! + 5)
+    expect(attackDamage(withCharm, 'Greataxe', 'MELEE', true)).toBe('1d12 + 6')
+  })
+
   it('adds nothing to a ranged weapon attack, even with a high Strength', () => {
     const character = barbarian({ level: 9, items: [{ label: 'Shortbow' }] })
     const calm = attackDamage(character, 'Shortbow', 'RANGED', false)
@@ -195,5 +234,35 @@ describe('the Rage defenses and Strength advantage', () => {
     expect(abilityChecks.STRENGTH).toBe('ADVANTAGE')
     expect(abilityChecks.DEXTERITY).toBe('NORMAL')
     expect(policy(character, false).rollModes.abilityChecks.STRENGTH).toBe('NORMAL')
+  })
+})
+
+describe('Rage in heavy armor', () => {
+  const { STRENGTH } = SRD_ABILITY_DEFINITION_IDS
+  const armored = (armor: string) =>
+    barbarian({
+      level: 9,
+      items: [{ label: 'Greataxe' }, { label: armor, equipped: true }]
+    })
+
+  it('gives no defense, Strength advantage or damage bonus while heavy armor is worn', () => {
+    const character = armored('Chain Mail')
+    const raging = policy(character, true)
+    expect(raging.defenses.filter((defense) => defense.kind === 'RESISTANCE')).toEqual([])
+    expect(
+      raging.savingThrowDefinitions.find(
+        (save) => save.abilityDefinitionId === STRENGTH && !('conditionTypeId' in save)
+      )?.rollMode
+    ).toBe('NORMAL')
+    expect(raging.rollModes.abilityChecks.STRENGTH).toBe('NORMAL')
+    expect(attackDamage(character, 'Greataxe', 'MELEE', true)).toBe('1d12 + 3')
+  })
+
+  it('keeps every benefit in medium armor', () => {
+    const character = armored('Breastplate')
+    const raging = policy(character, true)
+    expect(raging.defenses.filter((defense) => defense.kind === 'RESISTANCE')).not.toEqual([])
+    expect(raging.rollModes.abilityChecks.STRENGTH).toBe('ADVANTAGE')
+    expect(attackDamage(character, 'Greataxe', 'MELEE', true)).toBe('1d12 + 6')
   })
 })

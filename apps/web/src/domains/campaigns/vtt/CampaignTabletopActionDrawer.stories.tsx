@@ -168,6 +168,7 @@ const basicActionChoices = validatedActions([
 ])
 
 const escapeSent = fn()
+const endHeldGrantSent = fn()
 const escapes = validated(encounterActionChoicesDtoSchema.shape.escapes)([
   {
     activeEffectId: '00000000-0000-4000-8000-000000000e01',
@@ -185,16 +186,23 @@ const escapes = validated(encounterActionChoicesDtoSchema.shape.escapes)([
   }
 ])
 
-async function sendEscapeCommand(
-  command: EscapeRelationshipInputDto | EndHeldGrantInputDto
-): Promise<EncounterCommandResultDto> {
-  escapeSent(command)
+function resolvedCommand(): EncounterCommandResultDto {
   return {
     projection: { ...tabletopGmEncounter, version: tabletopGmEncounter.version + 1 },
     roll: null,
     occurrence: null,
     evidenceRoll: null
   }
+}
+
+async function sendEscapeCommand(command: EscapeRelationshipInputDto) {
+  escapeSent(command)
+  return resolvedCommand()
+}
+
+async function sendEndHeldGrantCommand(command: EndHeldGrantInputDto) {
+  endHeldGrantSent(command)
+  return resolvedCommand()
 }
 
 const meta = {
@@ -213,7 +221,7 @@ const meta = {
     onActionPreviewChange: fn(),
     onPickAreaOrigin: fn(),
     onEscape: sendEscapeCommand,
-    onEndHeldGrant: sendEscapeCommand,
+    onEndHeldGrant: sendEndHeldGrantCommand,
     onOpen: fn(),
     onClose: fn()
   },
