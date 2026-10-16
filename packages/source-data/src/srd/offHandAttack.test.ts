@@ -87,18 +87,22 @@ describe('the off-hand attack of the SRD Light melee weapons (two-weapon fightin
     expect(others.filter((item) => bonusActionAttacks(item).length > 0)).toEqual([])
   })
 
-  it('authors the node ids of every Light melee weapon once', () => {
+  it('authors every node the off-hand attack adds under its own id', () => {
+    // The id's third segment is the child bucket; the off-hand additions own these buckets.
+    const offHandBuckets = new Set(['0240', '0250', '0251', '0252', '0253', '0260', '0261', '0270'])
     const ids: string[] = []
     const collect = (node: unknown): void => {
       if (Array.isArray(node)) return node.forEach(collect)
       if (typeof node !== 'object' || node === null) return
       for (const [key, value] of Object.entries(node)) {
-        if (key === 'id' && typeof value === 'string') ids.push(value)
-        else collect(value)
+        if (key === 'id' && typeof value === 'string') {
+          if (offHandBuckets.has(value.split('-')[2] ?? '')) ids.push(value)
+        } else collect(value)
       }
     }
     for (const item of lightMeleeWeapons)
       collect({ effects: item.effects, modifiers: item.modifiers })
+    expect(ids.length).toBeGreaterThan(0)
     expect(new Set(ids).size).toBe(ids.length)
   })
 })
