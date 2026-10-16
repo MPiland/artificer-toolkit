@@ -6123,6 +6123,57 @@ it('answers actor token bindings only for the tokens the reader can see, with no
   })
 })
 
+it('lists a creature whose token the map hides only as far as the GM reveals it (ATTACK-17.3)', async () => {
+  const { base, player, state, actors } = await localEncounterFixture([], {
+    hiddenBoundToken: true
+  })
+  const seen = () => {
+    const frames = player.messages.flatMap((message) =>
+      message.type === 'ENCOUNTER_SESSION' && message.session.held
+        ? [message.session.state.encounter?.actors ?? []]
+        : []
+    )
+    return frames.at(-1)?.map(({ id, label }) => ({ id, label }))
+  }
+  player.socket.send(JSON.stringify({ type: 'SUBSCRIBE_ENCOUNTER_SESSION', timeline: false }))
+  await vi.waitFor(() => expect(seen()).toBeDefined())
+  // The hidden-token creature (actors[1]) and the unlisted one (actors[2]) are not in the list.
+  expect(seen()).toEqual([{ id: actors[0]!.id, label: actors[0]!.label }])
+
+  for (const [index, { reveal, expected }] of [
+    { reveal: 'UNNAMED', expected: { id: actors[1]!.id, label: 'Unseen creature' } },
+    { reveal: 'NAMED', expected: { id: actors[1]!.id, label: actors[1]!.label } },
+    { reveal: null, expected: null }
+  ].entries()) {
+    const commandId = crypto.randomUUID()
+    base.socket.send(
+      JSON.stringify({
+        type: 'COMMAND',
+        expectedSessionSequence: index,
+        command: {
+          scope: 'ENCOUNTER',
+          command: {
+            type: 'UPDATE_ACTOR',
+            encounterId: state.id,
+            commandId,
+            expectedVersion: state.version + index,
+            actorId: actors[1]!.id,
+            reveal
+          }
+        }
+      })
+    )
+    await vi.waitFor(() =>
+      expect(seen()).toEqual(
+        expected
+          ? [{ id: actors[0]!.id, label: actors[0]!.label }, expected]
+          : [{ id: actors[0]!.id, label: actors[0]!.label }]
+      )
+    )
+  }
+  expect(JSON.stringify(player.messages)).not.toContain('Ambusher')
+})
+
 it('reflects an actor token bind and unbind in the room read with no Convex call (A35-S10b)', async () => {
   const { base, state, actors, scene, tokenId } = await localEncounterFixture([], {
     unboundSceneToken: true

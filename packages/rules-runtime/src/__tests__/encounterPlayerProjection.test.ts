@@ -5,7 +5,8 @@ import type { HealthDisplayLevelDto } from '@artificer-toolkit/schema/api/health
 import {
   healthDescriptiveState,
   playerActorHealth,
-  projectPlayerEncounterProjection
+  projectPlayerEncounterProjection,
+  unseenEncounterActorIds
 } from '../encounterPlayerProjection.js'
 
 const ENCOUNTER_ID = '00000000-0000-4000-8000-000000000001'
@@ -335,5 +336,94 @@ describe('player encounter projection', () => {
       for (const field of ['reveal', 'concealment', 'observers'])
         expect(listed).not.toHaveProperty(field)
     })
+  })
+})
+
+describe('unseenEncounterActorIds (D121)', () => {
+  const SCENE_ID = '00000000-0000-4000-8000-0000000000e1'
+  const OTHER_SCENE_ID = '00000000-0000-4000-8000-0000000000e2'
+  const TOKEN_ID = '00000000-0000-4000-8000-0000000000f1'
+  const creature = { id: '00000000-0000-4000-8000-0000000000a1', kind: 'CREATURE' as const }
+  const character = { id: '00000000-0000-4000-8000-0000000000a2', kind: 'CHARACTER' as const }
+  const bound = (actor: { id: string }, sceneId = SCENE_ID) => [
+    { actorId: actor.id, sceneId, tokenId: TOKEN_ID }
+  ]
+
+  // Every host's rows: the Convex reads cannot tell fog (`null`); the room passes the drawn tokens.
+  const cases = [
+    {
+      name: 'an Encounter with no Scene lists everything',
+      actor: creature,
+      sceneId: null,
+      bindings: [],
+      convex: false,
+      room: false
+    },
+    {
+      name: 'a creature with no token on the Scene is staged off-map',
+      actor: creature,
+      sceneId: SCENE_ID,
+      bindings: [],
+      convex: true,
+      room: true
+    },
+    {
+      name: 'a party Character with no token stays listed',
+      actor: character,
+      sceneId: SCENE_ID,
+      bindings: [],
+      convex: false,
+      room: false
+    },
+    {
+      name: 'a creature whose only token is on another Scene has none here',
+      actor: creature,
+      sceneId: SCENE_ID,
+      bindings: bound(creature, OTHER_SCENE_ID),
+      convex: true,
+      room: true
+    },
+    {
+      name: 'a creature whose token the map draws',
+      actor: creature,
+      sceneId: SCENE_ID,
+      bindings: bound(creature),
+      drawn: [TOKEN_ID],
+      convex: true,
+      room: false
+    },
+    {
+      name: 'a creature whose token is hidden or in fog',
+      actor: creature,
+      sceneId: SCENE_ID,
+      bindings: bound(creature),
+      drawn: [],
+      convex: true,
+      room: true
+    }
+  ]
+
+  it.each(cases)('$name', ({ actor, sceneId, bindings, drawn, convex, room }) => {
+    const input = { actors: [actor], sceneId, bindings }
+
+    expect(unseenEncounterActorIds({ ...input, visibleTokenIds: null }).has(actor.id)).toBe(convex)
+    expect(
+      unseenEncounterActorIds({ ...input, visibleTokenIds: new Set(drawn) }).has(actor.id)
+    ).toBe(room)
+  })
+
+  it('never hides in the room what the fail-closed reads list', () => {
+    for (const { actor, sceneId, bindings, drawn } of cases) {
+      const input = { actors: [actor], sceneId, bindings }
+      const convexListed = !unseenEncounterActorIds({ ...input, visibleTokenIds: null }).has(
+        actor.id
+      )
+      const roomListed = !unseenEncounterActorIds({
+        ...input,
+        visibleTokenIds: new Set(drawn)
+      }).has(actor.id)
+
+      expect(!convexListed || roomListed).toBe(true)
+    }
   })
 })
