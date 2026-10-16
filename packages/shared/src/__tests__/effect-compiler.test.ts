@@ -315,7 +315,8 @@ describe('effect compiler', () => {
           id: 'slowed',
           effectKind: EFFECT_KIND.CONDITION,
           conditionId: 'slowed',
-          recordsSource: false
+          recordsSource: false,
+          fleesSource: false
         }
       },
       {
@@ -335,7 +336,8 @@ describe('effect compiler', () => {
           id: 'poisoned',
           effectKind: EFFECT_KIND.CONDITION,
           conditionId: 'poisoned',
-          recordsSource: false
+          recordsSource: false,
+          fleesSource: false
         }
       }
     ])
@@ -867,7 +869,11 @@ describe('effect compiler', () => {
 })
 
 describe('a condition that flees its source (SPELLS-29.T2)', () => {
-  const authored = { id: 'fear', effectKind: EFFECT_KIND.CONDITION, conditionId: 'frightened' } as const
+  const authored = {
+    id: 'fear',
+    effectKind: EFFECT_KIND.CONDITION,
+    conditionId: 'frightened'
+  } as const
 
   it('compiles an authored fleesSource and states false when it is not authored', () => {
     expect(
