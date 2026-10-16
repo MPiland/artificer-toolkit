@@ -37,18 +37,19 @@ afterEach(() => {
 })
 
 /** The authored tree with every damage outcome turned into 1d4: only the damage value differs from the SRD item. */
-function withDiceDamage(node: unknown): unknown {
-  if (Array.isArray(node)) return node.map(withDiceDamage)
+function withDiceDamage(node: unknown, diceConfig: string): unknown {
+  if (Array.isArray(node)) return node.map((item) => withDiceDamage(item, diceConfig))
   if (typeof node !== 'object' || node === null) return node
   const mapped = Object.fromEntries(
-    Object.entries(node).map(([key, value]) => [key, withDiceDamage(value)])
+    Object.entries(node).map(([key, value]) => [key, withDiceDamage(value, diceConfig)])
   ) as Record<string, unknown>
   if (mapped.effectKind !== 'DAMAGE') return mapped
   const { amount: _fixedAmount, ...damage } = mapped
-  return { ...damage, valueKind: 'DICE', diceConfig: '1d4' }
+  return { ...damage, valueKind: 'DICE', diceConfig }
 }
 
-const diceCaltrops = withDiceDamage(caltropsBagOf20) as EquipmentAuthored
+const diceCaltropsOf = (diceConfig: string) =>
+  withDiceDamage(caltropsBagOf20, diceConfig) as EquipmentAuthored
 
 const walkerActor = srdCreatureActor({ id: WALKER_ID, creature: plainWolf })
 
@@ -57,8 +58,10 @@ function diceRoom(
   seating: Pick<
     Parameters<typeof actionRoom>[0],
     'playerControlledActorIds' | 'otherPlayerControlledActorIds'
-  > = {}
+  > = {},
+  diceConfig = '1d4'
 ) {
+  const diceCaltrops = diceCaltropsOf(diceConfig)
   return actionRoom({
     ...seating,
     actors: [
@@ -123,6 +126,54 @@ describe('a placed zone that deals dice damage (SPELLS-20 T1)', () => {
   })
 })
 
+describe('a placed zone that deals several dice (SPELLS-20 T1)', () => {
+  it('rolls every die and sums them when the rolls are automatic', async () => {
+    const room = await diceRoom('EVERYONE', {}, '2d4')
+
+    const { hitPointsBefore, walk } = await spreadAndEnter(room)
+
+    expect(walk.executions).toHaveLength(1)
+    expect(walk.executions[0]).toMatchObject({
+      execution: { movementInterruption: { kind: 'STOP' } },
+      applications: [expect.objectContaining({ kind: 'DAMAGE', appliedAmount: 2 * ROLLED_DAMAGE })]
+    })
+    expect(await hitPointsOf(room, WALKER_ID)).toBe((hitPointsBefore ?? 0) - 2 * ROLLED_DAMAGE)
+  })
+
+  it('asks the source controller for each die in turn and applies the sum after the last', async () => {
+    const room = await diceRoom(
+      'GAME_MASTER',
+      { playerControlledActorIds: [SPREADER_ACTOR_ID] },
+      '2d4'
+    )
+    const { answer } = await room.startAreaAction(FIELD_POINT)
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    await room.advanceTurn()
+    const hitPointsBefore = await hitPointsOf(room, WALKER_ID)
+    const walked = await room.room.move(
+      WALK_INTO,
+      await room.version(),
+      room.room.scene.version,
+      room.room.scene.tokens[1]!.id
+    )
+    expect(walked.type, JSON.stringify(walked)).toBe('COMMAND_COMMITTED')
+    const player = await room.room.asPlayer()
+
+    const first = await room.room.pendingFor(true)
+    if (first?.kind !== 'ACTION_OUTCOME_EVIDENCE') throw new Error('Expected the first die.')
+    await player.respond({ kind: 'ENTER_INTEGER', requestId: first.request.requestId, value: 2 })
+    expect(await hitPointsOf(room, WALKER_ID)).toBe(hitPointsBefore)
+
+    const second = await room.room.pendingFor(true)
+    if (second?.kind !== 'ACTION_OUTCOME_EVIDENCE') throw new Error('Expected the second die.')
+    expect(second.request.requestId).not.toBe(first.request.requestId)
+    await player.respond({ kind: 'ENTER_INTEGER', requestId: second.request.requestId, value: 3 })
+
+    expect(await room.room.pending()).toBeNull()
+    expect(await hitPointsOf(room, WALKER_ID)).toBe((hitPointsBefore ?? 0) - 5)
+  })
+})
+
 describe('a placed zone whose damage dice the source controller rolls (SPELLS-20 T1, D133)', () => {
   /** The wolf's save auto-rolls for the GM; the spreader's player owns the zone, so owns the damage dice. */
   const playerSpreads = { playerControlledActorIds: [SPREADER_ACTOR_ID] }
@@ -178,9 +229,25 @@ describe('a placed zone whose damage dice the source controller rolls (SPELLS-20
     const prompt = await room.room.pendingFor(true)
     if (prompt?.kind !== 'ACTION_OUTCOME_EVIDENCE') throw new Error('Expected the damage die.')
 
-    await (
-      await room.room.asPlayer()
-    ).respond({ kind: 'SYSTEM_ROLL', requestId: prompt.request.requestId })
+    const player = await room.room.asPlayer()
+    const decision = await room.room.pending()
+    if (!decision) throw new Error('Expected the damage die to be pending.')
+    const rollCommandId = crypto.randomUUID()
+    const rolled = await player.send(rollCommandId, {
+      scope: 'ENCOUNTER',
+      command: {
+        type: 'ROLL_RULE_EVIDENCE',
+        encounterId: room.room.encounterId,
+        commandId: rollCommandId,
+        expectedVersion: decision.encounterVersion,
+        occurrenceId: decision.occurrence.id,
+        expectedOccurrenceVersion: decision.occurrence.version,
+        requestId: prompt.request.requestId,
+        rollMode: null
+      }
+    })
+    expect(rolled.type, JSON.stringify(rolled)).toBe('COMMAND_COMMITTED')
+    await player.respond({ kind: 'SYSTEM_ROLL', requestId: prompt.request.requestId })
 
     expect(await hitPointsOf(room, WALKER_ID)).toBe((hitPointsBefore ?? 0) - ROLLED_DAMAGE)
     expect(room.room.diceDrawn()).toBe(2)

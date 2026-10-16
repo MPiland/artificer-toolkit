@@ -425,8 +425,9 @@ pending candidate carries `diceStage` (the resolved d20) while the dice are answ
 `resolutionCommands` entry (`ENTER_INTEGER` or `SYSTEM_ROLL` for a die). The d20 belongs to the contacted creature;
 the dice belong to the zone source's controller (`spatialPendingRollerActorId`: the source actor, the target when the
 zone has no source), honoring that controller's auto-roll, and the GM may answer for anyone. The recorded dice stay in
-the stored trace and the retained-execution replay (`retainedSpatialReplayFaces`) feeds them back in order, so a
-replay never rerolls. The movement that triggers an entry is not an undoable root (above); GM undo of a dice zone
+the stored execution trace, which settlement reconstructs from (`reconstructTargetBoundActiveRuleEffectCompletion`), so a
+settled entry never rerolls. `retainedSpatialReplayFaces` also replays the dice, but no caller passes `retained`
+today. The movement that triggers an entry is not an undoable root (above); GM undo of a dice zone
 removes the zone with its spreading Action, as for every placed zone.
 
 Each choice also carries `range` when its compiled target policy has a measurable one, the range the evaluator that
