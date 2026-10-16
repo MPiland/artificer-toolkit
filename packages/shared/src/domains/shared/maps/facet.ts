@@ -1847,6 +1847,10 @@ function createFacetPredicateNodeMap(
                             input: local.id(['equipmentIds'])
                           })
                         )
+                        .elseIf(local.scope(['equipmentIds']).all)
+                        .then((o) =>
+                          o.chain((s) => s.seed('equipment', { valueColumn: 'category' }).end())
+                        )
                         .end()
                     )
                   )
@@ -1995,6 +1999,12 @@ function createFacetPredicateNodeMap(
                             valueColumn: 'property_code',
                             input: local.id(['equipmentIds'])
                           })
+                        )
+                        .elseIf(local.scope(['equipmentIds']).all)
+                        .then((o) =>
+                          o.chain((s) =>
+                            s.seed('equipment_properties', { valueColumn: 'property_code' }).end()
+                          )
                         )
                         .end()
                     )

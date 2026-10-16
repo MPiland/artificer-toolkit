@@ -85,6 +85,25 @@ The user wants a Kickstarter campaign with realistic goals to fund finishing the
 
 ## Post-launch
 
+### Deferred edge cases (watch for in real use)
+
+These are rare paths, roughly under 5% of sessions, whose failure is visible and recoverable (user direction, 2026-10-15). Fix one when real use shows it happening.
+
+- **Live-backend script spawn failure:** if `yarn` can't start, `scripts/liveBackendValidation.mjs` throws an unhandled rejection instead of a step error. This is dev tooling; the run still fails, just with a noisier log.
+- **`--fresh` guard:** `liveBackendValidation.mjs --fresh` checks the container by name only. A different container given the same name would be reset.
+- **Rage on outright death:** a grant that ends only on a condition (SRD Rage ends on Unconscious) is not ended when its holder is `DEFEATED`, for example a raging Character killed outright by massive damage. The grant stays visible on a defeated holder, and the GM can end it (`encounterGrantLifetimes.ts`).
+- **Pact Magic slot level for upcasting:** when the only slot a Character has is a higher Pact Magic slot, the cast keeps the spell's own level. So a Cleric/Warlock casting Cure Wounds from a 2nd-level Pact slot rolls 1d8, not 2d8. The player can choose the higher-level cast candidate instead.
+- **Duplicated digest prose:** the README restates the image digest that `.github/workflows/live-backend.yml` pins, so the two can drift when the digest is bumped.
+- **A reaction that only adds a follow-up is refused after being offered (REACTION-4.T2):** `resolveNativeActionReaction` requires a used reaction to change the attack's bound facts or the reactor's defenses. A Tiefling casting Absorb Elements against fire already resists it, so the use throws a plain error after the offer; the player can decline and the pause stays. Rare, recoverable. The fix is to scope the must-change check to `ATTACKED_SELF` and refuse at discovery.
+- **Grant- or rider-added damage types are not seen by reaction discovery (REACTION-4.T2):** `attackHitDamageTypeIds` reads only the attack's authored outcomes, so a damage type added by an active grant or rider does not offer an Absorb Elements named for it. (The crit-only over-offer is fixed in REACTION-4.T3.)
+- **Half damage on a successful save is unproved for a Character cast (SPELLS-8.T2):** the room Fireball proof answers every save with a failure. The halving path is shared with Creature area actions, which prove it. If it broke, a Wolf would visibly take full damage and the GM could correct its HP.
+- **Undo can re-add a concealment observer (ATTACK-10.T1):** `restoreConcealmentPrune` restores the observers a move pruned without a version fence. A move prunes A, the GM re-adds A, A's Search removes A, and then undoing the move re-adds A. The GM sees it and can edit the observers.
+- **No concealment prune under MANUAL automation (ATTACK-10.T1):** movement has no targets in MANUAL mode, so a hider that steps into view keeps its observer list. Attack sight on a Scene ignores the list anyway; only Search is affected, and the GM can edit it.
+- **The concealment prune checks only the final position (ATTACK-10.T1):** a hider that crosses an observer's open line mid-path and ends behind cover stays hidden. Arguably a GM call.
+- **Fireball's room proof uses a stand-in wizard (SPELLS-8.T2):** the fixture is a level-1 Fighter with Wizard spellcasting and a hand-written slot table. A real Wizard Class whose slot table lacked the 3rd-level row would visibly not offer Fireball.
+- **`damageTypeIds` accepts duplicates (REACTION-4.T2):** authoring the same damage type twice in a `DAMAGE_TAKEN` trigger is accepted and harmless; a uniqueness check on the schema would reject it.
+- **A resistance-only reaction seals no change in its audit (REACTION-4.T2):** `adjustment.defenseBefore === defenseAfter` and the bound-facts checksum are unchanged, so replay does not cross-check the defenses the reaction added. Sealing the defenses checksum in the adjustment would make the audit self-evident.
+
 ### Shared live cursors (Q19)
 
 This is a per-person, opt-in "Share my cursor" setting, sent at most 4 times a second and only while the mouse moves. It costs about 2,000–4,000 Durable Object requests per 4-hour session with 6 people. Revisit it when revenue supports the paid Workers plan; the launch matches Roll20, with a ping only.

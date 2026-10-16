@@ -109,7 +109,7 @@ import {
 import { evaluateNativeLiveActionEconomy } from './nativeEncounterActionEconomy.js'
 import {
   nativeLiveRelationshipFacts,
-  refuseLegendaryWindowAction,
+  refuseActionOutsideItsWindow,
   refuseSpatialInterpretation
 } from './nativeEncounterActionInputs.js'
 import { planNativeLiveConcentration } from './nativeEncounterConcentration.js'
@@ -348,7 +348,7 @@ export async function planNativeLiveEncounterAreaAction(input: AreaPlanInput) {
   // An area that catches nobody still spends the action: its checks run against the caster's own
   // preparation of it.
   const lead = preparedTargets[0] ?? (await prepareAreaCaster(input, base))
-  refuseLegendaryWindowAction(lead.prepared)
+  refuseActionOutsideItsWindow(lead.prepared)
   refuseAreaEffectOutcomes(lead.prepared)
   if (command.optionalCombatIntent != null) throw new Error('The action is not an ordinary action.')
 
@@ -693,7 +693,7 @@ async function revalidateAreaTarget(
     actor,
     token
   })
-  refuseLegendaryWindowAction(target.prepared)
+  refuseActionOutsideItsWindow(target.prepared)
   const evaluation = await evaluateNativeLiveActionEconomy({
     prepared: target.prepared,
     state,
@@ -862,7 +862,7 @@ async function prepareAreaCasterLead(
   removedActorIds: readonly string[]
 ) {
   const target = await prepareAreaCaster(input, base)
-  refuseLegendaryWindowAction(target.prepared)
+  refuseActionOutsideItsWindow(target.prepared)
   return {
     target,
     evaluation: await evaluateNativeLiveActionEconomy({

@@ -39,8 +39,7 @@ interface EncounterMovementReactionChoiceGroup<
 }
 
 /** The Use/Decline choice every authored reaction becomes in Assisted play. */
-export const ASSISTED_MOVEMENT_REACTION_CHOICE_DEFINITION_ID =
-  '00000000-0000-4000-8000-0000000000f0'
+export const ASSISTED_REACTION_CHOICE_DEFINITION_ID = '00000000-0000-4000-8000-0000000000f0'
 
 /**
  * Assisted play never chooses for anyone (ADR 0034 decision 2): an authored "automatic" reaction is
@@ -56,7 +55,7 @@ function assistedChoice<TSource extends MovementReactionEligibilitySource>(
         policy: {
           ...entry.policy,
           selectionPolicy: 'CHOICE',
-          choiceDefinitionId: ASSISTED_MOVEMENT_REACTION_CHOICE_DEFINITION_ID
+          choiceDefinitionId: ASSISTED_REACTION_CHOICE_DEFINITION_ID
         }
       }
 }

@@ -522,7 +522,7 @@ const escapeChoices = validated(encounterActionChoicesDtoSchema.shape.escapes)([
 const heldGrantEndChoices = validated(encounterActionChoicesDtoSchema.shape.heldGrantEnds)([
   {
     activeEffectId: '00000000-0000-4000-8000-000000000f01',
-    label: 'Rage',
+    label: 'End Rage',
     actionCost: 'BONUS_ACTION',
     warnings: []
   }
@@ -535,7 +535,7 @@ describe('CampaignTabletopActionDrawer held grant ends', () => {
     renderDrawer(vi.fn(), { heldGrantEnds: heldGrantEndChoices, onEndHeldGrant })
 
     const section = await screen.findByRole('region', { name: 'Active effects' })
-    expect(within(section).getByText('Rage')).toBeVisible()
+    expect(within(section).getByText('End Rage')).toBeVisible()
     expect(within(section).getByText(/Bonus action/i)).toBeVisible()
 
     await user.click(within(section).getByRole('button', { name: 'End Rage' }))

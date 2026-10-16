@@ -77,6 +77,7 @@ export async function persistEncounterTurnCommit(
         userId: string
         authorizedCharacterIds: ReadonlySet<string>
         occurredAt: string
+        damagedActorIds: ReadonlySet<string>
       } & Pick<
         LiveSessionEncounterTurnCommitInput,
         'concentration' | 'concentrationEnds' | 'endedGrants' | 'pendingConcentration'
@@ -313,6 +314,7 @@ export async function persistEncounterTurnCommit(
     userId: input.expectedUserId,
     authorizedCharacterIds: characterIds,
     occurredAt: input.occurredAt,
+    damagedActorIds: new Set(applications.map(({ targetActorId }) => targetActorId)),
     concentration: input.concentration,
     concentrationEnds: input.concentrationEnds,
     endedGrants: input.endedGrants,

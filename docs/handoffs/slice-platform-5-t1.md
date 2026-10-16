@@ -37,7 +37,7 @@ One of them runs close enough to the 1 s execution limit that machine load pushe
 **Exception to the workbook rules:** this slice may reset, deploy and seed the local Docker backend. Do it only inside heavy-lane batches (`withValidationLock.ps1` without `-Lane light`).
 
 - Reset with `scripts/resetLocalConvex.ps1 -Name platform-5-t1`.
-- Deploy and seed with the pattern in `local-validation/codex-batch/deploy-seed.mjs`. The admin key is generated inside the container and never printed, logged or written.
+- Deploy and seed with the pattern in `scripts/liveBackendValidation.mjs` (CI runs it; see `.github/workflows/live-backend.yml`). The admin key is generated inside the container and never printed, logged or written.
 - Leave the backend deployed from your branch, seeded and audited green at the end of every batch, because other sessions use it.
 - Never reset, prune or delete Docker containers, volumes or settings.
 

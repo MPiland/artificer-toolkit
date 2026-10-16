@@ -21,12 +21,19 @@ export async function verifyCampaignInventory({
   owner,
   player,
   anonymous,
-  campaignId
+  campaignId,
+  boundedCleanup = true
 }: {
   owner: DevelopmentClient
   player: DevelopmentClient
   anonymous: DevelopmentClient
   campaignId: string
+  /**
+   * True fills Vehicle A past the ordinary cleanup bound so source loss runs the durable bounded
+   * cleanup job. Callers that only need the Vehicle gone afterwards (custody) pass false: the
+   * Vehicle is then evacuated in the unshare itself and the party stays small for later reads.
+   */
+  boundedCleanup?: boolean
 }): Promise<void> {
   assert.notEqual(owner, player, 'Inventory proof requires independent owner and player clients.')
   const draft = await owner.mutation(api.content.drafts.duplicate, {
@@ -502,7 +509,7 @@ export async function verifyCampaignInventory({
   )
   assert.deepEqual(await read(), lossSnapshot, 'Lossy scale change must be atomic.')
 
-  for (let index = 0; index < 32; index++) {
+  for (let index = 0; index < (boundedCleanup ? 32 : 0); index++) {
     const version = await owner.query(api.campaigns.inventoryOwners.version, {
       input: { campaignId, owner: vehicle(cartA.id) }
     })
@@ -543,8 +550,16 @@ export async function verifyCampaignInventory({
     { subjectKind: 'VEHICLE', subjectId: publication.subjectId, sharedBy: share.sharedBy }
   ])
   assert.deepEqual(receipt.affectedCharacters, [])
-  assert.deepEqual(receipt.evacuatedVehicles, [])
-  assert.equal(receipt.pendingVehicleCleanupIds?.length, 1)
+  if (boundedCleanup) {
+    assert.deepEqual(receipt.evacuatedVehicles, [])
+    assert.equal(receipt.pendingVehicleCleanupIds?.length, 1)
+  } else {
+    assert.deepEqual(
+      receipt.evacuatedVehicles.map((evacuated) => evacuated.vehicleId),
+      [cartA.id]
+    )
+    assert.equal(receipt.pendingVehicleCleanupIds, undefined)
+  }
   let afterUnshare: Awaited<ReturnType<typeof readAfterEvacuation>> | undefined
   for (let attempt = 0; attempt < 60; attempt++) {
     const vehicles = await owner.query(api.campaigns.vehicles.list, page(campaignId))

@@ -13,7 +13,7 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { consumeEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomyConsumption'
 import { overridesActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionRuleWarnings'
 import { ESCAPE_ACTION_LABEL } from '@artificer-toolkit/rules-runtime/encounterEscapeCheck'
-import { deleteConsumedGrants } from './consumedGrantPersistence.js'
+import { deleteGrants } from './consumedGrantPersistence.js'
 import { readEscapeAdmission } from './basicActionAdmission.js'
 import { projectNativeBasicActionCheckPending } from './basicActionCheckPending.js'
 import { insertCheckOccurrence, insertSettledCheckReceipt } from './basicActionPersistence.js'
@@ -94,7 +94,7 @@ export async function persistEncounterEscape(
     : actor
   await replaceRunActor(ctx, actor, spent)
   // A Help the check used is consumed with the attempt, so a pending check keeps its advantage.
-  await deleteConsumedGrants(ctx, input.consumedGrants)
+  await deleteGrants(ctx, input.consumedGrants)
   let nextActors = actors.map((entry) => (entry.id === spent.id ? spent : entry))
   const nextState = encounterRunStateSchema.parse({
     ...state,

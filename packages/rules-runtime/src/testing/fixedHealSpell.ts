@@ -2,8 +2,8 @@ import type { SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { cureWounds } from '@artificer-toolkit/source-data/srd/spells/cure-wounds.js'
 
 /**
- * Makes the spell's heal an exact amount. The dnd5e Effect-action compiler cannot yet execute a heal
- * that scales per cast level, and a fixed heal carries no scaling rows, which an import refuses to drop.
+ * Makes the spell's heal an exact amount, so a test knows what it heals. A fixed heal carries no scaling
+ * rows, which an import refuses to drop.
  */
 export function fixHeal(spell: SpellAuthored, amount: number, effectIndex = 0) {
   const path = spell.effects?.[effectIndex]?.paths?.[0]

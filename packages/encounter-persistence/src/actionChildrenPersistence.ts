@@ -60,6 +60,7 @@ export async function persistEncounterActionChildren(
     userId: args.userId,
     authorizedCharacterIds: args.authorizedCharacterIds,
     occurredAt: input.occurredAt,
+    damagedActorIds: new Set([batch.targetActorId]),
     concentration: input.concentration,
     concentrationEnds: input.concentrationEnds,
     endedGrants: input.endedGrants,

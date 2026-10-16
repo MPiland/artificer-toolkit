@@ -376,7 +376,7 @@ is 5 ft; a distance without a long range, including the 0 ft swarm space), `RANG
 point-area policy advertises its origin range, which `evaluateEncounterAreaTargetPolicy` measures
 (`pointAreaOriginRange`): `WITHIN` the distance (never `RANGED`, the area evaluator ignores a long range) or `UNLIMITED`.
 A policy neither evaluator measures leaves it off: a sight or special range, targeting that is not a single target with a
-disposition (excluded creature types only warn), an area with no supported shape, a path override, or no policy.
+disposition (excluded creature types only warn; neither the compiler nor the single-target action evaluators refuse a single-target policy for them (movement reactions still do), the room raises the overridable `TARGET_CREATURE_TYPE_EXCLUDED` warning, only for a Creature target, since a Character's facts carry no creature type), an area with no supported shape, a path override, or no policy.
 `encounterActionChoiceRange` (`encounterActionRange.ts`) is the one mapping. `rangeLabel` is not derived from `range`:
 it words the authored range with `rangeLabel` (`rangeLabel.ts`), the formatter the Sheet uses, so Touch reads "Touch"
 (its 5 ft geometry stays in `range`) and a ranged weapon reads "150/600 ft" on both surfaces. Only a choice without a
@@ -420,8 +420,30 @@ meet Legendary Resistance on the same TEST: that choice exists only for `ON_SAVE
 either an attack path or a save path, and `continueNativeActionAfterTest` rejects an audit carrying both.
 A defeated reactor (D63), a spent allowance, an Unconscious Character and a `REACTION_COUNT SET_VALUE 0`
 grant (D99) all drop the offer through the same discovery as an action. Only the first eligible reaction
-is offered, only Character reactors, and a reaction cast as an action is refused (`REACTION_TRIGGER_ONLY`).
+is offered, only Character reactors, and a reaction taken as an action is refused (`REACTION_TRIGGER_ONLY`) on
+every action path (single-target and area) through `refuseActionOutsideItsWindow`, the one admission point it
+shares with `LEGENDARY_WINDOW_ONLY`. Resume admission accepts any option the offer carries
+(`offeredDecisionOptionIds`) and refuses one it does not as stale; the pending summary and Decision drawer still
+show only the first reaction (transport contract and UI widening belong to the SPELL_CAST chain, REACTION-4.T3). The reaction's effect id is derived from the command and occurrence ids
+(`nativeReactionEffectId`), so replaying the answer mints the same id. A reaction that needs rolls or does not
+create exactly one effect on its reactor is refused as `REACTION_UNSUPPORTED`.
 Decision: D26 is extended to hold the Scene for a pending reaction decision.
+
+#### `DAMAGE_TAKEN` (current, REACTION-4.T2)
+
+`reactionTrigger: { kind: 'DAMAGE_TAKEN', damageTypeIds }` (a user-authored Absorb Elements) rides the same
+pause as `ATTACKED_SELF`: discovery (`discoverAttackReactionActions`) offers it when one of `damageTypeIds`
+is a damage type of the hit attack's `ON_HIT`/`ON_CRIT` outcomes (`attackHitDamageTypeIds`). The candidate and
+the sealed pin carry their `trigger`, so a changed trigger is a different offer. The reaction's effect carries
+a `DAMAGE_RESISTANCE` grant, which `encounterActiveGrants` turns into a defense of the reactor; the
+re-evaluated binding hands that defense to the OUTCOME, so the damage is resisted before it applies. The TEST
+is unchanged (`defenseBefore === defenseAfter`), so "the reaction changed the attack" compares the binding's
+defenses as well as the bound facts. The follow-up benefit is an ordinary grant in the same effect (a melee
+`DAMAGE` bonus until the start of the caster's next turn). Limits: only the attack-hit path pauses (save-based
+and area damage do not offer it), a bonus grant applies to every melee hit while it lasts rather than the next
+one only, only the first eligible reaction is offered, and the resistance covers every damage type the
+reaction names rather than only the triggering one (binding the triggering type needs a trigger fact, which the
+SPELL_CAST chain, REACTION-4.T3, introduces).
 
 ### 0 hit points (D63, current)
 
@@ -552,7 +574,8 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   grant it ends only at a real turn end (START or ADVANCE_TURN); GM cursor corrections do not tick grants (product-owner ruling, ATTACK-18.2).
 - **Rage (ATTACK-9.T1, D113)** is authored data on the compiled path, with no Barbarian executor: a bonus action that spends the
   `rageCharge` binding and applies a 1-minute SELF grant. Four generic shapes carry it. (1) An attack records the ability it used
-  (`usedAttackAbility`; a finesse weapon records the chosen one) and the `ATTACK_ABILITY` facet predicate gates a modifier on it, so
+  (`usedAttackAbility`: the highest ability modifier of the attacking item's own `SOURCE`-scoped modifiers, so a finesse weapon records
+  the chosen one and a Character-wide ability bonus from another source adds to the roll without changing the ability) and the `ATTACK_ABILITY` facet predicate gates a modifier on it, so
   Rage's damage bonus applies to Strength weapon attacks only; level steps are three `CLASS_LEVEL`-gated fixed bonuses. (2) A grant is
   state-bound by two lifecycle fields: the end event `ON_INCAPACITATED` in `recurrence.endOnEvents` (grants only; the turn-effect
   kernel still rejects it) and `recurrence.endOnConditionIds`, the Conditions that end it (Rage names Unconscious, the SRD's "knocked
@@ -564,10 +587,15 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   activation; outside one through `END_ACTIVE_EFFECT`/`endCharacterActiveEffect` for a FREE end; every other effect stays Campaign-owner-only, D99). (3) The `SPELLCASTING_LOCK`
   `ENABLE` domain bars every spell cast (`spellcastingLocked` on the action model, reason `SPELLCASTING_LOCKED`), ends the holder's
   Concentration when the grant arrives (end reason `SPELLCASTING_LOCKED`), and `prepareEncounterActionMaintenance` refuses a new
-  Concentration with an `EncounterValidationError`. An actor or Sheet edit ends the grant through `endConcentrationAfterEdit`. Gap: damage taken during a
-  movement pass (opportunity attack, hazard) that incapacitates a raging mover does not yet end the grant:
-  `findEnd` in `nativeEncounterMovementConcentration.ts` returns early without a maintained-effect slot and its receipts carry no
-  `endedGrants`. Heavy armor also does not end Rage yet: no Character equipment predicate names armor weight.
+  Concentration with an `EncounterValidationError`. An actor or Sheet edit ends the grant through `endConcentrationAfterEdit`, and damage taken during a
+  movement pass (opportunity attack, hazard) through `endHolderStateGrants`, which `persistMovementSettlements` calls for each Run
+  actor after its settlement steps have committed (the movement planner does not plan the end, so it lands after the pass, not between
+  contacts). Both read the committed holder state (`readHolderEndState`), delete the grants and post a chat notice per grant
+  (`postGrantEndMessages`), as the action and turn commits do. A commit that omits a grant its damaged holder's state ends is refused
+  ("grant end is missing"); the planner and persistence share one end rule (`grantsEndedByHolderState`). Rage's heavy-armor restriction is an `EXCLUDE`
+  `EQUIPMENT_EQUIPPED` condition (category `ARMOR`, property `HEAVY`) on each Rage benefit's facets, the same predicate Monk's Unarmored
+  Movement uses. A Rage that ends Concentration (`SPELLCASTING_LOCKED`) adds a Concentration-end child that undo cannot restore, so GM
+  undo of that action is refused with that reason (a full restore is a proposed follow-up).
 - **Gone with slice B:** the mechanic codes `SPEED_MOVEMENT_BONUS` and `NO_OPPORTUNITY_ATTACKS`, `suppressesEncounterOpportunityAttacks`,
   the `speedMovementBonus` DTO field and `speedBonusTurn` on `USE_BASIC_ACTION`.
 - **Gone with slice D:** `USE_BASIC_ACTION`, `UseEncounterBasicActionInputDto`, the catalogue `check` and `mechanics`
@@ -610,8 +638,13 @@ own level and spent whatever its level. A candidate is dropped when its decision
 ritual, a limited-use cast or a pool-backed fixed-level cast. A spell is offered only with exactly one active
 Effect (a PASSIVE Effect is ignored): one cast is one action and the compiler executes one Effect group per
 action. A cast is offered only when the System adapter compiles its entry (`COMPILED`), since choosing one that
-stays `MANUAL` could only be refused as stale. The dnd5e Effect-action compiler does not yet execute a heal
-scaling per cast level or a group that needs several entries, so those are not offered. Labels read "Cure Wounds (2nd level)"; a cantrip reads its name.
+stays `MANUAL` could only be refused as stale. The dnd5e Effect-action compiler does not yet execute a group that
+needs several entries, so those are not offered. A heal that scales per cast level compiles as the unscaled dice of
+the chosen level: `effectAtCastLevel` replaces the `PER_LEVEL` `SPELL_CAST_LEVEL` rows with the row at or below the
+cast level before the entry point is built, so the published graph rolls that many dice (a heal's dice count is
+structural, unlike a damage upcast, which specializes an outcome graph from `dnd5e.spell-cast-level`). A heal
+that targets several chosen creatures (Mass Cure Wounds, Mass Healing Word, Prayer of Healing) is not offered: the
+`RESOLVE_ACTION` target has no list-of-actors kind. Labels read "Cure Wounds (2nd level)"; a cantrip reads its name.
 
 The cast level is a fact of the action. `prepareNativeCharacterActionState` copies the policy's `castLevel`
 onto the action mechanic as `spellCastLevel`, the dnd5e adapter binds it as the declared fact
@@ -932,8 +965,24 @@ maintained effect. The same seam records the caster in the Run row's `concentrat
 (`recordConcentrationCaster`; the stored command keeps `addedConcentrationCasterId` so the GM's undo
 removes only an id that command added), which the checkpoint reads to end the caster's carried grants on Characters
 outside the Run (see [persistence](persistence.md#encounter-run-storage)). The movement-reaction receipt
-accepts an owner transition for a holder whose carried grant ends. The SRD Fly, Heroism (its grant), Protection from Energy and Shield of Faith link the SRD Concentration
-maintenance definition.
+accepts an owner transition for a holder whose carried grant ends.
+
+**Concentration is derived from the spell (SPELLS-8.T5).** A spell with the `CONCENTRATION` attribute marks each
+compiled Effect group `requiresConcentration` (`compileSpell`), so an authored Concentration spell needs no
+`maintenanceDefinitionId`: `maintenancePlan` plans the D&D Concentration maintenance
+(`DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID`) for every active-effect plan the action ends up with. An
+explicit `maintenanceDefinitionId` on a result block still overrides the derived one. A Concentration spell
+whose action compiles to no maintained plan is not compiled (MANUAL on the Sheet), so a cast never skips the
+Concentration it would start. Fly, Heroism, Protection from Energy, Shield of Faith and Hold Person rely on
+the attribute alone.
+
+**Repeated saves against the caster's DC.** The repeat-save plans (`repeatingDirectFollowUpSavePlan`,
+`repeatingImmediateFollowUpSavePlan`, the recurring save of `supportedRecurringPlan`) pin their DC through one
+helper, `pinnedSaveDc`: a fixed DC is stored in the plan's `dnd5e.save-dc` fact, and `SOURCE_SAVE_DC` sets
+`castSaveDcFactKey`, so `prepareRecurringActiveEffect` stores the cast's own save DC (`d20.defenseOrDc`, from the
+same `resolveSave` path every save-trigger plan uses) under that fact when the active effect is created. The repeat
+graph's threshold reads the fact either way. Hold Person authors the SRD repeat save as a `FOLLOW_UP_SAVE`
+after its Paralyzed condition, and its condition lasts the `conditionDurationTurns` of its duration.
 
 **Chosen end (D101, SPELLS-5.11).** The caster ends their own Concentration at any time with no action
 and no check. A Character uses the Sheet command `END_CONCENTRATION`: in a live table the room runs it
