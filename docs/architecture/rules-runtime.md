@@ -266,6 +266,9 @@ Each caught creature carries its own sealed single-target save under
 `encounterAreaTargetOccurrenceId(area, actor)`; `prepareEncounterAreaTests` opens them all without rolling
 damage and `answerEncounterAreaTest` answers one whatever the others have done. `removeEncounterAreaTarget`
 (the GM's removal, SPELLS-7.1) refuses a creature that has answered and seals the caught set again.
+An area's maintained state is bound to the area's occurrence, while each creature's effect is bound to its
+own save occurrence. `requireTurnMaintainedStates` therefore accepts either, derived for the creature whose
+turn it is.
 
 Legendary Resistance on an area save is per creature and interstitial. After a failed Creature save
 `afterTest` asks the creature's `discoverLegendaryResistance`, and `offerEncounterAreaLegendaryResistance`

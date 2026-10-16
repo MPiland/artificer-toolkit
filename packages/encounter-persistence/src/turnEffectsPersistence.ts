@@ -103,8 +103,11 @@ export async function persistEncounterTurnEffects(
   const executions = phase.plan.executions
   if (executions.length !== candidates.length || executions.length > 128)
     throw new Error('Staged turn effect selection is stale.')
-  const maintainedStates = await requireTurnMaintainedStates(state.id, candidates, (stateId) =>
-    store.findMaintainedStateById({ encounterId: state.id, stateId })
+  const maintainedStates = await requireTurnMaintainedStates(
+    state.id,
+    actor,
+    candidates,
+    (stateId) => store.findMaintainedStateById({ encounterId: state.id, stateId })
   )
   const expired = new Set<string>()
   const applications: CharacterRuleActionApplication[] = []

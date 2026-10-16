@@ -121,3 +121,7 @@ Base: `3ce5883f1` (SPELLS-19.T2, merged locally), branch `claude/bold-chaplygin-
     - SEE matches the ruling's "can't see".
     - The generic stale-evidence error and the absent refusal reason in the UI are nits.
 - 2026-10-16: merged `ci/merge-batch-as` (`0d51570d4`). The only conflict was the generated manifest, which CI regenerates.
+- 2026-10-16: green attempt 8 (`55712a2fa`), Tests [38942823081](https://github.com/MPiland/artificer-toolkit/actions/runs/38942823081):
+  - Convex 2/4 `encounterStoreConformance.test.ts` "voids a paused action": the frozen fact contracts gain `dnd5e.repeat-save-attempt-allowed`. Snapshot taken from the `updated-snapshots` artifact.
+  - **Bug (pre-existing, found by the Fear journey):** the five Fear room tests that change turns failed with "Maintained turn effect source binding is stale". An area cast binds its Concentration state to the area's occurrence, while each creature's effect is bound to its own save occurrence (`encounterAreaTargetOccurrenceId`). So the turn check refused every turn of a creature holding an area Concentration effect. No earlier room test advanced a turn under one.
+  - Fix: `requireTurnMaintainedStates` takes the turn actor and accepts the area-derived occurrence. Regression: `encounterTurnEffectState.test.ts` "requireTurnMaintainedStates", plus the Fear journey.
