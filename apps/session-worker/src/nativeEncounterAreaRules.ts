@@ -1059,6 +1059,7 @@ function advanceAreaPrepared(
     ...prepared,
     target: plan.updatedActor,
     targetFacts,
+    movementTargets: new Map(prepared.movementTargets).set(plan.updatedActor.id, targetFacts),
     binding: {
       ...prepared.binding,
       currentHitPoints: targetFacts.state.current,

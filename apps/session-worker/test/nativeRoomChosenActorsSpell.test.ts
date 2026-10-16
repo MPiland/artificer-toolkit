@@ -361,7 +361,9 @@ describe('room cast of projectiles on chosen creatures (Magic Missile, SPELLS-26
   const [first, second] = WOLF_IDS as [string, string]
   const requestedDamage = (children: ReturnType<typeof areaReceipts>['children']) =>
     children.flatMap(({ outputs }) =>
-      outputs.applications.map(({ requestedAmount }) => requestedAmount)
+      outputs.applications.flatMap((application) =>
+        'requestedAmount' in application ? [application.requestedAmount] : []
+      )
     )
 
   it('rolls each dart on its own, lands them in order, and spends the slot once', async () => {
