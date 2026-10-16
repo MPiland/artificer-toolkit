@@ -5,9 +5,13 @@ import { DND5E_SYSTEM_ID } from '../systems/dnd5e/characterActionCapabilityDisco
 
 export const ACTION_EFFECT_ID = '00000000-0000-4000-8000-000000000010'
 
-/** A Character action capability wrapping one compiled Effect, as discovery would describe it. */
+/**
+ * A Character action capability wrapping one compiled Effect, as discovery would describe it; a
+ * spell cast with a slot also names the level it was cast at.
+ */
 export function characterActionDescriptor(
-  compiledEffect: ReturnType<typeof compileEffect>
+  compiledEffect: ReturnType<typeof compileEffect>,
+  spellCastLevel?: number
 ): CharacterActionCapabilityDescriptor {
   return {
     kind: 'CHARACTER_ACTION',
@@ -25,6 +29,7 @@ export function characterActionDescriptor(
     },
     mechanicsOwner: { kind: 'FEATURE', id: 'feature' },
     activationSourceKind: 'ACTIVE_SOURCE',
-    compiledEffect
+    compiledEffect,
+    ...(spellCastLevel === undefined ? {} : { spellCastLevel })
   } as CharacterActionCapabilityDescriptor
 }

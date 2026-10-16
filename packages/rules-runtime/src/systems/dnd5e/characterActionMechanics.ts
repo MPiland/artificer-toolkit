@@ -4,6 +4,7 @@ import type {
 } from '@artificer-toolkit/schema/api/characterActionRules'
 
 import { formatAmount, rangeLabel } from '../../rangeLabel.js'
+import { selectScalingRow } from '../../scalingRowSelection.js'
 import { dnd5eAttackKind, dnd5eAttackModifierDomain, isDnd5eSpellAttackKind } from './attackKind.js'
 import {
   DND5E_CHARACTER_WIDE_TARGET,
@@ -134,12 +135,19 @@ function targetLevel(
 }
 
 function selectValue(values: readonly OutcomeValue[], level: number | null): OutcomeValue | null {
-  const ordered = [...values].sort(
-    (left, right) => (left.level ?? 0) - (right.level ?? 0) || left.order - right.order
+  // Below every row, or without a level, the Sheet shows the lowest row.
+  return (
+    (level === null ? null : selectScalingRow(values, level)) ??
+    values.reduce<OutcomeValue | null>(
+      (lowest, entry) =>
+        lowest === null ||
+        (entry.level ?? 0) < (lowest.level ?? 0) ||
+        ((entry.level ?? 0) === (lowest.level ?? 0) && entry.order < lowest.order)
+          ? entry
+          : lowest,
+      null
+    )
   )
-  if (level === null) return ordered[0] ?? null
-  const eligible = ordered.filter((entry) => entry.level !== null && entry.level <= level)
-  return eligible.length === 0 ? (ordered[0] ?? null) : eligible[eligible.length - 1]!
 }
 
 function resolveOutcomeValue(

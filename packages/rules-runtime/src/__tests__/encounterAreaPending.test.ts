@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
-import { encounterAreaCaughtChecksum, removeEncounterAreaTarget } from '../encounterAreaPending.js'
+import {
+  encounterAreaCaughtChecksum,
+  encounterChosenActorsChecksum,
+  removeEncounterAreaTarget
+} from '../encounterAreaPending.js'
 
 const token = (tokenId: string, x: number) => ({
   tokenId,
@@ -62,5 +66,19 @@ describe('removing a creature from a pending area', () => {
     expect(removeEncounterAreaTarget({ ...before, ...removed }, FIRST)).toEqual({
       kind: 'NOT_CAUGHT'
     })
+  })
+})
+
+describe('sealing the creatures a chosen-creature action named', () => {
+  it('is the same whatever order they were named in, and differs for another set', () => {
+    expect(encounterChosenActorsChecksum([FIRST, SECOND])).toBe(
+      encounterChosenActorsChecksum([SECOND, FIRST])
+    )
+    expect(encounterChosenActorsChecksum([FIRST, SECOND])).not.toBe(
+      encounterChosenActorsChecksum([FIRST, THIRD])
+    )
+    expect(encounterChosenActorsChecksum([FIRST])).not.toBe(
+      encounterChosenActorsChecksum([FIRST, SECOND])
+    )
   })
 })

@@ -22,6 +22,8 @@ export interface EffectActionCapabilityDescriptor {
   savingThrowAbilityDefinitionId?: string | null
   /** Exact server-only compiled Effect retained from the authorized source boundary. */
   compiledEffect: CharacterActionRuleEntryPoint['compiledEffect']
+  /** The level a spell cast is made at, which selects the scaling row the compiler rolls. */
+  spellCastLevel?: number
 }
 
 export interface CharacterActionCapabilityDescriptor extends EffectActionCapabilityDescriptor {
@@ -103,6 +105,7 @@ function assertExactCandidateMapping(input: {
       entryPoint.activationSourceKind !== candidate.activationSourceKind ||
       entryPoint.compiledEffect.id !== entryPointDefinitionId ||
       descriptor.compiledEffect !== entryPoint.compiledEffect ||
+      descriptor.spellCastLevel !== entryPoint.spellCastLevel ||
       JSON.stringify(descriptor.source) !== JSON.stringify(candidate.source) ||
       JSON.stringify(descriptor.mechanicsOwner) !== JSON.stringify(candidate.mechanicsOwner)
     ) {
