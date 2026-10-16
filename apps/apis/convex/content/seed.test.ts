@@ -25,11 +25,13 @@ it('seeds the complete canonical corpus and replays without changing any logical
     definitions: manifest.definitions.length,
     manifestChecksum: manifest.manifestChecksum,
     inserted,
-    reused: 0
+    reused: 0,
+    replaced: 0
   })
   expect(await t.action(internal.content.seed.seed, {})).toEqual({
     ...first,
     inserted: 0,
-    reused: inserted
+    reused: inserted,
+    replaced: 0
   })
 }, 240_000)

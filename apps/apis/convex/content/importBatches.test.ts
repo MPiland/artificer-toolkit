@@ -61,4 +61,17 @@ describe('source import CPU-budgeted batches', () => {
       [records[3]]
     ])
   })
+
+  it('isolates a record that replaces a stored subject, however small', () => {
+    const records = [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }]
+    expect([...sourceImportBatches(records, ({ id }) => id === 2 || id === 3)]).toEqual([
+      [records[0]],
+      [records[1]],
+      [records[2]],
+      [records[3]]
+    ])
+    expect([...sourceImportBatches(records, () => false)]).toEqual([
+      ...sourceImportBatches(records)
+    ])
+  })
 })
