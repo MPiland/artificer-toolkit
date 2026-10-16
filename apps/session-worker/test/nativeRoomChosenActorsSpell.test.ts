@@ -2,7 +2,7 @@ import { runInDurableObject } from 'cloudflare:test'
 import { readPendingSnapshot } from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
 import {
   type EncounterAreaActionPendingContextDto,
-  serverKernelRuleExecutionPendingSnapshotDtoSchema
+  serverAggregateChoicePendingSnapshotDtoSchema
 } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import type { EncounterRuleWarningCodeDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
 import { readCharacterPlay } from '@artificer-toolkit/schema/projections/characterStoredState'
@@ -663,22 +663,40 @@ describe('room cast of rays on chosen creatures (Scorching Ray, Eldritch Blast, 
         )
       )
       .sort((left, right) => left - right)
-  const scorchingRay = (config: { rolls: readonly number[]; autoRoll?: 'BOTH' }) =>
-    healerRoom({
-      spell: scorchingRaySpell,
-      label: 'Scorching Ray (2nd level)',
-      rolls: config.rolls,
-      autoRoll: config.autoRoll,
-      wolfHitPoints: 40
+  const traced = async (room: HealerRoom) => {
+    await runInDurableObject(room.room.base.stub, () => {
+      const route = globalThis.fetch
+      globalThis.fetch = async (...args) => {
+        try {
+          return await route(...args)
+        } catch (error) {
+          console.error('TRACE ROUTE FAIL', error)
+          throw error
+        }
+      }
     })
-  const blast = (characterLevel: number, rolls: readonly number[]) =>
-    healerRoom({
-      spell: eldritchBlast,
-      label: 'Eldritch Blast',
-      rolls,
-      characterLevel,
-      wolfHitPoints: 20
-    })
+    return room
+  }
+  const scorchingRay = async (config: { rolls: readonly number[]; autoRoll?: 'BOTH' }) =>
+    traced(
+      await healerRoom({
+        spell: scorchingRaySpell,
+        label: 'Scorching Ray (2nd level)',
+        rolls: config.rolls,
+        autoRoll: config.autoRoll,
+        wolfHitPoints: 40
+      })
+    )
+  const blast = async (characterLevel: number, rolls: readonly number[]) =>
+    traced(
+      await healerRoom({
+        spell: eldritchBlast,
+        label: 'Eldritch Blast',
+        rolls,
+        characterLevel,
+        wolfHitPoints: 20
+      })
+    )
 
   it('waits for an attack roll for each ray, rolls each hit on its own, and spends the slot once', async () => {
     // The first ray's 2d6 are the raw 0 and 1 (a 1 and a 2); the critical ray rolls every die as a 6.
@@ -690,9 +708,8 @@ describe('room cast of rays on chosen creatures (Scorching Ray, Eldritch Blast, 
     const { rays } = await pendingRays(room)
     expect(rays.map((ray) => ray.targetActorId)).toEqual([first, first, second])
     expect(await hitPointsOf(room)).toEqual(before)
-    expect((await readCharacterPlayState(room)).spellSlots).toEqual([
-      { slotKey: 'STANDARD:2', used: 1 }
-    ])
+    // The slot is spent when the cast commits, with the last ray.
+    expect((await readCharacterPlayState(room)).spellSlots ?? []).toEqual([])
 
     await answerRay(room, first, HIT)
     await answerRay(room, first, CRIT)
@@ -734,7 +751,7 @@ describe('room cast of rays on chosen creatures (Scorching Ray, Eldritch Blast, 
         if (copy.applicationContext.kind !== 'ENCOUNTER_AREA_ACTION')
           throw new Error('Expected the pending area action.')
         mutate(copy.applicationContext.targets)
-        return serverKernelRuleExecutionPendingSnapshotDtoSchema.safeParse(copy).success
+        return serverAggregateChoicePendingSnapshotDtoSchema.safeParse(copy).success
       }
       return {
         intact: accepts(() => {}),
