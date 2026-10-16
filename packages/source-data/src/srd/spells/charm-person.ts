@@ -16,7 +16,14 @@ import {
   type SpellAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
-import { conditionTypeId, schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
+import {
+  creatureTypeId,
+  conditionTypeId,
+  schoolId,
+  spellChildId,
+  SRD_SYSTEM_ID,
+  SRD_USER_ID
+} from './shared.js'
 export const charmPerson: SpellAuthored = {
   kind: SUBJECT.SPELL,
   id: SPELL_IDS.CHARM_PERSON,
@@ -58,7 +65,8 @@ export const charmPerson: SpellAuthored = {
         },
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          dispositionKind: TARGET_DISPOSITION_KIND.ANY
+          dispositionKind: TARGET_DISPOSITION_KIND.ANY,
+          allowedCreatureTypeIds: [creatureTypeId('HUMANOID')]
         }
       },
       paths: [

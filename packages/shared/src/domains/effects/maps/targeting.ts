@@ -82,7 +82,7 @@ export const TARGETING_NODE_MAP: NodeMap<TargetingAuthored> = targeting.define(
             options: TARGET_SELF_POLICY_OPTIONS
           },
           {
-            order: 9,
+            order: 10,
             showIf: local.field(['selectionKind']).eq('SINGLE_TARGET')
           }
         )
@@ -108,6 +108,23 @@ export const TARGETING_NODE_MAP: NodeMap<TargetingAuthored> = targeting.define(
         )
       )
       .set(
+        'allowedCreatureTypeIds',
+        selectMulti(
+          ['allowedCreatureTypeIds'],
+          'Allowed Creature Types',
+          {
+            kind: 'DATA',
+            relationship: table('creature_types', {
+              selectColumns: ['id', 'label', 'description']
+            })
+          },
+          {
+            order: 8,
+            showIf: not(local.field(['selectionKind']).eq('SELF'))
+          }
+        )
+      )
+      .set(
         'excludedCreatureTypeIds',
         selectMulti(
           ['excludedCreatureTypeIds'],
@@ -119,7 +136,7 @@ export const TARGETING_NODE_MAP: NodeMap<TargetingAuthored> = targeting.define(
             })
           },
           {
-            order: 8,
+            order: 9,
             showIf: not(local.field(['selectionKind']).eq('SELF'))
           }
         )

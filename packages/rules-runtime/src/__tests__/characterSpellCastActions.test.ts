@@ -39,9 +39,9 @@ const FLY = spell('Fly')
 const HOLD_PERSON = spell('Hold Person')
 const CURE_WOUNDS = spell('Cure Wounds')
 const HEALING_WORD = spell('Healing Word')
-const INVISIBILITY = spell('Invisibility')
 const SHIELD = spell('Shield')
 const SHIELD_OF_FAITH = spell('Shield of Faith')
+const INVISIBILITY = spell('Invisibility')
 const MEND = { ...fixedHealSpell(), id: '00000000-0000-4000-8000-00000000c0de', label: 'Mend' }
 
 /** The cast candidate of a spell at a level, the way the policy lists it. */
@@ -168,9 +168,9 @@ const authoredById = new Map(
     PLAIN_HOLD,
     CURE_WOUNDS,
     HEALING_WORD,
-    INVISIBILITY,
     SHIELD,
     SHIELD_OF_FAITH,
+    INVISIBILITY,
     GAPPED_HEAL,
     LATE_HEAL
   ].map((entry) => [entry.id, entry])
@@ -415,6 +415,22 @@ describe('the Concentration a cast starts', () => {
   })
 })
 
+describe('the activation a cast carries', () => {
+  it.each([
+    { authored: CURE_WOUNDS, activation: 'ACTION' },
+    { authored: HEALING_WORD, activation: 'BONUS_ACTION' },
+    { authored: SHIELD_OF_FAITH, activation: 'BONUS_ACTION' },
+    { authored: SHIELD, activation: 'REACTION' }
+  ])(
+    'offers $authored.label with the $activation its Effect authors, ready to run',
+    ({ authored, activation }) => {
+      const [offered] = build([candidate(authored, authored.level)]).candidates
+      expect(offered?.mechanicFacts.invocation.activation).toEqual({ code: activation, amount: 1 })
+      expect(compiledCast(authored)).not.toBeNull()
+    }
+  )
+})
+
 describe('the timed condition a cast owns with no save', () => {
   const invisibleId = SRD_CONDITION_TYPES.find(({ code }) => code === 'INVISIBLE')?.id
 
@@ -431,22 +447,6 @@ describe('the timed condition a cast owns with no save', () => {
     })
     expect(plan?.maintenance?.definitionId).toBe(SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID)
   })
-})
-
-describe('the activation a cast carries', () => {
-  it.each([
-    { authored: CURE_WOUNDS, activation: 'ACTION' },
-    { authored: HEALING_WORD, activation: 'BONUS_ACTION' },
-    { authored: SHIELD_OF_FAITH, activation: 'BONUS_ACTION' },
-    { authored: SHIELD, activation: 'REACTION' }
-  ])(
-    'offers $authored.label with the $activation its Effect authors, ready to run',
-    ({ authored, activation }) => {
-      const [offered] = build([candidate(authored, authored.level)]).candidates
-      expect(offered?.mechanicFacts.invocation.activation).toEqual({ code: activation, amount: 1 })
-      expect(compiledCast(authored)).not.toBeNull()
-    }
-  )
 })
 
 describe('the scaling heal a cast carries', () => {

@@ -7,6 +7,8 @@ import { readCharacterPlay } from '@artificer-toolkit/schema/projections/charact
 import type { SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { cureWounds } from '@artificer-toolkit/source-data/srd/spells/cure-wounds.js'
 import { fireball } from '@artificer-toolkit/source-data/srd/spells/fireball.js'
+import { holdPerson } from '@artificer-toolkit/source-data/srd/spells/hold-person.js'
+import { SRD_CREATURE_TYPES } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { RoomEncounterStore } from '../src/roomEncounterStore.js'
@@ -282,8 +284,18 @@ describe('room Fireball cast by a Character wizard (SPELLS-8.4)', () => {
 
   it.each([
     // A raw die is its face less one: 8d6 faces 2 3 4 5 6 1 2 3 and 9d6 faces 2 3 4 5 6 1 2 3 4.
-    { label: 'Fireball (3rd level)', slotKey: 'STANDARD:3', rolls: [1, 2, 3, 4, 5, 0, 1, 2], damage: 26 },
-    { label: 'Fireball (4th level)', slotKey: 'STANDARD:4', rolls: [1, 2, 3, 4, 5, 0, 1, 2, 3], damage: 30 }
+    {
+      label: 'Fireball (3rd level)',
+      slotKey: 'STANDARD:3',
+      rolls: [1, 2, 3, 4, 5, 0, 1, 2],
+      damage: 26
+    },
+    {
+      label: 'Fireball (4th level)',
+      slotKey: 'STANDARD:4',
+      rolls: [1, 2, 3, 4, 5, 0, 1, 2, 3],
+      damage: 30
+    }
   ])(
     'rolls the $label dice once for the whole area, saves against the wizard’s DC, and one undo restores the slot and every creature',
     async ({ label, slotKey, rolls, damage }) => {
@@ -302,7 +314,11 @@ describe('room Fireball cast by a Character wizard (SPELLS-8.4)', () => {
 
       const { roots, children } = areaReceipts(await readRoomHistory(room.room.base.stub))
       expect(roots).toHaveLength(1)
-      expect(roots[0]?.outputs.spellCastConsumption).toMatchObject({ slotKey, beforeUsed: 0, afterUsed: 1 })
+      expect(roots[0]?.outputs.spellCastConsumption).toMatchObject({
+        slotKey,
+        beforeUsed: 0,
+        afterUsed: 1
+      })
       expect(children).toHaveLength(CAUGHT_IDS.length + 1)
       expect(children.map(({ outputs }) => outputs.d20?.defenseOrDc)).toEqual(
         children.map(() => WIZARD_SAVE_DC)
@@ -325,4 +341,49 @@ describe('room Fireball cast by a Character wizard (SPELLS-8.4)', () => {
     },
     120000
   )
+})
+
+describe('room Hold Person cast by a Character at a creature type it does not affect (SPELLS-8.5)', () => {
+  const TARGET_ID = CAUGHT_IDS[0]!
+  const TYPE_WARNING = 'TARGET_CREATURE_TYPE_EXCLUDED'
+  // No Scene places the tokens, so the range is never measured.
+  const RANGE_WARNING = 'TARGET_RANGE_UNCHECKED'
+  const humanoidWolf = {
+    ...plainWolf,
+    creatureTypeId: SRD_CREATURE_TYPES.find(({ code }) => code === 'HUMANOID')!.id
+  }
+
+  const holdPersonRoom = (creature: typeof plainWolf) =>
+    actionRoom({
+      actors: [
+        characterActor({ id: CHARACTER_ACTOR_ID, characterId: CHARACTER_ID }),
+        srdCreatureActor({ id: TARGET_ID, creature })
+      ],
+      characterSpellcasting: { spells: [holdPerson], prepared: [holdPerson.id] },
+      characterAction: (action) => action.label === 'Hold Person (2nd level)'
+    })
+
+  it('warns, overridably, for a Wolf and spends no slot until the warning is overridden', async () => {
+    const room = await holdPersonRoom(plainWolf)
+
+    const { answer } = await room.startAction(TARGET_ID, [RANGE_WARNING])
+    expect(answer).toMatchObject({
+      type: 'COMMAND_REJECTED',
+      reason: 'RULE_WARNINGS',
+      warnings: [{ code: TYPE_WARNING }, { code: RANGE_WARNING }]
+    })
+    expect(await readSpellSlots(room)).toEqual([])
+
+    const overridden = await room.startAction(TARGET_ID, [RANGE_WARNING, TYPE_WARNING])
+    expect(overridden.answer.type, JSON.stringify(overridden.answer)).toBe('COMMAND_COMMITTED')
+    expect((await room.pendingDecision()).pending.kind).toBe('D20_EVIDENCE')
+  })
+
+  it('raises no creature type warning for a Humanoid', async () => {
+    const room = await holdPersonRoom(humanoidWolf)
+
+    const { answer } = await room.startAction(TARGET_ID, [RANGE_WARNING])
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    expect((await room.pendingDecision()).pending.kind).toBe('D20_EVIDENCE')
+  })
 })
