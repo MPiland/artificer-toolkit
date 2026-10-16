@@ -6,15 +6,19 @@ import { ACTIVATION_CODE } from '@artificer-toolkit/shared/core'
 import { shortsword } from '@artificer-toolkit/source-data/srd/equipment/shortsword.js'
 
 import { dnd5eCharacterRuleActionSystemAdapter } from '../systems/dnd5e/effectActionCompiler.js'
-import { characterActionDescriptor } from '../testing/characterActionDescriptor.js'
+import {
+  ACTION_EFFECT_ID,
+  characterActionDescriptor
+} from '../testing/characterActionDescriptor.js'
 
 /** The Shortsword's melee weapon attack, authored with the given activation. */
 function shortswordAttack(activationCode: string): EffectAuthored {
-  const [effect] = shortsword.effects
+  const effect = shortsword.effects?.[0]
   if (!effect || effect.invocation.kind !== 'ACTION')
     throw new Error('The Shortsword has no action effect.')
   return {
     ...effect,
+    id: ACTION_EFFECT_ID,
     invocation: { ...effect.invocation, activation: { code: activationCode, amount: 1 } }
   } as EffectAuthored
 }
