@@ -25,7 +25,7 @@ type RetainedActionReceipt = {
 
 type RetainedD20Evidence = Pick<
   ServerRuleExecutionD20EvidenceDto,
-  'requestId' | 'rollMode' | 'derivedRollMode' | 'rawFaces' | 'selectedNatural'
+  'requestId' | 'rollMode' | 'derivedRollMode' | 'rawFaces' | 'selectedNatural' | 'modeAdjustment'
 >
 
 function same(left: unknown, right: unknown) {
@@ -82,7 +82,10 @@ export function retainedD20Evidence(input: {
             rawFaces: pending.testRollEvidence.rawFaces,
             rollMode: pending.testRollEvidence.rollMode,
             derivedRollMode: pending.testRollEvidence.derivedRollMode,
-            selectedNatural: pending.testRollEvidence.selectedNatural
+            selectedNatural: pending.testRollEvidence.selectedNatural,
+            ...(pending.testRollEvidence.modeAdjustment
+              ? { modeAdjustment: pending.testRollEvidence.modeAdjustment }
+              : {})
           }
         ]
       : []),
@@ -128,6 +131,26 @@ export function resolutionForRetainedEvidence(input: {
     )
       throw new Error('The retained action d20 evidence is stale.')
     input.used.add(request.requestId)
+    const adjustment = evidence.modeAdjustment
+    if (adjustment) {
+      // The settled dice cannot be entered as they are: replay the roller's own entries, the dice
+      // as rolled and then the one die a held roll still needed.
+      if (input.pending.heldD20 && adjustment.addedFaces.length !== 1)
+        throw new Error('The retained action d20 evidence is stale.')
+      return input.pending.heldD20
+        ? {
+            kind: 'ENTER_DICE',
+            requestId: request.requestId,
+            rawFaces: [...adjustment.addedFaces],
+            rollMode: 'NORMAL'
+          }
+        : {
+            kind: 'ENTER_DICE',
+            requestId: request.requestId,
+            rawFaces: [...adjustment.rolledFaces],
+            rollMode: adjustment.rolledMode
+          }
+    }
     return {
       kind: 'ENTER_DICE',
       requestId: request.requestId,

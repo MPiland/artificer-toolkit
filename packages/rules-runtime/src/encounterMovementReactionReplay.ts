@@ -91,6 +91,7 @@ function requirePendingMatch(input: {
   if (
     !sameContinuation(input.actual.continuation, input.snapshot) ||
     !same(input.actual.d20Policy, input.phase.d20Policy) ||
+    !same(input.actual.d20Belief ?? null, input.phase.d20Belief ?? null) ||
     !same(input.actual.twoPhase, input.phase.twoPhase ?? null) ||
     !same(input.actual.phaseReceipts ?? null, input.snapshot.phaseReceipts ?? null)
   )
@@ -165,6 +166,7 @@ export async function replayEncounterMovementReactionAction(input: {
   const integers = retainedIntegerEvidence({ snapshot, receipt })
   const d20 = retainedD20Evidence({ twoPhase: snapshotTwoPhase(snapshot), receipt })
   const used = new Set<string>()
+  const { attackSight } = input.prepared.prepared
   let result = await advanceNativeActionGraphs({
     runtime: input.runtime,
     adapter: input.prepared.prepared.adapter,
@@ -172,7 +174,8 @@ export async function replayEncounterMovementReactionAction(input: {
     occurrenceId: input.occurrenceId,
     autoRoll: { SOURCE: false, TARGET: false },
     binding: input.prepared.prepared.binding,
-    afterTest: async () => undefined
+    afterTest: async () => undefined,
+    attackSight
   })
   for (let count = 0; result.kind === 'PENDING'; count++) {
     if (count >= RULE_GRAPH_LIMITS.NODES)
@@ -208,6 +211,7 @@ export async function replayEncounterMovementReactionAction(input: {
       autoRoll: { SOURCE: false, TARGET: false },
       binding: input.prepared.prepared.binding,
       afterTest: async () => undefined,
+      attackSight,
       resume: { pending: result, resolution }
     })
   }
@@ -218,7 +222,7 @@ export async function replayEncounterMovementReactionAction(input: {
     requirePendingMatch({ actual: result, snapshot, phase: phase! })
     if ([...integers.keys(), ...d20.keys()].some((requestId) => !used.has(requestId)))
       throw new Error('The retained movement reaction evidence has unused requests.')
-    return result
+    return phase!.heldD20 ? { ...result, heldD20: phase!.heldD20 } : result
   }
   if (result.kind !== 'COMPLETE' || !receipt)
     throw new Error('The retained movement reaction completion evidence is stale.')
