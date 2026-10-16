@@ -163,6 +163,17 @@ All items done on branch `claude/frosty-grothendieck-0a7840`; CI on `ci/reaction
 - **Not covered:** a unit test of `discoverAttackReactionActions` variants (ON_MISS, non-REACTION activation, both triggers together): a candidate is a large schema object, so the variants run through the Worker journeys; the fixture is built in code and published through the SRD snapshot, not saved through the user-content path.
 - Not run locally: Worker tests (stale dist), Storybook, Playwright. Codegen push done locally under the heavy lock.
 
+## REACTION-4.T6: settle the chosen reaction (AC REACTION-4.5)
+
+### T6 results
+
+- **Commits:** `d170edf74` (red tests), `59322ecc7` (implementation), then `a64330729` (review: settle proof through `settleEncounterReactionChoice`). Red proof: CI run 38826744923 on `ci/reaction-4-t6-red` (Build/typecheck TS2724, no exported `chosenEncounterReaction`; branch deleted). Green runs on `ci/reaction-4-t6`.
+- **Change:** `chosenEncounterReaction(offer, selection)` picks the pin whose `useOptionId` was chosen (DECLINE answers the innermost; an unissued option throws); `settleEncounterReactionChoice` uses it instead of `reactions[0]` and now takes only the offer fields it reads. The Worker finds the chosen reaction again by `actionId` (`discoverNativeAttackReaction(answering)`), both on the answer and on the later-resume replay (the audit's own pin).
+- **Proofs:** `encounterReactionChoice.test.ts` (chooser, plus `settleEncounterReactionChoice` on a two-pin offer with the real runtime: second option settles the second, answering it against the first's candidate is stale, decline settles the first); `nativeRoomReaction.test.ts` (identical resolve command replays without a second use or effect; an unoffered option is refused VERSION_STALE and leaves the hit held for the real answer).
+- **Honest limits:** only the unit tests were red-first; the two Worker tests characterize behavior T5 already had. A Worker journey with two offered reactions is unreachable until T3 offers every eligible reaction. The replay test returns the stored receipt; it does not rebuild the plan (the ids come from `nativeReactionEffectId(commandId, occurrenceId)`, pinned by T5's formula test); no fixture pauses after the reaction, so the later-resume rebuild is unexercised.
+- **Independent review (opus, no checkout):** no production bug. Fixed: settle clause proved only via the helper (now through `settleEncounterReactionChoice`), AC label 4.6 to 4.5. Carried to T3: (a) decide menu versus stack for the offer (`chosenEncounterReaction` treats OPTION as a menu but DECLINE as `reactions[0]`; the schema says only the first is decided at a time); (b) require every pin's `reactorActorId` to equal the roller in the schema refinement (`encounterActionPending.ts`, `actionPendingPersistence.ts` check only `reactions[0]`); (c) a rebuild-twice test (plan the same answer twice, or a fixture that pauses after the reaction).
+- Not run locally: Worker tests (stale dist). Rules-runtime unit test passed locally (7).
+
 ## REACTION-4.T3 notes (carried from T5)
 
 - The pending summary `REACTION_CHOICE.options` (`packages/schema/src/shared/encounterRuleOccurrence.ts`) is a single-element tuple and `CampaignTabletopDecisionDrawer.tsx` reads `pending.options[0]`. Resume admission already accepts any offered reaction (`offeredDecisionOptionIds`), so T3 widens the summary contract to every offered option and the drawer to list them, when a chain can hold more than one reaction.
