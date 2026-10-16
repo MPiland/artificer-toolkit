@@ -1007,7 +1007,7 @@ export function withOffHandAttack(
           }
         ]
       }
-    }
+    } as EquipmentEffectAuthored
   ]
 }
 
