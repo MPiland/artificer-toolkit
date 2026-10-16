@@ -5947,9 +5947,13 @@
         {
           "id": "ATTACK-10",
           "title": "Attack-roll perception",
-          "status": "IN_PROGRESS",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": [
+            "apps/session-worker/test/nativeRoomHideAction.test.ts",
+            "apps/session-worker/test/nativeRoomUnseenTarget.test.ts",
+            "apps/session-worker/test/nativeRoomSourceSightSave.test.ts"
+          ],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
@@ -6010,8 +6014,14 @@
             },
             {
               "text": "Saving throws follow the ATTACK-10.1 rule: the roller's prompt shows only what their Character knows, the save settles in the true mode, a player-visible reason never names a hidden fact, and the GM sees the full reason.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/session-worker/test/nativeRoomSourceSightSave.test.ts (believed prompt, true settle with the held die, generic player caption, GM reason, redaction)",
+                "packages/rules-runtime/src/__tests__/encounterAttackBelief.test.ts (believed sight for a save; generic caption)",
+                "packages/rules-runtime/src/__tests__/encounterBasicActions.test.ts (a sight-gated save advantage lists nothing while its holder is Incapacitated)",
+                "Authored from core options: requiresHolderSeesSource on SAVING_THROW_MODIFIER; apps/web/src/forms/tests/AuthoredDomainFieldParity.test.tsx and packages/rules-runtime/src/__tests__/dnd5eCombatMath.test.ts (homebrew feature folds like Danger Sense); packages/source-data/src/srd/import.test.ts",
+                "Green: CI Tests 38885290433 and Live backend 38885290383 on b504904ed"
+              ],
               "origin": [],
               "note": "Registered 2026-10-09 (D100 believed vs true mode): the user chose attacks first, saves as a follow-up.",
               "id": "ATTACK-10.5"
@@ -6091,15 +6101,14 @@
             {
               "id": "ATTACK-10.T4",
               "text": "Saving throws use the believed mode in the prompt and settle in the true mode; player reasons never name a hidden fact.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["ATTACK-10.5"],
               "wsjf": {
                 "bv": 3,
                 "tc": 2,
                 "rr": 2,
                 "size": 3
-              },
-              "activeWorkbook": "docs/handoffs/slice-attack-10-t4.md"
+              }
             },
             {
               "id": "ATTACK-10.T5",
