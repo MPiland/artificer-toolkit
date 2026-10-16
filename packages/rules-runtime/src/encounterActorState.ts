@@ -25,9 +25,11 @@ export function requireSnapshotIdentity(actor: EncounterRunActorState) {
       snapshot.sourceRevision !== undefined &&
       snapshot.sourceRevision !== actor.sourceRevision)
   ) {
+    console.error('DEBUG-STALE-A', JSON.stringify({ k: [snapshot.kind, actor.kind], s: [snapshot.systemId, actor.systemId], r: [snapshot.sourceRevision, actor.sourceRevision], i: [snapshot.id, actor.sourceId], f: 'form' in actor && actor.form !== null }))
     throw new Error('Encounter initiative actor source identity is stale.')
   }
   if (actor.kind !== 'CUSTOM' && snapshot.id !== actor.sourceId) {
+    console.error('DEBUG-STALE-B', JSON.stringify({ i: [snapshot.id, actor.sourceId], f: 'form' in actor && actor.form !== null }))
     throw new Error('Encounter initiative actor source identity is stale.')
   }
   return snapshot
