@@ -10151,9 +10151,9 @@
         {
           "id": "RELIABILITY-16",
           "title": "Snapshot drift is regenerated in CI",
-          "status": "TODO",
+          "status": "DONE",
           "journeyTests": [".github/workflows/tests.yml", "scripts/watchCi.ps1"],
-          "journeyStatus": "none",
+          "journeyStatus": "passing",
           "origin": [],
           "wsjf": {
             "bv": 5,
@@ -10165,8 +10165,12 @@
             {
               "id": "RELIABILITY-16.1",
               "text": "When a ci/** Tests run fails only on Vitest snapshot mismatches, the workflow reruns the failing test files with snapshot update and uploads the changed __snapshots__ files as an `updated-snapshots` artifact; scripts/watchCi.ps1 prints the download command, and slice-workbook-rules.md tells sessions to commit the artifact instead of regenerating snapshots locally. A deliberately stale snapshot on a ci/ branch proves it red then green.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "scripts/snapshotDrift.test.mjs",
+                "Red: ci/reliability-16-proof Tests 38877347249 on bb4e1d230 fails Convex shard 2 on a deliberately stale snapshot and uploads updated-snapshots byte-identical to the corrected file",
+                "Green: ci/reliability-16-proof Tests 38879476375 on 8af4aa98d with the artifact committed; branch CI Tests 38877351838 on a712089e1"
+              ],
               "origin": [],
               "note": "Snapshot conflicts after merging a batch need a light-lane -u run, and the light lane is starved while many sessions run (AvailableMBytes ~490 on 2026-10-16 against a 1 GB gate). Mirrors the live-backend generated-files artifact."
             }
@@ -10175,22 +10179,21 @@
             {
               "id": "RELIABILITY-16.T1",
               "text": "Add the snapshot-regeneration step and `updated-snapshots` artifact to tests.yml for the Convex shards and package tests, teach watchCi.ps1 to print its download command, and update slice-workbook-rules.md and AGENTS.md Validation; prove with a deliberately stale snapshot on a ci/ branch.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["RELIABILITY-16.1"],
               "wsjf": {
                 "bv": 5,
                 "tc": 8,
                 "rr": 8,
                 "size": 2
-              },
-              "activeWorkbook": "docs/handoffs/slice-reliability-16.md"
+              }
             }
           ]
         },
         {
           "id": "RELIABILITY-17",
           "title": "Unseen-target Worker test is deterministic",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "journeyTests": ["apps/session-worker/test/nativeRoomUnseenTarget.test.ts"],
           "journeyStatus": "none",
           "origin": [],
@@ -10214,14 +10217,15 @@
             {
               "id": "RELIABILITY-17.T1",
               "text": "Find why the unseen-target journey intermittently lists no targets (Scene token write timing, vision read or fog order), fix the cause, and prove it with a forced red on a ci/ -red branch.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["RELIABILITY-17.1"],
               "wsjf": {
                 "bv": 3,
                 "tc": 8,
                 "rr": 8,
                 "size": 1
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-reliability-17.md"
             }
           ]
         }
