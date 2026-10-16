@@ -113729,6 +113729,7 @@ export declare const api: {
           encounter:
             | {
                 actors: Array<{
+                  absence: "GM_REMOVED" | "DEPARTED" | null;
                   activeGrants?: Array<{
                     effectId: string;
                     expiresAtCampaignMinute: number | null;
@@ -113812,7 +113813,6 @@ export declare const api: {
                   label: string;
                   manualOrder: number | null;
                   maxHitPoints: number;
-                  outOfInitiative: boolean;
                   public: boolean;
                   resources:
                     | string
@@ -113918,6 +113918,7 @@ export declare const api: {
               }
             | {
                 actors: Array<{
+                  absence: "GM_REMOVED" | "DEPARTED" | null;
                   activeGrants?: Array<{
                     effectId: string;
                     expiresAtCampaignMinute: number | null;
@@ -113954,7 +113955,6 @@ export declare const api: {
                   kind: "CHARACTER" | "CREATURE" | "CUSTOM";
                   label: string;
                   manualOrder: number | null;
-                  outOfInitiative: boolean;
                   public: boolean;
                   sourceId: string | null;
                   sourceRevision: number | null;
@@ -114536,6 +114536,7 @@ export declare const api: {
           projection:
             | {
                 actors: Array<{
+                  absence: "GM_REMOVED" | "DEPARTED" | null;
                   activeGrants?: Array<{
                     effectId: string;
                     expiresAtCampaignMinute: number | null;
@@ -114619,7 +114620,6 @@ export declare const api: {
                   label: string;
                   manualOrder: number | null;
                   maxHitPoints: number;
-                  outOfInitiative: boolean;
                   public: boolean;
                   resources:
                     | string
@@ -114725,6 +114725,7 @@ export declare const api: {
               }
             | {
                 actors: Array<{
+                  absence: "GM_REMOVED" | "DEPARTED" | null;
                   activeGrants?: Array<{
                     effectId: string;
                     expiresAtCampaignMinute: number | null;
@@ -114761,7 +114762,6 @@ export declare const api: {
                   kind: "CHARACTER" | "CREATURE" | "CUSTOM";
                   label: string;
                   manualOrder: number | null;
-                  outOfInitiative: boolean;
                   public: boolean;
                   sourceId: string | null;
                   sourceRevision: number | null;
@@ -115364,6 +115364,7 @@ export declare const api: {
         { encounterId: string },
         | {
             actors: Array<{
+              absence: "GM_REMOVED" | "DEPARTED" | null;
               activeGrants?: Array<{
                 effectId: string;
                 expiresAtCampaignMinute: number | null;
@@ -115442,7 +115443,6 @@ export declare const api: {
               label: string;
               manualOrder: number | null;
               maxHitPoints: number;
-              outOfInitiative: boolean;
               public: boolean;
               resources:
                 | string
@@ -115547,6 +115547,7 @@ export declare const api: {
           }
         | {
             actors: Array<{
+              absence: "GM_REMOVED" | "DEPARTED" | null;
               activeGrants?: Array<{
                 effectId: string;
                 expiresAtCampaignMinute: number | null;
@@ -115583,7 +115584,6 @@ export declare const api: {
               kind: "CHARACTER" | "CREATURE" | "CUSTOM";
               label: string;
               manualOrder: number | null;
-              outOfInitiative: boolean;
               public: boolean;
               sourceId: string | null;
               sourceRevision: number | null;
@@ -115657,6 +115657,7 @@ export declare const api: {
           encounter:
             | {
                 actors: Array<{
+                  absence: "GM_REMOVED" | "DEPARTED" | null;
                   activeGrants?: Array<{
                     effectId: string;
                     expiresAtCampaignMinute: number | null;
@@ -115740,7 +115741,6 @@ export declare const api: {
                   label: string;
                   manualOrder: number | null;
                   maxHitPoints: number;
-                  outOfInitiative: boolean;
                   public: boolean;
                   resources:
                     | string
@@ -115846,6 +115846,7 @@ export declare const api: {
               }
             | {
                 actors: Array<{
+                  absence: "GM_REMOVED" | "DEPARTED" | null;
                   activeGrants?: Array<{
                     effectId: string;
                     expiresAtCampaignMinute: number | null;
@@ -115882,7 +115883,6 @@ export declare const api: {
                   kind: "CHARACTER" | "CREATURE" | "CUSTOM";
                   label: string;
                   manualOrder: number | null;
-                  outOfInitiative: boolean;
                   public: boolean;
                   sourceId: string | null;
                   sourceRevision: number | null;
@@ -116163,6 +116163,7 @@ export declare const api: {
         { blueprintId: string; campaignId: string; commandId: string },
         {
           actors: Array<{
+            absence: "GM_REMOVED" | "DEPARTED" | null;
             activeGrants?: Array<{
               effectId: string;
               expiresAtCampaignMinute: number | null;
@@ -116241,7 +116242,6 @@ export declare const api: {
             label: string;
             manualOrder: number | null;
             maxHitPoints: number;
-            outOfInitiative: boolean;
             public: boolean;
             resources:
               | string
