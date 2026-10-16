@@ -144,7 +144,16 @@ type SetupOptions = {
   /** Feature-granted spells with the grant attributes. */
   granted?: readonly {
     spell: SpellAuthored
-    attributes: readonly ('PREPARED' | 'RITUAL' | 'CAST_AT_WILL')[]
+    attributes: readonly (
+      | 'PREPARED'
+      | 'RITUAL'
+      | 'CAST_AT_WILL'
+      | 'LIMITED_USE'
+      | 'CAST_AT_LEVEL'
+    )[]
+    /** The grant's fixed uses per Long Rest, for a LIMITED_USE or CAST_AT_LEVEL grant. */
+    uses?: number
+    castAtLevel?: number
   }[]
   /** Seats an SRD Wolf and a second player's Character beside the target. */
   withOthers?: boolean
@@ -181,7 +190,7 @@ async function setup(options: SetupOptions) {
             availableAtLevel: 1,
             order: 0,
             grants: {
-              spells: options.granted.map(({ spell, attributes }, order) => ({
+              spells: options.granted.map(({ spell, attributes, uses, castAtLevel }, order) => ({
                 id: crypto.randomUUID(),
                 grantKind: 'SPELL_GRANT' as const,
                 selectionKind: 'GRANTED' as const,
@@ -189,6 +198,18 @@ async function setup(options: SetupOptions) {
                 authoringModeKind: 'SELECTED' as const,
                 spellIds: [spell.id],
                 attributes: [...attributes],
+                ...(castAtLevel === undefined ? {} : { castAtLevel }),
+                ...(uses === undefined
+                  ? {}
+                  : {
+                      charges: {
+                        id: crypto.randomUUID(),
+                        resetKind: 'LONG_REST' as const,
+                        limitKind: 'FIXED_AMOUNT' as const,
+                        scalingKind: 'NONE' as const,
+                        amount: uses
+                      }
+                    }),
                 order
               }))
             }
@@ -597,6 +618,18 @@ async function allowanceUsed(fixture: Fixture, definitionId: string) {
     if (!row) throw new Error('Character actor is unavailable.')
     return encounterRuleUsageUsed(await readTestActor(ctx, row), definitionId)
   })
+}
+
+/** The Sheet's spell-source pool of the granted Mend ("Mend uses"), after the room publishes its state. */
+async function mendUses(fixture: Fixture) {
+  await checkpointLiveRoom(fixture.campaign.id)
+  const sheet = await fixture.player.caller.query(api.characters.sheet.get, {
+    id: fixture.character.id
+  })
+  const pools = sheet?.resources.items.filter((item) => item.label === 'Mend uses') ?? []
+  const [pool] = pools
+  if (!pool || pools.length > 1) throw new Error('Expected exactly one Mend uses pool.')
+  return pool
 }
 
 /** Releases the room so the direct write below is what its next command hydrates. */
@@ -1106,6 +1139,92 @@ describe('Character spell casting in an Encounter', () => {
       { slotKey: 'STANDARD:2', used: 0, max: 1 }
     ])
   }, 60000)
+
+  describe('a spell granted for limited uses (SPELLS-8.T8)', () => {
+    const grants = [
+      { attributes: ['LIMITED_USE'], castAtLevel: undefined, label: 'Mend (1st level)' },
+      { attributes: ['CAST_AT_LEVEL'], castAtLevel: 2, label: 'Mend (2nd level)' },
+      // The SRD's Infernal Legacy shape: a limited-use grant cast at a fixed higher level.
+      { attributes: ['LIMITED_USE', 'CAST_AT_LEVEL'], castAtLevel: 2, label: 'Mend (2nd level)' }
+    ] as const
+
+    function grantedMend(
+      attributes: (typeof grants)[number]['attributes'],
+      castAtLevel?: number,
+      uses?: number
+    ) {
+      return setup({
+        known: [],
+        granted: [
+          {
+            spell: healSpell('Mend', (spell) => fixHeal(spell, 1)),
+            attributes,
+            ...(uses === undefined ? {} : { uses }),
+            ...(castAtLevel === undefined ? {} : { castAtLevel })
+          }
+        ]
+      })
+    }
+
+    it.each(grants)(
+      'journey: a $attributes grant is cast from its use and not a slot, and GM undo restores the use',
+      async ({ attributes, castAtLevel, label }) => {
+        const fixture = await grantedMend(attributes, castAtLevel, 2)
+        expect((await spellChoices(fixture, 0)).map((choice) => choice.label)).toEqual([label])
+        expect(await mendUses(fixture)).toMatchObject({ used: 0, remaining: 2 })
+        const actionId = await choiceId(fixture, label, 0, fixture.player)
+
+        const cast = await executeInRoom(fixture.player.caller, {
+          command: castCommand(fixture, actionId, 0)
+        })
+        expect(cast.occurrence?.status).toBe('COMPLETE')
+        expect(await mendUses(fixture)).toMatchObject({ used: 1, remaining: 1 })
+        expect((await storedCharacter(fixture)).record.state.spellSlots).toBeUndefined()
+
+        await revert(fixture, cast.projection.version)
+        expect(await mendUses(fixture)).toMatchObject({ used: 0, remaining: 2 })
+        expect((await storedCharacter(fixture)).record.state.spellSlots).toBeUndefined()
+      },
+      120000
+    )
+
+    it('casts a CAST_AT_LEVEL grant without charges for free, spending neither a use nor a slot', async () => {
+      const fixture = await grantedMend(['CAST_AT_LEVEL'], 2)
+      const actionId = await choiceId(fixture, 'Mend (2nd level)', 0)
+      const cast = await executeInRoom(fixture.gm.caller, {
+        command: castCommand(fixture, actionId, 0)
+      })
+      expect(cast.occurrence?.status).toBe('COMPLETE')
+      expect((await storedCharacter(fixture)).record.state.spellSlots).toBeUndefined()
+      await resetActionAllowance(fixture)
+      expect(
+        (await spellChoices(fixture, cast.projection.version)).map(({ label }) => label)
+      ).toEqual(['Mend (2nd level)'])
+    }, 120000)
+
+    it('stops offering the cast once its last use is spent, and refuses the exhausted cast', async () => {
+      const fixture = await grantedMend(['LIMITED_USE'], undefined, 2)
+      const actionId = await choiceId(fixture, 'Mend (1st level)', 0)
+      const first = await executeInRoom(fixture.gm.caller, {
+        command: castCommand(fixture, actionId, 0)
+      })
+      await resetActionAllowance(fixture)
+      const second = await executeInRoom(fixture.gm.caller, {
+        command: castCommand(fixture, actionId, first.projection.version)
+      })
+      expect(second.occurrence?.status).toBe('COMPLETE')
+      expect(await mendUses(fixture)).toMatchObject({ used: 2, remaining: 0 })
+
+      await resetActionAllowance(fixture)
+      const version = second.projection.version
+      expect(await spellChoices(fixture, version)).toEqual([])
+      await expect(
+        executeInRoom(fixture.gm.caller, { command: castCommand(fixture, actionId, version) })
+      ).rejects.toThrow(EXHAUSTED_CAST)
+      expect(await mendUses(fixture)).toMatchObject({ used: 2, remaining: 0 })
+      expect((await storedCharacter(fixture)).record.state.spellSlots).toBeUndefined()
+    }, 120000)
+  })
 
   describe('a scaling heal (SPELLS-8.1)', () => {
     const RANGE_UNCHECKED: NonNullable<ResolveEncounterActionInputDto['acknowledgedWarnings']> = [
