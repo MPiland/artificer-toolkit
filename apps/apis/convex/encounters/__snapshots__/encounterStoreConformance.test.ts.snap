@@ -585,6 +585,7 @@ exports[`Encounter store conformance: Convex and the in-memory store > corrects 
       "actors": [
         {
           "activeGrants": [],
+          "concealment": null,
           "concentration": null,
           "conditions": [],
           "controllerUserIds": [],
@@ -671,6 +672,7 @@ exports[`Encounter store conformance: Convex and the in-memory store > corrects 
         },
         {
           "activeGrants": [],
+          "concealment": null,
           "concentration": null,
           "conditions": [],
           "controllerUserIds": [],
@@ -700,6 +702,7 @@ exports[`Encounter store conformance: Convex and the in-memory store > corrects 
         },
         {
           "activeGrants": [],
+          "concealment": null,
           "concentration": null,
           "conditions": [],
           "controllerUserIds": [],
@@ -786,6 +789,7 @@ exports[`Encounter store conformance: Convex and the in-memory store > corrects 
         },
         {
           "activeGrants": [],
+          "concealment": null,
           "concentration": null,
           "conditions": [],
           "controllerUserIds": [],
@@ -1157,6 +1161,7 @@ exports[`Encounter store conformance: Convex and the in-memory store > removes a
       "actors": [
         {
           "activeGrants": [],
+          "concealment": null,
           "concentration": null,
           "conditions": [],
           "controllerUserIds": [],
@@ -1243,6 +1248,7 @@ exports[`Encounter store conformance: Convex and the in-memory store > removes a
         },
         {
           "activeGrants": [],
+          "concealment": null,
           "concentration": null,
           "conditions": [],
           "controllerUserIds": [],
@@ -1272,6 +1278,7 @@ exports[`Encounter store conformance: Convex and the in-memory store > removes a
         },
         {
           "activeGrants": [],
+          "concealment": null,
           "concentration": null,
           "conditions": [],
           "controllerUserIds": [],
@@ -1503,6 +1510,7 @@ exports[`Encounter store conformance: Convex and the in-memory store > voids a p
         "actors": [
           {
             "activeGrants": [],
+            "concealment": null,
             "concentration": null,
             "conditions": [],
             "controllerUserIds": [],
@@ -1589,6 +1597,7 @@ exports[`Encounter store conformance: Convex and the in-memory store > voids a p
           },
           {
             "activeGrants": [],
+            "concealment": null,
             "concentration": null,
             "conditions": [],
             "controllerUserIds": [],
@@ -1618,6 +1627,7 @@ exports[`Encounter store conformance: Convex and the in-memory store > voids a p
           },
           {
             "activeGrants": [],
+            "concealment": null,
             "concentration": null,
             "conditions": [],
             "controllerUserIds": [],
@@ -1704,6 +1714,7 @@ exports[`Encounter store conformance: Convex and the in-memory store > voids a p
           },
           {
             "activeGrants": [],
+            "concealment": null,
             "concentration": null,
             "conditions": [],
             "controllerUserIds": [],

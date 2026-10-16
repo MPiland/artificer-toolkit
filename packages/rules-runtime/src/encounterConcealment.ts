@@ -1,4 +1,5 @@
 import type { EncounterD20RollModeDto } from '@artificer-toolkit/schema/api/encounters'
+import type { ConcealmentListingDto } from '@artificer-toolkit/schema/shared/activeGrantListing'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 
@@ -26,6 +27,20 @@ export function encounterConcealmentOf(
       }
   }
   return null
+}
+
+/** The concealment an actor's effects hold, as the GM's projection lists it (D116); null when it holds none. */
+export function listConcealment(
+  effects: readonly ActiveRuleEffectRecord[]
+): ConcealmentListingDto | null {
+  const concealment = encounterConcealmentOf(effects)
+  return (
+    concealment && {
+      effectId: concealment.effect.id,
+      concealmentTotal: concealment.concealmentTotal,
+      observerActorIds: [...concealment.observerActorIds]
+    }
+  )
 }
 
 /** An observer set as a concealment stores it: unique and sorted, so two equal sets compare equal. */

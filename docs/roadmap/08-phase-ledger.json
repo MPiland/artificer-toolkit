@@ -5900,9 +5900,14 @@
               "id": "ATTACK-10.6",
               "text": "The GM sees, for each hidden creature, which observers it is hidden from and which failed to notice it (D100), and can add or remove observers from the live table UI through SET_CONCEALMENT_OBSERVERS; players never see that list.",
               "status": "TODO",
-              "proof": [],
+              "proof": [
+                "packages/rules-runtime/src/__tests__/encounterPlayerProjection.test.ts",
+                "apps/session-worker/test/nativeRoomHideAction.test.ts",
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopEncounterDrawer.test.tsx",
+                "CI 38842195604 at a05549a24"
+              ],
               "origin": [],
-              "note": "Registered 2026-10-15 from the ATTACK-10.T1 merge review: the GM half of D100 is stored but not projected, and the GM command has no UI."
+              "note": "Registered 2026-10-15 from the ATTACK-10.T1 merge review: the GM half of D100 is stored but not projected, and the GM command has no UI. Built 2026-10-15 (ATTACK-10.T5, slice-attack-10-t5.md): GM-only concealment projection, drawer editor and room/projection redaction proofs are green. Stays TODO until the live journey (apps/web/tests/live-backend/encounterHide.ts, runLocalConvexProof.ps1 -Proof hide-browser) has run; it is written and registered but was not run in the workbook."
             }
           ],
           "wsjf": {
