@@ -39,7 +39,7 @@ Base: `3ce5883f1` (SPELLS-19.T2, merged locally), branch `claude/bold-chaplygin-
 - 2026-10-16: red tests written (rules-runtime unit, compiler, authoring parity, room journey, web move warning). The worktree has no `node_modules`, so the red run is CI only (`ci/spells-29-t1-red`).
 - 2026-10-16: red Tests run [38924777168](https://github.com/MPiland/artificer-toolkit/actions/runs/38924777168) failed as expected:
   - Packages: `encounterConditionMechanics.test.ts` "a condition that follows its source (SPELLS-29)", all five tests (sourced only when every holding records it; move closer warns, equal or farther doesn't; no approach mechanic never warns; disadvantage only while a source is in sight; unsourced keeps disadvantage).
-  - Packages: `encounterAreaActionCompilation.test.ts` "plans the Frightened of SRD Fear as recording its caster; Phantasmal Killer records none".
+  - Packages: `encounterAreaActionCompilation.test.ts` "plans the Frightened of SRD Fear as recording its caster; Phantasmal Killer records none". **Correction:** this one failed for the wrong reason. The harness compiled Fear without its Concentration, and the test-phase compiler refused it ("D&D test action paths must be unique direct outcomes") before the `recordsSource` assertion ran. The test now runs on the real spell-cast compile path (see attempt 5).
   - Web: `CampaignVttStage.moveWarning.test.tsx`, both tests ("sends nothing more when the mover keeps to the rule"; "shows the warning on a refused move and resends it acknowledged on Do it anyway").
   - Both typecheck jobs: the missing exports, plus the unknown warning code `CONDITION_SOURCE_APPROACH` in `nativeRoomFearSource.test.ts` and the web test.
   - The Worker room journey did not reach execution: the Packages and Worker job stopped at the failing rules-runtime step.
@@ -63,3 +63,17 @@ Base: `3ce5883f1` (SPELLS-19.T2, merged locally), branch `claude/bold-chaplygin-
   - **Stands, MANUAL mode** (no move warning, since nothing tracks rules there; ADR 0034).
   - **Stands, raw `scene.grid` in the move gate** (the movement planner beside it uses the same grid).
   - **Stands, a second refusal replacing the open dialog** (the latest refusal is the current one).
+- 2026-10-16: green attempt 4 (`0c56ffa47`, review fixes):
+  - Live backend [38928338274](https://github.com/MPiland/artificer-toolkit/actions/runs/38928338274) reported generated-file drift only; its artifact is committed in `9742efe1e`.
+  - Tests [38928338187](https://github.com/MPiland/artificer-toolkit/actions/runs/38928338187) failed both typechecks on that same drift.
+  - It also failed one shared test, `effect-compiler.test.ts` "compiles exact roll-table condition paths through the effect result wrapper". The compiler states `recordsSource: false` on every compiled condition outcome, so the expected compiled shape gains the field.
+- 2026-10-16: merged `ci/merge-batch-al` (`5e9dc541d`). The only conflict was the decisions log, where D133 and this slice's pending entry are both kept. The batch's Counterspell reaction preparation passes no `loadSourcesSeen`, so reactions keep the always-on modes, as deferred.
+- 2026-10-16: green attempt 5 (`377625d81`), Tests [38929512127](https://github.com/MPiland/artificer-toolkit/actions/runs/38929512127), failed only the Fear compile test, with the same harness error as the red run. In `ba1a43619` the test moved to `characterSpellCastActions.test.ts` "plans the Frightened of SRD Fear as recording its caster; Hold Person records none (SPELLS-29)". It runs on the compile path the room uses (`compileCharacterActionEntryPoints` over discovered spell-cast candidates).
+  - Hold Person replaces Phantasmal Killer as the unsourced case. Hold Person is already proved on this path, through a different condition plan (repeating save) from Fear's timed plan.
+  - Phantasmal Killer has no proved cast compile path. Its unsourced Frightened is an authored-data choice, not compiler logic.
+- 2026-10-16: green attempt 6 (`ba1a43619`): Live [38932320629](https://github.com/MPiland/artificer-toolkit/actions/runs/38932320629) green; Tests [38932320622](https://github.com/MPiland/artificer-toolkit/actions/runs/38932320622) failed the moved test: `compiledCast(FEAR)` is null.
+  - **Finding (blocks the AC's "proved for Fear"):** SRD Fear compiles as MANUAL on the Character cast path. Its shape is a save trigger, then an `ON_SAVE_FAIL` Frightened with a one-minute duration under Concentration, with no repeat save.
+  - `compileExecutionPlan` routes a save to the TEST/OUTCOME template, and that template refuses an entry with a duration unless a recurring-save plan owns it. In `compileCharacterActionEntryPoints`, only grant and repeated-save plans join two-phase execution.
+  - SPELLS-19.T2 proved the area Concentration with a "Fright Sphere" fixture that has a repeating save, not real Fear. The Gorgon's lone `ON_SAVE_FAIL` Restrained is the same unsupported shape (slice-spells-19.md).
+  - The Worker room journey, which casts real SRD Fear, has not run yet: every Packages failure stopped the job before the Worker step. It will fail the same way.
+  - Escalated to the orchestrator: closing the gap means a new compiler shape, a timed-condition plan joining a save's TEST/OUTCOME execution, single-target and area.
