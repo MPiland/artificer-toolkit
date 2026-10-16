@@ -310,6 +310,7 @@ const compiledActionTestOutcomePlanSchema = lazySchema(() =>
         published: serverPublishedRuleDefinitionDtoSchema,
         template: compiledActionTemplateIdentitySchema
       }),
+      /** Empty when a creature form's active-effect plan carries every outcome the TEST selects. */
       outcomes: z
         .array(
           z.strictObject({
@@ -317,7 +318,6 @@ const compiledActionTestOutcomePlanSchema = lazySchema(() =>
             template: compiledActionTemplateIdentitySchema
           })
         )
-        .check(z.minLength(1))
         .check(z.maxLength(32))
     })
     .check(
