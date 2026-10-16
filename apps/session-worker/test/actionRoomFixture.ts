@@ -586,14 +586,15 @@ export async function actionRoom(config: ActionRoomConfig) {
     /**
      * The acting actor's action on the chosen creatures `actorIds`, read against the Scene or not;
      * `point` is the Scene point an action that names an area is aimed at; `formId` is the
-     * creature form the cast takes.
+     * creature form the cast takes, or `creatureId` the Creature a filtered form is.
      */
     async startActorsAction(
       actorIds: readonly string[],
       acknowledgedWarnings: ResolveEncounterActionInputDto['acknowledgedWarnings'] = [],
       withScene = true,
       point: { x: number; y: number } | null = null,
-      formId?: string
+      formId?: string,
+      creatureId?: string
     ) {
       const command: ResolveEncounterActionInputDto = {
         type: 'RESOLVE_ACTION',
@@ -607,6 +608,7 @@ export async function actionRoom(config: ActionRoomConfig) {
           kind: 'ACTORS',
           actorIds: [...actorIds],
           ...(formId && { formId }),
+          ...(creatureId && { creatureId }),
           scene: withScene
             ? { sceneId: room.scene.id, expectedSceneVersion: room.scene.version, point }
             : null

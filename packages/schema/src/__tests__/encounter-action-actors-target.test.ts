@@ -36,6 +36,12 @@ describe('a list of chosen creatures as a RESOLVE_ACTION target (D118)', () => {
     expect(parse({ ...actors([actorId(1)]), formId: 'not-a-form' })).toBe(false)
   })
 
+  it('takes the Creature a filtered form turns the target into', () => {
+    const creatureId = '00000000-0000-4000-8000-0000000000b1'
+    expect(parse({ ...actors([actorId(1)]), creatureId })).toBe(true)
+    expect(parse({ ...actors([actorId(1)]), creatureId: 'not-a-creature' })).toBe(false)
+  })
+
   it('refuses an empty list and a list past the Encounter’s size', () => {
     expect(parse(actors([]))).toBe(false)
     const tooMany = Array.from({ length: MAX_ENCOUNTER_ACTORS + 1 }, (_, index) =>
