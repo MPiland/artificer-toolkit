@@ -10080,7 +10080,7 @@
         {
           "id": "RELIABILITY-15",
           "title": "Initiative declaration settlement test is deterministic",
-          "status": "DONE",
+          "status": "IN_PROGRESS",
           "journeyTests": ["apps/apis/convex/encounters/initiativeDeclarations.test.ts"],
           "journeyStatus": "verified",
           "origin": [],
@@ -10102,6 +10102,12 @@
               ],
               "origin": [],
               "note": "Flaked on aeb08c947 (Tests 38857606244): equal random auto-rolls with initiativeTieDefinitionId null left the Run on an INITIATIVE_ORDER decision; passed on rerun with no code change."
+            },
+            {
+              "id": "RELIABILITY-15.2",
+              "text": "Every test in initiativeDeclarations.test.ts that expects a settled (ACTIVE) Run is deterministic: no automatic initiative roll can tie into an unhandled INITIATIVE_ORDER decision (seeded rolls through the existing queued-roll mechanism or explicit tie handling), proved red with a forced tie for each affected case before the fix. Found 2026-10-16: \"shows a Character declaration only to its current controller and the GM\" (CI 38870307348) and \"settles declarations from two assigned Character controllers through the player action entrypoint\" (CI 38872456272) failed with PREPARED on unrelated branches.",
+              "status": "TODO",
+              "proof": []
             }
           ],
           "tasks": [
@@ -10116,6 +10122,13 @@
                 "rr": 8,
                 "size": 1
               }
+            },
+            {
+              "id": "RELIABILITY-15.T2",
+              "text": "Seed or tie-handle every remaining settling case in initiativeDeclarations.test.ts (no weakened assertion, no retry); red per case on a ci/ -red branch, then green.",
+              "status": "IN_PROGRESS",
+              "closes": ["RELIABILITY-15.2"],
+              "activeWorkbook": "docs/handoffs/slice-reliability-15-t2.md"
             }
           ]
         },
