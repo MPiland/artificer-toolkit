@@ -34,7 +34,8 @@ const circumstances = (
   nearestFeet: number | null | undefined = undefined
 ): Dnd5eAttackCircumstances => ({
   rollMode,
-  enemyProximity: nearestFeet === undefined ? null : { nearestFeet }
+  enemyProximity: nearestFeet === undefined ? null : { nearestFeet },
+  targetCreatureTypeId: null
 })
 
 /** Whether the reduced Effect still owes its Sneak Attack entry for these circumstances. */
