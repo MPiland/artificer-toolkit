@@ -177,3 +177,14 @@ All items done on branch `claude/frosty-grothendieck-0a7840`; CI on `ci/reaction
 ## REACTION-4.T3 notes (carried from T5)
 
 - The pending summary `REACTION_CHOICE.options` (`packages/schema/src/shared/encounterRuleOccurrence.ts`) is a single-element tuple and `CampaignTabletopDecisionDrawer.tsx` reads `pending.options[0]`. Resume admission already accepts any offered reaction (`offeredDecisionOptionIds`), so T3 widens the summary contract to every offered option and the drawer to list them, when a chain can hold more than one reaction.
+
+## REACTION-4.T3: plan and increments
+
+Closes AC REACTION-4.3 and the rest of AC REACTION-4.2. Built in increments, each its own commit and CI run on `ci/reaction-4-t3`.
+
+- **Increment 1 (A2/A3, T6 items a and b): the reaction menu.**
+  - **Decision (a): menu, not stack.** A Character has one reaction a round, so one hit offers a menu of every eligible reaction (sorted by `actionId`); choosing an option uses that reaction and declining declines them all. `chosenEncounterReaction` already matches this (a decline settles against the first pin, which only names the audit). The cross-reactor Counterspell chain is a separate mechanism (nested pauses, increment 3), not this array.
+  - **Decision (b): one reactor per offer.** The pending-context refinement (`encounterActionPending.ts`) and the persistence root check (`actionPendingPersistence.ts`) require every pin's `reactorActorId` to be the roller.
+  - `discoverNativeAttackReaction` returns every eligible reaction (`{ critical }` for a fresh offer, `{ answering }` to find the chosen one again, where the hit's severity no longer matters because the pin is sealed). `attackHitDamageTypeIds(facts, critical)` counts ON_CRIT types only on a critical hit.
+  - The pending summary `REACTION_CHOICE.options` is a 1..8 array of `{ optionId, actionId }`; the drawer lists a button per option ("Use reaction" when there is one, "Use {actionId}" otherwise).
+  - Proofs: `nativeRoomReaction.test.ts` "room reaction menu for one hit" (Shield and Absorb Elements both offered; each can be used; decline declines both; a forged pin for another creature fails the context schema), `encounterAttackReactionDiscovery.test.ts` (ON_CRIT filter).
