@@ -30,6 +30,7 @@ const ACTORS = [
   { id: ATTACKER, disposition: 'FRIENDLY' },
   { id: TARGET, disposition: 'HOSTILE' },
   { id: 'friend', disposition: 'FRIENDLY' },
+  { id: 'friend2', disposition: 'FRIENDLY' },
   { id: 'brute', disposition: 'HOSTILE' },
   { id: 'bystander', disposition: 'NEUTRAL' }
 ] as const

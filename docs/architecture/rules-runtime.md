@@ -937,9 +937,11 @@ the answer in the binding's `sourceDerivedFacts.attackEnemyProximity`; `bindFact
 context, or a path that supplies no loader: opportunity attacks, reactions) leaves the check unanswerable, so
 the group fails whether the constraint is INCLUDE or EXCLUDE. The Session Worker's supplier
 (`nativeAttackEnemyProximity`) re-reads the locked Scene through `ACTION_AREA_SCENE` and loads every actor it
-consults through `loadTarget`, so the room's existing fences are what refuse a mismatch at commit: the Scene
-version (`Action Scene context is stale.`), the read fence over the consulted actors' revisions, the
-Encounter version, and the currentness checksum over the binding for a paused attack. Persistence never
+consults through `loadTarget`, so the room's existing fences are what refuse a mismatch: the capture refuses a
+moved Scene version (`Action Scene context is stale.`) while planning, the commit's read fence covers the
+consulted actors' revisions and the Encounter version, and the currentness and bound-facts checksums over the
+binding refuse a resumed paused attack whose fact changed. The capture reads every bound actor's token, so an
+unavailable token refuses the attack, as for an area action. Persistence never
 re-runs rules (ADR 0035); this is the room-authoritative reading of "persistence re-verifies".
 
 The immediate follow-up save shapes the

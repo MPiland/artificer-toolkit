@@ -19,9 +19,9 @@ import type { SceneGrid } from '@artificer-toolkit/shared/vtt'
 
 /**
  * How near an enemy stands to an attack's target, from the live Scene the action locked (null for
- * an action without Scene positions, which leaves the check unanswerable). The Scene is read again
- * so a token that moved since the action was composed is refused as stale; every actor consulted is
- * loaded through `loadTarget`, so its revision joins the commit's read fence.
+ * an action without Scene positions, which leaves the check unanswerable). The capture refuses a
+ * Scene whose version moved since the action was composed; every actor consulted is loaded through
+ * `loadTarget`, so its revision joins the commit's read fence.
  */
 export async function readNativeLiveEnemyProximity(input: {
   state: EncounterRunState
@@ -44,11 +44,6 @@ export async function readNativeLiveEnemyProximity(input: {
     }
   })
   if (captured.kind !== 'ACTION_AREA_SCENE') throw new Error('Action Scene context is unavailable.')
-  if (
-    captured.context.sceneId !== sceneContext.sceneId ||
-    captured.context.sceneVersion !== sceneContext.sceneVersion
-  )
-    throw new Error('Encounter action facts are stale.')
   return nearestAbleEnemyProximity({
     grid: sceneContext.grid,
     actors: input.actors,

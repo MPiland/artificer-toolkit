@@ -254,10 +254,8 @@ describe('circumstance checks of reduced restrictions', () => {
     })
 
     it('has no answer without a Scene, whatever its constraint', () => {
-      for (const constraint of ['INCLUDE', 'EXCLUDE'] as const)
-        expect(
-          attackRestrictionsMet(reducedOf([{ ...ENEMY_WITHIN_5, constraint }]), circumstances('NORMAL'))
-        ).toBe(false)
+      for (const check of [ENEMY_WITHIN_5, { ...ENEMY_WITHIN_5, constraint: 'EXCLUDE' } as const])
+        expect(attackRestrictionsMet(reducedOf([check]), circumstances('NORMAL'))).toBe(false)
     })
 
     it('inverts an excluded check once the Scene measured', () => {

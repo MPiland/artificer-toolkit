@@ -74,6 +74,7 @@ function nearbyEnemyRider(): ClassFeature {
 async function wolfHitPointsLost(input: {
   allyColumn: number
   allyConditionIds?: readonly string[]
+  allyDefeated?: boolean
   withScene: boolean
 }) {
   const room = await actionRoom({
@@ -86,7 +87,8 @@ async function wolfHitPointsLost(input: {
         id: ALLY_ID,
         creature: plainWolf,
         disposition: 'FRIENDLY',
-        conditionIds: input.allyConditionIds
+        conditionIds: input.allyConditionIds,
+        ...(input.allyDefeated ? { defeated: true, currentHitPoints: 0 } : {})
       })
     ],
     positions: { [ALLY_ID]: { x: 150 + 100 * input.allyColumn, y: 150 } },
@@ -124,6 +126,11 @@ describe('a rider owed while an able enemy of the target is within 5 ft, in the 
       allyConditionIds: [incapacitated.id],
       withScene: true
     })
+    expect(loss).toBe(await farLoss())
+  })
+
+  it('does not count a defeated enemy of the target', async () => {
+    const loss = await wolfHitPointsLost({ allyColumn: 2, allyDefeated: true, withScene: true })
     expect(loss).toBe(await farLoss())
   })
 
