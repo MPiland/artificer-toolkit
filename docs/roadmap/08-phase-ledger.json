@@ -1011,6 +1011,47 @@
               }
             }
           ]
+        },
+        {
+          "id": "PLATFORM-19",
+          "title": "Generated-file drift on a CI branch fixes itself",
+          "status": "IN_PROGRESS",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": [],
+          "wsjf": {
+            "bv": 5,
+            "tc": 5,
+            "rr": 5,
+            "size": 3
+          },
+          "acs": [
+            {
+              "id": "PLATFORM-19.1",
+              "text": "When the only live-backend failure on a ci/** push is generated-file drift (SRD manifest or Convex _generated), the workflow commits the regenerated files back to that same ci/** branch and starts Tests and Live on the new commit; it never writes the phase branch or main, never loops on its own commit, and scripts/watchCi.ps1 reports the new sha to follow.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Registered 2026-10-16 at the user's request: about a quarter of recent Live runs failed only on drift, each costing a CI cycle plus a manual artifact download and re-push. A local pre-push regeneration was tried and rejected: the manifest generator reads built package dist, and worktrees have no node_modules."
+            }
+          ],
+          "activeWorkbook": "docs/handoffs/slice-platform-19.md",
+          "tasks": [
+            {
+              "id": "PLATFORM-19.T1",
+              "text": "live-backend.yml commits regenerated generated files back to the ci/** branch on drift-only failure and dispatches Tests and Live on the new commit (GITHUB_TOKEN pushes do not trigger workflows); loop guard on its own commit; watchCi.ps1 follows the new sha.",
+              "status": "IN_PROGRESS",
+              "closes": ["PLATFORM-19.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 5,
+                "rr": 5,
+                "size": 3,
+                "after": []
+              },
+              "activeWorkbook": "docs/handoffs/slice-platform-19.md"
+            }
+          ]
         }
       ]
     },
