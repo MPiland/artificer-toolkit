@@ -632,7 +632,12 @@ export async function movementRoom(config: MovementRoomConfig) {
             (message.type === 'COMMAND_COMMITTED' || message.type === 'COMMAND_REJECTED') &&
             message.commandId === commandId
         )
-      if (!answer) throw new Error('The room has not answered the command.')
+      if (!answer)
+        throw new Error(
+          `The room has not answered the command. It sent: ${JSON.stringify(
+            base.messages.slice(first).map((message) => message.type)
+          )}`
+        )
       return answer
     }, ROOM_REPLY_WAIT)
   }
