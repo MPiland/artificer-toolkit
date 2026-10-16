@@ -34,7 +34,7 @@ import { SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from '@artificer-to
 import { prepareActiveRuleEffectRecord } from '../activeRuleEffectRecords.js'
 import { prepareEncounterActionEffectPlans } from '../encounterActionEffectPlans.js'
 import {
-  consumableGrants,
+  effectsEndedBy,
   expiredCarriedOverGrants,
   grantsEndedByHolderState,
   planCarriedOverEffects,
@@ -676,7 +676,7 @@ describe('a grant that ends on incapacitation', () => {
   })
 })
 
-describe('consumableGrants', () => {
+describe('effectsEndedBy', () => {
   const held = (id: number, events: ('ON_ATTACK_ROLL' | 'ON_ABILITY_CHECK')[]) =>
     grantRecord(
       storedGrant({ lifecycle: { consumeOnFirstEvents: events }, currentActorId: null }),
@@ -692,7 +692,7 @@ describe('consumableGrants', () => {
 
   it('lists only the grants an attack roll uses up', () => {
     const consumable = held(0xc340, ['ON_ATTACK_ROLL'])
-    expect(consumableGrants([plain, consumable], 'ON_ATTACK_ROLL').map(({ id }) => id)).toEqual([
+    expect(effectsEndedBy([plain, consumable], 'ON_ATTACK_ROLL').map(({ id }) => id)).toEqual([
       consumable.id
     ])
   })
@@ -702,8 +702,37 @@ describe('consumableGrants', () => {
     const both = held(0xc343, ['ON_ABILITY_CHECK', 'ON_ATTACK_ROLL'])
     const attackOnly = held(0xc344, ['ON_ATTACK_ROLL'])
     expect(
-      consumableGrants([plain, check, both, attackOnly], 'ON_ABILITY_CHECK').map(({ id }) => id)
+      effectsEndedBy([plain, check, both, attackOnly], 'ON_ABILITY_CHECK').map(({ id }) => id)
     ).toEqual([check.id, both.id])
+  })
+})
+
+describe('effectsEndedBy on an end event', () => {
+  const ending = (id: number, endOnEvents: ('ON_ATTACK_ROLL' | 'ON_CAST_SPELL')[]) =>
+    grantRecord(storedGrant({ lifecycle: { endOnEvents }, currentActorId: null }), {
+      id,
+      holderId: TARGET_ID
+    })
+
+  it('lists the effects that end on the event and nothing else', () => {
+    const attack = ending(0xc350, ['ON_ATTACK_ROLL'])
+    const cast = ending(0xc351, ['ON_CAST_SPELL'])
+    expect(effectsEndedBy([attack, cast], 'ON_ATTACK_ROLL').map(({ id }) => id)).toEqual([
+      attack.id
+    ])
+    expect(effectsEndedBy([attack, cast], 'ON_CAST_SPELL').map(({ id }) => id)).toEqual([cast.id])
+    expect(effectsEndedBy([attack, cast], 'ON_ABILITY_CHECK')).toEqual([])
+  })
+
+  it('lists an effect once when it consumes and ends on the same event', () => {
+    const both = grantRecord(
+      storedGrant({
+        lifecycle: { consumeOnFirstEvents: ['ON_ATTACK_ROLL'], endOnEvents: ['ON_ATTACK_ROLL'] },
+        currentActorId: null
+      }),
+      { id: 0xc352, holderId: TARGET_ID }
+    )
+    expect(effectsEndedBy([both], 'ON_ATTACK_ROLL')).toEqual([both])
   })
 })
 

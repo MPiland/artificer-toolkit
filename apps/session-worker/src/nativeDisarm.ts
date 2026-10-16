@@ -27,7 +27,7 @@ import {
   readEncounterDisarmSelection,
   requireEncounterDisarmDefinition
 } from '@artificer-toolkit/rules-runtime/encounterDisarmPreparation'
-import { consumableGrants } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
+import { effectsEndedBy } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
 import {
   resolveEncounterD20Answer,
   withEncounterAppRoll
@@ -359,8 +359,8 @@ export async function planNativeLiveDisarm(
       // The initiator's attack roll and the defender's check use up their one-roll grants
       // (Vicious Mockery's disadvantage, a Help's advantage).
       consumedGrants: [
-        ...consumableGrants(activeEffectsByActorId.get(actor.id) ?? [], 'ON_ATTACK_ROLL'),
-        ...consumableGrants(activeEffectsByActorId.get(target.id) ?? [], 'ON_ABILITY_CHECK')
+        ...effectsEndedBy(activeEffectsByActorId.get(actor.id) ?? [], 'ON_ATTACK_ROLL'),
+        ...effectsEndedBy(activeEffectsByActorId.get(target.id) ?? [], 'ON_ABILITY_CHECK')
       ],
       execution: storedRuleExecutionResultDtoSchema.parse({
         status: 'COMPLETE',

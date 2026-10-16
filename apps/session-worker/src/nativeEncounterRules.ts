@@ -37,7 +37,7 @@ import {
   readEncounterBasicActionEntries
 } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
 import { encounterActionTargetKind } from '@artificer-toolkit/rules-runtime/encounterAreaAction'
-import { consumableGrants } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
+import { effectsEndedBy } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
 import { encounterSceneGridPolicyRegistry } from '@artificer-toolkit/rules-runtime/sceneGridPolicyRegistry'
 import {
   snapshotCreatureTypeId,
@@ -493,7 +493,7 @@ export async function planNativeLiveEncounterAction(
   // a saving-throw action leaves them for the next attack.
   const consumedGrants =
     typeof prepared.binding.actionMechanic.attackBonus === 'number'
-      ? consumableGrants(activeEffectsByActorId.get(prepared.actor.id) ?? [], 'ON_ATTACK_ROLL')
+      ? effectsEndedBy(activeEffectsByActorId.get(prepared.actor.id) ?? [], 'ON_ATTACK_ROLL')
       : []
   // An optional-combat intent routes to the Disarm planner.
   if (command.optionalCombatIntent != null) throw new Error('The action is not an ordinary action.')

@@ -1,6 +1,5 @@
 import {
-  consumableGrants,
-  grantsEndedBy
+  effectsEndedBy
 } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
@@ -37,7 +36,7 @@ export async function deleteHeldAttackRollGrants(
   ))
     await deleteGrants(
       ctx,
-      consumableGrants(await store.list(turnEffectOwner(actor, input.state.id)), 'ON_ATTACK_ROLL')
+      effectsEndedBy(await store.list(turnEffectOwner(actor, input.state.id)), 'ON_ATTACK_ROLL')
     )
 }
 
@@ -50,7 +49,7 @@ export async function endGrantsOnHitPointsRegained(
   ctx: EncounterWriteContext,
   owner: ActiveRuleEffectRecord['owner']
 ) {
-  const ended = grantsEndedBy(
+  const ended = effectsEndedBy(
     await createActiveRuleEffectStore(ctx).list(owner),
     'ON_HIT_POINTS_REGAINED'
   )

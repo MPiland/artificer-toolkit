@@ -1,11 +1,10 @@
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type {
-  ActiveEffectEndEvent,
-  GrantConsumeEvent
+  ActiveEffectConsumeEvent,
+  ActiveEffectEndEvent
 } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import type { ConcentrationEndReason } from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
-import { encounterConcealmentOf } from './encounterConcealment.js'
 import {
   isEffectLiveInEncounter,
   turnEffectOwner,
@@ -36,25 +35,22 @@ function ownsCondition(effect: ActiveRuleEffectRecord) {
   )
 }
 
-/** Grants and concealments the first occurrence of the event, by their holder, uses up. */
-export function consumableGrants(
+/**
+ * The effects the first occurrence of the event, by their holder, uses up or ends: those that list
+ * it in `consumeOnFirstEvents` or `endOnEvents`. Both lists mean the same here (the event applies,
+ * then the effect is gone, restored by the same receipt); the caller releases any condition an
+ * ended effect alone held (`endedMaintenanceConditions`).
+ */
+export function effectsEndedBy(
   effects: readonly ActiveRuleEffectRecord[],
-  event: GrantConsumeEvent
+  event: ActiveEffectConsumeEvent | ActiveEffectEndEvent
 ) {
   return effects.filter(
-    (effect) =>
-      (isModifierGrant(effect) || encounterConcealmentOf([effect])) &&
-      effect.definition.recurrence.consumeOnFirstEvents.includes(event)
-  )
-}
-
-/** Grants that end the moment their holder undergoes the event. */
-export function grantsEndedBy(
-  effects: readonly ActiveRuleEffectRecord[],
-  event: ActiveEffectEndEvent
-) {
-  return effects.filter(
-    (effect) => isModifierGrant(effect) && effect.definition.recurrence.endOnEvents.includes(event)
+    ({ definition }) =>
+      definition.schemaVersion === 2 &&
+      [...definition.recurrence.consumeOnFirstEvents, ...definition.recurrence.endOnEvents].includes(
+        event
+      )
   )
 }
 
