@@ -311,8 +311,10 @@ sphere (`catchEncounterAreaActorIds`). An unshaped list takes no point. Warnings
 and deduplicated (`evaluateEncounterActorsRuleWarnings`); a creature in a shaped list is not range-checked
 itself, because the picked point carries the range. The commit reuses the `ENCOUNTER_AREA_ACTION` root and
 children with a null `area`; `encounterChosenActorsChecksum(actorIds)` is the root's caught checksum, so the
-persistence side (`areaCommitPersistence.ts`) normalizes and visibility-filters the list like a caught set. A
-list cannot ask for evidence (no pending path), so an outcome that needs a save or roll card is refused whole.
+persistence side (`areaCommitPersistence.ts`) checks every id belongs to the Encounter and commits each as
+perceived by the caster. A list has no pending path, so `executeEncounterActorsAction` refuses an outcome
+that asks for evidence (a save or roll card). A spell that takes a list is refused when sent at one creature
+(`TARGET_UNAVAILABLE`).
 
 ### Caster-centered radius areas (current, SPELLS-22)
 

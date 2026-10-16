@@ -28,6 +28,7 @@ describe('a list of chosen creatures as a RESOLVE_ACTION target (D118)', () => {
   it('refuses an empty list, a repeated creature and a list past the Encounter’s size', () => {
     expect(parse(actors([]))).toBe(false)
     expect(parse(actors([actorId(1), actorId(1)]))).toBe(false)
+    expect(parse(actors([actorId(0xabc).toUpperCase(), actorId(0xabc)]))).toBe(false)
     const tooMany = Array.from({ length: MAX_ENCOUNTER_ACTORS + 1 }, (_, index) =>
       actorId(index + 1)
     )

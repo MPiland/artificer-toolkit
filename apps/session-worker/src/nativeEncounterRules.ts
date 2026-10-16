@@ -36,6 +36,7 @@ import {
   isEncounterBasicActionId,
   readEncounterBasicActionEntries
 } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
+import { encounterActionTargetKind } from '@artificer-toolkit/rules-runtime/encounterAreaAction'
 import { consumableGrants } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
 import { encounterSceneGridPolicyRegistry } from '@artificer-toolkit/rules-runtime/sceneGridPolicyRegistry'
 import {
@@ -468,6 +469,13 @@ export async function planNativeLiveEncounterAction(
       ...actionSources
     }).catch(refuseStaleCharacterAction)
   const prepared = await prepareAttack(movementTargets)
+  // A spell that takes a list of creatures is not aimed at one.
+  if (encounterActionTargetKind(prepared.targetPolicy) === 'ACTORS')
+    throw new LiveSessionDomainRejectionError(422, {
+      code: 'DOMAIN_REJECTED',
+      reason: 'TARGET_UNAVAILABLE',
+      message: TARGET_NOT_PERMITTED_MESSAGE
+    })
   refuseActionOutsideItsWindow(prepared)
   const actorTarget = movementTargets.get(prepared.actor.id)
   if (!actorTarget) throw new Error('Encounter rules input binding mismatch.')

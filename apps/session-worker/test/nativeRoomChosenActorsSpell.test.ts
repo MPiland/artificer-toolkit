@@ -190,6 +190,24 @@ describe('room cast on chosen creatures (D118)', () => {
     )
   }, 120000)
 
+  it.each([
+    { spell: massHealingWord, label: 'Mass Healing Word (3rd level)' },
+    { spell: massCureWounds, label: 'Mass Cure Wounds (5th level)' }
+  ])(
+    'refuses $label aimed at one creature, as it takes a list',
+    async ({ spell, label }) => {
+      const room = await healerRoom({ spell, label, rolls: [2] })
+      const before = await hitPointsOf(room)
+
+      const { answer } = await room.startAction(WOLF_IDS[0]!)
+      expect(answer.type).not.toBe('COMMAND_COMMITTED')
+      expect(JSON.stringify(answer)).toContain('does not permit this target')
+      expect(await hitPointsOf(room)).toEqual(before)
+      expect((await readCharacterPlayState(room)).spellSlots ?? []).toEqual([])
+    },
+    120000
+  )
+
   it('refuses more creatures than the spell names, and spends nothing', async () => {
     const room = await healerRoom({
       spell: massHealingWord,

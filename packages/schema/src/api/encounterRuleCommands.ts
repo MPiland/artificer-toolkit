@@ -127,7 +127,10 @@ export const resolveEncounterActionTargetDtoSchema = lazySchema(() =>
         .check(z.minLength(1))
         .check(z.maxLength(MAX_ENCOUNTER_ACTORS))
         .check(
-          z.refine((ids) => new Set(ids).size === ids.length, 'Each chosen creature is named once.')
+          z.refine(
+            (ids) => new Set(ids.map((id) => id.toLowerCase())).size === ids.length,
+            'Each chosen creature is named once.'
+          )
         ),
       scene: z.nullable(
         z.strictObject({
