@@ -7020,7 +7020,8 @@
                 "tc": 5,
                 "rr": 5,
                 "size": 2
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-27.md"
             }
           ]
         },
