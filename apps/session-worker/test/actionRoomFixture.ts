@@ -30,12 +30,15 @@ export function biteWolf(
   {
     damage = 1,
     reachFeet,
-    save = { ability: 'DEXTERITY' }
+    save = { ability: 'DEXTERITY' },
+    spellCast
   }: {
     damage?: number
     reachFeet?: number
     /** The ability the SAVE Bite rolls and, when set, the damage type it deals instead of the SRD's. */
     save?: { ability: 'DEXTERITY' | 'CONSTITUTION'; damageTypeCode?: 'POISON' | 'FIRE' | 'COLD' }
+    /** The Bite casts a spell: the System spell it references, or the level it is cast at. */
+    spellCast?: { spellId: string } | { castLevel: number }
   } = {}
 ): CreatureAuthored {
   const saveAbilityId = srdSystemRecord.abilities?.find(
@@ -71,6 +74,7 @@ export function biteWolf(
               : {}),
             effects: feature.effects?.map((effect) => ({
               ...effect,
+              ...(spellCast && { spellCast }),
               invocation: {
                 ...effect.invocation,
                 range:

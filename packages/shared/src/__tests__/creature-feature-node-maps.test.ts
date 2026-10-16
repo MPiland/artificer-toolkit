@@ -28,3 +28,17 @@ describe('Creature-only Feature authoring fields (D51, D57)', () => {
     expect(childMap(OPTION_NODE_MAP.nodes.effects).nodes.grip).toBeUndefined()
   })
 })
+
+describe('Creature spellCast authoring (REACTION-4.T3h)', () => {
+  it('authors a spell reference or a cast level from core nodes, only in Creature editors', () => {
+    const creatureEffect = childMap(CREATURE_FEATURE_NODE_MAP.nodes.effects).nodes
+    expect(Object.keys(childMap(creatureEffect.spellCast).nodes).sort()).toEqual([
+      'castLevel',
+      'spellId'
+    ])
+    expect(childMap(childMap(CREATURE_OPTION_NODE_MAP.nodes.effects).nodes.spellCast)).toBeDefined()
+
+    expect(childMap(FEATURE_NODE_MAP.nodes.effects).nodes.spellCast).toBeUndefined()
+    expect(childMap(OPTION_NODE_MAP.nodes.effects).nodes.spellCast).toBeUndefined()
+  })
+})
