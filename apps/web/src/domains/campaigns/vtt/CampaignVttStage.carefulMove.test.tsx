@@ -198,7 +198,13 @@ describe('CampaignVttStage careful crossing (SPELLS-17.4)', () => {
     await dragEmberTo(200)
 
     expect(screen.queryByRole('button', { name: 'Move carefully' })).not.toBeInTheDocument()
-    expect(mocks.sendCommand).toHaveBeenCalledOnce()
+    expect(mocks.sendCommand).toHaveBeenCalledExactlyOnceWith({
+      scope: 'SCENE',
+      command: expect.objectContaining({
+        type: 'MOVE_SCENE_TOKEN',
+        expectedEncounterVersion: tabletopGmEncounter.version
+      })
+    })
     expect(mocks.sendCommand.mock.calls[0]![0].command).not.toHaveProperty('carefully')
   })
 })
