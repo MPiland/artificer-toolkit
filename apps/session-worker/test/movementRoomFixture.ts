@@ -656,7 +656,7 @@ export async function movementRoom(config: MovementRoomConfig) {
   }
 
   /** The room's commands, sent on one socket: the GM's or a player's. */
-  function commandsOn(channel: RoomChannel) {
+  const commandsOn = (channel: RoomChannel) => {
     const send = (commandId: string, command: Record<string, unknown>) =>
       sendOn(channel, commandId, command)
     return {

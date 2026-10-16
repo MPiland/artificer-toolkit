@@ -20,4 +20,18 @@ Workbook rules: [slice-workbook-rules.md](slice-workbook-rules.md).
 
 ## Log
 
-- Audited the existing proofs; wrote the fixture change and both tests; pushed to `ci/room-6`.
+- Audited the existing proofs; wrote the fixture change and both tests; pushed to `ci/room-6` (32a0a0eb4).
+- Live 38900680197 failed on generated-file drift only; merged `ci/merge-batch-ad` (carries the manifest fix; artifact byte-identical to the merged tree), a9babd153.
+- Typecheck failed on 32a0a0eb4 (two errors, found by the reviewer and confirmed in CI), fixed next:
+  - `commandsOn` was a hoisted function, so the `moverTokenId` narrowing was lost: now a `const` arrow.
+  - `sendAsPlayer` now returns the narrowed committed/rejected frame, which made the `nativeRoomPlayerParity.test.ts` `outcome()` guard dead (`never`): collapsed to one ternary; no assertion lost (the type guarantees the two frames).
+
+## Review triage
+
+Independent opus review of 81a17637c..32a0a0eb4.
+
+- Fixed: the two typecheck errors above.
+- Stands: the refused Character-owner answer in `srdLegendaryAction.test.ts` is asserted with `rejects.toThrow()` (precedent: `turnConcentration.test.ts:369,473`); the following pending-still-held check and the later accepted answer bound the risk.
+- Stands: the refused player answer in `nativeMovementPlayerSocket.test.ts` asserts `COMMAND_REJECTED` only (precedent `nativeRoomReaction.test.ts:325`); the GM's identical answer is then accepted, so only the sender differs.
+- Stands: the Legendary test reuses one `commandId` for the refused and accepted attempt (precedent `turnConcentration.test.ts:367`).
+- Stands: `RoomChannel` and `actionRoomFixture`'s own socket-pair type are the same shape (nit).
