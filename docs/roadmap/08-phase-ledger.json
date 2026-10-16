@@ -8213,14 +8213,15 @@
             {
               "id": "SPELLS-28.T1",
               "text": "TELEPORT outcome executor (Word of Recall; Plane Shift travel).",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-28.1"],
               "wsjf": {
                 "bv": 3,
                 "tc": 2,
                 "rr": 3,
                 "size": 3
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-28.md"
             },
             {
               "id": "SPELLS-28.T2",
@@ -8232,7 +8233,8 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 3
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-28.md"
             },
             {
               "id": "SPELLS-28.T3",
@@ -8244,7 +8246,8 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 2
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-28.md"
             }
           ]
         },
