@@ -6,7 +6,10 @@
 # no repository secrets: the admin key is generated inside the container and only masked in memory.
 #   git push origin HEAD:ci/<slice>
 #   gh workflow run live-backend.yml --ref ci/<slice> [-f steps=manifest,codegen,deploy,seed,replace,reseed,audit]
-# The run then fails if the regenerated SRD manifest or Convex `_generated` files differ from the commit.
+# The SRD manifest is not committed: the setup action generates it. The run fails if the regenerated Convex
+# `_generated` files differ from the commit. When that drift is the only failure, the `auto-fix` job commits
+# the regenerated files back to the same
+# ci/** branch and dispatches Tests and Live on the new commit (see the job for its guards).
 name: Live backend
 
 on:
@@ -47,6 +50,10 @@ jobs:
     if: startsWith(github.ref, 'refs/heads/ci/')
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    outputs:
+      # 'failure' only when every earlier step passed (later steps are skipped after a failure), so it means
+      # generated-file drift was the one failure.
+      drift: ${{ steps.drift.outcome }}
     env:
       NODE_OPTIONS: --max-old-space-size=8192
     steps:
@@ -80,17 +87,13 @@ jobs:
           node scripts/liveBackendValidation.mjs "${args[@]}"
       - name: Generated files match the commit
         id: drift
-        run: node scripts/generatedDrift.mjs apps/apis/convex/content/srdManifest.generated.ts apps/apis/convex/_generated apps/apis/convex/betterAuth/_generated
-      # The regenerated files, to commit instead of regenerating locally (gh run download will not
-      # overwrite, so download beside the tree and copy in):
-      # gh run download <run-id> -n generated-files -D local-validation/generated-<run-id>
-      # then copy local-validation/generated-<run-id>/* over apps/apis/convex
+        run: node scripts/generatedDrift.mjs apps/apis/convex/_generated apps/apis/convex/betterAuth/_generated
+      # The regenerated files, kept for the `auto-fix` job below.
       - uses: actions/upload-artifact@v4
         if: failure() && steps.drift.outcome == 'failure'
         with:
           name: generated-files
           path: |
-            apps/apis/convex/content/srdManifest.generated.ts
             apps/apis/convex/_generated/
             apps/apis/convex/betterAuth/_generated/
           retention-days: 7
@@ -113,3 +116,53 @@ jobs:
       - name: Backend log tail
         if: failure()
         run: docker logs --tail 100 convex-live
+
+  # Commits the regenerated files back to the ci/** branch when generated-file drift was the only failure.
+  # Guards: ci/** ref only (never the phase branch or main); full runs only; HEAD is not already an
+  # auto-fix commit (no loop); the push is a plain fast-forward, so a branch that moved meanwhile is
+  # rejected and the run fails as before. GITHUB_TOKEN pushes trigger no workflows, so Tests and Live are
+  # dispatched explicitly. Write permissions exist only on this job.
+  auto-fix:
+    name: Commit regenerated files to the ci branch
+    needs: live-backend
+    if: >-
+      always() && needs.live-backend.outputs.drift == 'failure'
+      && startsWith(github.ref, 'refs/heads/ci/') && inputs.steps == ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      actions: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      BRANCH: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - name: Skip when HEAD is already an auto-fix commit
+        id: guard
+        run: |
+          if git log -1 --format=%B | grep -qx 'Generated-By: live-backend auto-fix'; then
+            echo 'HEAD is an auto-fix commit and drift remains; not committing again.' >&2
+            echo 'skip=true' >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/download-artifact@v4
+        if: steps.guard.outputs.skip != 'true'
+        with:
+          name: generated-files
+          path: generated-files
+      - name: Commit, push and dispatch
+        if: steps.guard.outputs.skip != 'true'
+        run: |
+          # Replace the generated paths wholesale so files codegen removed are removed too.
+          rm -rf apps/apis/convex/_generated apps/apis/convex/betterAuth/_generated
+          cp -R generated-files/. apps/apis/convex/
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A -- apps/apis/convex/_generated apps/apis/convex/betterAuth/_generated
+          git commit -m 'Regenerate generated files (live-backend auto-fix)' -m 'Generated-By: live-backend auto-fix'
+          git push origin "HEAD:refs/heads/$BRANCH"
+          gh workflow run tests.yml --ref "$BRANCH"
+          gh workflow run live-backend.yml --ref "$BRANCH"
+          echo "Auto-fix commit $(git rev-parse HEAD) pushed to $BRANCH; Tests and Live dispatched." >> "$GITHUB_STEP_SUMMARY"
