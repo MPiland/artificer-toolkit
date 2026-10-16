@@ -5096,7 +5096,9 @@
             {
               "text": "A player can do everything the GM can for their own Characters in play (player play parity, launch-gating).",
               "status": "TODO",
-              "proof": [],
+              "proof": [
+                "T1: a controlling player enters their own actor's initiative once (rolled or hand-entered) while the Run is PREPARED; re-rolls, tie-break and settled orders stay GM-only. packages/encounter-persistence/src/commands.ts; matrix rows on both sides. CI Tests 38870865820 and Live backend 38870866069 on 5821eed47"
+              ],
               "origin": [],
               "note": "Carry-over from ADR 0034 (inventory section 7).",
               "id": "ATTACK-2.5"
@@ -5124,7 +5126,7 @@
             {
               "id": "ATTACK-2.T2",
               "text": "Player parity journey (browser, player client): on their own Character a player casts an area spell, takes a death save, uses a non-movement reaction and targets from the map, with no GM step.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["ATTACK-2.5"],
               "wsjf": {
                 "bv": 8,
@@ -5982,9 +5984,11 @@
             },
             {
               "text": "Opportunity attacks and Disarm apply attack-roll sight like RESOLVE_ACTION, and movement-reaction perception applies condition contributions.",
-              "status": "TODO",
+              "status": "DONE",
               "proof": [
-                "T3a and T3b: packages/rules-runtime/src/__tests__/encounterMovementReactionPerception.test.ts (condition contributions), apps/session-worker/test/nativeMovementAttackSight.test.ts (opportunity-attack believed prompt, true settlement, held die); CI Tests 38860508666 on 6c42d11b2, Live backend 38858966792 on 663fff011"
+                "T3a and T3b: packages/rules-runtime/src/__tests__/encounterMovementReactionPerception.test.ts (condition contributions), apps/session-worker/test/nativeMovementAttackSight.test.ts (opportunity-attack believed prompt, true settlement, held die); CI Tests 38860508666 on 6c42d11b2, Live backend 38858966792 on 663fff011",
+                "T3c: apps/session-worker/test/nativeRoomDisarm.test.ts (auto-rolled and prompted Disarm against a Blinded target, held die), apps/session-worker/test/nativeMovementAttackSight.test.ts (player-side opportunity-attack believed prompt, GM reasons), apps/apis/convex/encounters/actionDisarm.test.ts (Convex Disarm redaction and true settlement)",
+                "T3c green: CI Tests 38871163036 on d8382138b; Live backend 38867014459 on ef97b2530 (later commits test and docs only)"
               ],
               "origin": [],
               "note": "D100 not-wired paths; movement-owned code.",
@@ -6061,27 +6065,27 @@
             {
               "id": "ATTACK-10.T3c",
               "text": "Disarm applies attack-roll sight like RESOLVE_ACTION (believed prompt, true settlement), and a room test proves the player-side believed prompt of an opportunity attack.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["ATTACK-10.4"],
               "wsjf": {
                 "bv": 3,
                 "tc": 1,
                 "rr": 2,
                 "size": 2
-              },
-              "activeWorkbook": "docs/handoffs/slice-attack-10-t3.md"
+              }
             },
             {
               "id": "ATTACK-10.T4",
               "text": "Saving throws use the believed mode in the prompt and settle in the true mode; player reasons never name a hidden fact.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["ATTACK-10.5"],
               "wsjf": {
                 "bv": 3,
                 "tc": 2,
                 "rr": 2,
                 "size": 3
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-attack-10-t4.md"
             },
             {
               "id": "ATTACK-10.T5",
