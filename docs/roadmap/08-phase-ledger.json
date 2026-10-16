@@ -9875,8 +9875,8 @@
           "id": "RELIABILITY-13",
           "title": "Development fixture cleanup is deterministic",
           "status": "DONE",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "journeyTests": ["apps/apis/convex/encounters/developmentLifecycleProof.test.ts"],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
