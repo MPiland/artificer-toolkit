@@ -408,12 +408,21 @@ describe('a zone whose failed entry save deals dice damage (D133)', () => {
 
   it.each([
     ['a flat modifier', diceDamage('1d4+1')],
-    ['a bonus', diceDamage('1d4', (damage) => Object.assign(damage, { bonuses: [{}] }))],
+    [
+      'a bonus',
+      diceDamage('1d4', (damage) =>
+        Object.assign(damage, { bonuses: [{ bonusKind: 'PROFICIENCY_BONUS', order: 1 }] })
+      )
+    ],
     ['half damage', diceDamage('1d4', (damage) => Object.assign(damage, { amountKind: 'HALF' }))],
     [
       'damage that scales per level',
       diceDamage('1d4', (damage) =>
-        Object.assign(damage, { scalingKind: 'PER_LEVEL', scalingSource: 'CHARACTER_LEVEL' })
+        Object.assign(damage, {
+          scalingKind: 'PER_LEVEL',
+          scalingSource: 'CHARACTER_LEVEL',
+          levels: [{ id: extraId(5), level: 1, order: 1, diceConfig: '1d4' }]
+        })
       )
     ]
   ] as const)('refuses %s instead of partly honoring it', (_name, change) => {
