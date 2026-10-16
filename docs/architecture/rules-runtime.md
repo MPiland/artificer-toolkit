@@ -702,7 +702,7 @@ is no condition-specific code. Each mechanic is one of:
 A `D20_ROLL_MODE` on attacks or checks may set `requiresHolderSeesSource`: it then applies only while the
 holder sees one of the condition's recorded sources (a save mode cannot, since saves fold in at load).
 
-**Condition sources (SPELLS-29, D-pending-spells-29).** A condition outcome authored with `recordsSource`
+**Condition sources (SPELLS-29, D134).** A condition outcome authored with `recordsSource`
 (the authoring toggle "The Acting Creature Is Its Source", a core option) records the acting creature on
 the `CONDITION_OWNERSHIP` contribution of the effect that owns it (`sourceActorId`). The SRD Fear spell and
 every SRD Creature action that frightens author it. `encounterConditionSources` reads a held condition's
@@ -718,7 +718,7 @@ which `MOVE_SCENE_TOKEN.acknowledgedWarnings` overrides; the tabletop shows "Do 
 receipt records no override yet. Undoing the action that applied the condition removes its effect and so
 its source.
 
-**Repeat attempt gate (SPELLS-29.T1a, D-pending-spells-29).** A `FOLLOW_UP_SAVE` repeated at the end of the
+**Repeat attempt gate (SPELLS-29.T1a, D134).** A `FOLLOW_UP_SAVE` repeated at the end of the
 target's turn may author `repeatAttemptGate` (`allow: WHEN_MET | WHEN_UNMET` over the same target→source
 `PERCEPTION` as `repeatRollInfluence`; the schema refuses the two together). The compiler pins it as adapter
 facts and makes the frozen graph's `repeat-save-d20` an `evidence.optional-integer-range` enabled by the

@@ -2,7 +2,7 @@
 
 Workbook rules: [slice-workbook-rules.md](slice-workbook-rules.md). Decisions: [ADR 0034](../adr/0034-player-control-rules-assistance-and-roll-prompts.md) (soft enforcement), [ADR 0038](../adr/0038-rules-authored-from-core-options.md) (core options), D94, D100, D116 and D131 in [phase-08-2-decisions.md](phase-08-2-decisions.md). Builds on [SPELLS-19.T2](slice-spells-19.md) (one Concentration spans an area; Fear-shaped proof).
 
-Base: `3ce5883f1` (SPELLS-19.T2, merged locally), branch `claude/bold-chaplygin-b95f96`, CI branches `ci/spells-29-t1-red` (red) and `ci/spells-29-t1` (green). Decision numbers: `D-pending-spells-29`.
+Base: `3ce5883f1` (SPELLS-19.T2, merged locally), branch `claude/bold-chaplygin-b95f96`, CI branches `ci/spells-29-t1-red` (red) and `ci/spells-29-t1` (green). Decision numbers: `D134`.
 
 ## Scope (T1, closes AC 29.1)
 
@@ -43,7 +43,7 @@ Base: `3ce5883f1` (SPELLS-19.T2, merged locally), branch `claude/bold-chaplygin-
 - [x] Schema + shared + compiler + node map + SRD authoring (Fear + 29 Creature frighten outcomes; Phantasmal Killer and Weird unsourced). Manifest via CI artifact.
 - [x] Runtime gate + room wiring: `prepareEncounterActionMechanics` filters both sides' mechanics through the injected `loadSourcesSeen` (Worker `readNativeLiveSourcesSeen`), wired for RESOLVE_ACTION attacks and Disarm.
 - [x] Movement warning (schema, room `prepareNativeLiveMovement` initial branch, web `CampaignVttStage` "Do it anyway"). Forced moves never warn; teleports do (a willing move).
-- [x] Docs: rules-runtime.md condition mechanics; D94 limits note; ADR 0034 movement line; `D-pending-spells-29`; Deferred edge cases.
+- [x] Docs: rules-runtime.md condition mechanics; D94 limits note; ADR 0034 movement line; `D134`; Deferred edge cases.
 - [x] T1 red CI run; T1 opus review, triaged (see Log). Green runs are shared with T1a below.
 - [x] T1a red (`c5e34a53d`) on `ci/spells-29-t1a-red`: Worker Fear journey (in-sight no save, out-of-sight save ends it), compiler (Fear and a homebrew gated plan on the optional d20 node; Hold Person ungated), schema (gate accepted; refused without a turn-end repeat or with influence), shared compiler (gate preserved), authoring parity (Fear's gate; a homebrew `WHEN_MET` `DETECT` gate).
 - [x] T1a gate (`68d01628f`): schema, shared types and node map, compiler, binding, interpretation, turn-result schema, SRD Fear authoring.

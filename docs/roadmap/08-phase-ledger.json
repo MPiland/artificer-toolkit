@@ -8981,9 +8981,15 @@
             {
               "id": "SPELLS-29.1",
               "text": "A Frightened condition applied by an action records the creature that frightened it, authored from core options (no Fear-specific kind). The frightened creature has disadvantage on ability checks and attack rolls only while that source is within its line of sight, and a move that ends closer to the source is a soft-enforcement warning the GM can override (ADR 0034). A Frightened with no recorded source keeps its present always-on disadvantage. Proved for Fear, including GM undo.",
-              "status": "TODO",
+              "status": "DONE",
               "origin": [
                 "SPELLS-19.T2 escalation 2026-10-16; confirmed by the user 2026-10-16 (a move that ends closer warns, the GM can override)"
+              ],
+              "proof": [
+                "apps/session-worker/test/nativeRoomFearSource.test.ts",
+                "apps/web/src/domains/campaigns/vtt/CampaignVttStage.moveWarning.test.tsx",
+                "packages/rules-runtime/src/__tests__/encounterAreaActionCompilation.test.ts",
+                "packages/rules-runtime/src/__tests__/encounterConditionMechanics.test.ts"
               ]
             },
             {
@@ -8998,8 +9004,8 @@
           "tasks": [
             {
               "id": "SPELLS-29.T1",
-              "text": "A condition application carries an optional source actor; Frightened's check and attack contributors read line of sight to it; the movement planner warns on a move that ends closer; SRD Fear and every SRD action that frightens authors the source; authoring parity from core options.",
-              "status": "IN_PROGRESS",
+              "text": "A condition application carries an optional source actor; Frightened's check and attack contributors read line of sight to it; the movement planner warns on a move that ends closer; SRD Fear and every SRD action that frightens authors the source; authoring parity from core options. (Red: ci/spells-29-t1-red Tests 38924777168. Green: ci/spells-29-t1 Tests 38956790464 and Live backend 38956790334 on df9d20bb5.)",
+              "status": "DONE",
               "closes": ["SPELLS-29.1"],
               "wsjf": {
                 "bv": 5,
@@ -9011,8 +9017,8 @@
             },
             {
               "id": "SPELLS-29.T1a",
-              "text": "Fear's out-of-sight repeat save, so real SRD Fear compiles faithfully: a generic perception gate on FOLLOW_UP_SAVE (the attempt is allowed only when the target cannot see its source, beside the existing repeatRollInfluence PERCEPTION), authored on SRD Fear, which then compiles through the existing repeating-save plan (area, Concentration, source recorded per T1, including the Worker room journey). No new timed-save compile rule: SPELLS-19.T3's authored-endOnTriggers rule stays the single rule, and Charm Person, Dominate Person/Beast/Monster and Hold Monster stay refused through what is authored. Authoring parity from core options. Same branch as T1; T1 and T1a merge together.",
-              "status": "IN_PROGRESS",
+              "text": "Fear's out-of-sight repeat save, so real SRD Fear compiles faithfully: a generic perception gate on FOLLOW_UP_SAVE (the attempt is allowed only when the target cannot see its source, beside the existing repeatRollInfluence PERCEPTION), authored on SRD Fear, which then compiles through the existing repeating-save plan (area, Concentration, source recorded per T1, including the Worker room journey). No new timed-save compile rule: SPELLS-19.T3's authored-endOnTriggers rule stays the single rule, and Charm Person, Dominate Person/Beast/Monster and Hold Monster stay refused through what is authored. Authoring parity from core options. Same branch as T1; T1 and T1a merge together. (Red: ci/spells-29-t1a-red on c5e34a53d; merge red Tests 38951912964 on 27de27fde (d20 gate read as a damage die). Green: ci/spells-29-t1 Tests 38956790464 and Live backend 38956790334 on df9d20bb5.)",
+              "status": "DONE",
               "closes": ["SPELLS-29.1", "SPELLS-29.2"],
               "wsjf": {
                 "bv": 5,
@@ -9025,7 +9031,7 @@
             {
               "id": "SPELLS-29.T2",
               "text": "Flee-from-source rider: a generic turn-start \"must Dash away from the source\" requirement, soft-enforced on actions and moves; authored for SRD Fear and Eyebite Panicked; authoring parity from core options. (The turn-end out-of-sight save moved to T1a.)",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-29.2"],
               "wsjf": {
                 "bv": 5,
@@ -9033,7 +9039,8 @@
                 "rr": 3,
                 "size": 3,
                 "after": ["SPELLS-29.T1a"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-29.md"
             }
           ]
         }
