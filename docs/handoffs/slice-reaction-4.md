@@ -279,3 +279,32 @@ AC 4.3 closes with T3d. Questions for the architect: (1) approve the split; (2) 
 - **Terminals:** an odd chain commits `ENCOUNTER_COUNTERED_CAST` for an ACTORS/area root too (nothing of the spell applies; the root check no longer demands an ACTOR target). An even chain or no counter lets the area or list resolve; a save-list cast carries `failedCounters` on its area pending context, and every commit spends them.
 - **Commit:** `LiveSessionEncounterAreaCommitInput.failedCounters` (additive) maps to `{receipt, spellConsumption}`. `persistEncounterAreaCommit` spends each failed reactor: the caster's counter-to-counter merges into the caster's one mechanics call (ruling W), a creature the area also hit merges into its child mechanics call, any other reactor settles through `applyFailedCounterSpends`; receipt versions are checked against the real batch, the stored `failedCounters` must equal the pending's, and the counter's check roll cards post with the commit.
 - **Persistence reads:** a KERNEL_EVIDENCE cast pause on an area root takes the single-action pending path (no target restriction); `requestAreaActionPending` validation covers both the pause and the post-pause area snapshot.
+
+## Resume here (after T3e, merged in batch bd 0a8405115)
+
+**Next task: T3h (creature-capability casts).** T3e is DONE; do not reopen it. Read D127 and the T3e-a results above first.
+
+### File map
+- `apps/session-worker/src/nativeEncounterCastPause.ts`: `createNativeCastPause` is the one cast-pause builder (`advance`, `planFailedCounters`). Rules and area planners call it; nothing else opens a cast window.
+- `nativeEncounterAreaRules.ts`: `reachCastPause`, `openReachCastWindow` (area and ACTORS planners share it), `completeAreaCommit`, `readChosenFormCreature`.
+- `nativeEncounterActorsRules.ts`: ACTORS-target casts; uses `openReachCastWindow`.
+- `nativeEncounterRules.ts`: calls `createNativeCastPause(...).advance(...)` and `castPause.planFailedCounters` (the ~200 lines it lost moved into the cast-pause file).
+- `nativeEncounterCastReaction.ts`: `advanceNativeCastReactions`, `planNativeFailedCounters`, `planNativeCounteredCast`.
+- `packages/encounter-persistence/src/`: `actionPending.ts` (`castPendingContinues`), `actionPendingPersistence.ts` (KERNEL_EVIDENCE cast pause on non-ACTOR targets), `areaCommitPersistence.ts` (sealed-counter check, no-stored-area resume), `counteredCastCommitPersistence.ts`, `failedCounterSpend.ts` (`failedCounterSpends`).
+- `packages/rules-runtime/src/encounterActionReceipt.ts`: `buildEncounterFailedCounterReceipt`.
+- Tests: `apps/session-worker/test/nativeRoomCounterspell.test.ts`, `nativeRoomCounterspellMultiTarget.test.ts`.
+
+### Decisions
+- Additive `failedCounters` on the area commit input (approved by Phase 8).
+- Ruling W (caster slot and counter slot commit in one mechanics batch) and the GM-void ruling are folded into D127. No open ruling question.
+
+### Pitfalls
+- `advance` must return `advanced.failedCounters` on OFFER/CHECK; returning the input's list breaks the pending root.
+- Sealed failed counters are DTOs, but the commit input carries receipts: strip `spellCastConsumption`, `applications`, `characterStreamVersion`, `actionEconomyTransition` before comparing checksums.
+- A cast-pause resume may have no stored area (the area caught nobody); continue from the cast's own pending.
+- Test fixtures: a heal target must be hurt (`reactorHurt`), and Fireball range is 150 ft.
+- `nativeRoomEscapeAction.test.ts` flaked once in CI; `gh run rerun --failed` cleared it.
+
+### Run ids
+- Red: Tests 38951374937 (ffbf3d042), 38956825313 (e17add335), 38959982741 (46fa9ba00); Escape flake on 38964831551 (rerun green).
+- Green: 93bf4f0a0 (Tests 38962425116, Live 38962425251); 0c733d676 (Tests 38964831551, Live 38964831537).
