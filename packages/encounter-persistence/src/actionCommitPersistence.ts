@@ -19,6 +19,7 @@ import { readLiveEncounterActionAdmission } from './liveActionAdmission.js'
 import { insertActionEvidenceReceipt } from './actionEvidenceReceipt.js'
 import { readRunActors } from './documents.js'
 import { sourceSpendMutation, settleActionSourceSpend } from './actionSourceSpend.js'
+import { applyFailedCounterSpends, failedCounterSpends } from './failedCounterSpend.js'
 import { completeActionOccurrence, recordActionRoot } from './actionCommitRecords.js'
 import { deleteGrants, receiptConsumedGrants } from './consumedGrantPersistence.js'
 import { projectNativeGm } from './nativeProjection.js'
@@ -32,7 +33,7 @@ import type {
 import type { persistEncounterActionChildren } from './actionChildrenPersistence.js'
 import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.js'
 import type { EncounterCharacterWriteTransaction, EncounterWritePorts } from './ports.js'
-import { castReactionAnswerContinues } from './actionPending.js'
+import { castPendingContinues } from './actionPending.js'
 import { actionSystemRollAnswers, readAppCardedDice } from './appCardedDice.js'
 import { recordActionRollCards, settledD20s } from './actionRollCards.js'
 
@@ -92,7 +93,10 @@ export async function persistEncounterActionCommit(
     execution.status !== 'COMPLETE' ||
     execution.occurrenceVersion !== occurrenceVersion ||
     (resume && execution.occurrenceId !== resume.occurrence.id) ||
-    (resume && !castReactionAnswerContinues(resume.pending.context, input.response, {})) ||
+    (resume &&
+      !castPendingContinues(resume.pending.context, input.response, {
+        failedCounters: input.failedCounters.map(({ receipt }) => receipt)
+      })) ||
     command.optionalCombatIntent != null ||
     command.target.kind !== 'ACTOR'
   )
@@ -206,6 +210,17 @@ export async function persistEncounterActionCommit(
       spellCastConsumption: reaction?.spellCastConsumption ?? null
     }
   })
+  // Every counter that failed against this cast spends its reactor's slot and reaction with the cast (D125).
+  const failedSpends = failedCounterSpends({
+    failedCounters: input.failedCounters,
+    actors,
+    source
+  })
+  // The cast's target pays its own failed counter in its single mechanics call; a Shield-like reaction
+  // would be a second spend of the same reaction.
+  const targetFailed = failedSpends.find(({ reactor }) => reactor.id === target.id)
+  if (targetFailed && reaction)
+    throw new Error('Live Session failed counter and reaction spend the same reaction.')
   const common = {
     encounterId: state.id,
     expectedEncounterVersion: state.version,
@@ -246,7 +261,8 @@ export async function persistEncounterActionCommit(
     effectiveScalarValues: batch.targetTransition.before.scalarValues,
     forceVersionAdvance: target.kind === 'CHARACTER' && input.createdEffects.length > 0,
     ...(source.id === target.id ? sourceMutation : {}),
-    ...reactionSpend.mutation
+    ...reactionSpend.mutation,
+    ...targetFailed?.mutation
   })
   if (
     checksumCanonicalJson(mechanics.receiptApplications) !==
@@ -266,14 +282,18 @@ export async function persistEncounterActionCommit(
     batch.kind === 'ENCOUNTER_ACTOR_MECHANICS_BATCH' ? batch.targetFeatureResourceConsumption : null
   if (targetCharge && targetCharge.ownerActorId !== target.id)
     throw new Error('Live Session action charge scope mismatch.')
+  const targetReactionEconomy =
+    reaction?.actionEconomyTransition ??
+    targetFailed?.failed.receipt.actionEconomyTransition ??
+    null
   const settledTarget =
-    targetCharge || reaction?.actionEconomyTransition
+    targetCharge || targetReactionEconomy
       ? await settleActionSourceSpend(ctx, {
           encounterId: state.id,
           source: mechanics.updatedActor,
           spend: {
             featureResourceConsumption: targetCharge,
-            actionEconomyTransition: reaction?.actionEconomyTransition ?? null,
+            actionEconomyTransition: targetReactionEconomy,
             attackActionTransition: undefined
           },
           economyOverridden: false
@@ -287,8 +307,22 @@ export async function persistEncounterActionCommit(
     spend: batch,
     economyOverridden: overridesActionEconomy(input.ruleOverrides)
   })
+  const settledFailed = await applyFailedCounterSpends(ctx, {
+    state,
+    occurrenceId: execution.occurrenceId,
+    sourceCommandId: command.commandId,
+    occurredAt: input.occurredAt,
+    spends: failedSpends,
+    exceptActorId: target.id,
+    applyMechanics: callbacks.applyMechanics,
+    currentCharacterMaximumHitPoints: callbacks.currentCharacterMaximumHitPoints
+  })
   let nextActors = actors.map((actor) =>
-    actor.id === source.id ? settledSource : actor.id === target.id ? settledTarget : actor
+    actor.id === source.id
+      ? settledSource
+      : actor.id === target.id
+        ? settledTarget
+        : (settledFailed.get(actor.id) ?? actor)
   )
   nextActors = await callbacks.persistActionEffects({
     ...effectInput,
@@ -389,7 +423,8 @@ export async function persistEncounterActionCommit(
       }),
       addedConcentrationCasterId: maintenance?.addedConcentrationCasterId ?? null,
       speedBonusTurn: addsSpeed ? { round: state.round, turnActorId: source.id } : null,
-      turnUses
+      turnUses,
+      failedCounters: input.failedCounters.map(({ receipt }) => receipt)
     },
     occurredAt: input.occurredAt
   })

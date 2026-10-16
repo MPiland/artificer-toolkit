@@ -1,6 +1,11 @@
 import type { EncounterMaintainedEffectStateRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { EncounterAttackActionTransitionDto } from '@artificer-toolkit/schema/projections/encounterAttackAction'
-import type { EncounterCastReactionPinDto } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
+import {
+  encounterFailedCounterReceiptDtoSchema,
+  type EncounterCastReactionPinDto,
+  type EncounterCounterCheckEvidenceDto,
+  type EncounterFailedCounterDto
+} from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
 import type { ServerCompletedRuleExecutionDto } from '@artificer-toolkit/schema/shared/rulesExecution'
 import type { maintainedEffectTransitionDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
@@ -132,9 +137,9 @@ export function buildEncounterActionStoredExecution(input: {
                   actionEconomyTransition: actionEconomyReceipt(
                     input.reaction.spent?.economy ?? null
                   ),
-                  activeEffectTransitions: (input.reaction.spent?.activeEffectTransitions ?? []).map(
-                    (transition) => characterEffectReceipt(transition, null)
-                  )
+                  activeEffectTransitions: (
+                    input.reaction.spent?.activeEffectTransitions ?? []
+                  ).map((transition) => characterEffectReceipt(transition, null))
                 }
               : null,
             ...(input.maintenanceTransition
@@ -263,6 +268,8 @@ export function buildEncounterCounteredCastStoredExecution(input: {
     choiceExecution: ServerCompletedRuleExecutionDto
     counterExecution: ServerCompletedRuleExecutionDto
     triggerLevel: number
+    /** The check that earned the counter; null when the cast was not above the counter's level. */
+    check: EncounterCounterCheckEvidenceDto | null
     spellConsumption: Parameters<typeof characterSpellConsumptionReceipt>[0]
     /** The reactor's Character version once its slot was spent; null when none was. */
     characterStreamVersion: number | null
@@ -293,10 +300,27 @@ export function buildEncounterCounteredCastStoredExecution(input: {
         choiceExecution: counter.choiceExecution,
         counterExecution: counter.counterExecution,
         triggerLevel: counter.triggerLevel,
+        check: counter.check,
         spellCastConsumption: characterSpellConsumptionReceipt(counter.spellConsumption),
         characterStreamVersion: counter.characterStreamVersion,
         actionEconomyTransition: actionEconomyReceipt(counter.economy)
       }
     }
+  })
+}
+
+/** A failed counter with what its reactor spends for the attempt, as the cast's terminal commit applies it (D125). */
+export function buildEncounterFailedCounterReceipt(input: {
+  failed: EncounterFailedCounterDto
+  spellConsumption: Parameters<typeof characterSpellConsumptionReceipt>[0]
+  /** The reactor's Character version once its slot was spent; null when none was. */
+  characterStreamVersion: number | null
+  economy: EncounterActionEconomyConsumption
+}) {
+  return encounterFailedCounterReceiptDtoSchema.parse({
+    ...input.failed,
+    spellCastConsumption: characterSpellConsumptionReceipt(input.spellConsumption),
+    characterStreamVersion: input.characterStreamVersion,
+    actionEconomyTransition: actionEconomyReceipt(input.economy)
   })
 }

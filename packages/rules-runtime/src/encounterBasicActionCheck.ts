@@ -38,8 +38,10 @@ type EncounterEscapeCheckPendingContextDto = ReturnType<
 type CharacterMechanicsTargetStateDto = ReturnType<
   typeof characterMechanicsTargetStateDtoSchema.parse
 >
-/** The frozen d20 check every single-roll check action carries: First Aid and Escape. */
-type EncounterD20CheckContext = Pick<EncounterBasicActionCheckPendingContextDto, 'check' | 'd20'>
+/** The frozen d20 check every single-roll check carries: First Aid, Escape and a counter's check. */
+type EncounterD20CheckContext = Pick<EncounterBasicActionCheckPendingContextDto, 'd20'> & {
+  check: Pick<EncounterBasicActionCheckPendingContextDto['check'], 'dc'>
+}
 
 /** Each System's basic action check graph: its one d20 request and no other evidence. */
 const basicActionCheckDefinitionBySystemId: ReadonlyMap<

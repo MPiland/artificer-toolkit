@@ -1,11 +1,14 @@
 import { describe, expect, it } from 'vitest'
+import { compileEffect } from '@artificer-toolkit/shared/compilers'
 import { counterspell } from '@artificer-toolkit/source-data/srd/spells/counterspell.js'
 
 import { castReactionCheckRequirement } from '../encounterCastReactionCheck.js'
 
-const authored = counterspell.effects?.[0]?.invocation
+const effect = counterspell.effects?.[0]
+if (!effect) throw new Error('Counterspell has no authored effect.')
+const { reactionTrigger } = compileEffect(effect).invocation
 const higherLevelCheck =
-  authored?.reactionTrigger?.kind === 'SPELL_CAST' ? authored.reactionTrigger.higherLevelCheck : null
+  reactionTrigger?.kind === 'SPELL_CAST' ? reactionTrigger.higherLevelCheck : null
 
 describe('the check a counter owes for a higher-level cast', () => {
   it('reads the real SRD Counterspell as a spellcasting check against 10 plus the cast level', () => {
@@ -37,7 +40,11 @@ describe('the check a counter owes for a higher-level cast', () => {
 
   it('owes no check when the reaction authors none, whatever the cast level', () => {
     expect(
-      castReactionCheckRequirement({ higherLevelCheck: undefined, counterLevel: 3, triggerLevel: 9 })
+      castReactionCheckRequirement({
+        higherLevelCheck: undefined,
+        counterLevel: 3,
+        triggerLevel: 9
+      })
     ).toBeNull()
   })
 
