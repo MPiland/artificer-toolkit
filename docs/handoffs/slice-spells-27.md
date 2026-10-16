@@ -210,7 +210,7 @@ Decided as the [D132 amendment](phase-08-2-decisions.md) of 2026-10-16.
 
 - Cleaving and zone-entry damage roots do not call `damageTakenEndedEffects`; T5 authors no effect whose damage arrives through them.
 - The countered-cast path (`planNativeCounteredCast`) computes `againstEnemy` from the lead target, so an area spell countered after the lead is an ally and the rest are enemies does not end a `SPELL_CAST` effect.
-- A turn effect that is itself a candidate at its boundary and also ends on damage keeps its lifecycle path; the damage does not end it. A candidate that owns the same condition as a damage-ended effect keeps the condition from the release only if it is not a candidate (the release is computed against non-candidates).
+- A turn effect that is a candidate at its boundary and also ends on damage: damage from a later execution of the same turn expires it at its own execution, but damage from a later candidate does not end an earlier one retroactively (it already ran). A candidate that owns the same condition as a damage-ended effect keeps the condition from the release only if it is not a candidate (the release is computed against non-candidates).
 - Turn effects planned for the second boundary of an `ADVANCE_TURN` do not see an effect the first boundary's damage ended (matters only when both boundaries belong to one actor).
 
 ### Proposed ledger edits (the main session applies them)
