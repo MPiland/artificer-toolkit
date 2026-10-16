@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import type { ServerCompletedRuleExecutionDto } from '@artificer-toolkit/schema/shared/rulesExecution'
 import { srdBaselineContent } from '@artificer-toolkit/source-data/srd/index.js'
 import { SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from '@artificer-toolkit/source-data/srd/concentration.js'
@@ -39,12 +40,26 @@ const TRAITS = [
   { creature: "Will-o'-Wisp", feature: 'Invisibility', events: ['ON_ATTACK_ROLL'] }
 ]
 
+type CreatureFeature = NonNullable<CreatureAuthored['features']>[number]
+
 /** The action the room runs for a Creature trait: its capability, compiled graph and active-effect plan. */
-function compiledTrait(creatureLabel: string, featureLabel: string) {
-  const creature = srdBaselineContent.subjects.creatures.find(
+function compiledTrait(
+  creatureLabel: string,
+  featureLabel: string,
+  authorFeature?: (feature: CreatureFeature) => CreatureFeature
+) {
+  const srdCreature = srdBaselineContent.subjects.creatures.find(
     ({ label }) => label === creatureLabel
   )
-  if (!creature) throw new Error(`SRD Creature "${creatureLabel}" is missing.`)
+  if (!srdCreature) throw new Error(`SRD Creature "${creatureLabel}" is missing.`)
+  const creature = authorFeature
+    ? {
+        ...srdCreature,
+        features: srdCreature.features?.map((entry) =>
+          entry.label === featureLabel ? authorFeature(entry) : entry
+        )
+      }
+    : srdCreature
   const feature = creatureFeature(creature, featureLabel)
   const actor = srdCreatureActor({ id: testUuid(0x2000), creature })
   const capability = discovery
@@ -148,5 +163,52 @@ describe('a Creature trait that turns it invisible with no duration (SPELLS-27.T
     expect(ended({ makesAttackRoll: true })).toEqual([testUuid(0x2003)])
     expect(ended({ makesAttackRoll: false, castsSpell: true })).toEqual([testUuid(0x2003)])
     expect(ended({ makesAttackRoll: false })).toEqual([])
+  })
+
+  // Parity: a trait written out in core options alone, with no SRD helper, compiles to the same plan.
+  it('compiles a trait authored from core options only to the same plan as the SRD data', () => {
+    const effectId = testUuid(0x2100)
+    const pathId = testUuid(0x2101)
+    const authored = compiledTrait('Imp', 'Invisibility', (feature) => ({
+      ...feature,
+      effects: [
+        {
+          id: effectId,
+          order: 1,
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: 'ACTIVATED',
+            activation: { code: 'ACTION', amount: 1 },
+            range: { id: testUuid(0x2102), rangeKind: 'SELF' },
+            targeting: { selectionKind: 'SELF' }
+          },
+          paths: [
+            {
+              id: pathId,
+              order: 1,
+              pathCode: 'ON_USE',
+              groupType: 'SINGLE',
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: testUuid(0x2103),
+                resultKind: 'SINGLE',
+                maintenanceDefinitionId: SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID,
+                lifecycle: { endOnEvents: ['ON_ATTACK_ROLL'] },
+                outcomes: [{ id: pathId, effectKind: 'CONDITION', conditionId: INVISIBLE }]
+              }
+            }
+          ]
+        }
+      ]
+    }))
+    const srd = compiledTrait('Imp', 'Invisibility')
+    expect(authored.activeEffectPlan).toMatchObject({
+      recurrenceStage: srd.activeEffectPlan?.recurrenceStage,
+      initialRemaining: srd.activeEffectPlan?.initialRemaining,
+      conditionContribution: srd.activeEffectPlan?.conditionContribution,
+      maintenance: srd.activeEffectPlan?.maintenance
+    })
+    expect(authored.activeEffectPlan).not.toBeNull()
   })
 })

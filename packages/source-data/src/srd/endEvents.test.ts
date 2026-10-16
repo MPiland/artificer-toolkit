@@ -33,19 +33,10 @@ type EndEventCover =
   | {
       /** Needs a mechanic the effect forms do not carry yet; the named task adds it. */
       mechanism: 'REGISTERED_FOLLOW_UP'
-      task:
-        | 'T7 Sanctuary'
-        | 'T8 Sleep'
-        | 'T9 Hypnotic Pattern'
-        | 'T10 indefinite invisibility'
-        | 'T11 margin-of-failure riders'
+      task: 'T7 Sanctuary' | 'T8 Sleep' | 'T9 Hypnotic Pattern' | 'T11 margin-of-failure riders'
     }
 
 const GM_ADJUDICATED: EndEventCover = { mechanism: 'GM_ADJUDICATED' }
-const T10: EndEventCover = {
-  mechanism: 'REGISTERED_FOLLOW_UP',
-  task: 'T10 indefinite invisibility'
-}
 const T11: EndEventCover = {
   mechanism: 'REGISTERED_FOLLOW_UP',
   task: 'T11 margin-of-failure riders'
@@ -70,12 +61,7 @@ const COVERED_END_EVENTS: Record<string, EndEventCover> = {
   'spells/Sleep': { mechanism: 'REGISTERED_FOLLOW_UP', task: 'T8 Sleep' },
   'creatures/Drow > Hand Crossbow': T11,
   'creatures/Pseudodragon > Sting': T11,
-  'creatures/Sprite > Shortbow': T11,
-  'creatures/Green Hag > Invisible Passage': T10,
-  'creatures/Imp > Invisibility': T10,
-  'creatures/Quasit > Invisibility': T10,
-  'creatures/Sprite > Invisibility': T10,
-  "creatures/Will-o'-Wisp > Invisibility": T10
+  'creatures/Sprite > Shortbow': T11
 }
 
 const END_WORD = /\b(?:ends|wakes|disappears)\b|\bend\b(?! of)|\buntil\b(?! the (?:end|start))/i
