@@ -234,7 +234,8 @@ export async function persistEncounterCounteredCastCommit(
       ruleOverrides: input.ruleOverrides,
       consumedGrants: [],
       addedConcentrationCasterId: null,
-      speedBonusTurn: null
+      speedBonusTurn: null,
+      turnUses: null
     },
     occurredAt: input.occurredAt
   })
