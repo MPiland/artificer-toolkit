@@ -1,3 +1,4 @@
+import type { EncounterGmProjectionDto } from '@artificer-toolkit/schema/api/encounterData'
 import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
@@ -298,7 +299,7 @@ describe('CampaignTabletopEncounterDrawer', () => {
 
   describe('revealing a creature the map hides (ATTACK-17.3)', () => {
     const warden = tabletopGmEncounter.actors[1]!
-    const gmDrawer = (encounter: typeof tabletopGmEncounter, onCommand = vi.fn()) =>
+    const gmDrawer = (encounter: EncounterGmProjectionDto, onCommand = vi.fn()) =>
       renderWithAppProviders(
         <CampaignTabletopEncounterDrawer
           actorIdByTokenId={new Map()}
@@ -320,7 +321,7 @@ describe('CampaignTabletopEncounterDrawer', () => {
       gmDrawer(tabletopGmEncounter, onCommand)
 
       await user.click(screen.getByRole('button', { name: 'Open turn order' }))
-      await user.click(screen.getByLabelText('Reveal Vault Warden to players'))
+      await user.click(screen.getByRole('combobox', { name: 'Reveal Vault Warden to players' }))
       await user.click(await screen.findByRole('option', { hidden: true, name: 'Reveal named' }))
 
       expect(onCommand).toHaveBeenCalledWith({
@@ -342,7 +343,9 @@ describe('CampaignTabletopEncounterDrawer', () => {
         )
       })
       await user.click(screen.getByRole('button', { name: 'Open turn order' }))
-      expect(screen.getByLabelText('Reveal Vault Warden to players')).toHaveValue('Reveal unnamed')
+      expect(screen.getByRole('combobox', { name: 'Reveal Vault Warden to players' })).toHaveValue(
+        'Reveal unnamed'
+      )
     })
 
     it('lists a creature revealed unnamed to a player as an unseen creature, with no controls', async () => {

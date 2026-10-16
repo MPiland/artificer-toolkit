@@ -439,13 +439,13 @@ describe('CampaignTabletopActionDrawer basic actions', () => {
     renderDrawer(vi.fn(), { choices: [helping, staff!] })
 
     await user.click(await screen.findByRole('combobox', { name: 'Action' }))
-    await user.click(await screen.findByRole('option', { name: 'Lend aid' }))
+    await user.click(await screen.findByRole('option', { name: /Lend aid/ }))
     await user.click(screen.getByRole('combobox', { name: 'Target' }))
     expect(await screen.findByRole('option', { name: other.label })).toBeVisible()
     expect(screen.queryByRole('option', { name: actor.label })).toBeNull()
 
     await user.click(await screen.findByRole('combobox', { name: 'Action' }))
-    await user.click(await screen.findByRole('option', { name: 'Quarterstaff' }))
+    await user.click(await screen.findByRole('option', { name: /Quarterstaff/ }))
     await user.click(screen.getByRole('combobox', { name: 'Target' }))
     expect(await screen.findByRole('option', { name: actor.label })).toBeVisible()
   })

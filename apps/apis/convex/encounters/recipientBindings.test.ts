@@ -323,9 +323,9 @@ describe('the Encounter a player reads on a bound Scene, where Convex cannot rea
     base: Awaited<ReturnType<typeof prepare>>,
     caller: typeof base.owner.caller
   ) =>
-    (await caller.query(getEncounter, { encounterId: base.run.id })).actors.map(
-      ({ id, label }) => ({ id, label })
-    )
+    (await caller.query(getEncounter, { encounterId: base.run.id })).actors
+      .map(({ id, label }) => ({ id, label }))
+      .sort((a, b) => (a.id < b.id ? -1 : 1))
 
   it('lists a creature only once the GM reveals it, whether or not it has a token', async () => {
     const base = await prepare()
@@ -342,18 +342,19 @@ describe('the Encounter a player reads on a bound Scene, where Convex cannot rea
       )
 
     // The GM sees both; the player sees neither: one is staged off-map, one's token is unreadable here.
-    expect((await listed(base, base.other.caller)).map(({ id }) => id)).toEqual([
-      staged!.id,
-      bound!.id
-    ])
+    expect((await listed(base, base.other.caller)).map(({ id }) => id)).toEqual(
+      [staged!.id, bound!.id].sort()
+    )
     expect(await listed(base, base.owner.caller)).toEqual([])
 
     await reveal(staged?.id, 'UNNAMED')
     await reveal(bound?.id, 'NAMED')
-    expect(await listed(base, base.owner.caller)).toEqual([
-      { id: staged!.id, label: 'Unseen creature' },
-      { id: bound!.id, label: bound!.label }
-    ])
+    expect(await listed(base, base.owner.caller)).toEqual(
+      [
+        { id: staged!.id, label: 'Unseen creature' },
+        { id: bound!.id, label: bound!.label }
+      ].sort((a, b) => (a.id < b.id ? -1 : 1))
+    )
   }, 60000)
 
   it('lists every public creature when the Encounter has no Scene', async () => {
@@ -368,7 +369,7 @@ describe('the Encounter a player reads on a bound Scene, where Convex cannot rea
       await ctx.db.delete(binding._id)
     })
     expect((await listed(base, base.owner.caller)).map(({ id }) => id)).toEqual(
-      base.run.actors.map(({ id }) => id)
+      base.run.actors.map(({ id }) => id).sort()
     )
   }, 60000)
 })
