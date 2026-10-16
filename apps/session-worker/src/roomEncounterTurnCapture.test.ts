@@ -55,6 +55,7 @@ it('admits native turn scopes and pages the selected actor effects without a bac
     tempHitPoints: 0,
     conditions: [],
     defeated: false,
+    form: null,
     absence: null,
     createdAt: now,
     updatedAt: now

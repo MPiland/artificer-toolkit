@@ -63,6 +63,7 @@ function actor(id: string, disposition: 'FRIENDLY' | 'HOSTILE' = 'FRIENDLY') {
     maxHitPoints: 10,
     tempHitPoints: 0,
     defeated: false,
+    form: null,
     absence: null,
     resources: {},
     gmNotes: null,

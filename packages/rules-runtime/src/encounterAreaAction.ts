@@ -181,11 +181,13 @@ function authoredDirectedArea(
 /**
  * What the action's choice asks the client to pick, as authored: nothing for a self action, a
  * creature (with whether its user may be chosen), the point an area is centered on, or the origin
- * and direction of a directed area (each with the area, for the client's preview). A policy this path cannot resolve stays an actor choice;
- * resolving it is refused.
+ * and direction of a directed area (each with the area, for the client's preview). A list of chosen
+ * creatures also offers the forms the action authors, when it authors any. A policy this path cannot
+ * resolve stays an actor choice; resolving it is refused.
  */
 export function encounterActionChoiceTarget(
-  policy: CompiledActionTargetPolicy | undefined
+  policy: CompiledActionTargetPolicy | undefined,
+  forms?: readonly { id: string; label: string; maxTargets: number }[]
 ): EncounterActionChoiceDto['target'] {
   const area = policy ? authoredPointArea(policy) : null
   const targeting = policy?.targeting
@@ -202,6 +204,9 @@ export function encounterActionChoiceTarget(
       area: area?.kind === 'RADIUS' ? area : null,
       ...(targeting?.selectionKind === 'CHOSEN_CREATURES' && targeting.allowRepeatedTargets
         ? { allowRepeatedTargets: true as const }
+        : {}),
+      ...(forms?.length
+        ? { forms: forms.map(({ id, label, maxTargets }) => ({ id, label, maxTargets })) }
         : {})
     }
   if (area?.kind === 'RADIUS' && policy && encounterActionTargetKind(policy) === 'CASTER_CENTERED')

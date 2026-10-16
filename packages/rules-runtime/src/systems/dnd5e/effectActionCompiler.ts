@@ -120,6 +120,7 @@ export const DND5E_STABILIZE_PROPOSAL_OPERATION_KEY = 'dnd5e.stabilize-proposal'
 export const DND5E_DEPART_PROPOSAL_OPERATION_KEY = 'dnd5e.depart-proposal'
 const DND5E_MODIFIER_GRANT_PROPOSAL_OPERATION_KEY = 'dnd5e.modifier-grant-proposal'
 const DND5E_ACTOR_LINK_PROPOSAL_OPERATION_KEY = 'dnd5e.actor-link-proposal'
+const DND5E_CREATURE_FORM_PROPOSAL_OPERATION_KEY = 'dnd5e.creature-form-proposal'
 const DND5E_MANUAL_ADJUDICATION_PROPOSAL_OPERATION_KEY = 'dnd5e.manual-adjudication-proposal'
 export const DND5E_CONCEAL_PROPOSAL_OPERATION_KEY = 'dnd5e.conceal-proposal'
 export const DND5E_DETECT_CONCEALED_PROPOSAL_OPERATION_KEY = 'dnd5e.detect-concealed-proposal'
@@ -250,6 +251,7 @@ type Outcome =
   | { kind: 'DEPART' }
   | { kind: 'MODIFIER_GRANT' }
   | { kind: 'ACTOR_LINK' }
+  | { kind: 'CREATURE_FORM' }
   | { kind: 'MANUAL_ADJUDICATION' }
   | { kind: 'CONCEAL' }
   | { kind: 'DETECT_CONCEALED' }
@@ -268,6 +270,7 @@ const TARGET_ONLY_OUTCOME_OPERATION_KEYS = {
   DEPART: DND5E_DEPART_PROPOSAL_OPERATION_KEY,
   MODIFIER_GRANT: DND5E_MODIFIER_GRANT_PROPOSAL_OPERATION_KEY,
   ACTOR_LINK: DND5E_ACTOR_LINK_PROPOSAL_OPERATION_KEY,
+  CREATURE_FORM: DND5E_CREATURE_FORM_PROPOSAL_OPERATION_KEY,
   MANUAL_ADJUDICATION: DND5E_MANUAL_ADJUDICATION_PROPOSAL_OPERATION_KEY,
   CONCEAL: DND5E_CONCEAL_PROPOSAL_OPERATION_KEY,
   DETECT_CONCEALED: DND5E_DETECT_CONCEALED_PROPOSAL_OPERATION_KEY,
@@ -1680,6 +1683,54 @@ function actorLinkPlan(
 }
 
 /**
+ * A timed MANIFEST creature (Giant Insect): each creature the cast reached swaps into one of the
+ * authored forms for the duration (D130). Which form is the caster's choice at cast time; the plan
+ * carries every form and the Encounter effect records the chosen Creature.
+ */
+function creatureFormPlan(
+  action: Dnd5eCompiledEffectActionSource
+): Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'> | null {
+  const { entries } = action.compiledEffect
+  const entry = entries[0]
+  if (entries.length !== 1 || !entry || !('outcome' in entry)) return null
+  const { outcome } = entry
+  if (
+    outcome.effectKind !== 'MANIFEST' ||
+    outcome.manifestKind !== 'CREATURE' ||
+    !outcome.forms?.length ||
+    !entry.duration
+  )
+    return null
+  const initialRemaining = conditionDurationTurns(entry.duration)
+  if (
+    initialRemaining === null ||
+    Object.values(entry.lifecycle ?? {}).some((value) => value !== undefined) ||
+    !UUID.test(entry.entryId) ||
+    !UUID.test(outcome.id) ||
+    outcome.forms.some(({ id, creatureId }) => !UUID.test(id) || !UUID.test(creatureId))
+  )
+    return null
+  return {
+    authoredEffectId: action.effectId,
+    compiledEntryId: entry.entryId,
+    frozenGraphNodeId: 'creature-form',
+    capabilityContractVersion: DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
+    recurrenceStage: 'END_OF_TURN',
+    initialRemaining,
+    creatureFormContribution: {
+      formOutcomeId: outcome.id,
+      excessDamageCarriesOver: outcome.excessDamageCarriesOver ?? false,
+      forms: [...outcome.forms]
+        .sort((a, b) => a.order - b.order)
+        .map(({ id, label, creatureId, maxTargets }) => ({ id, label, creatureId, maxTargets }))
+    },
+    adapterFacts: {},
+    perceptionContributions: [],
+    maintenance: maintenancePlan(action, entry)
+  }
+}
+
+/**
  * Hide: a successful check conceals the actor from the observers its total beats. It lasts until
  * dispelled and the events its lifecycle authors consume it (Hide: the first attack roll); any
  * other lifecycle stays unsupported.
@@ -1726,7 +1777,12 @@ function durationPublishedGraph(input: {
   action: Dnd5eCompiledEffectActionSource
   plan: Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'>
 }): ServerPublishedRuleDefinitionDto {
-  const { conditionContribution, modifierGrantContribution, actorLinkContribution } = input.plan
+  const {
+    conditionContribution,
+    modifierGrantContribution,
+    actorLinkContribution,
+    creatureFormContribution
+  } = input.plan
   const definition: RuleGraphDefinition = {
     schemaVersion: 1,
     id: input.action.effectId,
@@ -1750,7 +1806,9 @@ function durationPublishedGraph(input: {
           }
         : actorLinkContribution
           ? { linkOutcomeId: { kind: 'LITERAL', value: actorLinkContribution.linkOutcomeId } }
-          : {},
+          : creatureFormContribution
+            ? { formOutcomeId: { kind: 'LITERAL', value: creatureFormContribution.formOutcomeId } }
+            : {},
     sourceEntryBindings: [
       { sourceEntryId: input.plan.compiledEntryId, nodeId: input.plan.frozenGraphNodeId }
     ]
@@ -2590,6 +2648,7 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
   const grantPlan = modifierGrantPlan(action)
   const conditionPlan = timedConditionPlan(action)
   const linkPlan = actorLinkPlan(action)
+  const formPlan = creatureFormPlan(action)
   // A CHECK action rolls its authored check against a fixed DC, each observer's passive score or
   // the concealments that hide creatures from the checker; a contest waits for ATTACK-7.
   const checkAction = invocation.triggerCode === 'CHECK'
@@ -2621,7 +2680,8 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
     invocation.targeting?.selectionKind === 'CHOSEN_CREATURES' &&
     // A bond (Telepathic Bond) asks for willing creatures: an unwilling one only warns.
     (invocation.targeting.dispositionKind === 'ANY' ||
-      (invocation.targeting.dispositionKind === 'WILLING' && linkPlan !== null)) &&
+      (invocation.targeting.dispositionKind === 'WILLING' &&
+        (linkPlan !== null || formPlan !== null))) &&
     chosenCreaturesMaxTargets(
       resolveChosenCreaturesTargeting(invocation.targeting, action.spellCastLevel)
     ) !== null &&
@@ -2662,12 +2722,14 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
       !supportedRecurringPlan(action) &&
       !grantPlan &&
       !conditionPlan &&
-      !linkPlan) ||
+      !linkPlan &&
+      !formPlan) ||
     ((entry.duration || entry.lifecycle) &&
       !supportedRecurringPlan(action) &&
       !grantPlan &&
       !conditionPlan &&
       !linkPlan &&
+      !formPlan &&
       !concealmentPlan(action)) ||
     entry.rangeOverride ||
     entry.targetingOverride
@@ -2696,9 +2758,12 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
     outcome.effectKind !== 'HEAL' &&
     outcome.effectKind !== 'DAMAGE' &&
     outcome.effectKind !== 'TELEPORT' &&
-    outcome.effectKind !== 'TELEPATHIC_LINK'
+    outcome.effectKind !== 'TELEPATHIC_LINK' &&
+    outcome.effectKind !== 'MANIFEST'
   )
-    unsupported('D&D chosen-creature action outcome must be a heal, damage, teleport or link.')
+    unsupported(
+      'D&D chosen-creature action outcome must be a heal, damage, teleport, link or creature form.'
+    )
   if (
     !checkAction &&
     (outcome.effectKind === 'CONCEAL_FROM_OBSERVERS' || outcome.effectKind === 'DETECT_CONCEALED')
@@ -2750,6 +2815,7 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
   if (outcome.effectKind === 'CANCEL_TRIGGERING_EVENT') return { kind: 'CANCEL_TRIGGERING_EVENT' }
   if (outcome.effectKind === 'APPLY_GRANT' && grantPlan) return { kind: 'MODIFIER_GRANT' }
   if (outcome.effectKind === 'TELEPATHIC_LINK' && linkPlan) return { kind: 'ACTOR_LINK' }
+  if (outcome.effectKind === 'MANIFEST' && formPlan) return { kind: 'CREATURE_FORM' }
   // The Action is spent and the GM rules the result: nothing is stored on the target.
   if (outcome.effectKind === 'MANUAL_ADJUDICATION') return { kind: 'MANUAL_ADJUDICATION' }
   // Dash: the committed action adds the actor's speed to this turn's movement; the commit records it.
@@ -2891,6 +2957,11 @@ export const dnd5eModifierGrantProposalOperation = targetOnlyProposalOperation(
 export const dnd5eActorLinkProposalOperation = targetOnlyProposalOperation(
   DND5E_ACTOR_LINK_PROPOSAL_OPERATION_KEY,
   'actor link',
+  false
+)
+export const dnd5eCreatureFormProposalOperation = targetOnlyProposalOperation(
+  DND5E_CREATURE_FORM_PROPOSAL_OPERATION_KEY,
+  'creature form',
   false
 )
 export const dnd5eManualAdjudicationProposalOperation = targetOnlyProposalOperation(
@@ -3651,6 +3722,7 @@ export const dnd5eEffectActionCapability: GameSystemRuleCapabilityContract = {
     DND5E_DEPART_PROPOSAL_OPERATION_KEY,
     DND5E_MODIFIER_GRANT_PROPOSAL_OPERATION_KEY,
     DND5E_ACTOR_LINK_PROPOSAL_OPERATION_KEY,
+    DND5E_CREATURE_FORM_PROPOSAL_OPERATION_KEY,
     DND5E_MANUAL_ADJUDICATION_PROPOSAL_OPERATION_KEY,
     DND5E_CONCEAL_PROPOSAL_OPERATION_KEY,
     DND5E_DETECT_CONCEALED_PROPOSAL_OPERATION_KEY,
@@ -3710,6 +3782,8 @@ function proposalNode(pathCode: string, outcome: Outcome) {
     unsupported('D&D modifier grants cannot follow an attack or saving throw.')
   if (outcome.kind === 'ACTOR_LINK')
     unsupported('D&D actor links cannot follow an attack or saving throw.')
+  if (outcome.kind === 'CREATURE_FORM')
+    unsupported('D&D creature forms cannot follow an attack or saving throw.')
   if (outcome.kind === 'MANUAL_ADJUDICATION')
     unsupported('D&D manual adjudications cannot follow an attack or saving throw.')
   if (outcome.kind === 'CONCEAL' || outcome.kind === 'DETECT_CONCEALED')
@@ -5243,6 +5317,7 @@ function startsMaintainedEffect(action: Dnd5eCompiledEffectActionSource): boolea
     timedConditionPlan(action) ??
     modifierGrantPlan(action) ??
     actorLinkPlan(action) ??
+    creatureFormPlan(action) ??
     relationshipPlan(action) ??
     supportedRecurringPlan(action)
   return plan?.maintenance != null
@@ -5970,6 +6045,7 @@ function interpretDirectProposal(
   if (
     trace.operation.key === DND5E_MODIFIER_GRANT_PROPOSAL_OPERATION_KEY ||
     trace.operation.key === DND5E_ACTOR_LINK_PROPOSAL_OPERATION_KEY ||
+    trace.operation.key === DND5E_CREATURE_FORM_PROPOSAL_OPERATION_KEY ||
     trace.operation.key === DND5E_MANUAL_ADJUDICATION_PROPOSAL_OPERATION_KEY ||
     trace.operation.key === DND5E_CONCEAL_PROPOSAL_OPERATION_KEY ||
     trace.operation.key === DND5E_DETECT_CONCEALED_PROPOSAL_OPERATION_KEY ||
@@ -6227,6 +6303,7 @@ function interpretDirect(
     DND5E_DEPART_PROPOSAL_OPERATION_KEY,
     DND5E_MODIFIER_GRANT_PROPOSAL_OPERATION_KEY,
     DND5E_ACTOR_LINK_PROPOSAL_OPERATION_KEY,
+    DND5E_CREATURE_FORM_PROPOSAL_OPERATION_KEY,
     DND5E_MANUAL_ADJUDICATION_PROPOSAL_OPERATION_KEY,
     DND5E_CONCEAL_PROPOSAL_OPERATION_KEY,
     DND5E_DETECT_CONCEALED_PROPOSAL_OPERATION_KEY,
@@ -7035,7 +7112,8 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       : (timedImmediateConditionPlan(action) ??
         timedConditionPlan(action) ??
         modifierGrantPlan(action) ??
-        actorLinkPlan(action))
+        actorLinkPlan(action) ??
+        creatureFormPlan(action))
     const relationship = relationshipPlan(action)
     const plan =
       repeatPlan ??

@@ -75,7 +75,9 @@ import {
 import { buildEncounterActionPendingSnapshot } from '@artificer-toolkit/rules-runtime/encounterActionPendingSnapshot'
 import { encounterSceneGridPolicyRegistry } from '@artificer-toolkit/rules-runtime/sceneGridPolicyRegistry'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
+import { actorFormEntry } from '@artificer-toolkit/encounter-persistence/actorFormPersistence'
 import { refuseStaleCharacterAction } from '@artificer-toolkit/encounter-persistence/staleCharacterAction'
+import type { EncounterActorFormCreature } from '@artificer-toolkit/rules-runtime/encounterActorForm'
 import {
   encounterActiveEffectPlan,
   prepareNativeActionEffectsPlan
@@ -162,6 +164,11 @@ export type AreaPlanBase = {
   requireAutoRoll: (actorId: string) => boolean
   /** Each actor's roller preference, for the Concentration checks the area's damage asks for. */
   autoRollByActorId: Readonly<Record<string, boolean>>
+  /** Reads the Creature a form swaps in; absent where the room offers no creature sources. */
+  readFormCreature?: (
+    gameSystemId: string,
+    creatureId: string
+  ) => Promise<EncounterActorFormCreature>
 }
 
 type AreaPlanInput = AreaPlanBase & { command: AreaCommand }
@@ -999,7 +1006,7 @@ export function buildNativeLiveEncounterAreaActionPendingInput(
 
 type AreaPrepared = Awaited<ReturnType<typeof prepareAreaTarget>>['prepared']
 
-function leadActiveEffectPlan(prepared: AreaPrepared) {
+export function leadActiveEffectPlan(prepared: AreaPrepared) {
   return encounterActiveEffectPlan(
     prepared,
     prepared.plan.kind === 'SINGLE_GRAPH' ? prepared.plan.published : prepared.plan.test.published
@@ -1007,10 +1014,10 @@ function leadActiveEffectPlan(prepared: AreaPrepared) {
 }
 
 /**
- * Refuses an area outcome that would leave anything behind on a creature other than an actor link:
- * a condition, a recurring effect, or a maintained effect. An area commits each creature's damage
- * and its link yet. Without `effects` it checks the action's effect plan (at open); with them, what
- * the settled outcome actually produced (at commit).
+ * Refuses an area outcome that would leave anything behind on a creature other than an actor link
+ * or a creature form: a condition, a recurring effect, or a maintained effect. An area commits each
+ * creature's damage, its link and its form yet. Without `effects` it checks the action's effect plan
+ * (at open); with them, what the settled outcome actually produced (at commit).
  */
 export function refuseAreaEffectOutcomes(
   prepared: AreaPrepared,
@@ -1027,14 +1034,14 @@ export function refuseAreaEffectOutcomes(
         !(
           effects.recurringEffect.definition.schemaVersion === 2 &&
           effects.recurringEffect.definition.stateContributions.every(
-            ({ kind }) => kind === 'ACTOR_LINK'
+            ({ kind }) => kind === 'ACTOR_LINK' || kind === 'CREATURE_FORM'
           )
         )) ||
       effects.relationshipConditionApplications.length > 0 ||
       effects.maintenance !== null
     : (() => {
         const plan = leadActiveEffectPlan(prepared)
-        return plan !== null && !plan.actorLinkContribution
+        return plan !== null && !plan.actorLinkContribution && !plan.creatureFormContribution
       })()
   if (leavesEffect)
     throw new LiveSessionDomainRejectionError(422, {
@@ -1314,6 +1321,8 @@ export async function completeAreaCommit(args: {
   occurrenceVersion: number
   response: ResolveRuleOccurrenceInputDto | null
   removal: RemoveAreaTargetInputDto | null
+  /** The Creature every kept creature swaps into when the action authors forms (D130). */
+  formCreature?: EncounterActorFormCreature | null
 }) {
   const {
     input,
@@ -1336,7 +1345,8 @@ export async function completeAreaCommit(args: {
     placement,
     occurrenceVersion,
     response,
-    removal
+    removal,
+    formCreature
   } = args
   const { state, actors } = input
   const occurredAt = new Date().toISOString()
@@ -1361,7 +1371,8 @@ export async function completeAreaCommit(args: {
       occurrenceId,
       commandId,
       activeEffectsByActorId: input.activeEffectsByActorId,
-      link: { memberActorIds: [...new Set(kept.map((entry) => entry.actor.id))] }
+      link: { memberActorIds: [...new Set(kept.map((entry) => entry.actor.id))] },
+      ...(formCreature ? { form: { creatureId: formCreature.sourceId } } : {})
     })
     refuseAreaEffectOutcomes(prepared, effects)
     const linked = effects.recurringEffect
@@ -1384,6 +1395,7 @@ export async function completeAreaCommit(args: {
     // A Character caster caught by their own area spends in the same Sheet write as their first outcome.
     const carriesSpend =
       caster.kind === 'CHARACTER' && actor.id === caster.id && !advanced.has(actor.id)
+    const enterForm = linked && formCreature ? actorFormEntry(linked, formCreature) : undefined
     const mechanics = planNativeEncounterActionMechanics(
       {
         prepared,
@@ -1394,7 +1406,8 @@ export async function completeAreaCommit(args: {
         commandId,
         occurredAt,
         applications: complete.applications,
-        sourceSpend: carriesSpend ? 'WITH_OUTCOME' : 'NONE'
+        sourceSpend: carriesSpend ? 'WITH_OUTCOME' : 'NONE',
+        ...(enterForm ? { enterForm } : {})
       },
       userId
     )

@@ -17,7 +17,10 @@ import {
 import { encounterRunFixture } from '../src/testing/encounterRunFixture.js'
 import { createMemoryEncounterStore } from '@artificer-toolkit/encounter-persistence/memoryEncounterStore'
 import { insertPendingMovementDecision } from './pendingMovementFixture.js'
-import type { EquipmentAuthored } from '@artificer-toolkit/shared/subjects/authored'
+import type {
+  CreatureAuthored,
+  EquipmentAuthored
+} from '@artificer-toolkit/shared/subjects/authored'
 import {
   buildSrdSourceKinds,
   type ClassFeature,
@@ -37,7 +40,8 @@ async function publishSrdSource(
   darkvision: boolean,
   classFeatures: readonly ClassFeature[],
   equipment: readonly EquipmentAuthored[],
-  spells: ClassSpells | undefined
+  spells: ClassSpells | undefined,
+  creatures: readonly CreatureAuthored[] | undefined
 ): Promise<ContentSnapshotHead> {
   const kinds: ContentSnapshotHead['kinds'] = {}
   for (const { kind, header, built } of buildSrdSourceKinds(
@@ -45,7 +49,8 @@ async function publishSrdSource(
     false,
     classFeatures,
     equipment,
-    spells
+    spells,
+    creatures
   )) {
     const store = async (part: ContentSnapshotPart) => {
       const { json, sha256, byteLength, rootCount } = built[part]
@@ -85,7 +90,8 @@ export async function characterRoomInputs({
   classFeatures = [],
   equipment = [],
   play,
-  spellcasting
+  spellcasting,
+  creatures
 }: {
   campaignId: string
   characterId: string
@@ -99,6 +105,8 @@ export async function characterRoomInputs({
   play?: CharacterPlayOverrides
   /** Makes the Class a spellcaster: the spells it publishes, learns and prepares. */
   spellcasting?: { spells: ClassSpells; prepared: readonly string[] }
+  /** Creatures the source publishes, which the room reads as the Campaign's play content. */
+  creatures?: readonly CreatureAuthored[]
 }) {
   const systemId = srdSystemRecord.id
   const characterRevision = crypto.randomUUID()
@@ -108,7 +116,13 @@ export async function characterRoomInputs({
       {
         contentSourceId: SRD_CONTENT_SOURCE.id,
         kind: SRD_CONTENT_SOURCE.kind,
-        head: await publishSrdSource(darkvision, classFeatures, equipment, spellcasting?.spells)
+        head: await publishSrdSource(
+          darkvision,
+          classFeatures,
+          equipment,
+          spellcasting?.spells,
+          creatures
+        )
       }
     ],
     campaign: {
@@ -148,7 +162,13 @@ export async function characterRoomInputs({
     })
   )
 
-  return { parts: [part], system: srdSystemRoomInputs(campaignId), characterRevision, systemId }
+  return {
+    parts: [part],
+    system: srdSystemRoomInputs(campaignId),
+    contentSnapshots: manifest,
+    characterRevision,
+    systemId
+  }
 }
 
 /**

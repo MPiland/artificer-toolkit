@@ -24,7 +24,13 @@ import {
 import { nativeConcentrationDamageApplications } from '@artificer-toolkit/rules-runtime/encounterConcentrationDamage'
 import { deriveEncounterCharacterMechanicsEventCommandId } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
 import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
+import type { EncounterActorFormCreature } from '@artificer-toolkit/rules-runtime/encounterActorForm'
 import { readLiveEncounterActionAdmission } from './liveActionAdmission.js'
+import {
+  actorFormEntry,
+  createdFormCreatureId,
+  readActorFormCreature
+} from './actorFormPersistence.js'
 import { insertActionEvidenceReceipt } from './actionEvidenceReceipt.js'
 import {
   requireAreaActionAnswer,
@@ -118,7 +124,13 @@ type CommitScope = {
  */
 export async function persistEncounterAreaCommit(
   ctx: EncounterCharacterWriteTransaction & {
-    readonly ports: Pick<EncounterWritePorts, 'insertTableRoll' | 'retainPrivateRoll'>
+    readonly ports: Pick<
+      EncounterWritePorts,
+      | 'insertTableRoll'
+      | 'retainPrivateRoll'
+      | 'requireCampaignAuthority'
+      | 'snapshotBlueprintEnemies'
+    >
   },
   input: LiveSessionEncounterAreaCommitInput,
   callbacks: {
@@ -389,8 +401,26 @@ export async function persistEncounterAreaCommit(
     throw new Error('Live Session source Character receipt mismatch.')
 
   const healEndedGrants: ActiveRuleEffectRecord[] = []
-  for (const [index, { actor, batch, occurrenceId }] of children.entries()) {
+  // A cast's creature form is one Creature for every child, read once (D130).
+  const formCreatures = new Map<string, Promise<EncounterActorFormCreature>>()
+  for (const [index, { actor, batch, occurrenceId, createdEffects }] of children.entries()) {
     const merged = index === mergedChildIndex
+    const [formEffect] = createdEffects
+    const creatureId = formEffect ? createdFormCreatureId(formEffect) : null
+    if (creatureId !== null && !formCreatures.has(creatureId))
+      formCreatures.set(
+        creatureId,
+        readActorFormCreature(ctx.ports, {
+          campaignId: state.campaignId,
+          userId,
+          gameSystemId: state.gameSystemId,
+          creatureId
+        })
+      )
+    const enterForm =
+      formEffect && creatureId !== null
+        ? actorFormEntry(formEffect, await formCreatures.get(creatureId)!)
+        : undefined
     const mechanics = await callbacks.applyMechanics({
       encounterId: state.id,
       expectedEncounterVersion: state.version,
@@ -406,6 +436,7 @@ export async function persistEncounterAreaCommit(
       effectiveMaximumHitPoints: batch.targetTransition.before.maximumHitPoints,
       effectiveScalarValues: batch.targetTransition.before.scalarValues,
       forceVersionAdvance: false,
+      ...(enterForm ? { enterForm } : {}),
       ...(merged ? sourceMutation : {})
     })
     if (

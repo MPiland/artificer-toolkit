@@ -36,6 +36,10 @@ export const encounterTables = {
   encounterRunActors: defineTable(zodToConvexFields(encounterStoredRunActorSchema.shape))
     .index('by_encounterId_id', ['encounterId', 'id'])
     .index('by_encounterId_snapshotChecksum', ['encounterId', 'snapshotChecksum'])
+    .index('by_encounterId_formOriginSnapshotChecksum', [
+      'encounterId',
+      'formOriginSnapshotChecksum'
+    ])
     .index('by_encounterId_sourceFactsChecksum', ['encounterId', 'sourceFactsChecksum']),
   encounterActorSnapshots: defineTable(
     zodToConvexFields(encounterStoredActorSnapshotSchema.shape)

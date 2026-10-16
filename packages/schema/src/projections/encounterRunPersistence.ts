@@ -71,8 +71,8 @@ export const encounterConcentrationDroppedOutsideInputSchema = lazySchema(() =>
 /**
  * One actor's stored state (`encounterStoredRunActorStateSchema` JSON) with the checksum of its
  * play state: the actor without its source snapshot and without the facts derived from it (ADR 0035
- * Amendment 29). `snapshotChecksum` and `sourceFactsChecksum` repeat the stored state's references
- * so the Run can find the shared rows no actor names any more.
+ * Amendment 29). `snapshotChecksum`, `formOriginSnapshotChecksum` and `sourceFactsChecksum` repeat
+ * the stored state's references so the Run can find the shared rows no actor names any more.
  */
 export const encounterStoredRunActorSchema = lazySchema(() =>
   z.strictObject({
@@ -81,6 +81,8 @@ export const encounterStoredRunActorSchema = lazySchema(() =>
     stateJson: z.string(),
     stateChecksum: projectionChecksumSchema,
     snapshotChecksum: projectionChecksumSchema,
+    /** The snapshot of the creature the actor was before its form (D130), or null. */
+    formOriginSnapshotChecksum: z.nullable(projectionChecksumSchema),
     sourceFactsChecksum: z.nullable(projectionChecksumSchema)
   })
 )

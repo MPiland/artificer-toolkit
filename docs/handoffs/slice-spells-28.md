@@ -7,13 +7,13 @@ Workbook rules: [slice-workbook-rules.md](slice-workbook-rules.md).
 
 ## Survey (what exists, verified in source)
 
-| Area                                                                   | Today                                                                                                                                                                                                                                                                                                              |
-| ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Compiler outcome map (`effectActionCompiler.ts` ~2530-2640)           | Only CONDITION_APPLY, STABILIZE, CONCEAL, DETECT_CONCEALED, CANCEL_TRIGGERING_EVENT, MODIFIER_GRANT, MANUAL_ADJUDICATION, ADD_SPEED_TO_MOVEMENT, DICE_HEAL, HEAL, TEMPORARY_HIT_POINTS, DAMAGE compile. Everything else is `unsupported(...)`. A chosen-creature action must be a HEAL ("must be a heal"). |
-| Movement                                                               | `encounterSpatialMovementRuleService` and `schema/shared/spatial.ts` already model `movementKind: TELEPORT` (origin and destination only; zones with `TELEPORT` in `movementKinds` fire). **No action produces it.** `SCENE_TOKEN_MOVED` exists only as a contested-action (Shove) state transition.            |
-| Leaving an Encounter                                                   | `REMOVE_ACTOR` run command only. There is **no add-actor command**: `encounterRunActors` is fixed at run start.                                                                                                                                                                                                    |
-| Timed grants (`schema/shared/activeRuleEffects.ts`)                    | Closed contribution union: `ACTOR_RELATIONSHIP`, `MODIFIER_GRANT` and the others. Duration, concentration and end events are in the grant. No contribution models "these actors share a channel".                                                                                                                  |
-| Authored spells                                                        | Word of Recall: TELEPORT, `CHOSEN_CREATURES`, `LINKED_LOCATION`, no duration. Plane Shift: `CLOSED_RULE` PLANE_SHIFT then `MANUAL_ADJUDICATION` "Choose a Destination" (ADR 0018 fail-closed). Giant Insect: `MANIFEST` `CREATURE` with **no `creatureId`**, 1 hour. Telepathic Bond: `TELEPATHIC_LINK`, 8 creatures, Intelligence > 2, any distance, 1 hour. |
+| Area                                                        | Today                                                                                                                                                                                                                                                                                                                                                         |
+| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Compiler outcome map (`effectActionCompiler.ts` ~2530-2640) | Only CONDITION_APPLY, STABILIZE, CONCEAL, DETECT_CONCEALED, CANCEL_TRIGGERING_EVENT, MODIFIER_GRANT, MANUAL_ADJUDICATION, ADD_SPEED_TO_MOVEMENT, DICE_HEAL, HEAL, TEMPORARY_HIT_POINTS, DAMAGE compile. Everything else is `unsupported(...)`. A chosen-creature action must be a HEAL ("must be a heal").                                                    |
+| Movement                                                    | `encounterSpatialMovementRuleService` and `schema/shared/spatial.ts` already model `movementKind: TELEPORT` (origin and destination only; zones with `TELEPORT` in `movementKinds` fire). **No action produces it.** `SCENE_TOKEN_MOVED` exists only as a contested-action (Shove) state transition.                                                          |
+| Leaving an Encounter                                        | `REMOVE_ACTOR` run command only. There is **no add-actor command**: `encounterRunActors` is fixed at run start.                                                                                                                                                                                                                                               |
+| Timed grants (`schema/shared/activeRuleEffects.ts`)         | Closed contribution union: `ACTOR_RELATIONSHIP`, `MODIFIER_GRANT` and the others. Duration, concentration and end events are in the grant. No contribution models "these actors share a channel".                                                                                                                                                             |
+| Authored spells                                             | Word of Recall: TELEPORT, `CHOSEN_CREATURES`, `LINKED_LOCATION`, no duration. Plane Shift: `CLOSED_RULE` PLANE_SHIFT then `MANUAL_ADJUDICATION` "Choose a Destination" (ADR 0018 fail-closed). Giant Insect: `MANIFEST` `CREATURE` with **no `creatureId`**, 1 hour. Telepathic Bond: `TELEPATHIC_LINK`, 8 creatures, Intelligence > 2, any distance, 1 hour. |
 
 ## Per-outcome Encounter behavior (proposed)
 
@@ -55,6 +55,17 @@ Workbook rules: [slice-workbook-rules.md](slice-workbook-rules.md).
 - Close ungated `MOVE_SCENE_TOKEN` TELEPORT for player/actor moves; GM moves stay ungated. On web the player picks the destination right after the cast as one flow.
 - Cast undo is refused once the move landed. Undo order is the move first, then the cast (state in the D-entry).
 - In-Scene teleports run through the spatial movement service as `movementKind: TELEPORT`.
+
+## T2 proof (D130)
+
+- Design: option A, swap in place; `form` required nullable on CREATURE/CUSTOM Run actors; origin by reference; one revert path (see D130).
+- Compile: `encounterAreaActionCompilation.test.ts` (Giant Insect forms, 600-turn plan, no carry-over; Polymorph-shaped clone carries).
+- Plan: `encounterMechanicsBatchPlan.test.ts` (enter, refuse a second form, revert at 0 with and without carry-over, carried excess defeats the origin, revert idempotent).
+- Authoring parity: `packages/authoring/src/nodeRuntime/creatureFormAuthoringParity.test.ts`.
+- Journey: `apps/session-worker/test/nativeRoomGiantInsect.test.ts` (cast and byte-exact undo, duration expiry, Magic Missile ends one form while the other stays, refusals).
+- Migration: `apps/apis/convex/encounters/actorFormMigration.test.ts`; main runs it locally after merge.
+- Web: `CampaignTabletopActionDrawer.test.tsx` (form picker sends `formId`).
+- Deferred (`future-enhancements.md`): undo of a damage action that auto-reverted a form.
 
 ## T3 proof (D129)
 

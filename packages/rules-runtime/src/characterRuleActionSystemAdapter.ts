@@ -108,6 +108,16 @@ export interface CharacterRuleActionActiveEffectPlan {
     /** Creatures whose Intelligence is this or lower cannot join the bond. */
     excludesIntelligenceAtOrBelow: number
   }
+  /**
+   * Each target swaps into the Creature of the form the caster chose (Giant Insect), for the
+   * duration (D130). The chosen form is a cast-time input; every authored form is listed here.
+   */
+  creatureFormContribution?: null | {
+    formOutcomeId: string
+    /** Whether damage past the form's last hit point reduces the origin's (Polymorph) or is lost. */
+    excessDamageCarriesOver: boolean
+    forms: readonly { id: string; label: string; creatureId: string; maxTargets: number }[]
+  }
   /** Target-owned relationship state selected by the System from the exact action outcome. */
   actorRelationshipContribution?: null | {
     relationshipOutcomeId: string

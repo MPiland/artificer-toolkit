@@ -201,23 +201,34 @@ type ManifestAuthoredBase = {
   qualifyingDamageTypeIds?: string[]
 }
 
+export type ManifestCreatureFormAuthored = {
+  id: string
+  order: number
+  label: string
+  creatureId: string
+  maxTargets: number
+}
+
 type CreatureManifestAuthored = ManifestAuthoredBase & {
   manifestKind: typeof MANIFEST_KIND.CREATURE
-  creatureId?: string
+  forms?: ManifestCreatureFormAuthored[]
+  excessDamageCarriesOver?: boolean
   statBlock?: never
   behaviors?: never
 }
 
 type SummonManifestAuthored = ManifestAuthoredBase & {
   manifestKind: typeof MANIFEST_KIND.SUMMON
-  creatureId?: never
+  forms?: never
+  excessDamageCarriesOver?: never
   statBlock?: SummonStatBlockAuthored
   behaviors?: ManifestBehaviorAuthored[]
 }
 
 type NonCreatureManifestAuthored<TKind extends ManifestKind> = ManifestAuthoredBase & {
   manifestKind: TKind
-  creatureId?: never
+  forms?: never
+  excessDamageCarriesOver?: never
   statBlock?: never
   behaviors?: ManifestBehaviorAuthored[]
   components?: ManifestComponentAuthored[]
