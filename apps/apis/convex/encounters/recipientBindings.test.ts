@@ -325,7 +325,11 @@ describe('the Encounter a player reads on a bound Scene, where Convex cannot rea
     caller: typeof base.owner.caller
   ) =>
     (await caller.query(getEncounter, { encounterId: base.run.id })).actors
-      .map(({ id, label, unseenReason }) => ({ id, label, unseenReason }))
+      .map((actor) => ({
+        id: actor.id,
+        label: actor.label,
+        unseenReason: 'unseenReason' in actor ? actor.unseenReason : undefined
+      }))
       .sort((a, b) => (a.id < b.id ? -1 : 1))
 
   it('lists a creature only once the GM reveals it, whether or not it has a token', async () => {

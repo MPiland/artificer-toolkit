@@ -424,15 +424,7 @@ export async function planNativeLiveEncounterAction(
       }
     }
     return {
-      ...(target.kind === 'ACTORS'
-        ? await planNativeLiveEncounterActorsAction({
-            ...areaInput,
-            command: { ...command, target }
-          })
-        : await planNativeLiveEncounterAreaAction({
-            ...areaInput,
-            command: { ...command, target }
-          })),
+      ...(await planNativeLiveEncounterAreaAction(areaInput)),
       dependencies,
       revisions
     }
@@ -970,8 +962,7 @@ export async function planNativeLiveEncounterAction(
       : null)
   const retainedReaction =
     execution.kind !== 'PENDING' && !reactionAnswered
-      ? (heldReaction ??
-        (retained?.phase === 'OUTCOME' && retained.reaction ? retained : null))
+      ? (heldReaction ?? (retained?.phase === 'OUTCOME' && retained.reaction ? retained : null))
       : null
   const replayedReaction =
     heldReactionNow ??

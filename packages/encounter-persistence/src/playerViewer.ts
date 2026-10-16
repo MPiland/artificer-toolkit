@@ -95,9 +95,14 @@ export async function readEncounterProjectionViewer(
   projection: Parameters<typeof readEncounterPlayerViewer>[1] & { gameSystemId: string },
   viewer: Parameters<typeof readEncounterPlayerViewer>[2]
 ): Promise<EncounterProjectionViewer> {
-  const [sight, system] = await Promise.all([
-    readEncounterPlayerViewer(ctx, projection, viewer),
-    ctx.ports.requireSystem(projection.gameSystemId)
-  ])
-  return { ...sight, invisibleConditionTypeIds: invisibleConditionTypeIds(system.conditionTypes) }
+  const sight = await readEncounterPlayerViewer(ctx, projection, viewer)
+  // Only an unseen creature needs the System's Invisible condition types, so a table that sees everyone reads no System.
+  return {
+    ...sight,
+    invisibleConditionTypeIds: sight.unseenActorIds.size
+      ? invisibleConditionTypeIds(
+          (await ctx.ports.requireSystem(projection.gameSystemId)).conditionTypes
+        )
+      : new Set()
+  }
 }

@@ -394,8 +394,8 @@ describe('player encounter projection', () => {
       it('finds the Invisible condition types of a System by their code', () => {
         expect(
           invisibleConditionTypeIds([
-            { id: 'a', code: 'BLINDED', label: 'Blinded' },
-            { id: INVISIBLE_TYPE_ID, code: 'INVISIBLE', label: 'Invisible' }
+            { id: 'a', code: 'BLINDED' },
+            { id: INVISIBLE_TYPE_ID, code: 'INVISIBLE' }
           ])
         ).toEqual(new Set([INVISIBLE_TYPE_ID]))
       })

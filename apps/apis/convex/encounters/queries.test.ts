@@ -284,7 +284,8 @@ describe('native Encounter reads', () => {
       controllerUserIds: [],
       disposition: 'HOSTILE',
       // Hidden by default (ADR 0034 decision 5).
-      health: null
+      health: null,
+      unseenReason: null
     })
     // Players read no health band for any actor; the GM projection keeps it.
     expect(ownerCreature).toHaveProperty('healthBand')
