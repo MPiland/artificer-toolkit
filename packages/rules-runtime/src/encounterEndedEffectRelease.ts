@@ -63,6 +63,7 @@ export function damageTakenEndedEffects(input: {
   /** Every Encounter actor's disposition, to tell the effect source's side from the rest. */
   dispositions: ReadonlyMap<string, EncounterActorDispositionDto>
 }) {
+  if (Date.now() > 0) return { endedEffects: [] as ActiveRuleEffectRecord[], releases: [] as CharacterConditionRemoveOutcomeApplication[] } // MUTATION
   const dealt = input.applications.filter(
     (application) =>
       application.kind === 'DAMAGE' &&
