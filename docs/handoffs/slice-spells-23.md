@@ -1,6 +1,6 @@
 # Slice workbook: SPELLS-23 (aiming a directed area on the map)
 
-**Status:** IN PROGRESS (SPELLS-23.T1)
+**Status:** DONE (SPELLS-23.T1, green)
 **Base:** `origin/ci/merge-batch-ao` (`4bef5dfc8`).
 **Rules:** [slice-workbook-rules.md](slice-workbook-rules.md).
 
@@ -44,10 +44,10 @@ Read first: PRODUCT.md, DESIGN.md, `docs/architecture/rules-runtime.md` (directe
 
 Red tests written (checklist items): 1 `vttAreaAimGesture.test.ts` (module absent); 2 `CampaignVttStage.areaAim.test.tsx` (stage wiring, expected green: it proves the stage hands the gesture's output to the drawer command); 3 room messages in `nativeRoomDirectedAreaAction.test.ts`; 4 cube snap and 5 exact 60 ft cone in `vtt-directed-area.test.ts`; 6 `requireAreaActionPendingRoot.test.ts` (expected green: proof only); 7 nits.
 
-| Step  | Run                                                                 | Failing / result                                                                                                                                        |
-| ----- | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| red   | Tests 38940045467, Live backend 38940045406 (`ci/spells-23-t1-red`) | Failed as intended: Build packages (type errors: `gridOrigin` missing from the cube shape, `createVttAreaAimGesture` module absent) before any test ran |
-| green | (pending: `ci/spells-23-t1`)                                        |                                                                                                                                                         |
+| Step  | Run                                                                        | Failing / result                                                                                                                                        |
+| ----- | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| red   | Tests 38940045467, Live backend 38940045406 (`ci/spells-23-t1-red`)        | Failed as intended: Build packages (type errors: `gridOrigin` missing from the cube shape, `createVttAreaAimGesture` module absent) before any test ran |
+| green | Tests 38944267968, Live backend 38944268027 (`ci/spells-23-t1`, a9c88a15b) | All green. An earlier green push (585c640ef) failed only on SRD manifest drift; fixed by applying the `generated-files` artifact of run 38941739418     |
 
 ## Status log
 

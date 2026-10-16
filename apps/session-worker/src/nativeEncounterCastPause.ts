@@ -181,7 +181,7 @@ export function createNativeCastPause(input: {
         continuation: advanced.continuation,
         rollerActorId: advanced.reactor.id,
         castReaction: advanced.offer,
-        failedCounters: input.failedCounters
+        failedCounters: advanced.failedCounters
       }
     return { kind: 'NONE' as const, failedCounters: advanced.failedCounters }
   }

@@ -103,7 +103,11 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterActionReceipt'
 import { encounterActionSourceLabel } from '@artificer-toolkit/rules-runtime/encounterActionSources'
 import { preparedCastsSpell } from '@artificer-toolkit/rules-runtime/encounterCastReactionDiscovery'
-import { actionEndedEffects } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
+import {
+  actionEndedEffects,
+  actsAgainstEnemy,
+  damageTakenEndedEffects
+} from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
 import { planEncounterPlacedZone } from '@artificer-toolkit/rules-runtime/encounterPlacedZone'
 import { consumeEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomyConsumption'
 import { projectEncounterActionTarget } from '@artificer-toolkit/rules-runtime/encounterActionProjection'
@@ -1557,12 +1561,21 @@ export async function completeAreaCommit(args: {
   const createdEffects = new Map<string, ActiveRuleEffectRecord[]>()
   // The cast ends the caster's effects that end on a cast (Invisibility), and releases the condition
   // each held alone: in the caster's spend batch, or on their first outcome when the area catches them.
+  const dispositions = new Map(actors.map(({ id, disposition }) => [id, disposition]))
   const { consumedGrants, sourceReleases } = actionEndedEffects({
     holderActorId: caster.id,
     held: input.activeEffectsByActorId.get(caster.id) ?? [],
     makesAttackRoll: false,
-    castsSpell: preparedCastsSpell(lead)
+    castsSpell: preparedCastsSpell(lead),
+    againstEnemy: actsAgainstEnemy({
+      actorId: caster.id,
+      targetActorIds: kept.map(({ actor }) => actor.id),
+      dispositions
+    })
   })
+  // Damage an outcome deals ends the effects its target holds that end on damage; a creature named
+  // again keeps what an earlier entry ended ended.
+  const damageEndedEffects = new Map<string, ActiveRuleEffectRecord>()
   const entries = encounterChosenActorEntries(
     areaOccurrenceId,
     kept.map(({ actor }) => actor.id)
@@ -1666,6 +1679,17 @@ export async function completeAreaCommit(args: {
       actor.id !== caster.id &&
       failedReactorSlots.has(actor.id) &&
       kept.findIndex((entry) => entry.actor.id === actor.id) === index
+    const applications = [...complete.applications, ...effects.relationshipConditionApplications]
+    const damageEnded = damageTakenEndedEffects({
+      holderActorId: actor.id,
+      held: (input.activeEffectsByActorId.get(actor.id) ?? []).filter(
+        ({ id }) => !damageEndedEffects.has(id) && !consumedGrants.some((ended) => ended.id === id)
+      ),
+      applications,
+      damagerActorId: caster.id,
+      dispositions
+    })
+    for (const ended of damageEnded.endedEffects) damageEndedEffects.set(ended.id, ended)
     const enterForm =
       recurringEffect && formCreature ? actorFormEntry(recurringEffect, formCreature) : undefined
     const mechanics = planNativeEncounterActionMechanics(
@@ -1677,7 +1701,8 @@ export async function completeAreaCommit(args: {
         sourceCommandId: command.commandId,
         commandId,
         occurredAt,
-        applications: [...complete.applications, ...effects.relationshipConditionApplications],
+        applications,
+        damageReleases: damageEnded.releases,
         sourceSpend: carriesSpend ? 'WITH_OUTCOME' : 'NONE',
         forceTargetVersionAdvance:
           prepared.target.kind === 'CHARACTER' && (created.length > 0 || carriesFailedCounterSpend),
@@ -1965,7 +1990,7 @@ export async function completeAreaCommit(args: {
     itemConsumption: resourceState?.itemConsumption ?? null,
     spellConsumption: resourceState?.spellConsumption ?? null,
     failedCounters,
-    consumedGrants,
+    consumedGrants: [...consumedGrants, ...damageEndedEffects.values()],
     label: sourceLabel,
     ruleOverrides,
     concentration,

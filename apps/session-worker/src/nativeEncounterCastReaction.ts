@@ -34,7 +34,10 @@ import {
   buildEncounterCounteredCastStoredExecution,
   buildEncounterFailedCounterReceipt
 } from '@artificer-toolkit/rules-runtime/encounterActionReceipt'
-import { actionEndedEffects } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
+import {
+  actionEndedEffects,
+  actsAgainstEnemy
+} from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import { overridesActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionRuleWarnings'
 import { encounterActionSourceLabel } from '@artificer-toolkit/rules-runtime/encounterActionSources'
@@ -567,18 +570,30 @@ export function planNativeCounteredCast(input: {
 }) {
   const { state, prepared, countered, actionEconomy } = input
   const { found } = countered
-  // A countered cast makes no attack roll, but it is still a cast.
+  const dispositions = new Map(input.actors.map(({ id, disposition }) => [id, disposition]))
+  // A countered cast makes no attack roll, but it is still a cast: aimed at the cast's target, and the
+  // Counterspell at the caster it counters.
   const { consumedGrants, sourceReleases } = actionEndedEffects({
     holderActorId: prepared.actor.id,
     held: input.casterEffects,
     makesAttackRoll: false,
-    castsSpell: true
+    castsSpell: true,
+    againstEnemy: actsAgainstEnemy({
+      actorId: prepared.actor.id,
+      targetActorIds: [prepared.target.id],
+      dispositions
+    })
   })
   const reactorEnded = actionEndedEffects({
     holderActorId: found.prepared.actor.id,
     held: input.reactorEffects,
     makesAttackRoll: false,
-    castsSpell: true
+    castsSpell: true,
+    againstEnemy: actsAgainstEnemy({
+      actorId: found.prepared.actor.id,
+      targetActorIds: [prepared.actor.id],
+      dispositions
+    })
   })
   const spendOf = (
     spending: Prepared,
