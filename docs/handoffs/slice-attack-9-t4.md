@@ -1,6 +1,6 @@
 # Workbook: ATTACK-9.T4 Divine Smite and Improved Divine Smite (AC ATTACK-9.4)
 
-**Status:** D123 ruled Option A on 2026-10-15; I1-I4 built, waiting on CI (below). Branch `claude/stoic-hypatia-f53439`, CI branch `ci/attack-9-t4`.
+**Status:** DONE 2026-10-16. Merged with merge batch k at `1aed8c7ef`; tip `b7ed9081e` is green on Tests 38862637381 and Live backend 38862637798. Branch `claude/stoic-hypatia-f53439`, CI branch `ci/attack-9-t4`. The sections below are the historical design record; the creature-type check is now one of the attack circumstances (`Dnd5eAttackCircumstances.targetCreatureTypeId`) beside roll mode and enemy proximity.
 **Base:** phase branch `codex/phase-08-2-convex-cutover`, T2a (`6fb948a36`, riders) merged in.
 
 ## Brief
