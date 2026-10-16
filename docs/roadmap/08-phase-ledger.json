@@ -7096,7 +7096,7 @@
                 "rr": 3,
                 "size": 2,
                 "after": [
-                  "ATTACK-9.T2"
+                  "ATTACK-9.T2d"
                 ]
               }
             },
@@ -7113,7 +7113,7 @@
                 "rr": 3,
                 "size": 3,
                 "after": [
-                  "ATTACK-9.T2"
+                  "ATTACK-9.T2a"
                 ]
               }
             },
@@ -7148,7 +7148,7 @@
                 "size": 1,
                 "after": [
                   "ATTACK-9.T1",
-                  "ATTACK-9.T2"
+                  "ATTACK-9.T2d"
                 ]
               }
             },
