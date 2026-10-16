@@ -580,7 +580,13 @@ describe('user-authored Absorb Elements reaction authoring parity (ADR 0038)', (
 describe('user-authored Counterspell reaction authoring parity (ADR 0038)', () => {
   it('authors the reaction shapes this parity gate is meant to prove', () => {
     const authored = JSON.stringify(counterspell.effects)
-    for (const shape of ['SPELL_CAST', 'CANCEL_TRIGGERING_EVENT', 'REACTION']) {
+    for (const shape of [
+      'SPELL_CAST',
+      'higherLevelCheck',
+      'SPELLCASTING',
+      'CANCEL_TRIGGERING_EVENT',
+      'REACTION'
+    ]) {
       expect(authored).toContain(shape)
     }
   })

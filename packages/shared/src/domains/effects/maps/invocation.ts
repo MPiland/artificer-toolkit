@@ -3,10 +3,11 @@ import type {
   EffectInvocationKind,
   EffectInvocationAuthored,
   OptionalOnHitAuthored,
+  ReactionHigherLevelCheckAuthored,
   ReactionTriggerBindingAuthored,
   ResourceUseAuthored
 } from '#authored'
-import { ACTIVATION_OPTIONS, TRIGGER_OPTIONS } from '#core'
+import { ABILITY_MODIFIER_REFERENCE_OPTIONS, ACTIVATION_OPTIONS, TRIGGER_OPTIONS } from '#core'
 import { buildNodeMap, type NodeMap } from '#utils'
 import { RANGE_NODE_MAP, SAVING_THROW_NODE_MAP, SHAPE_NODE_MAP } from '../../shared/maps/index.js'
 import { CHECK_NODE_MAP } from './check.js'
@@ -95,16 +96,45 @@ const REACTION_TRIGGER_KIND_OPTIONS: {
   { code: 'DAMAGE_TAKEN', label: 'You take damage' }
 ]
 
+const higherLevelCheck = buildNodeMap<ReactionHigherLevelCheckAuthored>()
+
+const HIGHER_LEVEL_CHECK_NODE_MAP = higherLevelCheck.define(
+  'higherLevelCheck',
+  ({ map, nodes }) => {
+    const { selectSingle, number } = nodes
+
+    map
+      .set(
+        'ability',
+        selectSingle(
+          ['ability'],
+          'Check ability',
+          { kind: 'INLINE_OPTIONS', options: ABILITY_MODIFIER_REFERENCE_OPTIONS },
+          { order: 1, requiredIf: true }
+        )
+      )
+      .set(
+        'baseDc',
+        number(['baseDc'], 'Base DC (plus the spell level)', {
+          order: 2,
+          requiredIf: true,
+          constraints: { minimum: 0 }
+        })
+      )
+  }
+)
+
 const reactionTrigger = buildNodeMap<ReactionTriggerBindingAuthored>()
 
 const REACTION_TRIGGER_NODE_MAP = reactionTrigger.define(
   'reactionTrigger',
   ({ map, nodes, cond, data }) => {
-    const { selectSingle, selectMulti, text } = nodes
+    const { selectSingle, selectMulti, text, groupObject } = nodes
     const { table } = data
     const local = cond.local()
     const isMovement = local.field(['kind']).eq('MOVEMENT')
     const isDamageTaken = local.field(['kind']).eq('DAMAGE_TAKEN')
+    const isSpellCast = local.field(['kind']).eq('SPELL_CAST')
 
     map
       .set(
@@ -166,6 +196,15 @@ const REACTION_TRIGGER_NODE_MAP = reactionTrigger.define(
             relationship: table('damage_types', { selectColumns: ['id', 'label', 'description'] })
           },
           { order: 5, requiredIf: isDamageTaken, showIf: isDamageTaken }
+        )
+      )
+      .set(
+        'higherLevelCheck',
+        groupObject(
+          ['higherLevelCheck'],
+          'Check for a higher-level spell',
+          () => HIGHER_LEVEL_CHECK_NODE_MAP,
+          { presentation: 'inline', order: 6, showIf: isSpellCast }
         )
       )
   }

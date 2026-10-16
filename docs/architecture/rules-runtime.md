@@ -499,12 +499,23 @@ that stores nothing; `executionCancelsTriggeringEvent` reads it from the committ
 
 Before a Character's single-target spell cast runs its graph, the Worker (`nativeEncounterCastReaction.ts`) asks
 `discoverCastReactionActions` which other Characters hold a reaction for it, keeps those whose own invocation range
-reaches the caster on the Scene and whose slot level is at least the cast's (Counterspell's rule until T3c), and
+reaches the caster on the Scene and that the reactor can afford, and
 holds the cast in a `castReaction` pending offer (`REACTION_CHOICE` to the reactor). Declining records the reactor
 and the cast proceeds; using the reaction commits a countered cast (`persistEncounterCounteredCastCommit`): the
 caster's slot and action and the reactor's slot and reaction are spent, nothing else is applied, and no
 Concentration starts. Undo restores both creatures. Creature-capability, ACTORS-target and area casts, and casts
-made without the Scene offer no reaction. The chain is T3d; the higher-level ability check is T3c.
+made without the Scene offer no reaction. The chain is T3d.
+
+**Higher-level check (current, REACTION-4.T3c; D127).** `reactionTrigger.higherLevelCheck` (`{ ability, baseDc }`)
+makes a reaction cast below the triggering cast's level owe an ability check at DC `baseDc` + the cast's level
+(`castReactionCheckRequirement`). The offer carries `check` (the sealed choice, trigger level, check definition, DC
+and the reactor's d20 context) while the cast waits on the reactor's roll; the roll settles through the held-die rules
+(`ENTER_DICE`/`SYSTEM_ROLL`, or the app roll for an auto-rolling player). A pass is a countered cast whose
+`counter.check` seals the d20. A fail is a _failed counter_ (`failedCounters` on the pending context): the reactor
+joins the declined set and is not offered again, and the cast's terminal commit (normal or countered) spends every
+failed reactor's slot and reaction atomically with the cast (`failedCounterSpend.ts`), so one undo reverses them all.
+Spend receipts are planned at the terminal against the reactor as it stands, not when the check fails. A reactor that
+is the cast's target spends through the target's own mechanics call.
 
 #### `DAMAGE_TAKEN` (current, REACTION-4.T2)
 

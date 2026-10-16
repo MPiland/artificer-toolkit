@@ -185,12 +185,47 @@ describe('room refusals of the wrong target for a radius centered on the caster'
     refused((await room.startCasterCenteredAreaAction()).answer)
     expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
   })
+})
 
-  it('refuses whole an area whose failed save leaves a condition, spending and changing nothing', async () => {
+describe('room radius centered on the caster that leaves a condition (SPELLS-19.1)', () => {
+  it('leaves its effect on the Wolf that fails and takes it back with the GM undo', async () => {
     const room = await centeredRoom(frightenOnFailedSave(casterCenteredAreaWolf(TEN_FOOT_SPHERE)))
-    const before = await readRoomHistory(room.room.base.stub)
-    refused((await room.startCasterCenteredAreaAction()).answer)
-    expect(await readRoomHistory(room.room.base.stub)).toEqual(before)
-    expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
+    const stub = room.room.base.stub
+    const before = await readRoomHistory(stub)
+    const started = await room.startCasterCenteredAreaAction()
+    expect(started.answer.type, JSON.stringify(started.answer)).toBe('COMMAND_COMMITTED')
+    // The first Wolf fails its save, the second passes.
+    for (const [actorId, face] of [
+      [FIRST_ID, 1],
+      [SECOND_ID, 20]
+    ] as const) {
+      const decision = await room.pendingDecision()
+      if (decision.pending.kind !== 'AREA_SAVES') throw new Error('Expected the area saves.')
+      const save = decision.pending.saves.find((entry) => entry.actorId === actorId)
+      if (!save) throw new Error('The creature has no pending save.')
+      const answered = await room.send(
+        room.resolveCommand(decision, {
+          kind: 'ENTER_DICE',
+          requestId: save.request.requestId,
+          rawFaces: [face],
+          rollMode: save.request.rollMode
+        })
+      )
+      expect(answered.type, JSON.stringify(answered)).toBe('COMMAND_COMMITTED')
+    }
+    expect(
+      (await readRoomHistory(stub)).activeEffects.map((effect) => effect.targetActorId)
+    ).toEqual([FIRST_ID])
+
+    const undone = await room.send({
+      type: 'REVERT_LAST_ACTION',
+      encounterId: room.room.encounterId,
+      commandId: crypto.randomUUID(),
+      expectedVersion: await room.version()
+    })
+    expect(undone.type, JSON.stringify(undone)).toBe('COMMAND_COMMITTED')
+    const reverted = await readRoomHistory(stub)
+    expect(vitalsOf(reverted)).toEqual(vitalsOf(before))
+    expect(reverted.activeEffects).toEqual([])
   })
 })

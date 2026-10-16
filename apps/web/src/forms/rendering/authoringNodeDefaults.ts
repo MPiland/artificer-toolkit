@@ -531,6 +531,8 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
       return createRange('DISTANCE')
     case 'reactionTrigger':
       return { kind: 'ATTACKED_SELF' }
+    case 'higherLevelCheck':
+      return { ability: 'SPELLCASTING', baseDc: 10 }
     case 'optionalOnHit':
       return { kind: 'SPELL_SLOT' }
     case 'resourceUse':

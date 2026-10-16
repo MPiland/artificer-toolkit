@@ -2,9 +2,9 @@
 
 - **Status:** decision (approved 2026-09-24; implementation in progress on Phase 8.2)
 - **Date:** 2026-09-24
-- **Revised:** 2026-09-29
-- **Scope:** who may act for an Encounter actor, Encounter automation modes, rule enforcement, roll prompts, roll visibility, door and movement policy for players, and the Encounter's view of Character state
-- **Update when:** actor control, automation modes, enforcement, roll-prompt behavior, roll visibility or the Character/Encounter state boundary changes
+- **Revised:** 2026-09-29; amended 2026-10-16 (targeting creatures a player can't see, D131)
+- **Scope:** who may act for an Encounter actor, Encounter automation modes, rule enforcement, roll prompts, roll visibility, targeting what a player can't see, door and movement policy for players, and the Encounter's view of Character state
+- **Update when:** actor control, automation modes, enforcement, roll-prompt behavior, roll visibility, player targeting of unseen creatures or the Character/Encounter state boundary changes
 - **Supersedes:** "Progression remains GM-driven" and "`RESOLVE_ACTION` accepts a GM-selected actor" in the historical `docs/roadmap/07-encounters.md`; the three-mode (`AUTOMATIC | ASSISTED | MANUAL`) Encounter automation model; GM-only door toggling in [live-session coordination](../architecture/live-sessions.md). Other decisions in earlier ADRs remain in force.
 
 ## Context
@@ -96,6 +96,15 @@ Foundry is the baseline. The goal is a smoother experience, with no module syste
    - Fog of war is opt-in per Scene. With fog off, players see every non-hidden token, wall, door and
      light, as in Foundry without token vision. With fog on, the existing shared-party or per-player
      exploration model applies.
+   - Targeting creatures a player can't see (amended 2026-10-16 by D131):
+     - Players target only tokens or the Encounter target list. There is no attack on a map square
+       and no guessing where an unseen creature is.
+     - A creature a player can't see is neither drawn nor listed for that player unless the GM
+       reveals it, by name or as an unnamed unseen creature.
+     - While targeting, revealed creatures the player can't see lead the target list, marked Hidden
+       or Invisible with an unknown distance. Visible creatures follow, nearest first.
+     - The player's roll prompt shows only what their Character believes about sight (D100). The GM
+       sees the true reason.
 
 ## Consequences
 

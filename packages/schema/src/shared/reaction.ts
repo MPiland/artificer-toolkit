@@ -3,6 +3,7 @@ import { z, lazySchema } from '../zod.js'
 import { RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules/contracts'
 
 import { combatPerceptionRequirementDtoSchema } from './combatPerception.js'
+import { abilityModifierReferenceSchema } from './enums.js'
 import { postgresUuidSchema } from './postgresUuid.js'
 import { spatialPointDtoSchema } from './spatialFacts.js'
 import { AUTHORED_LIMITS, MAX_ENCOUNTER_ACTORS } from './authoredLimits.js'
@@ -56,7 +57,15 @@ export const reactionTriggerBindingDtoSchema = lazySchema(() =>
   z.discriminatedUnion('kind', [
     reactionMovementTriggerBindingDtoSchema,
     z.strictObject({ kind: z.literal('ATTACKED_SELF') }),
-    z.strictObject({ kind: z.literal('SPELL_CAST') }),
+    z.strictObject({
+      kind: z.literal('SPELL_CAST'),
+      higherLevelCheck: z.optional(
+        z.strictObject({
+          ability: abilityModifierReferenceSchema,
+          baseDc: z.number().check(z.int()).check(z.nonnegative())
+        })
+      )
+    }),
     z.strictObject({
       kind: z.literal('DAMAGE_TAKEN'),
       damageTypeIds: z
