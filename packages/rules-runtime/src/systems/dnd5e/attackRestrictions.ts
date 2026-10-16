@@ -56,7 +56,9 @@ function isCircumstanceCondition(
 /** The context without its circumstance checks; a target context left with none no longer constrains the weapon. */
 function withoutCircumstanceConditions(context: Context): Context | null {
   const { conditions, ...rest } = context
-  const kept = (conditions ?? []).filter((condition) => !isCircumstanceCondition(context, condition))
+  const kept = (conditions ?? []).filter(
+    (condition) => !isCircumstanceCondition(context, condition)
+  )
   if (kept.length === 0 && context.subject === 'CREATURE') return null
   return (kept.length > 0 ? { ...rest, conditions: kept } : rest) as Context
 }
@@ -107,7 +109,11 @@ function reduceRestrictions(
       conditions.some((condition) => !WEAPON_CHECK_KINDS.has(condition.kind))
     )
       continue
-    if (conditions.length > 0 && !dnd5eItemRequirementsMet(weaponChecks, item, null)) continue
+    if (
+      conditions.length > 0 &&
+      !dnd5eItemRequirementsMet(weaponChecks, { item, attackAbility: null, activation: null })
+    )
+      continue
     const contexts = circumstanceContexts(group)
     if (contexts.length === 0) return undefined
     groups.push({ ...group, contexts })

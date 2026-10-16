@@ -39,6 +39,7 @@ import {
   attacksPerAttackActionGrant,
   closedRuleEffect,
   duelingRestriction,
+  twoWeaponFightingGrants,
   equippedCategoryRestriction
 } from './mechanics.js'
 function skillId(code: string): string {
@@ -574,23 +575,13 @@ export const fighter: ClassAuthored = {
           label: 'Two-Weapon Fighting',
           description:
             'When you engage in two-weapon fighting, you can add your ability modifier to the damage of the second attack.',
-          order: 5,
-          effects: [
-            closedRuleEffect({
-              id: classRowId(F, 0x60, 0x86),
-              ruleKind: CLOSED_RULE_KIND.CLASS_FIGHTER_FIGHTING_STYLE_TWO_WEAPON_FIGHTING,
-              pathCode: PATH_CODE.ON_HIT,
-              invocation: {
-                kind: 'PASSIVE',
-                triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
-                range: { id: classRowId(F, 0x69, 0x86), rangeKind: RANGE_KIND.SPECIAL },
-                targeting: {
-                  selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-                  dispositionKind: 'HOSTILE'
-                }
-              }
-            })
-          ]
+          grants: {
+            modifiers: twoWeaponFightingGrants(
+              (entry) => classRowId(F, 4, 13 + entry),
+              (entry) => classRowId(F, 0x7a, 0x40 + entry)
+            )
+          },
+          order: 5
         }
       ]
     },

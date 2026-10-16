@@ -23,13 +23,59 @@ import { createEncounterMovementReactionPerception } from '@artificer-toolkit/ru
 import { discoverEncounterMovementReactionChoices } from '@artificer-toolkit/rules-runtime/encounterMovementReactionDiscovery'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import { sceneTokenMovementFailure, type CampaignSceneState } from '@artificer-toolkit/shared/vtt'
+import {
+  sceneTokenMovementFailure,
+  selectTeleportAllowance,
+  type CampaignSceneState,
+  type ScenePoint
+} from '@artificer-toolkit/shared/vtt'
+import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
 import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
 import type { LiveCaptureReads } from './nativeEncounterReads.js'
 import {
   prepareNativeLiveMovementTarget,
   readNativeLiveActorsAndEffects
 } from './nativeEncounterTargets.js'
+
+const TELEPORT_REFUSALS = {
+  OCCUPIED: 'That space is occupied.',
+  OUT_OF_RANGE: 'That is beyond the range of your teleport.',
+  UNSEEN: 'You can teleport only to a place you can see.'
+} as const
+
+/**
+ * The cast whose allowance a teleport spends. A player's teleport needs one that admits the
+ * destination, or is refused with the reason; the GM's is ungated (ADR 0034) and spends any unspent
+ * allowance the actor holds, so a GM-driven cast is one-shot too.
+ */
+async function teleportAllowanceToSpend(input: {
+  capture: (request: LiveSessionEncounterRulesRequest) => Promise<LiveSessionEncounterRulesResponse>
+  scene: CampaignSceneState
+  token: CampaignSceneState['tokens'][number]
+  actorId: string
+  viewerUserId: string
+  destination: ScenePoint
+  gated: boolean
+}) {
+  const captured = await input.capture({ kind: 'TELEPORT_ALLOWANCES', actorId: input.actorId })
+  if (captured.kind !== 'TELEPORT_ALLOWANCES')
+    throw new Error('Teleport allowances are unavailable.')
+  if (!input.gated)
+    return (
+      captured.allowances.find(({ consumedByCommandId }) => consumedByCommandId === null)
+        ?.castCommandId ?? null
+    )
+  const selection = selectTeleportAllowance({
+    scene: input.scene,
+    moverTokenId: input.token.id,
+    viewerUserId: input.viewerUserId,
+    destination: input.destination,
+    allowances: captured.allowances
+  })
+  if (selection.allowed) return selection.castCommandId
+  if (selection.reason === 'NO_ALLOWANCE') rejectDomain('TELEPORT_UNAVAILABLE')
+  return rejectDomain('MOVEMENT_BLOCKED', TELEPORT_REFUSALS[selection.reason])
+}
 
 /**
  * The room supplies its complete, flushed Scene; raw captures stay within the trusted DO.
@@ -124,9 +170,27 @@ export async function readNativeLiveMovementInputs(input: {
   if (!save.movementResolution) {
     if (checksumCanonicalJson(command.path[0]) !== checksumCanonicalJson(token.position))
       throw new Error('Movement path does not begin at the current token position.')
-    const failure = sceneTokenMovementFailure(scene, token.id, command.path.at(-1)!, command.path)
+    const failure = sceneTokenMovementFailure(
+      scene,
+      token.id,
+      command.path.at(-1)!,
+      command.path,
+      command.movementKind
+    )
     if (failure) throw new Error(failure)
   }
+  const teleportCastCommandId =
+    !save.movementResolution && command.movementKind === 'TELEPORT'
+      ? await teleportAllowanceToSpend({
+          capture,
+          scene,
+          token,
+          actorId: actorIdByTokenId.get(token.id)!,
+          viewerUserId: scope.expectedUserId,
+          destination: command.path.at(-1)!,
+          gated: scope.expectedUserId !== movement.campaignOwnerUserId
+        })
+      : null
   const response = save.movementResolution
     ? (() => {
         const retained = save.movementResolution
@@ -321,6 +385,7 @@ export async function readNativeLiveMovementInputs(input: {
   return {
     save,
     response,
+    teleportCastCommandId,
     header,
     autoRollByActorId: movement.autoRollByActorId,
     state,
