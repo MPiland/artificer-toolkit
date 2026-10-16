@@ -49,7 +49,10 @@ async function reactionAttackD20(room: Awaited<ReturnType<typeof reactionRoom>>)
   const receipt = (await room.receipts()).find((entry) => entry.commandId === used.commandId)
   if (!receipt) throw new Error('The reaction left no receipt.')
   const result = storedRuleExecutionResultDtoSchema.parse(receipt.result)
-  if (result.status !== 'MOVEMENT_COMPLETE' && result.status !== 'BATCH_COMPLETE')
+  if (
+    result.status !== 'MOVEMENT_COMPLETE' &&
+    !(result.status === 'BATCH_COMPLETE' && result.batchKind === 'ENCOUNTER_SPATIAL_MOVEMENT')
+  )
     throw new Error(`Expected a movement result, got ${result.status}.`)
   const { application } = result.reactionExecutions[0]!
   if (application.kind !== 'ENCOUNTER_ACTOR_MECHANICS_BATCH' || !application.d20)
