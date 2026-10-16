@@ -7,10 +7,17 @@ import {
   system
 } from '../testing/characterContextFixtures.js'
 
+function srdSystemV4() {
+  if (!('schemaVersion' in system) || system.schemaVersion !== 4) {
+    throw new Error('Expected the SRD System at schema v4.')
+  }
+  return system
+}
+
 describe('Sheet skill governing ability', () => {
   it("reads a System skill's governing ability from the System, not a built-in skill table", async () => {
-    if (system.schemaVersion !== 4) throw new Error('Expected the SRD System at schema v4.')
-    const wisdom = system.abilities.find((ability) => ability.code === 'WISDOM')
+    const v4 = srdSystemV4()
+    const wisdom = v4.abilities.find((ability) => ability.code === 'WISDOM')
     if (!wisdom) throw new Error('Expected the SRD Wisdom ability.')
     const tumbling = {
       id: crypto.randomUUID(),
@@ -24,7 +31,7 @@ describe('Sheet skill governing ability', () => {
     const { sheet } = await prepareFixtureSheet({
       ...fixture,
       character,
-      gameSystem: { ...system, skills: [...system.skills, tumbling] }
+      gameSystem: { ...v4, skills: [...v4.skills, tumbling] }
     })
 
     expect(sheet.overview.skills.find((skill) => skill.skillId === tumbling.id)).toMatchObject({
@@ -35,7 +42,7 @@ describe('Sheet skill governing ability', () => {
   })
 
   it('rejects a skill whose governing ability the System does not define, never defaulting it', async () => {
-    if (system.schemaVersion !== 4) throw new Error('Expected the SRD System at schema v4.')
+    const v4 = srdSystemV4()
     const unmapped = {
       id: crypto.randomUUID(),
       code: 'TUMBLING',
@@ -49,14 +56,14 @@ describe('Sheet skill governing ability', () => {
       prepareFixtureSheet({
         ...fixture,
         character,
-        gameSystem: { ...system, skills: [...system.skills, unmapped] }
+        gameSystem: { ...v4, skills: [...v4.skills, unmapped] }
       })
     ).rejects.toThrow(`System check definition "${unmapped.id}" has an invalid mapping.`)
   })
 
   it("rejects a skill governed by an ability the Sheet's six abilities do not include", async () => {
-    if (system.schemaVersion !== 4) throw new Error('Expected the SRD System at schema v4.')
-    const [strength] = system.abilities
+    const v4 = srdSystemV4()
+    const [strength] = v4.abilities
     if (!strength) throw new Error('Expected the SRD abilities.')
     const luck = { ...strength, id: crypto.randomUUID(), code: 'LUCK', label: 'Luck' }
     const unknownAbility = {
@@ -73,9 +80,9 @@ describe('Sheet skill governing ability', () => {
         ...fixture,
         character,
         gameSystem: {
-          ...system,
-          abilities: [...system.abilities, luck],
-          skills: [...system.skills, unknownAbility]
+          ...v4,
+          abilities: [...v4.abilities, luck],
+          skills: [...v4.skills, unknownAbility]
         }
       })
     ).rejects.toThrow(`System check definition "${unknownAbility.id}"`)
