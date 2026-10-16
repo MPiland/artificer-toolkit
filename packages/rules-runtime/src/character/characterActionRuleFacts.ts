@@ -332,7 +332,15 @@ function appendActions(params: {
       ...params.equipment,
       grip: 'grip' in authoredEffect ? authoredEffect.grip : null,
       ...('requirements' in authoredEffect && authoredEffect.requirements
-        ? { requirements: authoredEffect.requirements }
+        ? {
+            requirements: {
+              id: authoredEffect.requirements.id,
+              groups: authoredEffect.requirements.groups.map((group) => ({
+                ...group,
+                contexts: [...group.contexts]
+              }))
+            }
+          }
         : {})
     }
     const effect = reduceEffectRestrictions(
