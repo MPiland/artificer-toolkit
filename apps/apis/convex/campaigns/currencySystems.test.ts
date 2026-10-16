@@ -387,7 +387,7 @@ describe('native Campaign currency systems', () => {
     )
     const page = await player.caller.query(list, pageInput(campaign.id))
     expect(page.page[0]).toMatchObject({
-      label: '**** Coins',
+      label: '****ing Coins',
       denominations: [{ label: '**** Coin', abbreviation: 'sc' }]
     })
     expect(await readStored()).toMatchObject({
@@ -534,13 +534,13 @@ describe('native Campaign currency systems', () => {
     const auditPage = decodeCampaignInventoryAuditPage(
       await gm.caller.query(inventoryAudit, { campaignId: campaign.id, limit: 20 })
     )
-    expect(auditPage.events[0]?.payload).toMatchObject({ denominationLabel: '**** Coin' })
+    expect(auditPage.events[0]?.payload).toMatchObject({ denominationLabel: '****ing Coin' })
     const rawAfterFirst = await readStored()
     expect(
       JSON.parse(rawAfterFirst.events.find((event) => event.inventoryAudit)!.payloadJson)
     ).toMatchObject({ denominationLabel: 'Fucking Coin' })
     expect((await gm.caller.query(partyCurrencies, pageInput(campaign.id))).page).toEqual([
-      expect.objectContaining({ kind: 'CAMPAIGN', denominationId: collision, label: '**** Coin' })
+      expect.objectContaining({ kind: 'CAMPAIGN', denominationId: collision, label: '****ing Coin' })
     ])
     await expect(
       gm.caller.mutation(partyMutate, { input: partyAdjust(campaign.id, 1, collision, -9) })

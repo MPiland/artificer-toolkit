@@ -1,7 +1,6 @@
+import { allowedProfanityTerms, anchoredProfanityTerms } from '../moderation/profanityMatcher.js'
 import {
   USERNAME_NOT_ALLOWED_MESSAGE,
-  allowedUsernameTerms,
-  anchoredUsernameTerms,
   usernameModerationCandidates,
   validateUsername
 } from './usernamePolicy.js'
@@ -32,7 +31,7 @@ function findsPaddedWord(text: string, index: ReadonlyMap<string, string[]>): bo
 }
 
 // A plural of a blocked term is blocked too (`bigdicks`).
-const blockedWords = anchoredUsernameTerms.flatMap((term) => [term, `${term}s`])
+const blockedWords = anchoredProfanityTerms.flatMap((term) => [term, `${term}s`])
 const blockedTerms = indexByRuns(blockedWords)
 
 // Built on the first compound check so isolates that only import the auth options do not pay for it.
@@ -41,7 +40,7 @@ let lexicon:
   | undefined
 function getLexicon(): NonNullable<typeof lexicon> {
   if (!lexicon) {
-    const words = new Set([...usernameWordList.split(' '), ...allowedUsernameTerms])
+    const words = new Set([...usernameWordList.split(' '), ...allowedProfanityTerms])
     const blocked = new Set(blockedWords)
     lexicon = {
       words,
