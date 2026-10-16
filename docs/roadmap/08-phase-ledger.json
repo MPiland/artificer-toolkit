@@ -8120,7 +8120,7 @@
         {
           "id": "SPELLS-20",
           "title": "Auras that move with their source",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "journeyTests": [],
           "journeyStatus": "none",
           "origin": [],
@@ -8140,7 +8140,8 @@
             "rr": 3,
             "size": 5,
             "after": ["SPELLS-17", "SPELLS-25"]
-          }
+          },
+          "activeWorkbook": "docs/handoffs/slice-spells-20.md"
         },
         {
           "id": "SPELLS-21",
