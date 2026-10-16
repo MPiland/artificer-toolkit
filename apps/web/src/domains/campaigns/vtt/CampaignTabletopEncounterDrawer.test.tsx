@@ -610,6 +610,82 @@ describe('CampaignTabletopEncounterDrawer', () => {
     })
   })
 
+  describe('target list', () => {
+    const [hero, warden] = tabletopPlayerEncounter.actors as [
+      (typeof tabletopPlayerEncounter.actors)[number],
+      (typeof tabletopPlayerEncounter.actors)[number]
+    ]
+    const entry = (actorId: string, label: string, distance: number) => ({
+      actorId,
+      attack: null,
+      band: 'NORMAL' as const,
+      distance,
+      distanceLabel: `${distance} ft`,
+      label,
+      tokenId: null
+    })
+    // The Warden is nearer than the hero, so targeting lists it first.
+    const entries = [entry(warden.id, 'Vault Warden', 5), entry(hero.id, "Ember's Wake", 15)]
+    const drawer = (
+      targeting: Parameters<typeof CampaignTabletopEncounterDrawer>[0]['targeting']
+    ) => (
+      <CampaignTabletopEncounterDrawer
+        actorIdByTokenId={new Map()}
+        connected
+        currentActorMine={false}
+        encounter={tabletopPlayerEncounter}
+        memberships={createTabletopCampaign('PLAYER').memberships}
+        pending={false}
+        role='PLAYER'
+        scene={tabletopLiveScene}
+        targeting={targeting}
+        onCommand={() => undefined}
+        onEndCharacterConcentration={() => undefined}
+      />
+    )
+    const rowLabels = () =>
+      [...screen.getByLabelText('Encounter turn order').children].map(
+        (row) => within(row as HTMLElement).queryByText(/Vault Warden|Ember's Wake/)?.textContent
+      )
+
+    it('opens by itself as the target list, nearest first, with a real button per creature', async () => {
+      const user = userEvent.setup()
+      const onPick = vi.fn()
+      renderWithAppProviders(
+        drawer({ entries, pickedActorId: hero.id, onCancel: () => undefined, onPick })
+      )
+
+      expect(screen.getByRole('dialog', { name: 'Pick a target' })).toBeInTheDocument()
+      expect(rowLabels()).toEqual(['Vault Warden', "Ember's Wake"])
+      expect(screen.getByText('5 ft · In range')).toBeVisible()
+      expect(screen.getByRole('button', { name: "Target Ember's Wake" })).toHaveAttribute(
+        'aria-pressed',
+        'true'
+      )
+      const wardenButton = screen.getByRole('button', { name: 'Target Vault Warden' })
+      expect(wardenButton).toHaveAttribute('aria-pressed', 'false')
+      await user.click(wardenButton)
+      expect(onPick).toHaveBeenCalledWith(warden.id)
+    })
+
+    it('cancels from the drawer and returns to turn order once targeting ends', async () => {
+      const user = userEvent.setup()
+      const onCancel = vi.fn()
+      const { rerender } = renderWithAppProviders(
+        drawer({ entries, pickedActorId: null, onCancel, onPick: () => undefined })
+      )
+
+      await user.click(screen.getByRole('button', { name: 'Cancel targeting' }))
+      expect(onCancel).toHaveBeenCalledOnce()
+
+      rerender(drawer(null))
+      await vi.waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+      await user.click(screen.getByRole('button', { name: 'Open turn order' }))
+      expect(rowLabels()).toEqual(["Ember's Wake", 'Vault Warden'])
+      expect(screen.queryByRole('button', { name: /^Target / })).not.toBeInTheDocument()
+    })
+  })
+
   describe('concealment observers (D116)', () => {
     const [watcher, hider] = tabletopGmEncounter.actors
     const bystander = {

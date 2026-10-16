@@ -46,14 +46,17 @@ import type { CampaignAuthority, EncounterTurnReadTransaction } from './ports.js
 import type { EncounterDocument } from './store.js'
 
 /** A member's reads of one Run, with the Run and the member's Campaign authority already resolved. */
-type ActionChoiceReadInput<Request> = CampaignAuthority & {
+export type ActionChoiceReadInput<Request> = CampaignAuthority & {
   run: EncounterDocument<'encounterRuns'>
   request: Request
 }
 
-async function readActionChoicesRun(
+/** The Run and acting actor a member may read action choices for; null when the request is stale. */
+export async function readActionChoicesRun(
   tx: EncounterTurnReadTransaction,
-  input: ActionChoiceReadInput<GetEncounterActionChoicesInputDto>
+  input: ActionChoiceReadInput<
+    Pick<GetEncounterActionChoicesInputDto, 'expectedVersion' | 'actorId'>
+  >
 ) {
   const { campaign, membership, request } = input
   const state = readRunState(input.run)

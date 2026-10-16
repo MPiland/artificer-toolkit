@@ -46,8 +46,17 @@ const optionalChoices = makeFunctionReference<
   EncounterOptionalActionChoicesDto
 >('encounters/actionChoices:optional')
 
+const disarmSceneMap = { width: 400, height: 200 }
+const disarmTargetPosition = { x: 150, y: 50 }
+
 export type EncounterDisarmBrowserFixture = {
-  scene: { id: string; name: string }
+  /** The presented Scene: its map size and the defender token's center, in map pixels. */
+  scene: {
+    id: string
+    map: { height: number; width: number }
+    name: string
+    targetPosition: { x: number; y: number }
+  }
   action: EncounterActionChoiceDto
   targetLabel: string
   optionalChoices: EncounterOptionalActionChoicesDto
@@ -243,7 +252,7 @@ export async function verifyEncounterDisarm({
       campaignId,
       name,
       options: {
-        map: { width: 400, height: 200 },
+        map: disarmSceneMap,
         grid: {
           kind: 'SQUARE',
           origin: { x: 0, y: 0 },
@@ -275,7 +284,7 @@ export async function verifyEncounterDisarm({
             hidden: false,
             label: 'Disarm defender',
             locked: false,
-            position: { x: 150, y: 50 },
+            position: disarmTargetPosition,
             rotationDegrees: 0,
             senses: [],
             width: 100,
@@ -335,7 +344,12 @@ export async function verifyEncounterDisarm({
       sourceTokenId,
       targetTokenId
     }
-    scene = { id: preparedScene.liveSceneId, name }
+    scene = {
+      id: preparedScene.liveSceneId,
+      map: disarmSceneMap,
+      name,
+      targetPosition: disarmTargetPosition
+    }
   }
   if (run.currentActorId !== source.id) {
     run = encounterGmProjectionDtoSchema.parse(

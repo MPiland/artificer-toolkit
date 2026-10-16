@@ -15,6 +15,10 @@ import {
   liveSessionPublishResponseSchema
 } from '../api/liveSessionState.js'
 import { domainRejectionErrorDataSchema } from '../api/domainRejections.js'
+import {
+  encounterActionTargetModifiersDtoSchema,
+  getEncounterActionTargetModifiersInputDtoSchema
+} from '../api/encounterActionTargetModifiers.js'
 import { liveSessionEncounterBasicActionCommandSchema } from '../api/liveSessionCommandScopes.js'
 import {
   resolveEncounterActionInputDtoSchema,
@@ -628,6 +632,61 @@ describe('live-session contracts', () => {
         type: 'ENCOUNTER_READ_REJECTED'
       }).type
     ).toBe('ENCOUNTER_READ_REJECTED')
+  })
+
+  it('reads the believed target modifiers on demand, bound to the presented Scene version', () => {
+    const requestId = '00000000-0000-4000-8000-0000000000a2'
+    const input = {
+      actionId: 'attack',
+      actorId: ids.user,
+      encounterId: ids.session,
+      scene: { expectedSceneVersion: 3, sceneId: ids.scene }
+    }
+    const read = { kind: 'ACTION_TARGET_MODIFIERS', input }
+    expect(
+      liveSessionWebSocketClientMessageDtoSchema.parse({ read, requestId, type: 'ENCOUNTER_READ' })
+    ).toEqual({ read, requestId, type: 'ENCOUNTER_READ' })
+    expect(
+      getEncounterActionTargetModifiersInputDtoSchema.safeParse({ ...input, expectedVersion: 2 })
+        .success
+    ).toBe(true)
+    for (const invalid of [
+      { ...input, expectedVersion: 2 },
+      { ...input, scene: { sceneId: ids.scene } },
+      { ...input, actionId: '' }
+    ])
+      expect(
+        liveSessionWebSocketClientMessageDtoSchema.safeParse({
+          read: { kind: 'ACTION_TARGET_MODIFIERS', input: invalid },
+          requestId,
+          type: 'ENCOUNTER_READ'
+        }).success
+      ).toBe(false)
+    const modifiers = {
+      actionId: 'attack',
+      actorId: ids.user,
+      encounterId: ids.session,
+      encounterVersion: 4,
+      targets: [
+        { actorId: ids.user, attack: { reasons: ['Long range'], rollMode: 'DISADVANTAGE' } },
+        { actorId: ids.session, attack: null }
+      ]
+    }
+    expect(
+      liveSessionWebSocketServerMessageDtoSchema.parse({
+        requestId,
+        result: { kind: 'ACTION_TARGET_MODIFIERS', result: modifiers },
+        type: 'ENCOUNTER_READ_RESULT',
+        version: 4
+      }).type
+    ).toBe('ENCOUNTER_READ_RESULT')
+    // The true roll mode is never part of the answer: only the three player-facing modes parse.
+    expect(
+      encounterActionTargetModifiersDtoSchema.safeParse({
+        ...modifiers,
+        targets: [{ actorId: ids.user, attack: { reasons: [], rollMode: 'AUTO_HIT' } }]
+      }).success
+    ).toBe(false)
   })
 
   it('preserves existing authentication and transient server messages', () => {

@@ -2,6 +2,12 @@ import { convexQuery } from '@convex-dev/react-query'
 import type { ConvexReactClient } from 'convex/react'
 import { api } from '@artificer-toolkit/apis/convex/api'
 import {
+  encounterActionTargetModifiersDtoSchema,
+  getEncounterActionTargetModifiersInputDtoSchema,
+  type EncounterActionTargetModifiersDto,
+  type GetEncounterActionTargetModifiersInputDto
+} from '@artificer-toolkit/schema/api/encounterActionTargetModifiers'
+import {
   encounterActionChoicesResponseDtoSchema,
   encounterOptionalActionChoicesDtoSchema,
   getEncounterActionChoicesInputDtoSchema,
@@ -37,6 +43,18 @@ export function getEncounterDecisionSettlement(
     ),
     select: encounterDecisionSettlementDtoSchema.parse
   }
+}
+
+export async function loadCampaignEncounterActionTargetModifiers(
+  client: ConvexReactClient,
+  input: GetEncounterActionTargetModifiersInputDto
+): Promise<EncounterActionTargetModifiersDto> {
+  return encounterActionTargetModifiersDtoSchema.parse(
+    await client.query(
+      api.encounters.actionTargetModifiers.get,
+      getEncounterActionTargetModifiersInputDtoSchema.parse(input)
+    )
+  )
 }
 
 export async function loadCampaignEncounterOptionalActionChoices(
