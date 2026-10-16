@@ -14,7 +14,7 @@ exports[`Encounter store conformance: Convex and the in-memory store > applies a
             "snapshotChecksum": "<sha:50>",
             "sourceFactsChecksum": "<sha:51>",
             "stateChecksum": "<sha:53>",
-            "stateJson": "{"id":"<uuid:2>","encounterId":"<uuid:1>","label":"Wolf","public":true,"controllerUserIds":[],"disposition":"HOSTILE","initiative":null,"manualOrder":null,"healthDisplay":null,"reveal":null,"systemId":"<uuid:20>","stableTieKey":"<uuid:46>","resources":{},"gmNotes":null,"sideId":"<uuid:3>","createdAt":"<time:54>","updatedAt":"<time:54>","snapshotChecksum":"<sha:50>","kind":"CREATURE","sourceId":"<uuid:4>","sourceRevision":1,"currentHitPoints":9,"maxHitPoints":11,"tempHitPoints":0,"conditions":[],"defeated":false,"sourceFactsChecksum":"<sha:51>","featureResources":[]}",
+            "stateJson": "{"id":"<uuid:2>","encounterId":"<uuid:1>","label":"Wolf","public":true,"controllerUserIds":[],"disposition":"HOSTILE","initiative":null,"manualOrder":null,"absence":null,"healthDisplay":null,"reveal":null,"systemId":"<uuid:20>","stableTieKey":"<uuid:46>","resources":{},"gmNotes":null,"sideId":"<uuid:3>","createdAt":"<time:54>","updatedAt":"<time:54>","snapshotChecksum":"<sha:50>","kind":"CREATURE","sourceId":"<uuid:4>","sourceRevision":1,"currentHitPoints":9,"maxHitPoints":11,"tempHitPoints":0,"conditions":[],"defeated":false,"sourceFactsChecksum":"<sha:51>","featureResources":[]}",
           },
           "before": {
             "encounterId": "<uuid:1>",
@@ -22,7 +22,7 @@ exports[`Encounter store conformance: Convex and the in-memory store > applies a
             "snapshotChecksum": "<sha:50>",
             "sourceFactsChecksum": "<sha:51>",
             "stateChecksum": "<sha:52>",
-            "stateJson": "{"id":"<uuid:2>","encounterId":"<uuid:1>","label":"Wolf","public":true,"controllerUserIds":[],"disposition":"HOSTILE","initiative":null,"manualOrder":null,"healthDisplay":null,"reveal":null,"systemId":"<uuid:20>","stableTieKey":"<uuid:46>","resources":{},"gmNotes":null,"sideId":"<uuid:3>","createdAt":"<time:54>","updatedAt":"<time:54>","snapshotChecksum":"<sha:50>","kind":"CREATURE","sourceId":"<uuid:4>","sourceRevision":1,"currentHitPoints":11,"maxHitPoints":11,"tempHitPoints":0,"conditions":[],"defeated":false,"sourceFactsChecksum":"<sha:51>","featureResources":[]}",
+            "stateJson": "{"id":"<uuid:2>","encounterId":"<uuid:1>","label":"Wolf","public":true,"controllerUserIds":[],"disposition":"HOSTILE","initiative":null,"manualOrder":null,"absence":null,"healthDisplay":null,"reveal":null,"systemId":"<uuid:20>","stableTieKey":"<uuid:46>","resources":{},"gmNotes":null,"sideId":"<uuid:3>","createdAt":"<time:54>","updatedAt":"<time:54>","snapshotChecksum":"<sha:50>","kind":"CREATURE","sourceId":"<uuid:4>","sourceRevision":1,"currentHitPoints":11,"maxHitPoints":11,"tempHitPoints":0,"conditions":[],"defeated":false,"sourceFactsChecksum":"<sha:51>","featureResources":[]}",
           },
         },
       ],
@@ -73,6 +73,7 @@ exports[`Encounter store conformance: Convex and the in-memory store > applies a
       "checksum": "<sha:47>",
     },
     "updatedActor": {
+      "absence": null,
       "conditions": [],
       "controllerUserIds": [],
       "createdAt": "<time:54>",
@@ -585,6 +586,7 @@ exports[`Encounter store conformance: Convex and the in-memory store > corrects 
     "projection": {
       "actors": [
         {
+          "absence": null,
           "activeGrants": [],
           "concealment": null,
           "concentration": null,
@@ -638,7 +640,6 @@ exports[`Encounter store conformance: Convex and the in-memory store > corrects 
           "label": "Wolf",
           "manualOrder": null,
           "maxHitPoints": 11,
-          "outOfInitiative": false,
           "public": true,
           "resources": {},
           "reveal": null,
@@ -673,6 +674,7 @@ exports[`Encounter store conformance: Convex and the in-memory store > corrects 
           "tempHitPoints": 0,
         },
         {
+          "absence": null,
           "activeGrants": [],
           "concealment": null,
           "concentration": null,
@@ -692,7 +694,6 @@ exports[`Encounter store conformance: Convex and the in-memory store > corrects 
           "label": "Aria",
           "manualOrder": null,
           "maxHitPoints": 11,
-          "outOfInitiative": false,
           "public": true,
           "resources": {},
           "reveal": null,
@@ -704,6 +705,7 @@ exports[`Encounter store conformance: Convex and the in-memory store > corrects 
           "tempHitPoints": 0,
         },
         {
+          "absence": null,
           "activeGrants": [],
           "concealment": null,
           "concentration": null,
@@ -757,7 +759,6 @@ exports[`Encounter store conformance: Convex and the in-memory store > corrects 
           "label": "Wolf",
           "manualOrder": null,
           "maxHitPoints": 11,
-          "outOfInitiative": false,
           "public": true,
           "resources": {},
           "reveal": null,
@@ -792,6 +793,7 @@ exports[`Encounter store conformance: Convex and the in-memory store > corrects 
           "tempHitPoints": 0,
         },
         {
+          "absence": null,
           "activeGrants": [],
           "concealment": null,
           "concentration": null,
@@ -811,7 +813,6 @@ exports[`Encounter store conformance: Convex and the in-memory store > corrects 
           "label": "Lurker",
           "manualOrder": null,
           "maxHitPoints": 10,
-          "outOfInitiative": false,
           "public": true,
           "resources": {},
           "reveal": null,
@@ -1092,7 +1093,7 @@ exports[`Encounter store conformance: Convex and the in-memory store > removes a
           "snapshotChecksum": "<sha:30>",
           "sourceFactsChecksum": null,
           "stateChecksum": "<sha:31>",
-          "stateJson": "{"id":"<uuid:18>","encounterId":"<uuid:0>","label":"Lurker","public":true,"controllerUserIds":[],"disposition":"HOSTILE","initiative":null,"manualOrder":null,"healthDisplay":null,"reveal":null,"systemId":"<uuid:9>","stableTieKey":"<uuid:21>","resources":{},"gmNotes":null,"sideId":"<uuid:20>","createdAt":"<time:35>","updatedAt":"<time:35>","snapshotChecksum":"<sha:30>","kind":"CUSTOM","sourceId":null,"sourceRevision":null,"currentHitPoints":10,"maxHitPoints":10,"tempHitPoints":0,"conditions":[],"defeated":false,"sourceFactsChecksum":null,"featureResources":[]}",
+          "stateJson": "{"id":"<uuid:18>","encounterId":"<uuid:0>","label":"Lurker","public":true,"controllerUserIds":[],"disposition":"HOSTILE","initiative":null,"manualOrder":null,"absence":null,"healthDisplay":null,"reveal":null,"systemId":"<uuid:9>","stableTieKey":"<uuid:21>","resources":{},"gmNotes":null,"sideId":"<uuid:20>","createdAt":"<time:35>","updatedAt":"<time:35>","snapshotChecksum":"<sha:30>","kind":"CUSTOM","sourceId":null,"sourceRevision":null,"currentHitPoints":10,"maxHitPoints":10,"tempHitPoints":0,"conditions":[],"defeated":false,"sourceFactsChecksum":null,"featureResources":[]}",
         },
       ],
       "inserted": [],
@@ -1166,6 +1167,7 @@ exports[`Encounter store conformance: Convex and the in-memory store > removes a
     "projection": {
       "actors": [
         {
+          "absence": null,
           "activeGrants": [],
           "concealment": null,
           "concentration": null,
@@ -1219,7 +1221,6 @@ exports[`Encounter store conformance: Convex and the in-memory store > removes a
           "label": "Wolf",
           "manualOrder": null,
           "maxHitPoints": 11,
-          "outOfInitiative": false,
           "public": true,
           "resources": {},
           "reveal": null,
@@ -1254,6 +1255,7 @@ exports[`Encounter store conformance: Convex and the in-memory store > removes a
           "tempHitPoints": 0,
         },
         {
+          "absence": null,
           "activeGrants": [],
           "concealment": null,
           "concentration": null,
@@ -1273,7 +1275,6 @@ exports[`Encounter store conformance: Convex and the in-memory store > removes a
           "label": "Aria",
           "manualOrder": null,
           "maxHitPoints": 11,
-          "outOfInitiative": false,
           "public": true,
           "resources": {},
           "reveal": null,
@@ -1285,6 +1286,7 @@ exports[`Encounter store conformance: Convex and the in-memory store > removes a
           "tempHitPoints": 0,
         },
         {
+          "absence": null,
           "activeGrants": [],
           "concealment": null,
           "concentration": null,
@@ -1338,7 +1340,6 @@ exports[`Encounter store conformance: Convex and the in-memory store > removes a
           "label": "Wolf",
           "manualOrder": null,
           "maxHitPoints": 11,
-          "outOfInitiative": false,
           "public": true,
           "resources": {},
           "reveal": null,
@@ -1518,6 +1519,7 @@ exports[`Encounter store conformance: Convex and the in-memory store > voids a p
       "projection": {
         "actors": [
           {
+            "absence": null,
             "activeGrants": [],
             "concealment": null,
             "concentration": null,
@@ -1571,7 +1573,6 @@ exports[`Encounter store conformance: Convex and the in-memory store > voids a p
             "label": "Wolf",
             "manualOrder": null,
             "maxHitPoints": 11,
-            "outOfInitiative": false,
             "public": true,
             "resources": {},
             "reveal": null,
@@ -1606,6 +1607,7 @@ exports[`Encounter store conformance: Convex and the in-memory store > voids a p
             "tempHitPoints": 0,
           },
           {
+            "absence": null,
             "activeGrants": [],
             "concealment": null,
             "concentration": null,
@@ -1625,7 +1627,6 @@ exports[`Encounter store conformance: Convex and the in-memory store > voids a p
             "label": "Aria",
             "manualOrder": null,
             "maxHitPoints": 11,
-            "outOfInitiative": false,
             "public": true,
             "resources": {},
             "reveal": null,
@@ -1637,6 +1638,7 @@ exports[`Encounter store conformance: Convex and the in-memory store > voids a p
             "tempHitPoints": 0,
           },
           {
+            "absence": null,
             "activeGrants": [],
             "concealment": null,
             "concentration": null,
@@ -1690,7 +1692,6 @@ exports[`Encounter store conformance: Convex and the in-memory store > voids a p
             "label": "Wolf",
             "manualOrder": null,
             "maxHitPoints": 11,
-            "outOfInitiative": false,
             "public": true,
             "resources": {},
             "reveal": null,
@@ -1725,6 +1726,7 @@ exports[`Encounter store conformance: Convex and the in-memory store > voids a p
             "tempHitPoints": 0,
           },
           {
+            "absence": null,
             "activeGrants": [],
             "concealment": null,
             "concentration": null,
@@ -1744,7 +1746,6 @@ exports[`Encounter store conformance: Convex and the in-memory store > voids a p
             "label": "Lurker",
             "manualOrder": null,
             "maxHitPoints": 10,
-            "outOfInitiative": false,
             "public": true,
             "resources": {},
             "reveal": null,

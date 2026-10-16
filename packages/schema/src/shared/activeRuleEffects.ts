@@ -271,6 +271,23 @@ const activeRuleEffectLocationConcealmentContributionDtoSchema = lazySchema(() =
 )
 
 /**
+ * The holder belongs to a bond among actors that lasts as long as the effect: each member holds its
+ * own effect that lists every member (itself included). The bond is provenance only; it grants no
+ * mechanic, and ending the effect on a member leaves the others' bonds to their own durations.
+ */
+const activeRuleEffectActorLinkContributionDtoSchema = lazySchema(() =>
+  z.strictObject({
+    kind: z.literal('ACTOR_LINK'),
+    linkOutcomeId: identifierSchema,
+    linkKind: z.enum(['TELEPATHIC']),
+    memberActorIds: z
+      .array(uuidSchema)
+      .check(z.minLength(2))
+      .check(z.maxLength(RULE_GRAPH_LIMITS.NODES))
+  })
+)
+
+/**
  * Version one is retained byte-faithfully for existing rows and receipts.
  * Version two adds a bounded, immutable aggregate-state contribution list.
  */
@@ -290,7 +307,8 @@ export const activeRuleEffectDefinitionDtoSchema = lazySchema(() =>
               activeRuleEffectConditionContributionDtoSchema,
               activeRuleEffectActorRelationshipContributionDtoSchema,
               activeRuleEffectModifierGrantContributionDtoSchema,
-              activeRuleEffectLocationConcealmentContributionDtoSchema
+              activeRuleEffectLocationConcealmentContributionDtoSchema,
+              activeRuleEffectActorLinkContributionDtoSchema
             ])
           )
           .check(z.minLength(1))

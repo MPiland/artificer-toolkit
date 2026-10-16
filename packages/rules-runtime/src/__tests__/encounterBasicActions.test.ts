@@ -23,11 +23,12 @@ import {
   ACTION_EFFECT_ID,
   characterActionDescriptor
 } from '../testing/characterActionDescriptor.js'
+import { withSourceSightSave } from '../encounterActiveGrants.js'
 import { withEncounterHolderDefense } from '../encounterHolderDefense.js'
 import { withEncounterConditionMechanics } from '../encounterConditionMechanics.js'
 import type { MovementTarget } from '../encounterMovementTargets.js'
 import { labelEncounterRollModeReasons } from '../encounterRollModeReasons.js'
-import { dodgeEffect } from './antitoxinEffectFixture.js'
+import { dodgeEffect, sourceSightSaveEffect } from './antitoxinEffectFixture.js'
 import { srdConditionDefinitionSource } from './srdConditionDefinitions.js'
 
 const SYSTEM_ID = '00000000-0000-0000-0000-000000000001'
@@ -63,6 +64,7 @@ function actor(id: string, disposition: 'FRIENDLY' | 'HOSTILE' = 'FRIENDLY') {
     maxHitPoints: 10,
     tempHitPoints: 0,
     defeated: false,
+    absence: null,
     resources: {},
     gmNotes: null,
     sideId: '22222222-2222-4222-8222-222222222222',
@@ -158,6 +160,7 @@ function target(
     conditionImmunityIds: [],
     characterCurrentness: null,
     attackAgainstContributors: [],
+    sourceSightSaves: [],
     conditionDefinitions: [],
     conditionMechanics: []
   }
@@ -284,6 +287,57 @@ describe('basic action mechanics (Q11)', () => {
       expect(defended.attackAgainstContributors).toEqual([])
       expect(defended.targetDerivedFacts).toEqual(suspended.targetDerivedFacts)
     }
+  })
+
+  it('a sight-gated save advantage waits for preparation: the holder lists it, and the rows stay as they were', async () => {
+    const effect = sourceSightSaveEffect({ id: DODGE_EFFECT_ID, holderActorId: fighter.id })
+    const defended = await withEncounterHolderDefense({
+      target: target(fighter, { activeEffects: [effect] }),
+      gameSystemId: SYSTEM_ID,
+      definitions,
+      speedDefinitions: SRD_SPEEDS
+    })
+    expect(defended.targetDerivedFacts).toEqual(target(fighter).targetDerivedFacts)
+    expect(defended.sourceSightSaves).toEqual([
+      {
+        abilityDefinitionId: DEXTERITY_ID,
+        contributor: {
+          sourceId: createCharacterMechanicSourceKey({
+            kind: 'ACTIVE_EFFECT',
+            activeEffectId: DODGE_EFFECT_ID
+          }),
+          grantId: expect.any(String),
+          domainKey: expect.any(String),
+          influence: 'ADVANTAGE'
+        }
+      }
+    ])
+    // Preparation merges the contributors it proves into the matching row alone.
+    const merged = withSourceSightSave(
+      defended.targetDerivedFacts,
+      DEXTERITY_ID,
+      defended.sourceSightSaves.map(({ contributor }) => contributor)
+    )
+    expect(merged.savingThrowDefinitions).toMatchObject([
+      { abilityDefinitionId: DEXTERITY_ID, rollMode: 'ADVANTAGE' },
+      { abilityDefinitionId: WISDOM_ID, rollMode: 'NORMAL', contributors: [] }
+    ])
+    expect(withSourceSightSave(defended.targetDerivedFacts, DEXTERITY_ID, [])).toBe(
+      defended.targetDerivedFacts
+    )
+  })
+
+  it('a sight-gated save advantage lists nothing while its holder is incapacitated', async () => {
+    const defended = await withEncounterHolderDefense({
+      target: target(fighter, {
+        conditions: [INCAPACITATED_ID],
+        activeEffects: [sourceSightSaveEffect({ id: DODGE_EFFECT_ID, holderActorId: fighter.id })]
+      }),
+      gameSystemId: SYSTEM_ID,
+      definitions,
+      speedDefinitions: SRD_SPEEDS
+    })
+    expect(defended.sourceSightSaves).toEqual([])
   })
 
   it('Help targets one other creature at any distance and warns, softly, when it is hostile', () => {

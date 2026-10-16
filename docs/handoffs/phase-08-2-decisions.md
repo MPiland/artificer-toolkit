@@ -551,6 +551,7 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - **Not automated:** "hidden" through the Hide action (a Stealth check, with the hidden state ending on attack) stays unautomated.
   - **Opportunity attacks (current, ATTACK-10.T3a/b):** the movement reaction's perception gate applies condition contributions. The Worker's reaction prepare supplies `loadAttackPerception` with the reactor at its token and the mover at the contact point, so the roll follows the believed/true rule below. The retained `ACTION_EVIDENCE` phase stores `d20Belief` and `heldD20`; replay re-enters the roller's own dice (`modeAdjustment.rolledFaces`, then the held die's added face), never a fabricated system roll. `projectEncounterSpatialOccurrenceSummary` takes `viewer.isOwner`: a non-owner sees the believed mode and the held die's `playerCaption`, the owner the true mode and `gmReason`. Movement reactions post no settled roll card, so there is no `D20_MODE_ADJUSTED` card for them.
   - **Disarm (current, ATTACK-10.T3c):** the room's Disarm passes `loadAttackPerception` to `prepareEncounterActionMechanics`, so the contest's initiator d20 carries the true sight and follows the believed/true rule below. The pending context stores `d20Belief` and `heldD20`; the shared helpers are in `encounterSightGovernedD20.ts`. Only the initiator's attack d20 is sight-governed; the defender's check is not. Disarm posts no roll card, so there is no `D20_MODE_ADJUSTED` card.
+  - **Saves (current, ATTACK-10.T4):** the hidden fact of a save is the saver's sight of the effect's source (the actor for a targeted save, the area's origin for an area save), resolved with the D100 inputs. It matters only to a sight-gated save contributor: a `SAVING_THROW_MODIFIER` ADVANTAGE or DISADVANTAGE grant whose domain sets `requiresHolderSeesSource` (SRD 5.1: Barbarian Danger Sense, authored from core options with a homebrew parity proof). Holder-state conditions (`CAN_ACT`) are deferred from the fold, flagged grants stay out of Character-wide roll evidence, and the encounter reader lists them per target as `sourceSightSaves`. Preparation merges the true contributors into the save row, and `loadAttackPerception` (with `roller: 'TARGET'`) builds the believed and true sight with `subject: 'SAVE'`. The prompt shows the believed mode, the save settles in the true mode with the shared helpers, and `encounterSaveSightCaptions` gives the generic player caption and the specific GM reason. A point area uses what each saver sees of the origin. Deferred: Deafened, nested rider saves and grants scoped to a Condition or Rule (see future-enhancements, Deferred edge cases).
   - **Not wired (current):** Convex action preparation reads.
   - **Believed vs true mode (user ruling 2026-10-09; the interpretation below is Claude's):** a roller is never told sight facts their Character can't know.
     - **Prompt:** the player's roll prompt shows the _believed_ mode. The GM (Campaign owner) sees the true mode.
@@ -791,6 +792,18 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - **Undo:** the RESOLVE_ACTION root receipt requires `endedMaintainedStates`. Undo restores a maintained state (Concentration) an event ended, for any maintained-state termination, by receipt, before the effects. A removed condition comes back through a `restoredConditionIds` inverse fenced by the source stream version.
   - **Authoring fence:** a condition-owning v2 effect cannot list an end event whose consumer does not release the condition yet (`ON_ABILITY_CHECK`, `ON_HIT_POINTS_REGAINED`, `ON_INCAPACITATED`). SPELLS-27.T2b moved the Legendary window, movement opportunity attack and Disarm onto the same release, so only these three events are fenced.
 
+* **D128** (2026-10-16) A teleported actor leaves the Encounter's play (SPELLS-28.T1; plan in [slice-spells-28.md](slice-spells-28.md)). Decided by the main session; amends D82.
+  - **Rule:** a TELEPORT outcome with an off-Scene destination (`LINKED_LOCATION` or `SPECIAL`: Word of Recall, the travel half of Plane Shift) departs each chosen actor. Departure is Encounter state, not a Scene mutation.
+  - **One field:** `absence` (`null | 'GM_REMOVED' | 'DEPARTED'`) on every Run actor kind replaces D82's Character-only `outOfInitiative`. The action commit sets `DEPARTED` in its transaction through a `DEPART` application (compiled from core options; nothing spell-specific). D82's Character path moved onto the same field in the same change.
+  - **Effects:** initiative skips the actor through the existing skip set; the projection hides the actor's bound token (derived in the Tabletop stage, no Scene row write). GM `UPDATE_ACTOR returnToInitiative` clears the field for either value. Undo restores it by the before-state and refuses, naming the actor, when the table already returned it.
+  - **Not D81:** D81 is Campaign departure only. A departed actor's own Run effects (Concentration, timed grants) run their course.
+  - **Not modeled:** an absent token still occupies its cell for server-side movement and targeting, as a defeated token does today. Plane Shift is a single TELEPORT outcome; its "Choose a Destination" step and the unwilling-banish half (melee spell attack plus Charisma save) are GM adjudication, and the `PLANE_SHIFT` closed-rule marker is deleted.
+* **D129** (2026-10-16) A bonding outcome leaves an actor link on each bonded creature (SPELLS-28.T3; plan in [slice-spells-28.md](slice-spells-28.md)). Decided by the main session.
+  - **Rule:** a `TELEPATHIC_LINK` outcome over a list of chosen creatures gives each reached creature one timed active effect carrying an `ACTOR_LINK` contribution: a link kind (`TELEPATHIC`), the outcome id and every bonded creature, itself included. The contribution is generic (a kind, members and a duration), not telepathy-only, and changes no rule: it is provenance, ends at the duration, and is undone with the cast.
+  - **Intelligence:** the outcome's `excludesIntelligenceAtOrBelow` is an overridable `TARGET_INTELLIGENCE_EXCLUDED` warning at cast, read from a Creature's snapshot. A Character's facts carry no Intelligence, so none is raised for one.
+  - **Persistence:** the chosen-creature commit now persists each child's created effect (`targets[].createdEffects`, at most one) through the same path as a single-target cast, so revert deletes the effects with the children. The area open/commit paths still refuse every other lasting outcome.
+  - **Deferred:** the web bond badge (no active-effect client projection exists for any kind) and Character Intelligence; both are in `future-enhancements.md`.
+
 ## Approved implementation decisions
 
 - **D70 (2026-09-29): packed history with indexed receipt headers. Decision maker: Codex.**
@@ -908,13 +921,15 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
     actor in the Run, so the room keeps holding it and its Sheet play stays in the room. Effects the
     Run applied run their course on Encounter time (rounds); a session paused for the night pauses
     them too. The hold is released when the Run completes, as before.
-  - **Mechanism (CURRENT):** a Character Run actor carries `outOfInitiative`. REMOVE_ACTOR on an
-    unfrozen Character of an ACTIVE Run sets it instead of deleting the actor; the initiative
-    participant rows stay (the actor/participant invariant holds) and turn advancement skips the actor
-    through the same skip set as D63 defeat (`skippedEncounterActorIds`). The GM returns it with
-    `UPDATE_ACTOR` `returnToInitiative`, into its old slot. A pending decision refuses the removal.
-    Frozen (departed) Characters and PREPARED Runs still delete the actor. Persisted shape: new required
-    `outOfInitiative` on Character run actors and their projection facts, so dev data needs a reseed.
+  - **Mechanism (CURRENT, amended by D128):** every Run actor carries `absence`
+    (`null | 'GM_REMOVED' | 'DEPARTED'`). REMOVE_ACTOR on an unfrozen Character of an ACTIVE Run sets
+    `GM_REMOVED` instead of deleting the actor; the initiative participant rows stay (the
+    actor/participant invariant holds) and turn advancement skips the actor through the same skip set as
+    D63 defeat (`skippedEncounterActorIds`). The GM returns it with `UPDATE_ACTOR` `returnToInitiative`,
+    into its old slot. A pending decision refuses the removal. Frozen (departed) Characters and PREPARED
+    Runs still delete the actor. Persisted shape: required `absence` on Run actors and their projection
+    facts (it replaced `outOfInitiative`); the `encounters/actorAbsenceMigration` run rewrites stored
+    actors (a set flag was always a GM removal, so it becomes `GM_REMOVED`) and their checksums.
   - **Not D82:** account deletion removes the actor (D74) and leaving the Campaign freezes it; both
     end Campaign-owned state by D81.
   - **Why held:** a released Character could change in Convex while room-owned effects still write

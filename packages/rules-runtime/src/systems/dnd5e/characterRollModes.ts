@@ -14,6 +14,7 @@ import {
   DND5E_CHARACTER_WIDE_TARGET,
   dnd5eAcceptedModifierApplicability,
   dnd5eModifierApplies,
+  dnd5eSaveRequiresSourceSight,
   type Dnd5eModifierTarget
 } from './modifierApplicability.js'
 
@@ -51,6 +52,7 @@ function dnd5eRollContributors(
       const influence = grant.modifierKind
       if (
         (influence !== 'ADVANTAGE' && influence !== 'DISADVANTAGE') ||
+        dnd5eSaveRequiresSourceSight(grant) ||
         !dnd5eModifierApplies(dnd5eAcceptedModifierApplicability(modifier), target)
       )
         return []

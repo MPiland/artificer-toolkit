@@ -67,6 +67,7 @@ const NON_STRUCTURAL_KEYS = new Set([...DISPLAY_COPY_KEYS, 'id'])
 const RAGE_SCENARIO_LABEL = 'class SRD Rage feature'
 const SNEAK_ATTACK_SCENARIO_LABEL = 'class SRD Sneak Attack feature'
 const SMITE_SCENARIO_LABEL = 'class SRD Divine Smite features'
+const DANGER_SENSE_SCENARIO_LABEL = 'class SRD Danger Sense feature'
 const smiteFeatures = paladin.features?.filter(({ label }) =>
   ['Divine Smite', 'Improved Divine Smite'].includes(label)
 )
@@ -111,6 +112,12 @@ const smiteCases = registrationCases.filter(
 const smiteScenario = scenarios.find(({ label }) => label === SMITE_SCENARIO_LABEL)
 if (!smiteScenario) throw new Error('Expected the SRD Divine Smite class scenario.')
 const smiteFormValues = toActualFormValues('class', parseScenarioRecord(smiteScenario))
+const dangerSenseCases = registrationCases.filter(
+  ({ scenarioLabel }) => scenarioLabel === DANGER_SENSE_SCENARIO_LABEL
+)
+const dangerSenseScenario = scenarios.find(({ label }) => label === DANGER_SENSE_SCENARIO_LABEL)
+if (!dangerSenseScenario) throw new Error('Expected the SRD Danger Sense class scenario.')
+const dangerSenseFormValues = toActualFormValues('class', parseScenarioRecord(dangerSenseScenario))
 const holdPersonCases = registrationCases.filter(
   ({ scenarioLabel }) => scenarioLabel === HOLD_PERSON_SCENARIO_LABEL
 )
@@ -235,7 +242,12 @@ describe('SRD Sneak Attack feature effect authoring parity', () => {
 
   it('authors the once-per-turn and gate shapes this parity gate is meant to prove', () => {
     const authored = JSON.stringify(sneakAttackEffects)
-    for (const shape of ['"usage":"ONCE_PER_TURN"', 'ENEMY_NEAR_TARGET', 'ATTACK_ROLL_MODE', 'FINESSE']) {
+    for (const shape of [
+      '"usage":"ONCE_PER_TURN"',
+      'ENEMY_NEAR_TARGET',
+      'ATTACK_ROLL_MODE',
+      'FINESSE'
+    ]) {
       expect(authored).toContain(shape)
     }
   })
@@ -272,6 +284,59 @@ describe('SRD Sneak Attack feature effect authoring parity', () => {
 
     expect(stripKeys(submitted.features?.[0]?.effects, NON_STRUCTURAL_KEYS)).toEqual(
       stripKeys(sneakAttackEffects, NON_STRUCTURAL_KEYS)
+    )
+  })
+})
+
+describe('SRD Danger Sense sight-gated save authoring parity (ATTACK-10.5)', () => {
+  const dangerSense = barbarian.features?.find(({ label }) => label === 'Danger Sense')
+
+  it('authors the sight requirement this parity gate is meant to prove', () => {
+    expect(JSON.stringify(dangerSense?.grants)).toContain('"requiresHolderSeesSource":true')
+  })
+
+  it('offers the sight requirement as a visible field of the save modifier grant', () => {
+    expect(
+      dangerSenseCases.some(({ context }) =>
+        getDirectRenderableFieldNames(context.model).some((name) =>
+          name.endsWith('requiresHolderSeesSource')
+        )
+      )
+    ).toBe(true)
+  })
+
+  it('keeps every Danger Sense value through node-runtime normalization', async () => {
+    const normalized = await normalizeFixtureNodeRuntimeValues({
+      mapId: 'class',
+      values: dangerSenseFormValues
+    })
+
+    expect(normalized.clearedPaths).toEqual([])
+    expect(normalized.values).toEqual(dangerSenseFormValues)
+  })
+
+  for (const [index, { context }] of dangerSenseCases.entries()) {
+    it(`keeps the values of ${context.model.mapId} Danger Sense context ${index} once its field controls mount`, async () => {
+      await renderUntilRegistered(context.model, context.values)
+
+      expect(stripKeys(readOutput('form-values'), DISPLAY_COPY_KEYS)).toEqual(
+        stripKeys(context.values, DISPLAY_COPY_KEYS)
+      )
+    })
+  }
+
+  it('submits the form values of the class as the SRD Danger Sense grant', async () => {
+    const rootContext = dangerSenseCases[0]?.context
+    if (!rootContext) throw new Error('Expected the resolved Danger Sense class root context.')
+    await renderUntilRegistered(rootContext.model, dangerSenseFormValues)
+
+    const session = createScenarioSession('class', parseScenarioRecord(dangerSenseScenario))
+    const submitted = classAuthoringInputDtoSchema.parse(
+      session.normalizeForSubmit(readOutput('form-values'))
+    )
+
+    expect(stripKeys(submitted.features?.[0]?.grants, NON_STRUCTURAL_KEYS)).toEqual(
+      stripKeys(dangerSense?.grants, NON_STRUCTURAL_KEYS)
     )
   })
 })
@@ -599,6 +664,17 @@ function createBranchScenarios(): BranchScenario[] {
         label: 'Sneak Attack Test Class',
         attributes: [],
         features: rogue.features?.filter(({ label }) => label === 'Sneak Attack')
+      }
+    },
+    {
+      domain: 'class',
+      label: DANGER_SENSE_SCENARIO_LABEL,
+      record: {
+        ...wizard,
+        id: 'story-danger-sense-class',
+        label: 'Danger Sense Test Class',
+        attributes: [],
+        features: barbarian.features?.filter(({ label }) => label === 'Danger Sense')
       }
     },
     {

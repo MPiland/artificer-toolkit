@@ -171,6 +171,29 @@ describe('canonical Convex import preparation', () => {
     }
   })
 
+  it('authors Danger Sense as a sight-gated Dexterity save advantage held while the barbarian can act', () => {
+    const dangerSense = srdBaselineContent.subjects.classes
+      .find(({ label }) => label === 'Barbarian')
+      ?.features?.find(({ label }) => label === 'Danger Sense')
+    const [modifier, ...others] = dangerSense?.grants?.modifiers ?? []
+    expect(others).toEqual([])
+    expect(modifier).toMatchObject({
+      valueDomainCode: 'SAVING_THROW_MODIFIER',
+      domain: { ability: ABILITY_CODE.DEXTERITY, requiresHolderSeesSource: true },
+      modifierKind: 'ADVANTAGE',
+      scope: 'GLOBAL'
+    })
+    expect(
+      modifier?.restrictions?.groups.flatMap((group) =>
+        group.contexts.flatMap((context) =>
+          context.conditions.map((condition) =>
+            condition.kind === 'PREDICATE' ? condition.predicateCode : condition.kind
+          )
+        )
+      )
+    ).toEqual(['CAN_ACT'])
+  })
+
   it('preserves every authored root and separate policy definition deterministically', () => {
     const result = prepareSrdImport()
     expect(result.subjects).toHaveLength(Object.values(srdBaselineContent.subjects).flat().length)

@@ -372,12 +372,8 @@ async function recordEncounterToolCommand(
         input.conditions !== undefined)
     )
       throw new Error('Character HP must be changed through its Sheet command.')
-    if (
-      input.type === 'UPDATE_ACTOR' &&
-      input.returnToInitiative &&
-      (actor.kind !== 'CHARACTER' || !actor.outOfInitiative)
-    )
-      throw new Error('Only a Character out of initiative can return to initiative.')
+    if (input.type === 'UPDATE_ACTOR' && input.returnToInitiative && actor.absence === null)
+      throw new Error('Only an absent actor can return to initiative.')
     if (
       input.type === 'UPDATE_ACTOR' &&
       input.endActiveEffectId !== undefined &&
@@ -457,7 +453,7 @@ async function recordEncounterToolCommand(
             ...(input.disposition === undefined ? {} : { disposition: input.disposition }),
             ...(input.healthDisplay === undefined ? {} : { healthDisplay: input.healthDisplay }),
             ...(input.reveal === undefined ? {} : { reveal: input.reveal }),
-            ...(input.returnToInitiative ? { outOfInitiative: false } : {}),
+            ...(input.returnToInitiative ? { absence: null } : {}),
             ...(input.sideId === undefined ? {} : { sideId: input.sideId }),
             updatedAt
           }

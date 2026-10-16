@@ -642,7 +642,7 @@ it('keeps a GM-removed Character in the held Run, out of initiative, and still p
   const removeId = crypto.randomUUID()
   gmCommand({ type: 'REMOVE_ACTOR', expectedVersion: 1, actorId: room.actorId }, removeId)
   await settled(removeId)
-  expect(await actorState()).toMatchObject({ kind: 'CHARACTER', outOfInitiative: true })
+  expect(await actorState()).toMatchObject({ kind: 'CHARACTER', absence: 'GM_REMOVED' })
   // The room still holds the actor, so the player keeps playing the Character's Sheet.
   const [played] = await room.play(
     room.owner,
@@ -658,7 +658,7 @@ it('keeps a GM-removed Character in the held Run, out of initiative, and still p
     returnId
   )
   await settled(returnId)
-  expect(await actorState()).toMatchObject({ outOfInitiative: false })
+  expect(await actorState()).toMatchObject({ absence: null })
 })
 
 it('refuses a Sheet command from a player who does not own the Character', async () => {

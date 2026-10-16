@@ -69,6 +69,7 @@ export function prepareNativeActionEffectsPlan<
   commandId: string
   activeEffectsByActorId: ReadonlyMap<string, readonly ActiveRuleEffectRecord[]>
   concealment?: Parameters<typeof prepareEncounterActionEffectPlans>[0]['concealment']
+  link?: Parameters<typeof prepareEncounterActionEffectPlans>[0]['link']
   /** What triggered a reaction, which its effect may bind. */
   trigger?: { damageTypeIds: readonly string[] }
 }) {
@@ -102,6 +103,7 @@ export function prepareNativeActionEffectsPlan<
     activeEffectsByActorId: input.activeEffectsByActorId,
     activeEffectPlan: plan,
     concealment: input.concealment,
+    link: input.link,
     published: execution.published,
     execution: execution.execution,
     d20: execution.d20,
@@ -130,9 +132,11 @@ export function prepareNativeActionEffectsPlan<
           application.kind === 'DAMAGE' ||
           application.kind === 'TEMPORARY_HIT_POINTS')
     )
-  // A grant or a concealment applies no stored state, so its effect exists exactly when its plan
-  // does (a concealment plan yields none when its check beats no observer).
-  const grant = Boolean(plan?.modifierGrantContribution || plan?.concealmentContribution)
+  // A grant, concealment or link applies no stored state, so its effect exists exactly when its
+  // plan does (a concealment plan yields none when its check beats no observer).
+  const grant = Boolean(
+    plan?.modifierGrantContribution || plan?.concealmentContribution || plan?.actorLinkContribution
+  )
   const recurringEffect =
     relationship || grant || appliedCondition || appliedRecurringOutcome
       ? effects.recurringEffect

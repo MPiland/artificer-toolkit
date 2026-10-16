@@ -40,7 +40,7 @@ function gmActor(id: string, visible: boolean) {
     maxHitPoints: 7,
     tempHitPoints: 0,
     defeated: false,
-    outOfInitiative: false,
+    absence: null,
     resources: {},
     gmNotes: 'GM only',
     statBlock: null,
@@ -290,7 +290,7 @@ describe('player encounter projection', () => {
         concentration: null,
         health: null,
         defeated: false,
-        outOfInitiative: false,
+        absence: null,
         initiative: 12
       })
       expect(JSON.stringify(listed)).not.toContain('Cave troll')

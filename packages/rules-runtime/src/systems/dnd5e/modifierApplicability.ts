@@ -8,6 +8,15 @@ import { characterPolicyRecord } from './characterPolicyValues.js'
 
 type ItemCondition = CharacterGrantFoldRestriction[number]['conditions'][number]
 
+/** The conditions read from the attacking item; any other deferred condition is the encounter's. */
+export const DND5E_ITEM_CONDITION_KINDS: ReadonlySet<ItemCondition['kind']> = new Set([
+  'ITEM_IDENTITY',
+  'ITEM_CATEGORY',
+  'ITEM_PROPERTY',
+  'ITEM_SOLE_WEAPON',
+  'ITEM_ATTACK_ABILITY'
+])
+
 /**
  * The item an attack is made with: its identity then variant ancestry, the grip used, and whether
  * another weapon is equipped alongside it.
@@ -44,7 +53,7 @@ export const DND5E_CHARACTER_WIDE_TARGET: Dnd5eModifierTarget = {
 type Dnd5eModifierApplicability = {
   readonly sourceId: string
   readonly scope: 'GLOBAL' | 'SOURCE'
-  readonly itemRequirements: CharacterGrantFoldRestriction
+  readonly deferredRequirements: CharacterGrantFoldRestriction
   readonly scopeSpellIds: string[]
 }
 
@@ -100,10 +109,28 @@ export function dnd5eItemRequirementsMet(
     (group) =>
       (item !== null || group.conditions.length > 0) &&
       group.conditions.every((condition) => {
+        // A holder-state condition is decided where the holder's state is known, never here.
+        if (!DND5E_ITEM_CONDITION_KINDS.has(condition.kind)) return false
         if (item === null && condition.kind !== 'ITEM_ATTACK_ABILITY') return false
         const matches = itemConditionMatches(condition, item, attackAbility)
         return condition.constraint === 'INCLUDE' ? matches : !matches
       })
+  )
+}
+
+/**
+ * A saving-throw advantage or disadvantage that holds only while the holder sees the effect's
+ * source. The roll's sight, not the Character's rules, decides it, so no Character-wide save
+ * evidence carries it (ATTACK-10.5, D100).
+ */
+export function dnd5eSaveRequiresSourceSight(grant: unknown): boolean {
+  if (typeof grant !== 'object' || grant === null) return false
+  const { valueDomainCode, domain } = grant as { valueDomainCode?: unknown; domain?: unknown }
+  return (
+    valueDomainCode === 'SAVING_THROW_MODIFIER' &&
+    typeof domain === 'object' &&
+    domain !== null &&
+    (domain as { requiresHolderSeesSource?: unknown }).requiresHolderSeesSource === true
   )
 }
 
@@ -118,7 +145,7 @@ export function dnd5eModifierApplies(
 ): boolean {
   return (
     (modifier.scope === 'GLOBAL' || target.sourceIds.includes(modifier.sourceId)) &&
-    dnd5eItemRequirementsMet(modifier.itemRequirements, target.item, target.attackAbility) &&
+    dnd5eItemRequirementsMet(modifier.deferredRequirements, target.item, target.attackAbility) &&
     (modifier.scopeSpellIds.length === 0 ||
       (target.spellId !== null && modifier.scopeSpellIds.includes(target.spellId)))
   )
@@ -130,7 +157,7 @@ export function dnd5eAcceptedModifierApplicability(
   return {
     sourceId: modifier.sourceId,
     scope: dnd5eModifierScope(modifier.grant),
-    itemRequirements: modifier.itemRequirements,
+    deferredRequirements: modifier.deferredRequirements,
     scopeSpellIds: modifier.scopeSpellIds ?? []
   }
 }

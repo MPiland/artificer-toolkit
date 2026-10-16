@@ -1,5 +1,5 @@
 import { makeFunctionReference } from 'convex/server'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import type {
   CampaignDetailDto,
   CreateCampaignInput,
@@ -356,6 +356,10 @@ function assertPopulated(snapshotValue: Awaited<ReturnType<typeof snapshot>>, ca
 }
 
 describe('native Campaign custody deletion', () => {
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
   it.each(['ACTIVE', 'ARCHIVED'] as const)(
     'removes populated party and unavailable Vehicle custody from a %s Campaign while preserving personal and unrelated Campaign state',
     async (status) => {
@@ -536,10 +540,17 @@ describe('native Campaign custody deletion', () => {
     },
     30_000
   )
-  it.each(['ACTIVE', 'ARCHIVED'] as const)(
-    'runs the real public custody producers before deleting a %s Campaign',
-    async (status) => {
+  // The Campaign's snapshot build runs 2 s after the content that marks it. A fake clock decides
+  // whether that is before the deletion or after it, instead of the test's real running time.
+  it.each([
+    { status: 'ACTIVE', buildTiming: 'AFTER_DELETION', suffix: '' },
+    { status: 'ARCHIVED', buildTiming: 'AFTER_DELETION', suffix: '' },
+    { status: 'ACTIVE', buildTiming: 'BEFORE_DELETION', suffix: ' after its snapshot was built' }
+  ] as const)(
+    'runs the real public custody producers before deleting a $status Campaign$suffix',
+    async ({ status, buildTiming }) => {
       const base = await readySheetFixture()
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
       await base.t.mutation(internal.content.import.importSubjects, {
         contentSourceId: SRD_CONTENT_SOURCE.id,
         subjects: [
@@ -597,7 +608,20 @@ describe('native Campaign custody deletion', () => {
           campaignId: target.id,
           expectedVersion: current.version
         })
+      if (buildTiming === 'BEFORE_DELETION')
+        await base.t.finishAllScheduledFunctions(vi.runAllTimers)
+      else {
+        // Work due within the build delay settles; the Campaign's snapshot build stays pending.
+        await vi.advanceTimersByTimeAsync(1_000)
+        await base.t.finishInProgressScheduledFunctions()
+      }
       const before = await snapshot(base.t)
+      const campaignObjects = <Row>(rows: readonly Row[] | undefined) =>
+        rows?.filter((row) => rowString(row, 'scope') !== 'SOURCE')
+      expect(
+        campaignObjects(before.tables.contentSnapshotObjects)?.length,
+        'snapshot objects before deletion'
+      ).toBe(buildTiming === 'BEFORE_DELETION' ? 3 : 0)
       const highBalances = before.tables.campaignPartyCurrencies.filter(
         (row) =>
           rowString(row, 'campaignId') === target.id && rowString(row, 'groupId') === undefined
@@ -630,7 +654,6 @@ describe('native Campaign custody deletion', () => {
       }
       const expectedSnapshot = expectedAfter(before, target, base.other.userId)
       const nativeTimeMs = Date.now()
-      vi.useFakeTimers()
       const clock = vi.spyOn(Date, 'now').mockReturnValue(nativeTimeMs)
       let after: Awaited<ReturnType<typeof snapshot>>
       try {
@@ -652,7 +675,6 @@ describe('native Campaign custody deletion', () => {
         after = await snapshot(base.t)
       } finally {
         clock.mockRestore()
-        vi.useRealTimers()
       }
       const expected = nativeTables(expectedSnapshot.tables)
       reconcileCampaignDeletionPersonalExpected({
@@ -666,14 +688,25 @@ describe('native Campaign custody deletion', () => {
       // Removed shares mark the Campaign's content snapshot; builds have their own tests. The
       // owner's Source builds against the local R2 fixture and uploads objects, so only objects of
       // other scopes are compared.
-      const compared = (name: string, rows: unknown[] | undefined) =>
+      // A build that ran before the deletion leaves its objects behind, superseded at the deletion.
+      const expectedRows = (name: string) =>
         name === 'contentSnapshotObjects'
-          ? rows?.filter((row) => rowString(row, 'scope') !== 'SOURCE')
-          : rows
+          ? campaignObjects(expected[name])?.map((row) =>
+              buildTiming === 'BEFORE_DELETION' ? { ...row, supersededAt: nativeTimeMs } : row
+            )
+          : expected[name]
+      const actualRows = (name: string) =>
+        name === 'contentSnapshotObjects' ? campaignObjects(after.tables[name]) : after.tables[name]
       for (const name of tableNames.filter(
         (name) => name !== 'campaignDeletionJobs' && name !== 'contentSnapshotHeads'
       ))
-        expect(compared(name, after.tables[name]), name).toEqual(compared(name, expected[name]))
+        expect(actualRows(name), name).toEqual(expectedRows(name))
+      expect(
+        after.tables.contentSnapshotHeads?.filter(
+          (row) => rowString(row, 'scope') === 'CAMPAIGN' && rowString(row, 'scopeId') === target.id
+        ),
+        'Campaign snapshot head after deletion'
+      ).toHaveLength(0)
       // Archive always schedules the room close; its run state is the only scheduler change.
       const roomControl = 'liveSessions/control:send'
       const snapshotBuild = 'contentSnapshots/actions:build'

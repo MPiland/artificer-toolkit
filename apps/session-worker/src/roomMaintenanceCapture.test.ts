@@ -63,6 +63,7 @@ it('pages both native dependent owner kinds through exhaustion and rejects curso
       tempHitPoints: 0,
       conditions: [],
       defeated: false,
+      absence: null,
       createdAt: now,
       updatedAt: now
     })

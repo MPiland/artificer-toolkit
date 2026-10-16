@@ -112,6 +112,13 @@ export const characterMechanicsApplicationDtoSchema = lazySchema(() =>
     }),
     z.strictObject({
       ordinal: receiptOrdinalSchema,
+      kind: z.literal('DEPART'),
+      /** True when the target was present and left the Run's play (D128); false when it was already absent. */
+      applied: z.boolean(),
+      ...characterMechanicsApplicationTraceDtoSchema.shape
+    }),
+    z.strictObject({
+      ordinal: receiptOrdinalSchema,
       kind: z.literal('HIT_POINT_MAXIMUM_REDUCTION'),
       reductionAmount: positiveIntegerSchema.check(z.lte(Number.MAX_SAFE_INTEGER)),
       sourceDamageOutcomeId: uuidSchema,

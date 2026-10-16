@@ -55,6 +55,7 @@ it('admits native turn scopes and pages the selected actor effects without a bac
     tempHitPoints: 0,
     conditions: [],
     defeated: false,
+    absence: null,
     createdAt: now,
     updatedAt: now
   })
@@ -342,7 +343,7 @@ it.each([
     gmNotes: null,
     snapshot: {},
     frozenState: departed.frozenState,
-    outOfInitiative: false,
+    absence: null,
     createdAt: now,
     updatedAt: now
   })

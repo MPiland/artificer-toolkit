@@ -211,6 +211,16 @@ const compiledActionActiveEffectPlanSchema = lazySchema(() =>
       ),
       null
     ),
+    actorLinkContribution: z._default(
+      z.nullable(
+        z.strictObject({
+          linkOutcomeId: serverUuidIdentityDtoSchema,
+          linkKind: z.enum(['TELEPATHIC']),
+          excludesIntelligenceAtOrBelow: z.number().check(z.int()).check(z.gte(0))
+        })
+      ),
+      null
+    ),
     maintenance: z._default(
       z.nullable(
         z.strictObject({
