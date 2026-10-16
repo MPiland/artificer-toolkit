@@ -469,7 +469,9 @@ describe('a zone the System cannot honor in full stays manual', () => {
         invocation.savingThrow = {
           id: invocation.savingThrow.id,
           abilityDefinitionId: invocation.savingThrow.abilityDefinitionId,
-          dcMethod: 'SOURCE_SAVE_DC'
+          dcMethod: 'DERIVED_DC',
+          baseDc: 13,
+          bonuses: []
         }
       }
     ],

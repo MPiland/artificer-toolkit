@@ -58,5 +58,6 @@ Registered by Phase 8 (commits 287f7d0c2 and a97894a8d, ruling D133 in 81d760bdf
   7. Until T4 a higher-slot cast deals the base 3d8, a made save deals 0 (no half damage), and there is no half-speed or start-of-turn damage. Each is a refused or absent zone feature, not partly honored.
   8. Spirit Guardians' necrotic-or-radiant alignment choice has no generic option; the zone is radiant.
 - Follow-up: the aura's alignment-damage choice (generic authoring option).
+- CI fixes on 4ee8b1c65: `zoneAttachment.test.ts` now expects Spirit Guardians among the SOURCE zones (the intended T1b change, assertion widened by the one new owner, none removed); the zone-save helper moved into `characterActionRuleFacts.ts` because the web boundary test (ADR 0036 S6) forbids the web bundle reaching `encounter*` rules modules.
 
 Docs updated by the tasks that change them: `rules-runtime.md` (zone seam), `persistence.md` / `transport.md` (aura projection), ADR 0038 note (SOURCE zones).
