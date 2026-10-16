@@ -71,7 +71,6 @@ import {
   checkpointLiveRoom,
   closeRoom,
   executeInRoom,
-  roomErrorLogs,
   invalidateRoomInputs,
   queueRoomRolls,
   executeSheetInRoom,
@@ -1078,7 +1077,6 @@ describe('Character spell casting in an Encounter', () => {
     }
 
     it('grants advantage on the roll, then ends the effect, its condition and its Concentration; a GM undo gives all three back', async () => {
-try {
       const unseen = concentrationSpell(invisibility)
       const bolt = srdSpell(fireBolt)
       targetAnyCreatureAtAnyRange(bolt)
@@ -1123,8 +1121,8 @@ try {
       expect(await characterActiveEffects(fixture)).toHaveLength(1)
 
       // The caster rolls each pending die with the app and settles it; a hit leaves its damage dice to
-      // roll too, and the effect ends when the action completes. Queued values are zero-based die indices.
-      await queueRoomRolls(fixture.campaign.id, { rolls: [19], repeat: 19 })
+      // roll too, and the effect ends when the action completes. Queued values are zero-based die indices: 19 is a natural 20, 9 the top of a d10.
+      await queueRoomRolls(fixture.campaign.id, { rolls: [19], repeat: 9 })
       let rolled = attacked
       for (let step = 0; step < 3 && rolled.occurrence?.status === 'PENDING'; step += 1) {
         const awaiting = rolled.occurrence.pending
@@ -1171,7 +1169,6 @@ try {
         { maintainedEffectStateId: concentration?.id }
       ])
       expect(await conditionIds(fixture)).toContain(invisibleId)
-} catch (e) { throw new Error(String(e instanceof Error ? e.message : e) + ' DIAG ' + roomErrorLogs().join(' || ').slice(0, 3000)) }
     }, 240000)
   })
 
