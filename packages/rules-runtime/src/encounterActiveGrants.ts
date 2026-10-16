@@ -244,11 +244,15 @@ export function hasEncounterDefensiveGrants(
 /**
  * Whether an active grant switches on a flag domain (`ENABLE`): Disengage's
  * `OPPORTUNITY_ATTACK_IMMUNITY` makes the holder's movement provoke no opportunity attacks, and
- * `SPELLCASTING_LOCK` bars the holder from casting spells and holding Concentration.
+ * `SPELLCASTING_LOCK` bars the holder from casting spells and holding Concentration, and
+ * `ACTION_BONUS_ACTION_EXCLUSIVITY` lets it take an Action or a Bonus Action on a turn, not both.
  */
 export function encounterGrantsEnabledDomain(
   effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[],
-  domain: Extract<ValueDomainCode, 'OPPORTUNITY_ATTACK_IMMUNITY' | 'SPELLCASTING_LOCK'>
+  domain: Extract<
+    ValueDomainCode,
+    'OPPORTUNITY_ATTACK_IMMUNITY' | 'SPELLCASTING_LOCK' | 'ACTION_BONUS_ACTION_EXCLUSIVITY'
+  >
 ): boolean {
   return listActiveEffectGrants(effects).some(({ modifiers }) =>
     modifiers.some(

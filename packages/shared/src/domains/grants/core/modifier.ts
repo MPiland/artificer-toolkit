@@ -13,6 +13,7 @@ export const MODIFIER_KIND = {
   BONUS: 'BONUS',
   PENALTY: 'PENALTY',
   SET_VALUE: 'SET_VALUE',
+  CAP_VALUE: 'CAP_VALUE',
   MULTIPLY: 'MULTIPLY',
   ABILITY_MODIFIER_BONUS: 'ABILITY_MODIFIER_BONUS',
 
@@ -63,6 +64,12 @@ export const MODIFIER_KIND_REGISTRY: Record<ModifierKind, ModifierTypeOption> = 
     code: MODIFIER_KIND.SET_VALUE,
     label: 'Set Value',
     description: 'Set the value to a specific amount.'
+  },
+
+  CAP_VALUE: {
+    code: MODIFIER_KIND.CAP_VALUE,
+    label: 'Cap Value',
+    description: 'Limit the value to at most a specific amount.'
   },
 
   MULTIPLY: {
@@ -233,6 +240,8 @@ export const MODIFIER_KINDS_BY_DOMAIN: Record<ValueDomainCode, readonly Modifier
 
   SPELLCASTING_LOCK: [MODIFIER_KIND.ENABLE],
 
+  ACTION_BONUS_ACTION_EXCLUSIVITY: [MODIFIER_KIND.ENABLE],
+
   SKILL_MODIFIER: [
     MODIFIER_KIND.BONUS,
     MODIFIER_KIND.PENALTY,
@@ -310,7 +319,7 @@ export const MODIFIER_KINDS_BY_DOMAIN: Record<ValueDomainCode, readonly Modifier
 
   REACTION_COUNT: [MODIFIER_KIND.BONUS, MODIFIER_KIND.SET_VALUE],
 
-  ATTACKS_PER_ATTACK_ACTION: [MODIFIER_KIND.SET_VALUE],
+  ATTACKS_PER_ATTACK_ACTION: [MODIFIER_KIND.SET_VALUE, MODIFIER_KIND.CAP_VALUE],
 
   /* ──────────────────────────────────────────────
    * CHARGES / RESOURCES
@@ -440,10 +449,10 @@ export type ModifierPayloadFor<V extends ValueDomainCode, K extends ModifierKind
   // numeric-like
   K extends 'MULTIPLY'
     ? ModifierFractionAuthored
-    : K extends 'BONUS' | 'PENALTY' | 'SET_VALUE'
+    : K extends 'BONUS' | 'PENALTY' | 'SET_VALUE' | 'CAP_VALUE'
       ? V extends 'SPEED' | 'SENSE_RANGE'
         ? ModifierLengthAuthored
-        : K extends 'SET_VALUE'
+        : K extends 'SET_VALUE' | 'CAP_VALUE'
           ? V extends 'ARMOR_CLASS'
             ? // An armor class formula: the amount plus each listed ability modifier.
               { amount: number; abilities: AbilityCode[] }

@@ -5,7 +5,10 @@ import type {
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 
 import { modifierLengthFeet } from '../modifierLength.js'
-import { listHitPointMaximumReductions, reduceHitPointMaximum } from './hitPointMaximumReductions.js'
+import {
+  listHitPointMaximumReductions,
+  reduceHitPointMaximum
+} from './hitPointMaximumReductions.js'
 
 // Grant reads the Sheet and the Encounter share. This module must stay free of `encounter*` imports:
 // the browser bundles it through the Sheet projection (ADR 0036 S6, rulesRuntimeBoundary.test.ts).
@@ -112,6 +115,31 @@ export function activeSetValueGrantMaximum(
         typeof amount === 'number'
       )
         best = best === null ? amount : Math.max(best, amount)
+    }
+  }
+  return best
+}
+
+/**
+ * The lowest amount a holder's active global `CAP_VALUE` grants limit one value domain to, or null
+ * when none do. Several caps do not add: the tightest applies.
+ */
+export function activeCapValueGrantMinimum(
+  effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[],
+  valueDomainCode: string
+): number | null {
+  let best: number | null = null
+  for (const { modifiers } of listActiveEffectGrants(effects)) {
+    for (const modifier of modifiers) {
+      const grant = record(modifier.grant)
+      const amount = record(grant?.payload)?.amount
+      if (
+        modifier.valueDomainCode === valueDomainCode &&
+        modifier.modifierKind === 'CAP_VALUE' &&
+        grant?.scope === 'GLOBAL' &&
+        typeof amount === 'number'
+      )
+        best = best === null ? amount : Math.min(best, amount)
     }
   }
   return best

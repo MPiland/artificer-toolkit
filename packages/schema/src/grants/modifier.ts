@@ -403,6 +403,7 @@ const buildModifierGrantVariants = () => {
     buildModifierGrantVariant('ATTACKS_AGAINST', 'DISADVANTAGE', attacksAgainstParamDtoSchema),
     buildModifierGrantVariant('OPPORTUNITY_ATTACK_IMMUNITY', 'ENABLE', emptyDomainDtoSchema),
     buildModifierGrantVariant('SPELLCASTING_LOCK', 'ENABLE', emptyDomainDtoSchema),
+    buildModifierGrantVariant('ACTION_BONUS_ACTION_EXCLUSIVITY', 'ENABLE', emptyDomainDtoSchema),
     buildModifierGrantVariant(
       'SKILL_MODIFIER',
       'BONUS',
@@ -676,6 +677,12 @@ const buildModifierGrantVariants = () => {
     buildModifierGrantVariant(
       'ATTACKS_PER_ATTACK_ACTION',
       'SET_VALUE',
+      emptyDomainDtoSchema,
+      z.object({ amount: z.number() })
+    ),
+    buildModifierGrantVariant(
+      'ATTACKS_PER_ATTACK_ACTION',
+      'CAP_VALUE',
       emptyDomainDtoSchema,
       z.object({ amount: z.number() })
     ),

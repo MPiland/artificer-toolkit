@@ -554,6 +554,7 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
           showIf: and([
             or([
               parent.field(['modifierKind']).eq('SET_VALUE'),
+              parent.field(['modifierKind']).eq('CAP_VALUE'),
               parent.field(['modifierKind']).eq('MODIFY_CHARGE_LIMIT'),
               and([isPenalty, local.field(['valueKind']).eq('FIXED')])
             ]),
@@ -716,6 +717,7 @@ export const MODIFIER_GRANT_NODE_MAP = modifierGrant.define(
             local.field(['modifierKind']).eq('BONUS'),
             local.field(['modifierKind']).eq('PENALTY'),
             local.field(['modifierKind']).eq('SET_VALUE'),
+            local.field(['modifierKind']).eq('CAP_VALUE'),
             local.field(['modifierKind']).eq('MULTIPLY'),
             local.field(['modifierKind']).eq('ADD_BONUS_DIE'),
             local.field(['modifierKind']).eq('REPLACE_DAMAGE_TYPE'),

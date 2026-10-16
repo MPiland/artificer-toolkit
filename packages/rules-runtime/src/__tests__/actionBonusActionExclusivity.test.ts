@@ -29,7 +29,14 @@ function holderEvaluating(input: {
   const actor = encounterRunActorStateSchema.parse({
     ...base,
     resources: withEncounterRuleUsageUsed(
-      { ...base, resources: withEncounterRuleUsageUsed(base, SRD_ACTION_ALLOWANCE_DEFINITION_ID, input.actionsUsed) },
+      {
+        ...base,
+        resources: withEncounterRuleUsageUsed(
+          base,
+          SRD_ACTION_ALLOWANCE_DEFINITION_ID,
+          input.actionsUsed
+        )
+      },
       SRD_BONUS_ACTION_ALLOWANCE_DEFINITION_ID,
       input.bonusActionsUsed
     )
@@ -53,13 +60,23 @@ function holderEvaluating(input: {
 describe('Action and Bonus Action exclusivity grant', () => {
   it('allows the Bonus Action after an Action without the grant', async () => {
     await expect(
-      holderEvaluating({ activation: 'BONUS_ACTION', actionsUsed: 1, bonusActionsUsed: 0, slowed: false })
+      holderEvaluating({
+        activation: 'BONUS_ACTION',
+        actionsUsed: 1,
+        bonusActionsUsed: 0,
+        slowed: false
+      })
     ).resolves.toMatchObject({ available: true })
   })
 
   it('refuses the Bonus Action once the Action is spent', async () => {
     await expect(
-      holderEvaluating({ activation: 'BONUS_ACTION', actionsUsed: 1, bonusActionsUsed: 0, slowed: true })
+      holderEvaluating({
+        activation: 'BONUS_ACTION',
+        actionsUsed: 1,
+        bonusActionsUsed: 0,
+        slowed: true
+      })
     ).resolves.toMatchObject({ available: false })
   })
 
