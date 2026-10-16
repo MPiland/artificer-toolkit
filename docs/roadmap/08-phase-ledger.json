@@ -8127,9 +8127,8 @@
             {
               "id": "SPELLS-27.T1",
               "text": "Spike how a holder condition ends (stored vs derived), and plan a bare timed CONDITION as a condition-owning active effect so its duration and end events survive (D122).",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-27.1"],
-              "activeWorkbook": "docs/handoffs/slice-spells-27.md",
               "wsjf": {
                 "bv": 3,
                 "tc": 3,
@@ -8140,7 +8139,7 @@
             {
               "id": "SPELLS-27.T2",
               "text": "One consumer effectsEndedBy over both event lists for any v2 effect; Invisibility ends on its holder's attack roll after granting advantage; GM undo restores it (journey).",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-27.1"],
               "wsjf": {
                 "bv": 3,
@@ -8148,7 +8147,8 @@
                 "rr": 3,
                 "size": 3,
                 "after": ["SPELLS-27.T1"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-27.md"
             },
             {
               "id": "SPELLS-27.T3",
