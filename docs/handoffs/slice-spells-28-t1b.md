@@ -55,7 +55,7 @@ The rulings and conditions in [slice-spells-28.md](slice-spells-28.md) "Rulings 
    destination: the smallest unconsumed `maxFeet` that covers the measured distance, skipping a `VISIBLE` one when the
    destination is not explored for the mover, and an unoccupied footprint. Refusals: `TELEPORT_UNAVAILABLE` (no
    allowance), `MOVEMENT_BLOCKED` with a specific message for range, unseen, occupied. GM moves are ungated. The chosen
-   `castCommandId` rides on the stored spatial preparation to publication.
+   `castCommandId` rides on the `finish` input (`teleportCastCommandId`) from the room plan to publication.
 5. **Consume (publication)**: the first publication of a TELEPORT (`!movementResolution`) marks the chosen allowance
    `consumedByCommandId`, or any unconsumed one for a GM move on a caster that holds one; a GM move with none consumes
    nothing. No walking feet are recorded.
@@ -91,3 +91,5 @@ spell grants the move; ordinary voluntary movement stays shown-not-enforced.
 
 - 2026-10-16: branch `claude/spells-28-t1b` from `bc54f43a2`; survey and design written. Next: red tests.
 - 2026-10-16: red tests written (rules-runtime, encounter-persistence, shared, session-worker room journey, web stage, Convex read model incl. existing turnMovement assertions gaining `teleport: []`). Pushing to `ci/spells-28-t1b-red`.
+- 2026-10-16: red CI (Tests 38923039027, Live backend 38923039051) failed at the shared build: `selectTeleportAllowance` not exported (compile-level red).
+- 2026-10-16: implemented (schema, persistence, rules-runtime compiler, shared selector, room gate and undo restore in `roomMoveUndoRestore.ts`, web switch). Merged `ci/merge-batch-ak`. Next: review triage, push `ci/spells-28-t1b`.
