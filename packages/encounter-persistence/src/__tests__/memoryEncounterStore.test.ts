@@ -12,7 +12,8 @@ const movement = (round: number, actorIndex: number, usedFeet = 0, id = encounte
   actorId: actor(actorIndex),
   usedFeet,
   speedId: null,
-  speedBonuses: 0
+  speedBonuses: 0,
+  usedOncePerTurn: []
 })
 
 describe('memory Encounter store', () => {
@@ -77,6 +78,7 @@ describe('memory Encounter store', () => {
     const id = await store.insert('encounterTurnMovements', {
       speedBonuses: 0,
       speedId: null,
+      usedOncePerTurn: [],
       usedFeet: 0,
       actorId: actor(1),
       turnActorId: actor(1),
@@ -92,7 +94,8 @@ describe('memory Encounter store', () => {
       'speedBonuses',
       'speedId',
       'turnActorId',
-      'usedFeet'
+      'usedFeet',
+      'usedOncePerTurn'
     ])
   })
 

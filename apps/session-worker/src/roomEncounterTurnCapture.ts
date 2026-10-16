@@ -15,6 +15,7 @@ import { readLiveEncounterTurnAdmission } from '@artificer-toolkit/encounter-per
 import { readEncounterTurnCommandCapture } from '@artificer-toolkit/encounter-persistence/turnCommandCapture'
 import { readEncounterTurnCapture } from '@artificer-toolkit/encounter-persistence/turnCapture'
 import { readEncounterInitiativeRound } from '@artificer-toolkit/encounter-persistence/initiativeStore'
+import { readTurnUses } from '@artificer-toolkit/encounter-persistence/turnMovement'
 import {
   readCharacterEffect,
   readEncounterEffect
@@ -501,6 +502,10 @@ export async function readRoomEncounterTurnCapture(
             })
           : null
     }
+  } else if (request.kind === 'TURN_USES') {
+    const actorId = request.actorId.toLowerCase()
+    if (!state.actorIds.includes(actorId)) throw new Error('Turn uses actor is not in the Encounter.')
+    response = { kind: 'TURN_USES', keys: await readTurnUses(ctx, { state, actorId }) }
   } else if (request.kind === 'SYSTEM_VOCABULARY') {
     const loaded = await inputs.system('VOCABULARY', observed, transaction)
     if (!loaded.vocabulary || loaded.vocabulary.systemId !== state.gameSystemId)

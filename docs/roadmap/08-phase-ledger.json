@@ -5727,9 +5727,12 @@
             {
               "id": "ATTACK-9.2",
               "text": "Sneak Attack adds its level-scaled dice once per turn to a hit with a finesse or ranged weapon when the attack has advantage or an enemy of the target is within 5 feet of it and the attacker has no disadvantage; critical hits double the dice. The feature is authored only from core authoring options (no CLOSED_RULE, no feature-specific kind or executor); an author-built equivalent made through the real authoring form publishes to the same structure and resolves identically.",
-              "status": "TODO",
+              "status": "DONE",
               "proof": [
-                "partial: T2a (CI 38838173590 at 56db035bd, merged 2026-10-15) merges PASSIVE ON_HIT riders, CLASS_LEVEL dice and the triggering weapon damage type: packages/rules-runtime/src/__tests__/characterOnHitRiders.test.ts, characterOnHitRiderMerge.test.ts; closes after T2b-T2d"
+                "partial: T2a (CI 38838173590 at 56db035bd, merged 2026-10-15) merges PASSIVE ON_HIT riders, CLASS_LEVEL dice and the triggering weapon damage type: packages/rules-runtime/src/__tests__/characterOnHitRiders.test.ts, characterOnHitRiderMerge.test.ts",
+                "T2d: ONCE_PER_TURN and the real SRD Rogue Sneak Attack: packages/source-data srdSneakAttack.test.ts, packages/encounter-persistence turnUses.test.ts, apps/session-worker nativeRoomOncePerTurn.test.ts, nativeMovementOncePerTurnRider.test.ts, nativeRoomEnemyProximity.test.ts; authored parity: apps/web src/forms/tests/AuthoredDomainFieldParity.test.tsx",
+                "T2e (D124): the roll-mode gate reads the settled d20: apps/session-worker/test/nativeRoomSettledRollMode.test.ts",
+                "T2d/T2e green: CI Tests 38869134710 and Live backend 38869134783 on 6649d84da"
               ],
               "origin": [],
               "note": "D58: extra-dice riders are CLOSED_RULE until this AC."
@@ -5842,14 +5845,13 @@
                 "after": ["ATTACK-9.T1"]
               },
               "id": "ATTACK-9.T2d",
-              "status": "IN_PROGRESS",
-              "text": "D119 (f): ONCE_PER_TURN usage limit backed by the enforced per-turn record (Encounter, round, turn actor, actor), replay-safe and undoable; finishes AC 9.2 with the full Sneak Attack proof. Includes enemy proximity for opportunity attacks and reactions (Sneak Attack on an opportunity attack).",
-              "activeWorkbook": "docs/handoffs/slice-attack-9-t2.md"
+              "status": "DONE",
+              "text": "D119 (f): ONCE_PER_TURN usage limit backed by the enforced per-turn record (Encounter, round, turn actor, actor), replay-safe and undoable; finishes AC 9.2 with the full Sneak Attack proof. Includes enemy proximity for opportunity attacks and reactions (Sneak Attack on an opportunity attack)."
             },
             {
               "id": "ATTACK-9.T2e",
               "text": "Sneak Attack and other roll-mode-gated paths gate on the settled roll mode (TEST evidence rolledMode), not the derived mode, so hand-rolled and GM-adjudicated advantage count (architect ruling: option B; D-entry and rules-runtime guide).",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["ATTACK-9.2"],
               "wsjf": {
                 "bv": 5,
@@ -5870,7 +5872,8 @@
                 "rr": 3,
                 "size": 2,
                 "after": ["ATTACK-9.T2d"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-attack-9-t3-t6.md"
             },
             {
               "id": "ATTACK-9.T4",
@@ -5901,7 +5904,7 @@
             {
               "id": "ATTACK-9.T6",
               "text": "Rage early end from the per-turn attack and damage record. Also narrow endHolderGrants in movementSettlementPersistence.ts to the actors the pass damaged (one effect-list read per damaged actor, not per Run actor; free-tier cost).",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["ATTACK-9.6"],
               "wsjf": {
                 "bv": 3,
@@ -5909,7 +5912,8 @@
                 "rr": 2,
                 "size": 1,
                 "after": ["ATTACK-9.T1", "ATTACK-9.T2d"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-attack-9-t3-t6.md"
             },
             {
               "id": "ATTACK-9.T7",
@@ -6445,9 +6449,23 @@
               }
             },
             {
-              "id": "ATTACK-17.T4",
-              "text": "Attack an empty square; the GM resolves who, if anyone, is there.",
+              "id": "ATTACK-17.T4a",
+              "text": "Attack a square: a SQUARE target on RESOLVE_ACTION for single-target attack-roll actions; the server computes the candidates (token overlap, hidden tokens included) and opens a GM-only ATTACK_SQUARE_RESOLUTION decision; a chosen occupant continues through the existing ACTOR attack flow; the attacker sees only that the GM is deciding.",
               "status": "IN_PROGRESS",
+              "closes": ["ATTACK-17.4"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 5,
+                "rr": 2,
+                "size": 2,
+                "after": ["ATTACK-17.T3", "ATTACK-10.T1"]
+              },
+              "activeWorkbook": "docs/handoffs/slice-attack-17-t2-t3.md"
+            },
+            {
+              "id": "ATTACK-17.T4b",
+              "text": "Empty square: the GM answers nobody and the attacker still rolls through a dedicated miss path composed from the shared d20, card and economy primitives; the controller view of an empty-square miss equals an occupant miss except for the roll values; the map offers \"pick an empty square\".",
+              "status": "TODO",
               "closes": ["ATTACK-17.4"],
               "wsjf": {
                 "bv": 8,
@@ -10059,9 +10077,9 @@
         {
           "id": "RELIABILITY-15",
           "title": "Initiative declaration settlement test is deterministic",
-          "status": "TODO",
+          "status": "DONE",
           "journeyTests": ["apps/apis/convex/encounters/initiativeDeclarations.test.ts"],
-          "journeyStatus": "none",
+          "journeyStatus": "verified",
           "origin": [],
           "wsjf": {
             "bv": 3,
@@ -10073,8 +10091,12 @@
             {
               "id": "RELIABILITY-15.1",
               "text": "initiativeDeclarations.test.ts \"collects each automatic declaration, then settles exactly one Run, round, and order\" passes deterministically: its automatic initiative rolls cannot tie into an unhandled INITIATIVE_ORDER decision (seeded rolls or explicit tie handling), and a test reproduces the tie red before the fix.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/apis/convex/encounters/initiativeDeclarations.test.ts (queued room rolls: distinct faces settle; a tied score settles by the roll-off; a double tie asks the GM for the order)",
+                "Red: ci/reliability-15-red Tests 38868117842 on 2afb63e55 fails the target test on a forced double tie",
+                "Green: CI Tests 38868097461 and Live backend 38868097317 on e2f06ddc0"
+              ],
               "origin": [],
               "note": "Flaked on aeb08c947 (Tests 38857606244): equal random auto-rolls with initiativeTieDefinitionId null left the Run on an INITIATIVE_ORDER decision; passed on rerun with no code change."
             }
@@ -10083,15 +10105,14 @@
             {
               "id": "RELIABILITY-15.T1",
               "text": "Make the initiative declaration settlement test deterministic: control the auto-rolls through the platform random seam (never product logic) or resolve the tie decision; reproduce the tie red first; no retry, no loosened assertion.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RELIABILITY-15.1"],
               "wsjf": {
                 "bv": 3,
                 "tc": 8,
                 "rr": 8,
                 "size": 1
-              },
-              "activeWorkbook": "docs/handoffs/slice-reliability-15.md"
+              }
             }
           ]
         },
@@ -10129,7 +10150,8 @@
                 "tc": 8,
                 "rr": 8,
                 "size": 2
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-reliability-16.md"
             }
           ]
         }

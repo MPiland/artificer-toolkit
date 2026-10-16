@@ -27,6 +27,7 @@ import {
 import { liveSessionRulesRevisionsSchema } from './liveSessionRulesRevisions.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { characterResourceUsageOwnerSchema } from '../projections/characterSheetState.js'
+import { encounterTurnUseKeysSchema } from '../projections/encounterRunPersistence.js'
 import {
   activeRuleEffectRecordSchema,
   encounterMaintainedEffectStateRecordSchema
@@ -139,6 +140,8 @@ export type LiveSessionEncounterActionCommitInput = Omit<
   cleaving: z.infer<typeof serverRuleExecutionPendingSnapshotDtoSchema> | null
   /** The attacker's grants this attack roll used up; its commit deletes them, its undo restores them. */
   consumedGrants: z.infer<typeof activeRuleEffectRecordSchema>[]
+  /** The once-per-turn uses this attack spent from the attacker's turn record; its undo gives them back. */
+  turnUses: z.infer<typeof encounterTurnUseKeysSchema>
 }
 export const liveSessionEncounterConcentrationFields = lazySchemaParts(() => ({
   concentration: z
@@ -182,7 +185,8 @@ export const liveSessionEncounterActionCommitInputSchema: z.ZodMiniType<LiveSess
       cleaving: z.nullable(serverRuleExecutionPendingSnapshotDtoSchema),
       consumedGrants: z
         .array(activeRuleEffectRecordSchema)
-        .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER))
+        .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER)),
+      turnUses: encounterTurnUseKeysSchema
     })
   )
 
@@ -221,6 +225,7 @@ export type LiveSessionEncounterAreaCommitInput = Omit<
   | 'maintainedState'
   | 'cleaving'
   | 'consumedGrants'
+  | 'turnUses'
   | 'reactionSpellConsumption'
 > & {
   execution: z.infer<typeof storedRuleExecutionResultDtoSchema>

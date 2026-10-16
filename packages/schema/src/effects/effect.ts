@@ -190,19 +190,26 @@ function checkWeaponDamageTypeChoices(
 }
 
 /**
- * Path restrictions gate the damage an attack's hit or critical owes (D119); the roll mode they read
- * exists only for that attack, so no other path can carry one.
+ * Path restrictions and usage limits gate the damage an attack's hit or critical owes (D119); the
+ * roll mode and the turn they read exist only for that attack, so no other path can carry one.
  */
 function checkPathRestrictions(
   effect: Pick<EffectAuthored, 'paths'>,
   context: z.core.$RefinementCtx
 ) {
   effect.paths.forEach((path, index) => {
-    if (path.restrictions && path.pathCode !== 'ON_HIT' && path.pathCode !== 'ON_CRIT')
+    if (path.pathCode === 'ON_HIT' || path.pathCode === 'ON_CRIT') return
+    if (path.restrictions)
       context.addIssue({
         code: 'custom',
         path: ['paths', index, 'restrictions'],
         message: 'Only an ON_HIT or ON_CRIT path can carry restrictions.'
+      })
+    if (path.usage)
+      context.addIssue({
+        code: 'custom',
+        path: ['paths', index, 'usage'],
+        message: 'Only an ON_HIT or ON_CRIT path can carry a usage limit.'
       })
   })
 }

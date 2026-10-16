@@ -115,7 +115,8 @@ describe('room Encounter store', () => {
         actorId: uuid(0x100),
         usedFeet: 5,
         speedBonuses: 0,
-        speedId: null
+        speedId: null,
+        usedOncePerTurn: []
       }
     }
     await room.transact(async (transaction) => {
@@ -425,7 +426,8 @@ describe('room Encounter store', () => {
           actorId: uuid(0x100),
           usedFeet: 0,
           speedBonuses: 0,
-          speedId: null
+          speedId: null,
+          usedOncePerTurn: []
         })
         transaction.setRecord({ ...playState(0), revision: null, json: '{"aborted":true}' })
         throw new Error('command failed')
@@ -522,7 +524,8 @@ describe('room Encounter store', () => {
                   actorId: uuid(0x100),
                   usedFeet: 0,
                   speedBonuses: 0,
-                  speedId: null
+                  speedId: null,
+                  usedOncePerTurn: []
                 }
               },
               { op: 'PATCH', id: 'room:404', fields: { usedFeet: 1 }, remove: [] }
@@ -871,7 +874,8 @@ describe('room Encounter store', () => {
         actorId: uuid(0x100),
         usedFeet: 0,
         speedBonuses: 0,
-        speedId: null
+        speedId: null,
+        usedOncePerTurn: []
       })
       const insertAndDelete = async (room: RoomEncounterStore) =>
         room.transact(async () => {

@@ -87,6 +87,7 @@ import {
 import { dnd5eAttackKind, dnd5eAttackModifierDomain, isDnd5eMeleeAttackKind } from './attackKind.js'
 import {
   attackRestrictionsMet,
+  oncePerTurnUsageKey,
   type Dnd5eAttackRollMode,
   type Dnd5eEnemyProximity
 } from './attackRestrictions.js'
@@ -193,12 +194,12 @@ export const DND5E_SPELL_CAST_LEVEL_FACT_KEY = 'dnd5e.spell-cast-level'
 export const DND5E_SELECTED_OPTIONAL_RIDERS_FACT_KEY = 'dnd5e.selected-optional-riders'
 /** The actor's level in each class (a JSON object by class id), which selects CLASS_LEVEL rows. */
 const DND5E_CLASS_LEVELS_FACT_KEY = 'dnd5e.class-levels'
-/** The attack's net d20 roll mode, which a path restriction reads when its outcome specializes. */
-const DND5E_ATTACK_ROLL_MODE_FACT_KEY = 'dnd5e.attack-roll-mode'
 /** The attacked creature's type, which a path restriction reads when its outcome specializes. */
 const DND5E_TARGET_CREATURE_TYPE_FACT_KEY = 'dnd5e.target-creature-type'
 /** The nearest able enemy of the attack's target (a JSON object); absent when no Scene measured it. */
 const DND5E_ATTACK_ENEMY_PROXIMITY_FACT_KEY = 'dnd5e.attack-enemy-proximity'
+/** The once-per-turn uses already spent this turn (a JSON array of usage keys); absent when no record was read. */
+const DND5E_ATTACK_TURN_USES_FACT_KEY = 'dnd5e.attack-turn-uses'
 export const DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY =
   'dnd5e.active-effect-save-ability-definition-id'
 export const DND5E_ACTIVE_EFFECT_SAVE_REQUEST_NODE_FACT_KEY =
@@ -293,6 +294,7 @@ type Dnd5eEffectScalingFacts = Readonly<{
   attackRollMode?: Dnd5eAttackRollMode
   targetCreatureTypeId?: string
   attackEnemyProximity?: Dnd5eEnemyProximity
+  attackTurnUses?: readonly string[]
   resolvedDamageExpressions?: Readonly<Partial<Record<SpecializedPath, string>>>
   resolvedDamageOutcomeExpressions?: Readonly<Record<string, string>>
 }>
@@ -328,12 +330,12 @@ function dndScalingFactsFromRuleValues(
     selectedOptionalRiderIds: parseSelectedOptionalRiderIds(
       facts[DND5E_SELECTED_OPTIONAL_RIDERS_FACT_KEY]
     ),
-    attackRollMode: parseAttackRollMode(facts[DND5E_ATTACK_ROLL_MODE_FACT_KEY]),
     targetCreatureTypeId:
       typeof facts[DND5E_TARGET_CREATURE_TYPE_FACT_KEY] === 'string'
         ? facts[DND5E_TARGET_CREATURE_TYPE_FACT_KEY]
         : undefined,
     attackEnemyProximity: parseEnemyProximity(facts[DND5E_ATTACK_ENEMY_PROXIMITY_FACT_KEY]),
+    attackTurnUses: parseTurnUses(facts[DND5E_ATTACK_TURN_USES_FACT_KEY]),
     resolvedDamageExpressions: Object.fromEntries(
       Object.entries(DND5E_RESOLVED_DAMAGE_EXPRESSION_FACT_KEYS).flatMap(([path, key]) => {
         const expression = facts[key]
@@ -359,13 +361,6 @@ function parseSelectedOptionalRiderIds(value: RuleValue | undefined): readonly s
   return parsed
 }
 
-function parseAttackRollMode(value: RuleValue | undefined): Dnd5eAttackRollMode | undefined {
-  if (value === undefined) return undefined
-  if (value !== 'NORMAL' && value !== 'ADVANTAGE' && value !== 'DISADVANTAGE')
-    unsupported('D&D attack roll mode is malformed.')
-  return value
-}
-
 function parseEnemyProximity(value: RuleValue | undefined): Dnd5eEnemyProximity | undefined {
   if (value === undefined) return undefined
   if (typeof value !== 'string') unsupported('D&D enemy proximity is malformed.')
@@ -382,6 +377,19 @@ function parseEnemyProximity(value: RuleValue | undefined): Dnd5eEnemyProximity 
   if (nearestFeet !== null && !(typeof nearestFeet === 'number' && nearestFeet >= 0))
     unsupported('D&D enemy proximity is malformed.')
   return { nearestFeet }
+}
+
+function parseTurnUses(value: RuleValue | undefined): readonly string[] | undefined {
+  if (value === undefined) return undefined
+  let parsed: unknown
+  try {
+    parsed = typeof value === 'string' ? JSON.parse(value) : undefined
+  } catch {
+    parsed = undefined
+  }
+  if (!Array.isArray(parsed) || parsed.some((key) => typeof key !== 'string'))
+    unsupported('D&D turn uses are malformed.')
+  return parsed
 }
 
 function parseClassLevels(value: RuleValue | undefined): Record<string, number> {
@@ -496,7 +504,7 @@ export function resolveCreatureDamageExpression(input: {
   return modifier === 0 ? dice : `${dice}${modifier > 0 ? '+' : ''}${modifier}`
 }
 /** Exact compiled-effect input shared by runtime publication and source manifest admission. */
-type Dnd5eCompiledEffectActionSource = Pick<
+export type Dnd5eCompiledEffectActionSource = Pick<
   EffectActionCapabilityDescriptor,
   | 'gameSystemId'
   | 'entryPointDefinitionId'
@@ -3527,9 +3535,9 @@ export const dnd5eEffectActionCapability: GameSystemRuleCapabilityContract = {
     },
     { key: DND5E_CLASS_LEVELS_FACT_KEY, valueKind: RULE_VALUE_KIND.TEXT },
     { key: DND5E_SELECTED_OPTIONAL_RIDERS_FACT_KEY, valueKind: RULE_VALUE_KIND.TEXT },
-    { key: DND5E_ATTACK_ROLL_MODE_FACT_KEY, valueKind: RULE_VALUE_KIND.TEXT },
     { key: DND5E_TARGET_CREATURE_TYPE_FACT_KEY, valueKind: RULE_VALUE_KIND.TEXT },
     { key: DND5E_ATTACK_ENEMY_PROXIMITY_FACT_KEY, valueKind: RULE_VALUE_KIND.TEXT },
+    { key: DND5E_ATTACK_TURN_USES_FACT_KEY, valueKind: RULE_VALUE_KIND.TEXT },
     {
       key: REACTION_CHOICE_MIN_FACT_KEY,
       valueKind: RULE_VALUE_KIND.NUMBER
@@ -4855,11 +4863,21 @@ function mergedOutcomeGraphDefinition(input: {
   }
 }
 
-/** An entry reduced to circumstance checks is owed only to an attack whose circumstances meet them. */
-function pathRestrictionsMet(
+/**
+ * An entry is owed to an attack that has not spent its once-per-turn use this turn and, when it was
+ * reduced to circumstance checks, whose circumstances meet them.
+ */
+function pathOwed(
   entry: CompiledEffectGroup['entries'][number],
+  effectId: string,
   facts: Dnd5eEffectScalingFacts
 ): boolean {
+  const usageKey = oncePerTurnUsageKey(entry, effectId)
+  if (usageKey !== null) {
+    if (facts.attackTurnUses === undefined)
+      unsupported('D&D once-per-turn paths need the turn record of an attack.')
+    if (facts.attackTurnUses.includes(usageKey)) return false
+  }
   if (!('restrictions' in entry) || !entry.restrictions) return true
   if (facts.attackRollMode === undefined)
     unsupported('D&D path restrictions need the roll mode of an attack.')
@@ -4964,7 +4982,9 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
   const authoredGroups = selectedOutcomeGroups(input.action, input.selectedPath)
   const groups = authoredGroups.filter((entries) =>
     entries.every(
-      (entry) => isChosenEntry(entry, input.facts) && pathRestrictionsMet(entry, input.facts)
+      (entry) =>
+        isChosenEntry(entry, input.facts) &&
+        pathOwed(entry, input.action.compiledEffect.id, input.facts)
     )
   )
   if (groups.length === 0) return null
@@ -6740,7 +6760,8 @@ function publishedDefinitionForFrozenGraph(
   })
 }
 
-function dndSourceFromCompilerSource(
+/** The D&D action source a compiler source retains; the one place its untyped Effect document is narrowed. */
+export function dndSourceFromCompilerSource(
   source: CompiledActionCompilerSource
 ): Dnd5eCompiledEffectActionSource {
   return {
@@ -6867,7 +6888,13 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
     })
     return { published: test.published, template: templateIdentity(test) }
   },
-  specializeOutcomeTemplate: ({ compilerSource, testTemplate, selectedPath, facts }) => {
+  specializeOutcomeTemplate: ({
+    compilerSource,
+    testTemplate,
+    selectedPath,
+    facts,
+    testRollMode
+  }) => {
     if (!isSpecializedPath(selectedPath))
       throw new Dnd5eEffectActionCompilerError('D&D selected outcome path is unavailable.')
     const action = dndSourceFromCompilerSource(compilerSource)
@@ -6890,7 +6917,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
     const outcome = specializeDnd5eEffectActionOutcomeBody({
       action,
       selectedPath,
-      facts: dndScalingFactsFromRuleValues(facts)
+      facts: { ...dndScalingFactsFromRuleValues(facts), attackRollMode: testRollMode }
     })
     return outcome
       ? {
@@ -7331,18 +7358,19 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       const enemyProximity = sourceDerivedFacts.attackEnemyProximity as
         | Dnd5eEnemyProximity
         | undefined
+      const turnUses = sourceDerivedFacts.attackTurnUses as readonly string[] | undefined
       return {
         facts: {
           ...baseFacts,
           [DND5E_ATTACK_MODIFIER_FACT_KEY]: action.attackBonus,
           [DND5E_TARGET_DEFENSE_FACT_KEY]: armorClass,
-          [DND5E_ATTACK_ROLL_MODE_FACT_KEY]: rollMode,
           ...(typeof targetDerivedFacts.creatureTypeId === 'string'
             ? { [DND5E_TARGET_CREATURE_TYPE_FACT_KEY]: targetDerivedFacts.creatureTypeId }
             : {}),
           ...(enemyProximity
             ? { [DND5E_ATTACK_ENEMY_PROXIMITY_FACT_KEY]: JSON.stringify(enemyProximity) }
             : {}),
+          ...(turnUses ? { [DND5E_ATTACK_TURN_USES_FACT_KEY]: JSON.stringify(turnUses) } : {}),
           [DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY]: contributorChecksum,
           [DND5E_TEST_OUTCOME_RULE_FACT_KEY]: conditionOutcomeRules?.hitIsCritical
             ? 'HIT_IS_CRITICAL'
