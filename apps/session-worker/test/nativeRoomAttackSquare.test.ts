@@ -94,12 +94,12 @@ describe('an attack aimed at a square (ATTACK-17.4)', () => {
     expect(history.occurrences.find((candidate) => candidate.id === square.id)).toMatchObject({
       state: 'COMPLETED'
     })
-    const attack = history.receipts.filter(
-      (receipt) =>
-        receipt.commandId === attackSquareChildCommandId(square.id) &&
-        receipt.commandType === 'RESOLVE_ACTION'
+    // The player's attack waits for their d20, so the child holds a pending occurrence, not a receipt.
+    const attack = history.occurrences.filter(
+      (candidate) => candidate.rootCommandId === attackSquareChildCommandId(square.id)
     )
     expect(attack).toHaveLength(1)
+    expect(attack[0]).toMatchObject({ state: 'PENDING' })
   })
 
   it('lets a GM attacker answer their own decision', async () => {
@@ -155,8 +155,8 @@ describe('an attack aimed at a square (ATTACK-17.4)', () => {
     const replayed = await rulesHistory(room)
     expect(replayed.commands).toHaveLength(stored.commands.length)
     expect(
-      replayed.receipts.filter(
-        (receipt) => receipt.commandId === attackSquareChildCommandId(square.id)
+      replayed.occurrences.filter(
+        (candidate) => candidate.rootCommandId === attackSquareChildCommandId(square.id)
       )
     ).toHaveLength(1)
 
@@ -183,9 +183,7 @@ describe('an attack aimed at a square (ATTACK-17.4)', () => {
     expect(
       history.occurrences.find((candidate) => candidate.id === decision.occurrence.id)
     ).toMatchObject({ state: 'VOIDED' })
-    expect(history.receipts.filter((receipt) => receipt.commandType === 'RESOLVE_ACTION')).toEqual(
-      []
-    )
+    expect(history.occurrences).toHaveLength(1)
   })
 
   it('never offers the attacker’s own square', async () => {
