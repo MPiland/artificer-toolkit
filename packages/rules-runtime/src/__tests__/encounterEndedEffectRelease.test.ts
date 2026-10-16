@@ -141,7 +141,8 @@ describe('what an attack roll ends for its roller', () => {
     const { consumedGrants, sourceReleases } = actionEndedEffects({
       holderActorId: HOLDER_ID,
       held: [held],
-      makesAttackRoll: true
+      makesAttackRoll: true,
+      againstEnemy: false
     })
     expect(consumedGrants).toEqual([held])
     expect(sourceReleases).toEqual(
@@ -155,7 +156,8 @@ describe('what an attack roll ends for its roller', () => {
       actionEndedEffects({
         holderActorId: HOLDER_ID,
         held: [rollerEffect(FIRST_ID, ['ON_ATTACK_ROLL'])],
-        makesAttackRoll: false
+        makesAttackRoll: false,
+        againstEnemy: false
       })
     ).toEqual({ consumedGrants: [], sourceReleases: [] })
   })
@@ -165,7 +167,8 @@ describe('what an attack roll ends for its roller', () => {
       actionEndedEffects({
         holderActorId: HOLDER_ID,
         held: [rollerEffect(FIRST_ID, undefined)],
-        makesAttackRoll: true
+        makesAttackRoll: true,
+        againstEnemy: false
       })
     ).toEqual({ consumedGrants: [], sourceReleases: [] })
   })
@@ -301,6 +304,7 @@ describe('what a spell cast ends for its caster (SPELLS-27.T3)', () => {
       holderActorId: HOLDER_ID,
       held: [held],
       makesAttackRoll: false,
+      againstEnemy: false,
       castsSpell: true
     })
     expect(consumedGrants).toEqual([held])
@@ -315,6 +319,7 @@ describe('what a spell cast ends for its caster (SPELLS-27.T3)', () => {
       holderActorId: HOLDER_ID,
       held: [held],
       makesAttackRoll: true,
+      againstEnemy: false,
       castsSpell: true
     })
     expect(consumedGrants).toEqual([held])
@@ -336,6 +341,7 @@ describe('what a spell cast ends for its caster (SPELLS-27.T3)', () => {
         holderActorId: HOLDER_ID,
         held: [rollOnly],
         makesAttackRoll: false,
+        againstEnemy: false,
         castsSpell: true
       })
     ).toEqual({ consumedGrants: [], sourceReleases: [] })
@@ -346,7 +352,71 @@ describe('what a spell cast ends for its caster (SPELLS-27.T3)', () => {
       actionEndedEffects({
         holderActorId: HOLDER_ID,
         held: [invisibility(FIRST_ID)],
-        makesAttackRoll: false
+        makesAttackRoll: false,
+        againstEnemy: false
+      })
+    ).toEqual({ consumedGrants: [], sourceReleases: [] })
+  })
+})
+
+describe('what an attack roll or cast against an enemy ends (SPELLS-27.T4b)', () => {
+  const sanctuary = (trigger: { event: 'ATTACK_ROLL' | 'SPELL_CAST'; against: 'ENEMY' }) =>
+    activeEffect({
+      id: FIRST_ID,
+      owner,
+      createdOrdinal: 1,
+      endOnTriggers: [trigger],
+      stateContributions: [
+        { kind: 'CONDITION_OWNERSHIP', conditionId: INVISIBLE, baselinePresent: false }
+      ]
+    })
+  const attackEnds = { event: 'ATTACK_ROLL', against: 'ENEMY' } as const
+  const castEnds = { event: 'SPELL_CAST', against: 'ENEMY' } as const
+
+  it.each([
+    ['an attack roll against an enemy', attackEnds, { makesAttackRoll: true, againstEnemy: true }],
+    ['a cast that affects an enemy', castEnds, { castsSpell: true, againstEnemy: true }],
+    [
+      'a spell attack against an enemy, for a cast trigger',
+      castEnds,
+      { makesAttackRoll: true, castsSpell: true, againstEnemy: true }
+    ]
+  ])('ends and releases on %s', (_label, trigger, action) => {
+    const held = sanctuary(trigger)
+    const { consumedGrants, sourceReleases } = actionEndedEffects({
+      holderActorId: HOLDER_ID,
+      held: [held],
+      makesAttackRoll: false,
+      castsSpell: false,
+      ...action
+    })
+    expect(consumedGrants).toEqual([held])
+    expect(sourceReleases).toEqual(
+      endedEffectConditionReleases({ holderActorId: HOLDER_ID, held: [held], ended: [held] })
+    )
+  })
+
+  it.each([
+    ['an attack roll against no enemy', attackEnds, { makesAttackRoll: true, againstEnemy: false }],
+    ['a cast that affects no enemy', castEnds, { castsSpell: true, againstEnemy: false }],
+    [
+      'a cast, for an effect ending on an attack roll',
+      attackEnds,
+      { castsSpell: true, againstEnemy: true }
+    ],
+    [
+      'an attack roll, for an effect ending on a cast',
+      castEnds,
+      { makesAttackRoll: true, againstEnemy: true }
+    ]
+  ])('keeps the effect on %s', (_label, trigger, action) => {
+    expect(
+      actionEndedEffects({
+        holderActorId: HOLDER_ID,
+        held: [sanctuary(trigger)],
+        makesAttackRoll: false,
+        castsSpell: false,
+        ...action
       })
     ).toEqual({ consumedGrants: [], sourceReleases: [] })
   })

@@ -27,6 +27,7 @@ import { RoomEncounterStore } from '../src/roomEncounterStore.js'
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { plainWolf } from '../src/testing/movementPlannerFixture.js'
 import { actionRoom, biteWolf } from './actionRoomFixture.js'
+import { endTriggerEffectSeed } from './endTriggerEffectSeed.js'
 import { seedModifierGrant } from './grantSeed.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
 import { movementRoom } from './movementRoomFixture.js'
@@ -589,6 +590,62 @@ describe('a Legendary Action uses up the owner’s one-roll grants (SPELLS-5.4)'
     const settled = await legendaryTurnEnd(attackDragon, INVISIBLE_ID, 'CAST')
     expect(settled.activeEffects).toHaveLength(1)
     expect(readActorConditionIds(settled, FIRST_DRAGON_ID)).toContain(INVISIBLE_ID)
+  })
+})
+
+describe('a Legendary Action that damages the holder of a damage-triggered effect (SPELLS-27.T4b)', () => {
+  const EFFECT_ID = testUuid(0x5642)
+
+  /** The invisible Wolf ends its turn and the attacking dragon strikes it with `attackRoll`. */
+  async function strikeInvisibleWolf(attackRoll: number) {
+    const room = await movementRoom({
+      actors: [
+        srdCreatureActor({ id: WOLF_ID, creature: plainWolf, conditionIds: [INVISIBLE_ID] }),
+        srdCreatureActor({ id: FIRST_DRAGON_ID, creature: attackDragon })
+      ],
+      moverActorId: WOLF_ID,
+      positions: { [WOLF_ID]: { x: 150, y: 150 }, [FIRST_DRAGON_ID]: { x: 250, y: 150 } },
+      autoRoll: 'GAME_MASTER',
+      // An invisible target is attacked with disadvantage: two d20s, both the same.
+      rolls: [attackRoll, attackRoll],
+      seed: endTriggerEffectSeed({
+        effectId: EFFECT_ID,
+        holderActorId: WOLF_ID,
+        sourceActorId: WOLF_ID,
+        triggers: [{ event: 'DAMAGE_TAKEN', by: 'ANYONE', damageTypeIds: null }]
+      })
+    })
+    const commandId = crypto.randomUUID()
+    const { runs } = await readRoomHistory(room.base.stub)
+    await room.send(commandId, {
+      scope: 'ENCOUNTER',
+      command: {
+        type: 'ADVANCE_TURN',
+        encounterId: room.encounterId,
+        commandId,
+        expectedVersion: runs[0]!.version
+      }
+    })
+    const option = (await readLegendaryChoice(room.base.stub))?.options[0]
+    if (!option) throw new Error('Expected a Legendary option.')
+    await respond(room, {
+      kind: 'LEGENDARY_OPTION',
+      optionId: option.optionId,
+      targetActorId: WOLF_ID
+    })
+    const history = await readRoomHistory(room.base.stub)
+    return {
+      effectIds: history.activeEffects.map(({ id }) => id),
+      invisible: readActorConditionIds(history, WOLF_ID).includes(INVISIBLE_ID)
+    }
+  }
+
+  it('ends the effect, and releases its condition, when the attack damages its holder', async () => {
+    expect(await strikeInvisibleWolf(20)).toEqual({ effectIds: [], invisible: false })
+  })
+
+  it('keeps the effect when the attack misses', async () => {
+    expect(await strikeInvisibleWolf(1)).toEqual({ effectIds: [EFFECT_ID], invisible: true })
   })
 })
 

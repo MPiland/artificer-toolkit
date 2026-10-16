@@ -3,18 +3,26 @@ import {
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import { DND5E_RECHARGE_5_LIFECYCLE_DEFINITION_ID } from '@artificer-toolkit/schema/shared/encounterLifecycle'
+import { SRD_DAMAGE_TYPES } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { plainWolf } from '../src/testing/movementPlannerFixture.js'
+import { endTriggerEffectSeed, INVISIBLE_ID } from './endTriggerEffectSeed.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
 import { movementRoom } from './movementRoomFixture.js'
-import { parseReceiptExecution, readRoomHistory, readRoomRollCards } from './roomHistoryReads.js'
+import {
+  parseReceiptExecution,
+  readActorConditionIds,
+  readRoomHistory,
+  readRoomRollCards
+} from './roomHistoryReads.js'
 import { seedTurnSaveEffect } from './turnEvidenceFixture.js'
 
 const FIRST_ID = testUuid(0x720)
 const SECOND_ID = testUuid(0x721)
 const CHARGE_ID = testUuid(0x722)
+const FIRE_ID = SRD_DAMAGE_TYPES.find(({ code }) => code === 'FIRE')!.id
 
 afterEach(() => {
   closeTrackedSockets()
@@ -564,6 +572,71 @@ describe('a room ADVANCE_TURN into a depleted Recharge Feature', () => {
       expect(await rechargeCards(room)).toEqual([
         { audience: 'TABLE', label: 'Rolled by the app, attempt 1', total: 6 }
       ])
+    })
+  })
+})
+
+describe('ongoing damage that reaches the holder of a damage-triggered effect (SPELLS-27.T4b)', () => {
+  const EFFECT_ID = testUuid(0x5643)
+
+  /** The invisible first creature takes 2 damage from its END_OF_TURN effect as its turn ends. */
+  async function endTurnOfInvisibleCreature(damageTypeIds: string[] | null) {
+    const first = srdCreatureActor({
+      id: FIRST_ID,
+      creature: plainWolf,
+      conditionIds: [INVISIBLE_ID]
+    })
+    const second = srdCreatureActor({ id: SECOND_ID, creature: plainWolf })
+    const effectDefinitions: Awaited<ReturnType<typeof seedTurnSaveEffect>>['definition'][] = []
+    const seedTrigger = endTriggerEffectSeed({
+      effectId: EFFECT_ID,
+      holderActorId: FIRST_ID,
+      sourceActorId: SECOND_ID,
+      triggers: [{ event: 'DAMAGE_TAKEN', by: 'ANYONE', damageTypeIds }]
+    })
+    const room = await movementRoom({
+      actors: [first, second],
+      moverActorId: FIRST_ID,
+      positions: { [FIRST_ID]: { x: 150, y: 150 }, [SECOND_ID]: { x: 250, y: 150 } },
+      autoRoll: 'GAME_MASTER',
+      // A natural 1 fails the DC 30 turn save, so the 2 damage always lands.
+      rolls: [0],
+      definitions: effectDefinitions,
+      seed: async (context) => {
+        const ticking = await seedTurnSaveEffect({
+          effects: context.effects,
+          encounterId: context.encounterId,
+          actor: first,
+          stage: 'END_OF_TURN',
+          ticks: 2,
+          damage: 2,
+          occurredAt: context.occurredAt
+        })
+        effectDefinitions.push(ticking.definition)
+        await seedTrigger(context)
+      }
+    })
+    const before = await readRoomHistory(room.base.stub)
+    const answer = await advanceCommand(room, before.runs[0]!.version).send()
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    const history = await readRoomHistory(room.base.stub)
+    return {
+      triggerEffectHeld: history.activeEffects.some(({ id }) => id === EFFECT_ID),
+      invisible: readActorConditionIds(history, FIRST_ID).includes(INVISIBLE_ID)
+    }
+  }
+
+  it('ends the effect, and releases its condition, when the damage lands', async () => {
+    expect(await endTurnOfInvisibleCreature(null)).toEqual({
+      triggerEffectHeld: false,
+      invisible: false
+    })
+  })
+
+  it('keeps the effect when the damage is of a type the trigger does not name', async () => {
+    expect(await endTurnOfInvisibleCreature([FIRE_ID])).toEqual({
+      triggerEffectHeld: true,
+      invisible: true
     })
   })
 })
