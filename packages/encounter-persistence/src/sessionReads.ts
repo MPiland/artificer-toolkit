@@ -13,9 +13,9 @@ import { readRunProjectionFacts } from './actorProjectionFacts.js'
 import { readEncounterCharacterStates } from './characterStates.js'
 import { readCampaignRunState } from './documents.js'
 import { readHalfSpeedFields } from './halfSpeedFields.js'
-import { readEncounterHealthViewer } from './healthViewer.js'
 import { projectEncounterFacts } from './nativeProjection.js'
 import { readEncounterWaitingOn, readPendingRunDecision } from './pendingReads.js'
+import { readEncounterPlayerViewer } from './playerViewer.js'
 import type { EncounterReadTransaction } from './ports.js'
 import type { EncounterDocument } from './store.js'
 import { readTurnMovementView } from './turnMovement.js'
@@ -98,7 +98,7 @@ export async function presentEncounterRun(
   if (role === 'OWNER') return current
   return projectPlayerEncounterProjection(
     current,
-    await readEncounterHealthViewer(ctx, current, viewer.userId)
+    await readEncounterPlayerViewer(ctx, current, viewer)
   )
 }
 
