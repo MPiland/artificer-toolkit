@@ -301,7 +301,9 @@ store.
   holder's state ends is refused). A grant ended by a movement pass or an actor or Sheet edit is deleted without a receipt
   (`endHolderStateGrants`, `endConcentrationAfterEdit`; D99: no undo of an ended grant), and every path posts a chat notice per grant
   (`postGrantEndMessages`, entry id `grantEndNoticeId(occurrence, grant)`, so a replay adds nothing; a private GM holder posts none). A turn advance is not an undo root, so its
-  ended grants carry no receipt. A holder-ended grant is the stored Run command `END_HELD_GRANT`; like any costed
+  ended grants carry no receipt. An `ON_IDLE_TURN` grant is ended by that turn advance (`persistEncounterGrantTicks`); its engaged
+  mark lives in the actor's `resources` (hashed with the actor state), and the `RESOLVE_ACTION` root's `engagedActorIds` lists the
+  actors that action newly marked so `REVERT_LAST_ACTION` clears exactly those (`rules-runtime.md`, Idle turns). A holder-ended grant is the stored Run command `END_HELD_GRANT`; like any costed
   Run command it blocks undo of the prior action (D99). The Sheet end of a holder-end grant is free in a MANUAL Run
   (`economyEnforced: false`).
 - **No Convex timeline:** the timeline and latest evidence roll are read only from the room. Encounter

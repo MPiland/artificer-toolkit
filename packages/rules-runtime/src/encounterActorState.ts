@@ -84,6 +84,24 @@ export function withFeatureChargeUsed(
   return { ...resources, featureCharges: { ...featureCharges, [featureId]: used } }
 }
 
+/**
+ * Whether the actor has attacked a hostile creature or taken damage since its last turn ended
+ * (SRD Rage). Only an actor holding a grant that ends on `ON_IDLE_TURN` is ever marked.
+ */
+export function encounterActorEngaged(actor: Pick<ActorRead, 'resources'>): boolean {
+  return isRecord(actor.resources) && actor.resources.engagedSinceTurn === true
+}
+
+export function withEncounterActorEngaged(
+  actor: Pick<ActorRead, 'resources'>,
+  engaged: boolean
+): Record<string, unknown> {
+  const { engagedSinceTurn: _engaged, ...resources } = isRecord(actor.resources)
+    ? actor.resources
+    : {}
+  return engaged ? { ...resources, engagedSinceTurn: true } : resources
+}
+
 export function encounterRuleUsageUsed(
   actor: Pick<ActorRead, 'resources'>,
   definitionId: string

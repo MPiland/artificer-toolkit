@@ -12,6 +12,11 @@ import {
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { deriveEncounterCharacterMechanicsEventCommandId } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
+import { encounterActorEngaged } from '@artificer-toolkit/rules-runtime/encounterActorState'
+import {
+  attackedHostileCreature,
+  grantsEndedBy
+} from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
 import { overridesActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionRuleWarnings'
 import { executionAddsSpeedToMovement } from '@artificer-toolkit/rules-runtime/systems/dnd5e/addSpeedToMovement'
 import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
@@ -264,8 +269,14 @@ export async function persistEncounterActionCommit(
     batch.kind === 'ENCOUNTER_ACTOR_MECHANICS_BATCH' ? batch.targetFeatureResourceConsumption : null
   if (targetCharge && targetCharge.ownerActorId !== target.id)
     throw new Error('Live Session action charge scope mismatch.')
+  // An idle-bound grant that starts on its holder's own turn skips that turn's check: its holder
+  // arrives marked engaged, so the first check is at the end of the holder's next turn.
+  const targetEngagedByGrant =
+    target.id === state.currentActorId &&
+    !encounterActorEngaged(mechanics.updatedActor) &&
+    input.createdEffects.some((effect) => grantsEndedBy([effect], 'ON_IDLE_TURN').length > 0)
   const settledTarget =
-    targetCharge || reaction?.actionEconomyTransition
+    targetCharge || reaction?.actionEconomyTransition || targetEngagedByGrant
       ? await settleActionSourceSpend(ctx, {
           encounterId: state.id,
           source: mechanics.updatedActor,
@@ -274,16 +285,23 @@ export async function persistEncounterActionCommit(
             actionEconomyTransition: reaction?.actionEconomyTransition ?? null,
             attackActionTransition: undefined
           },
-          economyOverridden: false
+          economyOverridden: false,
+          engages: targetEngagedByGrant
         })
       : mechanics.updatedActor
   const beforeSource =
     sourceMechanics?.updatedActor ?? (source.id === target.id ? settledTarget : source)
+  // The worker says the source holds an idle-bound grant; the roll and the target prove the engagement.
+  const sourceEngaged =
+    input.engagesSource &&
+    !encounterActorEngaged(beforeSource) &&
+    attackedHostileCreature({ d20s: [batch.d20, batch.nestedD20], source, target })
   const settledSource = await settleActionSourceSpend(ctx, {
     encounterId: state.id,
     source: beforeSource,
     spend: batch,
-    economyOverridden: overridesActionEconomy(input.ruleOverrides)
+    economyOverridden: overridesActionEconomy(input.ruleOverrides),
+    engages: sourceEngaged
   })
   let nextActors = actors.map((actor) =>
     actor.id === source.id ? settledSource : actor.id === target.id ? settledTarget : actor
@@ -387,7 +405,11 @@ export async function persistEncounterActionCommit(
       }),
       addedConcentrationCasterId: maintenance?.addedConcentrationCasterId ?? null,
       speedBonusTurn: addsSpeed ? { round: state.round, turnActorId: source.id } : null,
-      turnUses
+      turnUses,
+      engagedActorIds: [
+        ...(sourceEngaged ? [source.id] : []),
+        ...(mechanics.engaged || targetEngagedByGrant ? [target.id] : [])
+      ]
     },
     occurredAt: input.occurredAt
   })

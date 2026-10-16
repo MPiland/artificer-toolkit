@@ -21,6 +21,7 @@ import { reconcileEncounterActorRuleOutput } from '@artificer-toolkit/rules-runt
 import {
   featureChargeUsed,
   encounterRuleUsageUsed,
+  withEncounterActorEngaged,
   withEncounterRuleUsageUsed,
   withFeatureChargeUsed
 } from '@artificer-toolkit/rules-runtime/encounterActorState'
@@ -512,6 +513,11 @@ export async function revertLastEncounterAction(
     if (!restored)
       unavailable("The actor's Attack action changed after this action; adjust manually.")
     updateActor(source.id, { resources: restored.resources })
+  }
+  // Only the marks this action set go: an actor engaged earlier in the turn stays engaged.
+  for (const actorId of root.engagedActorIds) {
+    const engaged = actorsById.get(actorId)
+    if (engaged) updateActor(actorId, { resources: withEncounterActorEngaged(engaged, false) })
   }
 
   // A Dash's speed bonus leaves the turn's movement record.

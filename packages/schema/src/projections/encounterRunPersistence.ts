@@ -308,6 +308,11 @@ export const encounterStoredRunCommandSchema = lazySchema(() =>
         ),
         null
       ),
+      /** The actors this action newly marked engaged (attacked a hostile creature, took damage); its undo clears the marks. */
+      engagedActorIds: z._default(
+        z.array(postgresUuidSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
+        []
+      ),
       /** History lines for the user who issued the command, such as an area's outcomes for its caster; the GM sees them too. */
       issuerLines: z._default(
         z
