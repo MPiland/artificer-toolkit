@@ -187,17 +187,16 @@ describe('room Counterspell against a Character’s spell cast (REACTION-4.3)', 
     expect(await slotsOf(room, REACTOR_ID)).toEqual([])
   })
 
-  it('offers only the slots at least as high as the cast', async () => {
-    const low = await counterspellRoom({ spell: unlimitedCureWounds })
-    await cast(low)
-    const lowOptions = (await offered(low)).pending.options.length
+  it('offers Counterspell for a cast at its own slot level but not above it', async () => {
+    const atLevel = await counterspellRoom({ spell: unlimitedCureWounds, castLevel: '3rd' })
+    await cast(atLevel)
+    expect((await offered(atLevel)).pending.options).toHaveLength(1)
 
-    const high = await counterspellRoom({ spell: unlimitedCureWounds, castLevel: '4th' })
-    await cast(high)
-    const highOptions = (await offered(high)).pending.options.length
-
-    // Slots 3 to 5 answer a 1st-level cast; only slots 4 and 5 answer a 4th-level one.
-    expect([lowOptions, highOptions]).toEqual([3, 2])
+    // Counterspell has one cast level; a higher cast is not answered until its ability check exists.
+    const above = await counterspellRoom({ spell: unlimitedCureWounds, castLevel: '4th' })
+    await cast(above)
+    expect((await above.pendingDecision()).pending.kind).not.toBe('REACTION_CHOICE')
+    expect(await slotsOf(above, REACTOR_ID)).toEqual([])
   })
 
   it('refuses an option the pause never offered, leaving the cast held', async () => {
