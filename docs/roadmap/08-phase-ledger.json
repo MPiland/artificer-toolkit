@@ -8422,23 +8422,35 @@
         {
           "id": "SPELLS-23",
           "title": "Aiming a directed area on the map",
-          "status": "IN_PROGRESS",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": [
+            "apps/web/src/domains/campaigns/vtt/CampaignVttStage.areaAim.test.tsx",
+            "apps/session-worker/test/nativeRoomDirectedAreaAction.test.ts"
+          ],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
               "text": "Pressing, dragging and releasing on the map aims a cone, line or Self cube and commits exactly the drawn origin and direction; a point picked for a directed area, or a direction for a point area, is refused with its own message; proved through the renderer gesture and the room refusals.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/web/src/domains/campaigns/vtt/vttAreaAimGesture.test.ts",
+                "apps/web/src/domains/campaigns/vtt/CampaignVttStage.areaAim.test.tsx",
+                "apps/session-worker/test/nativeRoomDirectedAreaAction.test.ts",
+                "packages/encounter-persistence/src/__tests__/requireAreaActionPendingRoot.test.ts"
+              ],
               "origin": [],
               "note": "Found in the SPELLS-13 review 2026-10-14: the renderer aim gesture (vttSceneRenderer.ts press/drag/release) has no test; point-for-directed and direction-for-point share one message and room tests never assert messages; NO_CASTER_TOKEN is unreachable in the room; areaMatchesTarget is unproven in the guard path.",
               "id": "SPELLS-23.1"
             },
             {
               "text": "A Self cube snaps to the grid on the side the caster picks, centered evenly along that side, wherever the caster stands; proved for every side and size.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/shared/src/__tests__/vtt-directed-area.test.ts",
+                "packages/rules-runtime/src/__tests__/encounterAreaAction.test.ts",
+                "apps/session-worker/test/nativeRoomDirectedAreaAction.test.ts"
+              ],
               "origin": [],
               "note": "SPELLS-13 review 2026-10-14: Math.round gives an uneven 25/50/25 split and snaps to the caster's side rather than the grid. Also tighten the diagonal 60-ft cone test from spot checks to the exact caught set, and fix the test nits (dragon wording in actionRoomFixture, drawer fixture creature-dragon:breath, \"touches\" in titles).",
               "id": "SPELLS-23.2"
@@ -8453,8 +8465,8 @@
           "tasks": [
             {
               "id": "SPELLS-23.T1",
-              "text": "Directed-area aiming on the map: press, drag and release aims a cone, line or Self cube and commits exactly the drawn origin and direction; a point for a directed area, or a direction for a point area, is refused room-side with its own message; a Self cube snaps to the grid on the caster's chosen side, centered along it, for every side and size. Proved through the renderer gesture and the room refusals.",
-              "status": "IN_PROGRESS",
+              "text": "Directed-area aiming on the map: press, drag and release aims a cone, line or Self cube and commits exactly the drawn origin and direction; a point for a directed area, or a direction for a point area, is refused room-side with its own message; a Self cube snaps to the grid on the caster's chosen side, centered along it, for every side and size. Proved through the renderer gesture and the room refusals. (Red: ci/spells-23-t1-red Tests 38940045467 on 52214ffeb failed on Build packages (gridOrigin missing from the cube shape, createVttAreaAimGesture absent). Green: ci/spells-23-t1 Tests 38944267968 and Live backend 38944268027 on a9c88a15b.)",
+              "status": "DONE",
               "closes": ["SPELLS-23.1", "SPELLS-23.2"],
               "wsjf": {
                 "bv": 3,
