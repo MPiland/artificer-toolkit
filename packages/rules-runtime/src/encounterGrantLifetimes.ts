@@ -41,19 +41,19 @@ export function ownsCondition(effect: ActiveRuleEffectRecord) {
  * The effects the first occurrence of the event, by their holder, uses up or ends: those that list
  * it in `consumeOnFirstEvents` or `endOnEvents`. Both lists mean the same here (the event applies,
  * then the effect is gone, restored by the same receipt); the caller releases any condition an
- * ended effect alone held (`endedMaintenanceConditions`).
+ * ended effect alone held (`endedMaintenanceConditions`). An action can be several events at once (a
+ * spell attack is an attack roll and a cast); an effect listing more than one ends once.
  */
 export function effectsEndedBy(
   effects: readonly ActiveRuleEffectRecord[],
-  event: ActiveEffectConsumeEvent | ActiveEffectEndEvent
+  ...events: readonly (ActiveEffectConsumeEvent | ActiveEffectEndEvent)[]
 ) {
   return effects.filter(
     ({ definition }) =>
       definition.schemaVersion === 2 &&
-      [
-        ...definition.recurrence.consumeOnFirstEvents,
-        ...definition.recurrence.endOnEvents
-      ].includes(event)
+      [...definition.recurrence.consumeOnFirstEvents, ...definition.recurrence.endOnEvents].some(
+        (listed) => events.includes(listed)
+      )
   )
 }
 

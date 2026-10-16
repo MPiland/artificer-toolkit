@@ -1041,6 +1041,8 @@ export const contestedActionApplicationOutputDtoSchema = lazySchema(() =>
 /** The source's one spend of an action, as the receipts every root that spends it carries. */
 export const sourceSpendReceiptShape = () => ({
   sourceCharacterStreamVersion: z.nullable(aggregateVersionSchema),
+  /** The source's own conditions released by effects its action ended; empty when none. */
+  sourceApplications: sourceApplicationsDtoSchema,
   resourceConsumption: z.nullable(characterMechanicsResourceReceiptDtoSchema),
   featureResourceConsumption: z.nullable(encounterFeatureResourceReceiptDtoSchema),
   sourceItemUseStateTransition: z.nullable(characterItemUseStateTransitionDtoSchema),
@@ -1059,6 +1061,7 @@ export type SourceSpendReceipts = Pick<
   | 'spellCastConsumption'
   | 'actionEconomyTransition'
   | 'attackActionTransition'
+  | 'sourceApplications'
 > & { sourceCharacterStreamVersion: number | null }
 
 /** The spend receipts agree with the source they name: its Character, its resources and its stream version. */
@@ -1110,7 +1113,13 @@ export function validateSourceSpendReceipts(
     })
   if (
     (value.sourceCharacterStreamVersion === null) !==
-    !(resource !== null || stow !== null || consumption !== null || spell !== null)
+    !(
+      resource !== null ||
+      stow !== null ||
+      consumption !== null ||
+      spell !== null ||
+      sourceApplicationsChangeState(value.sourceApplications, value.sourceCharacterId)
+    )
   )
     context.addIssue({
       code: 'custom',
