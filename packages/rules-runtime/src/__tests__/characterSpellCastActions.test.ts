@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { CharacterRulePolicyOutput } from '@artificer-toolkit/schema/api/characterRules'
+import { createCharacterResourceOwnerKey } from '@artificer-toolkit/shared/character'
 import type { SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { compileSpell } from '@artificer-toolkit/shared/subjects/compilers'
 import { srdSpells } from '@artificer-toolkit/source-data/srd/spells/index.js'
@@ -101,6 +102,7 @@ function policyFor(
       castLevel: cast.castLevel,
       mechanics: mechanics(authoredById.get(cast.spellId)!)
     })),
+    resources: [],
     spellSlots: {
       calculationId: 'slots',
       sourceClassIds: [],
@@ -246,15 +248,8 @@ describe('the cast choices an Encounter offers a Character', () => {
     expect(spellCastActionId(long.candidateId)).not.toBe(spellCastActionId(`${long.candidateId}.`))
   })
 
-  it.each([
-    ['a ritual', { castMode: 'RITUAL' as const }],
-    ['a limited-use cast', { castMode: 'LIMITED_USE' as const }],
-    [
-      'a fixed-level cast paid from a resource',
-      { castMode: 'FIXED_LEVEL' as const, resourceOwnerKey: 'AUTHORED_GRANT:pool' }
-    ]
-  ])('does not offer %s', (_name, overrides) => {
-    expect(build([candidate(FIREBALL, 3, overrides)]).candidates).toEqual([])
+  it('does not offer a ritual', () => {
+    expect(build([candidate(FIREBALL, 3, { castMode: 'RITUAL' })]).candidates).toEqual([])
   })
 
   it('does not offer a cast the Sheet does not list as castable', () => {
@@ -374,6 +369,166 @@ describe('what a leveled cast carries into the Encounter action', () => {
         'PACT'
       )
     ).toEqual({ level: 3, used: 1 })
+  })
+})
+
+describe('a cast paid from a spell-source pool', () => {
+  const GRANT_ID = 'grant-1'
+  const SOURCE_INSTANCE_ID = 'feature-1'
+  const CHARGE_ID = 'charge-1'
+  const source = {
+    spellId: FIREBALL.id,
+    sourceKind: 'FEATURE' as const,
+    sourceInstanceId: SOURCE_INSTANCE_ID
+  }
+  const owner = {
+    kind: 'SPELL_SOURCE' as const,
+    resourceGrantId: GRANT_ID,
+    spellId: FIREBALL.id,
+    sourceKind: 'FEATURE' as const,
+    sourceInstanceId: SOURCE_INSTANCE_ID
+  }
+  const poolId = createCharacterResourceOwnerKey(owner)
+  const pool = (rawUsed: number): CharacterRulePolicyOutput['resources'][number] => ({
+    ownerKind: 'SPELL_SOURCE',
+    sequence: 0,
+    poolId,
+    resourceDefinitionId: CHARGE_ID,
+    chargeId: CHARGE_ID,
+    chargeCalculationId: poolId,
+    accessId: GRANT_ID,
+    sourceInstanceId: SOURCE_INSTANCE_ID,
+    spellId: FIREBALL.id,
+    state: 'RESOLVED',
+    maximum: 2,
+    rawUsed,
+    effectiveUsed: rawUsed,
+    remaining: 2 - rawUsed,
+    reasonCode: 'CALCULATED',
+    baseContribution: null,
+    bonusContributions: [],
+    resetKind: 'LONG_REST',
+    resetResolution: { baseResetKind: 'LONG_REST', appliedGrantId: null, source: null }
+  })
+  const pooled = (castMode: 'LIMITED_USE' | 'FIXED_LEVEL', authored = FIREBALL) =>
+    candidate(authored, authored.level, {
+      candidateId: `FEATURE:${SOURCE_INSTANCE_ID}:${authored.id}:level:${authored.level}`,
+      source,
+      castMode,
+      resourceOwnerKey: poolId
+    })
+  const buildPooled = (cast: SpellCastCandidate, rawUsed = 0) =>
+    build([cast], {
+      policyOutput: { ...policyFor([cast], authoredById, () => null), resources: [pool(rawUsed)] }
+    })
+  const character = evaluateSrdCharacter({ classes: [{ label: 'Fighter', level: 1 }] })
+
+  function prepare(
+    cast: SpellCastCandidate,
+    rawUsed: number,
+    automationMode: 'ASSISTED' | 'MANUAL'
+  ) {
+    const built = buildPooled(cast, rawUsed)
+    const [entry] = compileCharacterActionEntryPoints({
+      gameSystemId: SRD_SYSTEM_ID,
+      candidates: built.candidates,
+      descriptors: discoverCharacterActionCapabilities({
+        gameSystemId: SRD_SYSTEM_ID,
+        candidates: built.candidates,
+        conditionDefinitionIds: SRD_CONDITION_TYPES.map((condition) => condition.id).sort(),
+        abilityDefinitions: SRD_ABILITIES.map(({ id, code }) => ({ id, code })),
+        entryPoints: built.entryPoints
+      })
+    })
+    if (entry?.kind !== 'CHARACTER_ACTION' || entry.schemaVersion !== 4)
+      throw new Error('The spell cast must compile to a v4 entry.')
+    if (entry.compilation.kind !== 'COMPILED') throw new Error('The spell cast must compile.')
+    const [offered] = built.candidates
+    if (!offered) throw new Error('The spell cast must be offered.')
+    return {
+      entry,
+      built,
+      prepared: prepareNativeCharacterActionState({
+        entry: { ...entry, compilation: entry.compilation },
+        candidate: offered,
+        policyOutput: {
+          ...character.output,
+          ...policyFor([cast], authoredById, () => null),
+          resources: [pool(rawUsed)],
+          actionDecisions: built.decisions
+        },
+        resourceUsage:
+          rawUsed === 0
+            ? []
+            : [
+                {
+                  id: 'usage-1',
+                  characterId: CHARACTER_ID,
+                  owner,
+                  used: rawUsed,
+                  createdBy: 'user',
+                  updatedBy: 'user',
+                  createdAt: '2026-01-01T00:00:00.000Z',
+                  updatedAt: '2026-01-01T00:00:00.000Z'
+                }
+              ],
+        inventory: [],
+        itemUsage: [],
+        characterId: CHARACTER_ID,
+        expectedStreamVersion: STREAM_VERSION,
+        classLevels: character.facts.grantFoldFacts.base.classes,
+        automationMode,
+        overridable: false
+      })
+    }
+  }
+
+  it.each(['LIMITED_USE', 'FIXED_LEVEL'] as const)(
+    'offers a %s cast bound to its pool at the cost of one use',
+    (castMode) => {
+      const { entry, built } = prepare(pooled(castMode), 0, 'ASSISTED')
+      const binding = { poolId, chargeId: CHARGE_ID, cost: 1 }
+      expect(built.candidates.map((value) => value.resourceUse)).toEqual([binding])
+      expect(built.decisions).toMatchObject([{ resourcePoolId: poolId, resourceCost: 1 }])
+      expect(entry.compilation.resourceBinding).toEqual(binding)
+    }
+  )
+
+  it('spends one use of the pool and no slot, from the uses already spent, in Assisted play', () => {
+    const { prepared } = prepare(pooled('LIMITED_USE'), 1, 'ASSISTED')
+    expect(prepared.spellConsumption).toBeNull()
+    expect(prepared.resourceConsumption).toMatchObject({
+      poolId,
+      chargeId: CHARGE_ID,
+      cost: 1,
+      owner,
+      usageId: 'usage-1',
+      beforeUsed: 1,
+      afterUsed: 2,
+      beforeRemaining: 1,
+      afterRemaining: 0,
+      characterId: CHARACTER_ID,
+      expectedStreamVersion: STREAM_VERSION
+    })
+  })
+
+  it('spends nothing in Manual play', () => {
+    const { prepared } = prepare(pooled('LIMITED_USE'), 0, 'MANUAL')
+    expect(prepared.resourceConsumption).toBeNull()
+    expect(prepared.spellConsumption).toBeNull()
+  })
+
+  it('spends nothing for a cantrip, which is free as on the Sheet', () => {
+    const cantrip = { ...FIREBALL, level: 0 }
+    const cast = candidate(cantrip, 0, {
+      castMode: 'LIMITED_USE',
+      resourceOwnerKey: poolId,
+      source
+    })
+    const [offered] = build([cast], {
+      spellDocumentsById: new Map([[cantrip.id, cantrip]])
+    }).candidates
+    expect(offered?.resourceUse).toBeNull()
   })
 })
 
