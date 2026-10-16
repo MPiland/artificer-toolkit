@@ -428,7 +428,7 @@ async function recordEncounterToolCommand(
       })
     }
     const previousHitPoints = actor.kind === 'CHARACTER' ? 0 : actor.currentHitPoints
-    const previousTempHitPoints = actor.tempHitPoints
+    const previousTempHitPoints = actor.kind === 'CHARACTER' ? 0 : actor.tempHitPoints
     actor = encounterRunActorStateSchema.parse(
       input.type === 'SET_INITIATIVE' || input.type === 'ROLL_ACTOR_INITIATIVE'
         ? {
