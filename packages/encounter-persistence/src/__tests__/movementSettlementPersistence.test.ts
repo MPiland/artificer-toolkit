@@ -23,7 +23,7 @@ const end = {
   ownerTransitions: []
 }
 const reaction = {
-  option: { candidate: { pathDistance: 1 } },
+  option: { candidate: { pathDistance: 1, movingActorId: 'mover' } },
   characterTransitions: [],
   concentrationEnd: end
 }
@@ -31,8 +31,8 @@ const { concentrationEnd: _end, ...reactionEvidence } = reaction
 
 function settle(settlements: unknown[], automationMode?: 'MANUAL') {
   const callbacks = {
-    persistReaction: vi.fn(async () => [{ id: 'mover' }]),
-    persistConcentrationEnd: vi.fn(async () => [{ id: 'mover' }]),
+    persistReaction: vi.fn(async () => [{ id: 'mover' }, { id: 'bystander' }]),
+    persistConcentrationEnd: vi.fn(async () => [{ id: 'mover' }, { id: 'bystander' }]),
     endHolderGrants: vi.fn(async () => {})
   }
   const persisted = persistMovementSettlements(
@@ -83,7 +83,7 @@ describe('persistMovementSettlements holder-state grant ends', () => {
     { kind: 'CONCENTRATION_END', execution: end }
   ]
 
-  it('ends each settled actor state-bound grants once the pass has settled', async () => {
+  it('reads only the damaged actors state-bound grants once the pass has settled', async () => {
     const { persisted, callbacks } = settle(settlements)
 
     await persisted

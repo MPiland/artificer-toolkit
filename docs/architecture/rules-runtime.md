@@ -729,6 +729,22 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   `EQUIPMENT_EQUIPPED` condition (category `ARMOR`, property `HEAVY`) on each Rage benefit's facets, the same predicate Monk's Unarmored
   Movement uses. A Rage that ends Concentration (`SPELLCASTING_LOCKED`) adds a Concentration-end child that undo cannot restore, so GM
   undo of that action is refused with that reason (a full restore is a proposed follow-up).
+  **Idle turns (ATTACK-9.T6b, SRD Rage "ends early").** The end event `ON_IDLE_TURN` ends a grant at the end of its holder's turn
+  unless the holder was engaged since their previous turn. The mark is `idleTurnMark` in the actor's free-form `resources`
+  (`encounterActorIdleTurnMark` / `withEncounterActorIdleTurnMark`), hashed in the actor state checksum so it replays with the Run.
+  It is tri-state: absent for an actor that holds no idle-bound grant, `ARMED` while it holds one and has not engaged, `ENGAGED` once
+  it has. The armed marker is what keeps the damage path free of reads: only a marked actor ever has its effects listed. A grant
+  created by an action effect (`persistEncounterActionEffects` through `armIdleTurnActor`) arms its holder, or marks it `ENGAGED` when
+  the holder is the current turn actor, so the first check is the end of its next turn (a lenient, recorded deviation from SRD 5.1 on
+  every activation path). Engaged means an attack roll (d20 result `ON_HIT`/`ON_MISS`/`ON_CRIT`) against a hostile creature
+  (`attackedHostileCreature`) or damage after reductions, and every such site marks through the one `engageIdleTurnActor`:
+  action commits, opportunity attacks, Disarm, Grapple and Shove, spell and area attack rolls, reaction attacks, the damage choke
+  point, Sheet HP decreases and GM HP edits. `planIdleTurnCheck`, run by `persistEncounterIdleTurnCheck` at the end of the turn commit,
+  after the outgoing turn's Legendary Action damage so that damage counts, ends the idle-bound grants of an `ARMED` holder and clears
+  its mark, and arms an `ENGAGED` one again. Skipped-turn ticks run no check for an actor that had no turn. GM undo restores the marks
+  an action changed (`idleTurnMarkChanges` on the `RESOLVE_ACTION` root, diffed before and after the commit); Disarm, GM HP edits,
+  Sheet HP changes and movement reactions are not undoable. A mark left by a grant that ended another way is reconciled at the next
+  END_OF_TURN.
 - **Gone with slice B:** the mechanic codes `SPEED_MOVEMENT_BONUS` and `NO_OPPORTUNITY_ATTACKS`, `suppressesEncounterOpportunityAttacks`,
   the `speedMovementBonus` DTO field and `speedBonusTurn` on `USE_BASIC_ACTION`.
 - **Gone with slice D:** `USE_BASIC_ACTION`, `UseEncounterBasicActionInputDto`, the catalogue `check` and `mechanics`
@@ -1130,6 +1146,14 @@ reaches that path (a critical hit reaches both). A TEST/OUTCOME action accepts g
 `REACTION_COUNT SET_VALUE 0` grant suppresses the reaction-allowance capability
 (`encounterActiveGrantCapabilitySuppressions`, read by `resolveEncounterRuleCapabilityStates` beside
 relationship suppressions), so its holder is offered no movement reaction while the grant lasts.
+
+**Granted extra Actions (ATTACK-9.3).** Action Surge is a core-authored free self action that spends its
+charge and applies a `TURN` / `END_OF_TURN` `ACTION_COUNT SET_VALUE {amount: 2}` grant. The System's ACTION
+binding names `grantedCountDomain: 'ACTION_COUNT'`, and `resolveActionAllowance` takes
+`max(allowance usage.maximum, activeSetValueGrantMaximum(holder effects, 'ACTION_COUNT'))`, so the economy
+offers exactly one more Action while the grant lasts. `SET_VALUE` is idempotent: a second Surge on the same
+turn adds no third Action. The next turn's refresh may reset a `used` above the base maximum
+(`turnResourcesPersistence` validates the equality of `encounterRuleUsageUsed`, not an upper bound).
 
 **Actor links (D129, SPELLS-28.T3).** A `TELEPATHIC_LINK` outcome compiles to `dnd5e.actor-link-proposal`
 and an `actorLinkContribution` on the active-effect plan (link kind, outcome id, Intelligence floor, duration

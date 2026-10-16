@@ -1,5 +1,5 @@
 import { ABILITIES } from '../core/ability.js'
-import type { CharacterAssemblyRegistry } from './ruleRegistry.js'
+import type { CharacterAssemblyRegistry, CharacterAssemblyRegistrySystem } from './ruleRegistry.js'
 
 const ABILITY_KEY_ALIASES: Record<string, string> = {
   STRENGTH: 'STR',
@@ -143,6 +143,39 @@ export function buildSkillSubjectAliasMap(
   }
 
   return aliases
+}
+
+/**
+ * The skills of a current System document with the ability each is governed by, in id order, by
+ * canonical skill code. A skill the System leaves ungoverned is omitted; a skill whose mapping the
+ * System cannot resolve is an error.
+ */
+export function resolveSystemSkillAbilities(system: CharacterAssemblyRegistrySystem) {
+  const abilityCodesById = new Map<string, string>()
+  for (const ability of system.abilities ?? []) {
+    const abilityCode = normalizeAbilityKey(ability.code)
+    if (!abilityCode || abilityCodesById.has(ability.id)) {
+      throw new Error(`System ability definition "${ability.id}" is ambiguous.`)
+    }
+    abilityCodesById.set(ability.id, abilityCode)
+  }
+  const canonicalIds = new Set<string>()
+  return [...(system.skills ?? [])]
+    .sort((left, right) => left.id.localeCompare(right.id))
+    .flatMap((skill) => {
+      if (skill.governingAbilityDefinitionId === null) return []
+      if (!skill.governingAbilityDefinitionId) {
+        throw new Error(`System check definition "${skill.id}" has no governing ability.`)
+      }
+      const { code } = skill
+      const canonicalId = code ? toSkillCanonicalId(code) : undefined
+      const abilityCode = abilityCodesById.get(skill.governingAbilityDefinitionId)
+      if (!code || !canonicalId || !abilityCode || canonicalIds.has(canonicalId)) {
+        throw new Error(`System check definition "${skill.id}" has an invalid mapping.`)
+      }
+      canonicalIds.add(canonicalId)
+      return [{ skill, code, canonicalId, abilityCode }]
+    })
 }
 
 export function buildModifierDomainKey(

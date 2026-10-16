@@ -3,6 +3,7 @@ import type {
   EncounterPersistenceTransaction
 } from '@artificer-toolkit/encounter-persistence/ports'
 import { readRunActors } from '@artificer-toolkit/encounter-persistence/documents'
+import { readInitiativeSourceRoll } from '@artificer-toolkit/rules-runtime/encounterInitiativeRoll'
 import { prepareEncounterInitiativeSources } from '@artificer-toolkit/rules-runtime/encounterInitiativeSources'
 import { toCharacterInitiativeActorFacts } from '@artificer-toolkit/rules-runtime/character/characterInitiativeFacts'
 import { characterEncounterInitiativeResultSchema } from '@artificer-toolkit/schema/api/characterEncounterInitiative'
@@ -249,20 +250,8 @@ export async function roomEncounterReadTransaction(input: {
       })
       const source = sources.actors.find((entry) => entry.actor.id === actorId)
       if (!source) throw new Error('Encounter initiative source was not found.')
-      const policy =
-        source.kind === 'CHARACTER'
-          ? (source.effectiveRulePolicyOutput ?? source.overlay.rulePolicyOutput)
-          : null
-      const modifier = policy
-        ? policy.derivedStats.initiative.effective
-        : source.kind === 'CREATURE'
-          ? source.actorRule.initiativeModifier
-          : 0
-      return {
-        characterId: source.kind === 'CHARACTER' ? source.characterId : null,
-        expression: modifier === 0 ? '1d20' : `1d20${modifier > 0 ? '+' : ''}${modifier}`,
-        rollMode: policy?.rollModes.initiative ?? 'NORMAL'
-      }
+      const { characterId, expression, rollMode } = readInitiativeSourceRoll(source)
+      return { characterId, expression, rollMode }
     },
     snapshotOptionalCombatPolicies: async (campaign, caller, definitionIds) => {
       await authority(campaign.id, caller)

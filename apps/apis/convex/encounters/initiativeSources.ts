@@ -1,5 +1,5 @@
 import { prepareEncounterInitiativeSources } from '@artificer-toolkit/rules-runtime/encounterInitiativeSources'
-import { initiativeRollExpression } from '@artificer-toolkit/rules-runtime/encounterRuleCheckRolls'
+import { readInitiativeSourceRoll } from '@artificer-toolkit/rules-runtime/encounterInitiativeRoll'
 import type { InitiativeFactSources } from '@artificer-toolkit/schema/shared/initiativeFactSources'
 import type {
   EncounterRunActorState,
@@ -46,18 +46,6 @@ export async function readActorInitiativeRoll(
     (candidate) => candidate.actor.id === actorId
   )
   if (!source) throw new Error('Encounter initiative source was not found.')
-  const policy =
-    source.kind === 'CHARACTER'
-      ? (source.effectiveRulePolicyOutput ?? source.overlay.rulePolicyOutput)
-      : null
-  const modifier = policy
-    ? policy.derivedStats.initiative.effective
-    : source.kind === 'CREATURE'
-      ? source.actorRule.initiativeModifier
-      : 0
-  return {
-    characterId: source.kind === 'CHARACTER' ? source.characterId : null,
-    expression: initiativeRollExpression(20, modifier),
-    rollMode: policy?.rollModes.initiative ?? 'NORMAL'
-  }
+  const { characterId, expression, rollMode } = readInitiativeSourceRoll(source)
+  return { characterId, expression, rollMode }
 }

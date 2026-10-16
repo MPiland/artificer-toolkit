@@ -30,7 +30,8 @@ import { insertNativeCleavingChoice } from './actionChildPersistence.js'
 import { projectNativeGm } from './nativeProjection.js'
 import { presentEncounterResultForMember } from './resultPresentation.js'
 import { insertRunCommand } from './timelineEntries.js'
-import { addEndedGrantsToRoot } from './consumedGrantPersistence.js'
+import { addResponseChangesToRoot } from './consumedGrantPersistence.js'
+import { idleTurnMarkChanges } from './idleTurnMark.js'
 import { encounterReplayReceipt } from './replayReceipts.js'
 import type { readEncounterMaintenanceCapture } from './maintenanceCapture.js'
 import type {
@@ -220,10 +221,11 @@ export async function persistEncounterCleavingResponse(
     endedGrants: input.endedGrants,
     pendingConcentration: input.pendingConcentration
   })
-  await addEndedGrantsToRoot(ctx, {
+  await addResponseChangesToRoot(ctx, {
     campaignId: campaign.id,
     actionOccurrenceId,
-    endedGrants: input.endedGrants
+    endedGrants: input.endedGrants,
+    idleTurnMarkChanges: idleTurnMarkChanges(actors, nextActors)
   })
   const projection = await projectNativeGm(ctx, nextState, nextActors, input.rules)
   const result = encounterCommandResultDtoSchema.parse({

@@ -45,6 +45,7 @@ import type {
   persistEncounterConcentrationChildren
 } from './concentrationChildrenPersistence.js'
 import { readRunActors } from './documents.js'
+import { idleTurnMarkChanges } from './idleTurnMark.js'
 import { createPlacedSpatialEffect } from './placedSpatialEffects.js'
 import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.js'
 import { projectNativeGm } from './nativeProjection.js'
@@ -621,6 +622,7 @@ export async function persistEncounterAreaCommit(
       addedConcentrationCasterId: null,
       speedBonusTurn: null,
       turnUses: null,
+      idleTurnMarkChanges: idleTurnMarkChanges(actors, nextActors),
       issuerLines: children.flatMap(({ actor, batch }) => {
         // A cast on chosen creatures asks no save, so it has nothing to report per creature.
         if (!batch.d20) return []

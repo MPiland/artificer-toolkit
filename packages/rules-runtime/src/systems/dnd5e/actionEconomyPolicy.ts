@@ -12,7 +12,11 @@ export const dnd5eActionEconomyCapabilityAdapter: ActionEconomyCapabilityAdapter
   resolveActionEconomyCapability({ activationKind, activationAmount }) {
     if (activationAmount !== 1) return { kind: 'NONE' }
     if (activationKind === 'ACTION') {
-      return { kind: 'REQUIRED', capabilityDefinitionId: DND5E_ACTION_ALLOWANCE_DEFINITION_ID }
+      return {
+        kind: 'REQUIRED',
+        capabilityDefinitionId: DND5E_ACTION_ALLOWANCE_DEFINITION_ID,
+        grantedCountDomain: 'ACTION_COUNT'
+      }
     }
     if (activationKind === 'BONUS_ACTION') {
       return {
