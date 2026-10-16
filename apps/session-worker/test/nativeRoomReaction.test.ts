@@ -22,6 +22,7 @@ import type { ClassFeature } from '../src/testing/srdCharacterSource.js'
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { actionRoom, biteWolf, fireballWolf } from './actionRoomFixture.js'
 import { areaReceipts } from './areaRoomReads.js'
+import { seedModifierGrant } from './grantSeed.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
 import {
   readPendingActionContext,
@@ -196,6 +197,53 @@ describe('room reaction to a hit (REACTION-4.4)', () => {
     // The reaction is back: the same hit offers it again.
     await strike(room, 0)
     await offeredReaction(room)
+  })
+
+  it('ends the reacting Character’s own effect that ends on a cast, and its condition, when Shield is cast; one undo gives both back (SPELLS-27.1)', async () => {
+    const deafened = conditionId('DEAFENED')
+    const room = await shieldRoom({
+      characterPlay: { conditions: [{ conditionTypeId: deafened, label: 'Deafened' }] },
+      seed: seedModifierGrant({
+        sourceActorId: CHARACTER_ACTOR_ID,
+        holderActorId: CHARACTER_ACTOR_ID,
+        lifecycle: {},
+        endsOnCast: true,
+        ownedConditionId: deafened
+      })
+    })
+    const effectIds = async () =>
+      (await readRoomHistory(room.room.base.stub)).characterEffects.map(({ id }) => id)
+    const conditionIds = () =>
+      runInDurableObject(room.room.base.stub, (_instance, context) => {
+        const row = new RoomEncounterStore(context.storage)
+          .documents('characterPlayStates')
+          .find((candidate) => candidate.characterId === CHARACTER_ID)
+        if (!row) throw new Error('Missing room Character play state.')
+        return (readCharacterPlay(row).conditions ?? []).map(
+          ({ conditionTypeId }) => conditionTypeId
+        )
+      })
+    const [seeded] = await effectIds()
+    expect(await effectIds()).toHaveLength(1)
+    expect(await conditionIds()).toEqual([deafened])
+
+    await strike(room, 0)
+    const { decision, pending } = await offeredReaction(room)
+    expect(await effectIds()).toEqual([seeded])
+    const used = await room.resolve(decision, {
+      kind: 'OPTION',
+      optionId: pending.options[0].optionId
+    })
+    expect(used.type, JSON.stringify(used)).toBe('COMMAND_COMMITTED')
+
+    const afterShield = await effectIds()
+    expect(afterShield).toHaveLength(1)
+    expect(afterShield).not.toContain(seeded)
+    expect(await conditionIds()).toEqual([])
+
+    await undoLastAction(room)
+    expect(await effectIds()).toEqual([seeded])
+    expect(await conditionIds()).toEqual([deafened])
   })
 
   it('gives the reaction effect an id derived from the command and occurrence, so a replay mints the same one', async () => {
