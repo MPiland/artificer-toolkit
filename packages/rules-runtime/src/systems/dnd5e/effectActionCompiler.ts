@@ -114,11 +114,11 @@ import {
   DND5E_SAVE_TEST_OPERATION_KEY
 } from './dnd5eTestOperationKeys.js'
 import { DND5E_ADD_SPEED_TO_MOVEMENT_PROPOSAL_OPERATION_KEY } from './addSpeedToMovement.js'
+import { DND5E_TELEPORT_ALLOWANCE_PROPOSAL_OPERATION_KEY } from './teleportAllowance.js'
 import {
-  DND5E_TELEPORT_ALLOWANCE_PROPOSAL_OPERATION_KEY,
-  isTeleportDestinationKind,
-  type TeleportDestinationKind
-} from './teleportAllowance.js'
+  isTeleportAllowanceDestinationKind,
+  type TeleportAllowanceDestinationKind
+} from '@artificer-toolkit/shared/vtt/teleportAllowanceDestinationKind'
 import { DND5E_CANCEL_TRIGGERING_EVENT_PROPOSAL_OPERATION_KEY } from './cancelTriggeringEvent.js'
 
 export const DND5E_EFFECT_ACTION_FAMILY_KEY = 'effect-action'
@@ -262,7 +262,11 @@ type Outcome =
   | { kind: 'CONCEAL' }
   | { kind: 'DETECT_CONCEALED' }
   | { kind: 'ADD_SPEED_TO_MOVEMENT' }
-  | { kind: 'TELEPORT_ALLOWANCE'; maxFeet: number; destinationKind: TeleportDestinationKind }
+  | {
+      kind: 'TELEPORT_ALLOWANCE'
+      maxFeet: number
+      destinationKind: TeleportAllowanceDestinationKind
+    }
   | { kind: 'CANCEL_TRIGGERING_EVENT' }
   | {
       kind: 'SCALAR_REDUCTION'
@@ -3021,7 +3025,7 @@ export const dnd5eTeleportAllowanceProposalOperation: ProposalRuleOperationContr
       throw new Error('D&D teleport allowance proposal requires target state checksum.')
     if (typeof maxFeet !== 'number' || !Number.isSafeInteger(maxFeet) || maxFeet <= 0)
       throw new Error('D&D teleport allowance proposal requires a positive integer range.')
-    if (!isTeleportDestinationKind(destinationKind))
+    if (!isTeleportAllowanceDestinationKind(destinationKind))
       throw new Error('D&D teleport allowance proposal requires a destination kind.')
     return {
       targetActorId,
