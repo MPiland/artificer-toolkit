@@ -206,7 +206,7 @@ export interface MovementRoomConfig {
   characterSpellcasting?: Parameters<typeof characterRoomInputs>[0]['spellcasting']
   /** An assigned Character the Run does not hold, owned by the room's player (SPELLS-5.11, Q1). */
   outsideCasterCharacterId?: string
-  /** A second Character of the Run (a CHARACTER actor with this `characterId`), owned by the room's player. */
+  /** A second Character of the Run (a CHARACTER actor with this `characterId`), owned by the room's second player. */
   secondCharacter?: {
     characterId: string
     spellcasting?: Parameters<typeof characterRoomInputs>[0]['spellcasting']
@@ -303,7 +303,14 @@ export async function movementRoom(config: MovementRoomConfig) {
   const base = await fixture(scene)
   base.room.systemId = SRD_SYSTEM_ID
   base.capture.sceneEncounterId = encounterId
-  if (config.otherPlayerControlledActorIds)
+  if (config.secondCharacter && config.outsideCasterCharacterId)
+    throw new Error('A second player seats one extra Character: pass only one.')
+  // A player is assigned one Character per Campaign, so an extra Character joins a second player.
+  const seatsOtherPlayer =
+    config.otherPlayerControlledActorIds ||
+    config.secondCharacter ||
+    config.outsideCasterCharacterId
+  if (seatsOtherPlayer)
     base.authorization.members.push({
       membershipEpoch: base.capture.origin.membershipEpoch,
       role: 'PLAYER',
@@ -319,11 +326,13 @@ export async function movementRoom(config: MovementRoomConfig) {
 
   const character = actors.find((actor) => actor.kind === 'CHARACTER')
   const characterId = character?.sourceId ?? null
+  // The outside caster is the room's player's Character, so the Run's own Character is not.
+  const runCharacterOwnerId = config.outsideCasterCharacterId ? base.otherPlayerId : base.playerId
   const characterPage = characterId
     ? await characterRoomInputs({
         campaignId,
         characterId,
-        ownerUserId: base.playerId,
+        ownerUserId: runCharacterOwnerId,
         darkvision: config.characterDarkvision,
         classFeatures: config.characterClassFeatures,
         equipment: config.characterEquipment,
@@ -342,18 +351,18 @@ export async function movementRoom(config: MovementRoomConfig) {
     ? await characterRoomInputs({
         campaignId,
         characterId: config.secondCharacter.characterId,
-        ownerUserId: base.playerId,
+        ownerUserId: base.otherPlayerId,
         play: config.secondCharacter.play,
         spellcasting: config.secondCharacter.spellcasting
       })
     : null
   const assignments = [
-    ...(characterId ? [{ characterId, userId: base.playerId }] : []),
+    ...(characterId ? [{ characterId, userId: runCharacterOwnerId }] : []),
     ...(config.outsideCasterCharacterId
       ? [{ characterId: config.outsideCasterCharacterId, userId: base.playerId }]
       : []),
     ...(config.secondCharacter
-      ? [{ characterId: config.secondCharacter.characterId, userId: base.playerId }]
+      ? [{ characterId: config.secondCharacter.characterId, userId: base.otherPlayerId }]
       : [])
   ]
 
