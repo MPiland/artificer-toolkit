@@ -42,7 +42,12 @@ import {
   dnd5eAttackDamageDefenses,
   dnd5eCharacterAttackTraits
 } from './systems/dnd5e/attackDamageDefenses.js'
+import type { CompiledEffectGroup } from '@artificer-toolkit/shared/compilers'
 import { isDnd5eSpellAttackKind } from './systems/dnd5e/attackKind.js'
+import {
+  effectReadsEnemyProximity,
+  type Dnd5eEnemyProximity
+} from './systems/dnd5e/attackRestrictions.js'
 import { dnd5eAttackRollContributors } from './systems/dnd5e/characterRollModes.js'
 import { dnd5eCharacterActionTarget } from './systems/dnd5e/modifierApplicability.js'
 import { attackDomainCodeSchema } from '@artificer-toolkit/schema/shared/enums'
@@ -200,6 +205,15 @@ export async function prepareEncounterActionMechanics<
     sourceFacts: MovementTarget<TCharacterFacts>
     targetFacts: MovementTarget<TCharacterFacts>
   }) => Promise<{ actual: EncounterAttackPerception; believed: EncounterAttackPerception }>
+  /**
+   * How near an enemy stands to the target on the Scene, for an attack with a path that asks
+   * (Sneak Attack's nearby enemy). Called only for such an attack; null when it has no Scene to
+   * measure on, which leaves the check unanswerable.
+   */
+  loadEnemyProximity?: (input: {
+    sourceFacts: MovementTarget<TCharacterFacts>
+    targetFacts: MovementTarget<TCharacterFacts>
+  }) => Promise<Dnd5eEnemyProximity | null>
   loadSource: (input: EncounterActionSourceRequest) => Promise<NativeEncounterActionSource>
   loadRelationshipFacts: (input: {
     state: EncounterRunState
@@ -349,6 +363,13 @@ export async function prepareEncounterActionMechanics<
     attackKind !== null && input.loadAttackPerception
       ? await input.loadAttackPerception({ sourceFacts, targetFacts })
       : null
+  const enemyProximity =
+    attackKind !== null &&
+    input.loadEnemyProximity &&
+    plan.kind === 'TEST_OUTCOME' &&
+    effectReadsEnemyProximity(plan.compilerSource.compiledEffect as CompiledEffectGroup)
+      ? await input.loadEnemyProximity({ sourceFacts, targetFacts })
+      : null
   const attackSight: EncounterPreparedAttackSight | null = perception && {
     ...perception,
     trueSight: encounterAttackSightContributors({
@@ -419,6 +440,7 @@ export async function prepareEncounterActionMechanics<
         ...(source.kind === 'CHARACTER_ACTION'
           ? source.effectivePolicyOutput
           : sourceFacts.targetDerivedFacts),
+        ...(enemyProximity ? { attackEnemyProximity: enemyProximity } : {}),
         // A Character attack uses the same scoped roll-mode contributors as its Sheet action.
         rollContributorEvidence: {
           attacks: Object.fromEntries(

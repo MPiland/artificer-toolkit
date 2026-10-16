@@ -44,6 +44,7 @@ export function plannedTimedCondition(input: {
     spellCastCandidates: [cast],
     castableCandidateIds: new Set([cast.candidateId]),
     policyOutput: {
+      resources: [],
       spellCastDecisions: [
         {
           candidateId: cast.candidateId,
@@ -72,7 +73,6 @@ export function plannedTimedCondition(input: {
           }))
         }
       ],
-      resources: [],
       spellSlots: {
         calculationId: 'slots',
         sourceClassIds: [],

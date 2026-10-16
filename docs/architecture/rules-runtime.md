@@ -932,7 +932,7 @@ other level-keyed dice (T12) reuse. Riders are collected from class, subclass, r
 conditions) that gates whether its result is owed. The compiler copies it onto each entry. Two stages settle it:
 `buildCharacterActionRuleFacts` resolves the weapon checks (`EQUIPMENT` contexts: `EQUIPMENT_PROPERTY`, item
 identity, through the same `dnd5eItemRequirementsMet` the Rage restrictions use) against the attacking item and
-leaves only `ATTACK_ROLL_MODE` checks (`reduceEffectRestrictions`, `systems/dnd5e/attackRestrictions`); an entry
+leaves only circumstance checks, `ATTACK_ROLL_MODE` and `ENEMY_NEAR_TARGET` (`reduceEffectRestrictions`, `systems/dnd5e/attackRestrictions`); an entry
 that can never be owed is dropped, one whose group has nothing left to decide is unrestricted. The attack's net
 roll mode (`bindFacts`, `dnd5e.attack-roll-mode`; advantage and disadvantage cancel) is known only after the
 d20, so `specializeDnd5eEffectActionOutcomeBody` filters the remaining restricted groups then
@@ -941,6 +941,24 @@ so it is the same whichever the roll owes; the published graph is what differs. 
 checks are evaluated; any other subject fails its group. A path whose every group is restricted away
 produces no OUTCOME graph, which the phase resolver rejects for a template that exists (see Deferred
 edge cases in `docs/roadmap/future-enhancements.md`).
+
+**Enemy near the target (D119 e).** `ENEMY_NEAR_TARGET {feet}` is the second circumstance check: another
+creature hostile to the target, able to act (not defeated, not incapacitated), within `feet` of the target,
+measured by `measureSceneTokenFootprintDistance` between the target's token and the candidate's and converted
+to feet (`encounterEnemyProximity`, `nearestAbleEnemyProximity`). The attacker and the target never count;
+a NEUTRAL actor is never hostile. `prepareEncounterActionMechanics` asks its optional `loadEnemyProximity`
+supplier only for an attack whose compiled Effect reads the predicate (`effectReadsEnemyProximity`), and puts
+the answer in the binding's `sourceDerivedFacts.attackEnemyProximity`; `bindFacts` emits it as the TEXT fact
+`dnd5e.attack-enemy-proximity` (`{"nearestFeet": number | null}`). An attack without the fact (no Scene
+context, or a path that supplies no loader: opportunity attacks, reactions) leaves the check unanswerable, so
+the group fails whether the constraint is INCLUDE or EXCLUDE. The Session Worker's supplier
+(`nativeAttackEnemyProximity`) re-reads the locked Scene through `ACTION_AREA_SCENE` and loads every actor it
+consults through `loadTarget`, so the room's existing fences are what refuse a mismatch: the capture refuses a
+moved Scene version (`Action Scene context is stale.`) while planning, the commit's read fence covers the
+consulted actors' revisions and the Encounter version, and the currentness and bound-facts checksums over the
+binding refuse a resumed paused attack whose fact changed. The capture reads every bound actor's token, so an
+unavailable token refuses the attack, as for an area action. Persistence never
+re-runs rules (ADR 0035); this is the room-authoritative reading of "persistence re-verifies".
 
 The immediate follow-up save shapes the
 adapter supports, ranged long range (`longAmount`, `encounterActionLongRangeContributor`), reach 0 swarm

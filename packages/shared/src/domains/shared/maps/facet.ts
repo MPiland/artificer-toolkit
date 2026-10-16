@@ -1811,6 +1811,15 @@ function createFacetPredicateNodeMap(
         )
       )
       .set(
+        'feet',
+        number(['feet'], 'Feet', {
+          constraints: { minimum: 1 },
+          order: 3,
+          showIf: local.field(['predicateCode']).eq('ENEMY_NEAR_TARGET'),
+          requiredIf: local.field(['predicateCode']).eq('ENEMY_NEAR_TARGET')
+        })
+      )
+      .set(
         'category',
         selectSingle(
           ['category'],
