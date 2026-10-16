@@ -333,6 +333,8 @@ export interface ActionRoomConfig extends Pick<
   actors: readonly EncounterRunActorState[]
   /** The Creature feature the acting actor's action comes from. */
   ownerFeatureId?: string
+  /** The one Effect of that feature to act with, when it holds several actions (a breath weapon's two breaths). */
+  effectId?: string
   /** Scene positions that replace an actor's default (150 + 100 x its index, 150). */
   positions?: Readonly<Record<string, { x: number; y: number }>>
   /** For a Character actor, the one of its offered actions the room acts with. */
@@ -352,7 +354,8 @@ export async function actionRoom(config: ActionRoomConfig) {
   const featureActionId = (
     actor: EncounterRunActorState,
     ownerFeatureId: string,
-    grip: ActionRoomConfig['grip'] | null = null
+    grip: ActionRoomConfig['grip'] | null = null,
+    effectId: string | undefined = undefined
   ) => {
     const discovery = discoverEncounterFeatureActions({
       actor,
@@ -361,7 +364,10 @@ export async function actionRoom(config: ActionRoomConfig) {
     })
     const found =
       discovery.available.find(
-        (candidate) => candidate.ownerFeatureId === ownerFeatureId && candidate.grip === grip
+        (candidate) =>
+          candidate.ownerFeatureId === ownerFeatureId &&
+          candidate.grip === grip &&
+          (effectId === undefined || candidate.effectId === effectId)
       ) ?? discovery.unavailable.find((candidate) => candidate.ownerFeatureId === ownerFeatureId)
     if (!found) throw new Error('The feature has no discovered action.')
     return found.actionId
@@ -409,7 +415,7 @@ export async function actionRoom(config: ActionRoomConfig) {
   }
   const actionId = await (async () => {
     if (config.ownerFeatureId)
-      return featureActionId(source, config.ownerFeatureId, config.grip ?? null)
+      return featureActionId(source, config.ownerFeatureId, config.grip ?? null, config.effectId)
     if (!config.characterAction) throw new Error('The room needs an action source.')
     const choices = await actionChoices()
     const action = choices.actions.find(config.characterAction)
