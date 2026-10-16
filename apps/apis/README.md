@@ -1056,12 +1056,12 @@ this with manually copied native binaries or a platform-specific image-processin
 
 The Windows local executor failed with `EPERM` while creating a directory symbolic link for external
 dependencies, before any Sharp handler ran. Local verification can use the
-[official self-hosted Linux Docker backend](https://github.com/get-convex/convex-backend/blob/main/self-hosted/README.md)
+[official self-hosted Linux Docker backend](https://github.com/convex/convex-backend/blob/main/self-hosted/README.md)
 with a pinned image digest, separate persistent volume, loopback-only ports and explicit CLI URL/admin
 key arguments. This requires no OS permission or SDK change. The current isolated backend is
 `phase82-convex-local-linux` at `127.0.0.1:3210` / `127.0.0.1:3211` (instance `phase82-local-linux`,
 volume `phase82-convex-local-linux-data`, image
-`ghcr.io/get-convex/convex-backend@sha256:69885bae73766f625404a5425b22702341e89b43002f1d700864f8364be0d1f8`).
+`ghcr.io/convex/convex-backend@sha256:69885bae73766f625404a5425b22702341e89b43002f1d700864f8364be0d1f8`).
 `scripts/liveBackendValidation.mjs` runs manifest, codegen, deploy, seed and audit against this
 container locally and against an ephemeral container of the same image in CI
 (`.github/workflows/live-backend.yml`, whose `CONVEX_BACKEND_IMAGE` env is the single machine-readable
