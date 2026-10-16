@@ -2,7 +2,12 @@ import { postgresUuidSchema } from '@artificer-toolkit/schema/shared/postgresUui
 
 export type ActionEconomyCapabilityBinding =
   | { kind: 'NONE' }
-  | { kind: 'REQUIRED'; capabilityDefinitionId: string }
+  | {
+      kind: 'REQUIRED'
+      capabilityDefinitionId: string
+      /** The value domain whose active `SET_VALUE` grants raise this allowance's maximum. */
+      grantedCountDomain?: string
+    }
 
 /**
  * System-owned mapping from an exact authored activation to its aggregate

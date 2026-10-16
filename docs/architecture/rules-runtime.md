@@ -1131,6 +1131,14 @@ reaches that path (a critical hit reaches both). A TEST/OUTCOME action accepts g
 (`encounterActiveGrantCapabilitySuppressions`, read by `resolveEncounterRuleCapabilityStates` beside
 relationship suppressions), so its holder is offered no movement reaction while the grant lasts.
 
+**Granted extra Actions (ATTACK-9.3).** Action Surge is a core-authored free self action that spends its
+charge and applies a `TURN` / `END_OF_TURN` `ACTION_COUNT SET_VALUE {amount: 2}` grant. The System's ACTION
+binding names `grantedCountDomain: 'ACTION_COUNT'`, and `resolveActionAllowance` takes
+`max(allowance usage.maximum, activeSetValueGrantMaximum(holder effects, 'ACTION_COUNT'))`, so the economy
+offers exactly one more Action while the grant lasts. `SET_VALUE` is idempotent: a second Surge on the same
+turn adds no third Action. The next turn's refresh may reset a `used` above the base maximum
+(`turnResourcesPersistence` validates the equality of `encounterRuleUsageUsed`, not an upper bound).
+
 **Actor links (D129, SPELLS-28.T3).** A `TELEPATHIC_LINK` outcome compiles to `dnd5e.actor-link-proposal`
 and an `actorLinkContribution` on the active-effect plan (link kind, outcome id, Intelligence floor, duration
 counted at the end of the target's turn). The plan has no members of its own: the chosen-creature commit
