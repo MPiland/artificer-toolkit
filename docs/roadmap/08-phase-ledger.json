@@ -5747,9 +5747,13 @@
         {
           "id": "ATTACK-9",
           "title": "Class-feature resolvers",
-          "status": "IN_PROGRESS",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": [
+            "apps/session-worker/test/nativeRoomOncePerTurn.test.ts",
+            "apps/session-worker/test/nativeRoomOnHitChoice.test.ts",
+            "apps/session-worker/test/nativeRoomTwoWeaponFighting.test.ts"
+          ],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
@@ -5810,8 +5814,13 @@
             {
               "id": "ATTACK-9.5",
               "text": "Two-weapon fighting: after an Attack action with a light melee weapon, the actor is offered the off-hand light weapon attack as a bonus action (D107), which adds no positive ability modifier to damage unless the actor has the Two-Weapon Fighting style. The feature is authored only from core authoring options (no CLOSED_RULE, no feature-specific kind or executor); an author-built equivalent made through the real authoring form publishes to the same structure and resolves identically.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/source-data/src/srd/offHandAttack.test.ts",
+                "packages/rules-runtime/src/__tests__/twoWeaponFightingDamage.test.ts",
+                "packages/authoring/src/nodeRuntime/offHandAttackAuthoringParity.test.ts",
+                "apps/session-worker/test/nativeRoomTwoWeaponFighting.test.ts"
+              ],
               "origin": [],
               "note": "D107."
             },
@@ -5968,8 +5977,8 @@
             },
             {
               "id": "ATTACK-9.T5c",
-              "text": "Builder data for two-weapon fighting and the Two-Weapon Fighting style, the end-to-end journey, and the authoring-parity proof from core options.",
-              "status": "IN_PROGRESS",
+              "text": "Builder data for two-weapon fighting and the Two-Weapon Fighting style, the end-to-end journey, and the authoring-parity proof from core options. (Red: ci/attack-9-t5c-red Tests 38931895848 on 2a6d99876 failed on the off-hand light weapon tests. Green: ci/attack-9-t5 Tests 38948782259 and Live backend 38948782326 on 1e80ebb09.)",
+              "status": "DONE",
               "closes": ["ATTACK-9.5"],
               "wsjf": {
                 "bv": 5,
@@ -5977,8 +5986,7 @@
                 "rr": 3,
                 "size": 2,
                 "after": ["ATTACK-9.T5b"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-attack-9-t5.md"
+              }
             },
             {
               "id": "ATTACK-9.T6",
