@@ -1543,7 +1543,8 @@
                 "after": [
                   "ACCOUNTS-7.T1"
                 ]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-accounts-7-t1.md"
             }
           ]
         },
