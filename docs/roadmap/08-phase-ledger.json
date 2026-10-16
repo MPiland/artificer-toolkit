@@ -9518,7 +9518,7 @@
         {
           "id": "RELIABILITY-6",
           "title": "Band-aids from the 2026-10-13 audit are replaced by the domain model",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "journeyTests": [],
           "journeyStatus": "none",
           "origin": [],
@@ -9684,21 +9684,42 @@
           },
           "tasks": [
             {
-              "id": "RELIABILITY-6.T1",
-              "text": "Typed identities replace label and string parsing: hit dice, skill abilities, roll-mode sources, initiative reads and System-owned Concentration and melee classification.",
-              "status": "TODO",
-              "closes": [
-                "RELIABILITY-6.1",
-                "RELIABILITY-6.3",
-                "RELIABILITY-6.9",
-                "RELIABILITY-6.15",
-                "RELIABILITY-6.16"
-              ],
+              "id": "RELIABILITY-6.T1a",
+              "text": "Typed identities for hit dice by kind, skill abilities from System vocabulary (no silent DEXTERITY) and one initiative-roll reader switching on source kind, replacing the Convex, Worker and dnd5e adapter copies.",
+              "status": "IN_PROGRESS",
+              "closes": ["RELIABILITY-6.1", "RELIABILITY-6.3", "RELIABILITY-6.15"],
+              "activeWorkbook": "docs/handoffs/slice-reliability-6.md",
               "wsjf": {
                 "bv": 3,
                 "tc": 3,
                 "rr": 8,
-                "size": 5
+                "size": 3
+              }
+            },
+            {
+              "id": "RELIABILITY-6.T1b",
+              "text": "System-owned Concentration and melee classification through a System seam keyed by gameSystemId; Worker, encounter-persistence and rules-runtime consumers read it instead of hard-coded identities.",
+              "status": "TODO",
+              "closes": ["RELIABILITY-6.16"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 8,
+                "size": 5,
+                "after": ["RELIABILITY-6.T1a"]
+              }
+            },
+            {
+              "id": "RELIABILITY-6.T1c",
+              "text": "Typed roll-mode contributor source in the persisted d20 contributor contract and every producer; the rollModeReasons parser goes; development data migrated in the same change.",
+              "status": "TODO",
+              "closes": ["RELIABILITY-6.9"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 8,
+                "size": 8,
+                "after": ["RELIABILITY-6.T1b"]
               }
             },
             {
