@@ -1,10 +1,8 @@
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
+import { ENDED_EFFECT_CONDITION_OPERATION_KEY } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
 import type { CharacterConditionRemoveOutcomeApplication } from './characterRuleActionSystemAdapter.js'
 import { endedMaintenanceConditions } from './encounterActionMaintenance.js'
 import { effectsEndedBy } from './encounterGrantLifetimes.js'
-
-/** Names a condition an ended effect released, in the receipt (there is no graph node to cite). */
-export const ENDED_EFFECT_CONDITION_OPERATION_KEY = 'active-effect.ended'
 
 /**
  * The conditions an event-ended effect alone held, released from its holder. A condition stays when

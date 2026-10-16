@@ -1252,8 +1252,9 @@ describe('Character spell casting in an Encounter', () => {
     )
 
     // The new Concentration replaces the old one, which already ends Invisibility as its dependent:
-    // the cast must end it once, not twice.
-    it('ends once when the cast is another Concentration spell, and a GM undo gives the Invisibility back', async () => {
+    // the cast must end it once, not twice. Undoing a replaced Concentration is refused whatever it
+    // ended (D95), so the Invisibility is not given back.
+    it('ends once when the cast is another Concentration spell, and the undo stays refused', async () => {
       const fixture = await setup({
         known: [concentrationSpell(invisibility), concentrationSpell(fly)],
         slots: [
@@ -1288,12 +1289,11 @@ describe('Character spell casting in an Encounter', () => {
       ])
       expect(await conditionIds(fixture)).not.toContain(invisibleId)
 
-      await revert(fixture, flying.projection.version)
-      expect(await maintainedEffects(fixture)).toEqual([invisibleConcentration])
-      expect(await characterActiveEffects(fixture)).toEqual([
-        { maintainedEffectStateId: invisibleConcentration?.id }
-      ])
-      expect(await conditionIds(fixture)).toContain(invisibleId)
+      await expect(revert(fixture, flying.projection.version)).rejects.toThrow(
+        REPLACED_CONCENTRATION
+      )
+      expect(await maintainedEffects(fixture)).toEqual([flightConcentration])
+      expect(await conditionIds(fixture)).not.toContain(invisibleId)
     }, 240000)
 
     /** Invisibility as an author builds it in the Spell form: its own id and label, ending on a cast only. */
@@ -1321,7 +1321,7 @@ describe('Character spell casting in an Encounter', () => {
           values: authored
         })
         expect(normalized.clearedPaths).toEqual([])
-        expect(normalized.values.effects).toEqual(authored.effects)
+        expect(normalized.values).toHaveProperty('effects', authored.effects)
       }
       expect(await characterActiveEffects(fixture)).toEqual([])
       expect(await maintainedEffects(fixture)).toEqual([])

@@ -1,12 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { activeRuleEffectDefinitionDtoSchema } from '@artificer-toolkit/schema/shared/activeRuleEffects'
+import { ENDED_EFFECT_CONDITION_OPERATION_KEY } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
 import { SRD_CONDITION_TYPES } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
-import {
-  ENDED_EFFECT_CONDITION_OPERATION_KEY,
-  actionEndedEffects,
-  endedEffectConditionReleases
-} from '../encounterEndedEffectRelease.js'
+import { actionEndedEffects, endedEffectConditionReleases } from '../encounterEndedEffectRelease.js'
 import { ENCOUNTER_ID } from '../testing/dnd5eSrdEncounter.js'
 import { activeEffect } from './encounterActiveEffectFixtures.js'
 

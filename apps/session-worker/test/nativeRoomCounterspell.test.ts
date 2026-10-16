@@ -202,7 +202,8 @@ describe('room Counterspell against a Character’s spell cast (REACTION-4.3)', 
       seed: seedModifierGrant({
         sourceActorId: CASTER_ACTOR_ID,
         holderActorId: CASTER_ACTOR_ID,
-        lifecycle: { endOnEvents: ['ON_CAST_SPELL'] },
+        lifecycle: {},
+        endsOnCast: true,
         ownedConditionId: invisible.id
       })
     })
@@ -238,7 +239,8 @@ describe('room Counterspell against a Character’s spell cast (REACTION-4.3)', 
       seed: seedModifierGrant({
         sourceActorId: CASTER_ACTOR_ID,
         holderActorId: CASTER_ACTOR_ID,
-        lifecycle: { endOnEvents: ['ON_CAST_SPELL'] },
+        lifecycle: {},
+        endsOnCast: true,
         ownedConditionId: invisible.id
       })
     })

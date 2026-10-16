@@ -17,9 +17,8 @@ import {
 
 import { prepareActiveRuleEffectRecord } from '../activeRuleEffectRecords.js'
 import type {
-  ActiveEffectEndEvent,
-  GrantConsumeEvent,
-  GrantEndEvent
+  ActiveEffectConsumeEvent,
+  ActiveEffectEndEvent
 } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import type { RulesRuntimeService } from '../rulesRuntimeService.js'
 import {
@@ -242,8 +241,8 @@ export function activeEffect(input: {
   owner: ActiveRuleEffectOwner
   createdOrdinal: number
   version?: number
-  consumeOnFirstEvents?: readonly GrantConsumeEvent[]
-  endOnEvents?: readonly GrantEndEvent[]
+  consumeOnFirstEvents?: readonly ActiveEffectConsumeEvent[]
+  endOnEvents?: readonly ActiveEffectEndEvent[]
   endOnConditionIds?: readonly string[]
   holderEnd?: ActiveRuleEffectDefinitionDto['recurrence']['holderEnd']
   stateContributions: [StateContribution, ...StateContribution[]]

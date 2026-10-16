@@ -176,7 +176,8 @@ describe('room cast on chosen creatures (D118)', () => {
       seed: seedModifierGrant({
         sourceActorId: CHARACTER_ACTOR_ID,
         holderActorId: CHARACTER_ACTOR_ID,
-        lifecycle: { endOnEvents: ['ON_CAST_SPELL'] },
+        lifecycle: {},
+        endsOnCast: true,
         ownedConditionId: invisible.id
       })
     })
@@ -213,7 +214,8 @@ describe('room cast on chosen creatures (D118)', () => {
       seed: seedModifierGrant({
         sourceActorId: CHARACTER_ACTOR_ID,
         holderActorId: CHARACTER_ACTOR_ID,
-        lifecycle: { endOnEvents: ['ON_CAST_SPELL'] },
+        lifecycle: {},
+        endsOnCast: true,
         ownedConditionId: invisible.id
       })
     })
