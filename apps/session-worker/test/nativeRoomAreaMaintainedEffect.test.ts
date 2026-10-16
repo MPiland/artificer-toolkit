@@ -45,9 +45,9 @@ function frightRoom() {
 
 type FrightRoom = Awaited<ReturnType<typeof frightRoom>>
 
-/** Answers every save the area waits on with a failing 1. */
-async function failAllSaves(room: FrightRoom) {
-  for (;;) {
+/** Answers each save the area waits on, in the order asked, with the face `faceFor` gives it. */
+async function answerSaves(room: FrightRoom, faceFor: (answered: number) => number) {
+  for (let answered = 0; ; answered += 1) {
     const decision = await readPendingActionDecision(room.room.base.stub)
     if (decision?.pending.kind !== 'AREA_SAVES') return
     const [save] = decision.pending.saves
@@ -56,13 +56,16 @@ async function failAllSaves(room: FrightRoom) {
       room.resolveCommand(decision, {
         kind: 'ENTER_DICE',
         requestId: save.request.requestId,
-        rawFaces: [1],
+        rawFaces: [faceFor(answered)],
         rollMode: save.request.rollMode
       })
     )
     expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
   }
 }
+
+/** Every save fails with a 1. */
+const failAllSaves = (room: FrightRoom) => answerSaves(room, () => 1)
 
 async function castAndFailEverySave(room: FrightRoom) {
   const { answer } = await room.startAreaAction({ x: 50, y: 150 })
@@ -165,6 +168,7 @@ describe('room point-area Concentration spell that frightens (SPELLS-19.T2)', ()
     })
     for (const effect of [...replaced.activeEffects, ...replaced.characterEffects])
       expect(effect.maintainedEffectStateId).toBe(second?.id)
+    expect(frightenedActorIds(replaced)).toEqual([...CAUGHT_IDS].sort())
 
     const undone = await room.send({
       type: 'REVERT_LAST_ACTION',
@@ -179,10 +183,28 @@ describe('room point-area Concentration spell that frightens (SPELLS-19.T2)', ()
     })
   })
 
+  it('holds only the creatures that fail under the one Concentration when the first creature saves', async () => {
+    const room = await frightRoom()
+    const { answer } = await room.startAreaAction({ x: 50, y: 150 })
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    await answerSaves(room, (answered) => (answered === 0 ? 20 : 1))
+
+    const committed = await readRoomHistory(room.room.base.stub)
+    expect(committed.maintainedStates).toHaveLength(1)
+    const [state] = committed.maintainedStates
+    const effects = [...committed.activeEffects, ...committed.characterEffects]
+    // Three creatures are caught and the first saves, so two hold the effect.
+    expect(effects).toHaveLength(2)
+    for (const effect of effects) expect(effect.maintainedEffectStateId).toBe(state?.id)
+  })
+
   it('takes the Concentration and the effect from every creature with one undo', async () => {
     const room = await frightRoom()
     const before = await readRoomHistory(room.room.base.stub)
     await castAndFailEverySave(room)
+    expect(frightenedActorIds(await readRoomHistory(room.room.base.stub))).toEqual(
+      [...CAUGHT_IDS].sort()
+    )
 
     const undone = await room.send({
       type: 'REVERT_LAST_ACTION',
