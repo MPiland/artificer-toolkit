@@ -825,6 +825,7 @@ describe('internal canonical source import', () => {
         label: item.label,
         document: item
       })
+    if (!('weight' in club) || !('weight' in whip)) throw new Error('Expected base fixtures')
     const [base, variant] = [club, clubPlus1].map(toSubject)
     for (const item of [base, variant]) {
       await t.mutation(internal.content.import.importSubjects, {

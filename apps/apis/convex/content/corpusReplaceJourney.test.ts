@@ -14,6 +14,8 @@ describe('re-importing a changed canonical corpus', () => {
       id: character.id
     })
 
+    if (!sheetOnN) throw new Error('Missing Sheet on corpus N.')
+
     // Corpus N+1 differs from N in one subject: the Acolyte Background is renamed.
     const next = await t.run(async (ctx) => {
       const root = await ctx.db

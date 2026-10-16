@@ -315,9 +315,10 @@ export const importSubjects: RegisteredMutation<
           current: {
             ...root,
             authoringSources,
-            equipmentOptions: equipment
-              ? equipmentOptionFacts(parsed.document, parsed.checksum, equipment.effective)
-              : equipmentOptions,
+            equipmentOptions:
+              parsed.subjectKind === 'EQUIPMENT' && equipment
+                ? equipmentOptionFacts(parsed.document, parsed.checksum, equipment.effective)
+                : equipmentOptions,
             parentClassId,
             parentEquipmentId,
             parentRaceId
