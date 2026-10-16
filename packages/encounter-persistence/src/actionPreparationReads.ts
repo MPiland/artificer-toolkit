@@ -232,6 +232,10 @@ export async function prepareActionMechanics<TFacts extends CharacterTurnFacts>(
     wieldConflictAcceptance: EncounterWieldConflictAcceptance
     overridable: boolean
     movementTargets?: ReadonlyMap<string, MovementTarget<TFacts>>
+    sceneContext?: Awaited<ReturnType<typeof readActionSceneContext>>
+    loadAttackPerception?: Parameters<
+      typeof prepareEncounterActionMechanics<TFacts>
+    >[0]['loadAttackPerception']
   }
 ) {
   const { state, actor, target } = input
@@ -252,6 +256,8 @@ export async function prepareActionMechanics<TFacts extends CharacterTurnFacts>(
     wieldConflictAcceptance: input.wieldConflictAcceptance,
     overridable: input.overridable,
     movementTargets,
+    sceneContext: input.sceneContext,
+    loadAttackPerception: input.loadAttackPerception,
     loadSource: (sourceInput) => loadActionSource(tx, input.campaign, sourceInput),
     loadRelationshipFacts: (factsInput) => loadActionRelationshipFacts(tx, factsInput)
   }).catch(refuseStaleCharacterAction)

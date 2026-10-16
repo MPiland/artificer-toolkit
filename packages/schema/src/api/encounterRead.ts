@@ -5,6 +5,10 @@ import {
   getEncounterActionChoicesInputDtoSchema,
   getEncounterOptionalActionChoicesInputDtoSchema
 } from './encounterActionChoices.js'
+import {
+  encounterActionTargetModifiersDtoSchema,
+  getEncounterActionTargetModifiersInputDtoSchema
+} from './encounterActionTargetModifiers.js'
 import { encounterEvidenceRollDtoSchema, getEncounterInputDtoSchema } from './encounterData.js'
 import { sceneEncounterBindingInputSchema, sceneEncounterBindingSchema } from './sceneRecipient.js'
 import { encounterSceneActorTokenBindingDtoSchema } from './vttScenes.js'
@@ -22,6 +26,10 @@ export const encounterReadDtoSchema = lazySchema(() =>
     z.strictObject({
       kind: z.literal('OPTIONAL_ACTION_CHOICES'),
       input: z.omit(getEncounterOptionalActionChoicesInputDtoSchema, { expectedVersion: true })
+    }),
+    z.strictObject({
+      kind: z.literal('ACTION_TARGET_MODIFIERS'),
+      input: z.omit(getEncounterActionTargetModifiersInputDtoSchema, { expectedVersion: true })
     }),
     z.strictObject({ kind: z.literal('LATEST_EVIDENCE_ROLLS'), input: getEncounterInputDtoSchema }),
     z.strictObject({ kind: z.literal('SCENE_BINDING'), input: sceneEncounterBindingInputSchema }),
@@ -42,6 +50,10 @@ export const encounterReadResultDtoSchema = lazySchema(() =>
     z.strictObject({
       kind: z.literal('OPTIONAL_ACTION_CHOICES'),
       result: encounterOptionalActionChoicesDtoSchema
+    }),
+    z.strictObject({
+      kind: z.literal('ACTION_TARGET_MODIFIERS'),
+      result: encounterActionTargetModifiersDtoSchema
     }),
     z.strictObject({
       kind: z.literal('LATEST_EVIDENCE_ROLLS'),

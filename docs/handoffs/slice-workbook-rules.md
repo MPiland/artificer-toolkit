@@ -24,7 +24,7 @@ Every slice session follows these rules. Its workbook (`docs/handoffs/slice-<id>
 - No `any`, no compatibility aliases, no dead code. Surgical edits only. Never weaken, delete or reorder an assertion to make a test pass; a premise change is flagged in the status log.
 - A denied command means stop and report; never retry it through another command.
 - Do not touch the ledger, the dashboard or the main handoff. Propose ledger edits in the workbook.
-- Other slice sessions run in parallel on other files. Stay inside your workbook's file scope. Before committing, merge the base branch and rerun the tests you touched.
+- Other slice sessions run in parallel on other files. Stay inside your workbook's file scope. Before committing, merge the base branch and rerun the tests you touched. Before the push you expect to be your final green one, also merge the newest `origin/ci/merge-batch-*` (list them with `git ls-remote origin "ci/merge-batch-*"`; merged slices reach the phase branch only after their batch is green). Regenerate conflicting generated files (the live-backend `generated-files` artifact for the manifest and `_generated`, a light-lane `-u` run for snapshots) instead of hand-merging them.
 - Escalate to the main session (`SendMessage`), not the user, only for the triggers in AGENTS.md "Architect Escalation".
 
 ## Report

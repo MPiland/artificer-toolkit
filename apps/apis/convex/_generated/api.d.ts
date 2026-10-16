@@ -113796,6 +113796,32 @@ export declare const api: {
         }
       >;
     };
+    actionTargetModifiers: {
+      get: FunctionReference<
+        "query",
+        "public",
+        {
+          actionId: string;
+          actorId: string;
+          encounterId: string;
+          expectedVersion: number;
+          scene: { expectedSceneVersion: number; sceneId: string } | null;
+        },
+        {
+          actionId: string;
+          actorId: string;
+          encounterId: string;
+          encounterVersion: number;
+          targets: Array<{
+            actorId: string;
+            attack: {
+              reasons: Array<string>;
+              rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+            } | null;
+          }>;
+        }
+      >;
+    };
     activeReads: {
       active: FunctionReference<
         "query",
