@@ -88,7 +88,7 @@ export function singleTargetMeasure(policy: CompiledActionTargetPolicy):
     return null
   return {
     kind: 'MEASURED',
-    range: inArea ? { rangeKind: 'UNLIMITED' } : range,
+    range: inArea ? { id: range.id, rangeKind: 'UNLIMITED' } : range,
     dispositionKind: targeting.dispositionKind,
     // A list of chosen creatures may include its user freely.
     self: targeting.selectionKind === 'SINGLE_TARGET' ? targeting.self : undefined
