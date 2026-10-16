@@ -2438,4 +2438,30 @@ describe('GM undo of the last action', () => {
     expect(await rejection(revert(base, 2))).toMatchObject({ reason: 'REVERT_UNAVAILABLE' })
     expect(await records(base.t, base.run.id, base.campaign.id)).toEqual(settled)
   }, 30000)
+
+  it('refuses after the turn advanced, so a turn commit that ended grants needs no undo receipt', async () => {
+    const base = await setup({ targetCreature: true })
+    await executeInRoom(base.owner.caller, {
+      command: command({
+        encounterId: base.run.id,
+        actorId: base.actor.id,
+        targetActorId: base.target.id,
+        actionId: base.actionId
+      })
+    })
+    await executeInRoom(base.owner.caller, {
+      command: {
+        type: 'ADVANCE_TURN',
+        encounterId: base.run.id,
+        commandId: crypto.randomUUID(),
+        expectedVersion: 1
+      }
+    })
+    const settled = await records(base.t, base.run.id, base.campaign.id)
+    expect(await rejection(revert(base, 2))).toMatchObject({
+      reason: 'REVERT_UNAVAILABLE',
+      message: expect.stringContaining('Only an action can be undone')
+    })
+    expect(await records(base.t, base.run.id, base.campaign.id)).toEqual(settled)
+  }, 30000)
 })

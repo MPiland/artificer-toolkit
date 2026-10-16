@@ -36,7 +36,7 @@ import {
 import { readCharacterPlay } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { readRunActors, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { readCharacterCommandReplay } from '@artificer-toolkit/encounter-persistence/characterSheetReceipts'
-import { readMovementDecisionPending } from '@artificer-toolkit/encounter-persistence/occurrenceOwner'
+import { readSceneHoldingDecision } from '@artificer-toolkit/encounter-persistence/occurrenceOwner'
 import { assertCampaignGmSheetCommandAllowed } from '@artificer-toolkit/rules-runtime/character/sheetCommandValidation'
 import { CharacterSheetCommandError } from '@artificer-toolkit/rules-runtime/character/sheetCommandError'
 import {
@@ -1915,17 +1915,20 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       }
       return
     }
-    // A pending movement decision holds token moves, undo, door changes and token or barrier
-    // edits on its Scene (D26).
-    if (
-      cached.encounterId !== null &&
-      (await readMovementDecisionPending({ db: this.#roomStore.store }, cached.encounterId))
-    ) {
+    // A pending movement or reaction decision holds token moves, undo, door changes and token or
+    // barrier edits on its Scene (D26).
+    const holdingDecision =
+      cached.encounterId === null
+        ? null
+        : await readSceneHoldingDecision({ db: this.#roomStore.store }, cached.encounterId)
+    if (holdingDecision) {
       this.#rejectCommand(
         socket,
         commandId,
         'UNAVAILABLE',
-        'Waiting on a movement decision.',
+        holdingDecision === 'MOVEMENT'
+          ? 'Waiting on a movement decision.'
+          : 'Waiting on a reaction decision.',
         current.sequence,
         correction()
       )

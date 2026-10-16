@@ -162,12 +162,16 @@ function createFullPoolReaders(publications: readonly FullPoolPublication[]): Re
  * Character's sources (ADR 0036 S6), beside a pure full-pool evaluation of the same candidate over
  * the publications Convex authorizes. The server no longer resolves the Builder (S9); commit is
  * checked against the complete pool in `commitReferencedContext.test.ts`.
+ *
+ * `scopeReads` lets a caller whose published content is unchanged between evaluations share one
+ * snapshot read per scope; without it every evaluation reads the scopes afresh.
  */
 export async function evaluateBuilderCandidate(
   t: Test,
   caller: Caller,
   userId: string,
-  request: CharacterBuilderResolveInput
+  request: CharacterBuilderResolveInput,
+  scopeReads = new Map<string, ReturnType<typeof readScopeObjects>>()
 ) {
   const { candidate, system, sources } = await t.run(async (ctx) => {
     const candidate = await loadCharacterDraftCandidate(ctx, userId, request)
@@ -181,7 +185,16 @@ export async function evaluateBuilderCandidate(
     ...sources.sources.map((source) => ({ scope: 'SOURCE' as const, scopeId: source.id })),
     ...(sources.campaign ? [{ scope: 'CAMPAIGN' as const, scopeId: sources.campaign.id }] : [])
   ]
-  const objects = (await Promise.all(scopes.map((ref) => readScopeObjects(t, ref)))).flat()
+  const objects = (
+    await Promise.all(
+      scopes.map((ref) => {
+        const key = `${ref.scope}:${ref.scopeId}`
+        const read = scopeReads.get(key) ?? readScopeObjects(t, ref)
+        scopeReads.set(key, read)
+        return read
+      })
+    )
+  ).flat()
   // Validated Character DTOs use literal starting-equipment sources for the authored string enum.
   const character = candidate.character as CharacterAuthored
   const input: SnapshotCharacterBuilderInput = {

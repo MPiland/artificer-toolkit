@@ -4,10 +4,8 @@ import {
   accountProfileUpdateInputSchema,
   type AccountProfileDto
 } from '@artificer-toolkit/schema/api/account'
-import {
-  USERNAME_NOT_ALLOWED_MESSAGE,
-  validateUsername
-} from '@artificer-toolkit/shared/account/username'
+import { USERNAME_NOT_ALLOWED_MESSAGE } from '@artificer-toolkit/shared/account/username'
+import { validateUsernameOnServer } from '@artificer-toolkit/shared/account/usernameServer'
 import { internalMutation } from './lib/mutations'
 import { createAuth } from './authFactory.helper'
 import { authComponent } from './lib/authClient.helper'
@@ -21,7 +19,7 @@ export const update = internalMutation({
     if (!authenticated) throw new Error('Unauthenticated')
     const input = accountProfileUpdateInputSchema.parse(args)
     const username = input.username ?? authenticated.username
-    if (!username || validateUsername(username).message) {
+    if (!username || validateUsernameOnServer(username).message) {
       throw new Error(USERNAME_NOT_ALLOWED_MESSAGE)
     }
 

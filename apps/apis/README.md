@@ -651,10 +651,12 @@ operations, not public authoring endpoints. Verify public denial with
 `yarn tsx --env-file=apps/apis/.env.local apps/apis/tests/developmentSourceImport.ts` from the root.
 
 The importer validates existing domain schemas, UUIDs, metadata, and checksums before writing.
-Batches contain at most ten records, target at most 128 KiB of UTF-8 input, and commit atomically.
-A larger individual document remains whole. Ten Class records were about 1.27 MB and exceeded
-the hosted mutation CPU limit; size-bounded batching passed the complete cloud-dev seed/read-back
-without reducing domain validation or checksum checks. Exact repeats reuse content and may backfill
+Batches are packed to a CPU cost budget (25 per record plus 1 per KiB of UTF-8 input, budget 100;
+`importBatches.ts`), every Class gets a batch alone, and a batch commits atomically. A larger
+individual document remains whole. Ten Class records were about 1.27 MB and exceeded the hosted
+mutation CPU limit, and a count-and-size bound still let a loaded host push `importSubjects` past
+1 s (PLATFORM-5.T1: [measurements](../../docs/validation/platform-5-t1-seed-mutation-margin-2026-10-15.md)),
+so batches are budgeted by measured cost without reducing domain validation or checksum checks. Exact repeats reuse content and may backfill
 missing server-derived Equipment option facts after verifying the unchanged root and version.
 Different stored content or existing option facts are an error, never an overwrite. Interrupted provisioning resumes by rerunning the
 seed. Complete read-back audit is required before the import is accepted.
@@ -1060,6 +1062,13 @@ key arguments. This requires no OS permission or SDK change. The current isolate
 `phase82-convex-local-linux` at `127.0.0.1:3210` / `127.0.0.1:3211` (instance `phase82-local-linux`,
 volume `phase82-convex-local-linux-data`, image
 `ghcr.io/get-convex/convex-backend@sha256:69885bae73766f625404a5425b22702341e89b43002f1d700864f8364be0d1f8`).
+`scripts/liveBackendValidation.mjs` runs manifest, codegen, deploy, seed and audit against this
+container locally and against an ephemeral container of the same image in CI
+(`.github/workflows/live-backend.yml`, whose `CONVEX_BACKEND_IMAGE` env is the single machine-readable
+source of the digest). The script takes the URL from one constant, checks `/instance_name`, and passes
+the URL and key as explicit CLI arguments. A fresh container needs `INSTANCE_NAME`,
+`CONVEX_CLOUD_ORIGIN` and `CONVEX_SITE_ORIGIN` set (the origins become the built-in `CONVEX_URL` and
+`CONVEX_SITE_URL`) and the script's `--fresh` flag, which runs the `env` step first (`JWKS` empty).
 No admin key is stored: scripts generate one per run with
 `docker exec phase82-convex-local-linux ./generate_admin_key.sh` and never write or print it. The
 ignored `local-validation/local-convex/local.application.env` holds the local application environment

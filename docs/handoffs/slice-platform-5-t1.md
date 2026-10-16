@@ -37,7 +37,7 @@ One of them runs close enough to the 1 s execution limit that machine load pushe
 **Exception to the workbook rules:** this slice may reset, deploy and seed the local Docker backend. Do it only inside heavy-lane batches (`withValidationLock.ps1` without `-Lane light`).
 
 - Reset with `scripts/resetLocalConvex.ps1 -Name platform-5-t1`.
-- Deploy and seed with the pattern in `local-validation/codex-batch/deploy-seed.mjs`. The admin key is generated inside the container and never printed, logged or written.
+- Deploy and seed with the pattern in `scripts/liveBackendValidation.mjs` (CI runs it; see `.github/workflows/live-backend.yml`). The admin key is generated inside the container and never printed, logged or written.
 - Leave the backend deployed from your branch, seeded and audited green at the end of every batch, because other sessions use it.
 - Never reset, prune or delete Docker containers, volumes or settings.
 
@@ -73,5 +73,14 @@ Read first:
 ## Status log
 
 - 2026-10-15: workbook written.
+- 2026-10-15: measured on the local backend (backend execution records, base code). `importSubjects` is the only mutation near the limit: idle max 377 ms, loaded (16 busy-loop processes on 16 CPUs) 1005 ms and a timeout. Others: `bootstrap` 199/322 ms, `syncEquipmentDerived` 212 ms, `importDefinitions` 101 ms, `syncClassDerived` 60 ms, `raceRelationships.syncDerived` 85 ms (idle). Red: `local-validation/platform-5-t1/base-loaded.run.log`.
+- 2026-10-15: fix in `import.ts` (one canonicalize per subject instead of about five hash and parse passes) and `importBatches.ts` (cost-budget batching, Class always alone). Import contract, atomicity and idempotency unchanged. Red-first unit log: `red-importBatches.log`.
+- 2026-10-15: green on a fresh backend, `fix4-idle` and `fix4-loaded` (12 busy-loop processes, about 75% load): `importSubjects` max 179 ms idle and 343 ms loaded; every other mutation at most 256 ms; seed success and audit green, backend left seeded and audited. Same 16-process load as the red run: all 385 `importSubjects` calls finished, max 717 ms (`fix2-loaded`). Re-measured on the final code after review (`fix5-idle`, `fix5-loaded`, 12 burners): `importSubjects` max 151 ms idle, 308 ms loaded; every mutation at most 308 ms, audit green. Scoped tests (`importBatches`, `import`, `importSpell`, `importCreatureVehicle`, `seed`, `seedAudit`): 29 pass, `green-import-tests.log`. Record: [platform-5-t1-seed-mutation-margin-2026-10-15.md](../validation/platform-5-t1-seed-mutation-margin-2026-10-15.md).
+- 2026-10-15: independent review (opus, read-only). Fixed: (1) red evidence now states which final tests are red on the old code; (2) the reviewer asked for a test of the new-subject `Canonical content conflict.` branch; no input reaches it, because the strict schema parse rejects an extra key first (`unrecognized_key`), so the branch is defence in depth. Added `import.test.ts` "rolls back a whole batch when a later new document has a key its schema does not define", which pins that admission and the rollback (passes before and after); (3) restored the old check order (content conflict, then checksum); (4) one `validateDocument` now serves `importSubjects`, `importDefinitions` and `bootstrap`; (5) `apps/apis/README.md` batching paragraph updated, ledger line number corrected; (6) removed the no-op `KIB_COST`, the Class comment now says the Class path is the floor batching cannot lower; (7) the packing test asserts order for mixed sizes. Stands: canonicalizing rejects `undefined`-valued keys that the old JSON round trip dropped (latent, documented in the record); the 308 ms headline is at 12 burners and 717 ms at 16, both recorded; `sourceImportRecordCost` stays exported because the tests import it.
+- Follow-up (not this slice): `contentSnapshots/heads:readScopeKind` (a query) hits the 1 s limit under load, `content/import:readSubjects` reaches 540 ms loaded; see the record's "Observed" section.
 
 ## Proposed ledger edits (filled by the slice session)
+
+- AC PLATFORM-5.7: mark met. Evidence: [the validation record](../validation/platform-5-t1-seed-mutation-margin-2026-10-15.md): loaded seed on a fresh backend, every seed mutation at most 308 ms (limit 1000 ms), idle `importSubjects` maximum 151 ms.
+- AC PLATFORM-5.5 text ("using 128 KiB input batching", `08-phase-ledger.json:204`): the batching is now cost-budgeted (25 per record plus 1 per KiB, budget 100, Class alone); reword to "cost-budgeted input batching" or leave as history.
+- Register a follow-up item for the `contentSnapshots` read and build timeouts under load (`readScopeKind`, `actions:build`), and the audit query `readSubjects` at 540 ms loaded.

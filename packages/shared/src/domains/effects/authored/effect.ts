@@ -39,16 +39,33 @@ export type ReactionMovementTriggerBindingAuthored = {
   movementInterruption?: null | { kind: 'STOP'; whenResultPath: PathCode }
 }
 
+/** The reactor is the target of an attack that hit; the reaction pauses the attack's outcome. */
+export type ReactionAttackedSelfTriggerBindingAuthored = { kind: 'ATTACKED_SELF' }
+
+/**
+ * The reactor takes damage of one of the named damage types from an attack that hit; the reaction
+ * pauses the attack's outcome so what it grants applies to that damage.
+ */
+export type ReactionDamageTakenTriggerBindingAuthored = {
+  kind: 'DAMAGE_TAKEN'
+  damageTypeIds: string[]
+}
+
+export type ReactionTriggerBindingAuthored =
+  | ReactionMovementTriggerBindingAuthored
+  | ReactionAttackedSelfTriggerBindingAuthored
+  | ReactionDamageTakenTriggerBindingAuthored
+
 type ReactionActivationAuthored = {
   code: typeof ACTIVATION_CODE.REACTION
   amount: number
 }
 
-type ActionReactionMovementTriggerBindingAuthored =
-  | { reactionMovementTrigger?: never }
+type ActionReactionTriggerBindingAuthored =
+  | { reactionTrigger?: never }
   | {
       activation: ReactionActivationAuthored
-      reactionMovementTrigger: ReactionMovementTriggerBindingAuthored
+      reactionTrigger: ReactionTriggerBindingAuthored
     }
 
 export type ActionEffectInvocationAuthored<TTrigger extends Trigger = Trigger> =
@@ -73,7 +90,7 @@ export type ActionEffectInvocationAuthored<TTrigger extends Trigger = Trigger> =
           targeting?: TargetingAuthored
         }
     ) &
-      ActionReactionMovementTriggerBindingAuthored)
+      ActionReactionTriggerBindingAuthored)
   | {
       kind?: typeof EFFECT_INVOCATION_KIND.ACTION
       triggerCode: Extract<TTrigger, 'CHECK'>
@@ -83,7 +100,7 @@ export type ActionEffectInvocationAuthored<TTrigger extends Trigger = Trigger> =
       range: RangeAuthored
       shape?: ShapeAuthored
       targeting?: TargetingAuthored
-      reactionMovementTrigger?: never
+      reactionTrigger?: never
     }
 
 export type PassiveEffectInvocationAuthored<TTrigger extends Trigger = Trigger> =

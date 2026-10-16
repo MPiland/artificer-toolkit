@@ -238,7 +238,7 @@ export async function executeRoomCharacterSheetCommand(input: {
       characterId,
       effectId: command.effectId,
       isCampaignOwner: membership.role === 'OWNER',
-      inEncounter: true
+      economyEnforced: state.automationMode !== 'MANUAL'
     })
     updated.state.hitpoints.current = clampCharacterCurrentHitPoints(
       updated.state.hitpoints.current,

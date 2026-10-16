@@ -15,6 +15,7 @@ import {
   pathLifecycleGrantConsumeEventSchema,
   pathLifecycleGrantEndEventSchema
 } from './enums.js'
+import { postgresUuidSchema } from './postgresUuid.js'
 import { compiledRuleGraphDtoSchema } from './ruleExecutionCore.js'
 
 export {
@@ -117,7 +118,7 @@ export const activeGrantEndEventsSchema = lazySchema(() =>
 
 /** The conditions whose holder ends a timed grant early (condition type ids): sorted and unique. */
 export const activeGrantEndConditionIdsSchema = lazySchema(() =>
-  sortedUniqueEventsSchema(uuidSchema, 'end conditions')
+  sortedUniqueEventsSchema(postgresUuidSchema, 'end conditions')
 )
 
 /**

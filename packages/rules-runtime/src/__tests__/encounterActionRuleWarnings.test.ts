@@ -8,6 +8,7 @@ import type { EncounterRuleWarningDto } from '@artificer-toolkit/schema/shared/e
 import {
   SRD_ACTION_ALLOWANCE_DEFINITION_ID,
   SRD_BONUS_ACTION_ALLOWANCE_DEFINITION_ID,
+  SRD_REACTION_ALLOWANCE_DEFINITION_ID,
   SRD_RULE_STATE_DEFINITIONS
 } from '@artificer-toolkit/source-data/srd/ruleState.js'
 import { unicorn } from '@artificer-toolkit/source-data/srd/creatures/unicorn.js'
@@ -135,12 +136,18 @@ describe('encounter action economy allowance', () => {
     })
   })
 
+  it('binds a reaction to the unused SRD reaction allowance (REACTION-4.T1 premise change: reactions are metered)', async () => {
+    await expect(
+      economy({ actor: fresh(), activation: { code: 'REACTION', amount: 1 } })
+    ).resolves.toMatchObject({
+      consumption: { definitionId: SRD_REACTION_ALLOWANCE_DEFINITION_ID, beforeUsed: 0 },
+      available: true
+    })
+  })
+
   it('tracks no allowance in Manual mode or for activations the System does not meter', async () => {
     await expect(
       economy({ actor: fresh(), activation: ACTION, automationMode: 'MANUAL' })
-    ).resolves.toBeNull()
-    await expect(
-      economy({ actor: fresh(), activation: { code: 'REACTION', amount: 1 } })
     ).resolves.toBeNull()
     await expect(
       economy({ actor: fresh(), activation: { code: 'ACTION', amount: 2 } })

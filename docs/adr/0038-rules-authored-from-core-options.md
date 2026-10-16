@@ -3,7 +3,7 @@
 - **Status:** transitional (user rulings 2026-10-14; 195 SRD closed rules remain until SPELLS-4 converts them)
 - **Date:** 2026-10-14
 - **Scope:** authored mechanics, `CLOSED_RULE`, Authoring Schema node maps, and Encounter zones (hazards and traps)
-- **Update when:** a new authored discriminant is added, a closed rule is kept on purpose, or zone placement or concealment changes
+- **Update when:** a new authored discriminant is added (the `reactionTrigger` union, decision 7), a closed rule is kept on purpose, or zone placement or concealment changes
 - **Supersedes:** the `CLOSED_RULE` guidance in [the engine guide](../architecture/engine.md) that a closed rule kind is "preserved unchanged for a future resolver"
 - **Verification:** authoring-parity tests for each converted mechanic (an author-built record through the real form and publication equals the SRD record and resolves the same); the SRD corpus tests; the [Phase 8 ledger](../roadmap/08-phase-ledger.json) items SPELLS-4, SPELLS-25 and MOVE-3
 
@@ -24,6 +24,7 @@ The hazards and traps design (MOVE-3) tested the rule: caltrops, Blade Barrier a
 4. **Every zone states where it is placed.** `attachmentKind` is required on `ZONE` (SPELLS-25). The runtime never infers placement from range or shape.
 5. **Concealment is placement state, except authored camouflage.** A placed zone's optional spot DC and disarm DC belong to its Scene record and are set by the GM (MOVE-3.3). Content authors concealment only when its own rules camouflage it, through an existing DC method (MOVE-3.4). A concealed zone is redacted per viewer on the server.
 6. **Environmental traps are Scene zones.** The GM zone tool renders the same zone node map as authored content (MOVE-3.2). There is no trap subject.
+7. **A reaction names its trigger with a generic discriminated option.** `reactionTrigger` on an invocation is a union (`MOVEMENT`, `ATTACKED_SELF`, `DAMAGE_TAKEN` with its chosen damage types; REACTION-4 adds more) that replaced the movement-only `reactionMovementTrigger`. It is a node-map group, so an author builds Shield, Opportunity Attack or a homebrew ward from the same options, and the engine never names a spell or feature. A reaction cast as an action is refused (`REACTION_TRIGGER_ONLY`). Authoring-parity proof for `ATTACKED_SELF`: `nativeRoomReaction.test.ts` runs the real SRD Shield and a homebrew +3 clone through the same pipeline. For `DAMAGE_TAKEN` it runs a user-authored Absorb Elements (`absorbElementsSpell`, not seeded content).
 
 ## Consequences
 

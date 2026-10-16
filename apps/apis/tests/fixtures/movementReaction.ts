@@ -29,7 +29,7 @@ import { SRD_ABILITY_DEFINITION_IDS } from '@artificer-toolkit/source-data/srd/v
 import { SRD_RULE_STATE_DEFINITIONS } from '@artificer-toolkit/source-data/srd/ruleState.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import {
-  createDnd5eMovementReactionChoiceDefinition,
+  createDnd5eReactionChoiceDefinition,
   createDnd5eOpportunityReactionEligibilityDefinition
 } from '@artificer-toolkit/rules-runtime/systems/dnd5e/reactionEligibilityPolicy'
 import { writeRunActor } from '@artificer-toolkit/encounter-persistence/documents'
@@ -68,7 +68,7 @@ const reactionCreature = {
         ...effect.invocation,
         triggerCode: 'MELEE_WEAPON_ATTACK' as const,
         activation: { code: 'REACTION' as const, amount: 1 },
-        reactionMovementTrigger: reactionBinding
+        reactionTrigger: reactionBinding
       }
     }))
   }))
@@ -223,7 +223,7 @@ export async function setupCreatureReactionRun(
     ...[
       publishedOpportunity,
       ...(additionalReactor ? [publishedAdditionalOpportunity] : []),
-      createDnd5eMovementReactionChoiceDefinition()
+      createDnd5eReactionChoiceDefinition()
     ].map((published) => ({
       id: published.id,
       definitionFamilyKey: published.definitionFamilyKey,
@@ -336,7 +336,7 @@ export async function setupCreatureReactionRun(
                   }
                 }
               : {}),
-            reactionMovementTrigger: {
+            reactionTrigger: {
               ...reactionBinding,
               perceptionRequirement,
               movementInterruption: stopOnFailedSave
@@ -356,12 +356,11 @@ export async function setupCreatureReactionRun(
       effects: feature.effects?.map((effect) => ({
         ...effect,
         invocation:
-          'reactionMovementTrigger' in effect.invocation &&
-          effect.invocation.reactionMovementTrigger
+          'reactionTrigger' in effect.invocation && effect.invocation.reactionTrigger
             ? {
                 ...effect.invocation,
-                reactionMovementTrigger: {
-                  ...effect.invocation.reactionMovementTrigger,
+                reactionTrigger: {
+                  ...effect.invocation.reactionTrigger,
                   eligibilityDefinitionId: additionalOpportunityId
                 }
               }

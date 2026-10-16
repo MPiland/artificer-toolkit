@@ -1,7 +1,7 @@
 import type { EncounterMaintainedEffectDescriptorDto } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import { DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from '@artificer-toolkit/rules-runtime/systems/dnd5e/concentrationIdentity'
 import {
-  createDnd5eMovementReactionChoiceDefinition,
+  createDnd5eReactionChoiceDefinition,
   DND5E_ACTOR_ACTION_CAPABILITY_DEFINITION_ID,
   createDnd5eOpportunityReactionEligibilityDefinition,
   DND5E_OPPORTUNITY_REACTION_ELIGIBILITY_DEFINITION_ID
@@ -55,7 +55,7 @@ function opportunityWolf(stopOnHit: boolean): CreatureAuthored {
             invocation: {
               ...biteEffect.invocation,
               activation: { code: 'REACTION' as const, amount: 1 },
-              reactionMovementTrigger: {
+              reactionTrigger: {
                 kind: 'MOVEMENT' as const,
                 stage: 'BEFORE_LEAVE_REACH' as const,
                 perceptionRequirement: null,
@@ -86,8 +86,7 @@ export const stopReactionWolf = opportunityWolf(true)
 export const saveStopWolf: CreatureAuthored = (() => {
   const bite = creatureFeature(reactionWolf, 'Bite')
   const effect = bite.effects?.[0]
-  const trigger =
-    effect?.invocation.kind === 'ACTION' ? effect.invocation.reactionMovementTrigger : null
+  const trigger = effect?.invocation.kind === 'ACTION' ? effect.invocation.reactionTrigger : null
   const damagePath = effect?.paths.find(
     (path) =>
       'resultBlock' in path &&
@@ -113,7 +112,7 @@ export const saveStopWolf: CreatureAuthored = (() => {
                 baseDc: 30,
                 abilityDefinitionId: SRD_ABILITY_DEFINITION_IDS.DEXTERITY
               },
-              reactionMovementTrigger: {
+              reactionTrigger: {
                 ...trigger,
                 movementInterruption: {
                   kind: 'STOP' as const,
@@ -193,7 +192,7 @@ export const legendaryWolf: CreatureAuthored = (() => {
 /** The policy definitions a movement reaction names; the SRD reusable set does not publish them. */
 export const reactionPolicyDefinitions = [
   createDnd5eOpportunityReactionEligibilityDefinition(),
-  createDnd5eMovementReactionChoiceDefinition()
+  createDnd5eReactionChoiceDefinition()
 ].map((published) =>
   currentSrdDefinition({
     id: published.id,

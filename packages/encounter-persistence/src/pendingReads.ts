@@ -70,7 +70,8 @@ export async function readEncounterWaitingOn(
             ? decision.sourceActorId
             : decision.kind === 'LEGENDARY_ACTION_CHOICE'
               ? decision.ownerActorId
-              : decision.kind === 'LEGENDARY_RESISTANCE_CHOICE'
+              : decision.kind === 'LEGENDARY_RESISTANCE_CHOICE' ||
+                  decision.kind === 'REACTION_CHOICE'
                 ? decision.targetActorId
                 : null
   if (!actorId) return 'GM'

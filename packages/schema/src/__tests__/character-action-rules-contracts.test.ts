@@ -13,7 +13,7 @@ const mechanicFacts = {
     activation: { code: 'ACTION', amount: 1 },
     range: { rangeKind: 'SELF', amount: null, longAmount: null, unit: null },
     savingThrow: null,
-    reactionMovementTrigger: null
+    reactionTrigger: null
   },
   outcomes: []
 }
@@ -138,7 +138,7 @@ describe('Character action rule contracts', () => {
         invocation: {
           ...mechanicFacts.invocation,
           activation: { code: 'REACTION', amount: 1 },
-          reactionMovementTrigger: {
+          reactionTrigger: {
             kind: 'MOVEMENT' as const,
             stage: 'BEFORE_LEAVE_REACH' as const,
             perceptionRequirement: 'SEE' as const,
@@ -149,12 +149,52 @@ describe('Character action rule contracts', () => {
     }
 
     const parsed = characterActionCandidatesSchema.parse([candidate])
-    expect(parsed[0]?.mechanicFacts.invocation.reactionMovementTrigger).toEqual({
+    expect(parsed[0]?.mechanicFacts.invocation.reactionTrigger).toEqual({
       kind: 'MOVEMENT',
       stage: 'BEFORE_LEAVE_REACH',
       perceptionRequirement: 'SEE',
       movementInterruption: null,
       eligibilityDefinitionId: 'aaaaaaaa-0000-4000-8000-000000000001'
     })
+  })
+
+  it('round-trips an attacked-self reaction trigger through an action candidate', () => {
+    const candidate = {
+      sequence: 0,
+      actionId: 'source:ACTION:effect',
+      effectId: EFFECT_ID,
+      sourceId: 'source',
+      source,
+      mechanicsOwner: { kind: 'FEATURE', id: 'feature' },
+      activationSourceKind: 'ACTIVE_SOURCE' as const,
+      equipment: null,
+      resourceUse: null,
+      mechanicFacts: {
+        ...mechanicFacts,
+        invocation: {
+          ...mechanicFacts.invocation,
+          activation: { code: 'REACTION', amount: 1 },
+          reactionTrigger: { kind: 'ATTACKED_SELF' as const }
+        }
+      }
+    }
+
+    expect(
+      characterActionCandidatesSchema.parse([candidate])[0]?.mechanicFacts.invocation.reactionTrigger
+    ).toEqual({ kind: 'ATTACKED_SELF' })
+    expect(
+      characterActionCandidatesSchema.safeParse([
+        {
+          ...candidate,
+          mechanicFacts: {
+            ...candidate.mechanicFacts,
+            invocation: {
+              ...candidate.mechanicFacts.invocation,
+              reactionTrigger: { kind: 'ATTACKED_SELF', stage: 'ENTER_REACH' }
+            }
+          }
+        }
+      ]).success
+    ).toBe(false)
   })
 })

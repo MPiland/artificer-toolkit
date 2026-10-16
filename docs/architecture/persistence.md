@@ -297,8 +297,13 @@ store.
   the same commit. A `RESOLVE_ACTION`, area or cleaving root keeps them in `consumedGrants` (`receiptConsumedGrants`,
   `addEndedGrantsToRoot`), so `REVERT_LAST_ACTION` restores them with the consumed grants. The commit validates every
   `endedGrants` record against the stored effect and the holder's state, not the client's claim
-  (`concentrationChildrenPersistence.ts`). A holder-ended grant is the stored Run command `END_HELD_GRANT`; like any costed
-  Run command it blocks undo of the prior action (D99).
+  (`concentrationChildrenPersistence.ts`: `damagedActorIds` names the holders the commit damaged, and a commit that omits a grant such a
+  holder's state ends is refused). A grant ended by a movement pass or an actor or Sheet edit is deleted without a receipt
+  (`endHolderStateGrants`, `endConcentrationAfterEdit`; D99: no undo of an ended grant), and every path posts a chat notice per grant
+  (`postGrantEndMessages`, entry id `grantEndNoticeId(occurrence, grant)`, so a replay adds nothing; a private GM holder posts none). A turn advance is not an undo root, so its
+  ended grants carry no receipt. A holder-ended grant is the stored Run command `END_HELD_GRANT`; like any costed
+  Run command it blocks undo of the prior action (D99). The Sheet end of a holder-end grant is free in a MANUAL Run
+  (`economyEnforced: false`).
 - **No Convex timeline:** the timeline and latest evidence roll are read only from the room. Encounter
   commands write no Character receipts, and the Character history API is removed.
 

@@ -12,6 +12,7 @@ import {
   type EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { encounterStoredRunCommandSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
+import type { ConcentrationEndReason } from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
 import type { ServerRuleExecutionApplicationOutputsDto } from '@artificer-toolkit/schema/shared/ruleExecutionApplicationOutputs'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import type { EncounterActionEconomyConsumption } from '@artificer-toolkit/rules-runtime/encounterActionEconomyConsumption'
@@ -66,6 +67,14 @@ type CharacterInverse = {
 // Commands between the action and now; a longer tail cannot be only that action's children.
 const REVERT_SCAN_LIMIT = 16
 const RECEIPT_SCAN_LIMIT = REVERT_SCAN_LIMIT * 4
+
+/** Why undo can't bring back a Concentration an action ended, named for the GM. */
+const CONCENTRATION_END_LIMIT: Record<ConcentrationEndReason, string> = {
+  INCAPACITATED: 'lost Concentration to incapacitation',
+  DEFEATED: 'lost Concentration to defeat',
+  SPELLCASTING_LOCKED: 'lost Concentration to a spellcasting lock',
+  CHOSEN: 'lost Concentration because its holder ended it'
+}
 
 function unavailable(message: string): never {
   return rejectDomain('REVERT_UNAVAILABLE', message)
@@ -225,8 +234,8 @@ export async function revertLastEncounterAction(
     }
     childOccurrenceIds.add(receipt.occurrenceId)
     if (outputs.kind === 'CONCENTRATION_END') {
-      // The holder couldn't act, so its maintained effect ended without a check (D95).
-      unsupported.add('lost Concentration')
+      // The receipt keeps ids, not the ended maintained effect and its dependents, so it can't be restored (D95).
+      unsupported.add(CONCENTRATION_END_LIMIT[outputs.reason])
     } else if (outputs.kind === 'CONCENTRATION_CHECK') {
       // A failed save ended a maintained effect whose contents the receipt does not keep.
       if (outputs.outcome === 'SAVE_FAILURE') unsupported.add('lost Concentration')
@@ -352,6 +361,8 @@ export async function revertLastEncounterAction(
           : []
       )
     )
+    // A reaction the target used spent its slot and allowance and created its effect with this outcome.
+    const reaction = action.kind === 'CHARACTER_MECHANICS_BATCH' ? action.reaction : null
     if (action.kind === 'CHARACTER_MECHANICS_BATCH') {
       if (target.kind !== 'CHARACTER' || target.sourceId === null)
         throw new Error('Stored Character action target is invalid.')
@@ -384,6 +395,7 @@ export async function revertLastEncounterAction(
             ? [zeroHitPointsConditionId]
             : [])
         ])
+        inverse.spell = reaction?.spellCastConsumption ?? null
       }
     } else {
       if (target.kind === 'CHARACTER') throw new Error('Stored Encounter actor target is invalid.')
@@ -413,9 +425,27 @@ export async function revertLastEncounterAction(
         )
       })
     }
+    const reactionEconomy = reaction?.actionEconomyTransition
+    if (reactionEconomy) {
+      const reactor = actorsById.get(target.id)!
+      if (
+        encounterRuleUsageUsed(reactor, reactionEconomy.definitionId) !== reactionEconomy.afterUsed
+      )
+        unavailable("The target's reactions changed after this action; adjust manually.")
+      updateActor(reactor.id, {
+        resources: withEncounterRuleUsageUsed(
+          reactor,
+          reactionEconomy.definitionId,
+          reactionEconomy.beforeUsed
+        )
+      })
+    }
     // Created effects and the maintained state go away; their versions prove nothing touched them.
     const characterOwnerId = target.kind === 'CHARACTER' ? target.sourceId : null
-    for (const effect of action.activeEffectTransitions)
+    for (const effect of [
+      ...action.activeEffectTransitions,
+      ...(reaction?.activeEffectTransitions ?? [])
+    ])
       await store.deleteCas({
         id: effect.activeEffectId,
         owner: characterOwnerId

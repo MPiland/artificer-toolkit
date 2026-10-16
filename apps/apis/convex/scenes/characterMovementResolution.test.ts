@@ -36,7 +36,7 @@ import {
 } from '@artificer-toolkit/source-data/srd/ruleState.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import {
-  createDnd5eMovementReactionChoiceDefinition,
+  createDnd5eReactionChoiceDefinition,
   createDnd5eOpportunityReactionEligibilityDefinition
 } from '@artificer-toolkit/rules-runtime/systems/dnd5e/reactionEligibilityPolicy'
 import { api, components, internal } from '../_generated/api'
@@ -139,7 +139,7 @@ async function setup(replacement = false, futureReactor = false, assisted = fals
     triggerCode: 'MELEE_WEAPON_ATTACK',
     activation: { code: 'REACTION', amount: 1 },
     ...(assisted ? { resourceUse: { chargeId, cost: 1 } } : {}),
-    reactionMovementTrigger: {
+    reactionTrigger: {
       ...reactionBinding,
       movementInterruption: stop ? { kind: 'STOP', whenResultPath: 'ON_HIT' } : null
     }
@@ -236,7 +236,7 @@ async function setup(replacement = false, futureReactor = false, assisted = fals
     ...SRD_RULE_STATE_DEFINITIONS,
     ...[
       createDnd5eOpportunityReactionEligibilityDefinition(),
-      createDnd5eMovementReactionChoiceDefinition()
+      createDnd5eReactionChoiceDefinition()
     ].map((published) => ({
       id: published.id,
       definitionFamilyKey: published.definitionFamilyKey,

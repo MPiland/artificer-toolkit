@@ -21,7 +21,8 @@ import {
 } from '@artificer-toolkit/rules-runtime/systems/dnd5e/attackKind'
 import {
   encounterActionSourceLabel,
-  resolveEncounterActionSource
+  resolveEncounterActionSource,
+  type EncounterActionSourceRequest
 } from '@artificer-toolkit/rules-runtime/encounterActionSources'
 import {
   deadCharacterIdsOfTargets,
@@ -57,6 +58,17 @@ import type { LiveCaptureReads } from './nativeEncounterReads.js'
 import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
 import { prepareNativeLiveActionMaintenance } from './nativeEncounterMaintenance.js'
 import { advanceNativeActionGraphs } from '@artificer-toolkit/rules-runtime/encounterActionExecution'
+import { consumeEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomyConsumption'
+import {
+  replayNativeActionReaction,
+  resolveNativeActionReaction
+} from '@artificer-toolkit/rules-runtime/encounterActionReaction'
+import type { EncounterReactionSelection } from '@artificer-toolkit/rules-runtime/encounterReactionChoice'
+import type { EncounterReactionOfferDto } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
+import {
+  applyNativeAttackReaction,
+  discoverNativeAttackReaction
+} from './nativeEncounterAttackReaction.js'
 import { buildEncounterActionPendingSnapshot } from '@artificer-toolkit/rules-runtime/encounterActionPendingSnapshot'
 import {
   withEncounterAppRoll,
@@ -90,7 +102,7 @@ import {
 import { evaluateNativeLiveActionEconomy } from './nativeEncounterActionEconomy.js'
 import {
   nativeLiveRelationshipFacts,
-  refuseLegendaryWindowAction,
+  refuseActionOutsideItsWindow,
   refuseSpatialInterpretation,
   refuseUnmetBasicActionRestrictions
 } from './nativeEncounterActionInputs.js'
@@ -186,6 +198,10 @@ export async function planNativeLiveEncounterAction(
     offer: EncounterLegendaryResistanceOfferDto
     selection: EncounterLegendaryResistanceSelection
   } | null = null
+  let reactionAnswer: {
+    offer: EncounterReactionOfferDto
+    selection: EncounterReactionSelection
+  } | null = null
   if (responseCommand) {
     if (!snapshot || snapshot.applicationContext.kind !== 'ENCOUNTER_ACTION')
       throw new Error('The pending action snapshot is unavailable.')
@@ -202,6 +218,10 @@ export async function planNativeLiveEncounterAction(
         offer: snapshot.applicationContext.legendaryResistance,
         selection: resolution
       }
+    } else if (snapshot.applicationContext.reactionChoice) {
+      if (resolution.kind !== 'DECLINE' && resolution.kind !== 'OPTION')
+        throw new Error('The action requires a reaction decision.')
+      reactionAnswer = { offer: snapshot.applicationContext.reactionChoice, selection: resolution }
     } else if (
       resolution.kind !== 'ENTER_DICE' &&
       resolution.kind !== 'ENTER_INTEGER' &&
@@ -258,12 +278,15 @@ export async function planNativeLiveEncounterAction(
     capture
   })
 
-  async function loadTarget(actor: EncounterRunActorState) {
+  async function loadTarget(
+    actor: EncounterRunActorState,
+    effectsByActorId: typeof activeEffectsByActorId = activeEffectsByActorId
+  ) {
     const preparedTarget = await prepareNativeLiveMovementTarget({
       scope: initial,
       state,
       actor,
-      activeEffectsByActorId,
+      activeEffectsByActorId: effectsByActorId,
       captures: executionOptions.captures
     })
     revisions = mergeNativeRulesRevisions(revisions, preparedTarget.revisions)
@@ -380,29 +403,8 @@ export async function planNativeLiveEncounterAction(
       return response.definition
     }
   }
-  const prepared = await prepareEncounterActionMechanics({
-    state,
-    actor: actors.find((actor) => actor.id === command.actorId)!,
-    target: actors.find((actor) => actor.id === targetActorId)!,
-    actors,
-    actionId: command.actionId,
-    wieldConflictAcceptance: {
-      kind: 'PROMPTED',
-      accepted: command.acceptedWieldConflict
-    },
-    overridable: true,
-    movementTargets,
-    sceneContext,
-    loadAttackPerception: ({ sourceFacts, targetFacts }) =>
-      readNativeLiveAttackPerception({
-        state,
-        system,
-        attacker: sourceFacts,
-        target: targetFacts,
-        sceneContext,
-        capture
-      }),
-    loadSource: async (input) =>
+  const actionSources = {
+    loadSource: async (input: EncounterActionSourceRequest) =>
       resolveEncounterActionSource({
         ...input,
         system,
@@ -414,8 +416,35 @@ export async function planNativeLiveEncounterAction(
         })
       }),
     loadRelationshipFacts: nativeLiveRelationshipFacts({ activeEffectsByActorId })
-  }).catch(refuseStaleCharacterAction)
-  refuseLegendaryWindowAction(prepared)
+  }
+  // The attack is prepared again against a target's facts once a reaction has changed them.
+  const prepareAttack = (targets: typeof movementTargets) =>
+    prepareEncounterActionMechanics({
+      state,
+      actor: actors.find((actor) => actor.id === command.actorId)!,
+      target: actors.find((actor) => actor.id === targetActorId)!,
+      actors,
+      actionId: command.actionId,
+      wieldConflictAcceptance: {
+        kind: 'PROMPTED',
+        accepted: command.acceptedWieldConflict
+      },
+      overridable: true,
+      movementTargets: targets,
+      sceneContext,
+      loadAttackPerception: ({ sourceFacts, targetFacts }) =>
+        readNativeLiveAttackPerception({
+          state,
+          system,
+          attacker: sourceFacts,
+          target: targetFacts,
+          sceneContext,
+          capture
+        }),
+      ...actionSources
+    }).catch(refuseStaleCharacterAction)
+  const prepared = await prepareAttack(movementTargets)
+  refuseActionOutsideItsWindow(prepared)
   const actorTarget = movementTargets.get(prepared.actor.id)
   if (!actorTarget) throw new Error('Encounter rules input binding mismatch.')
   await refuseUnmetBasicActionRestrictions(prepared, {
@@ -598,6 +627,52 @@ export async function planNativeLiveEncounterAction(
       throw new Error('Legendary Resistance evidence is stale.')
     return { candidate, currentFeatureResource, targetStateChecksum }
   }
+  const occurredAt = new Date().toISOString()
+  const discoverReaction = discoverNativeAttackReaction({
+    state,
+    attack: prepared,
+    prepareReaction: (actionId) =>
+      prepareEncounterActionMechanics({
+        state,
+        actor: prepared.target,
+        target: prepared.target,
+        actors,
+        actionId,
+        wieldConflictAcceptance: { kind: 'UNPROMPTED' },
+        overridable: false,
+        movementTargets,
+        sceneContext: null,
+        ...actionSources
+      }),
+    capture
+  })
+  /**
+   * The target's reaction as it is now. A used reaction also carries what it does to the attack it
+   * answered: its effect plan and the attack's binding once that effect holds.
+   */
+  const currentReaction = async (used: boolean) => {
+    const found = await discoverReaction()
+    if (!found) throw new Error('Reaction evidence is stale.')
+    const applied = used
+      ? await applyNativeAttackReaction({
+          reaction: found,
+          runtime: executionOptions.runtime,
+          occurrenceId,
+          commandId: command.commandId,
+          occurredAt,
+          activeEffectsByActorId,
+          prepareAttack,
+          loadTarget
+        })
+      : null
+    return {
+      found,
+      applied,
+      candidate: found.candidate,
+      targetStateChecksum,
+      adjustedBinding: applied?.adjustedBinding ?? prepared.binding
+    }
+  }
   const answered = resistanceAnswer
     ? await resolveNativeActionLegendaryResistance({
         ...actionSource,
@@ -605,13 +680,32 @@ export async function planNativeLiveEncounterAction(
         ...(await currentResistance())
       })
     : null
+  const answeredReaction = reactionAnswer
+    ? await currentReaction(reactionAnswer.selection.kind === 'OPTION')
+    : null
+  const reactionAnswered =
+    reactionAnswer && answeredReaction
+      ? {
+          ...answeredReaction,
+          ...(await resolveNativeActionReaction({
+            ...actionSource,
+            ...reactionAnswer,
+            ...answeredReaction
+          }))
+        }
+      : null
   const execution =
     answered?.execution ??
+    reactionAnswered?.execution ??
     (await advanceNativeActionGraphs({
       ...actionSource,
       attackSight: prepared.attackSight,
       ...(resume ? { resume } : {}),
-      legendaryResistance: { discover: discoverResistance, targetStateChecksum }
+      legendaryResistance: { discover: discoverResistance, targetStateChecksum },
+      reaction: {
+        discover: async () => (await discoverReaction())?.candidate ?? null,
+        targetStateChecksum
+      }
     }))
   const retained = resume?.pending.twoPhase
   const resistance =
@@ -623,7 +717,30 @@ export async function planNativeLiveEncounterAction(
           ...(await currentResistance())
         })
       : null)
-  const occurredAt = new Date().toISOString()
+  const retainedReaction =
+    execution.kind !== 'PENDING' &&
+    !reactionAnswered &&
+    retained?.phase === 'OUTCOME' &&
+    retained.reaction
+      ? retained
+      : null
+  const replayedReaction = retainedReaction
+    ? await currentReaction(retainedReaction.reaction!.selection === 'USE')
+    : null
+  const reaction =
+    execution.kind === 'PENDING'
+      ? null
+      : (reactionAnswered ??
+        (retainedReaction && replayedReaction
+          ? {
+              ...replayedReaction,
+              audit: await replayNativeActionReaction({
+                ...actionSource,
+                outcome: retainedReaction,
+                ...replayedReaction
+              })
+            }
+          : null))
   const preflight = {
     command,
     response: responseCommand,
@@ -656,6 +773,14 @@ export async function planNativeLiveEncounterAction(
     commandId: command.commandId,
     activeEffectsByActorId
   })
+  const reactionUse =
+    reaction?.audit.selection === 'USE' && reaction.applied
+      ? {
+          applied: reaction.applied,
+          prepared: reaction.found.prepared,
+          economy: reaction.found.economy.consumption
+        }
+      : null
   refuseSpatialInterpretation(prepared, {
     execution: execution.execution,
     occurrenceId,
@@ -677,19 +802,30 @@ export async function planNativeLiveEncounterAction(
       ],
       forceTargetVersionAdvance:
         prepared.target.kind === 'CHARACTER' &&
-        (preparedEffects.stateEffect !== null || preparedEffects.recurringEffect !== null)
+        (preparedEffects.stateEffect !== null ||
+          preparedEffects.recurringEffect !== null ||
+          reactionUse !== null)
     },
     initial.expectedUserId
   )
-  // A Legendary Resistance the target used spends its own charge with the outcome.
+  // A Legendary Resistance the target used spends its own charge, and a reaction its allowance,
+  // with the outcome.
   const charge = resistance?.charge
-  const chargedTarget = (actor: EncounterRunActorState) =>
-    charge
+  const chargedTarget = (actor: EncounterRunActorState) => {
+    const charged = charge
       ? encounterRunActorStateSchema.parse({
           ...actor,
           resources: withFeatureChargeUsed(actor, charge.ownerFeatureId, charge.afterUsed)
         })
       : actor
+    return reactionUse
+      ? consumeEncounterActionEconomy({
+          actor: charged,
+          consumption: reactionUse.economy,
+          overridden: false
+        })
+      : charged
+  }
   const mechanics = {
     ...planned,
     mechanics: {
@@ -708,6 +844,7 @@ export async function planNativeLiveEncounterAction(
     prepared,
     mechanics,
     effects: preparedEffects,
+    reactionEffect: reactionUse?.applied.reactionEffect ?? null,
     actionEconomy,
     actionEconomyOverridden: overridesActionEconomy(ruleWarnings.overrides),
     attackAction,
@@ -761,7 +898,15 @@ export async function planNativeLiveEncounterAction(
     maintenanceTransition: settlement.maintenanceTransition,
     actionEconomy,
     attackAction,
-    resistance
+    resistance,
+    reaction: reaction && {
+      audit: reaction.audit,
+      spent: reactionUse && {
+        spellConsumption: reactionUse.prepared.characterActionState?.spellConsumption,
+        economy: reactionUse.economy,
+        activeEffectTransitions: settlement.reactionActiveEffectTransitions
+      }
+    }
   })
   const cleavingRange = rangeDtoSchema.safeParse(prepared.targetPolicy.range)
   const cleaving =
@@ -816,6 +961,7 @@ export async function planNativeLiveEncounterAction(
     nextRules,
     storedExecution,
     cleaving,
+    reactionUse,
     revisions
   }
 }
@@ -871,6 +1017,8 @@ export function buildNativeLiveEncounterActionCommitInput(
     resourceConsumption: plan.prepared.characterActionState?.resourceConsumption ?? null,
     itemConsumption: plan.prepared.characterActionState?.itemConsumption ?? null,
     spellConsumption: plan.prepared.characterActionState?.spellConsumption ?? null,
+    reactionSpellConsumption:
+      plan.reactionUse?.prepared.characterActionState?.spellConsumption ?? null,
     label: encounterActionSourceLabel(plan.prepared.source),
     ruleOverrides: plan.ruleOverrides,
     createdEffects: plan.settlement.createdEffects,

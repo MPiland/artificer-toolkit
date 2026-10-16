@@ -295,6 +295,17 @@ export const pendingEncounterRuleOccurrenceSummaryDtoSchema = lazySchema(() =>
         allowedResponses: z.tuple([z.literal('DECLINE'), z.literal('OPTION')])
       }),
       z.strictObject({
+        kind: z.literal('REACTION_CHOICE'),
+        occurrenceId: uuidSchema,
+        occurrenceVersion: versionSchema,
+        encounterVersion: versionSchema,
+        targetActorId: uuidSchema,
+        options: z.tuple([
+          z.strictObject({ optionId: z.string().check(z.regex(/^[a-f0-9]{64}$/)) })
+        ]),
+        allowedResponses: z.tuple([z.literal('DECLINE'), z.literal('OPTION')])
+      }),
+      z.strictObject({
         kind: z.literal('LEGENDARY_ACTION_CHOICE'),
         occurrenceId: uuidSchema,
         occurrenceVersion: versionSchema,

@@ -377,6 +377,8 @@ async function verifyCharacterCustody(cohort: CampaignCustodyCohort) {
       ...snapshot.partyCurrencies.page,
       ...snapshot.vehicleCurrencies.page
     ].reduce((total, row) => total + BigInt(row.amount), 0n)
+  // Each step starts from the state the previous step's replay read proved unchanged.
+  let prior = after
   for (const step of [
     { actor: second.client, source: characterOwner(destinationId), destination: partyOwner },
     { actor: cohort.owner, source: partyOwner, destination: characterOwner(sourceId) },
@@ -386,7 +388,6 @@ async function verifyCharacterCustody(cohort: CampaignCustodyCohort) {
     const current = await step.actor.query(api.campaigns.inventoryOwners.transferVersions, {
       input: { campaignId: cohort.campaignId, source: step.source, destination: step.destination }
     })
-    const prior = await read()
     const command: TransferCampaignInventoryInput = {
       kind: 'ITEM' as const,
       campaignId: cohort.campaignId,
@@ -417,6 +418,7 @@ async function verifyCharacterCustody(cohort: CampaignCustodyCohort) {
       settled
     )
     assert.deepEqual(await read(), next, 'Every owner combination must replay without writes.')
+    prior = next
   }
   const returned = await read()
   for (const itemId of [bag.id, child.id])
@@ -449,7 +451,8 @@ export async function verifyCampaignCustody(
     owner: cohort.owner,
     player: cohort.players[0].client,
     anonymous,
-    campaignId: cohort.campaignId
+    campaignId: cohort.campaignId,
+    boundedCleanup: false
   })
   await verifyCharacterCustody(cohort)
   await verifyCampaignVehicleLifecycle(cohort, anonymous)

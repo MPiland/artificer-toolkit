@@ -16,7 +16,7 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
 import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.js'
 import type { EncounterCharacterWriteTransaction } from './ports.js'
-import { deleteConsumedGrants } from './consumedGrantPersistence.js'
+import { deleteGrants } from './consumedGrantPersistence.js'
 import { writeRunActor } from './documents.js'
 import {
   prepareEncounterActionMaintenance,
@@ -358,6 +358,6 @@ export async function persistLiveMovementReaction(
     ) !== checksumCanonicalJson(receipt.characterTransitions)
   )
     throw new Error('Live movement reaction Character transition receipt is incomplete.')
-  await deleteConsumedGrants(ctx, step.consumedGrants)
+  await deleteGrants(ctx, step.consumedGrants)
   return actors
 }

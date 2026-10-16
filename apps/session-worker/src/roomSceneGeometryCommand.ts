@@ -13,6 +13,7 @@ import {
   readMovementResolution,
   assertGeometryReceiving
 } from '@artificer-toolkit/encounter-persistence/sceneGeometryDocuments'
+import { endHolderStateGrants } from '@artificer-toolkit/encounter-persistence/concentrationEnd'
 import { persistMovementSettlements } from '@artificer-toolkit/encounter-persistence/movementSettlementPersistence'
 import { persistLiveMovementSpatial } from '@artificer-toolkit/encounter-persistence/liveMovementSpatialPersistence'
 import { persistLiveMovementReaction } from '@artificer-toolkit/encounter-persistence/liveMovementReactionPersistence'
@@ -331,7 +332,8 @@ export async function executeRoomSceneGeometry(input: {
         persistConcentration: (step) =>
           persistLiveMovementConcentration(ctx, step, concentrationCallbacks),
         persistConcentrationEnd: (step) =>
-          persistLiveMovementConcentrationEnd(ctx, step, concentrationCallbacks)
+          persistLiveMovementConcentrationEnd(ctx, step, concentrationCallbacks),
+        endHolderGrants: (step) => endHolderStateGrants(ctx, step)
       }
     )
   }

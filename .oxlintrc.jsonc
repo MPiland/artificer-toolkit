@@ -71,6 +71,22 @@
       }
     },
     {
+      "files": ["apps/web/**/*.{ts,tsx}"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "@artificer-toolkit/shared/account/usernameServer",
+                "message": "The username dictionary is server-only; the web bundle uses account/username."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
       "files": ["apps/apis/convex/lib/mutations.ts"],
       "rules": {
         "no-restricted-imports": "off"

@@ -11,7 +11,7 @@ import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue
 import { SRD_RULE_STATE_DEFINITIONS } from '@artificer-toolkit/source-data/srd/ruleState.js'
 import {
   createDnd5eMovementReactionEligibilityDefinition,
-  createDnd5eMovementReactionChoiceDefinition
+  createDnd5eReactionChoiceDefinition
 } from '@artificer-toolkit/rules-runtime/systems/dnd5e/reactionEligibilityPolicy'
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import { creatureAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/creature'
@@ -135,7 +135,7 @@ export async function setupAutomaticCharacterMovement(
     additionalCharacter = character
   }
   const definitions = policies.map((policy) => eligibility(policy, crypto.randomUUID()))
-  const choice = createDnd5eMovementReactionChoiceDefinition()
+  const choice = createDnd5eReactionChoiceDefinition()
   for (const batch of sourceImportBatches([
     ...SRD_RULE_STATE_DEFINITIONS,
     ...[...definitions, choice].map((published) => ({
@@ -179,7 +179,7 @@ export async function setupAutomaticCharacterMovement(
             ...effect.invocation,
             triggerCode: 'MELEE_WEAPON_ATTACK' as const,
             activation: { code: 'REACTION' as const, amount: 1 },
-            reactionMovementTrigger: {
+            reactionTrigger: {
               kind: 'MOVEMENT' as const,
               stage: 'BEFORE_LEAVE_REACH' as const,
               perceptionRequirement: null,

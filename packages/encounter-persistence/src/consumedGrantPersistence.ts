@@ -9,8 +9,8 @@ import type {
   EncounterPersistenceTransaction
 } from './ports.js'
 
-/** Ends grants a roll used up, with the versions the roll was planned against. */
-export async function deleteConsumedGrants(
+/** Deletes grants a roll used up or a holder's state ended, with the versions they were planned against. */
+export async function deleteGrants(
   ctx: EncounterPersistenceTransaction,
   grants: readonly ActiveRuleEffectRecord[]
 ) {
@@ -31,7 +31,7 @@ export async function deleteHeldAttackRollGrants(
   for (const actor of (await readRunActors(ctx, input.state)).filter(({ id }) =>
     input.actorIds.has(id)
   ))
-    await deleteConsumedGrants(
+    await deleteGrants(
       ctx,
       consumableGrants(await store.list(turnEffectOwner(actor, input.state.id)), 'ON_ATTACK_ROLL')
     )

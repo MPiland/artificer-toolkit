@@ -36,6 +36,27 @@ export type NativeLiveMaintenanceOwner = {
   character: Maintenance['owners'][number]['character']
 }
 
+/** Who holds an effect the target gains: a Character's own effects belong to the Character. */
+export function nativeEffectOwner(
+  target: Pick<EncounterRunActorState, 'kind' | 'id' | 'sourceId'>,
+  encounterId: string
+) {
+  return target.kind === 'CHARACTER'
+    ? {
+        kind: 'CHARACTER' as const,
+        characterId:
+          target.sourceId ??
+          (() => {
+            throw new Error('Encounter Character effect owner is incomplete.')
+          })()
+      }
+    : {
+        kind: 'ENCOUNTER_ACTOR' as const,
+        encounterId,
+        targetActorId: target.id
+      }
+}
+
 /** Projects the exact state after mechanics, effects and maintenance, before concentration runs. */
 export function planNativeLiveEncounterSettlement(input: {
   command: ResolveEncounterActionInputDto
@@ -44,6 +65,13 @@ export function planNativeLiveEncounterSettlement(input: {
   prepared: Awaited<ReturnType<typeof prepareEncounterActionMechanics<CharacterFacts>>>
   mechanics: ReturnType<typeof planNativeEncounterActionMechanics>
   effects: ReturnType<typeof prepareNativeActionEffectsPlan<CharacterFacts>>
+  /** The effect plan of the reaction the target used against this action, when it used one. */
+  reactionEffect: {
+    id: string
+    plan: NonNullable<
+      ReturnType<typeof prepareNativeActionEffectsPlan<CharacterFacts>>['stateEffect']
+    >
+  } | null
   actionEconomy: Awaited<ReturnType<typeof prepareEncounterActionEconomy>>
   actionEconomyOverridden: boolean
   attackAction: EncounterAttackActionTransitionDto | null
@@ -76,34 +104,24 @@ export function planNativeLiveEncounterSettlement(input: {
         }
       })
     : null
-  const owner =
-    prepared.target.kind === 'CHARACTER'
-      ? {
-          kind: 'CHARACTER' as const,
-          characterId:
-            prepared.target.sourceId ??
-            (() => {
-              throw new Error('Encounter Character effect owner is incomplete.')
-            })()
-        }
-      : {
-          kind: 'ENCOUNTER_ACTOR' as const,
-          encounterId: prepared.state.id,
-          targetActorId: prepared.target.id
-        }
+  const owner = nativeEffectOwner(prepared.target, prepared.state.id)
   const removedIds = new Set(maintenance?.removed.map((effect) => effect.id))
   const targetEffects = prepared.targetFacts.activeEffects.filter(
     (effect) => !removedIds.has(effect.id)
   )
   const createdEffects: ActiveRuleEffectRecord[] = []
-  const create = (kind: 'STATE' | 'RECURRING', plan: typeof effects.stateEffect) => {
+  const create = (
+    plan: typeof effects.stateEffect,
+    maintainedEffectStateId?: string,
+    id = crypto.randomUUID()
+  ) => {
     if (!plan) return null
     const record = prepareActiveRuleEffectRecord({
-      id: crypto.randomUUID(),
+      id,
       owner,
       definition: plan.definition,
       lifecycle: plan.lifecycle,
-      maintainedEffectStateId: kind === 'RECURRING' ? maintainedState?.id : undefined,
+      maintainedEffectStateId,
       currentEffects: targetEffects,
       occurredAt: input.occurredAt
     })
@@ -111,8 +129,11 @@ export function planNativeLiveEncounterSettlement(input: {
     createdEffects.push(record)
     return record
   }
-  const stateEffect = create('STATE', effects.stateEffect)
-  const recurringEffect = create('RECURRING', effects.recurringEffect)
+  const stateEffect = create(effects.stateEffect)
+  const recurringEffect = create(effects.recurringEffect, maintainedState?.id)
+  // The effect of the reaction the target used lands on the target after the attack's own effects.
+  const reactionEffect =
+    input.reactionEffect && create(input.reactionEffect.plan, undefined, input.reactionEffect.id)
   const consumedActor = input.actionEconomy
     ? consumeEncounterActionEconomy({
         actor: mechanics.settledSource,
@@ -189,6 +210,11 @@ export function planNativeLiveEncounterSettlement(input: {
     createdEffects,
     maintainedState,
     ...transitions,
+    reactionActiveEffectTransitions: projectNativeActionEffectTransitions({
+      state: null,
+      recurring: reactionEffect,
+      targetActorId: prepared.target.id
+    }).activeEffectTransitions,
     maintenanceTransition:
       maintainedState && maintenance
         ? buildEncounterMaintenanceTransition({

@@ -7,14 +7,16 @@ import { createConnection } from 'node:net'
 import { finished } from 'node:stream/promises'
 import { verifyBuilderBudgets } from './builderBudgets.mjs'
 import { verifyV15Budgets } from './v15Budgets.mjs'
+import {
+  assertConvexInstance,
+  assertLoopbackUrl,
+  generateAdminKey,
+  localConvex,
+  yarnSpawn
+} from './convexSelfHosted.mjs'
 
 const root = resolve(import.meta.dirname, '..')
-// The local Docker deployment shared with scripts/resetLocalConvex.ps1 and scripts/runLocalConvexProof.ps1.
-const localConvex = {
-  container: 'phase82-convex-local-linux',
-  instance: 'phase82-local-linux',
-  url: 'http://127.0.0.1:3210'
-}
+// The local Docker deployment (localConvex) is shared with scripts/resetLocalConvex.ps1 and scripts/runLocalConvexProof.ps1.
 // The documented local Session Worker (apps/session-worker README). Proofs that send Encounter
 // commands or open the tabletop need it. The VTT browser proof starts its own Worker on this port
 // (apps/web/playwright.local-vtt.config.ts), so the lifecycle stops its Worker before that stage.
@@ -37,7 +39,6 @@ const loadedEnvironmentNames = new Set()
 const localEnvironmentDefault = 'local-validation/local-convex/local.application.env'
 const localProofDirectory = 'local-validation/local-convex-proofs'
 const localResetDirectory = 'local-validation/convex-reset'
-const localHosts = new Set(['127.0.0.1', '::1', 'host.docker.internal', 'localhost'])
 const remoteOnlyEnvironmentNames = new Set([
   'CLOUDFLARE_API_TOKEN',
   'CONFIRM_MANAGED_VTT_SMOKE',
@@ -246,19 +247,6 @@ function isRemoteOnlyEnvironmentName(name) {
   )
 }
 
-function assertLoopbackUrl(name, value) {
-  if (!value) throw new Error(`${name} is required for the local lifecycle.`)
-  let url
-  try {
-    url = new URL(value)
-  } catch {
-    throw new Error(`${name} must be URL-shaped.`)
-  }
-  if (!localHosts.has(url.hostname.toLowerCase())) {
-    throw new Error(`Refusing to run against non-loopback ${name}.`)
-  }
-}
-
 function assertLocalLifecycleTarget(environment = process.env) {
   for (const name of requiredLocalUrlNames) assertLoopbackUrl(name, environment[name])
   for (const name of optionalLocalUrlNames) {
@@ -290,27 +278,9 @@ async function useGeneratedLocalAdminKey() {
       `CONVEX_SELF_HOSTED_URL must be the local Docker deployment ${localConvex.url}.`
     )
   }
-  const response = await fetch(new URL('/instance_name', url), {
-    signal: AbortSignal.timeout(10_000)
-  })
-  if (!response.ok || (await response.text()) !== localConvex.instance) {
-    throw new Error('The local lifecycle target is not the local Convex deployment.')
-  }
+  await assertConvexInstance(url, localConvex.instance)
   // Generated inside the container for this run; never written to disk or printed.
-  const generated = spawnSync(
-    'docker',
-    ['exec', localConvex.container, './generate_admin_key.sh'],
-    {
-      encoding: 'utf8',
-      shell: false,
-      stdio: ['ignore', 'pipe', 'ignore'],
-      windowsHide: true
-    }
-  )
-  const adminKey = generated.stdout?.trim().split(/\r?\n/u).at(-1)?.trim()
-  if (generated.status !== 0 || !adminKey)
-    throw new Error('Could not generate the local admin key.')
-  process.env.CONVEX_SELF_HOSTED_ADMIN_KEY = adminKey
+  process.env.CONVEX_SELF_HOSTED_ADMIN_KEY = generateAdminKey(localConvex.container)
 }
 
 function localChildEnvironment(overrides = {}) {
@@ -328,15 +298,6 @@ function localChildEnvironment(overrides = {}) {
 function localTargetMetadata(name, value) {
   const url = new URL(value)
   return { host: url.hostname, name, port: url.port || null, protocol: url.protocol }
-}
-
-function yarnSpawn(args) {
-  return process.platform === 'win32'
-    ? [
-        process.execPath,
-        [resolve(dirname(process.execPath), 'node_modules/corepack/dist/yarn.js'), ...args]
-      ]
-    : ['yarn', args]
 }
 
 function run(command, args, { environment = {}, logPath, sensitiveArgs = [] }) {

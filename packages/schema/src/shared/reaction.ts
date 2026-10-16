@@ -5,7 +5,7 @@ import { RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules/contracts'
 import { combatPerceptionRequirementDtoSchema } from './combatPerception.js'
 import { postgresUuidSchema } from './postgresUuid.js'
 import { spatialPointDtoSchema } from './spatialFacts.js'
-import { MAX_ENCOUNTER_ACTORS } from './authoredLimits.js'
+import { AUTHORED_LIMITS, MAX_ENCOUNTER_ACTORS } from './authoredLimits.js'
 
 const checksumSchema = lazySchema(() => z.string().check(z.regex(/^[a-f0-9]{64}$/)))
 const actionIdentitySchema = lazySchema(() =>
@@ -49,6 +49,21 @@ export const reactionMovementTriggerBindingDtoSchema = lazySchema(() =>
       null
     )
   })
+)
+
+/** An authored reaction can bind to any supported factual event; each arm is one event kind. */
+export const reactionTriggerBindingDtoSchema = lazySchema(() =>
+  z.discriminatedUnion('kind', [
+    reactionMovementTriggerBindingDtoSchema,
+    z.strictObject({ kind: z.literal('ATTACKED_SELF') }),
+    z.strictObject({
+      kind: z.literal('DAMAGE_TAKEN'),
+      damageTypeIds: z
+        .array(postgresUuidSchema)
+        .check(z.minLength(1))
+        .check(z.maxLength(AUTHORED_LIMITS.nestedCollectionItems))
+    })
+  ])
 )
 
 /** Encounter-owned factual relationship. Game System policy interprets it. */

@@ -42,7 +42,13 @@ import {
   type EncounterLegendaryResistanceOfferDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionDirectActionPendingContexts'
 import type { EncounterActionHeldD20Dto } from '@artificer-toolkit/schema/shared/encounterActionPending'
+import type { EncounterReactionOfferDto } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
 import type { z } from 'zod'
+import {
+  encounterReactionPin,
+  openEncounterReactionChoice,
+  type EncounterAttackReactionCandidate
+} from './encounterReactionChoice.js'
 import {
   encounterLegendaryResistancePin,
   openEncounterLegendaryResistanceChoice
@@ -247,6 +253,8 @@ export type PendingNativeActionGraphs = {
   heldD20?: EncounterActionHeldD20Dto
   /** Set while the target's failed save waits on its Legendary Resistance choice; `continuation` is that choice. */
   legendaryResistance?: EncounterLegendaryResistanceOfferDto
+  /** Set while a hit waits on its target's reaction decision; `continuation` is that choice. */
+  reactionChoice?: EncounterReactionOfferDto
 }
 
 type NativeActionTestBoundary = {
@@ -712,13 +720,17 @@ export async function prepareNativeActionTest(
   return boundary
 }
 
-/** Rebuilds a sealed TEST boundary from current facts and the recorded faces, without rolling again. */
+/**
+ * Rebuilds a sealed TEST boundary from current facts and the recorded faces, without rolling again.
+ * Omitting `execution` re-evaluates the recorded dice against the given binding (a sealed reaction
+ * adjustment); every other caller proves the rebuilt execution equals the retained one.
+ */
 export async function reconstructNativeActionTest(
   input: Pick<
     NativeActionBaseInput,
     'runtime' | 'adapter' | 'plan' | 'occurrenceId' | 'binding'
   > & {
-    execution: ServerCompletedRuleExecutionDto
+    execution?: ServerCompletedRuleExecutionDto
     d20: Pick<
       ServerRuleExecutionD20EvidenceDto,
       'requestId' | 'rawFaces' | 'rollMode' | 'selectedNatural'
@@ -756,7 +768,8 @@ export async function reconstructNativeActionTest(
     boundary.kind !== 'TEST_BOUNDARY' ||
     boundary.d20.rollMode !== input.d20.rollMode ||
     boundary.d20.selectedNatural !== input.d20.selectedNatural ||
-    checksumRuleDocument(boundary.execution) !== checksumRuleDocument(input.execution)
+    (input.execution !== undefined &&
+      checksumRuleDocument(boundary.execution) !== checksumRuleDocument(input.execution))
   )
     throw new Error('The retained TEST execution is stale.')
   return boundary
@@ -766,23 +779,46 @@ type NativeActionLegendaryResistanceAudit = NonNullable<
   Extract<NativeTwoPhase, { phase: 'OUTCOME' }>['legendaryResistance']
 >
 
+type NativeActionReactionAudit = NonNullable<
+  Extract<NativeTwoPhase, { phase: 'OUTCOME' }>['reaction']
+>
+
 /** Executes the selected OUTCOME after a sealed TEST boundary, without replaying TEST randomness. */
 export async function continueNativeActionAfterTest(
   input: NativeActionBaseInput & {
     boundary: NativeActionTestBoundary
     effectivePath?: string
     legendaryResistance?: NativeActionLegendaryResistanceAudit | null
+    reaction?: NativeActionReactionAudit | null
     resume?: { pending: ResumedNativeActionGraphs; resolution: EncounterEvidenceAnswer }
   }
 ): Promise<PendingNativeActionGraphs | CompleteNativeActionGraphs> {
   const current = await requireNativeTestBoundary({ source: input, boundary: input.boundary })
   const audit = input.legendaryResistance ?? null
+  const reaction = input.reaction ?? null
   if (
     audit &&
     (audit.originalExecutionChecksum !== checksumRuleDocument(input.boundary.execution) ||
       checksumRuleDocument(audit.d20) !== checksumRuleDocument(input.boundary.d20Policy))
   )
     throw new Error('The Legendary Resistance outcome audit is stale.')
+  if (reaction && (audit || input.effectivePath !== undefined))
+    throw new Error('A reaction decision cannot share an attack TEST with a save-failure decision.')
+  if (reaction) {
+    const { adjustment } = reaction
+    const policy = input.boundary.d20Policy
+    const stale = adjustment
+      ? reaction.selection !== 'USE' ||
+        adjustment.adjustedBoundFactsChecksum !== current.factsChecksum ||
+        adjustment.defenseBefore !== reaction.d20.dc ||
+        adjustment.defenseAfter !== policy.dc ||
+        checksumRuleDocument({ ...reaction.d20, dc: adjustment.defenseAfter }) !==
+          checksumRuleDocument(policy)
+      : reaction.selection !== 'DECLINE' ||
+        reaction.originalExecutionChecksum !== checksumRuleDocument(input.boundary.execution) ||
+        checksumRuleDocument(reaction.d20) !== checksumRuleDocument(policy)
+    if (stale) throw new Error('The reaction outcome audit is stale.')
+  }
   if (input.effectivePath !== undefined && !audit)
     throw new Error('A native action effective path requires its sealed interstitial audit.')
   const effectivePath = audit
@@ -838,6 +874,7 @@ export async function continueNativeActionAfterTest(
     nestedOutcomeD20: nestedPolicy,
     nestedOutcomeD20Evidence: null,
     legendaryResistance: audit,
+    reaction,
     testRollEvidence: {
       requestId: input.boundary.d20.requestId,
       rollMode: input.boundary.d20.rollMode,
@@ -868,6 +905,7 @@ export async function continueNativeActionAfterTest(
       pending.twoPhase.testExecutionChecksum !== twoPhase.testExecutionChecksum ||
       checksumRuleDocument(pending.twoPhase.legendaryResistance) !==
         checksumRuleDocument(twoPhase.legendaryResistance) ||
+      checksumRuleDocument(pending.twoPhase.reaction) !== checksumRuleDocument(twoPhase.reaction) ||
       checksumRuleDocument(pending.twoPhase.nestedOutcomeD20) !== checksumRuleDocument(nestedPolicy)
     )
       throw new Error('The native action OUTCOME evidence is stale.')
@@ -1004,6 +1042,14 @@ export async function advanceNativeActionGraphs(input: {
    */
   legendaryResistance?: {
     discover(): Promise<EncounterLegendaryResistanceCandidate | null>
+    targetStateChecksum: string
+  }
+  /**
+   * The reaction the attacked target may use against a TEST that hit. A found candidate holds the
+   * action before its OUTCOME for the target's choice.
+   */
+  reaction?: {
+    discover(): Promise<EncounterAttackReactionCandidate | null>
     targetStateChecksum: string
   }
   resume?: { pending: ResumedNativeActionGraphs; resolution: EncounterEvidenceAnswer }
@@ -1358,6 +1404,32 @@ export async function advanceNativeActionGraphs(input: {
         }
       }
     }
+    const reaction = input.reaction
+    const reactionCandidate =
+      reaction && (testD20.resultPath === 'ON_HIT' || testD20.resultPath === 'ON_CRIT')
+        ? await reaction.discover()
+        : null
+    if (reaction && reactionCandidate && twoPhase?.phase === 'TEST') {
+      return {
+        kind: 'PENDING',
+        continuation: await openEncounterReactionChoice({
+          runtime: input.runtime,
+          occurrenceId: input.occurrenceId,
+          candidate: reactionCandidate
+        }),
+        d20Policy: null,
+        twoPhase,
+        roller: 'TARGET',
+        reactionChoice: {
+          originalExecution: result,
+          originalD20: testD20,
+          d20: stage.d20.policy,
+          originalExecutionChecksum: checksumRuleDocument(result),
+          targetStateChecksum: reaction.targetStateChecksum,
+          reactions: [encounterReactionPin(reactionCandidate)]
+        }
+      }
+    }
     const outcome = resolveEncounterActionPhaseExecution({
       plan: input.plan,
       phase: 'TEST',
@@ -1402,6 +1474,7 @@ export async function advanceNativeActionGraphs(input: {
       nestedOutcomeD20: nestedPolicy,
       nestedOutcomeD20Evidence: null,
       legendaryResistance: null,
+      reaction: null,
       testRollEvidence: {
         requestId: testD20.requestId,
         rollMode: testD20.rollMode,

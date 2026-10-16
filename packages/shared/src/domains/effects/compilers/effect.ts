@@ -91,6 +91,8 @@ export type CompiledEffectGroup = {
   order: number
   invocation: EffectInvocationAuthored
   entries: CompiledEffectEntry[]
+  /** The Effect belongs to a spell that needs Concentration; set by the spell compiler. */
+  requiresConcentration?: true
 }
 
 export type CompiledRollTableRepeat = {

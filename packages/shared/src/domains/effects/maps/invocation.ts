@@ -2,6 +2,7 @@ import type {
   ActivationAuthored,
   EffectInvocationKind,
   EffectInvocationAuthored,
+  ReactionTriggerBindingAuthored,
   ResourceUseAuthored
 } from '#authored'
 import { ACTIVATION_OPTIONS, TRIGGER_OPTIONS } from '#core'
@@ -59,6 +60,91 @@ const RESOURCE_USE_NODE_MAP = resourceUse.define('resourceUse', ({ map, nodes })
     .set('chargeId', text(['chargeId'], 'Charge ID', { requiredIf: true }))
     .set('cost', number(['cost'], 'Cost', { constraints: { minimum: 1 }, requiredIf: true }))
 })
+
+const REACTION_TRIGGER_KIND_OPTIONS: {
+  code: ReactionTriggerBindingAuthored['kind']
+  label: string
+}[] = [
+  { code: 'MOVEMENT', label: 'A creature moves' },
+  { code: 'ATTACKED_SELF', label: 'You are hit by an attack' },
+  { code: 'DAMAGE_TAKEN', label: 'You take damage' }
+]
+
+const reactionTrigger = buildNodeMap<ReactionTriggerBindingAuthored>()
+
+const REACTION_TRIGGER_NODE_MAP = reactionTrigger.define(
+  'reactionTrigger',
+  ({ map, nodes, cond, data }) => {
+    const { selectSingle, selectMulti, text } = nodes
+    const { table } = data
+    const local = cond.local()
+    const isMovement = local.field(['kind']).eq('MOVEMENT')
+    const isDamageTaken = local.field(['kind']).eq('DAMAGE_TAKEN')
+
+    map
+      .set(
+        'kind',
+        selectSingle(
+          ['kind'],
+          'Reaction trigger',
+          { kind: 'INLINE_OPTIONS', options: REACTION_TRIGGER_KIND_OPTIONS },
+          { order: 1, requiredIf: true }
+        )
+      )
+      .set(
+        'stage',
+        selectSingle(
+          ['stage'],
+          'Movement stage',
+          {
+            kind: 'INLINE_OPTIONS',
+            options: [
+              { code: 'BEFORE_LEAVE_REACH', label: 'Before it leaves your reach' },
+              { code: 'ENTER_REACH', label: 'As it enters your reach' }
+            ]
+          },
+          { order: 2, requiredIf: isMovement, showIf: isMovement }
+        )
+      )
+      .set(
+        'perceptionRequirement',
+        selectSingle(
+          ['perceptionRequirement'],
+          'Perception requirement',
+          {
+            kind: 'INLINE_OPTIONS',
+            options: [
+              { code: 'DETECT', label: 'Detect' },
+              { code: 'LOCATE', label: 'Locate' },
+              { code: 'PRECISE', label: 'Precisely perceive' },
+              { code: 'SEE', label: 'See' }
+            ]
+          },
+          { order: 3, showIf: isMovement }
+        )
+      )
+      .set(
+        'eligibilityDefinitionId',
+        text(['eligibilityDefinitionId'], 'Eligibility definition ID', {
+          order: 4,
+          requiredIf: isMovement,
+          showIf: isMovement
+        })
+      )
+      .set(
+        'damageTypeIds',
+        selectMulti(
+          ['damageTypeIds'],
+          'Damage types',
+          {
+            kind: 'DATA',
+            relationship: table('damage_types', { selectColumns: ['id', 'label', 'description'] })
+          },
+          { order: 5, requiredIf: isDamageTaken, showIf: isDamageTaken }
+        )
+      )
+  }
+)
 
 const invocation = buildNodeMap<EffectInvocationAuthored>()
 
@@ -129,10 +215,18 @@ export const INVOCATION_NODE_MAP: InvocationNodeMap = invocation.define(
         })
       )
       .set(
+        'reactionTrigger',
+        groupObject(['reactionTrigger'], 'Reaction Trigger', () => REACTION_TRIGGER_NODE_MAP, {
+          presentation: 'inline',
+          order: 5,
+          showIf: local.field(['kind']).eq('ACTION')
+        })
+      )
+      .set(
         'resourceUse',
         groupObject(['resourceUse'], 'Resource Use', () => RESOURCE_USE_NODE_MAP, {
           presentation: 'inline',
-          order: 5,
+          order: 6,
           showIf: local.field(['kind']).eq('ACTION')
         })
       )
@@ -140,19 +234,19 @@ export const INVOCATION_NODE_MAP: InvocationNodeMap = invocation.define(
         'range',
         groupObject(['range'], 'Range', () => RANGE_NODE_MAP, {
           presentation: 'inline',
-          order: 6,
+          order: 7,
           requiredIf: true
         })
       )
       .set(
         'shape',
-        groupObject(['shape'], 'Shape', () => SHAPE_NODE_MAP, { presentation: 'inline', order: 7 })
+        groupObject(['shape'], 'Shape', () => SHAPE_NODE_MAP, { presentation: 'inline', order: 8 })
       )
       .set(
         'targeting',
         groupObject(['targeting'], 'Targeting', () => TARGETING_NODE_MAP, {
           presentation: 'inline',
-          order: 8
+          order: 9
         })
       )
   }

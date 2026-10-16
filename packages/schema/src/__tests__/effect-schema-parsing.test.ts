@@ -332,6 +332,100 @@ describe('effect schema parsing', () => {
     ).toBe(false)
   })
 
+  it('accepts an ATTACKED_SELF reaction trigger only on a REACTION action', () => {
+    const attackedSelf = {
+      id: '00000000-0000-4000-8000-0000000000ea',
+      order: 1,
+      invocation: {
+        kind: 'ACTION',
+        triggerCode: 'ACTIVATED',
+        activation: { code: 'REACTION', amount: 1 },
+        range: { id: 'attacked-self-range', rangeKind: 'SELF' },
+        reactionTrigger: { kind: 'ATTACKED_SELF' }
+      },
+      paths: [
+        fixedPath(
+          'attacked-self-path',
+          1,
+          'ON_USE',
+          singleResultBlock('attacked-self-result', {
+            id: 'attacked-self-outcome',
+            effectKind: 'CONDITION',
+            conditionId: 'attacked-self-condition'
+          })
+        )
+      ]
+    }
+
+    expect(effectDtoSchema.parse(attackedSelf).invocation).toMatchObject({
+      reactionTrigger: { kind: 'ATTACKED_SELF' }
+    })
+    expect(
+      effectDtoSchema.safeParse({
+        ...attackedSelf,
+        invocation: {
+          ...attackedSelf.invocation,
+          activation: { code: 'ACTION', amount: 1 }
+        }
+      }).success
+    ).toBe(false)
+    expect(
+      effectDtoSchema.safeParse({
+        ...attackedSelf,
+        invocation: { ...attackedSelf.invocation, reactionTrigger: { kind: 'UNKNOWN' } }
+      }).success
+    ).toBe(false)
+  })
+
+  it('accepts a DAMAGE_TAKEN reaction trigger naming at least one damage type', () => {
+    const fire = '00000000-0000-4000-8000-0000000000f1'
+    const cold = '00000000-0000-4000-8000-0000000000f2'
+    const damageTaken = {
+      id: '00000000-0000-4000-8000-0000000000eb',
+      order: 1,
+      invocation: {
+        kind: 'ACTION',
+        triggerCode: 'ACTIVATED',
+        activation: { code: 'REACTION', amount: 1 },
+        range: { id: 'damage-taken-range', rangeKind: 'SELF' },
+        reactionTrigger: { kind: 'DAMAGE_TAKEN', damageTypeIds: [fire, cold] }
+      },
+      paths: [
+        fixedPath(
+          'damage-taken-path',
+          1,
+          'ON_USE',
+          singleResultBlock('damage-taken-result', {
+            id: 'damage-taken-outcome',
+            effectKind: 'CONDITION',
+            conditionId: 'damage-taken-condition'
+          })
+        )
+      ]
+    }
+
+    expect(effectDtoSchema.parse(damageTaken).invocation).toMatchObject({
+      reactionTrigger: { kind: 'DAMAGE_TAKEN', damageTypeIds: [fire, cold] }
+    })
+    for (const reactionTrigger of [
+      { kind: 'DAMAGE_TAKEN', damageTypeIds: [] },
+      { kind: 'DAMAGE_TAKEN' },
+      { kind: 'DAMAGE_TAKEN', damageTypeIds: ['fire'] }
+    ])
+      expect(
+        effectDtoSchema.safeParse({
+          ...damageTaken,
+          invocation: { ...damageTaken.invocation, reactionTrigger }
+        }).success
+      ).toBe(false)
+    expect(
+      effectDtoSchema.safeParse({
+        ...damageTaken,
+        invocation: { ...damageTaken.invocation, activation: { code: 'ACTION', amount: 1 } }
+      }).success
+    ).toBe(false)
+  })
+
   it('accepts only REACTION action movement trigger bindings', () => {
     const reactionEffect = {
       id: '00000000-0000-4000-8000-0000000000e9',
@@ -341,7 +435,7 @@ describe('effect schema parsing', () => {
         triggerCode: 'ACTIVATED',
         activation: { code: 'REACTION', amount: 1 },
         range: { id: 'reaction-range', rangeKind: 'SELF' },
-        reactionMovementTrigger: {
+        reactionTrigger: {
           kind: 'MOVEMENT',
           stage: 'ENTER_REACH',
           perceptionRequirement: null,
@@ -364,7 +458,7 @@ describe('effect schema parsing', () => {
 
     const parsed = effectDtoSchema.parse(reactionEffect)
     expect(parsed.invocation).toMatchObject({
-      reactionMovementTrigger: {
+      reactionTrigger: {
         kind: 'MOVEMENT',
         stage: 'ENTER_REACH',
         perceptionRequirement: null,

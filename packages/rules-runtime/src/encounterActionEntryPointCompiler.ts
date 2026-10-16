@@ -240,14 +240,17 @@ export function compileCharacterActionEntryPoints(
             'Character actions support at most one active-effect plan.'
           )
         }
-        // A grant freezes its own graph and reads only the TEST's hit path, so it alone joins the
+        // A grant freezes its own graph and reads only the TEST's hit path, and a condition's
+        // repeated save is its own graph that reads only the cast's save DC, so only those join the
         // two-phase execution.
         if (
           executionPlan.kind === 'TEST_OUTCOME' &&
-          activeEffectPlans.some((plan) => !plan.modifierGrantContribution)
+          activeEffectPlans.some(
+            (plan) => !plan.modifierGrantContribution && !plan.conditionContribution
+          )
         ) {
           throw new CharacterRuleActionUnsupportedCompilationError(
-            'TEST/OUTCOME actions combine only with grant active-effect plans.'
+            'TEST/OUTCOME actions combine only with grant or repeated-save active-effect plans.'
           )
         }
         return {

@@ -52,8 +52,14 @@ export function isEncounterMovementContext(
   )
 }
 
-/** Whether the Encounter waits on a movement decision, which holds its Scene's moves and doors (D26). */
-export async function readMovementDecisionPending(ctx: EncounterReadContext, encounterId: string) {
+/**
+ * The decision the Encounter waits on that holds its Scene's moves and doors (D26): a movement
+ * decision, or a reaction decision inside an attack.
+ */
+export async function readSceneHoldingDecision(
+  ctx: EncounterReadContext,
+  encounterId: string
+): Promise<'MOVEMENT' | 'REACTION' | null> {
   const [pending] = await ctx.db
     .query('encounterRuleOccurrences')
     .withIndex('by_encounterId_state', (q) =>
@@ -61,7 +67,9 @@ export async function readMovementDecisionPending(ctx: EncounterReadContext, enc
     )
     .take(1)
   const snapshot = pending ? await readPendingSnapshot(ctx, pending) : null
-  return snapshot !== null && isEncounterMovementContext(snapshot.applicationContext)
+  const context = snapshot?.applicationContext
+  if (context && isEncounterMovementContext(context)) return 'MOVEMENT'
+  return context?.kind === 'ENCOUNTER_ACTION' && context.reactionChoice ? 'REACTION' : null
 }
 
 /** Structural facts only, so the precedence stays one pure decision. */
