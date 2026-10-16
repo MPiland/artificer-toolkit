@@ -7227,8 +7227,10 @@
             },
             {
               "text": "Spare the Dying is castable in an Encounter and stabilizes a dying target through the STABILIZE executor; its undead and construct exclusion applies to targets.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/session-worker/test/nativeRoomStabilizeAction.test.ts › Spare the Dying cast by a Character (stabilizes through the STABILIZE executor, no slot; an Undead target warns TARGET_CREATURE_TYPE_EXCLUDED in the shared order and an override applies nothing); CI Tests 38858490124 on cce167033, Live backend 38858347236 on c76399218"
+              ],
               "origin": [],
               "note": "Moved from SPELLS-3.5 on 2026-10-08 (D96). Since SPELLS-8.T6a (e8ebfb687) excluded creature types raise an overridable warning instead of a compile refusal.",
               "id": "SPELLS-8.2"
@@ -7306,7 +7308,7 @@
             {
               "id": "SPELLS-8.T3",
               "text": "Spare the Dying stabilizes through the STABILIZE executor.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-8.2"],
               "wsjf": {
                 "bv": 3,
@@ -7314,8 +7316,7 @@
                 "rr": 1,
                 "size": 2,
                 "after": ["SPELLS-8.T1"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-spells-8-t3.md"
+              }
             },
             {
               "id": "SPELLS-8.T4",

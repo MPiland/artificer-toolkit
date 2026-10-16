@@ -10,3 +10,12 @@ Workbook rules: [slice-workbook-rules.md](slice-workbook-rules.md).
 Reuse the Encounter cast path SPELLS-8.T1 built. Author anything that's missing from core options; nothing spell-specific.
 
 ## Log
+
+### T3 (AC SPELLS-8.2)
+
+- Spare the Dying's cast already compiles to the STABILIZE executor, so the proof is new tests and no production change. The dying-Character test passed on its first run against unchanged production (no red to show); the proof is `nativeRoomStabilizeAction.test.ts` > "Spare the Dying cast by a Character".
+- The cast stabilizes a dying Character through the executor and spends no slot (a cantrip).
+- An Undead target warns in the shared order `TARGET_NOT_DYING`, `TARGET_CREATURE_TYPE_EXCLUDED`, then the touch range warning; the table can override all three and the cast then applies nothing (`STABILIZE applied: false`).
+- Known limit: a Character target's creature type is not readable, so the type exclusion warns for Creatures only.
+- Validation: `nativeRoomStabilizeAction.test.ts` green in the heavy lane (`local-validation/spells-8-t3/green-worker.log`).
+- Reviewer (opus, independent): no blockers. Fixed: the Undead test now also asserts the target is unchanged (`after` equals `before`), and the Undead type id is read with a throwing guard instead of `!`. Skipped as low: a Construct example (the exclusion is data, one type proves the gate) and a non-excluded negative case (the shared warning has its own unit tests).
