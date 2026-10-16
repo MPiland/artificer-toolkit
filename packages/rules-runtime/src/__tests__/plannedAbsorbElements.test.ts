@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
 import { EncounterActionEffectPlanError } from '../encounterActionEffectPlans.js'
+import { srdDamageTypeId } from '../testing/absorbElementsSpell.js'
 import { testUuid } from '../testing/dnd5eSrdEncounter.js'
-import { plannedAbsorbElements, srdDamageTypeId } from '../testing/plannedAbsorbElements.js'
+import { plannedAbsorbElements } from '../testing/plannedAbsorbElements.js'
 
 /**
  * REACTION-4.2: an authored Absorb Elements resists only the damage type that triggered it, and its
@@ -12,7 +13,9 @@ import { plannedAbsorbElements, srdDamageTypeId } from '../testing/plannedAbsorb
 const ids = { commandId: testUuid(0x7d0), occurrenceId: testUuid(0x7d1) }
 
 function grantOf(effect: ReturnType<typeof plannedAbsorbElements>) {
-  const contribution = effect.definition.stateContributions?.find(
+  const { definition } = effect
+  if (!('stateContributions' in definition)) throw new Error('The reaction has no state.')
+  const contribution = definition.stateContributions.find(
     (candidate) => candidate.kind === 'MODIFIER_GRANT'
   )
   if (contribution?.kind !== 'MODIFIER_GRANT') throw new Error('The reaction grants modifiers.')

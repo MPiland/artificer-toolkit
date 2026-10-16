@@ -17,7 +17,7 @@ import type {
   CharacterRuleActionActiveEffectPlan
 } from './characterRuleActionSystemAdapter.js'
 
-class EncounterActionEffectPlanError extends Error {}
+export class EncounterActionEffectPlanError extends Error {}
 
 export function compileEffectGraph(
   published: ServerPublishedRuleDefinitionDto,

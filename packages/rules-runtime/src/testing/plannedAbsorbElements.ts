@@ -1,24 +1,16 @@
 import type { ServerCompletedRuleExecutionDto } from '@artificer-toolkit/schema/shared/rulesExecution'
 import { compileEffect } from '@artificer-toolkit/shared/compilers'
-import { SRD_DAMAGE_TYPES } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { effectAtCastLevel } from '../character/characterSpellCastActions.js'
 import { prepareEncounterActionEffectPlans } from '../encounterActionEffectPlans.js'
 import { buildCompiledActionCompilerSource } from '../encounterActionEntryPointCompiler.js'
 import { dnd5eCharacterRuleActionSystemAdapter as adapter } from '../systems/dnd5e/effectActionCompiler.js'
-import { absorbElementsSpell } from './absorbElementsSpell.js'
+import { absorbElementsSpell, srdDamageTypeId } from './absorbElementsSpell.js'
 import { ACTION_EFFECT_ID, characterActionDescriptor } from './characterActionDescriptor.js'
 import { SRD_SYSTEM_ID, testUuid } from './dnd5eSrdEncounter.js'
 
 const ENCOUNTER_ID = testUuid(0x7c0)
 const REACTOR_ID = testUuid(0x7c1)
-
-/** The id of an SRD damage type, by code. */
-export function srdDamageTypeId(code: string) {
-  const type = SRD_DAMAGE_TYPES.find((candidate) => candidate.code === code)
-  if (!type) throw new Error(`The SRD ${code} damage type is missing.`)
-  return type.id
-}
 
 /**
  * The effect the room plans for a user-authored Absorb Elements reaction, from the real compiler,

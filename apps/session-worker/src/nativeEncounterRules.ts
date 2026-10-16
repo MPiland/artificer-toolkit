@@ -663,7 +663,7 @@ export async function planNativeLiveEncounterAction(
     ? await currentReaction(
         reactionAnswer.selection.kind === 'OPTION',
         chosenEncounterReaction(reactionAnswer.offer, reactionAnswer.selection).actionId,
-        reactionAnswer.offer.d20.resultPath === 'ON_CRIT'
+        reactionAnswer.offer.originalD20.resultPath === 'ON_CRIT'
       )
     : null
   const reactionAnswered =
@@ -712,7 +712,7 @@ export async function planNativeLiveEncounterAction(
     ? await currentReaction(
         retainedReaction.reaction!.selection === 'USE',
         retainedReaction.reaction!.reaction.actionId,
-        retainedReaction.reaction!.d20.resultPath === 'ON_CRIT'
+        retainedReaction.testExecution.outputs.resultPath === 'ON_CRIT'
       )
     : null
   const reaction =

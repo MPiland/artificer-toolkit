@@ -19,6 +19,13 @@ import { SRD_DAMAGE_TYPES } from '@artificer-toolkit/source-data/srd/vocabulary.
 import { testUuid } from './dnd5eSrdEncounter.js'
 
 const ABSORB_ELEMENTS_ID = testUuid(0xae0)
+/** The id of an SRD damage type, by code. */
+export function srdDamageTypeId(code: string) {
+  const type = SRD_DAMAGE_TYPES.find((candidate) => candidate.code === code)
+  if (!type) throw new Error(`The SRD ${code} damage type is missing.`)
+  return type.id
+}
+
 /** The extra melee damage the follow-up grant adds for each level of the slot the spell is cast with. */
 const ABSORB_ELEMENTS_MELEE_BONUS_PER_LEVEL = 2
 
@@ -32,11 +39,7 @@ const ABSORB_ELEMENTS_MELEE_BONUS_PER_LEVEL = 2
 export function absorbElementsSpell(
   damageTypeCodes: readonly [string, ...string[]]
 ): SpellAuthored {
-  const damageTypeIds = damageTypeCodes.map((code) => {
-    const type = SRD_DAMAGE_TYPES.find((candidate) => candidate.code === code)
-    if (!type) throw new Error(`The SRD ${code} damage type is missing.`)
-    return type.id
-  })
+  const damageTypeIds = damageTypeCodes.map(srdDamageTypeId)
   const grantShape = {
     grantKind: GRANT_KIND.MODIFIER_GRANT,
     scope: MODIFIER_SCOPE_KIND.GLOBAL,

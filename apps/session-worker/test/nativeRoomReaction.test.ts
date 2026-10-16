@@ -5,8 +5,10 @@ import {
   creatureFeature,
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
-import { absorbElementsSpell } from '@artificer-toolkit/rules-runtime/testing/absorbElementsSpell'
-import { srdDamageTypeId } from '@artificer-toolkit/rules-runtime/testing/plannedAbsorbElements'
+import {
+  absorbElementsSpell,
+  srdDamageTypeId
+} from '@artificer-toolkit/rules-runtime/testing/absorbElementsSpell'
 import { joltingGauntlet } from '@artificer-toolkit/rules-runtime/testing/joltingGauntlet'
 import { readCharacterPlay } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { encounterActionPendingContextDtoSchema } from '@artificer-toolkit/schema/shared/encounterActionPending'

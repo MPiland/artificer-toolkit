@@ -445,7 +445,7 @@ a `DAMAGE_RESISTANCE` grant, which `encounterActiveGrants` turns into a defense 
 re-evaluated binding hands that defense to the OUTCOME, so the damage is resisted before it applies. The TEST
 is unchanged (`defenseBefore === defenseAfter`), so "the reaction changed the attack" compares the binding's
 defenses as well as the bound facts. The follow-up benefit is an ordinary grant in the same effect (a melee
-`DAMAGE` bonus until the start of the caster's next turn, scaled by the slot level the reaction was cast with).
+`DAMAGE` bonus until the end of the caster's next turn, scaled by the slot level the reaction was cast with).
 
 The resistance names the triggering damage type rather than a fixed one (`damageTypeSource: 'TRIGGER'` on a
 `DAMAGE_RESISTANCE` payload). Discovery returns the authored types the hit dealt (`triggerDamageTypeIds`), and
