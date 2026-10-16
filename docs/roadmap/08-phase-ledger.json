@@ -8726,7 +8726,15 @@
               "text": "A Frightened condition applied by an action records the creature that frightened it, authored from core options (no Fear-specific kind). The frightened creature has disadvantage on ability checks and attack rolls only while that source is within its line of sight, and a move that ends closer to the source is a soft-enforcement warning the GM can override (ADR 0034). A Frightened with no recorded source keeps its present always-on disadvantage. Proved for Fear, including GM undo.",
               "status": "TODO",
               "origin": [
-                "SPELLS-19.T2 escalation 2026-10-16; awaiting the user's confirmation of this AC text"
+                "SPELLS-19.T2 escalation 2026-10-16; confirmed by the user 2026-10-16 (a move that ends closer warns, the GM can override)"
+              ]
+            },
+            {
+              "id": "SPELLS-29.2",
+              "text": "An effect can make a frightened creature flee its source (SRD Fear; Eyebite Panicked). It is authored from core options, not as a Fear-specific kind. At the start of the creature's turn its controller is told it must take the Dash action and move away from the source by the safest route. An action or move that does otherwise is a soft-enforcement warning with \"Do it anyway\", logged for the GM (ADR 0034). When the creature ends its turn without line of sight to the source, the app offers the authored saving throw (Wisdom for Fear). Success ends the effect for that creature only. Proved for Fear, with GM undo.",
+              "status": "TODO",
+              "origin": [
+                "Confirmed by the user 2026-10-16 (prompt plus warning with Do it anyway; automatic out-of-sight save)"
               ]
             }
           ],
@@ -8742,6 +8750,19 @@
                 "rr": 3,
                 "size": 3,
                 "after": ["SPELLS-19.T2"]
+              }
+            },
+            {
+              "id": "SPELLS-29.T2",
+              "text": "Flee-from-source rider: a generic turn-start \"must Dash away from the source\" requirement, soft-enforced on actions and moves; a turn-end save when the creature has no line of sight to the source; authored for SRD Fear and Eyebite Panicked; authoring parity from core options.",
+              "status": "TODO",
+              "closes": ["SPELLS-29.2"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-29.T1"]
               }
             }
           ]
