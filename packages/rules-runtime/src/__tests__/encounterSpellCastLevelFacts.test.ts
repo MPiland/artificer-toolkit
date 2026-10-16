@@ -101,7 +101,8 @@ describe('scaling a cantrip by the Character level the action binds', () => {
       compilerSource,
       testTemplate,
       selectedPath: 'ON_SAVE_FAIL',
-      facts: bind(ACID_SPLASH, { outcomes: [], classLevels })
+      facts: bind(ACID_SPLASH, { outcomes: [], classLevels }),
+      testRollMode: 'NORMAL'
     })?.published.checksum
   }
 

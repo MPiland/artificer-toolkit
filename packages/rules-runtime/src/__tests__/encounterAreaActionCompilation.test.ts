@@ -483,3 +483,44 @@ describe('excluded creature types in a compiled save', () => {
     ).toThrow(CharacterRuleActionUnsupportedCompilationError)
   })
 })
+
+describe('chosen-creature spells in the SRD corpus (SPELLS-26.1)', () => {
+  /** Whether the effect compiles, and the reason it does not. */
+  const outcomeOf = (run: () => unknown) => {
+    try {
+      run()
+      return { compiled: true as const }
+    } catch (error) {
+      if (!(error instanceof CharacterRuleActionUnsupportedCompilationError)) throw error
+      return { compiled: false as const, reason: error.message }
+    }
+  }
+  const capped = srdSpells.flatMap((spell) =>
+    (spell.effects ?? []).flatMap((effect) => {
+      const { targeting } = effect.invocation
+      return targeting?.selectionKind === 'CHOSEN_CREATURES' &&
+        (targeting.maxTargets !== undefined || targeting.maxTargetsScaling !== undefined)
+        ? [{ label: `${spell.label} (${effect.id})`, level: spell.level, effect, targeting }]
+        : []
+    })
+  )
+
+  it('finds the capped chosen-creature spells', () => {
+    expect(capped.length).toBeGreaterThan(0)
+  })
+
+  it.each(capped.map((entry) => [entry.label, entry] as const))(
+    '%s compiles, or is refused for the reason a single-target cast is',
+    (_label, { level, effect, targeting }) => {
+      const cast = (invocationTargeting: typeof targeting) =>
+        outcomeOf(() => compile({ targeting: invocationTargeting }, effect, level, 20).plan)
+      const authored = cast(targeting)
+      const single = cast({
+        selectionKind: 'SINGLE_TARGET',
+        dispositionKind: targeting.dispositionKind
+      })
+      if (!authored.compiled)
+        expect(single, 'the list is refused, though a single target is not').toEqual(authored)
+    }
+  )
+})

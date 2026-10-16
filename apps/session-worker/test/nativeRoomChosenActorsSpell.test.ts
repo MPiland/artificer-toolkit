@@ -1,4 +1,6 @@
 import { runInDurableObject } from 'cloudflare:test'
+import { readPendingSnapshot } from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
+import { serverKernelRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import type { EncounterRuleWarningCodeDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
 import { readCharacterPlay } from '@artificer-toolkit/schema/projections/characterStoredState'
 import {
@@ -707,6 +709,42 @@ describe('room cast of rays on chosen creatures (Scorching Ray, Eldritch Blast, 
     await undoLastAction(room)
     expect(await hitPointsOf(room)).toEqual(before)
     expect((await readCharacterPlayState(room)).spellSlots ?? []).toEqual([])
+  }, 120000)
+
+  it('keeps the pending context honest: only the caster repeats a creature, and no roll repeats', async () => {
+    const room = await scorchingRay({ rolls: [] })
+    await room.startActorsAction([first, first, second], [], true)
+
+    const verdicts = await runInDurableObject(room.room.base.stub, async (_instance, context) => {
+      const store = new RoomEncounterStore(context.storage)
+      const occurrence = store
+        .documents('encounterRuleOccurrences')
+        .find((candidate) => candidate.state === 'PENDING')
+      if (!occurrence) throw new Error('No area action is pending.')
+      const snapshot = await readPendingSnapshot({ db: store.store }, occurrence)
+      if (snapshot?.applicationContext.kind !== 'ENCOUNTER_AREA_ACTION')
+        throw new Error('Expected the pending area action.')
+      const accepts = (mutate: (targets: typeof snapshot.applicationContext.targets) => void) => {
+        const copy = structuredClone(snapshot)
+        if (copy.applicationContext.kind !== 'ENCOUNTER_AREA_ACTION')
+          throw new Error('Expected the pending area action.')
+        mutate(copy.applicationContext.targets)
+        return serverKernelRuleExecutionPendingSnapshotDtoSchema.safeParse(copy).success
+      }
+      return {
+        intact: accepts(() => {}),
+        creatureRollsRepeat: accepts((targets) => {
+          for (const target of targets)
+            if (target.snapshot.applicationContext.kind === 'ENCOUNTER_ACTION')
+              target.snapshot.applicationContext.rollerActorId = target.actorId
+        }),
+        occurrenceRepeats: accepts((targets) => {
+          targets[1]!.snapshot.occurrenceId = targets[0]!.snapshot.occurrenceId
+        })
+      }
+    })
+
+    expect(verdicts).toEqual({ intact: true, creatureRollsRepeat: false, occurrenceRepeats: false })
   }, 120000)
 
   it('settles at once when the caster rolls for themself', async () => {
