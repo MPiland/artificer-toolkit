@@ -324,11 +324,13 @@ describe('a Character’s room Disarm with a Longsword (ROOM-6.7, ROOM-6.8)', ()
     const defender = await room.pendingDecision()
     if (defender.pending.kind !== 'D20_EVIDENCE') throw new Error('Expected the defender’s roll.')
     expect(defender.pending.rollerActorId).toBe(TARGET_ID)
+    // The Large Ogre defends against a Medium Fighter with advantage (the size relation).
+    expect(defender.pending.request.rollMode).toBe('ADVANTAGE')
     const defenderRoll = {
       kind: 'ENTER_DICE',
       requestId: defender.pending.request.requestId,
-      rawFaces: defender.pending.request.rollMode === 'NORMAL' ? [1] : [1, 1],
-      rollMode: defender.pending.request.rollMode
+      rawFaces: [1, 1],
+      rollMode: 'ADVANTAGE'
     }
     // The player holds only the Fighter: the Ogre's roll is the GM's.
     const refused = await room.sendAsPlayer(room.resolveCommand(defender, defenderRoll))
@@ -343,7 +345,7 @@ describe('a Character’s room Disarm with a Longsword (ROOM-6.7, ROOM-6.8)', ()
       sourceActorId: SOURCE_ID,
       targetActorId: TARGET_ID,
       sourceRoll: { actorId: SOURCE_ID, rawFaces: [20] },
-      targetRoll: { actorId: TARGET_ID, rawFaces: [1] },
+      targetRoll: { actorId: TARGET_ID, rawFaces: [1, 1], selectedNatural: 1 },
       outcome: 'SOURCE_WIN',
       actionEconomyTransition: {
         definitionId: SRD_ACTION_ALLOWANCE_DEFINITION_ID,

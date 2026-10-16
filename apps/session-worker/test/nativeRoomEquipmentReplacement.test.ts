@@ -1,3 +1,4 @@
+import { readStoredActorSnapshot } from '@artificer-toolkit/encounter-persistence/actorSnapshots'
 import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
 import {
   snapshotCreatureEquipmentLoadout,
@@ -10,9 +11,11 @@ import {
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
 import { greatclub } from '@artificer-toolkit/source-data/srd/equipment/greatclub.js'
+import { runInDurableObject } from 'cloudflare:test'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
+import { RoomEncounterStore } from '../src/roomEncounterStore.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
 import { movementRoom } from './movementRoomFixture.js'
 import { readRoomHistory } from './roomHistoryReads.js'
@@ -43,6 +46,7 @@ async function equipmentRoom() {
   const room = await movementRoom({
     actors: [characterActor({ id: FIGHTER_ACTOR_ID, characterId: FIGHTER_ID }), ogre],
     moverActorId: FIGHTER_ACTOR_ID,
+    positions: { [FIGHTER_ACTOR_ID]: { x: 150, y: 150 }, [OGRE_ID]: { x: 250, y: 150 } },
     characterEquipment: [compatibleGreatclub]
   })
   const heldEntryId = snapshotCreatureEquipmentLoadout(ogre).find(
@@ -51,13 +55,20 @@ async function equipmentRoom() {
   if (!heldEntryId) throw new Error('The Ogre holds no main-hand item.')
   const stub = room.base.stub
 
+  /** The Ogre as the room stores it, with the snapshot its record names. */
   async function storedOgre() {
     const { actors } = await readRoomHistory(stub)
     const row = actors.find(({ id }) => id === OGRE_ID)
     if (!row) throw new Error('The stored Run holds no Ogre.')
     const actor = readStoredRunActor(row)
     if (actor.kind !== 'CREATURE') throw new Error('Expected a Creature actor.')
-    return actor
+    const snapshotRow = await runInDurableObject(stub, async (_instance, context) =>
+      new RoomEncounterStore(context.storage)
+        .documents('encounterActorSnapshots')
+        .find(({ checksum }) => checksum === actor.snapshotChecksum)
+    )
+    if (!snapshotRow) throw new Error('The Ogre’s snapshot is not stored.')
+    return { ...actor, snapshot: readStoredActorSnapshot(snapshotRow) }
   }
   const runVersion = async () => (await readRoomHistory(stub)).runs[0]!.version
 
