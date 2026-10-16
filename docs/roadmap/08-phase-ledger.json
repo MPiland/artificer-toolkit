@@ -8821,7 +8821,8 @@
                 "rr": 3,
                 "size": 3,
                 "after": ["SPELLS-28.T4c"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-28.md"
             }
           ]
         },
@@ -9506,7 +9507,8 @@
                 "rr": 2,
                 "size": 2,
                 "after": ["REACTION-4.T3d", "SPELLS-26.T1"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-reaction-4.md"
             },
             {
               "id": "REACTION-4.T5",
