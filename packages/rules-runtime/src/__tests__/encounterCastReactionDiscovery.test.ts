@@ -98,6 +98,26 @@ describe('prepared spell cast level', () => {
   })
 })
 
+describe('prepared Creature capability cast level', () => {
+  const creature = (spellCast?: { castLevel: number }, triggerCode = 'ACTIVATED') =>
+    ({
+      source: {
+        kind: 'CREATURE',
+        capability: { spellCast, mechanicFacts: { invocation: { triggerCode } } }
+      },
+      characterActionState: null
+    }) as unknown as Parameters<typeof preparedSpellCastLevel>[0]
+
+  it('is the authored cast level ', () => {
+    expect(preparedSpellCastLevel(creature({ castLevel: 3 }))).toBe(3)
+  })
+
+  it('is null for a capability that casts no spell, a spell attack included', () => {
+    expect(preparedSpellCastLevel(creature())).toBeNull()
+    expect(preparedSpellCastLevel(creature(undefined, 'MELEE_SPELL_ATTACK'))).toBeNull()
+  })
+})
+
 describe('prepared action casts a spell', () => {
   const creature = (triggerCode: string) =>
     ({

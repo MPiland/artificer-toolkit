@@ -279,3 +279,25 @@ AC 4.3 closes with T3d. Questions for the architect: (1) approve the split; (2) 
 - **Terminals:** an odd chain commits `ENCOUNTER_COUNTERED_CAST` for an ACTORS/area root too (nothing of the spell applies; the root check no longer demands an ACTOR target). An even chain or no counter lets the area or list resolve; a save-list cast carries `failedCounters` on its area pending context, and every commit spends them.
 - **Commit:** `LiveSessionEncounterAreaCommitInput.failedCounters` (additive) maps to `{receipt, spellConsumption}`. `persistEncounterAreaCommit` spends each failed reactor: the caster's counter-to-counter merges into the caster's one mechanics call (ruling W), a creature the area also hit merges into its child mechanics call, any other reactor settles through `applyFailedCounterSpends`; receipt versions are checked against the real batch, the stored `failedCounters` must equal the pending's, and the counter's check roll cards post with the commit.
 - **Persistence reads:** a KERNEL_EVIDENCE cast pause on an area root takes the single-action pending path (no target restriction); `requestAreaActionPending` validation covers both the pause and the post-pause area snapshot.
+
+## REACTION-4.T3h: Creature capability casts (D136 packet, for Phase 8 to register at merge)
+
+- **Ruling (final, 2026-10-16).** `spellCast: { castLevel: 1..9 }` sits on the Feature action effect beside `grip`; ACTION invocation only, schema-validated in `packages/schema/src/effects/effect.ts`; additive. The Worker reads only `castLevel`, so there is no spell lookup, capture kind or stored copy. A Creature capability is offered a counter only when `spellCast` is set; spell-attack-only actions (Paralyzing Touch and the like) are not counterable.
+- **Authoring.** `spellCast` is a core-option group on `FEATURE_EFFECT_NODE_MAP` (Creature editors only); plain Feature and Option maps have none. Parity proof: `packages/shared/src/__tests__/creature-feature-node-maps.test.ts`.
+- **One addition beyond "unchanged".** `preparedCastsSpell` is also true for a Creature capability with `spellCast`, so ON_CAST_SPELL sees real creature casts. `castsSpell` for spell attacks is unchanged (deferred item: "Spell attacks count as casts for ON_CAST_SPELL" in `future-enhancements.md`).
+- **SRD data.** No SRD creature action casts a named spell at an authored level, so none is filled; the Worker test (`nativeRoomCounterspellCreatureCast.test.ts`) is the data proof.
+- **Not done by design.** A spell link for display (with a save-time `castLevel` >= spell level check) is a future-enhancements line, not a task.
+
+## Resume here (after T3h, merged in the next Phase 8 batch)
+
+**Next task: REACTION-4.T4 (TARGETED_SELF trigger and source-filtered damage immunity: Shield against Magic Missile).** T3h is DONE (`spellCast: { castLevel }` on the Creature action effect; see the T3h D136 packet above); do not reopen it.
+
+### T3h pitfalls
+- A new node-map group with add actions needs an `AUTHORING_DEFAULT_MAP_IDS` kind plus a case in `authoringNodeDefaults.ts` (web inventory test).
+- Rule documents are JSON-only: never leave `undefined` keys on effects in tests.
+- A new descriptor field must be added to the `EncounterFeatureActionCapabilityDescriptor` fixtures (`encounterActionEffectBaseline.test.ts`).
+- Convex `api.d.ts` drifts on contract changes: take the `generated-files` artifact from the Live run.
+
+### Run ids
+- Red: Tests 38970845033 (ad8488c11; the build fails because `spellCast` is not on the authored type).
+- Green: 9cec1d408 (Tests 38975904611, Live 38975904624).

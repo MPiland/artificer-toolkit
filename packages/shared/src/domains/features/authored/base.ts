@@ -11,8 +11,19 @@ import type {
 } from '#authored'
 import type { DiceExpression, EquipmentGrip, FeatureAttribute, NodeSubjectCode } from '#core'
 
-/** A Feature effect; a versatile weapon attack authors one effect per grip (D57 ruling 1). */
-export type FeatureEffectAuthored = EffectAuthored & { grip?: EquipmentGrip }
+/** The spell an action casts: the level it is cast at (D136). */
+export interface FeatureSpellCastAuthored {
+  castLevel: number
+}
+
+/**
+ * A Feature effect; a versatile weapon attack authors one effect per grip (D57 ruling 1), and an
+ * action that casts a spell names it (D136).
+ */
+export type FeatureEffectAuthored = EffectAuthored & {
+  grip?: EquipmentGrip
+  spellCast?: FeatureSpellCastAuthored
+}
 
 export interface FeatureRollDefinitionAuthored {
   id: string

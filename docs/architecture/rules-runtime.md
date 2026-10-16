@@ -535,7 +535,7 @@ Concentration starts. Undo restores both creatures. Character ACTORS-target and 
 `CAST_REACTION` pause (REACTION-4.T3e-a): the pause is a KERNEL_EVIDENCE `ENCOUNTER_ACTION` occurrence on the area root,
 each answer replays the root command, and the next transition (area pending, area commit or countered cast) continues
 that occurrence; the area commit input carries `failedCounters` and spends them like the single-target commit.
-Creature-capability casts (REACTION-4.T3h) and casts made without the Scene offer no reaction. The chain is described
+A Creature capability is offered a counter only when its Feature action effect sets `spellCast` (D136); a spell attack without it is never counterable. Casts made without the Scene offer no reaction. The chain is described
 below (T3d).
 
 **Higher-level check (current, REACTION-4.T3c; D127).** `reactionTrigger.higherLevelCheck` (`{ ability, baseDc }`)
