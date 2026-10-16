@@ -64,6 +64,7 @@ type AuthoringDefaultKind =
   | 'followUpSaveBranch'
   | 'followUpSaveRepeatRollInfluence'
   | 'followUpSaveRepeatRollInfluenceWhen'
+  | 'higherLevelCheck'
   | 'hitPointMaximumReductionAmountSource'
   | 'invocation'
   | 'manifestBehavior'
@@ -196,6 +197,7 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   followUpSaveBranch: ['followUpSaveBranch'],
   followUpSaveRepeatRollInfluence: ['followUpSaveRepeatRollInfluence'],
   followUpSaveRepeatRollInfluenceWhen: ['followUpSaveRepeatRollInfluenceWhen'],
+  higherLevelCheck: ['higherLevelCheck'],
   hitPointMaximumReductionAmountSource: ['hitPointMaximumReductionAmountSource'],
   invocation: ['invocation'],
   manifestBehavior: ['manifestBehavior'],

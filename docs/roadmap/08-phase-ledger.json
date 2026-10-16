@@ -5938,18 +5938,44 @@
               }
             },
             {
-              "id": "ATTACK-9.T5",
-              "text": "Two-weapon fighting off-hand bonus attack and the Fighting Style.",
+              "id": "ATTACK-9.T5a",
+              "text": "Two-weapon fighting off-hand attack: the compiler grants a BONUS_ACTION off-hand attack after the Attack action; the turn records the ATTACK_ACTION weapon and the ATTACK_ACTION_OTHER_WEAPON predicate requires a different light weapon.",
               "status": "IN_PROGRESS",
               "closes": ["ATTACK-9.5"],
               "wsjf": {
                 "bv": 5,
                 "tc": 3,
                 "rr": 3,
-                "size": 3,
+                "size": 2,
                 "after": ["ATTACK-9.T3"]
               },
               "activeWorkbook": "docs/handoffs/slice-attack-9-t5.md"
+            },
+            {
+              "id": "ATTACK-9.T5b",
+              "text": "Off-hand damage omits a positive ability modifier but keeps a negative one (negative-only modifier mode); the Two-Weapon Fighting style grant restores the positive modifier.",
+              "status": "TODO",
+              "closes": ["ATTACK-9.5"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 3,
+                "size": 2,
+                "after": ["ATTACK-9.T5a"]
+              }
+            },
+            {
+              "id": "ATTACK-9.T5c",
+              "text": "Builder data for two-weapon fighting and the Two-Weapon Fighting style, the end-to-end journey, and the authoring-parity proof from core options.",
+              "status": "TODO",
+              "closes": ["ATTACK-9.5"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 3,
+                "size": 2,
+                "after": ["ATTACK-9.T5b"]
+              }
             },
             {
               "id": "ATTACK-9.T6",
@@ -8087,10 +8113,12 @@
           "origin": [],
           "acs": [
             {
-              "text": "A point-area action whose per-creature outcome applies a condition, a lasting or recurring effect, a relationship condition, or a maintained (Concentration) effect commits that outcome on each caught creature it selects, and GM undo removes it from every one.",
+              "text": "A point-area action whose per-creature outcome applies a condition, a lasting or recurring effect, or a maintained (Concentration) effect commits that outcome on each caught creature it selects, and GM undo removes it from every one.",
               "status": "TODO",
               "proof": [],
-              "origin": [],
+              "origin": [
+                "2026-10-16 main ruling on the SPELLS-19.T2 escalation: relationship conditions dropped from this AC. An area resolves by saves, and a relationship (Grappled, D105) comes only from a hit, so no area can author one. Frightened of the caster moved to SPELLS-29."
+              ],
               "note": "Registered 2026-10-10 from SPELLS-7 slice 5d, which refuses these at open and commit (refuseAreaEffectOutcomes in apps/session-worker/src/nativeEncounterAreaRules.ts: stateEffect, recurringEffect, relationshipConditionApplications, maintenance). One maintained effect must span every caught creature under one Concentration. Depends on SPELLS-7.",
               "id": "SPELLS-19.1"
             },
@@ -8112,10 +8140,9 @@
           "tasks": [
             {
               "id": "SPELLS-19.T1",
-              "text": "A point-area outcome commits conditions, lasting or recurring effects and relationship conditions on each caught creature through the single-target settlement path; GM undo removes them from every one.",
-              "status": "IN_PROGRESS",
+              "text": "A point-area outcome commits conditions, lasting or recurring effects and relationship conditions on each caught creature through the single-target settlement path; GM undo removes them from every one. (Red: Tests 38889036054. Green: ci/spells-19 Tests 38905377874 and Live 38905377876 on 89c0628df.)",
+              "status": "DONE",
               "closes": ["SPELLS-19.1"],
-              "activeWorkbook": "docs/handoffs/slice-spells-19.md",
               "wsjf": {
                 "bv": 8,
                 "tc": 3,
@@ -8125,8 +8152,8 @@
             },
             {
               "id": "SPELLS-19.T2",
-              "text": "One maintained (Concentration) effect spans every caught creature of a point-area action; ending Concentration or GM undo removes it from all of them.",
-              "status": "TODO",
+              "text": "One maintained (Concentration) effect spans every caught creature of a point-area action; ending Concentration or GM undo removes it from all of them. Fear proves it end to end: each creature that fails is Frightened, maintained by the caster's Concentration.",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-19.1"],
               "wsjf": {
                 "bv": 8,
@@ -8134,7 +8161,8 @@
                 "rr": 5,
                 "size": 3,
                 "after": ["SPELLS-19.T1"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-19.md"
             },
             {
               "id": "SPELLS-19.T3",
@@ -8637,8 +8665,8 @@
               "activeWorkbook": "docs/handoffs/slice-spells-27.md"
             },
             {
-              "id": "SPELLS-27.T5",
-              "text": "Author SRD end events (spells, class features, items, creature traits) from core options; corpus test lists any effect left with end-event text and no authored end, except a typed allow-list of other mechanisms.",
+              "id": "SPELLS-27.T4b",
+              "text": "Every damage root ends damage-triggered effects through damageTakenEndedEffects: the area commit, the Legendary window, the movement reaction, turn effects (ongoing damage) and death-save damage, each proved with GM undo; plus the ATTACK_ROLL-against-an-enemy end arm (Sanctuary) and the SPELL_CAST arm on the T3 cast fact. T5 authors no damage-ended SRD effect whose damage arrives through an unwired root.",
               "status": "TODO",
               "closes": ["SPELLS-27.2"],
               "wsjf": {
@@ -8650,8 +8678,21 @@
               }
             },
             {
+              "id": "SPELLS-27.T5",
+              "text": "Author SRD end events (spells, class features, items, creature traits) from core options; corpus test lists any effect left with end-event text and no authored end, except a typed allow-list of other mechanisms.",
+              "status": "TODO",
+              "closes": ["SPELLS-27.2"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-27.T4", "SPELLS-27.T4b"]
+              }
+            },
+            {
               "id": "SPELLS-27.T6",
-              "text": "Unify consumeOnFirstEvents and endOnEvents into one structured shape with explicit timing; delete the old enum, migrate data, no shim (D122). After REACTION-4.T3.",
+              "text": "Unify consumeOnFirstEvents and endOnEvents into one structured shape with explicit timing; delete the old enum, migrate data, no shim (D122). After REACTION-4.T3. The unified shape also absorbs endOnTriggers (T4) and drops its read default of [], migrating stored effects instead.",
               "status": "TODO",
               "closes": ["SPELLS-27.1"],
               "wsjf": {
@@ -8660,6 +8701,68 @@
                 "rr": 3,
                 "size": 3,
                 "after": ["SPELLS-27.T3", "REACTION-4.T3"]
+              }
+            }
+          ]
+        },
+        {
+          "id": "SPELLS-29",
+          "title": "Frightened follows its source",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": [
+            "SPELLS-19.T2 escalation 2026-10-16: Frightened applies while present and its source is not tracked (D-limits at SPELLS-2)"
+          ],
+          "wsjf": {
+            "bv": 5,
+            "tc": 3,
+            "rr": 3,
+            "size": 3
+          },
+          "acs": [
+            {
+              "id": "SPELLS-29.1",
+              "text": "A Frightened condition applied by an action records the creature that frightened it, authored from core options (no Fear-specific kind). The frightened creature has disadvantage on ability checks and attack rolls only while that source is within its line of sight, and a move that ends closer to the source is a soft-enforcement warning the GM can override (ADR 0034). A Frightened with no recorded source keeps its present always-on disadvantage. Proved for Fear, including GM undo.",
+              "status": "TODO",
+              "origin": [
+                "SPELLS-19.T2 escalation 2026-10-16; confirmed by the user 2026-10-16 (a move that ends closer warns, the GM can override)"
+              ]
+            },
+            {
+              "id": "SPELLS-29.2",
+              "text": "An effect can make a frightened creature flee its source (SRD Fear; Eyebite Panicked). It is authored from core options, not as a Fear-specific kind. At the start of the creature's turn its controller is told it must take the Dash action and move away from the source by the safest route. An action or move that does otherwise is a soft-enforcement warning with \"Do it anyway\", logged for the GM (ADR 0034). When the creature ends its turn without line of sight to the source, the app offers the authored saving throw (Wisdom for Fear). Success ends the effect for that creature only. Proved for Fear, with GM undo.",
+              "status": "TODO",
+              "origin": [
+                "Confirmed by the user 2026-10-16 (prompt plus warning with Do it anyway; automatic out-of-sight save)"
+              ]
+            }
+          ],
+          "tasks": [
+            {
+              "id": "SPELLS-29.T1",
+              "text": "A condition application carries an optional source actor; Frightened's check and attack contributors read line of sight to it; the movement planner warns on a move that ends closer; SRD Fear and every SRD action that frightens authors the source; authoring parity from core options.",
+              "status": "TODO",
+              "closes": ["SPELLS-29.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-19.T2"]
+              }
+            },
+            {
+              "id": "SPELLS-29.T2",
+              "text": "Flee-from-source rider: a generic turn-start \"must Dash away from the source\" requirement, soft-enforced on actions and moves; a turn-end save when the creature has no line of sight to the source; authored for SRD Fear and Eyebite Panicked; authoring parity from core options.",
+              "status": "TODO",
+              "closes": ["SPELLS-29.2"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-29.T1"]
               }
             }
           ]
@@ -8938,8 +9041,8 @@
             },
             {
               "id": "REACTION-4.T3c",
-              "text": "Counterspell level gate: TRIGGER_FACT cast level plus the ability-check test kind (option A), so a higher-level cast needs a successful check.",
-              "status": "IN_PROGRESS",
+              "text": "Counterspell level gate: TRIGGER_FACT cast level plus the ability-check test kind (option A), so a higher-level cast needs a successful check. (D127. Red: ci/reaction-4-t3c-red Tests 38899327892 on 6f63de4bd. Green: ci/reaction-4-t3c Tests 38906239337 and Live 38906239309 on 68fb01dc0.)",
+              "status": "DONE",
               "closes": ["REACTION-4.3"],
               "wsjf": {
                 "bv": 8,
@@ -8947,6 +9050,19 @@
                 "rr": 5,
                 "size": 3,
                 "after": ["REACTION-4.T3b"]
+              }
+            },
+            {
+              "id": "REACTION-4.T3f",
+              "text": "Counterspell check hardening: a failed or passed spellcasting check posts its chat roll card like any other check; a below-level slot is not offered to a reactor with no spellcasting ability (no throw); the check pause evidence receipt records pending D20_EVIDENCE; room tests for two reactors failing in sequence, a failure followed by another reactor successful counter, and undo after an auto-roll failure.",
+              "status": "IN_PROGRESS",
+              "closes": ["REACTION-4.3"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 5,
+                "size": 2,
+                "after": ["REACTION-4.T3c"]
               },
               "activeWorkbook": "docs/handoffs/slice-reaction-4.md"
             },
@@ -8960,7 +9076,7 @@
                 "tc": 3,
                 "rr": 5,
                 "size": 3,
-                "after": ["REACTION-4.T3b", "REACTION-4.T3c"]
+                "after": ["REACTION-4.T3b", "REACTION-4.T3c", "REACTION-4.T3f"]
               }
             },
             {

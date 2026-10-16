@@ -7,6 +7,8 @@ import type { ResolveEncounterActionInputDto } from '@artificer-toolkit/schema/a
 import { plannedModifierGrant } from '@artificer-toolkit/rules-runtime/testing/modifierGrantFixture'
 import { readCharacterPlay } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { creatureAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/creature'
+import type { SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
+import { acidSplash } from '@artificer-toolkit/source-data/srd/spells/acid-splash.js'
 import {
   SRD_ABILITY_DEFINITION_IDS,
   srdSystemRecord
@@ -1162,30 +1164,168 @@ describe('room area commit with Legendary Resistance', () => {
   })
 })
 
-describe('room area action that leaves an effect behind', () => {
-  it('is refused whole when it opens, spending and changing nothing', async () => {
+function frightenedId() {
+  const condition = srdSystemRecord.conditionTypes.find(({ code }) => code === 'FRIGHTENED')
+  if (!condition) throw new Error('The SRD vocabulary has no Frightened condition.')
+  return condition.id
+}
+
+const conditionsOf = (history: RoomHistory, id: string) =>
+  (
+    (vitalsOf(history).find((vitals) => vitals.id === id)?.conditions ?? []) as {
+      conditionTypeId: string
+    }[]
+  ).map(({ conditionTypeId }) => conditionTypeId)
+
+describe('room area action that leaves a condition behind (SPELLS-19.1)', () => {
+  it('leaves Frightened and its lasting effect on each creature that fails, and one undo takes them from every one', async () => {
     const creature = frightenOnFailedSave(fireballWolf())
     const room = await actionRoom({
       actors: [
         srdCreatureActor({ id: CASTER_ID, creature }),
-        srdCreatureActor({ id: CAUGHT_IDS[0]!, creature: plainWolf })
+        srdCreatureActor({ id: CAUGHT_IDS[0]!, creature: plainWolf }),
+        srdCreatureActor({ id: CAUGHT_IDS[1]!, creature: plainWolf })
       ],
       ownerFeatureId: creature.features?.find((feature) => feature.label === 'Bite')?.id
     })
     const before = await readRoomHistory(room.room.base.stub)
     const { answer } = await room.startAreaAction({ x: 50, y: 150 })
-    expect(answer).toMatchObject({
-      type: 'COMMAND_REJECTED',
-      reason: 'TARGET_UNAVAILABLE'
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    // The caster and the first Wolf fail their save; the second Wolf passes.
+    await answerAllSaves(room, { [CAUGHT_IDS[1]!]: 20 })
+
+    const committed = await readRoomHistory(room.room.base.stub)
+    expect(conditionsOf(committed, CASTER_ID)).toContain(frightenedId())
+    expect(conditionsOf(committed, CAUGHT_IDS[0]!)).toContain(frightenedId())
+    expect(conditionsOf(committed, CAUGHT_IDS[1]!)).not.toContain(frightenedId())
+    expect(committed.activeEffects.map((effect) => effect.targetActorId).sort()).toEqual(
+      [CASTER_ID, CAUGHT_IDS[0]!].sort()
+    )
+
+    const undone = await room.send({
+      type: 'REVERT_LAST_ACTION',
+      encounterId: room.room.encounterId,
+      commandId: crypto.randomUUID(),
+      expectedVersion: await room.version()
     })
-    expect(await readRoomHistory(room.room.base.stub)).toEqual(before)
-    expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
+    expect(undone.type, JSON.stringify(undone)).toBe('COMMAND_COMMITTED')
+    const reverted = await readRoomHistory(room.room.base.stub)
+    expect(vitalsOf(reverted)).toEqual(vitalsOf(before))
+    expect(reverted.activeEffects).toEqual([])
+  })
+
+  it('leaves a caught Character the same lasting effect, and the undo takes it from them too', async () => {
+    const creature = frightenOnFailedSave(fireballWolf())
+    const room = await actionRoom({
+      actors: [
+        srdCreatureActor({ id: CASTER_ID, creature }),
+        characterActor({ id: CHARACTER_ACTOR_ID, characterId: CHARACTER_ID }),
+        srdCreatureActor({ id: CAUGHT_IDS[0]!, creature: plainWolf })
+      ],
+      ownerFeatureId: BITE_ID
+    })
+    expect((await room.startAreaAction({ x: 50, y: 150 })).answer.type).toBe('COMMAND_COMMITTED')
+    await answerAllSaves(room)
+    expect((await readRoomHistory(room.room.base.stub)).characterEffects).toHaveLength(1)
+
+    const undone = await room.send({
+      type: 'REVERT_LAST_ACTION',
+      encounterId: room.room.encounterId,
+      commandId: crypto.randomUUID(),
+      expectedVersion: await room.version()
+    })
+    expect(undone.type, JSON.stringify(undone)).toBe('COMMAND_COMMITTED')
+    expect((await readRoomHistory(room.room.base.stub)).characterEffects).toEqual([])
+  })
+})
+
+/** Acid Splash whose failed save frightens for two rounds instead of burning. */
+function frighteningSplash(): SpellAuthored {
+  return {
+    ...acidSplash,
+    effects: acidSplash.effects?.map((effect) => ({
+      ...effect,
+      paths: effect.paths.map((path) =>
+        !('resultBlock' in path)
+          ? path
+          : {
+              ...path,
+              resultBlock: {
+                id: '00000000-0000-4000-8000-0000000000c1',
+                resultKind: 'SEQUENCE' as const,
+                duration: {
+                  id: '00000000-0000-4000-8000-0000000000c2',
+                  durationKind: 'ROUND' as const,
+                  amount: 2
+                },
+                outcomes: [
+                  {
+                    id: '00000000-0000-4000-8000-0000000000c3',
+                    effectKind: 'CONDITION' as const,
+                    conditionId: frightenedId()
+                  },
+                  {
+                    id: '00000000-0000-4000-8000-0000000000c4',
+                    effectKind: 'FOLLOW_UP_SAVE' as const,
+                    timing: 'TARGET_TURN_END' as const,
+                    savingThrow: {
+                      id: '00000000-0000-4000-8000-0000000000c5',
+                      dcMethod: 'FIXED_DC' as const,
+                      abilityDefinitionId: SRD_ABILITY_DEFINITION_IDS.DEXTERITY,
+                      baseDc: 10
+                    },
+                    attempts: { kind: 'ONCE' as const, repeatOnFailure: true },
+                    onSuccess: { kind: 'END' as const },
+                    onFailure: { kind: 'CONTINUE' as const },
+                    onDurationComplete: { kind: 'END' as const }
+                  }
+                ]
+              }
+            }
+      )
+    }))
+  }
+}
+
+describe('room cast on chosen creatures that leaves a condition (SPELLS-19.1)', () => {
+  it('leaves Frightened and its lasting effect on the creature that fails, and one undo takes it back', async () => {
+    const spell = frighteningSplash()
+    const room = await actionRoom({
+      actors: [
+        characterActor({ id: CHARACTER_ACTOR_ID, characterId: CHARACTER_ID }),
+        srdCreatureActor({ id: CAUGHT_IDS[0]!, creature: plainWolf }),
+        srdCreatureActor({ id: CAUGHT_IDS[1]!, creature: plainWolf })
+      ],
+      characterSpellcasting: { spells: [spell], prepared: [spell.id] },
+      characterAction: (action) => action.label === spell.label,
+      rolls: []
+    })
+    const before = await readRoomHistory(room.room.base.stub)
+    const { answer } = await room.startActorsAction([CAUGHT_IDS[0]!, CAUGHT_IDS[1]!], [], true)
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    await answerAllSaves(room, { [CAUGHT_IDS[1]!]: 20 })
+
+    const committed = await readRoomHistory(room.room.base.stub)
+    expect(conditionsOf(committed, CAUGHT_IDS[0]!)).toContain(frightenedId())
+    expect(conditionsOf(committed, CAUGHT_IDS[1]!)).not.toContain(frightenedId())
+    expect(committed.activeEffects.map((effect) => effect.targetActorId)).toEqual([CAUGHT_IDS[0]!])
+
+    const undone = await room.send({
+      type: 'REVERT_LAST_ACTION',
+      encounterId: room.room.encounterId,
+      commandId: crypto.randomUUID(),
+      expectedVersion: await room.version()
+    })
+    expect(undone.type, JSON.stringify(undone)).toBe('COMMAND_COMMITTED')
+    const reverted = await readRoomHistory(room.room.base.stub)
+    expect(vitalsOf(reverted)).toEqual(vitalsOf(before))
+    expect(reverted.activeEffects).toEqual([])
   })
 })
 
 /**
  * A Fireball whose failed save also drains 1d4 Strength. Nothing in the action's effect plan shows
- * it, so the area opens; only the settled outcome carries the reduction a creature would keep.
+ * it; only the settled outcome carries the reduction a creature keeps.
  */
 function drainFireballWolf() {
   const base = fireballWolf()
@@ -1230,8 +1370,8 @@ function drainFireballWolf() {
   })
 }
 
-describe('room area action whose outcome leaves an effect only once settled', () => {
-  it('is refused whole when it commits, persisting nothing', async () => {
+describe('room area action whose outcome leaves a lasting effect only once settled (SPELLS-19.1)', () => {
+  it('keeps the Strength reduction on each creature that fails, and one undo takes it from every one', async () => {
     const creature = drainFireballWolf()
     const room = await actionRoom({
       actors: [
@@ -1240,32 +1380,26 @@ describe('room area action whose outcome leaves an effect only once settled', ()
       ],
       ownerFeatureId: creature.features?.find((feature) => feature.label === 'Bite')?.id
     })
-    const { answer } = await room.startAreaAction({ x: 50, y: 150 })
-    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    expect((await room.startAreaAction({ x: 50, y: 150 })).answer.type).toBe('COMMAND_COMMITTED')
+    await answerAllSaves(room)
 
-    // The caster's save settles the area's first answer; the second one is the last it waits on.
-    const answerNext = async () => {
-      const decision = await room.pendingDecision()
-      if (decision.pending.kind !== 'AREA_SAVES') throw new Error('Expected the area saves.')
-      const [save] = decision.pending.saves
-      return room.send(
-        room.resolveCommand(decision, {
-          kind: 'ENTER_DICE',
-          requestId: save!.request.requestId,
-          rawFaces: [1],
-          rollMode: save!.request.rollMode
-        })
-      )
-    }
-    expect((await answerNext()).type).toBe('COMMAND_COMMITTED')
-    const before = await readRoomHistory(room.room.base.stub)
-    expect(await answerNext()).toMatchObject({
-      type: 'COMMAND_REJECTED',
-      reason: 'TARGET_UNAVAILABLE',
-      message: 'Area actions that apply conditions or lasting effects are not supported yet.'
+    const committed = await readRoomHistory(room.room.base.stub)
+    expect(committed.activeEffects.map((effect) => effect.targetActorId).sort()).toEqual(
+      [CASTER_ID, CAUGHT_IDS[0]!].sort()
+    )
+    for (const effect of committed.activeEffects)
+      expect(JSON.parse(effect.definitionJson).stateContributions).toEqual([
+        expect.objectContaining({ kind: 'SCALAR_REDUCTION' })
+      ])
+
+    const undone = await room.send({
+      type: 'REVERT_LAST_ACTION',
+      encounterId: room.room.encounterId,
+      commandId: crypto.randomUUID(),
+      expectedVersion: await room.version()
     })
-    expect(await readRoomHistory(room.room.base.stub)).toEqual(before)
-    expect(areaReceipts(before).roots).toEqual([])
+    expect(undone.type, JSON.stringify(undone)).toBe('COMMAND_COMMITTED')
+    expect((await readRoomHistory(room.room.base.stub)).activeEffects).toEqual([])
   })
 })
 
