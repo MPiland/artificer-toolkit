@@ -4,7 +4,12 @@ import {
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import { optionalSmite } from '@artificer-toolkit/rules-runtime/testing/optionalSmite'
+import type { FeatureAuthored } from '@artificer-toolkit/shared/authored'
+import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { readCharacterPlay } from '@artificer-toolkit/schema/projections/characterStoredState'
+import { paladin } from '@artificer-toolkit/source-data/srd/classes/paladin.js'
+import { srdCreatureRecords } from '@artificer-toolkit/source-data/srd/creatures/index.js'
+import { ghoul } from '@artificer-toolkit/source-data/srd/creatures/ghoul.js'
 import { shield } from '@artificer-toolkit/source-data/srd/spells/shield.js'
 import { SRD_DAMAGE_TYPES } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -43,18 +48,38 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-/** A Fighter wielding a Club who carries the optional smite and can cast from two levels of slots. */
-function smiterRoom(d20Face: number) {
+/** The SRD Ghoul, an undead, as the corpus seeds it. */
+const srdGhoul = (() => {
+  const record = srdCreatureRecords.find((candidate) => candidate.id === ghoul.id)
+  if (!record) throw new Error('The SRD Ghoul is missing.')
+  return record
+})()
+
+/** The SRD Paladin's Divine Smite, reached at the 1st-level Fighter this room's Character is. */
+const srdDivineSmite = (() => {
+  const feature = paladin.features?.find(({ label }) => label === 'Divine Smite')
+  if (!feature) throw new Error('The SRD Divine Smite is missing.')
+  return { ...feature, availableAtLevel: 1 }
+})()
+
+/** A Fighter wielding a Club who carries an optional smite and can cast from two levels of slots. */
+function smiterRoom(
+  d20Face: number,
+  smite: { feature: FeatureAuthored; target: CreatureAuthored } = {
+    feature: optionalSmite(),
+    target: plainWolf
+  }
+) {
   return actionRoom({
     autoRoll: 'BOTH',
     rolls: [d20Face],
     fallbackRoll: LOWEST_FACE,
     actors: [
       characterActor({ id: FIGHTER_ACTOR_ID, characterId: FIGHTER_ID }),
-      srdCreatureActor({ id: WOLF_ID, creature: plainWolf })
+      srdCreatureActor({ id: WOLF_ID, creature: smite.target })
     ],
     characterPlay: { equipped: true },
-    characterClassFeatures: [optionalSmite()],
+    characterClassFeatures: [smite.feature],
     characterSpellcasting: { spells: [shield], prepared: [shield.id] },
     characterAction: (action) => action.label.includes('Club')
   })
@@ -177,5 +202,18 @@ describe('room optional on-hit rider paid with a spell slot (ATTACK-9.4)', () =>
     expect(damageOfType(batch, RADIANT_ID)).toEqual([])
     expect(batch.spellCastConsumption).toBeNull()
     expect(await readSpellSlots(room)).toEqual([])
+  })
+
+  it('adds the SRD Divine Smite’s extra d8 against an undead, doubled on a critical hit', async () => {
+    const room = await smiterRoom(CRITICAL_FACE, { feature: srdDivineSmite, target: srdGhoul })
+    const { decision, pending } = await strikeToTheOffer(room)
+    const option = pending.options.find(({ slotLevel }) => slotLevel === SECOND_LEVEL)!
+
+    const used = await room.resolve(decision, { kind: 'OPTION', optionId: option.optionId })
+    expect(used.type, JSON.stringify(used)).toBe('COMMAND_COMMITTED')
+
+    // 3d8 for the 2nd-level slot and 1d8 against the undead, every die doubled by the critical hit.
+    const radiantDamage = damageOfType(await settledAttack(room), RADIANT_ID)
+    expect(radiantDamage.reduce((total, amount) => total + amount, 0)).toBe(2 * (3 + 1))
   })
 })
