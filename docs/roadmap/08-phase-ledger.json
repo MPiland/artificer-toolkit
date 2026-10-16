@@ -8825,9 +8825,9 @@
               "status": "TODO",
               "closes": ["REACTION-4.1"],
               "wsjf": {
-                "bv": 6,
+                "bv": 5,
                 "tc": 2,
-                "rr": 4,
+                "rr": 3,
                 "size": 3,
                 "after": ["REACTION-4.T3b"]
               }
