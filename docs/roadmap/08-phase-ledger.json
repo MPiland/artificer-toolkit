@@ -5126,7 +5126,7 @@
             {
               "id": "ATTACK-2.T2",
               "text": "Player parity journey (browser, player client): on their own Character a player casts an area spell, takes a death save, uses a non-movement reaction and targets from the map, with no GM step.",
-              "status": "IN_PROGRESS",
+              "status": "TODO",
               "closes": ["ATTACK-2.5"],
               "wsjf": {
                 "bv": 8,
@@ -10146,7 +10146,7 @@
             {
               "id": "RELIABILITY-16.T1",
               "text": "Add the snapshot-regeneration step and `updated-snapshots` artifact to tests.yml for the Convex shards and package tests, teach watchCi.ps1 to print its download command, and update slice-workbook-rules.md and AGENTS.md Validation; prove with a deliberately stale snapshot on a ci/ branch.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["RELIABILITY-16.1"],
               "wsjf": {
                 "bv": 5,
