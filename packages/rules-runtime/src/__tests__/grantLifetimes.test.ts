@@ -1035,6 +1035,7 @@ describe('planCarriedOverEffects', () => {
       }
     }
     const actor = characterActor({ id: testUuid(0xc376), characterId: CHARACTER_ID })
+    if (actor.kind !== 'CHARACTER') throw new Error('Expected a Character actor.')
     expect(resumeCharacterForm(actor, [carried]).form).toEqual({
       effectId: effect.id,
       excessDamageCarriesOver: true,

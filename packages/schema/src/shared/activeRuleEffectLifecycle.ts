@@ -1,4 +1,3 @@
-import { jsonValueSchema } from '../projections/identity.js'
 import { z, lazySchema } from '../zod.js'
 import { MAX_ENCOUNTER_ACTORS } from './authoredLimits.js'
 import { postgresUuidSchema } from './postgresUuid.js'
@@ -28,7 +27,8 @@ export const activeRuleEffectLifecycleDtoSchema = lazySchema(() =>
       z.strictObject({
         sourceId: postgresUuidSchema,
         sourceRevision: z.number().check(z.int()).check(z.positive()),
-        snapshot: jsonValueSchema,
+        // Opaque here: a recursive JSON schema in this widely shared lifecycle exceeds the compiler's depth.
+        snapshot: z.unknown(),
         currentHitPoints: z.number().check(z.int()).check(z.nonnegative()),
         maxHitPoints: z.number().check(z.int()).check(z.nonnegative()),
         tempHitPoints: z.number().check(z.int()).check(z.nonnegative())

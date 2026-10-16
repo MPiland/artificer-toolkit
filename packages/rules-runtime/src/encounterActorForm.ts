@@ -5,7 +5,7 @@ import type {
   EncounterRunActorState,
   EncounterRunCharacterActorState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
-import type { JsonValue } from '@artificer-toolkit/schema/projections/identity'
+import { jsonValueSchema, type JsonValue } from '@artificer-toolkit/schema/projections/identity'
 import { nextEncounterActorDefeated } from './encounterActorDefeat.js'
 import { DND5E_ABILITY_DEFINITION_ID_BY_CODE, DND5E_SYSTEM_ID } from './systems/dnd5e/identity.js'
 
@@ -173,7 +173,8 @@ export function resumeCharacterForm(
         form: {
           effectId: effect.id,
           excessDamageCarriesOver: contribution.excessDamageCarriesOver,
-          ...carried
+          ...carried,
+          snapshot: jsonValueSchema.parse(carried.snapshot)
         }
       }
   }
