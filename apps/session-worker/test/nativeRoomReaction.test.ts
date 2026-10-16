@@ -1,4 +1,5 @@
 import { runInDurableObject } from 'cloudflare:test'
+import { encounterReactionEffectId } from '@artificer-toolkit/rules-runtime/encounterReactionChoice'
 import {
   characterActor,
   creatureFeature,
@@ -12,7 +13,6 @@ import { shield } from '@artificer-toolkit/source-data/srd/spells/shield.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { nativeReactionEffectId } from '../src/nativeEncounterAttackReaction.js'
 import { RoomEncounterStore } from '../src/roomEncounterStore.js'
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { actionRoom, biteWolf, fireballWolf } from './actionRoomFixture.js'
@@ -205,7 +205,7 @@ describe('room reaction to a hit (REACTION-4.4)', () => {
 
     const { characterEffects } = await readRoomHistory(room.room.base.stub)
     expect(characterEffects.map(({ id }) => id)).toEqual([
-      nativeReactionEffectId({ commandId, occurrenceId: decision.occurrence.id })
+      encounterReactionEffectId({ commandId, occurrenceId: decision.occurrence.id })
     ])
   })
 

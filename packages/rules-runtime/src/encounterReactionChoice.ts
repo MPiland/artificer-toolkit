@@ -11,6 +11,7 @@ import type {
   ServerRuleExecutionD20PolicyDto
 } from '@artificer-toolkit/schema/shared/rulesExecution'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import { v5 as uuidv5 } from 'uuid'
 
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
 import { startReactionChoice } from './reactionChoiceDefinition.js'
@@ -67,6 +68,13 @@ export function sameEncounterReactionCandidate(
     current.allowanceBeforeUsed === reaction.allowanceBeforeUsed &&
     current.allowanceMaximum === reaction.allowanceMaximum
   )
+}
+
+const reactionEffectNamespace = 'c2a9f1d4-5b3e-4e7a-8d60-1f4b7a92e5c3'
+
+/** The id of the effect a used reaction leaves on its reactor: a replay of the command mints the same one. */
+export function encounterReactionEffectId(input: { commandId: string; occurrenceId: string }) {
+  return uuidv5(`${input.commandId}:${input.occurrenceId}`, reactionEffectNamespace)
 }
 
 /** The interstitial audit a decided offer hands the sealed OUTCOME it selects. */

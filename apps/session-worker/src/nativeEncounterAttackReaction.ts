@@ -18,10 +18,12 @@ import { prepareNativeActionEffectsPlan } from '@artificer-toolkit/rules-runtime
 import type { prepareEncounterActionMechanics } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
 import { StaleCharacterActionError } from '@artificer-toolkit/rules-runtime/encounterErrors'
 import { ASSISTED_REACTION_CHOICE_DEFINITION_ID } from '@artificer-toolkit/rules-runtime/encounterMovementReactionDecision'
-import type { EncounterAttackReactionCandidate } from '@artificer-toolkit/rules-runtime/encounterReactionChoice'
+import {
+  encounterReactionEffectId,
+  type EncounterAttackReactionCandidate
+} from '@artificer-toolkit/rules-runtime/encounterReactionChoice'
 import { createReactionChoiceDefinition } from '@artificer-toolkit/rules-runtime/reactionChoiceDefinition'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
-import { v5 as uuidV5 } from 'uuid'
 
 import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
 import { evaluateNativeLiveActionEconomy } from './nativeEncounterActionEconomy.js'
@@ -113,13 +115,6 @@ export function discoverNativeAttackReaction(input: {
   }
 }
 
-const reactionEffectNamespace = 'c2a9f1d4-5b3e-4e7a-8d60-1f4b7a92e5c3'
-
-/** The id of the effect a used reaction leaves on its reactor: a replay of the command mints the same one. */
-export function nativeReactionEffectId(input: { commandId: string; occurrenceId: string }) {
-  return uuidV5(`${input.commandId}:${input.occurrenceId}`, reactionEffectNamespace)
-}
-
 const unsupportedReaction = (message: string) =>
   new LiveSessionDomainRejectionError(422, {
     code: 'DOMAIN_REJECTED',
@@ -170,7 +165,7 @@ export async function applyNativeAttackReaction(input: {
   const reactorId = prepared.target.id
   const held = input.activeEffectsByActorId.get(reactorId) ?? []
   const pending = prepareActiveRuleEffectRecord({
-    id: nativeReactionEffectId(input),
+    id: encounterReactionEffectId(input),
     owner: nativeEffectOwner(prepared.target, prepared.state.id),
     definition: effects.recurringEffect.definition,
     lifecycle: effects.recurringEffect.lifecycle,
