@@ -17,7 +17,7 @@ import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/sys
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { CharacterStabilizeOutcomeApplication } from './characterRuleActionSystemAdapter.js'
 import { isEncounterTargetDying } from './encounterActorDefeat.js'
-import { consumableGrants } from './encounterGrantLifetimes.js'
+import { effectsEndedBy } from './encounterGrantLifetimes.js'
 import { EncounterValidationError } from './encounterErrors.js'
 import {
   resolveEncounterD20Answer,
@@ -148,7 +148,7 @@ export function prepareEncounterBasicActionCheck<
         contributorChecksum: checksumRuleDocument(facts.contributors),
         modifier: facts.modifier
       },
-      consumedGrants: consumableGrants(helper.activeEffects, 'ON_ABILITY_CHECK')
+      consumedGrants: effectsEndedBy(helper.activeEffects, 'ON_ABILITY_CHECK')
     })
   }
 }

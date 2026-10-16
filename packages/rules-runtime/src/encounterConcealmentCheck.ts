@@ -26,7 +26,7 @@ import {
 } from './encounterConcealment.js'
 import { EncounterValidationError } from './encounterErrors.js'
 import { turnEffectOwner } from './encounterTurnEffectState.js'
-import { consumableGrants } from './encounterGrantLifetimes.js'
+import { effectsEndedBy } from './encounterGrantLifetimes.js'
 import { actorContestFacts } from './encounterMovementPassagePreparation.js'
 import type { CharacterMovementFacts, MovementTarget } from './encounterMovementTargets.js'
 import { characterRuleActionSystemAdapterRegistry } from './characterRuleActionSystemAdapterRegistry.js'
@@ -137,7 +137,7 @@ export function prepareEncounterConcealmentCheck<
       modifier: facts.modifier
     },
     resolution,
-    consumedGrants: consumableGrants(roller.activeEffects, 'ON_ABILITY_CHECK')
+    consumedGrants: effectsEndedBy(roller.activeEffects, 'ON_ABILITY_CHECK')
   })
 }
 

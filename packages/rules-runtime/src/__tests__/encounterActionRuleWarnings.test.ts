@@ -547,6 +547,29 @@ describe('encounter action rule warning gate', () => {
       })
     })
 
+    it('warns once for each bonded creature whose Intelligence is at or under the floor (SPELLS-28)', () => {
+      const nextDoor = { grid, sourceToken: square(0), targetToken: square(1) }
+      const bond = (intelligences: (number | null)[]) =>
+        evaluateEncounterActorsRuleWarnings({
+          preparedWarnings: [],
+          targets: intelligences.map((targetIntelligence, index) => ({
+            ...entry(`00000000-0000-4000-8000-0000000b01${index}0`, nextDoor, null),
+            targetIntelligence
+          })),
+          areaWarnings: [],
+          actionEconomy: null,
+          activationCode: 'ACTION',
+          linkIntelligenceFloor: 2,
+          acknowledged: []
+        })
+      const dullWarning: EncounterRuleWarningDto = {
+        code: 'TARGET_INTELLIGENCE_EXCLUDED',
+        message: 'This creature has too little Intelligence to join the bond.'
+      }
+      expect(bond([2, 1, 3, null])).toEqual({ kind: 'UNACKNOWLEDGED', warnings: [dullWarning] })
+      expect(bond([3, null])).toEqual({ kind: 'ACCEPTED', overrides: [] })
+    })
+
     it('holds a creature in an area to the area’s own warnings, not to the spell’s range', () => {
       const sphere = {
         id: 'sphere',

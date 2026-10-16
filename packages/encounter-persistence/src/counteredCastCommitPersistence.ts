@@ -233,6 +233,7 @@ export async function persistEncounterCounteredCastCommit(
       label: input.label,
       ruleOverrides: input.ruleOverrides,
       consumedGrants: [],
+      endedMaintainedStates: [],
       addedConcentrationCasterId: null,
       speedBonusTurn: null,
       turnUses: null

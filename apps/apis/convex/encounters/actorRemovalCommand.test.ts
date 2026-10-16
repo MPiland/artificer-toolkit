@@ -375,7 +375,7 @@ describe('native actor removal transaction', () => {
     }
     // D82: a removed Character stays in the Run, out of initiative, so no actor takes a turn.
     expect(result.projection.actors).toEqual([
-      expect.objectContaining({ kind: 'CHARACTER', outOfInitiative: true })
+      expect.objectContaining({ kind: 'CHARACTER', absence: 'GM_REMOVED' })
     ])
     expect(result.projection.currentActorId).toBeNull()
     result = await executeInRoom(base.owner.caller, {
@@ -546,7 +546,7 @@ describe('native actor removal transaction', () => {
     expect(afterRemoval.participants).toEqual(before.participants)
     expect(afterRemoval.sides).toEqual(before.sides)
     expect(removedResult.projection.actors.find((actor) => actor.id === removed.id)).toMatchObject({
-      outOfInitiative: true
+      absence: 'GM_REMOVED'
     })
     expect(removedResult.projection.currentActorId).toBe(firstSurvivor.id)
     const [firstTurn, secondTurn] = afterRemoval.participants
@@ -659,10 +659,10 @@ describe('native actor removal transaction', () => {
       }
     })
     expect(removed.projection.actors.find((actor) => actor.id === character.id)).toMatchObject({
-      outOfInitiative: true
+      absence: 'GM_REMOVED'
     })
     expect(removed.projection.actors.find((actor) => actor.id === target.id)).toMatchObject({
-      outOfInitiative: false
+      absence: null
     })
     const after = await capture(base)
     expect(after.characters).toEqual(before.characters)
@@ -714,7 +714,7 @@ describe('native actor removal transaction', () => {
       }
     })
     expect(returned.projection.actors.find((actor) => actor.id === character.id)).toMatchObject({
-      outOfInitiative: false
+      absence: null
     })
     const afterTarget = await advance(returned.projection.version)
     const next = await advance(afterTarget.projection.version)

@@ -339,14 +339,14 @@ async function removeEncounterActorCore(
   if (!removed) throw new Error('Encounter actor was not found.')
   if (mode === 'ACCOUNT_CLEANUP') await requireOwnedCharacterActor(ctx, removed, userId)
   // D82: a GM removal mid-Run never changes a Character the room holds; it only leaves initiative.
-  const outOfInitiativeCharacter =
+  const absentCharacter =
     mode === 'PUBLIC' &&
     row.status === 'ACTIVE' &&
     removed.kind === 'CHARACTER' &&
     !removed.frozenState
       ? removed
       : null
-  if (outOfInitiativeCharacter?.outOfInitiative)
+  if (absentCharacter && absentCharacter.absence !== null)
     throw new Error('Encounter Character is already out of initiative.')
   const pendingRows = await ctx.db
     .query('encounterRuleOccurrences')
@@ -354,7 +354,7 @@ async function removeEncounterActorCore(
     .take(2)
   if (pendingRows.length > 1) throw new Error('Encounter has multiple pending occurrences.')
   const pending = pendingRows[0] ?? null
-  if (outOfInitiativeCharacter && pending)
+  if (absentCharacter && pending)
     throw new Error('Resolve the pending Encounter occurrence before removing this actor.')
   let concentrationState:
     | ReturnType<
@@ -391,7 +391,7 @@ async function removeEncounterActorCore(
   }
   const now = new Date().toISOString()
   const version = row.version + 1
-  const cleanup = outOfInitiativeCharacter
+  const cleanup = absentCharacter
     ? null
     : await cleanupRemovedActorEffects(ctx, {
         state,
@@ -416,20 +416,20 @@ async function removeEncounterActorCore(
     state,
     input.actorId,
     now,
-    outOfInitiativeCharacter !== null
+    absentCharacter !== null
   )
   const actorRow = await ctx.db
     .query('encounterRunActors')
     .withIndex('by_encounterId_id', (q) => q.eq('encounterId', row.id).eq('id', input.actorId))
     .unique()
   if (!actorRow) throw new Error('Encounter actor was not found.')
-  if (outOfInitiativeCharacter)
+  if (absentCharacter)
     await writeRunActor(
       ctx,
       actorRow._id,
       encounterRunActorStateSchema.parse({
-        ...outOfInitiativeCharacter,
-        outOfInitiative: true,
+        ...absentCharacter,
+        absence: 'GM_REMOVED',
         updatedAt: now
       })
     )
@@ -513,13 +513,13 @@ async function removeEncounterActorCore(
   const currentActorId = state.currentActorId === input.actorId ? null : state.currentActorId
   const nextState = encounterRunStateSchema.parse({
     ...state,
-    actorIds: outOfInitiativeCharacter
+    actorIds: absentCharacter
       ? state.actorIds
       : state.actorIds.filter((id) => id !== input.actorId),
     currentActorId,
     turnSequence:
       currentActorId === state.currentActorId ? state.turnSequence : state.turnSequence + 1,
-    reminders: outOfInitiativeCharacter
+    reminders: absentCharacter
       ? state.reminders
       : state.reminders.filter((reminder) => reminder.actorId !== input.actorId),
     version,

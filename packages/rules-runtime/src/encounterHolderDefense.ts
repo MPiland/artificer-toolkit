@@ -5,7 +5,9 @@ import {
 } from '@artificer-toolkit/shared/core'
 import {
   encounterAttackAgainstContributors,
+  encounterSourceSightSaveGrants,
   hasEncounterDefensiveGrants,
+  holderStateRestrictionsHold,
   withActiveGrantSpeeds,
   withHolderStateGrantSaves,
   type EncounterHolderState
@@ -74,9 +76,10 @@ function heldItems(target: MovementTarget): HandOccupancyItem[] {
  * Applies the target's own defensive grants (Dodge) to its target facts: the attack-roll
  * contributors attacks against it gain, and the saving-throw advantage or disadvantage its
  * holder-state-restricted grants give. Grants whose restrictions do not hold now (the holder can't
- * act or its speed is 0) apply nothing. Whether the holder sees its attacker is decided per attack
- * by `prepareEncounterActionMechanics` (`loadAttackPerception`); flows that do not load perception
- * keep the contributors.
+ * act or its speed is 0) apply nothing. Whether the holder sees its attacker, or the source of an
+ * effect it saves against, is decided per roll by `prepareEncounterActionMechanics`
+ * (`loadAttackPerception`); flows that do not load perception keep the attack contributors and
+ * leave the source-sight saves out.
  */
 export async function withEncounterHolderDefense<T extends MovementTarget>(input: {
   target: T
@@ -85,7 +88,13 @@ export async function withEncounterHolderDefense<T extends MovementTarget>(input
   speedDefinitions: readonly { id: string }[]
 }): Promise<T> {
   const { target } = input
-  if (!hasEncounterDefensiveGrants(target.activeEffects)) return target
+  const sourceSightSaves = encounterSourceSightSaveGrants({
+    holderActorId: target.actor.id,
+    effects: target.activeEffects,
+    grantFold: target.effectiveRulePolicyOutput?.grantFold ?? null
+  })
+  if (!hasEncounterDefensiveGrants(target.activeEffects) && sourceSightSaves.length === 0)
+    return target
   const holderState = await encounterHolderState(input)
   const savingThrowDefinitions = target.targetDerivedFacts.savingThrowDefinitions
   return {
@@ -95,6 +104,9 @@ export async function withEncounterHolderDefense<T extends MovementTarget>(input
       target.activeEffects,
       holderState
     ),
+    sourceSightSaves: sourceSightSaves
+      .filter(({ restrictions }) => holderStateRestrictionsHold(restrictions, holderState))
+      .map(({ abilityDefinitionId, contributor }) => ({ abilityDefinitionId, contributor })),
     targetDerivedFacts: {
       ...target.targetDerivedFacts,
       ...(Array.isArray(savingThrowDefinitions)

@@ -1,6 +1,7 @@
 import { v5 as uuidv5 } from 'uuid'
 
 import { hitPointMaximumReductionRecoveryTagsSchema } from '@artificer-toolkit/schema/effects/hitPointMaximumReduction'
+import type { EncounterActorAbsenceDto } from '@artificer-toolkit/schema/api/encounterData'
 import type { ServerRuleExecutionApplicationOutputsDto } from '@artificer-toolkit/schema/shared/ruleExecutionApplicationOutputs'
 import {
   deathSavesAfterDamage,
@@ -114,12 +115,16 @@ export function foldCharacterMechanicsApplications<
   applications: readonly CharacterRuleActionApplication[]
   /** A dying Character's turn-start death save (D96), applied after the applications. */
   deathSaveRoll?: { rawDie: number }
+  /** The actor's absence from the Run's play (D128); only a Run actor can depart, so others omit it. */
+  absence?: EncounterActorAbsenceDto | null
 }): {
   before: TargetState<TDeathSaves>
   after: TargetState<TDeathSaves>
   applications: ReceiptApplications
   /** The target's own conditions after the batch (the Sheet's, for a Character). */
   afterOwnConditionIds: string[]
+  /** The actor's absence after the batch; null when the batch ran without a Run actor. */
+  afterAbsence: EncounterActorAbsenceDto | null
   stateChanged: boolean
 } {
   if (!Number.isSafeInteger(input.maximumHitPoints) || input.maximumHitPoints < 0)
@@ -170,6 +175,7 @@ export function foldCharacterMechanicsApplications<
   const campaignConditions = new Set(input.layers?.campaignConditionIds ?? [])
   const scalarValues = { ...before.scalarValues }
   const retainedConditions = new Set(input.retainedConditionIds ?? [])
+  let absence = input.absence ?? null
   const receipt: ReceiptApplications = []
   for (const [ordinal, application] of input.applications.entries()) {
     if (application.targetActorId !== input.targetActorId)
@@ -231,6 +237,22 @@ export function foldCharacterMechanicsApplications<
       receipt.push({
         ordinal,
         kind: 'STABILIZE',
+        applied,
+        sourceNodeId: application.sourceNodeId,
+        sourceOperationKey: application.sourceOperationKey,
+        authoredPath: application.authoredPath,
+        resolvedPath: application.resolvedPath
+      })
+      continue
+    }
+    if (application.kind === 'DEPART') {
+      if (input.absence === undefined)
+        throw new EncounterValidationError('Only a Run actor can depart.')
+      const applied = absence === null
+      absence ??= 'DEPARTED'
+      receipt.push({
+        ordinal,
+        kind: 'DEPART',
         applied,
         sourceNodeId: application.sourceNodeId,
         sourceOperationKey: application.sourceOperationKey,
@@ -431,6 +453,7 @@ export function foldCharacterMechanicsApplications<
     after,
     applications: receipt,
     afterOwnConditionIds: [...ownConditions],
+    afterAbsence: absence,
     stateChanged:
       before.currentHitPoints !== after.currentHitPoints ||
       before.temporaryHitPoints !== after.temporaryHitPoints ||

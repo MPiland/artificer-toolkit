@@ -344,7 +344,7 @@ const actionModifierGroupSchema = lazySchema(() =>
           ability: z.nullable(identitySchema),
           state: z.enum(['APPLIED', 'SUPPRESSED']),
           scope: modifierScopeKindSchema,
-          itemRequirements: characterGrantFoldRestrictionSchema,
+          deferredRequirements: characterGrantFoldRestrictionSchema,
           scopeSpellIds: z.array(identitySchema).check(z.maxLength(500))
         })
       )

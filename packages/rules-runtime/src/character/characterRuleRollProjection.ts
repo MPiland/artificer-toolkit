@@ -8,7 +8,8 @@ import {
   DND5E_CHARACTER_WIDE_TARGET,
   dnd5eAcceptedModifierApplicability,
   dnd5eFoldedModifierApplicability,
-  dnd5eModifierApplies
+  dnd5eModifierApplies,
+  dnd5eSaveRequiresSourceSight
 } from '../systems/dnd5e/modifierApplicability.js'
 
 type CharacterRollMode = CharacterRulePolicyOutput['rollModes']['initiative']
@@ -46,6 +47,7 @@ function scopedSavingThrows(output: CharacterRulePolicyOutput): ScopedSavingThro
     const grant = record(modifier.grant)
     const domain = record(grant?.domain)
     const abilityId = domain?.ability
+    if (dnd5eSaveRequiresSourceSight(grant)) continue
     if (grant?.valueDomainCode !== 'SAVING_THROW_MODIFIER' || typeof abilityId !== 'string')
       continue
     const ruleDefinitionId = postgresUuidSchema.safeParse(domain?.ruleDefinitionId)

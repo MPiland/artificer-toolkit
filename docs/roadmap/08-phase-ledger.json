@@ -5917,6 +5917,20 @@
               "activeWorkbook": "docs/handoffs/slice-attack-9-t3-t6.md"
             },
             {
+              "id": "ATTACK-9.T6b",
+              "text": "Complete the Rage engaged mark: one shared helper sets it at every attack-roll site (opportunity attacks, Disarm, Grapple, Shove, spell and area attack rolls, reaction attacks) and every damage site (including Sheet and GM HP decreases), and every undo clears what it set; an armed marker on the actor (set where an idle-bound grant is created, cleared where it ends) keeps damage paths from reading effects for actors without one; legendary-action damage at the holder END_OF_TURN counts before the idle check; skipped-turn ticks never idle-check an actor that had no turn; the activation-turn exemption applies on every activation path. Red-first per site.",
+              "status": "TODO",
+              "closes": ["ATTACK-9.6"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 5,
+                "rr": 5,
+                "size": 3,
+                "after": ["ATTACK-9.T6"]
+              },
+              "activeWorkbook": "docs/handoffs/slice-attack-9-t3-t6.md"
+            },
+            {
               "id": "ATTACK-9.T7",
               "text": "Rage merge-review fixes: defeated-holder plan/persistence agreement, completeness check of ended grants, recorded attack ability, MANUAL/non-ACTIVE holder end, turn-commit and edit ends, undo when Rage ends Concentration, movement-pass end, heavy-armor predicate, nits.",
               "status": "DONE",
@@ -5933,9 +5947,13 @@
         {
           "id": "ATTACK-10",
           "title": "Attack-roll perception",
-          "status": "IN_PROGRESS",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": [
+            "apps/session-worker/test/nativeRoomHideAction.test.ts",
+            "apps/session-worker/test/nativeRoomUnseenTarget.test.ts",
+            "apps/session-worker/test/nativeRoomSourceSightSave.test.ts"
+          ],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
@@ -5996,8 +6014,14 @@
             },
             {
               "text": "Saving throws follow the ATTACK-10.1 rule: the roller's prompt shows only what their Character knows, the save settles in the true mode, a player-visible reason never names a hidden fact, and the GM sees the full reason.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/session-worker/test/nativeRoomSourceSightSave.test.ts (believed prompt, true settle with the held die, generic player caption, GM reason, redaction)",
+                "packages/rules-runtime/src/__tests__/encounterAttackBelief.test.ts (believed sight for a save; generic caption)",
+                "packages/rules-runtime/src/__tests__/encounterBasicActions.test.ts (a sight-gated save advantage lists nothing while its holder is Incapacitated)",
+                "Authored from core options: requiresHolderSeesSource on SAVING_THROW_MODIFIER; apps/web/src/forms/tests/AuthoredDomainFieldParity.test.tsx and packages/rules-runtime/src/__tests__/dnd5eCombatMath.test.ts (homebrew feature folds like Danger Sense); packages/source-data/src/srd/import.test.ts",
+                "Green: CI Tests 38885290433 and Live backend 38885290383 on b504904ed"
+              ],
               "origin": [],
               "note": "Registered 2026-10-09 (D100 believed vs true mode): the user chose attacks first, saves as a follow-up.",
               "id": "ATTACK-10.5"
@@ -6077,15 +6101,14 @@
             {
               "id": "ATTACK-10.T4",
               "text": "Saving throws use the believed mode in the prompt and settle in the true mode; player reasons never name a hidden fact.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["ATTACK-10.5"],
               "wsjf": {
                 "bv": 3,
                 "tc": 2,
                 "rr": 2,
                 "size": 3
-              },
-              "activeWorkbook": "docs/handoffs/slice-attack-10-t4.md"
+              }
             },
             {
               "id": "ATTACK-10.T5",
@@ -8011,7 +8034,7 @@
         {
           "id": "SPELLS-19",
           "title": "Area actions that leave conditions or lasting effects",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "journeyTests": [],
           "journeyStatus": "none",
           "origin": [],
@@ -8038,7 +8061,61 @@
             "tc": 3,
             "rr": 3,
             "size": 5
-          }
+          },
+          "tasks": [
+            {
+              "id": "SPELLS-19.T1",
+              "text": "A point-area outcome commits conditions, lasting or recurring effects and relationship conditions on each caught creature through the single-target settlement path; GM undo removes them from every one.",
+              "status": "IN_PROGRESS",
+              "closes": ["SPELLS-19.1"],
+              "activeWorkbook": "docs/handoffs/slice-spells-19.md",
+              "wsjf": {
+                "bv": 8,
+                "tc": 3,
+                "rr": 5,
+                "size": 5
+              }
+            },
+            {
+              "id": "SPELLS-19.T2",
+              "text": "One maintained (Concentration) effect spans every caught creature of a point-area action; ending Concentration or GM undo removes it from all of them.",
+              "status": "TODO",
+              "closes": ["SPELLS-19.1"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 3,
+                "rr": 5,
+                "size": 3,
+                "after": ["SPELLS-19.T1"]
+              }
+            },
+            {
+              "id": "SPELLS-19.T3",
+              "text": "Timed and repeat-save condition breaths compile in the dnd5e System compiler and resolve through the area executor: Silver (5), Dust Mephit, Brass Sleep (4), Copper Slowing (4), Gold Weakening (4), and Gorgon Petrifying Breath with its repeat save authored; the corpus test pins each row red first.",
+              "status": "TODO",
+              "closes": ["SPELLS-19.2"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 3,
+                "rr": 3,
+                "size": 8,
+                "after": ["SPELLS-19.T1"]
+              }
+            },
+            {
+              "id": "SPELLS-19.T4",
+              "text": "Bronze Repulsion Breath (4): an area pushes each creature that fails 30 ft away from the breather through the forced-movement path; the SPELLS-21 corpus list of non-compiling breaths is empty.",
+              "status": "TODO",
+              "closes": ["SPELLS-19.2"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-19.T1"]
+              }
+            }
+          ]
         },
         {
           "id": "SPELLS-20",
@@ -8299,7 +8376,7 @@
         {
           "id": "SPELLS-28",
           "title": "Movement, summon and link outcomes cast in an Encounter",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "journeyTests": [],
           "journeyStatus": "none",
           "origin": [],
@@ -8308,7 +8385,11 @@
               "id": "SPELLS-28.1",
               "text": "SRD spells whose outcome is TELEPORT (Word of Recall, the travel half of Plane Shift), MANIFEST (Giant Insect) or TELEPATHIC_LINK (Telepathic Bond) cast in an Encounter through outcome executors authored from core options, each with a test against the real compiler and one journey.",
               "status": "TODO",
-              "proof": [],
+              "proof": [
+                "T1 TELEPORT departure (D128): apps/session-worker/test/nativeRoomDepartAction.test.ts, packages/rules-runtime/src/__tests__/encounterMechanicsBatchPlan.test.ts, apps/apis/convex/encounters/actorAbsenceMigration.test.ts",
+                "T3 TELEPATHIC_LINK (D129): apps/session-worker/test/nativeRoomActorLink.test.ts (cast bonds every chosen creature, undo removes all, a low-Intelligence creature warns overridably), encounterAreaActionCompilation.test.ts, encounterActionEffectBaseline.test.ts, encounterActionRuleWarnings.test.ts",
+                "Green: CI Tests 38884319135 and Live backend 38884319001 on 9e63fde0b"
+              ],
               "origin": [],
               "note": "Registered 2026-10-16 from the SPELLS-26 survey: no PBI owned these outcome families, so these chosen-creature spells fail as single-target casts too."
             },
@@ -8330,15 +8411,14 @@
             {
               "id": "SPELLS-28.T1",
               "text": "TELEPORT outcome executor (Word of Recall; Plane Shift travel).",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-28.1"],
               "wsjf": {
                 "bv": 3,
                 "tc": 2,
                 "rr": 3,
                 "size": 3
-              },
-              "activeWorkbook": "docs/handoffs/slice-spells-28.md"
+              }
             },
             {
               "id": "SPELLS-28.T1b",
@@ -8357,7 +8437,7 @@
             {
               "id": "SPELLS-28.T2",
               "text": "MANIFEST outcome executor (Giant Insect).",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-28.1"],
               "wsjf": {
                 "bv": 3,
@@ -8370,15 +8450,14 @@
             {
               "id": "SPELLS-28.T3",
               "text": "TELEPATHIC_LINK outcome executor (Telepathic Bond).",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-28.1"],
               "wsjf": {
                 "bv": 3,
                 "tc": 2,
                 "rr": 3,
                 "size": 2
-              },
-              "activeWorkbook": "docs/handoffs/slice-spells-28.md"
+              }
             },
             {
               "id": "SPELLS-28.T4",
@@ -8407,7 +8486,9 @@
               "id": "SPELLS-27.1",
               "text": "An effect authored to end on an event ends when its holder triggers it, through one generic end-event consumer: Invisibility ends when the invisible creature makes an attack roll or casts a spell, and GM undo of that attack or cast restores it.",
               "status": "TODO",
-              "proof": [],
+              "proof": [
+                "T2a (D125): packages/rules-runtime/src/__tests__/encounterEndedEffectRelease.test.ts; CI Tests 38882320928 and Live backend 38882320295 on e5b309425"
+              ],
               "origin": [],
               "note": "Registered 2026-10-15 from the ATTACK-10.T1 (Hide) design review: only ON_HIT_POINTS_REGAINED has an end-event consumer (mechanicsBatchPersistence.ts); the compiler rejects other grant end events, and Invisibility authors endOnEvents ON_ATTACK_ROLL and ON_CAST_SPELL that nothing reads."
             },
@@ -8441,8 +8522,8 @@
             },
             {
               "id": "SPELLS-27.T2a",
-              "text": "One effectsEndedBy consumer over both event lists for any v2 effect; release planned on the source batch (required sourceApplications, D124); action and reaction attack-roll roots; Concentration and the condition restored on GM undo by receipt; authoring fence for non-releasing events on condition-owning effects (journey: cast Invisibility, attack with advantage, effect and condition gone, undo restores both).",
-              "status": "IN_PROGRESS",
+              "text": "One effectsEndedBy consumer over both event lists for any v2 effect; release planned on the source batch (required sourceApplications, D125); action and reaction attack-roll roots; Concentration and the condition restored on GM undo by receipt; authoring fence for non-releasing events on condition-owning effects (journey: cast Invisibility, attack with advantage, effect and condition gone, undo restores both).",
+              "status": "DONE",
               "closes": ["SPELLS-27.1"],
               "wsjf": {
                 "bv": 3,
@@ -8450,13 +8531,12 @@
                 "rr": 3,
                 "size": 3,
                 "after": ["SPELLS-27.T1"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-spells-27.md"
+              }
             },
             {
               "id": "SPELLS-27.T2b",
               "text": "The Legendary window, movement opportunity attack and Disarm roots release a consumed condition-owning effect the same way; the three !ownsCondition fences come out.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-27.1"],
               "wsjf": {
                 "bv": 3,
@@ -8464,7 +8544,8 @@
                 "rr": 3,
                 "size": 2,
                 "after": ["SPELLS-27.T2a"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-27.md"
             },
             {
               "id": "SPELLS-27.T3",
@@ -10057,9 +10138,9 @@
         {
           "id": "RELIABILITY-14",
           "title": "Campaign custody deletion test is deterministic",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "journeyTests": ["apps/apis/convex/campaigns/deletionCustody.test.ts"],
-          "journeyStatus": "none",
+          "journeyStatus": "verified",
           "origin": [],
           "wsjf": {
             "bv": 3,
@@ -10071,8 +10152,12 @@
             {
               "id": "RELIABILITY-14.1",
               "text": "deletionCustody.test.ts \"runs the real public custody producers before deleting a ACTIVE Campaign\" passes deterministically: no contentSnapshotObjects remain after deletion, and a test reproduces the failing order or state before the fix.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/apis/convex/campaigns/deletionCustody.test.ts (fake setTimeout from the start; AFTER_DELETION leaves the Campaign snapshot build pending, BEFORE_DELETION runs it first and asserts its objects superseded; no Campaign head remains in either)",
+                "Red: ci/reliability-14-red Tests 38870061656 on ffd6a7cf5 (a forced build between the before snapshot and the deletion fails the original test)",
+                "Green: CI Tests 38886014934 and Live backend 38886014969 on 32409c357"
+              ],
               "origin": [],
               "note": "Failed on ledger-only merge batch h (e2d6dc33d, run 38858694893, Convex 3/4) whose code was green on batch g: contentSnapshotObjects expected [] but held 3."
             }
@@ -10081,9 +10166,8 @@
             {
               "id": "RELIABILITY-14.T1",
               "text": "Find the nondeterminism behind leftover contentSnapshotObjects after an ACTIVE Campaign custody deletion, reproduce it red, fix the root cause (no retry, no loosened assertion).",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["RELIABILITY-14.1"],
-              "activeWorkbook": "docs/handoffs/slice-reliability-14.md",
               "wsjf": {
                 "bv": 3,
                 "tc": 8,
@@ -10096,7 +10180,7 @@
         {
           "id": "RELIABILITY-15",
           "title": "Initiative declaration settlement test is deterministic",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "journeyTests": ["apps/apis/convex/encounters/initiativeDeclarations.test.ts"],
           "journeyStatus": "verified",
           "origin": [],
@@ -10122,8 +10206,12 @@
             {
               "id": "RELIABILITY-15.2",
               "text": "Every test in initiativeDeclarations.test.ts that expects a settled (ACTIVE) Run is deterministic: no automatic initiative roll can tie into an unhandled INITIATIVE_ORDER decision (seeded rolls through the existing queued-roll mechanism or explicit tie handling), proved red with a forced tie for each affected case before the fix. Found 2026-10-16: \"shows a Character declaration only to its current controller and the GM\" (CI 38870307348) and \"settles declarations from two assigned Character controllers through the player action entrypoint\" (CI 38872456272) failed with PREPARED on unrelated branches.",
-              "status": "TODO",
-              "proof": []
+              "status": "DONE",
+              "proof": [
+                "apps/apis/convex/encounters/initiativeDeclarations.test.ts (cases that close the room before the settling declaration re-queue faces 10 apart; the two-controller case was already seeded on the base)",
+                "Red: ci/reliability-15-t2-red3 Tests 38885956580 on d91b8214d (tying primary and roll-off faces per case)",
+                "Green: CI Tests 38886014934 and Live backend 38886014969 on 32409c357"
+              ]
             }
           ],
           "tasks": [
@@ -10142,9 +10230,8 @@
             {
               "id": "RELIABILITY-15.T2",
               "text": "Seed or tie-handle every remaining settling case in initiativeDeclarations.test.ts (no weakened assertion, no retry); red per case on a ci/ -red branch, then green.",
-              "status": "IN_PROGRESS",
-              "closes": ["RELIABILITY-15.2"],
-              "activeWorkbook": "docs/handoffs/slice-reliability-15-t2.md"
+              "status": "DONE",
+              "closes": ["RELIABILITY-15.2"]
             }
           ]
         },
