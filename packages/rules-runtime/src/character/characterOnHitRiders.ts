@@ -1,3 +1,4 @@
+import type { OptionalOnHitAuthored } from '@artificer-toolkit/shared/authored'
 import type { CompiledEffectGroup } from '@artificer-toolkit/shared/compilers'
 
 type CompiledEffectEntry = Extract<CompiledEffectGroup['entries'][number], { outcome: unknown }>
@@ -5,7 +6,10 @@ type DamageEntry = CompiledEffectEntry & { outcome: { effectKind: 'DAMAGE' } }
 
 /** A passive Feature's `ON_HIT` damage, owed to every attack its trigger names. */
 export type OnHitRider = {
+  riderId: string
   triggerCode: CompiledEffectGroup['invocation']['triggerCode']
+  /** Present when the player chooses whether the rider applies (D123); absent when it always does. */
+  optionalOnHit?: OptionalOnHitAuthored
   entries: readonly DamageEntry[]
 }
 
@@ -32,14 +36,23 @@ export function collectOnHitRiders(
       .filter(isOnHitDamage)
       .map((entry) => (entry.usage ? { ...entry, usageKey: ownerId } : entry))
     return effect.invocation.kind === 'PASSIVE' && entries.length > 0
-      ? [{ triggerCode: effect.invocation.triggerCode, entries }]
+      ? [
+          {
+            riderId: effect.id,
+            triggerCode: effect.invocation.triggerCode,
+            ...('optionalOnHit' in effect.invocation && effect.invocation.optionalOnHit
+              ? { optionalOnHit: effect.invocation.optionalOnHit }
+              : {}),
+            entries
+          }
+        ]
       : []
   })
 }
 
 /**
  * Merges the riders whose trigger the attack shares into its own `ON_HIT` damage, so one hit
- * resolves one outcome: resistance, critical doubling and the dice rows treat a rider exactly as
+ * resolves one outcome (an optional rider's entries are marked, and resolve only when chosen): resistance, critical doubling and the dice rows treat a rider exactly as
  * the weapon's own damage. A rider that names the triggering weapon's damage type takes the type
  * of the attack's first `ON_HIT` damage. An attack with no `ON_HIT` damage takes no rider.
  */
@@ -63,14 +76,19 @@ export function mergeOnHitRiders<TEffect extends CompiledEffectGroup>(
   // A Feature acquired from two sources collects twice; its rider still applies once.
   const merged = [
     ...new Map(
-      matching.flatMap((rider) => rider.entries).map((entry) => [entry.id, entry])
+      matching.flatMap((rider) =>
+        rider.entries.map((entry) => [entry.id, { rider, entry }] as const)
+      )
     ).values()
-  ].map((entry): CompiledEffectEntry => ({
+  ].map(({ rider, entry }): CompiledEffectEntry => ({
     ...entry,
     pathGroupId: weaponDamage.pathGroupId,
     pathOrder: weaponDamage.pathOrder,
     entryOrder: lastEntryOrder + entry.entryOrder,
-    outcome: withWeaponDamageType(entry.outcome, weaponDamageTypeId)
+    outcome: withWeaponDamageType(entry.outcome, weaponDamageTypeId),
+    ...(rider.optionalOnHit
+      ? { optionalRider: { riderId: rider.riderId, cost: rider.optionalOnHit } }
+      : {})
   }))
   return { ...effect, entries: [...effect.entries, ...merged] }
 }

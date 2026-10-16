@@ -17,6 +17,7 @@ import { spellAuthoringInputDtoSchema } from '@artificer-toolkit/schema/subjects
 import { vehicleAuthoringInputDtoSchema } from '@artificer-toolkit/schema/subjects/vehicle'
 import { barbarian } from '@artificer-toolkit/source-data/srd/classes/barbarian.js'
 import { rogue } from '@artificer-toolkit/source-data/srd/classes/rogue.js'
+import { paladin } from '@artificer-toolkit/source-data/srd/classes/paladin.js'
 import { holdPerson } from '@artificer-toolkit/source-data/srd/spells/hold-person.js'
 import {
   authoredRouteStoryRecords,
@@ -64,6 +65,11 @@ const DISPLAY_COPY_KEYS = new Set(['description', 'label'])
 const NON_STRUCTURAL_KEYS = new Set([...DISPLAY_COPY_KEYS, 'id'])
 const RAGE_SCENARIO_LABEL = 'class SRD Rage feature'
 const SNEAK_ATTACK_SCENARIO_LABEL = 'class SRD Sneak Attack feature'
+const SMITE_SCENARIO_LABEL = 'class SRD Divine Smite features'
+const smiteFeatures = paladin.features?.filter(({ label }) =>
+  ['Divine Smite', 'Improved Divine Smite'].includes(label)
+)
+const smiteEffects = smiteFeatures?.map(({ effects }) => effects)
 const HOLD_PERSON_SCENARIO_LABEL = 'spell SRD Hold Person'
 const ABSORB_SCENARIO_LABEL = 'spell user-authored Absorb Elements'
 
@@ -97,6 +103,12 @@ const sneakAttackCases = registrationCases.filter(
 const sneakAttackScenario = scenarios.find(({ label }) => label === SNEAK_ATTACK_SCENARIO_LABEL)
 if (!sneakAttackScenario) throw new Error('Expected the SRD Sneak Attack class scenario.')
 const sneakAttackFormValues = toActualFormValues('class', parseScenarioRecord(sneakAttackScenario))
+const smiteCases = registrationCases.filter(
+  ({ scenarioLabel }) => scenarioLabel === SMITE_SCENARIO_LABEL
+)
+const smiteScenario = scenarios.find(({ label }) => label === SMITE_SCENARIO_LABEL)
+if (!smiteScenario) throw new Error('Expected the SRD Divine Smite class scenario.')
+const smiteFormValues = toActualFormValues('class', parseScenarioRecord(smiteScenario))
 const holdPersonCases = registrationCases.filter(
   ({ scenarioLabel }) => scenarioLabel === HOLD_PERSON_SCENARIO_LABEL
 )
@@ -250,6 +262,54 @@ describe('SRD Sneak Attack feature effect authoring parity', () => {
     expect(stripKeys(submitted.features?.[0]?.effects, NON_STRUCTURAL_KEYS)).toEqual(
       stripKeys(sneakAttackEffects, NON_STRUCTURAL_KEYS)
     )
+  })
+})
+
+describe('SRD Divine Smite feature effect authoring parity (ADR 0038)', () => {
+  it('authors the smite shapes this parity gate is meant to prove', () => {
+    const authored = JSON.stringify(smiteEffects)
+    for (const shape of ['optionalOnHit', 'SPELL_SLOT', 'restrictions', 'creatureTypeIds']) {
+      expect(authored).toContain(shape)
+    }
+    expect(authored).not.toContain('CLOSED_RULE')
+  })
+
+  it('keeps every Divine Smite value through node-runtime normalization', async () => {
+    const normalized = await normalizeFixtureNodeRuntimeValues({
+      mapId: 'class',
+      values: smiteFormValues
+    })
+
+    expect(normalized.clearedPaths).toEqual([])
+    expect(normalized.values).toEqual(smiteFormValues)
+  })
+
+  for (const [index, { context }] of smiteCases.entries()) {
+    it(`keeps the values of ${context.model.mapId} Divine Smite context ${index} once its field controls mount`, async () => {
+      await renderUntilRegistered(context.model, context.values)
+
+      expect(stripKeys(readOutput('form-values'), DISPLAY_COPY_KEYS)).toEqual(
+        stripKeys(context.values, DISPLAY_COPY_KEYS)
+      )
+    })
+  }
+
+  it('submits the form values of the class as the SRD Divine Smite effects', async () => {
+    const rootContext = smiteCases[0]?.context
+    if (!rootContext) throw new Error('Expected the resolved Divine Smite class root context.')
+    await renderUntilRegistered(rootContext.model, smiteFormValues)
+
+    const session = createScenarioSession('class', parseScenarioRecord(smiteScenario))
+    const submitted = classAuthoringInputDtoSchema.parse(
+      session.normalizeForSubmit(readOutput('form-values'))
+    )
+
+    expect(
+      stripKeys(
+        submitted.features?.map(({ effects }) => effects),
+        NON_STRUCTURAL_KEYS
+      )
+    ).toEqual(stripKeys(smiteEffects, NON_STRUCTURAL_KEYS))
   })
 })
 
@@ -484,6 +544,17 @@ function createBranchScenarios(): BranchScenario[] {
         label: 'Sneak Attack Test Class',
         attributes: [],
         features: rogue.features?.filter(({ label }) => label === 'Sneak Attack')
+      }
+    },
+    {
+      domain: 'class',
+      label: SMITE_SCENARIO_LABEL,
+      record: {
+        ...wizard,
+        id: 'story-smite-class',
+        label: 'Smite Test Class',
+        attributes: [],
+        features: smiteFeatures
       }
     },
     {

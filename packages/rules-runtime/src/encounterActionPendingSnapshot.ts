@@ -27,6 +27,7 @@ export function restoreEncounterActionPending(
     ...(context.heldD20 ? { heldD20: context.heldD20 } : {}),
     ...(context.legendaryResistance ? { legendaryResistance: context.legendaryResistance } : {}),
     ...(context.reactionChoice ? { reactionChoice: context.reactionChoice } : {}),
+    ...(context.onHitChoice ? { onHitChoice: context.onHitChoice } : {}),
     ...(phaseReceipts ? { phaseReceipts } : {})
   }
 }
@@ -65,7 +66,8 @@ export function buildEncounterActionPendingSnapshot(input: {
       ...(execution.legendaryResistance
         ? { legendaryResistance: execution.legendaryResistance }
         : {}),
-      ...(execution.reactionChoice ? { reactionChoice: execution.reactionChoice } : {})
+      ...(execution.reactionChoice ? { reactionChoice: execution.reactionChoice } : {}),
+      ...(execution.onHitChoice ? { onHitChoice: execution.onHitChoice } : {})
     },
     ...(execution.phaseReceipts ? { phaseReceipts: execution.phaseReceipts } : {})
   }

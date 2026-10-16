@@ -223,7 +223,8 @@ export function normalizeCharacterActionMechanicFacts(
 ): ActionMechanicFacts {
   const grouped = new Map<string, CompiledEffectEntry[]>()
   const entries = effect.entries
-    .filter((entry): entry is CompiledEffectEntry => 'outcome' in entry)
+    // An optional rider is the player's choice at the hit, so the action card does not list it.
+    .filter((entry): entry is CompiledEffectEntry => 'outcome' in entry && !entry.optionalRider)
     .sort(
       (left, right) =>
         left.pathOrder - right.pathOrder ||

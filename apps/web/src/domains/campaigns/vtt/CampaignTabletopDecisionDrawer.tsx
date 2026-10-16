@@ -322,6 +322,25 @@ export function CampaignTabletopDecisionDrawer({
                 Decline
               </Button>
             </Stack>
+          ) : pending.kind === 'ON_HIT_CHOICE' ? (
+            <Stack gap='xs'>
+              {pending.options.map((option) => (
+                <Button
+                  disabled={disabled}
+                  key={option.optionId}
+                  onClick={() => void resolve({ kind: 'OPTION', optionId: option.optionId })}
+                >
+                  Spend a level {option.slotLevel} slot
+                </Button>
+              ))}
+              <Button
+                disabled={disabled}
+                variant='default'
+                onClick={() => void resolve({ kind: 'DECLINE' })}
+              >
+                Decline
+              </Button>
+            </Stack>
           ) : pending.kind === 'LEGENDARY_RESISTANCE_CHOICE' ? (
             <Group>
               <Button
