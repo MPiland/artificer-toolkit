@@ -53,7 +53,8 @@ const savingThrowParamDtoSchema = lazySchema(() =>
   z.object({
     ability: abilityCodeSchema,
     conditionTypeId: z.optional(authoredIdentifierSchema),
-    ruleDefinitionId: z.optional(postgresUuidSchema)
+    ruleDefinitionId: z.optional(postgresUuidSchema),
+    requiresHolderSeesSource: z.optional(z.boolean())
   })
 )
 

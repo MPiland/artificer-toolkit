@@ -4,6 +4,10 @@ import type {
 } from '@artificer-toolkit/schema/shared/rulesExecution'
 import type { EffectAuthored, PathLifecycleAuthored } from '@artificer-toolkit/shared/authored'
 import { compileEffect } from '@artificer-toolkit/shared/compilers'
+import {
+  SRD_BASIC_ACTION_DEFINITIONS,
+  SRD_BASIC_ACTION_IDS
+} from '@artificer-toolkit/source-data/srd/basicActions.js'
 import { antitoxinVial } from '@artificer-toolkit/source-data/srd/equipment/antitoxin-vial.js'
 import { aid } from '@artificer-toolkit/source-data/srd/spells/aid.js'
 
@@ -51,6 +55,48 @@ export function aidAtSecondLevel(): EffectAuthored {
                       }
                     ]
                   : []
+              )
+            }
+          }
+        : path
+    )
+  }
+}
+
+/**
+ * A grant of Dexterity-save advantage that holds only while the holder sees the effect's source,
+ * authored from core options as Danger Sense's is: the SRD Dodge grant with its attack-defence
+ * modifiers dropped and the save modifier flagged `requiresHolderSeesSource`.
+ */
+export function sourceSightSaveAuthoredEffect(): EffectAuthored {
+  const effect = SRD_BASIC_ACTION_DEFINITIONS.find(({ id }) => id === SRD_BASIC_ACTION_IDS.DODGE)
+    ?.document.effects[0]
+  if (!effect) throw new Error('The SRD Dodge has no effect.')
+  return {
+    ...effect,
+    paths: effect.paths.map((path) =>
+      path.selectionKind === 'FIXED'
+        ? {
+            ...path,
+            resultBlock: {
+              ...path.resultBlock,
+              outcomes: path.resultBlock.outcomes.map((outcome) =>
+                outcome.effectKind === 'APPLY_GRANT'
+                  ? {
+                      ...outcome,
+                      grants: {
+                        ...outcome.grants,
+                        modifiers: outcome.grants.modifiers
+                          ?.filter(
+                            ({ valueDomainCode }) => valueDomainCode === 'SAVING_THROW_MODIFIER'
+                          )
+                          .map((modifier) => ({
+                            ...modifier,
+                            domain: { ...modifier.domain, requiresHolderSeesSource: true }
+                          }))
+                      }
+                    }
+                  : outcome
               )
             }
           }

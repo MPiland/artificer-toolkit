@@ -479,12 +479,13 @@ export async function planNativeLiveEncounterAction(
       overridable: true,
       movementTargets: targets,
       sceneContext,
-      loadAttackPerception: ({ sourceFacts, targetFacts }) =>
+      loadAttackPerception: ({ sourceFacts, targetFacts, roller }) =>
         readNativeLiveAttackPerception({
           state,
           system,
           attacker: sourceFacts,
           target: targetFacts,
+          roller,
           sceneContext,
           capture
         }),
@@ -830,8 +831,7 @@ export async function planNativeLiveEncounterAction(
       : null)
   const retainedReaction =
     execution.kind !== 'PENDING' && !reactionAnswered
-      ? (heldReaction ??
-        (retained?.phase === 'OUTCOME' && retained.reaction ? retained : null))
+      ? (heldReaction ?? (retained?.phase === 'OUTCOME' && retained.reaction ? retained : null))
       : null
   const replayedReaction =
     heldReactionNow ??

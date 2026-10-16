@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import type { FeatureAuthored } from '@artificer-toolkit/shared/authored'
 import type { CharacterGrantFoldSource } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
 import {
   SRD_ABILITIES,
@@ -7,6 +8,10 @@ import {
 
 import { normalizeCharacterGrantRestrictions } from '../character/characterGrantFoldRestrictionFacts.js'
 import { buildEncounterActorRuleFacts } from '../encounterActorRuleFacts.js'
+import {
+  encounterSourceSightSaveGrants,
+  holderStateRestrictionsHold
+} from '../encounterActiveGrants.js'
 import { evaluateEncounterCharacterActionWieldConflict } from '../encounterWieldConflict.js'
 import {
   dnd5eAttackDamageDefenses,
@@ -35,6 +40,7 @@ import {
   srdByLabel,
   srdFeature
 } from './dnd5eSrdCharacter.js'
+import { testUuid } from '../testing/dnd5eSrdEncounter.js'
 
 const EB_EFFECT = '0b7e4c6a-1f2d-4e3b-9a8c-7d6e5f4a3b2c'
 const FB_EFFECT = '1c8f5d7b-2a3e-4f4c-8b9d-8e7f6a5b4c3d'
@@ -568,6 +574,134 @@ describe('D&D 5e saving throws and defenses', () => {
     expect(character.output.rollModes.savingThrows.WISDOM).toBe('NORMAL')
   })
 
+  it('Danger Sense keeps its Dexterity advantage out of the Sheet and hands the Encounter the source-sight grant', () => {
+    const character = evaluateSrdCharacter({
+      abilities: { DEXTERITY: 14 },
+      classes: [{ label: 'Barbarian', level: 2 }],
+      features: [
+        srdFeature({
+          owner: 'CLASS',
+          classLabel: 'Barbarian',
+          featureLabel: 'Danger Sense',
+          level: 2
+        })
+      ]
+    })
+    const dexterityId = SRD_ABILITIES.find((ability) => ability.code === 'DEXTERITY')!.id
+    // The Sheet cannot decide sight, so neither the roll modes nor the saving-throw rows show it.
+    expect(character.output.rollModes.savingThrows.DEXTERITY).toBe('NORMAL')
+    expect(
+      selectDnd5eTargetSavingThrow({
+        savingThrowDefinitions: character.output.savingThrowDefinitions,
+        abilityDefinitionId: dexterityId,
+        conditionIds: []
+      })
+    ).toMatchObject({ rollMode: 'NORMAL', contributors: [] })
+
+    const [dangerSense, ...others] = encounterSourceSightSaveGrants({
+      holderActorId: 'barbarian',
+      effects: [],
+      grantFold: character.output.grantFold
+    })
+    expect(others).toEqual([])
+    expect(dangerSense).toMatchObject({
+      abilityDefinitionId: dexterityId,
+      contributor: { influence: 'ADVANTAGE' }
+    })
+    // The authored "can act" is decided from the holder's state; sight is left to the Scene.
+    const holderState = (canAct: boolean) => ({ canAct, speedAboveZero: true, freeHand: true })
+    expect(holderStateRestrictionsHold(dangerSense!.restrictions, holderState(true))).toBe(true)
+    expect(holderStateRestrictionsHold(dangerSense!.restrictions, holderState(false))).toBe(false)
+  })
+
+  it('a homebrew Feature authored from the same core options folds to Danger Sense’s source-sight grant', () => {
+    const FIGHTER = srdByLabel(SRD.classes, 'Fighter')
+    const homebrew: FeatureAuthored = {
+      id: testUuid(0xd51),
+      label: 'Watchful Reflexes',
+      description: 'You have advantage on Dexterity saving throws against effects you can see.',
+      availableAtLevel: 1,
+      order: 1,
+      grants: {
+        modifiers: [
+          {
+            id: testUuid(0xd52),
+            grantKind: 'MODIFIER_GRANT',
+            valueDomainCode: 'SAVING_THROW_MODIFIER',
+            domain: { ability: 'DEXTERITY', requiresHolderSeesSource: true },
+            modifierKind: 'ADVANTAGE',
+            scope: 'GLOBAL',
+            selectionKind: 'GRANTED',
+            order: 0,
+            restrictions: {
+              id: testUuid(0xd53),
+              groups: [
+                {
+                  id: testUuid(0xd54),
+                  order: 0,
+                  contexts: [
+                    {
+                      id: testUuid(0xd55),
+                      order: 0,
+                      subject: 'CHARACTER',
+                      conditions: [
+                        {
+                          id: testUuid(0xd56),
+                          order: 0,
+                          kind: 'PREDICATE',
+                          constraint: 'INCLUDE',
+                          predicateCode: 'CAN_ACT'
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+    const sourceSightGrants = (character: ReturnType<typeof evaluateSrdCharacter>) =>
+      encounterSourceSightSaveGrants({
+        holderActorId: 'holder',
+        effects: [],
+        grantFold: character.output.grantFold
+      }).map(({ abilityDefinitionId, restrictions, contributor }) => ({
+        abilityDefinitionId,
+        influence: contributor.influence,
+        conditions: restrictions.map((group) =>
+          group.conditions.map(({ kind, constraint }) => [kind, constraint])
+        )
+      }))
+    const dangerSense = evaluateSrdCharacter({
+      classes: [{ label: 'Barbarian', level: 2 }],
+      features: [
+        srdFeature({
+          owner: 'CLASS',
+          classLabel: 'Barbarian',
+          featureLabel: 'Danger Sense',
+          level: 2
+        })
+      ]
+    })
+    const authored = evaluateSrdCharacter({
+      classes: [{ label: 'Fighter', level: 1 }],
+      extraFeatures: [homebrew],
+      features: [
+        {
+          acquisitionId: 'acquired:watchful-reflexes',
+          featureId: homebrew.id,
+          source: { kind: 'CLASS', classId: FIGHTER.id, classLevel: 1 },
+          timing: { kind: 'CLASS_LEVEL', classId: FIGHTER.id, classLevel: 1 }
+        }
+      ]
+    })
+    expect(sourceSightGrants(authored)).toHaveLength(1)
+    expect(sourceSightGrants(authored)).toEqual(sourceSightGrants(dangerSense))
+    expect(authored.output.rollModes.savingThrows.DEXTERITY).toBe('NORMAL')
+  })
+
   it('a Couatl is immune to nonmagical weapons but takes damage from a magic weapon', () => {
     const couatl = srdByLabel(SRD.creatures, 'Couatl')
     expect(couatl.qualifiedDamageDefenses?.length).toBeGreaterThan(0)
@@ -653,7 +787,7 @@ describe('D&D 5e modifier scope', () => {
   }
 
   it('GLOBAL applies Character-wide; SOURCE applies only while its source is evaluated', () => {
-    const modifier = { sourceId: 'item', itemRequirements: [], scopeSpellIds: [] }
+    const modifier = { sourceId: 'item', deferredRequirements: [], scopeSpellIds: [] }
     expect(
       dnd5eModifierApplies({ ...modifier, scope: 'GLOBAL' }, DND5E_CHARACTER_WIDE_TARGET)
     ).toBe(true)
@@ -678,7 +812,7 @@ describe('D&D 5e modifier scope', () => {
     const dueling = {
       sourceId: 'dueling',
       scope: 'GLOBAL' as const,
-      itemRequirements: requirement('EXCLUDE', 'TWO_HANDED'),
+      deferredRequirements: requirement('EXCLUDE', 'TWO_HANDED'),
       scopeSpellIds: []
     }
     expect(dnd5eModifierApplies(dueling, DND5E_CHARACTER_WIDE_TARGET)).toBe(false)
@@ -704,7 +838,7 @@ describe('D&D 5e modifier scope', () => {
     const agonizing = {
       sourceId: 'invocation',
       scope: 'GLOBAL' as const,
-      itemRequirements: [],
+      deferredRequirements: [],
       scopeSpellIds: ['eldritch-blast']
     }
     expect(dnd5eModifierApplies(agonizing, DND5E_CHARACTER_WIDE_TARGET)).toBe(false)
@@ -851,7 +985,7 @@ describe('D&D 5e restrictions and spell-scoped damage', () => {
     const modifier = {
       sourceId: 'dueling',
       scope: 'GLOBAL' as const,
-      itemRequirements: [group!],
+      deferredRequirements: [group!],
       scopeSpellIds: []
     }
     const item = {
@@ -938,7 +1072,7 @@ describe('D&D 5e restrictions and spell-scoped damage', () => {
               ability: null,
               state: 'APPLIED',
               scope: 'GLOBAL',
-              itemRequirements: [],
+              deferredRequirements: [],
               scopeSpellIds: ['eldritch-blast']
             }
           ]
@@ -1037,7 +1171,14 @@ describe('D&D 5e spell save DC', () => {
     // Intelligence +3 is the only modifier that gives 13: Constitution +2, Wisdom +1, the rest -1 or lower.
     expect(
       saveDc({
-        abilities: { INTELLIGENCE: 16, CONSTITUTION: 14, WISDOM: 12, STRENGTH: 8, DEXTERITY: 8, CHARISMA: 8 },
+        abilities: {
+          INTELLIGENCE: 16,
+          CONSTITUTION: 14,
+          WISDOM: 12,
+          STRENGTH: 8,
+          DEXTERITY: 8,
+          CHARISMA: 8
+        },
         classes: [{ label: 'Wizard', level: 1 }]
       })
     ).toBe(8 + 2 + 3)

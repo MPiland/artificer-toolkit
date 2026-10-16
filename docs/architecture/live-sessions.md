@@ -372,6 +372,12 @@ version with an unsequenced `ENCOUNTER_READ_RESULT { requestId, version, result 
   (`useActionTargetModifiers`, keyed by Encounter, actor, action and Scene) and never per hover; the
   Convex query `encounters/actionTargetModifiers:get` is the fallback and agrees with the room. The GM reads
   the same believed mode in this version.
+- A save is sight-governed the same way when the saver holds a sight-gated save contributor (ATTACK-10.5,
+  D100): `loadAttackPerception` takes a `roller` (`TARGET` for a save, so the saver's own facts are the
+  observer) and a point area uses what each saver sees of the origin
+  ([nativeAttackPerception.ts](../../apps/session-worker/src/nativeAttackPerception.ts)). The area save
+  prompt shows the believed mode, the save settles in the true mode, and the stored `modeAdjustment`
+  carries the generic player caption and the GM-only reason.
 
 #### Targeting from the map or the list (ATTACK-17.1, 17.2)
 

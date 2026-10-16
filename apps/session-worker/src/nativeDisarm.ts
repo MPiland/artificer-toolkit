@@ -171,12 +171,13 @@ export async function planNativeLiveDisarm(
     overridable: false,
     movementTargets,
     sceneContext,
-    loadAttackPerception: ({ sourceFacts, targetFacts }) =>
+    loadAttackPerception: ({ sourceFacts, targetFacts, roller }) =>
       readNativeLiveAttackPerception({
         state,
         system,
         attacker: sourceFacts,
         target: targetFacts,
+        roller,
         sceneContext,
         capture
       }),

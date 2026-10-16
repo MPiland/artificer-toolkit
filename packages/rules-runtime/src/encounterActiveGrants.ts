@@ -1,5 +1,6 @@
 import type {
   CharacterGrantFoldModifier,
+  CharacterGrantFoldOutput,
   CharacterGrantFoldSource
 } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
 import type { CharacterRulePolicyInput } from '@artificer-toolkit/schema/api/characterRules'
@@ -28,6 +29,7 @@ import {
   DND5E_ABILITY_DEFINITION_ID_BY_CODE,
   DND5E_REACTION_ALLOWANCE_DEFINITION_ID
 } from './systems/dnd5e/identity.js'
+import { dnd5eSaveRequiresSourceSight } from './systems/dnd5e/modifierApplicability.js'
 
 /**
  * The capabilities a holder's active grants switch off: a `REACTION_COUNT SET_VALUE 0` grant
@@ -311,6 +313,7 @@ export function withHolderStateGrantSaves(
         modifier.valueDomainCode !== 'SAVING_THROW_MODIFIER' ||
         abilityDefinitionId === undefined ||
         record(modifier.grant)?.scope !== 'GLOBAL' ||
+        dnd5eSaveRequiresSourceSight(modifier) ||
         !hasHolderStateRestriction(modifier.restrictions) ||
         !holderStateRestrictionsHold(modifier.restrictions, holderState)
       )
@@ -329,6 +332,14 @@ export function withHolderStateGrantSaves(
       ])
     }
   }
+  return withSaveRowContributors(savingThrowDefinitions, byAbility)
+}
+
+/** The saving-throw rows with each ability's contributors merged into every row of that ability. */
+function withSaveRowContributors(
+  savingThrowDefinitions: readonly unknown[],
+  byAbility: ReadonlyMap<string, readonly EncounterRelationshipD20Contributor[]>
+): unknown[] {
   return savingThrowDefinitions.map((definition) => {
     const row = record(definition)
     const added = byAbility.get(String(row?.abilityDefinitionId))
@@ -342,6 +353,98 @@ export function withHolderStateGrantSaves(
         }
       : definition
   })
+}
+
+/**
+ * A saving-throw advantage or disadvantage that holds only while the saver sees the effect's
+ * source (Danger Sense, D100). Preparation decides it per save from the Scene's sight.
+ */
+export type EncounterSourceSightSave = {
+  abilityDefinitionId: string
+  contributor: EncounterRelationshipD20Contributor
+}
+
+/**
+ * The holder's source-sight saving-throw grants with their holder-state restrictions, which the
+ * caller checks against the holder's state. A Character reads them from its folded grants (which
+ * already carry its Active Effects); a Creature from its Active Effects.
+ */
+export function encounterSourceSightSaveGrants(input: {
+  holderActorId: string
+  effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[]
+  grantFold: Pick<CharacterGrantFoldOutput, 'modifiers' | 'modifierGroups'> | null
+}): (EncounterSourceSightSave & { restrictions: ModifierRestrictions })[] {
+  const { grantFold } = input
+  if (grantFold)
+    return grantFold.modifierGroups.flatMap(({ contributions }) =>
+      contributions.flatMap(({ acceptedModifierIndex, grantId }) => {
+        const modifier = grantFold.modifiers[acceptedModifierIndex]!
+        const abilityDefinitionId =
+          DND5E_ABILITY_DEFINITION_ID_BY_CODE[
+            String(record(record(modifier.grant)?.domain)?.ability)
+          ]
+        return (modifier.modifierKind === 'ADVANTAGE' ||
+          modifier.modifierKind === 'DISADVANTAGE') &&
+          dnd5eSaveRequiresSourceSight(modifier.grant) &&
+          abilityDefinitionId !== undefined
+          ? [
+              {
+                abilityDefinitionId,
+                restrictions: modifier.deferredRequirements,
+                contributor: {
+                  sourceId: modifier.sourceId,
+                  grantId,
+                  domainKey: modifier.domainKey,
+                  influence: modifier.modifierKind
+                }
+              }
+            ]
+          : []
+      })
+    )
+  return listActiveEffectGrants(input.effects).flatMap(({ effectId, modifiers }) =>
+    modifiers.flatMap((modifier) => {
+      const abilityDefinitionId =
+        DND5E_ABILITY_DEFINITION_ID_BY_CODE[String(record(modifier.domain)?.ability)]
+      return (modifier.modifierKind === 'ADVANTAGE' || modifier.modifierKind === 'DISADVANTAGE') &&
+        dnd5eSaveRequiresSourceSight(modifier) &&
+        record(modifier.grant)?.scope === 'GLOBAL' &&
+        abilityDefinitionId !== undefined
+        ? [
+            {
+              abilityDefinitionId,
+              restrictions: modifier.restrictions,
+              contributor: {
+                sourceId: createCharacterMechanicSourceKey({
+                  kind: 'ACTIVE_EFFECT',
+                  activeEffectId: effectId
+                }),
+                grantId: modifier.grantId,
+                domainKey: `active-grant:${input.holderActorId}`,
+                influence: modifier.modifierKind
+              }
+            }
+          ]
+        : []
+    })
+  )
+}
+
+/** The target's facts with the source-sight contributors that hold now merged into its saves of one ability. */
+export function withSourceSightSave(
+  targetDerivedFacts: Readonly<Record<string, unknown>>,
+  abilityDefinitionId: string,
+  contributors: readonly EncounterRelationshipD20Contributor[]
+): Readonly<Record<string, unknown>> {
+  const { savingThrowDefinitions } = targetDerivedFacts
+  if (!Array.isArray(savingThrowDefinitions) || contributors.length === 0) return targetDerivedFacts
+  return {
+    ...targetDerivedFacts,
+    savingThrowDefinitions: withSaveRowContributors(
+      savingThrowDefinitions,
+      new Map([[abilityDefinitionId, contributors]])
+    )
+  }
 }
 
 /** The canonical contributors of a d20 with `added` merged in, and the roll mode they resolve to. */
