@@ -38,7 +38,7 @@ import {
   readEncounterBasicActionEntries
 } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
 import { encounterActionTargetKind } from '@artificer-toolkit/rules-runtime/encounterAreaAction'
-import { attackRollEndedEffects } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
+import { actionEndedEffects } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
 import { encounterSceneGridPolicyRegistry } from '@artificer-toolkit/rules-runtime/sceneGridPolicyRegistry'
 import {
   snapshotCreatureTypeId,
@@ -575,14 +575,7 @@ export async function planNativeLiveEncounterAction(
     definitions,
     speedDefinitions: system.speeds
   })
-  // Only an attack roll uses the attacker's one-roll grants (Vicious Mockery's disadvantage, Help);
-  // a saving-throw action leaves them for the next attack. An effect that ends with the roll
-  // (Invisibility) releases the condition it alone held in the source's own batch.
-  const { consumedGrants, sourceReleases } = attackRollEndedEffects({
-    holderActorId: prepared.actor.id,
-    held: activeEffectsByActorId.get(prepared.actor.id) ?? [],
-    makesAttackRoll: typeof prepared.binding.actionMechanic.attackBonus === 'number'
-  })
+  const triggerLevel = preparedSpellCastLevel(prepared)
   // An optional-combat intent routes to the Disarm planner.
   if (command.optionalCombatIntent != null) throw new Error('The action is not an ordinary action.')
   const { activationCode, economy, suppressed, attackAction } =
@@ -699,6 +692,19 @@ export async function planNativeLiveEncounterAction(
     capture,
     loadCarriedHolder: async (actor) => movementTargets.get(actor.id) ?? loadTarget(actor)
   })
+  // Only an attack roll uses the attacker's one-roll grants (Vicious Mockery's disadvantage, Help);
+  // a saving-throw action leaves them for the next attack. An effect that ends with the roll or the
+  // cast (Invisibility) releases the condition it alone held in the source's own batch. A new
+  // Concentration already ends its replaced dependents, and releases their conditions, with the
+  // maintenance transition, so those are not ended a second time here.
+  const { consumedGrants, sourceReleases } = actionEndedEffects({
+    holderActorId: prepared.actor.id,
+    held: (activeEffectsByActorId.get(prepared.actor.id) ?? []).filter(
+      (effect) => !maintenance?.removed.some((removed) => removed.id === effect.id)
+    ),
+    makesAttackRoll: typeof prepared.binding.actionMechanic.attackBonus === 'number',
+    castsSpell: triggerLevel !== null
+  })
   const currentnessChecksum = encounterActionCurrentnessChecksum({
     prepared,
     actionEconomy,
@@ -777,7 +783,6 @@ export async function planNativeLiveEncounterAction(
     dependencies,
     revisions
   })
-  const triggerLevel = preparedSpellCastLevel(prepared)
   if (castAnswer && triggerLevel === null) throw new Error('Reaction evidence is stale.')
   /** The counters that failed against this cast so far; the cast's terminal commit spends them (D127). */
   let failedCounters: readonly EncounterFailedCounterDto[] =
@@ -867,6 +872,7 @@ export async function planNativeLiveEncounterAction(
           state,
           actors,
           prepared,
+          casterEffects: activeEffectsByActorId.get(prepared.actor.id) ?? [],
           triggerLevel,
           actionEconomy,
           ruleOverrides: ruleWarnings.overrides,

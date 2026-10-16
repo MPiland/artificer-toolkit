@@ -34,6 +34,8 @@ import {
   buildEncounterCounteredCastStoredExecution,
   buildEncounterFailedCounterReceipt
 } from '@artificer-toolkit/rules-runtime/encounterActionReceipt'
+import { actionEndedEffects } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
+import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import { overridesActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionRuleWarnings'
 import { encounterActionSourceLabel } from '@artificer-toolkit/rules-runtime/encounterActionSources'
 import { evaluateEncounterActionTargetPolicy } from '@artificer-toolkit/rules-runtime/encounterActionTargetPolicy'
@@ -439,6 +441,8 @@ export function planNativeCounteredCast(input: {
   state: EncounterRunState
   actors: readonly EncounterRunActorState[]
   prepared: Prepared
+  /** The effects the caster holds; the cast still ends those that end on a cast. */
+  casterEffects: readonly ActiveRuleEffectRecord[]
   /** The level the countered cast was cast at. */
   triggerLevel: number
   actionEconomy: NativeReaction<unknown>['economy']['consumption'] | null
@@ -453,7 +457,14 @@ export function planNativeCounteredCast(input: {
 }) {
   const { state, prepared, countered, actionEconomy } = input
   const { found } = countered
-  const spendOf = (spending: Prepared) =>
+  // A countered cast makes no attack roll, but it is still a cast.
+  const { consumedGrants, sourceReleases } = actionEndedEffects({
+    holderActorId: prepared.actor.id,
+    held: input.casterEffects,
+    makesAttackRoll: false,
+    castsSpell: true
+  })
+  const spendOf = (spending: Prepared, releases: typeof sourceReleases) =>
     planNativeEncounterAreaSourceSpend(
       {
         prepared: spending,
@@ -462,12 +473,13 @@ export function planNativeCounteredCast(input: {
         occurrenceId: input.occurrenceId,
         sourceCommandId: input.commandId,
         commandId: input.commandId,
-        occurredAt: input.occurredAt
+        occurredAt: input.occurredAt,
+        sourceReleases: releases
       },
       input.userId
     )
-  const casterSpend = spendOf(prepared)
-  const reactorSpend = spendOf(found.prepared)
+  const casterSpend = spendOf(prepared, sourceReleases)
+  const reactorSpend = spendOf(found.prepared, [])
   const settled = new Map([
     [
       prepared.actor.id,
@@ -516,7 +528,8 @@ export function planNativeCounteredCast(input: {
       { output: prepared.actorRules }
     ),
     reactionSpellConsumption: found.prepared.characterActionState?.spellConsumption ?? null,
-    failedCounters: input.failedCounters
+    failedCounters: input.failedCounters,
+    consumedGrants
   }
 }
 
@@ -551,6 +564,7 @@ export function buildNativeLiveEncounterCounteredCastCommitInput(
     spellConsumption: prepared.characterActionState?.spellConsumption ?? null,
     reactionSpellConsumption: countered.reactionSpellConsumption,
     failedCounters: countered.failedCounters,
+    consumedGrants: countered.consumedGrants,
     label: encounterActionSourceLabel(prepared.source),
     ruleOverrides: plan.ruleOverrides
   })

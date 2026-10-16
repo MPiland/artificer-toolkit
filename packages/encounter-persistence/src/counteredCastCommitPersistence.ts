@@ -16,6 +16,7 @@ import { completeActionOccurrence, recordActionRoot } from './actionCommitRecord
 import { castCounteredCarriesFailedCounters } from './actionPending.js'
 import { applyFailedCounterSpends, failedCounterSpends } from './failedCounterSpend.js'
 import { settleActionSourceSpend, sourceSpendMutation } from './actionSourceSpend.js'
+import { endEffects } from './consumedGrantPersistence.js'
 import { readRunActors } from './documents.js'
 import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.js'
 import { projectNativeGm } from './nativeProjection.js'
@@ -158,15 +159,20 @@ export async function persistEncounterCounteredCastCommit(
     occurrenceId: root.occurrenceId,
     sourceCommandId: command.commandId,
     occurredAt: input.occurredAt,
-    applications: [],
     forceVersionAdvance: false
   }
+  // The caster's batch also carries the conditions the cast's ended effects released.
   const spend = async (
     character: typeof source,
-    mutation: typeof sourceMutation | typeof reactorMutation
+    mutation: typeof sourceMutation | typeof reactorMutation,
+    releases: typeof root.sourceApplications
   ) =>
     callbacks.applyMechanics({
       ...common,
+      applications: releases.map((application) => ({
+        ...application,
+        targetActorId: character.id
+      })),
       targetActorId: character.id,
       commandId: deriveEncounterCharacterMechanicsEventCommandId({
         occurrenceId: root.occurrenceId,
@@ -181,14 +187,19 @@ export async function persistEncounterCounteredCastCommit(
       ),
       ...mutation
     })
-  const sourceMechanics = spends ? await spend(source, sourceMutation) : null
+  const sourceMechanics =
+    spends || root.sourceApplications.length
+      ? await spend(source, sourceMutation, root.sourceApplications)
+      : null
   if (
     (sourceMechanics?.characterStreamVersion ?? null) !== root.sourceCharacterStreamVersion ||
+    checksumCanonicalJson(sourceMechanics?.receiptApplications ?? []) !==
+      checksumCanonicalJson(root.sourceApplications) ||
     checksumCanonicalJson(sourceMechanics?.itemUseStateTransition ?? null) !==
       checksumCanonicalJson(root.sourceItemUseStateTransition)
   )
     throw new Error('Live Session source Character receipt mismatch.')
-  const reactorMechanics = reactorSpends ? await spend(reactor, reactorMutation) : null
+  const reactorMechanics = reactorSpends ? await spend(reactor, reactorMutation, []) : null
   if ((reactorMechanics?.characterStreamVersion ?? null) !== counter.characterStreamVersion)
     throw new Error('Live Session reactor Character receipt mismatch.')
 
@@ -218,6 +229,7 @@ export async function persistEncounterCounteredCastCommit(
     applyMechanics: callbacks.applyMechanics,
     currentCharacterMaximumHitPoints: callbacks.currentCharacterMaximumHitPoints
   })
+  const endedMaintainedStates = await endEffects(ctx, input.consumedGrants)
   const nextActors = actors.map((actor) =>
     actor.id === source.id
       ? settledSource
@@ -265,8 +277,8 @@ export async function persistEncounterCounteredCastCommit(
     commandFields: {
       label: input.label,
       ruleOverrides: input.ruleOverrides,
-      consumedGrants: [],
-      endedMaintainedStates: [],
+      consumedGrants: input.consumedGrants,
+      endedMaintainedStates,
       addedConcentrationCasterId: null,
       speedBonusTurn: null,
       turnUses: null,

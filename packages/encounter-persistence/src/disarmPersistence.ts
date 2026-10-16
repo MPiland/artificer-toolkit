@@ -26,7 +26,7 @@ import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/sh
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { deriveEncounterCharacterMechanicsEventCommandId } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
-import { attackRollEndedEffects } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
+import { actionEndedEffects } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
 import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
 import { effectiveHitPointMaximum } from '@artificer-toolkit/rules-runtime/character/activeEffectGrantTotals'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
@@ -224,7 +224,7 @@ export async function persistEncounterDisarmCommit(
   const sourceEffects = await createActiveRuleEffectStore(ctx).list(
     turnEffectOwner(source, state.id)
   )
-  const { consumedGrants: endedGrants, sourceReleases } = attackRollEndedEffects({
+  const { consumedGrants: endedGrants, sourceReleases } = actionEndedEffects({
     holderActorId: source.id,
     held: sourceEffects,
     makesAttackRoll: true

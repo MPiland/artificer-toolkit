@@ -3842,8 +3842,13 @@
           "acs": [
             {
               "text": "movementRoomFixture offers a player-socket (asPlayer) reactor, proved by a room test that a player socket drives its own Character.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "A player moves their own Character from their own socket (movementRoom asPlayer) and the receipt records the player; the same player answering the GM-controlled Wolf decision is refused, the GM accepted.",
+                "Tests: apps/session-worker/test/nativeMovementPlayerSocket.test.ts.",
+                "Red: by construction (asPlayer absent at base), no run.",
+                "Green: ci/room-6 Tests 38902492246 on 4def19dbe and Live 38901811451 on a9babd153 (4def19dbe touched only Worker tests); merged in batch ae."
+              ],
               "origin": [],
               "note": "Depends on ROOM-5 (real Session Worker room tests).",
               "id": "ROOM-6.1"
@@ -3899,8 +3904,13 @@
             },
             {
               "text": "turnConcentration is proved with two Characters.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "Already proved with two Characters of different owners and per-Character outcomes including the other owner refusal.",
+                "Tests: apps/apis/tests/fixtures/turnConcentration.ts, apps/apis/convex/encounters/turnConcentration.test.ts.",
+                "No red: existing coverage.",
+                "Green: ci/room-6 Tests 38902492246 on 4def19dbe and Live 38901811451 on a9babd153 (4def19dbe touched only Worker tests); merged in batch ae."
+              ],
               "origin": [],
               "id": "ROOM-6.9"
             },
@@ -3913,8 +3923,13 @@
             },
             {
               "text": "The srdLegendaryAction player-controller and GM-override cases are proved with a two-controller fixture.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "The dragon controller is a second player separate from the Character owner: the controller sees and answers the Legendary choice, the Character owner neither sees it nor may answer, and the GM override answers.",
+                "Tests: apps/apis/convex/encounters/srdLegendaryAction.test.ts, apps/session-worker/test/nativeRoomPlayerParity.test.ts.",
+                "No red: coverage gap over working behaviour.",
+                "Green: ci/room-6 Tests 38902492246 on 4def19dbe and Live 38901811451 on a9babd153 (4def19dbe touched only Worker tests); merged in batch ae."
+              ],
               "origin": [],
               "id": "ROOM-6.11"
             },
@@ -3931,6 +3946,14 @@
               "proof": [],
               "origin": [],
               "id": "ROOM-6.13"
+            },
+            {
+              "id": "ROOM-6.14",
+              "text": "A player cannot move an Encounter-bound token their user does not control, in the Worker room and on Convex: the move is refused and nothing is written, proved room-side and on Convex.",
+              "status": "TODO",
+              "origin": [
+                "ROOM-6.T1 report 2026-10-16: Worker movement planning skips the controller check for Encounter-bound tokens"
+              ]
             }
           ],
           "wsjf": {
@@ -3943,15 +3966,14 @@
             {
               "id": "ROOM-6.T1",
               "text": "Player-socket and two-controller room fixtures: a player drives their own Character, two-Character Concentration and the Legendary Action controller cases.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["ROOM-6.1", "ROOM-6.9", "ROOM-6.11"],
               "wsjf": {
                 "bv": 2,
                 "tc": 3,
                 "rr": 8,
                 "size": 5
-              },
-              "activeWorkbook": "docs/handoffs/slice-room-6.md"
+              }
             },
             {
               "id": "ROOM-6.T2",
@@ -3983,6 +4005,20 @@
                 "tc": 1,
                 "rr": 5,
                 "size": 8
+              }
+            },
+            {
+              "id": "ROOM-6.T4",
+              "text": "Enforce and prove the controller check on Encounter-bound token moves (room and Convex): a non-controlling player move is refused with no write.",
+              "status": "IN_PROGRESS",
+              "closes": ["ROOM-6.14"],
+              "activeWorkbook": "docs/handoffs/slice-room-6.md",
+              "wsjf": {
+                "bv": 8,
+                "tc": 8,
+                "rr": 8,
+                "size": 2,
+                "after": ["ROOM-6.T1"]
               }
             }
           ]
@@ -5742,8 +5778,14 @@
             {
               "id": "ATTACK-9.3",
               "text": "Second Wind (bonus action, 1d10 + Fighter level healing, one use per short rest) and Action Surge (one additional action this turn, uses per short rest by level) resolve in an Encounter through the generic feature-action path, with spend, refresh and GM undo. The feature is authored only from core authoring options (no CLOSED_RULE, no feature-specific kind or executor); an author-built equivalent made through the real authoring form publishes to the same structure and resolves identically.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "Second Wind heals 1d10 + Fighter level as a bonus action once per rest, and Action Surge grants one extra action on the turn through a generic action-allowance grant, both authored from core options; the homebrew copy behaves the same. Movement settlement ends holder-state grants only for the holder, not bystanders.",
+                "Tests: apps/apis/convex/encounters/fighterJourney.test.ts (SRD and homebrew), packages/rules-runtime actionSurge.test.ts, packages/encounter-persistence movementSettlementPersistence.test.ts.",
+                "Red: ci/attack-9-t3-red Tests 38899648786 on cf02e98ab (actionSurge, fighterJourney); ci/attack-9-t3-red2 Tests 38902708627 on 1a24f3310 (endHolderGrants holder-only).",
+                "Green: batch ad Tests 38900587934 and Live 38900587800 on c718dedeb.",
+                "Deferred edge case: a second Action Surge in one turn (future-enhancements)."
+              ],
               "origin": [],
               "note": "Second Wind likely compiles today (DICE_HEAL, CLASS_LEVEL bonus) but no test proves it; Action Surge needs an action-allowance grant (encounterActionEconomy.ts)."
             },
@@ -5872,7 +5914,7 @@
             {
               "id": "ATTACK-9.T3",
               "text": "Second Wind proof and Action Surge action-allowance grant.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["ATTACK-9.3"],
               "wsjf": {
                 "bv": 5,
@@ -5880,8 +5922,7 @@
                 "rr": 3,
                 "size": 2,
                 "after": ["ATTACK-9.T2d"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-attack-9-t3-t6.md"
+              }
             },
             {
               "id": "ATTACK-9.T4",
@@ -5899,7 +5940,7 @@
             {
               "id": "ATTACK-9.T5",
               "text": "Two-weapon fighting off-hand bonus attack and the Fighting Style.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["ATTACK-9.5"],
               "wsjf": {
                 "bv": 5,
@@ -5907,7 +5948,8 @@
                 "rr": 3,
                 "size": 3,
                 "after": ["ATTACK-9.T3"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-attack-9-t5.md"
             },
             {
               "id": "ATTACK-9.T6",
@@ -6401,7 +6443,7 @@
               "id": "ATTACK-17.3"
             },
             {
-              "text": "A player can attack an empty square in range; the GM sees which creature, if any, is there and resolves it, a wrong square is a miss, and the player learns only the outcome.",
+              "text": "Players target only tokens or the target list; there is no square attack. In targeting mode, creatures the GM has revealed but the player cannot see are listed first, marked hidden or invisible with an unknown distance, and the visible creatures follow, nearest first.",
               "status": "TODO",
               "proof": [
                 "T4a (occupied square): packages/schema/src/__tests__/encounter-attack-square-contracts.test.ts, packages/rules-runtime/src/__tests__/encounterAttackSquare.test.ts, apps/session-worker/test/nativeRoomAttackSquare.test.ts, CampaignTabletopDecisionDrawer.test.tsx; CI Tests 38875764975 and Live backend 38875765093 on acf721dec"
@@ -6483,7 +6525,7 @@
             },
             {
               "id": "ATTACK-17.T4a",
-              "text": "Attack a square: a SQUARE target on RESOLVE_ACTION for single-target attack-roll actions; the server computes the candidates (token overlap, hidden tokens included) and opens a GM-only ATTACK_SQUARE_RESOLUTION decision; a chosen occupant continues through the existing ACTOR attack flow; the attacker sees only that the GM is deciding.",
+              "text": "Attack a square: a SQUARE target on RESOLVE_ACTION for single-target attack-roll actions; the server computes the candidates (token overlap, hidden tokens included) and opens a GM-only ATTACK_SQUARE_RESOLUTION decision; a chosen occupant continues through the existing ACTOR attack flow; the attacker sees only that the GM is deciding. (Superseded 2026-10-16: the user ruled out square attacks; ATTACK-17.T4b removes this code.)",
               "status": "DONE",
               "closes": ["ATTACK-17.4"],
               "wsjf": {
@@ -6496,7 +6538,7 @@
             },
             {
               "id": "ATTACK-17.T4b",
-              "text": "Empty square: the GM answers nobody and the attacker still rolls through a dedicated miss path composed from the shared d20, card and economy primitives; the controller view of an empty-square miss equals an occupant miss except for the roll values; the map offers \"pick an empty square\".",
+              "text": "Remove the square attack (the SQUARE target, the ATTACK_SQUARE_RESOLUTION decision and their tests, stories and docs) with no shim, and order the target list with revealed unseen creatures first, marked hidden or invisible with an unknown distance, then visible creatures nearest first.",
               "status": "IN_PROGRESS",
               "closes": ["ATTACK-17.4"],
               "wsjf": {
@@ -8556,7 +8598,7 @@
             {
               "id": "SPELLS-27.T3",
               "text": "ON_CAST_SPELL fact on cast commits feeds the consumer; Invisibility ends on a cast; authoring parity through the real form.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-27.1"],
               "wsjf": {
                 "bv": 3,
@@ -8564,8 +8606,21 @@
                 "rr": 3,
                 "size": 3,
                 "after": ["SPELLS-27.T2a"]
+              }
+            },
+            {
+              "id": "SPELLS-27.T3b",
+              "text": "Every cast raises ON_CAST_SPELL: a Character reactor cast (Shield, Counterspell as reactor) and Creature and Legendary casts end the caster’s own cast-ended effects; proofs for an area cast catching its own invisible caster, replay after a declined Counterspell offer, and a cantrip whose only Sheet change is the release; the authoring-parity test asserts an invalid end event is cleared.",
+              "status": "IN_PROGRESS",
+              "closes": ["SPELLS-27.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 3,
+                "size": 2,
+                "after": ["SPELLS-27.T3"]
               },
-              "activeWorkbook": "docs/handoffs/slice-spells-27-t3.md"
+              "activeWorkbook": "docs/handoffs/slice-spells-27-t3b.md"
             },
             {
               "id": "SPELLS-27.T4",
