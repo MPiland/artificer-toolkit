@@ -1,16 +1,10 @@
-import {
-  consumableGrants,
-  grantsEndedBy
-} from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
-import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
-import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
-import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
-import { readRunActors } from './documents.js'
-import { createActiveRuleEffectStore } from './effectStore.js'
+import { effectsEndedBy } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
 import type {
-  EncounterCharacterWriteTransaction,
-  EncounterPersistenceTransaction
-} from './ports.js'
+  ActiveRuleEffectRecord,
+  EncounterMaintainedEffectStateRecord
+} from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
+import { createActiveRuleEffectStore, maintainedStateTerminatesWhenEmpty } from './effectStore.js'
+import type { EncounterPersistenceTransaction } from './ports.js'
 import type { EncounterWriteContext } from './store.js'
 
 /** Deletes grants a roll used up or a holder's state ended, with the versions they were planned against. */
@@ -24,21 +18,51 @@ export async function deleteGrants(
 }
 
 /**
- * Ends the one-roll grants these actors hold right now, for an attack roll whose settlement is
- * read at commit (a Legendary Action window), where the room planned no per-grant versions.
+ * Ends effects an event used up, and the Concentration they alone sustained. The states come back
+ * exactly as they were so an undoable root can give them back before the effects.
  */
-export async function deleteHeldAttackRollGrants(
-  ctx: EncounterCharacterWriteTransaction,
-  input: { state: EncounterRunState; actorIds: ReadonlySet<string> }
+export async function endEffects(
+  ctx: EncounterWriteContext,
+  effects: readonly ActiveRuleEffectRecord[]
+): Promise<EncounterMaintainedEffectStateRecord[]> {
+  await deleteGrants(ctx, effects)
+  const store = createActiveRuleEffectStore(ctx)
+  const ended: EncounterMaintainedEffectStateRecord[] = []
+  const stateIds = new Map<string, string>()
+  for (const { maintainedEffectStateId, sourceEncounterId, owner } of effects) {
+    // A Character-held effect names its Run in `sourceEncounterId`; an actor-held one is owned by the Run.
+    const encounterId = owner.kind === 'ENCOUNTER_ACTOR' ? owner.encounterId : sourceEncounterId
+    if (maintainedEffectStateId !== null && encounterId !== null)
+      stateIds.set(maintainedEffectStateId, encounterId)
+  }
+  for (const [stateId, encounterId] of [...stateIds].sort(([left], [right]) =>
+    left.localeCompare(right)
+  )) {
+    const state = await store.findMaintainedStateById({ encounterId, stateId })
+    if (
+      !state ||
+      !maintainedStateTerminatesWhenEmpty(state) ||
+      (await store.listDependentEffects({ encounterId, stateId })).length
+    )
+      continue
+    await store.deleteMaintainedStateCas({
+      id: state.id,
+      encounterId,
+      ownerActorId: state.ownerActorId,
+      expectedVersion: state.version
+    })
+    ended.push(state)
+  }
+  return ended
+}
+
+/** Gives back the exact maintained states an undone action had ended. */
+export async function restoreEndedMaintainedStates(
+  ctx: EncounterWriteContext,
+  states: readonly EncounterMaintainedEffectStateRecord[]
 ) {
   const store = createActiveRuleEffectStore(ctx)
-  for (const actor of (await readRunActors(ctx, input.state)).filter(({ id }) =>
-    input.actorIds.has(id)
-  ))
-    await deleteGrants(
-      ctx,
-      consumableGrants(await store.list(turnEffectOwner(actor, input.state.id)), 'ON_ATTACK_ROLL')
-    )
+  for (const state of states) await store.restoreMaintainedState(state)
 }
 
 /**
@@ -50,7 +74,7 @@ export async function endGrantsOnHitPointsRegained(
   ctx: EncounterWriteContext,
   owner: ActiveRuleEffectRecord['owner']
 ) {
-  const ended = grantsEndedBy(
+  const ended = effectsEndedBy(
     await createActiveRuleEffectStore(ctx).list(owner),
     'ON_HIT_POINTS_REGAINED'
   )

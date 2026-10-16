@@ -61,7 +61,10 @@ export const dnd5eCharacterActionCapabilityAdapter: CharacterActionCapabilityAda
         compiledEffect: entryPoint.compiledEffect,
         ...(entryPoint.spellCastLevel === undefined
           ? {}
-          : { spellCastLevel: entryPoint.spellCastLevel })
+          : { spellCastLevel: entryPoint.spellCastLevel }),
+        ...(entryPoint.characterLevel === undefined
+          ? {}
+          : { characterLevel: entryPoint.characterLevel })
       }
     })
 }

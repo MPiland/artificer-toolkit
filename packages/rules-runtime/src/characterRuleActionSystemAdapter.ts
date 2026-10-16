@@ -98,6 +98,16 @@ export interface CharacterRuleActionActiveEffectPlan {
     /** The events whose first occurrence ends the concealment, sorted and unique. */
     consumeOnFirstEvents: readonly GrantConsumeEvent[]
   }
+  /**
+   * Each target holds a bond with every other target the action settled on (Telepathic Bond). The
+   * members are added when the effects are created, from the creatures the cast reached.
+   */
+  actorLinkContribution?: null | {
+    linkOutcomeId: string
+    linkKind: 'TELEPATHIC'
+    /** Creatures whose Intelligence is this or lower cannot join the bond. */
+    excludesIntelligenceAtOrBelow: number
+  }
   /** Target-owned relationship state selected by the System from the exact action outcome. */
   actorRelationshipContribution?: null | {
     relationshipOutcomeId: string
@@ -245,6 +255,16 @@ export interface CharacterStabilizeOutcomeApplication {
   targetActorId: string
 }
 
+/** A System-authorized departure: the target leaves the Run's play (D128). */
+export interface CharacterDepartOutcomeApplication {
+  sourceNodeId: string
+  sourceOperationKey: string
+  authoredPath: string | null
+  resolvedPath: string | null
+  kind: 'DEPART'
+  targetActorId: string
+}
+
 /** A System-authorized removal of one exact normalized condition. */
 /**
  * A System-authorized reduction sourced from an earlier interpreted damage
@@ -287,6 +307,7 @@ export type CharacterRuleActionApplication =
   | CharacterConditionApplyOutcomeApplication
   | CharacterConditionRemoveOutcomeApplication
   | CharacterStabilizeOutcomeApplication
+  | CharacterDepartOutcomeApplication
   | CharacterHitPointMaximumReductionApplication
   | CharacterScalarReductionApplication
 

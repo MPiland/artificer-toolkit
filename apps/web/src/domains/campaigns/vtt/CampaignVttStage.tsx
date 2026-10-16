@@ -499,19 +499,33 @@ export function CampaignVttStage({
       : mapLoadStatus === 'ERROR'
         ? 'Map artwork could not be loaded.'
         : null
+  // The token of an actor that left the Encounter is not on the field (D128); editing still shows it.
+  const presentScene = useMemo(() => {
+    if (!scene || effectiveMode === 'EDIT' || !activeEncounter) return scene
+    const absentActorIds = new Set(
+      activeEncounter.actors.filter((actor) => actor.absence !== null).map((actor) => actor.id)
+    )
+    if (absentActorIds.size === 0) return scene
+    return {
+      ...scene,
+      tokens: scene.tokens.filter(
+        (token) => !absentActorIds.has(actorIdByTokenId.get(token.id) ?? '')
+      )
+    }
+  }, [scene, effectiveMode, activeEncounter, actorIdByTokenId])
   const renderedScene = useMemo(
     () =>
-      scene && campaign.role === 'OWNER' && gmPreviewUserId
+      presentScene && campaign.role === 'OWNER' && gmPreviewUserId
         ? projectSceneForViewer(
-            scene,
+            presentScene,
             {
               role: 'PLAYER',
               userId: gmPreviewUserId
             },
             boundTokenControl
           )
-        : scene,
-    [scene, campaign.role, gmPreviewUserId, boundTokenControl]
+        : presentScene,
+    [presentScene, campaign.role, gmPreviewUserId, boundTokenControl]
   )
   const tokenImageLookups = useMemo(() => {
     const actorsById = new Map(

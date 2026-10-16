@@ -33,6 +33,8 @@ import {
   encounterFeatureResourceReceiptDtoSchema,
   maintainedEffectTransitionDtoSchema,
   resolveDispositionDamage,
+  sourceApplicationsChangeState,
+  sourceApplicationsDtoSchema,
   stateEffectCreateReceiptDtoSchema,
   validateMaintainedEffectCreation,
   validateStateEffectTransitions
@@ -469,7 +471,9 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = lazySchema
       }),
       applications: z
         .array(characterMechanicsApplicationDtoSchema)
-        .check(z.maxLength(RULE_GRAPH_LIMITS.NODES))
+        .check(z.maxLength(RULE_GRAPH_LIMITS.NODES)),
+      /** The source's own conditions released by effects its action ended; empty when none. */
+      sourceApplications: sourceApplicationsDtoSchema
     })
     .check(
       z.superRefine((value, context) => {
@@ -574,6 +578,7 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = lazySchema
             }
             continue
           }
+          if (application.kind === 'DEPART') continue
           if (application.kind === 'STABILIZE') {
             const dying = deathSaves !== null && isCharacterDying(deathSaves, current)
             if (application.applied !== dying)
@@ -758,7 +763,8 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = lazySchema
             stow !== null ||
             consumption !== null ||
             spell !== null ||
-            sourceMaintenanceMutation
+            sourceMaintenanceMutation ||
+            sourceApplicationsChangeState(value.sourceApplications, value.sourceCharacterId ?? null)
           )
         )
           context.addIssue({
@@ -959,7 +965,9 @@ export const contestedActionApplicationOutputDtoSchema = lazySchema(() =>
           destination: z.strictObject({ x: z.number(), y: z.number() })
         })
       ]),
-      actionEconomyTransition: z.nullable(encounterActionEconomyTransitionDtoSchema)
+      actionEconomyTransition: z.nullable(encounterActionEconomyTransitionDtoSchema),
+      /** The source's own conditions released by effects its attack roll ended; empty when none. */
+      sourceApplications: sourceApplicationsDtoSchema
     })
     .check(
       z.superRefine((value, context) => {

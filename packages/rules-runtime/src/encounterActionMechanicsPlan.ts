@@ -2,7 +2,10 @@ import { deriveEncounterCharacterMechanicsEventCommandId } from './encounterChar
 import type { EncounterCharacterMechanicsEventPhase } from './encounterCharacterMechanicsBatch.js'
 import { featureChargeUsed, withFeatureChargeUsed } from './encounterActorState.js'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
-import type { CharacterRuleActionApplication } from './characterRuleActionSystemAdapter.js'
+import type {
+  CharacterConditionRemoveOutcomeApplication,
+  CharacterRuleActionApplication
+} from './characterRuleActionSystemAdapter.js'
 import type { prepareEncounterActionMechanics } from './encounterActionMechanicsPreparation.js'
 import { planEncounterMechanicsBatch } from './encounterMechanicsBatchPlan.js'
 import type {
@@ -31,6 +34,12 @@ export type NativeEncounterActionMechanicsInput = {
   commandId: string
   occurredAt: string
   applications: readonly CharacterRuleActionApplication[]
+  /**
+   * The conditions the source's effects that ended on this action's event held alone
+   * (`endedEffectConditionReleases`), applied to the source in the same transaction as the
+   * effects' deletion. An action that targets its own source cannot release this way.
+   */
+  sourceReleases?: readonly CharacterConditionRemoveOutcomeApplication[]
   forceTargetVersionAdvance?: boolean
   eventPhases?: {
     resource: EncounterCharacterMechanicsEventPhase
@@ -48,7 +57,9 @@ type SourceSpend = 'WITH_OUTCOME' | 'NONE'
 
 /** What a Character's spell cast spent, recorded so a GM undo can restore the exact slot. */
 export function characterSpellConsumptionReceipt(
-  spellConsumption: NonNullable<PreparedActionMechanics['characterActionState']>['spellConsumption'] | undefined
+  spellConsumption:
+    | NonNullable<PreparedActionMechanics['characterActionState']>['spellConsumption']
+    | undefined
 ) {
   return spellConsumption
     ? {
@@ -84,10 +95,14 @@ function prepareNativeActionMechanicsBatches(
     ...(spellConsumption ? { characterSpellConsumption: spellConsumption } : {}),
     ...(stow ? { stowEquippedItemInstanceId: stow.shieldItemInstanceId } : {})
   }
+  const sourceReleases = input.sourceReleases ?? []
+  if (sourceReleases.length && actor.id === target.id)
+    throw new Error('An action cannot release its source conditions while targeting the source.')
   const sourceResourceBatch: EncounterMechanicsBatchInput | null =
-    source.kind === 'CHARACTER_ACTION' &&
-    (resourceConsumption || itemConsumption || spellConsumption || stow) &&
-    (spend === 'ONLY' || actor.id !== target.id)
+    (source.kind === 'CHARACTER_ACTION' &&
+      (resourceConsumption || itemConsumption || spellConsumption || stow) &&
+      (spend === 'ONLY' || actor.id !== target.id)) ||
+    sourceReleases.length
       ? {
           encounterId: input.encounterId,
           targetActorId: actor.id,
@@ -99,11 +114,12 @@ function prepareNativeActionMechanicsBatches(
             sourceCommandId: input.sourceCommandId,
             phase: input.eventPhases?.resource ?? 'DIRECT_ACTION_RESOURCE',
             ordinal: input.ordinal ?? 0,
-            targetCharacterId: source.characterId
+            targetCharacterId: source.kind === 'CHARACTER_ACTION' ? source.characterId : actor.id
           }),
           occurredAt: input.occurredAt,
-          applications: [],
-          expectedCharacterStreamVersion: source.characterStreamVersion,
+          applications: sourceReleases,
+          expectedCharacterStreamVersion:
+            source.kind === 'CHARACTER_ACTION' ? source.characterStreamVersion : null,
           effectiveMaximumHitPoints: sourceFacts.effectiveMaximumHitPoints,
           effectiveScalarValues: sourceFacts.effectiveScalarValues,
           forceVersionAdvance: false,
@@ -228,13 +244,14 @@ export function finishNativeActionMechanicsSettlement(
 ) {
   const { actor, target, source } = prepared
   const spendsSource = spend === 'WITH_OUTCOME'
+  const settledSourceApplications = sourceResourceMechanics?.receiptApplications ?? []
   const settledMechanicsSource =
     sourceResourceMechanics?.updatedActor ??
     (mechanics.updatedActor.id === actor.id ? mechanics.updatedActor : actor)
   const settledSource = spendsSource
     ? spendNativeSourceFeatureCharge(prepared, settledMechanicsSource)
     : settledMechanicsSource
-  const sourceCharacterStreamVersion =
+  const spendsCharacter =
     spendsSource &&
     source.kind === 'CHARACTER_ACTION' &&
     (prepared.characterActionState?.resourceConsumption ||
@@ -242,10 +259,13 @@ export function finishNativeActionMechanicsSettlement(
       prepared.characterActionState?.spellConsumption ||
       prepared.acceptedWieldConflict) &&
     actor.id !== target.id
-      ? (sourceResourceMechanics?.characterStreamVersion ??
-        (() => {
-          throw new Error('The selected Character action resource was not committed.')
-        })())
+  const sourceCharacterStreamVersion = spendsCharacter
+    ? (sourceResourceMechanics?.characterStreamVersion ??
+      (() => {
+        throw new Error('The selected Character action resource was not committed.')
+      })())
+    : source.kind === 'CHARACTER_ACTION'
+      ? (sourceResourceMechanics?.characterStreamVersion ?? null)
       : null
   const sourceItemUseStateTransition =
     spendsSource && prepared.acceptedWieldConflict
@@ -260,6 +280,7 @@ export function finishNativeActionMechanicsSettlement(
     sourceResourceMechanics,
     sourceCharacterStreamVersion,
     sourceItemUseStateTransition,
+    sourceApplications: settledSourceApplications,
     ...(spendsSource
       ? nativeSourceSpendReceipts(prepared)
       : {
@@ -310,7 +331,8 @@ export function planNativeEncounterActionMechanics(
 
 /**
  * The source's one spend of an area action, settled alone: the Character's resource, item or stow
- * through its own batch, and a Creature's feature charge. Each creature the area catches then plans
+ * through its own batch, and a Creature's feature charge. A Disarm uses it for the conditions its
+ * initiator's attack roll releases, which it carries without any spend. Each creature the area catches then plans
  * its outcome with no spend of its own, so the spend lands exactly once even when the source is caught.
  */
 export function planNativeEncounterAreaSourceSpend(

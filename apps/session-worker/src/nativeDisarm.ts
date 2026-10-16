@@ -28,7 +28,9 @@ import {
   readEncounterDisarmSelection,
   requireEncounterDisarmDefinition
 } from '@artificer-toolkit/rules-runtime/encounterDisarmPreparation'
-import { consumableGrants } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
+import { planNativeEncounterAreaSourceSpend } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPlan'
+import { attackRollEndedEffects } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
+import { effectsEndedBy } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
 import { withEncounterAppRoll } from '@artificer-toolkit/rules-runtime/encounterEvidenceAnswer'
 import { executeEncounterOptionalContestAction } from '@artificer-toolkit/rules-runtime/encounterOptionalContestActionExecution'
 import { lockedRelationshipActionFacts } from '@artificer-toolkit/rules-runtime/encounterRelationshipActionFacts'
@@ -171,12 +173,13 @@ export async function planNativeLiveDisarm(
     overridable: false,
     movementTargets,
     sceneContext,
-    loadAttackPerception: ({ sourceFacts, targetFacts }) =>
+    loadAttackPerception: ({ sourceFacts, targetFacts, roller }) =>
       readNativeLiveAttackPerception({
         state,
         system,
         attacker: sourceFacts,
         target: targetFacts,
+        roller,
         sceneContext,
         capture
       }),
@@ -382,9 +385,37 @@ export async function planNativeLiveDisarm(
       })
     : null
   const settledTarget = success?.kind === 'CREATURE' ? success.actor : target
+  // The initiator's attack roll uses up its one-roll grants (Vicious Mockery's disadvantage) and
+  // releases the condition an ending effect alone held (Invisibility).
+  const { consumedGrants: initiatorGrants, sourceReleases } = attackRollEndedEffects({
+    holderActorId: actor.id,
+    held: activeEffectsByActorId.get(actor.id) ?? [],
+    makesAttackRoll: true
+  })
+  const occurredAt = new Date().toISOString()
+  const sourceRelease = sourceReleases.length
+    ? planNativeEncounterAreaSourceSpend(
+        {
+          prepared,
+          encounterId: state.id,
+          expectedEncounterVersion: state.version,
+          occurrenceId,
+          sourceCommandId: root.commandId,
+          commandId: root.commandId,
+          occurredAt,
+          sourceReleases
+        },
+        ready.initiatorUserId
+      )
+    : null
+  const releasedActor = sourceRelease?.settledSource ?? actor
   const settledActor = actionEconomy
-    ? consumeEncounterActionEconomy({ actor, consumption: actionEconomy, overridden: false })
-    : actor
+    ? consumeEncounterActionEconomy({
+        actor: releasedActor,
+        consumption: actionEconomy,
+        overridden: false
+      })
+    : releasedActor
   const nextActors = actors.map((entry) =>
     entry.id === settledActor.id
       ? settledActor
@@ -397,13 +428,12 @@ export async function planNativeLiveDisarm(
     kind: 'PLANNED' as const,
     input: liveSessionEncounterDisarmCommitInputSchema.parse({
       ...planned,
-      occurredAt: new Date().toISOString(),
+      occurredAt,
       contest,
-      // The initiator's attack roll and the defender's check use up their one-roll grants
-      // (Vicious Mockery's disadvantage, a Help's advantage).
+      // The defender's check uses up its one-roll grants too (a Help's advantage).
       consumedGrants: [
-        ...consumableGrants(activeEffectsByActorId.get(actor.id) ?? [], 'ON_ATTACK_ROLL'),
-        ...consumableGrants(activeEffectsByActorId.get(target.id) ?? [], 'ON_ABILITY_CHECK')
+        ...initiatorGrants,
+        ...effectsEndedBy(activeEffectsByActorId.get(target.id) ?? [], 'ON_ABILITY_CHECK')
       ],
       execution: storedRuleExecutionResultDtoSchema.parse({
         status: 'COMPLETE',
@@ -416,7 +446,8 @@ export async function planNativeLiveDisarm(
           contest,
           rolls: execution,
           stateTransition: success?.stateTransition ?? { kind: 'NONE' },
-          actionEconomy
+          actionEconomy,
+          sourceApplications: sourceRelease?.sourceResourcePlan?.receiptApplications ?? []
         })
       }),
       rules: reconcileEncounterActorRuleOutput(

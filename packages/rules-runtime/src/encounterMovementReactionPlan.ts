@@ -36,6 +36,7 @@ import {
   type NativeEncounterActionMechanicsInput
 } from './encounterActionMechanicsPlan.js'
 import { planEncounterMovementReactionEffects } from './encounterMovementReactionEffects.js'
+import { attackRollEndedEffects } from './encounterEndedEffectRelease.js'
 
 type PreparedMechanics<TFacts extends ProjectableCharacterFacts> = Awaited<
   ReturnType<typeof prepareEncounterActionMechanics<TFacts>>
@@ -197,6 +198,19 @@ function requireCompletedMovementReaction<
   return input.execution
 }
 
+/** The reactor's one-roll grants the reaction's attack roll uses up, and the conditions that frees. */
+function reactionAttackRollEnd<
+  TFacts extends ProjectableCharacterFacts,
+  TRow extends MovementCharacterRow
+>(input: MovementReactionSettlementInput<TFacts, TRow>) {
+  const { prepared } = input.prepared
+  return attackRollEndedEffects({
+    holderActorId: prepared.actor.id,
+    held: prepared.movementTargets.get(prepared.actor.id)?.activeEffects ?? [],
+    makesAttackRoll: typeof prepared.binding.actionMechanic.attackBonus === 'number'
+  })
+}
+
 function reactionMechanicsInput<
   TFacts extends ProjectableCharacterFacts,
   TRow extends MovementCharacterRow
@@ -219,6 +233,7 @@ function reactionMechanicsInput<
     applications: [...execution.applications, ...effects.effects.relationshipConditionApplications],
     forceTargetVersionAdvance:
       prepared.prepared.target.kind === 'CHARACTER' && effects.createdEffects.length > 0,
+    sourceReleases: reactionAttackRollEnd(input).sourceReleases,
     eventPhases: {
       resource: 'MOVEMENT_REACTION_RESOURCE',
       outcome: 'MOVEMENT_REACTION_OUTCOME'
@@ -328,7 +343,8 @@ function movementReactionSettlement<
           d20: execution.d20,
           nestedD20: execution.nestedD20,
           targetTransition: settled.mechanics.targetTransition,
-          applications: settled.mechanics.receiptApplications
+          applications: settled.mechanics.receiptApplications,
+          sourceApplications: settled.sourceApplications
         }
       : {
           kind: 'ENCOUNTER_ACTOR_MECHANICS_BATCH',
@@ -336,15 +352,15 @@ function movementReactionSettlement<
           occurrenceId: input.occurrenceId,
           sourceActorId: prepared.prepared.actor.id,
           targetActorId: prepared.prepared.target.id,
-          ...(maintenance
+          ...(maintenance || settled.sourceApplications.length
             ? {
                 sourceCharacterId:
                   prepared.prepared.source.kind === 'CHARACTER_ACTION'
                     ? prepared.prepared.source.characterId
-                    : null,
-                maintenanceTransition: maintenance.transition
+                    : null
               }
             : {}),
+          ...(maintenance ? { maintenanceTransition: maintenance.transition } : {}),
           sourceCharacterStreamVersion,
           resourceConsumption: settled.resourceReceipt,
           featureResourceConsumption: settled.featureResourceReceipt,
@@ -365,7 +381,8 @@ function movementReactionSettlement<
           activeEffectTransitions: effects.activeEffectTransitions,
           stateEffectTransitions: effects.stateEffectTransitions,
           targetTransition: settled.mechanics.targetTransition,
-          applications: settled.mechanics.receiptApplications
+          applications: settled.mechanics.receiptApplications,
+          sourceApplications: settled.sourceApplications
         }
   )
   const characterTransitions = [
@@ -480,6 +497,7 @@ export function planEncounterMovementReactionAction<
   return {
     ...result,
     effects,
+    consumedGrants: reactionAttackRollEnd(input).consumedGrants,
     sourceResourcePlan: settled.sourceResourcePlan,
     targetPlan: settled.targetPlan,
     projectedTargets: maintenance?.targets ?? projectedTargets,

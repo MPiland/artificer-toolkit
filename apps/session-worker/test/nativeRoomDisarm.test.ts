@@ -19,6 +19,7 @@ import { seedModifierGrant } from './grantSeed.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
 import {
   parseReceiptExecution,
+  readActorConditionIds,
   readPendingActionDecision,
   readRoomHistory
 } from './roomHistoryReads.js'
@@ -27,6 +28,7 @@ import { seededSrdCreature } from './seededSrdCreature.js'
 const SOURCE_ID = testUuid(0xa00)
 const TARGET_ID = testUuid(0xa01)
 const BLINDED_ID = srdSystemRecord.conditionTypes.find(({ code }) => code === 'BLINDED')?.id
+const INVISIBLE_ID = srdSystemRecord.conditionTypes.find(({ code }) => code === 'INVISIBLE')!.id
 
 afterEach(() => {
   closeTrackedSockets()
@@ -42,6 +44,7 @@ async function disarmRoom(options: {
   rolls?: readonly number[]
   heldItem?: 'GREATCLUB'
   targetBlinded?: true
+  sourceInvisible?: true
   seed?: ActionRoomConfig['seed']
 }) {
   const ogre = seededSrdCreature('Ogre')
@@ -55,7 +58,11 @@ async function disarmRoom(options: {
           )
         }
   const [source, target] = [
-    srdCreatureActor({ id: SOURCE_ID, creature: ogre }),
+    srdCreatureActor({
+      id: SOURCE_ID,
+      creature: ogre,
+      conditionIds: options.sourceInvisible ? [INVISIBLE_ID] : []
+    }),
     srdCreatureActor({
       id: TARGET_ID,
       creature: holder,
@@ -204,6 +211,28 @@ describe('room Disarm contests', () => {
     await startDisarm(disarming)
 
     expect((await readRoomHistory(disarming.room.room.base.stub)).activeEffects).toEqual([])
+  })
+
+  it('releases the condition an initiator’s ended grant owned, in the same settlement', async () => {
+    const disarming = await disarmRoom({
+      autoRoll: 'GAME_MASTER',
+      rolls: [9, 9],
+      sourceInvisible: true,
+      seed: seedModifierGrant({
+        sourceActorId: TARGET_ID,
+        holderActorId: SOURCE_ID,
+        lifecycle: { consumeOnFirstEvents: ['ON_ATTACK_ROLL'] },
+        ownedConditionId: INVISIBLE_ID
+      })
+    })
+    const stub = disarming.room.room.base.stub
+    expect(readActorConditionIds(await readRoomHistory(stub), SOURCE_ID)).toContain(INVISIBLE_ID)
+
+    await startDisarm(disarming)
+
+    const settled = await readRoomHistory(stub)
+    expect(settled.activeEffects).toEqual([])
+    expect(readActorConditionIds(settled, SOURCE_ID)).not.toContain(INVISIBLE_ID)
   })
 
   it('starts a Disarm of a two-handed holder', async () => {

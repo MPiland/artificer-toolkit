@@ -337,10 +337,11 @@ const modifierResultSchema = lazySchema(() =>
     source: characterMechanicSourceSchema,
     scopeSpellIds: z.optional(z.array(identitySchema).check(z.maxLength(500))),
     /**
-     * Item conditions still to be met by the attacking item, as OR-of-AND groups. Empty means the
-     * modifier is unconditional; a Character-wide value never satisfies a non-empty requirement.
+     * Conditions still to be met where they are known, as OR-of-AND groups: the attacking item's,
+     * or the holder's state in the Encounter. Empty means the modifier is unconditional; a
+     * Character-wide value never satisfies a non-empty requirement.
      */
-    itemRequirements: characterGrantFoldRestrictionSchema
+    deferredRequirements: characterGrantFoldRestrictionSchema
   })
 )
 

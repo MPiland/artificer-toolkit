@@ -12,6 +12,7 @@ import {
 } from './character/characterSpellCastActions.js'
 import {
   type EncounterAttackAgainstContributor,
+  type EncounterSourceSightSave,
   withActiveGrantSpeeds,
   withCharacterActiveGrants,
   withCreatureActiveGrantArmorClass,
@@ -109,6 +110,12 @@ export type MovementTarget<
    * per attack.
    */
   attackAgainstContributors: readonly EncounterAttackAgainstContributor[]
+  /**
+   * The saving-throw grants that hold only while the actor sees the effect's source (Danger
+   * Sense), set by `withEncounterHolderDefense`; empty until a flow applies it.
+   * `prepareEncounterActionMechanics` decides them per save.
+   */
+  sourceSightSaves: readonly EncounterSourceSightSave[]
   /**
    * The actor's pinned condition definitions (D94), loaded by `withEncounterConditionMechanics`
    * and carried across rebuilds so `applyEncounterConditionMechanics` can re-derive its mechanics;
@@ -239,6 +246,10 @@ export function buildMovementTarget<
           }),
           policyOutput: effectiveRulePolicyOutput,
           spellDocumentsById: characterFacts.prepared.context.spellDocumentsById,
+          characterLevel: characterFacts.ruleEvaluation.facts.grantFoldFacts.base.classes.reduce(
+            (sum, { level }) => sum + level,
+            0
+          ),
           firstSequence: characterFacts.ruleEvaluation.facts.actionCandidates.length
         })
       : null
@@ -347,6 +358,7 @@ export function buildMovementTarget<
       qualifiedDefenses: [],
       conditionImmunityIds: effectiveRulePolicyOutput.conditionImmunityIds,
       attackAgainstContributors: [],
+      sourceSightSaves: [],
       conditionDefinitions: [],
       conditionMechanics: []
     }
@@ -429,6 +441,7 @@ export function buildMovementTarget<
     qualifiedDefenses: targetProtection.qualifiedDefenses,
     conditionImmunityIds: targetProtection.conditionImmunityIds,
     attackAgainstContributors: [],
+    sourceSightSaves: [],
     conditionDefinitions: [],
     conditionMechanics: []
   }

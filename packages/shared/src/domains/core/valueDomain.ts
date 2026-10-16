@@ -351,11 +351,14 @@ export type ValueDomainParamByCode = {
   // Ability checks may apply globally or to one ability.
   ABILITY_CHECK: { ability?: AbilityCode }
 
-  // Save bonus is per ability (STR/DEX/etc); conditionTypeId scopes advantage/disadvantage to a specific condition.
+  // Save bonus is per ability (STR/DEX/etc); conditionTypeId scopes advantage/disadvantage to a specific
+  // condition; `requiresHolderSeesSource` limits advantage/disadvantage to effects whose source the
+  // holder can see (Danger Sense, D100).
   SAVING_THROW_MODIFIER: {
     ability: AbilityCode
     conditionTypeId?: string
     ruleDefinitionId?: string
+    requiresHolderSeesSource?: boolean
   }
 
   // Skill bonus is per skill

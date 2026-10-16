@@ -59,7 +59,6 @@ import {
 import { resolveEncounterActionSource } from '@artificer-toolkit/rules-runtime/encounterActionSources'
 import { lockedRelationshipActionFacts } from '@artificer-toolkit/rules-runtime/encounterRelationshipActionFacts'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
-import { consumableGrants } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
 import { prepareEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomy'
 import {
   discoverEncounterMovementPassage,
@@ -309,17 +308,11 @@ export async function prepareNativeLiveMovement(
     )
     for (const target of result.projectedTargets.values())
       finalActors.set(target.actor.id, target.actor)
-    const { prepared } = plan.prepared
     reactionSettlements.set(plan, {
       kind: 'REACTION',
-      // The same attack roll uses up the reactor's one-roll grants (Vicious Mockery's disadvantage).
-      consumedGrants:
-        typeof prepared.binding.actionMechanic.attackBonus === 'number'
-          ? consumableGrants(
-              prepared.movementTargets.get(prepared.actor.id)?.activeEffects ?? [],
-              'ON_ATTACK_ROLL'
-            )
-          : [],
+      // The same attack roll uses up the reactor's one-roll grants (Vicious Mockery's disadvantage)
+      // and releases the condition an ending effect alone held (Invisibility).
+      consumedGrants: result.consumedGrants,
       turnUses: encounterActionSpentTurnUses(
         plan.prepared.prepared,
         result.reactionExecution.execution.evidence

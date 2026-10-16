@@ -33,6 +33,7 @@ import {
   requireAreaActionRemoval
 } from './actionAreaPending.js'
 import { persistCompletedChild } from './actionChildPersistence.js'
+import { persistEncounterActionEffects } from './actionEffectPersistence.js'
 import { receiptConsumedGrants } from './consumedGrantPersistence.js'
 import { completeActionOccurrence, recordActionRoot } from './actionCommitRecords.js'
 import { settleActionSourceSpend, sourceSpendMutation } from './actionSourceSpend.js'
@@ -276,7 +277,7 @@ export async function persistEncounterAreaCommit(
     input.rules.actors.some((actor) => !ruleActors.some((current) => current.id === actor.actorId))
   )
     throw new Error('Live Session area output scope mismatch.')
-  const children = input.targets.map(({ actorId, execution }, index) => {
+  const children = input.targets.map(({ actorId, execution, createdEffects }, index) => {
     const actor = actors.find((candidate) => candidate.id === actorId)
     const batch = execution.status === 'COMPLETE' ? execution.applicationOutputs : null
     const initial = execution.status === 'COMPLETE' ? execution : null
@@ -292,7 +293,7 @@ export async function persistEncounterAreaCommit(
       batch.parentOccurrenceId !== areaOccurrenceId ||
       batch.sourceActorId !== source.id ||
       batch.targetActorId !== actor.id ||
-      batch.activeEffectTransitions.length > 0 ||
+      batch.activeEffectTransitions.length !== createdEffects.length ||
       batch.stateEffectTransitions.length > 0 ||
       batch.maintenanceTransition !== undefined ||
       (batch.kind === 'CHARACTER_MECHANICS_BATCH' &&
@@ -306,7 +307,8 @@ export async function persistEncounterAreaCommit(
       actor,
       batch,
       execution: initial,
-      occurrenceId: execution.occurrenceId
+      occurrenceId: execution.occurrenceId,
+      createdEffects
     }
   })
   const casterIsCharacter = source.kind === 'CHARACTER'
@@ -475,7 +477,7 @@ export async function persistEncounterAreaCommit(
       sceneId: scope.zoneSceneId,
       zone: input.placedZone
     })
-  for (const { execution, actor, occurrenceId } of children)
+  for (const { execution, actor, occurrenceId, createdEffects } of children) {
     await persistCompletedChild(ctx, {
       state: nextState,
       result: execution,
@@ -499,6 +501,25 @@ export async function persistEncounterAreaCommit(
       },
       occurredAt: input.occurredAt
     })
+    if (createdEffects.length > 0)
+      await persistEncounterActionEffects(ctx, {
+        state: nextState,
+        command: {
+          encounterId: state.id,
+          actorId: source.id,
+          target: { kind: 'ACTOR', actorId: actor.id },
+          actionId: command.actionId,
+          commandId: encounterAreaTargetCommandId(occurrenceId)
+        },
+        execution,
+        maintainedState: null,
+        maintenance: null,
+        createdEffects: [...createdEffects],
+        actors: nextActors,
+        authorizedCharacterIds: characterIds,
+        occurredAt: input.occurredAt
+      })
+  }
   // One Concentration check per damaged creature, against the damage the root recorded.
   const damage = nativeConcentrationDamageApplications(
     children.map(({ actor, batch }) => ({
@@ -585,6 +606,7 @@ export async function persistEncounterAreaCommit(
         ...input,
         endedGrants: [...input.endedGrants, ...healEndedGrants]
       }),
+      endedMaintainedStates: [],
       addedConcentrationCasterId: null,
       speedBonusTurn: null,
       turnUses: null,

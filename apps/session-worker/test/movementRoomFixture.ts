@@ -51,7 +51,13 @@ import {
 } from '../src/testing/storedRunFixture.js'
 import { characterRoomInputs } from './characterSheetInputsFixture.js'
 import { srdSystemRoomInputs } from './srdSenseInputsFixture.js'
-import { doorScene, fixture, routeEncounterRequests, synchronizeScene } from './liveRoomFixture.js'
+import {
+  doorScene,
+  fixture,
+  ROOM_REPLY_WAIT,
+  routeEncounterRequests,
+  synchronizeScene
+} from './liveRoomFixture.js'
 import { ROOM_AUTHORIZATION_PATH, roomAuthorizationResponse } from './roomAuthorizationFixture.js'
 import { ROOM_INPUTS_PATH, roomInputsResponse } from './roomInputsFixture.js'
 
@@ -626,7 +632,7 @@ export async function movementRoom(config: MovementRoomConfig) {
         )
       if (!answer) throw new Error('The room has not answered the command.')
       return answer
-    })
+    }, ROOM_REPLY_WAIT)
   }
 
   return {

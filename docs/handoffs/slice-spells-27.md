@@ -25,7 +25,7 @@
 ### Consumers (all in `encounterGrantLifetimes.ts` plus callers)
 
 - **`consumableGrants(effects, event)`** matches `consumeOnFirstEvents` for effects that are a modifier grant (`isModifierGrant`) or a concealment (widened by ATTACK-10.T1, D116). Callers:
-  - attack roll: `nativeEncounterRules.ts:463`, `nativeEncounterMovement.ts:242`, `nativeDisarm.ts:362`, and the Legendary window commit `deleteHeldAttackRollGrants`;
+  - attack roll: `nativeEncounterRules.ts:463`, `nativeEncounterMovement.ts:242`, `nativeDisarm.ts:362`, and the Legendary window commit (now `persistEncounterTurnResources`);
   - ability checks: `encounterBasicActionCheck`, `encounterEscapeCheck`, `encounterConcealmentCheck`, `encounterMovementPassageResponse`.
 - **`grantsEndedBy(effects, event)`** matches `endOnEvents` for modifier grants only. Its only real caller is `endGrantsOnHitPointsRegained` (`mechanicsBatchPersistence.ts:114`, `commands.ts:448`). There is no `ON_ATTACK_ROLL` or `ON_CAST_SPELL` call site (confirmed: `grantsEndedBy(held, 'ON_ATTACK_ROLL')` is asserted `[]` in `encounterZonePlacementCompilation.test.ts:247`).
 - **`grantsEndedByHolderState`** (D95/D113): `ON_INCAPACITATED` and `endOnConditionIds`, detected at the D95 point; the ended grants travel as `endedGrants`.
@@ -157,3 +157,20 @@ Own commit range on `ci/spells-5-t9`, mergeable apart from SPELLS-27 beyond T1.
   Paralyzed condition when the Campaign clock reaches the expiry).
 - **Note for T2:** Invisibility's plan now takes the same scope, so a one-hour Invisibility on a
   Character outlasts a three-round fight.
+
+## 7. SPELLS-27.T2: effects ended by an event release what they owned
+
+Decided as D125.
+
+- **One consumer.** `effectsEndedBy(effects, event)` reads `consumeOnFirstEvents` and `endOnEvents`; `consumableGrants` and `grantsEndedBy` are deleted. Invisibility ends on its holder's attack roll after granting advantage on that roll.
+- **Release.** `planNativeEncounterActionMechanics` plans `CONDITION_REMOVE` on the source batch (`sourceReleases` from `endedEffectConditionReleases`, which wraps `endedMaintenanceConditions`) for Character and Creature sources. A self-targeted action cannot release (the planner throws); the holder's own batch already carries its applications.
+- **Contract.** `sourceApplications` is required on both batch kinds and on settled DTOs. Stream version: the Character source uses `characterStreamVersion`; a Creature source passes `null`.
+- **Undo.** The root receipt carries `endedMaintainedStates`; `actionRevert.ts` restores them (`restoreMaintainedState`) before `restoreConsumedGrants`, then restores the condition through a `restoredConditionIds` inverse fenced by the source stream version. Actor-held effect rows store `sourceEncounterId: null`, so the Run id comes from `owner.encounterId`.
+- **Authoring fence.** `NON_RELEASING_EFFECT_EVENTS` rejects condition-owning v2 definitions that list an event whose consumer does not release.
+- **Local data.** Development receipts that fail the new required fields take the approved local reset.
+
+### Split
+
+- **T2a (done):** action and reaction attack rolls, schema, persistence and undo. The Legendary window, movement opportunity attack and Disarm skipped condition-owning effects meanwhile, so no intermediate merge stranded a condition.
+- **T2b (done):** the Legendary window, movement opportunity attack and Disarm release their conditions through the same source batch (`attackRollEndedEffects` is the one helper every attack-roll root calls); the three fences are gone. The Disarm receipt carries the release in a required `sourceApplications` on `CONTESTED_ACTION`; the Legendary window applies it in `persistEncounterTurnResources`; the movement reaction applies it in `liveMovementReactionPersistence`. Disarm and the Legendary window have no GM undo, so nothing restores these.
+- AC 27.1 closes only when T3 (the cast half) is in.

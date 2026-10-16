@@ -189,6 +189,7 @@ function build(
     policyOutput: policyFor(candidates, authoredById, slotKeyFor),
     spellDocumentsById: authoredById,
     firstSequence: 10,
+    characterLevel: 1,
     ...overrides
   })
 }

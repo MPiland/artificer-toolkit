@@ -112,6 +112,13 @@ export const characterMechanicsApplicationDtoSchema = lazySchema(() =>
     }),
     z.strictObject({
       ordinal: receiptOrdinalSchema,
+      kind: z.literal('DEPART'),
+      /** True when the target was present and left the Run's play (D128); false when it was already absent. */
+      applied: z.boolean(),
+      ...characterMechanicsApplicationTraceDtoSchema.shape
+    }),
+    z.strictObject({
+      ordinal: receiptOrdinalSchema,
       kind: z.literal('HIT_POINT_MAXIMUM_REDUCTION'),
       reductionAmount: positiveIntegerSchema.check(z.lte(Number.MAX_SAFE_INTEGER)),
       sourceDamageOutcomeId: uuidSchema,
@@ -243,6 +250,42 @@ export const encounterActorActiveEffectCreateReceiptDtoSchema = lazySchema(() =>
   })
 )
 /** Immutable receipt for a target-owned state contribution created by an immediate outcome. */
+/**
+ * What the acting source's own state changed with its action, apart from the target's outcome: the
+ * conditions an effect that ended on the event held alone (SPELLS-27.T2, D125). Only releases are
+ * receipted, because undo restores exactly those.
+ */
+export const sourceApplicationsDtoSchema = lazySchema(() =>
+  z.array(characterMechanicsApplicationDtoSchema).check(
+    z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER),
+    z.superRefine((applications, context) => {
+      for (const [index, application] of applications.entries())
+        if (application.kind !== 'CONDITION_REMOVE' || application.ordinal !== index)
+          context.addIssue({
+            code: 'custom',
+            path: [index],
+            message: 'Source applications are contiguous condition releases.'
+          })
+    })
+  )
+)
+
+/**
+ * Whether a source's applications moved its Character stream version. A Creature source has no
+ * stream, so its releases change only the Run actor.
+ */
+export function sourceApplicationsChangeState(
+  applications: readonly z.infer<typeof characterMechanicsApplicationDtoSchema>[],
+  sourceCharacterId: string | null
+) {
+  return (
+    sourceCharacterId !== null &&
+    applications.some(
+      (application) => application.kind === 'CONDITION_REMOVE' && application.applied
+    )
+  )
+}
+
 export const stateEffectCreateReceiptDtoSchema = lazySchema(() =>
   z.strictObject({
     kind: z.literal('CREATE'),

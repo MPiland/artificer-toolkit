@@ -260,6 +260,14 @@ export async function readDependentEffects(
   return { characters, actors }
 }
 
+/** Whether the state ends when its last dependent effect does (Concentration), rather than staying until a terminal event. */
+export function maintainedStateTerminatesWhenEmpty(state: EncounterMaintainedEffectStateRecord) {
+  return (
+    state.descriptor.schemaVersion === 1 ||
+    state.descriptor.emptyDependentPolicy === 'TERMINATE_WHEN_EMPTY'
+  )
+}
+
 /** The maintained state an Encounter actor owns for one maintenance definition, if any. */
 export async function readMaintainedStateByDefinition(
   ctx: EncounterReadContext,
@@ -422,6 +430,32 @@ export function createActiveRuleEffectStore(ctx: EncounterWriteContext) {
       const rowId = await ctx.db.insert('encounterMaintainedEffectStates', stored)
       const row = await ctx.db.get(rowId)
       if (!row) throw new Error('Maintained effect state was not created.')
+      return readMaintainedState(row)
+    },
+    /** An undo gives back the exact state it ended: same version, descriptor and timestamps. */
+    async restoreMaintainedState(
+      input: EncounterMaintainedEffectStateRecord
+    ): Promise<EncounterMaintainedEffectStateRecord> {
+      const record = encounterMaintainedEffectStateRecordSchema.parse(input)
+      await requireEncounterActor(ctx, record.encounterId, record.ownerActorId)
+      if (
+        (await ctx.db
+          .query('encounterMaintainedEffectStates')
+          .withIndex('by_publicId', (q) => q.eq('id', record.id))
+          .unique()) ||
+        (await readMaintainedStateByDefinition(ctx, record))
+      )
+        throw new Error('Maintained effect state already exists.')
+      const { descriptor, ...fields } = record
+      const rowId = await ctx.db.insert(
+        'encounterMaintainedEffectStates',
+        encounterMaintainedEffectStateStoredSchema.parse({
+          ...fields,
+          descriptorJson: JSON.stringify(descriptor)
+        })
+      )
+      const row = await ctx.db.get(rowId)
+      if (!row) throw new Error('Maintained effect state was not restored.')
       return readMaintainedState(row)
     },
     async listDependentEffects(input: { encounterId: string; stateId: string }) {

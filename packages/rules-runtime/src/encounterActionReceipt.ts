@@ -148,7 +148,8 @@ export function buildEncounterActionStoredExecution(input: {
             d20: execution.d20,
             nestedD20: execution.nestedD20,
             targetTransition: mechanics.targetTransition,
-            applications: mechanics.receiptApplications
+            applications: mechanics.receiptApplications,
+            sourceApplications: settled.sourceApplications
           }
         : {
             kind: 'ENCOUNTER_ACTOR_MECHANICS_BATCH',
@@ -160,7 +161,8 @@ export function buildEncounterActionStoredExecution(input: {
             ...(input.maintenanceTransition ||
             settled.sourceItemUseStateTransition ||
             settled.itemConsumptionReceipt ||
-            settled.spellConsumptionReceipt
+            settled.spellConsumptionReceipt ||
+            settled.sourceApplications.length
               ? {
                   sourceCharacterId: actor.kind === 'CHARACTER' ? actor.sourceId : null
                 }
@@ -183,7 +185,8 @@ export function buildEncounterActionStoredExecution(input: {
             d20: execution.d20,
             nestedD20: execution.nestedD20,
             targetTransition: mechanics.targetTransition,
-            applications: mechanics.receiptApplications
+            applications: mechanics.receiptApplications,
+            sourceApplications: settled.sourceApplications
           }
   })
 }

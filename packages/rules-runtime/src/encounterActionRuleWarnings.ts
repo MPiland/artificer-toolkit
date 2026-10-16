@@ -27,6 +27,13 @@ type EncounterActionWarningInput = {
    */
   targetCreatureTypeId?: string | null
   /**
+   * The target's Intelligence when readable (a Creature's snapshot carries it; a Character's facts
+   * do not), judged against the Intelligence floor of an action that bonds its targets.
+   */
+  targetIntelligence?: number | null
+  /** Set when the action bonds its targets (Telepathic Bond): Intelligence at or below it is excluded. */
+  linkIntelligenceFloor?: number | null
+  /**
    * Set when the action stabilizes (the Healer's Kit): it needs a dying target, so a target that
    * is not dying warns with TARGET_NOT_DYING in place of TARGET_DEFEATED.
    */
@@ -62,6 +69,16 @@ function encounterActionWarnings(input: EncounterActionWarningInput) {
           }
         ]
       : []),
+    ...(input.linkIntelligenceFloor != null &&
+    input.targetIntelligence != null &&
+    input.targetIntelligence <= input.linkIntelligenceFloor
+      ? [
+          {
+            code: 'TARGET_INTELLIGENCE_EXCLUDED' as const,
+            message: 'This creature has too little Intelligence to join the bond.'
+          }
+        ]
+      : []),
     ...targetWarnings
   ]
 }
@@ -92,11 +109,11 @@ export function evaluateEncounterActionRuleWarnings(
 export function evaluateEncounterActorsRuleWarnings(
   input: Omit<
     EncounterActionWarningInput,
-    'target' | 'targetDefeated' | 'targetCreatureTypeId' | 'stabilize'
+    'target' | 'targetDefeated' | 'targetCreatureTypeId' | 'targetIntelligence' | 'stabilize'
   > & {
     targets: readonly Pick<
       EncounterActionWarningInput,
-      'target' | 'targetDefeated' | 'targetCreatureTypeId'
+      'target' | 'targetDefeated' | 'targetCreatureTypeId' | 'targetIntelligence'
     >[]
     areaWarnings: readonly EncounterRuleWarningDto[]
   }
