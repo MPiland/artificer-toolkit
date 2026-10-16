@@ -8659,16 +8659,15 @@
             },
             {
               "id": "SPELLS-28.T2",
-              "text": "MANIFEST outcome executor (Giant Insect).",
-              "status": "IN_PROGRESS",
+              "text": "MANIFEST outcome executor (Giant Insect). (Red: ci/spells-28-t2-red Tests 38933377505 on ef76e64c8 failed on the 3 nativeRoomGiantInsect tests. Green: ci/spells-28-t2 Tests 38936922027 and Live backend 38936922444 on bd5f01d7e.)",
+              "status": "DONE",
               "closes": ["SPELLS-28.1"],
               "wsjf": {
                 "bv": 3,
                 "tc": 2,
                 "rr": 3,
                 "size": 3
-              },
-              "activeWorkbook": "docs/handoffs/slice-spells-28.md"
+              }
             },
             {
               "id": "SPELLS-28.T3",
@@ -8685,7 +8684,7 @@
             {
               "id": "SPELLS-28.T4",
               "text": "Polymorph, True Polymorph, Shapechange and Wild Shape authored from core options on the CREATURE_FORM grant SPELLS-28.T2 builds (separate form HP, revert at 0 with carry-over, revert at duration end), with a corpus proof against the real compiler and one journey.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-28.1"],
               "wsjf": {
                 "bv": 5,
@@ -8693,7 +8692,8 @@
                 "rr": 3,
                 "size": 3,
                 "after": ["SPELLS-28.T2"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-28.md"
             }
           ]
         },

@@ -93,7 +93,22 @@ export const encounterActionChoiceDtoSchema = lazySchema(() =>
         area: z.nullable(
           z.strictObject({ kind: z.literal('RADIUS'), radius: shapeMeasurementDtoSchema })
         ),
-        allowRepeatedTargets: z.optional(z.literal(true))
+        allowRepeatedTargets: z.optional(z.literal(true)),
+        /**
+         * The forms the creatures may take (Giant Insect); the user picks one and each caps the
+         * picks at its own `maxTargets`. Absent for an action that authors none.
+         */
+        forms: z.optional(
+          z
+            .array(
+              z.strictObject({
+                id: postgresUuidSchema,
+                label: z.string().check(z.minLength(1)).check(z.maxLength(160)),
+                maxTargets: z.number().check(z.int()).check(z.positive())
+              })
+            )
+            .check(z.minLength(1))
+        )
       }),
       z.strictObject({
         kind: z.literal('POINT'),

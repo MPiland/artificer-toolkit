@@ -292,6 +292,7 @@ describe('room checkpoints', () => {
             stateJson,
             stateChecksum: sha256Hex(stateJson),
             snapshotChecksum: sha256Hex('snapshot'),
+            formOriginSnapshotChecksum: null,
             sourceFactsChecksum: null
           })
         }
@@ -358,6 +359,7 @@ describe('room checkpoints', () => {
           stateJson,
           stateChecksum: sha256Hex(stateJson),
           snapshotChecksum: sha256Hex('snapshot'),
+          formOriginSnapshotChecksum: null,
           sourceFactsChecksum: null
         })
       }
@@ -398,6 +400,7 @@ describe('room checkpoints', () => {
             stateJson,
             stateChecksum: sha256Hex(stateJson),
             snapshotChecksum: sha256Hex('snapshot'),
+            formOriginSnapshotChecksum: null,
             sourceFactsChecksum: null
           })
         }
@@ -451,6 +454,7 @@ describe('room checkpoints', () => {
             stateJson,
             stateChecksum: sha256Hex(stateJson),
             snapshotChecksum: sha256Hex('snapshot'),
+            formOriginSnapshotChecksum: null,
             sourceFactsChecksum: null
           })
         }
@@ -494,6 +498,7 @@ describe('room checkpoints', () => {
           stateJson,
           stateChecksum: sha256Hex(stateJson),
           snapshotChecksum: sha256Hex('snapshot'),
+          formOriginSnapshotChecksum: null,
           sourceFactsChecksum: null
         })
       }

@@ -5,7 +5,7 @@ import {
   type EncounterStoredRunActorState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import { projectEncounterActorFacts } from './encounterProjection.js'
+import { projectEncounterActorFacts, storedActorForm } from './encounterProjection.js'
 
 type ActorSnapshot = EncounterRunActorState['snapshot']
 
@@ -44,15 +44,27 @@ export function runActorPlayState(stored: EncounterStoredRunActorState) {
 
 export function checksumRunActorPlayState(actor: EncounterRunActorState) {
   const { snapshot: _snapshot, ...play } = actor
-  return checksumCanonicalJson(play)
+  return checksumCanonicalJson(
+    play.kind === 'CHARACTER' ? play : { ...play, form: storedActorForm(play.form) }
+  )
 }
 
-/** The one place a stored actor and its snapshot become the full actor again. */
+/**
+ * The one place a stored actor and its snapshots become the full actor again. An actor in a form
+ * also needs its origin's snapshot (`stored.form.origin.snapshotChecksum`).
+ */
 export function composeRunActorState(
   stored: EncounterStoredRunActorState,
-  snapshot: ActorSnapshot
+  snapshot: ActorSnapshot,
+  originSnapshot?: ActorSnapshot
 ): EncounterRunActorState {
-  return { ...runActorPlayState(stored), snapshot }
+  const play = runActorPlayState(stored)
+  if (play.kind === 'CHARACTER') return { ...play, snapshot }
+  const { form, ...rest } = play
+  if (form === null) return { ...rest, form: null, snapshot }
+  if (originSnapshot === undefined) throw new Error('An actor in a form needs its origin snapshot.')
+  const { snapshotChecksum: _originChecksum, ...origin } = form.origin
+  return { ...rest, form: { ...form, origin: { ...origin, snapshot: originSnapshot } }, snapshot }
 }
 
 /**
@@ -71,6 +83,7 @@ export function splitRunActorState(
       ? { ...play, snapshotChecksum }
       : {
           ...play,
+          form: facts.form,
           snapshotChecksum,
           sourceFactsChecksum: facts.sourceFactsChecksum,
           featureResources: facts.featureResources
@@ -80,6 +93,9 @@ export function splitRunActorState(
     stored,
     snapshot,
     snapshotChecksum,
+    originSnapshot: actor.kind === 'CHARACTER' ? null : (actor.form?.origin.snapshot ?? null),
+    originSnapshotChecksum:
+      stored.kind === 'CHARACTER' ? null : (stored.form?.origin.snapshotChecksum ?? null),
     source,
     sourceFactsChecksum: stored.kind === 'CHARACTER' ? null : stored.sourceFactsChecksum
   }

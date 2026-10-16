@@ -2,6 +2,7 @@ import type { EncounterActorRuleOutput } from '@artificer-toolkit/schema/api/enc
 import {
   encounterActorProjectionFactsSchema,
   encounterSourceProjectionFactsSchema,
+  type EncounterActorForm,
   type EncounterActorProjectionFacts,
   type EncounterRunActorState,
   type EncounterRunState,
@@ -176,6 +177,13 @@ function currentActorIdForProjection(
     : null
 }
 
+/** The form as a stored actor holds it: the origin snapshot named by checksum, not carried. */
+export function storedActorForm(form: EncounterActorForm | null) {
+  if (form === null) return null
+  const { snapshot, ...origin } = form.origin
+  return { ...form, origin: { ...origin, snapshotChecksum: checksumCanonicalJson(snapshot) } }
+}
+
 /**
  * One actor's projection facts, from its state and its evaluated actor rules, and for a Creature the
  * stat block and Feature references its source shares with identical Creatures (ADR 0035
@@ -237,6 +245,7 @@ export function projectEncounterActorFacts(
       tempHitPoints: actor.tempHitPoints,
       conditions: actor.conditions,
       defeated: actor.defeated,
+      form: storedActorForm(actor.form),
       absence: actor.absence,
       sourceFactsChecksum: source && checksumCanonicalJson(source),
       featureResources: [...resources.values()].flatMap((resource) =>
