@@ -97,6 +97,11 @@ Convex-only stale cases stay where they are proved: a missing definition while p
 - Pushed e20582c09 to `ci/room-6-t2`. Tests 38914875081 failed in the new file only (typecheck and every other job green): `rollDice` only holds a roll, so the Assisted tests never reached the settling command, and the compiler pins authored actions to `TERMINATE_WHEN_EMPTY`.
 - Fixed in fe4438689: answer with `SYSTEM_ROLL`; the empty-prior case flips the prior state's descriptor; dropped the unused second definition from the fixture. Tests 38917657292 green.
 - Merged `ci/merge-batch-ai` (4ab896590) before the final push.
+- Tests 38921560207 (ce6c0d47b) and 38924134501 (1f1e84266) failed in the new file only; each fixed a fixture fault, no product change:
+  - a seeded dependent must target a Run actor and carry its state owner as `origin.sourceActorId`, so the outside-the-Run owner was deferred and `seedTurnSaveEffect` takes `maintainedBy`;
+  - Character actors need a snapshot that names their Character before the turn can pass to them (`seatedCharacter`);
+  - the seeded effect's source occurrence must be the prior state's (`requireTurnMaintainedStates`).
+- Merged `ci/merge-batch-ak` and `-an`. Green on `ci/room-6-t2` 894ddca5b: Tests 38935190197, Live backend 38935190347. The light lane was blocked behind other sessions' tickets, so the repro ran in CI.
 - Reviewer findings reworked: the RETAIN case now depends on the policy (expiring dependent plus a TERMINATE control); the detached owner outside the Run is deferred (fixture limit); the stale cause is pinned by a control and a pending check; the Assisted settle asserts the replacement and the Wolf's dependent.
 
 ## Review triage
