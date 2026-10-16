@@ -99,6 +99,7 @@ describe('effect node maps', () => {
     expect(kindNode.source.options.map((option) => option.code)).toEqual([
       'MOVEMENT',
       'ATTACKED_SELF',
+      'SPELL_CAST',
       'DAMAGE_TAKEN'
     ])
     const damageTypesNode = reactionMap.nodes.damageTypeIds
