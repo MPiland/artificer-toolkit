@@ -12,6 +12,7 @@ import {
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { deriveEncounterCharacterMechanicsEventCommandId } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
+import { attackedHostileCreature } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
 import { overridesActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionRuleWarnings'
 import { effectiveHitPointMaximum } from '@artificer-toolkit/rules-runtime/character/activeEffectGrantTotals'
 import { executionAddsSpeedToMovement } from '@artificer-toolkit/rules-runtime/systems/dnd5e/addSpeedToMovement'
@@ -36,6 +37,7 @@ import type { persistEncounterActionChildren } from './actionChildrenPersistence
 import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.js'
 import type { EncounterCharacterWriteTransaction, EncounterWritePorts } from './ports.js'
 import { castPendingContinues } from './actionPending.js'
+import { idleTurnMarkChanges } from './idleTurnMark.js'
 import { actionSystemRollAnswers, readAppCardedDice } from './appCardedDice.js'
 import { recordActionRollCards, settledD20s } from './actionRollCards.js'
 
@@ -322,7 +324,8 @@ export async function persistEncounterActionCommit(
     encounterId: state.id,
     source: beforeSource,
     spend: batch,
-    economyOverridden: overridesActionEconomy(input.ruleOverrides)
+    economyOverridden: overridesActionEconomy(input.ruleOverrides),
+    engages: attackedHostileCreature({ d20s: [batch.d20, batch.nestedD20], source, target })
   })
   const settledFailed = await applyFailedCounterSpends(ctx, {
     state,
@@ -442,7 +445,8 @@ export async function persistEncounterActionCommit(
       addedConcentrationCasterId: maintenance?.addedConcentrationCasterId ?? null,
       speedBonusTurn: addsSpeed ? { round: state.round, turnActorId: source.id } : null,
       turnUses,
-      failedCounters: input.failedCounters.map(({ receipt }) => receipt)
+      failedCounters: input.failedCounters.map(({ receipt }) => receipt),
+      idleTurnMarkChanges: idleTurnMarkChanges(actors, nextActors)
     },
     occurredAt: input.occurredAt
   })

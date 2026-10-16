@@ -19,7 +19,8 @@ import type { StoredRuleExecutionResultDto } from '@artificer-toolkit/schema/sha
 import type { EncounterCharacterWriteTransaction } from './ports.js'
 import { reconcileNativeMaintenanceOwners } from './maintenanceOwnerPersistence.js'
 import { createActiveRuleEffectStore } from './effectStore.js'
-import { readRunActors } from './documents.js'
+import { readRunActors, replaceRunActor } from './documents.js'
+import { armIdleTurnActor } from './idleTurnMark.js'
 
 type CompleteExecution = Extract<StoredRuleExecutionResultDto, { status: 'COMPLETE' }>
 
@@ -342,12 +343,20 @@ export async function persistEncounterActionEffects(
     if (checksumCanonicalJson(created) !== checksumCanonicalJson(effect))
       throw new Error('Created action effect changed before settlement.')
   }
+  // The one place effects are created for an actor, so every activation path arms it the same way.
+  const armed = armIdleTurnActor({
+    actor: target,
+    createdEffects: input.createdEffects,
+    currentActorId: input.state.currentActorId
+  })
+  if (armed !== target) await replaceRunActor(ctx, target, armed)
+  const actors = input.actors.map((actor) => (actor.id === armed.id ? armed : actor))
   return input.maintenance
     ? reconcileNativeMaintenanceOwners(ctx, {
         encounterId: input.state.id,
         maintenance: input.maintenance,
-        actors: input.actors,
+        actors,
         occurredAt: input.occurredAt
       })
-    : input.actors
+    : actors
 }

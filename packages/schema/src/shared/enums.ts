@@ -343,7 +343,13 @@ export const pathLifecycleConsumeEventSchema = lazySchema(() =>
   z.enum(['ON_ATTACK_ROLL', 'ON_ABILITY_CHECK', 'ON_CAST_SPELL'])
 )
 export const pathLifecycleEndEventSchema = lazySchema(() =>
-  z.enum(['ON_ATTACK_ROLL', 'ON_CAST_SPELL', 'ON_HIT_POINTS_REGAINED', 'ON_INCAPACITATED'])
+  z.enum([
+    'ON_ATTACK_ROLL',
+    'ON_CAST_SPELL',
+    'ON_HIT_POINTS_REGAINED',
+    'ON_INCAPACITATED',
+    'ON_IDLE_TURN'
+  ])
 )
 /** The consume events a timed grant can carry (a cast does not use a grant up). */
 export const pathLifecycleGrantConsumeEventSchema = lazySchema(() =>
@@ -353,7 +359,7 @@ export const pathLifecycleGrantConsumeEventSchema = lazySchema(() =>
 )
 /** The end events a timed grant can carry (it is never ended by an attack roll or a cast). */
 export const pathLifecycleGrantEndEventSchema = lazySchema(() =>
-  z.enum(['ON_HIT_POINTS_REGAINED', 'ON_INCAPACITATED'] satisfies z.infer<
+  z.enum(['ON_HIT_POINTS_REGAINED', 'ON_INCAPACITATED', 'ON_IDLE_TURN'] satisfies z.infer<
     typeof pathLifecycleEndEventSchema
   >[])
 )

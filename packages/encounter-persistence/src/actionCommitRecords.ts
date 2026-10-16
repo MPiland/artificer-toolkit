@@ -91,7 +91,7 @@ export async function recordActionRoot(
             z.infer<typeof encounterStoredRunCommandSchema>,
             { commandType: 'RESOLVE_ACTION' }
           >,
-          'issuerLines' | 'gmLines' | 'failedCounters'
+          'issuerLines' | 'gmLines' | 'failedCounters' | 'idleTurnMarkChanges'
         >
       >
     occurredAt: string

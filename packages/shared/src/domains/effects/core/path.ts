@@ -409,7 +409,8 @@ export const PATH_LIFECYCLE_END_EVENT = {
   ON_ATTACK_ROLL: 'ON_ATTACK_ROLL',
   ON_CAST_SPELL: 'ON_CAST_SPELL',
   ON_HIT_POINTS_REGAINED: 'ON_HIT_POINTS_REGAINED',
-  ON_INCAPACITATED: 'ON_INCAPACITATED'
+  ON_INCAPACITATED: 'ON_INCAPACITATED',
+  ON_IDLE_TURN: 'ON_IDLE_TURN'
 } as const
 
 export type PathLifecycleEndEvent = keyof typeof PATH_LIFECYCLE_END_EVENT
@@ -439,6 +440,12 @@ export const PATH_LIFECYCLE_END_EVENT_REGISTRY: Record<
     code: PATH_LIFECYCLE_END_EVENT.ON_INCAPACITATED,
     label: 'On Incapacitated',
     description: 'Ends on incapacitation.'
+  },
+  [PATH_LIFECYCLE_END_EVENT.ON_IDLE_TURN]: {
+    code: PATH_LIFECYCLE_END_EVENT.ON_IDLE_TURN,
+    label: 'On Idle Turn',
+    description:
+      'Ends when the holder’s turn ends having neither attacked a hostile creature nor taken damage since their previous turn.'
   }
 } as const
 

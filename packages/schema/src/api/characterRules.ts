@@ -193,7 +193,6 @@ const characterSenseFactsSchema = lazySchema(() =>
 
 const characterArmorClassFactsSchema = lazySchema(() =>
   z.strictObject({
-    dexterityAbilityId: boundedIdentitySchema,
     dexterityAbilityIndex: z.nullable(integerSchema.check(z.gte(0)).check(z.lte(31))),
     equipment: z
       .array(

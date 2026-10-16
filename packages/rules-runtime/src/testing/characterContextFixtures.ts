@@ -12,7 +12,10 @@ import {
   characterSheetStateSchema,
   type CharacterSheetState
 } from '@artificer-toolkit/schema/projections/characterSheetState'
-import { systemAuthoredDtoSchema } from '@artificer-toolkit/schema/vocabulary/system'
+import {
+  systemAuthoredDtoSchema,
+  type SystemAuthoredDto
+} from '@artificer-toolkit/schema/vocabulary/system'
 import { createEmptyCharacterAuthored } from '@artificer-toolkit/shared/character'
 import type { CharacterResourceUsage } from '@artificer-toolkit/shared/core'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
@@ -210,9 +213,13 @@ type FixtureDocuments = Partial<Record<PublicationKind, readonly unknown[]>>
  * The Character's prepared rules context over in-memory content snapshot objects, with no
  * persistence: the same preparation the Convex and Worker paths run behind their readers.
  */
-async function prepareFixtureContext(character: CharacterAuthored, documents: FixtureDocuments) {
+async function prepareFixtureContext(
+  character: CharacterAuthored,
+  documents: FixtureDocuments,
+  gameSystem: SystemAuthoredDto = system
+) {
   const readers = createSnapshotReaders(scopeObjects(documents))
-  const ruleContext = await prepareCharacterRuleContext(character, system, undefined, readers)
+  const ruleContext = await prepareCharacterRuleContext(character, gameSystem, undefined, readers)
   return prepareActiveCharacterBuilderContext(character, ruleContext, async () => [])
 }
 
@@ -239,9 +246,10 @@ export async function prepareFixtureSheet(input: {
   streamVersion?: number
   adjustments?: CharacterSheetState['adjustments']
   movementDisplayPreference?: CharacterSheetState['movementDisplayPreference']
+  gameSystem?: SystemAuthoredDto
 }) {
   const { character } = input
-  const context = await prepareFixtureContext(character, input.documents)
+  const context = await prepareFixtureContext(character, input.documents, input.gameSystem)
   const timestamp = new Date(0).toISOString()
   const sheetState = characterSheetStateSchema.parse({
     adjustments: input.adjustments ?? [],

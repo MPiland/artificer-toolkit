@@ -5,6 +5,8 @@ import type {
   ActiveEffectEndEvent
 } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import type { ConcentrationEndReason } from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
+import { encounterActorIdleTurnMark } from './encounterActorState.js'
+import { encounterActorRelationship } from './encounterActionTargetPolicy.js'
 import {
   isEffectLiveInEncounter,
   turnEffectOwner,
@@ -164,6 +166,42 @@ export function planEncounterGrantTicks(input: {
       left.effect.createdOrdinal - right.effect.createdOrdinal ||
       left.effect.id.localeCompare(right.effect.id)
   )
+}
+
+const ATTACK_ROLL_RESULT_PATHS: readonly string[] = ['ON_HIT', 'ON_MISS', 'ON_CRIT']
+
+/** Whether a settled action's d20s hold an attack roll its source made against a creature hostile to it. */
+export function attackedHostileCreature(input: {
+  d20s: readonly ({ resultPath: string } | null | undefined)[]
+  source: Pick<EncounterRunActorState, 'disposition'>
+  target: Pick<EncounterRunActorState, 'disposition'>
+}) {
+  return (
+    encounterActorRelationship(input.source.disposition, input.target.disposition) === 'HOSTILE' &&
+    input.d20s.some((d20) => d20 !== null && d20 !== undefined && ATTACK_ROLL_RESULT_PATHS.includes(d20.resultPath))
+  )
+}
+
+/**
+ * What the end of the turn actor's turn does to its idle-bound grants (SRD Rage). An armed actor,
+ * one that neither attacked a hostile creature nor took damage since its last turn ended, loses the
+ * grants that end on `ON_IDLE_TURN`; an engaged one keeps them and is armed again. `effects` need
+ * only be read for an armed actor. A grant created on the actor's own turn arrives engaged, so its
+ * first check is at the end of the actor's next turn.
+ */
+export function planIdleTurnCheck<Effect extends ActiveRuleEffectRecord>(input: {
+  encounterId: string
+  actor: Pick<EncounterRunActorState, 'kind' | 'resources'>
+  effects: readonly Effect[]
+}) {
+  const mark = encounterActorIdleTurnMark(input.actor)
+  if (mark === null) return { ended: [], nextMark: null }
+  if (mark === 'ENGAGED') return { ended: [], nextMark: 'ARMED' as const }
+  const ended = effectsEndedBy(input.effects, 'ON_IDLE_TURN').filter((effect) =>
+    isEffectLiveInEncounter(effect, input.actor, input.encounterId)
+  )
+  const holdsOthers = effectsEndedBy(input.effects, 'ON_IDLE_TURN').length > ended.length
+  return { ended, nextMark: holdsOthers ? ('ARMED' as const) : null }
 }
 
 /**
