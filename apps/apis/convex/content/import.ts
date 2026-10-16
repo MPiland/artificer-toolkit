@@ -13,7 +13,6 @@ import {
   sourceImportDefinitionsInputSchema,
   sourceImportReadBootstrapInputSchema,
   sourceImportSubjectDtoSchema,
-  sourceImportSubjectIdPageDtoSchema,
   sourceImportSubjectsInputSchema,
   sourceImportSubjectsResultDtoSchema,
   sourceImportSystemDtoSchema,
@@ -568,25 +567,6 @@ function checkPageSize(size: number) {
   if (!Number.isInteger(size) || size < 1 || size > 10)
     throw new Error('Import page size must be 1..10.')
 }
-
-// The seed refuses a corpus that drops a stored subject, so it needs the stored ids up front.
-export const readSubjectIds = internalQuery({
-  args: pageArgs,
-  returns: zodToConvex(sourceImportSubjectIdPageDtoSchema),
-  handler: async (ctx, args) => {
-    checkPageSize(args.paginationOpts.numItems)
-    const source = await requireSource(ctx, args.contentSourceId)
-    const result = await ctx.db
-      .query('authoredRoots')
-      .withIndex('by_contentSourceId', (q) => q.eq('contentSourceId', source.id))
-      .paginate(args.paginationOpts)
-    return {
-      page: result.page.map((root) => root.id),
-      isDone: result.isDone,
-      continueCursor: result.continueCursor
-    }
-  }
-})
 
 export const readSubjects = internalQuery({
   args: pageArgs,

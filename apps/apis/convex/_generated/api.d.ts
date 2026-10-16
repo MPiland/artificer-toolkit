@@ -122935,7 +122935,7 @@ export declare const internal: {
             systemId: string;
           }>;
         },
-        { inserted: number; reused: number }
+        { inserted: number; replaced: number; reused: number }
       >;
       readBootstrap: FunctionReference<
         "query",
@@ -123110,6 +123110,7 @@ export declare const internal: {
           definitions: number;
           inserted: number;
           manifestChecksum: string;
+          replaced: number;
           reused: number;
           subjects: number;
           systems: number;

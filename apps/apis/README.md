@@ -673,7 +673,9 @@ children are recompiled against the replaced parent. Play data keeps working bec
 current document and frozen occurrences keep their own facts. Seeding an older corpus is another
 replace. A subject changing kind, System or content source is a conflict. Demoting a Class or Race that
 still has subclasses or subraces is refused with their ids. `importSubjects` and `seed` report
-`replaced`. A subject removed from the corpus fails the seed before any write, naming its ids
+`replaced`. The seed reads the stored checksums first and gives each replaced subject a batch alone
+(a replace costs about 100-250 ms idle however small the document;
+[measurements](../../docs/validation/platform-18-t1-replace-mutation-margin-2026-10-15.md)). A subject removed from the corpus fails the seed before any write, naming its ids
 (removal is a deferred edge case). Definitions, Systems, content sources and catalogue records are
 still insert-or-identical, so changing those needs a backend reset. `liveBackendValidation.mjs`
 proves replacement on an ephemeral backend (`replace`/`reseed` steps) and times each mutation.

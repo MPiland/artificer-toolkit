@@ -758,7 +758,9 @@ describe('internal canonical source import', () => {
       replaced: 1
     })
     expect(await state()).toEqual({ ...first, versions: [[3, original.checksum]] })
-    expect((await t.query(internal.content.import.readSubjectIds, page)).page).toEqual([acolyte.id])
+    expect((await t.query(internal.content.import.readSubjects, page)).page).toEqual([
+      { id: acolyte.id, checksum: original.checksum }
+    ])
   })
 
   it('recompiles dependent subraces on a parent Race replace and refuses to demote a Race with subraces', async () => {

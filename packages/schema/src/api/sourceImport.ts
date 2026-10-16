@@ -164,14 +164,6 @@ export const sourceImportAuditPageDtoSchema = lazySchema(() =>
     continueCursor: z.string()
   })
 )
-export const sourceImportSubjectIdPageDtoSchema = lazySchema(() =>
-  z.strictObject({
-    page: z.array(canonicalUuidSchema),
-    isDone: z.boolean(),
-    continueCursor: z.string()
-  })
-)
-export type SourceImportSubjectIdPageDto = z.infer<typeof sourceImportSubjectIdPageDtoSchema>
 export type SourceImportBootstrapResultDto = z.infer<typeof sourceImportBootstrapResultDtoSchema>
 export type SourceImportAuditPageDto = z.infer<typeof sourceImportAuditPageDtoSchema>
 export type SourceImportAuditDto = z.infer<typeof sourceImportAuditDtoSchema>

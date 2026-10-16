@@ -17,7 +17,6 @@ import {
   type SourceImportBootstrapInput,
   type SourceImportDefinitionsInput,
   type SourceImportSeedResultDto,
-  type SourceImportSubjectIdPageDto,
   type SourceImportSubjectsInput
 } from '@artificer-toolkit/schema/api/sourceImport'
 import { jsonValueSchema } from '@artificer-toolkit/schema/projections/identity'
@@ -196,22 +195,29 @@ async function auditPrepared(
 }
 
 // Removal is not supported: fail before writing anything rather than leave a stale subject.
-async function assertNoRemovedSubjects(ctx: ActionCtx, manifest: SrdImportManifest) {
-  const expected = new Set(manifest.subjects.map((subject) => subject.id))
+// Returns the ids whose stored checksum differs, which the import replaces in place.
+async function changedSubjectIds(ctx: ActionCtx, manifest: SrdImportManifest) {
+  const expected = new Map(manifest.subjects.map((subject) => [subject.id, subject.checksum]))
   const removed: string[] = []
+  const changed = new Set<string>()
   let cursor: string | null = null
   do {
-    const page: SourceImportSubjectIdPageDto = await ctx.runQuery(
-      internal.content.import.readSubjectIds,
+    const page: SourceImportAuditPageDto = await ctx.runQuery(
+      internal.content.import.readSubjects,
       { contentSourceId: manifest.contentSource.id, paginationOpts: { numItems: 10, cursor } }
     )
-    removed.push(...page.page.filter((id) => !expected.has(id)))
+    for (const stored of page.page) {
+      const checksum = expected.get(stored.id)
+      if (checksum === undefined) removed.push(stored.id)
+      else if (checksum !== stored.checksum) changed.add(stored.id)
+    }
     cursor = page.isDone ? null : page.continueCursor
   } while (cursor !== null)
   if (removed.length)
     throw new Error(
       `Canonical subjects were removed from the corpus, which the seed cannot apply: ${removed.join(', ')}.`
     )
+  return changed
 }
 
 // CLI-only internal action. Batches commit independently; exact repeats make interrupted
@@ -230,8 +236,8 @@ export const seed = internalAction({
       })),
       replaced: 0
     }
-    await assertNoRemovedSubjects(ctx, manifest)
-    for (const subjects of sourceImportBatches(manifest.subjects)) {
+    const changed = await changedSubjectIds(ctx, manifest)
+    for (const subjects of sourceImportBatches(manifest.subjects, ({ id }) => changed.has(id))) {
       const batch = await ctx.runMutation(internal.content.import.importSubjects, {
         contentSourceId: manifest.contentSource.id,
         subjects

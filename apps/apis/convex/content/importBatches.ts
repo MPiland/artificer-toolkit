@@ -24,12 +24,17 @@ export function sourceImportRecordCost(record: unknown) {
 }
 
 // Packs records in order up to the budget; a record at or over the budget gets its
-// own batch. Never split a document.
-export function* sourceImportBatches<T>(records: readonly T[]) {
+// own batch. Never split a document. A record that replaces a stored subject (`alone`) also gets a
+// batch alone: replacing costs about 100-250 ms idle however small the document is
+// (PLATFORM-18.T1, docs/validation/platform-18-t1-replace-mutation-margin-2026-10-15.md), which the
+// per-KiB fit above does not capture.
+export function* sourceImportBatches<T>(records: readonly T[], alone?: (record: T) => boolean) {
   let batch: T[] = []
   let cost = 0
   for (const record of records) {
-    const recordCost = sourceImportRecordCost(record)
+    const recordCost = alone?.(record)
+      ? SOURCE_IMPORT_BATCH_COST_BUDGET
+      : sourceImportRecordCost(record)
     if (batch.length && cost + recordCost > SOURCE_IMPORT_BATCH_COST_BUDGET) {
       yield batch
       batch = []
