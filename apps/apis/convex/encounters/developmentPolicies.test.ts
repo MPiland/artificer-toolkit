@@ -189,10 +189,10 @@ describe('development lifecycle policy cleanup', () => {
     const base = await setup()
     expect(
       await base.t.mutation(internal.content.import.bootstrap, base.policies.bootstrap)
-    ).toEqual({ inserted: 0, reused: 3 })
+    ).toEqual({ inserted: 0, reused: 3, replaced: 0 })
     expect(
       await base.t.mutation(internal.content.import.importDefinitions, base.policies.imported)
-    ).toEqual({ inserted: 0, reused: 6 })
+    ).toEqual({ inserted: 0, reused: 6, replaced: 0 })
     const campaign = await createFixtureCampaign(base)
     const blocked = await state(base)
     expect(blocked.canonicalSystem).toEqual(base.canonicalSystem)

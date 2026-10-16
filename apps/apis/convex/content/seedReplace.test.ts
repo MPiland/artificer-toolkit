@@ -51,8 +51,8 @@ function embedCorpus(
   parts: Partial<{
     systems: (typeof system)[]
     definitions: (typeof sense)[]
-    contentSource: typeof SRD_CONTENT_SOURCE
-    catalogue: typeof SRD_RULES_CATALOGUE
+    contentSource: Omit<typeof SRD_CONTENT_SOURCE, 'label'> & { label: string }
+    catalogue: Omit<typeof SRD_RULES_CATALOGUE, 'description'> & { description: string }
   }> = {}
 ) {
   const corpus = {
@@ -127,7 +127,9 @@ describe('seeding a changed corpus', () => {
     })
 
     // Corpus N+1 revises all four kinds; the seed applies them without a backend reset.
-    const revisedSystem = jsonValueSchema.parse({ ...systemDocument, description: 'Revised SRD' })
+    const revisedSystem = jsonValueSchema.parse(
+      JSON.parse(JSON.stringify({ ...srdSystemRecord, description: 'Revised SRD' }))
+    )
     const revisedSense = sourceImportDefinitionDtoSchema.parse({ ...sense, label: 'Revised sense' })
     const checksumNext = embedCorpus(subjects, {
       systems: [

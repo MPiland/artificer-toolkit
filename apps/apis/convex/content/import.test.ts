@@ -921,7 +921,9 @@ describe('internal canonical source import', () => {
   it('replaces a changed System, content source and catalogue in place and advances the vocabulary snapshot', async () => {
     const t = convexTest(schema, modules)
     await t.mutation(internal.content.import.bootstrap, bootstrap)
-    const revised = jsonValueSchema.parse({ ...systemDocument, description: 'Revised SRD' })
+    const revised = jsonValueSchema.parse(
+      JSON.parse(JSON.stringify({ ...srdSystemRecord, description: 'Revised SRD' }))
+    )
     const next = {
       systems: [
         { id: srdSystemRecord.id, document: revised, checksum: checksumRuleDocument(revised) }
@@ -971,10 +973,11 @@ describe('internal canonical source import', () => {
     const t = convexTest(schema, modules)
     await t.mutation(internal.content.import.bootstrap, bootstrap)
     const removed = srdSystemRecord.languages[0]
-    const trimmed = jsonValueSchema.parse({
-      ...systemDocument,
-      languages: srdSystemRecord.languages.slice(1)
-    })
+    const trimmed = jsonValueSchema.parse(
+      JSON.parse(
+        JSON.stringify({ ...srdSystemRecord, languages: srdSystemRecord.languages.slice(1) })
+      )
+    )
     await expect(
       t.mutation(internal.content.import.bootstrap, {
         ...bootstrap,
