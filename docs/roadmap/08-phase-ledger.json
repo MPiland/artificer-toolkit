@@ -9529,8 +9529,12 @@
           "acs": [
             {
               "text": "A short-rest hit-die roll is recognised by its source kind (HIT_DIE), not its display label, so changing the label cannot break hit-die resolution; proved by a test that fails before the fix.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/apis/convex/rolls.test.ts (hit-die roll through the Convex roll mutation).",
+                "Red: ci/reliability-6-red Tests 38889565004 on 9cac04cf8 (tests only).",
+                "Green: ci/reliability-6-t1a Tests 38897281806 and Live 38897281700 on 82f5a4adb; merged in batch ad."
+              ],
               "origin": [],
               "note": "sheetRoll.ts:108 gates on label !== 'Short rest hit dice'; the same literal is built at :132.",
               "id": "RELIABILITY-6.1"
@@ -9545,8 +9549,12 @@
             },
             {
               "text": "A skill's governing ability and an ability's identity resolve from the System's authored vocabulary by id; a missing mapping is an error, never a silent DEXTERITY; proved by tests that fail before the fix.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/rules-runtime/src/__tests__/sheetSkillAbility.test.ts (Sheet projection, both error cases).",
+                "Red: ci/reliability-6-red Tests 38889565004 on 9cac04cf8 (tests only).",
+                "Green: ci/reliability-6-t1a Tests 38897281806 and Live 38897281700 on 82f5a4adb; merged in batch ad."
+              ],
               "origin": [],
               "note": "characterSheetVocabulary.ts:104/119, sheetProjection.ts:1078 (SKILL_ABILITY_MAP ?? 'DEXTERITY'), characterArmorClassRuleFacts.ts:37.",
               "id": "RELIABILITY-6.3"
@@ -9641,8 +9649,11 @@
             },
             {
               "text": "An actor's initiative roll (policy, modifier, expression, roll mode) is read by one shared function that switches on the actor's source kind (Character, Creature, custom), used by both the Worker and Convex.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/rules-runtime/src/__tests__/encounterInitiativeRoll.test.ts (new shared initiative roll module; the AC has no fail-before clause).",
+                "Green: ci/reliability-6-t1a Tests 38897281806 and Live 38897281700 on 82f5a4adb; merged in batch ad."
+              ],
               "origin": [],
               "note": "Three copies: session-worker roomEncounterReadPorts.ts:255 area, apps/apis/convex/encounters/initiativeSources.ts:38-62, rules-runtime systems/dnd5e/initiativeFactAdapter.ts:271-325; the `?? 'NORMAL'` conflates a creature with a Character.",
               "id": "RELIABILITY-6.15"
@@ -9690,9 +9701,8 @@
             {
               "id": "RELIABILITY-6.T1a",
               "text": "Typed identities for hit dice by kind, skill abilities from System vocabulary (no silent DEXTERITY) and one initiative-roll reader switching on source kind, replacing the Convex, Worker and dnd5e adapter copies.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["RELIABILITY-6.1", "RELIABILITY-6.3", "RELIABILITY-6.15"],
-              "activeWorkbook": "docs/handoffs/slice-reliability-6.md",
               "wsjf": {
                 "bv": 3,
                 "tc": 3,
@@ -9724,7 +9734,8 @@
                 "rr": 8,
                 "size": 8,
                 "after": ["RELIABILITY-6.T1b"]
-              }
+              },
+              "note": "AC 6.9 red already pushed: ci/reliability-6-red-69 Tests 38891936885 on 7264b2819."
             },
             {
               "id": "RELIABILITY-6.T2",
