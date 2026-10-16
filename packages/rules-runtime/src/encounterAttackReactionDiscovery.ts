@@ -21,6 +21,11 @@ export function attackHitDamageTypeIds(
   )
 }
 
+type AttackReactionAction = Pick<CharacterActionCandidate, 'actionId' | 'effectId'> & {
+  trigger: EncounterReactionPinDto['trigger']
+  triggerDamageTypeIds: readonly string[]
+}
+
 /**
  * The reactions a Character holds that answer an attack that hit it: authored `ATTACKED_SELF`
  * reactions, and `DAMAGE_TAKEN` reactions naming a damage type the hit deals, among its actions and
@@ -30,16 +35,13 @@ export function attackHitDamageTypeIds(
 export function discoverAttackReactionActions(
   target: Pick<MovementTarget, 'characterReactionSource' | 'characterSpellCast'>,
   hitDamageTypeIds: ReadonlySet<string>
-): readonly (Pick<CharacterActionCandidate, 'actionId' | 'effectId'> & {
-  trigger: EncounterReactionPinDto['trigger']
-  triggerDamageTypeIds: readonly string[]
-})[] {
+): readonly AttackReactionAction[] {
   const candidates: readonly CharacterActionCandidate[] = [
     ...(target.characterReactionSource?.mechanics.rulePolicyInput.actionCandidates ?? []),
     ...(target.characterSpellCast?.candidates ?? [])
   ]
   return candidates
-    .flatMap(({ actionId, effectId, mechanicFacts: { invocation } }) => {
+    .flatMap<AttackReactionAction>(({ actionId, effectId, mechanicFacts: { invocation } }) => {
       const trigger = invocation.reactionTrigger
       if (invocation.activation?.code !== 'REACTION' || !trigger) return []
       if (trigger.kind === 'ATTACKED_SELF')

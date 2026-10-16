@@ -149,6 +149,36 @@ function activeSpellEffects(spell: SpellAuthored): readonly CompiledEffectGroup[
   return groups
 }
 
+type GrantOutcome = Extract<
+  Extract<CompiledEffectGroup['entries'][number], { outcome: unknown }>['outcome'],
+  { effectKind: 'APPLY_GRANT' }
+>
+
+/** A granted amount that scales by slot level is the fixed amount the cast level gives. */
+function grantAtCastLevel(outcome: GrantOutcome, castLevel: number): GrantOutcome {
+  const { modifiers } = outcome.grants
+  if (!modifiers) return outcome
+  return {
+    ...outcome,
+    grants: {
+      ...outcome.grants,
+      modifiers: modifiers.map((modifier) => {
+        const { payload } = modifier
+        if (!payload || !('valueKind' in payload) || payload.valueKind !== 'SPELL_SLOT_LEVEL')
+          return modifier
+        return {
+          ...modifier,
+          payload: {
+            valueKind: 'FIXED' as const,
+            amount:
+              (payload.multiplier ?? 1) * Math.max(0, castLevel - (payload.subtractLevels ?? 0))
+          }
+        }
+      })
+    }
+  }
+}
+
 /**
  * The Effect as one cast at `castLevel` runs it. A dice heal that scales by cast level rolls a
  * fixed number of dice, so it becomes the row the cast level selects (the highest level at or below
@@ -164,31 +194,8 @@ export function effectAtCastLevel(
     entries: group.entries.map((entry) => {
       if (!('outcome' in entry)) return entry
       const { outcome } = entry
-      if (outcome.effectKind === 'APPLY_GRANT' && outcome.grants.modifiers)
-        return {
-          ...entry,
-          outcome: {
-            ...outcome,
-            grants: {
-              ...outcome.grants,
-              modifiers: outcome.grants.modifiers.map((modifier) =>
-                modifier.payload &&
-                'valueKind' in modifier.payload &&
-                modifier.payload.valueKind === 'SPELL_SLOT_LEVEL'
-                  ? {
-                      ...modifier,
-                      payload: {
-                        valueKind: 'FIXED' as const,
-                        amount:
-                          (modifier.payload.multiplier ?? 1) *
-                          Math.max(0, castLevel - (modifier.payload.subtractLevels ?? 0))
-                      }
-                    }
-                  : modifier
-              )
-            }
-          }
-        }
+      if (outcome.effectKind === 'APPLY_GRANT')
+        return { ...entry, outcome: grantAtCastLevel(outcome, castLevel) }
       if (
         outcome.effectKind !== 'HEAL' ||
         outcome.valueKind !== 'DICE' ||
