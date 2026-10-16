@@ -8663,8 +8663,8 @@
               "activeWorkbook": "docs/handoffs/slice-spells-27.md"
             },
             {
-              "id": "SPELLS-27.T5",
-              "text": "Author SRD end events (spells, class features, items, creature traits) from core options; corpus test lists any effect left with end-event text and no authored end, except a typed allow-list of other mechanisms.",
+              "id": "SPELLS-27.T4b",
+              "text": "Every damage root ends damage-triggered effects through damageTakenEndedEffects: the area commit, the Legendary window, the movement reaction, turn effects (ongoing damage) and death-save damage, each proved with GM undo; plus the ATTACK_ROLL-against-an-enemy end arm (Sanctuary) and the SPELL_CAST arm on the T3 cast fact. T5 authors no damage-ended SRD effect whose damage arrives through an unwired root.",
               "status": "TODO",
               "closes": ["SPELLS-27.2"],
               "wsjf": {
@@ -8676,8 +8676,21 @@
               }
             },
             {
+              "id": "SPELLS-27.T5",
+              "text": "Author SRD end events (spells, class features, items, creature traits) from core options; corpus test lists any effect left with end-event text and no authored end, except a typed allow-list of other mechanisms.",
+              "status": "TODO",
+              "closes": ["SPELLS-27.2"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-27.T4", "SPELLS-27.T4b"]
+              }
+            },
+            {
               "id": "SPELLS-27.T6",
-              "text": "Unify consumeOnFirstEvents and endOnEvents into one structured shape with explicit timing; delete the old enum, migrate data, no shim (D122). After REACTION-4.T3.",
+              "text": "Unify consumeOnFirstEvents and endOnEvents into one structured shape with explicit timing; delete the old enum, migrate data, no shim (D122). After REACTION-4.T3. The unified shape also absorbs endOnTriggers (T4) and drops its read default of [], migrating stored effects instead.",
               "status": "TODO",
               "closes": ["SPELLS-27.1"],
               "wsjf": {
