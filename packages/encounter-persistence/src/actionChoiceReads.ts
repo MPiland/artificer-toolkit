@@ -38,6 +38,7 @@ import {
   readDisarmSelection
 } from './actionPreparationReads.js'
 import { rejectDomain } from './domainRejections.js'
+import { requireTargetSeenByMember } from './targetVisibility.js'
 import { readRunActor, readRunActors, readRunState } from './documents.js'
 import { listActiveRuleEffects } from './effectStore.js'
 import { loadMovementTargets } from './movementTargetReads.js'
@@ -439,7 +440,7 @@ export async function readEncounterOptionalActionChoices(
     readRunActors(tx, state),
     readRunActor(tx, state, command.targetActorId)
   ])
-  if (membership.role !== 'OWNER' && !target.public) rejectDomain('TARGET_UNAVAILABLE')
+  await requireTargetSeenByMember(tx, { encounterId: state.id, target, membership })
   const { descriptor, definition, targetCharacter } = await readDisarmSelection(tx, {
     state,
     campaign,

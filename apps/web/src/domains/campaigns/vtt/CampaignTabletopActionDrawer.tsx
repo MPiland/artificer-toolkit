@@ -49,6 +49,7 @@ import { CampaignTabletopActionConfirmation } from './CampaignTabletopActionConf
 import { CampaignTabletopBasicActions } from './CampaignTabletopBasicActions'
 import { CampaignTabletopEscapes } from './CampaignTabletopEscapes'
 import { CampaignTabletopHeldGrantEnds } from './CampaignTabletopHeldGrantEnds'
+import { CampaignTabletopProjectileTargets } from './CampaignTabletopProjectileTargets'
 import { LiveSessionCommandRejectedError } from './liveSessionClient'
 import {
   aimedAreaShape,
@@ -178,10 +179,26 @@ export function CampaignTabletopActionDrawer({
       encounter.actors.some((actor) => actor.id === id && !actor.defeated)
     ) ?? null
   const actionId = pickedActionId === undefined ? preselectedActionId : pickedActionId
-  const targetActorId =
-    pickedTargetActorId === undefined ? preselectedTargetActorId : pickedTargetActorId
   const selectedAction = actions.find((action) => action.id === actionId) ?? null
   const choiceTarget = selectedAction?.target
+  // A defeated creature isn't a target (D63; the server still warns if one is named), and neither is
+  // the acting creature when the action refuses itself (Help, First Aid).
+  const targetableActors = encounter.actors.filter(
+    (actor) =>
+      !actor.defeated &&
+      !(
+        choiceTarget?.kind === 'ACTOR' &&
+        choiceTarget.self === 'REFUSED' &&
+        actor.id === currentActorId
+      )
+  )
+  const pickedOrPreselectedTargetActorId =
+    pickedTargetActorId === undefined ? preselectedTargetActorId : pickedTargetActorId
+  const targetActorId = targetableActors.some(
+    (actor) => actor.id === pickedOrPreselectedTargetActorId
+  )
+    ? pickedOrPreselectedTargetActorId
+    : null
   // A list of chosen creatures inside an area is aimed at a point like any point area.
   const actorsTarget = choiceTarget?.kind === 'ACTORS' ? choiceTarget : null
   const areaTarget =
@@ -619,7 +636,16 @@ export function CampaignTabletopActionDrawer({
                   onChange={setPickedActionId}
                 />
               ) : null}
-              {actorsTarget ? (
+              {actorsTarget?.allowRepeatedTargets ? (
+                <CampaignTabletopProjectileTargets
+                  // A defeated creature isn't a target (D63); the server still warns if one is named.
+                  creatures={encounter.actors.filter((actor) => !actor.defeated)}
+                  disabled={selectionControlsDisabled}
+                  maxTargets={actorsTarget.maxTargets}
+                  value={pickedActorIds}
+                  onChange={setPickedActorIds}
+                />
+              ) : actorsTarget ? (
                 <MultiSelect
                   comboboxProps={{ withinPortal: false }}
                   // A defeated creature isn't a target (D63); the server still warns if one is named.
@@ -709,10 +735,7 @@ export function CampaignTabletopActionDrawer({
               ) : actorsTarget ? null : (
                 <Select
                   comboboxProps={{ withinPortal: false }}
-                  // A defeated creature isn't a target (D63); the server still warns if one is named.
-                  data={encounter.actors
-                    .filter((actor) => !actor.defeated)
-                    .map((actor) => ({ label: actor.label, value: actor.id }))}
+                  data={targetableActors.map((actor) => ({ label: actor.label, value: actor.id }))}
                   disabled={selectionControlsDisabled}
                   label='Target'
                   searchable

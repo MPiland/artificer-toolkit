@@ -514,6 +514,7 @@ export function getExplicitSpellCastLevels(
   spell: {
     level: number
     mechanics?: readonly {
+      targetCountLevels?: readonly number[]
       outcomes: readonly { kind: string; scaling?: readonly { level: number }[] }[]
     }[]
   },
@@ -524,13 +525,14 @@ export function getExplicitSpellCastLevels(
   if ((source.castMode ?? 'SPELL_SLOT') !== 'SPELL_SLOT' || spell.level === 0) return [baseLevel]
 
   const explicitLevels = new Set(
-    (spell.mechanics ?? []).flatMap((mechanic) =>
-      mechanic.outcomes.flatMap((outcome) =>
+    (spell.mechanics ?? []).flatMap((mechanic) => [
+      ...(mechanic.targetCountLevels ?? []),
+      ...mechanic.outcomes.flatMap((outcome) =>
         outcome.kind === 'DAMAGE' || outcome.kind === 'HEAL'
           ? (outcome.scaling ?? []).map((entry) => entry.level)
           : []
       )
-    )
+    ])
   )
   return [
     baseLevel,

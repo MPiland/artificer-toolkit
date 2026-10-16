@@ -122,16 +122,8 @@ export const resolveEncounterActionTargetDtoSchema = lazySchema(() =>
     z.strictObject({ kind: z.literal('ACTOR'), actorId: uuidSchema }),
     z.strictObject({
       kind: z.literal('ACTORS'),
-      actorIds: z
-        .array(uuidSchema)
-        .check(z.minLength(1))
-        .check(z.maxLength(MAX_ENCOUNTER_ACTORS))
-        .check(
-          z.refine(
-            (ids) => new Set(ids.map((id) => id.toLowerCase())).size === ids.length,
-            'Each chosen creature is named once.'
-          )
-        ),
+      /** One entry per creature, or per dart for an action that allows repeated targets. */
+      actorIds: z.array(uuidSchema).check(z.minLength(1)).check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
       scene: z.nullable(
         z.strictObject({
           sceneId: uuidSchema,

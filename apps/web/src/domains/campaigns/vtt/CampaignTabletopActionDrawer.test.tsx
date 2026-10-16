@@ -423,6 +423,33 @@ describe('CampaignTabletopActionDrawer basic actions', () => {
     )
   })
 
+  it('leaves the acting creature out of the Target list when the action refuses itself', async () => {
+    const user = userEvent.setup()
+    const [staff] = actions
+    const helping = validatedChoice({
+      ...staff,
+      id: 'equipment-staff:help',
+      label: 'Lend aid',
+      target: { kind: 'ACTOR', self: 'REFUSED' }
+    })
+    const actor = tabletopGmEncounter.actors.find(
+      (candidate) => candidate.id === tabletopGmEncounter.currentActorId
+    )!
+    const other = tabletopGmEncounter.actors.find((candidate) => candidate.id !== actor.id)!
+    renderDrawer(vi.fn(), { choices: [helping, staff!] })
+
+    await user.click(await screen.findByRole('combobox', { name: 'Action' }))
+    await user.click(await screen.findByRole('option', { name: /Lend aid/ }))
+    await user.click(screen.getByRole('combobox', { name: 'Target' }))
+    expect(await screen.findByRole('option', { name: other.label })).toBeVisible()
+    expect(screen.queryByRole('option', { name: actor.label })).toBeNull()
+
+    await user.click(await screen.findByRole('combobox', { name: 'Action' }))
+    await user.click(await screen.findByRole('option', { name: /Quarterstaff/ }))
+    await user.click(screen.getByRole('combobox', { name: 'Target' }))
+    expect(await screen.findByRole('option', { name: actor.label })).toBeVisible()
+  })
+
   it('asks for the creature First Aid stabilizes before it can be used', async () => {
     const user = userEvent.setup()
     const onResolve = vi.fn().mockResolvedValue(resolved)
@@ -1014,6 +1041,18 @@ describe('CampaignTabletopActionDrawer chosen creatures (SPELLS-8, D118)', () =>
     }
   })
 
+  const magicMissile = validatedChoice({
+    ...healingWord,
+    id: 'spell-magic-missile:cast',
+    label: 'Magic Missile',
+    target: {
+      kind: 'ACTORS' as const,
+      maxTargets: 3,
+      area: null,
+      allowRepeatedTargets: true as const
+    }
+  })
+
   async function chooseTargets(user: ReturnType<typeof userEvent.setup>) {
     await user.click(await screen.findByRole('combobox', { name: 'Action' }))
     await user.keyboard('{ArrowDown}{Enter}')
@@ -1049,6 +1088,33 @@ describe('CampaignTabletopActionDrawer chosen creatures (SPELLS-8, D118)', () =>
             point: null
           }
         }
+      })
+    )
+  })
+
+  it('splits projectiles between creatures, one list entry per projectile, never past the cap', async () => {
+    const user = userEvent.setup()
+    const onResolve = vi.fn<(command: ResolveEncounterActionInputDto) => Promise<unknown>>()
+    renderDrawer(onResolve, { choices: [magicMissile] })
+
+    await user.click(await screen.findByRole('combobox', { name: 'Action' }))
+    await user.keyboard('{ArrowDown}{Enter}')
+    expect(screen.getByText('Projectiles (0 of 3)')).toBeVisible()
+    expect(screen.getByRole('button', { name: 'Resolve action' })).toBeDisabled()
+
+    await user.type(screen.getByRole('textbox', { name: first.label }), '2')
+    await user.type(screen.getByRole('textbox', { name: second.label }), '1')
+    expect(screen.getByText('Projectiles (3 of 3)')).toBeVisible()
+    await user.type(screen.getByRole('textbox', { name: first.label }), '9')
+    expect(screen.getByText('Projectiles (3 of 3)')).toBeVisible()
+    await user.click(screen.getByRole('button', { name: 'Resolve action' }))
+    expect(onResolve).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actionId: magicMissile.id,
+        target: expect.objectContaining({
+          kind: 'ACTORS',
+          actorIds: [first.id, first.id, second.id]
+        })
       })
     )
   })

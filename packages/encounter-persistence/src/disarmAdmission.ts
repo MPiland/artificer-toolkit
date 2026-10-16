@@ -20,6 +20,7 @@ import { readRunActor, readRunActors, readRunState } from './documents.js'
 import { replayEncounterCommandResult } from './replayReceipts.js'
 import { readEncounterSettledAppRoll } from './evidenceRolls.js'
 import { presentEncounterResultForMember } from './resultPresentation.js'
+import { requireTargetSeenByMember } from './targetVisibility.js'
 import { requireUnusedEvidenceCommandId } from './timelineEntries.js'
 import type { EncounterDocument } from './store.js'
 import type { EncounterReadTransaction } from './ports.js'
@@ -211,7 +212,7 @@ export async function readDisarmAdmission(
     ])
     await requireEncounterActorControl(ctx, { campaign, membership, actor })
     if (await readEncounterActorDefeated(ctx, actor)) rejectDomain('ACTOR_DEFEATED')
-    if (membership.role !== 'OWNER' && !target.public) rejectDomain('TARGET_UNAVAILABLE')
+    await requireTargetSeenByMember(ctx, { encounterId: state.id, target, membership })
     // A defeated creature can't contest a Disarm (D63).
     if (await readEncounterActorDefeated(ctx, target))
       rejectDomain('TARGET_UNAVAILABLE', 'The target is defeated.')

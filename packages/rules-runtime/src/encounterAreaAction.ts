@@ -18,6 +18,7 @@ import {
 } from '@artificer-toolkit/shared/vtt'
 
 import { TOUCH_RANGE } from './encounterActionTargetPolicy.js'
+import { selectScalingRow } from './scalingRowSelection.js'
 
 const RANGE_UNCHECKED: EncounterRuleWarningDto = {
   code: 'TARGET_RANGE_UNCHECKED',
@@ -54,22 +55,38 @@ export function encounterAreaTargetKind(
   return POINT_AREA_SHAPE_KINDS.has(shapeKind) ? 'POINT' : null
 }
 
+type ChosenCreaturesTargeting = Extract<TargetingDto, { selectionKind: 'CHOSEN_CREATURES' }>
+
 /**
- * The most creatures a chosen-creatures targeting names, or null when it is not a plain bounded
- * list: no authored cap, a cap or resolution count that scales, or a creature that may be named
- * more than once is a shape this path does not resolve.
+ * The most creatures a chosen-creatures targeting names, or null when it is not a bounded list:
+ * no authored cap, or a cap or resolution count that still scales (a cap scaled by the spell's cast
+ * level is resolved first, {@link resolveChosenCreaturesTargeting}). A creature may be named once
+ * per entry, up to this cap, when the targeting allows repeated targets.
  */
-export function chosenCreaturesMaxTargets(
-  targeting: Extract<TargetingDto, { selectionKind: 'CHOSEN_CREATURES' }>
-): number | null {
+export function chosenCreaturesMaxTargets(targeting: ChosenCreaturesTargeting): number | null {
   if (
     targeting.maxTargetsScaling !== undefined ||
     targeting.resolutionCount !== undefined ||
-    targeting.resolutionCountScaling !== undefined ||
-    targeting.allowRepeatedTargets === true
+    targeting.resolutionCountScaling !== undefined
   )
     return null
   return targeting.maxTargets ?? null
+}
+
+/**
+ * A chosen-creatures targeting whose cap scales with the spell's cast level, with that cap resolved
+ * to the number it is at `spellCastLevel` (Magic Missile's darts). Any other scaling, or no cast
+ * level, is left as authored, so the cap stays unresolved and the action is refused.
+ */
+export function resolveChosenCreaturesTargeting(
+  targeting: ChosenCreaturesTargeting,
+  spellCastLevel: number | undefined
+): ChosenCreaturesTargeting {
+  const { maxTargetsScaling, ...rest } = targeting
+  if (maxTargetsScaling?.scalingSource !== 'SPELL_CAST_LEVEL' || spellCastLevel === undefined)
+    return targeting
+  const row = selectScalingRow(maxTargetsScaling.breakpoints, spellCastLevel)
+  return row ? { ...rest, maxTargets: row.value.amount } : targeting
 }
 
 /**
@@ -165,7 +182,14 @@ export function encounterActionChoiceTarget(
       ? chosenCreaturesMaxTargets(targeting)
       : null
   if (maxTargets !== null)
-    return { kind: 'ACTORS', maxTargets, area: area?.kind === 'RADIUS' ? area : null }
+    return {
+      kind: 'ACTORS',
+      maxTargets,
+      area: area?.kind === 'RADIUS' ? area : null,
+      ...(targeting?.selectionKind === 'CHOSEN_CREATURES' && targeting.allowRepeatedTargets
+        ? { allowRepeatedTargets: true as const }
+        : {})
+    }
   if (area?.kind === 'RADIUS' && policy && encounterActionTargetKind(policy) === 'CASTER_CENTERED')
     return { kind: 'CASTER_CENTERED', area }
   if (area) return { kind: 'POINT', area }
