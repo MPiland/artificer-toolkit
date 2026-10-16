@@ -282,7 +282,11 @@ async function prepareAreaTarget(
       target: actor,
       movementTargets: base.movementTargets,
       sceneContext,
-      originPoint: base.origin
+      origin: {
+        point: base.origin,
+        sceneId: base.scene.sceneId,
+        sceneVersion: base.scene.sceneVersion
+      }
     })
   }
 }
@@ -304,10 +308,10 @@ export function prepareCasterActionOnTarget(
     movementTargets: Awaited<ReturnType<typeof prepareAreaScene>>['movementTargets']
     sceneContext: Parameters<typeof prepareEncounterActionMechanics>[0]['sceneContext']
     /** Where an area starts: its saves are made against what each creature sees of this point. */
-    originPoint?: ScenePoint
+    origin?: { point: ScenePoint; sceneId: string; sceneVersion: number }
   }
 ) {
-  const { originPoint, sceneContext } = action
+  const { origin, sceneContext } = action
   return prepareEncounterActionMechanics({
     state: input.state,
     actor: action.caster,
@@ -322,16 +326,16 @@ export function prepareCasterActionOnTarget(
     movementTargets: action.movementTargets,
     sceneContext,
     loadAttackPerception:
-      originPoint && sceneContext
+      origin && sceneContext
         ? ({ targetFacts }) =>
             readNativeLivePointPerception({
               state: input.state,
               system: input.system,
               observer: targetFacts,
-              point: originPoint,
+              point: origin.point,
               sceneContext: {
-                sceneId: sceneContext.sceneId,
-                sceneVersion: sceneContext.sceneVersion,
+                sceneId: origin.sceneId,
+                sceneVersion: origin.sceneVersion,
                 grid: sceneContext.grid
               },
               capture: input.capture
