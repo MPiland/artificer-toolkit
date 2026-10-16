@@ -4,6 +4,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import { DND5E_SAVE_DC_FACT_KEY } from '@artificer-toolkit/rules-runtime/systems/dnd5e/effectActionCompiler'
 import { spiritGuardians } from '@artificer-toolkit/source-data/srd/spells/spirit-guardians.js'
+import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
@@ -41,7 +42,10 @@ afterEach(() => {
 function auraRoom(wolfAt: { x: number; y: number }) {
   return actionRoom({
     actors: [
-      characterActor({ id: CASTER_ACTOR_ID, characterId: CASTER_ID }),
+      {
+        ...characterActor({ id: CASTER_ACTOR_ID, characterId: CASTER_ID }),
+        snapshot: { kind: 'CHARACTER', id: CASTER_ID, systemId: srdSystemRecord.id }
+      },
       srdCreatureActor({ id: WOLF_ID, creature: plainWolf })
     ],
     positions: { [WOLF_ID]: wolfAt },
