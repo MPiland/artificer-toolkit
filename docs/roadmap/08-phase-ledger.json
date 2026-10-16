@@ -3835,7 +3835,7 @@
         {
           "id": "ROOM-6",
           "title": "Room tests cover multi-Character and multi-controller scenarios",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "journeyTests": [],
           "journeyStatus": "none",
           "origin": [],
@@ -3943,14 +3943,15 @@
             {
               "id": "ROOM-6.T1",
               "text": "Player-socket and two-controller room fixtures: a player drives their own Character, two-Character Concentration and the Legendary Action controller cases.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["ROOM-6.1", "ROOM-6.9", "ROOM-6.11"],
               "wsjf": {
                 "bv": 2,
                 "tc": 3,
                 "rr": 8,
                 "size": 5
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-room-6.md"
             },
             {
               "id": "ROOM-6.T2",
