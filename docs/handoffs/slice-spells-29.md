@@ -45,3 +45,21 @@ Base: `3ce5883f1` (SPELLS-19.T2, merged locally), branch `claude/bold-chaplygin-
   - The Worker room journey did not reach execution: the Packages and Worker job stopped at the failing rules-runtime step.
   - The red Live backend run, 38924777274, succeeded.
 - 2026-10-16: green attempt 1 (`751692f2b`, after merging `ci/merge-batch-ak`) failed in Build packages. The SRD Frightened spread onto a widened `ConditionMechanicRule`, and the journey read `rollMode` on an un-narrowed roll request. Fixed in `3cbe4f781`.
+- 2026-10-16: green attempt 2 (`3cbe4f781`) failed in the rules-runtime build: `encounterConditionSources` read `stateContributions` from version-one effect definitions. Fixed in `b49c24bf6`.
+- 2026-10-16: green attempt 3 (`b49c24bf6`) built, then failed two checks:
+  - Typecheck: the `acknowledgedWarnings` default made the field required on every output-typed `MOVE_SCENE_TOKEN` test fixture. It is now `z.optional`, like `carefully`, and absent means none.
+  - Generated Convex validators lacked `APPROACH_SOURCE_FORBIDDEN`. That drift is fixed via the Live backend `generated-files` artifact.
+- 2026-10-16: independent opus review, triaged:
+  - **Fix now, B1** (source-data build): done in `3cbe4f781`.
+  - **Fix now, B2** (a source other than the action's actor or target was always unseen, so the room's in-sight test could not pass): `loadSourcesSeen` now passes source actor ids. The Worker loads any Encounter actor as a source; one no longer in the Encounter is unseen. Disarm shares one target loader.
+  - **Fix now, B3** (`acknowledgedWarnings` required on output-typed commands): now optional.
+  - **Fix now, S1** (docs claimed the override is recorded): the handoff, the decision and rules-runtime.md now say the move receipt records no override. The badge is a proposed follow-up.
+  - **Fix now, S4** (forced and teleport moves unproved): room test "warns on a teleport that ends closer to the caster, never on a forced move".
+  - **Defer, S2** (one Scene read per source) and **S3** (a source bound on another Scene fails as stale): both in Deferred edge cases.
+  - **Stands, S4** (check gating, room proof):
+    - The sight filter runs once in `prepareEncounterActionMechanics`, before both attack and check contributors.
+    - The attack journey proves the room wiring.
+    - The unit test "disadvantage on attacks and checks only while it sees a source" proves checks against real code.
+  - **Stands, MANUAL mode** (no move warning, since nothing tracks rules there; ADR 0034).
+  - **Stands, raw `scene.grid` in the move gate** (the movement planner beside it uses the same grid).
+  - **Stands, a second refusal replacing the open dialog** (the latest refusal is the current one).

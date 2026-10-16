@@ -24358,6 +24358,7 @@ export declare const api: {
                         kind: "D20_ROLL_MODE";
                         minimumLevel: number | null;
                         order: number;
+                        requiresHolderSeesSource?: true;
                         roll:
                           | { kind: "ATTACKS_BY" }
                           | {
@@ -24408,6 +24409,12 @@ export declare const api: {
                               };
                               kind: "WITHIN" | "BEYOND";
                             };
+                      }
+                    | {
+                        id: string;
+                        kind: "APPROACH_SOURCE_FORBIDDEN";
+                        minimumLevel: number | null;
+                        order: number;
                       }
                   >;
                   perceptionContributions?: Array<
@@ -33861,6 +33868,7 @@ export declare const api: {
                         kind: "D20_ROLL_MODE";
                         minimumLevel: number | null;
                         order: number;
+                        requiresHolderSeesSource?: true;
                         roll:
                           | { kind: "ATTACKS_BY" }
                           | {
@@ -33911,6 +33919,12 @@ export declare const api: {
                               };
                               kind: "WITHIN" | "BEYOND";
                             };
+                      }
+                    | {
+                        id: string;
+                        kind: "APPROACH_SOURCE_FORBIDDEN";
+                        minimumLevel: number | null;
+                        order: number;
                       }
                   >;
                   perceptionContributions?: Array<
@@ -43373,6 +43387,7 @@ export declare const api: {
                         kind: "D20_ROLL_MODE";
                         minimumLevel: number | null;
                         order: number;
+                        requiresHolderSeesSource?: true;
                         roll:
                           | { kind: "ATTACKS_BY" }
                           | {
@@ -43423,6 +43438,12 @@ export declare const api: {
                               };
                               kind: "WITHIN" | "BEYOND";
                             };
+                      }
+                    | {
+                        id: string;
+                        kind: "APPROACH_SOURCE_FORBIDDEN";
+                        minimumLevel: number | null;
+                        order: number;
                       }
                   >;
                   perceptionContributions?: Array<
@@ -52876,6 +52897,7 @@ export declare const api: {
                         kind: "D20_ROLL_MODE";
                         minimumLevel: number | null;
                         order: number;
+                        requiresHolderSeesSource?: true;
                         roll:
                           | { kind: "ATTACKS_BY" }
                           | {
@@ -52926,6 +52948,12 @@ export declare const api: {
                               };
                               kind: "WITHIN" | "BEYOND";
                             };
+                      }
+                    | {
+                        id: string;
+                        kind: "APPROACH_SOURCE_FORBIDDEN";
+                        minimumLevel: number | null;
+                        order: number;
                       }
                   >;
                   perceptionContributions?: Array<
@@ -62414,6 +62442,7 @@ export declare const api: {
                         kind: "D20_ROLL_MODE";
                         minimumLevel: number | null;
                         order: number;
+                        requiresHolderSeesSource?: true;
                         roll:
                           | { kind: "ATTACKS_BY" }
                           | {
@@ -62464,6 +62493,12 @@ export declare const api: {
                               };
                               kind: "WITHIN" | "BEYOND";
                             };
+                      }
+                    | {
+                        id: string;
+                        kind: "APPROACH_SOURCE_FORBIDDEN";
+                        minimumLevel: number | null;
+                        order: number;
                       }
                   >;
                   perceptionContributions?: Array<
@@ -71917,6 +71952,7 @@ export declare const api: {
                         kind: "D20_ROLL_MODE";
                         minimumLevel: number | null;
                         order: number;
+                        requiresHolderSeesSource?: true;
                         roll:
                           | { kind: "ATTACKS_BY" }
                           | {
@@ -71967,6 +72003,12 @@ export declare const api: {
                               };
                               kind: "WITHIN" | "BEYOND";
                             };
+                      }
+                    | {
+                        id: string;
+                        kind: "APPROACH_SOURCE_FORBIDDEN";
+                        minimumLevel: number | null;
+                        order: number;
                       }
                   >;
                   perceptionContributions?: Array<
@@ -81408,6 +81450,7 @@ export declare const api: {
                       kind: "D20_ROLL_MODE";
                       minimumLevel: number | null;
                       order: number;
+                      requiresHolderSeesSource?: true;
                       roll:
                         | { kind: "ATTACKS_BY" }
                         | {
@@ -81457,6 +81500,12 @@ export declare const api: {
                             };
                             kind: "WITHIN" | "BEYOND";
                           };
+                    }
+                  | {
+                      id: string;
+                      kind: "APPROACH_SOURCE_FORBIDDEN";
+                      minimumLevel: number | null;
+                      order: number;
                     }
                 >;
                 perceptionContributions?: Array<
@@ -90795,6 +90844,7 @@ export declare const api: {
                         kind: "D20_ROLL_MODE";
                         minimumLevel: number | null;
                         order: number;
+                        requiresHolderSeesSource?: true;
                         roll:
                           | { kind: "ATTACKS_BY" }
                           | {
@@ -90845,6 +90895,12 @@ export declare const api: {
                               };
                               kind: "WITHIN" | "BEYOND";
                             };
+                      }
+                    | {
+                        id: string;
+                        kind: "APPROACH_SOURCE_FORBIDDEN";
+                        minimumLevel: number | null;
+                        order: number;
                       }
                   >;
                   perceptionContributions?: Array<
@@ -100298,6 +100354,7 @@ export declare const api: {
                         kind: "D20_ROLL_MODE";
                         minimumLevel: number | null;
                         order: number;
+                        requiresHolderSeesSource?: true;
                         roll:
                           | { kind: "ATTACKS_BY" }
                           | {
@@ -100348,6 +100405,12 @@ export declare const api: {
                               };
                               kind: "WITHIN" | "BEYOND";
                             };
+                      }
+                    | {
+                        id: string;
+                        kind: "APPROACH_SOURCE_FORBIDDEN";
+                        minimumLevel: number | null;
+                        order: number;
                       }
                   >;
                   perceptionContributions?: Array<
@@ -110495,6 +110558,7 @@ export declare const api: {
             warnings: Array<{
               code:
                 | "ACTION_ECONOMY_UNAVAILABLE"
+                | "CONDITION_SOURCE_APPROACH"
                 | "RESOURCE_UNAVAILABLE"
                 | "SOURCE_NOT_EQUIPPED"
                 | "TARGET_DEFEATED"
@@ -111218,6 +111282,7 @@ export declare const api: {
             warnings: Array<{
               code:
                 | "ACTION_ECONOMY_UNAVAILABLE"
+                | "CONDITION_SOURCE_APPROACH"
                 | "RESOURCE_UNAVAILABLE"
                 | "SOURCE_NOT_EQUIPPED"
                 | "TARGET_DEFEATED"
@@ -111247,6 +111312,7 @@ export declare const api: {
             warnings: Array<{
               code:
                 | "ACTION_ECONOMY_UNAVAILABLE"
+                | "CONDITION_SOURCE_APPROACH"
                 | "RESOURCE_UNAVAILABLE"
                 | "SOURCE_NOT_EQUIPPED"
                 | "TARGET_DEFEATED"
@@ -111267,6 +111333,7 @@ export declare const api: {
             warnings: Array<{
               code:
                 | "ACTION_ECONOMY_UNAVAILABLE"
+                | "CONDITION_SOURCE_APPROACH"
                 | "RESOURCE_UNAVAILABLE"
                 | "SOURCE_NOT_EQUIPPED"
                 | "TARGET_DEFEATED"
