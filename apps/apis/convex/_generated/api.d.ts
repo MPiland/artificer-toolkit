@@ -25684,13 +25684,7 @@ export declare const api: {
                         }
                       | {
                           kind: "PASSIVE";
-                          optionalOnHit?:
-                            | { kind: "SPELL_SLOT" }
-                            | {
-                                chargeId: string;
-                                cost: number;
-                                kind: "RESOURCE_POOL";
-                              };
+                          optionalOnHit?: { kind: "SPELL_SLOT" };
                           range:
                             | {
                                 id: string;
@@ -35447,13 +35441,7 @@ export declare const api: {
                         }
                       | {
                           kind: "PASSIVE";
-                          optionalOnHit?:
-                            | { kind: "SPELL_SLOT" }
-                            | {
-                                chargeId: string;
-                                cost: number;
-                                kind: "RESOURCE_POOL";
-                              };
+                          optionalOnHit?: { kind: "SPELL_SLOT" };
                           range:
                             | {
                                 id: string;
@@ -45219,13 +45207,7 @@ export declare const api: {
                         }
                       | {
                           kind: "PASSIVE";
-                          optionalOnHit?:
-                            | { kind: "SPELL_SLOT" }
-                            | {
-                                chargeId: string;
-                                cost: number;
-                                kind: "RESOURCE_POOL";
-                              };
+                          optionalOnHit?: { kind: "SPELL_SLOT" };
                           range:
                             | {
                                 id: string;
@@ -54982,13 +54964,7 @@ export declare const api: {
                         }
                       | {
                           kind: "PASSIVE";
-                          optionalOnHit?:
-                            | { kind: "SPELL_SLOT" }
-                            | {
-                                chargeId: string;
-                                cost: number;
-                                kind: "RESOURCE_POOL";
-                              };
+                          optionalOnHit?: { kind: "SPELL_SLOT" };
                           range:
                             | {
                                 id: string;
@@ -64780,13 +64756,7 @@ export declare const api: {
                         }
                       | {
                           kind: "PASSIVE";
-                          optionalOnHit?:
-                            | { kind: "SPELL_SLOT" }
-                            | {
-                                chargeId: string;
-                                cost: number;
-                                kind: "RESOURCE_POOL";
-                              };
+                          optionalOnHit?: { kind: "SPELL_SLOT" };
                           range:
                             | {
                                 id: string;
@@ -74543,13 +74513,7 @@ export declare const api: {
                         }
                       | {
                           kind: "PASSIVE";
-                          optionalOnHit?:
-                            | { kind: "SPELL_SLOT" }
-                            | {
-                                chargeId: string;
-                                cost: number;
-                                kind: "RESOURCE_POOL";
-                              };
+                          optionalOnHit?: { kind: "SPELL_SLOT" };
                           range:
                             | {
                                 id: string;
@@ -84275,13 +84239,7 @@ export declare const api: {
                       }
                     | {
                         kind: "PASSIVE";
-                        optionalOnHit?:
-                          | { kind: "SPELL_SLOT" }
-                          | {
-                              chargeId: string;
-                              cost: number;
-                              kind: "RESOURCE_POOL";
-                            };
+                        optionalOnHit?: { kind: "SPELL_SLOT" };
                         range:
                           | {
                               id: string;
@@ -93941,13 +93899,7 @@ export declare const api: {
                         }
                       | {
                           kind: "PASSIVE";
-                          optionalOnHit?:
-                            | { kind: "SPELL_SLOT" }
-                            | {
-                                chargeId: string;
-                                cost: number;
-                                kind: "RESOURCE_POOL";
-                              };
+                          optionalOnHit?: { kind: "SPELL_SLOT" };
                           range:
                             | {
                                 id: string;
@@ -103704,13 +103656,7 @@ export declare const api: {
                         }
                       | {
                           kind: "PASSIVE";
-                          optionalOnHit?:
-                            | { kind: "SPELL_SLOT" }
-                            | {
-                                chargeId: string;
-                                cost: number;
-                                kind: "RESOURCE_POOL";
-                              };
+                          optionalOnHit?: { kind: "SPELL_SLOT" };
                           range:
                             | {
                                 id: string;
@@ -114048,6 +113994,19 @@ export declare const api: {
                 targetActorId: string;
               }
             | {
+                allowedResponses: Array<"DECLINE" | "OPTION">;
+                attackerActorId: string;
+                encounterVersion: number;
+                kind: "ON_HIT_CHOICE";
+                occurrenceId: string;
+                occurrenceVersion: number;
+                options: Array<{
+                  optionId: string;
+                  riderId: string;
+                  slotLevel: number;
+                }>;
+              }
+            | {
                 allowedResponses: Array<"DECLINE" | "LEGENDARY_OPTION">;
                 encounterVersion: number;
                 kind: "LEGENDARY_ACTION_CHOICE";
@@ -114339,6 +114298,19 @@ export declare const api: {
                   occurrenceVersion: number;
                   options: Array<{ actionId: string; optionId: string }>;
                   targetActorId: string;
+                }
+              | {
+                  allowedResponses: Array<"DECLINE" | "OPTION">;
+                  attackerActorId: string;
+                  encounterVersion: number;
+                  kind: "ON_HIT_CHOICE";
+                  occurrenceId: string;
+                  occurrenceVersion: number;
+                  options: Array<{
+                    optionId: string;
+                    riderId: string;
+                    slotLevel: number;
+                  }>;
                 }
               | {
                   allowedResponses: Array<"DECLINE" | "LEGENDARY_OPTION">;
@@ -115154,6 +115126,19 @@ export declare const api: {
             targetActorId: string;
           }
         | {
+            allowedResponses: Array<"DECLINE" | "OPTION">;
+            attackerActorId: string;
+            encounterVersion: number;
+            kind: "ON_HIT_CHOICE";
+            occurrenceId: string;
+            occurrenceVersion: number;
+            options: Array<{
+              optionId: string;
+              riderId: string;
+              slotLevel: number;
+            }>;
+          }
+        | {
             allowedResponses: Array<"DECLINE" | "LEGENDARY_OPTION">;
             encounterVersion: number;
             kind: "LEGENDARY_ACTION_CHOICE";
@@ -115962,6 +115947,19 @@ export declare const api: {
                 occurrenceVersion: number;
                 options: Array<{ actionId: string; optionId: string }>;
                 targetActorId: string;
+              }
+            | {
+                allowedResponses: Array<"DECLINE" | "OPTION">;
+                attackerActorId: string;
+                encounterVersion: number;
+                kind: "ON_HIT_CHOICE";
+                occurrenceId: string;
+                occurrenceVersion: number;
+                options: Array<{
+                  optionId: string;
+                  riderId: string;
+                  slotLevel: number;
+                }>;
               }
             | {
                 allowedResponses: Array<"DECLINE" | "LEGENDARY_OPTION">;
