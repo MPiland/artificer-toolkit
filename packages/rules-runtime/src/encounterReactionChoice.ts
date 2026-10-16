@@ -136,7 +136,10 @@ export async function settleEncounterReactionChoice(input: {
     execution: ServerCompletedRuleExecutionDto
     d20Policy: ServerRuleExecutionD20PolicyDto
   }
-  offer: EncounterReactionOfferDto
+  offer: Pick<
+    EncounterReactionOfferDto,
+    'reactions' | 'targetStateChecksum' | 'originalExecutionChecksum' | 'd20'
+  >
   candidate: EncounterAttackReactionCandidate
   targetStateChecksum: string
   selection: EncounterReactionSelection
