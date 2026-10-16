@@ -5,7 +5,12 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { actionRoom, biteWolf } from './actionRoomFixture.js'
 import { closeTrackedSockets, connectPlayer } from './liveRoomFixture.js'
-import { readPendingActionDecision, readRoomHistory } from './roomHistoryReads.js'
+import {
+  parseReceiptExecution,
+  readPendingActionDecision,
+  readRoomHistory,
+  readRoomRollCards
+} from './roomHistoryReads.js'
 
 const ATTACKER_ID = testUuid(0xb00)
 const SEEN_ID = testUuid(0xb01)
@@ -15,6 +20,8 @@ const HIDDEN_ID = testUuid(0xb02)
 const attackerSquare = { x: 150, y: 150 }
 const seenSquare = { x: 250, y: 150 }
 const hiddenSquare = { x: 350, y: 150 }
+/** Beside the attacker, with no token on it. */
+const emptySquare = { x: 150, y: 250 }
 
 afterEach(() => {
   closeTrackedSockets()
@@ -22,10 +29,10 @@ afterEach(() => {
 })
 
 /** The player's wolf bites; one wolf is drawn on the map beside it and one has its token hidden. */
-function squareRoom() {
+function squareRoom(rolls: readonly number[] = [15]) {
   const wolf = biteWolf('ATTACK')
   return actionRoom({
-    rolls: [15],
+    rolls,
     playerControlledActorIds: [ATTACKER_ID],
     hiddenActorIds: [HIDDEN_ID],
     actors: [ATTACKER_ID, SEEN_ID, HIDDEN_ID].map((id) =>
@@ -70,7 +77,7 @@ describe('an attack aimed at a square (ATTACK-17.4)', () => {
       kind: 'ATTACK_SQUARE_RESOLUTION',
       attackerActorId: ATTACKER_ID,
       candidateActorIds: [HIDDEN_ID],
-      allowedResponses: ['ATTACK_SQUARE_OCCUPANT']
+      allowedResponses: ['ATTACK_SQUARE_OCCUPANT', 'ATTACK_SQUARE_EMPTY']
     })
     await expect(readPendingActionDecision(room.room.base.stub, false)).rejects.toThrow(
       'not shown to the GM'
@@ -194,4 +201,197 @@ describe('an attack aimed at a square (ATTACK-17.4)', () => {
       reason: 'TARGET_UNAVAILABLE'
     })
   })
+})
+
+/** The GM rules the square empty; the room's answer. */
+async function answerEmpty(room: Room) {
+  const decision = await room.pendingDecision()
+  return room.send(room.resolveCommand(decision, { kind: 'ATTACK_SQUARE_EMPTY' }))
+}
+
+/** The roll the attacker's player sends for the d20 the room holds for them. */
+async function heldPlayerRoll(room: Room) {
+  const held = await readPendingActionDecision(room.room.base.stub, false)
+  if (!held || !('request' in held.pending)) throw new Error('The player holds no d20 to roll.')
+  return {
+    type: 'ROLL_RULE_EVIDENCE',
+    encounterId: room.room.encounterId,
+    commandId: crypto.randomUUID(),
+    expectedVersion: held.encounterVersion,
+    occurrenceId: held.occurrence.id,
+    expectedOccurrenceVersion: held.occurrence.version,
+    requestId: held.pending.request.requestId,
+    rollMode: null
+  }
+}
+
+/** The settled empty-square roots in the room's receipts. */
+async function emptySquareRoots(room: Room) {
+  const history = await rulesHistory(room)
+  return history.receipts.flatMap((receipt) => {
+    const execution = parseReceiptExecution(receipt)
+    return execution.status === 'COMPLETE' &&
+      execution.applicationOutputs.kind === 'ATTACK_EMPTY_SQUARE'
+      ? [execution.applicationOutputs]
+      : []
+  })
+}
+
+describe('an attack aimed at an empty square (ATTACK-17.4)', () => {
+  it('asks the GM even when no token stands on the square', async () => {
+    const room = await squareRoom()
+    const started = await room.startSquareAction(emptySquare, 'PLAYER')
+    expect(started.answer.type, JSON.stringify(started.answer)).toBe('COMMAND_COMMITTED')
+
+    expect((await room.pendingDecision()).pending).toMatchObject({
+      kind: 'ATTACK_SQUARE_RESOLUTION',
+      attackerActorId: ATTACKER_ID,
+      candidateActorIds: [],
+      allowedResponses: ['ATTACK_SQUARE_OCCUPANT', 'ATTACK_SQUARE_EMPTY']
+    })
+    expect((await playerSession(room)).waitingOn).toBe('GM')
+  })
+
+  it('has the attacker roll, then records a miss and spends the action whatever the die', async () => {
+    // A natural 20 hits any creature, but an empty square has nothing to hit.
+    const room = await squareRoom([19])
+    const before = await rulesHistory(room)
+    await room.startSquareAction(emptySquare, 'PLAYER')
+    const square = (await room.pendingDecision()).occurrence
+
+    const answered = await answerEmpty(room)
+    expect(answered.type, JSON.stringify(answered)).toBe('COMMAND_COMMITTED')
+    const waiting = await rulesHistory(room)
+    expect(waiting.occurrences.find((candidate) => candidate.id === square.id)).toMatchObject({
+      state: 'COMPLETED'
+    })
+    expect(
+      waiting.occurrences.filter(
+        (candidate) => candidate.rootCommandId === attackSquareChildCommandId(square.id)
+      )
+    ).toMatchObject([{ state: 'PENDING' }])
+    expect(await emptySquareRoots(room)).toEqual([])
+
+    const rolled = await room.sendAsPlayer(await heldPlayerRoll(room))
+    expect(rolled.type, JSON.stringify(rolled)).toBe('COMMAND_COMMITTED')
+    const roots = await emptySquareRoots(room)
+    expect(roots).toHaveLength(1)
+    expect(roots[0]).toMatchObject({
+      sourceActorId: ATTACKER_ID,
+      d20: { resultPath: 'ON_MISS' }
+    })
+
+    const after = await rulesHistory(room)
+    expect(after.occurrences.every((candidate) => candidate.state !== 'PENDING')).toBe(true)
+    const attacker = (history: typeof after) => history.actors.find((row) => row.id === ATTACKER_ID)
+    expect(attacker(after)).not.toEqual(attacker(before))
+    const others = (history: typeof after) => history.actors.filter((row) => row.id !== ATTACKER_ID)
+    expect(others(after)).toEqual(others(before))
+    expect(await readRoomRollCards(room.room.base.stub)).toHaveLength(1)
+  })
+
+  it('rolls at once for a GM attacker, who is also the one ruling', async () => {
+    const room = await squareRoom([3])
+    await room.startSquareAction(emptySquare, 'GM')
+
+    expect((await answerEmpty(room)).type).toBe('COMMAND_COMMITTED')
+    expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
+    expect(await emptySquareRoots(room)).toHaveLength(1)
+  })
+
+  it('answers a repeat of the ruling and of the roll with the stored outcome, and refuses a second ruling', async () => {
+    const room = await squareRoom()
+    await room.startSquareAction(emptySquare, 'PLAYER')
+    const decision = await room.pendingDecision()
+    const ruling = room.resolveCommand(decision, { kind: 'ATTACK_SQUARE_EMPTY' })
+    expect((await room.send(ruling)).type).toBe('COMMAND_COMMITTED')
+    const afterRuling = await rulesHistory(room)
+
+    expect((await room.send(ruling)).type).toBe('COMMAND_COMMITTED')
+    expect((await rulesHistory(room)).commands).toHaveLength(afterRuling.commands.length)
+    // A different ruling on the settled square finds no decision to answer.
+    const second = await room.send(
+      room.resolveCommand(decision, { kind: 'ATTACK_SQUARE_OCCUPANT', actorId: HIDDEN_ID })
+    )
+    expect(second.type).toBe('COMMAND_REJECTED')
+
+    const roll = await heldPlayerRoll(room)
+    expect((await room.sendAsPlayer(roll)).type).toBe('COMMAND_COMMITTED')
+    const settled = await rulesHistory(room)
+    expect((await room.sendAsPlayer(roll)).type).toBe('COMMAND_COMMITTED')
+    expect(await rulesHistory(room)).toEqual(settled)
+    expect(await emptySquareRoots(room)).toHaveLength(1)
+  })
+
+  it('takes the attack back with one undo, restoring the spend', async () => {
+    const room = await squareRoom()
+    const before = await rulesHistory(room)
+    await room.startSquareAction(emptySquare, 'PLAYER')
+    await answerEmpty(room)
+    await room.sendAsPlayer(await heldPlayerRoll(room))
+    expect(await emptySquareRoots(room)).toHaveLength(1)
+
+    const undone = await room.send({
+      type: 'REVERT_LAST_ACTION',
+      encounterId: room.room.encounterId,
+      commandId: crypto.randomUUID(),
+      expectedVersion: await room.version()
+    })
+    expect(undone.type, JSON.stringify(undone)).toBe('COMMAND_COMMITTED')
+    expect((await rulesHistory(room)).actors).toEqual(before.actors)
+  })
+})
+
+/** Ids and clock readings differ between two rooms; everything else a viewer is shown must not. */
+const withoutIdentity = (value: unknown) =>
+  JSON.parse(
+    JSON.stringify(value)
+      .replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/g, '<id>')
+      .replace(/\d{4}-\d{2}-\d{2}T[\d:.]+Z/g, '<time>')
+  ) as unknown
+
+describe('what the attacker’s player can tell about an empty square (ATTACK-17.4)', () => {
+  /** The same natural-1 miss rolled on a square with a hidden wolf and on one with nobody. */
+  async function controllerView(aimAt: 'OCCUPIED' | 'EMPTY') {
+    const room = await squareRoom([0, 0])
+    const player = await connectPlayer(room.room.base)
+    const first = player.messages.length
+    await room.startSquareAction(aimAt === 'OCCUPIED' ? hiddenSquare : emptySquare, 'PLAYER')
+    if (aimAt === 'OCCUPIED') await answerWith(room, HIDDEN_ID)
+    else await answerEmpty(room)
+
+    const prompt = await readPendingActionDecision(room.room.base.stub, false)
+    const sessionBefore = await playerSession(room)
+    const cardsBefore = await readRoomRollCards(room.room.base.stub)
+    await room.sendAsPlayer(await heldPlayerRoll(room))
+    const sessionAfter = await playerSession(room)
+    return withoutIdentity({
+      prompt: prompt?.pending,
+      sessionBefore,
+      sessionAfter,
+      cards: (await readRoomRollCards(room.room.base.stub)).slice(cardsBefore.length),
+      events: player.messages.slice(first).map((message) => message.type)
+    })
+  }
+
+  it('shows the same prompt, held die, roll card and events for a miss on an empty square as on a creature', async () => {
+    const occupied = await controllerView('OCCUPIED')
+    const empty = await controllerView('EMPTY')
+    expect(empty).toEqual(occupied)
+  }, 60_000)
+
+  it('asks the d20 the actor path asks about a creature the attacker cannot see', async () => {
+    const actorRoom = await squareRoom([0, 0])
+    await actorRoom.startAction(HIDDEN_ID, [], actorRoom.sceneContext(2))
+    const actor = await readPendingActionDecision(actorRoom.room.base.stub, false)
+
+    const emptyRoom = await squareRoom([0, 0])
+    await emptyRoom.startSquareAction(emptySquare, 'PLAYER')
+    await answerEmpty(emptyRoom)
+    const square = await readPendingActionDecision(emptyRoom.room.base.stub, false)
+
+    if (!actor || !('request' in actor.pending) || !square || !('request' in square.pending))
+      throw new Error('Expected both attack rolls to be waiting.')
+    expect(withoutIdentity(square.pending.request)).toEqual(withoutIdentity(actor.pending.request))
+  }, 60_000)
 })

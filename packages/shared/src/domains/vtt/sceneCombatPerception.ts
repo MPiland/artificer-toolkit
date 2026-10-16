@@ -56,6 +56,11 @@ export function gridlessBaseSquare(grid: Extract<SceneGrid, { kind: 'GRIDLESS' }
   return feetInSceneUnit(SYSTEM_BASE_SQUARE_FEET, grid.unit)
 }
 
+/** One base square in Scene coordinates: a grid cell, or 5 feet on a gridless Scene. */
+export function sceneBaseSquareSize(grid: SceneGrid): number {
+  return grid.kind === 'SQUARE' ? grid.cellSize : gridlessBaseSquare(grid) * grid.pixelsPerUnit
+}
+
 /**
  * Half the extent a footprint is measured from along one axis. On a square grid that is the span of
  * its occupied squares' centres, so counting squares includes the target's square (SRD: adjacent is

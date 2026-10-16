@@ -41,6 +41,7 @@ import {
 import {
   directedAreaSizeInSceneCoordinates,
   pointAreaInSceneCoordinates,
+  sceneBaseSquareSize,
   spatialTokensInsideArea
 } from '@artificer-toolkit/shared/vtt'
 import { GmRollVisibilityToggle } from '#app/components/dice/GmRollVisibilityToggle'
@@ -154,6 +155,7 @@ export function CampaignTabletopActionDrawer({
   // `undefined` is untouched (the open Attack action's last weapon and target apply); `null` is cleared.
   const [pickedActionId, setPickedActionId] = useState<string | null | undefined>(undefined)
   const [pickedActorIds, setPickedActorIds] = useState<string[]>([])
+  const [aimingAtSquare, setAimingAtSquare] = useState(false)
   const [pickedOptionalRuleId, setOptionalRuleId] = useState<string | null>(null)
   const [optionalChoices, setOptionalChoices] = useState<{
     requestIdentity: string
@@ -212,7 +214,12 @@ export function CampaignTabletopActionDrawer({
         : null
   // A caster-centered area takes no aim, so it has no target to pick.
   const centeredTarget = choiceTarget?.kind === 'CASTER_CENTERED' ? choiceTarget : null
-  const namesNoCreature = areaTarget !== null || centeredTarget !== null || actorsTarget !== null
+  // An attack on a creature may instead name a square: the GM says who, if anyone, stands there.
+  const canAimAtSquare =
+    scene !== null && choiceTarget?.kind === 'ACTOR' && selectedAction?.attackBonus !== undefined
+  const squareTarget = canAimAtSquare && aimingAtSquare
+  const namesNoCreature =
+    areaTarget !== null || centeredTarget !== null || actorsTarget !== null || squareTarget
   // Optional rules choose among the target creature's entities, so an area has none.
   const optionalRuleId = namesNoCreature ? null : pickedOptionalRuleId
   const sceneTokens = scene?.tokens ?? NO_TOKENS
@@ -224,10 +231,13 @@ export function CampaignTabletopActionDrawer({
   const sourceTokenId = sourceToken?.id ?? null
   // A directed area starts on the caster's own token, so it cannot be drawn without one.
   const areaSize = useMemo<VttAreaSize | null>(() => {
-    if (!areaTarget || !sceneGrid) return null
+    if (!sceneGrid) return null
+    // A square is the one base square the server rules on.
+    if (squareTarget) return { kind: 'CUBE', edgeLength: sceneBaseSquareSize(sceneGrid) }
+    if (!areaTarget) return null
     if (areaTarget.kind === 'POINT') return pointAreaInSceneCoordinates(areaTarget.area, sceneGrid)
     return sourceTokenId ? directedAreaSizeInSceneCoordinates(areaTarget.area, sceneGrid) : null
-  }, [areaTarget, sceneGrid, sourceTokenId])
+  }, [areaTarget, sceneGrid, sourceTokenId, squareTarget])
   const tokensInArea = useMemo(() => {
     const shape = areaSize && areaAim ? aimedAreaShape(areaSize, areaAim) : null
     if (!areaAim || !shape) return []
@@ -276,9 +286,18 @@ export function CampaignTabletopActionDrawer({
         ? scene
           ? { kind: 'CASTER_CENTERED', sceneId: scene.id, expectedSceneVersion: scene.version }
           : null
-        : targetActorId
-          ? { kind: 'ACTOR', actorId: targetActorId }
-          : null
+        : squareTarget
+          ? scene && areaAim
+            ? {
+                kind: 'SQUARE',
+                sceneId: scene.id,
+                expectedSceneVersion: scene.version,
+                point: areaAim.origin
+              }
+            : null
+          : targetActorId
+            ? { kind: 'ACTOR', actorId: targetActorId }
+            : null
   // One entry per attack: a versatile weapon's one- and two-hand actions share an attack key.
   const actionGroups = useMemo(() => {
     const groups = new Map<
@@ -365,6 +384,7 @@ export function CampaignTabletopActionDrawer({
     setPickedActionId(undefined)
     onTargetPick(undefined)
     setPickedActorIds([])
+    setAimingAtSquare(false)
     setOptionalRuleId(null)
     setFeedback(null)
     setError(null)
@@ -434,6 +454,7 @@ export function CampaignTabletopActionDrawer({
   // So do the creatures chosen.
   useEffect(() => {
     setPickedActorIds([])
+    setAimingAtSquare(false)
   }, [selectedActionId])
 
   useEffect(() => {
@@ -448,10 +469,11 @@ export function CampaignTabletopActionDrawer({
         ? {
             range: selectedAction.range,
             sourceTokenId,
-            targetTokenId: selectedAction.target.kind === 'ACTOR' ? targetTokenId : null
+            targetTokenId:
+              selectedAction.target.kind === 'ACTOR' && !squareTarget ? targetTokenId : null
           }
         : null,
-    [selectedAction, sourceTokenId, targetTokenId]
+    [selectedAction, sourceTokenId, squareTarget, targetTokenId]
   )
 
   useEffect(() => {
@@ -503,7 +525,8 @@ export function CampaignTabletopActionDrawer({
             }
           : null
       })
-      if (areaTarget) onAreaAimChange(null)
+      if (areaTarget || squareTarget) onAreaAimChange(null)
+      setAimingAtSquare(false)
       if (response.occurrence?.status === 'PENDING') {
         setFeedback('Action paused for a required decision.')
       } else if (response.roll) {
@@ -735,32 +758,73 @@ export function CampaignTabletopActionDrawer({
                     ? 'There is no Scene for this Encounter, so an area cannot be placed.'
                     : `Centered on you: creatures within ${formatLengthMeasurement(centeredTarget.area.radius)} of your space are caught.`}
                 </Text>
-              ) : actorsTarget ? null : (
-                <Group align='flex-end' wrap='nowrap'>
-                  <Select
-                    comboboxProps={{ withinPortal: false }}
-                    data={targetableActors.map((actor) => ({
-                      label: actor.label,
-                      value: actor.id
-                    }))}
-                    disabled={selectionControlsDisabled}
-                    label='Target'
-                    searchable
-                    value={targetActorId}
-                    onChange={onTargetPick}
-                  />
-                  {selectedAction?.target.kind === 'ACTOR' ? (
+              ) : squareTarget ? (
+                <Stack gap='xs'>
+                  <Text fw={600} size='sm'>
+                    Square
+                  </Text>
+                  <Group>
                     <Button
                       disabled={selectionControlsDisabled}
                       variant='default'
-                      onClick={() =>
-                        onPickTargetOnMap({ actionId: selectedAction.id, selfRefused })
-                      }
+                      onClick={onPickAreaOrigin}
                     >
                       Pick on map
                     </Button>
+                    <Button
+                      disabled={selectionControlsDisabled}
+                      variant='subtle'
+                      onClick={() => {
+                        setAimingAtSquare(false)
+                        onAreaAimChange(null)
+                      }}
+                    >
+                      Pick a creature instead
+                    </Button>
+                  </Group>
+                  <Text c='dimmed' size='sm'>
+                    {areaAim
+                      ? 'The GM says who, if anyone, stands there.'
+                      : 'Pick the square to attack. The GM says who, if anyone, stands there.'}
+                  </Text>
+                </Stack>
+              ) : actorsTarget ? null : (
+                <>
+                  <Group align='flex-end' wrap='nowrap'>
+                    <Select
+                      comboboxProps={{ withinPortal: false }}
+                      data={targetableActors.map((actor) => ({
+                        label: actor.label,
+                        value: actor.id
+                      }))}
+                      disabled={selectionControlsDisabled}
+                      label='Target'
+                      searchable
+                      value={targetActorId}
+                      onChange={onTargetPick}
+                    />
+                    {selectedAction?.target.kind === 'ACTOR' ? (
+                      <Button
+                        disabled={selectionControlsDisabled}
+                        variant='default'
+                        onClick={() =>
+                          onPickTargetOnMap({ actionId: selectedAction.id, selfRefused })
+                        }
+                      >
+                        Pick on map
+                      </Button>
+                    ) : null}
+                  </Group>
+                  {canAimAtSquare ? (
+                    <Button
+                      disabled={selectionControlsDisabled}
+                      variant='subtle'
+                      onClick={() => setAimingAtSquare(true)}
+                    >
+                      Pick an empty square
+                    </Button>
                   ) : null}
-                </Group>
+                </>
               )}
               {selectedAction?.attackSlot ? (
                 <Text fw={600} size='sm'>

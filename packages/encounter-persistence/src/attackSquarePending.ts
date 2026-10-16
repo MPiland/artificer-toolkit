@@ -15,7 +15,8 @@ import type {
 import type { ServerRuleExecutionPendingSnapshotDto } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import {
   attackSquareCandidates,
-  attackSquareChildCommand
+  attackSquareChildCommand,
+  attackSquareEmptyCommand
 } from '@artificer-toolkit/rules-runtime/encounterAttackSquare'
 import { defeatedEncounterActorIds } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
@@ -85,7 +86,7 @@ export function projectNativeAttackSquarePending(
     encounterVersion: occurrence.expectedEncounterVersion,
     attackerActorId: pending.context.attackerActorId,
     candidateActorIds: pending.context.candidates.map(({ actorId }) => actorId),
-    allowedResponses: ['ATTACK_SQUARE_OCCUPANT']
+    allowedResponses: ['ATTACK_SQUARE_OCCUPANT', 'ATTACK_SQUARE_EMPTY']
   }
 }
 
@@ -149,14 +150,15 @@ export async function requireAttackSquarePendingRoot(
 }
 
 /**
- * The GM's ruling on who stands on the square. Closes the square occurrence and returns the
- * ordinary attack on that creature, which the caller runs in the same write set.
+ * The GM's ruling on who stands on the square. Closes the square occurrence and returns the attack
+ * it becomes, which the caller runs in the same write set: the ordinary attack on the named
+ * creature, or, for a square ruled empty, the attack the attacker still rolls and misses.
  */
 export async function answerAttackSquare(
   ctx: EncounterPersistenceTransaction,
   command: ResolveRuleOccurrenceInputDto,
   userId: string
-): Promise<ResolveEncounterActionInputDto> {
+): Promise<{ command: ResolveEncounterActionInputDto; emptySquare: boolean }> {
   const run = await ctx.db
     .query('encounterRuns')
     .withIndex('by_publicId', (q) => q.eq('id', command.encounterId.toLowerCase()))
@@ -177,15 +179,23 @@ export async function answerAttackSquare(
   )
     rejectDomain('VERSION_STALE')
   const { context, command: root } = await readNativeAttackSquarePending(ctx, occurrence)
-  if (command.resolution.kind !== 'ATTACK_SQUARE_OCCUPANT')
-    throw new Error('The square attack requires the creature standing on it.')
-  const child = attackSquareChildCommand({
-    command: root,
-    context,
-    occurrenceId: occurrence.id,
-    occupantActorId: command.resolution.actorId.toLowerCase(),
-    expectedVersion: run.version
-  })
+  const { resolution } = command
+  if (resolution.kind !== 'ATTACK_SQUARE_OCCUPANT' && resolution.kind !== 'ATTACK_SQUARE_EMPTY')
+    throw new Error('The square attack requires the creature standing on it, or nobody.')
+  const emptySquare = resolution.kind === 'ATTACK_SQUARE_EMPTY'
+  const child = emptySquare
+    ? attackSquareEmptyCommand({
+        command: root,
+        occurrenceId: occurrence.id,
+        expectedVersion: run.version
+      })
+    : attackSquareChildCommand({
+        command: root,
+        context,
+        occurrenceId: occurrence.id,
+        occupantActorId: resolution.actorId.toLowerCase(),
+        expectedVersion: run.version
+      })
   await closePendingOccurrence(ctx, occurrence, 'COMPLETED')
-  return child
+  return { command: child, emptySquare }
 }

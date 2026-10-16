@@ -1,50 +1,51 @@
-import type { ResolveEncounterActionInputDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import type { ServerAggregateChoicePendingSnapshotDto } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import {
   defeatedEncounterActorIds,
   type DeadCharacterIds
 } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
-import { attackSquareCandidates } from '@artificer-toolkit/rules-runtime/encounterAttackSquare'
-import { prepareCasterSource, type AreaPlanBase } from './nativeEncounterAreaRules.js'
+import {
+  attackSquareCandidates,
+  attackSquareIsAttackersOwn
+} from '@artificer-toolkit/rules-runtime/encounterAttackSquare'
+import type { AreaPlanBase } from './nativeEncounterAreaRules.js'
 import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
-
-type SquareCommand = Extract<ResolveEncounterActionInputDto, { type: 'RESOLVE_ACTION' }> & {
-  target: Extract<ResolveEncounterActionInputDto['target'], { kind: 'SQUARE' }>
-}
+import {
+  prepareEmptySquareAttack,
+  prepareSquareScene,
+  type SquareCommand
+} from './nativeEncounterAttackEmptySquare.js'
 
 /**
- * Seals an attack on a picked square for the GM, who alone knows who stands there. Nothing about
- * the action is evaluated yet: the GM's answer runs it as an ordinary attack on that creature.
+ * Seals an attack on a picked square for the GM, who alone knows who stands there. The attack is
+ * held to the warnings gate here, as an attack on an unknown stranger, so the attacker acknowledges
+ * what it raises before the GM is asked; the GM's answer then runs it on that creature, or rolls it
+ * as a miss on an empty square.
  */
 export async function planNativeLiveEncounterAttackSquare(
   input: AreaPlanBase & { command: SquareCommand; deadCharacterIds: DeadCharacterIds }
 ) {
-  const { command, state, actors, capture } = input
-  // The square is a creature-targeted action aimed blind, so the action must take a creature.
-  const { caster } = await prepareCasterSource(input, 'ACTOR')
-  const captured = await capture({
-    kind: 'ACTION_AREA_SCENE',
-    command: {
-      actorId: command.actorId,
-      sceneId: command.target.sceneId,
-      expectedSceneVersion: command.target.expectedSceneVersion
-    }
-  })
-  if (captured.kind !== 'ACTION_AREA_SCENE') throw new Error('Action Scene context is unavailable.')
-  const scene = captured.context
+  const { command, state, actors } = input
+  const base = await prepareSquareScene(input)
+  const { caster, scene } = base
+  if (
+    attackSquareIsAttackersOwn({
+      point: command.target.point,
+      attackerActorId: caster.id,
+      tokens: scene.tokens
+    })
+  )
+    throw new LiveSessionDomainRejectionError(422, {
+      code: 'DOMAIN_REJECTED',
+      reason: 'TARGET_UNAVAILABLE',
+      message: 'You cannot attack your own space.'
+    })
   const candidates = attackSquareCandidates({
     point: command.target.point,
     attackerActorId: caster.id,
     defeatedActorIds: defeatedEncounterActorIds(actors, input.deadCharacterIds),
     tokens: scene.tokens
   })
-  // Interim (ATTACK-17.T4a): an empty square is refused until the dedicated empty-square root lands.
-  if (candidates.length === 0)
-    throw new LiveSessionDomainRejectionError(422, {
-      code: 'DOMAIN_REJECTED',
-      reason: 'TARGET_UNAVAILABLE',
-      message: 'Nobody stands on that square.'
-    })
+  await prepareEmptySquareAttack(input, base, candidates.length === 0)
   const occurrenceId = crypto.randomUUID()
   const initiatorUserId = input.initial.expectedUserId
   const snapshot: ServerAggregateChoicePendingSnapshotDto = {

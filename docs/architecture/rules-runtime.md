@@ -322,7 +322,7 @@ perceived by the caster. A list has no pending path, so `executeEncounterActorsA
 that asks for evidence (a save or roll card). A spell that takes a list is refused when sent at one creature
 (`TARGET_UNAVAILABLE`).
 
-### An attack aimed at a square (current, ATTACK-17.T4a; empty squares are T4b)
+### An attack aimed at a square (current, ATTACK-17.T4a and T4b)
 
 A player can aim a creature-targeted attack at a map square with the sixth target, `{ kind: 'SQUARE', sceneId,
 expectedSceneVersion, point }`. Only the GM knows who stands there, so the room does not roll: `planNativeLiveEncounterAttackSquare`
@@ -333,8 +333,19 @@ hidden tokens included) and seals an `ENCOUNTER_ATTACK_SQUARE` aggregate-choice 
 occurrence as COMPLETED (`occurrenceClosing.ts`) and runs an ordinary ACTOR-target `RESOLVE_ACTION` on the named creature under the derived
 command id `attackSquareChildCommandId(occurrenceId)`, so the attack, its roll card and its action economy are the actor path's and a retried
 answer replays. An answer outside the sealed candidates is rejected and the decision stays pending; a GM attacker answers their own decision;
-`VOID_RULE_OCCURRENCE` cancels it with no attack. A square with nobody on it is refused (`TARGET_UNAVAILABLE`) until T4b adds the guaranteed-miss
-root, which must show the player exactly what an occupant miss shows.
+`VOID_RULE_OCCURRENCE` cancels it with no attack. Only the attacker's own space is refused (`TARGET_UNAVAILABLE`, `attackSquareIsAttackersOwn`).
+
+**An empty square (ATTACK-17.T4b).** A square with no candidates is sealed the same way; the GM's answer is `ATTACK_SQUARE_EMPTY` (also
+allowed when creatures are listed). It closes the square occurrence and re-runs the stored command under the same derived command id with the
+trusted execution option `emptySquare` (never a command field, so a client cannot forge it). `planNativeLiveEncounterEmptySquare` is a dedicated
+root that composes the actor path's primitives instead of a target-optional actor pipeline: `emptySquareAttackD20Policy` builds the attacker's d20 policy
+from `attackRollContributorEvidence`, the range contributor and the condition contributors, with the sight contributors from
+`resolveEncounterBelievedSquareAttackPerception` (the same believed-perception resolver run against a neutral stranger), so the player's prompt
+equals the one a hidden occupant shows; the d20 uses `startEncounterBasicActionCheck` and `rollEncounterCheck` and the economy uses the actor path's
+spend. `settleEmptySquareAttack` stores an `ATTACK_EMPTY_SQUARE` root whose d20 `resultPath` is `ON_MISS` whatever the roll (a natural 20 included),
+and `persistEncounterAttackEmptySquareCommit` writes the root receipt with the attacker's one spend and one d20 roll card (the roll card's target is
+optional). A player attacker's roll waits for their `ROLL_RULE_EVIDENCE`; a GM attacker's rolls at once. One undo takes the attack back
+(`actionRevert.ts` finds the `EmptySquareRoot`). The player-facing card shows only the d20 and total: no defense and no "nobody there" reason.
 
 ### Caster-centered radius areas (current, SPELLS-22)
 

@@ -11,6 +11,7 @@ import {
   encounterAttackSightContributors,
   resolveEncounterAttackPerception,
   resolveEncounterBelievedAttackPerception,
+  resolveEncounterBelievedSquareAttackPerception,
   resolveEncounterPointSight,
   type EncounterAttackPerception
 } from '../encounterAttackPerception.js'
@@ -676,5 +677,30 @@ describe('encounter attack perception: sight of a point', () => {
   it('does not see anything while Blinded, with or without a Scene', async () => {
     expect(await sightOf({ scene: {}, conditionIds: [BLINDED] })).toBe('UNSEEN')
     expect(await sightOf({ scene: null, conditionIds: [BLINDED] })).toBe('UNSEEN')
+  })
+})
+
+describe('encounter attack perception: an attack on a square (ATTACK-17.4)', () => {
+  it('is believed exactly as against a hostile creature the attacker cannot know of', async () => {
+    for (const attackerConditionIds of [[INVISIBLE], [BLINDED], []]) {
+      const prepared = await volleyAt({ attackerConditionIds })
+      const loaders = srdSenseLoaders(prepared.state.gameSystemId)
+      const occupant = {
+        ...prepared.targetFacts,
+        actor: { ...prepared.targetFacts.actor, disposition: 'HOSTILE' as const }
+      }
+      expect(
+        await resolveEncounterBelievedSquareAttackPerception({
+          ...loaders,
+          attacker: prepared.sourceFacts
+        })
+      ).toEqual(
+        await resolveEncounterBelievedAttackPerception({
+          ...loaders,
+          attacker: prepared.sourceFacts,
+          target: occupant
+        })
+      )
+    }
   })
 })

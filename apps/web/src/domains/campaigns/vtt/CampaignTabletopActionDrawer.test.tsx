@@ -18,7 +18,8 @@ import {
 } from '@artificer-toolkit/schema/api/encounterActionChoices'
 import {
   directedAreaSizeInSceneCoordinates,
-  pointAreaInSceneCoordinates
+  pointAreaInSceneCoordinates,
+  sceneBaseSquareSize
 } from '@artificer-toolkit/shared/vtt'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { validated } from '../../../test/validatedFixture'
@@ -901,6 +902,77 @@ describe('CampaignTabletopActionDrawer attack slots (D93)', () => {
     expect(onResolve).toHaveBeenLastCalledWith(
       expect.objectContaining({ acknowledgedWarnings: ['ACTION_ECONOMY_UNAVAILABLE'] })
     )
+  })
+})
+
+describe('CampaignTabletopActionDrawer attack on a square', () => {
+  const attack = validatedChoice({
+    ...actions[0]!,
+    target: { kind: 'ACTOR' as const, self: 'ALLOWED' as const }
+  })
+  const picked = { x: 150, y: 90 }
+
+  async function chooseAttack(user: ReturnType<typeof userEvent.setup>) {
+    await user.click(await screen.findByRole('combobox', { name: 'Action' }))
+    await user.keyboard('{ArrowDown}{Enter}')
+  }
+
+  it('sizes the pick to one base square and sends the square with the Scene it was picked on', async () => {
+    const user = userEvent.setup()
+    const onResolve = vi.fn<(command: ResolveEncounterActionInputDto) => Promise<unknown>>()
+    const onAreaSizeChange = vi.fn()
+    const onPickAreaOrigin = vi.fn()
+    const options = { choices: [attack], onAreaSizeChange, onPickAreaOrigin }
+    const view = renderDrawer(onResolve, options)
+
+    await chooseAttack(user)
+    await user.click(screen.getByRole('button', { name: 'Pick an empty square' }))
+    expect(screen.queryByRole('combobox', { name: 'Target' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Resolve action' })).toBeDisabled()
+    expect(onAreaSizeChange).toHaveBeenLastCalledWith({
+      kind: 'CUBE',
+      edgeLength: sceneBaseSquareSize(tabletopLiveScene.grid)
+    })
+    await user.click(screen.getByRole('button', { name: 'Pick on map' }))
+    expect(onPickAreaOrigin).toHaveBeenCalledTimes(1)
+
+    view.rerender(
+      drawerElement(onResolve, { ...options, areaAim: { origin: picked, toward: null } })
+    )
+    await user.click(screen.getByRole('button', { name: 'Resolve action' }))
+    expect(onResolve).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actionId: attack.id,
+        sceneContext: null,
+        target: {
+          kind: 'SQUARE',
+          sceneId: tabletopLiveScene.id,
+          expectedSceneVersion: tabletopLiveScene.version,
+          point: picked
+        }
+      })
+    )
+  })
+
+  it('returns to naming a creature', async () => {
+    const user = userEvent.setup()
+    renderDrawer(vi.fn(), { choices: [attack] })
+
+    await chooseAttack(user)
+    await user.click(screen.getByRole('button', { name: 'Pick an empty square' }))
+    await user.click(screen.getByRole('button', { name: 'Pick a creature instead' }))
+    expect(screen.getByRole('combobox', { name: 'Target' })).toBeVisible()
+  })
+
+  it('offers no square for an action that is not an attack', async () => {
+    const user = userEvent.setup()
+    renderDrawer(vi.fn(), {
+      choices: [validatedChoice({ ...attack, attackBonus: undefined })]
+    })
+
+    await chooseAttack(user)
+    expect(await screen.findByRole('combobox', { name: 'Target' })).toBeVisible()
+    expect(screen.queryByRole('button', { name: 'Pick an empty square' })).not.toBeInTheDocument()
   })
 })
 

@@ -107,6 +107,7 @@ import { authoredCheckOf, planNativeLiveCheckAction } from './nativeCheckAction.
 import { planNativeLiveConcealmentCheckAction } from './nativeConcealmentCheck.js'
 import { planNativeLiveEncounterSettlement } from './nativeEncounterSettlement.js'
 import { planNativeLiveEncounterActorsAction } from './nativeEncounterActorsRules.js'
+import { planNativeLiveEncounterEmptySquare } from './nativeEncounterAttackEmptySquare.js'
 import { planNativeLiveEncounterAttackSquare } from './nativeEncounterAttackSquare.js'
 import {
   discoverNativeLegendaryResistance,
@@ -156,6 +157,8 @@ export async function planNativeLiveEncounterAction(
     runtime: RulesRuntimeService
     random?: (maximum: number) => number
     captures: LiveCaptureReads
+    /** Set by the GM's ruling that a picked square is empty; never read from a command. */
+    emptySquare?: boolean
   }
 ) {
   const responseCommand = commandInput.type === 'RESOLVE_RULE_OCCURRENCE' ? commandInput : null
@@ -353,24 +356,40 @@ export async function planNativeLiveEncounterAction(
     }
   }
   if (command.target.kind === 'SQUARE') {
-    if (removalCommand || responseCommand) throw new Error('A square attack is answered by the GM.')
+    if (removalCommand) throw new Error('A square attack is answered by the GM.')
+    const squareInput = {
+      initial,
+      command: { ...command, target: command.target },
+      fingerprint: admission.fingerprint,
+      state,
+      system,
+      actors,
+      activeEffectsByActorId,
+      loadTarget,
+      capture,
+      runtime: executionOptions.runtime,
+      random: executionOptions.random,
+      requireAutoRoll,
+      autoRollByActorId
+    }
+    // A square the GM ruled empty rolls the attacker's d20; a response on it is that d20.
+    if (executionOptions.emptySquare || responseCommand) {
+      if (responseCommand && (!snapshot || !evidenceResolution))
+        throw new Error('The pending action evidence is invalid.')
+      return {
+        ...(await planNativeLiveEncounterEmptySquare({
+          ...squareInput,
+          answer:
+            responseCommand && snapshot && evidenceResolution
+              ? { response: responseCommand, resolution: evidenceResolution, snapshot }
+              : null
+        })),
+        dependencies,
+        revisions
+      }
+    }
     return {
-      ...(await planNativeLiveEncounterAttackSquare({
-        initial,
-        command: { ...command, target: command.target },
-        fingerprint: admission.fingerprint,
-        state,
-        system,
-        actors,
-        activeEffectsByActorId,
-        loadTarget,
-        capture,
-        runtime: executionOptions.runtime,
-        random: executionOptions.random,
-        requireAutoRoll,
-        autoRollByActorId,
-        deadCharacterIds
-      })),
+      ...(await planNativeLiveEncounterAttackSquare({ ...squareInput, deadCharacterIds })),
       dependencies,
       revisions
     }

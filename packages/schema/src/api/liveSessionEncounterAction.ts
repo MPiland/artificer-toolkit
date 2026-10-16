@@ -143,6 +143,18 @@ export type LiveSessionEncounterActionCommitInput = Omit<
   /** The once-per-turn uses this attack spent from the attacker's turn record; its undo gives them back. */
   turnUses: z.infer<typeof encounterTurnUseKeysSchema>
 }
+/** What every commit that spends the source's action carries beside its root execution. */
+export const liveSessionEncounterSourceSpendCommitFields = lazySchemaParts(() => ({
+  occurredAt: z.iso.datetime(),
+  initialDefinitionId: postgresUuidSchema,
+  execution: storedRuleExecutionResultDtoSchema,
+  rules: encounterActorRuleOutputSchema,
+  resourceConsumption: z.nullable(liveSessionCharacterResourceConsumptionSchema),
+  itemConsumption: z.nullable(liveSessionCharacterItemConsumptionSchema),
+  spellConsumption: z.nullable(liveSessionCharacterSpellConsumptionSchema),
+  label: z.nullable(z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160))),
+  ruleOverrides: encounterRuleWarningsDtoSchema
+}))
 export const liveSessionEncounterConcentrationFields = lazySchemaParts(() => ({
   concentration: z
     .array(
@@ -165,19 +177,11 @@ export const liveSessionEncounterConcentrationFields = lazySchemaParts(() => ({
 export const liveSessionEncounterActionCommitInputSchema: z.ZodMiniType<LiveSessionEncounterActionCommitInput> =
   lazySchema(() =>
     z.extend(z.omit(liveSessionEncounterActionPendingInputSchema, { snapshot: true }), {
-      occurredAt: z.iso.datetime(),
+      ...liveSessionEncounterSourceSpendCommitFields(),
       maintenanceOwners: z
         .array(liveSessionEncounterMaintenanceOwnerRequestSchema)
         .check(z.maxLength(MAX_MAINTAINED_RULE_EFFECT_DEPENDENTS_PER_ACTOR * 2)),
-      initialDefinitionId: postgresUuidSchema,
-      execution: storedRuleExecutionResultDtoSchema,
-      rules: encounterActorRuleOutputSchema,
-      resourceConsumption: z.nullable(liveSessionCharacterResourceConsumptionSchema),
-      itemConsumption: z.nullable(liveSessionCharacterItemConsumptionSchema),
-      spellConsumption: z.nullable(liveSessionCharacterSpellConsumptionSchema),
       reactionSpellConsumption: z.nullable(liveSessionCharacterSpellConsumptionSchema),
-      label: z.nullable(z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160))),
-      ruleOverrides: encounterRuleWarningsDtoSchema,
       // The action's state and recurring effects, and the effect of a reaction its target used.
       createdEffects: z.array(activeRuleEffectRecordSchema).check(z.maxLength(3)),
       maintainedState: z.nullable(encounterMaintainedEffectStateRecordSchema),
@@ -253,9 +257,7 @@ export const liveSessionEncounterAreaCommitInputSchema: z.ZodMiniType<LiveSessio
         maintenanceOwners: true
       }),
       {
-        occurredAt: z.iso.datetime(),
-        initialDefinitionId: postgresUuidSchema,
-        execution: storedRuleExecutionResultDtoSchema,
+        ...liveSessionEncounterSourceSpendCommitFields(),
         targets: z
           .array(
             z.strictObject({
@@ -268,13 +270,46 @@ export const liveSessionEncounterAreaCommitInputSchema: z.ZodMiniType<LiveSessio
         area: z.nullable(serverRuleExecutionPendingSnapshotDtoSchema),
         removal: z.nullable(removeAreaTargetInputDtoSchema),
         placedZone: z.nullable(liveSessionPlacedSpatialEffectSchema),
-        rules: encounterActorRuleOutputSchema,
-        resourceConsumption: z.nullable(liveSessionCharacterResourceConsumptionSchema),
-        itemConsumption: z.nullable(liveSessionCharacterItemConsumptionSchema),
-        spellConsumption: z.nullable(liveSessionCharacterSpellConsumptionSchema),
-        label: z.nullable(z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160))),
-        ruleOverrides: encounterRuleWarningsDtoSchema,
         ...liveSessionEncounterConcentrationFields()
+      }
+    )
+  )
+
+/**
+ * The terminal outcome of an attack on a square the GM ruled empty: the root with the attacker's
+ * d20 and one spend. A miss changes no creature, so it carries no maintained state, effect,
+ * Concentration, cleaving or turn use; the one-roll grants the d20 used up are deleted with it.
+ */
+export type LiveSessionEncounterEmptySquareCommitInput = Omit<
+  LiveSessionEncounterActionCommitInput,
+  | 'maintenanceOwners'
+  | 'createdEffects'
+  | 'maintainedState'
+  | 'concentration'
+  | 'pendingConcentration'
+  | 'concentrationEnds'
+  | 'endedGrants'
+  | 'cleaving'
+  | 'turnUses'
+  | 'reactionSpellConsumption'
+> & {
+  /** The action's own definition, which labels the attacker's roll card as an attack on a creature's would be. */
+  actionDefinitionId: string
+}
+
+export const liveSessionEncounterEmptySquareCommitInputSchema: z.ZodMiniType<LiveSessionEncounterEmptySquareCommitInput> =
+  lazySchema(() =>
+    z.extend(
+      z.omit(liveSessionEncounterActionPendingInputSchema, {
+        snapshot: true,
+        maintenanceOwners: true
+      }),
+      {
+        ...liveSessionEncounterSourceSpendCommitFields(),
+        actionDefinitionId: postgresUuidSchema,
+        consumedGrants: z
+          .array(activeRuleEffectRecordSchema)
+          .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER))
       }
     )
   )

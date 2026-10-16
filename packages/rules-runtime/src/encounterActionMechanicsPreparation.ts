@@ -184,6 +184,38 @@ export async function prepareEncounterActionSource<
   return { source, adapter, targetPolicy, plan }
 }
 
+/**
+ * The roll-mode contributors of an attack in each attack domain: the attacker's own grants and
+ * policy, merged with the contributors the attack's circumstances add. An attack on a creature and
+ * an attack on an empty square read the attacker's side through this one rule.
+ */
+export function attackRollContributorEvidence(input: {
+  source: NativeEncounterActionSource
+  actorId: string
+  activeEffects: MovementTarget['activeEffects']
+  contributors: readonly EncounterRelationshipD20Contributor[]
+}) {
+  const { source, contributors } = input
+  return Object.fromEntries(
+    attackDomainCodeSchema.options.map((attackKind) => [
+      attackKind,
+      source.kind === 'CHARACTER_ACTION'
+        ? mergeCanonicalD20Contributors(
+            dnd5eAttackRollContributors(
+              source.effectivePolicyOutput,
+              attackKind,
+              dnd5eCharacterActionTarget(source.candidate)
+            ),
+            contributors
+          )
+        : mergeCanonicalD20Contributors(
+            creatureActiveGrantAttackContributors(input.actorId, attackKind, input.activeEffects),
+            contributors
+          )
+    ])
+  )
+}
+
 /** Prepares current source, target, and resource facts without persistence access. */
 export async function prepareEncounterActionMechanics<
   TCharacterFacts extends CharacterActionMovementFacts
@@ -462,28 +494,12 @@ export async function prepareEncounterActionMechanics<
         ...(turnUses ? { attackTurnUses: turnUses } : {}),
         // A Character attack uses the same scoped roll-mode contributors as its Sheet action.
         rollContributorEvidence: {
-          attacks: Object.fromEntries(
-            attackDomainCodeSchema.options.map((attackKind) => [
-              attackKind,
-              source.kind === 'CHARACTER_ACTION'
-                ? mergeCanonicalD20Contributors(
-                    dnd5eAttackRollContributors(
-                      source.effectivePolicyOutput,
-                      attackKind,
-                      dnd5eCharacterActionTarget(source.candidate)
-                    ),
-                    contributors
-                  )
-                : mergeCanonicalD20Contributors(
-                    creatureActiveGrantAttackContributors(
-                      actor.id,
-                      attackKind,
-                      sourceFacts.activeEffects
-                    ),
-                    contributors
-                  )
-            ])
-          )
+          attacks: attackRollContributorEvidence({
+            source,
+            actorId: actor.id,
+            activeEffects: sourceFacts.activeEffects,
+            contributors
+          })
         }
       },
       sourceHitPoints: {

@@ -198,7 +198,9 @@ the GM (`NOT_ACTOR_CONTROLLER` otherwise).
 - A `RESOLVE_ACTION` with a `SQUARE` target (an attack aimed at a map square, ATTACK-17.T4a) pends a GM-only
   `ATTACK_SQUARE_RESOLUTION` that lists the creatures standing there, hidden ones included. A player's session
   frame carries no such pending, only `waitingOn: 'GM'`. The GM's `ATTACK_SQUARE_OCCUPANT` answer runs an
-  ordinary attack on the named creature (see `rules-runtime.md`, "An attack aimed at a square").
+  ordinary attack on the named creature; `ATTACK_SQUARE_EMPTY` (also the only answer when the list is empty)
+  has the attacker roll the same d20 and records a miss, so the controller's pending prompt, held die, roll card
+  and events equal an occupant miss's (see `rules-runtime.md`, "An attack aimed at a square").
 - The GM tools and dice commands run `recordEncounterCommand`. A GM `UPDATE_ACTOR` with a
   `characterCommand` commits that Sheet command on the Run's held Character; the same command on a
   Character the room does not hold is refused ("Make this change from the Character Sheet.").

@@ -438,9 +438,16 @@ export async function executeRoomEncounterCommand(input: {
       throw new Error('Room response execution is unavailable.')
     if (route === 'TURN') return executeTurn(command)
     if (route === 'ACTION') return executeAction(command)
-    // The GM names who stands on the square; the attack then runs as an ordinary one on them.
-    if (route === 'ATTACK_SQUARE')
-      return executeAction(await answerAttackSquare(context, command, userId))
+    // The GM names who stands on the square, and the attack runs as an ordinary one on them; or
+    // names nobody, and the attacker rolls a miss.
+    if (route === 'ATTACK_SQUARE') {
+      const { command: squareCommand, emptySquare } = await answerAttackSquare(
+        context,
+        command,
+        userId
+      )
+      return executeAction(squareCommand, emptySquare)
+    }
     if (route === 'DISARM') return executeDisarm(command)
     const { membership } = await context.ports.requireCampaignAuthority(campaignId, userId)
     const execute =
@@ -472,7 +479,8 @@ export async function executeRoomEncounterCommand(input: {
   }
 
   async function executeAction(
-    command: Parameters<typeof executeRoomEncounterAction>[0]['command']
+    command: Parameters<typeof executeRoomEncounterAction>[0]['command'],
+    emptySquare = false
   ) {
     if (command.type === 'RESOLVE_ACTION' && command.optionalCombatIntent != null)
       return executeDisarm(command)
@@ -486,6 +494,7 @@ export async function executeRoomEncounterCommand(input: {
       inputs,
       observed,
       command,
+      emptySquare,
       random: input.random,
       scope: {
         campaignId,

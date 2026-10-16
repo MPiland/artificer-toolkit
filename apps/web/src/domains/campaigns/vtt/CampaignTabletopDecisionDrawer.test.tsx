@@ -1033,7 +1033,7 @@ describe('CampaignTabletopDecisionDrawer attack on a square', () => {
     encounterVersion: tabletopGmEncounter.version,
     attackerActorId: attacker!.id,
     candidateActorIds: [occupant!.id],
-    allowedResponses: ['ATTACK_SQUARE_OCCUPANT']
+    allowedResponses: ['ATTACK_SQUARE_OCCUPANT', 'ATTACK_SQUARE_EMPTY']
   })
 
   it('names the creature the GM says stands on the square', async () => {
@@ -1061,6 +1061,34 @@ describe('CampaignTabletopDecisionDrawer attack on a square', () => {
         occurrenceId,
         expectedOccurrenceVersion: 0,
         resolution: { kind: 'ATTACK_SQUARE_OCCUPANT', actorId: occupant!.id }
+      })
+    )
+  })
+
+  it('lets the GM answer nobody, with or without creatures on the square', async () => {
+    const user = userEvent.setup()
+    const onResolve = vi.fn(async () => resolved())
+    renderWithAppProviders(
+      <CampaignTabletopDecisionDrawer
+        skipped={null}
+        canVoid
+        connected
+        encounter={tabletopGmEncounter}
+        latestRoll={null}
+        pending={{ ...squarePending, candidateActorIds: [] }}
+        submitting={false}
+        onResolve={onResolve}
+      />
+    )
+    await user.click(screen.getByRole('button', { name: 'Open pending decision' }))
+
+    await user.click(screen.getByRole('button', { name: 'Nobody is there' }))
+    expect(onResolve).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'RESOLVE_RULE_OCCURRENCE',
+        occurrenceId,
+        expectedOccurrenceVersion: 0,
+        resolution: { kind: 'ATTACK_SQUARE_EMPTY' }
       })
     )
   })

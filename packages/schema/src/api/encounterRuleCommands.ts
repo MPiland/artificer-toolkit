@@ -355,6 +355,8 @@ export const resolveRuleOccurrenceInputDtoSchema = lazySchema(() =>
       }),
       /** The GM's ruling on an attack aimed at a square: the creature that stands there. */
       z.strictObject({ kind: z.literal('ATTACK_SQUARE_OCCUPANT'), actorId: uuidSchema }),
+      /** The GM's ruling that nobody stands on the attacked square: the attack still rolls and misses. */
+      z.strictObject({ kind: z.literal('ATTACK_SQUARE_EMPTY') }),
       z.strictObject({ kind: z.literal('PASSAGE_DECLINE') }),
       z.strictObject({ kind: z.literal('PASSAGE_OPTION'), optionId: checksumSchema }),
       /** A Legendary Action option and the actor it targets, from the option's targets. */

@@ -93,7 +93,15 @@ These are rare paths, roughly under 5% of sessions, whose failure is visible and
 - **Square attack answer after the pending index is lost (ATTACK-17.T4a):** a retried GM answer replays by its derived child command id; if the room journal has forgotten the pending and the occurrence index, the retry is rejected as stale rather than replayed. Rare and recoverable by aiming again.
 - **Square attack range is checked on the GM answer (ATTACK-17.T4a):** the aim seals the candidates, and the ordinary attack run on the named creature raises its normal range warning then, so the player learns of an out-of-range target only after the GM answers.
 - **A Scene edit while a square attack pends (ATTACK-17.T4a):** the candidates are sealed with the Scene version; a token moved afterwards does not change them, and the child attack re-reads the Scene as any attack does.
-- **An empty square is refused until T4b (ATTACK-17.T4a):** a player who aims at a square with nobody on it gets `TARGET_UNAVAILABLE`, which tells them it is empty. T4b replaces it with the guaranteed-miss root.
+- **Empty-square attacks (ATTACK-17.T4b):**
+  - A concentration spell that misses an empty square does not end the caster's current concentration.
+  - Range is measured to the picked point as a one-square token, assuming the point is the square's centre; a range-0 (swarm-space) attack counts as out of range.
+  - Flanking is skipped for an empty square, and the economy evaluation carries `targetIds: []`.
+  - When an occupant's true roll mode differs from the mode the attacker believes, the held die can differ from the empty-square one.
+  - An allied hidden occupant can show a prompt different from the empty square's.
+  - The occupant path can raise occupant-specific warnings to the GM at answer time; command-time warnings now apply to occupied squares too.
+  - Basic actions cannot be aimed at a square.
+  - The web square pick sends the raw click point (not snapped to the cell centre), and the drawer treats an action with an `attackBonus` as an attack.
 - **Live-backend script spawn failure:** if `yarn` can't start, `scripts/liveBackendValidation.mjs` throws an unhandled rejection instead of a step error. This is dev tooling; the run still fails, just with a noisier log.
 - **`--fresh` guard:** `liveBackendValidation.mjs --fresh` checks the container by name only. A different container given the same name would be reset.
 - **Chosen-creature list and a moved Scene (SPELLS-8.T12):** the list commit (`areaCommitPersistence.ts`, `input.area === null`) does not re-read the Scene, so a token moved between planning and commit (the sphere membership or range was checked at plan time) is not re-checked. Single-target commits re-read it. Only a Scene edit landing inside one command's await gap triggers it, and the GM can undo the cast.

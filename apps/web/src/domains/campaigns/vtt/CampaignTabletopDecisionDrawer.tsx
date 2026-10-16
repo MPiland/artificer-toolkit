@@ -404,6 +404,13 @@ export function CampaignTabletopDecisionDrawer({
                   {encounter.actors.find((actor) => actor.id === actorId)?.label ?? actorId}
                 </Button>
               ))}
+              <Button
+                disabled={disabled}
+                variant='default'
+                onClick={() => void resolve({ kind: 'ATTACK_SQUARE_EMPTY' })}
+              >
+                Nobody is there
+              </Button>
             </Stack>
           ) : pending.kind === 'INITIATIVE_ORDER' ? (
             <Stack gap='xs'>

@@ -768,3 +768,21 @@ export const ResolveAreaAction: Story = {
     )
   }
 }
+
+/** An attack can name a square instead of a creature; it waits for the map pick before it resolves. */
+export const AttackEmptySquare: Story = {
+  args: { ...ResolveTargetedAction.args, actions: [longbow], optionalRules: [] },
+  play: async ({ canvasElement }) => {
+    resolveAction.mockClear()
+    const { page, drawer } = await openActions(canvasElement)
+
+    await userEvent.click(drawer.getByRole('combobox', { name: 'Action' }))
+    await userEvent.click(await page.findByRole('option', { name: 'Longbow · Equipment' }))
+    await userEvent.click(drawer.getByRole('button', { name: 'Pick an empty square' }))
+    await expect(drawer.queryByRole('combobox', { name: 'Target' })).toBeNull()
+    await expect(drawer.getByRole('button', { name: 'Pick on map' })).toBeEnabled()
+    await expect(drawer.getByRole('button', { name: 'Resolve action' })).toBeDisabled()
+    await userEvent.click(drawer.getByRole('button', { name: 'Pick a creature instead' }))
+    await expect(drawer.getByRole('combobox', { name: 'Target' })).toBeVisible()
+  }
+}

@@ -444,18 +444,18 @@ export const pendingEncounterRuleOccurrenceSummaryDtoSchema = lazySchema(() =>
           .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
         allowedResponses: z.tuple([z.literal('INITIATIVE_ENTITY')])
       }),
-      /** GM-only: the creatures standing on the square an attack was aimed at. */
+      /** GM-only: the creatures (possibly none) standing on the square an attack was aimed at. */
       z.strictObject({
         kind: z.literal('ATTACK_SQUARE_RESOLUTION'),
         occurrenceId: uuidSchema,
         occurrenceVersion: versionSchema,
         encounterVersion: versionSchema,
         attackerActorId: uuidSchema,
-        candidateActorIds: z
-          .array(uuidSchema)
-          .check(z.minLength(1))
-          .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
-        allowedResponses: z.tuple([z.literal('ATTACK_SQUARE_OCCUPANT')])
+        candidateActorIds: z.array(uuidSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
+        allowedResponses: z.tuple([
+          z.literal('ATTACK_SQUARE_OCCUPANT'),
+          z.literal('ATTACK_SQUARE_EMPTY')
+        ])
       })
     ])
     .check(

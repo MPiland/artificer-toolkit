@@ -1,7 +1,8 @@
 import type { LiveSessionEncounterActionPendingInput } from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
-import type {
-  ActionAreaSceneRequestDto,
-  ActionSceneRequestDto
+import {
+  actionAreaSceneRequestDtoSchema,
+  type ActionAreaSceneRequestDto,
+  type ActionSceneRequestDto
 } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import type { LiveSessionEncounterRulesResponse } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import type { LiveSessionRulesRevisions } from '@artificer-toolkit/schema/api/liveSessionRulesRevisions'
@@ -87,7 +88,8 @@ export async function persistEncounterActionPending(
   // A cast on chosen creatures never waits for anyone: it commits whole or not at all.
   if (target.kind === 'ACTORS') throw new Error('Live Session pending action root mismatch.')
   // An attack on a square waits for the GM to name who stands there, and is never itself resumed.
-  if (target.kind === 'SQUARE') {
+  // Once the GM rules it empty, the attacker's own d20 is sealed on the same square command.
+  if (target.kind === 'SQUARE' && snapshot.snapshotKind === 'AGGREGATE_CHOICE') {
     if (input.command.optionalCombatIntent != null || resume)
       throw new Error('Live Session pending action root mismatch.')
     await requireAttackSquarePendingRoot(
@@ -102,7 +104,7 @@ export async function persistEncounterActionPending(
       },
       callbacks.readAreaSceneInputs
     )
-  } else if (target.kind !== 'ACTOR') {
+  } else if (target.kind !== 'ACTOR' && target.kind !== 'SQUARE') {
     if (input.command.optionalCombatIntent != null)
       throw new Error('Live Session pending action root mismatch.')
     if (resume) {
@@ -132,12 +134,14 @@ export async function persistEncounterActionPending(
         callbacks.readAreaSceneInputs
       )
   } else {
+    // An attack on an empty square has no target creature: the attacker is both its sides.
+    const targetActorId = target.kind === 'ACTOR' ? target.actorId : admission.input.actorId
     if (
       snapshot.snapshotKind !== 'KERNEL_EVIDENCE' ||
       snapshot.applicationContext.kind !== 'ENCOUNTER_ACTION' ||
       snapshot.applicationContext.initiatorUserId !== initiatorUserId ||
       (snapshot.applicationContext.rollerActorId !== admission.input.actorId &&
-        snapshot.applicationContext.rollerActorId !== target.actorId) ||
+        snapshot.applicationContext.rollerActorId !== targetActorId) ||
       snapshot.applicationContext.commandFingerprint !== fingerprint ||
       checksumCanonicalJson(JSON.parse(snapshot.applicationContext.commandJson)) !== fingerprint ||
       snapshot.optionalCombatSnapshotChecksum !== state.optionalCombatSnapshotChecksum ||
@@ -146,13 +150,14 @@ export async function persistEncounterActionPending(
       snapshot.applicationContext.contest !== undefined ||
       (snapshot.applicationContext.legendaryResistance !== undefined &&
         snapshot.applicationContext.legendaryResistance.resistance.targetActorId !==
-          target.actorId) ||
+          targetActorId) ||
       (snapshot.applicationContext.reactionChoice !== undefined &&
         snapshot.applicationContext.reactionChoice.reactions.some(
-          ({ reactorActorId }) => reactorActorId !== target.actorId
+          ({ reactorActorId }) => reactorActorId !== targetActorId
         )) ||
       (snapshot.applicationContext.onHitChoice !== undefined &&
         snapshot.applicationContext.rollerActorId !== admission.input.actorId) ||
+      (target.kind === 'SQUARE' && resume !== null) ||
       (resume &&
         (snapshot.occurrenceId !== resume.occurrence.id ||
           snapshot.applicationContext.currentnessChecksum !==
@@ -161,17 +166,27 @@ export async function persistEncounterActionPending(
     )
       throw new Error('Live Session pending action root mismatch.')
     evidence = snapshot.applicationContext
-    if (!actors.some((actor) => actor.id === target.actorId))
+    if (!actors.some((actor) => actor.id === targetActorId))
       throw new Error('Encounter action target was not found.')
-    await callbacks.readActionSceneInputs(
-      state,
-      {
-        actorId: admission.input.actorId,
-        targetActorId: target.actorId,
-        sceneContext: admission.input.sceneContext
-      },
-      membership.role === 'OWNER' ? 'OWNER' : 'MEMBER'
-    )
+    if (target.kind === 'SQUARE')
+      await callbacks.readAreaSceneInputs(
+        state,
+        actionAreaSceneRequestDtoSchema.parse({
+          actorId: admission.input.actorId,
+          sceneId: target.sceneId,
+          expectedSceneVersion: target.expectedSceneVersion
+        })
+      )
+    else
+      await callbacks.readActionSceneInputs(
+        state,
+        {
+          actorId: admission.input.actorId,
+          targetActorId,
+          sceneContext: admission.input.sceneContext
+        },
+        membership.role === 'OWNER' ? 'OWNER' : 'MEMBER'
+      )
   }
   await callbacks.validateReadFence(state, [...characterIds], input.revisions)
   const collision = await ctx.db

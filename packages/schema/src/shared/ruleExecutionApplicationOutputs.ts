@@ -25,6 +25,7 @@ import {
   validateStateEffectTransitions
 } from './ruleExecutionMechanics.js'
 import {
+  attackEmptySquareApplicationOutputDtoSchema,
   basicActionCheckApplicationOutputDtoSchema,
   characterItemConsumptionReceiptDtoSchema,
   characterItemUseStateTransitionDtoSchema,
@@ -508,6 +509,7 @@ export type ServerRuleExecutionApplicationOutputsDto =
   | z.infer<typeof concentrationCheckApplicationOutputDtoSchema>
   | z.infer<typeof concentrationEndApplicationOutputDtoSchema>
   | z.infer<typeof encounterAreaActionApplicationOutputDtoSchema>
+  | z.infer<typeof attackEmptySquareApplicationOutputDtoSchema>
   | z.infer<typeof encounterActorMechanicsBatchApplicationOutputDtoSchema>
   | z.infer<typeof basicActionCheckApplicationOutputDtoSchema>
   | z.infer<typeof escapeCheckApplicationOutputDtoSchema>
@@ -523,6 +525,7 @@ export const serverRuleExecutionApplicationOutputsDtoSchema: z.ZodMiniType<Serve
       concentrationCheckApplicationOutputDtoSchema,
       concentrationEndApplicationOutputDtoSchema,
       encounterAreaActionApplicationOutputDtoSchema,
+      attackEmptySquareApplicationOutputDtoSchema,
       encounterActorMechanicsBatchApplicationOutputDtoSchema,
       basicActionCheckApplicationOutputDtoSchema,
       escapeCheckApplicationOutputDtoSchema,

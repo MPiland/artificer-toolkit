@@ -1030,6 +1030,86 @@ export const contestedActionApplicationOutputDtoSchema = lazySchema(() =>
     )
 )
 
+/** The source creature's one spend, held once by the root of an area action or of an attack on an empty square. */
+function sourceSpendReceiptShape() {
+  return {
+    sourceCharacterStreamVersion: z.nullable(aggregateVersionSchema),
+    resourceConsumption: z.nullable(characterMechanicsResourceReceiptDtoSchema),
+    featureResourceConsumption: z.nullable(encounterFeatureResourceReceiptDtoSchema),
+    sourceItemUseStateTransition: z.nullable(characterItemUseStateTransitionDtoSchema),
+    sourceItemConsumption: z.nullable(characterItemConsumptionReceiptDtoSchema),
+    spellCastConsumption: z.nullable(characterSpellSlotConsumptionReceiptDtoSchema),
+    actionEconomyTransition: z.nullable(encounterActionEconomyTransitionDtoSchema),
+    attackActionTransition: z.optional(encounterAttackActionTransitionDtoSchema)
+  }
+}
+
+function validateSourceSpendReceipts(
+  value: {
+    sourceActorId: string
+    sourceCharacterId: string | null
+    sourceCharacterStreamVersion: number | null
+    resourceConsumption: z.infer<typeof characterMechanicsResourceReceiptDtoSchema> | null
+    featureResourceConsumption: z.infer<typeof encounterFeatureResourceReceiptDtoSchema> | null
+    sourceItemUseStateTransition: z.infer<typeof characterItemUseStateTransitionDtoSchema> | null
+    sourceItemConsumption: z.infer<typeof characterItemConsumptionReceiptDtoSchema> | null
+    spellCastConsumption: z.infer<typeof characterSpellSlotConsumptionReceiptDtoSchema> | null
+  },
+  context: z.core.$RefinementCtx
+): void {
+  const resource = value.resourceConsumption
+  if (
+    resource &&
+    (value.sourceCharacterId === null ||
+      resource.afterUsed !== resource.beforeUsed + resource.cost ||
+      resource.beforeRemaining < resource.cost ||
+      resource.afterRemaining !== resource.beforeRemaining - resource.cost)
+  )
+    context.addIssue({
+      code: 'custom',
+      path: ['resourceConsumption'],
+      message: 'Resource receipt is invalid.'
+    })
+  const stow = value.sourceItemUseStateTransition
+  const consumption = value.sourceItemConsumption
+  const spell = value.spellCastConsumption
+  if (
+    (stow &&
+      (stow.characterId !== value.sourceCharacterId ||
+        stow.afterStreamVersion !== value.sourceCharacterStreamVersion)) ||
+    (consumption && consumption.characterId !== value.sourceCharacterId) ||
+    (spell && spell.characterId !== value.sourceCharacterId)
+  )
+    context.addIssue({
+      code: 'custom',
+      path: ['sourceItemUseStateTransition'],
+      message: 'Source item receipts must match the source Character.'
+    })
+  const featureResource = value.featureResourceConsumption
+  if (
+    featureResource &&
+    (resource !== null ||
+      featureResource.ownerActorId !== value.sourceActorId ||
+      featureResource.afterUsed !== featureResource.beforeUsed + featureResource.cost ||
+      featureResource.beforeRemaining < featureResource.cost ||
+      featureResource.afterRemaining !== featureResource.beforeRemaining - featureResource.cost)
+  )
+    context.addIssue({
+      code: 'custom',
+      path: ['featureResourceConsumption'],
+      message: 'Encounter feature resource receipt is invalid.'
+    })
+  if (
+    (value.sourceCharacterStreamVersion === null) !==
+    !(resource !== null || stow !== null || consumption !== null || spell !== null)
+  )
+    context.addIssue({
+      code: 'custom',
+      path: ['sourceCharacterStreamVersion'],
+      message: 'Source Character stream version presence is invalid.'
+    })
+}
+
 /**
  * The root of a committed point-area action: the caster's one spend, the creatures the area caught and
  * the GM removed, and the child settlement of each kept creature. Each child is a mechanics batch
@@ -1051,71 +1131,13 @@ const encounterAreaActionApplicationOutputImplSchema = lazySchema(() =>
       damage: z
         .array(concentrationDamageApplicationDtoSchema)
         .check(z.maxLength(MAX_CONCENTRATION_DAMAGE_APPLICATIONS)),
-      sourceCharacterStreamVersion: z.nullable(aggregateVersionSchema),
-      resourceConsumption: z.nullable(characterMechanicsResourceReceiptDtoSchema),
-      featureResourceConsumption: z.nullable(encounterFeatureResourceReceiptDtoSchema),
-      sourceItemUseStateTransition: z.nullable(characterItemUseStateTransitionDtoSchema),
-      sourceItemConsumption: z.nullable(characterItemConsumptionReceiptDtoSchema),
-      spellCastConsumption: z.nullable(characterSpellSlotConsumptionReceiptDtoSchema),
-      actionEconomyTransition: z.nullable(encounterActionEconomyTransitionDtoSchema),
-      attackActionTransition: z.optional(encounterAttackActionTransitionDtoSchema),
+      ...sourceSpendReceiptShape(),
       /** The spatial effect this action placed in the Scene, which GM undo deletes; null for none. */
       placedSpatialEffectId: z.nullable(uuidSchema)
     })
     .check(
       z.superRefine((value, context) => {
-        const resource = value.resourceConsumption
-        if (
-          resource &&
-          (value.sourceCharacterId === null ||
-            resource.afterUsed !== resource.beforeUsed + resource.cost ||
-            resource.beforeRemaining < resource.cost ||
-            resource.afterRemaining !== resource.beforeRemaining - resource.cost)
-        )
-          context.addIssue({
-            code: 'custom',
-            path: ['resourceConsumption'],
-            message: 'Resource receipt is invalid.'
-          })
-        const stow = value.sourceItemUseStateTransition
-        const consumption = value.sourceItemConsumption
-        const spell = value.spellCastConsumption
-        if (
-          (stow &&
-            (stow.characterId !== value.sourceCharacterId ||
-              stow.afterStreamVersion !== value.sourceCharacterStreamVersion)) ||
-          (consumption && consumption.characterId !== value.sourceCharacterId) ||
-          (spell && spell.characterId !== value.sourceCharacterId)
-        )
-          context.addIssue({
-            code: 'custom',
-            path: ['sourceItemUseStateTransition'],
-            message: 'Source item receipts must match the source Character.'
-          })
-        const featureResource = value.featureResourceConsumption
-        if (
-          featureResource &&
-          (resource !== null ||
-            featureResource.ownerActorId !== value.sourceActorId ||
-            featureResource.afterUsed !== featureResource.beforeUsed + featureResource.cost ||
-            featureResource.beforeRemaining < featureResource.cost ||
-            featureResource.afterRemaining !==
-              featureResource.beforeRemaining - featureResource.cost)
-        )
-          context.addIssue({
-            code: 'custom',
-            path: ['featureResourceConsumption'],
-            message: 'Encounter feature resource receipt is invalid.'
-          })
-        if (
-          (value.sourceCharacterStreamVersion === null) !==
-          !(resource !== null || stow !== null || consumption !== null || spell !== null)
-        )
-          context.addIssue({
-            code: 'custom',
-            path: ['sourceCharacterStreamVersion'],
-            message: 'Source Character stream version presence is invalid.'
-          })
+        validateSourceSpendReceipts(value, context)
         if (new Set(value.targetOccurrenceIds).size !== value.targetOccurrenceIds.length)
           context.addIssue({
             code: 'custom',
@@ -1165,6 +1187,69 @@ export const encounterAreaActionApplicationOutputDtoSchema: z.ZodMiniType<
     propValues: z.core.util.PropValues
   }
 > = encounterAreaActionApplicationOutputImplSchema
+
+/** An empty square has no creature and so no defense: the miss is by construction, whatever the roll. */
+export const ATTACK_EMPTY_SQUARE_RESULT_PATH = 'ON_MISS'
+
+/**
+ * The root of an attack aimed at a square where the GM ruled nobody stands: the attacker's one d20,
+ * recorded as the miss it is by construction, and the attacker's one spend. No creature is a target,
+ * so the receipt names none.
+ */
+const attackEmptySquareApplicationOutputImplSchema = lazySchema(() =>
+  z
+    .strictObject({
+      kind: z.literal('ATTACK_EMPTY_SQUARE'),
+      schemaVersion: z.literal(1),
+      occurrenceId: uuidSchema,
+      sourceActorId: uuidSchema,
+      sourceCharacterId: z.nullable(uuidSchema),
+      d20: serverRuleExecutionD20EvidenceDtoSchema,
+      ...sourceSpendReceiptShape()
+    })
+    .check(
+      z.superRefine((value, context) => {
+        validateSourceSpendReceipts(value, context)
+        if (value.d20.resultPath !== ATTACK_EMPTY_SQUARE_RESULT_PATH)
+          context.addIssue({
+            code: 'custom',
+            path: ['d20', 'resultPath'],
+            message: 'An attack on an empty square is a miss.'
+          })
+      })
+    )
+)
+
+export type EncounterAttackEmptySquareApplicationOutputDto = Pick<
+  EncounterAreaActionApplicationOutputDto,
+  | 'schemaVersion'
+  | 'occurrenceId'
+  | 'sourceActorId'
+  | 'sourceCharacterId'
+  | 'sourceCharacterStreamVersion'
+  | 'resourceConsumption'
+  | 'featureResourceConsumption'
+  | 'sourceItemUseStateTransition'
+  | 'sourceItemConsumption'
+  | 'spellCastConsumption'
+  | 'actionEconomyTransition'
+  | 'attackActionTransition'
+> & {
+  kind: 'ATTACK_EMPTY_SQUARE'
+  d20: z.infer<typeof serverRuleExecutionD20EvidenceDtoSchema>
+}
+
+/** Named like the area root so the application-output union prints it by name (TS7056). */
+export const attackEmptySquareApplicationOutputDtoSchema: z.ZodMiniType<
+  EncounterAttackEmptySquareApplicationOutputDto,
+  { kind: 'ATTACK_EMPTY_SQUARE' },
+  z.core.$ZodTypeInternals<
+    EncounterAttackEmptySquareApplicationOutputDto,
+    { kind: 'ATTACK_EMPTY_SQUARE' }
+  > & {
+    propValues: z.core.util.PropValues
+  }
+> = attackEmptySquareApplicationOutputImplSchema
 
 export const cleavingDamageApplicationOutputDtoSchema = lazySchema(() =>
   z

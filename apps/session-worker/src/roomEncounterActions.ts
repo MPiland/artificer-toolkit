@@ -1,6 +1,7 @@
 import { persistEncounterActionPending } from '@artificer-toolkit/encounter-persistence/actionPendingPersistence'
 import { persistEncounterActionCommit } from '@artificer-toolkit/encounter-persistence/actionCommitPersistence'
 import { persistEncounterAreaCommit } from '@artificer-toolkit/encounter-persistence/areaCommitPersistence'
+import { persistEncounterAttackEmptySquareCommit } from '@artificer-toolkit/encounter-persistence/attackEmptySquareCommitPersistence'
 import {
   prepareEncounterActionMaintenance,
   persistEncounterActionEffects
@@ -30,6 +31,7 @@ import {
   buildNativeLiveEncounterAreaActionPendingInput,
   buildNativeLiveEncounterAreaCommitInput
 } from './nativeEncounterAreaRules.js'
+import { buildNativeLiveEncounterEmptySquareCommitInput } from './nativeEncounterAttackEmptySquare.js'
 import {
   readRoomActionAreaSceneInputs,
   readRoomActionSceneInputs
@@ -53,11 +55,14 @@ export async function executeRoomEncounterAction(input: {
   command: ResolveEncounterActionInputDto | ResolveRuleOccurrenceInputDto | RemoveAreaTargetInputDto
   runtime: RulesRuntimeService
   random(maximum: number): number
+  /** The GM ruled the command's square empty. */
+  emptySquare?: boolean
 }) {
   const { ctx, store, transaction, inputs, scope, observed } = input
   const plan = await planNativeLiveEncounterAction(scope, input.command, {
     runtime: input.runtime,
     random: input.random,
+    emptySquare: input.emptySquare,
     captures: {
       encounterRules: (request) =>
         readRoomEncounterTurnCapture(
@@ -93,9 +98,11 @@ export async function executeRoomEncounterAction(input: {
       ? buildNativeLiveEncounterAreaActionPendingInput(scope, plan)
       : plan.kind === 'AREA_COMMIT'
         ? buildNativeLiveEncounterAreaCommitInput(scope, plan)
-        : plan.kind === 'PENDING'
-          ? buildNativeLiveEncounterActionPendingInput(scope, plan)
-          : buildNativeLiveEncounterActionCommitInput(scope, plan)
+        : plan.kind === 'EMPTY_SQUARE_COMMIT'
+          ? buildNativeLiveEncounterEmptySquareCommitInput(scope, plan)
+          : plan.kind === 'PENDING'
+            ? buildNativeLiveEncounterActionPendingInput(scope, plan)
+            : buildNativeLiveEncounterActionCommitInput(scope, plan)
   const ids = new Set(
     plan.prepared.actors.flatMap((actor) => (actor.kind === 'CHARACTER' ? [actor.sourceId] : []))
   )
@@ -159,6 +166,12 @@ export async function executeRoomEncounterAction(input: {
           bindEncounterConcentrationApplications(ctx, state, applications),
         persistConcentrationChildren: (children) => persistRoomConcentrationChildren(ctx, children)
       }
+    )
+  if (plan.kind === 'EMPTY_SQUARE_COMMIT')
+    return persistEncounterAttackEmptySquareCommit(
+      ctx,
+      { ...buildNativeLiveEncounterEmptySquareCommitInput(scope, plan), revisions },
+      callbacks
     )
   return plan.kind === 'PENDING'
     ? persistEncounterActionPending(

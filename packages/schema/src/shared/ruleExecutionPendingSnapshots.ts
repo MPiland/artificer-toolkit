@@ -645,7 +645,6 @@ const encounterAttackSquarePendingContextDtoSchema = lazySchema(() =>
     sourceTokenId: uuidSchema,
     candidates: z
       .array(z.strictObject({ actorId: uuidSchema, tokenId: uuidSchema }))
-      .check(z.minLength(1))
       .check(z.maxLength(MAX_ENCOUNTER_ACTORS))
   })
 )

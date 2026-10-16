@@ -53,6 +53,10 @@ type ActionBatch = Extract<
   { kind: 'CHARACTER_MECHANICS_BATCH' | 'ENCOUNTER_ACTOR_MECHANICS_BATCH' }
 >
 type AreaRoot = Extract<ServerRuleExecutionApplicationOutputsDto, { kind: 'ENCOUNTER_AREA_ACTION' }>
+type EmptySquareRoot = Extract<
+  ServerRuleExecutionApplicationOutputsDto,
+  { kind: 'ATTACK_EMPTY_SQUARE' }
+>
 type CleavingDamage = Extract<ServerRuleExecutionApplicationOutputsDto, { kind: 'CLEAVING_DAMAGE' }>
 type CharacterInverse = {
   hitPoints: ActionBatch['targetTransition']['before'] | null
@@ -193,6 +197,7 @@ export async function revertLastEncounterAction(
     unavailable('This action has too many follow-up results to undo; adjust manually.')
   let batch: ActionBatch | null = null
   let areaRoot: AreaRoot | null = null
+  let emptySquareRoot: EmptySquareRoot | null = null
   const areaTargetBatches = new Map<string, ActionBatch>()
   const cleaving: CleavingDamage[] = []
   const unsupported = new Set<string>()
@@ -210,6 +215,7 @@ export async function revertLastEncounterAction(
       )
         batch = outputs
       else if (outputs?.kind === 'ENCOUNTER_AREA_ACTION') areaRoot = outputs
+      else if (outputs?.kind === 'ATTACK_EMPTY_SQUARE') emptySquareRoot = outputs
       else unsupported.add(outputs?.kind === 'CONTESTED_ACTION' ? 'a Disarm' : 'this action')
       continue
     }
@@ -243,7 +249,7 @@ export async function revertLastEncounterAction(
   }
   if ([...laterOccurrenceIds].some((occurrenceId) => !childOccurrenceIds.has(occurrenceId)))
     unavailable('Another decision changed the Encounter after this action; adjust manually.')
-  if (!batch && !areaRoot && !unsupported.size)
+  if (!batch && !areaRoot && !emptySquareRoot && !unsupported.size)
     throw new Error('Stored Encounter action receipt is missing.')
   // An area's creatures undo in reverse of the order they were applied; the root's sealed ids say which.
   const targetBatches = areaRoot
@@ -273,8 +279,10 @@ export async function revertLastEncounterAction(
     )
       unsupported.add('a replaced maintained effect')
   }
+  // An attack on an empty square changed nothing but its attacker's spend.
   const spend =
     areaRoot ??
+    emptySquareRoot ??
     (batch && {
       sourceActorId: batch.sourceActorId,
       resourceConsumption: batch.resourceConsumption,

@@ -46,6 +46,11 @@ describe('an attack aimed at a square (ATTACK-17.T4)', () => {
       expect(ruling({ kind: 'ATTACK_SQUARE_OCCUPANT' })).toBe(false)
       expect(ruling({ kind: 'ATTACK_SQUARE_OCCUPANT', actorId: id(5), extra: 1 })).toBe(false)
     })
+
+    it('rules the square empty, with nothing else', () => {
+      expect(ruling({ kind: 'ATTACK_SQUARE_EMPTY' })).toBe(true)
+      expect(ruling({ kind: 'ATTACK_SQUARE_EMPTY', actorId: id(5) })).toBe(false)
+    })
   })
 
   describe('the pending decision the GM sees', () => {
@@ -57,12 +62,12 @@ describe('an attack aimed at a square (ATTACK-17.T4)', () => {
         encounterVersion: 4,
         attackerActorId: id(1),
         candidateActorIds,
-        allowedResponses: ['ATTACK_SQUARE_OCCUPANT']
+        allowedResponses: ['ATTACK_SQUARE_OCCUPANT', 'ATTACK_SQUARE_EMPTY']
       }).success
 
-    it('lists one to a full Encounter of candidates', () => {
+    it('lists none to a full Encounter of candidates', () => {
       expect(pending([id(2)])).toBe(true)
-      expect(pending([])).toBe(false)
+      expect(pending([])).toBe(true)
       expect(
         pending(Array.from({ length: MAX_ENCOUNTER_ACTORS + 1 }, (_, index) => id(index + 2)))
       ).toBe(false)
@@ -89,9 +94,9 @@ describe('an attack aimed at a square (ATTACK-17.T4)', () => {
         }
       }).success
 
-    it('keeps the creatures found on the square, at least one', () => {
+    it('keeps the creatures found on the square, none when the square is empty', () => {
       expect(snapshot([{ actorId: id(2), tokenId: id(12) }])).toBe(true)
-      expect(snapshot([])).toBe(false)
+      expect(snapshot([])).toBe(true)
     })
   })
 })

@@ -5,6 +5,8 @@ import {
 } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import {
   attackSquareCandidates,
+  attackSquareEmptyCommand,
+  attackSquareIsAttackersOwn,
   attackSquareChildCommand,
   attackSquareChildCommandId
 } from '../encounterAttackSquare.js'
@@ -146,5 +148,38 @@ describe('attackSquareChildCommand', () => {
         expectedVersion: 7
       })
     ).toThrow('does not stand on the square')
+  })
+})
+
+describe('attackSquareIsAttackersOwn', () => {
+  const tokens = [token(id(0x21), attacker, 0), token(id(0x22), goblin, 5)]
+  const own = (point: { x: number; y: number }) =>
+    attackSquareIsAttackersOwn({ point, attackerActorId: attacker, tokens })
+
+  it('is true only on a square the attacker holds', () => {
+    expect(own({ x: 0, y: 0 })).toBe(true)
+    expect(own({ x: 5, y: 0 })).toBe(false)
+    expect(own({ x: 40, y: 40 })).toBe(false)
+  })
+})
+
+describe('attackSquareEmptyCommand', () => {
+  it('is the stored attack, still aimed at the square, under the derived command id', () => {
+    const command = resolveEncounterActionInputDtoSchema.parse({
+      type: 'RESOLVE_ACTION',
+      encounterId: id(0x91),
+      commandId: id(0x92),
+      expectedVersion: 7,
+      actorId: attacker,
+      actionId: 'attack:longsword',
+      target: { kind: 'SQUARE', sceneId: id(0x93), expectedSceneVersion: 4, point: { x: 5, y: 0 } }
+    })
+    const empty = attackSquareEmptyCommand({ command, occurrenceId: id(0x90), expectedVersion: 9 })
+    expect(empty).toEqual({
+      ...command,
+      commandId: attackSquareChildCommandId(id(0x90)),
+      expectedVersion: 9
+    })
+    expect(resolveEncounterActionInputDtoSchema.safeParse(empty).success).toBe(true)
   })
 })

@@ -254,6 +254,30 @@ export async function resolveEncounterBelievedAttackPerception(
   }
 }
 
+/** The stranger an attack on an empty square is believed to be aimed at; no creature has this id. */
+export const ENCOUNTER_SQUARE_STRANGER_ACTOR_ID = '00000000-0000-4000-8000-000000000000'
+
+/**
+ * The believed sight of an attack on a square the roller cannot know is empty: the same resolution
+ * as `resolveEncounterBelievedAttackPerception`, against a stranger no one is allied with, so the
+ * prompt equals the one a hidden creature on the square would show.
+ */
+export function resolveEncounterBelievedSquareAttackPerception(
+  input: AttackPerceptionLoaders & { attacker: AttackPerceptionActor }
+): Promise<EncounterAttackPerception> {
+  return resolveEncounterBelievedAttackPerception({
+    ...input,
+    target: strippedAttackActor({
+      ...input.attacker,
+      actor: {
+        ...input.attacker.actor,
+        id: ENCOUNTER_SQUARE_STRANGER_ACTOR_ID,
+        disposition: 'NEUTRAL'
+      }
+    })
+  })
+}
+
 /** The attack-roll contributors the SRD gives unseen attackers (advantage) and unseen targets (disadvantage). */
 export function encounterAttackPerceptionContributors(
   perception: EncounterAttackPerception

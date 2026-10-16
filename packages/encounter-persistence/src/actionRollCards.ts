@@ -48,7 +48,8 @@ export async function recordActionRollCards(
     batch: Pick<MechanicsBatch, 'd20' | 'nestedD20' | 'applications'>
     actionLabel: string
     source: EncounterRunActorState
-    target: EncounterRunActorState
+    /** Absent when the action has no target creature: an attack on an empty square. */
+    target?: EncounterRunActorState
     initiatorUserId: string
     visibility: Parameters<typeof recordRuleRollCard>[1]['visibility']
     createdAt: string
@@ -62,7 +63,7 @@ export async function recordActionRollCards(
     // A d20 the server adjusted for sight is always carded here: the app attempt's card showed
     // only the dice as rolled.
     if (!d20 || (input.appCardedD20s.has(checkIndex) && !d20.modeAdjustment)) continue
-    const roller = d20.resultPath.startsWith('ON_SAVE_') ? target : source
+    const roller = target && d20.resultPath.startsWith('ON_SAVE_') ? target : source
     const record = (reader: 'PLAYER' | 'GM') =>
       actionD20RollRecord({
         occurrenceId: input.rollScope,

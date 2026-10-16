@@ -7,6 +7,7 @@ import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/sys
 import {
   resolveEncounterAttackPerception,
   resolveEncounterBelievedAttackPerception,
+  resolveEncounterBelievedSquareAttackPerception,
   resolveEncounterObserversSeeing,
   resolveEncounterPointSight
 } from '@artificer-toolkit/rules-runtime/encounterAttackPerception'
@@ -88,6 +89,28 @@ export async function readNativeLiveAttackPerception(input: {
     })
   ])
   return { actual, believed }
+}
+
+/**
+ * The sight an attacker's roller believes for an attack on a square the GM ruled empty: the same
+ * loaders as `readNativeLiveAttackPerception`'s believed side, against a stranger.
+ */
+export function readNativeLiveBelievedSquareAttackPerception(input: {
+  state: EncounterRunState
+  system: SystemAuthoredDto
+  attacker: MovementTarget
+  capture: (request: LiveSessionEncounterRulesRequest) => Promise<LiveSessionEncounterRulesResponse>
+}) {
+  const { state, capture } = input
+  if (input.system.id !== state.gameSystemId)
+    throw new Error('Attack perception System binding mismatch.')
+  return resolveEncounterBelievedSquareAttackPerception({
+    gameSystemId: state.gameSystemId,
+    loadDefinition: (definitionId) =>
+      readNativeLiveDefinition({ gameSystemId: state.gameSystemId, definitionId, capture }),
+    loadSystem: async () => input.system,
+    attacker: input.attacker
+  })
 }
 
 /**

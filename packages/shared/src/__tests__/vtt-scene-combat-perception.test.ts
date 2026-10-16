@@ -4,6 +4,7 @@ import { SceneBarrierIndex } from '../domains/vtt/geometry.js'
 import type { CampaignSceneState, SceneToken } from '../domains/vtt/scene.js'
 import {
   measureSceneTokenFootprintDistance,
+  sceneBaseSquareSize,
   resolveSceneCombatPerceptionEnvironment,
   resolveSceneIlluminationAt
 } from '../domains/vtt/sceneCombatPerception.js'
@@ -319,5 +320,13 @@ describe('Scene combat-perception environment', () => {
       invisibleChannels: ['NONVISUAL', 'VISUAL'],
       suppressedChannels: ['AUDITORY']
     })
+  })
+})
+
+describe('sceneBaseSquareSize', () => {
+  it('is a grid cell on a square grid and five feet in Scene coordinates on a gridless one', () => {
+    expect(sceneBaseSquareSize(grid)).toBe(100)
+    expect(sceneBaseSquareSize({ kind: 'GRIDLESS', pixelsPerUnit: 20, unit: 'FEET' })).toBe(100)
+    expect(sceneBaseSquareSize({ kind: 'GRIDLESS', pixelsPerUnit: 10, unit: 'FEET' })).toBe(50)
   })
 })

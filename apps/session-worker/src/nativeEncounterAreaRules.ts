@@ -117,6 +117,7 @@ import {
 import { planNativeLiveConcentration } from './nativeEncounterConcentration.js'
 import { prepareNativeLiveActionMaintenance } from './nativeEncounterMaintenance.js'
 import type { prepareNativeLiveMovementTarget } from './nativeEncounterTargets.js'
+import type { planNativeLiveEncounterEmptySquare } from './nativeEncounterAttackEmptySquare.js'
 import type { planNativeLiveEncounterAttackSquare } from './nativeEncounterAttackSquare.js'
 import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
 
@@ -818,7 +819,8 @@ export function buildNativeLiveEncounterAreaActionPendingInput(
       | Awaited<ReturnType<typeof planNativeLiveEncounterAreaAction>>
       | Awaited<ReturnType<typeof planNativeLiveEncounterAreaAnswer>>
       | Awaited<ReturnType<typeof planNativeLiveEncounterAreaLegendaryResistance>>
-      | Awaited<ReturnType<typeof planNativeLiveEncounterAttackSquare>>,
+      | Awaited<ReturnType<typeof planNativeLiveEncounterAttackSquare>>
+      | Awaited<ReturnType<typeof planNativeLiveEncounterEmptySquare>>,
       { kind: 'AREA_PENDING' | 'SQUARE_PENDING' }
     >,
     'command' | 'response' | 'snapshot'
