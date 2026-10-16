@@ -1045,11 +1045,11 @@ export async function advanceNativeActionGraphs(input: {
     targetStateChecksum: string
   }
   /**
-   * The reaction the attacked target may use against a TEST that hit. A found candidate holds the
-   * action before its OUTCOME for the target's choice.
+   * The reactions the attacked target may use against a TEST that hit (`critical` when it hit
+   * critically). Any found candidate holds the action before its OUTCOME for the target's choice.
    */
   reaction?: {
-    discover(): Promise<EncounterAttackReactionCandidate | null>
+    discover(critical: boolean): Promise<readonly EncounterAttackReactionCandidate[]>
     targetStateChecksum: string
   }
   resume?: { pending: ResumedNativeActionGraphs; resolution: EncounterEvidenceAnswer }
@@ -1405,17 +1405,18 @@ export async function advanceNativeActionGraphs(input: {
       }
     }
     const reaction = input.reaction
-    const reactionCandidate =
+    const reactionCandidates =
       reaction && (testD20.resultPath === 'ON_HIT' || testD20.resultPath === 'ON_CRIT')
-        ? await reaction.discover()
-        : null
-    if (reaction && reactionCandidate && twoPhase?.phase === 'TEST') {
+        ? await reaction.discover(testD20.resultPath === 'ON_CRIT')
+        : []
+    const [firstReaction] = reactionCandidates
+    if (reaction && firstReaction && twoPhase?.phase === 'TEST') {
       return {
         kind: 'PENDING',
         continuation: await openEncounterReactionChoice({
           runtime: input.runtime,
           occurrenceId: input.occurrenceId,
-          candidate: reactionCandidate
+          candidate: firstReaction
         }),
         d20Policy: null,
         twoPhase,
@@ -1426,7 +1427,7 @@ export async function advanceNativeActionGraphs(input: {
           d20: stage.d20.policy,
           originalExecutionChecksum: checksumRuleDocument(result),
           targetStateChecksum: reaction.targetStateChecksum,
-          reactions: [encounterReactionPin(reactionCandidate)]
+          reactions: reactionCandidates.map(encounterReactionPin)
         }
       }
     }

@@ -630,7 +630,7 @@ export async function planNativeLiveEncounterAction(
    * answered: its effect plan and the attack's binding once that effect holds.
    */
   const currentReaction = async (used: boolean, answering: string) => {
-    const found = await discoverReaction(answering)
+    const [found] = await discoverReaction({ answering })
     if (!found) throw new Error('Reaction evidence is stale.')
     const applied = used
       ? await applyNativeAttackReaction({
@@ -685,7 +685,8 @@ export async function planNativeLiveEncounterAction(
       ...(resume ? { resume } : {}),
       legendaryResistance: { discover: discoverResistance, targetStateChecksum },
       reaction: {
-        discover: async () => (await discoverReaction())?.candidate ?? null,
+        discover: async (critical) =>
+          (await discoverReaction({ critical })).map(({ candidate }) => candidate),
         targetStateChecksum
       }
     }))

@@ -3,13 +3,18 @@ import type { EncounterReactionPinDto } from '@artificer-toolkit/schema/shared/r
 
 import type { MovementTarget } from './encounterMovementTargets.js'
 
-/** The damage types an attack deals when it hits, from its authored ON_HIT and ON_CRIT outcomes. */
+/**
+ * The damage types an attack deals when it hits, from its authored ON_HIT outcomes and, on a critical
+ * hit only, its ON_CRIT outcomes.
+ */
 export function attackHitDamageTypeIds(
-  mechanicFacts: Pick<CharacterActionCandidate['mechanicFacts'], 'outcomes'>
+  mechanicFacts: Pick<CharacterActionCandidate['mechanicFacts'], 'outcomes'>,
+  critical: boolean
 ): ReadonlySet<string> {
   return new Set(
     mechanicFacts.outcomes.flatMap((outcome) =>
-      outcome.kind === 'DAMAGE' && (outcome.pathCode === 'ON_HIT' || outcome.pathCode === 'ON_CRIT')
+      outcome.kind === 'DAMAGE' &&
+      (outcome.pathCode === 'ON_HIT' || (critical && outcome.pathCode === 'ON_CRIT'))
         ? [outcome.damageTypeId]
         : []
     )

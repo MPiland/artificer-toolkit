@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { offeredDecisionOptionIds } from '../actionPending.js'
 
 describe('offeredDecisionOptionIds', () => {
-  it('offers every reaction the pause carries, innermost first', () => {
+  it('offers every reaction the pause carries as a menu', () => {
     expect(
       offeredDecisionOptionIds({
         reactionChoice: { reactions: [{ useOptionId: 'inner' }, { useOptionId: 'outer' }] }

@@ -43,10 +43,11 @@ export type NativeAttackReaction = {
 }
 
 /**
- * The reaction the attacked Character may use against this attack, if it holds one it can afford now.
- * Only the first eligible reaction is offered; a decided offer names the reaction it answers (`actionId`)
- * so that one is found again. A creature that attacks itself, a defeated Character (D63) and one with
- * its reactions suppressed (D99) answer nothing.
+ * The reactions the attacked Character may use against this attack, each one it holds and can afford
+ * now, by action id. They are offered together as a menu (a Character has one reaction a round); a
+ * decided offer names the reaction it answers (`answering`) so that one is found again, whatever the
+ * hit's severity then. A creature that attacks itself, a defeated Character (D63) and one with its
+ * reactions suppressed (D99) answer nothing.
  */
 export function discoverNativeAttackReaction(input: {
   state: EncounterRunState
@@ -56,7 +57,9 @@ export function discoverNativeAttackReaction(input: {
     request: LiveSessionEncounterRulesRequest
   ) => ReturnType<LiveCaptureReads['encounterRules']>
 }) {
-  return async (answering?: string): Promise<NativeAttackReaction | null> => {
+  return async (
+    hit: { critical: boolean } | { answering: string }
+  ): Promise<readonly NativeAttackReaction[]> => {
     const { actor, target, movementTargets } = input.attack
     const reactor = movementTargets.get(target.id)
     if (
@@ -65,15 +68,17 @@ export function discoverNativeAttackReaction(input: {
       !reactor ||
       isEncounterActorDefeated(target, deadCharacterIdsOfTargets(movementTargets.values()))
     )
-      return null
+      return []
     const { source } = input.attack
     const hitDamageTypeIds = attackHitDamageTypeIds(
       source.kind === 'CHARACTER_ACTION'
         ? source.candidate.mechanicFacts
-        : source.capability.mechanicFacts
+        : source.capability.mechanicFacts,
+      'answering' in hit || hit.critical
     )
+    const reactions: NativeAttackReaction[] = []
     for (const { actionId, trigger } of discoverAttackReactionActions(reactor, hitDamageTypeIds)) {
-      if (answering !== undefined && actionId !== answering) continue
+      if ('answering' in hit && actionId !== hit.answering) continue
       const prepared = await input.prepareReaction(actionId).catch((error: unknown) => {
         // A reaction its holder cannot pay for (no slot, not prepared) is simply not offered.
         if (error instanceof StaleCharacterActionError) return null
@@ -89,7 +94,7 @@ export function discoverNativeAttackReaction(input: {
         capture: input.capture
       })
       if (!economy?.available || suppressed) continue
-      return {
+      reactions.push({
         prepared,
         economy,
         candidate: {
@@ -109,9 +114,9 @@ export function discoverNativeAttackReaction(input: {
             gameSystemId: input.state.gameSystemId
           })
         }
-      }
+      })
     }
-    return null
+    return reactions
   }
 }
 
