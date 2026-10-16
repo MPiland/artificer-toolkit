@@ -92,7 +92,7 @@ Closes AC SPELLS-28.1. Two stages, each red on `ci/spells-28-t4-red` then green 
 
 ## Resume here (2026-10-16)
 
-T1, T3, T2, T1b and T4 stage 1 are merged. **T4c is done and green**; **T4b (the form outliving the Run, D99 carry-over) is next**, then T4d (form action-list swap, form defenses/speeds/senses, creature-proficiency merge).
+T1, T3, T2, T1b and T4 stage 1 are merged; T4c (`ci/spells-28-t4c`) and T4b (`ci/spells-28-t4b`, based on it) await merge. **T4c and T4b are done and green** (T4b closes SPELLS-28.1); **T4d is next**: T4d (form action-list swap, form defenses/speeds/senses, creature-proficiency merge).
 
 ## T4c status (2026-10-16)
 
@@ -114,3 +114,9 @@ Approved by the orchestrator (Phase 8) on 2026-10-16. Changes a persisted contra
 - **Projection.** The GM sees the form's stat block (with the retained abilities) and the form's hit points; the Character's own sheet panel is unchanged.
 - **Casting.** The Character cannot cast while in a form (Polymorph's form cannot cast); Concentration on a spell cast before the form is kept.
 - **Not in T4c:** the form's actions replacing the Character's (T4d), the form outliving the Run (T4b), object forms, True Polymorph permanence, Shapechange re-form.
+
+## T4b status (2026-10-16)
+
+- Red: `ci/spells-28-t4b-red` 727b9d232, Tests 38980010145, Live 38980010183.
+- Mechanism: the form rides the carried effect's lifecycle (`carriedCreatureForm`: Creature, snapshot and form hit points). `planCarriedOverEffects` (via `carryOverRunGrants`, the one D99 path) stamps it at COMPLETE and refreshes an already carried form effect; `resumeCharacterForm` rebuilds the actor `form` when `runs.create` builds the next Run's Character actor. Ending the effect on the Sheet just deletes it, so no form is resumed.
+- Proof: `packages/rules-runtime/src/__tests__/grantLifetimes.test.ts` (planCarriedOverEffects form cases, resume), `apps/apis/convex/encounters/finishedRun.test.ts` (carry out, next Run wears it, Sheet end).
