@@ -67,7 +67,22 @@ export const removeFixtureState = internalMutation({
         (scene) => !selectedSaveIds.has(scene.definitionSaveId) || scene.campaignId !== campaign.id
       )
     )
-      throw new Error('Fixture Scene bounds or ownership mismatch.')
+      throw new Error(
+        `Fixture Scene bounds or ownership mismatch: ${JSON.stringify({
+          definitions: definitions.length,
+          liveScenes: liveScenes.length,
+          presentations: campaignPresentations.length,
+          events: events.length,
+          foreignDefinitions: definitions.filter(
+            (definition) =>
+              !selectedSaveIds.has(definition.saveId) || definition.campaignId !== campaign.id
+          ).length,
+          foreignScenes: liveScenes.filter(
+            (scene) =>
+              !selectedSaveIds.has(scene.definitionSaveId) || scene.campaignId !== campaign.id
+          ).length
+        })}`
+      )
 
     const runs = await ctx.db
       .query('encounterRuns')
