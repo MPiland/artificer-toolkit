@@ -100,11 +100,17 @@ export function createFollowUpSaveDtoSchema(outcomeDtoSchema: z.ZodMiniType) {
             message: 'Repeat roll influence requires a repeated save at the end of the target turn.'
           })
         }
-        if (value.repeatAttemptGate !== undefined && !repeatsAtTargetTurnEnd) {
+        // The plan for a save made at once on application carries no gate yet, so a gate is
+        // authorable only on a save first made at the end of the target turn.
+        if (
+          value.repeatAttemptGate !== undefined &&
+          !(repeatsAtTargetTurnEnd && value.timing === 'TARGET_TURN_END')
+        ) {
           context.addIssue({
             code: 'custom',
             path: ['repeatAttemptGate'],
-            message: 'A repeat attempt gate requires a repeated save at the end of the target turn.'
+            message:
+              'A repeat attempt gate requires a repeated save first made at the end of the target turn.'
           })
         }
         // A turn reads one perception result, so one save gates or influences its repeat, not both.

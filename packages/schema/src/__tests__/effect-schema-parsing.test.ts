@@ -932,6 +932,14 @@ describe('effect schema parsing', () => {
     expect(followUpSave({ repeatAttemptGate: { allow: 'ALWAYS', when } })).toBe(false)
     expect(followUpSave({ timing: 'TARGET_TURN_START' })).toBe(false)
     expect(followUpSave({ attempts: { kind: 'ONCE' } })).toBe(false)
+    // The immediate-save plan carries no gate, so the schema must not accept one it cannot run.
+    const immediateRepeat = {
+      timing: 'IMMEDIATE',
+      repeatTiming: 'TARGET_TURN_END',
+      onFailure: { kind: 'OUTCOMES', endCurrent: false, resultKind: 'SINGLE', outcomes: [] }
+    }
+    expect(followUpSave({ ...immediateRepeat, repeatAttemptGate: undefined })).toBe(true)
+    expect(followUpSave(immediateRepeat)).toBe(false)
     // The runtime carries one perception result per repeated save, so one perception rule at most.
     expect(
       followUpSave({ repeatRollInfluence: { influence: 'DISADVANTAGE', when } })

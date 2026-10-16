@@ -691,9 +691,12 @@ target's turn may author `repeatAttemptGate` (`allow: WHEN_MET | WHEN_UNMET` ove
 `PERCEPTION` as `repeatRollInfluence`; the schema refuses the two together). The compiler pins it as adapter
 facts and makes the frozen graph's `repeat-save-d20` an `evidence.optional-integer-range` enabled by the
 bound fact `dnd5e.repeat-save-attempt-allowed`. When the gate refuses the attempt, the binding requests no
-roll and the effect continues unchanged, or expires on its last tick. SRD Fear authors `WHEN_UNMET` `SEE`
-(the save is made only out of the caster's sight). A repeated save made at once on application refuses a
-gate rather than drop it.
+roll and the effect continues unchanged, or expires on its last tick; the save-test node still runs on
+the settled minimum, so a refused attempt's graph outputs are not a save result and only the interpreted
+`ATTEMPT_REFUSED` counts. Perception the room cannot resolve (no Scene, or a source with no token) is
+unmet, as for `repeatRollInfluence`. SRD Fear authors `WHEN_UNMET` `SEE` (the save is made only out of the
+caster's sight). The schema accepts a gate only on a save first made at the end of the target's turn, since
+the plan for a save made at once on application carries none.
 
 A mechanic with `minimumLevel` applies from that level of a leveled condition: a Character's exhaustion
 level is a level of the System's Exhaustion condition, a Creature's condition row may record a level, and

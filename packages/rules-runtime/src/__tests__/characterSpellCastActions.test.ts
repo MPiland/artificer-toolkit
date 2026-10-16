@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { CharacterRulePolicyOutput } from '@artificer-toolkit/schema/api/characterRules'
 import { createCharacterResourceOwnerKey } from '@artificer-toolkit/shared/character'
+import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { compileSpell } from '@artificer-toolkit/shared/subjects/compilers'
 import { srdSpells } from '@artificer-toolkit/source-data/srd/spells/index.js'
@@ -19,8 +20,12 @@ import {
   spellCastActionId
 } from '../character/characterSpellCastActions.js'
 import { discoverCharacterActionCapabilities } from '../characterActionCapabilityDiscoveryRegistry.js'
+import { characterRuleActionSystemAdapterRegistry } from '../characterRuleActionSystemAdapterRegistry.js'
 import { compileCharacterActionEntryPoints } from '../encounterActionEntryPointCompiler.js'
+import { executeTargetBoundActiveRuleEffectWithPause } from '../targetBoundActiveRuleEffectExecutor.js'
+import { createSrdRulesRuntime, testUuid } from '../testing/dnd5eSrdEncounter.js'
 import { fixedHealSpell } from '../testing/fixedHealSpell.js'
+import { plannedTimedCondition } from '../testing/plannedTimedCondition.js'
 import { evaluateSrdCharacter } from './dnd5eSrdCharacter.js'
 
 type BuildInput = Parameters<typeof buildCharacterSpellCastActions>[0]
@@ -714,6 +719,98 @@ describe('a repeat save attempted only by what the target perceives (SPELLS-29.T
       })
     }
   )
+
+  /**
+   * One end-of-turn tick of the spell's planned effect on a holder with a +0 Wisdom save, given
+   * whether it sees the caster now.
+   */
+  async function tickGatedSave(input: {
+    authored: SpellAuthored
+    condition: string
+    seesSource: boolean
+    remainingTicks: number
+  }) {
+    const { definition } = plannedTimedCondition({
+      encounterId: testUuid(0xd901),
+      sourceActorId: testUuid(0xd902),
+      holderActorId: testUuid(0xd903),
+      spell: input.authored,
+      lifetimeScope: 'ENCOUNTER'
+    })
+    const lifecycle = { schemaVersion: 1 as const, remainingTicks: input.remainingTicks }
+    return executeTargetBoundActiveRuleEffectWithPause({
+      activeEffectId: testUuid(0xd904),
+      activeEffectVersion: 1,
+      definition,
+      lifecycle,
+      lifecycleChecksum: checksumRuleDocument(lifecycle),
+      occurrenceId: testUuid(0xd905),
+      targetActorId: testUuid(0xd903),
+      currentHitPoints: 10,
+      temporaryHitPoints: 0,
+      maximumHitPoints: 10,
+      targetScalarValues: {},
+      targetConditionIds: [conditionId(input.condition)!],
+      targetDerivedFacts: {
+        savingThrowDefinitions: [
+          {
+            abilityDefinitionId: SRD_ABILITIES.find(({ code }) => code === 'WISDOM')?.id,
+            modifier: 0,
+            rollMode: 'NORMAL',
+            contributors: []
+          }
+        ]
+      },
+      defenses: [],
+      perception: { requirement: 'SEE', satisfied: input.seesSource, checksum: 'a'.repeat(64) },
+      runtime: await createSrdRulesRuntime(),
+      adapters: characterRuleActionSystemAdapterRegistry
+    })
+  }
+
+  it.each([
+    { authored: FEAR, condition: 'FRIGHTENED', seesSource: false },
+    { authored: WATCHFUL_MIASMA, condition: 'POISONED', seesSource: true }
+  ])(
+    'asks $authored.label’s holder for its d20 when the gate allows the attempt',
+    async ({ authored, condition, seesSource }) => {
+      const paused = await tickGatedSave({ authored, condition, seesSource, remainingTicks: 10 })
+      expect(paused).toMatchObject({ evidencePolicy: { requestNodeId: 'repeat-save-d20', dc: 15 } })
+    }
+  )
+
+  it.each([
+    { authored: FEAR, condition: 'FRIGHTENED', seesSource: true },
+    { authored: WATCHFUL_MIASMA, condition: 'POISONED', seesSource: false }
+  ])(
+    'refuses $authored.label’s attempt without a roll and keeps its $condition',
+    async ({ authored, condition, seesSource }) => {
+      const refused = await tickGatedSave({ authored, condition, seesSource, remainingTicks: 10 })
+      expect(refused).toMatchObject({ terminal: false, applications: [], d20: null })
+      expect(refused).not.toHaveProperty('continuation')
+    }
+  )
+
+  it('ends Fear on its last turn even when the gate refuses the attempt', async () => {
+    const expired = await tickGatedSave({
+      authored: FEAR,
+      condition: 'FRIGHTENED',
+      seesSource: true,
+      remainingTicks: 1
+    })
+    expect(expired).toMatchObject({
+      terminal: true,
+      d20: null,
+      applications: [
+        {
+          kind: 'CONDITION_REMOVE',
+          conditionId: conditionId('FRIGHTENED'),
+          authoredPath: null,
+          resolvedPath: null
+        }
+      ]
+    })
+  })
 
   it('keeps an ungated repeat save on its plain d20: Hold Person', () => {
     const { plan, node } = repeatD20(HOLD_PERSON)

@@ -59,7 +59,14 @@ function fearRoom({
 }: { casterInvisible?: boolean; rolls?: readonly number[] } = {}) {
   return actionRoom({
     ...(rolls && { autoRoll: 'GAME_MASTER' as const, rolls }),
-    actors: [characterActor({ id: CASTER_ID, characterId: CHARACTER_ID }), ...wolves],
+    actors: [
+      {
+        ...characterActor({ id: CASTER_ID, characterId: CHARACTER_ID }),
+        // Initiative reads the Character's frozen identity, which a turn change checks.
+        snapshot: { kind: 'CHARACTER', id: CHARACTER_ID, systemId: srdSystemRecord.id }
+      },
+      ...wolves
+    ],
     positions: { [FRIGHTENED_WOLF_ID]: WOLF_START, [OTHER_WOLF_ID]: { x: 550, y: 150 } },
     characterSpellcasting: { spells: [fear], prepared: [fear.id] },
     characterPlay: {
