@@ -44,6 +44,7 @@ const HEALING_WORD = spell('Healing Word')
 const SHIELD = spell('Shield')
 const SHIELD_OF_FAITH = spell('Shield of Faith')
 const INVISIBILITY = spell('Invisibility')
+const FEAR = spell('Fear')
 const MEND = { ...fixedHealSpell(), id: '00000000-0000-4000-8000-00000000c0de', label: 'Mend' }
 
 /** The cast candidate of a spell at a level, the way the policy lists it. */
@@ -188,6 +189,7 @@ const authoredById = new Map(
     SHIELD,
     SHIELD_OF_FAITH,
     INVISIBILITY,
+    FEAR,
     GAPPED_HEAL,
     LATE_HEAL
   ].map((entry) => [entry.id, entry])
@@ -577,6 +579,15 @@ describe('the Concentration a cast starts', () => {
     const plan = compiledCast(HOLD_PERSON)?.activeEffectPlan
     expect(plan?.maintenance?.definitionId).toBe(SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID)
     expect(plan?.conditionContribution).not.toBeNull()
+  })
+
+  it('plans the Frightened of SRD Fear as recording its caster; Hold Person records none (SPELLS-29)', () => {
+    expect(compiledCast(FEAR)?.activeEffectPlan?.conditionContribution).toMatchObject({
+      recordsSource: true
+    })
+    expect(compiledCast(HOLD_PERSON)?.activeEffectPlan?.conditionContribution).toMatchObject({
+      recordsSource: false
+    })
   })
 
   it('starts no Concentration for a spell that is not a Concentration spell', () => {

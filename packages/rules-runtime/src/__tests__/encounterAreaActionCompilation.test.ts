@@ -302,20 +302,6 @@ describe('chosen-creature heal compilation from the SRD (D118)', () => {
     expect(plan?.modifierGrantContribution ?? null).toBeNull()
   })
 
-  it('plans the Frightened of SRD Fear as recording its caster; Phantasmal Killer records none (SPELLS-29)', () => {
-    const conditionPlan = (label: string, level: number) => {
-      const { action } = compile({}, spellEffect(label), level)
-      return dnd5eCharacterRuleActionSystemAdapter
-        .activeEffectPlans?.({
-          action,
-          published: dnd5eCharacterRuleActionSystemAdapter.compile({ action })
-        })
-        .find((plan) => plan.conditionContribution)?.conditionContribution
-    }
-    expect(conditionPlan('Fear', 3)).toMatchObject({ recordsSource: true })
-    expect(conditionPlan('Phantasmal Killer', 4)).toMatchObject({ recordsSource: false })
-  })
-
   it('refuses an area it cannot aim at a point, or a list that repeats a creature through a save', () => {
     expect(() =>
       compile({ shape: { id: 's', shapeKind: 'CUBE', edgeLength: feet(15) } }, MASS_CURE_WOUNDS, 5)
