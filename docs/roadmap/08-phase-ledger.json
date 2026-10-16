@@ -5788,6 +5788,19 @@
               "activeWorkbook": "docs/handoffs/slice-attack-9-t2.md"
             },
             {
+              "id": "ATTACK-9.T2e",
+              "text": "Sneak Attack and other roll-mode-gated paths gate on the settled roll mode (TEST evidence rolledMode), not the derived mode, so hand-rolled and GM-adjudicated advantage count (architect ruling: option B; D-entry and rules-runtime guide).",
+              "status": "TODO",
+              "closes": ["ATTACK-9.2"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 3,
+                "size": 2,
+                "after": ["ATTACK-9.T2d"]
+              }
+            },
+            {
               "id": "ATTACK-9.T3",
               "text": "Second Wind proof and Action Surge action-allowance grant.",
               "status": "TODO",
