@@ -123,7 +123,7 @@ describe('SRD breath weapons breathe areas', () => {
     expect(row.printedAreaCount).toBe(row.effectCount)
   })
 
-  it.each(breathRows.filter(({ creatureLabel }) => creatureLabel !== 'Gorgon'))(
+  it.each(breathRows)(
     '$name compiles to a directed area of its printed size',
     (row) => {
       const policy = buildCompiledActionTargetPolicy(row.capability)
@@ -133,42 +133,25 @@ describe('SRD breath weapons breathe areas', () => {
     }
   )
 
-  const gorgonRow = breathRows.find(({ creatureLabel }) => creatureLabel === 'Gorgon')
-
-  // The Gorgon's breath is a lone on-fail Restrained whose repeat save is not authored, a shape its
-  // System cannot execute even unshaped, so it is listed unavailable. It stays unshaped until its
-  // petrification is authored: shaping it would not make it run (SPELLS-19.T3c).
-  it('keeps the Gorgon’s Petrifying Breath unshaped and unavailable', () => {
-    if (!gorgonRow) throw new Error('The Gorgon has no breath.')
-    expect(
-      encounterActionTargetKind(buildCompiledActionTargetPolicy(gorgonRow.capability))
-    ).not.toBe('DIRECTED')
-    expect(gorgonRow.compiles).toBe(false)
-    expect(gorgonRow.offered).toBe(false)
-    expect(gorgonRow.listedUnavailable).toBe(true)
-  })
-
   const shapedLeavingMoreThanDamage = breathRows.filter(
-    ({ creatureLabel, leavesLastingEffect }) => leavesLastingEffect && creatureLabel !== 'Gorgon'
+    ({ leavesLastingEffect }) => leavesLastingEffect
   )
 
-  // The breaths SPELLS-19 has still to author: the Gorgon's petrification (T3c), the Copper Dragons'
-  // attack cap and action exclusivity (T3d) and the Bronze Dragons' push (T4). Each task takes its
+  // The breaths SPELLS-19 has still to author: the Copper Dragons' attack cap and action exclusivity
+  // (T3d) and the Bronze Dragons' push (T4). Each task takes its
   // rows off this list, and the last leaves it empty (AC 19.2).
   const stillToAuthor = breathRows.filter(({ creatureLabel, leavesLastingEffect }) => {
-    const pending = /Bronze Dragon|Copper Dragon|^Gorgon$/.test(creatureLabel)
+    const pending = /Bronze Dragon|Copper Dragon/.test(creatureLabel)
     return leavesLastingEffect && pending
   })
-  const shapedStillToAuthor = stillToAuthor.filter(
-    ({ creatureLabel }) => creatureLabel !== 'Gorgon'
-  )
 
   // The System compiles a damage-only breath to a test outcome, a breath whose condition it times
-  // and repeats (Silver, Dust Mephit) or ends on damage (Brass), and one whose grant it times and
-  // repeats (Gold). The rest it cannot execute, so discovery never offers them.
+  // and repeats (Silver, Dust Mephit) or ends on damage (Brass), one whose grant it times and
+  // repeats (Gold) and one whose repeat save escalates to a second condition (Gorgon).
+  // The rest it cannot execute, so discovery never offers them.
   it('cannot execute exactly the breaths still to author', () => {
-    expect(shapedLeavingMoreThanDamage).toHaveLength(21)
-    expect(stillToAuthor).toHaveLength(9)
+    expect(shapedLeavingMoreThanDamage).toHaveLength(22)
+    expect(stillToAuthor).toHaveLength(8)
     expect(
       breathRows
         .filter(({ compiles }) => !compiles)
@@ -177,7 +160,7 @@ describe('SRD breath weapons breathe areas', () => {
     ).toEqual(stillToAuthor.map(({ effectId }) => effectId).sort())
   })
 
-  it.each(shapedStillToAuthor)(
+  it.each(stillToAuthor)(
     '$name is a shaped area its System cannot execute, so it is listed unavailable and not offered',
     (row) => {
       expect(() =>
@@ -211,7 +194,7 @@ describe('SRD breath weapons breathe areas', () => {
     }
   )
 
-  // SPELLS-19.AC2: the list of breaths the System cannot execute is empty. T3c, T3d and T4 take the rows
+  // SPELLS-19.AC2: the list of breaths the System cannot execute is empty. T3d and T4 take the rows
   // off `stillToAuthor`; the task that empties it drops `.fails` (vitest errors once it passes).
   it.fails('leaves no breath its System cannot execute', () => {
     expect(
@@ -227,7 +210,8 @@ describe('SRD breath weapons breathe areas', () => {
     ['Ancient Blue Dragon', 'Lightning Breath', line(120, 10)],
     ['Behir', 'Lightning Breath', line(20, 5)],
     ['Winter Wolf', 'Cold Breath', cone(15)],
-    ['Dragon Turtle', 'Steam Breath', cone(60)]
+    ['Dragon Turtle', 'Steam Breath', cone(60)],
+    ['Gorgon', 'Petrifying Breath', cone(30)]
   ])('%s %s is the printed area', (creature, breath, target) => {
     const row = breathRows.find(
       ({ creatureLabel, featureLabel }) =>
