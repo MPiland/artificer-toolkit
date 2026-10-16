@@ -85,7 +85,8 @@ export const fear: SpellAuthored = {
               {
                 id: spellChildId(SPELL_IDS.FEAR, 0x213, 1),
                 effectKind: EFFECT_KIND.CONDITION,
-                conditionId: conditionTypeId('FRIGHTENED')
+                conditionId: conditionTypeId('FRIGHTENED'),
+                recordsSource: true
               }
             ]
           }

@@ -40,7 +40,10 @@ import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rules
 import { encounterSceneGridPolicyRegistry } from '@artificer-toolkit/rules-runtime/sceneGridPolicyRegistry'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
-import { readNativeLiveAttackPerception } from './nativeAttackPerception.js'
+import {
+  readNativeLiveAttackPerception,
+  readNativeLiveSourcesSeen
+} from './nativeAttackPerception.js'
 import { captureActionEconomyDefinitions } from './nativeEncounterActionEconomy.js'
 import { liveEncounterCaptures, type LiveCaptureReads } from './nativeEncounterReads.js'
 import {
@@ -183,6 +186,8 @@ export async function planNativeLiveDisarm(
         sceneContext,
         capture
       }),
+    loadSourcesSeen: ({ holder, sources }) =>
+      readNativeLiveSourcesSeen({ state, system, holder, sources, sceneContext, capture }),
     loadSource: async (input) => resolveEncounterActionSource({ ...input, system }),
     loadRelationshipFacts: async (input) =>
       lockedRelationshipActionFacts({

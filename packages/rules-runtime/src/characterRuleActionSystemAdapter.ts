@@ -67,6 +67,8 @@ export interface CharacterRuleActionActiveEffectPlan {
    */
   conditionContribution?: null | {
     conditionId: string
+    /** The acting creature is the condition's source; its active effect records it. */
+    recordsSource: boolean
     /** The events whose first occurrence uses the condition up, sorted and unique. */
     consumeOnFirstEvents?: readonly ActiveEffectConsumeEvent[]
     /** The events whose first occurrence ends the condition, sorted and unique. */

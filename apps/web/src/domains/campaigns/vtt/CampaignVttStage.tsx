@@ -2,6 +2,7 @@ import {
   ActionIcon,
   Alert,
   Button,
+  List,
   Menu,
   SegmentedControl,
   Select,
@@ -53,6 +54,7 @@ import {
   encounterSessionStateDtoSchema
 } from '@artificer-toolkit/schema/api/encounterData'
 import type { PendingEncounterRuleOccurrenceSummaryDto } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
+import type { EncounterRuleWarningDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
 import type { BindEncounterToPresentedSceneInputDto } from '@artificer-toolkit/schema/api/vttScenes'
 import { sceneEncounterBindingSchema } from '@artificer-toolkit/schema/api/sceneRecipient'
 import { CampaignChatDrawer } from '../components/CampaignChatDrawer'
@@ -75,6 +77,8 @@ import {
 } from './CampaignVttStage.model'
 import { CampaignTabletopEncounterDrawer } from './CampaignTabletopEncounterDrawer'
 import { CampaignTabletopActionDrawer } from './CampaignTabletopActionDrawer'
+import { CampaignTabletopActionConfirmation } from './CampaignTabletopActionConfirmation'
+import { LiveSessionCommandRejectedError } from './liveSessionClient'
 import { CampaignTabletopDecisionDrawer } from './CampaignTabletopDecisionDrawer'
 import { CampaignTabletopMovementReadout } from './CampaignTabletopMovementReadout'
 import { selectMovementAllowance } from './CampaignTabletopMovementReadout.model'
@@ -162,6 +166,11 @@ export function CampaignVttStage({
     tokenId: string
     path: ScenePoint[]
     fields: HalfSpeedField[]
+  } | null>(null)
+  // A move the room refused for the rule warnings it breaks, waiting on "Do it anyway" (ADR 0034).
+  const [moveWarning, setMoveWarning] = useState<{
+    command: Extract<SceneCommandInputDto, { type: 'MOVE_SCENE_TOKEN' }>
+    warnings: EncounterRuleWarningDto[]
   } | null>(null)
   const fogOwnerUserIdRef = useRef<string | null>(null)
   fogOwnerUserIdRef.current = fogOwnerUserId
@@ -997,8 +1006,9 @@ export function CampaignVttStage({
       setCarefulChoice({ tokenId, path, fields })
       return
     }
-    const command: SceneCommandInputDto = {
+    sendTokenMove({
       ...(carefully === undefined ? {} : { carefully }),
+      acknowledgedWarnings: [],
       commandId: crypto.randomUUID(),
       correlationId: null,
       expectedEncounterVersion: mechanicsEncounter?.version ?? null,
@@ -1009,8 +1019,15 @@ export function CampaignVttStage({
       speedId: mechanicsEncounter ? movingSpeedId(tokenId) : null,
       tokenId,
       type: 'MOVE_SCENE_TOKEN'
-    }
-    void live.sendCommand({ command, scope: 'SCENE' }).catch(() => undefined)
+    })
+  }
+
+  /** Sends a move; one the room refuses for rule warnings waits on the mover's "Do it anyway". */
+  function sendTokenMove(command: Extract<SceneCommandInputDto, { type: 'MOVE_SCENE_TOKEN' }>) {
+    void live.sendCommand({ command, scope: 'SCENE' }).catch((error: unknown) => {
+      if (error instanceof LiveSessionCommandRejectedError && error.rejection.warnings)
+        setMoveWarning({ command, warnings: error.rejection.warnings })
+    })
   }
 
   commitTokenMoveRef.current = commitTokenMove
@@ -1561,6 +1578,29 @@ export function CampaignVttStage({
                 commitTokenMove(carefulChoice.tokenId, carefulChoice.path, carefully)
               }}
             />
+          ) : null}
+          {moveWarning ? (
+            <CampaignTabletopActionConfirmation
+              confirmIsPrimary={false}
+              confirmLabel='Do it anyway'
+              disabled={false}
+              title='This breaks a rule'
+              onCancel={() => setMoveWarning(null)}
+              onConfirm={() => {
+                setMoveWarning(null)
+                sendTokenMove({
+                  ...moveWarning.command,
+                  acknowledgedWarnings: moveWarning.warnings.map((warning) => warning.code),
+                  commandId: crypto.randomUUID()
+                })
+              }}
+            >
+              <List size='sm'>
+                {moveWarning.warnings.map((warning) => (
+                  <List.Item key={warning.code}>{warning.message}</List.Item>
+                ))}
+              </List>
+            </CampaignTabletopActionConfirmation>
           ) : null}
           {effectiveMode === 'EDIT' && tool === 'WALL' ? (
             <Text className={styles.canvasInstruction} role='status' size='xs'>

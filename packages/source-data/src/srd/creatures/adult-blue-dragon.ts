@@ -321,7 +321,8 @@ export const adultBlueDragon: CreatureAuthored = {
                   {
                     id: S.actionId(4, 25),
                     effectKind: S.EFFECT_KIND.CONDITION,
-                    conditionId: conditionTypeId('FRIGHTENED')
+                    conditionId: conditionTypeId('FRIGHTENED'),
+                    recordsSource: true
                   }
                 ]
               }

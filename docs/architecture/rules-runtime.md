@@ -651,7 +651,25 @@ is no condition-specific code. Each mechanic is one of:
   beyond a distance), its saving throws (some abilities or all) or its ability checks;
 - `SAVE_AUTO_FAIL`: the holder fails saves of the listed abilities;
 - `SPEED`: the holder's speed times `numerator / denominator`, rounded down (0 sets it to 0);
-- `HITS_AGAINST_CRITICAL`: a hit against the holder within a distance is a critical hit.
+- `HITS_AGAINST_CRITICAL`: a hit against the holder within a distance is a critical hit;
+- `APPROACH_SOURCE_FORBIDDEN`: a willing move of the holder that ends closer to the condition's source
+  is a rule warning (ADR 0034 soft enforcement).
+
+A `D20_ROLL_MODE` on attacks or checks may set `requiresHolderSeesSource`: it then applies only while the
+holder sees one of the condition's recorded sources (a save mode cannot, since saves fold in at load).
+
+**Condition sources (SPELLS-29, D-pending-spells-29).** A condition outcome authored with `recordsSource`
+(the authoring toggle "The Acting Creature Is Its Source", a core option) records the acting creature on
+the `CONDITION_OWNERSHIP` contribution of the effect that owns it (`sourceActorId`). The SRD Fear spell and
+every SRD Creature action that frightens author it. `encounterConditionSources` reads a held condition's
+sources; a condition held before its effect, applied by hand, or owned by any effect without a source is
+unsourced, and an unsourced condition's sight-gated modes always apply. Action preparation
+(`prepareEncounterActionMechanics`) filters the attacker's and target's mechanics by sight through the
+injected `loadSourcesSeen` (the Worker's `readNativeLiveSourcesSeen`, the attack-perception rules; a source
+with no token beside the holder's is unseen); a flow that injects none keeps the modes always on. The
+room's initial move (`prepareNativeLiveMovement`) refuses an unacknowledged approach with `RULE_WARNINGS`
+(`CONDITION_SOURCE_APPROACH`), which `MOVE_SCENE_TOKEN.acknowledgedWarnings` overrides; the tabletop shows
+"Do it anyway". Undoing the action that applied the condition removes its effect and so its source.
 
 A mechanic with `minimumLevel` applies from that level of a leveled condition: a Character's exhaustion
 level is a level of the System's Exhaustion condition, a Creature's condition row may record a level, and
@@ -672,8 +690,7 @@ suspended at condition speed 0 (the `SPEED_ABOVE_ZERO` predicate), and the table
 speed mechanics before Dash. A condition contributor's derived-mode reason names the condition, and is
 generic for players when the holder is hidden.
 
-Not modeled (registered in the phase ledger): the source of fear (Frightened applies while present),
-Unconscious falling Prone, Petrified damage
+Not modeled (registered in the phase ledger): Unconscious falling Prone, Petrified damage
 resistance, Exhaustion 4 and 6, concentration saves under conditions, and conditions on Convex-side
 action preparation reads (the room owns resolution).
 

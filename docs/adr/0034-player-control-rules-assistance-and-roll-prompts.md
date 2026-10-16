@@ -92,7 +92,9 @@ Foundry is the baseline. The goal is a smoother experience, with no module syste
        bloodied"). It is posted to the table log, and the display level does not change. Bloodied
        stays a rules fact for everyone; only its display is gated.
      - The GM always sees exact values.
-   - During an Encounter a player's remaining movement is shown but not enforced.
+   - During an Encounter a player's remaining movement is shown but not enforced. A willing move that
+     ends closer to the source of a condition forbidding it (Frightened) is a rule warning with
+     "Do it anyway" (amended 2026-10-16 by D-pending-spells-29).
    - Fog of war is opt-in per Scene. With fog off, players see every non-hidden token, wall, door and
      light, as in Foundry without token vision. With fog on, the existing shared-party or per-player
      exploration model applies.

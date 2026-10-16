@@ -57,6 +57,11 @@ import {
   prepareEncounterActionMechanics
 } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
 import { resolveEncounterActionSource } from '@artificer-toolkit/rules-runtime/encounterActionSources'
+import { RULE_WARNINGS_MESSAGE } from '@artificer-toolkit/rules-runtime/encounterActionRuleWarnings'
+import {
+  encounterConditionApproachWarnings,
+  encounterConditionSources
+} from '@artificer-toolkit/rules-runtime/encounterConditionMechanics'
 import { lockedRelationshipActionFacts } from '@artificer-toolkit/rules-runtime/encounterRelationshipActionFacts'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import { prepareEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomy'
@@ -69,6 +74,7 @@ import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRej
 import { availableEncounterMovementPassageChoice } from '@artificer-toolkit/rules-runtime/encounterMovementPassagePreparation'
 import type { MovementConcentrationSettlement } from '@artificer-toolkit/rules-runtime/encounterMovementConcentration'
 import type { MovementTarget } from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
+import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
 import { readNativeLiveMovementInputs } from './nativeEncounterMovementInputs.js'
 import { measureNativeEnemyProximity } from './nativeAttackEnemyProximity.js'
 import { readNativeLiveTurnUses } from './nativeTurnUses.js'
@@ -502,6 +508,34 @@ export async function prepareNativeLiveMovement(
     settlements: NativeLiveMovementSettlement[]
   }
   if (!response) {
+    // A willing move that ends closer to the source of a condition that forbids it breaks a rule
+    // the mover may knowingly break (ADR 0034); a forced move never warns.
+    const moverActorId = captured.actorIdByTokenId.get(captured.token.id)
+    const mover = moverActorId ? captured.targets.get(moverActorId) : undefined
+    const warnings =
+      mover && save.input.movementKind !== 'FORCED'
+        ? encounterConditionApproachWarnings({
+            mechanics: mover.conditionMechanics,
+            sources: encounterConditionSources(mover),
+            grid: scene.grid,
+            start: captured.token,
+            end: { ...captured.token, position: save.input.path.at(-1)! },
+            sourceTokens: new Map(
+              scene.tokens.flatMap((token) => {
+                const actorId = captured.actorIdByTokenId.get(token.id)
+                return actorId ? [[actorId, token] as const] : []
+              })
+            )
+          })
+        : []
+    const { acknowledgedWarnings } = save.input
+    if (!warnings.every((warning) => acknowledgedWarnings.includes(warning.code)))
+      throw new LiveSessionDomainRejectionError(422, {
+        code: 'DOMAIN_REJECTED',
+        reason: 'RULE_WARNINGS',
+        message: RULE_WARNINGS_MESSAGE,
+        warnings
+      })
     planned = await continueMovement({
       state,
       userId,

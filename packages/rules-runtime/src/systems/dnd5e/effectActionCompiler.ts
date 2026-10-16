@@ -1363,7 +1363,10 @@ function repeatingImmediateFollowUpSavePlan(
     capabilityContractVersion: DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
     recurrenceStage: 'END_OF_TURN',
     initialRemaining,
-    conditionContribution: { conditionId: condition.conditionId },
+    conditionContribution: {
+      conditionId: condition.conditionId,
+      recordsSource: condition.recordsSource
+    },
     adapterFacts: {
       [DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY]: save.savingThrow.abilityDefinitionId,
       ...pinnedDc.adapterFacts,
@@ -1442,7 +1445,10 @@ function timedImmediateConditionPlan(
     capabilityContractVersion: DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
     recurrenceStage: 'END_OF_TURN',
     initialRemaining,
-    conditionContribution: { conditionId: condition.conditionId },
+    conditionContribution: {
+      conditionId: condition.conditionId,
+      recordsSource: condition.recordsSource
+    },
     adapterFacts: { [DND5E_ACTIVE_EFFECT_TIMED_CONDITION_FACT_KEY]: condition.conditionId },
     perceptionContributions: [],
     maintenance: maintenancePlan(action, resolved.saveEntry)
@@ -1474,7 +1480,7 @@ function timedConditionPlan(
     ...otherLifecycle
   } = entry.lifecycle ?? {}
   const initialRemaining = conditionDurationTurns(entry.duration)
-  const { conditionId } = entry.outcome
+  const { conditionId, recordsSource } = entry.outcome
   if (
     initialRemaining === null ||
     Object.values(otherLifecycle).some((value) => value !== undefined) ||
@@ -1491,6 +1497,7 @@ function timedConditionPlan(
     initialRemaining,
     conditionContribution: {
       conditionId,
+      recordsSource,
       consumeOnFirstEvents: [...new Set(consumeOnFirstEvents)].sort(),
       endOnEvents: [...new Set(endOnEvents)].sort(),
       endOnTriggers: canonicalEndTriggers(endOnTriggers)
@@ -1961,7 +1968,10 @@ function repeatingDirectFollowUpSavePlan(
     capabilityContractVersion: DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
     recurrenceStage: 'END_OF_TURN',
     initialRemaining,
-    conditionContribution: { conditionId: condition.conditionId },
+    conditionContribution: {
+      conditionId: condition.conditionId,
+      recordsSource: condition.recordsSource
+    },
     adapterFacts: {
       [DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY]: save.savingThrow.abilityDefinitionId,
       ...pinnedDc.adapterFacts,

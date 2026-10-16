@@ -1632,6 +1632,12 @@ function registerOutcomeFields(
       )
     )
     .set(
+      'recordsSource',
+      toggle(['recordsSource'], 'The Acting Creature Is Its Source', {
+        showIf: local.field(['effectKind']).eq(EFFECT_KIND.CONDITION)
+      })
+    )
+    .set(
       'grants',
       groupObject(['grants'], 'Grants', () => APPLY_GRANTS_NODE_MAP, {
         presentation: 'inline',

@@ -26,11 +26,11 @@ Base: `3ce5883f1` (SPELLS-19.T2, merged locally), branch `claude/bold-chaplygin-
 
 ## Checklist (red first)
 
-- [ ] Red: rules-runtime unit (sources from effects; sight filter; approach warning), compiler unit (`recordsSource` → contribution → `CONDITION_OWNERSHIP.sourceActorId`), authoring parity (Fear and a homebrew condition keep `recordsSource`), room journey (Fear: attack disadvantage only in sight, move-closer warning + Do it anyway, GM undo), web unit (move warning prompt).
-- [ ] Schema + shared + compiler + node map + SRD authoring + manifest.
-- [ ] Runtime gate + room wiring.
-- [ ] Movement warning (schema, room, web).
-- [ ] Docs: rules-runtime.md condition mechanics; D94 limits note; ADR 0034 movement line; `D-pending-spells-29`.
+- [x] Red: rules-runtime unit (sources from effects; sight filter; approach warning), compiler unit (`recordsSource` → contribution → `CONDITION_OWNERSHIP.sourceActorId`), authoring parity (Fear and a homebrew condition keep `recordsSource`), room journey (Fear: attack disadvantage only in sight, move-closer warning + Do it anyway, GM undo), web unit (move warning prompt).
+- [x] Schema + shared + compiler + node map + SRD authoring (Fear + 29 Creature frighten outcomes; Phantasmal Killer and Weird unsourced). Manifest via CI artifact.
+- [x] Runtime gate + room wiring: `prepareEncounterActionMechanics` filters both sides' mechanics through the injected `loadSourcesSeen` (Worker `readNativeLiveSourcesSeen`), wired for RESOLVE_ACTION attacks and Disarm.
+- [x] Movement warning (schema, room `prepareNativeLiveMovement` initial branch, web `CampaignVttStage` "Do it anyway"). Forced moves never warn; teleports do (a willing move).
+- [x] Docs: rules-runtime.md condition mechanics; D94 limits note; ADR 0034 movement line; `D-pending-spells-29`; Deferred edge cases.
 - [ ] Red CI run, green Tests + Live backend, opus review, triage.
 
 ## Log

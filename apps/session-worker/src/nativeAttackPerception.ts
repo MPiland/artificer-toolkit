@@ -94,6 +94,80 @@ export async function readNativeLiveAttackPerception(input: {
 }
 
 /**
+ * The sources the holder of a sourced condition sees now (Frightened, SPELLS-29), by the same
+ * perception rules and live Scene reads as `readNativeLiveAttackPerception`. On a Scene, a source
+ * without a token beside the holder's is out of its sight.
+ */
+export async function readNativeLiveSourcesSeen(input: {
+  state: EncounterRunState
+  system: SystemAuthoredDto
+  holder: MovementTarget
+  sources: readonly MovementTarget[]
+  sceneContext: { sceneId: string; sceneVersion: number; grid: SceneGrid } | null
+  capture: (request: LiveSessionEncounterRulesRequest) => Promise<LiveSessionEncounterRulesResponse>
+}): Promise<ReadonlySet<string>> {
+  const { state, capture, sceneContext } = input
+  if (input.system.id !== state.gameSystemId)
+    throw new Error('Attack perception System binding mismatch.')
+  const spatialEffects = sceneContext
+    ? await readNativeLiveSpatialEffects({
+        encounterId: state.id,
+        sceneId: sceneContext.sceneId,
+        sceneVersion: sceneContext.sceneVersion,
+        capture
+      })
+    : []
+  const loaders = {
+    gameSystemId: state.gameSystemId,
+    loadDefinition: (definitionId: string) =>
+      readNativeLiveDefinition({ gameSystemId: state.gameSystemId, definitionId, capture }),
+    loadSystem: async () => input.system
+  }
+  const seen = await Promise.all(
+    input.sources.map(async (source) => {
+      if (!sceneContext)
+        return resolveEncounterAttackPerception({
+          ...loaders,
+          attacker: source,
+          target: input.holder,
+          placement: null
+        })
+      const loaded = await readNativeLivePerceptionScene({
+        campaignId: state.campaignId,
+        observerActorId: input.holder.actor.id,
+        subjectActorId: source.actor.id,
+        capture
+      })
+      if (
+        loaded &&
+        (loaded.id !== sceneContext.sceneId || loaded.version !== sceneContext.sceneVersion)
+      )
+        throw new Error('Encounter action facts are stale.')
+      const holderToken = loaded?.scene.tokens.find((token) => token.id === loaded.observerTokenId)
+      const sourceToken = loaded?.scene.tokens.find((token) => token.id === loaded.subjectTokenId)
+      if (!loaded || !holderToken || !sourceToken) return null
+      return resolveEncounterAttackPerception({
+        ...loaders,
+        attacker: source,
+        target: input.holder,
+        placement: {
+          scene: loaded.scene,
+          sceneGrid: sceneContext.grid,
+          attackerToken: sourceToken,
+          targetToken: holderToken,
+          spatialEffects
+        }
+      })
+    })
+  )
+  return new Set(
+    input.sources.flatMap((source, index) =>
+      seen[index]?.targetSeesAttacker === 'SEES' ? [source.actor.id] : []
+    )
+  )
+}
+
+/**
  * The observers that see the subject now, by the same perception rules and live Scene reads as
  * `readNativeLiveAttackPerception`: each observer's own placement on the action's locked Scene.
  */

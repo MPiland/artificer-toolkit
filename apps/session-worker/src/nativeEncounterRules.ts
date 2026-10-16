@@ -59,7 +59,10 @@ import {
 } from './nativeEncounterTargets.js'
 import { readNativeLiveEnemyProximity } from './nativeAttackEnemyProximity.js'
 import { readNativeLiveTurnUses } from './nativeTurnUses.js'
-import { readNativeLiveAttackPerception } from './nativeAttackPerception.js'
+import {
+  readNativeLiveAttackPerception,
+  readNativeLiveSourcesSeen
+} from './nativeAttackPerception.js'
 import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
 import type { LiveCaptureReads } from './nativeEncounterReads.js'
 import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
@@ -524,6 +527,8 @@ export async function planNativeLiveEncounterAction(
           sceneContext,
           capture
         }),
+      loadSourcesSeen: ({ holder, sources }) =>
+        readNativeLiveSourcesSeen({ state, system, holder, sources, sceneContext, capture }),
       loadEnemyProximity: ({ sourceFacts, targetFacts }) =>
         readNativeLiveEnemyProximity({
           state,
