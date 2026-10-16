@@ -10073,9 +10073,9 @@
         {
           "id": "RELIABILITY-15",
           "title": "Initiative declaration settlement test is deterministic",
-          "status": "TODO",
+          "status": "DONE",
           "journeyTests": ["apps/apis/convex/encounters/initiativeDeclarations.test.ts"],
-          "journeyStatus": "none",
+          "journeyStatus": "verified",
           "origin": [],
           "wsjf": {
             "bv": 3,
@@ -10087,8 +10087,12 @@
             {
               "id": "RELIABILITY-15.1",
               "text": "initiativeDeclarations.test.ts \"collects each automatic declaration, then settles exactly one Run, round, and order\" passes deterministically: its automatic initiative rolls cannot tie into an unhandled INITIATIVE_ORDER decision (seeded rolls or explicit tie handling), and a test reproduces the tie red before the fix.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/apis/convex/encounters/initiativeDeclarations.test.ts (queued room rolls: distinct faces settle; a tied score settles by the roll-off; a double tie asks the GM for the order)",
+                "Red: ci/reliability-15-red Tests 38868117842 on 2afb63e55 fails the target test on a forced double tie",
+                "Green: CI Tests 38868097461 and Live backend 38868097317 on e2f06ddc0"
+              ],
               "origin": [],
               "note": "Flaked on aeb08c947 (Tests 38857606244): equal random auto-rolls with initiativeTieDefinitionId null left the Run on an INITIATIVE_ORDER decision; passed on rerun with no code change."
             }
@@ -10097,15 +10101,14 @@
             {
               "id": "RELIABILITY-15.T1",
               "text": "Make the initiative declaration settlement test deterministic: control the auto-rolls through the platform random seam (never product logic) or resolve the tie decision; reproduce the tie red first; no retry, no loosened assertion.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RELIABILITY-15.1"],
               "wsjf": {
                 "bv": 3,
                 "tc": 8,
                 "rr": 8,
                 "size": 1
-              },
-              "activeWorkbook": "docs/handoffs/slice-reliability-15.md"
+              }
             }
           ]
         },
@@ -10143,7 +10146,8 @@
                 "tc": 8,
                 "rr": 8,
                 "size": 2
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-reliability-16.md"
             }
           ]
         }
