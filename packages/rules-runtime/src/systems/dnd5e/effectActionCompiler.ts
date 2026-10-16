@@ -3380,6 +3380,7 @@ export const dnd5eEffectActionCapability: GameSystemRuleCapabilityContract = {
       valueKind: RULE_VALUE_KIND.NUMBER
     },
     { key: DND5E_CLASS_LEVELS_FACT_KEY, valueKind: RULE_VALUE_KIND.TEXT },
+    { key: DND5E_SELECTED_OPTIONAL_RIDERS_FACT_KEY, valueKind: RULE_VALUE_KIND.TEXT },
     {
       key: REACTION_CHOICE_MIN_FACT_KEY,
       valueKind: RULE_VALUE_KIND.NUMBER
