@@ -78,7 +78,8 @@ authoring: {
 Invalid examples include `presentation: 'focused-drawer'`, manual ordering without `identityPath`, a scalar input with options, a select input without a source, duplicate action types, `tone: '#ff9900'`, and any platform class or token path.
 
 Grant lifecycle options on an effect (`path.ts`) are generic node-map options, not class rules: `endOnEvents`
-(`ON_INCAPACITATED`), `endOnConditionIds` (a `condition_types` multi-select; the grant ends while its holder has any of them),
+(`ON_INCAPACITATED`; `ON_IDLE_TURN`, the grant ends at the end of its holder's turn when the holder made no attack roll against a
+hostile creature and took no damage since their previous turn), `endOnConditionIds` (a `condition_types` multi-select; the grant ends while its holder has any of them),
 `holderEnd` (`{ activation }`, the holder may end it at that cost) and `consumeOnFirstEvents`. Modifier facets include
 `ATTACK_ABILITY` / `ITEM_ATTACK_ABILITY` (gate a modifier on the ability an attack used) and the `SPELLCASTING_LOCK` `ENABLE`
 domain (bars every spell cast). Rage (ATTACK-9.T1) is authored with these and has parity with the authoring form.

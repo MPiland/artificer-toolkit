@@ -1,4 +1,5 @@
 import type { EncounterExecuteInput } from '@artificer-toolkit/schema/api/encounters'
+import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { discoverEncounterFeatureActionCapabilities } from '@artificer-toolkit/rules-runtime/encounterFeatureActionCapabilityDiscoveryRegistry'
 import { readRunActor, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
@@ -32,6 +33,11 @@ export async function setupWolfRun(input: {
   equipment: Parameters<typeof setupCharacterRun>[1]
   name: string
   automationMode?: 'ASSISTED' | 'MANUAL'
+  /** Another Creature to fight in place of the Wolf; `prepare` imports whatever its stat block needs. */
+  enemy?: {
+    creature: CreatureAuthored
+    prepare: (base: Awaited<ReturnType<typeof setupCharacterRun>>) => Promise<void>
+  }
 }) {
   const base = await setupCharacterRun(input.character, input.equipment)
   await attachRoomWorker(base.t)
@@ -56,16 +62,19 @@ export async function setupWolfRun(input: {
         definition.id === SRD_BONUS_ACTION_ALLOWANCE_DEFINITION_ID
     )
   })
-  await base.t.mutation(internal.content.import.importSubjects, {
-    contentSourceId: SRD_CONTENT_SOURCE.id,
-    subjects: [importedSubject({ ...srdWolf, subjectKind: 'CREATURE', document: srdWolf })]
-  })
+  const enemy = input.enemy?.creature ?? srdWolf
+  if (input.enemy) await input.enemy.prepare(base)
+  else
+    await base.t.mutation(internal.content.import.importSubjects, {
+      contentSourceId: SRD_CONTENT_SOURCE.id,
+      subjects: [importedSubject({ ...srdWolf, subjectKind: 'CREATURE', document: srdWolf })]
+    })
   await seedRoomContentSnapshots(base.campaign.id)
   const blueprint = await base.owner.caller.mutation(api.encounters.blueprints.create, {
     gameSystemId: base.campaign.gameSystemId,
     name: input.name,
     commandId: crypto.randomUUID(),
-    enemies: [{ kind: 'CREATURE', sourceId: srdWolf.id }]
+    enemies: [{ kind: 'CREATURE', sourceId: enemy.id }]
   })
   const run = await base.owner.caller.mutation(api.encounters.runs.create, {
     campaignId: base.campaign.id,

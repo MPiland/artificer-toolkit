@@ -1,4 +1,5 @@
 import { effectsEndedBy } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
+import type { EncounterIdleTurnMark } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import type {
   ActiveRuleEffectRecord,
   EncounterMaintainedEffectStateRecord
@@ -96,18 +97,21 @@ export function receiptConsumedGrants(input: {
 
 /**
  * A response committed after its action's root (a Cleaving choice, answering the action's
- * occurrence) can end grants too: the root's receipt takes them, so the action's undo gives them
- * back with everything else.
+ * occurrence) can end grants and change idle-turn marks too: the root's receipt takes them, so the
+ * action's undo gives them back with everything else. A mark the root already changed keeps the
+ * value it held before the action.
  */
-export async function addEndedGrantsToRoot(
+export async function addResponseChangesToRoot(
   ctx: EncounterPersistenceTransaction,
   input: {
     campaignId: string
     actionOccurrenceId: string
     endedGrants: readonly ActiveRuleEffectRecord[]
+    idleTurnMarkChanges?: readonly { actorId: string; before: EncounterIdleTurnMark | null }[]
   }
 ) {
-  if (!input.endedGrants.length) return
+  const markChanges = input.idleTurnMarkChanges ?? []
+  if (!input.endedGrants.length && !markChanges.length) return
   const occurrence = await ctx.db
     .query('encounterRuleOccurrences')
     .withIndex('by_publicId', (q) => q.eq('id', input.actionOccurrenceId))
@@ -124,7 +128,13 @@ export async function addEndedGrantsToRoot(
     consumedGrants: receiptConsumedGrants({
       consumedGrants: root.consumedGrants,
       endedGrants: input.endedGrants
-    })
+    }),
+    idleTurnMarkChanges: [
+      ...root.idleTurnMarkChanges,
+      ...markChanges.filter(
+        ({ actorId }) => !root.idleTurnMarkChanges.some((change) => change.actorId === actorId)
+      )
+    ]
   })
 }
 
