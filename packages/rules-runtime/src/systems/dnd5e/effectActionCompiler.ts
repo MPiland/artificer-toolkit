@@ -1980,9 +1980,10 @@ function durationPublishedGraph(input: {
 }
 
 /**
- * The zone a PLACED_SPACE manifest action places. Its one entering behavior is a fixed-DC saving
- * throw whose failure stops the mover, deals fixed damage and may leave a grant that lasts until
- * its authored end event. Anything else the behavior authors is refused rather than partly honored.
+ * The zone a PLACED_SPACE or SOURCE manifest action places. Its one entering behavior is a saving
+ * throw against a fixed DC or the caster's save DC (stored when the zone is placed) whose failure
+ * stops the mover, deals damage and may leave a grant that lasts until its authored end event.
+ * Anything else the behavior authors is refused rather than partly honored.
  */
 function zonePlacementPlan(
   action: Dnd5eCompiledEffectActionSource
@@ -1996,15 +1997,25 @@ function zonePlacementPlan(
     action.compiledEffect.invocation.range.rangeKind,
     zone.shape.shapeKind
   )
-  // A directed area is aimed, not placed at a point; a zone is left where its action is centered.
-  if (placementKind !== 'POINT' && placementKind !== 'CASTER_CENTERED')
-    unsupported('A placed zone takes a point or the caster as its center.')
+  // A directed area is aimed, not placed at a point; a zone is left where its action is centered,
+  // and a source zone is centered on the caster.
+  if (
+    zone.attachment === 'SOURCE'
+      ? placementKind !== 'CASTER_CENTERED'
+      : placementKind !== 'POINT' && placementKind !== 'CASTER_CENTERED'
+  )
+    unsupported(
+      zone.attachment === 'SOURCE'
+        ? 'A source zone is centered on the caster.'
+        : 'A placed zone takes a point or the caster as its center.'
+    )
+  const pinnedDc = pinnedSaveDc(savingThrow)
   if (
     !triggerModes ||
     invocation.triggerCode !== 'SAVING_THROW' ||
-    savingThrow?.dcMethod !== 'FIXED_DC' ||
+    !savingThrow ||
+    !pinnedDc ||
     !UUID.test(savingThrow.abilityDefinitionId) ||
-    !Number.isSafeInteger(savingThrow.baseDc) ||
     entries.some(
       (entry) =>
         entry.resolutionKind !== 'DIRECT' ||
@@ -2014,7 +2025,7 @@ function zonePlacementPlan(
         entry.targetingOverride
     )
   )
-    unsupported('A placed zone behavior is a fixed-DC saving throw with direct failure outcomes.')
+    unsupported('A placed zone behavior is a saving throw with direct failure outcomes.')
   const outcomeEntries = (effectKind: string) =>
     entries.filter((entry) => 'outcome' in entry && entry.outcome.effectKind === effectKind)
   const stops = outcomeEntries('MOVEMENT_RULE').filter(
@@ -2043,9 +2054,10 @@ function zonePlacementPlan(
     initialRemaining: null,
     adapterFacts: {
       [DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY]: savingThrow.abilityDefinitionId,
-      [DND5E_SAVE_DC_FACT_KEY]: savingThrow.baseDc,
+      ...pinnedDc.adapterFacts,
       [DND5E_ACTIVE_EFFECT_SAVE_REQUEST_NODE_FACT_KEY]: 'd20'
     },
+    castSaveDcFactKey: pinnedDc.castSaveDcFactKey,
     perceptionContributions: [],
     maintenance: null
   }
@@ -2071,6 +2083,7 @@ function zonePlacementPlan(
   )
     unsupported('A placed zone grant must last until its end event.')
   return {
+    attachment: zone.attachment,
     label: zone.label,
     shape: zone.shape,
     triggerModes,

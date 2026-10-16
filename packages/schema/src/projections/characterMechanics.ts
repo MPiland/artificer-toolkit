@@ -273,11 +273,13 @@ const compiledActionActiveEffectPlanSchema = lazySchema(() =>
 )
 
 /**
- * A placed-space zone the action leaves on the Scene at the point its user picks. The geometry is
- * fixed when the point is known; everything else is compiled from the authored manifest.
+ * A zone the action leaves on the Scene: at the point its user picks (PLACED_SPACE), or centered on
+ * its user and moving with them (SOURCE). The geometry is fixed when the point or the user's token is
+ * known; everything else is compiled from the authored manifest.
  */
 const compiledActionZonePlacementSchema = lazySchema(() =>
   z.strictObject({
+    attachment: z.enum(['PLACED_SPACE', 'SOURCE']),
     label: spatialZoneLabelSchema,
     shape: shapeDtoSchema,
     triggerModes: z.array(spatialTriggerDtoSchema).check(z.minLength(1)).check(z.maxLength(3)),

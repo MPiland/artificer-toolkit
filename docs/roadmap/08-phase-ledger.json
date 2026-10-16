@@ -8288,8 +8288,8 @@
             },
             {
               "id": "SPELLS-20.T1b",
-              "text": "Spirit Guardians as a SOURCE zone authored from core options: a 15 ft aura on the caster's token that moves with the caster; a creature it catches on entry, or when the caster moves onto it, makes the save against the caster's spell DC and takes the damage; GM undo removes it.",
-              "status": "IN_PROGRESS",
+              "text": "Spirit Guardians as a SOURCE zone authored from core options: a 15 ft aura on the caster's token that moves with the caster; a creature it catches on entry, or when the caster moves onto it, makes the save against the caster's spell DC and takes the damage; GM undo removes it. (Red: ci/spells-20-t1b-red Tests 38947417012 and Live 38947417027 on 7ea6348fd failed on nativeRoomSourceAura.test.ts and sourceZoneAuthoringParity.test.ts. Green: ci/spells-20-t1b Tests 38960499458 and Live 38962770319 on f0ae7dce6.)",
+              "status": "DONE",
               "closes": ["SPELLS-20.1"],
               "wsjf": {
                 "bv": 8,
@@ -8297,8 +8297,7 @@
                 "rr": 5,
                 "size": 8,
                 "after": ["SPELLS-20.T1"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-spells-20.md"
+              }
             },
             {
               "id": "SPELLS-20.T2",

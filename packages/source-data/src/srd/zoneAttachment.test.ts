@@ -38,7 +38,11 @@ describe('SRD zones state where they are placed (ADR 0038)', () => {
   })
 
   it('keeps SOURCE and PRIMARY_TARGET for the zones that move with or enclose a creature', () => {
-    expect(ownersOf('SOURCE').sort()).toEqual(['Antilife Shell', 'Antimagic Field'])
+    expect(ownersOf('SOURCE').sort()).toEqual([
+      'Antilife Shell',
+      'Antimagic Field',
+      'Spirit Guardians'
+    ])
     expect(ownersOf('PRIMARY_TARGET')).toEqual(['Resilient Sphere'])
   })
 })

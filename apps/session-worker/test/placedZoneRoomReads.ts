@@ -24,20 +24,21 @@ export async function hitPointsOf(room: ActionRoom, actorId: string) {
 const sceneVersions = new WeakMap<ActionRoom, number>()
 
 /**
- * The second token of the room walks `path` through the room's Scene command. A walk that triggers
- * nothing leaves no receipt, so it reports no executions.
+ * A token of the room (the second unless `tokenIndex` names another) walks `path` through the room's
+ * Scene command. A walk that triggers nothing leaves no receipt, so it reports no executions.
  */
 export async function walkerMoves(
   room: ActionRoom,
   path: readonly { x: number; y: number }[],
-  carefully = false
+  carefully = false,
+  tokenIndex = 1
 ) {
   const receiptsBefore = (await room.room.receipts()).length
   const answer = await room.room.move(
     path,
     await room.version(),
     sceneVersions.get(room) ?? room.room.scene.version,
-    room.room.scene.tokens[1]!.id,
+    room.room.scene.tokens[tokenIndex]!.id,
     carefully
   )
   const committed = answer.type === 'COMMAND_COMMITTED' ? answer.delta : null
