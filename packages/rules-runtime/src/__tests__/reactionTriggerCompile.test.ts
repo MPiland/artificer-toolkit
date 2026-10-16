@@ -4,6 +4,7 @@ import { compileEffect } from '@artificer-toolkit/shared/compilers'
 import type { EffectAuthored } from '@artificer-toolkit/shared/authored'
 import { shield } from '@artificer-toolkit/source-data/srd/spells/shield.js'
 
+import { effectAtCastLevel } from '../character/characterSpellCastActions.js'
 import { CharacterRuleActionUnsupportedCompilationError } from '../characterRuleActionSystemAdapter.js'
 import { dnd5eCharacterRuleActionSystemAdapter } from '../systems/dnd5e/effectActionCompiler.js'
 import { absorbElementsSpell } from '../testing/absorbElementsSpell.js'
@@ -83,7 +84,18 @@ describe('a reaction authored with the DAMAGE_TAKEN trigger compiles through the
     })
   })
 
-  it('compiles a user-authored Absorb Elements to the modifier grant proposal', () => {
-    expect(operationKeys(compile(absorbElementsEffect()))).toContain(MODIFIER_GRANT_OPERATION_KEY)
+  it('compiles a user-authored Absorb Elements, cast with a slot, to the modifier grant proposal', () => {
+    const cast = effectAtCastLevel(compileEffect(absorbElementsEffect()), 2)
+    expect(
+      operationKeys(
+        dnd5eCharacterRuleActionSystemAdapter.compile({ action: characterActionDescriptor(cast) })
+      )
+    ).toContain(MODIFIER_GRANT_OPERATION_KEY)
+  })
+
+  it('refuses the slot-scaled grant until a cast level has fixed its amount', () => {
+    expect(() => compile(absorbElementsEffect())).toThrow(
+      CharacterRuleActionUnsupportedCompilationError
+    )
   })
 })

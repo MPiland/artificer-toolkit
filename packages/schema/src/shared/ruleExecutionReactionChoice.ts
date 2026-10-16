@@ -105,8 +105,9 @@ export function validateEncounterReactionPin(
 
 /**
  * A hit attack held for the target's reaction decision: the TEST execution and its d20, the exact TEST
- * policy a later sealed OUTCOME continues from, and the reactions offered. The stack holds one entry per
- * reaction in order of resolution, innermost first; only the first is decided at a time.
+ * policy a later sealed OUTCOME continues from, and the reactions offered. The reactions are a menu for
+ * one reactor, who has one reaction a round: choosing an option uses that reaction, and declining
+ * declines them all.
  */
 export type EncounterReactionOfferDto = {
   originalExecution: ServerCompletedRuleExecutionDto
