@@ -757,7 +757,7 @@ describe('native initiative declarations', () => {
         ).toEqual(beforeStale)
         // closeRoom dropped the queue. The Character adds +4 to its face, so random faces 4 apart
         // would tie and leave the Run PREPARED. Faces 10 apart cannot tie, whichever declares first.
-        await queueRoomRolls(base.campaign.id, { rolls: [2, 12] })
+        await queueRoomRolls(base.campaign.id, { rolls: step === 0 ? [5, 9, 6, 6] : [9, 5, 6, 6] })
         result = await executeInRoom(base.player.caller, response)
         expect(encounterPlayerProjectionDtoSchema.safeParse(result.projection).success).toBe(true)
         expect(result.occurrence?.pending).toBeNull()
@@ -951,7 +951,9 @@ describe('native initiative declarations', () => {
             })
           )
           // closeRoom dropped the queue; the faces stay 10 apart again for the settling declaration.
-          await queueRoomRolls(base.campaign.id, { rolls: [2, 12] })
+          await queueRoomRolls(base.campaign.id, {
+            rolls: firstRole === 'PLAYER' ? [5, 9, 6, 6] : [9, 5, 9, 5]
+          })
           expect(await storedInitiative(base)).toEqual(before)
         } else {
           await expect(answer(base.player)).rejects.toThrow(/NOT_ACTOR_CONTROLLER/)
