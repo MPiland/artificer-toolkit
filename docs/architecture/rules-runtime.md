@@ -892,7 +892,19 @@ action submission, which would move the prompt to the player, is not built.
 authorizes facts, at most two ordered phases specialize from it: `TEST` (one d20 stage selecting the hit,
 miss, critical or save path) and `OUTCOME` (exact authored dice and scaling). Each phase is acyclic with
 one evidence stage; resource use, mutations and receipts wait for the terminal phase.
-`diceGraphDefinition` is the only place that doubles critical dice. The immediate follow-up save shapes the
+`diceGraphDefinition` is the only place that doubles critical dice.
+
+**On-hit riders (D119).** A passive Feature's trigger-matched `ON_HIT` `DAMAGE` outcomes merge into the
+weapon action's compiled effect when `buildCharacterActionRuleFacts` builds the action
+(`character/characterOnHitRiders`), so the rider is one more part of the same hit: resistance and critical
+doubling apply unchanged. A rider with `usesTriggeringWeaponDamageType` takes the damage type of the attack's
+first `ON_HIT` damage; an unmerged one fails closed. A rider whose dice grow with class level lists `CLASS_LEVEL`
+rows with a `classId`; `bindFacts` supplies the actor's class levels (`dnd5e.class-levels`) and
+`exactDiceConfiguration` picks the highest row at or below that level. It is the shared row selector that
+other level-keyed dice (T12) reuse. Riders are collected from class, subclass, race and feat Features only.
+`ADD_BONUS_DIE` stays non-executable.
+
+The immediate follow-up save shapes the
 adapter supports, ranged long range (`longAmount`, `encounterActionLongRangeContributor`), reach 0 swarm
 attacks, timed conditions and multi-condition hits are defined by the compiler
 (`systems/dnd5e/effectActionCompiler`) and fail closed outside those shapes. Range and reach use one

@@ -753,6 +753,19 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - **Removed subject:** the seed fails loudly and lists the ids. Real removal is deferred (future-enhancements, Deferred edge cases).
   - **Downgrade:** no guard. The seed is declarative, so seeding an earlier corpus is just another replace.
   - **Dependents:** a canonical replace runs the same unresolved-dependent check as publish (ADR 0024) and refuses on a hit. The seed has no bypass.
+* **D121** (2026-10-15) Which creatures a player's Encounter view lists (ATTACK-17.T2; brief [slice-attack-17-t2-t3.md](slice-attack-17-t2-t3.md)). Decided by the main session.
+  - **Room:** the room computes exact per-viewer visibility, including fog, through `projectSceneForViewer`.
+  - **Convex stored-session reads and admission** (`activeReads`, `projectionReads`, `healthDisplay`) fail closed and never read fog. For a non-GM, a creature with a token on the Encounter's Scene is listed only if the player controls it or the GM revealed it. This takes one bounded, indexed read of the Run's bindings. It may over-hide until the room connects, and it never leaks.
+  - **One shared predicate:** both paths use the same pure function to decide what is listed. The room only narrows that list further, with fog. The tests run one table of cases against both paths, including the over-hide-then-reveal case.
+  - **No token on the Scene:** when the Encounter has a Scene, a non-player creature without a token is hidden from players unless revealed, so the GM can stage creatures off-map. When the Encounter has no Scene, everything is listed.
+  - **Rejected:** exact fog evaluation inside reactive Convex queries. It would re-read fog on every Encounter change, breaking the read budget and the free-tier constraint (ADR 0035).
+* **D122** (2026-10-15) Effects ending on authored events (SPELLS-27; survey in [slice-spells-27.md](slice-spells-27.md)). Decided by the main session.
+  - **One consumer:** `effectsEndedBy(effects, event)` covers `consumeOnFirstEvents` and `endOnEvents` for any v2 effect, not only modifier grants and concealments. It reuses the existing attack-roll and check call sites, the receipt, and undo.
+  - **Timing stays explicit:** consume applies the effect to the event and then ends it; end ends it without applying. Invisibility's own attack still has advantage.
+  - **Unification:** the two lists become one structured shape with a timing field, in SPELLS-27.T6. The old enum is deleted and its data migrated, with no shim. T6 runs after REACTION-4.T3 merges.
+  - **Qualifiers:** a structured trigger (event, by, against) that reuses or shares the `reactionTrigger` filter types (ADR 0038). No flat enum growth.
+  - **AC 27.2:** may be authored before its consumer exists, but closes only when nothing is left waiting on a consumer. The only entries left at close are a typed allow-list of texts covered by another named mechanism. The corpus test covers every SRD effect: spells, class features, items and creature traits.
+  - **Out of scope:** D99 Campaign-clock carry-over of condition-owning effects, registered separately.
 
 ## Approved implementation decisions
 

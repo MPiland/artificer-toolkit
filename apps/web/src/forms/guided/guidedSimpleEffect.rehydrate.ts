@@ -87,7 +87,7 @@ export function rehydrateGuidedSpell(
         effect.invocation.range.rangeKind === 'DISTANCE' ? effect.invocation.range.amount : 60,
       saveAbilityDefinitionId,
       damageDice,
-      damageTypeId: outcome.effectKind === 'DAMAGE' ? outcome.damageTypeId : '',
+      damageTypeId: outcome.effectKind === 'DAMAGE' ? (outcome.damageTypeId ?? '') : '',
       conditionTypeId,
       conditionDuration,
       healingDice,

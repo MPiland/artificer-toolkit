@@ -319,6 +319,7 @@ describe('what a leveled cast carries into the Encounter action', () => {
       itemUsage: [],
       characterId: CHARACTER_ID,
       expectedStreamVersion: STREAM_VERSION,
+      classLevels: character.facts.grantFoldFacts.base.classes,
       automationMode,
       overridable: true
     })
