@@ -8875,6 +8875,19 @@
               "activeWorkbook": "docs/handoffs/slice-spells-27.md"
             },
             {
+              "id": "SPELLS-27.T7",
+              "text": "Sanctuary from core options: a ward that makes a creature targeting the warded creature with an attack or harmful spell make a Wisdom save first (on a fail it picks a new target or loses the attack or spell), and the ward ends when the warded creature attacks, casts a spell on an enemy or deals damage to another creature (D132 against-enemy arms). Converts the closed-rule Sanctuary into a real v2 effect, with GM undo (D122 amendment of 2026-10-16). Closes AC 27.2 with T5.",
+              "status": "TODO",
+              "closes": ["SPELLS-27.2"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-27.T5"]
+              }
+            },
+            {
               "id": "SPELLS-27.T6",
               "text": "Unify consumeOnFirstEvents and endOnEvents into one structured shape with explicit timing; delete the old enum, migrate data, no shim (D122). After REACTION-4.T3. The unified shape also absorbs endOnTriggers (T4) and drops its read default of [], migrating stored effects instead.",
               "status": "TODO",
