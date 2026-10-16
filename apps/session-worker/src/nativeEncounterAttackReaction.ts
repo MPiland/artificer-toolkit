@@ -18,10 +18,12 @@ import { prepareNativeActionEffectsPlan } from '@artificer-toolkit/rules-runtime
 import type { prepareEncounterActionMechanics } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
 import { StaleCharacterActionError } from '@artificer-toolkit/rules-runtime/encounterErrors'
 import { ASSISTED_REACTION_CHOICE_DEFINITION_ID } from '@artificer-toolkit/rules-runtime/encounterMovementReactionDecision'
-import type { EncounterAttackReactionCandidate } from '@artificer-toolkit/rules-runtime/encounterReactionChoice'
+import {
+  encounterReactionEffectId,
+  type EncounterAttackReactionCandidate
+} from '@artificer-toolkit/rules-runtime/encounterReactionChoice'
 import { createReactionChoiceDefinition } from '@artificer-toolkit/rules-runtime/reactionChoiceDefinition'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
-import { v5 as uuidV5 } from 'uuid'
 
 import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
 import { evaluateNativeLiveActionEconomy } from './nativeEncounterActionEconomy.js'
@@ -42,8 +44,9 @@ export type NativeAttackReaction = {
 
 /**
  * The reaction the attacked Character may use against this attack, if it holds one it can afford now.
- * Only the first eligible reaction is offered. A creature that attacks itself, a defeated Character
- * (D63) and one with its reactions suppressed (D99) answer nothing.
+ * Only the first eligible reaction is offered; a decided offer names the reaction it answers (`actionId`)
+ * so that one is found again. A creature that attacks itself, a defeated Character (D63) and one with
+ * its reactions suppressed (D99) answer nothing.
  */
 export function discoverNativeAttackReaction(input: {
   state: EncounterRunState
@@ -53,7 +56,7 @@ export function discoverNativeAttackReaction(input: {
     request: LiveSessionEncounterRulesRequest
   ) => ReturnType<LiveCaptureReads['encounterRules']>
 }) {
-  return async (): Promise<NativeAttackReaction | null> => {
+  return async (answering?: string): Promise<NativeAttackReaction | null> => {
     const { actor, target, movementTargets } = input.attack
     const reactor = movementTargets.get(target.id)
     if (
@@ -70,6 +73,7 @@ export function discoverNativeAttackReaction(input: {
         : source.capability.mechanicFacts
     )
     for (const { actionId, trigger } of discoverAttackReactionActions(reactor, hitDamageTypeIds)) {
+      if (answering !== undefined && actionId !== answering) continue
       const prepared = await input.prepareReaction(actionId).catch((error: unknown) => {
         // A reaction its holder cannot pay for (no slot, not prepared) is simply not offered.
         if (error instanceof StaleCharacterActionError) return null
@@ -109,13 +113,6 @@ export function discoverNativeAttackReaction(input: {
     }
     return null
   }
-}
-
-const reactionEffectNamespace = 'c2a9f1d4-5b3e-4e7a-8d60-1f4b7a92e5c3'
-
-/** The id of the effect a used reaction leaves on its reactor: a replay of the command mints the same one. */
-export function nativeReactionEffectId(input: { commandId: string; occurrenceId: string }) {
-  return uuidV5(`${input.commandId}:${input.occurrenceId}`, reactionEffectNamespace)
 }
 
 const unsupportedReaction = (message: string) =>
@@ -168,7 +165,7 @@ export async function applyNativeAttackReaction(input: {
   const reactorId = prepared.target.id
   const held = input.activeEffectsByActorId.get(reactorId) ?? []
   const pending = prepareActiveRuleEffectRecord({
-    id: nativeReactionEffectId(input),
+    id: encounterReactionEffectId(input),
     owner: nativeEffectOwner(prepared.target, prepared.state.id),
     definition: effects.recurringEffect.definition,
     lifecycle: effects.recurringEffect.lifecycle,
