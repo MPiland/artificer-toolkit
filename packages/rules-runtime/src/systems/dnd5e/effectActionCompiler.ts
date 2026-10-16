@@ -7077,8 +7077,8 @@ export function dndSourceFromCompilerSource(
 }
 
 function testOutcomeTemplateIdentities(action: Dnd5eCompiledEffectActionSource) {
-  const directRepeatConditionEntry = repeatingDirectFollowUpSaveConditionEntry(action)
-  if (directRepeatConditionEntry) {
+  const directRepeatLeadEntry = repeatingDirectFollowUpSaveLeadEntry(action)
+  if (directRepeatLeadEntry) {
     return [
       {
         pathCode: 'ON_SAVE_FAIL',
@@ -7086,7 +7086,7 @@ function testOutcomeTemplateIdentities(action: Dnd5eCompiledEffectActionSource) 
           definitionId: action.effectId,
           gameSystemId: DND5E_SYSTEM_ID,
           definitionFamilyKey: DND5E_EFFECT_ACTION_FAMILY_KEY,
-          checksum: checksumRuleDocument([directRepeatConditionEntry])
+          checksum: checksumRuleDocument([directRepeatLeadEntry])
         }
       }
     ]

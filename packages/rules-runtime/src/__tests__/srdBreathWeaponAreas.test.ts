@@ -152,10 +152,11 @@ describe('SRD breath weapons breathe areas', () => {
     ({ creatureLabel, leavesLastingEffect }) => leavesLastingEffect && creatureLabel !== 'Gorgon'
   )
 
-  // The breaths SPELLS-19 has still to author: the Gorgon's petrification (T3c) and the Bronze
-  // Dragons' push (T4). Each task takes its rows off this list, and the last leaves it empty (AC 19.2).
+  // The breaths SPELLS-19 has still to author: the Gorgon's petrification (T3c), the Copper Dragons'
+  // attack cap and action exclusivity (T3d) and the Bronze Dragons' push (T4). Each task takes its
+  // rows off this list, and the last leaves it empty (AC 19.2).
   const stillToAuthor = breathRows.filter(({ creatureLabel, leavesLastingEffect }) => {
-    const pending = /Bronze Dragon|^Gorgon$/.test(creatureLabel)
+    const pending = /Bronze Dragon|Copper Dragon|^Gorgon$/.test(creatureLabel)
     return leavesLastingEffect && pending
   })
   const shapedStillToAuthor = stillToAuthor.filter(
@@ -164,10 +165,10 @@ describe('SRD breath weapons breathe areas', () => {
 
   // The System compiles a damage-only breath to a test outcome, a breath whose condition it times
   // and repeats (Silver, Dust Mephit) or ends on damage (Brass), and one whose grant it times and
-  // repeats (Copper, Gold). The rest it cannot execute, so discovery never offers them.
+  // repeats (Gold). The rest it cannot execute, so discovery never offers them.
   it('cannot execute exactly the breaths still to author', () => {
     expect(shapedLeavingMoreThanDamage).toHaveLength(21)
-    expect(stillToAuthor).toHaveLength(5)
+    expect(stillToAuthor).toHaveLength(9)
     expect(
       breathRows
         .filter(({ compiles }) => !compiles)
@@ -210,7 +211,7 @@ describe('SRD breath weapons breathe areas', () => {
     }
   )
 
-  // SPELLS-19.AC2: the list of breaths the System cannot execute is empty. T3c and T4 take the rows
+  // SPELLS-19.AC2: the list of breaths the System cannot execute is empty. T3c, T3d and T4 take the rows
   // off `stillToAuthor`; the task that empties it drops `.fails` (vitest errors once it passes).
   it.fails('leaves no breath its System cannot execute', () => {
     expect(

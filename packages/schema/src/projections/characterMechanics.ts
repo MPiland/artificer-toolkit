@@ -174,6 +174,7 @@ const compiledActionActiveEffectPlanSchema = lazySchema(() =>
             senses: z.array(senseOperationSchema).check(z.maxLength(200)),
             tickAnchor: z.enum(['HOLDER', 'SOURCE']),
             includesCurrentTurn: z.boolean(),
+            countedByTurnEffects: z.optional(z.boolean()),
             consumeOnFirstEvents: activeGrantConsumeEventsSchema,
             endOnEvents: activeGrantEndEventsSchema,
             endOnConditionIds: activeGrantEndConditionIdsSchema,

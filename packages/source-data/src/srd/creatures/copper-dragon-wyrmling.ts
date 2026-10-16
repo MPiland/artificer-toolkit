@@ -203,7 +203,7 @@ export const copperDragonWyrmling: CreatureAuthored = {
               originKind: 'SOURCE' as const,
               selectionKind: 'FIXED' as const,
               resultBlock: {
-                id: S.actionId(7951, 900),
+                id: S.actionId(7951, 13) + '__result',
                 resultKind: 'SEQUENCE' as const,
                 duration: {
                   id: S.actionId(7951, 14),
@@ -211,25 +211,6 @@ export const copperDragonWyrmling: CreatureAuthored = {
                   amount: 1
                 },
                 outcomes: [
-                  {
-                    id: S.actionId(7951, 901),
-                    effectKind: S.EFFECT_KIND.APPLY_GRANT,
-                    grants: {
-                      modifiers: [
-                        {
-                          id: S.actionId(7951, 902),
-                          grantKind: 'MODIFIER_GRANT',
-                          valueDomainCode: 'REACTION_COUNT',
-                          domain: {},
-                          modifierKind: 'SET_VALUE',
-                          scope: 'GLOBAL',
-                          selectionKind: 'GRANTED',
-                          payload: { amount: 0 },
-                          order: 1
-                        }
-                      ]
-                    }
-                  },
                   {
                     id: S.actionId(7951, 15),
                     effectKind: S.EFFECT_KIND.FOLLOW_UP_SAVE,
@@ -243,6 +224,11 @@ export const copperDragonWyrmling: CreatureAuthored = {
                     attempts: { kind: 'ONCE', repeatOnFailure: true },
                     onSuccess: { kind: 'END' },
                     onFailure: { kind: 'CONTINUE' }
+                  },
+                  {
+                    id: S.actionId(7951, 13),
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.DRAGON_SLOWING_BREATH
                   }
                 ]
               }

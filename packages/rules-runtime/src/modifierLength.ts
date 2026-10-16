@@ -1,4 +1,7 @@
-import { authoredLengthSchema } from '@artificer-toolkit/schema/shared/authoredLimits'
+import {
+  authoredFractionSchema,
+  authoredLengthSchema
+} from '@artificer-toolkit/schema/shared/authoredLimits'
 import {
   feetInLengthUnit,
   lengthMeasurementInFeet,
@@ -36,6 +39,22 @@ export function widestLengthByKey(
       widest.set(key, length)
   }
   return widest
+}
+
+/**
+ * A speed after the "your speed is multiplied by n/d" grants that apply to it: the product of
+ * the fractions, rounded down once (D94). A Character policy and a Creature holder fold their
+ * fractions through this one rule.
+ */
+export function speedAfterFractions(amount: number, payloads: Iterable<unknown>): number {
+  let numerator = 1
+  let denominator = 1
+  for (const payload of payloads) {
+    const fraction = authoredFractionSchema.parse(payload)
+    numerator *= fraction.numerator
+    denominator *= fraction.denominator
+  }
+  return Math.floor((amount * numerator) / denominator)
 }
 
 /** A length's amount in `unit`; a length already in it is not converted. */

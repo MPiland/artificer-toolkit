@@ -190,6 +190,36 @@ export const goldDragonWyrmling: CreatureAuthored = {
                           scope: 'GLOBAL',
                           selectionKind: 'GRANTED',
                           order: 2
+                        },
+                        {
+                          id: S.actionId(147, 904),
+                          grantKind: 'MODIFIER_GRANT',
+                          valueDomainCode: 'ATTACK_ROLL',
+                          domain: { attackDomain: 'MELEE', ability: S.ABILITY_CODE.STRENGTH },
+                          modifierKind: 'DISADVANTAGE',
+                          scope: 'GLOBAL',
+                          selectionKind: 'GRANTED',
+                          order: 3
+                        },
+                        {
+                          id: S.actionId(147, 905),
+                          grantKind: 'MODIFIER_GRANT',
+                          valueDomainCode: 'ATTACK_ROLL',
+                          domain: { attackDomain: 'RANGED', ability: S.ABILITY_CODE.STRENGTH },
+                          modifierKind: 'DISADVANTAGE',
+                          scope: 'GLOBAL',
+                          selectionKind: 'GRANTED',
+                          order: 4
+                        },
+                        {
+                          id: S.actionId(147, 906),
+                          grantKind: 'MODIFIER_GRANT',
+                          valueDomainCode: 'ATTACK_ROLL',
+                          domain: { attackDomain: 'UNARMED', ability: S.ABILITY_CODE.STRENGTH },
+                          modifierKind: 'DISADVANTAGE',
+                          scope: 'GLOBAL',
+                          selectionKind: 'GRANTED',
+                          order: 5
                         }
                       ]
                     }

@@ -15,6 +15,7 @@ import {
 } from './encounterActionEntryPointCompiler.js'
 import {
   creatureActiveGrantAttackContributors,
+  creatureAttackAbility,
   withSourceSightSave
 } from './encounterActiveGrants.js'
 import type { EncounterPreparedAttackSight } from './encounterAttackBelief.js'
@@ -489,17 +490,17 @@ export async function prepareEncounterActionMechanics<
               attackKind,
               source.kind === 'CHARACTER_ACTION'
                 ? mergeCanonicalD20Contributors(
-                    dnd5eAttackRollContributors(
-                      source.effectivePolicyOutput,
-                      attackKind,
-                      dnd5eCharacterActionTarget(source.candidate)
-                    ),
+                    dnd5eAttackRollContributors(source.effectivePolicyOutput, attackKind, {
+                      ...dnd5eCharacterActionTarget(source.candidate),
+                      attackAbility: characterActionState?.actionMechanic.attackAbility ?? null
+                    }),
                     contributors
                   )
                 : mergeCanonicalD20Contributors(
                     creatureActiveGrantAttackContributors(
                       actor.id,
                       attackKind,
+                      creatureAttackAbility(source.capability.mechanicFacts.outcomes),
                       sourceFacts.activeEffects
                     ),
                     contributors
