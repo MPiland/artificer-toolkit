@@ -425,14 +425,14 @@ Order on one attack: TEST, then the reaction choice (`ON_HIT`/`ON_CRIT` only), t
 meet Legendary Resistance on the same TEST: that choice exists only for `ON_SAVE_FAIL` and a TEST has
 either an attack path or a save path, and `continueNativeActionAfterTest` rejects an audit carrying both.
 A defeated reactor (D63), a spent allowance, an Unconscious Character and a `REACTION_COUNT SET_VALUE 0`
-grant (D99) all drop the offer through the same discovery as an action. Only the first eligible reaction
-is offered, only Character reactors, and a reaction taken as an action is refused (`REACTION_TRIGGER_ONLY`) on
+grant (D99) all drop the offer through the same discovery as an action. Every eligible reaction is offered
+as a menu (a Character has one reaction a round, so one choice), only Character reactors, and a reaction taken as an action is refused (`REACTION_TRIGGER_ONLY`) on
 every action path (single-target and area) through `refuseActionOutsideItsWindow`, the one admission point it
 shares with `LEGENDARY_WINDOW_ONLY`. Resume admission accepts any option the offer carries
 (`offeredDecisionOptionIds`) and refuses one it does not as stale. Settlement answers the reaction whose use
 option was chosen (`chosenEncounterReaction`; a decline answers the innermost), and the Worker re-discovers
-that reaction by its `actionId`, so a non-first offered reaction is the one settled. The pending summary and Decision drawer still
-show only the first reaction (transport contract and UI widening belong to the SPELL_CAST chain, REACTION-4.T3). The reaction's effect id is derived from the command and occurrence ids
+that reaction by its `actionId`, so a non-first offered reaction is the one settled. The pending summary lists every offered option (`REACTION_CHOICE.options`, 1 to 8) and the Decision drawer shows a
+button for each; every pin names the same reactor. The reaction's effect id is derived from the command and occurrence ids
 (`encounterReactionEffectId`, rules-runtime), so replaying the answer mints the same id. A reaction that needs rolls or does not
 create exactly one effect on its reactor is refused as `REACTION_UNSUPPORTED`.
 Decision: D26 is extended to hold the Scene for a pending reaction decision.
@@ -447,11 +447,16 @@ a `DAMAGE_RESISTANCE` grant, which `encounterActiveGrants` turns into a defense 
 re-evaluated binding hands that defense to the OUTCOME, so the damage is resisted before it applies. The TEST
 is unchanged (`defenseBefore === defenseAfter`), so "the reaction changed the attack" compares the binding's
 defenses as well as the bound facts. The follow-up benefit is an ordinary grant in the same effect (a melee
-`DAMAGE` bonus until the start of the caster's next turn). Limits: only the attack-hit path pauses (save-based
-and area damage do not offer it), a bonus grant applies to every melee hit while it lasts rather than the next
-one only, only the first eligible reaction is offered, and the resistance covers every damage type the
-reaction names rather than only the triggering one (binding the triggering type needs a trigger fact, which the
-SPELL_CAST chain, REACTION-4.T3, introduces).
+`DAMAGE` bonus until the end of the caster's next turn, scaled by the slot level the reaction was cast with).
+
+The resistance names the triggering damage type rather than a fixed one (`damageTypeSource: 'TRIGGER'` on a
+`DAMAGE_RESISTANCE` payload). Discovery returns the authored types the hit dealt (`triggerDamageTypeIds`), and
+`prepareEncounterActionEffectPlans` binds the resistance to each, so a hit of cold resists cold only, though the
+spell names fire and cold. An ON_CRIT type counts only on a critical hit (`attackHitDamageTypeIds`). A grant
+amount that scales by slot level (`SPELL_SLOT_LEVEL`: Absorb Elements' bonus per slot level, Aid) is fixed by the cast level before the effect plan is built (`effectAtCastLevel`). The follow-up
+bonus is consumed by the first attack roll (`ON_ATTACK_ROLL`). Limits: only the attack-hit path pauses
+(save-based and area damage do not offer it), and the follow-up is spent by any attack roll of its holder, not
+only a melee hit (see future enhancements).
 
 ### 0 hit points (D63, current)
 
@@ -862,7 +867,19 @@ action submission, which would move the prompt to the player, is not built.
 authorizes facts, at most two ordered phases specialize from it: `TEST` (one d20 stage selecting the hit,
 miss, critical or save path) and `OUTCOME` (exact authored dice and scaling). Each phase is acyclic with
 one evidence stage; resource use, mutations and receipts wait for the terminal phase.
-`diceGraphDefinition` is the only place that doubles critical dice. The immediate follow-up save shapes the
+`diceGraphDefinition` is the only place that doubles critical dice.
+
+**On-hit riders (D119).** A passive Feature's trigger-matched `ON_HIT` `DAMAGE` outcomes merge into the
+weapon action's compiled effect when `buildCharacterActionRuleFacts` builds the action
+(`character/characterOnHitRiders`), so the rider is one more part of the same hit: resistance and critical
+doubling apply unchanged. A rider with `usesTriggeringWeaponDamageType` takes the damage type of the attack's
+first `ON_HIT` damage; an unmerged one fails closed. A rider whose dice grow with class level lists `CLASS_LEVEL`
+rows with a `classId`; `bindFacts` supplies the actor's class levels (`dnd5e.class-levels`) and
+`exactDiceConfiguration` picks the highest row at or below that level. It is the shared row selector that
+other level-keyed dice (T12) reuse. Riders are collected from class, subclass, race and feat Features only.
+`ADD_BONUS_DIE` stays non-executable.
+
+The immediate follow-up save shapes the
 adapter supports, ranged long range (`longAmount`, `encounterActionLongRangeContributor`), reach 0 swarm
 attacks, timed conditions and multi-condition hits are defined by the compiler
 (`systems/dnd5e/effectActionCompiler`) and fail closed outside those shapes. Range and reach use one

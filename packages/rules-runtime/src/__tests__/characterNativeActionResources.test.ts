@@ -13,7 +13,7 @@ import {
 import { prepareNativeCharacterActionState } from '../character/characterNativeActionResources.js'
 import { discoverCharacterActionCapabilities } from '../characterActionCapabilityDiscoveryRegistry.js'
 import { compileCharacterActionEntryPoints } from '../encounterActionEntryPointCompiler.js'
-import { evaluateSrdCharacter, itemAction } from './dnd5eSrdCharacter.js'
+import { SRD, evaluateSrdCharacter, itemAction, srdByLabel } from './dnd5eSrdCharacter.js'
 
 type PrepareInput = Parameters<typeof prepareNativeCharacterActionState>[0]
 type CompiledEntry = Extract<PrepareInput['entry'], { schemaVersion: 4 }>
@@ -64,6 +64,8 @@ function withDecision(
   }
 }
 
+const FIGHTER_LEVELS = { [srdByLabel(SRD.classes, 'Fighter').id]: 1 }
+
 function prepare(overrides: Partial<PrepareInput> = {}) {
   return prepareNativeCharacterActionState({
     entry,
@@ -74,6 +76,7 @@ function prepare(overrides: Partial<PrepareInput> = {}) {
     itemUsage: [],
     characterId: CHARACTER_ID,
     expectedStreamVersion: STREAM_VERSION,
+    classLevels: fighter.facts.grantFoldFacts.base.classes,
     automationMode: 'ASSISTED',
     overridable: false,
     ...overrides
@@ -81,9 +84,9 @@ function prepare(overrides: Partial<PrepareInput> = {}) {
 }
 
 describe('native Character action state without a resource', () => {
-  it('returns the policy mechanic with no consumption and no warnings', () => {
+  it('returns the policy mechanic and the Character’s class levels with no consumption or warnings', () => {
     expect(prepare()).toEqual({
-      actionMechanic: { ...decision.mechanic, save: null },
+      actionMechanic: { ...decision.mechanic, save: null, classLevels: FIGHTER_LEVELS },
       resourceConsumption: null,
       itemConsumption: null,
       spellConsumption: null,
@@ -187,7 +190,7 @@ describe('native Character action state with a bound resource', () => {
 
   it('spends one use from the pool the entry binds, reusing the existing usage row', () => {
     expect(prepareBound({ policyOutput: policy(1), resourceUsage: [usage(1)] })).toEqual({
-      actionMechanic: { ...decision.mechanic, save: null },
+      actionMechanic: { ...decision.mechanic, save: null, classLevels: FIGHTER_LEVELS },
       ruleWarnings: [],
       itemConsumption: null,
       spellConsumption: null,
@@ -230,7 +233,7 @@ describe('native Character action state with a bound resource', () => {
     expect(
       prepareBound({ policyOutput: policy(1), resourceUsage: [usage(1)], automationMode: 'MANUAL' })
     ).toEqual({
-      actionMechanic: { ...decision.mechanic, save: null },
+      actionMechanic: { ...decision.mechanic, save: null, classLevels: FIGHTER_LEVELS },
       itemConsumption: null,
       spellConsumption: null,
       resourceConsumption: null,
@@ -243,7 +246,7 @@ describe('native Character action state with a bound resource', () => {
     expect(
       prepareBound({ policyOutput: exhausted, resourceUsage: [usage(2)], overridable: true })
     ).toEqual({
-      actionMechanic: { ...decision.mechanic, save: null },
+      actionMechanic: { ...decision.mechanic, save: null, classLevels: FIGHTER_LEVELS },
       itemConsumption: null,
       spellConsumption: null,
       resourceConsumption: null,

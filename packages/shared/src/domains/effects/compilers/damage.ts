@@ -1,4 +1,4 @@
-import type { DamageAuthored, DamageBonusAuthored } from '#authored'
+import type { DamageAuthored, DamageBonusAuthored, DamageTypeAuthored } from '#authored'
 import {
   type AbilityModifierReference,
   DAMAGE_BONUS_KIND,
@@ -109,11 +109,11 @@ export type CompiledDamageValue<S extends ScalingSource> =
 export type CompiledDamageEffect<S extends ScalingSource = ScalingSource> = {
   id: string
   effectKind: typeof EFFECT_KIND.DAMAGE
-  damageTypeId: string
   bonuses?: CompiledDamageBonus[]
   amountKind?: DamageAuthored['amountKind']
   multiplier?: number
-} & CompiledDamageValue<S>
+} & DamageTypeAuthored &
+  CompiledDamageValue<S>
 
 export function compileDamageBonuses(authored: DamageBonusAuthored): CompiledDamageBonus {
   const optionalBounds = {
@@ -159,6 +159,9 @@ export function compileDamageEffect(authored: DamageAuthored): CompiledDamageEff
     ...(authored.amountKind === undefined ? {} : { amountKind: authored.amountKind }),
     ...(authored.multiplier === undefined ? {} : { multiplier: authored.multiplier })
   }
+  const damageTypeFields: DamageTypeAuthored = authored.usesTriggeringWeaponDamageType
+    ? { usesTriggeringWeaponDamageType: true }
+    : { damageTypeId: authored.damageTypeId }
 
   switch (authored.scalingKind) {
     case SCALING.NONE: {
@@ -168,7 +171,7 @@ export function compileDamageEffect(authored: DamageAuthored): CompiledDamageEff
             {
               id: authored.id,
               effectKind: EFFECT_KIND.DAMAGE,
-              damageTypeId: authored.damageTypeId,
+              ...damageTypeFields,
               valueKind: DAMAGE_VALUE_KIND.FIXED,
               ...bonusFields,
               ...presentationFields,
@@ -183,7 +186,7 @@ export function compileDamageEffect(authored: DamageAuthored): CompiledDamageEff
             {
               id: authored.id,
               effectKind: EFFECT_KIND.DAMAGE,
-              damageTypeId: authored.damageTypeId,
+              ...damageTypeFields,
               valueKind: authored.valueKind,
               dice: authored.diceConfig,
               ...(authored.halfHitPointsDiceConfig === undefined
@@ -201,7 +204,7 @@ export function compileDamageEffect(authored: DamageAuthored): CompiledDamageEff
             {
               id: authored.id,
               effectKind: EFFECT_KIND.DAMAGE,
-              damageTypeId: authored.damageTypeId,
+              ...damageTypeFields,
               valueKind: authored.valueKind,
               amount: authored.amount,
               ...bonusFields,
@@ -223,7 +226,7 @@ export function compileDamageEffect(authored: DamageAuthored): CompiledDamageEff
             return {
               id: entry.id,
               effectKind: EFFECT_KIND.DAMAGE,
-              damageTypeId: authored.damageTypeId,
+              ...damageTypeFields,
               valueKind: DAMAGE_VALUE_KIND.FIXED,
               level: entry.level,
               order: entry.order,
@@ -243,7 +246,7 @@ export function compileDamageEffect(authored: DamageAuthored): CompiledDamageEff
             return {
               id: entry.id,
               effectKind: EFFECT_KIND.DAMAGE,
-              damageTypeId: authored.damageTypeId,
+              ...damageTypeFields,
               valueKind: DAMAGE_VALUE_KIND.DICE,
               level: entry.level,
               order: entry.order,
@@ -263,7 +266,7 @@ export function compileDamageEffect(authored: DamageAuthored): CompiledDamageEff
             {
               id: authored.id,
               effectKind: EFFECT_KIND.DAMAGE,
-              damageTypeId: authored.damageTypeId,
+              ...damageTypeFields,
               valueKind: DAMAGE_VALUE_KIND.POOL,
               ...(authored.min === undefined ? {} : { min: authored.min }),
               ...(authored.max === undefined ? {} : { max: authored.max }),
@@ -289,7 +292,7 @@ export function compileDamageEffect(authored: DamageAuthored): CompiledDamageEff
             return {
               id: entry.id,
               effectKind: EFFECT_KIND.DAMAGE,
-              damageTypeId: authored.damageTypeId,
+              ...damageTypeFields,
               valueKind: DAMAGE_VALUE_KIND.FIXED,
               level: entry.level,
               order: entry.order,
@@ -309,7 +312,7 @@ export function compileDamageEffect(authored: DamageAuthored): CompiledDamageEff
             return {
               id: entry.id,
               effectKind: EFFECT_KIND.DAMAGE,
-              damageTypeId: authored.damageTypeId,
+              ...damageTypeFields,
               valueKind: DAMAGE_VALUE_KIND.DICE,
               level: entry.level,
               order: entry.order,

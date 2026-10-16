@@ -129,8 +129,9 @@ export async function persistEncounterActionPending(
         snapshot.applicationContext.legendaryResistance.resistance.targetActorId !==
           target.actorId) ||
       (snapshot.applicationContext.reactionChoice !== undefined &&
-        snapshot.applicationContext.reactionChoice.reactions[0]?.reactorActorId !==
-          target.actorId) ||
+        snapshot.applicationContext.reactionChoice.reactions.some(
+          ({ reactorActorId }) => reactorActorId !== target.actorId
+        )) ||
       (resume &&
         (snapshot.occurrenceId !== resume.occurrence.id ||
           snapshot.applicationContext.currentnessChecksum !==

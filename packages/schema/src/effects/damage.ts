@@ -187,16 +187,31 @@ const damagePoolDtoSchema = lazySchema(() =>
   ])
 )
 
+const damageTypeDtoSchema = lazySchema(() =>
+  z.union([
+    z.object({
+      damageTypeId: authoredIdentifierSchema,
+      usesTriggeringWeaponDamageType: z.optional(z.literal(false))
+    }),
+    z.object({
+      usesTriggeringWeaponDamageType: z.literal(true),
+      damageTypeId: z.optional(z.never())
+    })
+  ])
+)
+
 export const damageDtoSchema = lazySchema(() =>
   z.intersection(
-    z.object({
-      id: authoredIdentifierSchema,
-      effectKind: z.literal('DAMAGE'),
-      damageTypeId: authoredIdentifierSchema,
-      bonuses: z.optional(authoredNestedCollectionSchema(damageBonusDtoSchema)),
-      amountKind: z.optional(scalingAmountKindSchema),
-      multiplier: z.optional(authoredNonnegativeNumberSchema)
-    }),
+    z.intersection(
+      z.object({
+        id: authoredIdentifierSchema,
+        effectKind: z.literal('DAMAGE'),
+        bonuses: z.optional(authoredNestedCollectionSchema(damageBonusDtoSchema)),
+        amountKind: z.optional(scalingAmountKindSchema),
+        multiplier: z.optional(authoredNonnegativeNumberSchema)
+      }),
+      damageTypeDtoSchema
+    ),
     z.union([damageFixedDtoSchema, damageDiceDtoSchema, damagePoolDtoSchema])
   )
 )
