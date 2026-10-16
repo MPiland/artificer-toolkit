@@ -101,6 +101,11 @@ function countingReads<Database extends object>(db: Database) {
       if (typeof document === 'object' && document !== null && '_id' in document) {
         counter.documents++
         counter.bytes += bytes(document)
+        const d = document as Record<string, unknown>
+        if (typeof d.stateJson === 'string') {
+          const st = JSON.parse(d.stateJson) as Record<string, unknown>
+          console.log('DIAG', bytes(document), JSON.stringify(Object.fromEntries(Object.entries(st).map(([k, v]) => [k, bytes(v)]))), JSON.stringify(Object.fromEntries(Object.entries(d).filter(([k]) => k !== 'stateJson').map(([k, v]) => [k, bytes(v)]))))
+        }
       }
   }
   const wrap = <Target extends object>(target: Target): Target =>
