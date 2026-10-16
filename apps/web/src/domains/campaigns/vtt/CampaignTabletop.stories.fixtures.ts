@@ -252,7 +252,6 @@ const actorBases = [
     kind: 'CREATURE',
     label: 'Vault Warden',
     manualOrder: null,
-    form: null,
     absence: null,
     public: true,
     sourceId: null,

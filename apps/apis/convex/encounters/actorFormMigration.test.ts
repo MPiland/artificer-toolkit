@@ -30,14 +30,13 @@ it('gives stored actors a null form and form-origin checksum, and re-checksums t
   const current = await readRows()
   expect(current.length).toBeGreaterThan(0)
 
-  // Rows written before D130 carry no form, no origin checksum and a checksum over that shape.
+  // Rows written before D130 carry no form and a checksum over that shape.
   await base.t.run(async (ctx) => {
     for (const row of current) {
       const { form: _form, ...legacy }: Record<string, unknown> = JSON.parse(row.stateJson)
       await ctx.db.patch(row._id, {
         stateJson: JSON.stringify(legacy),
-        stateChecksum: checksumCanonicalJson(legacy),
-        formOriginSnapshotChecksum: undefined
+        stateChecksum: checksumCanonicalJson(legacy)
       })
     }
   })

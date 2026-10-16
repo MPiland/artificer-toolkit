@@ -34,6 +34,7 @@ describe('checkpoint record decoding', () => {
       stateJson: '{ "z": { "b": 2, "a": 1 }, "streamVersion": 7, "a": null }',
       stateChecksum: checksum,
       snapshotChecksum: checksum,
+      formOriginSnapshotChecksum: null,
       sourceFactsChecksum: null
     }
     const original = structuredClone(fields)
@@ -44,6 +45,7 @@ describe('checkpoint record decoding', () => {
       stateJson: { a: null, streamVersion: 7, z: { a: 1, b: 2 } },
       stateChecksum: checksum,
       snapshotChecksum: checksum,
+      formOriginSnapshotChecksum: null,
       sourceFactsChecksum: null
     })
     expect(Object.keys(decoded)).toEqual([

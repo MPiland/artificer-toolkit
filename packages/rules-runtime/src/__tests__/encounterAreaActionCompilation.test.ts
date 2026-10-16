@@ -328,8 +328,10 @@ describe('chosen-creature heal compilation from the SRD (D118)', () => {
     it('compiles a Polymorph-shaped authoring (excess damage carries over) on the same executor', () => {
       const polymorphShaped = JSON.parse(JSON.stringify(GIANT_INSECT)) as typeof GIANT_INSECT
       for (const path of polymorphShaped.paths ?? [])
-        for (const outcome of path.resultBlock?.outcomes ?? [])
-          if (outcome.effectKind === 'MANIFEST') outcome.excessDamageCarriesOver = true
+        if (path.selectionKind === 'FIXED')
+          for (const outcome of path.resultBlock.outcomes)
+            if (outcome.effectKind === 'MANIFEST' && outcome.manifestKind === 'CREATURE')
+              outcome.excessDamageCarriesOver = true
       expect(formPlan(polymorphShaped)).toMatchObject({
         creatureFormContribution: { excessDamageCarriesOver: true }
       })
