@@ -9,45 +9,31 @@ import type { ClassFeature } from '../src/testing/srdCharacterSource.js'
 
 export const MAINTENANCE_DEFINITION_ID = '00000000-0000-4000-8000-0000000008f0'
 
-/** A reusable maintenance policy the room serves, such as the one a Surge Feature maintains. */
-export function maintenanceDefinitionOf(input: {
-  id: string
-  emptyDependentPolicy: 'TERMINATE_WHEN_EMPTY' | 'RETAIN_UNTIL_TERMINAL'
-}) {
-  const document = ruleMaintenanceReusableDefinitionDocumentDtoSchema.parse({
-    schemaVersion: 1,
-    kind: 'RULE_MAINTENANCE',
-    id: input.id,
-    gameSystemId: srdSystemRecord.id,
-    replacementPolicy: 'REPLACE_SAME_DEFINITION',
-    emptyDependentPolicy: input.emptyDependentPolicy,
-    damageCheckDefinitionId: null
-  })
-  return currentSrdDefinition({
-    id: document.id,
-    definitionFamilyKey: 'rule-maintenance',
-    label: 'Native maintained effect fixture',
-    description: 'Reusable maintenance policy for native test actions.',
-    document: jsonValueSchema.parse(document),
-    checksum: checksumRuleDocument(document)
-  })
-}
-
-export const maintenanceDefinition = maintenanceDefinitionOf({
+const maintenanceDocument = ruleMaintenanceReusableDefinitionDocumentDtoSchema.parse({
+  schemaVersion: 1,
+  kind: 'RULE_MAINTENANCE',
   id: MAINTENANCE_DEFINITION_ID,
-  emptyDependentPolicy: 'TERMINATE_WHEN_EMPTY'
+  gameSystemId: srdSystemRecord.id,
+  replacementPolicy: 'REPLACE_SAME_DEFINITION',
+  emptyDependentPolicy: 'TERMINATE_WHEN_EMPTY',
+  damageCheckDefinitionId: null
+})
+
+/** The reusable maintenance policy the room serves, such as the one a Surge Feature maintains. */
+export const maintenanceDefinition = currentSrdDefinition({
+  id: maintenanceDocument.id,
+  definitionFamilyKey: 'rule-maintenance',
+  label: 'Native maintained effect fixture',
+  description: 'Reusable maintenance policy for native test actions.',
+  document: jsonValueSchema.parse(maintenanceDocument),
+  checksum: checksumRuleDocument(maintenanceDocument)
 })
 
 /**
  * A Fighter Feature that spends one of two charges to heal 1d4 and maintains a maintenance
  * definition for three rounds: on the Fighter, or on one target.
  */
-export function surgeFeature(input: {
-  seed: number
-  label: string
-  self: boolean
-  maintenanceDefinitionId?: string
-}): ClassFeature {
+export function surgeFeature(input: { seed: number; label: string; self: boolean }): ClassFeature {
   const chargeId = testUuid(input.seed)
   return {
     id: testUuid(input.seed + 1),
@@ -91,7 +77,7 @@ export function surgeFeature(input: {
             resultBlock: {
               id: testUuid(input.seed + 5),
               resultKind: 'SINGLE',
-              maintenanceDefinitionId: input.maintenanceDefinitionId ?? MAINTENANCE_DEFINITION_ID,
+              maintenanceDefinitionId: MAINTENANCE_DEFINITION_ID,
               duration: { id: testUuid(input.seed + 6), durationKind: 'ROUND', amount: 3 },
               lifecycle: { recurringKind: 'START_OF_TURN' },
               outcomes: [
