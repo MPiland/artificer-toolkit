@@ -17,6 +17,7 @@ import { projectNativeConcentrationPending } from '@artificer-toolkit/encounter-
 import { readPendingSnapshot } from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
 import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
 import { readEncounterTimelinePage } from '@artificer-toolkit/encounter-persistence/timelinePages'
+import { z } from 'zod'
 import { liveSessionCheckpointRetainedRollSchema } from '@artificer-toolkit/schema/api/liveSessionCheckpointRecords'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 
@@ -47,6 +48,16 @@ export function readRoomHistory(stub: RoomStub) {
 }
 
 export type RoomHistory = Awaited<ReturnType<typeof readRoomHistory>>
+
+/** The conditions a Creature actor holds in the room's stored Run. */
+export function readActorConditionIds(history: RoomHistory, actorId: string) {
+  const row = history.actors.find(({ id }) => id === actorId)
+  if (!row) throw new Error('Expected the actor in the stored Run.')
+  const actor = readStoredRunActor(row)
+  if (actor.kind === 'CHARACTER')
+    throw new Error('A Character holds its conditions on the Character.')
+  return z.array(z.string()).parse(actor.conditions)
+}
 
 /** A stored receipt's rule execution, parsed by the shared contract. */
 export function parseReceiptExecution(receipt: { resultJson: string }) {
