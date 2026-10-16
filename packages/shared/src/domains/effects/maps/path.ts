@@ -12,6 +12,7 @@ import type {
   HitPointMaximumReductionAuthored,
   ManifestComponentAuthored,
   ManifestCreatureFormAuthored,
+  ManifestCreatureFormFilterAuthored,
   ManifestDestructionCriterionAuthored,
   ManifestLightAuthored,
   ManifestProximityRuleAuthored,
@@ -218,6 +219,7 @@ const followUpSaveBranch = buildNodeMap<FollowUpSaveBranchNode>()
 const followUpSaveAttempts = buildNodeMap<FollowUpSaveAttemptsNode>()
 const manifestComponent = buildNodeMap<ManifestComponentAuthored>()
 const manifestCreatureForm = buildNodeMap<ManifestCreatureFormAuthored>()
+const manifestCreatureFormFilter = buildNodeMap<ManifestCreatureFormFilterAuthored>()
 const manifestDestructionCriterion = buildNodeMap<ManifestDestructionCriterionNode>()
 const manifestLight = buildNodeMap<ManifestLightAuthored>()
 const manifestProximityRule = buildNodeMap<ManifestProximityRuleNode>()
@@ -653,6 +655,62 @@ const MANIFEST_CREATURE_FORM_NODE_MAP: NodeMap<ManifestCreatureFormAuthored> =
         number(['maxTargets'], 'Maximum Creatures', {
           constraints: { minimum: 1 },
           requiredIf: true
+        })
+      )
+  })
+
+const MANIFEST_CREATURE_FORM_FILTER_NODE_MAP: NodeMap<ManifestCreatureFormFilterAuthored> =
+  manifestCreatureFormFilter.define('manifestCreatureFormFilter', ({ map, nodes, cond, data }) => {
+    const { text, selectSingle, selectMulti } = nodes
+    const local = cond.local()
+    const { table } = data
+
+    map
+      .set('id', text(['id'], 'ID'))
+      .set(
+        'creatureTypeId',
+        selectSingle(['creatureTypeId'], 'Creature Type', {
+          kind: 'DATA',
+          relationship: table('creature_types', { selectColumns: ['id', 'label', 'description'] })
+        })
+      )
+      .set(
+        'challengeRatingCapKind',
+        selectSingle(
+          ['challengeRatingCapKind'],
+          'Challenge Rating Cap',
+          {
+            kind: 'INLINE_OPTIONS',
+            options: [
+              { code: 'TARGET', label: "Target's Challenge Rating or Level" },
+              { code: 'FIXED', label: 'Fixed Challenge Rating' }
+            ]
+          },
+          { requiredIf: true }
+        )
+      )
+      .set(
+        'maxChallengeRatingId',
+        selectSingle(
+          ['maxChallengeRatingId'],
+          'Maximum Challenge Rating',
+          {
+            kind: 'DATA',
+            relationship: table('challenge_ratings', {
+              selectColumns: ['id', 'label', 'description']
+            })
+          },
+          {
+            requiredIf: local.field(['challengeRatingCapKind']).eq('FIXED'),
+            showIf: local.field(['challengeRatingCapKind']).eq('FIXED')
+          }
+        )
+      )
+      .set(
+        'excludedSpeedIds',
+        selectMulti(['excludedSpeedIds'], 'Excluded Speeds', {
+          kind: 'DATA',
+          relationship: table('speeds', { selectColumns: ['id', 'label'] })
         })
       )
   })
@@ -1921,6 +1979,16 @@ function registerOutcomeFields(
       'forms',
       groupArray(['forms'], 'Forms', () => MANIFEST_CREATURE_FORM_NODE_MAP, {
         presentation: 'summary',
+        showIf: and([
+          local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST),
+          local.field(['manifestKind']).eq(MANIFEST_KIND.CREATURE)
+        ])
+      })
+    )
+    .set(
+      'formFilter',
+      groupObject(['formFilter'], 'Form Filter', () => MANIFEST_CREATURE_FORM_FILTER_NODE_MAP, {
+        presentation: 'inline',
         showIf: and([
           local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST),
           local.field(['manifestKind']).eq(MANIFEST_KIND.CREATURE)

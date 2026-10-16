@@ -239,8 +239,19 @@ const compiledActionActiveEffectPlanSchema = lazySchema(() =>
                 maxTargets: z.number().check(z.int()).check(z.positive())
               })
             )
-            .check(z.minLength(1))
-            .check(z.maxLength(32))
+            .check(z.maxLength(32)),
+          /**
+           * A rule-filtered choice beside the fixed forms: the cast names the Creature on the command and
+           * it must meet this at cast (Polymorph: a beast no higher than the target's challenge rating).
+           */
+          filter: z.nullable(
+            z.strictObject({
+              creatureTypeId: z.nullable(serverUuidIdentityDtoSchema),
+              challengeRatingCapKind: z.enum(['TARGET', 'FIXED']),
+              maxChallengeRatingId: z.nullable(serverUuidIdentityDtoSchema),
+              excludedSpeedIds: z.array(serverUuidIdentityDtoSchema).check(z.maxLength(16))
+            })
+          )
         })
       ),
       null
@@ -300,6 +311,7 @@ const compiledActionTestOutcomePlanSchema = lazySchema(() =>
         published: serverPublishedRuleDefinitionDtoSchema,
         template: compiledActionTemplateIdentitySchema
       }),
+      /** Empty when a creature form's active-effect plan carries every outcome the TEST selects. */
       outcomes: z
         .array(
           z.strictObject({
@@ -307,7 +319,6 @@ const compiledActionTestOutcomePlanSchema = lazySchema(() =>
             template: compiledActionTemplateIdentitySchema
           })
         )
-        .check(z.minLength(1))
         .check(z.maxLength(32))
     })
     .check(

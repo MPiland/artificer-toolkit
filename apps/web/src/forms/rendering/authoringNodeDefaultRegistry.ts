@@ -71,6 +71,7 @@ type AuthoringDefaultKind =
   | 'manifestBehavior'
   | 'manifestComponent'
   | 'manifestCreatureForm'
+  | 'manifestCreatureFormFilter'
   | 'manifestDestructionCriterion'
   | 'manifestLight'
   | 'manifestProximityRule'
@@ -206,6 +207,7 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   manifestBehavior: ['manifestBehavior'],
   manifestComponent: ['manifestComponent'],
   manifestCreatureForm: ['manifestCreatureForm'],
+  manifestCreatureFormFilter: ['manifestCreatureFormFilter'],
   manifestDestructionCriterion: ['manifestDestructionCriterion'],
   manifestLight: ['manifestLight'],
   manifestProximityRule: ['manifestProximityRule'],

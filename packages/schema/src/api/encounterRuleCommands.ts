@@ -126,6 +126,8 @@ export const resolveEncounterActionTargetDtoSchema = lazySchema(() =>
       actorIds: z.array(uuidSchema).check(z.minLength(1)).check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
       /** The form the creatures take, for an action that authors forms (Giant Insect); absent otherwise. */
       formId: z.optional(postgresUuidSchema),
+      /** The Creature the target becomes, for an action whose form is a rule-filtered choice (Polymorph); absent otherwise. */
+      creatureId: z.optional(postgresUuidSchema),
       scene: z.nullable(
         z.strictObject({
           sceneId: uuidSchema,

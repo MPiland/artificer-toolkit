@@ -29,6 +29,20 @@ const manifestCreatureFormDtoSchema = lazySchema(() =>
   })
 )
 
+/**
+ * The rule a caster-chosen Creature must meet to be a form (Polymorph: a beast whose challenge rating
+ * does not exceed the target's), checked at cast against the System creature corpus.
+ */
+const manifestCreatureFormFilterDtoSchema = lazySchema(() =>
+  z.object({
+    id: authoredIdentifierSchema,
+    creatureTypeId: z.optional(authoredIdentifierSchema),
+    challengeRatingCapKind: z.enum(['TARGET', 'FIXED']),
+    maxChallengeRatingId: z.optional(authoredIdentifierSchema),
+    excludedSpeedIds: z.optional(authoredReferenceCollectionSchema(authoredIdentifierSchema))
+  })
+)
+
 const manifestDestructionCriterionDtoSchema = lazySchema(() =>
   z.discriminatedUnion('kind', [
     z.object({
@@ -251,6 +265,7 @@ export const manifestDtoSchema: z.ZodMiniType = lazySchema(() =>
       z.extend(baseSchema, {
         manifestKind: z.literal('CREATURE'),
         forms: z.optional(authoredNestedCollectionSchema(manifestCreatureFormDtoSchema)),
+        formFilter: z.optional(manifestCreatureFormFilterDtoSchema),
         excessDamageCarriesOver: z.optional(z.boolean())
       }),
       z.extend(baseSchema, {

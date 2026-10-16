@@ -6,6 +6,7 @@ import {
   CASTING_TIME_UNIT_CODE,
   DURATION_KIND,
   EFFECT_KIND,
+  MANIFEST_KIND,
   MEASUREMENT_UNIT_CODE,
   RANGE_KIND,
   SPELL_ATTRIBUTE,
@@ -17,7 +18,7 @@ import {
   type SpellAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
-import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
+import { creatureTypeId, schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
 export const polymorph: SpellAuthored = {
   kind: SUBJECT.SPELL,
   id: SPELL_IDS.POLYMORPH,
@@ -54,8 +55,9 @@ export const polymorph: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          dispositionKind: TARGET_DISPOSITION_KIND.ANY
+          selectionKind: TARGET_SELECTION_KIND.CHOSEN_CREATURES,
+          dispositionKind: TARGET_DISPOSITION_KIND.ANY,
+          maxTargets: 1
         }
       },
       paths: [
@@ -77,8 +79,14 @@ export const polymorph: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.POLYMORPH, 0x213, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'POLYMORPH' as const
+                effectKind: EFFECT_KIND.MANIFEST,
+                manifestKind: MANIFEST_KIND.CREATURE,
+                excessDamageCarriesOver: true,
+                formFilter: {
+                  id: spellChildId(SPELL_IDS.POLYMORPH, 0x215, 1),
+                  creatureTypeId: creatureTypeId('BEAST'),
+                  challengeRatingCapKind: 'TARGET'
+                }
               }
             ]
           }
