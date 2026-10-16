@@ -42,8 +42,9 @@ export type NativeAttackReaction = {
 
 /**
  * The reaction the attacked Character may use against this attack, if it holds one it can afford now.
- * Only the first eligible reaction is offered. A creature that attacks itself, a defeated Character
- * (D63) and one with its reactions suppressed (D99) answer nothing.
+ * Only the first eligible reaction is offered; a decided offer names the reaction it answers (`actionId`)
+ * so that one is found again. A creature that attacks itself, a defeated Character (D63) and one with
+ * its reactions suppressed (D99) answer nothing.
  */
 export function discoverNativeAttackReaction(input: {
   state: EncounterRunState
@@ -53,7 +54,7 @@ export function discoverNativeAttackReaction(input: {
     request: LiveSessionEncounterRulesRequest
   ) => ReturnType<LiveCaptureReads['encounterRules']>
 }) {
-  return async (): Promise<NativeAttackReaction | null> => {
+  return async (answering?: string): Promise<NativeAttackReaction | null> => {
     const { actor, target, movementTargets } = input.attack
     const reactor = movementTargets.get(target.id)
     if (
@@ -70,6 +71,7 @@ export function discoverNativeAttackReaction(input: {
         : source.capability.mechanicFacts
     )
     for (const { actionId, trigger } of discoverAttackReactionActions(reactor, hitDamageTypeIds)) {
+      if (answering !== undefined && actionId !== answering) continue
       const prepared = await input.prepareReaction(actionId).catch((error: unknown) => {
         // A reaction its holder cannot pay for (no slot, not prepared) is simply not offered.
         if (error instanceof StaleCharacterActionError) return null
