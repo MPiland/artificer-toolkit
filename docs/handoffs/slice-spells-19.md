@@ -42,6 +42,15 @@ T3 may split once the red corpus test pins each row's compile error.
 4. Authoring parity (ADR 0038): the same area-plus-condition action built from core options in the real form publishes the SRD row's structure.
 5. Regression: `nativeRoomDirectedAreaAction`, `nativeRoomAreaJourney`, `nativeRoomAreaAction` and the SPELLS-21 journey unchanged and green.
 
+## Red-first checklist (T2)
+
+1. `nativeRoomAreaMaintainedEffect.test.ts`: a Character's Concentration point-area spell whose failed save frightens keeps one maintained state; every caught creature's effect (Wolves and the Character) points at it. Fails on base with the Concentration refusal.
+2. Ending the Concentration removes the effect and condition from every creature.
+3. The GM's undo removes the maintained state and every effect.
+4. Replacing an earlier Concentration (the caster already concentrates) ends its dependents once and is undo-refused like the single-target replace.
+5. Relationship condition end to end with Fear (frightened of the caster on each failing creature; Concentration end and GM undo remove it from all), authored from core options with no Fear-specific kind, plus the real-form authoring-parity proof.
+6. Persistence contract: the area commit accepts one maintenance transition on one child.
+
 ## Log
 
 - 2026-10-16: task split proposed to main; waiting for registration.
