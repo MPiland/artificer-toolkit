@@ -77,6 +77,13 @@ export const encounterActorControllerUserIdsDtoSchema = lazySchema(() =>
     )
 )
 
+/**
+ * The GM's per-actor reveal (ATTACK-17.3): a public actor whose token a player cannot see is
+ * listed to that player only when revealed, as an "Unseen creature" (`UNNAMED`) or by name (`NAMED`).
+ * It never draws the token. GM-only; the player projection carries no trace of it.
+ */
+export const encounterActorRevealDtoSchema = lazySchema(() => z.enum(['UNNAMED', 'NAMED']))
+
 const encounterActorBaseDtoSchema = lazySchema(() =>
   z.strictObject({
     id: uuidSchema,
@@ -142,7 +149,9 @@ export const encounterFeatureReferenceDtoSchema = lazySchema(() =>
       section: true,
       rollDefinitions: true
     }),
-    { resource: z._default(z.nullable(encounterFeatureResourceDtoSchema), null) }
+    {
+      resource: z._default(z.nullable(encounterFeatureResourceDtoSchema), null)
+    }
   )
 )
 
@@ -151,6 +160,8 @@ export const encounterGmActorDtoSchema = lazySchema(() =>
     healthBand: encounterHealthBandDtoSchema,
     /** GM override of the Encounter's health display default; Character actors use their Sheet's. */
     healthDisplay: z.nullable(healthDisplayLevelDtoSchema),
+    /** GM reveal of a public actor the players cannot see; null is not revealed. */
+    reveal: z._default(z.nullable(encounterActorRevealDtoSchema), null),
     systemId: z.nullable(postgresUuidSchema),
     stableTieKey: z.string().check(z.minLength(1)),
     currentHitPoints: z.number().check(z.int()).check(z.nonnegative()),
@@ -269,9 +280,16 @@ export const encounterEvidenceRollDtoSchema = lazySchema(() =>
     .check(
       z.superRefine((value, context) => {
         if ((value.rollMode === null) !== (value.derivedRollMode === null))
-          context.addIssue({ code: 'custom', message: 'Only d20 rolls carry roll modes.' })
+          context.addIssue({
+            code: 'custom',
+            message: 'Only d20 rolls carry roll modes.'
+          })
         if (value.faces.length !== (value.rollMode && value.rollMode !== 'NORMAL' ? 2 : 1))
-          context.addIssue({ code: 'custom', path: ['faces'], message: 'Roll faces are invalid.' })
+          context.addIssue({
+            code: 'custom',
+            path: ['faces'],
+            message: 'Roll faces are invalid.'
+          })
       })
     )
 )

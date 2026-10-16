@@ -9,7 +9,7 @@ import { admitsRoomMember, roomCharacterInputsKey } from './roomAuthorization.js
 import { prepareRoomLiveCharacterSheet } from './roomCharacterRules.js'
 import { heldCharacterIds, type FeedMember, type FeedScope } from './roomCharacterSheetFeed.js'
 import { projectRoomCharacterSheetForViewer } from './roomCharacterSheetProjection.js'
-import { roomEncounterReadTransaction } from './roomEncounterReadPorts.js'
+import { roomEncounterReadTransaction, type RoomSceneTokens } from './roomEncounterReadPorts.js'
 import type { RoomEncounterStore } from './roomEncounterStore.js'
 import type { RoomInputs } from './roomInputs.js'
 
@@ -40,6 +40,7 @@ export class RoomCampaignSummaryFeed {
       authorize: (scope: FeedScope) => Promise<LiveSessionRoomAuthorization>
       admission: (socket: WebSocket) => FeedMember | null
       scope: (socket: WebSocket) => FeedScope | null
+      sceneTokens: (scope: FeedScope) => RoomSceneTokens
       send: (socket: WebSocket, message: LiveSessionWebSocketServerMessageDto) => void
       remember: (socket: WebSocket) => void
     }
@@ -217,7 +218,8 @@ export class RoomCampaignSummaryFeed {
       campaignId: scope.campaignId,
       epoch: scope.authorityEpoch,
       userId: member.userId,
-      observed: inputs.revisions(scope.campaignId, authorization.revisions)
+      observed: inputs.revisions(scope.campaignId, authorization.revisions),
+      sceneTokens: this.dependencies.sceneTokens(scope)
     })
     const { campaign, membership } = await transaction.ports.requireCampaignAuthority(
       scope.campaignId,

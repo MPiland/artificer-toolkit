@@ -68,7 +68,11 @@ function gmEncounter(actors: unknown[], healthDisplayDefault: HealthDisplayLevel
   })
 }
 
-const noCharacters = { userId: OTHER_PLAYER_ID, characters: new Map() }
+const noCharacters = {
+  userId: OTHER_PLAYER_ID,
+  characters: new Map(),
+  unseenActorIds: new Set<string>()
+}
 
 describe('player encounter projection', () => {
   it('omits every actor health band and hidden actors while keeping control and disposition', () => {
@@ -138,8 +142,8 @@ describe('player encounter projection', () => {
       { level: 'BAR', ratio: 0.45 }
     ])
     const controller = projectPlayerEncounterProjection(gm, {
-      userId: PLAYER_ID,
-      characters: new Map()
+      ...noCharacters,
+      userId: PLAYER_ID
     })
     expect(controller.actors[0]?.health).toEqual({ level: 'EXACT', current: 3, maximum: 7 })
   })
@@ -156,11 +160,12 @@ describe('player encounter projection', () => {
       [CHARACTER_ID, { ownerUserId: PLAYER_ID, health: 'DESCRIPTIVE' as const }]
     ])
     expect(
-      projectPlayerEncounterProjection(gm, { userId: OTHER_PLAYER_ID, characters }).actors[0]
-        ?.health
+      projectPlayerEncounterProjection(gm, { ...noCharacters, userId: OTHER_PLAYER_ID, characters })
+        .actors[0]?.health
     ).toEqual({ level: 'DESCRIPTIVE', state: 'BLOODIED' })
     expect(
-      projectPlayerEncounterProjection(gm, { userId: PLAYER_ID, characters }).actors[0]?.health
+      projectPlayerEncounterProjection(gm, { ...noCharacters, userId: PLAYER_ID, characters })
+        .actors[0]?.health
     ).toEqual({ level: 'EXACT', current: 3, maximum: 7 })
     expect(projectPlayerEncounterProjection(gm, noCharacters).actors[0]?.health).toBeNull()
   })
@@ -199,9 +204,136 @@ describe('player encounter projection', () => {
 
     expect(gm.actors[0]?.concentration).toEqual(concentration)
     expect(
-      projectPlayerEncounterProjection(gm, { userId: PLAYER_ID, characters: new Map() }).actors[0]
+      projectPlayerEncounterProjection(gm, { ...noCharacters, userId: PLAYER_ID }).actors[0]
         ?.concentration
     ).toEqual({ label: null, sourceHidden: true })
     expect(projectPlayerEncounterProjection(gm, noCharacters).actors[0]?.concentration).toBeNull()
+  })
+
+  describe('creatures the viewer cannot see (ATTACK-17.3)', () => {
+    const SEEN_ACTOR_ID = '00000000-0000-4000-8000-0000000000b1'
+    const UNSEEN_ACTOR_ID = '00000000-0000-4000-8000-0000000000b2'
+    const unseenActor = {
+      ...gmActor(UNSEEN_ACTOR_ID, true),
+      label: 'Cave troll',
+      controllerUserIds: [],
+      conditions: [{ conditionTypeId: 'prone', label: 'Prone' }],
+      healthDisplay: 'EXACT' as const,
+      activeGrants: [
+        {
+          effectId: '00000000-0000-4000-8000-0000000000c1',
+          label: 'Aid',
+          sourceHidden: false,
+          remainingTicks: 5,
+          expiresAtCampaignMinute: null,
+          polarity: 'BENEFICIAL' as const
+        }
+      ]
+    }
+    const seenActor = { ...gmActor(SEEN_ACTOR_ID, true), controllerUserIds: [] }
+    const viewerWith = (unseen: string[], userId = OTHER_PLAYER_ID) => ({
+      userId,
+      characters: new Map(),
+      unseenActorIds: new Set(unseen)
+    })
+
+    it('omits a public actor the viewer cannot see, and keeps it for the GM', () => {
+      const gm = gmEncounter([seenActor, unseenActor])
+
+      expect(gm.actors.map((actor) => actor.id)).toEqual([SEEN_ACTOR_ID, UNSEEN_ACTOR_ID])
+      expect(
+        projectPlayerEncounterProjection(gm, viewerWith([UNSEEN_ACTOR_ID])).actors.map(
+          (actor) => actor.id
+        )
+      ).toEqual([SEEN_ACTOR_ID])
+    })
+
+    it('keeps an unseen actor the viewer controls', () => {
+      const gm = gmEncounter([{ ...unseenActor, controllerUserIds: [PLAYER_ID] }])
+
+      expect(
+        projectPlayerEncounterProjection(gm, viewerWith([UNSEEN_ACTOR_ID], PLAYER_ID)).actors
+      ).toMatchObject([{ id: UNSEEN_ACTOR_ID, label: 'Cave troll' }])
+    })
+
+    it("keeps an unseen Character actor its player's own", () => {
+      const character = {
+        ...unseenActor,
+        kind: 'CHARACTER' as const,
+        sourceId: CHARACTER_ID,
+        label: 'Aria'
+      }
+      const characters = new Map([
+        [CHARACTER_ID, { ownerUserId: PLAYER_ID, health: 'HIDDEN' as const }]
+      ])
+
+      expect(
+        projectPlayerEncounterProjection(gmEncounter([character]), {
+          userId: PLAYER_ID,
+          characters,
+          unseenActorIds: new Set([UNSEEN_ACTOR_ID])
+        }).actors
+      ).toMatchObject([{ id: UNSEEN_ACTOR_ID, label: 'Aria' }])
+    })
+
+    it('lists a creature revealed unnamed as an Unseen creature with nothing identifying', () => {
+      const gm = gmEncounter([{ ...unseenActor, reveal: 'UNNAMED' }])
+      const [listed] = projectPlayerEncounterProjection(gm, viewerWith([UNSEEN_ACTOR_ID])).actors
+
+      expect(listed).toMatchObject({
+        id: UNSEEN_ACTOR_ID,
+        label: 'Unseen creature',
+        sourceId: null,
+        conditions: [],
+        activeGrants: [],
+        concentration: null,
+        health: null,
+        defeated: false,
+        outOfInitiative: false,
+        initiative: 12
+      })
+      expect(JSON.stringify(listed)).not.toContain('Cave troll')
+      expect(JSON.stringify(listed)).not.toContain('Prone')
+    })
+
+    it('lists a creature revealed by name with its name', () => {
+      const gm = gmEncounter([{ ...unseenActor, reveal: 'NAMED' }])
+      const [listed] = projectPlayerEncounterProjection(gm, viewerWith([UNSEEN_ACTOR_ID])).actors
+
+      expect(listed).toMatchObject({ id: UNSEEN_ACTOR_ID, label: 'Cave troll' })
+    })
+
+    it('shows no turn for an unlisted actor, and the turn of one revealed unnamed', () => {
+      const asCurrent = (actor: typeof unseenActor & { reveal?: 'UNNAMED' | 'NAMED' }) =>
+        encounterGmProjectionDtoSchema.parse({
+          ...gmEncounter([actor]),
+          currentActorId: UNSEEN_ACTOR_ID
+        })
+
+      expect(
+        projectPlayerEncounterProjection(asCurrent(unseenActor), viewerWith([UNSEEN_ACTOR_ID]))
+          .currentActorId
+      ).toBeNull()
+      expect(
+        projectPlayerEncounterProjection(
+          asCurrent({ ...unseenActor, reveal: 'UNNAMED' }),
+          viewerWith([UNSEEN_ACTOR_ID])
+        ).currentActorId
+      ).toBe(UNSEEN_ACTOR_ID)
+    })
+
+    it('never lists a non-public actor, even one marked revealed', () => {
+      const gm = gmEncounter([{ ...unseenActor, public: false, reveal: 'NAMED' }])
+
+      expect(projectPlayerEncounterProjection(gm, viewerWith([UNSEEN_ACTOR_ID])).actors).toEqual([])
+    })
+
+    it('carries no reveal or concealment field to a player (D116)', () => {
+      const gm = gmEncounter([{ ...unseenActor, reveal: 'NAMED' }])
+      const [listed] = projectPlayerEncounterProjection(gm, viewerWith([UNSEEN_ACTOR_ID])).actors
+
+      for (const field of ['reveal', 'concealment', 'observers'])
+        expect(listed).not.toHaveProperty(field)
+    })
   })
 })

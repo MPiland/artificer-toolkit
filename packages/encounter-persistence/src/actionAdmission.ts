@@ -11,6 +11,7 @@ import { readEncounterReplayReceipt, replayEncounterCommandResult } from './repl
 import { requireEncounterActorControl } from './actorController.js'
 import { presentTimelineEntry, requireUnusedEvidenceCommandId } from './timelineEntries.js'
 import { rejectDomain } from './domainRejections.js'
+import { requireTargetSeenByMember } from './targetVisibility.js'
 import { presentStoredCommandReplay } from './resultPresentation.js'
 import type { EncounterDocument } from './store.js'
 import type { EncounterReadTransaction } from './ports.js'
@@ -184,7 +185,7 @@ export async function readNativeEncounterActionAdmission(
     if (input.target.kind === 'ACTOR') {
       const target = await readRunActor(ctx, state, input.target.actorId)
       // Players target only actors in their projection; a hidden actor reads as unavailable.
-      if (membership.role !== 'OWNER' && !target.public) rejectDomain('TARGET_UNAVAILABLE')
+      await requireTargetSeenByMember(ctx, { encounterId: state.id, target, membership })
     }
   }
   if (state.version !== input.expectedVersion) rejectDomain('VERSION_STALE')

@@ -25,6 +25,7 @@ import type {
 import type { DomainRejectionReasonDto } from '@artificer-toolkit/schema/api/domainRejections'
 import { admitsRoomMember } from './roomAuthorization.js'
 import type { FeedMember, FeedScope } from './roomCharacterSheetFeed.js'
+import type { RoomSceneTokens } from './roomEncounterReadPorts.js'
 import type { RoomEncounterStore } from './roomEncounterStore.js'
 import { roomEncounterTurnReadTransaction } from './roomEncounterTurnReadPorts.js'
 import { RoomInputsUnheldError, type RoomInputs } from './roomInputs.js'
@@ -51,8 +52,6 @@ async function readEncounter(
     read: EncounterReadDto
     store: RoomEncounterStore
     presentedSceneId: string | null
-    /** The reader's visible token ids on `sceneId`, or null when the room does not hold that Scene. */
-    visibleTokenIds: (sceneId: string) => ReadonlySet<string> | null
   }
 ): Promise<EncounterReadResultDto> {
   const { run, authority, read } = input
@@ -89,8 +88,12 @@ async function readEncounter(
       return { kind: read.kind, result: presentSceneEncounterBinding(run, binding) }
     }
     case 'ACTOR_TOKEN_BINDINGS': {
-      const visible = input.visibleTokenIds(read.input.sceneId)
-      if (!visible) throw new RoomInputsUnheldError()
+      const vision = await tx.ports.readViewerSceneTokens({
+        userId: authority.membership.userId,
+        role: authority.membership.role
+      })
+      if (vision?.sceneId !== read.input.sceneId) throw new RoomInputsUnheldError()
+      const visible = vision.visibleTokenIds
       const rows = await tx.db
         .query('encounterActorTokenBindings')
         .withIndex('by_encounterId_actorId', (q) => q.eq('encounterId', run.id))
@@ -126,8 +129,7 @@ export class RoomEncounterReads {
       admission: (socket: WebSocket) => FeedMember | null
       scope: (socket: WebSocket) => FeedScope | null
       presentedSceneId: () => string | null
-      /** The Scene tokens `socket`'s member can see on the synchronized Scene `sceneId`, else null. */
-      visibleTokenIds: (socket: WebSocket, sceneId: string) => ReadonlySet<string> | null
+      sceneTokens: (scope: FeedScope) => RoomSceneTokens
       send: (socket: WebSocket, message: LiveSessionWebSocketServerMessageDto) => void
     }
   ) {}
@@ -162,7 +164,8 @@ export class RoomEncounterReads {
         campaignId: scope.campaignId,
         epoch: scope.authorityEpoch,
         userId: member.userId,
-        observed: inputs.revisions(scope.campaignId, authorization.revisions)
+        observed: inputs.revisions(scope.campaignId, authorization.revisions),
+        sceneTokens: this.dependencies.sceneTokens(scope)
       })
       const authority = await tx.ports.requireCampaignAuthority(scope.campaignId, member.userId)
       this.dependencies.send(socket, {
@@ -172,8 +175,7 @@ export class RoomEncounterReads {
           authority,
           read,
           store,
-          presentedSceneId: this.dependencies.presentedSceneId(),
-          visibleTokenIds: (sceneId) => this.dependencies.visibleTokenIds(socket, sceneId)
+          presentedSceneId: this.dependencies.presentedSceneId()
         }),
         type: 'ENCOUNTER_READ_RESULT',
         version: run.version

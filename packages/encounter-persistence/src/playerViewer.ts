@@ -1,0 +1,88 @@
+import type { EncounterGmProjectionDto } from '@artificer-toolkit/schema/api/encounterData'
+import {
+  unseenEncounterActorIds,
+  type EncounterPlayerViewer
+} from '@artificer-toolkit/rules-runtime/encounterPlayerProjection'
+import { readEncounterCharacterPlay } from './characterPlay.js'
+import type { EncounterReadTransaction } from './ports.js'
+
+/**
+ * The actors the member cannot see (D121): the shared rule over the Encounter's Scene, each actor's
+ * token there (one indexed read per actor) and the tokens the host draws for the member, if it can tell.
+ */
+async function readUnseenActorIds(
+  ctx: EncounterReadTransaction,
+  encounterId: string,
+  actors: readonly Pick<EncounterGmProjectionDto['actors'][number], 'id' | 'kind'>[],
+  viewer: Parameters<EncounterReadTransaction['ports']['readViewerSceneTokens']>[0]
+): Promise<ReadonlySet<string>> {
+  const scene = await ctx.db
+    .query('encounterSceneBindings')
+    .withIndex('by_encounterId', (q) => q.eq('encounterId', encounterId))
+    .unique()
+  if (!scene) return new Set()
+  const bindings = (
+    await Promise.all(
+      actors.map((actor) =>
+        ctx.db
+          .query('encounterActorTokenBindings')
+          .withIndex('by_encounterId_actorId', (q) =>
+            q.eq('encounterId', encounterId).eq('actorId', actor.id)
+          )
+          .unique()
+      )
+    )
+  ).filter((binding) => binding !== null)
+  const vision = bindings.length === 0 ? null : await ctx.ports.readViewerSceneTokens(viewer)
+  return unseenEncounterActorIds({
+    actors,
+    sceneId: scene.sceneId,
+    bindings,
+    visibleTokenIds: vision?.sceneId === scene.sceneId ? vision.visibleTokenIds : null
+  })
+}
+
+/**
+ * What a player sees of the Run: each Character actor's player and "Show my health to the party"
+ * (ADR 0034 decision 5), and the creatures whose token they cannot see (ATTACK-17.3).
+ */
+export async function readEncounterPlayerViewer(
+  ctx: EncounterReadTransaction,
+  projection: {
+    id: string
+    actors: readonly Pick<EncounterGmProjectionDto['actors'][number], 'id' | 'kind' | 'sourceId'>[]
+  },
+  viewer: Parameters<EncounterReadTransaction['ports']['readViewerSceneTokens']>[0]
+): Promise<EncounterPlayerViewer> {
+  const characterIds = [
+    ...new Set(
+      projection.actors.flatMap((actor) =>
+        actor.kind === 'CHARACTER' && actor.sourceId ? [actor.sourceId] : []
+      )
+    )
+  ]
+  // Party visibility lives on the small play record, so this never loads a Character document.
+  const [plays, unseenActorIds] = await Promise.all([
+    Promise.all(characterIds.map((id) => readEncounterCharacterPlay(ctx, id))),
+    readUnseenActorIds(ctx, projection.id, projection.actors, viewer)
+  ])
+  return {
+    userId: viewer.userId,
+    unseenActorIds,
+    characters: new Map(
+      plays.flatMap((play) =>
+        play
+          ? [
+              [
+                play.characterId,
+                {
+                  ownerUserId: play.userId,
+                  health: ctx.ports.readCharacterPlay(play).partyVisibility.health
+                }
+              ] as const
+            ]
+          : []
+      )
+    )
+  }
+}
