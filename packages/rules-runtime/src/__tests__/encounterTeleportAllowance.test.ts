@@ -1,5 +1,9 @@
 import { compileEffect } from '@artificer-toolkit/shared/compilers'
 import { RANGE_KIND } from '@artificer-toolkit/shared/core'
+import {
+  SRD_BASIC_ACTION_DEFINITIONS,
+  SRD_BASIC_ACTION_IDS
+} from '@artificer-toolkit/source-data/srd/basicActions.js'
 import { dimensionDoor } from '@artificer-toolkit/source-data/srd/spells/dimension-door.js'
 import { mistyStep } from '@artificer-toolkit/source-data/srd/spells/misty-step.js'
 import { describe, expect, it } from 'vitest'
@@ -8,7 +12,10 @@ import { executeNativeActionGraphs } from '../encounterActionExecution.js'
 import { createPlatformRulesRuntime } from '../platformRulesRuntime.js'
 import { dnd5eCharacterRuleActionSystemAdapter } from '../systems/dnd5e/effectActionCompiler.js'
 import { executionTeleportAllowance } from '../systems/dnd5e/teleportAllowance.js'
-import { ACTION_EFFECT_ID, characterActionDescriptor } from '../testing/characterActionDescriptor.js'
+import {
+  ACTION_EFFECT_ID,
+  characterActionDescriptor
+} from '../testing/characterActionDescriptor.js'
 
 const TARGET_ID = '00000000-0000-4000-8000-000000000011'
 const OCCURRENCE_ID = '00000000-0000-4000-8000-000000000012'
@@ -103,26 +110,11 @@ describe('the in-Scene teleport allowance', () => {
   })
 
   it('reads no allowance from an execution that was not a teleport', async () => {
-    const heal = {
-      ...authoredEffect(mistyStep),
-      paths: [
-        {
-          id: 'path',
-          order: 1,
-          pathCode: 'ON_USE',
-          groupType: 'SINGLE',
-          selectionKind: 'FIXED',
-          resultBlock: {
-            id: 'result',
-            resultKind: 'SINGLE',
-            outcomes: [
-              { id: 'heal', effectKind: 'HEAL', valueKind: 'FIXED', scalingKind: 'NONE', amount: 1 }
-            ]
-          }
-        }
-      ]
-    }
-    expect(executionTeleportAllowance((await cast(heal)).execution)).toBeNull()
+    const dash = SRD_BASIC_ACTION_DEFINITIONS.find(({ id }) => id === SRD_BASIC_ACTION_IDS.DASH)
+    const { execution } = await cast(
+      authoredEffect({ effects: dash?.document.effects as object[] })
+    )
+    expect(executionTeleportAllowance(execution)).toBeNull()
   })
 
   it('still refuses teleports that are not a self teleport with a measured range', () => {

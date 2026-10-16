@@ -88,6 +88,9 @@ The user wants a Kickstarter campaign with realistic goals to fund finishing the
 ### Deferred edge cases (watch for in real use)
 
 - **Invisible Characters in the target list (ATTACK-17.T4b, D131).** `unseenReason` reads `INVISIBLE` only for creature actors: a Character's conditions live on its Sheet and are `[]` in the player projection, so an unseen Invisible Character is marked `HIDDEN`. Rare (needs the GM to reveal an unseen Character the player does not control); fix by projecting the Sheet's Invisible fact when it arises.
+- **Teleport undo after the turn ended (SPELLS-28.T1b).** The GM's scene undo restores a spent teleport allowance only on the current turn's record. Undoing a teleport move after its turn ended restores the position but leaves the allowance spent, so the cast's own undo is then refused. Rare (needs an undo across a turn boundary); fix by finding the record by the spending command's id regardless of turn.
+- **Stale teleport allowance at commit (SPELLS-28.T1b).** If the cast is undone between the room planning a teleport and its commit, the commit fails with a generic error instead of `TELEPORT_UNAVAILABLE`. The rollback is correct and a retry reports the refusal.
+- **Teleport sight is "explored", not line of sight (SPELLS-28.T1b).** A `VISIBLE` destination (Misty Step) must be an explored point for the mover; with fog off every point counts, and a previously explored point behind a wall still counts. Replace with a line-of-sight test when the Scene gains one.
 
 These are rare paths, roughly under 5% of sessions, whose failure is visible and recoverable (user direction, 2026-10-15). Fix one when real use shows it happening.
 
