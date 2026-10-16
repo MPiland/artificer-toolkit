@@ -8564,7 +8564,7 @@
             {
               "id": "SPELLS-27.T4",
               "text": "Structured end trigger (event, by, against) sharing the reactionTrigger filter types; damage-taken and harm-by-source events.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-27.2"],
               "wsjf": {
                 "bv": 3,
@@ -8572,7 +8572,8 @@
                 "rr": 3,
                 "size": 3,
                 "after": ["SPELLS-27.T2a"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-27.md"
             },
             {
               "id": "SPELLS-27.T5",
