@@ -1169,7 +1169,11 @@ describe('room area action that leaves a condition behind (SPELLS-19.1)', () => 
     return condition.id
   }
   const conditionsOf = (history: RoomHistory, id: string) =>
-    vitalsOf(history).find((vitals) => vitals.id === id)?.conditions
+    (
+      (vitalsOf(history).find((vitals) => vitals.id === id)?.conditions ?? []) as {
+        conditionTypeId: string
+      }[]
+    ).map(({ conditionTypeId }) => conditionTypeId)
 
   it('leaves Frightened and its lasting effect on each creature that fails, and one undo takes them from every one', async () => {
     const creature = frightenOnFailedSave(fireballWolf())
