@@ -778,6 +778,12 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - **Creature type:** a predicate kind in D119's rider predicate union, owned by ATTACK-9.T2b. It is not a condition on a damage row. It reuses the creature-type ids from SPELLS-8.T13's `allowedCreatureTypeIds`. It is added after T2b merges, and the offer phase is built in the meantime.
   - **Improved Divine Smite:** a mandatory D119(a) rider with no offer.
 
+* **D125** (2026-10-16) A teleported actor leaves the Encounter's play (SPELLS-28.T1; plan in [slice-spells-28.md](slice-spells-28.md)). Decided by the main session; amends D82.
+  - **Rule:** a TELEPORT outcome with an off-Scene destination (`LINKED_LOCATION` or `SPECIAL`: Word of Recall, the travel half of Plane Shift) departs each chosen actor. Departure is Encounter state, not a Scene mutation.
+  - **One field:** `absence` (`null | 'GM_REMOVED' | 'DEPARTED'`) on every Run actor kind replaces D82's Character-only `outOfInitiative`. The action commit sets `DEPARTED` in its transaction through a `DEPART` application (compiled from core options; nothing spell-specific). D82's Character path moved onto the same field in the same change.
+  - **Effects:** initiative skips the actor through the existing skip set; the projection hides the actor's bound token (derived in the Tabletop stage, no Scene row write). GM `UPDATE_ACTOR returnToInitiative` clears the field for either value. Undo restores it by the before-state and refuses, naming the actor, when the table already returned it.
+  - **Not D81:** D81 is Campaign departure only. A departed actor's own Run effects (Concentration, timed grants) run their course.
+  - **Not modeled:** an absent token still occupies its cell for server-side movement and targeting, as a defeated token does today. Plane Shift is a single TELEPORT outcome; its "Choose a Destination" step and the unwilling-banish half (melee spell attack plus Charisma save) are GM adjudication, and the `PLANE_SHIFT` closed-rule marker is deleted.
 ## Approved implementation decisions
 
 - **D70 (2026-09-29): packed history with indexed receipt headers. Decision maker: Codex.**
@@ -895,13 +901,14 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
     actor in the Run, so the room keeps holding it and its Sheet play stays in the room. Effects the
     Run applied run their course on Encounter time (rounds); a session paused for the night pauses
     them too. The hold is released when the Run completes, as before.
-  - **Mechanism (CURRENT):** a Character Run actor carries `outOfInitiative`. REMOVE_ACTOR on an
-    unfrozen Character of an ACTIVE Run sets it instead of deleting the actor; the initiative
-    participant rows stay (the actor/participant invariant holds) and turn advancement skips the actor
-    through the same skip set as D63 defeat (`skippedEncounterActorIds`). The GM returns it with
-    `UPDATE_ACTOR` `returnToInitiative`, into its old slot. A pending decision refuses the removal.
-    Frozen (departed) Characters and PREPARED Runs still delete the actor. Persisted shape: new required
-    `outOfInitiative` on Character run actors and their projection facts, so dev data needs a reseed.
+  - **Mechanism (CURRENT, amended by D125):** every Run actor carries `absence`
+    (`null | 'GM_REMOVED' | 'DEPARTED'`). REMOVE_ACTOR on an unfrozen Character of an ACTIVE Run sets
+    `GM_REMOVED` instead of deleting the actor; the initiative participant rows stay (the
+    actor/participant invariant holds) and turn advancement skips the actor through the same skip set as
+    D63 defeat (`skippedEncounterActorIds`). The GM returns it with `UPDATE_ACTOR` `returnToInitiative`,
+    into its old slot. A pending decision refuses the removal. Frozen (departed) Characters and PREPARED
+    Runs still delete the actor. Persisted shape: required `absence` on Run actors and their projection
+    facts (it replaced `outOfInitiative`), so dev data needs a reseed.
   - **Not D82:** account deletion removes the actor (D74) and leaving the Campaign freezes it; both
     end Campaign-owned state by D81.
   - **Why held:** a released Character could change in Convex while room-owned effects still write

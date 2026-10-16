@@ -265,6 +265,19 @@ describe('chosen-creature heal compilation from the SRD (D118)', () => {
     expect(targetOf(MASS_HEALING_WORD, 3)).toEqual({ kind: 'ACTORS', maxTargets: 6, area: null })
   })
 
+  it('takes the travelling creatures of a teleport spell as a list (SPELLS-28)', () => {
+    expect(targetOf(spellEffect('Word of Recall'), 6)).toEqual({
+      kind: 'ACTORS',
+      maxTargets: 6,
+      area: null
+    })
+    expect(targetOf(spellEffect('Plane Shift'), 7)).toEqual({
+      kind: 'ACTORS',
+      maxTargets: 8,
+      area: null
+    })
+  })
+
   it('refuses an area it cannot aim at a point, or a list that is not a heal', () => {
     expect(() =>
       compile({ shape: { id: 's', shapeKind: 'CUBE', edgeLength: feet(15) } }, MASS_CURE_WOUNDS, 5)

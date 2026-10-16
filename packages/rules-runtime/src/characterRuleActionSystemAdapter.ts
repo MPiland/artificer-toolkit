@@ -234,6 +234,16 @@ export interface CharacterStabilizeOutcomeApplication {
   targetActorId: string
 }
 
+/** A System-authorized departure: the target leaves the Run's play (D125). */
+export interface CharacterDepartOutcomeApplication {
+  sourceNodeId: string
+  sourceOperationKey: string
+  authoredPath: string | null
+  resolvedPath: string | null
+  kind: 'DEPART'
+  targetActorId: string
+}
+
 /** A System-authorized removal of one exact normalized condition. */
 /**
  * A System-authorized reduction sourced from an earlier interpreted damage
@@ -276,6 +286,7 @@ export type CharacterRuleActionApplication =
   | CharacterConditionApplyOutcomeApplication
   | CharacterConditionRemoveOutcomeApplication
   | CharacterStabilizeOutcomeApplication
+  | CharacterDepartOutcomeApplication
   | CharacterHitPointMaximumReductionApplication
   | CharacterScalarReductionApplication
 

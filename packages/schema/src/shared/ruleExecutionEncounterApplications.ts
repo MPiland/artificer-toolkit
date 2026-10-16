@@ -565,6 +565,7 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = lazySchema
             }
             continue
           }
+          if (application.kind === 'DEPART') continue
           if (application.kind === 'STABILIZE') {
             const dying = deathSaves !== null && isCharacterDying(deathSaves, current)
             if (application.applied !== dying)

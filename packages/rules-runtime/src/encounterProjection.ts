@@ -207,7 +207,7 @@ export function projectEncounterActorFacts(
         kind: actor.kind,
         sourceId: actor.sourceId,
         frozenState: actor.frozenState,
-        outOfInitiative: actor.outOfInitiative
+        absence: actor.absence
       }),
       source: null
     }
@@ -236,6 +236,7 @@ export function projectEncounterActorFacts(
       tempHitPoints: actor.tempHitPoints,
       conditions: actor.conditions,
       defeated: actor.defeated,
+      absence: actor.absence,
       sourceFactsChecksum: source && checksumCanonicalJson(source),
       featureResources: [...resources.values()].flatMap((resource) =>
         resource.maximum === null
@@ -358,7 +359,7 @@ function projectGmFacts(
         tempHitPoints: current.temporary,
         conditions: current.conditions,
         defeated: actor.kind === 'CHARACTER' ? current.dead : actor.defeated,
-        outOfInitiative: actor.kind === 'CHARACTER' && actor.outOfInitiative,
+        absence: actor.absence,
         resources: actor.resources,
         gmNotes: actor.gmNotes,
         statBlock: source?.statBlock ?? null,

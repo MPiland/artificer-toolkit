@@ -63,6 +63,7 @@ function actor(id: string, disposition: 'FRIENDLY' | 'HOSTILE' = 'FRIENDLY') {
     maxHitPoints: 10,
     tempHitPoints: 0,
     defeated: false,
+    absence: null,
     resources: {},
     gmNotes: null,
     sideId: '22222222-2222-4222-8222-222222222222',

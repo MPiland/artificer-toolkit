@@ -1050,7 +1050,7 @@ it('reads a detached Character owner only through its live maintained dependent'
   expect(
     removed.projection.actors.find((actor) => actor.id === base.characterTarget.id)
   ).toMatchObject({
-    outOfInitiative: true
+    absence: 'GM_REMOVED'
   })
   await resetActionAllowance(base)
   const replacement = await executeInRoom(base.owner.caller, {

@@ -161,12 +161,12 @@ it('atomically resolves a failed native Concentration save, retains the private 
     gmNotes: 'Private concentrating actor',
     snapshot: {},
     frozenState: null,
-    outOfInitiative: false,
+    absence: null,
     createdAt: now,
     updatedAt: now
   })
   if (actor.kind !== 'CHARACTER') throw new Error('Missing concentrating Character actor.')
-  const { frozenState: _frozenState, outOfInitiative: _outOfInitiative, ...actorBase } = actor
+  const { frozenState: _frozenState, absence: _absence, ...actorBase } = actor
   const recipientActor = encounterRunActorStateSchema.parse({
     ...actorBase,
     id: uuid(0x1117),
@@ -179,7 +179,8 @@ it('atomically resolves a failed native Concentration save, retains the private 
     maxHitPoints: 10,
     tempHitPoints: 0,
     conditions: [],
-    defeated: false
+    defeated: false,
+    absence: null
   })
   const optionalCombatSnapshot = { schemaVersion: 1, gameSystemId: system.id, definitions: [] }
   const state = encounterRunStateSchema.parse({

@@ -1001,9 +1001,16 @@ An `ARMOR_CLASS` grant on a Creature raises its AC through `withCreatureActiveGr
 where movement targets and Cleaving facts are built. A
 SOURCE-anchored grant ends when its source is removed from the Run (`planDepartedSourceGrantRemovals`,
 applied in `cleanupRemovedActorEffects` and listed in `removedEffects`). A skipped (defeated or
-out-of-initiative) actor's turn still ticks both boundaries in the turn commit that skips it, so a
+absent (`absence`) actor's turn still ticks both boundaries in the turn commit that skips it, so a
 Character removed from an active Run, which only leaves initiative (D82), has its SOURCE grants end
 through its skipped turns.
+
+**Departure (D125, SPELLS-28.T1).** A TELEPORT outcome with an off-Scene destination (`LINKED_LOCATION` or
+`SPECIAL`) compiles to a target-only `dnd5e.depart-proposal`. Its `DEPART` application sets the chosen actor's
+`absence` to `DEPARTED` (any Run actor kind) in the action commit; revert restores it by the before-state. The
+skip set and the Tabletop stage read `absence`, so initiative skips the actor and its bound token is hidden
+without a Scene write. The GM clears it with `UPDATE_ACTOR returnToInitiative`. Spatial occupancy and targeting of
+an absent token are not modeled (a defeated token behaves the same). In-Scene destinations are T1b.
 
 **Carry-over (D99 Q1 A, SPELLS-5.9).** COMPLETE ends the effects a Run sourced on its Characters
 (`endCompletedRunCharacterEffects`: Encounter-scoped grants), alongside the Creature effects ADR 0035

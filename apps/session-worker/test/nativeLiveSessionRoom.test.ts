@@ -3941,6 +3941,7 @@ async function localEncounterFixture(
       tempHitPoints: 0,
       conditions: [],
       defeated: false,
+      absence: null,
       resources: features.length
         ? { featureCharges: Object.fromEntries(features.map(({ id }) => [id, 0])) }
         : {},

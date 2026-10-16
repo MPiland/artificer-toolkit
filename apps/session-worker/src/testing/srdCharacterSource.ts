@@ -139,7 +139,9 @@ function buildRoots(
                   { spellLevel: 2, slotCount: 1 },
                   { spellLevel: 3, slotCount: 1 },
                   { spellLevel: 4, slotCount: 1 },
-                  { spellLevel: 5, slotCount: 1 }
+                  { spellLevel: 5, slotCount: 1 },
+                  { spellLevel: 6, slotCount: 1 },
+                  { spellLevel: 7, slotCount: 1 }
                 ],
                 cantripsLimit: 0
               }

@@ -110,6 +110,7 @@ export const DND5E_EFFECT_ACTION_FAMILY_KEY = 'effect-action'
 const DND5E_HEAL_PROPOSAL_OPERATION_KEY = 'dnd5e.heal-proposal'
 const DND5E_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY = 'dnd5e.temporary-hit-points-proposal'
 export const DND5E_STABILIZE_PROPOSAL_OPERATION_KEY = 'dnd5e.stabilize-proposal'
+export const DND5E_DEPART_PROPOSAL_OPERATION_KEY = 'dnd5e.depart-proposal'
 const DND5E_MODIFIER_GRANT_PROPOSAL_OPERATION_KEY = 'dnd5e.modifier-grant-proposal'
 const DND5E_MANUAL_ADJUDICATION_PROPOSAL_OPERATION_KEY = 'dnd5e.manual-adjudication-proposal'
 export const DND5E_CONCEAL_PROPOSAL_OPERATION_KEY = 'dnd5e.conceal-proposal'
@@ -231,6 +232,7 @@ type Outcome =
   | { kind: 'DAMAGE'; amount: number; damageTypeId: string }
   | { kind: 'CONDITION_APPLY'; conditionId: string }
   | { kind: 'STABILIZE' }
+  | { kind: 'DEPART' }
   | { kind: 'MODIFIER_GRANT' }
   | { kind: 'MANUAL_ADJUDICATION' }
   | { kind: 'CONCEAL' }
@@ -244,6 +246,22 @@ type Outcome =
       recoveryTriggers: readonly ('SHORT_REST' | 'LONG_REST')[]
       terminalConsequence: 'TARGET_DIED'
     }
+/** The outcomes that carry no amount: their proposal takes only the target and its state checksum. */
+const TARGET_ONLY_OUTCOME_OPERATION_KEYS = {
+  STABILIZE: DND5E_STABILIZE_PROPOSAL_OPERATION_KEY,
+  DEPART: DND5E_DEPART_PROPOSAL_OPERATION_KEY,
+  MODIFIER_GRANT: DND5E_MODIFIER_GRANT_PROPOSAL_OPERATION_KEY,
+  MANUAL_ADJUDICATION: DND5E_MANUAL_ADJUDICATION_PROPOSAL_OPERATION_KEY,
+  CONCEAL: DND5E_CONCEAL_PROPOSAL_OPERATION_KEY,
+  DETECT_CONCEALED: DND5E_DETECT_CONCEALED_PROPOSAL_OPERATION_KEY,
+  ADD_SPEED_TO_MOVEMENT: DND5E_ADD_SPEED_TO_MOVEMENT_PROPOSAL_OPERATION_KEY,
+  CANCEL_TRIGGERING_EVENT: DND5E_CANCEL_TRIGGERING_EVENT_PROPOSAL_OPERATION_KEY
+} as const
+function isTargetOnlyOutcome(
+  outcome: Outcome
+): outcome is Extract<Outcome, { kind: keyof typeof TARGET_ONLY_OUTCOME_OPERATION_KEYS }> {
+  return Object.hasOwn(TARGET_ONLY_OUTCOME_OPERATION_KEYS, outcome.kind)
+}
 type SpecializedOutcome =
   | Outcome
   | { kind: 'DICE_DAMAGE'; damageTypeId: string }
@@ -2567,8 +2585,8 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
     outcome.effectKind !== 'DETECT_CONCEALED'
   )
     unsupported('D&D check action outcome is not supported yet.')
-  if (supportsChosenCreatures && outcome.effectKind !== 'HEAL')
-    unsupported('D&D chosen-creature action outcome must be a heal.')
+  if (supportsChosenCreatures && outcome.effectKind !== 'HEAL' && outcome.effectKind !== 'TELEPORT')
+    unsupported('D&D chosen-creature action outcome must be a heal or a teleport.')
   if (
     !checkAction &&
     (outcome.effectKind === 'CONCEAL_FROM_OBSERVERS' || outcome.effectKind === 'DETECT_CONCEALED')
@@ -2606,6 +2624,14 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
     return { kind: 'CONDITION_APPLY', conditionId: outcome.conditionId }
   }
   if (outcome.effectKind === 'STABILIZE') return { kind: 'STABILIZE' }
+  // The targets leave the Scene for a place the table does not model; the commit marks each as
+  // departed (D125) and a Scene-bound destination waits for the movement service.
+  if (
+    outcome.effectKind === 'TELEPORT' &&
+    outcome.targetKind === 'CHOSEN_CREATURES' &&
+    (outcome.destinationKind === 'LINKED_LOCATION' || outcome.destinationKind === 'SPECIAL')
+  )
+    return { kind: 'DEPART' }
   if (outcome.effectKind === 'CONCEAL_FROM_OBSERVERS') return { kind: 'CONCEAL' }
   if (outcome.effectKind === 'DETECT_CONCEALED') return { kind: 'DETECT_CONCEALED' }
   // The reaction cancels the event it answered: nothing is stored on its target, the cast.
@@ -2730,6 +2756,10 @@ function targetOnlyProposalOperation(
 export const dnd5eStabilizeProposalOperation = targetOnlyProposalOperation(
   DND5E_STABILIZE_PROPOSAL_OPERATION_KEY,
   'stabilize'
+)
+export const dnd5eDepartProposalOperation = targetOnlyProposalOperation(
+  DND5E_DEPART_PROPOSAL_OPERATION_KEY,
+  'depart'
 )
 export const dnd5eModifierGrantProposalOperation = targetOnlyProposalOperation(
   DND5E_MODIFIER_GRANT_PROPOSAL_OPERATION_KEY,
@@ -3489,6 +3519,7 @@ export const dnd5eEffectActionCapability: GameSystemRuleCapabilityContract = {
     DND5E_HEAL_PROPOSAL_OPERATION_KEY,
     DND5E_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY,
     DND5E_STABILIZE_PROPOSAL_OPERATION_KEY,
+    DND5E_DEPART_PROPOSAL_OPERATION_KEY,
     DND5E_MODIFIER_GRANT_PROPOSAL_OPERATION_KEY,
     DND5E_MANUAL_ADJUDICATION_PROPOSAL_OPERATION_KEY,
     DND5E_CONCEAL_PROPOSAL_OPERATION_KEY,
@@ -3543,6 +3574,8 @@ function testProposalOperationKey(outcome: Outcome): string {
 function proposalNode(pathCode: string, outcome: Outcome) {
   if (outcome.kind === 'STABILIZE')
     unsupported('D&D stabilize outcomes cannot follow an attack or saving throw.')
+  if (outcome.kind === 'DEPART')
+    unsupported('D&D depart outcomes cannot follow an attack or saving throw.')
   if (outcome.kind === 'MODIFIER_GRANT')
     unsupported('D&D modifier grants cannot follow an attack or saving throw.')
   if (outcome.kind === 'MANUAL_ADJUDICATION')
@@ -3553,7 +3586,7 @@ function proposalNode(pathCode: string, outcome: Outcome) {
     unsupported('D&D speed-to-movement outcomes cannot follow an attack or saving throw.')
   if (outcome.kind === 'CANCEL_TRIGGERING_EVENT')
     unsupported('D&D cancel outcomes cannot follow an attack or saving throw.')
-  const id =`proposal-${pathCode.toLowerCase()}`
+  const id = `proposal-${pathCode.toLowerCase()}`
   return {
     id,
     operation: { key: testProposalOperationKey(outcome), contractVersion: 1 },
@@ -4579,21 +4612,9 @@ function fixedOutcomeGraphDefinition(input: {
         ? DND5E_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY
         : input.outcome.kind === 'DAMAGE'
           ? DND5E_DAMAGE_PROPOSAL_OPERATION_KEY
-          : input.outcome.kind === 'STABILIZE'
-            ? DND5E_STABILIZE_PROPOSAL_OPERATION_KEY
-            : input.outcome.kind === 'MODIFIER_GRANT'
-              ? DND5E_MODIFIER_GRANT_PROPOSAL_OPERATION_KEY
-              : input.outcome.kind === 'MANUAL_ADJUDICATION'
-                ? DND5E_MANUAL_ADJUDICATION_PROPOSAL_OPERATION_KEY
-                : input.outcome.kind === 'CONCEAL'
-                  ? DND5E_CONCEAL_PROPOSAL_OPERATION_KEY
-                  : input.outcome.kind === 'DETECT_CONCEALED'
-                    ? DND5E_DETECT_CONCEALED_PROPOSAL_OPERATION_KEY
-                    : input.outcome.kind === 'ADD_SPEED_TO_MOVEMENT'
-                      ? DND5E_ADD_SPEED_TO_MOVEMENT_PROPOSAL_OPERATION_KEY
-                      : input.outcome.kind === 'CANCEL_TRIGGERING_EVENT'
-                        ? DND5E_CANCEL_TRIGGERING_EVENT_PROPOSAL_OPERATION_KEY
-                        : DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY
+          : isTargetOnlyOutcome(input.outcome)
+            ? TARGET_ONLY_OUTCOME_OPERATION_KEYS[input.outcome.kind]
+            : DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY
   const inputs = {
     targetActorId: {
       kind: 'FACT' as const,
@@ -4603,13 +4624,7 @@ function fixedOutcomeGraphDefinition(input: {
       kind: 'FACT' as const,
       factKey: DND5E_TARGET_STATE_CHECKSUM_FACT_KEY
     },
-    ...(input.outcome.kind === 'STABILIZE' ||
-    input.outcome.kind === 'MODIFIER_GRANT' ||
-    input.outcome.kind === 'MANUAL_ADJUDICATION' ||
-    input.outcome.kind === 'CONCEAL' ||
-    input.outcome.kind === 'DETECT_CONCEALED' ||
-    input.outcome.kind === 'ADD_SPEED_TO_MOVEMENT' ||
-    input.outcome.kind === 'CANCEL_TRIGGERING_EVENT'
+    ...(isTargetOnlyOutcome(input.outcome)
       ? {}
       : input.outcome.kind === 'CONDITION_APPLY'
         ? {
@@ -4642,13 +4657,7 @@ function fixedOutcomeGraphDefinition(input: {
       nodeId: proposalId,
       port: 'targetActorId'
     },
-    ...(input.outcome.kind === 'STABILIZE' ||
-    input.outcome.kind === 'MODIFIER_GRANT' ||
-    input.outcome.kind === 'MANUAL_ADJUDICATION' ||
-    input.outcome.kind === 'CONCEAL' ||
-    input.outcome.kind === 'DETECT_CONCEALED' ||
-    input.outcome.kind === 'ADD_SPEED_TO_MOVEMENT' ||
-    input.outcome.kind === 'CANCEL_TRIGGERING_EVENT'
+    ...(isTargetOnlyOutcome(input.outcome)
       ? {}
       : input.outcome.kind === 'CONDITION_APPLY'
         ? {
@@ -5149,21 +5158,9 @@ function compileDnd5eEffectAction({
         ? DND5E_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY
         : outcome.kind === 'DAMAGE'
           ? DND5E_DAMAGE_PROPOSAL_OPERATION_KEY
-          : outcome.kind === 'STABILIZE'
-            ? DND5E_STABILIZE_PROPOSAL_OPERATION_KEY
-            : outcome.kind === 'MODIFIER_GRANT'
-              ? DND5E_MODIFIER_GRANT_PROPOSAL_OPERATION_KEY
-              : outcome.kind === 'MANUAL_ADJUDICATION'
-                ? DND5E_MANUAL_ADJUDICATION_PROPOSAL_OPERATION_KEY
-                : outcome.kind === 'CONCEAL'
-                  ? DND5E_CONCEAL_PROPOSAL_OPERATION_KEY
-                  : outcome.kind === 'DETECT_CONCEALED'
-                    ? DND5E_DETECT_CONCEALED_PROPOSAL_OPERATION_KEY
-                    : outcome.kind === 'ADD_SPEED_TO_MOVEMENT'
-                      ? DND5E_ADD_SPEED_TO_MOVEMENT_PROPOSAL_OPERATION_KEY
-                      : outcome.kind === 'CANCEL_TRIGGERING_EVENT'
-                        ? DND5E_CANCEL_TRIGGERING_EVENT_PROPOSAL_OPERATION_KEY
-                        : DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY
+          : isTargetOnlyOutcome(outcome)
+            ? TARGET_ONLY_OUTCOME_OPERATION_KEYS[outcome.kind]
+            : DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY
   const nodeId = recurringPlan ? recurringPlan.frozenGraphNodeId : outcome.kind.toLowerCase()
   const definition: RuleGraphDefinition = {
     schemaVersion: 1,
@@ -5180,13 +5177,7 @@ function compileDnd5eEffectAction({
             kind: 'FACT',
             factKey: DND5E_TARGET_STATE_CHECKSUM_FACT_KEY
           },
-          ...(outcome.kind === 'STABILIZE' ||
-          outcome.kind === 'MODIFIER_GRANT' ||
-          outcome.kind === 'MANUAL_ADJUDICATION' ||
-          outcome.kind === 'CONCEAL' ||
-          outcome.kind === 'DETECT_CONCEALED' ||
-          outcome.kind === 'ADD_SPEED_TO_MOVEMENT' ||
-          outcome.kind === 'CANCEL_TRIGGERING_EVENT'
+          ...(isTargetOnlyOutcome(outcome)
             ? {}
             : outcome.kind === 'CONDITION_APPLY'
               ? {
@@ -5212,13 +5203,7 @@ function compileDnd5eEffectAction({
     ],
     outputs: {
       targetActorId: { kind: 'NODE_OUTPUT', nodeId, port: 'targetActorId' },
-      ...(outcome.kind === 'STABILIZE' ||
-      outcome.kind === 'MODIFIER_GRANT' ||
-      outcome.kind === 'MANUAL_ADJUDICATION' ||
-      outcome.kind === 'CONCEAL' ||
-      outcome.kind === 'DETECT_CONCEALED' ||
-      outcome.kind === 'ADD_SPEED_TO_MOVEMENT' ||
-      outcome.kind === 'CANCEL_TRIGGERING_EVENT'
+      ...(isTargetOnlyOutcome(outcome)
         ? {}
         : outcome.kind === 'CONDITION_APPLY'
           ? { conditionId: { kind: 'NODE_OUTPUT', nodeId, port: 'conditionId' } }
@@ -5593,7 +5578,8 @@ function testApplications(
         application.kind === 'CONDITION_REMOVE' ||
         application.kind === 'HIT_POINT_MAXIMUM_REDUCTION' ||
         application.kind === 'SCALAR_REDUCTION' ||
-        application.kind === 'STABILIZE'
+        application.kind === 'STABILIZE' ||
+        application.kind === 'DEPART'
       )
         continue
       input = {
@@ -5866,14 +5852,20 @@ function interpretDirectProposal(
   }
   if (trace.outputs.authorized !== true)
     throw new Dnd5eEffectActionCompilerError('The committed D&D rule action proposal is invalid.')
-  if (trace.operation.key === DND5E_STABILIZE_PROPOSAL_OPERATION_KEY) {
+  const storedKind =
+    trace.operation.key === DND5E_STABILIZE_PROPOSAL_OPERATION_KEY
+      ? 'STABILIZE'
+      : trace.operation.key === DND5E_DEPART_PROPOSAL_OPERATION_KEY
+        ? 'DEPART'
+        : null
+  if (storedKind) {
     if (trace.outputs.targetActorId !== input.targetActorId)
       throw new Dnd5eEffectActionCompilerError(
-        'The committed D&D stabilize proposal trace is invalid.'
+        `The committed D&D ${storedKind.toLowerCase()} proposal trace is invalid.`
       )
     return [
       {
-        kind: 'STABILIZE',
+        kind: storedKind,
         targetActorId: input.targetActorId,
         sourceNodeId: trace.nodeId,
         sourceOperationKey: trace.operation.key,
@@ -6048,6 +6040,7 @@ function interpretDirect(
     DND5E_HEAL_PROPOSAL_OPERATION_KEY,
     DND5E_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY,
     DND5E_STABILIZE_PROPOSAL_OPERATION_KEY,
+    DND5E_DEPART_PROPOSAL_OPERATION_KEY,
     DND5E_MODIFIER_GRANT_PROPOSAL_OPERATION_KEY,
     DND5E_MANUAL_ADJUDICATION_PROPOSAL_OPERATION_KEY,
     DND5E_CONCEAL_PROPOSAL_OPERATION_KEY,
@@ -6233,7 +6226,8 @@ function interpretDirect(
         application.kind === 'CONDITION_REMOVE' ||
         application.kind === 'HIT_POINT_MAXIMUM_REDUCTION' ||
         application.kind === 'SCALAR_REDUCTION' ||
-        application.kind === 'STABILIZE'
+        application.kind === 'STABILIZE' ||
+        application.kind === 'DEPART'
       )
         continue
       input = {

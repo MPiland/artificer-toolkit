@@ -361,6 +361,16 @@ export async function revertLastEncounterAction(
           : []
       )
     )
+    // A departure puts the target back unless the table already returned or removed it (D125).
+    if (
+      action.applications.some(
+        (application) => application.kind === 'DEPART' && application.applied
+      )
+    ) {
+      if (target.absence !== 'DEPARTED')
+        unavailable(`${target.label} was returned to the Scene after this action; adjust manually.`)
+      updateActor(target.id, { absence: null })
+    }
     // A reaction the target used spent its slot and allowance and created its effect with this outcome.
     const reaction = action.kind === 'CHARACTER_MECHANICS_BATCH' ? action.reaction : null
     if (action.kind === 'CHARACTER_MECHANICS_BATCH') {

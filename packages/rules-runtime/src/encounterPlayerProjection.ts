@@ -120,7 +120,7 @@ export function projectPlayerEncounterProjection(
           // Only an actor's controllers end its Concentration (SPELLS-5.11).
           concentration: controlled ? hideConcentrationSource(actor.concentration) : null,
           defeated: actor.defeated,
-          outOfInitiative: actor.outOfInitiative,
+          absence: actor.absence,
           health: playerActorHealth(level, actor.currentHitPoints, actor.maxHitPoints)
         }
       }),

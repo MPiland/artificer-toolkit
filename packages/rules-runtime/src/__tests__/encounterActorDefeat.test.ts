@@ -47,6 +47,15 @@ describe('a dead Character is defeated like a Creature (D96)', () => {
     expect(skippedEncounterActorIds(actors, new Set()).has(other.id)).toBe(false)
   })
 
+  it.each(['GM_REMOVED', 'DEPARTED'] as const)(
+    'skips a %s actor without calling it defeated (D125)',
+    (absence) => {
+      const absent = { ...other, absence }
+      expect(isEncounterActorDefeated(absent, new Set())).toBe(false)
+      expect(skippedEncounterActorIds([absent], new Set()).has(absent.id)).toBe(true)
+    }
+  )
+
   it('reads staged target state over what was known', () => {
     const target = (sourceId: string, deathSaves: typeof dead | null) => ({
       actor: { kind: 'CHARACTER' as const, sourceId },

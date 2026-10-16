@@ -57,6 +57,10 @@ export const encounterActorDispositionDtoSchema = lazySchema(() =>
 )
 export type EncounterActorDispositionDto = z.infer<typeof encounterActorDispositionDtoSchema>
 
+/** Why an actor is out of the Run's play (D82, D125): taken out by the GM, or carried away by an effect. */
+export const encounterActorAbsenceDtoSchema = lazySchema(() => z.enum(['GM_REMOVED', 'DEPARTED']))
+export type EncounterActorAbsenceDto = z.infer<typeof encounterActorAbsenceDtoSchema>
+
 export const MAX_ENCOUNTER_ACTOR_CONTROLLERS = 8
 
 /**
@@ -106,11 +110,13 @@ const encounterActorBaseDtoSchema = lazySchema(() =>
      */
     defeated: z.boolean(),
     /**
-     * A Character the GM took out of initiative mid-Run (D82): it keeps its place in the Run, its
-     * Sheet play and what the Run applied to it, but initiative skips its turns until the GM returns
-     * it. Always false for a Creature or custom actor.
+     * Why the actor is out of the Run's play, or null while it plays (D82, amended by D125): a
+     * Character the GM took out of initiative (`GM_REMOVED`; it keeps its place in the Run, its Sheet
+     * play and what the Run applied to it), or an actor an effect carried away (`DEPARTED`; Word of
+     * Recall, Plane Shift). Initiative skips an absent actor's turns and its Scene token is hidden
+     * until the GM returns it.
      */
-    outOfInitiative: z.boolean()
+    absence: z.nullable(encounterActorAbsenceDtoSchema)
   })
 )
 
