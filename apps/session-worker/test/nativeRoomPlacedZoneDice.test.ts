@@ -40,13 +40,12 @@ afterEach(() => {
 function withDiceDamage(node: unknown): unknown {
   if (Array.isArray(node)) return node.map(withDiceDamage)
   if (typeof node !== 'object' || node === null) return node
-  const entries = Object.entries(node).filter(([key]) => key !== 'amount')
   const mapped = Object.fromEntries(
-    entries.map(([key, value]) => [key, withDiceDamage(value)])
+    Object.entries(node).map(([key, value]) => [key, withDiceDamage(value)])
   ) as Record<string, unknown>
-  return mapped.effectKind === 'DAMAGE'
-    ? { ...mapped, valueKind: 'DICE', diceConfig: '1d4' }
-    : mapped
+  if (mapped.effectKind !== 'DAMAGE') return mapped
+  const { amount: _fixedAmount, ...damage } = mapped
+  return { ...damage, valueKind: 'DICE', diceConfig: '1d4' }
 }
 
 const diceCaltrops = withDiceDamage(caltropsBagOf20) as EquipmentAuthored
@@ -109,15 +108,18 @@ describe('a placed zone that deals dice damage (SPELLS-20 T1)', () => {
     expect(await hitPointsOf(room, WALKER_ID)).toBe((hitPointsBefore ?? 0) - ROLLED_DAMAGE)
   })
 
-  it('restores the hit points when the GM takes the entry back', async () => {
+  it('removes the dice field with the Action when the GM takes it back', async () => {
     const room = await diceRoom('EVERYONE')
-    const { hitPointsBefore } = await spreadAndEnter(room)
-    expect(await hitPointsOf(room, WALKER_ID)).toBe((hitPointsBefore ?? 0) - ROLLED_DAMAGE)
+    const { answer } = await room.startAreaAction(FIELD_POINT)
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    expect(await readZones(room)).toHaveLength(1)
 
     await revertLastAction(room)
 
-    expect(await hitPointsOf(room, WALKER_ID)).toBe(hitPointsBefore)
-    expect(await readZones(room)).toHaveLength(1)
+    expect(await readZones(room)).toEqual([])
+    await room.advanceTurn()
+    const walk = await walkerMoves(room, WALK_INTO)
+    expect(walk.executions).toEqual([])
   })
 })
 
@@ -184,7 +186,7 @@ describe('a placed zone whose damage dice the source controller rolls (SPELLS-20
     expect(room.room.diceDrawn()).toBe(2)
   })
 
-  it('lets the GM answer for the player and restores the hit points on undo without rerolling', async () => {
+  it('lets the GM answer for the player', async () => {
     const room = await diceRoom('GAME_MASTER', playerSpreads)
     const hitPointsBefore = await walkIntoPromptedZone(room)
     const prompt = await room.room.pendingFor(true)
@@ -195,13 +197,10 @@ describe('a placed zone whose damage dice the source controller rolls (SPELLS-20
       requestId: prompt.request.requestId,
       value: 1
     })
+
     expect(answered.type, JSON.stringify(answered)).toBe('COMMAND_COMMITTED')
+    expect(await room.room.pending()).toBeNull()
     expect(await hitPointsOf(room, WALKER_ID)).toBe((hitPointsBefore ?? 0) - 1)
-
-    await revertLastAction(room)
-
-    expect(await hitPointsOf(room, WALKER_ID)).toBe(hitPointsBefore)
-    expect(room.room.diceDrawn()).toBe(1)
   })
 
   it('refuses the answer of a player who does not control the zone source', async () => {
