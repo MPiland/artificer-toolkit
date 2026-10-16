@@ -52,7 +52,6 @@ async function readContentLabel(ctx: QueryCtx, id: string) {
 
 /** The Encounter ports over Convex: each reads the owning domain in this transaction. */
 function readPorts(ctx: QueryCtx): EncounterReadPorts {
-  const systems = new Map<string, ReturnType<typeof requireSystem>>()
   return {
     requireIdentity: () => requireIdentity(ctx),
     requireActiveLiveAuthority: async (input) => {
@@ -62,15 +61,7 @@ function readPorts(ctx: QueryCtx): EncounterReadPorts {
       requireCampaignAuthority(ctx, campaignId, userId),
     requireCampaignCharacterAuthority: (campaignId, characterId, userId) =>
       requireCampaignCharacterAuthority(ctx, campaignId, characterId, userId),
-    // A transaction reads each System once: it is large, and a projection asks for it from several readers.
-    requireSystem: (systemId) => {
-      let system = systems.get(systemId)
-      if (!system) {
-        system = requireSystem(ctx, systemId)
-        systems.set(systemId, system)
-      }
-      return system
-    },
+    requireSystem: (systemId) => requireSystem(ctx, systemId),
     readContentLabel: (id) => readContentLabel(ctx, id),
     readEncounterSource: (userId, systemId, id, kind) =>
       readEncounterSource(ctx, userId, systemId, id, kind),
