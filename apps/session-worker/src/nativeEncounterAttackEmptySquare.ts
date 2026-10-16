@@ -32,7 +32,7 @@ import {
 import { ENCOUNTER_SQUARE_STRANGER_ACTOR_ID } from '@artificer-toolkit/rules-runtime/encounterAttackPerception'
 import { startEncounterBasicActionCheck } from '@artificer-toolkit/rules-runtime/encounterBasicActionCheck'
 import type { EncounterEvidenceAnswer } from '@artificer-toolkit/rules-runtime/encounterEvidenceAnswer'
-import { consumableGrants } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
+import { effectsEndedBy } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
 import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import { nextRollInt } from '@artificer-toolkit/rules-runtime/random'
 import { encounterSceneGridPolicyRegistry } from '@artificer-toolkit/rules-runtime/sceneGridPolicyRegistry'
@@ -303,7 +303,7 @@ export async function planNativeLiveEncounterEmptySquare(
     label: encounterActionSourceLabel(prepared.source),
     ruleOverrides,
     // The attack roll uses up the attacker's one-roll grants, and a miss does too.
-    consumedGrants: consumableGrants(
+    consumedGrants: effectsEndedBy(
       input.activeEffectsByActorId.get(caster.id) ?? [],
       'ON_ATTACK_ROLL'
     )

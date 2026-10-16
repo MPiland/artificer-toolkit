@@ -100,6 +100,7 @@ These are rare paths, roughly under 5% of sessions, whose failure is visible and
   - When an occupant's true roll mode differs from the mode the attacker believes, the held die can differ from the empty-square one.
   - An allied hidden occupant can show a prompt different from the empty square's.
   - The occupant path can raise occupant-specific warnings to the GM at answer time; command-time warnings now apply to occupied squares too.
+  - An effect that ends with the attack roll (Invisibility) is consumed, but the condition it alone held is not released from the attacker, as the ordinary attack does with `endedEffectConditionReleases`.
   - Basic actions cannot be aimed at a square.
   - The web square pick sends the raw click point (not snapped to the cell centre), and the drawer treats an action with an `attackBonus` as an attack.
 - **Live-backend script spawn failure:** if `yarn` can't start, `scripts/liveBackendValidation.mjs` throws an unhandled rejection instead of a step error. This is dev tooling; the run still fails, just with a noisier log.
