@@ -4,6 +4,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import type { EncounterRuleWarningCodeDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
 import { CREATURE_IDS } from '@artificer-toolkit/source-data/srd/ids.js'
+import { applyCreatureAttackRolls } from '@artificer-toolkit/source-data/srd/creatures/attack-rolls.js'
 import { giantCentipede } from '@artificer-toolkit/source-data/srd/creatures/giant-centipede.js'
 import { magicMissile } from '@artificer-toolkit/source-data/srd/spells/magic-missile.js'
 import { giantInsect } from '@artificer-toolkit/source-data/srd/spells/giant-insect.js'
@@ -66,7 +67,7 @@ const insectRoom = (
       )
     ],
     characterSpellcasting: { spells, prepared: spells.map(({ id }) => id) },
-    formCreatures: [giantCentipede],
+    formCreatures: [applyCreatureAttackRolls(giantCentipede)],
     characterAction: (action) => action.label.startsWith(spell.label),
     rolls: config.rolls ?? [],
     fallbackRoll: 5
