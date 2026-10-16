@@ -7276,7 +7276,7 @@
             {
               "id": "SPELLS-8.T3",
               "text": "Spare the Dying stabilizes through the STABILIZE executor.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-8.2"],
               "wsjf": {
                 "bv": 3,
@@ -7284,7 +7284,8 @@
                 "rr": 1,
                 "size": 2,
                 "after": ["SPELLS-8.T1"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-8-t3.md"
             },
             {
               "id": "SPELLS-8.T4",
@@ -7297,7 +7298,8 @@
                 "rr": 2,
                 "size": 5,
                 "after": ["SPELLS-8.T1"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-8-t3.md"
             },
             {
               "id": "SPELLS-8.T5",
