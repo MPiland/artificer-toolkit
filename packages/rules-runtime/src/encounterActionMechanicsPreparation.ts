@@ -247,6 +247,7 @@ export async function prepareEncounterActionMechanics<
             itemUsage: characterFacts.sheetState.itemUsage,
             characterId: source.characterId,
             expectedStreamVersion: source.characterStreamVersion,
+            classLevels: characterFacts.ruleEvaluation.facts.grantFoldFacts.base.classes,
             automationMode: state.automationMode,
             overridable: input.overridable
           })

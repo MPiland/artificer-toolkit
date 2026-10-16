@@ -137,8 +137,57 @@ const createEffectDtoSchema = <TPathSchema extends z.ZodMiniType>(pathSchema: TP
     paths: authoredNestedCollectionSchema(pathSchema).check(z.minLength(1))
   })
 
-export const effectDtoSchema = lazySchema(
-  () => createEffectDtoSchema(pathDtoSchema) as z.ZodMiniType<EffectAuthored>
+function countWeaponDamageTypeChoices(value: unknown): number {
+  if (Array.isArray(value))
+    return value.reduce((sum: number, item) => sum + countWeaponDamageTypeChoices(item), 0)
+  if (typeof value !== 'object' || value === null) return 0
+  return Object.entries(value).reduce(
+    (sum, [key, item]) =>
+      sum +
+      (key === 'usesTriggeringWeaponDamageType' && item === true
+        ? 1
+        : countWeaponDamageTypeChoices(item)),
+    0
+  )
+}
+
+/**
+ * Taking the triggering weapon's damage type means something only for an on-hit rider: damage a
+ * passive Effect's fixed `ON_HIT` path owes to the attack it rides on (D119). Anywhere else there
+ * is no weapon to take the type from.
+ */
+function checkWeaponDamageTypeChoices(
+  effect: Pick<EffectAuthored, 'invocation' | 'paths'>,
+  context: z.core.$RefinementCtx
+) {
+  const riderChoices =
+    effect.invocation.kind !== invocationKindSchema._zod.def.entries.PASSIVE
+      ? 0
+      : effect.paths.reduce(
+          (sum, path) =>
+            path.pathCode !== 'ON_HIT' || path.selectionKind !== 'FIXED'
+              ? sum
+              : sum +
+                path.resultBlock.outcomes.filter(
+                  (outcome) =>
+                    outcome.effectKind === 'DAMAGE' &&
+                    outcome.usesTriggeringWeaponDamageType === true
+                ).length,
+          0
+        )
+  if (countWeaponDamageTypeChoices(effect.paths) !== riderChoices)
+    context.addIssue({
+      code: 'custom',
+      path: ['paths'],
+      message:
+        "Only an on-hit rider (damage on a passive Effect's fixed ON_HIT path) can use the triggering weapon's damage type."
+    })
+}
+
+export const effectDtoSchema = lazySchema(() =>
+  (createEffectDtoSchema(pathDtoSchema) as z.ZodMiniType<EffectAuthored>).check(
+    z.superRefine(checkWeaponDamageTypeChoices)
+  )
 )
 
 // Literal codes, checked against the trigger enum, so module load does not build the enum schema.
@@ -166,8 +215,8 @@ function isWeaponAttack(effect: { invocation: EffectInvocationAuthored }) {
  * Feature effects name a grip only for a versatile weapon attack, which authors one effect per grip
  * so each grip is its own action (D57 ruling 1).
  */
-export const featureEffectDtoSchema = lazySchema(
-  () =>
+export const featureEffectDtoSchema = lazySchema(() =>
+  (
     z.extend(createEffectDtoSchema(pathDtoSchema), { grip: z.optional(equipmentGripSchema) }).check(
       z.superRefine((effect, context) => {
         if (effect.grip !== undefined && !isWeaponAttack(effect))
@@ -178,11 +227,12 @@ export const featureEffectDtoSchema = lazySchema(
           })
       })
     ) as z.ZodMiniType<FeatureEffectAuthored>
+  ).check(z.superRefine(checkWeaponDamageTypeChoices))
 )
 
 /** Equipment effects name a grip exactly when they are weapon attacks, never on passive effects. */
-export const equipmentEffectDtoSchema = lazySchema(
-  () =>
+export const equipmentEffectDtoSchema = lazySchema(() =>
+  (
     z.extend(createEffectDtoSchema(pathDtoSchema), { grip: z.nullable(equipmentGripSchema) }).check(
       z.superRefine((effect, context) => {
         const weaponAttack = isWeaponAttack(effect)
@@ -197,7 +247,9 @@ export const equipmentEffectDtoSchema = lazySchema(
           })
       })
     ) as z.ZodMiniType<EquipmentEffectAuthored>
+  ).check(z.superRefine(checkWeaponDamageTypeChoices))
 )
+
 export const manifestNestedBehaviorDtoSchema = lazySchema(() =>
   createEffectDtoSchema(manifestBehaviorPathDtoSchema)
 )

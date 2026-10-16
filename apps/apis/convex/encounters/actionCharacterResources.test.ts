@@ -175,6 +175,7 @@ describe('native Character action resource persistence', () => {
         inventory: [],
         itemUsage: [],
         expectedStreamVersion: current.active.play.streamVersion,
+        classLevels: current.ruleEvaluation.facts.grantFoldFacts.base.classes,
         automationMode: 'ASSISTED',
         overridable: false
       })
@@ -197,6 +198,7 @@ describe('native Character action resource persistence', () => {
           inventory: [],
           itemUsage: [],
           expectedStreamVersion: current.active.play.streamVersion,
+          classLevels: current.ruleEvaluation.facts.grantFoldFacts.base.classes,
           automationMode: 'ASSISTED',
           overridable: false
         })
@@ -223,6 +225,7 @@ describe('native Character action resource persistence', () => {
           inventory: [],
           itemUsage: [],
           expectedStreamVersion: current.active.play.streamVersion,
+          classLevels: current.ruleEvaluation.facts.grantFoldFacts.base.classes,
           automationMode: 'ASSISTED',
           overridable: false
         })
@@ -272,6 +275,7 @@ describe('native Character action resource persistence', () => {
         inventory: [],
         itemUsage: [],
         expectedStreamVersion: current.active.play.streamVersion,
+        classLevels: current.ruleEvaluation.facts.grantFoldFacts.base.classes,
         automationMode: 'ASSISTED' as const
       }
       const overridden = prepareNativeCharacterActionState({ ...exhausted, overridable: true })
@@ -296,6 +300,7 @@ describe('native Character action resource persistence', () => {
         inventory: [],
         itemUsage: [],
         expectedStreamVersion: current.active.play.streamVersion,
+        classLevels: current.ruleEvaluation.facts.grantFoldFacts.base.classes,
         automationMode: 'ASSISTED',
         overridable: true
       })

@@ -83,7 +83,16 @@ describe('a reaction authored with the DAMAGE_TAKEN trigger compiles through the
     })
   })
 
-  it('compiles a user-authored Absorb Elements to the modifier grant proposal', () => {
-    expect(operationKeys(compile(absorbElementsEffect()))).toContain(MODIFIER_GRANT_OPERATION_KEY)
+  it('compiles a user-authored Absorb Elements, cast with a slot, to the modifier grant proposal', () => {
+    const cast = characterActionDescriptor(compileEffect(absorbElementsEffect()), 2)
+    expect(
+      operationKeys(dnd5eCharacterRuleActionSystemAdapter.compile({ action: cast }))
+    ).toContain(MODIFIER_GRANT_OPERATION_KEY)
+  })
+
+  it('refuses the slot-scaled grant until a cast level has fixed its amount', () => {
+    expect(() => compile(absorbElementsEffect())).toThrow(
+      CharacterRuleActionUnsupportedCompilationError
+    )
   })
 })

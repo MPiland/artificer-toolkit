@@ -117,14 +117,20 @@ export const DAMAGE_BONUS_NODE_MAP = damageBonus.define(
 const damage = buildNodeMap<DamageUnioned>()
 
 export const DAMAGE_NODE_MAP = damage.define('damage', ({ map, nodes, cond, data, logic }) => {
-  const { text, number, selectSingle, groupArray } = nodes
+  const { text, number, selectSingle, groupArray, toggle } = nodes
   const { table } = data
-  const { and } = logic
+  const { and, not } = logic
   const local = cond.local()
 
   map
     .set('id', text(['id'], 'ID'))
     .set('effectKind', text(['effectKind'], 'Effect Kind'))
+    .set(
+      'usesTriggeringWeaponDamageType',
+      toggle(['usesTriggeringWeaponDamageType'], "Use the triggering weapon's damage type", {
+        order: 1
+      })
+    )
     .set(
       'damageTypeId',
       selectSingle(
@@ -138,7 +144,8 @@ export const DAMAGE_NODE_MAP = damage.define('damage', ({ map, nodes, cond, data
         },
         {
           order: 1,
-          requiredIf: true
+          requiredIf: not(local.field(['usesTriggeringWeaponDamageType']).eq(true)),
+          showIf: not(local.field(['usesTriggeringWeaponDamageType']).eq(true))
         }
       )
     )

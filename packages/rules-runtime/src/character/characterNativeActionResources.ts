@@ -25,6 +25,8 @@ type NativeCharacterActionMechanic = Omit<
   save: { abilityDefinitionId: string; dc: number | null } | null
   /** The level a spell is cast at, which selects the authored scaling row of its outcomes. */
   spellCastLevel?: number
+  /** The Character's level in each class, which selects class-level scaling rows of its outcomes. */
+  classLevels?: Readonly<Record<string, number>>
 }
 
 type ActionIdentity = Pick<
@@ -152,6 +154,7 @@ export function prepareNativeCharacterActionState(input: {
   itemUsage: readonly { itemInstanceId: string; used: number }[]
   characterId: string
   expectedStreamVersion: number
+  classLevels: readonly { classId: string; level: number }[]
   automationMode: AutomationModeDto
   /** Assisted RESOLVE_ACTION reports overridable warnings; every other caller refuses them. */
   overridable: boolean
@@ -197,6 +200,9 @@ export function prepareNativeCharacterActionState(input: {
   const actionMechanic: NativeCharacterActionMechanic = {
     ...decision.mechanic,
     ...(spellCastLevel === undefined ? {} : { spellCastLevel }),
+    classLevels: Object.fromEntries(
+      input.classLevels.map(({ classId, level }) => [classId, level])
+    ),
     save:
       decision.mechanic.save === null
         ? null

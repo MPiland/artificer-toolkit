@@ -292,6 +292,30 @@ sphere, cylinder or circle: no aim), built by `encounterActionChoiceTarget`. A p
 `compileEncounterPointArea` and `evaluateEncounterDirectedAreaTarget` use, to preview it and list the tokens
 the viewer sees inside; the room still decides who is caught.
 
+### A list of chosen creatures (current, SPELLS-8.T12, D118)
+
+An action whose targeting is `CHOSEN_CREATURES` with an authored `maxTargets` (Mass Healing Word, Prayer of
+Healing, Mass Cure Wounds) takes the fifth target, `{ kind: 'ACTORS', actorIds, scene }`, built from
+`encounterActionTargetKind` and offered as `{ kind: 'ACTORS', maxTargets, area }` (`area` is the `RADIUS` the
+spell names, or null). It is a reusable target kind, not a spell field: any chosen-creatures policy the compiler
+accepts uses it. The compiler accepts one only when the outcome is a heal, the cap is authored and fixed (no
+scaling, `resolutionCount` or `allowRepeatedTargets`), and the shape is absent or a sphere, cylinder or circle
+whose range is a distance. One `RESOLVE_ACTION` carries the whole list (D118: one cast, one commit, one slot
+spend, one undo; one action per creature is rejected because it breaks undo atomicity).
+
+The schema rejects a duplicated creature and the room (`nativeEncounterActorsRules.ts`) refuses an over-cap list, then rolls once: the frozen roll
+tape is shared, so every creature gets the same heal, and `executeEncounterActorsAction` builds one occurrence
+per creature. A shaped list needs `scene.point`; the room prepares the point as a point area
+(`prepareAreaScene`, so range and sight warnings are the area's) and refuses a chosen creature outside the
+sphere (`catchEncounterAreaActorIds`). An unshaped list takes no point. Warnings are gathered across the list
+and deduplicated (`evaluateEncounterActorsRuleWarnings`); a creature in a shaped list is not range-checked
+itself, because the picked point carries the range. The commit reuses the `ENCOUNTER_AREA_ACTION` root and
+children with a null `area`; `encounterChosenActorsChecksum(actorIds)` is the root's caught checksum, so the
+persistence side (`areaCommitPersistence.ts`) checks every id belongs to the Encounter and commits each as
+perceived by the caster. A list has no pending path, so `executeEncounterActorsAction` refuses an outcome
+that asks for evidence (a save or roll card). A spell that takes a list is refused when sent at one creature
+(`TARGET_UNAVAILABLE`).
+
 ### Caster-centered radius areas (current, SPELLS-22)
 
 An `AREA_CONTENTS` action whose range is Self and whose shape is a sphere, cylinder or circle takes the fourth
@@ -425,14 +449,14 @@ Order on one attack: TEST, then the reaction choice (`ON_HIT`/`ON_CRIT` only), t
 meet Legendary Resistance on the same TEST: that choice exists only for `ON_SAVE_FAIL` and a TEST has
 either an attack path or a save path, and `continueNativeActionAfterTest` rejects an audit carrying both.
 A defeated reactor (D63), a spent allowance, an Unconscious Character and a `REACTION_COUNT SET_VALUE 0`
-grant (D99) all drop the offer through the same discovery as an action. Only the first eligible reaction
-is offered, only Character reactors, and a reaction taken as an action is refused (`REACTION_TRIGGER_ONLY`) on
+grant (D99) all drop the offer through the same discovery as an action. Every eligible reaction is offered
+as a menu (a Character has one reaction a round, so one choice), only Character reactors, and a reaction taken as an action is refused (`REACTION_TRIGGER_ONLY`) on
 every action path (single-target and area) through `refuseActionOutsideItsWindow`, the one admission point it
 shares with `LEGENDARY_WINDOW_ONLY`. Resume admission accepts any option the offer carries
 (`offeredDecisionOptionIds`) and refuses one it does not as stale. Settlement answers the reaction whose use
 option was chosen (`chosenEncounterReaction`; a decline answers the innermost), and the Worker re-discovers
-that reaction by its `actionId`, so a non-first offered reaction is the one settled. The pending summary and Decision drawer still
-show only the first reaction (transport contract and UI widening belong to the SPELL_CAST chain, REACTION-4.T3). The reaction's effect id is derived from the command and occurrence ids
+that reaction by its `actionId`, so a non-first offered reaction is the one settled. The pending summary lists every offered option (`REACTION_CHOICE.options`, 1 to 8) and the Decision drawer shows a
+button for each; every pin names the same reactor. The reaction's effect id is derived from the command and occurrence ids
 (`encounterReactionEffectId`, rules-runtime), so replaying the answer mints the same id. A reaction that needs rolls or does not
 create exactly one effect on its reactor is refused as `REACTION_UNSUPPORTED`.
 Decision: D26 is extended to hold the Scene for a pending reaction decision.
@@ -447,11 +471,16 @@ a `DAMAGE_RESISTANCE` grant, which `encounterActiveGrants` turns into a defense 
 re-evaluated binding hands that defense to the OUTCOME, so the damage is resisted before it applies. The TEST
 is unchanged (`defenseBefore === defenseAfter`), so "the reaction changed the attack" compares the binding's
 defenses as well as the bound facts. The follow-up benefit is an ordinary grant in the same effect (a melee
-`DAMAGE` bonus until the start of the caster's next turn). Limits: only the attack-hit path pauses (save-based
-and area damage do not offer it), a bonus grant applies to every melee hit while it lasts rather than the next
-one only, only the first eligible reaction is offered, and the resistance covers every damage type the
-reaction names rather than only the triggering one (binding the triggering type needs a trigger fact, which the
-SPELL_CAST chain, REACTION-4.T3, introduces).
+`DAMAGE` bonus until the end of the caster's next turn, scaled by the slot level the reaction was cast with).
+
+The resistance names the triggering damage type rather than a fixed one (`damageTypeSource: 'TRIGGER'` on a
+`DAMAGE_RESISTANCE` payload). Discovery returns the authored types the hit dealt (`triggerDamageTypeIds`), and
+`prepareEncounterActionEffectPlans` binds the resistance to each, so a hit of cold resists cold only, though the
+spell names fire and cold. An ON_CRIT type counts only on a critical hit (`attackHitDamageTypeIds`). A grant
+amount that scales by slot level (`SPELL_SLOT_LEVEL`: Absorb Elements' bonus per slot level, Aid) is fixed by the cast level when the compiler builds the effect plan (`modifierGrantEntryPlan`, from the entry point's `spellCastLevel`; a plan without a cast level stays manual). The follow-up
+bonus is consumed by the first attack roll (`ON_ATTACK_ROLL`). Limits: only the attack-hit path pauses
+(save-based and area damage do not offer it), and the follow-up is spent by any attack roll of its holder, not
+only a melee hit (see future enhancements).
 
 ### 0 hit points (D63, current)
 
@@ -690,12 +719,13 @@ ritual, a limited-use cast or a pool-backed fixed-level cast. A spell is offered
 Effect (a PASSIVE Effect is ignored): one cast is one action and the compiler executes one Effect group per
 action. A cast is offered only when the System adapter compiles its entry (`COMPILED`), since choosing one that
 stays `MANUAL` could only be refused as stale. The dnd5e Effect-action compiler does not yet execute a group that
-needs several entries, so those are not offered. A heal that scales per cast level compiles as the unscaled dice of
-the chosen level: `effectAtCastLevel` replaces the `PER_LEVEL` `SPELL_CAST_LEVEL` rows with the row at or below the
-cast level before the entry point is built, so the published graph rolls that many dice (a heal's dice count is
-structural, unlike a damage upcast, which specializes an outcome graph from `dnd5e.spell-cast-level`). A heal
-that targets several chosen creatures (Mass Cure Wounds, Mass Healing Word, Prayer of Healing) is not offered: the
-`RESOLVE_ACTION` target has no list-of-actors kind. Labels read "Cure Wounds (2nd level)"; a cantrip reads its name.
+needs several entries, so those are not offered. A heal that scales per cast level selects its dice row at compile
+time: `healDiceConfiguration` reads the entry point's `spellCastLevel` and picks the row with `selectScalingRow`
+(`scalingRowSelection.ts`), the one selector the compiler and the Sheet's `selectValue` share, so the published
+graph rolls that many dice (a heal's dice count is structural, unlike a damage upcast, which specializes an
+outcome graph from the bound `dnd5e.spell-cast-level` fact). The selector takes rows keyed by a minimum value of
+a bound level fact, so a class-level key reuses it. A heal that targets several chosen creatures (Mass Cure
+Wounds, Mass Healing Word, Prayer of Healing) is offered with the list target above. Labels read "Cure Wounds (2nd level)"; a cantrip reads its name.
 
 The cast level is a fact of the action. `prepareNativeCharacterActionState` copies the policy's `castLevel`
 onto the action mechanic as `spellCastLevel`, the dnd5e adapter binds it as the declared fact
@@ -862,7 +892,19 @@ action submission, which would move the prompt to the player, is not built.
 authorizes facts, at most two ordered phases specialize from it: `TEST` (one d20 stage selecting the hit,
 miss, critical or save path) and `OUTCOME` (exact authored dice and scaling). Each phase is acyclic with
 one evidence stage; resource use, mutations and receipts wait for the terminal phase.
-`diceGraphDefinition` is the only place that doubles critical dice. The immediate follow-up save shapes the
+`diceGraphDefinition` is the only place that doubles critical dice.
+
+**On-hit riders (D119).** A passive Feature's trigger-matched `ON_HIT` `DAMAGE` outcomes merge into the
+weapon action's compiled effect when `buildCharacterActionRuleFacts` builds the action
+(`character/characterOnHitRiders`), so the rider is one more part of the same hit: resistance and critical
+doubling apply unchanged. A rider with `usesTriggeringWeaponDamageType` takes the damage type of the attack's
+first `ON_HIT` damage; an unmerged one fails closed. A rider whose dice grow with class level lists `CLASS_LEVEL`
+rows with a `classId`; `bindFacts` supplies the actor's class levels (`dnd5e.class-levels`) and
+`exactDiceConfiguration` picks the highest row at or below that level. It is the shared row selector that
+other level-keyed dice (T12) reuse. Riders are collected from class, subclass, race and feat Features only.
+`ADD_BONUS_DIE` stays non-executable.
+
+The immediate follow-up save shapes the
 adapter supports, ranged long range (`longAmount`, `encounterActionLongRangeContributor`), reach 0 swarm
 attacks, timed conditions and multi-condition hits are defined by the compiler
 (`systems/dnd5e/effectActionCompiler`) and fail closed outside those shapes. Range and reach use one

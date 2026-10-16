@@ -1,17 +1,17 @@
 # Live-backend validation on a GitHub runner: manifest, codegen push, deploy, seed and SRD audit against
 # an ephemeral self-hosted Convex backend container (the open-source image the local Docker backend
-# runs). It is a sibling of tests.yml because it needs a container, runs only on `ci/merge-*` pushes or
-# a manual dispatch, and must not slow every slice's `ci/<slice>` push. ADR 0035 forbids Convex Cloud,
+# runs). It is a sibling of tests.yml because it needs a container, and runs beside it on every `ci/**`
+# push so a slice finds its own generated-file drift before merge. ADR 0035 forbids Convex Cloud,
 # not this container, which is discarded with the runner. No pull_request trigger (so never for forks),
 # no repository secrets: the admin key is generated inside the container and only masked in memory.
-#   git push origin HEAD:ci/merge-<slice>
+#   git push origin HEAD:ci/<slice>
 #   gh workflow run live-backend.yml --ref ci/<slice> [-f steps=manifest,codegen,deploy,seed,replace,reseed,audit]
 # The run then fails if the regenerated SRD manifest or Convex `_generated` files differ from the commit.
 name: Live backend
 
 on:
   push:
-    branches: ['ci/merge-*']
+    branches: ['ci/**']
   workflow_dispatch:
     inputs:
       steps:
@@ -68,7 +68,21 @@ jobs:
           if [ -n "$STEPS" ]; then args+=(--steps="$STEPS"); fi
           node scripts/liveBackendValidation.mjs "${args[@]}"
       - name: Generated files match the commit
+        id: drift
         run: node scripts/generatedDrift.mjs apps/apis/convex/content/srdManifest.generated.ts apps/apis/convex/_generated apps/apis/convex/betterAuth/_generated
+      # The regenerated files, to commit instead of regenerating locally (gh run download will not
+      # overwrite, so download beside the tree and copy in):
+      # gh run download <run-id> -n generated-files -D local-validation/generated-<run-id>
+      # then copy local-validation/generated-<run-id>/* over apps/apis/convex
+      - uses: actions/upload-artifact@v4
+        if: failure() && steps.drift.outcome == 'failure'
+        with:
+          name: generated-files
+          path: |
+            apps/apis/convex/content/srdManifest.generated.ts
+            apps/apis/convex/_generated/
+            apps/apis/convex/betterAuth/_generated/
+          retention-days: 7
       - name: Step durations
         if: always()
         run: |

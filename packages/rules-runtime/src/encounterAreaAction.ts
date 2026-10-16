@@ -1,3 +1,4 @@
+import type { TargetingDto } from '@artificer-toolkit/schema/effects/targeting'
 import type { CompiledActionTargetPolicy } from '@artificer-toolkit/schema/projections/characterMechanics'
 import type { EncounterRuleWarningDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
 import type { EncounterActionChoiceDto } from '@artificer-toolkit/schema/api/encounterActionChoices'
@@ -54,15 +55,51 @@ export function encounterAreaTargetKind(
 }
 
 /**
+ * The most creatures a chosen-creatures targeting names, or null when it is not a plain bounded
+ * list: no authored cap, a cap or resolution count that scales, or a creature that may be named
+ * more than once is a shape this path does not resolve.
+ */
+export function chosenCreaturesMaxTargets(
+  targeting: Extract<TargetingDto, { selectionKind: 'CHOSEN_CREATURES' }>
+): number | null {
+  if (
+    targeting.maxTargetsScaling !== undefined ||
+    targeting.resolutionCount !== undefined ||
+    targeting.resolutionCountScaling !== undefined ||
+    targeting.allowRepeatedTargets === true
+  )
+    return null
+  return targeting.maxTargets ?? null
+}
+
+/**
+ * Whether a list of chosen creatures may be bounded by an area (Mass Cure Wounds): a round shape
+ * around a point picked within the range, the same point the creatures are then chosen inside.
+ */
+export function chosenCreaturesAreaSupported(rangeKind: string, shapeKind: string): boolean {
+  return (
+    ROUND_AREA_SHAPE_KINDS.has(shapeKind) &&
+    encounterAreaTargetKind(rangeKind, shapeKind) === 'POINT'
+  )
+}
+
+/**
  * Which target a compiled action takes: a directed, point or caster-centered target for an
- * AREA_CONTENTS action ({@link encounterAreaTargetKind}), one creature for a policy that names no
- * shape. Null is a policy this path cannot resolve (an unsupported area, or per-path overrides): a
- * hard refusal.
+ * AREA_CONTENTS action ({@link encounterAreaTargetKind}), a bounded list of chosen creatures
+ * ({@link chosenCreaturesMaxTargets}, inside a round area when it names one), one creature for a
+ * policy that names no shape. Null is a policy this path cannot resolve (an unsupported area, or
+ * per-path overrides): a hard refusal.
  */
 export function encounterActionTargetKind(
   policy: CompiledActionTargetPolicy
-): 'ACTOR' | 'POINT' | 'DIRECTED' | 'CASTER_CENTERED' | null {
+): 'ACTOR' | 'ACTORS' | 'POINT' | 'DIRECTED' | 'CASTER_CENTERED' | null {
   if (policy.pathOverrides.length !== 0) return null
+  if (policy.targeting?.selectionKind === 'CHOSEN_CREATURES')
+    return chosenCreaturesMaxTargets(policy.targeting) !== null &&
+      (policy.shape === null ||
+        chosenCreaturesAreaSupported(policy.range.rangeKind, policy.shape.shapeKind))
+      ? 'ACTORS'
+      : null
   if (policy.targeting?.selectionKind === 'AREA_CONTENTS')
     return policy.shape === null
       ? null
@@ -79,7 +116,11 @@ function authoredPointArea(
 ): Extract<EncounterActionChoiceDto['target'], { kind: 'POINT' }>['area'] | null {
   const { shape } = policy
   const targetKind = encounterActionTargetKind(policy)
-  if ((targetKind !== 'POINT' && targetKind !== 'CASTER_CENTERED') || shape === null) return null
+  if (
+    (targetKind !== 'POINT' && targetKind !== 'CASTER_CENTERED' && targetKind !== 'ACTORS') ||
+    shape === null
+  )
+    return null
   if (shape.shapeKind === 'CUBE') return { kind: 'CUBE', edgeLength: shape.edgeLength }
   if (
     shape.shapeKind === 'SPHERE' ||
@@ -116,12 +157,20 @@ export function encounterActionChoiceTarget(
   policy: CompiledActionTargetPolicy | undefined
 ): EncounterActionChoiceDto['target'] {
   const area = policy ? authoredPointArea(policy) : null
+  const targeting = policy?.targeting
+  const maxTargets =
+    policy &&
+    targeting?.selectionKind === 'CHOSEN_CREATURES' &&
+    encounterActionTargetKind(policy) === 'ACTORS'
+      ? chosenCreaturesMaxTargets(targeting)
+      : null
+  if (maxTargets !== null)
+    return { kind: 'ACTORS', maxTargets, area: area?.kind === 'RADIUS' ? area : null }
   if (area?.kind === 'RADIUS' && policy && encounterActionTargetKind(policy) === 'CASTER_CENTERED')
     return { kind: 'CASTER_CENTERED', area }
   if (area) return { kind: 'POINT', area }
   const directedArea = policy ? authoredDirectedArea(policy) : null
   if (directedArea) return { kind: 'DIRECTED', area: directedArea }
-  const targeting = policy?.targeting
   if (targeting?.selectionKind === 'SELF') return { kind: 'SELF' }
   const self = targeting?.selectionKind === 'SINGLE_TARGET' ? targeting.self : undefined
   return { kind: 'ACTOR', self: self ?? 'ALLOWED' }

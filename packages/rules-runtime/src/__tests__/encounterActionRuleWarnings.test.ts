@@ -4,6 +4,7 @@ import {
   type EncounterRunActorState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { reusableDefinitionCurrentDtoSchema } from '@artificer-toolkit/schema/shared/reusableDefinitions'
+import type { CompiledActionTargetPolicy } from '@artificer-toolkit/schema/projections/characterMechanics'
 import type { EncounterRuleWarningDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
 import {
   SRD_ACTION_ALLOWANCE_DEFINITION_ID,
@@ -27,6 +28,7 @@ import { consumeEncounterActionEconomy } from '../encounterActionEconomyConsumpt
 import {
   encounterActionEconomyWarnings,
   evaluateEncounterActionRuleWarnings,
+  evaluateEncounterActorsRuleWarnings,
   overridesActionEconomy
 } from '../encounterActionRuleWarnings.js'
 import { encounterRuleUsageUsed, withEncounterRuleUsageUsed } from '../encounterActorState.js'
@@ -478,6 +480,116 @@ describe('encounter action rule warning gate', () => {
     ).toEqual({
       kind: 'UNACKNOWLEDGED',
       warnings: [economyWarning, resourceWarning, dispositionWarning, rangeWarning]
+    })
+  })
+
+  describe('a list of chosen creatures', () => {
+    const undeadId = '00000000-0000-4000-8000-0000000b00aa'
+    const excludedWarning: EncounterRuleWarningDto = {
+      code: 'TARGET_CREATURE_TYPE_EXCLUDED',
+      message: 'This action has no effect on this creature type.'
+    }
+    const areaWarning: EncounterRuleWarningDto = {
+      code: 'TARGET_OUT_OF_SIGHT',
+      message: 'The area origin is out of sight.'
+    }
+    const chosenPolicy = (
+      shape: CompiledActionTargetPolicy['shape']
+    ): CompiledActionTargetPolicy => ({
+      range: { id: 'range', rangeKind: 'DISTANCE' as const, amount: 30, unit: 'FEET' as const },
+      targeting: {
+        selectionKind: 'CHOSEN_CREATURES' as const,
+        dispositionKind: 'ANY' as const,
+        maxTargets: 3,
+        excludedCreatureTypeIds: [undeadId]
+      },
+      shape,
+      pathOverrides: []
+    })
+    const entry = (
+      id: string,
+      sceneContext: typeof farApart | null,
+      targetCreatureTypeId: string | null,
+      shape: CompiledActionTargetPolicy['shape'] = null
+    ) => ({
+      target: {
+        actor: { id: ACTOR_ID, disposition: 'FRIENDLY' as const },
+        target: { id, disposition: 'FRIENDLY' as const },
+        targetPolicy: chosenPolicy(shape),
+        makesAttackRoll: false,
+        sceneContext
+      },
+      targetDefeated: false,
+      targetCreatureTypeId
+    })
+    const gate = (
+      targets: ReturnType<typeof entry>[],
+      areaWarnings: EncounterRuleWarningDto[] = []
+    ) =>
+      evaluateEncounterActorsRuleWarnings({
+        preparedWarnings: [resourceWarning],
+        targets,
+        areaWarnings,
+        actionEconomy: null,
+        activationCode: 'ACTION',
+        acknowledged: []
+      })
+
+    it('reports a warning that applies to several creatures once, and one that is theirs alone', () => {
+      expect(
+        gate([
+          entry(TARGET_ID, farApart, undeadId),
+          entry('00000000-0000-4000-8000-0000000b0004', farApart, null)
+        ])
+      ).toEqual({
+        kind: 'UNACKNOWLEDGED',
+        warnings: [resourceWarning, excludedWarning, rangeWarning]
+      })
+    })
+
+    it('holds a creature in an area to the area’s own warnings, not to the spell’s range', () => {
+      const sphere = {
+        id: 'sphere',
+        shapeKind: 'SPHERE' as const,
+        radius: { amount: 30, unit: 'FEET' as const }
+      }
+      expect(gate([entry(TARGET_ID, farApart, null, sphere)], [areaWarning])).toEqual({
+        kind: 'UNACKNOWLEDGED',
+        warnings: [areaWarning, resourceWarning]
+      })
+    })
+
+    it('accepts every warning once the table acknowledges each code', () => {
+      expect(
+        evaluateEncounterActorsRuleWarnings({
+          preparedWarnings: [resourceWarning],
+          targets: [entry(TARGET_ID, farApart, undeadId)],
+          areaWarnings: [],
+          actionEconomy: null,
+          activationCode: 'ACTION',
+          acknowledged: [
+            'RESOURCE_UNAVAILABLE',
+            'TARGET_CREATURE_TYPE_EXCLUDED',
+            'TARGET_OUT_OF_RANGE'
+          ]
+        })
+      ).toEqual({
+        kind: 'ACCEPTED',
+        overrides: [resourceWarning, excludedWarning, rangeWarning]
+      })
+    })
+
+    it('refuses the whole list when one creature breaks a rule no override covers', () => {
+      const refused = entry(TARGET_ID, farApart, null)
+      expect(
+        gate([
+          entry('00000000-0000-4000-8000-0000000b0004', farApart, null),
+          {
+            ...refused,
+            target: { ...refused.target, targetPolicy: { ...chosenPolicy(null), targeting: null } }
+          }
+        ])
+      ).toEqual({ kind: 'UNSUPPORTED_TARGET' })
     })
   })
 

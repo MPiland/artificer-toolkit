@@ -12,6 +12,7 @@ import {
   compiledEquipmentParentIds,
   getCharacterGrantFoldSelectedOptionIds
 } from './characterGrantFoldSourceFacts.js'
+import { collectOnHitRiders, mergeOnHitRiders, type OnHitRider } from './characterOnHitRiders.js'
 
 type ActionCandidate = NonNullable<CharacterRulePolicyInput['actionCandidates']>[number]
 type CharacterActionSource = ActionCandidate['source']
@@ -235,6 +236,8 @@ export function normalizeCharacterActionMechanicFacts(
     const entry = group[0]!
     const outcome = entry.outcome
     if (outcome.effectKind === 'DAMAGE') {
+      if (outcome.damageTypeId === undefined)
+        throw new Error('A rider that takes the weapon damage type must be merged into an attack.')
       const values = group.flatMap((candidate) => {
         const damage = candidate.outcome
         if (damage.effectKind !== 'DAMAGE') return []
@@ -309,10 +312,13 @@ function appendActions(params: {
   activationSourceKind: ActionCandidate['activationSourceKind']
   equipment: Omit<NonNullable<ActionCandidate['equipment']>, 'grip'> | null
   resourcePoolCandidates: readonly ResourcePoolCandidate[]
+  /** Passive Feature damage that rides on the attacks of this source. */
+  onHitRiders?: readonly OnHitRider[]
 }): void {
-  for (const effect of params.effects ?? []) {
-    if (effect.invocation.kind === 'PASSIVE') continue
-    const resourceUse = effect.invocation.resourceUse
+  for (const authoredEffect of params.effects ?? []) {
+    if (authoredEffect.invocation.kind === 'PASSIVE') continue
+    const effect = mergeOnHitRiders(authoredEffect, params.onHitRiders ?? [])
+    const resourceUse = authoredEffect.invocation.resourceUse
     const mechanicSource = params.source.mechanicSource
     const matchingPools = resourceUse
       ? mechanicSource.kind === 'EQUIPMENT_INSTANCE'
@@ -383,11 +389,13 @@ export function buildCharacterActionRuleFacts(params: {
   const { snapshot, registry, grantFoldFacts } = params
   const actionCandidates: ActionCandidate[] = []
   const entryPoints: CharacterActionRuleEntryPoint[] = []
+  const onHitRiders: OnHitRider[] = []
   for (const [index, feature] of snapshot.features.entries()) {
     const definition = registry.features[feature.featureId]
     const folded = grantFoldFacts.features[index]
     if (!folded) continue
     if (definition && folded.definition) {
+      onHitRiders.push(...collectOnHitRiders(definition.effects))
       appendActions({
         candidates: actionCandidates,
         entryPoints,
@@ -409,6 +417,7 @@ export function buildCharacterActionRuleFacts(params: {
           candidate.mechanicSource.definitionId === option.id
       )
       if (!source) continue
+      onHitRiders.push(...collectOnHitRiders(option.effects))
       appendActions({
         candidates: actionCandidates,
         entryPoints,
@@ -422,6 +431,7 @@ export function buildCharacterActionRuleFacts(params: {
       })
     }
     if (feature.source.kind === 'FEAT' && folded.featDefinition) {
+      onHitRiders.push(...collectOnHitRiders(registry.feats[feature.source.featId]?.effects))
       appendActions({
         candidates: actionCandidates,
         entryPoints,
@@ -475,7 +485,8 @@ export function buildCharacterActionRuleFacts(params: {
       mechanicsOwner: { kind: 'EQUIPMENT', id: item.compiledItem.id },
       activationSourceKind: 'ACTIVE_EQUIPMENT',
       equipment: rootEquipment,
-      resourcePoolCandidates: params.resourcePoolCandidates
+      resourcePoolCandidates: params.resourcePoolCandidates,
+      onHitRiders
     })
     for (const [featureIndex, feature] of (item.compiledItem.features ?? []).entries()) {
       const nested = folded.features[featureIndex]?.source
