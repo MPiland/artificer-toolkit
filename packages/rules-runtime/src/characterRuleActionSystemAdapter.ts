@@ -83,6 +83,11 @@ export interface CharacterRuleActionActiveEffectPlan {
     tickAnchor: 'HOLDER' | 'SOURCE'
     /** Whether the duration already counts the turn the grant is made in ("for the turn"). */
     includesCurrentTurn: boolean
+    /**
+     * A grant whose holder repeats a save each turn is rolled, counted and ended by the turn-effect
+     * kernel with the repeat save, not by the grant tick planner.
+     */
+    countedByTurnEffects?: boolean
     /** The events whose first occurrence uses the grant up, sorted and unique. */
     consumeOnFirstEvents: readonly GrantConsumeEvent[]
     /** The events that end the grant early, sorted and unique. */

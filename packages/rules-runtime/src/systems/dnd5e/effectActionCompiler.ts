@@ -2013,45 +2013,55 @@ function zonePlacementPlan(
 }
 
 /**
- * The direct-save form applies its condition only in the originating SAVE
- * outcome. Its delayed FOLLOW_UP_SAVE becomes a separate active-effect graph.
+ * The direct-save form applies its condition, or its timed modifier grants, only in the originating
+ * SAVE outcome. Its delayed FOLLOW_UP_SAVE becomes a separate active-effect graph. The turn-effect
+ * kernel counts the grant form down with its repeat save, so the grant tick planner leaves it alone.
  */
 function repeatingDirectFollowUpSavePlan(
   action: Dnd5eCompiledEffectActionSource
 ): Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'> | null {
   const { invocation, entries } = action.compiledEffect
-  const conditionEntry = entries[0]
+  const leadEntry = entries[0]
   const saveEntry = entries[1]
   if (
     invocation.kind !== 'ACTION' ||
     invocation.triggerCode !== 'SAVING_THROW' ||
     entries.length !== 2 ||
-    !conditionEntry ||
+    !leadEntry ||
     !saveEntry ||
-    !('outcome' in conditionEntry) ||
+    !('outcome' in leadEntry) ||
     !('outcome' in saveEntry) ||
-    conditionEntry.resolutionKind !== 'DIRECT' ||
+    leadEntry.resolutionKind !== 'DIRECT' ||
     saveEntry.resolutionKind !== 'DIRECT' ||
-    conditionEntry.groupKind !== 'SEQUENTIAL' ||
+    leadEntry.groupKind !== 'SEQUENTIAL' ||
     saveEntry.groupKind !== 'SEQUENTIAL' ||
-    conditionEntry.pathCode !== 'ON_SAVE_FAIL' ||
+    leadEntry.pathCode !== 'ON_SAVE_FAIL' ||
     saveEntry.pathCode !== 'ON_SAVE_FAIL' ||
-    conditionEntry.resultBlockId !== saveEntry.resultBlockId ||
-    conditionEntry.outcome.effectKind !== 'CONDITION' ||
+    leadEntry.resultBlockId !== saveEntry.resultBlockId ||
     saveEntry.outcome.effectKind !== 'FOLLOW_UP_SAVE'
   ) {
     return null
   }
-  const condition = conditionEntry.outcome
+  const lead = leadEntry.outcome
   const save = saveEntry.outcome
-  const initialRemaining = conditionEntry.duration
-    ? conditionDurationTurns(conditionEntry.duration)
-    : null
+  const initialRemaining = leadEntry.duration ? conditionDurationTurns(leadEntry.duration) : null
   const pinnedDc = pinnedSaveDc(save.savingThrow)
+  const grantContribution =
+    lead.effectKind === 'APPLY_GRANT'
+      ? modifierGrantEntryPlan({ action, entry: leadEntry, attack: false, untilEndEvent: false })
+          ?.modifierGrantContribution
+      : undefined
+  const contribution =
+    lead.effectKind === 'CONDITION' &&
+    UUID.test(lead.conditionId) &&
+    (action.conditionDefinitionIds ?? []).includes(lead.conditionId)
+      ? { conditionContribution: { conditionId: lead.conditionId } }
+      : grantContribution
+        ? { modifierGrantContribution: { ...grantContribution, countedByTurnEffects: true } }
+        : null
   if (
-    !UUID.test(condition.conditionId) ||
-    !(action.conditionDefinitionIds ?? []).includes(condition.conditionId) ||
-    !UUID.test(conditionEntry.resultBlockId) ||
+    !contribution ||
+    !UUID.test(leadEntry.resultBlockId) ||
     initialRemaining === null ||
     save.timing !== 'TARGET_TURN_END' ||
     save.attempts.kind !== 'ONCE' ||
@@ -2066,17 +2076,19 @@ function repeatingDirectFollowUpSavePlan(
   }
   return {
     authoredEffectId: action.effectId,
-    compiledEntryId: conditionEntry.resultBlockId,
+    compiledEntryId: leadEntry.resultBlockId,
     frozenGraphNodeId: 'repeat-save-test',
     capabilityContractVersion: DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
     recurrenceStage: 'END_OF_TURN',
     initialRemaining,
-    conditionContribution: { conditionId: condition.conditionId },
+    ...contribution,
     adapterFacts: {
       [DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY]: save.savingThrow.abilityDefinitionId,
       ...pinnedDc.adapterFacts,
       [DND5E_ACTIVE_EFFECT_SAVE_REQUEST_NODE_FACT_KEY]: 'repeat-save-d20',
-      [DND5E_ACTIVE_EFFECT_REPEAT_SAVE_CONDITION_FACT_KEY]: condition.conditionId,
+      ...(lead.effectKind === 'CONDITION'
+        ? { [DND5E_ACTIVE_EFFECT_REPEAT_SAVE_CONDITION_FACT_KEY]: lead.conditionId }
+        : { 'dnd5e.grant-authored-path': leadEntry.pathCode }),
       ...(save.repeatRollInfluence
         ? {
             [DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ROLL_INFLUENCE_FACT_KEY]:
@@ -2088,11 +2100,11 @@ function repeatingDirectFollowUpSavePlan(
     },
     castSaveDcFactKey: pinnedDc.castSaveDcFactKey,
     perceptionContributions: [],
-    maintenance: maintenancePlan(action, conditionEntry)
+    maintenance: maintenancePlan(action, leadEntry)
   }
 }
 
-function repeatingDirectFollowUpSaveConditionEntry(
+function repeatingDirectFollowUpSaveLeadEntry(
   action: Dnd5eCompiledEffectActionSource
 ): CompiledEffectGroup['entries'][number] | null {
   return repeatingDirectFollowUpSavePlan(action) ? (action.compiledEffect.entries[0] ?? null) : null
@@ -5249,11 +5261,15 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
     input.selectedPath === 'ON_SAVE_FAIL' &&
     repeatingDirectFollowUpSavePlan(input.action) !== null
   ) {
-    const entry = repeatingDirectFollowUpSaveConditionEntry(input.action)
-    if (!entry) unsupported('D&D direct repeated save condition is unavailable.')
-    const outcome = specializedTestOutcome(entry)
-    if (outcome.kind !== 'CONDITION_APPLY')
-      unsupported('D&D direct repeated save condition is unavailable.')
+    const entry = repeatingDirectFollowUpSaveLeadEntry(input.action)
+    if (!entry) unsupported('D&D direct repeated save outcome is unavailable.')
+    // The grant is held by the repeat-save effect; the occurrence only proposes it.
+    const outcome: SpecializedOutcome =
+      'outcome' in entry && entry.outcome.effectKind === 'APPLY_GRANT'
+        ? { kind: 'MODIFIER_GRANT' }
+        : specializedTestOutcome(entry)
+    if (outcome.kind !== 'CONDITION_APPLY' && outcome.kind !== 'MODIFIER_GRANT')
+      unsupported('D&D direct repeated save outcome is unavailable.')
     const definition = fixedOutcomeGraphDefinition({
       action: input.action,
       entry,
@@ -6007,19 +6023,19 @@ function repeatedFollowUpSaveResultPath(input: {
   graph: CompiledRuleGraph
   targetActorId: string
 }): 'ON_SAVE_FAIL' | 'ON_SAVE_SUCCESS' | null {
+  const d20NodeId = input.definition.adapterFacts[DND5E_ACTIVE_EFFECT_SAVE_REQUEST_NODE_FACT_KEY]
+  if (d20NodeId !== 'repeat-save-d20') return null
+  // A repeat save that holds a condition names it; one that holds modifier grants names none.
   const conditionId =
     input.definition.adapterFacts[DND5E_ACTIVE_EFFECT_REPEAT_SAVE_CONDITION_FACT_KEY]
-  if (typeof conditionId !== 'string') return null
-  if (!UUID.test(conditionId)) {
+  if (conditionId !== undefined && (typeof conditionId !== 'string' || !UUID.test(conditionId))) {
     throw new Dnd5eEffectActionCompilerError('D&D repeated save condition identity is invalid.')
   }
   const [d20Trace, saveTrace] = input.execution.evidence.trace
-  const d20NodeId = input.definition.adapterFacts[DND5E_ACTIVE_EFFECT_SAVE_REQUEST_NODE_FACT_KEY]
   const naturalD20 = d20Trace?.evidence?.kind === 'INTEGER_RANGE' ? d20Trace.evidence.value : null
   const modifier = saveTrace?.inputs.modifier
   const threshold = saveTrace?.inputs.threshold
   if (
-    d20NodeId !== 'repeat-save-d20' ||
     input.graph.nodes.length !== 2 ||
     input.graph.nodes[0]?.id !== d20NodeId ||
     input.graph.nodes[0]?.operation.key !== 'evidence.integer-range' ||
@@ -8031,14 +8047,17 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
     if (repeatedSavePath !== null) {
       const conditionId =
         definition.adapterFacts[DND5E_ACTIVE_EFFECT_REPEAT_SAVE_CONDITION_FACT_KEY]
+      const terminal =
+        repeatedSavePath === 'ON_SAVE_SUCCESS' ||
+        (repeatedSavePath === 'ON_SAVE_FAIL' && lifecycle.remainingTicks === 1)
+      // Grants held by the effect leave with it; only a held condition needs removing.
+      if (conditionId === undefined)
+        return { applications: [], terminal, emptyApplicationAllowed: true }
       if (typeof conditionId !== 'string' || !UUID.test(conditionId)) {
         throw new Dnd5eEffectActionCompilerError(
           'D&D repeat-save condition identity is unavailable.'
         )
       }
-      const terminal =
-        repeatedSavePath === 'ON_SAVE_SUCCESS' ||
-        (repeatedSavePath === 'ON_SAVE_FAIL' && lifecycle.remainingTicks === 1)
       return terminal
         ? {
             applications: [
