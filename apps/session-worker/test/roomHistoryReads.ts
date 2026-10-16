@@ -48,6 +48,13 @@ export function readRoomHistory(stub: RoomStub) {
 
 export type RoomHistory = Awaited<ReturnType<typeof readRoomHistory>>
 
+/** The conditions an actor holds in the room's stored Run. */
+export function readActorConditionIds(history: RoomHistory, actorId: string) {
+  const row = history.actors.find(({ id }) => id === actorId)
+  if (!row) throw new Error('Expected the actor in the stored Run.')
+  return readStoredRunActor(row).conditions
+}
+
 /** A stored receipt's rule execution, parsed by the shared contract. */
 export function parseReceiptExecution(receipt: { resultJson: string }) {
   return storedRuleExecutionResultDtoSchema.parse(JSON.parse(receipt.resultJson))

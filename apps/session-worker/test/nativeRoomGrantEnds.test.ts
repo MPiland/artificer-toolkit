@@ -2,7 +2,10 @@ import {
   characterActor,
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
-import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import {
+  SRD_CONDITION_TYPES,
+  srdSystemRecord
+} from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
@@ -10,7 +13,7 @@ import { reactionWolf } from '../src/testing/movementPlannerFixture.js'
 import { seedModifierGrant } from './grantSeed.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
 import { movementRoom } from './movementRoomFixture.js'
-import { readRoomHistory } from './roomHistoryReads.js'
+import { readActorConditionIds, readRoomHistory } from './roomHistoryReads.js'
 
 /**
  * SPELLS-5.4 ends on the movement-room paths: a reaction attack uses a grant up, and a source's
@@ -22,6 +25,7 @@ const REACTOR_ID = testUuid(0x201)
 const HOLDER_ID = testUuid(0x202)
 const CHARACTER_ID = testUuid(0x400)
 const MOVER_START = { x: 150, y: 150 }
+const INVISIBLE_ID = SRD_CONDITION_TYPES.find(({ code }) => code === 'INVISIBLE')!.id
 
 afterEach(() => {
   closeTrackedSockets()
@@ -57,11 +61,15 @@ async function moveIntoReaction(room: Room) {
   await room.respond({ kind: 'OPTION', optionId: option.optionId })
 }
 
-function reactionRoom() {
+function reactionRoom(options: { reactorInvisible?: true } = {}) {
   return movementRoom({
     actors: [
       characterActor({ id: MOVER_ID, characterId: CHARACTER_ID }),
-      srdCreatureActor({ id: REACTOR_ID, creature: reactionWolf })
+      srdCreatureActor({
+        id: REACTOR_ID,
+        creature: reactionWolf,
+        conditionIds: options.reactorInvisible ? [INVISIBLE_ID] : []
+      })
     ],
     moverActorId: MOVER_ID,
     positions: { [MOVER_ID]: MOVER_START, [REACTOR_ID]: { x: 50, y: 150 } },
@@ -72,7 +80,8 @@ function reactionRoom() {
     seed: seedModifierGrant({
       sourceActorId: MOVER_ID,
       holderActorId: REACTOR_ID,
-      lifecycle: { consumeOnFirstEvents: ['ON_ATTACK_ROLL'] }
+      lifecycle: { consumeOnFirstEvents: ['ON_ATTACK_ROLL'] },
+      ownedConditionId: options.reactorInvisible ? INVISIBLE_ID : undefined
     })
   })
 }
@@ -85,6 +94,19 @@ describe('a reaction attack uses up the attacker’s one-roll grants (SPELLS-5.4
     await moveIntoReaction(room)
 
     expect(await activeEffects(room)).toEqual([])
+  })
+
+  it('releases the condition the ended grant owned, with the grant (SPELLS-27.T2b)', async () => {
+    const room = await reactionRoom({ reactorInvisible: true })
+    expect(readActorConditionIds(await readRoomHistory(room.base.stub), REACTOR_ID)).toContain(
+      INVISIBLE_ID
+    )
+
+    await moveIntoReaction(room)
+
+    const settled = await readRoomHistory(room.base.stub)
+    expect(settled.activeEffects).toEqual([])
+    expect(readActorConditionIds(settled, REACTOR_ID)).not.toContain(INVISIBLE_ID)
   })
 })
 

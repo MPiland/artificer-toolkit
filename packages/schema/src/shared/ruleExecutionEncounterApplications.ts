@@ -964,7 +964,9 @@ export const contestedActionApplicationOutputDtoSchema = lazySchema(() =>
           destination: z.strictObject({ x: z.number(), y: z.number() })
         })
       ]),
-      actionEconomyTransition: z.nullable(encounterActionEconomyTransitionDtoSchema)
+      actionEconomyTransition: z.nullable(encounterActionEconomyTransitionDtoSchema),
+      /** The source's own conditions released by effects its attack roll ended; empty when none. */
+      sourceApplications: sourceApplicationsDtoSchema
     })
     .check(
       z.superRefine((value, context) => {
