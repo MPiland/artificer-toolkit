@@ -33,7 +33,8 @@ const emberBurst: SpellAuthored = (() => {
   const path = spell.effects![0]!.paths![0]!
   if (!('resultBlock' in path)) throw new Error('Fireball has a result block.')
   const outcome = path.resultBlock.outcomes![0]!
-  if (outcome.effectKind !== 'DAMAGE') throw new Error('Fireball deals damage.')
+  if (outcome.effectKind !== 'DAMAGE' || outcome.damageTypeId === undefined)
+    throw new Error('Fireball deals damage.')
   path.resultBlock.outcomes = [
     {
       id: outcome.id,

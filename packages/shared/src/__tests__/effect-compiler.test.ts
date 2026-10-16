@@ -151,6 +151,49 @@ describe('effect compiler', () => {
     expect(() => checksumRuleDocument(result.value)).not.toThrow()
   })
 
+  it('compiles a rider that takes the triggering weapon damage type without a damage type identity', () => {
+    const result = compileEffectResult({
+      id: 'weapon-type-rider-effect',
+      order: 1,
+      invocation: {
+        kind: 'PASSIVE',
+        triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
+        range: { id: 'weapon-type-rider-range', rangeKind: RANGE_KIND.SPECIAL },
+        targeting: { selectionKind: 'SINGLE_TARGET', dispositionKind: 'HOSTILE' }
+      },
+      paths: [
+        {
+          id: 'weapon-type-rider-path',
+          order: 1,
+          pathCode: PATH_CODE.ON_HIT,
+          groupType: PATH_GROUP_TYPE.SINGLE,
+          selectionKind: 'FIXED' as const,
+          resultBlock: {
+            id: 'weapon-type-rider-result',
+            resultKind: 'SINGLE',
+            outcomes: [
+              {
+                id: 'weapon-type-rider-outcome',
+                effectKind: EFFECT_KIND.DAMAGE,
+                usesTriggeringWeaponDamageType: true,
+                valueKind: DAMAGE_VALUE_KIND.DICE,
+                scalingKind: SCALING.NONE,
+                diceConfig: '1d6'
+              }
+            ]
+          }
+        }
+      ]
+    })
+    expect(result.ok).toBe(true)
+    if (!result.ok) throw new Error('Expected compileEffectResult to succeed')
+    expectNoUndefined(result.value)
+    const entry = result.value.entries[0]
+    if (!entry || !('outcome' in entry)) throw new Error('Expected a compiled damage entry.')
+    expect(entry.outcome).toMatchObject({ usesTriggeringWeaponDamageType: true })
+    expect(entry.outcome).not.toHaveProperty('damageTypeId')
+  })
+
   it('preserves authored action resource use on compiled effect groups', () => {
     const result = compileEffectResult({
       id: 'resource-use-effect',

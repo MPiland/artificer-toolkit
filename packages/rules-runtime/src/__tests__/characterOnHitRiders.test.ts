@@ -1,0 +1,250 @@
+import {
+  SRD_ABILITIES,
+  SRD_CONDITION_TYPES,
+  SRD_SYSTEM_ID
+} from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import { describe, expect, it } from 'vitest'
+
+import { prepareNativeCharacterActionState } from '../character/characterNativeActionResources.js'
+import { discoverCharacterActionCapabilities } from '../characterActionCapabilityDiscoveryRegistry.js'
+import {
+  buildCompiledActionCompilerSource,
+  compileCharacterActionEntryPoints
+} from '../encounterActionEntryPointCompiler.js'
+import { executeNativeActionGraphs } from '../encounterActionExecution.js'
+import { createPlatformRulesRuntime } from '../platformRulesRuntime.js'
+import { dnd5eCharacterRuleActionSystemAdapter } from '../systems/dnd5e/effectActionCompiler.js'
+import { testUuid } from '../testing/dnd5eSrdEncounter.js'
+import {
+  UNCONDITIONAL_SNEAK_ATTACK_ID,
+  unconditionalSneakAttack
+} from '../testing/unconditionalSneakAttack.js'
+import {
+  SRD,
+  evaluateSrdCharacter,
+  itemAction,
+  srdByLabel,
+  srdFeature
+} from './dnd5eSrdCharacter.js'
+import { outcomeDice, srdDamageTypeId } from './encounterCreatureAction.js'
+
+const TARGET_ID = testUuid(0xc2)
+/** Ordinary and natural-20 d20 faces (0-based), against the target's Armor Class 11. */
+const HIT = 14
+const NATURAL_20 = 19
+const ROGUE = srdByLabel(SRD.classes, 'Rogue')
+
+/**
+ * A Rogue of the given level (optionally multiclassed with Fighter levels) wielding an equipped
+ * Longsword, with or without the homebrew rider.
+ */
+function rogue(input: { level: number; fighterLevel?: number; withRider: boolean }) {
+  return evaluateSrdCharacter({
+    abilities: { STRENGTH: 16 },
+    classes: [
+      ...(input.fighterLevel ? [{ label: 'Fighter', level: input.fighterLevel }] : []),
+      { label: 'Rogue', level: input.level }
+    ],
+    items: [{ label: 'Longsword', equipped: true }],
+    extraFeatures: input.withRider ? [unconditionalSneakAttack(ROGUE.id)] : [],
+    features: input.withRider
+      ? [
+          {
+            acquisitionId: 'acquired:unconditional-sneak-attack',
+            featureId: UNCONDITIONAL_SNEAK_ATTACK_ID,
+            source: { kind: 'CLASS', classId: ROGUE.id, classLevel: 1 },
+            timing: { kind: 'CLASS_LEVEL', classId: ROGUE.id, classLevel: 1 }
+          }
+        ]
+      : []
+  })
+}
+
+/** The Rogue's one-handed Longsword hit against an unarmored target, every roll a 0-based face. */
+async function longswordHit(input: {
+  level: number
+  fighterLevel?: number
+  rolls: number[]
+  resistantTo?: string
+}) {
+  const character = rogue({
+    level: input.level,
+    ...(input.fighterLevel === undefined ? {} : { fighterLevel: input.fighterLevel }),
+    withRider: true
+  })
+  const { candidate } = itemAction(character, 'Longsword', {
+    attackKind: 'MELEE',
+    grip: 'ONE_HANDED'
+  })
+  const descriptors = discoverCharacterActionCapabilities({
+    gameSystemId: SRD_SYSTEM_ID,
+    candidates: character.facts.actionCandidates,
+    conditionDefinitionIds: SRD_CONDITION_TYPES.map((condition) => condition.id).sort(),
+    abilityDefinitions: SRD_ABILITIES.map(({ id, code }) => ({ id, code })),
+    entryPoints: character.entryPoints
+  })
+  const index = character.facts.actionCandidates.indexOf(candidate)
+  const action = descriptors[index]
+  const entry = compileCharacterActionEntryPoints({
+    gameSystemId: SRD_SYSTEM_ID,
+    candidates: character.facts.actionCandidates,
+    descriptors
+  })[index]
+  if (!action || entry?.kind !== 'CHARACTER_ACTION' || entry.schemaVersion !== 4)
+    throw new Error('The Longsword hit must compile to a v4 Character action.')
+  if (entry.compilation.kind !== 'COMPILED') throw new Error('The Longsword hit must compile.')
+  const plan = dnd5eCharacterRuleActionSystemAdapter.compileExecutionPlan?.({
+    action,
+    compilerSource: buildCompiledActionCompilerSource(action)
+  })
+  if (!plan) throw new Error('The Longsword hit has no execution plan.')
+  const { actionMechanic } = prepareNativeCharacterActionState({
+    entry: { ...entry, compilation: entry.compilation },
+    candidate,
+    policyOutput: character.output,
+    resourceUsage: [],
+    inventory: [],
+    itemUsage: [],
+    characterId: 'srd-character',
+    expectedStreamVersion: 0,
+    classLevels: character.facts.grantFoldFacts.base.classes,
+    automationMode: 'ASSISTED',
+    overridable: false
+  })
+  const rolls = [...input.rolls]
+  const execution = await executeNativeActionGraphs({
+    runtime: createPlatformRulesRuntime({
+      continuationIntegrityKey: new Uint8Array(32).fill(1),
+      definitions: {
+        async requireCurrent() {
+          throw new Error('Definitions are not used by sealed graphs.')
+        }
+      }
+    }),
+    adapter: dnd5eCharacterRuleActionSystemAdapter,
+    plan,
+    occurrenceId: testUuid(0xc3),
+    binding: {
+      actionMechanic,
+      sourceDerivedFacts: {},
+      targetActorId: TARGET_ID,
+      targetDerivedFacts: { statBlock: { armorClass: 11 } },
+      targetConditionIds: [],
+      currentHitPoints: 59,
+      temporaryHitPoints: 0,
+      maximumHitPoints: 59,
+      targetScalarValues: {},
+      defenses: input.resistantTo ? [{ kind: 'RESISTANCE', damageTypeId: input.resistantTo }] : []
+    },
+    afterTest: async () => undefined,
+    random: (maxExclusive) => {
+      const value = rolls.shift()
+      if (value === undefined || value >= maxExclusive)
+        throw new Error(`Unexpected random call (max ${maxExclusive}).`)
+      return value
+    }
+  })
+  expect(rolls).toEqual([])
+  return execution
+}
+
+function damage(execution: Awaited<ReturnType<typeof longswordHit>>) {
+  return execution.applications.flatMap((application) =>
+    application.kind === 'DAMAGE'
+      ? [
+          {
+            requested: application.requestedAmount,
+            resolved: application.resolvedAmount,
+            damageTypeId: application.damageTypeId
+          }
+        ]
+      : []
+  )
+}
+
+const SLASHING = srdDamageTypeId('SLASHING')
+
+describe('a passive Feature’s ON_HIT damage rides on the weapon hit (D119)', () => {
+  it('adds the rider’s class-level dice to the weapon’s own damage, of the weapon’s damage type', async () => {
+    // Rogue 5, Longsword 1d8 + 3, rider 3d6: the weapon rolls first, then the rider's three dice.
+    const hit = await longswordHit({ level: 5, rolls: [HIT, 3, 0, 1, 2] })
+    expect(outcomeDice(hit).hit).toEqual(['d8', 'd6', 'd6', 'd6'])
+    expect(damage(hit)).toEqual([
+      { requested: 4 + 3, resolved: 4 + 3, damageTypeId: SLASHING },
+      { requested: 1 + 2 + 3, resolved: 1 + 2 + 3, damageTypeId: SLASHING }
+    ])
+  })
+
+  it.each([
+    [1, ['d6'], [0], [1]],
+    [3, ['d6', 'd6'], [0, 1], [1 + 2]],
+    [4, ['d6', 'd6'], [0, 1], [1 + 2]],
+    [5, ['d6', 'd6', 'd6'], [0, 1, 2], [1 + 2 + 3]]
+  ])(
+    'selects the dice row of the Rogue’s class level (level %i)',
+    async (level, dice, faces, riderTotal) => {
+      const hit = await longswordHit({ level, rolls: [HIT, 3, ...faces] })
+      expect(outcomeDice(hit).hit).toEqual(['d8', ...dice])
+      expect(damage(hit).map((part) => part.requested)).toEqual([4 + 3, ...riderTotal])
+    }
+  )
+
+  it('selects the dice row from the Rogue levels alone, not the Character’s total level', async () => {
+    // Fighter 5 / Rogue 1 is a 6th-level Character with a 1st-level Rogue rider: 1d6, not 3d6.
+    const hit = await longswordHit({ level: 1, fighterLevel: 5, rolls: [HIT, 3, 0] })
+    expect(outcomeDice(hit).hit).toEqual(['d8', 'd6'])
+    expect(damage(hit).map((part) => part.requested)).toEqual([4 + 3, 1])
+  })
+
+  it('doubles the rider’s dice on a critical hit, but not the weapon’s modifier', async () => {
+    // Rogue 5: the critical rolls 2d8 + 3 and 6d6.
+    const critical = await longswordHit({
+      level: 5,
+      rolls: [NATURAL_20, 3, 6, 0, 1, 2, 3, 4, 5]
+    })
+    expect(critical.d20).toMatchObject({ resultPath: 'ON_CRIT' })
+    expect(outcomeDice(critical).hit).toEqual(['d8', 'd8', 'd6', 'd6', 'd6', 'd6', 'd6', 'd6'])
+    expect(damage(critical).map((part) => part.requested)).toEqual([
+      4 + 7 + 3,
+      1 + 2 + 3 + 4 + 5 + 6
+    ])
+  })
+
+  it('resists the rider like the weapon’s own damage', async () => {
+    const hit = await longswordHit({
+      level: 5,
+      rolls: [HIT, 3, 0, 1, 2],
+      resistantTo: SLASHING
+    })
+    expect(damage(hit)).toEqual([
+      { requested: 7, resolved: 3, damageTypeId: SLASHING },
+      { requested: 6, resolved: 3, damageTypeId: SLASHING }
+    ])
+  })
+
+  it('leaves the weapon’s damage alone when no Feature carries a rider', () => {
+    const plain = rogue({ level: 5, withRider: false })
+    const { decision } = itemAction(plain, 'Longsword', { attackKind: 'MELEE', grip: 'ONE_HANDED' })
+    expect(decision.mechanic.outcomes.filter((outcome) => outcome.kind === 'DAMAGE')).toHaveLength(
+      1
+    )
+  })
+
+  it('keeps the SRD Rogue’s shipped Sneak Attack inert until its conditions exist', () => {
+    const sneaky = evaluateSrdCharacter({
+      abilities: { STRENGTH: 16 },
+      classes: [{ label: 'Rogue', level: 5 }],
+      items: [{ label: 'Longsword', equipped: true }],
+      features: [
+        srdFeature({ owner: 'CLASS', classLabel: 'Rogue', featureLabel: 'Sneak Attack', level: 1 })
+      ]
+    })
+    const { decision } = itemAction(sneaky, 'Longsword', {
+      attackKind: 'MELEE',
+      grip: 'ONE_HANDED'
+    })
+    expect(decision.mechanic.outcomes.filter((outcome) => outcome.kind === 'DAMAGE')).toHaveLength(
+      1
+    )
+  })
+})

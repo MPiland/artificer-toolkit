@@ -57,7 +57,7 @@ export const automaticChargedCreature = {
                     resultBlock: {
                       ...path.resultBlock,
                       outcomes: path.resultBlock.outcomes.map((outcome) =>
-                        outcome.effectKind === 'DAMAGE'
+                        outcome.effectKind === 'DAMAGE' && outcome.damageTypeId !== undefined
                           ? {
                               id: outcome.id,
                               effectKind: 'DAMAGE' as const,
@@ -94,7 +94,7 @@ function fixedDamagePaths(pathCode: 'ON_USE' | 'ON_HIT' | 'ON_MISS' | 'ON_CRIT')
               ...path.resultBlock,
               id: crypto.randomUUID(),
               outcomes: path.resultBlock.outcomes.flatMap((outcome) =>
-                outcome.effectKind === 'DAMAGE'
+                outcome.effectKind === 'DAMAGE' && outcome.damageTypeId !== undefined
                   ? [
                       {
                         id: crypto.randomUUID(),
