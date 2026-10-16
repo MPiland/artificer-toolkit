@@ -1,3 +1,4 @@
+import type { FacetAuthored } from '@artificer-toolkit/shared/authored'
 import {
   SRD_ABILITIES,
   SRD_CONDITION_TYPES,
@@ -17,6 +18,8 @@ import { dnd5eCharacterRuleActionSystemAdapter } from '../systems/dnd5e/effectAc
 import { testUuid } from '../testing/dnd5eSrdEncounter.js'
 import {
   UNCONDITIONAL_SNEAK_ATTACK_ID,
+  gatedSneakAttack,
+  riderGate,
   unconditionalSneakAttack
 } from '../testing/unconditionalSneakAttack.js'
 import {
@@ -36,17 +39,29 @@ const ROGUE = srdByLabel(SRD.classes, 'Rogue')
 
 /**
  * A Rogue of the given level (optionally multiclassed with Fighter levels) wielding an equipped
- * Longsword, with or without the homebrew rider.
+ * weapon (a Longsword unless named), with or without the homebrew rider, which a gate may narrow.
  */
-function rogue(input: { level: number; fighterLevel?: number; withRider: boolean }) {
+function rogue(input: {
+  level: number
+  fighterLevel?: number
+  withRider: boolean
+  gate?: FacetAuthored
+  weapon?: 'Longsword' | 'Rapier'
+}) {
   return evaluateSrdCharacter({
     abilities: { STRENGTH: 16 },
     classes: [
       ...(input.fighterLevel ? [{ label: 'Fighter', level: input.fighterLevel }] : []),
       { label: 'Rogue', level: input.level }
     ],
-    items: [{ label: 'Longsword', equipped: true }],
-    extraFeatures: input.withRider ? [unconditionalSneakAttack(ROGUE.id)] : [],
+    items: [{ label: input.weapon ?? 'Longsword', equipped: true }],
+    extraFeatures: input.withRider
+      ? [
+          input.gate
+            ? gatedSneakAttack(ROGUE.id, input.gate)
+            : unconditionalSneakAttack(ROGUE.id)
+        ]
+      : [],
     features: input.withRider
       ? [
           {
@@ -60,19 +75,27 @@ function rogue(input: { level: number; fighterLevel?: number; withRider: boolean
   })
 }
 
-/** The Rogue's one-handed Longsword hit against an unarmored target, every roll a 0-based face. */
+/**
+ * The Rogue's one-handed weapon hit against an unarmored target, every roll a 0-based face. An
+ * `influence` is a source-side d20 contributor on melee attacks (advantage or disadvantage).
+ */
 async function longswordHit(input: {
   level: number
   fighterLevel?: number
   rolls: number[]
   resistantTo?: string
+  gate?: FacetAuthored
+  weapon?: 'Longsword' | 'Rapier'
+  influence?: 'ADVANTAGE' | 'DISADVANTAGE'
 }) {
   const character = rogue({
     level: input.level,
     ...(input.fighterLevel === undefined ? {} : { fighterLevel: input.fighterLevel }),
+    ...(input.gate === undefined ? {} : { gate: input.gate }),
+    ...(input.weapon === undefined ? {} : { weapon: input.weapon }),
     withRider: true
   })
-  const { candidate } = itemAction(character, 'Longsword', {
+  const { candidate } = itemAction(character, input.weapon ?? 'Longsword', {
     attackKind: 'MELEE',
     grip: 'ONE_HANDED'
   })
@@ -126,7 +149,22 @@ async function longswordHit(input: {
     occurrenceId: testUuid(0xc3),
     binding: {
       actionMechanic,
-      sourceDerivedFacts: {},
+      sourceDerivedFacts: input.influence
+        ? {
+            rollContributorEvidence: {
+              attacks: {
+                MELEE: [
+                  {
+                    sourceId: testUuid(0xc4),
+                    grantId: testUuid(0xc5),
+                    domainKey: 'attacks.melee',
+                    influence: input.influence
+                  }
+                ]
+              }
+            }
+          }
+        : {},
       targetActorId: TARGET_ID,
       targetDerivedFacts: { statBlock: { armorClass: 11 } },
       targetConditionIds: [],
@@ -246,5 +284,102 @@ describe('a passive Feature’s ON_HIT damage rides on the weapon hit (D119)', (
     expect(decision.mechanic.outcomes.filter((outcome) => outcome.kind === 'DAMAGE')).toHaveLength(
       1
     )
+  })
+})
+
+describe('a rider gated on the attack roll mode (D119)', () => {
+  const advantageOnly = riderGate([{ predicateCode: 'ATTACK_ROLL_MODE', rollMode: 'ADVANTAGE' }])
+  const notDisadvantaged = riderGate([
+    { predicateCode: 'ATTACK_ROLL_MODE', rollMode: 'NOT_DISADVANTAGE' }
+  ])
+
+  it('applies a rider gated on advantage only to an attack with advantage', async () => {
+    const advantaged = await longswordHit({
+      level: 1,
+      gate: advantageOnly,
+      influence: 'ADVANTAGE',
+      rolls: [HIT, 0, 3, 0]
+    })
+    expect(outcomeDice(advantaged).hit).toEqual(['d8', 'd6'])
+    const level = await longswordHit({ level: 1, gate: advantageOnly, rolls: [HIT, 3] })
+    expect(outcomeDice(level).hit).toEqual(['d8'])
+  })
+
+  it('does not apply an advantage-gated rider to a disadvantaged attack', async () => {
+    const disadvantaged = await longswordHit({
+      level: 1,
+      gate: advantageOnly,
+      influence: 'DISADVANTAGE',
+      rolls: [HIT, HIT, 3]
+    })
+    expect(outcomeDice(disadvantaged).hit).toEqual(['d8'])
+  })
+
+  it('applies a rider gated on no disadvantage to a normal or advantaged attack only', async () => {
+    const normal = await longswordHit({ level: 1, gate: notDisadvantaged, rolls: [HIT, 3, 0] })
+    expect(outcomeDice(normal).hit).toEqual(['d8', 'd6'])
+    const advantaged = await longswordHit({
+      level: 1,
+      gate: notDisadvantaged,
+      influence: 'ADVANTAGE',
+      rolls: [HIT, 0, 3, 0]
+    })
+    expect(outcomeDice(advantaged).hit).toEqual(['d8', 'd6'])
+    const disadvantaged = await longswordHit({
+      level: 1,
+      gate: notDisadvantaged,
+      influence: 'DISADVANTAGE',
+      rolls: [HIT, HIT, 3]
+    })
+    expect(outcomeDice(disadvantaged).hit).toEqual(['d8'])
+  })
+
+  it('composes any-of through the gate groups and weapon checks through its conditions', async () => {
+    // Advantage, or a finesse weapon: either group alone owes the rider.
+    const anyOf = riderGate(
+      [{ predicateCode: 'ATTACK_ROLL_MODE', rollMode: 'ADVANTAGE' }],
+      [{ predicateCode: 'EQUIPMENT_PROPERTY', properties: ['FINESSE'] }]
+    )
+    const longsword = await longswordHit({ level: 1, gate: anyOf, rolls: [HIT, 3] })
+    expect(outcomeDice(longsword).hit).toEqual(['d8'])
+    const advantaged = await longswordHit({
+      level: 1,
+      gate: anyOf,
+      influence: 'ADVANTAGE',
+      rolls: [HIT, 0, 3, 0]
+    })
+    expect(outcomeDice(advantaged).hit).toEqual(['d8', 'd6'])
+    const rapier = await longswordHit({
+      level: 1,
+      gate: anyOf,
+      weapon: 'Rapier',
+      rolls: [HIT, 3, 0]
+    })
+    expect(outcomeDice(rapier).hit).toEqual(['d8', 'd6'])
+  })
+
+  it('requires every check of one group', async () => {
+    // A finesse weapon and advantage: the Rapier without advantage owes nothing.
+    const both = riderGate([
+      { predicateCode: 'EQUIPMENT_PROPERTY', properties: ['FINESSE'] },
+      { predicateCode: 'ATTACK_ROLL_MODE', rollMode: 'ADVANTAGE' }
+    ])
+    const plain = await longswordHit({ level: 1, gate: both, weapon: 'Rapier', rolls: [HIT, 3] })
+    expect(outcomeDice(plain).hit).toEqual(['d8'])
+    const advantaged = await longswordHit({
+      level: 1,
+      gate: both,
+      weapon: 'Rapier',
+      influence: 'ADVANTAGE',
+      rolls: [HIT, 0, 3, 0]
+    })
+    expect(outcomeDice(advantaged).hit).toEqual(['d8', 'd6'])
+    const longsword = await longswordHit({
+      level: 1,
+      gate: both,
+      influence: 'ADVANTAGE',
+      rolls: [HIT, 0, 3]
+    })
+    expect(outcomeDice(longsword).hit).toEqual(['d8'])
   })
 })

@@ -23,6 +23,21 @@ export const OWNER_KIND = {
 
 export type OwnerKind = keyof typeof OWNER_KIND
 
+export type AttackRollModeRequirement = 'ADVANTAGE' | 'NOT_DISADVANTAGE'
+
+export const ATTACK_ROLL_MODE_OPTIONS = [
+  {
+    code: 'ADVANTAGE',
+    label: 'Advantage',
+    description: 'The attack has advantage.'
+  },
+  {
+    code: 'NOT_DISADVANTAGE',
+    label: 'No disadvantage',
+    description: 'The attack has advantage or is a normal roll.'
+  }
+] as const satisfies readonly CoreMeta<AttackRollModeRequirement>[]
+
 export type PredicatePayloadByCode = {
   SUBCLASS_SPECIALIZATION: Selectable<{ specializationIds: string[] }>
   SPELLCASTING: EmptyObject
@@ -76,6 +91,10 @@ export type PredicatePayloadByCode = {
   SOLE_WIELDED_WEAPON: EmptyObject
   ATTACK_ABILITY: {
     ability: AbilityCode
+  }
+  /** The attack's net roll mode: `NOT_DISADVANTAGE` is advantage or a normal roll. */
+  ATTACK_ROLL_MODE: {
+    rollMode: AttackRollModeRequirement
   }
   EQUIPMENT_PROFICIENCY: Selectable<
     { equipmentIds: string[] },
@@ -300,6 +319,13 @@ export const PREDICATE_REGISTRY = {
     code: 'ATTACK_ABILITY',
     label: 'Attack Ability',
     description: 'Requires the attack to use the ability.',
+    subjects: ['EQUIPMENT']
+  },
+
+  ATTACK_ROLL_MODE: {
+    code: 'ATTACK_ROLL_MODE',
+    label: 'Attack Roll Mode',
+    description: 'Requires the attack to have advantage, or not to have disadvantage.',
     subjects: ['EQUIPMENT']
   },
 

@@ -85,7 +85,7 @@ export async function assertNoEquipmentChildren(
 export async function recompileEquipmentChildren(
   ctx: MutationCtx,
   published: ResolvedEquipment,
-  userId: string
+  userId: string | null
 ) {
   // Parent-first traversal carries the validated effective parent, so each descendant's
   // source is read and compiled once within this mutation; nothing survives the transaction.
@@ -106,7 +106,10 @@ export async function recompileEquipmentChildren(
     for (const root of children) {
       if (!(await isImportRowVisible(ctx, root.importJobId))) continue
       if (visited.has(root.id)) throw new Error('Equipment variant cycle detected.')
-      if (root.ownerUserId !== userId || !(await canReadAuthoredRoot(ctx, root, userId)))
+      if (
+        root.ownerUserId !== (userId ?? undefined) ||
+        !(await canReadAuthoredRoot(ctx, root, userId))
+      )
         throw new Error('Equipment dependent ownership mismatch.')
       const version = await readAuthoredVersion(ctx, root)
       const document = equipmentAuthoredDtoSchema.parse(

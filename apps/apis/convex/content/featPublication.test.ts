@@ -240,7 +240,7 @@ describe('native Feat publication', () => {
         contentSourceId: SRD_CONTENT_SOURCE.id,
         subjects: [grapplerSubject]
       })
-    ).resolves.toEqual({ inserted: 0, reused: 1 })
+    ).resolves.toEqual({ inserted: 0, reused: 1, replaced: 0 })
     expect(
       await t.run(async (ctx) => {
         const root = await ctx.db

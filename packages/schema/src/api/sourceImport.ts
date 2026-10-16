@@ -89,6 +89,13 @@ export const sourceImportBatchResultDtoSchema = lazySchema(() =>
   })
 )
 
+// A subject whose checksum changed is replaced in place; `replaced` counts those.
+export const sourceImportSubjectsResultDtoSchema = lazySchema(() =>
+  z.extend(sourceImportBatchResultDtoSchema, {
+    replaced: z.number().check(z.int()).check(z.nonnegative())
+  })
+)
+
 export const sourceImportAuditDtoSchema = lazySchema(() =>
   z.strictObject({
     systems: z.number().check(z.int()).check(z.nonnegative()),
@@ -98,7 +105,7 @@ export const sourceImportAuditDtoSchema = lazySchema(() =>
   })
 )
 export const sourceImportSeedResultDtoSchema = lazySchema(() =>
-  z.extend(sourceImportAuditDtoSchema, sourceImportBatchResultDtoSchema.shape)
+  z.extend(sourceImportAuditDtoSchema, sourceImportSubjectsResultDtoSchema.shape)
 )
 
 export type SourceImportSubjectDto = z.infer<typeof sourceImportSubjectDtoSchema>
@@ -165,3 +172,4 @@ export type SourceImportBootstrapInput = z.infer<typeof sourceImportBootstrapInp
 export type SourceImportSubjectsInput = z.infer<typeof sourceImportSubjectsInputSchema>
 export type SourceImportDefinitionsInput = z.infer<typeof sourceImportDefinitionsInputSchema>
 export type SourceImportBatchResultDto = z.infer<typeof sourceImportBatchResultDtoSchema>
+export type SourceImportSubjectsResultDto = z.infer<typeof sourceImportSubjectsResultDtoSchema>

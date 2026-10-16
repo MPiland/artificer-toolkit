@@ -189,9 +189,28 @@ function checkWeaponDamageTypeChoices(
     })
 }
 
+/**
+ * Path restrictions gate the damage an attack's hit or critical owes (D119); the roll mode they read
+ * exists only for that attack, so no other path can carry one.
+ */
+function checkPathRestrictions(
+  effect: Pick<EffectAuthored, 'paths'>,
+  context: z.core.$RefinementCtx
+) {
+  effect.paths.forEach((path, index) => {
+    if (path.restrictions && path.pathCode !== 'ON_HIT' && path.pathCode !== 'ON_CRIT')
+      context.addIssue({
+        code: 'custom',
+        path: ['paths', index, 'restrictions'],
+        message: 'Only an ON_HIT or ON_CRIT path can carry restrictions.'
+      })
+  })
+}
+
 export const effectDtoSchema = lazySchema(() =>
   (createEffectDtoSchema(pathDtoSchema) as z.ZodMiniType<EffectAuthored>).check(
-    z.superRefine(checkWeaponDamageTypeChoices)
+    z.superRefine(checkWeaponDamageTypeChoices),
+    z.superRefine(checkPathRestrictions)
   )
 )
 
@@ -232,7 +251,7 @@ export const featureEffectDtoSchema = lazySchema(() =>
           })
       })
     ) as z.ZodMiniType<FeatureEffectAuthored>
-  ).check(z.superRefine(checkWeaponDamageTypeChoices))
+  ).check(z.superRefine(checkWeaponDamageTypeChoices), z.superRefine(checkPathRestrictions))
 )
 
 /** Equipment effects name a grip exactly when they are weapon attacks, never on passive effects. */
@@ -252,7 +271,7 @@ export const equipmentEffectDtoSchema = lazySchema(() =>
           })
       })
     ) as z.ZodMiniType<EquipmentEffectAuthored>
-  ).check(z.superRefine(checkWeaponDamageTypeChoices))
+  ).check(z.superRefine(checkWeaponDamageTypeChoices), z.superRefine(checkPathRestrictions))
 )
 
 export const manifestNestedBehaviorDtoSchema = lazySchema(() =>

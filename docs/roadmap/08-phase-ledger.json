@@ -928,8 +928,8 @@
           "id": "PLATFORM-18",
           "title": "SRD corpus updates reach a live deployment without a reset",
           "status": "TODO",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "journeyTests": ["apps/apis/convex/content/corpusReplaceJourney.test.ts"],
+          "journeyStatus": "partial",
           "origin": [],
           "wsjf": {
             "bv": 8,
@@ -941,23 +941,49 @@
             {
               "id": "PLATFORM-18.1",
               "text": "Seeding a changed SRD corpus into a deployment that already holds the previous corpus publishes the changed subjects as new canonical versions instead of failing with \"Canonical content conflict\"; unchanged subjects are untouched; Characters, Campaigns and Encounters created on corpus N keep working on N+1 (ADR 0024 current-version reads; design D120), proved by a live-backend run that seeds corpus N, creates play data, then seeds corpus N+1.",
+              "status": "DONE",
+              "proof": [
+                "apps/apis/convex/content/corpusReplaceJourney.test.ts",
+                "apps/apis/convex/content/seedReplace.test.ts",
+                "apps/apis/convex/content/import.test.ts",
+                ".github/workflows/live-backend.yml replace and reseed steps (scripts/liveBackendValidation.mjs, apps/apis/scripts/liveBackendReplaceProbe.ts), Tests 38846437645 and Live backend 38846437628 on 518710e3a",
+                "docs/validation/platform-18-t1-replace-mutation-margin-2026-10-15.md"
+              ],
+              "origin": [],
+              "note": "Registered 2026-10-15: a local deploy-and-seed after the ATTACK-9.T7 merge (barbarian.ts changed) failed with \"Canonical content conflict\" (local-validation/merge-a9s8/live.log). Canonical import is insert-or-identical only, so today every corpus change needs a reset, which production cannot take after launch. Closed 2026-10-16 by PLATFORM-18.T1 (D120). Proof split: play data created on corpus N and still working on N+1 is proved by the real-code convex-test journey (corpusReplaceJourney.test.ts); the live-backend run proves seed N, in-place replace within the mutation limits, and reseed N+1. It does not create play data, because the runtime limits it checks do not depend on play data."
+            },
+            {
+              "id": "PLATFORM-18.2",
+              "text": "Changed SRD definitions, Systems, content sources and catalogues also reach a live deployment without a reset: seeding corpus N+1 updates them in place, or refuses with a named reason, and play data created on N keeps working. Proved by real-code tests plus a live-backend seed N, then seed N+1, run.",
               "status": "TODO",
               "proof": [],
               "origin": [],
-              "note": "Registered 2026-10-15: a local deploy-and-seed after the ATTACK-9.T7 merge (barbarian.ts changed) failed with \"Canonical content conflict\" (local-validation/merge-a9s8/live.log). Canonical import is insert-or-identical only, so today every corpus change needs a reset, which production cannot take after launch."
+              "note": "Registered 2026-10-16 from the PLATFORM-18.T1 report: bootstrap and definitions are still insert-or-identical, so a definition change still needs a reset that production cannot take after launch."
             }
           ],
           "tasks": [
             {
               "id": "PLATFORM-18.T1",
               "text": "Design and build canonical corpus re-publication in content/import (version bump per changed subject, derived-data resync, catalogue counters), red-first against the current conflict; record the decision as a D-number and update the release runbook.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["PLATFORM-18.1"],
               "wsjf": {
                 "bv": 8,
                 "tc": 3,
                 "rr": 8,
                 "size": 5
+              }
+            },
+            {
+              "id": "PLATFORM-18.T2",
+              "text": "Extend D120 in-place replacement to definitions, Systems, content sources and catalogues in content/import bootstrap and definitions import, red-first against the current conflict; update the runbook reset list.",
+              "status": "TODO",
+              "closes": ["PLATFORM-18.2"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 5,
+                "size": 3
               },
               "activeWorkbook": "docs/handoffs/slice-platform-18-t1.md"
             }
@@ -5731,9 +5757,8 @@
                 "after": ["ATTACK-9.T1"]
               },
               "id": "ATTACK-9.T2b",
-              "status": "TODO",
-              "text": "D119 (d): net roll-mode facet predicate (ADVANTAGE, NOT_DISADVANTAGE) and any-of composition if missing.",
-              "activeWorkbook": "docs/handoffs/slice-attack-9-t2.md"
+              "status": "DONE",
+              "text": "D119 (d): net roll-mode facet predicate (ADVANTAGE, NOT_DISADVANTAGE) and any-of composition if missing."
             },
             {
               "closes": ["ATTACK-9.2"],
@@ -5746,7 +5771,8 @@
               },
               "id": "ATTACK-9.T2c",
               "status": "TODO",
-              "text": "D119 (e): hostile-of-target-within-N-ft predicate from scene positions, planned by the room and re-verified by persistence."
+              "text": "D119 (e): hostile-of-target-within-N-ft predicate from scene positions, planned by the room and re-verified by persistence.",
+              "activeWorkbook": "docs/handoffs/slice-attack-9-t2.md"
             },
             {
               "closes": ["ATTACK-9.2"],
@@ -7275,12 +7301,13 @@
                 "rr": 3,
                 "size": 3,
                 "after": ["SPELLS-8.T1"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-8-t1.md"
             },
             {
               "id": "SPELLS-8.T9",
               "text": "Spells with a bonus action, reaction, mixed or no activation casting time are offered with the right activation.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-8.1"],
               "wsjf": {
                 "bv": 5,
@@ -7288,8 +7315,7 @@
                 "rr": 3,
                 "size": 3,
                 "after": ["SPELLS-8.T1"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-spells-8-t1.md"
+              }
             },
             {
               "id": "SPELLS-8.T10",

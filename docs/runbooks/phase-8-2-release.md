@@ -78,6 +78,13 @@ flowchart LR
    - Day-to-day deploy, seed and audit checks of a slice or merge run in CI on an ephemeral container
      (`.github/workflows/live-backend.yml`, ADR 0035 amendment 2026-10-15). This lifecycle stays local
      because it uses the user's local data, the Session Worker and the browser proofs.
+- A change to an authored subject in the SRD corpus (for example a Class, Race, Equipment, Feat or
+  Background) needs no backend reset: reseeding replaces the changed subjects in place and reports
+  them as `replaced` (PLATFORM-18.T1, D120). The same holds in staging and production. A subject
+  removed from the corpus, and any change to a reusable definition, System, content source or
+  catalogue record, is not applied by the seed and still needs a reset (removal and definitions are
+  deferred, see `docs/roadmap/future-enhancements.md`). The seed fails before writing when a
+  subject was removed.
    - Convex codegen, deploy, seed and audit pass the self-hosted URL and generated key as explicit
      `--url`/`--admin-key` arguments. They never use the CLI's `--deployment local` backend.
    - The lifecycle manifest and stage logs go to `local-validation/pre-staging/<timestamp>/`

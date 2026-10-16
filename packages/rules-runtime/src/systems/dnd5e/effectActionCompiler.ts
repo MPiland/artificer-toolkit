@@ -80,6 +80,7 @@ import {
   REACTION_CHOICE_OPERATION_KEY
 } from '../../reactionChoiceDefinition.js'
 import { dnd5eAttackKind, dnd5eAttackModifierDomain, isDnd5eMeleeAttackKind } from './attackKind.js'
+import { attackRestrictionsMet, type Dnd5eAttackRollMode } from './attackRestrictions.js'
 import { DND5E_SYSTEM_ID } from './characterActionCapabilityDiscovery.js'
 import {
   DND5E_POISON_DAMAGE_TYPE_DEFINITION_ID,
@@ -182,6 +183,8 @@ export const DND5E_SPELL_CAST_LEVEL_FACT_KEY = 'dnd5e.spell-cast-level'
 export const DND5E_SELECTED_OPTIONAL_RIDERS_FACT_KEY = 'dnd5e.selected-optional-riders'
 /** The actor's level in each class (a JSON object by class id), which selects CLASS_LEVEL rows. */
 const DND5E_CLASS_LEVELS_FACT_KEY = 'dnd5e.class-levels'
+/** The attack's net d20 roll mode, which a path restriction reads when its outcome specializes. */
+const DND5E_ATTACK_ROLL_MODE_FACT_KEY = 'dnd5e.attack-roll-mode'
 export const DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY =
   'dnd5e.active-effect-save-ability-definition-id'
 export const DND5E_ACTIVE_EFFECT_SAVE_REQUEST_NODE_FACT_KEY =
@@ -272,6 +275,7 @@ type Dnd5eEffectScalingFacts = Readonly<{
   spellCastLevel?: number
   classLevels?: Readonly<Record<string, number>>
   selectedOptionalRiderIds?: readonly string[]
+  attackRollMode?: Dnd5eAttackRollMode
   resolvedDamageExpressions?: Readonly<Partial<Record<SpecializedPath, string>>>
   resolvedDamageOutcomeExpressions?: Readonly<Record<string, string>>
 }>
@@ -304,6 +308,7 @@ function dndScalingFactsFromRuleValues(
     selectedOptionalRiderIds: parseSelectedOptionalRiderIds(
       facts[DND5E_SELECTED_OPTIONAL_RIDERS_FACT_KEY]
     ),
+    attackRollMode: parseAttackRollMode(facts[DND5E_ATTACK_ROLL_MODE_FACT_KEY]),
     resolvedDamageExpressions: Object.fromEntries(
       Object.entries(DND5E_RESOLVED_DAMAGE_EXPRESSION_FACT_KEYS).flatMap(([path, key]) => {
         const expression = facts[key]
@@ -327,6 +332,13 @@ function parseSelectedOptionalRiderIds(value: RuleValue | undefined): readonly s
   if (!Array.isArray(parsed) || !parsed.every((id) => typeof id === 'string'))
     unsupported('D&D selected optional riders are malformed.')
   return parsed
+}
+
+function parseAttackRollMode(value: RuleValue | undefined): Dnd5eAttackRollMode | undefined {
+  if (value === undefined) return undefined
+  if (value !== 'NORMAL' && value !== 'ADVANTAGE' && value !== 'DISADVANTAGE')
+    unsupported('D&D attack roll mode is malformed.')
+  return value
 }
 
 function parseClassLevels(value: RuleValue | undefined): Record<string, number> {
@@ -3381,6 +3393,7 @@ export const dnd5eEffectActionCapability: GameSystemRuleCapabilityContract = {
     },
     { key: DND5E_CLASS_LEVELS_FACT_KEY, valueKind: RULE_VALUE_KIND.TEXT },
     { key: DND5E_SELECTED_OPTIONAL_RIDERS_FACT_KEY, valueKind: RULE_VALUE_KIND.TEXT },
+    { key: DND5E_ATTACK_ROLL_MODE_FACT_KEY, valueKind: RULE_VALUE_KIND.TEXT },
     {
       key: REACTION_CHOICE_MIN_FACT_KEY,
       valueKind: RULE_VALUE_KIND.NUMBER
@@ -4696,6 +4709,17 @@ function mergedOutcomeGraphDefinition(input: {
   }
 }
 
+/** An entry reduced to roll-mode checks is owed only to an attack whose net roll mode meets them. */
+function pathRestrictionsMet(
+  entry: CompiledEffectGroup['entries'][number],
+  facts: Dnd5eEffectScalingFacts
+): boolean {
+  if (!('restrictions' in entry) || !entry.restrictions) return true
+  if (facts.attackRollMode === undefined)
+    unsupported('D&D path restrictions need the roll mode of an attack.')
+  return attackRestrictionsMet(entry.restrictions, facts.attackRollMode)
+}
+
 function specializeDnd5eEffectActionOutcomeBody(input: {
   action: Dnd5eCompiledEffectActionSource
   selectedPath: SpecializedPath
@@ -4787,7 +4811,11 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
     }
   }
   const authoredGroups = selectedOutcomeGroups(input.action, input.selectedPath)
-  const groups = authoredGroups.filter(([entry]) => isChosenEntry(entry, input.facts))
+  const groups = authoredGroups.filter((entries) =>
+    entries.every(
+      (entry) => isChosenEntry(entry, input.facts) && pathRestrictionsMet(entry, input.facts)
+    )
+  )
   if (groups.length === 0) return null
   const definitions = groups.map((entries, groupIndex) => {
     const entry = entries[0]
@@ -4852,9 +4880,9 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
   return {
     phase: 'OUTCOME',
     published,
-    // The selected authored result groups, chosen optional riders included or not, are the
-    // immutable OUTCOME template; the published checksum above identifies its locked dice
-    // and rider specialization.
+    // The selected authored result groups, chosen optional riders included or not and restricted or
+    // not, are the immutable OUTCOME template; the published checksum above identifies the groups
+    // owed to this attack and their locked dice and rider specialization.
     templateChecksum: checksumRuleDocument(authoredGroups)
   }
 }
@@ -7121,6 +7149,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
           ...baseFacts,
           [DND5E_ATTACK_MODIFIER_FACT_KEY]: action.attackBonus,
           [DND5E_TARGET_DEFENSE_FACT_KEY]: armorClass,
+          [DND5E_ATTACK_ROLL_MODE_FACT_KEY]: rollMode,
           [DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY]: contributorChecksum,
           [DND5E_TEST_OUTCOME_RULE_FACT_KEY]: conditionOutcomeRules?.hitIsCritical
             ? 'HIT_IS_CRITICAL'

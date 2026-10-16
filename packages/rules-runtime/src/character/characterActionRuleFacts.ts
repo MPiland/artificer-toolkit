@@ -13,6 +13,8 @@ import {
   getCharacterGrantFoldSelectedOptionIds
 } from './characterGrantFoldSourceFacts.js'
 import { collectOnHitRiders, mergeOnHitRiders, type OnHitRider } from './characterOnHitRiders.js'
+import { reduceEffectRestrictions } from '../systems/dnd5e/attackRestrictions.js'
+import { dnd5eAttackingItem } from '../systems/dnd5e/modifierApplicability.js'
 
 type ActionCandidate = NonNullable<CharacterRulePolicyInput['actionCandidates']>[number]
 type CharacterActionSource = ActionCandidate['source']
@@ -318,7 +320,15 @@ function appendActions(params: {
 }): void {
   for (const authoredEffect of params.effects ?? []) {
     if (authoredEffect.invocation.kind === 'PASSIVE') continue
-    const effect = mergeOnHitRiders(authoredEffect, params.onHitRiders ?? [])
+    // Only an item's own effects carry a grip; features granted by an item have none.
+    const equipment = params.equipment && {
+      ...params.equipment,
+      grip: 'grip' in authoredEffect ? authoredEffect.grip : null
+    }
+    const effect = reduceEffectRestrictions(
+      mergeOnHitRiders(authoredEffect, params.onHitRiders ?? []),
+      dnd5eAttackingItem(equipment)
+    )
     const resourceUse = authoredEffect.invocation.resourceUse
     const mechanicSource = params.source.mechanicSource
     const matchingPools = resourceUse
@@ -354,11 +364,7 @@ function appendActions(params: {
       source: params.source.mechanicSource,
       mechanicsOwner: params.mechanicsOwner,
       activationSourceKind: params.activationSourceKind,
-      // Only an item's own effects carry a grip; features granted by an item have none.
-      equipment: params.equipment && {
-        ...params.equipment,
-        grip: 'grip' in effect ? effect.grip : null
-      },
+      equipment,
       resourceUse: resourceUse
         ? {
             chargeId: resourceUse.chargeId,
