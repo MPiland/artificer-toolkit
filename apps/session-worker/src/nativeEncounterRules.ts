@@ -38,7 +38,10 @@ import {
   readEncounterBasicActionEntries
 } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
 import { encounterActionTargetKind } from '@artificer-toolkit/rules-runtime/encounterAreaAction'
-import { actionEndedEffects } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
+import {
+  actionEndedEffects,
+  damageTakenEndedEffects
+} from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
 import { encounterSceneGridPolicyRegistry } from '@artificer-toolkit/rules-runtime/sceneGridPolicyRegistry'
 import {
   snapshotCreatureTypeId,
@@ -1099,6 +1102,21 @@ export async function planNativeLiveEncounterAction(
     published: execution.published,
     targetActorId: prepared.target.id
   })
+  const applications = [
+    ...execution.applications,
+    ...preparedEffects.relationshipConditionApplications
+  ]
+  // Damage the target takes ends the effects it holds that end on damage, and releases the
+  // conditions only they held in the target's own batch.
+  const damageEnded = damageTakenEndedEffects({
+    holderActorId: prepared.target.id,
+    held: (activeEffectsByActorId.get(prepared.target.id) ?? []).filter(
+      ({ id }) => !(reactionEnded?.consumedGrants ?? []).some((ended) => ended.id === id)
+    ),
+    applications,
+    damagerActorId: prepared.actor.id,
+    dispositions: new Map(actors.map(({ id, disposition }) => [id, disposition]))
+  })
   const planned = planNativeEncounterActionMechanics(
     {
       prepared: settledPrepared,
@@ -1108,12 +1126,10 @@ export async function planNativeLiveEncounterAction(
       sourceCommandId: command.commandId,
       commandId: command.commandId,
       occurredAt,
-      applications: [
-        ...execution.applications,
-        ...preparedEffects.relationshipConditionApplications
-      ],
+      applications,
       sourceReleases,
       targetReleases: reactionEnded?.sourceReleases,
+      damageReleases: damageEnded.releases,
       forceTargetVersionAdvance:
         prepared.target.kind === 'CHARACTER' &&
         (preparedEffects.stateEffect !== null ||
@@ -1286,7 +1302,9 @@ export async function planNativeLiveEncounterAction(
     reactionUse,
     reactionConsumedGrants: reactionEnded?.consumedGrants ?? [],
     failedSpends,
-    revisions
+    revisions,
+    // The attacker's one-roll grants and the target's effects the damage ended, one receipt.
+    consumedGrants: [...consumedGrants, ...damageEnded.endedEffects]
   }
 }
 

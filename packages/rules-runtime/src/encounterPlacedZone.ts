@@ -51,6 +51,7 @@ export function planEncounterPlacedZone(input: {
       recurrenceStage: 'NONE',
       consumeOnFirstEvents: [],
       endOnEvents: [],
+      endOnTriggers: [],
       endOnConditionIds: [],
       holderEnd: null,
       lifetimeScope: 'ENCOUNTER',

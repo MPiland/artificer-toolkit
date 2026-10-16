@@ -175,3 +175,23 @@ Decided as D125.
 - **T2b (done):** the Legendary window, movement opportunity attack and Disarm release their conditions through the same source batch (`attackRollEndedEffects` is the one helper every attack-roll root calls); the three fences are gone. The Disarm receipt carries the release in a required `sourceApplications` on `CONTESTED_ACTION`; the Legendary window applies it in `persistEncounterTurnResources`; the movement reaction applies it in `liveMovementReactionPersistence`. Disarm and the Legendary window have no GM undo, so nothing restores these.
 - **T3 (done, see [slice-spells-27-t3.md](slice-spells-27-t3.md)):** a Character's spell cast ends effects listing `ON_CAST_SPELL`, from the one cast-commit path of each kind (action and reaction, area and chosen-creature list, countered). `actionEndedEffects` replaces `attackRollEndedEffects`. AC 27.1 is closed.
 - **T3b (see [slice-spells-27-t3b.md](slice-spells-27-t3b.md)):** the same fact from reactor casts (Shield, Counterspell as reactor) and Creature and Legendary spell-attack actions (`preparedCastsSpell`).
+
+## 8. SPELLS-27.T4: a structured end trigger and the damage-taken event
+
+Decision number pending (`D-pending-spells-27-t4`; the main session assigns the Dnnn).
+
+- **Shape.** `definition.recurrence.endOnTriggers` is a list of `{ event: 'DAMAGE_TAKEN', by: 'ANYONE' | 'SOURCE_SIDE', damageTypeIds: string[] | null }`, unique and in `JSON.stringify` order. `damageTypeIds` is the same `damageTypeFilterDtoSchema` the `DAMAGE_TAKEN` reaction trigger uses (extracted into `shared/reaction.ts`), so the two never drift. The flat `consumeOnFirstEvents` / `endOnEvents` lists are untouched (T6 unifies them after REACTION-4.T3). `endOnTriggers` defaults to `[]` on read.
+- **Source side.** `SOURCE_SIDE` is the effect's `origin.sourceActorId` or an actor `encounterActorRelationship` calls `ALLIED` to it (Charm Person). The schema rejects a `SOURCE_SIDE` trigger on an effect with no Encounter source actor.
+- **Damage taken.** A `DAMAGE` application on the holder with `resolvedAmount > 0` (after resistance and immunity) matching the type filter. `damageTakenEndedEffects` returns the ended effects and their condition releases; the holder's own batch applies the releases after the outcome (`damageReleases` on `planNativeEncounterActionMechanics`) and the action commit deletes the effects through `consumedGrants`. GM undo restores both through the existing receipt.
+- **Authoring.** `lifecycle.endOnTriggers` on a result block (schema, `PathLifecycleAuthored`, node map `pathLifecycleEndTrigger`). Only the timed-condition plan carries it; the grant, concealment and recurring-save plans reject a lifecycle that lists it, so authoring cannot name a trigger no plan consumes.
+- **Proof.** `encounterEndedEffectRelease.test.ts` (consumer), `rules-runtime-contracts.test.ts` (schema), `characterSpellCastActions.test.ts` (compiler), `nativeRoomDamageEndsEffect.test.ts` (Worker journey with GM undo).
+
+### Split
+
+- **T4a (this slice):** the trigger shape, the damage-taken consumer on the single-action root, authoring for the timed-condition plan.
+- **T4b (to register, blocks AC 27.2):** the other damage roots. The area commit, Legendary window, movement reaction, turn effects (ongoing damage) and death-save damage do not call `damageTakenEndedEffects` yet, so an effect with a damage trigger survives damage from them. Also the `ATTACK_ROLL`-against-enemy arm (Sanctuary) and the `SPELL_CAST` arm once T3's cast fact lands. T5 must not author a damage-ending spell whose damage arrives through an unwired root.
+
+### Proposed ledger edits (the main session applies them)
+
+- SPELLS-27.T4 DONE for T4a; register SPELLS-27.T4b with the roots above, WSJF the same as T4.
+- AC 27.2 stays open: the consumer is pending on the roots listed under T4b.
