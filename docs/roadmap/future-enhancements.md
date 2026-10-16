@@ -91,6 +91,7 @@ The user wants a Kickstarter campaign with realistic goals to fund finishing the
 
 These are rare paths, roughly under 5% of sessions, whose failure is visible and recoverable (user direction, 2026-10-15). Fix one when real use shows it happening.
 
+- **Waking a Brass Dragon's Sleep Breath target with an action (SPELLS-19.T3):** the unconscious condition ends on damage taken, but "someone uses an action to wake it" is not a commit event; the GM ends the condition by hand.
 - **Failed-counter binding is by reactor id only (REACTION-4.T3c):** persistence binds a failed Counterspell spend to the held pause by the reactor's id, without comparing the pin, the sealed choice or the d20. Similarly, the reactor-is-target merge doesn't compare the failed receipt's Character version. Both inputs come from the room's own planner, so a mismatch needs a room bug, and the GM can undo the action.
 
 - **A free GM pick for an attack on a square (ATTACK-17.T4):** the GM chooses only among the creatures whose token covers the square. Letting the GM name any creature (a creature that dodged into the square, a large creature the token footprint misses) is a larger rule and is deferred.

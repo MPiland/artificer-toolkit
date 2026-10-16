@@ -166,13 +166,15 @@ describe.each([
         [FIRST_ID, THIRD_ID].sort()
       )
       for (const effect of committed.activeEffects) {
-        const { recurrence } = JSON.parse(effect.definitionJson)
+        const { recurrence, frozenGraphNodeId } = JSON.parse(effect.definitionJson)
         // "for 1 minute" is ten rounds.
         expect(recurrence.expiration).toMatchObject({ kind: 'TICKS', initialRemaining: 10 })
         expect(recurrence.endOnTriggers).toEqual(
           endsOnDamage ? [{ event: 'DAMAGE_TAKEN', by: 'ANYONE', damageTypeIds: null }] : []
         )
-        expect(recurrence.recurrenceStage).toBe(repeatsSave ? 'END_OF_TURN' : 'NONE')
+        expect(recurrence.recurrenceStage).toBe('END_OF_TURN')
+        // The repeat-save form owns a save node the timed-condition form does not.
+        expect(frozenGraphNodeId).toBe(repeatsSave ? 'repeat-save-test' : 'condition-duration')
       }
     })
 

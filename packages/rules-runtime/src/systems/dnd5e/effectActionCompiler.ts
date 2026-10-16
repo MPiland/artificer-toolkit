@@ -1458,7 +1458,8 @@ function timedImmediateConditionPlan(
 }
 
 /**
- * A condition applied with no save and a duration (Invisibility, "1 hour"): the target holds it
+ * A condition applied with a duration, with no save (Invisibility, "1 hour") or as a save's one
+ * failure outcome (Sleep Breath, see `ownsTimedSaveCondition`): the target holds it
  * through an Encounter active effect that counts the target's turns, carries the authored events
  * that use it up or end it, and removes the condition when it ends. Any other lifecycle stays manual.
  */
@@ -1511,8 +1512,10 @@ function timedConditionPlan(
 
 /**
  * Whether a save's one failure condition is the timed condition its active effect owns (Sleep
- * Breath, "unconscious for 1 minute"): the effect, not the save's outcome, carries the duration
- * and the events that end it early.
+ * Breath, "unconscious for 1 minute, ending if the creature takes damage"): the effect, not the
+ * save's outcome, carries the duration and the triggers that end it early. A timed condition that
+ * authors no early end stays refused, for the spells that print a repeat save or an end event this
+ * form does not yet carry (Hold Monster, Dominate, Charm Person).
  */
 function ownsTimedSaveCondition(
   action: Dnd5eCompiledEffectActionSource,
@@ -1521,6 +1524,7 @@ function ownsTimedSaveCondition(
   return (
     testPhaseKindOrNull(action) === 'SAVE' &&
     entry.pathCode === 'ON_SAVE_FAIL' &&
+    (entry.lifecycle?.endOnTriggers?.length ?? 0) > 0 &&
     timedConditionPlan(action)?.compiledEntryId === entry.entryId
   )
 }
