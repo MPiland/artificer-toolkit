@@ -34,6 +34,7 @@ const FAR_ID = testUuid(0x8a8)
 
 const unconscious = srdSystemRecord.conditionTypes.find(({ code }) => code === 'UNCONSCIOUS')
 const undead = SRD_CREATURE_TYPES.find(({ code }) => code === 'UNDEAD')
+if (!unconscious || !undead) throw new Error('The SRD vocabulary lacks Unconscious or Undead.')
 if (!unconscious || !undead) throw new Error('The SRD names the Unconscious condition and Undead.')
 
 afterEach(() => {
@@ -146,7 +147,7 @@ async function biteHits(room: SleepRoom, targetId: string) {
     kind: 'ENTER_DICE',
     requestId: decision.pending.request.requestId,
     rawFaces: [20],
-    rollMode: decision.pending.request.rollMode
+    rollMode: 'NORMAL'
   })
   expect(rolled.type, JSON.stringify(rolled)).toBe('COMMAND_COMMITTED')
 }

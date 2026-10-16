@@ -123,6 +123,8 @@ type AuthoringDefaultKind =
   | 'string'
   | 'summonStatBlock'
   | 'targetCount'
+  | 'hitPointPool'
+  | 'hitPointPoolScalingBreakpoint'
   | 'targeting'
   | 'damageLevelScalingEntry'
   | 'weight'
@@ -175,6 +177,8 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   creatureSense: ['creatureSense'],
   duration: ['duration'],
   durationScalingBreakpoint: ['durationScalingBreakpoint', 'targetCountScalingBreakpoint'],
+  hitPointPool: ['hitPointPool'],
+  hitPointPoolScalingBreakpoint: ['hitPointPoolScalingBreakpoint'],
   durationValue: ['durationValue'],
   diceExpression: ['featureRollExpression'],
   effect: ['effect', 'featureEffect'],
@@ -235,7 +239,13 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   range: ['range', 'senseRange'],
   reactionTrigger: ['reactionTrigger'],
   resourceUse: ['resourceUse'],
-  scaling: ['durationScaling', 'rangeScaling', 'shapeMeasurementScaling', 'targetCountScaling'],
+  scaling: [
+    'durationScaling',
+    'rangeScaling',
+    'shapeMeasurementScaling',
+    'targetCountScaling',
+    'hitPointPoolScaling'
+  ],
   resultBlock: ['nonManifestResultBlock', 'resultBlock'],
   rollTableRepeat: ['rollTableRepeat'],
   rollTableRerollValue: ['rollTableRerollValue'],
