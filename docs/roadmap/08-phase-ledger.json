@@ -8251,6 +8251,19 @@
                 "size": 2
               },
               "activeWorkbook": "docs/handoffs/slice-spells-28.md"
+            },
+            {
+              "id": "SPELLS-28.T4",
+              "text": "Polymorph, True Polymorph, Shapechange and Wild Shape authored from core options on the CREATURE_FORM grant SPELLS-28.T2 builds (separate form HP, revert at 0 with carry-over, revert at duration end), with a corpus proof against the real compiler and one journey.",
+              "status": "TODO",
+              "closes": ["SPELLS-28.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-28.T2"]
+              }
             }
           ]
         },
@@ -9861,7 +9874,7 @@
         {
           "id": "RELIABILITY-13",
           "title": "Development fixture cleanup is deterministic",
-          "status": "TODO",
+          "status": "DONE",
           "journeyTests": [],
           "journeyStatus": "none",
           "origin": [],
@@ -9869,8 +9882,10 @@
             {
               "id": "RELIABILITY-13.1",
               "text": "developmentLifecycleProof.test.ts passes deterministically: scenes/developmentScene:removeFixtureState never throws \"Fixture Scene bounds or ownership mismatch\" for a fixture the test created, and a test reproduces the failing order or state before the fix.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/apis/convex/scenes/developmentScene.test.ts seeds 6, 16 and 17 presentation receipts (6 red before the fix); CI Tests 38855413473 green on da6d11648"
+              ],
               "origin": [],
               "note": "Registered 2026-10-16: intermittent failure in Convex suite shard 3/4 (run 38848532122 on ci/attack-17-t2 at 3c20a8a0d), passing on the next run with only an error-message change; ATTACK-17.T2 session found it pre-existing (error raised only in post-test cleanup). The cleanup error now names the failing bound counts."
             }
@@ -9885,15 +9900,14 @@
             {
               "id": "RELIABILITY-13.T1",
               "text": "Find the nondeterminism in fixture Scene cleanup (bound counts in the error), reproduce it deterministically, fix the root cause.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["RELIABILITY-13.1"],
               "wsjf": {
                 "bv": 3,
                 "tc": 3,
                 "rr": 5,
                 "size": 2
-              },
-              "activeWorkbook": "docs/handoffs/slice-reliability-13.md"
+              }
             }
           ]
         }
