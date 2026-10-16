@@ -231,8 +231,13 @@ planner read reaches Convex. This is current behavior.
 GM-set `controllerUserIds` (current Campaign players only, at most 8) and a `disposition`; a
 Character actor's assigned player is always a controller, derived and never stored.
 `encounters/actorController.ts` is the one predicate used by admission, reads and responses. A PLAYER
-may `RESOLVE_ACTION` for an actor they control, end the current actor's turn when it is theirs, and
-answer decisions routed to them; every other Encounter command is GM-only (`GM_ONLY`). A roll belongs
+may `RESOLVE_ACTION` for an actor they control, end the current actor's turn when it is theirs,
+answer decisions routed to them, and enter initiative for an actor they control: `ROLL_ACTOR_INITIATIVE`
+(the room's `recordEncounterToolCommand` checks `requireEncounterActorControl`) and `SET_INITIATIVE`
+while the Run is `PREPARED` and without a `manualOrder`. Every other Encounter command is GM-only
+(`GM_ONLY`), including `SET_INITIATIVE` once the order is settled. The matrix test
+`apps/session-worker/test/nativeRoomPlayerParity.test.ts` classifies every command in the schema
+registry as PLAYER, SHEET or TABLE and fails on a command with no class. A roll belongs
 to the actor who makes it: pending evidence carries `rollerActorId`, and only that actor's controllers
 and the GM see and answer it. Results returned to a non-owner pass through
 `presentEncounterResultForMember`; the room refuses to hand a PLAYER anything that does not parse as a

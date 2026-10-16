@@ -1,22 +1,33 @@
+import { runInDurableObject } from 'cloudflare:test'
 import {
   characterActor,
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
+import { ROOM_CHARACTER_PLAY_COMMAND_TYPES } from '@artificer-toolkit/schema/api/characterSheetLiveCommands'
 import { encounterCommandInputDtoSchema } from '@artificer-toolkit/schema/api/encounters'
 import type { RoomNativeEncounterCommand } from '@artificer-toolkit/schema/api/liveSessionEncounterCommand'
 import { encounterActorTokenBindingCommandInputDtoSchema } from '@artificer-toolkit/schema/api/vttScenes'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { RoomEncounterStore } from '../src/roomEncounterStore.js'
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { plainWolf } from '../src/testing/movementPlannerFixture.js'
 import { actionRoom } from './actionRoomFixture.js'
-import { closeTrackedSockets } from './liveRoomFixture.js'
+import { closeTrackedSockets, connectPlayer } from './liveRoomFixture.js'
 
 /**
  * ATTACK-2.5 player parity (ADR 0034 decision 1): every Encounter command the room accepts is probed
  * for the Character's controlling player, another player and an uncontrolled actor. The command
  * types come from the schema registry itself, and a command type with no entry here fails the drift
  * test, so a new command cannot ship without a decision about who may issue it.
+ *
+ * Each type is one of three classes:
+ * - PLAYER: an actor-scoped command a player issues for their own Character.
+ * - SHEET: play state the Sheet command owns; the Encounter command stays the GM's.
+ * - TABLE: Encounter administration, outside ATTACK-2.5's scope; the player is refused.
+ *
+ * The PREPARED-run window in which a player enters their own initiative is proved against the real
+ * room executor in `src/roomEncounterPlayerInitiative.test.ts`; the Run here is ACTIVE.
  */
 
 type CommandType = RoomNativeEncounterCommand['type']
@@ -98,31 +109,40 @@ type Entry = {
 } & (
   | {
       /** The Character's controlling player may issue it for their own actor. */
-      access: 'CONTROLLER'
-      /** The command is only for the actor whose turn it is. */
-      ownTurn?: boolean
+      access: 'PLAYER'
+      /** What another player gets; a decision they are not party to reads as not pending. */
+      otherPlayerRefusal?: 'DECISION_NOT_PENDING'
     }
   | {
-      access: 'GM_ONLY'
-      /** The decision or ADR that makes the command GM-only; null is an open question for Phase 8. */
-      decision: string | null
+      /** The Sheet command owns it; the Encounter command stays the GM's. */
+      access: 'SHEET'
+      /** The Sheet live play commands that cover it for the player. */
+      sheetCommands: readonly (typeof ROOM_CHARACTER_PLAY_COMMAND_TYPES)[number][]
     }
   | {
-      /** The GM cannot issue it for a Character either: the Sheet owns a Character's play state. */
-      access: 'CREATURE_ONLY'
+      /** The decision or ownership rule that keeps it with the GM. */
+      access: 'TABLE'
+      rule: string
     }
 )
 
-const ADR_0034_UNDO_VOID = 'ADR 0034 decision 2: the GM can undo or void results and stuck prompts'
+const AC_2_5_SCOPE =
+  "ATTACK-2.5 covers a player's own Characters in play, not Encounter administration"
+const table = (citation: string) => `${citation}; ${AC_2_5_SCOPE}`
+const TABLE_ADMIN = table('ADR 0034 decision 1: the GM administers the Encounter')
+const UNDO_VOID = table('ADR 0034 decision 2: the GM can undo or void results and stuck prompts')
 
 const PARITY: Record<CommandType, Entry> = {
   ROLL_ACTOR_INITIATIVE: {
-    access: 'CONTROLLER',
+    access: 'PLAYER',
     actorScoped: true,
     build: (probe) => ({ ...base(probe), type: 'ROLL_ACTOR_INITIATIVE', actorId: probe.actorId })
   },
   SET_INITIATIVE: {
-    access: 'CONTROLLER',
+    access: 'TABLE',
+    rule: table(
+      'ADR 0034 decision 1: once the order is settled the GM reorders it; a player enters their own value only while it is collected'
+    ),
     actorScoped: true,
     build: (probe) => ({
       ...base(probe),
@@ -132,13 +152,12 @@ const PARITY: Record<CommandType, Entry> = {
     })
   },
   ADVANCE_TURN: {
-    access: 'CONTROLLER',
-    ownTurn: true,
+    access: 'PLAYER',
     actorScoped: false,
     build: (probe) => ({ ...base(probe), type: 'ADVANCE_TURN' })
   },
   RESOLVE_ACTION: {
-    access: 'CONTROLLER',
+    access: 'PLAYER',
     actorScoped: true,
     build: (probe) => ({
       ...base(probe),
@@ -153,7 +172,8 @@ const PARITY: Record<CommandType, Entry> = {
     })
   },
   ROLL_RULE_EVIDENCE: {
-    access: 'CONTROLLER',
+    access: 'PLAYER',
+    otherPlayerRefusal: 'DECISION_NOT_PENDING',
     actorScoped: false,
     attackPending: true,
     build: (probe) => ({
@@ -164,7 +184,7 @@ const PARITY: Record<CommandType, Entry> = {
     })
   },
   RESOLVE_RULE_OCCURRENCE: {
-    access: 'CONTROLLER',
+    access: 'PLAYER',
     actorScoped: false,
     attackPending: true,
     build: (probe) =>
@@ -176,8 +196,7 @@ const PARITY: Record<CommandType, Entry> = {
       })
   },
   ESCAPE_RELATIONSHIP: {
-    access: 'CONTROLLER',
-    ownTurn: true,
+    access: 'PLAYER',
     actorScoped: true,
     build: (probe) => ({
       ...base(probe),
@@ -188,8 +207,7 @@ const PARITY: Record<CommandType, Entry> = {
     })
   },
   END_HELD_GRANT: {
-    access: 'CONTROLLER',
-    ownTurn: true,
+    access: 'PLAYER',
     actorScoped: true,
     build: (probe) => ({
       ...base(probe),
@@ -199,21 +217,21 @@ const PARITY: Record<CommandType, Entry> = {
     })
   },
   VOID_RULE_OCCURRENCE: {
-    access: 'GM_ONLY',
-    decision: ADR_0034_UNDO_VOID,
+    access: 'TABLE',
+    rule: UNDO_VOID,
     actorScoped: false,
     attackPending: true,
     build: (probe) => ({ ...pendingBase(probe), type: 'VOID_RULE_OCCURRENCE' })
   },
   REVERT_LAST_ACTION: {
-    access: 'GM_ONLY',
-    decision: ADR_0034_UNDO_VOID,
+    access: 'TABLE',
+    rule: UNDO_VOID,
     actorScoped: false,
     build: (probe) => ({ ...base(probe), type: 'REVERT_LAST_ACTION' })
   },
   REMOVE_AREA_TARGET: {
-    access: 'GM_ONLY',
-    decision: 'D103: the GM removes a creature from a pending area',
+    access: 'TABLE',
+    rule: table('D103: the GM removes a creature from a pending area'),
     actorScoped: false,
     attackPending: true,
     build: (probe) => ({
@@ -224,8 +242,8 @@ const PARITY: Record<CommandType, Entry> = {
     })
   },
   SET_CONCEALMENT_OBSERVERS: {
-    access: 'GM_ONLY',
-    decision: 'D116: Hide and Search concealment is adjusted by the GM and is undoable',
+    access: 'TABLE',
+    rule: table('D116: Hide and Search concealment is adjusted by the GM and is undoable'),
     actorScoped: false,
     build: (probe) => ({
       ...base(probe),
@@ -236,8 +254,10 @@ const PARITY: Record<CommandType, Entry> = {
     })
   },
   UPDATE_ACTOR: {
-    access: 'GM_ONLY',
-    decision: 'D87: what the GM prepares stays hidden until the GM reveals it',
+    access: 'TABLE',
+    rule: table(
+      'AGENTS.md: the Builder owns structural character changes, and D87 keeps what the GM prepares hidden'
+    ),
     actorScoped: true,
     build: (probe) => ({
       ...base(probe),
@@ -247,14 +267,16 @@ const PARITY: Record<CommandType, Entry> = {
     })
   },
   REMOVE_ACTOR: {
-    access: 'GM_ONLY',
-    decision: null,
+    access: 'TABLE',
+    rule: table(
+      'D82: the GM removes an actor (GM_REMOVED) and returns a Character to initiative'
+    ),
     actorScoped: true,
     build: (probe) => ({ ...base(probe), type: 'REMOVE_ACTOR', actorId: probe.actorId })
   },
   REINFORCE: {
-    access: 'GM_ONLY',
-    decision: null,
+    access: 'TABLE',
+    rule: TABLE_ADMIN,
     actorScoped: false,
     build: (probe) => ({
       ...base(probe),
@@ -263,8 +285,8 @@ const PARITY: Record<CommandType, Entry> = {
     })
   },
   REORDER: {
-    access: 'GM_ONLY',
-    decision: null,
+    access: 'TABLE',
+    rule: TABLE_ADMIN,
     actorScoped: false,
     build: (probe) => ({
       ...base(probe),
@@ -273,44 +295,44 @@ const PARITY: Record<CommandType, Entry> = {
     })
   },
   START: {
-    access: 'GM_ONLY',
-    decision: null,
+    access: 'TABLE',
+    rule: TABLE_ADMIN,
     actorScoped: false,
     build: (probe) => ({ ...base(probe), type: 'START' })
   },
   COMPLETE: {
-    access: 'GM_ONLY',
-    decision: null,
+    access: 'TABLE',
+    rule: TABLE_ADMIN,
     actorScoped: false,
     build: (probe) => ({ ...base(probe), type: 'COMPLETE' })
   },
   PREVIOUS_TURN: {
-    access: 'GM_ONLY',
-    decision: null,
+    access: 'TABLE',
+    rule: TABLE_ADMIN,
     actorScoped: false,
     build: (probe) => ({ ...base(probe), type: 'PREVIOUS_TURN' })
   },
   SET_CURRENT_ACTOR: {
-    access: 'GM_ONLY',
-    decision: null,
+    access: 'TABLE',
+    rule: TABLE_ADMIN,
     actorScoped: true,
     build: (probe) => ({ ...base(probe), type: 'SET_CURRENT_ACTOR', actorId: probe.actorId })
   },
   SET_ROUND: {
-    access: 'GM_ONLY',
-    decision: null,
+    access: 'TABLE',
+    rule: TABLE_ADMIN,
     actorScoped: false,
     build: (probe) => ({ ...base(probe), type: 'SET_ROUND', round: 2 })
   },
   REPLACE_OPTIONAL_COMBAT_RULES: {
-    access: 'GM_ONLY',
-    decision: null,
+    access: 'TABLE',
+    rule: TABLE_ADMIN,
     actorScoped: false,
     build: (probe) => ({ ...base(probe), type: 'REPLACE_OPTIONAL_COMBAT_RULES', definitionIds: [] })
   },
   UPSERT_REMINDER: {
-    access: 'GM_ONLY',
-    decision: null,
+    access: 'TABLE',
+    rule: TABLE_ADMIN,
     actorScoped: false,
     build: (probe) => ({
       ...base(probe),
@@ -319,20 +341,20 @@ const PARITY: Record<CommandType, Entry> = {
     })
   },
   REMOVE_REMINDER: {
-    access: 'GM_ONLY',
-    decision: null,
+    access: 'TABLE',
+    rule: TABLE_ADMIN,
     actorScoped: false,
     build: (probe) => ({ ...base(probe), type: 'REMOVE_REMINDER', reminderId: SOME_ID })
   },
   SET_HEALTH_DISPLAY_DEFAULT: {
-    access: 'GM_ONLY',
-    decision: null,
+    access: 'TABLE',
+    rule: TABLE_ADMIN,
     actorScoped: false,
     build: (probe) => ({ ...base(probe), type: 'SET_HEALTH_DISPLAY_DEFAULT', level: 'HIDDEN' })
   },
   SET_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING: {
-    access: 'GM_ONLY',
-    decision: null,
+    access: 'TABLE',
+    rule: TABLE_ADMIN,
     actorScoped: true,
     build: ({ room, actorId, version }) => ({
       type: 'SET_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING',
@@ -345,8 +367,8 @@ const PARITY: Record<CommandType, Entry> = {
     })
   },
   REMOVE_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING: {
-    access: 'GM_ONLY',
-    decision: null,
+    access: 'TABLE',
+    rule: TABLE_ADMIN,
     actorScoped: true,
     build: ({ room, actorId, version }) => ({
       type: 'REMOVE_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING',
@@ -358,7 +380,8 @@ const PARITY: Record<CommandType, Entry> = {
     })
   },
   REPLACE_CREATURE_EQUIPMENT: {
-    access: 'CREATURE_ONLY',
+    access: 'TABLE',
+    rule: TABLE_ADMIN,
     actorScoped: true,
     build: (probe) => ({
       ...base(probe),
@@ -369,7 +392,8 @@ const PARITY: Record<CommandType, Entry> = {
     })
   },
   ADJUST_FEATURE_RESOURCE: {
-    access: 'CREATURE_ONLY',
+    access: 'SHEET',
+    sheetCommands: ['USE_RESOURCE', 'RESTORE_RESOURCE'],
     actorScoped: true,
     build: (probe) => ({
       ...base(probe),
@@ -381,7 +405,8 @@ const PARITY: Record<CommandType, Entry> = {
     })
   },
   ROLL_ENEMY_ACTION: {
-    access: 'CREATURE_ONLY',
+    access: 'TABLE',
+    rule: TABLE_ADMIN,
     actorScoped: true,
     build: (probe) => ({
       ...base(probe),
@@ -408,17 +433,64 @@ async function outcome(room: Room, sender: Sender, command: Command) {
     sender === 'GM'
       ? await room.send(command)
       : await room.sendAsPlayer(command, sender === 'CONTROLLER' ? 'PLAYER' : 'OTHER_PLAYER')
-  return answer.type === 'COMMAND_COMMITTED' ? 'ACCEPTED' : answer.reason
+  if (answer.type === 'COMMAND_COMMITTED') return 'ACCEPTED'
+  if (answer.type !== 'COMMAND_REJECTED') throw new Error(`Unexpected answer ${answer.type}.`)
+  return answer.reason
+}
+
+/** The Character's Sheet play-state stream version in the live room. */
+function sheetStreamVersion(room: Room) {
+  return runInDurableObject(room.room.base.stub, (_instance, context) => {
+    const play = new RoomEncounterStore(context.storage)
+      .documents('characterPlayStates')
+      .find((row) => row.characterId === CHARACTER_ID)
+    if (!play) throw new Error('Missing room Character play state.')
+    return play.streamVersion
+  })
+}
+
+/** What the room answered to a Sheet hit point change on the Character, sent by `sender`. */
+async function sheetOutcome(room: Room, sender: Exclude<Sender, 'GM'>) {
+  const player = await connectPlayer(
+    room.room.base,
+    sender === 'CONTROLLER' ? 'PLAYER' : 'OTHER_PLAYER'
+  )
+  const commandId = crypto.randomUUID()
+  const first = player.messages.length
+  player.socket.send(
+    JSON.stringify({
+      type: 'COMMAND',
+      expectedSessionSequence: 0,
+      command: {
+        scope: 'CHARACTER_SHEET',
+        characterId: CHARACTER_ID,
+        encounterId: room.room.encounterId,
+        command: {
+          type: 'ADJUST_HIT_POINTS',
+          mode: 'DAMAGE',
+          amount: 1,
+          commandId,
+          expectedVersion: await sheetStreamVersion(room)
+        }
+      }
+    })
+  )
+  return vi.waitFor(() => {
+    const answer = player.messages
+      .slice(first)
+      .find(
+        (message) =>
+          (message.type === 'COMMAND_COMMITTED' || message.type === 'COMMAND_REJECTED') &&
+          message.commandId === commandId
+      )
+    if (!answer) throw new Error('The room has not answered the Sheet command.')
+    return answer.type
+  })
 }
 
 async function openProbe(entry: Entry, actorId: string): Promise<Probe> {
   const room = await parityRoom({ attackPending: entry.attackPending })
   const pending = entry.attackPending ? await pendingAttack(room) : null
-  // An uncontrolled actor's turn: the Character's and the other player's Wolf's have passed.
-  if (actorId === UNCONTROLLED_WOLF_ID && 'ownTurn' in entry && entry.ownTurn) {
-    await room.advanceTurn()
-    await room.advanceTurn()
-  }
   return { room, actorId, pending, version: await room.version() }
 }
 
@@ -432,77 +504,76 @@ describe('registry', () => {
     expect(Object.keys(PARITY).sort()).toEqual([...REGISTRY_TYPES].sort())
   })
 
-  it('names every GM-only command without a covering decision, for the architect to rule on', () => {
-    const open = Object.entries(PARITY)
-      .flatMap(([type, entry]) => (entry.access === 'GM_ONLY' && !entry.decision ? [type] : []))
-      .sort()
-    expect(open).toEqual([
-      'COMPLETE',
-      'PREVIOUS_TURN',
-      'REINFORCE',
-      'REMOVE_ACTOR',
-      'REMOVE_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING',
-      'REMOVE_REMINDER',
-      'REORDER',
-      'REPLACE_OPTIONAL_COMBAT_RULES',
-      'SET_CURRENT_ACTOR',
-      'SET_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING',
-      'SET_HEALTH_DISPLAY_DEFAULT',
-      'SET_ROUND',
-      'START',
-      'UPSERT_REMINDER'
+  it('cites a rule for every TABLE command, and the player classes are the approved ones', () => {
+    const typesOf = (access: Entry['access']) =>
+      Object.entries(PARITY)
+        .filter(([, entry]) => entry.access === access)
+        .map(([type]) => type)
+        .sort()
+    for (const entry of Object.values(PARITY))
+      if (entry.access === 'TABLE') expect(entry.rule).toContain(AC_2_5_SCOPE)
+    expect(typesOf('PLAYER')).toEqual([
+      'ADVANCE_TURN',
+      'END_HELD_GRANT',
+      'ESCAPE_RELATIONSHIP',
+      'RESOLVE_ACTION',
+      'RESOLVE_RULE_OCCURRENCE',
+      'ROLL_ACTOR_INITIATIVE',
+      'ROLL_RULE_EVIDENCE'
     ])
+    expect(typesOf('SHEET')).toEqual(['ADJUST_FEATURE_RESOURCE'])
   })
 })
 
 describe('room command authorization by player (ADR 0034 decision 1)', () => {
-  it.each(REGISTRY_TYPES)(
-    '%s',
-    { timeout: 120_000 },
-    async (type) => {
-      const entry = PARITY[type]
-      /** A fresh room's answer: the command may be accepted and change the Run. */
-      const answered = async (sender: Sender, actorId: string) => {
-        const probe = await openProbe(entry, actorId)
-        return outcome(probe.room, sender, await entry.build(probe))
-      }
-      /** One room's answers to commands it refuses: a refusal changes nothing. */
-      const refusals = async (actorId: string) => {
-        const probe = await openProbe(entry, actorId)
-        return async (sender: Sender) => {
-          const before = await probe.room.version()
-          const answer = await outcome(probe.room, sender, await entry.build(probe))
-          expect(await probe.room.version(), `${sender}'s refusal changes nothing`).toBe(before)
-          return answer
-        }
-      }
-
-      if (entry.access === 'CONTROLLER') {
-        // The controlling player is treated as the GM is, for the Character's own actor.
-        const viaGm = await answered('GM', CHARACTER_ACTOR_ID)
-        const viaPlayer = await answered('CONTROLLER', CHARACTER_ACTOR_ID)
-        expect(viaPlayer, 'the controller is treated as the GM is').toBe(viaGm)
-        expect(viaPlayer).not.toBe('NOT_ACTOR_CONTROLLER')
-        expect(viaPlayer).not.toBe('GM_ONLY')
-        expect(await (await refusals(CHARACTER_ACTOR_ID))('OTHER_PLAYER')).toBe(
-          'NOT_ACTOR_CONTROLLER'
-        )
-        if (entry.actorScoped)
-          expect(await (await refusals(UNCONTROLLED_WOLF_ID))('CONTROLLER')).toBe(
-            'NOT_ACTOR_CONTROLLER'
-          )
-      } else if (entry.access === 'GM_ONLY') {
-        const refuse = await refusals(CHARACTER_ACTOR_ID)
-        expect(await refuse('CONTROLLER')).toBe('GM_ONLY')
-        expect(await refuse('OTHER_PLAYER')).toBe('GM_ONLY')
-        if (entry.actorScoped)
-          expect(await (await refusals(UNCONTROLLED_WOLF_ID))('CONTROLLER')).toBe('GM_ONLY')
-      } else {
-        // Not a Character command: the room refuses the GM's and the player's alike.
-        const refuse = await refusals(CHARACTER_ACTOR_ID)
-        expect(await refuse('GM')).not.toBe('ACCEPTED')
-        expect(await refuse('CONTROLLER')).not.toBe('ACCEPTED')
+  it.each(REGISTRY_TYPES)('%s', { timeout: 120_000 }, async (type) => {
+    const entry = PARITY[type]
+    /** A fresh room's answer: the command may be accepted and change the Run. */
+    const answered = async (sender: Sender, actorId: string) => {
+      const probe = await openProbe(entry, actorId)
+      return outcome(probe.room, sender, await entry.build(probe))
+    }
+    /** One room's answers to commands it refuses: a refusal changes nothing. */
+    const refusals = async (actorId: string) => {
+      const probe = await openProbe(entry, actorId)
+      return async (sender: Sender) => {
+        const before = await probe.room.version()
+        const answer = await outcome(probe.room, sender, await entry.build(probe))
+        expect(await probe.room.version(), `${sender}'s refusal changes nothing`).toBe(before)
+        return answer
       }
     }
-  )
+
+    if (entry.access === 'PLAYER') {
+      // The controlling player is treated as the GM is, for the Character's own actor.
+      const viaGm = await answered('GM', CHARACTER_ACTOR_ID)
+      const viaPlayer = await answered('CONTROLLER', CHARACTER_ACTOR_ID)
+      expect(viaPlayer, 'the controller is treated as the GM is').toBe(viaGm)
+      expect(viaPlayer).not.toBe('NOT_ACTOR_CONTROLLER')
+      expect(viaPlayer).not.toBe('GM_ONLY')
+      expect(await (await refusals(CHARACTER_ACTOR_ID))('OTHER_PLAYER')).toBe(
+        entry.otherPlayerRefusal ?? 'NOT_ACTOR_CONTROLLER'
+      )
+      if (entry.actorScoped)
+        expect(await (await refusals(UNCONTROLLED_WOLF_ID))('CONTROLLER')).toBe(
+          'NOT_ACTOR_CONTROLLER'
+        )
+    } else {
+      // TABLE, and the Encounter command of a SHEET row: the player is refused as not the GM.
+      const refuse = await refusals(CHARACTER_ACTOR_ID)
+      expect(await refuse('CONTROLLER')).toBe('GM_ONLY')
+      expect(await refuse('OTHER_PLAYER')).toBe('GM_ONLY')
+      if (entry.actorScoped)
+        expect(await (await refusals(UNCONTROLLED_WOLF_ID))('CONTROLLER')).toBe('GM_ONLY')
+    }
+
+    if (entry.access === 'SHEET') {
+      for (const sheetCommand of entry.sheetCommands)
+        expect(ROOM_CHARACTER_PLAY_COMMAND_TYPES).toContain(sheetCommand)
+      // The Sheet path itself works for the player in a live Encounter, and only for them.
+      const { room } = await openProbe(entry, CHARACTER_ACTOR_ID)
+      expect(await sheetOutcome(room, 'OTHER_PLAYER')).toBe('COMMAND_REJECTED')
+      expect(await sheetOutcome(room, 'CONTROLLER')).toBe('COMMAND_COMMITTED')
+    }
+  })
 })
