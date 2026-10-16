@@ -10,6 +10,7 @@ import { snapshotCreatureEquipmentLoadout } from '@artificer-toolkit/rules-runti
 import { SRD_BASIC_ACTION_DEFINITIONS } from '@artificer-toolkit/source-data/srd/basicActions.js'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { SRD_ACTION_ALLOWANCE_DEFINITION_ID } from '@artificer-toolkit/source-data/srd/ruleState.js'
+import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { writeRunActor } from '@artificer-toolkit/encounter-persistence/documents'
 import { disarmInRoom, disarmRecords, nativeDisarmFixture } from '../../tests/fixtures/nativeDisarm'
 import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
@@ -503,6 +504,85 @@ describe('room Disarm commands', () => {
     expect(defender.request.rollMode).toBe('NORMAL')
     await disarmInRoom(base.owner, evidence(helped, answered, 1))
     expect(await heldGrants(base, base.actor.id)).toHaveLength(0)
+  }, 30000)
+
+  it('a player rolls the believed mode against a Blinded target; the server holds the die and settles the true Advantage (ATTACK-10.4)', async () => {
+    const base = await nativeDisarmFixture('PROMPT', false, true)
+    const blinded = srdSystemRecord.conditionTypes.find((value) => value.code === 'BLINDED')
+    if (!blinded) throw new Error('Missing Blinded condition fixture.')
+    await disarmInRoom(base.owner, {
+      type: 'UPDATE_ACTOR',
+      encounterId: base.run.id,
+      commandId: crypto.randomUUID(),
+      expectedVersion: await runVersion(base),
+      actorId: base.target.id,
+      conditions: [blinded.id]
+    })
+    await disarmInRoom(base.owner, {
+      ...base.command,
+      commandId: crypto.randomUUID(),
+      expectedVersion: await runVersion(base)
+    })
+
+    // The player is shown what their own facts imply; the GM is shown the truth.
+    const prompt = await pendingFor(base, base.player)
+    if (prompt?.kind !== 'D20_EVIDENCE') throw new Error('Expected the player’s attack roll.')
+    expect(prompt.request).toMatchObject({
+      rollMode: 'NORMAL',
+      derivedRollModeReasons: []
+    })
+    await expect(pendingFor(base, base.owner)).resolves.toMatchObject({
+      kind: 'D20_EVIDENCE',
+      request: {
+        rollMode: 'ADVANTAGE',
+        derivedRollModeReasons: ['Unseen attacker']
+      }
+    })
+
+    const answer = (
+      pending: {
+        encounterVersion: number
+        occurrenceId: string
+        occurrenceVersion: number
+        request: { requestId: string }
+      },
+      face: number
+    ): ResolveRuleOccurrenceInputDto => ({
+      type: 'RESOLVE_RULE_OCCURRENCE',
+      encounterId: base.run.id,
+      commandId: crypto.randomUUID(),
+      expectedVersion: pending.encounterVersion,
+      correlationId: null,
+      occurrenceId: pending.occurrenceId,
+      expectedOccurrenceVersion: pending.occurrenceVersion,
+      resolution: {
+        kind: 'ENTER_DICE',
+        requestId: pending.request.requestId,
+        rawFaces: [face],
+        rollMode: 'NORMAL'
+      }
+    })
+    // One Normal die is not enough for the true Advantage: the die is held and one more is asked.
+    await disarmInRoom(base.player, answer(prompt, 9))
+    const held = await pendingFor(base, base.player)
+    if (held?.kind !== 'D20_EVIDENCE') throw new Error('Expected the held d20.')
+    expect(held.request).toMatchObject({
+      rollMode: 'NORMAL',
+      heldD20: { faces: [9], caption: "Advantage: the target can't see you" }
+    })
+    const gmHeld = await pendingFor(base, base.owner)
+    if (gmHeld?.kind !== 'D20_EVIDENCE') throw new Error('Expected the GM to see the held d20.')
+    const gmReason = gmHeld.request.heldD20?.caption
+    expect(gmReason).toEqual(expect.stringContaining("can't see"))
+    expect(gmReason).not.toBe(held.request.heldD20?.caption)
+    expect(JSON.stringify(held)).not.toContain(gmReason!)
+
+    await disarmInRoom(base.player, answer(held, 15))
+    const defender = await pendingFor(base, base.owner)
+    if (defender?.kind !== 'D20_EVIDENCE') throw new Error('Missing the defender request.')
+    expect(defender.request.heldD20).toBeUndefined()
+    await disarmInRoom(base.owner, answer(defender, 1))
+    expect(heldItemDisarmed(base, await records(base))).toBe(true)
   }, 30000)
 
   it('a Help on the defending Creature gives its Disarm check advantage, used once and not the attack (ATTACK-18)', async () => {

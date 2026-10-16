@@ -16,6 +16,7 @@ import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/sh
 import { consumeEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomyConsumption'
 import { prepareEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomy'
 import { prepareEncounterActionMechanics } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
+import { encounterAttackD20Belief } from '@artificer-toolkit/rules-runtime/encounterAttackBelief'
 import { resolveEncounterActionSource } from '@artificer-toolkit/rules-runtime/encounterActionSources'
 import { buildEncounterActorRuleFacts } from '@artificer-toolkit/rules-runtime/encounterActorRuleFacts'
 import { reconcileEncounterActorRuleOutput } from '@artificer-toolkit/rules-runtime/encounterActorRuleOutput'
@@ -28,23 +29,41 @@ import {
   requireEncounterDisarmDefinition
 } from '@artificer-toolkit/rules-runtime/encounterDisarmPreparation'
 import { consumableGrants } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
-import {
-  resolveEncounterD20Answer,
-  withEncounterAppRoll
-} from '@artificer-toolkit/rules-runtime/encounterEvidenceAnswer'
+import { withEncounterAppRoll } from '@artificer-toolkit/rules-runtime/encounterEvidenceAnswer'
 import { executeEncounterOptionalContestAction } from '@artificer-toolkit/rules-runtime/encounterOptionalContestActionExecution'
 import { lockedRelationshipActionFacts } from '@artificer-toolkit/rules-runtime/encounterRelationshipActionFacts'
+import { sightGovernedStageD20 } from '@artificer-toolkit/rules-runtime/encounterSightGovernedD20'
 import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import { encounterSceneGridPolicyRegistry } from '@artificer-toolkit/rules-runtime/sceneGridPolicyRegistry'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
+import { readNativeLiveAttackPerception } from './nativeAttackPerception.js'
 import { captureActionEconomyDefinitions } from './nativeEncounterActionEconomy.js'
 import { liveEncounterCaptures, type LiveCaptureReads } from './nativeEncounterReads.js'
 import {
   prepareNativeLiveMovementTarget,
   readNativeLiveActorsAndEffects
 } from './nativeEncounterTargets.js'
+
+/** The contest with one participant's settled faces recorded as its roll evidence. */
+function withRollEvidence(
+  contest: ReturnType<typeof prepareEncounterDisarmContest>['contest'],
+  participant: 'INITIATOR' | 'DEFENDER',
+  requestId: string,
+  rawFaces: readonly number[]
+) {
+  return {
+    ...contest,
+    rollEvidence: {
+      ...contest.rollEvidence,
+      [participant === 'INITIATOR' ? 'initiator' : 'defender']: {
+        requestId,
+        rawFaces: [...rawFaces]
+      }
+    }
+  }
+}
 
 /**
  * Plans a Disarm, or a participant's d20 for one, in the room: both contest d20s roll here with the
@@ -118,24 +137,6 @@ export async function planNativeLiveDisarm(
       definitionId: intent.definitionId
     }
   })
-  const prepared = await prepareEncounterActionMechanics({
-    state,
-    actor,
-    target,
-    actors,
-    actionId: root.actionId,
-    wieldConflictAcceptance: { kind: 'UNPROMPTED' },
-    overridable: false,
-    movementTargets,
-    loadSource: async (input) => resolveEncounterActionSource({ ...input, system }),
-    loadRelationshipFacts: async (input) =>
-      lockedRelationshipActionFacts({
-        actionEffectId: input.actionEffectId,
-        sourceActorId: input.sourceActorId,
-        targetActorId: input.targetActorId,
-        targets: { activeEffectsByActorId }
-      })
-  })
   const scene = root.sceneContext
     ? (
         await capture({
@@ -160,6 +161,34 @@ export async function planNativeLiveDisarm(
         })
       }
     : null
+  const prepared = await prepareEncounterActionMechanics({
+    state,
+    actor,
+    target,
+    actors,
+    actionId: root.actionId,
+    wieldConflictAcceptance: { kind: 'UNPROMPTED' },
+    overridable: false,
+    movementTargets,
+    sceneContext,
+    loadAttackPerception: ({ sourceFacts, targetFacts }) =>
+      readNativeLiveAttackPerception({
+        state,
+        system,
+        attacker: sourceFacts,
+        target: targetFacts,
+        sceneContext,
+        capture
+      }),
+    loadSource: async (input) => resolveEncounterActionSource({ ...input, system }),
+    loadRelationshipFacts: async (input) =>
+      lockedRelationshipActionFacts({
+        actionEffectId: input.actionEffectId,
+        sourceActorId: input.sourceActorId,
+        targetActorId: input.targetActorId,
+        targets: { activeEffectsByActorId }
+      })
+  })
   const selection = readEncounterDisarmSelection({
     actor,
     target,
@@ -211,28 +240,12 @@ export async function planNativeLiveDisarm(
   const resumed =
     response && pending && priorContext
       ? (() => {
-          const participant =
+          const participant: 'INITIATOR' | 'DEFENDER' =
             pending.request.nodeId === contest.initiator.requestNodeId ? 'INITIATOR' : 'DEFENDER'
-          const policy = participant === 'INITIATOR' ? contest.initiator : contest.defender
           // An app roll settles with the faces Convex recorded for it, never client-supplied values.
           const answer = withEncounterAppRoll(response.resolution, ready.appRoll)
           if (answer.kind !== 'ENTER_DICE' && answer.kind !== 'SYSTEM_ROLL')
             throw new Error('Disarm requires d20 evidence.')
-          const { faces: rawFaces, rollMode } = resolveEncounterD20Answer({
-            derivedRollMode: policy.rollMode,
-            answer,
-            rollD20: () => executionOptions.random(20) + 1
-          })
-          contest = {
-            ...contest,
-            rollEvidence: {
-              ...contest.rollEvidence,
-              [participant === 'INITIATOR' ? 'initiator' : 'defender']: {
-                requestId: answer.requestId,
-                rawFaces
-              }
-            }
-          }
           const {
             snapshotKind: _snapshotKind,
             applicationContext: _applicationContext,
@@ -242,13 +255,21 @@ export async function planNativeLiveDisarm(
             ...continuation
           } = pending
           return {
+            participant,
             continuation,
-            resolution: {
-              kind: 'ENTER_DICE' as const,
-              requestId: answer.requestId,
-              rawFaces,
-              rollMode
-            }
+            resolution: answer,
+            // The initiator's dice settle in the true sight mode (ATTACK-10.4, D100).
+            initiatorSight:
+              participant === 'INITIATOR'
+                ? sightGovernedStageD20({
+                    attackSight: prepared.attackSight,
+                    policy: contest.initiator,
+                    stored: {
+                      d20Belief: priorContext.d20Belief ?? null,
+                      heldD20: priorContext.heldD20 ?? null
+                    }
+                  })
+                : null
           }
         })()
       : null
@@ -271,20 +292,41 @@ export async function planNativeLiveDisarm(
     occurrenceId,
     priorRolls,
     rollD20: () => executionOptions.random(20) + 1,
-    ...(resumed ?? {})
+    ...(resumed
+      ? {
+          continuation: resumed.continuation,
+          resolution: resumed.resolution,
+          initiatorSight: resumed.initiatorSight
+        }
+      : {})
   })
   const planned = { ...scope, command, revisions: reads.revisions() }
   if (execution.kind === 'PENDING') {
+    // The answered participant's settled faces stay with the contest, unless a held die waits for one more.
+    if (resumed && !execution.held)
+      contest = withRollEvidence(
+        contest,
+        resumed.participant,
+        resumed.resolution.requestId,
+        execution.rolls.get(resumed.participant)!
+      )
     const initiatorFaces = execution.rolls.get('INITIATOR')
     // An auto-rolled initiator keeps its faces for the defender's prompted answer.
     if (initiatorFaces && !contest.rollEvidence.initiator)
-      contest = {
-        ...contest,
-        rollEvidence: {
-          ...contest.rollEvidence,
-          initiator: { requestId: contest.initiator.requestNodeId, rawFaces: [...initiatorFaces] }
-        }
-      }
+      contest = withRollEvidence(
+        contest,
+        'INITIATOR',
+        contest.initiator.requestNodeId,
+        initiatorFaces
+      )
+    const d20Belief =
+      execution.participant === 'INITIATOR' && prepared.attackSight
+        ? encounterAttackD20Belief({
+            policy: contest.initiator,
+            trueSight: prepared.attackSight.trueSight,
+            believedSight: prepared.attackSight.believedSight
+          })
+        : null
     return {
       kind: 'PENDING' as const,
       input: liveSessionEncounterDisarmPendingInputSchema.parse({
@@ -304,26 +346,27 @@ export async function planNativeLiveDisarm(
             currentnessChecksum: checksumRuleDocument({ actor, target, sceneContext, contest }),
             d20Policy: null,
             twoPhase: null,
-            contest
+            contest,
+            ...(d20Belief ? { d20Belief } : {}),
+            ...(execution.held ? { heldD20: execution.held } : {})
           }
         })
       })
     }
   }
-  if (!resumed)
-    contest = {
-      ...contest,
-      rollEvidence: {
-        initiator: {
-          requestId: contest.initiator.requestNodeId,
-          rawFaces: [...execution.initiator.rawFaces]
-        },
-        defender: {
-          requestId: contest.defender.requestNodeId,
-          rawFaces: [...execution.defender.rawFaces]
-        }
-      }
-    }
+  if (resumed)
+    contest = withRollEvidence(
+      contest,
+      resumed.participant,
+      resumed.resolution.requestId,
+      (resumed.participant === 'INITIATOR' ? execution.initiator : execution.defender).rawFaces
+    )
+  else
+    for (const [participant, roll] of [
+      ['INITIATOR', execution.initiator],
+      ['DEFENDER', execution.defender]
+    ] as const)
+      contest = withRollEvidence(contest, participant, roll.requestNodeId, roll.rawFaces)
   const characterFacts = prepared.targetFacts.characterFacts
   const success = disarmSourceWins(execution)
     ? planEncounterDisarmSuccess({

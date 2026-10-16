@@ -5096,7 +5096,9 @@
             {
               "text": "A player can do everything the GM can for their own Characters in play (player play parity, launch-gating).",
               "status": "TODO",
-              "proof": [],
+              "proof": [
+                "T1: a controlling player enters their own actor's initiative once (rolled or hand-entered) while the Run is PREPARED; re-rolls, tie-break and settled orders stay GM-only. packages/encounter-persistence/src/commands.ts; matrix rows on both sides. CI Tests 38870865820 and Live backend 38870866069 on 5821eed47"
+              ],
               "origin": [],
               "note": "Carry-over from ADR 0034 (inventory section 7).",
               "id": "ATTACK-2.5"
@@ -5112,15 +5114,14 @@
             {
               "id": "ATTACK-2.T1",
               "text": "Player parity matrix: a test derived from the real Encounter command registry proves every command the GM can issue for a Character is accepted from that Character's controlling player (own actor, own turn or a reaction window) and refused for others; each GM-only gap found is fixed through the player path, not by widening authorization.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["ATTACK-2.5"],
               "wsjf": {
                 "bv": 8,
                 "tc": 5,
                 "rr": 5,
                 "size": 3
-              },
-              "activeWorkbook": "docs/handoffs/slice-attack-2.md"
+              }
             },
             {
               "id": "ATTACK-2.T2",
@@ -5731,7 +5732,8 @@
               "proof": [
                 "partial: T2a (CI 38838173590 at 56db035bd, merged 2026-10-15) merges PASSIVE ON_HIT riders, CLASS_LEVEL dice and the triggering weapon damage type: packages/rules-runtime/src/__tests__/characterOnHitRiders.test.ts, characterOnHitRiderMerge.test.ts",
                 "T2d: ONCE_PER_TURN and the real SRD Rogue Sneak Attack: packages/source-data srdSneakAttack.test.ts, packages/encounter-persistence turnUses.test.ts, apps/session-worker nativeRoomOncePerTurn.test.ts, nativeMovementOncePerTurnRider.test.ts, nativeRoomEnemyProximity.test.ts; authored parity: apps/web src/forms/tests/AuthoredDomainFieldParity.test.tsx",
-                "T2e (D124): the roll-mode gate reads the settled d20: apps/session-worker/test/nativeRoomSettledRollMode.test.ts"
+                "T2e (D124): the roll-mode gate reads the settled d20: apps/session-worker/test/nativeRoomSettledRollMode.test.ts",
+                "T2d/T2e green: CI Tests 38869134710 and Live backend 38869134783 on 6649d84da"
               ],
               "origin": [],
               "note": "D58: extra-dice riders are CLOSED_RULE until this AC."
@@ -5769,7 +5771,7 @@
             },
             {
               "id": "ATTACK-9.6",
-              "text": "Rage ends early at the start of the Barbarian's turn when they neither attacked a hostile creature nor took damage since their previous turn, read from the per-turn Encounter record ATTACK-9.T2 builds. The feature is authored only from core authoring options (no CLOSED_RULE, no feature-specific kind or executor); an author-built equivalent made through the real authoring form publishes to the same structure and resolves identically.",
+              "text": "Rage ends early when the Barbarian's turn ends and they have neither attacked a hostile creature nor taken damage since their previous turn (SRD 5.1), tracked on the Rage grant by a generic ON_IDLE_TURN end event; authored only from core options with an author-built parity proof.",
               "status": "TODO",
               "proof": [],
               "origin": [],
@@ -5871,7 +5873,8 @@
                 "rr": 3,
                 "size": 2,
                 "after": ["ATTACK-9.T2d"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-attack-9-t3-t6.md"
             },
             {
               "id": "ATTACK-9.T4",
@@ -5902,7 +5905,7 @@
             {
               "id": "ATTACK-9.T6",
               "text": "Rage early end from the per-turn attack and damage record. Also narrow endHolderGrants in movementSettlementPersistence.ts to the actors the pass damaged (one effect-list read per damaged actor, not per Run actor; free-tier cost).",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["ATTACK-9.6"],
               "wsjf": {
                 "bv": 3,
@@ -5910,7 +5913,8 @@
                 "rr": 2,
                 "size": 1,
                 "after": ["ATTACK-9.T1", "ATTACK-9.T2d"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-attack-9-t3-t6.md"
             },
             {
               "id": "ATTACK-9.T7",
@@ -5980,9 +5984,11 @@
             },
             {
               "text": "Opportunity attacks and Disarm apply attack-roll sight like RESOLVE_ACTION, and movement-reaction perception applies condition contributions.",
-              "status": "TODO",
+              "status": "DONE",
               "proof": [
-                "T3a and T3b: packages/rules-runtime/src/__tests__/encounterMovementReactionPerception.test.ts (condition contributions), apps/session-worker/test/nativeMovementAttackSight.test.ts (opportunity-attack believed prompt, true settlement, held die); CI Tests 38860508666 on 6c42d11b2, Live backend 38858966792 on 663fff011"
+                "T3a and T3b: packages/rules-runtime/src/__tests__/encounterMovementReactionPerception.test.ts (condition contributions), apps/session-worker/test/nativeMovementAttackSight.test.ts (opportunity-attack believed prompt, true settlement, held die); CI Tests 38860508666 on 6c42d11b2, Live backend 38858966792 on 663fff011",
+                "T3c: apps/session-worker/test/nativeRoomDisarm.test.ts (auto-rolled and prompted Disarm against a Blinded target, held die), apps/session-worker/test/nativeMovementAttackSight.test.ts (player-side opportunity-attack believed prompt, GM reasons), apps/apis/convex/encounters/actionDisarm.test.ts (Convex Disarm redaction and true settlement)",
+                "T3c green: CI Tests 38871163036 on d8382138b; Live backend 38867014459 on ef97b2530 (later commits test and docs only)"
               ],
               "origin": [],
               "note": "D100 not-wired paths; movement-owned code.",
@@ -6059,27 +6065,27 @@
             {
               "id": "ATTACK-10.T3c",
               "text": "Disarm applies attack-roll sight like RESOLVE_ACTION (believed prompt, true settlement), and a room test proves the player-side believed prompt of an opportunity attack.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["ATTACK-10.4"],
               "wsjf": {
                 "bv": 3,
                 "tc": 1,
                 "rr": 2,
                 "size": 2
-              },
-              "activeWorkbook": "docs/handoffs/slice-attack-10-t3.md"
+              }
             },
             {
               "id": "ATTACK-10.T4",
               "text": "Saving throws use the believed mode in the prompt and settle in the true mode; player reasons never name a hidden fact.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["ATTACK-10.5"],
               "wsjf": {
                 "bv": 3,
                 "tc": 2,
                 "rr": 2,
                 "size": 3
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-attack-10-t4.md"
             },
             {
               "id": "ATTACK-10.T5",
@@ -10140,7 +10146,7 @@
             {
               "id": "RELIABILITY-16.T1",
               "text": "Add the snapshot-regeneration step and `updated-snapshots` artifact to tests.yml for the Convex shards and package tests, teach watchCi.ps1 to print its download command, and update slice-workbook-rules.md and AGENTS.md Validation; prove with a deliberately stale snapshot on a ci/ branch.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["RELIABILITY-16.1"],
               "wsjf": {
                 "bv": 5,
