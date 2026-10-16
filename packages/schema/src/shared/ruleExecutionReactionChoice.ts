@@ -118,15 +118,16 @@ export type EncounterReactionOfferDto = {
 }
 
 // Explicitly typed so the pending-context declarations stay within the compiler's size limit (TS7056).
-export const encounterReactionOfferDtoSchema: z.ZodMiniType<EncounterReactionOfferDto> = lazySchema(() =>
-  z.strictObject({
-    originalExecution: z.lazy(() => serverCompletedRuleExecutionDtoSchema),
-    originalD20: z.lazy(() => serverRuleExecutionD20EvidenceDtoSchema),
-    d20: z.lazy(() => serverRuleExecutionD20PolicyDtoSchema),
-    originalExecutionChecksum: checksumSchema,
-    targetStateChecksum: checksumSchema,
-    reactions: z.array(encounterReactionPinDtoSchema).check(z.minLength(1)).check(z.maxLength(8))
-  })
+export const encounterReactionOfferDtoSchema: z.ZodMiniType<EncounterReactionOfferDto> = lazySchema(
+  () =>
+    z.strictObject({
+      originalExecution: z.lazy(() => serverCompletedRuleExecutionDtoSchema),
+      originalD20: z.lazy(() => serverRuleExecutionD20EvidenceDtoSchema),
+      d20: z.lazy(() => serverRuleExecutionD20PolicyDtoSchema),
+      originalExecutionChecksum: checksumSchema,
+      targetStateChecksum: checksumSchema,
+      reactions: z.array(encounterReactionPinDtoSchema).check(z.minLength(1)).check(z.maxLength(8))
+    })
 )
 /**
  * The defense the reaction changed for the triggering attack, sealed in the evidence: the re-evaluated
@@ -157,18 +158,19 @@ export type EncounterReactionOutcomeAuditDto = {
 }
 
 /** Server-only interstitial control evidence retained when a hit attack offered a reaction. */
-export const encounterReactionOutcomeAuditDtoSchema: z.ZodMiniType<EncounterReactionOutcomeAuditDto> = lazySchema(() =>
-  z.strictObject({
-    choiceExecution: z.lazy(() => serverCompletedRuleExecutionDtoSchema),
-    selection: z.enum(['DECLINE', 'USE']),
-    originalExecutionChecksum: checksumSchema,
-    targetStateChecksum: checksumSchema,
-    reaction: encounterReactionPinDtoSchema,
-    d20: z.lazy(() => serverRuleExecutionD20PolicyDtoSchema),
-    /** Present exactly when the reaction was used. */
-    adjustment: z.nullable(encounterReactionAdjustmentDtoSchema)
-  })
-)
+export const encounterReactionOutcomeAuditDtoSchema: z.ZodMiniType<EncounterReactionOutcomeAuditDto> =
+  lazySchema(() =>
+    z.strictObject({
+      choiceExecution: z.lazy(() => serverCompletedRuleExecutionDtoSchema),
+      selection: z.enum(['DECLINE', 'USE']),
+      originalExecutionChecksum: checksumSchema,
+      targetStateChecksum: checksumSchema,
+      reaction: encounterReactionPinDtoSchema,
+      d20: z.lazy(() => serverRuleExecutionD20PolicyDtoSchema),
+      /** Present exactly when the reaction was used. */
+      adjustment: z.nullable(encounterReactionAdjustmentDtoSchema)
+    })
+  )
 
 /** What a settled reaction spent and sealed, recorded with the outcome of the attack it answered. */
 export type EncounterActionReactionReceiptDto = {
@@ -186,33 +188,34 @@ export type EncounterActionReactionReceiptDto = {
 // Named so the receipt unions that embed it stay under the compiler's declaration size limit (TS7056).
 export const encounterActionReactionReceiptDtoSchema: z.ZodMiniType<EncounterActionReactionReceiptDto> =
   lazySchema(() =>
-  z
-    .strictObject({
-      selection: z.enum(['DECLINE', 'USE']),
-      reaction: encounterReactionPinDtoSchema,
-      choiceExecution: z.lazy(() => serverCompletedRuleExecutionDtoSchema),
-      originalExecutionChecksum: checksumSchema,
-      adjustment: z.nullable(encounterReactionAdjustmentDtoSchema),
-      spellCastConsumption: z.nullable(characterSpellSlotConsumptionReceiptDtoSchema),
-      actionEconomyTransition: z.nullable(encounterActionEconomyTransitionDtoSchema),
-      /** The reactor's own effect the reaction created; it is what changed the defense. */
-      activeEffectTransitions: z
-        .array(characterActiveEffectCreateReceiptDtoSchema)
-        .check(z.maxLength(1))
-    })
-    .check(
-      z.superRefine((value, context) => {
-        validateEncounterReactionPin(value.reaction, context, ['reaction'])
-        const used = value.selection === 'USE'
-        if (
-          used !== (value.adjustment !== null) ||
-          used !== (value.actionEconomyTransition !== null) ||
-          (!used && (value.spellCastConsumption !== null || value.activeEffectTransitions.length > 0))
-        )
-          context.addIssue({
-            code: 'custom',
-            message: 'Reaction receipt does not match its selection.'
-          })
+    z
+      .strictObject({
+        selection: z.enum(['DECLINE', 'USE']),
+        reaction: encounterReactionPinDtoSchema,
+        choiceExecution: z.lazy(() => serverCompletedRuleExecutionDtoSchema),
+        originalExecutionChecksum: checksumSchema,
+        adjustment: z.nullable(encounterReactionAdjustmentDtoSchema),
+        spellCastConsumption: z.nullable(characterSpellSlotConsumptionReceiptDtoSchema),
+        actionEconomyTransition: z.nullable(encounterActionEconomyTransitionDtoSchema),
+        /** The reactor's own effect the reaction created; it is what changed the defense. */
+        activeEffectTransitions: z
+          .array(characterActiveEffectCreateReceiptDtoSchema)
+          .check(z.maxLength(1))
       })
-    )
-)
+      .check(
+        z.superRefine((value, context) => {
+          validateEncounterReactionPin(value.reaction, context, ['reaction'])
+          const used = value.selection === 'USE'
+          if (
+            used !== (value.adjustment !== null) ||
+            used !== (value.actionEconomyTransition !== null) ||
+            (!used &&
+              (value.spellCastConsumption !== null || value.activeEffectTransitions.length > 0))
+          )
+            context.addIssue({
+              code: 'custom',
+              message: 'Reaction receipt does not match its selection.'
+            })
+        })
+      )
+  )
