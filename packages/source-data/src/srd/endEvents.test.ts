@@ -33,7 +33,8 @@ type EndEventCover =
   | {
       /** Needs a mechanic the effect forms do not carry yet; the named task adds it. */
       mechanism: 'REGISTERED_FOLLOW_UP'
-      task: 'T7 Sanctuary' | 'T8 Sleep' | 'T9 Hypnotic Pattern' | 'T11 margin-of-failure riders'
+      task: 'T7 Sanctuary' | 'T9 Hypnotic Pattern' | 'T11 margin-of-failure riders'
+      | 'T12 wake by action'
     }
 
 const GM_ADJUDICATED: EndEventCover = { mechanism: 'GM_ADJUDICATED' }
@@ -58,7 +59,7 @@ const COVERED_END_EVENTS: Record<string, EndEventCover> = {
   'classes/Oath of Devotion > Channel Divinity: Turn the Unholy': GM_ADJUDICATED,
   'spells/Hypnotic Pattern': { mechanism: 'REGISTERED_FOLLOW_UP', task: 'T9 Hypnotic Pattern' },
   'spells/Sanctuary': { mechanism: 'REGISTERED_FOLLOW_UP', task: 'T7 Sanctuary' },
-  'spells/Sleep': { mechanism: 'REGISTERED_FOLLOW_UP', task: 'T8 Sleep' },
+  'spells/Sleep': { mechanism: 'REGISTERED_FOLLOW_UP', task: 'T12 wake by action' },
   'creatures/Drow > Hand Crossbow': T11,
   'creatures/Pseudodragon > Sting': T11,
   'creatures/Sprite > Shortbow': T11

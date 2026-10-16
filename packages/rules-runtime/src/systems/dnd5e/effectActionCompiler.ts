@@ -70,6 +70,8 @@ import {
   chosenCreaturesAreaSupported,
   chosenCreaturesCapIsAuthored,
   chosenCreaturesMaxTargets,
+  hitPointPoolDiceOptions,
+  hitPointPoolIsAuthored,
   resolveChosenCreaturesTargeting,
   encounterAreaTargetKind
 } from '../../encounterAreaAction.js'
@@ -631,24 +633,28 @@ function isSupportedTestActivation(
 }
 
 /**
- * An AREA_CONTENTS save action over a fixed-size area. Either a sphere, cylinder, circle or cube
+ * An AREA_CONTENTS action over a fixed-size area: a save action, or a hit-point pool action (Sleep)
+ * that rolls a pool, tests no one and may filter by creature type. Either a sphere, cylinder, circle or cube
  * centered on a point within a distance (or unlimited), or a cone, line or cube that extends from
  * the caster (a Self range). Walls, domes, a Self sphere, Touch origins and breakpoint-scaled sizes
  * stay refused. The area only decides who is caught: each caught creature runs the same
  * per-creature test plan a single target does.
  */
-function isSupportedTestArea(
+function isSupportedArea(
   invocation: Dnd5eCompiledEffectActionSource['compiledEffect']['invocation']
 ): boolean {
   if (invocation.kind !== 'ACTION') return false
   const { shape, targeting, range } = invocation
+  if (!shape || targeting?.selectionKind !== 'AREA_CONTENTS') return false
+  const pooled = hitPointPoolIsAuthored(targeting)
   if (
-    !shape ||
-    targeting?.selectionKind !== 'AREA_CONTENTS' ||
     targeting.dispositionKind !== 'ANY' ||
-    targeting.allowedCreatureTypeIds?.length ||
-    targeting.excludedCreatureTypeIds?.length ||
-    invocation.triggerCode !== 'SAVING_THROW' ||
+    (pooled
+      ? invocation.triggerCode !== 'ACTIVATED' ||
+        !hitPointPoolDiceOptions(targeting).every(isBoundedDice)
+      : targeting.allowedCreatureTypeIds?.length ||
+        targeting.excludedCreatureTypeIds?.length ||
+        invocation.triggerCode !== 'SAVING_THROW') ||
     invocation.activation.code !== 'ACTION' ||
     invocation.activation.amount !== 1
   )
@@ -686,12 +692,21 @@ function isSupportedTestArea(
   )
 }
 
+function isBoundedDice(value: string): boolean {
+  try {
+    parseBoundedDiceConfiguration(value)
+    return true
+  } catch {
+    return false
+  }
+}
+
 function isSupportedTestTargetPolicy(
   invocation: Dnd5eCompiledEffectActionSource['compiledEffect']['invocation']
 ): boolean {
   if (invocation.kind !== 'ACTION') return false
   const { targeting } = invocation
-  if (targeting?.selectionKind === 'AREA_CONTENTS') return isSupportedTestArea(invocation)
+  if (targeting?.selectionKind === 'AREA_CONTENTS') return isSupportedArea(invocation)
   // A bounded list of chosen creatures runs the same test on each. A save list (Acid Splash) tests
   // each creature once: a creature named again would save twice, so a repeating save list is
   // refused. An attack list (Scorching Ray) is one roll per ray, so it may aim several rays at one
@@ -1210,6 +1225,8 @@ function multipliedDamageAmount(amount: number, multiplier: number): number {
 function boundedTestOutcome(entry: CompiledEffectGroup['entries'][number]): Outcome {
   if (!('outcome' in entry)) unsupported('D&D test actions require direct authored outcomes.')
   const outcome = entry.outcome
+  if (supportsHitPointPoolArea && outcome.effectKind !== 'CONDITION')
+    unsupported('D&D hit-point pool area outcome must be a timed condition.')
   if (outcome.effectKind === 'CONDITION') {
     uuid(outcome.conditionId, 'D&D condition definition identity')
     return { kind: 'CONDITION_APPLY', conditionId: outcome.conditionId }
@@ -2919,6 +2936,12 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
       null &&
     (!invocation.shape ||
       chosenCreaturesAreaSupported(invocation.range.rangeKind, invocation.shape.shapeKind))
+  // A hit-point pool area (Sleep) rolls one pool for the cast and puts the creatures it reaches under
+  // the one outcome, a timed condition, with no test.
+  const supportsHitPointPoolArea =
+    invocation.targeting?.selectionKind === 'AREA_CONTENTS' &&
+    hitPointPoolIsAuthored(invocation.targeting) &&
+    isSupportedArea(invocation)
   // A Legendary Action option is free; the Feature charge it spends is its cost.
   const supportedActivation =
     invocation.kind === 'ACTION' &&
@@ -2939,8 +2962,12 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
     (invocation.triggerCode !== 'ACTIVATED' &&
       !(invocation.triggerCode === 'CHECK' && invocation.check.dc.kind !== 'CONTEST')) ||
     !supportedActivation ||
-    (!supportsSelf && !selfTeleport && !supportsSingleTarget && !supportsChosenCreatures) ||
-    (invocation.shape && !supportsChosenCreatures)
+    (!supportsSelf &&
+      !selfTeleport &&
+      !supportsSingleTarget &&
+      !supportsChosenCreatures &&
+      !supportsHitPointPoolArea) ||
+    (invocation.shape && !supportsChosenCreatures && !supportsHitPointPoolArea)
   )
     unsupported('D&D Effect action is not the supported activated self action shape.')
   const entry = effect.entries[0]

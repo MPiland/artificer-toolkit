@@ -29,6 +29,9 @@ export type TargetingAuthored =
   | {
       selectionKind: Extract<TargetSelectionKind, 'AREA_CONTENTS'>
       dispositionKind?: TargetDispositionKind
+      /** Hit points of creatures the area affects, lowest first, rolled once per cast (Sleep). */
+      hitPointPool?: { diceConfig: string }
+      hitPointPoolScaling?: ScalableValueAuthored<{ diceConfig: string }>
       allowedCreatureTypeIds?: string[]
       excludedCreatureTypeIds?: string[]
     }
