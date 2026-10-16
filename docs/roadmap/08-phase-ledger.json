@@ -8186,7 +8186,7 @@
             },
             {
               "id": "SPELLS-19.T3b",
-              "text": "Copper Slowing (4) and Gold Weakening (4) breaths re-authored from core options as a grant plus repeat save, the grant gated on the failed save, no closed rule; corpus pin updated row by row.",
+              "text": "Gold Weakening (4) and the speed and reaction riders of Copper Slowing (4) re-authored from core options as a grant plus repeat save, the grant gated on the failed save (compiler fix), no closed rule. Additive core options: an optional ability scope on the ATTACK_ROLL domain read by Creature and Character folds, plain ability-scoped save advantage/disadvantage read for Creature holders, and a SPEED fraction payload rounded down per D94. Corpus pin updated row by row.",
               "status": "IN_PROGRESS",
               "closes": ["SPELLS-19.2"],
               "wsjf": {
@@ -8208,6 +8208,19 @@
                 "tc": 3,
                 "rr": 3,
                 "size": 3,
+                "after": ["SPELLS-19.T3"]
+              }
+            },
+            {
+              "id": "SPELLS-19.T3d",
+              "text": "Action-economy limits from core options, enforced in the room: a cap on attacks per Attack action that lowers Extra Attack, and action-or-bonus-action exclusivity for the turn. Copper Slowing's attack and action riders authored with them, closing the Copper rows. Generic, so the SRD Slow spell can reuse it.",
+              "status": "TODO",
+              "closes": ["SPELLS-19.2"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 3,
+                "rr": 3,
+                "size": 5,
                 "after": ["SPELLS-19.T3b"]
               }
             },
