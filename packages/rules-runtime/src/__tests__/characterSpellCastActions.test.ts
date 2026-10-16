@@ -167,6 +167,8 @@ const authoredById = new Map(
     PLAIN_HOLD,
     CURE_WOUNDS,
     HEALING_WORD,
+    SHIELD,
+    SHIELD_OF_FAITH,
     GAPPED_HEAL,
     LATE_HEAL
   ].map((entry) => [entry.id, entry])

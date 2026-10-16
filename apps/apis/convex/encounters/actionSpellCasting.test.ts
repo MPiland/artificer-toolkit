@@ -1182,7 +1182,7 @@ describe('Character spell casting in an Encounter', () => {
       expect(await allowanceUsed(fixture, SRD_ACTION_ALLOWANCE_DEFINITION_ID)).toBe(0)
     }, 120000)
 
-    it('offers an Action spell as an Action and keeps a reaction spell out of the turn choices', async () => {
+    it('offers an Action spell as an Action and a reaction spell as a Reaction', async () => {
       const fixture = await setup({
         known: [srdSpell(cureWounds), srdSpell(shield)],
         withOthers: true
@@ -1191,7 +1191,9 @@ describe('Character spell casting in an Encounter', () => {
       expect(choices.find(({ label }) => label === 'Cure Wounds (1st level)')?.actionCost).toBe(
         'ACTION'
       )
-      expect(choices.some(({ label }) => label.startsWith('Shield'))).toBe(false)
+      expect(choices.find(({ label }) => label === 'Shield (1st level)')?.actionCost).toBe(
+        'REACTION'
+      )
     }, 120000)
 
     it('warns, overridably, when a heal targets an excluded creature type, and heals once overridden', async () => {

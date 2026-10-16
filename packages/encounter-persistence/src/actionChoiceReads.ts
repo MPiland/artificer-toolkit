@@ -29,7 +29,7 @@ import {
   type GetEncounterOptionalActionChoicesInputDto
 } from '@artificer-toolkit/schema/api/encounterActionChoices'
 import type { EncounterRuleWarningDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
-import { basicActionCostDtoSchema } from '@artificer-toolkit/schema/shared/basicActions'
+import { activationCodeSchema } from '@artificer-toolkit/schema/shared/enums'
 import { activeOptionalCombatDefinitions } from '@artificer-toolkit/schema/shared/optionalCombat'
 import { requireEncounterActorControl } from './actorController.js'
 import {
@@ -185,13 +185,12 @@ export async function readEncounterActionChoices(
           candidate?.mechanicFacts.invocation.activation ?? null,
           candidate?.mechanicFacts.invocation.triggerCode
         )
-        // A cast names the activation its Effect authors; a reaction cast is never a turn choice.
-        const castCost =
-          candidate?.mechanicsOwner.kind === 'SPELL'
-            ? basicActionCostDtoSchema.safeParse(
-                candidate.mechanicFacts.invocation.activation?.code
-              )
-            : null
+        // A cast names the activation its Effect authors, whatever it is.
+        const castActivation =
+          candidate?.mechanicsOwner.kind === 'SPELL' &&
+          candidate.mechanicFacts.invocation.activation
+            ? activationCodeSchema.parse(candidate.mechanicFacts.invocation.activation.code)
+            : undefined
         return {
           id: action.id,
           // A cast is titled with its level; every other action with the Sheet's own label.
@@ -200,7 +199,7 @@ export async function readEncounterActionChoices(
             action.label,
           ...(action.sourceLabel ? { sourceLabel: action.sourceLabel } : {}),
           ...encounterActionChoiceRange(targetPolicy, action.mechanic?.rangeLabel),
-          ...(castCost?.success ? { actionCost: castCost.data } : {}),
+          ...(castActivation ? { actionCost: castActivation } : {}),
           ...(action.mechanic?.attackBonus === undefined
             ? {}
             : { attackBonus: action.mechanic.attackBonus }),
