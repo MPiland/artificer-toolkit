@@ -82,3 +82,10 @@ Closes AC SPELLS-28.1. Two stages, each red on `ci/spells-28-t4-red` then green 
 - **Stage 1, creature targets.** A rule-filtered form choice beside the fixed list (core option: creature type, CR cap from target CR/level, caster level or a fixed value, excluded speed modes), validated at cast against the System creature corpus; the command carries the chosen `creatureId`. Form-after-save compile plan (Polymorph, True Polymorph creature to creature). Corpus proof against the real compiler; one journey.
 - **Stage 2, Characters.** `form` on CHARACTER Run actors with the same shape and one revert path; form HP and temp HP live on the actor while the Sheet HP row is untouched; in-Encounter damage and healing route to the form; revert carry-over goes through the normal Sheet damage batch. Shapechange (creature form, self), Wild Shape re-authored as a core option (level-scaled duration and CR cap, no swim below druid level 4, no fly below 8), retained INT/WIS/CHA and save/skill proficiencies (higher bonus wins) as an authored form option, casting refused while in a form that cannot cast (Wild Shape, Polymorph; Concentration kept).
 - **Not in T4:** the form outliving the Run (T4b); known forms, object forms, True Polymorph permanence, Shapechange re-forming (`future-enhancements.md`).
+
+## T4 stage 1 status (2026-10-16)
+
+- Red: `ci/spells-28-t4-red` a13f8cf76, Tests 38944606546, Live 38944606568 (both failed as intended).
+- Green: `ci/spells-28-t4` 2b10ea73f (includes the merge of `codex/phase-08-2-convex-cutover` and the regenerated SRD manifest), Tests 38957200514, Live 38957200558.
+- Proof: `packages/rules-runtime/src/__tests__/encounterFormChoice.test.ts`, `encounterAreaActionCompilation.test.ts`, `packages/schema/src/__tests__/encounter-action-actors-target.test.ts`, `packages/authoring/src/nodeRuntime/creatureFormAuthoringParity.test.ts`, `apps/session-worker/test/nativeRoomPolymorph.test.ts`, `CampaignTabletopActionDrawer.test.tsx`.
+- Stage 2 (Character Run actors, retained INT/WIS/CHA and proficiencies, casting refused in form, one revert path) is NOT built; AC SPELLS-28.1 stays open until it is.
