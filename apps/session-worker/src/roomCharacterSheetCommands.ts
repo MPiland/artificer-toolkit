@@ -1,4 +1,5 @@
 import { endCharacterActiveEffect } from '@artificer-toolkit/encounter-persistence/characterActiveEffects'
+import { endGrantsOnHitPointsRegained } from '@artificer-toolkit/encounter-persistence/consumedGrantPersistence'
 import {
   endChosenConcentration,
   endOutsideCasterConcentration
@@ -248,6 +249,8 @@ export async function executeRoomCharacterSheetCommand(input: {
       ).overview.maxHitPoints
     )
   }
+  if (updated.state.hitpoints.current > initial.character.state.hitpoints.current)
+    await endGrantsOnHitPointsRegained(ctx, { kind: 'CHARACTER', characterId })
   const nextSheetState = characterSheetStateSchema.parse({
     ...initial.sheetState,
     partyVisibility:

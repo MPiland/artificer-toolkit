@@ -82,7 +82,7 @@ export async function removeCampaignCustodyFixture(cohort: CampaignCustodyCohort
   )
 }
 
-async function verifyCharacterCustody(cohort: CampaignCustodyCohort) {
+export async function verifyCharacterCustody(cohort: CampaignCustodyCohort) {
   if (fighter.category !== 'BASE') throw new Error('Custody requires the canonical base Fighter.')
   const [first, second] = cohort.players
   const [sourceId, destinationId] = cohort.characterIds
@@ -443,16 +443,19 @@ async function verifyCharacterCustody(cohort: CampaignCustodyCohort) {
   )
 }
 
+// `boundedCleanup` defaults to the durable path: the Vehicle is large enough that its source-loss cleanup is a
+// pending job, and the party then holds more than one inventory page for the Character custody driver.
 export async function verifyCampaignCustody(
   cohort: CampaignCustodyCohort,
-  anonymous: DevelopmentClient
+  anonymous: DevelopmentClient,
+  boundedCleanup = true
 ) {
   await verifyCampaignInventory({
     owner: cohort.owner,
     player: cohort.players[0].client,
     anonymous,
     campaignId: cohort.campaignId,
-    boundedCleanup: false
+    boundedCleanup
   })
   await verifyCharacterCustody(cohort)
   await verifyCampaignVehicleLifecycle(cohort, anonymous)

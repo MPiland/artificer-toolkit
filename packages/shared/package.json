@@ -108,6 +108,10 @@
       "types": "./dist/domains/account/usernamePolicy.d.ts",
       "default": "./dist/domains/account/usernamePolicy.js"
     },
+    "./account/usernameServer": {
+      "types": "./dist/domains/account/usernameServerPolicy.d.ts",
+      "default": "./dist/domains/account/usernameServerPolicy.js"
+    },
     "./account/ageAttestation": {
       "types": "./dist/domains/account/ageAttestation.d.ts",
       "default": "./dist/domains/account/ageAttestation.js"
@@ -153,11 +157,12 @@
     "clean": "rimraf dist",
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.build.json --noEmit",
+    "generate:username-words": "node scripts/generateUsernameWordList.mjs",
     "test": "yarn --cwd ../.. vitest run --config vitest.config.ts packages/shared/src/__tests__"
   },
   "dependencies": {
-    "@2toad/profanity": "^3.3.0",
     "@artificer-toolkit/design-system": "workspace:^",
+    "obscenity": "0.4.6",
     "polygon-clipping": "0.15.7",
     "rbush": "4.0.1",
     "robust-predicates": "3.0.3"
@@ -165,6 +170,7 @@
   "devDependencies": {
     "@types/rbush": "4.0.0",
     "fast-check": "4.10.2",
+    "subtlex-word-frequencies": "2.0.0",
     "type-fest": "^5.10.0",
     "typescript": "^7.0.2",
     "zod": "4.4.3"

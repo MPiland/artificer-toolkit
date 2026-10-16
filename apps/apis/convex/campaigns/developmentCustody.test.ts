@@ -3,6 +3,7 @@ import { createFunctionHandle, makeFunctionReference } from 'convex/server'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   verifyCampaignCustody,
+  verifyCharacterCustody,
   type CampaignCustodyCohort
 } from '../../tests/developmentCampaignCustody'
 import { verifyCampaignInventory } from '../../tests/developmentCampaignInventory'
@@ -689,7 +690,7 @@ describe('development custody fixture cleanup', () => {
 
   it('runs the public mixed Character custody driver and validates historical Vehicle removal before cleanup', async () => {
     const { base, second, cohort, anonymous } = await mixedCohort()
-    await verifyCampaignCustody(cohort, anonymous)
+    await verifyCampaignCustody(cohort, anonymous, false)
     const before = await readScoped(base)
     const lifecycle = before.events.find((event) => event.type === 'VEHICLE_LIFECYCLE')
     if (!lifecycle) throw new Error('Public driver lifecycle receipt is missing.')
@@ -718,7 +719,7 @@ describe('development custody fixture cleanup', () => {
     expect(after.assignments.map((row) => row.characterId)).toEqual([base.character.id])
   }, 30000)
 
-  it('validates a durable bounded Vehicle cleanup receipt before removing the cohort', async () => {
+  it('validates a durable bounded Vehicle cleanup receipt and pages the Character custody driver before removing the cohort', async () => {
     const { base, second, cohort, anonymous } = await mixedCohort()
     await verifyCampaignInventory({
       owner: cohort.owner,
@@ -726,6 +727,14 @@ describe('development custody fixture cleanup', () => {
       anonymous,
       campaignId: cohort.campaignId
     })
+    // The bounded cleanup leaves the party more rows than one inventory page, which is what makes the
+    // driver's cursor-advance assertions run.
+    const firstPartyPage = await cohort.owner.query(api.campaigns.partyInventory.items, {
+      campaignId: cohort.campaignId,
+      paginationOpts: { cursor: null, numItems: 8 }
+    })
+    expect(firstPartyPage.isDone).toBe(false)
+    await verifyCharacterCustody(cohort)
     const before = await readScoped(base)
     await expectTamperedEvacuationRefused(
       base,

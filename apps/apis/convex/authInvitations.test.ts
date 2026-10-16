@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto'
 import { hashPassword } from 'better-auth/crypto'
 import { convexTest } from '../tests/convexTest'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -59,7 +58,9 @@ describe('one-use account invitations', () => {
     await f.issue()
     expect(await f.record()).toMatchObject({
       identifier: f.identifier,
-      value: createHash('sha256').update(f.input.token).digest('hex'),
+      value: Buffer.from(
+        await crypto.subtle.digest('SHA-256', new TextEncoder().encode(f.input.token))
+      ).toString('hex'),
       expiresAt: Date.now() + 24 * 60 * 60 * 1000
     })
     expect(await f.user()).toBeNull()
@@ -140,6 +141,20 @@ describe('one-use account invitations', () => {
     )
     expect(await f.user()).toBeNull()
     expect(await f.t.run((ctx) => ctx.db.query('userProfiles').take(1))).toEqual([])
+  })
+
+  // The invitation signs up through the public options, so it runs the sign-up moderation hook.
+  it('refuses a blocked username, keeps the invitation and creates no user', async () => {
+    const f = fixture()
+    await f.issue()
+    const before = await f.record()
+    await expect(
+      f.t.action(internal.authInvitationActions.redeem, { ...f.input, username: 'assmuncher' })
+    ).rejects.toThrow()
+    expect(await f.user()).toBeNull()
+    expect(await f.record()).toEqual(before)
+    expect(await f.t.run((ctx) => ctx.db.query('userProfiles').take(1))).toEqual([])
+    await expect(f.t.action(internal.authInvitationActions.redeem, f.input)).resolves.toBeNull()
   })
 
   it('rolls back account, credential, profile and consumption after a late abort', async () => {

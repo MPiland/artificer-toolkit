@@ -1,4 +1,7 @@
-import { consumableGrants } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
+import {
+  consumableGrants,
+  grantsEndedBy
+} from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
@@ -8,10 +11,11 @@ import type {
   EncounterCharacterWriteTransaction,
   EncounterPersistenceTransaction
 } from './ports.js'
+import type { EncounterWriteContext } from './store.js'
 
 /** Deletes grants a roll used up or a holder's state ended, with the versions they were planned against. */
 export async function deleteGrants(
-  ctx: EncounterPersistenceTransaction,
+  ctx: EncounterWriteContext,
   grants: readonly ActiveRuleEffectRecord[]
 ) {
   const store = createActiveRuleEffectStore(ctx)
@@ -35,6 +39,23 @@ export async function deleteHeldAttackRollGrants(
       ctx,
       consumableGrants(await store.list(turnEffectOwner(actor, input.state.id)), 'ON_ATTACK_ROLL')
     )
+}
+
+/**
+ * Ends the owner's grants that last until hit points are regained, for a change that raised its
+ * hit points (a heal, a death save, a Sheet or GM edit). The records come back so an undoable root
+ * can give them back on a GM undo.
+ */
+export async function endGrantsOnHitPointsRegained(
+  ctx: EncounterWriteContext,
+  owner: ActiveRuleEffectRecord['owner']
+) {
+  const ended = grantsEndedBy(
+    await createActiveRuleEffectStore(ctx).list(owner),
+    'ON_HIT_POINTS_REGAINED'
+  )
+  await deleteGrants(ctx, ended)
+  return ended
 }
 
 /**

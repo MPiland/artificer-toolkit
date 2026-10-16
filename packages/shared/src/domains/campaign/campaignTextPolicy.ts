@@ -1,18 +1,17 @@
-import { CensorType, Profanity } from '@2toad/profanity'
 import type { NodeMap } from '../../utils/nodeDefinition.js'
+import { profanityMatcher } from '../moderation/profanityMatcher.js'
 
 export type CampaignContentMaturity = 'STANDARD' | 'MATURE'
 
-const STANDARD_TEXT_ALLOWLIST = ['hell', 'shitake']
-const profanity = new Profanity({
-  languages: ['en'],
-  wholeWord: true,
-  grawlix: '****'
-})
-profanity.whitelist.addWords(STANDARD_TEXT_ALLOWLIST)
-
+/** Replaces each matched span with `****`. Matches are sorted by start; an overlapping one extends the span. */
 export function maskStandardPlainText(value: string): string {
-  return profanity.censor(value.replace(/\bshit(?=storm\b)/gi, '****'), CensorType.Word)
+  let masked = ''
+  let cursor = 0
+  for (const { startIndex, endIndex } of profanityMatcher.getAllMatches(value, true)) {
+    if (startIndex >= cursor) masked += `${value.slice(cursor, startIndex)}****`
+    cursor = Math.max(cursor, endIndex + 1)
+  }
+  return masked + value.slice(cursor)
 }
 
 export function maskStandardRichText(value: string): string {

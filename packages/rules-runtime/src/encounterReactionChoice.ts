@@ -11,6 +11,7 @@ import type {
   ServerRuleExecutionD20PolicyDto
 } from '@artificer-toolkit/schema/shared/rulesExecution'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import { v5 as uuidv5 } from 'uuid'
 
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
 import { startReactionChoice } from './reactionChoiceDefinition.js'
@@ -69,6 +70,13 @@ export function sameEncounterReactionCandidate(
   )
 }
 
+const reactionEffectNamespace = 'c2a9f1d4-5b3e-4e7a-8d60-1f4b7a92e5c3'
+
+/** The id of the effect a used reaction leaves on its reactor: a replay of the command mints the same one. */
+export function encounterReactionEffectId(input: { commandId: string; occurrenceId: string }) {
+  return uuidv5(`${input.commandId}:${input.occurrenceId}`, reactionEffectNamespace)
+}
+
 /** The interstitial audit a decided offer hands the sealed OUTCOME it selects. */
 export function encounterReactionAudit(input: {
   offer: Pick<
@@ -110,6 +118,22 @@ export async function openEncounterReactionChoice(input: {
 }
 
 /**
+ * The reaction a decision answers: the one whose use option was chosen, or the innermost for a decline.
+ * An option the offer never issued is refused.
+ */
+export function chosenEncounterReaction(
+  offer: Pick<EncounterReactionOfferDto, 'reactions'>,
+  selection: EncounterReactionSelection
+) {
+  const chosen =
+    selection.kind === 'OPTION'
+      ? offer.reactions.find((reaction) => reaction.useOptionId === selection.optionId)
+      : offer.reactions[0]
+  if (!chosen) throw new Error('Reaction selection was not issued.')
+  return chosen
+}
+
+/**
  * Settles a sealed choice against its pin. The offer, the hit and the reactor's facts must all still be
  * the ones it was made against; using the reaction spends nothing here, the caller's commit does.
  */
@@ -120,15 +144,17 @@ export async function settleEncounterReactionChoice(input: {
     execution: ServerCompletedRuleExecutionDto
     d20Policy: ServerRuleExecutionD20PolicyDto
   }
-  offer: EncounterReactionOfferDto
+  offer: Pick<
+    EncounterReactionOfferDto,
+    'reactions' | 'targetStateChecksum' | 'originalExecutionChecksum' | 'd20'
+  >
   candidate: EncounterAttackReactionCandidate
   targetStateChecksum: string
   selection: EncounterReactionSelection
 }) {
   const { boundary, offer } = input
-  const reaction = offer.reactions[0]
+  const reaction = chosenEncounterReaction(offer, input.selection)
   if (
-    !reaction ||
     input.targetStateChecksum !== offer.targetStateChecksum ||
     checksumRuleDocument(boundary.execution) !== offer.originalExecutionChecksum ||
     checksumRuleDocument(boundary.d20Policy) !== checksumRuleDocument(offer.d20) ||
@@ -141,9 +167,7 @@ export async function settleEncounterReactionChoice(input: {
       boundary.execution.outputs.resultPath !== 'ON_CRIT')
   )
     throw new Error('A reaction to an attack requires sealed hit evidence.')
-  const use = input.selection.kind === 'OPTION' && input.selection.optionId === reaction.useOptionId
-  if (input.selection.kind !== 'DECLINE' && !use)
-    throw new Error('Reaction selection was not issued.')
+  const use = input.selection.kind === 'OPTION'
   const continuation = await openEncounterReactionChoice(input)
   if (
     continuation.graph.source.definitionId !== reaction.choiceDefinitionId ||

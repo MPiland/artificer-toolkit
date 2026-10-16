@@ -247,8 +247,8 @@ it('traverses 51 qualified and masked audit rows, preserving history and current
           expect(raw).toBeDefined()
           expect(event.payload).toEqual({
             ...raw.payload,
-            ...('itemLabel' in raw.payload ? { itemLabel: '**** Club' } : {}),
-            ...('denominationLabel' in raw.payload ? { denominationLabel: '**** Coin' } : {})
+            ...('itemLabel' in raw.payload ? { itemLabel: '****ing Club' } : {}),
+            ...('denominationLabel' in raw.payload ? { denominationLabel: '****ing Coin' } : {})
           })
           expect(event.actorUserId).toBe(owner.userId)
           expect(event.visibility).toBe('OWNER')
