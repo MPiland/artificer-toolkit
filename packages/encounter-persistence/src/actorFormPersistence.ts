@@ -5,7 +5,7 @@ import {
   type EncounterActorFormCreature
 } from '@artificer-toolkit/rules-runtime/encounterActorForm'
 import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
-import { readRunActorWithRow, readRunState, writeRunActor } from './documents.js'
+import { readRunActors, readRunActorWithRow, readRunState, writeRunActor } from './documents.js'
 import type { EncounterWritePorts } from './ports.js'
 import type { EncounterWriteContext } from './store.js'
 
@@ -83,6 +83,33 @@ export async function endActorFormHeldBy(
     .unique()
   if (!run) throw new Error('Encounter is unavailable.')
   const { row, actor } = await readRunActorWithRow(ctx, readRunState(run), input.actorId)
-  if (actor.kind === 'CHARACTER' || actor.form?.effectId !== input.effectId) return
+  if (actor.form?.effectId !== input.effectId) return
   await writeRunActor(ctx, row._id, revertActorForm(actor))
+}
+
+/**
+ * Ends the form a Character-owned effect held (D130 amendment): the effect names its Character, so
+ * the Run actor that wears the form is found among the Encounter's actors.
+ */
+export async function endCharacterFormHeldBy(
+  ctx: EncounterWriteContext,
+  input: { encounterId: string; characterId: string; effectId: string }
+) {
+  const run = await ctx.db
+    .query('encounterRuns')
+    .withIndex('by_publicId', (q) => q.eq('id', input.encounterId))
+    .unique()
+  if (!run) throw new Error('Encounter is unavailable.')
+  const wearer = (await readRunActors(ctx, readRunState(run))).find(
+    (actor) =>
+      actor.kind === 'CHARACTER' &&
+      actor.sourceId === input.characterId &&
+      actor.form?.effectId === input.effectId
+  )
+  if (wearer)
+    await endActorFormHeldBy(ctx, {
+      encounterId: input.encounterId,
+      actorId: wearer.id,
+      effectId: input.effectId
+    })
 }

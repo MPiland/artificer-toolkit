@@ -123,6 +123,7 @@ it('refreshes only the owning Character or Campaign play revision for Rule Effec
     ctx.db.insert('encounterSpatialRuleEffects', {
       ...effect,
       id: crypto.randomUUID(),
+      maintainedEffectStateId: null,
       encounterId,
       sceneId: crypto.randomUUID(),
       placement: {

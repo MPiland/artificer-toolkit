@@ -10,10 +10,11 @@ import { evaluateNativeLiveActionEconomy } from './nativeEncounterActionEconomy.
 import { refuseActionOutsideItsWindow } from './nativeEncounterActionInputs.js'
 import {
   completeAreaCommit,
-  leadActiveEffectPlan,
+  openReachCastWindow,
   prepareAreaTarget,
   prepareCasterSource,
   prepareChosenActorsReach,
+  readChosenFormCreature,
   reachRuleOverrides,
   sealReachSaves,
   type AreaPlanBase
@@ -29,31 +30,6 @@ const refusal = (message: string) =>
     reason: 'TARGET_UNAVAILABLE',
     message
   })
-
-/**
- * The Creature the caster's chosen form swaps the targets into (D130), or null for an action that
- * holds no form. The form is the caster's one choice for the whole cast, capped by its own targets.
- */
-async function readChosenFormCreature(
-  input: AreaPlanBase & { command: ActorsCommand },
-  lead: Parameters<typeof leadActiveEffectPlan>[0],
-  targets: readonly AreaPlanBase['actors'][number][]
-) {
-  const { formId } = input.command.target
-  const contribution = leadActiveEffectPlan(lead)?.creatureFormContribution
-  if (!contribution) {
-    if (formId !== undefined) throw refusal('This action takes no creature form.')
-    return null
-  }
-  const form = contribution.forms.find((candidate) => candidate.id === formId)
-  if (!form) throw refusal('This action needs one of its creature forms.')
-  if (targets.length > form.maxTargets)
-    throw refusal(`That form takes at most ${form.maxTargets} creatures.`)
-  if (targets.some((actor) => actor.kind === 'CHARACTER' || actor.form !== null))
-    throw refusal('A chosen creature cannot take a creature form.')
-  if (!input.readFormCreature) throw new Error('The creature form cannot be read.')
-  return input.readFormCreature(input.state.gameSystemId, form.creatureId)
-}
 
 /**
  * Plans a cast on a list of chosen creatures (Mass Healing Word, Mass Cure Wounds) as one commit:
@@ -130,7 +106,7 @@ export async function planNativeLiveEncounterActorsAction(
   const lead = prepared[0]!.prepared
   if (command.optionalCombatIntent != null) throw new Error('The action is not an ordinary action.')
   refuseActionOutsideItsWindow(lead)
-  const formCreature = await readChosenFormCreature(input, lead, chosen)
+  const formCreature = await readChosenFormCreature(input, lead, chosen, movementTargets)
 
   const evaluation = await evaluateNativeLiveActionEconomy({
     prepared: lead,
@@ -148,18 +124,27 @@ export async function planNativeLiveEncounterActorsAction(
     targets: prepared,
     movementTargets
   })
+  const opened = await openReachCastWindow(input, { reach, lead, evaluation, ruleOverrides })
+  if (opened.kind === 'PLAN') return opened.plan
+  const { window } = opened
   // An action that asks each creature for a save waits for the rollers it names.
   if (lead.plan.kind !== 'SINGLE_GRAPH')
-    return sealReachSaves(input, { reach, lead, targets: prepared, evaluation, ruleOverrides })
+    return sealReachSaves(input, {
+      reach,
+      lead,
+      targets: prepared,
+      evaluation,
+      ruleOverrides,
+      window
+    })
   const { economy, attackAction } = evaluation
 
-  const occurrenceId = crypto.randomUUID()
   const settled = await executeEncounterActorsAction({
     runtime: input.runtime,
     random: input.random,
     adapter: lead.adapter,
     plan: lead.plan,
-    occurrenceId,
+    occurrenceId: window.occurrenceId,
     rollsPerTarget: allowRepeatedTargets,
     targets: prepared.map(({ actor, prepared: entry }) => ({
       actorId: actor.id,
@@ -170,6 +155,8 @@ export async function planNativeLiveEncounterActorsAction(
     input,
     command,
     caster,
+    occurredAt: window.occurredAt,
+    failedCounters: await window.pause.planFailedCounters(window.failedCounters),
     movementTargets,
     kept: prepared.map(({ actor, prepared: entry }) => ({ actor, target: { prepared: entry } })),
     lead,
@@ -181,13 +168,13 @@ export async function planNativeLiveEncounterActorsAction(
     rollsPerTarget: allowRepeatedTargets,
     tests: [],
     audits: new Map(),
-    areaOccurrenceId: occurrenceId,
+    areaOccurrenceId: window.occurrenceId,
     areaSnapshot: null,
     caughtChecksum: encounterChosenActorsChecksum(actorIds),
     removedActorIds: [],
     placement: null,
-    occurrenceVersion: 0,
-    response: null,
+    occurrenceVersion: window.occurrenceVersion,
+    response: window.response,
     removal: null
   })
 }

@@ -590,6 +590,7 @@ function turnEffectMechanicsBatch(input: {
     applications: input.applications,
     expectedCharacterStreamVersion: input.target.characterFacts?.active.play.streamVersion ?? null,
     effectiveMaximumHitPoints: input.target.effectiveMaximumHitPoints,
+    sheetMaximumHitPoints: input.target.sheetMaximumHitPoints,
     effectiveScalarValues: input.target.effectiveScalarValues,
     retainedConditionIds: input.retainedConditionIds,
     forceVersionAdvance: actor.kind === 'CHARACTER'
@@ -696,7 +697,7 @@ export async function prepareEncounterTurnEffects<
     }
   }
   if (input.retainedPhase?.kind === 'MANUAL') throw new Error('Retained turn automation is stale.')
-  await requireTurnMaintainedStates(input.state.id, candidates, input.loadMaintainedState)
+  await requireTurnMaintainedStates(input.state.id, actor, candidates, input.loadMaintainedState)
   let target = targets.get(actor.id)
   if (!target) target = await input.loadTarget(actor.id)
   if (!target) throw new Error('Turn effect target facts are unavailable.')

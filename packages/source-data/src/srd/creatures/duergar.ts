@@ -342,8 +342,11 @@ export const duergar: CreatureAuthored = {
                 resultKind: 'SINGLE' as const,
                 duration: {
                   id: S.actionId(3450, 16),
-                  durationKind: DURATION_KIND.MINUTE,
+                  durationKind: DURATION_KIND.HOUR,
                   amount: 1
+                },
+                lifecycle: {
+                  endOnEvents: ['ON_ATTACK_ROLL', 'ON_CAST_SPELL']
                 },
                 outcomes: [
                   {

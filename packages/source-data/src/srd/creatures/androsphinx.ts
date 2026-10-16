@@ -283,7 +283,8 @@ export const androsphinx: CreatureAuthored = {
                   {
                     id: S.actionId(24, 117),
                     effectKind: S.EFFECT_KIND.CONDITION,
-                    conditionId: conditionTypeId('FRIGHTENED')
+                    conditionId: conditionTypeId('FRIGHTENED'),
+                    recordsSource: true
                   },
                   {
                     id: S.actionId(24, 118),
@@ -358,7 +359,8 @@ export const androsphinx: CreatureAuthored = {
                   {
                     id: S.actionId(24, 127),
                     effectKind: S.EFFECT_KIND.CONDITION,
-                    conditionId: conditionTypeId('FRIGHTENED')
+                    conditionId: conditionTypeId('FRIGHTENED'),
+                    recordsSource: true
                   },
                   {
                     id: S.actionId(24, 128),

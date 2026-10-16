@@ -4,6 +4,7 @@ import type { EquipmentAuthored } from '@artificer-toolkit/shared/subjects/autho
 import { caltropsBagOf20 } from '@artificer-toolkit/source-data/srd/equipment/caltrops-bag-of-20.js'
 import { CREATURE_IDS } from '@artificer-toolkit/source-data/srd/ids.js'
 import { giantInsect } from '@artificer-toolkit/source-data/srd/spells/giant-insect.js'
+import { polymorph } from '@artificer-toolkit/source-data/srd/spells/polymorph.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { normalizeNodeRuntimeValues } from './nodeRuntimeService.js'
@@ -51,6 +52,16 @@ function polymorphShaped(): EquipmentAuthored {
 describe('the creature form through the effect node map (ADR 0038)', () => {
   it('keeps the SRD Giant Insect forms exactly as authored', async () => {
     const authored = equipmentWithGiantInsect()
+    const result = await normalize(authored)
+    expect(result.clearedPaths).toEqual([])
+    expect(result.values.effects).toEqual(authored.effects)
+  })
+
+  it('keeps the SRD Polymorph form filter exactly as authored, beside no fixed forms', async () => {
+    const authored: EquipmentAuthored = {
+      ...structuredClone(caltropsBagOf20),
+      effects: structuredClone(polymorph.effects)
+    }
     const result = await normalize(authored)
     expect(result.clearedPaths).toEqual([])
     expect(result.values.effects).toEqual(authored.effects)

@@ -371,7 +371,8 @@ export const adultGoldDragon: CreatureAuthored = {
                   {
                     id: S.actionId(8, 603),
                     effectKind: S.EFFECT_KIND.CONDITION,
-                    conditionId: conditionTypeId('FRIGHTENED')
+                    conditionId: conditionTypeId('FRIGHTENED'),
+                    recordsSource: true
                   },
                   {
                     id: S.actionId(8, 604),

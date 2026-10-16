@@ -28,3 +28,7 @@ runs:
       with:
         name: package-dist
         path: packages
+    # Not committed: the generator reads the built shared dist, so it runs after the build or download above.
+    - name: Generate the SRD manifest
+      shell: bash
+      run: yarn workspace @artificer-toolkit/apis generate:srd:manifest

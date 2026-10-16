@@ -2046,6 +2046,12 @@ function createFacetPredicateNodeMap(
                         .end()
                     )
                   )
+                  .elseIf(local.field(['predicateCode']).eq('ATTACK_ACTION_OTHER_WEAPON'))
+                  .then((o) =>
+                    o.chain((s) =>
+                      s.seed('equipment_properties', { valueColumn: 'property_code' }).end()
+                    )
+                  )
                   .elseIf(local.field(['predicateCode']).eq('EQUIPMENT_EQUIPPED'))
                   .then((o) =>
                     o.condition((c2) =>
@@ -2138,7 +2144,8 @@ function createFacetPredicateNodeMap(
             requiredIf: and([
               or([
                 local.field(['predicateCode']).eq('EQUIPMENT_PROPERTY'),
-                local.field(['predicateCode']).eq('EQUIPMENT_PROPERTY_PROFICIENCY')
+                local.field(['predicateCode']).eq('EQUIPMENT_PROPERTY_PROFICIENCY'),
+                local.field(['predicateCode']).eq('ATTACK_ACTION_OTHER_WEAPON')
               ]),
               local.field(['authoringModeKind']).eq('SELECTED')
             ]),
@@ -2146,7 +2153,8 @@ function createFacetPredicateNodeMap(
               and([
                 or([
                   local.field(['predicateCode']).eq('EQUIPMENT_PROPERTY'),
-                  local.field(['predicateCode']).eq('EQUIPMENT_PROPERTY_PROFICIENCY')
+                  local.field(['predicateCode']).eq('EQUIPMENT_PROPERTY_PROFICIENCY'),
+                  local.field(['predicateCode']).eq('ATTACK_ACTION_OTHER_WEAPON')
                 ]),
                 local.field(['authoringModeKind']).eq('SELECTED')
               ]),

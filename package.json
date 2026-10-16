@@ -8,7 +8,7 @@
   ],
   "type": "module",
   "scripts": {
-    "dev:prepare": "yarn build:apis",
+    "dev:prepare": "yarn build:apis && yarn workspace @artificer-toolkit/apis generate:srd:manifest",
     "dev": "yarn dev:prepare && turbo run dev --filter=@artificer-toolkit/web",
     "turbo": "turbo",
     "social:retention:convex": "tsx apps/apis/src/scripts/socialRetention.ts",

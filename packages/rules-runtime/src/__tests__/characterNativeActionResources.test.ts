@@ -31,7 +31,10 @@ const fighter = evaluateSrdCharacter({
   classes: [{ label: 'Fighter', level: 1 }],
   items: [{ label: 'Handaxe', equipped: true }]
 })
-const { candidate, decision } = itemAction(fighter, 'Handaxe', { attackKind: 'MELEE' })
+const { candidate, decision } = itemAction(fighter, 'Handaxe', {
+  attackKind: 'MELEE',
+  activation: 'ACTION'
+})
 const compiledEntry = compileCharacterActionEntryPoints({
   gameSystemId: SRD_SYSTEM_ID,
   candidates: fighter.facts.actionCandidates,

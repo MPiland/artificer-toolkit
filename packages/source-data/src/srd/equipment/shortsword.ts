@@ -13,11 +13,14 @@ export const shortsword: EquipmentAuthored = {
     S.EQUIPMENT_PROPERTY_CODE.FINESSE,
     S.EQUIPMENT_PROPERTY_CODE.LIGHT
   ],
-  effects: S.meleeWeaponEffects(S.equipId(28), 'PIERCING', '1d6', S.EQUIPMENT_GRIP.ONE_HANDED),
+  effects: S.withOffHandAttack(
+    S.equipId(28),
+    S.meleeWeaponEffects(S.equipId(28), 'PIERCING', '1d6', S.EQUIPMENT_GRIP.ONE_HANDED)
+  ),
   cost: S.gp(10),
   weight: S.lbs(2),
   rarityId: S.RARITY_COMMON,
-  modifiers: S.finesseWeaponModifiers(S.equipId(28)),
+  modifiers: S.withOffHandDamage(S.equipId(28), S.finesseWeaponModifiers(S.equipId(28))),
   userId: S.SRD_USER_ID,
   systemId: S.SRD_SYSTEM_ID
 }

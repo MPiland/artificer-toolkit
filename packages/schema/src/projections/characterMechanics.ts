@@ -136,6 +136,21 @@ const compiledActionResourceBindingSchema = lazySchema(() =>
     cost: z.number().check(z.int()).check(z.gte(1)).check(z.lte(Number.MAX_SAFE_INTEGER))
   })
 )
+
+/** The maintained effect (Concentration) an action starts, resolved under the Encounter transaction. */
+const compiledActionMaintenanceSchema = lazySchema(() =>
+  z.nullable(
+    z.strictObject({
+      definitionId: serverUuidIdentityDtoSchema,
+      /** Resolved under the Encounter transaction before any aggregate mutation. */
+      definitionChecksum: z.nullable(z.string().check(z.regex(/^[a-f0-9]{64}$/))),
+      owner: z.literal('SOURCE_ACTOR'),
+      replacementPolicy: z.literal('REPLACE_SAME_DEFINITION'),
+      emptyDependentPolicy: z.enum(['TERMINATE_WHEN_EMPTY', 'RETAIN_UNTIL_TERMINAL'])
+    })
+  )
+)
+
 const compiledActionActiveEffectPlanSchema = lazySchema(() =>
   z.strictObject({
     authoredEffectId: serverUuidIdentityDtoSchema,
@@ -158,6 +173,7 @@ const compiledActionActiveEffectPlanSchema = lazySchema(() =>
       z.nullable(
         z.strictObject({
           conditionId: serverUuidIdentityDtoSchema,
+          recordsSource: z._default(z.boolean(), false),
           consumeOnFirstEvents: z._default(activeEffectConsumeEventsSchema, []),
           endOnEvents: z._default(activeEffectEndEventsSchema, []),
           endOnTriggers: z._default(activeEffectEndTriggersSchema, [])
@@ -239,34 +255,35 @@ const compiledActionActiveEffectPlanSchema = lazySchema(() =>
                 maxTargets: z.number().check(z.int()).check(z.positive())
               })
             )
-            .check(z.minLength(1))
-            .check(z.maxLength(32))
+            .check(z.maxLength(32)),
+          /**
+           * A rule-filtered choice beside the fixed forms: the cast names the Creature on the command and
+           * it must meet this at cast (Polymorph: a beast no higher than the target's challenge rating).
+           */
+          filter: z.nullable(
+            z.strictObject({
+              creatureTypeId: z.nullable(serverUuidIdentityDtoSchema),
+              challengeRatingCapKind: z.enum(['TARGET', 'FIXED']),
+              maxChallengeRatingId: z.nullable(serverUuidIdentityDtoSchema),
+              excludedSpeedIds: z.array(serverUuidIdentityDtoSchema).check(z.maxLength(16))
+            })
+          )
         })
       ),
       null
     ),
-    maintenance: z._default(
-      z.nullable(
-        z.strictObject({
-          definitionId: serverUuidIdentityDtoSchema,
-          /** Resolved under the Encounter transaction before any aggregate mutation. */
-          definitionChecksum: z.nullable(z.string().check(z.regex(/^[a-f0-9]{64}$/))),
-          owner: z.literal('SOURCE_ACTOR'),
-          replacementPolicy: z.literal('REPLACE_SAME_DEFINITION'),
-          emptyDependentPolicy: z.enum(['TERMINATE_WHEN_EMPTY', 'RETAIN_UNTIL_TERMINAL'])
-        })
-      ),
-      null
-    )
+    maintenance: z._default(compiledActionMaintenanceSchema, null)
   })
 )
 
 /**
- * A placed-space zone the action leaves on the Scene at the point its user picks. The geometry is
- * fixed when the point is known; everything else is compiled from the authored manifest.
+ * A zone the action leaves on the Scene: at the point its user picks (PLACED_SPACE), or centered on
+ * its user and moving with them (SOURCE). The geometry is fixed when the point or the user's token is
+ * known; everything else is compiled from the authored manifest.
  */
 const compiledActionZonePlacementSchema = lazySchema(() =>
   z.strictObject({
+    attachment: z.enum(['PLACED_SPACE', 'SOURCE']),
     label: spatialZoneLabelSchema,
     shape: shapeDtoSchema,
     triggerModes: z.array(spatialTriggerDtoSchema).check(z.minLength(1)).check(z.maxLength(3)),
@@ -283,7 +300,9 @@ const compiledActionZonePlacementSchema = lazySchema(() =>
         /** The events whose first occurrence ends the grant (a heal ends a speed penalty). */
         endOnEvents: activeEffectEndEventsSchema
       })
-    )
+    ),
+    /** The Concentration the placing cast opens; the zone depends on it (D135). */
+    maintenance: compiledActionMaintenanceSchema
   })
 )
 
@@ -300,6 +319,7 @@ const compiledActionTestOutcomePlanSchema = lazySchema(() =>
         published: serverPublishedRuleDefinitionDtoSchema,
         template: compiledActionTemplateIdentitySchema
       }),
+      /** Empty when a creature form's active-effect plan carries every outcome the TEST selects. */
       outcomes: z
         .array(
           z.strictObject({
@@ -307,7 +327,6 @@ const compiledActionTestOutcomePlanSchema = lazySchema(() =>
             template: compiledActionTemplateIdentitySchema
           })
         )
-        .check(z.minLength(1))
         .check(z.maxLength(32))
     })
     .check(
