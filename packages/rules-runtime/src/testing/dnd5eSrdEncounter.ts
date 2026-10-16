@@ -304,6 +304,7 @@ export function characterActor(input: { id: string; characterId: string }): Enco
     sourceId: input.characterId,
     frozenState: null,
     absence: null,
+    form: null,
     public: true,
     controllerUserIds: [],
     disposition: 'FRIENDLY',

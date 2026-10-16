@@ -76,6 +76,7 @@ import {
 import { buildEncounterActionPendingSnapshot } from '@artificer-toolkit/rules-runtime/encounterActionPendingSnapshot'
 import { encounterSceneGridPolicyRegistry } from '@artificer-toolkit/rules-runtime/sceneGridPolicyRegistry'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
+import { characterTotalLevel } from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
 import { actorFormEntry } from '@artificer-toolkit/encounter-persistence/actorFormPersistence'
 import { refuseStaleCharacterAction } from '@artificer-toolkit/encounter-persistence/staleCharacterAction'
 import type { EncounterActorFormCreature } from '@artificer-toolkit/rules-runtime/encounterActorForm'
@@ -1239,6 +1240,9 @@ const formRefusal = (message: string) =>
     message
   })
 
+const characterLevelOf = (target: MovementTargets | undefined) =>
+  target?.characterFacts ? characterTotalLevel(target.characterFacts) : null
+
 /**
  * The Creature the caster's chosen form swaps the targets into (D130), or null for an action that
  * holds no form. The form is the caster's one choice for the whole cast: one of the action's fixed
@@ -1248,7 +1252,8 @@ const formRefusal = (message: string) =>
 export async function readChosenFormCreature(
   input: AreaPlanBase & { command: ReachCommand },
   lead: AreaPrepared,
-  targets: readonly EncounterRunActorState[]
+  targets: readonly EncounterRunActorState[],
+  movementTargets: ReadonlyMap<string, MovementTargets>
 ) {
   const chosen = input.command.target.kind === 'ACTORS' ? input.command.target : null
   const formId = chosen?.formId
@@ -1267,7 +1272,7 @@ export async function readChosenFormCreature(
     throw formRefusal('This action takes only its own creature forms.')
   if (form && targets.length > form.maxTargets)
     throw formRefusal(`That form takes at most ${form.maxTargets} creatures.`)
-  if (targets.some((actor) => actor.kind === 'CHARACTER' || actor.form !== null))
+  if (targets.some((actor) => actor.form !== null))
     throw formRefusal('A chosen creature cannot take a creature form.')
   if (!input.readFormCreature) throw new Error('The creature form cannot be read.')
   const creature = await input.readFormCreature(input.state.gameSystemId, sourceId)
@@ -1276,7 +1281,10 @@ export async function readChosenFormCreature(
       const refused = creatureFormFilterRefusal({
         filter: contribution.filter,
         form: creature,
-        target: { snapshot: actor.snapshot, level: null },
+        target: {
+          snapshot: actor.kind === 'CHARACTER' ? null : actor.snapshot,
+          level: characterLevelOf(movementTargets.get(actor.id))
+        },
         system: input.system
       })
       if (refused) throw formRefusal(refused)
@@ -1425,7 +1433,8 @@ export async function planNativeLiveEncounterAreaCommit(
   const formCreature = await readChosenFormCreature(
     input,
     lead,
-    kept.map(({ target }) => target.prepared.target)
+    kept.map(({ target }) => target.prepared.target),
+    base.movementTargets
   )
   const ruleOverrides = reachRuleOverrides({
     command,
