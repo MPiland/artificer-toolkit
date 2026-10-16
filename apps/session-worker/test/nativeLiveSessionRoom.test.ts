@@ -7145,6 +7145,43 @@ it('plans live token movement with vision and kept fog only while fog is OFF', (
   expect(plan('SHARED_PARTY')).toMatchObject({ kind: 'STAGED' })
 })
 
+it('walks a teleport that no Encounter allowance admits, so it cannot cross a closed door', () => {
+  const { doorId, scene: walled } = doorScene(crypto.randomUUID())
+  const { scene: open, tokenId } = movementScene(walled.campaignId)
+  const scene: CampaignSceneStateDto = {
+    ...open,
+    barriers: walled.barriers.map((barrier) => ({
+      ...barrier,
+      a: { x: 15, y: 0 },
+      b: { x: 15, y: 100 }
+    })),
+    doorStates: { [doorId]: 'CLOSED' },
+    fogMode: 'OFF'
+  }
+  const plan = (expectedEncounterVersion: number | null) =>
+    planLiveSceneCommand({
+      command: {
+        commandId: crypto.randomUUID(),
+        correlationId: null,
+        expectedEncounterVersion,
+        expectedSceneVersion: scene.version,
+        movementKind: 'TELEPORT',
+        path: [
+          { x: 10, y: 10 },
+          { x: 20, y: 10 }
+        ],
+        sceneId: scene.id,
+        tokenId,
+        type: 'MOVE_SCENE_TOKEN'
+      },
+      scene,
+      encounterId: expectedEncounterVersion === null ? null : crypto.randomUUID(),
+      actor: { role: 'OWNER', userId: crypto.randomUUID() }
+    })
+  expect(plan(null)).toMatchObject({ code: 'INVALID_COMMAND' })
+  expect(plan(3)).toEqual({ kind: 'STAGED' })
+})
+
 it('plans bound moves and moves on a bound Scene through room geometry', () => {
   const { scene, tokenId } = movementScene(crypto.randomUUID())
   const plan = (input: {

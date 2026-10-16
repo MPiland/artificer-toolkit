@@ -968,12 +968,17 @@ export function CampaignVttStage({
       : null
   }
 
-  /** Whether a drag of this token teleports: its actor holds a cast's allowance the member kept on. */
+  /**
+   * Whether a drag of this token teleports: it is the active turn's actor the member controls, and it
+   * holds a cast's allowance the member kept on (the readout's switch shows for that actor only).
+   */
   function teleportsOnDrop(tokenId: string): boolean {
-    const actorId = actorIdByTokenId.get(tokenId)
-    const [allowance] =
-      encounterSessionState?.turnMovement.find((entry) => entry.actorId === actorId)?.teleport ?? []
-    return allowance !== undefined && allowance.castCommandId !== declinedTeleportCastId
+    const [allowance] = currentTurnMovement?.teleport ?? []
+    return (
+      allowance !== undefined &&
+      currentTurnMovement?.actorId === actorIdByTokenId.get(tokenId) &&
+      allowance.castCommandId !== declinedTeleportCastId
+    )
   }
 
   /**

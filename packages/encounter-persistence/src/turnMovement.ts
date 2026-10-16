@@ -2,6 +2,7 @@ import {
   MAX_ENCOUNTER_ACTORS,
   type EncounterSessionStateDto
 } from '@artificer-toolkit/schema/api/encounterData'
+import { MAX_TURN_TELEPORT_ALLOWANCES } from '@artificer-toolkit/schema/shared/teleportAllowance'
 import {
   encounterStoredTurnMovementSchema,
   type EncounterTeleportAllowance
@@ -156,9 +157,17 @@ export async function recordTurnTeleportAllowance(
     consumedByCommandId: null
   }
   const row = await readTurnRow(ctx, turn, input.actorId)
-  if (row)
-    await ctx.db.patch(row._id, { teleportAllowances: [...row.teleportAllowances, allowance] })
-  else
+  if (row) {
+    // A full list gives up its oldest spent entry; four unspent teleports are more than a turn can hold.
+    const oldestSpent =
+      row.teleportAllowances.length < MAX_TURN_TELEPORT_ALLOWANCES
+        ? -1
+        : row.teleportAllowances.findIndex((entry) => entry.consumedByCommandId !== null)
+    const kept = row.teleportAllowances.filter((_, index) => index !== oldestSpent)
+    if (kept.length >= MAX_TURN_TELEPORT_ALLOWANCES)
+      rejectDomain('TELEPORT_UNAVAILABLE', 'This turn already holds the most teleports it can.')
+    await ctx.db.patch(row._id, { teleportAllowances: [...kept, allowance] })
+  } else
     await ctx.db.insert(
       'encounterTurnMovements',
       encounterStoredTurnMovementSchema.parse({

@@ -178,13 +178,7 @@ describe('the per-turn teleport allowance record', () => {
       castCommandId: DIMENSION_DOOR_CAST,
       commandId: OTHER_MOVE
     })
-    await restoreTurnTeleportAllowance(ctx, {
-      encounterId: ENCOUNTER_ID,
-      round: 1,
-      turnActorId: WIZARD,
-      actorId: WIZARD,
-      commandId: MOVE
-    })
+    await restoreTurnTeleportAllowance(ctx, { state, commandId: MOVE })
     expect(await readTurnTeleportAllowances(ctx, { state, actorId: WIZARD })).toEqual([
       { ...mistyStep, consumedByCommandId: null },
       { ...dimensionDoor, consumedByCommandId: OTHER_MOVE }
@@ -194,14 +188,49 @@ describe('the per-turn teleport allowance record', () => {
   it('has nothing to give back once the turn expired or the move consumed nothing', async () => {
     const { ctx } = setup()
     await expect(
-      restoreTurnTeleportAllowance(ctx, {
-        encounterId: ENCOUNTER_ID,
-        round: 1,
-        turnActorId: WIZARD,
-        actorId: WIZARD,
-        commandId: MOVE
-      })
+      restoreTurnTeleportAllowance(ctx, { state: turn(1, WIZARD), commandId: MOVE })
     ).resolves.toBeUndefined()
+    await recordTurnTeleportAllowance(ctx, {
+      state: turn(1, WIZARD),
+      actorId: WIZARD,
+      ...mistyStep
+    })
+    await consumeTurnTeleportAllowance(ctx, {
+      state: turn(1, WIZARD),
+      actorId: WIZARD,
+      castCommandId: MISTY_STEP_CAST,
+      commandId: MOVE
+    })
+    await restoreTurnTeleportAllowance(ctx, { state: turn(2, WIZARD), commandId: MOVE })
+    expect(
+      await readTurnTeleportAllowances(ctx, { state: turn(1, WIZARD), actorId: WIZARD })
+    ).toEqual([{ ...mistyStep, consumedByCommandId: MOVE }])
+  })
+
+  it('makes room for a fifth teleport by dropping the oldest spent one, and refuses a fifth unspent', async () => {
+    const { ctx } = setup()
+    const state = turn(1, WIZARD)
+    const cast = (index: number) => ({
+      ...mistyStep,
+      castCommandId: `00000000-0000-4000-8000-0000000004${String(index).padStart(2, '0')}`
+    })
+    for (const index of [1, 2, 3, 4])
+      await recordTurnTeleportAllowance(ctx, { state, actorId: WIZARD, ...cast(index) })
+    await expect(
+      recordTurnTeleportAllowance(ctx, { state, actorId: WIZARD, ...cast(5) })
+    ).rejects.toThrow()
+    await consumeTurnTeleportAllowance(ctx, {
+      state,
+      actorId: WIZARD,
+      castCommandId: cast(2).castCommandId,
+      commandId: MOVE
+    })
+    await recordTurnTeleportAllowance(ctx, { state, actorId: WIZARD, ...cast(5) })
+    expect(
+      (await readTurnTeleportAllowances(ctx, { state, actorId: WIZARD })).map(
+        ({ castCommandId }) => castCommandId
+      )
+    ).toEqual([1, 3, 4, 5].map((index) => cast(index).castCommandId))
   })
 
   it('removes an allowance its cast’s undo takes back', async () => {
