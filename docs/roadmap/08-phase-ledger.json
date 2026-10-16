@@ -9213,8 +9213,12 @@
             {
               "id": "SPELLS-17.3",
               "text": "Healing that restores hit points ends a \"until healed\" grant wherever it happens (Sheet healing outside an Encounter batch included), GM undo of that heal restores the grant, and a failed save whose damage is fully resisted still applies the slow.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "merge of 6d58f8ca0 (SPELLS-17.T2)",
+                "turnDeathSave.test.ts (natural 20 raises HP, grant ends), nativeRoomActorEditEndsGrant.test.ts (GM edit raise/lower/unchanged), nativeRoomAreaAction.test.ts (area heal + REVERT_LAST_ACTION restores), nativeRoomCharacterHealEndsGrant.test.ts, sheetHealEndsGrants.test.ts (Sheet heal outside an Encounter)",
+                "CI 38826122508 green; merge CI 38828683219 and live backend 38828683177 green"
+              ],
               "origin": "Follow-up from SPELLS-17 (aba540d19), workbook docs/handoffs/slice-spells-17.md.",
               "note": ""
             },
@@ -9269,7 +9273,7 @@
             {
               "id": "SPELLS-17.T2",
               "text": "ON_HIT_POINTS_REGAINED from every heal path, heal undo restores the ended grant, fully resisted damage still applies the failure sequence.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": [
                 "SPELLS-17.3"
               ],
@@ -9278,8 +9282,7 @@
                 "tc": 2,
                 "rr": 5,
                 "size": 3
-              },
-              "activeWorkbook": "docs/handoffs/slice-spells-17.md"
+              }
             },
             {
               "id": "SPELLS-17.T3",
