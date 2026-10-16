@@ -482,6 +482,7 @@ function isSupportedTestArea(
     !shape ||
     targeting?.selectionKind !== 'AREA_CONTENTS' ||
     targeting.dispositionKind !== 'ANY' ||
+    targeting.allowedCreatureTypeIds?.length ||
     targeting.excludedCreatureTypeIds?.length ||
     invocation.triggerCode !== 'SAVING_THROW' ||
     invocation.activation.code !== 'ACTION' ||
@@ -612,11 +613,13 @@ function pinnedSaveDc(
 ): Pick<CharacterRuleActionActiveEffectPlan, 'adapterFacts' | 'castSaveDcFactKey'> | null {
   if (savingThrow?.dcMethod === 'SOURCE_SAVE_DC')
     return { adapterFacts: {}, castSaveDcFactKey: DND5E_SAVE_DC_FACT_KEY }
-  if (savingThrow?.dcMethod === 'FIXED_DC' && Number.isSafeInteger(savingThrow.baseDc))
-    return {
-      adapterFacts: { [DND5E_SAVE_DC_FACT_KEY]: savingThrow.baseDc! },
-      castSaveDcFactKey: null
-    }
+  const baseDc = savingThrow?.baseDc
+  if (
+    savingThrow?.dcMethod === 'FIXED_DC' &&
+    typeof baseDc === 'number' &&
+    Number.isSafeInteger(baseDc)
+  )
+    return { adapterFacts: { [DND5E_SAVE_DC_FACT_KEY]: baseDc }, castSaveDcFactKey: null }
   return null
 }
 

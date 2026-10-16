@@ -16,7 +16,7 @@ import {
   type SpellAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
-import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
+import { creatureTypeId, schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
 export const animalFriendship: SpellAuthored = {
   kind: SUBJECT.SPELL,
   id: SPELL_IDS.ANIMAL_FRIENDSHIP,
@@ -49,7 +49,8 @@ export const animalFriendship: SpellAuthored = {
         },
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          dispositionKind: TARGET_DISPOSITION_KIND.ANY
+          dispositionKind: TARGET_DISPOSITION_KIND.ANY,
+          allowedCreatureTypeIds: [creatureTypeId('BEAST')]
         }
       },
       paths: [
