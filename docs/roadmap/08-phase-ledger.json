@@ -5112,15 +5112,14 @@
             {
               "id": "ATTACK-2.T1",
               "text": "Player parity matrix: a test derived from the real Encounter command registry proves every command the GM can issue for a Character is accepted from that Character's controlling player (own actor, own turn or a reaction window) and refused for others; each GM-only gap found is fixed through the player path, not by widening authorization.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["ATTACK-2.5"],
               "wsjf": {
                 "bv": 8,
                 "tc": 5,
                 "rr": 5,
                 "size": 3
-              },
-              "activeWorkbook": "docs/handoffs/slice-attack-2.md"
+              }
             },
             {
               "id": "ATTACK-2.T2",
