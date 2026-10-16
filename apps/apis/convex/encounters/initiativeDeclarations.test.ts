@@ -257,7 +257,7 @@ describe('native initiative declarations', () => {
     const base = await setup()
     // Distinct faces keep the scores apart; equal random faces would tie, and a second tie in the
     // roll-off would ask the GM for the order.
-    await queueRoomRolls(base.campaign.id, { rolls: [4, 9] })
+    await queueRoomRolls(base.campaign.id, { rolls: [9, 9, 5, 5] })
     const start: EncounterExecuteInput = {
       command: {
         type: 'START',
