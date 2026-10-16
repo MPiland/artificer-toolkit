@@ -164,7 +164,7 @@
         {
           "id": "PLATFORM-5",
           "title": "Import and audit the SRD source data",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "journeyTests": [
             "apps/apis/convex/content/seed.test.ts",
             "apps/apis/convex/content/import.test.ts"
@@ -222,10 +222,13 @@
             {
               "id": "PLATFORM-5.7",
               "text": "Every SRD seed mutation (bootstrap, subject and definition batches, derived syncs) finishes well under the Convex 1 s execution limit on the local backend while the machine is loaded, proved by recorded per-mutation durations from a loaded seed run.",
-              "status": "TODO",
+              "status": "DONE",
               "proof": [
                 "partial: merge of eb483df41 (PLATFORM-5.T1); docs/validation/platform-5-t1-seed-mutation-margin-2026-10-15.md: fresh-backend loaded seeds, every mutation <= 308 ms at 12 busy processes and <= 717 ms at 16 (red: importSubjects 1005 ms); CI 38825767175 green",
-                "open: the replay path (reseed over existing data, as staging and production releases do) is unmeasured and still runs full exact() comparisons"
+                "open: the replay path (reseed over existing data, as staging and production releases do) is unmeasured and still runs full exact() comparisons",
+                "docs/validation/platform-5-t2-replay-margin-2026-10-15.md",
+                "apps/apis/convex/content/import.test.ts",
+                "CI 38835861992 at 4e1ec51b0; merged 2026-10-15"
               ],
               "origin": [],
               "note": "Registered 2026-10-15 from the SPELLS-17.T4 merge: content/seed:seed failed with \"Function execution timed out (maximum duration: 1s)\" at about 74% host CPU, before bootstrap committed (the audit found no platform content source); the unchanged rerun at 71% passed (local-validation/merge-s17t4/deploy-seed.log, deploy-seed-2.log). Find the mutation near the limit and cut its work; do not raise a limit or add a retry."
@@ -246,16 +249,15 @@
             },
             {
               "id": "PLATFORM-5.T2",
-              "text": "Finish AC 5.7 on the replay path: compare a replayed subject by stored checksum instead of a whole-document exact() with re-parse and re-canonicalize, skip the canonicalize on replay (import.ts:219-222), and record loaded per-mutation durations for a reseed over an already-seeded backend.",
-              "status": "TODO",
+              "text": "Finish AC 5.7 on the replay path: compare a replayed subject by stored checksum instead of a whole-document exact() with re-parse and re-canonicalize, skip the canonicalize on replay (import.ts:219-222), and record loaded per-mutation durations for a reseed over an already-seeded backend. Done: replay measured (max 289 ms at 12 burners); the stored-document comparison is kept because dropping it gained nothing.",
+              "status": "DONE",
               "closes": ["PLATFORM-5.7"],
               "wsjf": {
                 "bv": 2,
                 "tc": 3,
                 "rr": 5,
                 "size": 1
-              },
-              "activeWorkbook": "docs/handoffs/slice-platform-5-t1.md"
+              }
             }
           ],
           "wsjf": {
@@ -936,7 +938,7 @@
           "acs": [
             {
               "id": "PLATFORM-18.1",
-              "text": "Seeding a changed SRD corpus into a deployment that already holds the previous corpus publishes the changed subjects as new canonical versions instead of failing with \"Canonical content conflict\"; unchanged subjects are untouched; Characters, Campaigns and Encounters that reference earlier versions keep resolving (ADR 0022 pinned versions), proved by a live-backend run that seeds corpus N, creates play data, then seeds corpus N+1.",
+              "text": "Seeding a changed SRD corpus into a deployment that already holds the previous corpus publishes the changed subjects as new canonical versions instead of failing with \"Canonical content conflict\"; unchanged subjects are untouched; Characters, Campaigns and Encounters created on corpus N keep working on N+1 (ADR 0024 current-version reads; design D120), proved by a live-backend run that seeds corpus N, creates play data, then seeds corpus N+1.",
               "status": "TODO",
               "proof": [],
               "origin": [],
@@ -7627,7 +7629,7 @@
         {
           "id": "SPELLS-17",
           "title": "Placed zones from any authored item, spell or feature (Caltrops proof)",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "journeyTests": ["apps/session-worker/test/nativeRoomPlacedZone.test.ts"],
           "journeyStatus": "verified",
           "origin": [],
@@ -7673,8 +7675,11 @@
             {
               "id": "SPELLS-17.4",
               "text": "Dragging a token across a visible half-speed field on the board offers the careful or normal choice and commits the chosen move.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/web/src/domains/campaigns/vtt/CampaignVttStage.carefulMove.test.tsx",
+                "CI 38834260630 at 7ea1d2da3; merged 2026-10-15"
+              ],
               "origin": "Follow-up from SPELLS-17 (aba540d19), workbook docs/handoffs/slice-spells-17.md.",
               "note": "commitTokenMove in CampaignVttStage.tsx has no stage-level test; the component and model are covered."
             },
@@ -7691,8 +7696,12 @@
             {
               "id": "SPELLS-17.6",
               "text": "No mechanics-batch caller can end a grant without a way to give it back: basic action check settlement and the cleaving response cannot raise hit points, so they end no until-healed grant; and a move whose movement reaction or spatial persistence ended grants cannot be undone by REVERT_LAST_ACTION or Scene undo, so nothing is half-restored. Each is proved by a test through real code.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/session-worker/test/nativeMovementSceneUndo.test.ts",
+                "apps/apis/convex/encounters/mechanicsBatch.test.ts",
+                "CI 38834265451 at f44593f78; merged 2026-10-15"
+              ],
               "origin": [],
               "note": "Registered 2026-10-15 from the SPELLS-17.T2 merge review (report-only item; no SRD heal reaches these paths today). Reworded 2026-10-15 at the T5 survey: none of these callers can heal today and moves are not undoable action roots, so receipt wiring would be dead code."
             }
@@ -7731,7 +7740,7 @@
             {
               "id": "SPELLS-17.T3",
               "text": "Stage-level test of the careful-crossing choice through CampaignVttStage.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-17.4"],
               "wsjf": {
                 "bv": 2,
@@ -7755,7 +7764,7 @@
             {
               "id": "SPELLS-17.T5",
               "text": "Prove AC 17.6: damage and stabilize settlements on a holder of an until-healed grant end nothing; a move that settled encounter mechanics is refused by both REVERT_LAST_ACTION and Scene undo (or, if Scene undo allows it, the ended grants are restored with it).",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-17.6"],
               "wsjf": {
                 "bv": 2,
@@ -7763,8 +7772,7 @@
                 "rr": 3,
                 "size": 2,
                 "after": ["SPELLS-17.T2"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-spells-17.md"
+              }
             }
           ]
         },

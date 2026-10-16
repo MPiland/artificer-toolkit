@@ -741,6 +741,18 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - **(d) Roll mode:** a facet predicate on the attack's net roll mode (`ADVANTAGE`, `NOT_DISADVANTAGE`). Sneak Attack's gate is "advantage, or an enemy of the target within 5 ft and no disadvantage", which needs any-of composition of predicates. If the facet model has none, add one generic any-of, not a Sneak Attack shape.
   - **(e) Position:** a predicate "another creature hostile to the target, not incapacitated, within N ft of the target", fed by scene positions. The room plans with it; persistence re-verifies from stored positions and refuses a mismatch, like other planned facts.
   - **(f) Once per turn:** a usage limit `ONCE_PER_TURN`, where "turn" is any creature's turn (Sneak Attack can land on a reaction). It is backed by one per-turn record keyed by (Encounter, round, turn actor, actor). Unlike D38's movement record it is enforced, so the commit transaction reads and writes it, replay derives the same entry, and GM undo restores it. ATTACK-9.T6 reads the same record for its attacked-hostile and took-damage flags.
+* **D120** (2026-10-15) Re-publishing a changed canonical corpus (PLATFORM-18.T1; survey in [slice-platform-18-t1.md](slice-platform-18-t1.md)). Decided by the main session.
+  - **Ruling (design A):** when a seeded subject's checksum changes, it is replaced in place, through the same steps as homebrew publish (`commitPublication`):
+    1. insert the next version;
+    2. replace the root;
+    3. delete the previous version, with its chunks and compilation;
+    4. resync catalogue metadata and families.
+       The two share one function. An identical corpus takes the existing reuse path, so seeding twice is idempotent.
+  - **No version history:** play data reads the current version (ADR 0024, which supersedes ADR 0022), so earlier versions are not kept.
+  - **Rejected:** append-only history, which contradicts ADR 0024 and grows storage nothing reads; and a new content source per corpus, which breaks stable subject ids.
+  - **Removed subject:** the seed fails loudly and lists the ids. Real removal is deferred (future-enhancements, Deferred edge cases).
+  - **Downgrade:** no guard. The seed is declarative, so seeding an earlier corpus is just another replace.
+  - **Dependents:** a canonical replace runs the same unresolved-dependent check as publish (ADR 0024) and refuses on a hit. The seed has no bypass.
 
 ## Approved implementation decisions
 
