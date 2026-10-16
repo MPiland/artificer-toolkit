@@ -8241,6 +8241,13 @@
               "proof": [],
               "origin": [],
               "note": "Registered 2026-10-16 from the SPELLS-26 survey: no PBI owned these outcome families, so these chosen-creature spells fail as single-target casts too."
+            },
+            {
+              "id": "SPELLS-28.2",
+              "text": "A Character casts Misty Step or Dimension Door in an Encounter and moves its token to a chosen unoccupied point within the spell range with no path and no opportunity attacks; the cast grants a bounded teleport allowance that the move consumes, a teleport by a player without one is refused, and GM undo restores the position.",
+              "status": "TODO",
+              "proof": [],
+              "origin": []
             }
           ],
           "wsjf": {
@@ -8265,9 +8272,9 @@
             },
             {
               "id": "SPELLS-28.T1b",
-              "text": "In-Scene TELEPORT (Misty Step, Dimension Door): the token moves to the chosen destination through the spatial movement service as movementKind TELEPORT (no opportunity attacks, no path), one commit with the cast, GM undo restores the position; authored from core options.",
+              "text": "In-Scene TELEPORT (Misty Step, Dimension Door): the cast commits a bounded one-shot teleport allowance (on the existing movement-economy pattern, expiring at the end of the caster turn) that a following MOVE_SCENE_TOKEN TELEPORT consumes; player TELEPORT without an allowance is refused; range, occupancy and visibility enforced at consumption; authored from core options.",
               "status": "TODO",
-              "closes": ["SPELLS-28.1"],
+              "closes": ["SPELLS-28.2"],
               "activeWorkbook": "docs/handoffs/slice-spells-28.md",
               "wsjf": {
                 "bv": 8,
