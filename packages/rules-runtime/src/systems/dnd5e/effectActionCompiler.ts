@@ -181,6 +181,7 @@ const DND5E_RESOLVED_DAMAGE_OUTCOME_EXPRESSIONS_FACT_KEY =
   'dnd5e.resolved-damage-outcome-expressions'
 const DND5E_RESOLVED_HEAL_MODIFIER_FACT_KEY = 'dnd5e.resolved-heal-modifier'
 /** The level a spell is cast at, which selects its authored per-level scaling. */
+export const DND5E_CHARACTER_LEVEL_FACT_KEY = 'dnd5e.character-level'
 export const DND5E_SPELL_CAST_LEVEL_FACT_KEY = 'dnd5e.spell-cast-level'
 /**
  * The optional on-hit riders the player chose for this attack (a JSON array of sorted rider effect
@@ -314,7 +315,7 @@ function dndScalingFactsFromRuleValues(
   const positiveInteger = (value: RuleValue | undefined): number | undefined =>
     typeof value === 'number' && Number.isSafeInteger(value) && value > 0 ? value : undefined
   return {
-    characterLevel: positiveInteger(facts.characterLevel),
+    characterLevel: positiveInteger(facts[DND5E_CHARACTER_LEVEL_FACT_KEY]),
     parentClassLevel: positiveInteger(facts.parentClassLevel),
     spellCastLevel: positiveInteger(facts[DND5E_SPELL_CAST_LEVEL_FACT_KEY]),
     classLevels: parseClassLevels(facts[DND5E_CLASS_LEVELS_FACT_KEY]),
@@ -7136,7 +7137,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       ...(spellCastLevel === undefined
         ? {}
         : { [DND5E_SPELL_CAST_LEVEL_FACT_KEY]: spellCastLevel }),
-      ...(characterLevel > 0 ? { characterLevel } : {}),
+      ...(characterLevel > 0 ? { [DND5E_CHARACTER_LEVEL_FACT_KEY]: characterLevel } : {}),
       ...(selectedOptionalRiderIds === undefined || selectedOptionalRiderIds.length === 0
         ? {}
         : {

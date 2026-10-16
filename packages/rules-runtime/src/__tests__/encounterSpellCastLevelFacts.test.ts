@@ -5,6 +5,7 @@ import { srdSpells } from '@artificer-toolkit/source-data/srd/spells/index.js'
 
 import { buildCompiledActionCompilerSource } from '../encounterActionEntryPointCompiler.js'
 import {
+  DND5E_CHARACTER_LEVEL_FACT_KEY,
   DND5E_SPELL_CAST_LEVEL_FACT_KEY,
   dnd5eCharacterRuleActionSystemAdapter as adapter
 } from '../systems/dnd5e/effectActionCompiler.js'
@@ -64,10 +65,10 @@ describe('the spell cast level the action binds (M2)', () => {
   it('binds the Character level, the sum of its class levels, for a level-scaled cantrip', () => {
     expect(bind(FIRE_BOLT, { outcomes: [], classLevels: { fighter: 3, wizard: 2 } })).toMatchObject(
       {
-        characterLevel: 5
+        [DND5E_CHARACTER_LEVEL_FACT_KEY]: 5
       }
     )
-    expect(bind(FIRE_BOLT, { outcomes: [] })).not.toHaveProperty('characterLevel')
+    expect(bind(FIRE_BOLT, { outcomes: [] })).not.toHaveProperty(DND5E_CHARACTER_LEVEL_FACT_KEY)
   })
 
   it('binds no cast level for an action that is not a leveled cast', () => {
@@ -114,7 +115,8 @@ describe('scaling a cantrip by the Character level fact', () => {
 
   it('selects the damage row of the Character level', () => {
     const [first, fifth, eleventh] = [1, 5, 11].map(
-      (characterLevel) => specialize({ characterLevel })?.published.checksum
+      (characterLevel) =>
+        specialize({ [DND5E_CHARACTER_LEVEL_FACT_KEY]: characterLevel })?.published.checksum
     )
     expect(new Set([first, fifth, eleventh]).size).toBe(3)
   })
