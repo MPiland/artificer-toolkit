@@ -223,6 +223,27 @@ const compiledActionActiveEffectPlanSchema = lazySchema(() =>
       ),
       null
     ),
+    creatureFormContribution: z._default(
+      z.nullable(
+        z.strictObject({
+          formOutcomeId: serverUuidIdentityDtoSchema,
+          excessDamageCarriesOver: z.boolean(),
+          /** The Creature each chosen form becomes, by the form option's id. */
+          forms: z
+            .array(
+              z.strictObject({
+                id: serverUuidIdentityDtoSchema,
+                label: z.string().check(z.minLength(1)).check(z.maxLength(160)),
+                creatureId: serverUuidIdentityDtoSchema,
+                maxTargets: z.number().check(z.int()).check(z.positive())
+              })
+            )
+            .check(z.minLength(1))
+            .check(z.maxLength(32))
+        })
+      ),
+      null
+    ),
     maintenance: z._default(
       z.nullable(
         z.strictObject({

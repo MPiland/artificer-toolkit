@@ -384,7 +384,15 @@ describe('manifest schema parsing', () => {
             id: 'bad-creature-entry',
             effectKind: 'MANIFEST',
             manifestKind: 'CREATURE',
-            creatureId: 'owl',
+            forms: [
+              {
+                id: 'owl-form',
+                order: 1,
+                label: 'Owls',
+                creatureId: 'giant-owl',
+                maxTargets: 2
+              }
+            ],
             behaviors: []
           })
         )
@@ -396,7 +404,7 @@ describe('manifest schema parsing', () => {
 
     expect(outcome).toMatchObject({
       manifestKind: 'CREATURE',
-      creatureId: 'owl'
+      forms: [{ creatureId: 'giant-owl', maxTargets: 2 }]
     })
     expect(outcome).not.toHaveProperty('behaviors')
   })

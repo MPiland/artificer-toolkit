@@ -1,5 +1,6 @@
 import { persistEncounterActionPending } from '@artificer-toolkit/encounter-persistence/actionPendingPersistence'
 import { persistEncounterActionCommit } from '@artificer-toolkit/encounter-persistence/actionCommitPersistence'
+import { readActorFormCreature } from '@artificer-toolkit/encounter-persistence/actorFormPersistence'
 import { persistEncounterAreaCommit } from '@artificer-toolkit/encounter-persistence/areaCommitPersistence'
 import { persistEncounterCounteredCastCommit } from '@artificer-toolkit/encounter-persistence/counteredCastCommitPersistence'
 import {
@@ -74,7 +75,14 @@ export async function executeRoomEncounterAction(input: {
           }
         ),
       prepareCharacter: (characterScope) =>
-        prepareRoomLiveCharacterSheet(store, inputs, characterScope, observed, transaction)
+        prepareRoomLiveCharacterSheet(store, inputs, characterScope, observed, transaction),
+      readFormCreature: (gameSystemId, creatureId) =>
+        readActorFormCreature(ctx.ports, {
+          campaignId: scope.campaignId,
+          userId: scope.expectedUserId,
+          gameSystemId,
+          creatureId
+        })
     }
   })
   if (plan.kind === 'REPLAY') return plan.result

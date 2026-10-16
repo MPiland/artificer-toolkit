@@ -53,6 +53,8 @@ export type NativeEncounterActionMechanicsInput = {
    */
   damageReleases?: readonly CharacterConditionRemoveOutcomeApplication[]
   forceTargetVersionAdvance?: boolean
+  /** The form the target takes with this outcome (D130), when the action created the effect holding it. */
+  enterForm?: EncounterMechanicsBatchInput['enterForm']
   eventPhases?: {
     resource: EncounterCharacterMechanicsEventPhase
     outcome: EncounterCharacterMechanicsEventPhase
@@ -164,6 +166,7 @@ function prepareNativeActionMechanicsBatches(
     effectiveMaximumHitPoints: targetFacts.effectiveMaximumHitPoints,
     effectiveScalarValues: targetFacts.effectiveScalarValues,
     forceVersionAdvance: input.forceTargetVersionAdvance ?? false,
+    ...(input.enterForm ? { enterForm: input.enterForm } : {}),
     ...(source.kind === 'CHARACTER_ACTION' && onTargetBatch ? sourceMutation : {})
   }
   return { sourceResourceBatch, targetBatch }

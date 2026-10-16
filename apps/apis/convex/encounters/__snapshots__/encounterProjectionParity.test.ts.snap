@@ -55,6 +55,7 @@ exports[`Encounter projections built on read > applies an action mechanics batch
       "defeated": false,
       "disposition": "HOSTILE",
       "encounterId": "<uuid:1>",
+      "form": null,
       "gmNotes": null,
       "healthDisplay": null,
       "id": "<uuid:2>",

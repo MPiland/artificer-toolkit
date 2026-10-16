@@ -32,6 +32,7 @@ import {
   sourceEncounterIdForDefinition
 } from '@artificer-toolkit/rules-runtime/activeRuleEffectRecords'
 import { z } from 'zod'
+import { endActorFormHeldBy, holdsActorForm } from './actorFormPersistence.js'
 import { readEncounterCharacterPlay } from './characterPlay.js'
 import type { EncounterDocument, EncounterReadContext, EncounterWriteContext } from './store.js'
 
@@ -499,6 +500,12 @@ export function createActiveRuleEffectStore(ctx: EncounterWriteContext) {
           .unique()
         if (!actorRow) throw new Error('Maintained effect state changed before deletion.')
         await ctx.db.delete(actorRow._id)
+        if (holdsActorForm(effect.definition))
+          await endActorFormHeldBy(ctx, {
+            encounterId: actorRow.encounterId,
+            actorId: actorRow.targetActorId,
+            effectId: effect.id
+          })
       }
       await ctx.db.delete(row._id)
     },
@@ -753,6 +760,12 @@ export function createActiveRuleEffectStore(ctx: EncounterWriteContext) {
       if (!row || row.version !== expectedVersion)
         throw new Error('Active rule effect changed before deletion.')
       await ctx.db.delete(row._id)
+      if (holdsActorForm(current.definition))
+        await endActorFormHeldBy(ctx, {
+          encounterId: owner.encounterId,
+          actorId: owner.targetActorId,
+          effectId: id
+        })
     }
   }
 }

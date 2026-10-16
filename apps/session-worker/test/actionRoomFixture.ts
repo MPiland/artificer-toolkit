@@ -323,6 +323,7 @@ export interface ActionRoomConfig extends Pick<
   | 'characterEquipment'
   | 'characterPlay'
   | 'characterSpellcasting'
+  | 'formCreatures'
   | 'secondCharacter'
   | 'thirdCharacter'
   | 'hiddenActorIds'
@@ -584,13 +585,15 @@ export async function actionRoom(config: ActionRoomConfig) {
     },
     /**
      * The acting actor's action on the chosen creatures `actorIds`, read against the Scene or not;
-     * `point` is the Scene point an action that names an area is aimed at.
+     * `point` is the Scene point an action that names an area is aimed at; `formId` is the
+     * creature form the cast takes.
      */
     async startActorsAction(
       actorIds: readonly string[],
       acknowledgedWarnings: ResolveEncounterActionInputDto['acknowledgedWarnings'] = [],
       withScene = true,
-      point: { x: number; y: number } | null = null
+      point: { x: number; y: number } | null = null,
+      formId?: string
     ) {
       const command: ResolveEncounterActionInputDto = {
         type: 'RESOLVE_ACTION',
@@ -603,6 +606,7 @@ export async function actionRoom(config: ActionRoomConfig) {
         target: {
           kind: 'ACTORS',
           actorIds: [...actorIds],
+          ...(formId && { formId }),
           scene: withScene
             ? { sceneId: room.scene.id, expectedSceneVersion: room.scene.version, point }
             : null

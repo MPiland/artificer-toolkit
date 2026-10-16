@@ -15,6 +15,20 @@ import {
   authoredShortTextSchema
 } from '../shared/authoredLimits.js'
 
+/**
+ * One form the caster may give the chosen creatures (Giant Insect: centipedes, spiders, wasps or a
+ * scorpion): the Creature they become and how many the option allows.
+ */
+const manifestCreatureFormDtoSchema = lazySchema(() =>
+  z.object({
+    id: authoredIdentifierSchema,
+    order: z.number().check(z.int()),
+    label: authoredShortTextSchema,
+    creatureId: authoredIdentifierSchema,
+    maxTargets: z.number().check(z.int()).check(z.positive())
+  })
+)
+
 const manifestDestructionCriterionDtoSchema = lazySchema(() =>
   z.discriminatedUnion('kind', [
     z.object({
@@ -236,7 +250,8 @@ export const manifestDtoSchema: z.ZodMiniType = lazySchema(() =>
     return z.discriminatedUnion('manifestKind', [
       z.extend(baseSchema, {
         manifestKind: z.literal('CREATURE'),
-        creatureId: z.optional(authoredIdentifierSchema)
+        forms: z.optional(authoredNestedCollectionSchema(manifestCreatureFormDtoSchema)),
+        excessDamageCarriesOver: z.optional(z.boolean())
       }),
       z.extend(baseSchema, {
         manifestKind: z.literal('SUMMON'),
