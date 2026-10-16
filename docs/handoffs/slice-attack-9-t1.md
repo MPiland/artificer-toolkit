@@ -1,6 +1,6 @@
 # Slice workbook: ATTACK-9.T1 (a Barbarian rages in an Encounter)
 
-**Status:** OPEN (started 2026-10-14)
+**Status:** T1 and T7 merged (13f634280, 6419ef364); AC ATTACK-9.1 DONE. Next: T2-T6 (T6 also narrows endHolderGrants to damaged actors).
 **Base:** `codex/phase-08-2-convex-cutover` at this workbook's commit.
 **Rules:** [slice-workbook-rules.md](slice-workbook-rules.md).
 

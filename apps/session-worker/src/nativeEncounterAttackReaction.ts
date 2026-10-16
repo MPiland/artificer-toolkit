@@ -9,7 +9,10 @@ import {
   deadCharacterIdsOfTargets,
   isEncounterActorDefeated
 } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
-import { discoverAttackReactionActions } from '@artificer-toolkit/rules-runtime/encounterAttackReactionDiscovery'
+import {
+  attackHitDamageTypeIds,
+  discoverAttackReactionActions
+} from '@artificer-toolkit/rules-runtime/encounterAttackReactionDiscovery'
 import { advanceNativeActionGraphs } from '@artificer-toolkit/rules-runtime/encounterActionExecution'
 import { prepareNativeActionEffectsPlan } from '@artificer-toolkit/rules-runtime/encounterActionEffects'
 import type { prepareEncounterActionMechanics } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
@@ -44,7 +47,7 @@ export type NativeAttackReaction = {
  */
 export function discoverNativeAttackReaction(input: {
   state: EncounterRunState
-  attack: Pick<Prepared, 'actor' | 'target' | 'movementTargets'>
+  attack: Pick<Prepared, 'actor' | 'target' | 'movementTargets' | 'source'>
   prepareReaction(actionId: string): Promise<Prepared>
   capture: (
     request: LiveSessionEncounterRulesRequest
@@ -60,7 +63,13 @@ export function discoverNativeAttackReaction(input: {
       isEncounterActorDefeated(target, deadCharacterIdsOfTargets(movementTargets.values()))
     )
       return null
-    for (const { actionId } of discoverAttackReactionActions(reactor)) {
+    const { source } = input.attack
+    const hitDamageTypeIds = attackHitDamageTypeIds(
+      source.kind === 'CHARACTER_ACTION'
+        ? source.candidate.mechanicFacts
+        : source.capability.mechanicFacts
+    )
+    for (const { actionId, trigger } of discoverAttackReactionActions(reactor, hitDamageTypeIds)) {
       const prepared = await input.prepareReaction(actionId).catch((error: unknown) => {
         // A reaction its holder cannot pay for (no slot, not prepared) is simply not offered.
         if (error instanceof StaleCharacterActionError) return null
@@ -80,6 +89,7 @@ export function discoverNativeAttackReaction(input: {
         prepared,
         economy,
         candidate: {
+          trigger,
           reactorActorId: target.id,
           characterId: prepared.source.characterId,
           characterStreamVersion: prepared.source.characterStreamVersion,

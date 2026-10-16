@@ -20,6 +20,7 @@ export type EncounterReactionSelection = { kind: 'DECLINE' } | { kind: 'OPTION';
 
 /** The reaction a hit attack could offer its target, as it stands now. */
 export interface EncounterAttackReactionCandidate {
+  trigger: EncounterReactionPinDto['trigger']
   reactorActorId: string
   characterId: string
   characterStreamVersion: number
@@ -34,7 +35,7 @@ export function encounterReactionPin(
   candidate: EncounterAttackReactionCandidate
 ): EncounterReactionPinDto {
   const identity = {
-    trigger: 'ATTACKED_SELF' as const,
+    trigger: candidate.trigger,
     reactorActorId: candidate.reactorActorId,
     characterId: candidate.characterId,
     actionId: candidate.actionId,

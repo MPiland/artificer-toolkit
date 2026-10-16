@@ -6,6 +6,7 @@ import { shield } from '@artificer-toolkit/source-data/srd/spells/shield.js'
 
 import { CharacterRuleActionUnsupportedCompilationError } from '../characterRuleActionSystemAdapter.js'
 import { dnd5eCharacterRuleActionSystemAdapter } from '../systems/dnd5e/effectActionCompiler.js'
+import { absorbElementsSpell } from '../testing/absorbElementsSpell.js'
 import {
   ACTION_EFFECT_ID,
   characterActionDescriptor
@@ -61,5 +62,28 @@ describe('a reaction authored with the ATTACKED_SELF trigger compiles through th
     expect(() => compile({ ...effect, invocation } as EffectAuthored)).toThrow(
       CharacterRuleActionUnsupportedCompilationError
     )
+  })
+})
+
+describe('a reaction authored with the DAMAGE_TAKEN trigger compiles through the dnd5e adapter', () => {
+  function absorbElementsEffect(): EffectAuthored {
+    const effect = absorbElementsSpell(['FIRE', 'COLD']).effects?.[0]
+    if (!effect) throw new Error('The fixture has no authored effect.')
+    return { ...effect, id: ACTION_EFFECT_ID }
+  }
+
+  it('carries the chosen damage types onto the compiled invocation', () => {
+    const { invocation } = compileEffect(absorbElementsEffect())
+    expect(invocation).toMatchObject({
+      activation: { code: 'REACTION', amount: 1 },
+      reactionTrigger: {
+        kind: 'DAMAGE_TAKEN',
+        damageTypeIds: [expect.any(String), expect.any(String)]
+      }
+    })
+  })
+
+  it('compiles a user-authored Absorb Elements to the modifier grant proposal', () => {
+    expect(operationKeys(compile(absorbElementsEffect()))).toContain(MODIFIER_GRANT_OPERATION_KEY)
   })
 })

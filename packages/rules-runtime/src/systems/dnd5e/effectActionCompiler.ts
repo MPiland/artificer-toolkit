@@ -2266,10 +2266,11 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
       ? invocation.resourceUse !== undefined
       : (invocation.activation.code === 'ACTION' ||
           invocation.activation.code === 'BONUS_ACTION' ||
-          // A reaction to being attacked; the attack's pending decision offers it (never a direct action).
+          // A reaction to being attacked or to taking damage; the attack's pending decision offers it (never a direct action).
           (invocation.activation.code === 'REACTION' &&
             'reactionTrigger' in invocation &&
-            invocation.reactionTrigger?.kind === 'ATTACKED_SELF')) &&
+            (invocation.reactionTrigger?.kind === 'ATTACKED_SELF' ||
+              invocation.reactionTrigger?.kind === 'DAMAGE_TAKEN'))) &&
         invocation.activation.amount === 1)
   if (
     invocation.kind !== 'ACTION' ||

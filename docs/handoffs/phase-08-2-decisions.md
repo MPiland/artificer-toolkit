@@ -716,6 +716,17 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - **D26 amended:** the room holds the Scene for any pending reaction decision ("Waiting on a reaction decision."), not only movement decisions.
   - **D99 fix:** the action economy honours `REACTION_COUNT 0` grant suppressions through the one shared `activeEffectCapabilitySuppressions`.
   - **Follow-ups:** REACTION-4.T5 (merge-review hardening), plus the slice's registered gaps: opportunity-attack and area callers, Creature reactors, more than one eligible reaction, dice-bearing reactions.
+* **D118** (2026-10-15) Multi-target chosen-creature spells (SPELLS-8.T12; Mass Cure Wounds, Mass Healing Word, Prayer of Healing). Decided by the main session.
+  - **Ruling:** one `RESOLVE_ACTION` carries a reusable list-of-actors target kind, bounded by authored `maxTargets`. Each target is resolved within one transaction, so one cast is one commit, one slot spend and one undo.
+  - **Rejected:** one action per target. It would split a cast into several commits and slot checks, which breaks undo atomicity.
+  - **Scaling:** heal dice scale in the compiler from the bound `spellCastLevel` fact, the same way damage does, through one shared row selector.
+* **D119** (2026-10-15) Generic shapes for Sneak Attack (ATTACK-9.T2; survey in [slice-attack-9-t2.md](slice-attack-9-t2.md)). Decided by the main session. T2 splits into T2a (a-c), T2b (d), T2c (e) and T2d (f); AC 9.2 closes after all four.
+  - **(a) Feature riders on a hit:** trigger-matched `PASSIVE` Feature `ON_HIT` `DAMAGE` outcomes merge into the triggering weapon action's compiled outcome. Resistance and critical doubling (D-crit rule above) then apply to them without new code. `ADD_BONUS_DIE` stays non-executable. Improved Divine Smite (ATTACK-9.T4) uses the same path.
+  - **(b) Level-scaled dice:** no dice-count formula and no new value source (D113: no level tables). Bind the actor's class levels as facts and select the dice row with the same shared row selector D118 uses for `spellCastLevel`, keyed by a minimum `CLASS_LEVEL`. SPELLS-8.T12 extracts that selector too; whichever task merges first owns it and the other reuses it.
+  - **(c) Damage type:** an `ON_HIT` rider may take the triggering weapon's damage type as a damage-type choice.
+  - **(d) Roll mode:** a facet predicate on the attack's net roll mode (`ADVANTAGE`, `NOT_DISADVANTAGE`). Sneak Attack's gate is "advantage, or an enemy of the target within 5 ft and no disadvantage", which needs any-of composition of predicates. If the facet model has none, add one generic any-of, not a Sneak Attack shape.
+  - **(e) Position:** a predicate "another creature hostile to the target, not incapacitated, within N ft of the target", fed by scene positions. The room plans with it; persistence re-verifies from stored positions and refuses a mismatch, like other planned facts.
+  - **(f) Once per turn:** a usage limit `ONCE_PER_TURN`, where "turn" is any creature's turn (Sneak Attack can land on a reaction). It is backed by one per-turn record keyed by (Encounter, round, turn actor, actor). Unlike D38's movement record it is enforced, so the commit transaction reads and writes it, replay derives the same entry, and GM undo restores it. ATTACK-9.T6 reads the same record for its attacked-hostile and took-damage flags.
 
 ## Approved implementation decisions
 
