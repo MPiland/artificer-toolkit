@@ -65,6 +65,7 @@ import {
   encounterAreaTargetCommandId,
   encounterAreaSettled,
   encounterAreaTargetOccurrenceId,
+  encounterChosenActorEntries,
   markEncounterAreaLegendaryResistanceDecided,
   markEncounterAreaSaveTested,
   removeEncounterAreaTargetFromSnapshot
@@ -1023,6 +1024,7 @@ export async function planNativeLiveEncounterAreaCommit(
     actionEconomy,
     attackAction,
     settled,
+    rollsPerTarget: false,
     tests,
     audits,
     areaOccurrenceId,
@@ -1034,6 +1036,35 @@ export async function planNativeLiveEncounterAreaCommit(
     response: input.response,
     removal: input.removal ?? null
   })
+}
+
+/**
+ * The prepared action against a creature as its next entry in the same list finds it: the hit points
+ * and Character record its earlier entry's plan left.
+ */
+function advanceAreaPrepared(
+  prepared: AreaPrepared,
+  plan: ReturnType<typeof planNativeEncounterActionMechanics>['targetPlan'],
+  occurredAt: string
+): AreaPrepared {
+  const targetFacts = projectEncounterActionTarget({
+    target: prepared.targetFacts,
+    actor: plan.updatedActor,
+    plan,
+    campaignId: prepared.state.campaignId,
+    gameSystemId: prepared.state.gameSystemId,
+    occurredAt
+  })
+  return {
+    ...prepared,
+    target: plan.updatedActor,
+    targetFacts,
+    binding: {
+      ...prepared.binding,
+      currentHitPoints: targetFacts.state.current,
+      temporaryHitPoints: targetFacts.state.temporary
+    }
+  }
 }
 
 /**
@@ -1057,6 +1088,8 @@ export async function completeAreaCommit(args: {
     | null
   attackAction: Awaited<ReturnType<typeof evaluateNativeLiveActionEconomy>>['attackAction']
   settled: Awaited<ReturnType<typeof settleEncounterAreaAction>>
+  /** Whether each entry of `kept` rolled its own dice (a projectile list) rather than sharing one set. */
+  rollsPerTarget: boolean
   /** The settled saves; only a Legendary Resistance audit reads one. */
   tests: readonly Pick<Awaited<ReturnType<typeof replayAreaTargetSave>>, 'actorId' | 'boundary'>[]
   audits: ReturnType<typeof encounterAreaLegendaryResistanceAudits>
@@ -1086,6 +1119,7 @@ export async function completeAreaCommit(args: {
     actionEconomy,
     attackAction,
     settled,
+    rollsPerTarget,
     tests,
     audits,
     areaOccurrenceId,
@@ -1101,11 +1135,17 @@ export async function completeAreaCommit(args: {
   const occurredAt = new Date().toISOString()
   const userId = input.initial.expectedUserId
   const children = []
-  for (const { actor, target } of kept) {
-    const { prepared } = target
-    const complete = settled.find((entry) => entry.actorId === actor.id)?.complete
+  const entries = encounterChosenActorEntries(
+    areaOccurrenceId,
+    kept.map(({ actor }) => actor.id)
+  )
+  // A creature named again meets the hit points and Character record its earlier entries left it.
+  const advanced = new Map<string, AreaPrepared>()
+  for (const [index, { actor, target }] of kept.entries()) {
+    const prepared = advanced.get(actor.id) ?? target.prepared
+    const { occurrenceId } = entries[index]!
+    const complete = settled.find((entry) => entry.occurrenceId === occurrenceId)?.complete
     if (!complete) throw new Error('The area outcome is unavailable.')
-    const occurrenceId = encounterAreaTargetOccurrenceId(areaOccurrenceId, actor.id)
     const commandId = encounterAreaTargetCommandId(occurrenceId)
     const effects = prepareNativeActionEffectsPlan({
       prepared,
@@ -1121,8 +1161,9 @@ export async function completeAreaCommit(args: {
       published: complete.published,
       targetActorId: actor.id
     })
-    // A Character caster caught by their own area spends in the same Sheet write as their outcome.
-    const carriesSpend = caster.kind === 'CHARACTER' && actor.id === caster.id
+    // A Character caster caught by their own area spends in the same Sheet write as their first outcome.
+    const carriesSpend =
+      caster.kind === 'CHARACTER' && actor.id === caster.id && !advanced.has(actor.id)
     const mechanics = planNativeEncounterActionMechanics(
       {
         prepared,
@@ -1137,6 +1178,8 @@ export async function completeAreaCommit(args: {
       },
       userId
     )
+    if (kept.some((later, laterIndex) => laterIndex > index && later.actor.id === actor.id))
+      advanced.set(actor.id, advanceAreaPrepared(prepared, mechanics.targetPlan, occurredAt))
     const audit = audits.get(actor.id)
     let resistance: ReturnType<typeof encounterTargetLegendaryResistance> | null = null
     if (audit) {
@@ -1368,6 +1411,7 @@ export async function completeAreaCommit(args: {
       actorId,
       execution: targetExecution
     })),
+    rollsPerTarget,
     rules,
     resourceConsumption: resourceState?.resourceConsumption ?? null,
     itemConsumption: resourceState?.itemConsumption ?? null,
@@ -1396,6 +1440,7 @@ export function buildNativeLiveEncounterAreaCommitInput(
     initialDefinitionId: plan.initialDefinitionId,
     execution: plan.execution,
     targets: plan.targets,
+    rollsPerTarget: plan.rollsPerTarget,
     area: plan.area,
     placedZone: plan.placedZone,
     rules: plan.rules,

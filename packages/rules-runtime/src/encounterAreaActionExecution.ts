@@ -203,9 +203,10 @@ export async function settleEncounterAreaAction(
   for (const target of input.targets) {
     const test = input.tests.find((entry) => entry.actorId === target.actorId)
     if (test?.kind !== 'TESTED') throw new Error('The area save is unavailable.')
+    const occurrenceId = encounterAreaTargetOccurrenceId(input.occurrenceId, target.actorId)
     const result = await continueNativeActionAfterTest({
       ...input,
-      occurrenceId: encounterAreaTargetOccurrenceId(input.occurrenceId, target.actorId),
+      occurrenceId,
       binding: target.binding,
       // The roller of a nested save would pause here: only the frozen damage may be rolled.
       autoRoll: { SOURCE: true, TARGET: false },
@@ -216,7 +217,7 @@ export async function settleEncounterAreaAction(
     })
     if (result.kind !== 'COMPLETE')
       throw new Error('An area outcome cannot ask for evidence beyond its frozen damage.')
-    settled.push({ actorId: target.actorId, complete: result })
+    settled.push({ actorId: target.actorId, occurrenceId, complete: result })
   }
   return settled
 }
