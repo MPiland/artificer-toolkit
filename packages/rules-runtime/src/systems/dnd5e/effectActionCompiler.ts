@@ -25,7 +25,8 @@ import { abilityModifier } from './abilityModifier.js'
 import type {
   ActorRelationshipAuthored,
   HitPointMaximumReductionAuthored,
-  OptionalOnHitAuthored
+  OptionalOnHitAuthored,
+  PathLifecycleAuthored
 } from '@artificer-toolkit/shared/authored'
 import {
   RULE_VALUE_KIND,
@@ -56,6 +57,7 @@ import type {
   CharacterRuleActionSpatialDirective
 } from '../../characterRuleActionSystemAdapter.js'
 import type {
+  ActiveEffectEndTrigger,
   GrantConsumeEvent,
   GrantEndEvent
 } from '@artificer-toolkit/schema/shared/activeRuleEffects'
@@ -780,6 +782,7 @@ function supportedRecurringPlan(
     recurringStage !== null &&
     (lifecycle.consumeOnFirstEvents?.length ?? 0) === 0 &&
     (lifecycle.endOnEvents?.length ?? 0) === 0 &&
+    (lifecycle.endOnTriggers?.length ?? 0) === 0 &&
     (lifecycle.endOnConditionIds?.length ?? 0) === 0
   const maintenance = maintenancePlan(action, entry)
   if (
@@ -1472,7 +1475,12 @@ function timedConditionPlan(
     !entry.duration
   )
     return null
-  const { consumeOnFirstEvents = [], endOnEvents = [], ...otherLifecycle } = entry.lifecycle ?? {}
+  const {
+    consumeOnFirstEvents = [],
+    endOnEvents = [],
+    endOnTriggers = [],
+    ...otherLifecycle
+  } = entry.lifecycle ?? {}
   const initialRemaining = conditionDurationTurns(entry.duration)
   const { conditionId } = entry.outcome
   if (
@@ -1492,12 +1500,26 @@ function timedConditionPlan(
     conditionContribution: {
       conditionId,
       consumeOnFirstEvents: [...new Set(consumeOnFirstEvents)].sort(),
-      endOnEvents: [...new Set(endOnEvents)].sort()
+      endOnEvents: [...new Set(endOnEvents)].sort(),
+      endOnTriggers: canonicalEndTriggers(endOnTriggers)
     },
     adapterFacts: { [DND5E_ACTIVE_EFFECT_TIMED_CONDITION_FACT_KEY]: conditionId },
     perceptionContributions: [],
     maintenance: maintenancePlan(action, entry)
   }
+}
+
+/** The authored end triggers as the stored effect carries them: filters explicit, in canonical order. */
+function canonicalEndTriggers(
+  triggers: NonNullable<PathLifecycleAuthored['endOnTriggers']>
+): ActiveEffectEndTrigger[] {
+  const compiled = triggers.map(({ event, by, damageTypeIds }) => ({
+    event,
+    by,
+    damageTypeIds: damageTypeIds?.length ? [...new Set(damageTypeIds)].sort() : null
+  }))
+  const keyed = new Map(compiled.map((trigger) => [JSON.stringify(trigger), trigger]))
+  return [...keyed.entries()].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)).map(([, t]) => t)
 }
 
 function isGrantConsumeEvent(event: string): event is GrantConsumeEvent {

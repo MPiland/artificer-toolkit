@@ -7,17 +7,13 @@ import {
   projectNativeAreaActionPending,
   readNativeAreaActionPending
 } from '@artificer-toolkit/encounter-persistence/actionAreaPending'
-import {
-  projectNativeAttackSquarePending,
-  readNativeAttackSquarePending
-} from '@artificer-toolkit/encounter-persistence/attackSquarePending'
 import { projectNativeBasicActionCheckPending } from '@artificer-toolkit/encounter-persistence/basicActionCheckPending'
 import { projectNativeCleavingPending } from '@artificer-toolkit/encounter-persistence/cleavingPending'
+import { readEncounterActorConditionState } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
 import { projectNativeConcentrationPending } from '@artificer-toolkit/encounter-persistence/concentrationPending'
 import { readPendingSnapshot } from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
 import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
 import { readEncounterTimelinePage } from '@artificer-toolkit/encounter-persistence/timelinePages'
-import { z } from 'zod'
 import { liveSessionCheckpointRetainedRollSchema } from '@artificer-toolkit/schema/api/liveSessionCheckpointRecords'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 
@@ -56,7 +52,7 @@ export function readActorConditionIds(history: RoomHistory, actorId: string) {
   const actor = readStoredRunActor(row)
   if (actor.kind === 'CHARACTER')
     throw new Error('A Character holds its conditions on the Character.')
-  return z.array(z.string()).parse(actor.conditions)
+  return readEncounterActorConditionState(actor.conditions).ids
 }
 
 /** A stored receipt's rule execution, parsed by the shared contract. */
@@ -94,27 +90,21 @@ export function readPendingActionDecision(stub: RoomStub, isOwner = true) {
                 controlledActorIds: actorIds,
                 visibleActorIds: actorIds
               })
-            : kind === 'ENCOUNTER_ATTACK_SQUARE'
-              ? projectNativeAttackSquarePending(
+            : kind === 'ENCOUNTER_AREA_ACTION'
+              ? projectNativeAreaActionPending(
                   occurrence,
-                  await readNativeAttackSquarePending({ db: room.store }, occurrence),
+                  await readNativeAreaActionPending({ db: room.store }, occurrence),
+                  {
+                    isOwner,
+                    controlledActorIds: isOwner ? actorIds : new Set(),
+                    actors: room.documents('encounterRunActors').map(readStoredRunActor)
+                  }
+                )
+              : projectNativeActionPending(
+                  occurrence,
+                  await readNativeActionPending({ db: room.store }, occurrence),
                   isOwner
                 )
-              : kind === 'ENCOUNTER_AREA_ACTION'
-                ? projectNativeAreaActionPending(
-                    occurrence,
-                    await readNativeAreaActionPending({ db: room.store }, occurrence),
-                    {
-                      isOwner,
-                      controlledActorIds: isOwner ? actorIds : new Set(),
-                      actors: room.documents('encounterRunActors').map(readStoredRunActor)
-                    }
-                  )
-                : projectNativeActionPending(
-                    occurrence,
-                    await readNativeActionPending({ db: room.store }, occurrence),
-                    isOwner
-                  )
     if (!pending) throw new Error('The pending decision is not shown to the GM.')
     return {
       occurrence,

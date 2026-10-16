@@ -662,30 +662,6 @@ const encounterAreaActionPendingContextDtoSchema = lazySchema(() =>
     )
 )
 
-/**
- * An attack aimed at a square waits for the GM to say which creature stands there. The candidates
- * are computed on the server from the Scene, hidden creatures included; only the GM is ever shown them.
- */
-const encounterAttackSquarePendingContextDtoSchema = lazySchema(() =>
-  z.strictObject({
-    kind: z.literal('ENCOUNTER_ATTACK_SQUARE'),
-    schemaVersion: z.literal(1),
-    commandJson: z.string(),
-    commandFingerprint: checksumSchema,
-    initiatorUserId: uuidSchema,
-    attackerActorId: uuidSchema,
-    scene: z.strictObject({ sceneId: uuidSchema, sceneVersion: nonNegativeIntegerSchema }),
-    sourceTokenId: uuidSchema,
-    candidates: z
-      .array(z.strictObject({ actorId: uuidSchema, tokenId: uuidSchema }))
-      .check(z.minLength(1))
-      .check(z.maxLength(MAX_ENCOUNTER_ACTORS))
-  })
-)
-export type EncounterAttackSquarePendingContextDto = z.infer<
-  typeof encounterAttackSquarePendingContextDtoSchema
->
-
 export type ServerAggregateChoicePendingSnapshotDto = {
   snapshotKind: 'AGGREGATE_CHOICE'
   schemaVersion: 1
@@ -697,7 +673,6 @@ export type ServerAggregateChoicePendingSnapshotDto = {
     | OptionalCombatCleavingChoicePendingContextDto
     | OptionalCombatPassageChoicePendingContextDto
     | EncounterAreaActionPendingContextDto
-    | EncounterAttackSquarePendingContextDto
 }
 
 const serverAggregateChoicePendingSnapshotObjectSchema = lazySchema(() =>
@@ -711,8 +686,7 @@ const serverAggregateChoicePendingSnapshotObjectSchema = lazySchema(() =>
       initiativeDeclarationAggregateChoicePendingContextDtoSchema,
       optionalCombatCleavingChoicePendingContextDtoSchema,
       optionalCombatPassageChoicePendingContextDtoSchema,
-      encounterAreaActionPendingContextDtoSchema,
-      encounterAttackSquarePendingContextDtoSchema
+      encounterAreaActionPendingContextDtoSchema
     ])
   })
 )

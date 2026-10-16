@@ -34,6 +34,15 @@ export type PathLifecycleAuthored = {
   turnAnchor?: { actor: PathLifecycleTurnActor; boundary: PathLifecycleTurnBoundary }
   consumeOnFirstEvents?: PathLifecycleConsumeEvent[]
   endOnEvents?: PathLifecycleEndEvent[]
+  /**
+   * Events that end the effect early, filtered by whose damage counts (`SOURCE_SIDE` is the effect
+   * source and its allies, for Charm Person) and, when set, which damage types.
+   */
+  endOnTriggers?: {
+    event: 'DAMAGE_TAKEN'
+    by: 'ANYONE' | 'SOURCE_SIDE'
+    damageTypeIds?: string[]
+  }[]
   /** Condition types that end the effect early while its holder has any of them. */
   endOnConditionIds?: string[]
   /** The holder may end the effect themselves, at the cost of this activation. */

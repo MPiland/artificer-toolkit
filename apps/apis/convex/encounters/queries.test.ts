@@ -259,7 +259,8 @@ describe('native Encounter reads', () => {
       projectPlayerEncounterProjection(activeOwnerProjection, {
         userId: other.userId,
         characters: new Map(),
-        unseenActorIds: new Set<string>()
+        unseenActorIds: new Set<string>(),
+        invisibleConditionTypeIds: new Set<string>()
       })
     )
     expect(playerProjection.currentActorId).toBe(ownerCreature!.id)
@@ -283,7 +284,8 @@ describe('native Encounter reads', () => {
       controllerUserIds: [],
       disposition: 'HOSTILE',
       // Hidden by default (ADR 0034 decision 5).
-      health: null
+      health: null,
+      unseenReason: null
     })
     // Players read no health band for any actor; the GM projection keeps it.
     expect(ownerCreature).toHaveProperty('healthBand')
@@ -308,7 +310,8 @@ describe('native Encounter reads', () => {
       projectPlayerEncounterProjection(activeOwnerProjection, {
         userId: other.userId,
         characters: new Map(),
-        unseenActorIds: new Set<string>()
+        unseenActorIds: new Set<string>(),
+        invisibleConditionTypeIds: new Set<string>()
       })
     )
     expect(await other.caller.query(list, { campaignId: campaign.id })).toHaveLength(1)
@@ -401,7 +404,8 @@ describe('native Encounter reads', () => {
       projectPlayerEncounterProjection(run, {
         userId: owner.userId,
         characters: new Map(),
-        unseenActorIds: new Set<string>()
+        unseenActorIds: new Set<string>(),
+        invisibleConditionTypeIds: new Set<string>()
       })
     )
   }, 30000)

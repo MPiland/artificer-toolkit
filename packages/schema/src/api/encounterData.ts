@@ -134,7 +134,12 @@ const encounterActorBaseDtoSchema = lazySchema(() =>
  */
 export const encounterPlayerActorDtoSchema = lazySchema(() =>
   z.extend(encounterActorBaseDtoSchema, {
-    health: z.nullable(playerActorHealthDtoSchema)
+    health: z.nullable(playerActorHealthDtoSchema),
+    /**
+     * Why a listed actor is not drawn for the player (D131): `INVISIBLE` when it carries the Invisible
+     * condition, otherwise `HIDDEN` (hidden, in fog or unbound). Null for an actor the player sees or controls.
+     */
+    unseenReason: z.nullable(z.enum(['HIDDEN', 'INVISIBLE']))
   })
 )
 

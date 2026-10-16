@@ -271,3 +271,16 @@ export function buildEncounterMaintenanceTransition(input: {
     createdDependentEffectIds: input.createdDependentEffectIds
   })
 }
+
+/**
+ * The transition of an area creature whose effect joins the state another creature's outcome
+ * created: it replaces and ends nothing, which the carrying creature's transition already did.
+ */
+export function buildEncounterJoinedMaintenanceTransition(
+  input: Omit<Parameters<typeof buildEncounterMaintenanceTransition>[0], 'maintenance'>
+) {
+  return buildEncounterMaintenanceTransition({
+    ...input,
+    maintenance: { prior: null, removed: [], carried: [], characterVersions: [] }
+  })
+}

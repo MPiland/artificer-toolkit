@@ -5939,8 +5939,8 @@
             },
             {
               "id": "ATTACK-9.T5a",
-              "text": "Two-weapon fighting off-hand attack: the compiler grants a BONUS_ACTION off-hand attack after the Attack action; the turn records the ATTACK_ACTION weapon and the ATTACK_ACTION_OTHER_WEAPON predicate requires a different light weapon.",
-              "status": "IN_PROGRESS",
+              "text": "Two-weapon fighting off-hand attack: the compiler grants a BONUS_ACTION off-hand attack after the Attack action; the turn records the ATTACK_ACTION weapon and the ATTACK_ACTION_OTHER_WEAPON predicate requires a different light weapon. (Red: ci/attack-9-t5a-red Tests 38905082156 on 07affe3dc, 3 intended failures. Green: ci/attack-9-t5 Tests 38918177360 and Live backend 38918177250 on bd973edd4.)",
+              "status": "DONE",
               "closes": ["ATTACK-9.5"],
               "wsjf": {
                 "bv": 5,
@@ -5948,13 +5948,12 @@
                 "rr": 3,
                 "size": 2,
                 "after": ["ATTACK-9.T3"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-attack-9-t5.md"
+              }
             },
             {
               "id": "ATTACK-9.T5b",
               "text": "Off-hand damage omits a positive ability modifier but keeps a negative one (negative-only modifier mode); the Two-Weapon Fighting style grant restores the positive modifier.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["ATTACK-9.5"],
               "wsjf": {
                 "bv": 5,
@@ -5962,7 +5961,8 @@
                 "rr": 3,
                 "size": 2,
                 "after": ["ATTACK-9.T5a"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-attack-9-t5.md"
             },
             {
               "id": "ATTACK-9.T5c",
@@ -6470,12 +6470,16 @@
             },
             {
               "text": "Players target only tokens or the target list; there is no square attack. In targeting mode, creatures the GM has revealed but the player cannot see are listed first, marked hidden or invisible with an unknown distance, and the visible creatures follow, nearest first.",
-              "status": "TODO",
+              "status": "DONE",
               "proof": [
-                "T4a (occupied square): packages/schema/src/__tests__/encounter-attack-square-contracts.test.ts, packages/rules-runtime/src/__tests__/encounterAttackSquare.test.ts, apps/session-worker/test/nativeRoomAttackSquare.test.ts, CampaignTabletopDecisionDrawer.test.tsx; CI Tests 38875764975 and Live backend 38875765093 on acf721dec"
+                "apps/web/src/domains/campaigns/vtt/vttTargeting.model.test.ts (D131 list order: unseen creatures first, marked Hidden or Invisible, visible nearest first, never measured or targetable on the map)",
+                "packages/rules-runtime/src/__tests__/encounterPlayerProjection.test.ts (unseenReason predicate table, Invisible fact of an unnamed reveal)",
+                "apps/apis/convex/encounters/recipientBindings.test.ts and apps/session-worker/test/nativeLiveSessionRoom.test.ts (Convex and room agree on unseenReason)",
+                "Storybook Domains/Campaigns/VTT/Tabletop Turn Order, Targeting story",
+                "CI Tests 38917023265 and Live backend 38917023326 on 17d2175b2"
               ],
               "origin": [],
-              "note": "SRD: attacking an unseen creature means guessing its location. Depends on ATTACK-10 (attack-roll sight) and ATTACK-10.2 (Hide).",
+              "note": "SRD: attacking an unseen creature means guessing its location. Depends on ATTACK-10 (attack-roll sight) and ATTACK-10.2 (Hide). The Storybook Targeting story runs locally with AC ATTACK-17.1's browser journey.",
               "id": "ATTACK-17.4"
             },
             {
@@ -6564,8 +6568,8 @@
             },
             {
               "id": "ATTACK-17.T4b",
-              "text": "Remove the square attack (the SQUARE target, the ATTACK_SQUARE_RESOLUTION decision and their tests, stories and docs) with no shim, and order the target list with revealed unseen creatures first, marked hidden or invisible with an unknown distance, then visible creatures nearest first.",
-              "status": "IN_PROGRESS",
+              "text": "Remove the square attack (the SQUARE target, the ATTACK_SQUARE_RESOLUTION decision and their tests, stories and docs) with no shim, and order the target list with revealed unseen creatures first, marked hidden or invisible with an unknown distance, then visible creatures nearest first. (Red: ci/attack-17-t4b-red Tests 38917408914 on dda334baf failed on the missing unseenReason and invisibleConditionTypeIds and the D131 order test. Green: ci/attack-17-t4b Tests 38917023265 and Live backend 38917023326 on 17d2175b2.)",
+              "status": "DONE",
               "closes": ["ATTACK-17.4"],
               "wsjf": {
                 "bv": 8,
@@ -6573,8 +6577,7 @@
                 "rr": 2,
                 "size": 2,
                 "after": ["ATTACK-17.T3", "ATTACK-10.T1"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-attack-17-t2-t3.md"
+              }
             },
             {
               "id": "ATTACK-17.T5",
@@ -8114,8 +8117,10 @@
           "acs": [
             {
               "text": "A point-area action whose per-creature outcome applies a condition, a lasting or recurring effect, or a maintained (Concentration) effect commits that outcome on each caught creature it selects, and GM undo removes it from every one.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "SPELLS-19.T2: CI Tests 38918427785 and Live backend 38918427783 on bcfd161d0 (maintained Fear across every caught creature, Concentration end and GM undo)"
+              ],
               "origin": [
                 "2026-10-16 main ruling on the SPELLS-19.T2 escalation: relationship conditions dropped from this AC. An area resolves by saves, and a relationship (Grappled, D105) comes only from a hit, so no area can author one. Frightened of the caster moved to SPELLS-29."
               ],
@@ -8152,8 +8157,8 @@
             },
             {
               "id": "SPELLS-19.T2",
-              "text": "One maintained (Concentration) effect spans every caught creature of a point-area action; ending Concentration or GM undo removes it from all of them. Fear proves it end to end: each creature that fails is Frightened, maintained by the caster's Concentration.",
-              "status": "IN_PROGRESS",
+              "text": "One maintained (Concentration) effect spans every caught creature of a point-area action; ending Concentration or GM undo removes it from all of them. Fear proves it end to end: each creature that fails is Frightened, maintained by the caster's Concentration. (Red: ci/spells-19 Tests 38915948809 on 924051aa4, \"ends the earlier Concentration on every creature once when the caster concentrates again, and refuses its undo\"; earlier red 38911126971 on 38156df11. Green: ci/spells-19 Tests 38918427785 and Live backend 38918427783 on bcfd161d0.)",
+              "status": "DONE",
               "closes": ["SPELLS-19.1"],
               "wsjf": {
                 "bv": 8,
@@ -8161,13 +8166,12 @@
                 "rr": 5,
                 "size": 3,
                 "after": ["SPELLS-19.T1"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-spells-19.md"
+              }
             },
             {
               "id": "SPELLS-19.T3",
               "text": "Timed and repeat-save condition breaths compile in the dnd5e System compiler and resolve through the area executor: Silver (5), Dust Mephit, Brass Sleep (4), Copper Slowing (4), Gold Weakening (4), and Gorgon Petrifying Breath with its repeat save authored; the corpus test pins each row red first.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-19.2"],
               "wsjf": {
                 "bv": 8,
@@ -8175,7 +8179,8 @@
                 "rr": 3,
                 "size": 8,
                 "after": ["SPELLS-19.T1"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-19.md"
             },
             {
               "id": "SPELLS-19.T4",
@@ -8499,9 +8504,9 @@
             {
               "id": "SPELLS-28.T1b",
               "text": "In-Scene TELEPORT (Misty Step, Dimension Door): the cast commits a bounded one-shot teleport allowance (on the existing movement-economy pattern, expiring at the end of the caster turn) that a following MOVE_SCENE_TOKEN TELEPORT consumes; player TELEPORT without an allowance is refused; range, occupancy and visibility enforced at consumption; authored from core options.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-28.2"],
-              "activeWorkbook": "docs/handoffs/slice-spells-28.md",
+              "activeWorkbook": "docs/handoffs/slice-spells-28-t1b.md",
               "wsjf": {
                 "bv": 8,
                 "tc": 3,
@@ -8651,8 +8656,8 @@
             },
             {
               "id": "SPELLS-27.T4",
-              "text": "Structured end trigger (event, by, against) sharing the reactionTrigger filter types; damage-taken and harm-by-source events.",
-              "status": "IN_PROGRESS",
+              "text": "Structured end trigger (event, by, against) sharing the reactionTrigger filter types; damage-taken and harm-by-source events. (D132. Mutation red: damageTakenEndedEffects stubbed on ci/spells-27-t4-mutation, Tests 38912473464 (4 encounterEndedEffectRelease damage tests) and 38914932506 on f83ade563 (nativeRoomDamageEndsEffect: anyone, source, ally, undo). Green: ci/spells-27-t4 Tests 38918098678 on 1fe069502 and Live backend 38918047905 on a97a07e9c, code-identical.)",
+              "status": "DONE",
               "closes": ["SPELLS-27.2"],
               "wsjf": {
                 "bv": 3,
@@ -8660,13 +8665,12 @@
                 "rr": 3,
                 "size": 3,
                 "after": ["SPELLS-27.T2a"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-spells-27.md"
+              }
             },
             {
               "id": "SPELLS-27.T4b",
               "text": "Every damage root ends damage-triggered effects through damageTakenEndedEffects: the area commit, the Legendary window, the movement reaction, turn effects (ongoing damage) and death-save damage, each proved with GM undo; plus the ATTACK_ROLL-against-an-enemy end arm (Sanctuary) and the SPELL_CAST arm on the T3 cast fact. T5 authors no damage-ended SRD effect whose damage arrives through an unwired root.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-27.2"],
               "wsjf": {
                 "bv": 3,
@@ -8674,7 +8678,8 @@
                 "rr": 3,
                 "size": 3,
                 "after": ["SPELLS-27.T4"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-27.md"
             },
             {
               "id": "SPELLS-27.T5",

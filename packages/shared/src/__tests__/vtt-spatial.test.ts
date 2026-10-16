@@ -7,7 +7,6 @@ import {
   effectiveSpatialGeometry,
   spatialGeometryOverlapsTokenFootprint,
   spatialSegmentShareInside,
-  spatialTokensAtPoint,
   type SpatialEffectInstance,
   spatialTokensInsideArea,
   spatialTokensWithinSpaceRadius,
@@ -794,26 +793,6 @@ describe('pointAreaInSceneCoordinates', () => {
         { ...feetGrid, distancePerCell: 1, unit: 'SQUARES' }
       )
     ).toEqual({ kind: 'CUBE', edgeLength: 300 })
-  })
-})
-
-describe('spatialTokensAtPoint', () => {
-  const a = token('00000000-0000-4000-8000-0000000000b1', 0)
-  const b = token('00000000-0000-4000-8000-0000000000b2', 2)
-  const big = { ...token('00000000-0000-4000-8000-0000000000b3', 10), width: 6, height: 6 }
-
-  it('returns every token whose footprint holds the point, sorted by id', () => {
-    expect(spatialTokensAtPoint({ x: 10, y: 1 }, [big, b, a])).toEqual([big.id])
-    expect(spatialTokensAtPoint({ x: 0.5, y: 0.5 }, [b, a, big])).toEqual([a.id])
-  })
-
-  it('is empty on an empty square and on a footprint edge shared by two tokens', () => {
-    expect(spatialTokensAtPoint({ x: 30, y: 30 }, [a, b, big])).toEqual([])
-    expect(spatialTokensAtPoint({ x: 1, y: 0 }, [a, b])).toEqual([])
-  })
-
-  it('ignores a token whose footprint is invalid', () => {
-    expect(spatialTokensAtPoint({ x: 0, y: 0 }, [{ ...a, width: Number.NaN }])).toEqual([])
   })
 })
 

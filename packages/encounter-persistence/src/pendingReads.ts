@@ -6,10 +6,6 @@ import {
   readNativeActionPending
 } from './actionPending.js'
 import { projectNativeAreaActionPending, readNativeAreaActionPending } from './actionAreaPending.js'
-import {
-  projectNativeAttackSquarePending,
-  readNativeAttackSquarePending
-} from './attackSquarePending.js'
 import { projectNativeDisarmPendingForMember } from './actionDisarmPending.js'
 import { projectEncounterInitiativePendingSummary } from '@artificer-toolkit/rules-runtime/encounterInitiativeOccurrence'
 import { projectEncounterSpatialOccurrenceSummary } from '@artificer-toolkit/rules-runtime/encounterSpatialOccurrenceSummary'
@@ -239,12 +235,6 @@ export async function readPendingRunDecision(
       )
     )
   }
-  if (context.kind === 'ENCOUNTER_ATTACK_SQUARE')
-    return projectNativeAttackSquarePending(
-      occurrence,
-      await readNativeAttackSquarePending(ctx, occurrence),
-      membership.role === 'OWNER'
-    )
   if (context.kind === 'ENCOUNTER_ACTION') {
     if (!(await canAnswerNativeActionEvidence(ctx, { run: row, campaign, membership, occurrence })))
       return null
