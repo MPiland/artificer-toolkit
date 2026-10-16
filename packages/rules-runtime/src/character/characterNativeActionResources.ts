@@ -134,9 +134,15 @@ function resourceOwner(
         featureId: resource.featureId
       })
     case 'SPELL_SOURCE':
-      throw new Error(
-        'Spell-source resource actions are not supported by this Character action entry point.'
-      )
+      return toCharacterResourceOwnerKey({
+        kind: resource.ownerKind,
+        resourceGrantId: resource.accessId,
+        source: {
+          spellId: resource.spellId,
+          sourceKind: 'FEATURE',
+          sourceInstanceId: resource.sourceInstanceId
+        }
+      })
   }
 }
 

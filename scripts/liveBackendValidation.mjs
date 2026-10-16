@@ -73,8 +73,9 @@ const allSteps = {
   codegen: [convex('codegen', '--typecheck', 'disable')],
   deploy: [convex('deploy', '--yes', '--typecheck', 'disable', '--codegen', 'disable')],
   seed: [convex('run', 'content/seed:seed')],
-  // Replaces canonical subjects in place and times each mutation; the reseed then replaces the one
-  // subject the probe leaves changed, and the audit proves the corpus is exact again.
+  // Replaces canonical subjects, the System, content source, catalogue and a reusable definition in
+  // place and times each mutation; the reseed then replaces the one subject the probe leaves
+  // changed, and the audit proves the corpus is exact again.
   replace: [
     [
       'exec',

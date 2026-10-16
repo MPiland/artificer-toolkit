@@ -676,9 +676,19 @@ still has subclasses or subraces is refused with their ids. `importSubjects` and
 `replaced`. The seed reads the stored checksums first and gives each replaced subject a batch alone
 (a replace costs about 100-250 ms idle however small the document;
 [measurements](../../docs/validation/platform-18-t1-replace-mutation-margin-2026-10-15.md)). A subject removed from the corpus fails the seed before any write, naming its ids
-(removal is a deferred edge case). Definitions, Systems, content sources and catalogue records are
-still insert-or-identical, so changing those needs a backend reset. `liveBackendValidation.mjs`
-proves replacement on an ephemeral backend (`replace`/`reseed` steps) and times each mutation.
+(removal is a deferred edge case).
+
+Definitions, Systems, content sources and catalogues are replaced in place the same way (PLATFORM-18.T2,
+D120): `bootstrap` and `importDefinitions` patch the mutable fields of an identical-identity record
+(`mutableChanges` in `import.ts`) and report `replaced`. A content source or catalogue changes `label`
+and `description`; a Definition changes `label`, `description`, `checksum` and `documentJson`, keeps
+`version` 1 and the checksum is its revision identity; a System changes `document` and `checksum` and
+appends the next `systemVocabularySnapshots` version (earlier versions stay). Changing a record's
+identity (code, kind, System, family key, content source) is "Canonical content conflict.". A System
+replace that drops a vocabulary entry id stored data may name is refused with the ids; a Definition
+removed from the corpus fails the seed before any subject or definition write, naming its ids.
+`liveBackendValidation.mjs` proves replacement on an ephemeral backend (`replace`/`reseed` steps) and
+times each mutation.
 
 Master ownership comes from the PLATFORM content source with a null owner, not the canonical
 payload's placeholder `userId`. Public/authored UUIDs remain distinct from Convex `_id` values.

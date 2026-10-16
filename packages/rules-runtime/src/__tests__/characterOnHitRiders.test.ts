@@ -14,6 +14,7 @@ import {
 } from '../encounterActionEntryPointCompiler.js'
 import { executeNativeActionGraphs } from '../encounterActionExecution.js'
 import { createPlatformRulesRuntime } from '../platformRulesRuntime.js'
+import type { Dnd5eEnemyProximity } from '../systems/dnd5e/attackRestrictions.js'
 import { dnd5eCharacterRuleActionSystemAdapter } from '../systems/dnd5e/effectActionCompiler.js'
 import { testUuid } from '../testing/dnd5eSrdEncounter.js'
 import {
@@ -87,6 +88,8 @@ async function longswordHit(input: {
   gate?: FacetAuthored
   weapon?: 'Longsword' | 'Rapier'
   influence?: 'ADVANTAGE' | 'DISADVANTAGE'
+  /** What the Scene measured of the target's enemies; absent for an attack without a Scene. */
+  enemyProximity?: Dnd5eEnemyProximity
 }) {
   const character = rogue({
     level: input.level,
@@ -149,22 +152,25 @@ async function longswordHit(input: {
     occurrenceId: testUuid(0xc3),
     binding: {
       actionMechanic,
-      sourceDerivedFacts: input.influence
-        ? {
-            rollContributorEvidence: {
-              attacks: {
-                MELEE: [
-                  {
-                    sourceId: testUuid(0xc4),
-                    grantId: testUuid(0xc5),
-                    domainKey: 'attacks.melee',
-                    influence: input.influence
-                  }
-                ]
+      sourceDerivedFacts: {
+        ...(input.enemyProximity ? { attackEnemyProximity: input.enemyProximity } : {}),
+        ...(input.influence
+          ? {
+              rollContributorEvidence: {
+                attacks: {
+                  MELEE: [
+                    {
+                      sourceId: testUuid(0xc4),
+                      grantId: testUuid(0xc5),
+                      domainKey: 'attacks.melee',
+                      influence: input.influence
+                    }
+                  ]
+                }
               }
             }
-          }
-        : {},
+          : {})
+      },
       targetActorId: TARGET_ID,
       targetDerivedFacts: { statBlock: { armorClass: 11 } },
       targetConditionIds: [],
@@ -381,5 +387,60 @@ describe('a rider gated on the attack roll mode (D119)', () => {
       rolls: [HIT, 0, 3]
     })
     expect(outcomeDice(longsword).hit).toEqual(['d8'])
+  })
+})
+
+describe('a rider gated on an enemy near the target (D119)', () => {
+  // Sneak Attack's two ways in: advantage, or an able enemy within 5 ft and no disadvantage.
+  const sneakGate = riderGate(
+    [{ predicateCode: 'ATTACK_ROLL_MODE', rollMode: 'ADVANTAGE' }],
+    [
+      { predicateCode: 'ENEMY_NEAR_TARGET', feet: 5 },
+      { predicateCode: 'ATTACK_ROLL_MODE', rollMode: 'NOT_DISADVANTAGE' }
+    ]
+  )
+
+  it('applies the rider to a level attack with an able enemy within the distance', async () => {
+    const hit = await longswordHit({
+      level: 1,
+      gate: sneakGate,
+      enemyProximity: { nearestFeet: 5 },
+      rolls: [HIT, 3, 0]
+    })
+    expect(outcomeDice(hit).hit).toEqual(['d8', 'd6'])
+  })
+
+  it('withholds the rider when the nearest able enemy is too far or there is none', async () => {
+    for (const enemyProximity of [{ nearestFeet: 10 }, { nearestFeet: null }]) {
+      const hit = await longswordHit({ level: 1, gate: sneakGate, enemyProximity, rolls: [HIT, 3] })
+      expect(outcomeDice(hit).hit).toEqual(['d8'])
+    }
+  })
+
+  it('withholds the rider from an attack without a Scene to measure on', async () => {
+    const hit = await longswordHit({ level: 1, gate: sneakGate, rolls: [HIT, 3] })
+    expect(outcomeDice(hit).hit).toEqual(['d8'])
+  })
+
+  it('withholds the rider from a disadvantaged attack beside an enemy', async () => {
+    const hit = await longswordHit({
+      level: 1,
+      gate: sneakGate,
+      enemyProximity: { nearestFeet: 5 },
+      influence: 'DISADVANTAGE',
+      rolls: [HIT, HIT, 3]
+    })
+    expect(outcomeDice(hit).hit).toEqual(['d8'])
+  })
+
+  it('still applies the rider to an advantaged attack with no enemy near', async () => {
+    const hit = await longswordHit({
+      level: 1,
+      gate: sneakGate,
+      enemyProximity: { nearestFeet: null },
+      influence: 'ADVANTAGE',
+      rolls: [HIT, 0, 3, 0]
+    })
+    expect(outcomeDice(hit).hit).toEqual(['d8', 'd6'])
   })
 })
