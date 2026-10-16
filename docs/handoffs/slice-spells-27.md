@@ -240,3 +240,15 @@ The test walks every SRD subject record and splits its description into sentence
 ### Proposed ledger edits (the main session applies them)
 
 - SPELLS-27.T5 DONE once green; T7 to T11 are already registered; AC 27.2 closes when `REGISTERED_FOLLOW_UP` is empty.
+
+## Resume here (after SPELLS-27.T10, on ci/spells-27-t10)
+
+**Next task: SPELLS-27.T6 (D122: unify `consumeOnFirstEvents` and `endOnEvents`) once REACTION-4.T3 has merged, otherwise the next REGISTERED_FOLLOW_UP in `packages/source-data/src/srd/endEvents.test.ts` (T7 Sanctuary, T8 Sleep, T9 Hypnotic Pattern, T11 margin-of-failure riders).** One task per session.
+
+### T10 result
+- `timedConditionPlan` (`effectActionCompiler.ts`) accepts a condition entry with no duration when Concentration maintains it: `initialRemaining: null`, `recurrenceStage: 'NONE'`, planned as `{ kind: 'INDEFINITE' }`. `endOnEvents` ride on the condition contribution as before.
+- `packages/source-data/src/srd/creatures/indefiniteInvisibility.ts` builds the five traits (Imp, Quasit, Will-o'-Wisp: `ON_ATTACK_ROLL`; Sprite, Green Hag: plus `ON_CAST_SPELL`) from core options. Sprite and Green Hag were closed rules; their `CLOSED_RULE_KIND` entries are deleted.
+- Proofs: `creatureIndefiniteInvisibility.test.ts` (plan, journey with release, authoring parity). The five T10 entries are gone from `endEvents.test.ts`.
+- Deferred edge (logged in future-enhancements): ending on using Scare, Consume Life, Enlarge.
+- Run ids: red Tests 38973682677 on f95bacfe5; green Tests 38975443036 and Live 38975443035 on 6e993607d.
+- The red Convex shard also showed `encounterWriteSets.test.ts` at 256002 > 256000; it passed on green, so treat it as flaky.
