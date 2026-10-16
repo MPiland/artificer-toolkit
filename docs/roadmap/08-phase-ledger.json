@@ -5785,7 +5785,8 @@
                 "rr": 3,
                 "size": 3,
                 "after": ["ATTACK-9.T2a"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-attack-9-t4.md"
             },
             {
               "id": "ATTACK-9.T5",
