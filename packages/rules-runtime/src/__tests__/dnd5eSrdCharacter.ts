@@ -10,6 +10,7 @@ import {
   type CharacterBuildSnapshot,
   type HeldItem
 } from '@artificer-toolkit/shared/core'
+import type { FeatureAuthored } from '@artificer-toolkit/shared/authored'
 import type { EquipmentAuthored, RaceAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import {
   resolveEquipmentAuthored,
@@ -45,8 +46,11 @@ export function srdByLabel<T extends { readonly label: string }>(
 
 const racesById = new Map<string, RaceAuthored>(SRD.races.map((race) => [race.id, race]))
 
-/** The rule registry over the SRD and any further authored equipment, resolved as publication does. */
-function registryWith(extraEquipment: readonly EquipmentAuthored[]) {
+/** The rule registry over the SRD and any further authored equipment and Features, resolved as publication does. */
+function registryWith(
+  extraEquipment: readonly EquipmentAuthored[],
+  extraFeatures: readonly FeatureAuthored[]
+) {
   const equipment = [...SRD.equipment, ...extraEquipment]
   const equipmentById = new Map<string, EquipmentAuthored>(equipment.map((item) => [item.id, item]))
   return prepareCharacterRuleSources({
@@ -58,14 +62,14 @@ function registryWith(extraEquipment: readonly EquipmentAuthored[]) {
         resolveEquipmentAuthored(item, (id) => equipmentById.get(id))
       ),
       feats: [],
-      features: [],
+      features: [...extraFeatures],
       system: { skills: [], speeds: [...SRD_SPEEDS] }
     },
     catalog: { spells: [] }
   }).registry
 }
 
-const srdRegistry = registryWith([])
+const srdRegistry = registryWith([], [])
 
 /** The SRD vocabulary slice that saving-throw projection reads. */
 export const vocabulary = {
@@ -121,6 +125,8 @@ export type SrdCharacterInput = {
   items?: readonly { label: string; equipped?: boolean; attuned?: boolean }[]
   /** Authored equipment beyond the SRD, which `items` may then name by label. */
   extraEquipment?: readonly EquipmentAuthored[]
+  /** Authored Features beyond the SRD, which `features` may then acquire by id. */
+  extraFeatures?: readonly FeatureAuthored[]
 }
 
 export type SrdCharacter = {
@@ -133,7 +139,10 @@ export type SrdCharacter = {
 
 /** Evaluates an SRD Character through the real fact builders and the installed D&D policy. */
 export function evaluateSrdCharacter(input: SrdCharacterInput): SrdCharacter {
-  const registry = input.extraEquipment ? registryWith(input.extraEquipment) : srdRegistry
+  const registry =
+    input.extraEquipment || input.extraFeatures
+      ? registryWith(input.extraEquipment ?? [], input.extraFeatures ?? [])
+      : srdRegistry
   const equipmentRecords = [...SRD.equipment, ...(input.extraEquipment ?? [])]
   const race = input.race === undefined ? undefined : srdByLabel(SRD.races, input.race)
   const subrace = input.subrace === undefined ? undefined : srdByLabel(SRD.races, input.subrace)

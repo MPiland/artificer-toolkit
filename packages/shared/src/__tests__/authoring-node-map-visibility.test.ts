@@ -206,6 +206,24 @@ describe('authoring node map visibility', () => {
     expect(isVisible(dcNode('checks'), { kind: 'FIXED' })).toBe(false)
   })
 
+  it('asks for a damage type unless the outcome takes the triggering weapon’s (D119)', () => {
+    const outcome = groupMap(groupMap(PATH_NODE_MAP.nodes.resultBlock)('outcomes'))
+    const toggleNode = outcome('usesTriggeringWeaponDamageType')
+    const damageTypeNode = outcome('damageTypeId')
+    const damage = { effectKind: EFFECT_KIND.DAMAGE }
+
+    expect(isVisible(toggleNode, damage)).toBe(true)
+    expect(isVisible(toggleNode, { effectKind: EFFECT_KIND.HEAL })).toBe(false)
+
+    for (const values of [damage, { ...damage, usesTriggeringWeaponDamageType: false }]) {
+      expect(isVisible(damageTypeNode, values)).toBe(true)
+      expect(isRequired(damageTypeNode, values)).toBe(true)
+    }
+    const weaponType = { ...damage, usesTriggeringWeaponDamageType: true }
+    expect(isVisible(damageTypeNode, weaponType)).toBe(false)
+    expect(isRequired(damageTypeNode, weaponType)).toBe(false)
+  })
+
   it('mirrors nonnegative bonus controls without constraining penalties', () => {
     const payloadNode = MODIFIER_GRANT_NODE_MAP.nodes.payload
 
@@ -229,9 +247,18 @@ function isVisible(node: { showIf?: ConditionIfExpr }, values: Record<string, un
   return node.showIf ? evaluateConditionIf(node.showIf, { values }) : true
 }
 
+function isRequired(
+  node: { requiredIf?: ConditionIfExpr | true },
+  values: Record<string, unknown>
+) {
+  if (node.requiredIf === undefined) return false
+  return node.requiredIf === true || evaluateConditionIf(node.requiredIf, { values })
+}
+
 type VisibilityNode = {
   kind: string
   showIf?: ConditionIfExpr
+  requiredIf?: ConditionIfExpr | true
   type?: string
   constraints?: { minimum?: number }
   source?: { kind: string; options?: readonly { code: string }[] }

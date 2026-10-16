@@ -114,11 +114,19 @@ export type DamagePoolPayload =
 
 export type DamagePayload = DamageFixedPayload | DamageDicePayload | DamagePoolPayload
 
+/**
+ * A damage type is named, or taken from the weapon whose hit triggers a passive rider. The rider
+ * form is resolved to the weapon's own type when the Character's weapon action is built.
+ */
+export type DamageTypeAuthored =
+  | { damageTypeId: string; usesTriggeringWeaponDamageType?: false }
+  | { usesTriggeringWeaponDamageType: true; damageTypeId?: never }
+
 export type DamageAuthored = {
   id: string
   effectKind: typeof EFFECT_KIND.DAMAGE
-  damageTypeId: string
   bonuses?: DamageBonusAuthored[]
   amountKind?: ScalingAmountKind
   multiplier?: number
-} & DamagePayload
+} & DamageTypeAuthored &
+  DamagePayload

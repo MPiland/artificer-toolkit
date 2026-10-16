@@ -1,6 +1,6 @@
 # Workbook: ATTACK-9.T2 Sneak Attack (AC ATTACK-9.2)
 
-**Status:** blocked on architect approval of the shapes below (2026-10-15). No code written.
+**Status:** D119 ruled shapes 1-3 (T2a) on 2026-10-15; T2a in progress on `claude/attack-9-t7`, pushed to `ci/attack-9-t2a`. T2b-T2d wait their turn.
 **Base:** `912f2780d` (phase branch `codex/phase-08-2-convex-cutover` merged into `claude/attack-9-t7`).
 
 ## Brief
@@ -44,3 +44,18 @@ ATTACK-9.T6 (Rage early end) reads a per-turn attack/damage record that (f) is m
 ## Status log
 
 - 2026-10-15: survey done; no code. Waiting on the architect's ruling on shapes 1-6 and the split.
+- 2026-10-15: D119 rules shapes 1-3 and splits T2 into T2a-T2d. T2a built.
+
+## T2a (shapes 1-3, D119)
+
+Built:
+
+- (a) `characterOnHitRiders.ts` collects the trigger-matched `PASSIVE` Feature `ON_HIT` `DAMAGE` outcomes and merges them into the weapon action's compiled effect when `buildCharacterActionRuleFacts` builds the action. Downstream sees one multi-part `ON_HIT` damage effect, so resistance and critical doubling apply with no new code. Riders come from class, subclass, race and feat Features and their options; a rider matches by equal `triggerCode`, so one effect per trigger until T2b adds the generic any-of.
+- (b) `bindFacts` emits the `dnd5e.class-levels` fact from `actionMechanic.classLevels`; `validateDiceOutcomeRow` accepts `CLASS_LEVEL`; `exactDiceConfiguration` is the shared row selector (highest row with `level <= class level`). T12 reuses or extracts it.
+- (c) `usesTriggeringWeaponDamageType: true` replaces `damageTypeId` on a DAMAGE outcome (`DamageTypeAuthored` union; schema, compiler and node map). The merge resolves it to the weapon's first `ON_HIT` damage type; an unresolved one fails closed at every consumer.
+- The SRD Rogue's Sneak Attack stays `CLOSED_RULE` (inert) until T2d.
+
+Proof (real code, `characterOnHitRiders.test.ts`): a Rogue's unconditional Sneak Attack rider hits, selects its dice row by class level (1, 3, 4, 5), doubles its dice on a critical, resists like the weapon's damage, and leaves a rider-free Longsword and the shipped Sneak Attack unchanged. `characterOnHitRiderMerge.test.ts` covers trigger mismatch, passive skip, no `ON_HIT` weapon damage, and the multi-damage pick. Schema, compiler and node-map tests cover the new option.
+
+Placement rule (reviewer finding): the flag is valid only on a `PASSIVE` Effect's fixed `ON_HIT` path (`checkWeaponDamageTypeChoices` in the Effect DTO schemas), so an unmerged flag cannot reach `normalizeCharacterActionMechanicFacts`, whose throw is now only an invariant. A rider acquired twice merges once (dedupe by outcome id), and the class rows are chosen from the Rogue levels alone (Fighter 5 / Rogue 1 rolls 1d6).
+

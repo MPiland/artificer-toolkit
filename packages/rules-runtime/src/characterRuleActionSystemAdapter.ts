@@ -385,6 +385,8 @@ export interface CharacterRuleActionSystemAdapter {
     actionMechanic: Readonly<Record<string, unknown>> & {
       /** The level a spell is cast at, which selects the authored scaling row of its outcomes. */
       spellCastLevel?: number
+      /** The actor's level in each class, which selects class-level scaling rows of its outcomes. */
+      classLevels?: Readonly<Record<string, number>>
     }
     /** Exact published graph selected under the aggregate lock. */
     published: ServerPublishedRuleDefinitionDto
