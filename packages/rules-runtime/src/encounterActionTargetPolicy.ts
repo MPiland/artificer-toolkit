@@ -96,7 +96,9 @@ export function singleTargetMeasure(policy: CompiledActionTargetPolicy):
   // range; the creatures themselves are only checked for their disposition.
   const inArea = policy.shape !== null
   if (inArea && targeting?.selectionKind !== 'CHOSEN_CREATURES') return null
-  if (range.rangeKind === 'SELF') return { kind: 'SELF' }
+  // An action that targets only its user is held to its user even when its range is a distance: the
+  // distance measures a destination (Misty Step), not a target.
+  if (range.rangeKind === 'SELF' || targeting?.selectionKind === 'SELF') return { kind: 'SELF' }
   if (
     !isMeasuredRange(range) ||
     (targeting?.selectionKind !== 'SINGLE_TARGET' &&

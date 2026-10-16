@@ -9,6 +9,7 @@ import { z, lazySchema, lazySchemaParts } from '../zod.js'
 
 import {
   abilityCodeSchema,
+  activationCodeSchema,
   authoringConstraintCodeSchema,
   authoringModeKindSchema,
   chargeLimitKindSchema,
@@ -241,6 +242,10 @@ const predicatePayloadSchemas = lazySchemaParts(
       ATTACK_ABILITY: z.object({
         predicateCode: z.literal(predicateCodeSchema._zod.def.entries.ATTACK_ABILITY),
         ability: abilityCodeSchema
+      }),
+      ATTACK_ACTIVATION: z.object({
+        predicateCode: z.literal(predicateCodeSchema._zod.def.entries.ATTACK_ACTIVATION),
+        activation: activationCodeSchema
       }),
       ATTACK_ROLL_MODE: z.object({
         predicateCode: z.literal(predicateCodeSchema._zod.def.entries.ATTACK_ROLL_MODE),

@@ -860,6 +860,7 @@ exports[`Encounter store conformance: Convex and the in-memory store > records t
           "round": 1,
           "speedBonuses": 0,
           "speedId": null,
+          "teleportAllowances": [],
           "turnActorId": "<uuid:0>",
           "usedFeet": 25,
           "usedOncePerTurn": [],

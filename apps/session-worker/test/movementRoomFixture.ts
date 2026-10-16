@@ -693,6 +693,31 @@ export async function movementRoom(config: MovementRoomConfig) {
   const commandsOn = (channel: RoomChannel) => {
     const send = (commandId: string, command: Record<string, unknown>) =>
       sendOn(channel, commandId, command)
+    const moveToken = (
+      movementKind: 'VOLUNTARY' | 'TELEPORT',
+      path: readonly ScenePoint[],
+      expectedEncounterVersion: number,
+      expectedSceneVersion: number,
+      tokenId: string,
+      carefully = false
+    ) => {
+      const commandId = crypto.randomUUID()
+      return send(commandId, {
+        scope: 'SCENE',
+        command: {
+          type: 'MOVE_SCENE_TOKEN',
+          commandId,
+          correlationId: null,
+          expectedEncounterVersion,
+          expectedSceneVersion,
+          movementKind,
+          path,
+          sceneId: scene.id,
+          tokenId,
+          ...(carefully ? { carefully } : {})
+        }
+      })
+    }
     return {
       send,
       /** The mover (or the Token `tokenId` names) walks `path`, a voluntary move through the room's Scene command. */
@@ -703,22 +728,23 @@ export async function movementRoom(config: MovementRoomConfig) {
         tokenId: string = moverTokenId,
         carefully = false
       ) {
-        const commandId = crypto.randomUUID()
-        return send(commandId, {
-          scope: 'SCENE',
-          command: {
-            type: 'MOVE_SCENE_TOKEN',
-            commandId,
-            correlationId: null,
-            expectedEncounterVersion,
-            expectedSceneVersion,
-            movementKind: 'VOLUNTARY',
-            path,
-            sceneId: scene.id,
-            tokenId,
-            ...(carefully ? { carefully } : {})
-          }
-        })
+        return moveToken(
+          'VOLUNTARY',
+          path,
+          expectedEncounterVersion,
+          expectedSceneVersion,
+          tokenId,
+          carefully
+        )
+      },
+      /** The mover (or the Token `tokenId` names) teleports from the path's origin to its destination. */
+      teleport(
+        path: readonly [ScenePoint, ScenePoint],
+        expectedEncounterVersion: number = state.version,
+        expectedSceneVersion: number = scene.version,
+        tokenId: string = moverTokenId
+      ) {
+        return moveToken('TELEPORT', path, expectedEncounterVersion, expectedSceneVersion, tokenId)
       },
       /** Answers the PENDING movement decision with `resolution`. */
       async respond(resolution: Record<string, unknown>, expectedOccurrenceVersion?: number) {

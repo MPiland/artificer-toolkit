@@ -26,7 +26,8 @@ import { completeActionOccurrence, recordActionRoot } from './actionCommitRecord
 import { endEffects, receiptConsumedGrants } from './consumedGrantPersistence.js'
 import { listActiveRuleEffects } from './effectStore.js'
 import { projectNativeGm } from './nativeProjection.js'
-import { recordTurnSpeedBonus, spendTurnUses } from './turnMovement.js'
+import { executionTeleportAllowance } from '@artificer-toolkit/rules-runtime/systems/dnd5e/teleportAllowance'
+import { recordTurnSpeedBonus, recordTurnTeleportAllowance, spendTurnUses } from './turnMovement.js'
 import { presentEncounterResultForMember } from './resultPresentation.js'
 import {
   readMaintenanceOwnerRequests,
@@ -439,6 +440,16 @@ export async function persistEncounterActionCommit(
   // A Dash adds the actor's speed to this turn's movement; the stored execution proves it resolved.
   const addsSpeed = executionAddsSpeedToMovement(execution)
   if (addsSpeed) await recordTurnSpeedBonus(ctx, { state, actorId: source.id })
+  // A teleport spell (Misty Step) grants a one-shot allowance keyed by this cast; the move consumes it.
+  const teleport = executionTeleportAllowance(execution)
+  const teleportAllowanceTurn = teleport
+    ? await recordTurnTeleportAllowance(ctx, {
+        state,
+        actorId: source.id,
+        castCommandId: command.commandId,
+        ...teleport
+      })
+    : null
   // A once-per-turn use (Sneak Attack) the attack dealt is spent from the attacker's turn record.
   const turnUses = await spendTurnUses(ctx, { state, actorId: source.id, keys: input.turnUses })
   await recordActionRoot(ctx, {
@@ -462,6 +473,7 @@ export async function persistEncounterActionCommit(
       endedMaintainedStates,
       addedConcentrationCasterId: maintenance?.addedConcentrationCasterId ?? null,
       speedBonusTurn: addsSpeed ? { round: state.round, turnActorId: source.id } : null,
+      teleportAllowanceTurn,
       turnUses,
       failedCounters: input.failedCounters.map(({ receipt }) => receipt),
       idleTurnMarkChanges: idleTurnMarkChanges(actors, nextActors)

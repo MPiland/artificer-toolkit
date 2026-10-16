@@ -443,7 +443,7 @@ export type ModifierPayloadFor<V extends ValueDomainCode, K extends ModifierKind
             : K extends 'ADVANTAGE' | 'DISADVANTAGE' | 'ENABLE'
               ? undefined
               : K extends 'OPTIONAL_ABILITY_MODIFIER_BONUS'
-                ? { abilities: AbilityCode[] }
+                ? { abilities: AbilityCode[]; min?: number; max?: number }
                 : // option-like operations must be domain-supported
                   K extends 'ADD_OPTION' | 'REMOVE_OPTION' | 'REPLACE_OPTION'
                   ? V extends keyof ValueDomainOptionPayloadByDomain
