@@ -255,7 +255,8 @@ async function startCharacterDeclarationRun(
 describe('native initiative declarations', () => {
   it('collects each automatic declaration, then settles exactly one Run, round, and order', async () => {
     const base = await setup()
-    // Distinct faces keep the scores apart; equal random faces would tie and ask for an order.
+    // Distinct faces keep the scores apart; equal random faces would tie, and a second tie in the
+    // roll-off would ask the GM for the order.
     await queueRoomRolls(base.campaign.id, { rolls: [4, 9] })
     const start: EncounterExecuteInput = {
       command: {
@@ -336,6 +337,32 @@ describe('native initiative declarations', () => {
           version: result.projection.version
         })
       ])
+  }, 30000)
+
+  it('settles a tied score by the tie-break roll-off without asking the GM', async () => {
+    const base = await setup()
+    // Faces 10 and 10 tie the scores; the tie-break faces 6 and 7 then separate them.
+    await queueRoomRolls(base.campaign.id, { rolls: [9, 9, 5, 6] })
+    let result = await executeInRoom(base.owner.caller, {
+      command: {
+        type: 'START',
+        encounterId: base.run.id,
+        commandId: crypto.randomUUID(),
+        expectedVersion: base.run.version
+      }
+    })
+    for (let declared = 0; declared < 2; declared += 1) {
+      if (result.occurrence?.pending?.kind !== 'INITIATIVE_DECLARATION')
+        throw new Error('Expected a declaration.')
+      result = await executeInRoom(
+        base.owner.caller,
+        declarationCommand({ encounterId: base.run.id, pending: result.occurrence.pending })
+      )
+    }
+    expect(result).toMatchObject({
+      projection: { status: 'ACTIVE', round: 1 },
+      occurrence: { status: 'COMPLETE', pending: null }
+    })
   }, 30000)
 
   it('asks the GM for the order when the automatic scores and the tie-break rolls both tie', async () => {
@@ -436,6 +463,7 @@ describe('native initiative declarations', () => {
 
   it('reissues declarations when EACH_ROUND wraps', async () => {
     const base = await setup({ cadence: 'EACH_ROUND' })
+    await queueRoomRolls(base.campaign.id, { rolls: [4, 9] })
     let result = await executeInRoom(base.owner.caller, {
       command: {
         type: 'START',
@@ -498,6 +526,8 @@ describe('native initiative declarations', () => {
     expect(await storedInitiative(base)).toEqual(changedRound)
     await closeRoom(base.campaign.id)
     await base.t.run((ctx) => ctx.db.patch(beforeRound._id, { version: beforeRound.version }))
+    // Closing the room dropped its queued dice; the second round draws its own.
+    await queueRoomRolls(base.campaign.id, { rolls: [4, 9] })
     const nextRoundFirst = await executeInRoom(
       base.owner.caller,
       declarationCommand({ encounterId: base.run.id, pending: turn.occurrence.pending })
@@ -843,6 +873,8 @@ describe('native initiative declarations', () => {
       if (!characterActor) throw new Error('Expected assigned Character actor.')
       expect(characterActor.id).toBe(characterActorId)
       expect(run.actors.find((actor) => actor.kind === 'CUSTOM')?.id).toBe(customActorId)
+      // Faces 3 and 13 stay apart whatever the Character's modifier.
+      await queueRoomRolls(base.campaign.id, { rolls: [2, 12] })
       const start = {
         type: 'START' as const,
         encounterId: run.id,
@@ -1141,6 +1173,8 @@ describe('native initiative declarations', () => {
         .map((actor) => actor.sourceId)
     ).toEqual([null, base.character.id, secondCharacter.id])
 
+    // Faces 3, 10 and 17 stay apart whatever the Characters' modifiers.
+    await queueRoomRolls(base.campaign.id, { rolls: [2, 9, 16] })
     await executeInRoom(base.owner.caller, {
       command: {
         type: 'START',
