@@ -249,8 +249,7 @@ export async function persistEncounterAreaCommit(
         actorId: removal.input.actorId
       })
     }
-    if (resume) {
-      if (!resume.area) throw new Error('Live Session pending area answer mismatch.')
+    if (resume?.area) {
       if (input.response?.resolution.kind === 'AREA_LEGENDARY_RESISTANCE')
         requireAreaActionLegendaryResistance({
           stored: resume.area.snapshot,
@@ -263,6 +262,16 @@ export async function persistEncounterAreaCommit(
           next: area,
           requestId: resume.pending.snapshot.request.requestId
         })
+    } else if (resume) {
+      // The counter's last answer ended the pause and the area caught nobody, so it settled without a
+      // stored area: the cast's own pending is what it continues.
+      if (
+        !input.response ||
+        !castPendingContinues(resume.pending.context, input.response, {
+          failedCounters: failedReceipts
+        })
+      )
+        throw new Error('Live Session pending area answer mismatch.')
     }
     const context = await requireAreaActionPendingRoot(
       {
