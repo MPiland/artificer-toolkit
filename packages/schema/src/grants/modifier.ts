@@ -237,8 +237,8 @@ const extendModifierGrantVariant = <
 const buildModifierGrantVariants = () => {
   const optionPayloadByDomainDtoSchema = {
     DAMAGE_RESISTANCE: z.union([
-      z.object({ damageTypeId: authoredIdentifierSchema }),
-      z.object({ damageTypeSource: z.literal('TRIGGER') })
+      z.strictObject({ damageTypeId: authoredIdentifierSchema }),
+      z.strictObject({ damageTypeSource: z.literal('TRIGGER') })
     ]),
     DAMAGE_IMMUNITY: z.object({ damageTypeId: authoredIdentifierSchema }),
     DAMAGE_VULNERABILITY: z.object({ damageTypeId: authoredIdentifierSchema }),

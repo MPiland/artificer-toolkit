@@ -552,6 +552,8 @@ export interface CharacterActionRuleEntryPoint {
   mechanicsOwner: CharacterActionCandidate['mechanicsOwner']
   activationSourceKind: CharacterActionCandidate['activationSourceKind']
   compiledEffect: CompiledEffectGroup
+  /** The level a spell cast is made at, which selects the scaling row the compiler rolls. */
+  spellCastLevel?: number
 }
 export type CharacterResolvedActionMechanic = z.infer<typeof characterResolvedActionMechanicSchema>
 

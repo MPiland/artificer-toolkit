@@ -5,6 +5,7 @@ import {
   Drawer,
   Group,
   List,
+  MultiSelect,
   SegmentedControl,
   Select,
   Stack,
@@ -141,6 +142,7 @@ export function CampaignTabletopActionDrawer({
   const [pickedTargetActorId, setPickedTargetActorId] = useState<string | null | undefined>(
     undefined
   )
+  const [pickedActorIds, setPickedActorIds] = useState<string[]>([])
   const [pickedOptionalRuleId, setOptionalRuleId] = useState<string | null>(null)
   const [optionalChoices, setOptionalChoices] = useState<{
     requestIdentity: string
@@ -180,11 +182,17 @@ export function CampaignTabletopActionDrawer({
     pickedTargetActorId === undefined ? preselectedTargetActorId : pickedTargetActorId
   const selectedAction = actions.find((action) => action.id === actionId) ?? null
   const choiceTarget = selectedAction?.target
+  // A list of chosen creatures inside an area is aimed at a point like any point area.
+  const actorsTarget = choiceTarget?.kind === 'ACTORS' ? choiceTarget : null
   const areaTarget =
-    choiceTarget?.kind === 'POINT' || choiceTarget?.kind === 'DIRECTED' ? choiceTarget : null
+    choiceTarget?.kind === 'POINT' || choiceTarget?.kind === 'DIRECTED'
+      ? choiceTarget
+      : actorsTarget?.area
+        ? { kind: 'POINT' as const, area: actorsTarget.area }
+        : null
   // A caster-centered area takes no aim, so it has no target to pick.
   const centeredTarget = choiceTarget?.kind === 'CASTER_CENTERED' ? choiceTarget : null
-  const namesNoCreature = areaTarget !== null || centeredTarget !== null
+  const namesNoCreature = areaTarget !== null || centeredTarget !== null || actorsTarget !== null
   // Optional rules choose among the target creature's entities, so an area has none.
   const optionalRuleId = namesNoCreature ? null : pickedOptionalRuleId
   const sceneTokens = scene?.tokens ?? NO_TOKENS
@@ -231,15 +239,26 @@ export function CampaignTabletopActionDrawer({
               toward: areaAim.toward
             }
           : null
-  const target: ResolveEncounterActionInputDto['target'] | null = areaTarget
-    ? areaCommandTarget
-    : centeredTarget
-      ? scene
-        ? { kind: 'CASTER_CENTERED', sceneId: scene.id, expectedSceneVersion: scene.version }
-        : null
-      : targetActorId
-        ? { kind: 'ACTOR', actorId: targetActorId }
-        : null
+  const actorsPoint = actorsTarget?.area ? (areaAim?.origin ?? null) : null
+  const target: ResolveEncounterActionInputDto['target'] | null = actorsTarget
+    ? pickedActorIds.length && (!actorsTarget.area || (areaSize && actorsPoint))
+      ? {
+          kind: 'ACTORS',
+          actorIds: pickedActorIds,
+          scene: scene
+            ? { sceneId: scene.id, expectedSceneVersion: scene.version, point: actorsPoint }
+            : null
+        }
+      : null
+    : areaTarget
+      ? areaCommandTarget
+      : centeredTarget
+        ? scene
+          ? { kind: 'CASTER_CENTERED', sceneId: scene.id, expectedSceneVersion: scene.version }
+          : null
+        : targetActorId
+          ? { kind: 'ACTOR', actorId: targetActorId }
+          : null
   // One entry per attack: a versatile weapon's one- and two-hand actions share an attack key.
   const actionGroups = useMemo(() => {
     const groups = new Map<
@@ -325,6 +344,7 @@ export function CampaignTabletopActionDrawer({
   useEffect(() => {
     setPickedActionId(undefined)
     setPickedTargetActorId(undefined)
+    setPickedActorIds([])
     setOptionalRuleId(null)
     setFeedback(null)
     setError(null)
@@ -390,6 +410,11 @@ export function CampaignTabletopActionDrawer({
   useEffect(() => {
     onAreaAimChange(null)
   }, [onAreaAimChange, selectedActionId])
+
+  // So do the creatures chosen.
+  useEffect(() => {
+    setPickedActorIds([])
+  }, [selectedActionId])
 
   useEffect(() => {
     onAreaSizeChange(areaSize)
@@ -594,6 +619,21 @@ export function CampaignTabletopActionDrawer({
                   onChange={setPickedActionId}
                 />
               ) : null}
+              {actorsTarget ? (
+                <MultiSelect
+                  comboboxProps={{ withinPortal: false }}
+                  // A defeated creature isn't a target (D63); the server still warns if one is named.
+                  data={encounter.actors
+                    .filter((actor) => !actor.defeated)
+                    .map((actor) => ({ label: actor.label, value: actor.id }))}
+                  disabled={selectionControlsDisabled}
+                  label={`Targets (up to ${actorsTarget.maxTargets})`}
+                  maxValues={actorsTarget.maxTargets}
+                  searchable
+                  value={pickedActorIds}
+                  onChange={setPickedActorIds}
+                />
+              ) : null}
               {areaTarget ? (
                 <Stack gap='xs'>
                   <Text fw={600} size='sm'>
@@ -666,7 +706,7 @@ export function CampaignTabletopActionDrawer({
                     ? 'There is no Scene for this Encounter, so an area cannot be placed.'
                     : `Centered on you: creatures within ${formatLengthMeasurement(centeredTarget.area.radius)} of your space are caught.`}
                 </Text>
-              ) : (
+              ) : actorsTarget ? null : (
                 <Select
                   comboboxProps={{ withinPortal: false }}
                   // A defeated creature isn't a target (D63); the server still warns if one is named.

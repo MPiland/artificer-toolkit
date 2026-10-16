@@ -80,6 +80,18 @@ export const encounterActionChoiceDtoSchema = lazySchema(() =>
         /** As authored: the client lists the user among the creatures unless it is `REFUSED` (Help, First Aid). */
         self: targetingSelfDtoSchema
       }),
+      /**
+       * Up to `maxTargets` creatures the client lists and the user picks (Mass Healing Word);
+       * `area` is the sphere the picks must stand in, centered on a point the user also picks,
+       * null when the spell names creatures without a shape.
+       */
+      z.strictObject({
+        kind: z.literal('ACTORS'),
+        maxTargets: z.number().check(z.int()).check(z.positive()),
+        area: z.nullable(
+          z.strictObject({ kind: z.literal('RADIUS'), radius: shapeMeasurementDtoSchema })
+        )
+      }),
       z.strictObject({
         kind: z.literal('POINT'),
         area: z.discriminatedUnion('kind', [

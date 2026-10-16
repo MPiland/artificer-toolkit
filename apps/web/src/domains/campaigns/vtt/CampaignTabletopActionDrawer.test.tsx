@@ -989,6 +989,107 @@ describe('CampaignTabletopActionDrawer area origin (D103)', () => {
   })
 })
 
+describe('CampaignTabletopActionDrawer chosen creatures (SPELLS-8, D118)', () => {
+  const [first, second] = tabletopGmEncounter.actors as [
+    (typeof tabletopGmEncounter.actors)[number],
+    (typeof tabletopGmEncounter.actors)[number]
+  ]
+  const healingWord = validatedChoice({
+    ...actions[0]!,
+    id: 'spell-mass-healing-word:cast',
+    label: 'Mass Healing Word',
+    sourceLabel: 'Spell',
+    rangeLabel: '60 ft',
+    attackBonus: undefined,
+    target: { kind: 'ACTORS' as const, maxTargets: 2, area: null }
+  })
+  const cureWounds = validatedChoice({
+    ...healingWord,
+    id: 'spell-mass-cure-wounds:cast',
+    label: 'Mass Cure Wounds',
+    target: {
+      kind: 'ACTORS' as const,
+      maxTargets: 2,
+      area: { kind: 'RADIUS' as const, radius: { amount: 30, unit: 'FEET' as const } }
+    }
+  })
+
+  async function chooseTargets(user: ReturnType<typeof userEvent.setup>) {
+    await user.click(await screen.findByRole('combobox', { name: 'Action' }))
+    await user.keyboard('{ArrowDown}{Enter}')
+    await user.click(screen.getByRole('combobox', { name: 'Targets (up to 2)' }))
+    await user.click(screen.getByRole('option', { name: first.label }))
+    await user.click(screen.getByRole('option', { name: second.label }))
+  }
+
+  it('asks for up to the authored number of creatures and sends them as one list', async () => {
+    const user = userEvent.setup()
+    const onResolve = vi.fn<(command: ResolveEncounterActionInputDto) => Promise<unknown>>()
+    renderDrawer(onResolve, { choices: [healingWord] })
+
+    await user.click(await screen.findByRole('combobox', { name: 'Action' }))
+    await user.keyboard('{ArrowDown}{Enter}')
+    expect(screen.queryByRole('combobox', { name: 'Target' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Resolve action' })).toBeDisabled()
+
+    await user.click(screen.getByRole('combobox', { name: 'Targets (up to 2)' }))
+    await user.click(screen.getByRole('option', { name: first.label }))
+    await user.click(screen.getByRole('option', { name: second.label }))
+    await user.click(screen.getByRole('button', { name: 'Resolve action' }))
+    expect(onResolve).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actionId: healingWord.id,
+        sceneContext: null,
+        target: {
+          kind: 'ACTORS',
+          actorIds: [first.id, second.id],
+          scene: {
+            sceneId: tabletopLiveScene.id,
+            expectedSceneVersion: tabletopLiveScene.version,
+            point: null
+          }
+        }
+      })
+    )
+  })
+
+  it('also needs the area aimed before it resolves, and sends its point with the creatures', async () => {
+    const user = userEvent.setup()
+    const onResolve = vi.fn<(command: ResolveEncounterActionInputDto) => Promise<unknown>>()
+    const onAreaSizeChange = vi.fn()
+    const options = { choices: [cureWounds], onAreaSizeChange }
+    const view = renderDrawer(onResolve, options)
+
+    await chooseTargets(user)
+    expect(screen.getByText('Area origin')).toBeVisible()
+    expect(onAreaSizeChange).toHaveBeenLastCalledWith(
+      pointAreaInSceneCoordinates(
+        { kind: 'RADIUS', radius: { amount: 30, unit: 'FEET' } },
+        tabletopLiveScene.grid
+      )
+    )
+    expect(screen.getByRole('button', { name: 'Resolve action' })).toBeDisabled()
+
+    const origin = tabletopLiveScene.tokens[0]!.position
+    view.rerender(drawerElement(onResolve, { ...options, areaAim: { origin, toward: null } }))
+    await user.click(screen.getByRole('button', { name: 'Resolve action' }))
+    expect(onResolve).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actionId: cureWounds.id,
+        target: {
+          kind: 'ACTORS',
+          actorIds: [first.id, second.id],
+          scene: {
+            sceneId: tabletopLiveScene.id,
+            expectedSceneVersion: tabletopLiveScene.version,
+            point: origin
+          }
+        }
+      })
+    )
+  })
+})
+
 describe('CampaignTabletopActionDrawer directed area (SPELLS-13)', () => {
   const [emberToken, wardenToken] = tabletopLiveScene.tokens as [
     (typeof tabletopLiveScene.tokens)[number],

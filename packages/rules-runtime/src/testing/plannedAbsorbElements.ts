@@ -1,7 +1,6 @@
 import type { ServerCompletedRuleExecutionDto } from '@artificer-toolkit/schema/shared/rulesExecution'
 import { compileEffect } from '@artificer-toolkit/shared/compilers'
 
-import { effectAtCastLevel } from '../character/characterSpellCastActions.js'
 import { prepareEncounterActionEffectPlans } from '../encounterActionEffectPlans.js'
 import { buildCompiledActionCompilerSource } from '../encounterActionEntryPointCompiler.js'
 import { dnd5eCharacterRuleActionSystemAdapter as adapter } from '../systems/dnd5e/effectActionCompiler.js'
@@ -26,7 +25,8 @@ export function plannedAbsorbElements(input: {
   const [effect] = absorbElementsSpell(input.chosenDamageTypeCodes ?? ['FIRE']).effects ?? []
   if (!effect) throw new Error('The reaction fixture has no authored effect.')
   const action = characterActionDescriptor(
-    effectAtCastLevel(compileEffect({ ...effect, id: ACTION_EFFECT_ID }), input.castLevel ?? 1)
+    compileEffect({ ...effect, id: ACTION_EFFECT_ID }),
+    input.castLevel ?? 1
   )
   const executionPlan = adapter.compileExecutionPlan?.({
     action,
