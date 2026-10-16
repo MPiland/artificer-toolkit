@@ -718,6 +718,15 @@ which `MOVE_SCENE_TOKEN.acknowledgedWarnings` overrides; the tabletop shows "Do 
 receipt records no override yet. Undoing the action that applied the condition removes its effect and so
 its source.
 
+**Fleeing a condition's source (SPELLS-29.T2, D134).** A condition outcome authored with `fleesSource`
+(the toggle "The Holder Must Dash Away From Its Source", shown only with `recordsSource`) adds `fleesSource`
+to the effect's `CONDITION_OWNERSHIP` contribution. `encounterConditionFleeSources` lists the recorded
+sources of the held, sourced, fleeing owners. An Action other than Dash taken by such a creature
+(`RESOLVE_ACTION` and area actions; `encounterFleeActionWarnings`) raises the overridable
+`CONDITION_SOURCE_FLEE` warning, and the turn movement projection (`turnMovement[].fleeSourceActorIds`,
+read by `readTurnMovementView`) drives the tabletop's "Dash away from the source" prompt. Shown and
+softly enforced, never blocked. SRD Fear authors it.
+
 **Repeat attempt gate (SPELLS-29.T1a, D134).** A `FOLLOW_UP_SAVE` repeated at the end of the
 target's turn may author `repeatAttemptGate` (`allow: WHEN_MET | WHEN_UNMET` over the same target→source
 `PERCEPTION` as `repeatRollInfluence`; the schema refuses the two together). The compiler pins it as adapter

@@ -130,3 +130,20 @@ Base: `3ce5883f1` (SPELLS-19.T2, merged locally), branch `claude/bold-chaplygin-
   - The acknowledged move reused the Scene version from before the sideways move.
 - 2026-10-16: merged `ci/merge-batch-av` (`27de27fde`); Tests [38951912964](https://github.com/MPiland/artificer-toolkit/actions/runs/38951912964) failed (red proof): the Fear out-of-sight save journey ("The active-effect resolution does not answer its pending request"). SPELLS-20's `isDamageDieRequest` read Fear's gated d20 (also an optional 1..N range) as a damage die. Fixed in `df9d20bb5`: a policy's own request node is never a damage die. The only other failure was a Web `window is not defined` teardown error in `AuthForms.test.tsx` (all tests passed), which did not recur.
 - 2026-10-16: green on `df9d20bb5`: Tests [38956790464](https://github.com/MPiland/artificer-toolkit/actions/runs/38956790464), Live backend [38956790334](https://github.com/MPiland/artificer-toolkit/actions/runs/38956790334).
+
+## Scope (T2, closes AC 29.2)
+
+- Ruling (orchestrator, 2026-10-16), recorded as the D134 amendment: build the generic `fleesSource` rider, the turn-start "Dash away from the source" prompt and the `CONDITION_SOURCE_FLEE` soft warning with "Do it anyway". Author and prove SRD Fear (including GM undo); a homebrew Panicked condition is the authoring parity proof. No Eyebite task (it stays `GM_ADJUDICATED` under D122); a future-enhancements line covers it. AC 29.2 needs no change.
+- Base: `0f37758cf` merged with `origin/ci/merge-batch-ax`. CI branches `ci/spells-29-t2-red` (red `04e6af8c5`) and `ci/spells-29-t2`.
+
+## Design (T2)
+
+- **Authored (core option, ADR 0038):** CONDITION outcome `fleesSource?: boolean`, shown only with `recordsSource`; the node map clears it otherwise.
+- **Compiled:** `compileConditionEffect` states `fleesSource: false` by default; every condition plan carries it on `conditionContribution`; the room writes `fleesSource: true` on the `CONDITION_OWNERSHIP` contribution next to `sourceActorId`.
+- **Runtime:** `encounterConditionFleeSources` (held, sourced, fleeing owners) and `encounterFleeActionWarnings` (an Action other than Dash). The Worker adds the warning to the prepared warnings of single-target and area actions; Dash is the action whose outcomes include `MOVEMENT_RULE` `ADD_SPEED_TO_MOVEMENT`.
+- **Prompt:** `readTurnMovementView` returns `fleeSourceActorIds`; the tabletop readout shows "Dash away from the source".
+- **Moves are not warned:** the approach warning already covers moving closer, and a stricter not-farther check would flag the sideways move T1 allows.
+
+## Log (T2)
+
+- 2026-10-16: red pushed to `ci/spells-29-t2-red` (`04e6af8c5`); green implementation follows.

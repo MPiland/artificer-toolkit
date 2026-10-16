@@ -212,14 +212,16 @@ describe('Campaign VTT active turn movement readout (V07.5)', () => {
       used: 15,
       speedId: null,
       allowances: [{ speedId: walkSpeedId, code: 'WALK', label: 'Walking Speed', budget: 30 }],
-      teleport: []
+      teleport: [],
+      fleeSourceActorIds: []
     },
     {
       actorId: creature.id,
       used: 5,
       speedId: walkSpeedId,
       allowances: [{ speedId: walkSpeedId, code: 'WALK', label: 'Walking Speed', budget: 40 }],
-      teleport: []
+      teleport: [],
+      fleeSourceActorIds: []
     }
   ])
   function state(

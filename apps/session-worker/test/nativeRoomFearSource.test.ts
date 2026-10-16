@@ -214,7 +214,8 @@ describe('room Fear follows its caster (SPELLS-29.T1)', () => {
         kind: 'CONDITION_OWNERSHIP',
         conditionId: frightenedId(),
         baselinePresent: false,
-        sourceActorId: CASTER_ID
+        sourceActorId: CASTER_ID,
+        fleesSource: true
       })
   })
 
