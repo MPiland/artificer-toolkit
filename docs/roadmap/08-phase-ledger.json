@@ -6996,6 +6996,11 @@
               "origin": [],
               "note": "Found 2026-10-09 from the user's review: planCarriedOverGrants sets remainingTicks null, so a later Run never ticks a carried grant (a 1-minute Fly lasts a 20-round fight), and nothing advances the manual Campaign clock by a Run's elapsed time (rules-runtime.md Encounter-scoped grants paragraph).",
               "id": "SPELLS-5.13"
+            },
+            {
+              "id": "SPELLS-5.14",
+              "status": "TODO",
+              "text": "When a Run completes, a Character's timed condition-owning effects carry over to the Campaign clock like its grants (D99) and end on it, releasing the condition they own; a Creature's end with the Run. Bug found 2026-10-15 in the SPELLS-27 survey: planCarriedOverGrants carries modifier grants only, so the stored condition stays on the Character forever. Proved by a regression test that fails before the fix."
             }
           ],
           "wsjf": {
@@ -7003,7 +7008,21 @@
             "tc": 2,
             "rr": 1,
             "size": 3
-          }
+          },
+          "tasks": [
+            {
+              "id": "SPELLS-5.T9",
+              "text": "Fix D99 carry-over for condition-owning timed effects (runGrantCarryOver.ts): carry them to the Campaign clock or release their condition at Run completion; red regression test first.",
+              "status": "TODO",
+              "closes": ["SPELLS-5.14"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 5,
+                "rr": 5,
+                "size": 2
+              }
+            }
+          ]
         },
         {
           "id": "SPELLS-6",
