@@ -114,6 +114,10 @@ function normalizeInvocation(
       : null
 
   const trigger = 'reactionTrigger' in invocation ? invocation.reactionTrigger : undefined
+  const targetCount =
+    invocation.targeting?.selectionKind === 'CHOSEN_CREATURES'
+      ? invocation.targeting.maxTargetsScaling
+      : undefined
 
   return {
     triggerCode: invocation.triggerCode,
@@ -123,7 +127,10 @@ function normalizeInvocation(
     reactionTrigger:
       trigger?.kind === 'MOVEMENT'
         ? { ...trigger, movementInterruption: trigger.movementInterruption ?? null }
-        : (trigger ?? null)
+        : (trigger ?? null),
+    ...(targetCount?.scalingSource === 'SPELL_CAST_LEVEL'
+      ? { targetCountLevels: targetCount.breakpoints.map(({ level }) => level) }
+      : {})
   }
 }
 
@@ -216,7 +223,8 @@ export function normalizeCharacterActionMechanicFacts(
 ): ActionMechanicFacts {
   const grouped = new Map<string, CompiledEffectEntry[]>()
   const entries = effect.entries
-    .filter((entry): entry is CompiledEffectEntry => 'outcome' in entry)
+    // An optional rider is the player's choice at the hit, so the action card does not list it.
+    .filter((entry): entry is CompiledEffectEntry => 'outcome' in entry && !entry.optionalRider)
     .sort(
       (left, right) =>
         left.pathOrder - right.pathOrder ||

@@ -38,14 +38,24 @@ import {
   type ServerRuleExecutionD20PolicyDto,
   type ServerRuleExecutionNestedD20EvidenceDto
 } from '@artificer-toolkit/schema/shared/rulesExecution'
-import { checksumRuleDocument, RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules'
+import {
+  checksumRuleDocument,
+  RULE_GRAPH_LIMITS,
+  type RuleValue
+} from '@artificer-toolkit/shared/rules'
 import {
   directActionTwoPhaseDtoSchema,
   type EncounterLegendaryResistanceOfferDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionDirectActionPendingContexts'
 import type { EncounterActionHeldD20Dto } from '@artificer-toolkit/schema/shared/encounterActionPending'
 import type { EncounterReactionOfferDto } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
+import type { EncounterOnHitOfferDto } from '@artificer-toolkit/schema/shared/ruleExecutionOnHitChoice'
 import type { z } from 'zod'
+import {
+  encounterOnHitOptions,
+  openEncounterOnHitChoice,
+  type EncounterOnHitCandidate
+} from './encounterOnHitChoice.js'
 import {
   encounterReactionPin,
   openEncounterReactionChoice,
@@ -257,6 +267,8 @@ export type PendingNativeActionGraphs = {
   legendaryResistance?: EncounterLegendaryResistanceOfferDto
   /** Set while a hit waits on its target's reaction decision; `continuation` is that choice. */
   reactionChoice?: EncounterReactionOfferDto
+  /** Set while a hit waits on its attacker's choice to add an optional on-hit rider; `continuation` is that choice. */
+  onHitChoice?: EncounterOnHitOfferDto
 }
 
 type NativeActionTestBoundary = {
@@ -771,6 +783,86 @@ type NativeActionReactionAudit = NonNullable<
   Extract<NativeTwoPhase, { phase: 'OUTCOME' }>['reaction']
 >
 
+type NativeActionOnHitAudit = NonNullable<Extract<NativeTwoPhase, { phase: 'OUTCOME' }>['onHit']>
+
+const isHitPath = (resultPath: string | null | undefined) =>
+  resultPath === 'ON_HIT' || resultPath === 'ON_CRIT'
+
+/**
+ * The attack's binding as its OUTCOME sees it: a used optional on-hit rider is selected at the slot
+ * level paid. The TEST stays bound to the unchosen binding it was sealed against.
+ */
+export function onHitOutcomeBinding(
+  binding: NativeActionBaseInput['binding'],
+  onHit: NativeActionOnHitAudit | null
+): NativeActionBaseInput['binding'] {
+  return onHit?.option
+    ? {
+        ...binding,
+        actionMechanic: {
+          ...binding.actionMechanic,
+          spellCastLevel: onHit.option.slotLevel,
+          selectedOptionalRiderIds: [onHit.option.riderId]
+        }
+      }
+    : binding
+}
+
+/**
+ * The facts that select and specialize the OUTCOME graph. A rider chosen at the held hit changes which
+ * optional entries the OUTCOME contains, so they are bound to the choice, not to the unchosen TEST.
+ */
+function outcomeSelectionFacts(input: {
+  adapter: NativeActionBaseInput['adapter']
+  binding: NativeActionBaseInput['binding']
+  published: ServerPublishedRuleDefinitionDto
+  testFacts: Readonly<Record<string, RuleValue>>
+  onHit: NativeActionOnHitAudit | null
+}) {
+  return input.onHit?.option
+    ? input.adapter.bindFacts({
+        ...onHitOutcomeBinding(input.binding, input.onHit),
+        published: input.published
+      }).facts
+    : input.testFacts
+}
+
+/** Holds a hit before its OUTCOME so the attacker may add an optional on-hit rider to it. */
+async function holdForOnHitChoice(input: {
+  runtime: RulesRuntimeService
+  occurrenceId: string
+  candidates: readonly EncounterOnHitCandidate[]
+  twoPhase: Extract<NativeTwoPhase, { phase: 'TEST' }>
+  execution: ServerCompletedRuleExecutionDto
+  testD20: ServerRuleExecutionD20EvidenceDto
+  d20: ServerRuleExecutionD20PolicyDto
+  gameSystemId: string
+  reaction: NativeActionReactionAudit | null
+}): Promise<PendingNativeActionGraphs> {
+  const testExecutionChecksum = checksumRuleDocument(input.execution)
+  const options = encounterOnHitOptions(testExecutionChecksum, input.candidates)
+  return {
+    kind: 'PENDING',
+    continuation: await openEncounterOnHitChoice({
+      runtime: input.runtime,
+      occurrenceId: input.occurrenceId,
+      gameSystemId: input.gameSystemId,
+      optionCount: options.length
+    }),
+    d20Policy: null,
+    twoPhase: input.twoPhase,
+    roller: 'SOURCE',
+    onHitChoice: {
+      testExecution: input.execution,
+      testD20: input.testD20,
+      d20: input.d20,
+      testExecutionChecksum,
+      reaction: input.reaction,
+      options
+    }
+  }
+}
+
 /** Executes the selected OUTCOME after a sealed TEST boundary, without replaying TEST randomness. */
 export async function continueNativeActionAfterTest(
   input: NativeActionBaseInput & {
@@ -778,6 +870,10 @@ export async function continueNativeActionAfterTest(
     effectivePath?: string
     legendaryResistance?: NativeActionLegendaryResistanceAudit | null
     reaction?: NativeActionReactionAudit | null
+    /** The ways the attacker could pay for an optional on-hit rider; any found holds a hit for the attacker's choice. */
+    onHitCandidates?: readonly EncounterOnHitCandidate[]
+    /** The attacker's decision about those riders, once made. */
+    onHit?: NativeActionOnHitAudit | null
     resume?: { pending: ResumedNativeActionGraphs; resolution: EncounterEvidenceAnswer }
   }
 ): Promise<PendingNativeActionGraphs | CompleteNativeActionGraphs> {
@@ -823,7 +919,13 @@ export async function continueNativeActionAfterTest(
     phase: 'TEST',
     execution: input.boundary.execution,
     adapter: input.adapter,
-    facts: current.bound.facts,
+    facts: outcomeSelectionFacts({
+      adapter: input.adapter,
+      binding: input.binding,
+      published: current.published,
+      testFacts: current.bound.facts,
+      onHit: input.onHit ?? null
+    }),
     ...(effectivePath === undefined ? {} : { effectivePath })
   })
   if (outcome.kind === 'TEST_ONLY')
@@ -841,9 +943,27 @@ export async function continueNativeActionAfterTest(
     })
   if (outcome.kind !== 'OUTCOME')
     throw new Error('The native action TEST did not select one terminal outcome.')
+  const onHit = input.onHit ?? null
+  if (onHit && onHit.testExecutionChecksum !== checksumRuleDocument(input.boundary.execution))
+    throw new Error('The on-hit outcome audit is stale.')
+  if (!onHit && input.onHitCandidates?.length && isHitPath(input.boundary.d20.resultPath))
+    return holdForOnHitChoice({
+      runtime: input.runtime,
+      occurrenceId: input.occurrenceId,
+      candidates: input.onHitCandidates,
+      twoPhase: input.boundary.twoPhase,
+      execution: input.boundary.execution,
+      testD20: input.boundary.d20,
+      d20: input.boundary.d20Policy,
+      gameSystemId: current.published.gameSystemId,
+      reaction
+    })
 
   const published = outcome.outcome.published
-  const bound = input.adapter.bindFacts({ ...input.binding, published })
+  const bound = input.adapter.bindFacts({
+    ...onHitOutcomeBinding(input.binding, onHit),
+    published
+  })
   const nestedPolicy = nestedOutcomeD20Policy({
     published,
     d20:
@@ -863,6 +983,7 @@ export async function continueNativeActionAfterTest(
     nestedOutcomeD20Evidence: null,
     legendaryResistance: audit,
     reaction,
+    onHit,
     testRollEvidence: {
       requestId: input.boundary.d20.requestId,
       rollMode: input.boundary.d20.rollMode,
@@ -897,6 +1018,7 @@ export async function continueNativeActionAfterTest(
       checksumRuleDocument(pending.twoPhase.legendaryResistance) !==
         checksumRuleDocument(twoPhase.legendaryResistance) ||
       checksumRuleDocument(pending.twoPhase.reaction) !== checksumRuleDocument(twoPhase.reaction) ||
+      checksumRuleDocument(pending.twoPhase.onHit) !== checksumRuleDocument(twoPhase.onHit) ||
       checksumRuleDocument(pending.twoPhase.nestedOutcomeD20) !== checksumRuleDocument(nestedPolicy)
     )
       throw new Error('The native action OUTCOME evidence is stale.')
@@ -1043,6 +1165,11 @@ export async function advanceNativeActionGraphs(input: {
     discover(critical: boolean): Promise<readonly EncounterAttackReactionCandidate[]>
     targetStateChecksum: string
   }
+  /**
+   * The ways the attacker could pay for an optional on-hit rider. Any found holds a hit, once no
+   * reaction is offered, for the attacker's choice before its OUTCOME.
+   */
+  onHitCandidates?: readonly EncounterOnHitCandidate[]
   resume?: { pending: ResumedNativeActionGraphs; resolution: EncounterEvidenceAnswer }
   /**
    * The true and believed sight of an attack roll. Only the room's RESOLVE_ACTION passes it: the
@@ -1237,7 +1364,13 @@ export async function advanceNativeActionGraphs(input: {
         phase: 'TEST',
         execution: pending.twoPhase.testExecution,
         adapter: input.adapter,
-        facts: initialBound.facts,
+        facts: outcomeSelectionFacts({
+          adapter: input.adapter,
+          binding: input.binding,
+          published: initialPublished,
+          testFacts: initialBound.facts,
+          onHit: pending.twoPhase.onHit
+        }),
         ...(pending.twoPhase.legendaryResistance === null
           ? {}
           : {
@@ -1254,7 +1387,10 @@ export async function advanceNativeActionGraphs(input: {
         throw new Error('The action OUTCOME evidence is stale.')
       published = outcome.outcome.published
       outcomeTemplate = outcome.template
-      bound = input.adapter.bindFacts({ ...input.binding, published })
+      bound = input.adapter.bindFacts({
+        ...onHitOutcomeBinding(input.binding, pending.twoPhase.onHit),
+        published
+      })
       phaseReceipts = [receipt]
       twoPhase = pending.twoPhase
       const audit = initialBound.d20Audit
@@ -1407,6 +1543,18 @@ export async function advanceNativeActionGraphs(input: {
         }
       }
     }
+    if (input.onHitCandidates?.length && isHitPath(testD20.resultPath) && twoPhase?.phase === 'TEST')
+      return holdForOnHitChoice({
+        runtime: input.runtime,
+        occurrenceId: input.occurrenceId,
+        candidates: input.onHitCandidates,
+        twoPhase,
+        execution: result,
+        testD20,
+        d20: stage.d20.policy,
+        gameSystemId: initialPublished.gameSystemId,
+        reaction: null
+      })
     const outcome = resolveEncounterActionPhaseExecution({
       plan: input.plan,
       phase: 'TEST',
@@ -1452,6 +1600,7 @@ export async function advanceNativeActionGraphs(input: {
       nestedOutcomeD20Evidence: null,
       legendaryResistance: null,
       reaction: null,
+      onHit: null,
       testRollEvidence: {
         requestId: testD20.requestId,
         rollMode: testD20.rollMode,

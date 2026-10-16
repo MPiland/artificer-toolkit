@@ -9,6 +9,10 @@ import {
   serverRuleExecutionD20PolicyDtoSchema
 } from './ruleExecutionEvidence.js'
 import {
+  encounterOnHitOfferDtoSchema,
+  validateEncounterOnHitOption
+} from './ruleExecutionOnHitChoice.js'
+import {
   encounterReactionOfferDtoSchema,
   validateEncounterReactionPin
 } from './ruleExecutionReactionChoice.js'
@@ -27,15 +31,16 @@ export type EncounterActionHeldD20Dto = {
   gmReason: string | null
 }
 
-export const encounterActionHeldD20DtoSchema: z.ZodMiniType<EncounterActionHeldD20Dto> = lazySchema(() =>
-  z.strictObject({
-    rolledMode: z.literal('NORMAL'),
-    faces: z.tuple([ruleExecutionReceiptD20FaceSchema]),
-    playerCaption: z.nullable(
-      z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160))
-    ),
-    gmReason: z.nullable(z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)))
-  })
+export const encounterActionHeldD20DtoSchema: z.ZodMiniType<EncounterActionHeldD20Dto> = lazySchema(
+  () =>
+    z.strictObject({
+      rolledMode: z.literal('NORMAL'),
+      faces: z.tuple([ruleExecutionReceiptD20FaceSchema]),
+      playerCaption: z.nullable(
+        z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160))
+      ),
+      gmReason: z.nullable(z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)))
+    })
 )
 
 /** Native action ownership; the command JSON is parsed by its owning command schema on every read. */
@@ -70,7 +75,13 @@ export const encounterActionPendingContextDtoSchema = lazySchema(() =>
        * Set while a hit attack waits on its target's reaction decision. The snapshot's continuation is
        * that choice; the TEST stays unsettled until the answer.
        */
-      reactionChoice: z.optional(encounterReactionOfferDtoSchema)
+      reactionChoice: z.optional(encounterReactionOfferDtoSchema),
+      /**
+       * Set while a hit waits on its attacker's choice to add an optional on-hit rider, after any
+       * reaction to the hit has settled. The snapshot's continuation is that choice; the TEST stays
+       * unsettled until the answer.
+       */
+      onHitChoice: z.optional(encounterOnHitOfferDtoSchema)
     })
     .check(
       z.superRefine((value, context) => {
@@ -110,6 +121,27 @@ export const encounterActionPendingContextDtoSchema = lazySchema(() =>
               code: 'custom',
               path: ['reactionChoice'],
               message: 'A reaction offer belongs to a TEST held for the reacting creature.'
+            })
+        }
+        if (value.onHitChoice) {
+          for (const [index, option] of value.onHitChoice.options.entries())
+            validateEncounterOnHitOption(option, value.onHitChoice.testExecutionChecksum, context, [
+              'onHitChoice',
+              'options',
+              index
+            ])
+          if (
+            value.legendaryResistance ||
+            value.reactionChoice ||
+            value.twoPhase?.phase !== 'TEST' ||
+            value.d20Policy !== null ||
+            value.contest ||
+            value.heldD20
+          )
+            context.addIssue({
+              code: 'custom',
+              path: ['onHitChoice'],
+              message: 'An on-hit offer belongs to a TEST held for the attacker.'
             })
         }
         if (value.heldD20 && value.d20Policy === null && !value.contest)

@@ -282,7 +282,11 @@ const actionInvocationFactSchema = lazySchema(() =>
         bonuses: z.array(actionSavingThrowBonusSchema).check(z.maxLength(100))
       })
     ),
-    reactionTrigger: z.nullable(reactionTriggerBindingDtoSchema)
+    reactionTrigger: z.nullable(reactionTriggerBindingDtoSchema),
+    /** The spell levels at which the number of creatures the effect names changes (Magic Missile darts). */
+    targetCountLevels: z.optional(
+      z.array(integerSchema.check(z.positive())).check(z.maxLength(100))
+    )
   })
 )
 
@@ -375,6 +379,9 @@ export const characterResolvedActionMechanicSchema = lazySchema(() =>
         ability: abilityCodeSchema,
         dc: z.nullable(integerSchema)
       })
+    ),
+    targetCountLevels: z.optional(
+      z.array(integerSchema.check(z.positive())).check(z.maxLength(100))
     ),
     outcomes: z
       .array(

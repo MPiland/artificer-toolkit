@@ -44,18 +44,89 @@ export function playerActorHealth(
     case 'BAR': {
       const ratio = maximum <= 0 ? 1 : Math.min(Math.max(current / maximum, 0), 1)
       const steps = Math.round(ratio / HEALTH_BAR_RATIO_STEP)
-      return { level, ratio: Number((steps * HEALTH_BAR_RATIO_STEP).toFixed(2)) }
+      return {
+        level,
+        ratio: Number((steps * HEALTH_BAR_RATIO_STEP).toFixed(2))
+      }
     }
     case 'EXACT':
       return { level, current, maximum }
   }
 }
 
-/** The viewer and each Character actor's player-set level; see `projectPlayerEncounterProjection`. */
-export type EncounterPlayerHealthViewer = {
+/** What the viewer sees of the Encounter; see `projectPlayerEncounterProjection`. */
+export type EncounterPlayerViewer = {
   userId: string
   /** Keyed by Character ID: its player and "Show my health to the party". */
   characters: ReadonlyMap<string, { ownerUserId: string; health: HealthDisplayLevelDto }>
+  /**
+   * Public actors this viewer cannot see (token hidden or in fog, or a creature with no token on the
+   * Encounter's Scene), from `unseenEncounterActorIds` (ATTACK-17.3, D121).
+   */
+  unseenActorIds: ReadonlySet<string>
+}
+
+/** The only label a creature revealed unnamed carries to a player. */
+export const UNSEEN_CREATURE_LABEL = 'Unseen creature'
+
+type ViewedActor = Pick<
+  EncounterGmProjectionDto['actors'][number],
+  'id' | 'kind' | 'sourceId' | 'public' | 'controllerUserIds' | 'reveal'
+>
+
+/**
+ * The one decision, shared by every host, of which actors a non-GM cannot see (D121). An Encounter
+ * with no Scene lists everything. Otherwise an actor is unseen when its token on the Scene is not
+ * drawn for the viewer, or, with no token there, when it is a creature (a party Character without a
+ * token stays listed, and the GM stages creatures off-map by leaving them unbound). The Convex reads
+ * cannot read fog, so they pass `visibleTokenIds: null` and every bound actor is unseen; a host that
+ * can tell passes the tokens the viewer's map draws, which only ever lists more.
+ */
+export function unseenEncounterActorIds(input: {
+  actors: readonly Pick<EncounterGmProjectionDto['actors'][number], 'id' | 'kind'>[]
+  /** The Scene the Encounter is bound to; null when it has none. */
+  sceneId: string | null
+  bindings: readonly { actorId: string; sceneId: string; tokenId: string }[]
+  /** The tokens on `sceneId` the viewer's map draws; null when the host cannot tell. */
+  visibleTokenIds: ReadonlySet<string> | null
+}): ReadonlySet<string> {
+  const { sceneId, bindings, visibleTokenIds } = input
+  if (sceneId === null) return new Set()
+  return new Set(
+    input.actors.flatMap((actor) => {
+      const binding = bindings.find(
+        (candidate) => candidate.actorId === actor.id && candidate.sceneId === sceneId
+      )
+      const unseen = binding
+        ? visibleTokenIds === null || !visibleTokenIds.has(binding.tokenId)
+        : actor.kind !== 'CHARACTER'
+      return unseen ? [actor.id] : []
+    })
+  )
+}
+
+/** Whether the viewer controls the actor: a listed controller, or the player of a Character actor. */
+export function playerControlsActor(actor: ViewedActor, viewer: EncounterPlayerViewer): boolean {
+  return (
+    actor.controllerUserIds.includes(viewer.userId) ||
+    (actor.kind === 'CHARACTER' &&
+      actor.sourceId !== null &&
+      viewer.characters.get(actor.sourceId)?.ownerUserId === viewer.userId)
+  )
+}
+
+/**
+ * The one visibility rule for a player's list, turn and targets (ATTACK-17.3): a public actor that
+ * the viewer's map draws (or that has no token on the Scene), that the viewer controls, or that the
+ * GM revealed.
+ */
+export function playerSeesActor(actor: ViewedActor, viewer: EncounterPlayerViewer): boolean {
+  return (
+    actor.public &&
+    (!viewer.unseenActorIds.has(actor.id) ||
+      actor.reveal !== null ||
+      playerControlsActor(actor, viewer))
+  )
 }
 
 /**
@@ -64,11 +135,16 @@ export type EncounterPlayerHealthViewer = {
  * retaining the intentionally smaller player contract: hidden actors, GM notes,
  * stat blocks and resources stay GM-only. Health follows each actor's display
  * level, and an actor's controllers (Foundry owners) always see its exact health.
+ * A public actor the viewer cannot see and does not control is listed only once the
+ * GM reveals it, and an actor revealed unnamed carries nothing that identifies it.
  */
 export function projectPlayerEncounterProjection(
   encounter: EncounterGmProjectionDto,
-  viewer: EncounterPlayerHealthViewer
+  viewer: EncounterPlayerViewer
 ): EncounterPlayerProjectionDto {
+  const listedCurrentActor = encounter.actors.find(
+    (actor) => actor.id === encounter.currentActorId && playerSeesActor(actor, viewer)
+  )
   return encounterPlayerProjectionDtoSchema.parse({
     id: encounter.id,
     campaignId: encounter.campaignId,
@@ -83,21 +159,35 @@ export function projectPlayerEncounterProjection(
     optionalCombatRules: encounter.optionalCombatRules,
     version: encounter.version,
     round: encounter.round,
-    currentActorId:
-      encounter.currentActorId &&
-      encounter.actors.find((actor) => actor.id === encounter.currentActorId)?.public
-        ? encounter.currentActorId
-        : null,
+    currentActorId: listedCurrentActor?.id ?? null,
     actors: encounter.actors
-      .filter((actor) => actor.public)
+      .filter((actor) => playerSeesActor(actor, viewer))
       .map((actor) => {
         const character =
           actor.kind === 'CHARACTER' && actor.sourceId
             ? viewer.characters.get(actor.sourceId)
             : undefined
-        const controlled =
-          actor.controllerUserIds.includes(viewer.userId) ||
-          character?.ownerUserId === viewer.userId
+        const controlled = playerControlsActor(actor, viewer)
+        if (!controlled && actor.reveal === 'UNNAMED' && viewer.unseenActorIds.has(actor.id))
+          return {
+            id: actor.id,
+            encounterId: actor.encounterId,
+            kind: 'CREATURE' as const,
+            label: UNSEEN_CREATURE_LABEL,
+            sourceId: null,
+            sourceRevision: null,
+            public: true,
+            controllerUserIds: [],
+            disposition: 'NEUTRAL' as const,
+            initiative: actor.initiative,
+            manualOrder: actor.manualOrder,
+            conditions: [],
+            activeGrants: [],
+            concentration: null,
+            defeated: false,
+            outOfInitiative: false,
+            health: null
+          }
         const level: HealthDisplayLevelDto = controlled
           ? 'EXACT'
           : actor.kind === 'CHARACTER'

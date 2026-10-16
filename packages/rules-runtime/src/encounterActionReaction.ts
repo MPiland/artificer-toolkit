@@ -18,9 +18,10 @@ type ActionSource = Omit<
   Parameters<typeof continueNativeActionAfterTest>[0],
   'boundary' | 'effectivePath' | 'legendaryResistance' | 'reaction' | 'resume'
 >
-type RetainedOutcome = Extract<
-  NonNullable<ResumedNativeActionGraphs['twoPhase']>,
-  { phase: 'OUTCOME' }
+/** The decided reaction and the hit it answered, as a paused OUTCOME or a held on-hit offer keeps them. */
+type RetainedOutcome = Pick<
+  Extract<NonNullable<ResumedNativeActionGraphs['twoPhase']>, { phase: 'OUTCOME' }>,
+  'reaction' | 'testExecution' | 'testRollEvidence'
 >
 type CurrentReaction = {
   candidate: EncounterAttackReactionCandidate

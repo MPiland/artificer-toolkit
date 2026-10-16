@@ -262,6 +262,7 @@ export const characterSheetMechanicDtoSchema = lazySchema(() =>
         dc: z.optional(integerSchema)
       })
     ),
+    targetCountLevels: z.optional(z.array(integerSchema.check(z.positive()))),
     outcomes: z.array(characterSheetOutcomeDtoSchema)
   })
 )
