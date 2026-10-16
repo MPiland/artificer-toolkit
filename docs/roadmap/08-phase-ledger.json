@@ -8986,7 +8986,8 @@
                 "rr": 3,
                 "size": 3,
                 "after": ["SPELLS-27.T5"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-27.md"
             },
             {
               "id": "SPELLS-27.T9",
